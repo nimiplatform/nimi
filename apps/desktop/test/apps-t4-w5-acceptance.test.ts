@@ -3,10 +3,8 @@
 // Proves the W5 closed loop against the manual and the T4 acceptance gate:
 //
 //   1. The 12th `status_unavailable` card state is hard-cut. `status()` is
-//      gone from the Desktop card vocabulary; a `status()` failure resolves to
-//      one of the 11 canonical states per the per-reason-code mapping
-//      (`repair_required` default) — P-NAPP-008 / manual line 962 forbid a
-//      collapsed "Unavailable" card.
+//      gone from the Desktop card vocabulary and no longer owns startup
+//      readiness; unified inventory `openReadiness` is the card floor.
 //   2. Registry-only visibility: internal / deferred rows (and any
 //      non-`ordinary-visible` or non-`admitted` workspace) do NOT surface in
 //      the Apps panel before admission (manual lines 880-882, P-NAPP-009,
@@ -31,6 +29,7 @@ import {
   createNimiAppRegistryTransport,
   type NimiAppRegistrySourceRow,
   type NimiAppReleaseDescriptorRow,
+  type NimiAppInventoryEntry,
   type NimiAppRow,
   type NimiAppStatus,
   type NimiAppTransport,
@@ -48,6 +47,7 @@ import {
 import type {
   DesktopAppLifecycleBridge,
   NimiRuntimeAppInstallJob,
+  NimiRuntimeLocalAppAdoption,
   NimiRuntimeAppStorageProjection,
   NimiRuntimeAppUninstallInput,
   NimiRuntimeAppUninstallResult,
@@ -146,7 +146,7 @@ describe('T4-W5 — status_unavailable 12th card state is hard-cut', () => {
     assert.equal(states.size, 3);
   });
 
-  it('projectAppsPanel resolves a status() failure to a canonical card, never status_unavailable', async () => {
+  it('projectAppsPanel keeps the inventory card floor when status refinement fails', async () => {
     const client = makeClient({
       status: () =>
         createNimiError({
@@ -161,7 +161,8 @@ describe('T4-W5 — status_unavailable 12th card state is hard-cut', () => {
     if (projection.status !== 'loaded') return;
     assert.equal(projection.entries.length, 1);
     const entry = projection.entries[0]!;
-    assert.equal(entry.cardState, 'blocked_by_policy');
+    assert.equal(entry.cardState, 'not_installed_installable');
+    assert.match(entry.detail ?? '', /app authorization denied/);
     assert.ok(
       (CANONICAL_APP_CARD_STATES as readonly string[]).includes(entry.cardState),
       'resolved card state must be canonical',
@@ -257,6 +258,17 @@ describe('T4-W5 — uninstall keeps durable app data by default', () => {
     assert.equal(input.destructiveDataDeleteConfirmed, true);
   });
 
+  it('remove_local_adoption removes only the Runtime local link by default', async () => {
+    const { lifecycle, uninstallCalls, removeLocalAdoptionCalls } = recordingLifecycle();
+    await routeCardAction(lifecycle, 'local.notes', 'remove_local_adoption');
+    assert.equal(removeLocalAdoptionCalls.length, 1);
+    assert.deepEqual(removeLocalAdoptionCalls[0], {
+      appId: 'local.notes',
+      deleteDurableDataConfirmed: false,
+    });
+    assert.equal(uninstallCalls.length, 0);
+  });
+
   it('the uninstall result projects release-removed with durable data kept', async () => {
     // The runtime emits `releaseRemoved: true` / `durableDataRemoved: false`
     // for a default uninstall; the desktop bridge projects it unchanged.
@@ -275,11 +287,11 @@ function makeClient(behavior: {
   status?: (appId: string) => NimiAppStatus | Error;
 }): NimiAppClient {
   const transport: NimiAppTransport = {
-    async list(): Promise<readonly NimiAppRow[]> {
-      return [clientRow('nimi.example-app', 'Example App')];
+    async list(): Promise<readonly NimiAppInventoryEntry[]> {
+      return [inventoryEntry(clientRow('nimi.example-app', 'Example App'))];
     },
-    async get(appId: string): Promise<NimiAppRow> {
-      return clientRow(appId, appId);
+    async get(appId: string): Promise<NimiAppInventoryEntry> {
+      return inventoryEntry(clientRow(appId, appId));
     },
     async status(appId: string): Promise<NimiAppStatus> {
       if (behavior.status) {
@@ -305,6 +317,30 @@ function clientRow(appId: string, displayName: string): NimiAppRow {
     releaseDescriptorRef: `${appId}.descriptor`,
     installStoragePolicyRef: 'nimi-data-app-roots',
     sourceRule: 'P-NAPP-004',
+  };
+}
+
+function inventoryEntry(row: NimiAppRow): NimiAppInventoryEntry {
+  return {
+    appId: row.appId,
+    displayName: row.displayName,
+    appKind: row.appKind,
+    publisher: row.publisher,
+    aiProfileSelectionRef: row.aiProfileSelectionRef,
+    releaseDescriptorRef: row.releaseDescriptorRef,
+    installStoragePolicyRef: row.installStoragePolicyRef,
+    trustTier: row.trustTier,
+    capabilitySet: [...row.capabilitySet],
+    sources: {
+      catalog: { status: 'present', value: row },
+      account: { status: 'absent' },
+      local: { status: 'absent' },
+      packageReadiness: { status: 'absent' },
+    },
+    installState: 'not-installed',
+    openReadiness: 'install-required',
+    activeJobs: [],
+    nextActions: ['install'],
   };
 }
 
@@ -398,11 +434,32 @@ function storageProjection(appId = 'nimi.example-app'): NimiRuntimeAppStoragePro
 function recordingLifecycle(): {
   lifecycle: DesktopAppLifecycleBridge;
   uninstallCalls: NimiRuntimeAppUninstallInput[];
+  removeLocalAdoptionCalls: readonly { readonly appId: string; readonly deleteDurableDataConfirmed?: boolean }[];
 } {
   const uninstallCalls: NimiRuntimeAppUninstallInput[] = [];
+  const removeLocalAdoptionCalls: Array<{ readonly appId: string; readonly deleteDurableDataConfirmed?: boolean }> = [];
   const lifecycle: DesktopAppLifecycleBridge = {
     async install() {
       return uninstallJob();
+    },
+    async adoptLocal() {
+      throw new Error('unexpected adoptLocal');
+    },
+    async removeLocalAdoption(input): Promise<NimiRuntimeLocalAppAdoption> {
+      removeLocalAdoptionCalls.push(input);
+      return {
+        appId: input.appId,
+        rootPath: `/local/${input.appId}`,
+        manifestPath: `/local/${input.appId}/nimi.app.yaml`,
+        displayName: input.appId,
+        version: '1.0.0',
+        entryRef: `app://${input.appId}/main`,
+        permissionScopeRef: `permission-scope:${input.appId}`,
+        storagePolicyRef: `storage-policy:${input.appId}`,
+        state: 'removed',
+        trust: 'explicit-local',
+        reasonCode: ReasonCode.ACTION_EXECUTED,
+      };
     },
     async uninstall(input): Promise<NimiRuntimeAppUninstallResult> {
       uninstallCalls.push(input);
@@ -417,13 +474,17 @@ function recordingLifecycle(): {
     async getJob() {
       return uninstallJob();
     },
-    async listJobs() {
+    async listJobs(appId: string) {
+      assert.equal(typeof appId, 'string');
+      assert.notEqual(appId.trim(), '');
       return [];
     },
     async storage(input) {
       return storageProjection(input.appId);
     },
-    async watchJobEvents() {
+    async watchJobEvents(input) {
+      assert.equal(typeof input.jobId, 'string');
+      assert.notEqual(input.jobId.trim(), '');
       return {
         async *[Symbol.asyncIterator]() {
           /* no frames */
@@ -448,5 +509,5 @@ function recordingLifecycle(): {
       };
     },
   };
-  return { lifecycle, uninstallCalls };
+  return { lifecycle, uninstallCalls, removeLocalAdoptionCalls };
 }

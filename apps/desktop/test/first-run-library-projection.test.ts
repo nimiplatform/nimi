@@ -3,6 +3,7 @@ import { describe, it } from 'node:test';
 import { projectLibrary } from '../src/shell/renderer/first-run/library-projection.js';
 import type {
   NimiAppClient,
+  NimiAppInventoryEntry,
   NimiAppRow,
   NimiAppStatus,
   NimiAppTransport,
@@ -10,7 +11,7 @@ import type {
 import { NimiAppClient as NimiAppClientCtor } from '@nimiplatform/sdk/app';
 
 function makeClient(behavior: {
-  list?: readonly NimiAppRow[] | Error;
+  list?: readonly NimiAppInventoryEntry[] | Error;
   status?: (appId: string) => NimiAppStatus | Error;
 } = {}): NimiAppClient {
   const transport: NimiAppTransport = {
@@ -18,7 +19,7 @@ function makeClient(behavior: {
       if (behavior.list instanceof Error) throw behavior.list;
       if (behavior.list !== undefined) return behavior.list;
       return [
-        buildRow('example-app', 'Example App'),
+        inventoryEntry(buildRow('example-app', 'Example App')),
       ];
     },
     async get(appId: string) {
@@ -54,6 +55,30 @@ function buildRow(appId: string, displayName: string): NimiAppRow {
   };
 }
 
+function inventoryEntry(row: NimiAppRow): NimiAppInventoryEntry {
+  return {
+    appId: row.appId,
+    displayName: row.displayName,
+    appKind: row.appKind,
+    publisher: row.publisher,
+    aiProfileSelectionRef: row.aiProfileSelectionRef,
+    releaseDescriptorRef: row.releaseDescriptorRef,
+    installStoragePolicyRef: row.installStoragePolicyRef,
+    trustTier: row.trustTier,
+    capabilitySet: [...row.capabilitySet],
+    sources: {
+      catalog: { status: 'present', value: row },
+      account: { status: 'absent' },
+      local: { status: 'absent' },
+      packageReadiness: { status: 'absent' },
+    },
+    installState: 'not-installed',
+    openReadiness: 'install-required',
+    activeJobs: [],
+    nextActions: ['install'],
+  };
+}
+
 describe('projectLibrary', () => {
   it('returns loaded with one entry per registry row', async () => {
     const projection = await projectLibrary(makeClient());
@@ -76,8 +101,8 @@ describe('projectLibrary', () => {
   it('captures per-app status errors per entry, does not collapse the projection', async () => {
     const client = makeClient({
       list: [
-        buildRow('avatar', 'Avatar'),
-        buildRow('example-app', 'Example App'),
+        inventoryEntry(buildRow('avatar', 'Avatar')),
+        inventoryEntry(buildRow('example-app', 'Example App')),
       ],
       status: (id) => (id === 'example-app' ? new Error('status boom') : { appId: id, launchReadiness: 'ready' as const }),
     });

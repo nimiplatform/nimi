@@ -11,8 +11,16 @@
 import type { ReactElement, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, OverlayShell } from '@nimiplatform/kit/ui';
+import type {
+  NimiAppInventoryInstallState,
+  NimiAppInventorySource,
+  NimiAppInventorySourceStatus,
+  NimiAppInventorySources,
+  NimiAppInventoryTrustTier,
+  NimiAppOpenReadiness,
+} from '@nimiplatform/sdk/app';
 import {
-  actionPlanForCardState,
+  actionPlanForInventoryEntry,
   type AppCardActionId,
 } from './apps-card-actions.js';
 import { postureForCardState } from './apps-card-state.js';
@@ -22,6 +30,45 @@ import {
   deriveVersionState,
 } from './apps-card-fields.js';
 import type { DesktopAppsEntry } from './apps-panel-projection.js';
+
+type InventorySourceKey = 'catalog' | 'account' | 'local';
+
+const INVENTORY_SOURCE_KEYS: readonly InventorySourceKey[] = ['catalog', 'account', 'local'];
+
+const SOURCE_LABEL_KEYS: Record<InventorySourceKey, string> = {
+  catalog: 'Apps.source.catalog',
+  account: 'Apps.source.account',
+  local: 'Apps.source.local',
+};
+
+const SOURCE_STATUS_LABEL_KEYS: Record<NimiAppInventorySourceStatus, string> = {
+  present: 'Apps.sourceStatus.present',
+  absent: 'Apps.sourceStatus.absent',
+  degraded: 'Apps.sourceStatus.degraded',
+};
+
+const OPEN_READINESS_LABEL_KEYS: Record<NimiAppOpenReadiness, string> = {
+  ready: 'Apps.openReadiness.ready',
+  'install-required': 'Apps.openReadiness.installRequired',
+  'update-required': 'Apps.openReadiness.updateRequired',
+  'repair-required': 'Apps.openReadiness.repairRequired',
+  'permission-required': 'Apps.openReadiness.permissionRequired',
+  'blocked-by-master-gate': 'Apps.openReadiness.blockedByMasterGate',
+  unsupported: 'Apps.openReadiness.unsupported',
+  'sign-in-required': 'Apps.openReadiness.signInRequired',
+  'connect-required': 'Apps.openReadiness.connectRequired',
+};
+
+const INSTALL_STATE_LABEL_KEYS: Record<NimiAppInventoryInstallState, string> = {
+  'not-installed': 'Apps.installState.notInstalled',
+  installed: 'Apps.installState.installed',
+  'adopted-local': 'Apps.installState.adoptedLocal',
+  installing: 'Apps.installState.installing',
+  updating: 'Apps.installState.updating',
+  'repair-required': 'Apps.installState.repairRequired',
+  removed: 'Apps.installState.removed',
+  unknown: 'Apps.installState.unknown',
+};
 
 export interface AppsDetailViewProps {
   /** The entry to detail, or `null` to close the overlay. */
@@ -49,10 +96,10 @@ export function AppsDetailView({
   const requirements = deriveRequirementSummary(entry);
   const storageRoots = status?.storageRoots;
 
-  // The card state is always one of the 11 canonical states (the 12th
-  // `status_unavailable` bucket was hard-cut in T4-W5).
-  const plan = actionPlanForCardState(cardState);
-  const disabled = postureForCardState(cardState) === 'disabled';
+  const plan = actionPlanForInventoryEntry({
+    nextActions: app.nextActions,
+    cardState,
+  });
 
   return (
     <OverlayShell
@@ -73,7 +120,7 @@ export function AppsDetailView({
             <Button
               data-testid={`apps-detail-action-${plan.primary.id}`}
               tone={plan.primary.destructive ? 'danger' : 'primary'}
-              disabled={disabled}
+              disabled={isDetailActionDisabled(cardState, plan.primary.id)}
               onClick={() => onCardAction(app.appId, plan.primary!.id)}
             >
               {t(`Apps.action.${actionLabelKey(plan.primary.id)}`)}
@@ -86,7 +133,7 @@ export function AppsDetailView({
                 key={secondary.id}
                 data-testid={`apps-detail-action-${secondary.id}`}
                 tone={secondary.destructive ? 'danger' : 'ghost'}
-                disabled={disabled && !secondary.destructive}
+                disabled={isDetailActionDisabled(cardState, secondary.id)}
                 onClick={() => onCardAction(app.appId, secondary.id)}
               >
                 {t(`Apps.action.${actionLabelKey(secondary.id)}`)}
@@ -99,11 +146,15 @@ export function AppsDetailView({
       }
     >
       <div data-testid="apps-detail-body" className="flex flex-col gap-4 text-sm">
-        <DetailRow label={t('Apps.detail.publisher')} value={app.publisher} />
+        <DetailRow label={t('Apps.detail.publisher')} value={app.publisher ?? 'Local'} />
         <DetailRow label={t('Apps.detail.trustTier')} value={t(trustTierLabelKey(app.trustTier))} />
         <DetailRow
           label={t('Apps.detail.installState')}
-          value={t(cardStateLabelKey(cardState))}
+          value={t(INSTALL_STATE_LABEL_KEYS[app.installState])}
+        />
+        <DetailRow
+          label={t('Apps.detail.openReadiness')}
+          value={t(OPEN_READINESS_LABEL_KEYS[app.openReadiness])}
         />
         <DetailRow
           label={t('Apps.detail.versionState')}
@@ -114,6 +165,7 @@ export function AppsDetailView({
               : t('Apps.version.notInstalled')
           }
         />
+        <DetailSourceRows sources={app.sources} />
 
         <div data-testid="apps-detail-requirements" className="flex flex-col gap-1">
           <span className="text-xs font-semibold uppercase text-[color:var(--nimi-text-muted)]">
@@ -172,19 +224,100 @@ function DetailRow({ label, value }: { label: string; value: string }): ReactEle
   );
 }
 
-function trustTierLabelKey(tier: string): string {
+function DetailSourceRows(props: { readonly sources: NimiAppInventorySources }): ReactElement {
+  const { t } = useTranslation();
+  const degraded = INVENTORY_SOURCE_KEYS
+    .map((sourceKey) => ({ sourceKey, source: props.sources[sourceKey] }))
+    .filter((item) => item.source.status === 'degraded');
+  return (
+    <div data-testid="apps-detail-sources" className="flex flex-col gap-1">
+      <span className="text-xs font-semibold uppercase text-[color:var(--nimi-text-muted)]">
+        {t('Apps.detail.sources')}
+      </span>
+      <div className="flex flex-wrap gap-1.5">
+        {INVENTORY_SOURCE_KEYS.map((sourceKey) => {
+          const source = props.sources[sourceKey];
+          return (
+            <span
+              key={sourceKey}
+              data-testid={`apps-detail-source-${sourceKey}`}
+              data-source-status={source.status}
+              className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${sourceStatusTone(source.status)}`}
+              title={sourceTooltip(source)}
+            >
+              {t(SOURCE_LABEL_KEYS[sourceKey])}
+              <span className="ml-1 opacity-80">{t(SOURCE_STATUS_LABEL_KEYS[source.status])}</span>
+            </span>
+          );
+        })}
+      </div>
+      {degraded.length > 0 ? (
+        <ul className="flex flex-col gap-1 text-xs text-[var(--nimi-status-warning)]">
+          {degraded.map(({ sourceKey, source }) => (
+            <li key={sourceKey} data-testid={`apps-detail-source-${sourceKey}-degraded`}>
+              {t('Apps.sourceDegradedDetail', {
+                source: t(SOURCE_LABEL_KEYS[sourceKey]),
+                reasonCode: source.reasonCode ?? 'UNKNOWN',
+                detail: source.detail ?? '',
+              })}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
+
+function sourceTooltip(source: NimiAppInventorySource<unknown>): string | undefined {
+  if (source.status !== 'degraded') {
+    return undefined;
+  }
+  const reason = source.reasonCode ?? 'UNKNOWN';
+  return source.detail ? `${reason}: ${source.detail}` : reason;
+}
+
+function sourceStatusTone(status: NimiAppInventorySourceStatus): string {
+  switch (status) {
+    case 'present':
+      return 'bg-[color-mix(in_srgb,var(--nimi-status-success)_12%,transparent)] text-[var(--nimi-status-success)]';
+    case 'degraded':
+      return 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_14%,transparent)] text-[var(--nimi-status-warning)]';
+    case 'absent':
+      return 'bg-[color-mix(in_srgb,var(--nimi-text-muted)_8%,transparent)] text-[color:var(--nimi-text-muted)]';
+    default: {
+      const exhaustive: never = status;
+      return exhaustive;
+    }
+  }
+}
+
+function trustTierLabelKey(tier: NimiAppInventoryTrustTier): string {
   switch (tier) {
     case 'nimi-first-party':
       return 'Apps.trustTier.firstParty';
     case 'nimi-verified-partner':
       return 'Apps.trustTier.verifiedPartner';
-    default:
+    case 'nimi-community':
       return 'Apps.trustTier.community';
+    case 'local-explicit':
+      return 'Apps.trustTier.localExplicit';
+    case 'local-developer':
+      return 'Apps.trustTier.localDeveloper';
+    case 'unknown':
+      return 'Apps.trustTier.unknown';
+    default:
+      return 'Apps.trustTier.unknown';
   }
 }
 
-function cardStateLabelKey(state: string): string {
-  return `Apps.state.${camelCase(state)}`;
+function isDetailActionDisabled(cardState: DesktopAppsEntry['cardState'], actionId: AppCardActionId): boolean {
+  if (postureForCardState(cardState) !== 'disabled') {
+    return false;
+  }
+  return actionId !== 'details'
+    && actionId !== 'sign_in'
+    && actionId !== 'connect_local'
+    && actionId !== 'remove_local_adoption';
 }
 
 function actionLabelKey(action: AppCardActionId): string {

@@ -1,5 +1,5 @@
 import type { NimiAICapabilityRequirementDeclaration } from '@nimiplatform/sdk/ai';
-import type { NimiAppClient, NimiAppRow } from '@nimiplatform/sdk/app';
+import type { NimiAppClient, NimiAppInventoryEntry } from '@nimiplatform/sdk/app';
 import { createNimiError, ReasonCode, type JsonObject, type NimiError } from '@nimiplatform/sdk/types';
 import {
   ensureAppFirstLaunchAIConfig,
@@ -50,10 +50,21 @@ async function ensureAppOpenAIConfigOnce(
   }
 
   const row = await deps.appClient.get(appId);
+  const recommendedProfileRef = typeof row.aiProfileSelectionRef === 'string'
+    ? row.aiProfileSelectionRef.trim()
+    : '';
+  if (!recommendedProfileRef) {
+    throw appAIConfigGateError({
+      reasonCode: 'SDK_APP_AI_CONFIG_PROFILE_REF_MISSING',
+      message: `Nimi App "${appId}" cannot open because its AI profile selection ref is missing`,
+      actionHint: 'fix_app_inventory_catalog_source',
+      details: { appId },
+    });
+  }
   const ensureAIConfig = deps.ensureAIConfig ?? ensureAppFirstLaunchAIConfig;
   const result = await ensureAIConfig({
     appId,
-    recommendedProfileRef: row.aiProfileSelectionRef,
+    recommendedProfileRef,
     requirementDeclarations: appAIConfigRequirementDeclarations(row),
   });
 
@@ -66,7 +77,7 @@ async function ensureAppOpenAIConfigOnce(
 }
 
 export function appAIConfigRequirementDeclarations(
-  row: Pick<NimiAppRow, 'appId' | 'capabilitySet'>,
+  row: Pick<NimiAppInventoryEntry, 'appId' | 'capabilitySet'>,
 ): readonly NimiAICapabilityRequirementDeclaration[] {
   const appId = normalizeAppId(row.appId);
   const capabilities = normalizeCapabilitySet(row.capabilitySet, appId);
@@ -125,7 +136,7 @@ function normalizeCapabilitySet(capabilitySet: readonly string[], appId: string)
 }
 
 function setupRequiredError(
-  row: NimiAppRow,
+  row: Pick<NimiAppInventoryEntry, 'appId'>,
   profileId: string,
   profileSource: string,
   setupRepairPlan: {

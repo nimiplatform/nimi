@@ -28,6 +28,22 @@ export function createDesktopAppsLiveBridge(): DesktopAppsLiveBridge {
     appClient: new NimiAppClient(createNimiAppRegistryTransport({
       loadRows: async () => (await loadProjection()).registryRows,
       loadReleaseDescriptors: async () => (await loadProjection()).releaseDescriptors,
+      loadAccountInventory: async () => getDesktopRuntime().appLifecycle.accountInventory({
+        timeoutMs: 20_000,
+        metadata: {
+          callerKind: 'desktop-core',
+          callerId: 'desktop.apps.account-inventory',
+          surfaceId: 'desktop.apps',
+        },
+      }),
+      loadLocalAdoptions: async () => getDesktopRuntime().appLifecycle.listLocalAdoptions({
+        timeoutMs: 20_000,
+        metadata: {
+          callerKind: 'desktop-core',
+          callerId: 'desktop.apps.local-adoptions',
+          surfaceId: 'desktop.apps',
+        },
+      }),
       loadPackageReadiness: async (appId) => getDesktopRuntime().appLifecycle.packageReadiness(
         { appId },
         {
@@ -35,6 +51,17 @@ export function createDesktopAppsLiveBridge(): DesktopAppsLiveBridge {
           metadata: {
             callerKind: 'desktop-core',
             callerId: 'desktop.apps.status',
+            surfaceId: 'desktop.apps',
+          },
+        },
+      ),
+      loadActiveJobs: async (appId) => getDesktopRuntime().appLifecycle.listJobs(
+        { appId },
+        {
+          timeoutMs: 20_000,
+          metadata: {
+            callerKind: 'desktop-core',
+            callerId: 'desktop.apps.jobs',
             surfaceId: 'desktop.apps',
           },
         },

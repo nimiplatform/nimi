@@ -9,6 +9,7 @@
 //
 // Authority: `.nimi/spec/desktop/kernel/nimi-home-shell-contract.md` D-HOME-005.
 
+import type { NimiAppInventoryNextAction } from '@nimiplatform/sdk/app';
 import type { CanonicalAppCardState } from './apps-card-state.js';
 
 /**
@@ -19,11 +20,14 @@ import type { CanonicalAppCardState } from './apps-card-state.js';
 export type AppCardActionId =
   | 'install'
   | 'open'
+  | 'connect_local'
   | 'update'
   | 'repair'
   | 'retry'
   | 'cancel'
   | 'uninstall'
+  | 'remove_local_adoption'
+  | 'sign_in'
   | 'delete_app_data'
   | 'review_permissions'
   | 'details';
@@ -52,6 +56,30 @@ function action(id: AppCardActionId, destructive = false): AppCardAction {
 }
 
 const DETAILS = action('details');
+
+const NEXT_ACTION_MAP: Record<NimiAppInventoryNextAction, AppCardActionId> = {
+  install: 'install',
+  open: 'open',
+  'connect-local': 'connect_local',
+  'review-permissions': 'review_permissions',
+  repair: 'repair',
+  update: 'update',
+  uninstall: 'uninstall',
+  'remove-local-adoption': 'remove_local_adoption',
+  'sign-in': 'sign_in',
+};
+
+const PRIMARY_ACTION_ORDER: readonly AppCardActionId[] = [
+  'open',
+  'install',
+  'connect_local',
+  'sign_in',
+  'update',
+  'repair',
+  'review_permissions',
+  'retry',
+  'cancel',
+];
 
 /**
  * The verbatim per-state action plan. Sources, by state:
@@ -126,4 +154,48 @@ const ACTION_PLANS: Record<CanonicalAppCardState, AppCardActionPlan> = {
 /** Resolve the primary + secondary action plan for a card state. */
 export function actionPlanForCardState(state: CanonicalAppCardState): AppCardActionPlan {
   return ACTION_PLANS[state];
+}
+
+export function actionPlanForInventoryEntry(input: {
+  readonly nextActions: readonly NimiAppInventoryNextAction[];
+  readonly cardState: CanonicalAppCardState;
+}): AppCardActionPlan {
+  const mapped = mapInventoryActions(input.nextActions);
+  if (mapped.length === 0) {
+    return ACTION_PLANS[input.cardState];
+  }
+
+  const primaryId = PRIMARY_ACTION_ORDER.find((candidate) => mapped.includes(candidate)) ?? null;
+  const secondaryIds = mapped.filter((candidate) => candidate !== primaryId);
+  if (!secondaryIds.includes('details')) {
+    secondaryIds.unshift('details');
+  }
+  if (
+    input.cardState === 'installed_ready'
+    && mapped.includes('uninstall')
+    && !secondaryIds.includes('delete_app_data')
+  ) {
+    secondaryIds.push('delete_app_data');
+  }
+
+  return {
+    primary: primaryId ? actionForId(primaryId) : null,
+    secondary: secondaryIds.map((id) => actionForId(id)),
+  };
+}
+
+function mapInventoryActions(nextActions: readonly NimiAppInventoryNextAction[]): AppCardActionId[] {
+  const seen = new Set<AppCardActionId>();
+  const result: AppCardActionId[] = [];
+  for (const nextAction of nextActions) {
+    const mapped = NEXT_ACTION_MAP[nextAction];
+    if (!mapped || seen.has(mapped)) continue;
+    seen.add(mapped);
+    result.push(mapped);
+  }
+  return result;
+}
+
+function actionForId(id: AppCardActionId): AppCardAction {
+  return action(id, id === 'delete_app_data');
 }

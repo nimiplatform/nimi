@@ -37,7 +37,6 @@ test('audited AI/profile/account/auth files do not forward SDK or Kit owner symb
   const forwardingPattern = /export\s+(?:type\s+)?\{[\s\S]*?\}\s+from\s+['"]@nimiplatform\/(?:sdk|kit)(?:\/[^'"]*)?['"]/g;
   const auditedFiles = [
     'shell/renderer/features/chat/conversation-capability.ts',
-    'shell/renderer/bridge/runtime-bridge/account-app-library.ts',
     'shell/renderer/bridge/runtime-bridge/account-profile-library.ts',
     'shell/renderer/features/runtime-config/runtime-config-profile-library.ts',
     'shell/renderer/features/auth/web-auth-menu.tsx',

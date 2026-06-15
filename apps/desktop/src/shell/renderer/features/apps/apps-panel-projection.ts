@@ -1,26 +1,25 @@
 // Desktop Apps panel projection (T4-W4, status-failure hard-cut T4-W5).
 //
 // Composes the Apps card grid from three typed projections:
-//   1. the Nimi App registry read-projection (`NimiAppClient.list`/`.status`)
+//   1. the Nimi App unified inventory projection (`NimiAppClient.list`)
 //   2. the live runtime `NimiRuntimeAppInstallJob` lifecycle projection
 //      (`DesktopAppLifecycleBridge.listJobs`)
 //   3. the card-state derivation (`deriveAppCardState`) that composes the SDK
-//      `AppLaunchReadiness` floor WITH the live job.
+//      inventory-derived `AppLaunchReadiness` floor WITH the live job.
 //
 // The renderer owns no parallel job/registry truth: every card field is read
 // from an already-typed SDK projection. A missing/failed registry projection
 // fails the whole panel closed.
 //
-// W5 hard-cut: there is no longer a 12th `status_unavailable` card state. A
-// per-app `client.status()` failure resolves to one of the 11 canonical
-// product card states via `resolveAppStatusFailure` (per-reason-code mapping,
-// `repair_required` default) — D-HOME-005 and P-NAPP-008 forbid collapsing
-// distinct failures into a single "Unavailable" card.
+// Hard-cut: `client.status()` is no longer startup readiness authority. It may
+// refine version/detail/package-health fields only; `app.openReadiness` from
+// the unified inventory projection is the only launch readiness floor.
 
 import type {
   AppLaunchReadiness,
   NimiAppClient,
-  NimiAppRow,
+  NimiAppInventoryEntry,
+  NimiAppOpenReadiness,
   NimiAppStorageRoots,
   NimiAppStatus,
 } from '@nimiplatform/sdk/app';
@@ -31,16 +30,13 @@ import {
   selectLatestJobForApp,
   type CanonicalAppCardState,
 } from './apps-card-state.js';
-import { resolveAppStatusFailure } from './apps-status-failure.js';
 import type { DesktopAppLifecycleBridge, NimiRuntimeAppInstallJob } from './apps-lifecycle-bridge.js';
 
 /**
  * The full Desktop Apps card-state vocabulary: the 11 canonical product states
- * — exactly the canonical set, with no 12th value.
- *
- * The historical `status_unavailable` bucket was hard-cut in T4-W5: a
- * `status()` failure now resolves through `resolveAppStatusFailure` to one of
- * these 11 canonical states.
+ * — exactly the canonical set, with no 12th value. The historical
+ * `status_unavailable` bucket stays hard-cut, but `status()` no longer decides
+ * the card readiness floor.
  */
 export const DESKTOP_APPS_CARD_STATES = CANONICAL_APP_CARD_STATES;
 
@@ -53,7 +49,7 @@ export type DesktopAppsCardState = CanonicalAppCardState;
  * `install_failed` error detail.
  */
 export interface DesktopAppsEntry {
-  readonly app: NimiAppRow;
+  readonly app: NimiAppInventoryEntry;
   readonly status?: NimiAppStatus;
   readonly job?: NimiRuntimeAppInstallJob;
   readonly cardState: DesktopAppsCardState;
@@ -67,14 +63,15 @@ export type DesktopAppsPanelProjection =
 /**
  * Project the Apps panel.
  *
- * `client` is the read-projection floor. `lifecycle` is the W2d lifecycle
- * bridge — its `listJobs()` supplies the live `NimiRuntimeAppInstallJob`
- * projection that the card-state derivation composes with the readiness floor.
+ * `client.list()` is the unified inventory floor. `lifecycle` is the W2d
+ * lifecycle bridge — its per-app `listJobs(appId)` supplies the live
+ * `NimiRuntimeAppInstallJob` projection that the card-state derivation composes
+ * with the inventory readiness floor.
  * `lifecycle` is optional so the first-paint can render the floor-only card
  * states before the job projection resolves; when omitted, the four
- * job-dependent states (`installing`/`update_available` refinement keeps
- * working from `status`, but `installing`/`uninstalling`/`install_failed`)
- * simply do not appear until a job projection is supplied.
+ * job-dependent states (`installing`/`uninstalling`/`install_failed`) simply do
+ * not appear until a job projection is supplied. `update_available` may still
+ * refine from `status()` version detail, but readiness never does.
  */
 export async function projectAppsPanel(
   client: NimiAppClient,
@@ -84,44 +81,35 @@ export async function projectAppsPanel(
     return { status: 'error', detail: 'projectAppsPanel: nimiAppClient is required' };
   }
 
-  let rows: readonly NimiAppRow[];
+  let inventory: readonly NimiAppInventoryEntry[];
   try {
-    rows = await client.list();
+    inventory = await client.list();
   } catch (error) {
     return { status: 'error', detail: `list failed: ${errorMessage(error)}` };
   }
 
-  // The live lifecycle job projection. A failure here fails the panel closed
-  // rather than silently dropping the job-dependent card states: the panel
-  // must not render `installed_ready` for an app that is in fact mid-install.
-  let jobs: readonly NimiRuntimeAppInstallJob[] = [];
-  if (lifecycle) {
-    try {
-      jobs = await lifecycle.listJobs();
-    } catch (error) {
-      return { status: 'error', detail: `lifecycle job projection failed: ${errorMessage(error)}` };
-    }
-  }
-
   const entries: DesktopAppsEntry[] = [];
-  for (const app of rows) {
-    let status: NimiAppStatus;
-    try {
-      status = await client.status(app.appId);
-    } catch (error) {
-      // W5 hard-cut: a `status()` failure resolves to one of the 11 canonical
-      // card states via the per-reason-code mapping (`repair_required`
-      // default). Never a dropped row, never a 12th bucket, never a collapsed
-      // "Unavailable" — the detail carries the exact typed failure.
-      const resolution = resolveAppStatusFailure(error);
-      entries.push({
-        app,
-        cardState: resolution.cardState,
-        detail: resolution.detail,
-      });
-      continue;
+  for (const app of inventory) {
+    let status = statusFromInventory(app);
+    if (app.sources.catalog.status !== 'absent') {
+      try {
+        status = mergeInventoryStatusWithPackageRefinement(status, await client.status(app.appId));
+      } catch (error) {
+        status = {
+          ...status,
+          detail: status.detail || `status refinement failed: ${errorMessage(error)}`,
+        };
+      }
     }
 
+    let jobs: readonly NimiRuntimeAppInstallJob[] = [];
+    if (lifecycle) {
+      try {
+        jobs = await lifecycle.listJobs(app.appId);
+      } catch (error) {
+        return { status: 'error', detail: `lifecycle job projection failed for ${app.appId}: ${errorMessage(error)}` };
+      }
+    }
     const job = selectLatestJobForApp(app.appId, jobs);
     let storageRoots: NimiAppStorageRoots | undefined;
     if (lifecycle) {
@@ -134,8 +122,9 @@ export async function projectAppsPanel(
     const statusWithRuntimeStorage = storageRoots
       ? { ...status, storageRoots }
       : status;
+    const readiness = launchReadinessFromInventory(app.openReadiness);
     const cardState = deriveAppCardState({
-      readiness: statusWithRuntimeStorage.launchReadiness,
+      readiness,
       status: statusWithRuntimeStorage,
       job,
     });
@@ -170,10 +159,10 @@ async function resolveRuntimeStatusStorageRoots(
 }
 
 /**
- * Legacy readiness-floor → card-state map.
+ * Readiness-floor → card-state map.
  *
- * Retained as a thin delegate over the W4 derivation so existing callers and
- * tests keep a stable name. It maps the readiness floor with NO live job and
+ * Kept as a thin delegate over the W4 derivation so callers and tests share the
+ * same card-state mapping. It maps the readiness floor with NO live job and
  * NO status refinement — i.e. it can only ever produce the 7 floor-reachable
  * states. The four job-dependent states (`installing`, `update_available`,
  * `install_failed`, `uninstalling`) require `deriveAppCardState` with a live
@@ -187,6 +176,55 @@ export function mapLaunchReadinessToAppsCardState(
     status: { appId: '', launchReadiness: readiness },
     job: undefined,
   });
+}
+
+function statusFromInventory(app: NimiAppInventoryEntry): NimiAppStatus {
+  const packageReadiness = app.sources.packageReadiness.value;
+  return {
+    appId: app.appId,
+    launchReadiness: launchReadinessFromInventory(app.openReadiness),
+    ...(app.releaseDescriptorRef ? { releaseDescriptorRef: app.releaseDescriptorRef } : {}),
+    ...(app.installStoragePolicyRef ? { installStoragePolicyRef: app.installStoragePolicyRef } : {}),
+    ...(packageReadiness?.verificationState ? { verificationState: packageReadiness.verificationState as NimiAppStatus['verificationState'] } : {}),
+    ...(packageReadiness?.installedVersion ? { installedVersion: packageReadiness.installedVersion } : {}),
+    ...(packageReadiness?.expectedVersion ? { availableVersion: packageReadiness.expectedVersion } : {}),
+    ...(app.detail ? { detail: app.detail } : {}),
+  };
+}
+
+function mergeInventoryStatusWithPackageRefinement(
+  inventoryStatus: NimiAppStatus,
+  refinement: NimiAppStatus,
+): NimiAppStatus {
+  return {
+    ...refinement,
+    appId: inventoryStatus.appId,
+    launchReadiness: inventoryStatus.launchReadiness,
+    ...(inventoryStatus.releaseDescriptorRef ? { releaseDescriptorRef: inventoryStatus.releaseDescriptorRef } : {}),
+    ...(inventoryStatus.installStoragePolicyRef ? { installStoragePolicyRef: inventoryStatus.installStoragePolicyRef } : {}),
+    ...(inventoryStatus.detail ? { detail: inventoryStatus.detail } : refinement.detail ? { detail: refinement.detail } : {}),
+  };
+}
+
+function launchReadinessFromInventory(readiness: NimiAppOpenReadiness): AppLaunchReadiness {
+  switch (readiness) {
+    case 'ready':
+    case 'install-required':
+    case 'update-required':
+    case 'repair-required':
+    case 'permission-required':
+    case 'blocked-by-master-gate':
+    case 'unsupported':
+      return readiness;
+    case 'sign-in-required':
+      return 'blocked-by-master-gate';
+    case 'connect-required':
+      return 'install-required';
+    default: {
+      const exhaustive: never = readiness;
+      throw new Error(`unhandled NimiAppOpenReadiness: ${String(exhaustive)}`);
+    }
+  }
 }
 
 function errorMessage(error: unknown): string {

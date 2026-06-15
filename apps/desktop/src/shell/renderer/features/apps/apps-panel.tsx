@@ -1,5 +1,6 @@
 import type { ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { ConfirmDialog, ScrollArea, Surface } from '@nimiplatform/kit/ui';
 import { useAppsPanelController } from './apps-panel-controller.js';
 import { AppsAIProfileSection } from './apps-ai-profile-section.js';
@@ -17,7 +18,12 @@ function LoadingAppsProjection(): ReactElement {
 
 export function AppsPanel(): ReactElement {
   const { t } = useTranslation();
-  const controller = useAppsPanelController();
+  const navigate = useNavigate();
+  const controller = useAppsPanelController({
+    requestSignIn: () => {
+      navigate('/login', { replace: false });
+    },
+  });
   const {
     projection,
     detailAppId,
@@ -29,6 +35,7 @@ export function AppsPanel(): ReactElement {
     confirmPending,
     dismissPending,
     closeDetail,
+    connectLocalApp,
   } = controller;
 
   const detailEntry =
@@ -55,6 +62,7 @@ export function AppsPanel(): ReactElement {
             <AppsPanelView
               projection={projection}
               onCardAction={runCardAction}
+              onConnectLocalApp={connectLocalApp}
               busyAppId={busyAppId}
               actionError={actionError}
             />

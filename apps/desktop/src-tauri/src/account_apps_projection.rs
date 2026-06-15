@@ -12,8 +12,8 @@
 //! account id is percent-encoded into the directory segment, mirroring the
 //! Account Default Profile library encoding (`account_profile_library.rs`).
 //!
-//! Runtime app lifecycle owns account app-library reads/writes. Desktop consumes
-//! that projection through Runtime RPC and keeps only the permission/grant
+//! Runtime app lifecycle owns account app-inventory reads/writes. Desktop consumes
+//! that inventory through Runtime RPC and keeps only the permission/grant
 //! projection reader here; it never mints, refreshes, revokes, or persists grant
 //! truth.
 

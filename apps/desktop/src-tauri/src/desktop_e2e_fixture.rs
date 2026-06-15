@@ -328,7 +328,7 @@ mod enabled {
         ))
     }
 
-    fn runtime_account_app_library_response(
+    fn runtime_account_app_inventory_response(
         projection: Option<runtime_bridge_generated::AccountProjection>,
     ) -> Result<RuntimeBridgeUnaryResult, String> {
         let Some(projection) = projection else {
@@ -338,17 +338,52 @@ mod enabled {
             ));
         };
         Ok(encode_unary_response(
-            runtime_bridge_generated::GetAccountAppLibraryResponse {
+            runtime_bridge_generated::GetAccountAppInventoryResponse {
                 exists: true,
-                record: Some(runtime_bridge_generated::AccountAppLibraryRecord {
-                    schema_version: 1,
-                    account_id: projection.account_id,
+                record: Some(runtime_bridge_generated::AccountAppInventoryRecord {
+                    schema_version: 2,
+                    account_id: projection.account_id.clone(),
                     updated_at: "2026-01-01T00:00:00.000Z".to_string(),
-                    apps: Vec::new(),
+                    apps: vec![runtime_bridge_generated::AccountAppInventoryRow {
+                        app_id: "nimi.example-app".to_string(),
+                        account_state:
+                            runtime_bridge_generated::AccountAppInventoryState::Verified as i32,
+                        install_state:
+                            runtime_bridge_generated::AccountAppInstallState::NotInstalled as i32,
+                        last_opened_at: String::new(),
+                        data_policy: "keep_on_uninstall".to_string(),
+                        verified_at: "2026-01-01T00:00:00.000Z".to_string(),
+                        source: "fixture-account".to_string(),
+                        detail: String::new(),
+                    }],
                 }),
                 reason_code: runtime_bridge_generated::ReasonCode::ActionExecuted as i32,
                 detail: String::new(),
             },
+        ))
+    }
+
+    fn runtime_list_local_app_adoptions_response() -> RuntimeBridgeUnaryResult {
+        encode_unary_response(runtime_bridge_generated::ListLocalAppAdoptionsResponse {
+            adoptions: Vec::new(),
+            reason_code: runtime_bridge_generated::ReasonCode::ActionExecuted as i32,
+            detail: String::new(),
+        })
+    }
+
+    fn runtime_list_app_install_jobs_response(
+        payload: &RuntimeBridgeUnaryPayload,
+    ) -> Result<RuntimeBridgeUnaryResult, String> {
+        let request: runtime_bridge_generated::ListAppInstallJobsRequest =
+            decode_unary_request(payload)?;
+        if request.app_id.trim().is_empty() {
+            return Err(crate::runtime_bridge::bridge_error(
+                "APP_ID_REQUIRED",
+                "fixture ListAppInstallJobs requires app_id",
+            ));
+        }
+        Ok(encode_unary_response(
+            runtime_bridge_generated::ListAppInstallJobsResponse { jobs: Vec::new() },
         ))
     }
 
@@ -389,12 +424,20 @@ mod enabled {
             append_backend_log("runtime_app_fixture method=getAppStorage accepted=true");
             runtime_app_storage_response(payload, &manifest).map(Some)
         }
-        nimi_shell_tauri::runtime_bridge::RUNTIME_APP_GET_ACCOUNT_APP_LIBRARY_METHOD_ID => {
+        nimi_shell_tauri::runtime_bridge::RUNTIME_APP_GET_ACCOUNT_APP_INVENTORY_METHOD_ID => {
             append_backend_log(&format!(
-                "runtime_app_fixture method=getAccountAppLibrary authenticated={}",
+                "runtime_app_fixture method=getAccountAppInventory authenticated={}",
                 projection.is_some()
             ));
-            runtime_account_app_library_response(projection).map(Some)
+            runtime_account_app_inventory_response(projection).map(Some)
+        }
+        nimi_shell_tauri::runtime_bridge::RUNTIME_APP_LIST_LOCAL_APP_ADOPTIONS_METHOD_ID => {
+            append_backend_log("runtime_app_fixture method=listLocalAppAdoptions accepted=true");
+            Ok(Some(runtime_list_local_app_adoptions_response()))
+        }
+        nimi_shell_tauri::runtime_bridge::RUNTIME_APP_LIST_APP_INSTALL_JOBS_METHOD_ID => {
+            append_backend_log("runtime_app_fixture method=listAppInstallJobs accepted=true");
+            runtime_list_app_install_jobs_response(payload).map(Some)
         }
         nimi_shell_tauri::runtime_bridge::RUNTIME_APP_GET_APP_PACKAGE_READINESS_METHOD_ID => {
             append_backend_log("runtime_app_fixture method=getAppPackageReadiness accepted=true");

@@ -17,6 +17,7 @@ import { describe, it } from 'node:test';
 
 import type {
   NimiAppClient,
+  NimiAppInventoryEntry,
   NimiAppRow,
   NimiAppStatus,
   NimiAppTransport,
@@ -31,6 +32,7 @@ import {
   type CanonicalAppCardState,
 } from '../src/shell/renderer/features/apps/apps-card-state.js';
 import {
+  actionPlanForInventoryEntry,
   actionPlanForCardState,
   type AppCardActionId,
 } from '../src/shell/renderer/features/apps/apps-card-actions.js';
@@ -242,6 +244,8 @@ function recordingLifecycle(): {
   };
   const bridge: DesktopAppLifecycleBridge = {
     install: record('install'),
+    adoptLocal: record('adoptLocal'),
+    removeLocalAdoption: record('removeLocalAdoption'),
     uninstall: record('uninstall'),
     getJob: record('getJob'),
     listJobs: record('listJobs'),
@@ -263,6 +267,11 @@ describe('routeCardAction — every action routes onto the lifecycle bridge', ()
     ['cancel', 'healthRepair', { appId: 'nimi.notes', action: 'cancel' }],
     ['uninstall', 'uninstall', { appId: 'nimi.notes' }],
     [
+      'remove_local_adoption',
+      'removeLocalAdoption',
+      { appId: 'nimi.notes', deleteDurableDataConfirmed: false },
+    ],
+    [
       'delete_app_data',
       'uninstall',
       { appId: 'nimi.notes', deleteDurableData: true, destructiveDataDeleteConfirmed: true },
@@ -277,7 +286,62 @@ describe('routeCardAction — every action routes onto the lifecycle bridge', ()
       assert.equal(calls[0]!.method, method);
       assert.deepEqual(calls[0]!.input, expectedInput);
     });
-	  }
+  }
+
+  it('derives card actions from inventory nextActions before card-state fallback', () => {
+    const connectPlan = actionPlanForInventoryEntry({
+      nextActions: ['connect-local'],
+      cardState: 'not_installed_installable',
+    });
+    assert.equal(connectPlan.primary?.id, 'connect_local');
+    assert.equal(connectPlan.secondary.some((action) => action.id === 'details'), true);
+
+    const localReadyPlan = actionPlanForInventoryEntry({
+      nextActions: ['open', 'remove-local-adoption'],
+      cardState: 'installed_ready',
+    });
+    assert.equal(localReadyPlan.primary?.id, 'open');
+    assert.deepEqual(
+      localReadyPlan.secondary.map((action) => action.id),
+      ['details', 'remove_local_adoption'],
+    );
+  });
+
+  it('cancels connect_local without adopting when the folder picker is cancelled', async () => {
+    const { bridge, calls } = recordingLifecycle();
+    await routeCardAction(bridge, 'nimi.notes', 'connect_local', {
+      appClient: makeClient(),
+      pickLocalAppRootDirectory: async () => null,
+    });
+    assert.equal(calls.length, 0);
+  });
+
+  it('routes connect_local through the folder picker and Runtime local adoption', async () => {
+    const { bridge, calls } = recordingLifecycle();
+    await routeCardAction(bridge, 'nimi.notes', 'connect_local', {
+      appClient: makeClient(),
+      pickLocalAppRootDirectory: async () => '/local/notes',
+    });
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0]!.method, 'adoptLocal');
+    assert.deepEqual(calls[0]!.input, {
+      rootPath: '/local/notes',
+      expectedAppId: 'nimi.notes',
+    });
+  });
+
+  it('routes sign_in to the desktop account gate and not the lifecycle bridge', async () => {
+    const { bridge, calls } = recordingLifecycle();
+    let signInRequests = 0;
+    await routeCardAction(bridge, 'nimi.notes', 'sign_in', {
+      appClient: makeClient(),
+      requestSignIn: () => {
+        signInRequests += 1;
+      },
+    });
+    assert.equal(signInRequests, 1);
+    assert.equal(calls.length, 0);
+  });
 
   it('routes "open" only after app-scope AIConfig initialization succeeds', async () => {
     const { bridge, calls } = recordingLifecycle();
@@ -359,12 +423,12 @@ describe('routeCardAction — every action routes onto the lifecycle bridge', ()
 // ---------------------------------------------------------------------------
 
 function makeClient(behavior: {
-  list?: readonly NimiAppRow[];
+  list?: readonly NimiAppInventoryEntry[];
   status?: NimiAppStatus;
 } = {}): NimiAppClient {
   const transport: NimiAppTransport = {
     async list() {
-      return behavior.list ?? [buildRow()];
+      return behavior.list ?? [inventoryEntry(buildRow())];
     },
     async get(appId: string) {
       const rows = await this.list();
@@ -394,11 +458,36 @@ function buildRow(): NimiAppRow {
   };
 }
 
+function inventoryEntry(row: NimiAppRow): NimiAppInventoryEntry {
+  return {
+    appId: row.appId,
+    displayName: row.displayName,
+    appKind: row.appKind,
+    publisher: row.publisher,
+    aiProfileSelectionRef: row.aiProfileSelectionRef,
+    releaseDescriptorRef: row.releaseDescriptorRef,
+    installStoragePolicyRef: row.installStoragePolicyRef,
+    trustTier: row.trustTier,
+    capabilitySet: [...row.capabilitySet],
+    sources: {
+      catalog: { status: 'present', value: row },
+      account: { status: 'absent' },
+      local: { status: 'absent' },
+      packageReadiness: { status: 'absent' },
+    },
+    installState: 'not-installed',
+    openReadiness: 'install-required',
+    activeJobs: [],
+    nextActions: ['install'],
+  };
+}
+
 function failingJobBridge(): DesktopAppLifecycleBridge {
   const { bridge } = recordingLifecycle();
   return {
     ...bridge,
-    async listJobs() {
+    async listJobs(appId: string) {
+      assert.equal(appId, 'nimi.notes');
       throw new Error('job projection boom');
     },
   };
@@ -417,7 +506,8 @@ describe('projectAppsPanel — fail-closed on a missing job projection', () => {
     const { bridge } = recordingLifecycle();
     const withJob: DesktopAppLifecycleBridge = {
       ...bridge,
-      async listJobs() {
+      async listJobs(appId: string) {
+        assert.equal(appId, 'nimi.notes');
         return [job({ appId: 'nimi.notes', kind: 'install', state: 'in_progress', phase: 'download' })];
       },
       async storage(input) {
@@ -434,7 +524,8 @@ describe('projectAppsPanel — fail-closed on a missing job projection', () => {
     const { bridge } = recordingLifecycle();
     const lifecycle: DesktopAppLifecycleBridge = {
       ...bridge,
-      async listJobs() {
+      async listJobs(appId: string) {
+        assert.equal(appId, 'nimi.notes');
         return [];
       },
       async storage(input) {
@@ -469,7 +560,8 @@ describe('projectAppsPanel — fail-closed on a missing job projection', () => {
     const { bridge } = recordingLifecycle();
     const lifecycle: DesktopAppLifecycleBridge = {
       ...bridge,
-      async listJobs() {
+      async listJobs(appId: string) {
+        assert.equal(appId, 'nimi.notes');
         return [];
       },
       async storage() {

@@ -1,13 +1,51 @@
 {
   "title": "Apps",
-  "description": "Admitted ordinary Nimi Apps for this installation.",
-  "empty": "No admitted ordinary Apps yet.",
+  "description": "Apps inventory from catalog, account, and connected local sources.",
+  "inventoryCount": "{{count}} apps",
+  "emptyTitle": "No apps in inventory",
+  "empty": "Install an account app or connect a local app.",
   "error": "Unable to load Apps: {{detail}}",
   "loading": "Loading apps...",
   "trustTier": {
     "firstParty": "First-Party",
     "verifiedPartner": "Verified Partner",
-    "community": "Community"
+    "community": "Community",
+    "localExplicit": "Local explicit",
+    "localDeveloper": "Local developer",
+    "unknown": "Unknown"
+  },
+  "source": {
+    "catalog": "Catalog",
+    "account": "Account",
+    "local": "Local",
+    "degraded": "Degraded"
+  },
+  "sourceStatus": {
+    "present": "present",
+    "absent": "absent",
+    "degraded": "degraded"
+  },
+  "sourceDegradedDetail": "{{source}} degraded: {{reasonCode}} {{detail}}",
+  "openReadiness": {
+    "ready": "Ready",
+    "installRequired": "Install Required",
+    "updateRequired": "Update Required",
+    "repairRequired": "Repair Required",
+    "permissionRequired": "Permission Required",
+    "blockedByMasterGate": "Sign in required",
+    "unsupported": "Unsupported",
+    "signInRequired": "Sign in required",
+    "connectRequired": "Connect required"
+  },
+  "installState": {
+    "notInstalled": "Not installed",
+    "installed": "Installed",
+    "adoptedLocal": "Local linked",
+    "installing": "Installing",
+    "updating": "Updating",
+    "repairRequired": "Repair required",
+    "removed": "Removed",
+    "unknown": "Unknown"
   },
   "state": {
     "notInstalledInstallable": "Install Required",
@@ -25,11 +63,14 @@
   "action": {
     "install": "Install",
     "open": "Open",
+    "connectLocal": "Connect local app",
     "update": "Update",
     "repair": "Repair",
     "retry": "Retry",
     "cancel": "Cancel",
     "uninstall": "Uninstall",
+    "removeLocalAdoption": "Remove local link",
+    "signIn": "Sign in",
     "deleteAppData": "Delete App Data",
     "reviewPermissions": "Review Permissions",
     "details": "Details",
@@ -50,6 +91,7 @@
     "currentProfile": "Current profile",
     "notInitialized": "Not initialized for this app",
     "recommendedProfile": "Recommended profile",
+    "noRecommendedProfile": "No catalog profile",
     "requiredCapabilities": "Required capabilities",
     "changeProfile": "Change App Profile",
     "modalTitle": "Apply AI Profile to App",
@@ -81,7 +123,9 @@
     "publisher": "Publisher",
     "trustTier": "Trust tier",
     "installState": "Install state",
+    "openReadiness": "Open readiness",
     "versionState": "Version",
+    "sources": "Sources",
     "requirements": "Requirements",
     "storageRoots": "Storage roots",
     "releaseRoot": "Release",

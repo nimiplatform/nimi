@@ -25,6 +25,7 @@ export interface AppsAIProfileSectionProps {
 export function AppsAIProfileSection({ entry, actionError }: AppsAIProfileSectionProps): ReactElement {
   const { t } = useTranslation();
   const service = useMemo(() => getDesktopAIConfigService(), []);
+  const recommendedProfileRef = entry.app.aiProfileSelectionRef ?? '';
   const scopeRef = useMemo(() => ({ kind: 'app' as const, ownerId: entry.app.appId }), [entry.app.appId]);
   const requirementDeclaration = useMemo(
     () => appAIConfigRequirementDeclarations(entry.app)[0]!,
@@ -42,7 +43,13 @@ export function AppsAIProfileSection({ entry, actionError }: AppsAIProfileSectio
 
   useEffect(() => {
     let cancelled = false;
-    void service.aiProfile.get(entry.app.aiProfileSelectionRef)
+    if (!recommendedProfileRef) {
+      setRecommendedProfile(null);
+      return () => {
+        cancelled = true;
+      };
+    }
+    void service.aiProfile.get(recommendedProfileRef)
       .then((profile) => {
         if (!cancelled) {
           setRecommendedProfile(profile);
@@ -56,7 +63,7 @@ export function AppsAIProfileSection({ entry, actionError }: AppsAIProfileSectio
     return () => {
       cancelled = true;
     };
-  }, [entry.app.aiProfileSelectionRef, service]);
+  }, [recommendedProfileRef, service]);
 
   useEffect(() => {
     let cancelled = false;
@@ -118,7 +125,7 @@ export function AppsAIProfileSection({ entry, actionError }: AppsAIProfileSectio
     profileReloadRef.current = profileController.onReload;
   }, [profileController.onReload]);
 
-  const recommendedLabel = recommendedProfile?.title || entry.app.aiProfileSelectionRef;
+  const recommendedLabel = recommendedProfile?.title || recommendedProfileRef || t('Apps.aiProfile.noRecommendedProfile', { defaultValue: 'No catalog profile' });
   const capabilityText = entry.app.capabilitySet.join(', ');
 
   return (

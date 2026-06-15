@@ -1,9 +1,16 @@
 import type { ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, ProgressIndicator } from '@nimiplatform/kit/ui';
-import type { TrustTierId } from '@nimiplatform/sdk/app';
+import type {
+  NimiAppInventoryInstallState,
+  NimiAppInventorySource,
+  NimiAppInventorySourceStatus,
+  NimiAppInventorySources,
+  NimiAppInventoryTrustTier,
+  NimiAppOpenReadiness,
+} from '@nimiplatform/sdk/app';
 import {
-  actionPlanForCardState,
+  actionPlanForInventoryEntry,
   type AppCardAction,
   type AppCardActionId,
 } from './apps-card-actions.js';
@@ -16,10 +23,13 @@ import {
 } from './apps-card-fields.js';
 import type { DesktopAppsCardState, DesktopAppsEntry, DesktopAppsPanelProjection } from './apps-panel-projection.js';
 
-const TRUST_TIER_LABEL_KEYS: Record<TrustTierId, string> = {
+const TRUST_TIER_LABEL_KEYS: Record<NimiAppInventoryTrustTier, string> = {
   'nimi-first-party': 'Apps.trustTier.firstParty',
   'nimi-verified-partner': 'Apps.trustTier.verifiedPartner',
   'nimi-community': 'Apps.trustTier.community',
+  'local-explicit': 'Apps.trustTier.localExplicit',
+  'local-developer': 'Apps.trustTier.localDeveloper',
+  unknown: 'Apps.trustTier.unknown',
 };
 
 const CARD_STATE_LABEL_KEYS: Record<DesktopAppsCardState, string> = {
@@ -34,6 +44,29 @@ const CARD_STATE_LABEL_KEYS: Record<DesktopAppsCardState, string> = {
   blocked_by_policy: 'Apps.state.blockedByPolicy',
   install_failed: 'Apps.state.installFailed',
   uninstalling: 'Apps.state.uninstalling',
+};
+
+const OPEN_READINESS_LABEL_KEYS: Record<NimiAppOpenReadiness, string> = {
+  ready: 'Apps.openReadiness.ready',
+  'install-required': 'Apps.openReadiness.installRequired',
+  'update-required': 'Apps.openReadiness.updateRequired',
+  'repair-required': 'Apps.openReadiness.repairRequired',
+  'permission-required': 'Apps.openReadiness.permissionRequired',
+  'blocked-by-master-gate': 'Apps.openReadiness.blockedByMasterGate',
+  unsupported: 'Apps.openReadiness.unsupported',
+  'sign-in-required': 'Apps.openReadiness.signInRequired',
+  'connect-required': 'Apps.openReadiness.connectRequired',
+};
+
+const INSTALL_STATE_LABEL_KEYS: Record<NimiAppInventoryInstallState, string> = {
+  'not-installed': 'Apps.installState.notInstalled',
+  installed: 'Apps.installState.installed',
+  'adopted-local': 'Apps.installState.adoptedLocal',
+  installing: 'Apps.installState.installing',
+  updating: 'Apps.installState.updating',
+  'repair-required': 'Apps.installState.repairRequired',
+  removed: 'Apps.installState.removed',
+  unknown: 'Apps.installState.unknown',
 };
 
 const CARD_STATE_TONES: Record<DesktopAppsCardState, string> = {
@@ -53,14 +86,33 @@ const CARD_STATE_TONES: Record<DesktopAppsCardState, string> = {
 const ACTION_LABEL_KEYS: Record<AppCardActionId, string> = {
   install: 'Apps.action.install',
   open: 'Apps.action.open',
+  connect_local: 'Apps.action.connectLocal',
   update: 'Apps.action.update',
   repair: 'Apps.action.repair',
   retry: 'Apps.action.retry',
   cancel: 'Apps.action.cancel',
   uninstall: 'Apps.action.uninstall',
+  remove_local_adoption: 'Apps.action.removeLocalAdoption',
+  sign_in: 'Apps.action.signIn',
   delete_app_data: 'Apps.action.deleteAppData',
   review_permissions: 'Apps.action.reviewPermissions',
   details: 'Apps.action.details',
+};
+
+type InventorySourceKey = 'catalog' | 'account' | 'local';
+
+const INVENTORY_SOURCE_KEYS: readonly InventorySourceKey[] = ['catalog', 'account', 'local'];
+
+const SOURCE_LABEL_KEYS: Record<InventorySourceKey, string> = {
+  catalog: 'Apps.source.catalog',
+  account: 'Apps.source.account',
+  local: 'Apps.source.local',
+};
+
+const SOURCE_STATUS_LABEL_KEYS: Record<NimiAppInventorySourceStatus, string> = {
+  present: 'Apps.sourceStatus.present',
+  absent: 'Apps.sourceStatus.absent',
+  degraded: 'Apps.sourceStatus.degraded',
 };
 
 const REQUIREMENT_LABEL_KEYS: Record<keyof AppCardRequirementSummary, string> = {
@@ -75,10 +127,47 @@ function isDisabledPosture(cardState: DesktopAppsCardState): boolean {
   return postureForCardState(cardState) === 'disabled';
 }
 
+interface SourceSummary {
+  readonly catalog: number;
+  readonly account: number;
+  readonly local: number;
+  readonly degraded: number;
+}
+
+function buildSourceSummary(entries: readonly DesktopAppsEntry[]): SourceSummary {
+  return entries.reduce<SourceSummary>((summary, entry) => {
+    const sources = entry.app.sources;
+    return {
+      catalog: summary.catalog + (sources.catalog.status === 'present' ? 1 : 0),
+      account: summary.account + (sources.account.status === 'present' ? 1 : 0),
+      local: summary.local + (sources.local.status === 'present' ? 1 : 0),
+      degraded: summary.degraded + INVENTORY_SOURCE_KEYS.filter((key) => sources[key].status === 'degraded').length,
+    };
+  }, { catalog: 0, account: 0, local: 0, degraded: 0 });
+}
+
+function SummaryChip(props: {
+  readonly testId: string;
+  readonly label: string;
+  readonly count: number;
+  readonly degraded?: boolean;
+}): ReactElement {
+  const tone = props.degraded && props.count > 0
+    ? 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_14%,transparent)] text-[var(--nimi-status-warning)]'
+    : 'bg-[color-mix(in_srgb,var(--nimi-surface-active)_58%,transparent)] text-[color:var(--nimi-text-muted)]';
+  return (
+    <span data-testid={props.testId} data-count={props.count} className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${tone}`}>
+      {props.label}: {props.count}
+    </span>
+  );
+}
+
 export interface AppsPanelViewProps {
   readonly projection: DesktopAppsPanelProjection;
   /** Run a card action for an app. */
   readonly onCardAction: (appId: string, action: AppCardActionId) => void;
+  /** Open the native folder picker and adopt a local app through Runtime. */
+  readonly onConnectLocalApp: () => void;
   /** The appId of an in-flight card action — disables that card's buttons. */
   readonly busyAppId: string | null;
   /** The last card-action failure detail, or `null`. */
@@ -88,6 +177,7 @@ export interface AppsPanelViewProps {
 export function AppsPanelView({
   projection,
   onCardAction,
+  onConnectLocalApp,
   busyAppId,
   actionError,
 }: AppsPanelViewProps): ReactElement {
@@ -106,18 +196,31 @@ export function AppsPanelView({
     );
   }
 
+  const sourceSummary = buildSourceSummary(projection.entries);
+
   return (
     <section data-testid="apps-view" aria-labelledby="apps-view-title" className="flex h-full flex-col gap-4">
       <div className="flex items-start justify-between gap-4">
-        <div>
+        <div className="min-w-0">
           <h2 id="apps-view-title" className="text-base font-semibold text-[color:var(--nimi-text-primary)]">
             {t('Apps.title')}
           </h2>
           <p className="mt-1 text-sm text-[color:var(--nimi-text-secondary)]">{t('Apps.description')}</p>
+          <div data-testid="apps-source-summary" className="mt-3 flex flex-wrap gap-1.5">
+            <SummaryChip testId="apps-source-summary-catalog" label={t('Apps.source.catalog')} count={sourceSummary.catalog} />
+            <SummaryChip testId="apps-source-summary-account" label={t('Apps.source.account')} count={sourceSummary.account} />
+            <SummaryChip testId="apps-source-summary-local" label={t('Apps.source.local')} count={sourceSummary.local} />
+            <SummaryChip testId="apps-source-summary-degraded" label={t('Apps.source.degraded')} count={sourceSummary.degraded} degraded />
+          </div>
         </div>
-        <span data-testid="apps-entry-count" className="rounded-full bg-[color-mix(in_srgb,var(--nimi-surface-card)_80%,transparent)] px-3 py-1 text-xs font-medium text-[color:var(--nimi-text-muted)]">
-          {projection.entries.length}
-        </span>
+        <div className="flex shrink-0 items-center gap-2">
+          <span data-testid="apps-entry-count" className="rounded-full bg-[color-mix(in_srgb,var(--nimi-surface-card)_80%,transparent)] px-3 py-1 text-xs font-medium text-[color:var(--nimi-text-muted)]">
+            {t('Apps.inventoryCount', { count: projection.entries.length })}
+          </span>
+          <Button data-testid="apps-connect-local-top" tone="secondary" size="sm" onClick={onConnectLocalApp}>
+            {t('Apps.action.connectLocal')}
+          </Button>
+        </div>
       </div>
 
       {actionError ? (
@@ -127,9 +230,15 @@ export function AppsPanelView({
       ) : null}
 
       {projection.entries.length === 0 ? (
-        <p data-testid="apps-empty" data-state="empty" className="rounded-lg border border-dashed border-[color:var(--nimi-border-subtle)] px-4 py-8 text-center text-sm text-[color:var(--nimi-text-muted)]">
-          {t('Apps.empty')}
-        </p>
+        <div data-testid="apps-empty" data-state="empty" className="flex flex-col gap-3 rounded-lg border border-dashed border-[color:var(--nimi-border-subtle)] px-4 py-5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-medium text-[color:var(--nimi-text-primary)]">{t('Apps.emptyTitle')}</p>
+            <p className="mt-1 text-sm text-[color:var(--nimi-text-muted)]">{t('Apps.empty')}</p>
+          </div>
+          <Button data-testid="apps-connect-local-empty" tone="primary" size="sm" onClick={onConnectLocalApp}>
+            {t('Apps.action.connectLocal')}
+          </Button>
+        </div>
       ) : (
         <ul data-testid="apps-entry-list" className="flex flex-col gap-2">
           {projection.entries.map((entry) => (
@@ -157,17 +266,19 @@ function AppCard({ entry, busy, onCardAction }: AppCardProps): ReactElement {
   const { app, cardState, job } = entry;
   const version = deriveVersionState(entry);
   const requirements = deriveRequirementSummary(entry);
-  const disabled = isDisabledPosture(cardState);
 
-  // The card state is always one of the 11 canonical states (the 12th
-  // `status_unavailable` bucket was hard-cut in T4-W5).
-  const plan = actionPlanForCardState(cardState);
+  const plan = actionPlanForInventoryEntry({
+    nextActions: app.nextActions,
+    cardState,
+  });
 
   return (
     <li
       data-testid={`apps-entry-${app.appId}`}
       data-app-card-state={cardState}
       data-trust-tier={app.trustTier}
+      data-install-state={app.installState}
+      data-open-readiness={app.openReadiness}
       data-launch-readiness={entry.status?.launchReadiness ?? 'unknown'}
       className="flex flex-col gap-3 rounded-lg border border-[color:var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_82%,transparent)] px-3 py-3"
     >
@@ -189,8 +300,8 @@ function AppCard({ entry, busy, onCardAction }: AppCardProps): ReactElement {
             </span>
           </div>
         </div>
-        <span data-testid={`apps-entry-${app.appId}-state`} className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-medium ${CARD_STATE_TONES[cardState]}`}>
-          {t(CARD_STATE_LABEL_KEYS[cardState])}
+        <span data-testid={`apps-entry-${app.appId}-state`} className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-medium ${stateToneForEntry(entry)}`}>
+          {t(stateLabelKeyForEntry(entry))}
         </span>
       </div>
 
@@ -205,6 +316,12 @@ function AppCard({ entry, busy, onCardAction }: AppCardProps): ReactElement {
             : ''}
         </span>
       ) : null}
+
+      <SourceChips appId={app.appId} sources={app.sources} />
+      <span data-testid={`apps-entry-${app.appId}-install-state`} className="sr-only">
+        {t(INSTALL_STATE_LABEL_KEYS[app.installState])}
+      </span>
+      <SourceDegradedDetails appId={app.appId} sources={app.sources} />
 
       {/* Install / uninstall progress — phase, not a generic spinner */}
       {(cardState === 'installing' || cardState === 'uninstalling') && job ? (
@@ -248,7 +365,7 @@ function AppCard({ entry, busy, onCardAction }: AppCardProps): ReactElement {
             appId={app.appId}
             action={plan.primary}
             primary
-            disabled={disabled || busy}
+            disabled={isActionDisabled(cardState, plan.primary.id, busy)}
             busy={busy}
             onCardAction={onCardAction}
           />
@@ -259,7 +376,7 @@ function AppCard({ entry, busy, onCardAction }: AppCardProps): ReactElement {
             appId={app.appId}
             action={secondary}
             primary={false}
-            disabled={disabled && secondary.id !== 'details' ? true : busy}
+            disabled={isActionDisabled(cardState, secondary.id, busy)}
             busy={busy}
             onCardAction={onCardAction}
           />
@@ -271,6 +388,114 @@ function AppCard({ entry, busy, onCardAction }: AppCardProps): ReactElement {
       ) : null}
     </li>
   );
+}
+
+function SourceChips(props: {
+  readonly appId: string;
+  readonly sources: NimiAppInventorySources;
+}): ReactElement {
+  const { t } = useTranslation();
+  return (
+    <div data-testid={`apps-entry-${props.appId}-sources`} className="flex flex-wrap gap-1.5">
+      {INVENTORY_SOURCE_KEYS.map((sourceKey) => {
+        const source = props.sources[sourceKey];
+        return (
+          <span
+            key={sourceKey}
+            data-testid={`apps-entry-${props.appId}-source-${sourceKey}`}
+            data-source-status={source.status}
+            className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${sourceStatusTone(source.status)}`}
+            title={sourceTooltip(source)}
+          >
+            {t(SOURCE_LABEL_KEYS[sourceKey])}
+            <span className="ml-1 opacity-80">{t(SOURCE_STATUS_LABEL_KEYS[source.status])}</span>
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+function SourceDegradedDetails(props: {
+  readonly appId: string;
+  readonly sources: NimiAppInventorySources;
+}): ReactElement | null {
+  const { t } = useTranslation();
+  const degraded = INVENTORY_SOURCE_KEYS
+    .map((sourceKey) => ({ sourceKey, source: props.sources[sourceKey] }))
+    .filter((item) => item.source.status === 'degraded');
+
+  if (degraded.length === 0) {
+    return null;
+  }
+
+  return (
+    <ul data-testid={`apps-entry-${props.appId}-source-degraded-details`} className="flex flex-col gap-1 text-xs text-[var(--nimi-status-warning)]">
+      {degraded.map(({ sourceKey, source }) => (
+        <li key={sourceKey} data-testid={`apps-entry-${props.appId}-source-${sourceKey}-degraded`}>
+          {t('Apps.sourceDegradedDetail', {
+            source: t(SOURCE_LABEL_KEYS[sourceKey]),
+            reasonCode: source.reasonCode ?? 'UNKNOWN',
+            detail: source.detail ?? '',
+          })}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function sourceTooltip(source: NimiAppInventorySource<unknown>): string | undefined {
+  if (source.status !== 'degraded') {
+    return undefined;
+  }
+  const reason = source.reasonCode ?? 'UNKNOWN';
+  return source.detail ? `${reason}: ${source.detail}` : reason;
+}
+
+function sourceStatusTone(status: NimiAppInventorySourceStatus): string {
+  switch (status) {
+    case 'present':
+      return 'bg-[color-mix(in_srgb,var(--nimi-status-success)_12%,transparent)] text-[var(--nimi-status-success)]';
+    case 'degraded':
+      return 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_14%,transparent)] text-[var(--nimi-status-warning)]';
+    case 'absent':
+      return 'bg-[color-mix(in_srgb,var(--nimi-text-muted)_8%,transparent)] text-[color:var(--nimi-text-muted)]';
+    default: {
+      const exhaustive: never = status;
+      return exhaustive;
+    }
+  }
+}
+
+function stateLabelKeyForEntry(entry: DesktopAppsEntry): string {
+  if (entry.app.openReadiness === 'sign-in-required' || entry.app.openReadiness === 'connect-required') {
+    return OPEN_READINESS_LABEL_KEYS[entry.app.openReadiness];
+  }
+  return CARD_STATE_LABEL_KEYS[entry.cardState];
+}
+
+function stateToneForEntry(entry: DesktopAppsEntry): string {
+  if (entry.app.openReadiness === 'sign-in-required' || entry.app.openReadiness === 'connect-required') {
+    return 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_16%,transparent)] text-[var(--nimi-status-warning)]';
+  }
+  return CARD_STATE_TONES[entry.cardState];
+}
+
+function isActionDisabled(
+  cardState: DesktopAppsCardState,
+  actionId: AppCardActionId,
+  busy: boolean,
+): boolean {
+  if (busy) {
+    return true;
+  }
+  if (!isDisabledPosture(cardState)) {
+    return false;
+  }
+  return actionId !== 'details'
+    && actionId !== 'sign_in'
+    && actionId !== 'connect_local'
+    && actionId !== 'remove_local_adoption';
 }
 
 interface CardActionButtonProps {

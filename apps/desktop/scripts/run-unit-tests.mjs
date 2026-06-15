@@ -1,15 +1,18 @@
 #!/usr/bin/env node
 import { spawnSync } from 'node:child_process';
 import { readdirSync, statSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import process from 'node:process';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
-const PNPM_BIN = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const workspaceRoot = path.resolve(scriptDir, '..');
 const testRoot = path.join(workspaceRoot, 'test');
 const i18nTestRelativePath = path.posix.join('test', 'i18n.test.ts');
+const desktopRequire = createRequire(path.join(workspaceRoot, 'package.json'));
+const tsxLoaderUrl = pathToFileURL(desktopRequire.resolve('tsx')).href;
+const testSingletonsUrl = pathToFileURL(path.join(scriptDir, 'register-test-singletons.mjs')).href;
 
 function normalizeFilterPath(input) {
   let normalized = String(input || '').trim().replace(/\\/g, '/');
@@ -95,7 +98,13 @@ if (selectedTestFiles.length === 0) {
   process.exit(1);
 }
 
-const args = ['exec', 'tsx', '--tsconfig', 'tsconfig.test.json', '--test'];
+const args = [
+  '--import',
+  testSingletonsUrl,
+  '--import',
+  tsxLoaderUrl,
+  '--test',
+];
 if (mode === '--i18n') {
   args.push('--test-concurrency=1');
 }
@@ -103,7 +112,7 @@ if (mode === '--i18n') {
 const maxCommandLength = process.platform === 'win32' ? 3000 : 100000;
 
 function commandLength(parts) {
-  return [PNPM_BIN, ...parts].join(' ').length;
+  return [process.execPath, ...parts].join(' ').length;
 }
 
 function buildBatches(prefixArgs, filePaths) {
@@ -129,10 +138,13 @@ function buildBatches(prefixArgs, filePaths) {
 
 let exitStatus = 0;
 for (const batch of buildBatches(args, selectedTestFiles)) {
-  const result = spawnSync(PNPM_BIN, [...args, ...batch], {
+  const result = spawnSync(process.execPath, [...args, ...batch], {
     cwd: workspaceRoot,
+    env: {
+      ...process.env,
+      TSX_TSCONFIG_PATH: path.join(workspaceRoot, 'tsconfig.test.json'),
+    },
     stdio: 'inherit',
-    shell: process.platform === 'win32',
   });
   if ((result.status ?? 1) !== 0) {
     exitStatus = result.status ?? 1;

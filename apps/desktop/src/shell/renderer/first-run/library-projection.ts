@@ -11,6 +11,7 @@ import type {
   NimiAppRow,
   NimiAppStatus,
   AppLaunchReadiness,
+  NimiAppInventoryEntry,
 } from '@nimiplatform/sdk/app';
 
 export interface LibraryEntry {
@@ -44,13 +45,16 @@ export async function projectLibrary(client: NimiAppClient): Promise<LibraryProj
   if (!client) {
     return { status: 'error', detail: 'projectLibrary: nimiAppClient is required' };
   }
-  let registry: readonly NimiAppRow[];
+  let inventory: readonly NimiAppInventoryEntry[];
   try {
-    registry = await client.list();
+    inventory = await client.list();
   } catch (error) {
     const detail = error instanceof Error ? error.message : 'unknown error';
     return { status: 'error', detail: `list failed: ${detail}` };
   }
+  const registry = inventory
+    .map((entry) => entry.sources.catalog.value)
+    .filter((row): row is NimiAppRow => Boolean(row));
   const entries: LibraryEntry[] = [];
   for (const app of registry) {
     try {

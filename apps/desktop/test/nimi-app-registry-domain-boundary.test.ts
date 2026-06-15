@@ -105,22 +105,16 @@ describe('Nimi App registry/admission domain boundary', () => {
     assert.match(lifecycleBridge, /never returns a fabricated "success" job/);
   });
 
-  it('keeps account app-library reads behind Runtime, not Desktop account projection truth', () => {
+  it('keeps account app-inventory reads behind the SDK Runtime surface, not Desktop account projection truth', () => {
     const accountProjection = readRepo('apps/desktop/src-tauri/src/account_apps_projection.rs');
-    const accountCommands = readRepo('apps/desktop/src-tauri/src/account_apps_library_commands.rs');
     const appBootstrap = readRepo('apps/desktop/src-tauri/src/main_parts/app_bootstrap.rs');
     const appsPanelController = readRepo('apps/desktop/src/shell/renderer/features/apps/apps-panel-controller.ts');
+    const appsLiveBridge = readRepo('apps/desktop/src/shell/renderer/features/apps/apps-live-bridge.ts');
 
-    assert.match(accountProjection, /Runtime app lifecycle owns account app-library reads\/writes/);
-    assert.match(accountCommands, /RUNTIME_APP_GET_ACCOUNT_APP_LIBRARY_METHOD_ID/);
-    assert.match(accountCommands, /invoke_unary_typed_with_metadata/);
-    assert.match(accountCommands, /ACCOUNT_APP_LIBRARY_DESKTOP_APP_ID: &str = "nimi\.desktop"/);
-    assert.doesNotMatch(accountProjection, /read_account_app_library|account_app_library_path|ACCOUNT_APP_LIBRARY_SCHEMA_VERSION/);
-    assert.doesNotMatch(accountCommands, /authenticated_runtime_account_id/);
-    assert.doesNotMatch(accountCommands, /account_app_library_get\([^)]*account_id/i);
-    assert.doesNotMatch(accountProjection, /apply_account_app_library_mutation|AccountAppLibraryMutation|write_app_library_record/);
-    assert.doesNotMatch(accountCommands, /account_app_library_apply/);
-    assert.doesNotMatch(appBootstrap, /account_app_library_apply/);
+    assert.match(appsLiveBridge, /appLifecycle\.accountInventory/);
+    assert.match(appsLiveBridge, /appLifecycle\.listLocalAdoptions/);
+    assert.doesNotMatch(appBootstrap, /account_app_inventory_/);
+    assert.doesNotMatch(accountProjection, /inventory\.json|AccountAppInventory|write_app_inventory_record/);
     assert.doesNotMatch(appsPanelController, /desktopAppLibraryBridge\.apply|AccountAppLibraryMutationKind/);
     assert.doesNotMatch(accountProjection, /PLATFORM_NIMI_APP_REGISTRY_ROWS/);
     assert.doesNotMatch(accountProjection, /nimi-app-registry\.yaml/);

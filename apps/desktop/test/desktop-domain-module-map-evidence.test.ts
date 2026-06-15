@@ -42,9 +42,9 @@ const gitIgnoreSource = readRepo('.gitignore');
 const productControlSource = readRepo('apps/desktop/src-tauri/src/desktop_product_control.rs');
 const productControlOperationsSource = readRepo('apps/desktop/src-tauri/src/desktop_product_control/operations.rs');
 const productControlAdmissionSource = readRepo('apps/desktop/src-tauri/src/desktop_product_control_admission.rs');
-const accountAppLibraryCommandsSource = readRepo('apps/desktop/src-tauri/src/account_apps_library_commands.rs');
 const avatarInstanceRegistryStoreSource = readRepo('apps/desktop/src-tauri/src/desktop_avatar_instance_registry/store.rs');
 const desktopE2eFixtureSource = readRepo('apps/desktop/src-tauri/src/desktop_e2e_fixture.rs');
+const runtimeBridgeSource = readRepo('kit/shell/tauri/src/runtime_bridge/mod.rs');
 const realmAgentDetailDataSource = readRepo('apps/desktop/src/shell/renderer/features/agent-detail/data/realm-agent-detail-data.ts');
 const realmAgentCreateDataSource = readRepo('apps/desktop/src/shell/renderer/features/world/data/realm-agent-create-data.ts');
 const runtimePageSource = readRepo('apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-page-runtime.tsx');
@@ -108,7 +108,6 @@ test('Desktop runtime bridge commands resolve through the shared Tauri shell aut
     productControlSource,
     productControlOperationsSource,
     productControlAdmissionSource,
-    accountAppLibraryCommandsSource,
     avatarInstanceRegistryStoreSource,
   ]) {
     assert.doesNotMatch(source, /base64::engine::general_purpose|request_bytes_base64|response_bytes_base64/);
@@ -117,9 +116,9 @@ test('Desktop runtime bridge commands resolve through the shared Tauri shell aut
   assert.match(productControlSource, /app_id: Some\(DESKTOP_RUNTIME_APP_ID\.to_string\(\)\)/);
   assert.match(productControlOperationsSource, /crate::runtime_bridge::invoke_unary_typed_with_metadata/);
   assert.match(productControlAdmissionSource, /crate::runtime_bridge::invoke_unary_typed_with_metadata/);
-  assert.match(accountAppLibraryCommandsSource, /crate::runtime_bridge::invoke_unary_typed_with_metadata/);
-  assert.match(accountAppLibraryCommandsSource, /ACCOUNT_APP_LIBRARY_DESKTOP_APP_ID: &str = "nimi\.desktop"/);
   assert.match(avatarInstanceRegistryStoreSource, /crate::runtime_bridge::invoke_unary_typed_with_metadata/);
+  assert.ok(!fs.existsSync(path.join(repoRoot, 'apps/desktop/src-tauri/src/account_apps_library_commands.rs')));
+  assert.match(runtimeBridgeSource, /RUNTIME_APP_GET_ACCOUNT_APP_INVENTORY_METHOD_ID/);
   assert.doesNotMatch(desktopE2eFixtureSource, /"\/nimi\.runtime\.v1\./);
   assert.match(desktopE2eFixtureSource, /feature = "desktop-e2e-fixture"/);
   assert.match(desktopE2eFixtureSource, /RUNTIME_AUTH_REGISTER_APP_METHOD_ID/);

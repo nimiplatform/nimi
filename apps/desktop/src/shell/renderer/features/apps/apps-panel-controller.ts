@@ -27,6 +27,7 @@ import {
   ensureAppOpenAIConfig,
   type DesktopAppsOpenAIConfigGateDeps,
 } from './apps-open-ai-config-gate.js';
+import { pickLocalAppRootDirectory as pickDefaultLocalAppRootDirectory } from './apps-local-app-picker.js';
 import { projectAppsPanel, type DesktopAppsPanelProjection } from './apps-panel-projection.js';
 
 /** A pending destructive-confirm flow (uninstall-with-data-delete / retry-cleanup). */
@@ -54,6 +55,8 @@ export interface AppsPanelState {
 
 /** The action callbacks the Apps panel view binds to card buttons. */
 export interface AppsPanelActions {
+  /** Adopt a user-selected local app root through Runtime validation. */
+  readonly connectLocalApp: () => void;
   /** Run a card action. Destructive actions open the confirm flow first. */
   readonly runCardAction: (appId: string, action: AppCardActionId) => void;
   /** Confirm the pending destructive flow. */
@@ -69,6 +72,13 @@ export type AppsPanelController = AppsPanelState & AppsPanelActions;
 interface AppsPanelControllerDeps {
   readonly lifecycle?: DesktopAppLifecycleBridge;
   readonly buildLiveBridge?: typeof createDesktopAppsLiveBridge;
+  readonly pickLocalAppRootDirectory?: () => Promise<string | null>;
+  readonly requestSignIn?: () => void;
+}
+
+interface DesktopAppsActionDeps extends DesktopAppsOpenAIConfigGateDeps {
+  readonly pickLocalAppRootDirectory?: () => Promise<string | null>;
+  readonly requestSignIn?: () => void;
 }
 
 /**
@@ -78,6 +88,9 @@ interface AppsPanelControllerDeps {
 export function useAppsPanelController(deps: AppsPanelControllerDeps = {}): AppsPanelController {
   const lifecycle = deps.lifecycle ?? desktopAppLifecycleBridge;
   const buildLiveBridge = deps.buildLiveBridge ?? createDesktopAppsLiveBridge;
+  const pickLocalAppRootDirectory =
+    deps.pickLocalAppRootDirectory ?? pickDefaultLocalAppRootDirectory;
+  const requestSignIn = deps.requestSignIn;
   const liveBridge = useMemo(() => buildLiveBridge(), [buildLiveBridge]);
 
   const [projection, setProjection] = useState<DesktopAppsPanelProjection | null>(null);
@@ -137,7 +150,7 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps = {}): Apps
   // observe. Each typed frame re-projects the panel so
   // `installing`/`uninstalling` progress and terminal states stay live, with
   // no renderer-local job store. Runtime lifecycle terminal handling owns
-  // account-library writes; this renderer stream is a consumer only.
+  // account-inventory writes; this renderer stream is a consumer only.
   useEffect(() => {
     if (!activeJobIdsKey) {
       return;
@@ -146,12 +159,14 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps = {}): Apps
     let stopped = false;
     void (async () => {
       try {
-        const stream = await lifecycle.watchJobEvents({ signal: controller.signal });
-        for await (const event of stream) {
-          void event;
-          if (stopped) break;
-          void reload({ includeJobs: true });
-        }
+        await Promise.all(activeJobIdsKey.split('|').filter(Boolean).map(async (jobId) => {
+          const stream = await lifecycle.watchJobEvents({ jobId, signal: controller.signal });
+          for await (const event of stream) {
+            void event;
+            if (stopped) break;
+            void reload({ includeJobs: true });
+          }
+        }));
       } catch (error) {
         // A watch failure must not crash the panel; the projection still
         // renders from `listJobs`. Surface it as a single-line action error.
@@ -173,7 +188,11 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps = {}): Apps
       setActionErrorAppId(null);
       setBusyAppId(appId);
       try {
-        await routeCardAction(lifecycle, appId, action, { appClient: liveBridge.appClient });
+        await routeCardAction(lifecycle, appId, action, {
+          appClient: liveBridge.appClient,
+          pickLocalAppRootDirectory,
+          requestSignIn,
+        });
         await reload({ includeJobs: true });
       } catch (error) {
         setActionError(formatAppLifecycleErrorDetail(error));
@@ -182,7 +201,7 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps = {}): Apps
         setBusyAppId((current) => (current === appId ? null : current));
       }
     },
-    [lifecycle, liveBridge.appClient, reload],
+    [lifecycle, liveBridge.appClient, pickLocalAppRootDirectory, reload, requestSignIn],
   );
 
   const runCardAction = useCallback(
@@ -200,6 +219,27 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps = {}): Apps
       void performAction(appId, action);
     },
     [performAction, projection],
+  );
+
+  const connectLocalApp = useCallback(
+    (): void => {
+      setActionError(null);
+      setActionErrorAppId(null);
+      void (async () => {
+        try {
+          const rootPath = await pickLocalAppRootDirectory();
+          if (!rootPath) {
+            return;
+          }
+          await lifecycle.adoptLocal({ rootPath });
+          await reload({ includeJobs: true });
+        } catch (error) {
+          setActionError(formatAppLifecycleErrorDetail(error));
+          setActionErrorAppId(null);
+        }
+      })();
+    },
+    [lifecycle, pickLocalAppRootDirectory, reload],
   );
 
   const confirmPending = useCallback((): void => {
@@ -224,6 +264,7 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps = {}): Apps
     actionError,
     actionErrorAppId,
     busyAppId,
+    connectLocalApp,
     runCardAction,
     confirmPending,
     dismissPending,
@@ -259,16 +300,28 @@ function buildPendingConfirm(
  * Route one card action onto the `DesktopAppLifecycleBridge`. Every mutation
  * goes through the W2d bridge — there is no renderer-local lifecycle.
  *
- * `details` / `review_permissions` are renderer-only flows and are handled by
- * the caller, never reaching this router.
+ * `details` is handled by the caller. `review_permissions` is intentionally
+ * visible but fail-closed until the permission review surface is wired; it
+ * never reaches Runtime as an invented lifecycle action.
  */
 export async function routeCardAction(
   lifecycle: DesktopAppLifecycleBridge,
   appId: string,
   action: AppCardActionId,
-  deps?: DesktopAppsOpenAIConfigGateDeps,
+  deps?: DesktopAppsActionDeps,
 ): Promise<void> {
   switch (action) {
+    case 'connect_local': {
+      if (!deps?.pickLocalAppRootDirectory) {
+        throw new Error('routeCardAction: connect_local requires a local app root picker');
+      }
+      const rootPath = await deps.pickLocalAppRootDirectory();
+      if (!rootPath) {
+        return;
+      }
+      await lifecycle.adoptLocal({ rootPath, expectedAppId: appId });
+      return;
+    }
     case 'install':
       // The card-grid Install routes the install requirement preview through
       // the detail view; clicking Install from the card confirms it.
@@ -298,6 +351,18 @@ export async function routeCardAction(
       // Package removal only — durable app data is kept by default.
       await lifecycle.uninstall({ appId });
       return;
+    case 'remove_local_adoption':
+      await lifecycle.removeLocalAdoption({
+        appId,
+        deleteDurableDataConfirmed: false,
+      });
+      return;
+    case 'sign_in':
+      if (!deps?.requestSignIn) {
+        throw new Error('routeCardAction: sign_in requires the desktop account gate');
+      }
+      deps.requestSignIn();
+      return;
     case 'delete_app_data':
       // The confirmed destructive flow: remove the release AND the durable
       // app data, with the explicit destructive confirmation flag.
@@ -307,8 +372,9 @@ export async function routeCardAction(
         destructiveDataDeleteConfirmed: true,
       });
       return;
-    case 'details':
     case 'review_permissions':
+      throw new Error('Permission review is not wired for this app yet; launch remains blocked.');
+    case 'details':
       throw new Error(`routeCardAction: "${action}" is a renderer-only flow, not a bridge action`);
     default: {
       const exhaustive: never = action;

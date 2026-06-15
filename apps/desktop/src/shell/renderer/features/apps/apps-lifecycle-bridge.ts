@@ -27,6 +27,7 @@
 
 import type {
   NimiRuntimeAppHealthRepairInput,
+  NimiRuntimeAdoptLocalAppInput,
   NimiRuntimeAppInstallInput,
   NimiRuntimeAppInstallJob,
   NimiRuntimeAppInstallJobEvent,
@@ -34,6 +35,8 @@ import type {
   NimiRuntimeAppOpenInput,
   NimiRuntimeAppOpenProjection,
   NimiRuntimeAppStorageProjection,
+  NimiRuntimeLocalAppAdoption,
+  NimiRuntimeRemoveLocalAppAdoptionInput,
   NimiRuntimeAppUninstallInput,
   NimiRuntimeAppUninstallResult,
   NimiRuntimeAppUpdateInput,
@@ -52,6 +55,7 @@ import { getDesktopRuntime } from '@renderer/infra/sdk/desktop-nimi-client-sessi
 export type {
   NimiRuntimeAppHealthRepairAction,
   NimiRuntimeAppHealthRepairInput,
+  NimiRuntimeAdoptLocalAppInput,
   NimiRuntimeAppInstallInput,
   NimiRuntimeAppInstallJob,
   NimiRuntimeAppInstallJobEvent,
@@ -66,6 +70,8 @@ export type {
   NimiRuntimeAppOpenScopeRef,
   NimiRuntimeAppOpenState,
   NimiRuntimeAppStorageProjection,
+  NimiRuntimeLocalAppAdoption,
+  NimiRuntimeRemoveLocalAppAdoptionInput,
   NimiRuntimeAppUninstallInput,
   NimiRuntimeAppUninstallResult,
   NimiRuntimeAppUpdateInput,
@@ -156,6 +162,10 @@ export interface DesktopAppLifecycleBridge {
    * with the initial typed `AppInstallJob` projection (`kind=install`).
    */
   install(input: NimiRuntimeAppInstallInput): Promise<NimiRuntimeAppInstallJob>;
+  /** Explicitly adopt a user-selected local app root through Runtime validation. */
+  adoptLocal(input: NimiRuntimeAdoptLocalAppInput): Promise<NimiRuntimeLocalAppAdoption>;
+  /** Remove a Runtime-owned local adoption record without deleting durable data by default. */
+  removeLocalAdoption(input: NimiRuntimeRemoveLocalAppAdoptionInput): Promise<NimiRuntimeLocalAppAdoption>;
   /**
    * Uninstall an app's release payload. Durable app data is kept unless the
    * caller passes the explicit destructive-delete confirmation.
@@ -163,8 +173,8 @@ export interface DesktopAppLifecycleBridge {
   uninstall(input: NimiRuntimeAppUninstallInput): Promise<NimiRuntimeAppUninstallResult>;
   /** Read a single lifecycle job's typed projection by id. */
   getJob(jobId: string): Promise<NimiRuntimeAppInstallJob>;
-  /** List lifecycle job projections, optionally filtered to a single app. */
-  listJobs(appId?: string): Promise<NimiRuntimeAppInstallJob[]>;
+  /** List lifecycle job projections for one app. There is no global job list. */
+  listJobs(appId: string): Promise<NimiRuntimeAppInstallJob[]>;
   /** Read the Runtime-owned app-scoped storage truth projection. */
   storage(
     input: { appId: string },
@@ -175,8 +185,8 @@ export interface DesktopAppLifecycleBridge {
    * sequence and the full job snapshot, so the consumer never rebuilds state
    * from a partial delta. `signal` aborts the long-lived stream.
    */
-  watchJobEvents(input?: {
-    jobId?: string;
+  watchJobEvents(input: {
+    jobId: string;
     signal?: AbortSignal;
   }): Promise<AsyncIterable<NimiRuntimeAppInstallJobEvent>>;
   /**
@@ -233,6 +243,24 @@ export function createDesktopAppLifecycleBridge(deps?: {
         throw asAppLifecycleNimiError(error);
       }
     },
+    async adoptLocal(input) {
+      try {
+        return await getModule().adoptLocal(input, APP_LIFECYCLE_CALL_OPTIONS);
+      } catch (error) {
+        throw asAppLifecycleNimiError(error);
+      }
+    },
+    async removeLocalAdoption(input) {
+      const appId = requireAppId(input?.appId ?? '');
+      try {
+        return await getModule().removeLocalAdoption({
+          appId,
+          deleteDurableDataConfirmed: Boolean(input?.deleteDurableDataConfirmed),
+        }, APP_LIFECYCLE_CALL_OPTIONS);
+      } catch (error) {
+        throw asAppLifecycleNimiError(error);
+      }
+    },
     async uninstall(input) {
       try {
         return await getModule().uninstall(input, APP_LIFECYCLE_CALL_OPTIONS);
@@ -249,10 +277,10 @@ export function createDesktopAppLifecycleBridge(deps?: {
       }
     },
     async listJobs(appId) {
-      const filterAppId = typeof appId === 'string' ? appId.trim() : '';
+      const filterAppId = requireAppId(appId);
       try {
         return await getModule().listJobs(
-          filterAppId ? { appId: filterAppId } : {},
+          { appId: filterAppId },
           APP_LIFECYCLE_CALL_OPTIONS,
         );
       } catch (error) {
@@ -267,10 +295,10 @@ export function createDesktopAppLifecycleBridge(deps?: {
       }
     },
     async watchJobEvents(input) {
-      const jobId = typeof input?.jobId === 'string' ? input.jobId.trim() : '';
+      const jobId = requireJobId(input?.jobId ?? '');
       try {
         return await getModule().watchJobEvents(
-          jobId ? { jobId } : {},
+          { jobId },
           {
             ...APP_LIFECYCLE_STREAM_OPTIONS,
             ...(input?.signal ? { signal: input.signal } : {}),
@@ -302,6 +330,21 @@ export function createDesktopAppLifecycleBridge(deps?: {
       }
     },
   };
+}
+
+function requireAppId(appId: string): string {
+  const normalized = typeof appId === 'string' ? appId.trim() : '';
+  if (!normalized) {
+    throw asAppLifecycleNimiError(
+      createNimiError({
+        message: 'desktop apps lifecycle bridge requires a non-empty appId',
+        reasonCode: ReasonCode.SDK_RUNTIME_APP_LIFECYCLE_APP_ID_REQUIRED,
+        actionHint: 'pass_admitted_nimi_app_id',
+        source: 'sdk',
+      }),
+    );
+  }
+  return normalized;
 }
 
 /**

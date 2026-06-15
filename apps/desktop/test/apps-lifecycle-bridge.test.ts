@@ -66,6 +66,45 @@ function stubModule(
     calls.push({ method, input, options });
   };
   const base: NimiRuntimeAppLifecycleClient = {
+    async accountInventory(options) {
+      record('accountInventory')({}, options);
+      return { exists: false };
+    },
+    async adoptLocal(input, options) {
+      record('adoptLocal')(input, options);
+      return {
+        appId: input.expectedAppId ?? 'local.notes',
+        rootPath: input.rootPath,
+        manifestPath: `${input.rootPath}/nimi.app.yaml`,
+        displayName: 'Local Notes',
+        version: '1.0.0',
+        entryRef: 'app://local.notes/main',
+        permissionScopeRef: 'permission-scope:local.notes',
+        storagePolicyRef: 'storage-policy:local.notes',
+        state: 'adopted',
+        trust: 'explicit-local',
+      };
+    },
+    async listLocalAdoptions(options) {
+      record('listLocalAdoptions')({}, options);
+      return [];
+    },
+    async removeLocalAdoption(input, options) {
+      record('removeLocalAdoption')(input, options);
+      return {
+        appId: input.appId,
+        rootPath: '/local/notes',
+        manifestPath: '/local/notes/nimi.app.yaml',
+        displayName: 'Local Notes',
+        version: '1.0.0',
+        entryRef: 'app://local.notes/main',
+        permissionScopeRef: 'permission-scope:local.notes',
+        storagePolicyRef: 'storage-policy:local.notes',
+        state: 'removed',
+        trust: 'explicit-local',
+        reasonCode: ReasonCode.ACTION_EXECUTED,
+      };
+    },
     async install(input, options) {
       record('install')(input, options);
       return installJob();
@@ -160,6 +199,38 @@ describe('createDesktopAppLifecycleBridge — typed projection pass-through', ()
     assert.deepEqual(calls[0]?.input, { appId: 'nimi.notes', confirmed: true });
   });
 
+  test('adoptLocal projects the SDK local adoption unchanged', async () => {
+    const { module, calls } = stubModule();
+    const bridge = createDesktopAppLifecycleBridge({ getModule: () => module });
+    const adoption = await bridge.adoptLocal({
+      rootPath: '/local/notes',
+      expectedAppId: 'local.notes',
+    });
+    assert.equal(adoption.appId, 'local.notes');
+    assert.equal(adoption.rootPath, '/local/notes');
+    assert.equal(calls[0]?.method, 'adoptLocal');
+    assert.deepEqual(calls[0]?.input, {
+      rootPath: '/local/notes',
+      expectedAppId: 'local.notes',
+    });
+  });
+
+  test('removeLocalAdoption projects the SDK local adoption unchanged', async () => {
+    const { module, calls } = stubModule();
+    const bridge = createDesktopAppLifecycleBridge({ getModule: () => module });
+    const adoption = await bridge.removeLocalAdoption({
+      appId: 'local.notes',
+      deleteDurableDataConfirmed: false,
+    });
+    assert.equal(adoption.appId, 'local.notes');
+    assert.equal(adoption.state, 'removed');
+    assert.equal(calls[0]?.method, 'removeLocalAdoption');
+    assert.deepEqual(calls[0]?.input, {
+      appId: 'local.notes',
+      deleteDurableDataConfirmed: false,
+    });
+  });
+
   test('uninstall projects the SDK AppUninstallResult unchanged', async () => {
     const { module } = stubModule();
     const bridge = createDesktopAppLifecycleBridge({ getModule: () => module });
@@ -229,11 +300,15 @@ describe('createDesktopAppLifecycleBridge — desktop-core call metadata', () =>
     assert.equal(options?.timeoutMs, undefined);
   });
 
-  test('listJobs with no appId passes an empty filter', async () => {
+  test('listJobs with no appId fails closed before Runtime', async () => {
     const { module, calls } = stubModule();
     const bridge = createDesktopAppLifecycleBridge({ getModule: () => module });
-    await bridge.listJobs();
-    assert.deepEqual(calls[0]?.input, {});
+    await assert.rejects(
+      bridge.listJobs(undefined as never),
+      (error: unknown) =>
+        (error as { reasonCode?: string }).reasonCode === ReasonCode.SDK_RUNTIME_APP_LIFECYCLE_APP_ID_REQUIRED,
+    );
+    assert.equal(calls.length, 0);
   });
 });
 
