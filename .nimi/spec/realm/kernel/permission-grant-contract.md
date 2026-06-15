@@ -3,7 +3,7 @@ id: SPEC-REALM-KERNEL-PERMISSION-GRANT-001
 title: Realm Permission Grant Kernel Contract
 status: active
 owner: "@team"
-updated: 2026-06-10
+updated: 2026-06-15
 ---
 
 # Permission Grant Contract
@@ -50,3 +50,14 @@ Realm may expose a typed permission-grant projection for Runtime, Desktop, and S
 ## R-PERM-008
 
 The existing `/api/runtime/realm-grants/issue` stateless HMAC token bridge remains a partial runtime bridge. It may mint short-lived typed bridge material for an authenticated subject, but it is not the canonical permission grant lifecycle, does not persist grant state, and must not be confused with the Realm-owned app permission grant contract. OASIS/world/app interconnect remains future motivation and is not admitted as public multi-world readiness by this contract.
+
+## R-PERM-009
+
+Public Platform first-party seed grants are Realm grant seed inputs only for
+admitted first-party app ids. The current admitted seed app is `nimi.avatar`,
+with the exact scope set declared in `tables/permission-grant-contract.yaml`.
+Realm must materialize, project, and validate those seed scopes through the
+canonical app permission grant lifecycle. Any scope outside the admitted seed
+set must fail closed, and the seed set must not become an app-local allowlist,
+runtime-local default grant, ordinary Apps visibility expansion, or app
+self-admission path.

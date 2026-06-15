@@ -1,7 +1,7 @@
 contract_id: PERMISSION-GRANT-CONTRACT-001
 domain: permission-grant
 status: ACTIVE
-version: 2026-06-10
+version: 2026-06-15
 table_family: product_catalog
 catalog_id: realm_permission_grant_contract
 entries:
@@ -17,10 +17,12 @@ entries:
   - R-PERM-006
   - R-PERM-007
   - R-PERM-008
+  - R-PERM-009
   - AppPermissionGrant
   - PermissionGrantProjection
   - grant_states
   - grant_record
+  - first_party_seed_grants
   - lifecycle_operations
   - runtime_bridge_boundary
   - required_operations
@@ -68,6 +70,10 @@ rules:
     level: must
     title: stateless-runtime-bridge-is-partial
     statement: "The existing /api/runtime/realm-grants/issue stateless HMAC token bridge remains a partial runtime bridge that may mint short-lived typed bridge material for an authenticated subject but is not canonical permission grant lifecycle, does not persist grant state, and must not be confused with Realm-owned app permission grant truth; OASIS/world/app interconnect remains future motivation, not public multi-world readiness."
+  - rule_id: R-PERM-009
+    level: must
+    title: first-party-seed-grants-are-realm-grant-seeds-only
+    statement: "Public Platform first-party seed grants are Realm grant seed inputs only for admitted first-party app ids; the current admitted seed app is nimi.avatar with the exact scope set declared in tables/permission-grant-contract.yaml, and Realm must materialize, project, and validate those seed scopes through the canonical app permission grant lifecycle while any scope outside the admitted seed set fails closed and the seed set must not become an app-local allowlist, runtime-local default grant, ordinary Apps visibility expansion, or app self-admission path."
 entities:
   - name: AppPermissionGrant
     prisma_model: AppPermissionGrant
@@ -133,6 +139,37 @@ grant_record:
     - oauth_tokens
     - provider_secrets
     - app_local_secret_material
+first_party_seed_grants:
+  source_authority_ref: public-nimi:.nimi/spec/platform/kernel/tables/nimi-app-registry.yaml
+  seed_rows:
+    - appId: nimi.avatar
+      admission_status: admitted
+      ordinary_visibility: hidden-internal
+      scopes:
+        - scopeFamily: account
+          scopeName: account.session.read
+        - scopeFamily: agent
+          scopeName: agent.identity.project
+        - scopeFamily: memory
+          scopeName: memory.read.bounded
+          qualifier: persona-scoped
+        - scopeFamily: memory
+          scopeName: memory.write.admitted
+          qualifier: session-scoped
+        - scopeFamily: ai_spend
+          scopeName: ai.spend.meter
+        - scopeFamily: file_device
+          scopeName: device.use.scoped
+        - scopeFamily: file_device
+          scopeName: file.read.scoped
+        - scopeFamily: ai_profile
+          scopeName: ai_profile.selection.consume
+  lifecycle_binding: canonical_app_permission_grant
+  non_authority_effects:
+    - ordinary_apps_visibility
+    - app_self_admission
+    - app_local_allowlist
+    - runtime_local_default_grant
 lifecycle_operations:
   required_mutations:
     - request

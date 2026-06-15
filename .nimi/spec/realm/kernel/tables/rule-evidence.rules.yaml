@@ -947,6 +947,22 @@ rules:
     test_files:
       - realm-implementation://private-evidence
       - realm-implementation://private-evidence
+  R-PERM-009:
+    domain: permission-grant
+    spec_anchor: .nimi/spec/realm/kernel/permission-grant-contract.md#R-PERM-009
+    profile_refs:
+      - permission_grant
+    openapi:
+      - realm-openapi://nimi
+      - public-nimi:.nimi/spec/platform/kernel/tables/nimi-app-registry.yaml
+    prisma_models:
+      - AppPermissionGrant
+    service_files:
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
+    test_files:
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
   R-ADMIT-001:
     domain: admission-discipline
     spec_anchor: .nimi/spec/realm/kernel/admission-discipline-contract.md#R-ADMIT-001

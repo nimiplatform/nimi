@@ -1,22 +1,23 @@
-# Realm Spec Projection Rules
+# Realm Spec Guidance
 
 ## Scope
 
 - Applies to `.nimi/spec/realm/**`.
 
-## Authority
+## Reading Path
 
-- In this repository, `.nimi/spec/realm/**` is a public projection surface for
-  Realm contracts.
-- Do not edit projected Realm spec files as implementation authority.
-- Projection updates must arrive with external verification proof accepted by
-  the public repository projection guard.
+- Realm kernel index: `.nimi/spec/realm/kernel/index.md`
+- Realm projection authority:
+  `.nimi/spec/realm/kernel/projection-contract.md`
+- Realm projection table:
+  `.nimi/spec/realm/kernel/tables/projection-contract.yaml`
+- Delegated projection admission:
+  `.nimi/spec/platform/kernel/tables/delegated-projection-admissions.yaml`
+- Projection guard implementation: `scripts/check-realm-spec-projection-guard.mjs`
 
-## Required Workflow
+## Editing Route
 
-- Realm projection changes must be generated from the admitted external
-  projection pipeline, not hand-edited in the public projection subtree.
-- Run the projection sync/check commands from that pipeline before committing
-  public projection changes.
-- `NIMI_ALLOW_REALM_SPEC_PROJECTION_SYNC=1` only acknowledges a verified Realm
-  projection update. It is not a general force switch.
+- For Realm projection changes, follow the projection authority and delegated
+  admission above.
+- Keep this file as navigation guidance; product rules live in kernel authority
+  files and typed tables.
