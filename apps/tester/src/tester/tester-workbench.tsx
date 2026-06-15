@@ -4,7 +4,7 @@ import { Tooltip } from '@nimiplatform/kit/ui';
 import { createRendererFlowId, emitRuntimeLog, logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { createNimiClientId } from '@nimiplatform/sdk';
 import { requestWithRetry } from '@nimiplatform/sdk/types';
-import { Beaker, Camera } from 'lucide-react';
+import { Camera } from 'lucide-react';
 import { getTesterCapability, testerCapabilities, type TesterCapabilityId } from './tester-capabilities.js';
 import { shouldPersistTesterArtifactRecord } from './tester-artifact-persistence.js';
 import {
@@ -82,7 +82,7 @@ function TopbarStatusTooltip({
   );
 }
 
-export function TesterWorkbench(props: TesterWorkbenchProps) {
+export function TesterWorkbench(_props: TesterWorkbenchProps) {
   const [view, setView] = useState<WorkbenchView>({ kind: 'capability', capabilityId: initialCapabilityId });
   const activeCapabilityId: TesterCapabilityId = view.kind === 'capability' ? view.capabilityId : initialCapabilityId;
   const [summary, setSummary] = useState<TesterAIConfigSummary | null>(null);
@@ -254,52 +254,6 @@ export function TesterWorkbench(props: TesterWorkbenchProps) {
 
   return (
     <main className="workbench" data-testid={testerTestIds.root}>
-      <header className="workbench-topbar">
-        <div className="workbench-topbar__identity">
-          <span className="workbench-topbar__mark" aria-hidden="true">
-            <Beaker size={17} />
-          </span>
-          <div className="workbench-topbar__title">
-            <strong>{props.title}</strong>
-          </div>
-        </div>
-        <div className="workbench-topbar__status" aria-label="Tester runtime status">
-          <Tooltip
-            content={<TopbarStatusTooltip title="Runtime" rows={runtimeTooltipRows} />}
-            placement="bottom"
-            contentClassName="workbench-topbar-tooltip__bubble"
-          >
-            <span className={`workbench-topbar__attachment workbench-topbar__attachment--${runtimeState.tone}`}>
-              <span className="workbench-topbar__dot" aria-hidden="true" />
-              <span>Runtime</span>
-            </span>
-          </Tooltip>
-        </div>
-        <div className="workbench-topbar__actions">
-          <Tooltip
-            content={(
-              <TopbarStatusTooltip
-                title="Evidence"
-                rows={[
-                  { label: 'Action', value: 'Capture the current App Lab evidence snapshot.' },
-                  { label: 'Mode', value: preferenceState.preferences.evidenceCaptureMode },
-                ]}
-              />
-            )}
-            placement="bottom"
-            contentClassName="workbench-topbar-tooltip__bubble"
-          >
-            <button
-              type="button"
-              className="workbench-topbar__attachment workbench-topbar__attachment--icon"
-              aria-label="Capture evidence"
-              onClick={handleCaptureEvidence}
-            >
-              <Camera size={16} aria-hidden="true" />
-            </button>
-          </Tooltip>
-        </div>
-      </header>
       <div className="workbench__body">
         <WorkbenchSideNav
           view={view}
@@ -324,6 +278,42 @@ export function TesterWorkbench(props: TesterWorkbenchProps) {
                 lastResult={lastResult}
                 verboseConsole={preferenceState.preferences.verboseConsole}
                 draftPersistence={preferenceState.preferences.draftPersistence}
+                headerActions={(
+                  <>
+                    <Tooltip
+                      content={<TopbarStatusTooltip title="Runtime" rows={runtimeTooltipRows} />}
+                      placement="bottom"
+                      contentClassName="workbench-topbar-tooltip__bubble"
+                    >
+                      <span className={`workbench-topbar__attachment workbench-topbar__attachment--${runtimeState.tone}`}>
+                        <span className="workbench-topbar__dot" aria-hidden="true" />
+                        <span>Runtime</span>
+                      </span>
+                    </Tooltip>
+                    <Tooltip
+                      content={(
+                        <TopbarStatusTooltip
+                          title="Evidence"
+                          rows={[
+                            { label: 'Action', value: 'Capture the current App Lab evidence snapshot.' },
+                            { label: 'Mode', value: preferenceState.preferences.evidenceCaptureMode },
+                          ]}
+                        />
+                      )}
+                      placement="bottom"
+                      contentClassName="workbench-topbar-tooltip__bubble"
+                    >
+                      <button
+                        type="button"
+                        className="workbench-topbar__attachment workbench-topbar__attachment--icon"
+                        aria-label="Capture evidence"
+                        onClick={handleCaptureEvidence}
+                      >
+                        <Camera size={16} aria-hidden="true" />
+                      </button>
+                    </Tooltip>
+                  </>
+                )}
               />
             )}
           </div>

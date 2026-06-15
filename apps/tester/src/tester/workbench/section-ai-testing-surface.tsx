@@ -6,13 +6,10 @@ import {
 } from '@nimiplatform/kit/ui';
 import {
   AlertTriangle,
-  CircleHelp,
   Clock,
-  Cloud,
   Copy as CopyIcon,
   Download as DownloadIcon,
   FileText,
-  HardDrive,
   Loader2,
   Play,
   RefreshCw,
@@ -28,6 +25,7 @@ import { CAPABILITY_TO_SECTION } from '../tester-capability-sections.js';
 import type { TesterAIConfigSummary } from '../tester-ai-config.js';
 import {
   formatTesterRunTimestamp,
+  formatTesterRunHistoryTimestamp,
   getTesterRunMetricSummary,
   getTesterRunModelLabel,
   getTesterRunModelSource,
@@ -35,7 +33,6 @@ import {
   getTesterRunResultSummary,
   getTesterRunStatusTone,
   type TesterRunConfigSnapshot,
-  type TesterRunModelSource,
   type TesterRunHistory,
   type TesterRunHistoryRecord,
 } from '../tester-history.js';
@@ -104,6 +101,7 @@ export type SectionAITestingProps = {
   lastResult: TesterCapabilityRunResult | null;
   verboseConsole: boolean;
   draftPersistence: boolean;
+  headerActions?: ReactNode;
 };
 
 type ScenarioPreset = {
@@ -504,12 +502,6 @@ function studioResultStats(result: TesterCapabilityRunResult | null, running: bo
   ];
 }
 
-function studioResultTraceLabel(result: TesterCapabilityRunResult | null, running: boolean): string {
-  if (running) return 'pending';
-  if (result?.ok) return result.trace?.traceId?.trim() || 'not captured';
-  return result ? 'not captured' : 'pending';
-}
-
 export function StudioResult({
   result,
   running,
@@ -539,7 +531,6 @@ export function StudioResult({
   const plainText = result ? resultPlainText(result) : '';
   const canExport = Boolean(result && plainText);
   const modelLabel = studioResultModelLabel(result, capability);
-  const traceLabel = studioResultTraceLabel(result, running);
   const runTimeLabel = createdAt ? formatTesterRunTimestamp(createdAt) : running ? 'Running' : 'Not recorded';
 
   let metric = '—';
@@ -550,6 +541,7 @@ export function StudioResult({
     else if (output.kind === 'embedding') metric = `${output.dimensions} dims`;
     else metric = `${output.voiceCount} voices`;
   }
+  const stats = studioResultStats(result, running, metric);
 
   let body: ReactNode;
   if (running) {
@@ -590,16 +582,26 @@ export function StudioResult({
   return (
     <Surface className="studio-result" material="glass-regular" tone="panel" elevation="floating" padding="none">
       <div className="studio-result__top">
-        <div className="studio-result__identity">
-          <span className="studio-result__avatar" aria-hidden="true">
-            <Sparkles size={20} />
-          </span>
-          <strong className="studio-result__model" title={modelLabel}>{modelLabel}</strong>
-          <span className="studio-result__copy-dot" aria-hidden="true" />
-          <span className="studio-result__time">
-            <Clock size={14} aria-hidden="true" />
-            <time dateTime={createdAt}>{runTimeLabel}</time>
-          </span>
+        <div className="studio-result__summary">
+          <div className="studio-result__identity">
+            <span className="studio-result__avatar" aria-hidden="true">
+              <Sparkles size={20} />
+            </span>
+            <strong className="studio-result__model" title={modelLabel}>{modelLabel}</strong>
+            <span className="studio-result__copy-dot" aria-hidden="true" />
+            <span className="studio-result__time">
+              <Clock size={14} aria-hidden="true" />
+              <time dateTime={createdAt}>{runTimeLabel}</time>
+            </span>
+          </div>
+          <div className="studio-result__stats studio-result__stats--top" aria-label="Generation metrics">
+            {stats.map((stat) => (
+              <span key={stat.label} className="studio-result__metric">
+                <span>{stat.label}</span>
+                <strong>{stat.value}</strong>
+              </span>
+            ))}
+          </div>
         </div>
         <div className="studio-result__actions">
           <button type="button" className="studio-result__action" onClick={onCopy} disabled={!canExport} aria-label="Copy generation" title="Copy">
@@ -617,20 +619,6 @@ export function StudioResult({
         </div>
       </div>
       <div className="studio-result__body">{body}</div>
-      <div className="studio-result__foot">
-        <div className="studio-result__stats">
-          {studioResultStats(result, running, metric).map((stat) => (
-            <span key={stat.label} className="studio-result__metric">
-              <span>{stat.label}</span>
-              <strong>{stat.value}</strong>
-            </span>
-          ))}
-        </div>
-        <span className="studio-result__trace">
-          <span>Trace</span>
-          <code>{traceLabel}</code>
-        </span>
-      </div>
       <RuntimeDetails capability={capability} result={result} admission={admission} verboseConsole={verboseConsole} />
     </Surface>
   );
@@ -651,27 +639,61 @@ function historyTitleForRun(record: TesterRunHistoryRecord): string {
   return prompt || getTesterRunResultSummary(record);
 }
 
+function capitalizeHistoryValue(value: string): string {
+  const normalized = value.trim();
+  if (!normalized) return '';
+  return `${normalized.slice(0, 1).toUpperCase()}${normalized.slice(1)}`;
+}
+
+function historyDetailForRun(record: TesterRunHistoryRecord): string {
+  const metrics = getTesterRunMetricSummary(record);
+  const tone = record.runConfig?.promptControls.toneSelected
+    ? capitalizeHistoryValue(record.runConfig.promptControls.tone || '')
+    : '';
+  const status = record.status === 'failed' || record.status === 'unavailable'
+    ? 'Failed'
+    : '';
+  return [status, metrics, tone].filter(Boolean).join(' · ');
+}
+
 function historyLabelForRun(record: TesterRunHistoryRecord): string {
   const prompt = historyTitleForRun(record);
   const model = getTesterRunModelLabel(record);
   const source = getTesterRunModelSource(record);
   const metrics = getTesterRunMetricSummary(record);
-  return [source === 'unknown' ? model : `${source} model: ${model}`, formatTesterRunTimestamp(record.createdAt), metrics, prompt ? `Prompt: ${prompt}` : ''].filter(Boolean).join(' / ');
+  return [source === 'unknown' ? model : `${source} model: ${model}`, formatTesterRunHistoryTimestamp(record.createdAt), metrics, prompt ? `Prompt: ${prompt}` : ''].filter(Boolean).join(' / ');
 }
 
-function historyModelSourceLabel(source: TesterRunModelSource): string {
-  if (source === 'local') return 'Local model';
-  if (source === 'cloud') return 'Cloud model';
-  return 'Model source not captured';
+type HistoryRecordGroup = {
+  label: 'Today' | 'Yesterday' | 'Earlier';
+  records: TesterRunHistoryRecord[];
+};
+
+function localDayKey(date: Date): string {
+  return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
 }
 
-function HistoryModelSourceIcon({ source }: { source: TesterRunModelSource }) {
-  const label = historyModelSourceLabel(source);
-  return (
-    <span className={`studio-recent__source studio-recent__source--${source}`} title={label} aria-label={label}>
-      {source === 'cloud' ? <Cloud size={13} aria-hidden="true" /> : source === 'local' ? <HardDrive size={13} aria-hidden="true" /> : <CircleHelp size={13} aria-hidden="true" />}
-    </span>
-  );
+function historyGroupLabel(createdAt: string, now = new Date()): HistoryRecordGroup['label'] {
+  const date = new Date(createdAt);
+  if (Number.isNaN(date.valueOf())) return 'Earlier';
+  if (localDayKey(date) === localDayKey(now)) return 'Today';
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  if (localDayKey(date) === localDayKey(yesterday)) return 'Yesterday';
+  return 'Earlier';
+}
+
+function groupHistoryRecords(records: readonly TesterRunHistoryRecord[]): HistoryRecordGroup[] {
+  const groups: HistoryRecordGroup[] = [
+    { label: 'Today', records: [] },
+    { label: 'Yesterday', records: [] },
+    { label: 'Earlier', records: [] },
+  ];
+  for (const record of records) {
+    const label = historyGroupLabel(record.createdAt);
+    groups.find((group) => group.label === label)?.records.push(record);
+  }
+  return groups.filter((group) => group.records.length > 0);
 }
 
 export function CapabilityRunHistory({
@@ -686,6 +708,9 @@ export function CapabilityRunHistory({
   onSelectRun: (record: TesterRunHistoryRecord) => void;
 }) {
   const records = (history?.[capability.id] ?? []).slice(0, 12);
+  if (records.length === 0) return null;
+
+  const groups = groupHistoryRecords(records);
 
   return (
     <aside className="studio-history" aria-label="Recent runs History">
@@ -694,37 +719,37 @@ export function CapabilityRunHistory({
           <strong>History</strong>
         </div>
       </div>
-      {records.length === 0 ? (
-        <p className="studio-recent__empty">No local run records for {capability.label} yet. Run with Runtime to start the app-owned history.</p>
-      ) : (
-        <>
-          <ul className="studio-recent__rows">
-            {records.map((record) => (
-              <li key={record.id}>
-                <button
-                  type="button"
-                  className={record.id === activeRunId ? 'studio-recent__row studio-recent__row--active' : 'studio-recent__row'}
-                  onClick={() => onSelectRun(record)}
-                  aria-current={record.id === activeRunId ? 'true' : undefined}
-                  aria-label={historyLabelForRun(record)}
-                >
-                  <span className={`studio-recent__dot studio-recent__dot--${historyToneForRun(record)}`} aria-hidden="true" />
-                  <span className="studio-recent__model-line">
-                    <HistoryModelSourceIcon source={getTesterRunModelSource(record)} />
-                    <span className="studio-recent__model" title={getTesterRunModelLabel(record)}>
-                      {getTesterRunModelLabel(record)}
+      <div className="studio-history__groups">
+        {groups.map((group) => (
+          <section key={group.label} className="studio-history__group" aria-label={`${group.label} runs`}>
+            <p>{group.label}</p>
+            <ul className="studio-recent__rows">
+              {group.records.map((record) => (
+                <li key={record.id}>
+                  <button
+                    type="button"
+                    className={record.id === activeRunId ? 'studio-recent__row studio-recent__row--active' : 'studio-recent__row'}
+                    onClick={() => onSelectRun(record)}
+                    aria-current={record.id === activeRunId ? 'true' : undefined}
+                    aria-label={historyLabelForRun(record)}
+                  >
+                    <span className={`studio-recent__dot studio-recent__dot--${historyToneForRun(record)}`} aria-hidden="true" />
+                    <span className="studio-recent__copy">
+                      <span className="studio-recent__title" title={historyTitleForRun(record)}>
+                        {historyTitleForRun(record)}
+                      </span>
+                      <span className={record.status === 'failed' || record.status === 'unavailable' ? 'studio-recent__detail studio-recent__detail--failed' : 'studio-recent__detail'}>
+                        {historyDetailForRun(record)}
+                      </span>
                     </span>
-                  </span>
-                  <time dateTime={record.createdAt}>{formatTesterRunTimestamp(record.createdAt)}</time>
-                  <span className="studio-recent__metrics" title={historyTitleForRun(record)}>
-                    {getTesterRunMetricSummary(record)}
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
+                    <time dateTime={record.createdAt}>{formatTesterRunHistoryTimestamp(record.createdAt)}</time>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))}
+      </div>
     </aside>
   );
 }

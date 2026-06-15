@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ChangeEvent } from 'react';
 import {
   Button,
   Checkbox,
@@ -30,11 +30,11 @@ export function ToggleDemo() {
 }
 export function CheckboxDemo() {
   const [on, setOn] = useState(true);
-  return <Checkbox checked={on} onChange={(event) => setOn(event.currentTarget.checked)} label="Fail closed on missing SDK" />;
+  return <Checkbox checked={on} onChange={(event: ChangeEvent<HTMLInputElement>) => setOn(event.currentTarget.checked)} label="Fail closed on missing SDK" />;
 }
 export function SliderDemo() {
   const [value, setValue] = useState(62);
-  return <Slider min={1} max={100} value={value} onChange={(event) => setValue(Number(event.currentTarget.value))} showValue aria-label="Batch size" />;
+  return <Slider min={1} max={100} value={value} onChange={(event: ChangeEvent<HTMLInputElement>) => setValue(Number(event.currentTarget.value))} showValue aria-label="Batch size" />;
 }
 export function SegmentedDemo() {
   const [value, setValue] = useState('single');

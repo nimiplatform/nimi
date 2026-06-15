@@ -15,12 +15,15 @@ export type TesterRunConfigSnapshot = {
     | 'source'
     | 'modelLabel'
     | 'detail'
+    | 'params'
     | 'paramsSummary'
     | 'profileOrigin'
   >;
   promptControls: {
     tone?: string;
+    toneSelected?: boolean;
     length?: string;
+    lengthSelected?: boolean;
     contextAttached: boolean;
     context?: string;
     attachmentCount: number;
@@ -125,6 +128,18 @@ export type TesterFlatRunRecord = TesterRunHistoryRecord & {
 
 export type TesterRunStatusTone = 'success' | 'warning' | 'danger' | 'info';
 export type TesterRunModelSource = 'local' | 'cloud' | 'unknown';
+export type TesterRunPromptControlFact = {
+  label: string;
+  value: string;
+  code?: boolean;
+};
+export type TesterRunConfigParamRow = {
+  group: string;
+  key: string;
+  label: string;
+  value: string;
+  code: boolean;
+};
 
 export function flattenTesterRunHistory(history: TesterRunHistory | null): TesterFlatRunRecord[] {
   if (!history) return [];
@@ -172,6 +187,11 @@ const testerRunDateTimeFormatter = new Intl.DateTimeFormat('en-US', {
   hourCycle: 'h23',
 });
 
+const testerRunDateFormatter = new Intl.DateTimeFormat('en-US', {
+  month: 'short',
+  day: 'numeric',
+});
+
 const testerRunDateTimeWithYearFormatter = new Intl.DateTimeFormat('en-US', {
   year: 'numeric',
   month: 'short',
@@ -179,6 +199,12 @@ const testerRunDateTimeWithYearFormatter = new Intl.DateTimeFormat('en-US', {
   hour: '2-digit',
   minute: '2-digit',
   hourCycle: 'h23',
+});
+
+const testerRunDateWithYearFormatter = new Intl.DateTimeFormat('en-US', {
+  year: 'numeric',
+  month: 'short',
+  day: 'numeric',
 });
 
 function isSameLocalCalendarDate(left: Date, right: Date): boolean {
@@ -192,6 +218,18 @@ export function formatTesterRunTimestamp(value: string, now = new Date()): strin
     if (isSameLocalCalendarDate(date, now)) return testerRunTimeFormatter.format(date);
     if (date.getFullYear() === now.getFullYear()) return testerRunDateTimeFormatter.format(date);
     return testerRunDateTimeWithYearFormatter.format(date);
+  } catch {
+    return value;
+  }
+}
+
+export function formatTesterRunHistoryTimestamp(value: string, now = new Date()): string {
+  try {
+    const date = new Date(value);
+    if (Number.isNaN(date.valueOf())) return value;
+    if (isSameLocalCalendarDate(date, now)) return testerRunTimeFormatter.format(date);
+    if (date.getFullYear() === now.getFullYear()) return testerRunDateFormatter.format(date);
+    return testerRunDateWithYearFormatter.format(date);
   } catch {
     return value;
   }
@@ -322,6 +360,101 @@ function formatTesterTokenUsage(inputTokens?: number, outputTokens?: number, tot
 function cleanTesterRunModelName(value: string): string {
   const normalized = value.trim();
   return normalized.replace(/^(local-import|local|cloud)\//i, '').trim() || normalized;
+}
+
+function compactSettingValue(value: string, maxLength = 220): string {
+  const normalized = value.replace(/\s+/g, ' ').trim();
+  if (!normalized) return '';
+  return normalized.length > maxLength ? `${normalized.slice(0, maxLength - 3)}...` : normalized;
+}
+
+function formatTesterRunConfigValue(value: unknown): { value: string; code: boolean } {
+  if (value === null) return { value: 'null', code: true };
+  if (typeof value === 'string') return { value: value.length > 0 ? value : '""', code: false };
+  if (typeof value === 'number' || typeof value === 'boolean') return { value: String(value), code: true };
+  if (Array.isArray(value) && value.every((entry) => typeof entry === 'string')) {
+    return { value: value.join(', '), code: false };
+  }
+  if (Array.isArray(value) || isJsonObject(value)) {
+    try {
+      return { value: JSON.stringify(value), code: true };
+    } catch {
+      return { value: String(value), code: true };
+    }
+  }
+  return { value: String(value), code: false };
+}
+
+function pushFact(out: TesterRunPromptControlFact[], label: string, value: string | null | undefined, code = false): void {
+  const normalized = typeof value === 'string' ? compactSettingValue(value) : '';
+  if (normalized) out.push({ label, value: normalized, code });
+}
+
+export function getTesterRunPromptControlFacts(runConfig: TesterRunConfigSnapshot): TesterRunPromptControlFact[] {
+  const facts: TesterRunPromptControlFact[] = [];
+  if (runConfig.promptControls.toneSelected) {
+    pushFact(facts, 'Tone', runConfig.promptControls.tone);
+  }
+  if (runConfig.promptControls.lengthSelected) {
+    pushFact(facts, 'Length', runConfig.promptControls.length);
+  }
+  if (runConfig.promptControls.attachmentCount > 0) {
+    facts.push({
+      label: 'Attachments',
+      value: String(runConfig.promptControls.attachmentCount),
+      code: true,
+    });
+  }
+  return facts;
+}
+
+const PARAM_GROUP_LABELS = {
+  generation: 'Generation defaults',
+  response: 'Response controls',
+  advanced: 'Advanced settings',
+} as const;
+
+const TEXT_MODEL_PARAM_ORDER: ReadonlyArray<{ key: string; label: string; group: string }> = [
+  { key: 'temperature', label: 'Temperature', group: PARAM_GROUP_LABELS.generation },
+  { key: 'maxTokens', label: 'Max Tokens', group: PARAM_GROUP_LABELS.generation },
+  { key: 'topP', label: 'Top P', group: PARAM_GROUP_LABELS.generation },
+  { key: 'topK', label: 'Top K', group: PARAM_GROUP_LABELS.generation },
+  { key: 'timeoutMs', label: 'Timeout', group: PARAM_GROUP_LABELS.response },
+  { key: 'stopSequences', label: 'Stop Sequences', group: PARAM_GROUP_LABELS.response },
+  { key: 'presencePenalty', label: 'Presence Penalty', group: PARAM_GROUP_LABELS.advanced },
+  { key: 'frequencyPenalty', label: 'Frequency Penalty', group: PARAM_GROUP_LABELS.advanced },
+];
+
+function hasRunConfigParam(value: unknown): boolean {
+  if (typeof value === 'string') return value.trim().length > 0;
+  if (typeof value === 'number') return Number.isFinite(value);
+  if (typeof value === 'boolean') return value;
+  if (Array.isArray(value)) return value.length > 0;
+  return Boolean(value);
+}
+
+function runConfigParamDefinitions(runConfig: TesterRunConfigSnapshot): ReadonlyArray<{ key: string; label: string; group: string }> {
+  if (runConfig.target.capabilityId === 'text.generate' || runConfig.target.capabilityId === 'chat.stream') {
+    return TEXT_MODEL_PARAM_ORDER;
+  }
+  return Object.keys(runConfig.target.params).map((key) => ({ key, label: key, group: 'Model parameters' }));
+}
+
+export function getTesterRunConfigParamRows(runConfig: TesterRunConfigSnapshot): TesterRunConfigParamRow[] {
+  const params = runConfig.target.params;
+  if (!isJsonObject(params)) return [];
+  return runConfigParamDefinitions(runConfig).flatMap((definition) => {
+    const value = params[definition.key];
+    if (!hasRunConfigParam(value)) return [];
+    const formatted = formatTesterRunConfigValue(value);
+    return [{
+      group: definition.group,
+      key: definition.key,
+      label: definition.label,
+      value: formatted.value,
+      code: formatted.code,
+    }];
+  });
 }
 
 function routeDecisionModelSource(value: string | undefined): TesterRunModelSource {

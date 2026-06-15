@@ -11,6 +11,7 @@ import { CAPABILITY_TO_SECTION } from './tester-capability-sections.js';
 
 export type TesterRunTargetStatus = 'ready' | 'blocked' | 'checking' | 'tauri-only' | 'sdk-gap';
 export type TesterRunTargetSource = 'local' | 'cloud' | 'profile-slice' | 'local-fixture' | 'unknown';
+export type TesterRunTargetParamRecord = Record<string, unknown>;
 
 export type TesterRunTargetSummary = {
   capabilityId: TesterCapabilityId;
@@ -21,8 +22,18 @@ export type TesterRunTargetSummary = {
   modelLabel: string;
   detail: string;
   canDispatch: boolean;
+  params: TesterRunTargetParamRecord;
   paramsSummary: string[];
   profileOrigin: string | null;
+};
+
+export type TesterRunTargetLocalModel = {
+  localModelId?: string;
+  goRuntimeLocalModelId?: string;
+  modelId?: string;
+  model?: string;
+  label?: string;
+  engine?: string;
 };
 
 function bindingCapabilityFor(capabilityId: TesterCapabilityId): string | null {
@@ -49,17 +60,77 @@ function compactModelLabel(value: string): string {
   return normalized.replace(/^(local-import|local|cloud)\//i, '').trim() || normalized;
 }
 
-function targetModelLabel(targetRef: NimiAIConfigTargetRef): string {
+function isOpaqueRuntimeId(value: string | null | undefined): boolean {
+  const normalized = normalizeText(value);
+  return /^[0-9A-HJKMNP-TV-Z]{20,32}$/u.test(normalized);
+}
+
+function containsOpaqueRuntimeId(value: string): boolean {
+  return value.split(/[:/\s]+/u).some((part) => isOpaqueRuntimeId(part));
+}
+
+function localTargetCandidates(targetRef: NimiAIConfigTargetRef): string[] {
+  if (targetRef.kind !== 'local-runtime') return [];
+  const candidates = [
+    normalizeText(targetRef.profileId),
+    normalizeText(targetRef.targetId),
+    normalizeText(targetRef.readinessRef),
+    ...normalizeText(targetRef.readinessRef).split(':'),
+  ].filter(Boolean);
+  return [...new Set(candidates)];
+}
+
+function localModelMatchesTarget(
+  model: TesterRunTargetLocalModel,
+  candidates: readonly string[],
+): boolean {
+  const modelValues = [
+    normalizeText(model.localModelId),
+    normalizeText(model.goRuntimeLocalModelId),
+    normalizeText(model.modelId),
+    normalizeText(model.model),
+    normalizeText(model.label),
+  ].filter(Boolean);
+  return candidates.some((candidate) => modelValues.includes(candidate));
+}
+
+function localRuntimeFallbackLabel(targetRef: NimiAIConfigTargetRef): string {
+  if (targetRef.kind !== 'local-runtime') return 'Local runtime model';
+  const raw = normalizeText(targetRef.profileId)
+    || normalizeText(targetRef.readinessRef)
+    || normalizeText(targetRef.targetId);
+  if (!raw || containsOpaqueRuntimeId(raw)) return 'Local runtime model';
+  return compactModelLabel(raw);
+}
+
+function localRuntimeModelLabel(
+  targetRef: NimiAIConfigTargetRef,
+  localModels: readonly TesterRunTargetLocalModel[],
+): string {
+  const candidates = localTargetCandidates(targetRef);
+  const match = candidates.length > 0
+    ? localModels.find((model) => localModelMatchesTarget(model, candidates))
+    : null;
+  if (!match) return localRuntimeFallbackLabel(targetRef);
+  return compactModelLabel(
+    normalizeText(match.label)
+    || normalizeText(match.modelId)
+    || normalizeText(match.model)
+    || normalizeText(match.localModelId)
+    || normalizeText(match.goRuntimeLocalModelId)
+    || 'Local runtime model',
+  );
+}
+
+function targetModelLabel(
+  targetRef: NimiAIConfigTargetRef,
+  localModels: readonly TesterRunTargetLocalModel[] = [],
+): string {
   if (targetRef.kind === 'cloud-connector') {
     return compactModelLabel(normalizeText(targetRef.providerModelId) || normalizeText(targetRef.connectorId) || 'Cloud connector');
   }
   if (targetRef.kind === 'local-runtime') {
-    return compactModelLabel(
-      normalizeText(targetRef.profileId)
-      || normalizeText(targetRef.targetId)
-      || normalizeText(targetRef.readinessRef)
-      || 'Local runtime target',
-    );
+    return localRuntimeModelLabel(targetRef, localModels);
   }
   return compactModelLabel(normalizeText(targetRef.sourceProfileId) || normalizeText(targetRef.sliceId) || 'Profile slice');
 }
@@ -77,6 +148,33 @@ function paramRecord(config: NimiAIConfig, capabilityId: TesterCapabilityId, bin
   return raw && typeof raw === 'object' && !Array.isArray(raw)
     ? raw as Record<string, unknown>
     : {};
+}
+
+function toSerializableParamValue(value: unknown): unknown {
+  if (value === null) return null;
+  if (Array.isArray(value)) {
+    return value.map(toSerializableParamValue).filter((item) => item !== undefined);
+  }
+  if (typeof value === 'object') {
+    const out: Record<string, unknown> = {};
+    for (const [key, child] of Object.entries(value as Record<string, unknown>)) {
+      const next = toSerializableParamValue(child);
+      if (next !== undefined) out[key] = next;
+    }
+    return out;
+  }
+  if (typeof value === 'string' || typeof value === 'boolean') return value;
+  if (typeof value === 'number') return Number.isFinite(value) ? value : undefined;
+  return undefined;
+}
+
+function serializableParamRecord(params: Record<string, unknown>): TesterRunTargetParamRecord {
+  const out: TesterRunTargetParamRecord = {};
+  for (const [key, value] of Object.entries(params)) {
+    const next = toSerializableParamValue(value);
+    if (next !== undefined) out[key] = next;
+  }
+  return out;
 }
 
 function hasParam(value: unknown): boolean {
@@ -158,15 +256,19 @@ export function createTesterRunTargetSummary(input: {
   capability: TesterCapability;
   runtime: TesterRuntimeInspection | null;
   config: NimiAIConfig | null;
+  localModels?: readonly TesterRunTargetLocalModel[];
 }): TesterRunTargetSummary {
   const { capability, runtime, config } = input;
+  const localModels = input.localModels || [];
   const section = CAPABILITY_TO_SECTION[capability.id];
   const bindingCapabilityId = bindingCapabilityFor(capability.id);
+  const params = config ? serializableParamRecord(paramRecord(config, capability.id, bindingCapabilityId)) : {};
   const base = {
     capabilityId: capability.id,
     bindingCapabilityId,
     section,
-    paramsSummary: config ? summarizeParams(capability.id, paramRecord(config, capability.id, bindingCapabilityId)) : [],
+    params,
+    paramsSummary: summarizeParams(capability.id, params),
     profileOrigin: config ? profileOriginLabel(config) : null,
   };
 
@@ -237,7 +339,7 @@ export function createTesterRunTargetSummary(input: {
       ...base,
       status: 'blocked',
       source: 'profile-slice',
-      modelLabel: targetModelLabel(targetRef),
+      modelLabel: targetModelLabel(targetRef, localModels),
       detail: `Apply or materialize profile slice ${targetRef.sliceId} into a live Runtime target before dispatch.`,
       canDispatch: false,
     };
@@ -247,7 +349,7 @@ export function createTesterRunTargetSummary(input: {
     ...base,
     status: 'ready',
     source: targetSource(targetRef),
-    modelLabel: targetModelLabel(targetRef),
+    modelLabel: targetModelLabel(targetRef, localModels),
     detail: `${bindingCapabilityId} is bound to a ${targetRef.kind === 'cloud-connector' ? 'cloud connector' : 'local Runtime'} target.`,
     canDispatch: true,
   };

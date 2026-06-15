@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ChangeEvent } from 'react';
 import { Button, IconButton, ScrollArea, StatusBadge, Surface, TextareaField } from '@nimiplatform/kit/ui';
 import {
   ModelConfigCapabilityDetail,
@@ -269,7 +269,7 @@ export function TesterAiConfigSettings({
     ? t(`ModelConfig.section.${activeSection}.title`)
     : t('Tester.settings.title');
   const headerSubtitle = inDetail
-    ? t('Tester.settings.detailSubtitle')
+    ? null
     : t('Tester.settings.subtitle');
 
   return (
@@ -295,7 +295,7 @@ export function TesterAiConfigSettings({
         ) : null}
         <div className="tester-ai-config-settings__head-copy">
           <strong>{headerTitle}</strong>
-          <span>{headerSubtitle}</span>
+          {headerSubtitle ? <span>{headerSubtitle}</span> : null}
         </div>
         <div className="tester-ai-config-settings__head-aside">
           <StatusBadge tone={runtimeReady ? 'success' : 'warning'} shape="dot">
@@ -372,7 +372,7 @@ export function TesterAiConfigSettings({
                     aria-label="AIProfile JSON"
                     placeholder='{"profileId":"tester-runtime","title":"Tester Runtime Profile","capabilities":{"text.generate":{"targetRef":{"kind":"cloud-connector","connectorId":"runtime-connector-id","providerModelId":"runtime-model-id"}}}}'
                     value={profileJson}
-                    onChange={(event) => setProfileJson(event.currentTarget.value)}
+                    onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setProfileJson(event.currentTarget.value)}
                   />
                   <div className="tester-ai-config-settings__import-actions">
                     <Button

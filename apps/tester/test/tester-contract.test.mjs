@@ -52,6 +52,7 @@ function buildBehaviorModules() {
     'src/tester/tester-runtime-invokers.ts',
     'src/tester/tester-ai-config-store.ts',
     'src/tester/tester-runtime-model-provider.ts',
+    'src/tester/tester-run-target.ts',
   ], {
     cwd: root,
     stdio: 'pipe',
@@ -260,6 +261,83 @@ test('tester auth and runtime bootstrap consume Kit shell bridge primitives', ()
   assert.doesNotMatch(runtimeAccountAuth, /ACCOUNT_CALLER_MODE|deviceId:\s*['"`]local-first-party-device|mode:\s*1|appInstanceId:\s*`\$\{appId\}\.local-first-party`/);
 });
 
+test('tester run target summary hydrates local runtime model labels without exposing opaque ids', async () => {
+  const { createTesterRunTargetSummary } = await importBehaviorModule('tester/tester-run-target.js');
+  const capability = {
+    id: 'image.generate',
+    label: 'Image Generate',
+    group: 'media',
+    summary: '',
+    surface: '',
+    execution: 'runtime-sdk',
+  };
+  const runtime = { status: 'ready', mode: 'test', detail: 'ready' };
+  const config = {
+    scopeRef: { kind: 'app', appId: 'tester', surfaceId: 'app-lab' },
+    capabilities: {
+      targetRefs: {
+        'image.generate': {
+          kind: 'local-runtime',
+          targetId: 'media',
+          profileId: '01KTEX0CSNAR9Q0B8KXNCF4WPW',
+          readinessRef: 'runtime-route:local:media:01KTEX0CSNAR9Q0B8KXNCF4WPW',
+        },
+      },
+      selectedParams: {},
+    },
+    profileOrigin: null,
+  };
+
+  const unresolved = createTesterRunTargetSummary({ capability, runtime, config });
+  assert.equal(unresolved.modelLabel, 'Local runtime model');
+  assert.notEqual(unresolved.modelLabel, '01KTEX0CSNAR9Q0B8KXNCF4WPW');
+
+  const hydrated = createTesterRunTargetSummary({
+    capability,
+    runtime,
+    config,
+    localModels: [{
+      localModelId: '01KTEX0CSNAR9Q0B8KXNCF4WPW',
+      modelId: 'local-import/z-image-turbo-Q4_K_M',
+      model: 'local-import/z-image-turbo-Q4_K_M',
+      label: 'local-import/z-image-turbo-Q4_K_M',
+      engine: 'media',
+    }],
+  });
+  assert.equal(hydrated.modelLabel, 'z-image-turbo-Q4_K_M');
+});
+
+test('tester text run target omits unconfigured model drawer placeholders from history', async () => {
+  const { createTesterRunTargetSummary } = await importBehaviorModule('tester/tester-run-target.js');
+  const capability = {
+    id: 'text.generate',
+    label: 'Text Studio',
+    group: 'text',
+    summary: '',
+    surface: '',
+    execution: 'runtime-sdk',
+  };
+  const runtime = { status: 'ready', mode: 'test', detail: 'ready' };
+  const config = {
+    scopeRef: { kind: 'app', appId: 'tester', surfaceId: 'app-lab' },
+    capabilities: {
+      targetRefs: {
+        'text.generate': {
+          kind: 'cloud-connector',
+          connectorId: 'runtime-connector',
+          providerModelId: 'gemini-2.5-pro',
+        },
+      },
+      selectedParams: {},
+    },
+    profileOrigin: null,
+  };
+
+  const summary = createTesterRunTargetSummary({ capability, runtime, config });
+  assert.deepEqual(summary.params, {});
+  assert.deepEqual(summary.paramsSummary, []);
+});
+
 test('Tester consumes SDK Runtime agent smoke verification surface as second app proof', () => {
   const helper = read('src/tester/tester-runtime-smoke-verification.ts');
   assert.match(helper, /createNimiRuntimeAgentSmokeVerificationSurface/);
@@ -371,7 +449,8 @@ test('tester run history is the per-capability evidence surface (no standalone E
   assert.match(capabilities, /getTesterRunStatusLabel/);
   assert.match(capabilities, /getTesterRunResultSummary/);
   assert.match(capabilities, /TextStudioHistorySnapshotBody/);
-  assert.match(capabilities, /No local run records for/);
+  assert.match(capabilities, /if \(records\.length === 0\) return null;/);
+  assert.doesNotMatch(capabilities, /No local run records for/);
   assert.doesNotMatch(capabilities, /does not contain the full generated body/);
   for (const helper of ['createTesterRunHistoryResultSnapshot', 'getTesterRunResultSummary', 'getTesterRunResultTags', 'getTesterRunStatusLabel', 'getTesterRunStatusTone', 'formatTesterRunTimestamp', 'flattenTesterRunHistory']) {
     assert.match(historyStore, new RegExp(helper));
@@ -396,10 +475,21 @@ test('tester run history timestamps use English date labels and omit today date 
   assert.match(historyStore, /hourCycle:\s*'h23'/);
   assert.match(historyStore, /formatTesterRunTimestamp\(value: string, now = new Date\(\)\)/);
   assert.match(historyStore, /if \(isSameLocalCalendarDate\(date, now\)\) return testerRunTimeFormatter\.format\(date\);/);
+  assert.match(historyStore, /formatTesterRunHistoryTimestamp\(value: string, now = new Date\(\)\)/);
+  assert.match(historyStore, /return testerRunDateFormatter\.format\(date\);/);
+  assert.match(historyStore, /return testerRunDateWithYearFormatter\.format\(date\);/);
   assert.doesNotMatch(historyStore, /toLocaleString\(\[\]/);
 });
 
-test('tester run history rows prioritize model identity and run metrics', () => {
+test('right-side capability history uses date-only labels for older runs', () => {
+  const capabilities = readTesterAiTestingSurface(root);
+
+  assert.match(capabilities, /formatTesterRunHistoryTimestamp/);
+  assert.match(capabilities, /<time dateTime=\{record\.createdAt\}>\{formatTesterRunHistoryTimestamp\(record\.createdAt\)\}<\/time>/);
+  assert.match(capabilities, /formatTesterRunHistoryTimestamp\(record\.createdAt\), metrics/);
+});
+
+test('tester run history rows prioritize prompt title, recency groups, and run metrics', () => {
   const capabilities = readTesterAiTestingSurface(root);
   const historyStore = read('src/tester/tester-history.ts');
   const styles = read('src/tester/tester-workbench.css');
@@ -415,7 +505,25 @@ test('tester run history rows prioritize model identity and run metrics', () => 
   assert.match(historyStore, /runConfig\?: TesterRunConfigSnapshot/);
   assert.match(historyStore, /record\.runConfig\?\.target\.modelLabel/);
   assert.match(historyStore, /record\.runConfig\?\.target\.source/);
+  assert.match(historyStore, /\| 'params'/);
   assert.match(historyStore, /record\.runConfig\?\.target\.paramsSummary/);
+  assert.match(historyStore, /toneSelected\?: boolean/);
+  assert.match(historyStore, /lengthSelected\?: boolean/);
+  assert.match(historyStore, /export function getTesterRunPromptControlFacts/);
+  assert.match(historyStore, /export function getTesterRunConfigParamRows/);
+  assert.match(historyStore, /Temperature/);
+  assert.match(historyStore, /Max Tokens/);
+  assert.match(historyStore, /Top P/);
+  assert.match(historyStore, /Top K/);
+  assert.match(historyStore, /Timeout/);
+  assert.match(historyStore, /Stop Sequences/);
+  assert.match(historyStore, /Advanced settings/);
+  assert.match(historyStore, /JSON\.stringify\(value\)/);
+  assert.doesNotMatch(historyStore, /effectiveTesterModelParamsForCapability/);
+  assert.doesNotMatch(historyStore, /TEXT_MODEL_EFFECTIVE_DEFAULTS/);
+  assert.doesNotMatch(historyStore, /export function getTesterRunConfigTargetFacts/);
+  assert.doesNotMatch(historyStore, /export function getTesterRunConfigPromptFacts/);
+  assert.doesNotMatch(historyStore, /pushFact\(facts, 'Context', 'Attached'\)/);
   assert.match(historyStore, /modelResolved/);
   assert.match(historyStore, /inputTokens/);
   assert.match(historyStore, /outputTokens/);
@@ -423,27 +531,64 @@ test('tester run history rows prioritize model identity and run metrics', () => 
   assert.doesNotMatch(historyStore, /\bin \/.*\bout/);
   assert.doesNotMatch(historyStore, /\bout \/.*\btotal/);
   assert.match(capabilities, /historyLabelForRun/);
-  assert.match(capabilities, /HistoryModelSourceIcon/);
+  assert.match(capabilities, /historyDetailForRun/);
+  assert.match(capabilities, /historyGroupLabel/);
+  assert.match(capabilities, /groupHistoryRecords/);
   assert.match(capabilities, /getTesterRunModelSource\(record\)/);
-  assert.match(capabilities, /studio-recent__source--\$\{source\}/);
-  assert.match(capabilities, /<Cloud size=\{13\}/);
-  assert.match(capabilities, /<HardDrive size=\{13\}/);
-  assert.match(capabilities, /<CircleHelp size=\{13\}/);
-  assert.match(capabilities, /studio-recent__model-line/);
-  assert.match(capabilities, /studio-recent__model/);
-  assert.match(capabilities, /studio-recent__metrics/);
+  assert.match(capabilities, /getTesterRunModelLabel\(record\)/);
+  assert.match(capabilities, /label: 'Today' \| 'Yesterday' \| 'Earlier'/);
+  assert.match(capabilities, /const hasHistory = historyRecords\.length > 0;/);
+  assert.match(capabilities, /studio__workspace studio__workspace--with-history/);
+  assert.match(capabilities, /if \(records\.length === 0\) return null;/);
+  assert.doesNotMatch(capabilities, /<span>\{records\.length\}<\/span>/);
+  assert.match(capabilities, /className="studio-history__groups"/);
+  assert.match(capabilities, /className="studio-history__group"/);
+  assert.match(capabilities, /<p>\{group\.label\}<\/p>/);
+  assert.match(capabilities, /studio-recent__copy/);
+  assert.match(capabilities, /studio-recent__title/);
+  assert.match(capabilities, /studio-recent__detail/);
   assert.match(capabilities, /createRunConfigSnapshot/);
+  assert.match(capabilities, /params:\s*\{\s*\.\.\.target\.params\s*\}/);
+  assert.match(capabilities, /toneSelected: input\.toneSelected/);
+  assert.match(capabilities, /lengthSelected: input\.lengthSelected/);
+  assert.match(capabilities, /function TextStudioPromptSettings/);
+  assert.match(capabilities, /function TextStudioModelSettings/);
+  assert.match(capabilities, /function summarizeParamRows/);
+  assert.match(capabilities, /Model settings/);
+  assert.match(capabilities, /getTesterRunConfigParamRows\(runConfig\)/);
+  assert.match(capabilities, /getTesterRunPromptControlFacts\(runConfig\)/);
   assert.match(capabilities, /record\.runConfig\?\.promptControls\.context/);
+  assert.match(capabilities, /record\.runConfig\?\.promptControls\.toneSelected/);
+  assert.match(capabilities, /record\.runConfig\?\.promptControls\.lengthSelected/);
+  assert.match(capabilities, /setContext\(historyContext\)/);
+  assert.doesNotMatch(capabilities, /function TextStudioRunSettings/);
+  assert.doesNotMatch(capabilities, /Run settings/);
+  assert.doesNotMatch(capabilities, /Model target|Target detail/);
   assert.match(capabilities, /aria-label=\{historyLabelForRun\(record\)\}/);
-  assert.match(styles, /grid-template-rows:\s*auto auto/);
-  assert.match(styles, /grid-template-columns:\s*minmax\(0,\s*1fr\)\s*minmax\(260px,\s*300px\)/);
-  assert.match(styles, /\.studio-history \.studio-recent__model-line/);
-  assert.match(styles, /\.studio-history \.studio-recent__source--local/);
-  assert.match(styles, /\.studio-history \.studio-recent__source--cloud/);
-  assert.match(styles, /\.studio-history \.studio-recent__model/);
-  assert.match(styles, /max-width:\s*152px/);
-  assert.match(styles, /\.studio-history \.studio-recent__metrics/);
-  assert.match(styles, /\.studio-result\s*\{[^}]*border-radius:\s*18px/s);
+  assert.match(styles, /grid-template-rows:\s*auto minmax\(0,\s*1fr\)/);
+  assert.match(styles, /--studio-center-width:\s*960px/);
+  assert.match(styles, /--studio-history-width:\s*360px/);
+  assert.match(styles, /\.studio__workspace\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)/s);
+  assert.match(
+    styles,
+    /\.studio__workspace--with-history\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s*minmax\(320px,\s*var\(--studio-history-width\)\)/s,
+  );
+  assert.match(styles, /\.studio__stage\s*\{[^}]*max-width:\s*var\(--studio-center-width\)[^}]*justify-self:\s*center/s);
+  assert.match(styles, /border-left:\s*1px solid/);
+  assert.match(styles, /\.studio-history__groups/);
+  assert.match(styles, /\.studio-history__group/);
+  assert.match(styles, /\.studio-history \.studio-recent__copy/);
+  assert.match(styles, /\.studio-history \.studio-recent__title/);
+  assert.match(styles, /\.studio-history \.studio-recent__detail/);
+  assert.doesNotMatch(styles, /\.studio-history \.studio-recent__source--local/);
+  assert.doesNotMatch(styles, /\.studio-history \.studio-recent__source--cloud/);
+  assert.match(styles, /\.studio-prompt-settings/);
+  assert.match(styles, /\.studio-prompt-settings__context/);
+  assert.match(styles, /\.studio-history-settings/);
+  assert.match(styles, /\.studio-history-settings__params/);
+  assert.match(styles, /\.studio-history-settings__empty/);
+  assert.doesNotMatch(styles, /\.studio-history-settings__context/);
+  assert.match(styles, /\.studio-result\s*\{[^}]*border-radius:\s*14px/s);
 });
 
 test('tester capability runs consume Kit renderer telemetry', () => {

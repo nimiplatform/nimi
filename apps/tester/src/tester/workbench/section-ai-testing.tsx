@@ -1,9 +1,10 @@
-import { Suspense, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { Suspense, useEffect, useMemo, useState, type ChangeEvent, type ReactNode } from 'react';
 import {
   SelectField,
   StatusBadge,
   TextareaField,
 } from '@nimiplatform/kit/ui';
+import type { NimiAIConfig } from '@nimiplatform/sdk/ai';
 import {
   AlertTriangle,
   ArrowUp,
@@ -11,6 +12,7 @@ import {
   FileText,
   Maximize2,
   MessageSquare,
+  Plus,
   RefreshCw,
   SlidersHorizontal,
 } from 'lucide-react';
@@ -20,9 +22,13 @@ import { type TesterCapability } from '../tester-capabilities.js';
 import { CAPABILITY_TO_SECTION } from '../tester-capability-sections.js';
 import {
   formatTesterRunTimestamp,
+  getTesterRunConfigParamRows,
+  getTesterRunPromptControlFacts,
   getTesterRunResultTags,
   getTesterRunStatusLabel,
   type TesterRunConfigSnapshot,
+  type TesterRunConfigParamRow,
+  type TesterRunPromptControlFact,
   type TesterRunHistory,
   type TesterRunHistoryRecord,
   type TesterRunHistoryResultSnapshot,
@@ -33,6 +39,7 @@ import {
 } from '../tester-ai-config-store.js';
 import {
   createTesterRunTargetSummary,
+  type TesterRunTargetLocalModel,
   type TesterRunTargetSummary,
 } from '../tester-run-target.js';
 import {
@@ -82,22 +89,20 @@ type TextStudioActiveRun = {
   error: string | null;
 };
 
-function textStudioDisplayPrompt(prompt: string, context: string): string {
-  const trimmedPrompt = prompt.trim();
-  const trimmedContext = context.trim();
-  if (!trimmedContext) return trimmedPrompt;
-  return `${trimmedPrompt}\n\nContext:\n${trimmedContext}`;
-}
-
 function textStudioRuntimePrompt(prompt: string, context: string): string {
   const trimmedContext = context.trim();
   if (!trimmedContext) return prompt;
   return `Context:\n${trimmedContext}\n\nRequest:\n${prompt}`;
 }
 
-function textStudioModelSummary(result: TesterCapabilityRunResult | null): string {
+function compactStudioModelLabel(value: string): string {
+  const normalized = value.trim();
+  return normalized.replace(/^(local-import|local|cloud)\//i, '').trim() || normalized;
+}
+
+function textStudioModelSummary(result: TesterCapabilityRunResult | null, runTarget: TesterRunTargetSummary): string {
   const resolved = result?.ok ? result.trace?.modelResolved?.trim() : '';
-  return `Model: ${resolved || 'Not configured'}`;
+  return `Model: ${resolved ? compactStudioModelLabel(resolved) : runTarget.modelLabel}`;
 }
 
 function studioControlHeadingLabel(title: string): ReactNode {
@@ -115,6 +120,13 @@ function ModelSummaryChip({ label, onOpen }: { label: string; onOpen: () => void
       <span>{label}</span>
     </button>
   );
+}
+
+function targetRefHydrationKey(bindingCapabilityId: string | null, config: NimiAIConfig | null): string {
+  if (!bindingCapabilityId || !config) return '';
+  const targetRef = config.capabilities.targetRefs[bindingCapabilityId] || null;
+  if (!targetRef) return '';
+  return JSON.stringify(targetRef);
 }
 
 function useTesterRunTargetSummary(
@@ -141,13 +153,51 @@ function useTesterRunTargetSummary(
     }
   }, [scopeRef, service]);
 
-  return useMemo(() => createTesterRunTargetSummary({ capability, runtime, config }), [capability, config, runtime]);
+  const [localModels, setLocalModels] = useState<TesterRunTargetLocalModel[]>([]);
+  const target = useMemo(
+    () => createTesterRunTargetSummary({ capability, runtime, config, localModels }),
+    [capability, config, localModels, runtime],
+  );
+  const hydrationKey = useMemo(
+    () => targetRefHydrationKey(target.bindingCapabilityId, config),
+    [config, target.bindingCapabilityId],
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    setLocalModels([]);
+    if (runtime?.status !== 'ready' || target.source !== 'local' || !target.bindingCapabilityId) {
+      return () => {
+        cancelled = true;
+      };
+    }
+    const bindingCapabilityId = target.bindingCapabilityId;
+    void import('../tester-runtime-model-provider.js')
+      .then((module) => module.createTesterRuntimeModelPickerProvider(bindingCapabilityId).listLocalModels())
+      .then((models) => {
+        if (!cancelled) {
+          setLocalModels([...models]);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setLocalModels([]);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [hydrationKey, runtime?.status, target.bindingCapabilityId, target.source]);
+
+  return target;
 }
 
 function createRunConfigSnapshot(input: {
   target: TesterRunTargetSummary;
   tone: string;
+  toneSelected: boolean;
   length: string;
+  lengthSelected: boolean;
   context: string;
   attachmentCount: number;
 }): TesterRunConfigSnapshot {
@@ -161,12 +211,15 @@ function createRunConfigSnapshot(input: {
       source: target.source,
       modelLabel: target.modelLabel,
       detail: target.detail,
+      params: { ...target.params },
       paramsSummary: [...target.paramsSummary],
       profileOrigin: target.profileOrigin,
     },
     promptControls: {
       tone: input.tone,
+      toneSelected: input.toneSelected,
       length: input.length,
+      lengthSelected: input.lengthSelected,
       contextAttached: Boolean(input.context.trim()),
       context: input.context.trim(),
       attachmentCount: input.attachmentCount,
@@ -178,6 +231,7 @@ function TextStudioComposer({
   capability,
   prompt,
   context,
+  modelLabel,
   tone,
   length,
   toneSelected,
@@ -188,6 +242,7 @@ function TextStudioComposer({
   compact = false,
   onPromptChange,
   onContextChange,
+  onOpenModelConfig,
   onToneChange,
   onLengthChange,
   onSubmit,
@@ -195,6 +250,7 @@ function TextStudioComposer({
   capability: TesterCapability;
   prompt: string;
   context: string;
+  modelLabel: string;
   tone: string;
   length: string;
   toneSelected: boolean;
@@ -205,6 +261,7 @@ function TextStudioComposer({
   compact?: boolean;
   onPromptChange: (value: string) => void;
   onContextChange: (value: string) => void;
+  onOpenModelConfig: () => void;
   onToneChange: (value: string) => void;
   onLengthChange: (value: string) => void;
   onSubmit: () => void;
@@ -260,11 +317,15 @@ function TextStudioComposer({
           onClick={() => setContextOpen((current) => !current)}
           aria-expanded={contextOpen}
         >
-          <FileText size={14} aria-hidden="true" />
+          <Plus size={18} aria-hidden="true" />
           {contextAttached ? 'Context attached' : 'Context'}
         </button>
       </div>
       <div className="studio-composer__actions">
+        <ModelSummaryChip
+          label={modelLabel}
+          onOpen={onOpenModelConfig}
+        />
         {profile.supportsAttachments ? (
           <ImageAttachmentStrip
             attachments={media.attachments}
@@ -300,7 +361,7 @@ function TextStudioComposer({
             aria-label={`${capability.label} request`}
             placeholder={capability.id === 'text.generate' ? 'Ask Nimi to draft, rewrite, summarize, or structure something...' : profile.inputPlaceholder}
             value={prompt}
-            onChange={(event) => onPromptChange(event.currentTarget.value)}
+            onChange={(event: ChangeEvent<HTMLTextAreaElement>) => onPromptChange(event.currentTarget.value)}
           />
           <span className="studio-input__count">{prompt.length} / 2000</span>
           <Maximize2 size={13} aria-hidden="true" className="studio-input__expand" />
@@ -312,7 +373,7 @@ function TextStudioComposer({
               aria-label="Context"
               placeholder="Optional context, audience, source notes, or constraints"
               value={context}
-              onChange={(event) => onContextChange(event.currentTarget.value)}
+              onChange={(event: ChangeEvent<HTMLTextAreaElement>) => onContextChange(event.currentTarget.value)}
             />
           </div>
           {composerBar}
@@ -339,6 +400,101 @@ function TextStudioStartState({
         <h2>{profile.inputTitle}</h2>
         <div className="studio-start__composer">{composer}</div>
       </div>
+    </section>
+  );
+}
+
+function TextStudioPromptControlFacts({ facts }: { facts: readonly TesterRunPromptControlFact[] }) {
+  if (facts.length === 0) return null;
+  return (
+    <dl className="studio-prompt-settings__facts">
+      {facts.map((fact) => (
+        <div key={`${fact.label}:${fact.value}`}>
+          <dt>{fact.label}</dt>
+          <dd>{fact.code ? <code>{fact.value}</code> : fact.value}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+function TextStudioPromptSettings({ activeRun }: { activeRun: TextStudioActiveRun }) {
+  const runConfig = activeRun.record?.runConfig;
+  const facts = runConfig ? getTesterRunPromptControlFacts(runConfig) : [];
+  const context = (runConfig?.promptControls.context ?? activeRun.context).trim();
+  if (facts.length === 0 && !context) return null;
+  return (
+    <div className="studio-prompt-settings">
+      <TextStudioPromptControlFacts facts={facts} />
+      {context ? (
+        <div className="studio-prompt-settings__context">
+          <strong>Context</strong>
+          <p>{context}</p>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function groupParamRows(rows: readonly TesterRunConfigParamRow[]): Array<{ group: string; rows: TesterRunConfigParamRow[] }> {
+  const groups: Array<{ group: string; rows: TesterRunConfigParamRow[] }> = [];
+  for (const row of rows) {
+    const current = groups.find((entry) => entry.group === row.group);
+    if (current) {
+      current.rows.push(row);
+    } else {
+      groups.push({ group: row.group, rows: [row] });
+    }
+  }
+  return groups;
+}
+
+function summarizeParamRows(rows: readonly TesterRunConfigParamRow[]): string {
+  return rows.slice(0, 5).map((row) => `${row.label} ${row.value}`).join(' / ');
+}
+
+function TextStudioModelSettings({ record }: { record: TesterRunHistoryRecord }) {
+  const runConfig = record.runConfig;
+  if (!runConfig) {
+    return (
+      <section className="studio-history-settings studio-history-settings--missing" aria-label="Model settings">
+        <div className="studio-history-settings__head">
+          <SlidersHorizontal size={14} aria-hidden="true" />
+          <strong>Model settings</strong>
+          <span>Not captured</span>
+        </div>
+      </section>
+    );
+  }
+
+  const paramRows = getTesterRunConfigParamRows(runConfig);
+  const paramGroups = groupParamRows(paramRows);
+  const paramSummary = paramRows.length > 0
+    ? summarizeParamRows(paramRows)
+    : runConfig.target.paramsSummary.join(' / ');
+
+  return (
+    <section className="studio-history-settings" aria-label="Model settings">
+      <div className="studio-history-settings__head">
+        <SlidersHorizontal size={14} aria-hidden="true" />
+        <strong>Model settings</strong>
+        <span>{paramSummary || 'No configured parameters'}</span>
+      </div>
+      {paramGroups.length > 0 ? paramGroups.map((group) => (
+        <div key={group.group} className="studio-history-settings__group">
+          <strong>{group.group}</strong>
+          <dl className="studio-history-settings__params">
+            {group.rows.map((row) => (
+              <div key={row.key}>
+                <dt>{row.label}</dt>
+                <dd>{row.code ? <code>{row.value}</code> : row.value}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      )) : (
+        <p className="studio-history-settings__empty">No model parameters were configured for this run.</p>
+      )}
     </section>
   );
 }
@@ -381,6 +537,7 @@ function TextStudioHistoryRecordResult({ record }: { record: TesterRunHistoryRec
       <div className="studio-history-result__tags">
         {tags.map((tag) => <span key={tag}>{tag}</span>)}
       </div>
+      <TextStudioModelSettings record={record} />
       {body}
     </div>
   );
@@ -512,7 +669,8 @@ function TextStudioResultState({
             <MessageSquare size={14} aria-hidden="true" />
             <span>Prompt</span>
           </div>
-          <p>{textStudioDisplayPrompt(activeRun.prompt, activeRun.context)}</p>
+          <p>{activeRun.prompt}</p>
+          <TextStudioPromptSettings activeRun={activeRun} />
         </article>
         <article className="studio-turn studio-turn--assistant">
           <div className="studio-turn__label">
@@ -522,18 +680,21 @@ function TextStudioResultState({
           {activeRun.error ? (
             <TextStudioRunError message={activeRun.error} />
           ) : activeRun.result || running ? (
-            <StudioResult
-              result={activeRun.result}
-              running={running}
-              capability={capability}
-              admission={admission}
-              createdAt={activeRun.createdAt}
-              streamingText={streamingText}
-              verboseConsole={verboseConsole}
-              onCopy={onCopy}
-              onDownload={onDownload}
-              onRegenerate={onRegenerate}
-            />
+            <>
+              <StudioResult
+                result={activeRun.result}
+                running={running}
+                capability={capability}
+                admission={admission}
+                createdAt={activeRun.createdAt}
+                streamingText={streamingText}
+                verboseConsole={verboseConsole}
+                onCopy={onCopy}
+                onDownload={onDownload}
+                onRegenerate={onRegenerate}
+              />
+              {activeRun.record ? <TextStudioModelSettings record={activeRun.record} /> : null}
+            </>
           ) : activeRun.record ? (
             <TextStudioHistoryRecordResult record={activeRun.record} />
           ) : null}
@@ -553,6 +714,7 @@ function TextStudioShell({
   draftPersistence,
   onOpenConfig,
   history,
+  headerActions,
 }: {
   capability: TesterCapability;
   runtime: TesterRuntimeInspection | null;
@@ -562,6 +724,7 @@ function TextStudioShell({
   draftPersistence: boolean;
   onOpenConfig: (section: CanonicalCapabilitySectionId) => void;
   history: TesterRunHistory | null;
+  headerActions?: ReactNode;
 }) {
   const profile = getCapabilityStudioProfile(capability.id);
   const preset = useMemo(() => presetFor(capability), [capability]);
@@ -583,8 +746,10 @@ function TextStudioShell({
   const [activeRun, setActiveRun] = useState<TextStudioActiveRun | null>(null);
   const [sessionRuns, setSessionRuns] = useState<Record<string, TextStudioActiveRun>>({});
   const media = useMediaAttachments();
+  const hasActiveRun = Boolean(activeRun);
   const currentResult = activeRun?.result ?? (lastResult?.capabilityId === capability.id ? lastResult : null);
-  const admission = statusForCapability(capability, runtime, currentResult);
+  const headerResult = hasActiveRun ? currentResult : null;
+  const admission = statusForCapability(capability, runtime, headerResult);
   const runTarget = useTesterRunTargetSummary(capability, runtime);
   const isWorldTour = capability.execution === 'standalone-tauri';
   const requiresPrompt = profile.inputKind !== 'none';
@@ -667,7 +832,9 @@ function TextStudioShell({
       const runConfig = createRunConfigSnapshot({
         target: runTarget,
         tone,
+        toneSelected,
         length,
+        lengthSelected,
         context: nextContext,
         attachmentCount: supportsMedia ? media.attachments.length : 0,
       });
@@ -721,23 +888,32 @@ function TextStudioShell({
 
   function selectHistoryRun(record: TesterRunHistoryRecord) {
     const sessionRun = sessionRuns[record.id];
+    const historyContext = record.runConfig?.promptControls.context ?? '';
+    const historyTone = record.runConfig?.promptControls.tone;
+    const historyLength = record.runConfig?.promptControls.length;
+    const hasHistoryTone = Boolean(record.runConfig?.promptControls.toneSelected && historyTone && TONE_OPTIONS.some((option) => option.value === historyTone));
+    const hasHistoryLength = Boolean(record.runConfig?.promptControls.lengthSelected && historyLength && LENGTH_OPTIONS.some((option) => option.value === historyLength));
+    setTone(hasHistoryTone ? historyTone as string : DEFAULT_TONE_VALUE);
+    setLength(hasHistoryLength ? historyLength as string : DEFAULT_LENGTH_VALUE);
+    setToneSelected(hasHistoryTone);
+    setLengthSelected(hasHistoryLength);
     if (sessionRun) {
       setActiveRun(sessionRun);
       updatePrompt(sessionRun.prompt);
-      setContext(sessionRun.context);
+      setContext(record.runConfig ? historyContext : sessionRun.context);
       return;
     }
     setActiveRun({
       id: record.id,
       prompt: record.prompt,
-      context: record.runConfig?.promptControls.context ?? '',
+      context: historyContext,
       createdAt: record.createdAt,
       result: null,
       record,
       error: null,
     });
     updatePrompt(record.prompt);
-    setContext('');
+    setContext(historyContext);
   }
 
   const composer = (
@@ -747,6 +923,7 @@ function TextStudioShell({
       context={context}
       tone={tone}
       length={length}
+      modelLabel={textStudioModelSummary(headerResult, runTarget)}
       toneSelected={toneSelected}
       lengthSelected={lengthSelected}
       running={running}
@@ -755,6 +932,7 @@ function TextStudioShell({
       compact={Boolean(activeRun)}
       onPromptChange={updatePrompt}
       onContextChange={setContext}
+      onOpenModelConfig={() => onOpenConfig(CAPABILITY_TO_SECTION[capability.id])}
       onToneChange={(nextTone) => {
         setTone(nextTone);
         setToneSelected(true);
@@ -766,49 +944,43 @@ function TextStudioShell({
       onSubmit={() => void run()}
     />
   );
-
-  const hasActiveRun = Boolean(activeRun);
+  const historyRecords = history?.[capability.id] ?? [];
+  const hasHistory = historyRecords.length > 0;
 
   return (
     <div className={hasActiveRun ? 'studio studio--has-run' : 'studio studio--landing'}>
-      {hasActiveRun ? (
-        <header className="studio__head">
-          <div className="studio__title">
-            <h1>{capability.label}</h1>
-            <StatusBadge tone={admission.tone} shape="dot">{STATUS_PILL_LABEL[admission.label]}</StatusBadge>
-          </div>
-          <div className="studio__head-actions">
-            <ModelSummaryChip
-              label={textStudioModelSummary(currentResult)}
-              onOpen={() => onOpenConfig(CAPABILITY_TO_SECTION[capability.id])}
-            />
-          </div>
-        </header>
-      ) : null}
-
-      <div className="studio__workspace">
-        <main className="studio__stage">
-          {hasActiveRun && activeRun ? (
-            <TextStudioResultState
-              capability={capability}
-              activeRun={activeRun}
-              admission={admission}
-              running={running}
-              streamingText={streamingText}
-              verboseConsole={verboseConsole}
-              composer={composer}
-              onCopy={handleCopy}
-              onDownload={handleDownload}
-              onRegenerate={() => void run(activeRun.prompt, activeRun.context)}
-            />
-          ) : (
-            <TextStudioStartState
-              capability={capability}
-              composer={composer}
-            />
-          )}
-        </main>
-        {hasActiveRun ? (
+      <div className={hasHistory ? 'studio__workspace studio__workspace--with-history' : 'studio__workspace'}>
+        <div className="studio__primary">
+          <header className="studio__head">
+            <div className="studio__title">
+              <h1>{capability.label}</h1>
+              <StatusBadge tone={admission.tone} shape="dot">{STATUS_PILL_LABEL[admission.label]}</StatusBadge>
+            </div>
+            {headerActions ? <div className="studio__head-actions">{headerActions}</div> : null}
+          </header>
+          <main className="studio__stage">
+            {hasActiveRun && activeRun ? (
+              <TextStudioResultState
+                capability={capability}
+                activeRun={activeRun}
+                admission={admission}
+                running={running}
+                streamingText={streamingText}
+                verboseConsole={verboseConsole}
+                composer={composer}
+                onCopy={handleCopy}
+                onDownload={handleDownload}
+                onRegenerate={() => void run(activeRun.prompt, activeRun.context)}
+              />
+            ) : (
+              <TextStudioStartState
+                capability={capability}
+                composer={composer}
+              />
+            )}
+          </main>
+        </div>
+        {hasHistory ? (
           <CapabilityRunHistory
             capability={capability}
             history={history}
@@ -829,6 +1001,7 @@ export function SectionAITesting({
   lastResult,
   verboseConsole,
   draftPersistence,
+  headerActions,
 }: SectionAITestingProps) {
   const runtime = summary?.runtime ?? null;
   const [configSection, setConfigSection] = useState<CanonicalCapabilitySectionId | null>(null);
@@ -849,6 +1022,7 @@ export function SectionAITesting({
           draftPersistence={draftPersistence}
           onOpenConfig={setConfigSection}
           history={history}
+          headerActions={headerActions}
         />
       </div>
 
