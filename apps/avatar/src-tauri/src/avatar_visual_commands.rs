@@ -46,6 +46,20 @@ fn path_is_within(path: &Path, root: &Path) -> bool {
     path == root || path.starts_with(root)
 }
 
+#[cfg(windows)]
+fn normalize_avatar_visual_input_path(path: &Path) -> PathBuf {
+    let value = path.as_os_str().to_string_lossy();
+    if value.starts_with("\\\\?\\") || value.starts_with("\\\\.\\") {
+        return PathBuf::from(value.replace('/', "\\"));
+    }
+    path.to_path_buf()
+}
+
+#[cfg(not(windows))]
+fn normalize_avatar_visual_input_path(path: &Path) -> PathBuf {
+    path.to_path_buf()
+}
+
 fn is_agent_center_visual_package_file(path: &Path, home: &Path) -> bool {
     let account_data_root = home.join(".nimi").join("data").join("accounts");
     let Ok(relative) = path.strip_prefix(&account_data_root) else {
@@ -72,9 +86,10 @@ fn is_agent_center_visual_package_file(path: &Path, home: &Path) -> bool {
 }
 
 pub(crate) fn validated_avatar_visual_path(path: &Path) -> Result<PathBuf, String> {
-    let canonical = path
+    let input_path = normalize_avatar_visual_input_path(path);
+    let canonical = input_path
         .canonicalize()
-        .map_err(|e| format!("resolve {} failed: {}", path.display(), e))?;
+        .map_err(|e| format!("resolve {} failed: {}", input_path.display(), e))?;
     let home = std::env::var_os("HOME")
         .map(PathBuf::from)
         .ok_or_else(|| "HOME is required for avatar visual path validation".to_string())?;
@@ -87,10 +102,28 @@ pub(crate) fn validated_avatar_visual_path(path: &Path) -> Result<PathBuf, Strin
     {
         return Err(format!(
             "avatar file access is limited to launch-approved visual package files: {}",
-            path.display()
+            input_path.display()
         ));
     }
     Ok(canonical)
+}
+
+#[cfg(test)]
+mod avatar_visual_path_tests {
+    use super::*;
+
+    #[cfg(windows)]
+    #[test]
+    fn normalizes_windows_verbatim_visual_path_separators() {
+        let input =
+            PathBuf::from("\\\\?\\D:\\DataNimi\\accounts\\fixture\\files\\runtime/ren.moc3");
+        let normalized = normalize_avatar_visual_input_path(&input);
+
+        assert_eq!(
+            normalized.display().to_string(),
+            "\\\\?\\D:\\DataNimi\\accounts\\fixture\\files\\runtime\\ren.moc3"
+        );
+    }
 }
 
 #[tauri::command]

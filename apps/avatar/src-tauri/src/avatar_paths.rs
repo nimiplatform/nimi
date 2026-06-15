@@ -2,6 +2,7 @@ use std::fs;
 use std::path::{Component, Path, PathBuf};
 
 const NIMI_APP_DATA_ROOT_ENV: &str = "NIMI_APP_DATA_ROOT";
+const AVATAR_APP_ID: &str = "nimi.avatar";
 
 fn normalize_absolute_path(path: &Path) -> PathBuf {
     let mut normalized = PathBuf::new();
@@ -43,10 +44,67 @@ pub(crate) fn resolve_avatar_app_data_dir() -> Result<PathBuf, String> {
     Ok(path)
 }
 
+pub(crate) fn resolve_nimi_data_dir_from_avatar_app_data_root(
+    app_data_root: &Path,
+) -> Result<PathBuf, String> {
+    let normalized = normalize_absolute_path(app_data_root);
+    if !normalized.is_absolute() {
+        return Err(format!("{NIMI_APP_DATA_ROOT_ENV} must be an absolute path"));
+    }
+    let data_segment = normalized
+        .file_name()
+        .and_then(|value| value.to_str())
+        .unwrap_or("");
+    if data_segment != "data" {
+        return Err(format!(
+            "{NIMI_APP_DATA_ROOT_ENV} must point to <nimi_data>/apps/{AVATAR_APP_ID}/data"
+        ));
+    }
+    let app_root = normalized
+        .parent()
+        .ok_or_else(|| format!("{NIMI_APP_DATA_ROOT_ENV} has no app root parent"))?;
+    if app_root
+        .file_name()
+        .and_then(|value| value.to_str())
+        .unwrap_or("")
+        != AVATAR_APP_ID
+    {
+        return Err(format!(
+            "{NIMI_APP_DATA_ROOT_ENV} must point to <nimi_data>/apps/{AVATAR_APP_ID}/data"
+        ));
+    }
+    let apps_root = app_root
+        .parent()
+        .ok_or_else(|| format!("{NIMI_APP_DATA_ROOT_ENV} has no apps root parent"))?;
+    if apps_root
+        .file_name()
+        .and_then(|value| value.to_str())
+        .unwrap_or("")
+        != "apps"
+    {
+        return Err(format!(
+            "{NIMI_APP_DATA_ROOT_ENV} must point to <nimi_data>/apps/{AVATAR_APP_ID}/data"
+        ));
+    }
+    let data_root = apps_root
+        .parent()
+        .ok_or_else(|| format!("{NIMI_APP_DATA_ROOT_ENV} has no nimi_data parent"))?;
+    Ok(data_root.to_path_buf())
+}
+
+pub(crate) fn resolve_avatar_nimi_data_dir() -> Result<PathBuf, String> {
+    let app_data_dir = resolve_avatar_app_data_dir()?;
+    resolve_nimi_data_dir_from_avatar_app_data_root(&app_data_dir)
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{resolve_avatar_app_data_dir, resolve_env_app_data_root};
+    use super::{
+        resolve_avatar_app_data_dir, resolve_env_app_data_root,
+        resolve_nimi_data_dir_from_avatar_app_data_root,
+    };
     use crate::test_env_guard;
+    use std::path::PathBuf;
 
     #[test]
     fn env_app_data_root_requires_absolute_path() {
@@ -58,11 +116,21 @@ mod tests {
 
     #[test]
     fn env_app_data_root_normalizes_absolute_path() {
-        let root = resolve_env_app_data_root(Some("/tmp/nimi-data/../nimi-data-selected"))
+        let raw = if cfg!(windows) {
+            r"D:\tmp\nimi-data\..\nimi-data-selected"
+        } else {
+            "/tmp/nimi-data/../nimi-data-selected"
+        };
+        let root = resolve_env_app_data_root(Some(raw))
             .expect("valid root")
             .expect("root");
 
-        assert_eq!(root, std::path::PathBuf::from("/tmp/nimi-data-selected"));
+        let expected = if cfg!(windows) {
+            std::path::PathBuf::from(r"D:\tmp\nimi-data-selected")
+        } else {
+            std::path::PathBuf::from("/tmp/nimi-data-selected")
+        };
+        assert_eq!(root, expected);
     }
 
     #[test]
@@ -78,5 +146,36 @@ mod tests {
             None => std::env::remove_var("NIMI_APP_DATA_ROOT"),
         }
         assert!(error.contains("NIMI_APP_DATA_ROOT is required"));
+    }
+
+    #[test]
+    fn derives_nimi_data_dir_from_avatar_app_data_root() {
+        let root = if cfg!(windows) {
+            PathBuf::from(r"D:\DataNimi\apps\nimi.avatar\data")
+        } else {
+            PathBuf::from("/tmp/DataNimi/apps/nimi.avatar/data")
+        };
+        let data_root =
+            resolve_nimi_data_dir_from_avatar_app_data_root(&root).expect("derive data root");
+
+        let expected = if cfg!(windows) {
+            PathBuf::from(r"D:\DataNimi")
+        } else {
+            PathBuf::from("/tmp/DataNimi")
+        };
+        assert_eq!(data_root, expected);
+    }
+
+    #[test]
+    fn rejects_avatar_app_data_root_outside_admitted_layout() {
+        let root = if cfg!(windows) {
+            PathBuf::from(r"D:\DataNimi\apps\other.app\data")
+        } else {
+            PathBuf::from("/tmp/DataNimi/apps/other.app/data")
+        };
+        let error = resolve_nimi_data_dir_from_avatar_app_data_root(&root)
+            .expect_err("wrong app id must fail");
+
+        assert!(error.contains("<nimi_data>/apps/nimi.avatar/data"));
     }
 }

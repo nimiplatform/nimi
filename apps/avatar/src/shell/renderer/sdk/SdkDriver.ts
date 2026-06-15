@@ -1,4 +1,8 @@
-import type { NimiRuntimeAgentConsumeClient } from '@nimiplatform/sdk/runtime';
+import type {
+  NimiRuntimeAgentConsumeClient,
+  NimiRuntimeAgentScopeRunner,
+} from '@nimiplatform/sdk/runtime';
+import type { RuntimeTypedCallOptions } from '@nimiplatform/sdk/runtime/generated';
 import type {
   AgentDataBundle,
   AgentDataDriver,
@@ -8,6 +12,7 @@ import type {
 } from '../driver/types.js';
 import { createEventBus } from '../infra/event-bus.js';
 import {
+  admissionEvidenceFields,
   clearTurnCueRecord,
   mapExecutionState,
   mergeCustomRecord,
@@ -17,11 +22,12 @@ import {
   optionalRuntimeExecutionState,
   optionalRuntimePreviousEmotion,
   readSnapshotStatusCue,
+  readRuntimePresentationAdmissionEvidence,
   requireRuntimeActivityCategory,
   requireRuntimeActivityIntensity,
   requireRuntimeCurrentEmotion,
   requireRuntimeDetailText,
-  requireRuntimePresentationAdmissionEvidence,
+  requireRuntimePresentationEnvelopeEvidence,
   requireRuntimePostureDetail,
   requireRuntimeProjectionSource,
   requireRuntimeSourceText,
@@ -38,6 +44,7 @@ type InternalEvents = {
 
 export type SdkDriverOptions = {
   runtimeAgent: NimiRuntimeAgentConsumeClient;
+  withScopes?: NimiRuntimeAgentScopeRunner;
   ownerUserId: string;
   realmAgentId: string;
   localAgentRef: string;
@@ -55,6 +62,7 @@ export class SdkDriver implements AgentDataDriver {
   readonly kind = 'sdk' as const;
   private _status: DriverStatus = 'idle';
   private readonly runtimeAgent: NimiRuntimeAgentConsumeClient;
+  private readonly withScopes?: NimiRuntimeAgentScopeRunner;
   private readonly ownerUserId: string;
   private readonly realmAgentId: string;
   private readonly localAgentRef: string;
@@ -72,6 +80,7 @@ export class SdkDriver implements AgentDataDriver {
 
   constructor(options: SdkDriverOptions) {
     this.runtimeAgent = options.runtimeAgent;
+    this.withScopes = options.withScopes;
     this.ownerUserId = options.ownerUserId;
     this.realmAgentId = options.realmAgentId;
     this.localAgentRef = options.localAgentRef;
@@ -98,25 +107,29 @@ export class SdkDriver implements AgentDataDriver {
     this.streamAbort = new AbortController();
     this.publishBundle();
     try {
-      const snapshot = await this.runtimeAgent.turns.getSessionSnapshot(
-        {
-	          ownerUserId: this.ownerUserId,
-	          realmAgentId: this.realmAgentId,
-	          localAgentRef: this.localAgentRef,
-	          conversationAnchorId: this.conversationAnchorId,
-	          ...(this.activeWorldId ? { worldId: this.activeWorldId } : {}),
-	        },
-        { signal: this.streamAbort.signal },
+      const snapshot = await this.withRuntimeAgentRead(
+        (options) => this.runtimeAgent.turns.getSessionSnapshot(
+          {
+            ownerUserId: this.ownerUserId,
+            realmAgentId: this.realmAgentId,
+            localAgentRef: this.localAgentRef,
+            conversationAnchorId: this.conversationAnchorId,
+            ...(this.activeWorldId ? { worldId: this.activeWorldId } : {}),
+          },
+          { ...options, signal: this.streamAbort?.signal },
+        ),
       );
       this.applySessionSnapshot(snapshot);
-      const stream = await this.runtimeAgent.turns.subscribe(
-        {
-	          ownerUserId: this.ownerUserId,
-	          realmAgentId: this.realmAgentId,
-	          localAgentRef: this.localAgentRef,
-	          conversationAnchorId: this.conversationAnchorId,
-	        },
-        { signal: this.streamAbort.signal },
+      const stream = await this.withRuntimeAgentRead(
+        (options) => this.runtimeAgent.turns.subscribe(
+          {
+            ownerUserId: this.ownerUserId,
+            realmAgentId: this.realmAgentId,
+            localAgentRef: this.localAgentRef,
+            conversationAnchorId: this.conversationAnchorId,
+          },
+          { ...options, signal: this.streamAbort?.signal },
+        ),
       );
       this.setStatus('running');
       const abortController = this.streamAbort;
@@ -175,6 +188,15 @@ export class SdkDriver implements AgentDataDriver {
   private setStatus(status: DriverStatus): void {
     this._status = status;
     this.bus.emit('status-change', status);
+  }
+
+  private withRuntimeAgentRead<T>(
+    operation: (options: RuntimeTypedCallOptions) => Promise<T>,
+  ): Promise<T> {
+    if (!this.withScopes) {
+      return operation({});
+    }
+    return this.withScopes(['runtime.agent.read'], operation);
   }
 
   private createInitialBundle(): AgentDataBundle {
@@ -354,22 +376,21 @@ export class SdkDriver implements AgentDataDriver {
       return;
     }
     const timestampNow = this.now();
+    const envelope = requireRuntimePresentationEnvelopeEvidence({
+      localAgentRef: this.localAgentRef,
+      conversationAnchorId: this.conversationAnchorId,
+      turnId: cue.turnId,
+      streamId: cue.streamId,
+    });
     if (cue.expressionId) {
       requireRuntimeCurrentEmotion(cue.expressionId);
       this.emitAgentEvent(toRuntimeAgentEvent('runtime.agent.presentation.expression_requested', {
         expression_id: cue.expressionId,
         expected_duration_ms: null,
-        agent_id: this.localAgentRef,
-        conversation_anchor_id: this.conversationAnchorId,
-        turn_id: cue.turnId,
-        stream_id: cue.streamId,
+        ...envelope,
         source: 'apml_output',
         catchup_source: 'session_snapshot',
-        runtime_admission_ref: cue.admission.runtime_admission_ref,
-        gateway_verdict_ref: cue.admission.gateway_verdict_ref,
-        firewall_verdict_ref: cue.admission.firewall_verdict_ref,
-        audit_ref: cue.admission.audit_ref,
-        credential_verdict_ref: cue.admission.credential_verdict_ref,
+        ...admissionEvidenceFields(cue.admission),
       }, timestampNow));
     }
     if (cue.activityName) {
@@ -380,16 +401,9 @@ export class SdkDriver implements AgentDataDriver {
         category,
         intensity,
         source: 'apml_output',
-        agent_id: this.localAgentRef,
-        conversation_anchor_id: this.conversationAnchorId,
-        turn_id: cue.turnId,
-        stream_id: cue.streamId,
+        ...envelope,
         catchup_source: 'session_snapshot',
-        runtime_admission_ref: cue.admission.runtime_admission_ref,
-        gateway_verdict_ref: cue.admission.gateway_verdict_ref,
-        firewall_verdict_ref: cue.admission.firewall_verdict_ref,
-        audit_ref: cue.admission.audit_ref,
-        credential_verdict_ref: cue.admission.credential_verdict_ref,
+        ...admissionEvidenceFields(cue.admission),
       }, timestampNow));
     }
   }
@@ -426,7 +440,8 @@ export class SdkDriver implements AgentDataDriver {
         const category = requireRuntimeActivityCategory(event.detail.category);
         const intensity = requireRuntimeActivityIntensity(event.detail.intensity);
         const runtimeSource = requireRuntimeProjectionSource(event.detail.source, 'runtime activity projection');
-        const admission = requireRuntimePresentationAdmissionEvidence(event.detail as Record<string, unknown>);
+        const envelope = requireRuntimePresentationEnvelopeEvidence(event);
+        const admission = readRuntimePresentationAdmissionEvidence(event.detail as Record<string, unknown>);
         this.bundle = {
           ...this.bundle,
           activity: {
@@ -434,7 +449,7 @@ export class SdkDriver implements AgentDataDriver {
             category,
             intensity,
             source: runtimeSource,
-            admission,
+            ...(admission ? { admission } : {}),
           },
           history: mergeHistory(this.bundle.history, {
             last_activity: {
@@ -455,15 +470,8 @@ export class SdkDriver implements AgentDataDriver {
           category,
           intensity,
           source: runtimeSource,
-          agent_id: event.localAgentRef,
-          conversation_anchor_id: event.conversationAnchorId,
-          turn_id: event.turnId,
-          stream_id: event.streamId,
-          runtime_admission_ref: admission.runtime_admission_ref,
-          gateway_verdict_ref: admission.gateway_verdict_ref,
-          firewall_verdict_ref: admission.firewall_verdict_ref,
-          audit_ref: admission.audit_ref,
-          credential_verdict_ref: admission.credential_verdict_ref,
+          ...envelope,
+          ...admissionEvidenceFields(admission),
         }, timestampNow));
         return;
       }
@@ -482,7 +490,8 @@ export class SdkDriver implements AgentDataDriver {
         const timestampNow = this.now();
         const at = new Date(timestampNow).toISOString();
         const expressionId = requireRuntimeDetailText(event.detail.expressionId, 'runtime expression id');
-        const admission = requireRuntimePresentationAdmissionEvidence(event.detail as Record<string, unknown>);
+        const envelope = requireRuntimePresentationEnvelopeEvidence(event);
+        const admission = readRuntimePresentationAdmissionEvidence(event.detail as Record<string, unknown>);
         this.bundle = {
           ...this.bundle,
           history: mergeHistory(this.bundle.history, {
@@ -494,15 +503,8 @@ export class SdkDriver implements AgentDataDriver {
         this.emitAgentEvent(toRuntimeAgentEvent(event.eventName, {
           expression_id: expressionId,
           expected_duration_ms: event.detail.expectedDurationMs ?? null,
-          agent_id: event.localAgentRef,
-          conversation_anchor_id: event.conversationAnchorId,
-          turn_id: event.turnId,
-          stream_id: event.streamId,
-          runtime_admission_ref: admission.runtime_admission_ref,
-          gateway_verdict_ref: admission.gateway_verdict_ref,
-          firewall_verdict_ref: admission.firewall_verdict_ref,
-          audit_ref: admission.audit_ref,
-          credential_verdict_ref: admission.credential_verdict_ref,
+          ...envelope,
+          ...admissionEvidenceFields(admission),
         }, timestampNow));
         return;
       }

@@ -395,6 +395,7 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
           kind: 'sdk',
           sdk: {
             runtimeAgent,
+            withScopes: withAvatarRuntimeAgentScopes,
             ownerUserId,
             realmAgentId,
             localAgentRef,

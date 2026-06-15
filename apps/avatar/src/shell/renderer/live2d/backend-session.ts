@@ -64,14 +64,18 @@ function resolveRuntimeAsset(manifest: ModelManifest, relativePath: string, labe
   if (!value) {
     throw new Error(`Live2D ${label} reference is empty`);
   }
-  if (value.startsWith('/') || /^[A-Za-z]:[\\/]/.test(value)) {
+  if (value.startsWith('/') || /^[A-Za-z]:[\\/]/.test(value) || /^\\\\/.test(value)) {
     throw new Error(`Live2D ${label} reference must be runtime-relative: ${relativePath}`);
   }
   const parts = value.split(/[\\/]+/);
   if (parts.some((part) => part === '..' || part === '.')) {
     throw new Error(`Live2D ${label} reference escapes runtime directory: ${relativePath}`);
   }
-  return `${manifest.runtimeDir.replace(/[\\/]+$/, '')}/${parts.join('/')}`;
+  const runtimeDir = manifest.runtimeDir.replace(/[\\/]+$/, '');
+  const separator = /^\\\\/.test(runtimeDir) || /^[A-Za-z]:[\\/]/.test(runtimeDir) || runtimeDir.includes('\\')
+    ? '\\'
+    : '/';
+  return `${runtimeDir}${separator}${parts.join(separator)}`;
 }
 
 function collectMotionGroups(settings: Model3Settings, manifest: ModelManifest): Map<string, string[]> {

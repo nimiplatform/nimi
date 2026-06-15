@@ -94,11 +94,24 @@ function createProjection(): BackendProjection {
 
 function admissionDetail(): Record<string, string> {
   return {
+    agent_id: 'local-agent:owner-1:agent-1',
+    conversation_anchor_id: 'anchor-1',
+    turn_id: 'turn-1',
+    stream_id: 'stream-1',
     runtime_admission_ref: 'runtime.admission/avatar-presentation-1',
     gateway_verdict_ref: 'runtime.gateway/avatar-presentation-1',
     firewall_verdict_ref: 'runtime.firewall/avatar-presentation-1',
     audit_ref: 'runtime.audit/avatar-presentation-1',
     credential_verdict_ref: 'runtime.credential/avatar-presentation-1',
+  };
+}
+
+function runtimeEnvelopeDetail(): Record<string, string> {
+  return {
+    agent_id: 'local-agent:owner-1:agent-1',
+    conversation_anchor_id: 'anchor-1',
+    turn_id: 'turn-1',
+    stream_id: 'stream-1',
   };
 }
 
@@ -159,6 +172,33 @@ describe('Avatar NAS runtime event dispatch', () => {
         source: 'default_fallback',
       },
     });
+
+    unwire();
+  });
+
+  it('accepts runtime activity projection with envelope evidence but no admission refs', async () => {
+    const driver = createDriver();
+    const projection = createProjection();
+    const registry = createHandlerRegistry();
+    const unwire = wireEventDispatch({
+      driver,
+      registry,
+      executor: new HandlerExecutor(),
+      projection,
+    });
+
+    driver.trigger(runtimeActivityEvent({
+      activity_name: 'happy',
+      category: 'emotion',
+      intensity: 'strong',
+      source: 'apml_output',
+      ...runtimeEnvelopeDetail(),
+    }));
+    await Promise.resolve();
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+    expect(projection.applyActivity).toHaveBeenCalledWith({ name: 'happy', intensity: 0.85 });
+    expect(driver.emitted.map((event) => event.name)).toContain('avatar.activity.start');
 
     unwire();
   });

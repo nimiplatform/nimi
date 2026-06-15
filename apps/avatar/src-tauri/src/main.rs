@@ -6,8 +6,6 @@ mod avatar_instance_registry;
 mod avatar_launch_context;
 mod avatar_paths;
 mod avatar_visual_commands;
-#[cfg(test)]
-use nimi_shell_tauri::agent_center_avatar_asset::AgentCenterAvatarAssetResolvePayload;
 use avatar_asset_commands::{
     nimi_avatar_resolve_agent_center_avatar_asset, nimi_avatar_resolve_local_avatar_asset,
 };
@@ -29,6 +27,8 @@ pub(crate) use avatar_visual_commands::{
 pub(crate) use avatar_visual_commands::{
     resolve_runtime_dir, scan_handler_dir, validated_avatar_visual_path,
 };
+#[cfg(test)]
+use nimi_shell_tauri::agent_center_avatar_asset::AgentCenterAvatarAssetResolvePayload;
 use nimi_shell_tauri::runtime_bridge;
 use nimi_shell_tauri::runtime_defaults as defaults;
 use serde::Serialize;
@@ -36,12 +36,22 @@ use serde_json::json;
 #[cfg(test)]
 use sha2::{Digest, Sha256};
 use std::hash::{Hash, Hasher};
+use std::sync::Arc;
 use tauri::{
     Emitter, Manager, PhysicalPosition, PhysicalSize, State, WebviewUrl, WebviewWindow,
     WebviewWindowBuilder,
 };
 #[cfg(test)]
 pub(crate) fn test_env_guard() -> std::sync::MutexGuard<'static, ()> {
+    let _ = runtime_bridge::set_runtime_bridge_host_hooks(runtime_bridge::RuntimeBridgeHostHooks {
+        resolve_nimi_data_dir: Some(Arc::new(|| {
+            std::env::var_os("HOME")
+                .map(std::path::PathBuf::from)
+                .map(|home| home.join(".nimi").join("data"))
+                .ok_or_else(|| "test HOME is required for Avatar data-root hook".to_string())
+        })),
+        ..Default::default()
+    });
     static GUARD: std::sync::OnceLock<std::sync::Mutex<()>> = std::sync::OnceLock::new();
     GUARD
         .get_or_init(|| std::sync::Mutex::new(()))
@@ -678,9 +688,18 @@ fn configure_runtime_bridge_env() {
     }
 }
 
+fn configure_runtime_bridge_host_hooks() {
+    let hooks = runtime_bridge::RuntimeBridgeHostHooks {
+        resolve_nimi_data_dir: Some(Arc::new(crate::avatar_paths::resolve_avatar_nimi_data_dir)),
+        ..Default::default()
+    };
+    let _ = runtime_bridge::set_runtime_bridge_host_hooks(hooks);
+}
+
 fn main() {
     let _ = dotenvy::dotenv();
     configure_runtime_bridge_env();
+    configure_runtime_bridge_host_hooks();
     let initial_avatar_request = resolve_initial_avatar_request();
 
     tauri::Builder::default()

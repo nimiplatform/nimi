@@ -143,6 +143,28 @@ describe('createLive2DBackendSession', () => {
     expect(mocRelease).toHaveBeenCalledOnce();
   });
 
+  it('keeps Windows verbatim runtime asset paths Windows-native', async () => {
+    const { createLive2DBackendSession } = await import('./backend-session.js');
+    const readBinary = vi.fn(async () => new ArrayBuffer(8));
+    const runtimeDir = String.raw`\\?\D:\DataNimi\accounts\fixture\agents\id_9d11a0d885268135164e09f4\agent-center\modules\avatar_asset\packages\live2d\live2d_72f21d19cea4\files\runtime`;
+
+    await createLive2DBackendSession({
+      runtimeDir,
+      modelId: 'ren',
+      model3JsonPath: String.raw`${runtimeDir}\ren.model3.json`,
+      nimiDir: null,
+    }, {
+      core: createCore().core,
+      framework: createFramework(),
+      readBinary,
+    });
+
+    expect(readBinary).toHaveBeenCalledWith(String.raw`${runtimeDir}\ren.moc3`);
+    expect(readBinary).toHaveBeenCalledWith(String.raw`${runtimeDir}\ren.4096\texture_00.png`);
+    expect(readBinary).toHaveBeenCalledWith(String.raw`${runtimeDir}\motions\happy.motion3.json`);
+    expect(readBinary).toHaveBeenCalledWith(String.raw`${runtimeDir}\expressions\smile.exp3.json`);
+  });
+
   it('fails closed when model3.json does not declare MOC3', async () => {
     const { createLive2DBackendSession } = await import('./backend-session.js');
     loadModel3SettingsMock.mockResolvedValueOnce({ Version: 3, FileReferences: {} });

@@ -81,6 +81,15 @@ function parseRuntimePresentationAdmission(
   };
 }
 
+function hasRuntimePresentationEnvelope(detail: Record<string, unknown>): boolean {
+  return Boolean(
+    readRuntimeAdmissionRef(detail, 'agent_id')
+    && readRuntimeAdmissionRef(detail, 'conversation_anchor_id')
+    && readRuntimeAdmissionRef(detail, 'turn_id')
+    && readRuntimeAdmissionRef(detail, 'stream_id'),
+  );
+}
+
 function parseRuntimeActivityProjection(event: AgentEvent): NonNullable<AgentDataBundle['activity']> | null {
   const activityName = typeof event.detail['activity_name'] === 'string' ? event.detail['activity_name'].trim() : '';
   const category = event.detail['category'];
@@ -95,16 +104,16 @@ function parseRuntimeActivityProjection(event: AgentEvent): NonNullable<AgentDat
   if (intensity !== undefined && intensity !== null && intensity !== 'weak' && intensity !== 'moderate' && intensity !== 'strong') {
     return null;
   }
-  const admission = parseRuntimePresentationAdmission(event.detail);
-  if (!admission) {
+  if (!hasRuntimePresentationEnvelope(event.detail)) {
     return null;
   }
+  const admission = parseRuntimePresentationAdmission(event.detail);
   return {
     name: activityName,
     category,
     intensity: intensity === undefined ? null : intensity,
     source,
-    admission,
+    ...(admission ? { admission } : {}),
   };
 }
 
@@ -145,7 +154,7 @@ function parseRuntimeProjectionSource(value: unknown): ActivitySource {
 }
 
 function parseRuntimeExpressionProjection(event: AgentEvent): string | null {
-  if (!parseRuntimePresentationAdmission(event.detail)) {
+  if (!hasRuntimePresentationEnvelope(event.detail)) {
     return null;
   }
   const expressionId = typeof event.detail['expression_id'] === 'string'

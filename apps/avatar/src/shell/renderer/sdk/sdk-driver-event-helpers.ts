@@ -71,6 +71,14 @@ export type RuntimePresentationAdmissionDetail = RuntimePresentationAdmissionEvi
   credential_verdict_ref: string;
 };
 
+export type RuntimePresentationEnvelopeDetail = {
+  agent_id: string;
+  conversation_anchor_id: string;
+  turn_id: string;
+  stream_id: string;
+  presentation_evidence_source: 'runtime_event_envelope';
+};
+
 export function mapExecutionState(value?: RuntimeAgentExecutionStateValue): AgentDataBundle['execution_state'] {
   switch (value) {
     case 'chat_active':
@@ -111,42 +119,37 @@ export function requireRuntimeProjectionSource(value: unknown, label: string): E
   throw new Error(`avatar sdk driver received malformed ${label} source`);
 }
 
-function readRequiredRef(record: Record<string, unknown>, camelKey: string, snakeKey: string, label: string): string {
+function readOptionalRef(record: Record<string, unknown>, camelKey: string, snakeKey: string): string {
   const value = record[camelKey] ?? record[snakeKey];
-  if (typeof value === 'string' && value.trim()) {
-    return value.trim();
-  }
-  throw new Error(`avatar sdk driver received runtime presentation without ${label}`);
+  return typeof value === 'string' ? value.trim() : '';
 }
 
-export function requireRuntimePresentationAdmissionEvidence(
+export function readRuntimePresentationAdmissionEvidence(
   detail: Record<string, unknown>,
-): RuntimePresentationAdmissionDetail {
-  const runtimeAdmissionRef = readRequiredRef(
-    detail,
-    'runtimeAdmissionRef',
-    'runtime_admission_ref',
-    'runtime admission evidence ref',
-  );
-  const gatewayVerdictRef = readRequiredRef(
-    detail,
-    'gatewayVerdictRef',
-    'gateway_verdict_ref',
-    'gateway verdict ref',
-  );
-  const firewallVerdictRef = readRequiredRef(
-    detail,
-    'firewallVerdictRef',
-    'firewall_verdict_ref',
-    'firewall verdict ref',
-  );
-  const auditRef = readRequiredRef(detail, 'auditRef', 'audit_ref', 'audit ref');
-  const credentialVerdictRef = readRequiredRef(
-    detail,
-    'credentialVerdictRef',
-    'credential_verdict_ref',
-    'credential verdict ref',
-  );
+): RuntimePresentationAdmissionDetail | null {
+  const runtimeAdmissionRef = readOptionalRef(detail, 'runtimeAdmissionRef', 'runtime_admission_ref');
+  const gatewayVerdictRef = readOptionalRef(detail, 'gatewayVerdictRef', 'gateway_verdict_ref');
+  const firewallVerdictRef = readOptionalRef(detail, 'firewallVerdictRef', 'firewall_verdict_ref');
+  const auditRef = readOptionalRef(detail, 'auditRef', 'audit_ref');
+  const credentialVerdictRef = readOptionalRef(detail, 'credentialVerdictRef', 'credential_verdict_ref');
+  if (
+    !runtimeAdmissionRef
+    && !gatewayVerdictRef
+    && !firewallVerdictRef
+    && !auditRef
+    && !credentialVerdictRef
+  ) {
+    return null;
+  }
+  if (
+    !runtimeAdmissionRef
+    || !gatewayVerdictRef
+    || !firewallVerdictRef
+    || !auditRef
+    || !credentialVerdictRef
+  ) {
+    throw new Error('avatar sdk driver received incomplete runtime presentation admission evidence');
+  }
   return {
     runtimeAdmissionRef,
     gatewayVerdictRef,
@@ -158,6 +161,53 @@ export function requireRuntimePresentationAdmissionEvidence(
     firewall_verdict_ref: firewallVerdictRef,
     audit_ref: auditRef,
     credential_verdict_ref: credentialVerdictRef,
+  };
+}
+
+export function requireRuntimePresentationAdmissionEvidence(
+  detail: Record<string, unknown>,
+): RuntimePresentationAdmissionDetail {
+  const admission = readRuntimePresentationAdmissionEvidence(detail);
+  if (!admission) {
+    throw new Error('avatar sdk driver received runtime presentation without runtime admission evidence ref');
+  }
+  return admission;
+}
+
+export function admissionEvidenceFields(
+  admission: RuntimePresentationAdmissionDetail | null | undefined,
+): Record<string, string> {
+  if (!admission) {
+    return {};
+  }
+  return {
+    runtime_admission_ref: admission.runtime_admission_ref,
+    gateway_verdict_ref: admission.gateway_verdict_ref,
+    firewall_verdict_ref: admission.firewall_verdict_ref,
+    audit_ref: admission.audit_ref,
+    credential_verdict_ref: admission.credential_verdict_ref,
+  };
+}
+
+function requiredRuntimeText(value: unknown, label: string): string {
+  if (typeof value === 'string' && value.trim()) {
+    return value.trim();
+  }
+  throw new Error(`avatar sdk driver received runtime presentation without ${label}`);
+}
+
+export function requireRuntimePresentationEnvelopeEvidence(input: {
+  readonly localAgentRef: unknown;
+  readonly conversationAnchorId: unknown;
+  readonly turnId: unknown;
+  readonly streamId: unknown;
+}): RuntimePresentationEnvelopeDetail {
+  return {
+    agent_id: requiredRuntimeText(input.localAgentRef, 'agent envelope ref'),
+    conversation_anchor_id: requiredRuntimeText(input.conversationAnchorId, 'conversation anchor envelope ref'),
+    turn_id: requiredRuntimeText(input.turnId, 'turn envelope ref'),
+    stream_id: requiredRuntimeText(input.streamId, 'stream envelope ref'),
+    presentation_evidence_source: 'runtime_event_envelope',
   };
 }
 
@@ -310,7 +360,7 @@ export function readSnapshotStatusCue(snapshot: RuntimeAgentSessionSnapshot): {
   activityName: string;
   activityCategory: BundleActivityCategory | '';
   activityIntensity: BundleActivityIntensity;
-  admission: RuntimePresentationAdmissionDetail;
+  admission: RuntimePresentationAdmissionDetail | null;
 } | null {
   const turn = snapshot.lastTurn;
   const turnId = typeof turn?.turnId === 'string' ? turn.turnId.trim() : '';
@@ -339,7 +389,7 @@ export function readSnapshotStatusCue(snapshot: RuntimeAgentSessionSnapshot): {
   if (!expressionId && !activityName) {
     return null;
   }
-  const admission = requireRuntimePresentationAdmissionEvidence(statusCue);
+  const admission = readRuntimePresentationAdmissionEvidence(statusCue);
   return {
     turnId,
     streamId,

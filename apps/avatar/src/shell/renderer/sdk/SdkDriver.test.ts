@@ -93,6 +93,116 @@ describe('SdkDriver', () => {
     await driver.stop();
   });
 
+  it('accepts runtime presentation events that carry envelope evidence without admission refs', async () => {
+    async function* stream() {
+      yield {
+        eventName: 'runtime.agent.presentation.activity_requested',
+        localAgentRef: LOCAL_IDENTITY.localAgentRef,
+        conversationAnchorId: 'anchor-1',
+        turnId: 'turn-1',
+        streamId: 'stream-1',
+        detail: {
+          activityName: 'happy',
+          category: 'emotion',
+          intensity: 'moderate',
+          source: 'apml_output',
+        },
+      };
+      await new Promise(() => {});
+    }
+    const runtimeAgent = {
+      turns: {
+        getSessionSnapshot: async () => ({
+          sessionStatus: 'active',
+          transcriptMessageCount: 0,
+        }),
+        subscribe: async () => stream(),
+      },
+    } as const;
+
+    const driver = new SdkDriver({
+      runtimeAgent: runtimeAgent as never,
+      ...LOCAL_IDENTITY,
+      conversationAnchorId: 'anchor-1',
+      activeWorldId: 'world-1',
+      activeUserId: 'user-1',
+      locale: 'en-US',
+      now: () => 1_710_000_000_000,
+    });
+    const events: AgentEvent[] = [];
+    driver.onEvent((event) => events.push(event));
+
+    await driver.start();
+    await waitForTasks();
+
+    expect(driver.status).toBe('running');
+    expect(driver.getBundle().activity).toEqual(expect.objectContaining({
+      name: 'happy',
+      category: 'emotion',
+      source: 'apml_output',
+    }));
+    expect(driver.getBundle().activity).not.toHaveProperty('admission');
+    expect(events.find((event) => event.name === 'runtime.agent.presentation.activity_requested')?.detail).toEqual(expect.objectContaining({
+      agent_id: LOCAL_IDENTITY.localAgentRef,
+      conversation_anchor_id: 'anchor-1',
+      turn_id: 'turn-1',
+      stream_id: 'stream-1',
+      presentation_evidence_source: 'runtime_event_envelope',
+    }));
+
+    await driver.stop();
+  });
+
+  it('starts runtime consumption through protected read scopes while preserving abort signal', async () => {
+    async function* stream() {
+      await new Promise(() => {});
+    }
+    const getSessionSnapshot = vi.fn(async (_input, _options) => ({
+      sessionStatus: 'active',
+      transcriptMessageCount: 0,
+    }));
+    const subscribe = vi.fn(async () => stream());
+    const runtimeAgent = {
+      turns: {
+        getSessionSnapshot,
+        subscribe,
+      },
+    } as const;
+    const withScopes = vi.fn(async (_scopes, operation) => operation({
+      metadata: {
+        'x-nimi-access-token-id': 'protected-token-id',
+        'x-nimi-access-token-secret': 'protected-token-secret',
+      },
+    }));
+
+    const driver = new SdkDriver({
+      runtimeAgent: runtimeAgent as never,
+      withScopes,
+      ...LOCAL_IDENTITY,
+      conversationAnchorId: 'anchor-1',
+      activeWorldId: 'world-1',
+      activeUserId: 'user-1',
+      locale: 'en-US',
+    });
+
+    await driver.start();
+
+    expect(withScopes).toHaveBeenCalledTimes(2);
+    expect(withScopes.mock.calls.map(([scopes]) => scopes)).toEqual([
+      ['runtime.agent.read'],
+      ['runtime.agent.read'],
+    ]);
+    for (const call of [getSessionSnapshot.mock.calls[0], subscribe.mock.calls[0]]) {
+      expect(call?.[1]).toEqual(expect.objectContaining({
+        metadata: {
+          'x-nimi-access-token-id': 'protected-token-id',
+          'x-nimi-access-token-secret': 'protected-token-secret',
+        },
+        signal: expect.any(AbortSignal),
+      }));
+    }
+  });
+
   it('fails closed when the runtime event stream ends unexpectedly', async () => {
     async function* closedStream() {
       return;

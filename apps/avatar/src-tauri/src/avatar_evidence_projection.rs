@@ -288,6 +288,7 @@ pub fn append_evidence_record(
 #[cfg(test)]
 mod tests {
     use std::fs;
+    use std::path::Path;
 
     use serde_json::json;
 
@@ -370,9 +371,12 @@ mod tests {
 
         assert_eq!(result.artifact_mime_type, "image/png");
         assert_eq!(result.artifact_byte_length, 8);
-        assert!(result
-            .artifact_path
-            .ends_with("avatar-carrier-evidence/artifacts/instance-1/live2d-visible-frame.png"));
+        assert!(Path::new(&result.artifact_path).ends_with(
+            Path::new("avatar-carrier-evidence")
+                .join("artifacts")
+                .join("instance-1")
+                .join("live2d-visible-frame.png")
+        ));
         assert!(
             fs::metadata(&result.artifact_path)
                 .expect("artifact metadata")

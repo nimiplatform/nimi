@@ -542,6 +542,7 @@ describe('bootstrapAvatar', () => {
           turns: expect.any(Object),
           companionParticipation: expect.any(Object),
         }),
+        withScopes: expect.any(Function),
         ownerUserId: OWNER_USER_ID,
         realmAgentId: REALM_AGENT_ID,
         localAgentRef: LOCAL_AGENT_REF,
