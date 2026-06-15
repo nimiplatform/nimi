@@ -200,6 +200,8 @@ class AgentProfileDto:
     stats: AgentStatsDto | None = None
     worldId: str | None = None
 
+AgentRelationType = Literal["ALLY", "RIVAL", "ENEMY"]
+
 @dataclass(frozen=True)
 class AgentRelationshipOtherAccountDto:
     avatarUrl: str | None = None
@@ -217,8 +219,6 @@ class AgentRelationshipRecordDto:
     otherAccount: AgentRelationshipOtherAccountDto | None = None
     strength: float | None = None
     type: AgentRelationType | None = None
-
-AgentRelationType = Literal["ALLY", "RIVAL", "ENEMY"]
 
 @dataclass(frozen=True)
 class AgentResponseMetadataDto:
@@ -347,13 +347,6 @@ AgentWakeStrategy = Literal["PASSIVE", "PROACTIVE"]
 ApiKeyType = Literal["PERSONAL", "ENTERPRISE"]
 
 @dataclass(frozen=True)
-class AppendWorldHistoryDto:
-    commit: MutationCommitEnvelopeDto | None = None
-    historyAppends: tuple[WorldHistoryAppendItemDto, ...] = field(default_factory=tuple)
-    ifSnapshotVersion: str | None = None
-    reason: str | None = None
-
-@dataclass(frozen=True)
 class AppPermissionGrantDecisionDto:
     expectedVersion: float | None = None
     reason: str | None = None
@@ -417,6 +410,13 @@ class AppPermissionGrantSupersedeDto:
 AppPermissionScopeFamily = Literal["account", "data", "agent", "ai_spend", "memory", "knowledge", "notification", "file_device", "audit", "ai_profile"]
 
 AppPermissionScopeName = Literal["account.read", "account.session.read", "data.scope.read", "data.scope.write", "agent.identity.project", "agent.identity.bind", "ai.spend.meter", "ai.spend.delegate", "memory.read.bounded", "memory.write.admitted", "knowledge.read.bounded", "knowledge.write.admitted", "notification.send", "notification.subscribe", "file.read.scoped", "file.write.scoped", "device.use.scoped", "audit.read.scoped", "ai_profile.selection.consume"]
+
+@dataclass(frozen=True)
+class AppendWorldHistoryDto:
+    commit: MutationCommitEnvelopeDto | None = None
+    historyAppends: tuple[WorldHistoryAppendItemDto, ...] = field(default_factory=tuple)
+    ifSnapshotVersion: str | None = None
+    reason: str | None = None
 
 @dataclass(frozen=True)
 class AssetDetailDto:
@@ -723,41 +723,6 @@ class CausalityRuleDto:
     id: str | None = None
     probability: float | None = None
     trigger: str | None = None
-
-@dataclass(frozen=True)
-class CbdbCuratedAgentChatReadinessDto:
-    agentId: str | None = None
-    agentRuleCount: float | None = None
-    consumerSurface: str | None = None
-    gates: CbdbCuratedAgentChatReadinessGatesDto | None = None
-    ownerScope: str | None = None
-    profile: CbdbCuratedAgentChatReadinessProfileDto | None = None
-    rawRuleContentExposed: bool | None = None
-    runtimeProjectionChecksum: str | None = None
-    selectedInputCount: float | None = None
-    selectedOwnerSettingFields: tuple[str, ...] = field(default_factory=tuple)
-    suppressedInputCount: float | None = None
-    worldId: str | None = None
-    worldRuleCount: float | None = None
-
-@dataclass(frozen=True)
-class CbdbCuratedAgentChatReadinessGatesDto:
-    localAgentIdentityReady: bool | None = None
-    ownerSettingsReady: bool | None = None
-    profileContextReady: bool | None = None
-    profileMediaReady: bool | None = None
-    speechRouteReady: bool | None = None
-    voiceReferenceReady: bool | None = None
-
-@dataclass(frozen=True)
-class CbdbCuratedAgentChatReadinessProfileDto:
-    avatarUrl: str | None = None
-    defaultVoiceReference: str | None = None
-    displayName: str | None = None
-    handle: str | None = None
-    profileCoverUrl: str | None = None
-    speechModelId: str | None = None
-    speechRoutePolicy: str | None = None
 
 @dataclass(frozen=True)
 class ChangeEmailDto:
@@ -1317,6 +1282,41 @@ class ForgeAgentCandidateSourceProfileDto:
     evidenceLocatorKind: str | None = None
     profile: str | None = None
     sourceId: str | None = None
+
+@dataclass(frozen=True)
+class ForgeImportedSystemAgentChatReadinessDto:
+    agentId: str | None = None
+    agentRuleCount: float | None = None
+    consumerSurface: Literal["AGENT_CHAT_READINESS"] | None = None
+    gates: ForgeImportedSystemAgentChatReadinessGatesDto | None = None
+    ownerScope: Literal["forge-imported-system"] | None = None
+    profile: ForgeImportedSystemAgentChatReadinessProfileDto | None = None
+    rawRuleContentExposed: bool | None = None
+    runtimeProjectionChecksum: str | None = None
+    selectedInputCount: float | None = None
+    selectedOwnerSettingFields: tuple[str, ...] = field(default_factory=tuple)
+    suppressedInputCount: float | None = None
+    worldId: str | None = None
+    worldRuleCount: float | None = None
+
+@dataclass(frozen=True)
+class ForgeImportedSystemAgentChatReadinessGatesDto:
+    localAgentIdentityReady: bool | None = None
+    ownerSettingsReady: bool | None = None
+    profileContextReady: bool | None = None
+    profileMediaReady: bool | None = None
+    speechRouteReady: bool | None = None
+    voiceReferenceReady: bool | None = None
+
+@dataclass(frozen=True)
+class ForgeImportedSystemAgentChatReadinessProfileDto:
+    avatarUrl: str | None = None
+    defaultVoiceReference: str | None = None
+    displayName: str | None = None
+    handle: str | None = None
+    profileCoverUrl: str | None = None
+    speechModelId: str | None = None
+    speechRoutePolicy: Literal["local", "cloud"] | None = None
 
 @dataclass(frozen=True)
 class ForgeProductArtifactRefDto:
@@ -2045,6 +2045,22 @@ class OwnerAgentSettingsDto:
     worldId: str | None = None
 
 @dataclass(frozen=True)
+class PPSlotConfigDto:
+    slot1: PPSlotItemDto | None = None
+    slot2: PPSlotItemDto | None = None
+    slot3: PPSlotItemDto | None = None
+    slot4: PPSlotItemDto | None = None
+
+@dataclass(frozen=True)
+class PPSlotConfigResponseDto:
+    ppSlotConfig: PPSlotConfigDto | None = None
+
+@dataclass(frozen=True)
+class PPSlotItemDto:
+    id: str | None = None
+    type: str | None = None
+
+@dataclass(frozen=True)
 class PasswordLoginDto:
     identifier: str | None = None
     password: str | None = None
@@ -2127,22 +2143,6 @@ class PowerTierDto:
     level: float | None = None
     name: str | None = None
     requirements: tuple[str, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class PPSlotConfigDto:
-    slot1: PPSlotItemDto | None = None
-    slot2: PPSlotItemDto | None = None
-    slot3: PPSlotItemDto | None = None
-    slot4: PPSlotItemDto | None = None
-
-@dataclass(frozen=True)
-class PPSlotConfigResponseDto:
-    ppSlotConfig: PPSlotConfigDto | None = None
-
-@dataclass(frozen=True)
-class PPSlotItemDto:
-    id: str | None = None
-    type: str | None = None
 
 PresenceStatus = Literal["online", "invisible"]
 
@@ -2861,6 +2861,10 @@ class UpdateOwnerAgentSettingsDto:
     positioning: OwnerAgentPositioningSettingsDto | None = None
 
 @dataclass(frozen=True)
+class UpdatePPSlotConfigDto:
+    ppSlotConfig: PPSlotConfigDto | None = None
+
+@dataclass(frozen=True)
 class UpdateParticipantRoleInputDto:
     role: Literal["admin", "member"] | None = None
 
@@ -2872,10 +2876,6 @@ class UpdatePasswordRequestDto:
 @dataclass(frozen=True)
 class UpdatePostDto:
     visibility: Visibility | None = None
-
-@dataclass(frozen=True)
-class UpdatePPSlotConfigDto:
-    ppSlotConfig: PPSlotConfigDto | None = None
 
 @dataclass(frozen=True)
 class UpdateRelationshipDto:
@@ -3035,6 +3035,8 @@ class UserAgentVoiceConfigDto:
     description: str | None = None
     emotionEnabled: bool | None = None
     pitch: float | None = None
+    speechModelId: str | None = None
+    speechRoutePolicy: Literal["local", "cloud"] | None = None
     speed: float | None = None
     voiceId: str | None = None
 
@@ -6031,72 +6033,6 @@ class RealmGetBundleOperationRequest:
     body: None | None = None
 
 @dataclass(frozen=True)
-class RealmGetCbdbCuratedSystemAgentOperationPath:
-    agentId: str
-
-
-@dataclass(frozen=True)
-class RealmGetCbdbCuratedSystemAgentOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmGetCbdbCuratedSystemAgentOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmGetCbdbCuratedSystemAgentOperationRequest:
-    path: RealmGetCbdbCuratedSystemAgentOperationPath
-    query: RealmGetCbdbCuratedSystemAgentOperationQuery | None = None
-    headers: RealmGetCbdbCuratedSystemAgentOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmGetCbdbCuratedSystemAgentChatReadinessOperationPath:
-    agentId: str
-
-
-@dataclass(frozen=True)
-class RealmGetCbdbCuratedSystemAgentChatReadinessOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmGetCbdbCuratedSystemAgentChatReadinessOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmGetCbdbCuratedSystemAgentChatReadinessOperationRequest:
-    path: RealmGetCbdbCuratedSystemAgentChatReadinessOperationPath
-    query: RealmGetCbdbCuratedSystemAgentChatReadinessOperationQuery | None = None
-    headers: RealmGetCbdbCuratedSystemAgentChatReadinessOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmGetCbdbCuratedSystemAgentSettingsOperationPath:
-    agentId: str
-
-
-@dataclass(frozen=True)
-class RealmGetCbdbCuratedSystemAgentSettingsOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmGetCbdbCuratedSystemAgentSettingsOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmGetCbdbCuratedSystemAgentSettingsOperationRequest:
-    path: RealmGetCbdbCuratedSystemAgentSettingsOperationPath
-    query: RealmGetCbdbCuratedSystemAgentSettingsOperationQuery | None = None
-    headers: RealmGetCbdbCuratedSystemAgentSettingsOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
 class RealmGetChatByIdOperationPath:
     chatId: str
 
@@ -6141,6 +6077,72 @@ class RealmGetExploreFeedOperationRequest:
     path: RealmGetExploreFeedOperationPath
     query: RealmGetExploreFeedOperationQuery | None = None
     headers: RealmGetExploreFeedOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
+class RealmGetForgeImportedSystemAgentOperationPath:
+    agentId: str
+
+
+@dataclass(frozen=True)
+class RealmGetForgeImportedSystemAgentOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmGetForgeImportedSystemAgentOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmGetForgeImportedSystemAgentOperationRequest:
+    path: RealmGetForgeImportedSystemAgentOperationPath
+    query: RealmGetForgeImportedSystemAgentOperationQuery | None = None
+    headers: RealmGetForgeImportedSystemAgentOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
+class RealmGetForgeImportedSystemAgentChatReadinessOperationPath:
+    agentId: str
+
+
+@dataclass(frozen=True)
+class RealmGetForgeImportedSystemAgentChatReadinessOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmGetForgeImportedSystemAgentChatReadinessOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmGetForgeImportedSystemAgentChatReadinessOperationRequest:
+    path: RealmGetForgeImportedSystemAgentChatReadinessOperationPath
+    query: RealmGetForgeImportedSystemAgentChatReadinessOperationQuery | None = None
+    headers: RealmGetForgeImportedSystemAgentChatReadinessOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
+class RealmGetForgeImportedSystemAgentSettingsOperationPath:
+    agentId: str
+
+
+@dataclass(frozen=True)
+class RealmGetForgeImportedSystemAgentSettingsOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmGetForgeImportedSystemAgentSettingsOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmGetForgeImportedSystemAgentSettingsOperationRequest:
+    path: RealmGetForgeImportedSystemAgentSettingsOperationPath
+    query: RealmGetForgeImportedSystemAgentSettingsOperationQuery | None = None
+    headers: RealmGetForgeImportedSystemAgentSettingsOperationHeaders | None = None
     body: None | None = None
 
 @dataclass(frozen=True)
@@ -7101,28 +7103,6 @@ class RealmListBundlesOperationRequest:
     body: None | None = None
 
 @dataclass(frozen=True)
-class RealmListCbdbCuratedSystemAgentsOperationPath:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmListCbdbCuratedSystemAgentsOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmListCbdbCuratedSystemAgentsOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmListCbdbCuratedSystemAgentsOperationRequest:
-    path: RealmListCbdbCuratedSystemAgentsOperationPath
-    query: RealmListCbdbCuratedSystemAgentsOperationQuery | None = None
-    headers: RealmListCbdbCuratedSystemAgentsOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
 class RealmListChatsOperationPath:
     pass
 
@@ -7143,6 +7123,28 @@ class RealmListChatsOperationRequest:
     path: RealmListChatsOperationPath
     query: RealmListChatsOperationQuery | None = None
     headers: RealmListChatsOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
+class RealmListForgeImportedSystemAgentsOperationPath:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmListForgeImportedSystemAgentsOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmListForgeImportedSystemAgentsOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmListForgeImportedSystemAgentsOperationRequest:
+    path: RealmListForgeImportedSystemAgentsOperationPath
+    query: RealmListForgeImportedSystemAgentsOperationQuery | None = None
+    headers: RealmListForgeImportedSystemAgentsOperationHeaders | None = None
     body: None | None = None
 
 @dataclass(frozen=True)
@@ -8662,69 +8664,69 @@ class RealmUpdateBundleOperationRequest:
     body: UpdateBundleDto | None = None
 
 @dataclass(frozen=True)
-class RealmUpdateCbdbCuratedSystemAgentProfileMediaOperationPath:
+class RealmUpdateForgeImportedSystemAgentProfileMediaOperationPath:
     agentId: str
 
 
 @dataclass(frozen=True)
-class RealmUpdateCbdbCuratedSystemAgentProfileMediaOperationQuery:
+class RealmUpdateForgeImportedSystemAgentProfileMediaOperationQuery:
     pass
 
 
 @dataclass(frozen=True)
-class RealmUpdateCbdbCuratedSystemAgentProfileMediaOperationHeaders:
+class RealmUpdateForgeImportedSystemAgentProfileMediaOperationHeaders:
     pass
 
 
 @dataclass(frozen=True)
-class RealmUpdateCbdbCuratedSystemAgentProfileMediaOperationRequest:
-    path: RealmUpdateCbdbCuratedSystemAgentProfileMediaOperationPath
-    query: RealmUpdateCbdbCuratedSystemAgentProfileMediaOperationQuery | None = None
-    headers: RealmUpdateCbdbCuratedSystemAgentProfileMediaOperationHeaders | None = None
+class RealmUpdateForgeImportedSystemAgentProfileMediaOperationRequest:
+    path: RealmUpdateForgeImportedSystemAgentProfileMediaOperationPath
+    query: RealmUpdateForgeImportedSystemAgentProfileMediaOperationQuery | None = None
+    headers: RealmUpdateForgeImportedSystemAgentProfileMediaOperationHeaders | None = None
     body: UpdateAgentProfileMediaDto | None = None
 
 @dataclass(frozen=True)
-class RealmUpdateCbdbCuratedSystemAgentSettingsOperationPath:
+class RealmUpdateForgeImportedSystemAgentSettingsOperationPath:
     agentId: str
 
 
 @dataclass(frozen=True)
-class RealmUpdateCbdbCuratedSystemAgentSettingsOperationQuery:
+class RealmUpdateForgeImportedSystemAgentSettingsOperationQuery:
     pass
 
 
 @dataclass(frozen=True)
-class RealmUpdateCbdbCuratedSystemAgentSettingsOperationHeaders:
+class RealmUpdateForgeImportedSystemAgentSettingsOperationHeaders:
     pass
 
 
 @dataclass(frozen=True)
-class RealmUpdateCbdbCuratedSystemAgentSettingsOperationRequest:
-    path: RealmUpdateCbdbCuratedSystemAgentSettingsOperationPath
-    query: RealmUpdateCbdbCuratedSystemAgentSettingsOperationQuery | None = None
-    headers: RealmUpdateCbdbCuratedSystemAgentSettingsOperationHeaders | None = None
+class RealmUpdateForgeImportedSystemAgentSettingsOperationRequest:
+    path: RealmUpdateForgeImportedSystemAgentSettingsOperationPath
+    query: RealmUpdateForgeImportedSystemAgentSettingsOperationQuery | None = None
+    headers: RealmUpdateForgeImportedSystemAgentSettingsOperationHeaders | None = None
     body: UpdateOwnerAgentSettingsDto | None = None
 
 @dataclass(frozen=True)
-class RealmUpdateCbdbCuratedSystemAgentVoiceOperationPath:
+class RealmUpdateForgeImportedSystemAgentVoiceOperationPath:
     agentId: str
 
 
 @dataclass(frozen=True)
-class RealmUpdateCbdbCuratedSystemAgentVoiceOperationQuery:
+class RealmUpdateForgeImportedSystemAgentVoiceOperationQuery:
     pass
 
 
 @dataclass(frozen=True)
-class RealmUpdateCbdbCuratedSystemAgentVoiceOperationHeaders:
+class RealmUpdateForgeImportedSystemAgentVoiceOperationHeaders:
     pass
 
 
 @dataclass(frozen=True)
-class RealmUpdateCbdbCuratedSystemAgentVoiceOperationRequest:
-    path: RealmUpdateCbdbCuratedSystemAgentVoiceOperationPath
-    query: RealmUpdateCbdbCuratedSystemAgentVoiceOperationQuery | None = None
-    headers: RealmUpdateCbdbCuratedSystemAgentVoiceOperationHeaders | None = None
+class RealmUpdateForgeImportedSystemAgentVoiceOperationRequest:
+    path: RealmUpdateForgeImportedSystemAgentVoiceOperationPath
+    query: RealmUpdateForgeImportedSystemAgentVoiceOperationQuery | None = None
+    headers: RealmUpdateForgeImportedSystemAgentVoiceOperationHeaders | None = None
     body: UpdateAgentVoiceDto | None = None
 
 @dataclass(frozen=True)
@@ -10969,36 +10971,6 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="getBundle", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(BundleDetailDto, raw)
 
-    async def get_cbdb_curated_system_agent(self, request: RealmGetCbdbCuratedSystemAgentOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetCbdbCuratedSystemAgentOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="getCbdbCuratedSystemAgent", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(UserLiteDto, raw)
-
-    async def get_cbdb_curated_system_agent_chat_readiness(self, request: RealmGetCbdbCuratedSystemAgentChatReadinessOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetCbdbCuratedSystemAgentChatReadinessOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="getCbdbCuratedSystemAgentChatReadiness", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(CbdbCuratedAgentChatReadinessDto, raw)
-
-    async def get_cbdb_curated_system_agent_settings(self, request: RealmGetCbdbCuratedSystemAgentSettingsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetCbdbCuratedSystemAgentSettingsOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="getCbdbCuratedSystemAgentSettings", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(OwnerAgentSettingsDto, raw)
-
     async def get_chat_by_id(self, request: RealmGetChatByIdOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetChatByIdOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
@@ -11018,6 +10990,36 @@ class RealmTypedClient:
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="getExploreFeed", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(FeedResponseDto, raw)
+
+    async def get_forge_imported_system_agent(self, request: RealmGetForgeImportedSystemAgentOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetForgeImportedSystemAgentOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="getForgeImportedSystemAgent", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(UserLiteDto, raw)
+
+    async def get_forge_imported_system_agent_chat_readiness(self, request: RealmGetForgeImportedSystemAgentChatReadinessOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetForgeImportedSystemAgentChatReadinessOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="getForgeImportedSystemAgentChatReadiness", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(ForgeImportedSystemAgentChatReadinessDto, raw)
+
+    async def get_forge_imported_system_agent_settings(self, request: RealmGetForgeImportedSystemAgentSettingsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetForgeImportedSystemAgentSettingsOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="getForgeImportedSystemAgentSettings", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(OwnerAgentSettingsDto, raw)
 
     async def get_group(self, request: RealmGetGroupOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetGroupOperationResponse:
         envelope: dict[str, object] = {
@@ -11449,16 +11451,6 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="listBundles", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(BundleListDto, raw)
 
-    async def list_cbdb_curated_system_agents(self, request: RealmListCbdbCuratedSystemAgentsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmListCbdbCuratedSystemAgentsOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="listCbdbCuratedSystemAgents", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(tuple[UserLiteDto, ...], raw)
-
     async def list_chats(self, request: RealmListChatsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmListChatsOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
@@ -11468,6 +11460,16 @@ class RealmTypedClient:
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="listChats", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListChatsResultDto, raw)
+
+    async def list_forge_imported_system_agents(self, request: RealmListForgeImportedSystemAgentsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmListForgeImportedSystemAgentsOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="listForgeImportedSystemAgents", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(tuple[UserLiteDto, ...], raw)
 
     async def list_group_messages(self, request: RealmListGroupMessagesOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmListGroupMessagesOperationResponse:
         envelope: dict[str, object] = {
@@ -12129,34 +12131,34 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="updateBundle", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(BundleDetailDto, raw)
 
-    async def update_cbdb_curated_system_agent_profile_media(self, request: RealmUpdateCbdbCuratedSystemAgentProfileMediaOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmUpdateCbdbCuratedSystemAgentProfileMediaOperationResponse:
+    async def update_forge_imported_system_agent_profile_media(self, request: RealmUpdateForgeImportedSystemAgentProfileMediaOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmUpdateForgeImportedSystemAgentProfileMediaOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
             "query": _model_body(request.query),
             "headers": _model_body(request.headers),
             "body": _model_body(request.body),
         }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="updateCbdbCuratedSystemAgentProfileMedia", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="updateForgeImportedSystemAgentProfileMedia", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(UserLiteDto, raw)
 
-    async def update_cbdb_curated_system_agent_settings(self, request: RealmUpdateCbdbCuratedSystemAgentSettingsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmUpdateCbdbCuratedSystemAgentSettingsOperationResponse:
+    async def update_forge_imported_system_agent_settings(self, request: RealmUpdateForgeImportedSystemAgentSettingsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmUpdateForgeImportedSystemAgentSettingsOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
             "query": _model_body(request.query),
             "headers": _model_body(request.headers),
             "body": _model_body(request.body),
         }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="updateCbdbCuratedSystemAgentSettings", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="updateForgeImportedSystemAgentSettings", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(OwnerAgentSettingsDto, raw)
 
-    async def update_cbdb_curated_system_agent_voice(self, request: RealmUpdateCbdbCuratedSystemAgentVoiceOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmUpdateCbdbCuratedSystemAgentVoiceOperationResponse:
+    async def update_forge_imported_system_agent_voice(self, request: RealmUpdateForgeImportedSystemAgentVoiceOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmUpdateForgeImportedSystemAgentVoiceOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
             "query": _model_body(request.query),
             "headers": _model_body(request.headers),
             "body": _model_body(request.body),
         }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="updateCbdbCuratedSystemAgentVoice", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="updateForgeImportedSystemAgentVoice", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(UserLiteDto, raw)
 
     async def update_group(self, request: RealmUpdateGroupOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmUpdateGroupOperationResponse:

@@ -37833,6 +37833,8 @@ pub struct AgentProfileDto {
     pub world_id: String,
 }
 
+pub type AgentRelationType = String;
+
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct AgentRelationshipOtherAccountDto {
     pub avatar_url: String,
@@ -37852,8 +37854,6 @@ pub struct AgentRelationshipRecordDto {
     pub strength: f64,
     pub r#type: String,
 }
-
-pub type AgentRelationType = String;
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct AgentResponseMetadataDto {
@@ -37992,14 +37992,6 @@ pub type AgentWakeStrategy = String;
 pub type ApiKeyType = String;
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct AppendWorldHistoryDto {
-    pub commit: Box<MutationCommitEnvelopeDto>,
-    pub history_appends: Vec<WorldHistoryAppendItemDto>,
-    pub if_snapshot_version: String,
-    pub reason: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct AppPermissionGrantDecisionDto {
     pub expected_version: f64,
     pub reason: String,
@@ -38070,6 +38062,14 @@ pub struct AppPermissionGrantSupersedeDto {
 pub type AppPermissionScopeFamily = String;
 
 pub type AppPermissionScopeName = String;
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AppendWorldHistoryDto {
+    pub commit: Box<MutationCommitEnvelopeDto>,
+    pub history_appends: Vec<WorldHistoryAppendItemDto>,
+    pub if_snapshot_version: String,
+    pub reason: String,
+}
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct AssetDetailDto {
@@ -38407,44 +38407,6 @@ pub struct CausalityRuleDto {
     pub id: String,
     pub probability: f64,
     pub trigger: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct CbdbCuratedAgentChatReadinessDto {
-    pub agent_id: String,
-    pub agent_rule_count: f64,
-    pub consumer_surface: String,
-    pub gates: Box<CbdbCuratedAgentChatReadinessGatesDto>,
-    pub owner_scope: String,
-    pub profile: Box<CbdbCuratedAgentChatReadinessProfileDto>,
-    pub raw_rule_content_exposed: bool,
-    pub runtime_projection_checksum: String,
-    pub selected_input_count: f64,
-    pub selected_owner_setting_fields: Vec<String>,
-    pub suppressed_input_count: f64,
-    pub world_id: String,
-    pub world_rule_count: f64,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct CbdbCuratedAgentChatReadinessGatesDto {
-    pub local_agent_identity_ready: bool,
-    pub owner_settings_ready: bool,
-    pub profile_context_ready: bool,
-    pub profile_media_ready: bool,
-    pub speech_route_ready: bool,
-    pub voice_reference_ready: bool,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct CbdbCuratedAgentChatReadinessProfileDto {
-    pub avatar_url: String,
-    pub default_voice_reference: String,
-    pub display_name: String,
-    pub handle: String,
-    pub profile_cover_url: String,
-    pub speech_model_id: String,
-    pub speech_route_policy: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -39072,6 +39034,44 @@ pub struct ForgeAgentCandidateSourceProfileDto {
     pub evidence_locator_kind: String,
     pub profile: String,
     pub source_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ForgeImportedSystemAgentChatReadinessDto {
+    pub agent_id: String,
+    pub agent_rule_count: f64,
+    pub consumer_surface: String,
+    pub gates: Box<ForgeImportedSystemAgentChatReadinessGatesDto>,
+    pub owner_scope: String,
+    pub profile: Box<ForgeImportedSystemAgentChatReadinessProfileDto>,
+    pub raw_rule_content_exposed: bool,
+    pub runtime_projection_checksum: String,
+    pub selected_input_count: f64,
+    pub selected_owner_setting_fields: Vec<String>,
+    pub suppressed_input_count: f64,
+    pub world_id: String,
+    pub world_rule_count: f64,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ForgeImportedSystemAgentChatReadinessGatesDto {
+    pub local_agent_identity_ready: bool,
+    pub owner_settings_ready: bool,
+    pub profile_context_ready: bool,
+    pub profile_media_ready: bool,
+    pub speech_route_ready: bool,
+    pub voice_reference_ready: bool,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ForgeImportedSystemAgentChatReadinessProfileDto {
+    pub avatar_url: String,
+    pub default_voice_reference: String,
+    pub display_name: String,
+    pub handle: String,
+    pub profile_cover_url: String,
+    pub speech_model_id: String,
+    pub speech_route_policy: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -39882,6 +39882,25 @@ pub struct OwnerAgentSettingsDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct PPSlotConfigDto {
+    pub slot1: Box<PPSlotItemDto>,
+    pub slot2: Box<PPSlotItemDto>,
+    pub slot3: Box<PPSlotItemDto>,
+    pub slot4: Box<PPSlotItemDto>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct PPSlotConfigResponseDto {
+    pub pp_slot_config: Box<PPSlotConfigDto>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct PPSlotItemDto {
+    pub id: String,
+    pub r#type: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct PasswordLoginDto {
     pub identifier: String,
     pub password: String,
@@ -39973,25 +39992,6 @@ pub struct PowerTierDto {
     pub level: f64,
     pub name: String,
     pub requirements: Vec<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct PPSlotConfigDto {
-    pub slot1: Box<PPSlotItemDto>,
-    pub slot2: Box<PPSlotItemDto>,
-    pub slot3: Box<PPSlotItemDto>,
-    pub slot4: Box<PPSlotItemDto>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct PPSlotConfigResponseDto {
-    pub pp_slot_config: Box<PPSlotConfigDto>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct PPSlotItemDto {
-    pub id: String,
-    pub r#type: String,
 }
 
 pub type PresenceStatus = String;
@@ -40797,6 +40797,11 @@ pub struct UpdateOwnerAgentSettingsDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct UpdatePPSlotConfigDto {
+    pub pp_slot_config: Box<PPSlotConfigDto>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct UpdateParticipantRoleInputDto {
     pub role: String,
 }
@@ -40810,11 +40815,6 @@ pub struct UpdatePasswordRequestDto {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct UpdatePostDto {
     pub visibility: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct UpdatePPSlotConfigDto {
-    pub pp_slot_config: Box<PPSlotConfigDto>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -40990,6 +40990,8 @@ pub struct UserAgentVoiceConfigDto {
     pub description: String,
     pub emotion_enabled: bool,
     pub pitch: f64,
+    pub speech_model_id: String,
+    pub speech_route_policy: String,
     pub speed: f64,
     pub voice_id: String,
 }
@@ -44159,75 +44161,6 @@ pub struct RealmGetBundleOperationRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetCbdbCuratedSystemAgentOperationPath {
-    pub agent_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetCbdbCuratedSystemAgentOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetCbdbCuratedSystemAgentOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetCbdbCuratedSystemAgentOperationRequest {
-    pub path: RealmGetCbdbCuratedSystemAgentOperationPath,
-    pub query: RealmGetCbdbCuratedSystemAgentOperationQuery,
-    pub headers: RealmGetCbdbCuratedSystemAgentOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetCbdbCuratedSystemAgentChatReadinessOperationPath {
-    pub agent_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetCbdbCuratedSystemAgentChatReadinessOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetCbdbCuratedSystemAgentChatReadinessOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetCbdbCuratedSystemAgentChatReadinessOperationRequest {
-    pub path: RealmGetCbdbCuratedSystemAgentChatReadinessOperationPath,
-    pub query: RealmGetCbdbCuratedSystemAgentChatReadinessOperationQuery,
-    pub headers: RealmGetCbdbCuratedSystemAgentChatReadinessOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetCbdbCuratedSystemAgentSettingsOperationPath {
-    pub agent_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetCbdbCuratedSystemAgentSettingsOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetCbdbCuratedSystemAgentSettingsOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetCbdbCuratedSystemAgentSettingsOperationRequest {
-    pub path: RealmGetCbdbCuratedSystemAgentSettingsOperationPath,
-    pub query: RealmGetCbdbCuratedSystemAgentSettingsOperationQuery,
-    pub headers: RealmGetCbdbCuratedSystemAgentSettingsOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmGetChatByIdOperationPath {
     pub chat_id: String,
 }
@@ -44273,6 +44206,75 @@ pub struct RealmGetExploreFeedOperationRequest {
     pub path: RealmGetExploreFeedOperationPath,
     pub query: RealmGetExploreFeedOperationQuery,
     pub headers: RealmGetExploreFeedOperationHeaders,
+    pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetForgeImportedSystemAgentOperationPath {
+    pub agent_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetForgeImportedSystemAgentOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetForgeImportedSystemAgentOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetForgeImportedSystemAgentOperationRequest {
+    pub path: RealmGetForgeImportedSystemAgentOperationPath,
+    pub query: RealmGetForgeImportedSystemAgentOperationQuery,
+    pub headers: RealmGetForgeImportedSystemAgentOperationHeaders,
+    pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetForgeImportedSystemAgentChatReadinessOperationPath {
+    pub agent_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetForgeImportedSystemAgentChatReadinessOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetForgeImportedSystemAgentChatReadinessOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetForgeImportedSystemAgentChatReadinessOperationRequest {
+    pub path: RealmGetForgeImportedSystemAgentChatReadinessOperationPath,
+    pub query: RealmGetForgeImportedSystemAgentChatReadinessOperationQuery,
+    pub headers: RealmGetForgeImportedSystemAgentChatReadinessOperationHeaders,
+    pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetForgeImportedSystemAgentSettingsOperationPath {
+    pub agent_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetForgeImportedSystemAgentSettingsOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetForgeImportedSystemAgentSettingsOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetForgeImportedSystemAgentSettingsOperationRequest {
+    pub path: RealmGetForgeImportedSystemAgentSettingsOperationPath,
+    pub query: RealmGetForgeImportedSystemAgentSettingsOperationQuery,
+    pub headers: RealmGetForgeImportedSystemAgentSettingsOperationHeaders,
     pub body: (),
 }
 
@@ -45277,29 +45279,6 @@ pub struct RealmListBundlesOperationRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmListCbdbCuratedSystemAgentsOperationPath {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmListCbdbCuratedSystemAgentsOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmListCbdbCuratedSystemAgentsOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmListCbdbCuratedSystemAgentsOperationRequest {
-    pub path: RealmListCbdbCuratedSystemAgentsOperationPath,
-    pub query: RealmListCbdbCuratedSystemAgentsOperationQuery,
-    pub headers: RealmListCbdbCuratedSystemAgentsOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmListChatsOperationPath {
 
 }
@@ -45320,6 +45299,29 @@ pub struct RealmListChatsOperationRequest {
     pub path: RealmListChatsOperationPath,
     pub query: RealmListChatsOperationQuery,
     pub headers: RealmListChatsOperationHeaders,
+    pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmListForgeImportedSystemAgentsOperationPath {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmListForgeImportedSystemAgentsOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmListForgeImportedSystemAgentsOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmListForgeImportedSystemAgentsOperationRequest {
+    pub path: RealmListForgeImportedSystemAgentsOperationPath,
+    pub query: RealmListForgeImportedSystemAgentsOperationQuery,
+    pub headers: RealmListForgeImportedSystemAgentsOperationHeaders,
     pub body: (),
 }
 
@@ -46906,71 +46908,71 @@ pub struct RealmUpdateBundleOperationRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmUpdateCbdbCuratedSystemAgentProfileMediaOperationPath {
+pub struct RealmUpdateForgeImportedSystemAgentProfileMediaOperationPath {
     pub agent_id: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmUpdateCbdbCuratedSystemAgentProfileMediaOperationQuery {
+pub struct RealmUpdateForgeImportedSystemAgentProfileMediaOperationQuery {
 
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmUpdateCbdbCuratedSystemAgentProfileMediaOperationHeaders {
+pub struct RealmUpdateForgeImportedSystemAgentProfileMediaOperationHeaders {
 
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmUpdateCbdbCuratedSystemAgentProfileMediaOperationRequest {
-    pub path: RealmUpdateCbdbCuratedSystemAgentProfileMediaOperationPath,
-    pub query: RealmUpdateCbdbCuratedSystemAgentProfileMediaOperationQuery,
-    pub headers: RealmUpdateCbdbCuratedSystemAgentProfileMediaOperationHeaders,
+pub struct RealmUpdateForgeImportedSystemAgentProfileMediaOperationRequest {
+    pub path: RealmUpdateForgeImportedSystemAgentProfileMediaOperationPath,
+    pub query: RealmUpdateForgeImportedSystemAgentProfileMediaOperationQuery,
+    pub headers: RealmUpdateForgeImportedSystemAgentProfileMediaOperationHeaders,
     pub body: UpdateAgentProfileMediaDto,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmUpdateCbdbCuratedSystemAgentSettingsOperationPath {
+pub struct RealmUpdateForgeImportedSystemAgentSettingsOperationPath {
     pub agent_id: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmUpdateCbdbCuratedSystemAgentSettingsOperationQuery {
+pub struct RealmUpdateForgeImportedSystemAgentSettingsOperationQuery {
 
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmUpdateCbdbCuratedSystemAgentSettingsOperationHeaders {
+pub struct RealmUpdateForgeImportedSystemAgentSettingsOperationHeaders {
 
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmUpdateCbdbCuratedSystemAgentSettingsOperationRequest {
-    pub path: RealmUpdateCbdbCuratedSystemAgentSettingsOperationPath,
-    pub query: RealmUpdateCbdbCuratedSystemAgentSettingsOperationQuery,
-    pub headers: RealmUpdateCbdbCuratedSystemAgentSettingsOperationHeaders,
+pub struct RealmUpdateForgeImportedSystemAgentSettingsOperationRequest {
+    pub path: RealmUpdateForgeImportedSystemAgentSettingsOperationPath,
+    pub query: RealmUpdateForgeImportedSystemAgentSettingsOperationQuery,
+    pub headers: RealmUpdateForgeImportedSystemAgentSettingsOperationHeaders,
     pub body: UpdateOwnerAgentSettingsDto,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmUpdateCbdbCuratedSystemAgentVoiceOperationPath {
+pub struct RealmUpdateForgeImportedSystemAgentVoiceOperationPath {
     pub agent_id: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmUpdateCbdbCuratedSystemAgentVoiceOperationQuery {
+pub struct RealmUpdateForgeImportedSystemAgentVoiceOperationQuery {
 
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmUpdateCbdbCuratedSystemAgentVoiceOperationHeaders {
+pub struct RealmUpdateForgeImportedSystemAgentVoiceOperationHeaders {
 
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmUpdateCbdbCuratedSystemAgentVoiceOperationRequest {
-    pub path: RealmUpdateCbdbCuratedSystemAgentVoiceOperationPath,
-    pub query: RealmUpdateCbdbCuratedSystemAgentVoiceOperationQuery,
-    pub headers: RealmUpdateCbdbCuratedSystemAgentVoiceOperationHeaders,
+pub struct RealmUpdateForgeImportedSystemAgentVoiceOperationRequest {
+    pub path: RealmUpdateForgeImportedSystemAgentVoiceOperationPath,
+    pub query: RealmUpdateForgeImportedSystemAgentVoiceOperationQuery,
+    pub headers: RealmUpdateForgeImportedSystemAgentVoiceOperationHeaders,
     pub body: UpdateAgentVoiceDto,
 }
 
@@ -48703,24 +48705,24 @@ where
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getBundle");
     }
 
-    pub fn get_cbdb_curated_system_agent(&self, _request: RealmGetCbdbCuratedSystemAgentOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<UserLiteDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getCbdbCuratedSystemAgent");
-    }
-
-    pub fn get_cbdb_curated_system_agent_chat_readiness(&self, _request: RealmGetCbdbCuratedSystemAgentChatReadinessOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<CbdbCuratedAgentChatReadinessDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getCbdbCuratedSystemAgentChatReadiness");
-    }
-
-    pub fn get_cbdb_curated_system_agent_settings(&self, _request: RealmGetCbdbCuratedSystemAgentSettingsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<OwnerAgentSettingsDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getCbdbCuratedSystemAgentSettings");
-    }
-
     pub fn get_chat_by_id(&self, _request: RealmGetChatByIdOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<ChatViewDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getChatById");
     }
 
     pub fn get_explore_feed(&self, _request: RealmGetExploreFeedOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<FeedResponseDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getExploreFeed");
+    }
+
+    pub fn get_forge_imported_system_agent(&self, _request: RealmGetForgeImportedSystemAgentOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<UserLiteDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getForgeImportedSystemAgent");
+    }
+
+    pub fn get_forge_imported_system_agent_chat_readiness(&self, _request: RealmGetForgeImportedSystemAgentChatReadinessOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<ForgeImportedSystemAgentChatReadinessDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getForgeImportedSystemAgentChatReadiness");
+    }
+
+    pub fn get_forge_imported_system_agent_settings(&self, _request: RealmGetForgeImportedSystemAgentSettingsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<OwnerAgentSettingsDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getForgeImportedSystemAgentSettings");
     }
 
     pub fn get_group(&self, _request: RealmGetGroupOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<GroupChatViewDto, T::Error> {
@@ -48895,12 +48897,12 @@ where
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for listBundles");
     }
 
-    pub fn list_cbdb_curated_system_agents(&self, _request: RealmListCbdbCuratedSystemAgentsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<Vec<UserLiteDto>, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for listCbdbCuratedSystemAgents");
-    }
-
     pub fn list_chats(&self, _request: RealmListChatsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<ListChatsResultDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for listChats");
+    }
+
+    pub fn list_forge_imported_system_agents(&self, _request: RealmListForgeImportedSystemAgentsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<Vec<UserLiteDto>, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for listForgeImportedSystemAgents");
     }
 
     pub fn list_group_messages(&self, _request: RealmListGroupMessagesOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<ListGroupMessagesResultDto, T::Error> {
@@ -49167,16 +49169,16 @@ where
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for updateBundle");
     }
 
-    pub fn update_cbdb_curated_system_agent_profile_media(&self, _request: RealmUpdateCbdbCuratedSystemAgentProfileMediaOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<UserLiteDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for updateCbdbCuratedSystemAgentProfileMedia");
+    pub fn update_forge_imported_system_agent_profile_media(&self, _request: RealmUpdateForgeImportedSystemAgentProfileMediaOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<UserLiteDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for updateForgeImportedSystemAgentProfileMedia");
     }
 
-    pub fn update_cbdb_curated_system_agent_settings(&self, _request: RealmUpdateCbdbCuratedSystemAgentSettingsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<OwnerAgentSettingsDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for updateCbdbCuratedSystemAgentSettings");
+    pub fn update_forge_imported_system_agent_settings(&self, _request: RealmUpdateForgeImportedSystemAgentSettingsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<OwnerAgentSettingsDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for updateForgeImportedSystemAgentSettings");
     }
 
-    pub fn update_cbdb_curated_system_agent_voice(&self, _request: RealmUpdateCbdbCuratedSystemAgentVoiceOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<UserLiteDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for updateCbdbCuratedSystemAgentVoice");
+    pub fn update_forge_imported_system_agent_voice(&self, _request: RealmUpdateForgeImportedSystemAgentVoiceOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<UserLiteDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for updateForgeImportedSystemAgentVoice");
     }
 
     pub fn update_group(&self, _request: RealmUpdateGroupOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<GroupChatViewDto, T::Error> {

@@ -590,24 +590,6 @@ REALM_OPERATIONS = [
     "path": "/api/bundles/{bundleId}"
   },
   {
-    "operation_id": "getCbdbCuratedSystemAgent",
-    "service": "Agent / Curated System",
-    "method": "GET",
-    "path": "/api/agent/curated-system/cbdb/agents/{agentId}"
-  },
-  {
-    "operation_id": "getCbdbCuratedSystemAgentChatReadiness",
-    "service": "Agent / Curated System",
-    "method": "GET",
-    "path": "/api/agent/curated-system/cbdb/agents/{agentId}/chat-readiness"
-  },
-  {
-    "operation_id": "getCbdbCuratedSystemAgentSettings",
-    "service": "Agent / Curated System",
-    "method": "GET",
-    "path": "/api/agent/curated-system/cbdb/agents/{agentId}/settings"
-  },
-  {
     "operation_id": "getChatById",
     "service": "Human Chats",
     "method": "GET",
@@ -618,6 +600,24 @@ REALM_OPERATIONS = [
     "service": "Explore",
     "method": "GET",
     "path": "/api/explore"
+  },
+  {
+    "operation_id": "getForgeImportedSystemAgent",
+    "service": "Agent / Forge Imported System",
+    "method": "GET",
+    "path": "/api/agent/forge-imported-system/agents/{agentId}"
+  },
+  {
+    "operation_id": "getForgeImportedSystemAgentChatReadiness",
+    "service": "Agent / Forge Imported System",
+    "method": "GET",
+    "path": "/api/agent/forge-imported-system/agents/{agentId}/chat-readiness"
+  },
+  {
+    "operation_id": "getForgeImportedSystemAgentSettings",
+    "service": "Agent / Forge Imported System",
+    "method": "GET",
+    "path": "/api/agent/forge-imported-system/agents/{agentId}/settings"
   },
   {
     "operation_id": "getGroup",
@@ -878,16 +878,16 @@ REALM_OPERATIONS = [
     "path": "/api/bundles"
   },
   {
-    "operation_id": "listCbdbCuratedSystemAgents",
-    "service": "Agent / Curated System",
-    "method": "GET",
-    "path": "/api/agent/curated-system/cbdb/agents"
-  },
-  {
     "operation_id": "listChats",
     "service": "Human Chats",
     "method": "GET",
     "path": "/api/human/chats"
+  },
+  {
+    "operation_id": "listForgeImportedSystemAgents",
+    "service": "Agent / Forge Imported System",
+    "method": "GET",
+    "path": "/api/agent/forge-imported-system/agents"
   },
   {
     "operation_id": "listGroupMessages",
@@ -1286,22 +1286,22 @@ REALM_OPERATIONS = [
     "path": "/api/bundles/{bundleId}"
   },
   {
-    "operation_id": "updateCbdbCuratedSystemAgentProfileMedia",
-    "service": "Agent / Curated System",
+    "operation_id": "updateForgeImportedSystemAgentProfileMedia",
+    "service": "Agent / Forge Imported System",
     "method": "PATCH",
-    "path": "/api/agent/curated-system/cbdb/agents/{agentId}/profile-media"
+    "path": "/api/agent/forge-imported-system/agents/{agentId}/profile-media"
   },
   {
-    "operation_id": "updateCbdbCuratedSystemAgentSettings",
-    "service": "Agent / Curated System",
+    "operation_id": "updateForgeImportedSystemAgentSettings",
+    "service": "Agent / Forge Imported System",
     "method": "PATCH",
-    "path": "/api/agent/curated-system/cbdb/agents/{agentId}/settings"
+    "path": "/api/agent/forge-imported-system/agents/{agentId}/settings"
   },
   {
-    "operation_id": "updateCbdbCuratedSystemAgentVoice",
-    "service": "Agent / Curated System",
+    "operation_id": "updateForgeImportedSystemAgentVoice",
+    "service": "Agent / Forge Imported System",
     "method": "PATCH",
-    "path": "/api/agent/curated-system/cbdb/agents/{agentId}/voice"
+    "path": "/api/agent/forge-imported-system/agents/{agentId}/voice"
   },
   {
     "operation_id": "updateGroup",

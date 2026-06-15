@@ -5267,189 +5267,6 @@
       ]
     },
     {
-      "operation_id": "getCbdbCuratedSystemAgent",
-      "method": "GET",
-      "path": "/api/agent/curated-system/cbdb/agents/{agentId}",
-      "service": "Agent / Curated System",
-      "tags": [
-        "Agent / Curated System"
-      ],
-      "parameters": [
-        {
-          "name": "agentId",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null
-          }
-        }
-      ],
-      "path_parameters": [
-        {
-          "name": "agentId",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null
-          }
-        }
-      ],
-      "query_parameters": [],
-      "header_parameters": [],
-      "request_schema": {
-        "kind": "unknown"
-      },
-      "request_schema_ref": null,
-      "response_schemas": [
-        {
-          "status": "200",
-          "schema": {
-            "kind": "ref",
-            "ref": "#/components/schemas/UserLiteDto",
-            "ref_name": "UserLiteDto"
-          },
-          "schema_ref": "#/components/schemas/UserLiteDto"
-        }
-      ],
-      "response_schema_refs": [
-        {
-          "status": "200",
-          "schema_ref": "#/components/schemas/UserLiteDto"
-        }
-      ]
-    },
-    {
-      "operation_id": "getCbdbCuratedSystemAgentChatReadiness",
-      "method": "GET",
-      "path": "/api/agent/curated-system/cbdb/agents/{agentId}/chat-readiness",
-      "service": "Agent / Curated System",
-      "tags": [
-        "Agent / Curated System"
-      ],
-      "parameters": [
-        {
-          "name": "agentId",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null
-          }
-        }
-      ],
-      "path_parameters": [
-        {
-          "name": "agentId",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null
-          }
-        }
-      ],
-      "query_parameters": [],
-      "header_parameters": [],
-      "request_schema": {
-        "kind": "unknown"
-      },
-      "request_schema_ref": null,
-      "response_schemas": [
-        {
-          "status": "200",
-          "schema": {
-            "kind": "ref",
-            "ref": "#/components/schemas/CbdbCuratedAgentChatReadinessDto",
-            "ref_name": "CbdbCuratedAgentChatReadinessDto"
-          },
-          "schema_ref": "#/components/schemas/CbdbCuratedAgentChatReadinessDto"
-        }
-      ],
-      "response_schema_refs": [
-        {
-          "status": "200",
-          "schema_ref": "#/components/schemas/CbdbCuratedAgentChatReadinessDto"
-        }
-      ],
-      "request": {
-        "body_schema": null,
-        "schema_ref": null
-      },
-      "responses": [
-        {
-          "status": "200",
-          "schema": {
-            "kind": "ref",
-            "ref": "#/components/schemas/CbdbCuratedAgentChatReadinessDto",
-            "ref_name": "CbdbCuratedAgentChatReadinessDto"
-          },
-          "schema_ref": "#/components/schemas/CbdbCuratedAgentChatReadinessDto"
-        }
-      ]
-    },
-    {
-      "operation_id": "getCbdbCuratedSystemAgentSettings",
-      "method": "GET",
-      "path": "/api/agent/curated-system/cbdb/agents/{agentId}/settings",
-      "service": "Agent / Curated System",
-      "tags": [
-        "Agent / Curated System"
-      ],
-      "parameters": [
-        {
-          "name": "agentId",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null
-          }
-        }
-      ],
-      "path_parameters": [
-        {
-          "name": "agentId",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null
-          }
-        }
-      ],
-      "query_parameters": [],
-      "header_parameters": [],
-      "request_schema": {
-        "kind": "unknown"
-      },
-      "request_schema_ref": null,
-      "response_schemas": [
-        {
-          "status": "200",
-          "schema": {
-            "kind": "ref",
-            "ref": "#/components/schemas/OwnerAgentSettingsDto",
-            "ref_name": "OwnerAgentSettingsDto"
-          },
-          "schema_ref": "#/components/schemas/OwnerAgentSettingsDto"
-        }
-      ],
-      "response_schema_refs": [
-        {
-          "status": "200",
-          "schema_ref": "#/components/schemas/OwnerAgentSettingsDto"
-        }
-      ]
-    },
-    {
       "operation_id": "getChatById",
       "method": "GET",
       "path": "/api/human/chats/{chatId}",
@@ -5618,6 +5435,174 @@
         {
           "status": "200",
           "schema_ref": "#/components/schemas/FeedResponseDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "getForgeImportedSystemAgent",
+      "method": "GET",
+      "path": "/api/agent/forge-imported-system/agents/{agentId}",
+      "service": "Agent / Forge Imported System",
+      "tags": [
+        "Agent / Forge Imported System"
+      ],
+      "parameters": [
+        {
+          "name": "agentId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "path_parameters": [
+        {
+          "name": "agentId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/UserLiteDto",
+            "ref_name": "UserLiteDto"
+          },
+          "schema_ref": "#/components/schemas/UserLiteDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/UserLiteDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "getForgeImportedSystemAgentChatReadiness",
+      "method": "GET",
+      "path": "/api/agent/forge-imported-system/agents/{agentId}/chat-readiness",
+      "service": "Agent / Forge Imported System",
+      "tags": [
+        "Agent / Forge Imported System"
+      ],
+      "parameters": [
+        {
+          "name": "agentId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "path_parameters": [
+        {
+          "name": "agentId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/ForgeImportedSystemAgentChatReadinessDto",
+            "ref_name": "ForgeImportedSystemAgentChatReadinessDto"
+          },
+          "schema_ref": "#/components/schemas/ForgeImportedSystemAgentChatReadinessDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/ForgeImportedSystemAgentChatReadinessDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "getForgeImportedSystemAgentSettings",
+      "method": "GET",
+      "path": "/api/agent/forge-imported-system/agents/{agentId}/settings",
+      "service": "Agent / Forge Imported System",
+      "tags": [
+        "Agent / Forge Imported System"
+      ],
+      "parameters": [
+        {
+          "name": "agentId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "path_parameters": [
+        {
+          "name": "agentId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/OwnerAgentSettingsDto",
+            "ref_name": "OwnerAgentSettingsDto"
+          },
+          "schema_ref": "#/components/schemas/OwnerAgentSettingsDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/OwnerAgentSettingsDto"
         }
       ]
     },
@@ -8038,38 +8023,6 @@
       ]
     },
     {
-      "operation_id": "listCbdbCuratedSystemAgents",
-      "method": "GET",
-      "path": "/api/agent/curated-system/cbdb/agents",
-      "service": "Agent / Curated System",
-      "tags": [
-        "Agent / Curated System"
-      ],
-      "parameters": [],
-      "path_parameters": [],
-      "query_parameters": [],
-      "header_parameters": [],
-      "request_schema": {
-        "kind": "unknown"
-      },
-      "request_schema_ref": null,
-      "response_schemas": [
-        {
-          "status": "200",
-          "schema": {
-            "kind": "array",
-            "items": {
-              "kind": "ref",
-              "ref": "#/components/schemas/UserLiteDto",
-              "ref_name": "UserLiteDto"
-            }
-          },
-          "schema_ref": null
-        }
-      ],
-      "response_schema_refs": []
-    },
-    {
       "operation_id": "listChats",
       "method": "GET",
       "path": "/api/human/chats",
@@ -8144,6 +8097,38 @@
           "schema_ref": "#/components/schemas/ListChatsResultDto"
         }
       ]
+    },
+    {
+      "operation_id": "listForgeImportedSystemAgents",
+      "method": "GET",
+      "path": "/api/agent/forge-imported-system/agents",
+      "service": "Agent / Forge Imported System",
+      "tags": [
+        "Agent / Forge Imported System"
+      ],
+      "parameters": [],
+      "path_parameters": [],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "array",
+            "items": {
+              "kind": "ref",
+              "ref": "#/components/schemas/UserLiteDto",
+              "ref_name": "UserLiteDto"
+            }
+          },
+          "schema_ref": null
+        }
+      ],
+      "response_schema_refs": []
     },
     {
       "operation_id": "listGroupMessages",
@@ -12448,12 +12433,12 @@
       ]
     },
     {
-      "operation_id": "updateCbdbCuratedSystemAgentProfileMedia",
+      "operation_id": "updateForgeImportedSystemAgentProfileMedia",
       "method": "PATCH",
-      "path": "/api/agent/curated-system/cbdb/agents/{agentId}/profile-media",
-      "service": "Agent / Curated System",
+      "path": "/api/agent/forge-imported-system/agents/{agentId}/profile-media",
+      "service": "Agent / Forge Imported System",
       "tags": [
-        "Agent / Curated System"
+        "Agent / Forge Imported System"
       ],
       "parameters": [
         {
@@ -12506,12 +12491,12 @@
       ]
     },
     {
-      "operation_id": "updateCbdbCuratedSystemAgentSettings",
+      "operation_id": "updateForgeImportedSystemAgentSettings",
       "method": "PATCH",
-      "path": "/api/agent/curated-system/cbdb/agents/{agentId}/settings",
-      "service": "Agent / Curated System",
+      "path": "/api/agent/forge-imported-system/agents/{agentId}/settings",
+      "service": "Agent / Forge Imported System",
       "tags": [
-        "Agent / Curated System"
+        "Agent / Forge Imported System"
       ],
       "parameters": [
         {
@@ -12564,12 +12549,12 @@
       ]
     },
     {
-      "operation_id": "updateCbdbCuratedSystemAgentVoice",
+      "operation_id": "updateForgeImportedSystemAgentVoice",
       "method": "PATCH",
-      "path": "/api/agent/curated-system/cbdb/agents/{agentId}/voice",
-      "service": "Agent / Curated System",
+      "path": "/api/agent/forge-imported-system/agents/{agentId}/voice",
+      "service": "Agent / Forge Imported System",
       "tags": [
-        "Agent / Curated System"
+        "Agent / Forge Imported System"
       ],
       "parameters": [
         {
@@ -16438,24 +16423,6 @@
       "path": "/api/bundles/{bundleId}"
     },
     {
-      "operation_id": "getCbdbCuratedSystemAgent",
-      "service": "Agent / Curated System",
-      "method": "GET",
-      "path": "/api/agent/curated-system/cbdb/agents/{agentId}"
-    },
-    {
-      "operation_id": "getCbdbCuratedSystemAgentChatReadiness",
-      "service": "Agent / Curated System",
-      "method": "GET",
-      "path": "/api/agent/curated-system/cbdb/agents/{agentId}/chat-readiness"
-    },
-    {
-      "operation_id": "getCbdbCuratedSystemAgentSettings",
-      "service": "Agent / Curated System",
-      "method": "GET",
-      "path": "/api/agent/curated-system/cbdb/agents/{agentId}/settings"
-    },
-    {
       "operation_id": "getChatById",
       "service": "Human Chats",
       "method": "GET",
@@ -16466,6 +16433,24 @@
       "service": "Explore",
       "method": "GET",
       "path": "/api/explore"
+    },
+    {
+      "operation_id": "getForgeImportedSystemAgent",
+      "service": "Agent / Forge Imported System",
+      "method": "GET",
+      "path": "/api/agent/forge-imported-system/agents/{agentId}"
+    },
+    {
+      "operation_id": "getForgeImportedSystemAgentChatReadiness",
+      "service": "Agent / Forge Imported System",
+      "method": "GET",
+      "path": "/api/agent/forge-imported-system/agents/{agentId}/chat-readiness"
+    },
+    {
+      "operation_id": "getForgeImportedSystemAgentSettings",
+      "service": "Agent / Forge Imported System",
+      "method": "GET",
+      "path": "/api/agent/forge-imported-system/agents/{agentId}/settings"
     },
     {
       "operation_id": "getGroup",
@@ -16726,16 +16711,16 @@
       "path": "/api/bundles"
     },
     {
-      "operation_id": "listCbdbCuratedSystemAgents",
-      "service": "Agent / Curated System",
-      "method": "GET",
-      "path": "/api/agent/curated-system/cbdb/agents"
-    },
-    {
       "operation_id": "listChats",
       "service": "Human Chats",
       "method": "GET",
       "path": "/api/human/chats"
+    },
+    {
+      "operation_id": "listForgeImportedSystemAgents",
+      "service": "Agent / Forge Imported System",
+      "method": "GET",
+      "path": "/api/agent/forge-imported-system/agents"
     },
     {
       "operation_id": "listGroupMessages",
@@ -17134,22 +17119,22 @@
       "path": "/api/bundles/{bundleId}"
     },
     {
-      "operation_id": "updateCbdbCuratedSystemAgentProfileMedia",
-      "service": "Agent / Curated System",
+      "operation_id": "updateForgeImportedSystemAgentProfileMedia",
+      "service": "Agent / Forge Imported System",
       "method": "PATCH",
-      "path": "/api/agent/curated-system/cbdb/agents/{agentId}/profile-media"
+      "path": "/api/agent/forge-imported-system/agents/{agentId}/profile-media"
     },
     {
-      "operation_id": "updateCbdbCuratedSystemAgentSettings",
-      "service": "Agent / Curated System",
+      "operation_id": "updateForgeImportedSystemAgentSettings",
+      "service": "Agent / Forge Imported System",
       "method": "PATCH",
-      "path": "/api/agent/curated-system/cbdb/agents/{agentId}/settings"
+      "path": "/api/agent/forge-imported-system/agents/{agentId}/settings"
     },
     {
-      "operation_id": "updateCbdbCuratedSystemAgentVoice",
-      "service": "Agent / Curated System",
+      "operation_id": "updateForgeImportedSystemAgentVoice",
+      "service": "Agent / Forge Imported System",
       "method": "PATCH",
-      "path": "/api/agent/curated-system/cbdb/agents/{agentId}/voice"
+      "path": "/api/agent/forge-imported-system/agents/{agentId}/voice"
     },
     {
       "operation_id": "updateGroup",
@@ -17496,15 +17481,15 @@
   ],
   "service_registry": [
     {
-      "name": "Agent / Curated System",
+      "name": "Agent / Forge Imported System",
       "operation_ids": [
-        "getCbdbCuratedSystemAgent",
-        "getCbdbCuratedSystemAgentChatReadiness",
-        "getCbdbCuratedSystemAgentSettings",
-        "listCbdbCuratedSystemAgents",
-        "updateCbdbCuratedSystemAgentProfileMedia",
-        "updateCbdbCuratedSystemAgentSettings",
-        "updateCbdbCuratedSystemAgentVoice"
+        "getForgeImportedSystemAgent",
+        "getForgeImportedSystemAgentChatReadiness",
+        "getForgeImportedSystemAgentSettings",
+        "listForgeImportedSystemAgents",
+        "updateForgeImportedSystemAgentProfileMedia",
+        "updateForgeImportedSystemAgentSettings",
+        "updateForgeImportedSystemAgentVoice"
       ]
     },
     {
@@ -18217,15 +18202,6 @@
       "name": "CausalityRuleDto"
     },
     {
-      "name": "CbdbCuratedAgentChatReadinessDto"
-    },
-    {
-      "name": "CbdbCuratedAgentChatReadinessGatesDto"
-    },
-    {
-      "name": "CbdbCuratedAgentChatReadinessProfileDto"
-    },
-    {
       "name": "ChangeEmailDto"
     },
     {
@@ -18434,6 +18410,15 @@
     },
     {
       "name": "ForgeAgentCandidateSourceProfileDto"
+    },
+    {
+      "name": "ForgeImportedSystemAgentChatReadinessDto"
+    },
+    {
+      "name": "ForgeImportedSystemAgentChatReadinessGatesDto"
+    },
+    {
+      "name": "ForgeImportedSystemAgentChatReadinessProfileDto"
     },
     {
       "name": "ForgeProductArtifactRefDto"
@@ -20525,6 +20510,17 @@
       }
     },
     {
+      "name": "AgentRelationType",
+      "schema": {
+        "kind": "enum",
+        "values": [
+          "ALLY",
+          "RIVAL",
+          "ENEMY"
+        ]
+      }
+    },
+    {
       "name": "AgentRelationshipOtherAccountDto",
       "schema": {
         "kind": "object",
@@ -20653,17 +20649,6 @@
           }
         ],
         "additional_properties": null
-      }
-    },
-    {
-      "name": "AgentRelationType",
-      "schema": {
-        "kind": "enum",
-        "values": [
-          "ALLY",
-          "RIVAL",
-          "ENEMY"
-        ]
       }
     },
     {
@@ -21708,54 +21693,6 @@
       }
     },
     {
-      "name": "AppendWorldHistoryDto",
-      "schema": {
-        "kind": "object",
-        "properties": [
-          {
-            "name": "commit",
-            "required": true,
-            "schema": {
-              "kind": "ref",
-              "ref": "#/components/schemas/MutationCommitEnvelopeDto",
-              "ref_name": "MutationCommitEnvelopeDto"
-            }
-          },
-          {
-            "name": "historyAppends",
-            "required": true,
-            "schema": {
-              "kind": "array",
-              "items": {
-                "kind": "ref",
-                "ref": "#/components/schemas/WorldHistoryAppendItemDto",
-                "ref_name": "WorldHistoryAppendItemDto"
-              }
-            }
-          },
-          {
-            "name": "ifSnapshotVersion",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null
-            }
-          },
-          {
-            "name": "reason",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null
-            }
-          }
-        ],
-        "additional_properties": null
-      }
-    },
-    {
       "name": "AppPermissionGrantDecisionDto",
       "schema": {
         "kind": "object",
@@ -22248,6 +22185,54 @@
           "audit.read.scoped",
           "ai_profile.selection.consume"
         ]
+      }
+    },
+    {
+      "name": "AppendWorldHistoryDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "commit",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/MutationCommitEnvelopeDto",
+              "ref_name": "MutationCommitEnvelopeDto"
+            }
+          },
+          {
+            "name": "historyAppends",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "ref",
+                "ref": "#/components/schemas/WorldHistoryAppendItemDto",
+                "ref_name": "WorldHistoryAppendItemDto"
+              }
+            }
+          },
+          {
+            "name": "ifSnapshotVersion",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "reason",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          }
+        ],
+        "additional_properties": null
       }
     },
     {
@@ -24643,280 +24628,6 @@
             "required": true,
             "schema": {
               "kind": "scalar",
-              "type": "string",
-              "format": null
-            }
-          }
-        ],
-        "additional_properties": null
-      }
-    },
-    {
-      "name": "CbdbCuratedAgentChatReadinessDto",
-      "schema": {
-        "kind": "object",
-        "properties": [
-          {
-            "name": "agentId",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null
-            }
-          },
-          {
-            "name": "agentRuleCount",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "number",
-              "format": null
-            }
-          },
-          {
-            "name": "consumerSurface",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "enum": [
-                "AGENT_CHAT_READINESS"
-              ],
-              "type": "string",
-              "format": null
-            }
-          },
-          {
-            "name": "gates",
-            "required": true,
-            "schema": {
-              "kind": "ref",
-              "ref": "#/components/schemas/CbdbCuratedAgentChatReadinessGatesDto",
-              "ref_name": "CbdbCuratedAgentChatReadinessGatesDto"
-            }
-          },
-          {
-            "name": "ownerScope",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "enum": [
-                "cbdb-curated-system"
-              ],
-              "type": "string",
-              "format": null
-            }
-          },
-          {
-            "name": "profile",
-            "required": true,
-            "schema": {
-              "kind": "ref",
-              "ref": "#/components/schemas/CbdbCuratedAgentChatReadinessProfileDto",
-              "ref_name": "CbdbCuratedAgentChatReadinessProfileDto"
-            }
-          },
-          {
-            "name": "rawRuleContentExposed",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "boolean",
-              "format": null
-            }
-          },
-          {
-            "name": "runtimeProjectionChecksum",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null
-            }
-          },
-          {
-            "name": "selectedInputCount",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "number",
-              "format": null
-            }
-          },
-          {
-            "name": "selectedOwnerSettingFields",
-            "required": true,
-            "schema": {
-              "kind": "array",
-              "items": {
-                "kind": "scalar",
-                "type": "string",
-                "format": null
-              }
-            }
-          },
-          {
-            "name": "suppressedInputCount",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "number",
-              "format": null
-            }
-          },
-          {
-            "name": "worldId",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null
-            }
-          },
-          {
-            "name": "worldRuleCount",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "number",
-              "format": null
-            }
-          }
-        ],
-        "additional_properties": null
-      }
-    },
-    {
-      "name": "CbdbCuratedAgentChatReadinessGatesDto",
-      "schema": {
-        "kind": "object",
-        "properties": [
-          {
-            "name": "localAgentIdentityReady",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "boolean",
-              "format": null
-            }
-          },
-          {
-            "name": "ownerSettingsReady",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "boolean",
-              "format": null
-            }
-          },
-          {
-            "name": "profileContextReady",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "boolean",
-              "format": null
-            }
-          },
-          {
-            "name": "profileMediaReady",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "boolean",
-              "format": null
-            }
-          },
-          {
-            "name": "speechRouteReady",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "boolean",
-              "format": null
-            }
-          },
-          {
-            "name": "voiceReferenceReady",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "boolean",
-              "format": null
-            }
-          }
-        ],
-        "additional_properties": null
-      }
-    },
-    {
-      "name": "CbdbCuratedAgentChatReadinessProfileDto",
-      "schema": {
-        "kind": "object",
-        "properties": [
-          {
-            "name": "avatarUrl",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null
-            }
-          },
-          {
-            "name": "defaultVoiceReference",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null
-            }
-          },
-          {
-            "name": "displayName",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null
-            }
-          },
-          {
-            "name": "handle",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null
-            }
-          },
-          {
-            "name": "profileCoverUrl",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null
-            }
-          },
-          {
-            "name": "speechModelId",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null
-            }
-          },
-          {
-            "name": "speechRoutePolicy",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "enum": [
-                "local",
-                "cloud"
-              ],
               "type": "string",
               "format": null
             }
@@ -29072,6 +28783,274 @@
               "kind": "scalar",
               "type": "string",
               "format": null
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "ForgeImportedSystemAgentChatReadinessDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "agentId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "agentRuleCount",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "consumerSurface",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "AGENT_CHAT_READINESS"
+              ]
+            }
+          },
+          {
+            "name": "gates",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/ForgeImportedSystemAgentChatReadinessGatesDto",
+              "ref_name": "ForgeImportedSystemAgentChatReadinessGatesDto"
+            }
+          },
+          {
+            "name": "ownerScope",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "forge-imported-system"
+              ]
+            }
+          },
+          {
+            "name": "profile",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/ForgeImportedSystemAgentChatReadinessProfileDto",
+              "ref_name": "ForgeImportedSystemAgentChatReadinessProfileDto"
+            }
+          },
+          {
+            "name": "rawRuleContentExposed",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "boolean",
+              "format": null
+            }
+          },
+          {
+            "name": "runtimeProjectionChecksum",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "selectedInputCount",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "selectedOwnerSettingFields",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "scalar",
+                "type": "string",
+                "format": null
+              }
+            }
+          },
+          {
+            "name": "suppressedInputCount",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "worldId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "worldRuleCount",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "ForgeImportedSystemAgentChatReadinessGatesDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "localAgentIdentityReady",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "boolean",
+              "format": null
+            }
+          },
+          {
+            "name": "ownerSettingsReady",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "boolean",
+              "format": null
+            }
+          },
+          {
+            "name": "profileContextReady",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "boolean",
+              "format": null
+            }
+          },
+          {
+            "name": "profileMediaReady",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "boolean",
+              "format": null
+            }
+          },
+          {
+            "name": "speechRouteReady",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "boolean",
+              "format": null
+            }
+          },
+          {
+            "name": "voiceReferenceReady",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "boolean",
+              "format": null
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "ForgeImportedSystemAgentChatReadinessProfileDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "avatarUrl",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "defaultVoiceReference",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "displayName",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "handle",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "profileCoverUrl",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "speechModelId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "speechRoutePolicy",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "local",
+                "cloud"
+              ]
             }
           }
         ],
@@ -34340,6 +34319,96 @@
       }
     },
     {
+      "name": "PPSlotConfigDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "slot1",
+            "required": false,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/PPSlotItemDto",
+              "ref_name": "PPSlotItemDto"
+            }
+          },
+          {
+            "name": "slot2",
+            "required": false,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/PPSlotItemDto",
+              "ref_name": "PPSlotItemDto"
+            }
+          },
+          {
+            "name": "slot3",
+            "required": false,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/PPSlotItemDto",
+              "ref_name": "PPSlotItemDto"
+            }
+          },
+          {
+            "name": "slot4",
+            "required": false,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/PPSlotItemDto",
+              "ref_name": "PPSlotItemDto"
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "PPSlotConfigResponseDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "ppSlotConfig",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/PPSlotConfigDto",
+              "ref_name": "PPSlotConfigDto"
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "PPSlotItemDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "id",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "type",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
       "name": "PasswordLoginDto",
       "schema": {
         "kind": "object",
@@ -34972,96 +35041,6 @@
                 "type": "string",
                 "format": null
               }
-            }
-          }
-        ],
-        "additional_properties": null
-      }
-    },
-    {
-      "name": "PPSlotConfigDto",
-      "schema": {
-        "kind": "object",
-        "properties": [
-          {
-            "name": "slot1",
-            "required": false,
-            "schema": {
-              "kind": "ref",
-              "ref": "#/components/schemas/PPSlotItemDto",
-              "ref_name": "PPSlotItemDto"
-            }
-          },
-          {
-            "name": "slot2",
-            "required": false,
-            "schema": {
-              "kind": "ref",
-              "ref": "#/components/schemas/PPSlotItemDto",
-              "ref_name": "PPSlotItemDto"
-            }
-          },
-          {
-            "name": "slot3",
-            "required": false,
-            "schema": {
-              "kind": "ref",
-              "ref": "#/components/schemas/PPSlotItemDto",
-              "ref_name": "PPSlotItemDto"
-            }
-          },
-          {
-            "name": "slot4",
-            "required": false,
-            "schema": {
-              "kind": "ref",
-              "ref": "#/components/schemas/PPSlotItemDto",
-              "ref_name": "PPSlotItemDto"
-            }
-          }
-        ],
-        "additional_properties": null
-      }
-    },
-    {
-      "name": "PPSlotConfigResponseDto",
-      "schema": {
-        "kind": "object",
-        "properties": [
-          {
-            "name": "ppSlotConfig",
-            "required": true,
-            "schema": {
-              "kind": "ref",
-              "ref": "#/components/schemas/PPSlotConfigDto",
-              "ref_name": "PPSlotConfigDto"
-            }
-          }
-        ],
-        "additional_properties": null
-      }
-    },
-    {
-      "name": "PPSlotItemDto",
-      "schema": {
-        "kind": "object",
-        "properties": [
-          {
-            "name": "id",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null
-            }
-          },
-          {
-            "name": "type",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null
             }
           }
         ],
@@ -40437,6 +40416,24 @@
       }
     },
     {
+      "name": "UpdatePPSlotConfigDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "ppSlotConfig",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/PPSlotConfigDto",
+              "ref_name": "PPSlotConfigDto"
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
       "name": "UpdateParticipantRoleInputDto",
       "schema": {
         "kind": "object",
@@ -40500,24 +40497,6 @@
                   "ref_name": "Visibility"
                 }
               ]
-            }
-          }
-        ],
-        "additional_properties": null
-      }
-    },
-    {
-      "name": "UpdatePPSlotConfigDto",
-      "schema": {
-        "kind": "object",
-        "properties": [
-          {
-            "name": "ppSlotConfig",
-            "required": true,
-            "schema": {
-              "kind": "ref",
-              "ref": "#/components/schemas/PPSlotConfigDto",
-              "ref_name": "PPSlotConfigDto"
             }
           }
         ],
@@ -41808,6 +41787,26 @@
               "kind": "scalar",
               "type": "number",
               "format": null
+            }
+          },
+          {
+            "name": "speechModelId",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "speechRoutePolicy",
+            "required": false,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "local",
+                "cloud"
+              ]
             }
           },
           {

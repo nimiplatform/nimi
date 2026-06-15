@@ -151,6 +151,7 @@ export interface AgentProfileDto {
   readonly stats?: AgentStatsDto;
   readonly worldId?: string;
 }
+export type AgentRelationType = "ALLY" | "RIVAL" | "ENEMY";
 export interface AgentRelationshipOtherAccountDto {
   readonly avatarUrl: string;
   readonly displayName: string;
@@ -167,7 +168,6 @@ export interface AgentRelationshipRecordDto {
   readonly strength: number;
   readonly type: AgentRelationType;
 }
-export type AgentRelationType = "ALLY" | "RIVAL" | "ENEMY";
 export interface AgentResponseMetadataDto {
   readonly activeWorldId?: string;
   readonly category?: string;
@@ -281,12 +281,6 @@ export interface AgentVoiceConfigDto {
 }
 export type AgentWakeStrategy = "PASSIVE" | "PROACTIVE";
 export type ApiKeyType = "PERSONAL" | "ENTERPRISE";
-export interface AppendWorldHistoryDto {
-  readonly commit: MutationCommitEnvelopeDto;
-  readonly historyAppends: readonly (WorldHistoryAppendItemDto)[];
-  readonly ifSnapshotVersion?: string;
-  readonly reason?: string;
-}
 export interface AppPermissionGrantDecisionDto {
   readonly expectedVersion: number;
   readonly reason?: string;
@@ -342,6 +336,12 @@ export interface AppPermissionGrantSupersedeDto {
 }
 export type AppPermissionScopeFamily = "account" | "data" | "agent" | "ai_spend" | "memory" | "knowledge" | "notification" | "file_device" | "audit" | "ai_profile";
 export type AppPermissionScopeName = "account.read" | "account.session.read" | "data.scope.read" | "data.scope.write" | "agent.identity.project" | "agent.identity.bind" | "ai.spend.meter" | "ai.spend.delegate" | "memory.read.bounded" | "memory.write.admitted" | "knowledge.read.bounded" | "knowledge.write.admitted" | "notification.send" | "notification.subscribe" | "file.read.scoped" | "file.write.scoped" | "device.use.scoped" | "audit.read.scoped" | "ai_profile.selection.consume";
+export interface AppendWorldHistoryDto {
+  readonly commit: MutationCommitEnvelopeDto;
+  readonly historyAppends: readonly (WorldHistoryAppendItemDto)[];
+  readonly ifSnapshotVersion?: string;
+  readonly reason?: string;
+}
 export interface AssetDetailDto {
   readonly authorId: string;
   readonly clonePolicy: "ALLOW" | "DENY" | "INHERIT";
@@ -613,38 +613,6 @@ export interface CausalityRuleDto {
   readonly id: string;
   readonly probability?: number;
   readonly trigger: string;
-}
-export interface CbdbCuratedAgentChatReadinessDto {
-  readonly agentId: string;
-  readonly agentRuleCount: number;
-  readonly consumerSurface: string;
-  readonly gates: CbdbCuratedAgentChatReadinessGatesDto;
-  readonly ownerScope: string;
-  readonly profile: CbdbCuratedAgentChatReadinessProfileDto;
-  readonly rawRuleContentExposed: boolean;
-  readonly runtimeProjectionChecksum: string;
-  readonly selectedInputCount: number;
-  readonly selectedOwnerSettingFields: readonly (string)[];
-  readonly suppressedInputCount: number;
-  readonly worldId: string;
-  readonly worldRuleCount: number;
-}
-export interface CbdbCuratedAgentChatReadinessGatesDto {
-  readonly localAgentIdentityReady: boolean;
-  readonly ownerSettingsReady: boolean;
-  readonly profileContextReady: boolean;
-  readonly profileMediaReady: boolean;
-  readonly speechRouteReady: boolean;
-  readonly voiceReferenceReady: boolean;
-}
-export interface CbdbCuratedAgentChatReadinessProfileDto {
-  readonly avatarUrl: string;
-  readonly defaultVoiceReference: string;
-  readonly displayName: string;
-  readonly handle: string;
-  readonly profileCoverUrl: string;
-  readonly speechModelId: string;
-  readonly speechRoutePolicy: string;
 }
 export interface ChangeEmailDto {
   readonly emailOtpCode: string;
@@ -1134,6 +1102,38 @@ export interface ForgeAgentCandidateSourceProfileDto {
   readonly evidenceLocatorKind: string;
   readonly profile: string;
   readonly sourceId: string;
+}
+export interface ForgeImportedSystemAgentChatReadinessDto {
+  readonly agentId: string;
+  readonly agentRuleCount: number;
+  readonly consumerSurface: "AGENT_CHAT_READINESS";
+  readonly gates: ForgeImportedSystemAgentChatReadinessGatesDto;
+  readonly ownerScope: "forge-imported-system";
+  readonly profile: ForgeImportedSystemAgentChatReadinessProfileDto;
+  readonly rawRuleContentExposed: boolean;
+  readonly runtimeProjectionChecksum: string;
+  readonly selectedInputCount: number;
+  readonly selectedOwnerSettingFields: readonly (string)[];
+  readonly suppressedInputCount: number;
+  readonly worldId: string;
+  readonly worldRuleCount: number;
+}
+export interface ForgeImportedSystemAgentChatReadinessGatesDto {
+  readonly localAgentIdentityReady: boolean;
+  readonly ownerSettingsReady: boolean;
+  readonly profileContextReady: boolean;
+  readonly profileMediaReady: boolean;
+  readonly speechRouteReady: boolean;
+  readonly voiceReferenceReady: boolean;
+}
+export interface ForgeImportedSystemAgentChatReadinessProfileDto {
+  readonly avatarUrl: string;
+  readonly defaultVoiceReference: string;
+  readonly displayName: string;
+  readonly handle: string;
+  readonly profileCoverUrl: string;
+  readonly speechModelId: string;
+  readonly speechRoutePolicy: "local" | "cloud";
 }
 export interface ForgeProductArtifactRefDto {
   readonly checksum: string;
@@ -1771,6 +1771,19 @@ export interface OwnerAgentSettingsDto {
   readonly updatedAt: string;
   readonly worldId: string;
 }
+export interface PPSlotConfigDto {
+  readonly slot1?: PPSlotItemDto;
+  readonly slot2?: PPSlotItemDto;
+  readonly slot3?: PPSlotItemDto;
+  readonly slot4?: PPSlotItemDto;
+}
+export interface PPSlotConfigResponseDto {
+  readonly ppSlotConfig: PPSlotConfigDto;
+}
+export interface PPSlotItemDto {
+  readonly id: string;
+  readonly type: string;
+}
 export interface PasswordLoginDto {
   readonly identifier: string;
   readonly password: string;
@@ -1844,19 +1857,6 @@ export interface PowerTierDto {
   readonly level: number;
   readonly name: string;
   readonly requirements?: readonly (string)[];
-}
-export interface PPSlotConfigDto {
-  readonly slot1?: PPSlotItemDto;
-  readonly slot2?: PPSlotItemDto;
-  readonly slot3?: PPSlotItemDto;
-  readonly slot4?: PPSlotItemDto;
-}
-export interface PPSlotConfigResponseDto {
-  readonly ppSlotConfig: PPSlotConfigDto;
-}
-export interface PPSlotItemDto {
-  readonly id: string;
-  readonly type: string;
 }
 export type PresenceStatus = "online" | "invisible";
 export interface PublicBindingDto {
@@ -2483,6 +2483,9 @@ export interface UpdateOwnerAgentSettingsDto {
   readonly personality?: OwnerAgentPersonalitySettingsDto;
   readonly positioning?: OwnerAgentPositioningSettingsDto;
 }
+export interface UpdatePPSlotConfigDto {
+  readonly ppSlotConfig: PPSlotConfigDto;
+}
 export interface UpdateParticipantRoleInputDto {
   readonly role: "admin" | "member";
 }
@@ -2492,9 +2495,6 @@ export interface UpdatePasswordRequestDto {
 }
 export interface UpdatePostDto {
   readonly visibility?: Visibility;
-}
-export interface UpdatePPSlotConfigDto {
-  readonly ppSlotConfig: PPSlotConfigDto;
 }
 export interface UpdateRelationshipDto {
   readonly context?: string;
@@ -2638,6 +2638,8 @@ export interface UserAgentVoiceConfigDto {
   readonly description?: string;
   readonly emotionEnabled?: boolean;
   readonly pitch?: number;
+  readonly speechModelId?: string;
+  readonly speechRoutePolicy?: "local" | "cloud";
   readonly speed?: number;
   readonly voiceId?: string;
 }
@@ -3971,9 +3973,9 @@ export interface RealmTypedModelMap {
   readonly "AgentOwnershipType": AgentOwnershipType;
   readonly "AgentPersonalityDto": AgentPersonalityDto;
   readonly "AgentProfileDto": AgentProfileDto;
+  readonly "AgentRelationType": AgentRelationType;
   readonly "AgentRelationshipOtherAccountDto": AgentRelationshipOtherAccountDto;
   readonly "AgentRelationshipRecordDto": AgentRelationshipRecordDto;
-  readonly "AgentRelationType": AgentRelationType;
   readonly "AgentResponseMetadataDto": AgentResponseMetadataDto;
   readonly "AgentResponseProfileDto": AgentResponseProfileDto;
   readonly "AgentResponseProfileStatsDto": AgentResponseProfileStatsDto;
@@ -3987,7 +3989,6 @@ export interface RealmTypedModelMap {
   readonly "AgentVoiceConfigDto": AgentVoiceConfigDto;
   readonly "AgentWakeStrategy": AgentWakeStrategy;
   readonly "ApiKeyType": ApiKeyType;
-  readonly "AppendWorldHistoryDto": AppendWorldHistoryDto;
   readonly "AppPermissionGrantDecisionDto": AppPermissionGrantDecisionDto;
   readonly "AppPermissionGrantDto": AppPermissionGrantDto;
   readonly "AppPermissionGrantGrantDto": AppPermissionGrantGrantDto;
@@ -3998,6 +3999,7 @@ export interface RealmTypedModelMap {
   readonly "AppPermissionGrantSupersedeDto": AppPermissionGrantSupersedeDto;
   readonly "AppPermissionScopeFamily": AppPermissionScopeFamily;
   readonly "AppPermissionScopeName": AppPermissionScopeName;
+  readonly "AppendWorldHistoryDto": AppendWorldHistoryDto;
   readonly "AssetDetailDto": AssetDetailDto;
   readonly "AssetListDto": AssetListDto;
   readonly "AttachmentDisplayKind": AttachmentDisplayKind;
@@ -4032,9 +4034,6 @@ export interface RealmTypedModelMap {
   readonly "CanWithdrawDto": CanWithdrawDto;
   readonly "CausalityModelDto": CausalityModelDto;
   readonly "CausalityRuleDto": CausalityRuleDto;
-  readonly "CbdbCuratedAgentChatReadinessDto": CbdbCuratedAgentChatReadinessDto;
-  readonly "CbdbCuratedAgentChatReadinessGatesDto": CbdbCuratedAgentChatReadinessGatesDto;
-  readonly "CbdbCuratedAgentChatReadinessProfileDto": CbdbCuratedAgentChatReadinessProfileDto;
   readonly "ChangeEmailDto": ChangeEmailDto;
   readonly "ChatEventEnvelopeDto": ChatEventEnvelopeDto;
   readonly "ChatFriendRequestPayloadDto": ChatFriendRequestPayloadDto;
@@ -4105,6 +4104,9 @@ export interface RealmTypedModelMap {
   readonly "ForgeAgentCandidateRequirementDto": ForgeAgentCandidateRequirementDto;
   readonly "ForgeAgentCandidateRuntimeMaterializationDto": ForgeAgentCandidateRuntimeMaterializationDto;
   readonly "ForgeAgentCandidateSourceProfileDto": ForgeAgentCandidateSourceProfileDto;
+  readonly "ForgeImportedSystemAgentChatReadinessDto": ForgeImportedSystemAgentChatReadinessDto;
+  readonly "ForgeImportedSystemAgentChatReadinessGatesDto": ForgeImportedSystemAgentChatReadinessGatesDto;
+  readonly "ForgeImportedSystemAgentChatReadinessProfileDto": ForgeImportedSystemAgentChatReadinessProfileDto;
   readonly "ForgeProductArtifactRefDto": ForgeProductArtifactRefDto;
   readonly "ForgeProductCapabilitySummaryDto": ForgeProductCapabilitySummaryDto;
   readonly "ForgeProductCountsDto": ForgeProductCountsDto;
@@ -4195,6 +4197,9 @@ export interface RealmTypedModelMap {
   readonly "OwnerAgentPersonalitySettingsDto": OwnerAgentPersonalitySettingsDto;
   readonly "OwnerAgentPositioningSettingsDto": OwnerAgentPositioningSettingsDto;
   readonly "OwnerAgentSettingsDto": OwnerAgentSettingsDto;
+  readonly "PPSlotConfigDto": PPSlotConfigDto;
+  readonly "PPSlotConfigResponseDto": PPSlotConfigResponseDto;
+  readonly "PPSlotItemDto": PPSlotItemDto;
   readonly "PasswordLoginDto": PasswordLoginDto;
   readonly "PasswordRegisterDto": PasswordRegisterDto;
   readonly "PermissionCheckResponseDto": PermissionCheckResponseDto;
@@ -4205,9 +4210,6 @@ export interface RealmTypedModelMap {
   readonly "PowerSystemLevelDto": PowerSystemLevelDto;
   readonly "PowerSystemTabooDto": PowerSystemTabooDto;
   readonly "PowerTierDto": PowerTierDto;
-  readonly "PPSlotConfigDto": PPSlotConfigDto;
-  readonly "PPSlotConfigResponseDto": PPSlotConfigResponseDto;
-  readonly "PPSlotItemDto": PPSlotItemDto;
   readonly "PresenceStatus": PresenceStatus;
   readonly "PublicBindingDto": PublicBindingDto;
   readonly "PublicBindingListDto": PublicBindingListDto;
@@ -4299,10 +4301,10 @@ export interface RealmTypedModelMap {
   readonly "UpdateGroupInputDto": UpdateGroupInputDto;
   readonly "UpdateNsfwConsentResponseDto": UpdateNsfwConsentResponseDto;
   readonly "UpdateOwnerAgentSettingsDto": UpdateOwnerAgentSettingsDto;
+  readonly "UpdatePPSlotConfigDto": UpdatePPSlotConfigDto;
   readonly "UpdateParticipantRoleInputDto": UpdateParticipantRoleInputDto;
   readonly "UpdatePasswordRequestDto": UpdatePasswordRequestDto;
   readonly "UpdatePostDto": UpdatePostDto;
-  readonly "UpdatePPSlotConfigDto": UpdatePPSlotConfigDto;
   readonly "UpdateRelationshipDto": UpdateRelationshipDto;
   readonly "UpdateResourceDto": UpdateResourceDto;
   readonly "UpdateUserDto": UpdateUserDto;
@@ -5685,45 +5687,6 @@ export interface RealmGetBundleOperationRequest {
   readonly body?: Record<string, never>;
 }
 export type RealmGetBundleOperationResponse = BundleDetailDto;
-export interface RealmGetCbdbCuratedSystemAgentOperationRequest {
-  readonly path: {
-    readonly agentId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmGetCbdbCuratedSystemAgentOperationResponse = UserLiteDto;
-export interface RealmGetCbdbCuratedSystemAgentChatReadinessOperationRequest {
-  readonly path: {
-    readonly agentId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmGetCbdbCuratedSystemAgentChatReadinessOperationResponse = CbdbCuratedAgentChatReadinessDto;
-export interface RealmGetCbdbCuratedSystemAgentSettingsOperationRequest {
-  readonly path: {
-    readonly agentId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmGetCbdbCuratedSystemAgentSettingsOperationResponse = OwnerAgentSettingsDto;
 export interface RealmGetChatByIdOperationRequest {
   readonly path: {
     readonly chatId: string;
@@ -5753,6 +5716,45 @@ export interface RealmGetExploreFeedOperationRequest {
   readonly body?: Record<string, never>;
 }
 export type RealmGetExploreFeedOperationResponse = FeedResponseDto;
+export interface RealmGetForgeImportedSystemAgentOperationRequest {
+  readonly path: {
+    readonly agentId: string;
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body?: Record<string, never>;
+}
+export type RealmGetForgeImportedSystemAgentOperationResponse = UserLiteDto;
+export interface RealmGetForgeImportedSystemAgentChatReadinessOperationRequest {
+  readonly path: {
+    readonly agentId: string;
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body?: Record<string, never>;
+}
+export type RealmGetForgeImportedSystemAgentChatReadinessOperationResponse = ForgeImportedSystemAgentChatReadinessDto;
+export interface RealmGetForgeImportedSystemAgentSettingsOperationRequest {
+  readonly path: {
+    readonly agentId: string;
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body?: Record<string, never>;
+}
+export type RealmGetForgeImportedSystemAgentSettingsOperationResponse = OwnerAgentSettingsDto;
 export interface RealmGetGroupOperationRequest {
   readonly path: {
     readonly chatId: string;
@@ -6323,19 +6325,6 @@ export interface RealmListBundlesOperationRequest {
   readonly body?: Record<string, never>;
 }
 export type RealmListBundlesOperationResponse = BundleListDto;
-export interface RealmListCbdbCuratedSystemAgentsOperationRequest {
-  readonly path: {
-
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmListCbdbCuratedSystemAgentsOperationResponse = readonly (UserLiteDto)[];
 export interface RealmListChatsOperationRequest {
   readonly path: {
 
@@ -6350,6 +6339,19 @@ export interface RealmListChatsOperationRequest {
   readonly body?: Record<string, never>;
 }
 export type RealmListChatsOperationResponse = ListChatsResultDto;
+export interface RealmListForgeImportedSystemAgentsOperationRequest {
+  readonly path: {
+
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body?: Record<string, never>;
+}
+export type RealmListForgeImportedSystemAgentsOperationResponse = readonly (UserLiteDto)[];
 export interface RealmListGroupMessagesOperationRequest {
   readonly path: {
     readonly chatId: string;
@@ -7272,7 +7274,7 @@ export interface RealmUpdateBundleOperationRequest {
   readonly body: UpdateBundleDto;
 }
 export type RealmUpdateBundleOperationResponse = BundleDetailDto;
-export interface RealmUpdateCbdbCuratedSystemAgentProfileMediaOperationRequest {
+export interface RealmUpdateForgeImportedSystemAgentProfileMediaOperationRequest {
   readonly path: {
     readonly agentId: string;
   };
@@ -7284,8 +7286,8 @@ export interface RealmUpdateCbdbCuratedSystemAgentProfileMediaOperationRequest {
   };
   readonly body: UpdateAgentProfileMediaDto;
 }
-export type RealmUpdateCbdbCuratedSystemAgentProfileMediaOperationResponse = UserLiteDto;
-export interface RealmUpdateCbdbCuratedSystemAgentSettingsOperationRequest {
+export type RealmUpdateForgeImportedSystemAgentProfileMediaOperationResponse = UserLiteDto;
+export interface RealmUpdateForgeImportedSystemAgentSettingsOperationRequest {
   readonly path: {
     readonly agentId: string;
   };
@@ -7297,8 +7299,8 @@ export interface RealmUpdateCbdbCuratedSystemAgentSettingsOperationRequest {
   };
   readonly body: UpdateOwnerAgentSettingsDto;
 }
-export type RealmUpdateCbdbCuratedSystemAgentSettingsOperationResponse = OwnerAgentSettingsDto;
-export interface RealmUpdateCbdbCuratedSystemAgentVoiceOperationRequest {
+export type RealmUpdateForgeImportedSystemAgentSettingsOperationResponse = OwnerAgentSettingsDto;
+export interface RealmUpdateForgeImportedSystemAgentVoiceOperationRequest {
   readonly path: {
     readonly agentId: string;
   };
@@ -7310,7 +7312,7 @@ export interface RealmUpdateCbdbCuratedSystemAgentVoiceOperationRequest {
   };
   readonly body: UpdateAgentVoiceDto;
 }
-export type RealmUpdateCbdbCuratedSystemAgentVoiceOperationResponse = UserLiteDto;
+export type RealmUpdateForgeImportedSystemAgentVoiceOperationResponse = UserLiteDto;
 export interface RealmUpdateGroupOperationRequest {
   readonly path: {
     readonly chatId: string;
@@ -9136,39 +9138,6 @@ export class RealmTypedClient {
     });
   }
 
-  async getCbdbCuratedSystemAgent(request: RealmGetCbdbCuratedSystemAgentOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetCbdbCuratedSystemAgentOperationResponse> {
-    return this.core.unary<RealmGetCbdbCuratedSystemAgentOperationResponse, RealmGetCbdbCuratedSystemAgentOperationRequest>({
-      methodId: "getCbdbCuratedSystemAgent",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async getCbdbCuratedSystemAgentChatReadiness(request: RealmGetCbdbCuratedSystemAgentChatReadinessOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetCbdbCuratedSystemAgentChatReadinessOperationResponse> {
-    return this.core.unary<RealmGetCbdbCuratedSystemAgentChatReadinessOperationResponse, RealmGetCbdbCuratedSystemAgentChatReadinessOperationRequest>({
-      methodId: "getCbdbCuratedSystemAgentChatReadiness",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async getCbdbCuratedSystemAgentSettings(request: RealmGetCbdbCuratedSystemAgentSettingsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetCbdbCuratedSystemAgentSettingsOperationResponse> {
-    return this.core.unary<RealmGetCbdbCuratedSystemAgentSettingsOperationResponse, RealmGetCbdbCuratedSystemAgentSettingsOperationRequest>({
-      methodId: "getCbdbCuratedSystemAgentSettings",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
   async getChatById(request: RealmGetChatByIdOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetChatByIdOperationResponse> {
     return this.core.unary<RealmGetChatByIdOperationResponse, RealmGetChatByIdOperationRequest>({
       methodId: "getChatById",
@@ -9183,6 +9152,39 @@ export class RealmTypedClient {
   async getExploreFeed(request: RealmGetExploreFeedOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetExploreFeedOperationResponse> {
     return this.core.unary<RealmGetExploreFeedOperationResponse, RealmGetExploreFeedOperationRequest>({
       methodId: "getExploreFeed",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async getForgeImportedSystemAgent(request: RealmGetForgeImportedSystemAgentOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetForgeImportedSystemAgentOperationResponse> {
+    return this.core.unary<RealmGetForgeImportedSystemAgentOperationResponse, RealmGetForgeImportedSystemAgentOperationRequest>({
+      methodId: "getForgeImportedSystemAgent",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async getForgeImportedSystemAgentChatReadiness(request: RealmGetForgeImportedSystemAgentChatReadinessOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetForgeImportedSystemAgentChatReadinessOperationResponse> {
+    return this.core.unary<RealmGetForgeImportedSystemAgentChatReadinessOperationResponse, RealmGetForgeImportedSystemAgentChatReadinessOperationRequest>({
+      methodId: "getForgeImportedSystemAgentChatReadiness",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async getForgeImportedSystemAgentSettings(request: RealmGetForgeImportedSystemAgentSettingsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetForgeImportedSystemAgentSettingsOperationResponse> {
+    return this.core.unary<RealmGetForgeImportedSystemAgentSettingsOperationResponse, RealmGetForgeImportedSystemAgentSettingsOperationRequest>({
+      methodId: "getForgeImportedSystemAgentSettings",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -9664,9 +9666,9 @@ export class RealmTypedClient {
     });
   }
 
-  async listCbdbCuratedSystemAgents(request: RealmListCbdbCuratedSystemAgentsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmListCbdbCuratedSystemAgentsOperationResponse> {
-    return this.core.unary<RealmListCbdbCuratedSystemAgentsOperationResponse, RealmListCbdbCuratedSystemAgentsOperationRequest>({
-      methodId: "listCbdbCuratedSystemAgents",
+  async listChats(request: RealmListChatsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmListChatsOperationResponse> {
+    return this.core.unary<RealmListChatsOperationResponse, RealmListChatsOperationRequest>({
+      methodId: "listChats",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -9675,9 +9677,9 @@ export class RealmTypedClient {
     });
   }
 
-  async listChats(request: RealmListChatsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmListChatsOperationResponse> {
-    return this.core.unary<RealmListChatsOperationResponse, RealmListChatsOperationRequest>({
-      methodId: "listChats",
+  async listForgeImportedSystemAgents(request: RealmListForgeImportedSystemAgentsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmListForgeImportedSystemAgentsOperationResponse> {
+    return this.core.unary<RealmListForgeImportedSystemAgentsOperationResponse, RealmListForgeImportedSystemAgentsOperationRequest>({
+      methodId: "listForgeImportedSystemAgents",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -10412,9 +10414,9 @@ export class RealmTypedClient {
     });
   }
 
-  async updateCbdbCuratedSystemAgentProfileMedia(request: RealmUpdateCbdbCuratedSystemAgentProfileMediaOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmUpdateCbdbCuratedSystemAgentProfileMediaOperationResponse> {
-    return this.core.unary<RealmUpdateCbdbCuratedSystemAgentProfileMediaOperationResponse, RealmUpdateCbdbCuratedSystemAgentProfileMediaOperationRequest>({
-      methodId: "updateCbdbCuratedSystemAgentProfileMedia",
+  async updateForgeImportedSystemAgentProfileMedia(request: RealmUpdateForgeImportedSystemAgentProfileMediaOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmUpdateForgeImportedSystemAgentProfileMediaOperationResponse> {
+    return this.core.unary<RealmUpdateForgeImportedSystemAgentProfileMediaOperationResponse, RealmUpdateForgeImportedSystemAgentProfileMediaOperationRequest>({
+      methodId: "updateForgeImportedSystemAgentProfileMedia",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -10423,9 +10425,9 @@ export class RealmTypedClient {
     });
   }
 
-  async updateCbdbCuratedSystemAgentSettings(request: RealmUpdateCbdbCuratedSystemAgentSettingsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmUpdateCbdbCuratedSystemAgentSettingsOperationResponse> {
-    return this.core.unary<RealmUpdateCbdbCuratedSystemAgentSettingsOperationResponse, RealmUpdateCbdbCuratedSystemAgentSettingsOperationRequest>({
-      methodId: "updateCbdbCuratedSystemAgentSettings",
+  async updateForgeImportedSystemAgentSettings(request: RealmUpdateForgeImportedSystemAgentSettingsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmUpdateForgeImportedSystemAgentSettingsOperationResponse> {
+    return this.core.unary<RealmUpdateForgeImportedSystemAgentSettingsOperationResponse, RealmUpdateForgeImportedSystemAgentSettingsOperationRequest>({
+      methodId: "updateForgeImportedSystemAgentSettings",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -10434,9 +10436,9 @@ export class RealmTypedClient {
     });
   }
 
-  async updateCbdbCuratedSystemAgentVoice(request: RealmUpdateCbdbCuratedSystemAgentVoiceOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmUpdateCbdbCuratedSystemAgentVoiceOperationResponse> {
-    return this.core.unary<RealmUpdateCbdbCuratedSystemAgentVoiceOperationResponse, RealmUpdateCbdbCuratedSystemAgentVoiceOperationRequest>({
-      methodId: "updateCbdbCuratedSystemAgentVoice",
+  async updateForgeImportedSystemAgentVoice(request: RealmUpdateForgeImportedSystemAgentVoiceOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmUpdateForgeImportedSystemAgentVoiceOperationResponse> {
+    return this.core.unary<RealmUpdateForgeImportedSystemAgentVoiceOperationResponse, RealmUpdateForgeImportedSystemAgentVoiceOperationRequest>({
+      methodId: "updateForgeImportedSystemAgentVoice",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
