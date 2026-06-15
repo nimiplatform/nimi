@@ -19,7 +19,7 @@ func (r publicChatRuntime) assemblePublicChatSystemPrompt(
 	session publicChatAnchorState,
 	req publicChatTurnRequestPayload,
 ) (string, error) {
-	base := strings.TrimSpace(req.SystemPrompt)
+	base := strings.TrimSpace(session.SystemPrompt)
 	resp, err := r.queryPublicChatPreTurnMemory(ctx, session, req)
 	if err != nil {
 		return "", err

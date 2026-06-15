@@ -73,7 +73,6 @@ export function createNimiRuntimeAgentConsumeClient(
         const context = buildNimiRuntimeAgentConsumeContext({ ...input, runtimeAppId });
         const response = await runtime.agents.openConversationAnchor({
           context: context.requestContext,
-          agentId: context.localAgentRef,
           subjectUserId: context.subjectUserId,
           localAgentRef: context.localAgentRef,
           ownerUserId: context.ownerUserId,

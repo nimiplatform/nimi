@@ -111,6 +111,12 @@ export async function inspectTesterRuntimeAgentTurnRunnerProjection(): Promise<T
         role: 'user',
         content: 'tester runtime runner',
       }],
+      executionBindings: {
+        'text.generate': {
+          route: 'local',
+          modelId: 'runtime-owned',
+        },
+      },
     },
     route: 'runtime-owned',
     modelId: 'runtime-owned',

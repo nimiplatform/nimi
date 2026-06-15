@@ -262,7 +262,8 @@ func (r publicChatRuntime) runTurn(
 		return
 	}
 	structuredStartedAt := time.Now()
-	structured, parseErr := parsePublicChatStructuredEnvelope(accumulatedText.String())
+	rawStructuredOutput := accumulatedText.String()
+	structured, parseErr := parsePublicChatStructuredEnvelope(rawStructuredOutput)
 	if !streamCompletedAt.IsZero() {
 		r.svc.observeLatency("runtime.agent.turn.stream_completed_to_structured_ms", streamCompletedAt,
 			"caller_app_id", session.CallerAppID,
@@ -276,6 +277,47 @@ func (r publicChatRuntime) runTurn(
 			"resolved_model_id", modelResolved,
 			"route_decision", routeDecision.String(),
 		)
+	}
+	if parseErr != nil {
+		originalParseErr := parseErr
+		if shouldAttemptPublicChatAPMLRepair(rawStructuredOutput, originalParseErr) {
+			repaired, repairedRaw, repairErr := r.repairPublicChatStructuredEnvelope(ctx, session, req, rawStructuredOutput, originalParseErr)
+			if repairErr == nil && repaired != nil {
+				structured = repaired
+				parseErr = nil
+				if r.svc.logger != nil {
+					r.svc.logger.Warn("public chat structured parse repaired",
+						"agent_id", session.AgentID,
+						"turn_id", turn.TurnID,
+						"trace_id", traceID,
+						"model_resolved", modelResolved,
+						"route_decision", routeDecision.String(),
+						"original_error", originalParseErr,
+						"repaired_bytes", len(strings.TrimSpace(repairedRaw)),
+					)
+				}
+				r.svc.observeCounter("runtime_agent_turn_apml_repair_total", 1,
+					"caller_app_id", session.CallerAppID,
+					"agent_id", session.AgentID,
+					"conversation_anchor_id", session.ConversationAnchorID,
+					"turn_id", turn.TurnID,
+					"stream_id", turn.StreamID,
+					"thread_id", session.ThreadID,
+					"status", "accepted",
+				)
+			} else {
+				parseErr = repairErr
+				r.svc.observeCounter("runtime_agent_turn_apml_repair_total", 1,
+					"caller_app_id", session.CallerAppID,
+					"agent_id", session.AgentID,
+					"conversation_anchor_id", session.ConversationAnchorID,
+					"turn_id", turn.TurnID,
+					"stream_id", turn.StreamID,
+					"thread_id", session.ThreadID,
+					"status", "failed",
+				)
+			}
+		}
 	}
 	if parseErr != nil {
 		if r.svc.logger != nil {
@@ -342,7 +384,11 @@ func (r publicChatRuntime) runTurn(
 	// events (`voice_playback_requested` + `lipsync_frame_batch`) from the
 	// committed assistant text. Synthesizer + emit failures are logged but
 	// do not block turn completion (parallels projectCommittedStatusCue).
-	r.projectCommittedVoiceLipsync(session, turn, structured)
+	r.projectCommittedVoiceLipsync(ctx, session, turn, structured)
+	if err := r.executeCommittedActions(ctx, session, turn, structured); err != nil {
+		r.failCommittedPublicChatTurn(session, turn, traceID, modelResolved, routeDecision, structured, usage, finish, publicChatActionFailureReason(err), err.Error())
+		return
+	}
 	r.svc.observeCounter("runtime_agent_turn_message_committed_total", 1,
 		"caller_app_id", session.CallerAppID,
 		"agent_id", session.AgentID,

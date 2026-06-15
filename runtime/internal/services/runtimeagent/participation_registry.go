@@ -21,27 +21,27 @@ import (
 // Context block kind ids, verbatim from
 // agent-participation-context-blocks.yaml entries (K-AGCORE-081).
 const (
-	participationBlockRuntimeConversationAnchorRef             = "runtime_conversation_anchor_ref"
-	participationBlockRealmGroupThreadRef                      = "realm_group_thread_ref"
-	participationBlockTriggerMessageRef                        = "trigger_message_ref"
-	participationBlockParticipantProjection                    = "participant_projection"
-	participationBlockRecentGroupTranscriptProjection          = "recent_group_transcript_projection"
-	participationBlockAgentSlotProjection                      = "agent_slot_projection"
-	participationBlockScenarioPackageRef                       = "scenario_package_ref"
-	participationBlockScenarioRunRef                           = "scenario_run_ref"
-	participationBlockScenarioBranchRef                        = "scenario_branch_ref"
-	participationBlockVisibleSceneState                        = "visible_scene_state"
-	participationBlockRecentSandboxTranscriptProjection        = "recent_sandbox_transcript_projection"
-	participationBlockWorldContextRef                          = "world_context_ref"
-	participationBlockWorldEventRef                            = "world_event_ref"
-	participationBlockVisibleWorldStateProjection              = "visible_world_state_projection"
-	participationBlockRecentWorldTranscriptOrEventProjection   = "recent_world_transcript_or_event_projection"
-	participationBlockExternalParticipantIdentityRef           = "external_participant_identity_ref"
-	participationBlockExternalPayloadRef                       = "external_payload_ref"
-	participationBlockGatewayVerdictRef                        = "gateway_verdict_ref"
-	participationBlockDomainContextRef                         = "domain_context_ref"
-	participationBlockToolOrCapabilityProjection               = "tool_or_capability_projection"
-	participationBlockDiagnosticProbeRef                       = "diagnostic_probe_ref"
+	participationBlockRuntimeConversationAnchorRef           = "runtime_conversation_anchor_ref"
+	participationBlockRealmGroupThreadRef                    = "realm_group_thread_ref"
+	participationBlockTriggerMessageRef                      = "trigger_message_ref"
+	participationBlockParticipantProjection                  = "participant_projection"
+	participationBlockRecentGroupTranscriptProjection        = "recent_group_transcript_projection"
+	participationBlockAgentSlotProjection                    = "agent_slot_projection"
+	participationBlockScenarioPackageRef                     = "scenario_package_ref"
+	participationBlockScenarioRunRef                         = "scenario_run_ref"
+	participationBlockScenarioBranchRef                      = "scenario_branch_ref"
+	participationBlockVisibleSceneState                      = "visible_scene_state"
+	participationBlockRecentSandboxTranscriptProjection      = "recent_sandbox_transcript_projection"
+	participationBlockWorldContextRef                        = "world_context_ref"
+	participationBlockWorldEventRef                          = "world_event_ref"
+	participationBlockVisibleWorldStateProjection            = "visible_world_state_projection"
+	participationBlockRecentWorldTranscriptOrEventProjection = "recent_world_transcript_or_event_projection"
+	participationBlockExternalParticipantIdentityRef         = "external_participant_identity_ref"
+	participationBlockExternalPayloadRef                     = "external_payload_ref"
+	participationBlockGatewayVerdictRef                      = "gateway_verdict_ref"
+	participationBlockDomainContextRef                       = "domain_context_ref"
+	participationBlockToolOrCapabilityProjection             = "tool_or_capability_projection"
+	participationBlockDiagnosticProbeRef                     = "diagnostic_probe_ref"
 )
 
 // Profile posture strings, verbatim from agent-participation-profiles.yaml.
@@ -146,8 +146,8 @@ var participationProfileRegistry = []participationProfileRow{
 	{
 		// K-AGCORE-079 external_agent_entry: gateway verdict required; the
 		// per-identity-source boundary is the K-AGCORE-089 matrix below.
-		kind:           runtimev1.ParticipationProfileKind_PARTICIPATION_PROFILE_KIND_EXTERNAL_AGENT_ENTRY,
-		sourceRule:     "K-AGCORE-079",
+		kind:            runtimev1.ParticipationProfileKind_PARTICIPATION_PROFILE_KIND_EXTERNAL_AGENT_ENTRY,
+		sourceRule:      "K-AGCORE-079",
 		transcriptOwner: runtimev1.ParticipationTranscriptOwner_PARTICIPATION_TRANSCRIPT_OWNER_EXTERNAL_DOMAIN,
 		identitySource:  runtimev1.ParticipationIdentitySource_PARTICIPATION_IDENTITY_SOURCE_EXTERNAL_A2A_AGENT,
 		additionalIdentitySources: []runtimev1.ParticipationIdentitySource{
@@ -334,11 +334,11 @@ var participationContextBlockRegistry = []participationContextBlockRow{
 // matrix is the Runtime participation view over external protocol pressure;
 // K-DELEG-* protocol ownership is referenced, never rewritten.
 type participationExternalBoundaryRow struct {
-	identitySource        runtimev1.ParticipationIdentitySource
-	sourceRule            string
-	inputTrust            runtimev1.ParticipationInputTrust
-	protocolKind          runtimev1.ParticipationExternalProtocolKind
-	requiredContextBlocks []string
+	identitySource         runtimev1.ParticipationIdentitySource
+	sourceRule             string
+	inputTrust             runtimev1.ParticipationInputTrust
+	protocolKind           runtimev1.ParticipationExternalProtocolKind
+	requiredContextBlocks  []string
 	productionClaimAllowed bool
 	productionClaimScope   string
 }

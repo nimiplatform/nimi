@@ -17,6 +17,11 @@ surfaces:
   - runtime.agent.turn.text_delta
   - runtime.agent.turn.structured
   - runtime.agent.turn.message_committed
+  - runtime.agent.turn.action_planned
+  - runtime.agent.turn.action_started
+  - runtime.agent.turn.artifact_ready
+  - runtime.agent.turn.action_completed
+  - runtime.agent.turn.action_failed
   - runtime.agent.turn.post_turn
   - runtime.agent.turn.completed
   - runtime.agent.turn.failed
@@ -169,6 +174,48 @@ turn_events:
     detail:
       message_id: string
       text: string
+  - event: runtime.agent.turn.action_planned
+    source_rule: K-AGCORE-037
+    detail:
+      action_id: string
+      modality: enum(image)
+      operation: enum(image.generate)
+      projection_message_id: string
+  - event: runtime.agent.turn.action_started
+    source_rule: K-AGCORE-037
+    detail:
+      action_id: string
+      modality: enum(image)
+      operation: enum(image.generate)
+      projection_message_id: string
+  - event: runtime.agent.turn.artifact_ready
+    source_rule: K-AGCORE-037
+    detail:
+      action_id: string
+      projection_message_id: string
+      artifact_id: string
+      mime_type: string
+    notes:
+      - artifact bytes remain owned by RuntimeArtifactService.ReadArtifactBytes.
+  - event: runtime.agent.turn.action_completed
+    source_rule: K-AGCORE-037
+    detail:
+      action_id: string
+      modality: enum(image)
+      operation: enum(image.generate)
+      projection_message_id: string
+      artifact_id: string
+      mime_type: string
+      job_id: string
+  - event: runtime.agent.turn.action_failed
+    source_rule: K-AGCORE-037
+    detail:
+      action_id: string
+      modality: enum(image)
+      operation: enum(image.generate)
+      projection_message_id: string
+      reason_code: string
+      message: string_optional
   - event: runtime.agent.turn.post_turn
     source_rule: K-AGCORE-032
     detail:

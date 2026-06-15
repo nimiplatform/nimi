@@ -81,6 +81,7 @@ type RuntimeBridgeStreamEvent = {
 
 const DEFAULT_COMMAND_NAMESPACE = 'runtime_bridge';
 const DEFAULT_EVENT_NAMESPACE = 'runtime_bridge';
+let runtimeTauriStreamCounter = 0;
 
 const BRIDGE_METADATA_FIELDS: Record<string, RuntimeBridgeMetadataScalarField> = {
   protocolversion: 'protocolVersion',
@@ -200,6 +201,14 @@ function createCommandName(options: RuntimeTauriIpcTransportOptions, suffix: str
 function createEventName(options: RuntimeTauriIpcTransportOptions, streamId: string): string {
   const namespace = String(options.eventNamespace || DEFAULT_EVENT_NAMESPACE).trim() || DEFAULT_EVENT_NAMESPACE;
   return `${namespace}:stream:${streamId}`;
+}
+
+function createClientStreamId(): string {
+  runtimeTauriStreamCounter += 1;
+  const random = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+    ? crypto.randomUUID().replaceAll('-', '')
+    : Math.random().toString(36).slice(2);
+  return `runtime-client-stream-${Date.now()}-${runtimeTauriStreamCounter}-${random}`;
 }
 
 function asObject(value: unknown): Record<string, unknown> {
@@ -403,7 +412,7 @@ export function createRuntimeTauriIpcTransport(
     const listen = ensureListen();
     const { metadata, authorization, appSession } = splitRuntimeMetadata(request.metadata);
 
-    let streamId = '';
+    let streamId = createClientStreamId();
     let unsubscribe: TauriListenUnsubscribe | undefined;
     let done = false;
     let pendingError: unknown;
@@ -490,25 +499,6 @@ export function createRuntimeTauriIpcTransport(
     };
 
     try {
-      const opened = asObject(await invoke(createCommandName(options, 'stream_open'), {
-        payload: {
-          methodId,
-          requestBytesBase64: toBase64(body),
-          metadata,
-          authorization,
-          appSession,
-          timeoutMs: request.timeoutMs,
-          eventNamespace: options.eventNamespace,
-        },
-      })) as RuntimeBridgeStreamOpenResponse;
-      streamId = normalizeText(opened.streamId ?? opened.stream_id) ?? '';
-      if (!streamId) {
-        throw new RuntimeTauriIpcTransportError(
-          'SDK_RUNTIME_TAURI_STREAM_ID_MISSING',
-          `${methodId} tauri-ipc stream open response missing streamId`,
-        );
-      }
-
       unsubscribe = await Promise.resolve(listen(createEventName(options, streamId), (event) => {
         const payload = asObject(event.payload) as RuntimeBridgeStreamEvent;
         const eventType = normalizeText(payload.eventType ?? payload.event_type);
@@ -533,6 +523,32 @@ export function createRuntimeTauriIpcTransport(
           flush();
         }
       }));
+      const opened = asObject(await invoke(createCommandName(options, 'stream_open'), {
+        payload: {
+          methodId,
+          streamId,
+          requestBytesBase64: toBase64(body),
+          metadata,
+          authorization,
+          appSession,
+          timeoutMs: request.timeoutMs,
+          eventNamespace: options.eventNamespace,
+        },
+      })) as RuntimeBridgeStreamOpenResponse;
+      const openedStreamId = normalizeText(opened.streamId ?? opened.stream_id) ?? '';
+      if (!openedStreamId) {
+        throw new RuntimeTauriIpcTransportError(
+          'SDK_RUNTIME_TAURI_STREAM_ID_MISSING',
+          `${methodId} tauri-ipc stream open response missing streamId`,
+        );
+      }
+      if (openedStreamId !== streamId) {
+        throw new RuntimeTauriIpcTransportError(
+          'SDK_RUNTIME_TAURI_STREAM_ID_MISMATCH',
+          `${methodId} tauri-ipc stream open response returned a different streamId`,
+          { requestedStreamId: streamId, openedStreamId },
+        );
+      }
     } catch (error) {
       unsubscribe?.();
       await closeRemoteStream();

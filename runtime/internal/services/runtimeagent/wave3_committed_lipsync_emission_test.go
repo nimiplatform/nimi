@@ -8,12 +8,12 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
 
-// Wave 3 — runtime.agent.turn.message_committed must drive the K-AGCORE-051
+// Wave 3 鈥?runtime.agent.turn.message_committed must drive the K-AGCORE-051
 // voice/lipsync projection: a `voice_playback_requested` event with
 // playback_state="requested" followed by a `lipsync_frame_batch` event whose
 // frames + audio_artifact_id come from the runtime-injected synthesizer. The
 // test wires the default synthetic synthesizer to validate that committed
-// assistant text → both events emit in order with timeline envelopes that
+// assistant text 鈫?both events emit in order with timeline envelopes that
 // pass schema validation.
 func TestPublicChatCommittedTurnEmitsVoiceLipsyncProjection(t *testing.T) {
 	t.Parallel()
@@ -74,10 +74,10 @@ func TestPublicChatCommittedTurnEmitsVoiceLipsyncProjection(t *testing.T) {
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
 			},
-			"execution_binding": map[string]any{
+			"execution_bindings": map[string]any{"text.generate": map[string]any{
 				"route":    "local",
 				"model_id": "local/default",
-			},
+			}},
 		}),
 	}); err != nil {
 		t.Fatalf("ConsumePublicChatAppMessage(request): %v", err)
@@ -170,7 +170,7 @@ func TestPublicChatCommittedTurnSkipsLipsyncProjectionOnEmptyText(t *testing.T) 
 	})
 
 	// Direct projection call with empty committed text must produce no events.
-	svc.publicChatRuntime().projectCommittedVoiceLipsync(session, turn, &publicChatStructuredEnvelope{
+	svc.publicChatRuntime().projectCommittedVoiceLipsync(context.Background(), session, turn, &publicChatStructuredEnvelope{
 		Message: publicChatStructuredMessage{
 			MessageID: "message-empty",
 			Text:      "   ",
@@ -191,7 +191,7 @@ func TestPublicChatCommittedTurnSkipsLipsyncProjectionWithoutArtifactStore(t *te
 		return &runtimev1.SendAppMessageResponse{Accepted: true}, nil
 	})
 
-	svc.publicChatRuntime().projectCommittedVoiceLipsync(publicChatAnchorState{
+	svc.publicChatRuntime().projectCommittedVoiceLipsync(context.Background(), publicChatAnchorState{
 		ConversationAnchorID: "anchor-no-store-1",
 		AgentID:              "agent-alpha",
 		CallerAppID:          "desktop.app",

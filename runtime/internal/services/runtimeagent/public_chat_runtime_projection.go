@@ -1,10 +1,12 @@
 package runtimeagent
 
 import (
+	"context"
 	"strings"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func (r publicChatRuntime) projectCommittedStatusCue(session publicChatAnchorState, turn publicChatTurnState, structured *publicChatStructuredEnvelope) {
@@ -88,7 +90,7 @@ func (r publicChatRuntime) projectCommittedStatusCue(session publicChatAnchorSta
 // Empty committed text → silent skip (no events). Synthesizer error → log warn
 // and skip; turn commit is not blocked. Failure / interrupt paths do NOT call
 // this projection (callers gate on the committed text path).
-func (r publicChatRuntime) projectCommittedVoiceLipsync(session publicChatAnchorState, turn publicChatTurnState, structured *publicChatStructuredEnvelope) {
+func (r publicChatRuntime) projectCommittedVoiceLipsync(ctx context.Context, session publicChatAnchorState, turn publicChatTurnState, structured *publicChatStructuredEnvelope) {
 	if r.svc == nil || r.svc.isClosed() || structured == nil {
 		return
 	}
@@ -102,9 +104,14 @@ func (r publicChatRuntime) projectCommittedVoiceLipsync(session publicChatAnchor
 		return
 	}
 	out, err := r.svc.voiceLipsync.synthesize(voiceLipsyncSynthesisInput{
-		TurnID:    turnID,
-		MessageID: messageID,
-		Text:      text,
+		Context:               ctx,
+		TurnID:                turnID,
+		MessageID:             messageID,
+		Text:                  text,
+		DefaultVoiceReference: r.defaultVoiceReferenceForSession(session),
+		SpeechModelID:         r.speechModelIDForSession(session),
+		SpeechRoutePolicy:     r.speechRoutePolicyForSession(session),
+		AgentID:               session.AgentID,
 	})
 	if err != nil {
 		if r.svc.logger != nil {
@@ -132,10 +139,12 @@ func (r publicChatRuntime) projectCommittedVoiceLipsync(session publicChatAnchor
 		return
 	}
 	if err := r.emitVoicePlaybackTimelineEvent(session, turn, publicChatVoicePlaybackProjection{
-		AudioArtifactID: out.AudioArtifactID,
-		AudioMimeType:   out.AudioMimeType,
-		DurationMs:      out.DurationMs,
-		PlaybackState:   "requested",
+		AudioArtifactID:       out.AudioArtifactID,
+		AudioMimeType:         out.AudioMimeType,
+		DurationMs:            out.DurationMs,
+		DefaultVoiceReference: out.DefaultVoiceReference,
+		VoiceRouteBinding:     out.VoiceRouteBinding,
+		PlaybackState:         "requested",
 	}); err != nil && r.svc.logger != nil {
 		r.svc.logger.Warn("emit voice_playback_requested failed",
 			"agent_id", session.AgentID,
@@ -157,6 +166,60 @@ func (r publicChatRuntime) projectCommittedVoiceLipsync(session publicChatAnchor
 			"error", err,
 		)
 	}
+}
+
+func (r publicChatRuntime) defaultVoiceReferenceForSession(session publicChatAnchorState) string {
+	if r.svc == nil || r.svc.chatStateRepo == nil {
+		return ""
+	}
+	metadata, err := r.svc.chatStateRepo.loadConversationAnchorMetadata(session.ConversationAnchorID)
+	if err != nil || metadata == nil {
+		return ""
+	}
+	profile := conversationAnchorProfileContext(metadata)
+	if profile == nil {
+		return ""
+	}
+	value := profileString(profile, "defaultVoiceReference", "default_voice_reference")
+	normalized, err := normalizeDefaultVoiceReference(value)
+	if err != nil {
+		return ""
+	}
+	return normalized
+}
+
+func (r publicChatRuntime) speechModelIDForSession(session publicChatAnchorState) string {
+	profile := r.profileContextForSession(session)
+	if profile == nil {
+		return ""
+	}
+	return strings.TrimSpace(profileString(profile, "speechModelId", "speech_model_id"))
+}
+
+func (r publicChatRuntime) speechRoutePolicyForSession(session publicChatAnchorState) runtimev1.RoutePolicy {
+	profile := r.profileContextForSession(session)
+	if profile == nil {
+		return runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED
+	}
+	switch strings.TrimSpace(profileString(profile, "speechRoutePolicy", "speech_route_policy")) {
+	case "local":
+		return runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL
+	case "cloud":
+		return runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD
+	default:
+		return runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED
+	}
+}
+
+func (r publicChatRuntime) profileContextForSession(session publicChatAnchorState) map[string]*structpb.Value {
+	if r.svc == nil || r.svc.chatStateRepo == nil {
+		return nil
+	}
+	metadata, err := r.svc.chatStateRepo.loadConversationAnchorMetadata(session.ConversationAnchorID)
+	if err != nil || metadata == nil {
+		return nil
+	}
+	return conversationAnchorProfileContext(metadata)
 }
 
 // emitTurnEvent composes the runtime.agent.turn.* envelope per

@@ -313,6 +313,22 @@ func publicChatExecutionBindingProjectionPayload(binding publicChatExecutionBind
 	return out
 }
 
+func publicChatExecutionBindingsProjectionPayload(bindings publicChatExecutionBindings, textBinding publicChatExecutionBinding) map[string]any {
+	effective := clonePublicChatExecutionBindings(bindings)
+	if len(effective) == 0 && strings.TrimSpace(textBinding.ModelID) != "" {
+		effective = publicChatExecutionBindings{"text.generate": textBinding}
+	}
+	out := make(map[string]any, len(effective))
+	for capability, binding := range effective {
+		trimmedCapability := strings.TrimSpace(capability)
+		if trimmedCapability == "" {
+			continue
+		}
+		out[trimmedCapability] = publicChatExecutionBindingProjectionPayload(binding)
+	}
+	return out
+}
+
 func publicChatPendingFollowUpPayload(followUp *publicChatFollowUpState) map[string]any {
 	if followUp == nil {
 		return map[string]any{}

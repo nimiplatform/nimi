@@ -66,10 +66,10 @@ func TestPublicChatTurnEventsCarryRuntimeTimelineEnvelope(t *testing.T) {
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
 			},
-			"execution_binding": map[string]any{
+			"execution_bindings": map[string]any{"text.generate": map[string]any{
 				"route":    "local",
 				"model_id": "local/default",
-			},
+			}},
 		}),
 	})
 	if err != nil {

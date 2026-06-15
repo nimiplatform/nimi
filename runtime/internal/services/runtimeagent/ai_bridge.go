@@ -7,6 +7,7 @@ type runtimePrivateAIBridgeAI interface {
 	realmGroupMessageCandidateScenarioExecutor
 	publicChatBindingResolverService
 	publicChatScenarioStreamer
+	publicChatActionScenarioExecutor
 }
 
 type RuntimePrivateAIBridge struct {
@@ -16,6 +17,7 @@ type RuntimePrivateAIBridge struct {
 	realmGroupCandidate RealmGroupMessageCandidateExecutor
 	publicChatBinding   PublicChatBindingResolver
 	publicChatTurn      PublicChatTurnExecutor
+	publicChatAction    PublicChatActionExecutor
 }
 
 func newRuntimePrivateAIBridge() *RuntimePrivateAIBridge {
@@ -26,6 +28,7 @@ func newRuntimePrivateAIBridge() *RuntimePrivateAIBridge {
 		realmGroupCandidate: rejectingRealmGroupMessageCandidateExecutor{},
 		publicChatBinding:   rejectingPublicChatBindingResolver{},
 		publicChatTurn:      rejectingPublicChatTurnExecutor{},
+		publicChatAction:    rejectingPublicChatActionExecutor{},
 	}
 }
 
@@ -40,6 +43,7 @@ func NewAIBackedRuntimePrivateAIBridge(ai runtimePrivateAIBridgeAI) *RuntimePriv
 	bridge.publicChatBinding = NewAIBackedPublicChatBindingResolver(ai)
 	bridge.realmGroupCandidate = NewAIBackedRealmGroupMessageCandidateExecutorWithBinding(ai, bridge.publicChatBinding)
 	bridge.publicChatTurn = NewAIBackedPublicChatTurnExecutor(ai)
+	bridge.publicChatAction = NewAIBackedPublicChatActionExecutor(ai)
 	return bridge
 }
 
@@ -83,6 +87,13 @@ func (b *RuntimePrivateAIBridge) publicChatTurnExecutor() PublicChatTurnExecutor
 		return rejectingPublicChatTurnExecutor{}
 	}
 	return b.publicChatTurn
+}
+
+func (b *RuntimePrivateAIBridge) publicChatActionExecutor() PublicChatActionExecutor {
+	if b == nil || b.publicChatAction == nil {
+		return rejectingPublicChatActionExecutor{}
+	}
+	return b.publicChatAction
 }
 
 func (s *Service) ensureRuntimePrivateAIBridgeLocked() *RuntimePrivateAIBridge {
@@ -164,6 +175,17 @@ func (s *Service) setPublicChatTurnExecutor(executor PublicChatTurnExecutor) {
 	bridge.publicChatTurn = executor
 }
 
+func (s *Service) setPublicChatActionExecutor(executor PublicChatActionExecutor) {
+	s.aiBridgeMu.Lock()
+	defer s.aiBridgeMu.Unlock()
+	bridge := s.ensureRuntimePrivateAIBridgeLocked()
+	if executor == nil {
+		bridge.publicChatAction = rejectingPublicChatActionExecutor{}
+		return
+	}
+	bridge.publicChatAction = executor
+}
+
 func (s *Service) currentLifeTrackExecutorFromBridge() LifeTrackExecutor {
 	s.aiBridgeMu.RLock()
 	defer s.aiBridgeMu.RUnlock()
@@ -207,4 +229,13 @@ func (s *Service) currentPublicChatTurnExecutor() PublicChatTurnExecutor {
 		return rejectingPublicChatTurnExecutor{}
 	}
 	return s.aiBridge.publicChatTurnExecutor()
+}
+
+func (s *Service) currentPublicChatActionExecutor() PublicChatActionExecutor {
+	s.aiBridgeMu.RLock()
+	defer s.aiBridgeMu.RUnlock()
+	if s == nil || s.aiBridge == nil {
+		return rejectingPublicChatActionExecutor{}
+	}
+	return s.aiBridge.publicChatActionExecutor()
 }

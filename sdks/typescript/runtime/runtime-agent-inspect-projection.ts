@@ -46,7 +46,13 @@ function runtimeAgentTimestampToIso(timestamp?: Timestamp): string | null {
 
 function parseAvatarBackendKind(value: unknown): NimiRuntimeAgentPresentationProfileProjection['backendKind'] | null {
   const normalized = normalizeNimiRuntimeAgentText(value);
-  if (normalized === 'vrm' || normalized === 'live2d') {
+  if (
+    normalized === 'vrm'
+    || normalized === 'live2d'
+    || normalized === 'sprite2d'
+    || normalized === 'canvas2d'
+    || normalized === 'video'
+  ) {
     return normalized;
   }
   return null;

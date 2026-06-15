@@ -602,7 +602,6 @@ test('Runtime Agent consume client builds canonical Runtime Agent requests', asy
       realmAgentId: 'agent-1',
       localAgentRef: 'local-agent:owner-1:agent-1',
     },
-    agentId: 'local-agent:owner-1:agent-1',
     subjectUserId: 'owner-1',
     localAgentRef: 'local-agent:owner-1:agent-1',
     ownerUserId: 'owner-1',

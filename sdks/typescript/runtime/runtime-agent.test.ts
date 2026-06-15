@@ -486,6 +486,29 @@ test('Runtime Agent inspect surface reads, writes, and subscribes through protec
   assert.equal((issuedOptions[0] as Record<string, unknown> | undefined)?.protectedAccessToken, undefined);
 });
 
+test('Runtime Agent presentation builder admits static sprite2d profile media assets', () => {
+  const request = buildNimiSetRuntimeAgentPresentationProfileRequest({
+    context: {
+      appId: 'sdk.test',
+      subjectUserId: 'user-1',
+    },
+    agentId: 'local-agent:user-1:cbdb-agent-1',
+    profile: {
+      backendKind: 'sprite2d',
+      avatarAssetRef: 'profile_media_url:https://cdn.nimi.test/cbdb/su-zhe-reviewed-portrait.png',
+      defaultVoiceReference: 'preset_voice_id:zh_narrator',
+    },
+  });
+
+  assert.equal(request.mutation.oneofKind, 'profile');
+  assert.equal(request.mutation.profile.backendKind, AgentPresentationBackendKind.SPRITE2D);
+  assert.equal(
+    request.mutation.profile.avatarAssetRef,
+    'profile_media_url:https://cdn.nimi.test/cbdb/su-zhe-reviewed-portrait.png',
+  );
+  assert.equal(request.mutation.profile.defaultVoiceReference, 'preset_voice_id:zh_narrator');
+});
+
 test('Runtime Agent smoke verification reads protected anchor snapshot and health evidence', async () => {
   const issuedScopes: string[][] = [];
   const issuedOptions: RuntimeTypedCallOptions[] = [];

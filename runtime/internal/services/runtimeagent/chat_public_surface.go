@@ -26,6 +26,11 @@ const (
 	publicChatTurnReasoningDeltaType         = "runtime.agent.turn.reasoning_delta"
 	publicChatTurnStructuredType             = "runtime.agent.turn.structured"
 	publicChatTurnMessageCommittedType       = "runtime.agent.turn.message_committed"
+	publicChatTurnActionPlannedType          = "runtime.agent.turn.action_planned"
+	publicChatTurnActionStartedType          = "runtime.agent.turn.action_started"
+	publicChatTurnArtifactReadyType          = "runtime.agent.turn.artifact_ready"
+	publicChatTurnActionCompletedType        = "runtime.agent.turn.action_completed"
+	publicChatTurnActionFailedType           = "runtime.agent.turn.action_failed"
 	publicChatTurnPostTurnType               = "runtime.agent.turn.post_turn"
 	publicChatTurnCompletedType              = "runtime.agent.turn.completed"
 	publicChatTurnFailedType                 = "runtime.agent.turn.failed"
@@ -54,6 +59,7 @@ type publicChatExecutionBinding struct {
 	RoutePolicy runtimev1.RoutePolicy
 	ConnectorID string
 }
+type publicChatExecutionBindings map[string]publicChatExecutionBinding
 type publicChatReasoningConfig struct {
 	Mode         runtimev1.ReasoningMode
 	TraceMode    runtimev1.ReasoningTraceMode
@@ -88,6 +94,8 @@ type publicChatAnchorState struct {
 	SubjectUserID        string
 	ThreadID             string
 	Binding              publicChatExecutionBinding
+	Bindings             publicChatExecutionBindings
+	ExecutionParams      map[string]map[string]any
 	ActiveTurnID         string
 	SystemPrompt         string
 	MaxTokens            int32
@@ -157,19 +165,20 @@ type publicChatReasoningPayload struct {
 // `GetConversationAnchorSnapshot` before turn request. Runtime rejects
 // requests that reference a non-existent anchor (no implicit creation).
 type publicChatTurnRequestPayload struct {
-	AgentID              string                             `json:"agent_id"`
-	LocalAgentRef        string                             `json:"local_agent_ref"`
-	OwnerUserID          string                             `json:"owner_user_id"`
-	RealmAgentID         string                             `json:"realm_agent_id"`
-	ConversationAnchorID string                             `json:"conversation_anchor_id"`
-	RequestID            string                             `json:"request_id,omitempty"`
-	ThreadID             string                             `json:"thread_id,omitempty"`
-	SystemPrompt         string                             `json:"system_prompt,omitempty"`
-	WorldID              string                             `json:"world_id,omitempty"`
-	MaxOutputTokens      int32                              `json:"max_output_tokens,omitempty"`
-	Messages             []publicChatMessagePayload         `json:"messages"`
-	ExecutionBinding     *publicChatExecutionBindingPayload `json:"execution_binding,omitempty"`
-	Reasoning            *publicChatReasoningPayload        `json:"reasoning,omitempty"`
+	AgentID              string                                       `json:"agent_id"`
+	LocalAgentRef        string                                       `json:"local_agent_ref"`
+	OwnerUserID          string                                       `json:"owner_user_id"`
+	RealmAgentID         string                                       `json:"realm_agent_id"`
+	ConversationAnchorID string                                       `json:"conversation_anchor_id"`
+	RequestID            string                                       `json:"request_id,omitempty"`
+	ThreadID             string                                       `json:"thread_id,omitempty"`
+	SystemPrompt         string                                       `json:"system_prompt,omitempty"`
+	WorldID              string                                       `json:"world_id,omitempty"`
+	MaxOutputTokens      int32                                        `json:"max_output_tokens,omitempty"`
+	Messages             []publicChatMessagePayload                   `json:"messages"`
+	ExecutionBindings    map[string]publicChatExecutionBindingPayload `json:"execution_bindings,omitempty"`
+	ExecutionParams      map[string]map[string]any                    `json:"execution_params,omitempty"`
+	Reasoning            *publicChatReasoningPayload                  `json:"reasoning,omitempty"`
 }
 type publicChatTurnInterruptPayload struct {
 	ConversationAnchorID string `json:"conversation_anchor_id"`

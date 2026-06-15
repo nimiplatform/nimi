@@ -1,9 +1,16 @@
 package runtimeagent
 
 import (
+	"context"
+	"fmt"
 	"math"
 	"strings"
+	"time"
 	"unicode"
+
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/proto"
 )
 
 // Wave 3 — Voice/lipsync synthesis adapter for committed assistant turns.
@@ -37,19 +44,46 @@ const (
 	syntheticLipsyncEnvelopeFloor      float64 = 0.04
 	syntheticLipsyncWordBoundaryDamp   float64 = 0.32
 	syntheticLipsyncPunctuationDampDur int64   = 120
+
+	runtimeAgentVoiceSynthesisAppID     = "runtime.agent.voice_lipsync"
+	runtimeAgentVoiceSynthesisSubjectID = "anonymous"
+	defaultProviderVoiceSynthesisWait   = 45 * time.Second
+	defaultProviderVoiceSynthesisPoll   = 50 * time.Millisecond
 )
 
 type voiceLipsyncSynthesisInput struct {
-	TurnID    string
-	MessageID string
-	Text      string
+	Context               context.Context
+	TurnID                string
+	MessageID             string
+	Text                  string
+	DefaultVoiceReference string
+	SpeechModelID         string
+	SpeechRoutePolicy     runtimev1.RoutePolicy
+	AgentID               string
 }
 
 type voiceLipsyncSynthesisOutput struct {
-	AudioArtifactID string
-	AudioMimeType   string
-	DurationMs      int64
-	Frames          []publicChatLipsyncFrameProjection
+	AudioArtifactID       string
+	AudioMimeType         string
+	DurationMs            int64
+	DefaultVoiceReference string
+	VoiceRouteBinding     *voiceRouteBindingProjection
+	Frames                []publicChatLipsyncFrameProjection
+}
+
+type voiceRouteBindingProjection struct {
+	Capability            string
+	DefaultVoiceReference string
+	VoiceReferenceKind    string
+	VoiceReferenceValue   string
+	ModelID               string
+	ModelResolved         string
+	ScenarioJobID         string
+	AudioArtifactID       string
+	AudioMimeType         string
+	SynthesisMode         string
+	Status                string
+	Reason                string
 }
 
 // voiceLipsyncSynthesizer is the runtime-injected adapter contract. Real TTS
@@ -61,8 +95,63 @@ type voiceLipsyncSynthesizer interface {
 
 type syntheticVoiceLipsyncSynthesizer struct{}
 
+type voiceLipsyncScenarioExecutor interface {
+	SubmitScenarioJob(context.Context, *runtimev1.SubmitScenarioJobRequest) (*runtimev1.SubmitScenarioJobResponse, error)
+	GetScenarioJob(context.Context, *runtimev1.GetScenarioJobRequest) (*runtimev1.GetScenarioJobResponse, error)
+	GetScenarioArtifacts(context.Context, *runtimev1.GetScenarioArtifactsRequest) (*runtimev1.GetScenarioArtifactsResponse, error)
+}
+
+type aiBackedVoiceLipsyncSynthesizer struct {
+	ai             voiceLipsyncScenarioExecutor
+	fallback       voiceLipsyncSynthesizer
+	modelID        string
+	routePolicy    runtimev1.RoutePolicy
+	fallbackPolicy runtimev1.FallbackPolicy
+	waitTimeout    time.Duration
+	pollInterval   time.Duration
+}
+
 func newSyntheticVoiceLipsyncSynthesizer() syntheticVoiceLipsyncSynthesizer {
 	return syntheticVoiceLipsyncSynthesizer{}
+}
+
+func newAIBackedVoiceLipsyncSynthesizer(ai voiceLipsyncScenarioExecutor, modelID string, routePolicy runtimev1.RoutePolicy, fallback voiceLipsyncSynthesizer) voiceLipsyncSynthesizer {
+	if ai == nil {
+		if fallback != nil {
+			return fallback
+		}
+		return newSyntheticVoiceLipsyncSynthesizer()
+	}
+	if fallback == nil {
+		fallback = newSyntheticVoiceLipsyncSynthesizer()
+	}
+	if routePolicy == runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED {
+		routePolicy = runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL
+	}
+	return &aiBackedVoiceLipsyncSynthesizer{
+		ai:             ai,
+		fallback:       fallback,
+		modelID:        strings.TrimSpace(modelID),
+		routePolicy:    routePolicy,
+		fallbackPolicy: runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		waitTimeout:    defaultProviderVoiceSynthesisWait,
+		pollInterval:   defaultProviderVoiceSynthesisPoll,
+	}
+}
+
+func (s *Service) SetVoiceLipsyncScenarioExecutor(ai voiceLipsyncScenarioExecutor, modelID string, routePolicy runtimev1.RoutePolicy) {
+	if s == nil {
+		return
+	}
+	s.voiceLipsync = newAIBackedVoiceLipsyncSynthesizer(ai, modelID, routePolicy, s.voiceLipsync)
+}
+
+func (s *Service) HasVoiceLipsyncScenarioExecutor() bool {
+	if s == nil || s.voiceLipsync == nil {
+		return false
+	}
+	_, ok := s.voiceLipsync.(*aiBackedVoiceLipsyncSynthesizer)
+	return ok
 }
 
 func (syntheticVoiceLipsyncSynthesizer) synthesize(input voiceLipsyncSynthesisInput) (voiceLipsyncSynthesisOutput, error) {
@@ -82,11 +171,272 @@ func (syntheticVoiceLipsyncSynthesizer) synthesize(input voiceLipsyncSynthesisIn
 	totalDuration := last.OffsetMs + last.DurationMs
 
 	return voiceLipsyncSynthesisOutput{
-		AudioArtifactID: syntheticVoiceArtifactScheme + "/" + turnID,
-		AudioMimeType:   syntheticVoiceMimeType,
-		DurationMs:      totalDuration,
-		Frames:          frames,
+		AudioArtifactID:       syntheticVoiceArtifactScheme + "/" + turnID,
+		AudioMimeType:         syntheticVoiceMimeType,
+		DurationMs:            totalDuration,
+		DefaultVoiceReference: strings.TrimSpace(input.DefaultVoiceReference),
+		VoiceRouteBinding:     syntheticVoiceRouteBinding(strings.TrimSpace(input.DefaultVoiceReference)),
+		Frames:                frames,
 	}, nil
+}
+
+func (s *aiBackedVoiceLipsyncSynthesizer) synthesize(input voiceLipsyncSynthesisInput) (voiceLipsyncSynthesisOutput, error) {
+	if s == nil || s.ai == nil {
+		if s != nil && s.fallback != nil {
+			return s.fallback.synthesize(input)
+		}
+		return newSyntheticVoiceLipsyncSynthesizer().synthesize(input)
+	}
+	modelID := strings.TrimSpace(input.SpeechModelID)
+	if modelID == "" {
+		modelID = strings.TrimSpace(s.modelID)
+	}
+	if modelID == "" {
+		if s.fallback != nil {
+			return s.fallback.synthesize(input)
+		}
+		return newSyntheticVoiceLipsyncSynthesizer().synthesize(input)
+	}
+	routePolicy := input.SpeechRoutePolicy
+	if routePolicy == runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED {
+		routePolicy = s.routePolicy
+	}
+	if routePolicy == runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED {
+		routePolicy = runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL
+	}
+	turnID := strings.TrimSpace(input.TurnID)
+	text := strings.TrimSpace(input.Text)
+	if turnID == "" || text == "" {
+		return voiceLipsyncSynthesisOutput{}, nil
+	}
+	voiceRef, err := voiceReferenceProtoFromDefaultReference(input.DefaultVoiceReference)
+	if err != nil {
+		return voiceLipsyncSynthesisOutput{}, err
+	}
+	ctx := input.Context
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	waitTimeout := s.waitTimeout
+	if waitTimeout <= 0 {
+		waitTimeout = defaultProviderVoiceSynthesisWait
+	}
+	ctx, cancel := context.WithTimeout(ctx, waitTimeout)
+	defer cancel()
+	ctx = runtimeAgentVoiceSynthesisContext(ctx)
+	submitResp, err := s.ai.SubmitScenarioJob(ctx, &runtimev1.SubmitScenarioJobRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         runtimeAgentVoiceSynthesisAppID,
+			SubjectUserId: runtimeAgentVoiceSynthesisSubjectID,
+			ModelId:       modelID,
+			RoutePolicy:   routePolicy,
+			Fallback:      s.fallbackPolicy,
+			TimeoutMs:     int32(waitTimeout.Milliseconds()),
+		},
+		ScenarioType:   runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
+		ExecutionMode:  runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
+		IdempotencyKey: "runtime-agent-voice-lipsync:" + turnID,
+		Spec: &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{
+				SpeechSynthesize: &runtimev1.SpeechSynthesizeScenarioSpec{
+					Text:       text,
+					VoiceRef:   voiceRef,
+					TimingMode: runtimev1.SpeechTimingMode_SPEECH_TIMING_MODE_WORD,
+				},
+			},
+		},
+	})
+	if err != nil {
+		return voiceLipsyncSynthesisOutput{}, err
+	}
+	jobID := strings.TrimSpace(submitResp.GetJob().GetJobId())
+	if jobID == "" {
+		return voiceLipsyncSynthesisOutput{}, fmt.Errorf("voice synthesis job id is required")
+	}
+	job, err := s.waitVoiceSynthesisJob(ctx, jobID)
+	if err != nil {
+		return voiceLipsyncSynthesisOutput{}, err
+	}
+	artifactsResp, err := s.ai.GetScenarioArtifacts(ctx, &runtimev1.GetScenarioArtifactsRequest{JobId: jobID})
+	if err != nil {
+		return voiceLipsyncSynthesisOutput{}, err
+	}
+	artifact := firstVoiceSynthesisArtifact(artifactsResp.GetArtifacts())
+	if artifact == nil {
+		return voiceLipsyncSynthesisOutput{}, fmt.Errorf("voice synthesis job %s completed without artifact", jobID)
+	}
+	audioArtifactID := strings.TrimSpace(artifact.GetArtifactId())
+	audioMimeType := strings.TrimSpace(artifact.GetMimeType())
+	if audioArtifactID == "" || audioMimeType == "" {
+		return voiceLipsyncSynthesisOutput{}, fmt.Errorf("voice synthesis job %s artifact missing id or mime type", jobID)
+	}
+	frames := buildSyntheticLipsyncFrames(text)
+	if len(frames) == 0 {
+		return voiceLipsyncSynthesisOutput{}, nil
+	}
+	last := frames[len(frames)-1]
+	return voiceLipsyncSynthesisOutput{
+		AudioArtifactID:       audioArtifactID,
+		AudioMimeType:         audioMimeType,
+		DurationMs:            last.OffsetMs + last.DurationMs,
+		DefaultVoiceReference: strings.TrimSpace(input.DefaultVoiceReference),
+		VoiceRouteBinding: providerVoiceRouteBinding(
+			strings.TrimSpace(input.DefaultVoiceReference),
+			modelID,
+			strings.TrimSpace(job.GetModelResolved()),
+			jobID,
+			audioArtifactID,
+			audioMimeType,
+		),
+		Frames: frames,
+	}, nil
+}
+
+func (s *aiBackedVoiceLipsyncSynthesizer) waitVoiceSynthesisJob(ctx context.Context, jobID string) (*runtimev1.ScenarioJob, error) {
+	pollInterval := s.pollInterval
+	if pollInterval <= 0 {
+		pollInterval = defaultProviderVoiceSynthesisPoll
+	}
+	timer := time.NewTimer(0)
+	defer timer.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-timer.C:
+			resp, err := s.ai.GetScenarioJob(ctx, &runtimev1.GetScenarioJobRequest{JobId: jobID})
+			if err != nil {
+				return nil, err
+			}
+			job := resp.GetJob()
+			switch job.GetStatus() {
+			case runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED:
+				return proto.Clone(job).(*runtimev1.ScenarioJob), nil
+			case runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED,
+				runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED,
+				runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_TIMEOUT:
+				return nil, fmt.Errorf("voice synthesis job %s ended with %s: %s", jobID, job.GetStatus().String(), strings.TrimSpace(job.GetReasonDetail()))
+			default:
+				timer.Reset(pollInterval)
+			}
+		}
+	}
+}
+
+func syntheticVoiceRouteBinding(defaultVoiceReference string) *voiceRouteBindingProjection {
+	voiceReference := strings.TrimSpace(defaultVoiceReference)
+	if voiceReference == "" {
+		return nil
+	}
+	kind, value, ok := strings.Cut(voiceReference, ":")
+	kind = strings.TrimSpace(kind)
+	value = strings.TrimSpace(value)
+	if !ok || kind == "" || value == "" {
+		return nil
+	}
+	return &voiceRouteBindingProjection{
+		Capability:            "audio.synthesize",
+		DefaultVoiceReference: kind + ":" + value,
+		VoiceReferenceKind:    kind,
+		VoiceReferenceValue:   value,
+		SynthesisMode:         "synthetic_lipsync_only",
+		Status:                "unbound",
+		Reason:                "tts_provider_route_not_bound",
+	}
+}
+
+func providerVoiceRouteBinding(defaultVoiceReference string, modelID string, modelResolved string, scenarioJobID string, audioArtifactID string, audioMimeType string) *voiceRouteBindingProjection {
+	voiceReference := strings.TrimSpace(defaultVoiceReference)
+	if voiceReference == "" {
+		return nil
+	}
+	kind, value, ok := strings.Cut(voiceReference, ":")
+	kind = strings.TrimSpace(kind)
+	value = strings.TrimSpace(value)
+	if !ok || kind == "" || value == "" {
+		return nil
+	}
+	return &voiceRouteBindingProjection{
+		Capability:            "audio.synthesize",
+		DefaultVoiceReference: kind + ":" + value,
+		VoiceReferenceKind:    kind,
+		VoiceReferenceValue:   value,
+		ModelID:               strings.TrimSpace(modelID),
+		ModelResolved:         strings.TrimSpace(modelResolved),
+		ScenarioJobID:         strings.TrimSpace(scenarioJobID),
+		AudioArtifactID:       strings.TrimSpace(audioArtifactID),
+		AudioMimeType:         strings.TrimSpace(audioMimeType),
+		SynthesisMode:         "provider_audio_with_synthetic_lipsync",
+		Status:                "bound",
+		Reason:                "tts_provider_route_bound",
+	}
+}
+
+func voiceReferenceProtoFromDefaultReference(defaultVoiceReference string) (*runtimev1.VoiceReference, error) {
+	value := strings.TrimSpace(defaultVoiceReference)
+	if value == "" {
+		return nil, nil
+	}
+	kind, ref, ok := strings.Cut(value, ":")
+	kind = strings.TrimSpace(kind)
+	ref = strings.TrimSpace(ref)
+	if !ok || kind == "" || ref == "" {
+		return nil, fmt.Errorf("invalid default voice reference")
+	}
+	switch kind {
+	case "preset_voice_id":
+		return &runtimev1.VoiceReference{
+			Kind: runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PRESET,
+			Reference: &runtimev1.VoiceReference_PresetVoiceId{
+				PresetVoiceId: ref,
+			},
+		}, nil
+	case "voice_asset_id":
+		return &runtimev1.VoiceReference{
+			Kind: runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_VOICE_ASSET,
+			Reference: &runtimev1.VoiceReference_VoiceAssetId{
+				VoiceAssetId: ref,
+			},
+		}, nil
+	case "provider_voice_ref":
+		return &runtimev1.VoiceReference{
+			Kind: runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PROVIDER_VOICE_REF,
+			Reference: &runtimev1.VoiceReference_ProviderVoiceRef{
+				ProviderVoiceRef: ref,
+			},
+		}, nil
+	default:
+		return nil, fmt.Errorf("unsupported default voice reference kind %q", kind)
+	}
+}
+
+func firstVoiceSynthesisArtifact(artifacts []*runtimev1.ScenarioArtifact) *runtimev1.ScenarioArtifact {
+	for _, artifact := range artifacts {
+		if artifact == nil {
+			continue
+		}
+		if strings.TrimSpace(artifact.GetArtifactId()) == "" {
+			continue
+		}
+		mimeType := strings.ToLower(strings.TrimSpace(artifact.GetMimeType()))
+		if strings.HasPrefix(mimeType, "audio/") {
+			return artifact
+		}
+	}
+	return nil
+}
+
+func runtimeAgentVoiceSynthesisContext(parent context.Context) context.Context {
+	if parent == nil {
+		parent = context.Background()
+	}
+	md, _ := metadata.FromIncomingContext(parent)
+	next := md.Copy()
+	if next == nil {
+		next = metadata.MD{}
+	}
+	next.Set("x-nimi-app-id", runtimeAgentVoiceSynthesisAppID)
+	return metadata.NewIncomingContext(parent, next)
 }
 
 // buildSyntheticLipsyncFrames returns deterministic mouth-open frames whose

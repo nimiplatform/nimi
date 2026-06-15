@@ -43,6 +43,11 @@ export type NimiRuntimeAgentExecutionBinding = {
   readonly connectorId?: string;
 };
 
+export type NimiRuntimeAgentExecutionBindings = Partial<Record<
+  'text.generate' | 'image.generate' | 'audio.synthesize',
+  NimiRuntimeAgentExecutionBinding
+>>;
+
 export type NimiRuntimeAgentReasoningRequest = {
   readonly mode?: string;
   readonly traceMode?: string;
@@ -57,7 +62,8 @@ export type NimiRuntimeAgentTurnRequest = RuntimeLocalAgentIdentityInput & {
   readonly worldId?: string;
   readonly maxOutputTokens?: number;
   readonly messages: readonly NimiRuntimeAgentMessage[];
-  readonly executionBinding?: NimiRuntimeAgentExecutionBinding;
+  readonly executionBindings: NimiRuntimeAgentExecutionBindings;
+  readonly executionParams?: Partial<Record<'image.generate' | 'audio.synthesize', JsonObject>>;
   readonly reasoning?: NimiRuntimeAgentReasoningRequest;
   readonly scopedBinding?: ScopedRuntimeBindingAttachment;
 };
@@ -132,7 +138,7 @@ export type NimiRuntimeAgentTimelineSummary = {
 };
 
 export type NimiRuntimeAgentSnapshotRecoveryLogEvent = {
-  readonly level: 'warn';
+  readonly level: 'info' | 'warn' | 'error';
   readonly area: string;
   readonly message: `action:${string}` | `phase:${string}`;
   readonly details: JsonObject;
@@ -205,6 +211,34 @@ export type NimiRuntimeAgentTurnRunnerPart =
     readonly trace?: NimiRuntimeAgentTurnRunnerTrace;
     readonly metadataJson?: JsonObject | null;
     readonly diagnostics?: JsonObject;
+  }
+  | {
+    readonly type: 'beat-planned';
+    readonly beatId: string;
+    readonly turnId: string;
+    readonly projectionMessageId?: string;
+  }
+  | {
+    readonly type: 'beat-delivery-started';
+    readonly beatId: string;
+    readonly turnId: string;
+    readonly projectionMessageId?: string;
+  }
+  | {
+    readonly type: 'artifact-ready';
+    readonly beatId: string;
+    readonly turnId: string;
+    readonly artifactId: string;
+    readonly mimeType: string;
+    readonly projectionMessageId?: string;
+  }
+  | {
+    readonly type: 'beat-delivered';
+    readonly beatId: string;
+    readonly turnId: string;
+    readonly projectionMessageId?: string;
+    readonly artifactId?: string;
+    readonly mimeType?: string;
   }
   | {
     readonly type: 'turn-completed';

@@ -636,10 +636,10 @@ func TestPublicChatTurnRequestInjectsRuntimePreTurnMemoryContext(t *testing.T) {
 			"messages": []any{
 				map[string]any{"role": "user", "content": "Can you help with cartography?"},
 			},
-			"execution_binding": map[string]any{
+			"execution_bindings": map[string]any{"text.generate": map[string]any{
 				"route":    "local",
 				"model_id": "local/default",
-			},
+			}},
 		}),
 	})
 	if err != nil {
@@ -696,9 +696,11 @@ func TestPublicChatTurnRequestFailsClosedWhenPreTurnMemoryReadFails(t *testing.T
 		Messages: []publicChatMessagePayload{
 			{Role: "user", Content: "hello"},
 		},
-		ExecutionBinding: &publicChatExecutionBindingPayload{
-			Route:   "local",
-			ModelID: "local/default",
+		ExecutionBindings: map[string]publicChatExecutionBindingPayload{
+			"text.generate": {
+				Route:   "local",
+				ModelID: "local/default",
+			},
 		},
 	}
 	runtime := publicChatRuntime{svc: svc}
@@ -813,10 +815,10 @@ func TestPublicChatTurnRequestStreamsAndAppliesPostTurnEffects(t *testing.T) {
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
 			},
-			"execution_binding": map[string]any{
+			"execution_bindings": map[string]any{"text.generate": map[string]any{
 				"route":    "local",
 				"model_id": "local/default",
-			},
+			}},
 		}),
 	})
 	if err != nil {
@@ -1012,10 +1014,10 @@ func TestPublicChatTurnMessageCommitFailureFailsClosed(t *testing.T) {
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
 			},
-			"execution_binding": map[string]any{
+			"execution_bindings": map[string]any{"text.generate": map[string]any{
 				"route":    "local",
 				"model_id": "local/default",
-			},
+			}},
 		}),
 	})
 	if err != nil {
@@ -1103,10 +1105,10 @@ func TestPublicChatCompletedEmissionFailureFinalizesFailed(t *testing.T) {
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
 			},
-			"execution_binding": map[string]any{
+			"execution_bindings": map[string]any{"text.generate": map[string]any{
 				"route":    "local",
 				"model_id": "local/default",
-			},
+			}},
 		}),
 	})
 	if err != nil {
@@ -1201,10 +1203,10 @@ func TestPublicChatTurnRequestDetachesExecutionFromIngressContext(t *testing.T) 
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
 			},
-			"execution_binding": map[string]any{
+			"execution_bindings": map[string]any{"text.generate": map[string]any{
 				"route":    "local",
 				"model_id": "local/default",
-			},
+			}},
 		}),
 	})
 	if err != nil {

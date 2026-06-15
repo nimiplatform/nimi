@@ -348,6 +348,21 @@ export function createNimiRuntimeAgentTurnStream(
       while (true) {
         const nextResult = await input.eventQueue.next();
         if (nextResult.type === 'done') {
+          input.logEvent?.({
+            level: 'info',
+            area: 'agent-chat-runtime',
+            message: 'action:runtime-agent-turn:subscription-done',
+            details: nimiRuntimeAgentContextDetails({
+              request: input.request,
+              requestId: input.requestId,
+              requestMessageId: input.requestMessageId,
+              runtimeTurnId: input.runtimeTurnRef.turnId,
+              runtimeStreamId: input.runtimeTurnRef.streamId,
+              route: input.route,
+              modelId: input.modelId,
+              connectorId: input.connectorId,
+            }),
+          });
           const recovered = await recoverTerminalSnapshot('subscription_done');
           if (recovered !== 'none') continue;
           await Promise.resolve();
@@ -356,6 +371,24 @@ export function createNimiRuntimeAgentTurnStream(
           break;
         }
         if (nextResult.type === 'error') {
+          input.logEvent?.({
+            level: 'warn',
+            area: 'agent-chat-runtime',
+            message: 'action:runtime-agent-turn:subscription-error',
+            details: {
+              ...nimiRuntimeAgentContextDetails({
+                request: input.request,
+                requestId: input.requestId,
+                requestMessageId: input.requestMessageId,
+                runtimeTurnId: input.runtimeTurnRef.turnId,
+                runtimeStreamId: input.runtimeTurnRef.streamId,
+                route: input.route,
+                modelId: input.modelId,
+                connectorId: input.connectorId,
+              }),
+              error: String(nextResult.error instanceof Error ? nextResult.error.message : nextResult.error),
+            },
+          });
           const recovered = await recoverTerminalSnapshot('subscription_error');
           if (recovered !== 'none') continue;
           throw nextResult.error;
@@ -363,6 +396,29 @@ export function createNimiRuntimeAgentTurnStream(
         const event = nextResult.event;
         recordTurnTimeline(event);
         const trace = input.resolveTrace?.();
+        if (event.eventName.startsWith('runtime.agent.turn.')) {
+          input.logEvent?.({
+            level: 'info',
+            area: 'agent-chat-runtime',
+            message: 'action:runtime-agent-turn:subscription-event',
+            details: {
+              ...nimiRuntimeAgentContextDetails({
+                request: input.request,
+                requestId: input.requestId,
+                requestMessageId: input.requestMessageId,
+                runtimeTurnId: input.runtimeTurnRef.turnId,
+                runtimeStreamId: input.runtimeTurnRef.streamId,
+                route: input.route,
+                modelId: input.modelId,
+                connectorId: input.connectorId,
+              }),
+              eventName: event.eventName,
+              eventTurnId: event.turnId || null,
+              eventStreamId: event.streamId || null,
+              currentTurnAccepted,
+            },
+          });
+        }
         switch (event.eventName) {
           case 'runtime.agent.turn.accepted':
             if (!input.acceptedRequestIds.has(detailText(event, 'requestId'))) break;
@@ -497,6 +553,46 @@ export function createNimiRuntimeAgentTurnStream(
             yield* maybeYieldCommittedMessage(trace);
             break;
           }
+          case 'runtime.agent.turn.action_planned':
+            if (!currentTurnAccepted || event.turnId !== input.runtimeTurnRef.turnId) break;
+            yield {
+              type: 'beat-planned',
+              turnId: event.turnId || '',
+              beatId: detailText(event, 'actionId'),
+              projectionMessageId: detailText(event, 'projectionMessageId') || undefined,
+            };
+            break;
+          case 'runtime.agent.turn.action_started':
+            if (!currentTurnAccepted || event.turnId !== input.runtimeTurnRef.turnId) break;
+            yield {
+              type: 'beat-delivery-started',
+              turnId: event.turnId || '',
+              beatId: detailText(event, 'actionId'),
+              projectionMessageId: detailText(event, 'projectionMessageId') || undefined,
+            };
+            break;
+          case 'runtime.agent.turn.artifact_ready':
+            if (!currentTurnAccepted || event.turnId !== input.runtimeTurnRef.turnId) break;
+            yield {
+              type: 'artifact-ready',
+              turnId: event.turnId || '',
+              beatId: detailText(event, 'actionId'),
+              artifactId: detailText(event, 'artifactId'),
+              mimeType: detailText(event, 'mimeType'),
+              projectionMessageId: detailText(event, 'projectionMessageId') || undefined,
+            };
+            break;
+          case 'runtime.agent.turn.action_completed':
+            if (!currentTurnAccepted || event.turnId !== input.runtimeTurnRef.turnId) break;
+            yield {
+              type: 'beat-delivered',
+              turnId: event.turnId || '',
+              beatId: detailText(event, 'actionId'),
+              projectionMessageId: detailText(event, 'projectionMessageId') || undefined,
+              artifactId: detailText(event, 'artifactId') || undefined,
+              mimeType: detailText(event, 'mimeType') || undefined,
+            };
+            break;
           case 'runtime.agent.turn.completed':
             if (!currentTurnAccepted || event.turnId !== input.runtimeTurnRef.turnId) break;
             terminalProjected = true;

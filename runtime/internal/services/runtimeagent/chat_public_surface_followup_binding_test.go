@@ -73,10 +73,10 @@ func TestPublicChatTurnRejectsConcurrentTurnForSameAgent(t *testing.T) {
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
 			},
-			"execution_binding": map[string]any{
+			"execution_bindings": map[string]any{"text.generate": map[string]any{
 				"route":    "local",
 				"model_id": "local/default",
-			},
+			}},
 		}),
 	})
 	if err != nil {
@@ -97,10 +97,10 @@ func TestPublicChatTurnRejectsConcurrentTurnForSameAgent(t *testing.T) {
 			"messages": []any{
 				map[string]any{"role": "user", "content": "second turn"},
 			},
-			"execution_binding": map[string]any{
+			"execution_bindings": map[string]any{"text.generate": map[string]any{
 				"route":    "local",
 				"model_id": "local/default",
-			},
+			}},
 		}),
 	})
 	if status.Code(err) != codes.FailedPrecondition {
@@ -172,10 +172,10 @@ func TestPublicChatSessionRejectsThreadIdentityDrift(t *testing.T) {
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
 			},
-			"execution_binding": map[string]any{
+			"execution_bindings": map[string]any{"text.generate": map[string]any{
 				"route":    "local",
 				"model_id": "local/default",
-			},
+			}},
 		}),
 	})
 	if err != nil {
@@ -267,10 +267,10 @@ func TestPublicChatSessionRejectsExecutionBindingDrift(t *testing.T) {
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
 			},
-			"execution_binding": map[string]any{
+			"execution_bindings": map[string]any{"text.generate": map[string]any{
 				"route":    "local",
 				"model_id": "local/default",
-			},
+			}},
 		}),
 	})
 	if err != nil {
@@ -297,10 +297,10 @@ func TestPublicChatSessionRejectsExecutionBindingDrift(t *testing.T) {
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello again"},
 			},
-			"execution_binding": map[string]any{
+			"execution_bindings": map[string]any{"text.generate": map[string]any{
 				"route":    "cloud",
 				"model_id": "cloud/gpt-5.4-mini",
-			},
+			}},
 		}),
 	})
 	if status.Code(err) != codes.FailedPrecondition {
@@ -335,10 +335,10 @@ func TestPublicChatTurnRequestRejectsMissingConversationAnchorID(t *testing.T) {
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
 			},
-			"execution_binding": map[string]any{
+			"execution_bindings": map[string]any{"text.generate": map[string]any{
 				"route":    "local",
 				"model_id": "local/default",
-			},
+			}},
 		}),
 	})
 	if err == nil {
@@ -377,10 +377,10 @@ func TestPublicChatTurnRequestRejectsUnknownConversationAnchorID(t *testing.T) {
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
 			},
-			"execution_binding": map[string]any{
+			"execution_bindings": map[string]any{"text.generate": map[string]any{
 				"route":    "local",
 				"model_id": "local/default",
-			},
+			}},
 		}),
 	})
 	if err == nil {

@@ -157,6 +157,45 @@ function normalizeTurnMessages(messages: readonly NimiRuntimeAgentMessage[]): Ni
     .filter((message) => Boolean(message.role && message.content));
 }
 
+function normalizeExecutionBinding(
+  binding: NimiRuntimeAgentTurnRequest['executionBindings'][keyof NimiRuntimeAgentTurnRequest['executionBindings']],
+  capability: string,
+): JsonObject {
+  const route = normalizeNimiRuntimeAgentText(binding?.route).toLowerCase();
+  if (!TURN_ROUTES.has(route)) {
+    runtimeAgentInputError(`runtime agent turn request executionBindings.${capability}.route must be local or cloud`, 'select_runtime_agent_route');
+  }
+  const modelId = normalizeNimiRuntimeAgentText(binding?.modelId);
+  if (!modelId) {
+    runtimeAgentInputError(`runtime agent turn request executionBindings.${capability}.modelId is required`, 'select_runtime_agent_model');
+  }
+  return {
+    route,
+    model_id: modelId,
+    ...(optionalString(binding?.connectorId)
+      ? { connector_id: optionalString(binding?.connectorId) }
+      : {}),
+  };
+}
+
+function normalizeExecutionBindings(request: NimiRuntimeAgentTurnRequest): JsonObject {
+  const bindings = request.executionBindings || {};
+  const textBinding = bindings['text.generate'];
+  if (!textBinding) {
+    runtimeAgentInputError('runtime agent turn request executionBindings.text.generate is required', 'select_runtime_agent_model');
+  }
+  const out: JsonObject = {
+    'text.generate': normalizeExecutionBinding(textBinding, 'text.generate'),
+  };
+  if (bindings['image.generate']) {
+    out['image.generate'] = normalizeExecutionBinding(bindings['image.generate'], 'image.generate');
+  }
+  if (bindings['audio.synthesize']) {
+    out['audio.synthesize'] = normalizeExecutionBinding(bindings['audio.synthesize'], 'audio.synthesize');
+  }
+  return out;
+}
+
 export function buildNimiRuntimeAgentTurnPayload(request: NimiRuntimeAgentTurnRequest): JsonObject {
   const identity = projectRuntimeLocalAgentIdentity(request);
   const conversationAnchorId = requireConversationAnchorId(request.conversationAnchorId);
@@ -164,15 +203,7 @@ export function buildNimiRuntimeAgentTurnPayload(request: NimiRuntimeAgentTurnRe
   if (messages.length === 0) {
     runtimeAgentInputError('runtime agent turn request requires at least one non-empty message', 'provide_runtime_agent_turn_message');
   }
-  const hasExecutionBinding = Boolean(request.executionBinding);
-  const route = hasExecutionBinding ? normalizeNimiRuntimeAgentText(request.executionBinding?.route).toLowerCase() : '';
-  if (hasExecutionBinding && !TURN_ROUTES.has(route)) {
-    runtimeAgentInputError('runtime agent turn request executionBinding.route must be local or cloud', 'select_runtime_agent_route');
-  }
-  const modelId = hasExecutionBinding ? normalizeNimiRuntimeAgentText(request.executionBinding?.modelId) : '';
-  if (hasExecutionBinding && !modelId) {
-    runtimeAgentInputError('runtime agent turn request executionBinding.modelId is required', 'select_runtime_agent_model');
-  }
+  const executionBindings = normalizeExecutionBindings(request);
   const maxOutputTokens = optionalNumber(request.maxOutputTokens);
   if (maxOutputTokens !== undefined && maxOutputTokens < 0) {
     runtimeAgentInputError('runtime agent turn request maxOutputTokens must be non-negative', 'provide_non_negative_max_output_tokens');
@@ -192,15 +223,8 @@ export function buildNimiRuntimeAgentTurnPayload(request: NimiRuntimeAgentTurnRe
       content: message.content,
       ...(optionalString(message.name) ? { name: optionalString(message.name) } : {}),
     })),
-    ...(hasExecutionBinding ? {
-      execution_binding: {
-        route,
-        model_id: modelId,
-        ...(optionalString(request.executionBinding?.connectorId)
-          ? { connector_id: optionalString(request.executionBinding?.connectorId) }
-          : {}),
-      },
-    } : {}),
+    execution_bindings: executionBindings,
+    ...(request.executionParams ? { execution_params: request.executionParams as JsonObject } : {}),
     ...(request.reasoning ? {
       reasoning: {
         ...(optionalString(request.reasoning.mode) ? { mode: optionalString(request.reasoning.mode) } : {}),

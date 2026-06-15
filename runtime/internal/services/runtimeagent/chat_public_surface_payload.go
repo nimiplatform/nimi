@@ -87,14 +87,6 @@ func decodePublicChatTurnRequestPayload(payload any) (publicChatTurnRequestPaylo
 	if decoded.MaxOutputTokens < 0 {
 		return publicChatTurnRequestPayload{}, status.Error(codes.InvalidArgument, "public chat max_output_tokens must be non-negative")
 	}
-	if decoded.ExecutionBinding != nil {
-		if strings.TrimSpace(decoded.ExecutionBinding.ModelID) == "" {
-			return publicChatTurnRequestPayload{}, status.Error(codes.InvalidArgument, "public chat execution_binding.model_id is required")
-		}
-		if _, err := parseOptionalPublicChatRoutePolicy(decoded.ExecutionBinding.Route); err != nil {
-			return publicChatTurnRequestPayload{}, err
-		}
-	}
 	return decoded, nil
 }
 func decodePublicChatTurnInterruptPayload(payload any) (publicChatTurnInterruptPayload, error) {
@@ -138,7 +130,7 @@ func parsePublicChatRoutePolicy(value string) (runtimev1.RoutePolicy, error) {
 	case "cloud", "route_policy_cloud":
 		return runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD, nil
 	default:
-		return runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, status.Error(codes.InvalidArgument, "public chat execution_binding.route must be local or cloud")
+		return runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, status.Error(codes.InvalidArgument, "public chat execution binding route must be local or cloud")
 	}
 }
 func parseOptionalPublicChatRoutePolicy(value string) (runtimev1.RoutePolicy, error) {

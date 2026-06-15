@@ -136,26 +136,25 @@ test('tauri-ipc Runtime transport decodes protobuf server streams', async () => 
     invoke: async (command, payload) => {
       if (command === 'runtime_bridge_stream_open') {
         capturedPayload = unwrapPayload(payload);
-        const streamId = 'tauri-stream-1';
-        setTimeout(() => {
-          listeners.get(`runtime_bridge:stream:${streamId}`)?.({
-            payload: {
-              streamId,
-              eventType: 'next',
-              payloadBytesBase64: toBase64(AccountSessionEvent.toBinary(AccountSessionEvent.create({
-                eventId: 'event-tauri',
-                sequence: '42',
-                eventType: AccountEventType.LOGIN_COMPLETED,
-              }))),
-            },
-          });
-          listeners.get(`runtime_bridge:stream:${streamId}`)?.({
-            payload: {
-              streamId,
-              eventType: 'completed',
-            },
-          });
-        }, 0);
+        const streamId = String(capturedPayload.streamId || '');
+        assert.match(streamId, /^runtime-client-stream-/);
+        listeners.get(`runtime_bridge:stream:${streamId}`)?.({
+          payload: {
+            streamId,
+            eventType: 'next',
+            payloadBytesBase64: toBase64(AccountSessionEvent.toBinary(AccountSessionEvent.create({
+              eventId: 'event-tauri',
+              sequence: '42',
+              eventType: AccountEventType.LOGIN_COMPLETED,
+            }))),
+          },
+        });
+        listeners.get(`runtime_bridge:stream:${streamId}`)?.({
+          payload: {
+            streamId,
+            eventType: 'completed',
+          },
+        });
         return { streamId };
       }
       if (command === 'runtime_bridge_stream_close') {
@@ -198,9 +197,9 @@ test('tauri-ipc Runtime transport decodes protobuf server streams', async () => 
 test('tauri-ipc Runtime transport drains queued stream chunks before surfacing remote error', async () => {
   const listeners = new Map<string, (event: { payload: unknown }) => void>();
   const restore = installTauriTestHook({
-    invoke: async (command) => {
+    invoke: async (command, payload) => {
       if (command === 'runtime_bridge_stream_open') {
-        const streamId = 'tauri-stream-error';
+        const streamId = String(unwrapPayload(payload).streamId || '');
         setTimeout(() => {
           listeners.get(`runtime_bridge:stream:${streamId}`)?.({
             payload: {

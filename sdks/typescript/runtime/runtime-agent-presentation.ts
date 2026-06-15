@@ -65,6 +65,12 @@ export function normalizeNimiRuntimeAgentPresentationBackendKind(
       return AgentPresentationBackendKind.VRM;
     case 'live2d':
       return AgentPresentationBackendKind.LIVE2D;
+    case 'sprite2d':
+      return AgentPresentationBackendKind.SPRITE2D;
+    case 'canvas2d':
+      return AgentPresentationBackendKind.CANVAS2D;
+    case 'video':
+      return AgentPresentationBackendKind.VIDEO;
     default:
       return null;
   }

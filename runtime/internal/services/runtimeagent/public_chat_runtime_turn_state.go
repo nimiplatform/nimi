@@ -39,13 +39,12 @@ func (r publicChatRuntime) reserveTurn(
 	if entry.Agent.GetLifecycleStatus() != runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_ACTIVE {
 		return publicChatAnchorState{}, publicChatTurnState{}, nil, status.Error(codes.FailedPrecondition, "agent is not active")
 	}
-	explicitBinding, hasExplicitBinding, err := r.svc.resolvePublicChatBinding(parent, subjectUserID, req)
+	explicitBindings, hasExplicitBindings, err := r.svc.resolvePublicChatBinding(parent, subjectUserID, req)
 	if err != nil {
 		return publicChatAnchorState{}, publicChatTurnState{}, nil, err
 	}
 	reasoning := normalizePublicChatReasoning(req.Reasoning)
 	transcript := cloneChatMessages(toProtoPublicChatMessages(req.Messages))
-	var runtimeDefaultBinding *publicChatExecutionBinding
 	for {
 		r.svc.chatSurfaceMu.Lock()
 		if activeTurnID := strings.TrimSpace(r.svc.chatActiveByAgent[localAgentRef]); activeTurnID != "" {
@@ -94,35 +93,25 @@ func (r publicChatRuntime) reserveTurn(
 			r.svc.chatSurfaceMu.Unlock()
 			return publicChatAnchorState{}, publicChatTurnState{}, nil, status.Error(codes.FailedPrecondition, "public chat anchor thread_id mismatch")
 		}
-		if hasExplicitBinding {
-			if session.Binding.ModelID != "" && publicChatExecutionBindingMismatch(session.Binding, explicitBinding) {
+		if hasExplicitBindings {
+			explicitTextBinding := explicitBindings["text.generate"]
+			if session.Binding.ModelID != "" && publicChatExecutionBindingMismatch(session.Binding, explicitTextBinding) {
 				r.svc.chatSurfaceMu.Unlock()
-				return publicChatAnchorState{}, publicChatTurnState{}, nil, status.Error(codes.FailedPrecondition, "public chat anchor execution_binding mismatch")
+				return publicChatAnchorState{}, publicChatTurnState{}, nil, status.Error(codes.FailedPrecondition, "public chat anchor execution_bindings.text.generate mismatch")
 			}
-			session.Binding = explicitBinding
+			session.Binding = explicitTextBinding
+			session.Bindings = clonePublicChatExecutionBindings(explicitBindings)
+			session.ExecutionParams = clonePublicChatExecutionParams(req.ExecutionParams)
 		} else if session.Binding.ModelID == "" || session.Binding.RoutePolicy == runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED {
-			if runtimeDefaultBinding == nil {
-				r.svc.chatSurfaceMu.Unlock()
-				// Default route/model selection is runtime-owned; resolve outside
-				// the surface mutex, then revalidate the anchor before binding it.
-				resolved, err := r.svc.resolveRuntimeDefaultPublicChatBinding(
-					parent,
-					subjectUserID,
-					"",
-					toProtoPublicChatMessages(req.Messages),
-					req.MaxOutputTokens,
-				)
-				if err != nil {
-					return publicChatAnchorState{}, publicChatTurnState{}, nil, err
-				}
-				runtimeDefaultBinding = &resolved
-				continue
-			}
-			session.Binding = *runtimeDefaultBinding
+			r.svc.chatSurfaceMu.Unlock()
+			return publicChatAnchorState{}, publicChatTurnState{}, nil, status.Error(codes.InvalidArgument, "public chat turn request requires execution_bindings.text.generate")
 		}
 		if session.Binding.ModelID == "" || session.Binding.RoutePolicy == runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED {
 			r.svc.chatSurfaceMu.Unlock()
-			return publicChatAnchorState{}, publicChatTurnState{}, nil, status.Error(codes.InvalidArgument, "public chat anchor requires execution_binding")
+			return publicChatAnchorState{}, publicChatTurnState{}, nil, status.Error(codes.InvalidArgument, "public chat anchor requires execution_bindings.text.generate")
+		}
+		if len(session.Bindings) == 0 {
+			session.Bindings = publicChatExecutionBindings{"text.generate": session.Binding}
 		}
 		if trimmed := strings.TrimSpace(subjectUserID); trimmed != "" {
 			session.SubjectUserID = trimmed

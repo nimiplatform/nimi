@@ -254,10 +254,10 @@ func TestWave1ExecPack3CommittedPresentationReachesTypedStream(t *testing.T) {
 			"messages": []any{
 				map[string]any{"role": "user", "content": "show emotion"},
 			},
-			"execution_binding": map[string]any{
+			"execution_bindings": map[string]any{"text.generate": map[string]any{
 				"route":    "local",
 				"model_id": "local/default",
-			},
+			}},
 		}),
 	})
 	if err != nil {
@@ -373,10 +373,10 @@ func TestWave1ExecPack3CommittedAPMLActivityReachesTypedStream(t *testing.T) {
 			"messages": []any{
 				map[string]any{"role": "user", "content": "show activity"},
 			},
-			"execution_binding": map[string]any{
+			"execution_bindings": map[string]any{"text.generate": map[string]any{
 				"route":    "local",
 				"model_id": "local/default",
-			},
+			}},
 		}),
 	})
 	if err != nil {

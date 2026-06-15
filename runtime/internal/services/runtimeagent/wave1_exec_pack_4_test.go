@@ -172,10 +172,10 @@ func TestWave1ExecPack4ConversationAnchorRecoveryAndIsolation(t *testing.T) {
 			"messages": []any{
 				map[string]any{"role": "user", "content": "anchor A1"},
 			},
-			"execution_binding": map[string]any{
+			"execution_bindings": map[string]any{"text.generate": map[string]any{
 				"route":    "local",
 				"model_id": "local/default",
-			},
+			}},
 		}),
 	})
 	if err != nil {
@@ -226,10 +226,10 @@ func TestWave1ExecPack4ConversationAnchorRecoveryAndIsolation(t *testing.T) {
 			"messages": []any{
 				map[string]any{"role": "user", "content": "anchor B1"},
 			},
-			"execution_binding": map[string]any{
+			"execution_bindings": map[string]any{"text.generate": map[string]any{
 				"route":    "local",
 				"model_id": "local/default",
-			},
+			}},
 		}),
 	})
 	if err != nil {
@@ -360,10 +360,10 @@ func TestWave1ExecPack4InterruptIsolationRejectsWrongAnchor(t *testing.T) {
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hold"},
 			},
-			"execution_binding": map[string]any{
+			"execution_bindings": map[string]any{"text.generate": map[string]any{
 				"route":    "local",
 				"model_id": "local/default",
-			},
+			}},
 		}),
 	})
 	if err != nil {
@@ -641,10 +641,10 @@ func TestWave1ExecPack4PublicChatHookProjectionAndNoRawAPMLConsumerPath(t *testi
 			"messages": []any{
 				map[string]any{"role": "user", "content": "propose follow up"},
 			},
-			"execution_binding": map[string]any{
+			"execution_bindings": map[string]any{"text.generate": map[string]any{
 				"route":    "local",
 				"model_id": "local/default",
-			},
+			}},
 		}),
 	}); err != nil {
 		t.Fatalf("ConsumePublicChatAppMessage(turn): %v", err)

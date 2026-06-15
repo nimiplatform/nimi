@@ -76,13 +76,10 @@ func (r publicChatRuntime) buildSessionSnapshotFromState(
 		"session_status":           publicChatSessionStatus(activeTurn, pendingFollowUp),
 		"transcript_message_count": len(session.Transcript),
 		"transcript":               publicChatMessageEnvelopePayloads(session.Transcript, session.ConversationAnchorID, session.CreatedAt, session.UpdatedAt),
-		"execution_binding":        publicChatExecutionBindingProjectionPayload(session.Binding),
+		"execution_bindings":       publicChatExecutionBindingsProjectionPayload(session.Bindings, session.Binding),
 	}
 	if trimmed := strings.TrimSpace(requestID); trimmed != "" {
 		snapshotDetail["request_id"] = trimmed
-	}
-	if strings.TrimSpace(session.SystemPrompt) != "" {
-		snapshotDetail["system_prompt"] = strings.TrimSpace(session.SystemPrompt)
 	}
 	if session.MaxTokens > 0 {
 		snapshotDetail["max_output_tokens"] = session.MaxTokens

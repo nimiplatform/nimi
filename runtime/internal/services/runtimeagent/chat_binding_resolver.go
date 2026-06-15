@@ -16,6 +16,7 @@ type publicChatBindingResolverService interface {
 }
 
 type PublicChatBindingResolutionRequest struct {
+	Capability      string
 	ModelID         string
 	RouteHint       runtimev1.RoutePolicy
 	ConnectorID     string
@@ -86,44 +87,133 @@ func (s *Service) resolvePublicChatBinding(
 	ctx context.Context,
 	subjectUserID string,
 	req publicChatTurnRequestPayload,
-) (publicChatExecutionBinding, bool, error) {
-	if req.ExecutionBinding == nil {
-		return publicChatExecutionBinding{}, false, nil
+) (publicChatExecutionBindings, bool, error) {
+	if len(req.ExecutionBindings) == 0 {
+		return nil, false, nil
 	}
-	modelID := strings.TrimSpace(req.ExecutionBinding.ModelID)
+	if _, ok := req.ExecutionBindings["text.generate"]; !ok {
+		return nil, true, status.Error(codes.InvalidArgument, "public chat execution_bindings.text.generate is required")
+	}
+	out := make(publicChatExecutionBindings, len(req.ExecutionBindings))
+	for capability, payload := range req.ExecutionBindings {
+		normalizedCapability := strings.TrimSpace(capability)
+		if normalizedCapability == "" {
+			return nil, true, status.Error(codes.InvalidArgument, "public chat execution_bindings capability is required")
+		}
+		switch normalizedCapability {
+		case "text.generate":
+			binding, err := s.resolvePublicChatTextBinding(ctx, subjectUserID, req, payload)
+			if err != nil {
+				return nil, true, err
+			}
+			out[normalizedCapability] = binding
+		case "image.generate":
+			binding, err := parsePublicChatExplicitCapabilityBinding(payload, "public chat execution_bindings.image.generate")
+			if err != nil {
+				return nil, true, err
+			}
+			out[normalizedCapability] = binding
+		default:
+			return nil, true, status.Errorf(codes.InvalidArgument, "public chat execution_bindings.%s is not admitted", normalizedCapability)
+		}
+	}
+	return out, true, nil
+}
+
+func (s *Service) resolvePublicChatTextBinding(
+	ctx context.Context,
+	subjectUserID string,
+	req publicChatTurnRequestPayload,
+	payload publicChatExecutionBindingPayload,
+) (publicChatExecutionBinding, error) {
+	modelID := strings.TrimSpace(payload.ModelID)
 	if modelID == "" {
-		return publicChatExecutionBinding{}, true, status.Error(codes.InvalidArgument, "public chat execution_binding.model_id is required")
+		return publicChatExecutionBinding{}, status.Error(codes.InvalidArgument, "public chat execution_bindings.text.generate.model_id is required")
 	}
-	routeHint, err := parseOptionalPublicChatRoutePolicy(req.ExecutionBinding.Route)
+	routeHint, err := parseOptionalPublicChatRoutePolicy(payload.Route)
 	if err != nil {
-		return publicChatExecutionBinding{}, true, err
+		return publicChatExecutionBinding{}, err
 	}
 	if s == nil || !s.HasPublicChatBindingResolver() {
-		return publicChatExecutionBinding{}, true, status.Error(codes.FailedPrecondition, "runtime public chat binding resolver unavailable")
+		return publicChatExecutionBinding{}, status.Error(codes.FailedPrecondition, "runtime public chat binding resolver unavailable")
 	}
 	resolved, err := s.currentPublicChatBindingResolver().ResolvePublicChatBinding(ctx, PublicChatBindingResolutionRequest{
+		Capability:      "text.generate",
 		ModelID:         modelID,
 		RouteHint:       routeHint,
-		ConnectorID:     strings.TrimSpace(req.ExecutionBinding.ConnectorID),
+		ConnectorID:     strings.TrimSpace(payload.ConnectorID),
 		SubjectUserID:   strings.TrimSpace(subjectUserID),
 		SystemPrompt:    strings.TrimSpace(req.SystemPrompt),
 		Messages:        toProtoPublicChatMessages(req.Messages),
 		MaxOutputTokens: req.MaxOutputTokens,
 	})
 	if err != nil {
-		return publicChatExecutionBinding{}, true, err
+		return publicChatExecutionBinding{}, err
 	}
 	if strings.TrimSpace(resolved.ModelID) == "" {
-		return publicChatExecutionBinding{}, true, status.Error(codes.FailedPrecondition, "runtime public chat binding resolver returned empty model")
+		return publicChatExecutionBinding{}, status.Error(codes.FailedPrecondition, "runtime public chat binding resolver returned empty model")
 	}
 	if resolved.RoutePolicy == runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED {
-		return publicChatExecutionBinding{}, true, status.Error(codes.FailedPrecondition, "runtime public chat binding resolver returned unspecified route")
+		return publicChatExecutionBinding{}, status.Error(codes.FailedPrecondition, "runtime public chat binding resolver returned unspecified route")
 	}
 	return publicChatExecutionBinding{
 		ModelID:     strings.TrimSpace(resolved.ModelID),
 		RoutePolicy: resolved.RoutePolicy,
 		ConnectorID: strings.TrimSpace(resolved.ConnectorID),
-	}, true, nil
+	}, nil
+}
+
+func parsePublicChatExplicitCapabilityBinding(payload publicChatExecutionBindingPayload, label string) (publicChatExecutionBinding, error) {
+	modelID := strings.TrimSpace(payload.ModelID)
+	if modelID == "" {
+		return publicChatExecutionBinding{}, status.Errorf(codes.InvalidArgument, "%s.model_id is required", label)
+	}
+	routePolicy, err := parseOptionalPublicChatRoutePolicy(payload.Route)
+	if err != nil {
+		return publicChatExecutionBinding{}, err
+	}
+	if routePolicy == runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED {
+		return publicChatExecutionBinding{}, status.Errorf(codes.InvalidArgument, "%s.route is required", label)
+	}
+	return publicChatExecutionBinding{
+		ModelID:     modelID,
+		RoutePolicy: routePolicy,
+		ConnectorID: strings.TrimSpace(payload.ConnectorID),
+	}, nil
+}
+
+func clonePublicChatExecutionBindings(input publicChatExecutionBindings) publicChatExecutionBindings {
+	if len(input) == 0 {
+		return nil
+	}
+	out := make(publicChatExecutionBindings, len(input))
+	for capability, binding := range input {
+		trimmedCapability := strings.TrimSpace(capability)
+		if trimmedCapability == "" {
+			continue
+		}
+		out[trimmedCapability] = binding
+	}
+	return out
+}
+
+func clonePublicChatExecutionParams(input map[string]map[string]any) map[string]map[string]any {
+	if len(input) == 0 {
+		return nil
+	}
+	out := make(map[string]map[string]any, len(input))
+	for capability, params := range input {
+		trimmedCapability := strings.TrimSpace(capability)
+		if trimmedCapability == "" || params == nil {
+			continue
+		}
+		cloned := make(map[string]any, len(params))
+		for key, value := range params {
+			cloned[key] = value
+		}
+		out[trimmedCapability] = cloned
+	}
+	return out
 }
 
 func (s *Service) resolveRuntimeDefaultPublicChatBinding(
@@ -137,6 +227,7 @@ func (s *Service) resolveRuntimeDefaultPublicChatBinding(
 		return publicChatExecutionBinding{}, status.Error(codes.FailedPrecondition, "runtime public chat binding resolver unavailable")
 	}
 	resolved, err := s.currentPublicChatBindingResolver().ResolvePublicChatBinding(ctx, PublicChatBindingResolutionRequest{
+		Capability:      "text.generate",
 		ModelID:         texttarget.InternalDefaultLocalTextModelAlias,
 		RouteHint:       runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED,
 		SubjectUserID:   strings.TrimSpace(subjectUserID),

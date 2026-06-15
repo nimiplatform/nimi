@@ -37,6 +37,11 @@ const TURN_EVENT_TYPES = new Set([
   'runtime.agent.turn.text_delta',
   'runtime.agent.turn.structured',
   'runtime.agent.turn.message_committed',
+  'runtime.agent.turn.action_planned',
+  'runtime.agent.turn.action_started',
+  'runtime.agent.turn.artifact_ready',
+  'runtime.agent.turn.action_completed',
+  'runtime.agent.turn.action_failed',
   'runtime.agent.turn.post_turn',
   'runtime.agent.turn.completed',
   'runtime.agent.turn.failed',
@@ -76,7 +81,7 @@ function parseNimiRuntimeAgentSessionSnapshot(value?: Struct): NimiRuntimeAgentS
       ? { transcriptMessageCount: optionalNumber(payload.transcript_message_count ?? payload.transcriptMessageCount) }
       : {}),
     ...(transcript ? { transcript } : {}),
-    ...(asRecord(payload.execution_binding ?? payload.executionBinding) ? { executionBinding: asRecord(payload.execution_binding ?? payload.executionBinding) } : {}),
+    ...(asRecord(payload.execution_bindings ?? payload.executionBindings) ? { executionBindings: asRecord(payload.execution_bindings ?? payload.executionBindings) } : {}),
     ...(parseTurnSnapshot(payload.active_turn ?? payload.activeTurn) ? { activeTurn: parseTurnSnapshot(payload.active_turn ?? payload.activeTurn) } : {}),
     ...(parseTurnSnapshot(payload.last_turn ?? payload.lastTurn) ? { lastTurn: parseTurnSnapshot(payload.last_turn ?? payload.lastTurn) } : {}),
     ...(asRecord(payload.pending_follow_up ?? payload.pendingFollowUp) ? { pendingFollowUp: asRecord(payload.pending_follow_up ?? payload.pendingFollowUp) } : {}),
@@ -330,6 +335,34 @@ function projectAppMessageDetail(messageType: string, payload: JsonObject): Json
       };
     case 'runtime.agent.turn.completed':
       return { terminalReason: optionalString(payload.terminal_reason, payload.terminalReason, payload.finish_reason, payload.finishReason) };
+    case 'runtime.agent.turn.action_planned':
+    case 'runtime.agent.turn.action_started':
+    case 'runtime.agent.turn.action_completed':
+      return {
+        actionId: optionalString(payload.action_id, payload.actionId) || '',
+        modality: optionalString(payload.modality) || '',
+        operation: optionalString(payload.operation) || '',
+        projectionMessageId: optionalString(payload.projection_message_id, payload.projectionMessageId),
+        artifactId: optionalString(payload.artifact_id, payload.artifactId),
+        mimeType: optionalString(payload.mime_type, payload.mimeType),
+        jobId: optionalString(payload.job_id, payload.jobId),
+      };
+    case 'runtime.agent.turn.artifact_ready':
+      return {
+        actionId: optionalString(payload.action_id, payload.actionId) || '',
+        projectionMessageId: optionalString(payload.projection_message_id, payload.projectionMessageId) || '',
+        artifactId: optionalString(payload.artifact_id, payload.artifactId) || '',
+        mimeType: optionalString(payload.mime_type, payload.mimeType) || '',
+      };
+    case 'runtime.agent.turn.action_failed':
+      return {
+        actionId: optionalString(payload.action_id, payload.actionId) || '',
+        modality: optionalString(payload.modality) || '',
+        operation: optionalString(payload.operation) || '',
+        projectionMessageId: optionalString(payload.projection_message_id, payload.projectionMessageId),
+        reasonCode: optionalString(payload.reason_code, payload.reasonCode),
+        message: optionalString(payload.message),
+      };
     case 'runtime.agent.turn.failed':
       return {
         reasonCode: optionalString(payload.reason_code, payload.reasonCode),
@@ -352,10 +385,43 @@ function projectAppMessageDetail(messageType: string, payload: JsonObject): Json
         durationMs: optionalNumber(payload.duration_ms ?? payload.durationMs),
         deadlineOffsetMs: optionalNumber(payload.deadline_offset_ms ?? payload.deadlineOffsetMs),
         reason: optionalString(payload.reason),
+        defaultVoiceReference: optionalString(payload.default_voice_reference, payload.defaultVoiceReference),
+        ...(parseVoiceRouteBinding(payload.voice_route_binding ?? payload.voiceRouteBinding)
+          ? { voiceRouteBinding: parseVoiceRouteBinding(payload.voice_route_binding ?? payload.voiceRouteBinding) }
+          : {}),
       };
     default:
       return {};
   }
+}
+
+function parseVoiceRouteBinding(value: unknown): JsonObject | null {
+  const payload = asRecord(value);
+  if (!payload) {
+    return null;
+  }
+  const result: JsonObject = {};
+  const fields: Array<[string, unknown]> = [
+    ['capability', payload.capability],
+    ['defaultVoiceReference', payload.default_voice_reference ?? payload.defaultVoiceReference],
+    ['voiceReferenceKind', payload.voice_reference_kind ?? payload.voiceReferenceKind],
+    ['voiceReferenceValue', payload.voice_reference_value ?? payload.voiceReferenceValue],
+    ['modelId', payload.model_id ?? payload.modelId],
+    ['modelResolved', payload.model_resolved ?? payload.modelResolved],
+    ['scenarioJobId', payload.scenario_job_id ?? payload.scenarioJobId],
+    ['boundAudioArtifactId', payload.bound_audio_artifact_id ?? payload.boundAudioArtifactId],
+    ['boundAudioMimeType', payload.bound_audio_mime_type ?? payload.boundAudioMimeType],
+    ['synthesisMode', payload.synthesis_mode ?? payload.synthesisMode],
+    ['status', payload.status],
+    ['reason', payload.reason],
+  ];
+  for (const [key, raw] of fields) {
+    const normalized = optionalString(raw);
+    if (normalized) {
+      result[key] = normalized;
+    }
+  }
+  return Object.keys(result).length > 0 ? result : null;
 }
 
 export function projectNimiRuntimeAgentServiceEvent(event: AgentEvent): NimiRuntimeAgentConsumeEvent {

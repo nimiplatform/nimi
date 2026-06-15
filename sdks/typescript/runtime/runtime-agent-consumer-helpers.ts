@@ -285,7 +285,7 @@ export async function recoverNimiRuntimeAgentTerminalSnapshot(options: {
       return 'none';
     }
     options.logEvent({
-      level: 'warn',
+      level: 'info',
       area: 'agent-chat-runtime',
       message: 'action:runtime-agent-turn:snapshot-active-turn-bound',
       details: {
@@ -334,7 +334,7 @@ export async function recoverNimiRuntimeAgentTerminalSnapshot(options: {
       return 'none';
     }
     options.logEvent({
-      level: 'warn',
+      level: 'info',
       area: 'agent-chat-runtime',
       message: 'action:runtime-agent-turn:snapshot-recovered',
       details: {
@@ -378,7 +378,7 @@ export async function recoverNimiRuntimeAgentTerminalSnapshot(options: {
     return 'none';
   }
   options.logEvent({
-    level: 'warn',
+    level: 'info',
     area: 'agent-chat-runtime',
     message: 'action:runtime-agent-turn:snapshot-recovered',
     details: {

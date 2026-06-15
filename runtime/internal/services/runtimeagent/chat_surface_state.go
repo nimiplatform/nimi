@@ -40,6 +40,8 @@ type persistedPublicChatAnchor struct {
 	SubjectUserID        string                           `json:"subjectUserId"`
 	ThreadID             string                           `json:"threadId"`
 	Binding              publicChatExecutionBinding       `json:"binding"`
+	Bindings             publicChatExecutionBindings      `json:"bindings,omitempty"`
+	ExecutionParams      map[string]map[string]any        `json:"executionParams,omitempty"`
 	SystemPrompt         string                           `json:"systemPrompt"`
 	MaxTokens            int32                            `json:"maxTokens"`
 	Reasoning            *publicChatReasoningConfig       `json:"reasoning,omitempty"`
@@ -138,6 +140,8 @@ func (s *Service) capturePublicChatSurfaceSnapshotLocked() (persistedPublicChatS
 			SubjectUserID:        session.SubjectUserID,
 			ThreadID:             session.ThreadID,
 			Binding:              session.Binding,
+			Bindings:             clonePublicChatExecutionBindings(session.Bindings),
+			ExecutionParams:      clonePublicChatExecutionParams(session.ExecutionParams),
 			SystemPrompt:         session.SystemPrompt,
 			MaxTokens:            session.MaxTokens,
 			Reasoning:            clonePublicChatReasoningConfig(session.Reasoning),
@@ -437,6 +441,14 @@ func (r *publicChatSurfaceStateRepository) loadPublicChatSurfaceStateFromDB(s *S
 		if status == runtimev1.ConversationAnchorStatus_CONVERSATION_ANCHOR_STATUS_UNSPECIFIED {
 			status = runtimev1.ConversationAnchorStatus_CONVERSATION_ANCHOR_STATUS_ACTIVE
 		}
+		bindings := clonePublicChatExecutionBindings(item.Bindings)
+		if len(bindings) == 0 && strings.TrimSpace(item.Binding.ModelID) != "" {
+			bindings = publicChatExecutionBindings{"text.generate": item.Binding}
+		}
+		binding := item.Binding
+		if strings.TrimSpace(binding.ModelID) == "" {
+			binding = bindings["text.generate"]
+		}
 		s.chatAnchors[item.ConversationAnchorID] = &publicChatAnchorState{
 			ConversationAnchorID: item.ConversationAnchorID,
 			AgentID:              item.AgentID,
@@ -446,7 +458,9 @@ func (r *publicChatSurfaceStateRepository) loadPublicChatSurfaceStateFromDB(s *S
 			CallerAppID:          item.CallerAppID,
 			SubjectUserID:        item.SubjectUserID,
 			ThreadID:             item.ThreadID,
-			Binding:              item.Binding,
+			Binding:              binding,
+			Bindings:             bindings,
+			ExecutionParams:      clonePublicChatExecutionParams(item.ExecutionParams),
 			ActiveTurnID:         "",
 			SystemPrompt:         item.SystemPrompt,
 			MaxTokens:            item.MaxTokens,

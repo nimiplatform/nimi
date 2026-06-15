@@ -94,7 +94,9 @@ func (s *Service) RequestCompanionParticipation(ctx context.Context, req *runtim
 		"messages": []any{
 			map[string]any{"role": "user", "content": text},
 		},
-		"execution_binding": publicChatExecutionBindingProjectionPayload(binding),
+		"execution_bindings": map[string]any{
+			"text.generate": publicChatExecutionBindingProjectionPayload(binding),
+		},
 	})
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, "companion participation request payload invalid")

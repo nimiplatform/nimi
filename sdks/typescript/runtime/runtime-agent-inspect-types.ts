@@ -68,7 +68,7 @@ export interface NimiRuntimeAgentCanonicalMemoryInspect {
 export type NimiRuntimeAgentAutonomyMode = 'off' | 'low' | 'medium' | 'high';
 
 export interface NimiRuntimeAgentPresentationProfileProjection {
-  readonly backendKind: 'vrm' | 'live2d';
+  readonly backendKind: 'vrm' | 'live2d' | 'sprite2d' | 'canvas2d' | 'video';
   readonly avatarAssetRef: string;
   readonly expressionProfileRef: string | null;
   readonly idlePreset: string | null;

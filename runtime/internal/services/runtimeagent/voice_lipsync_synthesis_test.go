@@ -1,8 +1,12 @@
 package runtimeagent
 
 import (
+	"context"
 	"strings"
 	"testing"
+	"time"
+
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
 
 func TestSyntheticVoiceLipsyncSynthesizerProducesMonotonicFrames(t *testing.T) {
@@ -27,6 +31,9 @@ func TestSyntheticVoiceLipsyncSynthesizerProducesMonotonicFrames(t *testing.T) {
 	}
 	if out.DurationMs <= 0 {
 		t.Fatalf("expected positive duration_ms, got %d", out.DurationMs)
+	}
+	if out.VoiceRouteBinding != nil {
+		t.Fatalf("did not expect voice route binding without default voice reference, got %+v", out.VoiceRouteBinding)
 	}
 
 	var prevSeq uint64
@@ -68,6 +75,59 @@ func TestSyntheticVoiceLipsyncSynthesizerProducesMonotonicFrames(t *testing.T) {
 	}
 }
 
+func TestSyntheticVoiceLipsyncSynthesizerProjectsUnboundVoiceRouteBinding(t *testing.T) {
+	t.Parallel()
+	synth := newSyntheticVoiceLipsyncSynthesizer()
+	out, err := synth.synthesize(voiceLipsyncSynthesisInput{
+		TurnID:                "turn-voice-route",
+		MessageID:             "message-voice-route",
+		Text:                  "Voice route binding must remain explicit.",
+		DefaultVoiceReference: "preset_voice_id:zh_narrator",
+	})
+	if err != nil {
+		t.Fatalf("synthesize: %v", err)
+	}
+	if out.VoiceRouteBinding == nil {
+		t.Fatalf("expected unbound voice route binding for reviewed voice reference")
+	}
+	if got := out.VoiceRouteBinding.Capability; got != "audio.synthesize" {
+		t.Fatalf("voice route capability = %q", got)
+	}
+	if got := out.VoiceRouteBinding.VoiceReferenceKind; got != "preset_voice_id" {
+		t.Fatalf("voice reference kind = %q", got)
+	}
+	if got := out.VoiceRouteBinding.VoiceReferenceValue; got != "zh_narrator" {
+		t.Fatalf("voice reference value = %q", got)
+	}
+	if got := out.VoiceRouteBinding.SynthesisMode; got != "synthetic_lipsync_only" {
+		t.Fatalf("synthesis mode = %q", got)
+	}
+	if got := out.VoiceRouteBinding.Status; got != "unbound" {
+		t.Fatalf("voice route status = %q", got)
+	}
+	if got := out.VoiceRouteBinding.Reason; got != "tts_provider_route_not_bound" {
+		t.Fatalf("voice route reason = %q", got)
+	}
+	detail, err := publicChatBuildVoicePlaybackDetail(publicChatVoicePlaybackProjection{
+		AudioArtifactID:       out.AudioArtifactID,
+		AudioMimeType:         out.AudioMimeType,
+		DurationMs:            out.DurationMs,
+		PlaybackState:         "requested",
+		DefaultVoiceReference: out.DefaultVoiceReference,
+		VoiceRouteBinding:     out.VoiceRouteBinding,
+	})
+	if err != nil {
+		t.Fatalf("voice playback detail rejected route binding: %v", err)
+	}
+	binding, ok := detail["voice_route_binding"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected voice_route_binding detail, got %v", detail)
+	}
+	if got := strings.TrimSpace(binding["status"].(string)); got != "unbound" {
+		t.Fatalf("voice_route_binding.status = %q", got)
+	}
+}
+
 func TestSyntheticVoiceLipsyncSynthesizerSkipsEmptyInputs(t *testing.T) {
 	t.Parallel()
 	synth := newSyntheticVoiceLipsyncSynthesizer()
@@ -85,6 +145,76 @@ func TestSyntheticVoiceLipsyncSynthesizerSkipsEmptyInputs(t *testing.T) {
 		if out.AudioArtifactID != "" || out.AudioMimeType != "" || len(out.Frames) != 0 || out.DurationMs != 0 {
 			t.Fatalf("case[%d]: expected zero-value output for empty input, got %+v", i, out)
 		}
+	}
+}
+
+func TestAIBackedVoiceLipsyncSynthesizerSubmitsSpeechSynthesisJob(t *testing.T) {
+	t.Parallel()
+	ai := &fakeVoiceLipsyncScenarioExecutor{
+		jobID:         "job-voice-001",
+		modelResolved: "speech/qwen3tts-ready",
+		artifact: &runtimev1.ScenarioArtifact{
+			ArtifactId: "artifact-provider-voice-001",
+			MimeType:   "audio/wav",
+		},
+	}
+	synth := newAIBackedVoiceLipsyncSynthesizer(ai, "speech/qwen3tts", runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL, nil)
+	out, err := synth.synthesize(voiceLipsyncSynthesisInput{
+		Context:               context.Background(),
+		TurnID:                "turn-provider-voice",
+		MessageID:             "message-provider-voice",
+		Text:                  "Provider speech should own the audio artifact.",
+		DefaultVoiceReference: "preset_voice_id:zh_narrator",
+		AgentID:               "agent-provider-voice",
+	})
+	if err != nil {
+		t.Fatalf("synthesize: %v", err)
+	}
+	if ai.submitReq == nil {
+		t.Fatalf("expected SubmitScenarioJob request")
+	}
+	if got := ai.submitReq.GetScenarioType(); got != runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE {
+		t.Fatalf("scenario type = %v", got)
+	}
+	if got := ai.submitReq.GetHead().GetModelId(); got != "speech/qwen3tts" {
+		t.Fatalf("model id = %q", got)
+	}
+	if got := ai.submitReq.GetHead().GetRoutePolicy(); got != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
+		t.Fatalf("route policy = %v", got)
+	}
+	spec := ai.submitReq.GetSpec().GetSpeechSynthesize()
+	if spec == nil {
+		t.Fatalf("expected speech synthesize spec")
+	}
+	if got := strings.TrimSpace(spec.GetText()); got == "" {
+		t.Fatalf("expected non-empty speech text")
+	}
+	if got := spec.GetVoiceRef().GetPresetVoiceId(); got != "zh_narrator" {
+		t.Fatalf("preset voice id = %q", got)
+	}
+	if out.AudioArtifactID != "artifact-provider-voice-001" {
+		t.Fatalf("audio artifact id = %q", out.AudioArtifactID)
+	}
+	if out.AudioMimeType != "audio/wav" {
+		t.Fatalf("audio mime type = %q", out.AudioMimeType)
+	}
+	if len(out.Frames) == 0 {
+		t.Fatalf("expected synthetic lipsync frames for provider audio")
+	}
+	if out.VoiceRouteBinding == nil {
+		t.Fatalf("expected provider route binding")
+	}
+	if got := out.VoiceRouteBinding.Status; got != "bound" {
+		t.Fatalf("route status = %q", got)
+	}
+	if got := out.VoiceRouteBinding.SynthesisMode; got != "provider_audio_with_synthetic_lipsync" {
+		t.Fatalf("synthesis mode = %q", got)
+	}
+	if got := out.VoiceRouteBinding.ModelResolved; got != "speech/qwen3tts-ready" {
+		t.Fatalf("model resolved = %q", got)
+	}
+	if got := out.VoiceRouteBinding.ScenarioJobID; got != "job-voice-001" {
+		t.Fatalf("scenario job id = %q", got)
 	}
 }
 
@@ -124,5 +254,171 @@ func TestSyntheticVoiceLipsyncSynthesizerInstalledOnService(t *testing.T) {
 	}
 	if len(out.Frames) == 0 {
 		t.Fatalf("expected synthesizer to produce frames via Service injection")
+	}
+}
+
+func TestServiceVoiceLipsyncScenarioExecutorRequiresExplicitModel(t *testing.T) {
+	t.Parallel()
+	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	ai := &fakeVoiceLipsyncScenarioExecutor{jobID: "job-service-voice"}
+	svc.SetVoiceLipsyncScenarioExecutor(ai, " ", runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL)
+	out, err := svc.voiceLipsync.synthesize(voiceLipsyncSynthesisInput{
+		TurnID:    "turn-service-fallback",
+		MessageID: "message-service-fallback",
+		Text:      "Missing speech model must stay synthetic.",
+	})
+	if err != nil {
+		t.Fatalf("synthesize fallback: %v", err)
+	}
+	if ai.submitReq != nil {
+		t.Fatalf("did not expect provider submit without explicit speech model")
+	}
+	if !strings.HasPrefix(out.AudioArtifactID, syntheticVoiceArtifactScheme+"/") {
+		t.Fatalf("expected synthetic artifact without model, got %q", out.AudioArtifactID)
+	}
+
+	ai = &fakeVoiceLipsyncScenarioExecutor{
+		jobID:         "job-service-voice-bound",
+		modelResolved: "speech/qwen3tts-ready",
+		artifact:      &runtimev1.ScenarioArtifact{ArtifactId: "artifact-service-voice-bound", MimeType: "audio/wav"},
+	}
+	svc.SetVoiceLipsyncScenarioExecutor(ai, "speech/qwen3tts", runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL)
+	out, err = svc.voiceLipsync.synthesize(voiceLipsyncSynthesisInput{
+		Context:               context.Background(),
+		TurnID:                "turn-service-bound",
+		MessageID:             "message-service-bound",
+		Text:                  "Explicit speech model may bind provider audio.",
+		DefaultVoiceReference: "preset_voice_id:zh_narrator",
+	})
+	if err != nil {
+		t.Fatalf("synthesize provider: %v", err)
+	}
+	if ai.submitReq == nil {
+		t.Fatalf("expected provider submit with explicit speech model")
+	}
+	if out.VoiceRouteBinding == nil || out.VoiceRouteBinding.Status != "bound" {
+		t.Fatalf("expected bound voice route, got %+v", out.VoiceRouteBinding)
+	}
+
+	ai = &fakeVoiceLipsyncScenarioExecutor{
+		jobID:         "job-service-voice-anchor-bound",
+		modelResolved: "speech/anchor-ready",
+		artifact:      &runtimev1.ScenarioArtifact{ArtifactId: "artifact-service-voice-anchor-bound", MimeType: "audio/wav"},
+	}
+	svc.SetVoiceLipsyncScenarioExecutor(ai, "", runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED)
+	out, err = svc.voiceLipsync.synthesize(voiceLipsyncSynthesisInput{
+		Context:               context.Background(),
+		TurnID:                "turn-service-anchor-bound",
+		MessageID:             "message-service-anchor-bound",
+		Text:                  "Anchor speech route may bind provider audio without a service default model.",
+		DefaultVoiceReference: "preset_voice_id:zh_narrator",
+		SpeechModelID:         "speech/anchor",
+		SpeechRoutePolicy:     runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+	})
+	if err != nil {
+		t.Fatalf("synthesize anchor provider: %v", err)
+	}
+	if ai.submitReq == nil {
+		t.Fatalf("expected provider submit with anchor speech model")
+	}
+	if got := ai.submitReq.GetHead().GetModelId(); got != "speech/anchor" {
+		t.Fatalf("anchor model id = %q", got)
+	}
+	if got := ai.submitReq.GetHead().GetRoutePolicy(); got != runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD {
+		t.Fatalf("anchor route policy = %v", got)
+	}
+	if out.VoiceRouteBinding == nil || out.VoiceRouteBinding.ModelID != "speech/anchor" {
+		t.Fatalf("expected anchor model route binding, got %+v", out.VoiceRouteBinding)
+	}
+}
+
+type fakeVoiceLipsyncScenarioExecutor struct {
+	submitReq     *runtimev1.SubmitScenarioJobRequest
+	jobID         string
+	modelResolved string
+	artifact      *runtimev1.ScenarioArtifact
+}
+
+func (f *fakeVoiceLipsyncScenarioExecutor) SubmitScenarioJob(_ context.Context, req *runtimev1.SubmitScenarioJobRequest) (*runtimev1.SubmitScenarioJobResponse, error) {
+	f.submitReq = req
+	return &runtimev1.SubmitScenarioJobResponse{
+		Job: &runtimev1.ScenarioJob{
+			JobId:         f.jobID,
+			Status:        runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED,
+			ModelResolved: f.modelResolved,
+		},
+	}, nil
+}
+
+func (f *fakeVoiceLipsyncScenarioExecutor) GetScenarioJob(context.Context, *runtimev1.GetScenarioJobRequest) (*runtimev1.GetScenarioJobResponse, error) {
+	return &runtimev1.GetScenarioJobResponse{
+		Job: &runtimev1.ScenarioJob{
+			JobId:         f.jobID,
+			Status:        runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED,
+			ModelResolved: f.modelResolved,
+		},
+	}, nil
+}
+
+func (f *fakeVoiceLipsyncScenarioExecutor) GetScenarioArtifacts(context.Context, *runtimev1.GetScenarioArtifactsRequest) (*runtimev1.GetScenarioArtifactsResponse, error) {
+	return &runtimev1.GetScenarioArtifactsResponse{
+		JobId:     f.jobID,
+		Artifacts: []*runtimev1.ScenarioArtifact{f.artifact},
+	}, nil
+}
+
+func TestAIBackedVoiceLipsyncSynthesizerFallsBackWithoutModel(t *testing.T) {
+	t.Parallel()
+	ai := &fakeVoiceLipsyncScenarioExecutor{jobID: "job-unused"}
+	synth := newAIBackedVoiceLipsyncSynthesizer(ai, " ", runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL, nil)
+	out, err := synth.synthesize(voiceLipsyncSynthesisInput{
+		TurnID:    "turn-fallback",
+		MessageID: "message-fallback",
+		Text:      "No speech model means no provider route.",
+	})
+	if err != nil {
+		t.Fatalf("synthesize fallback: %v", err)
+	}
+	if ai.submitReq != nil {
+		t.Fatalf("did not expect provider submit without explicit model")
+	}
+	if !strings.HasPrefix(out.AudioArtifactID, syntheticVoiceArtifactScheme+"/") {
+		t.Fatalf("expected synthetic fallback artifact, got %q", out.AudioArtifactID)
+	}
+}
+
+func TestProviderVoiceRouteBindingProjectsTimelineDetail(t *testing.T) {
+	t.Parallel()
+	binding := providerVoiceRouteBinding(
+		"preset_voice_id:zh_narrator",
+		"speech/qwen3tts",
+		"speech/qwen3tts-ready",
+		"job-voice-001",
+		"artifact-provider-voice-001",
+		"audio/wav",
+	)
+	detail, err := publicChatBuildVoicePlaybackDetail(publicChatVoicePlaybackProjection{
+		AudioArtifactID:       "artifact-provider-voice-001",
+		AudioMimeType:         "audio/wav",
+		DurationMs:            int64(time.Second / time.Millisecond),
+		PlaybackState:         "requested",
+		DefaultVoiceReference: "preset_voice_id:zh_narrator",
+		VoiceRouteBinding:     binding,
+	})
+	if err != nil {
+		t.Fatalf("build voice playback detail: %v", err)
+	}
+	projected, ok := detail["voice_route_binding"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected voice_route_binding detail, got %v", detail)
+	}
+	if got := strings.TrimSpace(projected["status"].(string)); got != "bound" {
+		t.Fatalf("status = %q", got)
+	}
+	if got := strings.TrimSpace(projected["model_resolved"].(string)); got != "speech/qwen3tts-ready" {
+		t.Fatalf("model_resolved = %q", got)
+	}
+	if got := strings.TrimSpace(projected["scenario_job_id"].(string)); got != "job-voice-001" {
+		t.Fatalf("scenario_job_id = %q", got)
 	}
 }

@@ -15,12 +15,14 @@ const (
 )
 
 type publicChatVoicePlaybackProjection struct {
-	AudioArtifactID  string
-	AudioMimeType    string
-	DurationMs       int64
-	DeadlineOffsetMs int64
-	PlaybackState    string
-	Reason           string
+	AudioArtifactID       string
+	AudioMimeType         string
+	DurationMs            int64
+	DeadlineOffsetMs      int64
+	PlaybackState         string
+	Reason                string
+	DefaultVoiceReference string
+	VoiceRouteBinding     *voiceRouteBindingProjection
 }
 
 type publicChatLipsyncFrameProjection struct {
@@ -65,7 +67,60 @@ func publicChatBuildVoicePlaybackDetail(input publicChatVoicePlaybackProjection)
 	if reason := strings.TrimSpace(input.Reason); reason != "" {
 		detail["reason"] = reason
 	}
+	if voiceRef := strings.TrimSpace(input.DefaultVoiceReference); voiceRef != "" {
+		detail["default_voice_reference"] = voiceRef
+	}
+	if binding := publicChatVoiceRouteBindingDetail(input.VoiceRouteBinding); binding != nil {
+		detail["voice_route_binding"] = binding
+	}
 	return detail, nil
+}
+
+func publicChatVoiceRouteBindingDetail(binding *voiceRouteBindingProjection) map[string]any {
+	if binding == nil {
+		return nil
+	}
+	detail := map[string]any{}
+	if value := strings.TrimSpace(binding.Capability); value != "" {
+		detail["capability"] = value
+	}
+	if value := strings.TrimSpace(binding.DefaultVoiceReference); value != "" {
+		detail["default_voice_reference"] = value
+	}
+	if value := strings.TrimSpace(binding.VoiceReferenceKind); value != "" {
+		detail["voice_reference_kind"] = value
+	}
+	if value := strings.TrimSpace(binding.VoiceReferenceValue); value != "" {
+		detail["voice_reference_value"] = value
+	}
+	if value := strings.TrimSpace(binding.ModelID); value != "" {
+		detail["model_id"] = value
+	}
+	if value := strings.TrimSpace(binding.ModelResolved); value != "" {
+		detail["model_resolved"] = value
+	}
+	if value := strings.TrimSpace(binding.ScenarioJobID); value != "" {
+		detail["scenario_job_id"] = value
+	}
+	if value := strings.TrimSpace(binding.AudioArtifactID); value != "" {
+		detail["bound_audio_artifact_id"] = value
+	}
+	if value := strings.TrimSpace(binding.AudioMimeType); value != "" {
+		detail["bound_audio_mime_type"] = value
+	}
+	if value := strings.TrimSpace(binding.SynthesisMode); value != "" {
+		detail["synthesis_mode"] = value
+	}
+	if value := strings.TrimSpace(binding.Status); value != "" {
+		detail["status"] = value
+	}
+	if value := strings.TrimSpace(binding.Reason); value != "" {
+		detail["reason"] = value
+	}
+	if len(detail) == 0 {
+		return nil
+	}
+	return detail
 }
 
 func publicChatBuildLipsyncFrameBatchDetail(input publicChatLipsyncFrameBatchProjection) (map[string]any, error) {

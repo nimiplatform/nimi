@@ -97,6 +97,9 @@ test('runtime agent client composes RuntimeAgentService and reserved turn seam a
   await client.sendTurn({
     ...identity,
     conversationAnchorId: 'anchor-1',
+    executionBindings: {
+      'text.generate': { route: 'local', modelId: 'local-model' },
+    },
     messages: [{ role: 'user', content: 'hello' }],
   });
   await client.queryMemory({ ...identity, query: 'hello', limit: 3 });

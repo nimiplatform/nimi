@@ -568,6 +568,21 @@ test('Runtime Agent consume app-message projection covers state hook presentatio
       audio_artifact_id: 'artifact-1',
       audio_mime_type: 'audio/wav',
       playback_state: 'queued',
+      default_voice_reference: 'preset_voice_id:zh_narrator',
+      voice_route_binding: {
+        capability: 'audio.synthesize',
+        default_voice_reference: 'preset_voice_id:zh_narrator',
+        voice_reference_kind: 'preset_voice_id',
+        voice_reference_value: 'zh_narrator',
+        model_id: 'speech/qwen3tts',
+        model_resolved: 'speech/qwen3tts-ready',
+        scenario_job_id: 'job-voice-1',
+        bound_audio_artifact_id: 'artifact-voice-provider-1',
+        bound_audio_mime_type: 'audio/wav',
+        synthesis_mode: 'provider_audio_with_synthetic_lipsync',
+        status: 'bound',
+        reason: 'tts_provider_route_bound',
+      },
       duration_ms: '1200',
       deadline_offset_ms: 300,
       runtime_timeline: {
@@ -592,6 +607,20 @@ test('Runtime Agent consume app-message projection covers state hook presentatio
   assert.equal(hook?.eventName, 'runtime.agent.hook.pending');
   assert.deepEqual(hook?.detail.triggerDetail, { tool: 'search' });
   assert.equal(voice?.detail.audioArtifactId, 'artifact-1');
+  assert.deepEqual(voice?.detail.voiceRouteBinding, {
+    capability: 'audio.synthesize',
+    defaultVoiceReference: 'preset_voice_id:zh_narrator',
+    voiceReferenceKind: 'preset_voice_id',
+    voiceReferenceValue: 'zh_narrator',
+    modelId: 'speech/qwen3tts',
+    modelResolved: 'speech/qwen3tts-ready',
+    scenarioJobId: 'job-voice-1',
+    boundAudioArtifactId: 'artifact-voice-provider-1',
+    boundAudioMimeType: 'audio/wav',
+    synthesisMode: 'provider_audio_with_synthetic_lipsync',
+    status: 'bound',
+    reason: 'tts_provider_route_bound',
+  });
   assert.equal(voice?.timeline?.channel, 'voice');
   assert.equal(projectNimiRuntimeAgentAppMessageEvent({
     eventType: 0,

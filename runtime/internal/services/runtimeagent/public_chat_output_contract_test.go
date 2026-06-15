@@ -58,6 +58,12 @@ func TestAIBackedPublicChatTurnExecutorAddsAPMLOutputContract(t *testing.T) {
 	if !strings.Contains(prompt, "ext:grateful") || !strings.Contains(prompt, "thinking") {
 		t.Fatalf("expected APML activity choices to be projected from admitted runtime activities, got %q", prompt)
 	}
+	if !strings.Contains(prompt, "If the user asks to create, draw, generate, send, or show an image") {
+		t.Fatalf("expected APML image intent routing rule in system prompt, got %q", prompt)
+	}
+	if !strings.Contains(prompt, "agent photo/avatar/selfie request") {
+		t.Fatalf("expected APML agent portrait image rule in system prompt, got %q", prompt)
+	}
 	if strings.Index(prompt, "You are Alpha.") > strings.Index(prompt, "Return APML only") {
 		t.Fatalf("expected APML contract to follow base prompt for recency, got %q", prompt)
 	}

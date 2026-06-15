@@ -44,17 +44,35 @@ test('Runtime Agent turn helpers build explicit payloads and fail closed on inva
       { role: 'user' as const, content: 'hello', name: 'Human' },
       { role: 'assistant' as const, content: '' },
     ],
-    executionBinding: { route: 'local' as const, modelId: 'local-model', connectorId: 'local-connector' },
+    executionBindings: {
+      'text.generate': { route: 'local' as const, modelId: 'local-model', connectorId: 'local-connector' },
+      'image.generate': { route: 'local' as const, modelId: 'image-model' },
+    },
+    executionParams: {
+      'image.generate': { size: '512x512', steps: 15 },
+    },
     reasoning: { mode: 'visible', traceMode: 'summary', budgetTokens: 32 },
   };
   const payload = buildNimiRuntimeAgentTurnPayload(baseTurn);
   assert.equal(payload.local_agent_ref, 'local-agent:user-1:agent-1');
   assert.equal(payload.conversation_anchor_id, 'anchor-1');
   assert.deepEqual(payload.messages, [{ role: 'user', content: 'hello', name: 'Human' }]);
-  assert.deepEqual(payload.execution_binding, {
-    route: 'local',
-    model_id: 'local-model',
-    connector_id: 'local-connector',
+  assert.deepEqual(payload.execution_bindings, {
+    'text.generate': {
+      route: 'local',
+      model_id: 'local-model',
+      connector_id: 'local-connector',
+    },
+    'image.generate': {
+      route: 'local',
+      model_id: 'image-model',
+    },
+  });
+  assert.deepEqual(payload.execution_params, {
+    'image.generate': {
+      size: '512x512',
+      steps: 15,
+    },
   });
   assert.deepEqual(payload.reasoning, {
     mode: 'visible',
@@ -69,7 +87,9 @@ test('Runtime Agent turn helpers build explicit payloads and fail closed on inva
   assert.throws(
     () => buildNimiRuntimeAgentTurnPayload({
       ...baseTurn,
-      executionBinding: { route: 'edge' as never, modelId: 'model' },
+      executionBindings: {
+        'text.generate': { route: 'edge' as never, modelId: 'model' },
+      },
     }),
     /route must be local or cloud/,
   );

@@ -95,7 +95,7 @@ export interface NimiRuntimeAgentSessionSnapshot {
   readonly sessionStatus?: string;
   readonly transcriptMessageCount?: number;
   readonly transcript?: NimiRuntimeAgentSessionTranscriptMessage[];
-  readonly executionBinding?: JsonObject;
+  readonly executionBindings?: JsonObject;
   readonly activeTurn?: NimiRuntimeAgentSessionTurnSnapshot;
   readonly lastTurn?: NimiRuntimeAgentSessionTurnSnapshot;
   readonly pendingFollowUp?: JsonObject;
@@ -125,6 +125,11 @@ export interface NimiRuntimeAgentTurnConsumeEvent extends NimiRuntimeAgentBaseCo
     | 'runtime.agent.turn.text_delta'
     | 'runtime.agent.turn.structured'
     | 'runtime.agent.turn.message_committed'
+    | 'runtime.agent.turn.action_planned'
+    | 'runtime.agent.turn.action_started'
+    | 'runtime.agent.turn.artifact_ready'
+    | 'runtime.agent.turn.action_completed'
+    | 'runtime.agent.turn.action_failed'
     | 'runtime.agent.turn.post_turn'
     | 'runtime.agent.turn.completed'
     | 'runtime.agent.turn.failed'

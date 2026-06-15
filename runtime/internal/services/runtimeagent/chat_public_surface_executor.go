@@ -36,9 +36,12 @@ const publicChatAPMLOutputContractPromptTemplate = `Runtime output contract:
 - Return APML only. The first non-whitespace characters must be <message id="message-0">.
 - Do not output Markdown, JSON, code fences, prose before APML, or <think> reasoning tags.
 - Required shape: <message id="message-0">assistant-visible reply text</message>.
-- Optional message cues, at most one each: <emotion>%s</emotion> and <activity>%s</activity>.
+- Optional message cues are child elements inside <message>, at most one each: <emotion>%s</emotion> and <activity>%s</activity>.
 - Optional image/voice action after message: <action id="action-0" kind="image"><prompt-payload kind="image"><prompt-text>generation prompt</prompt-text></prompt-payload></action> or kind="voice".
+- If the user asks to create, draw, generate, send, or show an image, photo, picture, avatar, selfie, or visual, include exactly one sibling <action kind="image"> after the message.
+- For an agent photo/avatar/selfie request, do not answer that you lack a physical body as a reason to skip the action; create a representative or stylized visual prompt for the agent instead.
 - Optional follow-up hook after message: <time-hook id="hook-0"><delay-ms>600000</delay-ms><effect kind="follow-up-turn"><prompt-text>follow-up instruction</prompt-text></effect></time-hook>.
+- Top-level tags are limited to the first <message>, then optional sibling <action>, <time-hook>, or <event-hook>.
 - Every opened tag must close.`
 
 func publicChatAPMLOutputContractPrompt() string {

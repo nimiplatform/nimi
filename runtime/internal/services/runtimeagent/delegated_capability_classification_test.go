@@ -11,8 +11,8 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/nimiplatform/nimi/runtime/internal/services/delegation"
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/services/delegation"
 )
 
 func TestDeriveDelegatedToolClassificationFromDeclaredDescriptor(t *testing.T) {

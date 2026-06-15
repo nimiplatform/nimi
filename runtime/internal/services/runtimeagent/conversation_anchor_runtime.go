@@ -63,6 +63,7 @@ func (s *Service) OpenConversationAnchor(_ context.Context, req *runtimev1.OpenC
 		LocalAgentRef:        localAgentRef,
 		CallerAppID:          callerAppID,
 		SubjectUserID:        subjectUserID,
+		SystemPrompt:         publicChatAnchorSystemPromptFromMetadata(metadata),
 		Status:               runtimev1.ConversationAnchorStatus_CONVERSATION_ANCHOR_STATUS_ACTIVE,
 		CreatedAt:            now,
 		UpdatedAt:            now,

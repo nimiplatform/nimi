@@ -264,6 +264,14 @@ func TestParsePublicChatAPMLOutputRejectsWrappersAndXMLControls(t *testing.T) {
 			wantErr: "APML beginning with <message>",
 		},
 		{
+			raw:     `<emotion>joy</emotion><message id="m1">hello</message>`,
+			wantErr: "APML beginning with <message>",
+		},
+		{
+			raw:     `<message id="m1">hello</message><emotion>joy</emotion>`,
+			wantErr: "unsupported APML top-level tag <emotion>",
+		},
+		{
 			raw:     `<message id="m1">hello</message><!-- hidden -->`,
 			wantErr: "must not contain comments",
 		},
