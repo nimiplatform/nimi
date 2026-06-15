@@ -1,4 +1,4 @@
-import type { TauriOAuthBridge } from '@nimiplatform/kit/core/oauth';
+import type { TauriOAuthCodeBridge } from '@nimiplatform/kit/core/oauth';
 import { DESKTOP_CALLBACK_TIMEOUT_MS } from './oauth-helpers.js';
 import { createDesktopCallbackRedirectUri } from './desktop-callback-helpers.js';
 import { AUTH_COPY } from './auth-copy.js';
@@ -68,7 +68,7 @@ export function validateRuntimeOAuthAuthorizationUrl(value: unknown): string {
  * stage of this flow.
  */
 export async function performDesktopWebAuth(
-  bridge: TauriOAuthBridge,
+  bridge: TauriOAuthCodeBridge,
   options: {
     timeoutMs?: number;
     onOpened?: () => void;

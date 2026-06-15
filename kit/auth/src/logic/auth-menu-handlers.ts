@@ -201,6 +201,9 @@ export async function handleSocialLogin(
   setters.setLoginError(null);
   setters.setPending(true);
   try {
+    if (!adapter.oauthBridge) {
+      throw new Error(AUTH_COPY.socialOauthBridgeMissing);
+    }
     const oauthResult = await startSocialOauth(provider, adapter.oauthBridge);
     const result = await adapter.oauthLogin(
       oauthResult.provider,

@@ -108,13 +108,20 @@ export function parseOpenExternalUrlResult(value: unknown): OpenExternalUrlResul
 }
 
 // ---------------------------------------------------------------------------
-// TauriOAuthBridge — injection point for platform-specific Tauri invoke
+// OAuth bridge injection points.
+//
+// Desktop browser auth only needs a code callback listener plus window
+// orchestration. Token exchange is a separate social-OAuth capability and must
+// not be required by RuntimeAccountService desktop login consumers.
 // ---------------------------------------------------------------------------
 
-export type TauriOAuthBridge = {
+export type TauriOAuthCodeBridge = {
   hasTauriInvoke: () => boolean;
   oauthListenForCode: (payload: OauthListenForCodePayload) => Promise<OauthListenForCodeResult>;
-  oauthTokenExchange: (payload: OauthTokenExchangePayload) => Promise<OauthTokenExchangeResult>;
   openExternalUrl: (url: string) => Promise<{ opened: boolean }>;
   focusMainWindow: () => Promise<void>;
+};
+
+export type TauriOAuthBridge = TauriOAuthCodeBridge & {
+  oauthTokenExchange: (payload: OauthTokenExchangePayload) => Promise<OauthTokenExchangeResult>;
 };

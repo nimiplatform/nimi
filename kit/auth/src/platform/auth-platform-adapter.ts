@@ -43,8 +43,9 @@ export type AuthPlatformAdapter = {
     user?: Record<string, unknown> | null;
   }>;
 
-  // OAuth bridge (reuses shell-core TauriOAuthBridge)
-  oauthBridge: TauriOAuthBridge;
+  // Social OAuth token-exchange bridge. Desktop-browser RuntimeAccountService
+  // login does not require or own this capability.
+  oauthBridge?: TauriOAuthBridge;
 
   // Data sync side effects (Desktop: loadChats/loadContacts; Relay: no-op)
   syncAfterLogin?: () => Promise<void>;

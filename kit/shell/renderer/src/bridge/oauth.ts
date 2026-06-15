@@ -4,6 +4,7 @@ import {
   parseOauthTokenExchangeResult,
   parseOauthListenForCodeResult,
   type TauriOAuthBridge,
+  type TauriOAuthCodeBridge,
   type OauthTokenExchangePayload,
   type OauthTokenExchangeResult,
   type OauthListenForCodePayload,
@@ -36,12 +37,18 @@ export async function oauthListenForCode(
   }, parseOauthListenForCodeResult);
 }
 
-export function createTauriOAuthBridge(): TauriOAuthBridge {
+export function createTauriOAuthCodeBridge(): TauriOAuthCodeBridge {
   return {
     hasTauriInvoke,
     oauthListenForCode,
-    oauthTokenExchange,
     openExternalUrl: async (url: string) => openExternalUrl(url),
     focusMainWindow,
+  };
+}
+
+export function createTauriOAuthBridge(): TauriOAuthBridge {
+  return {
+    ...createTauriOAuthCodeBridge(),
+    oauthTokenExchange,
   };
 }

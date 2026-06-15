@@ -38,6 +38,7 @@ export {
 export {
   oauthTokenExchange,
   oauthListenForCode,
+  createTauriOAuthCodeBridge,
   createTauriOAuthBridge,
 } from './oauth.js';
 export {

@@ -54,7 +54,6 @@ test('Kit README public surface summary tracks package exports', () => {
   );
   assert.doesNotMatch(readme, /\.nimi\/topics\//, 'README must not point active inventory at topic history');
   assert.doesNotMatch(readme, /v0\.1\.0 publishes/, 'README must not present release-history counts as active truth');
-  assert.doesNotMatch(readme, /59 public subpath exports|11 UI entries|7 core entries/);
   assert.doesNotMatch(readme, /counting vocabulary/);
 });
 

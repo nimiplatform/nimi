@@ -78,9 +78,6 @@ describe('performDesktopWebAuth direct-to-loopback flow', () => {
           state: callbackResponse.state || '',
           error: callbackResponse.error || '',
         }),
-        oauthTokenExchange: async () => {
-          throw new Error('runtime exchanges via /api/auth/oauth/token, not via kit bridge');
-        },
         focusMainWindow: async () => undefined,
       },
       opens,

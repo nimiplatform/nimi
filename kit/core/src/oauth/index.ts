@@ -9,6 +9,7 @@ export type {
   OauthListenForCodePayload,
   OauthListenForCodeResult,
   OpenExternalUrlResult,
+  TauriOAuthCodeBridge,
   TauriOAuthBridge,
 } from './oauth-types.js';
 export {

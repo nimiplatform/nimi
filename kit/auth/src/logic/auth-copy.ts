@@ -15,6 +15,7 @@ export const AUTH_COPY = {
   desktopBrowserCodeMissing: '网页登录回调缺少 OAuth 授权码',
   desktopBrowserAuthorizationUrlMissing: 'Runtime 未返回 OAuth 授权 URL，无法启动桌面登录',
   desktopBrowserRuntimeBrokerMissing: '桌面登录未配置 RuntimeAccountService broker，无法继续',
+  socialOauthBridgeMissing: '当前环境未配置社交网页登录桥接能力',
   emailRequired: '请输入邮箱',
   emailInvalid: '请输入有效的邮箱地址',
   emailAndPasswordRequired: '请输入邮箱和密码',
