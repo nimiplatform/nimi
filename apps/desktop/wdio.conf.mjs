@@ -50,6 +50,19 @@ async function collectRendererErrors() {
   }
 }
 
+function loadArtifactPolicy() {
+  const manifestPath = String(process.env.NIMI_E2E_ARTIFACT_MANIFEST || '').trim();
+  if (!manifestPath) {
+    return {};
+  }
+  try {
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+    return manifest && typeof manifest.artifact_policy === 'object' ? manifest.artifact_policy : {};
+  } catch {
+    return {};
+  }
+}
+
 export const config = {
   runner: 'local',
   specs: ['e2e/specs/**/*.e2e.mjs'],
@@ -105,9 +118,10 @@ export const config = {
       }
     }
 
+    let browserLogs = [];
     try {
-      const logs = await browser.getLogs('browser');
-      const rendered = logs
+      browserLogs = await browser.getLogs('browser');
+      const rendered = browserLogs
         .map((entry) => `[${entry.level}] ${entry.message}`)
         .join('\n');
       fs.writeFileSync(consolePath, rendered, 'utf8');
@@ -119,6 +133,11 @@ export const config = {
     fs.writeFileSync(rendererErrorPath, `${JSON.stringify(rendererErrors, null, 2)}\n`, 'utf8');
     if (rendererErrors.length > 0) {
       throw new Error(`renderer console/page errors detected: ${rendererErrors.map((item) => `${item.kind}:${item.message}`).join(' | ')}`);
+    }
+    const artifactPolicy = loadArtifactPolicy();
+    const severeBrowserLogs = browserLogs.filter((entry) => String(entry.level || '').toUpperCase() === 'SEVERE');
+    if (artifactPolicy.failOnConsoleError === true && severeBrowserLogs.length > 0) {
+      throw new Error(`browser severe logs detected: ${severeBrowserLogs.map((entry) => String(entry.message || '')).join(' | ')}`);
     }
   },
 };

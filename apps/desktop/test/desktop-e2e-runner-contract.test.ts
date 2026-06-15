@@ -129,6 +129,15 @@ test('desktop E2E runner launches WDIO from the desktop package dependency conte
   assert.match(wdioConfigSource, /specs:\s*\['e2e\/specs\/\*\*\/\*\.e2e\.mjs'\]/);
 });
 
+test('desktop E2E failOnConsoleError treats browser severe logs as failures', () => {
+  assert.match(wdioConfigSource, /function loadArtifactPolicy\(\)/);
+  assert.match(wdioConfigSource, /process\.env\.NIMI_E2E_ARTIFACT_MANIFEST/);
+  assert.match(wdioConfigSource, /browserLogs = await browser\.getLogs\('browser'\)/);
+  assert.match(wdioConfigSource, /String\(entry\.level \|\| ''\)\.toUpperCase\(\) === 'SEVERE'/);
+  assert.match(wdioConfigSource, /artifactPolicy\.failOnConsoleError === true/);
+  assert.match(wdioConfigSource, /browser severe logs detected/);
+});
+
 test('authenticated desktop boot smoke fails closed on missing account projection', () => {
   assert.match(authenticatedBootSpecSource, /E2E_IDS\.shellSidebarRail/);
   assert.match(authenticatedBootSpecSource, /E2E_IDS\.navTab\('home'\)/);
