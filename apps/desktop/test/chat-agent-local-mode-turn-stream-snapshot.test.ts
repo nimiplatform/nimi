@@ -133,6 +133,8 @@ test('agent runtime turn recovers terminal projection from authoritative runtime
       userText: 'hello snapshot',
       reasoningPreference: 'off',
       textExecutionSnapshot: executionSnapshot,
+      imageExecutionSnapshot: null,
+      imageParams: null,
       signal: new AbortController().signal,
     });
     const parts: Array<{
@@ -286,6 +288,8 @@ test('agent runtime turn binds current active turn from snapshot when accepted e
       userText: 'hello active bind',
       reasoningPreference: 'off',
       textExecutionSnapshot: executionSnapshot,
+      imageExecutionSnapshot: null,
+      imageParams: null,
       signal: new AbortController().signal,
     });
     const parts: Array<{
@@ -513,6 +517,8 @@ test('agent runtime turn consumes runtime-owned projection events from anchor ap
       userText: 'hello projection',
       reasoningPreference: 'off',
       textExecutionSnapshot: executionSnapshot,
+      imageExecutionSnapshot: null,
+      imageParams: null,
       signal: new AbortController().signal,
     });
     const parts: Array<{

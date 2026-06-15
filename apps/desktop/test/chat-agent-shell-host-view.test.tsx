@@ -66,6 +66,8 @@ test('agent host view resolves availability badge and selected target id from sh
   assert.equal(hostView.selectedTargetId, 'agent-1');
   assert.equal(hostView.transcriptProps?.footerContent, null);
   assert.equal(hostView.stagePanelProps?.footerContent, null);
+  assert.equal(hostView.transcriptProps?.disableRpContent, true);
+  assert.equal(hostView.stagePanelProps?.disableRpContent, true);
 });
 
 test('agent host view renders streaming footer and propagates pendingFirstBeat to transcript and stage props', () => {

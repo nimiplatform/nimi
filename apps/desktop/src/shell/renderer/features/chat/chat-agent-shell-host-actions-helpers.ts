@@ -12,11 +12,13 @@ import {
   getDesktopHostRuntimeAgentClient,
   getDesktopRealm,
   getDesktopRuntime,
+  withDesktopRuntimeProtectedScopes,
 } from '@renderer/infra/sdk/desktop-nimi-client-session';
 import type {
   AgentLocalTargetSnapshot,
   AgentLocalThreadRecord,
   AgentLocalThreadSummary,
+  JsonObject,
 } from '@renderer/bridge/runtime-bridge/types';
 import {
   resolveNimiAIConfigRuntimeSchedulingTargetForCapability,
@@ -73,6 +75,63 @@ function isRecoverableRuntimeAnchorError(error: unknown): boolean {
     || message.includes('conversation anchor agent_id mismatch');
 }
 
+export function buildAgentConversationAnchorMetadata(target: AgentLocalTargetSnapshot): JsonObject {
+  const realmProfileContext: JsonObject = {
+    displayName: normalizeText(target.displayName),
+    handle: normalizeText(target.handle),
+    realmAgentId: normalizeText(target.realmAgentId),
+    localAgentRef: normalizeText(target.localAgentRef),
+  };
+  const optionalFields: Array<[string, string | null | undefined]> = [
+    ['avatarUrl', target.avatarUrl],
+    ['defaultVoiceReference', target.defaultVoiceReference],
+    ['worldId', target.worldId],
+    ['worldName', target.worldName],
+    ['description', target.bio],
+    ['greeting', target.greeting],
+    ['ownershipType', target.ownershipType],
+  ];
+  for (const [key, value] of optionalFields) {
+    const normalized = normalizeText(value);
+    if (normalized) {
+      realmProfileContext[key] = normalized;
+    }
+  }
+  const speechSynthesis = target.speechSynthesis ?? null;
+  if (speechSynthesis) {
+    const speechModelId = normalizeText(speechSynthesis.modelId);
+    const speechRoutePolicy = normalizeText(speechSynthesis.routePolicy);
+    if (speechModelId && (speechRoutePolicy === 'local' || speechRoutePolicy === 'cloud')) {
+      realmProfileContext.speechModelId = speechModelId;
+      realmProfileContext.speechRoutePolicy = speechRoutePolicy;
+    }
+  }
+  if (target.ownershipType === 'WORLD_OWNED' && normalizeText(target.worldId).startsWith('cbdb-')) {
+    realmProfileContext.ownerScope = 'cbdb-curated-system';
+    realmProfileContext.sourceProfile = 'cbdb-historical';
+  }
+  const ownerSettingsProjection = target.ownerSettingsProjection ?? null;
+  if (ownerSettingsProjection) {
+    if (typeof ownerSettingsProjection.agentRuleVersion === 'number') {
+      realmProfileContext.agentRuleVersion = ownerSettingsProjection.agentRuleVersion;
+    }
+    const communicationStyle = normalizeText(ownerSettingsProjection.communicationStyle);
+    if (communicationStyle) {
+      realmProfileContext.communicationStyle = communicationStyle;
+    }
+    const selectedFields = ownerSettingsProjection.selectedOwnerSettingFields
+      .map((field) => normalizeText(field))
+      .filter(Boolean);
+    if (selectedFields.length > 0) {
+      realmProfileContext.selectedOwnerSettingFields = selectedFields;
+    }
+  }
+  return {
+    surface: 'desktop-agent-chat',
+    realmProfileContext,
+  };
+}
+
 async function syncRuntimePresentationProfile(input: {
   target: AgentLocalTargetSnapshot;
   context: {
@@ -95,6 +154,7 @@ async function syncRuntimePresentationProfile(input: {
   const surface = createNimiHostRuntimeAgentPresentationProfileSurface({
     getRuntime: () => runtime,
     getSubjectUserId: () => input.context.subjectUserId,
+    withScopes: withDesktopRuntimeProtectedScopes,
   });
   await surface.setPresentationProfile(input.target.localAgentRef, profile);
 }
@@ -112,6 +172,7 @@ export async function ensureRuntimeAgentExists(target: AgentLocalTargetSnapshot)
   const lifecycleSurface = createNimiHostRuntimeAgentLifecycleSurface({
     getRuntime: () => runtime,
     getSubjectUserId: () => subjectUserId,
+    withScopes: withDesktopRuntimeProtectedScopes,
   });
   await lifecycleSurface.ensureLocalAgentInitialized({
     localAgentRef: target.localAgentRef,
@@ -153,9 +214,7 @@ async function openConversationAnchorForTarget(
     localAgentRef: target.localAgentRef,
     ownerUserId: target.ownerUserId,
     realmAgentId: target.realmAgentId,
-    metadata: {
-      surface: 'desktop-agent-chat',
-    },
+    metadata: buildAgentConversationAnchorMetadata(target),
   }).catch((error) => {
     const normalized = normalizeRuntimeError(error, 'open_runtime_agent_anchor');
     const reasonCode = normalizeText(normalized.reasonCode) || 'RUNTIME_CALL_FAILED';

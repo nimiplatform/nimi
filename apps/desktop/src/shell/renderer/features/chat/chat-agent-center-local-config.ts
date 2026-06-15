@@ -3,6 +3,9 @@ import type { AgentCenterAvatarAssetModule } from './chat-agent-center-avatar-co
 import { validateAvatarAssetModule } from './chat-agent-center-avatar-config-validation';
 import type {
   AgentCenterBackgroundAssetParseResult,
+  AgentCenterAvatarAssetImportParseResult,
+  AgentCenterAvatarAssetValidationParseResult,
+  AgentCenterAvatarAssetValidationStatus,
   AgentCenterBackgroundImportParseResult,
   AgentCenterBackgroundValidationParseResult,
   AgentCenterBackgroundValidationStatus,
@@ -30,6 +33,11 @@ export type {
 export type {
   AgentCenterBackgroundAssetParseResult,
   AgentCenterBackgroundAssetResult,
+  AgentCenterAvatarAssetImportParseResult,
+  AgentCenterAvatarAssetImportResult,
+  AgentCenterAvatarAssetValidationParseResult,
+  AgentCenterAvatarAssetValidationResult,
+  AgentCenterAvatarAssetValidationStatus,
   AgentCenterBackgroundImportParseResult,
   AgentCenterBackgroundImportResult,
   AgentCenterBackgroundValidationParseResult,
@@ -121,6 +129,16 @@ const BACKGROUND_VALIDATION_STATUS_VALUES = new Set([
   'permission_denied',
   'path_rejected',
   'unsupported_mime',
+  'asset_missing',
+  'digest_mismatch',
+]);
+const AVATAR_ASSET_VALIDATION_STATUS_VALUES = new Set([
+  'valid',
+  'invalid_manifest',
+  'missing_entry',
+  'permission_denied',
+  'path_rejected',
+  'unsupported_kind',
   'asset_missing',
   'digest_mismatch',
 ]);
@@ -379,6 +397,90 @@ export function validateAgentCenterLive2dAdapterManifestImportResult(
       sha256,
       bytes: root.bytes as number,
       imported_at: importedAt,
+    },
+  };
+}
+
+export function validateAgentCenterAvatarAssetValidationResult(
+  value: unknown,
+): AgentCenterAvatarAssetValidationParseResult {
+  const errors: string[] = [];
+  const root = requireRecord(value, 'avatarAssetValidationResult', errors);
+  if (!root) {
+    return { ok: false, errors };
+  }
+  collectUnknownKeys(root, ['schema_version', 'local_asset_id', 'checked_at', 'status', 'errors', 'warnings'], 'avatarAssetValidationResult', errors);
+  requireSchemaVersion(root, 'avatarAssetValidationResult', errors);
+  const localAssetId = validatePackageId(root.local_asset_id, 'avatarAssetValidationResult.local_asset_id', errors) || '';
+  const checkedAt = validateTimestamp(root.checked_at, 'avatarAssetValidationResult.checked_at', errors) || '';
+  const status = readString(root.status, 'avatarAssetValidationResult.status', errors);
+  if (status && !AVATAR_ASSET_VALIDATION_STATUS_VALUES.has(status)) {
+    errors.push('avatarAssetValidationResult.status: invalid status');
+  }
+  const resultErrors = validateValidationIssues(root.errors, 'avatarAssetValidationResult.errors', errors);
+  const warnings = validateValidationIssues(root.warnings, 'avatarAssetValidationResult.warnings', errors);
+  if (errors.length > 0) {
+    return { ok: false, errors };
+  }
+  return {
+    ok: true,
+    result: {
+      schema_version: 1,
+      local_asset_id: localAssetId,
+      checked_at: checkedAt,
+      status: status as AgentCenterAvatarAssetValidationStatus,
+      errors: resultErrors,
+      warnings,
+    },
+  };
+}
+
+export function validateAgentCenterAvatarAssetImportResult(
+  value: unknown,
+): AgentCenterAvatarAssetImportParseResult {
+  const errors: string[] = [];
+  const root = requireRecord(value, 'avatarAssetImportResult', errors);
+  if (!root) {
+    return { ok: false, errors };
+  }
+  collectUnknownKeys(root, [
+    'local_asset_id',
+    'backend_kind',
+    'selected',
+    'materialization_ref',
+    'backend_capability_profile_ref',
+    'validation',
+  ], 'avatarAssetImportResult', errors);
+  const localAssetId = validatePackageId(root.local_asset_id, 'avatarAssetImportResult.local_asset_id', errors) || '';
+  const backendKind = readString(root.backend_kind, 'avatarAssetImportResult.backend_kind', errors);
+  if (backendKind && backendKind !== 'live2d' && backendKind !== 'vrm') {
+    errors.push('avatarAssetImportResult.backend_kind: expected live2d or vrm');
+  }
+  if (localAssetId && backendKind && !localAssetId.startsWith(`${backendKind}_`)) {
+    errors.push('avatarAssetImportResult.local_asset_id: expected backend kind prefix');
+  }
+  if (typeof root.selected !== 'boolean') {
+    errors.push('avatarAssetImportResult.selected: expected boolean');
+  }
+  const materializationRef = readString(root.materialization_ref, 'avatarAssetImportResult.materialization_ref', errors) || '';
+  const backendCapabilityProfileRef = readString(root.backend_capability_profile_ref, 'avatarAssetImportResult.backend_capability_profile_ref', errors) || '';
+  const validation = validateAgentCenterAvatarAssetValidationResult(root.validation);
+  const validationResult = validation.ok ? validation.result : null;
+  if (!validation.ok) {
+    errors.push(...validation.errors.map((error) => `avatarAssetImportResult.validation.${error}`));
+  }
+  if (errors.length > 0 || !validationResult) {
+    return { ok: false, errors };
+  }
+  return {
+    ok: true,
+    result: {
+      local_asset_id: localAssetId,
+      backend_kind: backendKind as 'live2d' | 'vrm',
+      selected: root.selected as boolean,
+      materialization_ref: materializationRef,
+      backend_capability_profile_ref: backendCapabilityProfileRef,
+      validation: validationResult,
     },
   };
 }

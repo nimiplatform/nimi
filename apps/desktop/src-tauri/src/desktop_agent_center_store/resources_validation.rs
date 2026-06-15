@@ -36,6 +36,19 @@ pub(super) fn write_background_validation_sidecar(
         .map_err(|error| format!("failed to write background validation sidecar: {error}"))
 }
 
+pub(super) fn write_avatar_asset_validation_sidecar(
+    asset_dir: &Path,
+    result: &AgentCenterAvatarAssetValidationResult,
+) -> Result<(), String> {
+    if !asset_dir.exists() {
+        return Ok(());
+    }
+    let raw = serde_json::to_string_pretty(result)
+        .map_err(|error| format!("failed to serialize Avatar asset validation sidecar: {error}"))?;
+    fs::write(asset_dir.join(VALIDATION_FILE_NAME), raw)
+        .map_err(|error| format!("failed to write Avatar asset validation sidecar: {error}"))
+}
+
 pub(super) fn background_dir(
     account_id: &str,
     local_agent_ref: &str,
@@ -46,6 +59,37 @@ pub(super) fn background_dir(
         .join("appearance")
         .join("backgrounds")
         .join(background_asset_id))
+}
+
+pub(super) fn avatar_asset_dir(
+    account_id: &str,
+    local_agent_ref: &str,
+    kind: &str,
+    local_asset_id: &str,
+) -> Result<PathBuf, String> {
+    Ok(agent_center_dir(account_id, local_agent_ref)?
+        .join("modules")
+        .join("avatar_asset")
+        .join("packages")
+        .join(kind)
+        .join(local_asset_id))
+}
+
+pub(super) fn materialization_ref_for(
+    account_id: &str,
+    local_agent_ref: &str,
+    kind: &str,
+    local_asset_id: &str,
+) -> String {
+    format!(
+        "agent-center-avatar-asset:{}:{}:{kind}:{local_asset_id}",
+        local_scope_path_segment(account_id),
+        local_scope_path_segment(local_agent_ref),
+    )
+}
+
+pub(super) fn backend_capability_profile_ref_for(kind: &str, local_asset_id: &str) -> String {
+    format!("avatar.backend_profile:{kind}:{local_asset_id}:import_validated")
 }
 
 pub(super) fn live2d_adapter_manifest_dir(
@@ -222,6 +266,55 @@ pub(super) fn background_validation_result(
         errors,
         warnings,
     }
+}
+
+pub(super) fn avatar_asset_validation_result(
+    local_asset_id: &str,
+    status: AgentCenterAvatarAssetValidationStatus,
+    errors: Vec<AgentCenterValidationIssue>,
+    warnings: Vec<AgentCenterValidationIssue>,
+) -> AgentCenterAvatarAssetValidationResult {
+    AgentCenterAvatarAssetValidationResult {
+        schema_version: VALIDATION_SCHEMA_VERSION,
+        local_asset_id: local_asset_id.to_string(),
+        checked_at: checked_at(),
+        status,
+        errors,
+        warnings,
+    }
+}
+
+pub(super) fn status_for_avatar_asset_errors(
+    errors: &[AgentCenterValidationIssue],
+) -> AgentCenterAvatarAssetValidationStatus {
+    if errors
+        .iter()
+        .any(|entry| entry.code == "avatar_asset_missing")
+    {
+        return AgentCenterAvatarAssetValidationStatus::AssetMissing;
+    }
+    if errors.iter().any(|entry| entry.code == "path_rejected") {
+        return AgentCenterAvatarAssetValidationStatus::PathRejected;
+    }
+    if errors.iter().any(|entry| entry.code == "permission_denied") {
+        return AgentCenterAvatarAssetValidationStatus::PermissionDenied;
+    }
+    if errors.iter().any(|entry| entry.code == "unsupported_kind") {
+        return AgentCenterAvatarAssetValidationStatus::UnsupportedKind;
+    }
+    if errors
+        .iter()
+        .any(|entry| entry.code == "missing_required_file")
+    {
+        return AgentCenterAvatarAssetValidationStatus::MissingEntry;
+    }
+    if errors
+        .iter()
+        .any(|entry| entry.code == "content_digest_mismatch" || entry.code == "file_size_mismatch")
+    {
+        return AgentCenterAvatarAssetValidationStatus::DigestMismatch;
+    }
+    AgentCenterAvatarAssetValidationStatus::InvalidManifest
 }
 
 pub(super) fn status_for_background_errors(

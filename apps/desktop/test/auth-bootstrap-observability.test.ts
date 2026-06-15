@@ -53,15 +53,26 @@ test('desktop Realm transport refreshes Runtime account token once on Realm 401'
   assert.match(desktopSessionSource, /return input\.fetchImpl\(request, retryInit\);/);
 });
 
-test('desktop Runtime session carries protected ai spend access metadata for execution calls', () => {
+test('desktop Runtime session carries protected execution and Runtime Agent access metadata', () => {
   const desktopSessionSource = readFileSync(
     new URL('../src/shell/renderer/infra/sdk/desktop-nimi-client-session.ts', import.meta.url),
     'utf8',
   );
-  assert.match(desktopSessionSource, /DESKTOP_RUNTIME_PROTECTED_SCOPES = \['ai\.spend\.meter'\]/);
+  assert.match(desktopSessionSource, /'ai\.spend\.meter'/);
+  assert.match(desktopSessionSource, /'runtime\.agent\.admin'/);
+  assert.match(desktopSessionSource, /'runtime\.agent\.read'/);
+  assert.match(desktopSessionSource, /'runtime\.agent\.write'/);
+  assert.match(desktopSessionSource, /'runtime\.agent\.turn\.read'/);
+  assert.match(desktopSessionSource, /'runtime\.agent\.turn\.write'/);
+  assert.match(desktopSessionSource, /withDesktopRuntimeProtectedScopes/);
+  assert.match(desktopSessionSource, /assertDesktopProtectedScopes\(requestedScopes\)/);
   assert.match(desktopSessionSource, /capabilities: \[\.{3}DESKTOP_RUNTIME_PROTECTED_SCOPES\]/);
   assert.match(desktopSessionSource, /accountRuntime\.grants\.authorizeExternalPrincipal\(/);
   assert.match(desktopSessionSource, /scopeCatalogVersion: DESKTOP_RUNTIME_PROTECTED_SCOPE_CATALOG_VERSION/);
+  assert.match(desktopSessionSource, /DESKTOP_RUNTIME_PROTECTED_SCOPE_SIGNATURE = buildDesktopRuntimeProtectedScopeSignature\(\)/);
+  assert.match(desktopSessionSource, /consentVersion: DESKTOP_RUNTIME_PROTECTED_AUTHORIZATION_VERSION/);
+  assert.match(desktopSessionSource, /policyVersion: DESKTOP_RUNTIME_PROTECTED_AUTHORIZATION_VERSION/);
+  assert.match(desktopSessionSource, /createNimiClientId\(`desktop-runtime-protected-access-\$\{DESKTOP_RUNTIME_PROTECTED_SCOPE_SIGNATURE\}`\)/);
   assert.match(desktopSessionSource, /'x-nimi-access-token-id': tokenId/);
   assert.match(desktopSessionSource, /'x-nimi-access-token-secret': secret/);
   assert.match(desktopSessionSource, /\.\.\.appSessionMetadata,[\s\S]*\.\.\.protectedAccessMetadata/);

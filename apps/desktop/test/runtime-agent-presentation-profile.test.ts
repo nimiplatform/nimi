@@ -33,6 +33,9 @@ test('desktop runtime agent presentation adapter consumes SDK request projection
 test('runtime agent presentation profile admits only runtime backend kinds', () => {
   assert.equal(normalizeNimiRuntimeAgentPresentationBackendKind('vrm'), AgentPresentationBackendKind.VRM);
   assert.equal(normalizeNimiRuntimeAgentPresentationBackendKind('live2d'), AgentPresentationBackendKind.LIVE2D);
+  assert.equal(normalizeNimiRuntimeAgentPresentationBackendKind('sprite2d'), AgentPresentationBackendKind.SPRITE2D);
+  assert.equal(normalizeNimiRuntimeAgentPresentationBackendKind('canvas2d'), AgentPresentationBackendKind.CANVAS2D);
+  assert.equal(normalizeNimiRuntimeAgentPresentationBackendKind('video'), AgentPresentationBackendKind.VIDEO);
   assert.equal(normalizeNimiRuntimeAgentPresentationBackendKind('unknown' as 'vrm'), null);
 });
 

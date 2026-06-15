@@ -33,6 +33,15 @@ export function resolveAuthoritativeAgentThreadBundle(input: {
   optimisticBundle: AgentLocalThreadBundle | null | undefined;
   refreshedBundle: AgentLocalThreadBundle | null | undefined;
 }): AgentLocalThreadBundle | null {
+  if (
+    input.optimisticBundle
+    && input.refreshedBundle
+    && input.optimisticBundle.thread.id === input.refreshedBundle.thread.id
+    && input.optimisticBundle.messages.length > 0
+    && input.refreshedBundle.messages.length === 0
+  ) {
+    return input.optimisticBundle;
+  }
   return input.refreshedBundle || input.optimisticBundle || null;
 }
 

@@ -210,6 +210,41 @@ test('agent submit session shows a pending image card when an image beat is plan
   assert.equal(imageMessage?.contentText, 'Generating image...');
 });
 
+test('agent submit session completes a pending image card when the artifact is ready', () => {
+  let session = createSession();
+
+  session = reduceAgentSubmitSessionEvent(session, {
+    event: {
+      type: 'beat-planned',
+      turnId: 'turn-1',
+      beatId: 'turn-1:beat:1',
+      beatIndex: 1,
+      modality: 'image',
+    },
+    updatedAtMs: 135,
+  }).state;
+
+  const step = reduceAgentSubmitSessionEvent(session, {
+    event: {
+      type: 'artifact-ready',
+      turnId: 'turn-1',
+      beatId: 'turn-1:beat:1',
+      artifactId: 'artifact-image-1',
+      mimeType: 'image/png',
+      uri: 'data:image/png;base64,aW1hZ2U=',
+      projectionMessageId: 'turn-1:message:1',
+    },
+    updatedAtMs: 150,
+  });
+
+  const imageMessage = step.visibleBundle?.messages.at(-1);
+  assert.equal(imageMessage?.kind, 'image');
+  assert.equal(imageMessage?.status, 'complete');
+  assert.equal(imageMessage?.artifactId, 'artifact-image-1');
+  assert.equal(imageMessage?.mediaMimeType, 'image/png');
+  assert.equal(imageMessage?.mediaUrl, 'data:image/png;base64,aW1hZ2U=');
+});
+
 test('agent submit session ignores text beat planning because follow-up now uses a separate turn', () => {
   const session = createSession();
 

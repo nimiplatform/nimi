@@ -1,4 +1,5 @@
 import type { AgentLocalThreadBundle } from '@renderer/bridge/runtime-bridge/types';
+import { resolveAuthoritativeAgentThreadBundle } from './chat-agent-shell-bundle';
 import type { AgentConversationSelection } from './chat-shell-types';
 
 type AgentTurnTerminalState = 'running' | 'completed' | 'failed' | 'canceled';
@@ -10,6 +11,7 @@ export type AgentProjectionRefreshOutcome = {
 
 export function resolveAgentProjectionRefreshOutcome(input: {
   terminal: AgentTurnTerminalState;
+  currentBundle?: AgentLocalThreadBundle | null | undefined;
   refreshedBundle: AgentLocalThreadBundle | null | undefined;
 }): AgentProjectionRefreshOutcome | null {
   if (!input.refreshedBundle) {
@@ -18,11 +20,18 @@ export function resolveAgentProjectionRefreshOutcome(input: {
   if (input.terminal === 'failed' || input.terminal === 'canceled') {
     return null;
   }
+  const bundle = resolveAuthoritativeAgentThreadBundle({
+    optimisticBundle: input.currentBundle,
+    refreshedBundle: input.refreshedBundle,
+  });
+  if (!bundle || bundle !== input.refreshedBundle) {
+    return null;
+  }
   return {
-    bundle: input.refreshedBundle,
+    bundle,
     selection: {
-      localAgentRef: input.refreshedBundle.thread.localAgentRef,
-      targetId: input.refreshedBundle.thread.localAgentRef,
+      localAgentRef: bundle.thread.localAgentRef,
+      targetId: bundle.thread.localAgentRef,
     },
   };
 }

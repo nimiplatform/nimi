@@ -36,7 +36,11 @@ export function useAgentConversationEffects(input: UseAgentConversationEffectsIn
   ) => {
     input.queryClient.setQueryData<AgentLocalThreadBundle | null>(
       bundleQueryKey(threadId),
-      (current) => updater(current),
+      (current) => {
+        const nextBundle = updater(current);
+        setAgentVisibleProjection(threadId, nextBundle || null);
+        return nextBundle;
+      },
     );
   }, [input.queryClient]);
 
@@ -64,7 +68,7 @@ export function useAgentConversationEffects(input: UseAgentConversationEffectsIn
 
   const applyHostInteractionPatch = useCallback((threadId: string, patch: AgentHostInteractionPatch) => {
     input.queryClient.setQueryData(bundleQueryKey(threadId), patch.bundle);
-    setAgentVisibleProjection(threadId, null);
+    setAgentVisibleProjection(threadId, patch.bundle);
     input.currentComposerTextRef.current = patch.composerText;
     input.setSelection(patch.selection);
     setFooterHostState(threadId, {
@@ -82,6 +86,7 @@ export function useAgentConversationEffects(input: UseAgentConversationEffectsIn
     }
     for (const bundleEffect of effects.bundleEffects) {
       input.queryClient.setQueryData(bundleQueryKey(threadId), bundleEffect);
+      setAgentVisibleProjection(threadId, bundleEffect);
     }
     if (effects.hostPatchEffect) {
       applyHostInteractionPatch(threadId, effects.hostPatchEffect);

@@ -7,6 +7,7 @@ import {
   getDesktopAccountRuntime,
   getDesktopAppId,
   getDesktopRuntime,
+  withDesktopRuntimeProtectedScopes,
 } from './sdk/desktop-nimi-client-session';
 
 export type {
@@ -39,5 +40,6 @@ export function createRuntimeAgentInspectAdapter(
   return createNimiHostRuntimeAgentInspectSurface({
     getRuntime: deps.getRuntime ?? getDesktopRuntimeAgentInspectClient,
     getSubjectUserId: deps.getSubjectUserId ?? (() => undefined),
+    ...(deps.getRuntime ? {} : { withScopes: withDesktopRuntimeProtectedScopes }),
   });
 }

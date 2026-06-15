@@ -25,7 +25,11 @@ test('agent runtime turn requests runtime without desktop local warm on local ro
     runtimeTransport: null,
   });
   const calls: string[] = [];
-  const requestCalls: Array<{ requestId?: string; threadId: string }> = [];
+  const requestCalls: Array<{
+    requestId?: string;
+    threadId: string;
+    executionBindings?: Record<string, { route?: string; modelId?: string; connectorId?: string }>;
+  }> = [];
   (client as unknown as { runtime: unknown }).runtime = {
     local: {
       listLocalAssets: async () => {
@@ -102,6 +106,7 @@ test('agent runtime turn requests runtime without desktop local warm on local ro
         request: async (request: {
           requestId?: string;
           threadId: string;
+          executionBindings?: Record<string, { route?: string; modelId?: string; connectorId?: string }>;
         }) => {
           calls.push('request');
           requestCalls.push(request);
@@ -133,6 +138,8 @@ test('agent runtime turn requests runtime without desktop local warm on local ro
       userText: 'hello local',
       reasoningPreference: 'off',
       textExecutionSnapshot: executionSnapshot,
+      imageExecutionSnapshot: null,
+      imageParams: null,
       signal: new AbortController().signal,
     });
     for await (const ignoredPart of result.stream) {
@@ -141,13 +148,18 @@ test('agent runtime turn requests runtime without desktop local warm on local ro
     }
 
     assert.deepEqual(calls, ['request']);
+    assert.deepEqual(requestCalls[0]?.executionBindings?.['text.generate'], {
+      route: 'local',
+      modelId: 'llama3',
+      connectorId: undefined,
+    });
   } finally {
     resetRuntimeLocalModelWarmCacheForTests();
     clearDesktopTestNimiClientSession();
   }
 });
 
-test('agent runtime turn request delegates route/model binding to Runtime', async () => {
+test('agent runtime turn request sends resolved route/model binding to Runtime', async () => {
   resetRuntimeLocalModelWarmCacheForTests();
   clearDesktopTestNimiClientSession();
   const client = await createDesktopTestNimiClientSession({
@@ -159,11 +171,7 @@ test('agent runtime turn request delegates route/model binding to Runtime', asyn
   const requestCalls: Array<{
     requestId?: string;
     threadId: string;
-    executionBinding?: {
-      route?: string;
-      modelId?: string;
-      connectorId?: string;
-    };
+    executionBindings?: Record<string, { route?: string; modelId?: string; connectorId?: string }>;
   }> = [];
   (client as unknown as { runtime: unknown }).runtime = {
     local: {
@@ -228,11 +236,7 @@ test('agent runtime turn request delegates route/model binding to Runtime', asyn
         request: async (request: {
           requestId?: string;
           threadId: string;
-          executionBinding?: {
-            route?: string;
-            modelId?: string;
-            connectorId?: string;
-          };
+          executionBindings?: Record<string, { route?: string; modelId?: string; connectorId?: string }>;
         }) => {
           requestCalls.push(request);
         },
@@ -263,6 +267,8 @@ test('agent runtime turn request delegates route/model binding to Runtime', asyn
       userText: 'hello cloud',
       reasoningPreference: 'off',
       textExecutionSnapshot: executionSnapshot,
+      imageExecutionSnapshot: null,
+      imageParams: null,
       signal: new AbortController().signal,
     });
     for await (const ignoredPart of result.stream) {
@@ -271,7 +277,11 @@ test('agent runtime turn request delegates route/model binding to Runtime', asyn
     }
 
     assert.equal(requestCalls.length, 1);
-    assert.equal(requestCalls[0]?.executionBinding, undefined);
+    assert.deepEqual(requestCalls[0]?.executionBindings?.['text.generate'], {
+      route: 'cloud',
+      modelId: 'gpt-5.4-mini',
+      connectorId: 'connector-openai',
+    });
   } finally {
     resetRuntimeLocalModelWarmCacheForTests();
     clearDesktopTestNimiClientSession();
@@ -397,6 +407,8 @@ test('agent runtime turn fails closed when runtime rejects request_id in turn pa
       userText: 'hello legacy',
       reasoningPreference: 'off',
       textExecutionSnapshot: executionSnapshot,
+      imageExecutionSnapshot: null,
+      imageParams: null,
       signal: new AbortController().signal,
     }), {
       reasonCode: ReasonCode.PROTOCOL_ENVELOPE_INVALID,
@@ -505,6 +517,8 @@ test('agent runtime turn yields terminal turn-failed when runtime emits failed e
       userText: 'hello failed',
       reasoningPreference: 'off',
       textExecutionSnapshot: executionSnapshot,
+      imageExecutionSnapshot: null,
+      imageParams: null,
       signal: new AbortController().signal,
     });
     const parts: Array<{

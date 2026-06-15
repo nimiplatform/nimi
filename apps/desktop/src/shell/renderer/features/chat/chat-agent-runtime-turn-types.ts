@@ -36,6 +36,8 @@ export type AgentRuntimeChatTurnRequest = {
   maxOutputTokensRequested?: number | null;
   reasoningPreference: import('./chat-shared-thinking').ChatThinkingPreference;
   textExecutionSnapshot: import('./conversation-capability').NimiAISnapshot | null;
+  imageExecutionSnapshot: import('./conversation-capability').NimiAISnapshot | null;
+  imageParams: Record<string, unknown> | null;
   signal?: AbortSignal;
 };
 
@@ -54,6 +56,33 @@ export type AgentRuntimeChatTurnStreamPart =
     trace?: ConversationRuntimeTrace;
     metadataJson?: JsonObject | null;
     diagnostics?: Record<string, unknown>;
+  }
+  | {
+    type: 'beat-planned';
+    beatId: string;
+    turnId: string;
+    projectionMessageId?: string;
+  }
+  | {
+    type: 'beat-delivery-started';
+    beatId: string;
+    turnId: string;
+    projectionMessageId?: string;
+  }
+  | {
+    type: 'artifact-ready';
+    beatId: string;
+    turnId: string;
+    artifactId: string;
+    mimeType: string;
+    uri?: string;
+    projectionMessageId?: string;
+  }
+  | {
+    type: 'beat-delivered';
+    beatId: string;
+    turnId: string;
+    projectionMessageId?: string;
   }
   | {
     type: 'turn-completed';

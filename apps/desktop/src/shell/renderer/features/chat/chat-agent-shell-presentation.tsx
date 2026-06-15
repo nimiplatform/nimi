@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 import {
   type ChatComposerSubmitInput,
 } from '@nimiplatform/kit/features/chat/headless';
@@ -18,7 +18,7 @@ import {
   resolveAgentTargetSummaries,
 } from './chat-agent-shell-view-model';
 import { InlineFeedback } from '@renderer/ui/feedback/inline-feedback';
-import { resolveExecutionSchedulingGuardDecision } from './chat-shared-execution-scheduling-guard';
+import { useDismissibleSchedulingFeedback } from './chat-shared-dismissible-scheduling-feedback';
 import {
   resolveAgentComposerVoiceState,
 } from './chat-agent-voice-session';
@@ -55,13 +55,13 @@ export function useAgentConversationPresentation(
   | 'thinkingState'
   | 'transcriptProps'
 > {
-  const schedulingGuard = useMemo(
-    () => resolveExecutionSchedulingGuardDecision({
-      judgement: input.schedulingJudgement,
-      t: input.t,
-    }),
-    [input.schedulingJudgement, input.t],
-  );
+  const {
+    guard: schedulingGuard,
+    feedbackNode: schedulingFeedbackNode,
+  } = useDismissibleSchedulingFeedback({
+    judgement: input.schedulingJudgement,
+    t: input.t,
+  });
   const targetSummaries = useMemo(
     () => resolveAgentTargetSummaries(input.targetSummariesInput),
     [input.targetSummariesInput],
@@ -237,14 +237,6 @@ export function useAgentConversationPresentation(
     : null;
   const hostFeedbackNode = input.hostFeedback ? (
     <InlineFeedback feedback={input.hostFeedback} onDismiss={input.onDismissHostFeedback} />
-  ) : null;
-  const [schedulingDismissed, setSchedulingDismissed] = useState<string | null>(null);
-  const schedulingKey = schedulingGuard.feedback?.message ?? null;
-  const onDismissScheduling = useCallback(() => {
-    setSchedulingDismissed(schedulingKey);
-  }, [schedulingKey]);
-  const schedulingFeedbackNode = schedulingGuard.feedback && schedulingKey !== schedulingDismissed ? (
-    <InlineFeedback feedback={schedulingGuard.feedback} onDismiss={onDismissScheduling} />
   ) : null;
   const adapter = useMemo(() => ({
     mode: 'agent' as const,

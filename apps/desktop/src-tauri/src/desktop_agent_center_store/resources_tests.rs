@@ -100,6 +100,25 @@ fn write_background_import_source(home: &Path) -> PathBuf {
     path
 }
 
+fn write_live2d_import_source(home: &Path) -> PathBuf {
+    let dir = home.join("live2d-source");
+    fs::create_dir_all(dir.join("textures")).expect("live2d dirs");
+    fs::write(
+        dir.join("ren.model3.json"),
+        br#"{"Version":3,"FileReferences":{"Moc":"ren.moc3"}}"#,
+    )
+    .expect("model3");
+    fs::write(dir.join("ren.moc3"), b"moc-bytes").expect("moc");
+    fs::write(dir.join("textures/texture_00.png"), b"png-bytes").expect("texture");
+    dir
+}
+
+fn write_vrm_import_source(home: &Path) -> PathBuf {
+    let path = home.join("avatar.vrm");
+    fs::write(&path, b"vrm-bytes").expect("vrm source");
+    path
+}
+
 fn operation_log_path(home: &Path) -> PathBuf {
     home.join(".nimi/data/accounts/account_1/agents")
         .join(local_scope_path_segment(&local_agent_ref()))
@@ -128,6 +147,132 @@ fn agent_center_marker_for_account(
     fs::create_dir_all(dir.join("modules/appearance")).expect("agent-center dir");
     fs::write(dir.join("modules/appearance/marker.txt"), b"local").expect("marker");
     dir
+}
+
+#[test]
+fn imports_live2d_avatar_asset_and_selects_launch_evidence() {
+    let home = temp_home("import-live2d-avatar");
+    with_product_data_home(&home, || {
+        let source = write_live2d_import_source(&home);
+        let result = desktop_agent_center_avatar_asset_import_blocking(
+            DesktopAgentCenterAvatarAssetImportPayload {
+                account_id: "account_1".to_string(),
+                owner_user_id: owner_user_id(),
+                realm_agent_id: realm_agent_id(),
+                local_agent_ref: local_agent_ref(),
+                kind: AgentCenterAvatarBackendKind::Live2d,
+                source_path: source.to_string_lossy().to_string(),
+                display_name: Some("Ren".to_string()),
+                select: Some(true),
+            },
+        )
+        .expect("import live2d avatar asset");
+
+        assert!(result.local_asset_id.starts_with("live2d_"));
+        assert_eq!(result.backend_kind, AgentCenterAvatarBackendKind::Live2d);
+        assert_eq!(
+            result.validation.status,
+            AgentCenterAvatarAssetValidationStatus::Valid
+        );
+        assert!(result
+            .materialization_ref
+            .contains(&format!("live2d:{}", result.local_asset_id)));
+        assert!(result
+            .backend_capability_profile_ref
+            .contains(&result.local_asset_id));
+
+        let dir = avatar_asset_dir(
+            "account_1",
+            &local_agent_ref(),
+            "live2d",
+            &result.local_asset_id,
+        )
+        .expect("avatar asset dir");
+        assert!(dir.join(MANIFEST_FILE_NAME).exists());
+        assert!(dir.join(VALIDATION_FILE_NAME).exists());
+        assert!(dir.join("files/ren.model3.json").exists());
+
+        let config = desktop_agent_center_config_get_blocking(
+            "account_1",
+            DesktopAgentCenterConfigScopePayload {
+                account_id: "account_1".to_string(),
+                owner_user_id: owner_user_id(),
+                realm_agent_id: realm_agent_id(),
+                local_agent_ref: local_agent_ref(),
+            },
+        )
+        .expect("config");
+        assert_eq!(
+            config
+                .modules
+                .avatar_asset
+                .local_avatar_asset_ref
+                .as_deref(),
+            Some(result.local_asset_id.as_str())
+        );
+        assert_eq!(
+            config
+                .modules
+                .avatar_asset
+                .backend_capability_profile_ref
+                .as_deref(),
+            Some(result.backend_capability_profile_ref.as_str())
+        );
+        assert_eq!(
+            config.modules.avatar_asset.backend_kind,
+            AgentCenterAvatarBackendKind::Live2d
+        );
+    });
+}
+
+#[test]
+fn imports_vrm_avatar_asset_and_selects_launch_evidence() {
+    let home = temp_home("import-vrm-avatar");
+    with_product_data_home(&home, || {
+        let source = write_vrm_import_source(&home);
+        let result = desktop_agent_center_avatar_asset_import_blocking(
+            DesktopAgentCenterAvatarAssetImportPayload {
+                account_id: "account_1".to_string(),
+                owner_user_id: owner_user_id(),
+                realm_agent_id: realm_agent_id(),
+                local_agent_ref: local_agent_ref(),
+                kind: AgentCenterAvatarBackendKind::Vrm,
+                source_path: source.to_string_lossy().to_string(),
+                display_name: None,
+                select: Some(true),
+            },
+        )
+        .expect("import vrm avatar asset");
+
+        assert!(result.local_asset_id.starts_with("vrm_"));
+        assert_eq!(result.backend_kind, AgentCenterAvatarBackendKind::Vrm);
+        assert_eq!(
+            result.validation.status,
+            AgentCenterAvatarAssetValidationStatus::Valid
+        );
+        let dir = avatar_asset_dir(
+            "account_1",
+            &local_agent_ref(),
+            "vrm",
+            &result.local_asset_id,
+        )
+        .expect("avatar asset dir");
+        assert!(dir.join("files/avatar.vrm").exists());
+        let validation = desktop_agent_center_avatar_asset_validate_blocking(
+            DesktopAgentCenterAvatarAssetValidatePayload {
+                account_id: "account_1".to_string(),
+                owner_user_id: owner_user_id(),
+                realm_agent_id: realm_agent_id(),
+                local_agent_ref: local_agent_ref(),
+                local_asset_id: result.local_asset_id,
+            },
+        )
+        .expect("validate vrm avatar asset");
+        assert_eq!(
+            validation.status,
+            AgentCenterAvatarAssetValidationStatus::Valid
+        );
+    });
 }
 
 #[test]

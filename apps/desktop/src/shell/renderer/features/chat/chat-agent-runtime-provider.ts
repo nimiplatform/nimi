@@ -5,6 +5,7 @@ import type {
 } from '@nimiplatform/kit/features/chat/headless';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import type { NimiRuntimeAgentResolvedMessageActionEnvelope } from '@nimiplatform/sdk/runtime';
+import { getDesktopRuntime } from '@renderer/infra/sdk/desktop-nimi-client-session';
 import { feedStreamEvent } from '../turns/stream-controller';
 import {
   AGENT_RUNTIME_CHAT_PROVIDER_CAPABILITIES,
@@ -14,6 +15,7 @@ import {
 } from './chat-agent-runtime-turn-types';
 import { streamChatAgentRuntimeAgentTurn } from './chat-agent-runtime-agent';
 import { normalizeText } from './chat-agent-runtime-normalize';
+import { encodeBytesAsDataUrl } from './chat-agent-runtime-shared';
 import { toChatAgentRuntimeError } from './chat-agent-runtime';
 import { RUNTIME_AGENT_CHAT_MODE_ID } from './chat-agent-runtime-mode';
 
@@ -27,6 +29,8 @@ type AgentRuntimeChatProviderMetadata = {
   localAgentRef: string;
   conversationAnchorId: string;
   textExecutionSnapshot: import('./conversation-capability').NimiAISnapshot | null;
+  imageExecutionSnapshot: import('./conversation-capability').NimiAISnapshot | null;
+  imageParams: Record<string, unknown> | null;
   reasoningPreference: import('./chat-shared-thinking').ChatThinkingPreference;
   textMaxOutputTokensRequested: number | null;
 };
@@ -48,11 +52,20 @@ function requireProviderMetadata(value: unknown): AgentRuntimeChatProviderMetada
     localAgentRef: normalizeText(record.localAgentRef),
     conversationAnchorId: normalizeText(record.conversationAnchorId),
     textExecutionSnapshot: (record.textExecutionSnapshot || null) as AgentRuntimeChatProviderMetadata['textExecutionSnapshot'],
+    imageExecutionSnapshot: (record.imageExecutionSnapshot || null) as AgentRuntimeChatProviderMetadata['imageExecutionSnapshot'],
+    imageParams: requireOptionalRecord(record.imageParams, 'agent runtime image params'),
     reasoningPreference: (record.reasoningPreference || 'auto') as AgentRuntimeChatProviderMetadata['reasoningPreference'],
     textMaxOutputTokensRequested: Number.isFinite(Number(record.textMaxOutputTokensRequested))
       ? Math.floor(Number(record.textMaxOutputTokensRequested))
       : null,
   };
+}
+
+function requireOptionalRecord(value: unknown, label: string): Record<string, unknown> | null {
+  if (value === undefined || value === null) {
+    return null;
+  }
+  return requireRecord(value, label);
 }
 
 function isAbortLikeError(error: unknown): boolean {
@@ -82,6 +95,16 @@ function outputTextFromEnvelope(envelope: NimiRuntimeAgentResolvedMessageActionE
   return normalizeText(envelope.message.text);
 }
 
+function beatIndexFromRuntimeActionId(actionId: string): number {
+  const match = /^action-(\d+)$/u.exec(normalizeText(actionId));
+  const parsed = match ? Number(match[1]) : 0;
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed + 1 : 1;
+}
+
+function uiBeatId(turnId: string, beatIndex: number): string {
+  return `${turnId}:beat:${beatIndex}`;
+}
+
 async function* runRuntimeOwnedAgentTurn(input: {
   baseInput: ConversationTurnInput;
   metadata: AgentRuntimeChatProviderMetadata;
@@ -109,6 +132,8 @@ async function* runRuntimeOwnedAgentTurn(input: {
     userAttachments: input.userAttachments,
     maxOutputTokensRequested: input.metadata.textMaxOutputTokensRequested,
     textExecutionSnapshot: input.metadata.textExecutionSnapshot,
+    imageExecutionSnapshot: input.metadata.imageExecutionSnapshot,
+    imageParams: input.metadata.imageParams,
     reasoningPreference: input.metadata.reasoningPreference,
     signal: input.baseInput.signal,
   });
@@ -162,6 +187,53 @@ async function* runRuntimeOwnedAgentTurn(input: {
           outputDiagnostics = {
             ...(outputDiagnostics || {}),
             ...(part.diagnostics || {}),
+          };
+          break;
+        }
+        case 'beat-planned': {
+          const beatIndex = beatIndexFromRuntimeActionId(part.beatId);
+          yield {
+            type: 'beat-planned',
+            turnId: input.baseInput.turnId,
+            beatId: uiBeatId(input.baseInput.turnId, beatIndex),
+            beatIndex,
+            modality: 'image',
+          };
+          break;
+        }
+        case 'beat-delivery-started': {
+          const beatIndex = beatIndexFromRuntimeActionId(part.beatId);
+          yield {
+            type: 'beat-delivery-started',
+            turnId: input.baseInput.turnId,
+            beatId: uiBeatId(input.baseInput.turnId, beatIndex),
+          };
+          break;
+        }
+        case 'artifact-ready': {
+          const beatIndex = beatIndexFromRuntimeActionId(part.beatId);
+          const artifact = await getDesktopRuntime().artifacts.readArtifactBytes({
+            artifactId: part.artifactId,
+          });
+          const mimeType = normalizeText(artifact.mimeType) || part.mimeType;
+          yield {
+            type: 'artifact-ready',
+            turnId: input.baseInput.turnId,
+            beatId: uiBeatId(input.baseInput.turnId, beatIndex),
+            artifactId: part.artifactId,
+            mimeType,
+            uri: encodeBytesAsDataUrl(mimeType, artifact.bytes),
+            projectionMessageId: `${input.baseInput.turnId}:message:${beatIndex}`,
+          };
+          break;
+        }
+        case 'beat-delivered': {
+          const beatIndex = beatIndexFromRuntimeActionId(part.beatId);
+          yield {
+            type: 'beat-delivered',
+            turnId: input.baseInput.turnId,
+            beatId: uiBeatId(input.baseInput.turnId, beatIndex),
+            projectionMessageId: `${input.baseInput.turnId}:message:${beatIndex}`,
           };
           break;
         }

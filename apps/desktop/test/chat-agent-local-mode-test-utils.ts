@@ -5,7 +5,9 @@ import test from 'node:test';
 import {
   fromNimiRuntimeProtoStruct,
   toNimiRuntimeProtoStruct,
+  type NimiRuntimeAgentConsumeRequest,
   type NimiRuntimeAgentConsumeEvent,
+  type NimiRuntimeAgentExecutionBinding,
   type NimiRuntimeAgentMessage,
   type NimiRuntimeAgentSessionSnapshotRequest,
   type NimiRuntimeAgentTurnInterruptRequest,
@@ -80,6 +82,24 @@ function createDefaultDesktopTestAppAuth() {
   };
 }
 
+function createDefaultDesktopTestAccount() {
+  return {
+    getAccountSessionStatus: async () => ({
+      state: 3,
+      accountProjection: {
+        accountId: 'user-1',
+      },
+    }),
+    getAccessToken: async () => ({
+      accepted: true,
+      accessToken: 'desktop-test-account-access-token',
+    }),
+    refreshAccountSession: async () => ({
+      accepted: true,
+    }),
+  };
+}
+
 function createDefaultDesktopTestAccountCaller() {
   return {
     appInstanceId: 'desktop-test-instance',
@@ -93,9 +113,22 @@ function normalizeTestText(value: unknown): string {
 
 function decodeRuntimeAgentTurnRequestPayload(value: unknown): NimiRuntimeAgentTurnRequest {
   const payload = fromNimiRuntimeProtoStruct(value as Parameters<typeof fromNimiRuntimeProtoStruct>[0]);
-  const executionBinding = payload.execution_binding && typeof payload.execution_binding === 'object'
-    ? payload.execution_binding as Record<string, unknown>
-    : null;
+  const executionBindings = payload.execution_bindings && typeof payload.execution_bindings === 'object'
+    ? payload.execution_bindings as Record<string, unknown>
+    : {};
+  const normalizeBinding = (binding: unknown) => {
+    const record = binding && typeof binding === 'object' ? binding as Record<string, unknown> : null;
+    if (!record) {
+      return null;
+    }
+    return {
+      route: normalizeTestText(record.route) as NimiRuntimeAgentExecutionBinding['route'],
+      modelId: normalizeTestText(record.model_id),
+      connectorId: normalizeTestText(record.connector_id) || undefined,
+    };
+  };
+  const textBinding = normalizeBinding(executionBindings['text.generate']);
+  const imageBinding = normalizeBinding(executionBindings['image.generate']);
   const messages = Array.isArray(payload.messages)
     ? payload.messages.map((message) => {
       const record = message && typeof message === 'object' ? message as Record<string, unknown> : {};
@@ -113,15 +146,13 @@ function decodeRuntimeAgentTurnRequestPayload(value: unknown): NimiRuntimeAgentT
     requestId: normalizeTestText(payload.request_id) || undefined,
     threadId: normalizeTestText(payload.thread_id) || undefined,
     messages,
-    ...(executionBinding ? {
-      executionBinding: {
-        route: normalizeTestText(executionBinding.route) as NimiRuntimeAgentTurnRequest['executionBinding'] extends infer Binding
-          ? Binding extends { route?: infer Route } ? Route : never
-          : never,
-        modelId: normalizeTestText(executionBinding.model_id),
-        connectorId: normalizeTestText(executionBinding.connector_id) || undefined,
-      },
-    } : {}),
+    executionBindings: {
+      ...(textBinding ? { 'text.generate': textBinding } : {}),
+      ...(imageBinding ? { 'image.generate': imageBinding } : {}),
+    } as NimiRuntimeAgentTurnRequest['executionBindings'],
+    ...(payload.execution_params && typeof payload.execution_params === 'object'
+      ? { executionParams: payload.execution_params as NimiRuntimeAgentTurnRequest['executionParams'] }
+      : {}),
   };
 }
 
@@ -187,10 +218,11 @@ function createDesktopTestRuntimeFromAgentTurns(input: {
   turns: NimiRuntimeAgentTurnsModule;
 }) {
   let lastTurnRequest: NimiRuntimeAgentTurnRequest | null = null;
-  let activeSubscribeRequest: (NimiRuntimeAgentTurnRequest & { includeAgentEvents: boolean }) | null = null;
+  let activeSubscribeRequest: (NimiRuntimeAgentConsumeRequest & { includeAgentEvents: boolean }) | null = null;
   return {
     appId: input.appId,
     auth: createDefaultDesktopTestAuth(),
+    account: createDefaultDesktopTestAccount(),
     appAuth: createDefaultDesktopTestAppAuth(),
     grants: createDefaultDesktopTestAppAuth(),
     agents: {
@@ -209,7 +241,6 @@ function createDesktopTestRuntimeFromAgentTurns(input: {
           localAgentRef: '',
           conversationAnchorId: '',
           includeAgentEvents: false,
-          messages: [],
         };
         const stream = await input.turns.subscribe(activeSubscribeRequest);
         return (async function* appMessages() {
@@ -294,6 +325,7 @@ function createDesktopTestNimiClientSession(input: {
     : {
       appId: input.appId,
       auth: createDefaultDesktopTestAuth(),
+      account: createDefaultDesktopTestAccount(),
       appAuth: createDefaultDesktopTestAppAuth(),
       grants: createDefaultDesktopTestAppAuth(),
     });

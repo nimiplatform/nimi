@@ -137,6 +137,52 @@ function overlayPendingImageBeat(input: {
   };
 }
 
+function imageMessageIdForBeat(input: {
+  assistantMessageId: string;
+  beatId: string;
+}): string {
+  const beatIndexMatch = /:beat:(\d+)$/u.exec(input.beatId);
+  const beatIndex = beatIndexMatch?.[1] || '1';
+  return `${input.assistantMessageId.split(':message:')[0]}:message:${beatIndex}`;
+}
+
+function overlayReadyImageArtifact(input: {
+  state: AgentSubmitSessionState;
+  beatId: string;
+  artifactId: string;
+  mimeType: string;
+  uri: string;
+  updatedAtMs: number;
+}): AgentLocalThreadBundle {
+  const base = input.state.workingBundle || createEmptyAgentThreadBundle(input.state.fallbackThread);
+  const messageId = imageMessageIdForBeat({
+    assistantMessageId: input.state.assistantMessageId,
+    beatId: input.beatId,
+  });
+  const current = base.messages.find((message) => message.id === messageId);
+  return {
+    ...base,
+    messages: replaceAgentBundleMessage(base.messages, {
+      id: messageId,
+      threadId: base.thread.id,
+      role: 'assistant',
+      status: 'complete',
+      kind: 'image',
+      contentText: current?.contentText || '',
+      reasoningText: null,
+      error: null,
+      traceId: input.state.runtimeTraceId || input.state.promptTraceId || null,
+      parentMessageId: current?.parentMessageId || input.state.assistantMessageId,
+      mediaUrl: input.uri,
+      mediaMimeType: input.mimeType,
+      artifactId: input.artifactId,
+      metadataJson: current?.metadataJson || null,
+      createdAtMs: current?.createdAtMs || input.updatedAtMs,
+      updatedAtMs: input.updatedAtMs,
+    }),
+  };
+}
+
 function resolveTraceId(
   state: AgentSubmitSessionState,
   streamSnapshot: StreamState,
@@ -182,8 +228,29 @@ export function reduceAgentSubmitSessionEvent(
     case 'turn-started':
     case 'beat-delivery-started':
     case 'beat-delivered':
-    case 'artifact-ready':
       return { state };
+    case 'artifact-ready': {
+      if (!input.event.uri) {
+        return { state };
+      }
+      const imageBundle = overlayReadyImageArtifact({
+        state,
+        beatId: input.event.beatId,
+        artifactId: input.event.artifactId,
+        mimeType: input.event.mimeType,
+        uri: input.event.uri,
+        updatedAtMs: input.updatedAtMs,
+      });
+      return {
+        state: {
+          ...state,
+          workingBundle: imageBundle,
+        },
+        visibleBundle: imageBundle,
+        projectionBundle: imageBundle,
+        persistedBundle: imageBundle,
+      };
+    }
     case 'beat-planned': {
       if (input.event.modality !== 'image') {
         return { state };
@@ -324,6 +391,7 @@ export function resolveProjectionRefreshAgentSubmitSession(input: {
   const hostInteractionPatch = resolveProjectionRefreshAgentHostInteraction({
     lifecycle: input.state.lifecycle,
     streamSnapshot: input.streamSnapshot,
+    currentBundle: input.state.workingBundle,
     refreshedBundle: input.refreshedBundle,
     composerText: input.composerText,
   });

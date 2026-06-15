@@ -1,6 +1,6 @@
 import { NimiClient, createNimiClient } from '@nimiplatform/sdk';
-import { Runtime, createNimiDesktopShellRuntimeAccountCaller, createNimiRuntimeAppSessionMetadataProvider, createNimiRuntimeFullAppRegistration, toNimiRuntimeTimestamp, withNimiRuntimeIdempotencyMetadata, type NimiHostRuntimeAgentDelegatedCapabilityClient, type NimiHostRuntimeAgentLifecycleClient, type NimiHostRuntimeAgentPresentationProfileClient, type NimiRuntimeAccountCaller, type NimiRuntimeAgentTurnsRuntime } from '@nimiplatform/sdk/runtime';
-import { AccountSessionState, AuthorizationPreset, ExternalPrincipalType, PolicyMode, type AuthorizeExternalPrincipalResponse } from '@nimiplatform/sdk/runtime/generated';
+import { Runtime, createNimiDesktopShellRuntimeAccountCaller, createNimiRuntimeAppSessionMetadataProvider, createNimiRuntimeFullAppRegistration, toNimiRuntimeTimestamp, withNimiRuntimeIdempotencyMetadata, type NimiHostRuntimeAgentDelegatedCapabilityClient, type NimiHostRuntimeAgentLifecycleClient, type NimiHostRuntimeAgentPresentationProfileClient, type NimiRuntimeAccountCaller, type NimiRuntimeAgentScopeRunner, type NimiRuntimeAgentTurnsRuntime } from '@nimiplatform/sdk/runtime';
+import { AccountSessionState, AuthorizationPreset, ExternalPrincipalType, PolicyMode, type AuthorizeExternalPrincipalResponse, type RuntimeTypedCallOptions } from '@nimiplatform/sdk/runtime/generated';
 import { Realm, createRealmFetchTransport } from '@nimiplatform/sdk/realm';
 import { createNimiClientId, createNimiError, ReasonCode, type CoreMetadata } from '@nimiplatform/sdk/types';
 
@@ -62,11 +62,31 @@ const PLATFORM_RUNTIME_SESSION_APP_INSTANCE_SUFFIX = '.platform-runtime-session'
 const PLATFORM_RUNTIME_SESSION_DEVICE_ID = 'platform-runtime-session';
 const PLATFORM_RUNTIME_SESSION_TTL_SECONDS = 3600;
 const PLATFORM_RUNTIME_SESSION_REFRESH_SKEW_MS = 30_000;
-const DESKTOP_RUNTIME_PROTECTED_SCOPES = ['ai.spend.meter'] as const;
+const DESKTOP_RUNTIME_PROTECTED_SCOPES = [
+  'ai.spend.meter',
+  'runtime.agent.admin',
+  'runtime.agent.autonomy.write',
+  'runtime.agent.avatar_debug.read',
+  'runtime.agent.avatar_debug.write',
+  'runtime.agent.companion_participation.read',
+  'runtime.agent.companion_participation.write',
+  'runtime.agent.delegation.read',
+  'runtime.agent.delegation.write',
+  'runtime.agent.read',
+  'runtime.agent.turn.read',
+  'runtime.agent.turn.write',
+  'runtime.agent.write',
+] as const;
 const DESKTOP_RUNTIME_PROTECTED_SCOPE_CATALOG_VERSION = 'sdk-v2';
 const DESKTOP_RUNTIME_PROTECTED_TOKEN_TTL_SECONDS = 3600;
 const DESKTOP_RUNTIME_PROTECTED_TOKEN_REFRESH_SKEW_MS = 60_000;
 const DESKTOP_RUNTIME_PROTECTED_CONSENT_ID = 'desktop-shell-runtime-account';
+const DESKTOP_RUNTIME_PROTECTED_SCOPE_SIGNATURE = buildDesktopRuntimeProtectedScopeSignature();
+const DESKTOP_RUNTIME_PROTECTED_AUTHORIZATION_VERSION = [
+  'desktop-shell-runtime-account',
+  DESKTOP_RUNTIME_PROTECTED_SCOPE_CATALOG_VERSION,
+  DESKTOP_RUNTIME_PROTECTED_SCOPE_SIGNATURE,
+].join('-');
 
 export async function configureDesktopRuntimeRealmSession(
   input: ConfigureDesktopRuntimeRealmSessionInput,
@@ -153,12 +173,14 @@ export async function configureDesktopRuntimeRealmSession(
 let protectedAccessCache: {
   readonly appId: string;
   readonly subjectUserId: string;
+  readonly authorizationVersion: string;
   readonly metadata: CoreMetadata;
   readonly expiresAtMs: number;
 } | null = null;
 let protectedAccessInflight: Promise<{
   readonly appId: string;
   readonly subjectUserId: string;
+  readonly authorizationVersion: string;
   readonly metadata: CoreMetadata;
   readonly expiresAtMs: number;
 }> | null = null;
@@ -197,11 +219,12 @@ async function getDesktopRuntimeProtectedAccessMetadata(
     protectedAccessCache
     && protectedAccessCache.appId === appId
     && protectedAccessCache.subjectUserId === subjectUserId
+    && protectedAccessCache.authorizationVersion === DESKTOP_RUNTIME_PROTECTED_AUTHORIZATION_VERSION
     && protectedAccessCache.expiresAtMs - Date.now() > DESKTOP_RUNTIME_PROTECTED_TOKEN_REFRESH_SKEW_MS
   ) {
     return protectedAccessCache.metadata;
   }
-  const cacheKey = `${appId}:${subjectUserId}`;
+  const cacheKey = `${appId}:${subjectUserId}:${DESKTOP_RUNTIME_PROTECTED_AUTHORIZATION_VERSION}`;
   if (!protectedAccessInflight || protectedAccessInflightKey !== cacheKey) {
     protectedAccessInflightKey = cacheKey;
     protectedAccessInflight = issueDesktopRuntimeProtectedAccessMetadata(appId, accountRuntime, subjectUserId);
@@ -217,6 +240,59 @@ async function getDesktopRuntimeProtectedAccessMetadata(
   }
 }
 
+async function getDesktopRuntimeProtectedAccessCallOptions(
+  requestedScopes: readonly string[],
+): Promise<RuntimeTypedCallOptions> {
+  const session = getDesktopRuntimeRealmSession();
+  const subjectUserId = await getAuthenticatedRuntimeSubjectUserId(session.accountRuntime, session.accountCaller);
+  if (!subjectUserId || !(await ensureRuntimeAccountAccessToken(session.accountRuntime, session.accountCaller))) {
+    throw createNimiError({
+      message: 'Desktop Runtime protected access requires an authenticated Runtime account.',
+      reasonCode: ReasonCode.PRINCIPAL_UNAUTHORIZED,
+      actionHint: 'complete_runtime_account_login',
+      source: 'runtime',
+    });
+  }
+  assertDesktopProtectedScopes(requestedScopes);
+  return {
+    metadata: await getDesktopRuntimeProtectedAccessMetadata(
+      session.appId,
+      session.accountRuntime,
+      subjectUserId,
+    ),
+  };
+}
+
+export const withDesktopRuntimeProtectedScopes: NimiRuntimeAgentScopeRunner = async (
+  scopes,
+  operation,
+) => operation(await getDesktopRuntimeProtectedAccessCallOptions(scopes));
+
+async function getAuthenticatedRuntimeSubjectUserId(
+  accountRuntime: Runtime,
+  accountCaller: NimiRuntimeAccountCaller,
+): Promise<string> {
+  const response = await accountRuntime.account.getAccountSessionStatus({ caller: accountCaller });
+  if (response.state !== AccountSessionState.AUTHENTICATED) {
+    return '';
+  }
+  return normalizeText(response.accountProjection?.accountId);
+}
+
+function assertDesktopProtectedScopes(scopes: readonly string[]): void {
+  const allowed = new Set<string>(DESKTOP_RUNTIME_PROTECTED_SCOPES);
+  const unsupported = [...new Set(scopes.map(normalizeText).filter(Boolean))]
+    .filter((scope) => !allowed.has(scope));
+  if (unsupported.length > 0) {
+    throw createNimiError({
+      message: `Desktop Runtime protected access does not include scopes: ${unsupported.join(', ')}`,
+      reasonCode: ReasonCode.PRINCIPAL_UNAUTHORIZED,
+      actionHint: 'register_desktop_runtime_protected_scope',
+      source: 'runtime',
+    });
+  }
+}
+
 async function issueDesktopRuntimeProtectedAccessMetadata(
   appId: string,
   accountRuntime: Runtime,
@@ -224,6 +300,7 @@ async function issueDesktopRuntimeProtectedAccessMetadata(
 ): Promise<{
   readonly appId: string;
   readonly subjectUserId: string;
+  readonly authorizationVersion: string;
   readonly metadata: CoreMetadata;
   readonly expiresAtMs: number;
 }> {
@@ -234,9 +311,9 @@ async function issueDesktopRuntimeProtectedAccessMetadata(
     externalPrincipalType: ExternalPrincipalType.APP,
     subjectUserId,
     consentId: DESKTOP_RUNTIME_PROTECTED_CONSENT_ID,
-    consentVersion: 'v1',
+    consentVersion: DESKTOP_RUNTIME_PROTECTED_AUTHORIZATION_VERSION,
     decisionAt: toNimiRuntimeTimestamp(new Date()),
-    policyVersion: 'desktop-shell-runtime-account-v1',
+    policyVersion: DESKTOP_RUNTIME_PROTECTED_AUTHORIZATION_VERSION,
     policyMode: PolicyMode.CUSTOM,
     preset: AuthorizationPreset.UNSPECIFIED,
     scopes: [...DESKTOP_RUNTIME_PROTECTED_SCOPES],
@@ -253,7 +330,7 @@ async function issueDesktopRuntimeProtectedAccessMetadata(
     policyOverride: false,
   }, withNimiRuntimeIdempotencyMetadata({
     metadata: { domain: 'app-auth' },
-  }, createNimiClientId('desktop-runtime-protected-access')));
+  }, createNimiClientId(`desktop-runtime-protected-access-${DESKTOP_RUNTIME_PROTECTED_SCOPE_SIGNATURE}`)));
   const tokenId = normalizeText(token.tokenId);
   const secret = normalizeText(token.secret);
   if (!tokenId || !secret) {
@@ -267,12 +344,23 @@ async function issueDesktopRuntimeProtectedAccessMetadata(
   return {
     appId,
     subjectUserId,
+    authorizationVersion: DESKTOP_RUNTIME_PROTECTED_AUTHORIZATION_VERSION,
     metadata: {
       'x-nimi-access-token-id': tokenId,
       'x-nimi-access-token-secret': secret,
     },
     expiresAtMs: runtimeAuthorizeResponseExpiresAtMs(token) || Date.now() + (DESKTOP_RUNTIME_PROTECTED_TOKEN_TTL_SECONDS * 1000),
   };
+}
+
+function buildDesktopRuntimeProtectedScopeSignature(): string {
+  const scopeMaterial = [...DESKTOP_RUNTIME_PROTECTED_SCOPES].sort().join('|');
+  let hash = 0x811c9dc5;
+  for (let index = 0; index < scopeMaterial.length; index += 1) {
+    hash ^= scopeMaterial.charCodeAt(index);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return `s${DESKTOP_RUNTIME_PROTECTED_SCOPES.length}-${hash.toString(36)}`;
 }
 
 function runtimeAuthorizeResponseExpiresAtMs(token: AuthorizeExternalPrincipalResponse): number {

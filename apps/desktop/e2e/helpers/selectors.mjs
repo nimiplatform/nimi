@@ -6,17 +6,20 @@ const helperDir = path.dirname(fileURLToPath(import.meta.url));
 const desktopRoot = path.resolve(helperDir, '../..');
 const rendererE2eIdsPath = path.join(desktopRoot, 'src/shell/renderer/testability/e2e-ids.ts');
 
-function readRendererRuntimeSidebarSelectorFactory() {
+function readRendererSelectorFactory(name, parameterName) {
   const source = fs.readFileSync(rendererE2eIdsPath, 'utf8');
-  const match = source.match(/runtimeSidebarPage:\s*\(pageId:\s*string\)\s*=>\s*`([^`$]+)\$\{pageId\}`/);
+  const expression = new RegExp(`${name}:\\s*\\(${parameterName}:\\s*string\\)\\s*=>\\s*\`([^\`$]+)\\$\\{${parameterName}\\}\``);
+  const match = source.match(expression);
   if (!match?.[1]) {
-    throw new Error(`runtimeSidebarPage selector truth missing from ${rendererE2eIdsPath}`);
+    throw new Error(`${name} selector truth missing from ${rendererE2eIdsPath}`);
   }
   const prefix = match[1];
-  return (pageId) => `${prefix}${pageId}`;
+  return (value) => `${prefix}${value}`;
 }
 
-const runtimeSidebarPageTestId = readRendererRuntimeSidebarSelectorFactory();
+const runtimeSidebarPageTestId = readRendererSelectorFactory('runtimeSidebarPage', 'pageId');
+const exploreAgentCardTestId = readRendererSelectorFactory('exploreAgentCard', 'agentId');
+const exploreAgentPrimaryActionTestId = readRendererSelectorFactory('exploreAgentPrimaryAction', 'agentId');
 
 export const E2E_IDS = {
   appLoadingScreen: 'app-loading-screen',
@@ -39,6 +42,8 @@ export const E2E_IDS = {
   panel: (name) => `panel:${name}`,
   navTab: (tabId) => `nav-tab:${tabId}`,
   runtimeConnectorScopeBadge: (connectorId) => `runtime-connector-scope-badge:${connectorId}`,
+  exploreAgentCard: exploreAgentCardTestId,
+  exploreAgentPrimaryAction: exploreAgentPrimaryActionTestId,
   chatPage: 'chat-page',
   chatList: 'chat-list',
   chatRow: (chatId) => `chat-row:${chatId}`,

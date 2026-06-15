@@ -399,6 +399,8 @@ export function useAgentConversationModeHost(
         localAgentRef: turnInput.target.localAgentRef,
         conversationAnchorId: turnInput.conversationAnchorId,
         textExecutionSnapshot: turnInput.textExecutionSnapshot,
+        imageExecutionSnapshot: turnInput.imageExecutionSnapshot,
+        imageParams: turnInput.imageParams,
         reasoningPreference: behaviorSettings.thinkingPreference,
         textMaxOutputTokensRequested: resolveAgentChatRequestedMaxOutputTokens(textRouteModelProfile, behaviorSettings.maxOutputTokensOverride),
       },

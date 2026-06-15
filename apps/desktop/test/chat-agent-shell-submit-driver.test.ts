@@ -101,6 +101,17 @@ function authoritativeBundle(): AgentLocalThreadBundle {
   };
 }
 
+function emptyAuthoritativeBundle(): AgentLocalThreadBundle {
+  return {
+    thread: {
+      ...sampleThread(),
+      updatedAtMs: 1000,
+      lastMessageAtMs: 1000,
+    },
+    messages: [],
+  };
+}
+
 function streamState(overrides: Partial<StreamState>): StreamState {
   return {
     chatId: 'thread-1',
@@ -253,6 +264,41 @@ test('agent submit driver accepts projection refresh in running state and keeps 
   assert.equal(staleDelta.projectionEffect?.messages.at(-1)?.contentText, 'authoritative projection');
 });
 
+test('agent submit driver ignores empty projection refresh instead of clearing current messages', () => {
+  let state = createDriverState();
+  state = reduceAgentSubmitDriverEvent({
+    state,
+    event: {
+      type: 'message-sealed',
+      turnId: 'turn-1',
+      beatId: 'beat-1',
+      text: 'sealed first beat',
+    },
+    updatedAtMs: 130,
+  }).finalSession;
+  state = reduceAgentSubmitDriverEvent({
+    state,
+    event: {
+      type: 'projection-rebuilt',
+      threadId: 'thread-1',
+    },
+    updatedAtMs: 140,
+  }).finalSession;
+
+  const refresh = resolveAgentSubmitDriverProjectionRefresh({
+    state,
+    refreshedBundle: emptyAuthoritativeBundle(),
+    composerText: '',
+    streamSnapshot: streamState({
+      phase: 'streaming',
+      partialText: 'sealed first beat',
+    }),
+  });
+
+  assert.deepEqual(effectKinds(refresh), []);
+  assert.equal(refresh.finalSession.workingBundle?.messages.at(-1)?.contentText, 'sealed first beat');
+});
+
 test('agent submit driver applies projection refresh after completed terminal for follow-up commits', () => {
   let state = createDriverState();
   state = reduceAgentSubmitDriverEvent({
@@ -324,6 +370,51 @@ test('agent submit driver applies projection refresh after completed terminal fo
   });
   assert.deepEqual(effectKinds(followUpRefresh), ['host']);
   assert.equal(followUpRefresh.hostPatchEffect?.bundle.messages.at(-1)?.contentText, 'authoritative projection');
+});
+
+test('agent submit driver completed checkpoint preserves messages when snapshot projection is empty', () => {
+  let state = createDriverState();
+  state = reduceAgentSubmitDriverEvent({
+    state,
+    event: {
+      type: 'message-sealed',
+      turnId: 'turn-1',
+      beatId: 'beat-1',
+      text: 'sealed first beat',
+    },
+    updatedAtMs: 130,
+  }).finalSession;
+  state = reduceAgentSubmitDriverEvent({
+    state,
+    event: {
+      type: 'turn-completed',
+      turnId: 'turn-1',
+      outputText: 'sealed first beat',
+      reasoningText: '',
+      usage: {
+        inputTokens: 10,
+        outputTokens: 20,
+      },
+      trace: {
+        traceId: 'trace-done',
+      },
+    },
+    updatedAtMs: 150,
+  }).finalSession;
+
+  const completedCheckpoint = resolveCompletedAgentSubmitDriverCheckpoint({
+    state,
+    refreshedBundle: emptyAuthoritativeBundle(),
+    streamSnapshot: streamState({
+      phase: 'done',
+      partialText: 'sealed first beat',
+      traceId: 'trace-done',
+    }),
+  });
+
+  assert.deepEqual(effectKinds(completedCheckpoint), ['host']);
+  assert.equal(completedCheckpoint.hostPatchEffect?.bundle.messages.at(-1)?.contentText, 'sealed first beat');
+  assert.equal(completedCheckpoint.finalSession.workingBundle?.messages.length, 2);
 });
 
 test('agent submit driver emits interrupted stream effect before interrupted host patch while waiting', () => {

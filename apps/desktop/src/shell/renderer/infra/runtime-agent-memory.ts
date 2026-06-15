@@ -8,6 +8,7 @@ import {
   getDesktopAccountRuntime,
   getDesktopAppId,
   getDesktopRuntime,
+  withDesktopRuntimeProtectedScopes,
 } from './sdk/desktop-nimi-client-session';
 
 export type CanonicalMemoryBankStatus = NimiRuntimeAgentCanonicalMemoryBankStatus;
@@ -31,5 +32,6 @@ export function createRuntimeAgentMemoryAdapter(deps: RuntimeAgentMemoryDeps = {
   return createNimiHostRuntimeAgentMemorySurface({
     getRuntime: deps.getRuntime ?? getDesktopRuntimeAgentMemoryClient,
     getSubjectUserId: deps.getSubjectUserId ?? (() => undefined),
+    ...(deps.getRuntime ? {} : { withScopes: withDesktopRuntimeProtectedScopes }),
   });
 }

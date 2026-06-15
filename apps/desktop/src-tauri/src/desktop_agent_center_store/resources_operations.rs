@@ -217,7 +217,7 @@ pub(super) fn quarantine_path(
     cleanup_expired_quarantine(&root)?;
     Ok(root.join("quarantine").join(resource_kind).join(format!(
         "{}_{}",
-        resource_id,
+        local_scope_path_segment(resource_id),
         Utc::now().timestamp_nanos_opt().unwrap_or(0)
     )))
 }
@@ -303,7 +303,7 @@ pub(super) fn account_quarantine_path(
     cleanup_expired_quarantine_dir(&quarantine_root)?;
     Ok(quarantine_root.join(resource_kind).join(format!(
         "{}_{}",
-        resource_id,
+        local_scope_path_segment(resource_id),
         Utc::now().timestamp_nanos_opt().unwrap_or(0)
     )))
 }

@@ -14,6 +14,7 @@ export const scenarioRegistry = new Map([
   ['runtime.config-panel-load', { bucket: 'smoke', profile: 'runtime.config-panel-load.json', spec: 'apps/desktop/e2e/specs/runtime.config-panel-load.e2e.mjs' }],
   ['settings.release-strip-and-preferences', { bucket: 'journeys', profile: 'settings.release-strip-and-preferences.json', spec: 'apps/desktop/e2e/specs/settings.release-strip-and-preferences.e2e.mjs' }],
   ['chat.open-thread', { bucket: 'journeys', profile: 'chat.open-thread.json', spec: 'apps/desktop/e2e/specs/chat.open-thread.e2e.mjs' }],
+  ['chat.cbdb-agentfriend-open', { bucket: 'journeys', profile: 'chat.cbdb-agentfriend-open.json', spec: 'apps/desktop/e2e/specs/chat.cbdb-agentfriend-open.e2e.mjs' }],
   ['chat.memory-standard-bind', { bucket: 'journeys', profile: 'chat.memory-standard-bind.json', spec: 'apps/desktop/e2e/specs/chat.memory-standard-bind.e2e.mjs' }],
   ['chat.live2d-render-smoke', { bucket: 'journeys', profile: 'chat.live2d-render-smoke.json', spec: 'apps/desktop/e2e/specs/chat.live2d-render-smoke.e2e.mjs' }],
   ['chat.live2d-render-smoke-mark', { bucket: 'journeys', profile: 'chat.live2d-render-smoke-mark.json', spec: 'apps/desktop/e2e/specs/chat.live2d-render-smoke.e2e.mjs' }],

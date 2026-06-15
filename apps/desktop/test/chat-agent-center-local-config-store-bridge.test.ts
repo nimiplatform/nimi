@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 
 import {
   createDefaultAgentCenterLocalConfig,
+  validateAgentCenterAvatarAssetImportResult,
+  validateAgentCenterAvatarAssetValidationResult,
   validateAgentCenterLive2dAdapterManifestImportResult,
   validateAgentCenterBackgroundAssetResult,
   validateAgentCenterBackgroundImportResult,
@@ -178,6 +180,39 @@ test('Agent Center Live2D adapter manifest import parser accepts Rust payload sh
     sha256: 'a'.repeat(64),
     bytes: 128,
     imported_at: '2026-05-01T00:00:00Z',
+  });
+
+  assert.equal(result.ok, true);
+});
+
+test('Agent Center Avatar asset validation parser accepts Rust payload shape', () => {
+  const result = validateAgentCenterAvatarAssetValidationResult({
+    schema_version: 1,
+    local_asset_id: 'live2d_ab12cd34ef56',
+    checked_at: '2026-04-27T00:00:00Z',
+    status: 'valid',
+    errors: [],
+    warnings: [],
+  });
+
+  assert.equal(result.ok, true);
+});
+
+test('Agent Center Avatar asset import parser accepts Rust payload shape', () => {
+  const result = validateAgentCenterAvatarAssetImportResult({
+    local_asset_id: 'vrm_ab12cd34ef56',
+    backend_kind: 'vrm',
+    selected: true,
+    materialization_ref: 'agent-center-avatar-asset:account_1:local_agent_1:vrm:vrm_ab12cd34ef56',
+    backend_capability_profile_ref: 'avatar.backend_profile:vrm:vrm_ab12cd34ef56:import_validated',
+    validation: {
+      schema_version: 1,
+      local_asset_id: 'vrm_ab12cd34ef56',
+      checked_at: '2026-04-27T00:00:00Z',
+      status: 'valid',
+      errors: [],
+      warnings: [],
+    },
   });
 
   assert.equal(result.ok, true);

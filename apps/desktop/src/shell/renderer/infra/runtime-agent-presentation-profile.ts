@@ -4,7 +4,10 @@ import {
   type NimiHostRuntimeAgentPresentationProfileSurfaceOptions,
 } from '@nimiplatform/sdk/runtime';
 import type { AvatarPresentationProfile } from '@nimiplatform/kit/features/avatar/headless';
-import { getDesktopHostRuntimeAgentClient } from '@renderer/infra/sdk/desktop-nimi-client-session';
+import {
+  getDesktopHostRuntimeAgentClient,
+  withDesktopRuntimeProtectedScopes,
+} from '@renderer/infra/sdk/desktop-nimi-client-session';
 
 type RuntimeAgentPresentationProfileDeps = {
   getRuntime?: () => NimiHostRuntimeAgentPresentationProfileClient;
@@ -17,6 +20,7 @@ export function createRuntimeAgentPresentationProfileAdapter(
   const surface = createNimiHostRuntimeAgentPresentationProfileSurface({
     getRuntime: deps.getRuntime ?? getDesktopHostRuntimeAgentClient,
     getSubjectUserId: deps.getSubjectUserId ?? (() => undefined),
+    ...(deps.getRuntime ? {} : { withScopes: withDesktopRuntimeProtectedScopes }),
   });
 
   return {

@@ -17,6 +17,7 @@ import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import type { AgentLocalTargetSnapshot } from '@renderer/bridge/runtime-bridge/types';
 import { ensureRuntimeAgentExists } from '@renderer/features/chat/chat-agent-shell-host-actions-helpers';
 import { launchAgentConversationFromDisplay } from '@renderer/features/chat/agent-conversation-launcher.js';
+import { toAgentFriendTargetsFromSocialSnapshot } from '@renderer/features/chat/chat-agent-thread-model.js';
 import type { AppStoreState } from '@renderer/app-shell/providers/store-types';
 import type { ConversationMode } from '@nimiplatform/kit/features/chat/headless';
 import type { AgentConversationSelection } from '@renderer/features/chat/chat-shell-types.js';
@@ -76,6 +77,17 @@ function toLocalAgentTarget(
   };
 }
 
+async function resolveOpenChatTarget(
+  target: RealmAgentFriendTarget,
+  ownerUserId: string,
+): Promise<AgentLocalTargetSnapshot> {
+  const fallbackTarget = toLocalAgentTarget(target, ownerUserId);
+  const snapshot = await realmSocialData.loadSocialSnapshot();
+  const socialTargets = toAgentFriendTargetsFromSocialSnapshot({ ...snapshot, ownerUserId });
+  return socialTargets.find((candidate) => candidate.realmAgentId === fallbackTarget.realmAgentId)
+    ?? fallbackTarget;
+}
+
 // D-EXPL-007 Add Friend dual-effect. The backend AgentFriend transaction is
 // the only authority that creates the durable LocalAgentProvisionIntent; the
 // desktop social adapter kicks the R-SOC-009 courier after the transaction
@@ -105,7 +117,7 @@ export async function openRealmAgentLocalChat(
   },
 ): Promise<void> {
   const ownerUserId = requireOwnerUserId();
-  const localAgentTarget = toLocalAgentTarget(target, ownerUserId);
+  const localAgentTarget = await resolveOpenChatTarget(target, ownerUserId);
   // Ensure the LocalAgent projection exists before routing into chat. Normally
   // already ensured at Add Friend time; this repairs a missing projection
   // idempotently rather than failing the friend → chat path.

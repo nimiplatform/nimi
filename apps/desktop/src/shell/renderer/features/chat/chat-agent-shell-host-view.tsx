@@ -60,6 +60,7 @@ export function resolveAgentConversationHostView(input: {
       renderMessageContent: input.renderMessageContent,
       renderMessageAccessory: input.renderMessageAccessory,
       pendingFirstBeat: input.footerViewState.pendingFirstBeat,
+      disableRpContent: true,
       onStopGenerating: input.onStopGenerating,
     },
     stagePanelProps: {
@@ -67,6 +68,7 @@ export function resolveAgentConversationHostView(input: {
       renderMessageContent: input.renderMessageContent,
       renderMessageAccessory: input.renderMessageAccessory,
       pendingFirstBeat: input.footerViewState.pendingFirstBeat,
+      disableRpContent: true,
     },
   };
 }

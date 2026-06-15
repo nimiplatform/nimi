@@ -9,6 +9,7 @@ import {
   createEmptyNimiAIConfig,
   createLocalTextProjection,
 } from './chat-agent-local-mode-test-utils.js';
+import { createRuntimeAgentChatConversationProvider } from '../src/shell/renderer/features/chat/chat-agent-runtime-provider.js';
 
 test('agent runtime turns interrupt stays bound to the aborted anchor and does not cross-wire sibling anchors', async () => {
   clearDesktopTestNimiClientSession();
@@ -84,6 +85,8 @@ test('agent runtime turns interrupt stays bound to the aborted anchor and does n
       userText: 'hello anchor a',
       reasoningPreference: 'off',
       textExecutionSnapshot: executionSnapshot,
+      imageExecutionSnapshot: null,
+      imageParams: null,
       signal: anchorAController.signal,
     });
     await streamChatAgentRuntimeAgentTurn({
@@ -96,6 +99,8 @@ test('agent runtime turns interrupt stays bound to the aborted anchor and does n
       userText: 'hello anchor b',
       reasoningPreference: 'off',
       textExecutionSnapshot: executionSnapshot,
+      imageExecutionSnapshot: null,
+      imageParams: null,
       signal: anchorBController.signal,
     });
 
@@ -263,6 +268,8 @@ test('agent runtime turn stream binds to the current request_id and ignores back
       userText: 'hello',
       reasoningPreference: 'off',
       textExecutionSnapshot: executionSnapshot,
+      imageExecutionSnapshot: null,
+      imageParams: null,
       signal: new AbortController().signal,
     });
     const parts: Array<{
@@ -429,6 +436,8 @@ test('agent runtime turn starts consuming subscription events before request ack
       userText: 'hello eager',
       reasoningPreference: 'off',
       textExecutionSnapshot: executionSnapshot,
+      imageExecutionSnapshot: null,
+      imageParams: null,
       signal: new AbortController().signal,
     });
     const parts: Array<{
@@ -452,4 +461,126 @@ test('agent runtime turn starts consuming subscription events before request ack
   } finally {
     clearDesktopTestNimiClientSession();
   }
+});
+
+test('agent runtime provider projects Runtime image action artifact events as image beats', async () => {
+  clearDesktopTestNimiClientSession();
+  const client = await createDesktopTestNimiClientSession({
+    appId: 'nimi.desktop.test.runtime-owned-image-action',
+    realmBaseUrl: 'https://realm.example',
+    allowAnonymousRealm: true,
+    runtimeTransport: null,
+  });
+  (client as unknown as { runtime: unknown }).runtime = {
+    artifacts: {
+      readArtifactBytes: async (request: { artifactId: string }) => {
+        assert.equal(request.artifactId, 'artifact-image-1');
+        return {
+          artifactId: request.artifactId,
+          mimeType: 'image/png',
+          bytes: new Uint8Array([105, 109, 97, 103, 101]),
+          sizeBytes: 5,
+        };
+      },
+    },
+  };
+  const provider = createRuntimeAgentChatConversationProvider({
+    runtimeAdapter: {
+      streamAgentTurn: async () => ({
+        stream: (async function* stream() {
+          yield {
+            type: 'message-sealed' as const,
+            envelope: {
+              schemaId: 'nimi.agent.chat.message-action.v1',
+              message: {
+                messageId: 'assistant-image',
+                text: 'I can make that image.',
+              },
+              actions: [],
+            },
+          };
+          yield {
+            type: 'beat-planned' as const,
+            turnId: 'runtime-turn-image',
+            beatId: 'action-0',
+            projectionMessageId: 'runtime-turn-image:message:1',
+          };
+          yield {
+            type: 'beat-delivery-started' as const,
+            turnId: 'runtime-turn-image',
+            beatId: 'action-0',
+            projectionMessageId: 'runtime-turn-image:message:1',
+          };
+          yield {
+            type: 'artifact-ready' as const,
+            turnId: 'runtime-turn-image',
+            beatId: 'action-0',
+            artifactId: 'artifact-image-1',
+            mimeType: 'image/png',
+            projectionMessageId: 'runtime-turn-image:message:1',
+          };
+          yield {
+            type: 'beat-delivered' as const,
+            turnId: 'runtime-turn-image',
+            beatId: 'action-0',
+            projectionMessageId: 'runtime-turn-image:message:1',
+          };
+          yield {
+            type: 'turn-completed' as const,
+            outputText: 'I can make that image.',
+            finishReason: 'stop',
+          };
+        })(),
+      }),
+    },
+  });
+
+  const events = [];
+  try {
+    for await (const event of provider.runTurn({
+      modeId: 'runtime-agent-chat-v1',
+      threadId: 'thread-image',
+      turnId: 'turn-image',
+      userMessage: {
+        id: 'user-image',
+        text: 'send me a photo',
+      },
+      history: [],
+      metadata: {
+        ownerUserId: 'user-1',
+        realmAgentId: 'agent-1',
+        localAgentRef: 'local-agent:user-1:agent-1',
+        conversationAnchorId: 'anchor-image',
+        textExecutionSnapshot: null,
+        imageExecutionSnapshot: null,
+        imageParams: null,
+        reasoningPreference: 'off',
+        textMaxOutputTokensRequested: null,
+      },
+    })) {
+      events.push(event);
+    }
+  } finally {
+    clearDesktopTestNimiClientSession();
+  }
+
+  assert.deepEqual(
+    events.map((event) => event.type),
+    [
+      'turn-started',
+      'message-sealed',
+      'beat-planned',
+      'beat-delivery-started',
+      'artifact-ready',
+      'beat-delivered',
+      'turn-completed',
+    ],
+  );
+  const imageBeat = events.find((event) => event.type === 'beat-planned');
+  assert.equal(imageBeat?.beatId, 'turn-image:beat:1');
+  assert.equal(imageBeat?.beatIndex, 1);
+  assert.equal(imageBeat?.modality, 'image');
+  const artifact = events.find((event) => event.type === 'artifact-ready');
+  assert.equal(artifact?.artifactId, 'artifact-image-1');
+  assert.equal(artifact?.uri, 'data:image/png;base64,aW1hZ2U=');
 });

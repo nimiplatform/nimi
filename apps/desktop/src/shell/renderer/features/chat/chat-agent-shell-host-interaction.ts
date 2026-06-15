@@ -99,11 +99,13 @@ export function resolveInterruptedAgentHostInteraction(input: {
 export function resolveProjectionRefreshAgentHostInteraction(input: {
   lifecycle: AgentTurnLifecycleState;
   streamSnapshot: StreamState;
+  currentBundle?: AgentLocalThreadBundle | null | undefined;
   refreshedBundle: AgentLocalThreadBundle | null | undefined;
   composerText: string;
 }): AgentHostInteractionPatch | null {
   const refreshOutcome = resolveAgentProjectionRefreshOutcome({
     terminal: input.lifecycle.terminal,
+    currentBundle: input.currentBundle,
     refreshedBundle: input.refreshedBundle,
   });
   if (!refreshOutcome) {

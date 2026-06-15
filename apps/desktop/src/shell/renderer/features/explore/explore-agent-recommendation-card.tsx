@@ -3,6 +3,7 @@ import { i18n } from '@renderer/i18n';
 import { AppCardSurface } from '@nimiplatform/kit/ui';
 import { getSemanticAgentPalette } from '@renderer/components/agent-theme.js';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
+import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import type { ExploreAgentCardData } from './explore-cards';
 import { describeRealmAgentPrimaryAction, type RealmAgentFriendState } from './realm-agent-friend-state';
 
@@ -178,6 +179,7 @@ export function AgentRecommendationCard({
       kind="promoted-glass"
       className="group relative flex h-full w-full min-w-0 cursor-pointer flex-col gap-3.5 overflow-hidden p-4 transition-all duration-200"
       style={{ background: palette.background }}
+      data-testid={E2E_IDS.exploreAgentCard(agent.id)}
       onClick={() => onOpen?.()}
       onMouseEnter={(e) => {
         const el = e.currentTarget as HTMLElement;
@@ -337,6 +339,7 @@ export function AgentRecommendationCard({
           type="button"
           onClick={handleFriendClick}
           disabled={primaryAction.disabled}
+          data-testid={E2E_IDS.exploreAgentPrimaryAction(agent.id)}
           data-friend-state={friendState}
           data-primary-action={primaryAction.action}
           className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 transition-colors disabled:cursor-default"

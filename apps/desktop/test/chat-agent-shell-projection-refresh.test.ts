@@ -49,6 +49,17 @@ function sampleBundle(): AgentLocalThreadBundle {
   };
 }
 
+function emptyBundle(): AgentLocalThreadBundle {
+  return {
+    thread: {
+      ...sampleThread(),
+      updatedAtMs: 1000,
+      lastMessageAtMs: 1000,
+    },
+    messages: [],
+  };
+}
+
 test('agent projection refresh applies authoritative bundle while the turn is still running', () => {
   const outcome = resolveAgentProjectionRefreshOutcome({
     terminal: 'running',
@@ -81,6 +92,16 @@ test('agent projection refresh still applies after completed terminal so follow-
 
   assert.ok(outcome);
   assert.equal(outcome?.bundle.messages.at(-1)?.contentText, 'authoritative projection');
+});
+
+test('agent projection refresh ignores empty refreshed projection for the current non-empty thread', () => {
+  const outcome = resolveAgentProjectionRefreshOutcome({
+    terminal: 'running',
+    currentBundle: sampleBundle(),
+    refreshedBundle: emptyBundle(),
+  });
+
+  assert.equal(outcome, null);
 });
 
 test('agent projection refresh does not apply after terminal cancellation', () => {

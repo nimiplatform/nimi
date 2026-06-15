@@ -2,8 +2,14 @@ import { createNimiClientId } from '@nimiplatform/sdk';
 import {
   createNimiRuntimeAgentTurnsModule,
   runNimiRuntimeAgentTurn,
+  type NimiRuntimeAgentExecutionBinding,
 } from '@nimiplatform/sdk/runtime';
-import { getDesktopRuntimeAgentTurnsRuntime } from '@renderer/infra/sdk/desktop-nimi-client-session';
+import { createNimiError, ReasonCode, type JsonObject } from '@nimiplatform/sdk/types';
+import { parseImageParams } from '@nimiplatform/kit/features/model-config/headless';
+import {
+  getDesktopRuntimeAgentTurnsRuntime,
+  withDesktopRuntimeProtectedScopes,
+} from '@renderer/infra/sdk/desktop-nimi-client-session';
 import type {
   AgentRuntimeChatTurnRequest,
   AgentRuntimeChatTurnStreamPart,
@@ -13,6 +19,9 @@ import {
   resolveChatThinkingConfig,
   resolveTextExecutionSnapshotThinkingSupport,
 } from './chat-shared-thinking';
+import type { ConversationExecutionSnapshot } from './conversation-capability';
+import type { AgentRuntimeResolvedBinding } from './chat-agent-runtime-types';
+import { resolveExecutionSlice } from './chat-agent-runtime-shared';
 import {
   buildRuntimeAgentDiagnostics,
   resolveRuntimeTrace,
@@ -21,6 +30,220 @@ import {
   toDebugMetadata,
 } from './chat-agent-runtime-agent-utils';
 
+const IMAGE_COMPANION_SLOT_KIND: Record<string, string> = {
+  vae_path: 'vae',
+  llm_path: 'chat',
+  clip_l_path: 'clip',
+  clip_g_path: 'clip',
+  controlnet_path: 'controlnet',
+  lora_path: 'lora',
+  aux_path: 'auxiliary',
+};
+
+function resolveRuntimeAgentTextExecutionBinding(
+  request: AgentRuntimeChatTurnRequest,
+): NimiRuntimeAgentExecutionBinding {
+  const resolved = request.textExecutionSnapshot?.conversationCapabilitySlice
+    ?.resolvedTarget as ConversationExecutionSnapshot['resolvedBinding'];
+  if (!resolved) {
+    throw createNimiError({
+      message: 'Runtime Agent text turn requires resolved text.generate binding.',
+      reasonCode: ReasonCode.AI_INPUT_INVALID,
+      actionHint: 'select_runtime_route_binding',
+      source: 'runtime',
+    });
+  }
+  const route = normalizeText(resolved.source).toLowerCase();
+  if (route !== 'local' && route !== 'cloud') {
+    throw createNimiError({
+      message: `Runtime Agent text turn route is unsupported: ${route || 'missing'}.`,
+      reasonCode: ReasonCode.AI_INPUT_INVALID,
+      actionHint: 'select_runtime_route_binding',
+      source: 'runtime',
+    });
+  }
+  const modelId = normalizeText(
+    resolved.modelId
+      || resolved.model
+      || resolved.goRuntimeLocalModelId
+      || resolved.localModelId,
+  );
+  if (!modelId) {
+    throw createNimiError({
+      message: 'Runtime Agent text turn requires resolved model id.',
+      reasonCode: ReasonCode.AI_INPUT_INVALID,
+      actionHint: 'select_runtime_route_binding',
+      source: 'runtime',
+    });
+  }
+  return {
+    route,
+    modelId,
+    ...(normalizeText(resolved.connectorId) ? { connectorId: normalizeText(resolved.connectorId) } : {}),
+  };
+}
+
+function resolveRuntimeAgentImageExecutionBinding(
+  request: AgentRuntimeChatTurnRequest,
+): NimiRuntimeAgentExecutionBinding | null {
+  if (!request.imageExecutionSnapshot) {
+    return null;
+  }
+  const slice = resolveExecutionSlice(request.imageExecutionSnapshot, 'image.generate');
+  const resolved = slice.resolvedTarget as AgentRuntimeResolvedBinding;
+  return bindingFromResolvedTarget(resolved, 'Runtime Agent image action requires resolved image.generate binding.', 'select_runtime_image_route_binding');
+}
+
+function bindingFromResolvedTarget(
+  resolved: AgentRuntimeResolvedBinding | ConversationExecutionSnapshot['resolvedBinding'],
+  missingMessage: string,
+  actionHint: string,
+): NimiRuntimeAgentExecutionBinding {
+  if (!resolved) {
+    throw createNimiError({
+      message: missingMessage,
+      reasonCode: ReasonCode.AI_INPUT_INVALID,
+      actionHint,
+      source: 'runtime',
+    });
+  }
+  const route = normalizeText(resolved.source).toLowerCase();
+  if (route !== 'local' && route !== 'cloud') {
+    throw createNimiError({
+      message: `Runtime Agent route is unsupported: ${route || 'missing'}.`,
+      reasonCode: ReasonCode.AI_INPUT_INVALID,
+      actionHint,
+      source: 'runtime',
+    });
+  }
+  const modelId = normalizeText(
+    resolved.modelId
+      || resolved.model
+      || resolved.goRuntimeLocalModelId
+      || resolved.localModelId,
+  );
+  if (!modelId) {
+    throw createNimiError({
+      message: 'Runtime Agent execution binding requires resolved model id.',
+      reasonCode: ReasonCode.AI_INPUT_INVALID,
+      actionHint,
+      source: 'runtime',
+    });
+  }
+  return {
+    route,
+    modelId,
+    ...(normalizeText(resolved.connectorId) ? { connectorId: normalizeText(resolved.connectorId) } : {}),
+  };
+}
+
+function buildRuntimeAgentImageExecutionParams(
+  request: AgentRuntimeChatTurnRequest,
+): JsonObject | null {
+  if (!request.imageExecutionSnapshot) {
+    return null;
+  }
+  const slice = resolveExecutionSlice(request.imageExecutionSnapshot, 'image.generate');
+  const resolved = slice.resolvedTarget as AgentRuntimeResolvedBinding;
+  const rawParams = request.imageParams || {};
+  const params = parseImageParams(rawParams);
+  const out: JsonObject = { ...(rawParams as JsonObject) };
+  if (normalizeText(params.size)) out.size = normalizeText(params.size);
+  if (normalizeText(params.responseFormat)) out.responseFormat = normalizeText(params.responseFormat);
+  if (normalizeText(params.seed)) out.seed = normalizeText(params.seed);
+  const steps = normalizePositiveInteger(params.steps);
+  const cfgScale = normalizePositiveNumber(params.cfgScale);
+  const sampler = normalizeText(params.sampler);
+  const scheduler = normalizeText(params.scheduler);
+  if (steps) {
+    out.step = steps;
+    out.steps = steps;
+  }
+  if (cfgScale) {
+    out.cfgScale = cfgScale;
+    out.cfg_scale = cfgScale;
+    out.guidance_scale = cfgScale;
+  }
+  if (sampler) out.sampler = sampler;
+  if (scheduler) out.scheduler = scheduler;
+  out.profile_entries = buildImageProfileEntries(resolved, rawParams);
+  const entryOverrides = buildImageEntryOverrides(resolved, rawParams);
+  if (entryOverrides.length > 0) out.entry_overrides = entryOverrides;
+  const profileOverrides: JsonObject = {};
+  if (steps) profileOverrides.step = steps;
+  if (cfgScale) {
+    profileOverrides.cfg_scale = cfgScale;
+    profileOverrides.guidance_scale = cfgScale;
+  }
+  if (sampler) profileOverrides.sampler = sampler;
+  if (scheduler) profileOverrides.scheduler = scheduler;
+  if (Object.keys(profileOverrides).length > 0) out.profile_overrides = profileOverrides;
+  return out;
+}
+
+function buildImageProfileEntries(
+  resolved: AgentRuntimeResolvedBinding,
+  rawParams: Record<string, unknown>,
+): JsonObject[] {
+  const entries: JsonObject[] = [{
+    entryId: 'main',
+    kind: 'asset',
+    capability: 'image',
+    assetId: normalizeText(resolved.goRuntimeLocalModelId || resolved.localModelId || resolved.modelId || resolved.model),
+    assetKind: 'image',
+    ...(normalizeText(resolved.engine || resolved.provider) ? { engine: normalizeText(resolved.engine || resolved.provider) } : {}),
+  }];
+  const companionSlots = asRecord(rawParams.companionSlots);
+  for (const [slot, localAssetId] of Object.entries(companionSlots || {})) {
+    const normalizedSlot = normalizeText(slot);
+    const normalizedLocalAssetId = normalizeText(localAssetId);
+    if (!normalizedSlot || !normalizedLocalAssetId) continue;
+    entries.push({
+      entryId: normalizedSlot,
+      kind: 'asset',
+      capability: 'image.generate',
+      assetId: normalizedLocalAssetId,
+      assetKind: IMAGE_COMPANION_SLOT_KIND[normalizedSlot] || 'auxiliary',
+      engineSlot: normalizedSlot,
+    });
+  }
+  return entries;
+}
+
+function buildImageEntryOverrides(
+  resolved: AgentRuntimeResolvedBinding,
+  rawParams: Record<string, unknown>,
+): JsonObject[] {
+  const overrides: JsonObject[] = [];
+  const mainLocalAssetId = normalizeText(resolved.goRuntimeLocalModelId || resolved.localModelId);
+  if (mainLocalAssetId) {
+    overrides.push({ entryId: 'main', localAssetId: mainLocalAssetId });
+  }
+  const companionSlots = asRecord(rawParams.companionSlots);
+  for (const [slot, localAssetId] of Object.entries(companionSlots || {})) {
+    const normalizedSlot = normalizeText(slot);
+    const normalizedLocalAssetId = normalizeText(localAssetId);
+    if (normalizedSlot && normalizedLocalAssetId) {
+      overrides.push({ entryId: normalizedSlot, localAssetId: normalizedLocalAssetId });
+    }
+  }
+  return overrides;
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : null;
+}
+
+function normalizePositiveInteger(value: unknown): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : 0;
+}
+
+function normalizePositiveNumber(value: unknown): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+}
+
 export async function streamChatAgentRuntimeAgentTurn(
   request: AgentRuntimeChatTurnRequest,
 ): Promise<{ stream: AsyncIterable<AgentRuntimeChatTurnStreamPart> }> {
@@ -28,6 +251,7 @@ export async function streamChatAgentRuntimeAgentTurn(
   const turns = createNimiRuntimeAgentTurnsModule({
     runtime,
     getSubjectUserId: () => request.ownerUserId,
+    withScopes: withDesktopRuntimeProtectedScopes,
   });
   const requestId = createNimiClientId('runtime-agent-turn-request');
   safeLogRuntimeAgentEvent({
@@ -41,9 +265,12 @@ export async function streamChatAgentRuntimeAgentTurn(
       requestId,
     },
   });
-  const route = 'runtime-owned';
-  const modelId = 'runtime-owned';
-  const connectorId = undefined;
+  const executionBinding = resolveRuntimeAgentTextExecutionBinding(request);
+  const imageExecutionBinding = resolveRuntimeAgentImageExecutionBinding(request);
+  const imageExecutionParams = buildRuntimeAgentImageExecutionParams(request);
+  const route = executionBinding.route;
+  const modelId = executionBinding.modelId;
+  const connectorId = executionBinding.connectorId;
   const localIdentity = {
     ownerUserId: request.ownerUserId,
     realmAgentId: request.realmAgentId,
@@ -63,6 +290,13 @@ export async function streamChatAgentRuntimeAgentTurn(
       role: 'user' as const,
       content: normalizeText(request.userText),
     }],
+    executionBindings: {
+      'text.generate': executionBinding,
+      ...(imageExecutionBinding ? { 'image.generate': imageExecutionBinding } : {}),
+    },
+    executionParams: {
+      ...(imageExecutionParams ? { 'image.generate': imageExecutionParams } : {}),
+    },
     reasoning: (() => {
       const resolved = resolveChatThinkingConfig(
         request.reasoningPreference,

@@ -5,6 +5,17 @@ export type AgentLocalMessageRole = 'system' | 'user' | 'assistant';
 export type AgentLocalMessageStatus = 'pending' | 'complete' | 'error';
 export type AgentLocalMessageKind = 'text' | 'image' | 'voice';
 
+export type AgentOwnerSettingsProjectionSummary = {
+  agentRuleVersion: number | null;
+  selectedOwnerSettingFields: string[];
+  communicationStyle: string | null;
+};
+
+export type AgentSpeechSynthesisRoute = {
+  modelId: string;
+  routePolicy: 'local' | 'cloud';
+};
+
 export type AgentLocalTargetSnapshot = {
   ownerUserId: string;
   realmAgentId: string;
@@ -12,6 +23,8 @@ export type AgentLocalTargetSnapshot = {
   displayName: string;
   handle: string;
   avatarUrl: string | null;
+  defaultVoiceReference?: string | null;
+  speechSynthesis?: AgentSpeechSynthesisRoute | null;
   presentationProfile?: AvatarPresentationProfile | null;
   worldId: string | null;
   worldName: string | null;
@@ -26,6 +39,9 @@ export type AgentLocalTargetSnapshot = {
   // Both are live projection data, not persisted desktop thread state.
   greeting: string | null;
   builtinDocsContext: string | null;
+  // Reviewed owner-controlled profile settings projected by Realm. This is a
+  // product-safe summary, not the raw rules cache or AgentRule statements.
+  ownerSettingsProjection?: AgentOwnerSettingsProjectionSummary | null;
 };
 
 export type AgentLocalThreadSummary = {

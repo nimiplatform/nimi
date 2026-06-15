@@ -10,6 +10,7 @@ import { buildRuntimeLocalAgentRef } from '@nimiplatform/sdk/runtime';
 import {
   assertRecord,
   parseOptionalJsonObject,
+  parseOptionalNumber,
   parseOptionalString,
   parseRequiredString,
 } from '@nimiplatform/kit/shell/renderer/bridge';
@@ -46,6 +47,9 @@ function parseAvatarBackendKind(value: unknown): AvatarPresentationProfile['back
   if (
     normalized === 'vrm'
     || normalized === 'live2d'
+    || normalized === 'sprite2d'
+    || normalized === 'canvas2d'
+    || normalized === 'video'
   ) {
     return normalized;
   }
@@ -79,7 +83,85 @@ function resolveTargetPresentationProfile(input: {
   if (explicitPresentation) {
     return explicitPresentation;
   }
+  const worldId = parseOptionalString(input.record.worldId)
+    || parseOptionalString(parseOptionalJsonObject(input.record.world)?.id)
+    || parseOptionalString(input.agentProfile?.worldId)
+    || '';
+  const ownershipType = parseOwnershipType(input.record.ownershipType || input.agentProfile?.ownershipType);
+  if (
+    input.avatarUrl
+    && ownershipType === 'WORLD_OWNED'
+    && worldId.startsWith('cbdb-')
+  ) {
+    return {
+      backendKind: 'sprite2d',
+      avatarAssetRef: `profile_media_url:${input.avatarUrl}`,
+      expressionProfileRef: null,
+      idlePreset: 'cbdb.reviewed-portrait.static',
+      interactionPolicyRef: 'cbdb.reviewed-portrait.readonly',
+      defaultVoiceReference: parseOptionalString(input.record.defaultVoiceReference)
+        || parseOptionalString(input.agentProfile?.defaultVoiceReference)
+        || parseDefaultVoiceReferenceFromDna(input.agentProfile?.dna),
+    };
+  }
   return null;
+}
+
+function parseDefaultVoiceReferenceFromDna(value: unknown): string | null {
+  const dna = parseOptionalJsonObject(value);
+  const voice = parseOptionalJsonObject(dna?.voice);
+  const voiceId = parseOptionalString(voice?.voiceId);
+  if (!voiceId) {
+    return null;
+  }
+  return `preset_voice_id:${voiceId}`;
+}
+
+function parseSpeechSynthesisFromDna(value: unknown): AgentLocalTargetSnapshot['speechSynthesis'] {
+  const dna = parseOptionalJsonObject(value);
+  const voice = parseOptionalJsonObject(dna?.voice);
+  const modelId = parseOptionalString(voice?.speechModelId);
+  const routePolicy = parseOptionalString(voice?.speechRoutePolicy);
+  if (!modelId || (routePolicy !== 'local' && routePolicy !== 'cloud')) {
+    return null;
+  }
+  return {
+    modelId,
+    routePolicy,
+  };
+}
+
+function parseSelectedOwnerSettingFields(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return Array.from(new Set(
+    value
+      .map((item) => parseOptionalString(item))
+      .filter((item): item is string => Boolean(item)),
+  )).sort();
+}
+
+function parseOwnerSettingsProjection(
+  value: unknown,
+): AgentLocalTargetSnapshot['ownerSettingsProjection'] {
+  const record = parseOptionalJsonObject(value);
+  if (!record) {
+    return null;
+  }
+  const agentRuleVersion = parseOptionalNumber(record.agentRuleVersion) ?? null;
+  const selectedOwnerSettingFields = parseSelectedOwnerSettingFields(
+    record.selectedOwnerSettingFields,
+  );
+  const communicationStyle = parseOptionalString(record.communicationStyle) || null;
+  if (agentRuleVersion === null && selectedOwnerSettingFields.length === 0 && !communicationStyle) {
+    return null;
+  }
+  return {
+    agentRuleVersion,
+    selectedOwnerSettingFields,
+    communicationStyle,
+  };
 }
 
 export function mergeAgentTargetWithPresentationProfile(
@@ -127,9 +209,24 @@ export function overlayAgentTargetWithLiveProfileContent(
   ) as AgentLocalTargetSnapshot;
   const nextGreeting = liveTarget.greeting ?? threadTarget.greeting ?? null;
   const nextDocs = liveTarget.builtinDocsContext ?? threadTarget.builtinDocsContext ?? null;
+  const nextDefaultVoiceReference = liveTarget.defaultVoiceReference
+    ?? threadTarget.defaultVoiceReference
+    ?? null;
+  const nextSpeechSynthesis = liveTarget.speechSynthesis
+    ?? threadTarget.speechSynthesis
+    ?? null;
+  const nextOwnerSettingsProjection = liveTarget.ownerSettingsProjection
+    ?? threadTarget.ownerSettingsProjection
+    ?? null;
   if (
     nextGreeting === (threadTarget.greeting ?? null)
     && nextDocs === (threadTarget.builtinDocsContext ?? null)
+    && nextDefaultVoiceReference === (threadTarget.defaultVoiceReference ?? null)
+    && areSpeechSynthesisRoutesEqual(nextSpeechSynthesis, threadTarget.speechSynthesis ?? null)
+    && areOwnerSettingsProjectionsEqual(
+      nextOwnerSettingsProjection,
+      threadTarget.ownerSettingsProjection ?? null,
+    )
     && merged === threadTarget
   ) {
     return threadTarget;
@@ -138,6 +235,9 @@ export function overlayAgentTargetWithLiveProfileContent(
     ...merged,
     greeting: nextGreeting,
     builtinDocsContext: nextDocs,
+    defaultVoiceReference: nextDefaultVoiceReference,
+    speechSynthesis: nextSpeechSynthesis,
+    ownerSettingsProjection: nextOwnerSettingsProjection,
   };
 }
 
@@ -159,6 +259,42 @@ function arePresentationProfilesEqual(
     && (left.defaultVoiceReference || null) === (right.defaultVoiceReference || null);
 }
 
+function areOwnerSettingsProjectionsEqual(
+  left: AgentLocalTargetSnapshot['ownerSettingsProjection'] | null | undefined,
+  right: AgentLocalTargetSnapshot['ownerSettingsProjection'] | null | undefined,
+): boolean {
+  const leftProjection = left ?? null;
+  const rightProjection = right ?? null;
+  if (!leftProjection && !rightProjection) {
+    return true;
+  }
+  if (!leftProjection || !rightProjection) {
+    return false;
+  }
+  return (leftProjection.agentRuleVersion ?? null) === (rightProjection.agentRuleVersion ?? null)
+    && (leftProjection.communicationStyle || null) === (rightProjection.communicationStyle || null)
+    && leftProjection.selectedOwnerSettingFields.length === rightProjection.selectedOwnerSettingFields.length
+    && leftProjection.selectedOwnerSettingFields.every(
+      (field, index) => field === rightProjection.selectedOwnerSettingFields[index],
+    );
+}
+
+function areSpeechSynthesisRoutesEqual(
+  left: AgentLocalTargetSnapshot['speechSynthesis'] | null | undefined,
+  right: AgentLocalTargetSnapshot['speechSynthesis'] | null | undefined,
+): boolean {
+  const leftRoute = left ?? null;
+  const rightRoute = right ?? null;
+  if (!leftRoute && !rightRoute) {
+    return true;
+  }
+  if (!leftRoute || !rightRoute) {
+    return false;
+  }
+  return leftRoute.modelId === rightRoute.modelId
+    && leftRoute.routePolicy === rightRoute.routePolicy;
+}
+
 export function areAgentTargetSnapshotsEquivalent(
   left: AgentLocalTargetSnapshot | null | undefined,
   right: AgentLocalTargetSnapshot | null | undefined,
@@ -175,11 +311,17 @@ export function areAgentTargetSnapshotsEquivalent(
     && left.displayName === right.displayName
     && left.handle === right.handle
     && (left.avatarUrl || null) === (right.avatarUrl || null)
+    && (left.defaultVoiceReference || null) === (right.defaultVoiceReference || null)
+    && areSpeechSynthesisRoutesEqual(left.speechSynthesis, right.speechSynthesis)
     && (left.worldId || null) === (right.worldId || null)
     && (left.worldName || null) === (right.worldName || null)
     && (left.bio || null) === (right.bio || null)
     && (left.ownershipType || null) === (right.ownershipType || null)
-    && arePresentationProfilesEqual(left.presentationProfile, right.presentationProfile);
+    && arePresentationProfilesEqual(left.presentationProfile, right.presentationProfile)
+    && areOwnerSettingsProjectionsEqual(
+      left.ownerSettingsProjection,
+      right.ownerSettingsProjection,
+    );
 }
 
 function parseAgentFriendTarget(value: unknown, ownerUserId: string): AgentLocalTargetSnapshot {
@@ -191,6 +333,7 @@ function parseAgentFriendTarget(value: unknown, ownerUserId: string): AgentLocal
   const agentProfile = parseOptionalJsonObject(record.agentProfile) ?? null;
   const avatarUrl = parseOptionalString(record.avatarUrl) || parseOptionalString(agentProfile?.avatarUrl) || null;
   const realmAgentId = parseRequiredString(record.id, 'id', 'agent friend target');
+  const agentDna = agentProfile?.dna;
   return {
     ownerUserId,
     realmAgentId,
@@ -198,6 +341,10 @@ function parseAgentFriendTarget(value: unknown, ownerUserId: string): AgentLocal
     displayName: parseRequiredString(record.displayName, 'displayName', 'agent friend target'),
     handle: parseRequiredString(record.handle, 'handle', 'agent friend target'),
     avatarUrl,
+    defaultVoiceReference: parseOptionalString(record.defaultVoiceReference)
+      || parseOptionalString(agentProfile?.defaultVoiceReference)
+      || parseDefaultVoiceReferenceFromDna(agentDna),
+    speechSynthesis: parseSpeechSynthesisFromDna(agentDna),
     presentationProfile: resolveTargetPresentationProfile({
       record,
       agentProfile,
@@ -215,6 +362,7 @@ function parseAgentFriendTarget(value: unknown, ownerUserId: string): AgentLocal
     // projection — applies to any RealmAgent, no guide-specific branch.
     greeting: projectRealmAgentGreeting(agentProfile),
     builtinDocsContext: projectRealmAgentBuiltinDocsContext(agentProfile),
+    ownerSettingsProjection: parseOwnerSettingsProjection(agentProfile?.ownerSettingsProjection),
   };
 }
 

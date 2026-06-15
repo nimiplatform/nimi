@@ -39,6 +39,8 @@ export async function runActiveAgentSubmit(input: {
   signal: AbortSignal;
   agentResolution: Parameters<UseAgentConversationHostActionsInput['runAgentTurn']>[0]['agentResolution'];
   textExecutionSnapshot: Parameters<UseAgentConversationHostActionsInput['runAgentTurn']>[0]['textExecutionSnapshot'];
+  imageExecutionSnapshot: Parameters<UseAgentConversationHostActionsInput['runAgentTurn']>[0]['imageExecutionSnapshot'];
+  imageParams: Parameters<UseAgentConversationHostActionsInput['runAgentTurn']>[0]['imageParams'];
   textModelContextTokens: number | null;
   textMaxOutputTokensRequested: number | null;
   target: Parameters<UseAgentConversationHostActionsInput['runAgentTurn']>[0]['target'];
@@ -57,6 +59,8 @@ export async function runActiveAgentSubmit(input: {
     signal: input.signal,
     agentResolution: input.agentResolution,
     textExecutionSnapshot: input.textExecutionSnapshot,
+    imageExecutionSnapshot: input.imageExecutionSnapshot,
+    imageParams: input.imageParams,
     textModelContextTokens: input.textModelContextTokens,
     textMaxOutputTokensRequested: input.textMaxOutputTokensRequested,
     target: input.target,
@@ -120,7 +124,13 @@ export async function runActiveAgentSubmit(input: {
       },
       'beat-delivery-started': () => undefined,
       'beat-delivered': () => undefined,
-      'artifact-ready': () => undefined,
+      'artifact-ready': (nextEvent) => {
+        submitSession = input.input.applyDriverEffects(input.threadId, reduceAgentSubmitDriverEvent({
+          state: submitSession,
+          event: nextEvent,
+          updatedAtMs: Date.now(),
+        }));
+      },
       'projection-rebuilt': () => undefined,
       'turn-completed': (nextEvent) => {
         submitSession = input.input.applyDriverEffects(input.threadId, reduceAgentSubmitDriverEvent({

@@ -346,6 +346,9 @@ test('agent shell stays a Runtime Agent projection consumer with local UI state'
   const effectsSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-effects.ts');
   const humanAdapterSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-human-adapter.tsx');
   const runtimeProviderSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-runtime-provider.ts');
+  const runtimeAgentTurnSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-runtime-agent.ts');
+  const runtimeAgentMemorySource = readWorkspaceFile('src/shell/renderer/infra/runtime-agent-memory.ts');
+  const runtimeAgentInspectSource = readWorkspaceFile('src/shell/renderer/infra/runtime-agent-inspect.ts');
   assert.match(adapterSource, /createRuntimeAgentChatConversationProvider/);
   assert.match(adapterSource, /useAgentConversationEffects/);
   assert.match(adapterSource, /useAgentConversationPresentation/);
@@ -367,6 +370,10 @@ test('agent shell stays a Runtime Agent projection consumer with local UI state'
   assert.match(hostActionHelpersSource, /createNimiHostRuntimeAgentLifecycleSurface/);
   assert.match(hostActionHelpersSource, /createNimiHostRuntimeAgentPresentationProfileSurface/);
   assert.match(hostActionHelpersSource, /createNimiRuntimeAgentConsumeClient/);
+  assert.match(hostActionHelpersSource, /withScopes:\s*withDesktopRuntimeProtectedScopes/);
+  assert.match(runtimeAgentTurnSource, /withScopes:\s*withDesktopRuntimeProtectedScopes/);
+  assert.match(runtimeAgentMemorySource, /withScopes:\s*withDesktopRuntimeProtectedScopes/);
+  assert.match(runtimeAgentInspectSource, /withScopes:\s*withDesktopRuntimeProtectedScopes/);
   assert.match(hostActionHelpersSource, /ensureLocalAgentInitialized/);
   assert.doesNotMatch(hostActionHelpersSource, /createRuntimeProtectedScopeHelper/);
   assert.doesNotMatch(hostActionHelpersSource, /runtime\.agent\.initializeAgent/);
@@ -405,6 +412,7 @@ test('agent shell stays a Runtime Agent projection consumer with local UI state'
     'agent host actions must verify Runtime route readiness before applying in-memory user projection messages',
   );
   assert.match(hostActionSubmitSource, /userProjectionApplied = true/);
+  assert.match(hostActionSubmitSource, /setAgentVisibleProjection\(effectiveThreadId,\s*userBundle\)/);
   assert.doesNotMatch(hostActionSubmitSource, /chatAgentStoreClient\.commitTurnResult/);
   assert.match(hostActionSubmitRunSource, /if \(projectionEffects\.awaitRefresh\) \{\s+const rebuiltBundle =/s);
   assert.match(adapterHostFeedbackSource, /logRendererEvent/);
@@ -444,6 +452,8 @@ test('agent shell stays a Runtime Agent projection consumer with local UI state'
   assert.match(presentationSource, /voiceState=\{resolveAgentComposerVoiceState/);
   assert.match(effectsSource, /applyDriverEffects/);
   assert.match(effectsSource, /applyHostInteractionPatch/);
+  assert.match(effectsSource, /setAgentVisibleProjection\(threadId,\s*patch\.bundle\)/);
+  assert.doesNotMatch(effectsSource, /setAgentVisibleProjection\(threadId,\s*null\)/);
   assert.doesNotMatch(humanAdapterSource, /voice session mode stays on/);
   assert.doesNotMatch(adapterSource, /chatAgentStoreClient\.createThread/);
   assert.doesNotMatch(adapterSource, /chatAgentStoreClient\.commitTurnResult/);

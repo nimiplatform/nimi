@@ -81,6 +81,26 @@ function lookupWorld(manifest, worldId) {
   return worlds.find((item) => String(item?.id || '') === String(worldId || '')) || null;
 }
 
+function lookupAgent(manifest, agentId) {
+  const fixture = manifest.realmFixture || {};
+  const agents = [];
+  if (Array.isArray(fixture.creatorAgents)) {
+    agents.push(...fixture.creatorAgents);
+  }
+  if (Array.isArray(fixture.searchUsers?.items)) {
+    agents.push(...fixture.searchUsers.items.filter((item) => item?.isAgent === true));
+  }
+  if (Array.isArray(fixture.friends?.items)) {
+    agents.push(...fixture.friends.items.filter((item) => item?.isAgent === true));
+  }
+  for (const world of Array.isArray(fixture.worlds) ? fixture.worlds : []) {
+    if (Array.isArray(world?.agents)) {
+      agents.push(...world.agents);
+    }
+  }
+  return agents.find((item) => String(item?.id || '') === String(agentId || '')) || null;
+}
+
 function positiveInt(value, fallback) {
   const parsed = Number.parseInt(String(value || ''), 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
@@ -330,8 +350,38 @@ function handleApi(request, response, manifestPath) {
     return undefined;
   }
 
+  if (request.method === 'GET' && pathname === '/api/human/me/friends/agent-limit') {
+    const explicitLimit = fixture.agentFriendLimit;
+    if (explicitLimit && typeof explicitLimit === 'object') {
+      json(response, 200, explicitLimit);
+      return undefined;
+    }
+    const friends = Array.isArray(fixture.friends?.items) ? fixture.friends.items : [];
+    const used = friends.filter((item) => item?.isAgent === true).length;
+    const limit = Number.isFinite(Number(fixture.agentFriendLimitValue))
+      ? Number(fixture.agentFriendLimitValue)
+      : Math.max(used + 1, 5);
+    json(response, 200, {
+      used,
+      limit,
+      canAdd: used < limit,
+    });
+    return undefined;
+  }
+
   if (request.method === 'GET' && pathname === '/api/creator/agents') {
     json(response, 200, Array.isArray(fixture.creatorAgents) ? fixture.creatorAgents : []);
+    return undefined;
+  }
+
+  const creatorAgentMatch = pathname.match(/^\/api\/creator\/agents\/([^/]+)$/u);
+  if (request.method === 'GET' && creatorAgentMatch) {
+    const agent = lookupAgent(manifest, decodeURIComponent(creatorAgentMatch[1]));
+    if (!agent) {
+      notFound(response, pathname);
+      return undefined;
+    }
+    json(response, 200, agent);
     return undefined;
   }
 

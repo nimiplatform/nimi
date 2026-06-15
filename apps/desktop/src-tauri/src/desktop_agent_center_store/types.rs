@@ -33,6 +33,29 @@ pub(crate) struct DesktopAgentCenterLive2dAdapterManifestImportPayload {
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub(crate) struct DesktopAgentCenterAvatarAssetImportPayload {
+    pub account_id: String,
+    pub owner_user_id: String,
+    pub realm_agent_id: String,
+    pub local_agent_ref: String,
+    pub kind: AgentCenterAvatarBackendKind,
+    pub source_path: String,
+    pub display_name: Option<String>,
+    pub select: Option<bool>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct DesktopAgentCenterAvatarAssetValidatePayload {
+    pub account_id: String,
+    pub owner_user_id: String,
+    pub realm_agent_id: String,
+    pub local_agent_ref: String,
+    pub local_asset_id: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub(crate) struct DesktopAgentCenterAgentLocalResourcesRemovePayload {
     pub account_id: String,
     pub owner_user_id: String,
@@ -55,6 +78,17 @@ pub(crate) struct DesktopAgentCenterLive2dAdapterManifestImportResult {
     pub sha256: String,
     pub bytes: u64,
     pub imported_at: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct DesktopAgentCenterAvatarAssetImportResult {
+    pub local_asset_id: String,
+    pub backend_kind: AgentCenterAvatarBackendKind,
+    pub selected: bool,
+    pub materialization_ref: String,
+    pub backend_capability_profile_ref: String,
+    pub validation: AgentCenterAvatarAssetValidationResult,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -292,6 +326,19 @@ pub(crate) enum AgentCenterBackgroundValidationStatus {
     DigestMismatch,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub(crate) enum AgentCenterAvatarAssetValidationStatus {
+    Valid,
+    InvalidManifest,
+    MissingEntry,
+    PermissionDenied,
+    PathRejected,
+    UnsupportedKind,
+    AssetMissing,
+    DigestMismatch,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct AgentCenterBackgroundValidationResult {
@@ -299,6 +346,17 @@ pub(crate) struct AgentCenterBackgroundValidationResult {
     pub background_asset_id: String,
     pub checked_at: String,
     pub status: AgentCenterBackgroundValidationStatus,
+    pub errors: Vec<AgentCenterValidationIssue>,
+    pub warnings: Vec<AgentCenterValidationIssue>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct AgentCenterAvatarAssetValidationResult {
+    pub schema_version: u8,
+    pub local_asset_id: String,
+    pub checked_at: String,
+    pub status: AgentCenterAvatarAssetValidationStatus,
     pub errors: Vec<AgentCenterValidationIssue>,
     pub warnings: Vec<AgentCenterValidationIssue>,
 }

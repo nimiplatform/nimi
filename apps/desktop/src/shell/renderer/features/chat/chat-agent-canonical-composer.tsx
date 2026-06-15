@@ -253,11 +253,16 @@ export function AgentCanonicalComposer(props: {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const pickerResolverRef = useRef<((attachments: readonly PendingAttachment[] | null) => void) | null>(null);
   const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
+  const [composerText, setComposerText] = useState(props.initialText);
   const attachmentsRef = useRef<readonly PendingAttachment[]>(props.pendingAttachments);
 
   useEffect(() => {
     attachmentsRef.current = props.pendingAttachments;
   }, [props.pendingAttachments]);
+
+  useEffect(() => {
+    setComposerText(props.initialText);
+  }, [props.composerKey, props.initialText]);
 
   useEffect(() => () => {
     pickerResolverRef.current?.(null);
@@ -342,6 +347,37 @@ export function AgentCanonicalComposer(props: {
     replaceAttachments(built);
   }, [buildIncomingAttachments, replaceAttachments]);
 
+  const handleComposerTextChange = useCallback((text: string) => {
+    setComposerText(text);
+    props.onInputCaptureText(text);
+  }, [props]);
+
+  const handleComposerSubmit = useCallback(async (input: {
+    text: string;
+    attachments: readonly unknown[];
+  }) => {
+    const submittedText = input.text;
+    const submittedAttachments = input.attachments as readonly PendingAttachment[];
+    setComposerText('');
+    props.onInputCaptureText('');
+    if (submittedAttachments.length > 0) {
+      props.onAttachmentsChange([]);
+    }
+    try {
+      await props.onSubmit({
+        text: submittedText,
+        attachments: submittedAttachments,
+      });
+    } catch (error) {
+      setComposerText(submittedText);
+      props.onInputCaptureText(submittedText);
+      if (submittedAttachments.length > 0) {
+        props.onAttachmentsChange(submittedAttachments);
+      }
+      throw error;
+    }
+  }, [props]);
+
   return (
     <div onPasteCapture={handlePasteCapture}>
       {feedback ? (
@@ -352,17 +388,13 @@ export function AgentCanonicalComposer(props: {
       <CanonicalComposer
         key={props.composerKey}
         adapter={{
-          submit: ({ text, attachments }) => (
-            props.onSubmit({
-              text,
-              attachments: attachments as readonly PendingAttachment[],
-            })
-          ),
+          submit: handleComposerSubmit,
         }}
         initialText={props.initialText}
+        text={composerText}
         disabled={props.disabled}
         placeholder={props.placeholder}
-        onInputCaptureText={props.onInputCaptureText}
+        onTextChange={handleComposerTextChange}
         attachmentAdapter={attachmentAdapter}
         attachments={props.pendingAttachments}
         onAttachmentsChange={replaceAttachments}

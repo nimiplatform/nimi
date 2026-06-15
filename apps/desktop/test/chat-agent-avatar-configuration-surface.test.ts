@@ -76,23 +76,23 @@ test('Agent Chat Settings Avatar surface exposes closed configuration controls',
   }
 
   assert.match(localAvatarControlsSource, /useAgentCenterAvatarConfigMutation/u);
-  assert.doesNotMatch(localAvatarControlsSource, /importAgentCenterAvatarAsset/u);
+  assert.match(localAvatarControlsSource, /importAgentCenterAvatarAsset/u);
+  assert.match(localAvatarControlsSource, /validateAgentCenterAvatarAsset/u);
   assert.doesNotMatch(localAvatarControlsSource, /listAgentCenterAvatarAssets/u);
   assert.doesNotMatch(localAvatarControlsSource, /selectAgentCenterAvatarAsset/u);
-  assert.doesNotMatch(localAvatarControlsSource, /pickAgentCenterAvatarAssetSource/u);
   assert.doesNotMatch(localAvatarControlsSource, /removeAgentCenterAvatarAsset/u);
-  assert.doesNotMatch(localAvatarControlsSource, /importAgentCenterLive2dAdapterManifest/u);
-  assert.match(localAvatarControlsSource, /Desktop-local Live2D\/VRM carrier assets are decommissioned/u);
+  assert.match(localAvatarControlsSource, /importAgentCenterLive2dAdapterManifest/u);
   assert.match(localAvatarControlsSource, /getAgentCenterBackgroundAsset/u);
   assert.match(localAvatarControlsSource, /importAgentCenterBackground/u);
   assert.match(mutationSource, /putAgentCenterLocalConfig/u);
   assert.match(mutationSource, /backend_kind/u);
   assert.doesNotMatch(settingsProjectionSource, /onChange: \(backend_kind\) => avatarConfigMutation\.mutate\(\{ backend_kind \}\)/u);
-  assert.doesNotMatch(bridgeSource, /desktop_agent_center_avatar_asset_import/u);
+  assert.match(bridgeSource, /desktop_agent_center_avatar_asset_import/u);
+  assert.match(bridgeSource, /desktop_agent_center_avatar_asset_validate/u);
   assert.doesNotMatch(bridgeSource, /desktop_agent_center_avatar_asset_list/u);
   assert.doesNotMatch(bridgeSource, /desktop_agent_center_avatar_asset_select/u);
-  assert.doesNotMatch(bridgeSource, /desktop_agent_center_avatar_asset_pick_live2d_source/u);
-  assert.doesNotMatch(bridgeSource, /desktop_agent_center_avatar_asset_pick_vrm_source/u);
+  assert.match(bridgeSource, /desktop_agent_center_avatar_asset_pick_live2d_source/u);
+  assert.match(bridgeSource, /desktop_agent_center_avatar_asset_pick_vrm_source/u);
   assert.doesNotMatch(bridgeSource, /desktop_agent_center_avatar_asset_remove/u);
   assert.doesNotMatch(mutationSource, /selected_package/u);
   assert.doesNotMatch(mutationSource, /last_validated_at/u);

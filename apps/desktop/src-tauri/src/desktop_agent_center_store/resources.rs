@@ -18,6 +18,10 @@ use url::Url;
 
 const VALIDATION_SCHEMA_VERSION: u8 = 1;
 const MAX_LIVE2D_ADAPTER_MANIFEST_BYTES: u64 = 262_144;
+const MAX_AVATAR_ASSET_MANIFEST_BYTES: u64 = 262_144;
+const MAX_AVATAR_ASSET_BYTES: u64 = 524_288_000;
+const MAX_AVATAR_ASSET_FILE_BYTES: u64 = 104_857_600;
+const MAX_AVATAR_ASSET_FILE_COUNT: usize = 2_048;
 const MAX_BACKGROUND_BYTES: u64 = 20_971_520;
 const MAX_BACKGROUND_PIXELS: u32 = 8_192;
 const VALIDATION_FILE_NAME: &str = "validation.json";
@@ -65,6 +69,52 @@ struct Live2dAdapterManifestCustody {
     bytes: u64,
     imported_at: String,
     source_label: String,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+struct AvatarAssetManifest {
+    manifest_version: u8,
+    asset_version: String,
+    local_asset_id: String,
+    kind: String,
+    loader_min_version: String,
+    display_name: String,
+    #[serde(default)]
+    display_name_i18n: serde_json::Map<String, serde_json::Value>,
+    entry_file: String,
+    required_files: Vec<String>,
+    content_digest: String,
+    files: Vec<AvatarAssetManifestFile>,
+    limits: AvatarAssetManifestLimits,
+    capabilities: serde_json::Value,
+    import: AvatarAssetManifestImport,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+struct AvatarAssetManifestFile {
+    path: String,
+    sha256: String,
+    bytes: u64,
+    mime: String,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+struct AvatarAssetManifestLimits {
+    max_manifest_bytes: u64,
+    max_asset_bytes: u64,
+    max_file_bytes: u64,
+    max_file_count: usize,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+struct AvatarAssetManifestImport {
+    imported_at: String,
+    source_label: String,
+    source_fingerprint: String,
 }
 
 #[derive(Debug, Serialize)]

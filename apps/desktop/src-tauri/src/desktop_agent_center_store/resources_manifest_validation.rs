@@ -176,6 +176,308 @@ pub(super) fn validate_background_manifest(
     }
 }
 
+pub(super) fn validate_avatar_asset_manifest(
+    asset_root: &Path,
+    expected_local_asset_id: &str,
+) -> AgentCenterAvatarAssetValidationResult {
+    let manifest_path = asset_root.join(MANIFEST_FILE_NAME);
+    let raw = match fs::read_to_string(&manifest_path) {
+        Ok(raw) => raw,
+        Err(source) => {
+            return avatar_asset_validation_result(
+                expected_local_asset_id,
+                AgentCenterAvatarAssetValidationStatus::AssetMissing,
+                vec![error(
+                    "avatar_asset_missing",
+                    &format!("Avatar asset manifest is missing: {source}"),
+                    Some(MANIFEST_FILE_NAME.to_string()),
+                )],
+                vec![],
+            );
+        }
+    };
+    let manifest = match serde_json::from_str::<AvatarAssetManifest>(&raw) {
+        Ok(manifest) => manifest,
+        Err(source) => {
+            return avatar_asset_validation_result(
+                expected_local_asset_id,
+                AgentCenterAvatarAssetValidationStatus::InvalidManifest,
+                vec![error(
+                    "avatar_asset_manifest_invalid",
+                    &format!("Avatar asset manifest is malformed: {source}"),
+                    Some(MANIFEST_FILE_NAME.to_string()),
+                )],
+                vec![],
+            );
+        }
+    };
+
+    let mut errors = Vec::<AgentCenterValidationIssue>::new();
+    if manifest.manifest_version != 1 {
+        errors.push(error(
+            "avatar_asset_manifest_invalid",
+            "manifest_version must be 1.",
+            Some("manifest_version".to_string()),
+        ));
+    }
+    if manifest.local_asset_id != expected_local_asset_id {
+        errors.push(error(
+            "avatar_asset_manifest_invalid",
+            "local_asset_id must match the selected asset.",
+            Some("local_asset_id".to_string()),
+        ));
+    }
+    if let Err(message) = validate_local_asset_id(&manifest.local_asset_id, "local_asset_id") {
+        errors.push(error(
+            "avatar_asset_manifest_invalid",
+            &message,
+            Some("local_asset_id".to_string()),
+        ));
+    }
+    if manifest.kind != "live2d" && manifest.kind != "vrm" {
+        errors.push(error(
+            "unsupported_kind",
+            "Avatar asset kind must be live2d or vrm.",
+            Some("kind".to_string()),
+        ));
+    }
+    if !manifest
+        .local_asset_id
+        .starts_with(&format!("{}_", manifest.kind))
+    {
+        errors.push(error(
+            "avatar_asset_manifest_invalid",
+            "local_asset_id prefix must match kind.",
+            Some("local_asset_id".to_string()),
+        ));
+    }
+    if manifest.loader_min_version != "1.0.0" {
+        errors.push(error(
+            "avatar_asset_manifest_invalid",
+            "loader_min_version must be 1.0.0.",
+            Some("loader_min_version".to_string()),
+        ));
+    }
+    if let Err(issue) = validate_display_text(&manifest.display_name, "display_name", 80) {
+        errors.push(issue);
+    }
+    if manifest.limits.max_manifest_bytes != MAX_AVATAR_ASSET_MANIFEST_BYTES
+        || manifest.limits.max_asset_bytes != MAX_AVATAR_ASSET_BYTES
+        || manifest.limits.max_file_bytes != MAX_AVATAR_ASSET_FILE_BYTES
+        || manifest.limits.max_file_count != MAX_AVATAR_ASSET_FILE_COUNT
+    {
+        errors.push(error(
+            "avatar_asset_manifest_invalid",
+            "limits must match the fixed Avatar asset caps.",
+            Some("limits".to_string()),
+        ));
+    }
+    if manifest.files.is_empty() || manifest.files.len() > MAX_AVATAR_ASSET_FILE_COUNT {
+        errors.push(error(
+            "avatar_asset_manifest_invalid",
+            "files must be non-empty and stay within the fixed file-count cap.",
+            Some("files".to_string()),
+        ));
+    }
+    if !is_safe_relative_path(&manifest.entry_file) || !manifest.entry_file.starts_with("files/") {
+        errors.push(error(
+            "path_rejected",
+            "entry_file must point under files/.",
+            Some("entry_file".to_string()),
+        ));
+    }
+    match manifest.kind.as_str() {
+        "live2d" if !manifest.entry_file.ends_with(".model3.json") => errors.push(error(
+            "avatar_asset_manifest_invalid",
+            "Live2D entry_file must be a .model3.json file under files/.",
+            Some("entry_file".to_string()),
+        )),
+        "vrm" if !manifest.entry_file.ends_with(".vrm") => errors.push(error(
+            "avatar_asset_manifest_invalid",
+            "VRM entry_file must be a .vrm file under files/.",
+            Some("entry_file".to_string()),
+        )),
+        _ => {}
+    }
+    if !manifest
+        .required_files
+        .iter()
+        .any(|path| path == &manifest.entry_file)
+    {
+        errors.push(error(
+            "avatar_asset_manifest_invalid",
+            "required_files must include entry_file.",
+            Some("required_files".to_string()),
+        ));
+    }
+    if !manifest.content_digest.starts_with("sha256:")
+        || !is_digest(manifest.content_digest.trim_start_matches("sha256:"))
+    {
+        errors.push(error(
+            "avatar_asset_manifest_invalid",
+            "content_digest must be a sha256 digest ref.",
+            Some("content_digest".to_string()),
+        ));
+    }
+    if let Err(message) = validate_utc_timestamp(&manifest.import.imported_at, "imported_at") {
+        errors.push(error(
+            "avatar_asset_manifest_invalid",
+            &message,
+            Some("import.imported_at".to_string()),
+        ));
+    }
+    if let Err(issue) = validate_display_text(&manifest.import.source_label, "source_label", 120) {
+        errors.push(issue);
+    }
+    if Path::new(&manifest.import.source_label).is_absolute() {
+        errors.push(error(
+            "avatar_asset_manifest_invalid",
+            "source_label must not store an absolute path.",
+            Some("import.source_label".to_string()),
+        ));
+    }
+
+    let mut total_bytes = 0_u64;
+    let mut saw_entry = false;
+    for file in &manifest.files {
+        if !is_safe_relative_path(&file.path) || !file.path.starts_with("files/") {
+            errors.push(error(
+                "path_rejected",
+                "Avatar asset file path must stay under files/.",
+                Some(file.path.clone()),
+            ));
+            continue;
+        }
+        if !is_digest(&file.sha256) {
+            errors.push(error(
+                "avatar_asset_manifest_invalid",
+                "file sha256 must be a lowercase sha256 digest.",
+                Some(file.path.clone()),
+            ));
+        }
+        if file.bytes == 0 || file.bytes > MAX_AVATAR_ASSET_FILE_BYTES {
+            errors.push(error(
+                "avatar_asset_file_too_large",
+                "Avatar asset file is outside the fixed byte cap.",
+                Some(file.path.clone()),
+            ));
+        }
+        total_bytes = total_bytes.saturating_add(file.bytes);
+        match resolve_under_root(asset_root, &file.path).and_then(|path| sha256_file(&path)) {
+            Ok((actual_bytes, actual_sha256)) => {
+                if actual_bytes != file.bytes {
+                    errors.push(error(
+                        "file_size_mismatch",
+                        "Avatar asset file size differs from manifest.",
+                        Some(file.path.clone()),
+                    ));
+                }
+                if actual_sha256 != file.sha256 {
+                    errors.push(error(
+                        "content_digest_mismatch",
+                        "Avatar asset file digest differs from manifest.",
+                        Some(file.path.clone()),
+                    ));
+                }
+            }
+            Err(issue) => errors.push(issue),
+        }
+        if file.path == manifest.entry_file {
+            saw_entry = true;
+            match manifest.kind.as_str() {
+                "live2d" if file.mime != "application/json" => errors.push(error(
+                    "avatar_asset_manifest_invalid",
+                    "Live2D entry_file must be application/json.",
+                    Some(file.path.clone()),
+                )),
+                "vrm" if file.mime != "model/vrm" => errors.push(error(
+                    "avatar_asset_manifest_invalid",
+                    "VRM entry_file must be model/vrm.",
+                    Some(file.path.clone()),
+                )),
+                _ => {}
+            }
+        }
+    }
+    if !saw_entry {
+        errors.push(error(
+            "missing_required_file",
+            "Avatar asset files must describe entry_file.",
+            Some(manifest.entry_file.clone()),
+        ));
+    }
+    if total_bytes == 0 || total_bytes > MAX_AVATAR_ASSET_BYTES {
+        errors.push(error(
+            "avatar_asset_too_large",
+            "Avatar asset package is outside the fixed byte cap.",
+            Some("files".to_string()),
+        ));
+    }
+
+    if errors.is_empty() {
+        avatar_asset_validation_result(
+            expected_local_asset_id,
+            AgentCenterAvatarAssetValidationStatus::Valid,
+            vec![],
+            vec![],
+        )
+    } else {
+        let status = status_for_avatar_asset_errors(&errors);
+        avatar_asset_validation_result(expected_local_asset_id, status, errors, vec![])
+    }
+}
+
+#[tauri::command]
+pub(crate) async fn desktop_agent_center_avatar_asset_validate(
+    payload: DesktopAgentCenterAvatarAssetValidatePayload,
+) -> Result<AgentCenterAvatarAssetValidationResult, String> {
+    let account_id = crate::desktop_agent_center_store::active_agent_center_account_id().await?;
+    let mut payload = payload;
+    payload.account_id = account_id;
+    run_agent_center_resource_blocking("desktop_agent_center_avatar_asset_validate", move || {
+        desktop_agent_center_avatar_asset_validate_blocking(payload)
+    })
+    .await
+}
+
+pub(crate) fn desktop_agent_center_avatar_asset_validate_blocking(
+    payload: DesktopAgentCenterAvatarAssetValidatePayload,
+) -> Result<AgentCenterAvatarAssetValidationResult, String> {
+    let account_id = validate_normalized_id(&payload.account_id, "accountId")?;
+    let scope = validate_local_agent_scope(
+        &payload.owner_user_id,
+        &payload.realm_agent_id,
+        &payload.local_agent_ref,
+    )?;
+    validate_local_asset_id(&payload.local_asset_id, "localAssetId")?;
+    let kind = if payload.local_asset_id.starts_with("live2d_") {
+        "live2d"
+    } else {
+        "vrm"
+    };
+    let dir = avatar_asset_dir(
+        &account_id,
+        &scope.local_agent_ref,
+        kind,
+        &payload.local_asset_id,
+    )?;
+    if !dir.exists() {
+        return Ok(avatar_asset_validation_result(
+            &payload.local_asset_id,
+            AgentCenterAvatarAssetValidationStatus::AssetMissing,
+            vec![error(
+                "avatar_asset_missing",
+                "Selected Avatar asset directory is missing.",
+                Some(payload.local_asset_id.clone()),
+            )],
+            vec![],
+        ));
+    }
+    let result = validate_avatar_asset_manifest(&dir, &payload.local_asset_id);
+    write_avatar_asset_validation_sidecar(&dir, &result)?;
+    Ok(result)
+}
+
 #[tauri::command]
 pub(crate) async fn desktop_agent_center_background_validate(
     payload: DesktopAgentCenterBackgroundValidatePayload,

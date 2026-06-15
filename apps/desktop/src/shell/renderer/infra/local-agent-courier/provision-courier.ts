@@ -15,7 +15,10 @@ import {
   ReasonCode,
 } from '@nimiplatform/sdk/types';
 import type { JsonObject } from '@nimiplatform/sdk/types';
-import { getDesktopHostRuntimeAgentClient } from '@renderer/infra/sdk/desktop-nimi-client-session';
+import {
+  getDesktopHostRuntimeAgentClient,
+  withDesktopRuntimeProtectedScopes,
+} from '@renderer/infra/sdk/desktop-nimi-client-session';
 
 type LocalAgentProvisionIntentDto = NimiRealmLocalAgentProvisionIntentDto;
 type LocalAgentProvisionIntentAckDto = NimiRealmLocalAgentProvisionIntentAckDto;
@@ -126,6 +129,7 @@ async function deliverInitializeToLocalRuntime(
   const lifecycle = createNimiHostRuntimeAgentLifecycleSurface({
     getRuntime: getDesktopHostRuntimeAgentClient,
     getSubjectUserId: () => requireCurrentUserId(getCurrentUser),
+    withScopes: withDesktopRuntimeProtectedScopes,
   });
   await lifecycle.initializeLocalAgent({
     localAgentRef,

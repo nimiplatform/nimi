@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CanonicalConversationShell } from '@nimiplatform/kit/features/chat/components/canonical-conversation-shell';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   type ConversationSetupAction,
   type ConversationTargetSummary,
@@ -7,7 +6,7 @@ import {
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { useAgentConversationModeHost } from './chat-agent-shell-adapter';
 import { ChatAgentSceneBackground } from './chat-agent-scene-background';
-import { ChatSideSheet } from './chat-shared-side-sheet';
+import { ChatCanonicalModeFrame } from './chat-canonical-mode-frame';
 
 export type ChatAgentModeContentProps = {
   allTargets: readonly ConversationTargetSummary[];
@@ -29,8 +28,6 @@ export function ChatAgentModeContent({
   const [diagnosticsSectionVisible, setDiagnosticsSectionVisible] = useState(false);
   const authStatus = useAppStore((state) => state.auth.status);
   const runtimeFields = useAppStore((state) => state.runtimeFields);
-  const setChatViewMode = useAppStore((state) => state.setChatViewMode);
-  const setChatSetupState = useAppStore((state) => state.setChatSetupState);
   const setSelectedTargetForSource = useAppStore((state) => state.setSelectedTargetForSource);
   const agentConversationSelection = useAppStore((state) => state.agentConversationSelection);
   const setAgentConversationSelection = useAppStore((state) => state.setAgentConversationSelection);
@@ -54,11 +51,6 @@ export function ChatAgentModeContent({
     }
     prevTargetIdRef.current = storeSelectedTargetId;
   }, [host, storeSelectedTargetId]);
-
-  // Sync setupState to store
-  useEffect(() => {
-    setChatSetupState('agent', host.adapter.setupState);
-  }, [host.adapter.setupState, setChatSetupState]);
 
   // Sync host selectedTargetId to store
   useEffect(() => {
@@ -107,68 +99,33 @@ export function ChatAgentModeContent({
     [allTargets, host.activeThreadId, host.characterData, selectedTargetId],
   );
 
-  const currentViewModeKey = selectedTarget
-    ? `${selectedTarget.source}:${selectedTarget.id}`
-    : 'agent:landing';
-  const currentViewMode = useAppStore((state) => state.viewModeBySourceTarget[currentViewModeKey] || 'chat');
-
-  const canonicalMessages = host.messages || [];
   const sceneBackground = selectedTarget ? (
     <ChatAgentSceneBackground
       characterData={host.characterData}
     />
   ) : null;
 
-  const handleViewModeChange = useCallback((mode: 'stage' | 'chat') => {
-    if (!selectedTarget) {
-      return;
-    }
-    setChatViewMode('agent', selectedTarget.id, mode);
-  }, [selectedTarget, setChatViewMode]);
-
   return (
-    <div className="relative flex min-h-0 min-w-0 flex-1">
-      <CanonicalConversationShell
-        className="min-h-0 flex-1"
-        chrome="transparent"
-        hideTargetPane
-        hideCharacterRail
-        sourceFilter="all"
-        targets={allTargets}
-        selectedTargetId={selectedTargetId}
-        selectedTarget={selectedTarget}
-        onSelectTarget={onSelectTarget}
-        viewMode={currentViewMode}
-        onViewModeChange={handleViewModeChange}
-        setupState={host.adapter.setupState}
-        setupDescription={host.setupDescription}
-        onSetupAction={onSetupAction}
-        characterData={host.characterData}
-        messages={canonicalMessages}
-        transcriptProps={host.transcriptProps}
-        stagePanelProps={host.stagePanelProps}
-        topContent={host.topContent}
-        sceneBackground={sceneBackground}
-        composer={host.composerContent}
-        auxiliaryOverlayContent={host.auxiliaryOverlayContent}
-      />
-      {selectedTarget && settingsOpen && host.settingsContent ? (
-        <ChatSideSheet
-          sheetKey="settings"
-          eyebrow={host.settingsDrawerTitle || 'Agent Center'}
-          title={host.settingsDrawerSubtitle || host.characterData?.name || selectedTarget.title}
-          subtitle={selectedTarget.handle ? `~${selectedTarget.handle}` : null}
-          world={host.settingsDrawerWorld ?? null}
-          avatarUrl={host.characterData?.avatarUrl ?? selectedTarget.avatarUrl ?? null}
-          avatarFallback={host.characterData?.avatarFallback ?? selectedTarget.avatarFallback ?? undefined}
-          avatarAlt={host.characterData?.name ?? selectedTarget.title}
-          onClose={onCloseSettings}
-        >
-          <div className="px-5 py-3">
-            {host.settingsContent}
-          </div>
-        </ChatSideSheet>
-      ) : null}
-    </div>
+    <ChatCanonicalModeFrame
+      mode="agent"
+      host={host}
+      allTargets={allTargets}
+      selectedTargetId={selectedTargetId}
+      selectedTarget={selectedTarget}
+      onSelectTarget={onSelectTarget}
+      onSetupAction={onSetupAction}
+      settingsOpen={settingsOpen}
+      onCloseSettings={onCloseSettings}
+      className="relative flex min-h-0 min-w-0 flex-1"
+      sceneBackground={sceneBackground}
+      settingsSheetEyebrow={host.settingsDrawerTitle || 'Agent Center'}
+      settingsSheetTitle={host.settingsDrawerSubtitle || host.characterData?.name || selectedTarget?.title}
+      settingsSheetSubtitle={selectedTarget?.handle ? `~${selectedTarget.handle}` : null}
+      settingsSheetWorld={host.settingsDrawerWorld ?? null}
+      settingsSheetAvatarUrl={host.characterData?.avatarUrl ?? selectedTarget?.avatarUrl ?? null}
+      settingsSheetAvatarFallback={host.characterData?.avatarFallback ?? selectedTarget?.avatarFallback ?? undefined}
+      settingsSheetAvatarAlt={host.characterData?.name ?? selectedTarget?.title}
+      settingsSheetBodyClassName="px-5 py-3"
+    />
   );
 }

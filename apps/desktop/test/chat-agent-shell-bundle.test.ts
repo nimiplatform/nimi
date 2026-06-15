@@ -122,6 +122,28 @@ test('agent shell bundle falls back to optimistic bundle when no refreshed proje
   assert.equal(nextBundle?.messages.at(-1)?.contentText, 'sealed first beat');
 });
 
+test('agent shell bundle rejects empty refreshed projection for the current non-empty thread', () => {
+  const optimisticBundle: AgentLocalThreadBundle = {
+    ...sampleBundle(),
+  };
+  const emptyRefreshedBundle: AgentLocalThreadBundle = {
+    thread: {
+      ...sampleThread(),
+      updatedAtMs: 1000,
+      lastMessageAtMs: 1000,
+    },
+    messages: [],
+  };
+
+  const nextBundle = resolveAuthoritativeAgentThreadBundle({
+    optimisticBundle,
+    refreshedBundle: emptyRefreshedBundle,
+  });
+
+  assert.equal(nextBundle, optimisticBundle);
+  assert.equal(nextBundle?.messages.at(-1)?.contentText, 'sealed first beat');
+});
+
 test('agent shell bundle resolves completed terminals by preferring refreshed projection and clearing composer text', () => {
   const optimisticBundle: AgentLocalThreadBundle = {
     ...sampleBundle(),
@@ -162,6 +184,28 @@ test('agent shell bundle resolves completed terminals by preferring refreshed pr
   assert.ok(nextBundle);
   assert.equal(nextBundle?.messages.at(-1)?.contentText, 'authoritative completion');
   assert.equal(nextBundle?.thread.updatedAtMs, 1000);
+});
+
+test('agent shell bundle resolves completed terminals without wiping a non-empty thread on empty refresh', () => {
+  const optimisticBundle: AgentLocalThreadBundle = {
+    ...sampleBundle(),
+  };
+  const emptyRefreshedBundle: AgentLocalThreadBundle = {
+    thread: {
+      ...sampleThread(),
+      updatedAtMs: 1000,
+      lastMessageAtMs: 1000,
+    },
+    messages: [],
+  };
+
+  const nextBundle = resolveCompletedAgentThreadBundle({
+    optimisticBundle,
+    refreshedBundle: emptyRefreshedBundle,
+  });
+
+  assert.equal(nextBundle, optimisticBundle);
+  assert.equal(nextBundle?.messages.length, 2);
 });
 
 test('agent shell bundle preserves sealed assistant content when abort lands after first beat', () => {

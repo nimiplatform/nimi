@@ -33,6 +33,8 @@ export type AgentRunTurn = (input: {
   signal: AbortSignal;
   agentResolution: AgentEffectiveCapabilityResolution;
   textExecutionSnapshot: NimiAISnapshot;
+  imageExecutionSnapshot: NimiAISnapshot | null;
+  imageParams: Record<string, unknown> | null;
   textModelContextTokens: number | null;
   textMaxOutputTokensRequested: number | null;
   target: AgentLocalTargetSnapshot;

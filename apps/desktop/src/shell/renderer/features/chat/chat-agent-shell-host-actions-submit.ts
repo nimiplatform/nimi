@@ -19,6 +19,7 @@ import {
   createEmptyAgentThreadBundle,
   replaceAgentBundleMessage,
 } from './chat-agent-shell-bundle';
+import { setAgentVisibleProjection } from './chat-agent-visible-projection-store';
 import {
   toChatAgentRuntimeError,
 } from './chat-agent-runtime';
@@ -247,7 +248,6 @@ export async function submitAgentConversationTurn(input: {
       updatedAtMs: userProjection.lastMessageAtMs + 1,
     };
 
-    input.hostInput.currentComposerTextRef.current = submittedText;
     const userThreadRecord: AgentLocalThreadRecord = {
       ...fallbackThreadRecord,
       updatedAtMs: createdAtMs,
@@ -265,6 +265,7 @@ export async function submitAgentConversationTurn(input: {
     };
     userProjectionApplied = true;
     input.hostInput.queryClient.setQueryData(bundleQueryKey(effectiveThreadId), userBundle);
+    setAgentVisibleProjection(effectiveThreadId, userBundle);
     input.hostInput.syncSelectionToThread(userBundle.thread);
     let submitSession = createInitialAgentSubmitDriverState({
       fallbackThread: fallbackThreadRecord,
@@ -300,6 +301,28 @@ export async function submitAgentConversationTurn(input: {
       refreshAgentEffectiveCapabilityResolution();
       effectiveAgentResolution = useAppStore.getState().agentEffectiveCapabilityResolution || effectiveAgentResolution;
     }
+    const imageRuntimeEvidence = effectiveAgentResolution.imageProjection
+      ? await peekDesktopAISchedulingForEvidence({
+        scopeRef: input.hostInput.aiConfig.scopeRef,
+        target: resolveNimiAIConfigRuntimeSchedulingTargetForCapability(input.hostInput.aiConfig, 'image.generate'),
+      })
+      : null;
+    const imageExecutionSnapshot = effectiveAgentResolution.imageProjection
+      ? createNimiConversationAISnapshot({
+        config: input.hostInput.aiConfig,
+        capability: 'image.generate',
+        projection: effectiveAgentResolution.imageProjection,
+        agentResolution: effectiveAgentResolution,
+        runtimeEvidence: imageRuntimeEvidence,
+      })
+      : null;
+    if (imageExecutionSnapshot) {
+      recordDesktopAISnapshot(imageExecutionSnapshot);
+    }
+    const imageParamsCandidate = input.hostInput.aiConfig.capabilities.selectedParams['image.generate'];
+    const imageParams = imageParamsCandidate && typeof imageParamsCandidate === 'object' && !Array.isArray(imageParamsCandidate)
+      ? imageParamsCandidate as Record<string, unknown>
+      : null;
 
     const abortController = startStream(
       effectiveThreadId,
@@ -328,6 +351,8 @@ export async function submitAgentConversationTurn(input: {
       signal: abortController.signal,
       agentResolution: effectiveAgentResolution,
       textExecutionSnapshot,
+      imageExecutionSnapshot,
+      imageParams,
       textModelContextTokens: input.hostInput.textModelContextTokens,
       textMaxOutputTokensRequested: input.hostInput.textMaxOutputTokensRequested,
       target: activeTarget,

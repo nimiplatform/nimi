@@ -5,7 +5,10 @@ import {
   type NimiRuntimeAgentDelegatedControlSurfaceQuery,
   type NimiRuntimeAgentDelegatedProviderProfileDraft,
 } from '@nimiplatform/sdk/runtime';
-import { getDesktopHostRuntimeAgentClient } from '@renderer/infra/sdk/desktop-nimi-client-session';
+import {
+  getDesktopHostRuntimeAgentClient,
+  withDesktopRuntimeProtectedScopes,
+} from '@renderer/infra/sdk/desktop-nimi-client-session';
 
 type DelegatedCapabilityServiceDeps = {
   getRuntime?: () => NimiHostRuntimeAgentDelegatedCapabilityClient;
@@ -31,6 +34,7 @@ export function createDesktopDelegatedCapabilityService(deps: DelegatedCapabilit
       }
       return subjectUserId;
     },
+    ...(deps.getRuntime ? {} : { withScopes: withDesktopRuntimeProtectedScopes }),
     disabledProviderReasonCode: DESKTOP_USER_DISABLED_PROVIDER_REASON,
   });
 
