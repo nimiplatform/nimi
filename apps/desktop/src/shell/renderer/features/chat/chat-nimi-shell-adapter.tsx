@@ -45,7 +45,10 @@ import {
 } from './chat-nimi-shell-core';
 import type { RouteModelPickerSelection } from '@nimiplatform/kit/features/model-picker';
 import { useAiConversationPresentation } from './chat-nimi-shell-presentation';
-import { createChatAiConversationRuntimeAdapter } from './chat-nimi-shell-runtime-adapter';
+import {
+  createChatAiConversationRuntimeAdapter,
+  resolveChatAiConversationRuntimeRequest,
+} from './chat-nimi-shell-runtime-adapter';
 import { useAiConversationEffects } from './chat-nimi-shell-effects';
 import { useAiConversationCapabilityEffects } from './chat-nimi-shell-capability-effects';
 import { useSchedulingFeasibility } from './chat-shared-execution-scheduling-guard';
@@ -166,6 +169,9 @@ export function useAiConversationModeHost(
         ),
         aiConfig,
       }),
+      resolveRuntimeRequest: () => resolveChatAiConversationRuntimeRequest(
+        useAppStore.getState().conversationCapabilityProjectionByCapability['text.generate'] || null,
+      ),
       resolveSystemPrompt: (turnInput) => turnInput.systemPrompt || null,
     }));
     return registry.require('simple-ai');

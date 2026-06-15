@@ -15,10 +15,23 @@ import {
 import {
   buildConversationCapabilityProjection,
   createDefaultConversationCapabilitySelectionStore,
+  createNimiConversationAISnapshot,
   type ConversationCapabilityRouteRuntime,
   updateConversationCapabilityBinding,
 } from '../src/shell/renderer/features/chat/conversation-capability.js';
+import {
+  streamChatAiRuntime,
+} from '../src/shell/renderer/features/chat/chat-nimi-runtime.js';
+import {
+  resolveChatAiConversationRuntimeRequest,
+} from '../src/shell/renderer/features/chat/chat-nimi-shell-runtime-adapter.js';
 import type { NimiRuntimeRouteBinding } from '@nimiplatform/sdk/runtime';
+import {
+  clearDesktopTestNimiClientSession,
+  createEmptyNimiAIConfig,
+  createDesktopTestNimiClientSession,
+  resetRuntimeLocalModelWarmCacheForTests,
+} from './chat-agent-local-mode-test-utils.js';
 
 function readWorkspaceFile(relativePath: string): string {
   return fs.readFileSync(path.join(import.meta.dirname, '..', relativePath), 'utf8');
@@ -58,7 +71,10 @@ test('chat ai a4: active thread restore prefers explicit selection before last s
 
 test('chat ai a4: adapter does not persist text.generate route selections into AIConfig truth', () => {
   const adapterSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-nimi-shell-adapter.tsx');
+  const presentationSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-nimi-shell-presentation.tsx');
   assert.match(adapterSource, /selectedBinding:\s*null/);
+  assert.match(adapterSource, /resolveRuntimeRequest:\s*\(\)\s*=>\s*resolveChatAiConversationRuntimeRequest/);
+  assert.match(presentationSource, /disableRpContent:\s*true/);
   assert.doesNotMatch(adapterSource, /aiConfig\.capabilities\.selectedBindings\['text\.generate'\]/);
   assert.doesNotMatch(adapterSource, /aiConfig\.capabilities\.targetRefs\['text\.generate'\]/);
   assert.doesNotMatch(adapterSource, /surface\.aiConfig\.update\(/);
@@ -227,6 +243,157 @@ test('chat ai a4: no stale local-model preference helper remains in runtime adap
     /Fall back to runtime-config state when authoritative health is unavailable/.test(runtimeSource),
     false,
     'chat-nimi-runtime.ts must not retain runtime-config health fallback comments or logic',
+  );
+});
+
+test('chat ai a4: local runtime stream keeps explicit model id when resolved route only has local asset id', async () => {
+  resetRuntimeLocalModelWarmCacheForTests();
+  clearDesktopTestNimiClientSession();
+  const client = await createDesktopTestNimiClientSession({
+    appId: 'nimi.desktop.test.chat-ai-local-asset-model',
+    realmBaseUrl: 'https://realm.example',
+    allowAnonymousRealm: true,
+    runtimeTransport: null,
+  });
+  const requests: Array<{ head?: { modelId?: string; routePolicy?: number } }> = [];
+  (client as unknown as { runtime: unknown }).runtime = {
+    local: {
+      listLocalAssets: async () => ({
+        assets: [{
+          localAssetId: 'asset-local-chat',
+          assetId: 'local-import/gemma-4-26B-A4B-it-Q8_0',
+          engine: 'llama',
+          endpoint: 'http://127.0.0.1:11434/v1',
+          status: 2,
+        }],
+        nextPageToken: '',
+      }),
+      warmLocalAsset: async () => ({
+        asset: {
+          localAssetId: 'asset-local-chat',
+        },
+      }),
+    },
+    ai: {
+      executeScenario: async () => ({}),
+      streamScenario: async function* (request: { head?: { modelId?: string; routePolicy?: number } }) {
+        requests.push(request);
+        yield {
+          payload: {
+            oneofKind: 'started',
+            started: {
+              modelResolved: request.head?.modelId || '',
+            },
+          },
+          traceId: 'trace-local-chat',
+        };
+        yield {
+          payload: {
+            oneofKind: 'completed',
+            completed: {
+              finishReason: 1,
+            },
+          },
+        };
+      },
+    },
+  };
+
+  try {
+    const executionSnapshot = createNimiConversationAISnapshot({
+      config: createEmptyNimiAIConfig(),
+      capability: 'text.generate',
+      projection: {
+        capability: 'text.generate',
+        selectedBinding: null,
+        resolvedBinding: {
+          capability: 'text.generate',
+          source: 'local',
+          connectorId: '',
+          provider: 'llama',
+          engine: 'llama',
+          model: '',
+          localModelId: 'asset-local-chat',
+          goRuntimeLocalModelId: 'asset-local-chat',
+          endpoint: 'http://127.0.0.1:11434/v1',
+          localProviderEndpoint: 'http://127.0.0.1:11434/v1',
+          resolvedBindingRef: 'local:text.generate:llama:asset-local-chat',
+        },
+        health: {
+          healthy: true,
+          status: 'healthy',
+          provider: 'llama',
+          detail: '',
+          actionHint: 'none',
+        },
+        metadata: {
+          capability: 'text.generate',
+          metadataVersion: 'v1',
+          resolvedBindingRef: 'local:text.generate:llama:asset-local-chat',
+          metadataKind: 'text.generate',
+          metadata: {
+            supportsThinking: false,
+            traceModeSupport: 'none',
+            supportsImageInput: false,
+            supportsAudioInput: false,
+            supportsVideoInput: false,
+            supportsArtifactRefInput: false,
+          },
+        },
+        supported: true,
+        reasonCode: null,
+      },
+    });
+
+    const result = await streamChatAiRuntime({
+      prompt: 'hello',
+      threadId: 'thread-local-chat',
+      reasoningPreference: 'off',
+      executionSnapshot,
+    });
+    for await (const ignored of result.stream) {
+      void ignored;
+    }
+
+    assert.equal(requests[0]?.head?.modelId, 'asset-local-chat');
+  } finally {
+    resetRuntimeLocalModelWarmCacheForTests();
+    clearDesktopTestNimiClientSession();
+  }
+});
+
+test('chat ai a4: simple-ai provider runtime request resolves explicit local asset model from route projection', () => {
+  assert.deepEqual(
+    resolveChatAiConversationRuntimeRequest({
+      capability: 'text.generate',
+      selectedBinding: null,
+      resolvedBinding: {
+        capability: 'text.generate',
+        source: 'local',
+        connectorId: '',
+        provider: 'llama',
+        engine: 'llama',
+        model: '',
+        localModelId: '01KV2PAC69SRGAB30PCZ9ZH8MN',
+        goRuntimeLocalModelId: '01KV2PAC69SRGAB30PCZ9ZH8MN',
+        resolvedBindingRef: 'local:text.generate:llama:01KV2PAC69SRGAB30PCZ9ZH8MN',
+      },
+      health: {
+        healthy: true,
+        status: 'healthy',
+        provider: 'llama',
+        detail: '',
+        actionHint: 'none',
+      },
+      metadata: null,
+      supported: true,
+      reasonCode: null,
+    }),
+    {
+      model: '01KV2PAC69SRGAB30PCZ9ZH8MN',
+      route: 'local',
+      connectorId: undefined,
+    },
   );
 });
 

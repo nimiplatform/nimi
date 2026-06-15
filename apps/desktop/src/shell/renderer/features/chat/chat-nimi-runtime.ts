@@ -96,7 +96,12 @@ function toNimiRuntimeAIRoutePolicy(source: string): NimiRuntimeAIRoutePolicy {
 }
 
 function resolvedBindingModelId(resolved: NimiRuntimeResolvedBinding): string {
-  return normalizeText(resolved.modelId || resolved.model);
+  return normalizeText(
+    resolved.modelId
+    || resolved.model
+    || resolved.goRuntimeLocalModelId
+    || resolved.localModelId,
+  );
 }
 
 async function resolveRuntimeTextExecutionInput(

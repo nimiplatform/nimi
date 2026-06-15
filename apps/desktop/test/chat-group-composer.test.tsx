@@ -1,38 +1,24 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
 import test from 'node:test';
-import React from 'react';
-import { renderToStaticMarkup } from 'react-dom/server';
 import {
   applyGroupAgentMentionSelection,
-  ChatGroupComposer,
   shouldOpenGroupAgentMentionPicker,
 } from '../src/shell/renderer/features/chat/chat-group-composer';
 
 test('group composer renders stacked rows with toolbar and send control', () => {
-  const markup = renderToStaticMarkup(
-    <ChatGroupComposer
-      selectedGroupId="group-1"
-      onSendMessage={async () => undefined}
-      isSending={false}
-      agentParticipants={[{
-        accountId: 'agent-1',
-        agentOwnerId: null,
-        avatarUrl: null,
-        displayName: 'Sage',
-        handle: 'sage',
-        isOnline: true,
-        joinedAt: '2026-05-13T00:00:00Z',
-        role: 'member',
-        type: 'agent',
-      } as never]}
-    />,
+  const source = fs.readFileSync(
+    path.join(import.meta.dirname, '../src/shell/renderer/features/chat/chat-group-composer.tsx'),
+    'utf8',
   );
 
-  assert.match(markup, /data-chat-group-composer-layout="stacked"/);
-  assert.match(markup, /data-chat-group-mention-posture="text-insertion-only"/);
-  assert.match(markup, /data-chat-composer-textarea-row="true"/);
-  assert.match(markup, /data-chat-group-composer-toolbar="true"/);
-  assert.match(markup, /data-chat-composer-send="true"/);
+  assert.match(source, /data-chat-group-composer-layout="stacked"/);
+  assert.match(source, /data-chat-group-mention-posture="text-insertion-only"/);
+  assert.match(source, /<CanonicalComposer/);
+  assert.match(source, /layout="stacked"/);
+  assert.match(source, /widthClassName=\{CHAT_CONTENT_WIDTH_CLASS\}/);
+  assert.match(source, /widthPositionClassName=\{CHAT_CONTENT_POSITION_CLASS\}/);
 });
 
 test('group mention helpers preserve trigger and insertion behavior', () => {

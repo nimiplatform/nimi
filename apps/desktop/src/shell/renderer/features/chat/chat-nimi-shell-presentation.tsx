@@ -1,4 +1,4 @@
-import { Suspense, lazy, useCallback, useMemo, useState, type ReactNode } from 'react';
+import { Suspense, lazy, useMemo, type ReactNode } from 'react';
 import { CanonicalComposer } from '@nimiplatform/kit/features/chat/components/canonical-composer';
 import type { ChatComposerSubmitInput } from '@nimiplatform/kit/features/chat/headless';
 import type {
@@ -21,7 +21,7 @@ import type { ChatThinkingPreference } from './chat-shared-thinking';
 import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 import type { RouteModelPickerSelection } from '@nimiplatform/kit/features/model-picker';
 import type { NimiAISchedulingJudgement } from '@nimiplatform/sdk/ai';
-import { resolveExecutionSchedulingGuardDecision } from './chat-shared-execution-scheduling-guard';
+import { useDismissibleSchedulingFeedback } from './chat-shared-dismissible-scheduling-feedback';
 
 const ChatSettingsPanel = lazy(async () => {
   const mod = await import('./chat-shared-settings-panel');
@@ -68,13 +68,13 @@ type UseAiConversationPresentationInput = {
 export function useAiConversationPresentation(
   input: UseAiConversationPresentationInput,
 ): DesktopConversationModeHost {
-  const schedulingGuard = useMemo(
-    () => resolveExecutionSchedulingGuardDecision({
-      judgement: input.schedulingJudgement,
-      t: input.t,
-    }),
-    [input.schedulingJudgement, input.t],
-  );
+  const {
+    guard: schedulingGuard,
+    feedbackNode: schedulingFeedbackNode,
+  } = useDismissibleSchedulingFeedback({
+    judgement: input.schedulingJudgement,
+    t: input.t,
+  });
   const diagnosticsContent = useMemo(() => (
     <RuntimeInspectCard
       label={input.t('Chat.diagnosticsRuntimeLabel', { defaultValue: 'Runtime' })}
@@ -91,15 +91,6 @@ export function useAiConversationPresentation(
 
   const hostFeedbackNode = input.hostFeedback ? (
     <InlineFeedback feedback={input.hostFeedback} onDismiss={input.onDismissHostFeedback} />
-  ) : null;
-
-  const [schedulingDismissed, setSchedulingDismissed] = useState<string | null>(null);
-  const schedulingKey = schedulingGuard.feedback?.message ?? null;
-  const onDismissScheduling = useCallback(() => {
-    setSchedulingDismissed(schedulingKey);
-  }, [schedulingKey]);
-  const schedulingFeedbackNode = schedulingGuard.feedback && schedulingKey !== schedulingDismissed ? (
-    <InlineFeedback feedback={schedulingGuard.feedback} onDismiss={onDismissScheduling} />
   ) : null;
 
   const adapter = useMemo(() => ({
@@ -168,6 +159,7 @@ export function useAiConversationPresentation(
       footerContent: input.footerContent,
       renderMessageContent: input.renderMessageContent,
       pendingFirstBeat: input.pendingFirstBeat,
+      disableRpContent: true,
       widthClassName: CHAT_CONTENT_WIDTH_CLASS,
       widthPositionClassName: CHAT_CONTENT_POSITION_CLASS,
     },
@@ -175,6 +167,7 @@ export function useAiConversationPresentation(
       footerContent: input.footerContent,
       renderMessageContent: input.renderMessageContent,
       pendingFirstBeat: input.pendingFirstBeat,
+      disableRpContent: true,
     },
     composerContent: (
       adapter.composerAdapter ? (

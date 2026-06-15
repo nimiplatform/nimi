@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import React, { type ReactNode } from 'react';
 import { cn } from '@nimiplatform/kit/ui';
 import type {
   AttachmentAdapter,
@@ -14,6 +14,7 @@ import { ConversationComposerShell } from './conversation-composer-shell.js';
 export type CanonicalComposerProps<TAttachment = never> = {
   adapter: ChatComposerAdapter<TAttachment>;
   initialText?: string;
+  text?: string;
   disabled?: boolean;
   placeholder?: string;
   runtimeHint?: string | null;
@@ -23,6 +24,7 @@ export type CanonicalComposerProps<TAttachment = never> = {
   sendHint?: ReactNode;
   modelLabel?: ReactNode;
   onInputCaptureText?: (text: string) => void;
+  onTextChange?: (text: string) => void;
   attachmentAdapter?: AttachmentAdapter<TAttachment>;
   attachments?: readonly TAttachment[];
   onAttachmentsChange?: (attachments: readonly TAttachment[]) => void;
@@ -38,6 +40,7 @@ export type CanonicalComposerProps<TAttachment = never> = {
 export function CanonicalComposer<TAttachment = never>({
   adapter,
   initialText,
+  text,
   disabled,
   placeholder,
   runtimeHint,
@@ -47,6 +50,7 @@ export function CanonicalComposer<TAttachment = never>({
   sendHint,
   modelLabel,
   onInputCaptureText,
+  onTextChange,
   attachmentAdapter,
   attachments,
   onAttachmentsChange,
@@ -67,18 +71,13 @@ export function CanonicalComposer<TAttachment = never>({
           </div>
         ) : null}
 
-        <div
-          onInputCapture={(event) => {
-            const target = event.target;
-            if (target instanceof HTMLTextAreaElement) {
-              onInputCaptureText?.(target.value);
-            }
-          }}
-        >
+        <div>
           <ConversationComposerShell className={cn(mode === 'chat' ? 'rounded-[24px] shadow-[0_18px_42px_rgba(15,23,42,0.06)]' : '')}>
             <ChatComposer
               adapter={adapter}
               initialText={initialText}
+              text={text}
+              onTextChange={onTextChange ?? onInputCaptureText}
               disabled={disabled}
               placeholder={placeholder}
               toolbarSlot={toolbarSlot}

@@ -19,7 +19,9 @@ export type UseChatComposerOptions<TAttachment = never> = {
   onAttachmentsChange?: (attachments: readonly TAttachment[]) => void;
   disabled?: boolean;
   initialText?: string;
+  text?: string;
   maxTextareaHeight?: number;
+  onTextChange?: (text: string) => void;
   onError?: (error: unknown) => void;
 };
 
@@ -41,15 +43,25 @@ export function useChatComposer<TAttachment = never>({
   onAttachmentsChange,
   disabled = false,
   initialText = '',
+  text: controlledText,
   maxTextareaHeight = 200,
+  onTextChange,
   onError,
 }: UseChatComposerOptions<TAttachment>): UseChatComposerResult<TAttachment> {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const [text, setText] = useState(initialText);
+  const [internalText, setInternalText] = useState(initialText);
   const [internalAttachments, setInternalAttachments] = useState<readonly TAttachment[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const text = controlledText ?? internalText;
   const attachments = controlledAttachments ?? internalAttachments;
+
+  const updateText = useCallback((nextText: string) => {
+    if (controlledText === undefined) {
+      setInternalText(nextText);
+    }
+    onTextChange?.(nextText);
+  }, [controlledText, onTextChange]);
 
   const updateAttachments = useCallback((nextAttachments: readonly TAttachment[]) => {
     if (controlledAttachments !== undefined) {
@@ -64,11 +76,12 @@ export function useChatComposer<TAttachment = never>({
   }, []);
 
   const handleTextChange = useCallback((event: ChangeEvent<HTMLTextAreaElement>) => {
-    setText(event.target.value);
+    const nextText = event.target.value;
+    updateText(nextText);
     if (error) {
       setError(null);
     }
-  }, [error]);
+  }, [error, updateText]);
 
   const removeAttachment = useCallback((index: number) => {
     updateAttachments(attachments.filter((_, currentIndex) => currentIndex !== index));
@@ -108,7 +121,7 @@ export function useChatComposer<TAttachment = never>({
         text: trimmed,
         attachments,
       });
-      setText('');
+      updateText('');
       updateAttachments([]);
     } catch (nextError) {
       setError(nextError instanceof Error ? nextError.message : String(nextError));
@@ -116,7 +129,7 @@ export function useChatComposer<TAttachment = never>({
     } finally {
       setIsSubmitting(false);
     }
-  }, [adapter, attachments, disabled, isSubmitting, onError, text, updateAttachments]);
+  }, [adapter, attachments, disabled, isSubmitting, onError, text, updateAttachments, updateText]);
 
   const handleKeyDown = useCallback((event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.nativeEvent.isComposing || event.keyCode === 229) {
@@ -135,7 +148,7 @@ export function useChatComposer<TAttachment = never>({
     canSubmit: !disabled && !isSubmitting && (text.trim().length > 0 || attachments.length > 0),
     isSubmitting,
     error,
-    setText,
+    setText: updateText,
     handleTextChange,
     handleKeyDown,
     handleSubmit,

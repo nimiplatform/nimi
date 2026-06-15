@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { cn } from '@nimiplatform/kit/ui';
-import { ConversationComposerShell } from '@nimiplatform/kit/features/chat';
+import { useCallback, useMemo, useRef, useState } from 'react';
+import { CanonicalComposer } from '@nimiplatform/kit/features/chat/components/canonical-composer';
 import { useTranslation } from 'react-i18next';
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
+import { CHAT_CONTENT_POSITION_CLASS, CHAT_CONTENT_WIDTH_CLASS } from './chat-shared-content-layout';
 
 type GroupParticipantDto = RealmModel<'GroupParticipantDto'>;
 
@@ -10,16 +10,6 @@ type AgentMentionOption = {
   accountId: string;
   displayName: string;
 };
-
-const MIN_TEXTAREA_HEIGHT = 48;
-const MAX_TEXTAREA_HEIGHT = 128;
-
-const ICON_SEND = (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <line x1="22" y1="2" x2="11" y2="13" />
-    <polygon points="22 2 15 22 11 13 2 9 22 2" />
-  </svg>
-);
 
 export function shouldOpenGroupAgentMentionPicker(text: string, selectionStart: number | null | undefined) {
   const cursor = selectionStart ?? text.length;
@@ -49,12 +39,11 @@ export function ChatGroupComposer(props: {
   isSending: boolean;
   agentParticipants?: readonly GroupParticipantDto[];
 }) {
-  const { onSendMessage, isSending, agentParticipants } = props;
+  const { selectedGroupId, onSendMessage, isSending, agentParticipants } = props;
   const { t } = useTranslation();
   const [text, setText] = useState('');
   const [mentionOpen, setMentionOpen] = useState(false);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const lastHeightRef = useRef(MIN_TEXTAREA_HEIGHT);
+  const rootRef = useRef<HTMLDivElement | null>(null);
 
   const agentOptions: AgentMentionOption[] = useMemo(
     () =>
@@ -68,52 +57,45 @@ export function ChatGroupComposer(props: {
     [agentParticipants],
   );
 
-  const handleSubmit = useCallback(async () => {
-    const trimmed = text.trim();
-    if (!trimmed || isSending) return;
-    setText('');
-    setMentionOpen(false);
-    await onSendMessage(trimmed);
-  }, [text, isSending, onSendMessage]);
+  const focusTextarea = useCallback(() => {
+    rootRef.current?.querySelector<HTMLTextAreaElement>('[data-chat-composer-textarea="true"]')?.focus();
+  }, []);
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      void handleSubmit();
-    }
-    if (e.key === 'Escape' && mentionOpen) {
+  const submitAdapter = useMemo(() => ({
+    submit: async (input: { text: string }) => {
+      const trimmed = input.text.trim();
+      if (!selectedGroupId || !trimmed || isSending) {
+        return;
+      }
+      await onSendMessage(trimmed);
       setMentionOpen(false);
-    }
-  }, [handleSubmit, mentionOpen]);
+    },
+  }), [isSending, onSendMessage, selectedGroupId]);
 
-  const handleTextChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const newText = e.target.value;
+  const handleTextChange = useCallback((newText: string) => {
     setText(newText);
-    if (agentOptions.length > 0 && shouldOpenGroupAgentMentionPicker(newText, e.target.selectionStart)) {
+    const cursor = rootRef.current
+      ?.querySelector<HTMLTextAreaElement>('[data-chat-composer-textarea="true"]')
+      ?.selectionStart;
+    if (agentOptions.length > 0 && shouldOpenGroupAgentMentionPicker(newText, cursor)) {
       setMentionOpen(true);
-    }
-  }, [agentOptions.length]);
-
-  useEffect(() => {
-    const textarea = textareaRef.current;
-    if (!textarea) {
       return;
     }
-    textarea.style.height = 'auto';
-    const nextHeight = Math.min(Math.max(textarea.scrollHeight, MIN_TEXTAREA_HEIGHT), MAX_TEXTAREA_HEIGHT);
-    lastHeightRef.current = nextHeight;
-    textarea.style.height = `${nextHeight}px`;
-  }, [text]);
+    if (!newText.includes('@')) {
+      setMentionOpen(false);
+    }
+  }, [agentOptions.length]);
 
   const handleInsertMention = useCallback((agent: AgentMentionOption) => {
     setText(applyGroupAgentMentionSelection(text, agent.displayName));
     setMentionOpen(false);
-    textareaRef.current?.focus();
-  }, [text]);
+    focusTextarea();
+  }, [focusTextarea, text]);
 
   return (
     <div
-      className="relative shrink-0 px-5 pb-5 pt-2"
+      ref={rootRef}
+      className="relative shrink-0"
       data-chat-composer-layout="stacked"
       data-chat-group-composer-layout="stacked"
       data-chat-group-mention-posture="text-insertion-only"
@@ -138,52 +120,18 @@ export function ChatGroupComposer(props: {
           ))}
         </div>
       )}
-      <ConversationComposerShell className="rounded-[24px] shadow-[0_18px_42px_rgba(15,23,42,0.06)]">
-        <div className="flex flex-col gap-3">
-        <div data-chat-composer-textarea-row="true">
-          <textarea
-            ref={textareaRef}
-            data-chat-composer-textarea="true"
-            className="min-h-[48px] max-h-32 w-full resize-none overflow-y-hidden rounded-[24px] border-0 bg-transparent px-4 py-3.5 text-[15px] leading-6 text-slate-700 outline-none transition placeholder:text-slate-400 focus:ring-0 disabled:bg-transparent"
-            placeholder={
-              agentOptions.length > 0
-                ? t('Chat.groupComposerWithAgents', { defaultValue: 'Type a message... Use @ to mention an agent' })
-                : t('TurnInput.typeMessage', { defaultValue: 'Type a message...' })
-            }
-            value={text}
-            onChange={handleTextChange}
-            onKeyDown={handleKeyDown}
-            rows={1}
-            disabled={isSending}
-            style={{ height: `${lastHeightRef.current}px` }}
-          />
-        </div>
-        <div
-          className="flex items-center gap-3 px-1"
-          data-chat-composer-toolbar="true"
-          data-chat-group-composer-toolbar="true"
-        >
-          <div className="flex min-w-0 flex-1 items-center gap-2.5" data-chat-composer-toolbar-leading="true" />
-          <div className="ml-auto flex shrink-0 items-center justify-end" data-chat-composer-toolbar-trailing="true">
-            <button
-              type="button"
-              disabled={!text.trim() || isSending}
-              aria-label={t('Chat.send', { defaultValue: 'Send' })}
-              data-chat-composer-send="true"
-              onClick={() => void handleSubmit()}
-              className={cn(
-                'flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-500 text-white transition-all duration-150',
-                'shadow-[0_8px_20px_rgba(100,116,139,0.22)] hover:bg-slate-600 hover:shadow-[0_12px_24px_rgba(100,116,139,0.28)]',
-                'active:scale-[0.92]',
-                'disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none disabled:hover:bg-slate-500',
-              )}
-            >
-              <span className="scale-[0.88]">{ICON_SEND}</span>
-            </button>
-          </div>
-        </div>
-      </div>
-      </ConversationComposerShell>
+      <CanonicalComposer
+        adapter={submitAdapter}
+        text={text}
+        onTextChange={handleTextChange}
+        disabled={!selectedGroupId || isSending}
+        placeholder={agentOptions.length > 0
+          ? t('Chat.groupComposerWithAgents', { defaultValue: 'Type a message... Use @ to mention an agent' })
+          : t('TurnInput.typeMessage', { defaultValue: 'Type a message...' })}
+        layout="stacked"
+        widthClassName={CHAT_CONTENT_WIDTH_CLASS}
+        widthPositionClassName={CHAT_CONTENT_POSITION_CLASS}
+      />
     </div>
   );
 }

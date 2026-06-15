@@ -39,8 +39,10 @@ test('group agent slot controls require Realm admin projection at visibility and
 });
 
 test('group composer mention surface is text insertion posture only', () => {
+  assert.match(composerSource, /CanonicalComposer/);
   assert.match(composerSource, /data-chat-group-mention-posture="text-insertion-only"/);
   assert.match(composerSource, /applyGroupAgentMentionSelection/);
+  assert.doesNotMatch(composerSource, /ConversationComposerShell/);
   assert.doesNotMatch(composerSource, /sendGroupAgentMessage/);
   assert.doesNotMatch(composerSource, /sendGroupAgentChatMessage/);
   assert.doesNotMatch(composerSource, /detectGroupAgentTriggers|TRIGGER_RECENCY_WINDOW_MS|triggerText/);
@@ -49,6 +51,8 @@ test('group composer mention surface is text insertion posture only', () => {
 
 test('group adapter feeds committed Realm agent slots into split candidate handoff', () => {
   assert.match(groupAdapterSource, /const participants: readonly GroupParticipantDto\[] = selectedGroup\?\.participants \|\| \[];/);
+  assert.match(groupAdapterSource, /composerAdapter:\s*null/);
+  assert.doesNotMatch(groupAdapterSource, /submit:\s*async\s*\(\)\s*=>\s*undefined/);
   assert.match(groupAdapterSource, /<ChatGroupComposer[\s\S]*agentParticipants=\{participants\}/);
   assert.match(groupAdapterSource, /realmGroupChatData\.sendGroupMessage\(chatId, content\)/);
   assert.match(groupAdapterSource, /resolveInvokableGroupAgentMention/);

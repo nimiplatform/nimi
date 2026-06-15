@@ -25,6 +25,7 @@ const chatAiModeContentSource = readWorkspaceFile('src/shell/renderer/features/c
 const chatAgentModeContentSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-mode-content.tsx');
 const chatHumanModeContentSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-human-mode-content.tsx');
 const chatGroupModeContentSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-group-mode-content.tsx');
+const chatCanonicalModeFrameSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-canonical-mode-frame.tsx');
 const chatSidebarTargetsSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-sidebar-targets.ts');
 const chatSettingsPanelSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-shared-settings-panel.tsx');
 const mainLayoutViewSource = [
@@ -45,9 +46,9 @@ test('chat unified shell a2: AI host stays enterable and submit-time route gatin
   assert.doesNotMatch(chatAiAdapterSource, /@nimiplatform\/kit\/features\/model-config\/headless/);
   assert.match(chatAiAdapterSource, /handleModelSelectionChange/);
   assert.match(chatAiModeContentSource, /ChatNimiThreadListSheet/);
-  assert.match(chatAiModeContentSource, /ChatSideSheet/);
-  assert.match(chatAiModeContentSource, /host\.settingsContent/);
-  assert.match(chatAiModeContentSource, /setChatSetupState/);
+  assert.match(chatAiModeContentSource, /ChatCanonicalModeFrame/);
+  assert.match(chatCanonicalModeFrameSource, /host\.settingsContent/);
+  assert.match(chatCanonicalModeFrameSource, /setChatSetupState/);
   assert.doesNotMatch(chatPageSource, /aiRouteReadinessPending/);
   assert.doesNotMatch(chatPageSource, /Loading AI routes\.\.\./);
 });
@@ -66,24 +67,23 @@ test('chat unified shell a2: chat page mounts the canonical target-first shell',
   assert.doesNotMatch(chatPageSource, /rightSidebar=\{/);
   assert.match(chatPageSource, /onSelectTarget/);
   for (const source of [chatHumanModeContentSource, chatAiModeContentSource, chatAgentModeContentSource, chatGroupModeContentSource]) {
-    assert.match(source, /CanonicalConversationShell/);
-    assert.match(source, /chrome="transparent"/);
-    assert.match(source, /hideTargetPane/);
-    assert.match(source, /hideCharacterRail/);
-    assert.match(source, /sourceFilter="all"/);
+    assert.match(source, /ChatCanonicalModeFrame/);
     assert.doesNotMatch(source, /rightPanel=\{/);
   }
-  for (const source of [chatHumanModeContentSource, chatAiModeContentSource, chatAgentModeContentSource]) {
-    assert.match(source, /setChatViewMode/);
-    assert.match(source, /setChatSetupState/);
-    assert.match(source, /setupState=\{host\.adapter\.setupState\}/);
-    assert.match(source, /setupDescription=\{host\.setupDescription\}/);
-    assert.match(source, /characterData=\{host\.characterData\}/);
-    assert.match(source, /messages=\{canonicalMessages\}/);
-    assert.match(source, /transcriptProps=\{host\.transcriptProps\}/);
-    assert.match(source, /stagePanelProps=\{host\.stagePanelProps\}/);
-    assert.match(source, /composer=\{host\.composerContent\}/);
-  }
+  assert.match(chatCanonicalModeFrameSource, /CanonicalConversationShell/);
+  assert.match(chatCanonicalModeFrameSource, /chrome="transparent"/);
+  assert.match(chatCanonicalModeFrameSource, /hideTargetPane/);
+  assert.match(chatCanonicalModeFrameSource, /hideCharacterRail/);
+  assert.match(chatCanonicalModeFrameSource, /sourceFilter="all"/);
+  assert.match(chatCanonicalModeFrameSource, /setChatViewMode/);
+  assert.match(chatCanonicalModeFrameSource, /setChatSetupState/);
+  assert.match(chatCanonicalModeFrameSource, /setupState=\{props\.host\.adapter\.setupState\}/);
+  assert.match(chatCanonicalModeFrameSource, /setupDescription=\{props\.host\.setupDescription\}/);
+  assert.match(chatCanonicalModeFrameSource, /characterData=\{props\.host\.characterData\}/);
+  assert.match(chatCanonicalModeFrameSource, /messages=\{canonicalMessages\}/);
+  assert.match(chatCanonicalModeFrameSource, /transcriptProps=\{props\.transcriptPropsOverride \?\? props\.host\.transcriptProps\}/);
+  assert.match(chatCanonicalModeFrameSource, /stagePanelProps=\{props\.stagePanelPropsOverride \?\? props\.host\.stagePanelProps\}/);
+  assert.match(chatCanonicalModeFrameSource, /composer=\{props\.host\.composerContent\}/);
   assert.match(chatAiModeContentSource, /threadAdapter\.listThreads/);
   assert.match(chatHumanModeContentSource, /setSelectedTargetForSource\('human', host\.selectedTargetId\)/);
   assert.match(chatGroupModeContentSource, /const selectedTargetId = storeSelectedTargetId;/);
@@ -92,8 +92,7 @@ test('chat unified shell a2: chat page mounts the canonical target-first shell',
   assert.match(chatAgentModeContentSource, /setSelectedTargetForSource\('agent', host\.selectedTargetId\)/);
   assert.match(chatAgentModeContentSource, /ChatAgentSceneBackground/);
   assert.match(chatAgentModeContentSource, /sceneBackground=\{sceneBackground\}/);
-  assert.match(chatHumanModeContentSource, /ChatSideSheet/);
-  assert.match(chatGroupModeContentSource, /ChatSideSheet/);
+  assert.match(chatCanonicalModeFrameSource, /ChatSideSheet/);
   assert.doesNotMatch(chatAgentModeContentSource, /ChatRightPanelUtilityRail/);
   assert.match(chatSidebarTargetsSource, /source: 'ai'/);
   assert.match(chatSidebarTargetsSource, /toRealmHumanTargetSummary/);
@@ -117,9 +116,10 @@ test('chat unified shell a2: chat page mounts the canonical target-first shell',
 
 test('chat unified shell a2: Desktop modes request transparent Kit chrome without owning shell internals', () => {
   for (const source of [chatHumanModeContentSource, chatAiModeContentSource, chatAgentModeContentSource, chatGroupModeContentSource]) {
-    assert.match(source, /<CanonicalConversationShell/);
-    assert.match(source, /chrome="transparent"/);
+    assert.match(source, /<ChatCanonicalModeFrame/);
   }
+  assert.match(chatCanonicalModeFrameSource, /<CanonicalConversationShell/);
+  assert.match(chatCanonicalModeFrameSource, /chrome="transparent"/);
   assert.match(chatAgentModeContentSource, /sceneBackground=\{sceneBackground\}/);
 });
 
@@ -179,8 +179,8 @@ test('chat unified shell a2: AI and agent hosts reuse canonical transcript/compo
   assert.match(chatAgentPresentationSource, /widthClassName=\{CHAT_CONTENT_WIDTH_CLASS\}/);
   assert.match(chatAgentPresentationSource, /widthPositionClassName=\{CHAT_CONTENT_POSITION_CLASS\}/);
   assert.match(chatAgentPresentationSource, /topContent: schedulingFeedbackNode/);
-  assert.doesNotMatch(chatAgentLocalAvatarControlsSource, /importAgentCenterAvatarAsset/);
-  assert.match(chatAgentLocalAvatarControlsSource, /Desktop-local Live2D\/VRM carrier assets are decommissioned/);
+  assert.match(chatAgentLocalAvatarControlsSource, /importAgentCenterAvatarAsset/);
+  assert.match(chatAgentLocalAvatarControlsSource, /validateAgentCenterAvatarAsset/);
   assert.doesNotMatch(chatAgentPresentationSource, /chat-agent-avatar-store/);
   assert.match(chatAgentLocalAvatarControlsSource, /importAgentCenterBackground/);
   assert.match(chatAgentPresentationSource, /settingsContent:/);
@@ -203,6 +203,8 @@ test('chat unified shell a2: AI and agent hosts reuse canonical transcript/compo
 
   assert.match(chatHumanAdapterSource, /useHumanCanonicalConversationSurface/);
   assert.match(chatHumanAdapterSource, /HumanCanonicalComposer/);
+  assert.match(chatHumanAdapterSource, /composerAdapter:\s*null/);
+  assert.doesNotMatch(chatHumanAdapterSource, /submit:\s*async\s*\(\)\s*=>\s*undefined/);
   assert.match(canonicalHumanComposerProfileSource, /layout="stacked"/);
   assert.match(chatHumanAdapterSource, /settingsContent:/);
   assert.match(chatHumanAdapterSource, /ChatSettingsPanel/);

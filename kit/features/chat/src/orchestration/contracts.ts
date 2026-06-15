@@ -204,6 +204,7 @@ export type ConversationTurnEvent =
     beatId: string;
     artifactId: string;
     mimeType: string;
+    uri?: string;
     projectionMessageId?: string;
   }
   | {

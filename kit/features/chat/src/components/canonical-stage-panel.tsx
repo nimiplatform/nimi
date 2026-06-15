@@ -119,6 +119,7 @@ export type CanonicalStagePanelProps = {
   agentName?: string;
   voicePlayingMessageId?: string | null;
   isVoiceTranscriptVisible?: (message: ConversationCanonicalMessage) => boolean;
+  disableRpContent?: boolean;
   onPlayVoiceMessage?: (message: ConversationCanonicalMessage) => void;
   onVoiceContextMenu?: (message: ConversationCanonicalMessage, event: React.MouseEvent<HTMLButtonElement>) => void;
   onMessageContextMenu?: (message: ConversationCanonicalMessage, event: React.MouseEvent<HTMLDivElement>) => void;
@@ -259,6 +260,7 @@ export function CanonicalStagePanel(props: CanonicalStagePanelProps) {
                       displayContext="stage"
                       voicePlayingMessageId={props.voicePlayingMessageId}
                       isVoiceTranscriptVisible={props.isVoiceTranscriptVisible?.(message)}
+                      disableRpContent={props.disableRpContent}
                       onPlayVoiceMessage={props.onPlayVoiceMessage}
                       onVoiceContextMenu={props.onVoiceContextMenu}
                       onMessageContextMenu={props.onMessageContextMenu}
@@ -286,6 +288,7 @@ export function CanonicalStagePanel(props: CanonicalStagePanelProps) {
                       displayContext="stage"
                       voicePlayingMessageId={props.voicePlayingMessageId}
                       isVoiceTranscriptVisible={props.isVoiceTranscriptVisible?.(message)}
+                      disableRpContent={props.disableRpContent}
                       onPlayVoiceMessage={props.onPlayVoiceMessage}
                       onVoiceContextMenu={props.onVoiceContextMenu}
                       onMessageContextMenu={props.onMessageContextMenu}

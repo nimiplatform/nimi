@@ -15,6 +15,7 @@ const chatHumanModeSource = readWorkspaceFile('src/shell/renderer/features/chat/
 const chatNimiModeSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-nimi-mode-content.tsx');
 const chatAgentSceneBackgroundSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-scene-background.tsx');
 const chatAgentModeSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-mode-content.tsx');
+const chatCanonicalModeFrameSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-canonical-mode-frame.tsx');
 const chatAgentPresentationSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-presentation.tsx');
 const chatAgentPresentationSettingsSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-presentation-settings.tsx');
 const chatAgentLocalAvatarControlsSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-local-avatar-controls.ts');
@@ -44,9 +45,10 @@ test('chat page uses transient side sheets; agent mode keeps the scene backgroun
   assert.doesNotMatch(chatSideSheetSource, /ScrollArea/u);
   assert.match(chatNimiSheetSource, /ChatSideSheet/);
   assert.doesNotMatch(chatNimiSheetSource, /Assistant status/u);
-  assert.match(chatHumanModeSource, /ChatSideSheet/);
-  assert.match(chatNimiModeSource, /ChatSideSheet/);
-  assert.match(chatGroupModeSource, /ChatSideSheet/);
+  assert.match(chatCanonicalModeFrameSource, /ChatSideSheet/);
+  assert.match(chatHumanModeSource, /ChatCanonicalModeFrame/);
+  assert.match(chatNimiModeSource, /ChatCanonicalModeFrame/);
+  assert.match(chatGroupModeSource, /ChatCanonicalModeFrame/);
 
   // Agent mode mounts the scene background (glass + mask only) inside the canonical
   // shell, but Pack 4 decommissions the desktop-local avatar overlay mount.
@@ -76,15 +78,16 @@ test('chat page startup keeps agent mode lazy-loaded while removing the desktop-
   assert.doesNotMatch(chatAgentModeSource, /const ChatAgentAvatarOverlay = lazy/);
   assert.doesNotMatch(chatAgentModeSource, /import\('\.\/chat-agent-avatar-overlay'\)/);
   assert.doesNotMatch(chatAgentModeSource, /ChatAvatarOverlayErrorBoundary/);
-  assert.match(chatAgentModeSource, /CanonicalConversationShell/);
+  assert.match(chatAgentModeSource, /ChatCanonicalModeFrame/);
+  assert.match(chatCanonicalModeFrameSource, /CanonicalConversationShell/);
 });
 
 test('agent shell presentation disables stage panel props so desktop chat cannot present a co-equal local avatar carrier route', () => {
   assert.match(chatAgentPresentationSource, /stagePanelProps:\s*undefined/);
   assert.match(chatAgentPresentationSource, /topContent:\s*schedulingFeedbackNode/);
   assert.match(chatAgentPresentationSettingsSource, /AgentCenterPanel/);
-  assert.doesNotMatch(chatAgentLocalAvatarControlsSource, /importAgentCenterAvatarAsset/);
-  assert.match(chatAgentLocalAvatarControlsSource, /Desktop-local Live2D\/VRM carrier assets are decommissioned/);
+  assert.match(chatAgentLocalAvatarControlsSource, /importAgentCenterAvatarAsset/);
+  assert.match(chatAgentLocalAvatarControlsSource, /validateAgentCenterAvatarAsset/);
   assert.doesNotMatch(chatAgentPresentationSource, /chat-agent-avatar-store/);
   assert.match(chatAgentLocalAvatarControlsSource, /getAgentCenterBackgroundAsset/);
   assert.doesNotMatch(chatAgentPresentationSource, /ChatAgentAvatarSettingsPanel/u);

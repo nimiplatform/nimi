@@ -50,6 +50,7 @@ export type CanonicalTranscriptViewProps = {
   renderMessageAccessory?: CanonicalMessageAccessorySlot;
   voicePlayingMessageId?: string | null;
   isVoiceTranscriptVisible?: (message: ConversationCanonicalMessage) => boolean;
+  disableRpContent?: boolean;
   onPlayVoiceMessage?: (message: ConversationCanonicalMessage) => void;
   onVoiceContextMenu?: (message: ConversationCanonicalMessage, event: React.MouseEvent<HTMLButtonElement>) => void;
   onMessageContextMenu?: (message: ConversationCanonicalMessage, event: React.MouseEvent<HTMLDivElement>) => void;
@@ -89,6 +90,7 @@ export function CanonicalTranscriptView({
   renderMessageAccessory,
   voicePlayingMessageId = null,
   isVoiceTranscriptVisible,
+  disableRpContent,
   onPlayVoiceMessage,
   onVoiceContextMenu,
   onMessageContextMenu,
@@ -281,6 +283,7 @@ export function CanonicalTranscriptView({
               renderMessageAccessory={renderMessageAccessory}
               voicePlayingMessageId={voicePlayingMessageId}
               isVoiceTranscriptVisible={isVoiceTranscriptVisible}
+              disableRpContent={disableRpContent}
               onPlayVoiceMessage={onPlayVoiceMessage}
               onVoiceContextMenu={onVoiceContextMenu}
               onMessageContextMenu={onMessageContextMenu}

@@ -1,4 +1,4 @@
-import { act } from 'react';
+import { act, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ChatComposer } from '../src/index.js';
@@ -59,6 +59,87 @@ describe('ChatComposer', () => {
 
     expect(submit).toHaveBeenCalledTimes(1);
     expect(submit).toHaveBeenCalledWith({ text: 'hello kit', attachments: [] });
+  });
+
+  it('notifies external draft state when successful submit clears text', async () => {
+    const submit = vi.fn(async () => {});
+    const onTextChange = vi.fn();
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    await act(async () => {
+      root?.render(<ChatComposer adapter={{ submit }} onTextChange={onTextChange} />);
+      await flush();
+    });
+
+    const textarea = container.querySelector('textarea');
+    expect(textarea).toBeTruthy();
+    dispatchTextareaValue(textarea as HTMLTextAreaElement, 'draft message');
+
+    await act(async () => {
+      textarea?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      await flush();
+    });
+
+    expect(submit).toHaveBeenCalledWith({ text: 'draft message', attachments: [] });
+    expect(onTextChange).toHaveBeenLastCalledWith('');
+    expect((textarea as HTMLTextAreaElement).value).toBe('');
+  });
+
+  it('supports controlled text updates and clears through onTextChange after submit', async () => {
+    const submit = vi.fn(async () => {});
+    const onTextChange = vi.fn();
+
+    function ControlledComposer() {
+      const [text, setText] = useState('');
+      return (
+        <>
+          <button type="button" data-testid="mention" onClick={() => setText('@Sage ')}>
+            mention
+          </button>
+          <ChatComposer
+            adapter={{ submit }}
+            text={text}
+            onTextChange={(nextText) => {
+              onTextChange(nextText);
+              setText(nextText);
+            }}
+          />
+        </>
+      );
+    }
+
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    await act(async () => {
+      root?.render(<ControlledComposer />);
+      await flush();
+    });
+
+    const textarea = container.querySelector('textarea') as HTMLTextAreaElement;
+    const mention = container.querySelector('[data-testid="mention"]');
+    expect(textarea.value).toBe('');
+
+    await act(async () => {
+      mention?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await flush();
+    });
+    expect(textarea.value).toBe('@Sage ');
+
+    dispatchTextareaValue(textarea, '@Sage hello');
+    expect(onTextChange).toHaveBeenLastCalledWith('@Sage hello');
+
+    await act(async () => {
+      textarea.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      await flush();
+    });
+
+    expect(submit).toHaveBeenCalledWith({ text: '@Sage hello', attachments: [] });
+    expect(onTextChange).toHaveBeenLastCalledWith('');
+    expect(textarea.value).toBe('');
   });
 
   it('does not submit on Shift+Enter', async () => {

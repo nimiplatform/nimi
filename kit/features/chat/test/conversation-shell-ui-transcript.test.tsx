@@ -181,6 +181,34 @@ it('keeps the transcript scroll root inside the content column and reserves bott
     expect(container.querySelector('[data-canonical-stage-scroll-root="true"]')).not.toBeNull();
 	  });
 
+  it('can disable roleplay parsing for ordinary parenthetical transcript text', async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    await act(async () => {
+      root?.render(
+        <CanonicalTranscriptView
+          messages={[{
+            id: 'assistant-1',
+            sessionId: 'session-ai',
+            targetId: 'ai:nimi',
+            source: 'ai',
+            role: 'assistant',
+            text: 'This is an open weight \uFF08open weights\uFF09 model.',
+            createdAt: '2026-04-05T00:00:00.000Z',
+            kind: 'text',
+          }]}
+          disableRpContent
+        />,
+      );
+      await flush();
+      await flush();
+    });
+
+    expect(container.textContent).toContain('This is an open weight \uFF08open weights\uFF09 model.');
+  });
+
 	  it('renders group sender labels and avatar slots from canonical transcript props', async () => {
 	    container = document.createElement('div');
 	    document.body.appendChild(container);

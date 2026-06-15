@@ -248,11 +248,8 @@ export function useHumanConversationModeHost(
       listThreads: () => threads,
       listMessages: () => [],
     },
-    composerAdapter: {
-      submit: async () => undefined,
-      placeholder: t('TurnInput.typeMessage', { defaultValue: 'Type a message...' }),
-    },
-  }), [setupState, t, threads]);
+    composerAdapter: null,
+  }), [setupState, threads]);
 
   return useMemo(() => ({
     mode: 'human',

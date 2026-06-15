@@ -256,11 +256,8 @@ export function useGroupConversationModeHost(
       listThreads: () => threads,
       listMessages: () => [],
     },
-    composerAdapter: {
-      submit: async () => undefined,
-      placeholder: t('TurnInput.typeMessage', { defaultValue: 'Type a message...' }),
-    },
-  }), [setupState, t, threads]);
+    composerAdapter: null,
+  }), [setupState, threads]);
 
   const handleSelectTarget = useCallback((targetId: string | null) => {
     setSelectedTargetForSource('group', targetId);

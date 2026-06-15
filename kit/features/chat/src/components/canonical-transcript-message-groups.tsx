@@ -24,6 +24,7 @@ type TranscriptMessageGroupsProps = {
   renderMessageAccessory?: CanonicalMessageAccessorySlot;
   voicePlayingMessageId?: string | null;
   isVoiceTranscriptVisible?: (message: ConversationCanonicalMessage) => boolean;
+  disableRpContent?: boolean;
   onPlayVoiceMessage?: (message: ConversationCanonicalMessage) => void;
   onVoiceContextMenu?: (message: ConversationCanonicalMessage, event: MouseEvent<HTMLButtonElement>) => void;
   onMessageContextMenu?: (message: ConversationCanonicalMessage, event: MouseEvent<HTMLDivElement>) => void;
@@ -83,6 +84,7 @@ function renderMessageItem(
         displayContext="transcript"
         voicePlayingMessageId={props.voicePlayingMessageId}
         isVoiceTranscriptVisible={props.isVoiceTranscriptVisible?.(virtualItem.item.message)}
+        disableRpContent={props.disableRpContent}
         onPlayVoiceMessage={props.onPlayVoiceMessage}
         onVoiceContextMenu={props.onVoiceContextMenu}
         onMessageContextMenu={props.onMessageContextMenu}

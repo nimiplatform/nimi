@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useMemo } from 'react';
-import { CanonicalConversationShell } from '@nimiplatform/kit/features/chat/components/canonical-conversation-shell';
+import { useEffect, useMemo } from 'react';
 import {
   type ConversationSetupAction,
   type ConversationTargetSummary,
@@ -8,7 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { useAiConversationModeHost } from './chat-nimi-shell-adapter';
 import { ChatNimiThreadListSheet } from './chat-nimi-session-list-panel';
-import { ChatSideSheet } from './chat-shared-side-sheet';
+import { ChatCanonicalModeFrame } from './chat-canonical-mode-frame';
 
 export type ChatNimiModeContentProps = {
   allTargets: readonly ConversationTargetSummary[];
@@ -30,8 +29,6 @@ export function ChatNimiModeContent({
   onSelectTarget,
 }: ChatNimiModeContentProps) {
   const { t } = useTranslation();
-  const setChatViewMode = useAppStore((state) => state.setChatViewMode);
-  const setChatSetupState = useAppStore((state) => state.setChatSetupState);
   const setSelectedTargetForSource = useAppStore((state) => state.setSelectedTargetForSource);
   const nimiConversationSelection = useAppStore((state) => state.nimiConversationSelection);
   const setNimiConversationSelection = useAppStore((state) => state.setNimiConversationSelection);
@@ -43,11 +40,6 @@ export function ChatNimiModeContent({
     lastSelectedThreadId: lastSelectedAiThread,
     setSelection: setNimiConversationSelection,
   });
-
-  // Sync setupState to store
-  useEffect(() => {
-    setChatSetupState('ai', host.adapter.setupState);
-  }, [host.adapter.setupState, setChatSetupState]);
 
   // Sync host selectedTargetId to store
   useEffect(() => {
@@ -65,51 +57,25 @@ export function ChatNimiModeContent({
     [allTargets, selectedTargetId],
   );
 
-  const currentViewModeKey = selectedTarget
-    ? `${selectedTarget.source}:${selectedTarget.id}`
-    : 'ai:landing';
-  const currentViewMode = useAppStore((state) => state.viewModeBySourceTarget[currentViewModeKey] || 'chat');
-
-  const canonicalMessages = host.messages || [];
-
   const threadSummaries = useMemo(() => {
     const summaries = host.adapter.threadAdapter.listThreads();
     return Array.isArray(summaries) ? summaries : [];
   }, [host.adapter.threadAdapter]);
 
-  const handleViewModeChange = useCallback((mode: 'stage' | 'chat') => {
-    if (!selectedTarget) {
-      return;
-    }
-    setChatViewMode('ai', selectedTarget.id, mode);
-  }, [selectedTarget, setChatViewMode]);
-
   return (
-    <div className="flex min-h-0 min-w-0 flex-1">
-      <CanonicalConversationShell
-        className="min-h-0 flex-1"
-        chrome="transparent"
-        hideTargetPane
-        hideCharacterRail
-        sourceFilter="all"
-        targets={allTargets}
-        selectedTargetId={selectedTargetId}
-        selectedTarget={selectedTarget}
-        onSelectTarget={onSelectTarget}
-        viewMode={currentViewMode}
-        onViewModeChange={handleViewModeChange}
-        setupState={host.adapter.setupState}
-        setupDescription={host.setupDescription}
-        onSetupAction={onSetupAction}
-        characterData={host.characterData}
-        messages={canonicalMessages}
-        transcriptProps={host.transcriptProps}
-        stagePanelProps={host.stagePanelProps}
-        topContent={host.topContent}
-        composer={host.composerContent}
-        auxiliaryOverlayContent={host.auxiliaryOverlayContent}
-      />
-      {selectedTarget && threadListOpen ? (
+    <ChatCanonicalModeFrame
+      mode="ai"
+      host={host}
+      allTargets={allTargets}
+      selectedTargetId={selectedTargetId}
+      selectedTarget={selectedTarget}
+      onSelectTarget={onSelectTarget}
+      onSetupAction={onSetupAction}
+      settingsOpen={settingsOpen}
+      onCloseSettings={onCloseSettings}
+      settingsSheetTitle={selectedTarget ? (host.characterData?.name || selectedTarget.title) : undefined}
+      settingsSheetSubtitle={host.settingsDrawerSubtitle || t('Chat.settingsSubtitle', { defaultValue: 'Global interaction preferences' })}
+      afterShell={selectedTarget && threadListOpen ? (
         <ChatNimiThreadListSheet
           threads={threadSummaries}
           activeThreadId={host.activeThreadId}
@@ -124,18 +90,6 @@ export function ChatNimiModeContent({
           description={host.characterData?.bio || selectedTarget.bio}
         />
       ) : null}
-      {selectedTarget && settingsOpen && host.settingsContent ? (
-        <ChatSideSheet
-          sheetKey="settings"
-          title={host.characterData?.name || selectedTarget.title}
-          subtitle={host.settingsDrawerSubtitle || t('Chat.settingsSubtitle', { defaultValue: 'Global interaction preferences' })}
-          onClose={onCloseSettings}
-        >
-          <div className="px-3 py-3">
-            {host.settingsContent}
-          </div>
-        </ChatSideSheet>
-      ) : null}
-    </div>
+    />
   );
 }

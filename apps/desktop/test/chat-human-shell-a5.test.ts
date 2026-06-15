@@ -17,6 +17,7 @@ const giftModalSource = readWorkspaceFile('src/shell/renderer/features/turns/hum
 test('chat human shell a5: human host now uses shell-native transcript, composer, and target rail', () => {
   assert.match(humanAdapterSource, /useHumanCanonicalConversationSurface/);
   assert.match(humanAdapterSource, /HumanCanonicalComposer/);
+  assert.match(humanAdapterSource, /composerAdapter:\s*null/);
   assert.match(humanAdapterSource, /HumanCanonicalProfileDrawer/);
   assert.match(humanAdapterSource, /HumanConversationGiftModal/);
   assert.match(humanAdapterSource, /transcriptProps:/);
@@ -38,6 +39,7 @@ test('chat human shell a5: human host now uses shell-native transcript, composer
   assert.doesNotMatch(humanAdapterSource, /HumanConversationTranscript/);
   assert.doesNotMatch(humanAdapterSource, /HumanConversationComposer/);
   assert.doesNotMatch(humanAdapterSource, /HumanConversationTargetRail/);
+  assert.doesNotMatch(humanAdapterSource, /submit:\s*async\s*\(\)\s*=>\s*undefined/);
   assert.doesNotMatch(humanAdapterSource, /ConversationOrchestrationRegistry/);
   assert.doesNotMatch(humanAdapterSource, /matchConversationTurnEvent/);
   assert.doesNotMatch(humanAdapterSource, /createAgentLocalChatConversationProvider/);

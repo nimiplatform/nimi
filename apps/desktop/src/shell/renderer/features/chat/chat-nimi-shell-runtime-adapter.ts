@@ -13,6 +13,40 @@ import {
 } from '@renderer/app-shell/providers/desktop-ai-config-service';
 import { withPromptTrace } from './chat-nimi-shell-core';
 
+function normalizeText(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function resolvedBindingModelId(
+  binding: NonNullable<ConversationCapabilityProjection['resolvedBinding']>,
+): string {
+  return normalizeText(
+    binding.modelId
+    || binding.model
+    || binding.goRuntimeLocalModelId
+    || binding.localModelId,
+  );
+}
+
+export function resolveChatAiConversationRuntimeRequest(
+  projection: ConversationCapabilityProjection | null,
+): {
+  model: string;
+  route?: 'local' | 'cloud';
+  connectorId?: string;
+} {
+  const binding = projection?.resolvedBinding;
+  const model = binding ? resolvedBindingModelId(binding) : '';
+  if (!binding || !model) {
+    throw new Error('text.generate execution route is missing an explicit model');
+  }
+  return {
+    model,
+    route: binding.source === 'local' || binding.source === 'cloud' ? binding.source : undefined,
+    connectorId: normalizeText(binding.connectorId) || undefined,
+  };
+}
+
 export function createChatAiConversationRuntimeAdapter(input: {
   reasoningPreference: ChatThinkingPreference;
   getTextProjection: () => ConversationCapabilityProjection | null;

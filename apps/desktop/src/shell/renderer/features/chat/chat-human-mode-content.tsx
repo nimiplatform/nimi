@@ -1,12 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { CanonicalConversationShell } from '@nimiplatform/kit/features/chat/components/canonical-conversation-shell';
+import { useEffect, useMemo, useRef } from 'react';
 import {
   type ConversationSetupAction,
   type ConversationTargetSummary,
 } from '@nimiplatform/kit/features/chat/headless';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { useHumanConversationModeHost } from './chat-human-adapter';
-import { ChatSideSheet } from './chat-shared-side-sheet';
+import { ChatCanonicalModeFrame } from './chat-canonical-mode-frame';
 
 export type ChatHumanModeContentProps = {
   allTargets: readonly ConversationTargetSummary[];
@@ -27,8 +26,6 @@ export function ChatHumanModeContent({
   const selectedChatId = useAppStore((state) => state.selectedChatId);
   const setSelectedChatId = useAppStore((state) => state.setSelectedChatId);
   const setChatProfilePanelTarget = useAppStore((state) => state.setChatProfilePanelTarget);
-  const setChatViewMode = useAppStore((state) => state.setChatViewMode);
-  const setChatSetupState = useAppStore((state) => state.setChatSetupState);
   const setSelectedTargetForSource = useAppStore((state) => state.setSelectedTargetForSource);
   const lastSelectedHumanThread = useAppStore((state) => state.lastSelectedThreadByMode.human ?? null);
   const storeSelectedTargetId = useAppStore((state) => state.selectedTargetBySource.human ?? null);
@@ -57,11 +54,6 @@ export function ChatHumanModeContent({
     setSelectedChatId(lastSelectedHumanThread);
   }, [lastSelectedHumanThread, selectedChatId, setSelectedChatId]);
 
-  // Sync setupState to store
-  useEffect(() => {
-    setChatSetupState('human', host.adapter.setupState);
-  }, [host.adapter.setupState, setChatSetupState]);
-
   // Sync host selectedTargetId to store
   useEffect(() => {
     if (!host.selectedTargetId || storeSelectedTargetId) {
@@ -78,57 +70,19 @@ export function ChatHumanModeContent({
     [allTargets, selectedTargetId],
   );
 
-  const currentViewModeKey = selectedTarget
-    ? `${selectedTarget.source}:${selectedTarget.id}`
-    : 'human:landing';
-  const currentViewMode = useAppStore((state) => state.viewModeBySourceTarget[currentViewModeKey] || 'chat');
-
-  const canonicalMessages = host.messages || [];
-
-  const handleViewModeChange = useCallback((mode: 'stage' | 'chat') => {
-    if (!selectedTarget) {
-      return;
-    }
-    setChatViewMode('human', selectedTarget.id, mode);
-  }, [selectedTarget, setChatViewMode]);
-
   return (
-    <div className="flex min-h-0 min-w-0 flex-1">
-      <CanonicalConversationShell
-        className="min-h-0 flex-1"
-        chrome="transparent"
-        hideTargetPane
-        hideCharacterRail
-        sourceFilter="all"
-        targets={allTargets}
-        selectedTargetId={selectedTargetId}
-        selectedTarget={selectedTarget}
-        onSelectTarget={onSelectTarget}
-        viewMode={currentViewMode}
-        onViewModeChange={handleViewModeChange}
-        setupState={host.adapter.setupState}
-        setupDescription={host.setupDescription}
-        onSetupAction={onSetupAction}
-        characterData={host.characterData}
-        messages={canonicalMessages}
-        transcriptProps={host.transcriptProps}
-        stagePanelProps={host.stagePanelProps}
-        topContent={host.topContent}
-        composer={host.composerContent}
-        auxiliaryOverlayContent={host.auxiliaryOverlayContent}
-      />
-      {selectedTarget && settingsOpen && host.settingsContent ? (
-        <ChatSideSheet
-          sheetKey="settings"
-          title={host.settingsDrawerTitle || 'Settings'}
-          subtitle={host.settingsDrawerSubtitle || host.characterData?.name || selectedTarget.title}
-          onClose={onCloseSettings}
-        >
-          <div className="px-3 py-3">
-            {host.settingsContent}
-          </div>
-        </ChatSideSheet>
-      ) : null}
-    </div>
+    <ChatCanonicalModeFrame
+      mode="human"
+      host={host}
+      allTargets={allTargets}
+      selectedTargetId={selectedTargetId}
+      selectedTarget={selectedTarget}
+      onSelectTarget={onSelectTarget}
+      onSetupAction={onSetupAction}
+      settingsOpen={settingsOpen}
+      onCloseSettings={onCloseSettings}
+      settingsSheetTitle={host.settingsDrawerTitle || 'Settings'}
+      settingsSheetSubtitle={host.settingsDrawerSubtitle || host.characterData?.name || selectedTarget?.title}
+    />
   );
 }
