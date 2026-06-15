@@ -101,17 +101,23 @@ fn normalize_session_trace_id(raw: &str) -> String {
 }
 
 fn preview_text_utf8_safe(input: &str, max_bytes: usize) -> String {
-    if input.len() <= max_bytes {
-        return input.to_string();
-    }
-
-    let mut end = max_bytes.min(input.len());
+    let truncated = input.len() > max_bytes;
+    let mut end = if truncated {
+        max_bytes.min(input.len())
+    } else {
+        input.len()
+    };
     while end > 0 && !input.is_char_boundary(end) {
         end -= 1;
     }
 
     let head = &input[..end];
-    format!("{head}... (截断, 共 {} 字节)", input.len())
+    let escaped = head.escape_default().to_string();
+    if truncated {
+        format!("{escaped}... (truncated, {} bytes total)", input.len())
+    } else {
+        escaped
+    }
 }
 
 fn append_diag_log_entry(

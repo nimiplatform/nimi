@@ -247,7 +247,11 @@ pub async fn start_async() -> Result<RuntimeBridgeDaemonStatus, String> {
     if let Some(current_dir) = spec.current_dir {
         command.current_dir(current_dir);
     }
-    if let Some(Ok(data_dir)) = resolve_nimi_data_dir_hook() {
+    let resolved_data_dir = tauri::async_runtime::spawn_blocking(resolve_nimi_data_dir_hook)
+        .await
+        .ok()
+        .flatten();
+    if let Some(Ok(data_dir)) = resolved_data_dir {
         let models_dir = data_dir.join("models");
         command.env(
             "NIMI_RUNTIME_LOCAL_MODELS_PATH",

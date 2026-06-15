@@ -1,4 +1,4 @@
-import { defineConfig, loadEnv, searchForWorkspaceRoot, type PluginOption } from 'vite';
+import { createLogger, defineConfig, loadEnv, searchForWorkspaceRoot, type Logger, type PluginOption } from 'vite';
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
@@ -167,6 +167,47 @@ function cubismWebCorePlugin(): PluginOption {
   };
 }
 
+function sanitizeConsoleText(input: string): string {
+  return input
+    .replaceAll('➜', '->')
+    .replaceAll('→', '->')
+    .replaceAll('←', '<-')
+    .replaceAll('×', 'x')
+    .replaceAll('—', '-')
+    .replaceAll('–', '-')
+    .replace(/[^\x09\x0A\x0D\x1B\x20-\x7E]/g, '?');
+}
+
+function createAsciiConsoleLogger(): Logger {
+  const logger = createLogger();
+  return {
+    get hasWarned() {
+      return logger.hasWarned;
+    },
+    set hasWarned(value: boolean) {
+      logger.hasWarned = value;
+    },
+    info(message, options) {
+      logger.info(sanitizeConsoleText(message), options);
+    },
+    warn(message, options) {
+      logger.warn(sanitizeConsoleText(message), options);
+    },
+    warnOnce(message, options) {
+      logger.warnOnce(sanitizeConsoleText(message), options);
+    },
+    error(message, options) {
+      logger.error(sanitizeConsoleText(message), options);
+    },
+    clearScreen(type) {
+      logger.clearScreen(type);
+    },
+    hasErrorLogged(error) {
+      return logger.hasErrorLogged(error);
+    },
+  };
+}
+
 export default defineConfig(({ mode }) => {
   loadDesktopBuildEnvFiles();
   const env = loadEnv(mode, __dirname, '');
@@ -175,6 +216,7 @@ export default defineConfig(({ mode }) => {
   return {
     root: path.resolve(__dirname, 'src/shell/renderer'),
     base: mode === 'production' ? './' : '/',
+    customLogger: createAsciiConsoleLogger(),
     envPrefix: ['VITE_'],
     define: {
       'globalThis.__NIMI_IMPORT_META_ENV__': 'import.meta.env',

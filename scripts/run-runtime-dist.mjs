@@ -81,7 +81,7 @@ function enableLocalDeveloperRegistrationGate(env) {
   if (result.status === 0) {
     return;
   }
-  const detail = [result.stderr, result.stdout]
+  const detail = [result.error?.message, result.stderr, result.stdout]
     .map((value) => String(value || '').trim())
     .filter(Boolean)
     .join('\n');

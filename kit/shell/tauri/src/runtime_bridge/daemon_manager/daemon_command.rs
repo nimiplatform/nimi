@@ -98,6 +98,7 @@ fn build_runtime_dev_binary(runtime_dir: &Path, binary_path: &Path) -> Result<()
         })?;
 
     if output.status.success() && binary_path.exists() {
+        sign_runtime_dev_binary(binary_path)?;
         return Ok(());
     }
 
@@ -119,6 +120,98 @@ fn build_runtime_dev_binary(runtime_dir: &Path, binary_path: &Path) -> Result<()
         "RUNTIME_BRIDGE_RUNTIME_BUILD_FAILED",
         message.as_str(),
     ))
+}
+
+#[cfg(windows)]
+fn sign_runtime_dev_binary(binary_path: &Path) -> Result<(), String> {
+    let script = r#"
+$ErrorActionPreference = 'Stop'
+$ProgressPreference = 'SilentlyContinue'
+$BinaryPath = $env:NIMI_RUNTIME_DEV_SIGN_BINARY_PATH
+if ([string]::IsNullOrWhiteSpace($BinaryPath)) {
+  throw 'NIMI_RUNTIME_DEV_SIGN_BINARY_PATH is required'
+}
+$Subject = 'CN=Nimi Local Development Code Signing'
+$Cert = Get-ChildItem Cert:\CurrentUser\My\ -CodeSigningCert |
+  Where-Object { $_.Subject -eq $Subject -and $_.NotAfter -gt (Get-Date).AddDays(30) } |
+  Sort-Object NotAfter -Descending |
+  Select-Object -First 1
+if (-not $Cert) {
+  $Cert = New-SelfSignedCertificate -Type CodeSigningCert -Subject $Subject -KeyUsage DigitalSignature -KeyAlgorithm RSA -KeyLength 3072 -HashAlgorithm SHA256 -CertStoreLocation Cert:\CurrentUser\My -NotAfter (Get-Date).AddYears(2)
+}
+foreach ($StorePath in @('Cert:\CurrentUser\Root', 'Cert:\CurrentUser\TrustedPublisher')) {
+  $Existing = Get-ChildItem $StorePath -ErrorAction SilentlyContinue |
+    Where-Object { $_.Thumbprint -eq $Cert.Thumbprint } |
+    Select-Object -First 1
+  if (-not $Existing) {
+    $CertPath = Join-Path $env:TEMP "nimi-dev-code-signing-$($Cert.Thumbprint).cer"
+    try {
+      Export-Certificate -Cert $Cert -FilePath $CertPath -Force | Out-Null
+      Import-Certificate -FilePath $CertPath -CertStoreLocation $StorePath | Out-Null
+    } finally {
+      Remove-Item -LiteralPath $CertPath -Force -ErrorAction SilentlyContinue
+    }
+  }
+}
+$LastError = $null
+for ($Attempt = 1; $Attempt -le 12; $Attempt++) {
+  try {
+    $Signature = Set-AuthenticodeSignature -FilePath $BinaryPath -Certificate $Cert -HashAlgorithm SHA256
+    if ($Signature.Status -ne 'Valid') {
+      throw "Set-AuthenticodeSignature failed: $($Signature.Status) $($Signature.StatusMessage)"
+    }
+    return
+  } catch {
+    $LastError = $_
+    Start-Sleep -Milliseconds 250
+  }
+}
+if ($null -ne $LastError) {
+  [Console]::Error.WriteLine($LastError.Exception.Message)
+}
+exit 1
+"#;
+    let output = Command::new("powershell.exe")
+        .args([
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-OutputFormat",
+            "Text",
+            "-Command",
+            script,
+        ])
+        .env("NIMI_RUNTIME_DEV_SIGN_BINARY_PATH", binary_path)
+        .output()
+        .map_err(|error| {
+            bridge_error(
+                "RUNTIME_BRIDGE_RUNTIME_SIGN_START_FAILED",
+                format!("spawn runtime dev signing failed: {error}").as_str(),
+            )
+        })?;
+
+    if output.status.success() {
+        return Ok(());
+    }
+
+    let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+    let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let message = if !stderr.is_empty() {
+        stderr
+    } else if !stdout.is_empty() {
+        stdout
+    } else {
+        format!("powershell exit status {}", output.status)
+    };
+    Err(bridge_error(
+        "RUNTIME_BRIDGE_RUNTIME_SIGN_FAILED",
+        message.as_str(),
+    ))
+}
+
+#[cfg(not(windows))]
+fn sign_runtime_dev_binary(_binary_path: &Path) -> Result<(), String> {
+    Ok(())
 }
 
 #[cfg(not(test))]

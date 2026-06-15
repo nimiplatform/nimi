@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
+	goruntime "runtime"
 	"strings"
 	"time"
 )
@@ -36,7 +38,7 @@ func collectPassingTests() (map[string]bool, error) {
 }
 
 func collectPassingTestsOnce() (map[string]bool, int, error) {
-	cmd := exec.Command("go", "test", "./...", "-json", "-count=1")
+	cmd := exec.Command("go", goTestCollectionArgs()...)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return nil, 0, fmt.Errorf("collectPassingTestsOnce stdout pipe: %w", err)
@@ -72,4 +74,29 @@ func collectPassingTestsOnce() (map[string]bool, int, error) {
 		return nil, malformedEvents, fmt.Errorf("collectPassingTestsOnce wait go test: %w", waitErr)
 	}
 	return passed, malformedEvents, nil
+}
+
+func goTestCollectionArgs() []string {
+	args := []string{"test", "./...", "-json", "-count=1"}
+	if goruntime.GOOS != "windows" {
+		return args
+	}
+	execPath := windowsGoTestExecSignerPath()
+	if execPath == "" {
+		return args
+	}
+	return []string{"test", "-exec", execPath, "./...", "-json", "-count=1"}
+}
+
+func windowsGoTestExecSignerPath() string {
+	_, sourcePath, _, ok := goruntime.Caller(0)
+	if !ok {
+		return ""
+	}
+	repoRoot := filepath.Clean(filepath.Join(filepath.Dir(sourcePath), "..", "..", "..", ".."))
+	execPath := filepath.Join(repoRoot, "scripts", "windows-go-test-exec-signer.cmd")
+	if _, err := os.Stat(execPath); err != nil {
+		return ""
+	}
+	return execPath
 }

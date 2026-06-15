@@ -103,7 +103,7 @@ pub(crate) async fn http_request(
     if !allowed.contains(&origin) && !connector_auth_acquisition_allowed {
         let allowed_list = allowed.iter().cloned().collect::<Vec<_>>();
         eprintln!(
-            "[http] × {} {} blocked origin={} allowed={}",
+            "[http] blocked {} {} origin={} allowed={}",
             method,
             url,
             origin,
@@ -127,7 +127,7 @@ pub(crate) async fn http_request(
             }),
         );
         return Err(format!(
-            "目标地址未被 Desktop shell network admission 允许：{origin}。允许列表：{}",
+            "Target URL is not allowed by Desktop shell network admission: {origin}. Allowed origins: {}",
             allowed_list.join(", ")
         ));
     }
@@ -177,10 +177,9 @@ pub(crate) async fn http_request(
                 "burst": HTTP_REQUEST_RATE_LIMIT_BURST,
             }),
         );
-        return Err("HTTP 请求过于频繁，请稍后重试".to_string());
+        return Err("HTTP request rate limit exceeded; retry later".to_string());
     }
 
-    // 打印请求日志
     let mut redacted_headers = payload
         .headers
         .as_ref()
@@ -209,7 +208,7 @@ pub(crate) async fn http_request(
     } else {
         format!(" | body: {}", body_preview)
     };
-    eprintln!("[http] → {} {}{}", method, url, body_tag);
+    eprintln!("[http] request {} {}{}", method, url, body_tag);
     append_diag_log_entry(
         "http-request",
         "info",
@@ -250,7 +249,7 @@ pub(crate) async fn http_request(
     let start = std::time::Instant::now();
     let diag_session_for_request = diag_session_id.clone();
     let response = request.send().await.map_err(|error| {
-        eprintln!("[http] × {} {} 发送失败: {}", method, url, error);
+        eprintln!("[http] send failed {} {}: {}", method, url, error);
         append_diag_log_entry(
             "http-request",
             "error",
@@ -285,7 +284,6 @@ pub(crate) async fn http_request(
 
     let body = response.text().await.map_err(|error| error.to_string())?;
 
-    // 打印响应日志
     let body_preview = redact_body_preview(&body, 200);
     let elapsed_ms = elapsed.as_secs_f64() * 1000.0;
     let resp_body_tag = if body_preview.is_empty() {
@@ -294,7 +292,7 @@ pub(crate) async fn http_request(
         format!(" | {}", body_preview)
     };
     eprintln!(
-        "[http] ← {} {} {} {:.1}ms{}",
+        "[http] response {} {} {} {:.1}ms{}",
         method,
         url,
         status.as_u16(),
