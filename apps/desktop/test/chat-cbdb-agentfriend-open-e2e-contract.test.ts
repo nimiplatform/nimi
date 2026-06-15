@@ -63,7 +63,7 @@ test('CBDB AgentFriend fixture exposes the same RealmAgent through social, explo
   assert.equal(searchUser?.isAgent, true);
   assert.equal(worldAgent?.id, cbdbAgentId);
   assert.equal((friend?.agentProfile as Record<string, unknown> | undefined)?.systemOwnerAccount, 'halliday@nimi.ai');
-  assert.equal((searchUser?.agentProfile as Record<string, unknown> | undefined)?.ownerScope, 'cbdb-curated-system');
+  assert.equal((searchUser?.agentProfile as Record<string, unknown> | undefined)?.ownerScope, 'forge-imported-system');
 });
 
 test('CBDB AgentFriend open-chat journey uses renderer-owned Explore Agent selectors', () => {

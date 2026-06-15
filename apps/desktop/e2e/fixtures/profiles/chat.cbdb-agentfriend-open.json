@@ -28,7 +28,7 @@
           "worldName": "CBDB Song slice",
           "agentProfile": {
             "ownershipType": "WORLD_OWNED",
-            "ownerScope": "cbdb-curated-system",
+            "ownerScope": "forge-imported-system",
             "systemOwnerAccount": "halliday@nimi.ai",
             "sourceProfile": "cbdb-historical",
             "worldId": "cbdb-song-slice-real-20260614-world",
@@ -65,7 +65,7 @@
         "accountVisibility": "PUBLIC",
         "agentProfile": {
           "ownershipType": "WORLD_OWNED",
-          "ownerScope": "cbdb-curated-system",
+          "ownerScope": "forge-imported-system",
           "systemOwnerAccount": "halliday@nimi.ai",
           "sourceProfile": "cbdb-historical",
           "worldId": "cbdb-song-slice-real-20260614-world",
@@ -223,7 +223,7 @@
           },
           "agentProfile": {
             "ownershipType": "WORLD_OWNED",
-            "ownerScope": "cbdb-curated-system",
+            "ownerScope": "forge-imported-system",
             "systemOwnerAccount": "halliday@nimi.ai",
             "sourceProfile": "cbdb-historical",
             "worldId": "cbdb-song-slice-real-20260614-world",
