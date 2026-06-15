@@ -9,6 +9,7 @@ const repoRoot = path.resolve(scriptDir, '..');
 const distDir = path.join(repoRoot, 'dist');
 const binaryName = process.platform === 'win32' ? 'nimi.exe' : 'nimi';
 const binaryPath = path.join(distDir, binaryName);
+const windowsDevSigningScript = path.join(repoRoot, 'scripts', 'lib', 'windows-dev-signing.ps1');
 const rootEnvPath = path.join(repoRoot, '.env');
 const devAppRegistryPath = path.join(repoRoot, '.nimi', 'spec', 'platform', 'kernel', 'tables', 'nimi-app-registry.yaml');
 
@@ -54,6 +55,61 @@ function applyRootRuntimeEnv(env) {
   return env;
 }
 
+function shouldRunWindowsSigningDiagnostic(error, detail) {
+  if (process.platform !== 'win32') {
+    return false;
+  }
+  const errorCode = String(error?.code || '').toUpperCase();
+  if (errorCode === 'UNKNOWN' || errorCode === 'EPERM' || errorCode === 'EACCES') {
+    return true;
+  }
+  return /application control|code integrity|blocked this file|enterprise signing/i.test(String(detail || ''));
+}
+
+function writeWindowsSigningDiagnostic() {
+  const result = spawnSync(
+    'powershell.exe',
+    [
+      '-NoProfile',
+      '-ExecutionPolicy',
+      'Bypass',
+      '-File',
+      windowsDevSigningScript,
+      '-Mode',
+      'Diagnose',
+      '-Path',
+      binaryPath,
+      '-Json',
+    ],
+    {
+      cwd: repoRoot,
+      env: process.env,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    },
+  );
+
+  if (result.error) {
+    process.stderr.write(`[run-runtime-dist] windows dev signing diagnostic failed to start: ${result.error.message}\n`);
+    return;
+  }
+  if (result.status !== 0) {
+    const detail = [result.stderr, result.stdout]
+      .map((value) => String(value || '').trim())
+      .filter(Boolean)
+      .join('\n');
+    process.stderr.write(`[run-runtime-dist] windows dev signing diagnostic failed${detail ? `:\n${detail}\n` : '\n'}`);
+    return;
+  }
+
+  try {
+    const parsed = JSON.parse(String(result.stdout || '{}'));
+    process.stderr.write(`[run-runtime-dist] windows dev signing diagnostic:\n${JSON.stringify(parsed, null, 2)}\n`);
+  } catch {
+    process.stderr.write(`[run-runtime-dist] windows dev signing diagnostic:\n${String(result.stdout || '').trim()}\n`);
+  }
+}
+
 function enableLocalDeveloperRegistrationGate(env) {
   const command = String(process.argv[2] || '').trim();
   if (command !== 'serve' && command !== 'start') {
@@ -86,6 +142,9 @@ function enableLocalDeveloperRegistrationGate(env) {
     .filter(Boolean)
     .join('\n');
   process.stderr.write(`[run-runtime-dist] failed to enable local developer registration gate${detail ? `: ${detail}` : ''}\n`);
+  if (shouldRunWindowsSigningDiagnostic(result.error, detail)) {
+    writeWindowsSigningDiagnostic();
+  }
   process.exit(result.status ?? 1);
 }
 
@@ -136,6 +195,9 @@ process.on('SIGTERM', onSigTerm);
 child.once('error', (error) => {
   cleanupSignals();
   process.stderr.write(`[run-runtime-dist] failed to start ${path.relative(repoRoot, binaryPath)}: ${error.message}\n`);
+  if (shouldRunWindowsSigningDiagnostic(error, error.message)) {
+    writeWindowsSigningDiagnostic();
+  }
   process.exit(1);
 });
 
