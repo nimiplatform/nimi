@@ -148,6 +148,18 @@ function enableLocalDeveloperRegistrationGate(env) {
   process.exit(result.status ?? 1);
 }
 
+function runtimeCommandArgs() {
+  const args = process.argv.slice(2);
+  if (process.platform !== 'win32' || args[0] !== 'stop') {
+    return args;
+  }
+  const hasForce = args.some((arg) => arg === '--force' || arg.startsWith('--force='));
+  if (hasForce) {
+    return args;
+  }
+  return ['stop', '--force', ...args.slice(1)];
+}
+
 if (!fs.existsSync(binaryPath)) {
   process.stderr.write(`[run-runtime-dist] missing ${path.relative(repoRoot, binaryPath)}; run 'pnpm build:runtime' first.\n`);
   process.exit(1);
@@ -156,7 +168,7 @@ if (!fs.existsSync(binaryPath)) {
 const runtimeEnv = applyRootRuntimeEnv({ ...process.env });
 enableLocalDeveloperRegistrationGate(runtimeEnv);
 
-const child = spawn(binaryPath, process.argv.slice(2), {
+const child = spawn(binaryPath, runtimeCommandArgs(), {
   cwd: repoRoot,
   stdio: 'inherit',
   env: runtimeEnv,

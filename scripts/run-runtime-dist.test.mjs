@@ -19,3 +19,10 @@ test('run-runtime-dist diagnoses Windows application-control style spawn failure
   assert.match(source, /failed to enable local developer registration gate[\s\S]*writeWindowsSigningDiagnostic/);
   assert.match(source, /failed to start[\s\S]*writeWindowsSigningDiagnostic/);
 });
+
+test('run-runtime-dist forces Windows runtime stop after identity validation', () => {
+  assert.match(source, /function runtimeCommandArgs\(\)/);
+  assert.match(source, /process\.platform !== 'win32' \|\| args\[0\] !== 'stop'/);
+  assert.match(source, /return \['stop', '--force', \.\.\.args\.slice\(1\)\]/);
+  assert.match(source, /spawn\(binaryPath, runtimeCommandArgs\(\)/);
+});

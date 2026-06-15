@@ -10,7 +10,10 @@ function pnpmPackageRoot(packageName: string): string {
     ? packageName.replace('/', '+')
     : packageName;
   const match = fs.readdirSync(pnpmRoot)
-    .filter((entry) => entry.startsWith(`${packageDirectoryName}@`))
+    .filter((entry) => (
+      entry.startsWith(`${packageDirectoryName}@`)
+      || entry.startsWith(`${packageDirectoryName}_`)
+    ))
     .sort()[0];
   if (!match) {
     throw new Error(`Missing pnpm package for ${packageName}`);

@@ -809,6 +809,16 @@ test('doctor and update hard cut scaffold locks to the current generator version
   assert.match(source, /lock\?\.scaffoldVersion !== SCAFFOLD_VERSION/);
 });
 
+test('nimicoding sync runner uses a Windows shell-compatible pnpm invocation', () => {
+  const source = readFileSync(path.join(testDir, '..', 'lib', 'index.mjs'), 'utf8');
+  assert.match(source, /process\.platform === 'win32'/);
+  assert.match(source, /binary: 'cmd\.exe'/);
+  assert.match(source, /args: \['\/d', '\/c', 'pnpm', \.\.\.pnpmArgs\]/);
+  assert.match(source, /binary: 'pnpm'/);
+  assert.match(source, /args: pnpmArgs/);
+  assert.match(source, /result\.error\?\.message/);
+});
+
 test('app scaffold generator is deterministic and free of inlined product strings', () => {
   const source = readFileSync(path.join(testDir, '..', 'lib', 'app-scaffold.mjs'), 'utf8');
   for (const volatilePattern of [

@@ -52,8 +52,8 @@ export function ensurePinnedGoTool(toolName) {
   const config = pinnedGoToolConfig(toolName);
   const binDir = goBinDir();
   const candidates = unique([
-    commandPath(config.binary),
-    path.join(binDir, config.binary),
+    ...commandPathCandidates(config.binary),
+    ...binaryNames(config.binary).map((binary) => path.join(binDir, binary)),
   ].filter(Boolean));
 
   for (const candidate of candidates) {
@@ -67,9 +67,10 @@ export function ensurePinnedGoTool(toolName) {
   );
   runInherit('go', ['install', config.module]);
 
-  const installedPath = path.join(binDir, config.binary);
+  const installedCandidates = binaryNames(config.binary).map((binary) => path.join(binDir, binary));
+  const installedPath = installedCandidates.find((candidate) => isExecutable(candidate)) ?? installedCandidates[0];
   if (!isExecutable(installedPath)) {
-    throw new Error(`installed ${config.binary} was not found at ${installedPath}`);
+    throw new Error(`installed ${config.binary} was not found at ${installedCandidates.join(', ')}`);
   }
   if (!binaryMatchesPinnedModule(installedPath, config)) {
     throw new Error(
@@ -114,14 +115,32 @@ function binaryMatchesPinnedModule(binaryPath, config) {
   return fields[2] === config.moduleVersion;
 }
 
-function commandPath(binary) {
+function commandPathCandidates(binary) {
   const pathValue = process.env.PATH ?? '';
+  const candidates = [];
   for (const dir of pathValue.split(path.delimiter)) {
     if (!dir) continue;
-    const candidate = path.join(dir, binary);
-    if (isExecutable(candidate)) return candidate;
+    for (const name of binaryNames(binary)) {
+      const candidate = path.join(dir, name);
+      if (isExecutable(candidate)) candidates.push(candidate);
+    }
   }
-  return null;
+  return candidates;
+}
+
+function binaryNames(binary) {
+  if (process.platform !== 'win32' || path.extname(binary)) {
+    return [binary];
+  }
+  const pathExt = process.env.PATHEXT || '.COM;.EXE;.BAT;.CMD';
+  return unique([
+    binary,
+    ...pathExt
+      .split(';')
+      .map((extension) => extension.trim())
+      .filter(Boolean)
+      .map((extension) => `${binary}${extension.toLowerCase()}`),
+  ]);
 }
 
 function isExecutable(filePath) {

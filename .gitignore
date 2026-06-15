@@ -88,3 +88,4 @@ ENV/
 .claude/scheduled_tasks.lock
 .playwright-cli/
 .codex-temp/
+outputs/

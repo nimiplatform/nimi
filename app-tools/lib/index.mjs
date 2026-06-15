@@ -89,12 +89,17 @@ function runNimicodingSync(targetDir, mode) {
     throw new Error(`Unsupported nimicoding sync mode: ${mode}`);
   }
   const flag = mode === 'apply' ? '--apply' : '--check';
-  const result = spawnSync('pnpm', ['exec', 'nimicoding', 'sync', flag, '--json'], {
+  const pnpmArgs = ['exec', 'nimicoding', 'sync', flag, '--json'];
+  const command =
+    process.platform === 'win32'
+      ? { binary: 'cmd.exe', args: ['/d', '/c', 'pnpm', ...pnpmArgs] }
+      : { binary: 'pnpm', args: pnpmArgs };
+  const result = spawnSync(command.binary, command.args, {
     cwd: targetDir,
     encoding: 'utf8',
   });
   if (result.status !== 0) {
-    const output = [result.stdout, result.stderr].filter(Boolean).join('\n').trim();
+    const output = [result.error?.message, result.stdout, result.stderr].filter(Boolean).join('\n').trim();
     throw new Error(`nimicoding sync ${mode} failed. Run pnpm install before pnpm run init. ${output}`);
   }
   try {
