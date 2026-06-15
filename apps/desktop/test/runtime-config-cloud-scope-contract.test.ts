@@ -46,6 +46,16 @@ test('runtime config cloud scope contract: connector scope badges expose stable 
   assert.match(cloudConnectorListSource, /runtimeConfig\.cloud\.runtimeSystem/);
 });
 
+test('runtime config cloud connector actions stay on their owning surfaces', () => {
+  assert.match(cloudDetailPanelSource, /rightAccessory=\{\(/);
+  assert.match(cloudDetailPanelSource, /model\.setShowCloudApiKey\(\(v\) => !v\)/);
+  assert.doesNotMatch(cloudDetailPanelSource, /onRemoveSelectedConnector|TrashIcon/);
+  assert.match(cloudConnectorListSource, /TrashIcon/);
+  assert.match(cloudConnectorListSource, /props\.onDeleteConnector\(connector\.id\)/);
+  assert.match(cloudPageSource, /sdkDeleteConnector\(connectorId\)/);
+  assert.match(cloudPageSource, /removeConnectorFromState\(prev, connectorId\)/);
+});
+
 test('runtime config cloud scope contract: vendor options are derived from runtime provider catalog', () => {
   assert.match(cloudPageSource, /sdkListProviderCatalog\(\)/);
   assert.match(cloudPageSource, /const vendorOptions = useMemo\(\(\) => \{/);
@@ -59,5 +69,6 @@ test('runtime config cloud scope contract: only draft connectors can change vend
   assert.match(cloudPageSource, /const canEditVendor = !isRuntimeSystem && isDraft;/);
   assert.match(cloudPageSource, /if \(!selectedConnector \|\| !canEditVendor\) return;/);
   assert.match(cloudPageSurfaceSource, /disabled=\{!canEditVendor\}/);
-  assert.match(cloudPageSurfaceSource, /Vendor is fixed after connector creation\. Create a new connector to switch provider\./);
+  assert.doesNotMatch(cloudPageSurfaceSource, /Vendor is fixed after connector creation\./);
+  assert.doesNotMatch(cloudPageSurfaceSource, /Credential type is fixed after connector creation\./);
 });

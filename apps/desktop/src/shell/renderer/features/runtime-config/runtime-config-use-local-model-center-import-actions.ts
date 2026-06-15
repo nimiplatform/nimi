@@ -129,7 +129,7 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
       kind: assetKind,
       engine: declaration.engine,
       endpoint: String(endpoint || '').trim() || undefined,
-    });
+    }, { caller: 'core' });
     return { scaffolded: true as const, model: accepted };
   }, []);
 

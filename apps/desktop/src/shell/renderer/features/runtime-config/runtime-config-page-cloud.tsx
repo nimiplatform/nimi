@@ -6,7 +6,7 @@ import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/ru
 import { getVendorLabelV11, randomIdV11, type ApiVendor } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { connectorAuthProfileForId, defaultConnectorAuthOptionForProvider, listConnectorAuthOptionsForProvider, providerToVendor, resolveProviderEndpoint, runtimeConnectors, sdkCreateConnector, sdkDeleteConnector, sdkListConnectors, sdkListProviderCatalog, sdkUpdateConnector, vendorToProvider } from './runtime-config-connector-sdk-service';
-import { addConnectorToState, removeSelectedConnector, replaceConnectorsInState, updateConnectorField } from './runtime-config-connector-actions';
+import { addConnectorToState, removeConnectorFromState, replaceConnectorsInState, updateConnectorField } from './runtime-config-connector-actions';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { RuntimePageShell } from './runtime-config-page-shell';
 import { SectionTitle as SharedSectionTitle } from '@renderer/features/settings/settings-layout-components';
@@ -29,6 +29,7 @@ export function CloudPage({ model, state }: CloudPageProps) {
   const [savingToken, setSavingToken] = useState(false);
   const [tokenSaveError, setTokenSaveError] = useState('');
   const [tokenSavedConnectorId, setTokenSavedConnectorId] = useState('');
+  const [deletingConnectorId, setDeletingConnectorId] = useState('');
   const [codexOAuthPending, setCodexOAuthPending] = useState<CodexOAuthPendingState | null>(null);
   const [codexOAuthBusy, setCodexOAuthBusy] = useState(false);
   const selectedConnectorId = selectedConnector?.id || '';
@@ -175,16 +176,21 @@ export function CloudPage({ model, state }: CloudPageProps) {
     };
     updateState((prev) => addConnectorToState(prev, draft));
   }, [authStatus, state.connectors.length, updateState]);
-  const onRemoveSelectedConnector = useCallback(async () => {
-    if (!selectedConnectorId) return;
-    if (isRuntimeSystem) return;
-    if (selectedConnector?.isDraft) {
-      updateState((prev) => removeSelectedConnector(prev, selectedConnectorId));
-      return;
+  const onDeleteConnector = useCallback(async (connectorId: string) => {
+    const connector = state.connectors.find((item) => item.id === connectorId) || null;
+    if (!connector || connector.scope === 'runtime-system' || connector.isSystemOwned || deletingConnectorId) return;
+    setDeletingConnectorId(connectorId);
+    try {
+      if (connector.isDraft) {
+        updateState((prev) => removeConnectorFromState(prev, connectorId));
+        return;
+      }
+      await sdkDeleteConnector(connectorId);
+      await refreshConnectorsFromSdk();
+    } finally {
+      setDeletingConnectorId('');
     }
-    await sdkDeleteConnector(selectedConnectorId);
-    await refreshConnectorsFromSdk();
-  }, [isRuntimeSystem, selectedConnectorId, selectedConnector, updateState, refreshConnectorsFromSdk]);
+  }, [deletingConnectorId, state.connectors, updateState, refreshConnectorsFromSdk]);
   const onSelectConnector = useCallback((connectorId: string) => {
     updateState((prev) => ({ ...prev, selectedConnectorId: connectorId }));
   }, [updateState]);
@@ -397,6 +403,8 @@ export function CloudPage({ model, state }: CloudPageProps) {
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
         <CloudConnectorListPanel
           connectors={orderedConnectors}
+          deletingConnectorId={deletingConnectorId}
+          onDeleteConnector={(connectorId) => onDeleteConnector(connectorId).catch((e) => reportError('Remove connector failed', e))}
           onSelectConnector={onSelectConnector}
           selectedConnectorId={state.selectedConnectorId}
           t={t}
@@ -420,14 +428,12 @@ export function CloudPage({ model, state }: CloudPageProps) {
           onChangeConnectorAuthOption={onChangeConnectorAuthOption}
           onChangeConnectorEndpoint={onChangeConnectorEndpoint}
           onChangeConnectorVendor={onChangeConnectorVendor}
-          onRemoveSelectedConnector={onRemoveSelectedConnector}
           onRenameSelectedConnector={onRenameSelectedConnector}
           reportError={reportError}
           saveTokenToVault={saveTokenToVault}
           savingToken={savingToken}
           selectedAuthOptionValue={selectedAuthOptionValue}
           selectedConnector={selectedConnector}
-          selectedConnectorId={selectedConnectorId}
           selectedProviderCatalogEntry={selectedProviderCatalogEntry}
           setTokenDraft={setTokenDraft}
           t={t}

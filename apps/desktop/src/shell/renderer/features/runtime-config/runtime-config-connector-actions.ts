@@ -51,6 +51,20 @@ export function removeSelectedConnector(
   };
 }
 
+export function removeConnectorFromState(
+  prev: RuntimeConfigStateV11,
+  connectorId: string | null,
+): RuntimeConfigStateV11 {
+  if (!connectorId) return prev;
+  if (prev.selectedConnectorId === connectorId) {
+    return removeSelectedConnector(prev, connectorId);
+  }
+  return {
+    ...prev,
+    connectors: prev.connectors.filter((connector) => connector.id !== connectorId),
+  };
+}
+
 export function updateConnectorField(
   prev: RuntimeConfigStateV11,
   connectorId: string | null,

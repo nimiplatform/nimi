@@ -3,13 +3,15 @@ import { getVendorLabelV11 } from '@renderer/features/runtime-config/runtime-con
 import { ScrollArea } from '@nimiplatform/kit/ui';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { Card as PrimitiveCard } from './runtime-config-primitives';
-import { CloudIcon } from './runtime-config-page-cloud-primitives';
+import { CloudIcon, TrashIcon } from './runtime-config-page-cloud-primitives';
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 type Connector = RuntimeConfigStateV11['connectors'][number];
 
 export function CloudConnectorListPanel(props: {
   connectors: Connector[];
+  deletingConnectorId: string;
+  onDeleteConnector: (connectorId: string) => Promise<void>;
   onSelectConnector: (connectorId: string) => void;
   selectedConnectorId: string;
   t: Translate;
@@ -35,6 +37,8 @@ export function CloudConnectorListPanel(props: {
                 key={connector.id}
                 active={connector.id === props.selectedConnectorId}
                 connector={connector}
+                deleting={connector.id === props.deletingConnectorId}
+                onDeleteConnector={props.onDeleteConnector}
                 onSelectConnector={props.onSelectConnector}
                 t={t}
               />
@@ -49,30 +53,54 @@ export function CloudConnectorListPanel(props: {
 function CloudConnectorListItem(props: {
   active: boolean;
   connector: Connector;
+  deleting: boolean;
+  onDeleteConnector: (connectorId: string) => Promise<void>;
   onSelectConnector: (connectorId: string) => void;
   t: Translate;
 }) {
   const { active, connector, t } = props;
   const isHealthy = connector.status === 'healthy';
+  const canDelete = !connector.isSystemOwned && connector.scope !== 'runtime-system';
+  const deleteLabel = props.deleting
+    ? t('runtimeConfig.cloud.deletingConnector', { defaultValue: 'Deleting...' })
+    : t('runtimeConfig.cloud.deleteConnector', { defaultValue: 'Delete' });
   return (
-    <button
-      type="button"
-      onClick={() => props.onSelectConnector(connector.id)}
+    <div
       className={`w-full rounded-xl border px-4 py-3 text-left text-xs transition-all ${
         active
           ? 'border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_32%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] ring-1 ring-mint-200'
           : 'border-[var(--nimi-border-subtle)] bg-white/90 hover:border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_24%,transparent)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)]/30'
       }`}
     >
-      <div className="flex items-center gap-2">
-        <span className={`inline-block h-2 w-2 shrink-0 rounded-full ${
-          isHealthy ? 'bg-[var(--nimi-status-success)]' : connector.status === 'unreachable' || connector.status === 'degraded' || connector.status === 'unsupported' ? 'bg-[var(--nimi-status-danger)]' : 'bg-[color-mix(in_srgb,var(--nimi-text-muted)_35%,transparent)]'
-        }`} />
-        <p className="truncate font-semibold text-[var(--nimi-text-primary)]">{connector.label}</p>
-        <CloudConnectorScopeBadge connector={connector} t={t} />
+      <div className="flex items-start gap-2">
+        <button
+          type="button"
+          onClick={() => props.onSelectConnector(connector.id)}
+          className="min-w-0 flex-1 text-left focus:outline-none"
+        >
+          <div className="flex items-center gap-2">
+            <span className={`inline-block h-2 w-2 shrink-0 rounded-full ${
+              isHealthy ? 'bg-[var(--nimi-status-success)]' : connector.status === 'unreachable' || connector.status === 'degraded' || connector.status === 'unsupported' ? 'bg-[var(--nimi-status-danger)]' : 'bg-[color-mix(in_srgb,var(--nimi-text-muted)_35%,transparent)]'
+            }`} />
+            <p className="truncate font-semibold text-[var(--nimi-text-primary)]">{connector.label}</p>
+            <CloudConnectorScopeBadge connector={connector} t={t} />
+          </div>
+          <p className="mt-0.5 text-[10px] text-[var(--nimi-text-muted)]">{getVendorLabelV11(connector.vendor)}</p>
+        </button>
+        {canDelete ? (
+          <button
+            type="button"
+            onClick={() => { void props.onDeleteConnector(connector.id); }}
+            disabled={props.deleting}
+            aria-label={deleteLabel}
+            title={deleteLabel}
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[var(--nimi-status-danger)] transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] focus:outline-none focus:ring-2 focus:ring-[var(--nimi-status-danger)] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <TrashIcon />
+          </button>
+        ) : null}
       </div>
-      <p className="text-[10px] text-[var(--nimi-text-muted)] mt-0.5">{getVendorLabelV11(connector.vendor)}</p>
-    </button>
+    </div>
   );
 }
 

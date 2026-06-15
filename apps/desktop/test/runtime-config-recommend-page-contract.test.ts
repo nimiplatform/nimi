@@ -26,6 +26,11 @@ const recommendPageSource = readFileSync(
   'utf8',
 );
 
+const recommendSectionsSource = readFileSync(
+  path.join(import.meta.dirname, '../src/shell/renderer/features/runtime-config/runtime-config-page-recommend-sections.tsx'),
+  'utf8',
+);
+
 const detailSource = readFileSync(
   path.join(import.meta.dirname, '../src/shell/renderer/features/runtime-config/runtime-config-page-recommend-detail.tsx'),
   'utf8',
@@ -71,6 +76,21 @@ test('recommend page keeps device profile bar, tier summary, and filter toolbar'
   assert.match(recommendPageSource, /DeviceProfileBar/);
   assert.match(recommendPageSource, /TierSummaryBar/);
   assert.match(recommendPageSource, /ModelRow/);
+});
+
+test('recommend filter dropdowns render through portal popovers', () => {
+  assert.match(recommendSectionsSource, /PopoverContent/);
+  assert.match(recommendSectionsSource, /<Popover open=\{open\} onOpenChange=\{setOpen\}>/);
+  assert.doesNotMatch(recommendSectionsSource, /absolute\s+left-0\s+z-50/);
+  assert.doesNotMatch(recommendSectionsSource, /fixed\s+inset-0\s+z-40/);
+});
+
+test('recommend single-select chips make the selected value visually explicit', () => {
+  assert.match(
+    recommendSectionsSource,
+    /<span className="font-semibold text-\[var\(--nimi-action-primary-bg\)\]">\{displayLabel\}<\/span>/,
+  );
+  assert.doesNotMatch(recommendSectionsSource, /<span className="text-\[var\(--nimi-text-secondary\)\]">\{displayLabel\}<\/span>/);
 });
 
 test('recommend page retries empty or stale model-index snapshots on mount', () => {

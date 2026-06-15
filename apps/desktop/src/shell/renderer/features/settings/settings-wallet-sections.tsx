@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { Button } from '@nimiplatform/kit/ui';
 
 import { SectionTitle } from './settings-layout-components.js';
 
@@ -177,15 +178,17 @@ export function WalletRechargeSection({
             </p>
             <p className="text-xs text-gray-500">{t('Wallet.rechargeComplianceHint')}</p>
           </div>
-          <button
-            type="button"
+          <Button
+            tone="primary"
+            size="lg"
             disabled={packagesPending || launchingRecharge || !defaultSparkPackageAvailable}
+            loading={launchingRecharge}
+            leadingIcon={<SparkIcon className="h-4 w-4" />}
             onClick={() => { onStartRecharge(); }}
-            className="flex items-center justify-center gap-2 rounded-xl bg-mint-500 px-6 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:bg-mint-600 hover:shadow-md disabled:cursor-not-allowed disabled:bg-gray-300 disabled:shadow-none"
+            className="min-w-[10rem] shadow-[var(--nimi-elevation-base)]"
           >
-            <SparkIcon className="h-4 w-4" />
             {launchingRecharge ? t('Wallet.rechargeLaunching') : t('Wallet.recharge')}
-          </button>
+          </Button>
         </div>
 
         {packagesError ? (

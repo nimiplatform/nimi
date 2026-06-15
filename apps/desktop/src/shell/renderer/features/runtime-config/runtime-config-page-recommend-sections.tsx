@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ScrollArea } from '@nimiplatform/kit/ui';
+import { Popover, PopoverContent, PopoverTrigger, ScrollArea } from '@nimiplatform/kit/ui';
 import { formatRelativeLocaleTime } from '@renderer/i18n';
 import type {
   NimiRuntimeLocalRecommendationFeedItem,
@@ -207,46 +207,49 @@ export function FilterChip({
   const count = selected.size;
 
   return (
-    <div className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((prev) => !prev)}
-        className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
-          count > 0
-            ? 'border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_32%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] text-[var(--nimi-action-primary-bg)]'
-            : 'border-[var(--nimi-border-subtle)] bg-white text-[var(--nimi-text-secondary)] hover:border-[var(--nimi-border-strong)]'
-        }`}
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
+            count > 0
+              ? 'border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_32%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] text-[var(--nimi-action-primary-bg)]'
+              : 'border-[var(--nimi-border-subtle)] bg-white text-[var(--nimi-text-secondary)] hover:border-[var(--nimi-border-strong)]'
+          }`}
+        >
+          {label}
+          {count > 0 ? <span className="rounded-full bg-[var(--nimi-action-primary-bg)] px-1.5 text-[10px] text-white">{count}</span> : null}
+          <svg className={`h-3 w-3 transition-transform ${open ? 'rotate-180' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9" /></svg>
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        align="start"
+        sideOffset={6}
+        className="w-52 overflow-hidden rounded-xl bg-white p-0"
+        onOpenAutoFocus={(event) => event.preventDefault()}
       >
-        {label}
-        {count > 0 ? <span className="rounded-full bg-[var(--nimi-action-primary-bg)] px-1.5 text-[10px] text-white">{count}</span> : null}
-        <svg className={`h-3 w-3 transition-transform ${open ? 'rotate-180' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9" /></svg>
-      </button>
-      {open ? (
-        <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <ScrollArea className="absolute left-0 z-50 mt-1 max-h-56 w-52 rounded-xl border border-[var(--nimi-border-subtle)] bg-white shadow-lg" contentClassName="py-1">
-            {options.map((option) => {
-              const checked = selected.has(option);
-              return (
-                <button
-                  key={option}
-                  type="button"
-                  onClick={() => onToggle(option)}
-                  className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs transition-colors ${checked ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] text-[var(--nimi-action-primary-bg)]' : 'text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))]'}`}
-                >
-                  <span className={`flex h-4 w-4 items-center justify-center rounded border ${checked ? 'border-[var(--nimi-action-primary-bg)] bg-[var(--nimi-action-primary-bg)]' : 'border-[var(--nimi-border-strong)]'}`}>
-                    {checked ? (
-                      <svg className="h-3 w-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
-                    ) : null}
-                  </span>
-                  {option}
-                </button>
-              );
-            })}
-          </ScrollArea>
-        </>
-      ) : null}
-    </div>
+        <ScrollArea className="max-h-56" viewportClassName="max-h-56" contentClassName="py-1">
+          {options.map((option) => {
+            const checked = selected.has(option);
+            return (
+              <button
+                key={option}
+                type="button"
+                onClick={() => onToggle(option)}
+                className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs transition-colors ${checked ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] text-[var(--nimi-action-primary-bg)]' : 'text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))]'}`}
+              >
+                <span className={`flex h-4 w-4 items-center justify-center rounded border ${checked ? 'border-[var(--nimi-action-primary-bg)] bg-[var(--nimi-action-primary-bg)]' : 'border-[var(--nimi-border-strong)]'}`}>
+                  {checked ? (
+                    <svg className="h-3 w-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
+                  ) : null}
+                </span>
+                {option}
+              </button>
+            );
+          })}
+        </ScrollArea>
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -270,45 +273,48 @@ export function SelectChip({
   const displayLabel = selectedOption ? selectedOption.label : label;
 
   return (
-    <div className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((prev) => !prev)}
-        className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--nimi-border-subtle)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--nimi-text-secondary)] transition-colors hover:border-[var(--nimi-border-strong)]"
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--nimi-border-subtle)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--nimi-text-secondary)] transition-colors hover:border-[var(--nimi-border-strong)]"
+        >
+          <span className="text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">{label}</span>
+          <span className="font-semibold text-[var(--nimi-action-primary-bg)]">{displayLabel}</span>
+          <svg className={`h-3 w-3 transition-transform ${open ? 'rotate-180' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9" /></svg>
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        align="start"
+        sideOffset={6}
+        className="w-52 overflow-hidden rounded-xl bg-white p-0"
+        onOpenAutoFocus={(event) => event.preventDefault()}
       >
-        <span className="text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">{label}</span>
-        <span className="text-[var(--nimi-text-secondary)]">{displayLabel}</span>
-        <svg className={`h-3 w-3 transition-transform ${open ? 'rotate-180' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9" /></svg>
-      </button>
-      {open ? (
-        <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <ScrollArea className="absolute left-0 z-50 mt-1 max-h-56 w-52 rounded-xl border border-[var(--nimi-border-subtle)] bg-white shadow-lg" contentClassName="py-1">
-            {options.map((option) => {
-              const checked = option.value === value;
-              return (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => {
-                    onChange(option.value);
-                    setOpen(false);
-                  }}
-                  className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs transition-colors ${checked ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] text-[var(--nimi-action-primary-bg)]' : 'text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))]'}`}
-                >
-                  <span className={`flex h-4 w-4 items-center justify-center rounded-full border ${checked ? 'border-[var(--nimi-action-primary-bg)] bg-[var(--nimi-action-primary-bg)]' : 'border-[var(--nimi-border-strong)]'}`}>
-                    {checked ? (
-                      <svg className="h-2.5 w-2.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
-                    ) : null}
-                  </span>
-                  {option.label}
-                </button>
-              );
-            })}
-          </ScrollArea>
-        </>
-      ) : null}
-    </div>
+        <ScrollArea className="max-h-56" viewportClassName="max-h-56" contentClassName="py-1">
+          {options.map((option) => {
+            const checked = option.value === value;
+            return (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => {
+                  onChange(option.value);
+                  setOpen(false);
+                }}
+                className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs transition-colors ${checked ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] text-[var(--nimi-action-primary-bg)]' : 'text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))]'}`}
+              >
+                <span className={`flex h-4 w-4 items-center justify-center rounded-full border ${checked ? 'border-[var(--nimi-action-primary-bg)] bg-[var(--nimi-action-primary-bg)]' : 'border-[var(--nimi-border-strong)]'}`}>
+                  {checked ? (
+                    <svg className="h-2.5 w-2.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
+                  ) : null}
+                </span>
+                {option.label}
+              </button>
+            );
+          })}
+        </ScrollArea>
+      </PopoverContent>
+    </Popover>
   );
 }
 

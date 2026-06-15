@@ -16,7 +16,6 @@ import {
   KeyIcon,
   SearchIcon,
   ServerIcon,
-  TrashIcon,
 } from './runtime-config-page-cloud-primitives';
 
 type CloudConnector = RuntimeConfigStateV11['connectors'][number];
@@ -50,14 +49,12 @@ type CloudConnectorDetailPanelProps = {
   onChangeConnectorAuthOption: (nextValue: string) => void;
   onChangeConnectorEndpoint: (endpoint: string) => void;
   onChangeConnectorVendor: (vendor: string) => Promise<void>;
-  onRemoveSelectedConnector: () => Promise<void>;
   onRenameSelectedConnector: (label: string) => void;
   reportError: (label: string, error: unknown) => void;
   saveTokenToVault: () => Promise<void>;
   savingToken: boolean;
   selectedAuthOptionValue: string;
   selectedConnector: CloudConnector | null;
-  selectedConnectorId: string;
   selectedProviderCatalogEntry: ProviderCatalogEntry | null;
   setTokenDraft: (value: string) => void;
   t: TFunction;
@@ -86,7 +83,6 @@ export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps)
     savingToken,
     selectedAuthOptionValue,
     selectedConnector,
-    selectedConnectorId,
     selectedProviderCatalogEntry,
     t,
     tokenDraft,
@@ -120,13 +116,6 @@ export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps)
                   className="w-full"
                   options={vendorOptions}
                 />
-                {!canEditVendor ? (
-                  <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
-                    {t('runtimeConfig.cloud.vendorImmutableAfterCreate', {
-                      defaultValue: 'Vendor is fixed after connector creation. Create a new connector to switch provider.',
-                    })}
-                  </p>
-                ) : null}
               </div>
             </div>
 
@@ -163,6 +152,21 @@ export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps)
                   type={model.showCloudApiKey ? 'text' : 'password'}
                   placeholder={selectedConnector.authMode === 'oauth_managed' ? 'access token' : 'sk-...'}
                   icon={<KeyIcon />}
+                  rightAccessory={(
+                    <button
+                      type="button"
+                      onClick={() => model.setShowCloudApiKey((v) => !v)}
+                      aria-label={model.showCloudApiKey
+                        ? t('Auth.hidePassword', { defaultValue: 'Hide' })
+                        : t('Auth.showPassword', { defaultValue: 'Show' })}
+                      title={model.showCloudApiKey
+                        ? t('Auth.hidePassword', { defaultValue: 'Hide' })
+                        : t('Auth.showPassword', { defaultValue: 'Show' })}
+                      className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--nimi-text-muted)] transition-colors hover:bg-white/80 hover:text-[var(--nimi-action-primary-bg)] focus:outline-none focus:ring-2 focus:ring-[var(--nimi-field-focus)]"
+                    >
+                      {model.showCloudApiKey ? <EyeOffIcon /> : <EyeIcon />}
+                    </button>
+                  )}
                 />
               )}
             </div>
@@ -179,17 +183,6 @@ export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps)
                   className="w-full"
                   options={authOptions}
                 />
-                {!canEditCredentialMode ? (
-                  <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
-                    {isDraft
-                      ? t('runtimeConfig.cloud.credentialTypeFixedForProvider', {
-                        defaultValue: 'This provider exposes a single admitted credential shape in the current runtime profile.',
-                      })
-                      : t('runtimeConfig.cloud.credentialTypeImmutableAfterCreate', {
-                        defaultValue: 'Credential type is fixed after connector creation. Create a new connector to switch auth shape.',
-                      })}
-                  </p>
-                ) : null}
               </div>
             ) : null}
 
@@ -236,26 +229,6 @@ export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps)
                     : t('runtimeConfig.cloud.codexOauthStart', { defaultValue: 'Sign in with Codex' })}
                 </Button>
               ) : null}
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => model.setShowCloudApiKey((v) => !v)}
-                icon={model.showCloudApiKey ? <EyeOffIcon /> : <EyeIcon />}
-              >
-                {model.showCloudApiKey
-                  ? t('Auth.hidePassword', { defaultValue: 'Hide' })
-                  : t('Auth.showPassword', { defaultValue: 'Show' })}
-              </Button>
-              {!isSystemOwned && selectedConnectorId && (
-                <Button
-                  variant="danger"
-                  size="sm"
-                  onClick={() => { void props.onRemoveSelectedConnector().catch((e) => props.reportError('Remove connector failed', e)); }}
-                  icon={<TrashIcon />}
-                >
-                  {t('runtimeConfig.cloud.deleteConnector', { defaultValue: 'Delete' })}
-                </Button>
-              )}
               <div className="flex-1" />
               <StatusBadge status={selectedConnector.status} />
             </div>

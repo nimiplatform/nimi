@@ -119,6 +119,7 @@ export function Input({
   type = 'text',
   disabled,
   icon,
+  rightAccessory,
 }: {
   label?: string;
   value: string;
@@ -127,7 +128,15 @@ export function Input({
   type?: string;
   disabled?: boolean;
   icon?: ReactNode;
+  rightAccessory?: ReactNode;
 }) {
+  const paddingClass = icon && rightAccessory
+    ? 'pl-10 pr-11'
+    : icon
+      ? 'pl-10 pr-4'
+      : rightAccessory
+        ? 'pl-4 pr-11'
+        : 'px-4';
   return (
     <div>
       {label && <label className="mb-1.5 block text-sm font-medium text-[var(--nimi-text-secondary)]">{label}</label>}
@@ -139,8 +148,13 @@ export function Input({
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           disabled={disabled}
-          className={`h-11 w-full rounded-xl border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,var(--nimi-surface-card))] text-sm text-[var(--nimi-text-primary)] outline-none transition-all placeholder:text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)] focus:border-[var(--nimi-field-focus)] focus:bg-white focus:ring-2 focus:ring-mint-100 disabled:opacity-60 ${icon ? 'pl-10 pr-4' : 'px-4'}`}
+          className={`h-11 w-full rounded-xl border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,var(--nimi-surface-card))] text-sm text-[var(--nimi-text-primary)] outline-none transition-all placeholder:text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)] focus:border-[var(--nimi-field-focus)] focus:bg-white focus:ring-2 focus:ring-mint-100 disabled:opacity-60 ${paddingClass}`}
         />
+        {rightAccessory ? (
+          <div className="absolute right-2 top-1/2 -translate-y-1/2">
+            {rightAccessory}
+          </div>
+        ) : null}
       </div>
     </div>
   );
