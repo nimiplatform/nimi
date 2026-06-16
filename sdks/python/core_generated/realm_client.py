@@ -140,6 +140,12 @@ REALM_OPERATIONS = [
     "path": "/api/world/by-id/{worldId}/agents/{agentId}/rules/{ruleId}"
   },
   {
+    "operation_id": "applyCreatorWorldAgentAuthoringDraftBatch",
+    "service": "Agent / Creator World",
+    "method": "POST",
+    "path": "/api/me/creator/worlds/{worldId}/agents/{agentId}/authoring-draft-batches/{batchId}/apply"
+  },
+  {
     "operation_id": "archiveBundle",
     "service": "Bundles",
     "method": "POST",
@@ -210,6 +216,12 @@ REALM_OPERATIONS = [
     "service": "Bundles",
     "method": "POST",
     "path": "/api/bundles"
+  },
+  {
+    "operation_id": "createCreatorWorldAgentAuthoringDraftBatch",
+    "service": "Agent / Creator World",
+    "method": "POST",
+    "path": "/api/me/creator/worlds/{worldId}/agents/{agentId}/authoring-draft-batches"
   },
   {
     "operation_id": "createGroup",
@@ -602,6 +614,12 @@ REALM_OPERATIONS = [
     "path": "/api/me/creator/worlds/{worldId}/agents/{agentId}"
   },
   {
+    "operation_id": "getCreatorWorldAgentAuthoringGenerationContext",
+    "service": "Agent / Creator World",
+    "method": "GET",
+    "path": "/api/me/creator/worlds/{worldId}/agents/{agentId}/authoring-generation-context"
+  },
+  {
     "operation_id": "getCreatorWorldAgentChatReadiness",
     "service": "Agent / Creator World",
     "method": "GET",
@@ -612,6 +630,12 @@ REALM_OPERATIONS = [
     "service": "Agent / Creator World",
     "method": "GET",
     "path": "/api/me/creator/worlds/{worldId}/agents/{agentId}/settings"
+  },
+  {
+    "operation_id": "getCreatorWorldAgentSourceSkeleton",
+    "service": "Agent / Creator World",
+    "method": "GET",
+    "path": "/api/me/creator/worlds/{worldId}/agents/{agentId}/source-skeleton"
   },
   {
     "operation_id": "getExploreFeed",
@@ -882,6 +906,12 @@ REALM_OPERATIONS = [
     "service": "Human Chats",
     "method": "GET",
     "path": "/api/human/chats"
+  },
+  {
+    "operation_id": "listCreatorWorldAgentAuthoringDraftBatches",
+    "service": "Agent / Creator World",
+    "method": "GET",
+    "path": "/api/me/creator/worlds/{worldId}/agents/{agentId}/authoring-draft-batches"
   },
   {
     "operation_id": "listCreatorWorldAgents",
@@ -1158,6 +1188,12 @@ REALM_OPERATIONS = [
     "service": "Reviews (Economy/Trust)",
     "method": "GET",
     "path": "/api/economy/reviews"
+  },
+  {
+    "operation_id": "reviewCreatorWorldAgentAuthoringDraftCandidate",
+    "service": "Agent / Creator World",
+    "method": "PATCH",
+    "path": "/api/me/creator/worlds/{worldId}/agents/{agentId}/authoring-draft-batches/{batchId}/candidates/{candidateId}/review"
   },
   {
     "operation_id": "revokeMyAppPermissionGrant",

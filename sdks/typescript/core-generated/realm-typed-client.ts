@@ -19,9 +19,9 @@ export interface AbilityDefinitionDto {
 }
 export interface AccountGrantProjectionRowDto {
   readonly appId: string;
-  readonly expiresAt?: string;
+  readonly expiresAt?: string | null;
   readonly grantId: string;
-  readonly qualifier?: string;
+  readonly qualifier?: string | null;
   readonly scopeFamily: AppPermissionScopeFamily;
   readonly scopeName: AppPermissionScopeName;
   readonly state: AccountGrantProjectionState;
@@ -53,6 +53,133 @@ export interface AgentAppearanceDto {
   readonly hair: string;
   readonly signatureItems: readonly (string)[];
   readonly skin: string;
+}
+export interface AgentAuthoringBehaviorCandidatePayloadDto {
+  readonly directives: readonly (string)[];
+}
+export interface AgentAuthoringDialogueCandidatePayloadDto {
+  readonly exemplars: readonly (string)[];
+}
+export interface AgentAuthoringDraftBatchDto {
+  readonly agentId: string;
+  readonly appliedAt: string | null;
+  readonly candidates: readonly (AgentAuthoringDraftCandidateDto)[];
+  readonly createdAt: string;
+  readonly createdBy: string;
+  readonly failureCode: string | null;
+  readonly failureMessage: string | null;
+  readonly id: string;
+  readonly metadata: AgentAuthoringDraftBatchMetadataDto | null;
+  readonly skeletonId: string;
+  readonly sourceKind: "CBDB";
+  readonly status: "ready_for_review" | "partially_applied" | "applied" | "failed";
+  readonly updatedAt: string;
+  readonly worldId: string;
+}
+export interface AgentAuthoringDraftBatchListDto {
+  readonly items: readonly (AgentAuthoringDraftBatchDto)[];
+}
+export interface AgentAuthoringDraftBatchMetadataDto {
+  readonly notes?: string | null;
+  readonly runtimeAppId?: string | null;
+  readonly surfaceId?: string | null;
+}
+export interface AgentAuthoringDraftCandidateDto {
+  readonly appliedAt: string | null;
+  readonly editedValue?: AgentAuthoringDraftCandidateValueDto | null;
+  readonly generatedAt: string;
+  readonly id: string;
+  readonly modelId: string;
+  readonly promptDigestSha256: string;
+  readonly provenance: AgentAuthoringRuntimeTraceDto;
+  readonly reviewStatus: "pending" | "accepted" | "rejected" | "edited" | "applied";
+  readonly reviewedAt: string | null;
+  readonly reviewerId: string | null;
+  readonly routePolicy: string | null;
+  readonly runtimeTraceId: string | null;
+  readonly sourceRefs: readonly (AgentAuthoringSourceRefDto)[];
+  readonly targetKey: "description" | "contentStyle" | "publicPositioning" | "avatar" | "profileCover" | "voice" | "greeting" | "dialogueExemplars" | "behaviorDna";
+  readonly value: AgentAuthoringDraftCandidateValueDto;
+}
+export interface AgentAuthoringDraftCandidateValueDto {
+  readonly behavior?: AgentAuthoringBehaviorCandidatePayloadDto;
+  readonly dialogue?: AgentAuthoringDialogueCandidatePayloadDto;
+  readonly kind: "text" | "media" | "voice" | "dialogue" | "behavior";
+  readonly media?: AgentAuthoringMediaCandidatePayloadDto;
+  readonly provenance: readonly (AgentAuthoringValueProvenanceSegmentDto)[];
+  readonly text?: string | null;
+  readonly voice?: AgentAuthoringVoiceCandidatePayloadDto;
+}
+export interface AgentAuthoringFinalMediaStateDto {
+  readonly avatarResourceId: string | null;
+  readonly avatarUrl: string | null;
+  readonly profileCoverResourceId: string | null;
+  readonly profileCoverUrl: string | null;
+}
+export interface AgentAuthoringFinalStateDto {
+  readonly media: AgentAuthoringFinalMediaStateDto;
+  readonly settings: OwnerAgentSettingsDto;
+  readonly voice: AgentAuthoringFinalVoiceStateDto;
+}
+export interface AgentAuthoringFinalVoiceStateDto {
+  readonly voice: AgentAuthoringVoiceCandidatePayloadDto | null;
+}
+export interface AgentAuthoringGenerationContextDto {
+  readonly currentFinalState: AgentAuthoringFinalStateDto;
+  readonly groundingRefs: readonly (AgentAuthoringSourceRefDto)[];
+  readonly requiredTargets: readonly ("description" | "contentStyle" | "publicPositioning" | "avatar" | "profileCover" | "voice" | "greeting" | "dialogueExemplars" | "behaviorDna")[];
+  readonly sourceSkeleton: CreatorWorldAgentSourceSkeletonDto;
+  readonly targetStatuses: readonly (AgentAuthoringTargetStatusDto)[];
+}
+export interface AgentAuthoringMediaCandidatePayloadDto {
+  readonly height: number;
+  readonly mime: string;
+  readonly model: string;
+  readonly moderation: AgentAuthoringMediaModerationDto;
+  readonly prompt: string;
+  readonly provenance: readonly (AgentAuthoringValueProvenanceSegmentDto)[];
+  readonly resourceId: string;
+  readonly url: string;
+  readonly width: number;
+}
+export interface AgentAuthoringMediaModerationDto {
+  readonly provider?: string | null;
+  readonly reason?: string | null;
+  readonly status: "passed" | "blocked" | "not_checked";
+}
+export interface AgentAuthoringRuntimeTraceDto {
+  readonly promptTemplateId?: string | null;
+  readonly runtimeAppId: string;
+  readonly scenarioId?: string | null;
+  readonly skeletonId: string;
+  readonly sourceDigestSha256?: string | null;
+  readonly surfaceId: string;
+}
+export interface AgentAuthoringSourceRefDto {
+  readonly factPath?: string | null;
+  readonly label?: string | null;
+  readonly sourceKind?: string | null;
+  readonly sourceRef: string;
+}
+export interface AgentAuthoringTargetStatusDto {
+  readonly appliedAt: string | null;
+  readonly latestBatchId: string | null;
+  readonly latestCandidateId: string | null;
+  readonly latestReviewStatus: "pending" | "accepted" | "rejected" | "edited" | "applied" | null;
+  readonly targetKey: "description" | "contentStyle" | "publicPositioning" | "avatar" | "profileCover" | "voice" | "greeting" | "dialogueExemplars" | "behaviorDna";
+}
+export interface AgentAuthoringValueProvenanceSegmentDto {
+  readonly category: "source_fact" | "historical_inference" | "creator_preference" | "ai_authored_texture";
+  readonly refs: readonly (string)[];
+  readonly summary: string;
+}
+export interface AgentAuthoringVoiceCandidatePayloadDto {
+  readonly historicalClaim: "narration_direction_not_authentic_voice";
+  readonly narrationDirection: string;
+  readonly providerVoiceRef?: string | null;
+  readonly speechModelId?: string | null;
+  readonly speechRoutePolicy?: "local" | "cloud" | null;
+  readonly voiceAssetResourceId?: string | null;
 }
 export interface AgentBiologicalDto {
   readonly ethnicity: string;
@@ -117,7 +244,7 @@ export interface AgentMetadataDto {
   readonly category?: AgentCategory;
   readonly importance?: AgentImportance;
   readonly origin?: AgentOrigin;
-  readonly ownerWorldId?: string;
+  readonly ownerWorldId?: string | null;
   readonly ownershipType?: AgentOwnershipType;
   readonly state?: AgentState;
   readonly tier?: VerificationTier;
@@ -129,7 +256,7 @@ export interface AgentOriginDto {
   readonly agentId: string;
   readonly isNative: boolean;
   readonly masterId: string;
-  readonly worldCreatorId: string;
+  readonly worldCreatorId: string | null;
   readonly worldId: string;
 }
 export type AgentOwnershipType = "MASTER_OWNED" | "WORLD_OWNED";
@@ -143,9 +270,9 @@ export interface AgentPersonalityDto {
 }
 export interface AgentProfileDto {
   readonly activeWorldId?: string;
-  readonly greeting?: string;
+  readonly greeting?: string | null;
   readonly importance?: AgentImportance;
-  readonly ownerWorldId?: string;
+  readonly ownerWorldId?: string | null;
   readonly ownershipType?: AgentOwnershipType;
   readonly state?: AgentState;
   readonly stats?: AgentStatsDto;
@@ -153,14 +280,14 @@ export interface AgentProfileDto {
 }
 export type AgentRelationType = "ALLY" | "RIVAL" | "ENEMY";
 export interface AgentRelationshipOtherAccountDto {
-  readonly avatarUrl: string;
-  readonly displayName: string;
+  readonly avatarUrl: string | null;
+  readonly displayName: string | null;
   readonly handle: string;
   readonly id: string;
   readonly isAgent: boolean;
 }
 export interface AgentRelationshipRecordDto {
-  readonly context: string;
+  readonly context: string | null;
   readonly createdAt: string;
   readonly direction: string;
   readonly id: string;
@@ -169,21 +296,21 @@ export interface AgentRelationshipRecordDto {
   readonly type: AgentRelationType;
 }
 export interface AgentResponseMetadataDto {
-  readonly activeWorldId?: string;
-  readonly category?: string;
-  readonly importance?: AgentImportance;
+  readonly activeWorldId?: string | null;
+  readonly category?: string | null;
+  readonly importance?: AgentImportance | null;
   readonly origin?: AgentOrigin;
-  readonly ownerWorldId?: string;
+  readonly ownerWorldId?: string | null;
   readonly ownershipType?: AgentOwnershipType;
   readonly state?: AgentState;
   readonly tier?: VerificationTier;
-  readonly wakeStrategy?: string;
+  readonly wakeStrategy?: string | null;
   readonly worldId?: string;
 }
 export interface AgentResponseProfileDto {
-  readonly activeWorldId?: string;
-  readonly importance?: AgentImportance;
-  readonly ownerWorldId?: string;
+  readonly activeWorldId?: string | null;
+  readonly importance?: AgentImportance | null;
+  readonly ownerWorldId?: string | null;
   readonly ownershipType?: AgentOwnershipType;
   readonly state?: AgentState;
   readonly stats?: AgentResponseProfileStatsDto;
@@ -193,7 +320,7 @@ export interface AgentResponseProfileStatsDto {
   readonly engagementCount?: number;
   readonly influenceTier?: number;
   readonly interactionTier?: number;
-  readonly lastActiveAt?: string;
+  readonly lastActiveAt?: string | null;
   readonly vitalityScore?: number;
 }
 export interface AgentResponseTierSummaryDto {
@@ -205,8 +332,8 @@ export interface AgentResponseTierSummaryDto {
 export interface AgentResponseUserDto {
   readonly agent?: AgentResponseMetadataDto;
   readonly agentProfile?: AgentResponseProfileDto;
-  readonly avatarUrl?: string;
-  readonly bio?: string;
+  readonly avatarUrl?: string | null;
+  readonly bio?: string | null;
   readonly createdAt: string;
   readonly displayName: string;
   readonly friendCount?: number;
@@ -214,10 +341,10 @@ export interface AgentResponseUserDto {
   readonly id: string;
   readonly isAgent?: boolean;
   readonly isOnline?: boolean;
-  readonly presenceEmoji?: string;
-  readonly presenceStatus?: string;
-  readonly presenceText?: string;
-  readonly profileCoverUrl?: string;
+  readonly presenceEmoji?: string | null;
+  readonly presenceStatus?: string | null;
+  readonly presenceText?: string | null;
+  readonly profileCoverUrl?: string | null;
   readonly stats?: AgentStatsDto;
   readonly status?: AccountStatus;
   readonly tiers?: AgentResponseTierSummaryDto;
@@ -261,7 +388,7 @@ export interface AgentStatsDto {
   readonly engagementCount?: number;
   readonly influenceTier?: number;
   readonly interactionTier?: number;
-  readonly lastActiveAt?: string;
+  readonly lastActiveAt?: string | null;
   readonly vitalityScore?: number;
 }
 export interface AgentVisibilitySettingsDto {
@@ -287,26 +414,26 @@ export interface AppPermissionGrantDecisionDto {
 }
 export interface AppPermissionGrantDto {
   readonly appId: string;
-  readonly deniedAt?: string;
-  readonly deniedByAccountId?: string;
-  readonly expiredAt?: string;
-  readonly expiresAt?: string;
+  readonly deniedAt?: string | null;
+  readonly deniedByAccountId?: string | null;
+  readonly expiredAt?: string | null;
+  readonly expiresAt?: string | null;
   readonly grantId: string;
-  readonly grantedAt?: string;
-  readonly grantedByAccountId?: string;
-  readonly qualifier?: string;
+  readonly grantedAt?: string | null;
+  readonly grantedByAccountId?: string | null;
+  readonly qualifier?: string | null;
   readonly reason: string;
   readonly requestedAt: string;
   readonly requestedByAccountId: string;
-  readonly revokedAt?: string;
-  readonly revokedByAccountId?: string;
+  readonly revokedAt?: string | null;
+  readonly revokedByAccountId?: string | null;
   readonly scopeFamily: AppPermissionScopeFamily;
   readonly scopeName: AppPermissionScopeName;
   readonly state: AppPermissionGrantState;
   readonly subjectAccountId: string;
-  readonly supersededAt?: string;
-  readonly supersededByAccountId?: string;
-  readonly supersededByGrantId?: string;
+  readonly supersededAt?: string | null;
+  readonly supersededByAccountId?: string | null;
+  readonly supersededByGrantId?: string | null;
   readonly version: number;
 }
 export interface AppPermissionGrantGrantDto {
@@ -342,6 +469,10 @@ export interface AppendWorldHistoryDto {
   readonly ifSnapshotVersion?: string;
   readonly reason?: string;
 }
+export interface ApplyAgentAuthoringDraftBatchResponseDto {
+  readonly appliedTargetKeys: readonly ("description" | "contentStyle" | "publicPositioning" | "avatar" | "profileCover" | "voice" | "greeting" | "dialogueExemplars" | "behaviorDna")[];
+  readonly batch: AgentAuthoringDraftBatchDto;
+}
 export interface AssetDetailDto {
   readonly authorId: string;
   readonly clonePolicy: "ALLOW" | "DENY" | "INHERIT";
@@ -350,15 +481,15 @@ export interface AssetDetailDto {
   readonly kind: "WORK" | "ITEM";
   readonly originKind: "ORIGINAL" | "CLONE" | "DERIVED";
   readonly ownerId: string;
-  readonly previewResourceId?: string;
+  readonly previewResourceId?: string | null;
   readonly resourceRefs: readonly (string)[];
-  readonly rootAssetId?: string;
-  readonly sourceAssetId?: string;
+  readonly rootAssetId?: string | null;
+  readonly sourceAssetId?: string | null;
   readonly status: "DRAFT" | "READY" | "ARCHIVED" | "DELETED";
-  readonly structuredPayload?: Record<string, unknown>;
+  readonly structuredPayload?: Record<string, unknown> | null;
   readonly transferPolicy: "ALLOW" | "DENY" | "INHERIT";
   readonly updatedAt: string;
-  readonly usePolicy?: Record<string, unknown>;
+  readonly usePolicy?: UsePolicyDto | null;
 }
 export interface AssetListDto {
   readonly items: readonly (AssetDetailDto)[];
@@ -389,7 +520,7 @@ export interface Auth2faVerifyDto {
 export interface AuthTokensDto {
   readonly accessToken: string;
   readonly expiresIn: number;
-  readonly refreshToken?: string;
+  readonly refreshToken?: string | null;
   readonly tokenType: string;
   readonly user?: AuthUserDto;
 }
@@ -424,15 +555,15 @@ export interface AuthUserAgentStatsDto {
 export interface AuthUserDto {
   readonly agent?: AuthUserAgentMetadataDto;
   readonly agentProfile?: AuthUserAgentProfileDto;
-  readonly avatarUrl?: string;
-  readonly bio?: string;
-  readonly birthYear?: number;
-  readonly city?: string;
-  readonly countryCode?: string;
+  readonly avatarUrl?: string | null;
+  readonly bio?: string | null;
+  readonly birthYear?: number | null;
+  readonly city?: string | null;
+  readonly countryCode?: string | null;
   readonly createdAt: string;
   readonly displayName: string;
   readonly email?: string;
-  readonly gender?: Gender;
+  readonly gender?: Gender | null;
   readonly handle: string;
   readonly hasPassword: boolean;
   readonly id: string;
@@ -441,9 +572,9 @@ export interface AuthUserDto {
   readonly languages: readonly (string)[];
   readonly lastHandleChangeAt?: string;
   readonly oauthProviders: readonly (string)[];
-  readonly presenceEmoji?: string;
-  readonly presenceStatus?: string;
-  readonly presenceText?: string;
+  readonly presenceEmoji?: string | null;
+  readonly presenceStatus?: string | null;
+  readonly presenceText?: string | null;
   readonly role: AccountRole;
   readonly socialProfiles: readonly (AuthUserSocialProfileDto)[];
   readonly status: AccountStatus;
@@ -475,17 +606,17 @@ export interface AuthUserWalletDto {
   readonly updatedAt?: string;
 }
 export interface BatchCreateAgentCreatedDto {
-  readonly displayName?: string;
-  readonly handle?: string;
+  readonly displayName?: string | null;
+  readonly handle?: string | null;
   readonly id: string;
   readonly index: number;
   readonly ownershipType: "MASTER_OWNED" | "WORLD_OWNED";
-  readonly state?: string;
-  readonly worldId?: string;
+  readonly state?: string | null;
+  readonly worldId?: string | null;
 }
 export interface BatchCreateAgentFailedDto {
   readonly error: string;
-  readonly handle?: string;
+  readonly handle?: string | null;
   readonly index: number;
 }
 export interface BatchCreateAgentsRequestDto {
@@ -506,7 +637,7 @@ export interface BindEmailDto {
 }
 export interface BindingDetailDto {
   readonly bindingKind: "PRESENTATION" | "USE" | "IMPORT";
-  readonly bindingPoint?: "WORLD_ICON" | "WORLD_BANNER" | "WORLD_GALLERY" | "WORLD_THEME_AUDIO" | "WORLD_TRAILER_VIDEO" | "SCENE_BACKGROUND" | "SCENE_AMBIENT_AUDIO" | "EVENT_CG" | "WORLDVIEW_REFERENCE" | "AGENT_AVATAR" | "AGENT_PORTRAIT" | "AGENT_EXPRESSION" | "AGENT_OUTFIT" | "AGENT_CANDIDATE" | "AGENT_VOICE_SAMPLE";
+  readonly bindingPoint?: "WORLD_ICON" | "WORLD_BANNER" | "WORLD_GALLERY" | "WORLD_THEME_AUDIO" | "WORLD_TRAILER_VIDEO" | "SCENE_BACKGROUND" | "SCENE_AMBIENT_AUDIO" | "EVENT_CG" | "WORLDVIEW_REFERENCE" | "AGENT_AVATAR" | "AGENT_PORTRAIT" | "AGENT_EXPRESSION" | "AGENT_OUTFIT" | "AGENT_CANDIDATE" | "AGENT_VOICE_SAMPLE" | null;
   readonly conditionHash: string;
   readonly conditions?: Record<string, unknown>;
   readonly createdAt: string;
@@ -518,11 +649,11 @@ export interface BindingDetailDto {
   readonly objectId: string;
   readonly objectType: "RESOURCE" | "ASSET" | "BUNDLE";
   readonly priority: number;
-  readonly resource?: Record<string, unknown>;
+  readonly resource?: BindingResourceDetailDto | null;
   readonly scopeWorldId: string;
   readonly tags: readonly (string)[];
   readonly updatedAt: string;
-  readonly versionPin?: string;
+  readonly versionPin?: string | null;
 }
 export interface BindingListDto {
   readonly items: readonly (BindingDetailDto)[];
@@ -547,7 +678,7 @@ export interface BindingResourceDetailDto {
 }
 export interface BindingUpsertDto {
   readonly bindingKind: "PRESENTATION" | "USE" | "IMPORT";
-  readonly bindingPoint?: "WORLD_ICON" | "WORLD_BANNER" | "WORLD_GALLERY" | "WORLD_THEME_AUDIO" | "WORLD_TRAILER_VIDEO" | "SCENE_BACKGROUND" | "SCENE_AMBIENT_AUDIO" | "EVENT_CG" | "WORLDVIEW_REFERENCE" | "AGENT_AVATAR" | "AGENT_PORTRAIT" | "AGENT_EXPRESSION" | "AGENT_OUTFIT" | "AGENT_CANDIDATE" | "AGENT_VOICE_SAMPLE";
+  readonly bindingPoint?: "WORLD_ICON" | "WORLD_BANNER" | "WORLD_GALLERY" | "WORLD_THEME_AUDIO" | "WORLD_TRAILER_VIDEO" | "SCENE_BACKGROUND" | "SCENE_AMBIENT_AUDIO" | "EVENT_CG" | "WORLDVIEW_REFERENCE" | "AGENT_AVATAR" | "AGENT_PORTRAIT" | "AGENT_EXPRESSION" | "AGENT_OUTFIT" | "AGENT_CANDIDATE" | "AGENT_VOICE_SAMPLE" | null;
   readonly conditions?: Record<string, unknown>;
   readonly hostId: string;
   readonly hostType: "WORLD" | "AGENT" | "SCENE" | "WORLD_EVENT" | "WORLDVIEW";
@@ -556,7 +687,7 @@ export interface BindingUpsertDto {
   readonly objectType: "RESOURCE" | "ASSET" | "BUNDLE";
   readonly priority?: number;
   readonly tags?: readonly (string)[];
-  readonly versionPin?: string;
+  readonly versionPin?: string | null;
 }
 export interface BlockUserBodyDto {
   readonly reason?: string;
@@ -567,7 +698,7 @@ export interface BundleDetailDto {
   readonly createdAt: string;
   readonly description: string;
   readonly id: string;
-  readonly importPolicy?: Record<string, unknown>;
+  readonly importPolicy?: ImportPolicyDto | null;
   readonly members: readonly (BundleMemberDto)[];
   readonly ownerId: string;
   readonly status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
@@ -598,7 +729,7 @@ export interface CanWithdrawDto {
   readonly canWithdraw: boolean;
   readonly connectStatus: StripeConnectStatus;
   readonly minAmount: string;
-  readonly reason?: string;
+  readonly reason?: string | null;
 }
 export interface CausalityModelDto {
   readonly allowParadox?: boolean;
@@ -667,8 +798,8 @@ export interface ChatUserRefPayloadDto {
 export interface ChatViewDto {
   readonly createdAt: string;
   readonly id: string;
-  readonly lastMessage: Record<string, unknown>;
-  readonly lastMessageAt: string;
+  readonly lastMessage: MessageViewDto | null;
+  readonly lastMessageAt: string | null;
   readonly otherUser: UserLiteDto;
   readonly unreadCount: number;
   readonly updatedAt: string;
@@ -691,7 +822,7 @@ export interface CloneAssetDto {
   readonly ownerId?: string;
   readonly status?: "DRAFT" | "READY" | "ARCHIVED" | "DELETED";
   readonly transferPolicy?: "ALLOW" | "DENY" | "INHERIT";
-  readonly usePolicy?: Record<string, unknown>;
+  readonly usePolicy?: UsePolicyDto | null;
 }
 export interface CommitRealmGroupMessageCandidateInputDto {
   readonly auditLineageRef: string;
@@ -733,6 +864,22 @@ export interface ConnectOnboardingResponseDto {
   readonly onboardingUrl: string;
 }
 export type ContentRatingString = "UNRATED" | "G" | "PG13" | "R18" | "EXPLICIT";
+export interface CreateAgentAuthoringDraftBatchDto {
+  readonly candidates: readonly (CreateAgentAuthoringDraftCandidateDto)[];
+  readonly metadata?: AgentAuthoringDraftBatchMetadataDto | null;
+  readonly skeletonId: string;
+}
+export interface CreateAgentAuthoringDraftCandidateDto {
+  readonly generatedAt: string;
+  readonly modelId: string;
+  readonly promptDigestSha256: string;
+  readonly provenance: AgentAuthoringRuntimeTraceDto;
+  readonly routePolicy?: string | null;
+  readonly runtimeTraceId?: string | null;
+  readonly sourceRefs: readonly (AgentAuthoringSourceRefDto)[];
+  readonly targetKey: "description" | "contentStyle" | "publicPositioning" | "avatar" | "profileCover" | "voice" | "greeting" | "dialogueExemplars" | "behaviorDna";
+  readonly value: AgentAuthoringDraftCandidateValueDto;
+}
 export interface CreateAgentDto {
   readonly concept: string;
   readonly description?: string;
@@ -786,14 +933,14 @@ export interface CreateAssetDto {
   readonly kind: "WORK" | "ITEM";
   readonly originKind: "ORIGINAL" | "CLONE" | "DERIVED";
   readonly ownerId?: string;
-  readonly previewResourceId?: string;
+  readonly previewResourceId?: string | null;
   readonly resourceRefs?: readonly (string)[];
   readonly rootAssetId?: string;
   readonly sourceAssetId?: string;
   readonly status?: "DRAFT" | "READY" | "ARCHIVED" | "DELETED";
   readonly structuredPayload?: Record<string, unknown>;
   readonly transferPolicy: "ALLOW" | "DENY" | "INHERIT";
-  readonly usePolicy?: Record<string, unknown>;
+  readonly usePolicy?: UsePolicyDto | null;
 }
 export interface CreateAudioDirectUploadDto {
   readonly agentId?: string;
@@ -824,7 +971,7 @@ export interface CreateBundleDto {
   readonly compatibleApps?: readonly (string)[];
   readonly coverAssetId: string;
   readonly description: string;
-  readonly importPolicy?: Record<string, unknown>;
+  readonly importPolicy?: ImportPolicyDto | null;
   readonly memberAssetIds: readonly (string)[];
   readonly status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
   readonly tags?: readonly (string)[];
@@ -961,6 +1108,7 @@ export interface CreatorEligibilityResponseDto {
 export interface CreatorWorldAgentChatReadinessDto {
   readonly agentId: string;
   readonly agentRuleCount: number;
+  readonly appliedAuthoringTargets: readonly (string)[];
   readonly authorityReason: "CREATOR_OWNER" | "MAINTAIN_ACCESS";
   readonly consumerSurface: "AGENT_CHAT_READINESS";
   readonly gates: CreatorWorldAgentChatReadinessGatesDto;
@@ -975,21 +1123,81 @@ export interface CreatorWorldAgentChatReadinessDto {
   readonly worldRuleCount: number;
 }
 export interface CreatorWorldAgentChatReadinessGatesDto {
+  readonly authoringDraftReady: boolean;
+  readonly behaviorDnaReady: boolean;
+  readonly dialogueExemplarsReady: boolean;
+  readonly greetingReady: boolean;
   readonly localAgentIdentityReady: boolean;
   readonly ownerSettingsReady: boolean;
   readonly profileContextReady: boolean;
+  readonly profileCoverReady: boolean;
   readonly profileMediaReady: boolean;
   readonly speechRouteReady: boolean;
   readonly voiceReferenceReady: boolean;
 }
 export interface CreatorWorldAgentChatReadinessProfileDto {
-  readonly avatarUrl: string;
-  readonly defaultVoiceReference: string;
+  readonly avatarResourceId: string | null;
+  readonly avatarUrl: string | null;
+  readonly defaultVoiceReference: string | null;
   readonly displayName: string;
   readonly handle: string;
-  readonly profileCoverUrl: string;
-  readonly speechModelId: string;
-  readonly speechRoutePolicy: "local" | "cloud";
+  readonly profileCoverResourceId: string | null;
+  readonly profileCoverUrl: string | null;
+  readonly speechModelId: string | null;
+  readonly speechRoutePolicy: "local" | "cloud" | null;
+}
+export interface CreatorWorldAgentCompletionBriefDto {
+  readonly avatarBrief: string;
+  readonly contentStyle: string;
+  readonly description: string;
+  readonly dnaBrief: string;
+  readonly greetingBrief: string;
+  readonly positioning: string;
+  readonly voiceBrief: string;
+}
+export interface CreatorWorldAgentRuntimeReadinessDto {
+  readonly reason: string;
+  readonly requiredCreatorActions: readonly (string)[];
+  readonly roleplayRuntime: "blocked";
+}
+export interface CreatorWorldAgentSkeletonFactsDto {
+  readonly birthYear: number | null;
+  readonly deathYear: number | null;
+  readonly officeFacts: readonly (CreatorWorldAgentSkeletonOfficeFactDto)[];
+  readonly relationships: readonly (CreatorWorldAgentSkeletonRelationshipDto)[];
+  readonly representativeFacts: readonly (string)[];
+  readonly timelineFactCount: number;
+}
+export interface CreatorWorldAgentSkeletonOfficeFactDto {
+  readonly eventId: string;
+  readonly name: string;
+  readonly officeName: string | null;
+  readonly summary: string;
+}
+export interface CreatorWorldAgentSkeletonRelationshipDto {
+  readonly context: string | null;
+  readonly relationType: string;
+  readonly relationshipId: string;
+  readonly targetEntityId: string;
+  readonly targetName: string;
+}
+export interface CreatorWorldAgentSourceSkeletonDto {
+  readonly agentId: string;
+  readonly aliases: readonly (string)[];
+  readonly candidateId: string | null;
+  readonly canonicalName: string;
+  readonly completionBrief: CreatorWorldAgentCompletionBriefDto;
+  readonly missingFields: readonly ("avatar" | "profileCover" | "voice" | "greeting" | "dialogueExemplars" | "behaviorDna")[];
+  readonly packageId: string | null;
+  readonly packageVersion: string | null;
+  readonly runtimeReadiness: CreatorWorldAgentRuntimeReadinessDto;
+  readonly skeletonId: string;
+  readonly sourceEntityId: string;
+  readonly sourceFacts: CreatorWorldAgentSkeletonFactsDto;
+  readonly sourceKind: "CBDB";
+  readonly sourceProfile: "cbdb-historical";
+  readonly sourceRefs: readonly (string)[];
+  readonly worldId: string;
 }
 export interface CreatorWorldSummaryDto {
   readonly agentCount: number;
@@ -1019,18 +1227,18 @@ export interface CurrencyTransactionDto {
   readonly balanceAfter: string;
   readonly createdAt: string;
   readonly currencyType: string;
-  readonly description?: string;
+  readonly description?: string | null;
   readonly id: string;
-  readonly referenceId?: string;
+  readonly referenceId?: string | null;
   readonly type: string;
 }
 export interface CurrencyTransactionHistoryDto {
   readonly items: readonly (CurrencyTransactionDto)[];
-  readonly nextCursor: string;
+  readonly nextCursor: string | null;
 }
 export interface CursorPageMetaDto {
   readonly hasNext: boolean;
-  readonly nextCursor: string;
+  readonly nextCursor: string | null;
 }
 export interface DeleteAgentOperationResponseDto {
   readonly success: boolean;
@@ -1071,9 +1279,9 @@ export interface FactionRelationshipDto {
   readonly type: "ALLY" | "NEUTRAL" | "RIVAL" | "ENEMY";
 }
 export interface FeedPageMetaDto {
-  readonly cursor?: string;
+  readonly cursor?: string | null;
   readonly limit?: number;
-  readonly nextCursor?: string;
+  readonly nextCursor?: string | null;
 }
 export interface FeedResponseDto {
   readonly items: readonly (PostDto)[];
@@ -1112,10 +1320,10 @@ export interface ForgeAgentCandidateCapabilityCellDto {
   readonly surface: string;
 }
 export interface ForgeAgentCandidateDto {
-  readonly agentRef?: string;
+  readonly agentRef?: string | null;
   readonly capabilityVector: readonly (ForgeAgentCandidateCapabilityCellDto)[];
   readonly completenessIntent: string;
-  readonly entityRef?: string;
+  readonly entityRef?: string | null;
   readonly id: string;
   readonly name: string;
   readonly runtimeMaterialization: ForgeAgentCandidateRuntimeMaterializationDto;
@@ -1123,9 +1331,9 @@ export interface ForgeAgentCandidateDto {
   readonly worldId: string;
 }
 export interface ForgeAgentCandidateQueryFiltersDto {
-  readonly query?: string;
-  readonly status?: "ready" | "sparse" | "blocked";
-  readonly surface?: string;
+  readonly query?: string | null;
+  readonly status?: "ready" | "sparse" | "blocked" | null;
+  readonly surface?: string | null;
 }
 export interface ForgeAgentCandidateQueryResultDto {
   readonly candidates: readonly (ForgeAgentCandidateDto)[];
@@ -1195,8 +1403,8 @@ export interface ForgeProductOptionalArtifactQualityDto {
 }
 export interface ForgeProductQualityDto {
   readonly evalScorecards: readonly (ForgeProductEvalScorecardDto)[];
-  readonly presetZeroing?: Record<string, unknown>;
-  readonly updateRun?: Record<string, unknown>;
+  readonly presetZeroing?: ForgeProductOptionalArtifactQualityDto | null;
+  readonly updateRun?: ForgeProductUpdateRunQualityDto | null;
   readonly validation: ForgeProductValidationQualityDto;
 }
 export interface ForgeProductShardIndexDto {
@@ -1215,9 +1423,9 @@ export interface ForgeProductShardIndexItemDto {
   readonly path: string;
 }
 export interface ForgeProductShardIntegrityItemDto {
-  readonly actualChecksum: string;
-  readonly byteSize: number;
-  readonly error: string;
+  readonly actualChecksum: string | null;
+  readonly byteSize: number | null;
+  readonly error: string | null;
   readonly expectedChecksum: string;
   readonly exportKeys: readonly (string)[];
   readonly kind: string;
@@ -1311,26 +1519,26 @@ export interface ForgeWorldProductDto {
 export interface FriendProfileDto {
   readonly agent?: AgentMetadataDto;
   readonly agentProfile?: AgentProfileDto;
-  readonly avatarUrl?: string;
-  readonly bio?: string;
-  readonly birthYear?: number;
-  readonly city?: string;
-  readonly countryCode?: string;
+  readonly avatarUrl?: string | null;
+  readonly bio?: string | null;
+  readonly birthYear?: number | null;
+  readonly city?: string | null;
+  readonly countryCode?: string | null;
   readonly createdAt: string;
   readonly displayName: string;
   readonly friendCount?: number;
-  readonly friendsSince?: string;
-  readonly gender?: Gender;
+  readonly friendsSince?: string | null;
+  readonly gender?: Gender | null;
   readonly giftStats?: Record<string, unknown>;
   readonly handle: string;
   readonly id: string;
   readonly isAgent?: boolean;
   readonly isOnline?: boolean;
   readonly languages?: readonly (string)[];
-  readonly presenceEmoji?: string;
-  readonly presenceStatus?: string;
-  readonly presenceText?: string;
-  readonly profileCoverUrl?: string;
+  readonly presenceEmoji?: string | null;
+  readonly presenceStatus?: string | null;
+  readonly presenceText?: string | null;
+  readonly profileCoverUrl?: string | null;
   readonly reviewStats?: ReviewStatsDto;
   readonly socialProfiles?: readonly (SocialProfileDto)[];
   readonly stats?: UserStatsDto;
@@ -1340,7 +1548,7 @@ export interface FriendProfileDto {
 }
 export interface FriendProfileListDto {
   readonly items?: readonly (FriendProfileDto)[];
-  readonly nextCursor?: string;
+  readonly nextCursor?: string | null;
   readonly total?: number;
 }
 export type Gender = "MALE" | "FEMALE" | "NONBINARY" | "PREFER_NOT_SAY";
@@ -1353,25 +1561,25 @@ export interface GiftCatalogItemDto {
 }
 export type GiftStatus = "PENDING" | "ACCEPTED" | "REJECTED" | "EXPIRED" | "REFUNDED";
 export interface GiftTransactionDto {
-  readonly acceptedAt?: string;
+  readonly acceptedAt?: string | null;
   readonly createdAt: string;
   readonly expiresAt: string;
   readonly gemToCreator: string;
   readonly gemToReceiver: string;
   readonly giftId: string;
   readonly id: string;
-  readonly message?: string;
+  readonly message?: string | null;
   readonly platformFee: string;
   readonly receiverId: string;
-  readonly rejectReason?: string;
-  readonly rejectedAt?: string;
-  readonly relatedPostId?: string;
+  readonly rejectReason?: string | null;
+  readonly rejectedAt?: string | null;
+  readonly relatedPostId?: string | null;
   readonly senderId: string;
   readonly sparkCost: string;
   readonly status: GiftStatus;
 }
 export interface GiftTransactionRichDto {
-  readonly acceptedAt?: string;
+  readonly acceptedAt?: string | null;
   readonly createdAt: string;
   readonly expiresAt: string;
   readonly gemToCreator: string;
@@ -1379,13 +1587,13 @@ export interface GiftTransactionRichDto {
   readonly gift: GiftCatalogItemDto;
   readonly giftId: string;
   readonly id: string;
-  readonly message?: string;
+  readonly message?: string | null;
   readonly platformFee: string;
   readonly receiver: UserLiteDto;
   readonly receiverId: string;
-  readonly rejectReason?: string;
-  readonly rejectedAt?: string;
-  readonly relatedPostId?: string;
+  readonly rejectReason?: string | null;
+  readonly rejectedAt?: string | null;
+  readonly relatedPostId?: string | null;
   readonly sender: UserLiteDto;
   readonly senderId: string;
   readonly sparkCost: string;
@@ -1402,18 +1610,18 @@ export interface GroupChatViewDto {
   readonly createdAt: string;
   readonly creatorId: string;
   readonly id: string;
-  readonly lastMessage: Record<string, unknown>;
-  readonly lastMessageAt: string;
+  readonly lastMessage: GroupMessageViewDto | null;
+  readonly lastMessageAt: string | null;
   readonly participants: readonly (GroupParticipantDto)[];
-  readonly title: string;
+  readonly title: string | null;
   readonly type: "GROUP";
   readonly unreadCount: number;
   readonly updatedAt: string;
 }
 export interface GroupMessageAuthorDto {
   readonly accountId: string;
-  readonly agentOwnerId: string;
-  readonly avatarUrl: string;
+  readonly agentOwnerId: string | null;
+  readonly avatarUrl: string | null;
   readonly displayName: string;
   readonly type: "human" | "agent";
 }
@@ -1425,23 +1633,23 @@ export interface GroupMessageViewDto {
   readonly editedAt?: string;
   readonly id: string;
   readonly isRead: boolean;
-  readonly payload: Record<string, unknown>;
+  readonly payload: ChatTextPayloadDto | Record<string, unknown> | ChatPostRefPayloadDto | ChatUserRefPayloadDto | ChatLinkRefPayloadDto | ChatGiftPayloadDto | ChatFriendRequestPayloadDto | null;
   readonly replyTo?: MessageReplyViewDto;
   readonly senderId: string;
-  readonly text?: string;
+  readonly text?: string | null;
   readonly type: MessageType;
 }
 export interface GroupParticipantDto {
   readonly accountId: string;
-  readonly agentOwnerId: string;
-  readonly avatarUrl: string;
+  readonly agentOwnerId: string | null;
+  readonly avatarUrl: string | null;
   readonly displayName: string;
   readonly handle: string;
   readonly isOnline: boolean;
   readonly joinedAt: string;
-  readonly localAgentRef: string;
-  readonly realmAgentId: string;
-  readonly realmGroupAgentSlotId: string;
+  readonly localAgentRef: string | null;
+  readonly realmAgentId: string | null;
+  readonly realmGroupAgentSlotId: string | null;
   readonly role: "admin" | "member";
   readonly type: "human" | "agent";
 }
@@ -1474,37 +1682,37 @@ export interface InvitationCodeResponseDto {
   readonly createdAt: string;
   readonly creatorId: string;
   readonly id: string;
-  readonly usedAt?: string;
-  readonly usedByAccount?: Record<string, unknown>;
-  readonly usedById?: string;
+  readonly usedAt?: string | null;
+  readonly usedByAccount?: InvitationCodeUsedByAccountDto | null;
+  readonly usedById?: string | null;
 }
 export interface InvitationCodeUsedByAccountDto {
-  readonly avatarUrl?: string;
-  readonly displayName?: string;
-  readonly handle?: string;
+  readonly avatarUrl?: string | null;
+  readonly displayName?: string | null;
+  readonly handle?: string | null;
   readonly id: string;
 }
 export interface ListChatsResultDto {
   readonly hasMore?: boolean;
   readonly items: readonly (ChatViewDto)[];
-  readonly nextCursor: string;
+  readonly nextCursor: string | null;
   readonly page?: number;
   readonly pageSize?: number;
   readonly total?: number;
 }
 export interface ListGroupChatsResultDto {
   readonly items: readonly (GroupChatViewDto)[];
-  readonly nextCursor: string;
+  readonly nextCursor: string | null;
 }
 export interface ListGroupMessagesResultDto {
   readonly items: readonly (GroupMessageViewDto)[];
-  readonly nextAfter: string;
-  readonly nextBefore: string;
+  readonly nextAfter: string | null;
+  readonly nextBefore: string | null;
 }
 export interface ListMessagesResultDto {
   readonly items: readonly (MessageViewDto)[];
-  readonly nextAfter: string;
-  readonly nextBefore: string;
+  readonly nextAfter: string | null;
+  readonly nextBefore: string | null;
 }
 export interface LocalAgentProvisionIntentAckDto {
   readonly detail?: string;
@@ -1512,7 +1720,7 @@ export interface LocalAgentProvisionIntentAckDto {
 }
 export type LocalAgentProvisionIntentAckOutcome = "established" | "substrate_failure";
 export interface LocalAgentProvisionIntentDto {
-  readonly ackedAt?: string;
+  readonly ackedAt?: string | null;
   readonly attempts: number;
   readonly availableAt: string;
   readonly createdAt: string;
@@ -1532,7 +1740,7 @@ export interface LocalAgentTerminationIntentAckDto {
 }
 export type LocalAgentTerminationIntentAckOutcome = "terminated" | "substrate_failure";
 export interface LocalAgentTerminationIntentDto {
-  readonly ackedAt?: string;
+  readonly ackedAt?: string | null;
   readonly attempts: number;
   readonly availableAt: string;
   readonly createdAt: string;
@@ -1579,7 +1787,7 @@ export interface Me2faVerifyDto {
 }
 export interface MessageReplyViewDto {
   readonly id: string;
-  readonly payload: Record<string, unknown>;
+  readonly payload: ChatTextPayloadDto | Record<string, unknown> | ChatPostRefPayloadDto | ChatUserRefPayloadDto | ChatLinkRefPayloadDto | ChatGiftPayloadDto | ChatFriendRequestPayloadDto | null;
   readonly senderId: string;
   readonly text: string;
   readonly type: string;
@@ -1592,10 +1800,10 @@ export interface MessageViewDto {
   readonly editedAt?: string;
   readonly id: string;
   readonly isRead: boolean;
-  readonly payload: Record<string, unknown>;
+  readonly payload: ChatTextPayloadDto | Record<string, unknown> | ChatPostRefPayloadDto | ChatUserRefPayloadDto | ChatLinkRefPayloadDto | ChatGiftPayloadDto | ChatFriendRequestPayloadDto | null;
   readonly replyTo?: MessageReplyViewDto;
   readonly senderId: string;
-  readonly text?: string;
+  readonly text?: string | null;
   readonly type: MessageType;
 }
 export type ModerationStatusString = "ACTIVE" | "UNDER_REVIEW" | "FLAGGED" | "BANNED";
@@ -1628,46 +1836,46 @@ export interface NotificationActivityDto {
   readonly mentions?: boolean;
 }
 export interface NotificationActorAgentMetadataDto {
-  readonly activeWorldId?: string;
-  readonly category?: string;
-  readonly importance?: AgentImportance;
+  readonly activeWorldId?: string | null;
+  readonly category?: string | null;
+  readonly importance?: AgentImportance | null;
   readonly origin?: AgentOrigin;
-  readonly ownerWorldId?: string;
+  readonly ownerWorldId?: string | null;
   readonly ownershipType?: AgentOwnershipType;
   readonly state?: AgentState;
-  readonly tier?: VerificationTier;
-  readonly wakeStrategy?: string;
-  readonly worldId?: string;
+  readonly tier?: VerificationTier | null;
+  readonly wakeStrategy?: string | null;
+  readonly worldId?: string | null;
 }
 export interface NotificationActorAgentProfileDto {
-  readonly activeWorldId?: string;
-  readonly importance?: AgentImportance;
-  readonly ownerWorldId?: string;
+  readonly activeWorldId?: string | null;
+  readonly importance?: AgentImportance | null;
+  readonly ownerWorldId?: string | null;
   readonly ownershipType?: AgentOwnershipType;
   readonly state?: AgentState;
   readonly stats?: NotificationActorAgentStatsDto;
-  readonly worldId?: string;
+  readonly worldId?: string | null;
 }
 export interface NotificationActorAgentStatsDto {
   readonly engagementCount: number;
   readonly influenceTier: number;
   readonly interactionTier: number;
-  readonly lastActiveAt?: string;
+  readonly lastActiveAt?: string | null;
   readonly vitalityScore: number;
 }
 export interface NotificationActorDto {
   readonly agent?: NotificationActorAgentMetadataDto;
   readonly agentProfile?: NotificationActorAgentProfileDto;
-  readonly avatarUrl?: string;
-  readonly bio?: string;
+  readonly avatarUrl?: string | null;
+  readonly bio?: string | null;
   readonly createdAt: string;
   readonly displayName: string;
   readonly handle: string;
   readonly id: string;
   readonly isAgent?: boolean;
-  readonly presenceEmoji?: string;
-  readonly presenceStatus?: string;
-  readonly presenceText?: string;
+  readonly presenceEmoji?: string | null;
+  readonly presenceStatus?: string | null;
+  readonly presenceText?: string | null;
   readonly status?: AccountStatus;
   readonly tiers?: NotificationActorTierSummaryDto;
 }
@@ -1683,13 +1891,13 @@ export interface NotificationChannelsDto {
   readonly push?: boolean;
 }
 export interface NotificationDto {
-  readonly actor: Record<string, unknown>;
-  readonly body: string;
+  readonly actor: NotificationActorDto | null;
+  readonly body: string | null;
   readonly createdAt: string;
-  readonly data: Record<string, unknown>;
+  readonly data: Record<string, unknown> | null;
   readonly id: string;
   readonly isRead: boolean;
-  readonly target: Record<string, unknown>;
+  readonly target: NotificationTargetDto | null;
   readonly title: string;
   readonly type: "friend_request_received" | "friend_request_accepted" | "friend_request_rejected" | "post_liked" | "gift_received" | "gift_status_updated" | "system_announcement" | "review_received";
 }
@@ -1705,10 +1913,10 @@ export interface NotificationListResultDto {
   readonly page: CursorPageMetaDto;
 }
 export interface NotificationTargetDto {
-  readonly accountId?: string;
-  readonly chatId?: string;
-  readonly interactionId?: string;
-  readonly postId?: string;
+  readonly accountId?: string | null;
+  readonly chatId?: string | null;
+  readonly interactionId?: string | null;
+  readonly postId?: string | null;
 }
 export interface NsfwConsentResponseDto {
   readonly agentConsent: boolean;
@@ -1730,10 +1938,10 @@ export interface OAuthLoginDto {
   readonly redirectUri?: string;
 }
 export interface OAuthLoginResultDto {
-  readonly blockedReason?: string;
+  readonly blockedReason?: string | null;
   readonly loginState: "ok" | "needs_onboarding" | "needs_2fa" | "blocked";
-  readonly tempToken?: string;
-  readonly tokens?: Record<string, unknown>;
+  readonly tempToken?: string | null;
+  readonly tokens?: AuthTokensDto | null;
 }
 export type OAuthProvider = "GOOGLE" | "WECHAT" | "TWITTER" | "TIKTOK";
 export interface OAuthTokenRequestDto {
@@ -1757,35 +1965,35 @@ export interface OwnerAgentBoundarySettingsDto {
   readonly disallowedThemes?: readonly (string)[];
 }
 export interface OwnerAgentCommunicationSettingsDto {
-  readonly contentStyle?: string;
+  readonly contentStyle?: string | null;
   readonly formality?: "casual" | "formal" | "slang";
   readonly responseLength?: "short" | "medium" | "long";
   readonly sentiment?: "positive" | "neutral" | "cynical";
 }
 export interface OwnerAgentIdentitySettingsDto {
-  readonly publicRole?: string;
-  readonly worldview?: string;
+  readonly publicRole?: string | null;
+  readonly worldview?: string | null;
 }
 export interface OwnerAgentPersonalitySettingsDto {
   readonly goals?: readonly (string)[];
   readonly interests?: readonly (string)[];
-  readonly relationshipMode?: string;
-  readonly summary?: string;
+  readonly relationshipMode?: string | null;
+  readonly summary?: string | null;
 }
 export interface OwnerAgentPositioningSettingsDto {
-  readonly positioning?: string;
-  readonly targetAudience?: string;
+  readonly positioning?: string | null;
+  readonly targetAudience?: string | null;
 }
 export interface OwnerAgentSettingsDto {
   readonly agentId: string;
   readonly agentRuleVersion: number;
   readonly boundaries: OwnerAgentBoundarySettingsDto;
   readonly communication: OwnerAgentCommunicationSettingsDto;
-  readonly description?: string;
-  readonly displayName?: string;
-  readonly greeting?: string;
+  readonly description?: string | null;
+  readonly displayName?: string | null;
+  readonly greeting?: string | null;
   readonly identity: OwnerAgentIdentitySettingsDto;
-  readonly naturalLanguageIntent?: string;
+  readonly naturalLanguageIntent?: string | null;
   readonly personality: OwnerAgentPersonalitySettingsDto;
   readonly positioning: OwnerAgentPositioningSettingsDto;
   readonly updatedAt: string;
@@ -1839,14 +2047,14 @@ export interface PostDto {
   readonly attachments: readonly (PostAttachmentDto)[];
   readonly author: UserLiteDto;
   readonly authorId: string;
-  readonly caption?: string;
+  readonly caption?: string | null;
   readonly contentRating?: ContentRatingString;
   readonly createdAt: string;
   readonly id: string;
   readonly likedByCurrentUser?: boolean;
   readonly moderationStatus?: ModerationStatusString;
   readonly tags?: readonly (string)[];
-  readonly updatedAt?: string;
+  readonly updatedAt?: string | null;
   readonly visibility: Visibility;
   readonly worldId?: string;
 }
@@ -1881,16 +2089,16 @@ export interface PowerTierDto {
 export type PresenceStatus = "online" | "invisible";
 export interface PublicBindingDto {
   readonly bindingKind: "PRESENTATION" | "USE" | "IMPORT";
-  readonly bindingPoint?: "WORLD_ICON" | "WORLD_BANNER" | "WORLD_GALLERY" | "WORLD_THEME_AUDIO" | "WORLD_TRAILER_VIDEO" | "SCENE_BACKGROUND" | "SCENE_AMBIENT_AUDIO" | "EVENT_CG" | "WORLDVIEW_REFERENCE" | "AGENT_AVATAR" | "AGENT_PORTRAIT" | "AGENT_EXPRESSION" | "AGENT_OUTFIT" | "AGENT_CANDIDATE" | "AGENT_VOICE_SAMPLE";
+  readonly bindingPoint?: "WORLD_ICON" | "WORLD_BANNER" | "WORLD_GALLERY" | "WORLD_THEME_AUDIO" | "WORLD_TRAILER_VIDEO" | "SCENE_BACKGROUND" | "SCENE_AMBIENT_AUDIO" | "EVENT_CG" | "WORLDVIEW_REFERENCE" | "AGENT_AVATAR" | "AGENT_PORTRAIT" | "AGENT_EXPRESSION" | "AGENT_OUTFIT" | "AGENT_CANDIDATE" | "AGENT_VOICE_SAMPLE" | null;
   readonly hostId: string;
   readonly hostType: "WORLD" | "AGENT" | "SCENE" | "WORLD_EVENT" | "WORLDVIEW";
   readonly id: string;
   readonly objectId: string;
   readonly objectType: "RESOURCE" | "ASSET" | "BUNDLE";
   readonly priority: number;
-  readonly resource?: Record<string, unknown>;
+  readonly resource?: PublicBindingResourceDto | null;
   readonly tags: readonly (string)[];
-  readonly versionPin?: string;
+  readonly versionPin?: string | null;
 }
 export interface PublicBindingListDto {
   readonly items: readonly (PublicBindingDto)[];
@@ -1923,7 +2131,7 @@ export interface PublicWorldHistoryEventDto {
   readonly happenedAt: string;
   readonly id: string;
   readonly locationRefs: readonly (string)[];
-  readonly payload?: Record<string, unknown>;
+  readonly payload?: Record<string, unknown> | null;
   readonly process?: string;
   readonly result?: string;
   readonly summary?: string;
@@ -1951,7 +2159,7 @@ export interface PublicWorldLorebookListDto {
 }
 export interface PublicWorldSceneDto {
   readonly activeEntities: readonly (string)[];
-  readonly description?: string;
+  readonly description?: string | null;
   readonly id: string;
   readonly name: string;
 }
@@ -1975,32 +2183,32 @@ export interface RealmGroupMessageCandidateCommitResultDto {
   readonly commitId: string;
   readonly committedAt: string;
   readonly committedMessage?: GroupMessageViewDto;
-  readonly committedMessageId: string;
+  readonly committedMessageId: string | null;
   readonly evidenceHash: string;
   readonly idempotencyKey: string;
   readonly localAgentRef: string;
   readonly ownerUserId: string;
   readonly realmAgentId: string;
   readonly realmGroupAgentSlotId: string;
-  readonly refusalCode: string;
-  readonly refusalReason: string;
-  readonly rejectionCode: string;
+  readonly refusalCode: string | null;
+  readonly refusalReason: string | null;
+  readonly rejectionCode: string | null;
   readonly runtimeTraceRef: string;
   readonly status: "COMMITTED" | "REFUSED" | "REJECTED" | "IDEMPOTENT_REPLAY";
   readonly syncCursor: number;
 }
 export interface ReceivedGiftsResponseDto {
   readonly items: readonly (GiftTransactionRichDto)[];
-  readonly nextCursor: string;
+  readonly nextCursor: string | null;
 }
 export interface RefreshTokenDto {
-  readonly refreshToken?: string;
+  readonly refreshToken?: string | null;
 }
 export interface RejectGiftDto {
   readonly reason?: string;
 }
 export interface RelationshipResponseDto {
-  readonly context?: string;
+  readonly context?: string | null;
   readonly createdAt: string;
   readonly id: string;
   readonly sourceId: string;
@@ -2016,12 +2224,12 @@ export type ReportReason = "SPAM" | "NSFW" | "HATE_SPEECH" | "SCAM" | "OTHER";
 export interface ReportResponseDto {
   readonly createdAt: string;
   readonly id: string;
-  readonly note?: string;
+  readonly note?: string | null;
   readonly reason: ReportReason;
   readonly reporterId: string;
   readonly status: string;
-  readonly targetPostId?: string;
-  readonly targetUserId?: string;
+  readonly targetPostId?: string | null;
+  readonly targetUserId?: string | null;
 }
 export interface RequestAccountDeletionDto {
   readonly confirmPhrase?: string;
@@ -2056,42 +2264,42 @@ export interface ResourceDefinitionDto {
   readonly types: readonly (ResourceTypeDto)[];
 }
 export interface ResourceDetailDto {
-  readonly agentId?: string;
+  readonly agentId?: string | null;
   readonly controllerId: string;
   readonly controllerKind: "ACCOUNT" | "WORLD";
   readonly createdAt: string;
   readonly deliveryAccess: "PUBLIC" | "SIGNED";
-  readonly durationSec?: number;
-  readonly hashSha256?: string;
-  readonly height?: number;
+  readonly durationSec?: number | null;
+  readonly hashSha256?: string | null;
+  readonly height?: number | null;
   readonly id: string;
-  readonly instrumental?: boolean;
-  readonly label?: string;
-  readonly lyricsSource?: string;
-  readonly metadata?: Record<string, unknown>;
-  readonly mimeType?: string;
+  readonly instrumental?: boolean | null;
+  readonly label?: string | null;
+  readonly lyricsSource?: string | null;
+  readonly metadata?: Record<string, unknown> | null;
+  readonly mimeType?: string | null;
   readonly provenance: "UPLOADED" | "GENERATED" | "IMPORTED" | "REFERENCE";
   readonly provider: "CF_IMAGE" | "CF_STREAM" | "S3_OBJECT" | "EXTERNAL_URL";
   readonly resourceType: "IMAGE" | "VIDEO" | "AUDIO" | "TEXT";
-  readonly sizeBytes?: number;
-  readonly sourceArtifactId?: string;
-  readonly sourceJobId?: string;
-  readonly sourceRef?: string;
+  readonly sizeBytes?: number | null;
+  readonly sourceArtifactId?: string | null;
+  readonly sourceJobId?: string | null;
+  readonly sourceRef?: string | null;
   readonly status: "PENDING" | "READY" | "FAILED" | "DELETED";
   readonly storageRef: string;
-  readonly style?: string;
+  readonly style?: string | null;
   readonly tags: readonly (string)[];
-  readonly title?: string;
-  readonly traceId?: string;
+  readonly title?: string | null;
+  readonly traceId?: string | null;
   readonly updatedAt: string;
   readonly uploaderAccountId: string;
-  readonly url?: string;
-  readonly width?: number;
-  readonly worldId?: string;
+  readonly url?: string | null;
+  readonly width?: number | null;
+  readonly worldId?: string | null;
 }
 export interface ResourceDirectUploadSessionDto {
   readonly deliveryAccess: "PUBLIC" | "SIGNED";
-  readonly expiresIn?: number;
+  readonly expiresIn?: number | null;
   readonly provider: "CF_IMAGE" | "CF_STREAM" | "S3_OBJECT" | "EXTERNAL_URL";
   readonly resourceId: string;
   readonly resourceType: "IMAGE" | "VIDEO" | "AUDIO" | "TEXT";
@@ -2120,8 +2328,12 @@ export interface RevenueShareConfigDto {
   readonly minShareThreshold: string;
   readonly nativeAgentCreatorSharePercent: number;
 }
+export interface ReviewAgentAuthoringDraftCandidateDto {
+  readonly editedValue?: AgentAuthoringDraftCandidateValueDto;
+  readonly status: "accepted" | "rejected" | "edited";
+}
 export interface ReviewDto {
-  readonly comment?: string;
+  readonly comment?: string | null;
   readonly createdAt: string;
   readonly giftTransactionId: string;
   readonly id: string;
@@ -2160,19 +2372,19 @@ export interface RuntimeProjectionInputDto {
   readonly lineageId: string;
   readonly priority: number;
   readonly provenance: string;
-  readonly reasoning?: string;
+  readonly reasoning?: string | null;
   readonly ruleKey: string;
   readonly scope: string;
   readonly sourceId: string;
-  readonly sourceRef?: string;
+  readonly sourceRef?: string | null;
   readonly sourceType: "WORLD_RULE" | "AGENT_RULE";
   readonly statement: string;
-  readonly structured?: Record<string, unknown>;
+  readonly structured?: Record<string, unknown> | null;
   readonly title: string;
-  readonly validFrom?: string;
-  readonly validUntil?: string;
+  readonly validFrom?: string | null;
+  readonly validUntil?: string | null;
   readonly worldId: string;
-  readonly worldRuleRef?: string;
+  readonly worldRuleRef?: string | null;
 }
 export interface RuntimeProjectionPayloadDto {
   readonly agentRules: readonly (RuntimeProjectionInputDto)[];
@@ -2181,7 +2393,7 @@ export interface RuntimeProjectionPayloadDto {
 export interface RuntimeProjectionRequestDto {
   readonly agentId?: string;
   readonly contextEnvelope?: RuntimeProjectionContextEnvelopeDto;
-  readonly releaseAnchor?: string;
+  readonly releaseAnchor?: string | null;
   readonly worldId: string;
 }
 export interface RuntimeProjectionResolutionOutcomeDto {
@@ -2195,7 +2407,7 @@ export interface RuntimeProjectionResponseDto {
   readonly checksum: string;
   readonly consumerSurface: "RUNTIME_PAYLOAD";
   readonly payload: RuntimeProjectionPayloadDto;
-  readonly releaseAnchor?: string;
+  readonly releaseAnchor?: string | null;
   readonly selectedInputs: readonly (RuntimeProjectionInputDto)[];
   readonly trace: RuntimeProjectionTraceDto;
   readonly worldId: string;
@@ -2281,8 +2493,8 @@ export interface SocialProfileDto {
   readonly handle: string;
   readonly isVerified?: boolean;
   readonly platform: string;
-  readonly url?: string;
-  readonly verifiedAt?: string;
+  readonly url?: string | null;
+  readonly verifiedAt?: string | null;
 }
 export interface SpaceRealmDto {
   readonly accessibility?: string;
@@ -2326,14 +2538,14 @@ export interface StartChatInputDto {
 export interface StartChatResultDto {
   readonly chatId: string;
   readonly created: boolean;
-  readonly initialMessage: Record<string, unknown>;
+  readonly initialMessage: MessageViewDto | null;
 }
 export type StripeConnectStatus = "NOT_CREATED" | "PENDING" | "VERIFIED" | "RESTRICTED" | "DISABLED";
 export interface StripeConnectStatusDto {
-  readonly accountId?: string;
+  readonly accountId?: string | null;
   readonly chargesEnabled: boolean;
   readonly detailsSubmitted: boolean;
-  readonly onboardingUrl?: string;
+  readonly onboardingUrl?: string | null;
   readonly payoutsEnabled: boolean;
   readonly requiresAction: boolean;
   readonly status: StripeConnectStatus;
@@ -2344,8 +2556,8 @@ export interface SubscriptionCheckoutSessionDto {
 }
 export interface SubscriptionDto {
   readonly cancelAtPeriodEnd: boolean;
-  readonly currentPeriodEnd?: string;
-  readonly currentPeriodStart?: string;
+  readonly currentPeriodEnd?: string | null;
+  readonly currentPeriodStart?: string | null;
   readonly id: string;
   readonly status: string;
   readonly tier: SubscriptionTier;
@@ -2388,11 +2600,11 @@ export interface TransitContextDto {
 }
 export interface TransitDetailDto {
   readonly agentId: string;
-  readonly arrivedAt?: string;
-  readonly context?: Record<string, unknown>;
+  readonly arrivedAt?: string | null;
+  readonly context?: TransitContextDto | null;
   readonly createdAt: string;
   readonly departedAt: string;
-  readonly fromWorldId?: string;
+  readonly fromWorldId?: string | null;
   readonly id: string;
   readonly status: "ACTIVE" | "COMPLETED" | "ABANDONED";
   readonly toWorldId: string;
@@ -2456,18 +2668,18 @@ export interface UpdateAgentVoiceDto {
 }
 export interface UpdateAssetDto {
   readonly clonePolicy?: "ALLOW" | "DENY" | "INHERIT";
-  readonly previewResourceId?: string;
+  readonly previewResourceId?: string | null;
   readonly resourceRefs?: readonly (string)[];
   readonly status?: "DRAFT" | "READY" | "ARCHIVED" | "DELETED";
   readonly structuredPayload?: Record<string, unknown>;
   readonly transferPolicy?: "ALLOW" | "DENY" | "INHERIT";
-  readonly usePolicy?: Record<string, unknown>;
+  readonly usePolicy?: UsePolicyDto | null;
 }
 export interface UpdateBundleDto {
   readonly compatibleApps?: readonly (string)[];
   readonly coverAssetId?: string;
   readonly description?: string;
-  readonly importPolicy?: Record<string, unknown>;
+  readonly importPolicy?: ImportPolicyDto | null;
   readonly memberAssetIds?: readonly (string)[];
   readonly tags?: readonly (string)[];
   readonly title?: string;
@@ -2495,11 +2707,11 @@ export interface UpdateNsfwConsentResponseDto {
 export interface UpdateOwnerAgentSettingsDto {
   readonly boundaries?: OwnerAgentBoundarySettingsDto;
   readonly communication?: OwnerAgentCommunicationSettingsDto;
-  readonly description?: string;
-  readonly displayName?: string;
-  readonly greeting?: string;
+  readonly description?: string | null;
+  readonly displayName?: string | null;
+  readonly greeting?: string | null;
   readonly identity?: OwnerAgentIdentitySettingsDto;
-  readonly naturalLanguageIntent?: string;
+  readonly naturalLanguageIntent?: string | null;
   readonly personality?: OwnerAgentPersonalitySettingsDto;
   readonly positioning?: OwnerAgentPositioningSettingsDto;
 }
@@ -2676,8 +2888,8 @@ export interface UserFeatureCapabilitiesDto {
 export interface UserLiteDto {
   readonly agent?: AgentMetadataDto;
   readonly agentProfile?: AgentProfileDto;
-  readonly avatarUrl?: string;
-  readonly bio?: string;
+  readonly avatarUrl?: string | null;
+  readonly bio?: string | null;
   readonly createdAt: string;
   readonly displayName: string;
   readonly friendCount?: number;
@@ -2685,10 +2897,10 @@ export interface UserLiteDto {
   readonly id: string;
   readonly isAgent?: boolean;
   readonly isOnline?: boolean;
-  readonly presenceEmoji?: string;
-  readonly presenceStatus?: string;
-  readonly presenceText?: string;
-  readonly profileCoverUrl?: string;
+  readonly presenceEmoji?: string | null;
+  readonly presenceStatus?: string | null;
+  readonly presenceText?: string | null;
+  readonly profileCoverUrl?: string | null;
   readonly status?: AccountStatus;
   readonly tiers?: UserTierSummaryDto;
 }
@@ -2700,16 +2912,16 @@ export interface UserNotificationSettingsDto {
 export interface UserPrivateDto {
   readonly agent?: AgentMetadataDto;
   readonly agentProfile?: AgentProfileDto;
-  readonly avatarUrl?: string;
-  readonly bio?: string;
-  readonly birthYear?: number;
+  readonly avatarUrl?: string | null;
+  readonly bio?: string | null;
+  readonly birthYear?: number | null;
   readonly city?: string;
-  readonly countryCode?: string;
+  readonly countryCode?: string | null;
   readonly createdAt: string;
   readonly displayName: string;
   readonly email?: string;
   readonly friendCount?: number;
-  readonly gender?: Gender;
+  readonly gender?: Gender | null;
   readonly giftStats?: Record<string, unknown>;
   readonly handle: string;
   readonly hasPassword?: boolean;
@@ -2720,10 +2932,10 @@ export interface UserPrivateDto {
   readonly languages?: readonly (string)[];
   readonly lastHandleChangeAt?: string;
   readonly oauthProviders?: readonly (OAuthProvider)[];
-  readonly presenceEmoji?: string;
-  readonly presenceStatus?: string;
-  readonly presenceText?: string;
-  readonly profileCoverUrl?: string;
+  readonly presenceEmoji?: string | null;
+  readonly presenceStatus?: string | null;
+  readonly presenceText?: string | null;
+  readonly profileCoverUrl?: string | null;
   readonly reviewStats?: ReviewStatsDto;
   readonly role: AccountRole;
   readonly socialProfiles?: readonly (SocialProfileDto)[];
@@ -2737,25 +2949,25 @@ export interface UserPrivateDto {
 export interface UserProfileDto {
   readonly agent?: AgentMetadataDto;
   readonly agentProfile?: AgentProfileDto;
-  readonly avatarUrl?: string;
-  readonly bio?: string;
-  readonly birthYear?: number;
-  readonly city?: string;
-  readonly countryCode?: string;
+  readonly avatarUrl?: string | null;
+  readonly bio?: string | null;
+  readonly birthYear?: number | null;
+  readonly city?: string | null;
+  readonly countryCode?: string | null;
   readonly createdAt: string;
   readonly displayName: string;
   readonly friendCount?: number;
-  readonly gender?: Gender;
+  readonly gender?: Gender | null;
   readonly giftStats?: Record<string, unknown>;
   readonly handle: string;
   readonly id: string;
   readonly isAgent?: boolean;
   readonly isOnline?: boolean;
   readonly languages?: readonly (string)[];
-  readonly presenceEmoji?: string;
-  readonly presenceStatus?: string;
-  readonly presenceText?: string;
-  readonly profileCoverUrl?: string;
+  readonly presenceEmoji?: string | null;
+  readonly presenceStatus?: string | null;
+  readonly presenceText?: string | null;
+  readonly profileCoverUrl?: string | null;
   readonly reviewStats?: ReviewStatsDto;
   readonly socialProfiles?: readonly (SocialProfileDto)[];
   readonly stats?: UserStatsDto;
@@ -2868,9 +3080,9 @@ export interface WithdrawalConfigDto {
   readonly minGemAmount: string;
 }
 export interface WithdrawalDto {
-  readonly completedAt?: string;
+  readonly completedAt?: string | null;
   readonly createdAt: string;
-  readonly failureReason?: string;
+  readonly failureReason?: string | null;
   readonly feeAmount: string;
   readonly gemAmount: string;
   readonly id: string;
@@ -2880,7 +3092,7 @@ export interface WithdrawalDto {
 }
 export interface WithdrawalHistoryDto {
   readonly items: readonly (WithdrawalDto)[];
-  readonly nextCursor: string;
+  readonly nextCursor: string | null;
 }
 export type WithdrawalStatus = "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED" | "CANCELLED";
 export interface WithdrawalSummaryDto {
@@ -3186,11 +3398,11 @@ export interface WorldHistoryEventDto {
   readonly evidenceRefs: readonly (WorldEventEvidenceRefDto)[];
   readonly happenedAt: string;
   readonly id: string;
-  readonly invalidatedAt?: string;
+  readonly invalidatedAt?: string | null;
   readonly invalidates: readonly (string)[];
   readonly locationRefs: readonly (string)[];
   readonly operation: "APPEND" | "SUPERSEDE" | "INVALIDATE";
-  readonly payload?: Record<string, unknown>;
+  readonly payload?: Record<string, unknown> | null;
   readonly process?: string;
   readonly relatedStateRefs: readonly (WorldHistoryRelatedStateRefDto)[];
   readonly result?: string;
@@ -3241,7 +3453,7 @@ export interface WorldLevelAuditEventDto {
   readonly ewmaScore?: number;
   readonly freezeReason?: "QUOTA_OVERFLOW" | "WORLD_INACTIVE" | "GOVERNANCE_LOCK";
   readonly id: string;
-  readonly meta?: Record<string, unknown>;
+  readonly meta?: Record<string, unknown> | null;
   readonly nativeCount?: number;
   readonly nativeLimit?: number;
   readonly nextLevel?: number;
@@ -3328,9 +3540,9 @@ export interface WorldStateRecordDto {
   readonly committedAt: string;
   readonly createdBy: string;
   readonly effectClass: "STATE_ONLY";
-  readonly evidenceRefs?: readonly (MutationEvidenceRefDto)[];
+  readonly evidenceRefs?: readonly (MutationEvidenceRefDto)[] | null;
   readonly id: string;
-  readonly metadata?: Record<string, unknown>;
+  readonly metadata?: Record<string, unknown> | null;
   readonly payload: Record<string, unknown>;
   readonly schemaId: string;
   readonly schemaVersion: string;
@@ -3977,6 +4189,24 @@ export interface RealmTypedModelMap {
   readonly "AddGroupAgentInputDto": AddGroupAgentInputDto;
   readonly "AddGroupParticipantInputDto": AddGroupParticipantInputDto;
   readonly "AgentAppearanceDto": AgentAppearanceDto;
+  readonly "AgentAuthoringBehaviorCandidatePayloadDto": AgentAuthoringBehaviorCandidatePayloadDto;
+  readonly "AgentAuthoringDialogueCandidatePayloadDto": AgentAuthoringDialogueCandidatePayloadDto;
+  readonly "AgentAuthoringDraftBatchDto": AgentAuthoringDraftBatchDto;
+  readonly "AgentAuthoringDraftBatchListDto": AgentAuthoringDraftBatchListDto;
+  readonly "AgentAuthoringDraftBatchMetadataDto": AgentAuthoringDraftBatchMetadataDto;
+  readonly "AgentAuthoringDraftCandidateDto": AgentAuthoringDraftCandidateDto;
+  readonly "AgentAuthoringDraftCandidateValueDto": AgentAuthoringDraftCandidateValueDto;
+  readonly "AgentAuthoringFinalMediaStateDto": AgentAuthoringFinalMediaStateDto;
+  readonly "AgentAuthoringFinalStateDto": AgentAuthoringFinalStateDto;
+  readonly "AgentAuthoringFinalVoiceStateDto": AgentAuthoringFinalVoiceStateDto;
+  readonly "AgentAuthoringGenerationContextDto": AgentAuthoringGenerationContextDto;
+  readonly "AgentAuthoringMediaCandidatePayloadDto": AgentAuthoringMediaCandidatePayloadDto;
+  readonly "AgentAuthoringMediaModerationDto": AgentAuthoringMediaModerationDto;
+  readonly "AgentAuthoringRuntimeTraceDto": AgentAuthoringRuntimeTraceDto;
+  readonly "AgentAuthoringSourceRefDto": AgentAuthoringSourceRefDto;
+  readonly "AgentAuthoringTargetStatusDto": AgentAuthoringTargetStatusDto;
+  readonly "AgentAuthoringValueProvenanceSegmentDto": AgentAuthoringValueProvenanceSegmentDto;
+  readonly "AgentAuthoringVoiceCandidatePayloadDto": AgentAuthoringVoiceCandidatePayloadDto;
   readonly "AgentBiologicalDto": AgentBiologicalDto;
   readonly "AgentCapabilitiesDto": AgentCapabilitiesDto;
   readonly "AgentCategory": AgentCategory;
@@ -4020,6 +4250,7 @@ export interface RealmTypedModelMap {
   readonly "AppPermissionScopeFamily": AppPermissionScopeFamily;
   readonly "AppPermissionScopeName": AppPermissionScopeName;
   readonly "AppendWorldHistoryDto": AppendWorldHistoryDto;
+  readonly "ApplyAgentAuthoringDraftBatchResponseDto": ApplyAgentAuthoringDraftBatchResponseDto;
   readonly "AssetDetailDto": AssetDetailDto;
   readonly "AssetListDto": AssetListDto;
   readonly "AttachmentDisplayKind": AttachmentDisplayKind;
@@ -4074,6 +4305,8 @@ export interface RealmTypedModelMap {
   readonly "ConnectDashboardLinkDto": ConnectDashboardLinkDto;
   readonly "ConnectOnboardingResponseDto": ConnectOnboardingResponseDto;
   readonly "ContentRatingString": ContentRatingString;
+  readonly "CreateAgentAuthoringDraftBatchDto": CreateAgentAuthoringDraftBatchDto;
+  readonly "CreateAgentAuthoringDraftCandidateDto": CreateAgentAuthoringDraftCandidateDto;
   readonly "CreateAgentDto": CreateAgentDto;
   readonly "CreateAgentResponseDto": CreateAgentResponseDto;
   readonly "CreateAgentRuleDto": CreateAgentRuleDto;
@@ -4103,6 +4336,12 @@ export interface RealmTypedModelMap {
   readonly "CreatorWorldAgentChatReadinessDto": CreatorWorldAgentChatReadinessDto;
   readonly "CreatorWorldAgentChatReadinessGatesDto": CreatorWorldAgentChatReadinessGatesDto;
   readonly "CreatorWorldAgentChatReadinessProfileDto": CreatorWorldAgentChatReadinessProfileDto;
+  readonly "CreatorWorldAgentCompletionBriefDto": CreatorWorldAgentCompletionBriefDto;
+  readonly "CreatorWorldAgentRuntimeReadinessDto": CreatorWorldAgentRuntimeReadinessDto;
+  readonly "CreatorWorldAgentSkeletonFactsDto": CreatorWorldAgentSkeletonFactsDto;
+  readonly "CreatorWorldAgentSkeletonOfficeFactDto": CreatorWorldAgentSkeletonOfficeFactDto;
+  readonly "CreatorWorldAgentSkeletonRelationshipDto": CreatorWorldAgentSkeletonRelationshipDto;
+  readonly "CreatorWorldAgentSourceSkeletonDto": CreatorWorldAgentSourceSkeletonDto;
   readonly "CreatorWorldSummaryDto": CreatorWorldSummaryDto;
   readonly "CreatorWorldSummaryListDto": CreatorWorldSummaryListDto;
   readonly "CurrencyBalancesDto": CurrencyBalancesDto;
@@ -4265,6 +4504,7 @@ export interface RealmTypedModelMap {
   readonly "ResourceTypeDto": ResourceTypeDto;
   readonly "RevenueDistributionPreviewDto": RevenueDistributionPreviewDto;
   readonly "RevenueShareConfigDto": RevenueShareConfigDto;
+  readonly "ReviewAgentAuthoringDraftCandidateDto": ReviewAgentAuthoringDraftCandidateDto;
   readonly "ReviewDto": ReviewDto;
   readonly "ReviewRating": ReviewRating;
   readonly "ReviewStatsDto": ReviewStatsDto;
@@ -4721,6 +4961,21 @@ export interface RealmAgentRulesControllerUpdateRuleOperationRequest {
   readonly body: UpdateAgentRuleDto;
 }
 export type RealmAgentRulesControllerUpdateRuleOperationResponse = AgentRuleDto;
+export interface RealmApplyCreatorWorldAgentAuthoringDraftBatchOperationRequest {
+  readonly path: {
+    readonly batchId: string;
+    readonly agentId: string;
+    readonly worldId: string;
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body?: Record<string, never>;
+}
+export type RealmApplyCreatorWorldAgentAuthoringDraftBatchOperationResponse = ApplyAgentAuthoringDraftBatchResponseDto;
 export interface RealmArchiveBundleOperationRequest {
   readonly path: {
     readonly bundleId: string;
@@ -4877,6 +5132,20 @@ export interface RealmCreateBundleOperationRequest {
   readonly body: CreateBundleDto;
 }
 export type RealmCreateBundleOperationResponse = BundleDetailDto;
+export interface RealmCreateCreatorWorldAgentAuthoringDraftBatchOperationRequest {
+  readonly path: {
+    readonly agentId: string;
+    readonly worldId: string;
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body: CreateAgentAuthoringDraftBatchDto;
+}
+export type RealmCreateCreatorWorldAgentAuthoringDraftBatchOperationResponse = AgentAuthoringDraftBatchDto;
 export interface RealmCreateGroupOperationRequest {
   readonly path: {
 
@@ -5606,7 +5875,7 @@ export interface RealmForgeProductCatalogControllerGetProductOperationRequest {
 export type RealmForgeProductCatalogControllerGetProductOperationResponse = ForgeWorldProductDto;
 export interface RealmForgeProductCatalogControllerGetProductShardOperationRequest {
   readonly path: {
-    readonly kind: "package-meta" | "world-source" | "world-rules" | "agent-blueprints" | "truth" | "sufficiency" | "capability" | "derivation" | "projection" | "evidence" | "governance" | "agent-relationships" | "scenes" | "world-lorebooks" | "agent-lorebooks" | "resources-bindings" | "world-drafts";
+    readonly kind: "package-meta" | "world-source" | "world-rules" | "agent-blueprints" | "agent-skeletons" | "truth" | "sufficiency" | "capability" | "derivation" | "projection" | "evidence" | "governance" | "agent-relationships" | "scenes" | "world-lorebooks" | "agent-lorebooks" | "resources-bindings" | "world-drafts";
     readonly slug: string;
   };
   readonly query?: {
@@ -5736,6 +6005,20 @@ export interface RealmGetCreatorWorldAgentOperationRequest {
   readonly body?: Record<string, never>;
 }
 export type RealmGetCreatorWorldAgentOperationResponse = UserLiteDto;
+export interface RealmGetCreatorWorldAgentAuthoringGenerationContextOperationRequest {
+  readonly path: {
+    readonly agentId: string;
+    readonly worldId: string;
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body?: Record<string, never>;
+}
+export type RealmGetCreatorWorldAgentAuthoringGenerationContextOperationResponse = AgentAuthoringGenerationContextDto;
 export interface RealmGetCreatorWorldAgentChatReadinessOperationRequest {
   readonly path: {
     readonly agentId: string;
@@ -5764,6 +6047,20 @@ export interface RealmGetCreatorWorldAgentSettingsOperationRequest {
   readonly body?: Record<string, never>;
 }
 export type RealmGetCreatorWorldAgentSettingsOperationResponse = OwnerAgentSettingsDto;
+export interface RealmGetCreatorWorldAgentSourceSkeletonOperationRequest {
+  readonly path: {
+    readonly agentId: string;
+    readonly worldId: string;
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body?: Record<string, never>;
+}
+export type RealmGetCreatorWorldAgentSourceSkeletonOperationResponse = CreatorWorldAgentSourceSkeletonDto;
 export interface RealmGetExploreFeedOperationRequest {
   readonly path: {
 
@@ -6364,6 +6661,20 @@ export interface RealmListChatsOperationRequest {
   readonly body?: Record<string, never>;
 }
 export type RealmListChatsOperationResponse = ListChatsResultDto;
+export interface RealmListCreatorWorldAgentAuthoringDraftBatchesOperationRequest {
+  readonly path: {
+    readonly agentId: string;
+    readonly worldId: string;
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body?: Record<string, never>;
+}
+export type RealmListCreatorWorldAgentAuthoringDraftBatchesOperationResponse = AgentAuthoringDraftBatchListDto;
 export interface RealmListCreatorWorldAgentsOperationRequest {
   readonly path: {
     readonly worldId: string;
@@ -6986,6 +7297,22 @@ export interface RealmReviewControllerGetReviewsOperationRequest {
   readonly body?: Record<string, never>;
 }
 export type RealmReviewControllerGetReviewsOperationResponse = readonly (ReviewDto)[];
+export interface RealmReviewCreatorWorldAgentAuthoringDraftCandidateOperationRequest {
+  readonly path: {
+    readonly candidateId: string;
+    readonly batchId: string;
+    readonly agentId: string;
+    readonly worldId: string;
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body: ReviewAgentAuthoringDraftCandidateDto;
+}
+export type RealmReviewCreatorWorldAgentAuthoringDraftCandidateOperationResponse = AgentAuthoringDraftCandidateDto;
 export interface RealmRevokeMyAppPermissionGrantOperationRequest {
   readonly path: {
     readonly grantId: string;
@@ -8354,6 +8681,17 @@ export class RealmTypedClient {
     });
   }
 
+  async applyCreatorWorldAgentAuthoringDraftBatch(request: RealmApplyCreatorWorldAgentAuthoringDraftBatchOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmApplyCreatorWorldAgentAuthoringDraftBatchOperationResponse> {
+    return this.core.unary<RealmApplyCreatorWorldAgentAuthoringDraftBatchOperationResponse, RealmApplyCreatorWorldAgentAuthoringDraftBatchOperationRequest>({
+      methodId: "applyCreatorWorldAgentAuthoringDraftBatch",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
   async archiveBundle(request: RealmArchiveBundleOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmArchiveBundleOperationResponse> {
     return this.core.unary<RealmArchiveBundleOperationResponse, RealmArchiveBundleOperationRequest>({
       methodId: "archiveBundle",
@@ -8478,6 +8816,17 @@ export class RealmTypedClient {
   async createBundle(request: RealmCreateBundleOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmCreateBundleOperationResponse> {
     return this.core.unary<RealmCreateBundleOperationResponse, RealmCreateBundleOperationRequest>({
       methodId: "createBundle",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async createCreatorWorldAgentAuthoringDraftBatch(request: RealmCreateCreatorWorldAgentAuthoringDraftBatchOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmCreateCreatorWorldAgentAuthoringDraftBatchOperationResponse> {
+    return this.core.unary<RealmCreateCreatorWorldAgentAuthoringDraftBatchOperationResponse, RealmCreateCreatorWorldAgentAuthoringDraftBatchOperationRequest>({
+      methodId: "createCreatorWorldAgentAuthoringDraftBatch",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -9201,6 +9550,17 @@ export class RealmTypedClient {
     });
   }
 
+  async getCreatorWorldAgentAuthoringGenerationContext(request: RealmGetCreatorWorldAgentAuthoringGenerationContextOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetCreatorWorldAgentAuthoringGenerationContextOperationResponse> {
+    return this.core.unary<RealmGetCreatorWorldAgentAuthoringGenerationContextOperationResponse, RealmGetCreatorWorldAgentAuthoringGenerationContextOperationRequest>({
+      methodId: "getCreatorWorldAgentAuthoringGenerationContext",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
   async getCreatorWorldAgentChatReadiness(request: RealmGetCreatorWorldAgentChatReadinessOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetCreatorWorldAgentChatReadinessOperationResponse> {
     return this.core.unary<RealmGetCreatorWorldAgentChatReadinessOperationResponse, RealmGetCreatorWorldAgentChatReadinessOperationRequest>({
       methodId: "getCreatorWorldAgentChatReadiness",
@@ -9215,6 +9575,17 @@ export class RealmTypedClient {
   async getCreatorWorldAgentSettings(request: RealmGetCreatorWorldAgentSettingsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetCreatorWorldAgentSettingsOperationResponse> {
     return this.core.unary<RealmGetCreatorWorldAgentSettingsOperationResponse, RealmGetCreatorWorldAgentSettingsOperationRequest>({
       methodId: "getCreatorWorldAgentSettings",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async getCreatorWorldAgentSourceSkeleton(request: RealmGetCreatorWorldAgentSourceSkeletonOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetCreatorWorldAgentSourceSkeletonOperationResponse> {
+    return this.core.unary<RealmGetCreatorWorldAgentSourceSkeletonOperationResponse, RealmGetCreatorWorldAgentSourceSkeletonOperationRequest>({
+      methodId: "getCreatorWorldAgentSourceSkeleton",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -9710,6 +10081,17 @@ export class RealmTypedClient {
   async listChats(request: RealmListChatsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmListChatsOperationResponse> {
     return this.core.unary<RealmListChatsOperationResponse, RealmListChatsOperationRequest>({
       methodId: "listChats",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async listCreatorWorldAgentAuthoringDraftBatches(request: RealmListCreatorWorldAgentAuthoringDraftBatchesOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmListCreatorWorldAgentAuthoringDraftBatchesOperationResponse> {
+    return this.core.unary<RealmListCreatorWorldAgentAuthoringDraftBatchesOperationResponse, RealmListCreatorWorldAgentAuthoringDraftBatchesOperationRequest>({
+      methodId: "listCreatorWorldAgentAuthoringDraftBatches",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -10216,6 +10598,17 @@ export class RealmTypedClient {
   async reviewControllerGetReviews(request: RealmReviewControllerGetReviewsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmReviewControllerGetReviewsOperationResponse> {
     return this.core.unary<RealmReviewControllerGetReviewsOperationResponse, RealmReviewControllerGetReviewsOperationRequest>({
       methodId: "ReviewController_getReviews",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async reviewCreatorWorldAgentAuthoringDraftCandidate(request: RealmReviewCreatorWorldAgentAuthoringDraftCandidateOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmReviewCreatorWorldAgentAuthoringDraftCandidateOperationResponse> {
+    return this.core.unary<RealmReviewCreatorWorldAgentAuthoringDraftCandidateOperationResponse, RealmReviewCreatorWorldAgentAuthoringDraftCandidateOperationRequest>({
+      methodId: "reviewCreatorWorldAgentAuthoringDraftCandidate",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,

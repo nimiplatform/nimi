@@ -145,6 +145,12 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/world/by-id/{worldId}/agents/{agentId}/rules/{ruleId}"
   },
   {
+    "operationId": "applyCreatorWorldAgentAuthoringDraftBatch",
+    "service": "Agent / Creator World",
+    "method": "POST",
+    "path": "/api/me/creator/worlds/{worldId}/agents/{agentId}/authoring-draft-batches/{batchId}/apply"
+  },
+  {
     "operationId": "archiveBundle",
     "service": "Bundles",
     "method": "POST",
@@ -215,6 +221,12 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "service": "Bundles",
     "method": "POST",
     "path": "/api/bundles"
+  },
+  {
+    "operationId": "createCreatorWorldAgentAuthoringDraftBatch",
+    "service": "Agent / Creator World",
+    "method": "POST",
+    "path": "/api/me/creator/worlds/{worldId}/agents/{agentId}/authoring-draft-batches"
   },
   {
     "operationId": "createGroup",
@@ -607,6 +619,12 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/me/creator/worlds/{worldId}/agents/{agentId}"
   },
   {
+    "operationId": "getCreatorWorldAgentAuthoringGenerationContext",
+    "service": "Agent / Creator World",
+    "method": "GET",
+    "path": "/api/me/creator/worlds/{worldId}/agents/{agentId}/authoring-generation-context"
+  },
+  {
     "operationId": "getCreatorWorldAgentChatReadiness",
     "service": "Agent / Creator World",
     "method": "GET",
@@ -617,6 +635,12 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "service": "Agent / Creator World",
     "method": "GET",
     "path": "/api/me/creator/worlds/{worldId}/agents/{agentId}/settings"
+  },
+  {
+    "operationId": "getCreatorWorldAgentSourceSkeleton",
+    "service": "Agent / Creator World",
+    "method": "GET",
+    "path": "/api/me/creator/worlds/{worldId}/agents/{agentId}/source-skeleton"
   },
   {
     "operationId": "getExploreFeed",
@@ -887,6 +911,12 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "service": "Human Chats",
     "method": "GET",
     "path": "/api/human/chats"
+  },
+  {
+    "operationId": "listCreatorWorldAgentAuthoringDraftBatches",
+    "service": "Agent / Creator World",
+    "method": "GET",
+    "path": "/api/me/creator/worlds/{worldId}/agents/{agentId}/authoring-draft-batches"
   },
   {
     "operationId": "listCreatorWorldAgents",
@@ -1163,6 +1193,12 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "service": "Reviews (Economy/Trust)",
     "method": "GET",
     "path": "/api/economy/reviews"
+  },
+  {
+    "operationId": "reviewCreatorWorldAgentAuthoringDraftCandidate",
+    "service": "Agent / Creator World",
+    "method": "PATCH",
+    "path": "/api/me/creator/worlds/{worldId}/agents/{agentId}/authoring-draft-batches/{batchId}/candidates/{candidateId}/review"
   },
   {
     "operationId": "revokeMyAppPermissionGrant",

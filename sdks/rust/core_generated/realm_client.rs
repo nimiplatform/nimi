@@ -146,6 +146,12 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         path: Some("/api/world/by-id/{worldId}/agents/{agentId}/rules/{ruleId}"),
     },
     RealmOperationDescriptor {
+        operation_id: "applyCreatorWorldAgentAuthoringDraftBatch",
+        service: "Agent / Creator World",
+        method: "POST",
+        path: Some("/api/me/creator/worlds/{worldId}/agents/{agentId}/authoring-draft-batches/{batchId}/apply"),
+    },
+    RealmOperationDescriptor {
         operation_id: "archiveBundle",
         service: "Bundles",
         method: "POST",
@@ -216,6 +222,12 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         service: "Bundles",
         method: "POST",
         path: Some("/api/bundles"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "createCreatorWorldAgentAuthoringDraftBatch",
+        service: "Agent / Creator World",
+        method: "POST",
+        path: Some("/api/me/creator/worlds/{worldId}/agents/{agentId}/authoring-draft-batches"),
     },
     RealmOperationDescriptor {
         operation_id: "createGroup",
@@ -608,6 +620,12 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         path: Some("/api/me/creator/worlds/{worldId}/agents/{agentId}"),
     },
     RealmOperationDescriptor {
+        operation_id: "getCreatorWorldAgentAuthoringGenerationContext",
+        service: "Agent / Creator World",
+        method: "GET",
+        path: Some("/api/me/creator/worlds/{worldId}/agents/{agentId}/authoring-generation-context"),
+    },
+    RealmOperationDescriptor {
         operation_id: "getCreatorWorldAgentChatReadiness",
         service: "Agent / Creator World",
         method: "GET",
@@ -618,6 +636,12 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         service: "Agent / Creator World",
         method: "GET",
         path: Some("/api/me/creator/worlds/{worldId}/agents/{agentId}/settings"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "getCreatorWorldAgentSourceSkeleton",
+        service: "Agent / Creator World",
+        method: "GET",
+        path: Some("/api/me/creator/worlds/{worldId}/agents/{agentId}/source-skeleton"),
     },
     RealmOperationDescriptor {
         operation_id: "getExploreFeed",
@@ -888,6 +912,12 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         service: "Human Chats",
         method: "GET",
         path: Some("/api/human/chats"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "listCreatorWorldAgentAuthoringDraftBatches",
+        service: "Agent / Creator World",
+        method: "GET",
+        path: Some("/api/me/creator/worlds/{worldId}/agents/{agentId}/authoring-draft-batches"),
     },
     RealmOperationDescriptor {
         operation_id: "listCreatorWorldAgents",
@@ -1164,6 +1194,12 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         service: "Reviews (Economy/Trust)",
         method: "GET",
         path: Some("/api/economy/reviews"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "reviewCreatorWorldAgentAuthoringDraftCandidate",
+        service: "Agent / Creator World",
+        method: "PATCH",
+        path: Some("/api/me/creator/worlds/{worldId}/agents/{agentId}/authoring-draft-batches/{batchId}/candidates/{candidateId}/review"),
     },
     RealmOperationDescriptor {
         operation_id: "revokeMyAppPermissionGrant",

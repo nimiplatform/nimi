@@ -88,6 +88,151 @@ class AgentAppearanceDto:
     skin: str | None = None
 
 @dataclass(frozen=True)
+class AgentAuthoringBehaviorCandidatePayloadDto:
+    directives: tuple[str, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class AgentAuthoringDialogueCandidatePayloadDto:
+    exemplars: tuple[str, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class AgentAuthoringDraftBatchDto:
+    agentId: str | None = None
+    appliedAt: str | None = None
+    candidates: tuple[AgentAuthoringDraftCandidateDto, ...] = field(default_factory=tuple)
+    createdAt: str | None = None
+    createdBy: str | None = None
+    failureCode: str | None = None
+    failureMessage: str | None = None
+    id: str | None = None
+    metadata: AgentAuthoringDraftBatchMetadataDto | None = None
+    skeletonId: str | None = None
+    sourceKind: Literal["CBDB"] | None = None
+    status: Literal["ready_for_review", "partially_applied", "applied", "failed"] | None = None
+    updatedAt: str | None = None
+    worldId: str | None = None
+
+@dataclass(frozen=True)
+class AgentAuthoringDraftBatchListDto:
+    items: tuple[AgentAuthoringDraftBatchDto, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class AgentAuthoringDraftBatchMetadataDto:
+    notes: str | None = None
+    runtimeAppId: str | None = None
+    surfaceId: str | None = None
+
+@dataclass(frozen=True)
+class AgentAuthoringDraftCandidateDto:
+    appliedAt: str | None = None
+    editedValue: AgentAuthoringDraftCandidateValueDto | None = None
+    generatedAt: str | None = None
+    id: str | None = None
+    modelId: str | None = None
+    promptDigestSha256: str | None = None
+    provenance: AgentAuthoringRuntimeTraceDto | None = None
+    reviewStatus: Literal["pending", "accepted", "rejected", "edited", "applied"] | None = None
+    reviewedAt: str | None = None
+    reviewerId: str | None = None
+    routePolicy: str | None = None
+    runtimeTraceId: str | None = None
+    sourceRefs: tuple[AgentAuthoringSourceRefDto, ...] = field(default_factory=tuple)
+    targetKey: Literal["description", "contentStyle", "publicPositioning", "avatar", "profileCover", "voice", "greeting", "dialogueExemplars", "behaviorDna"] | None = None
+    value: AgentAuthoringDraftCandidateValueDto | None = None
+
+@dataclass(frozen=True)
+class AgentAuthoringDraftCandidateValueDto:
+    behavior: AgentAuthoringBehaviorCandidatePayloadDto | None = None
+    dialogue: AgentAuthoringDialogueCandidatePayloadDto | None = None
+    kind: Literal["text", "media", "voice", "dialogue", "behavior"] | None = None
+    media: AgentAuthoringMediaCandidatePayloadDto | None = None
+    provenance: tuple[AgentAuthoringValueProvenanceSegmentDto, ...] = field(default_factory=tuple)
+    text: str | None = None
+    voice: AgentAuthoringVoiceCandidatePayloadDto | None = None
+
+@dataclass(frozen=True)
+class AgentAuthoringFinalMediaStateDto:
+    avatarResourceId: str | None = None
+    avatarUrl: str | None = None
+    profileCoverResourceId: str | None = None
+    profileCoverUrl: str | None = None
+
+@dataclass(frozen=True)
+class AgentAuthoringFinalStateDto:
+    media: AgentAuthoringFinalMediaStateDto | None = None
+    settings: OwnerAgentSettingsDto | None = None
+    voice: AgentAuthoringFinalVoiceStateDto | None = None
+
+@dataclass(frozen=True)
+class AgentAuthoringFinalVoiceStateDto:
+    voice: AgentAuthoringVoiceCandidatePayloadDto | None = None
+
+@dataclass(frozen=True)
+class AgentAuthoringGenerationContextDto:
+    currentFinalState: AgentAuthoringFinalStateDto | None = None
+    groundingRefs: tuple[AgentAuthoringSourceRefDto, ...] = field(default_factory=tuple)
+    requiredTargets: tuple[Literal["description", "contentStyle", "publicPositioning", "avatar", "profileCover", "voice", "greeting", "dialogueExemplars", "behaviorDna"], ...] = field(default_factory=tuple)
+    sourceSkeleton: CreatorWorldAgentSourceSkeletonDto | None = None
+    targetStatuses: tuple[AgentAuthoringTargetStatusDto, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class AgentAuthoringMediaCandidatePayloadDto:
+    height: float | None = None
+    mime: str | None = None
+    model: str | None = None
+    moderation: AgentAuthoringMediaModerationDto | None = None
+    prompt: str | None = None
+    provenance: tuple[AgentAuthoringValueProvenanceSegmentDto, ...] = field(default_factory=tuple)
+    resourceId: str | None = None
+    url: str | None = None
+    width: float | None = None
+
+@dataclass(frozen=True)
+class AgentAuthoringMediaModerationDto:
+    provider: str | None = None
+    reason: str | None = None
+    status: Literal["passed", "blocked", "not_checked"] | None = None
+
+@dataclass(frozen=True)
+class AgentAuthoringRuntimeTraceDto:
+    promptTemplateId: str | None = None
+    runtimeAppId: str | None = None
+    scenarioId: str | None = None
+    skeletonId: str | None = None
+    sourceDigestSha256: str | None = None
+    surfaceId: str | None = None
+
+@dataclass(frozen=True)
+class AgentAuthoringSourceRefDto:
+    factPath: str | None = None
+    label: str | None = None
+    sourceKind: str | None = None
+    sourceRef: str | None = None
+
+@dataclass(frozen=True)
+class AgentAuthoringTargetStatusDto:
+    appliedAt: str | None = None
+    latestBatchId: str | None = None
+    latestCandidateId: str | None = None
+    latestReviewStatus: Literal["pending", "accepted", "rejected", "edited", "applied"] | None = None
+    targetKey: Literal["description", "contentStyle", "publicPositioning", "avatar", "profileCover", "voice", "greeting", "dialogueExemplars", "behaviorDna"] | None = None
+
+@dataclass(frozen=True)
+class AgentAuthoringValueProvenanceSegmentDto:
+    category: Literal["source_fact", "historical_inference", "creator_preference", "ai_authored_texture"] | None = None
+    refs: tuple[str, ...] = field(default_factory=tuple)
+    summary: str | None = None
+
+@dataclass(frozen=True)
+class AgentAuthoringVoiceCandidatePayloadDto:
+    historicalClaim: Literal["narration_direction_not_authentic_voice"] | None = None
+    narrationDirection: str | None = None
+    providerVoiceRef: str | None = None
+    speechModelId: str | None = None
+    speechRoutePolicy: Literal["local", "cloud"] | None = None
+    voiceAssetResourceId: str | None = None
+
+@dataclass(frozen=True)
 class AgentBiologicalDto:
     ethnicity: str | None = None
     gender: str | None = None
@@ -419,6 +564,11 @@ class AppendWorldHistoryDto:
     reason: str | None = None
 
 @dataclass(frozen=True)
+class ApplyAgentAuthoringDraftBatchResponseDto:
+    appliedTargetKeys: tuple[Literal["description", "contentStyle", "publicPositioning", "avatar", "profileCover", "voice", "greeting", "dialogueExemplars", "behaviorDna"], ...] = field(default_factory=tuple)
+    batch: AgentAuthoringDraftBatchDto | None = None
+
+@dataclass(frozen=True)
 class AssetDetailDto:
     authorId: str | None = None
     clonePolicy: Literal["ALLOW", "DENY", "INHERIT"] | None = None
@@ -435,7 +585,7 @@ class AssetDetailDto:
     structuredPayload: Mapping[str, object] = field(default_factory=dict)
     transferPolicy: Literal["ALLOW", "DENY", "INHERIT"] | None = None
     updatedAt: str | None = None
-    usePolicy: Mapping[str, object] = field(default_factory=dict)
+    usePolicy: UsePolicyDto | None = None
 
 @dataclass(frozen=True)
 class AssetListDto:
@@ -616,7 +766,7 @@ class BindingDetailDto:
     objectId: str | None = None
     objectType: Literal["RESOURCE", "ASSET", "BUNDLE"] | None = None
     priority: float | None = None
-    resource: Mapping[str, object] = field(default_factory=dict)
+    resource: BindingResourceDetailDto | None = None
     scopeWorldId: str | None = None
     tags: tuple[str, ...] = field(default_factory=tuple)
     updatedAt: str | None = None
@@ -670,7 +820,7 @@ class BundleDetailDto:
     createdAt: str | None = None
     description: str | None = None
     id: str | None = None
-    importPolicy: Mapping[str, object] = field(default_factory=dict)
+    importPolicy: ImportPolicyDto | None = None
     members: tuple[BundleMemberDto, ...] = field(default_factory=tuple)
     ownerId: str | None = None
     status: Literal["DRAFT", "PUBLISHED", "ARCHIVED"] | None = None
@@ -788,7 +938,7 @@ class ChatUserRefPayloadDto:
 class ChatViewDto:
     createdAt: str | None = None
     id: str | None = None
-    lastMessage: Mapping[str, object] = field(default_factory=dict)
+    lastMessage: MessageViewDto | None = None
     lastMessageAt: str | None = None
     otherUser: UserLiteDto | None = None
     unreadCount: float | None = None
@@ -816,7 +966,7 @@ class CloneAssetDto:
     ownerId: str | None = None
     status: Literal["DRAFT", "READY", "ARCHIVED", "DELETED"] | None = None
     transferPolicy: Literal["ALLOW", "DENY", "INHERIT"] | None = None
-    usePolicy: Mapping[str, object] = field(default_factory=dict)
+    usePolicy: UsePolicyDto | None = None
 
 @dataclass(frozen=True)
 class CommitRealmGroupMessageCandidateInputDto:
@@ -862,6 +1012,24 @@ class ConnectOnboardingResponseDto:
     onboardingUrl: str | None = None
 
 ContentRatingString = Literal["UNRATED", "G", "PG13", "R18", "EXPLICIT"]
+
+@dataclass(frozen=True)
+class CreateAgentAuthoringDraftBatchDto:
+    candidates: tuple[CreateAgentAuthoringDraftCandidateDto, ...] = field(default_factory=tuple)
+    metadata: AgentAuthoringDraftBatchMetadataDto | None = None
+    skeletonId: str | None = None
+
+@dataclass(frozen=True)
+class CreateAgentAuthoringDraftCandidateDto:
+    generatedAt: str | None = None
+    modelId: str | None = None
+    promptDigestSha256: str | None = None
+    provenance: AgentAuthoringRuntimeTraceDto | None = None
+    routePolicy: str | None = None
+    runtimeTraceId: str | None = None
+    sourceRefs: tuple[AgentAuthoringSourceRefDto, ...] = field(default_factory=tuple)
+    targetKey: Literal["description", "contentStyle", "publicPositioning", "avatar", "profileCover", "voice", "greeting", "dialogueExemplars", "behaviorDna"] | None = None
+    value: AgentAuthoringDraftCandidateValueDto | None = None
 
 @dataclass(frozen=True)
 class CreateAgentDto:
@@ -929,7 +1097,7 @@ class CreateAssetDto:
     status: Literal["DRAFT", "READY", "ARCHIVED", "DELETED"] | None = None
     structuredPayload: Mapping[str, object] = field(default_factory=dict)
     transferPolicy: Literal["ALLOW", "DENY", "INHERIT"] | None = None
-    usePolicy: Mapping[str, object] = field(default_factory=dict)
+    usePolicy: UsePolicyDto | None = None
 
 @dataclass(frozen=True)
 class CreateAudioDirectUploadDto:
@@ -962,7 +1130,7 @@ class CreateBundleDto:
     compatibleApps: tuple[str, ...] = field(default_factory=tuple)
     coverAssetId: str | None = None
     description: str | None = None
-    importPolicy: Mapping[str, object] = field(default_factory=dict)
+    importPolicy: ImportPolicyDto | None = None
     memberAssetIds: tuple[str, ...] = field(default_factory=tuple)
     status: Literal["DRAFT", "PUBLISHED", "ARCHIVED"] | None = None
     tags: tuple[str, ...] = field(default_factory=tuple)
@@ -1118,6 +1286,7 @@ class CreatorEligibilityResponseDto:
 class CreatorWorldAgentChatReadinessDto:
     agentId: str | None = None
     agentRuleCount: float | None = None
+    appliedAuthoringTargets: tuple[str, ...] = field(default_factory=tuple)
     authorityReason: Literal["CREATOR_OWNER", "MAINTAIN_ACCESS"] | None = None
     consumerSurface: Literal["AGENT_CHAT_READINESS"] | None = None
     gates: CreatorWorldAgentChatReadinessGatesDto | None = None
@@ -1133,22 +1302,88 @@ class CreatorWorldAgentChatReadinessDto:
 
 @dataclass(frozen=True)
 class CreatorWorldAgentChatReadinessGatesDto:
+    authoringDraftReady: bool | None = None
+    behaviorDnaReady: bool | None = None
+    dialogueExemplarsReady: bool | None = None
+    greetingReady: bool | None = None
     localAgentIdentityReady: bool | None = None
     ownerSettingsReady: bool | None = None
     profileContextReady: bool | None = None
+    profileCoverReady: bool | None = None
     profileMediaReady: bool | None = None
     speechRouteReady: bool | None = None
     voiceReferenceReady: bool | None = None
 
 @dataclass(frozen=True)
 class CreatorWorldAgentChatReadinessProfileDto:
+    avatarResourceId: str | None = None
     avatarUrl: str | None = None
     defaultVoiceReference: str | None = None
     displayName: str | None = None
     handle: str | None = None
+    profileCoverResourceId: str | None = None
     profileCoverUrl: str | None = None
     speechModelId: str | None = None
     speechRoutePolicy: Literal["local", "cloud"] | None = None
+
+@dataclass(frozen=True)
+class CreatorWorldAgentCompletionBriefDto:
+    avatarBrief: str | None = None
+    contentStyle: str | None = None
+    description: str | None = None
+    dnaBrief: str | None = None
+    greetingBrief: str | None = None
+    positioning: str | None = None
+    voiceBrief: str | None = None
+
+@dataclass(frozen=True)
+class CreatorWorldAgentRuntimeReadinessDto:
+    reason: str | None = None
+    requiredCreatorActions: tuple[str, ...] = field(default_factory=tuple)
+    roleplayRuntime: Literal["blocked"] | None = None
+
+@dataclass(frozen=True)
+class CreatorWorldAgentSkeletonFactsDto:
+    birthYear: float | None = None
+    deathYear: float | None = None
+    officeFacts: tuple[CreatorWorldAgentSkeletonOfficeFactDto, ...] = field(default_factory=tuple)
+    relationships: tuple[CreatorWorldAgentSkeletonRelationshipDto, ...] = field(default_factory=tuple)
+    representativeFacts: tuple[str, ...] = field(default_factory=tuple)
+    timelineFactCount: float | None = None
+
+@dataclass(frozen=True)
+class CreatorWorldAgentSkeletonOfficeFactDto:
+    eventId: str | None = None
+    name: str | None = None
+    officeName: str | None = None
+    summary: str | None = None
+
+@dataclass(frozen=True)
+class CreatorWorldAgentSkeletonRelationshipDto:
+    context: str | None = None
+    relationType: str | None = None
+    relationshipId: str | None = None
+    targetEntityId: str | None = None
+    targetName: str | None = None
+
+@dataclass(frozen=True)
+class CreatorWorldAgentSourceSkeletonDto:
+    agentId: str | None = None
+    aliases: tuple[str, ...] = field(default_factory=tuple)
+    candidateId: str | None = None
+    canonicalName: str | None = None
+    completionBrief: CreatorWorldAgentCompletionBriefDto | None = None
+    missingFields: tuple[Literal["avatar", "profileCover", "voice", "greeting", "dialogueExemplars", "behaviorDna"], ...] = field(default_factory=tuple)
+    packageId: str | None = None
+    packageVersion: str | None = None
+    runtimeReadiness: CreatorWorldAgentRuntimeReadinessDto | None = None
+    skeletonId: str | None = None
+    sourceEntityId: str | None = None
+    sourceFacts: CreatorWorldAgentSkeletonFactsDto | None = None
+    sourceKind: Literal["CBDB"] | None = None
+    sourceProfile: Literal["cbdb-historical"] | None = None
+    sourceRefs: tuple[str, ...] = field(default_factory=tuple)
+    worldId: str | None = None
 
 @dataclass(frozen=True)
 class CreatorWorldSummaryDto:
@@ -1386,8 +1621,8 @@ class ForgeProductOptionalArtifactQualityDto:
 @dataclass(frozen=True)
 class ForgeProductQualityDto:
     evalScorecards: tuple[ForgeProductEvalScorecardDto, ...] = field(default_factory=tuple)
-    presetZeroing: Mapping[str, object] = field(default_factory=dict)
-    updateRun: Mapping[str, object] = field(default_factory=dict)
+    presetZeroing: ForgeProductOptionalArtifactQualityDto | None = None
+    updateRun: ForgeProductUpdateRunQualityDto | None = None
     validation: ForgeProductValidationQualityDto | None = None
 
 @dataclass(frozen=True)
@@ -1615,7 +1850,7 @@ class GroupChatViewDto:
     createdAt: str | None = None
     creatorId: str | None = None
     id: str | None = None
-    lastMessage: Mapping[str, object] = field(default_factory=dict)
+    lastMessage: GroupMessageViewDto | None = None
     lastMessageAt: str | None = None
     participants: tuple[GroupParticipantDto, ...] = field(default_factory=tuple)
     title: str | None = None
@@ -1640,7 +1875,7 @@ class GroupMessageViewDto:
     editedAt: str | None = None
     id: str | None = None
     isRead: bool | None = None
-    payload: Mapping[str, object] = field(default_factory=dict)
+    payload: ChatTextPayloadDto | Mapping[str, object] | ChatPostRefPayloadDto | ChatUserRefPayloadDto | ChatLinkRefPayloadDto | ChatGiftPayloadDto | ChatFriendRequestPayloadDto | None = None
     replyTo: MessageReplyViewDto | None = None
     senderId: str | None = None
     text: str | None = None
@@ -1697,7 +1932,7 @@ class InvitationCodeResponseDto:
     creatorId: str | None = None
     id: str | None = None
     usedAt: str | None = None
-    usedByAccount: Mapping[str, object] = field(default_factory=dict)
+    usedByAccount: InvitationCodeUsedByAccountDto | None = None
     usedById: str | None = None
 
 @dataclass(frozen=True)
@@ -1824,7 +2059,7 @@ class Me2faVerifyDto:
 @dataclass(frozen=True)
 class MessageReplyViewDto:
     id: str | None = None
-    payload: Mapping[str, object] = field(default_factory=dict)
+    payload: ChatTextPayloadDto | Mapping[str, object] | ChatPostRefPayloadDto | ChatUserRefPayloadDto | ChatLinkRefPayloadDto | ChatGiftPayloadDto | ChatFriendRequestPayloadDto | None = None
     senderId: str | None = None
     text: str | None = None
     type: str | None = None
@@ -1839,7 +2074,7 @@ class MessageViewDto:
     editedAt: str | None = None
     id: str | None = None
     isRead: bool | None = None
-    payload: Mapping[str, object] = field(default_factory=dict)
+    payload: ChatTextPayloadDto | Mapping[str, object] | ChatPostRefPayloadDto | ChatUserRefPayloadDto | ChatLinkRefPayloadDto | ChatGiftPayloadDto | ChatFriendRequestPayloadDto | None = None
     replyTo: MessageReplyViewDto | None = None
     senderId: str | None = None
     text: str | None = None
@@ -1942,13 +2177,13 @@ class NotificationChannelsDto:
 
 @dataclass(frozen=True)
 class NotificationDto:
-    actor: Mapping[str, object] = field(default_factory=dict)
+    actor: NotificationActorDto | None = None
     body: str | None = None
     createdAt: str | None = None
     data: Mapping[str, object] = field(default_factory=dict)
     id: str | None = None
     isRead: bool | None = None
-    target: Mapping[str, object] = field(default_factory=dict)
+    target: NotificationTargetDto | None = None
     title: str | None = None
     type: Literal["friend_request_received", "friend_request_accepted", "friend_request_rejected", "post_liked", "gift_received", "gift_status_updated", "system_announcement", "review_received"] | None = None
 
@@ -1999,7 +2234,7 @@ class OAuthLoginResultDto:
     blockedReason: str | None = None
     loginState: Literal["ok", "needs_onboarding", "needs_2fa", "blocked"] | None = None
     tempToken: str | None = None
-    tokens: Mapping[str, object] = field(default_factory=dict)
+    tokens: AuthTokensDto | None = None
 
 OAuthProvider = Literal["GOOGLE", "WECHAT", "TWITTER", "TIKTOK"]
 
@@ -2178,7 +2413,7 @@ class PublicBindingDto:
     objectId: str | None = None
     objectType: Literal["RESOURCE", "ASSET", "BUNDLE"] | None = None
     priority: float | None = None
-    resource: Mapping[str, object] = field(default_factory=dict)
+    resource: PublicBindingResourceDto | None = None
     tags: tuple[str, ...] = field(default_factory=tuple)
     versionPin: str | None = None
 
@@ -2442,6 +2677,11 @@ class RevenueShareConfigDto:
     nativeAgentCreatorSharePercent: float | None = None
 
 @dataclass(frozen=True)
+class ReviewAgentAuthoringDraftCandidateDto:
+    editedValue: AgentAuthoringDraftCandidateValueDto | None = None
+    status: Literal["accepted", "rejected", "edited"] | None = None
+
+@dataclass(frozen=True)
 class ReviewDto:
     comment: str | None = None
     createdAt: str | None = None
@@ -2679,7 +2919,7 @@ class StartChatInputDto:
 class StartChatResultDto:
     chatId: str | None = None
     created: bool | None = None
-    initialMessage: Mapping[str, object] = field(default_factory=dict)
+    initialMessage: MessageViewDto | None = None
 
 StripeConnectStatus = Literal["NOT_CREATED", "PENDING", "VERIFIED", "RESTRICTED", "DISABLED"]
 
@@ -2753,7 +2993,7 @@ class TransitContextDto:
 class TransitDetailDto:
     agentId: str | None = None
     arrivedAt: str | None = None
-    context: Mapping[str, object] = field(default_factory=dict)
+    context: TransitContextDto | None = None
     createdAt: str | None = None
     departedAt: str | None = None
     fromWorldId: str | None = None
@@ -2835,14 +3075,14 @@ class UpdateAssetDto:
     status: Literal["DRAFT", "READY", "ARCHIVED", "DELETED"] | None = None
     structuredPayload: Mapping[str, object] = field(default_factory=dict)
     transferPolicy: Literal["ALLOW", "DENY", "INHERIT"] | None = None
-    usePolicy: Mapping[str, object] = field(default_factory=dict)
+    usePolicy: UsePolicyDto | None = None
 
 @dataclass(frozen=True)
 class UpdateBundleDto:
     compatibleApps: tuple[str, ...] = field(default_factory=tuple)
     coverAssetId: str | None = None
     description: str | None = None
-    importPolicy: Mapping[str, object] = field(default_factory=dict)
+    importPolicy: ImportPolicyDto | None = None
     memberAssetIds: tuple[str, ...] = field(default_factory=tuple)
     tags: tuple[str, ...] = field(default_factory=tuple)
     title: str | None = None
@@ -4392,6 +4632,30 @@ class RealmAgentRulesControllerUpdateRuleOperationRequest:
     body: UpdateAgentRuleDto | None = None
 
 @dataclass(frozen=True)
+class RealmApplyCreatorWorldAgentAuthoringDraftBatchOperationPath:
+    batchId: str
+    agentId: str
+    worldId: str
+
+
+@dataclass(frozen=True)
+class RealmApplyCreatorWorldAgentAuthoringDraftBatchOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmApplyCreatorWorldAgentAuthoringDraftBatchOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmApplyCreatorWorldAgentAuthoringDraftBatchOperationRequest:
+    path: RealmApplyCreatorWorldAgentAuthoringDraftBatchOperationPath
+    query: RealmApplyCreatorWorldAgentAuthoringDraftBatchOperationQuery | None = None
+    headers: RealmApplyCreatorWorldAgentAuthoringDraftBatchOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
 class RealmArchiveBundleOperationPath:
     bundleId: str
 
@@ -4654,6 +4918,29 @@ class RealmCreateBundleOperationRequest:
     query: RealmCreateBundleOperationQuery | None = None
     headers: RealmCreateBundleOperationHeaders | None = None
     body: CreateBundleDto | None = None
+
+@dataclass(frozen=True)
+class RealmCreateCreatorWorldAgentAuthoringDraftBatchOperationPath:
+    agentId: str
+    worldId: str
+
+
+@dataclass(frozen=True)
+class RealmCreateCreatorWorldAgentAuthoringDraftBatchOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmCreateCreatorWorldAgentAuthoringDraftBatchOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmCreateCreatorWorldAgentAuthoringDraftBatchOperationRequest:
+    path: RealmCreateCreatorWorldAgentAuthoringDraftBatchOperationPath
+    query: RealmCreateCreatorWorldAgentAuthoringDraftBatchOperationQuery | None = None
+    headers: RealmCreateCreatorWorldAgentAuthoringDraftBatchOperationHeaders | None = None
+    body: CreateAgentAuthoringDraftBatchDto | None = None
 
 @dataclass(frozen=True)
 class RealmCreateGroupOperationPath:
@@ -5879,7 +6166,7 @@ class RealmForgeProductCatalogControllerGetProductOperationRequest:
 
 @dataclass(frozen=True)
 class RealmForgeProductCatalogControllerGetProductShardOperationPath:
-    kind: Literal["package-meta", "world-source", "world-rules", "agent-blueprints", "truth", "sufficiency", "capability", "derivation", "projection", "evidence", "governance", "agent-relationships", "scenes", "world-lorebooks", "agent-lorebooks", "resources-bindings", "world-drafts"]
+    kind: Literal["package-meta", "world-source", "world-rules", "agent-blueprints", "agent-skeletons", "truth", "sufficiency", "capability", "derivation", "projection", "evidence", "governance", "agent-relationships", "scenes", "world-lorebooks", "agent-lorebooks", "resources-bindings", "world-drafts"]
     slug: str
 
 
@@ -6100,6 +6387,29 @@ class RealmGetCreatorWorldAgentOperationRequest:
     body: None | None = None
 
 @dataclass(frozen=True)
+class RealmGetCreatorWorldAgentAuthoringGenerationContextOperationPath:
+    agentId: str
+    worldId: str
+
+
+@dataclass(frozen=True)
+class RealmGetCreatorWorldAgentAuthoringGenerationContextOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmGetCreatorWorldAgentAuthoringGenerationContextOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmGetCreatorWorldAgentAuthoringGenerationContextOperationRequest:
+    path: RealmGetCreatorWorldAgentAuthoringGenerationContextOperationPath
+    query: RealmGetCreatorWorldAgentAuthoringGenerationContextOperationQuery | None = None
+    headers: RealmGetCreatorWorldAgentAuthoringGenerationContextOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
 class RealmGetCreatorWorldAgentChatReadinessOperationPath:
     agentId: str
     worldId: str
@@ -6143,6 +6453,29 @@ class RealmGetCreatorWorldAgentSettingsOperationRequest:
     path: RealmGetCreatorWorldAgentSettingsOperationPath
     query: RealmGetCreatorWorldAgentSettingsOperationQuery | None = None
     headers: RealmGetCreatorWorldAgentSettingsOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
+class RealmGetCreatorWorldAgentSourceSkeletonOperationPath:
+    agentId: str
+    worldId: str
+
+
+@dataclass(frozen=True)
+class RealmGetCreatorWorldAgentSourceSkeletonOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmGetCreatorWorldAgentSourceSkeletonOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmGetCreatorWorldAgentSourceSkeletonOperationRequest:
+    path: RealmGetCreatorWorldAgentSourceSkeletonOperationPath
+    query: RealmGetCreatorWorldAgentSourceSkeletonOperationQuery | None = None
+    headers: RealmGetCreatorWorldAgentSourceSkeletonOperationHeaders | None = None
     body: None | None = None
 
 @dataclass(frozen=True)
@@ -7148,6 +7481,29 @@ class RealmListChatsOperationRequest:
     path: RealmListChatsOperationPath
     query: RealmListChatsOperationQuery | None = None
     headers: RealmListChatsOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
+class RealmListCreatorWorldAgentAuthoringDraftBatchesOperationPath:
+    agentId: str
+    worldId: str
+
+
+@dataclass(frozen=True)
+class RealmListCreatorWorldAgentAuthoringDraftBatchesOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmListCreatorWorldAgentAuthoringDraftBatchesOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmListCreatorWorldAgentAuthoringDraftBatchesOperationRequest:
+    path: RealmListCreatorWorldAgentAuthoringDraftBatchesOperationPath
+    query: RealmListCreatorWorldAgentAuthoringDraftBatchesOperationQuery | None = None
+    headers: RealmListCreatorWorldAgentAuthoringDraftBatchesOperationHeaders | None = None
     body: None | None = None
 
 @dataclass(frozen=True)
@@ -8185,6 +8541,31 @@ class RealmReviewControllerGetReviewsOperationRequest:
     query: RealmReviewControllerGetReviewsOperationQuery | None = None
     headers: RealmReviewControllerGetReviewsOperationHeaders | None = None
     body: None | None = None
+
+@dataclass(frozen=True)
+class RealmReviewCreatorWorldAgentAuthoringDraftCandidateOperationPath:
+    candidateId: str
+    batchId: str
+    agentId: str
+    worldId: str
+
+
+@dataclass(frozen=True)
+class RealmReviewCreatorWorldAgentAuthoringDraftCandidateOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmReviewCreatorWorldAgentAuthoringDraftCandidateOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmReviewCreatorWorldAgentAuthoringDraftCandidateOperationRequest:
+    path: RealmReviewCreatorWorldAgentAuthoringDraftCandidateOperationPath
+    query: RealmReviewCreatorWorldAgentAuthoringDraftCandidateOperationQuery | None = None
+    headers: RealmReviewCreatorWorldAgentAuthoringDraftCandidateOperationHeaders | None = None
+    body: ReviewAgentAuthoringDraftCandidateDto | None = None
 
 @dataclass(frozen=True)
 class RealmRevokeMyAppPermissionGrantOperationPath:
@@ -10271,6 +10652,16 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="AgentRulesController_updateRule", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(AgentRuleDto, raw)
 
+    async def apply_creator_world_agent_authoring_draft_batch(self, request: RealmApplyCreatorWorldAgentAuthoringDraftBatchOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmApplyCreatorWorldAgentAuthoringDraftBatchOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="applyCreatorWorldAgentAuthoringDraftBatch", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(ApplyAgentAuthoringDraftBatchResponseDto, raw)
+
     async def archive_bundle(self, request: RealmArchiveBundleOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmArchiveBundleOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
@@ -10390,6 +10781,16 @@ class RealmTypedClient:
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="createBundle", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(BundleDetailDto, raw)
+
+    async def create_creator_world_agent_authoring_draft_batch(self, request: RealmCreateCreatorWorldAgentAuthoringDraftBatchOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmCreateCreatorWorldAgentAuthoringDraftBatchOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="createCreatorWorldAgentAuthoringDraftBatch", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(AgentAuthoringDraftBatchDto, raw)
 
     async def create_group(self, request: RealmCreateGroupOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmCreateGroupOperationResponse:
         envelope: dict[str, object] = {
@@ -11041,6 +11442,16 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="getCreatorWorldAgent", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(UserLiteDto, raw)
 
+    async def get_creator_world_agent_authoring_generation_context(self, request: RealmGetCreatorWorldAgentAuthoringGenerationContextOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetCreatorWorldAgentAuthoringGenerationContextOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="getCreatorWorldAgentAuthoringGenerationContext", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(AgentAuthoringGenerationContextDto, raw)
+
     async def get_creator_world_agent_chat_readiness(self, request: RealmGetCreatorWorldAgentChatReadinessOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetCreatorWorldAgentChatReadinessOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
@@ -11060,6 +11471,16 @@ class RealmTypedClient:
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="getCreatorWorldAgentSettings", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(OwnerAgentSettingsDto, raw)
+
+    async def get_creator_world_agent_source_skeleton(self, request: RealmGetCreatorWorldAgentSourceSkeletonOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetCreatorWorldAgentSourceSkeletonOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="getCreatorWorldAgentSourceSkeleton", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(CreatorWorldAgentSourceSkeletonDto, raw)
 
     async def get_explore_feed(self, request: RealmGetExploreFeedOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetExploreFeedOperationResponse:
         envelope: dict[str, object] = {
@@ -11510,6 +11931,16 @@ class RealmTypedClient:
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="listChats", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListChatsResultDto, raw)
+
+    async def list_creator_world_agent_authoring_draft_batches(self, request: RealmListCreatorWorldAgentAuthoringDraftBatchesOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmListCreatorWorldAgentAuthoringDraftBatchesOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="listCreatorWorldAgentAuthoringDraftBatches", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(AgentAuthoringDraftBatchListDto, raw)
 
     async def list_creator_world_agents(self, request: RealmListCreatorWorldAgentsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmListCreatorWorldAgentsOperationResponse:
         envelope: dict[str, object] = {
@@ -11970,6 +12401,16 @@ class RealmTypedClient:
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="ReviewController_getReviews", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(tuple[ReviewDto, ...], raw)
+
+    async def review_creator_world_agent_authoring_draft_candidate(self, request: RealmReviewCreatorWorldAgentAuthoringDraftCandidateOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmReviewCreatorWorldAgentAuthoringDraftCandidateOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="reviewCreatorWorldAgentAuthoringDraftCandidate", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(AgentAuthoringDraftCandidateDto, raw)
 
     async def revoke_my_app_permission_grant(self, request: RealmRevokeMyAppPermissionGrantOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmRevokeMyAppPermissionGrantOperationResponse:
         envelope: dict[str, object] = {

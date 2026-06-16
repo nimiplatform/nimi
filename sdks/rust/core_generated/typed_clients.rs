@@ -12955,6 +12955,85 @@ impl InstallVerifiedAssetResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct InvokeRealmUnaryRequest {
+    pub caller: Option<Box<AccountCaller>>,
+    pub method_id: Option<String>,
+    pub realm_base_url: Option<String>,
+    pub request_json: Option<String>,
+    pub timeout_ms: Option<i32>,
+}
+
+impl InvokeRealmUnaryRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if self.caller.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode caller"); }
+        if let Some(value) = &self.method_id { pairs.push(format!("method_id={}", value)); }
+        if let Some(value) = &self.realm_base_url { pairs.push(format!("realm_base_url={}", value)); }
+        if let Some(value) = &self.request_json { pairs.push(format!("request_json={}", value)); }
+        if let Some(value) = &self.timeout_ms { pairs.push(format!("timeout_ms={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["caller"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.method_id = pairs.get("method_id").cloned();
+        out.realm_base_url = pairs.get("realm_base_url").cloned();
+        out.request_json = pairs.get("request_json").cloned();
+        out.timeout_ms = pairs.get("timeout_ms").and_then(|value| value.parse().ok());
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct InvokeRealmUnaryResponse {
+    pub accepted: Option<bool>,
+    pub response_json: Option<String>,
+    pub reason_code: Option<ReasonCode>,
+    pub account_reason_code: Option<AccountReasonCode>,
+    pub production_inert: Option<bool>,
+    pub http_status: Option<i32>,
+    pub error_message: Option<String>,
+}
+
+impl InvokeRealmUnaryResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.accepted { pairs.push(format!("accepted={}", value)); }
+        if let Some(value) = &self.response_json { pairs.push(format!("response_json={}", value)); }
+        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
+        if let Some(value) = &self.account_reason_code { pairs.push(format!("account_reason_code={:?}", value)); }
+        if let Some(value) = &self.production_inert { pairs.push(format!("production_inert={}", value)); }
+        if let Some(value) = &self.http_status { pairs.push(format!("http_status={}", value)); }
+        if let Some(value) = &self.error_message { pairs.push(format!("error_message={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["reason_code", "account_reason_code"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.accepted = pairs.get("accepted").and_then(|value| value.parse().ok());
+        out.response_json = pairs.get("response_json").cloned();
+        out.production_inert = pairs.get("production_inert").and_then(|value| value.parse().ok());
+        out.http_status = pairs.get("http_status").and_then(|value| value.parse().ok());
+        out.error_message = pairs.get("error_message").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct IssueDelegatedAccessTokenRequest {
     pub app_id: Option<String>,
     pub parent_token_id: Option<String>,
@@ -32228,6 +32307,18 @@ impl From<Vec<u8>> for InstallVerifiedAssetResponse {
     }
 }
 
+impl From<Vec<u8>> for InvokeRealmUnaryRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for InvokeRealmUnaryResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for IssueDelegatedAccessTokenRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -35309,6 +35400,16 @@ where
         Ok(GetAccountSessionStatusResponse::from_transport(&raw))
     }
 
+    pub fn invoke_realm_unary(&self, request: InvokeRealmUnaryRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<InvokeRealmUnaryResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(InvokeRealmUnaryResponse::from_transport(&raw))
+    }
+
     pub fn issue_scoped_app_binding(&self, request: IssueScopedAppBindingRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<IssueScopedAppBindingResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeAccountService/IssueScopedAppBinding".to_string(),
@@ -37748,9 +37849,9 @@ pub struct AccountGrantProjectionRowDto {
     pub expires_at: String,
     pub grant_id: String,
     pub qualifier: String,
-    pub scope_family: String,
-    pub scope_name: String,
-    pub state: String,
+    pub scope_family: Box<AppPermissionScopeFamily>,
+    pub scope_name: Box<AppPermissionScopeName>,
+    pub state: Box<AccountGrantProjectionState>,
     pub subject_account_id: String,
     pub version: f64,
 }
@@ -37792,6 +37893,169 @@ pub struct AgentAppearanceDto {
     pub hair: String,
     pub signature_items: Vec<String>,
     pub skin: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AgentAuthoringBehaviorCandidatePayloadDto {
+    pub directives: Vec<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AgentAuthoringDialogueCandidatePayloadDto {
+    pub exemplars: Vec<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AgentAuthoringDraftBatchDto {
+    pub agent_id: String,
+    pub applied_at: String,
+    pub candidates: Vec<AgentAuthoringDraftCandidateDto>,
+    pub created_at: String,
+    pub created_by: String,
+    pub failure_code: String,
+    pub failure_message: String,
+    pub id: String,
+    pub metadata: Box<AgentAuthoringDraftBatchMetadataDto>,
+    pub skeleton_id: String,
+    pub source_kind: String,
+    pub status: String,
+    pub updated_at: String,
+    pub world_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AgentAuthoringDraftBatchListDto {
+    pub items: Vec<AgentAuthoringDraftBatchDto>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AgentAuthoringDraftBatchMetadataDto {
+    pub notes: String,
+    pub runtime_app_id: String,
+    pub surface_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AgentAuthoringDraftCandidateDto {
+    pub applied_at: String,
+    pub edited_value: Box<AgentAuthoringDraftCandidateValueDto>,
+    pub generated_at: String,
+    pub id: String,
+    pub model_id: String,
+    pub prompt_digest_sha256: String,
+    pub provenance: Box<AgentAuthoringRuntimeTraceDto>,
+    pub review_status: String,
+    pub reviewed_at: String,
+    pub reviewer_id: String,
+    pub route_policy: String,
+    pub runtime_trace_id: String,
+    pub source_refs: Vec<AgentAuthoringSourceRefDto>,
+    pub target_key: String,
+    pub value: Box<AgentAuthoringDraftCandidateValueDto>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AgentAuthoringDraftCandidateValueDto {
+    pub behavior: Box<AgentAuthoringBehaviorCandidatePayloadDto>,
+    pub dialogue: Box<AgentAuthoringDialogueCandidatePayloadDto>,
+    pub kind: String,
+    pub media: Box<AgentAuthoringMediaCandidatePayloadDto>,
+    pub provenance: Vec<AgentAuthoringValueProvenanceSegmentDto>,
+    pub text: String,
+    pub voice: Box<AgentAuthoringVoiceCandidatePayloadDto>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AgentAuthoringFinalMediaStateDto {
+    pub avatar_resource_id: String,
+    pub avatar_url: String,
+    pub profile_cover_resource_id: String,
+    pub profile_cover_url: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AgentAuthoringFinalStateDto {
+    pub media: Box<AgentAuthoringFinalMediaStateDto>,
+    pub settings: Box<OwnerAgentSettingsDto>,
+    pub voice: Box<AgentAuthoringFinalVoiceStateDto>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AgentAuthoringFinalVoiceStateDto {
+    pub voice: Box<AgentAuthoringVoiceCandidatePayloadDto>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AgentAuthoringGenerationContextDto {
+    pub current_final_state: Box<AgentAuthoringFinalStateDto>,
+    pub grounding_refs: Vec<AgentAuthoringSourceRefDto>,
+    pub required_targets: Vec<String>,
+    pub source_skeleton: Box<CreatorWorldAgentSourceSkeletonDto>,
+    pub target_statuses: Vec<AgentAuthoringTargetStatusDto>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AgentAuthoringMediaCandidatePayloadDto {
+    pub height: f64,
+    pub mime: String,
+    pub model: String,
+    pub moderation: Box<AgentAuthoringMediaModerationDto>,
+    pub prompt: String,
+    pub provenance: Vec<AgentAuthoringValueProvenanceSegmentDto>,
+    pub resource_id: String,
+    pub url: String,
+    pub width: f64,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AgentAuthoringMediaModerationDto {
+    pub provider: String,
+    pub reason: String,
+    pub status: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AgentAuthoringRuntimeTraceDto {
+    pub prompt_template_id: String,
+    pub runtime_app_id: String,
+    pub scenario_id: String,
+    pub skeleton_id: String,
+    pub source_digest_sha256: String,
+    pub surface_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AgentAuthoringSourceRefDto {
+    pub fact_path: String,
+    pub label: String,
+    pub source_kind: String,
+    pub source_ref: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AgentAuthoringTargetStatusDto {
+    pub applied_at: String,
+    pub latest_batch_id: String,
+    pub latest_candidate_id: String,
+    pub latest_review_status: String,
+    pub target_key: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AgentAuthoringValueProvenanceSegmentDto {
+    pub category: String,
+    pub refs: Vec<String>,
+    pub summary: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AgentAuthoringVoiceCandidatePayloadDto {
+    pub historical_claim: String,
+    pub narration_direction: String,
+    pub provider_voice_ref: String,
+    pub speech_model_id: String,
+    pub speech_route_policy: String,
+    pub voice_asset_resource_id: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -37873,14 +38137,14 @@ pub type AgentImportance = String;
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct AgentMetadataDto {
     pub active_world_id: String,
-    pub category: String,
-    pub importance: String,
-    pub origin: String,
+    pub category: Box<AgentCategory>,
+    pub importance: Box<AgentImportance>,
+    pub origin: Box<AgentOrigin>,
     pub owner_world_id: String,
-    pub ownership_type: String,
-    pub state: String,
-    pub tier: String,
-    pub wake_strategy: String,
+    pub ownership_type: Box<AgentOwnershipType>,
+    pub state: Box<AgentState>,
+    pub tier: Box<VerificationTier>,
+    pub wake_strategy: Box<AgentWakeStrategy>,
     pub world_id: String,
 }
 
@@ -37911,10 +38175,10 @@ pub struct AgentPersonalityDto {
 pub struct AgentProfileDto {
     pub active_world_id: String,
     pub greeting: String,
-    pub importance: String,
+    pub importance: Box<AgentImportance>,
     pub owner_world_id: String,
-    pub ownership_type: String,
-    pub state: String,
+    pub ownership_type: Box<AgentOwnershipType>,
+    pub state: Box<AgentState>,
     pub stats: Box<AgentStatsDto>,
     pub world_id: String,
 }
@@ -37938,19 +38202,19 @@ pub struct AgentRelationshipRecordDto {
     pub id: String,
     pub other_account: Box<AgentRelationshipOtherAccountDto>,
     pub strength: f64,
-    pub r#type: String,
+    pub r#type: Box<AgentRelationType>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct AgentResponseMetadataDto {
     pub active_world_id: String,
     pub category: String,
-    pub importance: String,
-    pub origin: String,
+    pub importance: Box<AgentImportance>,
+    pub origin: Box<AgentOrigin>,
     pub owner_world_id: String,
-    pub ownership_type: String,
-    pub state: String,
-    pub tier: String,
+    pub ownership_type: Box<AgentOwnershipType>,
+    pub state: Box<AgentState>,
+    pub tier: Box<VerificationTier>,
     pub wake_strategy: String,
     pub world_id: String,
 }
@@ -37958,10 +38222,10 @@ pub struct AgentResponseMetadataDto {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct AgentResponseProfileDto {
     pub active_world_id: String,
-    pub importance: String,
+    pub importance: Box<AgentImportance>,
     pub owner_world_id: String,
-    pub ownership_type: String,
-    pub state: String,
+    pub ownership_type: Box<AgentOwnershipType>,
+    pub state: Box<AgentState>,
     pub stats: Box<AgentResponseProfileStatsDto>,
     pub world_id: String,
 }
@@ -38001,7 +38265,7 @@ pub struct AgentResponseUserDto {
     pub presence_text: String,
     pub profile_cover_url: String,
     pub stats: Box<AgentStatsDto>,
-    pub status: String,
+    pub status: Box<AccountStatus>,
     pub tiers: Box<AgentResponseTierSummaryDto>,
 }
 
@@ -38056,10 +38320,10 @@ pub struct AgentStatsDto {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct AgentVisibilitySettingsDto {
-    pub account_visibility: String,
-    pub default_post_visibility: String,
-    pub dm_visibility: String,
-    pub profile_visibility: String,
+    pub account_visibility: Box<Visibility>,
+    pub default_post_visibility: Box<Visibility>,
+    pub dm_visibility: Box<Visibility>,
+    pub profile_visibility: Box<Visibility>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -38099,9 +38363,9 @@ pub struct AppPermissionGrantDto {
     pub requested_by_account_id: String,
     pub revoked_at: String,
     pub revoked_by_account_id: String,
-    pub scope_family: String,
-    pub scope_name: String,
-    pub state: String,
+    pub scope_family: Box<AppPermissionScopeFamily>,
+    pub scope_name: Box<AppPermissionScopeName>,
+    pub state: Box<AppPermissionGrantState>,
     pub subject_account_id: String,
     pub superseded_at: String,
     pub superseded_by_account_id: String,
@@ -38126,8 +38390,8 @@ pub struct AppPermissionGrantRequestDto {
     pub app_id: String,
     pub qualifier: String,
     pub reason: String,
-    pub scope_family: String,
-    pub scope_name: String,
+    pub scope_family: Box<AppPermissionScopeFamily>,
+    pub scope_name: Box<AppPermissionScopeName>,
 }
 
 pub type AppPermissionGrantState = String;
@@ -38158,6 +38422,12 @@ pub struct AppendWorldHistoryDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct ApplyAgentAuthoringDraftBatchResponseDto {
+    pub applied_target_keys: Vec<String>,
+    pub batch: Box<AgentAuthoringDraftBatchDto>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct AssetDetailDto {
     pub author_id: String,
     pub clone_policy: String,
@@ -38174,7 +38444,7 @@ pub struct AssetDetailDto {
     pub structured_payload: BTreeMap<String, String>,
     pub transfer_policy: String,
     pub updated_at: String,
-    pub use_policy: BTreeMap<String, String>,
+    pub use_policy: Box<UsePolicyDto>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -38186,13 +38456,13 @@ pub type AttachmentDisplayKind = String;
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct AttachmentEnvelopeDto {
-    pub display_kind: String,
+    pub display_kind: Box<AttachmentDisplayKind>,
     pub duration: f64,
     pub height: f64,
     pub preview: Box<AttachmentEnvelopeDto>,
     pub subtitle: String,
     pub target_id: String,
-    pub target_type: String,
+    pub target_type: Box<AttachmentTargetType>,
     pub thumbnail: String,
     pub title: String,
     pub url: String,
@@ -38202,7 +38472,7 @@ pub struct AttachmentEnvelopeDto {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct AttachmentReferenceDto {
     pub target_id: String,
-    pub target_type: String,
+    pub target_type: Box<AttachmentTargetType>,
 }
 
 pub type AttachmentTargetType = String;
@@ -38226,12 +38496,12 @@ pub struct AuthTokensDto {
 pub struct AuthUserAgentMetadataDto {
     pub active_world_id: String,
     pub category: String,
-    pub importance: String,
-    pub origin: String,
+    pub importance: Box<AgentImportance>,
+    pub origin: Box<AgentOrigin>,
     pub owner_world_id: String,
-    pub ownership_type: String,
-    pub state: String,
-    pub tier: String,
+    pub ownership_type: Box<AgentOwnershipType>,
+    pub state: Box<AgentState>,
+    pub tier: Box<VerificationTier>,
     pub wake_strategy: String,
     pub world_id: String,
 }
@@ -38239,10 +38509,10 @@ pub struct AuthUserAgentMetadataDto {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct AuthUserAgentProfileDto {
     pub active_world_id: String,
-    pub importance: String,
+    pub importance: Box<AgentImportance>,
     pub owner_world_id: String,
-    pub ownership_type: String,
-    pub state: String,
+    pub ownership_type: Box<AgentOwnershipType>,
+    pub state: Box<AgentState>,
     pub stats: Box<AuthUserAgentStatsDto>,
     pub world_id: String,
 }
@@ -38268,7 +38538,7 @@ pub struct AuthUserDto {
     pub created_at: String,
     pub display_name: String,
     pub email: String,
-    pub gender: String,
+    pub gender: Box<Gender>,
     pub handle: String,
     pub has_password: bool,
     pub id: String,
@@ -38280,9 +38550,9 @@ pub struct AuthUserDto {
     pub presence_emoji: String,
     pub presence_status: String,
     pub presence_text: String,
-    pub role: String,
+    pub role: Box<AccountRole>,
     pub social_profiles: Vec<AuthUserSocialProfileDto>,
-    pub status: String,
+    pub status: Box<AccountStatus>,
     pub tags: Vec<String>,
     pub tiers: Box<AuthUserTierSummaryDto>,
     pub updated_at: String,
@@ -38374,7 +38644,7 @@ pub struct BindingDetailDto {
     pub object_id: String,
     pub object_type: String,
     pub priority: f64,
-    pub resource: BTreeMap<String, String>,
+    pub resource: Box<BindingResourceDetailDto>,
     pub scope_world_id: String,
     pub tags: Vec<String>,
     pub updated_at: String,
@@ -38433,7 +38703,7 @@ pub struct BundleDetailDto {
     pub created_at: String,
     pub description: String,
     pub id: String,
-    pub import_policy: BTreeMap<String, String>,
+    pub import_policy: Box<ImportPolicyDto>,
     pub members: Vec<BundleMemberDto>,
     pub owner_id: String,
     pub status: String,
@@ -38472,7 +38742,7 @@ pub struct CanManageNsfwResponseDto {
 pub struct CanWithdrawDto {
     pub balance: String,
     pub can_withdraw: bool,
-    pub connect_status: String,
+    pub connect_status: Box<StripeConnectStatus>,
     pub min_amount: String,
     pub reason: String,
 }
@@ -38569,7 +38839,7 @@ pub struct ChatUserRefPayloadDto {
 pub struct ChatViewDto {
     pub created_at: String,
     pub id: String,
-    pub last_message: BTreeMap<String, String>,
+    pub last_message: Box<MessageViewDto>,
     pub last_message_at: String,
     pub other_user: Box<UserLiteDto>,
     pub unread_count: f64,
@@ -38601,7 +38871,7 @@ pub struct CloneAssetDto {
     pub owner_id: String,
     pub status: String,
     pub transfer_policy: String,
-    pub use_policy: BTreeMap<String, String>,
+    pub use_policy: Box<UsePolicyDto>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -38652,6 +38922,26 @@ pub struct ConnectOnboardingResponseDto {
 }
 
 pub type ContentRatingString = String;
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CreateAgentAuthoringDraftBatchDto {
+    pub candidates: Vec<CreateAgentAuthoringDraftCandidateDto>,
+    pub metadata: Box<AgentAuthoringDraftBatchMetadataDto>,
+    pub skeleton_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CreateAgentAuthoringDraftCandidateDto {
+    pub generated_at: String,
+    pub model_id: String,
+    pub prompt_digest_sha256: String,
+    pub provenance: Box<AgentAuthoringRuntimeTraceDto>,
+    pub route_policy: String,
+    pub runtime_trace_id: String,
+    pub source_refs: Vec<AgentAuthoringSourceRefDto>,
+    pub target_key: String,
+    pub value: Box<AgentAuthoringDraftCandidateValueDto>,
+}
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CreateAgentDto {
@@ -38707,7 +38997,7 @@ pub struct CreateAgentRulesDto {
 pub struct CreateApiKeyDto {
     pub label: String,
     pub scopes: Vec<String>,
-    pub r#type: String,
+    pub r#type: Box<ApiKeyType>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -38724,7 +39014,7 @@ pub struct CreateAssetDto {
     pub status: String,
     pub structured_payload: BTreeMap<String, String>,
     pub transfer_policy: String,
-    pub use_policy: BTreeMap<String, String>,
+    pub use_policy: Box<UsePolicyDto>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -38759,7 +39049,7 @@ pub struct CreateBundleDto {
     pub compatible_apps: Vec<String>,
     pub cover_asset_id: String,
     pub description: String,
-    pub import_policy: BTreeMap<String, String>,
+    pub import_policy: Box<ImportPolicyDto>,
     pub member_asset_ids: Vec<String>,
     pub status: String,
     pub tags: Vec<String>,
@@ -38788,7 +39078,7 @@ pub struct CreatePortalSessionDto {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CreatePostAttachmentDto {
     pub target_id: String,
-    pub target_type: String,
+    pub target_type: Box<AttachmentTargetType>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -38803,13 +39093,13 @@ pub struct CreateRelationshipDto {
     pub context: String,
     pub strength: f64,
     pub target_id: String,
-    pub r#type: String,
+    pub r#type: Box<AgentRelationType>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CreateReportDto {
     pub description: String,
-    pub reason: String,
+    pub reason: Box<ReportReason>,
     pub target_id: String,
     pub target_type: String,
 }
@@ -38818,7 +39108,7 @@ pub struct CreateReportDto {
 pub struct CreateReviewDto {
     pub comment: String,
     pub gift_transaction_id: String,
-    pub rating: String,
+    pub rating: Box<ReviewRating>,
     pub tags: String,
 }
 
@@ -38833,7 +39123,7 @@ pub struct CreateSparkCheckoutDto {
 pub struct CreateSubscriptionCheckoutDto {
     pub cancel_url: String,
     pub success_url: String,
-    pub tier: String,
+    pub tier: Box<SubscriptionTier>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -38934,6 +39224,7 @@ pub struct CreatorEligibilityResponseDto {
 pub struct CreatorWorldAgentChatReadinessDto {
     pub agent_id: String,
     pub agent_rule_count: f64,
+    pub applied_authoring_targets: Vec<String>,
     pub authority_reason: String,
     pub consumer_surface: String,
     pub gates: Box<CreatorWorldAgentChatReadinessGatesDto>,
@@ -38950,9 +39241,14 @@ pub struct CreatorWorldAgentChatReadinessDto {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CreatorWorldAgentChatReadinessGatesDto {
+    pub authoring_draft_ready: bool,
+    pub behavior_dna_ready: bool,
+    pub dialogue_exemplars_ready: bool,
+    pub greeting_ready: bool,
     pub local_agent_identity_ready: bool,
     pub owner_settings_ready: bool,
     pub profile_context_ready: bool,
+    pub profile_cover_ready: bool,
     pub profile_media_ready: bool,
     pub speech_route_ready: bool,
     pub voice_reference_ready: bool,
@@ -38960,13 +39256,80 @@ pub struct CreatorWorldAgentChatReadinessGatesDto {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CreatorWorldAgentChatReadinessProfileDto {
+    pub avatar_resource_id: String,
     pub avatar_url: String,
     pub default_voice_reference: String,
     pub display_name: String,
     pub handle: String,
+    pub profile_cover_resource_id: String,
     pub profile_cover_url: String,
     pub speech_model_id: String,
     pub speech_route_policy: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CreatorWorldAgentCompletionBriefDto {
+    pub avatar_brief: String,
+    pub content_style: String,
+    pub description: String,
+    pub dna_brief: String,
+    pub greeting_brief: String,
+    pub positioning: String,
+    pub voice_brief: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CreatorWorldAgentRuntimeReadinessDto {
+    pub reason: String,
+    pub required_creator_actions: Vec<String>,
+    pub roleplay_runtime: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CreatorWorldAgentSkeletonFactsDto {
+    pub birth_year: f64,
+    pub death_year: f64,
+    pub office_facts: Vec<CreatorWorldAgentSkeletonOfficeFactDto>,
+    pub relationships: Vec<CreatorWorldAgentSkeletonRelationshipDto>,
+    pub representative_facts: Vec<String>,
+    pub timeline_fact_count: f64,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CreatorWorldAgentSkeletonOfficeFactDto {
+    pub event_id: String,
+    pub name: String,
+    pub office_name: String,
+    pub summary: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CreatorWorldAgentSkeletonRelationshipDto {
+    pub context: String,
+    pub relation_type: String,
+    pub relationship_id: String,
+    pub target_entity_id: String,
+    pub target_name: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CreatorWorldAgentSourceSkeletonDto {
+    pub agent_id: String,
+    pub aliases: Vec<String>,
+    pub candidate_id: String,
+    pub canonical_name: String,
+    pub completion_brief: Box<CreatorWorldAgentCompletionBriefDto>,
+    pub missing_fields: Vec<String>,
+    pub package_id: String,
+    pub package_version: String,
+    pub runtime_readiness: Box<CreatorWorldAgentRuntimeReadinessDto>,
+    pub skeleton_id: String,
+    pub source_entity_id: String,
+    pub source_facts: Box<CreatorWorldAgentSkeletonFactsDto>,
+    pub source_kind: String,
+    pub source_profile: String,
+    pub source_refs: Vec<String>,
+    pub world_id: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -39235,8 +39598,8 @@ pub struct ForgeProductOptionalArtifactQualityDto {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct ForgeProductQualityDto {
     pub eval_scorecards: Vec<ForgeProductEvalScorecardDto>,
-    pub preset_zeroing: BTreeMap<String, String>,
-    pub update_run: BTreeMap<String, String>,
+    pub preset_zeroing: Box<ForgeProductOptionalArtifactQualityDto>,
+    pub update_run: Box<ForgeProductUpdateRunQualityDto>,
     pub validation: Box<ForgeProductValidationQualityDto>,
 }
 
@@ -39388,7 +39751,7 @@ pub struct FriendProfileDto {
     pub display_name: String,
     pub friend_count: f64,
     pub friends_since: String,
-    pub gender: String,
+    pub gender: Box<Gender>,
     pub gift_stats: BTreeMap<String, String>,
     pub handle: String,
     pub id: String,
@@ -39402,7 +39765,7 @@ pub struct FriendProfileDto {
     pub review_stats: Box<ReviewStatsDto>,
     pub social_profiles: Vec<SocialProfileDto>,
     pub stats: Box<UserStatsDto>,
-    pub status: String,
+    pub status: Box<AccountStatus>,
     pub tags: Vec<String>,
     pub tiers: Box<UserTierSummaryDto>,
 }
@@ -39444,7 +39807,7 @@ pub struct GiftTransactionDto {
     pub related_post_id: String,
     pub sender_id: String,
     pub spark_cost: String,
-    pub status: String,
+    pub status: Box<GiftStatus>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -39467,7 +39830,7 @@ pub struct GiftTransactionRichDto {
     pub sender: Box<UserLiteDto>,
     pub sender_id: String,
     pub spark_cost: String,
-    pub status: String,
+    pub status: Box<GiftStatus>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -39484,7 +39847,7 @@ pub struct GroupChatViewDto {
     pub created_at: String,
     pub creator_id: String,
     pub id: String,
-    pub last_message: BTreeMap<String, String>,
+    pub last_message: Box<GroupMessageViewDto>,
     pub last_message_at: String,
     pub participants: Vec<GroupParticipantDto>,
     pub title: String,
@@ -39511,11 +39874,11 @@ pub struct GroupMessageViewDto {
     pub edited_at: String,
     pub id: String,
     pub is_read: bool,
-    pub payload: BTreeMap<String, String>,
+    pub payload: String,
     pub reply_to: Box<MessageReplyViewDto>,
     pub sender_id: String,
     pub text: String,
-    pub r#type: String,
+    pub r#type: Box<MessageType>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -39575,7 +39938,7 @@ pub struct InvitationCodeResponseDto {
     pub creator_id: String,
     pub id: String,
     pub used_at: String,
-    pub used_by_account: BTreeMap<String, String>,
+    pub used_by_account: Box<InvitationCodeUsedByAccountDto>,
     pub used_by_id: String,
 }
 
@@ -39620,7 +39983,7 @@ pub struct ListMessagesResultDto {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct LocalAgentProvisionIntentAckDto {
     pub detail: String,
-    pub outcome: String,
+    pub outcome: Box<LocalAgentProvisionIntentAckOutcome>,
 }
 
 pub type LocalAgentProvisionIntentAckOutcome = String;
@@ -39635,7 +39998,7 @@ pub struct LocalAgentProvisionIntentDto {
     pub local_agent_ref: String,
     pub owner_user_id: String,
     pub realm_agent_id: String,
-    pub status: String,
+    pub status: Box<LocalAgentProvisionIntentStatus>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -39648,7 +40011,7 @@ pub type LocalAgentProvisionIntentStatus = String;
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct LocalAgentTerminationIntentAckDto {
     pub detail: String,
-    pub outcome: String,
+    pub outcome: Box<LocalAgentTerminationIntentAckOutcome>,
 }
 
 pub type LocalAgentTerminationIntentAckOutcome = String;
@@ -39663,7 +40026,7 @@ pub struct LocalAgentTerminationIntentDto {
     pub local_agent_ref: String,
     pub owner_user_id: String,
     pub realm_agent_id: String,
-    pub status: String,
+    pub status: Box<LocalAgentTerminationIntentStatus>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -39692,7 +40055,7 @@ pub struct LocationRegionDto {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct MakeAgentPublicResponseDto {
-    pub account_visibility: String,
+    pub account_visibility: Box<Visibility>,
     pub success: bool,
 }
 
@@ -39721,7 +40084,7 @@ pub struct Me2faVerifyDto {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct MessageReplyViewDto {
     pub id: String,
-    pub payload: BTreeMap<String, String>,
+    pub payload: String,
     pub sender_id: String,
     pub text: String,
     pub r#type: String,
@@ -39737,11 +40100,11 @@ pub struct MessageViewDto {
     pub edited_at: String,
     pub id: String,
     pub is_read: bool,
-    pub payload: BTreeMap<String, String>,
+    pub payload: String,
     pub reply_to: Box<MessageReplyViewDto>,
     pub sender_id: String,
     pub text: String,
-    pub r#type: String,
+    pub r#type: Box<MessageType>,
 }
 
 pub type ModerationStatusString = String;
@@ -39786,12 +40149,12 @@ pub struct NotificationActivityDto {
 pub struct NotificationActorAgentMetadataDto {
     pub active_world_id: String,
     pub category: String,
-    pub importance: String,
-    pub origin: String,
+    pub importance: Box<AgentImportance>,
+    pub origin: Box<AgentOrigin>,
     pub owner_world_id: String,
-    pub ownership_type: String,
-    pub state: String,
-    pub tier: String,
+    pub ownership_type: Box<AgentOwnershipType>,
+    pub state: Box<AgentState>,
+    pub tier: Box<VerificationTier>,
     pub wake_strategy: String,
     pub world_id: String,
 }
@@ -39799,10 +40162,10 @@ pub struct NotificationActorAgentMetadataDto {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct NotificationActorAgentProfileDto {
     pub active_world_id: String,
-    pub importance: String,
+    pub importance: Box<AgentImportance>,
     pub owner_world_id: String,
-    pub ownership_type: String,
-    pub state: String,
+    pub ownership_type: Box<AgentOwnershipType>,
+    pub state: Box<AgentState>,
     pub stats: Box<NotificationActorAgentStatsDto>,
     pub world_id: String,
 }
@@ -39830,7 +40193,7 @@ pub struct NotificationActorDto {
     pub presence_emoji: String,
     pub presence_status: String,
     pub presence_text: String,
-    pub status: String,
+    pub status: Box<AccountStatus>,
     pub tiers: Box<NotificationActorTierSummaryDto>,
 }
 
@@ -39851,13 +40214,13 @@ pub struct NotificationChannelsDto {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct NotificationDto {
-    pub actor: BTreeMap<String, String>,
+    pub actor: Box<NotificationActorDto>,
     pub body: String,
     pub created_at: String,
     pub data: BTreeMap<String, String>,
     pub id: String,
     pub is_read: bool,
-    pub target: BTreeMap<String, String>,
+    pub target: Box<NotificationTargetDto>,
     pub title: String,
     pub r#type: String,
 }
@@ -39915,7 +40278,7 @@ pub struct OAuthLoginResultDto {
     pub blocked_reason: String,
     pub login_state: String,
     pub temp_token: String,
-    pub tokens: BTreeMap<String, String>,
+    pub tokens: Box<AuthTokensDto>,
 }
 
 pub type OAuthProvider = String;
@@ -40038,13 +40401,13 @@ pub struct PortalSessionDto {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct PostAttachmentDto {
-    pub display_kind: String,
+    pub display_kind: Box<AttachmentDisplayKind>,
     pub duration: f64,
     pub height: f64,
     pub preview: Box<AttachmentEnvelopeDto>,
     pub subtitle: String,
     pub target_id: String,
-    pub target_type: String,
+    pub target_type: Box<AttachmentTargetType>,
     pub thumbnail: String,
     pub title: String,
     pub url: String,
@@ -40057,14 +40420,14 @@ pub struct PostDto {
     pub author: Box<UserLiteDto>,
     pub author_id: String,
     pub caption: String,
-    pub content_rating: String,
+    pub content_rating: Box<ContentRatingString>,
     pub created_at: String,
     pub id: String,
     pub liked_by_current_user: bool,
-    pub moderation_status: String,
+    pub moderation_status: Box<ModerationStatusString>,
     pub tags: Vec<String>,
     pub updated_at: String,
-    pub visibility: String,
+    pub visibility: Box<Visibility>,
     pub world_id: String,
 }
 
@@ -40116,7 +40479,7 @@ pub struct PublicBindingDto {
     pub object_id: String,
     pub object_type: String,
     pub priority: f64,
-    pub resource: BTreeMap<String, String>,
+    pub resource: Box<PublicBindingResourceDto>,
     pub tags: Vec<String>,
     pub version_pin: String,
 }
@@ -40266,13 +40629,13 @@ pub struct RelationshipResponseDto {
     pub source_id: String,
     pub strength: f64,
     pub target_id: String,
-    pub r#type: String,
+    pub r#type: Box<AgentRelationType>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct RemoveAgentRelationshipDto {
     pub target_id: String,
-    pub r#type: String,
+    pub r#type: Box<AgentRelationType>,
 }
 
 pub type ReportReason = String;
@@ -40282,7 +40645,7 @@ pub struct ReportResponseDto {
     pub created_at: String,
     pub id: String,
     pub note: String,
-    pub reason: String,
+    pub reason: Box<ReportReason>,
     pub reporter_id: String,
     pub status: String,
     pub target_post_id: String,
@@ -40411,12 +40774,18 @@ pub struct RevenueShareConfigDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct ReviewAgentAuthoringDraftCandidateDto {
+    pub edited_value: Box<AgentAuthoringDraftCandidateValueDto>,
+    pub status: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ReviewDto {
     pub comment: String,
     pub created_at: String,
     pub gift_transaction_id: String,
     pub id: String,
-    pub rating: String,
+    pub rating: Box<ReviewRating>,
     pub reviewee_id: String,
     pub reviewer_id: String,
 }
@@ -40602,7 +40971,7 @@ pub struct SendMessageInputDto {
     pub payload: String,
     pub reply_to_message_id: String,
     pub text: String,
-    pub r#type: String,
+    pub r#type: Box<MessageType>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -40610,7 +40979,7 @@ pub struct SetAgentRelationshipDto {
     pub context: String,
     pub strength: f64,
     pub target_id: String,
-    pub r#type: String,
+    pub r#type: Box<AgentRelationType>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -40671,14 +41040,14 @@ pub struct StartChatInputDto {
     pub payload: String,
     pub target_account_id: String,
     pub text: String,
-    pub r#type: String,
+    pub r#type: Box<MessageType>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct StartChatResultDto {
     pub chat_id: String,
     pub created: bool,
-    pub initial_message: BTreeMap<String, String>,
+    pub initial_message: Box<MessageViewDto>,
 }
 
 pub type StripeConnectStatus = String;
@@ -40691,7 +41060,7 @@ pub struct StripeConnectStatusDto {
     pub onboarding_url: String,
     pub payouts_enabled: bool,
     pub requires_action: bool,
-    pub status: String,
+    pub status: Box<StripeConnectStatus>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -40707,7 +41076,7 @@ pub struct SubscriptionDto {
     pub current_period_start: String,
     pub id: String,
     pub status: String,
-    pub tier: String,
+    pub tier: Box<SubscriptionTier>,
     pub tier_config: Box<SubscriptionTierConfigDto>,
 }
 
@@ -40717,7 +41086,7 @@ pub type SubscriptionTier = String;
 pub struct SubscriptionTierConfigDto {
     pub features: Vec<String>,
     pub price_usd: f64,
-    pub tier: String,
+    pub tier: Box<SubscriptionTier>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -40761,7 +41130,7 @@ pub struct TransitContextDto {
 pub struct TransitDetailDto {
     pub agent_id: String,
     pub arrived_at: String,
-    pub context: BTreeMap<String, String>,
+    pub context: Box<TransitContextDto>,
     pub created_at: String,
     pub departed_at: String,
     pub from_world_id: String,
@@ -40828,10 +41197,10 @@ pub struct UpdateAgentRuleDto {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct UpdateAgentVisibilityDto {
-    pub account_visibility: String,
-    pub default_post_visibility: String,
-    pub dm_visibility: String,
-    pub profile_visibility: String,
+    pub account_visibility: Box<Visibility>,
+    pub default_post_visibility: Box<Visibility>,
+    pub dm_visibility: Box<Visibility>,
+    pub profile_visibility: Box<Visibility>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -40853,7 +41222,7 @@ pub struct UpdateAssetDto {
     pub status: String,
     pub structured_payload: BTreeMap<String, String>,
     pub transfer_policy: String,
-    pub use_policy: BTreeMap<String, String>,
+    pub use_policy: Box<UsePolicyDto>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -40861,7 +41230,7 @@ pub struct UpdateBundleDto {
     pub compatible_apps: Vec<String>,
     pub cover_asset_id: String,
     pub description: String,
-    pub import_policy: BTreeMap<String, String>,
+    pub import_policy: Box<ImportPolicyDto>,
     pub member_asset_ids: Vec<String>,
     pub tags: Vec<String>,
     pub title: String,
@@ -40924,7 +41293,7 @@ pub struct UpdatePasswordRequestDto {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct UpdatePostDto {
-    pub visibility: String,
+    pub visibility: Box<Visibility>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -40967,7 +41336,7 @@ pub struct UpdateUserDto {
     pub city: String,
     pub country_code: String,
     pub display_name: String,
-    pub gender: String,
+    pub gender: Box<Gender>,
     pub languages: Vec<String>,
     pub profile_cover_url: String,
     pub tags: Vec<String>,
@@ -40987,25 +41356,25 @@ pub struct UpdateUserNsfwConsentDto {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct UpdateUserSettingsDto {
-    pub account_visibility: String,
+    pub account_visibility: Box<Visibility>,
     pub blocked_account_ids: Vec<String>,
-    pub default_post_visibility: String,
-    pub dm_visibility: String,
-    pub friend_list_visibility: String,
-    pub friend_request_visibility: String,
-    pub mention_visibility: String,
+    pub default_post_visibility: Box<Visibility>,
+    pub dm_visibility: Box<Visibility>,
+    pub friend_list_visibility: Box<Visibility>,
+    pub friend_request_visibility: Box<Visibility>,
+    pub mention_visibility: Box<Visibility>,
     pub notification_settings: Box<UpdateUserNotificationSettingsDto>,
     pub nsfw_chat_enabled: bool,
-    pub online_status_visibility: String,
+    pub online_status_visibility: Box<Visibility>,
     pub presence_emoji: String,
-    pub presence_status: String,
+    pub presence_status: Box<PresenceStatus>,
     pub presence_text: String,
-    pub profile_visibility: String,
+    pub profile_visibility: Box<Visibility>,
     pub public_filter: Box<PublicFilterDto>,
     pub show_sensitive_content: bool,
-    pub social_visibility: String,
+    pub social_visibility: Box<Visibility>,
     pub wallet_security_challenge_enabled: bool,
-    pub wallet_visibility: String,
+    pub wallet_visibility: Box<Visibility>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -41137,7 +41506,7 @@ pub struct UserLiteDto {
     pub presence_status: String,
     pub presence_text: String,
     pub profile_cover_url: String,
-    pub status: String,
+    pub status: Box<AccountStatus>,
     pub tiers: Box<UserTierSummaryDto>,
 }
 
@@ -41161,7 +41530,7 @@ pub struct UserPrivateDto {
     pub display_name: String,
     pub email: String,
     pub friend_count: f64,
-    pub gender: String,
+    pub gender: Box<Gender>,
     pub gift_stats: BTreeMap<String, String>,
     pub handle: String,
     pub has_password: bool,
@@ -41177,10 +41546,10 @@ pub struct UserPrivateDto {
     pub presence_text: String,
     pub profile_cover_url: String,
     pub review_stats: Box<ReviewStatsDto>,
-    pub role: String,
+    pub role: Box<AccountRole>,
     pub social_profiles: Vec<SocialProfileDto>,
     pub stats: Box<UserStatsDto>,
-    pub status: String,
+    pub status: Box<AccountStatus>,
     pub tags: Vec<String>,
     pub tiers: Box<UserTierSummaryDto>,
     pub updated_at: String,
@@ -41199,7 +41568,7 @@ pub struct UserProfileDto {
     pub created_at: String,
     pub display_name: String,
     pub friend_count: f64,
-    pub gender: String,
+    pub gender: Box<Gender>,
     pub gift_stats: BTreeMap<String, String>,
     pub handle: String,
     pub id: String,
@@ -41213,7 +41582,7 @@ pub struct UserProfileDto {
     pub review_stats: Box<ReviewStatsDto>,
     pub social_profiles: Vec<SocialProfileDto>,
     pub stats: Box<UserStatsDto>,
-    pub status: String,
+    pub status: Box<AccountStatus>,
     pub tags: Vec<String>,
     pub tiers: Box<UserTierSummaryDto>,
 }
@@ -41226,25 +41595,25 @@ pub struct UserSearchResponseDto {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct UserSettingsDto {
-    pub account_visibility: String,
+    pub account_visibility: Box<Visibility>,
     pub blocked_account_ids: Vec<String>,
-    pub default_post_visibility: String,
-    pub dm_visibility: String,
-    pub friend_list_visibility: String,
-    pub friend_request_visibility: String,
-    pub mention_visibility: String,
+    pub default_post_visibility: Box<Visibility>,
+    pub dm_visibility: Box<Visibility>,
+    pub friend_list_visibility: Box<Visibility>,
+    pub friend_request_visibility: Box<Visibility>,
+    pub mention_visibility: Box<Visibility>,
     pub notification_settings: Box<UserNotificationSettingsDto>,
     pub nsfw_chat_enabled: bool,
-    pub online_status_visibility: String,
+    pub online_status_visibility: Box<Visibility>,
     pub presence_emoji: String,
     pub presence_status: String,
     pub presence_text: String,
-    pub profile_visibility: String,
-    pub public_filter: String,
+    pub profile_visibility: Box<Visibility>,
+    pub public_filter: Box<PublicFilterDto>,
     pub show_sensitive_content: bool,
-    pub social_visibility: String,
+    pub social_visibility: Box<Visibility>,
     pub wallet_security_challenge_enabled: bool,
-    pub wallet_visibility: String,
+    pub wallet_visibility: Box<Visibility>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -41365,7 +41734,7 @@ pub struct WithdrawalDto {
     pub gem_amount: String,
     pub id: String,
     pub net_amount: String,
-    pub status: String,
+    pub status: Box<WithdrawalStatus>,
     pub usd_amount: f64,
 }
 
@@ -41409,7 +41778,7 @@ pub struct WorldAccessSummaryDto {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct WorldAgentRuleSummaryDto {
-    pub by_layer: String,
+    pub by_layer: Box<AgentRuleLayerCountDto>,
     pub total_agent_rule_count: f64,
     pub world_linked_rule_count: f64,
 }
@@ -42533,6 +42902,31 @@ pub struct RealmAgentRulesControllerUpdateRuleOperationRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmApplyCreatorWorldAgentAuthoringDraftBatchOperationPath {
+    pub batch_id: String,
+    pub agent_id: String,
+    pub world_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmApplyCreatorWorldAgentAuthoringDraftBatchOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmApplyCreatorWorldAgentAuthoringDraftBatchOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmApplyCreatorWorldAgentAuthoringDraftBatchOperationRequest {
+    pub path: RealmApplyCreatorWorldAgentAuthoringDraftBatchOperationPath,
+    pub query: RealmApplyCreatorWorldAgentAuthoringDraftBatchOperationQuery,
+    pub headers: RealmApplyCreatorWorldAgentAuthoringDraftBatchOperationHeaders,
+    pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmArchiveBundleOperationPath {
     pub bundle_id: String,
 }
@@ -42806,6 +43200,30 @@ pub struct RealmCreateBundleOperationRequest {
     pub query: RealmCreateBundleOperationQuery,
     pub headers: RealmCreateBundleOperationHeaders,
     pub body: CreateBundleDto,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmCreateCreatorWorldAgentAuthoringDraftBatchOperationPath {
+    pub agent_id: String,
+    pub world_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmCreateCreatorWorldAgentAuthoringDraftBatchOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmCreateCreatorWorldAgentAuthoringDraftBatchOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmCreateCreatorWorldAgentAuthoringDraftBatchOperationRequest {
+    pub path: RealmCreateCreatorWorldAgentAuthoringDraftBatchOperationPath,
+    pub query: RealmCreateCreatorWorldAgentAuthoringDraftBatchOperationQuery,
+    pub headers: RealmCreateCreatorWorldAgentAuthoringDraftBatchOperationHeaders,
+    pub body: CreateAgentAuthoringDraftBatchDto,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -44318,6 +44736,30 @@ pub struct RealmGetCreatorWorldAgentOperationRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetCreatorWorldAgentAuthoringGenerationContextOperationPath {
+    pub agent_id: String,
+    pub world_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetCreatorWorldAgentAuthoringGenerationContextOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetCreatorWorldAgentAuthoringGenerationContextOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetCreatorWorldAgentAuthoringGenerationContextOperationRequest {
+    pub path: RealmGetCreatorWorldAgentAuthoringGenerationContextOperationPath,
+    pub query: RealmGetCreatorWorldAgentAuthoringGenerationContextOperationQuery,
+    pub headers: RealmGetCreatorWorldAgentAuthoringGenerationContextOperationHeaders,
+    pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmGetCreatorWorldAgentChatReadinessOperationPath {
     pub agent_id: String,
     pub world_id: String,
@@ -44362,6 +44804,30 @@ pub struct RealmGetCreatorWorldAgentSettingsOperationRequest {
     pub path: RealmGetCreatorWorldAgentSettingsOperationPath,
     pub query: RealmGetCreatorWorldAgentSettingsOperationQuery,
     pub headers: RealmGetCreatorWorldAgentSettingsOperationHeaders,
+    pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetCreatorWorldAgentSourceSkeletonOperationPath {
+    pub agent_id: String,
+    pub world_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetCreatorWorldAgentSourceSkeletonOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetCreatorWorldAgentSourceSkeletonOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetCreatorWorldAgentSourceSkeletonOperationRequest {
+    pub path: RealmGetCreatorWorldAgentSourceSkeletonOperationPath,
+    pub query: RealmGetCreatorWorldAgentSourceSkeletonOperationQuery,
+    pub headers: RealmGetCreatorWorldAgentSourceSkeletonOperationHeaders,
     pub body: (),
 }
 
@@ -45412,6 +45878,30 @@ pub struct RealmListChatsOperationRequest {
     pub path: RealmListChatsOperationPath,
     pub query: RealmListChatsOperationQuery,
     pub headers: RealmListChatsOperationHeaders,
+    pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmListCreatorWorldAgentAuthoringDraftBatchesOperationPath {
+    pub agent_id: String,
+    pub world_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmListCreatorWorldAgentAuthoringDraftBatchesOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmListCreatorWorldAgentAuthoringDraftBatchesOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmListCreatorWorldAgentAuthoringDraftBatchesOperationRequest {
+    pub path: RealmListCreatorWorldAgentAuthoringDraftBatchesOperationPath,
+    pub query: RealmListCreatorWorldAgentAuthoringDraftBatchesOperationQuery,
+    pub headers: RealmListCreatorWorldAgentAuthoringDraftBatchesOperationHeaders,
     pub body: (),
 }
 
@@ -46495,6 +46985,32 @@ pub struct RealmReviewControllerGetReviewsOperationRequest {
     pub query: RealmReviewControllerGetReviewsOperationQuery,
     pub headers: RealmReviewControllerGetReviewsOperationHeaders,
     pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmReviewCreatorWorldAgentAuthoringDraftCandidateOperationPath {
+    pub candidate_id: String,
+    pub batch_id: String,
+    pub agent_id: String,
+    pub world_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmReviewCreatorWorldAgentAuthoringDraftCandidateOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmReviewCreatorWorldAgentAuthoringDraftCandidateOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmReviewCreatorWorldAgentAuthoringDraftCandidateOperationRequest {
+    pub path: RealmReviewCreatorWorldAgentAuthoringDraftCandidateOperationPath,
+    pub query: RealmReviewCreatorWorldAgentAuthoringDraftCandidateOperationQuery,
+    pub headers: RealmReviewCreatorWorldAgentAuthoringDraftCandidateOperationHeaders,
+    pub body: ReviewAgentAuthoringDraftCandidateDto,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -48544,6 +49060,10 @@ where
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for AgentRulesController_updateRule");
     }
 
+    pub fn apply_creator_world_agent_authoring_draft_batch(&self, _request: RealmApplyCreatorWorldAgentAuthoringDraftBatchOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<ApplyAgentAuthoringDraftBatchResponseDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for applyCreatorWorldAgentAuthoringDraftBatch");
+    }
+
     pub fn archive_bundle(&self, _request: RealmArchiveBundleOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<BundleDetailDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for archiveBundle");
     }
@@ -48590,6 +49110,10 @@ where
 
     pub fn create_bundle(&self, _request: RealmCreateBundleOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<BundleDetailDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for createBundle");
+    }
+
+    pub fn create_creator_world_agent_authoring_draft_batch(&self, _request: RealmCreateCreatorWorldAgentAuthoringDraftBatchOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AgentAuthoringDraftBatchDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for createCreatorWorldAgentAuthoringDraftBatch");
     }
 
     pub fn create_group(&self, _request: RealmCreateGroupOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<GroupChatViewDto, T::Error> {
@@ -48852,12 +49376,20 @@ where
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getCreatorWorldAgent");
     }
 
+    pub fn get_creator_world_agent_authoring_generation_context(&self, _request: RealmGetCreatorWorldAgentAuthoringGenerationContextOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AgentAuthoringGenerationContextDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getCreatorWorldAgentAuthoringGenerationContext");
+    }
+
     pub fn get_creator_world_agent_chat_readiness(&self, _request: RealmGetCreatorWorldAgentChatReadinessOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<CreatorWorldAgentChatReadinessDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getCreatorWorldAgentChatReadiness");
     }
 
     pub fn get_creator_world_agent_settings(&self, _request: RealmGetCreatorWorldAgentSettingsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<OwnerAgentSettingsDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getCreatorWorldAgentSettings");
+    }
+
+    pub fn get_creator_world_agent_source_skeleton(&self, _request: RealmGetCreatorWorldAgentSourceSkeletonOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<CreatorWorldAgentSourceSkeletonDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getCreatorWorldAgentSourceSkeleton");
     }
 
     pub fn get_explore_feed(&self, _request: RealmGetExploreFeedOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<FeedResponseDto, T::Error> {
@@ -49038,6 +49570,10 @@ where
 
     pub fn list_chats(&self, _request: RealmListChatsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<ListChatsResultDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for listChats");
+    }
+
+    pub fn list_creator_world_agent_authoring_draft_batches(&self, _request: RealmListCreatorWorldAgentAuthoringDraftBatchesOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AgentAuthoringDraftBatchListDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for listCreatorWorldAgentAuthoringDraftBatches");
     }
 
     pub fn list_creator_world_agents(&self, _request: RealmListCreatorWorldAgentsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<Vec<UserLiteDto>, T::Error> {
@@ -49222,6 +49758,10 @@ where
 
     pub fn review_controller_get_reviews(&self, _request: RealmReviewControllerGetReviewsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<Vec<ReviewDto>, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for ReviewController_getReviews");
+    }
+
+    pub fn review_creator_world_agent_authoring_draft_candidate(&self, _request: RealmReviewCreatorWorldAgentAuthoringDraftCandidateOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AgentAuthoringDraftCandidateDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for reviewCreatorWorldAgentAuthoringDraftCandidate");
     }
 
     pub fn revoke_my_app_permission_grant(&self, _request: RealmRevokeMyAppPermissionGrantOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AppPermissionGrantDto, T::Error> {

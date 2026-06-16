@@ -141,6 +141,468 @@ components:
         - fashionStyle
         - signatureItems
       type: object
+    AgentAuthoringBehaviorCandidatePayloadDto:
+      properties:
+        directives:
+          items:
+            type: string
+          type: array
+      required:
+        - directives
+      type: object
+    AgentAuthoringDialogueCandidatePayloadDto:
+      properties:
+        exemplars:
+          items:
+            type: string
+          type: array
+      required:
+        - exemplars
+      type: object
+    AgentAuthoringDraftBatchDto:
+      properties:
+        agentId:
+          type: string
+        appliedAt:
+          format: date-time
+          nullable: true
+          type: string
+        candidates:
+          items:
+            $ref: '#/components/schemas/AgentAuthoringDraftCandidateDto'
+          type: array
+        createdAt:
+          format: date-time
+          type: string
+        createdBy:
+          type: string
+        failureCode:
+          nullable: true
+          type: string
+        failureMessage:
+          nullable: true
+          type: string
+        id:
+          type: string
+        metadata:
+          allOf:
+            - $ref: '#/components/schemas/AgentAuthoringDraftBatchMetadataDto'
+          nullable: true
+          type: object
+        skeletonId:
+          type: string
+        sourceKind:
+          enum:
+            - CBDB
+          type: string
+        status:
+          enum:
+            - ready_for_review
+            - partially_applied
+            - applied
+            - failed
+          type: string
+        updatedAt:
+          format: date-time
+          type: string
+        worldId:
+          type: string
+      required:
+        - id
+        - worldId
+        - agentId
+        - skeletonId
+        - sourceKind
+        - status
+        - createdBy
+        - failureCode
+        - failureMessage
+        - metadata
+        - createdAt
+        - updatedAt
+        - appliedAt
+        - candidates
+      type: object
+    AgentAuthoringDraftBatchListDto:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/AgentAuthoringDraftBatchDto'
+          type: array
+      required:
+        - items
+      type: object
+    AgentAuthoringDraftBatchMetadataDto:
+      properties:
+        notes:
+          nullable: true
+          type: string
+        runtimeAppId:
+          nullable: true
+          type: string
+        surfaceId:
+          nullable: true
+          type: string
+      type: object
+    AgentAuthoringDraftCandidateDto:
+      properties:
+        appliedAt:
+          format: date-time
+          nullable: true
+          type: string
+        editedValue:
+          allOf:
+            - $ref: '#/components/schemas/AgentAuthoringDraftCandidateValueDto'
+          nullable: true
+          type: object
+        generatedAt:
+          format: date-time
+          type: string
+        id:
+          type: string
+        modelId:
+          type: string
+        promptDigestSha256:
+          type: string
+        provenance:
+          $ref: '#/components/schemas/AgentAuthoringRuntimeTraceDto'
+        reviewStatus:
+          enum:
+            - pending
+            - accepted
+            - rejected
+            - edited
+            - applied
+          type: string
+        reviewedAt:
+          format: date-time
+          nullable: true
+          type: string
+        reviewerId:
+          nullable: true
+          type: string
+        routePolicy:
+          nullable: true
+          type: string
+        runtimeTraceId:
+          nullable: true
+          type: string
+        sourceRefs:
+          items:
+            $ref: '#/components/schemas/AgentAuthoringSourceRefDto'
+          type: array
+        targetKey:
+          enum:
+            - description
+            - contentStyle
+            - publicPositioning
+            - avatar
+            - profileCover
+            - voice
+            - greeting
+            - dialogueExemplars
+            - behaviorDna
+          type: string
+        value:
+          $ref: '#/components/schemas/AgentAuthoringDraftCandidateValueDto'
+      required:
+        - id
+        - targetKey
+        - value
+        - sourceRefs
+        - modelId
+        - routePolicy
+        - promptDigestSha256
+        - runtimeTraceId
+        - generatedAt
+        - reviewStatus
+        - reviewerId
+        - reviewedAt
+        - appliedAt
+        - provenance
+      type: object
+    AgentAuthoringDraftCandidateValueDto:
+      properties:
+        behavior:
+          $ref: '#/components/schemas/AgentAuthoringBehaviorCandidatePayloadDto'
+        dialogue:
+          $ref: '#/components/schemas/AgentAuthoringDialogueCandidatePayloadDto'
+        kind:
+          enum:
+            - text
+            - media
+            - voice
+            - dialogue
+            - behavior
+          type: string
+        media:
+          $ref: '#/components/schemas/AgentAuthoringMediaCandidatePayloadDto'
+        provenance:
+          items:
+            $ref: '#/components/schemas/AgentAuthoringValueProvenanceSegmentDto'
+          type: array
+        text:
+          nullable: true
+          type: string
+        voice:
+          $ref: '#/components/schemas/AgentAuthoringVoiceCandidatePayloadDto'
+      required:
+        - kind
+        - provenance
+      type: object
+    AgentAuthoringFinalMediaStateDto:
+      properties:
+        avatarResourceId:
+          nullable: true
+          type: string
+        avatarUrl:
+          nullable: true
+          type: string
+        profileCoverResourceId:
+          nullable: true
+          type: string
+        profileCoverUrl:
+          nullable: true
+          type: string
+      required:
+        - avatarUrl
+        - avatarResourceId
+        - profileCoverUrl
+        - profileCoverResourceId
+      type: object
+    AgentAuthoringFinalStateDto:
+      properties:
+        media:
+          $ref: '#/components/schemas/AgentAuthoringFinalMediaStateDto'
+        settings:
+          $ref: '#/components/schemas/OwnerAgentSettingsDto'
+        voice:
+          $ref: '#/components/schemas/AgentAuthoringFinalVoiceStateDto'
+      required:
+        - settings
+        - media
+        - voice
+      type: object
+    AgentAuthoringFinalVoiceStateDto:
+      properties:
+        voice:
+          allOf:
+            - $ref: '#/components/schemas/AgentAuthoringVoiceCandidatePayloadDto'
+          nullable: true
+          type: object
+      required:
+        - voice
+      type: object
+    AgentAuthoringGenerationContextDto:
+      properties:
+        currentFinalState:
+          $ref: '#/components/schemas/AgentAuthoringFinalStateDto'
+        groundingRefs:
+          items:
+            $ref: '#/components/schemas/AgentAuthoringSourceRefDto'
+          type: array
+        requiredTargets:
+          items:
+            enum:
+              - description
+              - contentStyle
+              - publicPositioning
+              - avatar
+              - profileCover
+              - voice
+              - greeting
+              - dialogueExemplars
+              - behaviorDna
+            type: string
+          type: array
+        sourceSkeleton:
+          $ref: '#/components/schemas/CreatorWorldAgentSourceSkeletonDto'
+        targetStatuses:
+          items:
+            $ref: '#/components/schemas/AgentAuthoringTargetStatusDto'
+          type: array
+      required:
+        - sourceSkeleton
+        - currentFinalState
+        - requiredTargets
+        - groundingRefs
+        - targetStatuses
+      type: object
+    AgentAuthoringMediaCandidatePayloadDto:
+      properties:
+        height:
+          type: number
+        mime:
+          type: string
+        model:
+          type: string
+        moderation:
+          $ref: '#/components/schemas/AgentAuthoringMediaModerationDto'
+        prompt:
+          type: string
+        provenance:
+          items:
+            $ref: '#/components/schemas/AgentAuthoringValueProvenanceSegmentDto'
+          type: array
+        resourceId:
+          type: string
+        url:
+          type: string
+        width:
+          type: number
+      required:
+        - resourceId
+        - url
+        - prompt
+        - model
+        - width
+        - height
+        - mime
+        - moderation
+        - provenance
+      type: object
+    AgentAuthoringMediaModerationDto:
+      properties:
+        provider:
+          nullable: true
+          type: string
+        reason:
+          nullable: true
+          type: string
+        status:
+          enum:
+            - passed
+            - blocked
+            - not_checked
+          type: string
+      required:
+        - status
+      type: object
+    AgentAuthoringRuntimeTraceDto:
+      properties:
+        promptTemplateId:
+          nullable: true
+          type: string
+        runtimeAppId:
+          type: string
+        scenarioId:
+          nullable: true
+          type: string
+        skeletonId:
+          type: string
+        sourceDigestSha256:
+          nullable: true
+          type: string
+        surfaceId:
+          type: string
+      required:
+        - runtimeAppId
+        - surfaceId
+        - skeletonId
+      type: object
+    AgentAuthoringSourceRefDto:
+      properties:
+        factPath:
+          nullable: true
+          type: string
+        label:
+          nullable: true
+          type: string
+        sourceKind:
+          nullable: true
+          type: string
+        sourceRef:
+          type: string
+      required:
+        - sourceRef
+      type: object
+    AgentAuthoringTargetStatusDto:
+      properties:
+        appliedAt:
+          format: date-time
+          nullable: true
+          type: string
+        latestBatchId:
+          nullable: true
+          type: string
+        latestCandidateId:
+          nullable: true
+          type: string
+        latestReviewStatus:
+          enum:
+            - pending
+            - accepted
+            - rejected
+            - edited
+            - applied
+          nullable: true
+          type: string
+        targetKey:
+          enum:
+            - description
+            - contentStyle
+            - publicPositioning
+            - avatar
+            - profileCover
+            - voice
+            - greeting
+            - dialogueExemplars
+            - behaviorDna
+          type: string
+      required:
+        - targetKey
+        - latestReviewStatus
+        - latestBatchId
+        - latestCandidateId
+        - appliedAt
+      type: object
+    AgentAuthoringValueProvenanceSegmentDto:
+      properties:
+        category:
+          enum:
+            - source_fact
+            - historical_inference
+            - creator_preference
+            - ai_authored_texture
+          type: string
+        refs:
+          items:
+            type: string
+          type: array
+        summary:
+          type: string
+      required:
+        - category
+        - refs
+        - summary
+      type: object
+    AgentAuthoringVoiceCandidatePayloadDto:
+      properties:
+        historicalClaim:
+          enum:
+            - narration_direction_not_authentic_voice
+          type: string
+        narrationDirection:
+          type: string
+        providerVoiceRef:
+          nullable: true
+          type: string
+        speechModelId:
+          nullable: true
+          type: string
+        speechRoutePolicy:
+          enum:
+            - local
+            - cloud
+          nullable: true
+          type: string
+        voiceAssetResourceId:
+          nullable: true
+          type: string
+      required:
+        - historicalClaim
+        - narrationDirection
+      type: object
     AgentBiologicalDto:
       properties:
         ethnicity:
@@ -1068,6 +1530,28 @@ components:
       required:
         - historyAppends
         - commit
+      type: object
+    ApplyAgentAuthoringDraftBatchResponseDto:
+      properties:
+        appliedTargetKeys:
+          items:
+            enum:
+              - description
+              - contentStyle
+              - publicPositioning
+              - avatar
+              - profileCover
+              - voice
+              - greeting
+              - dialogueExemplars
+              - behaviorDna
+            type: string
+          type: array
+        batch:
+          $ref: '#/components/schemas/AgentAuthoringDraftBatchDto'
+      required:
+        - batch
+        - appliedTargetKeys
       type: object
     AssetDetailDto:
       properties:
@@ -2299,6 +2783,67 @@ components:
         - R18
         - EXPLICIT
       type: string
+    CreateAgentAuthoringDraftBatchDto:
+      properties:
+        candidates:
+          items:
+            $ref: '#/components/schemas/CreateAgentAuthoringDraftCandidateDto'
+          type: array
+        metadata:
+          allOf:
+            - $ref: '#/components/schemas/AgentAuthoringDraftBatchMetadataDto'
+          nullable: true
+          type: object
+        skeletonId:
+          type: string
+      required:
+        - skeletonId
+        - candidates
+      type: object
+    CreateAgentAuthoringDraftCandidateDto:
+      properties:
+        generatedAt:
+          format: date-time
+          type: string
+        modelId:
+          type: string
+        promptDigestSha256:
+          type: string
+        provenance:
+          $ref: '#/components/schemas/AgentAuthoringRuntimeTraceDto'
+        routePolicy:
+          nullable: true
+          type: string
+        runtimeTraceId:
+          nullable: true
+          type: string
+        sourceRefs:
+          items:
+            $ref: '#/components/schemas/AgentAuthoringSourceRefDto'
+          type: array
+        targetKey:
+          enum:
+            - description
+            - contentStyle
+            - publicPositioning
+            - avatar
+            - profileCover
+            - voice
+            - greeting
+            - dialogueExemplars
+            - behaviorDna
+          type: string
+        value:
+          $ref: '#/components/schemas/AgentAuthoringDraftCandidateValueDto'
+      required:
+        - targetKey
+        - value
+        - sourceRefs
+        - modelId
+        - promptDigestSha256
+        - generatedAt
+        - provenance
+      type: object
     CreateAgentDto:
       properties:
         concept:
@@ -3084,6 +3629,10 @@ components:
           type: string
         agentRuleCount:
           type: number
+        appliedAuthoringTargets:
+          items:
+            type: string
+          type: array
         authorityReason:
           enum:
             - CREATOR_OWNER
@@ -3129,17 +3678,28 @@ components:
         - worldRuleCount
         - agentRuleCount
         - selectedOwnerSettingFields
+        - appliedAuthoringTargets
         - rawRuleContentExposed
         - profile
         - gates
       type: object
     CreatorWorldAgentChatReadinessGatesDto:
       properties:
+        authoringDraftReady:
+          type: boolean
+        behaviorDnaReady:
+          type: boolean
+        dialogueExemplarsReady:
+          type: boolean
+        greetingReady:
+          type: boolean
         localAgentIdentityReady:
           type: boolean
         ownerSettingsReady:
           type: boolean
         profileContextReady:
+          type: boolean
+        profileCoverReady:
           type: boolean
         profileMediaReady:
           type: boolean
@@ -3152,11 +3712,19 @@ components:
         - profileContextReady
         - ownerSettingsReady
         - profileMediaReady
+        - profileCoverReady
         - voiceReferenceReady
         - speechRouteReady
+        - greetingReady
+        - dialogueExemplarsReady
+        - behaviorDnaReady
+        - authoringDraftReady
       type: object
     CreatorWorldAgentChatReadinessProfileDto:
       properties:
+        avatarResourceId:
+          nullable: true
+          type: string
         avatarUrl:
           nullable: true
           type: string
@@ -3166,6 +3734,9 @@ components:
         displayName:
           type: string
         handle:
+          type: string
+        profileCoverResourceId:
+          nullable: true
           type: string
         profileCoverUrl:
           nullable: true
@@ -3183,10 +3754,193 @@ components:
         - displayName
         - handle
         - avatarUrl
+        - avatarResourceId
         - profileCoverUrl
+        - profileCoverResourceId
         - defaultVoiceReference
         - speechModelId
         - speechRoutePolicy
+      type: object
+    CreatorWorldAgentCompletionBriefDto:
+      properties:
+        avatarBrief:
+          type: string
+        contentStyle:
+          type: string
+        description:
+          type: string
+        dnaBrief:
+          type: string
+        greetingBrief:
+          type: string
+        positioning:
+          type: string
+        voiceBrief:
+          type: string
+      required:
+        - description
+        - contentStyle
+        - positioning
+        - avatarBrief
+        - voiceBrief
+        - greetingBrief
+        - dnaBrief
+      type: object
+    CreatorWorldAgentRuntimeReadinessDto:
+      properties:
+        reason:
+          type: string
+        requiredCreatorActions:
+          items:
+            type: string
+          type: array
+        roleplayRuntime:
+          enum:
+            - blocked
+          type: string
+      required:
+        - roleplayRuntime
+        - reason
+        - requiredCreatorActions
+      type: object
+    CreatorWorldAgentSkeletonFactsDto:
+      properties:
+        birthYear:
+          nullable: true
+          type: number
+        deathYear:
+          nullable: true
+          type: number
+        officeFacts:
+          items:
+            $ref: '#/components/schemas/CreatorWorldAgentSkeletonOfficeFactDto'
+          type: array
+        relationships:
+          items:
+            $ref: '#/components/schemas/CreatorWorldAgentSkeletonRelationshipDto'
+          type: array
+        representativeFacts:
+          items:
+            type: string
+          type: array
+        timelineFactCount:
+          type: number
+      required:
+        - birthYear
+        - deathYear
+        - timelineFactCount
+        - representativeFacts
+        - officeFacts
+        - relationships
+      type: object
+    CreatorWorldAgentSkeletonOfficeFactDto:
+      properties:
+        eventId:
+          type: string
+        name:
+          type: string
+        officeName:
+          nullable: true
+          type: string
+        summary:
+          type: string
+      required:
+        - eventId
+        - name
+        - summary
+        - officeName
+      type: object
+    CreatorWorldAgentSkeletonRelationshipDto:
+      properties:
+        context:
+          nullable: true
+          type: string
+        relationType:
+          type: string
+        relationshipId:
+          type: string
+        targetEntityId:
+          type: string
+        targetName:
+          type: string
+      required:
+        - relationshipId
+        - targetEntityId
+        - targetName
+        - relationType
+        - context
+      type: object
+    CreatorWorldAgentSourceSkeletonDto:
+      properties:
+        agentId:
+          type: string
+        aliases:
+          items:
+            type: string
+          type: array
+        candidateId:
+          nullable: true
+          type: string
+        canonicalName:
+          type: string
+        completionBrief:
+          $ref: '#/components/schemas/CreatorWorldAgentCompletionBriefDto'
+        missingFields:
+          items:
+            enum:
+              - avatar
+              - profileCover
+              - voice
+              - greeting
+              - dialogueExemplars
+              - behaviorDna
+            type: string
+          type: array
+        packageId:
+          nullable: true
+          type: string
+        packageVersion:
+          nullable: true
+          type: string
+        runtimeReadiness:
+          $ref: '#/components/schemas/CreatorWorldAgentRuntimeReadinessDto'
+        skeletonId:
+          type: string
+        sourceEntityId:
+          type: string
+        sourceFacts:
+          $ref: '#/components/schemas/CreatorWorldAgentSkeletonFactsDto'
+        sourceKind:
+          enum:
+            - CBDB
+          type: string
+        sourceProfile:
+          enum:
+            - cbdb-historical
+          type: string
+        sourceRefs:
+          items:
+            type: string
+          type: array
+        worldId:
+          type: string
+      required:
+        - agentId
+        - worldId
+        - sourceKind
+        - skeletonId
+        - sourceEntityId
+        - candidateId
+        - sourceProfile
+        - sourceRefs
+        - canonicalName
+        - aliases
+        - sourceFacts
+        - missingFields
+        - completionBrief
+        - runtimeReadiness
+        - packageId
+        - packageVersion
       type: object
     CreatorWorldSummaryDto:
       properties:
@@ -6847,6 +7601,19 @@ components:
       required:
         - nativeAgentCreatorSharePercent
         - minShareThreshold
+      type: object
+    ReviewAgentAuthoringDraftCandidateDto:
+      properties:
+        editedValue:
+          $ref: '#/components/schemas/AgentAuthoringDraftCandidateValueDto'
+        status:
+          enum:
+            - accepted
+            - rejected
+            - edited
+          type: string
+      required:
+        - status
       type: object
     ReviewDto:
       properties:
@@ -10843,7 +11610,7 @@ info:
   description: |-
     The Nimi Social Platform API
 
-    Last updated: 2026-06-16T08:07:22.022Z
+    Last updated: 2026-06-16T14:30:52.093Z
   title: Nimi Realm SDK API
   version: '1.0'
 openapi: 3.0.0
@@ -15355,6 +16122,189 @@ paths:
       summary: Get one creator-world RealmAgent
       tags:
         - Agent / Creator World
+  /api/me/creator/worlds/{worldId}/agents/{agentId}/authoring-draft-batches:
+    get:
+      operationId: listCreatorWorldAgentAuthoringDraftBatches
+      parameters:
+        - description: WORLD_OWNED RealmAgent account ID
+          in: path
+          name: agentId
+          required: true
+          schema:
+            type: string
+        - description: Creator world ID
+          in: path
+          name: worldId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentAuthoringDraftBatchListDto'
+          description: ''
+      security:
+        - bearer: []
+      summary: List creator-world RealmAgent authoring draft batches
+      tags:
+        - Agent / Creator World
+    post:
+      description: >-
+        Persists generated candidates for creator review. Empty, malformed,
+        stale-skeleton, missing-resource, or untyped-provenance candidates are
+        rejected instead of being filled server-side.
+      operationId: createCreatorWorldAgentAuthoringDraftBatch
+      parameters:
+        - description: WORLD_OWNED RealmAgent account ID
+          in: path
+          name: agentId
+          required: true
+          schema:
+            type: string
+        - description: Creator world ID
+          in: path
+          name: worldId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAgentAuthoringDraftBatchDto'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentAuthoringDraftBatchDto'
+          description: ''
+      security:
+        - bearer: []
+      summary: Persist Runtime-generated authoring draft candidates
+      tags:
+        - Agent / Creator World
+  /api/me/creator/worlds/{worldId}/agents/{agentId}/authoring-draft-batches/{batchId}/apply:
+    post:
+      description: >-
+        Transactionally applies accepted or edited candidates to final
+        settings/media/voice/rules. Pending candidates, stale skeletons,
+        non-ready resources, failed moderation, and invalid voice authenticity
+        claims fail closed.
+      operationId: applyCreatorWorldAgentAuthoringDraftBatch
+      parameters:
+        - description: Authoring draft batch ID
+          in: path
+          name: batchId
+          required: true
+          schema:
+            type: string
+        - description: WORLD_OWNED RealmAgent account ID
+          in: path
+          name: agentId
+          required: true
+          schema:
+            type: string
+        - description: Creator world ID
+          in: path
+          name: worldId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApplyAgentAuthoringDraftBatchResponseDto'
+          description: ''
+      security:
+        - bearer: []
+      summary: Apply reviewed creator-world RealmAgent authoring draft candidates
+      tags:
+        - Agent / Creator World
+  /api/me/creator/worlds/{worldId}/agents/{agentId}/authoring-draft-batches/{batchId}/candidates/{candidateId}/review:
+    patch:
+      operationId: reviewCreatorWorldAgentAuthoringDraftCandidate
+      parameters:
+        - description: Authoring draft candidate ID
+          in: path
+          name: candidateId
+          required: true
+          schema:
+            type: string
+        - description: Authoring draft batch ID
+          in: path
+          name: batchId
+          required: true
+          schema:
+            type: string
+        - description: WORLD_OWNED RealmAgent account ID
+          in: path
+          name: agentId
+          required: true
+          schema:
+            type: string
+        - description: Creator world ID
+          in: path
+          name: worldId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewAgentAuthoringDraftCandidateDto'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentAuthoringDraftCandidateDto'
+          description: ''
+      security:
+        - bearer: []
+      summary: Review one creator-world RealmAgent authoring draft candidate
+      tags:
+        - Agent / Creator World
+  /api/me/creator/worlds/{worldId}/agents/{agentId}/authoring-generation-context:
+    get:
+      description: >-
+        Returns the CBDB source skeleton, current final state, required
+        authoring targets, grounding refs, and current draft target statuses. AI
+        generation must use this context and persist candidates through
+        authoring draft batches.
+      operationId: getCreatorWorldAgentAuthoringGenerationContext
+      parameters:
+        - description: WORLD_OWNED RealmAgent account ID
+          in: path
+          name: agentId
+          required: true
+          schema:
+            type: string
+        - description: Creator world ID
+          in: path
+          name: worldId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentAuthoringGenerationContextDto'
+          description: ''
+      security:
+        - bearer: []
+      summary: Get creator-world RealmAgent authoring generation context
+      tags:
+        - Agent / Creator World
   /api/me/creator/worlds/{worldId}/agents/{agentId}/chat-readiness:
     get:
       description: >-
@@ -15483,6 +16433,39 @@ paths:
       security:
         - bearer: []
       summary: Update creator-world RealmAgent settings
+      tags:
+        - Agent / Creator World
+  /api/me/creator/worlds/{worldId}/agents/{agentId}/source-skeleton:
+    get:
+      description: >-
+        Returns the typed CBDB-derived authoring skeleton for a WORLD_OWNED
+        creator-world RealmAgent. This exposes source facts, missing
+        creator-reviewed runtime fields, and Forge-derived completion brief
+        without raw provenance metadata.
+      operationId: getCreatorWorldAgentSourceSkeleton
+      parameters:
+        - description: WORLD_OWNED RealmAgent account ID
+          in: path
+          name: agentId
+          required: true
+          schema:
+            type: string
+        - description: Creator world ID
+          in: path
+          name: worldId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreatorWorldAgentSourceSkeletonDto'
+          description: ''
+      security:
+        - bearer: []
+      summary: Get creator-world RealmAgent source skeleton
       tags:
         - Agent / Creator World
   /api/me/creator/worlds/{worldId}/agents/{agentId}/voice:
@@ -16291,6 +17274,7 @@ paths:
               - world-source
               - world-rules
               - agent-blueprints
+              - agent-skeletons
               - truth
               - sufficiency
               - capability

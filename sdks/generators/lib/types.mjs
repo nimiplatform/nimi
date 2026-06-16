@@ -163,16 +163,19 @@ export function rustProtoType(field, runtime) {
 }
 
 export function tsOpenApiType(schema) {
-  if (!schema || schema.kind === 'unknown') return 'Record<string, never>';
-  if (schema.kind === 'ref') return schema.ref_name;
-  if (schema.kind === 'enum') return schema.values.map(quote).join(' | ') || 'string';
-  if (schema.kind === 'array') return `readonly (${tsOpenApiType(schema.items)})[]`;
-  if (schema.kind === 'object') return 'Record<string, unknown>';
-  if (schema.kind === 'union') return schema.variants.map(tsOpenApiType).join(' | ') || 'unknown';
-  if (schema.type === 'string' || schema.format === 'date-time') return 'string';
-  if (schema.type === 'boolean') return 'boolean';
-  if (schema.type === 'integer' || schema.type === 'number') return 'number';
-  return 'unknown';
+  const base = (() => {
+    if (!schema || schema.kind === 'unknown') return 'Record<string, never>';
+    if (schema.kind === 'ref') return schema.ref_name;
+    if (schema.kind === 'enum') return schema.values.map(quote).join(' | ') || 'string';
+    if (schema.kind === 'array') return `readonly (${tsOpenApiType(schema.items)})[]`;
+    if (schema.kind === 'object') return 'Record<string, unknown>';
+    if (schema.kind === 'union') return schema.variants.map(tsOpenApiType).join(' | ') || 'unknown';
+    if (schema.type === 'string' || schema.format === 'date-time') return 'string';
+    if (schema.type === 'boolean') return 'boolean';
+    if (schema.type === 'integer' || schema.type === 'number') return 'number';
+    return 'unknown';
+  })();
+  return schema?.nullable === true && !base.split(' | ').includes('null') ? `${base} | null` : base;
 }
 
 export function pyOpenApiType(schema) {

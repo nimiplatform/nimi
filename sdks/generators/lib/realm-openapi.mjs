@@ -35,22 +35,33 @@ function openApiRefName(ref) {
   return typeof ref === 'string' ? ref.split('/').pop() : null;
 }
 
+function withOpenApiNullable(schema, source) {
+  return source?.nullable === true ? { ...schema, nullable: true } : schema;
+}
+
 function parseOpenApiSchema(schema) {
   if (!schema || typeof schema !== 'object') {
     return { kind: 'unknown' };
   }
   if (schema.$ref) {
-    return { kind: 'ref', ref: schema.$ref, ref_name: openApiRefName(schema.$ref) };
+    return withOpenApiNullable({ kind: 'ref', ref: schema.$ref, ref_name: openApiRefName(schema.$ref) }, schema);
   }
   if (schema.enum) {
-    return { kind: 'enum', values: schema.enum.map(String) };
+    return withOpenApiNullable({ kind: 'enum', values: schema.enum.map(String) }, schema);
   }
   if (schema.type === 'array') {
-    return { kind: 'array', items: parseOpenApiSchema(schema.items) };
+    return withOpenApiNullable({ kind: 'array', items: parseOpenApiSchema(schema.items) }, schema);
+  }
+  if (schema.oneOf || schema.anyOf || schema.allOf) {
+    const variants = schema.oneOf || schema.anyOf || schema.allOf;
+    if (Array.isArray(schema.allOf) && variants.length === 1) {
+      return withOpenApiNullable(parseOpenApiSchema(variants[0]), schema);
+    }
+    return withOpenApiNullable({ kind: 'union', variants: variants.map(parseOpenApiSchema) }, schema);
   }
   if (schema.type === 'object' || schema.properties || schema.additionalProperties) {
     const required = new Set(Array.isArray(schema.required) ? schema.required.map(String) : []);
-    return {
+    return withOpenApiNullable({
       kind: 'object',
       properties: Object.entries(schema.properties || {}).map(([name, property]) => ({
         name,
@@ -58,17 +69,13 @@ function parseOpenApiSchema(schema) {
         schema: parseOpenApiSchema(property),
       })),
       additional_properties: schema.additionalProperties ? parseOpenApiSchema(schema.additionalProperties) : null,
-    };
+    }, schema);
   }
-  if (schema.oneOf || schema.anyOf || schema.allOf) {
-    const variants = schema.oneOf || schema.anyOf || schema.allOf;
-    return { kind: 'union', variants: variants.map(parseOpenApiSchema) };
-  }
-  return {
+  return withOpenApiNullable({
     kind: 'scalar',
     type: schema.type || 'unknown',
     format: schema.format || null,
-  };
+  }, schema);
 }
 
 function parseOpenApiOperations(spec) {
