@@ -709,7 +709,6 @@ export function CapabilityRunHistory({
 }) {
   const records = (history?.[capability.id] ?? []).slice(0, 12);
   if (records.length === 0) return null;
-
   const groups = groupHistoryRecords(records);
 
   return (

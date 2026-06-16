@@ -13,7 +13,6 @@ import type { RouteModelPickerDataProvider } from '@nimiplatform/kit/features/mo
 import type {
   NimiAICapabilityRequirementDeclaration,
   NimiAIConfig,
-  NimiAIConfigTargetRef,
   NimiAIScopeRef,
 } from '@nimiplatform/kit/core/sdk-contract';
 import { X } from 'lucide-react';
@@ -91,18 +90,8 @@ function bindingStatus(
     tone: 'ready',
     badgeLabel: 'Bound',
     title: 'Target configured',
-    detail: targetRefDetail(targetRef),
+    detail: null,
   };
-}
-
-function targetRefDetail(targetRef: NimiAIConfigTargetRef): string | null {
-  if (targetRef.kind === 'cloud-connector') {
-    return targetRef.providerModelId || targetRef.connectorId || null;
-  }
-  if (targetRef.kind === 'local-runtime') {
-    return targetRef.profileId || targetRef.targetId || targetRef.readinessRef || null;
-  }
-  return `${targetRef.sourceProfileId}:${targetRef.sliceId}`;
 }
 
 function useLiveAIConfig(service: SharedAIConfigService, scopeRef: NimiAIScopeRef): NimiAIConfig {
@@ -263,6 +252,7 @@ export function TesterAiConfigSettings({
             profile={profileController}
             initialSection={initialSection}
             detailOnly={drawer}
+            detailActiveModelHint={null}
             detailHeaderAction={drawer && onClose ? (
               <IconButton
                 aria-label={t('Tester.settings.close')}

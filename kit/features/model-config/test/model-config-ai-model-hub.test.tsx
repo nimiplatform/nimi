@@ -324,4 +324,26 @@ describe('ModelConfigAiModelHub', () => {
     expect(container?.textContent).toContain('ModelConfig.capability.imageEdit.title');
     expect(container?.textContent).not.toContain('ModelConfig.hub.activeModelLabel');
   });
+
+  it('allows hosts to hide detail-view active model hints', async () => {
+    const service = stubService();
+    const surface: AppModelConfigSurface = {
+      ...makeSurface(service),
+      requirementDeclaration: requirementDeclaration(['image.generate', 'image.edit']),
+    };
+    await render(
+      wrap(
+        <ModelConfigAiModelHub
+          surface={surface}
+          profile={emptyProfileController}
+          initialSection="image"
+          detailActiveModelHint={null}
+        />,
+      ),
+    );
+
+    expect(container?.textContent).toContain('ModelConfig.capability.imageGenerate.title');
+    expect(container?.textContent).toContain('ModelConfig.capability.imageEdit.title');
+    expect(container?.textContent).not.toContain('Click to change model');
+  });
 });

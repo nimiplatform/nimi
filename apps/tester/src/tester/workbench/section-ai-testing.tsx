@@ -115,11 +115,11 @@ function textStudioModelSummary(result: TesterCapabilityRunResult | null, runTar
 }
 
 function studioControlHeadingLabel(title: string): ReactNode {
-  return <span className="studio-field__menu-heading">{title}</span>;
+  return <span className="studio-control__menu-heading">{title}</span>;
 }
 
 function studioControlValueLabel(value: string): ReactNode {
-  return <span className="studio-field__menu-value">{value}</span>;
+  return <span className="studio-control__menu-value">{value}</span>;
 }
 
 function ModelSummaryChip({ label, onOpen }: { label: string; onOpen: () => void }) {
@@ -287,7 +287,7 @@ function TextStudioComposer({
     <div className="studio-composer__bar">
       <div className="studio-composer__controls">
         {profile.controls.includes('tone') ? (
-          <div className={toneSelected ? 'studio-field studio-field--tone studio-field--selected' : 'studio-field studio-field--tone'}>
+          <div className={toneSelected ? 'studio-control studio-control--tone studio-control--selected' : 'studio-control studio-control--tone'}>
             <SelectField
               options={[
                 { value: '__tone_heading', label: studioControlHeadingLabel('Tone'), disabled: true },
@@ -300,13 +300,13 @@ function TextStudioComposer({
               onValueChange={onToneChange}
               aria-label="Tone"
               tone="quiet"
-              selectClassName="studio-field__select"
-              contentClassName="studio-field__menu"
+              selectClassName="studio-control__trigger"
+              contentClassName="studio-control__menu"
             />
           </div>
         ) : null}
         {profile.controls.includes('length') ? (
-          <div className={lengthSelected ? 'studio-field studio-field--length studio-field--selected' : 'studio-field studio-field--length'}>
+          <div className={lengthSelected ? 'studio-control studio-control--length studio-control--selected' : 'studio-control studio-control--length'}>
             <SelectField
               options={[
                 { value: '__length_heading', label: studioControlHeadingLabel('Length'), disabled: true },
@@ -319,8 +319,8 @@ function TextStudioComposer({
               onValueChange={onLengthChange}
               aria-label="Length"
               tone="quiet"
-              selectClassName="studio-field__select"
-              contentClassName="studio-field__menu"
+              selectClassName="studio-control__trigger"
+              contentClassName="studio-control__menu"
             />
           </div>
         ) : null}
@@ -393,6 +393,8 @@ function TextStudioComposer({
       {requiresPrompt ? (
         <div className="studio-input">
           <TextareaField
+            className="studio-input__box"
+            textareaClassName="studio-input__textarea"
             rows={compact ? 3 : 5}
             wrap="soft"
             maxLength={2000}
@@ -405,6 +407,8 @@ function TextStudioComposer({
           <Maximize2 size={13} aria-hidden="true" className="studio-input__expand" />
           <div className={contextOpen ? 'studio-context studio-context--open' : 'studio-context'}>
             <TextareaField
+              className="studio-context__box"
+              textareaClassName="studio-context__draft"
               rows={compact ? 2 : 3}
               wrap="soft"
               maxLength={1600}
@@ -494,31 +498,27 @@ function summarizeParamRows(rows: readonly TesterRunConfigParamRow[]): string {
 function TextStudioModelSettings({ record }: { record: TesterRunHistoryRecord }) {
   const runConfig = record.runConfig;
   if (!runConfig) {
-    return (
-      <section className="studio-history-settings studio-history-settings--missing" aria-label="Model settings">
-        <div className="studio-history-settings__head">
-          <SlidersHorizontal size={14} aria-hidden="true" />
-          <strong>Model settings</strong>
-          <span>Not captured</span>
-        </div>
-      </section>
-    );
+    return null;
   }
 
   const paramRows = getTesterRunConfigParamRows(runConfig);
+  const fallbackSummary = runConfig.target.paramsSummary.join(' / ');
+  if (paramRows.length === 0 && !fallbackSummary) {
+    return null;
+  }
   const paramGroups = groupParamRows(paramRows);
   const paramSummary = paramRows.length > 0
     ? summarizeParamRows(paramRows)
-    : runConfig.target.paramsSummary.join(' / ');
+    : fallbackSummary;
 
   return (
     <section className="studio-history-settings" aria-label="Model settings">
       <div className="studio-history-settings__head">
         <SlidersHorizontal size={14} aria-hidden="true" />
         <strong>Model settings</strong>
-        <span>{paramSummary || 'No configured parameters'}</span>
+        <span>{paramSummary}</span>
       </div>
-      {paramGroups.length > 0 ? paramGroups.map((group) => (
+      {paramGroups.map((group) => (
         <div key={group.group} className="studio-history-settings__group">
           <strong>{group.group}</strong>
           <dl className="studio-history-settings__params">
@@ -530,9 +530,7 @@ function TextStudioModelSettings({ record }: { record: TesterRunHistoryRecord })
             ))}
           </dl>
         </div>
-      )) : (
-        <p className="studio-history-settings__empty">No model parameters were configured for this run.</p>
-      )}
+      ))}
     </section>
   );
 }

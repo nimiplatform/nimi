@@ -150,7 +150,6 @@ export const testerModelConfigCopy: Record<string, string> = {
   "ModelConfig.hub.aggregateEmpty": "No capabilities configured",
   "ModelConfig.hub.detailTitleFormat": "{{section}} Configuration",
   "ModelConfig.hub.activeModelLabel": "Active Model",
-  "ModelConfig.hub.activeModelHint": "Click to change model",
   "ModelConfig.hub.detailStatusReady": "Runtime Ready",
   "ModelConfig.hub.detailStatusAttention": "Needs Setup",
   "ModelConfig.hub.detailStatusNeutral": "Not Configured",

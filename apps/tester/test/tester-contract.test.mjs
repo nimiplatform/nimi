@@ -449,8 +449,9 @@ test('tester run history is the per-capability evidence surface (no standalone E
   assert.match(capabilities, /getTesterRunStatusLabel/);
   assert.match(capabilities, /getTesterRunResultSummary/);
   assert.match(capabilities, /TextStudioHistorySnapshotBody/);
-  assert.match(capabilities, /if \(records\.length === 0\) return null;/);
-  assert.doesNotMatch(capabilities, /No local run records for/);
+  assert.match(capabilities, /if \(records\.length === 0\) return null/);
+  assert.doesNotMatch(capabilities, /className="studio-history__empty"/);
+  assert.doesNotMatch(capabilities, /No recent runs yet\./);
   assert.doesNotMatch(capabilities, /does not contain the full generated body/);
   for (const helper of ['createTesterRunHistoryResultSnapshot', 'getTesterRunResultSummary', 'getTesterRunResultTags', 'getTesterRunStatusLabel', 'getTesterRunStatusTone', 'formatTesterRunTimestamp', 'flattenTesterRunHistory']) {
     assert.match(historyStore, new RegExp(helper));
@@ -492,6 +493,7 @@ test('right-side capability history uses date-only labels for older runs', () =>
 test('tester run history rows prioritize prompt title, recency groups, and run metrics', () => {
   const capabilities = readTesterAiTestingSurface(root);
   const historyStore = read('src/tester/tester-history.ts');
+  const workbench = read('src/tester/workbench/section-ai-testing.tsx');
   const styles = read('src/tester/tester-workbench.css');
 
   assert.match(historyStore, /function formatTesterTokenUsage/);
@@ -537,9 +539,11 @@ test('tester run history rows prioritize prompt title, recency groups, and run m
   assert.match(capabilities, /getTesterRunModelSource\(record\)/);
   assert.match(capabilities, /getTesterRunModelLabel\(record\)/);
   assert.match(capabilities, /label: 'Today' \| 'Yesterday' \| 'Earlier'/);
-  assert.match(capabilities, /const hasHistory = historyRecords\.length > 0;/);
-  assert.match(capabilities, /studio__workspace studio__workspace--with-history/);
-  assert.match(capabilities, /if \(records\.length === 0\) return null;/);
+  assert.match(workbench, /const historyRecords = history\?\.\[capability\.id\] \?\? \[\]/);
+  assert.match(workbench, /const hasHistory = historyRecords\.length > 0/);
+  assert.match(workbench, /hasHistory \? 'studio__workspace studio__workspace--with-history' : 'studio__workspace'/);
+  assert.match(workbench, /\{hasHistory \? \(\s*<CapabilityRunHistory/s);
+  assert.doesNotMatch(capabilities, /studio-history__empty/);
   assert.doesNotMatch(capabilities, /<span>\{records\.length\}<\/span>/);
   assert.match(capabilities, /className="studio-history__groups"/);
   assert.match(capabilities, /className="studio-history__group"/);
@@ -556,6 +560,9 @@ test('tester run history rows prioritize prompt title, recency groups, and run m
   assert.match(capabilities, /function summarizeParamRows/);
   assert.match(capabilities, /Model settings/);
   assert.match(capabilities, /getTesterRunConfigParamRows\(runConfig\)/);
+  assert.match(capabilities, /if \(!runConfig\) \{\s*return null;\s*\}/s);
+  assert.match(capabilities, /if \(paramRows\.length === 0 && !fallbackSummary\) \{\s*return null;\s*\}/s);
+  assert.doesNotMatch(capabilities, /No configured parameters|No model parameters were configured|studio-history-settings--missing/);
   assert.match(capabilities, /getTesterRunPromptControlFacts\(runConfig\)/);
   assert.match(capabilities, /record\.runConfig\?\.promptControls\.context/);
   assert.match(capabilities, /record\.runConfig\?\.promptControls\.toneSelected/);
@@ -569,8 +576,12 @@ test('tester run history rows prioritize prompt title, recency groups, and run m
   assert.match(styles, /\.studio__workspace\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)/s);
   assert.match(
     styles,
-    /\.studio__workspace--with-history\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s*minmax\(280px,\s*340px\)/s,
+    /\.studio__workspace--with-history\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s*minmax\(320px,\s*360px\)/s,
   );
+  assert.match(styles, /\.studio-turn\s*\{[^}]*max-width:\s*900px/s);
+  assert.match(styles, /\.studio-thread\s*\{[^}]*--studio-scrollbar-gutter:\s*17px/s);
+  assert.match(styles, /\.studio-thread__composer\s*\{[^}]*padding:\s*12px calc\(18px \+ var\(--studio-scrollbar-gutter\)\) 16px 18px/s);
+  assert.match(styles, /\.studio-composer\s*\{[^}]*max-width:\s*900px;[^}]*margin:\s*0 auto/s);
   assert.match(styles, /border-left:\s*1px solid/);
   assert.match(styles, /\.studio-history__groups/);
   assert.match(styles, /\.studio-history__group/);
@@ -583,7 +594,7 @@ test('tester run history rows prioritize prompt title, recency groups, and run m
   assert.match(styles, /\.studio-prompt-settings__context/);
   assert.match(styles, /\.studio-history-settings/);
   assert.match(styles, /\.studio-history-settings__params/);
-  assert.match(styles, /\.studio-history-settings__empty/);
+  assert.doesNotMatch(styles, /\.studio-history-settings__empty/);
   assert.doesNotMatch(styles, /\.studio-history-settings__context/);
   assert.match(styles, /\.studio-result\s*\{[^}]*overflow:\s*hidden/s);
   assert.doesNotMatch(styles, /\.studio-result\s*\{[^}]*border-radius:\s*14px/s);
@@ -749,6 +760,7 @@ test('tester AI config is the Kit model-config surface in Settings with real SDK
     'fail closed',
     'initialSection',
     'detailOnly',
+    'detailActiveModelHint={null}',
     'footer={importFooter}',
     'profile={profileController}',
   ]) {
@@ -760,9 +772,12 @@ test('tester AI config is the Kit model-config surface in Settings with real SDK
   assert.match(modelConfigHub, /import \{ ModelConfigCapabilityDetail \} from '\.\/model-config-capability-detail\.js';/);
   assert.match(modelConfigHub, /initialSection\?: CanonicalCapabilitySectionId \| null/);
   assert.match(modelConfigHub, /detailOnly\?: boolean/);
+  assert.match(modelConfigHub, /detailActiveModelHint\?: string \| null/);
   assert.match(modelConfigHub, /footer\?: ReactNode/);
   assert.match(modelConfigHub, /<ProfileConfigSection controller=\{profile\} variant="import-button" \/>/);
   assert.match(modelConfigHub, /<ModelConfigCapabilityDetail/);
+  assert.doesNotMatch(surface, /targetRefDetail/);
+  assert.doesNotMatch(surface, /NimiAIConfigTargetRef/);
   assert.doesNotMatch(surface, /applyAIProfileToConfig/);
   assert.match(surface, /profileController\.onCancelPreview\(\)/);
   assert.match(surface, /profileController\.onSelectedProfileChange\(result\.profileId\)/);

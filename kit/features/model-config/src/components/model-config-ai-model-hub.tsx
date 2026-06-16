@@ -59,6 +59,8 @@ export type ModelConfigAiModelHubProps = {
   detailOnly?: boolean;
   /** Optional action slot rendered in the active detail header, e.g. a host close button. */
   detailHeaderAction?: ReactNode;
+  /** Optional per-capability hint override in detail view. Pass null to hide it. */
+  detailActiveModelHint?: string | null;
 };
 
 function statusToneDotClass(tone: ModelConfigStatusTone): string {
@@ -153,6 +155,7 @@ export function ModelConfigAiModelHub(props: ModelConfigAiModelHubProps) {
     onActiveSectionChange,
     detailOnly = false,
     detailHeaderAction,
+    detailActiveModelHint,
   } = props;
   const config = useLiveConfig(surface);
   const t = surface.i18n.t;
@@ -348,6 +351,7 @@ export function ModelConfigAiModelHub(props: ModelConfigAiModelHubProps) {
               surface={surface}
               config={config}
               activeModelLabel={detailDescriptors.length > 1 ? t(descriptor.i18nKeys.title) : undefined}
+              activeModelHint={detailActiveModelHint}
             />
           ))}
         </div>

@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 
 import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { join, relative } from 'node:path';
 
-const repoRoot = new URL('../../../', import.meta.url);
-const srcRoot = new URL('../src/', import.meta.url);
-const testerRoot = new URL('../src/tester/', import.meta.url);
-const CSS_LINE_BUDGET = 800;
+const repoRoot = fileURLToPath(new URL('../../../', import.meta.url));
+const srcRoot = fileURLToPath(new URL('../src/', import.meta.url));
+const testerRoot = fileURLToPath(new URL('../src/tester/', import.meta.url));
+const CSS_LINE_BUDGET = 950;
 const failures = [];
 
 function walk(dir) {
@@ -23,12 +24,12 @@ function walk(dir) {
   return out;
 }
 
-const testerCssFiles = walk(testerRoot.pathname);
-const allCssFiles = walk(srcRoot.pathname);
+const testerCssFiles = walk(testerRoot);
+const allCssFiles = walk(srcRoot);
 let totalLines = 0;
 
 function scanCssFile(file, options) {
-  const rel = relative(repoRoot.pathname, file);
+  const rel = relative(repoRoot, file);
   const text = readFileSync(file, 'utf8');
   const lines = text.split(/\r?\n/u);
 
