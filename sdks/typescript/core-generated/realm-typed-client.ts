@@ -958,6 +958,58 @@ export interface CreatorEligibilityResponseDto {
   readonly status: "ACTIVE" | "CANCELED" | "PAST_DUE" | "PAUSED";
   readonly tier: "FREE" | "PRO" | "MAX";
 }
+export interface CreatorWorldAgentChatReadinessDto {
+  readonly agentId: string;
+  readonly agentRuleCount: number;
+  readonly authorityReason: "CREATOR_OWNER" | "MAINTAIN_ACCESS";
+  readonly consumerSurface: "AGENT_CHAT_READINESS";
+  readonly gates: CreatorWorldAgentChatReadinessGatesDto;
+  readonly ownerScope: "creator-world";
+  readonly profile: CreatorWorldAgentChatReadinessProfileDto;
+  readonly rawRuleContentExposed: boolean;
+  readonly runtimeProjectionChecksum: string;
+  readonly selectedInputCount: number;
+  readonly selectedOwnerSettingFields: readonly (string)[];
+  readonly suppressedInputCount: number;
+  readonly worldId: string;
+  readonly worldRuleCount: number;
+}
+export interface CreatorWorldAgentChatReadinessGatesDto {
+  readonly localAgentIdentityReady: boolean;
+  readonly ownerSettingsReady: boolean;
+  readonly profileContextReady: boolean;
+  readonly profileMediaReady: boolean;
+  readonly speechRouteReady: boolean;
+  readonly voiceReferenceReady: boolean;
+}
+export interface CreatorWorldAgentChatReadinessProfileDto {
+  readonly avatarUrl: string;
+  readonly defaultVoiceReference: string;
+  readonly displayName: string;
+  readonly handle: string;
+  readonly profileCoverUrl: string;
+  readonly speechModelId: string;
+  readonly speechRoutePolicy: "local" | "cloud";
+}
+export interface CreatorWorldSummaryDto {
+  readonly agentCount: number;
+  readonly authorityReason: "CREATOR_OWNER" | "MAINTAIN_ACCESS";
+  readonly bannerUrl?: string;
+  readonly creatorId: string;
+  readonly description?: string;
+  readonly iconUrl?: string;
+  readonly id: string;
+  readonly motto?: string;
+  readonly name: string;
+  readonly overview?: string;
+  readonly status: "DRAFT" | "PENDING_REVIEW" | "ACTIVE" | "SUSPENDED" | "ARCHIVED";
+  readonly tagline?: string;
+  readonly type: "CREATOR";
+  readonly updatedAt: string;
+}
+export interface CreatorWorldSummaryListDto {
+  readonly items: readonly (CreatorWorldSummaryDto)[];
+}
 export interface CurrencyBalancesDto {
   readonly gemBalance: string;
   readonly sparkBalance: string;
@@ -1102,38 +1154,6 @@ export interface ForgeAgentCandidateSourceProfileDto {
   readonly evidenceLocatorKind: string;
   readonly profile: string;
   readonly sourceId: string;
-}
-export interface ForgeImportedSystemAgentChatReadinessDto {
-  readonly agentId: string;
-  readonly agentRuleCount: number;
-  readonly consumerSurface: "AGENT_CHAT_READINESS";
-  readonly gates: ForgeImportedSystemAgentChatReadinessGatesDto;
-  readonly ownerScope: "forge-imported-system";
-  readonly profile: ForgeImportedSystemAgentChatReadinessProfileDto;
-  readonly rawRuleContentExposed: boolean;
-  readonly runtimeProjectionChecksum: string;
-  readonly selectedInputCount: number;
-  readonly selectedOwnerSettingFields: readonly (string)[];
-  readonly suppressedInputCount: number;
-  readonly worldId: string;
-  readonly worldRuleCount: number;
-}
-export interface ForgeImportedSystemAgentChatReadinessGatesDto {
-  readonly localAgentIdentityReady: boolean;
-  readonly ownerSettingsReady: boolean;
-  readonly profileContextReady: boolean;
-  readonly profileMediaReady: boolean;
-  readonly speechRouteReady: boolean;
-  readonly voiceReferenceReady: boolean;
-}
-export interface ForgeImportedSystemAgentChatReadinessProfileDto {
-  readonly avatarUrl: string;
-  readonly defaultVoiceReference: string;
-  readonly displayName: string;
-  readonly handle: string;
-  readonly profileCoverUrl: string;
-  readonly speechModelId: string;
-  readonly speechRoutePolicy: "local" | "cloud";
 }
 export interface ForgeProductArtifactRefDto {
   readonly checksum: string;
@@ -4080,6 +4100,11 @@ export interface RealmTypedModelMap {
   readonly "CreatorAgentResponseDto": CreatorAgentResponseDto;
   readonly "CreatorCapabilitiesResponseDto": CreatorCapabilitiesResponseDto;
   readonly "CreatorEligibilityResponseDto": CreatorEligibilityResponseDto;
+  readonly "CreatorWorldAgentChatReadinessDto": CreatorWorldAgentChatReadinessDto;
+  readonly "CreatorWorldAgentChatReadinessGatesDto": CreatorWorldAgentChatReadinessGatesDto;
+  readonly "CreatorWorldAgentChatReadinessProfileDto": CreatorWorldAgentChatReadinessProfileDto;
+  readonly "CreatorWorldSummaryDto": CreatorWorldSummaryDto;
+  readonly "CreatorWorldSummaryListDto": CreatorWorldSummaryListDto;
   readonly "CurrencyBalancesDto": CurrencyBalancesDto;
   readonly "CurrencyTransactionDto": CurrencyTransactionDto;
   readonly "CurrencyTransactionHistoryDto": CurrencyTransactionHistoryDto;
@@ -4104,9 +4129,6 @@ export interface RealmTypedModelMap {
   readonly "ForgeAgentCandidateRequirementDto": ForgeAgentCandidateRequirementDto;
   readonly "ForgeAgentCandidateRuntimeMaterializationDto": ForgeAgentCandidateRuntimeMaterializationDto;
   readonly "ForgeAgentCandidateSourceProfileDto": ForgeAgentCandidateSourceProfileDto;
-  readonly "ForgeImportedSystemAgentChatReadinessDto": ForgeImportedSystemAgentChatReadinessDto;
-  readonly "ForgeImportedSystemAgentChatReadinessGatesDto": ForgeImportedSystemAgentChatReadinessGatesDto;
-  readonly "ForgeImportedSystemAgentChatReadinessProfileDto": ForgeImportedSystemAgentChatReadinessProfileDto;
   readonly "ForgeProductArtifactRefDto": ForgeProductArtifactRefDto;
   readonly "ForgeProductCapabilitySummaryDto": ForgeProductCapabilitySummaryDto;
   readonly "ForgeProductCountsDto": ForgeProductCountsDto;
@@ -5700,6 +5722,48 @@ export interface RealmGetChatByIdOperationRequest {
   readonly body?: Record<string, never>;
 }
 export type RealmGetChatByIdOperationResponse = ChatViewDto;
+export interface RealmGetCreatorWorldAgentOperationRequest {
+  readonly path: {
+    readonly agentId: string;
+    readonly worldId: string;
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body?: Record<string, never>;
+}
+export type RealmGetCreatorWorldAgentOperationResponse = UserLiteDto;
+export interface RealmGetCreatorWorldAgentChatReadinessOperationRequest {
+  readonly path: {
+    readonly agentId: string;
+    readonly worldId: string;
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body?: Record<string, never>;
+}
+export type RealmGetCreatorWorldAgentChatReadinessOperationResponse = CreatorWorldAgentChatReadinessDto;
+export interface RealmGetCreatorWorldAgentSettingsOperationRequest {
+  readonly path: {
+    readonly agentId: string;
+    readonly worldId: string;
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body?: Record<string, never>;
+}
+export type RealmGetCreatorWorldAgentSettingsOperationResponse = OwnerAgentSettingsDto;
 export interface RealmGetExploreFeedOperationRequest {
   readonly path: {
 
@@ -5716,45 +5780,6 @@ export interface RealmGetExploreFeedOperationRequest {
   readonly body?: Record<string, never>;
 }
 export type RealmGetExploreFeedOperationResponse = FeedResponseDto;
-export interface RealmGetForgeImportedSystemAgentOperationRequest {
-  readonly path: {
-    readonly agentId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmGetForgeImportedSystemAgentOperationResponse = UserLiteDto;
-export interface RealmGetForgeImportedSystemAgentChatReadinessOperationRequest {
-  readonly path: {
-    readonly agentId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmGetForgeImportedSystemAgentChatReadinessOperationResponse = ForgeImportedSystemAgentChatReadinessDto;
-export interface RealmGetForgeImportedSystemAgentSettingsOperationRequest {
-  readonly path: {
-    readonly agentId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmGetForgeImportedSystemAgentSettingsOperationResponse = OwnerAgentSettingsDto;
 export interface RealmGetGroupOperationRequest {
   readonly path: {
     readonly chatId: string;
@@ -6339,9 +6364,9 @@ export interface RealmListChatsOperationRequest {
   readonly body?: Record<string, never>;
 }
 export type RealmListChatsOperationResponse = ListChatsResultDto;
-export interface RealmListForgeImportedSystemAgentsOperationRequest {
+export interface RealmListCreatorWorldAgentsOperationRequest {
   readonly path: {
-
+    readonly worldId: string;
   };
   readonly query?: {
 
@@ -6351,7 +6376,7 @@ export interface RealmListForgeImportedSystemAgentsOperationRequest {
   };
   readonly body?: Record<string, never>;
 }
-export type RealmListForgeImportedSystemAgentsOperationResponse = readonly (UserLiteDto)[];
+export type RealmListCreatorWorldAgentsOperationResponse = readonly (UserLiteDto)[];
 export interface RealmListGroupMessagesOperationRequest {
   readonly path: {
     readonly chatId: string;
@@ -6427,6 +6452,19 @@ export interface RealmListMyAppPermissionGrantsOperationRequest {
   readonly body?: Record<string, never>;
 }
 export type RealmListMyAppPermissionGrantsOperationResponse = AppPermissionGrantListDto;
+export interface RealmListMyCreatorWorldsOperationRequest {
+  readonly path: {
+
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body?: Record<string, never>;
+}
+export type RealmListMyCreatorWorldsOperationResponse = CreatorWorldSummaryListDto;
 export interface RealmListMyFriendIdsOperationRequest {
   readonly path: {
 
@@ -7274,9 +7312,10 @@ export interface RealmUpdateBundleOperationRequest {
   readonly body: UpdateBundleDto;
 }
 export type RealmUpdateBundleOperationResponse = BundleDetailDto;
-export interface RealmUpdateForgeImportedSystemAgentProfileMediaOperationRequest {
+export interface RealmUpdateCreatorWorldAgentProfileMediaOperationRequest {
   readonly path: {
     readonly agentId: string;
+    readonly worldId: string;
   };
   readonly query?: {
 
@@ -7286,10 +7325,11 @@ export interface RealmUpdateForgeImportedSystemAgentProfileMediaOperationRequest
   };
   readonly body: UpdateAgentProfileMediaDto;
 }
-export type RealmUpdateForgeImportedSystemAgentProfileMediaOperationResponse = UserLiteDto;
-export interface RealmUpdateForgeImportedSystemAgentSettingsOperationRequest {
+export type RealmUpdateCreatorWorldAgentProfileMediaOperationResponse = UserLiteDto;
+export interface RealmUpdateCreatorWorldAgentSettingsOperationRequest {
   readonly path: {
     readonly agentId: string;
+    readonly worldId: string;
   };
   readonly query?: {
 
@@ -7299,10 +7339,11 @@ export interface RealmUpdateForgeImportedSystemAgentSettingsOperationRequest {
   };
   readonly body: UpdateOwnerAgentSettingsDto;
 }
-export type RealmUpdateForgeImportedSystemAgentSettingsOperationResponse = OwnerAgentSettingsDto;
-export interface RealmUpdateForgeImportedSystemAgentVoiceOperationRequest {
+export type RealmUpdateCreatorWorldAgentSettingsOperationResponse = OwnerAgentSettingsDto;
+export interface RealmUpdateCreatorWorldAgentVoiceOperationRequest {
   readonly path: {
     readonly agentId: string;
+    readonly worldId: string;
   };
   readonly query?: {
 
@@ -7312,7 +7353,7 @@ export interface RealmUpdateForgeImportedSystemAgentVoiceOperationRequest {
   };
   readonly body: UpdateAgentVoiceDto;
 }
-export type RealmUpdateForgeImportedSystemAgentVoiceOperationResponse = UserLiteDto;
+export type RealmUpdateCreatorWorldAgentVoiceOperationResponse = UserLiteDto;
 export interface RealmUpdateGroupOperationRequest {
   readonly path: {
     readonly chatId: string;
@@ -9149,42 +9190,42 @@ export class RealmTypedClient {
     });
   }
 
+  async getCreatorWorldAgent(request: RealmGetCreatorWorldAgentOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetCreatorWorldAgentOperationResponse> {
+    return this.core.unary<RealmGetCreatorWorldAgentOperationResponse, RealmGetCreatorWorldAgentOperationRequest>({
+      methodId: "getCreatorWorldAgent",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async getCreatorWorldAgentChatReadiness(request: RealmGetCreatorWorldAgentChatReadinessOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetCreatorWorldAgentChatReadinessOperationResponse> {
+    return this.core.unary<RealmGetCreatorWorldAgentChatReadinessOperationResponse, RealmGetCreatorWorldAgentChatReadinessOperationRequest>({
+      methodId: "getCreatorWorldAgentChatReadiness",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async getCreatorWorldAgentSettings(request: RealmGetCreatorWorldAgentSettingsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetCreatorWorldAgentSettingsOperationResponse> {
+    return this.core.unary<RealmGetCreatorWorldAgentSettingsOperationResponse, RealmGetCreatorWorldAgentSettingsOperationRequest>({
+      methodId: "getCreatorWorldAgentSettings",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
   async getExploreFeed(request: RealmGetExploreFeedOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetExploreFeedOperationResponse> {
     return this.core.unary<RealmGetExploreFeedOperationResponse, RealmGetExploreFeedOperationRequest>({
       methodId: "getExploreFeed",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async getForgeImportedSystemAgent(request: RealmGetForgeImportedSystemAgentOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetForgeImportedSystemAgentOperationResponse> {
-    return this.core.unary<RealmGetForgeImportedSystemAgentOperationResponse, RealmGetForgeImportedSystemAgentOperationRequest>({
-      methodId: "getForgeImportedSystemAgent",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async getForgeImportedSystemAgentChatReadiness(request: RealmGetForgeImportedSystemAgentChatReadinessOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetForgeImportedSystemAgentChatReadinessOperationResponse> {
-    return this.core.unary<RealmGetForgeImportedSystemAgentChatReadinessOperationResponse, RealmGetForgeImportedSystemAgentChatReadinessOperationRequest>({
-      methodId: "getForgeImportedSystemAgentChatReadiness",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async getForgeImportedSystemAgentSettings(request: RealmGetForgeImportedSystemAgentSettingsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetForgeImportedSystemAgentSettingsOperationResponse> {
-    return this.core.unary<RealmGetForgeImportedSystemAgentSettingsOperationResponse, RealmGetForgeImportedSystemAgentSettingsOperationRequest>({
-      methodId: "getForgeImportedSystemAgentSettings",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -9677,9 +9718,9 @@ export class RealmTypedClient {
     });
   }
 
-  async listForgeImportedSystemAgents(request: RealmListForgeImportedSystemAgentsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmListForgeImportedSystemAgentsOperationResponse> {
-    return this.core.unary<RealmListForgeImportedSystemAgentsOperationResponse, RealmListForgeImportedSystemAgentsOperationRequest>({
-      methodId: "listForgeImportedSystemAgents",
+  async listCreatorWorldAgents(request: RealmListCreatorWorldAgentsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmListCreatorWorldAgentsOperationResponse> {
+    return this.core.unary<RealmListCreatorWorldAgentsOperationResponse, RealmListCreatorWorldAgentsOperationRequest>({
+      methodId: "listCreatorWorldAgents",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -9735,6 +9776,17 @@ export class RealmTypedClient {
   async listMyAppPermissionGrants(request: RealmListMyAppPermissionGrantsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmListMyAppPermissionGrantsOperationResponse> {
     return this.core.unary<RealmListMyAppPermissionGrantsOperationResponse, RealmListMyAppPermissionGrantsOperationRequest>({
       methodId: "listMyAppPermissionGrants",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async listMyCreatorWorlds(request: RealmListMyCreatorWorldsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmListMyCreatorWorldsOperationResponse> {
+    return this.core.unary<RealmListMyCreatorWorldsOperationResponse, RealmListMyCreatorWorldsOperationRequest>({
+      methodId: "listMyCreatorWorlds",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -10414,9 +10466,9 @@ export class RealmTypedClient {
     });
   }
 
-  async updateForgeImportedSystemAgentProfileMedia(request: RealmUpdateForgeImportedSystemAgentProfileMediaOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmUpdateForgeImportedSystemAgentProfileMediaOperationResponse> {
-    return this.core.unary<RealmUpdateForgeImportedSystemAgentProfileMediaOperationResponse, RealmUpdateForgeImportedSystemAgentProfileMediaOperationRequest>({
-      methodId: "updateForgeImportedSystemAgentProfileMedia",
+  async updateCreatorWorldAgentProfileMedia(request: RealmUpdateCreatorWorldAgentProfileMediaOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmUpdateCreatorWorldAgentProfileMediaOperationResponse> {
+    return this.core.unary<RealmUpdateCreatorWorldAgentProfileMediaOperationResponse, RealmUpdateCreatorWorldAgentProfileMediaOperationRequest>({
+      methodId: "updateCreatorWorldAgentProfileMedia",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -10425,9 +10477,9 @@ export class RealmTypedClient {
     });
   }
 
-  async updateForgeImportedSystemAgentSettings(request: RealmUpdateForgeImportedSystemAgentSettingsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmUpdateForgeImportedSystemAgentSettingsOperationResponse> {
-    return this.core.unary<RealmUpdateForgeImportedSystemAgentSettingsOperationResponse, RealmUpdateForgeImportedSystemAgentSettingsOperationRequest>({
-      methodId: "updateForgeImportedSystemAgentSettings",
+  async updateCreatorWorldAgentSettings(request: RealmUpdateCreatorWorldAgentSettingsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmUpdateCreatorWorldAgentSettingsOperationResponse> {
+    return this.core.unary<RealmUpdateCreatorWorldAgentSettingsOperationResponse, RealmUpdateCreatorWorldAgentSettingsOperationRequest>({
+      methodId: "updateCreatorWorldAgentSettings",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -10436,9 +10488,9 @@ export class RealmTypedClient {
     });
   }
 
-  async updateForgeImportedSystemAgentVoice(request: RealmUpdateForgeImportedSystemAgentVoiceOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmUpdateForgeImportedSystemAgentVoiceOperationResponse> {
-    return this.core.unary<RealmUpdateForgeImportedSystemAgentVoiceOperationResponse, RealmUpdateForgeImportedSystemAgentVoiceOperationRequest>({
-      methodId: "updateForgeImportedSystemAgentVoice",
+  async updateCreatorWorldAgentVoice(request: RealmUpdateCreatorWorldAgentVoiceOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmUpdateCreatorWorldAgentVoiceOperationResponse> {
+    return this.core.unary<RealmUpdateCreatorWorldAgentVoiceOperationResponse, RealmUpdateCreatorWorldAgentVoiceOperationRequest>({
+      methodId: "updateCreatorWorldAgentVoice",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,

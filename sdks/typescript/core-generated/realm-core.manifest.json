@@ -1,12 +1,12 @@
 {
   "contract": "nimi.sdks.realm-core-manifest.v1",
   "generated_by": "sdks/generators/generate.mjs",
-  "source_kind": "public_realm_core_manifest_projection",
-  "source_state": "projection_loaded",
-  "source_label": "sdks/generators/shared/generated/realm-core.manifest.json",
+  "source_kind": "realm_openapi",
+  "source_state": "openapi_loaded",
+  "source_label": "config/realm-openapi/api-nimi.yaml",
   "source_paths": [
     "config/realm-openapi-source.json",
-    "sdks/generators/shared/generated/realm-core.manifest.json"
+    "config/realm-openapi/api-nimi.yaml"
   ],
   "authority_refs": [
     ".nimi/spec/sdks/kernel/realm-core-contract.md"
@@ -5323,6 +5323,234 @@
       ]
     },
     {
+      "operation_id": "getCreatorWorldAgent",
+      "method": "GET",
+      "path": "/api/me/creator/worlds/{worldId}/agents/{agentId}",
+      "service": "Agent / Creator World",
+      "tags": [
+        "Agent / Creator World"
+      ],
+      "parameters": [
+        {
+          "name": "agentId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        },
+        {
+          "name": "worldId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "path_parameters": [
+        {
+          "name": "agentId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        },
+        {
+          "name": "worldId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/UserLiteDto",
+            "ref_name": "UserLiteDto"
+          },
+          "schema_ref": "#/components/schemas/UserLiteDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/UserLiteDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "getCreatorWorldAgentChatReadiness",
+      "method": "GET",
+      "path": "/api/me/creator/worlds/{worldId}/agents/{agentId}/chat-readiness",
+      "service": "Agent / Creator World",
+      "tags": [
+        "Agent / Creator World"
+      ],
+      "parameters": [
+        {
+          "name": "agentId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        },
+        {
+          "name": "worldId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "path_parameters": [
+        {
+          "name": "agentId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        },
+        {
+          "name": "worldId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/CreatorWorldAgentChatReadinessDto",
+            "ref_name": "CreatorWorldAgentChatReadinessDto"
+          },
+          "schema_ref": "#/components/schemas/CreatorWorldAgentChatReadinessDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/CreatorWorldAgentChatReadinessDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "getCreatorWorldAgentSettings",
+      "method": "GET",
+      "path": "/api/me/creator/worlds/{worldId}/agents/{agentId}/settings",
+      "service": "Agent / Creator World",
+      "tags": [
+        "Agent / Creator World"
+      ],
+      "parameters": [
+        {
+          "name": "agentId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        },
+        {
+          "name": "worldId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "path_parameters": [
+        {
+          "name": "agentId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        },
+        {
+          "name": "worldId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/OwnerAgentSettingsDto",
+            "ref_name": "OwnerAgentSettingsDto"
+          },
+          "schema_ref": "#/components/schemas/OwnerAgentSettingsDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/OwnerAgentSettingsDto"
+        }
+      ]
+    },
+    {
       "operation_id": "getExploreFeed",
       "method": "GET",
       "path": "/api/explore",
@@ -5435,174 +5663,6 @@
         {
           "status": "200",
           "schema_ref": "#/components/schemas/FeedResponseDto"
-        }
-      ]
-    },
-    {
-      "operation_id": "getForgeImportedSystemAgent",
-      "method": "GET",
-      "path": "/api/agent/forge-imported-system/agents/{agentId}",
-      "service": "Agent / Forge Imported System",
-      "tags": [
-        "Agent / Forge Imported System"
-      ],
-      "parameters": [
-        {
-          "name": "agentId",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null
-          }
-        }
-      ],
-      "path_parameters": [
-        {
-          "name": "agentId",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null
-          }
-        }
-      ],
-      "query_parameters": [],
-      "header_parameters": [],
-      "request_schema": {
-        "kind": "unknown"
-      },
-      "request_schema_ref": null,
-      "response_schemas": [
-        {
-          "status": "200",
-          "schema": {
-            "kind": "ref",
-            "ref": "#/components/schemas/UserLiteDto",
-            "ref_name": "UserLiteDto"
-          },
-          "schema_ref": "#/components/schemas/UserLiteDto"
-        }
-      ],
-      "response_schema_refs": [
-        {
-          "status": "200",
-          "schema_ref": "#/components/schemas/UserLiteDto"
-        }
-      ]
-    },
-    {
-      "operation_id": "getForgeImportedSystemAgentChatReadiness",
-      "method": "GET",
-      "path": "/api/agent/forge-imported-system/agents/{agentId}/chat-readiness",
-      "service": "Agent / Forge Imported System",
-      "tags": [
-        "Agent / Forge Imported System"
-      ],
-      "parameters": [
-        {
-          "name": "agentId",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null
-          }
-        }
-      ],
-      "path_parameters": [
-        {
-          "name": "agentId",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null
-          }
-        }
-      ],
-      "query_parameters": [],
-      "header_parameters": [],
-      "request_schema": {
-        "kind": "unknown"
-      },
-      "request_schema_ref": null,
-      "response_schemas": [
-        {
-          "status": "200",
-          "schema": {
-            "kind": "ref",
-            "ref": "#/components/schemas/ForgeImportedSystemAgentChatReadinessDto",
-            "ref_name": "ForgeImportedSystemAgentChatReadinessDto"
-          },
-          "schema_ref": "#/components/schemas/ForgeImportedSystemAgentChatReadinessDto"
-        }
-      ],
-      "response_schema_refs": [
-        {
-          "status": "200",
-          "schema_ref": "#/components/schemas/ForgeImportedSystemAgentChatReadinessDto"
-        }
-      ]
-    },
-    {
-      "operation_id": "getForgeImportedSystemAgentSettings",
-      "method": "GET",
-      "path": "/api/agent/forge-imported-system/agents/{agentId}/settings",
-      "service": "Agent / Forge Imported System",
-      "tags": [
-        "Agent / Forge Imported System"
-      ],
-      "parameters": [
-        {
-          "name": "agentId",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null
-          }
-        }
-      ],
-      "path_parameters": [
-        {
-          "name": "agentId",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null
-          }
-        }
-      ],
-      "query_parameters": [],
-      "header_parameters": [],
-      "request_schema": {
-        "kind": "unknown"
-      },
-      "request_schema_ref": null,
-      "response_schemas": [
-        {
-          "status": "200",
-          "schema": {
-            "kind": "ref",
-            "ref": "#/components/schemas/OwnerAgentSettingsDto",
-            "ref_name": "OwnerAgentSettingsDto"
-          },
-          "schema_ref": "#/components/schemas/OwnerAgentSettingsDto"
-        }
-      ],
-      "response_schema_refs": [
-        {
-          "status": "200",
-          "schema_ref": "#/components/schemas/OwnerAgentSettingsDto"
         }
       ]
     },
@@ -8099,15 +8159,37 @@
       ]
     },
     {
-      "operation_id": "listForgeImportedSystemAgents",
+      "operation_id": "listCreatorWorldAgents",
       "method": "GET",
-      "path": "/api/agent/forge-imported-system/agents",
-      "service": "Agent / Forge Imported System",
+      "path": "/api/me/creator/worlds/{worldId}/agents",
+      "service": "Agent / Creator World",
       "tags": [
-        "Agent / Forge Imported System"
+        "Agent / Creator World"
       ],
-      "parameters": [],
-      "path_parameters": [],
+      "parameters": [
+        {
+          "name": "worldId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "path_parameters": [
+        {
+          "name": "worldId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
       "query_parameters": [],
       "header_parameters": [],
       "request_schema": {
@@ -8649,6 +8731,40 @@
         {
           "status": "200",
           "schema_ref": "#/components/schemas/AppPermissionGrantListDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "listMyCreatorWorlds",
+      "method": "GET",
+      "path": "/api/me/creator/worlds",
+      "service": "World Control",
+      "tags": [
+        "World Control"
+      ],
+      "parameters": [],
+      "path_parameters": [],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/CreatorWorldSummaryListDto",
+            "ref_name": "CreatorWorldSummaryListDto"
+          },
+          "schema_ref": "#/components/schemas/CreatorWorldSummaryListDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/CreatorWorldSummaryListDto"
         }
       ]
     },
@@ -12433,16 +12549,26 @@
       ]
     },
     {
-      "operation_id": "updateForgeImportedSystemAgentProfileMedia",
+      "operation_id": "updateCreatorWorldAgentProfileMedia",
       "method": "PATCH",
-      "path": "/api/agent/forge-imported-system/agents/{agentId}/profile-media",
-      "service": "Agent / Forge Imported System",
+      "path": "/api/me/creator/worlds/{worldId}/agents/{agentId}/profile-media",
+      "service": "Agent / Creator World",
       "tags": [
-        "Agent / Forge Imported System"
+        "Agent / Creator World"
       ],
       "parameters": [
         {
           "name": "agentId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        },
+        {
+          "name": "worldId",
           "in": "path",
           "required": true,
           "schema": {
@@ -12455,6 +12581,16 @@
       "path_parameters": [
         {
           "name": "agentId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        },
+        {
+          "name": "worldId",
           "in": "path",
           "required": true,
           "schema": {
@@ -12491,16 +12627,26 @@
       ]
     },
     {
-      "operation_id": "updateForgeImportedSystemAgentSettings",
+      "operation_id": "updateCreatorWorldAgentSettings",
       "method": "PATCH",
-      "path": "/api/agent/forge-imported-system/agents/{agentId}/settings",
-      "service": "Agent / Forge Imported System",
+      "path": "/api/me/creator/worlds/{worldId}/agents/{agentId}/settings",
+      "service": "Agent / Creator World",
       "tags": [
-        "Agent / Forge Imported System"
+        "Agent / Creator World"
       ],
       "parameters": [
         {
           "name": "agentId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        },
+        {
+          "name": "worldId",
           "in": "path",
           "required": true,
           "schema": {
@@ -12513,6 +12659,16 @@
       "path_parameters": [
         {
           "name": "agentId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        },
+        {
+          "name": "worldId",
           "in": "path",
           "required": true,
           "schema": {
@@ -12549,16 +12705,26 @@
       ]
     },
     {
-      "operation_id": "updateForgeImportedSystemAgentVoice",
+      "operation_id": "updateCreatorWorldAgentVoice",
       "method": "PATCH",
-      "path": "/api/agent/forge-imported-system/agents/{agentId}/voice",
-      "service": "Agent / Forge Imported System",
+      "path": "/api/me/creator/worlds/{worldId}/agents/{agentId}/voice",
+      "service": "Agent / Creator World",
       "tags": [
-        "Agent / Forge Imported System"
+        "Agent / Creator World"
       ],
       "parameters": [
         {
           "name": "agentId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        },
+        {
+          "name": "worldId",
           "in": "path",
           "required": true,
           "schema": {
@@ -12571,6 +12737,16 @@
       "path_parameters": [
         {
           "name": "agentId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        },
+        {
+          "name": "worldId",
           "in": "path",
           "required": true,
           "schema": {
@@ -16429,28 +16605,28 @@
       "path": "/api/human/chats/{chatId}"
     },
     {
+      "operation_id": "getCreatorWorldAgent",
+      "service": "Agent / Creator World",
+      "method": "GET",
+      "path": "/api/me/creator/worlds/{worldId}/agents/{agentId}"
+    },
+    {
+      "operation_id": "getCreatorWorldAgentChatReadiness",
+      "service": "Agent / Creator World",
+      "method": "GET",
+      "path": "/api/me/creator/worlds/{worldId}/agents/{agentId}/chat-readiness"
+    },
+    {
+      "operation_id": "getCreatorWorldAgentSettings",
+      "service": "Agent / Creator World",
+      "method": "GET",
+      "path": "/api/me/creator/worlds/{worldId}/agents/{agentId}/settings"
+    },
+    {
       "operation_id": "getExploreFeed",
       "service": "Explore",
       "method": "GET",
       "path": "/api/explore"
-    },
-    {
-      "operation_id": "getForgeImportedSystemAgent",
-      "service": "Agent / Forge Imported System",
-      "method": "GET",
-      "path": "/api/agent/forge-imported-system/agents/{agentId}"
-    },
-    {
-      "operation_id": "getForgeImportedSystemAgentChatReadiness",
-      "service": "Agent / Forge Imported System",
-      "method": "GET",
-      "path": "/api/agent/forge-imported-system/agents/{agentId}/chat-readiness"
-    },
-    {
-      "operation_id": "getForgeImportedSystemAgentSettings",
-      "service": "Agent / Forge Imported System",
-      "method": "GET",
-      "path": "/api/agent/forge-imported-system/agents/{agentId}/settings"
     },
     {
       "operation_id": "getGroup",
@@ -16717,10 +16893,10 @@
       "path": "/api/human/chats"
     },
     {
-      "operation_id": "listForgeImportedSystemAgents",
-      "service": "Agent / Forge Imported System",
+      "operation_id": "listCreatorWorldAgents",
+      "service": "Agent / Creator World",
       "method": "GET",
-      "path": "/api/agent/forge-imported-system/agents"
+      "path": "/api/me/creator/worlds/{worldId}/agents"
     },
     {
       "operation_id": "listGroupMessages",
@@ -16751,6 +16927,12 @@
       "service": "Me / Permission Grants",
       "method": "GET",
       "path": "/api/human/me/permission-grants"
+    },
+    {
+      "operation_id": "listMyCreatorWorlds",
+      "service": "World Control",
+      "method": "GET",
+      "path": "/api/me/creator/worlds"
     },
     {
       "operation_id": "listMyFriendIds",
@@ -17119,22 +17301,22 @@
       "path": "/api/bundles/{bundleId}"
     },
     {
-      "operation_id": "updateForgeImportedSystemAgentProfileMedia",
-      "service": "Agent / Forge Imported System",
+      "operation_id": "updateCreatorWorldAgentProfileMedia",
+      "service": "Agent / Creator World",
       "method": "PATCH",
-      "path": "/api/agent/forge-imported-system/agents/{agentId}/profile-media"
+      "path": "/api/me/creator/worlds/{worldId}/agents/{agentId}/profile-media"
     },
     {
-      "operation_id": "updateForgeImportedSystemAgentSettings",
-      "service": "Agent / Forge Imported System",
+      "operation_id": "updateCreatorWorldAgentSettings",
+      "service": "Agent / Creator World",
       "method": "PATCH",
-      "path": "/api/agent/forge-imported-system/agents/{agentId}/settings"
+      "path": "/api/me/creator/worlds/{worldId}/agents/{agentId}/settings"
     },
     {
-      "operation_id": "updateForgeImportedSystemAgentVoice",
-      "service": "Agent / Forge Imported System",
+      "operation_id": "updateCreatorWorldAgentVoice",
+      "service": "Agent / Creator World",
       "method": "PATCH",
-      "path": "/api/agent/forge-imported-system/agents/{agentId}/voice"
+      "path": "/api/me/creator/worlds/{worldId}/agents/{agentId}/voice"
     },
     {
       "operation_id": "updateGroup",
@@ -17481,15 +17663,15 @@
   ],
   "service_registry": [
     {
-      "name": "Agent / Forge Imported System",
+      "name": "Agent / Creator World",
       "operation_ids": [
-        "getForgeImportedSystemAgent",
-        "getForgeImportedSystemAgentChatReadiness",
-        "getForgeImportedSystemAgentSettings",
-        "listForgeImportedSystemAgents",
-        "updateForgeImportedSystemAgentProfileMedia",
-        "updateForgeImportedSystemAgentSettings",
-        "updateForgeImportedSystemAgentVoice"
+        "getCreatorWorldAgent",
+        "getCreatorWorldAgentChatReadiness",
+        "getCreatorWorldAgentSettings",
+        "listCreatorWorldAgents",
+        "updateCreatorWorldAgentProfileMedia",
+        "updateCreatorWorldAgentSettings",
+        "updateCreatorWorldAgentVoice"
       ]
     },
     {
@@ -17898,7 +18080,8 @@
         "WorldControlController_listWorldLorebooks",
         "WorldControlController_publishDraft",
         "WorldControlController_resolveLanding",
-        "WorldControlController_updateDraft"
+        "WorldControlController_updateDraft",
+        "listMyCreatorWorlds"
       ]
     },
     {
@@ -18340,6 +18523,21 @@
       "name": "CreatorEligibilityResponseDto"
     },
     {
+      "name": "CreatorWorldAgentChatReadinessDto"
+    },
+    {
+      "name": "CreatorWorldAgentChatReadinessGatesDto"
+    },
+    {
+      "name": "CreatorWorldAgentChatReadinessProfileDto"
+    },
+    {
+      "name": "CreatorWorldSummaryDto"
+    },
+    {
+      "name": "CreatorWorldSummaryListDto"
+    },
+    {
       "name": "CurrencyBalancesDto"
     },
     {
@@ -18410,15 +18608,6 @@
     },
     {
       "name": "ForgeAgentCandidateSourceProfileDto"
-    },
-    {
-      "name": "ForgeImportedSystemAgentChatReadinessDto"
-    },
-    {
-      "name": "ForgeImportedSystemAgentChatReadinessGatesDto"
-    },
-    {
-      "name": "ForgeImportedSystemAgentChatReadinessProfileDto"
     },
     {
       "name": "ForgeProductArtifactRefDto"
@@ -27582,6 +27771,449 @@
       }
     },
     {
+      "name": "CreatorWorldAgentChatReadinessDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "agentId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "agentRuleCount",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "authorityReason",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "CREATOR_OWNER",
+                "MAINTAIN_ACCESS"
+              ]
+            }
+          },
+          {
+            "name": "consumerSurface",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "AGENT_CHAT_READINESS"
+              ]
+            }
+          },
+          {
+            "name": "gates",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/CreatorWorldAgentChatReadinessGatesDto",
+              "ref_name": "CreatorWorldAgentChatReadinessGatesDto"
+            }
+          },
+          {
+            "name": "ownerScope",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "creator-world"
+              ]
+            }
+          },
+          {
+            "name": "profile",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/CreatorWorldAgentChatReadinessProfileDto",
+              "ref_name": "CreatorWorldAgentChatReadinessProfileDto"
+            }
+          },
+          {
+            "name": "rawRuleContentExposed",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "boolean",
+              "format": null
+            }
+          },
+          {
+            "name": "runtimeProjectionChecksum",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "selectedInputCount",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "selectedOwnerSettingFields",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "scalar",
+                "type": "string",
+                "format": null
+              }
+            }
+          },
+          {
+            "name": "suppressedInputCount",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "worldId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "worldRuleCount",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "CreatorWorldAgentChatReadinessGatesDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "localAgentIdentityReady",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "boolean",
+              "format": null
+            }
+          },
+          {
+            "name": "ownerSettingsReady",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "boolean",
+              "format": null
+            }
+          },
+          {
+            "name": "profileContextReady",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "boolean",
+              "format": null
+            }
+          },
+          {
+            "name": "profileMediaReady",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "boolean",
+              "format": null
+            }
+          },
+          {
+            "name": "speechRouteReady",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "boolean",
+              "format": null
+            }
+          },
+          {
+            "name": "voiceReferenceReady",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "boolean",
+              "format": null
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "CreatorWorldAgentChatReadinessProfileDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "avatarUrl",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "defaultVoiceReference",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "displayName",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "handle",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "profileCoverUrl",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "speechModelId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "speechRoutePolicy",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "local",
+                "cloud"
+              ]
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "CreatorWorldSummaryDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "agentCount",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "authorityReason",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "CREATOR_OWNER",
+                "MAINTAIN_ACCESS"
+              ]
+            }
+          },
+          {
+            "name": "bannerUrl",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "creatorId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "description",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "iconUrl",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "motto",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "name",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "overview",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "status",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "DRAFT",
+                "PENDING_REVIEW",
+                "ACTIVE",
+                "SUSPENDED",
+                "ARCHIVED"
+              ]
+            }
+          },
+          {
+            "name": "tagline",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "type",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "CREATOR"
+              ]
+            }
+          },
+          {
+            "name": "updatedAt",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "CreatorWorldSummaryListDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "items",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "ref",
+                "ref": "#/components/schemas/CreatorWorldSummaryDto",
+                "ref_name": "CreatorWorldSummaryDto"
+              }
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
       "name": "CurrencyBalancesDto",
       "schema": {
         "kind": "object",
@@ -28783,274 +29415,6 @@
               "kind": "scalar",
               "type": "string",
               "format": null
-            }
-          }
-        ],
-        "additional_properties": null
-      }
-    },
-    {
-      "name": "ForgeImportedSystemAgentChatReadinessDto",
-      "schema": {
-        "kind": "object",
-        "properties": [
-          {
-            "name": "agentId",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null
-            }
-          },
-          {
-            "name": "agentRuleCount",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "number",
-              "format": null
-            }
-          },
-          {
-            "name": "consumerSurface",
-            "required": true,
-            "schema": {
-              "kind": "enum",
-              "values": [
-                "AGENT_CHAT_READINESS"
-              ]
-            }
-          },
-          {
-            "name": "gates",
-            "required": true,
-            "schema": {
-              "kind": "ref",
-              "ref": "#/components/schemas/ForgeImportedSystemAgentChatReadinessGatesDto",
-              "ref_name": "ForgeImportedSystemAgentChatReadinessGatesDto"
-            }
-          },
-          {
-            "name": "ownerScope",
-            "required": true,
-            "schema": {
-              "kind": "enum",
-              "values": [
-                "forge-imported-system"
-              ]
-            }
-          },
-          {
-            "name": "profile",
-            "required": true,
-            "schema": {
-              "kind": "ref",
-              "ref": "#/components/schemas/ForgeImportedSystemAgentChatReadinessProfileDto",
-              "ref_name": "ForgeImportedSystemAgentChatReadinessProfileDto"
-            }
-          },
-          {
-            "name": "rawRuleContentExposed",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "boolean",
-              "format": null
-            }
-          },
-          {
-            "name": "runtimeProjectionChecksum",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null
-            }
-          },
-          {
-            "name": "selectedInputCount",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "number",
-              "format": null
-            }
-          },
-          {
-            "name": "selectedOwnerSettingFields",
-            "required": true,
-            "schema": {
-              "kind": "array",
-              "items": {
-                "kind": "scalar",
-                "type": "string",
-                "format": null
-              }
-            }
-          },
-          {
-            "name": "suppressedInputCount",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "number",
-              "format": null
-            }
-          },
-          {
-            "name": "worldId",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null
-            }
-          },
-          {
-            "name": "worldRuleCount",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "number",
-              "format": null
-            }
-          }
-        ],
-        "additional_properties": null
-      }
-    },
-    {
-      "name": "ForgeImportedSystemAgentChatReadinessGatesDto",
-      "schema": {
-        "kind": "object",
-        "properties": [
-          {
-            "name": "localAgentIdentityReady",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "boolean",
-              "format": null
-            }
-          },
-          {
-            "name": "ownerSettingsReady",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "boolean",
-              "format": null
-            }
-          },
-          {
-            "name": "profileContextReady",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "boolean",
-              "format": null
-            }
-          },
-          {
-            "name": "profileMediaReady",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "boolean",
-              "format": null
-            }
-          },
-          {
-            "name": "speechRouteReady",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "boolean",
-              "format": null
-            }
-          },
-          {
-            "name": "voiceReferenceReady",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "boolean",
-              "format": null
-            }
-          }
-        ],
-        "additional_properties": null
-      }
-    },
-    {
-      "name": "ForgeImportedSystemAgentChatReadinessProfileDto",
-      "schema": {
-        "kind": "object",
-        "properties": [
-          {
-            "name": "avatarUrl",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null
-            }
-          },
-          {
-            "name": "defaultVoiceReference",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null
-            }
-          },
-          {
-            "name": "displayName",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null
-            }
-          },
-          {
-            "name": "handle",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null
-            }
-          },
-          {
-            "name": "profileCoverUrl",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null
-            }
-          },
-          {
-            "name": "speechModelId",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null
-            }
-          },
-          {
-            "name": "speechRoutePolicy",
-            "required": true,
-            "schema": {
-              "kind": "enum",
-              "values": [
-                "local",
-                "cloud"
-              ]
             }
           }
         ],

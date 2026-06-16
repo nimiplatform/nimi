@@ -21,8 +21,8 @@
     },
     {
       "name": "realm_operation_presence",
-      "count": 273,
-      "source_state": "projection_loaded"
+      "count": 274,
+      "source_state": "openapi_loaded"
     },
     {
       "name": "request_response_codecs",

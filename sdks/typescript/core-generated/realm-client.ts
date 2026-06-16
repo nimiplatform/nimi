@@ -601,28 +601,28 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/human/chats/{chatId}"
   },
   {
+    "operationId": "getCreatorWorldAgent",
+    "service": "Agent / Creator World",
+    "method": "GET",
+    "path": "/api/me/creator/worlds/{worldId}/agents/{agentId}"
+  },
+  {
+    "operationId": "getCreatorWorldAgentChatReadiness",
+    "service": "Agent / Creator World",
+    "method": "GET",
+    "path": "/api/me/creator/worlds/{worldId}/agents/{agentId}/chat-readiness"
+  },
+  {
+    "operationId": "getCreatorWorldAgentSettings",
+    "service": "Agent / Creator World",
+    "method": "GET",
+    "path": "/api/me/creator/worlds/{worldId}/agents/{agentId}/settings"
+  },
+  {
     "operationId": "getExploreFeed",
     "service": "Explore",
     "method": "GET",
     "path": "/api/explore"
-  },
-  {
-    "operationId": "getForgeImportedSystemAgent",
-    "service": "Agent / Forge Imported System",
-    "method": "GET",
-    "path": "/api/agent/forge-imported-system/agents/{agentId}"
-  },
-  {
-    "operationId": "getForgeImportedSystemAgentChatReadiness",
-    "service": "Agent / Forge Imported System",
-    "method": "GET",
-    "path": "/api/agent/forge-imported-system/agents/{agentId}/chat-readiness"
-  },
-  {
-    "operationId": "getForgeImportedSystemAgentSettings",
-    "service": "Agent / Forge Imported System",
-    "method": "GET",
-    "path": "/api/agent/forge-imported-system/agents/{agentId}/settings"
   },
   {
     "operationId": "getGroup",
@@ -889,10 +889,10 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/human/chats"
   },
   {
-    "operationId": "listForgeImportedSystemAgents",
-    "service": "Agent / Forge Imported System",
+    "operationId": "listCreatorWorldAgents",
+    "service": "Agent / Creator World",
     "method": "GET",
-    "path": "/api/agent/forge-imported-system/agents"
+    "path": "/api/me/creator/worlds/{worldId}/agents"
   },
   {
     "operationId": "listGroupMessages",
@@ -923,6 +923,12 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "service": "Me / Permission Grants",
     "method": "GET",
     "path": "/api/human/me/permission-grants"
+  },
+  {
+    "operationId": "listMyCreatorWorlds",
+    "service": "World Control",
+    "method": "GET",
+    "path": "/api/me/creator/worlds"
   },
   {
     "operationId": "listMyFriendIds",
@@ -1291,22 +1297,22 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/bundles/{bundleId}"
   },
   {
-    "operationId": "updateForgeImportedSystemAgentProfileMedia",
-    "service": "Agent / Forge Imported System",
+    "operationId": "updateCreatorWorldAgentProfileMedia",
+    "service": "Agent / Creator World",
     "method": "PATCH",
-    "path": "/api/agent/forge-imported-system/agents/{agentId}/profile-media"
+    "path": "/api/me/creator/worlds/{worldId}/agents/{agentId}/profile-media"
   },
   {
-    "operationId": "updateForgeImportedSystemAgentSettings",
-    "service": "Agent / Forge Imported System",
+    "operationId": "updateCreatorWorldAgentSettings",
+    "service": "Agent / Creator World",
     "method": "PATCH",
-    "path": "/api/agent/forge-imported-system/agents/{agentId}/settings"
+    "path": "/api/me/creator/worlds/{worldId}/agents/{agentId}/settings"
   },
   {
-    "operationId": "updateForgeImportedSystemAgentVoice",
-    "service": "Agent / Forge Imported System",
+    "operationId": "updateCreatorWorldAgentVoice",
+    "service": "Agent / Creator World",
     "method": "PATCH",
-    "path": "/api/agent/forge-imported-system/agents/{agentId}/voice"
+    "path": "/api/me/creator/worlds/{worldId}/agents/{agentId}/voice"
   },
   {
     "operationId": "updateGroup",

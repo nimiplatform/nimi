@@ -38931,6 +38931,68 @@ pub struct CreatorEligibilityResponseDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct CreatorWorldAgentChatReadinessDto {
+    pub agent_id: String,
+    pub agent_rule_count: f64,
+    pub authority_reason: String,
+    pub consumer_surface: String,
+    pub gates: Box<CreatorWorldAgentChatReadinessGatesDto>,
+    pub owner_scope: String,
+    pub profile: Box<CreatorWorldAgentChatReadinessProfileDto>,
+    pub raw_rule_content_exposed: bool,
+    pub runtime_projection_checksum: String,
+    pub selected_input_count: f64,
+    pub selected_owner_setting_fields: Vec<String>,
+    pub suppressed_input_count: f64,
+    pub world_id: String,
+    pub world_rule_count: f64,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CreatorWorldAgentChatReadinessGatesDto {
+    pub local_agent_identity_ready: bool,
+    pub owner_settings_ready: bool,
+    pub profile_context_ready: bool,
+    pub profile_media_ready: bool,
+    pub speech_route_ready: bool,
+    pub voice_reference_ready: bool,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CreatorWorldAgentChatReadinessProfileDto {
+    pub avatar_url: String,
+    pub default_voice_reference: String,
+    pub display_name: String,
+    pub handle: String,
+    pub profile_cover_url: String,
+    pub speech_model_id: String,
+    pub speech_route_policy: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CreatorWorldSummaryDto {
+    pub agent_count: f64,
+    pub authority_reason: String,
+    pub banner_url: String,
+    pub creator_id: String,
+    pub description: String,
+    pub icon_url: String,
+    pub id: String,
+    pub motto: String,
+    pub name: String,
+    pub overview: String,
+    pub status: String,
+    pub tagline: String,
+    pub r#type: String,
+    pub updated_at: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CreatorWorldSummaryListDto {
+    pub items: Vec<CreatorWorldSummaryDto>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct CurrencyBalancesDto {
     pub gem_balance: String,
     pub spark_balance: String,
@@ -39120,44 +39182,6 @@ pub struct ForgeAgentCandidateSourceProfileDto {
     pub evidence_locator_kind: String,
     pub profile: String,
     pub source_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ForgeImportedSystemAgentChatReadinessDto {
-    pub agent_id: String,
-    pub agent_rule_count: f64,
-    pub consumer_surface: String,
-    pub gates: Box<ForgeImportedSystemAgentChatReadinessGatesDto>,
-    pub owner_scope: String,
-    pub profile: Box<ForgeImportedSystemAgentChatReadinessProfileDto>,
-    pub raw_rule_content_exposed: bool,
-    pub runtime_projection_checksum: String,
-    pub selected_input_count: f64,
-    pub selected_owner_setting_fields: Vec<String>,
-    pub suppressed_input_count: f64,
-    pub world_id: String,
-    pub world_rule_count: f64,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ForgeImportedSystemAgentChatReadinessGatesDto {
-    pub local_agent_identity_ready: bool,
-    pub owner_settings_ready: bool,
-    pub profile_context_ready: bool,
-    pub profile_media_ready: bool,
-    pub speech_route_ready: bool,
-    pub voice_reference_ready: bool,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ForgeImportedSystemAgentChatReadinessProfileDto {
-    pub avatar_url: String,
-    pub default_voice_reference: String,
-    pub display_name: String,
-    pub handle: String,
-    pub profile_cover_url: String,
-    pub speech_model_id: String,
-    pub speech_route_policy: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -44270,6 +44294,78 @@ pub struct RealmGetChatByIdOperationRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetCreatorWorldAgentOperationPath {
+    pub agent_id: String,
+    pub world_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetCreatorWorldAgentOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetCreatorWorldAgentOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetCreatorWorldAgentOperationRequest {
+    pub path: RealmGetCreatorWorldAgentOperationPath,
+    pub query: RealmGetCreatorWorldAgentOperationQuery,
+    pub headers: RealmGetCreatorWorldAgentOperationHeaders,
+    pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetCreatorWorldAgentChatReadinessOperationPath {
+    pub agent_id: String,
+    pub world_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetCreatorWorldAgentChatReadinessOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetCreatorWorldAgentChatReadinessOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetCreatorWorldAgentChatReadinessOperationRequest {
+    pub path: RealmGetCreatorWorldAgentChatReadinessOperationPath,
+    pub query: RealmGetCreatorWorldAgentChatReadinessOperationQuery,
+    pub headers: RealmGetCreatorWorldAgentChatReadinessOperationHeaders,
+    pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetCreatorWorldAgentSettingsOperationPath {
+    pub agent_id: String,
+    pub world_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetCreatorWorldAgentSettingsOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetCreatorWorldAgentSettingsOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetCreatorWorldAgentSettingsOperationRequest {
+    pub path: RealmGetCreatorWorldAgentSettingsOperationPath,
+    pub query: RealmGetCreatorWorldAgentSettingsOperationQuery,
+    pub headers: RealmGetCreatorWorldAgentSettingsOperationHeaders,
+    pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmGetExploreFeedOperationPath {
 
 }
@@ -44292,75 +44388,6 @@ pub struct RealmGetExploreFeedOperationRequest {
     pub path: RealmGetExploreFeedOperationPath,
     pub query: RealmGetExploreFeedOperationQuery,
     pub headers: RealmGetExploreFeedOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetForgeImportedSystemAgentOperationPath {
-    pub agent_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetForgeImportedSystemAgentOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetForgeImportedSystemAgentOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetForgeImportedSystemAgentOperationRequest {
-    pub path: RealmGetForgeImportedSystemAgentOperationPath,
-    pub query: RealmGetForgeImportedSystemAgentOperationQuery,
-    pub headers: RealmGetForgeImportedSystemAgentOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetForgeImportedSystemAgentChatReadinessOperationPath {
-    pub agent_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetForgeImportedSystemAgentChatReadinessOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetForgeImportedSystemAgentChatReadinessOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetForgeImportedSystemAgentChatReadinessOperationRequest {
-    pub path: RealmGetForgeImportedSystemAgentChatReadinessOperationPath,
-    pub query: RealmGetForgeImportedSystemAgentChatReadinessOperationQuery,
-    pub headers: RealmGetForgeImportedSystemAgentChatReadinessOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetForgeImportedSystemAgentSettingsOperationPath {
-    pub agent_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetForgeImportedSystemAgentSettingsOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetForgeImportedSystemAgentSettingsOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetForgeImportedSystemAgentSettingsOperationRequest {
-    pub path: RealmGetForgeImportedSystemAgentSettingsOperationPath,
-    pub query: RealmGetForgeImportedSystemAgentSettingsOperationQuery,
-    pub headers: RealmGetForgeImportedSystemAgentSettingsOperationHeaders,
     pub body: (),
 }
 
@@ -45389,25 +45416,25 @@ pub struct RealmListChatsOperationRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmListForgeImportedSystemAgentsOperationPath {
+pub struct RealmListCreatorWorldAgentsOperationPath {
+    pub world_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmListCreatorWorldAgentsOperationQuery {
 
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmListForgeImportedSystemAgentsOperationQuery {
+pub struct RealmListCreatorWorldAgentsOperationHeaders {
 
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmListForgeImportedSystemAgentsOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmListForgeImportedSystemAgentsOperationRequest {
-    pub path: RealmListForgeImportedSystemAgentsOperationPath,
-    pub query: RealmListForgeImportedSystemAgentsOperationQuery,
-    pub headers: RealmListForgeImportedSystemAgentsOperationHeaders,
+pub struct RealmListCreatorWorldAgentsOperationRequest {
+    pub path: RealmListCreatorWorldAgentsOperationPath,
+    pub query: RealmListCreatorWorldAgentsOperationQuery,
+    pub headers: RealmListCreatorWorldAgentsOperationHeaders,
     pub body: (),
 }
 
@@ -45533,6 +45560,29 @@ pub struct RealmListMyAppPermissionGrantsOperationRequest {
     pub path: RealmListMyAppPermissionGrantsOperationPath,
     pub query: RealmListMyAppPermissionGrantsOperationQuery,
     pub headers: RealmListMyAppPermissionGrantsOperationHeaders,
+    pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmListMyCreatorWorldsOperationPath {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmListMyCreatorWorldsOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmListMyCreatorWorldsOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmListMyCreatorWorldsOperationRequest {
+    pub path: RealmListMyCreatorWorldsOperationPath,
+    pub query: RealmListMyCreatorWorldsOperationQuery,
+    pub headers: RealmListMyCreatorWorldsOperationHeaders,
     pub body: (),
 }
 
@@ -46994,71 +47044,74 @@ pub struct RealmUpdateBundleOperationRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmUpdateForgeImportedSystemAgentProfileMediaOperationPath {
+pub struct RealmUpdateCreatorWorldAgentProfileMediaOperationPath {
     pub agent_id: String,
+    pub world_id: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmUpdateForgeImportedSystemAgentProfileMediaOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmUpdateForgeImportedSystemAgentProfileMediaOperationHeaders {
+pub struct RealmUpdateCreatorWorldAgentProfileMediaOperationQuery {
 
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmUpdateForgeImportedSystemAgentProfileMediaOperationRequest {
-    pub path: RealmUpdateForgeImportedSystemAgentProfileMediaOperationPath,
-    pub query: RealmUpdateForgeImportedSystemAgentProfileMediaOperationQuery,
-    pub headers: RealmUpdateForgeImportedSystemAgentProfileMediaOperationHeaders,
+pub struct RealmUpdateCreatorWorldAgentProfileMediaOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmUpdateCreatorWorldAgentProfileMediaOperationRequest {
+    pub path: RealmUpdateCreatorWorldAgentProfileMediaOperationPath,
+    pub query: RealmUpdateCreatorWorldAgentProfileMediaOperationQuery,
+    pub headers: RealmUpdateCreatorWorldAgentProfileMediaOperationHeaders,
     pub body: UpdateAgentProfileMediaDto,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmUpdateForgeImportedSystemAgentSettingsOperationPath {
+pub struct RealmUpdateCreatorWorldAgentSettingsOperationPath {
     pub agent_id: String,
+    pub world_id: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmUpdateForgeImportedSystemAgentSettingsOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmUpdateForgeImportedSystemAgentSettingsOperationHeaders {
+pub struct RealmUpdateCreatorWorldAgentSettingsOperationQuery {
 
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmUpdateForgeImportedSystemAgentSettingsOperationRequest {
-    pub path: RealmUpdateForgeImportedSystemAgentSettingsOperationPath,
-    pub query: RealmUpdateForgeImportedSystemAgentSettingsOperationQuery,
-    pub headers: RealmUpdateForgeImportedSystemAgentSettingsOperationHeaders,
+pub struct RealmUpdateCreatorWorldAgentSettingsOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmUpdateCreatorWorldAgentSettingsOperationRequest {
+    pub path: RealmUpdateCreatorWorldAgentSettingsOperationPath,
+    pub query: RealmUpdateCreatorWorldAgentSettingsOperationQuery,
+    pub headers: RealmUpdateCreatorWorldAgentSettingsOperationHeaders,
     pub body: UpdateOwnerAgentSettingsDto,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmUpdateForgeImportedSystemAgentVoiceOperationPath {
+pub struct RealmUpdateCreatorWorldAgentVoiceOperationPath {
     pub agent_id: String,
+    pub world_id: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmUpdateForgeImportedSystemAgentVoiceOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmUpdateForgeImportedSystemAgentVoiceOperationHeaders {
+pub struct RealmUpdateCreatorWorldAgentVoiceOperationQuery {
 
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmUpdateForgeImportedSystemAgentVoiceOperationRequest {
-    pub path: RealmUpdateForgeImportedSystemAgentVoiceOperationPath,
-    pub query: RealmUpdateForgeImportedSystemAgentVoiceOperationQuery,
-    pub headers: RealmUpdateForgeImportedSystemAgentVoiceOperationHeaders,
+pub struct RealmUpdateCreatorWorldAgentVoiceOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmUpdateCreatorWorldAgentVoiceOperationRequest {
+    pub path: RealmUpdateCreatorWorldAgentVoiceOperationPath,
+    pub query: RealmUpdateCreatorWorldAgentVoiceOperationQuery,
+    pub headers: RealmUpdateCreatorWorldAgentVoiceOperationHeaders,
     pub body: UpdateAgentVoiceDto,
 }
 
@@ -48795,20 +48848,20 @@ where
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getChatById");
     }
 
+    pub fn get_creator_world_agent(&self, _request: RealmGetCreatorWorldAgentOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<UserLiteDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getCreatorWorldAgent");
+    }
+
+    pub fn get_creator_world_agent_chat_readiness(&self, _request: RealmGetCreatorWorldAgentChatReadinessOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<CreatorWorldAgentChatReadinessDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getCreatorWorldAgentChatReadiness");
+    }
+
+    pub fn get_creator_world_agent_settings(&self, _request: RealmGetCreatorWorldAgentSettingsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<OwnerAgentSettingsDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getCreatorWorldAgentSettings");
+    }
+
     pub fn get_explore_feed(&self, _request: RealmGetExploreFeedOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<FeedResponseDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getExploreFeed");
-    }
-
-    pub fn get_forge_imported_system_agent(&self, _request: RealmGetForgeImportedSystemAgentOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<UserLiteDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getForgeImportedSystemAgent");
-    }
-
-    pub fn get_forge_imported_system_agent_chat_readiness(&self, _request: RealmGetForgeImportedSystemAgentChatReadinessOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<ForgeImportedSystemAgentChatReadinessDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getForgeImportedSystemAgentChatReadiness");
-    }
-
-    pub fn get_forge_imported_system_agent_settings(&self, _request: RealmGetForgeImportedSystemAgentSettingsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<OwnerAgentSettingsDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getForgeImportedSystemAgentSettings");
     }
 
     pub fn get_group(&self, _request: RealmGetGroupOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<GroupChatViewDto, T::Error> {
@@ -48987,8 +49040,8 @@ where
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for listChats");
     }
 
-    pub fn list_forge_imported_system_agents(&self, _request: RealmListForgeImportedSystemAgentsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<Vec<UserLiteDto>, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for listForgeImportedSystemAgents");
+    pub fn list_creator_world_agents(&self, _request: RealmListCreatorWorldAgentsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<Vec<UserLiteDto>, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for listCreatorWorldAgents");
     }
 
     pub fn list_group_messages(&self, _request: RealmListGroupMessagesOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<ListGroupMessagesResultDto, T::Error> {
@@ -49009,6 +49062,10 @@ where
 
     pub fn list_my_app_permission_grants(&self, _request: RealmListMyAppPermissionGrantsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AppPermissionGrantListDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for listMyAppPermissionGrants");
+    }
+
+    pub fn list_my_creator_worlds(&self, _request: RealmListMyCreatorWorldsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<CreatorWorldSummaryListDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for listMyCreatorWorlds");
     }
 
     pub fn list_my_friend_ids(&self, _request: RealmListMyFriendIdsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
@@ -49255,16 +49312,16 @@ where
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for updateBundle");
     }
 
-    pub fn update_forge_imported_system_agent_profile_media(&self, _request: RealmUpdateForgeImportedSystemAgentProfileMediaOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<UserLiteDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for updateForgeImportedSystemAgentProfileMedia");
+    pub fn update_creator_world_agent_profile_media(&self, _request: RealmUpdateCreatorWorldAgentProfileMediaOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<UserLiteDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for updateCreatorWorldAgentProfileMedia");
     }
 
-    pub fn update_forge_imported_system_agent_settings(&self, _request: RealmUpdateForgeImportedSystemAgentSettingsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<OwnerAgentSettingsDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for updateForgeImportedSystemAgentSettings");
+    pub fn update_creator_world_agent_settings(&self, _request: RealmUpdateCreatorWorldAgentSettingsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<OwnerAgentSettingsDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for updateCreatorWorldAgentSettings");
     }
 
-    pub fn update_forge_imported_system_agent_voice(&self, _request: RealmUpdateForgeImportedSystemAgentVoiceOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<UserLiteDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for updateForgeImportedSystemAgentVoice");
+    pub fn update_creator_world_agent_voice(&self, _request: RealmUpdateCreatorWorldAgentVoiceOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<UserLiteDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for updateCreatorWorldAgentVoice");
     }
 
     pub fn update_group(&self, _request: RealmUpdateGroupOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<GroupChatViewDto, T::Error> {

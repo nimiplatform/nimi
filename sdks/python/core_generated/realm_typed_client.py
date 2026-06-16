@@ -1115,6 +1115,63 @@ class CreatorEligibilityResponseDto:
     tier: Literal["FREE", "PRO", "MAX"] | None = None
 
 @dataclass(frozen=True)
+class CreatorWorldAgentChatReadinessDto:
+    agentId: str | None = None
+    agentRuleCount: float | None = None
+    authorityReason: Literal["CREATOR_OWNER", "MAINTAIN_ACCESS"] | None = None
+    consumerSurface: Literal["AGENT_CHAT_READINESS"] | None = None
+    gates: CreatorWorldAgentChatReadinessGatesDto | None = None
+    ownerScope: Literal["creator-world"] | None = None
+    profile: CreatorWorldAgentChatReadinessProfileDto | None = None
+    rawRuleContentExposed: bool | None = None
+    runtimeProjectionChecksum: str | None = None
+    selectedInputCount: float | None = None
+    selectedOwnerSettingFields: tuple[str, ...] = field(default_factory=tuple)
+    suppressedInputCount: float | None = None
+    worldId: str | None = None
+    worldRuleCount: float | None = None
+
+@dataclass(frozen=True)
+class CreatorWorldAgentChatReadinessGatesDto:
+    localAgentIdentityReady: bool | None = None
+    ownerSettingsReady: bool | None = None
+    profileContextReady: bool | None = None
+    profileMediaReady: bool | None = None
+    speechRouteReady: bool | None = None
+    voiceReferenceReady: bool | None = None
+
+@dataclass(frozen=True)
+class CreatorWorldAgentChatReadinessProfileDto:
+    avatarUrl: str | None = None
+    defaultVoiceReference: str | None = None
+    displayName: str | None = None
+    handle: str | None = None
+    profileCoverUrl: str | None = None
+    speechModelId: str | None = None
+    speechRoutePolicy: Literal["local", "cloud"] | None = None
+
+@dataclass(frozen=True)
+class CreatorWorldSummaryDto:
+    agentCount: float | None = None
+    authorityReason: Literal["CREATOR_OWNER", "MAINTAIN_ACCESS"] | None = None
+    bannerUrl: str | None = None
+    creatorId: str | None = None
+    description: str | None = None
+    iconUrl: str | None = None
+    id: str | None = None
+    motto: str | None = None
+    name: str | None = None
+    overview: str | None = None
+    status: Literal["DRAFT", "PENDING_REVIEW", "ACTIVE", "SUSPENDED", "ARCHIVED"] | None = None
+    tagline: str | None = None
+    type: Literal["CREATOR"] | None = None
+    updatedAt: str | None = None
+
+@dataclass(frozen=True)
+class CreatorWorldSummaryListDto:
+    items: tuple[CreatorWorldSummaryDto, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
 class CurrencyBalancesDto:
     gemBalance: str | None = None
     sparkBalance: str | None = None
@@ -1282,41 +1339,6 @@ class ForgeAgentCandidateSourceProfileDto:
     evidenceLocatorKind: str | None = None
     profile: str | None = None
     sourceId: str | None = None
-
-@dataclass(frozen=True)
-class ForgeImportedSystemAgentChatReadinessDto:
-    agentId: str | None = None
-    agentRuleCount: float | None = None
-    consumerSurface: Literal["AGENT_CHAT_READINESS"] | None = None
-    gates: ForgeImportedSystemAgentChatReadinessGatesDto | None = None
-    ownerScope: Literal["forge-imported-system"] | None = None
-    profile: ForgeImportedSystemAgentChatReadinessProfileDto | None = None
-    rawRuleContentExposed: bool | None = None
-    runtimeProjectionChecksum: str | None = None
-    selectedInputCount: float | None = None
-    selectedOwnerSettingFields: tuple[str, ...] = field(default_factory=tuple)
-    suppressedInputCount: float | None = None
-    worldId: str | None = None
-    worldRuleCount: float | None = None
-
-@dataclass(frozen=True)
-class ForgeImportedSystemAgentChatReadinessGatesDto:
-    localAgentIdentityReady: bool | None = None
-    ownerSettingsReady: bool | None = None
-    profileContextReady: bool | None = None
-    profileMediaReady: bool | None = None
-    speechRouteReady: bool | None = None
-    voiceReferenceReady: bool | None = None
-
-@dataclass(frozen=True)
-class ForgeImportedSystemAgentChatReadinessProfileDto:
-    avatarUrl: str | None = None
-    defaultVoiceReference: str | None = None
-    displayName: str | None = None
-    handle: str | None = None
-    profileCoverUrl: str | None = None
-    speechModelId: str | None = None
-    speechRoutePolicy: Literal["local", "cloud"] | None = None
 
 @dataclass(frozen=True)
 class ForgeProductArtifactRefDto:
@@ -6055,6 +6077,75 @@ class RealmGetChatByIdOperationRequest:
     body: None | None = None
 
 @dataclass(frozen=True)
+class RealmGetCreatorWorldAgentOperationPath:
+    agentId: str
+    worldId: str
+
+
+@dataclass(frozen=True)
+class RealmGetCreatorWorldAgentOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmGetCreatorWorldAgentOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmGetCreatorWorldAgentOperationRequest:
+    path: RealmGetCreatorWorldAgentOperationPath
+    query: RealmGetCreatorWorldAgentOperationQuery | None = None
+    headers: RealmGetCreatorWorldAgentOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
+class RealmGetCreatorWorldAgentChatReadinessOperationPath:
+    agentId: str
+    worldId: str
+
+
+@dataclass(frozen=True)
+class RealmGetCreatorWorldAgentChatReadinessOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmGetCreatorWorldAgentChatReadinessOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmGetCreatorWorldAgentChatReadinessOperationRequest:
+    path: RealmGetCreatorWorldAgentChatReadinessOperationPath
+    query: RealmGetCreatorWorldAgentChatReadinessOperationQuery | None = None
+    headers: RealmGetCreatorWorldAgentChatReadinessOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
+class RealmGetCreatorWorldAgentSettingsOperationPath:
+    agentId: str
+    worldId: str
+
+
+@dataclass(frozen=True)
+class RealmGetCreatorWorldAgentSettingsOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmGetCreatorWorldAgentSettingsOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmGetCreatorWorldAgentSettingsOperationRequest:
+    path: RealmGetCreatorWorldAgentSettingsOperationPath
+    query: RealmGetCreatorWorldAgentSettingsOperationQuery | None = None
+    headers: RealmGetCreatorWorldAgentSettingsOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
 class RealmGetExploreFeedOperationPath:
     pass
 
@@ -6077,72 +6168,6 @@ class RealmGetExploreFeedOperationRequest:
     path: RealmGetExploreFeedOperationPath
     query: RealmGetExploreFeedOperationQuery | None = None
     headers: RealmGetExploreFeedOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmGetForgeImportedSystemAgentOperationPath:
-    agentId: str
-
-
-@dataclass(frozen=True)
-class RealmGetForgeImportedSystemAgentOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmGetForgeImportedSystemAgentOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmGetForgeImportedSystemAgentOperationRequest:
-    path: RealmGetForgeImportedSystemAgentOperationPath
-    query: RealmGetForgeImportedSystemAgentOperationQuery | None = None
-    headers: RealmGetForgeImportedSystemAgentOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmGetForgeImportedSystemAgentChatReadinessOperationPath:
-    agentId: str
-
-
-@dataclass(frozen=True)
-class RealmGetForgeImportedSystemAgentChatReadinessOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmGetForgeImportedSystemAgentChatReadinessOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmGetForgeImportedSystemAgentChatReadinessOperationRequest:
-    path: RealmGetForgeImportedSystemAgentChatReadinessOperationPath
-    query: RealmGetForgeImportedSystemAgentChatReadinessOperationQuery | None = None
-    headers: RealmGetForgeImportedSystemAgentChatReadinessOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmGetForgeImportedSystemAgentSettingsOperationPath:
-    agentId: str
-
-
-@dataclass(frozen=True)
-class RealmGetForgeImportedSystemAgentSettingsOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmGetForgeImportedSystemAgentSettingsOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmGetForgeImportedSystemAgentSettingsOperationRequest:
-    path: RealmGetForgeImportedSystemAgentSettingsOperationPath
-    query: RealmGetForgeImportedSystemAgentSettingsOperationQuery | None = None
-    headers: RealmGetForgeImportedSystemAgentSettingsOperationHeaders | None = None
     body: None | None = None
 
 @dataclass(frozen=True)
@@ -7126,25 +7151,25 @@ class RealmListChatsOperationRequest:
     body: None | None = None
 
 @dataclass(frozen=True)
-class RealmListForgeImportedSystemAgentsOperationPath:
+class RealmListCreatorWorldAgentsOperationPath:
+    worldId: str
+
+
+@dataclass(frozen=True)
+class RealmListCreatorWorldAgentsOperationQuery:
     pass
 
 
 @dataclass(frozen=True)
-class RealmListForgeImportedSystemAgentsOperationQuery:
+class RealmListCreatorWorldAgentsOperationHeaders:
     pass
 
 
 @dataclass(frozen=True)
-class RealmListForgeImportedSystemAgentsOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmListForgeImportedSystemAgentsOperationRequest:
-    path: RealmListForgeImportedSystemAgentsOperationPath
-    query: RealmListForgeImportedSystemAgentsOperationQuery | None = None
-    headers: RealmListForgeImportedSystemAgentsOperationHeaders | None = None
+class RealmListCreatorWorldAgentsOperationRequest:
+    path: RealmListCreatorWorldAgentsOperationPath
+    query: RealmListCreatorWorldAgentsOperationQuery | None = None
+    headers: RealmListCreatorWorldAgentsOperationHeaders | None = None
     body: None | None = None
 
 @dataclass(frozen=True)
@@ -7265,6 +7290,28 @@ class RealmListMyAppPermissionGrantsOperationRequest:
     path: RealmListMyAppPermissionGrantsOperationPath
     query: RealmListMyAppPermissionGrantsOperationQuery | None = None
     headers: RealmListMyAppPermissionGrantsOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
+class RealmListMyCreatorWorldsOperationPath:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmListMyCreatorWorldsOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmListMyCreatorWorldsOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmListMyCreatorWorldsOperationRequest:
+    path: RealmListMyCreatorWorldsOperationPath
+    query: RealmListMyCreatorWorldsOperationQuery | None = None
+    headers: RealmListMyCreatorWorldsOperationHeaders | None = None
     body: None | None = None
 
 @dataclass(frozen=True)
@@ -8664,69 +8711,72 @@ class RealmUpdateBundleOperationRequest:
     body: UpdateBundleDto | None = None
 
 @dataclass(frozen=True)
-class RealmUpdateForgeImportedSystemAgentProfileMediaOperationPath:
+class RealmUpdateCreatorWorldAgentProfileMediaOperationPath:
     agentId: str
+    worldId: str
 
 
 @dataclass(frozen=True)
-class RealmUpdateForgeImportedSystemAgentProfileMediaOperationQuery:
+class RealmUpdateCreatorWorldAgentProfileMediaOperationQuery:
     pass
 
 
 @dataclass(frozen=True)
-class RealmUpdateForgeImportedSystemAgentProfileMediaOperationHeaders:
+class RealmUpdateCreatorWorldAgentProfileMediaOperationHeaders:
     pass
 
 
 @dataclass(frozen=True)
-class RealmUpdateForgeImportedSystemAgentProfileMediaOperationRequest:
-    path: RealmUpdateForgeImportedSystemAgentProfileMediaOperationPath
-    query: RealmUpdateForgeImportedSystemAgentProfileMediaOperationQuery | None = None
-    headers: RealmUpdateForgeImportedSystemAgentProfileMediaOperationHeaders | None = None
+class RealmUpdateCreatorWorldAgentProfileMediaOperationRequest:
+    path: RealmUpdateCreatorWorldAgentProfileMediaOperationPath
+    query: RealmUpdateCreatorWorldAgentProfileMediaOperationQuery | None = None
+    headers: RealmUpdateCreatorWorldAgentProfileMediaOperationHeaders | None = None
     body: UpdateAgentProfileMediaDto | None = None
 
 @dataclass(frozen=True)
-class RealmUpdateForgeImportedSystemAgentSettingsOperationPath:
+class RealmUpdateCreatorWorldAgentSettingsOperationPath:
     agentId: str
+    worldId: str
 
 
 @dataclass(frozen=True)
-class RealmUpdateForgeImportedSystemAgentSettingsOperationQuery:
+class RealmUpdateCreatorWorldAgentSettingsOperationQuery:
     pass
 
 
 @dataclass(frozen=True)
-class RealmUpdateForgeImportedSystemAgentSettingsOperationHeaders:
+class RealmUpdateCreatorWorldAgentSettingsOperationHeaders:
     pass
 
 
 @dataclass(frozen=True)
-class RealmUpdateForgeImportedSystemAgentSettingsOperationRequest:
-    path: RealmUpdateForgeImportedSystemAgentSettingsOperationPath
-    query: RealmUpdateForgeImportedSystemAgentSettingsOperationQuery | None = None
-    headers: RealmUpdateForgeImportedSystemAgentSettingsOperationHeaders | None = None
+class RealmUpdateCreatorWorldAgentSettingsOperationRequest:
+    path: RealmUpdateCreatorWorldAgentSettingsOperationPath
+    query: RealmUpdateCreatorWorldAgentSettingsOperationQuery | None = None
+    headers: RealmUpdateCreatorWorldAgentSettingsOperationHeaders | None = None
     body: UpdateOwnerAgentSettingsDto | None = None
 
 @dataclass(frozen=True)
-class RealmUpdateForgeImportedSystemAgentVoiceOperationPath:
+class RealmUpdateCreatorWorldAgentVoiceOperationPath:
     agentId: str
+    worldId: str
 
 
 @dataclass(frozen=True)
-class RealmUpdateForgeImportedSystemAgentVoiceOperationQuery:
+class RealmUpdateCreatorWorldAgentVoiceOperationQuery:
     pass
 
 
 @dataclass(frozen=True)
-class RealmUpdateForgeImportedSystemAgentVoiceOperationHeaders:
+class RealmUpdateCreatorWorldAgentVoiceOperationHeaders:
     pass
 
 
 @dataclass(frozen=True)
-class RealmUpdateForgeImportedSystemAgentVoiceOperationRequest:
-    path: RealmUpdateForgeImportedSystemAgentVoiceOperationPath
-    query: RealmUpdateForgeImportedSystemAgentVoiceOperationQuery | None = None
-    headers: RealmUpdateForgeImportedSystemAgentVoiceOperationHeaders | None = None
+class RealmUpdateCreatorWorldAgentVoiceOperationRequest:
+    path: RealmUpdateCreatorWorldAgentVoiceOperationPath
+    query: RealmUpdateCreatorWorldAgentVoiceOperationQuery | None = None
+    headers: RealmUpdateCreatorWorldAgentVoiceOperationHeaders | None = None
     body: UpdateAgentVoiceDto | None = None
 
 @dataclass(frozen=True)
@@ -10981,6 +11031,36 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="getChatById", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ChatViewDto, raw)
 
+    async def get_creator_world_agent(self, request: RealmGetCreatorWorldAgentOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetCreatorWorldAgentOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="getCreatorWorldAgent", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(UserLiteDto, raw)
+
+    async def get_creator_world_agent_chat_readiness(self, request: RealmGetCreatorWorldAgentChatReadinessOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetCreatorWorldAgentChatReadinessOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="getCreatorWorldAgentChatReadiness", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(CreatorWorldAgentChatReadinessDto, raw)
+
+    async def get_creator_world_agent_settings(self, request: RealmGetCreatorWorldAgentSettingsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetCreatorWorldAgentSettingsOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="getCreatorWorldAgentSettings", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(OwnerAgentSettingsDto, raw)
+
     async def get_explore_feed(self, request: RealmGetExploreFeedOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetExploreFeedOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
@@ -10990,36 +11070,6 @@ class RealmTypedClient:
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="getExploreFeed", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(FeedResponseDto, raw)
-
-    async def get_forge_imported_system_agent(self, request: RealmGetForgeImportedSystemAgentOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetForgeImportedSystemAgentOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="getForgeImportedSystemAgent", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(UserLiteDto, raw)
-
-    async def get_forge_imported_system_agent_chat_readiness(self, request: RealmGetForgeImportedSystemAgentChatReadinessOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetForgeImportedSystemAgentChatReadinessOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="getForgeImportedSystemAgentChatReadiness", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(ForgeImportedSystemAgentChatReadinessDto, raw)
-
-    async def get_forge_imported_system_agent_settings(self, request: RealmGetForgeImportedSystemAgentSettingsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetForgeImportedSystemAgentSettingsOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="getForgeImportedSystemAgentSettings", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(OwnerAgentSettingsDto, raw)
 
     async def get_group(self, request: RealmGetGroupOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetGroupOperationResponse:
         envelope: dict[str, object] = {
@@ -11461,14 +11511,14 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="listChats", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListChatsResultDto, raw)
 
-    async def list_forge_imported_system_agents(self, request: RealmListForgeImportedSystemAgentsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmListForgeImportedSystemAgentsOperationResponse:
+    async def list_creator_world_agents(self, request: RealmListCreatorWorldAgentsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmListCreatorWorldAgentsOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
             "query": _model_body(request.query),
             "headers": _model_body(request.headers),
             "body": _model_body(request.body),
         }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="listForgeImportedSystemAgents", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="listCreatorWorldAgents", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(tuple[UserLiteDto, ...], raw)
 
     async def list_group_messages(self, request: RealmListGroupMessagesOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmListGroupMessagesOperationResponse:
@@ -11520,6 +11570,16 @@ class RealmTypedClient:
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="listMyAppPermissionGrants", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(AppPermissionGrantListDto, raw)
+
+    async def list_my_creator_worlds(self, request: RealmListMyCreatorWorldsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmListMyCreatorWorldsOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="listMyCreatorWorlds", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(CreatorWorldSummaryListDto, raw)
 
     async def list_my_friend_ids(self, request: RealmListMyFriendIdsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmListMyFriendIdsOperationResponse:
         envelope: dict[str, object] = {
@@ -12131,34 +12191,34 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="updateBundle", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(BundleDetailDto, raw)
 
-    async def update_forge_imported_system_agent_profile_media(self, request: RealmUpdateForgeImportedSystemAgentProfileMediaOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmUpdateForgeImportedSystemAgentProfileMediaOperationResponse:
+    async def update_creator_world_agent_profile_media(self, request: RealmUpdateCreatorWorldAgentProfileMediaOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmUpdateCreatorWorldAgentProfileMediaOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
             "query": _model_body(request.query),
             "headers": _model_body(request.headers),
             "body": _model_body(request.body),
         }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="updateForgeImportedSystemAgentProfileMedia", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="updateCreatorWorldAgentProfileMedia", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(UserLiteDto, raw)
 
-    async def update_forge_imported_system_agent_settings(self, request: RealmUpdateForgeImportedSystemAgentSettingsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmUpdateForgeImportedSystemAgentSettingsOperationResponse:
+    async def update_creator_world_agent_settings(self, request: RealmUpdateCreatorWorldAgentSettingsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmUpdateCreatorWorldAgentSettingsOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
             "query": _model_body(request.query),
             "headers": _model_body(request.headers),
             "body": _model_body(request.body),
         }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="updateForgeImportedSystemAgentSettings", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="updateCreatorWorldAgentSettings", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(OwnerAgentSettingsDto, raw)
 
-    async def update_forge_imported_system_agent_voice(self, request: RealmUpdateForgeImportedSystemAgentVoiceOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmUpdateForgeImportedSystemAgentVoiceOperationResponse:
+    async def update_creator_world_agent_voice(self, request: RealmUpdateCreatorWorldAgentVoiceOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmUpdateCreatorWorldAgentVoiceOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
             "query": _model_body(request.query),
             "headers": _model_body(request.headers),
             "body": _model_body(request.body),
         }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="updateForgeImportedSystemAgentVoice", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="updateCreatorWorldAgentVoice", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(UserLiteDto, raw)
 
     async def update_group(self, request: RealmUpdateGroupOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmUpdateGroupOperationResponse:

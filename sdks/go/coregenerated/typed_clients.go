@@ -10933,6 +10933,63 @@ type CreatorEligibilityResponseDto struct {
 	Tier string `json:"tier,omitempty"`
 }
 
+type CreatorWorldAgentChatReadinessDto struct {
+	AgentId string `json:"agentId,omitempty"`
+	AgentRuleCount float64 `json:"agentRuleCount,omitempty"`
+	AuthorityReason string `json:"authorityReason,omitempty"`
+	ConsumerSurface string `json:"consumerSurface,omitempty"`
+	Gates *CreatorWorldAgentChatReadinessGatesDto `json:"gates,omitempty"`
+	OwnerScope string `json:"ownerScope,omitempty"`
+	Profile *CreatorWorldAgentChatReadinessProfileDto `json:"profile,omitempty"`
+	RawRuleContentExposed bool `json:"rawRuleContentExposed,omitempty"`
+	RuntimeProjectionChecksum string `json:"runtimeProjectionChecksum,omitempty"`
+	SelectedInputCount float64 `json:"selectedInputCount,omitempty"`
+	SelectedOwnerSettingFields []string `json:"selectedOwnerSettingFields,omitempty"`
+	SuppressedInputCount float64 `json:"suppressedInputCount,omitempty"`
+	WorldId string `json:"worldId,omitempty"`
+	WorldRuleCount float64 `json:"worldRuleCount,omitempty"`
+}
+
+type CreatorWorldAgentChatReadinessGatesDto struct {
+	LocalAgentIdentityReady bool `json:"localAgentIdentityReady,omitempty"`
+	OwnerSettingsReady bool `json:"ownerSettingsReady,omitempty"`
+	ProfileContextReady bool `json:"profileContextReady,omitempty"`
+	ProfileMediaReady bool `json:"profileMediaReady,omitempty"`
+	SpeechRouteReady bool `json:"speechRouteReady,omitempty"`
+	VoiceReferenceReady bool `json:"voiceReferenceReady,omitempty"`
+}
+
+type CreatorWorldAgentChatReadinessProfileDto struct {
+	AvatarUrl string `json:"avatarUrl,omitempty"`
+	DefaultVoiceReference string `json:"defaultVoiceReference,omitempty"`
+	DisplayName string `json:"displayName,omitempty"`
+	Handle string `json:"handle,omitempty"`
+	ProfileCoverUrl string `json:"profileCoverUrl,omitempty"`
+	SpeechModelId string `json:"speechModelId,omitempty"`
+	SpeechRoutePolicy string `json:"speechRoutePolicy,omitempty"`
+}
+
+type CreatorWorldSummaryDto struct {
+	AgentCount float64 `json:"agentCount,omitempty"`
+	AuthorityReason string `json:"authorityReason,omitempty"`
+	BannerUrl string `json:"bannerUrl,omitempty"`
+	CreatorId string `json:"creatorId,omitempty"`
+	Description string `json:"description,omitempty"`
+	IconUrl string `json:"iconUrl,omitempty"`
+	Id string `json:"id,omitempty"`
+	Motto string `json:"motto,omitempty"`
+	Name string `json:"name,omitempty"`
+	Overview string `json:"overview,omitempty"`
+	Status string `json:"status,omitempty"`
+	Tagline string `json:"tagline,omitempty"`
+	Type string `json:"type,omitempty"`
+	UpdatedAt string `json:"updatedAt,omitempty"`
+}
+
+type CreatorWorldSummaryListDto struct {
+	Items []CreatorWorldSummaryDto `json:"items,omitempty"`
+}
+
 type CurrencyBalancesDto struct {
 	GemBalance string `json:"gemBalance,omitempty"`
 	SparkBalance string `json:"sparkBalance,omitempty"`
@@ -11100,41 +11157,6 @@ type ForgeAgentCandidateSourceProfileDto struct {
 	EvidenceLocatorKind string `json:"evidenceLocatorKind,omitempty"`
 	Profile string `json:"profile,omitempty"`
 	SourceId string `json:"sourceId,omitempty"`
-}
-
-type ForgeImportedSystemAgentChatReadinessDto struct {
-	AgentId string `json:"agentId,omitempty"`
-	AgentRuleCount float64 `json:"agentRuleCount,omitempty"`
-	ConsumerSurface string `json:"consumerSurface,omitempty"`
-	Gates *ForgeImportedSystemAgentChatReadinessGatesDto `json:"gates,omitempty"`
-	OwnerScope string `json:"ownerScope,omitempty"`
-	Profile *ForgeImportedSystemAgentChatReadinessProfileDto `json:"profile,omitempty"`
-	RawRuleContentExposed bool `json:"rawRuleContentExposed,omitempty"`
-	RuntimeProjectionChecksum string `json:"runtimeProjectionChecksum,omitempty"`
-	SelectedInputCount float64 `json:"selectedInputCount,omitempty"`
-	SelectedOwnerSettingFields []string `json:"selectedOwnerSettingFields,omitempty"`
-	SuppressedInputCount float64 `json:"suppressedInputCount,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
-	WorldRuleCount float64 `json:"worldRuleCount,omitempty"`
-}
-
-type ForgeImportedSystemAgentChatReadinessGatesDto struct {
-	LocalAgentIdentityReady bool `json:"localAgentIdentityReady,omitempty"`
-	OwnerSettingsReady bool `json:"ownerSettingsReady,omitempty"`
-	ProfileContextReady bool `json:"profileContextReady,omitempty"`
-	ProfileMediaReady bool `json:"profileMediaReady,omitempty"`
-	SpeechRouteReady bool `json:"speechRouteReady,omitempty"`
-	VoiceReferenceReady bool `json:"voiceReferenceReady,omitempty"`
-}
-
-type ForgeImportedSystemAgentChatReadinessProfileDto struct {
-	AvatarUrl string `json:"avatarUrl,omitempty"`
-	DefaultVoiceReference string `json:"defaultVoiceReference,omitempty"`
-	DisplayName string `json:"displayName,omitempty"`
-	Handle string `json:"handle,omitempty"`
-	ProfileCoverUrl string `json:"profileCoverUrl,omitempty"`
-	SpeechModelId string `json:"speechModelId,omitempty"`
-	SpeechRoutePolicy string `json:"speechRoutePolicy,omitempty"`
 }
 
 type ForgeProductArtifactRefDto struct {
@@ -15579,6 +15601,66 @@ type RealmGetChatByIdOperationRequest struct {
 	Body    struct{} `json:"body,omitempty"`
 }
 
+type RealmGetCreatorWorldAgentOperationPath struct {
+	AgentId string `json:"agentId,omitempty"`
+	WorldId string `json:"worldId,omitempty"`
+}
+
+type RealmGetCreatorWorldAgentOperationQuery struct {
+
+}
+
+type RealmGetCreatorWorldAgentOperationHeaders struct {
+
+}
+
+type RealmGetCreatorWorldAgentOperationRequest struct {
+	Path    RealmGetCreatorWorldAgentOperationPath `json:"path,omitempty"`
+	Query   RealmGetCreatorWorldAgentOperationQuery `json:"query,omitempty"`
+	Headers RealmGetCreatorWorldAgentOperationHeaders `json:"headers,omitempty"`
+	Body    struct{} `json:"body,omitempty"`
+}
+
+type RealmGetCreatorWorldAgentChatReadinessOperationPath struct {
+	AgentId string `json:"agentId,omitempty"`
+	WorldId string `json:"worldId,omitempty"`
+}
+
+type RealmGetCreatorWorldAgentChatReadinessOperationQuery struct {
+
+}
+
+type RealmGetCreatorWorldAgentChatReadinessOperationHeaders struct {
+
+}
+
+type RealmGetCreatorWorldAgentChatReadinessOperationRequest struct {
+	Path    RealmGetCreatorWorldAgentChatReadinessOperationPath `json:"path,omitempty"`
+	Query   RealmGetCreatorWorldAgentChatReadinessOperationQuery `json:"query,omitempty"`
+	Headers RealmGetCreatorWorldAgentChatReadinessOperationHeaders `json:"headers,omitempty"`
+	Body    struct{} `json:"body,omitempty"`
+}
+
+type RealmGetCreatorWorldAgentSettingsOperationPath struct {
+	AgentId string `json:"agentId,omitempty"`
+	WorldId string `json:"worldId,omitempty"`
+}
+
+type RealmGetCreatorWorldAgentSettingsOperationQuery struct {
+
+}
+
+type RealmGetCreatorWorldAgentSettingsOperationHeaders struct {
+
+}
+
+type RealmGetCreatorWorldAgentSettingsOperationRequest struct {
+	Path    RealmGetCreatorWorldAgentSettingsOperationPath `json:"path,omitempty"`
+	Query   RealmGetCreatorWorldAgentSettingsOperationQuery `json:"query,omitempty"`
+	Headers RealmGetCreatorWorldAgentSettingsOperationHeaders `json:"headers,omitempty"`
+	Body    struct{} `json:"body,omitempty"`
+}
+
 type RealmGetExploreFeedOperationPath struct {
 
 }
@@ -15598,63 +15680,6 @@ type RealmGetExploreFeedOperationRequest struct {
 	Path    RealmGetExploreFeedOperationPath `json:"path,omitempty"`
 	Query   RealmGetExploreFeedOperationQuery `json:"query,omitempty"`
 	Headers RealmGetExploreFeedOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmGetForgeImportedSystemAgentOperationPath struct {
-	AgentId string `json:"agentId,omitempty"`
-}
-
-type RealmGetForgeImportedSystemAgentOperationQuery struct {
-
-}
-
-type RealmGetForgeImportedSystemAgentOperationHeaders struct {
-
-}
-
-type RealmGetForgeImportedSystemAgentOperationRequest struct {
-	Path    RealmGetForgeImportedSystemAgentOperationPath `json:"path,omitempty"`
-	Query   RealmGetForgeImportedSystemAgentOperationQuery `json:"query,omitempty"`
-	Headers RealmGetForgeImportedSystemAgentOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmGetForgeImportedSystemAgentChatReadinessOperationPath struct {
-	AgentId string `json:"agentId,omitempty"`
-}
-
-type RealmGetForgeImportedSystemAgentChatReadinessOperationQuery struct {
-
-}
-
-type RealmGetForgeImportedSystemAgentChatReadinessOperationHeaders struct {
-
-}
-
-type RealmGetForgeImportedSystemAgentChatReadinessOperationRequest struct {
-	Path    RealmGetForgeImportedSystemAgentChatReadinessOperationPath `json:"path,omitempty"`
-	Query   RealmGetForgeImportedSystemAgentChatReadinessOperationQuery `json:"query,omitempty"`
-	Headers RealmGetForgeImportedSystemAgentChatReadinessOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmGetForgeImportedSystemAgentSettingsOperationPath struct {
-	AgentId string `json:"agentId,omitempty"`
-}
-
-type RealmGetForgeImportedSystemAgentSettingsOperationQuery struct {
-
-}
-
-type RealmGetForgeImportedSystemAgentSettingsOperationHeaders struct {
-
-}
-
-type RealmGetForgeImportedSystemAgentSettingsOperationRequest struct {
-	Path    RealmGetForgeImportedSystemAgentSettingsOperationPath `json:"path,omitempty"`
-	Query   RealmGetForgeImportedSystemAgentSettingsOperationQuery `json:"query,omitempty"`
-	Headers RealmGetForgeImportedSystemAgentSettingsOperationHeaders `json:"headers,omitempty"`
 	Body    struct{} `json:"body,omitempty"`
 }
 
@@ -16506,22 +16531,22 @@ type RealmListChatsOperationRequest struct {
 	Body    struct{} `json:"body,omitempty"`
 }
 
-type RealmListForgeImportedSystemAgentsOperationPath struct {
+type RealmListCreatorWorldAgentsOperationPath struct {
+	WorldId string `json:"worldId,omitempty"`
+}
+
+type RealmListCreatorWorldAgentsOperationQuery struct {
 
 }
 
-type RealmListForgeImportedSystemAgentsOperationQuery struct {
+type RealmListCreatorWorldAgentsOperationHeaders struct {
 
 }
 
-type RealmListForgeImportedSystemAgentsOperationHeaders struct {
-
-}
-
-type RealmListForgeImportedSystemAgentsOperationRequest struct {
-	Path    RealmListForgeImportedSystemAgentsOperationPath `json:"path,omitempty"`
-	Query   RealmListForgeImportedSystemAgentsOperationQuery `json:"query,omitempty"`
-	Headers RealmListForgeImportedSystemAgentsOperationHeaders `json:"headers,omitempty"`
+type RealmListCreatorWorldAgentsOperationRequest struct {
+	Path    RealmListCreatorWorldAgentsOperationPath `json:"path,omitempty"`
+	Query   RealmListCreatorWorldAgentsOperationQuery `json:"query,omitempty"`
+	Headers RealmListCreatorWorldAgentsOperationHeaders `json:"headers,omitempty"`
 	Body    struct{} `json:"body,omitempty"`
 }
 
@@ -16627,6 +16652,25 @@ type RealmListMyAppPermissionGrantsOperationRequest struct {
 	Path    RealmListMyAppPermissionGrantsOperationPath `json:"path,omitempty"`
 	Query   RealmListMyAppPermissionGrantsOperationQuery `json:"query,omitempty"`
 	Headers RealmListMyAppPermissionGrantsOperationHeaders `json:"headers,omitempty"`
+	Body    struct{} `json:"body,omitempty"`
+}
+
+type RealmListMyCreatorWorldsOperationPath struct {
+
+}
+
+type RealmListMyCreatorWorldsOperationQuery struct {
+
+}
+
+type RealmListMyCreatorWorldsOperationHeaders struct {
+
+}
+
+type RealmListMyCreatorWorldsOperationRequest struct {
+	Path    RealmListMyCreatorWorldsOperationPath `json:"path,omitempty"`
+	Query   RealmListMyCreatorWorldsOperationQuery `json:"query,omitempty"`
+	Headers RealmListMyCreatorWorldsOperationHeaders `json:"headers,omitempty"`
 	Body    struct{} `json:"body,omitempty"`
 }
 
@@ -17843,60 +17887,63 @@ type RealmUpdateBundleOperationRequest struct {
 	Body    UpdateBundleDto `json:"body,omitempty"`
 }
 
-type RealmUpdateForgeImportedSystemAgentProfileMediaOperationPath struct {
+type RealmUpdateCreatorWorldAgentProfileMediaOperationPath struct {
 	AgentId string `json:"agentId,omitempty"`
+	WorldId string `json:"worldId,omitempty"`
 }
 
-type RealmUpdateForgeImportedSystemAgentProfileMediaOperationQuery struct {
-
-}
-
-type RealmUpdateForgeImportedSystemAgentProfileMediaOperationHeaders struct {
+type RealmUpdateCreatorWorldAgentProfileMediaOperationQuery struct {
 
 }
 
-type RealmUpdateForgeImportedSystemAgentProfileMediaOperationRequest struct {
-	Path    RealmUpdateForgeImportedSystemAgentProfileMediaOperationPath `json:"path,omitempty"`
-	Query   RealmUpdateForgeImportedSystemAgentProfileMediaOperationQuery `json:"query,omitempty"`
-	Headers RealmUpdateForgeImportedSystemAgentProfileMediaOperationHeaders `json:"headers,omitempty"`
+type RealmUpdateCreatorWorldAgentProfileMediaOperationHeaders struct {
+
+}
+
+type RealmUpdateCreatorWorldAgentProfileMediaOperationRequest struct {
+	Path    RealmUpdateCreatorWorldAgentProfileMediaOperationPath `json:"path,omitempty"`
+	Query   RealmUpdateCreatorWorldAgentProfileMediaOperationQuery `json:"query,omitempty"`
+	Headers RealmUpdateCreatorWorldAgentProfileMediaOperationHeaders `json:"headers,omitempty"`
 	Body    UpdateAgentProfileMediaDto `json:"body,omitempty"`
 }
 
-type RealmUpdateForgeImportedSystemAgentSettingsOperationPath struct {
+type RealmUpdateCreatorWorldAgentSettingsOperationPath struct {
 	AgentId string `json:"agentId,omitempty"`
+	WorldId string `json:"worldId,omitempty"`
 }
 
-type RealmUpdateForgeImportedSystemAgentSettingsOperationQuery struct {
-
-}
-
-type RealmUpdateForgeImportedSystemAgentSettingsOperationHeaders struct {
+type RealmUpdateCreatorWorldAgentSettingsOperationQuery struct {
 
 }
 
-type RealmUpdateForgeImportedSystemAgentSettingsOperationRequest struct {
-	Path    RealmUpdateForgeImportedSystemAgentSettingsOperationPath `json:"path,omitempty"`
-	Query   RealmUpdateForgeImportedSystemAgentSettingsOperationQuery `json:"query,omitempty"`
-	Headers RealmUpdateForgeImportedSystemAgentSettingsOperationHeaders `json:"headers,omitempty"`
+type RealmUpdateCreatorWorldAgentSettingsOperationHeaders struct {
+
+}
+
+type RealmUpdateCreatorWorldAgentSettingsOperationRequest struct {
+	Path    RealmUpdateCreatorWorldAgentSettingsOperationPath `json:"path,omitempty"`
+	Query   RealmUpdateCreatorWorldAgentSettingsOperationQuery `json:"query,omitempty"`
+	Headers RealmUpdateCreatorWorldAgentSettingsOperationHeaders `json:"headers,omitempty"`
 	Body    UpdateOwnerAgentSettingsDto `json:"body,omitempty"`
 }
 
-type RealmUpdateForgeImportedSystemAgentVoiceOperationPath struct {
+type RealmUpdateCreatorWorldAgentVoiceOperationPath struct {
 	AgentId string `json:"agentId,omitempty"`
+	WorldId string `json:"worldId,omitempty"`
 }
 
-type RealmUpdateForgeImportedSystemAgentVoiceOperationQuery struct {
-
-}
-
-type RealmUpdateForgeImportedSystemAgentVoiceOperationHeaders struct {
+type RealmUpdateCreatorWorldAgentVoiceOperationQuery struct {
 
 }
 
-type RealmUpdateForgeImportedSystemAgentVoiceOperationRequest struct {
-	Path    RealmUpdateForgeImportedSystemAgentVoiceOperationPath `json:"path,omitempty"`
-	Query   RealmUpdateForgeImportedSystemAgentVoiceOperationQuery `json:"query,omitempty"`
-	Headers RealmUpdateForgeImportedSystemAgentVoiceOperationHeaders `json:"headers,omitempty"`
+type RealmUpdateCreatorWorldAgentVoiceOperationHeaders struct {
+
+}
+
+type RealmUpdateCreatorWorldAgentVoiceOperationRequest struct {
+	Path    RealmUpdateCreatorWorldAgentVoiceOperationPath `json:"path,omitempty"`
+	Query   RealmUpdateCreatorWorldAgentVoiceOperationQuery `json:"query,omitempty"`
+	Headers RealmUpdateCreatorWorldAgentVoiceOperationHeaders `json:"headers,omitempty"`
 	Body    UpdateAgentVoiceDto `json:"body,omitempty"`
 }
 
@@ -19796,36 +19843,36 @@ func (c RealmTypedClient) GetChatById(ctx context.Context, request RealmGetChatB
 	return decodeTypedResponse[ChatViewDto](raw)
 }
 
-func (c RealmTypedClient) GetExploreFeed(ctx context.Context, request RealmGetExploreFeedOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (FeedResponseDto, error) {
-	raw, err := c.operationTyped(ctx, "getExploreFeed", request, metadata, timeoutMS)
-	if err != nil {
-		return FeedResponseDto{}, err
-	}
-	return decodeTypedResponse[FeedResponseDto](raw)
-}
-
-func (c RealmTypedClient) GetForgeImportedSystemAgent(ctx context.Context, request RealmGetForgeImportedSystemAgentOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UserLiteDto, error) {
-	raw, err := c.operationTyped(ctx, "getForgeImportedSystemAgent", request, metadata, timeoutMS)
+func (c RealmTypedClient) GetCreatorWorldAgent(ctx context.Context, request RealmGetCreatorWorldAgentOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UserLiteDto, error) {
+	raw, err := c.operationTyped(ctx, "getCreatorWorldAgent", request, metadata, timeoutMS)
 	if err != nil {
 		return UserLiteDto{}, err
 	}
 	return decodeTypedResponse[UserLiteDto](raw)
 }
 
-func (c RealmTypedClient) GetForgeImportedSystemAgentChatReadiness(ctx context.Context, request RealmGetForgeImportedSystemAgentChatReadinessOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ForgeImportedSystemAgentChatReadinessDto, error) {
-	raw, err := c.operationTyped(ctx, "getForgeImportedSystemAgentChatReadiness", request, metadata, timeoutMS)
+func (c RealmTypedClient) GetCreatorWorldAgentChatReadiness(ctx context.Context, request RealmGetCreatorWorldAgentChatReadinessOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CreatorWorldAgentChatReadinessDto, error) {
+	raw, err := c.operationTyped(ctx, "getCreatorWorldAgentChatReadiness", request, metadata, timeoutMS)
 	if err != nil {
-		return ForgeImportedSystemAgentChatReadinessDto{}, err
+		return CreatorWorldAgentChatReadinessDto{}, err
 	}
-	return decodeTypedResponse[ForgeImportedSystemAgentChatReadinessDto](raw)
+	return decodeTypedResponse[CreatorWorldAgentChatReadinessDto](raw)
 }
 
-func (c RealmTypedClient) GetForgeImportedSystemAgentSettings(ctx context.Context, request RealmGetForgeImportedSystemAgentSettingsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (OwnerAgentSettingsDto, error) {
-	raw, err := c.operationTyped(ctx, "getForgeImportedSystemAgentSettings", request, metadata, timeoutMS)
+func (c RealmTypedClient) GetCreatorWorldAgentSettings(ctx context.Context, request RealmGetCreatorWorldAgentSettingsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (OwnerAgentSettingsDto, error) {
+	raw, err := c.operationTyped(ctx, "getCreatorWorldAgentSettings", request, metadata, timeoutMS)
 	if err != nil {
 		return OwnerAgentSettingsDto{}, err
 	}
 	return decodeTypedResponse[OwnerAgentSettingsDto](raw)
+}
+
+func (c RealmTypedClient) GetExploreFeed(ctx context.Context, request RealmGetExploreFeedOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (FeedResponseDto, error) {
+	raw, err := c.operationTyped(ctx, "getExploreFeed", request, metadata, timeoutMS)
+	if err != nil {
+		return FeedResponseDto{}, err
+	}
+	return decodeTypedResponse[FeedResponseDto](raw)
 }
 
 func (c RealmTypedClient) GetGroup(ctx context.Context, request RealmGetGroupOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GroupChatViewDto, error) {
@@ -20180,8 +20227,8 @@ func (c RealmTypedClient) ListChats(ctx context.Context, request RealmListChatsO
 	return decodeTypedResponse[ListChatsResultDto](raw)
 }
 
-func (c RealmTypedClient) ListForgeImportedSystemAgents(ctx context.Context, request RealmListForgeImportedSystemAgentsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) ([]UserLiteDto, error) {
-	raw, err := c.operationTyped(ctx, "listForgeImportedSystemAgents", request, metadata, timeoutMS)
+func (c RealmTypedClient) ListCreatorWorldAgents(ctx context.Context, request RealmListCreatorWorldAgentsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) ([]UserLiteDto, error) {
+	raw, err := c.operationTyped(ctx, "listCreatorWorldAgents", request, metadata, timeoutMS)
 	if err != nil {
 		return []UserLiteDto{}, err
 	}
@@ -20226,6 +20273,14 @@ func (c RealmTypedClient) ListMyAppPermissionGrants(ctx context.Context, request
 		return AppPermissionGrantListDto{}, err
 	}
 	return decodeTypedResponse[AppPermissionGrantListDto](raw)
+}
+
+func (c RealmTypedClient) ListMyCreatorWorlds(ctx context.Context, request RealmListMyCreatorWorldsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CreatorWorldSummaryListDto, error) {
+	raw, err := c.operationTyped(ctx, "listMyCreatorWorlds", request, metadata, timeoutMS)
+	if err != nil {
+		return CreatorWorldSummaryListDto{}, err
+	}
+	return decodeTypedResponse[CreatorWorldSummaryListDto](raw)
 }
 
 func (c RealmTypedClient) ListMyFriendIds(ctx context.Context, request RealmListMyFriendIdsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (struct{}, error) {
@@ -20716,24 +20771,24 @@ func (c RealmTypedClient) UpdateBundle(ctx context.Context, request RealmUpdateB
 	return decodeTypedResponse[BundleDetailDto](raw)
 }
 
-func (c RealmTypedClient) UpdateForgeImportedSystemAgentProfileMedia(ctx context.Context, request RealmUpdateForgeImportedSystemAgentProfileMediaOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UserLiteDto, error) {
-	raw, err := c.operationTyped(ctx, "updateForgeImportedSystemAgentProfileMedia", request, metadata, timeoutMS)
+func (c RealmTypedClient) UpdateCreatorWorldAgentProfileMedia(ctx context.Context, request RealmUpdateCreatorWorldAgentProfileMediaOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UserLiteDto, error) {
+	raw, err := c.operationTyped(ctx, "updateCreatorWorldAgentProfileMedia", request, metadata, timeoutMS)
 	if err != nil {
 		return UserLiteDto{}, err
 	}
 	return decodeTypedResponse[UserLiteDto](raw)
 }
 
-func (c RealmTypedClient) UpdateForgeImportedSystemAgentSettings(ctx context.Context, request RealmUpdateForgeImportedSystemAgentSettingsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (OwnerAgentSettingsDto, error) {
-	raw, err := c.operationTyped(ctx, "updateForgeImportedSystemAgentSettings", request, metadata, timeoutMS)
+func (c RealmTypedClient) UpdateCreatorWorldAgentSettings(ctx context.Context, request RealmUpdateCreatorWorldAgentSettingsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (OwnerAgentSettingsDto, error) {
+	raw, err := c.operationTyped(ctx, "updateCreatorWorldAgentSettings", request, metadata, timeoutMS)
 	if err != nil {
 		return OwnerAgentSettingsDto{}, err
 	}
 	return decodeTypedResponse[OwnerAgentSettingsDto](raw)
 }
 
-func (c RealmTypedClient) UpdateForgeImportedSystemAgentVoice(ctx context.Context, request RealmUpdateForgeImportedSystemAgentVoiceOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UserLiteDto, error) {
-	raw, err := c.operationTyped(ctx, "updateForgeImportedSystemAgentVoice", request, metadata, timeoutMS)
+func (c RealmTypedClient) UpdateCreatorWorldAgentVoice(ctx context.Context, request RealmUpdateCreatorWorldAgentVoiceOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UserLiteDto, error) {
+	raw, err := c.operationTyped(ctx, "updateCreatorWorldAgentVoice", request, metadata, timeoutMS)
 	if err != nil {
 		return UserLiteDto{}, err
 	}
