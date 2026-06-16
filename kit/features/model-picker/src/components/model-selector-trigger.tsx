@@ -4,6 +4,8 @@ export type ModelSelectorTriggerProps = {
   source: 'local' | 'cloud' | null;
   modelLabel: string | null;
   detail?: string | null;
+  detailStatus?: string | null;
+  detailTone?: 'success' | 'neutral';
   placeholder?: string;
   onClick: () => void;
   disabled?: boolean;
@@ -33,12 +35,15 @@ export function ModelSelectorTrigger({
   source,
   modelLabel,
   detail,
+  detailStatus,
+  detailTone = 'neutral',
   placeholder = 'Select a model',
   onClick,
   disabled,
   className,
 }: ModelSelectorTriggerProps) {
   const hasModel = Boolean(modelLabel);
+  const hasDetail = Boolean(detail || detailStatus);
 
   return (
     <button
@@ -63,8 +68,17 @@ export function ModelSelectorTrigger({
         {hasModel ? (
           <>
             <p className="truncate text-[13px] font-medium text-slate-800">{modelLabel}</p>
-            {detail ? (
-              <p className="truncate text-[11px] text-slate-400">{detail}</p>
+            {hasDetail ? (
+              <p
+                className={cn(
+                  'truncate text-[11px]',
+                  detailTone === 'success' ? 'font-medium text-emerald-600' : 'text-slate-400',
+                )}
+              >
+                {detail ? <span>{detail}</span> : null}
+                {detail && detailStatus ? <span aria-hidden="true"> · </span> : null}
+                {detailStatus ? <span>{detailStatus}</span> : null}
+              </p>
             ) : null}
           </>
         ) : (

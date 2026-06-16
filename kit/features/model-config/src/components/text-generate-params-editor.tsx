@@ -1,5 +1,12 @@
+import { SelectField } from '@nimiplatform/kit/ui';
 import type { TextGenerateParamsState } from '../types.js';
-import { TEXT_RESPONSE_STOP_SEQUENCES_MAX } from '../constants.js';
+import {
+  TEXT_GENERATE_DEFAULT_LENGTH,
+  TEXT_GENERATE_DEFAULT_TONE,
+  TEXT_GENERATE_LENGTH_OPTIONS,
+  TEXT_GENERATE_TONE_OPTIONS,
+  TEXT_RESPONSE_STOP_SEQUENCES_MAX,
+} from '../constants.js';
 import {
   FieldRow,
   FieldTextarea,
@@ -14,6 +21,9 @@ import {
 export type TextGenerateParamsEditorCopy = {
   parametersLabel: string;
   previewBadgeLabel?: string;
+  promptControlsLabel?: string;
+  toneLabel: string;
+  lengthLabel: string;
   generationDefaultsLabel?: string;
   responseControlsLabel?: string;
   advancedLabel?: string;
@@ -28,6 +38,8 @@ export type TextGenerateParamsEditorCopy = {
   frequencyPenaltyLabel: string;
   defaultPlaceholder?: string;
   stopSequencesPlaceholder?: string;
+  toneOptions?: ReadonlyArray<{ value: string; label: string }>;
+  lengthOptions?: ReadonlyArray<{ value: string; label: string }>;
 };
 
 export type TextGenerateParamsEditorProps = {
@@ -42,6 +54,11 @@ export function createTextGenerateEditorCopy(
   return {
     parametersLabel: t('ModelConfig.editor.textGenerate.parametersLabel', { defaultValue: 'Parameters' }),
     previewBadgeLabel: t('ModelConfig.editor.common.previewBadgeLabel', { defaultValue: 'Preview' }),
+    promptControlsLabel: t('ModelConfig.editor.textGenerate.promptControlsLabel', {
+      defaultValue: 'Prompt Controls',
+    }),
+    toneLabel: t('ModelConfig.editor.textGenerate.toneLabel', { defaultValue: 'Tone' }),
+    lengthLabel: t('ModelConfig.editor.textGenerate.lengthLabel', { defaultValue: 'Length' }),
     generationDefaultsLabel: t('ModelConfig.editor.textGenerate.generationDefaultsLabel', {
       defaultValue: 'Generation Defaults',
     }),
@@ -62,6 +79,14 @@ export function createTextGenerateEditorCopy(
     presencePenaltyLabel: t('ModelConfig.editor.textGenerate.presencePenaltyLabel', { defaultValue: 'Presence penalty' }),
     frequencyPenaltyLabel: t('ModelConfig.editor.textGenerate.frequencyPenaltyLabel', { defaultValue: 'Frequency penalty' }),
     defaultPlaceholder: t('ModelConfig.editor.common.defaultPlaceholder', { defaultValue: 'Default' }),
+    toneOptions: TEXT_GENERATE_TONE_OPTIONS.map((option) => ({
+      value: option.value,
+      label: t(`ModelConfig.editor.textGenerate.tone.${option.value}`, { defaultValue: option.label }),
+    })),
+    lengthOptions: TEXT_GENERATE_LENGTH_OPTIONS.map((option) => ({
+      value: option.value,
+      label: t(`ModelConfig.editor.textGenerate.length.${option.value}`, { defaultValue: option.label }),
+    })),
     stopSequencesPlaceholder: t('ModelConfig.editor.textGenerate.stopSequencesPlaceholder', {
       defaultValue: 'Type and press enter…',
     }),
@@ -80,6 +105,9 @@ function stopSequencesFromText(text: string): string[] {
     .slice(0, TEXT_RESPONSE_STOP_SEQUENCES_MAX);
 }
 
+const PROMPT_CONTROL_SELECT_CLASS = 'text-[13px] font-medium text-slate-800';
+const PROMPT_CONTROL_SELECT_CONTENT_CLASS = '[&_[role=option]]:text-[13px] [&_[role=option]]:font-medium';
+
 export function TextGenerateParamsEditor(props: TextGenerateParamsEditorProps) {
   const { copy, params } = props;
 
@@ -93,9 +121,45 @@ export function TextGenerateParamsEditor(props: TextGenerateParamsEditorProps) {
   const generationDefaultsLabel = copy.generationDefaultsLabel ?? copy.parametersLabel;
   const responseControlsLabel = copy.responseControlsLabel ?? copy.timeoutLabel;
   const advancedLabel = copy.advancedLabel ?? 'Advanced Settings';
+  const promptControlsLabel = copy.promptControlsLabel ?? 'Prompt Controls';
+  const toneOptions = copy.toneOptions ?? TEXT_GENERATE_TONE_OPTIONS;
+  const lengthOptions = copy.lengthOptions ?? TEXT_GENERATE_LENGTH_OPTIONS;
+  const toneSelectOptions = toneOptions.map((option) => ({
+    value: option.value,
+    label: option.label,
+  }));
+  const lengthSelectOptions = lengthOptions.map((option) => ({
+    value: option.value,
+    label: option.label,
+  }));
 
   return (
     <div className="space-y-6">
+      <section className="space-y-3.5">
+        <EditorSectionTitle label={promptControlsLabel} />
+        <div className="grid grid-cols-2 gap-3">
+          <FieldRow label={copy.toneLabel}>
+            <SelectField
+              aria-label={copy.toneLabel}
+              value={params.tone || TEXT_GENERATE_DEFAULT_TONE}
+              onValueChange={(value) => updateParam('tone', value)}
+              options={toneSelectOptions}
+              selectClassName={PROMPT_CONTROL_SELECT_CLASS}
+              contentClassName={PROMPT_CONTROL_SELECT_CONTENT_CLASS}
+            />
+          </FieldRow>
+          <FieldRow label={copy.lengthLabel}>
+            <SelectField
+              aria-label={copy.lengthLabel}
+              value={params.length || TEXT_GENERATE_DEFAULT_LENGTH}
+              onValueChange={(value) => updateParam('length', value)}
+              options={lengthSelectOptions}
+              selectClassName={PROMPT_CONTROL_SELECT_CLASS}
+              contentClassName={PROMPT_CONTROL_SELECT_CONTENT_CLASS}
+            />
+          </FieldRow>
+        </div>
+      </section>
       {/* GENERATION DEFAULTS — sliders for the two creative knobs (T, MaxTokens) so devs can
           drag instead of typing; plain numeric inputs for Top P / Top K which are usually set
           once and forgotten. */}

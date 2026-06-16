@@ -313,6 +313,7 @@ export function ModelConfigAiModelHub(props: ModelConfigAiModelHubProps) {
       : detailTone === 'attention'
         ? 'bg-amber-500'
         : 'bg-slate-400';
+    const showDetailStatusPill = detailTone !== 'ready';
     const sectionTitle = t(`ModelConfig.section.${activeSection}.title`);
     const detailTitle = t('ModelConfig.hub.detailTitleFormat', {
       section: sectionTitle,
@@ -336,10 +337,12 @@ export function ModelConfigAiModelHub(props: ModelConfigAiModelHubProps) {
           <h2 className="min-w-0 flex-1 truncate text-[15px] font-semibold tracking-tight text-[var(--nimi-text-primary,#0f172a)]">
             {detailTitle}
           </h2>
-          <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-[0.12em] ${detailPillClass}`}>
-            <span className={`h-1.5 w-1.5 rounded-full ${detailPillDotClass}`} />
-            {detailStatusLabel}
-          </span>
+          {showDetailStatusPill ? (
+            <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-[0.12em] ${detailPillClass}`}>
+              <span className={`h-1.5 w-1.5 rounded-full ${detailPillDotClass}`} />
+              {detailStatusLabel}
+            </span>
+          ) : null}
           {detailHeaderAction}
         </div>
 

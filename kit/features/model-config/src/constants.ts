@@ -127,8 +127,23 @@ export function parseVideoParams(stored: Readonly<Record<string, unknown>>): Vid
 // ---------------------------------------------------------------------------
 
 export const TEXT_RESPONSE_STOP_SEQUENCES_MAX = 4;
+export const TEXT_GENERATE_DEFAULT_TONE = 'clear';
+export const TEXT_GENERATE_DEFAULT_LENGTH = 'medium';
+export const TEXT_GENERATE_TONE_OPTIONS = [
+  { value: 'clear', label: 'Clear' },
+  { value: 'warm', label: 'Warm' },
+  { value: 'formal', label: 'Formal' },
+  { value: 'short', label: 'Short' },
+];
+export const TEXT_GENERATE_LENGTH_OPTIONS = [
+  { value: 'short', label: 'Short' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'detailed', label: 'Detailed' },
+];
 
 export const DEFAULT_TEXT_GENERATE_PARAMS: TextGenerateParamsState = {
+  tone: '',
+  length: '',
   temperature: '',
   topP: '',
   topK: '',
@@ -150,6 +165,8 @@ function toStringArray(value: unknown): string[] {
 
 export function parseTextGenerateParams(stored: Readonly<Record<string, unknown>>): TextGenerateParamsState {
   return {
+    tone: typeof stored.tone === 'string' ? stored.tone : DEFAULT_TEXT_GENERATE_PARAMS.tone,
+    length: typeof stored.length === 'string' ? stored.length : DEFAULT_TEXT_GENERATE_PARAMS.length,
     temperature: typeof stored.temperature === 'string' ? stored.temperature : DEFAULT_TEXT_GENERATE_PARAMS.temperature,
     topP: typeof stored.topP === 'string' ? stored.topP : DEFAULT_TEXT_GENERATE_PARAMS.topP,
     topK: typeof stored.topK === 'string' ? stored.topK : DEFAULT_TEXT_GENERATE_PARAMS.topK,

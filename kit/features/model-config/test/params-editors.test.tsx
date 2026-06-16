@@ -31,6 +31,20 @@ if (!window.HTMLElement.prototype.scrollIntoView) {
   });
 }
 
+if (!window.HTMLElement.prototype.hasPointerCapture) {
+  Object.defineProperty(window.HTMLElement.prototype, 'hasPointerCapture', {
+    configurable: true,
+    value: () => false,
+  });
+}
+
+if (!window.HTMLElement.prototype.releasePointerCapture) {
+  Object.defineProperty(window.HTMLElement.prototype, 'releasePointerCapture', {
+    configurable: true,
+    value: () => undefined,
+  });
+}
+
 function flush() {
   return new Promise((resolve) => setTimeout(resolve, 0));
 }
@@ -67,6 +81,31 @@ function setInputValue(input: HTMLInputElement, next: string) {
   input.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
+async function chooseSelectOption(ariaLabel: string, optionText: string) {
+  const trigger = Array.from(container?.querySelectorAll('button') || [])
+    .find((button) => button.getAttribute('aria-label') === ariaLabel);
+  expect(trigger).toBeTruthy();
+
+  await act(async () => {
+    trigger?.focus();
+    trigger?.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, button: 0 }));
+    trigger?.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+    await flush();
+    await flush();
+  });
+
+  const option = Array.from(document.querySelectorAll('[role="option"]'))
+    .find((node) => node.textContent?.includes(optionText));
+  expect(option).toBeTruthy();
+
+  await act(async () => {
+    option?.dispatchEvent(new MouseEvent('pointerup', { bubbles: true, button: 0 }));
+    option?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await flush();
+    await flush();
+  });
+}
+
 describe('TextGenerateParamsEditor', () => {
   it('propagates temperature updates and renders required field labels', async () => {
     let next: TextGenerateParamsState = { ...DEFAULT_TEXT_GENERATE_PARAMS };
@@ -74,6 +113,9 @@ describe('TextGenerateParamsEditor', () => {
       <TextGenerateParamsEditor
         copy={{
           parametersLabel: 'Parameters',
+          promptControlsLabel: 'Prompt controls',
+          toneLabel: 'Tone',
+          lengthLabel: 'Length',
           temperatureLabel: 'Temperature',
           topPLabel: 'Top P',
           topKLabel: 'Top K',
@@ -87,6 +129,13 @@ describe('TextGenerateParamsEditor', () => {
         onParamsChange={(value) => { next = value; }}
       />,
     );
+    expect(container?.textContent).toContain('Tone');
+    const toneTrigger = Array.from(container?.querySelectorAll('button') || [])
+      .find((button) => button.getAttribute('aria-label') === 'Tone');
+    expect(toneTrigger).toBeTruthy();
+    expect(toneTrigger?.textContent).toContain('Clear');
+    await chooseSelectOption('Tone', 'Warm');
+    expect(next.tone).toBe('warm');
     expect(container?.textContent).toContain('Temperature');
     expect(container?.textContent).toContain('Stop sequences');
     const inputs = Array.from(container?.querySelectorAll('input') || []) as HTMLInputElement[];

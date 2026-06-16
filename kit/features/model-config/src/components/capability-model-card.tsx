@@ -41,6 +41,37 @@ function isOpaqueRuntimeId(value: string | null | undefined): boolean {
   return /^[0-9A-HJKMNP-TV-Z]{20,32}$/u.test(normalized);
 }
 
+function splitModelPath(value: string | null | undefined): string[] {
+  return normalizeText(value).split('/').map((part) => part.trim()).filter(Boolean);
+}
+
+function compactLocalModelLabel(value: string | null | undefined): string | null {
+  const parts = splitModelPath(value);
+  if (parts.length === 0) return null;
+  if (parts[0] === 'local' && parts[1] === 'local-import') {
+    return parts.slice(2).join('/') || null;
+  }
+  if (parts[0] === 'local-import' || parts[0] === 'local' || parts[0] === 'cloud') {
+    return parts.slice(1).join('/') || null;
+  }
+  return normalizeText(value) || null;
+}
+
+function localSourceLabel(value: string | null | undefined): string | null {
+  const parts = splitModelPath(value);
+  if (parts[0] === 'local' && parts[1] === 'local-import') return 'local-import';
+  if (parts[0] === 'local-import') return 'local-import';
+  if (parts[0] === 'local') return 'local';
+  return null;
+}
+
+function localTargetSourceLabel(targetRef: ModelConfigTargetRef | null | undefined): string | null {
+  if (!targetRef || targetRef.kind !== 'local-runtime') return null;
+  return localSourceLabel(targetRef.profileId)
+    ?? localSourceLabel(targetRef.targetId)
+    ?? localSourceLabel(targetRef.readinessRef);
+}
+
 function localTargetCandidates(targetRef: ModelConfigTargetRef | null | undefined): string[] {
   if (!targetRef || targetRef.kind !== 'local-runtime') {
     return [];
@@ -75,6 +106,7 @@ export function CapabilityModelCard({ item }: CapabilityModelCardProps) {
   const [hydratedTargetSummary, setHydratedTargetSummary] = useState<{
     label: string;
     detail: string | null;
+    sourceLabel?: string | null;
   } | null>(null);
   const shouldShowEditor = item.editor && (
     item.showEditorWhen !== 'local'
@@ -84,15 +116,25 @@ export function CapabilityModelCard({ item }: CapabilityModelCardProps) {
   const selection = targetRefToPickerSelection(item.targetRef);
   const displayLabel = hydratedTargetSummary?.label
     || selection.modelLabel
-    || (selection.source === 'local' ? targetSummary.label : selection.model)
+    || selection.model
     || targetSummary.label
     || null;
   const source = selection.source || null;
   const unresolvedLocalTarget = item.targetRef?.kind === 'local-runtime' && !hydratedTargetSummary;
+  const unresolvedOpaqueLocalTarget = unresolvedLocalTarget && isOpaqueRuntimeId(displayLabel);
+  const localDetail = source === 'local'
+    ? (hydratedTargetSummary?.sourceLabel
+      ?? localSourceLabel(displayLabel)
+      ?? localTargetSourceLabel(item.targetRef)
+      ?? null)
+    : null;
+  const activeModelDetail = item.activeModelLabel ? localDetail : null;
+  const activeModelDetailStatus = activeModelDetail && item.status?.supported ? 'configured' : null;
   const connectorDetail = hydratedTargetSummary?.detail
     ?? (unresolvedLocalTarget
       ? null
       : (source === 'cloud' && selection.connectorId ? selection.connectorId : targetSummary.detail));
+  const visibleDetail = item.activeModelLabel ? activeModelDetail : connectorDetail;
   const statusClasses = statusToneClasses(item.status);
 
   useEffect(() => {
@@ -115,7 +157,11 @@ export function CapabilityModelCard({ item }: CapabilityModelCardProps) {
           if (cancelled) return;
           const match = models.find((model) => localTargetMatches(model, candidates));
           if (!match) return;
-          const label = match.label || match.modelId || match.localModelId;
+          const rawLabel = match.label || match.modelId || match.localModelId || '';
+          const label = compactLocalModelLabel(rawLabel) || rawLabel;
+          const sourceLabel = localSourceLabel(match.modelId)
+            ?? localSourceLabel(match.localModelId)
+            ?? localSourceLabel(match.label);
           const detail = [
             match.engine,
             match.modelId && match.modelId !== label ? match.modelId : '',
@@ -123,6 +169,7 @@ export function CapabilityModelCard({ item }: CapabilityModelCardProps) {
           setHydratedTargetSummary({
             label,
             detail: detail || null,
+            sourceLabel,
           });
         })
         .catch(() => undefined);
@@ -135,9 +182,9 @@ export function CapabilityModelCard({ item }: CapabilityModelCardProps) {
     };
   }, [item.provider, item.targetRef]);
 
-  const triggerLabel = item.targetRef && (unresolvedLocalTarget || isOpaqueRuntimeId(displayLabel))
+  const triggerLabel = item.targetRef && (unresolvedOpaqueLocalTarget || isOpaqueRuntimeId(displayLabel))
     ? 'Local runtime model'
-    : displayLabel;
+    : (source === 'local' ? compactLocalModelLabel(displayLabel) ?? displayLabel : displayLabel);
 
   const headerLabel = item.activeModelLabel;
   const labelNode = headerLabel ? (
@@ -178,7 +225,9 @@ export function CapabilityModelCard({ item }: CapabilityModelCardProps) {
       <ModelSelectorTrigger
         source={source}
         modelLabel={item.targetRef ? triggerLabel : null}
-        detail={connectorDetail}
+        detail={visibleDetail}
+        detailStatus={item.activeModelLabel ? activeModelDetailStatus : null}
+        detailTone={item.activeModelLabel && activeModelDetailStatus ? 'success' : 'neutral'}
         placeholder={item.provider
           ? (item.placeholder || 'Setup required')
           : (item.runtimeNotReadyLabel || item.placeholder || 'Setup required')}

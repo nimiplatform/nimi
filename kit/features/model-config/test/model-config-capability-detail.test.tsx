@@ -185,6 +185,53 @@ describe('ModelConfigCapabilityDetail editorKind routing', () => {
     expect(container?.textContent).not.toContain('01KTEX08DS2GR9HJ1X3R459P1B');
   });
 
+  it('renders active local-import models as model name plus configured source metadata', async () => {
+    const localConfig: NimiAIConfig = {
+      ...baseConfig,
+      capabilities: {
+        targetRefs: {
+          'text.generate': {
+            kind: 'local-runtime',
+            targetId: 'llama',
+            profileId: 'local-import/gemma-4-26B-A4B-it-Q8_0',
+            readinessRef: 'runtime-route:local:llama:local-import/gemma-4-26B-A4B-it-Q8_0',
+          },
+        },
+        selectedParams: {},
+      },
+    };
+    const surface: AppModelConfigSurface = {
+      ...makeSurface('text.generate'),
+      projectionResolver: () => ({
+        supported: true,
+        tone: 'ready',
+        badgeLabel: 'Bound',
+        title: 'Target configured',
+        detail: null,
+      }),
+    };
+    await render(
+      wrap(
+        <ModelConfigCapabilityDetail
+          capabilityId="text.generate"
+          surface={surface}
+          config={localConfig}
+        />,
+      ),
+    );
+
+    const trigger = Array.from(container?.querySelectorAll('button') || [])
+      .find((button) => button.textContent?.includes('gemma-4-26B-A4B-it-Q8_0'));
+    expect(trigger).toBeTruthy();
+    expect(trigger?.textContent).toContain('gemma-4-26B-A4B-it-Q8_0');
+    expect(trigger?.textContent).not.toContain('local-import/gemma-4-26B-A4B-it-Q8_0');
+
+    const detail = Array.from(trigger?.querySelectorAll('p') || [])
+      .find((node) => node.textContent?.includes('local-import'));
+    expect(detail?.textContent).toBe('local-import · configured');
+    expect(detail?.className).toContain('text-emerald-600');
+  });
+
   it('does not expose opaque local runtime ids while provider hydration is unavailable', async () => {
     const localConfig: NimiAIConfig = {
       ...baseConfig,
@@ -225,6 +272,35 @@ describe('ModelConfigCapabilityDetail editorKind routing', () => {
 
     expect(container?.textContent).toContain('Local runtime model');
     expect(container?.textContent).not.toContain('01KTEX08DS2GR9HJ1X3R459P1B');
+  });
+
+  it('does not render connector ids under the active model selector', async () => {
+    const cloudConfig: NimiAIConfig = {
+      ...baseConfig,
+      capabilities: {
+        targetRefs: {
+          'image.generate': {
+            kind: 'cloud-connector',
+            connectorId: '01KV2PF5ZWB6KS2SP17B2E8JTB',
+            providerModelId: 'gemini-3.1-flash-image-preview',
+          },
+        },
+        selectedParams: {},
+      },
+    };
+    const surface = makeSurface('image.generate');
+    await render(
+      wrap(
+        <ModelConfigCapabilityDetail
+          capabilityId="image.generate"
+          surface={surface}
+          config={cloudConfig}
+        />,
+      ),
+    );
+
+    expect(container?.textContent).toContain('gemini-3.1-flash-image-preview');
+    expect(container?.textContent).not.toContain('01KV2PF5ZWB6KS2SP17B2E8JTB');
   });
 
   it('routes image.generate to ImageParamsEditor (editorKind=image)', async () => {

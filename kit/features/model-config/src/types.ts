@@ -140,6 +140,8 @@ export type ModelConfigProfileController = {
 };
 
 export type TextGenerateParamsState = {
+  tone: string;
+  length: string;
   temperature: string;
   topP: string;
   topK: string;

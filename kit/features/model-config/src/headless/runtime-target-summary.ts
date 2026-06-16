@@ -189,6 +189,8 @@ function pushParam(out: string[], params: Record<string, unknown>, key: string, 
 function summarizeParams(capabilityId: string, params: Record<string, unknown>): string[] {
   const out: string[] = [];
   if (capabilityId === 'text.generate' || capabilityId === 'chat.stream') {
+    pushParam(out, params, 'tone');
+    pushParam(out, params, 'length');
     pushParam(out, params, 'temperature', 'temp');
     pushParam(out, params, 'topP');
     pushParam(out, params, 'topK');
