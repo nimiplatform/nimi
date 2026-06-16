@@ -46,6 +46,46 @@ describe('NAS handler executor results', () => {
     });
   });
 
+  it('passes Live2D extension only to handlers that declared the capability', async () => {
+    const executor = new HandlerExecutor();
+    const setParameter = vi.fn();
+    const handler: ActivityOrEventHandler = {
+      execute: vi.fn(async (_ctx, _projection, options) => {
+        options.extension?.live2d?.setParameter('ParamMouthOpenY', 0.4);
+      }),
+    };
+
+    await executor.run('activity:neutral', handler, bundle, projection, {
+      extension: { live2d: { setParameter } },
+    });
+    await executor.run('activity:mouth', handler, bundle, projection, {
+      requiresLive2DExtension: true,
+      extension: { live2d: { setParameter } },
+    });
+
+    expect(setParameter).toHaveBeenCalledOnce();
+    expect(setParameter).toHaveBeenCalledWith('ParamMouthOpenY', 0.4);
+  });
+
+  it('does not fake a Live2D extension success when capability materialization is missing', async () => {
+    const executor = new HandlerExecutor();
+    const handler: ActivityOrEventHandler = {
+      execute: vi.fn(async (_ctx, _projection, options) => {
+        if (!options.extension?.live2d) {
+          throw new Error('live2d extension missing');
+        }
+      }),
+    };
+
+    await expect(executor.run('activity:mouth', handler, bundle, projection, {
+      requiresLive2DExtension: true,
+    })).resolves.toEqual({
+      key: 'activity:mouth',
+      status: 'error',
+      error: 'live2d extension missing',
+    });
+  });
+
   it('cancels the previous same-key invocation deterministically', async () => {
     const executor = new HandlerExecutor();
     const observedSignal: { current: AbortSignal | null } = { current: null };

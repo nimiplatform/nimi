@@ -26,10 +26,11 @@ export type BackendHitRegion = {
   /** drag-allowed bbox (companion / degraded surface 区域不开启 drag) */
   drag: { left: number; top: number; right: number; bottom: number };
   /** Precise alpha-mask hit query (pixel-level click-through). Non-null
-   *  takes priority over bbox; null indicates the backend exposes only the
-   *  bbox path (device tier C / capability detection failure). */
+   *  takes priority over bbox; a null function indicates the backend exposes
+   *  only the bbox path, while a null return indicates this frame's probe is
+   *  unavailable and the caller must fall back to bbox. */
   isOpaqueAtClientPoint:
-    | ((clientX: number, clientY: number, threshold?: number) => boolean)
+    | ((clientX: number, clientY: number, threshold?: number) => boolean | null)
     | null;
 };
 

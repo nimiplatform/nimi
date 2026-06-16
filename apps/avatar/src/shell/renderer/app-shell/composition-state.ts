@@ -1,7 +1,7 @@
 // Surface composition state derivation per app-shell-contract.md section 6
 // (K-NAV-SHELL-COMPOSITION-001..005).
 // The avatar shell renders exactly one of three surfaces at any time:
-//   - ready:            embodiment-stage + companion-surface
+//   - ready:            embodiment-stage
 //   - fixture-active:   same as ready, but driven by VITE_AVATAR_DRIVER=mock fixture data
 //   - loading:          pre-bootstrap-complete; degraded-surface variant=loading
 //   - degraded:*:       typed runtime / account / launch failures
@@ -33,7 +33,7 @@ export type CompositionDerivation = {
   source: string | null;
   retryable: boolean | null;
   modelDiagnostics: CompositionModelDiagnostics | null;
-  // True iff embodiment-stage + companion-surface should mount.
+  // True iff embodiment-stage should mount.
   // False iff only degraded-surface should mount.
   ready: boolean;
 };

@@ -176,50 +176,50 @@ describe('createLive2DHitRegion (tier A)', () => {
     expect(region.isOpaqueAtClientPoint!(150, 200, 200 / 255)).toBe(false);
   });
 
-  it('returns false when getCanvas returns null', () => {
+  it('returns null when getCanvas returns null so caller falls back to bbox', () => {
     const region = createLive2DHitRegion({
       getCanvas: () => null,
       getViewport: () => VIEWPORT,
       deviceTier: 'A',
     });
-    expect(region.isOpaqueAtClientPoint!(150, 200)).toBe(false);
+    expect(region.isOpaqueAtClientPoint!(150, 200)).toBeNull();
   });
 
-  it('returns false when getViewport returns null', () => {
+  it('returns null when getViewport returns null so caller falls back to bbox', () => {
     const region = createLive2DHitRegion({
       getCanvas: () => makeFakeCanvas({ gl: makeFakeGl(255) }),
       getViewport: () => null,
       deviceTier: 'A',
     });
-    expect(region.isOpaqueAtClientPoint!(150, 200)).toBe(false);
+    expect(region.isOpaqueAtClientPoint!(150, 200)).toBeNull();
   });
 
-  it('returns false when canvas.getContext returns null (no gl)', () => {
+  it('returns null when canvas.getContext returns null so caller falls back to bbox', () => {
     const region = createLive2DHitRegion({
       getCanvas: () => makeFakeCanvas({ gl: null }),
       getViewport: () => VIEWPORT,
       deviceTier: 'A',
     });
-    expect(region.isOpaqueAtClientPoint!(150, 200)).toBe(false);
+    expect(region.isOpaqueAtClientPoint!(150, 200)).toBeNull();
   });
 
-  it('returns false when getContext throws', () => {
+  it('returns null when getContext throws so caller falls back to bbox', () => {
     const region = createLive2DHitRegion({
       getCanvas: () => makeFakeCanvas({ throwOnGetContext: true }),
       getViewport: () => VIEWPORT,
       deviceTier: 'A',
     });
-    expect(region.isOpaqueAtClientPoint!(150, 200)).toBe(false);
+    expect(region.isOpaqueAtClientPoint!(150, 200)).toBeNull();
   });
 
-  it('returns false when readPixels throws', () => {
+  it('returns null when readPixels throws so caller falls back to bbox', () => {
     const region = createLive2DHitRegion({
       getCanvas: () =>
         makeFakeCanvas({ gl: makeFakeGl(255, { throwOnRead: true }) }),
       getViewport: () => VIEWPORT,
       deviceTier: 'A',
     });
-    expect(region.isOpaqueAtClientPoint!(150, 200)).toBe(false);
+    expect(region.isOpaqueAtClientPoint!(150, 200)).toBeNull();
   });
 
   it('returns false for client coords outside viewport', () => {
@@ -242,14 +242,14 @@ describe('createLive2DHitRegion (tier A)', () => {
     ).toBe(false);
   });
 
-  it('returns false for zero-size canvas', () => {
+  it('returns null for zero-size canvas so caller falls back to bbox', () => {
     const region = createLive2DHitRegion({
       getCanvas: () =>
         makeFakeCanvas({ width: 0, height: 0, gl: makeFakeGl(255) }),
       getViewport: () => VIEWPORT,
       deviceTier: 'A',
     });
-    expect(region.isOpaqueAtClientPoint!(150, 200)).toBe(false);
+    expect(region.isOpaqueAtClientPoint!(150, 200)).toBeNull();
   });
 
   it('readPixels uses 1×1 readback (not full canvas)', () => {

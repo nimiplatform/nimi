@@ -22,6 +22,8 @@ export type AvatarEvidenceKind =
   | 'avatar.runtime.consume-ready'
   | 'avatar.runtime.driver-error'
   | 'avatar.debug.probe-submit-failed'
+  | 'avatar.debug.probe-submit-skipped'
+  | 'avatar.live2d.expression-inventory'
   | 'avatar.model.load'
   | 'avatar.carrier.visual'
   | 'avatar.carrier.lifecycle.context_lost'
@@ -39,6 +41,27 @@ export type AvatarEvidenceKind =
   | 'avatar.composition.relaunch-pending'
   | 'avatar.composition.surface-mounted'
   | 'avatar.composition.surface-unmounted'
+  // Wave 2 K-NAV-SHELL-OUTPUT-004/009 — transient context menu lifecycle.
+  | 'avatar.shell.context_menu.opened'
+  | 'avatar.shell.context_menu.dismissed'
+  | 'avatar.shell.action_radial.opened'
+  | 'avatar.shell.action_radial.selected'
+  | 'avatar.shell.action_radial.dismissed'
+  | 'avatar.shell.composer.opened'
+  | 'avatar.shell.composer.submitted'
+  | 'avatar.shell.composer.send-failed'
+  | 'avatar.shell.composer.dismissed'
+  | 'avatar.shell.scale.changed'
+  | 'avatar.shell.scale.reset'
+  | 'avatar.shell.foreground_priority.requested'
+  | 'avatar.shell.appearance.opened'
+  | 'avatar.shell.settings.changed'
+  | 'avatar.shell.hide-requested'
+  | 'avatar.shell.close-requested'
+  | 'avatar.shell.interrupt.requested'
+  | 'avatar.shell.interrupt.failed'
+  | 'avatar.shell.debug.opened'
+  | 'avatar.shell.debug.request-failed'
   // Wave 4 K-NAV-SHELL-002 — dynamic window-bounds recompute evidence.
   // Per avatar-event-contract.md §2.6 + §4 detail schemas.
   | 'avatar.shell.window-bounds-changed'
@@ -51,7 +74,13 @@ export type AvatarEvidenceKind =
 // `surface-unmounted` evidence per avatar-event-contract.md §4.
 export type AvatarCompositionSurface =
   | 'embodiment-stage'
-  | 'companion-surface'
+  | 'context-menu'
+  | 'action-radial'
+  | 'transient-composer'
+  | 'settings-overlay'
+  | 'appearance-overlay'
+  | 'debug-overlay'
+  | 'caption-overlay'
   | 'degraded-surface';
 
 export type AvatarEvidencePayload = {

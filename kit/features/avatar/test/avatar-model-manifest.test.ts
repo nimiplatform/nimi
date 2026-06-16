@@ -22,6 +22,7 @@ describe('avatar model manifest projection', () => {
       live2d: {
         modelJson: '/runtime/ren.model3.json',
         adapterManifestPath: '/runtime/nimi/live2d-adapter.json',
+        calibrationRef: null,
       },
     });
   });
@@ -43,6 +44,30 @@ describe('avatar model manifest projection', () => {
       live2d: {
         modelJson: '/runtime/ren.model3.json',
         adapterManifestPath: null,
+        calibrationRef: null,
+      },
+    });
+  });
+
+  it('normalizes shell-tauri Live2D calibration refs as opaque resolver evidence', () => {
+    expect(fromTauriAvatarModelManifest({
+      kind: 'live2d',
+      runtime_dir: '/runtime',
+      model_id: 'ren',
+      model3_json_path: '/runtime/ren.model3.json',
+      nimi_dir: null,
+      adapter_manifest_path: null,
+      live2d_calibration_ref: ' live2d_calibration_ab12cd34ef56 ',
+    })).toEqual({
+      kind: 'live2d',
+      modelId: 'ren',
+      runtimeDir: '/runtime',
+      nimiDir: null,
+      posterPath: null,
+      live2d: {
+        modelJson: '/runtime/ren.model3.json',
+        adapterManifestPath: null,
+        calibrationRef: 'live2d_calibration_ab12cd34ef56',
       },
     });
   });
@@ -82,5 +107,25 @@ describe('avatar model manifest projection', () => {
       runtime_dir: '/runtime',
       model_id: 'model',
     })).toThrow('avatar model manifest kind is not admitted: spine');
+  });
+
+  it('fails closed on invalid Live2D calibration refs', () => {
+    expect(() => fromTauriAvatarModelManifest({
+      kind: 'live2d',
+      runtime_dir: '/runtime',
+      model_id: 'ren',
+      model3_json_path: '/runtime/ren.model3.json',
+      live2d_calibration_ref: 'live2d_calibration_ABCDEF123456',
+    })).toThrow('avatar model manifest live2d_calibration_ref is invalid');
+  });
+
+  it('fails closed when VRM manifests carry Live2D calibration refs', () => {
+    expect(() => fromTauriAvatarModelManifest({
+      kind: 'vrm',
+      runtime_dir: '/runtime',
+      model_id: 'model',
+      vrm_file_path: '/runtime/model.vrm',
+      live2d_calibration_ref: 'live2d_calibration_ab12cd34ef56',
+    })).toThrow('avatar model manifest live2d_calibration_ref requires live2d kind');
   });
 });

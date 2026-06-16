@@ -3,6 +3,7 @@ import { AvatarDebugProbeKind, AvatarDebugProbeStatus } from '@nimiplatform/sdk/
 import type { AvatarModelManifest } from '@nimiplatform/kit/features/avatar/headless';
 import type { AgentDataBundle, AgentDataDriver, AgentEvent, DriverStatus } from '../driver/types.js';
 import { useAvatarStore } from '../app-shell/app-store.js';
+import { createLive2DExpressionInventory } from '../live2d/live2d-expression-stack.js';
 
 const resolveModelManifestMock = vi.fn();
 const readTextFileMock = vi.fn();
@@ -13,8 +14,11 @@ const stopNasHandlerHotReloadMock = vi.fn();
 const waitForCubismCoreMock = vi.fn();
 const loadOfficialCubismFrameworkRuntimeMock = vi.fn();
 const createLive2DBackendSessionMock = vi.fn();
+const createLive2DCarrierVisualHostMock = vi.fn();
 const backendApplyCommandMock = vi.fn();
 const backendUnloadMock = vi.fn();
+const recordAvatarEvidenceEventuallyMock = vi.fn();
+const writeAvatarEvidenceArtifactMock = vi.fn();
 
 function admissionDetail(): Record<string, string> {
   return {
@@ -27,6 +31,70 @@ function admissionDetail(): Record<string, string> {
     firewall_verdict_ref: 'runtime.firewall/avatar-presentation-1',
     audit_ref: 'runtime.audit/avatar-presentation-1',
     credential_verdict_ref: 'runtime.credential/avatar-presentation-1',
+  };
+}
+
+function expressionInventory() {
+  return createLive2DExpressionInventory([
+    {
+      expressionId: 'smile',
+      sourcePath: '/models/ren/runtime/expressions/smile.exp3.json',
+      parameters: [
+        { id: 'ParamAngleX', value: 1, blend: 'add' },
+      ],
+    },
+  ]);
+}
+
+function live2dBackendSession(overrides: Record<string, unknown> = {}) {
+  return {
+    manifest: {
+      modelId: 'ren',
+    },
+    settings: {
+      Version: 3,
+      FileReferences: {
+        Moc: 'ren.moc3',
+        Textures: [],
+      },
+    },
+    resources: {
+      mocPath: '/models/ren/runtime/ren.moc3',
+      texturePaths: [],
+      motionGroups: new Map(),
+      expressions: new Map([
+        ['smile', '/models/ren/runtime/expressions/smile.exp3.json'],
+      ]),
+      physicsPath: null,
+      posePath: null,
+      displayInfoPath: null,
+    },
+    expressionInventory: expressionInventory(),
+    execution: {
+      loaded: true,
+      activeMotion: null,
+      activeExpression: null,
+      activePose: null,
+      parameters: new Map(),
+      parameterLanes: {
+        speechLipsync: new Map(),
+        live2dExtensionDirect: new Map(),
+      },
+      commandLog: [],
+    },
+    applyCommand: (...args: unknown[]) => backendApplyCommandMock(...args),
+    unload: (...args: unknown[]) => backendUnloadMock(...args),
+    compatibility: {
+      tier: 'render_only',
+      adapter: null,
+      diagnostics: [],
+      activityMotionGroups: new Map(),
+      idleMotionGroup: 'Idle',
+      mouthOpenParameterId: 'ParamMouthOpenY',
+      paramMouthFormSupported: false,
+      missingActivity: 'idle_degraded_with_diagnostic',
+    },
+    ...overrides,
   };
 }
 
@@ -47,6 +115,15 @@ vi.mock('../live2d/backend-session.js', () => ({
   createLive2DBackendSession: (...args: unknown[]) => createLive2DBackendSessionMock(...args),
 }));
 
+vi.mock('../live2d/carrier-visual-host.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../live2d/carrier-visual-host.js')>();
+  return {
+    ...actual,
+    createLive2DCarrierVisualHost: (...args: unknown[]) =>
+      createLive2DCarrierVisualHostMock(...args),
+  };
+});
+
 vi.mock('../nas/handler-registry.js', async () => {
   const actual = await vi.importActual<typeof import('../nas/handler-registry.js')>('../nas/handler-registry.js');
   return {
@@ -56,6 +133,13 @@ vi.mock('../nas/handler-registry.js', async () => {
     startNasHandlerHotReload: (...args: unknown[]) => startNasHandlerHotReloadMock(...args),
   };
 });
+
+vi.mock('../app-shell/avatar-evidence.js', () => ({
+  recordAvatarEvidenceEventually: (...args: unknown[]) =>
+    recordAvatarEvidenceEventuallyMock(...args),
+  writeAvatarEvidenceArtifact: (...args: unknown[]) =>
+    writeAvatarEvidenceArtifactMock(...args),
+}));
 
 function createBundle(): AgentDataBundle {
   return {
@@ -142,6 +226,7 @@ function live2dManifest(input: {
     live2d: {
       modelJson: `${runtimeDir}/${modelId}.model3.json`,
       adapterManifestPath: input.adapterManifestPath ?? null,
+      calibrationRef: null,
     },
   };
 }
@@ -158,8 +243,11 @@ describe('avatar runtime carrier', () => {
     waitForCubismCoreMock.mockReset();
     loadOfficialCubismFrameworkRuntimeMock.mockReset();
     createLive2DBackendSessionMock.mockReset();
+    createLive2DCarrierVisualHostMock.mockReset();
     backendApplyCommandMock.mockReset();
     backendUnloadMock.mockReset();
+    recordAvatarEvidenceEventuallyMock.mockReset();
+    writeAvatarEvidenceArtifactMock.mockReset();
     scanNasHandlersMock.mockResolvedValue({
       activity: [],
       event: [],
@@ -171,9 +259,45 @@ describe('avatar runtime carrier', () => {
     startNasHandlerHotReloadMock.mockResolvedValue(stopNasHandlerHotReloadMock);
     waitForCubismCoreMock.mockResolvedValue({ Version: { csmGetVersion: () => 1, csmGetLatestMocVersion: () => 1 } });
     loadOfficialCubismFrameworkRuntimeMock.mockResolvedValue({ CubismFramework: {} });
-    createLive2DBackendSessionMock.mockResolvedValue({
-      applyCommand: (...args: unknown[]) => backendApplyCommandMock(...args),
-      unload: (...args: unknown[]) => backendUnloadMock(...args),
+    createLive2DCarrierVisualHostMock.mockResolvedValue({
+      canvas: {
+        toDataURL: vi.fn(() => 'data:image/png;base64,carrier-preview'),
+      },
+      probeVisibleFrame: vi.fn(() => ({
+        width: 360,
+        height: 480,
+        drawableCount: 1,
+        visibleDrawableCount: 1,
+        nonZeroOpacityDrawableCount: 1,
+        textureBindingCount: 1,
+        activeMotionGroup: null,
+        motionFrameApplied: false,
+        activeExpressionId: null,
+        expressionFrameApplied: false,
+        parameterLaneOrder: ['speech_lipsync', 'live2d_extension_direct'],
+        parameterLaneApplied: [],
+        parameterLaneElapsedMs: 0.2,
+        parameterLaneUnsupportedParameterIds: [],
+        parameterLaneSpeechLipsyncParameterCount: 0,
+        parameterLaneDirectParameterCount: 0,
+        lookAtIdleSupported: true,
+        lookAtIdleBlinkSupported: true,
+        lookAtIdleReasonCode: 'ready',
+        lookAtIdleParameterIds: [],
+        sampledPixels: 16,
+        visiblePixels: 8,
+        sampledPixelChecksum: 123,
+      })),
+      drawFrame: vi.fn(),
+      resize: vi.fn(),
+      unload: vi.fn(),
+    });
+    writeAvatarEvidenceArtifactMock.mockResolvedValue({
+      artifactPath: '/tmp/avatar-carrier-preview.png',
+      artifactMimeType: 'image/png',
+      artifactByteLength: 128,
+    });
+    createLive2DBackendSessionMock.mockResolvedValue(live2dBackendSession({
       compatibility: {
         tier: 'render_only',
         adapter: null,
@@ -184,7 +308,7 @@ describe('avatar runtime carrier', () => {
         paramMouthFormSupported: false,
         missingActivity: 'idle_degraded_with_diagnostic',
       },
-    });
+    }));
   });
 
   it('loads an embedded Live2D adapter manifest and passes compatibility into the backend session', async () => {
@@ -294,9 +418,7 @@ describe('avatar runtime carrier', () => {
   });
 
   it('uses adapter manifest motion mapping for Live2D fallback before convention names', async () => {
-    createLive2DBackendSessionMock.mockResolvedValueOnce({
-      applyCommand: (...args: unknown[]) => backendApplyCommandMock(...args),
-      unload: (...args: unknown[]) => backendUnloadMock(...args),
+    createLive2DBackendSessionMock.mockResolvedValueOnce(live2dBackendSession({
       compatibility: {
         tier: 'semantic_basic',
         adapter: { adapter_id: 'ren-basic' },
@@ -309,7 +431,7 @@ describe('avatar runtime carrier', () => {
         paramMouthFormSupported: false,
         missingActivity: 'diagnostic_no_success',
       },
-    });
+    }));
     const { startAvatarRuntimeCarrier } = await import('./avatar-carrier.js');
     const driver = createDriver();
     const carrier = await startAvatarRuntimeCarrier({
@@ -415,11 +537,57 @@ describe('avatar runtime carrier', () => {
         status: AvatarDebugProbeStatus.PASSED,
         evidenceRefs: expect.arrayContaining([
           expect.stringContaining('avatar.debug.session/'),
+          'backend_capability_profile_ref:avatar.live2d.capability-profile:ren',
+          'live2d_backend_load_ref:avatar.live2d.backend-load:ren',
+          'live2d_capability_profile_ref:avatar.live2d.capability-profile:ren',
+          'live2d_route_support_ref:avatar.live2d.route-support:ren',
+          'live2d_lipsync_evidence_ref:avatar.live2d.lipsync:ren:profile:mouth-open-only',
+          'live2d_hit_region_ref:avatar.live2d.hit-region:ren:alpha_mask_plus_bbox',
+          expect.stringContaining('live2d_expression_inventory_ref:avatar.live2d.expression-inventory:ren:'),
         ]),
       }),
       expect.objectContaining({
         bindingId: 'binding-1',
         runtimeAppId: 'nimi.avatar',
+      }),
+    );
+
+    carrier.shutdown();
+  });
+
+  it('skips non Avatar-submittable Runtime avatar debug probe requests', async () => {
+    const { startAvatarRuntimeCarrier } = await import('./avatar-carrier.js');
+    const driver = createDriver();
+    const submitDebugProbeResult = vi.fn(async () => {});
+    const carrier = await startAvatarRuntimeCarrier({
+      driver,
+      modelManifest: live2dManifest(),
+      submitDebugProbeResult,
+    });
+
+    driver.trigger({
+      event_id: 'event-debug-probe-package-validation',
+      name: 'runtime.agent.avatar_debug.probe_requested',
+      timestamp: '2026-05-01T00:00:00.000Z',
+      detail: {
+        probeId: 'probe-runtime-package-validation',
+        agentId: 'agent-1',
+        conversationAnchorId: 'anchor-1',
+        probeKind: AvatarDebugProbeKind.PACKAGE_VALIDATION,
+        avatarInstanceId: 'avatar-1',
+      },
+    });
+
+    expect(submitDebugProbeResult).not.toHaveBeenCalled();
+    expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        kind: 'avatar.debug.probe-submit-skipped',
+        detail: expect.objectContaining({
+          probe_id: 'probe-runtime-package-validation',
+          agent_id: 'agent-1',
+          conversation_anchor_id: 'anchor-1',
+          reason: 'runtime_avatar_debug_probe_not_avatar_submittable',
+        }),
       }),
     );
 

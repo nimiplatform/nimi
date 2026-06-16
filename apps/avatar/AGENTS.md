@@ -48,7 +48,7 @@ Avatar 重构分 5 个 wave；每个 wave 必须是端到端可交付能力切�
 |---|---|---|
 | 0 | Spec 重构（surface composition / companion / degraded / event 体系 / wave-based feature matrix） | done |
 | 1 | Surface composition implementation（embodiment-stage / companion-surface / degraded-surface 三互斥结构 + hard-cut 旧 toggle 路径） | done |
-| 2 | i18n + Design tokens 工业化（locales/{en,zh}/avatar.json + tokens.css + i18n-keys.yaml） | done |
+| 2 | i18n + Design tokens 工业化（locales/{en,zh}/avatar.json + tokens.css + app-owned key-catalog.yaml） | done |
 | 3 | Voice / lipsync end-to-end（runtime voice emitter + SDK 消费 + backend lipsync driver + voice-companion-state slice） | done（Avatar app consume path is voice/audio + backend lipsync；`lipsync_frame_batch` is not consumed under `apps/avatar/src/**`） |
 | 4 | Window + Settings 工业化（dynamic window bounds + drag region 限定 + settings popover + window-bounds-policy.yaml） | done |
 | 5 | Spec admit + platform admission（multi-backend BackendBranch / VRM contract / audio-pipeline + wLipSync / runtime-artifact-contract K-AGCORE-053 / S-RUNTIME-111） | done（topic 2026-04-30-avatar-vrm-backend-branch wave_0 closed complete） |
@@ -104,7 +104,6 @@ Nimi Avatar-specific contracts in `.nimi/spec/avatar/kernel/**` do not re-define
 | `feature-matrix.yaml` | Wave 0..4 wave-based feature delivery matrix（v2 schema） |
 | `activity-mapping.yaml` | Kit Avatar activity route table consumed by concrete Live2D / VRM backends |
 | `scenario-catalog.yaml` | Dev/test fixture scenarios |
-| `i18n-keys.yaml` | i18n key 与 spec 对齐表（Wave 2 admitted） |
 | `window-bounds-policy.yaml` | Dynamic window sizing rules（Wave 4 admitted） |
 
 ### Sync Rules

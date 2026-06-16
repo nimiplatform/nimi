@@ -31,6 +31,5 @@ This guide points to the avatar authority surfaces for nimi-avatar. It does not 
 - `.nimi/spec/avatar/kernel/tables/companion-participation-trigger-policy.yaml`
 - `.nimi/spec/avatar/kernel/tables/feature-matrix.yaml`
 - `.nimi/spec/avatar/kernel/tables/generated-motion-routes.yaml`
-- `.nimi/spec/avatar/kernel/tables/i18n-keys.yaml`
 - `.nimi/spec/avatar/kernel/tables/live2d-adapter-diagnostics.yaml`
 - `.nimi/spec/avatar/kernel/tables/live2d-adapter-manifest.schema.yaml`

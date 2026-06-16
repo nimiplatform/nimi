@@ -143,12 +143,12 @@ afterEach(() => {
 });
 
 describe('Avatar shell visual snapshots', () => {
-  it('ready surface (embodiment-stage + companion-surface)', async () => {
+  it('ready surface (embodiment-stage only)', async () => {
     const { container, findByTestId } = render(<App />);
     act(() => {
       seedReady();
     });
-    await findByTestId('avatar-companion-surface');
+    await findByTestId('avatar-embodiment-stage');
     expect(container.firstChild).toMatchSnapshot();
   });
 

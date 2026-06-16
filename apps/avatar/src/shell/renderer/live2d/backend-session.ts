@@ -13,6 +13,10 @@ import {
   type Live2DAdapterManifestV1,
   type Live2DCompatibilityReport,
 } from '@nimiplatform/kit/features/avatar/headless';
+import {
+  parseLive2DExpressionInventory,
+  type Live2DExpressionInventory,
+} from './live2d-expression-stack.js';
 
 export type Live2DBackendResources = {
   mocPath: string;
@@ -30,6 +34,10 @@ export type Live2DBackendExecutionState = {
   activeExpression: string | null;
   activePose: string | null;
   parameters: Map<string, number>;
+  parameterLanes: {
+    speechLipsync: Map<string, number>;
+    live2dExtensionDirect: Map<string, number>;
+  };
   commandLog: Live2DCommandEvent[];
 };
 
@@ -47,6 +55,7 @@ export type Live2DBackendSession = {
   readonly resources: Live2DBackendResources;
   readonly compatibility: Live2DCompatibilityReport;
   readonly framework: Live2DFrameworkArtifacts;
+  readonly expressionInventory: Live2DExpressionInventory;
   readonly execution: Live2DBackendExecutionState;
   applyCommand(command: Live2DCommandEvent): void;
   unload(): void;
@@ -130,7 +139,10 @@ async function createFrameworkArtifacts(
   resources: Live2DBackendResources,
   framework: OfficialCubismFrameworkRuntime,
   readBinary: (path: string) => Promise<ArrayBuffer>,
-): Promise<Live2DFrameworkArtifacts> {
+): Promise<{
+  framework: Live2DFrameworkArtifacts;
+  expressionInventory: Live2DExpressionInventory;
+}> {
   const modelJsonBytes = new TextEncoder().encode(JSON.stringify(settings)).buffer;
   const modelSetting = new framework.CubismModelSettingJson(modelJsonBytes, modelJsonBytes.byteLength);
   const motions = new Map<string, unknown[]>();
@@ -152,14 +164,20 @@ async function createFrameworkArtifacts(
     motions.set(group, created);
   }
   const expressions = new Map<string, unknown>();
+  const expressionBytes = new Map<string, ArrayBuffer>();
   for (const [name, path] of resources.expressions) {
     const bytes = await readBinary(path);
+    expressionBytes.set(name, bytes);
     const expression = framework.CubismExpressionMotion.create(bytes, bytes.byteLength);
     if (!expression) {
       throw new Error(`Live2D Cubism Framework rejected expression: ${path}`);
     }
     expressions.set(name, expression);
   }
+  const expressionInventory = parseLive2DExpressionInventory({
+    expressions: resources.expressions,
+    expressionBytes,
+  });
   const physicsBytes = resources.physicsPath ? await readBinary(resources.physicsPath) : null;
   const physics = physicsBytes ? framework.CubismPhysics.create(physicsBytes, physicsBytes.byteLength) : null;
   if (resources.physicsPath && !physics) {
@@ -170,7 +188,10 @@ async function createFrameworkArtifacts(
   if (resources.posePath && !pose) {
     throw new Error(`Live2D Cubism Framework rejected pose: ${resources.posePath}`);
   }
-  return { modelSetting, motions, expressions, physics, pose };
+  return {
+    framework: { modelSetting, motions, expressions, physics, pose },
+    expressionInventory,
+  };
 }
 
 function createExecutionState(): Live2DBackendExecutionState {
@@ -180,6 +201,10 @@ function createExecutionState(): Live2DBackendExecutionState {
     activeExpression: null,
     activePose: null,
     parameters: new Map(),
+    parameterLanes: {
+      speechLipsync: new Map(),
+      live2dExtensionDirect: new Map(),
+    },
     commandLog: [],
   };
 }
@@ -210,10 +235,21 @@ function applyCommand(
       break;
     case 'parameter':
       state.parameters.set(command.id, command.value);
+      if (command.source === 'speech_lipsync') {
+        state.parameterLanes.speechLipsync.set(command.id, command.value);
+      } else {
+        state.parameterLanes.live2dExtensionDirect.set(command.id, command.value);
+      }
       break;
-    case 'parameter-add':
-      state.parameters.set(command.id, (state.parameters.get(command.id) ?? 0) + command.delta);
+    case 'parameter-add': {
+      const lane = command.source === 'speech_lipsync'
+        ? state.parameterLanes.speechLipsync
+        : state.parameterLanes.live2dExtensionDirect;
+      const nextValue = (lane.get(command.id) ?? state.parameters.get(command.id) ?? 0) + command.delta;
+      state.parameters.set(command.id, nextValue);
+      lane.set(command.id, nextValue);
       break;
+    }
     case 'expression':
       if (!resources.expressions.has(command.id) || !framework.expressions.has(command.id)) {
         throw new Error(`Live2D expression not registered: ${command.id}`);
@@ -253,7 +289,7 @@ export async function createLive2DBackendSession(
   assertLive2DCompatibilitySupported(compatibility);
   const readBinary = deps.readBinary ?? readBinaryFile;
   const mocBytes = await requireReadableAssets(resources, readBinary);
-  const framework = await createFrameworkArtifacts(settings, resources, deps.framework, readBinary);
+  const { framework, expressionInventory } = await createFrameworkArtifacts(settings, resources, deps.framework, readBinary);
   const moc: CubismMocHandle | null = deps.core.Moc.fromArrayBuffer(mocBytes);
   if (!moc) {
     throw new Error(`Live2D Cubism Core rejected MOC3 binary: ${resources.mocPath}`);
@@ -270,6 +306,7 @@ export async function createLive2DBackendSession(
     resources,
     compatibility,
     framework,
+    expressionInventory,
     execution,
     applyCommand(command) {
       applyCommand(resources, framework, execution, command);
@@ -282,6 +319,8 @@ export async function createLive2DBackendSession(
       execution.activeExpression = null;
       execution.activePose = null;
       execution.parameters.clear();
+      execution.parameterLanes.speechLipsync.clear();
+      execution.parameterLanes.live2dExtensionDirect.clear();
       execution.commandLog.length = 0;
       model.release?.();
       moc._release?.();

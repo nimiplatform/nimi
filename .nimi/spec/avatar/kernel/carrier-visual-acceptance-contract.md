@@ -56,6 +56,33 @@ The proof may be automated through unit/integration tests, a deterministic
 headless harness, or a Playwright/browser-style acceptance harness. Whichever
 method is used must record enough artifact detail for later audit.
 
+## 2.1 Live2D Preview And Readiness Artifact
+
+Live2D preview/readiness artifacts are Avatar-owned carrier evidence. They
+MUST be produced through the Avatar app Live2D carrier visual host backed by the
+official Cubism SDK path, or through a deterministic harness over that same
+host. They MUST NOT be produced by Desktop chat renderers, Pixi preview
+helpers, static screenshots, or file-structure validators.
+
+An admitted Live2D preview/readiness evidence record carries:
+
+- `readiness_artifact_kind: avatar_live2d_official_sdk_preview`
+- `evidence_ref`
+- `preview_artifact_ref`
+- `model_kind: live2d`
+- `model_id`
+- visible-pixel stats
+- drawable stats
+- texture binding stats
+- canvas dimensions
+- human-visible artifact metadata when available
+
+The preview artifact is local evidence only. It does not redistribute source
+model files, does not become Desktop configuration truth, and does not widen
+Avatar launch payload. Desktop and Runtime debug surfaces may consume the
+bounded refs/status, but cannot close Avatar carrier proof from Desktop-rendered
+pixels.
+
 ## 3. Forbidden Closure
 
 The following evidence must not close Avatar carrier visual proof:

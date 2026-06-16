@@ -101,7 +101,7 @@ describe('CompanionSurface - stage-first render', () => {
     expect(screen.getByRole('button', { name: 'Type a message to send to this anchor' })).toBeTruthy();
     expect(screen.queryByTestId('avatar-companion-composer')).toBeNull();
     expect(screen.getByTestId('avatar-companion-surface').getAttribute('data-presence-state')).toBe('idle');
-    expect(screen.getByTestId('avatar-companion-surface').getAttribute('data-privacy-indicator')).toBe('mic_idle');
+    expect(screen.getByTestId('avatar-companion-surface').getAttribute('data-privacy-indicator')).toBe('none');
   });
 
   it('expands the composer tray only after explicit text-entry action', () => {
@@ -188,36 +188,6 @@ describe('CompanionSurface - stage-first render', () => {
         detail: expect.objectContaining({
           indicator: 'mic_active',
           foreground_only: true,
-        }),
-      }),
-    );
-  });
-});
-
-describe('CompanionSurface - composition evidence emit', () => {
-  it('emits avatar.composition.surface-mounted on mount with composition_state', () => {
-    render(<CompanionSurface {...makeProps({ compositionState: 'ready' })} />);
-    expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        kind: 'avatar.composition.surface-mounted',
-        detail: expect.objectContaining({
-          surface: 'companion-surface',
-          composition_state: 'ready',
-        }),
-      }),
-    );
-  });
-
-  it('emits avatar.composition.surface-unmounted on unmount', () => {
-    const { unmount } = render(<CompanionSurface {...makeProps({ compositionState: 'fixture_active' })} />);
-    recordAvatarEvidenceEventuallyMock.mockClear();
-    unmount();
-    expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        kind: 'avatar.composition.surface-unmounted',
-        detail: expect.objectContaining({
-          surface: 'companion-surface',
-          composition_state: 'fixture_active',
         }),
       }),
     );

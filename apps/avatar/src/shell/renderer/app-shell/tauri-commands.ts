@@ -74,6 +74,16 @@ export async function setAlwaysOnTop(alwaysOnTop: boolean): Promise<void> {
   await invoke('nimi_avatar_set_always_on_top', { alwaysOnTop });
 }
 
+export async function hideAvatarWindow(): Promise<void> {
+  if (!isTauriRuntime()) return;
+  await invoke('nimi_avatar_hide_window');
+}
+
+export async function closeAvatarWindow(): Promise<void> {
+  if (!isTauriRuntime()) return;
+  await invoke('nimi_avatar_close_window');
+}
+
 export async function bindAvatarRuntimeIdentity(input: {
   avatarInstanceId: string;
   ownerUserId: string;

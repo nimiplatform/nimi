@@ -3,8 +3,8 @@
 // Wires the policy-driven recomputer (`window-bounds.ts`) to:
 //   - the active embodiment backend's intrinsic surface bounds (provided by
 //     caller via `getEmbodimentBounds`)
-//   - the companion-surface root's content footprint, observed with
-//     ResizeObserver per window-bounds-policy.yaml
+//   - the per-avatar scale source (defaults to 1 until Wave 5 wires
+//     persistent wheel scale)
 //   - the avatar store's model.loadState / model.modelId (source of
 //     model_load + model_switch triggers)
 //   - the Tauri set_size invoker (`tauri-commands.ts.setWindowSize`)
@@ -12,28 +12,19 @@
 //
 // IMPORTANT - feedback-loop avoidance:
 // We deliberately do NOT measure DOM bounding rects of embodiment-stage or
-// other window-sized nodes as inputs. The companion surface is measured only
-// for its fixed-width, content-height footprint.
+// other window-sized nodes as inputs. Bounds come from the backend projection.
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useAvatarStore } from './app-store.js';
 import { setIgnoreCursorEvents, setWindowSize } from './tauri-commands.js';
 import { isTauriRuntime } from './tauri-lifecycle.js';
 import { recordAvatarEvidenceEventually } from './avatar-evidence.js';
 import {
-  COMPANION_FOOTPRINT_MIN_HEIGHT_PX,
+  WINDOW_BOUNDS_DEFAULT_AVATAR_SCALE,
   createWindowBoundsRecomputer,
   type WindowBoundsRecomputer,
   type WindowBoundsTrigger,
 } from './window-bounds.js';
-
-const COMPANION_SURFACE_SELECTOR = '[data-testid="avatar-companion-surface"]';
-
-// Companion footprint fallback - companion-surface has fixed CSS width
-// (`var(--companion-surface-width)`, 232px tokens default) and content-
-// driven height. Used before the root is mounted or measurable.
-const COMPANION_FOOTPRINT_BASELINE_HEIGHT_PX = COMPANION_FOOTPRINT_MIN_HEIGHT_PX;
-const COMPANION_FOOTPRINT_BASELINE_WIDTH_PX = 232;
 
 export type UseWindowBoundsSyncInput = {
   // Whether bootstrap is past the gate that allows shell composition to be
@@ -43,41 +34,29 @@ export type UseWindowBoundsSyncInput = {
   // embodiment-stage). Returns null when the backend has not yet exposed
   // a stable bounds source — recomputer skips setSize in that case.
   getEmbodimentBounds: () => { width: number; height: number } | null;
+  getAvatarScale?: () => number;
+  avatarScale?: number;
 };
 
-function readCompanionFootprint(): { width: number; height: number } {
-  if (typeof document === 'undefined') {
-    return {
-      width: COMPANION_FOOTPRINT_BASELINE_WIDTH_PX,
-      height: COMPANION_FOOTPRINT_BASELINE_HEIGHT_PX,
-    };
-  }
-  const element = document.querySelector<HTMLElement>(COMPANION_SURFACE_SELECTOR);
-  const rect = element?.getBoundingClientRect();
-  if (!rect || rect.width <= 0 || rect.height <= 0) {
-    return {
-      width: COMPANION_FOOTPRINT_BASELINE_WIDTH_PX,
-      height: COMPANION_FOOTPRINT_BASELINE_HEIGHT_PX,
-    };
-  }
-  return { width: rect.width, height: rect.height };
-}
-
 export function useWindowBoundsSync(input: UseWindowBoundsSyncInput): void {
-  const { isReady, getEmbodimentBounds } = input;
+  const { isReady, getEmbodimentBounds, getAvatarScale, avatarScale } = input;
+  const avatarScaleRef = useRef(avatarScale ?? WINDOW_BOUNDS_DEFAULT_AVATAR_SCALE);
+  avatarScaleRef.current = avatarScale ?? WINDOW_BOUNDS_DEFAULT_AVATAR_SCALE;
 
   // Build the recomputer once; it has no React-owned state so it survives
   // re-renders. dispose runs on unmount.
   const recomputer: WindowBoundsRecomputer = useMemo(() => {
     return createWindowBoundsRecomputer({
       getEmbodimentBounds,
-      getCompanionFootprint: readCompanionFootprint,
+      getAvatarScale:
+        getAvatarScale
+        ?? (() => avatarScaleRef.current),
       applySize: async (size) => {
         if (!isTauriRuntime()) return;
         await setWindowSize(size.width, size.height);
         await setIgnoreCursorEvents(false);
       },
-      onRecomputed: ({ trigger, width, height, clamped, embodimentBounds, companionFootprint }) => {
+      onRecomputed: ({ trigger, width, height, clamped, embodimentBounds, avatarScale }) => {
         recordAvatarEvidenceEventually({
           kind: 'avatar.shell.window-bounds-changed',
           detail: {
@@ -91,57 +70,18 @@ export function useWindowBoundsSync(input: UseWindowBoundsSyncInput): void {
               width: Math.round(embodimentBounds.width),
               height: Math.round(embodimentBounds.height),
             },
-            companion_footprint: {
-              width: Math.round(companionFootprint.width),
-              height: Math.round(companionFootprint.height),
-            },
+            scale: avatarScale,
             changed_at: new Date().toISOString(),
           },
         });
         useAvatarStore.getState().setWindowSize({ width, height });
       },
     });
-  }, [getEmbodimentBounds]);
+  }, [getAvatarScale, getEmbodimentBounds]);
 
   useEffect(() => () => recomputer.dispose(), [recomputer]);
 
-  useEffect(() => {
-    if (!isReady || typeof document === 'undefined' || typeof ResizeObserver === 'undefined') {
-      return;
-    }
-
-    let resizeObserver: ResizeObserver | null = null;
-    let mutationObserver: MutationObserver | null = null;
-
-    const observeCompanion = (): boolean => {
-      const element = document.querySelector<HTMLElement>(COMPANION_SURFACE_SELECTOR);
-      if (!element) {
-        return false;
-      }
-      resizeObserver = new ResizeObserver(() => {
-        recomputer.trigger('companion_footprint_change');
-      });
-      resizeObserver.observe(element);
-      recomputer.trigger('companion_footprint_change');
-      return true;
-    };
-
-    if (!observeCompanion()) {
-      mutationObserver = new MutationObserver(() => {
-        if (!observeCompanion()) {
-          return;
-        }
-        mutationObserver?.disconnect();
-        mutationObserver = null;
-      });
-      mutationObserver.observe(document.body, { childList: true, subtree: true });
-    }
-
-    return () => {
-      resizeObserver?.disconnect();
-      mutationObserver?.disconnect();
-    };
-  }, [isReady, recomputer]);
+  const previousAvatarScaleRef = useRef<number | null>(null);
 
   // Subscribe to model load state. On `loaded` we fire model_load the first
   // time, model_switch on subsequent loads (modelId change).
@@ -166,4 +106,14 @@ export function useWindowBoundsSync(input: UseWindowBoundsSyncInput): void {
     });
     return unsubscribe;
   }, [isReady, recomputer]);
+
+  useEffect(() => {
+    if (!isReady || avatarScale === undefined) return;
+    const previous = previousAvatarScaleRef.current;
+    previousAvatarScaleRef.current = avatarScale;
+    if (previous === null || previous === avatarScale) return;
+    const model = useAvatarStore.getState().model;
+    if (model.loadState !== 'loaded' || !model.modelId) return;
+    recomputer.trigger('avatar_scale_change');
+  }, [avatarScale, isReady, recomputer]);
 }

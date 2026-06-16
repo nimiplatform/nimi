@@ -4,27 +4,20 @@
 //
 // Source-of-truth defaults (per
 // .nimi/spec/avatar/kernel/tables/window-bounds-policy.yaml backends.*):
-//   - VRM:    nominal_bounds_default = 360 × 720
-//   - Live2D: nominal_bounds_default = 400 × 600
+//   - VRM:    nominal_bounds_default = 360 x 720
+//   - Live2D: nominal_bounds_default = 400 x 600
 //
 // The IPC params we expect are derived by `computeWindowBounds`:
-//   width  = max(embodiment.width,  companion.width)  + 2 * padding(=16)
-//   height =     embodiment.height + companion.height + 2 * padding(=16)
-//   companion height clamped to [MIN=96, MAX=400] before composition.
-//
-// The hook itself is wired in App.tsx:
-//   getEmbodimentBounds = () => bootstrapHandle.carrier.backend.nominalBounds
-// so the test feeds the same shape directly to the hook.
+//   width  = embodiment.width  * avatar_scale + 2 * padding(=16)
+//   height = embodiment.height * avatar_scale + 2 * padding(=16)
 
 import { act, render } from '@testing-library/react';
+import { useCallback } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useWindowBoundsSync } from './use-window-bounds-sync.js';
 import { useAvatarStore } from './app-store.js';
 import { recordAvatarEvidenceEventually } from './avatar-evidence.js';
-import {
-  COMPANION_FOOTPRINT_MIN_HEIGHT_PX,
-  WINDOW_BOUNDS_PADDING_PX,
-} from './window-bounds.js';
+import { WINDOW_BOUNDS_PADDING_PX } from './window-bounds.js';
 import type { BackendNominalBounds } from '../carrier/backend-branch.js';
 
 const setWindowSizeMock = vi.fn<(...args: unknown[]) => Promise<void>>();
@@ -33,9 +26,6 @@ let tauriRuntime = true;
 
 vi.mock('./tauri-commands.js', () => ({
   setWindowSize: (...args: unknown[]) => setWindowSizeMock(...args),
-  // Other commands not exercised by this hook test, but the App-shell module
-  // surface includes them; keep the mock interface complete to avoid surprise
-  // load-time failures if downstream re-imports change.
   startWindowDrag: vi.fn(),
   beginManualDragWindow: vi.fn(),
   moveManualDragWindow: vi.fn(),
@@ -53,27 +43,33 @@ vi.mock('./avatar-evidence.js', () => ({
   recordAvatarEvidenceEventually: vi.fn(),
 }));
 
-// Tiny harness component so we can mount the hook the same way App.tsx does.
-// The bounds source comes from a `BackendBranch.nominalBounds`-shaped value
-// to mirror the real wiring: `bootstrapHandle.carrier.backend.nominalBounds`.
-function Harness({ nominalBounds }: { nominalBounds: BackendNominalBounds | null }) {
-  useWindowBoundsSync({
-    isReady: true,
-    getEmbodimentBounds: () =>
+function Harness({
+  nominalBounds,
+  avatarScale = 1,
+}: {
+  nominalBounds: BackendNominalBounds | null;
+  avatarScale?: number;
+}) {
+  const getEmbodimentBounds = useCallback(
+    () =>
       nominalBounds && nominalBounds.width > 0 && nominalBounds.height > 0
         ? { width: nominalBounds.width, height: nominalBounds.height }
         : null,
+    [nominalBounds],
+  );
+  useWindowBoundsSync({
+    isReady: true,
+    getEmbodimentBounds,
+    avatarScale,
   });
   return null;
 }
 
-function renderWithBackend(nominalBounds: BackendNominalBounds | null) {
-  return render(<Harness nominalBounds={nominalBounds} />);
+function renderWithBackend(nominalBounds: BackendNominalBounds | null, avatarScale = 1) {
+  return render(<Harness nominalBounds={nominalBounds} avatarScale={avatarScale} />);
 }
 
 function resetModelState() {
-  // Match AvatarAppState['model'] shape exactly (modelPath, modelId,
-  // loadState, error). Idle so the next setModelLoaded fires as a fresh edge.
   useAvatarStore.setState({
     model: { modelPath: null, modelId: null, loadState: 'idle', error: null },
     shell: {
@@ -97,9 +93,8 @@ afterEach(() => {
   resetModelState();
 });
 
-describe('useWindowBoundsSync — BackendBranch.nominalBounds → set_window_size IPC', () => {
-  it('forwards VRM 360×720 nominalBounds to nimi_avatar_set_window_size on model_load', async () => {
-    // Source: window-bounds-policy.yaml backends.vrm.nominal_bounds_default
+describe('useWindowBoundsSync - BackendBranch.nominalBounds -> set_window_size IPC', () => {
+  it('forwards VRM 360x720 nominalBounds to nimi_avatar_set_window_size on model_load', async () => {
     const vrmBounds: BackendNominalBounds = {
       width: 360,
       height: 720,
@@ -113,20 +108,15 @@ describe('useWindowBoundsSync — BackendBranch.nominalBounds → set_window_siz
       useAvatarStore.getState().setModelLoaded('vrm-model-1');
     });
 
-    // companion footprint defaults to baseline (no DOM node mounted), which is
-    // clamped to MIN height per policy. Width = max(360, 232) + 32 = 392.
-    // Height = 720 + 96 + 32 = 848.
     const expectedWidth = 360 + 2 * WINDOW_BOUNDS_PADDING_PX;
-    const expectedHeight =
-      720 + COMPANION_FOOTPRINT_MIN_HEIGHT_PX + 2 * WINDOW_BOUNDS_PADDING_PX;
+    const expectedHeight = 720 + 2 * WINDOW_BOUNDS_PADDING_PX;
 
     expect(setWindowSizeMock).toHaveBeenCalledTimes(1);
     expect(setWindowSizeMock).toHaveBeenCalledWith(expectedWidth, expectedHeight);
     expect(setIgnoreCursorEventsMock).toHaveBeenCalledWith(false);
   });
 
-  it('forwards Live2D 400×600 nominalBounds to nimi_avatar_set_window_size on model_load', async () => {
-    // Source: window-bounds-policy.yaml backends.live2d.nominal_bounds_default
+  it('forwards Live2D 400x600 nominalBounds to nimi_avatar_set_window_size on model_load', async () => {
     const live2dBounds: BackendNominalBounds = {
       width: 400,
       height: 600,
@@ -140,17 +130,81 @@ describe('useWindowBoundsSync — BackendBranch.nominalBounds → set_window_siz
       useAvatarStore.getState().setModelLoaded('live2d-model-1');
     });
 
-    // Width = max(400, 232) + 32 = 432. Height = 600 + 96 + 32 = 728.
-    const expectedWidth = 400 + 2 * WINDOW_BOUNDS_PADDING_PX;
-    const expectedHeight =
-      600 + COMPANION_FOOTPRINT_MIN_HEIGHT_PX + 2 * WINDOW_BOUNDS_PADDING_PX;
-
     expect(setWindowSizeMock).toHaveBeenCalledTimes(1);
-    expect(setWindowSizeMock).toHaveBeenCalledWith(expectedWidth, expectedHeight);
+    expect(setWindowSizeMock).toHaveBeenCalledWith(
+      400 + 2 * WINDOW_BOUNDS_PADDING_PX,
+      600 + 2 * WINDOW_BOUNDS_PADDING_PX,
+    );
   });
 
-  it('IPC params change between VRM (360×720) and Live2D (400×600) baselines', async () => {
-    // First mount with VRM bounds → expect the VRM-derived size.
+  it('applies avatar scale to the embodiment bounds', async () => {
+    renderWithBackend({
+      width: 400,
+      height: 600,
+      bodyCenterX: 0.5,
+      bodyCenterY: 0.5,
+    }, 1.25);
+
+    await act(async () => {
+      useAvatarStore.getState().setModelLoaded('scaled-live2d-model');
+    });
+
+    expect(setWindowSizeMock).toHaveBeenCalledWith(
+      400 * 1.25 + 2 * WINDOW_BOUNDS_PADDING_PX,
+      600 * 1.25 + 2 * WINDOW_BOUNDS_PADDING_PX,
+    );
+    expect(recordAvatarEvidenceEventually).toHaveBeenCalledWith(
+      expect.objectContaining({
+        kind: 'avatar.shell.window-bounds-changed',
+        detail: expect.objectContaining({ scale: 1.25 }),
+      }),
+    );
+  });
+
+  it('recomputes with avatar_scale_change when avatarScale changes without replaying model_load', async () => {
+    const bounds = {
+      width: 400,
+      height: 600,
+      bodyCenterX: 0.5,
+      bodyCenterY: 0.5,
+    };
+    const { rerender } = renderWithBackend(bounds, 1);
+
+    await act(async () => {
+      useAvatarStore.getState().setModelLoaded('scaled-live2d-model');
+    });
+    setWindowSizeMock.mockClear();
+    vi.mocked(recordAvatarEvidenceEventually).mockClear();
+
+    rerender(<Harness nominalBounds={bounds} avatarScale={1.3} />);
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(setWindowSizeMock).toHaveBeenCalledTimes(1);
+    expect(setWindowSizeMock).toHaveBeenCalledWith(
+      400 * 1.3 + 2 * WINDOW_BOUNDS_PADDING_PX,
+      600 * 1.3 + 2 * WINDOW_BOUNDS_PADDING_PX,
+    );
+    expect(recordAvatarEvidenceEventually).toHaveBeenCalledWith(
+      expect.objectContaining({
+        kind: 'avatar.shell.window-bounds-changed',
+        detail: expect.objectContaining({
+          trigger: 'avatar_scale_change',
+          scale: 1.3,
+        }),
+      }),
+    );
+    expect(recordAvatarEvidenceEventually).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        kind: 'avatar.shell.window-bounds-changed',
+        detail: expect.objectContaining({ trigger: 'model_load' }),
+      }),
+    );
+  });
+
+  it('IPC params change between VRM and Live2D baselines', async () => {
     const { unmount } = renderWithBackend({
       width: 360,
       height: 720,
@@ -163,16 +217,13 @@ describe('useWindowBoundsSync — BackendBranch.nominalBounds → set_window_siz
     const vrmCall = setWindowSizeMock.mock.calls.at(-1);
     expect(vrmCall).toEqual([
       360 + 2 * WINDOW_BOUNDS_PADDING_PX,
-      720 + COMPANION_FOOTPRINT_MIN_HEIGHT_PX + 2 * WINDOW_BOUNDS_PADDING_PX,
+      720 + 2 * WINDOW_BOUNDS_PADDING_PX,
     ]);
     unmount();
 
-    // Reset model state so the next mount sees a fresh `idle -> loaded` edge.
     resetModelState();
     setWindowSizeMock.mockClear();
 
-    // Re-mount with Live2D bounds → expect the Live2D-derived size; not equal
-    // to the VRM call params (different baseline width + height).
     renderWithBackend({
       width: 400,
       height: 600,
@@ -185,7 +236,7 @@ describe('useWindowBoundsSync — BackendBranch.nominalBounds → set_window_siz
     const live2dCall = setWindowSizeMock.mock.calls.at(-1);
     expect(live2dCall).toEqual([
       400 + 2 * WINDOW_BOUNDS_PADDING_PX,
-      600 + COMPANION_FOOTPRINT_MIN_HEIGHT_PX + 2 * WINDOW_BOUNDS_PADDING_PX,
+      600 + 2 * WINDOW_BOUNDS_PADDING_PX,
     ]);
     expect(live2dCall).not.toEqual(vrmCall);
   });

@@ -7,14 +7,14 @@
 /* Wave 2 — Avatar shell BEM-normalized stylesheet.
  *
  * All visual values resolve through Nimi kit semantic tokens. Class names follow BEM:
- *   block: .avatar-root | .avatar-embodiment-stage | .avatar-companion-surface
- *          | .avatar-degraded-surface | .avatar-settings-popover
+ *   block: .avatar-root | .avatar-embodiment-stage | .avatar-degraded-surface
+ *          | .avatar-companion-surface | .avatar-settings-popover
  *   element: __<element>
  *   modifier: --<modifier>
  *
  * Per app-shell-contract.md K-NAV-SHELL-COMPOSITION-002 the shell renders
- * exactly one of: (embodiment-stage + companion-surface) under ready /
- * fixture_active, OR degraded-surface under loading / degraded:* / error:* /
+ * exactly one of: embodiment-stage under ready / fixture_active,
+ * OR degraded-surface under loading / degraded:* / error:* /
  * relaunch-pending. Retired `.avatar-stage*`, `.avatar-shell--*`,
  * `.avatar-shell__halo*`, `.avatar-companion-trigger`, `.avatar-shell__frame`
  * rules are hard-cut.
@@ -531,12 +531,238 @@ button {
   cursor: not-allowed;
 }
 
+/* ── Context Menu (K-NAV-SHELL-OUTPUT-004 transient overlay) ────────────── */
+
+.avatar-context-menu {
+  position: fixed;
+  z-index: 30;
+  display: grid;
+  width: 220px;
+  padding: var(--nimi-space-1);
+  border: 1px solid var(--nimi-material-glass-thick-border);
+  border-radius: var(--nimi-radius-md);
+  background: var(--nimi-material-glass-thick-bg);
+  box-shadow: var(--nimi-elevation-floating);
+  color: var(--nimi-text-primary);
+  outline: none;
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+
+.avatar-context-menu__item {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--nimi-space-2);
+  width: 100%;
+  min-height: 32px;
+  padding: 0 var(--nimi-space-2);
+  border: 0;
+  border-radius: var(--nimi-radius-sm);
+  background: transparent;
+  color: var(--nimi-text-secondary);
+  font-size: var(--nimi-type-body-sm-size);
+  line-height: var(--nimi-type-body-sm-line-height);
+  text-align: left;
+}
+
+.avatar-context-menu__item:not(:disabled) {
+  color: var(--nimi-text-primary);
+  cursor: pointer;
+}
+
+.avatar-context-menu__item:not(:disabled):hover,
+.avatar-context-menu__item:not(:disabled):focus-visible {
+  background: var(--nimi-action-ghost-hover);
+}
+
+.avatar-context-menu__item:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.avatar-context-menu__item--checked .avatar-context-menu__icon {
+  color: var(--nimi-action-primary-bg);
+}
+
+.avatar-context-menu__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--nimi-text-muted);
+}
+
+.avatar-context-menu__label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.avatar-context-menu__pending {
+  color: var(--nimi-text-muted);
+  font-size: var(--nimi-type-caption-size);
+}
+
+/* ── Action Radial (K-NAV-SHELL-OUTPUT-005 transient overlay) ───────────── */
+
+.avatar-action-radial {
+  position: fixed;
+  z-index: 31;
+  width: 176px;
+  height: 176px;
+  border: 1px solid var(--nimi-material-glass-thick-border);
+  border-radius: var(--nimi-radius-full);
+  background: color-mix(in srgb, var(--nimi-material-glass-thick-bg) 88%, transparent);
+  box-shadow: var(--nimi-elevation-floating);
+  color: var(--nimi-text-primary);
+  outline: none;
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+
+.avatar-action-radial::before {
+  position: absolute;
+  inset: 58px;
+  border: 1px solid color-mix(in srgb, var(--nimi-action-primary-bg) 28%, transparent);
+  border-radius: var(--nimi-radius-full);
+  background: color-mix(in srgb, var(--nimi-field-bg) 76%, transparent);
+  content: "";
+}
+
+.avatar-action-radial__item {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--nimi-border-subtle) 76%, transparent);
+  border-radius: var(--nimi-radius-full);
+  background: var(--nimi-material-glass-thick-bg);
+  color: var(--nimi-text-secondary);
+  cursor: pointer;
+}
+
+.avatar-action-radial__item:disabled {
+  cursor: not-allowed;
+  opacity: 0.46;
+}
+
+.avatar-action-radial__item:not(:disabled):hover,
+.avatar-action-radial__item:not(:disabled):focus-visible {
+  border-color: color-mix(in srgb, var(--nimi-action-primary-bg) 42%, transparent);
+  background: var(--nimi-action-ghost-hover);
+  color: var(--nimi-action-primary-bg);
+}
+
+.avatar-action-radial__item--0 {
+  left: 67px;
+  top: 8px;
+}
+
+.avatar-action-radial__item--1 {
+  right: 14px;
+  top: 42px;
+}
+
+.avatar-action-radial__item--2 {
+  right: 14px;
+  bottom: 42px;
+}
+
+.avatar-action-radial__item--3 {
+  left: 67px;
+  bottom: 8px;
+}
+
+.avatar-action-radial__item--4 {
+  left: 14px;
+  bottom: 42px;
+}
+
+.avatar-action-radial__item--5 {
+  left: 14px;
+  top: 42px;
+}
+
+.avatar-action-radial__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-action-radial__label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ── Transient Composer (K-NAV-SHELL-OUTPUT-006 transient overlay) ───────── */
+
+.avatar-transient-composer {
+  position: fixed;
+  z-index: 32;
+  display: grid;
+  width: 336px;
+  gap: var(--nimi-space-2);
+  padding: var(--nimi-space-2);
+  border: 1px solid var(--nimi-material-glass-thick-border);
+  border-radius: var(--nimi-radius-md);
+  background: var(--nimi-material-glass-thick-bg);
+  box-shadow: var(--nimi-elevation-floating);
+  color: var(--nimi-text-primary);
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+
+.avatar-transient-composer__field {
+  min-width: 0;
+}
+
+.avatar-transient-composer__input {
+  min-height: 54px;
+  max-height: 112px;
+  resize: none;
+  font-size: var(--nimi-type-body-sm-size);
+  line-height: var(--nimi-type-body-sm-line-height);
+}
+
+.avatar-transient-composer__actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 28px 28px;
+  align-items: center;
+  gap: var(--nimi-space-1);
+}
+
+.avatar-transient-composer__error {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: var(--nimi-status-danger);
+  font-size: var(--nimi-type-caption-size);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.avatar-transient-composer__spacer {
+  min-width: 0;
+}
+
+.avatar-transient-composer__close,
+.avatar-transient-composer__send {
+  width: 28px;
+  height: 28px;
+}
+
 /* ── Settings Popover (K-NAV-SHELL-COMPANION-009) ───────────────────────── */
 
 .avatar-settings-popover {
   position: absolute;
-  right: var(--nimi-space-4);
-  bottom: calc(var(--nimi-space-4) + 58px);
   z-index: 20;
   display: flex;
   flex-direction: column;
@@ -624,6 +850,256 @@ button {
   color: var(--nimi-text-secondary);
   background: color-mix(in srgb, var(--nimi-status-info) 10%, transparent);
   border: 1px solid color-mix(in srgb, var(--nimi-status-info) 22%, transparent);
+}
+
+/* ── Appearance Overlay (K-NAV-SHELL-OUTPUT-011 transient overlay) ──────── */
+
+.avatar-appearance-overlay {
+  position: absolute;
+  z-index: 22;
+  display: flex;
+  flex-direction: column;
+  gap: var(--nimi-space-2);
+  width: 300px;
+  max-width: calc(100vw - 16px);
+  padding: var(--nimi-space-3);
+  border-radius: var(--nimi-radius-md);
+  background: var(--nimi-material-glass-thick-bg);
+  border: 1px solid var(--nimi-material-glass-thick-border);
+  box-shadow: var(--nimi-elevation-floating);
+  color: var(--nimi-text-primary);
+  outline: none;
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+
+.avatar-appearance-overlay__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--nimi-space-2);
+  font-size: var(--nimi-type-body-sm-size);
+  font-weight: var(--nimi-type-section-title-weight);
+}
+
+.avatar-appearance-overlay__icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: var(--nimi-radius-full);
+  background: transparent;
+  color: var(--nimi-text-muted);
+  cursor: pointer;
+}
+
+.avatar-appearance-overlay__icon-button:hover,
+.avatar-appearance-overlay__icon-button:focus-visible {
+  background: var(--nimi-action-ghost-hover);
+  color: var(--nimi-text-primary);
+}
+
+.avatar-appearance-overlay__rows {
+  display: grid;
+  gap: var(--nimi-space-1);
+  margin: 0;
+}
+
+.avatar-appearance-overlay__row {
+  display: grid;
+  grid-template-columns: minmax(88px, 0.8fr) minmax(0, 1.2fr);
+  gap: var(--nimi-space-2);
+  align-items: center;
+  min-height: 30px;
+  padding: var(--nimi-space-1) var(--nimi-space-2);
+  border-radius: var(--nimi-radius-sm);
+  background: color-mix(in srgb, var(--nimi-surface-overlay) 68%, transparent);
+  border: 1px solid var(--nimi-material-glass-regular-border);
+}
+
+.avatar-appearance-overlay__row dt,
+.avatar-appearance-overlay__row dd {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--nimi-type-caption-size);
+}
+
+.avatar-appearance-overlay__row dt {
+  color: var(--nimi-text-muted);
+}
+
+.avatar-appearance-overlay__row dd {
+  color: var(--nimi-text-primary);
+  text-align: right;
+}
+
+/* ── Debug Overlay (K-NAV-SHELL-OUTPUT-010 transient overlay) ───────────── */
+
+.avatar-debug-overlay {
+  position: absolute;
+  z-index: 22;
+  display: flex;
+  flex-direction: column;
+  gap: var(--nimi-space-2);
+  width: 420px;
+  max-width: calc(100vw - 16px);
+  padding: var(--nimi-space-3);
+  border-radius: var(--nimi-radius-md);
+  background: var(--nimi-material-glass-thick-bg);
+  border: 1px solid var(--nimi-material-glass-thick-border);
+  box-shadow: var(--nimi-elevation-floating);
+  color: var(--nimi-text-primary);
+  outline: none;
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+
+.avatar-debug-overlay__header,
+.avatar-debug-overlay__header-actions,
+.avatar-debug-overlay__request {
+  display: flex;
+  align-items: center;
+}
+
+.avatar-debug-overlay__header {
+  justify-content: space-between;
+  gap: var(--nimi-space-2);
+  font-size: var(--nimi-type-body-sm-size);
+  font-weight: var(--nimi-type-section-title-weight);
+}
+
+.avatar-debug-overlay__header-actions {
+  gap: var(--nimi-space-1);
+}
+
+.avatar-debug-overlay__icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: var(--nimi-radius-full);
+  background: transparent;
+  color: var(--nimi-text-muted);
+  cursor: pointer;
+}
+
+.avatar-debug-overlay__icon-button:hover:not(:disabled),
+.avatar-debug-overlay__icon-button:focus-visible {
+  background: var(--nimi-action-ghost-hover);
+  color: var(--nimi-text-primary);
+}
+
+.avatar-debug-overlay__icon-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.avatar-debug-overlay__request {
+  justify-content: center;
+  gap: var(--nimi-space-2);
+  min-height: 32px;
+  border: 1px solid var(--nimi-border-subtle);
+  border-radius: var(--nimi-radius-sm);
+  background: var(--nimi-action-secondary-bg);
+  color: var(--nimi-text-primary);
+  font-size: var(--nimi-type-body-sm-size);
+  cursor: pointer;
+}
+
+.avatar-debug-overlay__request:hover:not(:disabled),
+.avatar-debug-overlay__request:focus-visible {
+  background: var(--nimi-action-ghost-hover);
+  border-color: var(--nimi-border-strong);
+}
+
+.avatar-debug-overlay__request:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.avatar-debug-overlay__state,
+.avatar-debug-overlay__error {
+  margin: 0;
+  padding: var(--nimi-space-1) var(--nimi-space-2);
+  border-radius: var(--nimi-radius-sm);
+  font-size: var(--nimi-type-caption-size);
+}
+
+.avatar-debug-overlay__state {
+  color: var(--nimi-text-secondary);
+  background: color-mix(in srgb, var(--nimi-status-info) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--nimi-status-info) 20%, transparent);
+}
+
+.avatar-debug-overlay__error {
+  color: var(--nimi-status-danger);
+  background: color-mix(in srgb, var(--nimi-status-danger) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--nimi-status-danger) 24%, transparent);
+}
+
+.avatar-debug-overlay__table {
+  display: grid;
+  gap: var(--nimi-space-1);
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.avatar-debug-overlay__row {
+  display: grid;
+  grid-template-columns: minmax(112px, 1.4fr) minmax(78px, 0.9fr) minmax(62px, 0.7fr) minmax(58px, 0.6fr);
+  align-items: center;
+  gap: var(--nimi-space-2);
+  min-height: 30px;
+  padding: var(--nimi-space-1) var(--nimi-space-2);
+  border-radius: var(--nimi-radius-sm);
+  color: var(--nimi-text-secondary);
+  font-size: var(--nimi-type-caption-size);
+}
+
+.avatar-debug-overlay__row > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.avatar-debug-overlay__row--head {
+  color: var(--nimi-text-muted);
+  font-weight: var(--nimi-type-label-weight);
+  background: transparent;
+}
+
+.avatar-debug-overlay__row:not(.avatar-debug-overlay__row--head) {
+  background: color-mix(in srgb, var(--nimi-surface-overlay) 68%, transparent);
+  border: 1px solid var(--nimi-material-glass-regular-border);
+}
+
+.avatar-debug-overlay__row--passed {
+  color: var(--nimi-status-success);
+}
+
+.avatar-debug-overlay__row--failed,
+.avatar-debug-overlay__row--invalid {
+  color: var(--nimi-status-danger);
+}
+
+.avatar-debug-overlay__row--unsupported,
+.avatar-debug-overlay__row--blocked {
+  color: var(--nimi-status-warning);
+}
+
+.avatar-debug-overlay__reason {
+  grid-column: 1 / -1;
+  color: var(--nimi-text-muted);
 }
 
 /* ── Degraded Surface (K-NAV-SHELL-DEGRADED-*) ──────────────────────────── */

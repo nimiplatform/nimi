@@ -61,15 +61,15 @@ export function createVrmHitRegion(input: CreateVrmHitRegionInputs): BackendHitR
     clientX: number,
     clientY: number,
     threshold?: number,
-  ): boolean => {
+  ): boolean | null => {
     const viewport = input.getViewport();
-    if (viewport == null || viewport.width <= 0 || viewport.height <= 0) return false;
+    if (viewport == null || viewport.width <= 0 || viewport.height <= 0) return null;
     const alphaByte = input.renderTarget.probeAlphaAtClient({
       clientX,
       clientY,
       viewport,
     });
-    if (alphaByte == null) return false;
+    if (alphaByte == null) return null;
     const thresholdByte = (threshold ?? VRM_ALPHA_MASK_THRESHOLD) * 255;
     return alphaByte > thresholdByte;
   };

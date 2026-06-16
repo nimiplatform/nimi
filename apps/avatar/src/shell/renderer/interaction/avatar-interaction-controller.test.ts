@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { AppOriginEvent } from '../driver/types.js';
 import { createAvatarHitRegionSnapshot } from '@nimiplatform/kit/features/avatar/headless';
 import { AvatarInteractionController } from './avatar-interaction-controller.js';
@@ -56,6 +56,10 @@ function createController(input: { tauri?: boolean; dragRejects?: boolean; click
   };
 }
 
+afterEach(() => {
+  vi.useRealTimers();
+});
+
 describe('AvatarInteractionController', () => {
   it('emits hover, click, double click, and right click only inside hit region', () => {
     const fixture = createController({ tauri: true });
@@ -102,6 +106,47 @@ describe('AvatarInteractionController', () => {
     ]);
     expect(fixture.emitted.at(-1)?.detail).toMatchObject({ delta_x: 32, delta_y: 0 });
     expect(fixture.constrainWindowToVisibleArea).toHaveBeenCalledTimes(1);
+  });
+
+  it('emits long press after 1s stationary hold without creating a click', () => {
+    vi.useFakeTimers();
+    const fixture = createController();
+
+    fixture.controller.pointerDown({ clientX: 60, clientY: 180, button: 0 });
+    fixture.tick(1000);
+    vi.advanceTimersByTime(1000);
+    fixture.controller.pointerUp({ clientX: 60, clientY: 180, button: 0 });
+
+    expect(fixture.emitted.map((event) => event.name)).toEqual([
+      'avatar.user.hover',
+      'avatar.user.long_press',
+    ]);
+    expect(fixture.emitted.at(-1)?.detail).toMatchObject({
+      region: 'body',
+      button: 'left',
+      client_x: 60,
+      client_y: 180,
+    });
+    expect(fixture.startWindowDrag).not.toHaveBeenCalled();
+  });
+
+  it('cancels long press timer when movement starts drag', () => {
+    vi.useFakeTimers();
+    const fixture = createController();
+
+    fixture.controller.pointerDown({ clientX: 60, clientY: 180, button: 0 });
+    fixture.controller.pointerMove({ clientX: 66, clientY: 180, button: 0, buttons: 1 });
+    fixture.tick(1000);
+    vi.advanceTimersByTime(1000);
+    fixture.controller.pointerUp({ clientX: 66, clientY: 180, button: 0 });
+
+    expect(fixture.emitted.map((event) => event.name)).toEqual([
+      'avatar.user.hover',
+      'avatar.user.drag.start',
+      'avatar.user.drag.move',
+      'avatar.user.drag.end',
+    ]);
+    expect(fixture.emitted.some((event) => event.name === 'avatar.user.long_press')).toBe(false);
   });
 
   it('cancels pending drag without emitting drag end success', () => {

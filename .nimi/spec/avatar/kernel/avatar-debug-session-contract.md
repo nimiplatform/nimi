@@ -43,6 +43,15 @@ Avatar owns backend evidence for:
 - emotion/expression support
 - speech/lipsync support
 - carrier diagnostics and hit region evidence
+- Avatar-owned carrier visual readiness refs, including official-SDK Live2D
+  preview artifact refs where the backend provides them
+- Avatar-owned Live2D expression inventory refs where emotion/expression
+  support is claimed by the loaded Live2D backend
+- Avatar-owned Live2D backend evidence pack refs for backend load,
+  compatibility/capability profile, route support, speech/lipsync,
+  hit-region readiness, and parameter-lane diagnostics
+- opaque Live2D calibration refs projected by the Avatar local asset resolver
+  as read-only, effect-blocked evidence
 
 Evidence shape is pinned by `tables/avatar-debug-session.schema.yaml`.
 
@@ -56,6 +65,10 @@ inventory, or activation authority.
 Desktop stores opaque refs only. Runtime owns authorization and probe semantics.
 SDK carries typed refs and methods only. No owner may create a second resolver
 for Avatar backend files in this debug-session boundary.
+
+`live2d_calibration_ref`, when present, is resolver evidence only. It is not a
+calibration payload, not model digest truth, not render/framing policy, and not
+carrier effect authority.
 
 ## Result Semantics
 

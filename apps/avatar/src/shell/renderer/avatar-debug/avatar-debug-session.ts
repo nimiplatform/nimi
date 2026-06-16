@@ -56,6 +56,16 @@ export type AvatarDebugEvidence = {
     unsupportedRouteIds: readonly string[];
     backendCapabilityProfileRef: string | null;
     avatarPackageRef: string | null;
+    carrierVisualEvidenceRef: string | null;
+    carrierPreviewArtifactRef: string | null;
+    live2dExpressionInventoryRef: string | null;
+    live2dBackendLoadRef: string | null;
+    live2dCapabilityProfileRef: string | null;
+    live2dRouteSupportRef: string | null;
+    live2dLipsyncEvidenceRef: string | null;
+    live2dHitRegionEvidenceRef: string | null;
+    live2dParameterLaneDiagnosticsRef: string | null;
+    live2dCalibrationRef: string | null;
   };
 };
 
@@ -224,6 +234,46 @@ function supportedVrmRouteIds(input: AvatarDebugSessionInput): VrmGeneratedRoute
     .filter(isVrmGeneratedRouteId);
 }
 
+function carrierVisualEvidenceRef(input: AvatarDebugSessionInput): string | null {
+  return optionalString(metadataString(backendMetadata(input), 'carrier_visual_evidence_ref'));
+}
+
+function carrierPreviewArtifactRef(input: AvatarDebugSessionInput): string | null {
+  return optionalString(metadataString(backendMetadata(input), 'carrier_preview_artifact_ref'));
+}
+
+function live2dExpressionInventoryRef(input: AvatarDebugSessionInput): string | null {
+  return optionalString(metadataString(backendMetadata(input), 'expression_inventory_ref'));
+}
+
+function live2dBackendLoadRef(input: AvatarDebugSessionInput): string | null {
+  return optionalString(metadataString(backendMetadata(input), 'backend_load_evidence_ref'));
+}
+
+function live2dCapabilityProfileRef(input: AvatarDebugSessionInput): string | null {
+  return optionalString(metadataString(backendMetadata(input), 'live2d_capability_profile_evidence_ref'));
+}
+
+function live2dRouteSupportRef(input: AvatarDebugSessionInput): string | null {
+  return optionalString(metadataString(backendMetadata(input), 'live2d_route_support_evidence_ref'));
+}
+
+function live2dLipsyncEvidenceRef(input: AvatarDebugSessionInput): string | null {
+  return optionalString(metadataString(backendMetadata(input), 'live2d_lipsync_evidence_ref'));
+}
+
+function live2dHitRegionEvidenceRef(input: AvatarDebugSessionInput): string | null {
+  return optionalString(metadataString(backendMetadata(input), 'live2d_hit_region_evidence_ref'));
+}
+
+function live2dParameterLaneDiagnosticsRef(input: AvatarDebugSessionInput): string | null {
+  return optionalString(metadataString(backendMetadata(input), 'carrier_visual_parameter_lane_diagnostics_ref'));
+}
+
+function live2dCalibrationRef(input: AvatarDebugSessionInput): string | null {
+  return optionalString(metadataString(backendMetadata(input), 'live2d_calibration_ref'));
+}
+
 function unsupportedVrmRouteIds(input: AvatarDebugSessionInput): string[] {
   if (input.vrmCapabilityProfile) {
     return input.vrmCapabilityProfile.generatedMotion.unsupportedRoutes.map((route) => route.routeId);
@@ -286,7 +336,10 @@ function evaluateStatus(input: AvatarDebugSessionInput): {
           ? { status: 'passed', reasonCode: null }
           : { status: 'failed', reasonCode: 'vrm_capability_profile_missing' };
       }
-      return hasBackend && hasProfileRef && metadataString(meta, 'compatibility_tier')
+      return hasBackend
+        && hasProfileRef
+        && metadataString(meta, 'compatibility_tier')
+        && live2dCapabilityProfileRef(input)
         ? { status: 'passed', reasonCode: null }
         : { status: 'unsupported', reasonCode: 'live2d_capability_profile_missing' };
     case AvatarDebugProbeKind.ROUTE_SUPPORT_MATRIX:
@@ -304,14 +357,33 @@ function evaluateStatus(input: AvatarDebugSessionInput): {
           ? { status: 'passed', reasonCode: null }
           : { status: 'unsupported', reasonCode: 'expression_manager_missing' };
       }
-      return hasBackend && metadataString(meta, 'adapter_id')
+      return hasBackend
+        && metadataString(meta, 'adapter_id')
+        && metadataBoolean(meta, 'expression_stack_supported')
+        && metadataString(meta, 'expression_inventory_ref')
         ? { status: 'passed', reasonCode: null }
-        : { status: 'unsupported', reasonCode: 'live2d_expression_adapter_missing' };
+        : { status: 'unsupported', reasonCode: 'live2d_expression_inventory_missing' };
     case AvatarDebugProbeKind.SPEECH_LIPSYNC:
+      if (input.backendKind === 'live2d') {
+        return hasBackend
+          && metadataBoolean(meta, 'lipsync_profile_present')
+          && live2dLipsyncEvidenceRef(input)
+          ? { status: 'passed', reasonCode: null }
+          : { status: 'unsupported', reasonCode: 'live2d_lipsync_evidence_missing' };
+      }
       return hasBackend && metadataBoolean(meta, 'lipsync_profile_present')
         ? { status: 'passed', reasonCode: null }
         : { status: 'unsupported', reasonCode: 'lipsync_profile_missing' };
     case AvatarDebugProbeKind.WINDOW_HIT_REGION:
+      if (input.backendKind === 'live2d') {
+        return hasBackend
+          && hasValidBounds(input)
+          && carrierVisualEvidenceRef(input)
+          && carrierPreviewArtifactRef(input)
+          && live2dHitRegionEvidenceRef(input)
+          ? { status: 'passed', reasonCode: null }
+          : { status: 'failed', reasonCode: 'live2d_visual_hit_region_evidence_missing' };
+      }
       return hasBackend && hasValidBounds(input)
         ? { status: 'passed', reasonCode: null }
         : { status: 'failed', reasonCode: 'carrier_hit_region_unavailable' };
@@ -326,6 +398,16 @@ function routeRefs(input: AvatarDebugSessionInput): AvatarDebugEvidence['refs'] 
     unsupportedRouteIds: unsupportedVrmRouteIds(input),
     backendCapabilityProfileRef: null,
     avatarPackageRef: null,
+    carrierVisualEvidenceRef: carrierVisualEvidenceRef(input),
+    carrierPreviewArtifactRef: carrierPreviewArtifactRef(input),
+    live2dExpressionInventoryRef: live2dExpressionInventoryRef(input),
+    live2dBackendLoadRef: live2dBackendLoadRef(input),
+    live2dCapabilityProfileRef: live2dCapabilityProfileRef(input),
+    live2dRouteSupportRef: live2dRouteSupportRef(input),
+    live2dLipsyncEvidenceRef: live2dLipsyncEvidenceRef(input),
+    live2dHitRegionEvidenceRef: live2dHitRegionEvidenceRef(input),
+    live2dParameterLaneDiagnosticsRef: live2dParameterLaneDiagnosticsRef(input),
+    live2dCalibrationRef: live2dCalibrationRef(input),
   };
 }
 
@@ -368,7 +450,43 @@ export function createAvatarDebugSession(input: AvatarDebugSessionInput): Avatar
   };
 }
 
+export function evidenceRefsForAvatarDebugSession(session: AvatarDebugSession): string[] {
+  const evidenceRefByKind: Partial<Record<AvatarDebugEvidenceKind, string>> = {
+    backend_loaded: `backend_load_evidence_ref:${session.evidence.evidenceId}`,
+    capability_profile_validated: `profile_validation_evidence_ref:${session.evidence.evidenceId}`,
+    route_support_checked: `generated_motion_routes_ref:${session.evidence.evidenceId}`,
+    generated_motion_checked: `avatar_backend_evidence_ref:${session.evidence.evidenceId}`,
+    emotion_expression_checked: `avatar_backend_evidence_ref:${session.evidence.evidenceId}`,
+    speech_lipsync_checked: `avatar_backend_evidence_ref:${session.evidence.evidenceId}`,
+    carrier_diagnostics_checked: `avatar_carrier_diagnostics_ref:${session.evidence.evidenceId}`,
+  };
+  return [
+    `avatar_debug_session_id:${session.debugSessionId}`,
+    `runtime_probe_id:${session.runtimeProbeId}`,
+    evidenceRefByKind[session.evidence.evidenceKind] ?? '',
+    `avatar_backend_evidence_ref:${session.evidence.evidenceId}`,
+    `avatar.debug.session/${session.debugSessionId}`,
+    `avatar.debug.session-evidence/${session.evidence.evidenceId}`,
+    session.avatarPackageRef ? `avatar.debug.package/${session.avatarPackageRef}` : '',
+    session.backendCapabilityProfileRef ? `backend_capability_profile_ref:${session.backendCapabilityProfileRef}` : '',
+    session.backendCapabilityProfileRef ? `avatar.debug.capability-profile/${session.backendCapabilityProfileRef}` : '',
+    session.evidence.refs.carrierVisualEvidenceRef ? `avatar_carrier_visual_ref:${session.evidence.refs.carrierVisualEvidenceRef}` : '',
+    session.evidence.refs.carrierPreviewArtifactRef ? `avatar_preview_artifact_ref:${session.evidence.refs.carrierPreviewArtifactRef}` : '',
+    session.evidence.refs.live2dExpressionInventoryRef ? `live2d_expression_inventory_ref:${session.evidence.refs.live2dExpressionInventoryRef}` : '',
+    session.evidence.refs.live2dBackendLoadRef ? `live2d_backend_load_ref:${session.evidence.refs.live2dBackendLoadRef}` : '',
+    session.evidence.refs.live2dCapabilityProfileRef ? `live2d_capability_profile_ref:${session.evidence.refs.live2dCapabilityProfileRef}` : '',
+    session.evidence.refs.live2dRouteSupportRef ? `live2d_route_support_ref:${session.evidence.refs.live2dRouteSupportRef}` : '',
+    session.evidence.refs.live2dLipsyncEvidenceRef ? `live2d_lipsync_evidence_ref:${session.evidence.refs.live2dLipsyncEvidenceRef}` : '',
+    session.evidence.refs.live2dHitRegionEvidenceRef ? `live2d_hit_region_ref:${session.evidence.refs.live2dHitRegionEvidenceRef}` : '',
+    session.evidence.refs.live2dParameterLaneDiagnosticsRef ? `live2d_parameter_lane_ref:${session.evidence.refs.live2dParameterLaneDiagnosticsRef}` : '',
+    session.evidence.refs.live2dCalibrationRef ? `live2d_calibration_ref:${session.evidence.refs.live2dCalibrationRef}` : '',
+    ...session.evidence.refs.routeIds.map((routeId) => `avatar.debug.route/${routeId}`),
+    ...session.evidence.refs.unsupportedRouteIds.map((routeId) => `avatar.debug.unsupported-route/${routeId}`),
+  ].filter((value) => value.trim().length > 0);
+}
+
 export function recordAvatarDebugSessionEvidence(session: AvatarDebugSession): void {
+  const evidenceRefs = evidenceRefsForAvatarDebugSession(session);
   recordAvatarEvidenceEventually({
     kind: 'avatar.debug.session-evidence',
     detail: {
@@ -385,6 +503,18 @@ export function recordAvatarDebugSessionEvidence(session: AvatarDebugSession): v
       reason_code: session.evidence.reasonCode,
       route_ids: session.evidence.refs.routeIds,
       unsupported_route_ids: session.evidence.refs.unsupportedRouteIds,
+      carrier_visual_evidence_ref: session.evidence.refs.carrierVisualEvidenceRef,
+      carrier_preview_artifact_ref: session.evidence.refs.carrierPreviewArtifactRef,
+      live2d_expression_inventory_ref: session.evidence.refs.live2dExpressionInventoryRef,
+      live2d_backend_load_ref: session.evidence.refs.live2dBackendLoadRef,
+      live2d_capability_profile_ref: session.evidence.refs.live2dCapabilityProfileRef,
+      live2d_route_support_ref: session.evidence.refs.live2dRouteSupportRef,
+      live2d_lipsync_evidence_ref: session.evidence.refs.live2dLipsyncEvidenceRef,
+      live2d_hit_region_evidence_ref: session.evidence.refs.live2dHitRegionEvidenceRef,
+      live2d_parameter_lane_diagnostics_ref: session.evidence.refs.live2dParameterLaneDiagnosticsRef,
+      live2d_calibration_ref: session.evidence.refs.live2dCalibrationRef,
+      evidence_refs: evidenceRefs,
+      evidence_ref_count: evidenceRefs.length,
       observed_at: session.observedAt,
     },
   });

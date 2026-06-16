@@ -124,7 +124,7 @@ export function derivePresenceState(input: PresenceMachineInput): PresenceState 
       stateId: 'foreground_listening',
       tone: 'listening',
       privacyIndicator: 'mic_active',
-      micIntent: 'commit_listening',
+      micIntent: 'disabled',
       audioActive,
       audioUnavailable,
     });
@@ -191,7 +191,7 @@ export function derivePresenceState(input: PresenceMachineInput): PresenceState 
       stateId: 'muted_or_audio_unavailable',
       tone: 'audio-unavailable',
       privacyIndicator: 'speaker_unavailable',
-      micIntent: 'start_listening',
+      micIntent: 'disabled',
       audioActive,
       audioUnavailable,
     });
@@ -200,8 +200,8 @@ export function derivePresenceState(input: PresenceMachineInput): PresenceState 
   return makePresence({
     stateId: 'idle',
     tone: 'idle',
-    privacyIndicator: 'mic_idle',
-    micIntent: 'start_listening',
+    privacyIndicator: 'none',
+    micIntent: 'disabled',
     audioActive,
     audioUnavailable,
   });

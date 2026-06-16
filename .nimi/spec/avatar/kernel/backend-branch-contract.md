@@ -64,8 +64,9 @@ export type BackendNominalBounds = {
 
 - `width / height` 是 backend 推荐的 carrier viewport 尺寸；window-bounds-policy
   消费此值作为 `embodiment_bounds` 的源（详 `tables/window-bounds-policy.yaml`）
-- `bodyCenterX/Y` 是 framing 锚点（companion-surface offset 计算 / framing intent
-  / hit-region bbox 中心）
+- `bodyCenterX/Y` 是 embodiment/window framing 锚点（visible-area recovery /
+  framing intent / hit-region bbox 中心），不得重新引入 companion-surface
+  footprint 作为默认 window truth
 
 ### 2.3 HitRegion
 
@@ -73,13 +74,14 @@ export type BackendNominalBounds = {
 export type BackendHitRegion = {
   /** viewport-normalized rect 0..1；OS-level ignore_cursor_events bbox fallback */
   body: { left: number; top: number; right: number; bottom: number };
-  /** drag-allowed bbox（companion / degraded surface 区域不开启 drag）*/
+  /** drag-allowed bbox（transient overlays / degraded surface 区域不开启 drag）*/
   drag: { left: number; top: number; right: number; bottom: number };
   /** 精确 alpha-mask hit query（pixel-level click-through）。
    *  非 null 时优先于 bbox；null 表示当前 backend 仅支持 bbox 路径。
+   *  返回 null 表示当前帧 alpha probe 不可用，caller 必须 fallback 到 bbox。
    *  threshold 默认 10/255（airi 工业基线）；caller 可覆盖。*/
   isOpaqueAtClientPoint:
-    | ((clientX: number, clientY: number, threshold?: number) => boolean)
+    | ((clientX: number, clientY: number, threshold?: number) => boolean | null)
     | null;
 };
 ```

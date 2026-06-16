@@ -2,11 +2,11 @@
 // Per app-shell-contract.md K-NAV-SHELL-DEGRADED-001..005 this surface is the
 // SOLE renderer when composition state is loading / degraded:* / error:* /
 // relaunch-pending. It is mutually exclusive with embodiment-stage and
-// companion-surface; no ready surface elements are rendered concurrently.
+// transient overlays; no ready surface elements are rendered concurrently.
 //
 // Wave 2: every label / summary / recovery / diagnostics row is i18n-driven
 // via `Avatar.degraded.<state>.{badge,title,summary[,_with_reason],recovery}`
-// keys declared in .nimi/spec/avatar/kernel/tables/i18n-keys.yaml.
+// keys declared in the app-owned i18n key catalog.
 
 import { useTranslation } from '../i18n/index.js';
 import { Button, StatusBadge, Surface, cn } from '@nimiplatform/kit/ui';

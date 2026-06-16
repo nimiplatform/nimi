@@ -10,6 +10,17 @@ import {
 } from './carrier-visual-runtime.js';
 import { readBinaryFile } from './model-loader.js';
 import type { Live2DBackendSession } from './backend-session.js';
+import { createLive2DExpressionOverlay, type Live2DExpressionOverlayFrame } from './live2d-expression-stack.js';
+import {
+  createLive2DParameterLaneScheduler,
+  type Live2DParameterCommandLanes,
+  type Live2DParameterLaneId,
+} from './live2d-parameter-lane-scheduler.js';
+import {
+  createLive2DLookAtIdleController,
+  type Live2DLookAtIdleController,
+  type Live2DLookAtIdleReasonCode,
+} from './live2d-look-at-idle.js';
 
 export type Live2DCarrierVisualDrawStats = {
   width: number;
@@ -22,6 +33,16 @@ export type Live2DCarrierVisualDrawStats = {
   motionFrameApplied: boolean;
   activeExpressionId: string | null;
   expressionFrameApplied: boolean;
+  parameterLaneOrder: readonly Live2DParameterLaneId[];
+  parameterLaneApplied: readonly Live2DParameterLaneId[];
+  parameterLaneElapsedMs: number;
+  parameterLaneUnsupportedParameterIds: readonly string[];
+  parameterLaneSpeechLipsyncParameterCount: number;
+  parameterLaneDirectParameterCount: number;
+  lookAtIdleSupported: boolean;
+  lookAtIdleBlinkSupported: boolean;
+  lookAtIdleReasonCode: Live2DLookAtIdleReasonCode;
+  lookAtIdleParameterIds: readonly string[];
 };
 
 export type Live2DCarrierVisualFrameStats = Live2DCarrierVisualDrawStats & {
@@ -88,28 +109,22 @@ type MotionManagerLike = {
   stopAllMotions: () => void;
 };
 
-type ExpressionManagerLike = {
-  startMotion: (motion: unknown, autoDelete: boolean) => number;
-  updateMotion: (model: Live2DVisualModelShape, deltaTimeSeconds: number) => boolean;
-  stopAllMotions: () => void;
-};
-
 type CubismMotionLike = {
   setEffectIds?: (eyeBlinkIds: unknown[], lipSyncIds: unknown[]) => void;
+};
+
+type PhysicsLike = {
+  evaluate: (model: Live2DVisualModelShape, deltaTimeSeconds: number) => void;
+};
+
+type PoseLike = {
+  updateParameters: (model: Live2DVisualModelShape, deltaTimeSeconds: number) => void;
 };
 
 function protectedMotionManager(model: unknown): MotionManagerLike {
   const manager = (model as { _motionManager?: MotionManagerLike })._motionManager;
   if (!manager) {
     throw new Error('Live2D carrier visual motion manager is unavailable');
-  }
-  return manager;
-}
-
-function protectedExpressionManager(model: unknown): ExpressionManagerLike {
-  const manager = (model as { _expressionManager?: ExpressionManagerLike })._expressionManager;
-  if (!manager) {
-    throw new Error('Live2D carrier visual expression manager is unavailable');
   }
   return manager;
 }
@@ -133,6 +148,22 @@ function readEffectIds(input: {
 
 function getModelRef(model: unknown): Live2DVisualModelShape | null {
   return (model as { _model?: Live2DVisualModelShape | null })._model ?? null;
+}
+
+function executionParameterLanes(
+  execution: Live2DBackendSession['execution'],
+): Live2DParameterCommandLanes {
+  const lanes = execution.parameterLanes;
+  if (lanes) {
+    return {
+      speechLipsync: lanes.speechLipsync,
+      live2dExtensionDirect: lanes.live2dExtensionDirect,
+    };
+  }
+  return {
+    speechLipsync: new Map(),
+    live2dExtensionDirect: execution.parameters,
+  };
 }
 
 function sampleVisiblePixels(input: {
@@ -200,6 +231,9 @@ async function createVisualModel(input: {
     private defaultFramebuffer: WebGLFramebuffer | null = null;
     private readonly motions = new Map<string, unknown[]>();
     private readonly expressions = new Map<string, unknown>();
+    private readonly expressionOverlay = createLive2DExpressionOverlay(input.session.expressionInventory);
+    private readonly parameterLaneScheduler = createLive2DParameterLaneScheduler();
+    private lookAtIdle: Live2DLookAtIdleController | null = null;
     private startedMotionGroup: string | null = null;
     private startedExpressionId: string | null = null;
     private eyeBlinkIds: unknown[] = [];
@@ -208,6 +242,8 @@ async function createVisualModel(input: {
       setParameters: (params: unknown[]) => void;
       updateParameters: (model: Live2DVisualModelShape, deltaTimeSeconds: number) => void;
     } | null = null;
+    private physics: PhysicsLike | null = null;
+    private pose: PoseLike | null = null;
 
     public async initialize(width: number, height: number): Promise<void> {
       const modelJsonBytes = createModelJsonBuffer(input.session);
@@ -217,6 +253,7 @@ async function createVisualModel(input: {
       if (!getModelRef(this) || !this.getModelMatrix()) {
         throw new Error(`Live2D carrier visual failed to initialize model: ${input.session.resources.mocPath}`);
       }
+      this.lookAtIdle = createLive2DLookAtIdleController(getModelRef(this)!);
       this.setupEffectIds();
       this.setupBreath();
       await this.loadMotions();
@@ -283,15 +320,63 @@ async function createVisualModel(input: {
         modelMatrix.setMatrix(this.baseModelMatrix);
       }
       model.loadParameters();
-      this.syncMotionState();
-      this.syncExpressionState();
-      const motionFrameApplied = protectedMotionManager(this).updateMotion(model, inputFrame.deltaTimeSeconds);
-      model.saveParameters();
-      const expressionFrameApplied = protectedExpressionManager(this).updateMotion(model, inputFrame.deltaTimeSeconds);
-      this.breath?.updateParameters(model, inputFrame.deltaTimeSeconds);
-      for (const [parameterId, value] of input.session.execution.parameters) {
-        model.setParameterValueById(parameterId, value);
-      }
+      let motionFrameApplied = false;
+      let expressionFrame: Live2DExpressionOverlayFrame = {
+        activeExpressionId: this.startedExpressionId,
+        frameApplied: false,
+        parameterIds: [],
+        resetParameterIds: [],
+      };
+      let lookAtIdleFrame = this.lookAtIdle?.snapshot() ?? {
+        gazeSupported: false,
+        blinkSupported: false,
+        parameterIds: [],
+        reasonCode: 'eye_parameters_missing' as const,
+      };
+      const commandLanes = executionParameterLanes(input.session.execution);
+      const laneStats = this.parameterLaneScheduler.run({
+        model,
+        parameters: commandLanes,
+        lanes: {
+          motion: () => {
+            this.syncMotionState();
+            motionFrameApplied = protectedMotionManager(this).updateMotion(model, inputFrame.deltaTimeSeconds);
+            model.saveParameters();
+            return motionFrameApplied;
+          },
+          expression: () => {
+            expressionFrame = this.expressionOverlay.apply(model, input.session.execution.activeExpression);
+            this.startedExpressionId = expressionFrame.activeExpressionId;
+            return expressionFrame.frameApplied;
+          },
+          physics: () => {
+            if (!this.physics) return false;
+            this.physics.evaluate(model, inputFrame.deltaTimeSeconds);
+            return true;
+          },
+          pose: () => {
+            if (!this.pose) return false;
+            this.pose.updateParameters(model, inputFrame.deltaTimeSeconds);
+            return true;
+          },
+          breath_blink: () => {
+            if (!this.breath) return false;
+            this.breath.updateParameters(model, inputFrame.deltaTimeSeconds);
+            return true;
+          },
+          look_at_idle: () => {
+            if (!this.lookAtIdle) return false;
+            const frame = this.lookAtIdle.apply({
+              model,
+              deltaTimeSeconds: inputFrame.deltaTimeSeconds,
+              seconds: inputFrame.seconds,
+              directParameters: commandLanes.live2dExtensionDirect,
+            });
+            lookAtIdleFrame = frame;
+            return frame.applied;
+          },
+        },
+      });
       model.saveParameters();
       model.update();
 
@@ -346,7 +431,17 @@ async function createVisualModel(input: {
         activeMotionGroup: this.startedMotionGroup,
         motionFrameApplied,
         activeExpressionId: this.startedExpressionId,
-        expressionFrameApplied,
+        expressionFrameApplied: expressionFrame.frameApplied,
+        parameterLaneOrder: laneStats.laneOrder,
+        parameterLaneApplied: laneStats.appliedLanes,
+        parameterLaneElapsedMs: laneStats.elapsedMs,
+        parameterLaneUnsupportedParameterIds: laneStats.unsupportedParameterIds,
+        parameterLaneSpeechLipsyncParameterCount: laneStats.speechLipsyncParameterCount,
+        parameterLaneDirectParameterCount: laneStats.directParameterCount,
+        lookAtIdleSupported: lookAtIdleFrame.gazeSupported,
+        lookAtIdleBlinkSupported: lookAtIdleFrame.blinkSupported,
+        lookAtIdleReasonCode: lookAtIdleFrame.reasonCode,
+        lookAtIdleParameterIds: lookAtIdleFrame.parameterIds,
       };
     }
 
@@ -446,36 +541,12 @@ async function createVisualModel(input: {
       this.startedMotionGroup = requested;
     }
 
-    private syncExpressionState(): void {
-      const requested = input.session.execution.activeExpression;
-      const manager = protectedExpressionManager(this);
-      if (!requested) {
-        if (this.startedExpressionId !== null) {
-          manager.stopAllMotions();
-          this.startedExpressionId = null;
-        }
-        return;
-      }
-      if (this.startedExpressionId === requested) {
-        return;
-      }
-      const expression = this.expressions.get(requested) ?? null;
-      if (!expression) {
-        throw new Error(`Live2D carrier visual expression is not loaded: ${requested}`);
-      }
-      const handle = manager.startMotion(expression, false);
-      if (handle < 0) {
-        throw new Error(`Live2D carrier visual expression was rejected by Cubism: ${requested}`);
-      }
-      this.startedExpressionId = requested;
-    }
-
     private async loadPhysics(): Promise<void> {
       if (!input.session.resources.physicsPath) {
         return;
       }
       const bytes = await input.readBinary(input.session.resources.physicsPath);
-      runtime.CubismPhysics.create(bytes, bytes.byteLength);
+      this.physics = runtime.CubismPhysics.create(bytes, bytes.byteLength) as PhysicsLike | null;
     }
 
     private async loadPose(): Promise<void> {
@@ -483,7 +554,7 @@ async function createVisualModel(input: {
         return;
       }
       const bytes = await input.readBinary(input.session.resources.posePath);
-      runtime.CubismPose.create(bytes, bytes.byteLength);
+      this.pose = runtime.CubismPose.create(bytes, bytes.byteLength) as PoseLike | null;
     }
 
     private setupBreath(): void {

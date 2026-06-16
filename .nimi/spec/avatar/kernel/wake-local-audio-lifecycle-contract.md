@@ -20,9 +20,9 @@ phrase lifecycle can be admitted.
 
 Current admitted slice:
 
-- foreground user-started voice capture only
-- visible local audio privacy feedback for every capture/playback state
-- Runtime-owned turn and playback projection rendered by Avatar presence UI
+- Runtime-owned wake/listening/foreground response projection rendered by Avatar
+- visible local audio privacy feedback for every Runtime-projected capture/playback state
+- Runtime-owned turn and playback projection rendered by Avatar presentation UI
 - backend-local lipsync driven by Runtime-owned audio artifacts
 - fail-closed degraded and blocked states
 
@@ -42,7 +42,7 @@ Out of scope until separate Runtime authority admits it:
 | Capability | Runtime owner | Avatar owner | Desktop owner |
 |---|---|---|---|
 | Wake phrase admission | Owns future lifecycle, consent, model/session gating, event projection, and policy | Must not locally admit or fake wake behavior | Must not parse wake audio or create wake truth |
-| Foreground voice capture | Owns accepted turn, transcript, participation, and turn lifecycle projection | Owns explicit foreground mic control, capture UI state, visible privacy feedback, and typed SDK calls | May host OS permission prompts and launch handoff only |
+| Foreground voice / wake listening | Owns wake phrase lifecycle, listener fan-out, accepted turn, transcript, participation, foreground response priority, and turn lifecycle projection | Renders Runtime-projected listening/privacy/playback state and may request foreground response priority; must not start/commit microphone capture locally | May host OS permission prompts and launch handoff only |
 | Background listening | Owns future admitted lifecycle if added | Forbidden in this slice | Forbidden as hidden app behavior |
 | Audio playback | Owns presentation timing, artifact identity, playback state projection, and interruption truth | Owns local playback pipeline, visual speaker state, lipsync sink, and fail-closed rendering | Does not own playback truth |
 | Lipsync | Owns audio artifact and presentation timing; does not own backend mouth parameters | Owns backend-local mouth driver and visible lipsync state | No ownership |
@@ -51,15 +51,15 @@ Out of scope until separate Runtime authority admits it:
 
 Boundary invariants:
 
-1. Avatar must not enter listening without an explicit user action in the
-   foreground Avatar surface.
+1. Avatar must not enter listening from local UI state. Listening requires
+   Runtime projection.
 2. Avatar must not represent wake as available unless Runtime has admitted and
    projected a wake lifecycle in a future authority batch.
 3. Desktop launch context may identify an Avatar instance, agent, and anchor;
    it must not supply raw wake/audio truth to Avatar.
 4. Runtime turn projection is the only source for reply/pending/interrupted
-   truth. Avatar UI state may be optimistic only for local capture/composer
-   initiation and must fail closed on Runtime rejection.
+   truth. Avatar UI state may be optimistic only for text composer submission
+   and must fail closed on Runtime rejection.
 5. Every state that uses the microphone or plays agent audio must have a visible
    privacy or activity indicator in the presence capsule.
 
@@ -72,13 +72,13 @@ into the following closed visual lifecycle ids.
 
 | State id | Source inputs | Avatar visual obligation | Allowed action |
 |---|---|---|---|
-| `idle` | ready surface, no active voice/capture/playback/error | neutral presence capsule, mic available if foreground capture is available | start foreground listening, open composer/settings |
-| `foreground_listening` | user clicked mic and capture session is active | active mic indicator, voice level meter, privacy label | commit capture by explicit mic click |
-| `transcribing` | foreground capture committed, SDK submit in progress | busy mic indicator, capture privacy no longer active | no mic start; wait or fail closed |
+| `idle` | ready surface, no active Runtime-projected voice/capture/playback/error | neutral presentation state; no local mic start control | request foreground priority, open composer/settings |
+| `foreground_listening` | Runtime projects this avatar/agent as actively listening | active mic/listening indicator, privacy label when a visible voice overlay is admitted | no local commit; Runtime owns capture lifecycle |
+| `transcribing` | Runtime projects capture/transcription in progress | busy mic indicator, capture privacy no longer active | wait or fail closed |
 | `turn_pending` | transcript/typed turn submitted, Runtime active turn not yet projected | pending indicator | no mic start; allow no fake speaking |
 | `assistant_speaking` | Runtime active turn/reply projection or audio playback started/requested | speaker/lipsync indicator, bounded cue/caption when available | interrupt current anchor turn |
 | `interrupted` | Runtime terminal interrupted/canceled projection or local interrupt result | interrupted indicator, audio/lipsync silent | clear via next turn or anchor change |
-| `muted_or_audio_unavailable` | audio playback failed/canceled/unavailable while surface remains ready | unavailable speaker indicator, no fake lipsync | text/foreground capture may remain based on availability |
+| `muted_or_audio_unavailable` | audio playback failed/canceled/unavailable while surface remains ready | unavailable speaker indicator, no fake lipsync | text may remain based on binding availability |
 | `blocked` | foreground voice availability is blocked or binding missing | mic disabled with visible blocked/error state | text/settings only where binding permits |
 | `error` | local capture/submit error for current anchor | transient error indicator and bounded error text | retry explicit action |
 | `runtime_degraded` | non-ready composition state | degraded surface only; no presence capsule | reload shell if admitted |
@@ -90,20 +90,21 @@ presence capsule unless explicitly marked `runtime_degraded`.
 
 ---
 
-## 4. Foreground Hands-Free Voice
+## 4. Runtime-Owned Voice Wake
 
-The admitted voice mode is foreground hands-free after explicit activation:
+The admitted voice mode is Runtime-owned wake/listening orchestration:
 
-1. User clicks the presence capsule mic.
-2. Avatar starts a foreground capture session through the existing Runtime/SDK
-   handle for the current `agent_id + conversation_anchor_id`.
-3. The mic remains visibly active until the user clicks again to commit.
-4. Avatar submits the captured audio through the existing voice capture turn
-   path.
-5. Runtime owns transcript, participation, active turn, and final reply truth.
-
-This is not wake-word support. It is a foreground session with a visible active
-mic indicator and an explicit user commit.
+1. Runtime owns microphone listener lifecycle, wake phrase matching, consent,
+   fan-out across multiple avatars, foreground respondent selection, transcript,
+   accepted turn, and final reply truth.
+2. Avatar may request foreground response priority by double-click or context
+   menu. This is only an intent signal; it is not a local capture start.
+3. Avatar renders Runtime-projected voice/listening/playback/lipsync state when
+   Runtime emits it.
+4. Avatar must not expose local start-listening, stop-listening, or commit
+   capture controls in the default embodied output layer.
+5. Text input remains a transient Runtime-bound composer and does not imply
+   voice authority.
 
 ---
 
@@ -130,7 +131,7 @@ Avatar-local evidence for this lifecycle is limited to UI/render facts:
 
 - `avatar.audio.lifecycle.state_changed`
 - `avatar.audio.privacy.indicator_changed`
-- existing `avatar.companion.voice.*`
+- `avatar.shell.foreground_priority.requested`
 - existing `avatar.audio.playback.*`
 - existing `avatar.lipsync.*`
 
@@ -143,7 +144,9 @@ must not be invented under the `avatar.*` namespace.
 
 - A wake toggle in Avatar settings is drift until Runtime wake lifecycle
   authority is admitted.
-- Any automatic transition into listening without a user action is drift.
+- Any Avatar-local transition into listening without Runtime projection is drift.
+- Any Avatar-local start/stop/commit listening control in the default embodied
+  output layer is drift.
 - Any hidden mic, background continuation, or lock-screen continuation is drift.
 - Any local fake transcript/reply/speaking state is drift.
 - Any audio/lipsync success claim without Runtime artifact or backend evidence

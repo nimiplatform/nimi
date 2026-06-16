@@ -160,6 +160,20 @@ const baseProps = {
   interactionModality: 'pointer' as const,
 };
 
+function installStageRect(stage: HTMLElement): void {
+  stage.getBoundingClientRect = (() => ({
+    x: 0,
+    y: 0,
+    left: 0,
+    top: 0,
+    right: 400,
+    bottom: 600,
+    width: 400,
+    height: 600,
+    toJSON: () => ({}),
+  })) as typeof stage.getBoundingClientRect;
+}
+
 describe('EmbodimentStage — render', () => {
   it('renders the embodiment stage section with body hit-region', () => {
     render(<EmbodimentStage {...baseProps} />);
@@ -291,7 +305,7 @@ describe('EmbodimentStage — pointermove click-through (chunk 4-C)', () => {
     expect(setIgnoreCursorEventsMock).toHaveBeenCalledWith(false);
   });
 
-  it('alpha-mask path: transparent point → setIgnore(true) on pointermove', () => {
+  it('alpha-mask path: transparent point inside body bbox keeps cursor events captured', () => {
     const isOpaqueAtClientPoint = vi.fn(() => false);
     const backend = createMockBackend({
       hitRegion: {
@@ -302,13 +316,34 @@ describe('EmbodimentStage — pointermove click-through (chunk 4-C)', () => {
     });
     render(<EmbodimentStage {...baseProps} backend={backend} />);
     setIgnoreCursorEventsMock.mockClear();
-    const stage = screen.getByTestId('avatar-embodiment-stage');
+    const stage = screen.getByTestId('avatar-embodiment-stage') as HTMLElement;
+    installStageRect(stage);
     fireEvent.pointerMove(stage, { clientX: 50, clientY: 50 });
-    // After leading-edge fire the IPC has been called with `true`
-    // (transparent → ignore=true). Drain any queued trailing edge.
     act(() => {
       vi.advanceTimersByTime(100);
     });
+    expect(setIgnoreCursorEventsMock).toHaveBeenCalledWith(false);
+  });
+
+  it('alpha-mask path: transparent point outside body bbox enables click-through', () => {
+    const isOpaqueAtClientPoint = vi.fn(() => false);
+    const backend = createMockBackend({
+      hitRegion: {
+        body: { left: 0.25, top: 0.25, right: 0.75, bottom: 0.75 },
+        drag: { left: 0.25, top: 0.25, right: 0.75, bottom: 0.75 },
+        isOpaqueAtClientPoint,
+      },
+    });
+    render(<EmbodimentStage {...baseProps} backend={backend} />);
+    setIgnoreCursorEventsMock.mockClear();
+    const stage = screen.getByTestId('avatar-embodiment-stage') as HTMLElement;
+    installStageRect(stage);
+
+    fireEvent.pointerMove(stage, { clientX: 20, clientY: 20 });
+    act(() => {
+      vi.advanceTimersByTime(100);
+    });
+
     expect(setIgnoreCursorEventsMock).toHaveBeenCalledWith(true);
   });
 
@@ -326,22 +361,29 @@ describe('EmbodimentStage — pointermove click-through (chunk 4-C)', () => {
     const stage = screen.getByTestId('avatar-embodiment-stage');
     // jsdom layout returns 0×0; force a non-zero rect via a stub so the
     // bbox math has something to work against.
-    const stageEl = stage as HTMLElement;
-    stageEl.getBoundingClientRect = (() => ({
-      x: 0,
-      y: 0,
-      left: 0,
-      top: 0,
-      right: 400,
-      bottom: 600,
-      width: 400,
-      height: 600,
-      toJSON: () => ({}),
-    })) as typeof stageEl.getBoundingClientRect;
+    installStageRect(stage as HTMLElement);
     setIgnoreCursorEventsMock.mockClear();
     fireEvent.pointerMove(stage, { clientX: 200, clientY: 300 });
     expect(setIgnoreCursorEventsMock).toHaveBeenCalledWith(false);
     expect(container).toBeTruthy();
+  });
+
+  it('bbox fallback: alpha probe unavailable for this frame does not enable click-through inside body', () => {
+    const backend = createMockBackend({
+      hitRegion: {
+        body: { left: 0.25, top: 0.25, right: 0.75, bottom: 0.75 },
+        drag: { left: 0.25, top: 0.25, right: 0.75, bottom: 0.75 },
+        isOpaqueAtClientPoint: () => null,
+      },
+    });
+    render(<EmbodimentStage {...baseProps} backend={backend} />);
+    const stage = screen.getByTestId('avatar-embodiment-stage') as HTMLElement;
+    installStageRect(stage);
+    setIgnoreCursorEventsMock.mockClear();
+
+    fireEvent.pointerMove(stage, { clientX: 200, clientY: 300 });
+
+    expect(setIgnoreCursorEventsMock).toHaveBeenCalledWith(false);
   });
 
   it('global cursor poll restores setIgnore(false) after transparent click-through re-enters opaque pixels', async () => {
@@ -355,16 +397,17 @@ describe('EmbodimentStage — pointermove click-through (chunk 4-C)', () => {
     });
     const backend = createMockBackend({
       hitRegion: {
-        body: { left: 0, top: 0, right: 1, bottom: 1 },
-        drag: { left: 0, top: 0, right: 1, bottom: 1 },
+        body: { left: 0.25, top: 0.25, right: 0.75, bottom: 0.75 },
+        drag: { left: 0.25, top: 0.25, right: 0.75, bottom: 0.75 },
         isOpaqueAtClientPoint,
       },
     });
     render(<EmbodimentStage {...baseProps} backend={backend} />);
     setIgnoreCursorEventsMock.mockClear();
-    const stage = screen.getByTestId('avatar-embodiment-stage');
+    const stage = screen.getByTestId('avatar-embodiment-stage') as HTMLElement;
+    installStageRect(stage);
 
-    fireEvent.pointerMove(stage, { clientX: 50, clientY: 50 });
+    fireEvent.pointerMove(stage, { clientX: 20, clientY: 20 });
     expect(setIgnoreCursorEventsMock).toHaveBeenCalledWith(true);
 
     await act(async () => {
@@ -430,6 +473,57 @@ describe('EmbodimentStage — pointermove click-through (chunk 4-C)', () => {
     });
     expect(isOpaqueAtClientPoint).not.toHaveBeenCalled();
     expect(setIgnoreCursorEventsMock).not.toHaveBeenCalled();
+  });
+
+  it('macOS manual drag cancels pending long-press action radial timer once movement starts', async () => {
+    runtimeFlags.tauriRuntime = true;
+    Object.defineProperty(window.navigator, 'platform', {
+      value: 'MacIntel',
+      configurable: true,
+    });
+    const emit = vi.fn();
+    const backend = createMockBackend({
+      hitRegion: {
+        body: { left: 0, top: 0, right: 1, bottom: 1 },
+        drag: { left: 0, top: 0, right: 1, bottom: 1 },
+        isOpaqueAtClientPoint: () => true,
+      },
+    });
+    render(<EmbodimentStage {...baseProps} backend={backend} emit={emit} />);
+    const stage = screen.getByTestId('avatar-embodiment-stage');
+
+    fireEvent.pointerDown(stage, {
+      button: 0,
+      buttons: 1,
+      pointerId: 10,
+      clientX: 120,
+      clientY: 220,
+      screenX: 800,
+      screenY: 500,
+    });
+    await Promise.resolve();
+
+    fireEvent.pointerMove(stage, {
+      button: 0,
+      buttons: 1,
+      pointerId: 10,
+      clientX: 180,
+      clientY: 260,
+      screenX: 860,
+      screenY: 540,
+    });
+    act(() => {
+      vi.advanceTimersByTime(1200);
+    });
+
+    expect(moveManualDragWindowMock).toHaveBeenCalledWith({
+      origin: { x: 1000, y: 700 },
+      totalDeltaX: 60,
+      totalDeltaY: 40,
+    });
+    expect(emit).not.toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'avatar.user.long_press' }),
+    );
   });
 
   it('macOS manual drag coalesces move IPC while a prior move is in flight', async () => {

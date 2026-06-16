@@ -172,6 +172,7 @@ pub(crate) async fn nimi_avatar_resolve_model(path: String) -> Result<ModelManif
             nimi_dir,
             motion_presets_dir,
             adapter_manifest_path: None,
+            live2d_calibration_ref: None,
         });
     }
     let runtime_dir = resolve_runtime_dir(&root)?;
@@ -218,6 +219,7 @@ pub(crate) async fn nimi_avatar_resolve_model(path: String) -> Result<ModelManif
         nimi_dir,
         motion_presets_dir: None,
         adapter_manifest_path,
+        live2d_calibration_ref: None,
     })
 }
 

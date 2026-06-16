@@ -73,11 +73,11 @@ Renderer-local projection smoothing:
 Desktop shell and window surface:
 
 - Transparent, always-on-top window without chrome
-- Dynamic window size based on active embodiment surface bounds
-- Window drag (reposition Avatar embodiment on desktop)
+- Dynamic window size based on scaled embodiment surface bounds
+- Window drag on the embodiment stage
 - Click-through outside model hit region
-- Always-visible Companion Surface bound to the Avatar embodiment footprint
-- App lifecycle events (`avatar.app.*`)
+- Embodiment-first ready posture with transient overlays only; no permanent companion/default tool strip
+- App lifecycle and composition surface events (`avatar.app.*`, `avatar.composition.*`)
 
 ### [`wake-local-audio-lifecycle-contract.md`](wake-local-audio-lifecycle-contract.md)
 
@@ -85,12 +85,13 @@ Wake-adjacent and local-audio lifecycle owner boundary:
 
 - Runtime owns future wake phrase lifecycle admission, consent, policy, and
   state projection
-- Avatar owns foreground user-started capture UI, local audio privacy feedback,
-  playback/lipsync rendering, and fail-closed presence state
+- Avatar owns foreground-priority intent, local audio privacy feedback,
+  playback/lipsync rendering, and fail-closed presence state; microphone
+  capture lifecycle remains Runtime-owned
 - Desktop owns host launch/window/OS permission surfaces only, not wake parsing
   or hidden microphone truth
-- current slice admits foreground hands-free voice after explicit user action;
-  wake-word/background/lock-screen continuation remains unadmitted
+- current slice admits Runtime-owned wake/listening orchestration projection;
+  Avatar-local start/stop/commit listening controls remain unadmitted
 
 ### [`avatar-external-entry-consumer-contract.md`](avatar-external-entry-consumer-contract.md)
 
@@ -277,25 +278,26 @@ Profiles describe model/backend support and fail closed on missing capability.
 ### [`tables/acceptance-recording-matrix.yaml`](tables/acceptance-recording-matrix.yaml)
 
 Recording-oriented Avatar acceptance matrix. It requires video evidence for
-idle, hover, click, drag, foreground voice listening, TTS/lipsync, interrupt,
+idle, hover, click, drag, Runtime-projected voice/listening, TTS/lipsync, interrupt,
 runtime degraded, and both Live2D/VRM backends. Screenshots and unit tests do
 not close this matrix by themselves.
 
 ### [`tables/mapping-sidecar.schema.yaml`](tables/mapping-sidecar.schema.yaml)
+
+Mapping sidecar schema for route-to-backend/model name correspondence with
+confidence, evidence, threshold, and manual confirmation semantics.
 
 ### [`tables/avatar-debug-session.schema.yaml`](tables/avatar-debug-session.schema.yaml)
 
 Avatar debug session intake/evidence schema. It consumes Runtime probe ids and
 Avatar backend refs; it does not own public Runtime probe status.
 
-### [`tables/i18n-keys.yaml`](tables/i18n-keys.yaml)
+### Localization boundary
 
-Avatar renderer i18n key authority. Bundled locale JSON resources are runtime
-resources downstream of this table and must not become an app-local key truth
-source.
-
-Mapping sidecar schema for route-to-backend/model name correspondence with
-confidence, evidence, threshold, and manual confirmation semantics.
+Avatar localization semantics are governed by `app-shell-contract.md`. Concrete
+i18n key names, default copy, translation values, and consuming component paths
+are app-owned implementation resources and must not be promoted into Avatar
+kernel table authority.
 
 ### [`tables/window-bounds-policy.yaml`](tables/window-bounds-policy.yaml)
 

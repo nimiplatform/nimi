@@ -79,6 +79,15 @@ export type Live2DVisualModelShape = {
   saveParameters: () => void;
   update: () => void;
   setParameterValueById: (parameterId: unknown, value: number, weight?: number) => void;
+  getParameterValueById?: (parameterId: unknown) => number;
+  getParameterDefaultValueById?: (parameterId: unknown) => number;
+  addParameterValueById?: (parameterId: unknown, value: number, weight?: number) => void;
+  multiplyParameterValueById?: (parameterId: unknown, value: number, weight?: number) => void;
+  parameters?: {
+    ids?: readonly unknown[];
+    values?: ArrayLike<number>;
+    defaultValues?: ArrayLike<number>;
+  };
   getCanvasWidth: () => number;
   getCanvasHeight: () => number;
   getDrawableCount: () => number;

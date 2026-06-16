@@ -53,6 +53,11 @@ export type EmbodimentStageProps = {
   emit?: (event: AppOriginEvent) => void;
   setBodyHovered?: (value: boolean) => void;
   setBodyPointerContact?: (value: boolean) => void;
+  onAvatarWheel?: (input: {
+    deltaY: number;
+    clientX: number;
+    clientY: number;
+  }) => void;
   interactionModality: 'keyboard' | 'pointer';
   onFocusVisibleChange?: (value: boolean) => void;
 };
@@ -95,6 +100,7 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
     emit,
     setBodyHovered,
     setBodyPointerContact,
+    onAvatarWheel,
     interactionModality,
     onFocusVisibleChange,
   } = props;
@@ -116,6 +122,7 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
   //     mounted/unmounted/load-error transitions surface in telemetry.
   const sinkRegistrationRef = useRef<(() => void) | null>(null);
   const currentHitRegionRef = useRef<BackendHitRegion | null>(null);
+  const alphaProbeFailureReportedRef = useRef(false);
 
   // 60Hz-capped throttle around the Tauri set_ignore_cursor_events IPC.
   // Per packet acceptance_invariant 7 + negative_test #3, rapid pointermove
@@ -242,6 +249,7 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
       sinkRegistrationRef.current?.();
       sinkRegistrationRef.current = null;
       currentHitRegionRef.current = null;
+      alphaProbeFailureReportedRef.current = false;
     },
     [backend],
   );
@@ -339,9 +347,10 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
 
   // Wave 4 chunk 4-C: pointer hit-test driver. Per app-shell-contract.md
   // §2.3.1 the alpha-mask probe takes precedence over the bbox; the
-  // backend-supplied `isOpaqueAtClientPoint` returns null when the
-  // backend is on tier C / capability detection failed, in which case we
-  // fall back to a body-bbox check (viewport-normalized → absolute).
+  // backend-supplied `isOpaqueAtClientPoint` can be absent, return null, or
+  // return a false transparent sample while the visual carrier is still inside
+  // its admitted bbox. Native click-through is irreversible for the next
+  // pointerdown, so `ignore=true` is allowed only outside the bbox guard.
   const computeIgnoreForPoint = useCallback(
     (clientX: number, clientY: number): boolean => {
       const region = currentHitRegionRef.current;
@@ -350,26 +359,33 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
       // embodiment-stage even before alpha-mask is wired.
       if (region == null) return false;
       if (region.isOpaqueAtClientPoint) {
-        return !region.isOpaqueAtClientPoint(clientX, clientY);
+        try {
+          const opaque = region.isOpaqueAtClientPoint(clientX, clientY);
+          if (opaque === true) {
+            return false;
+          }
+          if (opaque === false) {
+            return computeIgnoreForBodyBbox(region, bodyRef.current?.parentElement, clientX, clientY);
+          }
+        } catch (error: unknown) {
+          if (!alphaProbeFailureReportedRef.current) {
+            alphaProbeFailureReportedRef.current = true;
+            recordAvatarEvidenceEventually({
+              kind: 'avatar.hit_region.degraded',
+              detail: {
+                source: 'embodiment-stage',
+                model_kind: backend?.kind ?? 'unknown',
+                reason_code: 'alpha_probe_threw',
+                error: error instanceof Error ? error.message : String(error || 'alpha probe failed'),
+                recorded_at: new Date().toISOString(),
+              },
+            });
+          }
+        }
       }
-      // Bbox fallback. The body rect is viewport-normalized [0,1]; map
-      // to absolute window coords via the embodiment-stage rect.
-      const stageEl = bodyRef.current?.parentElement;
-      if (stageEl == null) return false;
-      const stageRect = stageEl.getBoundingClientRect();
-      if (stageRect.width <= 0 || stageRect.height <= 0) return true;
-      const absLeft = stageRect.left + region.body.left * stageRect.width;
-      const absRight = stageRect.left + region.body.right * stageRect.width;
-      const absTop = stageRect.top + region.body.top * stageRect.height;
-      const absBottom = stageRect.top + region.body.bottom * stageRect.height;
-      const inside =
-        clientX >= absLeft &&
-        clientX < absRight &&
-        clientY >= absTop &&
-        clientY < absBottom;
-      return !inside;
+      return computeIgnoreForBodyBbox(region, bodyRef.current?.parentElement, clientX, clientY);
     },
-    [],
+    [backend?.kind],
   );
 
   const startClickThroughRecoveryPoll = useCallback((): void => {
@@ -503,6 +519,7 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
           if (dx !== 0 || dy !== 0) {
             if (drag.mode === 'armed') {
               drag.mode = 'manual';
+              controller.pointerCancel();
             }
             drag.lastScreenX = event.screenX;
             drag.lastScreenY = event.screenY;
@@ -529,8 +546,8 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
       }}
       onPointerDown={(event) => {
         if (isInteractiveTarget(event.target)) return;
+        setClickThrough(false);
         if (event.button === 0) {
-          setClickThrough(false);
           // Capture pointer so subsequent move/up events fire here even when
           // the cursor leaves the element while dragging.
           (event.currentTarget as HTMLElement).setPointerCapture?.(event.pointerId);
@@ -583,6 +600,21 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
           }
         }
         controller.pointerDown(event);
+      }}
+      onContextMenu={(event) => {
+        if (isInteractiveTarget(event.target)) return;
+        event.preventDefault();
+      }}
+      onWheel={(event) => {
+        if (isInteractiveTarget(event.target)) return;
+        if (computeIgnoreForPoint(event.clientX, event.clientY)) return;
+        event.preventDefault();
+        event.stopPropagation();
+        onAvatarWheel?.({
+          deltaY: event.deltaY,
+          clientX: event.clientX,
+          clientY: event.clientY,
+        });
       }}
       onPointerUp={(event) => {
         const drag = dragRef.current;
@@ -669,4 +701,27 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
       <div className="avatar-embodiment-stage__body" data-testid="avatar-body-hit-region" ref={bodyRef} />
     </section>
   );
+}
+
+function computeIgnoreForBodyBbox(
+  region: BackendHitRegion,
+  stageEl: Element | null | undefined,
+  clientX: number,
+  clientY: number,
+): boolean {
+  // Bbox fallback. The body rect is viewport-normalized [0,1]; map to
+  // absolute window coords via the embodiment-stage rect.
+  if (stageEl == null) return false;
+  const stageRect = stageEl.getBoundingClientRect();
+  if (stageRect.width <= 0 || stageRect.height <= 0) return true;
+  const absLeft = stageRect.left + region.body.left * stageRect.width;
+  const absRight = stageRect.left + region.body.right * stageRect.width;
+  const absTop = stageRect.top + region.body.top * stageRect.height;
+  const absBottom = stageRect.top + region.body.bottom * stageRect.height;
+  const inside =
+    clientX >= absLeft &&
+    clientX < absRight &&
+    clientY >= absTop &&
+    clientY < absBottom;
+  return !inside;
 }

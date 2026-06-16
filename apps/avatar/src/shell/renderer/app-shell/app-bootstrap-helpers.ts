@@ -170,6 +170,7 @@ function extractLive2DManifest(raw: Record<string, unknown>): AvatarModelManifes
     live2d: {
       modelJson: resolveFixtureAssetPath(live2d['modelJson'], 'model_manifest.live2d.modelJson'),
       adapterManifestPath: optionalString(live2d['adapterManifestPath']),
+      calibrationRef: optionalString(live2d['calibrationRef']),
     },
   };
 }

@@ -63,6 +63,21 @@ fields:
       - failed
       - unsupported
       - invalid
+    admitted_ref_fields:
+      - route_ids
+      - unsupported_route_ids
+      - backend_capability_profile_ref
+      - avatar_package_ref
+      - carrier_visual_evidence_ref
+      - carrier_preview_artifact_ref
+      - live2d_expression_inventory_ref
+      - live2d_backend_load_ref
+      - live2d_capability_profile_ref
+      - live2d_route_support_ref
+      - live2d_lipsync_evidence_ref
+      - live2d_hit_region_evidence_ref
+      - live2d_parameter_lane_diagnostics_ref
+      - live2d_calibration_ref
   observed_at:
     type: iso8601_utc_timestamp
 
@@ -85,3 +100,16 @@ invariants:
   - Avatar evidence does not own public Runtime probe status.
   - Missing or unsupported backend capability is fail_closed evidence.
   - Debug success cannot depend on .vrma playback or placeholder profiles.
+  - Carrier visual readiness refs must point at Avatar-owned carrier evidence;
+    Desktop-rendered pixels, Pixi previews, and static screenshots cannot close
+    Avatar debug success.
+  - Live2D emotion/expression success must reference Avatar-owned parsed exp3
+    inventory evidence when a Live2D backend claims expression support.
+  - Live2D window/hit-region success must reference Avatar-owned carrier visual
+    evidence, official-SDK preview artifact evidence, and Live2D hit-region
+    evidence.
+  - Live2D parameter-lane diagnostics are Avatar evidence refs only; raw
+    backend commands, provider payloads, package paths, and tokens are forbidden.
+  - Live2D calibration refs are opaque resolver evidence only; calibration
+    payloads, values, render/framing effects, Desktop preview truth, and carrier
+    truth remain forbidden.

@@ -22,6 +22,7 @@ export type Live2DLocalModelManifest = {
   model3JsonPath: string;
   nimiDir: string | null;
   adapterManifestPath?: string | null;
+  live2dCalibrationRef?: string | null;
 };
 
 export type Live2DAvatarModelManifest = {
@@ -33,6 +34,7 @@ export type Live2DAvatarModelManifest = {
   live2d: {
     modelJson: string;
     adapterManifestPath: string | null;
+    calibrationRef: string | null;
   };
 };
 
@@ -59,6 +61,7 @@ export type TauriAvatarModelManifest = {
   nimi_dir?: string | null;
   motion_presets_dir?: string | null;
   adapter_manifest_path?: string | null;
+  live2d_calibration_ref?: string | null;
 };
 
 function readRequiredString(value: unknown, field: string): string {
@@ -74,6 +77,15 @@ function readOptionalString(value: unknown): string | null {
   return normalized || null;
 }
 
+function readLive2DCalibrationRef(value: unknown): string | null {
+  const normalized = readOptionalString(value);
+  if (!normalized) return null;
+  if (!/^live2d_calibration_[a-f0-9]{12}$/.test(normalized)) {
+    throw new Error('avatar model manifest live2d_calibration_ref is invalid');
+  }
+  return normalized;
+}
+
 export function fromLive2DLocalModelManifest(raw: Live2DLocalModelManifest): Live2DAvatarModelManifest {
   return {
     kind: 'live2d',
@@ -84,6 +96,7 @@ export function fromLive2DLocalModelManifest(raw: Live2DLocalModelManifest): Liv
     live2d: {
       modelJson: raw.model3JsonPath,
       adapterManifestPath: raw.adapterManifestPath ?? null,
+      calibrationRef: readLive2DCalibrationRef(raw.live2dCalibrationRef),
     },
   };
 }
@@ -103,10 +116,14 @@ export function fromTauriAvatarModelManifest(raw: TauriAvatarModelManifest): Ava
       live2d: {
         modelJson: readRequiredString(raw.model3_json_path, 'model3_json_path'),
         adapterManifestPath: readOptionalString(raw.adapter_manifest_path),
+        calibrationRef: readLive2DCalibrationRef(raw.live2d_calibration_ref),
       },
     };
   }
   if (kind === 'vrm') {
+    if (readOptionalString(raw.live2d_calibration_ref)) {
+      throw new Error('avatar model manifest live2d_calibration_ref requires live2d kind');
+    }
     return {
       kind: 'vrm',
       modelId,

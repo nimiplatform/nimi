@@ -94,13 +94,13 @@ describe('createVrmHitRegion (tier A)', () => {
     expect(region.isOpaqueAtClientPoint!(150, 200)).toBe(false);
   });
 
-  it('returns false when probe returns null (no capture yet)', () => {
+  it('returns null when probe returns null so caller falls back to bbox', () => {
     const region = createVrmHitRegion({
       renderTarget: makeFakeRenderTarget(null),
       getViewport: () => VIEWPORT,
       deviceTier: 'A',
     });
-    expect(region.isOpaqueAtClientPoint!(150, 200)).toBe(false);
+    expect(region.isOpaqueAtClientPoint!(150, 200)).toBeNull();
   });
 
   it('honors a caller-supplied threshold override', () => {
@@ -115,22 +115,22 @@ describe('createVrmHitRegion (tier A)', () => {
     expect(region.isOpaqueAtClientPoint!(150, 200, 200 / 255)).toBe(false);
   });
 
-  it('returns false when getViewport returns null', () => {
+  it('returns null when getViewport returns null so caller falls back to bbox', () => {
     const region = createVrmHitRegion({
       renderTarget: makeFakeRenderTarget(255),
       getViewport: () => null,
       deviceTier: 'A',
     });
-    expect(region.isOpaqueAtClientPoint!(150, 200)).toBe(false);
+    expect(region.isOpaqueAtClientPoint!(150, 200)).toBeNull();
   });
 
-  it('returns false when getViewport returns zero-area rect', () => {
+  it('returns null when getViewport returns zero-area rect so caller falls back to bbox', () => {
     const region = createVrmHitRegion({
       renderTarget: makeFakeRenderTarget(255),
       getViewport: () => ({ left: 0, top: 0, width: 0, height: 0 }),
       deviceTier: 'A',
     });
-    expect(region.isOpaqueAtClientPoint!(150, 200)).toBe(false);
+    expect(region.isOpaqueAtClientPoint!(150, 200)).toBeNull();
   });
 
   it('forwards client coords + viewport to probeAlphaAtClient', () => {

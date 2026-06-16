@@ -18,6 +18,8 @@ export type AvatarInteractionControllerDeps = {
   constrainWindowToVisibleArea(): Promise<void> | void;
   nowMs(): number;
   isTauriRuntime(): boolean;
+  setTimer?(callback: () => void, delayMs: number): ReturnType<typeof setTimeout>;
+  clearTimer?(timer: ReturnType<typeof setTimeout>): void;
 };
 
 export type AvatarPointerEventLike = AvatarHitTestPoint & {
@@ -32,6 +34,7 @@ type PendingDrag = {
   startClientX: number;
   startClientY: number;
   lastMoveEmittedAtMs: number;
+  longPressTimer: ReturnType<typeof setTimeout> | null;
   startHit: AvatarHitTestResult;
   dragging: boolean;
   dragStartConfirmed: boolean;
@@ -39,8 +42,8 @@ type PendingDrag = {
 };
 
 const DRAG_THRESHOLD_PX = 4;
-const DRAG_HOLD_THRESHOLD_MS = 200;
 const DRAG_MOVE_INTERVAL_MS = 33;
+const LONG_PRESS_THRESHOLD_MS = 1000;
 const DOUBLE_CLICK_MS = 350;
 const DOUBLE_CLICK_DISTANCE_PX = 8;
 
@@ -64,9 +67,9 @@ export class AvatarInteractionController {
     const dx = event.clientX - this.pending.startClientX;
     const dy = event.clientY - this.pending.startClientY;
     const distance = Math.hypot(dx, dy);
-    const heldMs = nowMs - this.pending.startedAtMs;
 
-    if (!this.pending.dragging && (distance >= DRAG_THRESHOLD_PX || heldMs >= DRAG_HOLD_THRESHOLD_MS)) {
+    if (!this.pending.dragging && distance >= DRAG_THRESHOLD_PX) {
+      this.clearPendingLongPressTimer(this.pending);
       this.beginDrag(this.pending, event, hit);
       return;
     }
@@ -100,6 +103,7 @@ export class AvatarInteractionController {
     const hit = this.hitTest(event);
     this.updatePointerRegion(hit);
     if (!hit.inside) {
+      this.clearPendingLongPressTimer(this.pending);
       this.pending = null;
       this.deps.setPointerContact(false);
       this.setClickThrough(true);
@@ -110,7 +114,11 @@ export class AvatarInteractionController {
     if (button === 'right') {
       this.deps.emit({
         name: 'avatar.user.right_click',
-        detail: eventDetail(hit, button),
+        detail: {
+          ...eventDetail(hit, button),
+          client_x: Math.round(event.clientX),
+          client_y: Math.round(event.clientY),
+        },
       });
       this.deps.setPointerContact(false);
       return;
@@ -120,23 +128,29 @@ export class AvatarInteractionController {
       return;
     }
 
-    this.pending = {
+    const pending: PendingDrag = {
       pointerId: event.pointerId ?? null,
       startedAtMs: this.deps.nowMs(),
       startClientX: event.clientX,
       startClientY: event.clientY,
       lastMoveEmittedAtMs: 0,
+      longPressTimer: null,
       startHit: hit,
       dragging: false,
       dragStartConfirmed: false,
       dragStartFailed: false,
     };
+    this.pending = pending;
+    pending.longPressTimer = this.setTimer(() => {
+      this.fireLongPress(pending);
+    }, LONG_PRESS_THRESHOLD_MS);
     this.deps.setPointerContact(true);
   }
 
   pointerUp(event: AvatarPointerEventLike): void {
     const pending = this.pending;
     this.pending = null;
+    this.clearPendingLongPressTimer(pending);
     const hit = this.hitTest(event);
     this.updatePointerRegion(hit);
     this.deps.setPointerContact(false);
@@ -166,11 +180,13 @@ export class AvatarInteractionController {
   }
 
   pointerCancel(): void {
+    this.clearPendingLongPressTimer(this.pending);
     this.pending = null;
     this.deps.setPointerContact(false);
   }
 
   teardown(): void {
+    this.clearPendingLongPressTimer(this.pending);
     this.pending = null;
     this.pointerInside = false;
     this.deps.setPointerInside(false);
@@ -225,8 +241,44 @@ export class AvatarInteractionController {
     }).catch(() => {
       pending.dragStartFailed = true;
       pending.dragging = false;
+      this.clearPendingLongPressTimer(pending);
       this.deps.setPointerContact(false);
     });
+  }
+
+  private fireLongPress(pending: PendingDrag): void {
+    if (this.pending !== pending || pending.dragging || pending.dragStartFailed) return;
+    pending.longPressTimer = null;
+    this.pending = null;
+    this.deps.setPointerContact(false);
+    this.deps.emit({
+      name: 'avatar.user.long_press',
+      detail: {
+        ...eventDetail(pending.startHit, 'left'),
+        client_x: Math.round(pending.startClientX),
+        client_y: Math.round(pending.startClientY),
+      },
+    });
+  }
+
+  private setTimer(callback: () => void, delayMs: number): ReturnType<typeof setTimeout> {
+    return this.deps.setTimer
+      ? this.deps.setTimer(callback, delayMs)
+      : setTimeout(callback, delayMs);
+  }
+
+  private clearTimer(timer: ReturnType<typeof setTimeout>): void {
+    if (this.deps.clearTimer) {
+      this.deps.clearTimer(timer);
+      return;
+    }
+    clearTimeout(timer);
+  }
+
+  private clearPendingLongPressTimer(pending: PendingDrag | null): void {
+    if (!pending?.longPressTimer) return;
+    this.clearTimer(pending.longPressTimer);
+    pending.longPressTimer = null;
   }
 
   private emitDragEvent(name: string, event: AvatarPointerEventLike, hit: AvatarHitTestResult, delta: { dx: number; dy: number }): void {

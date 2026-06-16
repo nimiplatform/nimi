@@ -126,7 +126,7 @@ function nowIsoString(): string {
 /** Read pixel alpha at the given canvas-pixel coordinate via the gl
  *  context bound on the cubism canvas. 1×1 readback only — full-canvas
  *  reads are forbidden by packet wave-4 forbidden_shortcuts. Returns
- *  null on any failure (no canvas, no gl context, readPixels throw).
+ *  null on probe failure (no gl context, readPixels throw).
  *
  *  NOTE on concurrent renders: cubism's render() may be in flight when
  *  this is called; reading pixels right after the visible render
@@ -190,19 +190,19 @@ export function createLive2DHitRegion(
     clientX: number,
     clientY: number,
     threshold?: number,
-  ): boolean => {
+  ): boolean | null => {
     const canvas = getCanvas();
-    if (canvas == null) return false;
+    if (canvas == null) return null;
     const viewport = getViewport();
-    if (viewport == null) return false;
-    if (viewport.width <= 0 || viewport.height <= 0) return false;
+    if (viewport == null) return null;
+    if (viewport.width <= 0 || viewport.height <= 0) return null;
     // Map client coord → viewport-relative [0, 1] → canvas pixel.
     const relX = (clientX - viewport.left) / viewport.width;
     const relYTop = (clientY - viewport.top) / viewport.height;
     if (relX < 0 || relX >= 1 || relYTop < 0 || relYTop >= 1) return false;
     const canvasW = canvas.width;
     const canvasH = canvas.height;
-    if (canvasW <= 0 || canvasH <= 0) return false;
+    if (canvasW <= 0 || canvasH <= 0) return null;
     const canvasX = Math.min(
       canvasW - 1,
       Math.max(0, Math.floor(relX * canvasW)),
@@ -214,7 +214,7 @@ export function createLive2DHitRegion(
     // gl.readPixels Y origin is bottom-left; flip from window top-left.
     const canvasY = canvasH - 1 - canvasYTopLeft;
     const alphaByte = readAlphaByteFromCanvas(canvas, canvasX, canvasY);
-    if (alphaByte == null) return false;
+    if (alphaByte == null) return null;
     const effectiveThreshold = threshold ?? LIVE2D_ALPHA_MASK_THRESHOLD;
     const thresholdByte = effectiveThreshold * 255;
     return alphaByte > thresholdByte;

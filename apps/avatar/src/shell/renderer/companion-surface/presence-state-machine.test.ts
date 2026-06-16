@@ -17,12 +17,12 @@ function derive(
 }
 
 describe('derivePresenceState', () => {
-  it('maps ready idle to foreground-capture start with idle mic privacy indicator', () => {
+  it('maps ready idle to no local mic start control', () => {
     const state = derive();
     expect(state.stateId).toBe('idle');
-    expect(state.micIntent).toBe('start_listening');
-    expect(state.privacyIndicator).toBe('mic_idle');
-    expect(state.canStartForegroundCapture).toBe(true);
+    expect(state.micIntent).toBe('disabled');
+    expect(state.privacyIndicator).toBe('none');
+    expect(state.canStartForegroundCapture).toBe(false);
   });
 
   it('fails closed when runtime binding is missing', () => {
@@ -32,12 +32,12 @@ describe('derivePresenceState', () => {
     expect(state.privacyIndicator).toBe('mic_blocked');
   });
 
-  it('maps foreground listening to commit-only mic action', () => {
+  it('maps Runtime-projected foreground listening without local commit action', () => {
     const state = derive({
       voice: { ...initialVoiceCompanionState, status: 'listening', level: 0.7 },
     });
     expect(state.stateId).toBe('foreground_listening');
-    expect(state.micIntent).toBe('commit_listening');
+    expect(state.micIntent).toBe('disabled');
     expect(state.privacyIndicator).toBe('mic_active');
   });
 
@@ -64,12 +64,12 @@ describe('derivePresenceState', () => {
     expect(playback.privacyIndicator).toBe('speaker_active');
   });
 
-  it('maps failed audio to unavailable without blocking explicit foreground capture', () => {
+  it('maps failed audio to unavailable without exposing local capture', () => {
     const state = derive({
       voice: { ...initialVoiceCompanionState, audioPlaybackState: 'failed' },
     });
     expect(state.stateId).toBe('muted_or_audio_unavailable');
-    expect(state.micIntent).toBe('start_listening');
+    expect(state.micIntent).toBe('disabled');
     expect(state.audioUnavailable).toBe(true);
     expect(state.privacyIndicator).toBe('speaker_unavailable');
   });

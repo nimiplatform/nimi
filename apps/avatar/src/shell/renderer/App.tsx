@@ -1,13 +1,11 @@
 // Wave 1 — Avatar shell root component.
 // Per app-shell-contract.md K-NAV-SHELL-COMPOSITION-002 the shell mounts exactly
-// one of: (embodiment-stage + companion-surface) OR degraded-surface.
+// one of: embodiment-stage OR degraded-surface.
 // The retired mixed `recovery panel` + `trigger toggle` paths are
-// hard-cut; companion-surface contributes the ready presence capsule.
+// hard-cut; text/settings controls now move to transient overlays.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { X } from 'lucide-react';
-import { IconButton, Surface, Toggle, cn } from '@nimiplatform/kit/ui';
-import { useTranslation } from './i18n/index.js';
+import { cn } from '@nimiplatform/kit/ui';
 import { bootstrapAvatar, type BootstrapHandle } from './app-shell/app-bootstrap.js';
 import { useAvatarStore } from './app-shell/app-store.js';
 import { recordAvatarEvidenceEventually } from './app-shell/avatar-evidence.js';
@@ -20,7 +18,6 @@ import {
   emitCompositionTransition,
 } from './app-shell/composition-events.js';
 import { EmbodimentStage } from './embodiment-stage/embodiment-stage.js';
-import { CompanionSurface } from './companion-surface/companion-surface.js';
 import { DegradedSurface } from './degraded-surface/degraded-surface.js';
 import {
   bindCompanionState,
@@ -51,19 +48,16 @@ import {
   getSharedVoiceLipsyncStateBus,
 } from '@nimiplatform/kit/features/avatar/headless';
 import {
-  defaultAvatarShellSettings,
   readAvatarShellSettings,
-  writeAvatarShellSettings,
   type AvatarShellSettings,
 } from './settings-state.js';
-import { deriveCreatorCapabilityReport } from './creator-capabilities.js';
-import { CreatorCapabilityPanel } from './creator-capability-panel.js';
 import type { AvatarVoiceCaptureSession } from './voice-capture.js';
 import { normalizeText, toErrorMessage } from './avatar-shell-utils.js';
 import { installAvatarAcceptanceProbe } from './app-shell/avatar-acceptance-probe.js';
+import { useAvatarShellScale } from './use-avatar-shell-scale.js';
+import { useAvatarShellOverlays } from './use-avatar-shell-overlays.js';
 
 export function App() {
-  const { t } = useTranslation();
   const [bootstrapError, setBootstrapError] = useState<string | null>(null);
   const [bootstrapComplete, setBootstrapComplete] = useState(false);
   const [bootstrapHandle, setBootstrapHandle] = useState<BootstrapHandle | null>(null);
@@ -72,7 +66,6 @@ export function App() {
   const [shellSettings, setShellSettings] = useState<AvatarShellSettings>(() =>
     readAvatarShellSettings(),
   );
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [interactionModality, setInteractionModality] = useState<'keyboard' | 'pointer'>('pointer');
   const [bodyHovered, setBodyHovered] = useState(false);
   const [bodyPointerContact, setBodyPointerContact] = useState(false);
@@ -81,12 +74,8 @@ export function App() {
 
   const voiceCaptureSessionRef = useRef<AvatarVoiceCaptureSession | null>(null);
   const voiceSubmitAbortRef = useRef<AbortController | null>(null);
-  const voiceOperationCounterRef = useRef(0);
-  const voiceOperationRef = useRef<{ id: number; anchorKey: string | null } | null>(null);
-  const currentAnchorKeyRef = useRef<string | null>(null);
   const companionRef = useRef(companion);
   const voiceRef = useRef(voice);
-  const unmountedRef = useRef(false);
 
   const bundle = useAvatarStore((s) => s.bundle);
   const shell = useAvatarStore((s) => s.shell);
@@ -114,11 +103,6 @@ export function App() {
     [],
   );
 
-  const persistShellSettings = (next: AvatarShellSettings): void => {
-    setShellSettings(next);
-    writeAvatarShellSettings(next);
-  };
-
   // ── Bootstrap lifecycle ──────────────────────────────────────────────────────
   useEffect(() => {
     if (!isTauriRuntime()) return;
@@ -132,7 +116,6 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    unmountedRef.current = false;
     let handle: BootstrapHandle | null = null;
     bootstrapAvatar()
       .then((h) => {
@@ -144,8 +127,6 @@ export function App() {
         setBootstrapError(toErrorMessage(err));
       });
     return () => {
-      unmountedRef.current = true;
-      voiceOperationRef.current = null;
       voiceCaptureSessionRef.current?.cancel();
       voiceCaptureSessionRef.current = null;
       voiceSubmitAbortRef.current?.abort();
@@ -200,12 +181,18 @@ export function App() {
     return { width: bounds.width, height: bounds.height };
   }, [bootstrapHandle]);
 
+  const { avatarScale, updateAvatarScale, handleAvatarWheel } = useAvatarShellScale({
+    consume,
+    launchContext,
+  });
+
   // ── Wave 4 dynamic window bounds sync ────────────────────────────────────────
   // The bounds source must be backend-owned, not the embodiment-stage DOM rect;
   // reading a window-sized DOM node here would feed set_size back into itself.
   useWindowBoundsSync({
     isReady: bootstrapComplete,
     getEmbodimentBounds,
+    avatarScale,
   });
 
   // ── Always-on-top settings sync ──────────────────────────────────────────────
@@ -273,10 +260,12 @@ export function App() {
   }, [consume.agentId, consume.conversationAnchorId]);
 
   const companionAnchorKey = createCompanionAnchorKey(companionBinding);
+  const activeTurnCue = useMemo(
+    () => readActiveTurnCue(bundle, companionBinding),
+    [bundle, companionBinding],
+  );
 
   useEffect(() => {
-    currentAnchorKeyRef.current = companionAnchorKey;
-    voiceOperationRef.current = null;
     voiceCaptureSessionRef.current?.cancel();
     voiceCaptureSessionRef.current = null;
     voiceSubmitAbortRef.current?.abort();
@@ -317,10 +306,6 @@ export function App() {
   // ── Latest assistant message ingest ──────────────────────────────────────────
   const latestAssistantMessage = useMemo(
     () => readLatestAssistantMessage(bundle, companionBinding),
-    [bundle, companionBinding],
-  );
-  const activeTurnCue = useMemo(
-    () => readActiveTurnCue(bundle, companionBinding),
     [bundle, companionBinding],
   );
   const turnTerminalCue = useMemo(
@@ -436,27 +421,6 @@ export function App() {
   // Bubble auto-collapse is hard-disabled: the assistant history stays
   // visible until the user explicitly closes it.
 
-  // ── Helpers ──────────────────────────────────────────────────────────────────
-  const beginVoiceOperation = (anchorKey: string | null): number => {
-    const operationId = voiceOperationCounterRef.current + 1;
-    voiceOperationCounterRef.current = operationId;
-    voiceOperationRef.current = { id: operationId, anchorKey };
-    return operationId;
-  };
-  const clearVoiceOperation = (operationId: number, anchorKey: string | null): void => {
-    if (
-      voiceOperationRef.current?.id === operationId
-      && voiceOperationRef.current?.anchorKey === anchorKey
-    ) {
-      voiceOperationRef.current = null;
-    }
-  };
-  const isVoiceOperationCurrent = (operationId: number, anchorKey: string | null): boolean =>
-    !unmountedRef.current
-    && currentAnchorKeyRef.current === anchorKey
-    && voiceOperationRef.current?.id === operationId
-    && voiceOperationRef.current?.anchorKey === anchorKey;
-
   const onCloseVoiceMode = (): void => {
     voiceCaptureSessionRef.current?.cancel();
     voiceCaptureSessionRef.current = null;
@@ -492,6 +456,23 @@ export function App() {
     ],
   );
 
+  const {
+    handleAvatarOriginEvent,
+    dismissTransientSurfaces,
+    overlayNodes,
+  } = useAvatarShellOverlays({
+    bootstrapHandle,
+    companionBinding,
+    activeTurnCue,
+    consume,
+    launchContext,
+    shellSettings,
+    setShellSettings,
+    avatarScale,
+    updateAvatarScale,
+    compositionState: composition.state,
+  });
+
   // ── Composition transition evidence (K-NAV-SHELL-COMPOSITION-004) ──────────────
   // Observes composition derivation changes and emits
   // `avatar.composition.transition` whenever the state field actually flips.
@@ -517,9 +498,12 @@ export function App() {
     setBodyHovered(false);
     setBodyPointerContact(false);
     setFocusVisibleWithinStage(false);
-    if (settingsOpen) setSettingsOpen(false);
+    dismissTransientSurfaces('composition_change');
     onCloseVoiceMode();
-  }, [composition.ready]);
+  }, [
+    composition.ready,
+    dismissTransientSurfaces,
+  ]);
 
   // ── Render: hard mutually exclusive ──────────────────────────────────────────
   const ambient = composition.ready
@@ -535,7 +519,6 @@ export function App() {
     `avatar-root--${composition.variant}`,
     `avatar-root--${ambient}`,
   );
-  const creatorCapabilityReport = deriveCreatorCapabilityReport(bootstrapHandle?.carrier ?? null);
 
   if (!composition.ready) {
     return (
@@ -552,91 +535,14 @@ export function App() {
         windowSize={shell.windowSize ?? { width: 400, height: 600 }}
         embodied={composition.ready}
         compositionState={composition.state}
-        emit={(event) => bootstrapHandle?.driver?.emit(event)}
+        emit={handleAvatarOriginEvent}
         setBodyHovered={setBodyHovered}
         setBodyPointerContact={setBodyPointerContact}
+        onAvatarWheel={handleAvatarWheel}
         interactionModality={interactionModality}
         onFocusVisibleChange={setFocusVisibleWithinStage}
       />
-      <CompanionSurface
-        bootstrapHandle={bootstrapHandle}
-        binding={companionBinding}
-        anchorKey={companionAnchorKey}
-        companion={companion}
-        voice={voice}
-        shellSettings={shellSettings}
-        compositionState={composition.state}
-        setCompanion={setCompanion}
-        setVoice={setVoice}
-        voiceCaptureSessionRef={voiceCaptureSessionRef}
-        voiceSubmitAbortRef={voiceSubmitAbortRef}
-        beginVoiceOperation={beginVoiceOperation}
-        clearVoiceOperation={clearVoiceOperation}
-        isVoiceOperationCurrent={isVoiceOperationCurrent}
-        onSettingsToggle={() => setSettingsOpen((current) => !current)}
-        settingsOpen={settingsOpen}
-      />
-      {settingsOpen ? (
-        <Surface
-          as="section"
-          material="glass-thick"
-          tone="overlay"
-          elevation="floating"
-          padding="none"
-          id="avatar-companion-settings-popover"
-          className="avatar-settings-popover nimi-material-glass-thick backdrop-blur-[var(--nimi-backdrop-blur-strong)]"
-          aria-label={t('Avatar.settings.popover_aria')}
-          data-testid="avatar-settings-popover"
-        >
-          <header className="avatar-settings-popover__header">
-            <strong>{t('Avatar.settings.header')}</strong>
-            <IconButton
-              className="avatar-settings-popover__close"
-              aria-label={t('Avatar.settings.close_aria')}
-              onClick={() => setSettingsOpen(false)}
-              icon={<X size={16} aria-hidden="true" />}
-              size="sm"
-              tone="ghost"
-            />
-          </header>
-          <div className="avatar-settings-popover__toggle">
-            <Toggle
-              checked={shellSettings.alwaysOnTop}
-              onChange={(checked) => persistShellSettings({ ...shellSettings, alwaysOnTop: checked })}
-            />
-            <span className="avatar-settings-popover__toggle-text">
-              <span className="avatar-settings-popover__toggle-label">{t('Avatar.settings.always_on_top.label')}</span>
-              <span className="avatar-settings-popover__toggle-help">{t('Avatar.settings.always_on_top.help')}</span>
-            </span>
-          </div>
-          <div className="avatar-settings-popover__toggle">
-            <Toggle
-              checked={shellSettings.bubbleAutoOpen}
-              onChange={(checked) => persistShellSettings({ ...shellSettings, bubbleAutoOpen: checked })}
-            />
-            <span className="avatar-settings-popover__toggle-text">
-              <span className="avatar-settings-popover__toggle-label">{t('Avatar.settings.bubble_auto_open.label')}</span>
-              <span className="avatar-settings-popover__toggle-help">{t('Avatar.settings.bubble_auto_open.help')}</span>
-            </span>
-          </div>
-          <div className="avatar-settings-popover__toggle">
-            <Toggle
-              checked={shellSettings.showVoiceCaptions}
-              onChange={(checked) => persistShellSettings({ ...shellSettings, showVoiceCaptions: checked })}
-            />
-            <span className="avatar-settings-popover__toggle-text">
-              <span className="avatar-settings-popover__toggle-label">{t('Avatar.settings.show_voice_captions.label')}</span>
-              <span className="avatar-settings-popover__toggle-help">{t('Avatar.settings.show_voice_captions.help')}</span>
-            </span>
-          </div>
-          <CreatorCapabilityPanel report={creatorCapabilityReport} />
-          {shellSettings.showVoiceCaptions !== defaultAvatarShellSettings.showVoiceCaptions ? (
-            <p className="avatar-settings-popover__note">
-              {t('Avatar.settings.show_voice_captions.note')}
-            </p>
-          ) : null}
-        </Surface>
-      ) : null}
+      {overlayNodes}
     </div>
   );
 }

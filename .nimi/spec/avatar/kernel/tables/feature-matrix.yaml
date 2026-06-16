@@ -5,6 +5,9 @@ catalog_id: avatar_capability_matrix
 entries:
   - shell_surface_authority
   - surface_composition
+  - embodied_output_interaction
+  - transient_text_composer
+  - per_avatar_scale
   - i18n_design_tokens
   - voice_lipsync
   - wake_local_audio_lifecycle
@@ -31,8 +34,8 @@ capabilities: &avatar_capability_matrix_entries
     requires: []
     scope:
       - "Transparent no-chrome always-on-top shell semantics"
-      - "Stage-first Companion Surface, Degraded Surface, and Composition State authority"
-      - "Avatar event namespace extensions for shell, composition, companion, audio, carrier, and hit-region events"
+      - "Embodiment-first ready posture, transient overlay authority, Degraded Surface, and Composition State authority"
+      - "Avatar event namespace extensions for shell, composition, audio, carrier, and hit-region events"
     verification_commands:
       - "pnpm --filter @nimiplatform/avatar check:spec-consistency"
       - "pnpm exec nimicoding validate-spec-governance --profile nimi --scope all"
@@ -45,24 +48,76 @@ capabilities: &avatar_capability_matrix_entries
     requires:
       - shell_surface_authority
     scope:
-      - "embodiment-stage owns the full embodiment carrier area"
-      - "companion-surface exposes an always-visible presence capsule, optional assistant cue, and explicitly opened composer tray bound to the current launch-selected anchor"
+      - "embodiment-stage owns the full embodiment carrier area and is the only default ready visible surface"
+      - "context menu, action radial, transient composer, captions, and settings are transient overlays"
       - "degraded-surface is mutually exclusive with ready composition"
-      - "retired trigger-toggle and mixed recovery-panel ready paths are not admitted"
+      - "retired trigger-toggle, permanent bottom companion bar, and mixed recovery-panel ready paths are not admitted"
     verification_commands:
       - "pnpm --filter @nimiplatform/avatar test"
       - "pnpm --filter @nimiplatform/avatar lint"
+
+  embodied_output_interaction:
+    title: "Embodied output interaction"
+    authority_refs:
+      - app-shell-contract.md
+      - avatar-event-contract.md
+    requires:
+      - surface_composition
+    scope:
+      - "single click is local presentation interaction only"
+      - "press-hold opens character action radial"
+      - "right-click opens avatar-local tool menu"
+      - "double-click requests Runtime-owned foreground response priority"
+      - "Runtime owns wake/listening/output orchestration authority"
+    verification_commands:
+      - "pnpm --filter @nimiplatform/avatar check:spec-consistency"
+      - "pnpm --filter @nimiplatform/avatar test"
+
+  transient_text_composer:
+    title: "Transient text composer"
+    authority_refs:
+      - app-shell-contract.md
+      - avatar-event-contract.md
+      - .nimi/spec/runtime/kernel/agent-conversation-anchor-contract.md
+    requires:
+      - embodied_output_interaction
+    scope:
+      - "composer opens from context menu or action radial"
+      - "composer shows no history and does not auto-close after submit"
+      - "focus switch, Escape, explicit close, or composition change dismisses composer"
+      - "Desktop agent chat remains history authority"
+    verification_commands:
+      - "pnpm --filter @nimiplatform/avatar check:spec-consistency"
+      - "pnpm --filter @nimiplatform/avatar test"
+
+  per_avatar_scale:
+    title: "Per-avatar instance scale"
+    authority_refs:
+      - app-shell-contract.md
+      - tables/window-bounds-policy.yaml
+      - avatar-event-contract.md
+    requires:
+      - embodied_output_interaction
+      - window_settings
+    scope:
+      - "wheel over opaque avatar body scales current avatar instance"
+      - "scale persists by avatar_instance_id"
+      - "scale affects embodiment bounds, hit-region, window size, and visible-area constraint"
+      - "context menu exposes reset scale"
+    verification_commands:
+      - "pnpm --filter @nimiplatform/avatar test"
+      - "cd apps/avatar/src-tauri && cargo test"
 
   i18n_design_tokens:
     title: "Avatar i18n and design tokens"
     authority_refs:
       - app-shell-contract.md
-      - tables/i18n-keys.yaml
     requires:
       - surface_composition
     scope:
-      - "All visible Avatar shell copy is declared in tables/i18n-keys.yaml"
-      - "English and Chinese locale files stay in exact key alignment"
+      - "All visible Avatar shell copy is locale-resource backed"
+      - "Concrete key coverage is app-owned implementation validation, not Avatar kernel table authority"
+      - "English and Chinese locale files stay in exact app-owned key alignment"
       - "Avatar shell visual constants are centralized through app-shell tokens"
     verification_commands:
       - "pnpm --filter @nimiplatform/avatar check:spec-consistency"
@@ -100,9 +155,9 @@ capabilities: &avatar_capability_matrix_entries
       - voice_lipsync
     scope:
       - "Runtime owns any future wake phrase lifecycle admission, consent, policy, and state projection"
-      - "Avatar owns only foreground user-started capture UI, local audio privacy indicators, playback/lipsync rendering, and fail-closed visual state"
+      - "Avatar owns foreground-priority intent, local audio privacy indicators, playback/lipsync rendering, and fail-closed visual state; Avatar does not own microphone capture lifecycle"
       - "Desktop owns launch/window/OS permission surfaces only and must not parse wake audio or supply hidden microphone truth"
-      - "Current slice admits foreground hands-free capture after explicit user action; wake-word, background listening, lock-screen continuation, and hidden hot mic remain unadmitted"
+      - "Current slice admits Runtime-owned wake/listening orchestration projection; Avatar-local start/stop/commit listening controls, background listening, lock-screen continuation, and hidden hot mic remain unadmitted"
     verification_commands:
       - "pnpm --filter @nimiplatform/avatar check:spec-consistency"
       - "pnpm --filter @nimiplatform/avatar test"
@@ -115,9 +170,9 @@ capabilities: &avatar_capability_matrix_entries
     requires:
       - surface_composition
     scope:
-      - "Dynamic window sizing is derived from embodiment bounds plus stage-first companion footprint"
-      - "Drag region is limited to embodiment-stage and excludes companion/degraded surfaces"
-      - "Settings popover owns user-visible Avatar shell toggles"
+      - "Dynamic window sizing is derived from scaled embodiment bounds"
+      - "Drag region is limited to embodiment-stage and excludes transient overlays/degraded surfaces"
+      - "Context-menu settings overlay owns user-visible Avatar shell toggles"
       - "Visible-area constraint keeps the embodiment recoverable on screen"
     verification_commands:
       - "pnpm --filter @nimiplatform/avatar test"
@@ -232,7 +287,7 @@ capabilities: &avatar_capability_matrix_entries
       - "Representative scenarios cover lifecycle, context loss, generated motion, speech, synthetic silence, and emote cycle"
       - "Smoke evidence records executable carrier behavior and must not imply final launch readiness"
       - "Visual-human acceptance remains separately owned by carrier visual acceptance authority"
-      - "Launch-readiness acceptance requires recording matrix evidence for idle, hover, click, drag, foreground voice, TTS lipsync, interrupt, runtime degraded, and both backend families"
+      - "Launch-readiness acceptance requires recording matrix evidence for idle, hover, click, drag, Runtime-projected voice/listening, TTS lipsync, interrupt, runtime degraded, and both backend families"
     verification_commands:
       - "pnpm --filter @nimiplatform/avatar test"
       - "pnpm --filter @nimiplatform/avatar check:spec-consistency"
@@ -241,7 +296,7 @@ constraints:
   drift_checks:
     - description: "Every implementation feature must map to one capability id in this matrix or to a more specific Avatar table authority."
     - description: "Capability dependencies are strict: implementation must not claim a dependent capability before its authority references and verification gates are present."
-    - description: "Unadmitted surface, event, backend state, route id, emote, i18n key, or window policy cannot appear in implementation."
+    - description: "Unadmitted surface, event, backend state, route id, emote, or window policy cannot appear in implementation."
     - description: "Representative smoke evidence proves the named scenario matrix only; it must not be used as Avatar launch-readiness closure."
   hard_cut_rules:
     - description: "Retired feature-phasing framing is not active authority."

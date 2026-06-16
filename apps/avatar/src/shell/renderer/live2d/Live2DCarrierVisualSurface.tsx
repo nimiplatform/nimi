@@ -120,7 +120,13 @@ export function Live2DCarrierVisualSurface({
           lipsyncSnapshot: audioConsumer.snapshot(),
           paramMouthFormSupported,
           setParameter: (id, value) => {
-            session.applyCommand({ kind: 'parameter', id, value, weight: 1 });
+            session.applyCommand({
+              kind: 'parameter',
+              id,
+              value,
+              weight: 1,
+              source: 'speech_lipsync',
+            });
           },
         });
         const frameInput = {

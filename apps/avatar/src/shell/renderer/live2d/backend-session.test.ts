@@ -17,6 +17,22 @@ const manifest: ModelManifest = {
   nimiDir: null,
 };
 
+function jsonBuffer(value: unknown): ArrayBuffer {
+  return new TextEncoder().encode(JSON.stringify(value)).buffer;
+}
+
+function readBinaryFixture(path: string): ArrayBuffer {
+  if (path.endsWith('.exp3.json')) {
+    return jsonBuffer({
+      Type: 'Live2D Expression',
+      Parameters: [
+        { Id: 'ParamAngleX', Value: 1, Blend: 'Add' },
+      ],
+    });
+  }
+  return new ArrayBuffer(8);
+}
+
 function createCore() {
   const modelUpdate = vi.fn();
   const modelRelease = vi.fn();
@@ -108,7 +124,7 @@ describe('createLive2DBackendSession', () => {
   it('loads model assets into a Cubism-backed session and applies commands', async () => {
     const { createLive2DBackendSession } = await import('./backend-session.js');
     const { core, modelUpdate, modelRelease, mocRelease } = createCore();
-    const readBinary = vi.fn(async () => new ArrayBuffer(8));
+    const readBinary = vi.fn(async (path: string) => readBinaryFixture(path));
 
     const framework = createFramework();
 
@@ -119,6 +135,8 @@ describe('createLive2DBackendSession', () => {
     expect(framework.CubismMotion.create).toHaveBeenCalledOnce();
     expect(framework.CubismExpressionMotion.create).toHaveBeenCalledOnce();
     expect(framework.CubismPose.create).toHaveBeenCalledOnce();
+    expect(session.expressionInventory.expressionIds).toEqual(['smile']);
+    expect(session.expressionInventory.parameterIds).toEqual(['ParamAngleX']);
     expect(readBinary).toHaveBeenCalledWith('/models/ren/runtime/ren.moc3');
     expect(readBinary).toHaveBeenCalledWith('/models/ren/runtime/ren.4096/texture_00.png');
     expect(readBinary).toHaveBeenCalledWith('/models/ren/runtime/motions/happy.motion3.json');
@@ -134,6 +152,8 @@ describe('createLive2DBackendSession', () => {
     expect(session.execution.activeExpression).toBe('smile');
     expect(session.execution.activePose).toBe('standing');
     expect(session.execution.parameters.get('ParamAngleX')).toBe(0.5);
+    expect(session.execution.parameterLanes.live2dExtensionDirect.get('ParamAngleX')).toBe(0.5);
+    expect(session.execution.parameterLanes.speechLipsync.size).toBe(0);
     expect(modelUpdate).toHaveBeenCalledTimes(5);
 
     session.unload();
@@ -145,7 +165,7 @@ describe('createLive2DBackendSession', () => {
 
   it('keeps Windows verbatim runtime asset paths Windows-native', async () => {
     const { createLive2DBackendSession } = await import('./backend-session.js');
-    const readBinary = vi.fn(async () => new ArrayBuffer(8));
+    const readBinary = vi.fn(async (path: string) => readBinaryFixture(path));
     const runtimeDir = String.raw`\\?\D:\DataNimi\accounts\fixture\agents\id_9d11a0d885268135164e09f4\agent-center\modules\avatar_asset\packages\live2d\live2d_72f21d19cea4\files\runtime`;
 
     await createLive2DBackendSession({
@@ -172,7 +192,7 @@ describe('createLive2DBackendSession', () => {
     await expect(createLive2DBackendSession(manifest, {
       core: createCore().core,
       framework: createFramework(),
-      readBinary: vi.fn(async () => new ArrayBuffer(8)),
+      readBinary: vi.fn(async (path: string) => readBinaryFixture(path)),
     })).rejects.toThrow('missing FileReferences.Moc');
   });
 
@@ -181,7 +201,7 @@ describe('createLive2DBackendSession', () => {
     const session = await createLive2DBackendSession(manifest, {
       core: createCore().core,
       framework: createFramework(),
-      readBinary: vi.fn(async () => new ArrayBuffer(8)),
+      readBinary: vi.fn(async (path: string) => readBinaryFixture(path)),
     });
 
     expect(() => session.applyCommand({ kind: 'motion', group: 'Missing', options: {} })).toThrow('motion group not registered');

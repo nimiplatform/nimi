@@ -4,12 +4,17 @@ import {
   createNimiRuntimeAgentConsumeClient,
   runNimiRuntimeScenarioJob,
   withNimiRuntimeAgentScopes,
+  type GetAvatarDebugSnapshotResponse,
+  type ListAvatarDebugProbeResultsResponse,
   type NimiRuntimeAgentCompanionParticipationProjection,
   type NimiRuntimeAgentScopeRunner,
+  type RequestAvatarDebugProbeResponse,
 } from '@nimiplatform/sdk/runtime';
 import {
   AccountReasonCode,
   AccountSessionState,
+  AvatarDebugProbeKind,
+  AvatarDebugRequestedBy,
   ReasonCode,
   type AvatarDebugProbeResultEnvelope,
 } from '@nimiplatform/sdk/runtime/generated';
@@ -105,6 +110,23 @@ export type BootstrapHandle = {
     conversationAnchorId: string;
     text: string;
   }): Promise<NimiRuntimeAgentCompanionParticipationProjection>;
+  avatarDebug: {
+    snapshot(input: {
+      agentId: string;
+      conversationAnchorId: string;
+    }): Promise<GetAvatarDebugSnapshotResponse>;
+    requestProbe(input: {
+      agentId: string;
+      conversationAnchorId: string;
+      probeKind: AvatarDebugProbeKind;
+      avatarInstanceId?: string | null;
+    }): Promise<RequestAvatarDebugProbeResponse>;
+    listProbeResults(input: {
+      agentId: string;
+      conversationAnchorId: string;
+      probeKind?: AvatarDebugProbeKind;
+    }): Promise<ListAvatarDebugProbeResultsResponse>;
+  } | null;
   shutdown(): Promise<void>;
 };
 
@@ -132,6 +154,7 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
   let requestCompanionParticipation: BootstrapHandle['requestCompanionParticipation'] = async () => {
     throw new Error('avatar companion input is unavailable outside runtime-bound mode');
   };
+  let avatarDebug: BootstrapHandle['avatarDebug'] = null;
   const cleanup = async () => {
     if (cleanedUp) {
       return;
@@ -157,6 +180,7 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
     submitVoiceCaptureTurn,
     cancelCompanionParticipation,
     requestCompanionParticipation,
+    avatarDebug,
     async shutdown() {
       await cleanup();
     },
@@ -541,6 +565,40 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
           ...(input.turnId ? { turnId: input.turnId } : {}),
           ...(input.reason ? { reason: input.reason } : {}),
         });
+        avatarDebug = {
+          snapshot: async (input) => withAvatarRuntimeAgentScopes(
+            ['runtime.agent.avatar_debug.read'],
+            (options) => runtimeAgent.avatarDebug.snapshot({
+              ownerUserId,
+              realmAgentId,
+              localAgentRef: input.agentId,
+              conversationAnchorId: input.conversationAnchorId,
+            }, options),
+          ),
+          requestProbe: async (input) => withAvatarRuntimeAgentScopes(
+            ['runtime.agent.avatar_debug.write'],
+            (options) => runtimeAgent.avatarDebug.requestProbe({
+              ownerUserId,
+              realmAgentId,
+              localAgentRef: input.agentId,
+              conversationAnchorId: input.conversationAnchorId,
+              probeKind: input.probeKind,
+              requestedBy: AvatarDebugRequestedBy.DESKTOP_DEBUG_WORKBENCH,
+              replayRequested: true,
+              ...(input.avatarInstanceId ? { avatarInstanceId: input.avatarInstanceId } : {}),
+            }, options),
+          ),
+          listProbeResults: async (input) => withAvatarRuntimeAgentScopes(
+            ['runtime.agent.avatar_debug.read'],
+            (options) => runtimeAgent.avatarDebug.listProbeResults({
+              ownerUserId,
+              realmAgentId,
+              localAgentRef: input.agentId,
+              conversationAnchorId: input.conversationAnchorId,
+              ...(input.probeKind ? { probeKind: input.probeKind } : {}),
+            }, options),
+          ),
+        };
         const activeDriver = driver;
         if (!activeDriver) {
           throw new Error('Avatar runtime driver was not created');

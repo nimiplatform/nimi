@@ -456,6 +456,7 @@ describe('bootstrapAvatar', () => {
       live2d: {
         modelJson: '/models/ren/files/ren.model3.json',
         adapterManifestPath: null,
+        calibrationRef: null,
       },
     });
     startAvatarRuntimeCarrierMock.mockResolvedValue({
@@ -565,6 +566,9 @@ describe('bootstrapAvatar', () => {
         backend_kind: 'live2d',
         asset_authority: 'local_avatar_asset',
         resolver_authority: 'avatar_local_materialization',
+        live2d_calibration_ref: null,
+        live2d_calibration_projection_status: 'not_configured',
+        live2d_calibration_effect_admitted: false,
       }),
     }));
     expect((localAssetResolvedCall?.[0] as { detail?: Record<string, unknown> } | undefined)?.detail).not.toHaveProperty('model3_json_path');

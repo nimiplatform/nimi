@@ -4,7 +4,17 @@
       "placeholder": "输入消息……",
       "aria_label": "向当前 anchor 发送一条消息",
       "send_aria": "发送消息",
+      "close_aria": "关闭文字输入",
       "send_failed_prefix": "发送失败"
+    },
+    "action_radial": {
+      "aria": "Avatar 动作",
+      "greet": "打招呼",
+      "look_at_me": "看向我",
+      "happy": "开心",
+      "quiet": "安静",
+      "random_motion": "随机动作",
+      "open_text_input": "打开文字输入"
     },
     "status": {
       "idle": "空闲",
@@ -18,11 +28,11 @@
       "blocked": "语音已阻止",
       "audio_unavailable_short": "音频不可用",
       "toolbar_aria": "Companion 状态",
-      "mic_listen_aria": "开始前台语音聆听",
-      "mic_commit_aria": "结束聆听并提交语音轮次",
+      "mic_listen_aria": "语音聆听由 Runtime 控制",
+      "mic_commit_aria": "语音采集由 Runtime 控制",
       "mic_blocked_aria": "当前状态无法使用语音输入",
       "interrupt_aria": "打断当前回复",
-      "settings_aria": "打开 Companion 设置",
+      "settings_aria": "打开 Avatar 设置",
       "voice_capture_inactive_error": "前台语音采集已结束。",
       "audio_unavailable": "音频播放不可用，仅依靠 lipsync 帧驱动嘴型。",
       "lipsync_disabled": "当前模型已禁用 lipsync。",
@@ -137,22 +147,93 @@
       }
     },
     "settings": {
-      "popover_aria": "Companion 设置",
-      "header": "Companion 设置",
+      "popover_aria": "Avatar 设置",
+      "header": "Avatar 设置",
       "close_aria": "关闭设置",
       "always_on_top": {
         "label": "始终置顶",
         "help": "将 Avatar 钉在其他窗口之上。"
-      },
-      "bubble_auto_open": {
-        "label": "自动展开新回复",
-        "help": "助手有新回复时立即展开气泡。"
       },
       "show_voice_captions": {
         "label": "显示语音字幕",
         "help": "仅显示受限的前台语音字幕。",
         "note": "无论是否开启，语音字幕始终被限制在当前显式 anchor 范围内。"
       }
+    },
+    "appearance": {
+      "popover_aria": "Avatar 外观",
+      "header": "外观",
+      "close_aria": "关闭外观",
+      "labels": {
+        "backend": "后端",
+        "model": "模型",
+        "source": "来源",
+        "scale": "缩放",
+        "selection_owner": "选择权"
+      },
+      "owner": {
+        "desktop_configuration": "Desktop Avatar 配置"
+      },
+      "backend": {
+        "live2d": "Live2D",
+        "vrm": "VRM",
+        "unknown": "未知"
+      },
+      "source": {
+        "runtime": "Runtime 绑定",
+        "fixture": "Fixture",
+        "unknown": "未知"
+      },
+      "not_loaded": "未加载"
+    },
+    "debug": {
+      "popover_aria": "Avatar 调试",
+      "header": "Avatar 调试",
+      "close_aria": "关闭调试",
+      "refresh": "刷新",
+      "request_all": "请求探针",
+      "loading": "正在加载调试快照",
+      "empty": "暂无探针结果",
+      "error_prefix": "调试请求失败",
+      "columns": {
+        "probe": "探针",
+        "status": "状态",
+        "evidence": "证据",
+        "replay": "回放"
+      },
+      "evidence_count": "{{count}} 个 ref",
+      "no_replay": "无回放",
+      "status": {
+        "passed": "通过",
+        "failed": "失败",
+        "unsupported": "不支持",
+        "blocked": "已阻止",
+        "invalid": "无效",
+        "unknown": "未知"
+      },
+      "probe": {
+        "backend_load": "后端加载",
+        "capability_profile": "能力 profile",
+        "route_support_matrix": "路由支持",
+        "generated_motion": "生成动作",
+        "emotion_expression": "情绪表情",
+        "speech_lipsync": "语音 lipsync",
+        "window_hit_region": "窗口命中区域"
+      }
+    },
+    "context_menu": {
+      "aria": "Avatar 工具",
+      "open_text_input": "打开文字输入",
+      "wake_foreground": "唤醒为前台",
+      "interrupt": "打断输出",
+      "appearance": "外观",
+      "reset_scale": "重置缩放",
+      "always_on_top": "始终置顶",
+      "hide": "隐藏 Avatar",
+      "close": "关闭此 Avatar",
+      "settings": "设置",
+      "debug": "调试",
+      "pending": "待接入"
     },
     "shell": {
       "companion_aria": "Avatar Companion",

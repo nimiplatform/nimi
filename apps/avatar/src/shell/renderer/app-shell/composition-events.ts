@@ -3,7 +3,7 @@
 // Emits the four `avatar.composition.*` events admitted by
 // `avatar-event-contract.md` §2.5 / §4 whenever the avatar shell composition
 // state machine transitions or surfaces mount / unmount. Surface components
-// (embodiment-stage / companion-surface / degraded-surface) call
+// (embodiment-stage / transient overlays / degraded-surface) call
 // `useSurfaceMountEvidence` from their root; the App-level
 // `emitCompositionTransition` is driven from a derived-state observer in
 // `App.tsx`.

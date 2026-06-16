@@ -14,7 +14,7 @@
 >
 > Explicit binding-only / embedded / delegated Avatar mode 仍可由 `K-BIND-*` admit，但它不是 Desktop-launched Avatar 的默认路径。
 >
-> **Surface Composition Admission**: this contract fixes the surface composition model as `embodiment-stage` / `companion-surface` / `degraded-surface`. The ready posture is stage-first: `embodiment-stage` remains the primary visual surface, while `companion-surface` contributes a compact presence capsule, optional assistant cue, and explicitly opened composer tray. The retired small chat button path remains forbidden; degraded posture remains isolated in `degraded-surface`.
+> **Surface Composition Admission**: this contract fixes the surface composition model as `embodiment-stage` / transient Avatar overlays / `degraded-surface`. The ready posture is embodiment-first: `embodiment-stage` is the only default visible ready surface. Text entry, settings, context menu, action radial, captions, and other controls are transient overlays opened by explicit user intent or Runtime presentation state. The retired small chat button path and permanent bottom companion bar remain forbidden; degraded posture remains isolated in `degraded-surface`.
 
 ---
 
@@ -37,18 +37,19 @@ Window 必须以如下 config 启动（不可 runtime 改变）：
 | `transparent` | `true` | 背景透明，形象即 UI |
 | `decorations` | `false` | 无 title bar / close / min buttons |
 | `alwaysOnTop` | `true` (default) | Avatar embodiment 默认常驻可见；用户 setting 可覆盖 |
-| `resizable` | `true` (programmatic only) | Runtime 按 model bounds + companion footprint 调整 |
+| `resizable` | `true` (programmatic only) | Runtime 按 model bounds + transient overlay policy 调整 |
 | `skipTaskbar` | `true` | 不在 taskbar 显示（dock 上有 tray icon） |
 | `shadow` | `false` | 无 window shadow（形象自身有阴影） |
 | `width` / `height` | Initial 400 × 600 | 启动占位，model 加载完按 bounds 调整 |
 
 ## K-NAV-SHELL-002 Dynamic Window Size
 
-Window 尺寸**必须**跟随当前 embodiment backend 产出的 surface bounds **加** companion-surface footprint：
+Window 尺寸**必须**默认跟随当前 embodiment backend 产出的 surface bounds。Transient overlay 不是默认 ready window footprint 的一部分，除非对应 wave 显式 admission 为 window-contained overlay：
 
-- Model 加载完成（`avatar.model.load`）→ renderer 计算 `embodiment_bounds`（model alpha bounding box）+ `companion_footprint`（companion-surface 当前 height/width）→ 调用 Tauri `set_size` 同步 window
+- Model 加载完成（`avatar.model.load`）→ renderer 计算 `embodiment_bounds`（model alpha bounding box）→ 调用 Tauri `set_size` 同步 window
 - Model 切换（`avatar.model.switch`）→ 同上
-- Companion-surface footprint changes (assistant-cue reveal/dismiss, composer-tray expand/collapse) -> debounce recompute + `set_size`
+- Avatar scale changes → recompute `embodiment_bounds * scale` + `set_size`
+- Transient overlay open/close → default 不改变 ready window bounds；overlay 自身按 floating layer 定位和 click-through 区域参与 hit-region
 - User 手动 resize 不允许（通过 `resizable: false` 在 runtime 效果上禁止 drag-handle；程序化 set_size 仍然可用）
 
 详细 sizing policy 见 `kernel/tables/window-bounds-policy.yaml`。
@@ -65,7 +66,7 @@ Window 尺寸**必须**跟随当前 embodiment backend 产出的 surface bounds 
 
 ### 2.1 Hit Region 定义
 
-Avatar window 形状为矩形，但用户视觉只看到 embodiment surface + companion surface。**两者外区域必须穿透鼠标事件到下层 app**。
+Avatar window 形状为矩形，但用户视觉只看到 embodiment surface + active transient overlays。**两者外区域必须穿透鼠标事件到下层 app**。
 
 ### 2.2 Hit Region 计算
 
@@ -74,15 +75,15 @@ Avatar window 形状为矩形，但用户视觉只看到 embodiment surface + co
 ```
 hit_region = union of:
   - embodiment-stage 当前 backend surface alpha > threshold (current Live2D branch uses model alpha)
-  - companion-surface rectangles (presence-capsule, assistant-cue, composer-tray current bounding boxes)
-  - degraded-surface 矩形（degraded 状态下替代 embodiment + companion）
+  - active transient overlay rectangles (context menu, action radial, transient composer, captions, settings, appearance, debug)
+  - degraded-surface 矩形（degraded 状态下替代 embodiment + transient overlays）
 ```
 
 渲染器把 hit region 以 mask 形式通过 Tauri API（`set_ignore_cursor_events` + per-region 切换，或 `window.setShape`）应用到 window。
 
 ### 2.3 Click-through 边界规则
 
-- **In-region**（surface 像素 / companion-surface / degraded-surface）：鼠标事件属于 avatar
+- **In-region**（surface 像素 / active transient overlays / degraded-surface）：鼠标事件属于 avatar
 - **Out-of-region**（透明区域）：`set_ignore_cursor_events(true)` 状态，事件穿透到下层 app
 - **State transition**：mouse move 跨越 region 边界 → immediate switch；不做 hysteresis
 
@@ -114,7 +115,9 @@ pointermove(clientX, clientY)
   ↓
 backend.hitRegion.isOpaqueAtClientPoint(x, y)
   ├── true  → set_ignore_cursor_events(false)（事件归 avatar）
-  ├── false → set_ignore_cursor_events(true)（穿透到下层 app）
+  ├── false → guard by body bbox
+  │           ├── inside  → set_ignore_cursor_events(false)（alpha probe 可能误读；保交互入口）
+  │           └── outside → set_ignore_cursor_events(true)（穿透到下层 app）
   └── null  → fallback to body bbox check
               ├── inside  → set_ignore_cursor_events(false)
               └── outside → set_ignore_cursor_events(true)
@@ -140,8 +143,8 @@ runtime 变更（除非 reload）。
 
 Window drag（§3）仅在 embodiment-stage 内部触发：
 
-- Drag-allowed = embodiment alpha > threshold AND not within companion-surface bounds
-- Companion-surface 内部 pointer down 不开启 window drag（保留组件自身交互如 input focus / button click）
+- Drag-allowed = embodiment alpha > threshold AND not within active transient overlay bounds
+- Transient overlay 内部 pointer down 不开启 window drag（保留组件自身交互如 input focus / button click）
 - Degraded-surface 内部 pointer down 同样不开启 window drag
 
 ---
@@ -155,14 +158,15 @@ Window drag（§3）仅在 embodiment-stage 内部触发：
 ```
 Pointer down inside drag-allowed region (§2.4)
   ↓
-Hold + move N pixels within drag_threshold_ms
+Move N pixels
   ↓ yes → window drag mode
   │
   └── pointer up without threshold → click/double-click event
 ```
 
 - `drag_threshold`: 4px (避免误触)
-- `drag_threshold_ms`: 200ms
+- Stationary hold does not start window drag. A 1s hold with movement below
+  `drag_threshold` is reserved for `avatar.user.long_press` → action radial.
 
 ### 3.2 Drag 实现
 
@@ -183,9 +187,9 @@ Hold + move N pixels within drag_threshold_ms
 
 Avatar window movement must preserve the visible-area invariant defined by
 `kernel/tables/window-bounds-policy.yaml`: at least 20% of the active
-`embodiment_bounds` area remains inside the current monitor work area. The
-companion footprint is excluded from the ratio so the visible avatar body, not
-the auxiliary UI, remains recoverable by drag.
+`embodiment_bounds` area remains inside the current monitor work area. Transient
+overlay footprint is excluded from the ratio so the visible avatar body, not
+auxiliary UI, remains recoverable by drag.
 
 ---
 
@@ -196,20 +200,48 @@ the auxiliary UI, remains recoverable by drag.
 - Always-on-top **启用**（default）
 - 即使 avatar window 无 focus，依然 render 于顶层
 
+### 4.2 Context Menu Shell Lifecycle Actions
+
+The avatar-local context menu may expose shell-owned lifecycle actions:
+
+- `Hide avatar` calls the Avatar Tauri shell to hide the current window. It does
+  not destroy runtime/agent authority and does not mutate conversation state.
+  Desktop/Runtime launch or reveal flows may show the same instance window again.
+- `Close this avatar` calls the Avatar Tauri shell to close the current avatar
+  instance window. Registry cleanup and durable instance truth remain owned by
+  the Tauri/Desktop launch substrate, not the renderer.
+- Both actions must record explicit request evidence before invoking shell
+  lifecycle commands.
+- These actions must not be implemented as renderer-only CSS visibility,
+  unmounting, or local store state; the OS window lifecycle is the source of
+  truth.
+
+### 4.2.1 Context Menu Interrupt Action
+
+The avatar-local context menu may expose `Interrupt` only when the current
+Runtime-bound conversation anchor has an active turn projection. The action:
+
+- calls the Avatar bootstrap handle backed by
+  `runtime.companionParticipation.cancel`
+- passes the current `conversation_anchor_id` and active `turn_id`
+- records `avatar.shell.interrupt.requested` before invoking Runtime
+- records `avatar.shell.interrupt.failed` if Runtime rejects the request
+- must not locally synthesize `interrupted`, stop playback as a success claim,
+  or mutate conversation history; Runtime turn/audio projection remains the
+  source of interruption truth
+
 ## K-NAV-SHELL-011 User Override
 
-Avatar shell 仅暴露下列 4 个 avatar-shell-local 行为开关，默认通过 settings popover（K-NAV-SHELL-COMPANION-009）调整：
+Avatar shell 仅暴露下列 avatar-shell-local 行为开关，默认通过 context menu 的 settings transient overlay 调整：
 
 - `always_on_top: true|false`（default `true`）
-- `bubble_auto_open: true|false`（default `true`；关闭后只保留 unread cue，不强开 bubble）
-- `bubble_auto_collapse: true|false`（default `true`）
 - `show_voice_captions: true|false`（default `true`；只影响 bounded foreground caption reveal，不影响 voice continuity truth）
 
 Settings UI 必须保持 product-light：
 
 - 不得暴露 transcript-heavy、desktop-parity、background voice、或 runtime owner-crossing setting
 - 不得把 settings 当作 launch/runtime fail-closed posture 的 bypass
-- 不得 inline 在主区（embodiment-stage 或 companion-surface），必须以 popover 形式弹出，遵从 K-NAV-SHELL-COMPANION-009
+- 不得 inline 在主区（embodiment-stage），必须以 transient overlay 形式弹出，遵从 K-NAV-SHELL-OUTPUT-004 / 009
 
 ### 4.3 Focus Event
 
@@ -244,7 +276,7 @@ Avatar shell 的渲染由 **composition state** 决定。任何时刻 shell 处�
 
 | Composition state | 触发条件 | 渲染 surface |
 |---|---|---|
-| `ready` | bootstrap 完成 + visual carrier ready + runtime binding active | `embodiment-stage` + stage-first `companion-surface` 共存 |
+| `ready` | bootstrap 完成 + visual carrier ready + runtime binding active | `embodiment-stage`；transient overlays only when explicitly opened |
 | `loading` | bootstrap 进行中（pre-`avatar.app.ready`） | 仅 `loading-surface`（degraded-surface 子形态） |
 | `degraded:reauth-required` | runtime account state ≠ AUTHENTICATED | 仅 `degraded-surface`（reauth posture） |
 | `degraded:runtime-unavailable` | daemon 不可用 / protected access 不可用 / driver_start 失败 | 仅 `degraded-surface`（runtime posture） |
@@ -254,12 +286,12 @@ Avatar shell 的渲染由 **composition state** 决定。任何时刻 shell 处�
 
 ## K-NAV-SHELL-COMPOSITION-002 互斥规则
 
-- 三类 surface（embodiment-stage / companion-surface / degraded-surface）必须**硬性互斥呈现**于 ready 与非 ready 之间：
-  - `ready` → embodiment-stage + companion-surface 同时可见；degraded-surface 不渲染
-  - 任何 non-ready composition state → 仅 degraded-surface 可见；embodiment-stage 与 companion-surface 完全不渲染
+- 三类 surface（embodiment-stage / transient overlays / degraded-surface）必须**硬性互斥呈现**于 ready 与非 ready 之间：
+  - `ready` → embodiment-stage 默认可见；transient overlays 仅按用户/Runtime 明确状态短暂挂载；degraded-surface 不渲染
+  - 任何 non-ready composition state → 仅 degraded-surface 可见；embodiment-stage 与 transient overlays 完全不渲染
 - 不允许出现"degraded panel + embodiment 一起渲染"的 mid-state；若 ready 转入 degraded，必须先卸载 ready surface 再挂载 degraded surface
 - 不允许在 ready 主区域显示 diagnostic 文字、reason summary、或 recovery copy；这些信息只能出现在 degraded-surface
-- 不允许在 degraded-surface 内嵌入 companion-surface 或 embodiment-stage 子组件（保持视觉权威单一）
+- 不允许在 degraded-surface 内嵌入 transient overlay 或 embodiment-stage 子组件（保持视觉权威单一）
 
 ## K-NAV-SHELL-COMPOSITION-003 状态转移
 
@@ -280,119 +312,173 @@ Avatar shell 的渲染由 **composition state** 决定。任何时刻 shell 处�
 ## K-NAV-SHELL-COMPOSITION-005 Fail-Close 与 Mock 路径
 
 - 任何非 explicit fixture mode（`VITE_AVATAR_DRIVER=mock`）下，runtime 不可用时禁止 silent fallback 到 mock
-- explicit fixture mode 下，shell 进入特殊 composition state `fixture:active`，渲染 embodiment-stage + companion-surface（仅消费 fixture data，不连 runtime）+ persistent banner 标识 fixture 来源
+- explicit fixture mode 下，shell 进入特殊 composition state `fixture:active`，渲染 embodiment-stage + fixture-only diagnostics overlay（仅消费 fixture data，不连 runtime）+ persistent banner 标识 fixture 来源
 - 任何 composition state 不允许向用户隐瞒来源（runtime 与 fixture 必须可读区分）
 
 ---
 
-## 7. Companion Surface (K-NAV-SHELL-COMPANION-*)
+## 7. Embodied Output Interaction (K-NAV-SHELL-OUTPUT-*)
 
-Companion Surface 是 avatar shell 的一等表面，在 `ready` 与 `fixture:active` 状态下与 embodiment-stage 共存。它不再是 transcript-heavy card；ready default 必须保持 stage-first，让 embodiment-stage 成为第一视觉权重。Companion Surface 不依赖外部 trigger button，但 visible default 只包含 compact presence capsule。
+Avatar ready posture is an embodied output layer. The character is the product surface. Tooling, text entry, settings, and local interaction controls are transient overlays. Avatar does not own conversation authority, wake-word authority, foreground listener arbitration, or multi-avatar speech orchestration; those belong to Runtime / Nimi ecosystem app authority.
 
-## K-NAV-SHELL-COMPANION-001 Stage-first structure
+## K-NAV-SHELL-OUTPUT-001 Default ready posture
 
-Companion Surface 由 stage-first 子表面组成：
+- `embodiment-stage` is the only always-visible ready surface.
+- No bottom companion bar, persistent chat box, persistent settings strip, or permanent presence capsule is admitted in product default.
+- Privacy/activity state may be shown through character motion, expression, short captions, small transient indicators, or Runtime-driven presentation state.
+- A dev/debug fixture may expose extra diagnostics, but it must be visibly fixture-only.
 
-| 子组件 | 责任 | 可隐藏？ |
+## K-NAV-SHELL-OUTPUT-002 Authority boundary
+
+- Runtime owns wake phrase lifecycle, foreground response priority, listening fan-out, audible speaker serialization, interruption policy, and text/voice conversation truth.
+- Nimi ecosystem apps may route output through Avatar, but the app/Runtime owns what is expressed.
+- Avatar owns local presentation: model rendering, motion/expression playback, local interaction affordances, transient overlays, position, scale, and hit-region.
+- Avatar must not create local conversation history, local wake-word truth, or local multi-avatar speaker arbitration.
+
+## K-NAV-SHELL-OUTPUT-003 Avatar-local inputs
+
+| Input | Behavior | Owner |
 |---|---|---|
-| `presence-capsule` | 显示 mic control、mode label（idle/listening/transcribing/replying/interrupted）、speaker/lipsync indicator、settings affordance，以及 text-entry affordance | ❌ 始终可见 |
-| `assistant-cue` | 显示当前 anchor 的 active/latest assistant message + close control；不构造 transcript/history | ✅ user 关闭 / 无消息时不渲染 |
-| `composer-tray` | text input + send button；Enter 提交一个 bounded text turn | ✅ 默认折叠；仅由 user 显式 text-entry affordance/focus 展开 |
+| Single click | local lightweight character reaction only; must not create a Runtime conversation turn | Avatar presentation |
+| Press-and-hold 1s with no meaningful pointer movement | open action radial | Avatar shell |
+| Double click | mark this avatar as foreground response priority and play wake feedback | Runtime priority intent + Avatar feedback |
+| Right click | open avatar-local context menu | Avatar shell |
+| Wheel over opaque avatar body | scale current avatar instance | Avatar shell persisted state |
+| Drag | move current avatar window | Avatar shell |
 
-## K-NAV-SHELL-COMPANION-002 定位与窗口约束
+## K-NAV-SHELL-OUTPUT-004 Context menu
 
-- Companion Surface 默认锚定 embodiment-stage 右下角，offset (-16px, -16px)，可由 settings 配置改为 left-bottom / right-bottom（默认）；presence-capsule 不得遮挡 embodiment-stage torso 主视觉
-- Companion footprint 计入 §1.2 dynamic window sizing；window 必须容纳 embodiment_bounds 和 companion_footprint 之和加边距
-- Companion Surface 矩形必须接受 pointer 事件并阻止 window drag（§2.4）
+Right click on the opaque avatar body opens a menu scoped to that avatar instance. The menu is tool-focused, not character-play-focused:
 
-## K-NAV-SHELL-COMPANION-003 Anchor 绑定
+- Open text input.
+- Wake / set as foreground respondent.
+- Interrupt current output.
+- Appearance.
+- Reset scale.
+- Always on top.
+- Hide.
+- Close this avatar.
+- Settings.
+- Debug.
 
-Companion Surface 显式绑定当前 launch-selected `agent_id + conversation_anchor_id`：
+## K-NAV-SHELL-OUTPUT-005 Action radial
 
-- 不得跨 anchor 显示消息（同 agent 其他 anchor 的 message 不出现在 bubble）
-- composer 提交的 text turn 必须显式打到当前 anchor；不得做 same-agent fallback
-- voice 入口（presence-capsule mic）打开的 listening session 必须绑定当前 anchor
-- desktop 推送 launch context update（不同 anchor）必须先转入 `relaunch-pending`，清空 companion 本地 transient state，再重新挂载
+Press-and-hold opens a character-interaction radial. The first admitted radial actions are presentation-only unless explicitly opening text input:
 
-## K-NAV-SHELL-COMPANION-004 Assistant Cue
+- Greet.
+- Look at me: local focused presentation / gaze feedback only; must not create
+  a Runtime text or voice turn.
+- Happy.
+- Quiet.
+- Random motion.
+- Open text input.
 
-- 文本来源：runtime turn 的 `text` / `committed_message`（projection-only），不构造 client-side history
-- 显示策略：
-  - `bubble_auto_open=true` + 新消息 → 自动展开
-  - `bubble_auto_collapse=true` + idle 一段后 → 自动收起为 unread cue
-  - User 主动 close → 收起，本次消息不重复 auto-open
-- Cue 内不展示 transcript 历史；只展示当前最新一条 assistant cue + 当前 active turn 的 text/streaming preview
-- 文本溢出：默认最多 2-3 行并 bounded overflow；不展开成 full transcript view
-- 关闭按钮：icon control；点击触发 `avatar.companion.bubble.dismissed` event
+## K-NAV-SHELL-OUTPUT-006 Transient text composer
 
-## K-NAV-SHELL-COMPANION-005 Presence Capsule
+Text input is a transient composer, similar to a command/search input:
 
-Presence capsule 必须可读地表达当前模式，且每个 icon 代表的行为完整接通：
+- Opens from context menu or action radial.
+- Anchors near the avatar; it must not sit as a permanent bar under the feet.
+- Shows no conversation history.
+- Enter submits a bounded text turn to the current Runtime-bound agent context.
+- Submission must not auto-close; repeated text turns are allowed while it remains focused.
+- Focus switch, Escape, or explicit close dismisses it.
+- Desktop agent chat remains history authority.
 
-| 元素 | 状态 → 视觉 | 点击行为 |
-|---|---|---|
-| Mic icon | `idle` (off) / `listening` (active filled + level ring) / `transcribing` (spinner) / `pending` (paused) / `replying` (locked) / `error` (alert) | `idle` 点击进入 listening；`listening` 点击 commit；`replying` 点击 interrupt；其他状态按需 |
-| Mode label | `idle` / `Listening…` / `Transcribing…` / `Reply pending` / `Reply active` / `Interrupted` / `Voice unavailable` | non-clickable |
-| Speaker indicator | `inactive` (灰) / `playing` (active highlight) / `muted` (按 settings) | non-clickable（playback 无 user-toggle，由 runtime 决定） |
-| Text entry | idle/sending/error affordance | 点击展开 composer-tray；不得默认显示 textarea |
-| Settings cog | always visible | 点击展开 settings popover（K-NAV-SHELL-COMPANION-009） |
+## K-NAV-SHELL-OUTPUT-007 Voice and proactive output
 
-Voice 行为约束：
+- Default wake words are global `Nimi` plus avatar name; users may customize them through Runtime-owned policy.
+- Avatar may display listening, speaking, waiting, emotion, and app-driven output states, but must not own the decision to listen or respond.
+- Same-time audible speech across avatars is serialized by Runtime. Non-speaking avatars may show expressions, motions, or short captions.
+- Proactive output from Runtime/Nimi apps is allowed. Default policy is non-interrupting unless Runtime marks higher urgency.
+- Closed lifecycle ids in `wake-local-audio-lifecycle-contract.md` remain the presentation vocabulary for local audio/voice state. `wake_future_unadmitted` must fail closed until Runtime admits wake lifecycle ownership.
 
-- voice 入口只能由 user click 触发；不得因为 route readiness、mic availability、prior voice activity 自动进入 listening
-- voice listening session 必须显式绑定当前 anchor
-- 不允许 wake-word、background continuation、lock-screen continuation、hidden hot mic。Wake activation is a future Runtime-owned lifecycle admission and must not be represented as a functional Avatar-local setting in this slice. Owner boundary and lifecycle states are governed by `wake-local-audio-lifecycle-contract.md`.
-- voice interruption 仅作用于当前 anchor 的 active turn；不得作用于 same-agent 其他 anchor
-- 在 admitted active-turn evidence 出现前，shell 只能表达 transcript submitted / reply pending；不得本地伪装 speaking、playback active、interrupt opened
-- voice 不可用（runtime voice playback event / artifact read capability 不允许）→ status 进入 `Voice unavailable`，mic icon disabled，不模拟听到声音
+## K-NAV-SHELL-OUTPUT-008 Scale
 
-Presence lifecycle mapping:
-- Companion Surface must derive its capsule visual state from the closed ready
-  lifecycle ids in `wake-local-audio-lifecycle-contract.md`, not from ad hoc
-  component-local labels.
-- `foreground_listening`, `transcribing`, `turn_pending`, `assistant_speaking`,
-  `interrupted`, `muted_or_audio_unavailable`, `blocked`, and `error` must
-  expose visible privacy/activity feedback.
-- `wake_future_unadmitted` must fail closed as unavailable and must not become a
-  functional settings control.
+- Wheel over the opaque avatar body scales that avatar instance.
+- Scale persists by `avatar_instance_id`; when no instance id exists, an explicit fixture/dev fallback key may be used.
+- Scale affects embodiment bounds, hit-region, window size, and visible-area constraint. It must not be CSS-only visual scaling.
+- Context menu must expose reset scale.
 
-## K-NAV-SHELL-COMPANION-006 Composer Tray
+## K-NAV-SHELL-OUTPUT-009 Transient overlay lifecycle events
 
-- 默认折叠；只能由 user 显式点击 text-entry affordance 或聚焦 tray 后展开
-- 单行 text input，placeholder 来自 i18n key `Avatar.composer.placeholder`
-- Enter 提交（Shift+Enter 换行展开多行）
-- 提交期间 input + send button 进入 sending 状态：disabled + 显示 inline progress；不允许 user 重复触发
-- 提交内容必须经过 anchor 绑定（§7.3）；提交前不允许任何 anchor switch
-- 提交失败 → emit `avatar.companion.composer.send-failed` evidence + presence-capsule 切到 transient error label；不允许静默吞掉
+Precise schema lives in [avatar-event-contract.md](avatar-event-contract.md). Required event families:
 
-## K-NAV-SHELL-COMPANION-007 Caption Reveal
+- `avatar.shell.context_menu.*`
+- `avatar.shell.action_radial.*`
+- `avatar.shell.composer.*`
+- `avatar.shell.scale.*`
+- `avatar.shell.foreground_priority.requested`
+- `avatar.shell.appearance.*`
+- `avatar.shell.debug.*`
 
-- 当 `show_voice_captions=true` 且 voice listening / replying 时，可以在 presence-capsule 附近临时浮出 caption（user transcript cue + assistant live caption）
-- Caption 文本必须直接来自 runtime turn `text_delta` / committed projection，不允许本地伪造
-- Caption 不展开成 transcript view；user 离开 voice 模式后立即清空
+## K-NAV-SHELL-OUTPUT-010 Debug overlay
 
-## K-NAV-SHELL-COMPANION-008 Cross-app Coordination
+Context-menu `Debug` may open a transient Avatar debug overlay only when the
+current shell is Runtime-bound to an active `agent_id + conversation_anchor_id`.
+The overlay is a local diagnostic entry to Runtime-owned Avatar debug probes; it
+is not the Desktop debug workbench authority.
 
-- Companion Surface 不向 desktop 推送 transcript 副本；transcript truth owner 是 runtime
-- Companion Surface 可以接收 desktop 的 `avatar_instance_registry` projection 用于"当前 instance 是否依然 admitted"的健康指示，但不允许据此自行决定 ready/degraded 转移（composition state 仍由 runtime carrier 决定）
+Fixed rules:
 
-## K-NAV-SHELL-COMPANION-009 Settings Popover
+- The overlay may read Runtime avatar debug snapshot/list projections through
+  typed SDK/Runtime avatar debug methods.
+- The overlay may request only Avatar-backend probes:
+  `backend_load`, `capability_profile`, `route_support_matrix`,
+  `generated_motion`, `emotion_expression`, `speech_lipsync`, and
+  `window_hit_region`.
+- `requested_by` remains Runtime's admitted `desktop_debug_workbench` value;
+  Avatar must not add a local requested-by enum or raw app-bus bypass.
+- Avatar backend evidence must still flow through Runtime's typed
+  `SubmitAvatarDebugProbeResult` path before becoming public diagnostic truth.
+- The overlay must not expose package paths, tokens, raw APML, raw provider
+  payloads, raw MCP/A2A payloads, app business data, or backend command strings.
+- `Appearance` remains separate authority; Debug must not mutate asset/model
+  selection or avatar instance ownership.
 
-- 从 presence-capsule 的 settings cog 触发，弹出在 capsule 上方
-- 仅暴露 §4.2 列出的 4 个 toggle
-- Popover 不能 inline 占据 stage 主区或 push 内容布局；必须是 floating layer
-- Popover 关闭：点击外部 / Esc / cog 再次点击
+## K-NAV-SHELL-OUTPUT-011 Appearance overlay
 
-## K-NAV-SHELL-COMPANION-010 Companion Lifecycle Events
+Context-menu `Appearance` may open a transient Avatar appearance overlay only as
+a read-only view of the currently running Avatar visual carrier. It is not the
+Desktop Agent Avatar configuration surface and must not become a local asset
+selection, import, activation, or model-switch authority.
 
-下列 evidence 必须由 companion-surface 在对应交互发生时 emit：
+Fixed rules:
 
-- `avatar.companion.bubble.opened` / `dismissed`
-- `avatar.companion.composer.submitted` / `send-failed`
-- `avatar.companion.voice.listen-start` / `listen-commit` / `transcribe-start` / `interrupt`
-- `avatar.companion.settings.changed`（detail 含 changed key 与 new value）
+- The overlay may display current runtime-local carrier summary fields:
+  backend kind, model id, current source authority (`runtime` or explicit
+  `fixture`), and current avatar-local scale.
+- The overlay may record `avatar.shell.appearance.opened` and normal
+  `avatar.composition.surface-mounted/unmounted` lifecycle evidence.
+- The overlay must not mutate `local_avatar_asset_ref`, runtime
+  `AgentPresentationProfile`, Desktop avatar configuration, launch payload, or
+  avatar live instance binding.
+- The overlay must not expose package paths, materialization roots, model file
+  paths, local filesystem paths, package descriptors, tokens, raw APML, raw
+  provider payloads, raw MCP/A2A payloads, app business data, or backend command
+  strings.
+- Asset import, selection, readiness, and launch policy remain owned by Desktop
+  Agent Avatar configuration and the Runtime/Avatar local materialization
+  boundary described in §9.
 
-精确 schema 见 [avatar-event-contract.md](avatar-event-contract.md)。
+## K-NAV-SHELL-OUTPUT-012 Localization boundary
+
+All user-visible Avatar shell copy must be backed by bundled locale resources.
+The Avatar kernel owns localization semantics only:
+
+- required surface roles such as title, summary, recovery affordance,
+  diagnostics labels, captions, menu labels, and aria labels
+- required product meaning for fail-closed Runtime/account/binding states
+- forbidden wording classes, including CORS, shared auth, workaround, raw stack,
+  raw provider payload, token, and local bypass language
+- interpolation semantics when a product fact must be included, such as a
+  human-readable reason or active state
+
+Concrete i18n key names, English/Chinese text, fallback text, translation
+values, and consuming component paths are app-owned implementation resources.
+They must stay outside `.nimi/spec/**`. App-side validation must fail closed
+when locale resources are missing required keys, contain orphan keys, or contain
+empty/TODO copy.
 
 ---
 
@@ -405,15 +491,15 @@ Degraded Surface 是 ready 之外所有 composition state 的唯一渲染表面�
 | 区域 | 内容 |
 |---|---|
 | Banner | composition state 类型与 reason badge（如 `Runtime unavailable` / `Reauth required` / `Launch context invalid`） |
-| Title | i18n 化的简短描述（`Avatar.degraded.<state>.title`） |
-| Summary | i18n 化的多行描述，包含 reason code / action hint（如可读化） |
+| Title | 本地化的简短描述 |
+| Summary | 本地化的多行描述，包含 reason code / action hint（如可读化） |
 | Recovery affordance | 一个显式 `reload shell` button（仅触发 app reload / relaunch）；degraded 期不允许其他 affordance |
 
 ## K-NAV-SHELL-DEGRADED-002 Reason 透传
 
 - Bootstrap 抛错时透传到 degraded-surface 的字段：`stage`、`reason_code`、`account_reason_code`、`action_hint`、`source`、`retryable`
-- Surface 必须显式呈现 i18n 化的 stage 与 reason_code（不是裸字符串）
-- 不允许显示 stack trace 或 raw error message 作为主区文案；仅 `Avatar.degraded.diagnostics` 子区域以 collapsible 形式可选呈现
+- Surface 必须显式呈现本地化的 stage 与 reason_code 标签（不是裸字符串）
+- 不允许显示 stack trace 或 raw error message 作为主区文案；仅本地化 diagnostics 子区域以 collapsible 形式可选呈现
 
 ## K-NAV-SHELL-DEGRADED-003 No Mock Fallback
 
@@ -449,12 +535,12 @@ Degraded Surface 是 ready 之外所有 composition state 的唯一渲染表面�
    files
 8. Create or recover Avatar-owned conversation context
 9. Scan <model>/runtime/nimi/ for NAS handlers (§agent-script-contract)
-10. Compute initial hit region + resize window to surface bounds + companion footprint
-11. Mount embodiment-stage + companion-surface (composition state → ready)
+10. Compute initial hit region + resize window to embodiment surface bounds
+11. Mount embodiment-stage (composition state → ready); transient overlays remain unmounted until explicitly opened
 12. Emit avatar.app.ready
 ```
 
-任一 step 失败必须按 §6 状态机进入对应 degraded composition state，且不允许 partial mount（embodiment 加载完但 companion 不可见，或 companion 可见但 embodiment 还在 loading 状态）。
+任一 step 失败必须按 §6 状态机进入对应 degraded composition state，且不允许 partial mount（embodiment 还在 loading 状态时不得显示 ready overlays）。
 
 ### 9.2 Runtime First-Party Bootstrap
 
@@ -477,7 +563,10 @@ Normal path boundary:
   import + materialization is the only launch-time source of visual truth.
   Current Agent Center resolver plumbing is local Avatar asset materialization
   storage, not marketplace package lifecycle, inventory, or activation
-  authority.
+  authority. For Live2D, the resolver MAY project the Desktop-owned
+  `live2d_calibration_ref` as opaque read-only evidence when present; this
+  projection is not launch payload, not calibration payload/value truth, and
+  MUST report calibration effect as not admitted.
 - data bootstrap：Runtime / SDK validates `agent_id` for the current Runtime
   account projection before private agent/user data or authorized local visual
   materialization loads
@@ -508,7 +597,7 @@ Failure handling:
 1. User triggers quit (tray → exit / hotkey)
 2. Emit avatar.app.shutdown
 3. Cancel in-flight NAS handlers (abort signal)
-4. Cancel companion voice/composer in-flight operations
+4. Cancel transient overlay/composer in-flight operations
 5. Dispose Cubism SDK resources
 6. Close Tauri window
 7. Process exit
@@ -562,12 +651,12 @@ avatar.app.shutdown:
 |---|---|---|
 | Window config / sizing / drag / click-through | ✅ | — |
 | Surface composition states | ✅ | — |
-| Companion surface stage-first structure 与 lifecycle | ✅ | — |
+| Embodied output interaction / transient overlay lifecycle | ✅ | — |
 | Degraded surface 与 reload 行为 | ✅ | — |
 | Embodiment projection truth | shell consumes only | `embodiment-projection-contract.md` |
 | Live2D rendering pipeline | current backend branch | `live2d-render-contract.md` |
 | NAS handler execution | — | `agent-script-contract.md` |
-| `avatar.user.*` / `avatar.app.*` / `avatar.companion.*` event schema | App shell emits | `avatar-event-contract.md` defines schema |
+| `avatar.user.*` / `avatar.app.*` / `avatar.shell.*` event schema | App shell emits | `avatar-event-contract.md` defines schema |
 | Mock driver vs real SDK binding | — | `mock-fixture-contract.md` |
 | Lipsync timing / voice playback truth | — | `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md` |
 
@@ -617,7 +706,7 @@ Minimum permission set for industrial baseline shell：
 - 调用 Realm `passwordLogin` / `oauthLogin` / `requestEmailOtp` / `verifyEmailOtp` / `walletLogin` 作为 app-owned login path
 - 调用 `MeService.getMe` 作为 account truth
 - 注入 app-owned access token provider、refresh token provider、subject provider、session store、或 JWT decode hook
-- 从 Desktop launch context 读取 scoped binding、package、anchor、account/user、Realm、auth material
+- 从 Desktop launch context 读取 scoped binding、package、anchor、account/user、Realm、auth material、Live2D calibration / preview / expression / render-policy truth
 - 在 mock 之外回退到 fixture 模式以隐藏 account、agent、package、或 Runtime 不可用
 - 在 Tauri permission set 中包含 auth / session / account 相关 capability
 
@@ -645,7 +734,9 @@ Desktop 默认启动 Avatar 只允许传递：
 禁止字段：scoped binding / binding handle / binding state、conversation anchor、
 visual package id / path / descriptor、runtime app id、world id、Realm URL、
 access token、refresh token、raw JWT、`subject_user_id`、account id、user id、
-shared auth payload、auth UX route。
+shared auth payload、auth UX route、Live2D calibration ref/payload、model digest、
+preview artifact ref、framing calibration、render scale、target FPS、performance
+policy、expression inventory。
 
 `agent_id` 是 selector，不是 authorization proof。Avatar 必须通过 Runtime /
 SDK 验证。
@@ -676,6 +767,9 @@ Avatar 必须：
 - 仅从 Avatar local asset resolver 返回的 materialized Live2D/VRM files 读取
   visual files；远程 marketplace package 来源已退役（Asset Market 撤回），
   本地 import + materialization 是 visual 唯一来源
+- 对 Live2D，Avatar local asset resolver 可以返回 Desktop-owned
+  `live2d_calibration_ref` 作为只读 opaque evidence；不得读取 calibration
+  payload/values，不得将该 ref 解释为 carrier truth 或 render/framing effect
 - 创建或恢复 Avatar-owned conversation context
 - 通过 Runtime / SDK `K-AGCORE-138` live-instance binding 恢复 Desktop-current
   conversation anchor；缺失绑定时不得从 same-agent identity 推断同一 conversation
@@ -696,4 +790,4 @@ delegated Avatar mode，且作为 carrier-relation attachment，不替代 token�
 
 ---
 
-**Industrial baseline.** Companion Surface、Degraded Surface、Composition State 三个机制属于本 contract 的完整权威；实现不得偏离本 contract 已声明的规则，新增表面 / 新增 composition state 必须先以 minor / major bump 方式更新本 contract。
+**Industrial baseline.** Embodied Output Interaction、Transient Overlays、Degraded Surface、Composition State 属于本 contract 的完整权威；实现不得偏离本 contract 已声明的规则，新增表面 / 新增 composition state 必须先以 minor / major bump 方式更新本 contract。

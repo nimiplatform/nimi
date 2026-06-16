@@ -707,6 +707,16 @@ async fn nimi_avatar_set_always_on_top(
         .map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+async fn nimi_avatar_hide_window(window: WebviewWindow) -> Result<(), String> {
+    window.hide().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn nimi_avatar_close_window(window: WebviewWindow) -> Result<(), String> {
+    window.close().map_err(|e| e.to_string())
+}
+
 fn configure_runtime_bridge_env() {
     if cfg!(debug_assertions) && std::env::var_os("NIMI_RUNTIME_BRIDGE_MODE").is_none() {
         std::env::set_var("NIMI_RUNTIME_BRIDGE_MODE", "RUNTIME");
@@ -770,6 +780,8 @@ fn main() {
             nimi_avatar_get_cursor_client_position,
             nimi_avatar_constrain_window_to_visible_area,
             nimi_avatar_set_always_on_top,
+            nimi_avatar_hide_window,
+            nimi_avatar_close_window,
             nimi_avatar_get_launch_context,
             nimi_avatar_bind_runtime_identity,
             nimi_avatar_record_evidence,

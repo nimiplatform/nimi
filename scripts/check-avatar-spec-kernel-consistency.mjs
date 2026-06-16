@@ -29,7 +29,6 @@ const requiredFiles = [
   `${tablesRoot}/backend-capability-profile.schema.yaml`,
   `${tablesRoot}/feature-matrix.yaml`,
   `${tablesRoot}/generated-motion-routes.yaml`,
-  `${tablesRoot}/i18n-keys.yaml`,
   `${tablesRoot}/live2d-compatibility-tiers.yaml`,
   `${tablesRoot}/mapping-sidecar.schema.yaml`,
   `${tablesRoot}/scenario-catalog.yaml`,

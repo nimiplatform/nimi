@@ -45,22 +45,23 @@ The active Avatar event surface covers the multi-backend BackendBranch carrier a
 ## 1. Namespace Declaration
 
 - App namespace: `avatar` (first-party reserved)
-- Sub-namespaces: `avatar.user.*` / `avatar.*` / `avatar.app.*` / `avatar.companion.*` / `avatar.composition.*` / `avatar.shell.*`
+- Sub-namespaces: `avatar.user.*` / `avatar.*` / `avatar.app.*` / `avatar.composition.*` / `avatar.shell.*`
 - Before-event namespace: `avatar.before.*`
 
 ---
 
 ## 2. Events
 
-### 2.1 User Input (8 events, `avatar.user.*`)
+### 2.1 User Input (9 events, `avatar.user.*`)
 
 用户对 avatar 形象的直接交互：
 
 | Event | 语义 | Rate tier | Cancellable |
 |---|---|---|---|
-| `avatar.user.click` | 单击 avatar | Low | — |
-| `avatar.user.double_click` | 双击 avatar | Low | — |
-| `avatar.user.right_click` | 右键 avatar（唤起菜单等） | Low | — |
+| `avatar.user.click` | 单击 avatar；local lightweight interaction only, must not create a Runtime conversation turn | Low | — |
+| `avatar.user.double_click` | 双击 avatar；request foreground response priority via Runtime-owned boundary | Low | — |
+| `avatar.user.right_click` | 右键 avatar（唤起 avatar-local context menu） | Low | — |
+| `avatar.user.long_press` | 左键静止长按 avatar 1s；唤起 avatar-local action radial，不创建 Runtime conversation turn | Low | — |
 | `avatar.user.hover` | 悬停 avatar | Medium | — |
 | `avatar.user.leave` | 离开 avatar | Medium | — |
 | `avatar.user.drag.start` | 开始拖拽 avatar 形象 | Low | — |
@@ -104,21 +105,54 @@ projection 触发）：
 | `avatar.app.visibility.change` | Avatar 可见性（on-screen / off-screen / tray-minimized） | Low | — |
 | `avatar.app.shutdown` | App 关闭 | Burst | — |
 
-### 2.4 Companion Surface (9 events, `avatar.companion.*`)
+### 2.4 Shell Overlay Interaction (20 events, `avatar.shell.*`)
 
-Companion Surface stage-first structure（presence-capsule / assistant-cue / composer-tray）的 user 与系统交互。所有 events 必须显式绑定当前 launch-selected `agent_id + conversation_anchor_id`：
+Embodied output layer transient overlays and avatar-local shell interactions. Text and voice authority remains Runtime-owned; these events record shell presentation/input lifecycle only.
 
 | Event | 语义 | Rate tier | Cancellable |
 |---|---|---|---|
-| `avatar.companion.bubble.opened` | Assistant cue 展开（auto-open / 用户点击重开） | Low | — |
-| `avatar.companion.bubble.dismissed` | Assistant cue 关闭（icon control / 自动收起 / anchor 切换） | Low | — |
-| `avatar.companion.composer.submitted` | Composer tray 提交一次 bounded text turn | Low | — |
-| `avatar.companion.composer.send-failed` | Composer tray 提交失败（runtime / binding / network reason） | Low | — |
-| `avatar.companion.voice.listen-start` | 用户显式触发 mic listening | Low | — |
-| `avatar.companion.voice.listen-commit` | 用户显式 commit 当前 listening session | Low | — |
-| `avatar.companion.voice.transcribe-start` | Transcription pipeline 开始（commit 后） | Low | — |
-| `avatar.companion.voice.interrupt` | 用户对当前 anchor active turn 显式 interrupt | Low | — |
-| `avatar.companion.settings.changed` | Settings popover 中 4 个 toggle 之一被改变 | Low | — |
+| `avatar.shell.context_menu.opened` | Right-click opened avatar-local tool menu | Low | — |
+| `avatar.shell.context_menu.dismissed` | Context menu dismissed by action, outside click, Escape, or composition change | Low | — |
+| `avatar.shell.action_radial.opened` | Press-hold opened character interaction radial | Low | — |
+| `avatar.shell.action_radial.dismissed` | Action radial dismissed | Low | — |
+| `avatar.shell.action_radial.selected` | Local presentation action selected | Low | — |
+| `avatar.shell.composer.opened` | Transient text composer opened | Low | — |
+| `avatar.shell.composer.submitted` | Transient composer submitted a bounded text turn to Runtime-bound agent context | Low | — |
+| `avatar.shell.composer.send-failed` | Runtime/binding/network rejected composer submission | Low | — |
+| `avatar.shell.composer.dismissed` | Composer closed by focus switch, Escape, explicit close, or composition change | Low | — |
+| `avatar.shell.scale.changed` | Wheel scale changed current avatar instance size | Medium | — |
+| `avatar.shell.scale.reset` | User reset current avatar instance size | Low | — |
+| `avatar.shell.foreground_priority.requested` | Double-click or menu requested this avatar become foreground respondent | Low | — |
+| `avatar.shell.appearance.opened` | Context menu opened the transient read-only Avatar appearance overlay | Low | — |
+| `avatar.shell.settings.changed` | Shell-local setting changed | Low | — |
+| `avatar.shell.hide-requested` | Context menu requested this avatar window hide from the desktop until Desktop/Runtime relaunches or reveals it | Low | — |
+| `avatar.shell.close-requested` | Context menu requested this avatar instance window close | Low | — |
+| `avatar.shell.interrupt.requested` | Context menu requested Runtime cancel the active current-anchor companion participation / turn | Low | — |
+| `avatar.shell.interrupt.failed` | Runtime rejected or failed the interrupt request | Low | — |
+| `avatar.shell.debug.opened` | Context menu opened the transient Avatar debug overlay | Low | — |
+| `avatar.shell.debug.request-failed` | Runtime rejected a debug probe request from the transient overlay | Low | — |
+
+### 2.4.1 Avatar Debug Backend Evidence (3 events, `avatar.debug.*`)
+
+Avatar-owned backend debug evidence supports Runtime-owned avatar debug probe
+semantics. Avatar must not mint public debug success outside Runtime's typed
+probe result path.
+
+| Event | 语义 | Rate tier | Cancellable |
+|---|---|---|---|
+| `avatar.debug.session-evidence` | Avatar backend debug session evidence was evaluated locally | Low | — |
+| `avatar.debug.probe-submit-failed` | Avatar failed to evaluate or submit backend evidence for a Runtime debug probe | Low | — |
+| `avatar.debug.probe-submit-skipped` | Runtime debug probe is not Avatar-submittable, so Avatar did not submit a result | Low | — |
+
+### 2.4.2 Live2D Backend Evidence (1 event, `avatar.live2d.*`)
+
+Live2D backend evidence is Avatar-owned rendering/backend evidence. It may
+support debug/configuration presentation by ref, but it does not define Runtime
+emotion ontology and must not expose raw model/provider/NAS payloads.
+
+| Event | 语义 | Rate tier | Cancellable |
+|---|---|---|---|
+| `avatar.live2d.expression-inventory` | Parsed model-local `exp3.json` expression inventory summary was evaluated for the loaded Live2D backend | Low | — |
 
 ### 2.5 Composition State (4 events, `avatar.composition.*`)
 
@@ -128,7 +162,7 @@ Composition state 转移与 surface mount/unmount 证据。具体 state 枚举�
 |---|---|---|---|
 | `avatar.composition.transition` | Composition state 切换（含 from/to/reason） | Low | — |
 | `avatar.composition.relaunch-pending` | Desktop 推送了 launch context update，进入 relaunch-pending 状态 | Low | — |
-| `avatar.composition.surface-mounted` | embodiment-stage / companion-surface / degraded-surface 挂载完成 | Low | — |
+| `avatar.composition.surface-mounted` | embodiment-stage / transient overlay / degraded-surface 挂载完成 | Low | — |
 | `avatar.composition.surface-unmounted` | 上述任一 surface 卸载完成 | Low | — |
 
 ### 2.5.1 Audio Pipeline & Lipsync
@@ -205,6 +239,15 @@ avatar.user.click:
     y: int
     button: enum(left|middle|right)
 
+avatar.user.long_press:
+  detail:
+    region: enum(body|head|face|accessory|null)
+    x: int
+    y: int
+    button: enum(left)
+    client_x: int                                  # viewport position for action radial anchoring
+    client_y: int
+
 avatar.activity.start:
   detail:
     activity_name: string                          # "happy" | "ext:grateful" | "ext:proud"
@@ -237,15 +280,17 @@ avatar.speak.start:
     stream_id: string
     turn_id: string
 
-avatar.companion.composer.submitted:
+avatar.shell.composer.submitted:
   detail:
+    avatar_instance_id: string
     agent_id: string
     conversation_anchor_id: string
-    text_length: int                               # bounded text turn body size
-    submitted_at: string                           # ISO 8601
+    text_length: int
+    submitted_at: string
 
-avatar.companion.composer.send-failed:
+avatar.shell.composer.send-failed:
   detail:
+    avatar_instance_id: string
     agent_id: string
     conversation_anchor_id: string
     reason_code: string
@@ -253,24 +298,109 @@ avatar.companion.composer.send-failed:
     action_hint: string?
     failed_at: string                              # ISO 8601
 
-avatar.companion.voice.listen-start:
+avatar.shell.foreground_priority.requested:
   detail:
+    avatar_instance_id: string
     agent_id: string
-    conversation_anchor_id: string
-    started_at: string
+    source: enum(double_click|context_menu|runtime_projection)
+    requested_at: string
 
-avatar.companion.voice.interrupt:
+avatar.shell.appearance.opened:
   detail:
-    agent_id: string
-    conversation_anchor_id: string
-    turn_id: string
-    interrupt_at: string
+    avatar_instance_id: string?
+    agent_id: string?
+    conversation_anchor_id: string?
+    model_id: string?
+    backend_kind: enum(live2d|vrm|unknown)
+    source_authority: enum(runtime|fixture|unknown)
+    scale: number
+    opened_at: string                              # ISO 8601
 
-avatar.companion.settings.changed:
+avatar.shell.scale.changed:
   detail:
-    key: enum(always_on_top|bubble_auto_open|bubble_auto_collapse|show_voice_captions)
+    avatar_instance_id: string
+    previous_scale: float
+    next_scale: float
+    source: enum(wheel|reset|restore)
+    changed_at: string
+
+avatar.shell.settings.changed:
+  detail:
+    key: enum(always_on_top|show_voice_captions)
     value: bool
     changed_at: string
+
+avatar.shell.hide-requested:
+  detail:
+    avatar_instance_id: string
+    agent_id: string
+    source: enum(context_menu)
+    requested_at: string
+
+avatar.shell.close-requested:
+  detail:
+    avatar_instance_id: string
+    agent_id: string
+    source: enum(context_menu)
+    requested_at: string
+
+avatar.shell.interrupt.requested:
+  detail:
+    avatar_instance_id: string
+    agent_id: string
+    conversation_anchor_id: string
+    active_turn_id: string
+    active_turn_phase: enum(accepted|started|streaming|committed)
+    source: enum(context_menu)
+    reason: enum(user_cancel)
+    requested_at: string
+
+avatar.shell.interrupt.failed:
+  detail:
+    avatar_instance_id: string
+    agent_id: string
+    conversation_anchor_id: string
+    active_turn_id: string?
+    reason_code: string
+    error: string
+    failed_at: string
+
+avatar.shell.debug.opened:
+  detail:
+    avatar_instance_id: string
+    agent_id: string
+    conversation_anchor_id: string
+    client_x: int
+    client_y: int
+    opened_at: string                              # ISO 8601
+
+avatar.shell.debug.request-failed:
+  detail:
+    avatar_instance_id: string
+    agent_id: string
+    conversation_anchor_id: string
+    probe_kind: enum(backend_load|capability_profile|route_support_matrix|generated_motion|emotion_expression|speech_lipsync|window_hit_region)
+    reason_code: string
+    error: string?
+    failed_at: string                              # ISO 8601
+
+avatar.live2d.expression-inventory:
+  detail:
+    status: enum(ready|unsupported|error)
+    source: enum(live2d-backend-session)
+    model_kind: enum(live2d)
+    model_id: string
+    expression_inventory_ref: string?
+    expression_count: int
+    expression_ids: string[]                       # model-local ids only
+    expression_parameter_count: int
+    expression_parameter_ids: string[]             # parameter ids only, no raw exp3 payload
+    expression_blend_mode_counts:
+      add: int
+      multiply: int
+      overwrite: int
+    reason_code: string?
+    observed_at: string                            # ISO 8601
 
 avatar.composition.transition:
   detail:
@@ -291,13 +421,13 @@ avatar.composition.relaunch-pending:
 
 avatar.composition.surface-mounted:
   detail:
-    surface: enum(embodiment-stage|companion-surface|degraded-surface)
+    surface: enum(embodiment-stage|context-menu|action-radial|transient-composer|settings-overlay|appearance-overlay|debug-overlay|caption-overlay|degraded-surface)
     composition_state: string                      # composition state at mount time
     mounted_at: string                             # ISO 8601
 
 avatar.composition.surface-unmounted:
   detail:
-    surface: enum(embodiment-stage|companion-surface|degraded-surface)
+    surface: enum(embodiment-stage|context-menu|action-radial|transient-composer|settings-overlay|appearance-overlay|debug-overlay|caption-overlay|degraded-surface)
     composition_state: string                      # composition state at unmount time
     unmounted_at: string                           # ISO 8601
 
@@ -311,7 +441,7 @@ avatar.shell.window-bounds-changed:
     width: int
     height: int
     embodiment_bounds: { x: int, y: int, width: int, height: int }
-    companion_footprint: { width: int, height: int }
+    scale: float
     changed_at: string
 
 avatar.model.load:
@@ -474,6 +604,17 @@ events:
       x: int
       y: int
       button: enum(left|middle|right)
+    rate_limit_tier: low
+    stability: stable
+    visibility: public
+  - name: "avatar.user.long_press"
+    detail_schema:
+      region: enum(body|head|face|accessory|null)
+      x: int
+      y: int
+      button: enum(left)
+      client_x: int
+      client_y: int
     rate_limit_tier: low
     stability: stable
     visibility: public

@@ -5,9 +5,8 @@ protocol_id: avatar_window_bounds_policy
 description: >
   Dynamic window sizing policy for Nimi Avatar.
   Governs how the Tauri window's physical size is derived from the active
-  embodiment backend's surface bounds plus the companion-surface footprint,
-  which triggers cause a recompute, the formula that combines the two
-  contributions, and the visible-area + multi-monitor constraints. Rule ids
+  embodiment backend's surface bounds plus the current per-avatar scale,
+  which triggers cause a recompute, and the visible-area + multi-monitor constraints. Rule ids
   follow K-NAV-SHELL-002 / K-NAV-SHELL-003 / K-NAV-SHELL-005-* admitted in
   app-shell-contract.md §1.2 / §1.3 / §3.3.
 
@@ -34,15 +33,14 @@ policy: &avatar_window_bounds_policy_surfaces
       debounce_ms: 0
       reason: >
         New model may have different alpha bounds; resize on switch keeps
-        embodiment_bounds + companion_footprint envelope tight.
-    - id: companion_footprint_change
-      title: "Companion-surface footprint changed"
-      source: companion-surface root ResizeObserver
-      debounce_ms: 80
+        embodiment_bounds envelope tight.
+    - id: avatar_scale_change
+      title: "Per-avatar instance scale changed"
+      source: avatar.shell.scale.changed
+      debounce_ms: 0
       reason: >
-        Assistant-cue reveal/dismiss, composer-tray expansion, and
-        presence-capsule wrapping are debounced so transient layout does not produce
-        a flurry of set_size calls.
+        Wheel scaling changes the real embodiment bounds, hit-region, and
+        visible-area constraint. It is not CSS-only visual scaling.
 
   dimensions:
     embodiment_bounds:
@@ -56,20 +54,27 @@ policy: &avatar_window_bounds_policy_surfaces
         starting envelope; embodiment_projection.getSurfaceBounds() is
         the per-frame refinement (e.g. Live2D alpha bounding box may
         shrink as motion plays).
-    companion_footprint:
-      source: companion-surface root element bounding rect (DOM)
-      stack_axis: vertical_below_embodiment
-      min_height_px: 96
-      max_height_px: 400
+    avatar_scale:
+      source: persisted avatar-instance shell state
+      min_scale: 0.60
+      max_scale: 1.80
+      default_scale: 1.00
       reason: >
-        Companion-surface lives in the SAME Tauri window (not a separate
-        popout). Its compact presence capsule, optional assistant cue, and
-        explicitly opened composer tray stay visually attached to the embodiment.
+        Each avatar instance remembers user-selected size. Scale changes the
+        computed embodiment envelope, hit-region, window size, and visible-area
+        constraint.
+    transient_overlays:
+      source: context menu / action radial / transient composer / captions / settings
+      default_window_footprint: excluded
+      reason: >
+        Product default is embodiment-first. Transient overlays are floating
+        and dismissible; they participate in hit-region while mounted but do
+        not permanently enlarge the ready window footprint.
 
   composition:
     formula: |
-      width_px  = max(embodiment_bounds.width, companion_footprint.width) + 2 * padding_px
-      height_px = embodiment_bounds.height + companion_footprint.height + 2 * padding_px
+      width_px  = embodiment_bounds.width  * avatar_scale + 2 * padding_px
+      height_px = embodiment_bounds.height * avatar_scale + 2 * padding_px
     padding_px: 16
     min_width_px: 320
     min_height_px: 480
@@ -77,10 +82,8 @@ policy: &avatar_window_bounds_policy_surfaces
     max_height_px: 1600
     rounding: round_to_integer
     reason: >
-      Width takes the wider of the two surfaces because companion may be
-      narrower than the model body or vice versa. Height stacks them since
-      composition mounts companion below embodiment. Padding is symmetric
-      around the union so drop-shadow / focus rings don't get clipped.
+      The default ready window exists for the character. Padding is symmetric
+      around the scaled embodiment so drop-shadow / focus rings don't get clipped.
 
   visible_area:
     rule_id: K-NAV-SHELL-010
@@ -90,8 +93,8 @@ policy: &avatar_window_bounds_policy_surfaces
     reason: >
       Per app-shell-contract §3.3: at least 20% of the embodiment_bounds
       must remain inside the active monitor's work area so the user can
-      drag the avatar back when it slides off screen. Companion footprint
-      is excluded from the ratio so the avatar itself is what stays grabbable.
+      drag the avatar back when it slides off screen. Transient overlays are
+      excluded from the ratio so the avatar itself is what stays grabbable.
 
   multi_monitor:
     allow_cross_monitor_drag: true
@@ -119,13 +122,12 @@ policy: &avatar_window_bounds_policy_surfaces
       nominal_bounds_default:
         width_px: 360
         height_px: 720
-      framing_intent_default: bottom-companion
+      framing_intent_default: full-body
       aspect_default: 0.45
       reason: >
         VRM scene bbox is computed at load time from the Three.js scene
         traversal. The 360×720 fallback (taller, narrower) reflects the
-        default `bottom-companion` framing intent (humanoid model
-        framed from bottom-third with subtle body cut-off). aspect 0.45
+        default `full-body` framing intent. aspect 0.45
         keeps the avatar window narrow on portrait setups. Once
         scene bbox + framing intent compute, embodiment_bounds is set
         to the framed bbox per vrm-backend-contract.md §4.
@@ -136,23 +138,22 @@ constraints:
       `resizable: false` runtime effect prevents user drag-handle resize;
       programmatic set_size remains the sole authority on window size.
   - description: >
-      Companion footprint contributes to total window size; companion is
-      NOT in a separate Tauri window. Splitting companion into its own
-      window is forbidden by K-NAV-SHELL-COMPOSITION-002 (single shell window
-      hosts both stacks).
+      Transient overlays do not contribute to default ready window size.
+      If a future overlay is admitted as window-contained, this table must
+      add an explicit trigger and formula instead of reusing retired companion
+      footprint behavior.
   - description: >
       Drag region is limited to embodiment-stage hit area
-      (avatar-hit-region.ts). Companion-surface and degraded-surface
+      (avatar-hit-region.ts). Transient overlays and degraded-surface
       pointer-down events MUST NOT trigger window drag — drag rescue must
       come from the embodiment-stage body region per K-NAV-SHELL-008.
   - description: >
-      Recompute on model_load + model_switch fires synchronously with
-      debounce_ms=0; companion_footprint_change is debounced (80ms) to
-      coalesce ResizeObserver bursts.
+      Recompute on model_load + model_switch + avatar_scale_change fires
+      synchronously with debounce_ms=0.
   - description: >
       Width/height clamps (min/max) are last-resort guards. The expected
-      operating envelope is governed by embodiment_bounds + companion
-      footprint; clamps prevent runaway sizes from a misbehaving
+      operating envelope is governed by embodiment_bounds * avatar_scale;
+      clamps prevent runaway sizes from a misbehaving
       embodiment backend.
 
 drift_checks:

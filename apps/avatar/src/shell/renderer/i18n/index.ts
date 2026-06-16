@@ -9,9 +9,9 @@
 //   2. navigator.language → first matching SUPPORTED_LOCALES prefix
 //   3. 'en'
 //
-// All keys are declared in .nimi/spec/avatar/kernel/tables/i18n-keys.yaml.
+// All keys are declared in the app-owned `i18n/key-catalog.yaml`.
 // `pnpm --filter @nimiplatform/avatar check:spec-consistency` enforces 1:1
-// alignment between the spec table and both locale JSON files.
+// alignment between the app catalog and both locale JSON files.
 
 import i18nextCore from 'i18next';
 import { initReactI18next, useTranslation } from 'react-i18next';

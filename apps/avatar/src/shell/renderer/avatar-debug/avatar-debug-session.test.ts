@@ -4,10 +4,24 @@ import type { BackendBranch } from '../carrier/backend-branch.js';
 import type { VrmCapabilityProfile } from '../vrm/vrm-capability-profile.js';
 import {
   createAvatarDebugSession,
+  evidenceRefsForAvatarDebugSession,
   type AvatarDebugSessionInput,
 } from './avatar-debug-session.js';
 
-function backend(kind: 'vrm' | 'live2d'): BackendBranch {
+const LIVE2D_EVIDENCE_PACK = {
+  backend_load_evidence_ref: 'avatar.live2d.backend-load:ren',
+  live2d_capability_profile_evidence_ref: 'avatar.live2d.capability-profile:ren',
+  live2d_route_support_evidence_ref: 'avatar.live2d.route-support:ren',
+  live2d_lipsync_evidence_ref: 'avatar.live2d.lipsync:ren:profile:mouth-open-only',
+  live2d_hit_region_evidence_ref: 'avatar.live2d.hit-region:ren:alpha_mask_plus_bbox',
+  carrier_visual_parameter_lane_diagnostics_ref: 'avatar.live2d.parameter-lane:ren:12345',
+  live2d_calibration_ref: 'live2d_calibration_ab12cd34ef56',
+} as const;
+
+function backend(
+  kind: 'vrm' | 'live2d',
+  metadataOverrides: Record<string, unknown> = {},
+): BackendBranch {
   const base = {
     nominalBounds: {
       width: 360,
@@ -36,6 +50,7 @@ function backend(kind: 'vrm' | 'live2d'): BackendBranch {
         compatibility_tier: 'enhanced',
         adapter_id: 'live2d-adapter',
         lipsync_profile_present: true,
+        ...metadataOverrides,
       },
     shutdown() {},
   };
@@ -233,6 +248,122 @@ describe('createAvatarDebugSession', () => {
 
     expect(session.evidence.status).toBe('unsupported');
     expect(session.evidence.reasonCode).toBe('generated_motion_not_supported_by_backend');
+  });
+
+  it('requires parsed Live2D expression inventory before emotion expression success', () => {
+    const missingInventory = createAvatarDebugSession({
+      ...input(AvatarDebugProbeKind.EMOTION_EXPRESSION),
+      backendKind: 'live2d',
+      backend: backend('live2d', {
+        ...LIVE2D_EVIDENCE_PACK,
+        adapter_id: 'live2d-adapter',
+      }),
+      vrmCapabilityProfile: null,
+    });
+
+    expect(missingInventory.evidence.status).toBe('unsupported');
+    expect(missingInventory.evidence.reasonCode).toBe('live2d_expression_inventory_missing');
+
+    const session = createAvatarDebugSession({
+      ...input(AvatarDebugProbeKind.EMOTION_EXPRESSION),
+      backendKind: 'live2d',
+      backend: backend('live2d', {
+        ...LIVE2D_EVIDENCE_PACK,
+        adapter_id: 'live2d-adapter',
+        expression_stack_supported: true,
+        expression_inventory_ref: 'avatar.live2d.expression-inventory:ren:1234abcd',
+      }),
+      vrmCapabilityProfile: null,
+    });
+
+    expect(session.evidence.status).toBe('passed');
+    expect(session.evidence.refs.live2dExpressionInventoryRef)
+      .toBe('avatar.live2d.expression-inventory:ren:1234abcd');
+  });
+
+  it('carries Live2D carrier visual readiness refs without turning them into Runtime probe semantics', () => {
+    const session = createAvatarDebugSession({
+      ...input(AvatarDebugProbeKind.BACKEND_LOAD),
+      backendKind: 'live2d',
+      backend: backend('live2d', {
+        ...LIVE2D_EVIDENCE_PACK,
+        carrier_visual_evidence_ref: 'avatar.carrier.visual:ren:360x480:123',
+        carrier_preview_artifact_ref: 'avatar.carrier.preview-artifact:ren:123',
+      }),
+      vrmCapabilityProfile: null,
+    });
+
+    expect(session.evidence.status).toBe('passed');
+    expect(session.evidence.refs.carrierVisualEvidenceRef)
+      .toBe('avatar.carrier.visual:ren:360x480:123');
+    expect(session.evidence.refs.carrierPreviewArtifactRef)
+      .toBe('avatar.carrier.preview-artifact:ren:123');
+  });
+
+  it('carries the Live2D backend evidence pack as opaque refs', () => {
+    const session = createAvatarDebugSession({
+      ...input(AvatarDebugProbeKind.CAPABILITY_PROFILE),
+      backendKind: 'live2d',
+      backend: backend('live2d', {
+        ...LIVE2D_EVIDENCE_PACK,
+        carrier_visual_evidence_ref: 'avatar.carrier.visual:ren:360x480:12345',
+        carrier_preview_artifact_ref: 'avatar.carrier.preview-artifact:ren:12345',
+      }),
+      vrmCapabilityProfile: null,
+    });
+
+    expect(session.evidence.status).toBe('passed');
+    expect(session.evidence.refs).toEqual(expect.objectContaining({
+      live2dBackendLoadRef: 'avatar.live2d.backend-load:ren',
+      live2dCapabilityProfileRef: 'avatar.live2d.capability-profile:ren',
+      live2dRouteSupportRef: 'avatar.live2d.route-support:ren',
+      live2dLipsyncEvidenceRef: 'avatar.live2d.lipsync:ren:profile:mouth-open-only',
+      live2dHitRegionEvidenceRef: 'avatar.live2d.hit-region:ren:alpha_mask_plus_bbox',
+      live2dParameterLaneDiagnosticsRef: 'avatar.live2d.parameter-lane:ren:12345',
+      live2dCalibrationRef: 'live2d_calibration_ab12cd34ef56',
+    }));
+    const evidenceRefs = evidenceRefsForAvatarDebugSession(session);
+    expect(evidenceRefs).toEqual(expect.arrayContaining([
+      'live2d_backend_load_ref:avatar.live2d.backend-load:ren',
+      'live2d_capability_profile_ref:avatar.live2d.capability-profile:ren',
+      'live2d_route_support_ref:avatar.live2d.route-support:ren',
+      'live2d_lipsync_evidence_ref:avatar.live2d.lipsync:ren:profile:mouth-open-only',
+      'live2d_hit_region_ref:avatar.live2d.hit-region:ren:alpha_mask_plus_bbox',
+      'live2d_parameter_lane_ref:avatar.live2d.parameter-lane:ren:12345',
+      'live2d_calibration_ref:live2d_calibration_ab12cd34ef56',
+    ]));
+    expect(evidenceRefs.join('\n')).not.toMatch(/\/models|raw_provider_output|token|backend_command/);
+  });
+
+  it('requires Live2D visual and hit-region evidence before window hit-region success', () => {
+    const missingVisualProof = createAvatarDebugSession({
+      ...input(AvatarDebugProbeKind.WINDOW_HIT_REGION),
+      backendKind: 'live2d',
+      backend: backend('live2d', LIVE2D_EVIDENCE_PACK),
+      vrmCapabilityProfile: null,
+    });
+
+    expect(missingVisualProof.evidence.status).toBe('failed');
+    expect(missingVisualProof.evidence.reasonCode).toBe('live2d_visual_hit_region_evidence_missing');
+
+    const session = createAvatarDebugSession({
+      ...input(AvatarDebugProbeKind.WINDOW_HIT_REGION),
+      backendKind: 'live2d',
+      backend: backend('live2d', {
+        ...LIVE2D_EVIDENCE_PACK,
+        carrier_visual_evidence_ref: 'avatar.carrier.visual:ren:360x480:12345',
+        carrier_preview_artifact_ref: 'avatar.carrier.preview-artifact:ren:12345',
+      }),
+      vrmCapabilityProfile: null,
+    });
+
+    expect(session.evidence.status).toBe('passed');
+    expect(evidenceRefsForAvatarDebugSession(session)).toEqual(expect.arrayContaining([
+      'avatar_carrier_diagnostics_ref:debug-session-1:carrier_diagnostics_checked',
+      'avatar_carrier_visual_ref:avatar.carrier.visual:ren:360x480:12345',
+      'avatar_preview_artifact_ref:avatar.carrier.preview-artifact:ren:12345',
+      'live2d_hit_region_ref:avatar.live2d.hit-region:ren:alpha_mask_plus_bbox',
+    ]));
   });
 
   it('rejects forbidden raw payload fields recursively', () => {

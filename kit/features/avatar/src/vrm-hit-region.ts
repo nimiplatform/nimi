@@ -62,7 +62,8 @@ export type CreateVrmHitRegionInputs = {
    *  window coords; width/height in CSS pixels). The surface caller
    *  wires this — typically a closure that reads
    *  `canvasRef.current?.getBoundingClientRect()`. Returns null when
-   *  the canvas is not mounted; the probe then resolves to false. */
+   *  the canvas is not mounted; the probe then resolves to null so the
+   *  caller can fall back to bbox. */
   getViewport: () => {
     left: number;
     top: number;
@@ -129,16 +130,16 @@ export function createVrmHitRegion(
     clientX: number,
     clientY: number,
     threshold?: number,
-  ): boolean => {
+  ): boolean | null => {
     const viewport = getViewport();
-    if (viewport == null) return false;
-    if (viewport.width <= 0 || viewport.height <= 0) return false;
+    if (viewport == null) return null;
+    if (viewport.width <= 0 || viewport.height <= 0) return null;
     const alphaByte = renderTarget.probeAlphaAtClient({
       clientX,
       clientY,
       viewport,
     });
-    if (alphaByte == null) return false;
+    if (alphaByte == null) return null;
     const effectiveThreshold = threshold ?? VRM_ALPHA_MASK_THRESHOLD;
     const thresholdByte = effectiveThreshold * 255;
     return alphaByte > thresholdByte;

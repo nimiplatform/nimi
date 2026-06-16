@@ -163,6 +163,28 @@ fn write_agent_center_local_avatar_asset_config(
     backend_kind: &str,
     local_avatar_asset_ref: &str,
 ) {
+    write_agent_center_local_avatar_asset_config_with_calibration_ref(
+        home,
+        account_id,
+        owner_user_id,
+        realm_agent_id,
+        local_agent_ref,
+        backend_kind,
+        local_avatar_asset_ref,
+        None,
+    )
+}
+
+fn write_agent_center_local_avatar_asset_config_with_calibration_ref(
+    home: &Path,
+    account_id: &str,
+    owner_user_id: &str,
+    realm_agent_id: &str,
+    local_agent_ref: &str,
+    backend_kind: &str,
+    local_avatar_asset_ref: &str,
+    live2d_calibration_ref: Option<&str>,
+) {
     let config_path = agent_center_root(home, account_id, local_agent_ref).join("config.json");
     fs::create_dir_all(config_path.parent().unwrap()).unwrap();
     let config = json!({
@@ -182,6 +204,7 @@ fn write_agent_center_local_avatar_asset_config(
                 "schema_version": 1,
                 "conversation_anchor_scope": "current_anchor",
                 "local_avatar_asset_ref": local_avatar_asset_ref,
+                "live2d_calibration_ref": live2d_calibration_ref,
                 "live2d_adapter_manifest_source": "embedded_creator_manifest",
                 "live2d_adapter_manifest_ref": null,
                 "avatar_instance_policy": "reuse_active_instance",
@@ -300,6 +323,101 @@ async fn resolve_local_avatar_asset_accepts_current_agent_center_config_modules(
 
     assert_eq!(manifest.kind, "live2d");
     assert_eq!(manifest.model_id, "ren");
+    assert_eq!(manifest.live2d_calibration_ref, None);
+
+    match previous_home {
+        Some(value) => std::env::set_var("HOME", value),
+        None => std::env::remove_var("HOME"),
+    }
+    let _ = fs::remove_dir_all(&home);
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn resolve_local_avatar_asset_projects_live2d_calibration_ref() {
+    let _guard = test_env_guard();
+    let home = unique_temp_dir("local-avatar-asset-calibration-ref");
+    fs::create_dir_all(&home).unwrap();
+    let previous_home = std::env::var("HOME").ok();
+    std::env::set_var("HOME", &home);
+    let local_agent_ref = local_agent_ref();
+    write_agent_center_live2d_package_for_account_agent(
+        &home,
+        owner_user_id(),
+        owner_user_id(),
+        realm_agent_id(),
+        &local_agent_ref,
+        r#"{"Version":3}"#,
+    );
+    write_agent_center_local_avatar_asset_config_with_calibration_ref(
+        &home,
+        owner_user_id(),
+        owner_user_id(),
+        realm_agent_id(),
+        &local_agent_ref,
+        "live2d",
+        "live2d_ab12cd34ef56",
+        Some("live2d_calibration_ab12cd34ef56"),
+    );
+
+    let manifest = nimi_avatar_resolve_local_avatar_asset(LocalAvatarAssetResolvePayload {
+        account_id: owner_user_id().to_string(),
+        owner_user_id: owner_user_id().to_string(),
+        realm_agent_id: realm_agent_id().to_string(),
+        local_agent_ref,
+    })
+    .await
+    .expect("resolve local avatar asset with calibration ref");
+
+    assert_eq!(
+        manifest.live2d_calibration_ref.as_deref(),
+        Some("live2d_calibration_ab12cd34ef56")
+    );
+
+    match previous_home {
+        Some(value) => std::env::set_var("HOME", value),
+        None => std::env::remove_var("HOME"),
+    }
+    let _ = fs::remove_dir_all(&home);
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn resolve_local_avatar_asset_rejects_invalid_live2d_calibration_ref() {
+    let _guard = test_env_guard();
+    let home = unique_temp_dir("local-avatar-asset-calibration-ref-invalid");
+    fs::create_dir_all(&home).unwrap();
+    let previous_home = std::env::var("HOME").ok();
+    std::env::set_var("HOME", &home);
+    let local_agent_ref = local_agent_ref();
+    write_agent_center_live2d_package_for_account_agent(
+        &home,
+        owner_user_id(),
+        owner_user_id(),
+        realm_agent_id(),
+        &local_agent_ref,
+        r#"{"Version":3}"#,
+    );
+    write_agent_center_local_avatar_asset_config_with_calibration_ref(
+        &home,
+        owner_user_id(),
+        owner_user_id(),
+        realm_agent_id(),
+        &local_agent_ref,
+        "live2d",
+        "live2d_ab12cd34ef56",
+        Some("live2d_calibration_ABCDEF123456"),
+    );
+
+    let error = nimi_avatar_resolve_local_avatar_asset(LocalAvatarAssetResolvePayload {
+        account_id: owner_user_id().to_string(),
+        owner_user_id: owner_user_id().to_string(),
+        realm_agent_id: realm_agent_id().to_string(),
+        local_agent_ref,
+    })
+    .await
+    .expect_err("reject invalid calibration ref");
+
+    assert!(error
+        .contains("live2d_calibration_ref must use a 12-character lowercase hex digest suffix"));
 
     match previous_home {
         Some(value) => std::env::set_var("HOME", value),
@@ -444,6 +562,7 @@ async fn resolve_agent_center_avatar_asset_returns_live2d_model_manifest() {
             .display()
             .to_string()
     );
+    assert_eq!(manifest.live2d_calibration_ref, None);
 
     match previous_home {
         Some(value) => std::env::set_var("HOME", value),

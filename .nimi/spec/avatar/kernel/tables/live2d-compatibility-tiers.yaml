@@ -54,6 +54,7 @@ tiers: &live2d_compatibility_tier_values
       - "License fixture posture is explicit."
       - "Required basic motion ids map to existing model motion groups."
       - "Expressions, poses, lipsync, physics, and hit regions have explicit supported/unsupported/not_applicable dispositions."
+      - "When expression disposition is supported, mapped expression ids parse into the Avatar-owned exp3 expression inventory."
       - "Unsupported requested semantics emit diagnostics and are not counted as success."
 
   companion_complete:
@@ -64,7 +65,7 @@ tiers: &live2d_compatibility_tier_values
     requirements:
       - "All core activity ids map to existing model motion groups or NAS handlers."
       - "Idle fallback maps to an existing motion group."
-      - "Expression support is mapped or proven not applicable for every current core emotion."
+      - "Expression support is mapped or proven not applicable for every current core emotion, and every mapped expression is present in the parsed exp3 inventory."
       - "Pose support maps posture ids when pose is declared supported."
       - "Lipsync support maps an available mouth-open parameter."
       - "Physics support is either valid model physics or explicit not_applicable with no physics claim."

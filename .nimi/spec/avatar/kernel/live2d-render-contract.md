@@ -212,17 +212,80 @@ Live2D branch 默认 activity fallback 查的 motion group 名：`Activity_<Came
 
 ## K-NAV-L2D-008 Expression System
 
-### 6.1 Expression Stack
+### 6.1 Expression Stack v2
 
-Cubism 支持 expression overlay。Nimi Avatar 只维护**单一 active expression**：
+Cubism `exp3.json` expression files are parsed into an Avatar-owned expression
+inventory during Live2D backend-session creation. The inventory is backend
+evidence and debug/configuration metadata only; it is not Avatar Appearance UI,
+Runtime emotion ontology, or raw LLM tool surface.
 
-- `setExpression(id)` → blend out 旧，blend in 新（300ms fade）
-- `clearExpression()` → blend out 当前，归位 default params
+Each inventory entry admits only:
 
-### 6.2 Blend Time
+- model-local expression id from `FileReferences.Expressions[].Name`
+- source ref path
+- parameter ids
+- normalized blend modes: `Add`, `Multiply`, `Overwrite`
+- parameter counts and blend-mode counts
 
-- Default: 300ms fadeIn / 300ms fadeOut
-- 不暴露 handler 控制（简化 API v1）
+The raw `exp3.json` payload, model package path, and provider/NAS/runtime
+payloads MUST NOT be exposed through metadata or debug evidence.
+
+### 6.2 Parameter Overlay Semantics
+
+The active expression is single-valued. `setExpression(id)` activates one
+model-local expression id. `clearExpression()` deactivates it.
+
+For each active expression frame, Avatar applies parsed `exp3.json`
+parameters deterministically:
+
+| Blend | Semantics |
+|---|---|
+| `Add` | add expression value to the current Cubism parameter value |
+| `Multiply` | multiply the current Cubism parameter value by expression value |
+| `Overwrite` | set the Cubism parameter value to expression value |
+
+Unknown blend modes, malformed parameters, missing expression files, or
+semantic mappings that point to expressions absent from the inventory are
+fail-closed unsupported/failed backend evidence. They must not be counted as
+idle fallback success.
+
+### 6.3 Active-to-Inactive Reset
+
+When an expression is cleared or replaced, parameters touched only by the
+previous expression are reset to the loaded model default value before the next
+active expression overlay is applied. Reset must use Cubism model default
+parameter data; guessing defaults or leaving stale values is not admitted.
+
+### 6.4 Parameter Lane Position
+
+The admitted Live2D carrier frame applies Cubism and Avatar-local parameter
+sources through a deterministic lane scheduler:
+
+```
+1. Cubism motion manager, including motion-owned eye blink/lip-sync effect ids
+2. Avatar-owned expression stack v2 overlay
+3. Cubism physics where present
+4. Cubism pose where present
+5. Cubism breath / blink where present
+6. Avatar local look-at / idle-life lane where admitted by later waves
+7. Avatar speech/lipsync parameter writes
+8. Live2DBackendExtension direct parameter writes
+```
+
+Motion and expression lanes MUST NOT overwrite later mouth/lipsync writes in the
+same frame. Direct parameter writes remain the final explicit escape hatch and
+must not be projected through neutral `BackendProjection`.
+
+The scheduler may emit bounded diagnostic summaries:
+
+- lane order;
+- applied lane ids;
+- total lane elapsed milliseconds;
+- unsupported parameter id count;
+- speech/lipsync and direct parameter counts.
+
+It must not expose raw backend commands, raw model payloads, or parameter values
+as diagnostic truth.
 
 ---
 
@@ -245,6 +308,32 @@ Cubism 支持 expression overlay。Nimi Avatar 只维护**单一 active expressi
 - Cubism 默认 blink 启用（`CubismEyeBlink`），间隔 2-5 秒随机
 - Model 需声明 `Eyes` group（`ParamEyeLOpen` / `ParamEyeROpen`）
 - NAS handler setParameter 同样覆盖
+
+### 7.4 Avatar Look-at / Idle Life
+
+Avatar-local look-at and idle-life behavior is admitted only as presentation.
+It must not create Runtime conversation turns, wake/listening truth, foreground
+speaker arbitration, or Desktop calibration truth.
+
+The Live2D carrier may write only the standard eye parameters it can prove are
+present on the loaded model:
+
+- gaze: `ParamEyeBallX` and `ParamEyeBallY` must both be present.
+- blink: `ParamEyeLOpen` and `ParamEyeROpen` must both be present.
+
+If the compatible parameter pair is absent, the look-at / idle-life lane is a
+diagnostic no-op with a bounded reason code such as
+`eye_parameters_missing` or `eye_parameters_partial`. It must not guess
+parameter ids, expose raw model payloads, or record success evidence.
+
+The admitted inputs are Avatar-local pointer/focus state and shell actions such
+as `Look at me` / foreground-priority feedback. Cursor-to-surface mapping must
+be bounded to the current Avatar carrier surface; transparent hit-region misses
+must not drive look-at, click, drag, or radial actions.
+
+The `look_at_idle` lane runs after Cubism breath/blink and before
+speech/lipsync and direct `Live2DBackendExtension` writes, so explicit mouth or
+direct parameter writes remain protected.
 
 ## K-NAV-L2D-013 Auto Lipsync
 
@@ -269,18 +358,19 @@ Cubism 支持 expression overlay。Nimi Avatar 只维护**单一 active expressi
 
 ## K-NAV-L2D-010 Direct Parameter Access
 
-当前 Live2D backend branch 提供 parameter read/write/add：
+The Live2D backend branch exposes only the Avatar-local direct parameter escape
+hatch:
 
 ```typescript
-live2d.setParameter(id: string, value: number, weight?: number): void;
-live2d.getParameter(id: string): number;
-live2d.addParameter(id: string, delta: number): void;
+Live2DBackendExtension.setParameter(id: string, value: number, durationSec?: number): void;
 ```
 
 - `id` 用 Cubism 官方 parameter id（如 `ParamEyeBallX` / `ParamAngleX` / `ParamBreath`）
-- `weight` 0-1，default 1（完全覆盖）
-- 值 clamp 到 parameter 声明的 `[min, max]` 范围
-- 未声明的 parameter id → `console.warn` + no-op
+- The direct write is available only to admitted Avatar-local callers that hold
+  the `live2d-extension` capability or Avatar voice/lipsync carrier code.
+- Neutral `BackendProjection` must not contain backend-specific parameter ids.
+- 未声明 / unsupported parameter id → `console.warn` + no-op; no success
+  evidence may be created for that write.
 
 ### 8.2 Parameter Apply Order
 
@@ -288,14 +378,19 @@ live2d.addParameter(id: string, delta: number): void;
 
 ```
 1. Motion manager (current playing motion)
-2. Expression manager (current expression, with weight)
-3. Physics (auto physics)
-4. Auto breath / blink
-5. NAS continuous handlers (filename 字典序)
-6. NAS activity / event handlers (后调用覆盖前)
+2. Avatar expression stack v2 overlay
+3. Physics
+4. Pose
+5. Auto breath / blink
+6. Avatar look-at / idle-life lane when admitted
+7. Speech/lipsync parameter writes
+8. Live2DBackendExtension direct parameter writes
 ```
 
-最后生效的值写入 MOC3。
+最后生效的值写入 MOC3. NAS continuous/activity/event handlers may request
+direct writes only through `Live2DBackendExtension`; their filename/call-order
+arbitration happens before the final direct parameter lane receives the current
+Avatar-local command-state snapshot.
 
 ## K-NAV-L2D-011 Pose System
 

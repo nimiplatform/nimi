@@ -2,10 +2,12 @@ import { act, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { BackendAudioConsumer } from '../carrier/backend-branch.js';
 import type { Live2DBackendSession } from './backend-session.js';
+import { createEmptyLive2DExpressionInventory } from './live2d-expression-stack.js';
 import type {
   Live2DCarrierVisualFrameStats,
   Live2DCarrierVisualHost,
 } from './carrier-visual-host.js';
+import { LIVE2D_PARAMETER_LANE_ORDER } from './live2d-parameter-lane-scheduler.js';
 
 const createLive2DCarrierVisualHostMock = vi.fn();
 const recordAvatarEvidenceEventuallyMock = vi.fn();
@@ -62,12 +64,17 @@ function createSession(): Live2DBackendSession {
       physics: null,
       pose: null,
     },
+    expressionInventory: createEmptyLive2DExpressionInventory(),
     execution: {
       loaded: true,
       activeMotion: null,
       activeExpression: null,
       activePose: null,
       parameters: new Map(),
+      parameterLanes: {
+        speechLipsync: new Map(),
+        live2dExtensionDirect: new Map(),
+      },
       commandLog: [],
     },
     applyCommand: vi.fn(),
@@ -98,6 +105,16 @@ function createFrameStats(): Live2DCarrierVisualFrameStats {
     motionFrameApplied: false,
     activeExpressionId: null,
     expressionFrameApplied: false,
+    parameterLaneOrder: LIVE2D_PARAMETER_LANE_ORDER,
+    parameterLaneApplied: [],
+    parameterLaneElapsedMs: 0,
+    parameterLaneUnsupportedParameterIds: [],
+    parameterLaneSpeechLipsyncParameterCount: 0,
+    parameterLaneDirectParameterCount: 0,
+    lookAtIdleSupported: true,
+    lookAtIdleBlinkSupported: true,
+    lookAtIdleReasonCode: 'ready' as const,
+    lookAtIdleParameterIds: ['ParamEyeBallX', 'ParamEyeBallY', 'ParamEyeLOpen', 'ParamEyeROpen'],
     sampledPixels: 576,
     visiblePixels: 24,
     sampledPixelChecksum: 1234,
@@ -120,6 +137,16 @@ function createVisualHost(): Live2DCarrierVisualHost {
       motionFrameApplied: false,
       activeExpressionId: null,
       expressionFrameApplied: false,
+      parameterLaneOrder: LIVE2D_PARAMETER_LANE_ORDER,
+      parameterLaneApplied: [],
+      parameterLaneElapsedMs: 0,
+      parameterLaneUnsupportedParameterIds: [],
+      parameterLaneSpeechLipsyncParameterCount: 0,
+      parameterLaneDirectParameterCount: 0,
+      lookAtIdleSupported: true,
+      lookAtIdleBlinkSupported: true,
+      lookAtIdleReasonCode: 'ready' as const,
+      lookAtIdleParameterIds: ['ParamEyeBallX', 'ParamEyeBallY', 'ParamEyeLOpen', 'ParamEyeROpen'],
     })),
     probeVisibleFrame: vi.fn(() => createFrameStats()),
     resize: vi.fn(),

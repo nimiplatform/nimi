@@ -13,7 +13,7 @@ export type BackendHitRegion = {
   body: { left: number; top: number; right: number; bottom: number };
   drag: { left: number; top: number; right: number; bottom: number };
   isOpaqueAtClientPoint:
-    | ((clientX: number, clientY: number, threshold?: number) => boolean)
+    | ((clientX: number, clientY: number, threshold?: number) => boolean | null)
     | null;
 };
 

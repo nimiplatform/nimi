@@ -21,6 +21,7 @@ import type { AvatarModelManifest } from '@nimiplatform/kit/features/avatar/head
 import type { BackendBranch } from './backend-branch.js';
 import {
   createAvatarDebugSession,
+  evidenceRefsForAvatarDebugSession,
   recordAvatarDebugSessionEvidence,
   type AvatarDebugResolverEvidence,
   type AvatarDebugSession,
@@ -59,7 +60,12 @@ function detailProbeKind(detail: Record<string, unknown>): AvatarDebugProbeKind 
 }
 
 function backendCapabilityProfileRef(metadata: Record<string, unknown>): string | null {
-  for (const key of ['backend_capability_profile_ref', 'capability_profile_ref', 'profile_id']) {
+  for (const key of [
+    'backend_capability_profile_ref',
+    'live2d_capability_profile_evidence_ref',
+    'capability_profile_ref',
+    'profile_id',
+  ]) {
     const value = metadata[key];
     if (typeof value === 'string' && value.trim()) {
       return value.trim();
@@ -81,15 +87,19 @@ function runtimeStatusForAvatarEvidence(status: AvatarDebugSession['evidence']['
   }
 }
 
-function evidenceRefsForDebugSession(session: AvatarDebugSession): string[] {
-  return [
-    `avatar.debug.session/${session.debugSessionId}`,
-    `avatar.debug.session-evidence/${session.evidence.evidenceId}`,
-    session.avatarPackageRef ? `avatar.debug.package/${session.avatarPackageRef}` : '',
-    session.backendCapabilityProfileRef ? `avatar.debug.capability-profile/${session.backendCapabilityProfileRef}` : '',
-    ...session.evidence.refs.routeIds.map((routeId) => `avatar.debug.route/${routeId}`),
-    ...session.evidence.refs.unsupportedRouteIds.map((routeId) => `avatar.debug.unsupported-route/${routeId}`),
-  ].filter((value) => value.trim().length > 0);
+function isAvatarSubmittableDebugProbeKind(probeKind: AvatarDebugProbeKind): boolean {
+  switch (probeKind) {
+    case AvatarDebugProbeKind.BACKEND_LOAD:
+    case AvatarDebugProbeKind.CAPABILITY_PROFILE:
+    case AvatarDebugProbeKind.ROUTE_SUPPORT_MATRIX:
+    case AvatarDebugProbeKind.GENERATED_MOTION:
+    case AvatarDebugProbeKind.EMOTION_EXPRESSION:
+    case AvatarDebugProbeKind.SPEECH_LIPSYNC:
+    case AvatarDebugProbeKind.WINDOW_HIT_REGION:
+      return true;
+    default:
+      return false;
+  }
 }
 
 async function submitRuntimeAvatarDebugResult(input: {
@@ -135,6 +145,20 @@ async function submitRuntimeAvatarDebugResult(input: {
     });
     return;
   }
+  if (!isAvatarSubmittableDebugProbeKind(probeKind)) {
+    recordAvatarEvidenceEventually({
+      kind: 'avatar.debug.probe-submit-skipped',
+      detail: {
+        reason: 'runtime_avatar_debug_probe_not_avatar_submittable',
+        probe_id: probeId,
+        agent_id: agentId,
+        conversation_anchor_id: conversationAnchorId,
+        probe_kind: probeKind,
+        skipped_at: observedAt,
+      },
+    });
+    return;
+  }
   try {
     const session = createAvatarDebugSession({
       debugSessionId: probeId,
@@ -162,7 +186,7 @@ async function submitRuntimeAvatarDebugResult(input: {
       probeKind: session.probeKind,
       status: runtimeStatusForAvatarEvidence(session.evidence.status),
       observedAt: timestampFromIso(session.observedAt),
-      evidenceRefs: evidenceRefsForDebugSession(session),
+      evidenceRefs: evidenceRefsForAvatarDebugSession(session),
       reasonCode: session.evidence.reasonCode || '',
       resultId: `avatar-debug-result-${ulid()}`,
     }, detail.scopedBinding);

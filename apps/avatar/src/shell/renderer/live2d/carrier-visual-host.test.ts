@@ -1,15 +1,27 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { Live2DBackendSession } from './backend-session.js';
 import type { Live2DVisualModelShape, Live2DVisualRuntime } from './carrier-visual-runtime.js';
+import {
+  createLive2DExpressionInventory,
+  createEmptyLive2DExpressionInventory,
+  type Live2DExpressionParameter,
+} from './live2d-expression-stack.js';
+import { LIVE2D_PARAMETER_LANE_ORDER } from './live2d-parameter-lane-scheduler.js';
 
 function createSession(input: {
   loaded?: boolean;
   parameters?: Map<string, number>;
   activeMotion?: string | null;
   activeExpression?: string | null;
+  speechLipsyncParameters?: Map<string, number>;
+  expressionParameters?: readonly Live2DExpressionParameter[];
   motionGroups?: Map<string, string[]>;
   expressions?: Map<string, string>;
+  physicsPath?: string | null;
+  posePath?: string | null;
 } = {}): Live2DBackendSession {
+  const directParameters = input.parameters ?? new Map();
+  const speechLipsyncParameters = input.speechLipsyncParameters ?? new Map();
   return {
     manifest: {
       runtimeDir: '/models/ren/runtime',
@@ -37,8 +49,8 @@ function createSession(input: {
       texturePaths: ['/models/ren/runtime/ren.4096/texture_00.png'],
       motionGroups: input.motionGroups ?? new Map(),
       expressions: input.expressions ?? new Map(),
-      physicsPath: null,
-      posePath: null,
+      physicsPath: input.physicsPath ?? null,
+      posePath: input.posePath ?? null,
       displayInfoPath: null,
     },
     compatibility: {
@@ -58,12 +70,28 @@ function createSession(input: {
       physics: null,
       pose: null,
     },
+    expressionInventory: input.expressions && input.expressions.size > 0
+      ? createLive2DExpressionInventory(Array.from(input.expressions.keys()).map((expressionId) => ({
+        expressionId,
+        sourcePath: input.expressions?.get(expressionId) ?? '',
+        parameters: input.expressionParameters ?? [
+          { id: 'ParamAngleX', value: 4, blend: 'add' },
+        ],
+      })))
+      : createEmptyLive2DExpressionInventory(),
     execution: {
       loaded: input.loaded ?? true,
       activeMotion: input.activeMotion ?? null,
       activeExpression: input.activeExpression ?? null,
       activePose: null,
-      parameters: input.parameters ?? new Map(),
+      parameters: new Map([
+        ...speechLipsyncParameters,
+        ...directParameters,
+      ]),
+      parameterLanes: {
+        speechLipsync: speechLipsyncParameters,
+        live2dExtensionDirect: directParameters,
+      },
       commandLog: [],
     },
     applyCommand: vi.fn(),
@@ -149,15 +177,38 @@ function createFakeRuntime(gl: ReturnType<typeof createFakeGl>): Live2DVisualRun
   }
 
   class FakeUserModel {
+    private readonly parameterIds = [
+      'ParamAngleX',
+      'ParamBodyAngleX',
+      'ParamBodyAngleZ',
+      'ParamMouthOpenY',
+      'ParamEyeBallX',
+      'ParamEyeBallY',
+      'ParamEyeLOpen',
+      'ParamEyeROpen',
+    ];
+    private readonly parameterDefaults = [0, 0, 0, 0, 0, 0, 1, 1];
+    private readonly parameterValues = [0, 0, 0, 0, 0, 0, 1, 1];
     private readonly model: Live2DVisualModelShape = {
       loadParameters: vi.fn(),
       saveParameters: vi.fn(),
       update: vi.fn(),
       setParameterValueById: vi.fn((parameterId: unknown, value: number) => {
-        if (parameterId === 'ParamAngleX' || parameterId === 'ParamBodyAngleX' || parameterId === 'ParamBodyAngleZ') {
-          gl.__setInteractionTone(value);
-        }
+        this.writeParameterValue(parameterId, value);
       }),
+      getParameterValueById: vi.fn((parameterId: unknown) => this.readParameterValue(parameterId)),
+      getParameterDefaultValueById: vi.fn((parameterId: unknown) => this.readParameterDefaultValue(parameterId)),
+      addParameterValueById: vi.fn((parameterId: unknown, value: number) => {
+        this.writeParameterValue(parameterId, this.readParameterValue(parameterId) + value);
+      }),
+      multiplyParameterValueById: vi.fn((parameterId: unknown, value: number) => {
+        this.writeParameterValue(parameterId, this.readParameterValue(parameterId) * value);
+      }),
+      parameters: {
+        ids: this.parameterIds,
+        values: this.parameterValues,
+        defaultValues: this.parameterDefaults,
+      },
       getCanvasWidth: () => 2,
       getCanvasHeight: () => 2,
       getDrawableCount: () => 1,
@@ -222,6 +273,26 @@ function createFakeRuntime(gl: ReturnType<typeof createFakeGl>): Live2DVisualRun
       }),
     };
     public _model: Live2DVisualModelShape | null = null;
+    private parameterIndex(parameterId: unknown): number {
+      return this.parameterIds.indexOf(String(parameterId));
+    }
+    private readParameterValue(parameterId: unknown): number {
+      const index = this.parameterIndex(parameterId);
+      return index >= 0 ? this.parameterValues[index] ?? 0 : Number.NaN;
+    }
+    private readParameterDefaultValue(parameterId: unknown): number {
+      const index = this.parameterIndex(parameterId);
+      return index >= 0 ? this.parameterDefaults[index] ?? 0 : Number.NaN;
+    }
+    private writeParameterValue(parameterId: unknown, value: number): void {
+      const index = this.parameterIndex(parameterId);
+      if (index >= 0) {
+        this.parameterValues[index] = value;
+      }
+      if (parameterId === 'ParamAngleX' || parameterId === 'ParamBodyAngleX' || parameterId === 'ParamBodyAngleZ' || parameterId === 'ParamMouthOpenY') {
+        gl.__setInteractionTone(value);
+      }
+    }
     public loadModel(_buffer: ArrayBuffer, _shouldCheckMocConsistency?: boolean) {
       this._model = this.model;
     }
@@ -288,10 +359,18 @@ function createFakeRuntime(gl: ReturnType<typeof createFakeGl>): Live2DVisualRun
     },
     BreathParameterData: class {},
     CubismPhysics: {
-      create: vi.fn(() => null),
+      create: vi.fn(() => ({
+        evaluate: vi.fn((model: unknown) => {
+          (model as Live2DVisualModelShape).setParameterValueById('ParamAngleX', 9);
+        }),
+      })),
     },
     CubismPose: {
-      create: vi.fn(() => null),
+      create: vi.fn(() => ({
+        updateParameters: vi.fn((model: unknown) => {
+          (model as Live2DVisualModelShape).setParameterValueById('ParamBodyAngleX', 5);
+        }),
+      })),
     },
     CubismMatrix44: class {
       public getArray() { return new Float32Array(16); }
@@ -320,8 +399,12 @@ async function createHostWithFakeRuntime(options: {
   parameters?: Map<string, number>;
   activeMotion?: string | null;
   activeExpression?: string | null;
+  speechLipsyncParameters?: Map<string, number>;
+  expressionParameters?: readonly Live2DExpressionParameter[];
   motionGroups?: Map<string, string[]>;
   expressions?: Map<string, string>;
+  physicsPath?: string | null;
+  posePath?: string | null;
 }) {
   const { createLive2DCarrierVisualHost } = await import('./carrier-visual-host.js');
   const gl = createFakeGl({ drawVisible: options.drawVisible });
@@ -336,8 +419,12 @@ async function createHostWithFakeRuntime(options: {
       parameters: options.parameters,
       activeMotion: options.activeMotion,
       activeExpression: options.activeExpression,
+      speechLipsyncParameters: options.speechLipsyncParameters,
+      expressionParameters: options.expressionParameters,
       motionGroups: options.motionGroups,
       expressions: options.expressions,
+      physicsPath: options.physicsPath,
+      posePath: options.posePath,
     }),
     width: 128,
     height: 160,
@@ -434,6 +521,102 @@ describe('Live2D carrier visual host', () => {
       motionFrameApplied: true,
       activeExpressionId: 'exp_01',
       expressionFrameApplied: true,
+      parameterLaneOrder: LIVE2D_PARAMETER_LANE_ORDER,
     }));
+  });
+
+  it('surfaces speech and direct parameter lanes while preserving final direct mouth precedence', async () => {
+    const { host } = await createHostWithFakeRuntime({
+      drawVisible: true,
+      activeExpression: 'talking_smile',
+      expressions: new Map([
+        ['talking_smile', '/models/ren/runtime/expressions/talking_smile.exp3.json'],
+      ]),
+      expressionParameters: [
+        { id: 'ParamMouthOpenY', value: 0.9, blend: 'overwrite' },
+      ],
+      speechLipsyncParameters: new Map([
+        ['ParamMouthOpenY', 0.3],
+      ]),
+      parameters: new Map([
+        ['ParamMouthOpenY', 0.1],
+      ]),
+    });
+
+    const stats = host.probeVisibleFrame({ deltaTimeSeconds: 1 / 60, seconds: 1 });
+
+    expect(stats.parameterLaneOrder).toEqual(LIVE2D_PARAMETER_LANE_ORDER);
+    expect(stats.parameterLaneApplied).toEqual(expect.arrayContaining([
+      'expression',
+      'breath_blink',
+      'speech_lipsync',
+      'live2d_extension_direct',
+    ]));
+    expect(stats.parameterLaneSpeechLipsyncParameterCount).toBe(1);
+    expect(stats.parameterLaneDirectParameterCount).toBe(1);
+    expect(stats.parameterLaneUnsupportedParameterIds).toEqual([]);
+  });
+
+  it('runs the look-at / idle-life lane when compatible eye parameters are present', async () => {
+    const { host } = await createHostWithFakeRuntime({
+      drawVisible: true,
+      parameters: new Map([
+        ['ParamAngleX', 9],
+        ['ParamAngleY', -4],
+      ]),
+    });
+
+    const stats = host.drawFrame({ deltaTimeSeconds: 1 / 30, seconds: 4.21 });
+
+    expect(stats.parameterLaneApplied).toEqual(expect.arrayContaining([
+      'look_at_idle',
+      'live2d_extension_direct',
+    ]));
+    expect(stats.lookAtIdleSupported).toBe(true);
+    expect(stats.lookAtIdleBlinkSupported).toBe(true);
+    expect(stats.lookAtIdleReasonCode).toBe('ready');
+    expect(stats.lookAtIdleParameterIds).toEqual([
+      'ParamEyeBallX',
+      'ParamEyeBallY',
+      'ParamEyeLOpen',
+      'ParamEyeROpen',
+    ]);
+  });
+
+  it('updates loaded physics and pose during the official SDK visual frame', async () => {
+    const { host: baselineHost } = await createHostWithFakeRuntime({ drawVisible: true });
+    const { host: physicsPoseHost } = await createHostWithFakeRuntime({
+      drawVisible: true,
+      physicsPath: '/models/ren/runtime/ren.physics3.json',
+      posePath: '/models/ren/runtime/ren.pose3.json',
+    });
+
+    const baseline = baselineHost.probeVisibleFrame({ deltaTimeSeconds: 1 / 60, seconds: 1 });
+    const withPhysicsPose = physicsPoseHost.probeVisibleFrame({ deltaTimeSeconds: 1 / 60, seconds: 1 });
+
+    expect(withPhysicsPose.visiblePixels).toBeGreaterThan(0);
+    expect(withPhysicsPose.sampledPixelChecksum).not.toBe(baseline.sampledPixelChecksum);
+    expect(withPhysicsPose.parameterLaneApplied).toEqual(expect.arrayContaining([
+      'physics',
+      'pose',
+      'breath_blink',
+    ]));
+  });
+
+  it('warns and skips unsupported direct parameter ids in the carrier lane frame', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const { host } = await createHostWithFakeRuntime({
+      drawVisible: true,
+      parameters: new Map([
+        ['ParamMissing', 1],
+      ]),
+    });
+
+    const stats = host.drawFrame({ deltaTimeSeconds: 1 / 60, seconds: 1 });
+
+    expect(stats.parameterLaneUnsupportedParameterIds).toEqual(['ParamMissing']);
+    expect(stats.parameterLaneDirectParameterCount).toBe(1);
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('ParamMissing'));
+    warnSpy.mockRestore();
   });
 });

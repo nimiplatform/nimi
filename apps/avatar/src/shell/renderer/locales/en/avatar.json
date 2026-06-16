@@ -4,7 +4,17 @@
       "placeholder": "Type a message…",
       "aria_label": "Type a message to send to this anchor",
       "send_aria": "Send message",
+      "close_aria": "Close text input",
       "send_failed_prefix": "Send failed"
+    },
+    "action_radial": {
+      "aria": "Avatar actions",
+      "greet": "Greet",
+      "look_at_me": "Look at me",
+      "happy": "Happy",
+      "quiet": "Quiet",
+      "random_motion": "Random motion",
+      "open_text_input": "Open text input"
     },
     "status": {
       "idle": "Idle",
@@ -18,11 +28,11 @@
       "blocked": "Voice blocked",
       "audio_unavailable_short": "Audio unavailable",
       "toolbar_aria": "Companion status",
-      "mic_listen_aria": "Start foreground voice listening",
-      "mic_commit_aria": "Stop listening and submit voice turn",
+      "mic_listen_aria": "Voice listening is controlled by Runtime",
+      "mic_commit_aria": "Voice capture is controlled by Runtime",
       "mic_blocked_aria": "Voice input unavailable for this state",
       "interrupt_aria": "Interrupt current reply",
-      "settings_aria": "Open companion settings",
+      "settings_aria": "Open Avatar settings",
       "voice_capture_inactive_error": "Foreground voice capture is no longer active.",
       "audio_unavailable": "Audio playback is unavailable; lipsync continues from frames only.",
       "lipsync_disabled": "Lipsync is disabled for this model.",
@@ -137,22 +147,93 @@
       }
     },
     "settings": {
-      "popover_aria": "Companion settings",
-      "header": "Companion settings",
+      "popover_aria": "Avatar settings",
+      "header": "Avatar settings",
       "close_aria": "Close settings",
       "always_on_top": {
         "label": "Always on top",
         "help": "Pin avatar above other windows."
-      },
-      "bubble_auto_open": {
-        "label": "Auto-open new replies",
-        "help": "Reveal fresh assistant replies immediately."
       },
       "show_voice_captions": {
         "label": "Show voice captions",
         "help": "Bounded foreground voice captions only.",
         "note": "Voice captions remain bounded to the current explicit anchor either way."
       }
+    },
+    "appearance": {
+      "popover_aria": "Avatar appearance",
+      "header": "Appearance",
+      "close_aria": "Close appearance",
+      "labels": {
+        "backend": "Backend",
+        "model": "Model",
+        "source": "Source",
+        "scale": "Scale",
+        "selection_owner": "Selection owner"
+      },
+      "owner": {
+        "desktop_configuration": "Desktop avatar configuration"
+      },
+      "backend": {
+        "live2d": "Live2D",
+        "vrm": "VRM",
+        "unknown": "Unknown"
+      },
+      "source": {
+        "runtime": "Runtime-bound",
+        "fixture": "Fixture",
+        "unknown": "Unknown"
+      },
+      "not_loaded": "Not loaded"
+    },
+    "debug": {
+      "popover_aria": "Avatar debug",
+      "header": "Avatar debug",
+      "close_aria": "Close debug",
+      "refresh": "Refresh",
+      "request_all": "Request probes",
+      "loading": "Loading debug snapshot",
+      "empty": "No probe results yet",
+      "error_prefix": "Debug request failed",
+      "columns": {
+        "probe": "Probe",
+        "status": "Status",
+        "evidence": "Evidence",
+        "replay": "Replay"
+      },
+      "evidence_count": "{{count}} refs",
+      "no_replay": "No replay",
+      "status": {
+        "passed": "Passed",
+        "failed": "Failed",
+        "unsupported": "Unsupported",
+        "blocked": "Blocked",
+        "invalid": "Invalid",
+        "unknown": "Unknown"
+      },
+      "probe": {
+        "backend_load": "Backend load",
+        "capability_profile": "Capability profile",
+        "route_support_matrix": "Route support",
+        "generated_motion": "Generated motion",
+        "emotion_expression": "Emotion expression",
+        "speech_lipsync": "Speech lipsync",
+        "window_hit_region": "Window hit region"
+      }
+    },
+    "context_menu": {
+      "aria": "Avatar tools",
+      "open_text_input": "Open text input",
+      "wake_foreground": "Wake foreground",
+      "interrupt": "Interrupt output",
+      "appearance": "Appearance",
+      "reset_scale": "Reset scale",
+      "always_on_top": "Always on top",
+      "hide": "Hide avatar",
+      "close": "Close this avatar",
+      "settings": "Settings",
+      "debug": "Debug",
+      "pending": "Pending"
     },
     "shell": {
       "companion_aria": "Avatar companion",
