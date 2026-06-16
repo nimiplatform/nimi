@@ -187,16 +187,20 @@ exports[`Avatar shell visual snapshots > ready surface (embodiment-stage + compa
   </section>
   <section
     aria-label="Avatar companion"
-    class="nimi-surface rounded-[var(--nimi-radius-md)] border transition-colors duration-[var(--nimi-motion-fast)] nimi-surface--overlay nimi-surface--elevation-floating shadow-[var(--nimi-elevation-floating)] nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border-[var(--nimi-material-glass-regular-border)] avatar-companion-surface nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)] avatar-companion-surface--idle"
-    data-nimi-material="glass-regular"
-    data-nimi-requested-material="glass-regular"
-    data-nimi-tone="overlay"
-    data-nimi-transparency="default"
+    class="avatar-companion-surface avatar-companion-surface--idle"
+    data-audio-playback-state="idle"
+    data-lipsync-active="false"
+    data-presence-state="idle"
+    data-presence-tone="idle"
+    data-privacy-indicator="mic_idle"
     data-testid="avatar-companion-surface"
+    data-voice-level="0%"
+    style="--avatar-voice-level: 0%;"
   >
     <div
       aria-label="Companion status"
-      class="avatar-companion-surface__status-row"
+      class="avatar-companion-surface__presence-capsule"
+      data-testid="avatar-companion-presence-capsule"
       role="toolbar"
     >
       <button
@@ -204,15 +208,48 @@ exports[`Avatar shell visual snapshots > ready surface (embodiment-stage + compa
         aria-pressed="false"
         class="avatar-companion-surface__mic avatar-companion-surface__mic--idle"
         data-testid="avatar-companion-mic"
+        title="Start foreground voice listening"
         type="button"
       >
         <span
           aria-hidden="true"
           class="avatar-companion-surface__mic-icon"
         >
-          🎙
+          <svg
+            aria-hidden="true"
+            class="lucide lucide-mic"
+            fill="none"
+            height="16"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="16"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M12 19v3"
+            />
+            <path
+              d="M19 10v2a7 7 0 0 1-14 0v-2"
+            />
+            <rect
+              height="13"
+              rx="3"
+              width="6"
+              x="9"
+              y="2"
+            />
+          </svg>
         </span>
       </button>
+      <span
+        aria-label="Privacy indicator: Idle"
+        class="avatar-companion-surface__privacy-indicator avatar-companion-surface__privacy-indicator--mic_idle"
+        role="status"
+        title="Privacy indicator: Idle"
+      />
       <span
         class="avatar-companion-surface__status-label"
         data-testid="avatar-companion-status"
@@ -220,53 +257,101 @@ exports[`Avatar shell visual snapshots > ready surface (embodiment-stage + compa
         Idle
       </span>
       <span
-        aria-hidden="true"
+        aria-label="Idle"
         class="avatar-companion-surface__speaker"
+        role="status"
+        title="Idle"
       >
-        🔈
+        <svg
+          aria-hidden="true"
+          class="lucide lucide-volume2 lucide-volume-2"
+          fill="none"
+          height="16"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="16"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z"
+          />
+          <path
+            d="M16 9a5 5 0 0 1 0 6"
+          />
+          <path
+            d="M19.364 18.364a9 9 0 0 0 0-12.728"
+          />
+        </svg>
       </span>
       <button
-        aria-controls="avatar-companion-settings-popover"
+        aria-controls="avatar-companion-composer"
         aria-expanded="false"
-        aria-label="Open companion settings"
-        class="nimi-action inline-flex max-w-full shrink-0 items-center justify-center gap-2 whitespace-nowrap border font-semibold tracking-[var(--nimi-type-label-letter-spacing)] rounded-[var(--nimi-radius-action)] transition-all duration-[var(--nimi-motion-fast)] cursor-pointer disabled:cursor-not-allowed disabled:opacity-[var(--nimi-opacity-disabled)] nimi-action--ghost bg-transparent border-transparent text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)] hover:-translate-y-px nimi-action--size-sm min-h-[var(--nimi-sizing-action-sm-height)] text-[length:var(--nimi-type-body-sm-size)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring,#3b82f6)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--nimi-focus-ring-offset,transparent)] nimi-action--icon aspect-square px-0 avatar-companion-surface__settings"
+        aria-label="Type a message to send to this anchor"
+        class="nimi-action inline-flex max-w-full shrink-0 items-center justify-center gap-2 whitespace-nowrap border font-semibold tracking-[var(--nimi-type-label-letter-spacing)] rounded-[var(--nimi-radius-action)] transition-all duration-[var(--nimi-motion-fast)] cursor-pointer disabled:cursor-not-allowed disabled:opacity-[var(--nimi-opacity-disabled)] nimi-action--ghost bg-transparent border-transparent text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)] hover:-translate-y-px nimi-action--size-sm min-h-[var(--nimi-sizing-action-sm-height)] text-[length:var(--nimi-type-body-sm-size)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring,#3b82f6)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--nimi-focus-ring-offset,transparent)] nimi-action--icon aspect-square px-0 avatar-companion-surface__text-entry"
+        title="Type a message to send to this anchor"
         type="button"
       >
         <span
           class="nimi-action__icon inline-flex shrink-0 items-center justify-center"
         >
-          ⚙
+          <svg
+            aria-hidden="true"
+            class="lucide lucide-message-circle"
+            fill="none"
+            height="16"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="16"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719"
+            />
+          </svg>
+        </span>
+      </button>
+      <button
+        aria-controls="avatar-companion-settings-popover"
+        aria-expanded="false"
+        aria-label="Open companion settings"
+        class="nimi-action inline-flex max-w-full shrink-0 items-center justify-center gap-2 whitespace-nowrap border font-semibold tracking-[var(--nimi-type-label-letter-spacing)] rounded-[var(--nimi-radius-action)] transition-all duration-[var(--nimi-motion-fast)] cursor-pointer disabled:cursor-not-allowed disabled:opacity-[var(--nimi-opacity-disabled)] nimi-action--ghost bg-transparent border-transparent text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)] hover:-translate-y-px nimi-action--size-sm min-h-[var(--nimi-sizing-action-sm-height)] text-[length:var(--nimi-type-body-sm-size)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring,#3b82f6)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--nimi-focus-ring-offset,transparent)] nimi-action--icon aspect-square px-0 avatar-companion-surface__settings"
+        title="Open companion settings"
+        type="button"
+      >
+        <span
+          class="nimi-action__icon inline-flex shrink-0 items-center justify-center"
+        >
+          <svg
+            aria-hidden="true"
+            class="lucide lucide-settings"
+            fill="none"
+            height="16"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="16"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"
+            />
+            <circle
+              cx="12"
+              cy="12"
+              r="3"
+            />
+          </svg>
         </span>
       </button>
     </div>
-    <form
-      class="avatar-companion-surface__composer"
-      data-testid="avatar-companion-composer"
-    >
-      <label
-        class="flex rounded-[var(--nimi-radius-field)] border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] text-[var(--nimi-field-text)] transition-colors duration-[var(--nimi-motion-fast)] focus-within:border-[var(--nimi-field-focus)] focus-within:ring-[length:var(--nimi-focus-ring-width)] focus-within:ring-[var(--nimi-focus-ring-color)] avatar-companion-surface__composer-field"
-      >
-        <textarea
-          aria-label="Type a message to send to this anchor"
-          class="min-h-[var(--nimi-sizing-textarea-min-height)] w-full resize-y bg-transparent px-3 py-2 outline-none placeholder:text-[var(--nimi-field-placeholder)] avatar-companion-surface__composer-input"
-          maxlength="400"
-          placeholder="Type a message…"
-          rows="1"
-        />
-      </label>
-      <button
-        aria-label="Send message"
-        class="nimi-action inline-flex max-w-full shrink-0 items-center justify-center gap-2 whitespace-nowrap border font-semibold tracking-[var(--nimi-type-label-letter-spacing)] rounded-[var(--nimi-radius-action)] transition-all duration-[var(--nimi-motion-fast)] cursor-pointer disabled:cursor-not-allowed disabled:opacity-[var(--nimi-opacity-disabled)] nimi-action--primary bg-[var(--nimi-action-primary-bg)] border-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] hover:bg-[var(--nimi-action-primary-bg-hover)] hover:-translate-y-px nimi-action--size-sm min-h-[var(--nimi-sizing-action-sm-height)] px-3 text-[length:var(--nimi-type-body-sm-size)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring,#3b82f6)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--nimi-focus-ring-offset,transparent)] avatar-companion-surface__composer-send"
-        disabled=""
-        type="submit"
-      >
-        <span
-          class="inline-flex min-w-0 items-center justify-center gap-2 overflow-hidden text-ellipsis whitespace-nowrap"
-        >
-          ➤
-        </span>
-      </button>
-    </form>
   </section>
 </div>
 `;

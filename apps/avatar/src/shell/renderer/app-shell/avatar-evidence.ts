@@ -29,6 +29,8 @@ export type AvatarEvidenceKind =
   | 'avatar.carrier.lifecycle.failed_closed'
   | 'avatar.audio.pipeline.ready'
   | 'avatar.audio.pipeline.failed'
+  | 'avatar.audio.lifecycle.state_changed'
+  | 'avatar.audio.privacy.indicator_changed'
   | 'avatar.hit_region.degraded'
   | 'avatar.carrier.interaction'
   | 'avatar.debug.session-evidence'

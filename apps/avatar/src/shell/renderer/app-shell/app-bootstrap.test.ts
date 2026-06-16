@@ -164,7 +164,36 @@ vi.mock('@nimiplatform/sdk', () => ({
 }));
 
 vi.mock('../mock/scenarios/default.mock.json?raw', () => ({
-  default: JSON.stringify({ fixture: true }),
+  default: JSON.stringify({
+    scenario_id: 'default',
+    agent_bootstrap: {
+      active_world_id: 'world-mock-default',
+      active_user_id: 'user-mock-default',
+    },
+  }),
+}));
+
+vi.mock('../mock/scenarios/vrm-lifecycle.mock.json?raw', () => ({
+  default: JSON.stringify({
+    scenario_id: 'vrm-lifecycle',
+    agent_bootstrap: {
+      active_world_id: 'world-mock-vrm-lifecycle',
+      active_user_id: 'user-mock-vrm-lifecycle',
+    },
+    vrm_lifecycle: {
+      model_manifest: {
+        kind: 'vrm',
+        modelId: 'vrm1-constraint-twist',
+        runtimeDir: '.cache/assets/vrm-models',
+        nimiDir: null,
+        posterPath: null,
+        vrm: {
+          vrmFile: '.cache/assets/vrm-models/VRM1_Constraint_Twist_Sample.vrm',
+          motionPresetsDir: null,
+        },
+      },
+    },
+  }),
 }));
 
 vi.mock('../carrier/model-resolver.js', () => ({
@@ -460,6 +489,7 @@ describe('bootstrapAvatar', () => {
 
   afterEach(() => {
     vi.useRealTimers();
+    vi.unstubAllEnvs();
   });
 
   it('bootstraps default Avatar as a local first-party Runtime app from minimal launch intent', async () => {
@@ -1018,7 +1048,7 @@ describe('bootstrapAvatar', () => {
     await handle.shutdown();
   });
 
-  it('uses mock fixture only when explicitly requested', async () => {
+  it('fails closed for default mock fixture when no visual model manifest is declared', async () => {
     driverKind = 'mock';
     createDriverMock.mockReturnValue(createFakeDriver('mock'));
     const { bootstrapAvatar } = await import('./app-bootstrap.js');
@@ -1029,7 +1059,60 @@ describe('bootstrapAvatar', () => {
       kind: 'mock',
       scenarioSource: 'default.mock.json',
     }));
-    expect(useAvatarStore.getState().consume.authority).toBe('fixture');
+    expect(startAvatarRuntimeCarrierMock).not.toHaveBeenCalled();
+    expect(useAvatarStore.getState().consume).toEqual(expect.objectContaining({
+      mode: 'mock',
+      authority: 'fixture',
+      fixtureId: 'default',
+      fixturePlaying: true,
+      avatarInstanceId: 'fixture-avatar-default',
+      conversationAnchorId: 'fixture-anchor-default',
+      agentId: 'fixture-agent-default',
+      worldId: 'world-mock-default',
+    }));
+    expect(useAvatarStore.getState().runtime.binding.status).toBe('unavailable');
+    expect(useAvatarStore.getState().model).toEqual(expect.objectContaining({
+      loadState: 'error',
+      error: 'mock fixture "default" does not declare a visual model manifest',
+    }));
+
+    await handle.shutdown();
+  });
+
+  it('starts visual carrier for explicit mock fixture with a model manifest', async () => {
+    driverKind = 'mock';
+    vi.stubEnv('VITE_AVATAR_MOCK_SCENARIO', 'vrm-lifecycle');
+    createDriverMock.mockReturnValue(createFakeDriver('mock'));
+    const { bootstrapAvatar } = await import('./app-bootstrap.js');
+
+    const handle = await bootstrapAvatar();
+
+    expect(createDriverMock).toHaveBeenCalledWith(expect.objectContaining({
+      kind: 'mock',
+      scenarioSource: 'vrm-lifecycle.mock.json',
+    }));
+    expect(startAvatarRuntimeCarrierMock).toHaveBeenCalledWith(expect.objectContaining({
+      driver: handle.driver,
+      modelManifest: expect.objectContaining({
+        kind: 'vrm',
+        modelId: 'vrm1-constraint-twist',
+        runtimeDir: expect.stringContaining('.cache/assets/vrm-models'),
+        vrm: expect.objectContaining({
+          vrmFile: expect.stringContaining('VRM1_Constraint_Twist_Sample.vrm'),
+        }),
+      }),
+    }));
+    expect(useAvatarStore.getState().consume).toEqual(expect.objectContaining({
+      mode: 'mock',
+      authority: 'fixture',
+      fixtureId: 'vrm-lifecycle',
+      fixturePlaying: true,
+      avatarInstanceId: 'fixture-avatar-vrm-lifecycle',
+      conversationAnchorId: 'fixture-anchor-vrm-lifecycle',
+      agentId: 'fixture-agent-vrm-lifecycle',
+      worldId: 'world-mock-vrm-lifecycle',
+    }));
+    expect(useAvatarStore.getState().runtime.binding.status).toBe('unavailable');
 
     await handle.shutdown();
   });

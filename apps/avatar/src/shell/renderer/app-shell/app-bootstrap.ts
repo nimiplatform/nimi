@@ -43,7 +43,7 @@ import {
   applyLaunchContextRuntimeDefaults,
   errorMessage,
   installAvatarRuntimeBridge,
-  loadDefaultMockScenarioJson,
+  loadSelectedMockScenarioFixture,
   readNormalizedString,
   resolveRuntimeAppId,
   waitForAvatarLaunchContext,
@@ -201,18 +201,35 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
     const driverKind = resolveDriverKind();
 
     if (driverKind === 'mock') {
-      const scenarioJson = await loadDefaultMockScenarioJson();
+      const fixture = await loadSelectedMockScenarioFixture();
       useAvatarStore.getState().setConsumeMode({
         mode: 'mock',
         authority: 'fixture',
-        fixtureId: 'default',
+        fixtureId: fixture.scenarioId,
         fixturePlaying: true,
+      });
+      useAvatarStore.getState().setRuntimeConsumeContext({
+        avatarInstanceId: `fixture-avatar-${fixture.scenarioId}`,
+        conversationAnchorId: `fixture-anchor-${fixture.scenarioId}`,
+        agentId: `fixture-agent-${fixture.scenarioId}`,
+        worldId: fixture.activeWorldId,
       });
       driver = createDriver({
         kind: 'mock',
-        scenarioJson,
-        scenarioSource: 'default.mock.json',
+        scenarioJson: fixture.scenarioJson,
+        scenarioSource: fixture.scenarioSource,
       });
+      if (fixture.modelManifest) {
+        const activeDriver = driver;
+        carrier = await runFirstPartyStage('runtime_carrier_start', () => startAvatarRuntimeCarrier({
+          driver: activeDriver,
+          modelManifest: fixture.modelManifest!,
+        }));
+      } else {
+        useAvatarStore.getState().setModelError(
+          `mock fixture "${fixture.scenarioId}" does not declare a visual model manifest`,
+        );
+      }
     } else {
       if (!isTauriRuntime() || !hasTauriInvoke()) {
         throw new Error('avatar real runtime bootstrap requires Tauri runtime');

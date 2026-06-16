@@ -1,18 +1,38 @@
-// Wave 1 — Companion Surface (always-visible compact stack).
-// Per app-shell-contract.md K-NAV-SHELL-COMPANION-001..010 this surface is mounted
-// alongside embodiment-stage when composition state is `ready` or `fixture_active`.
-// Three-layer stack: assistant-bubble / status-row / composer. Anchor binding is
-// hard-bound to the current launch-selected agent_id + conversation_anchor_id;
-// no cross-anchor messages, no trigger-toggle gating.
+// Companion Surface: stage-first presence capsule + optional cue/tray.
+// The surface is mounted alongside embodiment-stage for ready/fixture_active,
+// but only the compact presence capsule is visible by default.
 
-import { useCallback, type ChangeEvent, type FormEvent, type KeyboardEvent, type RefObject } from 'react';
-import { Button, IconButton, Surface, TextareaField, cn } from '@nimiplatform/kit/ui';
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  type CSSProperties,
+  type ChangeEvent,
+  type FormEvent,
+  type KeyboardEvent,
+  type RefObject,
+} from 'react';
+import {
+  LoaderCircle,
+  MessageCircle,
+  Mic,
+  MicOff,
+  Send,
+  Settings,
+  Square,
+  Volume2,
+  VolumeX,
+  X,
+} from 'lucide-react';
+import { IconButton, TextareaField, cn } from '@nimiplatform/kit/ui';
 import { useTranslation } from '../i18n/index.js';
 import {
   beginCompanionSubmit,
   collapseCompanionBubble,
   completeCompanionSubmit,
+  dismissCompanionInput,
   failCompanionSubmit,
+  openCompanionInput,
   setCompanionDraft,
   type CompanionAnchorBinding,
   type CompanionState,
@@ -32,6 +52,11 @@ import type { AvatarShellSettings } from '../settings-state.js';
 import type { BootstrapHandle } from '../app-shell/app-bootstrap.js';
 import type { AvatarVoiceCaptureSession } from '../voice-capture.js';
 import type { NimiRuntimeAgentCompanionParticipationProjection } from '@nimiplatform/sdk/runtime';
+import { recordAvatarEvidenceEventually } from '../app-shell/avatar-evidence.js';
+import {
+  derivePresenceState,
+  type PresenceState,
+} from './presence-state-machine.js';
 
 export type CompanionSurfaceProps = {
   bootstrapHandle: BootstrapHandle | null;
@@ -40,9 +65,8 @@ export type CompanionSurfaceProps = {
   companion: CompanionState;
   voice: VoiceCompanionState;
   shellSettings: AvatarShellSettings;
-  // composition state (K-NAV-SHELL-COMPOSITION-001) at mount time. Required so
-  // the surface-mounted/unmounted evidence carries the correct posture
-  // annotation (`ready` vs `fixture_active`).
+  // composition state at mount time. Required so surface evidence carries the
+  // correct posture annotation (`ready` vs `fixture_active`).
   compositionState: string;
   setCompanion: (updater: (current: CompanionState) => CompanionState) => void;
   setVoice: (updater: (current: VoiceCompanionState) => VoiceCompanionState) => void;
@@ -55,18 +79,11 @@ export type CompanionSurfaceProps = {
   settingsOpen: boolean;
 };
 
-type StatusTone = 'idle' | 'listening' | 'transcribing' | 'pending' | 'replying' | 'interrupted' | 'error' | 'sending';
-
-const STATUS_TONE_KEY: Record<StatusTone, string> = {
-  idle: 'Avatar.status.idle',
-  listening: 'Avatar.status.listening',
-  transcribing: 'Avatar.status.transcribing',
-  pending: 'Avatar.status.pending',
-  replying: 'Avatar.status.replying',
-  interrupted: 'Avatar.status.interrupted',
-  error: 'Avatar.status.error',
-  sending: 'Avatar.status.sending',
+type CompanionSurfaceStyle = CSSProperties & {
+  '--avatar-voice-level'?: string;
 };
+
+const ICON_SIZE = 16;
 
 const ACCEPTED_COMPANION_SURFACE_KINDS = new Set([
   'avatar_companion',
@@ -86,17 +103,6 @@ const ACCEPTED_COMPANION_STATUSES = new Set([
   'candidate_ready',
   'committed_by_owner',
 ]);
-
-function deriveStatus(companion: CompanionState, voice: VoiceCompanionState): StatusTone {
-  if (companion.sendState === 'sending') return 'sending';
-  if (voice.status === 'listening') return 'listening';
-  if (voice.status === 'transcribing') return 'transcribing';
-  if (voice.status === 'pending') return 'pending';
-  if (voice.status === 'replying') return 'replying';
-  if (voice.status === 'interrupted') return 'interrupted';
-  if (voice.status === 'error') return 'error';
-  return 'idle';
-}
 
 function projectionString(
   projection: Record<string, unknown>,
@@ -149,6 +155,19 @@ function assertAcceptedProjection(projection: NimiRuntimeAgentCompanionParticipa
   }
 }
 
+function micIconFor(presence: PresenceState) {
+  if (presence.micIntent === 'commit_listening') {
+    return <Square size={ICON_SIZE} aria-hidden="true" />;
+  }
+  if (presence.tone === 'transcribing' || presence.tone === 'pending' || presence.tone === 'sending') {
+    return <LoaderCircle size={ICON_SIZE} aria-hidden="true" className="avatar-companion-surface__icon--spin" />;
+  }
+  if (presence.tone === 'error' || presence.tone === 'blocked') {
+    return <MicOff size={ICON_SIZE} aria-hidden="true" />;
+  }
+  return <Mic size={ICON_SIZE} aria-hidden="true" />;
+}
+
 export function CompanionSurface(props: CompanionSurfaceProps) {
   const {
     bootstrapHandle,
@@ -172,12 +191,74 @@ export function CompanionSurface(props: CompanionSurfaceProps) {
   useSurfaceMountEvidence('companion-surface', compositionState);
 
   const { t } = useTranslation();
-  const status = deriveStatus(companion, voice);
-  const label = t(STATUS_TONE_KEY[status]);
+  const presence = derivePresenceState({
+    companion,
+    voice,
+    bootstrapReady: Boolean(bootstrapHandle),
+    bindingPresent: Boolean(binding),
+    compositionReady: compositionState === 'ready' || compositionState === 'fixture_active',
+  });
+  const previousPresenceRef = useRef<{
+    stateId: PresenceState['stateId'];
+    privacyIndicator: PresenceState['privacyIndicator'];
+  } | null>(null);
+  const label = t(presence.labelKey);
+  const draftValue = companion.draft ?? '';
+  const composerExpanded = companion.inputVisible || companion.sendState === 'sending' || Boolean(companion.sendError);
   const composerDisabled = !bootstrapHandle || !binding || companion.sendState === 'sending';
-  const voiceMicDisabled = !bootstrapHandle || !binding || voice.status === 'transcribing' || voice.status === 'pending' || voice.status === 'replying';
+  const voiceMicDisabled = presence.micDisabled;
   const showCaptions = shellSettings.showVoiceCaptions
-    && (voice.status === 'listening' || voice.status === 'transcribing' || voice.status === 'pending' || voice.status === 'replying');
+    && presence.captionsVisible;
+  const cueText = normalizeText(
+    (voice.status === 'replying' || voice.assistantCaption?.live)
+      ? voice.assistantCaption?.text
+      : companion.latestAssistantMessage?.text,
+  );
+  const showCue = Boolean(companion.bubbleVisible && cueText);
+  const audioActive = presence.audioActive;
+  const audioUnavailable = presence.audioUnavailable;
+  const levelPercent = `${Math.round(Math.max(0, Math.min(1, voice.level)) * 100)}%`;
+  const rootStyle: CompanionSurfaceStyle = {
+    '--avatar-voice-level': levelPercent,
+  };
+
+  useEffect(() => {
+    const previous = previousPresenceRef.current;
+    if (!previous || previous.stateId !== presence.stateId) {
+      recordAvatarEvidenceEventually({
+        kind: 'avatar.audio.lifecycle.state_changed',
+        detail: {
+          from_state: previous?.stateId ?? null,
+          to_state: presence.stateId,
+          voice_status: voice.status,
+          audio_playback_state: voice.audioPlaybackState,
+          lipsync_active: voice.lipsyncActive,
+          changed_at: new Date().toISOString(),
+        },
+      });
+    }
+    if (!previous || previous.privacyIndicator !== presence.privacyIndicator) {
+      recordAvatarEvidenceEventually({
+        kind: 'avatar.audio.privacy.indicator_changed',
+        detail: {
+          indicator: presence.privacyIndicator,
+          visible: presence.privacyIndicator !== 'none',
+          foreground_only: true,
+          changed_at: new Date().toISOString(),
+        },
+      });
+    }
+    previousPresenceRef.current = {
+      stateId: presence.stateId,
+      privacyIndicator: presence.privacyIndicator,
+    };
+  }, [
+    presence.stateId,
+    presence.privacyIndicator,
+    voice.status,
+    voice.audioPlaybackState,
+    voice.lipsyncActive,
+  ]);
 
   const submitText = useCallback(
     (event: FormEvent<HTMLFormElement>) => {
@@ -208,6 +289,11 @@ export function CompanionSurface(props: CompanionSurfaceProps) {
 
   const onComposerKey = useCallback(
     (event: KeyboardEvent<HTMLTextAreaElement>) => {
+      if (event.key === 'Escape' && companion.sendState !== 'sending') {
+        event.preventDefault();
+        setCompanion((current) => dismissCompanionInput(current));
+        return;
+      }
       if (event.key === 'Enter' && !event.shiftKey) {
         event.preventDefault();
         const form = event.currentTarget.form;
@@ -216,8 +302,14 @@ export function CompanionSurface(props: CompanionSurfaceProps) {
         }
       }
     },
-    [],
+    [companion.sendState, setCompanion],
   );
+
+  const onTextEntryClick = useCallback(() => {
+    setCompanion((current) =>
+      current.inputVisible ? dismissCompanionInput(current) : openCompanionInput(current),
+    );
+  }, [setCompanion]);
 
   const onMicClick = useCallback(() => {
     if (voiceMicDisabled || !bootstrapHandle || !binding) return;
@@ -314,6 +406,7 @@ export function CompanionSurface(props: CompanionSurfaceProps) {
     beginVoiceOperation,
     clearVoiceOperation,
     isVoiceOperationCurrent,
+    t,
   ]);
 
   const onInterruptClick = useCallback(() => {
@@ -330,88 +423,57 @@ export function CompanionSurface(props: CompanionSurfaceProps) {
       });
   }, [bootstrapHandle, binding, voice.currentTurnId, setVoice]);
 
-  const onBubbleClose = useCallback(() => {
+  const onCueClose = useCallback(() => {
     setCompanion((current) => collapseCompanionBubble(current));
     setVoice((current) => closeVoiceCompanion(current));
   }, [setCompanion, setVoice]);
 
-  const draftValue = companion.draft ?? '';
-  const latestText = companion.latestAssistantMessage?.text ?? null;
-  const showBubble = Boolean(companion.bubbleVisible && latestText);
+  const micAriaLabel = presence.micIntent === 'commit_listening'
+    ? t('Avatar.status.mic_commit_aria')
+    : presence.micIntent === 'disabled'
+      ? t('Avatar.status.mic_blocked_aria')
+      : t('Avatar.status.mic_listen_aria');
+  const textEntryLabel = t('Avatar.composer.aria_label');
+  const speakerLabel = audioUnavailable
+    ? t('Avatar.status.audio_unavailable')
+    : voice.lipsyncActive
+      ? t('Avatar.status.replying')
+      : t('Avatar.status.idle');
 
   return (
-    <Surface
-      as="section"
-      material="glass-regular"
-      tone="overlay"
-      elevation="floating"
-      padding="none"
-      className={cn('avatar-companion-surface nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]', `avatar-companion-surface--${status}`)}
+    <section
+      className={cn(
+        'avatar-companion-surface',
+        `avatar-companion-surface--${presence.tone}`,
+        composerExpanded && 'avatar-companion-surface--composer-expanded',
+        showCue && 'avatar-companion-surface--cue-visible',
+        audioActive && 'avatar-companion-surface--audio-active',
+        voice.lipsyncActive && 'avatar-companion-surface--lipsync-active',
+      )}
       data-testid="avatar-companion-surface"
+      data-presence-state={presence.stateId}
+      data-presence-tone={presence.tone}
+      data-privacy-indicator={presence.privacyIndicator}
+      data-audio-playback-state={voice.audioPlaybackState}
+      data-lipsync-active={voice.lipsyncActive ? 'true' : 'false'}
+      data-voice-level={levelPercent}
       aria-label={t('Avatar.shell.companion_aria')}
+      style={rootStyle}
     >
-      {showBubble ? (
-        <div className="avatar-companion-surface__bubble" data-testid="avatar-companion-bubble">
-          <p className="avatar-companion-surface__bubble-text">{latestText}</p>
+      {showCue ? (
+        <div className="avatar-companion-surface__assistant-cue" data-testid="avatar-companion-bubble">
+          <p className="avatar-companion-surface__assistant-cue-text">{cueText}</p>
           <IconButton
-            className="avatar-companion-surface__bubble-close"
+            className="avatar-companion-surface__cue-close"
             aria-label={t('Avatar.bubble.close_aria')}
-            onClick={onBubbleClose}
-            icon="×"
+            title={t('Avatar.bubble.close_aria')}
+            onClick={onCueClose}
+            icon={<X size={ICON_SIZE} aria-hidden="true" />}
             size="sm"
             tone="ghost"
           />
         </div>
       ) : null}
-
-      <div
-        className="avatar-companion-surface__status-row"
-        role="toolbar"
-        aria-label={t('Avatar.status.toolbar_aria')}
-      >
-        <button
-          type="button"
-          className={`avatar-companion-surface__mic avatar-companion-surface__mic--${status}`}
-          onClick={onMicClick}
-          disabled={voiceMicDisabled}
-          aria-pressed={voice.status === 'listening'}
-          aria-label={
-            voice.status === 'listening'
-              ? t('Avatar.status.mic_commit_aria')
-              : t('Avatar.status.mic_listen_aria')
-          }
-          data-testid="avatar-companion-mic"
-        >
-          <span className="avatar-companion-surface__mic-icon" aria-hidden="true">
-            {voice.status === 'listening' ? '◉' : '🎙'}
-          </span>
-        </button>
-        <span className="avatar-companion-surface__status-label" data-testid="avatar-companion-status">{label}</span>
-        {voice.status === 'replying' ? (
-          <IconButton
-            className="avatar-companion-surface__interrupt"
-            onClick={onInterruptClick}
-            aria-label={t('Avatar.status.interrupt_aria')}
-            icon="⏹"
-            size="sm"
-            tone="ghost"
-          />
-        ) : (
-          <span className="avatar-companion-surface__speaker" aria-hidden="true">
-            {voice.status === 'pending' ? '🔊' : '🔈'}
-          </span>
-        )}
-        <IconButton
-          className={cn('avatar-companion-surface__settings', settingsOpen && 'avatar-companion-surface__settings--open')}
-          onClick={onSettingsToggle}
-          aria-expanded={settingsOpen}
-          aria-controls="avatar-companion-settings-popover"
-          aria-label={t('Avatar.status.settings_aria')}
-          icon="⚙"
-          size="sm"
-          tone="ghost"
-        />
-      </div>
 
       {showCaptions && voice.userCaption ? (
         <p className="avatar-companion-surface__caption avatar-companion-surface__caption--user">
@@ -420,9 +482,11 @@ export function CompanionSurface(props: CompanionSurfaceProps) {
       ) : null}
       {showCaptions && voice.assistantCaption ? (
         <p
-          className={`avatar-companion-surface__caption avatar-companion-surface__caption--assistant${
-            voice.assistantCaption.live ? ' avatar-companion-surface__caption--live' : ''
-          }`}
+          className={cn(
+            'avatar-companion-surface__caption',
+            'avatar-companion-surface__caption--assistant',
+            voice.assistantCaption.live && 'avatar-companion-surface__caption--live',
+          )}
         >
           {voice.assistantCaption.text}
         </p>
@@ -436,36 +500,126 @@ export function CompanionSurface(props: CompanionSurfaceProps) {
         </p>
       ) : null}
 
-      <form
-        className="avatar-companion-surface__composer"
-        onSubmit={submitText}
-        data-testid="avatar-companion-composer"
-      >
-        <TextareaField
-          className="avatar-companion-surface__composer-field"
-          textareaClassName="avatar-companion-surface__composer-input"
-          value={draftValue}
-          onChange={(event: ChangeEvent<HTMLTextAreaElement>) => {
-            setCompanion((current) => setCompanionDraft(current, event.target.value));
-          }}
-          onKeyDown={onComposerKey}
-          rows={1}
-          maxLength={400}
-          placeholder={t('Avatar.composer.placeholder')}
-          disabled={composerDisabled}
-          aria-label={t('Avatar.composer.aria_label')}
-        />
-        <Button
-          type="submit"
-          tone="primary"
-          size="sm"
-          className="avatar-companion-surface__composer-send"
-          disabled={composerDisabled || !normalizeText(draftValue)}
-          aria-label={t('Avatar.composer.send_aria')}
+      {composerExpanded ? (
+        <form
+          id="avatar-companion-composer"
+          className="avatar-companion-surface__composer-tray"
+          onSubmit={submitText}
+          data-testid="avatar-companion-composer"
         >
-          ➤
-        </Button>
-      </form>
-    </Surface>
+          <TextareaField
+            className="avatar-companion-surface__composer-field"
+            textareaClassName="avatar-companion-surface__composer-input"
+            value={draftValue}
+            onChange={(event: ChangeEvent<HTMLTextAreaElement>) => {
+              setCompanion((current) => setCompanionDraft(current, event.target.value));
+            }}
+            onKeyDown={onComposerKey}
+            rows={1}
+            maxLength={400}
+            placeholder={t('Avatar.composer.placeholder')}
+            disabled={composerDisabled}
+            aria-label={t('Avatar.composer.aria_label')}
+            autoFocus
+          />
+          <IconButton
+            type="submit"
+            tone="primary"
+            size="sm"
+            className="avatar-companion-surface__composer-send"
+            disabled={composerDisabled || !normalizeText(draftValue)}
+            aria-label={t('Avatar.composer.send_aria')}
+            title={t('Avatar.composer.send_aria')}
+            icon={<Send size={ICON_SIZE} aria-hidden="true" />}
+          />
+        </form>
+      ) : null}
+
+      <div
+        className="avatar-companion-surface__presence-capsule"
+        role="toolbar"
+        aria-label={t('Avatar.status.toolbar_aria')}
+        data-testid="avatar-companion-presence-capsule"
+      >
+        <button
+          type="button"
+          className={cn('avatar-companion-surface__mic', `avatar-companion-surface__mic--${presence.tone}`)}
+          onClick={onMicClick}
+          disabled={voiceMicDisabled}
+          aria-pressed={voice.status === 'listening'}
+          aria-label={micAriaLabel}
+          title={micAriaLabel}
+          data-testid="avatar-companion-mic"
+        >
+          <span className="avatar-companion-surface__mic-icon" aria-hidden="true">
+            {micIconFor(presence)}
+          </span>
+          {voice.status === 'listening' ? (
+            <span className="avatar-companion-surface__voice-level" aria-hidden="true">
+              <span className="avatar-companion-surface__voice-level-fill" />
+            </span>
+          ) : null}
+        </button>
+        <span
+          className={cn(
+            'avatar-companion-surface__privacy-indicator',
+            `avatar-companion-surface__privacy-indicator--${presence.privacyIndicator}`,
+          )}
+          aria-label={t('Avatar.status.privacy_indicator_aria', { state: label })}
+          title={t('Avatar.status.privacy_indicator_aria', { state: label })}
+          role="status"
+        />
+        <span className="avatar-companion-surface__status-label" data-testid="avatar-companion-status">{label}</span>
+        {presence.interruptVisible ? (
+          <IconButton
+            className="avatar-companion-surface__interrupt"
+            onClick={onInterruptClick}
+            aria-label={t('Avatar.status.interrupt_aria')}
+            title={t('Avatar.status.interrupt_aria')}
+            icon={<Square size={ICON_SIZE} aria-hidden="true" />}
+            size="sm"
+            tone="ghost"
+          />
+        ) : (
+          <span
+            className={cn(
+              'avatar-companion-surface__speaker',
+              audioActive && 'avatar-companion-surface__speaker--active',
+              audioUnavailable && 'avatar-companion-surface__speaker--unavailable',
+            )}
+            aria-label={speakerLabel}
+            title={speakerLabel}
+            role="status"
+          >
+            {audioUnavailable ? <VolumeX size={ICON_SIZE} aria-hidden="true" /> : <Volume2 size={ICON_SIZE} aria-hidden="true" />}
+          </span>
+        )}
+        <IconButton
+          className={cn(
+            'avatar-companion-surface__text-entry',
+            composerExpanded && 'avatar-companion-surface__text-entry--open',
+          )}
+          onClick={onTextEntryClick}
+          aria-expanded={composerExpanded}
+          aria-controls="avatar-companion-composer"
+          aria-label={textEntryLabel}
+          title={textEntryLabel}
+          icon={<MessageCircle size={ICON_SIZE} aria-hidden="true" />}
+          size="sm"
+          tone="ghost"
+        />
+        <IconButton
+          className={cn('avatar-companion-surface__settings', settingsOpen && 'avatar-companion-surface__settings--open')}
+          onClick={onSettingsToggle}
+          aria-expanded={settingsOpen}
+          aria-controls="avatar-companion-settings-popover"
+          aria-label={t('Avatar.status.settings_aria')}
+          title={t('Avatar.status.settings_aria')}
+          icon={<Settings size={ICON_SIZE} aria-hidden="true" />}
+          size="sm"
+          tone="ghost"
+        />
+      </div>
+    </section>
   );
 }

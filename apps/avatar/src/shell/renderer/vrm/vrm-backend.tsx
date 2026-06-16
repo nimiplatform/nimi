@@ -242,6 +242,7 @@ export async function createVrmBackendBranch(
       generated_motion_provider: 'deterministic_vrm',
       vrma_position: 'interchange_only',
       lipsync_profile_present: profile !== null,
+      hit_region_strategy: 'alpha_mask_plus_bbox',
       capability_profile_id: latestCapabilityProfile?.profileId ?? null,
       generated_motion_routes: latestCapabilityProfile?.generatedMotion.supportedRoutes ?? [],
       unsupported_generated_motion_routes:

@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { ReasonCode } from '@nimiplatform/sdk/types';
 import { deriveCompositionState, type CompositionInput } from './composition-state.js';
 
 function input(overrides: Partial<CompositionInput> = {}): CompositionInput {
@@ -44,22 +43,28 @@ function input(overrides: Partial<CompositionInput> = {}): CompositionInput {
 }
 
 describe('deriveCompositionState', () => {
-  it('fails closed for mock fixture playback without a live runtime binding', () => {
+  it('enters fixture active for mock fixture playback without a live runtime binding', () => {
     const state = deriveCompositionState(input({
+      model: {
+        modelPath: 'fixture://vrm-lifecycle',
+        modelId: 'vrm1-constraint-twist',
+        loadState: 'loaded',
+        error: null,
+      },
       consume: {
         mode: 'mock',
         authority: 'fixture',
-        fixtureId: 'default',
+        fixtureId: 'vrm-lifecycle',
         fixturePlaying: true,
-        avatarInstanceId: null,
-        conversationAnchorId: null,
-        agentId: null,
-        worldId: null,
+        avatarInstanceId: 'fixture-avatar-vrm-lifecycle',
+        conversationAnchorId: 'fixture-anchor-vrm-lifecycle',
+        agentId: 'fixture-agent-vrm-lifecycle',
+        worldId: 'world-mock-vrm-lifecycle',
       },
       runtimeBinding: {
         status: 'unavailable',
         reason: 'runtime_not_required_for_fixture',
-        reasonCode: ReasonCode.RUNTIME_UNAVAILABLE,
+        reasonCode: 'RUNTIME_UNAVAILABLE',
         accountReasonCode: null,
         actionHint: null,
         stage: 'binding',
@@ -69,10 +74,10 @@ describe('deriveCompositionState', () => {
     }));
 
     expect(state).toMatchObject({
-      state: 'degraded_runtime_unavailable',
-      variant: 'degraded',
-      reason: 'runtime_not_required_for_fixture',
-      ready: false,
+      state: 'fixture_active',
+      variant: 'fixture',
+      reason: null,
+      ready: true,
     });
   });
 
@@ -120,6 +125,45 @@ describe('deriveCompositionState', () => {
       state: 'degraded_runtime_unavailable',
       variant: 'degraded',
       reason: 'runtime binding unavailable',
+      ready: false,
+    });
+  });
+
+  it('fails closed when fixture visual model loading fails', () => {
+    const state = deriveCompositionState(input({
+      model: {
+        modelPath: 'fixture://missing.vrm',
+        modelId: null,
+        loadState: 'error',
+        error: 'mock fixture "default" does not declare a visual model manifest',
+      },
+      consume: {
+        mode: 'mock',
+        authority: 'fixture',
+        fixtureId: 'default',
+        fixturePlaying: true,
+        avatarInstanceId: 'fixture-avatar-default',
+        conversationAnchorId: 'fixture-anchor-default',
+        agentId: 'fixture-agent-default',
+        worldId: 'world-mock-default',
+      },
+      runtimeBinding: {
+        status: 'unavailable',
+        reason: 'runtime_not_required_for_fixture',
+        reasonCode: 'RUNTIME_UNAVAILABLE',
+        accountReasonCode: null,
+        actionHint: null,
+        stage: 'binding',
+        source: 'runtime',
+        retryable: false,
+      },
+    }));
+
+    expect(state).toMatchObject({
+      state: 'degraded_runtime_unavailable',
+      variant: 'degraded',
+      reason: 'mock fixture "default" does not declare a visual model manifest',
+      reasonCode: 'AVATAR_MODEL_LOAD_FAILED',
       ready: false,
     });
   });

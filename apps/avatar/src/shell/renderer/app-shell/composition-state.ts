@@ -1,11 +1,12 @@
-// Surface composition state derivation per app-shell-contract.md §6 (K-NAV-SHELL-COMPOSITION-001..005).
+// Surface composition state derivation per app-shell-contract.md section 6
+// (K-NAV-SHELL-COMPOSITION-001..005).
 // The avatar shell renders exactly one of three surfaces at any time:
-//   - ready:               embodiment-stage + companion-surface (mutually visible)
-//   - fixture-active:      same as ready, but driven by VITE_AVATAR_DRIVER=mock fixture data
-//   - loading:             pre-bootstrap-complete; degraded-surface variant=loading
-//   - degraded:*:          typed runtime / account / launch failures
-//   - error:bootstrap-fatal: untyped bootstrap throw; degraded-surface variant=error
-//   - relaunch-pending:    desktop-pushed launch context update; ready surface unmounted
+//   - ready:            embodiment-stage + companion-surface
+//   - fixture-active:   same as ready, but driven by VITE_AVATAR_DRIVER=mock fixture data
+//   - loading:          pre-bootstrap-complete; degraded-surface variant=loading
+//   - degraded:*:       typed runtime / account / launch failures
+//   - error:*:          untyped bootstrap failures
+//   - relaunch-pending: desktop-pushed launch context update; ready surface unmounted
 
 import type { AvatarAppState } from './app-store.js';
 
@@ -127,6 +128,7 @@ function deriveModelDiagnostics(model: AvatarAppState['model']): CompositionMode
 
 export function deriveCompositionState(input: CompositionInput): CompositionDerivation {
   const modelDiagnostics = deriveModelDiagnostics(input.model);
+  const fixtureMode = input.consume.authority === 'fixture' || input.consume.mode === 'mock';
 
   if (input.relaunchPending) {
     return {
@@ -177,7 +179,7 @@ export function deriveCompositionState(input: CompositionInput): CompositionDeri
     };
   }
 
-  if (input.runtimeBinding.status !== 'active') {
+  if (!fixtureMode && input.runtimeBinding.status !== 'active') {
     const reason = readNormalizedString(input.runtimeBinding.reason);
     return {
       state: classifyDegradedReason(reason),
@@ -194,9 +196,6 @@ export function deriveCompositionState(input: CompositionInput): CompositionDeri
     };
   }
 
-  const fixtureMode = input.consume.authority === 'fixture' || input.consume.mode === 'mock';
-
-  // Bootstrap completed, but driver not running → degraded.
   if (!READY_DRIVER_STATUSES.has(input.driver.status)) {
     const driverError = readNormalizedString(input.driver.error);
     return {

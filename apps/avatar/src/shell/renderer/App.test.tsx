@@ -147,11 +147,11 @@ function seedFixtureState(): void {
     fixturePlaying: true,
   });
   useAvatarStore.getState().setLaunchContext(launchContext());
-  useAvatarStore.getState().setRuntimeBinding({
-    avatarInstanceId: 'avatar-instance-01',
-    conversationAnchorId: 'anchor-01',
-    agentId: 'local-agent:owner-product:agent-product-01',
-    worldId: 'world-01',
+  useAvatarStore.getState().setRuntimeConsumeContext({
+    avatarInstanceId: 'fixture-avatar-default',
+    conversationAnchorId: 'fixture-anchor-default',
+    agentId: 'fixture-agent-default',
+    worldId: 'world-mock-default',
   });
   useAvatarStore.getState().setDriverStatus('running');
 }
@@ -165,6 +165,12 @@ function seedFixtureWithoutRuntimeBinding(): void {
     fixturePlaying: true,
   });
   useAvatarStore.getState().setLaunchContext(launchContext());
+  useAvatarStore.getState().setRuntimeConsumeContext({
+    avatarInstanceId: 'fixture-avatar-default',
+    conversationAnchorId: 'fixture-anchor-default',
+    agentId: 'fixture-agent-default',
+    worldId: 'world-mock-default',
+  });
   useAvatarStore.getState().setDriverStatus('running');
 }
 
@@ -271,7 +277,7 @@ describe('App composition state machine', () => {
     expect(screen.getByTestId('avatar-root').getAttribute('data-composition')).toBe('fixture_active');
   });
 
-  it('does not treat fixture mode as ready without active runtime binding', async () => {
+  it('treats explicit fixture mode as ready without active runtime binding', async () => {
     bootstrapAvatarMock.mockResolvedValue(createBootstrapHandle());
 
     render(<App />);
@@ -281,11 +287,11 @@ describe('App composition state machine', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByTestId('avatar-degraded-surface')).toBeTruthy();
+      expect(screen.getByTestId('avatar-embodiment-stage')).toBeTruthy();
+      expect(screen.getByTestId('avatar-companion-surface')).toBeTruthy();
     });
-    expect(screen.queryByTestId('avatar-embodiment-stage')).toBeNull();
-    expect(screen.queryByTestId('avatar-companion-surface')).toBeNull();
-    expect(screen.getByTestId('avatar-root').getAttribute('data-composition')).toBe('degraded_runtime_unavailable');
+    expect(screen.queryByTestId('avatar-degraded-surface')).toBeNull();
+    expect(screen.getByTestId('avatar-root').getAttribute('data-composition')).toBe('fixture_active');
   });
 
   it('mounts ONLY degraded-surface under degraded:runtime-unavailable', async () => {
@@ -397,8 +403,9 @@ describe('Companion surface interactions (ready)', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByTestId('avatar-companion-composer')).toBeTruthy();
+      expect(screen.getByTestId('avatar-companion-presence-capsule')).toBeTruthy();
     });
+    fireEvent.click(screen.getByRole('button', { name: 'Type a message to send to this anchor' }));
 
     const textarea = screen
       .getByTestId('avatar-companion-composer')
@@ -432,8 +439,9 @@ describe('Companion surface interactions (ready)', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByTestId('avatar-companion-composer')).toBeTruthy();
+      expect(screen.getByTestId('avatar-companion-presence-capsule')).toBeTruthy();
     });
+    fireEvent.click(screen.getByRole('button', { name: 'Type a message to send to this anchor' }));
 
     const textarea = screen
       .getByTestId('avatar-companion-composer')
@@ -445,7 +453,10 @@ describe('Companion surface interactions (ready)', () => {
     await waitFor(() => {
       expect(screen.getByRole('alert').textContent).toContain('runtime_policy_blocked');
     });
-    expect(textarea.value).toBe('blocked text');
+    const restoredTextarea = screen
+      .getByTestId('avatar-companion-composer')
+      .querySelector('textarea') as HTMLTextAreaElement;
+    expect(restoredTextarea.value).toBe('blocked text');
   });
 
   it('mic button triggers startVoiceCapture in idle state', async () => {

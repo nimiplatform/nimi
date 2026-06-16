@@ -2,9 +2,10 @@
 // Per app-shell-contract.md K-NAV-SHELL-COMPOSITION-002 the shell mounts exactly
 // one of: (embodiment-stage + companion-surface) OR degraded-surface.
 // The retired mixed `recovery panel` + `trigger toggle` paths are
-// hard-cut; companion-surface is always-visible while ready.
+// hard-cut; companion-surface contributes the ready presence capsule.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { X } from 'lucide-react';
 import { IconButton, Surface, Toggle, cn } from '@nimiplatform/kit/ui';
 import { useTranslation } from './i18n/index.js';
 import { bootstrapAvatar, type BootstrapHandle } from './app-shell/app-bootstrap.js';
@@ -55,8 +56,11 @@ import {
   writeAvatarShellSettings,
   type AvatarShellSettings,
 } from './settings-state.js';
+import { deriveCreatorCapabilityReport } from './creator-capabilities.js';
+import { CreatorCapabilityPanel } from './creator-capability-panel.js';
 import type { AvatarVoiceCaptureSession } from './voice-capture.js';
 import { normalizeText, toErrorMessage } from './avatar-shell-utils.js';
+import { installAvatarAcceptanceProbe } from './app-shell/avatar-acceptance-probe.js';
 
 export function App() {
   const { t } = useTranslation();
@@ -80,6 +84,8 @@ export function App() {
   const voiceOperationCounterRef = useRef(0);
   const voiceOperationRef = useRef<{ id: number; anchorKey: string | null } | null>(null);
   const currentAnchorKeyRef = useRef<string | null>(null);
+  const companionRef = useRef(companion);
+  const voiceRef = useRef(voice);
   const unmountedRef = useRef(false);
 
   const bundle = useAvatarStore((s) => s.bundle);
@@ -89,6 +95,24 @@ export function App() {
   const driver = useAvatarStore((s) => s.driver);
   const runtimeBinding = useAvatarStore((s) => s.runtime.binding);
   const launchContext = useAvatarStore((s) => s.launch.context);
+
+  useEffect(() => {
+    companionRef.current = companion;
+  }, [companion]);
+
+  useEffect(() => {
+    voiceRef.current = voice;
+  }, [voice]);
+
+  useEffect(
+    () => installAvatarAcceptanceProbe({
+      getCompanion: () => companionRef.current,
+      getVoice: () => voiceRef.current,
+      setCompanion,
+      setVoice,
+    }),
+    [],
+  );
 
   const persistShellSettings = (next: AvatarShellSettings): void => {
     setShellSettings(next);
@@ -511,6 +535,7 @@ export function App() {
     `avatar-root--${composition.variant}`,
     `avatar-root--${ambient}`,
   );
+  const creatorCapabilityReport = deriveCreatorCapabilityReport(bootstrapHandle?.carrier ?? null);
 
   if (!composition.ready) {
     return (
@@ -569,7 +594,7 @@ export function App() {
               className="avatar-settings-popover__close"
               aria-label={t('Avatar.settings.close_aria')}
               onClick={() => setSettingsOpen(false)}
-              icon="×"
+              icon={<X size={16} aria-hidden="true" />}
               size="sm"
               tone="ghost"
             />
@@ -604,6 +629,7 @@ export function App() {
               <span className="avatar-settings-popover__toggle-help">{t('Avatar.settings.show_voice_captions.help')}</span>
             </span>
           </div>
+          <CreatorCapabilityPanel report={creatorCapabilityReport} />
           {shellSettings.showVoiceCaptions !== defaultAvatarShellSettings.showVoiceCaptions ? (
             <p className="avatar-settings-popover__note">
               {t('Avatar.settings.show_voice_captions.note')}
