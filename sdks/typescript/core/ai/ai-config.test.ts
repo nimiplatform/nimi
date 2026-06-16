@@ -9,6 +9,7 @@ import {
   assertNimiBuiltInChatAIScopeRef,
   createNimiAIConfigEvidence,
   createNimiAIConfigSubscriptionRegistry,
+  coerceNimiAITextGenerationParams,
   buildNimiRuntimeAISchedulingRequest,
   createEmptyNimiAIConfig,
   createNimiAIConfigStore,
@@ -36,6 +37,7 @@ import {
   parseNimiAIScopeRefKey,
   previewNimiAIProfileApply,
   projectNimiAIProfileApply,
+  resolveNimiAIConfigRuntimeBinding,
   serializeNimiRuntimeProfileDescriptor,
   toNimiRuntimeProfileDescriptorWire,
   validateNimiAIConfig,
@@ -118,6 +120,146 @@ test('Nimi AI scope keys are explicit and reversible', () => {
     () => createNimiAIScopeRef({ kind: 'app', ownerId: '' }),
     (error: unknown) => (error as { reasonCode?: string }).reasonCode === ReasonCode.SDK_AI_INPUT_INVALID,
   );
+});
+
+test('AIConfig runtime binding resolver projects live targets and metadata', () => {
+  const config = {
+    scopeRef: SCOPE,
+    capabilities: {
+      targetRefs: {
+        'text.generate': {
+          kind: 'cloud-connector' as const,
+          connectorId: 'openrouter',
+          providerModelId: 'google/gemini-2.5-pro',
+          provider: 'OpenRouter',
+        },
+      },
+      selectedParams: {
+        'text.generate': { temperature: '0.7' },
+      },
+    },
+    profileOrigin: {
+      profileId: 'profile-1',
+      title: 'Profile One',
+      appliedAt: '2026-01-01T00:00:00.000Z',
+    },
+  };
+
+  const resolved = resolveNimiAIConfigRuntimeBinding({
+    config,
+    capabilityId: 'chat.stream',
+    bindingCapabilityId: 'text.generate',
+  });
+
+  assert.equal(resolved.ok, true);
+  if (!resolved.ok) throw new Error(resolved.message);
+  assert.equal(resolved.binding.model, 'google/gemini-2.5-pro');
+  assert.equal(resolved.binding.routePolicy, 'cloud');
+  assert.equal(resolved.binding.connectorId, 'openrouter');
+  assert.deepEqual(resolved.binding.schedulingTarget, {
+    capability: 'text.generate',
+    targetRef: config.capabilities.targetRefs['text.generate'],
+  });
+  assert.deepEqual(resolved.binding.selectedParams, { temperature: '0.7' });
+  assert.equal(resolved.binding.metadata.aiConfigCapabilityId, 'chat.stream');
+  assert.equal(resolved.binding.metadata.aiConfigBindingCapabilityId, 'text.generate');
+  assert.equal(resolved.binding.metadata.aiConfigBindingSource, 'cloud');
+  assert.equal(resolved.binding.metadata.aiConfigBindingConnectorId, 'openrouter');
+  assert.equal(resolved.binding.metadata.aiConfigBindingModel, 'google/gemini-2.5-pro');
+  assert.equal(resolved.binding.metadata.aiConfigProfileId, 'profile-1');
+  assert.equal(typeof resolved.binding.metadata.aiConfigHash, 'string');
+});
+
+test('AIConfig runtime binding resolver fails closed for unavailable targets', () => {
+  const base = {
+    scopeRef: SCOPE,
+    capabilities: {
+      targetRefs: {},
+      selectedParams: {},
+    },
+    profileOrigin: null,
+  };
+
+  assert.deepEqual(resolveNimiAIConfigRuntimeBinding({
+    config: base,
+    capabilityId: 'text.generate',
+    bindingCapabilityId: null,
+  }), {
+    ok: false,
+    reason: 'binding-capability-missing',
+    message: 'Capability text.generate does not have an AIConfig runtime binding path.',
+  });
+
+  assert.equal(resolveNimiAIConfigRuntimeBinding({
+    config: base,
+    capabilityId: 'text.generate',
+    bindingCapabilityId: 'text.generate',
+  }).ok, false);
+
+  const profileSlice = resolveNimiAIConfigRuntimeBinding({
+    config: {
+      ...base,
+      capabilities: {
+        targetRefs: {
+          'text.generate': {
+            kind: 'profile-slice',
+            sourceProfileId: 'profile-1',
+            sliceId: 'slice-text',
+          },
+        },
+        selectedParams: {},
+      },
+    },
+    capabilityId: 'text.generate',
+    bindingCapabilityId: 'text.generate',
+  });
+  assert.equal(profileSlice.ok, false);
+  if (profileSlice.ok) throw new Error('expected profile slice failure');
+  assert.equal(profileSlice.reason, 'profile-slice-unmaterialized');
+});
+
+test('AIConfig text generation params coercion accepts strings and fails invalid values', () => {
+  const coerced = coerceNimiAITextGenerationParams({
+    temperature: '0.7',
+    topP: 0.95,
+    topK: '40',
+    maxTokens: '2048',
+    presencePenalty: '-0.1',
+    frequencyPenalty: 0.2,
+    timeoutMs: '120000',
+    stopSequences: ['END', ''],
+  });
+
+  assert.equal(coerced.ok, true);
+  if (!coerced.ok) throw new Error(coerced.message);
+  assert.deepEqual(coerced.value, {
+    parameters: {
+      temperature: 0.7,
+      topP: 0.95,
+      topK: 40,
+      maxTokens: 2048,
+      presencePenalty: -0.1,
+      frequencyPenalty: 0.2,
+      stop: ['END'],
+    },
+    timeoutMs: 120000,
+  });
+
+  assert.deepEqual(coerceNimiAITextGenerationParams({ maxTokens: '1.5' }), {
+    ok: false,
+    field: 'maxTokens',
+    message: 'AIConfig selectedParams.maxTokens must be a positive integer.',
+  });
+  assert.deepEqual(coerceNimiAITextGenerationParams({ temperature: 'hot' }), {
+    ok: false,
+    field: 'temperature',
+    message: 'AIConfig selectedParams.temperature must be a finite number.',
+  });
+  assert.deepEqual(coerceNimiAITextGenerationParams({ stopSequences: 'END' }), {
+    ok: false,
+    field: 'stopSequences',
+    message: 'AIConfig selectedParams.stopSequences must be a string array.',
+  });
 });
 
 test('Nimi AI scope and target validation fail closed across admitted families', () => {

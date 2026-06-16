@@ -1,26 +1,14 @@
 import { useEffect, useMemo, useState, type ChangeEvent } from 'react';
 import { Button, IconButton, ScrollArea, StatusBadge, Surface, TextareaField } from '@nimiplatform/kit/ui';
 import {
-  ModelConfigCapabilityDetail,
-  ProfileConfigSection,
-  SectionGroupHeader,
+  ModelConfigAiModelHub,
   defaultModelConfigProfileCopy,
   useModelConfigProfileController,
   type AppModelConfigSurface,
   type ModelConfigProjectionStatus,
   type SharedAIConfigService,
 } from '@nimiplatform/kit/features/model-config';
-import {
-  CANONICAL_CAPABILITY_CATALOG_BY_ID,
-  type CanonicalCapabilityDescriptor,
-  type CanonicalCapabilitySectionId,
-} from '@nimiplatform/kit/core/runtime-capabilities';
-import {
-  selectRequirementDescriptors,
-  summarizeAiModelAggregate,
-  type CapabilityEvaluation,
-  type ModelConfigStatusTone,
-} from '@nimiplatform/kit/core/model-config';
+import type { CanonicalCapabilitySectionId } from '@nimiplatform/kit/core/runtime-capabilities';
 import type { RouteModelPickerDataProvider } from '@nimiplatform/kit/features/model-picker';
 import type {
   NimiAICapabilityRequirementDeclaration,
@@ -28,19 +16,13 @@ import type {
   NimiAIConfigTargetRef,
   NimiAIScopeRef,
 } from '@nimiplatform/kit/core/sdk-contract';
-import { ChevronLeft, ChevronRight, Upload, X } from 'lucide-react';
+import { X } from 'lucide-react';
 
 // Scaffold-managed AI config Settings surface.
 //
-// Mirrors the canonical Nimi Desktop tester settings model: a list of capability
-// sections that drills into a per-capability detail backed by the admitted kit
-// `ModelConfigCapabilityDetail` + `SharedAIConfigService` contract. Unlike kit's
-// `ModelConfigAiModelHub`, this panel accepts an `initialSection` so the AI
-// Capabilities settings gear can open straight into the capability under test.
-// It owns NO truth: the app injects its app-scoped NimiAIConfig service, scope ref,
-// model-picker provider resolver, and copy. Runtime model catalog stays Runtime
-// truth (resolved through the SDK by the injected provider). Only admitted
-// kit/SDK surfaces; no app-local provider/model defaults, no REST bypass.
+// The app owns only the injected scope, service, runtime model-picker provider,
+// and import side effect. The rendered model-config body is the kit
+// ModelConfigAiModelHub, including capability drill-down via initialSection.
 
 export type TesterAiConfigProfileImportResult = {
   ok: boolean;
@@ -58,29 +40,19 @@ export type TesterAiConfigSettingsProps = {
   runtimeReady: boolean;
   runtimeDetail: string | null;
   copy: Record<string, string>;
-  /** Open straight into this section's detail (e.g. from a capability gear). */
+  /** Open straight into this section's detail from the studio model gear. */
   initialSection?: CanonicalCapabilitySectionId | null;
+  /** Full settings surface or capability-scoped drawer launched from the studio gear. */
+  variant?: 'full' | 'capability-drawer';
   /** Slide-over close affordance. When omitted the panel renders inline. */
   onClose?: () => void;
   /** Optional AIProfile JSON import (app-owned profile library write). */
   onImportProfileJson?: (json: string) => TesterAiConfigProfileImportResult;
 };
 
-// Canonical section ordering — mirrors P-CAPCAT-001 enum / the desktop tester.
-const SECTION_ORDER: ReadonlyArray<CanonicalCapabilitySectionId> = [
-  'chat',
-  'tts',
-  'stt',
-  'image',
-  'video',
-  'voice',
-  'embed',
-  'world',
-];
-
 function makeTranslator(copy: Record<string, string>) {
   return (key: string, vars?: Readonly<Record<string, string | number>>): string => {
-    const value = copy[key] || key;
+    const value = copy[key] || (typeof vars?.defaultValue === 'string' ? vars.defaultValue : key);
     if (!vars) return value;
     return Object.entries(vars).reduce(
       (current, [name, replacement]) => current.replaceAll(`{{${name}}}`, String(replacement)),
@@ -142,18 +114,6 @@ function useLiveAIConfig(service: SharedAIConfigService, scopeRef: NimiAIScopeRe
   return config;
 }
 
-function groupBySection(
-  descriptors: ReadonlyArray<CanonicalCapabilityDescriptor>,
-): Map<CanonicalCapabilitySectionId, CanonicalCapabilityDescriptor[]> {
-  const map = new Map<CanonicalCapabilitySectionId, CanonicalCapabilityDescriptor[]>();
-  for (const descriptor of descriptors) {
-    const list = map.get(descriptor.section) ?? [];
-    list.push(descriptor);
-    map.set(descriptor.section, list);
-  }
-  return map;
-}
-
 function createRequirementDeclaration(
   scopeRef: NimiAIScopeRef,
   capabilities: readonly string[],
@@ -171,12 +131,6 @@ function createRequirementDeclaration(
   };
 }
 
-function statusDotTone(tone: ModelConfigStatusTone): 'success' | 'warning' | 'neutral' {
-  if (tone === 'ready') return 'success';
-  if (tone === 'attention') return 'warning';
-  return 'neutral';
-}
-
 export function TesterAiConfigSettings({
   scopeRef,
   service,
@@ -187,30 +141,30 @@ export function TesterAiConfigSettings({
   runtimeDetail,
   copy,
   initialSection = null,
+  variant = 'full',
   onClose,
   onImportProfileJson,
 }: TesterAiConfigSettingsProps) {
   const t = useMemo(() => makeTranslator(copy), [copy]);
   const config = useLiveAIConfig(service, scopeRef);
-  const [activeSection, setActiveSection] = useState<CanonicalCapabilitySectionId | null>(initialSection);
   const [profileJson, setProfileJson] = useState('');
   const [importMessage, setImportMessage] = useState<string | null>(null);
   const [importTone, setImportTone] = useState<'success' | 'warning' | 'neutral'>('neutral');
 
-  useEffect(() => {
-    setActiveSection(initialSection ?? null);
-  }, [initialSection]);
-
+  const requirementDeclaration = useMemo(
+    () => createRequirementDeclaration(scopeRef, enabledCapabilities),
+    [enabledCapabilities, scopeRef],
+  );
   const surface: AppModelConfigSurface = useMemo(() => ({
     scopeRef,
     aiConfigService: service,
-    requirementDeclaration: createRequirementDeclaration(scopeRef, enabledCapabilities),
+    requirementDeclaration,
     providerResolver: (capabilityId: string) => (runtimeReady ? providerResolver(capabilityId) : null),
     projectionResolver: (capabilityId: string) => bindingStatus(config, capabilityId, runtimeReady, runtimeDetail),
     localAssetSource,
     runtimeNotReadyLabel: runtimeDetail || 'Runtime unavailable',
     i18n: { t },
-  }), [config, enabledCapabilities, localAssetSource, providerResolver, runtimeDetail, runtimeReady, scopeRef, service, t]);
+  }), [config, localAssetSource, providerResolver, requirementDeclaration, runtimeDetail, runtimeReady, scopeRef, service, t]);
 
   const profileCopy = useMemo(() => defaultModelConfigProfileCopy(t), [t]);
   const currentOrigin = useMemo(
@@ -222,32 +176,10 @@ export function TesterAiConfigSettings({
   const profileController = useModelConfigProfileController({
     scopeRef,
     aiConfigService: service,
-    requirementDeclaration: surface.requirementDeclaration,
+    requirementDeclaration,
     copy: profileCopy,
     currentOrigin,
   });
-
-  const descriptors = useMemo(
-    () => selectRequirementDescriptors(surface.requirementDeclaration, CANONICAL_CAPABILITY_CATALOG_BY_ID),
-    [surface.requirementDeclaration],
-  );
-  const sectionMap = useMemo(() => groupBySection(descriptors), [descriptors]);
-  const orderedSections = useMemo(
-    () => SECTION_ORDER.filter((section) => sectionMap.has(section)),
-    [sectionMap],
-  );
-  const evaluations: ReadonlyArray<CapabilityEvaluation> = useMemo(() => {
-    const out: CapabilityEvaluation[] = [];
-    for (const descriptor of descriptors) {
-      out.push({
-        capabilityId: descriptor.capabilityId,
-        descriptor,
-        status: surface.projectionResolver(descriptor.capabilityId),
-        bindingPresent: Boolean(config.capabilities.targetRefs?.[descriptor.capabilityId]),
-      });
-    }
-    return out;
-  }, [config, descriptors, surface]);
 
   function importProfile() {
     if (!onImportProfileJson) return;
@@ -264,13 +196,30 @@ export function TesterAiConfigSettings({
     }
   }
 
-  const inDetail = activeSection !== null;
-  const headerTitle = inDetail
-    ? t(`ModelConfig.section.${activeSection}.title`)
-    : t('Tester.settings.title');
-  const headerSubtitle = inDetail
-    ? null
-    : t('Tester.settings.subtitle');
+  const drawer = variant === 'capability-drawer';
+  const importFooter = !drawer && onImportProfileJson ? (
+    <div className="grid gap-3 border-t border-[var(--nimi-border-subtle)] pt-4">
+      <TextareaField
+        rows={4}
+        wrap="soft"
+        aria-label="AIProfile JSON"
+        placeholder='{"profileId":"tester-runtime","title":"Tester Runtime Profile","capabilities":{"text.generate":{"targetRef":{"kind":"cloud-connector","connectorId":"runtime-connector-id","providerModelId":"runtime-model-id"}}}}'
+        value={profileJson}
+        onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setProfileJson(event.currentTarget.value)}
+      />
+      <div className="flex flex-wrap items-center gap-2">
+        <Button
+          type="button"
+          tone="secondary"
+          disabled={!profileJson.trim()}
+          onClick={importProfile}
+        >
+          Import AIProfile JSON
+        </Button>
+        {importMessage ? <StatusBadge tone={importTone} shape="dot">{importMessage}</StatusBadge> : null}
+      </div>
+    </div>
+  ) : null;
 
   return (
     <Surface
@@ -281,23 +230,18 @@ export function TesterAiConfigSettings({
       padding="none"
       role="group"
       aria-label={t('Tester.settings.title')}
-      className="tester-ai-config-settings"
+      className="flex h-full min-h-0 flex-col overflow-hidden rounded-none border-0 bg-white/95 shadow-none"
     >
-      <header className="tester-ai-config-settings__head">
-        {inDetail ? (
-          <IconButton
-            aria-label={t('Tester.settings.back')}
-            tone="ghost"
-            size="sm"
-            icon={<ChevronLeft size={16} />}
-            onClick={() => setActiveSection(null)}
-          />
-        ) : null}
-        <div className="tester-ai-config-settings__head-copy">
-          <strong>{headerTitle}</strong>
-          {headerSubtitle ? <span>{headerSubtitle}</span> : null}
-        </div>
-        <div className="tester-ai-config-settings__head-aside">
+      {!drawer ? (
+        <header className="flex min-h-14 shrink-0 items-center gap-3 border-b border-[var(--nimi-border-subtle)] px-4">
+          <div className="min-w-0 flex-1">
+            <strong className="block truncate text-[15px] font-semibold text-[var(--nimi-text-primary)]">
+              {t('Tester.settings.title')}
+            </strong>
+            <span className="block truncate text-xs text-[var(--nimi-text-muted)]">
+              {t('Tester.settings.subtitle')}
+            </span>
+          </div>
           <StatusBadge tone={runtimeReady ? 'success' : 'warning'} shape="dot">
             {runtimeReady ? 'Runtime ready' : 'Runtime unavailable'}
           </StatusBadge>
@@ -310,86 +254,26 @@ export function TesterAiConfigSettings({
               onClick={onClose}
             />
           ) : null}
-        </div>
-      </header>
-
-      <ScrollArea className="tester-ai-config-settings__scroll">
-        <div className="tester-ai-config-settings__body">
-          {inDetail ? (
-            <div className="tester-ai-config-settings__detail">
-              <SectionGroupHeader label={t('Tester.settings.generalGroup')} />
-              {(sectionMap.get(activeSection!) ?? []).map((descriptor) => (
-                <ModelConfigCapabilityDetail
-                  key={descriptor.capabilityId}
-                  capabilityId={descriptor.capabilityId}
-                  surface={surface}
-                  config={config}
-                  activeModelLabel={
-                    (sectionMap.get(activeSection!) ?? []).length > 1
-                      ? t(descriptor.i18nKeys.title)
-                      : undefined
-                  }
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="tester-ai-config-settings__list">
-              <ProfileConfigSection controller={profileController} variant="import-button" />
-              {orderedSections.map((section) => {
-                const sectionEvaluations = evaluations.filter((evaluation) => evaluation.descriptor.section === section);
-                const aggregate = summarizeAiModelAggregate(sectionEvaluations, {
-                  ready: t('ModelConfig.hub.aggregateReady'),
-                  attention: t('ModelConfig.hub.aggregateAttention'),
-                  neutral: t('ModelConfig.hub.aggregateNeutral'),
-                });
-                const items = sectionMap.get(section) ?? [];
-                const firstDescriptor = items[0];
-                return (
-                  <button
-                    key={section}
-                    type="button"
-                    className="tester-ai-config-settings__section-row"
-                    onClick={() => setActiveSection(section)}
-                  >
-                    <span className="tester-ai-config-settings__section-copy">
-                      <strong>{t(`ModelConfig.section.${section}.title`)}</strong>
-                      <span className="tester-ai-config-settings__section-sub">
-                        <StatusBadge tone={statusDotTone(aggregate.statusDot)} shape="dot">
-                          {aggregate.subtitle || (firstDescriptor ? t(firstDescriptor.i18nKeys.subtitle) : '')}
-                        </StatusBadge>
-                      </span>
-                    </span>
-                    <ChevronRight size={16} aria-hidden="true" />
-                  </button>
-                );
-              })}
-
-              {onImportProfileJson ? (
-                <div className="tester-ai-config-settings__import">
-                  <TextareaField
-                    rows={5}
-                    wrap="soft"
-                    aria-label="AIProfile JSON"
-                    placeholder='{"profileId":"tester-runtime","title":"Tester Runtime Profile","capabilities":{"text.generate":{"targetRef":{"kind":"cloud-connector","connectorId":"runtime-connector-id","providerModelId":"runtime-model-id"}}}}'
-                    value={profileJson}
-                    onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setProfileJson(event.currentTarget.value)}
-                  />
-                  <div className="tester-ai-config-settings__import-actions">
-                    <Button
-                      type="button"
-                      tone="secondary"
-                      leadingIcon={<Upload size={14} />}
-                      disabled={!profileJson.trim()}
-                      onClick={importProfile}
-                    >
-                      Import AIProfile JSON
-                    </Button>
-                    {importMessage ? <StatusBadge tone={importTone} shape="dot">{importMessage}</StatusBadge> : null}
-                  </div>
-                </div>
-              ) : null}
-            </div>
-          )}
+        </header>
+      ) : null}
+      <ScrollArea className="min-h-0 flex-1">
+        <div className="px-4 py-4">
+          <ModelConfigAiModelHub
+            surface={surface}
+            profile={profileController}
+            initialSection={initialSection}
+            detailOnly={drawer}
+            detailHeaderAction={drawer && onClose ? (
+              <IconButton
+                aria-label={t('Tester.settings.close')}
+                tone="ghost"
+                size="sm"
+                icon={<X size={16} />}
+                onClick={onClose}
+              />
+            ) : null}
+            footer={importFooter}
+          />
         </div>
       </ScrollArea>
     </Surface>

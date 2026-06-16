@@ -208,7 +208,7 @@
         "export { Runtime, createNimiRuntimeModelCatalogClient, getNimiRuntimeReasonCodeMessage, listNimiRuntimeRouteOptions, NIMI_RUNTIME_REASON_CODES, runNimiRuntimeScenarioJob, runtimeNimiRouteCapabilitiesMatch} from '@nimiplatform/sdk/runtime';",
         "export { asNimiError, createNimiError, isNimiError, ReasonCode} from '@nimiplatform/sdk/types';",
         "export { createNimiRuntimeAIModel, runNimiTextGenerate, runNimiTextTurn, streamNimiTextResponse, } from '@nimiplatform/sdk/ai';",
-        "export { textPart, } from '@nimiplatform/sdk/contracts';"
+        "export { dataPart, textPart, } from '@nimiplatform/sdk/contracts';"
       ]
     },
     {
@@ -421,6 +421,7 @@
       "expandedExports": [
         "export type { AppAiChatPanelProps} from './components/app-ai-chat-panel.js';",
         "export type { AttachmentAdapter, CanonicalMessageAccessorySlot, CanonicalMessageAvatarSlot, CanonicalMessageContentSlot, CanonicalMessageRenderContext, CanonicalRuntimeInspectPanelKey, CanonicalRuntimeInspectPanelState, CanonicalRuntimeInspectProps, CanonicalRuntimeInspectSectionData, CanonicalRuntimeInspectStatusChip, CanonicalTranscriptGroup, ConversationCanonicalMessage, ConversationCanonicalMessageKind, ConversationCanonicalSession, ConversationCapabilityState, ChatComposerAdapter, ChatComposerState, ChatComposerSubmitInput, ConversationCharacterBadge, ConversationCharacterData, ConversationInteractionStateSummary, ConversationComposerAdapter, ConversationModeAvailability, ConversationMessageRole, ConversationMessageStatus, ConversationMessageViewModel, ConversationMode, ConversationSetupAction, ConversationSourceAdapter, ConversationSourceFilter, ConversationSourceKind, ConversationSetupIssue, ConversationSetupIssueCode, ConversationSetupState, ConversationShellAdapter, ConversationShellViewModel, ConversationTargetSummary, ConversationThreadAdapter, ConversationThreadStatus, ConversationThreadSummary, ConversationViewMode, } from './types.js';",
+        "export type { BrowserDataUrlAttachment, BrowserDataUrlAttachmentAdapterOptions, BrowserDataUrlAttachmentKind, } from './headless/browser-data-url-attachment-adapter.js';",
         "export type { CanonicalCharacterRailProps} from './components/canonical-character-rail.js';",
         "export type { CanonicalComposerProps} from './components/canonical-composer.js';",
         "export type { CanonicalConversationAnchoredSurfaceConfig, CanonicalConversationAnchoredSurfacePlacement, CanonicalConversationPaneProps, } from './components/canonical-conversation-pane.js';",
@@ -493,6 +494,7 @@
         "export { ConversationTargetRail} from './components/conversation-target-rail.js';",
         "export { ConversationThreadList} from './components/conversation-thread-list.js';",
         "export { ConversationTranscriptShell} from './components/conversation-transcript-shell.js';",
+        "export { DEFAULT_BROWSER_DATA_URL_ATTACHMENT_ACCEPT, browserDataUrlAttachmentsToNimiMessages, browserFilesToDataUrlAttachments, createBrowserDataUrlAttachmentAdapter, } from './headless/browser-data-url-attachment-adapter.js';",
         "export { RealmChatTimeline} from './components/realm-chat-timeline.js';",
         "export { RpContentRenderer} from './components/rp-content-renderer.js';",
         "export { buildCanonicalTranscriptGroups, buildCanonicalTranscriptMessageGroups, } from './headless/transcript-groups.js';",
@@ -575,6 +577,7 @@
       "source": "kit/features/chat/src/headless.ts",
       "exports": [
         "export type { AttachmentAdapter, CanonicalMessageAccessorySlot, CanonicalMessageAvatarSlot, CanonicalMessageContentSlot, CanonicalMessageRenderContext, CanonicalRuntimeInspectPanelKey, CanonicalRuntimeInspectPanelState, CanonicalRuntimeInspectProps, CanonicalRuntimeInspectSectionData, CanonicalRuntimeInspectStatusChip, CanonicalTranscriptGroup, ConversationCanonicalMessage, ConversationCanonicalMessageKind, ConversationCanonicalSession, ConversationCapabilityState, ChatComposerAdapter, ChatComposerState, ChatComposerSubmitInput, ConversationCharacterBadge, ConversationCharacterData, ConversationInteractionStateSummary, ConversationComposerAdapter, ConversationModeAvailability, ConversationMessageRole, ConversationMessageStatus, ConversationMessageViewModel, ConversationMode, ConversationSetupAction, ConversationSourceAdapter, ConversationSourceFilter, ConversationSourceKind, ConversationSetupIssue, ConversationSetupIssueCode, ConversationSetupState, ConversationShellAdapter, ConversationShellViewModel, ConversationTargetSummary, ConversationThreadAdapter, ConversationThreadStatus, ConversationThreadSummary, ConversationViewMode, } from './types.js';",
+        "export type { BrowserDataUrlAttachment, BrowserDataUrlAttachmentAdapterOptions, BrowserDataUrlAttachmentKind, } from './headless/browser-data-url-attachment-adapter.js';",
         "export type { CanonicalTranscriptMessageGroup, CanonicalTranscriptMessageGroupItem, CanonicalTranscriptMessagePosition, } from './headless/transcript-groups.js';",
         "export type { ConversationBeatModality, ConversationContinuityAdapter, ConversationContinuityCancelInput, ConversationContinuityCommitInput, ConversationContinuityLoadInput, ConversationGenerationAdapter, ConversationOrchestrationModeId, ConversationOrchestrationProvider, ConversationProjectionRebuildResult, ConversationProviderCapabilities, ConversationRuntimeAdapter, ConversationRuntimeTextMessage, ConversationRuntimeTextRequest, ConversationRuntimeTrace, ConversationRuntimeUsage, ConversationTurnError, ConversationTurnEvent, ConversationTurnEventByType, ConversationTurnHistoryMessage, ConversationTurnInput, ConversationTurnRole, ConversationVoiceAdapter, KnownConversationOrchestrationModeId, } from './orchestration/contracts.js';",
         "export type { ConversationCapabilityGuardKey, } from './orchestration/capability-guards.js';",
@@ -583,6 +586,7 @@
         "export { CONVERSATION_MODES} from './types.js';",
         "export { CONVERSATION_ORCHESTRATION_MODE_IDS, matchConversationTurnEvent, } from './orchestration/contracts.js';",
         "export { ConversationOrchestrationRegistry, ConversationProviderNotRegisteredError, } from './orchestration/registry.js';",
+        "export { DEFAULT_BROWSER_DATA_URL_ATTACHMENT_ACCEPT, browserDataUrlAttachmentsToNimiMessages, browserFilesToDataUrlAttachments, createBrowserDataUrlAttachmentAdapter, } from './headless/browser-data-url-attachment-adapter.js';",
         "export { buildCanonicalTranscriptGroups, buildCanonicalTranscriptMessageGroups, } from './headless/transcript-groups.js';",
         "export { buildConversationHistoryWindow, estimateConversationMessageChars, estimateConversationTokenCountFromChars, measureConversationHistoryBudget, SIMPLE_AI_COMPLETION_RESERVE, SIMPLE_AI_HISTORY_BUDGET, } from './orchestration/history-window.js';",
         "export { hasConversationCapability, requireConversationGenerationAdapter, requireConversationVoiceAdapter, } from './orchestration/capability-guards.js';",
@@ -1040,6 +1044,7 @@
         "export type { ModelConfigCapabilityDetailProps} from './components/model-config-capability-detail.js';",
         "export type { ModelConfigCapabilityItem, ModelConfigCapabilityStatus, ModelConfigCapabilityStatusTone, ModelConfigTargetRef, ModelConfigSection, ModelConfigProfileController, ModelConfigProfileOption, ModelConfigProfileCopy, ModelConfigProfileDiffRow, ModelConfigProfilePreview, AudioSynthesizeParamsState, AudioTranscribeParamsState, ImageParamsState, TextGenerateParamsState, VideoParamsState, VoiceWorkflowParamsState, CompanionSlotDef, LocalAssetEntry, CapabilityModelCardProps, ModelConfigPanelProps, } from './types.js';",
         "export type { ModelConfigCopyFormatter} from './default-profile-copy.js';",
+        "export type { ModelConfigRuntimeTargetLocalModel, ModelConfigRuntimeTargetParamRecord, ModelConfigRuntimeTargetSource, ModelConfigRuntimeTargetStatus, ModelConfigRuntimeTargetSummary, SummarizeModelConfigRuntimeTargetInput, } from './headless/runtime-target-summary.js';",
         "export type { TextGenerateParamsEditorProps, TextGenerateParamsEditorCopy, } from './components/text-generate-params-editor.js';",
         "export type { UseModelConfigProfileControllerInput} from './headless/use-model-config-profile-controller.js';",
         "export type { VideoParamsEditorProps, VideoParamsEditorCopy} from './components/video-params-editor.js';",
@@ -1065,6 +1070,7 @@
         "export { createTextGenerateEditorCopy} from './components/text-generate-params-editor.js';",
         "export { createVoiceWorkflowEditorCopy} from './components/voice-workflow-params-editor.js';",
         "export { defaultModelConfigProfileCopy} from './default-profile-copy.js';",
+        "export { summarizeModelConfigRuntimeTarget} from './headless/runtime-target-summary.js';",
         "export { summarizeTargetRef, } from '@nimiplatform/kit/core/model-config';",
         "export { useModelConfigProfileController} from './headless/use-model-config-profile-controller.js';"
       ]
@@ -1079,6 +1085,7 @@
         "export type { ImageParamsEditorProps, ImageParamsEditorCopy} from './components/image-params-editor.js';",
         "export type { ModelConfigCapabilityItem, ModelConfigCapabilityStatus, ModelConfigCapabilityStatusTone, ModelConfigTargetRef, ModelConfigSection, ModelConfigProfileController, ModelConfigProfileOption, ModelConfigProfileCopy, ModelConfigProfileDiffRow, ModelConfigProfilePreview, AudioSynthesizeParamsState, AudioTranscribeParamsState, ImageParamsState, TextGenerateParamsState, VideoParamsState, VoiceWorkflowParamsState, CompanionSlotDef, LocalAssetEntry, CapabilityModelCardProps, ModelConfigPanelProps, } from './types.js';",
         "export type { ModelConfigCopyFormatter} from './default-profile-copy.js';",
+        "export type { ModelConfigRuntimeTargetLocalModel, ModelConfigRuntimeTargetParamRecord, ModelConfigRuntimeTargetSource, ModelConfigRuntimeTargetStatus, ModelConfigRuntimeTargetSummary, SummarizeModelConfigRuntimeTargetInput, } from './headless/runtime-target-summary.js';",
         "export type { TextGenerateParamsEditorProps, TextGenerateParamsEditorCopy, } from './components/text-generate-params-editor.js';",
         "export type { UseModelConfigProfileControllerInput} from './headless/use-model-config-profile-controller.js';",
         "export type { VideoParamsEditorProps, VideoParamsEditorCopy} from './components/video-params-editor.js';",
@@ -1090,6 +1097,7 @@
         "export { createTextGenerateEditorCopy} from './components/text-generate-params-editor.js';",
         "export { createVoiceWorkflowEditorCopy} from './components/voice-workflow-params-editor.js';",
         "export { defaultModelConfigProfileCopy} from './default-profile-copy.js';",
+        "export { summarizeModelConfigRuntimeTarget} from './headless/runtime-target-summary.js';",
         "export { summarizeTargetRef, } from '@nimiplatform/kit/core/model-config';",
         "export { useModelConfigProfileController} from './headless/use-model-config-profile-controller.js';"
       ]

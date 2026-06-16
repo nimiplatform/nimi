@@ -74,6 +74,16 @@ export {
   summarizeTargetRef,
 } from '@nimiplatform/kit/core/model-config';
 
+export type {
+  ModelConfigRuntimeTargetLocalModel,
+  ModelConfigRuntimeTargetParamRecord,
+  ModelConfigRuntimeTargetSource,
+  ModelConfigRuntimeTargetStatus,
+  ModelConfigRuntimeTargetSummary,
+  SummarizeModelConfigRuntimeTargetInput,
+} from './headless/runtime-target-summary.js';
+export { summarizeModelConfigRuntimeTarget } from './headless/runtime-target-summary.js';
+
 export { defaultModelConfigProfileCopy } from './default-profile-copy.js';
 export type { ModelConfigCopyFormatter } from './default-profile-copy.js';
 

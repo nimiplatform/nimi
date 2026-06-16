@@ -8,6 +8,7 @@ import {
   pickerSelectionToTargetRef,
   targetRefToPickerSelection,
 } from '../src/model-picker-selection-adapter.js';
+import { summarizeModelConfigRuntimeTarget } from '../src/headless.js';
 import type { NimiAIConfig, NimiAIConfigTargetRef, NimiAIScopeRef } from '@nimiplatform/kit/core/sdk-contract';
 
 const scopeRef: NimiAIScopeRef = { kind: 'app', ownerId: 'desktop', surfaceId: 'chat' };
@@ -128,5 +129,91 @@ describe('model config compact target-ref helpers', () => {
       profileId: '01KLOCALGEMMA',
       readinessRef: 'runtime-route:local:llama:01KLOCALGEMMA',
     });
+  });
+});
+
+describe('model config runtime target summary', () => {
+  it('hydrates local runtime labels and hides opaque ids before hydration', () => {
+    const targetRef: NimiAIConfigTargetRef = {
+      kind: 'local-runtime',
+      targetId: 'media',
+      profileId: '01KTEX0CSNAR9Q0B8KXNCF4WPW',
+      readinessRef: 'runtime-route:local:media:01KTEX0CSNAR9Q0B8KXNCF4WPW',
+    };
+    const config = configWithTargetRef(targetRef);
+
+    expect(summarizeModelConfigRuntimeTarget({
+      capabilityId: 'image.generate',
+      bindingCapabilityId: 'text.generate',
+      config,
+      runtimeStatus: 'ready',
+    }).modelLabel).toBe('Local runtime model');
+
+    expect(summarizeModelConfigRuntimeTarget({
+      capabilityId: 'image.generate',
+      bindingCapabilityId: 'text.generate',
+      config,
+      runtimeStatus: 'ready',
+      localModels: [{
+        localModelId: '01KTEX0CSNAR9Q0B8KXNCF4WPW',
+        modelId: 'local-import/z-image-turbo-Q4_K_M',
+        label: 'local-import/z-image-turbo-Q4_K_M',
+      }],
+    }).modelLabel).toBe('z-image-turbo-Q4_K_M');
+  });
+
+  it('summarizes cloud connector targets and selected params', () => {
+    const config = {
+      ...configWithTargetRef({
+        kind: 'cloud-connector',
+        connectorId: 'connector-dashscope',
+        provider: 'dashscope',
+        providerModelId: 'qwen3-max',
+      }),
+      capabilities: {
+        targetRefs: {
+          'text.generate': {
+            kind: 'cloud-connector' as const,
+            connectorId: 'connector-dashscope',
+            provider: 'dashscope',
+            providerModelId: 'qwen3-max',
+          },
+        },
+        selectedParams: {
+          'text.generate': { temperature: '0.7', maxTokens: 1024 },
+        },
+      },
+    };
+
+    expect(summarizeModelConfigRuntimeTarget({
+      capabilityId: 'chat.stream',
+      bindingCapabilityId: 'text.generate',
+      config,
+      runtimeStatus: 'ready',
+    })).toMatchObject({
+      status: 'ready',
+      source: 'cloud',
+      modelLabel: 'qwen3-max',
+      canDispatch: true,
+      paramsSummary: ['temp 0.7', 'max 1024'],
+    });
+  });
+
+  it('blocks profile slices until materialized into runtime targets', () => {
+    const summary = summarizeModelConfigRuntimeTarget({
+      capabilityId: 'text.generate',
+      bindingCapabilityId: 'text.generate',
+      config: configWithTargetRef({
+        kind: 'profile-slice',
+        sourceProfileId: 'creative-profile',
+        sliceId: 'text-defaults',
+      }),
+      runtimeStatus: 'ready',
+    });
+
+    expect(summary.status).toBe('blocked');
+    expect(summary.source).toBe('profile-slice');
+    expect(summary.canDispatch).toBe(false);
+    expect(summary.detail).toContain('materialize');
   });
 });

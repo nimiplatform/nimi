@@ -51,6 +51,14 @@ export type ModelConfigAiModelHubProps = {
   footer?: ReactNode;
   className?: string;
   superSections?: ReadonlyArray<ModelConfigSuperSection>;
+  /** Optional deep-link section for apps that open model config from a capability-specific gear. */
+  initialSection?: CanonicalCapabilitySectionId | null;
+  /** Mirrors hub section navigation for host chrome that needs to update title/back state. */
+  onActiveSectionChange?: (section: CanonicalCapabilitySectionId | null) => void;
+  /** Render only the active section detail for capability-scoped drawers. */
+  detailOnly?: boolean;
+  /** Optional action slot rendered in the active detail header, e.g. a host close button. */
+  detailHeaderAction?: ReactNode;
 };
 
 function statusToneDotClass(tone: ModelConfigStatusTone): string {
@@ -135,10 +143,30 @@ function useLiveConfig(surface: AppModelConfigSurface): NimiAIConfig {
 }
 
 export function ModelConfigAiModelHub(props: ModelConfigAiModelHubProps) {
-  const { surface, profile, footer, className, superSections } = props;
+  const {
+    surface,
+    profile,
+    footer,
+    className,
+    superSections,
+    initialSection = null,
+    onActiveSectionChange,
+    detailOnly = false,
+    detailHeaderAction,
+  } = props;
   const config = useLiveConfig(surface);
   const t = surface.i18n.t;
-  const [activeSection, setActiveSection] = useState<CanonicalCapabilitySectionId | null>(null);
+  const [activeSection, setActiveSectionState] = useState<CanonicalCapabilitySectionId | null>(initialSection);
+
+  useEffect(() => {
+    setActiveSectionState(initialSection);
+    onActiveSectionChange?.(initialSection);
+  }, [initialSection, onActiveSectionChange]);
+
+  function setActiveSection(next: CanonicalCapabilitySectionId | null) {
+    setActiveSectionState(next);
+    onActiveSectionChange?.(next);
+  }
 
   const descriptors = useMemo(
     () => selectRequirementDescriptors(surface.requirementDeclaration, CANONICAL_CAPABILITY_CATALOG_BY_ID),
@@ -290,16 +318,18 @@ export function ModelConfigAiModelHub(props: ModelConfigAiModelHubProps) {
     return (
       <div className={className || 'space-y-5'}>
         <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => setActiveSection(null)}
-            aria-label={t('ModelConfig.hub.backLabel')}
-            className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-[var(--nimi-text-secondary,#475569)] transition-colors hover:bg-slate-100 hover:text-[var(--nimi-text-primary,#0f172a)]"
-          >
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
+          {!detailOnly ? (
+            <button
+              type="button"
+              onClick={() => setActiveSection(null)}
+              aria-label={t('ModelConfig.hub.backLabel')}
+              className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-[var(--nimi-text-secondary,#475569)] transition-colors hover:bg-slate-100 hover:text-[var(--nimi-text-primary,#0f172a)]"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+          ) : null}
           <h2 className="min-w-0 flex-1 truncate text-[15px] font-semibold tracking-tight text-[var(--nimi-text-primary,#0f172a)]">
             {detailTitle}
           </h2>
@@ -307,6 +337,7 @@ export function ModelConfigAiModelHub(props: ModelConfigAiModelHubProps) {
             <span className={`h-1.5 w-1.5 rounded-full ${detailPillDotClass}`} />
             {detailStatusLabel}
           </span>
+          {detailHeaderAction}
         </div>
 
         <div className="space-y-4">
@@ -324,6 +355,10 @@ export function ModelConfigAiModelHub(props: ModelConfigAiModelHubProps) {
         {footer}
       </div>
     );
+  }
+
+  if (detailOnly) {
+    return null;
   }
 
   return (

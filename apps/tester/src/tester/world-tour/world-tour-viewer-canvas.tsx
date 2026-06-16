@@ -38,7 +38,7 @@ export function WorldTourViewerCanvas({ fixture }: WorldTourViewerCanvasProps) {
           <Button type="button" tone="primary" onClick={() => void acceptRender('passed')}>Mark passed</Button>
           <Button type="button" tone="secondary" onClick={() => void acceptRender('failed')}>Mark failed</Button>
         </div>
-        {message ? <p className="tester-panel__summary">{message}</p> : null}
+        {message ? <p className="m-0 leading-normal text-[var(--nimi-text-secondary)]">{message}</p> : null}
       </div>
     </Surface>
   );

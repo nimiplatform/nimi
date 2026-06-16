@@ -1,5 +1,7 @@
 import { Suspense, useEffect, useMemo, useState, type ChangeEvent, type ReactNode } from 'react';
 import {
+  Button,
+  IconButton,
   SelectField,
   StatusBadge,
   TextareaField,
@@ -12,12 +14,19 @@ import {
   FileText,
   Maximize2,
   MessageSquare,
+  Paperclip,
+  Play,
   Plus,
   RefreshCw,
   SlidersHorizontal,
+  X,
 } from 'lucide-react';
 import type { CanonicalCapabilitySectionId } from '@nimiplatform/kit/core/runtime-capabilities';
-import { ImageAttachmentStrip, useMediaAttachments } from '../tester-multimodal-input.js';
+import {
+  createBrowserDataUrlAttachmentAdapter,
+  useChatComposer,
+  type BrowserDataUrlAttachment,
+} from '@nimiplatform/kit/features/chat/headless';
 import { type TesterCapability } from '../tester-capabilities.js';
 import { CAPABILITY_TO_SECTION } from '../tester-capability-sections.js';
 import {
@@ -237,7 +246,9 @@ function TextStudioComposer({
   toneSelected,
   lengthSelected,
   running,
-  media,
+  attachments,
+  onOpenAttachmentPicker,
+  onRemoveAttachment,
   canDispatch,
   compact = false,
   onPromptChange,
@@ -256,7 +267,9 @@ function TextStudioComposer({
   toneSelected: boolean;
   lengthSelected: boolean;
   running: boolean;
-  media: ReturnType<typeof useMediaAttachments>;
+  attachments: readonly BrowserDataUrlAttachment[];
+  onOpenAttachmentPicker: () => void;
+  onRemoveAttachment: (index: number) => void;
   canDispatch: boolean;
   compact?: boolean;
   onPromptChange: (value: string) => void;
@@ -327,15 +340,40 @@ function TextStudioComposer({
           onOpen={onOpenModelConfig}
         />
         {profile.supportsAttachments ? (
-          <ImageAttachmentStrip
-            attachments={media.attachments}
-            fileInputRef={media.fileInputRef}
-            onAddFiles={media.addFiles}
-            onRemove={media.removeAttachment}
-            onOpenPicker={media.openFilePicker}
-            disabled={running}
-            variant="icon"
-          />
+          <div className="tester-attach-strip tester-attach-strip--icon">
+            <Button
+              type="button"
+              className="h-9 w-9 rounded-full px-0"
+              size="sm"
+              tone="secondary"
+              onClick={onOpenAttachmentPicker}
+              disabled={running}
+              aria-label="Attach context"
+              title="Attach context"
+            >
+              <Paperclip size={15} aria-hidden="true" />
+            </Button>
+            {attachments.map((item, index) => (
+              <span key={item.id} className="tester-attach-chip">
+                {item.kind === 'image' ? (
+                  <img src={item.dataUrl} alt={item.name} />
+                ) : (
+                  <span className="tester-attach-chip__video" aria-hidden="true">
+                    <Play size={13} />
+                  </span>
+                )}
+                <span className="tester-attach-chip__name">{item.name}</span>
+                <IconButton
+                  aria-label={`Remove ${item.name}`}
+                  onClick={() => onRemoveAttachment(index)}
+                  icon={<X size={13} aria-hidden="true" />}
+                  size="sm"
+                  tone="ghost"
+                  className="h-6 w-6"
+                />
+              </span>
+            ))}
+          </div>
         ) : null}
         <button
           type="button"
@@ -745,7 +783,17 @@ function TextStudioShell({
   const [streamingText, setStreamingText] = useState<string | null>(null);
   const [activeRun, setActiveRun] = useState<TextStudioActiveRun | null>(null);
   const [sessionRuns, setSessionRuns] = useState<Record<string, TextStudioActiveRun>>({});
-  const media = useMediaAttachments();
+  const attachmentAdapter = useMemo(
+    () => createBrowserDataUrlAttachmentAdapter({ idPrefix: 'tester-attachment' }),
+    [],
+  );
+  const composerState = useChatComposer<BrowserDataUrlAttachment>({
+    adapter: { submit: async () => {} },
+    attachmentAdapter,
+    text: prompt,
+    onTextChange: updatePrompt,
+    disabled: running,
+  });
   const hasActiveRun = Boolean(activeRun);
   const currentResult = activeRun?.result ?? (lastResult?.capabilityId === capability.id ? lastResult : null);
   const headerResult = hasActiveRun ? currentResult : null;
@@ -826,7 +874,7 @@ function TextStudioShell({
           scenarioId: preset.id,
           directive,
           onPartial: isStreaming ? setStreamingText : undefined,
-          attachments: supportsMedia ? media.attachments : undefined,
+          attachments: supportsMedia ? [...composerState.attachments] : undefined,
         });
       }
       const runConfig = createRunConfigSnapshot({
@@ -836,7 +884,7 @@ function TextStudioShell({
         length,
         lengthSelected,
         context: nextContext,
-        attachmentCount: supportsMedia ? media.attachments.length : 0,
+        attachmentCount: supportsMedia ? composerState.attachments.length : 0,
       });
       const record = await onResult(result, displayPrompt, runConfig);
       const finishedRun: TextStudioActiveRun = {
@@ -927,7 +975,9 @@ function TextStudioShell({
       toneSelected={toneSelected}
       lengthSelected={lengthSelected}
       running={running}
-      media={media}
+      attachments={composerState.attachments}
+      onOpenAttachmentPicker={composerState.openAttachmentPicker}
+      onRemoveAttachment={composerState.removeAttachment}
       canDispatch={runTarget.canDispatch}
       compact={Boolean(activeRun)}
       onPromptChange={updatePrompt}

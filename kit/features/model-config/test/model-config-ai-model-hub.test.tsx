@@ -238,6 +238,58 @@ describe('ModelConfigAiModelHub', () => {
     expect(container?.textContent).toContain('Setup required');
   });
 
+  it('opens directly into an initial section for capability-specific drawers', async () => {
+    const service = stubService();
+    const surface: AppModelConfigSurface = {
+      ...makeSurface(service),
+      requirementDeclaration: requirementDeclaration(['text.generate', 'image.generate']),
+    };
+    const changes: Array<string | null> = [];
+    await render(
+      wrap(
+        <ModelConfigAiModelHub
+          surface={surface}
+          profile={emptyProfileController}
+          initialSection="chat"
+          onActiveSectionChange={(section) => changes.push(section)}
+        />,
+      ),
+    );
+
+    expect(container?.textContent).toContain('ModelConfig.hub.detailTitleFormat');
+    expect(container?.textContent).toContain('ModelConfig.editor.textGenerate.temperatureLabel');
+    expect(container?.textContent).not.toContain('ModelConfig.section.image.title');
+    expect(changes).toContain('chat');
+  });
+
+  it('renders active section only for capability drawer detail mode', async () => {
+    const service = stubService();
+    const surface: AppModelConfigSurface = {
+      ...makeSurface(service),
+      requirementDeclaration: requirementDeclaration(['text.generate', 'image.generate']),
+    };
+    await render(
+      wrap(
+        <ModelConfigAiModelHub
+          surface={surface}
+          profile={emptyProfileController}
+          initialSection="chat"
+          detailOnly
+          detailHeaderAction={<button type="button">Close drawer</button>}
+        />,
+      ),
+    );
+
+    expect(container?.textContent).toContain('ModelConfig.hub.detailTitleFormat');
+    expect(container?.textContent).toContain('ModelConfig.editor.textGenerate.temperatureLabel');
+    expect(container?.textContent).toContain('Close drawer');
+    expect(container?.textContent).not.toContain('Import AI Profile');
+    expect(container?.textContent).not.toContain('ModelConfig.section.image.title');
+    const backButton = Array.from(container?.querySelectorAll('button') || [])
+      .find((button) => button.getAttribute('aria-label') === 'ModelConfig.hub.backLabel');
+    expect(backButton).toBeUndefined();
+  });
+
   it('labels multiple capability cards in one section by capability instead of a generic active model label', async () => {
     const service = stubService();
     const surface: AppModelConfigSurface = {

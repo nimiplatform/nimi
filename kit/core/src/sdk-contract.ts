@@ -168,6 +168,7 @@ export type {
   NimiRunEvent,
 } from '@nimiplatform/sdk/contracts';
 export {
+  dataPart,
   textPart,
 } from '@nimiplatform/sdk/contracts';
 export {

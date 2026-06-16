@@ -77,16 +77,16 @@ export type SettingsRouteViewProps = {
 
 export function SettingsRouteView(props: SettingsRouteViewProps) {
   return (
-    <Surface className="panel-section" material="glass-thin" tone="panel">
-      <div className="panel-heading">
-        <h2>Settings</h2>
+    <Surface className="grid gap-3" material="glass-thin" tone="panel">
+      <div className="flex min-w-0 items-start justify-between gap-3">
+        <h2 className="m-0 text-sm font-semibold tracking-normal text-[var(--nimi-text-primary)]">Settings</h2>
         <ProgressIndicator value={props.localDrafts ? 72 : 46} showValue />
       </div>
-      <label className="setting-row">
+      <label className="flex min-w-0 flex-wrap items-center justify-between gap-3 text-sm text-[var(--nimi-text-secondary)]">
         <span>Local draft data</span>
         <Toggle checked={props.localDrafts} onChange={props.setLocalDrafts} />
       </label>
-      <label className="setting-row">
+      <label className="flex min-w-0 flex-wrap items-center justify-between gap-3 text-sm text-[var(--nimi-text-secondary)]">
         <span>Evidence capture</span>
         <Toggle checked={props.evidenceMode} onChange={props.setEvidenceMode} />
       </label>

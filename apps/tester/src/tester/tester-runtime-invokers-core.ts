@@ -16,13 +16,13 @@ import {
   createNimiRuntimeAIModel,
   createNimiRuntimeAISchedulingClient,
   createNimiRuntimeEmbeddingClient,
+  coerceNimiAITextGenerationParams,
+  resolveNimiAIConfigRuntimeBinding,
   runNimiTextGenerate,
-  versionNimiAIConfig,
   type NimiAIConfig,
-  type NimiAIConfigTargetRef,
+  type NimiAIConfigRuntimeBinding,
+  type NimiAITextGenerationParameterSet,
   type NimiAISchedulingProjection,
-  type NimiAISchedulingTargetInput,
-  type NimiRuntimeAIModelOptions,
   type NimiRuntimeAIScenarioClient,
   type NimiRuntimeAISchedulingClient,
   type NimiRuntimeEmbeddingScenarioClient,
@@ -34,9 +34,9 @@ import {
 } from '@nimiplatform/sdk/contracts';
 import type { TesterCapabilityId } from './tester-capabilities.js';
 import { capabilityUnavailable, type TesterUnavailable, type TesterUnavailableReason } from './tester-unavailable.js';
-import { getTesterCapability } from './tester-capabilities.js';
+import { getTesterCapability, getTesterRuntimeBindingCapabilityId } from './tester-capabilities.js';
 import { loadTesterAIConfig } from './tester-ai-config-store.js';
-import type { MediaAttachment } from './tester-multimodal-input.js';
+import type { BrowserDataUrlAttachment } from '@nimiplatform/kit/features/chat/headless';
 
 export type TesterScenarioInput = {
   prompt: string;
@@ -47,7 +47,7 @@ export type TesterScenarioInput = {
    *  on each delta so the UI can render the stream token-by-token. */
   onPartial?: (accumulatedText: string) => void;
   /** Optional local media attachments for vision/multimodal text capabilities. */
-  attachments?: MediaAttachment[];
+  attachments?: BrowserDataUrlAttachment[];
   /** Optional app-composed instruction line (tone/length studio controls) that is
    *  prepended to the prompt before it is sent to the runtime as real input. */
   directive?: string;
@@ -153,36 +153,11 @@ export type TesterRuntimeInvocationClient = {
 };
 
 const TESTER_APP_ID = 'nimi.tester';
-const TEXT_GENERATION_BINDING_CAPABILITY = 'text.generate';
-const EMBEDDING_BINDING_CAPABILITY = 'text.embed';
-
-export type ResolvedLLMBinding = {
-  bindingCapabilityId: string;
-  targetRef: NimiAIConfigTargetRef;
-  model: string;
-  routePolicy: Exclude<NimiRuntimeAIModelOptions['routePolicy'], 'unspecified'>;
-  connectorId?: string;
-  schedulingTarget: NimiAISchedulingTargetInput | null;
-  selectedParams: unknown;
-  metadata: Record<string, string>;
-};
+export type ResolvedLLMBinding = NimiAIConfigRuntimeBinding;
 
 export type SchedulingPreflightResult = {
   unavailable: TesterUnavailable | null;
   evidenceMetadata: Record<string, string>;
-};
-
-type TextRuntimeParameterSet = {
-  parameters: {
-    temperature?: number;
-    topP?: number;
-    topK?: number;
-    maxTokens?: number;
-    presencePenalty?: number;
-    frequencyPenalty?: number;
-    stop?: string[];
-  };
-  timeoutMs?: number;
 };
 
 export function isTesterUnavailable(value: unknown): value is TesterUnavailable {
@@ -253,190 +228,45 @@ export function unavailableFromAIConfig(capabilityId: TesterCapabilityId, messag
   return capabilityUnavailable(capability, 'ai-config-binding-missing', message);
 }
 
-function bindingCapabilityFor(capabilityId: TesterCapabilityId): string | null {
-  if (capabilityId === 'text.generate' || capabilityId === 'chat.stream') {
-    return TEXT_GENERATION_BINDING_CAPABILITY;
-  }
-  if (capabilityId === 'text.embed') {
-    return EMBEDDING_BINDING_CAPABILITY;
-  }
-  if (capabilityId === 'speech.bundle') {
-    return 'audio.synthesize';
-  }
-  if (
-    capabilityId === 'image.generate'
-    || capabilityId === 'video.generate'
-    || capabilityId === 'audio.synthesize'
-    || capabilityId === 'audio.transcribe'
-  ) {
-    return capabilityId;
-  }
-  return null;
-}
-
 function normalizeText(value: unknown): string {
   return String(value ?? '').trim();
 }
 
-function selectedParamRecord(resolved: ResolvedLLMBinding): Record<string, unknown> {
-  return resolved.selectedParams && typeof resolved.selectedParams === 'object' && !Array.isArray(resolved.selectedParams)
-    ? resolved.selectedParams as Record<string, unknown>
-    : {};
-}
-
-function optionalFiniteParam(
-  capabilityId: TesterCapabilityId,
-  params: Record<string, unknown>,
-  key: string,
-): number | TesterUnavailable | undefined {
-  const raw = params[key];
-  const value = typeof raw === 'number' ? String(raw) : normalizeText(raw);
-  if (!value) return undefined;
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed)) {
-    return unavailableFromValidation(capabilityId, `NimiAIConfig selectedParams.${key} must be a finite number.`);
-  }
-  return parsed;
-}
-
-function optionalPositiveIntegerParam(
-  capabilityId: TesterCapabilityId,
-  params: Record<string, unknown>,
-  key: string,
-): number | TesterUnavailable | undefined {
-  const parsed = optionalFiniteParam(capabilityId, params, key);
-  if (parsed === undefined || isTesterUnavailable(parsed)) return parsed;
-  if (!Number.isInteger(parsed) || parsed <= 0) {
-    return unavailableFromValidation(capabilityId, `NimiAIConfig selectedParams.${key} must be a positive integer.`);
-  }
-  return parsed;
-}
-
-function optionalStopSequences(
-  capabilityId: TesterCapabilityId,
-  params: Record<string, unknown>,
-): string[] | TesterUnavailable | undefined {
-  const raw = params.stopSequences ?? params.stop;
-  if (raw === undefined) return undefined;
-  if (!Array.isArray(raw)) {
-    return unavailableFromValidation(capabilityId, 'NimiAIConfig selectedParams.stopSequences must be a string array.');
-  }
-  const values = raw.map((entry) => normalizeText(entry)).filter(Boolean);
-  return values.length > 0 ? values : undefined;
-}
-
-function textRuntimeParametersFromBinding(
+function resolveTextGenerationParameters(
   capabilityId: Extract<TesterCapabilityId, 'text.generate' | 'chat.stream'>,
   resolved: ResolvedLLMBinding,
-): TextRuntimeParameterSet | TesterUnavailable {
-  const params = selectedParamRecord(resolved);
-  const temperature = optionalFiniteParam(capabilityId, params, 'temperature');
-  if (isTesterUnavailable(temperature)) return temperature;
-  const topP = optionalFiniteParam(capabilityId, params, 'topP');
-  if (isTesterUnavailable(topP)) return topP;
-  const topK = optionalPositiveIntegerParam(capabilityId, params, 'topK');
-  if (isTesterUnavailable(topK)) return topK;
-  const maxTokens = optionalPositiveIntegerParam(capabilityId, params, 'maxTokens');
-  if (isTesterUnavailable(maxTokens)) return maxTokens;
-  const presencePenalty = optionalFiniteParam(capabilityId, params, 'presencePenalty');
-  if (isTesterUnavailable(presencePenalty)) return presencePenalty;
-  const frequencyPenalty = optionalFiniteParam(capabilityId, params, 'frequencyPenalty');
-  if (isTesterUnavailable(frequencyPenalty)) return frequencyPenalty;
-  const timeoutMs = optionalPositiveIntegerParam(capabilityId, params, 'timeoutMs');
-  if (isTesterUnavailable(timeoutMs)) return timeoutMs;
-  const stop = optionalStopSequences(capabilityId, params);
-  if (isTesterUnavailable(stop)) return stop;
-
-  return {
-    parameters: {
-      ...(temperature !== undefined ? { temperature } : {}),
-      ...(topP !== undefined ? { topP } : {}),
-      ...(topK !== undefined ? { topK } : {}),
-      ...(maxTokens !== undefined ? { maxTokens } : {}),
-      ...(presencePenalty !== undefined ? { presencePenalty } : {}),
-      ...(frequencyPenalty !== undefined ? { frequencyPenalty } : {}),
-      ...(stop !== undefined ? { stop } : {}),
-    },
-    ...(timeoutMs !== undefined ? { timeoutMs } : {}),
-  };
-}
-
-function targetRefModel(targetRef: NimiAIConfigTargetRef): string {
-  if (targetRef.kind === 'cloud-connector') {
-    return normalizeText(targetRef.providerModelId);
+): NimiAITextGenerationParameterSet | TesterUnavailable {
+  const coerced = coerceNimiAITextGenerationParams(resolved.selectedParams);
+  if (coerced.ok === false) {
+    return unavailableFromValidation(capabilityId, coerced.message);
   }
-  if (targetRef.kind === 'local-runtime') {
-    return normalizeText(targetRef.profileId) || normalizeText(targetRef.targetId) || normalizeText(targetRef.readinessRef);
-  }
-  return '';
-}
-
-function targetRefSchedulingInput(
-  capability: string,
-  targetRef: NimiAIConfigTargetRef,
-): NimiAISchedulingTargetInput | null {
-  if (targetRef.kind === 'profile-slice') {
-    return null;
-  }
-  return { capability, targetRef };
+  return coerced.value;
 }
 
 export function resolveTesterLLMBinding(
   capabilityId: TesterCapabilityId,
   config: NimiAIConfig = loadTesterAIConfig(),
 ): ResolvedLLMBinding | TesterUnavailable {
-  const bindingCapabilityId = bindingCapabilityFor(capabilityId);
-  if (!bindingCapabilityId) {
-    return unavailableFromAIConfig(capabilityId, `Capability ${capabilityId} does not have an NimiAIConfig LLM binding path.`);
+  const resolved = resolveNimiAIConfigRuntimeBinding({
+    config,
+    capabilityId,
+    bindingCapabilityId: getTesterRuntimeBindingCapabilityId(capabilityId),
+  });
+  if (resolved.ok === false) {
+    return unavailableFromAIConfig(capabilityId, resolved.message);
   }
-  const targetRef = config.capabilities.targetRefs[bindingCapabilityId] || null;
-  if (!targetRef) {
-    return unavailableFromAIConfig(
-      capabilityId,
-      `NimiAIConfig targetRef is required for ${bindingCapabilityId}; Runtime invocation failed closed before request dispatch.`,
-    );
-  }
-  if (targetRef.kind === 'profile-slice') {
-    return unavailableFromAIConfig(
-      capabilityId,
-      `NimiAIConfig targetRef for ${bindingCapabilityId} still points to profile-slice ${targetRef.sliceId}; apply/materialize a live Runtime target before dispatch.`,
-    );
-  }
-  const model = targetRefModel(targetRef);
-  if (!model) {
-    return unavailableFromAIConfig(
-      capabilityId,
-      `NimiAIConfig targetRef for ${bindingCapabilityId} does not include a Runtime model id.`,
-    );
-  }
-  const connectorId = targetRef.kind === 'cloud-connector' ? normalizeText(targetRef.connectorId) : '';
-  const routePolicy = targetRef.kind === 'cloud-connector' ? 'cloud' : 'local';
-  const scopeRef = config.scopeRef;
+  return resolved.binding;
+}
+
+export function runtimeRoutePayload(resolved: ResolvedLLMBinding): {
+  model: string;
+  connectorId?: string;
+  route: 'local' | 'cloud';
+} {
   return {
-    bindingCapabilityId,
-    targetRef,
-    model,
-    routePolicy,
-    ...(connectorId ? { connectorId } : {}),
-    schedulingTarget: targetRefSchedulingInput(bindingCapabilityId, targetRef),
-    selectedParams: config.capabilities.selectedParams[bindingCapabilityId]
-      ?? config.capabilities.selectedParams[capabilityId]
-      ?? null,
-    metadata: {
-      aiConfigScopeKind: scopeRef.kind,
-      aiConfigScopeOwnerId: scopeRef.ownerId,
-      aiConfigScopeSurfaceId: scopeRef.surfaceId || '',
-      aiConfigProfileId: config.profileOrigin?.profileId || '',
-      aiConfigProfileTitle: config.profileOrigin?.title || '',
-      aiConfigCapabilityId: capabilityId,
-      aiConfigBindingCapabilityId: bindingCapabilityId,
-      aiConfigBindingSource: routePolicy,
-      aiConfigBindingConnectorId: connectorId,
-      aiConfigBindingModel: model,
-      aiConfigTargetRefKind: targetRef.kind,
-      aiConfigHash: versionNimiAIConfig(config),
-      aiConfigBindingKeys: Object.keys(config.capabilities.targetRefs).sort().join(','),
-    },
+    model: resolved.model,
+    route: resolved.routePolicy,
+    ...(resolved.connectorId ? { connectorId: resolved.connectorId } : {}),
   };
 }
 
@@ -490,24 +320,6 @@ function schedulingEvidenceMetadata(batch: NimiAISchedulingProjection): Record<s
   return metadata;
 }
 
-export function routeInput(resolved: ResolvedLLMBinding): {
-  model: string;
-  connectorId?: string;
-  route: 'local' | 'cloud';
-} {
-  if (resolved.routePolicy === 'cloud') {
-    return {
-      model: resolved.model,
-      connectorId: resolved.connectorId,
-      route: 'cloud',
-    };
-  }
-  return {
-    model: resolved.model,
-    route: 'local',
-  };
-}
-
 export function pickTrace(value: unknown): TesterTrace | undefined {
   if (!value || typeof value !== 'object') return undefined;
   const record = value as Record<string, unknown>;
@@ -524,7 +336,7 @@ function stableTesterIdPart(value: string): string {
 
 function unsupportedTextAttachments(
   capabilityId: Extract<TesterCapabilityId, 'text.generate' | 'chat.stream'>,
-  attachments: readonly MediaAttachment[] | undefined,
+  attachments: readonly BrowserDataUrlAttachment[] | undefined,
 ): TesterUnavailable | null {
   if (!attachments || attachments.length === 0) {
     return null;
@@ -597,7 +409,7 @@ export async function invokeTextGenerate(client: TesterRuntimeInvocationClient, 
   if (attachmentUnavailable) return attachmentUnavailable;
   const resolved = resolveTesterLLMBinding('text.generate');
   if (isTesterUnavailable(resolved)) return resolved;
-  const textParams = textRuntimeParametersFromBinding('text.generate', resolved);
+  const textParams = resolveTextGenerationParameters('text.generate', resolved);
   if (isTesterUnavailable(textParams)) return textParams;
   const schedulingPreflight = await ensureSchedulingPreflight(client, 'text.generate', resolved);
   if (schedulingPreflight.unavailable) return schedulingPreflight.unavailable;
@@ -648,11 +460,11 @@ export async function invokeChatStream(client: TesterRuntimeInvocationClient, in
   if (attachmentUnavailable) return attachmentUnavailable;
   const resolved = resolveTesterLLMBinding('chat.stream');
   if (isTesterUnavailable(resolved)) return resolved;
-  const textParams = textRuntimeParametersFromBinding('chat.stream', resolved);
+  const textParams = resolveTextGenerationParameters('chat.stream', resolved);
   if (isTesterUnavailable(textParams)) return textParams;
   const schedulingPreflight = await ensureSchedulingPreflight(client, 'chat.stream', resolved);
   if (schedulingPreflight.unavailable) return schedulingPreflight.unavailable;
-  const route = routeInput(resolved);
+  const route = runtimeRoutePayload(resolved);
   try {
     const scenarioId = stableTesterIdPart(input.scenarioId);
     const provider = createSimpleAiConversationProvider({

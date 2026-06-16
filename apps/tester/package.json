@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "pnpm run dev:renderer",
-    "dev:renderer": "node scripts/ensure-dev-renderer-port.mjs && vite --host 127.0.0.1 --port 1468 --strictPort",
+    "dev:renderer": "vite --host 127.0.0.1 --port 1468 --strictPort",
     "dev:shell": "node scripts/run-tauri-dev.mjs",
     "init": "nimi-app init",
     "typecheck": "tsc --noEmit",

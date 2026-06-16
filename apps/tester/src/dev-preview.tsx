@@ -23,20 +23,30 @@ function DevPreview() {
   useEffect(() => {
     if (!section) return;
     const map: Record<string, string> = {
-      'app-lab': 'App Lab',
-      'ai-capabilities': 'AI Capabilities',
-      'ui-recipes': 'UI Recipes',
-      runs: 'Runs',
-      artifacts: 'Artifacts',
-      'runtime-trace': 'Runtime Trace',
-      'boundary-checks': 'Boundary Checks',
-      settings: 'Settings',
+      text: 'Text Studio',
+      'text.generate': 'Text Studio',
+      chat: 'Chat Stream',
+      'chat.stream': 'Chat Stream',
+      embed: 'Embeddings',
+      'text.embed': 'Embeddings',
+      image: 'Image Generate',
+      'image.generate': 'Image Generate',
+      video: 'Video Generate',
+      'video.generate': 'Video Generate',
+      tts: 'Speech Synthesis',
+      'audio.synthesize': 'Speech Synthesis',
+      stt: 'Speech Transcribe',
+      'audio.transcribe': 'Speech Transcribe',
+      'speech-bundle': 'Speech Bundle',
+      world: 'World Tour',
+      'ui-recipes': 'Nimi Kit',
     };
     const label = map[section];
     if (!label) return;
     const tryClick = () => {
-      const button = Array.from(document.querySelectorAll<HTMLButtonElement>('.workbench-side-nav__item'))
-        .find((node) => (node.textContent || '').trim() === label);
+      // Capability cards live in the Console rail; section buttons live in the
+      // dock. Both expose aria-labels, so a document-wide lookup resolves either.
+      const button = document.querySelector<HTMLButtonElement>(`button[aria-label="${CSS.escape(label)}"]`);
       if (!button) return false;
       button.click();
       return true;

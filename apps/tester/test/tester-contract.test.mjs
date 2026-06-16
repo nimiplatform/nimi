@@ -566,20 +566,17 @@ test('tester run history rows prioritize prompt title, recency groups, and run m
   assert.doesNotMatch(capabilities, /Model target|Target detail/);
   assert.match(capabilities, /aria-label=\{historyLabelForRun\(record\)\}/);
   assert.match(styles, /grid-template-rows:\s*auto minmax\(0,\s*1fr\)/);
-  assert.match(styles, /--studio-center-width:\s*960px/);
-  assert.match(styles, /--studio-history-width:\s*360px/);
   assert.match(styles, /\.studio__workspace\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)/s);
   assert.match(
     styles,
-    /\.studio__workspace--with-history\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s*minmax\(320px,\s*var\(--studio-history-width\)\)/s,
+    /\.studio__workspace--with-history\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s*minmax\(280px,\s*340px\)/s,
   );
-  assert.match(styles, /\.studio__stage\s*\{[^}]*max-width:\s*var\(--studio-center-width\)[^}]*justify-self:\s*center/s);
   assert.match(styles, /border-left:\s*1px solid/);
   assert.match(styles, /\.studio-history__groups/);
   assert.match(styles, /\.studio-history__group/);
-  assert.match(styles, /\.studio-history \.studio-recent__copy/);
-  assert.match(styles, /\.studio-history \.studio-recent__title/);
-  assert.match(styles, /\.studio-history \.studio-recent__detail/);
+  assert.match(styles, /\.studio-recent__copy/);
+  assert.match(styles, /\.studio-recent__title/);
+  assert.match(styles, /\.studio-recent__detail/);
   assert.doesNotMatch(styles, /\.studio-history \.studio-recent__source--local/);
   assert.doesNotMatch(styles, /\.studio-history \.studio-recent__source--cloud/);
   assert.match(styles, /\.studio-prompt-settings/);
@@ -588,7 +585,8 @@ test('tester run history rows prioritize prompt title, recency groups, and run m
   assert.match(styles, /\.studio-history-settings__params/);
   assert.match(styles, /\.studio-history-settings__empty/);
   assert.doesNotMatch(styles, /\.studio-history-settings__context/);
-  assert.match(styles, /\.studio-result\s*\{[^}]*border-radius:\s*14px/s);
+  assert.match(styles, /\.studio-result\s*\{[^}]*overflow:\s*hidden/s);
+  assert.doesNotMatch(styles, /\.studio-result\s*\{[^}]*border-radius:\s*14px/s);
 });
 
 test('tester capability runs consume Kit renderer telemetry', () => {
@@ -677,26 +675,16 @@ test('tester text.generate consumes SDK vNext text runner and Runtime Scenario m
   assert.doesNotMatch(invokers, /runtime\.ai\.text\.generate/);
 });
 
-test('tester multimodal attachment input is app-local vNext message evidence and text runtime fails closed', () => {
-  const multimodal = read('src/tester/tester-multimodal-input.tsx');
-  const invokers = readTesterRuntimeInvokersSurface(root);
+test('tester attachment input uses the kit chat composer, not an app-local multimodal component', () => {
   const capabilities = readTesterAiTestingSurface(root);
 
-  // Attachments are read locally and shaped into vNext Nimi message data parts;
-  // Runtime text Scenario does not yet accept multimodal parts, so execution
-  // fails closed before dispatch instead of fabricating transport support.
-  assert.match(multimodal, /from '@nimiplatform\/sdk\/contracts'/);
-  assert.match(multimodal, /createTesterAttachmentId/);
-  assert.match(multimodal, /dataPart/);
-  assert.match(multimodal, /export function buildMultimodalInput/);
-  assert.doesNotMatch(multimodal, /Math\.random\(\)/);
-  assert.match(invokers, /unsupportedTextAttachments/);
-  assert.match(invokers, /Runtime text Scenario currently accepts text-only input/);
-  assert.match(invokers, /const directedPrompt = input\.directive \? `\$\{input\.directive\}/);
-  assert.match(invokers, /messages: buildNimiUserMessages\(directedPrompt\)/);
-  assert.match(invokers, /buildChatRuntimeUserMessage\(prompt\)/);
-  assert.match(capabilities, /attachments: supportsMedia \? media\.attachments : undefined/);
-  assert.match(capabilities, /<ImageAttachmentStrip/);
+  // Attachments flow through the kit chat composer headless primitive
+  // (BrowserDataUrlAttachment), not a forked app-local multimodal component.
+  assert.match(capabilities, /useChatComposer<BrowserDataUrlAttachment>/);
+  assert.match(capabilities, /createBrowserDataUrlAttachmentAdapter/);
+  assert.match(capabilities, /from '@nimiplatform\/kit\/features\/chat\/headless'/);
+  assert.match(capabilities, /attachments: supportsMedia \? \[\.\.\.composerState\.attachments\] : undefined/);
+  assert.doesNotMatch(capabilities, /tester-multimodal-input|ImageAttachmentStrip|useMediaAttachments/);
 });
 
 test('tester run history labels local fixtures distinctly from runtime results', () => {
@@ -716,6 +704,8 @@ test('tester AI config is the Kit model-config surface in Settings with real SDK
   const panel = read('src/tester/workbench/tester-ai-config-settings-panel.tsx');
   const capabilities = readTesterAiTestingSurface(root);
   const runTarget = read('src/tester/tester-run-target.ts');
+  const modelConfigHub = read('../../kit/features/model-config/src/components/model-config-ai-model-hub.tsx');
+  const runtimeTargetSummary = read('../../kit/features/model-config/src/headless/runtime-target-summary.ts');
   const styles = read('src/tester/tester-workbench.css');
 
   for (const required of [
@@ -751,17 +741,28 @@ test('tester AI config is the Kit model-config surface in Settings with real SDK
   // surface skeleton (inherited by every generated app). It composes admitted kit
   // primitives and accepts an initialSection so a capability gear can deep-link.
   for (const required of [
-    'ModelConfigCapabilityDetail',
-    'ProfileConfigSection',
+    'ModelConfigAiModelHub',
     'useModelConfigProfileController',
     'defaultModelConfigProfileCopy',
     'Import AIProfile JSON',
     'Open Apply AI Profile to preview and confirm',
     'fail closed',
     'initialSection',
+    'detailOnly',
+    'footer={importFooter}',
+    'profile={profileController}',
   ]) {
     assert.match(surface, new RegExp(required.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }
+  assert.doesNotMatch(surface, /ProfileConfigSection/);
+  assert.doesNotMatch(surface, /ModelConfigCapabilityDetail/);
+  assert.match(modelConfigHub, /import \{ ProfileConfigSection \} from '\.\/profile-config-section\.js';/);
+  assert.match(modelConfigHub, /import \{ ModelConfigCapabilityDetail \} from '\.\/model-config-capability-detail\.js';/);
+  assert.match(modelConfigHub, /initialSection\?: CanonicalCapabilitySectionId \| null/);
+  assert.match(modelConfigHub, /detailOnly\?: boolean/);
+  assert.match(modelConfigHub, /footer\?: ReactNode/);
+  assert.match(modelConfigHub, /<ProfileConfigSection controller=\{profile\} variant="import-button" \/>/);
+  assert.match(modelConfigHub, /<ModelConfigCapabilityDetail/);
   assert.doesNotMatch(surface, /applyAIProfileToConfig/);
   assert.match(surface, /profileController\.onCancelPreview\(\)/);
   assert.match(surface, /profileController\.onSelectedProfileChange\(result\.profileId\)/);
@@ -806,13 +807,16 @@ test('tester AI config is the Kit model-config surface in Settings with real SDK
   ]) {
     assert.match(runTarget, new RegExp(required));
   }
-  assert.match(runTarget, /targetRef\.kind === 'profile-slice'/);
-  assert.match(runTarget, /runtime\.status !== 'ready'/);
-  assert.match(runTarget, /Choose a Runtime model target/);
+  assert.match(runTarget, /summarizeModelConfigRuntimeTarget/);
+  assert.match(runTarget, /getTesterRuntimeBindingCapabilityId\(capability\.id\)/);
+  assert.match(runtimeTargetSummary, /targetRef\.kind === 'profile-slice'/);
+  assert.match(runtimeTargetSummary, /input\.runtimeStatus === 'blocked'/);
+  assert.match(runtimeTargetSummary, /Choose a Runtime model target/);
   assert.doesNotMatch(runTarget, /gpt-4|claude|gemini|openai|anthropic|model:\s*['"]auto['"]/i);
   assert.doesNotMatch(styles, /\.studio-run-target/);
   assert.doesNotMatch(styles, /\.studio-run-target__params/);
-  assert.match(styles, /@media \(max-width:\s*720px\)[\s\S]*\.section-ai-testing__drawer[\s\S]*position:\s*fixed/);
+  assert.match(styles, /\.section-ai-testing__drawer\s*\{[^}]*position:\s*absolute/s);
+  assert.match(styles, /@media \(max-width:\s*720px\)[\s\S]*\.section-ai-testing__drawer[\s\S]*width:\s*100%/);
 });
 
 test('tester product-local persistence consumes Kit core storage helpers', () => {
@@ -835,6 +839,7 @@ test('tester product-local persistence consumes Kit core storage helpers', () =>
 test('tester LLM invokers consume AIConfig bindings and fail closed without binding', () => {
   const invokers = readTesterRuntimeInvokersSurface(root);
   const unavailable = read('src/tester/tester-unavailable.ts');
+  const sdkAiConfigBinding = read('../../sdks/typescript/core/ai/config-runtime-binding.ts');
   const llmInvokers = invokers.slice(
     invokers.indexOf('async function invokeTextGenerate'),
     invokers.indexOf('function summariseArtifact'),
@@ -843,33 +848,35 @@ test('tester LLM invokers consume AIConfig bindings and fail closed without bind
   assert.doesNotMatch(llmInvokers, /model:\s*['"]auto['"]/);
   assert.match(unavailable, /ai-config-binding-missing/);
   assert.match(invokers, /resolveTesterLLMBinding/);
-  assert.match(invokers, /textRuntimeParametersFromBinding/);
-  assert.match(invokers, /optionalFiniteParam\(capabilityId, params, 'temperature'\)/);
-  assert.match(invokers, /optionalPositiveIntegerParam\(capabilityId, params, 'timeoutMs'\)/);
-  assert.match(invokers, /stopSequences/);
-  assert.match(invokers, /must be a finite number/);
-  assert.match(invokers, /must be a positive integer/);
+  assert.match(invokers, /resolveTextGenerationParameters/);
+  assert.match(invokers, /coerceNimiAITextGenerationParams/);
+  assert.doesNotMatch(invokers, /optionalFiniteParam\(capabilityId, params, 'temperature'\)/);
+  assert.doesNotMatch(invokers, /optionalPositiveIntegerParam\(capabilityId, params, 'timeoutMs'\)/);
+  assert.match(sdkAiConfigBinding, /function optionalFiniteParam\(params: Record<string, unknown>, key: string\)/);
+  assert.match(sdkAiConfigBinding, /function optionalPositiveIntegerParam\(params: Record<string, unknown>, key: string\)/);
+  assert.match(sdkAiConfigBinding, /stopSequences/);
+  assert.match(sdkAiConfigBinding, /must be a finite number/);
+  assert.match(sdkAiConfigBinding, /must be a positive integer/);
   assert.match(invokers, /createTesterTextModel\(client, resolved, textParams\.timeoutMs\)/);
   assert.match(invokers, /\.\.\.textParams\.parameters/);
   assert.match(invokers, /temperature: textParams\.parameters\.temperature/);
   assert.match(invokers, /timeoutMs: textParams\.timeoutMs/);
-  assert.match(invokers, /text\.generate' \|\| capabilityId === 'chat\.stream'/);
-  assert.match(invokers, /capabilityId === 'text\.embed'/);
-  assert.match(invokers, /Runtime invocation failed closed before request dispatch/);
-  assert.match(invokers, /routeInput/);
-  assert.match(invokers, /config\.capabilities\.targetRefs\[bindingCapabilityId\]/);
-  assert.match(invokers, /targetRef\.kind === 'profile-slice'/);
-  assert.match(invokers, /targetRef\.kind === 'cloud-connector'/);
-  assert.match(invokers, /targetRef\.kind === 'local-runtime'/);
+  assert.match(invokers, /Extract<TesterCapabilityId, 'text\.generate' \| 'chat\.stream'>/);
+  assert.match(invokers, /case 'text\.embed':\s*return invokeEmbedding/);
+  assert.match(sdkAiConfigBinding, /runtime invocation failed closed before request dispatch/);
+  assert.match(sdkAiConfigBinding, /input\.config\.capabilities\.targetRefs\[bindingCapabilityId\]/);
+  assert.match(sdkAiConfigBinding, /targetRef\.kind === 'profile-slice'/);
+  assert.match(sdkAiConfigBinding, /targetRef\.kind === 'cloud-connector'/);
+  assert.match(sdkAiConfigBinding, /targetRef\.kind === 'local-runtime'/);
   assert.match(invokers, /connectorId: resolved\.connectorId/);
   assert.match(invokers, /route: 'local'/);
-  assert.match(invokers, /aiConfigScopeKind/);
-  assert.match(invokers, /aiConfigProfileId/);
-  assert.match(invokers, /aiConfigBindingCapabilityId/);
-  assert.match(invokers, /aiConfigBindingModel/);
-  assert.match(invokers, /aiConfigTargetRefKind/);
-  assert.match(invokers, /aiConfigHash/);
-  assert.match(invokers, /versionNimiAIConfig/);
+  assert.match(sdkAiConfigBinding, /aiConfigScopeKind/);
+  assert.match(sdkAiConfigBinding, /aiConfigProfileId/);
+  assert.match(sdkAiConfigBinding, /aiConfigBindingCapabilityId/);
+  assert.match(sdkAiConfigBinding, /aiConfigBindingModel/);
+  assert.match(sdkAiConfigBinding, /aiConfigTargetRefKind/);
+  assert.match(sdkAiConfigBinding, /aiConfigHash/);
+  assert.match(sdkAiConfigBinding, /versionNimiAIConfig/);
   assert.match(invokers, /from '@nimiplatform\/sdk\/ai'/);
   assert.match(invokers, /createNimiRuntimeAISchedulingClient/);
   assert.match(invokers, /client\.runtime/);

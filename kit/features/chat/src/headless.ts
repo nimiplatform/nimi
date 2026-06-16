@@ -109,6 +109,17 @@ export {
   buildCanonicalTranscriptGroups,
   buildCanonicalTranscriptMessageGroups,
 } from './headless/transcript-groups.js';
+export type {
+  BrowserDataUrlAttachment,
+  BrowserDataUrlAttachmentAdapterOptions,
+  BrowserDataUrlAttachmentKind,
+} from './headless/browser-data-url-attachment-adapter.js';
+export {
+  DEFAULT_BROWSER_DATA_URL_ATTACHMENT_ACCEPT,
+  browserDataUrlAttachmentsToNimiMessages,
+  browserFilesToDataUrlAttachments,
+  createBrowserDataUrlAttachmentAdapter,
+} from './headless/browser-data-url-attachment-adapter.js';
 export { CONVERSATION_MODES } from './types.js';
 import type {
   ConversationComposerAdapter,

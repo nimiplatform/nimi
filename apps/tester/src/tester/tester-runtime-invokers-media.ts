@@ -20,7 +20,7 @@ import {
   pickTrace,
   requireRuntimeSubjectUserId,
   resolveTesterLLMBinding,
-  routeInput,
+  runtimeRoutePayload,
   unavailableFromError,
   unavailableFromValidation,
 } from './tester-runtime-invokers-core.js';
@@ -446,7 +446,7 @@ export async function invokeImageGenerate(client: TesterRuntimeInvocationClient,
   const subjectUserId = requireRuntimeSubjectUserId('image.generate', client);
   try {
     const imageBinding = await resolveImageRuntimeBinding(client, resolved);
-    const route = routeInput(imageBinding.resolved);
+    const route = runtimeRoutePayload(imageBinding.resolved);
     const extensions = imageProfileExtensions(imageBinding);
     const mediaImage = client.runtime.media?.image;
     const output = mediaImage
@@ -496,7 +496,7 @@ export async function invokeVideoGenerate(client: TesterRuntimeInvocationClient,
   if (isTesterUnavailable(resolved)) return resolved;
   const schedulingPreflight = await ensureSchedulingPreflight(client, 'video.generate', resolved);
   if (schedulingPreflight.unavailable) return schedulingPreflight.unavailable;
-  const route = routeInput(resolved);
+  const route = runtimeRoutePayload(resolved);
   const subjectUserId = requireRuntimeSubjectUserId('video.generate', client);
   try {
     const videoParams = videoParamsFromBinding(resolved);
@@ -573,7 +573,7 @@ export async function invokeSpeechSynthesize(client: TesterRuntimeInvocationClie
       capabilityId: 'audio.synthesize',
       assetKind: 'tts',
     });
-    const route = routeInput(speechBinding);
+    const route = runtimeRoutePayload(speechBinding);
     const speechParams = speechSynthesisParamsFromBinding(speechBinding);
     const timeoutMs = speechParams.timeoutMs ?? 120_000;
     const mediaTts = client.runtime.media?.tts;
@@ -646,7 +646,7 @@ export async function invokeSpeechTranscribe(client: TesterRuntimeInvocationClie
   if (isTesterUnavailable(resolved)) return resolved;
   const schedulingPreflight = await ensureSchedulingPreflight(client, 'audio.transcribe', resolved);
   if (schedulingPreflight.unavailable) return schedulingPreflight.unavailable;
-  const route = routeInput(resolved);
+  const route = runtimeRoutePayload(resolved);
   const subjectUserId = requireRuntimeSubjectUserId('audio.transcribe', client);
   try {
     const transcriptionParams = transcriptionParamsFromBinding(resolved);
@@ -715,7 +715,7 @@ export async function invokeSpeechBundle(client: TesterRuntimeInvocationClient, 
   if (isTesterUnavailable(resolved)) return resolved;
   const schedulingPreflight = await ensureSchedulingPreflight(client, 'speech.bundle', resolved);
   if (schedulingPreflight.unavailable) return schedulingPreflight.unavailable;
-  const route = routeInput(resolved);
+  const route = runtimeRoutePayload(resolved);
   const subjectUserId = requireRuntimeSubjectUserId('speech.bundle', client);
   try {
     const mediaTts = client.runtime.media?.tts;

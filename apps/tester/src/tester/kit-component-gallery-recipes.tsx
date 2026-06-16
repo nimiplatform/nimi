@@ -78,12 +78,12 @@ export const COLOR_TOKENS: Array<{ token: string; label: string; onDark?: boolea
 ];
 
 export const TYPE_ROLES: Array<{ role: string; sample: string; className: string }> = [
-  { role: 'page-title', sample: 'Page title', className: 'kit-type-page' },
-  { role: 'section-title', sample: 'Section title', className: 'kit-type-section' },
-  { role: 'card-title', sample: 'Card title', className: 'kit-type-card' },
-  { role: 'body', sample: 'Body copy for product surfaces and settings flows.', className: 'kit-type-body' },
-  { role: 'helper', sample: 'Helper text under form controls.', className: 'kit-type-helper' },
-  { role: 'label', sample: 'Field label', className: 'kit-type-label' },
+  { role: 'page-title', sample: 'Page title', className: 'text-2xl font-bold text-[var(--nimi-text-primary)]' },
+  { role: 'section-title', sample: 'Section title', className: 'text-xl font-bold text-[var(--nimi-text-primary)]' },
+  { role: 'card-title', sample: 'Card title', className: 'text-sm font-bold text-[var(--nimi-text-primary)]' },
+  { role: 'body', sample: 'Body copy for product surfaces and settings flows.', className: 'text-sm text-[var(--nimi-text-secondary)]' },
+  { role: 'helper', sample: 'Helper text under form controls.', className: 'text-xs text-[var(--nimi-text-muted)]' },
+  { role: 'label', sample: 'Field label', className: 'text-xs font-bold uppercase text-[var(--nimi-text-secondary)]' },
 ];
 
 export const SCALE_TOKENS: Array<{ token: string; label: string }> = [

@@ -11,3 +11,4 @@ export {
   versionNimiAIConfig,
 } from './config-state';
 export * from './config-store';
+export * from './config-runtime-binding';

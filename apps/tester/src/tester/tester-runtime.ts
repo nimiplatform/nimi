@@ -1,8 +1,8 @@
 import { getDaemonStatus, getRuntimeDefaults } from '@nimiplatform/kit/shell/renderer/bridge';
 import { checkRuntimeDaemonVersion } from '@nimiplatform/kit/shell/renderer/bootstrap';
+import type { BrowserDataUrlAttachment } from '@nimiplatform/kit/features/chat/headless';
 import { getRuntimePlatformProjection } from '../shell/auth/runtime-platform.js';
 import { getTesterCapability, type TesterCapabilityId } from './tester-capabilities.js';
-import type { MediaAttachment } from './tester-multimodal-input.js';
 import { capabilityUnavailable, type TesterUnavailable } from './tester-unavailable.js';
 import {
   invokeTesterCapability,
@@ -24,7 +24,7 @@ export type TesterCapabilityRunInput = {
   /** Optional live-delta callback forwarded to streaming capabilities. */
   onPartial?: (accumulatedText: string) => void;
   /** Optional local media attachments for vision/multimodal text capabilities. */
-  attachments?: MediaAttachment[];
+  attachments?: BrowserDataUrlAttachment[];
   /** Optional app-composed instruction line (tone/length) prepended to the prompt. */
   directive?: string;
 };

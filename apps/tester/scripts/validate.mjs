@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { parse as parseYaml } from 'yaml';
+import './check-kit-first-style.mjs';
 
 const CLOSED_PERMISSION_SCOPES = new Set([
   'account.read',

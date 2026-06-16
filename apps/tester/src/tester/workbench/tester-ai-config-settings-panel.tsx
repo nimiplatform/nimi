@@ -122,6 +122,7 @@ export function TesterAiConfigSettingsPanel({ runtime, initialSection = null, on
       runtimeDetail={runtime?.detail ?? null}
       copy={copy}
       initialSection={initialSection}
+      variant="capability-drawer"
       onClose={onClose}
       onImportProfileJson={(json) => {
         const result = importTesterAIProfileJson(json);

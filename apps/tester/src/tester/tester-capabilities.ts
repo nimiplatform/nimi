@@ -16,6 +16,7 @@ export type TesterCapability = {
   summary: string;
   surface: string;
   execution: 'runtime-sdk' | 'standalone-tauri' | 'typed-unavailable';
+  runtimeBindingCapabilityId?: string;
   missingSurface?: string;
 };
 
@@ -27,6 +28,7 @@ export const testerCapabilities: TesterCapability[] = [
     summary: 'Prompt → SDK vNext Runtime Scenario text_generate.',
     surface: 'sdk.ai.runNimiTextGenerate → runtime.ai.executeScenario',
     execution: 'runtime-sdk',
+    runtimeBindingCapabilityId: 'text.generate',
   },
   {
     id: 'chat.stream',
@@ -35,6 +37,7 @@ export const testerCapabilities: TesterCapability[] = [
     summary: 'Conversation turn → Kit provider over Runtime Scenario stream.',
     surface: 'kit.chat.createSdkConversationRuntimeAdapter → runtime.ai.streamScenario',
     execution: 'runtime-sdk',
+    runtimeBindingCapabilityId: 'text.generate',
   },
   {
     id: 'text.embed',
@@ -43,6 +46,7 @@ export const testerCapabilities: TesterCapability[] = [
     summary: 'Input string → SDK vNext Runtime Scenario text_embed.',
     surface: 'sdk.ai.createNimiRuntimeEmbeddingClient → runtime.ai.executeScenario',
     execution: 'runtime-sdk',
+    runtimeBindingCapabilityId: 'text.embed',
   },
   {
     id: 'image.generate',
@@ -51,6 +55,7 @@ export const testerCapabilities: TesterCapability[] = [
     summary: 'Prompt → runtime.ai.submitScenarioJob image_generate (artifacts).',
     surface: 'client.runtime.ai.submitScenarioJob:image_generate',
     execution: 'runtime-sdk',
+    runtimeBindingCapabilityId: 'image.generate',
   },
   {
     id: 'video.generate',
@@ -59,6 +64,7 @@ export const testerCapabilities: TesterCapability[] = [
     summary: 'Prompt → runtime.ai.submitScenarioJob video_generate (artifacts).',
     surface: 'client.runtime.ai.submitScenarioJob:video_generate',
     execution: 'runtime-sdk',
+    runtimeBindingCapabilityId: 'video.generate',
   },
   {
     id: 'audio.synthesize',
@@ -67,6 +73,7 @@ export const testerCapabilities: TesterCapability[] = [
     summary: 'Text → runtime.ai.submitScenarioJob speech_synthesize (audio artifacts).',
     surface: 'client.runtime.ai.submitScenarioJob:speech_synthesize',
     execution: 'runtime-sdk',
+    runtimeBindingCapabilityId: 'audio.synthesize',
   },
   {
     id: 'audio.transcribe',
@@ -75,6 +82,7 @@ export const testerCapabilities: TesterCapability[] = [
     summary: 'Audio URL → runtime.ai.submitScenarioJob speech_transcribe (transcript text + artifacts).',
     surface: 'client.runtime.ai.submitScenarioJob:speech_transcribe',
     execution: 'runtime-sdk',
+    runtimeBindingCapabilityId: 'audio.transcribe',
   },
   {
     id: 'speech.bundle',
@@ -83,6 +91,7 @@ export const testerCapabilities: TesterCapability[] = [
     summary: 'Probe → runtime.ai.listPresetVoices (catalog readiness + voice sample).',
     surface: 'client.runtime.ai.listPresetVoices',
     execution: 'runtime-sdk',
+    runtimeBindingCapabilityId: 'audio.synthesize',
   },
   {
     id: 'world.generate',
@@ -100,4 +109,8 @@ export function getTesterCapability(id: TesterCapabilityId): TesterCapability {
     throw new Error(`Unknown tester capability: ${id}`);
   }
   return capability;
+}
+
+export function getTesterRuntimeBindingCapabilityId(id: TesterCapabilityId): string | null {
+  return getTesterCapability(id).runtimeBindingCapabilityId ?? null;
 }
