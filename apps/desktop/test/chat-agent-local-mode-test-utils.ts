@@ -44,6 +44,7 @@ import type { AgentLocalThreadSummary } from '../src/shell/renderer/bridge/runti
 import {
   buildAgentEffectiveCapabilityResolution,
   createNimiConversationAISnapshot,
+  resolveAgentImageProjectionForExecution,
   } from '../src/shell/renderer/features/chat/conversation-capability.js';
 import {
   createNimiBuiltInChatAIScopeRef,
@@ -479,6 +480,7 @@ export {
   resolveChatThinkingConfig,
   buildAgentEffectiveCapabilityResolution,
   createNimiConversationAISnapshot,
+  resolveAgentImageProjectionForExecution,
   createEmptyNimiAIConfig,
   readWorkspaceFile,
   createRuntimeTurnTimeline,

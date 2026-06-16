@@ -233,6 +233,16 @@ export function buildAgentEffectiveCapabilityResolution(input: {
   };
 }
 
+export function resolveAgentImageProjectionForExecution(
+  resolution: AgentEffectiveCapabilityResolution,
+): ConversationCapabilityProjection | null {
+  const projection = resolution.imageProjection || null;
+  if (!resolution.imageReady || !projection?.supported || !projection.resolvedBinding) {
+    return null;
+  }
+  return projection;
+}
+
 export function createConversationExecutionSnapshot(input: {
   capability: ConversationCapability;
   projection: ConversationCapabilityProjection;

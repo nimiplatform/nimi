@@ -25,6 +25,7 @@ import {
 } from './chat-agent-runtime';
 import {
   createNimiConversationAISnapshot,
+  resolveAgentImageProjectionForExecution,
 } from './conversation-capability';
 import {
   refreshAgentEffectiveCapabilityResolution,
@@ -301,17 +302,18 @@ export async function submitAgentConversationTurn(input: {
       refreshAgentEffectiveCapabilityResolution();
       effectiveAgentResolution = useAppStore.getState().agentEffectiveCapabilityResolution || effectiveAgentResolution;
     }
-    const imageRuntimeEvidence = effectiveAgentResolution.imageProjection
+    const imageProjectionForExecution = resolveAgentImageProjectionForExecution(effectiveAgentResolution);
+    const imageRuntimeEvidence = imageProjectionForExecution
       ? await peekDesktopAISchedulingForEvidence({
         scopeRef: input.hostInput.aiConfig.scopeRef,
         target: resolveNimiAIConfigRuntimeSchedulingTargetForCapability(input.hostInput.aiConfig, 'image.generate'),
       })
       : null;
-    const imageExecutionSnapshot = effectiveAgentResolution.imageProjection
+    const imageExecutionSnapshot = imageProjectionForExecution
       ? createNimiConversationAISnapshot({
         config: input.hostInput.aiConfig,
         capability: 'image.generate',
-        projection: effectiveAgentResolution.imageProjection,
+        projection: imageProjectionForExecution,
         agentResolution: effectiveAgentResolution,
         runtimeEvidence: imageRuntimeEvidence,
       })

@@ -4,6 +4,7 @@ import {
   resolveAgentChatThinkingSupport,
   resolveChatThinkingConfig,
   buildAgentEffectiveCapabilityResolution,
+  resolveAgentImageProjectionForExecution,
   createNimiConversationAISnapshot,
   createEmptyNimiAIConfig,
   readWorkspaceFile,
@@ -232,6 +233,9 @@ test('agent capability resolution keeps image and voice optional while exposing 
   assert.equal(unresolvedImage.imageReady, false);
   assert.equal(unresolvedImage.voiceReady, false);
   assert.equal(unresolvedImage.voiceWorkflowReadyByCapability['voice_workflow.voice_clone'], false);
+  assert.equal(resolveAgentImageProjectionForExecution(withoutImage), null);
+  assert.equal(resolveAgentImageProjectionForExecution(unresolvedImage), null);
+  assert.equal(resolveAgentImageProjectionForExecution(withReadyImage), readyImageProjection);
 });
 
 test('agent local mode creates image execution snapshot for runtime-authoritative local image routes with endpoint', () => {
