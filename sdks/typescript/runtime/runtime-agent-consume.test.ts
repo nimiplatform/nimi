@@ -1296,17 +1296,21 @@ test('Runtime Agent consume parses turn app messages and validates timelines', (
 });
 
 test('Runtime Agent consume preserves structured app message payload for the turn runner', () => {
+  const structured = {
+    message: {
+      message_id: 'assistant-1',
+      text: 'structured hello',
+    },
+    actions: [],
+  };
   const payload = {
     local_agent_ref: 'local-agent:owner-1:agent-1',
     conversation_anchor_id: 'anchor-1',
     turn_id: 'turn-1',
     stream_id: 'stream-1',
-    structured: {
-      message: {
-        message_id: 'assistant-1',
-        text: 'structured hello',
-      },
-      actions: [],
+    detail: {
+      kind: 'nimi.agent.chat.message-action.v1',
+      payload: structured,
     },
   };
   const event: AppMessageEvent = {
@@ -1327,6 +1331,22 @@ test('Runtime Agent consume preserves structured app message payload for the tur
   assert.equal(projected?.eventName, 'runtime.agent.turn.structured');
   assert.equal((projected?.detail.payload as { message?: { text?: string } })?.message?.text, 'structured hello');
   assert.equal((projected?.detail.structured as { message?: { text?: string } })?.message?.text, 'structured hello');
+  assert.equal(
+    parseNimiRuntimeAgentStructuredMessageActionEnvelope(projected?.detail.payload).message.text,
+    'structured hello',
+  );
+
+  const legacyProjected = projectNimiRuntimeAgentAppMessageEvent({
+    ...event,
+    payload: toNimiRuntimeProtoStruct({
+      local_agent_ref: 'local-agent:owner-1:agent-1',
+      conversation_anchor_id: 'anchor-1',
+      turn_id: 'turn-1',
+      stream_id: 'stream-1',
+      structured,
+    }),
+  });
+  assert.equal((legacyProjected?.detail.payload as { message?: { text?: string } })?.message?.text, 'structured hello');
 });
 
 test('Runtime Agent consume preserves accepted request id for backlog filtering', () => {
@@ -1335,7 +1355,9 @@ test('Runtime Agent consume preserves accepted request id for backlog filtering'
     conversation_anchor_id: 'anchor-1',
     turn_id: 'turn-1',
     stream_id: 'stream-1',
-    request_id: 'request-1',
+    detail: {
+      request_id: 'request-1',
+    },
   };
   const event: AppMessageEvent = {
     eventType: 0,

@@ -296,11 +296,12 @@ export function projectNimiRuntimeAgentAppMessageEvent(event: AppMessageEvent): 
 }
 
 function projectAppMessageDetail(messageType: string, payload: JsonObject): JsonObject {
+  const detail = asRecord(payload.detail) || {};
   switch (messageType) {
     case 'runtime.agent.state.status_text_changed':
       return {
-        currentStatusText: optionalString(payload.current_status_text, payload.currentStatusText),
-        previousStatusText: optionalString(payload.previous_status_text, payload.previousStatusText),
+        currentStatusText: optionalString(detail.current_status_text, detail.currentStatusText, payload.current_status_text, payload.currentStatusText),
+        previousStatusText: optionalString(detail.previous_status_text, detail.previousStatusText, payload.previous_status_text, payload.previousStatusText),
       };
     case 'runtime.agent.hook.intent_proposed':
     case 'runtime.agent.hook.pending':
@@ -311,85 +312,88 @@ function projectAppMessageDetail(messageType: string, payload: JsonObject): Json
     case 'runtime.agent.hook.canceled':
     case 'runtime.agent.hook.rescheduled':
       return {
-        intentId: optionalString(payload.intent_id, payload.intentId),
-        triggerFamily: optionalString(payload.trigger_family, payload.triggerFamily),
-        triggerDetail: asRecord(payload.trigger_detail ?? payload.triggerDetail),
-        effect: optionalString(payload.effect),
-        admissionState: optionalString(payload.admission_state, payload.admissionState),
-        reasonCode: optionalString(payload.reason_code, payload.reasonCode),
-        message: optionalString(payload.message),
-        reason: optionalString(payload.reason),
+        intentId: optionalString(detail.intent_id, detail.intentId, payload.intent_id, payload.intentId),
+        triggerFamily: optionalString(detail.trigger_family, detail.triggerFamily, payload.trigger_family, payload.triggerFamily),
+        triggerDetail: asRecord(detail.trigger_detail ?? detail.triggerDetail ?? payload.trigger_detail ?? payload.triggerDetail),
+        effect: optionalString(detail.effect, payload.effect),
+        admissionState: optionalString(detail.admission_state, detail.admissionState, payload.admission_state, payload.admissionState),
+        reasonCode: optionalString(detail.reason_code, detail.reasonCode, payload.reason_code, payload.reasonCode),
+        message: optionalString(detail.message, payload.message),
+        reason: optionalString(detail.reason, payload.reason),
       };
     case 'runtime.agent.presentation.activity_requested':
       return {
-        activityName: optionalString(payload.activity_name, payload.activityName),
-        category: optionalString(payload.category),
-        intensity: optionalString(payload.intensity),
-        source: optionalString(payload.source),
+        activityName: optionalString(detail.activity_name, detail.activityName, payload.activity_name, payload.activityName),
+        category: optionalString(detail.category, payload.category),
+        intensity: optionalString(detail.intensity, payload.intensity),
+        source: optionalString(detail.source, payload.source),
       };
     case 'runtime.agent.turn.accepted':
-      return { requestId: optionalString(payload.request_id, payload.requestId) };
+      return { requestId: optionalString(detail.request_id, detail.requestId, payload.request_id, payload.requestId) };
     case 'runtime.agent.turn.text_delta':
     case 'runtime.agent.turn.message_committed':
       return {
-        text: optionalString(payload.text) || '',
-        messageId: optionalString(payload.message_id, payload.messageId),
+        text: optionalString(detail.text, payload.text) || '',
+        messageId: optionalString(detail.message_id, detail.messageId, payload.message_id, payload.messageId),
       };
     case 'runtime.agent.turn.completed':
-      return { terminalReason: optionalString(payload.terminal_reason, payload.terminalReason, payload.finish_reason, payload.finishReason) };
+      return { terminalReason: optionalString(detail.terminal_reason, detail.terminalReason, detail.finish_reason, detail.finishReason, payload.terminal_reason, payload.terminalReason, payload.finish_reason, payload.finishReason) };
     case 'runtime.agent.turn.action_planned':
     case 'runtime.agent.turn.action_started':
     case 'runtime.agent.turn.action_completed':
       return {
-        actionId: optionalString(payload.action_id, payload.actionId) || '',
-        modality: optionalString(payload.modality) || '',
-        operation: optionalString(payload.operation) || '',
-        projectionMessageId: optionalString(payload.projection_message_id, payload.projectionMessageId),
-        artifactId: optionalString(payload.artifact_id, payload.artifactId),
-        mimeType: optionalString(payload.mime_type, payload.mimeType),
-        jobId: optionalString(payload.job_id, payload.jobId),
+        actionId: optionalString(detail.action_id, detail.actionId, payload.action_id, payload.actionId) || '',
+        modality: optionalString(detail.modality, payload.modality) || '',
+        operation: optionalString(detail.operation, payload.operation) || '',
+        projectionMessageId: optionalString(detail.projection_message_id, detail.projectionMessageId, payload.projection_message_id, payload.projectionMessageId),
+        artifactId: optionalString(detail.artifact_id, detail.artifactId, payload.artifact_id, payload.artifactId),
+        mimeType: optionalString(detail.mime_type, detail.mimeType, payload.mime_type, payload.mimeType),
+        jobId: optionalString(detail.job_id, detail.jobId, payload.job_id, payload.jobId),
       };
     case 'runtime.agent.turn.artifact_ready':
       return {
-        actionId: optionalString(payload.action_id, payload.actionId) || '',
-        projectionMessageId: optionalString(payload.projection_message_id, payload.projectionMessageId) || '',
-        artifactId: optionalString(payload.artifact_id, payload.artifactId) || '',
-        mimeType: optionalString(payload.mime_type, payload.mimeType) || '',
+        actionId: optionalString(detail.action_id, detail.actionId, payload.action_id, payload.actionId) || '',
+        projectionMessageId: optionalString(detail.projection_message_id, detail.projectionMessageId, payload.projection_message_id, payload.projectionMessageId) || '',
+        artifactId: optionalString(detail.artifact_id, detail.artifactId, payload.artifact_id, payload.artifactId) || '',
+        mimeType: optionalString(detail.mime_type, detail.mimeType, payload.mime_type, payload.mimeType) || '',
       };
     case 'runtime.agent.turn.action_failed':
       return {
-        actionId: optionalString(payload.action_id, payload.actionId) || '',
-        modality: optionalString(payload.modality) || '',
-        operation: optionalString(payload.operation) || '',
-        projectionMessageId: optionalString(payload.projection_message_id, payload.projectionMessageId),
-        reasonCode: optionalString(payload.reason_code, payload.reasonCode),
-        message: optionalString(payload.message),
+        actionId: optionalString(detail.action_id, detail.actionId, payload.action_id, payload.actionId) || '',
+        modality: optionalString(detail.modality, payload.modality) || '',
+        operation: optionalString(detail.operation, payload.operation) || '',
+        projectionMessageId: optionalString(detail.projection_message_id, detail.projectionMessageId, payload.projection_message_id, payload.projectionMessageId),
+        reasonCode: optionalString(detail.reason_code, detail.reasonCode, payload.reason_code, payload.reasonCode),
+        message: optionalString(detail.message, payload.message),
       };
     case 'runtime.agent.turn.failed':
       return {
-        reasonCode: optionalString(payload.reason_code, payload.reasonCode),
-        message: optionalString(payload.message),
+        reasonCode: optionalString(detail.reason_code, detail.reasonCode, payload.reason_code, payload.reasonCode),
+        message: optionalString(detail.message, payload.message),
       };
     case 'runtime.agent.turn.interrupted':
-      return { reason: optionalString(payload.reason) };
+      return { reason: optionalString(detail.reason, payload.reason) };
     case 'runtime.agent.turn.interrupt_ack':
-      return { interruptedTurnId: optionalString(payload.interrupted_turn_id, payload.interruptedTurnId) };
+      return { interruptedTurnId: optionalString(detail.interrupted_turn_id, detail.interruptedTurnId, payload.interrupted_turn_id, payload.interruptedTurnId) };
     case 'runtime.agent.turn.structured':
-      return {
-        payload: asRecord(payload.structured) || {},
-        structured: asRecord(payload.structured) || {},
-      };
+      {
+        const structuredPayload = asRecord(detail.payload) || asRecord(payload.structured) || {};
+        return {
+          payload: structuredPayload,
+          structured: structuredPayload,
+        };
+      }
     case 'runtime.agent.presentation.voice_playback_requested':
       return {
-        audioArtifactId: optionalString(payload.audio_artifact_id, payload.audioArtifactId) || '',
-        audioMimeType: optionalString(payload.audio_mime_type, payload.audioMimeType) || '',
-        playbackState: optionalString(payload.playback_state, payload.playbackState) || '',
-        durationMs: optionalNumber(payload.duration_ms ?? payload.durationMs),
-        deadlineOffsetMs: optionalNumber(payload.deadline_offset_ms ?? payload.deadlineOffsetMs),
-        reason: optionalString(payload.reason),
-        defaultVoiceReference: optionalString(payload.default_voice_reference, payload.defaultVoiceReference),
-        ...(parseVoiceRouteBinding(payload.voice_route_binding ?? payload.voiceRouteBinding)
-          ? { voiceRouteBinding: parseVoiceRouteBinding(payload.voice_route_binding ?? payload.voiceRouteBinding) }
+        audioArtifactId: optionalString(detail.audio_artifact_id, detail.audioArtifactId, payload.audio_artifact_id, payload.audioArtifactId) || '',
+        audioMimeType: optionalString(detail.audio_mime_type, detail.audioMimeType, payload.audio_mime_type, payload.audioMimeType) || '',
+        playbackState: optionalString(detail.playback_state, detail.playbackState, payload.playback_state, payload.playbackState) || '',
+        durationMs: optionalNumber(detail.duration_ms ?? detail.durationMs ?? payload.duration_ms ?? payload.durationMs),
+        deadlineOffsetMs: optionalNumber(detail.deadline_offset_ms ?? detail.deadlineOffsetMs ?? payload.deadline_offset_ms ?? payload.deadlineOffsetMs),
+        reason: optionalString(detail.reason, payload.reason),
+        defaultVoiceReference: optionalString(detail.default_voice_reference, detail.defaultVoiceReference, payload.default_voice_reference, payload.defaultVoiceReference),
+        ...(parseVoiceRouteBinding(detail.voice_route_binding ?? detail.voiceRouteBinding ?? payload.voice_route_binding ?? payload.voiceRouteBinding)
+          ? { voiceRouteBinding: parseVoiceRouteBinding(detail.voice_route_binding ?? detail.voiceRouteBinding ?? payload.voice_route_binding ?? payload.voiceRouteBinding) }
           : {}),
       };
     default:
