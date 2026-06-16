@@ -170,7 +170,18 @@ ai_governance:
         error_bytes: 102400
         error_max_line_bytes: 4000
         error_average_line_bytes: 800
+      openapi_bundle:
+        warning_lines: 12000
+        warning_bytes: 262144
+        warning_max_line_bytes: 4000
+        warning_average_line_bytes: 250
+        error_lines: 24000
+        error_bytes: 1048576
+        error_max_line_bytes: 16000
+        error_average_line_bytes: 800
     classifiers:
+      openapi_bundle:
+        - config/realm-openapi/api-nimi.yaml
       temporary_large_generated:
         - config/*-public-surface-baseline.json
       temporary_large_production:
@@ -197,7 +208,10 @@ ai_governance:
         - "**/*.spec.ts"
         - "**/*.spec.mjs"
         - "**/*.spec.tsx"
+        - "**/*_tests.rs"
         - "**/*_test.go"
+        - "**/*_test.py"
+        - "**/test_*.py"
         - "**/__tests__/**"
       spec_yaml:
         - .nimi/spec/**/*.yaml
