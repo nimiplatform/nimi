@@ -15,7 +15,7 @@ sources; their attributions are recorded below.
   this path)
 - **Notes**: airi's authored `idle_loop.vrma` substitutes for the originally
   planned in-house `idle_subtle.vrma` to land the wave_0 PoC. wave_3 may
-  re-author this asset internally per `apps/avatar/docs/vrma-authoring.md`
+  re-author this asset internally per `docs/avatar/vrm-motion-authoring.md`
   if a different idle authoring is desired; the registry id stays
   `idle_subtle` to preserve activity-mapping references.
 

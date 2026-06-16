@@ -247,6 +247,7 @@ const avatarGroups: DefaultTheme.SidebarItem[] = [
       { text: 'Embodiment Projection', link: '/avatar/embodiment-projection' },
       { text: 'Backend Branches', link: '/avatar/backend-branches' },
       { text: 'Live2D Integration', link: '/avatar/live2d-integration' },
+      { text: 'VRM Motion Authoring', link: '/avatar/vrm-motion-authoring' },
       { text: 'Generated Motion Provider', link: '/avatar/generated-motion-provider' },
       { text: 'Carrier Visual Acceptance', link: '/avatar/carrier-acceptance' },
       { text: 'Visual Acceptance', link: '/avatar/visual-acceptance' },

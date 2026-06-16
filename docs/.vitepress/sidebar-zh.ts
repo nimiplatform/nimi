@@ -247,6 +247,7 @@ const avatarGroups: DefaultTheme.SidebarItem[] = [
       { text: '具身化呈现', link: '/zh/avatar/embodiment-projection' },
       { text: '后端分支', link: '/zh/avatar/backend-branches' },
       { text: 'Live2D 集成', link: '/zh/avatar/live2d-integration' },
+      { text: 'VRM 动作编写', link: '/zh/avatar/vrm-motion-authoring' },
       { text: '生成式动作提供器', link: '/zh/avatar/generated-motion-provider' },
       { text: '载体视觉可接受性', link: '/zh/avatar/carrier-acceptance' },
       { text: '视觉接受度', link: '/zh/avatar/visual-acceptance' },
