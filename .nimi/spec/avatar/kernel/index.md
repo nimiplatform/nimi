@@ -79,6 +79,19 @@ Desktop shell and window surface:
 - Always-visible Companion Surface bound to the Avatar embodiment footprint
 - App lifecycle events (`avatar.app.*`)
 
+### [`wake-local-audio-lifecycle-contract.md`](wake-local-audio-lifecycle-contract.md)
+
+Wake-adjacent and local-audio lifecycle owner boundary:
+
+- Runtime owns future wake phrase lifecycle admission, consent, policy, and
+  state projection
+- Avatar owns foreground user-started capture UI, local audio privacy feedback,
+  playback/lipsync rendering, and fail-closed presence state
+- Desktop owns host launch/window/OS permission surfaces only, not wake parsing
+  or hidden microphone truth
+- current slice admits foreground hands-free voice after explicit user action;
+  wake-word/background/lock-screen continuation remains unadmitted
+
 ### [`avatar-external-entry-consumer-contract.md`](avatar-external-entry-consumer-contract.md)
 
 Avatar external-entry consumer boundary:
@@ -260,6 +273,13 @@ downstream of typed runtime projection and are not public APML tags.
 
 Backend-agnostic capability profile schema with VRM and Live2D backend sections.
 Profiles describe model/backend support and fail closed on missing capability.
+
+### [`tables/acceptance-recording-matrix.yaml`](tables/acceptance-recording-matrix.yaml)
+
+Recording-oriented Avatar acceptance matrix. It requires video evidence for
+idle, hover, click, drag, foreground voice listening, TTS/lipsync, interrupt,
+runtime degraded, and both Live2D/VRM backends. Screenshots and unit tests do
+not close this matrix by themselves.
 
 ### [`tables/mapping-sidecar.schema.yaml`](tables/mapping-sidecar.schema.yaml)
 

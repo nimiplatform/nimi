@@ -14,7 +14,7 @@
 >
 > Explicit binding-only / embedded / delegated Avatar mode 仍可由 `K-BIND-*` admit，但它不是 Desktop-launched Avatar 的默认路径。
 >
-> **Surface Composition Admission**：本 contract 固定 surface composition 模型为 `embodiment-stage` / `companion-surface` / `degraded-surface` 三互斥结构（K-NAV-SHELL-COMPOSITION-*）。原 small chat button 路径正式废弃，由 always-visible Companion Surface（K-NAV-SHELL-COMPANION-*）取代；degraded posture 由独立 Degraded Surface（K-NAV-SHELL-DEGRADED-*）承载，不再混入 ready 主区。
+> **Surface Composition Admission**: this contract fixes the surface composition model as `embodiment-stage` / `companion-surface` / `degraded-surface`. The ready posture is stage-first: `embodiment-stage` remains the primary visual surface, while `companion-surface` contributes a compact presence capsule, optional assistant cue, and explicitly opened composer tray. The retired small chat button path remains forbidden; degraded posture remains isolated in `degraded-surface`.
 
 ---
 
@@ -48,7 +48,7 @@ Window 尺寸**必须**跟随当前 embodiment backend 产出的 surface bounds 
 
 - Model 加载完成（`avatar.model.load`）→ renderer 计算 `embodiment_bounds`（model alpha bounding box）+ `companion_footprint`（companion-surface 当前 height/width）→ 调用 Tauri `set_size` 同步 window
 - Model 切换（`avatar.model.switch`）→ 同上
-- Companion-surface footprint 变化（assistant-bubble 展开 / 收起、composer 多行输入展开）→ debounce 重算 + `set_size`
+- Companion-surface footprint changes (assistant-cue reveal/dismiss, composer-tray expand/collapse) -> debounce recompute + `set_size`
 - User 手动 resize 不允许（通过 `resizable: false` 在 runtime 效果上禁止 drag-handle；程序化 set_size 仍然可用）
 
 详细 sizing policy 见 `kernel/tables/window-bounds-policy.yaml`。
@@ -74,7 +74,7 @@ Avatar window 形状为矩形，但用户视觉只看到 embodiment surface + co
 ```
 hit_region = union of:
   - embodiment-stage 当前 backend surface alpha > threshold (current Live2D branch uses model alpha)
-  - companion-surface 矩形（含 assistant-bubble、status-row、composer 当前 bounding box）
+  - companion-surface rectangles (presence-capsule, assistant-cue, composer-tray current bounding boxes)
   - degraded-surface 矩形（degraded 状态下替代 embodiment + companion）
 ```
 
@@ -244,7 +244,7 @@ Avatar shell 的渲染由 **composition state** 决定。任何时刻 shell 处�
 
 | Composition state | 触发条件 | 渲染 surface |
 |---|---|---|
-| `ready` | bootstrap 完成 + visual carrier ready + runtime binding active | `embodiment-stage` + `companion-surface` 双层共存 |
+| `ready` | bootstrap 完成 + visual carrier ready + runtime binding active | `embodiment-stage` + stage-first `companion-surface` 共存 |
 | `loading` | bootstrap 进行中（pre-`avatar.app.ready`） | 仅 `loading-surface`（degraded-surface 子形态） |
 | `degraded:reauth-required` | runtime account state ≠ AUTHENTICATED | 仅 `degraded-surface`（reauth posture） |
 | `degraded:runtime-unavailable` | daemon 不可用 / protected access 不可用 / driver_start 失败 | 仅 `degraded-surface`（runtime posture） |
@@ -287,21 +287,21 @@ Avatar shell 的渲染由 **composition state** 决定。任何时刻 shell 处�
 
 ## 7. Companion Surface (K-NAV-SHELL-COMPANION-*)
 
-Companion Surface 是 avatar shell 的一等表面，在 `ready` 与 `fixture:active` 状态下与 embodiment-stage 共存。它是 always-visible，不再依赖外部 trigger button。
+Companion Surface 是 avatar shell 的一等表面，在 `ready` 与 `fixture:active` 状态下与 embodiment-stage 共存。它不再是 transcript-heavy card；ready default 必须保持 stage-first，让 embodiment-stage 成为第一视觉权重。Companion Surface 不依赖外部 trigger button，但 visible default 只包含 compact presence capsule。
 
-## K-NAV-SHELL-COMPANION-001 三层结构
+## K-NAV-SHELL-COMPANION-001 Stage-first structure
 
-Companion Surface 由三层垂直堆叠组成（自顶向下）：
+Companion Surface 由 stage-first 子表面组成：
 
 | 子组件 | 责任 | 可隐藏？ |
 |---|---|---|
-| `assistant-bubble` | 显示当前 anchor 的最新 assistant message + close × button | ✅ user 关闭 / 无消息时不渲染 |
-| `status-row` | 显示 mic toggle、mode label（idle/listening/transcribing/replying/interrupted）、speaker indicator、settings cog | ❌ 始终可见 |
-| `composer` | text input + send button；Enter 提交一个 bounded text turn | ❌ 始终可见 |
+| `presence-capsule` | 显示 mic control、mode label（idle/listening/transcribing/replying/interrupted）、speaker/lipsync indicator、settings affordance，以及 text-entry affordance | ❌ 始终可见 |
+| `assistant-cue` | 显示当前 anchor 的 active/latest assistant message + close control；不构造 transcript/history | ✅ user 关闭 / 无消息时不渲染 |
+| `composer-tray` | text input + send button；Enter 提交一个 bounded text turn | ✅ 默认折叠；仅由 user 显式 text-entry affordance/focus 展开 |
 
 ## K-NAV-SHELL-COMPANION-002 定位与窗口约束
 
-- Companion Surface 默认锚定 embodiment-stage 右下角，offset (-16px, -16px)，可由 settings 配置改为 left-bottom / right-bottom（默认）
+- Companion Surface 默认锚定 embodiment-stage 右下角，offset (-16px, -16px)，可由 settings 配置改为 left-bottom / right-bottom（默认）；presence-capsule 不得遮挡 embodiment-stage torso 主视觉
 - Companion footprint 计入 §1.2 dynamic window sizing；window 必须容纳 embodiment_bounds 和 companion_footprint 之和加边距
 - Companion Surface 矩形必须接受 pointer 事件并阻止 window drag（§2.4）
 
@@ -311,51 +311,63 @@ Companion Surface 显式绑定当前 launch-selected `agent_id + conversation_an
 
 - 不得跨 anchor 显示消息（同 agent 其他 anchor 的 message 不出现在 bubble）
 - composer 提交的 text turn 必须显式打到当前 anchor；不得做 same-agent fallback
-- voice 入口（status-row mic）打开的 listening session 必须绑定当前 anchor
+- voice 入口（presence-capsule mic）打开的 listening session 必须绑定当前 anchor
 - desktop 推送 launch context update（不同 anchor）必须先转入 `relaunch-pending`，清空 companion 本地 transient state，再重新挂载
 
-## K-NAV-SHELL-COMPANION-004 Assistant Bubble
+## K-NAV-SHELL-COMPANION-004 Assistant Cue
 
 - 文本来源：runtime turn 的 `text` / `committed_message`（projection-only），不构造 client-side history
 - 显示策略：
   - `bubble_auto_open=true` + 新消息 → 自动展开
   - `bubble_auto_collapse=true` + idle 一段后 → 自动收起为 unread cue
   - User 主动 close → 收起，本次消息不重复 auto-open
-- Bubble 内不展示 transcript 历史；只展示当前最新一条 assistant cue + 当前 active turn 的 text/streaming preview
-- 文本溢出：max-height + scroll；不展开成 full transcript view
-- 关闭按钮：右上角 × ；点击触发 `avatar.companion.bubble.dismissed` event
+- Cue 内不展示 transcript 历史；只展示当前最新一条 assistant cue + 当前 active turn 的 text/streaming preview
+- 文本溢出：默认最多 2-3 行并 bounded overflow；不展开成 full transcript view
+- 关闭按钮：icon control；点击触发 `avatar.companion.bubble.dismissed` event
 
-## K-NAV-SHELL-COMPANION-005 Status Row
+## K-NAV-SHELL-COMPANION-005 Presence Capsule
 
-Status row 必须可读地表达当前模式，且每个图标代表的行为完整接通：
+Presence capsule 必须可读地表达当前模式，且每个 icon 代表的行为完整接通：
 
 | 元素 | 状态 → 视觉 | 点击行为 |
 |---|---|---|
 | Mic icon | `idle` (off) / `listening` (active filled + level ring) / `transcribing` (spinner) / `pending` (paused) / `replying` (locked) / `error` (alert) | `idle` 点击进入 listening；`listening` 点击 commit；`replying` 点击 interrupt；其他状态按需 |
 | Mode label | `idle` / `Listening…` / `Transcribing…` / `Reply pending` / `Reply active` / `Interrupted` / `Voice unavailable` | non-clickable |
 | Speaker indicator | `inactive` (灰) / `playing` (active highlight) / `muted` (按 settings) | non-clickable（playback 无 user-toggle，由 runtime 决定） |
+| Text entry | idle/sending/error affordance | 点击展开 composer-tray；不得默认显示 textarea |
 | Settings cog | always visible | 点击展开 settings popover（K-NAV-SHELL-COMPANION-009） |
 
 Voice 行为约束：
 
 - voice 入口只能由 user click 触发；不得因为 route readiness、mic availability、prior voice activity 自动进入 listening
 - voice listening session 必须显式绑定当前 anchor
-- 不允许 wake-word、background continuation、lock-screen continuation
+- 不允许 wake-word、background continuation、lock-screen continuation、hidden hot mic。Wake activation is a future Runtime-owned lifecycle admission and must not be represented as a functional Avatar-local setting in this slice. Owner boundary and lifecycle states are governed by `wake-local-audio-lifecycle-contract.md`.
 - voice interruption 仅作用于当前 anchor 的 active turn；不得作用于 same-agent 其他 anchor
 - 在 admitted active-turn evidence 出现前，shell 只能表达 transcript submitted / reply pending；不得本地伪装 speaking、playback active、interrupt opened
 - voice 不可用（runtime voice playback event / artifact read capability 不允许）→ status 进入 `Voice unavailable`，mic icon disabled，不模拟听到声音
 
-## K-NAV-SHELL-COMPANION-006 Composer
+Presence lifecycle mapping:
+- Companion Surface must derive its capsule visual state from the closed ready
+  lifecycle ids in `wake-local-audio-lifecycle-contract.md`, not from ad hoc
+  component-local labels.
+- `foreground_listening`, `transcribing`, `turn_pending`, `assistant_speaking`,
+  `interrupted`, `muted_or_audio_unavailable`, `blocked`, and `error` must
+  expose visible privacy/activity feedback.
+- `wake_future_unadmitted` must fail closed as unavailable and must not become a
+  functional settings control.
 
+## K-NAV-SHELL-COMPANION-006 Composer Tray
+
+- 默认折叠；只能由 user 显式点击 text-entry affordance 或聚焦 tray 后展开
 - 单行 text input，placeholder 来自 i18n key `Avatar.composer.placeholder`
 - Enter 提交（Shift+Enter 换行展开多行）
 - 提交期间 input + send button 进入 sending 状态：disabled + 显示 inline progress；不允许 user 重复触发
 - 提交内容必须经过 anchor 绑定（§7.3）；提交前不允许任何 anchor switch
-- 提交失败 → emit `avatar.companion.composer.send-failed` evidence + status-row 切到 transient error label；不允许静默吞掉
+- 提交失败 → emit `avatar.companion.composer.send-failed` evidence + presence-capsule 切到 transient error label；不允许静默吞掉
 
 ## K-NAV-SHELL-COMPANION-007 Caption Reveal
 
-- 当 `show_voice_captions=true` 且 voice listening / replying 时，可以在 status-row 下方临时浮出 caption（user transcript cue + assistant live caption）
+- 当 `show_voice_captions=true` 且 voice listening / replying 时，可以在 presence-capsule 附近临时浮出 caption（user transcript cue + assistant live caption）
 - Caption 文本必须直接来自 runtime turn `text_delta` / committed projection，不允许本地伪造
 - Caption 不展开成 transcript view；user 离开 voice 模式后立即清空
 
@@ -366,7 +378,7 @@ Voice 行为约束：
 
 ## K-NAV-SHELL-COMPANION-009 Settings Popover
 
-- 从 status-row 的 settings cog 触发，弹出在 status-row 上方
+- 从 presence-capsule 的 settings cog 触发，弹出在 capsule 上方
 - 仅暴露 §4.2 列出的 4 个 toggle
 - Popover 不能 inline 占据 stage 主区或 push 内容布局；必须是 floating layer
 - Popover 关闭：点击外部 / Esc / cog 再次点击
@@ -550,7 +562,7 @@ avatar.app.shutdown:
 |---|---|---|
 | Window config / sizing / drag / click-through | ✅ | — |
 | Surface composition states | ✅ | — |
-| Companion surface 三层结构与 lifecycle | ✅ | — |
+| Companion surface stage-first structure 与 lifecycle | ✅ | — |
 | Degraded surface 与 reload 行为 | ✅ | — |
 | Embodiment projection truth | shell consumes only | `embodiment-projection-contract.md` |
 | Live2D rendering pipeline | current backend branch | `live2d-render-contract.md` |

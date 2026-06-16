@@ -106,14 +106,14 @@ projection 触发）：
 
 ### 2.4 Companion Surface (9 events, `avatar.companion.*`)
 
-Companion Surface 三层结构（assistant-bubble / status-row / composer）的 user 与系统交互。所有 events 必须显式绑定当前 launch-selected `agent_id + conversation_anchor_id`：
+Companion Surface stage-first structure（presence-capsule / assistant-cue / composer-tray）的 user 与系统交互。所有 events 必须显式绑定当前 launch-selected `agent_id + conversation_anchor_id`：
 
 | Event | 语义 | Rate tier | Cancellable |
 |---|---|---|---|
-| `avatar.companion.bubble.opened` | Assistant bubble 展开（auto-open / 用户点击重开） | Low | — |
-| `avatar.companion.bubble.dismissed` | Assistant bubble 关闭（× 按钮 / 自动收起 / anchor 切换） | Low | — |
-| `avatar.companion.composer.submitted` | Composer 提交一次 bounded text turn | Low | — |
-| `avatar.companion.composer.send-failed` | Composer 提交失败（runtime / binding / network reason） | Low | — |
+| `avatar.companion.bubble.opened` | Assistant cue 展开（auto-open / 用户点击重开） | Low | — |
+| `avatar.companion.bubble.dismissed` | Assistant cue 关闭（icon control / 自动收起 / anchor 切换） | Low | — |
+| `avatar.companion.composer.submitted` | Composer tray 提交一次 bounded text turn | Low | — |
+| `avatar.companion.composer.send-failed` | Composer tray 提交失败（runtime / binding / network reason） | Low | — |
 | `avatar.companion.voice.listen-start` | 用户显式触发 mic listening | Low | — |
 | `avatar.companion.voice.listen-commit` | 用户显式 commit 当前 listening session | Low | — |
 | `avatar.companion.voice.transcribe-start` | Transcription pipeline 开始（commit 后） | Low | — |
@@ -146,6 +146,8 @@ deprecation remains owned by runtime event authority.
 | `avatar.audio.playback.interrupted` | runtime 端 `playback_state='interrupted'` | Low | — |
 | `avatar.audio.playback.canceled` | runtime 端 `playback_state='canceled'` | Low | — |
 | `avatar.audio.playback.failed` | mime / decode / fetch / readBytes 失败 | Low | — |
+| `avatar.audio.lifecycle.state_changed` | Presence capsule mapped local audio/voice lifecycle changed; state ids come from `wake-local-audio-lifecycle-contract.md` | Medium | — |
+| `avatar.audio.privacy.indicator_changed` | Visible microphone/audio privacy indicator changed in the foreground Avatar surface | Medium | — |
 | `avatar.lipsync.active` | 进入 active phase（silent → active 转换） | Medium | — |
 | `avatar.lipsync.silent` | 进入 silent phase；`silent_reason` 之一：`amp_below` / `idle_window` / `winner_gain` / `no_source` / `synthetic_audio` / `no_expression_manager` | Medium | — |
 | `avatar.lipsync.frame_drop` | wLipSyncNode 异常或缺帧（telemetry-only） | High (opt-in) | — |
@@ -366,6 +368,22 @@ avatar.audio.playback.failed:
                                             #      artifact_mime_mismatch | fetch_failed |
                                             #      decode_failed | no_audio_context
     failed_at: string
+
+avatar.audio.lifecycle.state_changed:
+  detail:
+    from_state: string?
+    to_state: enum(idle|foreground_listening|transcribing|turn_pending|assistant_speaking|interrupted|muted_or_audio_unavailable|blocked|error|runtime_degraded|wake_future_unadmitted)
+    voice_status: string
+    audio_playback_state: string
+    lipsync_active: bool
+    changed_at: string
+
+avatar.audio.privacy.indicator_changed:
+  detail:
+    indicator: enum(mic_idle|mic_active|mic_blocked|capture_processing|speaker_active|speaker_unavailable|none)
+    visible: bool
+    foreground_only: bool
+    changed_at: string
 
 avatar.lipsync.active:
   detail:

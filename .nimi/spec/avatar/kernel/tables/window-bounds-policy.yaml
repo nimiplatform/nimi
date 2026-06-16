@@ -40,8 +40,8 @@ policy: &avatar_window_bounds_policy_surfaces
       source: companion-surface root ResizeObserver
       debounce_ms: 80
       reason: >
-        Bubble expand/collapse, composer multi-line growth, status row
-        wraps, etc. Debounced so transient layout thrash does not produce
+        Assistant-cue reveal/dismiss, composer-tray expansion, and
+        presence-capsule wrapping are debounced so transient layout does not produce
         a flurry of set_size calls.
 
   dimensions:
@@ -63,8 +63,8 @@ policy: &avatar_window_bounds_policy_surfaces
       max_height_px: 400
       reason: >
         Companion-surface lives in the SAME Tauri window (not a separate
-        popout). Its footprint is added to the window envelope so the
-        bubble + composer stay visually attached to the embodiment.
+        popout). Its compact presence capsule, optional assistant cue, and
+        explicitly opened composer tray stay visually attached to the embodiment.
 
   composition:
     formula: |

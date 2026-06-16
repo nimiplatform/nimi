@@ -1,0 +1,150 @@
+version: 1
+table_family: acceptance
+owner: avatar
+catalog_id: avatar_acceptance_recording_matrix
+description: >
+  Required human-review recording matrix for Avatar embodied surface acceptance.
+  Unit tests and screenshots are necessary but insufficient; release acceptance
+  must include recordings that prove motion, interaction, voice, lipsync,
+  interrupt, degraded, and both admitted backends.
+
+artifact_requirements:
+  format:
+    - mp4
+    - webm
+  minimum_resolution: 1280x720
+  minimum_duration_seconds: 6
+  must_include:
+    - visible embodiment-stage first read
+    - presence-capsule state changes
+    - no transcript-heavy always-visible card in ready state
+    - visible privacy feedback for mic/audio states
+    - evidence log or devtools state overlay for the scenario id
+  forbidden_success:
+    - static screenshot used as recording substitute
+    - fixture-only evidence claimed as real Runtime path
+    - hidden hot mic or background listening indicator absence
+    - placeholder model or blank canvas counted as backend success
+
+automation:
+  package: "@nimiplatform/avatar"
+  matrix_check_command: "pnpm --filter @nimiplatform/avatar check:acceptance-recording-matrix"
+  recording_command: "pnpm --filter @nimiplatform/avatar record:acceptance-matrix"
+  automated_fixture_command: "pnpm --filter @nimiplatform/avatar record:acceptance-matrix:automated"
+  ledger_required: true
+  ledger_outputs:
+    - ledger.json
+    - ledger.md
+  evidence_kinds:
+    fixture_recording:
+      closure: "development-only"
+      rule: "May prove stage-first UI and presence state rendering, but must not be claimed as real Runtime or Live2D launch readiness."
+    browser_runtime_degraded_recording:
+      closure: "development"
+      rule: "May prove fail-closed browser renderer degradation, but does not replace desktop Runtime degraded recording."
+    manual_runtime_recording:
+      closure: "release"
+      rule: "Required for Live2D package readiness, real Runtime voice/lipsync, interrupt, and final launch-readiness claims."
+
+scenarios:
+  - id: idle_vrm_ready
+    backend: vrm
+    mode: ready
+    action: "Start Avatar with a VRM package and no active turn."
+    expected_visible_proof:
+      - "VRM body is the first visual read."
+      - "presence-capsule is compact and does not cover the torso."
+      - "composer-tray is collapsed."
+    required_state:
+      presence_state: idle
+      privacy_indicator: mic_idle
+
+  - id: idle_live2d_ready
+    backend: live2d
+    mode: ready
+    action: "Start Avatar with a Live2D package and no active turn."
+    expected_visible_proof:
+      - "Live2D body is the first visual read."
+      - "presence-capsule is compact and does not cover the torso."
+      - "creator capability panel, when opened, reports package proof without fake success."
+    required_state:
+      presence_state: idle
+      privacy_indicator: mic_idle
+
+  - id: hover_body
+    backend: any
+    mode: ready
+    action: "Move pointer over the embodiment-stage body."
+    expected_visible_proof:
+      - "Avatar hover/engaged visual state changes without opening transcript UI."
+      - "Click-through outside body and companion footprint remains intact."
+
+  - id: click_body
+    backend: any
+    mode: ready
+    action: "Click an opaque body/head/face region."
+    expected_visible_proof:
+      - "avatar.user.click evidence records the hit region."
+      - "No composer or settings surface opens from body click."
+
+  - id: drag_stage
+    backend: any
+    mode: ready
+    action: "Drag the embodiment-stage body area."
+    expected_visible_proof:
+      - "Window/body position follows drag."
+      - "Dragging does not start from presence-capsule, assistant-cue, composer-tray, settings, or degraded surface."
+
+  - id: foreground_voice_listen
+    backend: any
+    mode: ready
+    action: "Click mic once, speak in foreground, then click mic again to commit."
+    expected_visible_proof:
+      - "Mic indicator becomes active only after explicit click."
+      - "Voice level moves while foreground capture is active."
+      - "No wake-word/background listening control appears."
+    required_state:
+      presence_state: foreground_listening
+      privacy_indicator: mic_active
+
+  - id: tts_speaking_lipsync
+    backend: any
+    mode: ready
+    action: "Play a Runtime-projected assistant response with audio artifact."
+    expected_visible_proof:
+      - "Assistant cue/caption is bounded and ephemeral."
+      - "Speaker indicator is active."
+      - "Mouth movement follows backend lipsync driver."
+    required_state:
+      presence_state: assistant_speaking
+      privacy_indicator: speaker_active
+
+  - id: interrupt_active_turn
+    backend: any
+    mode: ready
+    action: "Trigger interrupt while assistant reply is active."
+    expected_visible_proof:
+      - "Interrupt affordance appears only for the active current anchor turn."
+      - "Audio/lipsync stop and presence moves to interrupted or idle after Runtime projection."
+    required_state:
+      presence_state: interrupted
+      privacy_indicator: speaker_unavailable
+
+  - id: runtime_degraded
+    backend: any
+    mode: degraded
+    action: "Start Avatar with Runtime unavailable or invalid launch context."
+    expected_visible_proof:
+      - "Only degraded-surface is mounted."
+      - "embodiment-stage and companion-surface are not rendered."
+      - "No partial ready surface or mock fallback appears."
+    required_state:
+      presence_state: runtime_degraded
+      privacy_indicator: none
+
+coverage_rules:
+  - "Every scenario must be recorded on at least one desktop viewport."
+  - "idle_vrm_ready and idle_live2d_ready must both pass before launch-readiness can be claimed."
+  - "foreground_voice_listen, tts_speaking_lipsync, and interrupt_active_turn must show visible privacy feedback."
+  - "runtime_degraded must show fail-closed mutual exclusion from ready surfaces."
+  - "Recordings must be linked from the release/topic evidence ledger; local one-off screenshots are not closure."

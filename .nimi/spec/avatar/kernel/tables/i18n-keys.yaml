@@ -65,6 +65,12 @@ namespaces: &avatar_i18n_key_entries
       - key: Avatar.status.sending
         english_baseline: "Sending…"
         usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
+      - key: Avatar.status.blocked
+        english_baseline: "Voice blocked"
+        usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
+      - key: Avatar.status.audio_unavailable_short
+        english_baseline: "Audio unavailable"
+        usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
       - key: Avatar.status.toolbar_aria
         english_baseline: "Companion status"
         usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
@@ -73,6 +79,9 @@ namespaces: &avatar_i18n_key_entries
         usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
       - key: Avatar.status.mic_commit_aria
         english_baseline: "Stop listening and submit voice turn"
+        usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
+      - key: Avatar.status.mic_blocked_aria
+        english_baseline: "Voice input unavailable for this state"
         usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
       - key: Avatar.status.interrupt_aria
         english_baseline: "Interrupt current reply"
@@ -88,6 +97,9 @@ namespaces: &avatar_i18n_key_entries
         usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
       - key: Avatar.status.lipsync_disabled
         english_baseline: "Lipsync is disabled for this model."
+        usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
+      - key: Avatar.status.privacy_indicator_aria
+        english_baseline: "Privacy indicator: {{state}}"
         usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
 
   - id: bubble
@@ -264,9 +276,86 @@ namespaces: &avatar_i18n_key_entries
         english_baseline: "Reload the avatar shell to restore a known posture."
         usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
 
+  - id: creator_capabilities
+    spec_anchor: "wake-local-audio-lifecycle-contract.md §2 + backend-capability-profile.schema.yaml"
+    description: "Read-only creator/package capability proof list inside the product-light settings popover."
+    keys:
+      - key: Avatar.creator_capabilities.aria
+        english_baseline: "Creator package capabilities"
+        usage: "src/shell/renderer/creator-capability-panel.tsx"
+      - key: Avatar.creator_capabilities.header
+        english_baseline: "Creator capabilities"
+        usage: "src/shell/renderer/creator-capability-panel.tsx"
+      - key: Avatar.creator_capabilities.backend
+        english_baseline: "{{kind}} backend"
+        usage: "src/shell/renderer/creator-capability-panel.tsx"
+      - key: Avatar.creator_capabilities.status.passed
+        english_baseline: "Proven"
+        usage: "src/shell/renderer/creator-capability-panel.tsx"
+      - key: Avatar.creator_capabilities.status.unsupported
+        english_baseline: "Not proven"
+        usage: "src/shell/renderer/creator-capability-panel.tsx"
+      - key: Avatar.creator_capabilities.status.failed
+        english_baseline: "Failed"
+        usage: "src/shell/renderer/creator-capability-panel.tsx"
+      - key: Avatar.creator_capabilities.motion.label
+        english_baseline: "Motion"
+        usage: "src/shell/renderer/creator-capability-panel.tsx"
+      - key: Avatar.creator_capabilities.motion.proof_vrm
+        english_baseline: "{{count}} generated routes"
+        usage: "src/shell/renderer/creator-capabilities.ts"
+      - key: Avatar.creator_capabilities.motion.proof_live2d
+        english_baseline: "{{count}} motion groups"
+        usage: "src/shell/renderer/creator-capabilities.ts"
+      - key: Avatar.creator_capabilities.motion.proof_missing
+        english_baseline: "No admitted route or group evidence"
+        usage: "src/shell/renderer/creator-capabilities.ts"
+      - key: Avatar.creator_capabilities.expression.label
+        english_baseline: "Expression"
+        usage: "src/shell/renderer/creator-capability-panel.tsx"
+      - key: Avatar.creator_capabilities.expression.proof_vrm
+        english_baseline: "Expression manager present"
+        usage: "src/shell/renderer/creator-capabilities.ts"
+      - key: Avatar.creator_capabilities.expression.proof_live2d
+        english_baseline: "{{count}} expressions loaded"
+        usage: "src/shell/renderer/creator-capabilities.ts"
+      - key: Avatar.creator_capabilities.expression.proof_adapter
+        english_baseline: "Adapter {{adapter}} maps expressions"
+        usage: "src/shell/renderer/creator-capabilities.ts"
+      - key: Avatar.creator_capabilities.expression.proof_missing
+        english_baseline: "No expression evidence"
+        usage: "src/shell/renderer/creator-capabilities.ts"
+      - key: Avatar.creator_capabilities.hit_region.label
+        english_baseline: "Hit region"
+        usage: "src/shell/renderer/creator-capability-panel.tsx"
+      - key: Avatar.creator_capabilities.hit_region.proof_present
+        english_baseline: "{{strategy}}, {{width}}x{{height}} bounds"
+        usage: "src/shell/renderer/creator-capabilities.ts"
+      - key: Avatar.creator_capabilities.hit_region.proof_missing
+        english_baseline: "No valid bounds evidence"
+        usage: "src/shell/renderer/creator-capabilities.ts"
+      - key: Avatar.creator_capabilities.lipsync.label
+        english_baseline: "LipSync"
+        usage: "src/shell/renderer/creator-capability-panel.tsx"
+      - key: Avatar.creator_capabilities.lipsync.proof_present
+        english_baseline: "Audio profile loaded"
+        usage: "src/shell/renderer/creator-capabilities.ts"
+      - key: Avatar.creator_capabilities.lipsync.proof_missing
+        english_baseline: "No lipsync profile evidence"
+        usage: "src/shell/renderer/creator-capabilities.ts"
+      - key: Avatar.creator_capabilities.nas_handlers.label
+        english_baseline: "NAS handlers"
+        usage: "src/shell/renderer/creator-capability-panel.tsx"
+      - key: Avatar.creator_capabilities.nas_handlers.proof_present
+        english_baseline: "{{count}} handlers registered"
+        usage: "src/shell/renderer/creator-capabilities.ts"
+      - key: Avatar.creator_capabilities.nas_handlers.proof_missing
+        english_baseline: "No handlers registered"
+        usage: "src/shell/renderer/creator-capabilities.ts"
+
   - id: settings
     spec_anchor: "app-shell-contract.md §4.2 + §7.9 K-NAV-SHELL-COMPANION-009"
-    description: "Settings popover (3 toggles) anchored to status-row cog."
+    description: "Settings popover (3 toggles) anchored to presence-capsule cog."
     keys:
       - key: Avatar.settings.popover_aria
         english_baseline: "Companion settings"

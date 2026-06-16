@@ -7,6 +7,7 @@ entries:
   - surface_composition
   - i18n_design_tokens
   - voice_lipsync
+  - wake_local_audio_lifecycle
   - window_settings
   - multi_backend_carrier
   - live2d_branch_audio_pipeline
@@ -30,7 +31,7 @@ capabilities: &avatar_capability_matrix_entries
     requires: []
     scope:
       - "Transparent no-chrome always-on-top shell semantics"
-      - "Companion Surface, Degraded Surface, and Composition State authority"
+      - "Stage-first Companion Surface, Degraded Surface, and Composition State authority"
       - "Avatar event namespace extensions for shell, composition, companion, audio, carrier, and hit-region events"
     verification_commands:
       - "pnpm --filter @nimiplatform/avatar check:spec-consistency"
@@ -45,7 +46,7 @@ capabilities: &avatar_capability_matrix_entries
       - shell_surface_authority
     scope:
       - "embodiment-stage owns the full embodiment carrier area"
-      - "companion-surface is always visible and bound to the current launch-selected anchor"
+      - "companion-surface exposes an always-visible presence capsule, optional assistant cue, and explicitly opened composer tray bound to the current launch-selected anchor"
       - "degraded-surface is mutually exclusive with ready composition"
       - "retired trigger-toggle and mixed recovery-panel ready paths are not admitted"
     verification_commands:
@@ -86,6 +87,26 @@ capabilities: &avatar_capability_matrix_entries
       - "pnpm --filter @nimiplatform/sdk typecheck"
       - "cd runtime && go test ./internal/services/runtimeartifact/..."
 
+  wake_local_audio_lifecycle:
+    title: "Wake and local audio lifecycle boundary"
+    authority_refs:
+      - wake-local-audio-lifecycle-contract.md
+      - app-shell-contract.md
+      - avatar-event-contract.md
+      - companion-participation-consumer-contract.md
+      - .nimi/spec/runtime/kernel/agent-presentation-stream-contract.md
+    requires:
+      - surface_composition
+      - voice_lipsync
+    scope:
+      - "Runtime owns any future wake phrase lifecycle admission, consent, policy, and state projection"
+      - "Avatar owns only foreground user-started capture UI, local audio privacy indicators, playback/lipsync rendering, and fail-closed visual state"
+      - "Desktop owns launch/window/OS permission surfaces only and must not parse wake audio or supply hidden microphone truth"
+      - "Current slice admits foreground hands-free capture after explicit user action; wake-word, background listening, lock-screen continuation, and hidden hot mic remain unadmitted"
+    verification_commands:
+      - "pnpm --filter @nimiplatform/avatar check:spec-consistency"
+      - "pnpm --filter @nimiplatform/avatar test"
+
   window_settings:
     title: "Window bounds and settings"
     authority_refs:
@@ -94,7 +115,7 @@ capabilities: &avatar_capability_matrix_entries
     requires:
       - surface_composition
     scope:
-      - "Dynamic window sizing is derived from embodiment bounds plus companion footprint"
+      - "Dynamic window sizing is derived from embodiment bounds plus stage-first companion footprint"
       - "Drag region is limited to embodiment-stage and excludes companion/degraded surfaces"
       - "Settings popover owns user-visible Avatar shell toggles"
       - "Visible-area constraint keeps the embodiment recoverable on screen"
@@ -204,12 +225,14 @@ capabilities: &avatar_capability_matrix_entries
       - carrier-visual-acceptance-contract.md
       - mock-fixture-contract.md
       - tables/scenario-catalog.yaml
+      - tables/acceptance-recording-matrix.yaml
     requires:
       - multi_backend_hit_region
     scope:
       - "Representative scenarios cover lifecycle, context loss, generated motion, speech, synthetic silence, and emote cycle"
       - "Smoke evidence records executable carrier behavior and must not imply final launch readiness"
       - "Visual-human acceptance remains separately owned by carrier visual acceptance authority"
+      - "Launch-readiness acceptance requires recording matrix evidence for idle, hover, click, drag, foreground voice, TTS lipsync, interrupt, runtime degraded, and both backend families"
     verification_commands:
       - "pnpm --filter @nimiplatform/avatar test"
       - "pnpm --filter @nimiplatform/avatar check:spec-consistency"
