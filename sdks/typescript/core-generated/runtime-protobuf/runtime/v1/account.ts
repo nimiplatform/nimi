@@ -492,6 +492,64 @@ export interface GetAccessTokenResponse {
     productionInert: boolean;
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.InvokeRealmUnaryRequest
+ */
+export interface InvokeRealmUnaryRequest {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AccountCaller caller = 1
+     */
+    caller?: AccountCaller;
+    /**
+     * @generated from protobuf field: string method_id = 2
+     */
+    methodId: string;
+    /**
+     * @generated from protobuf field: string realm_base_url = 3
+     */
+    realmBaseUrl: string;
+    /**
+     * @generated from protobuf field: string request_json = 4
+     */
+    requestJson: string;
+    /**
+     * @generated from protobuf field: int32 timeout_ms = 5
+     */
+    timeoutMs: number;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.InvokeRealmUnaryResponse
+ */
+export interface InvokeRealmUnaryResponse {
+    /**
+     * @generated from protobuf field: bool accepted = 1
+     */
+    accepted: boolean;
+    /**
+     * @generated from protobuf field: string response_json = 2
+     */
+    responseJson: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 3
+     */
+    reasonCode: ReasonCode;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AccountReasonCode account_reason_code = 4
+     */
+    accountReasonCode: AccountReasonCode;
+    /**
+     * @generated from protobuf field: bool production_inert = 5
+     */
+    productionInert: boolean;
+    /**
+     * @generated from protobuf field: int32 http_status = 6
+     */
+    httpStatus: number;
+    /**
+     * @generated from protobuf field: string error_message = 7
+     */
+    errorMessage: string;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.RefreshAccountSessionRequest
  */
 export interface RefreshAccountSessionRequest {
@@ -2534,6 +2592,179 @@ class GetAccessTokenResponse$Type extends MessageType<GetAccessTokenResponse> {
  * @generated MessageType for protobuf message nimi.runtime.v1.GetAccessTokenResponse
  */
 export const GetAccessTokenResponse = new GetAccessTokenResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class InvokeRealmUnaryRequest$Type extends MessageType<InvokeRealmUnaryRequest> {
+    constructor() {
+        super("nimi.runtime.v1.InvokeRealmUnaryRequest", [
+            { no: 1, name: "caller", kind: "message", T: () => AccountCaller },
+            { no: 2, name: "method_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "realm_base_url", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "request_json", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "timeout_ms", kind: "scalar", T: 5 /*ScalarType.INT32*/ }
+        ]);
+    }
+    create(value?: PartialMessage<InvokeRealmUnaryRequest>): InvokeRealmUnaryRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.methodId = "";
+        message.realmBaseUrl = "";
+        message.requestJson = "";
+        message.timeoutMs = 0;
+        if (value !== undefined)
+            reflectionMergePartial<InvokeRealmUnaryRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: InvokeRealmUnaryRequest): InvokeRealmUnaryRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AccountCaller caller */ 1:
+                    message.caller = AccountCaller.internalBinaryRead(reader, reader.uint32(), options, message.caller);
+                    break;
+                case /* string method_id */ 2:
+                    message.methodId = reader.string();
+                    break;
+                case /* string realm_base_url */ 3:
+                    message.realmBaseUrl = reader.string();
+                    break;
+                case /* string request_json */ 4:
+                    message.requestJson = reader.string();
+                    break;
+                case /* int32 timeout_ms */ 5:
+                    message.timeoutMs = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: InvokeRealmUnaryRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AccountCaller caller = 1; */
+        if (message.caller)
+            AccountCaller.internalBinaryWrite(message.caller, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string method_id = 2; */
+        if (message.methodId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.methodId);
+        /* string realm_base_url = 3; */
+        if (message.realmBaseUrl !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.realmBaseUrl);
+        /* string request_json = 4; */
+        if (message.requestJson !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.requestJson);
+        /* int32 timeout_ms = 5; */
+        if (message.timeoutMs !== 0)
+            writer.tag(5, WireType.Varint).int32(message.timeoutMs);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.InvokeRealmUnaryRequest
+ */
+export const InvokeRealmUnaryRequest = new InvokeRealmUnaryRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class InvokeRealmUnaryResponse$Type extends MessageType<InvokeRealmUnaryResponse> {
+    constructor() {
+        super("nimi.runtime.v1.InvokeRealmUnaryResponse", [
+            { no: 1, name: "accepted", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 2, name: "response_json", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
+            { no: 4, name: "account_reason_code", kind: "enum", T: () => ["nimi.runtime.v1.AccountReasonCode", AccountReasonCode, "ACCOUNT_REASON_CODE_"] },
+            { no: 5, name: "production_inert", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 6, name: "http_status", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 7, name: "error_message", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<InvokeRealmUnaryResponse>): InvokeRealmUnaryResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.accepted = false;
+        message.responseJson = "";
+        message.reasonCode = 0;
+        message.accountReasonCode = 0;
+        message.productionInert = false;
+        message.httpStatus = 0;
+        message.errorMessage = "";
+        if (value !== undefined)
+            reflectionMergePartial<InvokeRealmUnaryResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: InvokeRealmUnaryResponse): InvokeRealmUnaryResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* bool accepted */ 1:
+                    message.accepted = reader.bool();
+                    break;
+                case /* string response_json */ 2:
+                    message.responseJson = reader.string();
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 3:
+                    message.reasonCode = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.AccountReasonCode account_reason_code */ 4:
+                    message.accountReasonCode = reader.int32();
+                    break;
+                case /* bool production_inert */ 5:
+                    message.productionInert = reader.bool();
+                    break;
+                case /* int32 http_status */ 6:
+                    message.httpStatus = reader.int32();
+                    break;
+                case /* string error_message */ 7:
+                    message.errorMessage = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: InvokeRealmUnaryResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* bool accepted = 1; */
+        if (message.accepted !== false)
+            writer.tag(1, WireType.Varint).bool(message.accepted);
+        /* string response_json = 2; */
+        if (message.responseJson !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.responseJson);
+        /* nimi.runtime.v1.ReasonCode reason_code = 3; */
+        if (message.reasonCode !== 0)
+            writer.tag(3, WireType.Varint).int32(message.reasonCode);
+        /* nimi.runtime.v1.AccountReasonCode account_reason_code = 4; */
+        if (message.accountReasonCode !== 0)
+            writer.tag(4, WireType.Varint).int32(message.accountReasonCode);
+        /* bool production_inert = 5; */
+        if (message.productionInert !== false)
+            writer.tag(5, WireType.Varint).bool(message.productionInert);
+        /* int32 http_status = 6; */
+        if (message.httpStatus !== 0)
+            writer.tag(6, WireType.Varint).int32(message.httpStatus);
+        /* string error_message = 7; */
+        if (message.errorMessage !== "")
+            writer.tag(7, WireType.LengthDelimited).string(message.errorMessage);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.InvokeRealmUnaryResponse
+ */
+export const InvokeRealmUnaryResponse = new InvokeRealmUnaryResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class RefreshAccountSessionRequest$Type extends MessageType<RefreshAccountSessionRequest> {
     constructor() {

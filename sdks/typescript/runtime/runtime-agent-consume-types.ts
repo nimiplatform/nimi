@@ -21,6 +21,11 @@ import type {
   OpenCompanionParticipationReplayResponse,
   RuntimeTypedCallOptions,
 } from '../core-generated/runtime-typed-client';
+export type {
+  GetAvatarDebugSnapshotResponse,
+  ListAvatarDebugProbeResultsResponse,
+  RequestAvatarDebugProbeResponse,
+} from '../core-generated/runtime-typed-client';
 import type { ScopedRuntimeBindingAttachment } from '../core-generated/runtime-protobuf/runtime/v1/common';
 import type { JsonObject } from '../types';
 import type {

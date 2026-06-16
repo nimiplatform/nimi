@@ -48,6 +48,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "GetAccountSessionStatusResponse",
     },
     RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary",
+        service: "RuntimeAccountService",
+        method: "InvokeRealmUnary",
+        kind: "unary",
+        request_type: "InvokeRealmUnaryRequest",
+        response_type: "InvokeRealmUnaryResponse",
+    },
+    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAccountService/IssueScopedAppBinding",
         service: "RuntimeAccountService",
         method: "IssueScopedAppBinding",

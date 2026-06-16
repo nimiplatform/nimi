@@ -47,6 +47,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "GetAccountSessionStatusResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary",
+    "service": "RuntimeAccountService",
+    "method": "InvokeRealmUnary",
+    "kind": "unary",
+    "requestType": "InvokeRealmUnaryRequest",
+    "responseType": "InvokeRealmUnaryResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAccountService/IssueScopedAppBinding",
     "service": "RuntimeAccountService",
     "method": "IssueScopedAppBinding",

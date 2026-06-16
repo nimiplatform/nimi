@@ -174,6 +174,7 @@ func isWriteMethod(fullMethod string) bool {
 		"/nimi.runtime.v1.RuntimeAccountService/BeginLogin",
 		"/nimi.runtime.v1.RuntimeAccountService/CompleteLogin",
 		"/nimi.runtime.v1.RuntimeAccountService/GetAccessToken",
+		"/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary",
 		"/nimi.runtime.v1.RuntimeAccountService/RefreshAccountSession",
 		"/nimi.runtime.v1.RuntimeAccountService/Logout",
 		"/nimi.runtime.v1.RuntimeAccountService/SwitchAccount",

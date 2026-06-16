@@ -24,6 +24,7 @@ const (
 	RuntimeAccountService_BeginLogin_FullMethodName                    = "/nimi.runtime.v1.RuntimeAccountService/BeginLogin"
 	RuntimeAccountService_CompleteLogin_FullMethodName                 = "/nimi.runtime.v1.RuntimeAccountService/CompleteLogin"
 	RuntimeAccountService_GetAccessToken_FullMethodName                = "/nimi.runtime.v1.RuntimeAccountService/GetAccessToken"
+	RuntimeAccountService_InvokeRealmUnary_FullMethodName              = "/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary"
 	RuntimeAccountService_RefreshAccountSession_FullMethodName         = "/nimi.runtime.v1.RuntimeAccountService/RefreshAccountSession"
 	RuntimeAccountService_Logout_FullMethodName                        = "/nimi.runtime.v1.RuntimeAccountService/Logout"
 	RuntimeAccountService_SwitchAccount_FullMethodName                 = "/nimi.runtime.v1.RuntimeAccountService/SwitchAccount"
@@ -42,6 +43,7 @@ type RuntimeAccountServiceClient interface {
 	BeginLogin(ctx context.Context, in *BeginLoginRequest, opts ...grpc.CallOption) (*BeginLoginResponse, error)
 	CompleteLogin(ctx context.Context, in *CompleteLoginRequest, opts ...grpc.CallOption) (*CompleteLoginResponse, error)
 	GetAccessToken(ctx context.Context, in *GetAccessTokenRequest, opts ...grpc.CallOption) (*GetAccessTokenResponse, error)
+	InvokeRealmUnary(ctx context.Context, in *InvokeRealmUnaryRequest, opts ...grpc.CallOption) (*InvokeRealmUnaryResponse, error)
 	RefreshAccountSession(ctx context.Context, in *RefreshAccountSessionRequest, opts ...grpc.CallOption) (*RefreshAccountSessionResponse, error)
 	Logout(ctx context.Context, in *LogoutRequest, opts ...grpc.CallOption) (*LogoutResponse, error)
 	SwitchAccount(ctx context.Context, in *SwitchAccountRequest, opts ...grpc.CallOption) (*SwitchAccountResponse, error)
@@ -112,6 +114,16 @@ func (c *runtimeAccountServiceClient) GetAccessToken(ctx context.Context, in *Ge
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetAccessTokenResponse)
 	err := c.cc.Invoke(ctx, RuntimeAccountService_GetAccessToken_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAccountServiceClient) InvokeRealmUnary(ctx context.Context, in *InvokeRealmUnaryRequest, opts ...grpc.CallOption) (*InvokeRealmUnaryResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(InvokeRealmUnaryResponse)
+	err := c.cc.Invoke(ctx, RuntimeAccountService_InvokeRealmUnary_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -197,6 +209,7 @@ type RuntimeAccountServiceServer interface {
 	BeginLogin(context.Context, *BeginLoginRequest) (*BeginLoginResponse, error)
 	CompleteLogin(context.Context, *CompleteLoginRequest) (*CompleteLoginResponse, error)
 	GetAccessToken(context.Context, *GetAccessTokenRequest) (*GetAccessTokenResponse, error)
+	InvokeRealmUnary(context.Context, *InvokeRealmUnaryRequest) (*InvokeRealmUnaryResponse, error)
 	RefreshAccountSession(context.Context, *RefreshAccountSessionRequest) (*RefreshAccountSessionResponse, error)
 	Logout(context.Context, *LogoutRequest) (*LogoutResponse, error)
 	SwitchAccount(context.Context, *SwitchAccountRequest) (*SwitchAccountResponse, error)
@@ -227,6 +240,9 @@ func (UnimplementedRuntimeAccountServiceServer) CompleteLogin(context.Context, *
 }
 func (UnimplementedRuntimeAccountServiceServer) GetAccessToken(context.Context, *GetAccessTokenRequest) (*GetAccessTokenResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetAccessToken not implemented")
+}
+func (UnimplementedRuntimeAccountServiceServer) InvokeRealmUnary(context.Context, *InvokeRealmUnaryRequest) (*InvokeRealmUnaryResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method InvokeRealmUnary not implemented")
 }
 func (UnimplementedRuntimeAccountServiceServer) RefreshAccountSession(context.Context, *RefreshAccountSessionRequest) (*RefreshAccountSessionResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method RefreshAccountSession not implemented")
@@ -348,6 +364,24 @@ func _RuntimeAccountService_GetAccessToken_Handler(srv interface{}, ctx context.
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RuntimeAccountServiceServer).GetAccessToken(ctx, req.(*GetAccessTokenRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAccountService_InvokeRealmUnary_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(InvokeRealmUnaryRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAccountServiceServer).InvokeRealmUnary(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAccountService_InvokeRealmUnary_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAccountServiceServer).InvokeRealmUnary(ctx, req.(*InvokeRealmUnaryRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -500,6 +534,10 @@ var RuntimeAccountService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetAccessToken",
 			Handler:    _RuntimeAccountService_GetAccessToken_Handler,
+		},
+		{
+			MethodName: "InvokeRealmUnary",
+			Handler:    _RuntimeAccountService_InvokeRealmUnary_Handler,
 		},
 		{
 			MethodName: "RefreshAccountSession",

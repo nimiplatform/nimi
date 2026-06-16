@@ -42,6 +42,7 @@ surfaces:
   - methods_28
   - methods_29
   - methods_30
+  - methods_31
 description: Account, auth, grants, and app binding posture entries.
 services:
   - RuntimeAccountService
@@ -81,6 +82,13 @@ methods:
   - method_id: /nimi.runtime.v1.RuntimeAccountService/GetAccessToken
     posture: authenticated_required
     rationale: requires admitted caller and active session for token-request branch
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTHN-006
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary
+    posture: authenticated_required
+    rationale: requires admitted first-party/account-control caller and active Runtime account custody; Runtime mediates Realm HTTP without returning raw token material
     kernel_refs:
       - K-AUTHN-001
       - K-AUTHN-006

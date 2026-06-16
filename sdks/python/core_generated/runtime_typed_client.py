@@ -2467,6 +2467,24 @@ class InstallVerifiedAssetResponse:
     asset: LocalAssetRecord | None = None
 
 @dataclass(frozen=True)
+class InvokeRealmUnaryRequest:
+    caller: AccountCaller | None = None
+    method_id: str | None = None
+    realm_base_url: str | None = None
+    request_json: str | None = None
+    timeout_ms: int | None = None
+
+@dataclass(frozen=True)
+class InvokeRealmUnaryResponse:
+    accepted: bool | None = None
+    response_json: str | None = None
+    reason_code: ReasonCode | None = None
+    account_reason_code: AccountReasonCode | None = None
+    production_inert: bool | None = None
+    http_status: int | None = None
+    error_message: str | None = None
+
+@dataclass(frozen=True)
 class IssueDelegatedAccessTokenRequest:
     app_id: str | None = None
     parent_token_id: str | None = None
@@ -6326,6 +6344,10 @@ class RuntimeTypedClient:
     async def get_account_session_status(self, request: GetAccountSessionStatusRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetAccountSessionStatusResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetAccountSessionStatusResponse, raw)
+
+    async def invoke_realm_unary(self, request: InvokeRealmUnaryRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> InvokeRealmUnaryResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(InvokeRealmUnaryResponse, raw)
 
     async def issue_scoped_app_binding(self, request: IssueScopedAppBindingRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> IssueScopedAppBindingResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAccountService/IssueScopedAppBinding", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))

@@ -260,6 +260,24 @@ message GetAccessTokenResponse {
   bool production_inert = 6;
 }
 
+message InvokeRealmUnaryRequest {
+  AccountCaller caller = 1;
+  string method_id = 2;
+  string realm_base_url = 3;
+  string request_json = 4;
+  int32 timeout_ms = 5;
+}
+
+message InvokeRealmUnaryResponse {
+  bool accepted = 1;
+  string response_json = 2;
+  ReasonCode reason_code = 3;
+  AccountReasonCode account_reason_code = 4;
+  bool production_inert = 5;
+  int32 http_status = 6;
+  string error_message = 7;
+}
+
 message RefreshAccountSessionRequest {
   AccountCaller caller = 1;
 }
@@ -367,6 +385,7 @@ service RuntimeAccountService {
   rpc BeginLogin(BeginLoginRequest) returns (BeginLoginResponse);
   rpc CompleteLogin(CompleteLoginRequest) returns (CompleteLoginResponse);
   rpc GetAccessToken(GetAccessTokenRequest) returns (GetAccessTokenResponse);
+  rpc InvokeRealmUnary(InvokeRealmUnaryRequest) returns (InvokeRealmUnaryResponse);
   rpc RefreshAccountSession(RefreshAccountSessionRequest) returns (RefreshAccountSessionResponse);
   rpc Logout(LogoutRequest) returns (LogoutResponse);
   rpc SwitchAccount(SwitchAccountRequest) returns (SwitchAccountResponse);

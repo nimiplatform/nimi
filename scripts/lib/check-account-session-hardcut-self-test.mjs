@@ -83,12 +83,16 @@ func (s *Service) RefreshAccountSession(req *Request) {
   s.mu.Lock()
 }
 func (s *Service) Logout(req *Request) {
-  s.validateRuntimeAdmittedCaller(req.GetCaller(), false)
+  s.validateRuntimeAccountControlCaller(req.GetCaller())
   s.logout(ctx, reason)
 }
 func (s *Service) SwitchAccount(req *Request) {
-  s.validateRuntimeAdmittedCaller(req.GetCaller(), false)
+  s.validateRuntimeAccountControlCaller(req.GetCaller())
   s.mu.Lock()
+}
+func (s *Service) InvokeRealmUnary(req *Request) {
+  s.validateRuntimeAccountControlCaller(req.GetCaller())
+  parseRealmUnaryRequest(req)
 }
 func (s *Service) IssueScopedAppBinding() {
   s.validateRuntimeAdmittedCaller(req.GetCaller(), false)
@@ -215,6 +219,9 @@ func (s *Service) Logout(req *Request) {
 func (s *Service) SwitchAccount(req *Request) {
   s.mu.Lock()
 }
+func (s *Service) InvokeRealmUnary(req *Request) {
+  parseRealmUnaryRequest(req)
+}
 func (s *Service) IssueScopedAppBinding() { validateProductionCaller(req.GetCaller(), false) }
 func (s *Service) RevokeScopedAppBinding() {
   s.mu.Lock()
@@ -261,6 +268,7 @@ func (s *Service) ObserveRefreshToken() {}
   assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime refresh caller admission')), true);
   assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime logout caller admission')), true);
   assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime switch caller admission')), true);
+  assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime Realm unary caller admission')), true);
   assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime binding caller admission')), true);
   assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime binding relation admission')), true);
   assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime binding revoke caller admission')), true);
@@ -269,7 +277,6 @@ func (s *Service) ObserveRefreshToken() {}
   assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime binding non-auth revocation')), true);
   assert.equal(p1NegativeViolations.some((item) => item.includes('Desktop Avatar launch authority field')), true);
   assert.equal(p1NegativeViolations.some((item) => item.includes('Desktop Avatar handoff URI authority field')), true);
-  assert.equal(p1NegativeViolations.some((item) => item.includes('Desktop local avatar carrier')), true);
   assert.equal(p1NegativeViolations.some((item) => item.includes('Avatar broad .nimi asset scope')), true);
   process.stdout.write('account-session hardcut self-test passed\n');
 }

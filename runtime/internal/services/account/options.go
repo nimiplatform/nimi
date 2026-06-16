@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"log/slog"
+	"net/http"
 	"strings"
 	"time"
 
@@ -22,6 +23,8 @@ func New(logger *slog.Logger, opts ...Option) *Service {
 		exchanger:         inertExchanger{},
 		refresher:         inertRefresher{},
 		registry:          appregistry.New(),
+		realmHTTP:         &http.Client{Timeout: 30 * time.Second},
+		realmBaseURL:      "",
 		partition:         "runtime-account:default-device",
 		eventRetention:    128,
 		state:             runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE,
@@ -76,6 +79,20 @@ func WithAppRegistry(registry *appregistry.Registry) Option {
 		if registry != nil {
 			s.registry = registry
 		}
+	}
+}
+
+func WithRealmHTTPClient(client *http.Client) Option {
+	return func(s *Service) {
+		if client != nil {
+			s.realmHTTP = client
+		}
+	}
+}
+
+func WithRealmBaseURL(baseURL string) Option {
+	return func(s *Service) {
+		s.realmBaseURL = strings.TrimRight(strings.TrimSpace(baseURL), "/")
 	}
 }
 

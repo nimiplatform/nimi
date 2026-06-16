@@ -19,7 +19,7 @@ services:
   - RuntimeExternalAgentService
   - RuntimeAccountService
   - RuntimeAppService
-method_count: 44
+method_count: 45
 method_mappings:
   - design_service: RuntimeAuthService
     design_method: RegisterApp
@@ -125,6 +125,11 @@ method_mappings:
     design_method: GetAccessToken
     proto_service: RuntimeAccountService
     proto_method: GetAccessToken
+    mapping_posture: aligned
+  - design_service: RuntimeAccountService
+    design_method: InvokeRealmUnary
+    proto_service: RuntimeAccountService
+    proto_method: InvokeRealmUnary
     mapping_posture: aligned
   - design_service: RuntimeAccountService
     design_method: RefreshAccountSession

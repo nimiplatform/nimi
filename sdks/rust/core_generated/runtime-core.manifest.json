@@ -91,6 +91,15 @@
           "response_stream": false
         },
         {
+          "name": "InvokeRealmUnary",
+          "method_id": "/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary",
+          "kind": "unary",
+          "request_type": "InvokeRealmUnaryRequest",
+          "response_type": "InvokeRealmUnaryResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
           "name": "RefreshAccountSession",
           "method_id": "/nimi.runtime.v1.RuntimeAccountService/RefreshAccountSession",
           "kind": "unary",
@@ -2324,6 +2333,7 @@
     "/nimi.runtime.v1.RuntimeAccountService/CompleteLogin",
     "/nimi.runtime.v1.RuntimeAccountService/GetAccessToken",
     "/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus",
+    "/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary",
     "/nimi.runtime.v1.RuntimeAccountService/IssueScopedAppBinding",
     "/nimi.runtime.v1.RuntimeAccountService/IssueWorkspaceBinding",
     "/nimi.runtime.v1.RuntimeAccountService/Logout",
@@ -2596,6 +2606,14 @@
       "kind": "unary",
       "request_type": "GetAccountSessionStatusRequest",
       "response_type": "GetAccountSessionStatusResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary",
+      "service": "RuntimeAccountService",
+      "method": "InvokeRealmUnary",
+      "kind": "unary",
+      "request_type": "InvokeRealmUnaryRequest",
+      "response_type": "InvokeRealmUnaryResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAccountService/IssueScopedAppBinding",
@@ -4542,6 +4560,14 @@
       "kind": "unary",
       "request_type": "GetAccountSessionStatusRequest",
       "response_type": "GetAccountSessionStatusResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary",
+      "service": "RuntimeAccountService",
+      "method": "InvokeRealmUnary",
+      "kind": "unary",
+      "request_type": "InvokeRealmUnaryRequest",
+      "response_type": "InvokeRealmUnaryResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAccountService/IssueScopedAppBinding",
@@ -6766,6 +6792,8 @@
       "InstallModelFromPlanResponse",
       "InstallVerifiedAssetRequest",
       "InstallVerifiedAssetResponse",
+      "InvokeRealmUnaryRequest",
+      "InvokeRealmUnaryResponse",
       "IssueDelegatedAccessTokenRequest",
       "IssueDelegatedAccessTokenResponse",
       "IssueScopedAppBindingRequest",
@@ -18280,6 +18308,102 @@
           }
         ],
         "source_file": "proto/runtime/v1/local_runtime.proto"
+      },
+      {
+        "name": "InvokeRealmUnaryRequest",
+        "fields": [
+          {
+            "name": "caller",
+            "type": "AccountCaller",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "method_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "realm_base_url",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "request_json",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "timeout_ms",
+            "type": "int32",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          }
+        ],
+        "source_file": "proto/runtime/v1/account.proto"
+      },
+      {
+        "name": "InvokeRealmUnaryResponse",
+        "fields": [
+          {
+            "name": "accepted",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "response_json",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "account_reason_code",
+            "type": "AccountReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "production_inert",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "http_status",
+            "type": "int32",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "error_message",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          }
+        ],
+        "source_file": "proto/runtime/v1/account.proto"
       },
       {
         "name": "IssueDelegatedAccessTokenRequest",

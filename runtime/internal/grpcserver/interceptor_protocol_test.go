@@ -243,6 +243,7 @@ func TestIsWriteMethodScenarioSurface(t *testing.T) {
 		"/nimi.runtime.v1.RuntimeConnectorService/TestConnector",
 		"/nimi.runtime.v1.RuntimeConnectorService/UpsertModelCatalogProvider",
 		"/nimi.runtime.v1.RuntimeConnectorService/DeleteCatalogModelOverlay",
+		"/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary",
 		"/nimi.runtime.v1.RuntimeAccountService/IssueWorkspaceBinding",
 		"/nimi.runtime.v1.RuntimeAccountService/RevokeWorkspaceBinding",
 	}

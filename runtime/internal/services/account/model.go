@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"net/http"
 	"sync"
 	"time"
 
@@ -112,10 +113,12 @@ type Service struct {
 	logger *slog.Logger
 	now    func() time.Time
 
-	custody   Custody
-	exchanger LoginExchanger
-	refresher Refresher
-	registry  *appregistry.Registry
+	custody      Custody
+	exchanger    LoginExchanger
+	refresher    Refresher
+	registry     *appregistry.Registry
+	realmHTTP    *http.Client
+	realmBaseURL string
 
 	partition                string
 	productionActivated      bool

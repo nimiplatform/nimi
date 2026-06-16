@@ -601,24 +601,37 @@ function scanRuntimeCallerAdmission(files, violations) {
   if (!source) {
     return;
   }
-  const accountServiceSource = runtimeAccountServiceSources(files).map((item) => item.source).join('\n');
+  const accountServiceFiles = runtimeAccountServiceSources(files);
+  const accountServiceSource = accountServiceFiles.map((item) => item.source).join('\n');
+  const findAccountServiceMethod = (methodName) => {
+    for (const item of accountServiceFiles) {
+      const method = findGoServiceMethod(item.source, methodName);
+      if (method) {
+        return { ...method, relPath: item.relPath, source: item.source };
+      }
+    }
+    return null;
+  };
   const requireMethodAdmission = ({
     methodName,
-    tokenRequest,
+    tokenRequest = false,
+    accountControlOnly = false,
     label,
     detail,
     beforeNeedles = [],
   }) => {
-    const method = findGoServiceMethod(source, methodName);
+    const method = findAccountServiceMethod(methodName);
     const methodIndex = method ? method.start : source.indexOf(methodName);
     const methodSource = method ? method.text : '';
-    const admissionPattern = new RegExp(`(?:s\\.)?validateRuntimeAdmittedCaller\\(req\\.GetCaller\\(\\),\\s*${tokenRequest}\\)`, 'u');
-    const admissionMatch = admissionPattern.exec(methodSource);
+    const admissionPatterns = accountControlOnly
+      ? [/(?:s\.)?validateRuntimeAccountControlCaller\(req\.GetCaller\(\)\)/u]
+      : [new RegExp(`(?:s\\.)?validateRuntimeAdmittedCaller\\(req\\.GetCaller\\(\\),\\s*${tokenRequest}\\)`, 'u')];
+    const admissionMatch = admissionPatterns.map((pattern) => pattern.exec(methodSource)).find(Boolean);
     if (!method || !admissionMatch) {
       pushViolation(
         violations,
-        'runtime/internal/services/account/service.go',
-        source,
+        method ? method.relPath : 'runtime/internal/services/account/service.go',
+        method ? method.source : source,
         methodIndex >= 0 ? methodIndex : 0,
         label,
         detail,
@@ -629,8 +642,8 @@ function scanRuntimeCallerAdmission(files, violations) {
     if (firstProtectedOperation >= 0 && admissionMatch.index > firstProtectedOperation) {
       pushViolation(
         violations,
-        'runtime/internal/services/account/service.go',
-        source,
+        method.relPath,
+        method.source,
         method.start + firstProtectedOperation,
         label,
         `${detail}; admission must happen before state read/mutation or token refresh`,
@@ -668,17 +681,24 @@ function scanRuntimeCallerAdmission(files, violations) {
   });
   requireMethodAdmission({
     methodName: 'Logout',
-    tokenRequest: false,
+    accountControlOnly: true,
     label: 'Runtime logout caller admission',
     detail: 'Logout must use req.GetCaller() and Runtime app registry/admission before account mutation',
     beforeNeedles: ['s.logout('],
   });
   requireMethodAdmission({
     methodName: 'SwitchAccount',
-    tokenRequest: false,
+    accountControlOnly: true,
     label: 'Runtime switch caller admission',
     detail: 'SwitchAccount must use req.GetCaller() and Runtime app registry/admission before account mutation',
     beforeNeedles: ['s.mu.Lock()'],
+  });
+  requireMethodAdmission({
+    methodName: 'InvokeRealmUnary',
+    accountControlOnly: true,
+    label: 'Runtime Realm unary caller admission',
+    detail: 'InvokeRealmUnary must use account-control caller admission before Realm request parsing, token access, or outbound HTTP',
+    beforeNeedles: ['parseRealmUnaryRequest(', 's.realmUnaryAccessToken(', 's.realmHTTP.Do('],
   });
   requireMethodAdmission({
     methodName: 'RevokeScopedAppBinding',

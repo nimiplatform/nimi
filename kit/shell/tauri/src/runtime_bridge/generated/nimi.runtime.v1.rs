@@ -1576,6 +1576,36 @@ pub struct GetAccessTokenResponse {
     pub production_inert: bool,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct InvokeRealmUnaryRequest {
+    #[prost(message, optional, tag = "1")]
+    pub caller: ::core::option::Option<AccountCaller>,
+    #[prost(string, tag = "2")]
+    pub method_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub realm_base_url: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub request_json: ::prost::alloc::string::String,
+    #[prost(int32, tag = "5")]
+    pub timeout_ms: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct InvokeRealmUnaryResponse {
+    #[prost(bool, tag = "1")]
+    pub accepted: bool,
+    #[prost(string, tag = "2")]
+    pub response_json: ::prost::alloc::string::String,
+    #[prost(enumeration = "ReasonCode", tag = "3")]
+    pub reason_code: i32,
+    #[prost(enumeration = "AccountReasonCode", tag = "4")]
+    pub account_reason_code: i32,
+    #[prost(bool, tag = "5")]
+    pub production_inert: bool,
+    #[prost(int32, tag = "6")]
+    pub http_status: i32,
+    #[prost(string, tag = "7")]
+    pub error_message: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct RefreshAccountSessionRequest {
     #[prost(message, optional, tag = "1")]
     pub caller: ::core::option::Option<AccountCaller>,
@@ -2394,6 +2424,35 @@ pub mod runtime_account_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAccountService",
                         "GetAccessToken",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn invoke_realm_unary(
+            &mut self,
+            request: impl tonic::IntoRequest<super::InvokeRealmUnaryRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::InvokeRealmUnaryResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAccountService",
+                        "InvokeRealmUnary",
                     ),
                 );
             self.inner.unary(req, path, codec).await

@@ -107,6 +107,7 @@ export const RUNTIME_ACCOUNT_METHODS = [
   'beginLogin',
   'completeLogin',
   'getAccessToken',
+  'invokeRealmUnary',
   'refreshAccountSession',
   'logout',
   'switchAccount',

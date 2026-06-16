@@ -40,6 +40,14 @@ RUNTIME_METHODS = [
     "response_type": "GetAccountSessionStatusResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary",
+    "service": "RuntimeAccountService",
+    "method": "InvokeRealmUnary",
+    "kind": "unary",
+    "request_type": "InvokeRealmUnaryRequest",
+    "response_type": "InvokeRealmUnaryResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAccountService/IssueScopedAppBinding",
     "service": "RuntimeAccountService",
     "method": "IssueScopedAppBinding",

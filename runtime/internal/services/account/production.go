@@ -97,6 +97,8 @@ func NewProduction(logger *slog.Logger, cfg ProductionConfig) *Service {
 		WithCustodyPartition(resolved.CustodyPartition),
 		WithLoginExchanger(newRealmOAuthExchanger(resolved)),
 		WithRefresher(newRealmTokenRefresher(resolved)),
+		WithRealmHTTPClient(resolved.HTTPClient),
+		WithRealmBaseURL(resolved.RealmBaseURL),
 		WithAppRegistry(resolved.AppRegistry),
 	)
 }
