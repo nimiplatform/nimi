@@ -81,6 +81,9 @@ pnpm --filter @nimiplatform/avatar dev:renderer
 # Shell dev (Tauri)
 pnpm --filter @nimiplatform/avatar dev:shell
 
+# Live Avatar dev (real Runtime handoff + Vite HMR)
+pnpm dev:avatar
+
 # Explicit mock fixture boot
 VITE_AVATAR_DRIVER=mock pnpm --filter @nimiplatform/avatar dev:shell
 

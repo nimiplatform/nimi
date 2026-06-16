@@ -218,6 +218,18 @@ if (model.getCanvasWidth() > 1.0 && width < height) {
 - `apps/avatar/src-tauri/src/main.rs` 的 `build_avatar_window` 后已加 `#[cfg(debug_assertions)] window.open_devtools()`
 - 必须从 desktop 启动 avatar 才能复现 launch context（直接 `open .app` 没 launch context 看不到内容）
 
+**Live dev with real Runtime handoff**：
+
+```bash
+# Uses the latest Avatar instance registry under NIMI_APP_DATA_ROOT or ~/Nimi,
+# starts tauri dev, passes the launch URI as an app arg, and serves renderer
+# changes through Vite HMR.
+pnpm dev:avatar
+
+# If no prior Desktop launch exists:
+pnpm dev:avatar --agent-id local-agent:<owner_user_id>:<realm_agent_id>
+```
+
 **Build + launch debug bundle**：
 
 ```bash

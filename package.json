@@ -213,6 +213,7 @@
     "deploy:install-gateway": "pnpm --filter @nimiplatform/install-gateway deploy",
     "dev:prepare": "pnpm build:sdk && pnpm build:kit",
     "dev:desktop": "pnpm --filter @nimiplatform/desktop dev:shell",
+    "dev:avatar": "node scripts/dev-avatar.mjs",
     "dev:web": "pnpm --filter @nimiplatform/web dev",
     "dev:tester": "pnpm --filter @nimiplatform/tester dev:shell",
     "docs:dev": "pnpm --filter @nimiplatform/docs dev",
