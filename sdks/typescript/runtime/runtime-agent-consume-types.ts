@@ -3,6 +3,7 @@ import type {
   AgentEvent,
   AgentRequestContext,
   AppMessageEvent,
+  AvatarDebugProbeResultEnvelope,
   AvatarDebugProbeKind,
   AvatarDebugRequestedBy,
   AvatarLiveInstanceBinding,
@@ -15,6 +16,7 @@ import type {
   GetAvatarDebugSnapshotResponse,
   ListAvatarDebugProbeResultsResponse,
   RequestAvatarDebugProbeResponse,
+  SubmitAvatarDebugProbeResultResponse,
   GetPublicChatSessionSnapshotResponse,
   OpenCompanionParticipationReplayResponse,
   RuntimeTypedCallOptions,
@@ -105,7 +107,8 @@ export type NimiRuntimeAgentConsumeEvent =
   | NimiRuntimeAgentTurnConsumeEvent
   | NimiRuntimeAgentPresentationConsumeEvent
   | NimiRuntimeAgentStateConsumeEvent
-  | NimiRuntimeAgentHookConsumeEvent;
+  | NimiRuntimeAgentHookConsumeEvent
+  | NimiRuntimeAgentAvatarDebugConsumeEvent;
 
 export interface NimiRuntimeAgentBaseConsumeEvent {
   readonly eventName: string;
@@ -178,6 +181,15 @@ export interface NimiRuntimeAgentHookConsumeEvent extends NimiRuntimeAgentBaseCo
     | 'runtime.agent.hook.failed'
     | 'runtime.agent.hook.canceled'
     | 'runtime.agent.hook.rescheduled';
+  readonly detail: JsonObject;
+}
+
+export interface NimiRuntimeAgentAvatarDebugConsumeEvent extends NimiRuntimeAgentBaseConsumeEvent {
+  readonly eventName:
+    | 'runtime.agent.avatar_debug.probe_requested'
+    | 'runtime.agent.avatar_debug.probe_result'
+    | 'runtime.agent.avatar_debug.replay_linked';
+  readonly conversationAnchorId?: string;
   readonly detail: JsonObject;
 }
 
@@ -308,6 +320,11 @@ export interface NimiRuntimeAgentAvatarDebugReplayInput extends NimiRuntimeAgent
   readonly probeId: unknown;
 }
 
+export interface NimiRuntimeAgentAvatarDebugSubmitProbeResultInput
+  extends NimiRuntimeAgentAvatarDebugBaseInput {
+  readonly result: AvatarDebugProbeResultEnvelope;
+}
+
 export interface NimiRuntimeAgentConsumeRuntime {
   readonly agents: {
     openConversationAnchor(request: unknown, options?: RuntimeTypedCallOptions): Promise<{ snapshot?: ConversationAnchorSnapshot }>;
@@ -353,6 +370,10 @@ export interface NimiRuntimeAgentConsumeRuntime {
       request: unknown,
       options?: RuntimeTypedCallOptions,
     ): Promise<RequestAvatarDebugProbeResponse>;
+    submitAvatarDebugProbeResult?(
+      request: unknown,
+      options?: RuntimeTypedCallOptions,
+    ): Promise<SubmitAvatarDebugProbeResultResponse>;
     listAvatarDebugProbeResults?(
       request: unknown,
       options?: RuntimeTypedCallOptions,
@@ -443,6 +464,10 @@ export interface NimiRuntimeAgentConsumeClient {
       input: NimiRuntimeAgentAvatarDebugRequestProbeInput,
       options?: RuntimeTypedCallOptions,
     ): Promise<RequestAvatarDebugProbeResponse>;
+    submitProbeResult(
+      input: NimiRuntimeAgentAvatarDebugSubmitProbeResultInput,
+      options?: RuntimeTypedCallOptions,
+    ): Promise<SubmitAvatarDebugProbeResultResponse>;
     listProbeResults(
       input: NimiRuntimeAgentAvatarDebugListProbeResultsInput,
       options?: RuntimeTypedCallOptions,

@@ -37,6 +37,7 @@ function makeComposition(state: CompositionState, overrides: Partial<Composition
     stage: null,
     source: null,
     retryable: null,
+    modelDiagnostics: null,
     ready: state === 'ready' || state === 'fixture_active',
     ...overrides,
   };
@@ -107,6 +108,30 @@ describe('DegradedSurface — reason interpolation', () => {
     expect(screen.getByText('local_avatar_asset_manifest')).toBeTruthy();
     expect(screen.getByText('avatar_local_materialization')).toBeTruthy();
     expect(screen.getByText('No')).toBeTruthy();
+  });
+
+  it('renders model diagnostics without replacing the primary degraded reason', () => {
+    render(
+      <DegradedSurface
+        composition={makeComposition('degraded_runtime_unavailable', {
+          reason: 'runtime binding unavailable',
+          reasonCode: 'RUNTIME_BINDING_UNAVAILABLE',
+          modelDiagnostics: {
+            loadState: 'error',
+            modelId: 'avatar-broken',
+            modelPath: 'C:/avatars/broken.vrm',
+            error: 'VRM scene graph is missing a humanoid root',
+          },
+        })}
+      />,
+    );
+
+    expect(screen.getByText('runtime binding unavailable')).toBeTruthy();
+    expect(screen.getByText('RUNTIME_BINDING_UNAVAILABLE')).toBeTruthy();
+    expect(screen.getByText('error')).toBeTruthy();
+    expect(screen.getByText('avatar-broken')).toBeTruthy();
+    expect(screen.getByText('C:/avatars/broken.vrm')).toBeTruthy();
+    expect(screen.getByText('VRM scene graph is missing a humanoid root')).toBeTruthy();
   });
 });
 

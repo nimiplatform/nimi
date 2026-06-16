@@ -40,6 +40,10 @@
         "stage": "Stage",
         "source": "Source",
         "retryable": "Retryable",
+        "model_load_state": "Model load state",
+        "model_id": "Model ID",
+        "model_path": "Model path",
+        "model_error": "Model error",
         "yes": "Yes",
         "no": "No",
         "audio_artifact_synthetic": "Audio is a synthetic frame-only artifact; no playback was attempted."

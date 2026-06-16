@@ -57,6 +57,10 @@ export function DegradedSurface(props: DegradedSurfaceProps) {
   const tone = composition.variant;
   const keyPrefix = stateKeyPrefix(composition.state);
   const trimmedReason = (composition.reason ?? '').trim();
+  const diagnosticsVisible =
+    (Boolean(composition.reason) || Boolean(composition.modelDiagnostics))
+    && composition.variant !== 'loading'
+    && composition.variant !== 'relaunch';
 
   const summary =
     REASON_AWARE_STATES.has(composition.state) && trimmedReason.length > 0
@@ -96,7 +100,7 @@ export function DegradedSurface(props: DegradedSurfaceProps) {
           {t('Avatar.degraded.reload')}
         </Button>
       </div>
-      {composition.reason && composition.variant !== 'loading' && composition.variant !== 'relaunch' ? (
+      {diagnosticsVisible ? (
         <details className="avatar-degraded-surface__diagnostics">
           <summary>{t('Avatar.degraded.diagnostics.summary')}</summary>
           <dl>
@@ -104,10 +108,12 @@ export function DegradedSurface(props: DegradedSurfaceProps) {
               <dt>{t('Avatar.degraded.diagnostics.composition_state')}</dt>
               <dd>{composition.state}</dd>
             </div>
-            <div>
-              <dt>{t('Avatar.degraded.diagnostics.reason')}</dt>
-              <dd>{composition.reason}</dd>
-            </div>
+            {composition.reason ? (
+              <div>
+                <dt>{t('Avatar.degraded.diagnostics.reason')}</dt>
+                <dd>{composition.reason}</dd>
+              </div>
+            ) : null}
             {composition.reasonCode ? (
               <div>
                 <dt>{t('Avatar.degraded.diagnostics.reason_code')}</dt>
@@ -142,6 +148,30 @@ export function DegradedSurface(props: DegradedSurfaceProps) {
               <div>
                 <dt>{t('Avatar.degraded.diagnostics.retryable')}</dt>
                 <dd>{composition.retryable ? t('Avatar.degraded.diagnostics.yes') : t('Avatar.degraded.diagnostics.no')}</dd>
+              </div>
+            ) : null}
+            {composition.modelDiagnostics ? (
+              <div>
+                <dt>{t('Avatar.degraded.diagnostics.model_load_state')}</dt>
+                <dd>{composition.modelDiagnostics.loadState}</dd>
+              </div>
+            ) : null}
+            {composition.modelDiagnostics?.modelId ? (
+              <div>
+                <dt>{t('Avatar.degraded.diagnostics.model_id')}</dt>
+                <dd>{composition.modelDiagnostics.modelId}</dd>
+              </div>
+            ) : null}
+            {composition.modelDiagnostics?.modelPath ? (
+              <div>
+                <dt>{t('Avatar.degraded.diagnostics.model_path')}</dt>
+                <dd>{composition.modelDiagnostics.modelPath}</dd>
+              </div>
+            ) : null}
+            {composition.modelDiagnostics?.error ? (
+              <div>
+                <dt>{t('Avatar.degraded.diagnostics.model_error')}</dt>
+                <dd>{composition.modelDiagnostics.error}</dd>
               </div>
             ) : null}
           </dl>

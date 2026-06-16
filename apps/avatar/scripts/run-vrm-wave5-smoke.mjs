@@ -17,6 +17,20 @@ const __filename = url.fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const REPO_ROOT = path.resolve(__dirname, '../../..');
 
+function resolvePnpmCommand() {
+  const npmExecPath = process.env.npm_execpath;
+  if (npmExecPath && path.basename(npmExecPath).toLowerCase().includes('pnpm')) {
+    return {
+      command: process.execPath,
+      prefixArgs: [npmExecPath],
+    };
+  }
+  return {
+    command: process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm',
+    prefixArgs: [],
+  };
+}
+
 const samples = await ensureAllVrmSamples();
 for (const sample of samples) {
   process.stdout.write(
@@ -24,9 +38,11 @@ for (const sample of samples) {
   );
 }
 
+const pnpm = resolvePnpmCommand();
 execFileSync(
-  'pnpm',
+  pnpm.command,
   [
+    ...pnpm.prefixArgs,
     '--filter',
     '@nimiplatform/avatar',
     'exec',

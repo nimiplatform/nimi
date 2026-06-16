@@ -28,6 +28,9 @@ surfaces:
   - Probe kind names are Runtime-owned debug projection names.
   - Avatar backend route ids are evidence refs, not Runtime probe kind names.
   - Passed status requires concrete evidence refs.
+  - Avatar may submit evidence-backed result envelopes only through Runtime's
+    submit path; Runtime validates identity, binding scope, status, evidence,
+    and replay/audit projection before accepting public diagnostic status.
 owner: .nimi/spec/runtime
 source_rule: K-AGCORE-055
 status: active
@@ -43,30 +46,51 @@ probe_kinds:
   - id: backend_load
     request_owner: runtime
     result_owner: runtime
+    admitted_result_submitters:
+      - runtime
+      - avatar
     backend_evidence_owner: avatar
   - id: capability_profile
     request_owner: runtime
     result_owner: runtime
+    admitted_result_submitters:
+      - runtime
+      - avatar
     backend_evidence_owner: avatar
   - id: route_support_matrix
     request_owner: runtime
     result_owner: runtime
+    admitted_result_submitters:
+      - runtime
+      - avatar
     backend_evidence_owner: avatar
   - id: generated_motion
     request_owner: runtime
     result_owner: runtime
+    admitted_result_submitters:
+      - runtime
+      - avatar
     backend_evidence_owner: avatar
   - id: emotion_expression
     request_owner: runtime
     result_owner: runtime
+    admitted_result_submitters:
+      - runtime
+      - avatar
     backend_evidence_owner: avatar
   - id: speech_lipsync
     request_owner: runtime
     result_owner: runtime
+    admitted_result_submitters:
+      - runtime
+      - avatar
     backend_evidence_owner: avatar
   - id: window_hit_region
     request_owner: runtime
     result_owner: runtime
+    admitted_result_submitters:
+      - runtime
+      - avatar
     backend_evidence_owner: avatar
 
 result_status_enum:
@@ -91,4 +115,3 @@ invariants:
   - Probe kind names are Runtime-owned debug projection names.
   - Avatar backend route ids are evidence refs, not Runtime probe kind names.
   - Passed status requires concrete evidence refs.
-

@@ -21,6 +21,7 @@ export type AvatarEvidenceKind =
   | 'avatar.runtime.bound'
   | 'avatar.runtime.consume-ready'
   | 'avatar.runtime.driver-error'
+  | 'avatar.debug.probe-submit-failed'
   | 'avatar.model.load'
   | 'avatar.carrier.visual'
   | 'avatar.carrier.lifecycle.context_lost'

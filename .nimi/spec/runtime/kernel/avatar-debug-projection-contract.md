@@ -44,6 +44,13 @@ Fixed rules:
 Avatar debug probe results are Runtime-owned typed result envelopes that may
 include Avatar-owned backend evidence refs.
 
+Runtime admits `SubmitAvatarDebugProbeResult` as the only result submit path for
+Avatar-owned local backend evidence. A submitted result does not transfer
+semantic ownership to Avatar: Runtime validates agent identity, anchor identity,
+probe kind, status, permission scope, scoped binding attachment, evidence refs,
+and replay/audit projection before the envelope becomes the public diagnostic
+result.
+
 Required fields:
 
 - `probe_id`
@@ -66,6 +73,8 @@ Fixed rules:
 
 - `passed` requires concrete Runtime or Avatar evidence
 - `unsupported`, `blocked`, and `invalid` are terminal diagnostic outcomes
+- for the same `probe_id`, the latest accepted submitted result supersedes a
+  provisional Runtime blocked result in snapshots and result lists
 - results must not expose raw backend payloads or raw provider output
 - Avatar backend facts may appear only as evidence refs or schema-bound evidence
   summaries admitted by Avatar contracts

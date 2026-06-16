@@ -3,6 +3,7 @@ package runtimeagent
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -88,6 +89,7 @@ func (s *Service) RequestAvatarDebugProbe(_ context.Context, req *runtimev1.Requ
 		AvatarInstanceId:     strings.TrimSpace(req.GetAvatarInstanceId()),
 		RuntimeReplayRef:     replay.GetReplayRef(),
 		ReplayRequested:      req.GetReplayRequested(),
+		ScopedBinding:        cloneScopedBindingAttachment(req.GetContext().GetScopedBinding()),
 	}
 	result := &runtimev1.AvatarDebugProbeResultEnvelope{
 		ProbeId:              probeID,
@@ -118,6 +120,24 @@ func (s *Service) RequestAvatarDebugProbe(_ context.Context, req *runtimev1.Requ
 	}, nil
 }
 
+func (s *Service) SubmitAvatarDebugProbeResult(_ context.Context, req *runtimev1.SubmitAvatarDebugProbeResultRequest) (*runtimev1.SubmitAvatarDebugProbeResultResponse, error) {
+	agentID, anchorID, err := s.validateAvatarDebugControlRequest(req.GetContext(), req.GetAgentId(), req.GetConversationAnchorId(), avatarDebugWriteScope)
+	if err != nil {
+		return nil, err
+	}
+	result, err := validateSubmittedAvatarDebugProbeResult(agentID, anchorID, req.GetResult())
+	if err != nil {
+		return nil, err
+	}
+	if err := s.appendAvatarDebugResultAudit(result); err != nil {
+		return nil, err
+	}
+	if err := s.appendAvatarDebugResultProjectionEvent(result); err != nil {
+		return nil, err
+	}
+	return &runtimev1.SubmitAvatarDebugProbeResultResponse{Result: result}, nil
+}
+
 func (s *Service) ListAvatarDebugProbeResults(_ context.Context, req *runtimev1.ListAvatarDebugProbeResultsRequest) (*runtimev1.ListAvatarDebugProbeResultsResponse, error) {
 	agentID, anchorID, err := s.validateAvatarDebugControlRequest(req.GetContext(), req.GetAgentId(), req.GetConversationAnchorId(), avatarDebugReadScope)
 	if err != nil {
@@ -132,6 +152,55 @@ func (s *Service) ListAvatarDebugProbeResults(_ context.Context, req *runtimev1.
 		return nil, err
 	}
 	return &runtimev1.ListAvatarDebugProbeResultsResponse{ProbeResults: results}, nil
+}
+
+func validateSubmittedAvatarDebugProbeResult(agentID string, anchorID string, result *runtimev1.AvatarDebugProbeResultEnvelope) (*runtimev1.AvatarDebugProbeResultEnvelope, error) {
+	if result == nil {
+		return nil, status.Error(codes.InvalidArgument, "avatar debug result is required")
+	}
+	probeID := strings.TrimSpace(result.GetProbeId())
+	if probeID == "" {
+		return nil, status.Error(codes.InvalidArgument, "probe_id is required")
+	}
+	if strings.TrimSpace(result.GetAgentId()) != agentID {
+		return nil, status.Error(codes.FailedPrecondition, "result agent_id must match request agent_id")
+	}
+	if strings.TrimSpace(result.GetConversationAnchorId()) != anchorID {
+		return nil, status.Error(codes.FailedPrecondition, "result conversation_anchor_id must match request conversation_anchor_id")
+	}
+	if !isAdmittedAvatarDebugProbeKind(result.GetProbeKind()) {
+		return nil, status.Error(codes.InvalidArgument, "avatar debug probe_kind is not admitted")
+	}
+	if !isAdmittedAvatarDebugProbeStatus(result.GetStatus()) {
+		return nil, status.Error(codes.InvalidArgument, "avatar debug status is not admitted")
+	}
+	resultID := strings.TrimSpace(result.GetResultId())
+	if resultID == "" {
+		return nil, status.Error(codes.InvalidArgument, "result_id is required")
+	}
+	evidenceRefs := normalizeAvatarDebugEvidenceRefs(result.GetEvidenceRefs())
+	if result.GetStatus() == runtimev1.AvatarDebugProbeStatus_AVATAR_DEBUG_PROBE_STATUS_PASSED && len(evidenceRefs) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "passed avatar debug result requires evidence_refs")
+	}
+	reasonCode := strings.TrimSpace(result.GetReasonCode())
+	if result.GetStatus() != runtimev1.AvatarDebugProbeStatus_AVATAR_DEBUG_PROBE_STATUS_PASSED && reasonCode == "" {
+		return nil, status.Error(codes.InvalidArgument, "non-passed avatar debug result requires reason_code")
+	}
+	observedAt := result.GetObservedAt()
+	if observedAt == nil || !observedAt.IsValid() {
+		observedAt = timestamppb.New(time.Now().UTC())
+	}
+	return &runtimev1.AvatarDebugProbeResultEnvelope{
+		ProbeId:              probeID,
+		AgentId:              agentID,
+		ConversationAnchorId: anchorID,
+		ProbeKind:            result.GetProbeKind(),
+		Status:               result.GetStatus(),
+		ObservedAt:           observedAt,
+		EvidenceRefs:         evidenceRefs,
+		ReasonCode:           reasonCode,
+		ResultId:             resultID,
+	}, nil
 }
 
 func (s *Service) GetAvatarDebugReplay(_ context.Context, req *runtimev1.GetAvatarDebugReplayRequest) (*runtimev1.GetAvatarDebugReplayResponse, error) {
@@ -258,6 +327,29 @@ func (s *Service) appendAvatarDebugProjectionEvents(
 	return nil
 }
 
+func (s *Service) appendAvatarDebugResultProjectionEvent(result *runtimev1.AvatarDebugProbeResultEnvelope) error {
+	event := s.newEvent(result.GetAgentId(), runtimev1.AgentEventType_AGENT_EVENT_TYPE_AVATAR_DEBUG, &runtimev1.AgentEvent_AvatarDebug{
+		AvatarDebug: &runtimev1.AgentAvatarDebugEventDetail{
+			Family: runtimev1.AvatarDebugEventFamily_AVATAR_DEBUG_EVENT_FAMILY_PROBE_RESULT,
+			Result: result,
+		},
+	})
+	s.mu.Lock()
+	previousEvents := append([]*runtimev1.AgentEvent(nil), s.events...)
+	previousSequence := s.sequence
+	committedEvents := s.eventStreamRuntime().appendEventsLocked(event)
+	if err := s.saveStateLocked(); err != nil {
+		s.events = previousEvents
+		s.sequence = previousSequence
+		s.mu.Unlock()
+		return err
+	}
+	targetsByEvent := s.eventStreamRuntime().matchingSubscribersLocked(committedEvents)
+	s.mu.Unlock()
+	s.eventStreamRuntime().broadcast(committedEvents, targetsByEvent)
+	return nil
+}
+
 func (s *Service) appendAvatarDebugAudit(
 	request *runtimev1.AvatarDebugProbeRequestEnvelope,
 	result *runtimev1.AvatarDebugProbeResultEnvelope,
@@ -268,12 +360,35 @@ func (s *Service) appendAvatarDebugAudit(
 	}
 	for _, event := range []*runtimev1.AuditEventRecord{
 		avatarDebugAuditEvent(request.GetProbeId(), request.GetAgentId(), request.GetConversationAnchorId(), avatarDebugRequestOperation, request.GetRequestedAt().AsTime(), avatarDebugRequestPayload(request)),
-		avatarDebugAuditEvent(result.GetProbeId(), result.GetAgentId(), result.GetConversationAnchorId(), avatarDebugResultOperation, result.GetObservedAt().AsTime(), avatarDebugResultPayload(result)),
+		avatarDebugResultAuditEvent(result),
 		avatarDebugAuditEvent(replay.GetProbeId(), request.GetAgentId(), request.GetConversationAnchorId(), avatarDebugReplayLinkOperation, replay.GetLinkedAt().AsTime(), avatarDebugReplayPayload(replay)),
 	} {
 		s.auditStore.AppendEvent(event)
 	}
 	return nil
+}
+
+func (s *Service) appendAvatarDebugResultAudit(result *runtimev1.AvatarDebugProbeResultEnvelope) error {
+	if s == nil || s.auditStore == nil {
+		return status.Error(codes.FailedPrecondition, "runtime audit store is required for avatar debug replay")
+	}
+	s.auditStore.AppendEvent(avatarDebugResultAuditEvent(result))
+	return nil
+}
+
+func avatarDebugResultAuditEvent(result *runtimev1.AvatarDebugProbeResultEnvelope) *runtimev1.AuditEventRecord {
+	event := avatarDebugAuditEvent(
+		result.GetProbeId(),
+		result.GetAgentId(),
+		result.GetConversationAnchorId(),
+		avatarDebugResultOperation,
+		result.GetObservedAt().AsTime(),
+		avatarDebugResultPayload(result),
+	)
+	if resultID := strings.TrimSpace(result.GetResultId()); resultID != "" {
+		event.AuditId = fmt.Sprintf("%s:%s:%s", avatarDebugResultOperation, result.GetProbeId(), resultID)
+	}
+	return event
 }
 
 func avatarDebugAuditEvent(probeID string, agentID string, anchorID string, operation string, observedAt time.Time, payload *structpb.Struct) *runtimev1.AuditEventRecord {
@@ -368,7 +483,7 @@ func (s *Service) listAvatarDebugAuditProjection(agentID string, anchorID string
 	if err != nil {
 		return nil, nil, err
 	}
-	results := make([]*runtimev1.AvatarDebugProbeResultEnvelope, 0)
+	resultsByProbe := map[string]*runtimev1.AvatarDebugProbeResultEnvelope{}
 	replays := make([]*runtimev1.AvatarDebugReplayRef, 0)
 	for _, event := range events {
 		switch strings.TrimSpace(event.GetOperation()) {
@@ -380,7 +495,9 @@ func (s *Service) listAvatarDebugAuditProjection(agentID string, anchorID string
 			if probeKind != runtimev1.AvatarDebugProbeKind_AVATAR_DEBUG_PROBE_KIND_UNSPECIFIED && result.GetProbeKind() != probeKind {
 				continue
 			}
-			results = append(results, result)
+			if current := resultsByProbe[result.GetProbeId()]; current == nil || avatarDebugResultObservedAt(result).After(avatarDebugResultObservedAt(current)) {
+				resultsByProbe[result.GetProbeId()] = result
+			}
 		case avatarDebugReplayLinkOperation:
 			replay, ok := avatarDebugReplayFromAuditEvent(event)
 			if !ok {
@@ -392,6 +509,18 @@ func (s *Service) listAvatarDebugAuditProjection(agentID string, anchorID string
 			replays = append(replays, replay)
 		}
 	}
+	results := make([]*runtimev1.AvatarDebugProbeResultEnvelope, 0, len(resultsByProbe))
+	for _, result := range resultsByProbe {
+		results = append(results, result)
+	}
+	sort.SliceStable(results, func(i, j int) bool {
+		left := avatarDebugResultObservedAt(results[i])
+		right := avatarDebugResultObservedAt(results[j])
+		if left.Equal(right) {
+			return results[i].GetProbeId() < results[j].GetProbeId()
+		}
+		return left.After(right)
+	})
 	return results, replays, nil
 }
 
@@ -414,7 +543,9 @@ func (s *Service) findAvatarDebugReplay(agentID string, anchorID string, probeID
 			}
 		case avatarDebugResultOperation:
 			if parsed, ok := avatarDebugResultFromAuditEvent(event); ok {
-				result = parsed
+				if result == nil || avatarDebugResultObservedAt(parsed).After(avatarDebugResultObservedAt(result)) {
+					result = parsed
+				}
 			}
 		case avatarDebugReplayLinkOperation:
 			if parsed, ok := avatarDebugReplayFromAuditEvent(event); ok {
@@ -547,7 +678,36 @@ func avatarDebugProbeStatusFromString(raw string) (runtimev1.AvatarDebugProbeSta
 		return runtimev1.AvatarDebugProbeStatus_AVATAR_DEBUG_PROBE_STATUS_UNSPECIFIED, false
 	}
 	statusValue := runtimev1.AvatarDebugProbeStatus(value)
-	return statusValue, statusValue != runtimev1.AvatarDebugProbeStatus_AVATAR_DEBUG_PROBE_STATUS_UNSPECIFIED
+	return statusValue, isAdmittedAvatarDebugProbeStatus(statusValue)
+}
+
+func isAdmittedAvatarDebugProbeStatus(statusValue runtimev1.AvatarDebugProbeStatus) bool {
+	return statusValue >= runtimev1.AvatarDebugProbeStatus_AVATAR_DEBUG_PROBE_STATUS_PASSED &&
+		statusValue <= runtimev1.AvatarDebugProbeStatus_AVATAR_DEBUG_PROBE_STATUS_INVALID
+}
+
+func normalizeAvatarDebugEvidenceRefs(values []string) []string {
+	out := make([]string, 0, len(values))
+	seen := map[string]struct{}{}
+	for _, value := range values {
+		trimmed := strings.TrimSpace(value)
+		if trimmed == "" {
+			continue
+		}
+		if _, ok := seen[trimmed]; ok {
+			continue
+		}
+		seen[trimmed] = struct{}{}
+		out = append(out, trimmed)
+	}
+	return out
+}
+
+func avatarDebugResultObservedAt(result *runtimev1.AvatarDebugProbeResultEnvelope) time.Time {
+	if result == nil || result.GetObservedAt() == nil || !result.GetObservedAt().IsValid() {
+		return time.Time{}
+	}
+	return result.GetObservedAt().AsTime()
 }
 
 func avatarDebugRequestedByFromString(raw string) (runtimev1.AvatarDebugRequestedBy, bool) {

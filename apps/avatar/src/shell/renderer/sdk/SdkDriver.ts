@@ -660,6 +660,9 @@ export class SdkDriver implements AgentDataDriver {
       case 'runtime.agent.turn.reasoning_delta':
       case 'runtime.agent.turn.structured':
       case 'runtime.agent.turn.post_turn':
+      case 'runtime.agent.avatar_debug.probe_requested':
+      case 'runtime.agent.avatar_debug.probe_result':
+      case 'runtime.agent.avatar_debug.replay_linked':
       case 'runtime.agent.presentation.pose_requested':
       case 'runtime.agent.presentation.pose_cleared':
       case 'runtime.agent.presentation.lookat_requested':

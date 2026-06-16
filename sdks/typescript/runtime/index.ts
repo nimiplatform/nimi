@@ -135,6 +135,7 @@ export const RUNTIME_AGENT_METHODS = [
   'getRealmGroupMessageCandidateEvidence',
   'getAvatarDebugSnapshot',
   'requestAvatarDebugProbe',
+  'submitAvatarDebugProbeResult',
   'listAvatarDebugProbeResults',
   'getAvatarDebugReplay',
   'listDelegatedProviderProfiles',

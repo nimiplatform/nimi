@@ -84,6 +84,7 @@ export function App() {
 
   const bundle = useAvatarStore((s) => s.bundle);
   const shell = useAvatarStore((s) => s.shell);
+  const model = useAvatarStore((s) => s.model);
   const consume = useAvatarStore((s) => s.consume);
   const driver = useAvatarStore((s) => s.driver);
   const runtimeBinding = useAvatarStore((s) => s.runtime.binding);
@@ -447,6 +448,7 @@ export function App() {
         bootstrapError,
         bootstrapComplete,
         shellReady: shell.shellReady,
+        model,
         consume,
         runtimeBinding,
         driver,
@@ -457,6 +459,7 @@ export function App() {
       bootstrapError,
       bootstrapComplete,
       shell.shellReady,
+      model,
       consume,
       runtimeBinding,
       driver,

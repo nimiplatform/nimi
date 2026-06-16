@@ -5481,6 +5481,7 @@ pub struct AvatarDebugProbeRequestEnvelope {
     pub avatar_instance_id: Option<String>,
     pub runtime_replay_ref: Option<String>,
     pub replay_requested: Option<bool>,
+    pub scoped_binding: Option<Box<ScopedRuntimeBindingAttachment>>,
 }
 
 impl AvatarDebugProbeRequestEnvelope {
@@ -5497,13 +5498,14 @@ impl AvatarDebugProbeRequestEnvelope {
         if let Some(value) = &self.avatar_instance_id { pairs.push(format!("avatar_instance_id={}", value)); }
         if let Some(value) = &self.runtime_replay_ref { pairs.push(format!("runtime_replay_ref={}", value)); }
         if let Some(value) = &self.replay_requested { pairs.push(format!("replay_requested={}", value)); }
+        if self.scoped_binding.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode scoped_binding"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let mut out = Self::default();
-        for key in ["probe_kind", "requested_by"] {
+        for key in ["probe_kind", "requested_by", "scoped_binding"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -26901,6 +26903,68 @@ impl StreamScenarioRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct SubmitAvatarDebugProbeResultRequest {
+    pub context: Option<Box<AgentRequestContext>>,
+    pub agent_id: Option<String>,
+    pub conversation_anchor_id: Option<String>,
+    pub result: Option<Box<AvatarDebugProbeResultEnvelope>>,
+}
+
+impl SubmitAvatarDebugProbeResultRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if self.context.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode context"); }
+        if let Some(value) = &self.agent_id { pairs.push(format!("agent_id={}", value)); }
+        if let Some(value) = &self.conversation_anchor_id { pairs.push(format!("conversation_anchor_id={}", value)); }
+        if self.result.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode result"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["context", "result"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.agent_id = pairs.get("agent_id").cloned();
+        out.conversation_anchor_id = pairs.get("conversation_anchor_id").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SubmitAvatarDebugProbeResultResponse {
+    pub result: Option<Box<AvatarDebugProbeResultEnvelope>>,
+}
+
+impl SubmitAvatarDebugProbeResultResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if self.result.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode result"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["result"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+        if !pairs.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
+        }
+
+
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct SubmitDelegatedApprovalDecisionRequest {
     pub context: Option<Box<AgentRequestContext>>,
     pub agent_id: Option<String>,
@@ -34552,6 +34616,18 @@ impl From<Vec<u8>> for StreamScenarioRequest {
     }
 }
 
+impl From<Vec<u8>> for SubmitAvatarDebugProbeResultRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for SubmitAvatarDebugProbeResultResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for SubmitDelegatedApprovalDecisionRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -35754,6 +35830,16 @@ where
             timeout,
         })?;
         Ok(SetDelegatedProviderStateResponse::from_transport(&raw))
+    }
+
+    pub fn submit_avatar_debug_probe_result(&self, request: SubmitAvatarDebugProbeResultRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<SubmitAvatarDebugProbeResultResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/SubmitAvatarDebugProbeResult".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(SubmitAvatarDebugProbeResultResponse::from_transport(&raw))
     }
 
     pub fn submit_delegated_approval_decision(&self, request: SubmitDelegatedApprovalDecisionRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<SubmitDelegatedApprovalDecisionResponse, T::Error> {

@@ -456,6 +456,14 @@ RUNTIME_METHODS = [
     "response_type": "SetDelegatedProviderStateResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubmitAvatarDebugProbeResult",
+    "service": "RuntimeAgentService",
+    "method": "SubmitAvatarDebugProbeResult",
+    "kind": "unary",
+    "request_type": "SubmitAvatarDebugProbeResultRequest",
+    "response_type": "SubmitAvatarDebugProbeResultResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubmitDelegatedApprovalDecision",
     "service": "RuntimeAgentService",
     "method": "SubmitDelegatedApprovalDecision",

@@ -37,6 +37,7 @@ const (
 	RuntimeAgentService_GetRealmGroupMessageCandidateEvidence_FullMethodName = "/nimi.runtime.v1.RuntimeAgentService/GetRealmGroupMessageCandidateEvidence"
 	RuntimeAgentService_GetAvatarDebugSnapshot_FullMethodName                = "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugSnapshot"
 	RuntimeAgentService_RequestAvatarDebugProbe_FullMethodName               = "/nimi.runtime.v1.RuntimeAgentService/RequestAvatarDebugProbe"
+	RuntimeAgentService_SubmitAvatarDebugProbeResult_FullMethodName          = "/nimi.runtime.v1.RuntimeAgentService/SubmitAvatarDebugProbeResult"
 	RuntimeAgentService_ListAvatarDebugProbeResults_FullMethodName           = "/nimi.runtime.v1.RuntimeAgentService/ListAvatarDebugProbeResults"
 	RuntimeAgentService_GetAvatarDebugReplay_FullMethodName                  = "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugReplay"
 	RuntimeAgentService_GetAgentState_FullMethodName                         = "/nimi.runtime.v1.RuntimeAgentService/GetAgentState"
@@ -94,6 +95,7 @@ type RuntimeAgentServiceClient interface {
 	GetRealmGroupMessageCandidateEvidence(ctx context.Context, in *GetRealmGroupMessageCandidateEvidenceRequest, opts ...grpc.CallOption) (*GetRealmGroupMessageCandidateEvidenceResponse, error)
 	GetAvatarDebugSnapshot(ctx context.Context, in *GetAvatarDebugSnapshotRequest, opts ...grpc.CallOption) (*GetAvatarDebugSnapshotResponse, error)
 	RequestAvatarDebugProbe(ctx context.Context, in *RequestAvatarDebugProbeRequest, opts ...grpc.CallOption) (*RequestAvatarDebugProbeResponse, error)
+	SubmitAvatarDebugProbeResult(ctx context.Context, in *SubmitAvatarDebugProbeResultRequest, opts ...grpc.CallOption) (*SubmitAvatarDebugProbeResultResponse, error)
 	ListAvatarDebugProbeResults(ctx context.Context, in *ListAvatarDebugProbeResultsRequest, opts ...grpc.CallOption) (*ListAvatarDebugProbeResultsResponse, error)
 	GetAvatarDebugReplay(ctx context.Context, in *GetAvatarDebugReplayRequest, opts ...grpc.CallOption) (*GetAvatarDebugReplayResponse, error)
 	GetAgentState(ctx context.Context, in *GetAgentStateRequest, opts ...grpc.CallOption) (*GetAgentStateResponse, error)
@@ -312,6 +314,16 @@ func (c *runtimeAgentServiceClient) RequestAvatarDebugProbe(ctx context.Context,
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(RequestAvatarDebugProbeResponse)
 	err := c.cc.Invoke(ctx, RuntimeAgentService_RequestAvatarDebugProbe_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAgentServiceClient) SubmitAvatarDebugProbeResult(ctx context.Context, in *SubmitAvatarDebugProbeResultRequest, opts ...grpc.CallOption) (*SubmitAvatarDebugProbeResultResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SubmitAvatarDebugProbeResultResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_SubmitAvatarDebugProbeResult_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -679,6 +691,7 @@ type RuntimeAgentServiceServer interface {
 	GetRealmGroupMessageCandidateEvidence(context.Context, *GetRealmGroupMessageCandidateEvidenceRequest) (*GetRealmGroupMessageCandidateEvidenceResponse, error)
 	GetAvatarDebugSnapshot(context.Context, *GetAvatarDebugSnapshotRequest) (*GetAvatarDebugSnapshotResponse, error)
 	RequestAvatarDebugProbe(context.Context, *RequestAvatarDebugProbeRequest) (*RequestAvatarDebugProbeResponse, error)
+	SubmitAvatarDebugProbeResult(context.Context, *SubmitAvatarDebugProbeResultRequest) (*SubmitAvatarDebugProbeResultResponse, error)
 	ListAvatarDebugProbeResults(context.Context, *ListAvatarDebugProbeResultsRequest) (*ListAvatarDebugProbeResultsResponse, error)
 	GetAvatarDebugReplay(context.Context, *GetAvatarDebugReplayRequest) (*GetAvatarDebugReplayResponse, error)
 	GetAgentState(context.Context, *GetAgentStateRequest) (*GetAgentStateResponse, error)
@@ -775,6 +788,9 @@ func (UnimplementedRuntimeAgentServiceServer) GetAvatarDebugSnapshot(context.Con
 }
 func (UnimplementedRuntimeAgentServiceServer) RequestAvatarDebugProbe(context.Context, *RequestAvatarDebugProbeRequest) (*RequestAvatarDebugProbeResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method RequestAvatarDebugProbe not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) SubmitAvatarDebugProbeResult(context.Context, *SubmitAvatarDebugProbeResultRequest) (*SubmitAvatarDebugProbeResultResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SubmitAvatarDebugProbeResult not implemented")
 }
 func (UnimplementedRuntimeAgentServiceServer) ListAvatarDebugProbeResults(context.Context, *ListAvatarDebugProbeResultsRequest) (*ListAvatarDebugProbeResultsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListAvatarDebugProbeResults not implemented")
@@ -1215,6 +1231,24 @@ func _RuntimeAgentService_RequestAvatarDebugProbe_Handler(srv interface{}, ctx c
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RuntimeAgentServiceServer).RequestAvatarDebugProbe(ctx, req.(*RequestAvatarDebugProbeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAgentService_SubmitAvatarDebugProbeResult_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SubmitAvatarDebugProbeResultRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).SubmitAvatarDebugProbeResult(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_SubmitAvatarDebugProbeResult_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).SubmitAvatarDebugProbeResult(ctx, req.(*SubmitAvatarDebugProbeResultRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1884,6 +1918,10 @@ var RuntimeAgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RequestAvatarDebugProbe",
 			Handler:    _RuntimeAgentService_RequestAvatarDebugProbe_Handler,
+		},
+		{
+			MethodName: "SubmitAvatarDebugProbeResult",
+			Handler:    _RuntimeAgentService_SubmitAvatarDebugProbeResult_Handler,
 		},
 		{
 			MethodName: "ListAvatarDebugProbeResults",

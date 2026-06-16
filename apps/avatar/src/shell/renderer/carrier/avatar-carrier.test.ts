@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { AvatarDebugProbeKind } from '@nimiplatform/sdk/runtime/generated';
+import { AvatarDebugProbeKind, AvatarDebugProbeStatus } from '@nimiplatform/sdk/runtime/generated';
 import type { AvatarModelManifest } from '@nimiplatform/kit/features/avatar/headless';
 import type { AgentDataBundle, AgentDataDriver, AgentEvent, DriverStatus } from '../driver/types.js';
 import { useAvatarStore } from '../app-shell/app-store.js';
@@ -372,6 +372,56 @@ describe('avatar runtime carrier', () => {
       status: 'unsupported',
       reasonCode: 'generated_motion_not_supported_by_backend',
     });
+
+    carrier.shutdown();
+  });
+
+  it('submits Runtime avatar debug probe results from the active backend session', async () => {
+    const { startAvatarRuntimeCarrier } = await import('./avatar-carrier.js');
+    const driver = createDriver();
+    const submitDebugProbeResult = vi.fn(async () => {});
+    const carrier = await startAvatarRuntimeCarrier({
+      driver,
+      modelManifest: live2dManifest(),
+      submitDebugProbeResult,
+    });
+
+    driver.trigger({
+      event_id: 'event-debug-probe',
+      name: 'runtime.agent.avatar_debug.probe_requested',
+      timestamp: '2026-05-01T00:00:00.000Z',
+      detail: {
+        probeId: 'probe-runtime-1',
+        agentId: 'agent-1',
+        conversationAnchorId: 'anchor-1',
+        probeKind: AvatarDebugProbeKind.BACKEND_LOAD,
+        avatarInstanceId: 'avatar-1',
+        scopedBinding: {
+          bindingId: 'binding-1',
+          runtimeAppId: 'nimi.avatar',
+          agentId: 'agent-1',
+          conversationAnchorId: 'anchor-1',
+          avatarInstanceId: 'avatar-1',
+        },
+      },
+    });
+
+    expect(submitDebugProbeResult).toHaveBeenCalledWith(
+      expect.objectContaining({
+        probeId: 'probe-runtime-1',
+        agentId: 'agent-1',
+        conversationAnchorId: 'anchor-1',
+        probeKind: AvatarDebugProbeKind.BACKEND_LOAD,
+        status: AvatarDebugProbeStatus.PASSED,
+        evidenceRefs: expect.arrayContaining([
+          expect.stringContaining('avatar.debug.session/'),
+        ]),
+      }),
+      expect.objectContaining({
+        bindingId: 'binding-1',
+        runtimeAppId: 'nimi.avatar',
+      }),
+    );
 
     carrier.shutdown();
   });

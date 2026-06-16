@@ -48,6 +48,7 @@ export type {
   ProviderCatalogEntry,
   RuntimeTypedCallOptions,
   RuntimeHealthEvent,
+  AvatarDebugProbeResultEnvelope,
   ExecuteScenarioRequest,
   ExecuteScenarioResponse,
   ImageGenerateScenarioSpec,
@@ -58,6 +59,8 @@ export type {
   SubmitScenarioJobRequest,
   TextGenerateScenarioSpec,
   UsageStatRecord,
+  SubmitAvatarDebugProbeResultRequest,
+  SubmitAvatarDebugProbeResultResponse,
 } from '../core-generated/runtime-typed-client';
 export {
   AccountCallerMode,
@@ -70,6 +73,8 @@ export {
   AgentLifecycleStatus,
   AgentPresentationBackendKind,
   AvatarDebugProbeKind,
+  AvatarDebugProbeStatus,
+  AvatarDebugRequestedBy,
   CallerKind,
   CatalogModelSource,
   ConnectorAuthKind,

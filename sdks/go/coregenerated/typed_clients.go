@@ -2452,6 +2452,7 @@ type AvatarDebugProbeRequestEnvelope struct {
 	AvatarInstanceId string `json:"avatar_instance_id,omitempty"`
 	RuntimeReplayRef string `json:"runtime_replay_ref,omitempty"`
 	ReplayRequested bool `json:"replay_requested,omitempty"`
+	ScopedBinding *ScopedRuntimeBindingAttachment `json:"scoped_binding,omitempty"`
 }
 
 type AvatarDebugProbeResultEnvelope struct {
@@ -7062,6 +7063,17 @@ type StreamScenarioRequest struct {
 	Extensions []ScenarioExtension `json:"extensions,omitempty"`
 }
 
+type SubmitAvatarDebugProbeResultRequest struct {
+	Context *AgentRequestContext `json:"context,omitempty"`
+	AgentId string `json:"agent_id,omitempty"`
+	ConversationAnchorId string `json:"conversation_anchor_id,omitempty"`
+	Result *AvatarDebugProbeResultEnvelope `json:"result,omitempty"`
+}
+
+type SubmitAvatarDebugProbeResultResponse struct {
+	Result *AvatarDebugProbeResultEnvelope `json:"result,omitempty"`
+}
+
 type SubmitDelegatedApprovalDecisionRequest struct {
 	Context *AgentRequestContext `json:"context,omitempty"`
 	AgentId string `json:"agent_id,omitempty"`
@@ -8346,6 +8358,14 @@ func (c RuntimeTypedClient) SetDelegatedProviderState(ctx context.Context, reque
 		return SetDelegatedProviderStateResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[SetDelegatedProviderStateResponse](raw, "SetDelegatedProviderStateResponse")
+}
+
+func (c RuntimeTypedClient) SubmitAvatarDebugProbeResult(ctx context.Context, request SubmitAvatarDebugProbeResultRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SubmitAvatarDebugProbeResultResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/SubmitAvatarDebugProbeResult", request, metadata, timeoutMS)
+	if err != nil {
+		return SubmitAvatarDebugProbeResultResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[SubmitAvatarDebugProbeResultResponse](raw, "SubmitAvatarDebugProbeResultResponse")
 }
 
 func (c RuntimeTypedClient) SubmitDelegatedApprovalDecision(ctx context.Context, request SubmitDelegatedApprovalDecisionRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SubmitDelegatedApprovalDecisionResponse, error) {

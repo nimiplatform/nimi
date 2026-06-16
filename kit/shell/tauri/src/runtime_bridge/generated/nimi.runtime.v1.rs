@@ -18893,6 +18893,8 @@ pub struct AvatarDebugProbeRequestEnvelope {
     pub runtime_replay_ref: ::prost::alloc::string::String,
     #[prost(bool, tag = "11")]
     pub replay_requested: bool,
+    #[prost(message, optional, tag = "12")]
+    pub scoped_binding: ::core::option::Option<ScopedRuntimeBindingAttachment>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct AvatarDebugProbeResultEnvelope {
@@ -19676,6 +19678,22 @@ pub struct RequestAvatarDebugProbeResponse {
     pub result: ::core::option::Option<AvatarDebugProbeResultEnvelope>,
     #[prost(message, optional, tag = "3")]
     pub replay_ref: ::core::option::Option<AvatarDebugReplayRef>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SubmitAvatarDebugProbeResultRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<AgentRequestContext>,
+    #[prost(string, tag = "2")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "4")]
+    pub result: ::core::option::Option<AvatarDebugProbeResultEnvelope>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SubmitAvatarDebugProbeResultResponse {
+    #[prost(message, optional, tag = "1")]
+    pub result: ::core::option::Option<AvatarDebugProbeResultEnvelope>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ListAvatarDebugProbeResultsRequest {
@@ -21195,6 +21213,35 @@ pub mod runtime_agent_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAgentService",
                         "RequestAvatarDebugProbe",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn submit_avatar_debug_probe_result(
+            &mut self,
+            request: impl tonic::IntoRequest<super::SubmitAvatarDebugProbeResultRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::SubmitAvatarDebugProbeResultResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/SubmitAvatarDebugProbeResult",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "SubmitAvatarDebugProbeResult",
                     ),
                 );
             self.inner.unary(req, path, codec).await

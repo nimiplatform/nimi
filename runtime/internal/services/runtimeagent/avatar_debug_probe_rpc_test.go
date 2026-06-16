@@ -3,11 +3,13 @@ package runtimeagent
 import (
 	"context"
 	"testing"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func TestAvatarDebugProbeRecordsRuntimeAuditReplayAndProjection(t *testing.T) {
@@ -201,6 +203,111 @@ func TestAvatarDebugProbeRejectsBodyIdentityWithoutScopedBinding(t *testing.T) {
 	}
 	if len(svc.events) != 0 {
 		t.Fatalf("unauthorized avatar debug request must not project replay events: %+v", svc.events)
+	}
+}
+
+func TestSubmitAvatarDebugProbeResultSupersedesRuntimeBlockedResult(t *testing.T) {
+	svc := testAvatarDebugService()
+	agentID := avatarDebugTestAgentID()
+	anchorID := avatarDebugTestAnchorID()
+	if _, err := svc.RequestAvatarDebugProbe(context.Background(), &runtimev1.RequestAvatarDebugProbeRequest{
+		Context:              testAvatarDebugContext(anchorID),
+		AgentId:              agentID,
+		ConversationAnchorId: anchorID,
+		ProbeKind:            runtimev1.AvatarDebugProbeKind_AVATAR_DEBUG_PROBE_KIND_BACKEND_LOAD,
+		RequestedBy:          runtimev1.AvatarDebugRequestedBy_AVATAR_DEBUG_REQUESTED_BY_DESKTOP_DEBUG_WORKBENCH,
+		ProbeId:              "probe-submit-1",
+		ReplayRequested:      true,
+	}); err != nil {
+		t.Fatalf("seed avatar debug probe: %v", err)
+	}
+	submittedAt := time.Now().UTC().Add(time.Second)
+	resp, err := svc.SubmitAvatarDebugProbeResult(context.Background(), &runtimev1.SubmitAvatarDebugProbeResultRequest{
+		Context:              testAvatarDebugContext(anchorID),
+		AgentId:              agentID,
+		ConversationAnchorId: anchorID,
+		Result: &runtimev1.AvatarDebugProbeResultEnvelope{
+			ProbeId:              "probe-submit-1",
+			AgentId:              agentID,
+			ConversationAnchorId: anchorID,
+			ProbeKind:            runtimev1.AvatarDebugProbeKind_AVATAR_DEBUG_PROBE_KIND_BACKEND_LOAD,
+			Status:               runtimev1.AvatarDebugProbeStatus_AVATAR_DEBUG_PROBE_STATUS_PASSED,
+			ObservedAt:           timestamppb.New(submittedAt),
+			EvidenceRefs:         []string{"avatar.debug.session/probe-submit-1", "avatar.debug.session/probe-submit-1"},
+			ResultId:             "avatar-debug-result-submit-1",
+		},
+	})
+	if err != nil {
+		t.Fatalf("submit avatar debug probe result: %v", err)
+	}
+	if got := resp.GetResult().GetStatus(); got != runtimev1.AvatarDebugProbeStatus_AVATAR_DEBUG_PROBE_STATUS_PASSED {
+		t.Fatalf("unexpected submitted status: %s", got)
+	}
+	if refs := resp.GetResult().GetEvidenceRefs(); len(refs) != 1 || refs[0] != "avatar.debug.session/probe-submit-1" {
+		t.Fatalf("submitted evidence refs were not normalized: %+v", refs)
+	}
+
+	listed, err := svc.ListAvatarDebugProbeResults(context.Background(), &runtimev1.ListAvatarDebugProbeResultsRequest{
+		Context:              testAvatarDebugContext(anchorID),
+		AgentId:              agentID,
+		ConversationAnchorId: anchorID,
+	})
+	if err != nil {
+		t.Fatalf("list avatar debug probe results: %v", err)
+	}
+	if len(listed.GetProbeResults()) != 1 {
+		t.Fatalf("expected latest result per probe, got %+v", listed.GetProbeResults())
+	}
+	if got := listed.GetProbeResults()[0].GetStatus(); got != runtimev1.AvatarDebugProbeStatus_AVATAR_DEBUG_PROBE_STATUS_PASSED {
+		t.Fatalf("snapshot/list must prefer Avatar-submitted result, got %s", got)
+	}
+
+	replay, err := svc.GetAvatarDebugReplay(context.Background(), &runtimev1.GetAvatarDebugReplayRequest{
+		Context:              testAvatarDebugContext(anchorID),
+		AgentId:              agentID,
+		ConversationAnchorId: anchorID,
+		ProbeId:              "probe-submit-1",
+	})
+	if err != nil {
+		t.Fatalf("get avatar debug replay: %v", err)
+	}
+	if got := replay.GetResult().GetStatus(); got != runtimev1.AvatarDebugProbeStatus_AVATAR_DEBUG_PROBE_STATUS_PASSED {
+		t.Fatalf("replay must use latest submitted result, got %s", got)
+	}
+	if len(svc.events) != 4 {
+		t.Fatalf("expected original request/result/replay plus submitted result event, got %d", len(svc.events))
+	}
+}
+
+func TestSubmitAvatarDebugProbeResultRejectsInvalidEnvelope(t *testing.T) {
+	svc := testAvatarDebugService()
+	agentID := avatarDebugTestAgentID()
+	anchorID := avatarDebugTestAnchorID()
+	_, err := svc.SubmitAvatarDebugProbeResult(context.Background(), &runtimev1.SubmitAvatarDebugProbeResultRequest{
+		Context:              testAvatarDebugContext(anchorID),
+		AgentId:              agentID,
+		ConversationAnchorId: anchorID,
+		Result: &runtimev1.AvatarDebugProbeResultEnvelope{
+			ProbeId:              "probe-invalid",
+			AgentId:              agentID,
+			ConversationAnchorId: anchorID,
+			ProbeKind:            runtimev1.AvatarDebugProbeKind_AVATAR_DEBUG_PROBE_KIND_BACKEND_LOAD,
+			Status:               runtimev1.AvatarDebugProbeStatus_AVATAR_DEBUG_PROBE_STATUS_PASSED,
+			ResultId:             "avatar-debug-result-invalid",
+		},
+	})
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("expected missing evidence refs to fail closed, got %v", err)
+	}
+	auditEvents, listErr := svc.auditStore.ListEvents(&runtimev1.ListAuditEventsRequest{
+		Domain:   avatarDebugAuditDomain,
+		PageSize: 10,
+	})
+	if listErr != nil {
+		t.Fatalf("list avatar debug audit events: %v", listErr)
+	}
+	if len(auditEvents.GetEvents()) != 0 || len(svc.events) != 0 {
+		t.Fatalf("invalid submitted result must not write audit or projection events")
 	}
 }
 

@@ -40,6 +40,10 @@
         "stage": "阶段",
         "source": "来源",
         "retryable": "可重试",
+        "model_load_state": "模型加载状态",
+        "model_id": "模型 ID",
+        "model_path": "模型路径",
+        "model_error": "模型错误",
         "yes": "是",
         "no": "否",
         "audio_artifact_synthetic": "当前音频载体为合成的纯帧 artifact，不会发起播放。"

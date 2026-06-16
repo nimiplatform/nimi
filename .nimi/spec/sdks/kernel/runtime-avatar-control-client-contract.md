@@ -24,17 +24,19 @@ descriptors or backend capability profiles.
 SDK probe methods must align to
 `.nimi/spec/runtime/kernel/avatar-debug-projection-contract.md`.
 
-SDK must expose typed request, result, and replay ref shapes. It must not expose
-raw APML parser diagnostics, backend command strings, provider payloads,
-MCP/A2A protocol objects, or raw Avatar backend payloads as stable public types.
+SDK must expose typed request, result, submit-result, and replay ref shapes. It
+must not expose raw APML parser diagnostics, backend command strings, provider
+payloads, MCP/A2A protocol objects, or raw Avatar backend payloads as stable
+public types.
 
 ## S-RUNTIME-115 Avatar Evidence Projection
 
 SDK may carry Avatar evidence refs and schema-bound evidence summaries from
 `.nimi/spec/avatar/kernel/avatar-debug-session-contract.md`.
 
-SDK must not reinterpret Avatar backend evidence as Runtime success; Runtime
-probe result status remains the public diagnostic status.
+SDK must not reinterpret Avatar backend evidence as Runtime success. SDK may
+carry `SubmitAvatarDebugProbeResult` envelopes from Avatar to Runtime, but
+Runtime probe result status remains the accepted public diagnostic status.
 
 ## S-RUNTIME-116 Method Registry
 

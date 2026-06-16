@@ -60,8 +60,13 @@ for Avatar backend files in this debug-session boundary.
 ## Result Semantics
 
 Avatar backend evidence can support a Runtime probe result, but Avatar does not
-decide public Runtime probe status. Runtime owns the public probe result
-envelope and replay semantics.
+own public Runtime probe semantics. Avatar may submit an evidence-backed probe
+result only through Runtime's typed submit path. Runtime validates the agent,
+anchor, probe kind, result status, permission scope, scoped binding attachment,
+and evidence refs before accepting the public probe result envelope.
+
+Runtime owns replay semantics and final public diagnostic projection. Avatar
+owns the local backend debug session evidence that it submits by ref.
 
 Unsupported backend capability is fail-closed evidence. It must not be reported
 as success through idle fallback, `.vrma` playback, static image fallback, or

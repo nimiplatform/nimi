@@ -238,6 +238,11 @@ test('avatar debug workbench is a SDK Runtime module consumer, not protected Run
   assert.match(source, /avatarDebug\.snapshot/);
   assert.match(source, /avatarDebug\.requestProbe/);
   assert.match(source, /avatarDebug\.getReplay/);
+  assert.match(source, /AVATAR_DEBUG_RESULT_POLL_ATTEMPTS/);
+  assert.match(source, /AVATAR_DEBUG_RESULT_POLL_INTERVAL_MS/);
+  assert.match(source, /isSubmittedAvatarDebugResult/);
+  assert.match(source, /avatar_debug_session_not_available/);
+  assert.match(source, /result\.probeId === probeId/);
   assert.match(source, /companionParticipation\.getProjection/);
   assert.match(model, /NimiRuntimeAgentCompanionParticipationProjection/);
   assert.doesNotMatch(model, /RuntimeCompanionParticipationProjection/);

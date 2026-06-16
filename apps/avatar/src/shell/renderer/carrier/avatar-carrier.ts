@@ -1,4 +1,5 @@
 import type { AgentDataDriver } from '../driver/types.js';
+import { AvatarDebugProbeKind, AvatarDebugProbeStatus, type AvatarDebugProbeResultEnvelope } from '@nimiplatform/sdk/runtime/generated';
 import { ContinuousScheduler, wireEventDispatch } from '../nas/event-dispatch.js';
 import { HandlerExecutor } from '../nas/handler-executor.js';
 import {
@@ -25,6 +26,180 @@ import {
   type AvatarDebugSession,
   type RuntimeAvatarDebugProbeEnvelope,
 } from '../avatar-debug/avatar-debug-session.js';
+import { ulid } from '../infra/ids.js';
+
+type RuntimeAvatarDebugEvent = {
+  name: string;
+  timestamp: string;
+  detail: Record<string, unknown>;
+};
+
+type RuntimeAvatarDebugTimestamp = NonNullable<AvatarDebugProbeResultEnvelope['observedAt']>;
+
+function timestampFromIso(value: string): RuntimeAvatarDebugTimestamp {
+  const millis = Date.parse(value);
+  const safeMillis = Number.isFinite(millis) ? millis : Date.now();
+  return {
+    seconds: String(Math.floor(safeMillis / 1000)),
+    nanos: (safeMillis % 1000) * 1_000_000,
+  };
+}
+
+function detailText(detail: Record<string, unknown>, key: string): string {
+  const value = detail[key];
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function detailProbeKind(detail: Record<string, unknown>): AvatarDebugProbeKind {
+  const value = detail.probeKind;
+  if (typeof value === 'number' && Number.isInteger(value)) {
+    return value as AvatarDebugProbeKind;
+  }
+  throw new Error('avatar debug probe request missing probeKind');
+}
+
+function backendCapabilityProfileRef(metadata: Record<string, unknown>): string | null {
+  for (const key of ['backend_capability_profile_ref', 'capability_profile_ref', 'profile_id']) {
+    const value = metadata[key];
+    if (typeof value === 'string' && value.trim()) {
+      return value.trim();
+    }
+  }
+  return null;
+}
+
+function runtimeStatusForAvatarEvidence(status: AvatarDebugSession['evidence']['status']): AvatarDebugProbeStatus {
+  switch (status) {
+    case 'passed':
+      return AvatarDebugProbeStatus.PASSED;
+    case 'failed':
+      return AvatarDebugProbeStatus.FAILED;
+    case 'unsupported':
+      return AvatarDebugProbeStatus.UNSUPPORTED;
+    case 'invalid':
+      return AvatarDebugProbeStatus.INVALID;
+  }
+}
+
+function evidenceRefsForDebugSession(session: AvatarDebugSession): string[] {
+  return [
+    `avatar.debug.session/${session.debugSessionId}`,
+    `avatar.debug.session-evidence/${session.evidence.evidenceId}`,
+    session.avatarPackageRef ? `avatar.debug.package/${session.avatarPackageRef}` : '',
+    session.backendCapabilityProfileRef ? `avatar.debug.capability-profile/${session.backendCapabilityProfileRef}` : '',
+    ...session.evidence.refs.routeIds.map((routeId) => `avatar.debug.route/${routeId}`),
+    ...session.evidence.refs.unsupportedRouteIds.map((routeId) => `avatar.debug.unsupported-route/${routeId}`),
+  ].filter((value) => value.trim().length > 0);
+}
+
+async function submitRuntimeAvatarDebugResult(input: {
+  event: RuntimeAvatarDebugEvent;
+  backendKind: AvatarDebugSession['backendKind'];
+  backend: BackendBranch;
+  avatarPackageRef: string | null;
+  backendCapabilityProfileRef: string | null;
+  submitDebugProbeResult?: (result: AvatarDebugProbeResultEnvelope, scopedBinding?: unknown) => Promise<void>;
+}): Promise<void> {
+  const { event, submitDebugProbeResult } = input;
+  if (!submitDebugProbeResult) {
+    return;
+  }
+  const detail = event.detail;
+  const probeId = detailText(detail, 'probeId');
+  const agentId = detailText(detail, 'agentId') || detailText(detail, 'agent_id');
+  const conversationAnchorId = detailText(detail, 'conversationAnchorId') || detailText(detail, 'conversation_anchor_id');
+  const observedAt = new Date().toISOString();
+  let probeKind: AvatarDebugProbeKind;
+  try {
+    probeKind = detailProbeKind(detail);
+  } catch (error) {
+    recordAvatarEvidenceEventually({
+      kind: 'avatar.debug.probe-submit-failed',
+      detail: {
+        reason: 'runtime_avatar_debug_probe_kind_invalid',
+        probe_id: probeId || null,
+        error: error instanceof Error ? error.message : String(error || 'invalid probe kind'),
+      },
+    });
+    return;
+  }
+  if (!probeId || !agentId || !conversationAnchorId) {
+    recordAvatarEvidenceEventually({
+      kind: 'avatar.debug.probe-submit-failed',
+      detail: {
+        reason: 'runtime_avatar_debug_probe_request_invalid',
+        probe_id: probeId || null,
+        agent_id: agentId || null,
+        conversation_anchor_id: conversationAnchorId || null,
+      },
+    });
+    return;
+  }
+  try {
+    const session = createAvatarDebugSession({
+      debugSessionId: probeId,
+      runtimeProbe: {
+        probeId,
+        agentId,
+        probeKind,
+      },
+      avatarInstanceId: detailText(detail, 'avatarInstanceId') || detailText(detail, 'avatar_instance_id') || null,
+      avatarPackageRef: input.avatarPackageRef,
+      backendCapabilityProfileRef: input.backendCapabilityProfileRef,
+      backendKind: input.backendKind,
+      backend: input.backend,
+      resolverEvidence: {
+        packageResolved: Boolean(input.avatarPackageRef),
+        capabilityProfileResolved: Boolean(input.backendCapabilityProfileRef),
+      },
+      observedAt,
+    });
+    recordAvatarDebugSessionEvidence(session);
+    await submitDebugProbeResult({
+      probeId,
+      agentId,
+      conversationAnchorId,
+      probeKind: session.probeKind,
+      status: runtimeStatusForAvatarEvidence(session.evidence.status),
+      observedAt: timestampFromIso(session.observedAt),
+      evidenceRefs: evidenceRefsForDebugSession(session),
+      reasonCode: session.evidence.reasonCode || '',
+      resultId: `avatar-debug-result-${ulid()}`,
+    }, detail.scopedBinding);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error || 'unknown avatar debug session failure');
+    recordAvatarEvidenceEventually({
+      kind: 'avatar.debug.probe-submit-failed',
+      detail: {
+        probe_id: probeId,
+        agent_id: agentId,
+        conversation_anchor_id: conversationAnchorId,
+        reason: 'avatar_debug_session_evaluation_failed',
+        error: message,
+      },
+    });
+    await submitDebugProbeResult({
+      probeId,
+      agentId,
+      conversationAnchorId,
+      probeKind,
+      status: AvatarDebugProbeStatus.FAILED,
+      observedAt: timestampFromIso(observedAt),
+      evidenceRefs: [`avatar.debug.session-error/${probeId}`],
+      reasonCode: 'avatar_debug_session_evaluation_failed',
+      resultId: `avatar-debug-result-${ulid()}`,
+    }, detail.scopedBinding).catch((submitError: unknown) => {
+      recordAvatarEvidenceEventually({
+        kind: 'avatar.debug.probe-submit-failed',
+        detail: {
+          probe_id: probeId,
+          reason: 'runtime_avatar_debug_result_submit_failed',
+          error: submitError instanceof Error ? submitError.message : String(submitError || 'unknown submit failure'),
+        },
+      });
+    });
+  }
+}
 
 export type AvatarRuntimeCarrier = {
   model: AvatarModelManifest;
@@ -40,6 +215,7 @@ export type AvatarRuntimeCarrier = {
     observedAt?: string | null;
     recordEvidence?: boolean;
   }): AvatarDebugSession;
+  submitDebugProbeResult?(result: AvatarDebugProbeResultEnvelope, scopedBinding?: unknown): Promise<void>;
   attachRuntimeDriver(driver: AgentDataDriver): Promise<void>;
   detachRuntimeDriver(): void;
   shutdown(): void;
@@ -121,9 +297,11 @@ function createBackendCueProjection(branch: BackendBranch): EmbodimentProjection
 export async function startAvatarRuntimeCarrier(input: {
   driver: AgentDataDriver;
   modelManifest: AvatarModelManifest;
+  submitDebugProbeResult?: (result: AvatarDebugProbeResultEnvelope, scopedBinding?: unknown) => Promise<void>;
 }): Promise<AvatarRuntimeCarrier> {
   const carrier = await startAvatarVisualCarrier({
     modelManifest: input.modelManifest,
+    submitDebugProbeResult: input.submitDebugProbeResult,
   });
   await carrier.attachRuntimeDriver(input.driver);
   return carrier;
@@ -131,6 +309,7 @@ export async function startAvatarRuntimeCarrier(input: {
 
 export async function startAvatarVisualCarrier(input: {
   modelManifest: AvatarModelManifest;
+  submitDebugProbeResult?: (result: AvatarDebugProbeResultEnvelope, scopedBinding?: unknown) => Promise<void>;
 }): Promise<AvatarRuntimeCarrier> {
   const modelPath = input.modelManifest.runtimeDir.trim();
   if (!modelPath) {
@@ -171,6 +350,7 @@ export async function startAvatarVisualCarrier(input: {
 
   let unwireDispatch: (() => void) | null = null;
   let unwireVoiceLipsync: (() => void) | null = null;
+  let unwireDebugProbe: (() => void) | null = null;
   let continuous: ContinuousScheduler | null = null;
   let projectionSmoothing: ProjectionSmoothingHandle | null = null;
   let interactionPhysics: ReturnType<typeof createInteractionPhysicsController> | null = null;
@@ -180,6 +360,8 @@ export async function startAvatarVisualCarrier(input: {
     continuous = null;
     unwireVoiceLipsync?.();
     unwireVoiceLipsync = null;
+    unwireDebugProbe?.();
+    unwireDebugProbe = null;
     unwireDispatch?.();
     unwireDispatch = null;
     void stopNasHotReload?.().catch((err: unknown) => {
@@ -218,6 +400,7 @@ export async function startAvatarVisualCarrier(input: {
     model,
     registry,
     backend: backendHandle.branch,
+    submitDebugProbeResult: input.submitDebugProbeResult,
     createDebugSession(input) {
       const session = createAvatarDebugSession({
         debugSessionId: input.debugSessionId,
@@ -240,6 +423,19 @@ export async function startAvatarVisualCarrier(input: {
         throw new Error('avatar visual carrier runtime driver is already attached');
       }
       attachedDriver = driver;
+      unwireDebugProbe = driver.onEvent((event) => {
+        if (event.name !== 'runtime.agent.avatar_debug.probe_requested') {
+          return;
+        }
+        void submitRuntimeAvatarDebugResult({
+          event,
+          backendKind: backendHandle.branch.kind,
+          backend: backendHandle.branch,
+          avatarPackageRef: model.modelId,
+          backendCapabilityProfileRef: backendCapabilityProfileRef(backendHandle.branch.metadata()),
+          submitDebugProbeResult: input.submitDebugProbeResult,
+        });
+      });
       if (model.nimiDir) {
         stopNasHotReload = await startNasHandlerHotReload({
           modelId: model.modelId,

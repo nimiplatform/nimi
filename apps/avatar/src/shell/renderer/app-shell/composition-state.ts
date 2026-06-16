@@ -31,15 +31,24 @@ export type CompositionDerivation = {
   stage: string | null;
   source: string | null;
   retryable: boolean | null;
+  modelDiagnostics: CompositionModelDiagnostics | null;
   // True iff embodiment-stage + companion-surface should mount.
   // False iff only degraded-surface should mount.
   ready: boolean;
+};
+
+export type CompositionModelDiagnostics = {
+  loadState: AvatarAppState['model']['loadState'];
+  modelId: string | null;
+  modelPath: string | null;
+  error: string | null;
 };
 
 export type CompositionInput = {
   bootstrapError: string | null;
   bootstrapComplete: boolean;
   shellReady: boolean;
+  model: AvatarAppState['model'];
   consume: AvatarAppState['consume'];
   runtimeBinding: AvatarAppState['runtime']['binding'];
   driver: AvatarAppState['driver'];
@@ -103,7 +112,22 @@ function classifyBootstrapError(error: string): {
   return { state: 'error_bootstrap_fatal', variant: 'error' };
 }
 
+function deriveModelDiagnostics(model: AvatarAppState['model']): CompositionModelDiagnostics | null {
+  const modelId = readNormalizedString(model.modelId);
+  const modelPath = readNormalizedString(model.modelPath);
+  const error = readNormalizedString(model.error);
+  if (model.loadState === 'idle' && !modelId && !modelPath && !error) return null;
+  return {
+    loadState: model.loadState,
+    modelId,
+    modelPath,
+    error,
+  };
+}
+
 export function deriveCompositionState(input: CompositionInput): CompositionDerivation {
+  const modelDiagnostics = deriveModelDiagnostics(input.model);
+
   if (input.relaunchPending) {
     return {
       state: 'relaunch_pending',
@@ -115,6 +139,7 @@ export function deriveCompositionState(input: CompositionInput): CompositionDeri
       stage: null,
       source: null,
       retryable: null,
+      modelDiagnostics,
       ready: false,
     };
   }
@@ -131,6 +156,7 @@ export function deriveCompositionState(input: CompositionInput): CompositionDeri
       stage: null,
       source: null,
       retryable: null,
+      modelDiagnostics,
       ready: false,
     };
   }
@@ -146,6 +172,7 @@ export function deriveCompositionState(input: CompositionInput): CompositionDeri
       stage: null,
       source: null,
       retryable: null,
+      modelDiagnostics,
       ready: false,
     };
   }
@@ -162,6 +189,7 @@ export function deriveCompositionState(input: CompositionInput): CompositionDeri
       stage: input.runtimeBinding.stage,
       source: input.runtimeBinding.source,
       retryable: input.runtimeBinding.retryable,
+      modelDiagnostics,
       ready: false,
     };
   }
@@ -181,6 +209,23 @@ export function deriveCompositionState(input: CompositionInput): CompositionDeri
       stage: null,
       source: null,
       retryable: null,
+      modelDiagnostics,
+      ready: false,
+    };
+  }
+
+  if (input.model.loadState === 'error') {
+    return {
+      state: 'degraded_runtime_unavailable',
+      variant: 'degraded',
+      reason: modelDiagnostics?.error ?? 'avatar model load failed',
+      reasonCode: 'AVATAR_MODEL_LOAD_FAILED',
+      accountReasonCode: null,
+      actionHint: 'inspect_or_reimport_avatar_asset',
+      stage: 'model_load',
+      source: 'avatar_visual_carrier',
+      retryable: false,
+      modelDiagnostics,
       ready: false,
     };
   }
@@ -196,6 +241,7 @@ export function deriveCompositionState(input: CompositionInput): CompositionDeri
       stage: null,
       source: null,
       retryable: null,
+      modelDiagnostics,
       ready: true,
     };
   }
@@ -210,6 +256,7 @@ export function deriveCompositionState(input: CompositionInput): CompositionDeri
     stage: null,
     source: null,
     retryable: null,
+    modelDiagnostics,
     ready: true,
   };
 }

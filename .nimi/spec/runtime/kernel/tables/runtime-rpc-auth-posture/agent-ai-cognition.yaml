@@ -221,6 +221,13 @@ methods:
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/SubmitAvatarDebugProbeResult
+    posture: protected_or_scoped_binding_write
+    rationale: Avatar debug probe result submit mutates Runtime-owned diagnostic projection and requires protected avatar debug write scope or scoped Avatar binding
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+      - K-AGCORE-056
   - method_id: /nimi.runtime.v1.RuntimeAgentService/ListAvatarDebugProbeResults
     posture: anonymous_read
     rationale: id-based list; no JWT validation

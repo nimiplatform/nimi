@@ -7,7 +7,12 @@ import {
   type NimiRuntimeAgentCompanionParticipationProjection,
   type NimiRuntimeAgentScopeRunner,
 } from '@nimiplatform/sdk/runtime';
-import { AccountReasonCode, AccountSessionState, ReasonCode } from '@nimiplatform/sdk/runtime/generated';
+import {
+  AccountReasonCode,
+  AccountSessionState,
+  ReasonCode,
+  type AvatarDebugProbeResultEnvelope,
+} from '@nimiplatform/sdk/runtime/generated';
 import {
   buildNimiRuntimeGenerationSubmitRequest,
   createNimiSpeechTranscriptionScenario,
@@ -56,6 +61,12 @@ import {
 
 const AVATAR_FIRST_PARTY_APP_ID = 'nimi.avatar';
 const AVATAR_FIRST_PARTY_DRIVER_START_TIMEOUT_MS = 12_000;
+
+function optionalRecord(value: unknown): Record<string, unknown> | undefined {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : undefined;
+}
 
 export type BootstrapHandle = {
   driver?: AgentDataDriver | null;
@@ -520,6 +531,30 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
         carrier = await runFirstPartyStage('runtime_carrier_start', () => startAvatarRuntimeCarrier({
           driver: activeDriver,
           modelManifest,
+          submitDebugProbeResult: async (
+            result: AvatarDebugProbeResultEnvelope,
+            scopedBinding: unknown,
+          ) => {
+            const scopedBindingRecord = optionalRecord(scopedBinding);
+            await withAvatarRuntimeAgentScopes(
+              ['runtime.agent.avatar_debug.write'],
+              async (options) => {
+                await runtime.agents.submitAvatarDebugProbeResult({
+                  context: {
+                    appId: runtimeAppId,
+                    subjectUserId,
+                    ownerUserId,
+                    realmAgentId,
+                    localAgentRef,
+                    ...(scopedBindingRecord ? { scopedBinding: scopedBindingRecord as never } : {}),
+                  },
+                  agentId,
+                  conversationAnchorId,
+                  result,
+                }, options);
+              },
+            );
+          },
         }));
         recordAvatarEvidenceEventually({
           kind: 'avatar.runtime.bound',

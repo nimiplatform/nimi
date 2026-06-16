@@ -139,6 +139,7 @@ avatar_debug_envelope:
     - turn_id
     - stream_id
     - avatar_instance_id
+    - scoped_binding
 
 governance:
   source_rule: K-AGCORE-037
@@ -253,6 +254,9 @@ avatar_debug_events:
     notes:
       - Probe requests are Runtime-owned debug projection events, not public
         APML syntax and not Avatar-owned semantic event names.
+      - Probe requests may include a scoped_binding attachment so the Avatar
+        carrier can submit evidence-backed results through Runtime without
+        reconstructing binding authority locally.
       - Payload must not include package descriptors, package paths, backend
         commands, raw provider output, or auth material.
   - event: runtime.agent.avatar_debug.probe_result
@@ -265,8 +269,9 @@ avatar_debug_events:
       evidence_refs: string_array
     notes:
       - Passed status requires concrete Runtime or Avatar evidence refs.
-      - Avatar backend evidence may support the result, but Runtime owns the
-        public result envelope and replay semantics.
+      - Avatar backend evidence may be submitted through Runtime's typed submit
+        path, but Runtime owns the accepted public result envelope and replay
+        semantics.
   - event: runtime.agent.avatar_debug.replay_linked
     source_rule: K-AGCORE-058
     detail:

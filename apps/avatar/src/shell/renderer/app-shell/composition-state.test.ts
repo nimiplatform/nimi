@@ -7,6 +7,12 @@ function input(overrides: Partial<CompositionInput> = {}): CompositionInput {
     bootstrapError: null,
     bootstrapComplete: true,
     shellReady: true,
+    model: {
+      modelPath: null,
+      modelId: null,
+      loadState: 'idle',
+      error: null,
+    },
     consume: {
       mode: 'sdk',
       authority: 'runtime',
@@ -131,6 +137,70 @@ describe('deriveCompositionState', () => {
       variant: 'degraded',
       reason: 'driver_error: avatar runtime event stream closed unexpectedly',
       ready: false,
+    });
+  });
+
+  it('surfaces model load failures after runtime and driver are ready', () => {
+    const state = deriveCompositionState(input({
+      model: {
+        modelPath: 'C:/avatars/broken.vrm',
+        modelId: 'avatar-broken',
+        loadState: 'error',
+        error: 'VRM scene graph is missing a humanoid root',
+      },
+    }));
+
+    expect(state).toMatchObject({
+      state: 'degraded_runtime_unavailable',
+      variant: 'degraded',
+      reason: 'VRM scene graph is missing a humanoid root',
+      reasonCode: 'AVATAR_MODEL_LOAD_FAILED',
+      actionHint: 'inspect_or_reimport_avatar_asset',
+      stage: 'model_load',
+      source: 'avatar_visual_carrier',
+      retryable: false,
+      ready: false,
+      modelDiagnostics: {
+        loadState: 'error',
+        modelId: 'avatar-broken',
+        modelPath: 'C:/avatars/broken.vrm',
+        error: 'VRM scene graph is missing a humanoid root',
+      },
+    });
+  });
+
+  it('keeps runtime binding failures as the primary degraded reason while carrying model diagnostics', () => {
+    const state = deriveCompositionState(input({
+      model: {
+        modelPath: 'C:/avatars/broken.vrm',
+        modelId: 'avatar-broken',
+        loadState: 'error',
+        error: 'VRM scene graph is missing a humanoid root',
+      },
+      runtimeBinding: {
+        status: 'unavailable',
+        reason: 'runtime binding unavailable',
+        reasonCode: 'RUNTIME_BINDING_UNAVAILABLE',
+        accountReasonCode: null,
+        actionHint: 'retry',
+        stage: 'binding',
+        source: 'runtime',
+        retryable: true,
+      },
+    }));
+
+    expect(state).toMatchObject({
+      state: 'degraded_runtime_unavailable',
+      variant: 'degraded',
+      reason: 'runtime binding unavailable',
+      reasonCode: 'RUNTIME_BINDING_UNAVAILABLE',
+      ready: false,
+      modelDiagnostics: {
+        loadState: 'error',
+        modelId: 'avatar-broken',
+        modelPath: 'C:/avatars/broken.vrm',
+        error: 'VRM scene graph is missing a humanoid root',
+      },
     });
   });
 });

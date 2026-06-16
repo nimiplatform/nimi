@@ -951,6 +951,7 @@ class AvatarDebugProbeRequestEnvelope:
     avatar_instance_id: str | None = None
     runtime_replay_ref: str | None = None
     replay_requested: bool | None = None
+    scoped_binding: ScopedRuntimeBindingAttachment | None = None
 
 @dataclass(frozen=True)
 class AvatarDebugProbeResultEnvelope:
@@ -5561,6 +5562,17 @@ class StreamScenarioRequest:
     extensions: tuple[ScenarioExtension, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
+class SubmitAvatarDebugProbeResultRequest:
+    context: AgentRequestContext | None = None
+    agent_id: str | None = None
+    conversation_anchor_id: str | None = None
+    result: AvatarDebugProbeResultEnvelope | None = None
+
+@dataclass(frozen=True)
+class SubmitAvatarDebugProbeResultResponse:
+    result: AvatarDebugProbeResultEnvelope | None = None
+
+@dataclass(frozen=True)
 class SubmitDelegatedApprovalDecisionRequest:
     context: AgentRequestContext | None = None
     agent_id: str | None = None
@@ -6521,6 +6533,10 @@ class RuntimeTypedClient:
     async def set_delegated_provider_state(self, request: SetDelegatedProviderStateRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> SetDelegatedProviderStateResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/SetDelegatedProviderState", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(SetDelegatedProviderStateResponse, raw)
+
+    async def submit_avatar_debug_probe_result(self, request: SubmitAvatarDebugProbeResultRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> SubmitAvatarDebugProbeResultResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/SubmitAvatarDebugProbeResult", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(SubmitAvatarDebugProbeResultResponse, raw)
 
     async def submit_delegated_approval_decision(self, request: SubmitDelegatedApprovalDecisionRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> SubmitDelegatedApprovalDecisionResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/SubmitDelegatedApprovalDecision", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))

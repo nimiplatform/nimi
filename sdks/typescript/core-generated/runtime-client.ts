@@ -463,6 +463,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "SetDelegatedProviderStateResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/SubmitAvatarDebugProbeResult",
+    "service": "RuntimeAgentService",
+    "method": "SubmitAvatarDebugProbeResult",
+    "kind": "unary",
+    "requestType": "SubmitAvatarDebugProbeResultRequest",
+    "responseType": "SubmitAvatarDebugProbeResultResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAgentService/SubmitDelegatedApprovalDecision",
     "service": "RuntimeAgentService",
     "method": "SubmitDelegatedApprovalDecision",

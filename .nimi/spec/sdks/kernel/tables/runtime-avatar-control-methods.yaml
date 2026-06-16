@@ -6,6 +6,7 @@ surfaces:
   - runtime.avatarConfiguration.upsert
   - runtime.avatarDebug.snapshot
   - runtime.avatarDebug.requestProbe
+  - runtime.avatarDebug.submitProbeResult
   - runtime.avatarDebug.listProbeResults
   - runtime.avatarDebug.getReplay
   - runtime.agent.anchors.registerAvatarLiveInstance
@@ -46,6 +47,17 @@ methods:
   - name: runtime.avatarDebug.requestProbe
     category: command
     method_id: /nimi.runtime.v1.RuntimeAgentService/RequestAvatarDebugProbe
+    input_ref: avatar-debug-probe-events.yaml
+    output_ref: avatar-debug-probe-events.yaml
+    semantic_owner: runtime_probe
+    implementation_status: runtime_rpc_implemented
+    implementation: runtime/internal/services/runtimeagent/avatar_debug_probe_rpc.go
+    test: runtime/internal/services/runtimeagent/avatar_debug_probe_rpc_test.go
+    sdk_client: sdks/typescript/runtime/runtime-agent-consume-client.ts
+    sdk_test: sdks/typescript/runtime/runtime-agent-consume.test.ts
+  - name: runtime.avatarDebug.submitProbeResult
+    category: command
+    method_id: /nimi.runtime.v1.RuntimeAgentService/SubmitAvatarDebugProbeResult
     input_ref: avatar-debug-probe-events.yaml
     output_ref: avatar-debug-probe-events.yaml
     semantic_owner: runtime_probe

@@ -474,6 +474,7 @@ groups:
       - GetRealmGroupMessageCandidateEvidence
       - GetAvatarDebugSnapshot
       - RequestAvatarDebugProbe
+      - SubmitAvatarDebugProbeResult
       - ListAvatarDebugProbeResults
       - GetAvatarDebugReplay
       - ListDelegatedProviderProfiles

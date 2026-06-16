@@ -231,6 +231,8 @@ func protectedCapabilityForUnary(fullMethod string, req any) (string, bool) {
 		return "runtime.agent.avatar_debug.read", true
 	case "/nimi.runtime.v1.RuntimeAgentService/RequestAvatarDebugProbe":
 		return "runtime.agent.avatar_debug.write", true
+	case "/nimi.runtime.v1.RuntimeAgentService/SubmitAvatarDebugProbeResult":
+		return "runtime.agent.avatar_debug.write", true
 	case "/nimi.runtime.v1.RuntimeAgentService/ListAvatarDebugProbeResults":
 		return "runtime.agent.avatar_debug.read", true
 	case "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugReplay":

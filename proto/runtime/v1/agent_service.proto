@@ -393,6 +393,7 @@ message AgentPresentationEventDetail {
 message AvatarDebugProbeRequestEnvelope {
   string probe_id = 1; string agent_id = 2; string conversation_anchor_id = 3; AvatarDebugProbeKind probe_kind = 4; google.protobuf.Timestamp requested_at = 5; AvatarDebugRequestedBy requested_by = 6;
   string turn_id = 7; string stream_id = 8; string avatar_instance_id = 9; string runtime_replay_ref = 10; bool replay_requested = 11;
+  ScopedRuntimeBindingAttachment scoped_binding = 12;
 }
 message AvatarDebugProbeResultEnvelope {
   string probe_id = 1; string agent_id = 2; string conversation_anchor_id = 3; AvatarDebugProbeKind probe_kind = 4; AvatarDebugProbeStatus status = 5; google.protobuf.Timestamp observed_at = 6;
@@ -810,6 +811,8 @@ message RequestAvatarDebugProbeRequest {
   string probe_id = 6; string turn_id = 7; string stream_id = 8; string avatar_instance_id = 9; bool replay_requested = 10;
 }
 message RequestAvatarDebugProbeResponse { AvatarDebugProbeRequestEnvelope request = 1; AvatarDebugProbeResultEnvelope result = 2; AvatarDebugReplayRef replay_ref = 3; }
+message SubmitAvatarDebugProbeResultRequest { AgentRequestContext context = 1; string agent_id = 2; string conversation_anchor_id = 3; AvatarDebugProbeResultEnvelope result = 4; }
+message SubmitAvatarDebugProbeResultResponse { AvatarDebugProbeResultEnvelope result = 1; }
 message ListAvatarDebugProbeResultsRequest { AgentRequestContext context = 1; string agent_id = 2; string conversation_anchor_id = 3; AvatarDebugProbeKind probe_kind = 4; }
 message ListAvatarDebugProbeResultsResponse { repeated AvatarDebugProbeResultEnvelope probe_results = 1; }
 message GetAvatarDebugReplayRequest { AgentRequestContext context = 1; string agent_id = 2; string probe_id = 3; string conversation_anchor_id = 4; }
@@ -833,6 +836,7 @@ service RuntimeAgentService {
   rpc GetRealmGroupMessageCandidateEvidence(GetRealmGroupMessageCandidateEvidenceRequest) returns (GetRealmGroupMessageCandidateEvidenceResponse);
   rpc GetAvatarDebugSnapshot(GetAvatarDebugSnapshotRequest) returns (GetAvatarDebugSnapshotResponse);
   rpc RequestAvatarDebugProbe(RequestAvatarDebugProbeRequest) returns (RequestAvatarDebugProbeResponse);
+  rpc SubmitAvatarDebugProbeResult(SubmitAvatarDebugProbeResultRequest) returns (SubmitAvatarDebugProbeResultResponse);
   rpc ListAvatarDebugProbeResults(ListAvatarDebugProbeResultsRequest) returns (ListAvatarDebugProbeResultsResponse);
   rpc GetAvatarDebugReplay(GetAvatarDebugReplayRequest) returns (GetAvatarDebugReplayResponse);
   rpc GetAgentState(GetAgentStateRequest) returns (GetAgentStateResponse);

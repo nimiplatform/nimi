@@ -18,6 +18,9 @@ import {
 } from './chat-agent-center-avatar-debug-workbench-model';
 
 const AVATAR_DEBUG_REQUESTED_BY_DESKTOP_DEBUG_WORKBENCH = 1;
+const AVATAR_DEBUG_SESSION_UNAVAILABLE = 'avatar_debug_session_not_available';
+const AVATAR_DEBUG_RESULT_POLL_ATTEMPTS = 3;
+const AVATAR_DEBUG_RESULT_POLL_INTERVAL_MS = 300;
 
 type AvatarDebugSnapshotResponse = {
   probeResults: AvatarDebugProbeResultEnvelope[];
@@ -89,6 +92,21 @@ function createDesktopAvatarDebugRuntimeAgentClient() {
     runtime: { agents: getDesktopRuntime().agents },
     runtimeAppId: getDesktopAppId(),
   });
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+function isSubmittedAvatarDebugResult(
+  result: AvatarDebugProbeResultEnvelope | undefined,
+  probeId: string,
+): result is AvatarDebugProbeResultEnvelope {
+  return Boolean(
+    result
+    && result.probeId === probeId
+    && result.reasonCode !== AVATAR_DEBUG_SESSION_UNAVAILABLE,
+  );
 }
 
 export function AgentCenterAvatarDebugWorkbench(props: AgentCenterAvatarDebugWorkbenchProps) {
@@ -168,13 +186,34 @@ export function AgentCenterAvatarDebugWorkbench(props: AgentCenterAvatarDebugWor
       });
       setLatestResult((response.result as AvatarDebugProbeResultEnvelope | undefined) || null);
       setLatestReplay((response.replayRef as AvatarDebugReplayRef | undefined) || null);
-      const nextSnapshot = await createDesktopAvatarDebugRuntimeAgentClient().avatarDebug.snapshot({
+      const probeId = (response.result as AvatarDebugProbeResultEnvelope | undefined)?.probeId || '';
+      let nextSnapshot = await createDesktopAvatarDebugRuntimeAgentClient().avatarDebug.snapshot({
         ownerUserId,
         realmAgentId,
         localAgentRef,
         conversationAnchorId,
       });
+      let submittedResult = nextSnapshot.probeResults.find((result) => isSubmittedAvatarDebugResult(
+        result as AvatarDebugProbeResultEnvelope | undefined,
+        probeId,
+      )) as AvatarDebugProbeResultEnvelope | undefined;
+      for (let attempt = 0; probeId && !submittedResult && attempt < AVATAR_DEBUG_RESULT_POLL_ATTEMPTS; attempt += 1) {
+        await delay(AVATAR_DEBUG_RESULT_POLL_INTERVAL_MS);
+        nextSnapshot = await createDesktopAvatarDebugRuntimeAgentClient().avatarDebug.snapshot({
+          ownerUserId,
+          realmAgentId,
+          localAgentRef,
+          conversationAnchorId,
+        });
+        submittedResult = nextSnapshot.probeResults.find((result) => isSubmittedAvatarDebugResult(
+          result as AvatarDebugProbeResultEnvelope | undefined,
+          probeId,
+        )) as AvatarDebugProbeResultEnvelope | undefined;
+      }
       setSnapshot(nextSnapshot as AvatarDebugSnapshotResponse);
+      if (submittedResult) {
+        setLatestResult(submittedResult);
+      }
       setLatestParticipationProjection(await requestDesktopCompanionParticipationProjection({
         ownerUserId,
         realmAgentId,

@@ -45,6 +45,12 @@ Remediation states are pinned by
 The workbench must render unsupported, unavailable, invalid, and blocked states
 as terminal evidence states unless a typed Runtime/Avatar retry path is present.
 
+After Desktop requests a Runtime avatar debug probe, the workbench may briefly
+poll the Runtime snapshot for the same `probe_id`. If Avatar submits an accepted
+evidence-backed result through Runtime, the workbench must prefer that result
+over the provisional `avatar_debug_session_not_available` blocked result. If no
+accepted Avatar result appears, the provisional blocked result remains visible.
+
 ## D-LLM-086 — Replay And Audit Links
 
 Runtime owns replay and audit semantics. Desktop may display Runtime replay

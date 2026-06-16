@@ -1,4 +1,5 @@
 import {
+  AvatarDebugEventFamily,
   AgentPresentationEventFamily,
   AgentStateEventFamily,
   HookAdmissionState,
@@ -18,6 +19,7 @@ import {
 } from './runtime-agent-consume-internal';
 import type {
   NimiRuntimeAgentConsumeEvent,
+  NimiRuntimeAgentAvatarDebugConsumeEvent,
   NimiRuntimeAgentExecutionStateValue,
   NimiRuntimeAgentHookConsumeEvent,
   NimiRuntimeAgentPresentationConsumeEvent,
@@ -433,6 +435,8 @@ export function projectNimiRuntimeAgentServiceEvent(event: AgentEvent): NimiRunt
       return projectPresentationEvent(localAgentRef, event.detail.presentation);
     case 'hook':
       return projectHookEvent(localAgentRef, event.detail.hook);
+    case 'avatarDebug':
+      return projectAvatarDebugEvent(localAgentRef, event.detail.avatarDebug);
     default:
       runtimeAgentError(
         'Runtime Agent service event family is not a consume projection event',
@@ -440,6 +444,54 @@ export function projectNimiRuntimeAgentServiceEvent(event: AgentEvent): NimiRunt
         'subscribe_supported_runtime_agent_event_families',
       );
   }
+}
+
+function projectAvatarDebugEvent(
+  localAgentRef: string,
+  avatarDebug: Extract<AgentEvent['detail'], { oneofKind: 'avatarDebug' }>['avatarDebug'],
+): NimiRuntimeAgentAvatarDebugConsumeEvent {
+  const request = avatarDebug.request;
+  const result = avatarDebug.result;
+  const replay = avatarDebug.replay;
+  const conversationAnchorId = optionalString(request?.conversationAnchorId || result?.conversationAnchorId);
+  return {
+    eventName: avatarDebugEventName(avatarDebug.family),
+    localAgentRef,
+    ...(conversationAnchorId ? { conversationAnchorId } : {}),
+    ...(optionalString(request?.turnId) ? { turnId: optionalString(request?.turnId) } : {}),
+    ...(optionalString(request?.streamId) ? { streamId: optionalString(request?.streamId) } : {}),
+    detail: {
+      ...(request ? {
+        probeId: request.probeId,
+        agentId: request.agentId,
+        conversationAnchorId: request.conversationAnchorId,
+        probeKind: request.probeKind,
+        requestedBy: request.requestedBy,
+        turnId: request.turnId,
+        streamId: request.streamId,
+        avatarInstanceId: request.avatarInstanceId,
+        runtimeReplayRef: request.runtimeReplayRef,
+        replayRequested: request.replayRequested,
+        scopedBinding: request.scopedBinding as unknown as JsonObject | undefined,
+      } : {}),
+      ...(result ? {
+        probeId: result.probeId,
+        agentId: result.agentId,
+        conversationAnchorId: result.conversationAnchorId,
+        probeKind: result.probeKind,
+        status: result.status,
+        evidenceRefs: result.evidenceRefs,
+        reasonCode: result.reasonCode,
+        resultId: result.resultId,
+      } : {}),
+      ...(replay ? {
+        replayProbeId: replay.probeId,
+        replayRef: replay.replayRef,
+        redactionState: replay.redactionState,
+        visibility: replay.visibility,
+      } : {}),
+    },
+  };
 }
 
 function projectStateEvent(localAgentRef: string, state: AgentEvent['detail'] & { oneofKind: 'state' } extends never ? never : Extract<AgentEvent['detail'], { oneofKind: 'state' }>['state']): NimiRuntimeAgentStateConsumeEvent {
@@ -573,6 +625,19 @@ function hookEventName(family: HookAdmissionState): NimiRuntimeAgentHookConsumeE
       return 'runtime.agent.hook.rescheduled';
     default:
       runtimeAgentError('Runtime Agent hook event family is unsupported', 'SDK_RUNTIME_AGENT_EVENT_UNSUPPORTED', 'check_runtime_agent_event_family');
+  }
+}
+
+function avatarDebugEventName(family: AvatarDebugEventFamily): NimiRuntimeAgentAvatarDebugConsumeEvent['eventName'] {
+  switch (family) {
+    case AvatarDebugEventFamily.PROBE_REQUESTED:
+      return 'runtime.agent.avatar_debug.probe_requested';
+    case AvatarDebugEventFamily.PROBE_RESULT:
+      return 'runtime.agent.avatar_debug.probe_result';
+    case AvatarDebugEventFamily.REPLAY_LINKED:
+      return 'runtime.agent.avatar_debug.replay_linked';
+    default:
+      runtimeAgentError('Runtime Agent avatar debug event family is unsupported', 'SDK_RUNTIME_AGENT_EVENT_UNSUPPORTED', 'check_runtime_agent_event_family');
   }
 }
 

@@ -464,6 +464,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "SetDelegatedProviderStateResponse",
     },
     RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/SubmitAvatarDebugProbeResult",
+        service: "RuntimeAgentService",
+        method: "SubmitAvatarDebugProbeResult",
+        kind: "unary",
+        request_type: "SubmitAvatarDebugProbeResultRequest",
+        response_type: "SubmitAvatarDebugProbeResultResponse",
+    },
+    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAgentService/SubmitDelegatedApprovalDecision",
         service: "RuntimeAgentService",
         method: "SubmitDelegatedApprovalDecision",

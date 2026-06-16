@@ -56,6 +56,7 @@ import { NarrativeRecallHit } from "./memory";
 import { MemoryRecordKind } from "./memory";
 import { Ack } from "./common";
 import { AgentRequestContext } from "./agent_common";
+import { ScopedRuntimeBindingAttachment } from "./common";
 import { MemoryReplicationState } from "./memory";
 import { MemoryRecord } from "./memory";
 import { MemoryRecordInput } from "./memory";
@@ -949,6 +950,10 @@ export interface AvatarDebugProbeRequestEnvelope {
      * @generated from protobuf field: bool replay_requested = 11
      */
     replayRequested: boolean;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ScopedRuntimeBindingAttachment scoped_binding = 12
+     */
+    scopedBinding?: ScopedRuntimeBindingAttachment;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.AvatarDebugProbeResultEnvelope
@@ -2436,6 +2441,36 @@ export interface RequestAvatarDebugProbeResponse {
      * @generated from protobuf field: nimi.runtime.v1.AvatarDebugReplayRef replay_ref = 3
      */
     replayRef?: AvatarDebugReplayRef;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.SubmitAvatarDebugProbeResultRequest
+ */
+export interface SubmitAvatarDebugProbeResultRequest {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentRequestContext context = 1
+     */
+    context?: AgentRequestContext;
+    /**
+     * @generated from protobuf field: string agent_id = 2
+     */
+    agentId: string;
+    /**
+     * @generated from protobuf field: string conversation_anchor_id = 3
+     */
+    conversationAnchorId: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AvatarDebugProbeResultEnvelope result = 4
+     */
+    result?: AvatarDebugProbeResultEnvelope;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.SubmitAvatarDebugProbeResultResponse
+ */
+export interface SubmitAvatarDebugProbeResultResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AvatarDebugProbeResultEnvelope result = 1
+     */
+    result?: AvatarDebugProbeResultEnvelope;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ListAvatarDebugProbeResultsRequest
@@ -5493,7 +5528,8 @@ class AvatarDebugProbeRequestEnvelope$Type extends MessageType<AvatarDebugProbeR
             { no: 8, name: "stream_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 9, name: "avatar_instance_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 10, name: "runtime_replay_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 11, name: "replay_requested", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+            { no: 11, name: "replay_requested", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 12, name: "scoped_binding", kind: "message", T: () => ScopedRuntimeBindingAttachment }
         ]);
     }
     create(value?: PartialMessage<AvatarDebugProbeRequestEnvelope>): AvatarDebugProbeRequestEnvelope {
@@ -5550,6 +5586,9 @@ class AvatarDebugProbeRequestEnvelope$Type extends MessageType<AvatarDebugProbeR
                 case /* bool replay_requested */ 11:
                     message.replayRequested = reader.bool();
                     break;
+                case /* nimi.runtime.v1.ScopedRuntimeBindingAttachment scoped_binding */ 12:
+                    message.scopedBinding = ScopedRuntimeBindingAttachment.internalBinaryRead(reader, reader.uint32(), options, message.scopedBinding);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -5595,6 +5634,9 @@ class AvatarDebugProbeRequestEnvelope$Type extends MessageType<AvatarDebugProbeR
         /* bool replay_requested = 11; */
         if (message.replayRequested !== false)
             writer.tag(11, WireType.Varint).bool(message.replayRequested);
+        /* nimi.runtime.v1.ScopedRuntimeBindingAttachment scoped_binding = 12; */
+        if (message.scopedBinding)
+            ScopedRuntimeBindingAttachment.internalBinaryWrite(message.scopedBinding, writer.tag(12, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -10410,6 +10452,121 @@ class RequestAvatarDebugProbeResponse$Type extends MessageType<RequestAvatarDebu
  * @generated MessageType for protobuf message nimi.runtime.v1.RequestAvatarDebugProbeResponse
  */
 export const RequestAvatarDebugProbeResponse = new RequestAvatarDebugProbeResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class SubmitAvatarDebugProbeResultRequest$Type extends MessageType<SubmitAvatarDebugProbeResultRequest> {
+    constructor() {
+        super("nimi.runtime.v1.SubmitAvatarDebugProbeResultRequest", [
+            { no: 1, name: "context", kind: "message", T: () => AgentRequestContext },
+            { no: 2, name: "agent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "conversation_anchor_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "result", kind: "message", T: () => AvatarDebugProbeResultEnvelope }
+        ]);
+    }
+    create(value?: PartialMessage<SubmitAvatarDebugProbeResultRequest>): SubmitAvatarDebugProbeResultRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.agentId = "";
+        message.conversationAnchorId = "";
+        if (value !== undefined)
+            reflectionMergePartial<SubmitAvatarDebugProbeResultRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SubmitAvatarDebugProbeResultRequest): SubmitAvatarDebugProbeResultRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AgentRequestContext context */ 1:
+                    message.context = AgentRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
+                    break;
+                case /* string agent_id */ 2:
+                    message.agentId = reader.string();
+                    break;
+                case /* string conversation_anchor_id */ 3:
+                    message.conversationAnchorId = reader.string();
+                    break;
+                case /* nimi.runtime.v1.AvatarDebugProbeResultEnvelope result */ 4:
+                    message.result = AvatarDebugProbeResultEnvelope.internalBinaryRead(reader, reader.uint32(), options, message.result);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: SubmitAvatarDebugProbeResultRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AgentRequestContext context = 1; */
+        if (message.context)
+            AgentRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string agent_id = 2; */
+        if (message.agentId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.agentId);
+        /* string conversation_anchor_id = 3; */
+        if (message.conversationAnchorId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.conversationAnchorId);
+        /* nimi.runtime.v1.AvatarDebugProbeResultEnvelope result = 4; */
+        if (message.result)
+            AvatarDebugProbeResultEnvelope.internalBinaryWrite(message.result, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.SubmitAvatarDebugProbeResultRequest
+ */
+export const SubmitAvatarDebugProbeResultRequest = new SubmitAvatarDebugProbeResultRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class SubmitAvatarDebugProbeResultResponse$Type extends MessageType<SubmitAvatarDebugProbeResultResponse> {
+    constructor() {
+        super("nimi.runtime.v1.SubmitAvatarDebugProbeResultResponse", [
+            { no: 1, name: "result", kind: "message", T: () => AvatarDebugProbeResultEnvelope }
+        ]);
+    }
+    create(value?: PartialMessage<SubmitAvatarDebugProbeResultResponse>): SubmitAvatarDebugProbeResultResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<SubmitAvatarDebugProbeResultResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SubmitAvatarDebugProbeResultResponse): SubmitAvatarDebugProbeResultResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AvatarDebugProbeResultEnvelope result */ 1:
+                    message.result = AvatarDebugProbeResultEnvelope.internalBinaryRead(reader, reader.uint32(), options, message.result);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: SubmitAvatarDebugProbeResultResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AvatarDebugProbeResultEnvelope result = 1; */
+        if (message.result)
+            AvatarDebugProbeResultEnvelope.internalBinaryWrite(message.result, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.SubmitAvatarDebugProbeResultResponse
+ */
+export const SubmitAvatarDebugProbeResultResponse = new SubmitAvatarDebugProbeResultResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class ListAvatarDebugProbeResultsRequest$Type extends MessageType<ListAvatarDebugProbeResultsRequest> {
     constructor() {

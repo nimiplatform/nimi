@@ -569,10 +569,11 @@ describe('bootstrapAvatar', () => {
         activeUserId: OWNER_USER_ID,
       }),
     });
-    expect(startAvatarRuntimeCarrierMock).toHaveBeenCalledWith({
+    expect(startAvatarRuntimeCarrierMock).toHaveBeenCalledWith(expect.objectContaining({
       driver: handle.driver,
       modelManifest: expect.objectContaining({ modelId: 'ren' }),
-    });
+      submitDebugProbeResult: expect.any(Function),
+    }));
     expect(handle.driver).not.toBeNull();
     expect(handle.carrier).not.toBeNull();
     expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(expect.objectContaining({

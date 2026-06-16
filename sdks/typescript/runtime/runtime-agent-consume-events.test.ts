@@ -38,9 +38,11 @@ import {
 import {
   AgentCanonicalMemoryBankMode,
   AgentEventType,
+  AvatarDebugEventFamily,
   AgentPresentationEventFamily,
   AgentStateEventFamily,
   AvatarDebugProbeKind,
+  AvatarDebugProbeStatus,
   AvatarDebugRequestedBy,
   CompanionParticipationStatus,
   CompanionParticipationSurfaceKind,
@@ -334,6 +336,7 @@ test('Runtime Agent consume subscribe filters app messages and merges generated 
     AgentEventType.HOOK,
     AgentEventType.STATE,
     AgentEventType.PRESENTATION,
+    AgentEventType.AVATAR_DEBUG,
   ]);
 
   const appOnly = await client.turns.subscribe({
@@ -448,6 +451,59 @@ test('Runtime Agent consume projects generated event families and fails closed o
     assert.equal(event.eventName, eventName);
     assert.notEqual(event.detail[detailField], undefined);
   }
+
+  const avatarDebugEvent = projectNimiRuntimeAgentServiceEvent({
+    eventType: AgentEventType.AVATAR_DEBUG,
+    sequence: 'avatar-debug-1',
+    agentId: 'local-agent:owner-1:agent-1',
+    localAgentRef: 'local-agent:owner-1:agent-1',
+    ownerUserId: 'owner-1',
+    realmAgentId: 'agent-1',
+    detail: {
+      oneofKind: 'avatarDebug',
+      avatarDebug: {
+        family: AvatarDebugEventFamily.PROBE_REQUESTED,
+        request: {
+          probeId: 'probe-1',
+          agentId: 'local-agent:owner-1:agent-1',
+          conversationAnchorId: 'anchor-1',
+          probeKind: AvatarDebugProbeKind.BACKEND_LOAD,
+          requestedAt: { seconds: 1n, nanos: 0 },
+          requestedBy: AvatarDebugRequestedBy.DESKTOP_WORKBENCH,
+          turnId: '',
+          streamId: '',
+          avatarInstanceId: 'avatar-1',
+          runtimeReplayRef: 'runtime.replay/probe-1',
+          replayRequested: true,
+          scopedBinding: {
+            bindingId: 'binding-1',
+            bindingHandle: 'runtime.binding/binding-1',
+            runtimeAppId: 'nimi.avatar',
+            appInstanceId: 'app-instance-1',
+            windowId: 'window-1',
+            agentId: 'local-agent:owner-1:agent-1',
+            conversationAnchorId: 'anchor-1',
+            avatarInstanceId: 'avatar-1',
+            worldId: 'world-1',
+          },
+        },
+      },
+    },
+  });
+  assert.equal(avatarDebugEvent.eventName, 'runtime.agent.avatar_debug.probe_requested');
+  assert.equal(avatarDebugEvent.conversationAnchorId, 'anchor-1');
+  assert.equal(avatarDebugEvent.detail.probeId, 'probe-1');
+  assert.deepEqual(avatarDebugEvent.detail.scopedBinding, {
+    bindingId: 'binding-1',
+    bindingHandle: 'runtime.binding/binding-1',
+    runtimeAppId: 'nimi.avatar',
+    appInstanceId: 'app-instance-1',
+    windowId: 'window-1',
+    agentId: 'local-agent:owner-1:agent-1',
+    conversationAnchorId: 'anchor-1',
+    avatarInstanceId: 'avatar-1',
+    worldId: 'world-1',
+  });
 
   const hookCases: Array<readonly [HookAdmissionState, string]> = [
     [HookAdmissionState.PROPOSED, 'runtime.agent.hook.intent_proposed'],
@@ -928,6 +984,10 @@ test('Runtime Agent companion participation and avatar debug clients cover reque
       calls.push({ method: 'getReplay', request, options });
       return { replay: { probeId: 'probe-1' } } as never;
     },
+    async submitAvatarDebugProbeResult(request, options) {
+      calls.push({ method: 'submitProbeResult', request, options });
+      return { result: request.result } as never;
+    },
   });
   const client = createNimiRuntimeAgentConsumeClient({ runtime, runtimeAppId: 'nimi.avatar' });
 
@@ -965,6 +1025,21 @@ test('Runtime Agent companion participation and avatar debug clients cover reque
     conversationAnchorId: 'anchor-1',
     probeId: 'probe-1',
   }, callOptions);
+  await client.avatarDebug.submitProbeResult({
+    ...consumeContext,
+    conversationAnchorId: 'anchor-1',
+    result: {
+      probeId: 'probe-1',
+      agentId: 'local-agent:owner-1:agent-1',
+      conversationAnchorId: 'anchor-1',
+      probeKind: AvatarDebugProbeKind.BACKEND_LOAD,
+      status: AvatarDebugProbeStatus.PASSED,
+      observedAt: { seconds: 1n, nanos: 0 },
+      evidenceRefs: ['avatar.debug.session/session-1'],
+      reasonCode: '',
+      resultId: 'result-1',
+    },
+  }, callOptions);
 
   assert.deepEqual(calls.map((call) => call.method), [
     'request',
@@ -973,12 +1048,14 @@ test('Runtime Agent companion participation and avatar debug clients cover reque
     'debugSnapshot',
     'listProbeResults',
     'getReplay',
+    'submitProbeResult',
   ]);
   assert.equal((calls[0]?.request as { maxOutputTokens?: number }).maxOutputTokens, 128);
   assert.equal((calls[1]?.request as { reason?: string }).reason, 'owner dismissed');
   assert.equal((calls[2]?.request as { projectionId?: string }).projectionId, 'projection-1');
   assert.equal((calls[4]?.request as { probeKind?: AvatarDebugProbeKind }).probeKind, AvatarDebugProbeKind.UNSPECIFIED);
   assert.equal((calls[5]?.request as { probeId?: string }).probeId, 'probe-1');
+  assert.equal((calls[6]?.request as { result?: { resultId?: string } }).result?.resultId, 'result-1');
 
   await assert.rejects(
     () => client.companionParticipation.request({

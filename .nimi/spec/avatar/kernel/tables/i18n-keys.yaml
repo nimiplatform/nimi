@@ -135,6 +135,18 @@ namespaces: &avatar_i18n_key_entries
       - key: Avatar.degraded.diagnostics.retryable
         english_baseline: "Retryable"
         usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
+      - key: Avatar.degraded.diagnostics.model_load_state
+        english_baseline: "Model load state"
+        usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
+      - key: Avatar.degraded.diagnostics.model_id
+        english_baseline: "Model ID"
+        usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
+      - key: Avatar.degraded.diagnostics.model_path
+        english_baseline: "Model path"
+        usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
+      - key: Avatar.degraded.diagnostics.model_error
+        english_baseline: "Model error"
+        usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
       - key: Avatar.degraded.diagnostics.yes
         english_baseline: "Yes"
         usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"

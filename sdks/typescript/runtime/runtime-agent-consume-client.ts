@@ -180,6 +180,7 @@ export function createNimiRuntimeAgentConsumeClient(
               AgentEventType.HOOK,
               AgentEventType.STATE,
               AgentEventType.PRESENTATION,
+              AgentEventType.AVATAR_DEBUG,
             ],
           }, callOptions), conversationAnchorId));
         }
@@ -257,6 +258,19 @@ export function createNimiRuntimeAgentConsumeClient(
           streamId: normalizeText(input.streamId),
           avatarInstanceId: normalizeText(input.avatarInstanceId),
           replayRequested: Boolean(input.replayRequested),
+        }, callOptions);
+      },
+      submitProbeResult: async (input, callOptions) => {
+        const context = buildNimiRuntimeAgentConsumeContext({ ...input, runtimeAppId });
+        const submitProbeResult = requireAgentMethod(
+          runtime.agents.submitAvatarDebugProbeResult,
+          'submitAvatarDebugProbeResult',
+        );
+        return submitProbeResult({
+          context: context.requestContext,
+          agentId: context.localAgentRef,
+          conversationAnchorId: requireText(input.conversationAnchorId, 'conversationAnchorId'),
+          result: input.result,
         }, callOptions);
       },
       listProbeResults: async (input, callOptions) => {

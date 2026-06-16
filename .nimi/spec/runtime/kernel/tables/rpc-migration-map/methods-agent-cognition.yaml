@@ -301,6 +301,11 @@ method_mappings:
     proto_method: RequestAvatarDebugProbe
     mapping_posture: aligned
   - design_service: RuntimeAgentService
+    design_method: SubmitAvatarDebugProbeResult
+    proto_service: RuntimeAgentService
+    proto_method: SubmitAvatarDebugProbeResult
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
     design_method: ListAvatarDebugProbeResults
     proto_service: RuntimeAgentService
     proto_method: ListAvatarDebugProbeResults
