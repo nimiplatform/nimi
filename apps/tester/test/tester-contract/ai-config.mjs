@@ -1,0 +1,576 @@
+import assert from 'node:assert/strict';
+import path from 'node:path';
+import test from 'node:test';
+import {
+  RUNTIME_EXECUTION_MODE_STREAM,
+  RUNTIME_EXECUTION_MODE_SYNC,
+  RUNTIME_ROUTE_POLICY_CLOUD,
+  RUNTIME_ROUTE_POLICY_LOCAL,
+  RUNTIME_SCENARIO_TYPE_TEXT_EMBED,
+  RUNTIME_SCENARIO_TYPE_TEXT_GENERATE,
+  RUNTIME_SCHEDULING_DENIED,
+  cleanupBehaviorModules,
+  createMemoryStorage,
+  importBehaviorModule,
+  listSourceFiles,
+  read,
+  readTesterAiTestingSurface,
+  readTesterKitComponentGallerySurface,
+  readTesterRuntimeInvokersSurface,
+  root,
+  runnableSchedulingResponse,
+  textEmbedScenarioResponse,
+  textGenerateScenarioResponse,
+  textScenarioStream,
+} from './helpers.mjs';
+
+test.after(cleanupBehaviorModules);
+
+test('tester run target summary hydrates local runtime model labels without exposing opaque ids', async () => {
+  const { createTesterRunTargetSummary } = await importBehaviorModule('tester/tester-run-target.js');
+  const capability = {
+    id: 'image.generate',
+    label: 'Image Generate',
+    group: 'media',
+    summary: '',
+    surface: '',
+    execution: 'runtime-sdk',
+  };
+  const runtime = { status: 'ready', mode: 'test', detail: 'ready' };
+  const config = {
+    scopeRef: { kind: 'app', appId: 'tester', surfaceId: 'app-lab' },
+    capabilities: {
+      targetRefs: {
+        'image.generate': {
+          kind: 'local-runtime',
+          targetId: 'media',
+          profileId: '01KTEX0CSNAR9Q0B8KXNCF4WPW',
+          readinessRef: 'runtime-route:local:media:01KTEX0CSNAR9Q0B8KXNCF4WPW',
+        },
+      },
+      selectedParams: {},
+    },
+    profileOrigin: null,
+  };
+
+  const unresolved = createTesterRunTargetSummary({ capability, runtime, config });
+  assert.equal(unresolved.modelLabel, 'Local runtime model');
+  assert.notEqual(unresolved.modelLabel, '01KTEX0CSNAR9Q0B8KXNCF4WPW');
+
+  const hydrated = createTesterRunTargetSummary({
+    capability,
+    runtime,
+    config,
+    localModels: [{
+      localModelId: '01KTEX0CSNAR9Q0B8KXNCF4WPW',
+      modelId: 'local-import/z-image-turbo-Q4_K_M',
+      model: 'local-import/z-image-turbo-Q4_K_M',
+      label: 'local-import/z-image-turbo-Q4_K_M',
+      engine: 'media',
+    }],
+  });
+  assert.equal(hydrated.modelLabel, 'z-image-turbo-Q4_K_M');
+});
+
+test('tester text run target omits unconfigured model drawer placeholders from history', async () => {
+  const { createTesterRunTargetSummary } = await importBehaviorModule('tester/tester-run-target.js');
+  const capability = {
+    id: 'text.generate',
+    label: 'Text Studio',
+    group: 'text',
+    summary: '',
+    surface: '',
+    execution: 'runtime-sdk',
+  };
+  const runtime = { status: 'ready', mode: 'test', detail: 'ready' };
+  const config = {
+    scopeRef: { kind: 'app', appId: 'tester', surfaceId: 'app-lab' },
+    capabilities: {
+      targetRefs: {
+        'text.generate': {
+          kind: 'cloud-connector',
+          connectorId: 'runtime-connector',
+          providerModelId: 'gemini-2.5-pro',
+        },
+      },
+      selectedParams: {},
+    },
+    profileOrigin: null,
+  };
+
+  const summary = createTesterRunTargetSummary({ capability, runtime, config });
+  assert.deepEqual(summary.params, {});
+  assert.deepEqual(summary.paramsSummary, []);
+});
+
+test('tester AI config is the Kit model-config surface in Settings with real SDK AIProfiles', () => {
+  const store = read('src/tester/tester-ai-config-store.ts');
+  const surface = read('src/shell/ai/tester-ai-config-settings.tsx');
+  const panel = read('src/tester/workbench/tester-ai-config-settings-panel.tsx');
+  const capabilities = readTesterAiTestingSurface(root);
+  const runTarget = read('src/tester/tester-run-target.ts');
+  const modelConfigHub = read('../../kit/features/model-config/src/components/model-config-ai-model-hub.tsx');
+  const runtimeTargetSummary = read('../../kit/features/model-config/src/headless/runtime-target-summary.ts');
+  const styles = read('src/tester/tester-workbench.css');
+
+  for (const required of [
+    'NimiAIProfile',
+    'NimiAIConfig',
+    'createNimiAppAIScopeRef',
+    'createNimiAIConfigStore',
+    'createNimiAISnapshotStore',
+    'parseNimiAIProfile',
+    'createNimiAIHostSurface',
+    'createNimiAIConfigSubscriptionRegistry',
+    'validateNimiAIConfig',
+    'versionNimiAIConfig',
+    'importTesterAIProfileJson',
+    'TESTER_AI_PROFILE_LIBRARY_STORAGE_KEY',
+    'TESTER_AI_SNAPSHOT_INDEX_KEY',
+    'previewApply',
+    'apply(scopeRef',
+    'saveTesterAIConfig',
+    'recordTesterAISnapshot',
+    'getLatestTesterAISnapshot',
+    '@nimiplatform/kit/features/model-config/headless',
+  ]) {
+    assert.match(store, new RegExp(required.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  }
+  assert.doesNotMatch(store, /createAppAIScopeRef/);
+  assert.doesNotMatch(store, /createScopedAIConfigStore/);
+  assert.doesNotMatch(store, /createScopedAISnapshotStore/);
+  assert.doesNotMatch(store, /createHostAIProfileSurface/);
+  assert.doesNotMatch(store, /validateAIProfileRuntimeBindings/);
+
+  // The kit model-config mechanics live in the scaffold-managed sectioned config
+  // surface skeleton (inherited by every generated app). It composes admitted kit
+  // primitives and accepts an initialSection so a capability gear can deep-link.
+  for (const required of [
+    'ModelConfigAiModelHub',
+    'useModelConfigProfileController',
+    'defaultModelConfigProfileCopy',
+    'Import AIProfile JSON',
+    'Open Apply AI Profile to preview and confirm',
+    'fail closed',
+    'initialSection',
+    'detailOnly',
+    'detailActiveModelHint={null}',
+    'footer={importFooter}',
+    'profile={profileController}',
+  ]) {
+    assert.match(surface, new RegExp(required.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  }
+  assert.doesNotMatch(surface, /ProfileConfigSection/);
+  assert.doesNotMatch(surface, /ModelConfigCapabilityDetail/);
+  assert.match(modelConfigHub, /import \{ ProfileConfigSection \} from '\.\/profile-config-section\.js';/);
+  assert.match(modelConfigHub, /import \{ ModelConfigCapabilityDetail \} from '\.\/model-config-capability-detail\.js';/);
+  assert.match(modelConfigHub, /initialSection\?: CanonicalCapabilitySectionId \| null/);
+  assert.match(modelConfigHub, /detailOnly\?: boolean/);
+  assert.match(modelConfigHub, /detailActiveModelHint\?: string \| null/);
+  assert.match(modelConfigHub, /footer\?: ReactNode/);
+  assert.match(modelConfigHub, /<ProfileConfigSection controller=\{profile\} variant="import-button" \/>/);
+  assert.match(modelConfigHub, /<ModelConfigCapabilityDetail/);
+  assert.doesNotMatch(surface, /targetRefDetail/);
+  assert.doesNotMatch(surface, /NimiAIConfigTargetRef/);
+  assert.doesNotMatch(surface, /applyAIProfileToConfig/);
+  assert.match(surface, /profileController\.onCancelPreview\(\)/);
+  assert.match(surface, /profileController\.onSelectedProfileChange\(result\.profileId\)/);
+  assert.doesNotMatch(surface, /profileController\.onApply\(result\.profileId\)/);
+
+  // The tester wrapper injects app-scoped wiring into that surface.
+  for (const required of [
+    'TesterAiConfigSettings',
+    'createTesterRuntimeModelPickerProvider',
+    'importTesterAIProfileJson',
+    "'ModelConfig.profile.importLabel': 'Apply AI Profile'",
+    "runtime?.status === 'ready'",
+  ]) {
+    assert.match(panel, new RegExp(required.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  }
+
+  // The AI config lives in Settings; the AI Capabilities settings gear deep-links
+  // into the configured capability's section. App Lab no longer owns a bespoke
+  // AIConfig lives in a right slide-over opened by the per-capability settings
+  // gear (full adoption of the canonical kit model-config surface). App Lab's
+  // bespoke AIConfig panel was removed entirely.
+  assert.match(capabilities, /TesterAiConfigSettingsPanel/);
+  assert.match(capabilities, /CAPABILITY_TO_SECTION/);
+  assert.match(capabilities, /onOpenConfig/);
+  assert.doesNotMatch(capabilities, /function RunTargetBar/);
+  assert.doesNotMatch(capabilities, /data-testid="studio-run-target"/);
+  assert.match(capabilities, /createTesterRunTargetSummary/);
+  assert.match(capabilities, /canDispatch=\{runTarget\.canDispatch\}/);
+  assert.match(capabilities, /if \(!runTarget\.canDispatch\) return/);
+  assert.match(runTarget, /export type TesterRunTargetSummary/);
+  for (const required of [
+    'capabilityId',
+    'bindingCapabilityId',
+    'section',
+    'status',
+    'source',
+    'modelLabel',
+    'detail',
+    'canDispatch',
+    'paramsSummary',
+    'profileOrigin',
+  ]) {
+    assert.match(runTarget, new RegExp(required));
+  }
+  assert.match(runTarget, /summarizeModelConfigRuntimeTarget/);
+  assert.match(runTarget, /getTesterRuntimeBindingCapabilityId\(capability\.id\)/);
+  assert.match(runtimeTargetSummary, /targetRef\.kind === 'profile-slice'/);
+  assert.match(runtimeTargetSummary, /input\.runtimeStatus === 'blocked'/);
+  assert.match(runtimeTargetSummary, /Choose a Runtime model target/);
+  assert.doesNotMatch(runTarget, /gpt-4|claude|gemini|openai|anthropic|model:\s*['"]auto['"]/i);
+  assert.doesNotMatch(styles, /\.studio-run-target/);
+  assert.doesNotMatch(styles, /\.studio-run-target__params/);
+  assert.match(styles, /\.section-ai-testing__drawer\s*\{[^}]*position:\s*absolute/s);
+  assert.match(styles, /@media \(max-width:\s*720px\)[\s\S]*\.section-ai-testing__drawer[\s\S]*width:\s*100%/);
+});
+
+test('tester LLM binding resolver fails closed for missing and malformed bindings', async () => {
+  const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');
+  const store = await importBehaviorModule('tester/tester-ai-config-store.js');
+  const scopeRef = store.createTesterAppLabAIScopeRef();
+
+  const missing = invokers.resolveTesterLLMBinding('text.generate', {
+    scopeRef,
+    capabilities: { targetRefs: {}, selectedParams: {} },
+    profileOrigin: null,
+  });
+  assert.equal(missing.ok, false);
+  assert.equal(missing.reason, 'ai-config-binding-missing');
+
+  const unresolvedProfileSlice = invokers.resolveTesterLLMBinding('text.generate', {
+    scopeRef,
+    capabilities: {
+      targetRefs: {
+        'text.generate': {
+          kind: 'profile-slice',
+          sourceProfileId: 'profile-chat',
+          sliceId: 'text-generate-local',
+        },
+      },
+      selectedParams: {},
+    },
+    profileOrigin: null,
+  });
+  assert.equal(unresolvedProfileSlice.ok, false);
+  assert.equal(unresolvedProfileSlice.reason, 'ai-config-binding-missing');
+  assert.match(unresolvedProfileSlice.message, /profile-slice .* apply\/materialize/i);
+
+  const malformedProfile = store.importTesterAIProfileJson(JSON.stringify({
+    profileId: 'malformed',
+    title: 'Malformed',
+    description: '',
+    tags: [],
+    capabilities: {
+      'text.generate': {
+        targetRef: {
+          kind: 'cloud-connector',
+          connectorId: '',
+          providerModelId: '',
+        },
+      },
+    },
+  }));
+  assert.equal(malformedProfile.ok, false);
+  assert.match(malformedProfile.message, /AIProfile validation failed/i);
+  assert.match(malformedProfile.errors.join('\n'), /targetRef.*connectorId.*required/i);
+  assert.match(malformedProfile.errors.join('\n'), /targetRef.*providerModelId.*required/i);
+
+  const legacyBindingProfile = store.importTesterAIProfileJson(JSON.stringify({
+    profileId: 'legacy-binding-facade',
+    title: 'Legacy Binding Facade',
+    description: '',
+    tags: [],
+    capabilities: {
+      'text.generate': {
+        binding: {
+          source: 'local',
+          connectorId: 'runtime-local-facade',
+          model: 'local.chat.gemma-4-e2b-it.q8-0',
+        },
+      },
+    },
+  }));
+  assert.equal(legacyBindingProfile.ok, false);
+  assert.match(legacyBindingProfile.errors.join('\n'), /binding is forbidden/i);
+
+  assert.throws(() => store.saveTesterAIConfig({
+    scopeRef,
+    capabilities: {
+      targetRefs: {
+        'text.generate': {
+          kind: 'cloud-connector',
+          connectorId: '',
+          providerModelId: '',
+        },
+      },
+      selectedParams: {},
+    },
+    profileOrigin: null,
+  }), /AIConfig validation failed: .*connectorId.*required.*providerModelId.*required/i);
+
+  assert.throws(() => store.saveTesterAIConfig({
+    scopeRef,
+    capabilities: {
+      targetRefs: {
+        'text.generate': {
+          kind: 'local-runtime',
+        },
+      },
+      selectedParams: {},
+    },
+    profileOrigin: null,
+  }), /AIConfig validation failed: .*readinessRef or targetId\/profileId/i);
+
+  const previousWindow = globalThis.window;
+  const invalidStoredConfig = {
+    scopeRef,
+    capabilities: {
+      targetRefs: {
+        'text.generate': {
+          kind: 'cloud-connector',
+          connectorId: 'runtime-connector',
+          providerModelId: '',
+        },
+      },
+      selectedParams: {},
+    },
+    profileOrigin: null,
+  };
+  try {
+    globalThis.window = {
+      localStorage: createMemoryStorage({
+        [store.TESTER_AI_CONFIG_STORAGE_KEY]: JSON.stringify(invalidStoredConfig),
+      }),
+    };
+    assert.throws(() => store.loadTesterAIConfig(scopeRef), /Stored AIConfig is invalid: .*providerModelId is required/i);
+  } finally {
+    if (previousWindow === undefined) {
+      delete globalThis.window;
+    } else {
+      globalThis.window = previousWindow;
+    }
+  }
+});
+
+test('Tester consumes SDK scoped AISnapshot store as App Lab execution evidence proof', async () => {
+  const store = await importBehaviorModule('tester/tester-ai-config-store.js');
+  const { createNimiAISnapshotRecord } = await import('@nimiplatform/sdk/ai');
+  const scopeRef = store.createTesterAppLabAIScopeRef();
+  const targetRef = {
+    kind: 'cloud-connector',
+    connectorId: 'runtime-connector',
+    providerModelId: 'runtime-model',
+  };
+  const config = store.saveTesterAIConfig({
+    scopeRef,
+    capabilities: {
+      targetRefs: {
+        'text.generate': targetRef,
+      },
+      selectedParams: {},
+    },
+    profileOrigin: {
+      profileId: 'snapshot-profile',
+      title: 'Snapshot Profile',
+      appliedAt: '2026-06-02T00:00:00.000Z',
+    },
+  });
+  const snapshot = createNimiAISnapshotRecord({
+    executionId: 'tester-snapshot-exec-1',
+    scopeRef,
+    createdAt: '2026-06-02T00:00:01.000Z',
+    config,
+    capability: 'text.generate',
+    selectedTargetRef: targetRef,
+    metadata: { flow: 'app-lab-capability-run' },
+  });
+
+  assert.deepEqual(store.recordTesterAISnapshot(snapshot), snapshot);
+  assert.deepEqual(store.getTesterAISnapshot(snapshot.executionId), snapshot);
+  assert.deepEqual(store.getLatestTesterAISnapshot(scopeRef), snapshot);
+});
+
+test('tester model picker consumes SDK route projection for runtime local assets and remote connectors', async () => {
+  const providerModule = await importBehaviorModule('tester/tester-runtime-model-provider.js');
+  const calls = [];
+  const remoteConnectorId = 'runtime-cloud-managed';
+  const runtimeLocalModelId = 'local.chat.gemma-4-e2b-it.q8-0';
+  const provider = providerModule.createTesterRuntimeModelPickerProviderFromClient({
+    async listRuntimeRouteOptions(input) {
+      calls.push({ surface: 'listRuntimeRouteOptions', input });
+      return {
+        capability: input.capability,
+        selected: null,
+        local: {
+          models: [
+            {
+              localModelId: runtimeLocalModelId,
+              model: runtimeLocalModelId,
+              modelId: runtimeLocalModelId,
+              label: runtimeLocalModelId,
+              engine: 'llama',
+              status: 'active',
+              capabilities: ['text.generate'],
+            },
+          ],
+          defaultEndpoint: 'http://127.0.0.1:11434/v1',
+        },
+        connectors: [
+          {
+            id: remoteConnectorId,
+            provider: 'cloud-provider',
+            label: 'Cloud Provider',
+            models: ['remote.chat.model'],
+            modelCapabilities: {
+              'remote.chat.model': ['text.generate'],
+            },
+          },
+        ],
+      };
+    },
+  }, 'text.generate');
+
+  const connectors = await provider.listConnectors();
+  assert.deepEqual(connectors.map((connector) => connector.connectorId), [remoteConnectorId]);
+
+  const localModels = await provider.listLocalModels();
+  assert.deepEqual(localModels, [
+    {
+      localModelId: runtimeLocalModelId,
+      goRuntimeLocalModelId: runtimeLocalModelId,
+      modelId: runtimeLocalModelId,
+      label: runtimeLocalModelId,
+      engine: 'llama',
+      status: 'active',
+      capabilities: ['text.generate'],
+    },
+  ]);
+  const connectorModels = await provider.listConnectorModels(remoteConnectorId);
+  assert.deepEqual(connectorModels, [
+    {
+      modelId: 'remote.chat.model',
+      modelLabel: 'remote.chat.model',
+      available: true,
+      capabilities: ['text.generate'],
+    },
+  ]);
+  assert.deepEqual(calls, [
+    {
+      surface: 'listRuntimeRouteOptions',
+      input: {
+        capability: 'text.generate',
+        targetId: undefined,
+        selectedBinding: undefined,
+      },
+    },
+  ]);
+});
+
+test('tester model picker adapts the runtime host client to SDK route options', async () => {
+  const providerModule = await importBehaviorModule('tester/tester-runtime-model-provider.js');
+  const calls = [];
+  const provider = providerModule.createTesterRuntimeModelPickerProviderFromHostClient({
+    runtime: {
+      connectors: {
+        async listConnectors(request) {
+          calls.push(`connectors:${request.kindFilter}:${request.statusFilter}`);
+          return {
+            connectors: [{
+              connectorId: 'cloud-managed',
+              kind: 2,
+              ownerType: 0,
+              ownerId: '',
+              provider: 'cloud-provider',
+              endpoint: '',
+              label: 'Cloud Provider',
+              status: 1,
+              authKind: 0,
+              metadata: {},
+              supportedCapabilities: [],
+              createdAt: '',
+              updatedAt: '',
+            }],
+            nextPageToken: '',
+          };
+        },
+        async listConnectorModels(request) {
+          calls.push(`models:${request.connectorId}`);
+          return {
+            models: [{
+              modelId: 'remote.chat.model',
+              displayName: 'Remote Chat Model',
+              capabilities: ['text.generate'],
+              available: true,
+              metadata: {},
+              pricing: {},
+              sourceRef: {},
+            }],
+            nextPageToken: '',
+          };
+        },
+      },
+      local: {
+        async listLocalAssets(request) {
+          calls.push(`local:${request.kindFilter}:${request.statusFilter}`);
+          return {
+            assets: [{
+              localAssetId: 'local-chat-1',
+              assetId: 'local/chat-model',
+              kind: 'chat',
+              engine: 'llama',
+              entry: '',
+              files: [],
+              license: '',
+              hashes: {},
+              status: 'active',
+              installedAt: '',
+              updatedAt: '',
+              healthDetail: '',
+              capabilities: ['text.generate'],
+              logicalModelId: '',
+              family: '',
+              artifactRoles: [],
+              preferredEngine: '',
+              fallbackEngines: [],
+              bundleState: 0,
+              warmState: 0,
+              localInvokeProfileId: '',
+              endpoint: 'http://127.0.0.1:11434',
+              reasonCode: 0,
+            }],
+            nextPageToken: '',
+          };
+        },
+      },
+    },
+  }, 'text.generate');
+
+  assert.deepEqual((await provider.listLocalModels()).map((model) => model.localModelId), ['local-chat-1']);
+  assert.deepEqual((await provider.listConnectors()).map((connector) => connector.connectorId), ['cloud-managed']);
+  assert.deepEqual((await provider.listConnectorModels('cloud-managed')).map((model) => model.modelId), ['remote.chat.model']);
+  assert.deepEqual(calls, ['connectors:2:1', 'local:0:0', 'models:cloud-managed']);
+});
+
+test('tester model picker catalog uses SDK route options projection only', () => {
+  const provider = read('src/tester/tester-runtime-model-provider.ts');
+  const summary = read('src/tester/tester-ai-config.ts');
+
+  assert.match(provider, /createRuntimeRouteModelPickerProvider/);
+  assert.match(provider, /@nimiplatform\/kit\/features\/model-picker\/runtime/);
+  assert.match(provider, /getRuntimePlatformProjection/);
+  assert.match(provider, /createNimiRuntimeRouteOptionsHostDeps/);
+  assert.match(provider, /listNimiRuntimeRouteOptionsWithHost/);
+  assert.match(provider, /listRuntimeRouteOptions/);
+  assert.match(provider, /model catalog failed closed/);
+  assert.doesNotMatch(provider, /normalizeRuntimeRouteCapabilityToken/);
+  assert.doesNotMatch(provider, /createSnapshotRouteDataProvider/);
+  assert.doesNotMatch(provider, /as unknown as RuntimeRouteModelPickerClient/);
+  assert.doesNotMatch(provider, /as NimiRuntimeCanonicalCapability/);
+  assert.doesNotMatch(provider, /openai|anthropic|gemini|gpt-4|claude|mock.*success/i);
+  assert.match(summary, /sdk\.runtime\.listNimiRuntimeRouteOptions/);
+  assert.doesNotMatch(summary, /runtimeAdmin\.listConnectors\/listConnectorModels/);
+});

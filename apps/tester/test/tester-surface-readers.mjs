@@ -29,6 +29,9 @@ export function readTesterRuntimeInvokersSurface(root) {
 export function readTesterAiTestingSurface(root) {
   return readMany(root, [
     'src/tester/workbench/section-ai-testing.tsx',
+    'src/tester/workbench/section-ai-testing-composer.tsx',
+    'src/tester/workbench/section-ai-testing-result.tsx',
+    'src/tester/workbench/section-ai-testing-run.ts',
     'src/tester/workbench/section-ai-testing-surface.tsx',
   ]);
 }
