@@ -75,6 +75,13 @@ struct AvatarCursorClientPosition {
     scale_factor: f64,
 }
 
+#[derive(Clone, Debug, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct AvatarManualDragWindowOrigin {
+    x: i32,
+    y: i32,
+}
+
 #[derive(Clone, Debug, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct AvatarRuntimeIdentityBindingPayload {
@@ -540,22 +547,40 @@ async fn nimi_avatar_start_window_drag(window: WebviewWindow) -> Result<(), Stri
     window.start_dragging().map_err(|e| e.to_string())
 }
 
-// Wave 4 drag fallback — manual delta-based window move. macOS NSWindow with
+// Wave 4 drag fallback — manual absolute window move. macOS NSWindow with
 // transparent + always_on_top + decorations(false) does not consistently
-// honor `start_dragging()`; this command lets the renderer feed pointer
-// screen-coord deltas frame-by-frame and have Rust adjust the window's
-// outer position. Permissions: relies on `core:window:allow-set-position`
-// which is already granted; no extra JS-side permission required because
-// outer_position is read internally.
+// honor `start_dragging()`. The renderer reads the origin once at drag
+// start, then sends total pointer deltas so the hot path avoids a per-frame
+// `outer_position()` read.
 #[tauri::command]
-async fn nimi_avatar_drag_window_by(
+async fn nimi_avatar_begin_manual_drag_window(
     window: WebviewWindow,
-    delta_x: i32,
-    delta_y: i32,
-) -> Result<(), String> {
+) -> Result<AvatarManualDragWindowOrigin, String> {
     let pos = window.outer_position().map_err(|e| e.to_string())?;
+    Ok(AvatarManualDragWindowOrigin { x: pos.x, y: pos.y })
+}
+
+fn compute_manual_drag_window_position(
+    origin: (i32, i32),
+    total_delta: (i32, i32),
+) -> PhysicalPosition<i32> {
+    PhysicalPosition::new(origin.0 + total_delta.0, origin.1 + total_delta.1)
+}
+
+#[tauri::command]
+async fn nimi_avatar_move_manual_drag_window(
+    window: WebviewWindow,
+    origin_x: i32,
+    origin_y: i32,
+    total_delta_x: i32,
+    total_delta_y: i32,
+) -> Result<(), String> {
+    let target = compute_manual_drag_window_position(
+        (origin_x, origin_y),
+        (total_delta_x, total_delta_y),
+    );
     window
-        .set_position(PhysicalPosition::new(pos.x + delta_x, pos.y + delta_y))
+        .set_position(target)
         .map_err(|e| e.to_string())
 }
 
@@ -738,7 +763,8 @@ fn main() {
             runtime_bridge::runtime_bridge_config_get,
             runtime_bridge::runtime_bridge_config_set,
             nimi_avatar_start_window_drag,
-            nimi_avatar_drag_window_by,
+            nimi_avatar_begin_manual_drag_window,
+            nimi_avatar_move_manual_drag_window,
             nimi_avatar_set_window_size,
             nimi_avatar_set_ignore_cursor_events,
             nimi_avatar_get_cursor_client_position,

@@ -103,6 +103,12 @@ fn cursor_client_position_falls_back_to_unit_scale_for_invalid_scale() {
     assert_eq!(result.scale_factor, 1.0);
 }
 
+#[test]
+fn manual_drag_target_uses_origin_plus_total_delta() {
+    let result = compute_manual_drag_window_position((1200, 800), (64, -32));
+    assert_eq!(result, PhysicalPosition::new(1264, 768));
+}
+
 // Wave 4 chunk 4-D — explicit VRM nominal-bounds coverage.
 // Per `.nimi/spec/avatar/kernel/tables/window-bounds-policy.yaml`
 // `backends.vrm.nominal_bounds_default`, the VRM baseline window is

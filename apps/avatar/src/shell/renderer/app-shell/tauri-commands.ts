@@ -14,15 +14,30 @@ export async function startWindowDrag(): Promise<void> {
   await invoke('nimi_avatar_start_window_drag');
 }
 
-// Wave 4 manual drag fallback. macOS NSWindow with transparent +
-// always_on_top + decorations(false) does not consistently honor the OS
-// `start_dragging()` flow; we fall back to feeding pointer screen-coord
-// deltas to Rust which adjusts the window's outer position frame-by-frame.
-export async function dragWindowBy(deltaX: number, deltaY: number): Promise<void> {
+export type AvatarManualDragWindowOrigin = {
+  x: number;
+  y: number;
+};
+
+// macOS manual drag fallback. The renderer captures the native window origin
+// once, then sends absolute targets derived from total pointer delta. This
+// avoids a per-frame Rust `outer_position()` read during drag.
+export async function beginManualDragWindow(): Promise<AvatarManualDragWindowOrigin | null> {
+  if (!isTauriRuntime()) return null;
+  return invoke<AvatarManualDragWindowOrigin>('nimi_avatar_begin_manual_drag_window');
+}
+
+export async function moveManualDragWindow(input: {
+  origin: AvatarManualDragWindowOrigin;
+  totalDeltaX: number;
+  totalDeltaY: number;
+}): Promise<void> {
   if (!isTauriRuntime()) return;
-  await invoke('nimi_avatar_drag_window_by', {
-    deltaX: Math.round(deltaX),
-    deltaY: Math.round(deltaY),
+  await invoke('nimi_avatar_move_manual_drag_window', {
+    originX: Math.round(input.origin.x),
+    originY: Math.round(input.origin.y),
+    totalDeltaX: Math.round(input.totalDeltaX),
+    totalDeltaY: Math.round(input.totalDeltaY),
   });
 }
 

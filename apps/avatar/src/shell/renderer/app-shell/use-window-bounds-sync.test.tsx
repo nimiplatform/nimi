@@ -37,7 +37,8 @@ vi.mock('./tauri-commands.js', () => ({
   // surface includes them; keep the mock interface complete to avoid surprise
   // load-time failures if downstream re-imports change.
   startWindowDrag: vi.fn(),
-  dragWindowBy: vi.fn(),
+  beginManualDragWindow: vi.fn(),
+  moveManualDragWindow: vi.fn(),
   setIgnoreCursorEvents: (...args: unknown[]) => setIgnoreCursorEventsMock(...args),
   constrainWindowToVisibleArea: vi.fn(),
   setAlwaysOnTop: vi.fn(),

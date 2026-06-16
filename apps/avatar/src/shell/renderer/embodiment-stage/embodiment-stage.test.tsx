@@ -29,7 +29,8 @@ const setIgnoreCursorEventsMock = vi.fn();
 const getCursorClientPositionMock = vi.fn();
 const registerLipsyncSinkMock = vi.fn();
 const startWindowDragMock = vi.fn();
-const dragWindowByMock = vi.fn();
+const beginManualDragWindowMock = vi.fn();
+const moveManualDragWindowMock = vi.fn();
 const constrainWindowToVisibleAreaMock = vi.fn();
 const runtimeFlags = vi.hoisted(() => ({
   tauriRuntime: false,
@@ -42,7 +43,8 @@ vi.mock('../app-shell/avatar-evidence.js', () => ({
 
 vi.mock('../app-shell/tauri-commands.js', () => ({
   startWindowDrag: (...args: unknown[]) => startWindowDragMock(...args),
-  dragWindowBy: (...args: unknown[]) => dragWindowByMock(...args),
+  beginManualDragWindow: (...args: unknown[]) => beginManualDragWindowMock(...args),
+  moveManualDragWindow: (...args: unknown[]) => moveManualDragWindowMock(...args),
   setIgnoreCursorEvents: (...args: unknown[]) => setIgnoreCursorEventsMock(...args),
   getCursorClientPosition: (...args: unknown[]) => getCursorClientPositionMock(...args),
   constrainWindowToVisibleArea: (...args: unknown[]) => constrainWindowToVisibleAreaMock(...args),
@@ -128,8 +130,10 @@ beforeEach(() => {
   getCursorClientPositionMock.mockReset();
   startWindowDragMock.mockReset();
   startWindowDragMock.mockResolvedValue(undefined);
-  dragWindowByMock.mockReset();
-  dragWindowByMock.mockResolvedValue(undefined);
+  beginManualDragWindowMock.mockReset();
+  beginManualDragWindowMock.mockResolvedValue({ x: 1000, y: 700 });
+  moveManualDragWindowMock.mockReset();
+  moveManualDragWindowMock.mockResolvedValue(undefined);
   constrainWindowToVisibleAreaMock.mockReset();
   constrainWindowToVisibleAreaMock.mockResolvedValue(undefined);
   runtimeFlags.tauriRuntime = false;
@@ -372,10 +376,10 @@ describe('EmbodimentStage — pointermove click-through (chunk 4-C)', () => {
     expect(setIgnoreCursorEventsMock).toHaveBeenCalledWith(false);
   });
 
-  it('Windows drag uses manual window movement and freezes click-through during the drag', async () => {
+  it('macOS manual drag uses absolute target movement and freezes click-through during the drag', async () => {
     runtimeFlags.tauriRuntime = true;
     Object.defineProperty(window.navigator, 'platform', {
-      value: 'Win32',
+      value: 'MacIntel',
       configurable: true,
     });
     const isOpaqueAtClientPoint = vi.fn(() => false);
@@ -401,6 +405,7 @@ describe('EmbodimentStage — pointermove click-through (chunk 4-C)', () => {
     });
     await Promise.resolve();
 
+    expect(beginManualDragWindowMock).toHaveBeenCalledTimes(1);
     expect(setIgnoreCursorEventsMock).toHaveBeenCalledWith(false);
     setIgnoreCursorEventsMock.mockClear();
     isOpaqueAtClientPoint.mockClear();
@@ -418,9 +423,162 @@ describe('EmbodimentStage — pointermove click-through (chunk 4-C)', () => {
       vi.advanceTimersByTime(100);
     });
 
-    expect(dragWindowByMock).toHaveBeenCalled();
+    expect(moveManualDragWindowMock).toHaveBeenCalledWith({
+      origin: { x: 1000, y: 700 },
+      totalDeltaX: 60,
+      totalDeltaY: 40,
+    });
     expect(isOpaqueAtClientPoint).not.toHaveBeenCalled();
     expect(setIgnoreCursorEventsMock).not.toHaveBeenCalled();
+  });
+
+  it('macOS manual drag coalesces move IPC while a prior move is in flight', async () => {
+    runtimeFlags.tauriRuntime = true;
+    Object.defineProperty(window.navigator, 'platform', {
+      value: 'MacIntel',
+      configurable: true,
+    });
+    const moveResolvers: Array<() => void> = [];
+    moveManualDragWindowMock.mockImplementation(
+      () => new Promise<void>((resolve) => {
+        moveResolvers.push(resolve);
+      }),
+    );
+    const backend = createMockBackend({
+      hitRegion: {
+        body: { left: 0, top: 0, right: 1, bottom: 1 },
+        drag: { left: 0, top: 0, right: 1, bottom: 1 },
+        isOpaqueAtClientPoint: () => true,
+      },
+    });
+    render(<EmbodimentStage {...baseProps} backend={backend} />);
+    const stage = screen.getByTestId('avatar-embodiment-stage');
+
+    fireEvent.pointerDown(stage, {
+      button: 0,
+      buttons: 1,
+      pointerId: 11,
+      clientX: 120,
+      clientY: 220,
+      screenX: 800,
+      screenY: 500,
+    });
+    await Promise.resolve();
+
+    fireEvent.pointerMove(stage, {
+      button: 0,
+      buttons: 1,
+      pointerId: 11,
+      clientX: 180,
+      clientY: 260,
+      screenX: 860,
+      screenY: 540,
+    });
+    act(() => {
+      vi.advanceTimersByTime(100);
+    });
+    expect(moveManualDragWindowMock).toHaveBeenCalledTimes(1);
+
+    fireEvent.pointerMove(stage, {
+      button: 0,
+      buttons: 1,
+      pointerId: 11,
+      clientX: 220,
+      clientY: 280,
+      screenX: 900,
+      screenY: 560,
+    });
+    act(() => {
+      vi.advanceTimersByTime(100);
+    });
+    expect(moveManualDragWindowMock).toHaveBeenCalledTimes(1);
+
+    moveResolvers[0]?.();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(moveManualDragWindowMock).toHaveBeenCalledTimes(2);
+    expect(moveManualDragWindowMock).toHaveBeenLastCalledWith({
+      origin: { x: 1000, y: 700 },
+      totalDeltaX: 100,
+      totalDeltaY: 60,
+    });
+  });
+
+  it('non-macOS drag uses native Tauri startDragging instead of manual movement', async () => {
+    runtimeFlags.tauriRuntime = true;
+    Object.defineProperty(window.navigator, 'platform', {
+      value: 'Win32',
+      configurable: true,
+    });
+    const backend = createMockBackend({
+      hitRegion: {
+        body: { left: 0, top: 0, right: 1, bottom: 1 },
+        drag: { left: 0, top: 0, right: 1, bottom: 1 },
+        isOpaqueAtClientPoint: () => true,
+      },
+    });
+    render(<EmbodimentStage {...baseProps} backend={backend} />);
+    const stage = screen.getByTestId('avatar-embodiment-stage');
+
+    fireEvent.pointerDown(stage, {
+      button: 0,
+      buttons: 1,
+      pointerId: 8,
+      clientX: 120,
+      clientY: 220,
+      screenX: 800,
+      screenY: 500,
+    });
+    fireEvent.pointerMove(stage, {
+      button: 0,
+      buttons: 1,
+      pointerId: 8,
+      clientX: 130,
+      clientY: 220,
+      screenX: 810,
+      screenY: 500,
+    });
+    await Promise.resolve();
+
+    expect(startWindowDragMock).toHaveBeenCalledTimes(1);
+    expect(beginManualDragWindowMock).not.toHaveBeenCalled();
+    expect(moveManualDragWindowMock).not.toHaveBeenCalled();
+  });
+
+  it('unknown Tauri platform defaults to manual drag fallback for macOS WKWebView safety', async () => {
+    runtimeFlags.tauriRuntime = true;
+    Object.defineProperty(window.navigator, 'platform', {
+      value: '',
+      configurable: true,
+    });
+    Object.defineProperty(window.navigator, 'userAgent', {
+      value: 'Mozilla/5.0',
+      configurable: true,
+    });
+    const backend = createMockBackend({
+      hitRegion: {
+        body: { left: 0, top: 0, right: 1, bottom: 1 },
+        drag: { left: 0, top: 0, right: 1, bottom: 1 },
+        isOpaqueAtClientPoint: () => true,
+      },
+    });
+    render(<EmbodimentStage {...baseProps} backend={backend} />);
+    const stage = screen.getByTestId('avatar-embodiment-stage');
+
+    fireEvent.pointerDown(stage, {
+      button: 0,
+      buttons: 1,
+      pointerId: 12,
+      clientX: 120,
+      clientY: 220,
+      screenX: 800,
+      screenY: 500,
+    });
+    await Promise.resolve();
+
+    expect(beginManualDragWindowMock).toHaveBeenCalledTimes(1);
+    expect(startWindowDragMock).not.toHaveBeenCalled();
   });
 
   it('zero-delta pointermove while armed does not consume a click as drag', async () => {
@@ -464,7 +622,7 @@ describe('EmbodimentStage — pointermove click-through (chunk 4-C)', () => {
       screenY: 500,
     });
 
-    expect(dragWindowByMock).not.toHaveBeenCalled();
+    expect(moveManualDragWindowMock).not.toHaveBeenCalled();
     expect(constrainWindowToVisibleAreaMock).not.toHaveBeenCalled();
     expect(emit).toHaveBeenCalledWith(expect.objectContaining({ name: 'avatar.user.click' }));
   });

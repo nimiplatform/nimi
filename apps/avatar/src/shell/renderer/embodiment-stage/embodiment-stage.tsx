@@ -13,11 +13,13 @@ import {
 } from '@nimiplatform/kit/features/avatar/headless';
 import { AvatarInteractionController } from '../interaction/avatar-interaction-controller.js';
 import {
+  beginManualDragWindow,
   constrainWindowToVisibleArea,
-  dragWindowBy,
   getCursorClientPosition,
+  moveManualDragWindow,
   setIgnoreCursorEvents,
   startWindowDrag,
+  type AvatarManualDragWindowOrigin,
 } from '../app-shell/tauri-commands.js';
 import { isTauriRuntime } from '../app-shell/tauri-lifecycle.js';
 import { useSurfaceMountEvidence } from '../app-shell/composition-events.js';
@@ -65,6 +67,24 @@ const ADMITTED_BACKEND_LIFECYCLE_EVIDENCE = new Set([
   'audio_pipeline_failed',
   'hit_region_degraded',
 ]);
+
+type ManualDragState = {
+  mode: 'armed' | 'manual';
+  startScreenX: number;
+  startScreenY: number;
+  lastScreenX: number;
+  lastScreenY: number;
+  pointerId: number;
+  totalDx: number;
+  totalDy: number;
+  pendingTarget: { totalDx: number; totalDy: number } | null;
+  origin: AvatarManualDragWindowOrigin | null;
+  originFailed: boolean;
+  moveInFlight: boolean;
+  ended: boolean;
+  constrainOnEnd: boolean;
+  rafHandle: number | null;
+};
 
 export function EmbodimentStage(props: EmbodimentStageProps) {
   const {
@@ -229,31 +249,72 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
   const bodyRef = useRef<HTMLDivElement | null>(null);
   // Wave 4 manual drag fallback state. macOS NSWindow with transparent +
   // always_on_top + decorations(false) doesn't honor `start_dragging()`,
-  // so we track screen-coord deltas during pointermove. To keep dragging
-  // smooth on high-frequency pointer devices, deltas are accumulated and
-  // flushed once per animation frame instead of per pointermove (which fires
-  // at 60–120 Hz on macOS and would otherwise produce one IPC round-trip
-  // per event).
-  const dragRef = useRef<{
-    mode: 'armed' | 'manual';
-    lastScreenX: number;
-    lastScreenY: number;
-    pointerId: number;
-    pendingDx: number;
-    pendingDy: number;
-    rafHandle: number | null;
-  } | null>(null);
+  // so we track screen-coord deltas during pointermove. The origin is read
+  // once at pointerdown; move IPCs use absolute target positions derived from
+  // total delta so Rust does not read the current window position per frame.
+  const dragRef = useRef<ManualDragState | null>(null);
 
-  const flushDragDelta = (): void => {
+  const shouldUseManualDragFallback = (): boolean => {
+    if (!isTauriRuntime()) return false;
+    const platform = window.navigator.platform || '';
+    const userAgent = window.navigator.userAgent || '';
+    if (/Win|Linux|X11/i.test(platform)) return false;
+    if (/Windows|Linux|X11/i.test(userAgent)) return false;
+    // Tauri/WKWebView on macOS may report an empty/deprecated platform
+    // string. The transparent no-chrome Avatar window needs the manual path
+    // on macOS, so unknown desktop Tauri defaults to the fallback.
+    return true;
+  };
+
+  const finalizeManualDragIfDone = (drag: ManualDragState): void => {
+    if (!drag.ended || drag.moveInFlight || drag.pendingTarget) return;
+    if (dragRef.current === drag) {
+      dragRef.current = null;
+    }
+    if (drag.constrainOnEnd) {
+      void constrainWindowToVisibleArea();
+    }
+  };
+
+  const pumpManualDragMove = (drag: ManualDragState): void => {
+    if (drag.moveInFlight || drag.pendingTarget === null) {
+      finalizeManualDragIfDone(drag);
+      return;
+    }
+    if (drag.origin === null) {
+      if (drag.originFailed) {
+        drag.pendingTarget = null;
+        finalizeManualDragIfDone(drag);
+      }
+      return;
+    }
+    const target = drag.pendingTarget;
+    drag.pendingTarget = null;
+    drag.moveInFlight = true;
+    void moveManualDragWindow({
+      origin: drag.origin,
+      totalDeltaX: target.totalDx,
+      totalDeltaY: target.totalDy,
+    }).finally(() => {
+      drag.moveInFlight = false;
+      if (drag.pendingTarget) {
+        pumpManualDragMove(drag);
+        return;
+      }
+      finalizeManualDragIfDone(drag);
+    });
+  };
+
+  const flushManualDragTarget = (): void => {
     const drag = dragRef.current;
     if (!drag) return;
     drag.rafHandle = null;
-    const dx = drag.pendingDx;
-    const dy = drag.pendingDy;
-    if (dx === 0 && dy === 0) return;
-    drag.pendingDx = 0;
-    drag.pendingDy = 0;
-    void dragWindowBy(dx, dy);
+    if (drag.totalDx === 0 && drag.totalDy === 0) return;
+    drag.pendingTarget = {
+      totalDx: drag.totalDx,
+      totalDy: drag.totalDy,
+    };
+    pumpManualDragMove(drag);
   };
 
   const stopClickThroughRecoveryPoll = useCallback((): void => {
@@ -445,10 +506,10 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
             }
             drag.lastScreenX = event.screenX;
             drag.lastScreenY = event.screenY;
-            drag.pendingDx += dx;
-            drag.pendingDy += dy;
+            drag.totalDx = event.screenX - drag.startScreenX;
+            drag.totalDy = event.screenY - drag.startScreenY;
             if (drag.rafHandle === null) {
-              drag.rafHandle = requestAnimationFrame(flushDragDelta);
+              drag.rafHandle = requestAnimationFrame(flushManualDragTarget);
             }
           }
           return;
@@ -473,15 +534,53 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
           // Capture pointer so subsequent move/up events fire here even when
           // the cursor leaves the element while dragging.
           (event.currentTarget as HTMLElement).setPointerCapture?.(event.pointerId);
-          dragRef.current = {
-            mode: 'armed',
-            lastScreenX: event.screenX,
-            lastScreenY: event.screenY,
-            pointerId: event.pointerId,
-            pendingDx: 0,
-            pendingDy: 0,
-            rafHandle: null,
-          };
+          if (shouldUseManualDragFallback()) {
+            const drag: ManualDragState = {
+              mode: 'armed',
+              startScreenX: event.screenX,
+              startScreenY: event.screenY,
+              lastScreenX: event.screenX,
+              lastScreenY: event.screenY,
+              pointerId: event.pointerId,
+              totalDx: 0,
+              totalDy: 0,
+              pendingTarget: null,
+              origin: null,
+              originFailed: false,
+              moveInFlight: false,
+              ended: false,
+              constrainOnEnd: false,
+              rafHandle: null,
+            };
+            dragRef.current = drag;
+            void beginManualDragWindow()
+              .then((origin) => {
+                if (dragRef.current !== drag || origin === null) return;
+                drag.origin = origin;
+                if (drag.totalDx !== 0 || drag.totalDy !== 0) {
+                  drag.pendingTarget = {
+                    totalDx: drag.totalDx,
+                    totalDy: drag.totalDy,
+                  };
+                  pumpManualDragMove(drag);
+                }
+              })
+              .catch((error: unknown) => {
+                drag.originFailed = true;
+                recordAvatarEvidenceEventually({
+                  kind: 'avatar.carrier.lifecycle.failed_closed',
+                  detail: {
+                    source: 'embodiment-stage',
+                    lifecycle: 'failed_closed',
+                    reason_code: 'manual_drag_origin_failed',
+                    error: error instanceof Error ? error.message : String(error || 'manual drag origin failed'),
+                  },
+                });
+                if (dragRef.current === drag) {
+                  dragRef.current = null;
+                }
+              });
+          }
         }
         controller.pointerDown(event);
       }}
@@ -496,11 +595,21 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
             // Flush any residual delta synchronously so the cursor and window
             // end the drag in lock-step (otherwise a few unflushed pixels are
             // dropped on pointer release).
-            flushDragDelta();
+            drag.rafHandle = null;
+            if (drag.totalDx !== 0 || drag.totalDy !== 0) {
+              drag.pendingTarget = {
+                totalDx: drag.totalDx,
+                totalDy: drag.totalDy,
+              };
+              pumpManualDragMove(drag);
+            }
           }
-          dragRef.current = null;
           if (consumedDrag) {
-            void constrainWindowToVisibleArea();
+            drag.ended = true;
+            drag.constrainOnEnd = true;
+            finalizeManualDragIfDone(drag);
+          } else {
+            dragRef.current = null;
           }
         }
         if (consumedDrag) {
@@ -515,7 +624,12 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
         if (drag && drag.rafHandle !== null) {
           cancelAnimationFrame(drag.rafHandle);
         }
-        dragRef.current = null;
+        if (drag) {
+          drag.rafHandle = null;
+          drag.ended = true;
+          drag.constrainOnEnd = false;
+          finalizeManualDragIfDone(drag);
+        }
         controller.pointerCancel();
       }}
       onFocusCapture={() => {
