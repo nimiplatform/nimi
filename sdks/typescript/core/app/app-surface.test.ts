@@ -368,7 +368,9 @@ describe('vNext app surface', () => {
       loadReleaseDescriptors: loadNimiAppReleaseDescriptorRows,
     });
     assert.deepEqual(await generated.list(), []);
-    assert.equal((await generated.status('nimi.avatar')).launchReadiness, 'blocked-by-master-gate');
+    const hiddenGeneratedStatus = await generated.status('nimi.avatar');
+    assert.equal(hiddenGeneratedStatus.launchReadiness, 'unsupported');
+    assert.equal(hiddenGeneratedStatus.detail, 'registry row is not installable: app-not-ordinary-visible');
 
     const admitted = createNimiAppRegistryTransport({
       loadRows: () => [{

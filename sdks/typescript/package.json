@@ -4,6 +4,8 @@
   "private": true,
   "license": "Apache-2.0",
   "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
   "repository": {
     "type": "git",
     "url": "https://github.com/nimiplatform/nimi",
@@ -13,74 +15,92 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
     "./runtime": {
       "types": "./dist/runtime/index.d.ts",
+      "import": "./dist/runtime/index.js",
       "default": "./dist/runtime/index.js"
     },
     "./runtime/generated": {
       "types": "./dist/runtime/generated.d.ts",
+      "import": "./dist/runtime/generated.js",
       "default": "./dist/runtime/generated.js"
     },
     "./realm": {
       "types": "./dist/realm/index.d.ts",
+      "import": "./dist/realm/index.js",
       "default": "./dist/realm/index.js"
     },
     "./realm/generated": {
       "types": "./dist/realm/generated.d.ts",
+      "import": "./dist/realm/generated.js",
       "default": "./dist/realm/generated.js"
     },
     "./app": {
       "types": "./dist/core/app/index.d.ts",
+      "import": "./dist/core/app/index.js",
       "default": "./dist/core/app/index.js"
     },
     "./types": {
       "types": "./dist/types/index.d.ts",
+      "import": "./dist/types/index.js",
       "default": "./dist/types/index.js"
     },
     "./contracts": {
       "types": "./dist/core/contracts/index.d.ts",
+      "import": "./dist/core/contracts/index.js",
       "default": "./dist/core/contracts/index.js"
     },
     "./ai": {
       "types": "./dist/core/ai/index.d.ts",
+      "import": "./dist/core/ai/index.js",
       "default": "./dist/core/ai/index.js"
     },
     "./agent": {
       "types": "./dist/core/agent/index.d.ts",
+      "import": "./dist/core/agent/index.js",
       "default": "./dist/core/agent/index.js"
     },
     "./testing": {
       "types": "./dist/core/testing/index.d.ts",
+      "import": "./dist/core/testing/index.js",
       "default": "./dist/core/testing/index.js"
     },
     "./features/conversation": {
       "types": "./dist/features/conversation/index.d.ts",
+      "import": "./dist/features/conversation/index.js",
       "default": "./dist/features/conversation/index.js"
     },
     "./features/knowledge-context": {
       "types": "./dist/features/knowledge-context/index.d.ts",
+      "import": "./dist/features/knowledge-context/index.js",
       "default": "./dist/features/knowledge-context/index.js"
     },
     "./features/memory-context": {
       "types": "./dist/features/memory-context/index.d.ts",
+      "import": "./dist/features/memory-context/index.js",
       "default": "./dist/features/memory-context/index.js"
     },
     "./features/generation": {
       "types": "./dist/features/generation/index.d.ts",
+      "import": "./dist/features/generation/index.js",
       "default": "./dist/features/generation/index.js"
     },
     "./features/workflow": {
       "types": "./dist/features/workflow/index.d.ts",
+      "import": "./dist/features/workflow/index.js",
       "default": "./dist/features/workflow/index.js"
     },
     "./features/evaluation": {
       "types": "./dist/features/evaluation/index.d.ts",
+      "import": "./dist/features/evaluation/index.js",
       "default": "./dist/features/evaluation/index.js"
     },
     "./features/toolkits": {
       "types": "./dist/features/toolkits/index.d.ts",
+      "import": "./dist/features/toolkits/index.js",
       "default": "./dist/features/toolkits/index.js"
     }
   },
