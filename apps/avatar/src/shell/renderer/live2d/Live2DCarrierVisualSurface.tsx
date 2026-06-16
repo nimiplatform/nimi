@@ -60,11 +60,18 @@ export function Live2DCarrierVisualSurface({
   const lastFrameTimeRef = useRef<number | null>(null);
   const [status, setStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
-  const [stats, setStats] = useState<Live2DCarrierVisualFrameStats | null>(null);
+  const [proofStats, setProofStats] = useState<Live2DCarrierVisualFrameStats | null>(null);
+  const statusRef = useRef<'idle' | 'loading' | 'ready' | 'error'>('idle');
   const recordedVisualRef = useRef(false);
   const recordedInteractionRef = useRef(false);
   const artifactWritePendingRef = useRef(false);
   const artifactFailureRecordedRef = useRef(false);
+
+  const setSurfaceStatus = (nextStatus: 'idle' | 'loading' | 'ready' | 'error'): void => {
+    if (statusRef.current === nextStatus) return;
+    statusRef.current = nextStatus;
+    setStatus(nextStatus);
+  };
 
   useEffect(() => {
     const host = hostRef.current;
@@ -74,9 +81,9 @@ export function Live2DCarrierVisualSurface({
       artifactWritePendingRef.current = false;
       artifactFailureRecordedRef.current = false;
       lastFrameTimeRef.current = null;
-      setStatus('idle');
+      setSurfaceStatus('idle');
       setError(null);
-      setStats(null);
+      setProofStats(null);
       host?.replaceChildren();
       return;
     }
@@ -87,9 +94,9 @@ export function Live2DCarrierVisualSurface({
     let visualHost: Live2DCarrierVisualHost | null = null;
     let visualProofAttempts = 0;
     lastFrameTimeRef.current = null;
-    setStatus('loading');
+    setSurfaceStatus('loading');
     setError(null);
-    setStats(null);
+    setProofStats(null);
     recordAvatarEvidenceEventually({
       kind: 'avatar.carrier.visual',
       detail: {
@@ -104,22 +111,41 @@ export function Live2DCarrierVisualSurface({
         return;
       }
       try {
-        visualProofAttempts += 1;
         const now = performance.now();
         const previous = lastFrameTimeRef.current ?? now;
         lastFrameTimeRef.current = now;
+        const deltaTimeSeconds = Math.max(1 / 120, Math.min(0.1, (now - previous) / 1000));
         lipsyncDriverRef.current.tick({
-          deltaSec: Math.max(1 / 120, Math.min(0.1, (now - previous) / 1000)),
+          deltaSec: deltaTimeSeconds,
           lipsyncSnapshot: audioConsumer.snapshot(),
           paramMouthFormSupported,
           setParameter: (id, value) => {
             session.applyCommand({ kind: 'parameter', id, value, weight: 1 });
           },
         });
-        const nextStats = visualHost.renderFrame();
-        setStats(nextStats);
-        setStatus('ready');
+        const frameInput = {
+          deltaTimeSeconds,
+          seconds: now / 1000,
+        };
+        const shouldProbeVisualFrame =
+          !recordedVisualRef.current &&
+          !artifactWritePendingRef.current &&
+          visualProofAttempts < 90;
+        if (shouldProbeVisualFrame) {
+          visualProofAttempts += 1;
+        }
+        const nextStats = shouldProbeVisualFrame
+          ? visualHost.probeVisibleFrame(frameInput)
+          : null;
+        if (!nextStats) {
+          visualHost.drawFrame(frameInput);
+        }
+        setSurfaceStatus('ready');
+        if (nextStats && !recordedVisualRef.current) {
+          setProofStats(nextStats);
+        }
         if (
+          nextStats &&
           !recordedInteractionRef.current
           && nextStats.visiblePixels > 0
           && nextStats.activeMotionGroup
@@ -148,14 +174,14 @@ export function Live2DCarrierVisualSurface({
             },
           });
         }
-        if (!recordedVisualRef.current && !artifactWritePendingRef.current && nextStats.visiblePixels > 0) {
+        if (nextStats && !recordedVisualRef.current && !artifactWritePendingRef.current && nextStats.visiblePixels > 0) {
+          recordedVisualRef.current = true;
           artifactWritePendingRef.current = true;
           void writeVisibleFrameArtifact({ visualHost, stats: nextStats })
             .then((artifact) => {
               if (cancelled) {
                 return;
               }
-              recordedVisualRef.current = true;
               artifactWritePendingRef.current = false;
               recordAvatarEvidenceEventually({
                 kind: 'avatar.carrier.visual',
@@ -203,13 +229,14 @@ export function Live2DCarrierVisualSurface({
         const message = describeError(renderError);
         if (
           renderError instanceof Live2DCarrierVisualFrameError
+          && !recordedVisualRef.current
           && visualProofAttempts < 90
         ) {
-          setStatus('loading');
+          setSurfaceStatus('loading');
           animationFrame = requestAnimationFrame(renderLoop);
           return;
         }
-        setStatus('error');
+        setSurfaceStatus('error');
         setError(message);
         recordAvatarEvidenceEventually({
           kind: 'avatar.carrier.visual',
@@ -260,7 +287,7 @@ export function Live2DCarrierVisualSurface({
         if (cancelled) {
           return;
         }
-        setStatus('error');
+        setSurfaceStatus('error');
         const message = describeError(loadError);
         setError(message);
         recordAvatarEvidenceEventually({
@@ -294,8 +321,8 @@ export function Live2DCarrierVisualSurface({
       data-testid="avatar-live2d-carrier-visual"
       data-avatar-owned-live2d-status={status}
       data-avatar-live2d-carrier-status={status}
-      data-avatar-live2d-carrier-visible-pixels={stats?.visiblePixels ?? 0}
-      data-avatar-live2d-carrier-drawables={stats?.visibleDrawableCount ?? 0}
+      data-avatar-live2d-carrier-visible-pixels={proofStats?.visiblePixels ?? 0}
+      data-avatar-live2d-carrier-drawables={proofStats?.visibleDrawableCount ?? 0}
       data-avatar-live2d-carrier-error={error ?? undefined}
     />
   );

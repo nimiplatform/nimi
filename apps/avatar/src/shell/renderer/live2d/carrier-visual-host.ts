@@ -11,12 +11,9 @@ import {
 import { readBinaryFile } from './model-loader.js';
 import type { Live2DBackendSession } from './backend-session.js';
 
-export type Live2DCarrierVisualFrameStats = {
+export type Live2DCarrierVisualDrawStats = {
   width: number;
   height: number;
-  sampledPixels: number;
-  visiblePixels: number;
-  sampledPixelChecksum: number;
   drawableCount: number;
   visibleDrawableCount: number;
   nonZeroOpacityDrawableCount: number;
@@ -25,6 +22,12 @@ export type Live2DCarrierVisualFrameStats = {
   motionFrameApplied: boolean;
   activeExpressionId: string | null;
   expressionFrameApplied: boolean;
+};
+
+export type Live2DCarrierVisualFrameStats = Live2DCarrierVisualDrawStats & {
+  sampledPixels: number;
+  visiblePixels: number;
+  sampledPixelChecksum: number;
 };
 
 export class Live2DCarrierVisualFrameError extends Error {
@@ -39,7 +42,11 @@ export class Live2DCarrierVisualFrameError extends Error {
 
 export type Live2DCarrierVisualHost = {
   readonly canvas: HTMLCanvasElement;
-  renderFrame(input?: {
+  drawFrame(input?: {
+    deltaTimeSeconds?: number;
+    seconds?: number;
+  }): Live2DCarrierVisualDrawStats;
+  probeVisibleFrame(input?: {
     deltaTimeSeconds?: number;
     seconds?: number;
   }): Live2DCarrierVisualFrameStats;
@@ -59,7 +66,13 @@ export type Live2DCarrierVisualHostDeps = {
 };
 
 type VisualModelHandle = {
-  renderFrame(input: {
+  drawFrame(input: {
+    width: number;
+    height: number;
+    deltaTimeSeconds: number;
+    seconds: number;
+  }): Live2DCarrierVisualDrawStats;
+  probeVisibleFrame(input: {
     width: number;
     height: number;
     deltaTimeSeconds: number;
@@ -255,12 +268,12 @@ async function createVisualModel(input: {
       this.baseModelMatrix = new Float32Array(modelMatrix.getArray());
     }
 
-    public renderFrame(inputFrame: {
+    private renderDrawFrame(inputFrame: {
       width: number;
       height: number;
       deltaTimeSeconds: number;
       seconds: number;
-    }): Live2DCarrierVisualFrameStats {
+    }): Live2DCarrierVisualDrawStats {
       const model = getModelRef(this);
       const modelMatrix = this.getModelMatrix();
       if (!model || !modelMatrix) {
@@ -323,15 +336,9 @@ async function createVisualModel(input: {
           nonZeroOpacityDrawableCount += 1;
         }
       }
-      const pixelStats = sampleVisiblePixels({
-        gl: input.gl,
-        width: inputFrame.width,
-        height: inputFrame.height,
-      });
       return {
         width: inputFrame.width,
         height: inputFrame.height,
-        ...pixelStats,
         drawableCount,
         visibleDrawableCount,
         nonZeroOpacityDrawableCount,
@@ -340,6 +347,33 @@ async function createVisualModel(input: {
         motionFrameApplied,
         activeExpressionId: this.startedExpressionId,
         expressionFrameApplied,
+      };
+    }
+
+    public drawFrame(inputFrame: {
+      width: number;
+      height: number;
+      deltaTimeSeconds: number;
+      seconds: number;
+    }): Live2DCarrierVisualDrawStats {
+      return this.renderDrawFrame(inputFrame);
+    }
+
+    public probeVisibleFrame(inputFrame: {
+      width: number;
+      height: number;
+      deltaTimeSeconds: number;
+      seconds: number;
+    }): Live2DCarrierVisualFrameStats {
+      const drawStats = this.renderDrawFrame(inputFrame);
+      const pixelStats = sampleVisiblePixels({
+        gl: input.gl,
+        width: inputFrame.width,
+        height: inputFrame.height,
+      });
+      return {
+        ...drawStats,
+        ...pixelStats,
       };
     }
 
@@ -503,12 +537,12 @@ export async function createLive2DCarrierVisualHost(
     alpha: true,
     antialias: true,
     premultipliedAlpha: true,
-    preserveDrawingBuffer: true,
+    preserveDrawingBuffer: false,
   }) || input.canvas.getContext('webgl', {
     alpha: true,
     antialias: true,
     premultipliedAlpha: true,
-    preserveDrawingBuffer: true,
+    preserveDrawingBuffer: false,
   })) as WebGLRenderingContext | WebGL2RenderingContext | null;
   if (!gl) {
     throw new Error('Live2D carrier visual host could not acquire a WebGL context');
@@ -530,8 +564,16 @@ export async function createLive2DCarrierVisualHost(
 
   return {
     canvas: input.canvas,
-    renderFrame(frameInput = {}) {
-      const stats = model.renderFrame({
+    drawFrame(frameInput = {}) {
+      return model.drawFrame({
+        width: input.canvas.width,
+        height: input.canvas.height,
+        deltaTimeSeconds: frameInput.deltaTimeSeconds ?? 1 / 60,
+        seconds: frameInput.seconds ?? performance.now() / 1000,
+      });
+    },
+    probeVisibleFrame(frameInput = {}) {
+      const stats = model.probeVisibleFrame({
         width: input.canvas.width,
         height: input.canvas.height,
         deltaTimeSeconds: frameInput.deltaTimeSeconds ?? 1 / 60,

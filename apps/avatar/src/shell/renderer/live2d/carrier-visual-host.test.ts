@@ -329,7 +329,7 @@ async function createHostWithFakeRuntime(options: {
   Object.defineProperty(canvas, 'getContext', {
     value: vi.fn(() => gl),
   });
-  return createLive2DCarrierVisualHost({
+  const host = await createLive2DCarrierVisualHost({
     canvas,
     session: createSession({
       loaded: options.loaded,
@@ -347,12 +347,13 @@ async function createHostWithFakeRuntime(options: {
     loadTexture: vi.fn(async () => ({}) as WebGLTexture),
     verifyShaders: vi.fn(async () => []),
   });
+  return { host, gl };
 }
 
 describe('Live2D carrier visual host', () => {
   it('renders a loaded Avatar backend session through the carrier WebGL path and proves visible pixels', async () => {
-    const host = await createHostWithFakeRuntime({ drawVisible: true });
-    const stats = host.renderFrame({ deltaTimeSeconds: 1 / 60, seconds: 1 });
+    const { host } = await createHostWithFakeRuntime({ drawVisible: true });
+    const stats = host.probeVisibleFrame({ deltaTimeSeconds: 1 / 60, seconds: 1 });
 
     expect(stats).toEqual(expect.objectContaining({
       width: 128,
@@ -367,10 +368,26 @@ describe('Live2D carrier visual host', () => {
     expect(stats.sampledPixelChecksum).toBeGreaterThan(0);
   });
 
-  it('fails closed when the draw path produces no visible pixels', async () => {
-    const host = await createHostWithFakeRuntime({ drawVisible: false });
+  it('draws steady frames without synchronous pixel readback', async () => {
+    const { host, gl } = await createHostWithFakeRuntime({ drawVisible: true });
+    const stats = host.drawFrame({ deltaTimeSeconds: 1 / 60, seconds: 1 });
 
-    expect(() => host.renderFrame({ deltaTimeSeconds: 1 / 60, seconds: 1 }))
+    expect(stats).toEqual(expect.objectContaining({
+      width: 128,
+      height: 160,
+      drawableCount: 1,
+      visibleDrawableCount: 1,
+      nonZeroOpacityDrawableCount: 1,
+      textureBindingCount: 1,
+    }));
+    expect(stats).not.toHaveProperty('sampledPixels');
+    expect(gl.readPixels).not.toHaveBeenCalled();
+  });
+
+  it('fails closed when the draw path produces no visible pixels', async () => {
+    const { host } = await createHostWithFakeRuntime({ drawVisible: false });
+
+    expect(() => host.probeVisibleFrame({ deltaTimeSeconds: 1 / 60, seconds: 1 }))
       .toThrow('produced no visible pixels');
   });
 
@@ -380,8 +397,8 @@ describe('Live2D carrier visual host', () => {
   });
 
   it('proves interaction physics changes the Avatar-owned carrier visual frame', async () => {
-    const neutralHost = await createHostWithFakeRuntime({ drawVisible: true });
-    const activeHost = await createHostWithFakeRuntime({
+    const { host: neutralHost } = await createHostWithFakeRuntime({ drawVisible: true });
+    const { host: activeHost } = await createHostWithFakeRuntime({
       drawVisible: true,
       parameters: new Map([
         ['ParamAngleX', 12],
@@ -389,8 +406,8 @@ describe('Live2D carrier visual host', () => {
       ]),
     });
 
-    const neutral = neutralHost.renderFrame({ deltaTimeSeconds: 1 / 60, seconds: 1 });
-    const active = activeHost.renderFrame({ deltaTimeSeconds: 1 / 60, seconds: 1 });
+    const neutral = neutralHost.probeVisibleFrame({ deltaTimeSeconds: 1 / 60, seconds: 1 });
+    const active = activeHost.probeVisibleFrame({ deltaTimeSeconds: 1 / 60, seconds: 1 });
 
     expect(neutral.visiblePixels).toBeGreaterThan(0);
     expect(active.visiblePixels).toBeGreaterThan(0);
@@ -398,7 +415,7 @@ describe('Live2D carrier visual host', () => {
   });
 
   it('applies loaded motion and expression state through Cubism managers before drawing', async () => {
-    const host = await createHostWithFakeRuntime({
+    const { host } = await createHostWithFakeRuntime({
       drawVisible: true,
       activeMotion: 'Idle',
       activeExpression: 'exp_01',
@@ -410,7 +427,7 @@ describe('Live2D carrier visual host', () => {
       ]),
     });
 
-    const stats = host.renderFrame({ deltaTimeSeconds: 1 / 60, seconds: 1 });
+    const stats = host.probeVisibleFrame({ deltaTimeSeconds: 1 / 60, seconds: 1 });
 
     expect(stats).toEqual(expect.objectContaining({
       activeMotionGroup: 'Idle',

@@ -25,6 +25,12 @@ function timeoutAfter<T>(ms: number, message: string): Promise<T> {
   });
 }
 
+function isTauriRuntime(): boolean {
+  if (typeof window === 'undefined') return false;
+  const w = window as unknown as Record<string, unknown>;
+  return Boolean(w['__TAURI_INTERNALS__']) || Boolean(w['__TAURI_IPC__']);
+}
+
 export async function verifyLive2DShaderAssets(): Promise<readonly string[]> {
   const shaderRoot = resolveLive2DShaderRootUrl();
   const shaderUrls = LIVE2D_SHADER_FILES.map((fileName) => new URL(fileName, shaderRoot).toString());
@@ -40,7 +46,7 @@ export async function verifyLive2DShaderAssets(): Promise<readonly string[]> {
 
 async function decodeTextureBitmap(bytes: ArrayBuffer, path: string): Promise<ImageBitmap | HTMLImageElement> {
   const blob = new Blob([bytes], { type: 'image/png' });
-  if (typeof createImageBitmap === 'function') {
+  if (!isTauriRuntime() && typeof createImageBitmap === 'function') {
     try {
       return await Promise.race([
         createImageBitmap(blob, { premultiplyAlpha: 'premultiply' }),

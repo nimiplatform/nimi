@@ -74,7 +74,7 @@ async function renderCarrierVisualFrameWithRetry(
     try {
       return {
         attempts: attempt,
-        stats: visualHost.renderFrame({
+        stats: visualHost.probeVisibleFrame({
           deltaTimeSeconds: attempt / 60,
           seconds: performance.now() / 1000,
         }),
