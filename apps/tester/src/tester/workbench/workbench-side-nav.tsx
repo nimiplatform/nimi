@@ -56,7 +56,7 @@ export function WorkbenchSideNav({
             </ul>
           </div>
         ))}
-        <div className="workbench-side-nav__group">
+        <div className="workbench-side-nav__group" data-nav-placement="bottom">
           <ul>
             <li>
               <Tooltip

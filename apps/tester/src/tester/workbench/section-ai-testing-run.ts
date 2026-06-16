@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { NimiAIConfig } from '@nimiplatform/sdk/ai';
 import type { TesterCapability } from '../tester-capabilities.js';
-import type { TesterRunConfigSnapshot, TesterRunHistoryRecord } from '../tester-history.js';
+import { getTesterRunModelLabel, type TesterRunConfigSnapshot, type TesterRunHistoryRecord } from '../tester-history.js';
 import { createTesterAIConfigService, createTesterAppLabAIScopeRef } from '../tester-ai-config-store.js';
 import { createTesterRunTargetSummary, type TesterRunTargetLocalModel, type TesterRunTargetSummary } from '../tester-run-target.js';
 import type { TesterCapabilityRunResult, TesterRuntimeInspection } from '../tester-runtime.js';
+import { composeStudioDirective, DEFAULT_LENGTH_VALUE, DEFAULT_TONE_VALUE, getCapabilityStudioProfile, LENGTH_OPTIONS, TONE_OPTIONS } from './capability-studio-profiles.js';
 
 export type TextStudioActiveRun = {
   id: string;
@@ -16,10 +17,13 @@ export type TextStudioActiveRun = {
   error: string | null;
 };
 
-export function textStudioRuntimePrompt(prompt: string, context: string): string {
+export function textStudioRuntimePrompt(prompt: string, context: string, directive?: string): string {
   const trimmedContext = context.trim();
-  if (!trimmedContext) return prompt;
-  return `Context:\n${trimmedContext}\n\nRequest:\n${prompt}`;
+  return [
+    directive?.trim() ? `Instructions:\n${directive.trim()}` : '',
+    trimmedContext ? `Context:\n${trimmedContext}` : '',
+    `Request:\n${prompt}`,
+  ].filter(Boolean).join('\n\n');
 }
 
 function compactStudioModelLabel(value: string): string {
@@ -27,9 +31,27 @@ function compactStudioModelLabel(value: string): string {
   return normalized.replace(/^(local-import|local|cloud)\//i, '').trim() || normalized;
 }
 
-export function textStudioModelSummary(result: TesterCapabilityRunResult | null, runTarget: TesterRunTargetSummary): string {
+function isOpaqueRuntimeModelId(value: string): boolean {
+  return /^[0-9A-HJKMNP-TV-Z]{20,32}$/u.test(value.trim());
+}
+
+export function textStudioModelSummary(
+  result: TesterCapabilityRunResult | null,
+  runTarget: TesterRunTargetSummary,
+  record: TesterRunHistoryRecord | null,
+): string {
+  if (record) return `Model: ${getTesterRunModelLabel(record)}`;
   const resolved = result?.ok ? result.trace?.modelResolved?.trim() : '';
-  return `Model: ${resolved ? compactStudioModelLabel(resolved) : runTarget.modelLabel}`;
+  return `Model: ${resolved && !isOpaqueRuntimeModelId(resolved) ? compactStudioModelLabel(resolved) : runTarget.modelLabel}`;
+}
+
+export function canConfigureRunTarget(runTarget: TesterRunTargetSummary): boolean {
+  return (
+    !runTarget.canDispatch
+    && runTarget.status === 'blocked'
+    && Boolean(runTarget.bindingCapabilityId)
+    && (runTarget.modelLabel === 'Target required' || runTarget.source === 'profile-slice')
+  );
 }
 
 function targetRefHydrationKey(bindingCapabilityId: string | null, config: NimiAIConfig | null): string {
@@ -102,16 +124,52 @@ export function useTesterRunTargetSummary(
   return target;
 }
 
+export type TextStudioPromptStyle = {
+  tone: string;
+  length: string;
+};
+
+function selectedStudioParamValue(
+  params: Readonly<Record<string, unknown>>,
+  key: string,
+  options: readonly { value: string }[],
+  fallback: string,
+): string {
+  const raw = params[key];
+  const value = typeof raw === 'string' ? raw.trim() : '';
+  return options.some((option) => option.value === value) ? value : fallback;
+}
+
+export function effectiveTextStudioPromptStyle(target: TesterRunTargetSummary): TextStudioPromptStyle {
+  return {
+    tone: selectedStudioParamValue(target.params, 'tone', TONE_OPTIONS, DEFAULT_TONE_VALUE),
+    length: selectedStudioParamValue(target.params, 'length', LENGTH_OPTIONS, DEFAULT_LENGTH_VALUE),
+  };
+}
+
+export function textStudioDirectiveForTarget(
+  target: TesterRunTargetSummary,
+  profile: ReturnType<typeof getCapabilityStudioProfile>,
+): string | undefined {
+  if (!profile.controls.includes('tone') && !profile.controls.includes('length')) return undefined;
+  const style = effectiveTextStudioPromptStyle(target);
+  return composeStudioDirective(style.tone, style.length);
+}
+
 export function createRunConfigSnapshot(input: {
   target: TesterRunTargetSummary;
-  tone: string;
-  toneSelected: boolean;
-  length: string;
-  lengthSelected: boolean;
+  promptStyle?: TextStudioPromptStyle | null;
   context: string;
   attachmentCount: number;
 }): TesterRunConfigSnapshot {
   const { target } = input;
+  const params = {
+    ...target.params,
+    ...(input.promptStyle ? {
+      tone: input.promptStyle.tone,
+      length: input.promptStyle.length,
+    } : {}),
+  };
   return {
     target: {
       capabilityId: target.capabilityId,
@@ -121,15 +179,11 @@ export function createRunConfigSnapshot(input: {
       source: target.source,
       modelLabel: target.modelLabel,
       detail: target.detail,
-      params: { ...target.params },
+      params,
       paramsSummary: [...target.paramsSummary],
       profileOrigin: target.profileOrigin,
     },
     promptControls: {
-      tone: input.tone,
-      toneSelected: input.toneSelected,
-      length: input.length,
-      lengthSelected: input.lengthSelected,
       contextAttached: Boolean(input.context.trim()),
       context: input.context.trim(),
       attachmentCount: input.attachmentCount,

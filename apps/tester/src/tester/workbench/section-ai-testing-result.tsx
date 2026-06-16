@@ -1,8 +1,10 @@
 import type { ReactNode } from 'react';
-import { AlertTriangle, Clock, FileText, MessageSquare, SlidersHorizontal } from 'lucide-react';
+import { Tooltip } from '@nimiplatform/kit/ui';
+import { AlertTriangle, Copy as CopyIcon, Download as DownloadIcon, FileText, MessageSquare, RefreshCw, SlidersHorizontal } from 'lucide-react';
 import type { TesterCapability } from '../tester-capabilities.js';
-import { formatTesterRunTimestamp, getTesterRunConfigParamRows, getTesterRunPromptControlFacts, getTesterRunResultTags, getTesterRunStatusLabel, type TesterRunConfigParamRow, type TesterRunHistoryRecord, type TesterRunHistoryResultSnapshot, type TesterRunPromptControlFact } from '../tester-history.js';
-import { StudioResult, statusForCapability } from './section-ai-testing-surface.js';
+import { formatTesterRunTimestamp, getTesterRunConfigParamRows, getTesterRunModelLabel, getTesterRunPromptControlFacts, getTesterRunResultTags, getTesterRunStatusLabel, getTesterRunStatusTone, type TesterRunConfigParamRow, type TesterRunHistoryRecord, type TesterRunHistoryResultSnapshot, type TesterRunPromptControlFact } from '../tester-history.js';
+import { unavailableReasonUserAction, unavailableReasonUserMessage } from '../tester-unavailable.js';
+import { StudioResult, TextStudioOutputBody, artifactExtension, downloadArtifactUrl, downloadTextFile, statusForCapability } from './section-ai-testing-surface.js';
 import type { TextStudioActiveRun } from './section-ai-testing-run.js';
 
 function TextStudioPromptControlFacts({ facts }: { facts: readonly TesterRunPromptControlFact[] }) {
@@ -94,9 +96,62 @@ function TextStudioModelSettings({ record }: { record: TesterRunHistoryRecord })
   );
 }
 
-function TextStudioHistoryRecordResult({ record }: { record: TesterRunHistoryRecord }) {
+function historyRecordPlainText(record: TesterRunHistoryRecord): string {
+  const snapshot = record.result;
+  if (!snapshot) return record.message;
+  if (!snapshot.ok) return snapshot.message;
+  if (snapshot.kind === 'text' || snapshot.kind === 'transcript') return snapshot.body;
+  return snapshot.summary;
+}
+
+function historyRecordArtifact(record: TesterRunHistoryRecord): { url: string; mimeType?: string } | null {
+  const snapshot = record.result;
+  if (!snapshot?.ok || snapshot.kind !== 'artifacts' || !snapshot.firstArtifact?.url) return null;
+  return {
+    url: snapshot.firstArtifact.url,
+    mimeType: snapshot.firstArtifact.mimeType,
+  };
+}
+
+function historyResultToneClass(record: TesterRunHistoryRecord): string {
+  const tone = getTesterRunStatusTone(record.status);
+  return tone === 'danger' ? 'warning' : tone;
+}
+
+function TextStudioHistoryRecordResult({
+  record,
+  onRegenerate,
+}: {
+  record: TesterRunHistoryRecord;
+  onRegenerate: () => void;
+}) {
   const snapshot = record.result;
   const tags = getTesterRunResultTags(record);
+  const modelLabel = getTesterRunModelLabel(record);
+  const toneClass = historyResultToneClass(record);
+  const exportText = historyRecordPlainText(record);
+  const canExport = Boolean(exportText.trim() || historyRecordArtifact(record));
+  function handleCopy() {
+    if (!exportText.trim()) return;
+    try {
+      void navigator.clipboard?.writeText(exportText);
+    } catch {
+      // Clipboard remains best-effort; download is the durable path.
+    }
+  }
+  function handleDownload() {
+    const artifact = historyRecordArtifact(record);
+    const stamp = record.createdAt.replace(/[:.]/g, '-');
+    if (artifact) {
+      void downloadArtifactUrl(
+        `${record.capabilityId}-${stamp}.${artifactExtension(artifact.mimeType)}`,
+        artifact.url,
+      );
+      return;
+    }
+    if (!exportText.trim()) return;
+    downloadTextFile(`${record.capabilityId}-${stamp}.txt`, exportText);
+  }
   let body: ReactNode;
   if (!snapshot) {
     body = (
@@ -112,11 +167,25 @@ function TextStudioHistoryRecordResult({ record }: { record: TesterRunHistoryRec
       <div className="studio-result__blocked">
         <div className="studio-result__blocked-line">
           <AlertTriangle size={15} aria-hidden="true" />
-          <span>{snapshot.reason}</span>
+          <span>Generation could not be completed</span>
         </div>
-        <p>{snapshot.message}</p>
-        <p className="studio-result__hint">{snapshot.actionHint}</p>
-        {snapshot.missingSurface ? <p className="studio-result__hint">Missing surface: {snapshot.missingSurface}</p> : null}
+        <p>{unavailableReasonUserMessage(snapshot.reason)}</p>
+        <p className="studio-result__hint">{unavailableReasonUserAction(snapshot.reason)}</p>
+        <details className="studio-diag">
+          <summary>Runtime details</summary>
+          <pre className="studio-diag__json">
+            {[
+              `Reason: ${snapshot.reason}`,
+              snapshot.missingSurface ? `Missing surface: ${snapshot.missingSurface}` : '',
+              '',
+              'Message:',
+              snapshot.message,
+              '',
+              'Action:',
+              snapshot.actionHint,
+            ].filter(Boolean).join('\n')}
+          </pre>
+        </details>
       </div>
     );
   } else {
@@ -124,13 +193,42 @@ function TextStudioHistoryRecordResult({ record }: { record: TesterRunHistoryRec
   }
   return (
     <div className="studio-history-result" role="status">
-      <div className="studio-history-result__line">
-        <Clock size={15} aria-hidden="true" />
-        <strong>{getTesterRunStatusLabel(record.status)}</strong>
-        <time dateTime={record.createdAt}>{formatTesterRunTimestamp(record.createdAt)}</time>
+      <div className="studio-history-result__head">
+        <div className="studio-history-result__line">
+          <span className={`studio-history-result__status-mark studio-history-result__status-mark--${toneClass}`} aria-hidden="true" />
+          <span className="studio-history-result__title-stack">
+            <strong>{getTesterRunStatusLabel(record.status)}</strong>
+            <time dateTime={record.createdAt}>Run / {formatTesterRunTimestamp(record.createdAt)}</time>
+          </span>
+        </div>
+        <div className="studio-result__actions studio-history-result__actions">
+          <Tooltip content="Copy" placement="top">
+            <button type="button" className="studio-result__action" onClick={handleCopy} disabled={!canExport} aria-label="Copy generation">
+              <CopyIcon size={16} aria-hidden="true" />
+            </button>
+          </Tooltip>
+          <Tooltip content="Download" placement="top">
+            <button type="button" className="studio-result__action" onClick={handleDownload} disabled={!canExport} aria-label="Download generation">
+              <DownloadIcon size={16} aria-hidden="true" />
+            </button>
+          </Tooltip>
+          <Tooltip content="Regenerate" placement="top">
+            <button type="button" className="studio-result__action" onClick={onRegenerate} aria-label="Regenerate">
+              <RefreshCw size={16} aria-hidden="true" />
+            </button>
+          </Tooltip>
+        </div>
       </div>
-      <div className="studio-history-result__tags">
-        {tags.map((tag) => <span key={tag}>{tag}</span>)}
+      <div className="studio-history-result__meta">
+        <div className="studio-history-result__tags">
+          {tags.map((tag, index) => <span key={tag} className={index === 0 ? `studio-history-result__tag--${toneClass}` : undefined}>{tag}</span>)}
+        </div>
+        <div className="studio-history-result__model">
+          <span>Model</span>
+          <Tooltip content={modelLabel} placement="top" className="min-w-0">
+            <strong>{modelLabel}</strong>
+          </Tooltip>
+        </div>
       </div>
       <TextStudioModelSettings record={record} />
       {body}
@@ -140,40 +238,7 @@ function TextStudioHistoryRecordResult({ record }: { record: TesterRunHistoryRec
 
 function TextStudioHistorySnapshotBody({ snapshot }: { snapshot: Extract<TesterRunHistoryResultSnapshot, { ok: true }> }) {
   if (snapshot.kind === 'text' || snapshot.kind === 'transcript') {
-    return (
-      <>
-        <div className="studio-result__text">{snapshot.body || '(empty body)'}</div>
-        <dl className="studio-history-result__facts">
-          <div>
-            <dt>Characters</dt>
-            <dd>{snapshot.charCount}</dd>
-          </div>
-          {'finishReason' in snapshot ? (
-            <div>
-              <dt>Finish</dt>
-              <dd>{snapshot.finishReason}</dd>
-            </div>
-          ) : (
-            <div>
-              <dt>Job</dt>
-              <dd>{snapshot.jobState}</dd>
-            </div>
-          )}
-          {snapshot.modelResolved ? (
-            <div>
-              <dt>Model</dt>
-              <dd>{snapshot.modelResolved}</dd>
-            </div>
-          ) : null}
-          {snapshot.traceId ? (
-            <div>
-              <dt>Trace</dt>
-              <dd><code>{snapshot.traceId}</code></dd>
-            </div>
-          ) : null}
-        </dl>
-      </>
-    );
+    return <TextStudioOutputBody text={snapshot.body} />;
   }
   if (snapshot.kind === 'embedding') {
     return (
@@ -225,10 +290,14 @@ function TextStudioRunError({ message }: { message: string }) {
     <div className="studio-result__blocked" role="alert">
       <div className="studio-result__blocked-line">
         <AlertTriangle size={15} aria-hidden="true" />
-        <span>Runtime call failed</span>
+        <span>Generation could not be completed</span>
       </div>
-      <p>{message}</p>
-      <p className="studio-result__hint">No local fallback result was produced.</p>
+      <p>The run stopped before a typed Runtime result was returned.</p>
+      <p className="studio-result__hint">No local fallback result was produced. Retry after Runtime is ready.</p>
+      <details className="studio-diag">
+        <summary>Runtime details</summary>
+        <pre className="studio-diag__json">{message}</pre>
+      </details>
     </div>
   );
 }
@@ -237,6 +306,7 @@ export function TextStudioResultState({
   capability,
   activeRun,
   admission,
+  modelLabel,
   running,
   streamingText,
   verboseConsole,
@@ -248,6 +318,7 @@ export function TextStudioResultState({
   capability: TesterCapability;
   activeRun: TextStudioActiveRun;
   admission: ReturnType<typeof statusForCapability>;
+  modelLabel: string;
   running: boolean;
   streamingText: string | null;
   verboseConsole: boolean;
@@ -282,6 +353,7 @@ export function TextStudioResultState({
                 capability={capability}
                 admission={admission}
                 createdAt={activeRun.createdAt}
+                modelLabel={modelLabel}
                 streamingText={streamingText}
                 verboseConsole={verboseConsole}
                 onCopy={onCopy}
@@ -291,7 +363,7 @@ export function TextStudioResultState({
               {activeRun.record ? <TextStudioModelSettings record={activeRun.record} /> : null}
             </>
           ) : activeRun.record ? (
-            <TextStudioHistoryRecordResult record={activeRun.record} />
+            <TextStudioHistoryRecordResult record={activeRun.record} onRegenerate={onRegenerate} />
           ) : null}
         </article>
       </div>

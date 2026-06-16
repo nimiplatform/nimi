@@ -44,6 +44,51 @@ export function unavailableReasonTitle(reason: TesterUnavailableReason): string 
   }
 }
 
+export function unavailableReasonUserMessage(reason: string): string {
+  switch (reason) {
+    case 'runtime-not-ready':
+      return 'Runtime is not ready to generate a response yet.';
+    case 'ai-config-binding-missing':
+      return 'No model is selected for this generation.';
+    case 'input-invalid':
+      return 'The request needs a valid prompt or required input before it can run.';
+    case 'auth-context-missing':
+      return 'This route needs a signed-in Nimi account.';
+    case 'principal-unauthorized':
+      return 'The current session is expired or not authorized for this route.';
+    case 'sdk-method-unavailable':
+      return 'This capability is not available in the current app build.';
+    case 'runtime-call-failed':
+      return 'The selected Runtime or model could not complete this generation.';
+    case 'tauri-command-failed':
+      return 'The desktop shell could not complete the requested action.';
+    default:
+      return 'The generation did not complete.';
+  }
+}
+
+export function unavailableReasonUserAction(reason: string): string {
+  switch (reason) {
+    case 'runtime-not-ready':
+      return 'Start or reconnect Runtime, then try again.';
+    case 'ai-config-binding-missing':
+      return 'Choose a model in the model control, then try again.';
+    case 'input-invalid':
+      return 'Review the prompt and required fields, then run it again.';
+    case 'auth-context-missing':
+    case 'principal-unauthorized':
+      return 'Sign in again or switch to a local model route.';
+    case 'sdk-method-unavailable':
+      return 'Update the app or switch to a supported capability.';
+    case 'runtime-call-failed':
+      return 'Check Runtime status and the selected model, then retry.';
+    case 'tauri-command-failed':
+      return 'Reopen the desktop shell or retry after the shell is ready.';
+    default:
+      return 'Check Runtime details for diagnostics, then try again.';
+  }
+}
+
 function actionHintForReason(reason: TesterUnavailableReason): string {
   switch (reason) {
     case 'sdk-method-unavailable':

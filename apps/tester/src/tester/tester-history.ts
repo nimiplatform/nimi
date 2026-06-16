@@ -409,12 +409,15 @@ export function getTesterRunPromptControlFacts(runConfig: TesterRunConfigSnapsho
 }
 
 const PARAM_GROUP_LABELS = {
+  prompt: 'Prompt controls',
   generation: 'Generation defaults',
   response: 'Response controls',
   advanced: 'Advanced settings',
 } as const;
 
 const TEXT_MODEL_PARAM_ORDER: ReadonlyArray<{ key: string; label: string; group: string }> = [
+  { key: 'tone', label: 'Tone', group: PARAM_GROUP_LABELS.prompt },
+  { key: 'length', label: 'Length', group: PARAM_GROUP_LABELS.prompt },
   { key: 'temperature', label: 'Temperature', group: PARAM_GROUP_LABELS.generation },
   { key: 'maxTokens', label: 'Max Tokens', group: PARAM_GROUP_LABELS.generation },
   { key: 'topP', label: 'Top P', group: PARAM_GROUP_LABELS.generation },

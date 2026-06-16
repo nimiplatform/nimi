@@ -1,17 +1,9 @@
 import { useState, type ChangeEvent, type ReactNode } from 'react';
-import { Button, IconButton, SelectField, TextareaField } from '@nimiplatform/kit/ui';
+import { Button, IconButton, TextareaField, Tooltip } from '@nimiplatform/kit/ui';
 import { ArrowUp, Maximize2, Paperclip, Play, Plus, RefreshCw, SlidersHorizontal, X } from 'lucide-react';
 import type { BrowserDataUrlAttachment } from '@nimiplatform/kit/features/chat/headless';
 import type { TesterCapability } from '../tester-capabilities.js';
-import { DEFAULT_LENGTH_VALUE, DEFAULT_TONE_VALUE, getCapabilityStudioProfile, LENGTH_OPTIONS, TONE_OPTIONS } from './capability-studio-profiles.js';
-
-function studioControlHeadingLabel(title: string): ReactNode {
-  return <span className="studio-control__menu-heading">{title}</span>;
-}
-
-function studioControlValueLabel(value: string): ReactNode {
-  return <span className="studio-control__menu-value">{value}</span>;
-}
+import { getCapabilityStudioProfile } from './capability-studio-profiles.js';
 
 function ModelSummaryChip({ label, onOpen }: { label: string; onOpen: () => void }) {
   return (
@@ -27,89 +19,49 @@ export function TextStudioComposer({
   prompt,
   context,
   modelLabel,
-  tone,
-  length,
-  toneSelected,
-  lengthSelected,
   running,
   attachments,
   onOpenAttachmentPicker,
   onRemoveAttachment,
   canDispatch,
+  canConfigureTarget,
   compact = false,
   onPromptChange,
   onContextChange,
   onOpenModelConfig,
-  onToneChange,
-  onLengthChange,
   onSubmit,
 }: {
   capability: TesterCapability;
   prompt: string;
   context: string;
   modelLabel: string;
-  tone: string;
-  length: string;
-  toneSelected: boolean;
-  lengthSelected: boolean;
   running: boolean;
   attachments: readonly BrowserDataUrlAttachment[];
   onOpenAttachmentPicker: () => void;
   onRemoveAttachment: (index: number) => void;
   canDispatch: boolean;
+  canConfigureTarget: boolean;
   compact?: boolean;
   onPromptChange: (value: string) => void;
   onContextChange: (value: string) => void;
   onOpenModelConfig: () => void;
-  onToneChange: (value: string) => void;
-  onLengthChange: (value: string) => void;
   onSubmit: () => void;
 }) {
   const profile = getCapabilityStudioProfile(capability.id);
   const requiresPrompt = profile.inputKind !== 'none';
   const contextAttached = Boolean(context.trim());
   const [contextOpen, setContextOpen] = useState(false);
+  const promptReady = !requiresPrompt || Boolean(prompt.trim());
+  const targetConfigAction = !canDispatch && canConfigureTarget;
+  const generateDisabled = running || !promptReady || (!canDispatch && !canConfigureTarget);
+  const generateLabel = running
+    ? profile.primaryRunningLabel
+    : targetConfigAction
+      ? 'Configure model target'
+      : profile.primaryLabel;
   const composerBar = (
     <div className="studio-composer__bar">
       <div className="studio-composer__controls">
-        {profile.controls.includes('tone') ? (
-          <div className={toneSelected ? 'studio-control studio-control--tone studio-control--selected' : 'studio-control studio-control--tone'}>
-            <SelectField
-              options={[
-                { value: '__tone_heading', label: studioControlHeadingLabel('Tone'), disabled: true },
-                ...TONE_OPTIONS.map((option) => ({
-                  value: option.value,
-                  label: studioControlValueLabel(option.label),
-                })),
-              ]}
-              value={tone}
-              onValueChange={onToneChange}
-              aria-label="Tone"
-              tone="quiet"
-              selectClassName="studio-control__trigger"
-              contentClassName="studio-control__menu"
-            />
-          </div>
-        ) : null}
-        {profile.controls.includes('length') ? (
-          <div className={lengthSelected ? 'studio-control studio-control--length studio-control--selected' : 'studio-control studio-control--length'}>
-            <SelectField
-              options={[
-                { value: '__length_heading', label: studioControlHeadingLabel('Length'), disabled: true },
-                ...LENGTH_OPTIONS.map((option) => ({
-                  value: option.value,
-                  label: studioControlValueLabel(option.label),
-                })),
-              ]}
-              value={length}
-              onValueChange={onLengthChange}
-              aria-label="Length"
-              tone="quiet"
-              selectClassName="studio-control__trigger"
-              contentClassName="studio-control__menu"
-            />
-          </div>
-        ) : null}
         <button
           type="button"
           className={contextAttached ? 'studio-context-chip studio-context-chip--attached' : 'studio-context-chip'}
@@ -127,18 +79,19 @@ export function TextStudioComposer({
         />
         {profile.supportsAttachments ? (
           <div className="tester-attach-strip tester-attach-strip--icon">
-            <Button
-              type="button"
-              className="h-9 w-9 rounded-full px-0"
-              size="sm"
-              tone="secondary"
-              onClick={onOpenAttachmentPicker}
-              disabled={running}
-              aria-label="Attach context"
-              title="Attach context"
-            >
-              <Paperclip size={15} aria-hidden="true" />
-            </Button>
+            <Tooltip content="Attach context" placement="top">
+              <Button
+                type="button"
+                className="h-8 w-8 rounded-full px-0"
+                size="sm"
+                tone="ghost"
+                onClick={onOpenAttachmentPicker}
+                disabled={running}
+                aria-label="Attach context"
+              >
+                <Paperclip size={15} aria-hidden="true" />
+              </Button>
+            </Tooltip>
             {attachments.map((item, index) => (
               <span key={item.id} className="tester-attach-chip">
                 {item.kind === 'image' ? (
@@ -161,16 +114,17 @@ export function TextStudioComposer({
             ))}
           </div>
         ) : null}
-        <button
-          type="button"
-          className="studio-generate-action"
-          aria-label={running ? profile.primaryRunningLabel : profile.primaryLabel}
-          title={running ? profile.primaryRunningLabel : profile.primaryLabel}
-          disabled={running || !canDispatch || (requiresPrompt && !prompt.trim())}
-          onClick={onSubmit}
-        >
-          {running ? <RefreshCw size={17} aria-hidden="true" className="studio-spin" /> : <ArrowUp size={19} aria-hidden="true" />}
-        </button>
+        <Tooltip content={generateLabel} placement="top">
+          <button
+            type="button"
+            className={targetConfigAction ? 'studio-generate-action studio-generate-action--configure' : 'studio-generate-action'}
+            aria-label={generateLabel}
+            disabled={generateDisabled}
+            onClick={targetConfigAction ? onOpenModelConfig : onSubmit}
+          >
+            {running ? <RefreshCw size={15} aria-hidden="true" className="studio-spin" /> : <ArrowUp size={16} aria-hidden="true" />}
+          </button>
+        </Tooltip>
       </div>
     </div>
   );
@@ -181,7 +135,7 @@ export function TextStudioComposer({
           <TextareaField
             className="studio-input__box"
             textareaClassName="studio-input__textarea"
-            rows={compact ? 3 : 5}
+            rows={2}
             wrap="soft"
             maxLength={2000}
             aria-label={`${capability.label} request`}

@@ -231,9 +231,9 @@ export function TesterAiConfigSettings({
               {t('Tester.settings.subtitle')}
             </span>
           </div>
-          <StatusBadge tone={runtimeReady ? 'success' : 'warning'} shape="dot">
-            {runtimeReady ? 'Runtime ready' : 'Runtime unavailable'}
-          </StatusBadge>
+          {!runtimeReady ? (
+            <StatusBadge tone="warning" shape="dot">Runtime unavailable</StatusBadge>
+          ) : null}
           {onClose ? (
             <IconButton
               aria-label={t('Tester.settings.close')}
@@ -246,7 +246,7 @@ export function TesterAiConfigSettings({
         </header>
       ) : null}
       <ScrollArea className="min-h-0 flex-1">
-        <div className="px-4 py-4">
+        <div className={drawer ? 'px-4 py-4 sm:px-6 sm:py-6' : 'px-4 py-4'}>
           <ModelConfigAiModelHub
             surface={surface}
             profile={profileController}

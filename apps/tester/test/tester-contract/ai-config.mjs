@@ -26,6 +26,17 @@ import {
 
 test.after(cleanupBehaviorModules);
 
+test('tester renderer resolves kit model-config from source instead of stale prebundle', () => {
+  const viteConfig = read('vite.config.ts');
+
+  assert.match(viteConfig, /@nimiplatform\/kit\/features\/model-config/);
+  assert.match(viteConfig, /kit\/features\/model-config\/src/);
+  assert.match(viteConfig, /optimizeDeps:\s*\{/);
+  assert.match(viteConfig, /exclude:\s*\[/);
+  assert.match(viteConfig, /'@nimiplatform\/kit\/features\/model-config'/);
+  assert.match(viteConfig, /'@nimiplatform\/kit\/features\/model-config\/headless'/);
+});
+
 test('tester run target summary hydrates local runtime model labels without exposing opaque ids', async () => {
   const { createTesterRunTargetSummary } = await importBehaviorModule('tester/tester-run-target.js');
   const capability = {
@@ -199,7 +210,13 @@ test('tester AI config is the Kit model-config surface in Settings with real SDK
   assert.doesNotMatch(capabilities, /function RunTargetBar/);
   assert.doesNotMatch(capabilities, /data-testid="studio-run-target"/);
   assert.match(capabilities, /createTesterRunTargetSummary/);
+  assert.match(capabilities, /function canConfigureRunTarget\(runTarget: TesterRunTargetSummary\)/);
+  assert.match(capabilities, /runTarget\.modelLabel === 'Target required'/);
+  assert.match(capabilities, /runTarget\.source === 'profile-slice'/);
   assert.match(capabilities, /canDispatch=\{runTarget\.canDispatch\}/);
+  assert.match(capabilities, /canConfigureTarget=\{canConfigureRunTarget\(runTarget\)\}/);
+  assert.match(capabilities, /disabled=\{generateDisabled\}/);
+  assert.match(capabilities, /onClick=\{targetConfigAction \? onOpenModelConfig : onSubmit\}/);
   assert.match(capabilities, /if \(!runTarget\.canDispatch\) return/);
   assert.match(runTarget, /export type TesterRunTargetSummary/);
   for (const required of [
@@ -224,6 +241,7 @@ test('tester AI config is the Kit model-config surface in Settings with real SDK
   assert.doesNotMatch(runTarget, /gpt-4|claude|gemini|openai|anthropic|model:\s*['"]auto['"]/i);
   assert.doesNotMatch(styles, /\.studio-run-target/);
   assert.doesNotMatch(styles, /\.studio-run-target__params/);
+  assert.match(styles, /\.studio-generate-action--configure\s*\{[^}]*background:\s*#35c99d/s);
   assert.match(styles, /\.section-ai-testing__drawer\s*\{[^}]*position:\s*absolute/s);
   assert.match(styles, /@media \(max-width:\s*720px\)[\s\S]*\.section-ai-testing__drawer[\s\S]*width:\s*100%/);
 });

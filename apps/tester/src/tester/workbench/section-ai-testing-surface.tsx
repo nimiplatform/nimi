@@ -3,6 +3,7 @@ import {
   Button,
   EmptyState,
   Surface,
+  Tooltip,
 } from '@nimiplatform/kit/ui';
 import {
   AlertTriangle,
@@ -41,7 +42,11 @@ import {
   type TesterCapabilityRunResult,
   type TesterRuntimeInspection,
 } from '../tester-runtime.js';
-import { unavailableReasonTitle } from '../tester-unavailable.js';
+import {
+  unavailableReasonTitle,
+  unavailableReasonUserAction,
+  unavailableReasonUserMessage,
+} from '../tester-unavailable.js';
 import {
   openWorldTourWindow,
   resolveWorldTourFixture,
@@ -63,7 +68,7 @@ import {
 } from './capability-studio-profiles.js';
 
 // The model-config drawer (and its runtime model-picker provider) is only needed
-// when the settings gear opens it, so it loads on demand — the always-on studio
+// when the settings gear opens it, so it loads on demand - the always-on studio
 // surface stays decoupled from the heavier config subsystem.
 export const TesterAiConfigSettingsPanel = lazy(() =>
   import('./tester-ai-config-settings-panel.js').then((module) => ({ default: module.TesterAiConfigSettingsPanel })),
@@ -333,11 +338,33 @@ function ArtifactPreview({ result }: { result: TesterCapabilityRunResult & { ok:
   return (
     <figure className="ai-result__media" data-mime={mimeType}>
       {media}
-      <figcaption>
-        <span>{label}</span>
-        <span>{mimeType} · {result.output.artifactCount} artifact{result.output.artifactCount === 1 ? '' : 's'}</span>
-      </figcaption>
     </figure>
+  );
+}
+
+function splitSubjectLine(text: string): { subject: string; body: string } | null {
+  const lines = text.replace(/\r\n/g, '\n').split('\n');
+  const [firstLine = '', ...rest] = lines;
+  const match = firstLine.match(/^Subject:\s*(.+)$/i);
+  if (!match) return null;
+  return {
+    subject: match[1].trim(),
+    body: rest.join('\n').replace(/^\n+/, '').trimEnd(),
+  };
+}
+
+export function TextStudioOutputBody({ text }: { text: string }) {
+  const value = text || '(empty body)';
+  const subject = splitSubjectLine(value);
+  if (!subject) {
+    return <div className="studio-result__text">{value}</div>;
+  }
+  return (
+    <div className="studio-result__text studio-result__text--formatted">
+      <h2 className="studio-result__subject">{subject.subject}</h2>
+      <div className="studio-result__divider" aria-hidden="true" />
+      <div className="studio-result__text-body">{subject.body || '(empty body)'}</div>
+    </div>
   );
 }
 
@@ -347,7 +374,7 @@ function ArtifactPreview({ result }: { result: TesterCapabilityRunResult & { ok:
 function ReadyBody({ result }: { result: TesterCapabilityRunResult & { ok: true } }) {
   const output = result.output;
   if (output.kind === 'text' || output.kind === 'transcript') {
-    return <div className="studio-result__text">{output.text || '(empty body)'}</div>;
+    return <TextStudioOutputBody text={output.text} />;
   }
   if (output.kind === 'artifacts') {
     const preview = <ArtifactPreview result={result} />;
@@ -356,7 +383,7 @@ function ReadyBody({ result }: { result: TesterCapabilityRunResult & { ok: true 
         {preview}
         {!preview ? (
           <p className="studio-result__plain">
-            Job {output.jobId || '(pending id)'} · {output.jobState} · {output.artifactCount} artifact
+            Job {output.jobId || '(pending id)'} / {output.jobState} / {output.artifactCount} artifact
             {output.artifactCount === 1 ? '' : 's'} (no inline preview available).
           </p>
         ) : null}
@@ -367,8 +394,8 @@ function ReadyBody({ result }: { result: TesterCapabilityRunResult & { ok: true 
     return (
       <div className="studio-result__rich">
         <p className="studio-result__plain">
-          {output.vectorCount} vector{output.vectorCount === 1 ? '' : 's'} · {output.dimensions} dimensions
-          {typeof output.totalTokens === 'number' ? ` · ${output.totalTokens} tokens` : ''}
+          {output.vectorCount} vector{output.vectorCount === 1 ? '' : 's'} / {output.dimensions} dimensions
+          {typeof output.totalTokens === 'number' ? ` / ${output.totalTokens} tokens` : ''}
         </p>
         <div className="studio-chips">
           {output.sample.map((value, index) => (
@@ -383,7 +410,7 @@ function ReadyBody({ result }: { result: TesterCapabilityRunResult & { ok: true 
       {output.sample.map((voice) => (
         <li key={voice.voiceId}>
           <strong>{voice.name}</strong>
-          <span>{voice.voiceId} · {voice.lang}</span>
+          <span>{voice.voiceId} / {voice.lang}</span>
         </li>
       ))}
       {output.sample.length === 0 ? <li><span>No voices returned.</span></li> : null}
@@ -391,7 +418,7 @@ function ReadyBody({ result }: { result: TesterCapabilityRunResult & { ok: true 
   );
 }
 
-// Runtime details disclosure — preserves the developer-tester diagnostic surface
+// Runtime details disclosure - preserves the developer-tester diagnostic surface
 // (runtime method id, admission detail, typed JSON, trace) beneath the product
 // result view. Blockers are returned as typed unavailable results, surfaced here.
 function RuntimeDetails({
@@ -426,11 +453,11 @@ function RuntimeDetails({
         {result?.ok && result.trace?.traceId ? (
           <div>
             <dt>Trace</dt>
-            <dd><code>{result.trace.traceId}</code>{result.trace.modelResolved ? ` · ${result.trace.modelResolved}` : ''}</dd>
+            <dd><code>{result.trace.traceId}</code>{result.trace.modelResolved ? ` / ${result.trace.modelResolved}` : ''}</dd>
           </div>
         ) : null}
       </dl>
-      {result?.ok ? <pre className="studio-diag__json">{formatTypedOutput(result)}</pre> : null}
+      {result ? <pre className="studio-diag__json">{result.ok ? formatTypedOutput(result) : formatUnavailableOutput(result)}</pre> : null}
       {verboseConsole ? (
         <p className="studio-diag__note">
           Verbose console: capability {capability.id}; {result ? (result.ok ? 'typed success' : `fail-closed ${result.reason}`) : 'no current-session result'}.
@@ -450,7 +477,9 @@ function cleanStudioModelName(value: string): string {
   return normalized.replace(/^(local-import|local|cloud)\//i, '').trim() || normalized;
 }
 
-function studioResultModelLabel(result: TesterCapabilityRunResult | null, capability: TesterCapability): string {
+function studioResultModelLabel(result: TesterCapabilityRunResult | null, capability: TesterCapability, preferredLabel?: string): string {
+  const preferred = preferredLabel?.trim();
+  if (preferred) return cleanStudioModelName(preferred);
   if (result?.ok) {
     const traceModel = result.trace?.modelResolved?.trim();
     if (traceModel) return cleanStudioModelName(traceModel);
@@ -508,6 +537,7 @@ export function StudioResult({
   capability,
   admission,
   createdAt,
+  modelLabel,
   streamingText,
   verboseConsole,
   onCopy,
@@ -519,6 +549,7 @@ export function StudioResult({
   capability: TesterCapability;
   admission: CapabilityStatus;
   createdAt?: string;
+  modelLabel?: string;
   streamingText?: string | null;
   verboseConsole: boolean;
   onCopy: () => void;
@@ -530,10 +561,12 @@ export function StudioResult({
   const blocked = result && !result.ok ? result : null;
   const plainText = result ? resultPlainText(result) : '';
   const canExport = Boolean(result && plainText);
-  const modelLabel = studioResultModelLabel(result, capability);
+  const displayModelLabel = studioResultModelLabel(result, capability, modelLabel);
   const runTimeLabel = createdAt ? formatTesterRunTimestamp(createdAt) : running ? 'Running' : 'Not recorded';
+  const statusTitle = running ? 'Runtime running' : blocked ? 'Runtime blocked' : ready ? 'Runtime ready' : 'Runtime waiting';
+  const statusTone = blocked ? 'warning' : ready ? 'success' : running ? 'info' : 'neutral';
 
-  let metric = '—';
+  let metric = '-';
   if (ready) {
     const output = ready.output;
     if (output.kind === 'text' || output.kind === 'transcript') metric = `${countStudioWords(output.text)} words`;
@@ -550,9 +583,9 @@ export function StudioResult({
       <div className="studio-result__pending">
         <div className="studio-result__pending-line">
           <Loader2 size={15} aria-hidden="true" className="studio-spin" />
-          <span>{capability.execution === 'standalone-tauri' ? 'Opening viewer fixture…' : hasStream ? 'Streaming from runtime…' : 'Calling runtime SDK…'}</span>
+          <span>{capability.execution === 'standalone-tauri' ? 'Opening viewer fixture...' : hasStream ? 'Streaming from runtime...' : 'Calling runtime SDK...'}</span>
         </div>
-        {hasStream ? <div className="studio-result__text studio-result__text--stream" aria-live="polite">{streamingText || '…'}</div> : null}
+        {hasStream ? <div className="studio-result__text studio-result__text--stream" aria-live="polite">{streamingText || '...'}</div> : null}
       </div>
     );
   } else if (blocked) {
@@ -560,10 +593,10 @@ export function StudioResult({
       <div className="studio-result__blocked">
         <div className="studio-result__blocked-line">
           <AlertTriangle size={15} aria-hidden="true" />
-          <span>{unavailableReasonTitle(blocked.reason)}</span>
+          <span>Generation could not be completed</span>
         </div>
-        <p>{blocked.message}</p>
-        <p className="studio-result__hint">{blocked.actionHint}</p>
+        <p>{unavailableReasonUserMessage(blocked.reason)}</p>
+        <p className="studio-result__hint">{unavailableReasonUserAction(blocked.reason)}</p>
       </div>
     );
   } else if (ready) {
@@ -582,40 +615,54 @@ export function StudioResult({
   return (
     <Surface className="studio-result" material="glass-regular" tone="panel" elevation="floating" padding="none">
       <div className="studio-result__top">
-        <div className="studio-result__summary">
-          <div className="studio-result__identity">
-            <span className="studio-result__avatar" aria-hidden="true">
-              <Sparkles size={20} />
-            </span>
-            <strong className="studio-result__model" title={modelLabel}>{modelLabel}</strong>
-            <span className="studio-result__copy-dot" aria-hidden="true" />
+        <div className="studio-result__identity">
+          <span className={`studio-result__avatar studio-result__avatar--${statusTone}`} aria-hidden="true">
+            <Sparkles size={20} />
+          </span>
+          <span className="studio-result__title-stack">
+            <strong>{statusTitle}</strong>
             <span className="studio-result__time">
               <Clock size={14} aria-hidden="true" />
-              <time dateTime={createdAt}>{runTimeLabel}</time>
+              <time dateTime={createdAt}>Run / {runTimeLabel}</time>
             </span>
-          </div>
-          <div className="studio-result__stats studio-result__stats--top" aria-label="Generation metrics">
-            {stats.map((stat) => (
-              <span key={stat.label} className="studio-result__metric">
-                <span>{stat.label}</span>
-                <strong>{stat.value}</strong>
-              </span>
-            ))}
-          </div>
+          </span>
         </div>
         <div className="studio-result__actions">
-          <button type="button" className="studio-result__action" onClick={onCopy} disabled={!canExport} aria-label="Copy generation" title="Copy">
-            <CopyIcon size={18} aria-hidden="true" />
-            <span className="studio-result__action-label">Copy</span>
-          </button>
-          <button type="button" className="studio-result__action" onClick={onDownload} disabled={!canExport} aria-label="Download generation" title="Download">
-            <DownloadIcon size={18} aria-hidden="true" />
-            <span className="studio-result__action-label">Download</span>
-          </button>
-          <button type="button" className="studio-result__action" onClick={onRegenerate} disabled={running} aria-label="Regenerate" title="Regenerate">
-            <RefreshCw size={18} aria-hidden="true" />
-            <span className="studio-result__action-label">Regenerate</span>
-          </button>
+          <Tooltip content="Copy" placement="top">
+            <button type="button" className="studio-result__action" onClick={onCopy} disabled={!canExport} aria-label="Copy generation">
+              <CopyIcon size={15} aria-hidden="true" />
+            </button>
+          </Tooltip>
+          <Tooltip content="Download" placement="top">
+            <button type="button" className="studio-result__action" onClick={onDownload} disabled={!canExport} aria-label="Download generation">
+              <DownloadIcon size={15} aria-hidden="true" />
+            </button>
+          </Tooltip>
+          <Tooltip content="Regenerate" placement="top">
+            <button type="button" className="studio-result__action" onClick={onRegenerate} disabled={running} aria-label="Regenerate">
+              <RefreshCw size={15} aria-hidden="true" />
+            </button>
+          </Tooltip>
+        </div>
+      </div>
+      <div className="studio-result__meta">
+        <div className={`studio-result__runtime-chip studio-result__runtime-chip--${statusTone}`}>
+          <Sparkles size={14} aria-hidden="true" />
+          <span>Runtime</span>
+        </div>
+        <div className="studio-result__stats studio-result__stats--top" aria-label="Generation metrics">
+          {stats.map((stat) => (
+            <span key={stat.label} className="studio-result__metric">
+              <strong>{stat.value}</strong>
+              <span>{stat.label}</span>
+            </span>
+          ))}
+        </div>
+        <div className="studio-result__model-pill">
+          <span>Model</span>
+          <Tooltip content={displayModelLabel} placement="top" className="min-w-0">
+            <strong>{displayModelLabel}</strong>
+          </Tooltip>
         </div>
       </div>
       <div className="studio-result__body">{body}</div>
@@ -653,7 +700,7 @@ function historyDetailForRun(record: TesterRunHistoryRecord): string {
   const status = record.status === 'failed' || record.status === 'unavailable'
     ? 'Failed'
     : '';
-  return [status, metrics, tone].filter(Boolean).join(' · ');
+  return [status, metrics, tone].filter(Boolean).join(' / ');
 }
 
 function historyLabelForRun(record: TesterRunHistoryRecord): string {
@@ -734,9 +781,11 @@ export function CapabilityRunHistory({
                   >
                     <span className={`studio-recent__dot studio-recent__dot--${historyToneForRun(record)}`} aria-hidden="true" />
                     <span className="studio-recent__copy">
-                      <span className="studio-recent__title" title={historyTitleForRun(record)}>
-                        {historyTitleForRun(record)}
-                      </span>
+                      <Tooltip content={historyTitleForRun(record)} placement="top" className="min-w-0">
+                        <span className="studio-recent__title">
+                          {historyTitleForRun(record)}
+                        </span>
+                      </Tooltip>
                       <span className={record.status === 'failed' || record.status === 'unavailable' ? 'studio-recent__detail studio-recent__detail--failed' : 'studio-recent__detail'}>
                         {historyDetailForRun(record)}
                       </span>

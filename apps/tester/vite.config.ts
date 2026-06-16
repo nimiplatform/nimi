@@ -1,6 +1,11 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const repoRoot = path.resolve(__dirname, '../..');
 
 function manualChunks(id: string) {
   const normalized = id.replaceAll('\\', '/');
@@ -51,6 +56,30 @@ function manualChunks(id: string) {
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  resolve: {
+    alias: [
+      { find: '@nimiplatform/kit/ui', replacement: path.join(repoRoot, 'kit/ui/src') },
+      { find: '@nimiplatform/kit/core', replacement: path.join(repoRoot, 'kit/core/src') },
+      { find: '@nimiplatform/kit/features/chat', replacement: path.join(repoRoot, 'kit/features/chat/src') },
+      { find: '@nimiplatform/kit/features/model-picker', replacement: path.join(repoRoot, 'kit/features/model-picker/src') },
+      { find: '@nimiplatform/kit/features/model-config', replacement: path.join(repoRoot, 'kit/features/model-config/src') },
+    ],
+  },
+  optimizeDeps: {
+    exclude: [
+      '@nimiplatform/kit/ui',
+      '@nimiplatform/kit/core',
+      '@nimiplatform/kit/features/chat',
+      '@nimiplatform/kit/features/model-picker',
+      '@nimiplatform/kit/features/model-config',
+      '@nimiplatform/kit/features/model-config/headless',
+    ],
+  },
+  server: {
+    fs: {
+      allow: [repoRoot],
+    },
+  },
   build: {
     rollupOptions: {
       output: {

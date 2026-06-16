@@ -283,7 +283,6 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
                     <Tooltip
                       content={<TopbarStatusTooltip title="Runtime" rows={runtimeTooltipRows} />}
                       placement="bottom"
-                      contentClassName="workbench-topbar-tooltip__bubble"
                     >
                       <span className={`workbench-topbar__attachment workbench-topbar__attachment--${runtimeState.tone}`}>
                         <span className="workbench-topbar__dot" aria-hidden="true" />
@@ -301,7 +300,6 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
                         />
                       )}
                       placement="bottom"
-                      contentClassName="workbench-topbar-tooltip__bubble"
                     >
                       <button
                         type="button"

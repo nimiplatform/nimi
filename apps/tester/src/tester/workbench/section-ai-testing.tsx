@@ -4,15 +4,15 @@ import type { CanonicalCapabilitySectionId } from '@nimiplatform/kit/core/runtim
 import { createBrowserDataUrlAttachmentAdapter, useChatComposer, type BrowserDataUrlAttachment } from '@nimiplatform/kit/features/chat/headless';
 import { type TesterCapability } from '../tester-capabilities.js';
 import { CAPABILITY_TO_SECTION } from '../tester-capability-sections.js';
-import type { TesterRunConfigSnapshot, TesterRunHistory, TesterRunHistoryRecord } from '../tester-history.js';
+import { getTesterRunModelLabel, type TesterRunConfigSnapshot, type TesterRunHistory, type TesterRunHistoryRecord } from '../tester-history.js';
 import { runTesterCapability, type TesterCapabilityRunResult, type TesterRuntimeInspection } from '../tester-runtime.js';
 import { loadTesterPromptDraft, saveTesterPromptDraft, type TesterPromptDraftStoreStatus } from '../tester-preferences.js';
 import { openWorldTourWindow, resolveWorldTourFixture } from '../world-tour/world-tour-shared.js';
-import { composeStudioDirective, DEFAULT_LENGTH_VALUE, DEFAULT_TONE_VALUE, getCapabilityStudioProfile, LENGTH_OPTIONS, TONE_OPTIONS } from './capability-studio-profiles.js';
+import { getCapabilityStudioProfile } from './capability-studio-profiles.js';
 import { CapabilityRunHistory, DrawerErrorBoundary, STATUS_PILL_LABEL, TesterAiConfigSettingsPanel, artifactExtension, downloadArtifactUrl, downloadTextFile, presetFor, resultPlainText, statusForCapability, type SectionAITestingProps } from './section-ai-testing-surface.js';
 import { TextStudioComposer, TextStudioStartState } from './section-ai-testing-composer.js';
 import { TextStudioResultState } from './section-ai-testing-result.js';
-import { createRunConfigSnapshot, textStudioModelSummary, textStudioRuntimePrompt, useTesterRunTargetSummary, type TextStudioActiveRun } from './section-ai-testing-run.js';
+import { canConfigureRunTarget, createRunConfigSnapshot, effectiveTextStudioPromptStyle, textStudioDirectiveForTarget, textStudioModelSummary, textStudioRuntimePrompt, useTesterRunTargetSummary, type TextStudioActiveRun } from './section-ai-testing-run.js';
 
 function TextStudioShell({
   capability,
@@ -39,10 +39,6 @@ function TextStudioShell({
   const preset = useMemo(() => presetFor(capability), [capability]);
   const [prompt, setPrompt] = useState(preset.prompt);
   const [context, setContext] = useState('');
-  const [tone, setTone] = useState(DEFAULT_TONE_VALUE);
-  const [length, setLength] = useState(DEFAULT_LENGTH_VALUE);
-  const [toneSelected, setToneSelected] = useState(false);
-  const [lengthSelected, setLengthSelected] = useState(false);
   const [draftStatus, setDraftStatus] = useState<TesterPromptDraftStoreStatus>(() => (
     loadTesterPromptDraft({
       surfaceId: 'ai-capabilities',
@@ -93,10 +89,6 @@ function TextStudioShell({
     setDraftStatus(draft.status);
     setPrompt(draft.prompt ?? preset.prompt);
     setContext('');
-    setTone(DEFAULT_TONE_VALUE);
-    setLength(DEFAULT_LENGTH_VALUE);
-    setToneSelected(false);
-    setLengthSelected(false);
     setActiveRun(null);
     setSessionRuns({});
   }, [capability.id, draftPersistence, preset]);
@@ -136,24 +128,20 @@ function TextStudioShell({
       } else {
         const isStreaming = capability.id === 'chat.stream';
         if (isStreaming) setStreamingText('');
-        const directive = profile.controls.includes('tone') || profile.controls.includes('length')
-          ? composeStudioDirective(tone, length)
-          : undefined;
+        const directive = textStudioDirectiveForTarget(runTarget, profile);
         result = await runTesterCapability({
           capabilityId: capability.id,
-          prompt: textStudioRuntimePrompt(displayPrompt, nextContext),
+          prompt: textStudioRuntimePrompt(displayPrompt, nextContext, directive),
           scenarioId: preset.id,
-          directive,
           onPartial: isStreaming ? setStreamingText : undefined,
           attachments: supportsMedia ? [...composerState.attachments] : undefined,
         });
       }
       const runConfig = createRunConfigSnapshot({
         target: runTarget,
-        tone,
-        toneSelected,
-        length,
-        lengthSelected,
+        promptStyle: profile.controls.includes('tone') || profile.controls.includes('length')
+          ? effectiveTextStudioPromptStyle(runTarget)
+          : null,
         context: nextContext,
         attachmentCount: supportsMedia ? composerState.attachments.length : 0,
       });
@@ -208,14 +196,6 @@ function TextStudioShell({
   function selectHistoryRun(record: TesterRunHistoryRecord) {
     const sessionRun = sessionRuns[record.id];
     const historyContext = record.runConfig?.promptControls.context ?? '';
-    const historyTone = record.runConfig?.promptControls.tone;
-    const historyLength = record.runConfig?.promptControls.length;
-    const hasHistoryTone = Boolean(record.runConfig?.promptControls.toneSelected && historyTone && TONE_OPTIONS.some((option) => option.value === historyTone));
-    const hasHistoryLength = Boolean(record.runConfig?.promptControls.lengthSelected && historyLength && LENGTH_OPTIONS.some((option) => option.value === historyLength));
-    setTone(hasHistoryTone ? historyTone as string : DEFAULT_TONE_VALUE);
-    setLength(hasHistoryLength ? historyLength as string : DEFAULT_LENGTH_VALUE);
-    setToneSelected(hasHistoryTone);
-    setLengthSelected(hasHistoryLength);
     if (sessionRun) {
       setActiveRun(sessionRun);
       updatePrompt(sessionRun.prompt);
@@ -240,33 +220,23 @@ function TextStudioShell({
       capability={capability}
       prompt={prompt}
       context={context}
-      tone={tone}
-      length={length}
-      modelLabel={textStudioModelSummary(headerResult, runTarget)}
-      toneSelected={toneSelected}
-      lengthSelected={lengthSelected}
+      modelLabel={textStudioModelSummary(headerResult, runTarget, activeRun?.record ?? null)}
       running={running}
       attachments={composerState.attachments}
       onOpenAttachmentPicker={composerState.openAttachmentPicker}
       onRemoveAttachment={composerState.removeAttachment}
       canDispatch={runTarget.canDispatch}
+      canConfigureTarget={canConfigureRunTarget(runTarget)}
       compact={Boolean(activeRun)}
       onPromptChange={updatePrompt}
       onContextChange={setContext}
       onOpenModelConfig={() => onOpenConfig(CAPABILITY_TO_SECTION[capability.id])}
-      onToneChange={(nextTone) => {
-        setTone(nextTone);
-        setToneSelected(true);
-      }}
-      onLengthChange={(nextLength) => {
-        setLength(nextLength);
-        setLengthSelected(true);
-      }}
       onSubmit={() => void run()}
     />
   );
   const historyRecords = history?.[capability.id] ?? [];
   const hasHistory = historyRecords.length > 0;
+  const showAdmissionBadge = admission.label !== 'ready';
 
   return (
     <div className={hasActiveRun ? 'studio studio--has-run' : 'studio studio--landing'}>
@@ -275,7 +245,9 @@ function TextStudioShell({
           <header className="studio__head">
             <div className="studio__title">
               <h1>{capability.label}</h1>
-              <StatusBadge tone={admission.tone} shape="dot">{STATUS_PILL_LABEL[admission.label]}</StatusBadge>
+              {showAdmissionBadge ? (
+                <StatusBadge tone={admission.tone} shape="dot">{STATUS_PILL_LABEL[admission.label]}</StatusBadge>
+              ) : null}
             </div>
             {headerActions ? <div className="studio__head-actions">{headerActions}</div> : null}
           </header>
@@ -285,6 +257,7 @@ function TextStudioShell({
                 capability={capability}
                 activeRun={activeRun}
                 admission={admission}
+                modelLabel={activeRun.record ? getTesterRunModelLabel(activeRun.record) : runTarget.modelLabel}
                 running={running}
                 streamingText={streamingText}
                 verboseConsole={verboseConsole}
@@ -350,7 +323,7 @@ export function SectionAITesting({
       {configSection ? (
         <aside className="section-ai-testing__drawer" aria-label="Configure model">
           <DrawerErrorBoundary onClose={() => setConfigSection(null)}>
-            <Suspense fallback={<div className="section-ai-testing__drawer-loading">Loading model config…</div>}>
+            <Suspense fallback={<div className="section-ai-testing__drawer-loading">Loading model config...</div>}>
               <TesterAiConfigSettingsPanel
                 runtime={runtime}
                 initialSection={configSection}
