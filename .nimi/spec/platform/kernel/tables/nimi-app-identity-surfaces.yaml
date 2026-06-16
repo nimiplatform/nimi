@@ -69,18 +69,6 @@ apps:
     product_status: first-party-nimi-app
     source_rule: P-NAPP-012
 
-  - source_root: apps/storybook
-    product_surface: developer-authored-reference-app
-    canonical_app_id: nimi.storybook
-    sdk_app_id: nimi.storybook
-    runtime_app_id: nimi.storybook
-    runtime_caller_mode: local-developer-app
-    tauri_identifier: ai.nimi.apps.nimi.storybook
-    tauri_identifier_required: true
-    npm_package: "@nimiplatform/storybook"
-    product_status: developer-submitted-app
-    source_rule: P-NAPP-012
-
   - source_root: apps/tester
     product_surface: scaffold-reference-tester-app
     canonical_app_id: nimi.tester

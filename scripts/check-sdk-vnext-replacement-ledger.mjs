@@ -35,7 +35,6 @@ const REQUIRED_INVENTORY_IDS = new Set([
   'desktop',
   'tester',
   'avatar',
-  'storybook',
   'web',
   'kit-core',
   'examples-sdk',

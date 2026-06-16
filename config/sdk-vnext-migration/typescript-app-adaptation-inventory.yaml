@@ -172,22 +172,6 @@ entries:
     pending_blockers: []
     required_gate: pnpm --filter @nimiplatform/avatar run typecheck
 
-  - id: storybook
-    package_name: "@nimiplatform/storybook"
-    source_root: apps/storybook
-    current_subpaths:
-      - "@nimiplatform/sdk"
-      - "@nimiplatform/sdk/ai"
-      - "@nimiplatform/sdk/runtime"
-      - "@nimiplatform/sdk/types"
-    required_flow_inventory:
-      - presentation-sdk-type-projection
-      - ai-config-fixture-projection
-    adaptation_status: implemented
-    acceptance_blocker: false
-    pending_blockers: []
-    required_gate: pnpm --filter @nimiplatform/storybook run typecheck
-
   - id: web
     package_name: "@nimiplatform/web"
     source_root: apps/web

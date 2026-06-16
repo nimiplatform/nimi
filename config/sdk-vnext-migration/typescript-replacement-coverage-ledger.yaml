@@ -237,12 +237,11 @@ surfaces:
       - apps/desktop
       - apps/tester
       - apps/avatar
-      - apps/storybook
       - apps/web
       - kit/core
       - examples
     current_source_roots: []
-    current_capability: Nimi-owned app, Kit, tester, storybook/web/avatar, and examples consumption of the current `@nimiplatform/sdk` package.
+    current_capability: Nimi-owned app, Kit, tester, web/avatar, and examples consumption of the current `@nimiplatform/sdk` package.
     replacement_status: implemented
     acceptance_blocker: false
     evidence_class: replacement
