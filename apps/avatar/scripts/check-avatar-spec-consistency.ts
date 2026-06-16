@@ -9,6 +9,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import YAML from 'yaml';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
@@ -23,6 +24,7 @@ const requiredAuthorityPaths = [
   'kernel/agent-script-contract.md',
   'kernel/avatar-event-contract.md',
   'kernel/app-shell-contract.md',
+  'kernel/wake-local-audio-lifecycle-contract.md',
   'kernel/backend-branch-contract.md',
   'kernel/generated-motion-provider-contract.md',
   'kernel/live2d-render-contract.md',
@@ -32,6 +34,7 @@ const requiredAuthorityPaths = [
   'kernel/vrm-backend-contract.md',
   'kernel/tables/feature-matrix.yaml',
   'kernel/tables/activity-mapping.yaml',
+  'kernel/tables/acceptance-recording-matrix.yaml',
   'kernel/tables/backend-capability-profile.schema.yaml',
   'kernel/tables/generated-motion-routes.yaml',
   'kernel/tables/live2d-compatibility-tiers.yaml',
@@ -50,6 +53,17 @@ const requiredAppPaths = [
 ];
 
 const requiredPaths = [...requiredAuthorityPaths, ...requiredAppPaths];
+const requiredAcceptanceScenarioIds = [
+  'idle_vrm_ready',
+  'idle_live2d_ready',
+  'hover_body',
+  'click_body',
+  'drag_stage',
+  'foreground_voice_listen',
+  'tts_speaking_lipsync',
+  'interrupt_active_turn',
+  'runtime_degraded',
+];
 
 const missing = requiredPaths
   .map((relativePath) => ({
@@ -151,6 +165,11 @@ if (zhLocale.emptyKeys.length > 0) {
   errors.push(`locales/zh/avatar.json has ${zhLocale.emptyKeys.length} empty / non-string leaf(s):\n  - ${zhLocale.emptyKeys.join('\n  - ')}`);
 }
 
+const acceptanceMatrixErrors = validateAcceptanceRecordingMatrix();
+if (acceptanceMatrixErrors.length > 0) {
+  errors.push(`acceptance-recording-matrix.yaml drift detected:\n  - ${acceptanceMatrixErrors.join('\n  - ')}`);
+}
+
 if (errors.length > 0) {
   console.error('Avatar spec consistency check failed. i18n drift detected:');
   for (const err of errors) {
@@ -162,10 +181,56 @@ if (errors.length > 0) {
 console.log('Avatar spec consistency check passed.');
 console.log(`- ${requiredPaths.length} required authority files present`);
 console.log(`- ${specKeys.length} i18n keys aligned across spec / en / zh`);
+console.log(`- ${requiredAcceptanceScenarioIds.length} acceptance recording scenarios aligned`);
 
 function resolvePath(relativePath: string): string {
   if (requiredAuthorityPaths.includes(relativePath)) {
     return resolve(AVATAR_SPEC_ROOT, relativePath);
   }
   return resolve(ROOT, relativePath);
+}
+
+function validateAcceptanceRecordingMatrix(): string[] {
+  const matrixPath = resolve(AVATAR_SPEC_ROOT, 'kernel/tables/acceptance-recording-matrix.yaml');
+  const matrix = YAML.parse(readFileSync(matrixPath, 'utf8')) as Record<string, unknown>;
+  const errors: string[] = [];
+  if (matrix['catalog_id'] !== 'avatar_acceptance_recording_matrix') {
+    errors.push('catalog_id must be avatar_acceptance_recording_matrix');
+  }
+  const scenarios = Array.isArray(matrix['scenarios']) ? matrix['scenarios'] : [];
+  const scenarioIds = scenarios
+    .map((scenario) => {
+      if (!scenario || typeof scenario !== 'object') return '';
+      const id = (scenario as Record<string, unknown>)['id'];
+      return typeof id === 'string' ? id.trim() : '';
+    })
+    .filter(Boolean);
+  for (const requiredId of requiredAcceptanceScenarioIds) {
+    if (!scenarioIds.includes(requiredId)) {
+      errors.push(`missing scenario ${requiredId}`);
+    }
+  }
+  for (const id of scenarioIds) {
+    if (!requiredAcceptanceScenarioIds.includes(id)) {
+      errors.push(`unexpected scenario ${id}`);
+    }
+  }
+  const artifactRequirements = matrix['artifact_requirements'];
+  const artifactRecord =
+    artifactRequirements && typeof artifactRequirements === 'object'
+      ? artifactRequirements as Record<string, unknown>
+      : {};
+  const formats = Array.isArray(artifactRecord['format'])
+    ? artifactRecord['format'].map((value) => String(value))
+    : [];
+  if (!formats.includes('mp4') || !formats.includes('webm')) {
+    errors.push('artifact_requirements.format must include both mp4 and webm');
+  }
+  if (artifactRecord['minimum_resolution'] !== '1280x720') {
+    errors.push('artifact_requirements.minimum_resolution must be 1280x720');
+  }
+  if (artifactRecord['minimum_duration_seconds'] !== 6) {
+    errors.push('artifact_requirements.minimum_duration_seconds must be 6');
+  }
+  return errors;
 }
