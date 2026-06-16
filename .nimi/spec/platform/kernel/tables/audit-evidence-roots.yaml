@@ -27,9 +27,9 @@ roots:
   - id: avatar-shell-renderer-relative-modules
     owner_domain: avatar
     authority_refs:
+      - .nimi/spec/avatar/kernel/app-shell-contract.md
       - .nimi/spec/avatar/kernel/kit-ui-consumption-contract.md
       - .nimi/spec/avatar/kernel/mock-fixture-contract.md
-      - .nimi/spec/avatar/kernel/tables/i18n-keys.yaml
       - .nimi/spec/avatar/kernel/tables/window-bounds-policy.yaml
     evidence_roots:
       - apps/avatar/src/shell/renderer

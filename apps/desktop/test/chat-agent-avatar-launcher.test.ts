@@ -37,6 +37,26 @@ const forbiddenLaunchFields = [
   'materialization_ref',
   'localMaterializationRef',
   'local_materialization_ref',
+  'live2dCalibrationRef',
+  'live2d_calibration_ref',
+  'live2dCalibration',
+  'live2d_calibration',
+  'modelDigest',
+  'model_digest',
+  'avatarInstanceCalibration',
+  'avatar_instance_calibration',
+  'previewArtifactRef',
+  'preview_artifact_ref',
+  'framingCalibration',
+  'framing_calibration',
+  'renderScale',
+  'render_scale',
+  'targetFps',
+  'target_fps',
+  'performancePolicy',
+  'performance_policy',
+  'expressionInventory',
+  'expression_inventory',
   'manifestPath',
   'manifest_path',
   'packagePath',
@@ -181,6 +201,34 @@ test('desktop avatar prepared payload rejects old launch authority tuple inputs'
     } as never),
     /forbidden field: ownerUserId/,
   );
+});
+
+test('desktop avatar prepared payload rejects Live2D calibration refs and payload fields', async () => {
+  for (const field of [
+    'live2dCalibrationRef',
+    'live2d_calibration_ref',
+    'live2dCalibration',
+    'live2d_calibration',
+    'modelDigest',
+    'model_digest',
+    'framingCalibration',
+    'framing_calibration',
+    'renderScale',
+    'render_scale',
+    'targetFps',
+    'target_fps',
+    'expressionInventory',
+    'expression_inventory',
+  ]) {
+    await assert.rejects(
+      prepareDesktopAvatarLaunchHandoffPayload({
+        agentId: 'local-agent:owner-1:agent-1',
+        [field]: 'forbidden',
+      } as never),
+      /forbidden field/,
+      `expected ${field} to be rejected before Avatar handoff`,
+    );
+  }
 });
 
 test('avatar launch parser rejects old binding package anchor and auth fields', () => {

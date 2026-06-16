@@ -23,6 +23,8 @@ pub struct ModelManifest {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub motion_presets_dir: Option<String>,
     pub adapter_manifest_path: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub live2d_calibration_ref: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -74,6 +76,7 @@ struct AgentCenterLocalAvatarAssetSelection {
     schema_version: u8,
     conversation_anchor_scope: String,
     local_avatar_asset_ref: Option<String>,
+    live2d_calibration_ref: Option<String>,
     live2d_adapter_manifest_source: String,
     live2d_adapter_manifest_ref: Option<String>,
     avatar_instance_policy: String,
@@ -192,6 +195,26 @@ fn validate_avatar_asset_id(value: &str, kind: &str) -> Result<String, String> {
     {
         return Err(
             "avatar_asset_id must use a 12-character lowercase hex digest suffix".to_string(),
+        );
+    }
+    Ok(normalized.to_string())
+}
+
+fn validate_live2d_calibration_ref(value: &str) -> Result<String, String> {
+    let normalized = value.trim();
+    const PREFIX: &str = "live2d_calibration_";
+    if !normalized.starts_with(PREFIX) {
+        return Err("live2d_calibration_ref must be an opaque Live2D calibration ref".to_string());
+    }
+    let suffix = &normalized[PREFIX.len()..];
+    if suffix.len() != 12
+        || !suffix
+            .chars()
+            .all(|ch| ch.is_ascii_hexdigit() && !ch.is_ascii_uppercase())
+    {
+        return Err(
+            "live2d_calibration_ref must use a 12-character lowercase hex digest suffix"
+                .to_string(),
         );
     }
     Ok(normalized.to_string())
@@ -591,6 +614,7 @@ pub async fn nimi_avatar_resolve_agent_center_avatar_asset(
         nimi_dir,
         motion_presets_dir,
         adapter_manifest_path,
+        live2d_calibration_ref: None,
     })
 }
 
@@ -624,6 +648,16 @@ pub async fn nimi_avatar_resolve_local_avatar_asset(
         &local_agent_ref,
     )?;
     let kind = selection.backend_kind.trim().to_string();
+    let live2d_calibration_ref = selection
+        .live2d_calibration_ref
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(validate_live2d_calibration_ref)
+        .transpose()?;
+    if live2d_calibration_ref.is_some() && kind != "live2d" {
+        return Err("live2d_calibration_ref requires live2d backend_kind".to_string());
+    }
     let local_avatar_asset_ref = selection
         .local_avatar_asset_ref
         .as_deref()
@@ -645,15 +679,18 @@ pub async fn nimi_avatar_resolve_local_avatar_asset(
         kind.as_str(),
         &local_avatar_asset_ref,
     );
-    nimi_avatar_resolve_agent_center_avatar_asset(AgentCenterAvatarAssetResolvePayload {
-        account_id,
-        owner_user_id,
-        realm_agent_id,
-        local_agent_ref,
-        backend_kind: kind,
-        local_avatar_asset_ref,
-        backend_capability_profile_ref,
-        materialization_ref,
-    })
-    .await
+    let mut manifest =
+        nimi_avatar_resolve_agent_center_avatar_asset(AgentCenterAvatarAssetResolvePayload {
+            account_id,
+            owner_user_id,
+            realm_agent_id,
+            local_agent_ref,
+            backend_kind: kind,
+            local_avatar_asset_ref,
+            backend_capability_profile_ref,
+            materialization_ref,
+        })
+        .await?;
+    manifest.live2d_calibration_ref = live2d_calibration_ref;
+    Ok(manifest)
 }

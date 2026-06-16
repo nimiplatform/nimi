@@ -311,6 +311,45 @@ func TestSubmitAvatarDebugProbeResultRejectsInvalidEnvelope(t *testing.T) {
 	}
 }
 
+func TestSubmitAvatarDebugProbeResultRejectsNonAvatarSubmittableProbeKinds(t *testing.T) {
+	for _, probeKind := range []runtimev1.AvatarDebugProbeKind{
+		runtimev1.AvatarDebugProbeKind_AVATAR_DEBUG_PROBE_KIND_PACKAGE_VALIDATION,
+		runtimev1.AvatarDebugProbeKind_AVATAR_DEBUG_PROBE_KIND_LAUNCH_READINESS,
+	} {
+		svc := testAvatarDebugService()
+		agentID := avatarDebugTestAgentID()
+		anchorID := avatarDebugTestAnchorID()
+		_, err := svc.SubmitAvatarDebugProbeResult(context.Background(), &runtimev1.SubmitAvatarDebugProbeResultRequest{
+			Context:              testAvatarDebugContext(anchorID),
+			AgentId:              agentID,
+			ConversationAnchorId: anchorID,
+			Result: &runtimev1.AvatarDebugProbeResultEnvelope{
+				ProbeId:              "probe-non-avatar-submittable",
+				AgentId:              agentID,
+				ConversationAnchorId: anchorID,
+				ProbeKind:            probeKind,
+				Status:               runtimev1.AvatarDebugProbeStatus_AVATAR_DEBUG_PROBE_STATUS_PASSED,
+				ObservedAt:           timestamppb.Now(),
+				EvidenceRefs:         []string{"avatar.debug.session/probe-non-avatar-submittable"},
+				ResultId:             "avatar-debug-result-non-avatar-submittable",
+			},
+		})
+		if status.Code(err) != codes.InvalidArgument {
+			t.Fatalf("expected %s submit rejection, got %v", probeKind, err)
+		}
+		auditEvents, listErr := svc.auditStore.ListEvents(&runtimev1.ListAuditEventsRequest{
+			Domain:   avatarDebugAuditDomain,
+			PageSize: 10,
+		})
+		if listErr != nil {
+			t.Fatalf("list avatar debug audit events: %v", listErr)
+		}
+		if len(auditEvents.GetEvents()) != 0 || len(svc.events) != 0 {
+			t.Fatalf("non-avatar-submittable %s result must not write audit or projection events", probeKind)
+		}
+	}
+}
+
 func TestGetAvatarDebugSnapshotAggregatesRuntimeAuditProjection(t *testing.T) {
 	svc := testAvatarDebugService()
 	agentID := avatarDebugTestAgentID()

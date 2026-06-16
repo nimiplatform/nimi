@@ -109,6 +109,7 @@ entries:
 - D-LLM-101
 - D-LLM-102
 - D-LLM-103
+- D-LLM-104
 - D-LLM-105
 - D-LLM-106
 rules:
@@ -560,6 +561,16 @@ rules:
   - desktop_kernel_consistency
   note: Desktop Avatar local asset control must not widen launch payload or own resolver
     truth.
+  evidence_requirement: required
+- rule_id: D-LLM-104
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_test_gate
+  - avatar_spec_consistency_gate
+  - avatar_test_gate
+  note: Desktop Live2D calibration workbench is review-only; opaque ref projection
+    is admitted, payload/effect projection is blocked, and Avatar launch parser
+    rejects calibration payload drift.
   evidence_requirement: required
 - rule_id: D-LLM-105
   evidence_refs:

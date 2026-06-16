@@ -32,6 +32,7 @@ function buildConfig(overrides: Partial<AgentCenterAvatarAssetModule> = {}): Age
     local_avatar_asset_ref: 'vrm_ab12cd34ef56',
     live2d_adapter_manifest_source: 'none',
     live2d_adapter_manifest_ref: null,
+    live2d_calibration_ref: null,
     avatar_instance_policy: 'reuse_active_instance',
     backend_kind: 'vrm',
     backend_capability_profile_ref: 'avatar-profile:pkg-vrm-1',
@@ -193,6 +194,32 @@ test('avatar debug workbench presents passed only when required evidence and rep
   assert.match(avatarDebugProbeRemediation(result, replayRef), /Evidence is linked/);
 });
 
+test('avatar debug workbench requires Avatar carrier visual refs for backend readiness probes', () => {
+  const backendResult = buildProbeResult({
+    probeKind: AvatarDebugProbeKind.BACKEND_LOAD,
+    evidenceRefs: [
+      'avatar_debug_session_id:probe-1',
+      'backend_load_evidence_ref:probe-1',
+    ],
+  });
+  const replayRef = buildReplayRef();
+
+  assert.equal(avatarDebugProbeFailClosedReason(backendResult, replayRef), 'required_probe_evidence_missing');
+
+  assert.equal(avatarDebugProbeFailClosedReason({
+    ...backendResult,
+    evidenceRefs: [
+      'avatar_debug_session_id:probe-1',
+      'backend_load_evidence_ref:probe-1',
+      'avatar_carrier_visual_ref:avatar.carrier.visual:ren:360x480:123',
+      'avatar_preview_artifact_ref:avatar.carrier.preview-artifact:ren:123',
+      'live2d_backend_load_ref:avatar.live2d.backend-load:ren',
+      'live2d_hit_region_ref:avatar.live2d.hit-region:ren:alpha_mask_plus_bbox',
+      'live2d_parameter_lane_ref:avatar.live2d.parameter-lane:ren:123',
+    ],
+  }, replayRef), null);
+});
+
 test('desktop avatar debug workbench requests typed companion participation projection', () => {
   assert.deepEqual(buildDesktopCompanionParticipationProjectionRequest({
     ownerUserId: 'owner-1',
@@ -243,6 +270,10 @@ test('avatar debug workbench is a SDK Runtime module consumer, not protected Run
   assert.match(source, /isSubmittedAvatarDebugResult/);
   assert.match(source, /avatar_debug_session_not_available/);
   assert.match(source, /result\.probeId === probeId/);
+  assert.match(source, /agentCenterAvatarDebugEvidenceCount/);
+  assert.match(source, /agentCenterAvatarDebugReason/);
+  assert.match(source, /agentCenterAvatarDebugReplayRef/);
+  assert.match(source, /latestReplayRef/);
   assert.match(source, /companionParticipation\.getProjection/);
   assert.match(model, /NimiRuntimeAgentCompanionParticipationProjection/);
   assert.doesNotMatch(model, /RuntimeCompanionParticipationProjection/);

@@ -255,6 +255,7 @@ fn select_imported_avatar_asset(
             AgentCenterLive2dAdapterManifestSource::None;
         config.modules.avatar_asset.live2d_adapter_manifest_ref = None;
     }
+    config.modules.avatar_asset.live2d_calibration_ref = None;
     config.modules.avatar_asset.updated_at =
         chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true);
     config.modules.avatar_asset.provenance = AgentCenterAvatarConfigProvenance {
@@ -304,6 +305,7 @@ pub(super) fn select_imported_live2d_adapter_manifest(
     config.modules.avatar_asset.live2d_adapter_manifest_source =
         AgentCenterLive2dAdapterManifestSource::ExternalSidecarManifest;
     config.modules.avatar_asset.live2d_adapter_manifest_ref = Some(manifest_ref.to_string());
+    config.modules.avatar_asset.live2d_calibration_ref = None;
     config.modules.avatar_asset.updated_at =
         chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true);
     config.modules.avatar_asset.provenance = AgentCenterAvatarConfigProvenance {

@@ -1,5 +1,6 @@
 import { hasTauriInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
 import { AgentCenterAvatarDebugWorkbench } from './chat-agent-center-avatar-debug-workbench';
+import { AgentCenterLive2dCalibrationWorkbench } from './chat-agent-center-live2d-calibration-workbench';
 import type {
   AgentCenterAvatarAssetModule,
   AgentCenterAvatarAssetKind,
@@ -310,6 +311,13 @@ export function AgentConversationAvatarSettingsContent(
           </div>
         ) : null}
       </section>
+
+      <AgentCenterLive2dCalibrationWorkbench
+        input={input}
+        avatarAssetConfig={avatarAssetConfig}
+        avatarAssetValid={avatarAssetValid}
+        avatarAssetChecking={avatarAssetChecking}
+      />
 
       <section className={`rounded-xl border px-3 py-3 ${launchReadinessTone}`}>
         <div className="flex items-start gap-3">

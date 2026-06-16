@@ -213,6 +213,7 @@ pub(super) fn validate_avatar_asset_manifest(
     };
 
     let mut errors = Vec::<AgentCenterValidationIssue>::new();
+    let mut warnings = Vec::<AgentCenterValidationIssue>::new();
     if manifest.manifest_version != 1 {
         errors.push(error(
             "avatar_asset_manifest_invalid",
@@ -413,17 +414,20 @@ pub(super) fn validate_avatar_asset_manifest(
             Some("files".to_string()),
         ));
     }
+    if manifest.kind == "live2d" {
+        validate_live2d_model3_structure(asset_root, &manifest, &mut errors, &mut warnings);
+    }
 
     if errors.is_empty() {
         avatar_asset_validation_result(
             expected_local_asset_id,
             AgentCenterAvatarAssetValidationStatus::Valid,
             vec![],
-            vec![],
+            warnings,
         )
     } else {
         let status = status_for_avatar_asset_errors(&errors);
-        avatar_asset_validation_result(expected_local_asset_id, status, errors, vec![])
+        avatar_asset_validation_result(expected_local_asset_id, status, errors, warnings)
     }
 }
 

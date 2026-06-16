@@ -14,6 +14,7 @@ function buildConfig(overrides: Partial<AgentCenterAvatarAssetModule> = {}): Age
     local_avatar_asset_ref: 'live2d_ab12cd34ef56',
     live2d_adapter_manifest_source: 'none',
     live2d_adapter_manifest_ref: null,
+    live2d_calibration_ref: null,
     avatar_instance_policy: 'reuse_active_instance',
     backend_kind: 'live2d',
     backend_capability_profile_ref: 'avatar_profile_live2d_ab12cd34ef56',

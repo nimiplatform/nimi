@@ -158,6 +158,13 @@ pub(super) fn validate_live2d_adapter_manifest_ref(
     validate_hex_suffix(value, "live2d_adapter_", field_name)
 }
 
+pub(super) fn validate_live2d_calibration_ref(
+    value: &str,
+    field_name: &str,
+) -> Result<(), String> {
+    validate_hex_suffix(value, "live2d_calibration_", field_name)
+}
+
 pub(super) fn validate_utc_timestamp(value: &str, field_name: &str) -> Result<(), String> {
     if !value.ends_with('Z') {
         return Err(format!("{field_name} must use UTC Z timestamp form"));
@@ -206,7 +213,7 @@ fn validate_agent_center_config(config: &AgentCenterLocalConfig) -> Result<(), S
         "modules.avatar_asset.schema_version",
     )?;
     if let Some(local_asset_ref) = &config.modules.avatar_asset.local_avatar_asset_ref {
-        validate_normalized_id(
+        validate_local_asset_id(
             local_asset_ref,
             "modules.avatar_asset.local_avatar_asset_ref",
         )?;
@@ -291,6 +298,18 @@ fn validate_agent_center_config(config: &AgentCenterLocalConfig) -> Result<(), S
             "modules.avatar_asset.backend_capability_profile_ref",
         )?;
     }
+    if let Some(calibration_ref) = &config.modules.avatar_asset.live2d_calibration_ref {
+        if config.modules.avatar_asset.backend_kind != AgentCenterAvatarBackendKind::Live2d {
+            return Err(
+                "modules.avatar_asset.live2d_calibration_ref requires live2d backend"
+                    .to_string(),
+            );
+        }
+        validate_live2d_calibration_ref(
+            calibration_ref,
+            "modules.avatar_asset.live2d_calibration_ref",
+        )?;
+    }
     validate_utc_timestamp(
         &config.modules.avatar_asset.updated_at,
         "modules.avatar_asset.updated_at",
@@ -326,8 +345,9 @@ fn validate_agent_center_config_scope(
         || config.realm_agent_id != scope.realm_agent_id
         || config.local_agent_ref != scope.local_agent_ref
     {
-        return Err("Agent Center config identity does not match requested local agent scope"
-            .to_string());
+        return Err(
+            "Agent Center config identity does not match requested local agent scope".to_string(),
+        );
     }
     Ok(())
 }
@@ -352,6 +372,7 @@ fn default_config(account_id: &str, scope: &LocalAgentScope) -> AgentCenterLocal
                 local_avatar_asset_ref: None,
                 live2d_adapter_manifest_source: AgentCenterLive2dAdapterManifestSource::None,
                 live2d_adapter_manifest_ref: None,
+                live2d_calibration_ref: None,
                 avatar_instance_policy: AgentCenterAvatarInstancePolicy::ReuseActiveInstance,
                 backend_kind: AgentCenterAvatarBackendKind::Live2d,
                 backend_capability_profile_ref: None,
@@ -404,7 +425,9 @@ fn config_from_stored_json(
             let mut value = serde_json::from_str::<serde_json::Value>(raw)
                 .map_err(|_| format!("failed to parse Agent Center config: {strict_error}"))?;
             let Some(object) = value.as_object_mut() else {
-                return Err(format!("failed to parse Agent Center config: {strict_error}"));
+                return Err(format!(
+                    "failed to parse Agent Center config: {strict_error}"
+                ));
             };
             object.insert(
                 "account_id".to_string(),
@@ -422,11 +445,12 @@ fn config_from_stored_json(
                 "local_agent_ref".to_string(),
                 serde_json::Value::String(scope.local_agent_ref.clone()),
             );
-            let config: AgentCenterLocalConfig = serde_json::from_value(value).map_err(|error| {
-                format!(
+            let config: AgentCenterLocalConfig =
+                serde_json::from_value(value).map_err(|error| {
+                    format!(
                     "failed to parse Agent Center config after scoped identity projection: {error}"
                 )
-            })?;
+                })?;
             validate_agent_center_config_scope(&config, account_id, scope)?;
             Ok((config, true))
         }
@@ -512,9 +536,13 @@ pub(crate) fn desktop_agent_center_config_get_blocking(
             path.display()
         )
     })?;
-    let (config, projected) = config_from_stored_json(&raw, &account_id, &scope).map_err(|error| {
-        format!("failed to parse Agent Center config ({}): {error}", path.display())
-    })?;
+    let (config, projected) =
+        config_from_stored_json(&raw, &account_id, &scope).map_err(|error| {
+            format!(
+                "failed to parse Agent Center config ({}): {error}",
+                path.display()
+            )
+        })?;
     if projected {
         atomic_write_json(&path, &config)?;
     }
@@ -633,6 +661,11 @@ mod tests {
             assert_eq!(config.realm_agent_id, realm_agent_id());
             assert_eq!(config.local_agent_ref, local_agent_ref());
             assert!(config.modules.avatar_asset.local_avatar_asset_ref.is_none());
+            assert!(config
+                .modules
+                .avatar_asset
+                .live2d_calibration_ref
+                .is_none());
             assert!(!home
                 .join(format!(
                     ".nimi/data/accounts/account_1/agents/{}/agent-center/config.json",
@@ -676,6 +709,86 @@ mod tests {
     }
 
     #[test]
+    fn put_accepts_opaque_live2d_calibration_ref() {
+        let home = temp_home("live2d-calibration-ref");
+        with_product_data_home(&home, || {
+            let mut config = valid_config();
+            config.modules.avatar_asset.live2d_calibration_ref =
+                Some("live2d_calibration_ab12cd34ef56".to_string());
+            desktop_agent_center_config_put_blocking(
+                "account_1",
+                DesktopAgentCenterConfigPutPayload {
+                    account_id: "account_1".to_string(),
+                    owner_user_id: owner_user_id(),
+                    realm_agent_id: realm_agent_id(),
+                    local_agent_ref: local_agent_ref(),
+                    config,
+                },
+            )
+            .expect("calibration ref accepted");
+            let loaded = desktop_agent_center_config_get_blocking("account_1", scope_payload())
+                .expect("get config");
+            assert_eq!(
+                loaded
+                    .modules
+                    .avatar_asset
+                    .live2d_calibration_ref
+                    .as_deref(),
+                Some("live2d_calibration_ab12cd34ef56")
+            );
+        });
+    }
+
+    #[test]
+    fn put_rejects_malformed_live2d_calibration_ref() {
+        let home = temp_home("live2d-calibration-ref-shape");
+        with_product_data_home(&home, || {
+            let mut config = valid_config();
+            config.modules.avatar_asset.live2d_calibration_ref =
+                Some("live2d_calibration_nothex".to_string());
+            let err = desktop_agent_center_config_put_blocking(
+                "account_1",
+                DesktopAgentCenterConfigPutPayload {
+                    account_id: "account_1".to_string(),
+                    owner_user_id: owner_user_id(),
+                    realm_agent_id: realm_agent_id(),
+                    local_agent_ref: local_agent_ref(),
+                    config,
+                },
+            )
+            .expect_err("malformed calibration ref rejected");
+            assert!(err.contains(
+                "modules.avatar_asset.live2d_calibration_ref must end with 12 lowercase hex characters"
+            ));
+        });
+    }
+
+    #[test]
+    fn put_rejects_live2d_calibration_ref_for_non_live2d_backend() {
+        let home = temp_home("live2d-calibration-ref-backend");
+        with_product_data_home(&home, || {
+            let mut config = valid_config();
+            config.modules.avatar_asset.local_avatar_asset_ref =
+                Some("vrm_ab12cd34ef56".to_string());
+            config.modules.avatar_asset.backend_kind = AgentCenterAvatarBackendKind::Vrm;
+            config.modules.avatar_asset.live2d_calibration_ref =
+                Some("live2d_calibration_ab12cd34ef56".to_string());
+            let err = desktop_agent_center_config_put_blocking(
+                "account_1",
+                DesktopAgentCenterConfigPutPayload {
+                    account_id: "account_1".to_string(),
+                    owner_user_id: owner_user_id(),
+                    realm_agent_id: realm_agent_id(),
+                    local_agent_ref: local_agent_ref(),
+                    config,
+                },
+            )
+            .expect_err("backend-mismatched calibration ref rejected");
+            assert!(err.contains("live2d_calibration_ref requires live2d backend"));
+        });
+    }
+
+    #[test]
     fn put_rejects_avatar_backend_kind_mismatch_for_selected_local_asset() {
         let home = temp_home("avatar-backend-mismatch");
         with_product_data_home(&home, || {
@@ -696,6 +809,48 @@ mod tests {
             .expect_err("backend mismatch rejected");
             assert!(err.contains("backend_kind must match local Avatar asset id prefix"));
         });
+    }
+
+    #[test]
+    fn put_rejects_malformed_avatar_asset_ref() {
+        let home = temp_home("avatar-asset-ref-shape");
+        with_product_data_home(&home, || {
+            let mut config = valid_config();
+            config.modules.avatar_asset.local_avatar_asset_ref = Some("live2d_nothex".to_string());
+            config.modules.avatar_asset.backend_kind = AgentCenterAvatarBackendKind::Live2d;
+            let err = desktop_agent_center_config_put_blocking(
+                "account_1",
+                DesktopAgentCenterConfigPutPayload {
+                    account_id: "account_1".to_string(),
+                    owner_user_id: owner_user_id(),
+                    realm_agent_id: realm_agent_id(),
+                    local_agent_ref: local_agent_ref(),
+                    config,
+                },
+            )
+            .expect_err("malformed local Avatar asset ref rejected");
+            assert!(err.contains(
+                "modules.avatar_asset.local_avatar_asset_ref must end with 12 lowercase hex characters"
+            ));
+        });
+    }
+
+    #[test]
+    fn config_put_payload_rejects_forbidden_launch_context_fields() {
+        let payload = serde_json::json!({
+            "accountId": "account_1",
+            "ownerUserId": owner_user_id(),
+            "realmAgentId": realm_agent_id(),
+            "localAgentRef": local_agent_ref(),
+            "packagePath": "/tmp/avatar.vrm",
+            "config": valid_config(),
+        });
+
+        let err = serde_json::from_value::<DesktopAgentCenterConfigPutPayload>(payload)
+            .expect_err("unknown launch context field rejected at payload boundary");
+        assert!(
+            err.to_string().contains("packagePath") || err.to_string().contains("unknown field")
+        );
     }
 
     #[test]

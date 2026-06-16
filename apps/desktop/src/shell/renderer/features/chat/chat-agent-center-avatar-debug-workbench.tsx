@@ -260,6 +260,9 @@ export function AgentCenterAvatarDebugWorkbench(props: AgentCenterAvatarDebugWor
   const latestStatus = avatarDebugProbePresentationStatusLabel(latestResult, latestReplay);
   const participationStatus = desktopCompanionParticipationStatusLabel(latestParticipationProjection);
   const latestEvidence = latestResult?.evidenceRefs?.length ? latestResult.evidenceRefs.join(', ') : input.t('Chat.agentCenterAvatarDebugNoEvidence', { defaultValue: 'No evidence linked yet' });
+  const latestEvidenceCount = latestResult?.evidenceRefs?.length ?? 0;
+  const latestReason = latestResult?.reasonCode?.trim() || input.t('Chat.agentCenterAvatarDebugNoReason', { defaultValue: 'No reason code' });
+  const latestReplayRef = latestReplay?.replayRef?.trim() || input.t('Chat.agentCenterAvatarDebugNoReplay', { defaultValue: 'No replay ref' });
   const snapshotCount = snapshot?.probeResults.length || 0;
 
   return (
@@ -335,6 +338,15 @@ export function AgentCenterAvatarDebugWorkbench(props: AgentCenterAvatarDebugWor
         </div>
         <div className="mt-1">{avatarDebugProbeRemediation(latestResult, latestReplay)}</div>
         <div className="mt-2 text-slate-500">
+          {input.t('Chat.agentCenterAvatarDebugEvidenceCount', { defaultValue: 'Evidence count' })}: {latestEvidenceCount}
+        </div>
+        <div className="mt-1 text-slate-500">
+          {input.t('Chat.agentCenterAvatarDebugReason', { defaultValue: 'Reason' })}: {latestReason}
+        </div>
+        <div className="mt-1 break-all text-slate-500">
+          {input.t('Chat.agentCenterAvatarDebugReplayRef', { defaultValue: 'Replay ref' })}: {latestReplayRef}
+        </div>
+        <div className="mt-2 break-all text-slate-500">
           {input.t('Chat.agentCenterAvatarDebugEvidence', { defaultValue: 'Evidence' })}: {latestEvidence}
         </div>
         <div className="mt-2 text-slate-500">

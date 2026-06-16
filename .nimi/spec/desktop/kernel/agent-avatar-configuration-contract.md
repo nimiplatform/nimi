@@ -41,6 +41,7 @@ Admitted fields:
 - `local_avatar_asset_ref`
 - `live2d_adapter_manifest_source`
 - `live2d_adapter_manifest_ref`
+- `live2d_calibration_ref`
 - `avatar_instance_policy`
 - `backend_kind`
 - `backend_capability_profile_ref`
@@ -59,6 +60,16 @@ Forbidden fields:
 - backend command strings intended for Avatar execution
 - raw Live2D adapter manifest payload, absolute source path, semantic
   compatibility verdict, computed tier, or Avatar diagnostic code ownership
+- Live2D calibration payloads or values, model digest, preview artifact refs,
+  model framing calibration, render scale, target FPS, performance policy, or
+  expression inventory as persisted Desktop configuration truth
+
+`live2d_calibration_ref` is admitted only as an opaque Desktop control-record
+ref. It MUST NOT be copied into launch payload, dereferenced as calibration
+payload, treated as Avatar carrier truth, or used to affect Avatar. Avatar local
+asset resolver may project the ref as read-only evidence; calibration payloads,
+values, and effects remain blocked until an explicit Runtime/SDK/Avatar effect
+projection is admitted.
 
 ## D-LLM-079a Cross-Reference — `launch_mode` Actuation Authority
 
@@ -156,6 +167,8 @@ Desktop persisted configuration may store only local Avatar asset refs, source
 provenance, and bounded status summaries:
 
 - `local_avatar_asset_ref` or current storage-equivalent local selection ref
+- `live2d_calibration_ref` as an opaque control ref that Avatar local asset
+  resolver may project as read-only evidence
 - `backend_capability_profile_ref`
 - selected `backend_kind`
 - readiness/status summary
@@ -172,6 +185,16 @@ truth.
 Desktop MAY initiate private local Live2D / VRM import into the local Avatar
 asset store. Remote marketplace acquisition surfaces are retired (Asset Market
 withdrawn); Desktop must not reintroduce them.
+
+Desktop MAY validate local import materialization shape before admitting a local
+Avatar asset ref. For Live2D imports this local readiness validation may inspect
+the selected `.model3.json` entry, package-relative `FileReferences`, referenced
+file existence, exact path casing, MOC3 file header readability, byte/file caps,
+and portability warnings such as basename collision or non-ASCII package paths.
+
+These validation issues are Desktop import-readiness evidence only. They MUST
+NOT be emitted as `AVATAR_LIVE2D_COMPAT_*`, compatibility tiers, Avatar carrier
+proof, backend capability truth, or launch-ready success.
 
 Desktop MUST NOT create:
 
@@ -212,6 +235,44 @@ to Avatar after Runtime validates `agent_id` and the local agent projection.
 
 Agent Center resolver plumbing, when present, is local Avatar asset
 materialization storage only. It is not remote package authority.
+
+## D-LLM-104 — Live2D Calibration Workbench Boundary
+
+Desktop MAY render a Live2D calibration/review workbench inside Agent Chat
+Settings -> Avatar.
+
+Admitted review surface:
+
+- selected opaque local Avatar asset ref
+- Live2D adapter manifest source posture and opaque sidecar ref state
+- preview artifact posture sourced from Runtime/Avatar debug probe evidence
+- model framing and render-policy readiness posture
+- expression inventory posture sourced from Runtime/Avatar debug probe evidence
+- debug probe request shortcuts for backend, capability profile, route matrix,
+  generated motion, emotion/expression, speech/lipsync, and window/hit-region
+
+The workbench MAY persist `live2d_calibration_ref` as an opaque Desktop
+control-record ref. The ref records only that Desktop has a bounded calibration
+handle; it is not a payload, not a model digest, not a preview artifact, and not
+Avatar carrier truth.
+
+Until a Runtime/SDK/Avatar calibration payload/effect projection shape is
+admitted, the workbench
+MUST NOT persist or pass:
+
+- calibration payload or calibration values
+- model digest or avatar-instance calibration mapping
+- preview artifact ref
+- framing calibration
+- render scale, target FPS, or performance policy
+- expression inventory
+- compatibility tier, `AVATAR_LIVE2D_COMPAT_*` diagnostics, or Avatar carrier
+  proof as Desktop configuration truth
+
+The workbench MUST NOT widen the Avatar launch payload. Any future persisted
+calibration may affect Avatar only through an admitted Runtime/SDK/Avatar
+payload/effect resolver projection, never through Desktop launch handoff or app-local carrier
+truth.
 
 ## Traceability
 

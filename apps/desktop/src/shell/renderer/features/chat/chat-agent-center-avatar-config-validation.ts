@@ -24,6 +24,7 @@ import type {
 const NORMALIZED_ID_PATTERN = /^(?=.*[A-Za-z0-9])(?!\.{1,2}$)(?!.*:\/\/)[A-Za-z0-9._~:@+-]{1,256}$/u;
 const LOCAL_AVATAR_ASSET_ID_PATTERN = /^(live2d|vrm)_[a-f0-9]{12}$/u;
 const LIVE2D_ADAPTER_MANIFEST_REF_PATTERN = /^live2d_adapter_[a-f0-9]{12}$/u;
+const LIVE2D_CALIBRATION_REF_PATTERN = /^live2d_calibration_[a-f0-9]{12}$/u;
 const ISO_TIMESTAMP_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?Z$/u;
 const AVATAR_CONFIG_PROVENANCE_KEYS = ['source', 'evidence_ref'] as const;
 const AVATAR_ASSET_KEYS = [
@@ -32,6 +33,7 @@ const AVATAR_ASSET_KEYS = [
   'local_avatar_asset_ref',
   'live2d_adapter_manifest_source',
   'live2d_adapter_manifest_ref',
+  'live2d_calibration_ref',
   'avatar_instance_policy',
   'backend_kind',
   'backend_capability_profile_ref',
@@ -100,6 +102,14 @@ function validateLive2dAdapterManifestRef(value: unknown, path: string, errors: 
   const id = readNullableString(value, path, errors);
   if (id !== null && !LIVE2D_ADAPTER_MANIFEST_REF_PATTERN.test(id)) {
     errors.push(`${path}: invalid Live2D adapter manifest ref`);
+  }
+  return id;
+}
+
+function validateLive2dCalibrationRef(value: unknown, path: string, errors: string[]): string | null {
+  const id = readNullableString(value, path, errors);
+  if (id !== null && !LIVE2D_CALIBRATION_REF_PATTERN.test(id)) {
+    errors.push(`${path}: invalid Live2D calibration ref`);
   }
   return id;
 }
@@ -189,6 +199,10 @@ export function validateAvatarAssetModule(value: unknown, errors: string[]): Age
   if (manifestSource !== 'external_sidecar_manifest' && manifestRef) {
     errors.push(`${path}.live2d_adapter_manifest_ref: requires external sidecar manifest source`);
   }
+  const calibrationRef = validateLive2dCalibrationRef(record.live2d_calibration_ref, `${path}.live2d_calibration_ref`, errors);
+  if (calibrationRef && backendKind !== 'live2d') {
+    errors.push(`${path}.live2d_calibration_ref: requires live2d backend`);
+  }
 
   return {
     schema_version: 1,
@@ -196,6 +210,7 @@ export function validateAvatarAssetModule(value: unknown, errors: string[]): Age
     local_avatar_asset_ref: localAvatarAssetRef,
     live2d_adapter_manifest_source: manifestSource,
     live2d_adapter_manifest_ref: manifestRef,
+    live2d_calibration_ref: calibrationRef,
     avatar_instance_policy: validateEnum<AgentCenterAvatarInstancePolicy>(record.avatar_instance_policy, `${path}.avatar_instance_policy`, errors, new Set(AVATAR_INSTANCE_POLICY_VALUES), 'reuse_active_instance', 'invalid avatar instance policy'),
     backend_kind: backendKind,
     backend_capability_profile_ref: validateNullableNormalizedId(record.backend_capability_profile_ref, `${path}.backend_capability_profile_ref`, errors),

@@ -40,6 +40,7 @@ test('Agent Center local config bridge parser accepts Rust store payload shape',
         local_avatar_asset_ref: 'vrm_ab12cd34ef56',
         live2d_adapter_manifest_source: 'none',
         live2d_adapter_manifest_ref: null,
+        live2d_calibration_ref: null,
         avatar_instance_policy: 'reuse_active_instance',
         backend_kind: 'vrm',
         backend_capability_profile_ref: null,
@@ -87,6 +88,7 @@ test('Agent Center local config bridge rejects retired selected package truth', 
         local_avatar_asset_ref: 'vrm_ab12cd34ef56',
         live2d_adapter_manifest_source: 'none',
         live2d_adapter_manifest_ref: null,
+        live2d_calibration_ref: null,
         avatar_instance_policy: 'reuse_active_instance',
         backend_kind: 'live2d',
         backend_capability_profile_ref: null,
@@ -135,6 +137,7 @@ test('Agent Center local config default includes closed avatar configuration fie
   assert.equal(config.modules.avatar_asset.backend_kind, 'live2d');
   assert.equal(config.modules.avatar_asset.live2d_adapter_manifest_source, 'none');
   assert.equal(config.modules.avatar_asset.live2d_adapter_manifest_ref, null);
+  assert.equal(config.modules.avatar_asset.live2d_calibration_ref, null);
   assert.equal(config.modules.avatar_asset.avatar_instance_policy, 'reuse_active_instance');
   assert.equal(config.modules.avatar_asset.generated_motion_provider_policy, 'require_profile_support');
   assert.equal(config.modules.avatar_asset.launch_mode, 'manual');
@@ -161,6 +164,7 @@ test('Agent Center local config bridge rejects retired launch package config fie
         local_avatar_asset_ref: null,
         live2d_adapter_manifest_source: 'none',
         live2d_adapter_manifest_ref: null,
+        live2d_calibration_ref: null,
         avatar_instance_policy: 'reuse_active_instance',
         backend_kind: 'live2d',
         backend_capability_profile_ref: null,

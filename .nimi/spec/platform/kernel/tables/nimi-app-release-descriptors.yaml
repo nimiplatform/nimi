@@ -62,6 +62,54 @@ descriptors:
       mutable_source_allowed: false
       install_digest_verification_required: inherited_from_atomic_bundle
     source_rule: P-NAPP-014
+  - descriptor_id: nimi.realm-agent-studio.bundled-with-nimi
+    app_id: nimi.realm-agent-studio
+    version: bundled-with-current-nimi-release
+    descriptor_class: bundled-with-nimi
+    source:
+      kind: nimi-bundle
+      ref: current-atomic-nimi-release
+    artifact:
+      locator: current-nimi-release-bundle
+      digest_algorithm: sha256
+      sha256: inherited-from-atomic-nimi-release-manifest
+      size: inherited-from-atomic-nimi-release-manifest
+      signature_or_provenance_ref: nimi-first-party-signature-policy
+    runtime:
+      package_kind: nimi-app
+      entry_ref: realm-agent-studio-runtime-registration
+      sandbox_ref: first-party-bundled-app
+    permissions_ref: nimi.realm-agent-studio.permission_scope_ref
+    storage_policy_ref: nimi-data-app-roots
+    review:
+      admission_path: first-party-bundled-release
+      mutable_source_allowed: false
+      install_digest_verification_required: inherited_from_atomic_bundle
+    source_rule: P-NAPP-014
+  - descriptor_id: nimi.realm-world-studio.bundled-with-nimi
+    app_id: nimi.realm-world-studio
+    version: bundled-with-current-nimi-release
+    descriptor_class: bundled-with-nimi
+    source:
+      kind: nimi-bundle
+      ref: current-atomic-nimi-release
+    artifact:
+      locator: current-nimi-release-bundle
+      digest_algorithm: sha256
+      sha256: inherited-from-atomic-nimi-release-manifest
+      size: inherited-from-atomic-nimi-release-manifest
+      signature_or_provenance_ref: nimi-first-party-signature-policy
+    runtime:
+      package_kind: nimi-app
+      entry_ref: realm-world-studio-runtime-registration
+      sandbox_ref: first-party-bundled-app
+    permissions_ref: nimi.realm-world-studio.permission_scope_ref
+    storage_policy_ref: nimi-data-app-roots
+    review:
+      admission_path: first-party-bundled-release
+      mutable_source_allowed: false
+      install_digest_verification_required: inherited_from_atomic_bundle
+    source_rule: P-NAPP-014
 
 third_party_descriptor_floor:
   required_fields:

@@ -144,13 +144,22 @@ export const AVATAR_DEBUG_WORKBENCH_PROBES = PROBES;
 const REQUIRED_EVIDENCE_REFS_BY_PROBE_KIND: Partial<Record<AvatarDebugProbeKind, readonly string[]>> = {
   [AvatarDebugProbeKind.PACKAGE_VALIDATION]: ['local_avatar_asset_ref', 'import_validation_ref'],
   [AvatarDebugProbeKind.LAUNCH_READINESS]: ['runtime_authorization_ref', 'avatar_launch_payload_shape'],
-  [AvatarDebugProbeKind.BACKEND_LOAD]: ['avatar_debug_session_id', 'backend_load_evidence_ref'],
+  [AvatarDebugProbeKind.BACKEND_LOAD]: [
+    'avatar_debug_session_id',
+    'backend_load_evidence_ref',
+    'avatar_carrier_visual_ref',
+    'avatar_preview_artifact_ref',
+  ],
   [AvatarDebugProbeKind.CAPABILITY_PROFILE]: ['backend_capability_profile_ref', 'profile_validation_evidence_ref'],
   [AvatarDebugProbeKind.ROUTE_SUPPORT_MATRIX]: ['generated_motion_routes_ref', 'backend_capability_profile_ref'],
   [AvatarDebugProbeKind.GENERATED_MOTION]: ['runtime_probe_id', 'avatar_backend_evidence_ref'],
   [AvatarDebugProbeKind.EMOTION_EXPRESSION]: ['runtime_probe_id', 'avatar_backend_evidence_ref'],
   [AvatarDebugProbeKind.SPEECH_LIPSYNC]: ['runtime_probe_id', 'avatar_backend_evidence_ref'],
-  [AvatarDebugProbeKind.WINDOW_HIT_REGION]: ['avatar_carrier_diagnostics_ref'],
+  [AvatarDebugProbeKind.WINDOW_HIT_REGION]: [
+    'avatar_carrier_diagnostics_ref',
+    'avatar_carrier_visual_ref',
+    'avatar_preview_artifact_ref',
+  ],
 };
 
 export function buildAvatarDebugWorkbenchLaunchHealth(input: {

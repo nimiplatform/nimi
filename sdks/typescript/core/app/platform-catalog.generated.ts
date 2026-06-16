@@ -234,6 +234,42 @@ export const NIMI_APP_REGISTRY_ROWS = [
     "installStoragePolicyRef": "nimi-data-app-roots",
     "sourceRule": "P-NAPP-011",
     "admissionStatus": "admitted"
+  },
+  {
+    "appId": "nimi.realm-agent-studio",
+    "appKind": "nimi-app",
+    "displayName": "Realm Agent Studio",
+    "publisher": "nimi-first-party",
+    "trustTier": "nimi-first-party",
+    "ordinaryVisibility": "developer-only",
+    "aiProfileSelectionRef": "local-gpu",
+    "capabilitySet": [
+      "text.generate",
+      "audio.synthesize",
+      "image.generate"
+    ],
+    "releaseDescriptorRef": "nimi.realm-agent-studio.bundled-with-nimi",
+    "installStoragePolicyRef": "nimi-data-app-roots",
+    "sourceRule": "P-NAPP-011",
+    "admissionStatus": "admitted"
+  },
+  {
+    "appId": "nimi.realm-world-studio",
+    "appKind": "nimi-app",
+    "displayName": "Realm World Studio",
+    "publisher": "nimi-first-party",
+    "trustTier": "nimi-first-party",
+    "ordinaryVisibility": "developer-only",
+    "aiProfileSelectionRef": "local-gpu",
+    "capabilitySet": [
+      "text.generate",
+      "audio.synthesize",
+      "image.generate"
+    ],
+    "releaseDescriptorRef": "nimi.realm-world-studio.bundled-with-nimi",
+    "installStoragePolicyRef": "nimi-data-app-roots",
+    "sourceRule": "P-NAPP-011",
+    "admissionStatus": "admitted"
   }
 ] as const satisfies readonly NimiAppRegistrySourceRow[];
 
@@ -254,6 +290,50 @@ export const NIMI_APP_RELEASE_DESCRIPTOR_ROWS = [
     "entryRef": "avatar-runtime-registration",
     "sandboxRef": "first-party-bundled-app",
     "permissionsRef": "nimi.avatar.permission_scope_ref",
+    "storagePolicyRef": "nimi-data-app-roots",
+    "admissionPath": "first-party-bundled-release",
+    "mutableSourceAllowed": false,
+    "installDigestVerificationRequired": "inherited_from_atomic_bundle",
+    "sourceRule": "P-NAPP-014"
+  },
+  {
+    "descriptorId": "nimi.realm-agent-studio.bundled-with-nimi",
+    "appId": "nimi.realm-agent-studio",
+    "version": "bundled-with-current-nimi-release",
+    "descriptorClass": "bundled-with-nimi",
+    "sourceKind": "nimi-bundle",
+    "sourceRef": "current-atomic-nimi-release",
+    "artifactLocator": "current-nimi-release-bundle",
+    "digestAlgorithm": "sha256",
+    "sha256": "inherited-from-atomic-nimi-release-manifest",
+    "size": "inherited-from-atomic-nimi-release-manifest",
+    "provenanceRef": "nimi-first-party-signature-policy",
+    "packageKind": "nimi-app",
+    "entryRef": "realm-agent-studio-runtime-registration",
+    "sandboxRef": "first-party-bundled-app",
+    "permissionsRef": "nimi.realm-agent-studio.permission_scope_ref",
+    "storagePolicyRef": "nimi-data-app-roots",
+    "admissionPath": "first-party-bundled-release",
+    "mutableSourceAllowed": false,
+    "installDigestVerificationRequired": "inherited_from_atomic_bundle",
+    "sourceRule": "P-NAPP-014"
+  },
+  {
+    "descriptorId": "nimi.realm-world-studio.bundled-with-nimi",
+    "appId": "nimi.realm-world-studio",
+    "version": "bundled-with-current-nimi-release",
+    "descriptorClass": "bundled-with-nimi",
+    "sourceKind": "nimi-bundle",
+    "sourceRef": "current-atomic-nimi-release",
+    "artifactLocator": "current-nimi-release-bundle",
+    "digestAlgorithm": "sha256",
+    "sha256": "inherited-from-atomic-nimi-release-manifest",
+    "size": "inherited-from-atomic-nimi-release-manifest",
+    "provenanceRef": "nimi-first-party-signature-policy",
+    "packageKind": "nimi-app",
+    "entryRef": "realm-world-studio-runtime-registration",
+    "sandboxRef": "first-party-bundled-app",
+    "permissionsRef": "nimi.realm-world-studio.permission_scope_ref",
     "storagePolicyRef": "nimi-data-app-roots",
     "admissionPath": "first-party-bundled-release",
     "mutableSourceAllowed": false,

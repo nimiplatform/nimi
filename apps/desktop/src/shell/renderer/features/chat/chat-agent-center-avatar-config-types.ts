@@ -23,6 +23,7 @@ export type AgentCenterAvatarAssetModule = {
   local_avatar_asset_ref: string | null;
   live2d_adapter_manifest_source: AgentCenterLive2dAdapterManifestSource;
   live2d_adapter_manifest_ref: string | null;
+  live2d_calibration_ref: string | null;
   avatar_instance_policy: AgentCenterAvatarInstancePolicy;
   backend_kind: AgentCenterAvatarBackendKind;
   backend_capability_profile_ref: string | null;
@@ -57,6 +58,7 @@ export function createDefaultAgentCenterAvatarAssetModule(): AgentCenterAvatarAs
     local_avatar_asset_ref: null,
     live2d_adapter_manifest_source: 'none',
     live2d_adapter_manifest_ref: null,
+    live2d_calibration_ref: null,
     avatar_instance_policy: 'reuse_active_instance',
     backend_kind: 'live2d',
     backend_capability_profile_ref: null,

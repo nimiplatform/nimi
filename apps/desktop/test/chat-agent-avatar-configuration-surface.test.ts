@@ -82,6 +82,7 @@ test('Agent Chat Settings Avatar surface exposes closed configuration controls',
   assert.doesNotMatch(localAvatarControlsSource, /selectAgentCenterAvatarAsset/u);
   assert.doesNotMatch(localAvatarControlsSource, /removeAgentCenterAvatarAsset/u);
   assert.match(localAvatarControlsSource, /importAgentCenterLive2dAdapterManifest/u);
+  assert.match(avatarSettingsSource, /AgentCenterLive2dCalibrationWorkbench/u);
   assert.match(localAvatarControlsSource, /getAgentCenterBackgroundAsset/u);
   assert.match(localAvatarControlsSource, /importAgentCenterBackground/u);
   assert.match(mutationSource, /putAgentCenterLocalConfig/u);
@@ -96,6 +97,7 @@ test('Agent Chat Settings Avatar surface exposes closed configuration controls',
   assert.doesNotMatch(bridgeSource, /desktop_agent_center_avatar_asset_remove/u);
   assert.doesNotMatch(mutationSource, /selected_package/u);
   assert.doesNotMatch(mutationSource, /last_validated_at/u);
+  assert.doesNotMatch(mutationSource, /live2d_calibration|model_digest|render_scale|target_fps|framing_calibration/u);
   assert.doesNotMatch(presentationSource, /chat-agent-avatar-store/u);
   assert.doesNotMatch(bridgeSource, /desktop_agent_avatar_store/u);
 });
@@ -114,6 +116,7 @@ test('Agent Chat Settings Avatar surface does not widen Avatar launch handoff', 
   assert.doesNotMatch(launchCall[0], /activeTarget\.realmAgentId/u);
   assert.doesNotMatch(launchCall[0], /\b(ownerUserId|realmAgentId|localAgentRef|conversationAnchorId|sourceSurface)\s*:/u);
   assert.doesNotMatch(launchCall[0], /package|descriptor|path|profile|token|account|binding|carrier/u);
+  assert.doesNotMatch(launchCall[0], /calibration|modelDigest|renderScale|targetFps|framing|expressionInventory|previewArtifact/u);
 });
 
 test('Agent Chat composer Avatar launch fails closed without local asset and backend evidence', async () => {

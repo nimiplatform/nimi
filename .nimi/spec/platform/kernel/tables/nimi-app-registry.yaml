@@ -12,9 +12,10 @@ entries:
   - ordinary Apps visibility requires admission_status admitted and ordinary_visibility ordinary-visible
   - no ordinary-visible first-party app is admitted in this cut
   - Avatar must remain hidden-internal for ordinary Apps even when package/update coordination rows exist
-  - Realm Agent Studio is admitted only as developer-only first-party App in
-    this cut so standalone desktop dev-shell account registration can fail
-    closed through Runtime registry truth instead of app-local session shims
+  - Realm Agent Studio and Realm World Studio are admitted only as developer-only
+    first-party Apps in this cut so standalone desktop dev-shell account
+    registration can use Runtime registry truth and short-lived Realm account
+    tokens without app-owned refresh-token custody
   - every installable non-bundled version must resolve to an immutable release descriptor with digest verification before unpack or execution
   - permission_scope_ref carries the admitted first-party Avatar seed grant set
 
@@ -127,6 +128,102 @@ apps:
       - stale-projection
     ordinary_visibility: hidden-internal
     release_descriptor_ref: nimi.avatar.bundled-with-nimi
+    install_storage_policy_ref: nimi-data-app-roots
+    source_repo_url: null
+    admission_status: admitted
+    source_rule: P-NAPP-011
+  - app_id: nimi.realm-agent-studio
+    display_label: Realm Agent Studio
+    publisher: nimi-first-party
+    trust_tier_ref: nimi-first-party
+    package_kind: nimi-app
+    package_signature_policy_ref: nimi-first-party-signature-policy
+    update_channel_ref: stable
+    ai_profile_selection_ref: local-gpu
+    capability_set_refs:
+      - text.generate
+      - audio.synthesize
+      - image.generate
+    local_compute_pack_refs:
+      - local-text
+      - local-speech
+      - local-image-native
+      - local-gpu-support
+    runtime_registration_mode: app-managed
+    permission_scope_ref:
+      - appId: nimi.realm-agent-studio
+        scopeFamily: account
+        scopeName: account.session.read
+      - appId: nimi.realm-agent-studio
+        scopeFamily: realm
+        scopeName: realm.me.agents.read
+      - appId: nimi.realm-agent-studio
+        scopeFamily: realm
+        scopeName: realm.me.agents.write
+      - appId: nimi.realm-agent-studio
+        scopeFamily: ai_spend
+        scopeName: ai.spend.meter
+    health_repair_projection:
+      - unavailable
+      - setup-required
+      - needs-confirmation
+      - in-progress
+      - failed
+      - unsupported
+      - repair-required
+      - stale-projection
+    ordinary_visibility: developer-only
+    release_descriptor_ref: nimi.realm-agent-studio.bundled-with-nimi
+    install_storage_policy_ref: nimi-data-app-roots
+    source_repo_url: null
+    admission_status: admitted
+    source_rule: P-NAPP-011
+  - app_id: nimi.realm-world-studio
+    display_label: Realm World Studio
+    publisher: nimi-first-party
+    trust_tier_ref: nimi-first-party
+    package_kind: nimi-app
+    package_signature_policy_ref: nimi-first-party-signature-policy
+    update_channel_ref: stable
+    ai_profile_selection_ref: local-gpu
+    capability_set_refs:
+      - text.generate
+      - audio.synthesize
+      - image.generate
+    local_compute_pack_refs:
+      - local-text
+      - local-speech
+      - local-image-native
+      - local-gpu-support
+    runtime_registration_mode: app-managed
+    permission_scope_ref:
+      - appId: nimi.realm-world-studio
+        scopeFamily: account
+        scopeName: account.session.read
+      - appId: nimi.realm-world-studio
+        scopeFamily: realm
+        scopeName: realm.worlds.read
+        qualifier: creator-worlds
+      - appId: nimi.realm-world-studio
+        scopeFamily: realm
+        scopeName: realm.creator.worldAgents.read
+      - appId: nimi.realm-world-studio
+        scopeFamily: realm
+        scopeName: realm.creator.worldAgents.write
+      - appId: nimi.realm-world-studio
+        scopeFamily: ai_spend
+        scopeName: ai.spend.meter
+    health_repair_projection:
+      - unavailable
+      - setup-required
+      - needs-confirmation
+      - in-progress
+      - failed
+      - unsupported
+      - repair-required
+      - stale-projection
+    ordinary_visibility: developer-only
+    release_descriptor_ref: nimi.realm-world-studio.bundled-with-nimi
     install_storage_policy_ref: nimi-data-app-roots
     source_repo_url: null
     admission_status: admitted

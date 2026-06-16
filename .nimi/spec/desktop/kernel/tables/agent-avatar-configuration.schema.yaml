@@ -14,6 +14,16 @@ surfaces:
   - live2d_adapter_manifest_ref
   - backend_capability_profile_ref
   - generated_motion_provider_policy
+  - live2d_calibration_ref
+  - live2d_calibration
+  - model_digest
+  - avatar_instance_calibration
+  - preview_artifact_ref
+  - framing_calibration
+  - render_scale
+  - target_fps
+  - performance_policy
+  - expression_inventory
   - package_descriptor
   - package_path
   - launch_local_asset_id
@@ -44,6 +54,10 @@ surfaces:
   - Embedded and external Live2D adapter manifests must not be merged or
     silently preferred.
   - Missing evidence produces fail-closed configuration status.
+  - The Desktop Live2D calibration workbench may persist only an opaque
+    `live2d_calibration_ref`; calibration values and Avatar effect remain
+    blocked until a Runtime/SDK/Avatar payload/effect resolver projection is
+    admitted.
 schema_id: nimi.desktop.agent-avatar-configuration.v1
 owner: .nimi/spec/desktop
 status: active
@@ -75,6 +89,7 @@ fields:
       - no_anchor
   local_avatar_asset_ref:
     type: string_optional
+    pattern: "^(live2d|vrm)_[a-f0-9]{12}$"
     semantics: opaque_control_ref
     forbidden_as:
       - launch_payload
@@ -102,6 +117,20 @@ fields:
       - package_descriptor
       - launch_payload
       - Avatar_diagnostic_truth
+  live2d_calibration_ref:
+    type: string_optional
+    pattern: "^live2d_calibration_[a-f0-9]{12}$"
+    semantics: opaque_desktop_calibration_resolver_ref
+    backend_required: live2d
+    resolver_ref_projection_admitted: true
+    resolver_effect_projection_admitted: false
+    forbidden_as:
+      - launch_payload
+      - calibration_payload
+      - calibration_value_truth
+      - carrier_truth
+      - Avatar_diagnostic_truth
+    effect_boundary: "no_avatar_effect_until_runtime_sdk_avatar_resolver_projection_admitted"
   avatar_instance_policy:
     type: enum
     values:
@@ -155,6 +184,15 @@ forbidden_fields:
   - package_descriptor
   - package_path
   - launch_local_asset_id
+  - live2d_calibration
+  - model_digest
+  - avatar_instance_calibration
+  - preview_artifact_ref
+  - framing_calibration
+  - render_scale
+  - target_fps
+  - performance_policy
+  - expression_inventory
   - live2d_adapter_manifest_payload
   - live2d_adapter_manifest_path
   - live2d_adapter_manifest_absolute_path
@@ -182,3 +220,10 @@ invariants:
     manifest resolver, compatibility validator, diagnostics, and carrier-proof owner.
   - Embedded and external Live2D adapter manifests must not be merged or silently preferred.
   - Missing evidence produces fail-closed configuration status.
+  - Desktop local import validation issue codes are import-readiness evidence
+    only; they must not use `AVATAR_LIVE2D_COMPAT_*`, compatibility tier, Avatar
+    carrier-proof, or backend capability truth semantics.
+  - The Desktop Live2D calibration workbench may persist only
+    `live2d_calibration_ref` as an opaque control ref that Avatar local asset
+    resolver may project as read-only evidence; it must not persist calibration
+    values or affect Avatar outside an admitted resolver effect projection.

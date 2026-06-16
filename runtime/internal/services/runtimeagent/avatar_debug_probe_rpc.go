@@ -171,6 +171,9 @@ func validateSubmittedAvatarDebugProbeResult(agentID string, anchorID string, re
 	if !isAdmittedAvatarDebugProbeKind(result.GetProbeKind()) {
 		return nil, status.Error(codes.InvalidArgument, "avatar debug probe_kind is not admitted")
 	}
+	if !isAvatarSubmittableDebugProbeKind(result.GetProbeKind()) {
+		return nil, status.Error(codes.InvalidArgument, "avatar debug probe_kind is not avatar-submittable")
+	}
 	if !isAdmittedAvatarDebugProbeStatus(result.GetStatus()) {
 		return nil, status.Error(codes.InvalidArgument, "avatar debug status is not admitted")
 	}
@@ -656,6 +659,21 @@ func avatarDebugReplayFromAuditEvent(event *runtimev1.AuditEventRecord) (*runtim
 func isAdmittedAvatarDebugProbeKind(kind runtimev1.AvatarDebugProbeKind) bool {
 	return kind >= runtimev1.AvatarDebugProbeKind_AVATAR_DEBUG_PROBE_KIND_PACKAGE_VALIDATION &&
 		kind <= runtimev1.AvatarDebugProbeKind_AVATAR_DEBUG_PROBE_KIND_WINDOW_HIT_REGION
+}
+
+func isAvatarSubmittableDebugProbeKind(kind runtimev1.AvatarDebugProbeKind) bool {
+	switch kind {
+	case runtimev1.AvatarDebugProbeKind_AVATAR_DEBUG_PROBE_KIND_BACKEND_LOAD,
+		runtimev1.AvatarDebugProbeKind_AVATAR_DEBUG_PROBE_KIND_CAPABILITY_PROFILE,
+		runtimev1.AvatarDebugProbeKind_AVATAR_DEBUG_PROBE_KIND_ROUTE_SUPPORT_MATRIX,
+		runtimev1.AvatarDebugProbeKind_AVATAR_DEBUG_PROBE_KIND_GENERATED_MOTION,
+		runtimev1.AvatarDebugProbeKind_AVATAR_DEBUG_PROBE_KIND_EMOTION_EXPRESSION,
+		runtimev1.AvatarDebugProbeKind_AVATAR_DEBUG_PROBE_KIND_SPEECH_LIPSYNC,
+		runtimev1.AvatarDebugProbeKind_AVATAR_DEBUG_PROBE_KIND_WINDOW_HIT_REGION:
+		return true
+	default:
+		return false
+	}
 }
 
 func isAdmittedAvatarDebugRequestedBy(value runtimev1.AvatarDebugRequestedBy) bool {

@@ -105,11 +105,69 @@ fn write_live2d_import_source(home: &Path) -> PathBuf {
     fs::create_dir_all(dir.join("textures")).expect("live2d dirs");
     fs::write(
         dir.join("ren.model3.json"),
-        br#"{"Version":3,"FileReferences":{"Moc":"ren.moc3"}}"#,
+        br#"{"Version":3,"FileReferences":{"Moc":"ren.moc3","Textures":["textures/texture_00.png"]}}"#,
     )
     .expect("model3");
-    fs::write(dir.join("ren.moc3"), b"moc-bytes").expect("moc");
+    fs::write(dir.join("ren.moc3"), b"MOC3\x05moc-bytes").expect("moc");
     fs::write(dir.join("textures/texture_00.png"), b"png-bytes").expect("texture");
+    dir
+}
+
+fn write_live2d_import_source_missing_moc(home: &Path) -> PathBuf {
+    let dir = home.join("live2d-source-missing-moc");
+    fs::create_dir_all(dir.join("textures")).expect("live2d dirs");
+    fs::write(
+        dir.join("ren.model3.json"),
+        br#"{"Version":3,"FileReferences":{"Moc":"ren.moc3","Textures":["textures/texture_00.png"]}}"#,
+    )
+    .expect("model3");
+    fs::write(dir.join("textures/texture_00.png"), b"png-bytes").expect("texture");
+    dir
+}
+
+fn write_live2d_import_source_case_mismatch(home: &Path) -> PathBuf {
+    let dir = home.join("live2d-source-case-mismatch");
+    fs::create_dir_all(dir.join("textures")).expect("live2d dirs");
+    fs::write(
+        dir.join("ren.model3.json"),
+        br#"{"Version":3,"FileReferences":{"Moc":"Ren.moc3","Textures":["textures/texture_00.png"]}}"#,
+    )
+    .expect("model3");
+    fs::write(dir.join("ren.moc3"), b"MOC3\x05moc-bytes").expect("moc");
+    fs::write(dir.join("textures/texture_00.png"), b"png-bytes").expect("texture");
+    dir
+}
+
+fn write_live2d_import_source_invalid_moc(home: &Path) -> PathBuf {
+    let dir = home.join("live2d-source-invalid-moc");
+    fs::create_dir_all(dir.join("textures")).expect("live2d dirs");
+    fs::write(
+        dir.join("ren.model3.json"),
+        br#"{"Version":3,"FileReferences":{"Moc":"ren.moc3","Textures":["textures/texture_00.png"]}}"#,
+    )
+    .expect("model3");
+    fs::write(dir.join("ren.moc3"), b"not-moc3").expect("invalid moc");
+    fs::write(dir.join("textures/texture_00.png"), b"png-bytes").expect("texture");
+    dir
+}
+
+fn write_live2d_import_source_with_warnings(home: &Path) -> PathBuf {
+    let dir = home.join("live2d-source-warnings");
+    fs::create_dir_all(dir.join("textures")).expect("live2d dirs");
+    fs::create_dir_all(dir.join("extras")).expect("live2d extra dirs");
+    fs::write(
+        dir.join("ren.model3.json"),
+        br#"{"Version":3,"FileReferences":{"Moc":"ren.moc3","Textures":["textures/texture_00.png"]}}"#,
+    )
+    .expect("model3");
+    fs::write(dir.join("ren.moc3"), b"MOC3\x05moc-bytes").expect("moc");
+    fs::write(dir.join("textures/texture_00.png"), b"png-bytes").expect("texture");
+    fs::write(dir.join("extras/texture_00.png"), b"duplicate-basename").expect("duplicate texture");
+    fs::write(
+        dir.join("表情.exp3.json"),
+        br#"{"Type":"Live2D Expression","Parameters":[]}"#,
+    )
+    .expect("non ascii expression");
     dir
 }
 
@@ -222,6 +280,114 @@ fn imports_live2d_avatar_asset_and_selects_launch_evidence() {
             config.modules.avatar_asset.backend_kind,
             AgentCenterAvatarBackendKind::Live2d
         );
+    });
+}
+
+#[test]
+fn rejects_live2d_avatar_asset_when_model3_moc_reference_is_missing() {
+    let home = temp_home("import-live2d-missing-moc");
+    with_product_data_home(&home, || {
+        let source = write_live2d_import_source_missing_moc(&home);
+        let err = desktop_agent_center_avatar_asset_import_blocking(
+            DesktopAgentCenterAvatarAssetImportPayload {
+                account_id: "account_1".to_string(),
+                owner_user_id: owner_user_id(),
+                realm_agent_id: realm_agent_id(),
+                local_agent_ref: local_agent_ref(),
+                kind: AgentCenterAvatarBackendKind::Live2d,
+                source_path: source.to_string_lossy().to_string(),
+                display_name: Some("Missing Moc".to_string()),
+                select: Some(true),
+            },
+        )
+        .expect_err("missing MOC reference rejected");
+
+        assert!(err.contains("missing_required_file"));
+        assert!(err.contains("ren.moc3"));
+    });
+}
+
+#[test]
+fn rejects_live2d_avatar_asset_when_model3_reference_case_does_not_match() {
+    let home = temp_home("import-live2d-case-mismatch");
+    with_product_data_home(&home, || {
+        let source = write_live2d_import_source_case_mismatch(&home);
+        let err = desktop_agent_center_avatar_asset_import_blocking(
+            DesktopAgentCenterAvatarAssetImportPayload {
+                account_id: "account_1".to_string(),
+                owner_user_id: owner_user_id(),
+                realm_agent_id: realm_agent_id(),
+                local_agent_ref: local_agent_ref(),
+                kind: AgentCenterAvatarBackendKind::Live2d,
+                source_path: source.to_string_lossy().to_string(),
+                display_name: Some("Case Mismatch".to_string()),
+                select: Some(true),
+            },
+        )
+        .expect_err("case-mismatched reference rejected");
+
+        assert!(err.contains("differs by case"));
+        assert!(err.contains("Ren.moc3"));
+    });
+}
+
+#[test]
+fn rejects_live2d_avatar_asset_when_moc_header_is_invalid() {
+    let home = temp_home("import-live2d-invalid-moc");
+    with_product_data_home(&home, || {
+        let source = write_live2d_import_source_invalid_moc(&home);
+        let err = desktop_agent_center_avatar_asset_import_blocking(
+            DesktopAgentCenterAvatarAssetImportPayload {
+                account_id: "account_1".to_string(),
+                owner_user_id: owner_user_id(),
+                realm_agent_id: realm_agent_id(),
+                local_agent_ref: local_agent_ref(),
+                kind: AgentCenterAvatarBackendKind::Live2d,
+                source_path: source.to_string_lossy().to_string(),
+                display_name: Some("Invalid Moc".to_string()),
+                select: Some(true),
+            },
+        )
+        .expect_err("invalid MOC header rejected");
+
+        assert!(err.contains("live2d_moc_header_invalid"));
+        assert!(err.contains("MOC3"));
+    });
+}
+
+#[test]
+fn imports_live2d_avatar_asset_with_portability_warnings() {
+    let home = temp_home("import-live2d-warnings");
+    with_product_data_home(&home, || {
+        let source = write_live2d_import_source_with_warnings(&home);
+        let result = desktop_agent_center_avatar_asset_import_blocking(
+            DesktopAgentCenterAvatarAssetImportPayload {
+                account_id: "account_1".to_string(),
+                owner_user_id: owner_user_id(),
+                realm_agent_id: realm_agent_id(),
+                local_agent_ref: local_agent_ref(),
+                kind: AgentCenterAvatarBackendKind::Live2d,
+                source_path: source.to_string_lossy().to_string(),
+                display_name: Some("Warnings".to_string()),
+                select: Some(true),
+            },
+        )
+        .expect("warnings do not block local import");
+
+        assert_eq!(
+            result.validation.status,
+            AgentCenterAvatarAssetValidationStatus::Valid
+        );
+        assert!(result
+            .validation
+            .warnings
+            .iter()
+            .any(|issue| issue.code == "live2d_basename_collision"));
+        assert!(result
+            .validation
+            .warnings
+            .iter()
+            .any(|issue| issue.code == "live2d_non_ascii_path"));
     });
 }
 

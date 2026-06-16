@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(crate) struct DesktopAgentCenterConfigScopePayload {
     pub account_id: String,
     pub owner_user_id: String,
@@ -10,7 +10,7 @@ pub(crate) struct DesktopAgentCenterConfigScopePayload {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(crate) struct DesktopAgentCenterConfigPutPayload {
     pub account_id: String,
     pub owner_user_id: String,
@@ -20,7 +20,7 @@ pub(crate) struct DesktopAgentCenterConfigPutPayload {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(crate) struct DesktopAgentCenterLive2dAdapterManifestImportPayload {
     pub account_id: String,
     pub owner_user_id: String,
@@ -32,7 +32,7 @@ pub(crate) struct DesktopAgentCenterLive2dAdapterManifestImportPayload {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(crate) struct DesktopAgentCenterAvatarAssetImportPayload {
     pub account_id: String,
     pub owner_user_id: String,
@@ -45,7 +45,7 @@ pub(crate) struct DesktopAgentCenterAvatarAssetImportPayload {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(crate) struct DesktopAgentCenterAvatarAssetValidatePayload {
     pub account_id: String,
     pub owner_user_id: String,
@@ -55,7 +55,7 @@ pub(crate) struct DesktopAgentCenterAvatarAssetValidatePayload {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(crate) struct DesktopAgentCenterAgentLocalResourcesRemovePayload {
     pub account_id: String,
     pub owner_user_id: String,
@@ -64,7 +64,7 @@ pub(crate) struct DesktopAgentCenterAgentLocalResourcesRemovePayload {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(crate) struct DesktopAgentCenterAccountLocalResourcesRemovePayload {
     pub account_id: String,
 }
@@ -102,7 +102,7 @@ pub(crate) struct DesktopAgentCenterLocalResourceRemoveResult {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(crate) struct DesktopAgentCenterBackgroundValidatePayload {
     pub account_id: String,
     pub owner_user_id: String,
@@ -112,7 +112,7 @@ pub(crate) struct DesktopAgentCenterBackgroundValidatePayload {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(crate) struct DesktopAgentCenterBackgroundRemovePayload {
     pub account_id: String,
     pub owner_user_id: String,
@@ -122,7 +122,7 @@ pub(crate) struct DesktopAgentCenterBackgroundRemovePayload {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(crate) struct DesktopAgentCenterBackgroundImportPayload {
     pub account_id: String,
     pub owner_user_id: String,
@@ -256,6 +256,7 @@ pub(crate) struct AgentCenterAvatarAssetModule {
     pub local_avatar_asset_ref: Option<String>,
     pub live2d_adapter_manifest_source: AgentCenterLive2dAdapterManifestSource,
     pub live2d_adapter_manifest_ref: Option<String>,
+    pub live2d_calibration_ref: Option<String>,
     pub avatar_instance_policy: AgentCenterAvatarInstancePolicy,
     pub backend_kind: AgentCenterAvatarBackendKind,
     pub backend_capability_profile_ref: Option<String>,

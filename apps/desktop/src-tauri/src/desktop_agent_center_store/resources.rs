@@ -11,8 +11,7 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::env;
 use std::fs::{self, OpenOptions};
-use std::io::ErrorKind;
-use std::io::Write;
+use std::io::{ErrorKind, Write};
 use std::path::{Component, Path, PathBuf};
 use url::Url;
 
@@ -133,6 +132,8 @@ struct AgentCenterResourceOperationRecord {
 
 #[path = "resources_commands.rs"]
 mod resources_commands;
+#[path = "resources_live2d_validation.rs"]
+mod resources_live2d_validation;
 #[path = "resources_manifest_validation.rs"]
 mod resources_manifest_validation;
 #[path = "resources_operations.rs"]
@@ -142,6 +143,7 @@ mod resources_remove_commands;
 #[path = "resources_validation.rs"]
 mod resources_validation;
 
+use resources_live2d_validation::*;
 use resources_manifest_validation::*;
 use resources_operations::*;
 use resources_validation::*;
