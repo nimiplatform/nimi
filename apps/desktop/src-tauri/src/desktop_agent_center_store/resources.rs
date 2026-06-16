@@ -130,8 +130,14 @@ struct AgentCenterResourceOperationRecord {
     reason_code: String,
 }
 
+#[path = "resources_avatar_import.rs"]
+mod resources_avatar_import;
+#[path = "resources_background_import.rs"]
+mod resources_background_import;
 #[path = "resources_commands.rs"]
 mod resources_commands;
+#[path = "resources_live2d_adapter_import.rs"]
+mod resources_live2d_adapter_import;
 #[path = "resources_live2d_validation.rs"]
 mod resources_live2d_validation;
 #[path = "resources_manifest_validation.rs"]
@@ -140,12 +146,18 @@ mod resources_manifest_validation;
 mod resources_operations;
 #[path = "resources_remove_commands.rs"]
 mod resources_remove_commands;
+#[path = "resources_selection.rs"]
+mod resources_selection;
 #[path = "resources_validation.rs"]
 mod resources_validation;
 
+use resources_avatar_import::*;
+use resources_background_import::*;
+use resources_live2d_adapter_import::*;
 use resources_live2d_validation::*;
 use resources_manifest_validation::*;
 use resources_operations::*;
+use resources_selection::*;
 use resources_validation::*;
 
 pub(crate) use resources_commands::*;
