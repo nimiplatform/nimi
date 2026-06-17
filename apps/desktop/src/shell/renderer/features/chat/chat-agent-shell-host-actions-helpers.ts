@@ -97,6 +97,9 @@ export function buildAgentConversationAnchorMetadata(target: AgentLocalTargetSna
       realmProfileContext[key] = normalized;
     }
   }
+  if (target.avatarAutoplay === true) {
+    realmProfileContext.avatarAutoplay = true;
+  }
   const speechSynthesis = target.speechSynthesis ?? null;
   if (speechSynthesis) {
     const speechModelId = normalizeText(speechSynthesis.modelId);

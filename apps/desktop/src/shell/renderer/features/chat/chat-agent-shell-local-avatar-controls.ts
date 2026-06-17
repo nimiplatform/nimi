@@ -16,6 +16,8 @@ import {
   removeAgentCenterBackground,
   validateAgentCenterAvatarAsset,
 } from '@renderer/bridge/runtime-bridge/chat-agent-center-local-config-store';
+import { clearAgentConversationAnchorBinding } from '@renderer/app-shell/providers/agent-conversation-anchor-binding-storage';
+import { getDesktopRuntime } from '@renderer/infra/sdk/desktop-nimi-client-session';
 import type { AgentCenterAvatarAssetKind } from './chat-agent-center-avatar-config-types';
 import { createDefaultAgentCenterAvatarAssetModule } from './chat-agent-center-avatar-config-types';
 import { useAgentCenterAvatarConfigMutation } from './chat-agent-center-avatar-config-mutation';
@@ -49,6 +51,7 @@ export function useAgentConversationLocalAvatarControls(input: UseAgentConversat
     staleTime: 30_000,
   });
   const avatarAssetConfig = agentCenterLocalConfigQuery.data?.modules.avatar_asset || null;
+  const avatarVoicePolicy = agentCenterLocalConfigQuery.data?.modules.voice || null;
   const selectedBackgroundAssetId = agentCenterLocalConfigQuery.data?.modules.appearance.background_asset_id || null;
   const backgroundAssetQuery = useQuery({
     queryKey: input.accountId && input.activeTarget?.localAgentRef && selectedBackgroundAssetId
@@ -124,6 +127,58 @@ export function useAgentConversationLocalAvatarControls(input: UseAgentConversat
     staleTime: 15_000,
   });
   const avatarConfigMutation = useAgentCenterAvatarConfigMutation(input, queryClient, agentCenterLocalConfigQuery.data);
+  const voicePolicyMutation = useMutation({
+    mutationFn: async (patch: { avatar_autoplay: boolean }) => {
+      if (!input.accountId || !input.activeTarget?.localAgentRef || !agentCenterLocalConfigQuery.data) {
+        throw new Error(input.t('Chat.agentCenterVoicePolicyAgentRequired', {
+          defaultValue: 'Select an agent before changing voice playback policy.',
+        }));
+      }
+      return putAgentCenterLocalConfig({
+        accountId: input.accountId,
+        ownerUserId: input.activeTarget.ownerUserId,
+        realmAgentId: input.activeTarget.realmAgentId,
+        localAgentRef: input.activeTarget.localAgentRef,
+        config: {
+          ...agentCenterLocalConfigQuery.data,
+          modules: {
+            ...agentCenterLocalConfigQuery.data.modules,
+            voice: {
+              ...agentCenterLocalConfigQuery.data.modules.voice,
+              ...patch,
+            },
+          },
+        },
+      });
+    },
+    onSuccess: async () => {
+      if (!input.accountId || !input.activeTarget?.localAgentRef) {
+        return;
+      }
+      clearAgentConversationAnchorBinding(input.activeTarget.localAgentRef);
+      await queryClient.invalidateQueries({
+        queryKey: agentCenterLocalConfigQueryKey(input.accountId, input.activeTarget.localAgentRef),
+      });
+    },
+  });
+  const voiceArtifactCleanupMutation = useMutation({
+    mutationFn: async () => {
+      if (!input.activeTarget?.localAgentRef) {
+        throw new Error(input.t('Chat.agentCenterVoiceCleanupAgentRequired', {
+          defaultValue: 'Select an agent before clearing generated voice.',
+        }));
+      }
+      if (!input.activeConversationAnchorId) {
+        throw new Error(input.t('Chat.agentCenterVoiceCleanupConversationRequired', {
+          defaultValue: 'Open a conversation before clearing generated voice.',
+        }));
+      }
+      return getDesktopRuntime().artifacts.cleanupGeneratedVoiceArtifacts({
+        agentId: input.activeTarget.localAgentRef,
+        conversationAnchorId: input.activeConversationAnchorId,
+      });
+    },
+  });
   const avatarAssetSelectMutation = useMutation({
     mutationFn: async (_localAssetId: string) => {
       throw new Error(input.t('Chat.agentCenterAvatarDirectSelectionUnavailable', {
@@ -331,8 +386,11 @@ export function useAgentConversationLocalAvatarControls(input: UseAgentConversat
     backgroundValid,
     avatarAssetChecking,
     avatarAssetConfig,
+    avatarVoicePolicy,
     avatarAssetValidationPresentation,
     avatarConfigMutation,
+    voicePolicyMutation,
+    voiceArtifactCleanupMutation,
     avatarAssetLibraryQuery,
     avatarAssetSelectMutation,
     avatarAssetImportMutation,
@@ -356,8 +414,11 @@ export function useAgentConversationLocalAvatarControls(input: UseAgentConversat
     backgroundValid,
     avatarAssetChecking,
     avatarAssetConfig,
+    avatarVoicePolicy,
     avatarAssetValidationPresentation,
     avatarConfigMutation,
+    voicePolicyMutation,
+    voiceArtifactCleanupMutation,
     avatarAssetLibraryQuery,
     avatarAssetSelectMutation,
     avatarAssetImportMutation,

@@ -66,6 +66,7 @@ fn missing_config_returns_default_without_creating_file() {
         assert_eq!(config.local_agent_ref, local_agent_ref());
         assert!(config.modules.avatar_asset.local_avatar_asset_ref.is_none());
         assert!(config.modules.avatar_asset.live2d_calibration_ref.is_none());
+        assert!(!config.modules.voice.avatar_autoplay);
         assert!(!home
             .join(format!(
                 ".nimi/data/accounts/account_1/agents/{}/agent-center/config.json",
@@ -105,6 +106,30 @@ fn put_persists_and_get_reads_valid_config() {
                 .as_deref(),
             Some("live2d_ab12cd34ef56")
         );
+        assert!(!loaded.modules.voice.avatar_autoplay);
+    });
+}
+
+#[test]
+fn put_persists_agent_voice_policy() {
+    let home = temp_home("voice-policy");
+    with_product_data_home(&home, || {
+        let mut config = valid_config();
+        config.modules.voice.avatar_autoplay = true;
+        desktop_agent_center_config_put_blocking(
+            "account_1",
+            DesktopAgentCenterConfigPutPayload {
+                account_id: "account_1".to_string(),
+                owner_user_id: owner_user_id(),
+                realm_agent_id: realm_agent_id(),
+                local_agent_ref: local_agent_ref(),
+                config,
+            },
+        )
+        .expect("put config");
+        let loaded = desktop_agent_center_config_get_blocking("account_1", scope_payload())
+            .expect("get config");
+        assert!(loaded.modules.voice.avatar_autoplay);
     });
 }
 
@@ -314,9 +339,11 @@ fn get_projects_scoped_identity_into_pre_cutover_config() {
         assert_eq!(loaded.owner_user_id, owner_user_id());
         assert_eq!(loaded.realm_agent_id, realm_agent_id());
         assert_eq!(loaded.local_agent_ref, local_agent_ref());
+        assert!(!loaded.modules.voice.avatar_autoplay);
         let persisted = fs::read_to_string(dir.join(CONFIG_FILE_NAME)).expect("persisted");
         assert!(persisted.contains(r#""account_id": "account_1""#));
         assert!(persisted.contains(r#""local_agent_ref": "local-agent:owner_1:agent_1""#));
+        assert!(persisted.contains(r#""avatar_autoplay": false"#));
     });
 }
 
@@ -359,6 +386,7 @@ fn get_rejects_unknown_fields_in_stored_json() {
                   "last_validated_at": null
                 },
                 "local_history": {"schema_version": 1, "last_cleared_at": null},
+                "voice": {"schema_version": 1, "avatar_autoplay": false},
                 "ui": {"schema_version": 1, "last_section": "overview"}
               }
             }"#,

@@ -57,6 +57,10 @@ test('Agent Center local config bridge parser accepts Rust store payload shape',
         schema_version: 1,
         last_cleared_at: null,
       },
+      voice: {
+        schema_version: 1,
+        avatar_autoplay: false,
+      },
       ui: {
         schema_version: 1,
         last_section: 'overview',
@@ -105,6 +109,10 @@ test('Agent Center local config bridge rejects retired selected package truth', 
         schema_version: 1,
         last_cleared_at: null,
       },
+      voice: {
+        schema_version: 1,
+        avatar_autoplay: false,
+      },
       ui: {
         schema_version: 1,
         last_section: 'overview',
@@ -144,6 +152,7 @@ test('Agent Center local config default includes closed avatar configuration fie
   assert.equal(config.modules.avatar_asset.debug_profile, 'standard');
   assert.equal(config.modules.avatar_asset.provenance.source, 'runtime_projection');
   assert.equal(config.modules.local_history.last_cleared_at, null);
+  assert.equal(config.modules.voice.avatar_autoplay, false);
   assert.equal(validateAgentCenterLocalConfig(config).ok, true);
 });
 
@@ -181,6 +190,10 @@ test('Agent Center local config bridge rejects retired launch package config fie
       local_history: {
         schema_version: 1,
         last_cleared_at: null,
+      },
+      voice: {
+        schema_version: 1,
+        avatar_autoplay: false,
       },
       ui: {
         schema_version: 1,

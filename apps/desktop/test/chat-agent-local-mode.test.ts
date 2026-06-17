@@ -47,6 +47,8 @@ test('agent local mode filters social snapshot to agent friends and fails close 
     displayName: 'Companion',
     handle: 'companion',
     avatarUrl: null,
+    defaultVoiceReference: null,
+    speechSynthesis: null,
     presentationProfile: null,
     worldId: 'world-1',
     worldName: 'World One',
@@ -54,6 +56,7 @@ test('agent local mode filters social snapshot to agent friends and fails close 
     ownershipType: 'MASTER_OWNED',
     greeting: null,
     builtinDocsContext: null,
+    ownerSettingsProjection: null,
   }]);
 
   assert.throws(() => {
@@ -93,6 +96,8 @@ test('agent local mode treats Archivist as an ordinary agent friend target', () 
     displayName: 'Archivist',
     handle: '~archivist',
     avatarUrl: null,
+    defaultVoiceReference: null,
+    speechSynthesis: null,
     presentationProfile: null,
     worldId: 'oasis',
     worldName: 'OASIS',
@@ -100,6 +105,7 @@ test('agent local mode treats Archivist as an ordinary agent friend target', () 
     ownershipType: 'MASTER_OWNED',
     greeting: null,
     builtinDocsContext: null,
+    ownerSettingsProjection: null,
   }]);
   assert.notEqual(targets[0]?.handle, '@archivist.nimi');
 });

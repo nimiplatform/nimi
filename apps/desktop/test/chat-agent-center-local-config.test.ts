@@ -45,6 +45,36 @@ test('Agent Center local config admits scoped persisted identity fields', () => 
   }
 });
 
+test('Agent Center local config admits per-agent Avatar voice autoplay policy', () => {
+  const config = createConfig();
+  config.modules.voice.avatar_autoplay = true;
+
+  const result = validateAgentCenterLocalConfig(config);
+
+  assert.equal(result.ok, true);
+  if (result.ok) {
+    assert.equal(result.config.modules.voice.avatar_autoplay, true);
+  }
+});
+
+test('Agent Center local config rejects malformed voice policy fields', () => {
+  const config = createConfig() as unknown as Record<string, unknown>;
+  const modules = config.modules as Record<string, unknown>;
+  modules.voice = {
+    schema_version: 1,
+    avatar_autoplay: 'yes',
+    playback_target: 'desktop',
+  };
+
+  const result = validateAgentCenterLocalConfig(config);
+
+  assert.equal(result.ok, false);
+  if (!result.ok) {
+    assert.ok(result.errors.some((error) => error.includes('modules.voice.avatar_autoplay: expected boolean')));
+    assert.ok(result.errors.some((error) => error.includes('modules.voice.playback_target: unknown field')));
+  }
+});
+
 test('Agent Center local config rejects identity drift from local agent ref', () => {
   const config = {
     ...createConfig(),

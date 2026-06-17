@@ -27,6 +27,10 @@ const CHAT_NIMI_MODE_SOURCE = readFileSync(
   resolve(import.meta.dirname, '../src/shell/renderer/features/chat/chat-nimi-mode-content.tsx'),
   'utf8',
 );
+const CHAT_CANONICAL_MODE_FRAME_SOURCE = readFileSync(
+  resolve(import.meta.dirname, '../src/shell/renderer/features/chat/chat-canonical-mode-frame.tsx'),
+  'utf8',
+);
 const CHAT_HUMAN_ADAPTER_SOURCE = readFileSync(
   resolve(import.meta.dirname, '../src/shell/renderer/features/chat/chat-human-adapter.tsx'),
   'utf8',
@@ -95,9 +99,14 @@ test('chat mode surfaces stay behind mode-level lazy boundaries', () => {
 test('default AI chat startup keeps non-default surfaces out of the eager graph', () => {
   assert.match(
     CHAT_NIMI_MODE_SOURCE,
+    /import \{ ChatCanonicalModeFrame \} from '\.\/chat-canonical-mode-frame'/,
+  );
+  assert.match(
+    CHAT_CANONICAL_MODE_FRAME_SOURCE,
     /import \{ CanonicalConversationShell \} from '@nimiplatform\/kit\/features\/chat\/components\/canonical-conversation-shell'/,
   );
   assert.doesNotMatch(CHAT_NIMI_MODE_SOURCE, /from '@nimiplatform\/kit\/features\/chat';/);
+  assert.doesNotMatch(CHAT_CANONICAL_MODE_FRAME_SOURCE, /from '@nimiplatform\/kit\/features\/chat';/);
 });
 
 test('model config does not block default chat import', () => {

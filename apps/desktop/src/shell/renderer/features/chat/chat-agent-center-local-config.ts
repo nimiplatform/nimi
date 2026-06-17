@@ -58,6 +58,7 @@ export const AGENT_CENTER_LOCAL_CONFIG_MODULE_IDS = [
   'appearance',
   'avatar_asset',
   'local_history',
+  'voice',
   'ui',
 ] as const;
 
@@ -87,6 +88,11 @@ export type AgentCenterLocalHistoryModule = {
   last_cleared_at: string | null;
 };
 
+export type AgentCenterVoiceModule = {
+  schema_version: 1;
+  avatar_autoplay: boolean;
+};
+
 export type AgentCenterLocalConfig = {
   schema_version: 1;
   config_kind: typeof AGENT_CENTER_LOCAL_CONFIG_KIND;
@@ -98,6 +104,7 @@ export type AgentCenterLocalConfig = {
     appearance: AgentCenterAppearanceModule;
     avatar_asset: AgentCenterAvatarAssetModule;
     local_history: AgentCenterLocalHistoryModule;
+    voice: AgentCenterVoiceModule;
     ui: AgentCenterUiModule;
   };
 };
@@ -125,6 +132,7 @@ const ROOT_KEYS = [
 const MODULES_KEYS = AGENT_CENTER_LOCAL_CONFIG_MODULE_IDS;
 const APPEARANCE_KEYS = ['schema_version', 'background_asset_id', 'motion'] as const;
 const LOCAL_HISTORY_KEYS = ['schema_version', 'last_cleared_at'] as const;
+const VOICE_KEYS = ['schema_version', 'avatar_autoplay'] as const;
 const UI_KEYS = ['schema_version', 'last_section'] as const;
 
 const MOTION_VALUES = new Set(['system', 'reduced', 'full']);
@@ -200,6 +208,14 @@ function readNullableString(value: unknown, path: string, errors: string[]): str
     return null;
   }
   return readString(value, path, errors);
+}
+
+function readBoolean(value: unknown, path: string, errors: string[]): boolean {
+  if (typeof value !== 'boolean') {
+    errors.push(`${path}: expected boolean`);
+    return false;
+  }
+  return value;
 }
 
 function validateBackgroundId(value: unknown, path: string, errors: string[]): string | null {
@@ -296,6 +312,18 @@ function validateLocalHistoryModule(value: unknown, errors: string[]): AgentCent
   };
 }
 
+function validateVoiceModule(value: unknown, errors: string[]): AgentCenterVoiceModule {
+  const path = 'modules.voice';
+  const record = requireRecord(value, path, errors) ?? {};
+  collectUnknownKeys(record, VOICE_KEYS, path, errors);
+  requireSchemaVersion(record, path, errors);
+
+  return {
+    schema_version: 1,
+    avatar_autoplay: readBoolean(record.avatar_autoplay, `${path}.avatar_autoplay`, errors),
+  };
+}
+
 export function validateAgentCenterLocalConfig(value: unknown): AgentCenterLocalConfigValidationResult {
   const errors: string[] = [];
   const root = requireRecord(value, 'config', errors);
@@ -338,6 +366,7 @@ export function validateAgentCenterLocalConfig(value: unknown): AgentCenterLocal
       appearance: validateAppearanceModule(modules.appearance, errors),
       avatar_asset: validateAvatarAssetModule(modules.avatar_asset, errors),
       local_history: validateLocalHistoryModule(modules.local_history, errors),
+      voice: validateVoiceModule(modules.voice, errors),
       ui: validateUiModule(modules.ui, errors),
     },
   };
@@ -371,6 +400,10 @@ export function createDefaultAgentCenterLocalConfig(input: {
       local_history: {
         schema_version: 1,
         last_cleared_at: null,
+      },
+      voice: {
+        schema_version: 1,
+        avatar_autoplay: false,
       },
       ui: {
         schema_version: 1,

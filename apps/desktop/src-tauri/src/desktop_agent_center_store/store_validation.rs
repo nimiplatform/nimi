@@ -289,6 +289,11 @@ fn validate_agent_center_config(config: &AgentCenterLocalConfig) -> Result<(), S
     )?;
 
     validate_module_version(
+        config.modules.voice.schema_version,
+        "modules.voice.schema_version",
+    )?;
+
+    validate_module_version(
         config.modules.ui.schema_version,
         "modules.ui.schema_version",
     )?;
@@ -351,6 +356,10 @@ pub(crate) fn default_config(account_id: &str, scope: &LocalAgentScope) -> Agent
                 schema_version: AGENT_CENTER_CONFIG_SCHEMA_VERSION,
                 last_cleared_at: None,
             },
+            voice: AgentCenterVoiceModule {
+                schema_version: AGENT_CENTER_CONFIG_SCHEMA_VERSION,
+                avatar_autoplay: false,
+            },
             ui: AgentCenterUiModule {
                 schema_version: AGENT_CENTER_CONFIG_SCHEMA_VERSION,
                 last_section: AgentCenterSectionId::Overview,
@@ -370,6 +379,43 @@ pub(crate) fn scope_from_payload(
             &payload.local_agent_ref,
         )?,
     ))
+}
+
+fn project_missing_pre_cutover_modules(
+    value: &mut serde_json::Value,
+    scope: &LocalAgentScope,
+) {
+    let Some(object) = value.as_object_mut() else {
+        return;
+    };
+    object.insert(
+        "owner_user_id".to_string(),
+        serde_json::Value::String(scope.owner_user_id.clone()),
+    );
+    object.insert(
+        "realm_agent_id".to_string(),
+        serde_json::Value::String(scope.realm_agent_id.clone()),
+    );
+    object.insert(
+        "local_agent_ref".to_string(),
+        serde_json::Value::String(scope.local_agent_ref.clone()),
+    );
+    let Some(modules) = object.get_mut("modules").and_then(serde_json::Value::as_object_mut)
+    else {
+        return;
+    };
+    modules.entry("voice".to_string()).or_insert_with(|| serde_json::json!({
+        "schema_version": AGENT_CENTER_CONFIG_SCHEMA_VERSION,
+        "avatar_autoplay": false,
+    }));
+    if let Some(avatar_asset) = modules
+        .get_mut("avatar_asset")
+        .and_then(serde_json::Value::as_object_mut)
+    {
+        avatar_asset
+            .entry("live2d_calibration_ref".to_string())
+            .or_insert(serde_json::Value::Null);
+    }
 }
 
 pub(crate) fn config_from_stored_json(
@@ -394,18 +440,7 @@ pub(crate) fn config_from_stored_json(
                 "account_id".to_string(),
                 serde_json::Value::String(account_id.to_string()),
             );
-            object.insert(
-                "owner_user_id".to_string(),
-                serde_json::Value::String(scope.owner_user_id.clone()),
-            );
-            object.insert(
-                "realm_agent_id".to_string(),
-                serde_json::Value::String(scope.realm_agent_id.clone()),
-            );
-            object.insert(
-                "local_agent_ref".to_string(),
-                serde_json::Value::String(scope.local_agent_ref.clone()),
-            );
+            project_missing_pre_cutover_modules(&mut value, scope);
             let config: AgentCenterLocalConfig =
                 serde_json::from_value(value).map_err(|error| {
                     format!(

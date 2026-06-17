@@ -5,7 +5,8 @@ import {
   useRef,
   useState,
 } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { hasTauriInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
 import {
   createReadyConversationSetupState,
 } from '@nimiplatform/kit/features/chat/headless';
@@ -56,12 +57,18 @@ import { useAgentConversationShellState } from './chat-agent-shell-adapter-state
 import { resolveAgentChatRequestedMaxOutputTokens } from './chat-nimi-route-view';
 import {
   mergeAgentTargetWithPresentationProfile,
+  mergeAgentTargetWithLocalVoicePolicy,
 } from './chat-agent-thread-model';
+import {
+  agentCenterLocalConfigQueryKey,
+  getAgentCenterLocalConfig,
+} from '@renderer/bridge/runtime-bridge/chat-agent-center-local-config-store';
 import { useAgentConversationRuntimeController } from './chat-agent-shell-adapter-runtime';
 import { useAgentRuntimeSessionSnapshotHydration } from './chat-agent-shell-adapter-session-snapshot';
 import { RUNTIME_AGENT_CHAT_MODE_ID } from './chat-agent-runtime-mode';
 import { useAgentConversationHostFeedback } from './chat-agent-shell-adapter-host-feedback';
 import { useAgentConversationPendingAttachments } from './chat-agent-shell-adapter-attachments';
+import { AgentManualVoicePlaybackButton } from './chat-agent-manual-voice-playback-button';
 
 type UseAgentConversationModeHostInput = {
   authStatus: 'bootstrapping' | 'anonymous' | 'authenticated';
@@ -205,9 +212,35 @@ export function useAgentConversationModeHost(
     setHostFeedback,
     t,
   });
-  const activeTarget = useMemo(
+  const accountId = input.runtimeFields.targetAccountId
+    || normalizeText((useAppStore.getState().auth.user as Record<string, unknown> | null)?.id)
+    || 'local_account';
+  const baseActiveTarget = useMemo(
     () => mergeAgentTargetWithPresentationProfile(shellActiveTarget, runtimePresentationProfile),
     [runtimePresentationProfile, shellActiveTarget],
+  );
+  const agentCenterLocalConfigQuery = useQuery({
+    queryKey: accountId && baseActiveTarget?.localAgentRef
+      ? agentCenterLocalConfigQueryKey(accountId, baseActiveTarget.localAgentRef)
+      : ['agent-center-local-config', 'none'],
+    queryFn: async () => (
+      accountId && baseActiveTarget?.localAgentRef
+        ? getAgentCenterLocalConfig({
+          accountId,
+          ownerUserId: baseActiveTarget.ownerUserId,
+          realmAgentId: baseActiveTarget.realmAgentId,
+          localAgentRef: baseActiveTarget.localAgentRef,
+        })
+        : null
+    ),
+    enabled: hasTauriInvoke() && Boolean(accountId && baseActiveTarget?.localAgentRef),
+    staleTime: 30_000,
+  });
+  const activeTarget = useMemo(
+    () => mergeAgentTargetWithLocalVoicePolicy(baseActiveTarget, {
+      avatarAutoplay: agentCenterLocalConfigQuery.data?.modules.voice.avatar_autoplay ?? false,
+    }),
+    [agentCenterLocalConfigQuery.data?.modules.voice.avatar_autoplay, baseActiveTarget],
   );
 
   useAgentRuntimeSessionSnapshotHydration({
@@ -332,22 +365,36 @@ export function useAgentConversationModeHost(
         return undefined;
       }
       return (
-        <RuntimeAgentDebugMessageAccessory
-          message={message}
-          debugVisible={developerModeEnabled}
-          summaryLabel={t('Chat.agentDebugSummary', { defaultValue: 'Show debug prompt / returned data' })}
-          copyLabel={t('Chat.agentDebugCopyLabel', { defaultValue: 'Copy' })}
-          copiedLabel={t('Chat.agentDebugCopiedLabel', { defaultValue: 'Copied' })}
-          followUpLabel={t('Chat.agentDebugFollowUpLabel', { defaultValue: 'Auto follow-up' })}
-          followUpInstructionLabel={t('Chat.agentDebugFollowUpInstructionLabel', { defaultValue: 'Follow-up instruction' })}
-          promptLabel={t('Chat.agentDebugPromptLabel', { defaultValue: 'Prompt' })}
-          systemPromptLabel={t('Chat.agentDebugSystemPromptLabel', { defaultValue: 'System Prompt' })}
-          rawOutputLabel={t('Chat.agentDebugRawOutputLabel', { defaultValue: 'Raw Model Output' })}
-          normalizedOutputLabel={t('Chat.agentDebugNormalizedOutputLabel', { defaultValue: 'Normalized Model Output' })}
-        />
+        <div className="flex flex-col items-start">
+          <AgentManualVoicePlaybackButton
+            message={message}
+            activeTarget={activeTarget}
+            activeConversationAnchorId={activeConversationAnchorId}
+            playLabel={t('Chat.agentVoiceManualPlay', { defaultValue: 'Play voice' })}
+            stopLabel={t('Chat.agentVoiceManualStop', { defaultValue: 'Stop voice' })}
+            renderingLabel={t('Chat.agentVoiceManualRendering', { defaultValue: 'Preparing voice' })}
+            unavailableLabel={t('Chat.agentVoiceManualUnavailable', { defaultValue: 'Voice unavailable' })}
+            errorLabel={t('Chat.agentVoiceManualError', { defaultValue: 'Voice playback failed' })}
+            onPlaybackStateChange={handleVoicePlaybackStateChange}
+            reportHostError={reportHostError}
+          />
+          <RuntimeAgentDebugMessageAccessory
+            message={message}
+            debugVisible={developerModeEnabled}
+            summaryLabel={t('Chat.agentDebugSummary', { defaultValue: 'Show debug prompt / returned data' })}
+            copyLabel={t('Chat.agentDebugCopyLabel', { defaultValue: 'Copy' })}
+            copiedLabel={t('Chat.agentDebugCopiedLabel', { defaultValue: 'Copied' })}
+            followUpLabel={t('Chat.agentDebugFollowUpLabel', { defaultValue: 'Auto follow-up' })}
+            followUpInstructionLabel={t('Chat.agentDebugFollowUpInstructionLabel', { defaultValue: 'Follow-up instruction' })}
+            promptLabel={t('Chat.agentDebugPromptLabel', { defaultValue: 'Prompt' })}
+            systemPromptLabel={t('Chat.agentDebugSystemPromptLabel', { defaultValue: 'System Prompt' })}
+            rawOutputLabel={t('Chat.agentDebugRawOutputLabel', { defaultValue: 'Raw Model Output' })}
+            normalizedOutputLabel={t('Chat.agentDebugNormalizedOutputLabel', { defaultValue: 'Normalized Model Output' })}
+          />
+        </div>
       );
     }
-  ), [developerModeEnabled, t]);
+  ), [activeConversationAnchorId, activeTarget, developerModeEnabled, handleVoicePlaybackStateChange, reportHostError, t]);
   const currentFooterHostState = activeThreadId ? footerHostStateByThreadId[activeThreadId] || null : null;
   const { activePendingAttachments, setPendingAttachmentsForThread } = useAgentConversationPendingAttachments(activeThreadId);
   const applyVoiceTranscriptComposerText = useCallback(async (input: { text: string; conversationAnchorId: string }) => {
@@ -449,9 +496,7 @@ export function useAgentConversationModeHost(
 
   const presentation = useAgentConversationPresentation({
     activeTarget,
-    accountId: input.runtimeFields.targetAccountId
-      || normalizeText((useAppStore.getState().auth.user as Record<string, unknown> | null)?.id)
-      || 'local_account',
+    accountId,
     activeThreadId,
     activeConversationAnchorId,
     bundle,
