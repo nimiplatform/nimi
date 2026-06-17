@@ -5,7 +5,6 @@
     "./auth",
     "./auth/native-oauth-result-page",
     "./auth/styles.css",
-    "./core/character-card",
     "./core/model-config",
     "./core/notifications",
     "./core/oauth",
@@ -114,14 +113,6 @@
       "source": "kit/auth/src/styles.css",
       "exports": [],
       "cssCustomProperties": []
-    },
-    {
-      "exportKey": "./core/character-card",
-      "source": "kit/core/src/character-card/index.ts",
-      "exports": [
-        "export type { CharacterBook, CharacterBookEntry, TavernCardV2, TavernCardV2Data, ValidationResult, } from './types.js';",
-        "export { parseCharacterCardV2, validateCharacterCardV2} from './parser.js';"
-      ]
     },
     {
       "exportKey": "./core/model-config",

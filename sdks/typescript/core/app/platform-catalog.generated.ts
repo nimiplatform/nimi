@@ -236,9 +236,9 @@ export const NIMI_APP_REGISTRY_ROWS = [
     "admissionStatus": "admitted"
   },
   {
-    "appId": "nimi.realm-agent-studio",
+    "appId": "nimi.realm-persona-studio",
     "appKind": "nimi-app",
-    "displayName": "Realm Agent Studio",
+    "displayName": "Realm Persona Studio",
     "publisher": "nimi-first-party",
     "trustTier": "nimi-first-party",
     "ordinaryVisibility": "developer-only",
@@ -248,7 +248,7 @@ export const NIMI_APP_REGISTRY_ROWS = [
       "audio.synthesize",
       "image.generate"
     ],
-    "releaseDescriptorRef": "nimi.realm-agent-studio.bundled-with-nimi",
+    "releaseDescriptorRef": "nimi.realm-persona-studio.bundled-with-nimi",
     "installStoragePolicyRef": "nimi-data-app-roots",
     "sourceRule": "P-NAPP-011",
     "admissionStatus": "admitted"
@@ -297,8 +297,8 @@ export const NIMI_APP_RELEASE_DESCRIPTOR_ROWS = [
     "sourceRule": "P-NAPP-014"
   },
   {
-    "descriptorId": "nimi.realm-agent-studio.bundled-with-nimi",
-    "appId": "nimi.realm-agent-studio",
+    "descriptorId": "nimi.realm-persona-studio.bundled-with-nimi",
+    "appId": "nimi.realm-persona-studio",
     "version": "bundled-with-current-nimi-release",
     "descriptorClass": "bundled-with-nimi",
     "sourceKind": "nimi-bundle",
@@ -309,9 +309,9 @@ export const NIMI_APP_RELEASE_DESCRIPTOR_ROWS = [
     "size": "inherited-from-atomic-nimi-release-manifest",
     "provenanceRef": "nimi-first-party-signature-policy",
     "packageKind": "nimi-app",
-    "entryRef": "realm-agent-studio-runtime-registration",
+    "entryRef": "realm-persona-studio-runtime-registration",
     "sandboxRef": "first-party-bundled-app",
-    "permissionsRef": "nimi.realm-agent-studio.permission_scope_ref",
+    "permissionsRef": "nimi.realm-persona-studio.permission_scope_ref",
     "storagePolicyRef": "nimi-data-app-roots",
     "admissionPath": "first-party-bundled-release",
     "mutableSourceAllowed": false,

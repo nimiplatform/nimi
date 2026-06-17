@@ -80,12 +80,12 @@ const checks = [
     ],
   },
   {
-    description: 'desktop agent detail surfaces must not restore typed payloads from raw record casts',
+    description: 'desktop source detail surfaces must not restore typed payloads from raw record casts',
     pattern: 'Promise<unknown>|Record<string, unknown>|as unknown as',
     paths: [
-      'apps/desktop/src/shell/renderer/features/agent-detail/agent-detail-model.ts',
-      'apps/desktop/src/shell/renderer/features/agent-detail/agent-detail-panel.tsx',
-      'apps/desktop/src/shell/renderer/features/agent-detail/agent-detail-queries.ts',
+      'apps/desktop/src/shell/renderer/features/source-detail/source-detail-model.ts',
+      'apps/desktop/src/shell/renderer/features/source-detail/source-detail-panel.tsx',
+      'apps/desktop/src/shell/renderer/features/source-detail/source-detail-queries.ts',
     ],
   },
   {
@@ -93,7 +93,6 @@ const checks = [
     pattern: 'Promise<unknown>|Record<string, unknown>|as unknown as|Promise<any>|as never',
     paths: [
       'apps/desktop/src/shell/renderer/features/relationship/relationship-model.ts',
-      'apps/desktop/src/shell/renderer/features/relationship/agent-friend-limit.ts',
       'apps/desktop/src/shell/renderer/features/explore/explore-panel.tsx',
       'apps/desktop/src/shell/renderer/features/notification/notification-query.ts',
       'apps/desktop/src/shell/renderer/features/settings/settings-storage.ts',

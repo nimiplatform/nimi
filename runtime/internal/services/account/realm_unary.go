@@ -17,8 +17,8 @@ import (
 const realmUnaryDefaultTimeout = 30 * time.Second
 
 const (
-	realmAgentStudioAppID = "nimi.realm-agent-studio"
-	realmWorldStudioAppID = "nimi.realm-world-studio"
+	realmPersonaStudioAppID = "nimi.realm-persona-studio"
+	realmWorldStudioAppID   = "nimi.realm-world-studio"
 )
 
 type realmUnaryOperation struct {
@@ -28,46 +28,32 @@ type realmUnaryOperation struct {
 }
 
 var realmUnaryOperations = map[string]realmUnaryOperation{
-	"listMyRealmAgents":                              agentStudioRealmUnaryOperation(http.MethodGet, "/api/me/agents"),
-	"getMyRealmAgent":                                agentStudioRealmUnaryOperation(http.MethodGet, "/api/me/agents/{agentId}"),
-	"getMyRealmAgentSettings":                        agentStudioRealmUnaryOperation(http.MethodGet, "/api/me/agents/{agentId}/settings"),
-	"updateMyRealmAgentSettings":                     agentStudioRealmUnaryOperation(http.MethodPatch, "/api/me/agents/{agentId}/settings"),
-	"updateMyRealmAgentProfileMedia":                 agentStudioRealmUnaryOperation(http.MethodPatch, "/api/me/agents/{agentId}/profile-media"),
-	"updateMyRealmAgentVoice":                        agentStudioRealmUnaryOperation(http.MethodPatch, "/api/me/agents/{agentId}/voice"),
-	"getMyRealmAgentChatReadiness":                   agentStudioRealmUnaryOperation(http.MethodGet, "/api/me/agents/{agentId}/chat-readiness"),
-	"AgentController_checkHandle":                    agentStudioRealmUnaryOperation(http.MethodGet, "/api/agent/handles/check"),
-	"AgentController_create":                         agentStudioRealmUnaryOperation(http.MethodPost, "/api/agent"),
-	"AgentController_selectAvatar":                   agentStudioRealmUnaryOperation(http.MethodPost, "/api/agent/accounts/{id}/avatar"),
-	"AgentController_getVisibility":                  agentStudioRealmUnaryOperation(http.MethodGet, "/api/agent/accounts/{id}/visibility"),
-	"AgentController_updateVisibility":               agentStudioRealmUnaryOperation(http.MethodPatch, "/api/agent/accounts/{id}/visibility"),
-	"WorldController_listWorlds":                     agentStudioRealmUnaryOperation(http.MethodGet, "/api/world"),
-	"WorldController_getWorldDetailWithAgents":       agentStudioRealmUnaryOperation(http.MethodGet, "/api/world/by-id/{id}/detail-with-agents"),
-	"listMyCreatorWorlds":                            worldStudioRealmUnaryOperation(http.MethodGet, "/api/me/creator/worlds"),
-	"listCreatorWorldAgents":                         worldStudioRealmUnaryOperation(http.MethodGet, "/api/me/creator/worlds/{worldId}/agents"),
-	"getCreatorWorldAgent":                           worldStudioRealmUnaryOperation(http.MethodGet, "/api/me/creator/worlds/{worldId}/agents/{agentId}"),
-	"getCreatorWorldAgentSettings":                   worldStudioRealmUnaryOperation(http.MethodGet, "/api/me/creator/worlds/{worldId}/agents/{agentId}/settings"),
-	"getCreatorWorldAgentSourceSkeleton":             worldStudioRealmUnaryOperation(http.MethodGet, "/api/me/creator/worlds/{worldId}/agents/{agentId}/source-skeleton"),
-	"getCreatorWorldAgentAuthoringGenerationContext": worldStudioRealmUnaryOperation(http.MethodGet, "/api/me/creator/worlds/{worldId}/agents/{agentId}/authoring-generation-context"),
-	"listCreatorWorldAgentAuthoringDraftBatches":     worldStudioRealmUnaryOperation(http.MethodGet, "/api/me/creator/worlds/{worldId}/agents/{agentId}/authoring-draft-batches"),
-	"createCreatorWorldAgentAuthoringDraftBatch":     worldStudioRealmUnaryOperation(http.MethodPost, "/api/me/creator/worlds/{worldId}/agents/{agentId}/authoring-draft-batches"),
-	"reviewCreatorWorldAgentAuthoringDraftCandidate": worldStudioRealmUnaryOperation(http.MethodPatch, "/api/me/creator/worlds/{worldId}/agents/{agentId}/authoring-draft-batches/{batchId}/candidates/{candidateId}/review"),
-	"applyCreatorWorldAgentAuthoringDraftBatch":      worldStudioRealmUnaryOperation(http.MethodPost, "/api/me/creator/worlds/{worldId}/agents/{agentId}/authoring-draft-batches/{batchId}/apply"),
-	"updateCreatorWorldAgentSettings":                worldStudioRealmUnaryOperation(http.MethodPatch, "/api/me/creator/worlds/{worldId}/agents/{agentId}/settings"),
-	"updateCreatorWorldAgentProfileMedia":            worldStudioRealmUnaryOperation(http.MethodPatch, "/api/me/creator/worlds/{worldId}/agents/{agentId}/profile-media"),
-	"updateCreatorWorldAgentVoice":                   worldStudioRealmUnaryOperation(http.MethodPatch, "/api/me/creator/worlds/{worldId}/agents/{agentId}/voice"),
-	"getCreatorWorldAgentChatReadiness":              worldStudioRealmUnaryOperation(http.MethodGet, "/api/me/creator/worlds/{worldId}/agents/{agentId}/chat-readiness"),
-	"projectRuntimePayload":                          studioRealmUnaryOperation(http.MethodPost, "/api/runtime/projections/project", realmAgentStudioAppID, realmWorldStudioAppID),
-	"createPost":                                     agentStudioRealmUnaryOperation(http.MethodPost, "/api/world/posts"),
-	"listResources":                                  agentStudioRealmUnaryOperation(http.MethodGet, "/api/resources"),
-	"createImageDirectUpload":                        studioRealmUnaryOperation(http.MethodPost, "/api/resources/images/direct-upload", realmAgentStudioAppID, realmWorldStudioAppID),
-	"createVideoDirectUpload":                        studioRealmUnaryOperation(http.MethodPost, "/api/resources/videos/direct-upload", realmAgentStudioAppID, realmWorldStudioAppID),
-	"createAudioDirectUpload":                        studioRealmUnaryOperation(http.MethodPost, "/api/resources/audio/direct-upload", realmAgentStudioAppID, realmWorldStudioAppID),
-	"finalizeResource":                               studioRealmUnaryOperation(http.MethodPost, "/api/resources/{resourceId}/finalize", realmAgentStudioAppID, realmWorldStudioAppID),
-	"createTextResource":                             studioRealmUnaryOperation(http.MethodPost, "/api/resources/texts", realmAgentStudioAppID, realmWorldStudioAppID),
+	"WorldCoreController_bootstrapOasisWorld":         worldStudioRealmUnaryOperation(http.MethodPost, "/api/realm/core/worlds/oasis/bootstrap"),
+	"WorldCoreController_createRealmPersona":          personaStudioRealmUnaryOperation(http.MethodPost, "/api/realm/core/personas"),
+	"WorldCoreController_createRuntimeSourceSnapshot": studioRealmUnaryOperation(http.MethodPost, "/api/realm/core/runtime-source-snapshots", realmPersonaStudioAppID, realmWorldStudioAppID),
+	"WorldCoreController_createWorldCharacter":        worldStudioRealmUnaryOperation(http.MethodPost, "/api/realm/core/worlds/{worldId}/characters"),
+	"WorldCoreController_createWorldCore":             worldStudioRealmUnaryOperation(http.MethodPost, "/api/realm/core/worlds"),
+	"WorldCoreController_getOasisWorld":               studioRealmUnaryOperation(http.MethodGet, "/api/realm/core/worlds/oasis", realmPersonaStudioAppID, realmWorldStudioAppID),
+	"WorldCoreController_getRealmPersona":             personaStudioRealmUnaryOperation(http.MethodGet, "/api/realm/core/personas/{personaId}"),
+	"WorldCoreController_getWorldCharacter":           worldStudioRealmUnaryOperation(http.MethodGet, "/api/realm/core/world-characters/{characterId}"),
+	"WorldCoreController_getWorldCore":                studioRealmUnaryOperation(http.MethodGet, "/api/realm/core/worlds/{worldId}", realmPersonaStudioAppID, realmWorldStudioAppID),
+	"WorldCoreController_listRealmPersonas":           personaStudioRealmUnaryOperation(http.MethodGet, "/api/realm/core/personas"),
+	"WorldCoreController_listWorldCharacters":         worldStudioRealmUnaryOperation(http.MethodGet, "/api/realm/core/worlds/{worldId}/characters"),
+	"WorldCoreController_listWorldCores":              studioRealmUnaryOperation(http.MethodGet, "/api/realm/core/worlds", realmPersonaStudioAppID, realmWorldStudioAppID),
+	"WorldCoreController_replaceRealmPersona":         personaStudioRealmUnaryOperation(http.MethodPut, "/api/realm/core/personas/{personaId}"),
+	"WorldCoreController_replaceWorldCharacter":       worldStudioRealmUnaryOperation(http.MethodPut, "/api/realm/core/world-characters/{characterId}"),
+	"WorldCoreController_replaceWorldCore":            worldStudioRealmUnaryOperation(http.MethodPut, "/api/realm/core/worlds/{worldId}"),
+	"createPost":                                      personaStudioRealmUnaryOperation(http.MethodPost, "/api/world/posts"),
+	"listResources":                                   personaStudioRealmUnaryOperation(http.MethodGet, "/api/resources"),
+	"createImageDirectUpload":                         studioRealmUnaryOperation(http.MethodPost, "/api/resources/images/direct-upload", realmPersonaStudioAppID, realmWorldStudioAppID),
+	"createVideoDirectUpload":                         studioRealmUnaryOperation(http.MethodPost, "/api/resources/videos/direct-upload", realmPersonaStudioAppID, realmWorldStudioAppID),
+	"createAudioDirectUpload":                         studioRealmUnaryOperation(http.MethodPost, "/api/resources/audio/direct-upload", realmPersonaStudioAppID, realmWorldStudioAppID),
+	"finalizeResource":                                studioRealmUnaryOperation(http.MethodPost, "/api/resources/{resourceId}/finalize", realmPersonaStudioAppID, realmWorldStudioAppID),
+	"createTextResource":                              studioRealmUnaryOperation(http.MethodPost, "/api/resources/texts", realmPersonaStudioAppID, realmWorldStudioAppID),
 }
 
-func agentStudioRealmUnaryOperation(method string, path string) realmUnaryOperation {
-	return studioRealmUnaryOperation(method, path, realmAgentStudioAppID)
+func personaStudioRealmUnaryOperation(method string, path string) realmUnaryOperation {
+	return studioRealmUnaryOperation(method, path, realmPersonaStudioAppID)
 }
 
 func worldStudioRealmUnaryOperation(method string, path string) realmUnaryOperation {
