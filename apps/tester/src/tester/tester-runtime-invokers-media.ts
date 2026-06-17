@@ -28,7 +28,7 @@ import {
   imageProfileExtensions,
   resolveImageRuntimeBinding,
   resolveLocalRunnableAssetBinding,
-  speechSynthesisParamsFromBinding,
+  resolveSpeechSynthesisParams,
 } from './tester-runtime-media-bindings.js';
 import type { TesterUnavailable } from './tester-unavailable.js';
 
@@ -574,7 +574,11 @@ export async function invokeSpeechSynthesize(client: TesterRuntimeInvocationClie
       assetKind: 'tts',
     });
     const route = runtimeRoutePayload(speechBinding);
-    const speechParams = speechSynthesisParamsFromBinding(speechBinding);
+    const speechParams = await resolveSpeechSynthesisParams({
+      client,
+      resolved: speechBinding,
+      subjectUserId,
+    });
     const timeoutMs = speechParams.timeoutMs ?? 120_000;
     const mediaTts = client.runtime.media?.tts;
     const output = await withRuntimeClientTimeout('audio.synthesize', timeoutMs, async (signal) => (

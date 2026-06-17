@@ -13,6 +13,7 @@ const RUNTIME_EXECUTION_MODE_ASYNC_JOB = 3;
 const RUNTIME_ROUTE_POLICY_LOCAL = 1;
 const RUNTIME_SCENARIO_JOB_STATUS_COMPLETED = 4;
 const RUNTIME_SCHEDULING_RUNNABLE = 1;
+const RUNTIME_VOICE_ASSET_STATUS_ACTIVE = 1;
 
 let behaviorBuildDir = null;
 
@@ -344,6 +345,140 @@ test('tester media lanes dispatch through Runtime Scenario jobs when vNext media
   assert.equal(submitted[2].spec.spec.speechTranscribe.mimeType, 'audio/wav');
 });
 
+test('audio.synthesize resolves Default local voice to admitted Runtime voice asset', async (t) => {
+  installMemoryStorageHarness(t);
+  const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');
+  const store = await importBehaviorModule('tester/tester-ai-config-store.js');
+  const scopeRef = store.createTesterAppLabAIScopeRef();
+  store.saveTesterAIConfig({
+    scopeRef,
+    capabilities: {
+      targetRefs: {
+        'audio.synthesize': {
+          kind: 'local-runtime',
+          targetId: 'core:runtime',
+          profileId: 'local.tts.qwen3',
+        },
+      },
+      selectedParams: {
+        'audio.synthesize': {
+          voiceRef: 'Default',
+          responseFormat: 'mp3',
+        },
+      },
+    },
+    profileOrigin: null,
+  });
+
+  const submitted = [];
+  const jobs = new Map();
+  const client = {
+    runtime: {
+      local: {
+        async listLocalAssets() {
+          return {
+            nextPageToken: '',
+            assets: [{
+              localAssetId: 'local.tts.qwen3',
+              assetId: 'speech/qwen3tts-base',
+              kind: 'tts',
+              engine: 'speech',
+              status: 'active',
+            }],
+          };
+        },
+      },
+      scheduling: {
+        async peekScheduling() {
+          return runnableSchedulingResponse();
+        },
+      },
+      ai: {
+        async listVoiceAssets(request) {
+          assert.equal(request.appId, 'nimi.tester');
+          assert.equal(request.subjectUserId, 'subject-user-1');
+          assert.equal(request.targetModelId || request.modelId, 'speech/qwen3tts-base');
+          return {
+            nextPageToken: '',
+            assets: [{
+              voiceAssetId: 'voice-asset-local-qwen3-1',
+              appId: 'nimi.tester',
+              subjectUserId: 'subject-user-1',
+              workflowType: 1,
+              provider: 'local',
+              modelId: 'speech/qwen3tts-base',
+              targetModelId: 'speech/qwen3tts-base',
+              providerVoiceRef: 'voice-local-qwen3-001',
+              persistence: 1,
+              status: RUNTIME_VOICE_ASSET_STATUS_ACTIVE,
+            }],
+          };
+        },
+        async executeScenario() {
+          throw new Error('executeScenario should not be called by media Scenario job lanes');
+        },
+        streamScenario() {
+          throw new Error('streamScenario should not be called by media Scenario job lanes');
+        },
+        async submitScenarioJob(request) {
+          submitted.push(request);
+          const job = {
+            jobId: 'job-default-voice',
+            status: RUNTIME_SCENARIO_JOB_STATUS_COMPLETED,
+            scenarioType: request.scenarioType,
+            traceId: 'trace-default-voice',
+            modelResolved: request.head.modelId,
+            routeDecision: request.head.routePolicy,
+            artifacts: [],
+          };
+          jobs.set(job.jobId, job);
+          return { job };
+        },
+        async *subscribeScenarioJobEvents({ jobId }) {
+          yield {
+            eventType: RUNTIME_SCENARIO_JOB_STATUS_COMPLETED,
+            sequence: '1',
+            traceId: jobs.get(jobId)?.traceId || '',
+            job: jobs.get(jobId),
+          };
+        },
+        async getScenarioJob({ jobId }) {
+          return { job: jobs.get(jobId) };
+        },
+        async cancelScenarioJob() {
+          return { job: undefined };
+        },
+        async getScenarioArtifacts() {
+          const artifact = { artifactId: 'tts-art', mimeType: 'audio/mp3', uri: '', bytes: new Uint8Array([4, 5, 6]) };
+          return {
+            traceId: 'trace-default-voice',
+            artifacts: [artifact],
+            output: { output: { oneofKind: 'speechSynthesize', speechSynthesize: { artifacts: [artifact] } } },
+          };
+        },
+      },
+    },
+  };
+
+  const result = await invokers.invokeTesterCapability(client, 'audio.synthesize', {
+    prompt: 'hello default local voice',
+    scenarioId: 'scenario-job',
+    subjectUserId: 'subject-user-1',
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(submitted.length, 1);
+  assert.equal(submitted[0].head.modelId, 'speech/qwen3tts-base');
+  assert.equal(
+    submitted[0].spec.spec.speechSynthesize.voiceRef.reference.oneofKind,
+    'voiceAssetId',
+  );
+  assert.equal(
+    submitted[0].spec.spec.speechSynthesize.voiceRef.reference.voiceAssetId,
+    'voice-asset-local-qwen3-1',
+  );
+});
+
 test('image.generate materializes local model and companion slots into Runtime profile entries', async (t) => {
   installMemoryStorageHarness(t);
   const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');
@@ -482,6 +617,7 @@ test('audio.synthesize fails closed when Runtime media TTS does not complete bef
       },
       selectedParams: {
         'audio.synthesize': {
+          voiceRef: 'provider_voice_ref:timeout-voice',
           responseFormat: 'mp3',
           timeoutMs: '20',
         },
@@ -571,6 +707,9 @@ test('tester surfaces inline runtime media artifact bytes as a previewable data 
             asset_kind: 'image',
             required: true,
           }],
+        },
+        'audio.synthesize': {
+          voiceRef: 'provider_voice_ref:inline-audio-voice',
         },
       },
     },

@@ -6,13 +6,16 @@ import {
   type NimiRuntimeLocalAssetEntry,
   type NimiRuntimeSpeechVoiceReference,
 } from '@nimiplatform/sdk/runtime';
+import { VoiceAssetStatus, VoiceWorkflowType, type ListVoiceAssetsResponse } from '@nimiplatform/sdk/runtime/generated';
 import type { JsonObject } from '@nimiplatform/sdk/types';
-import type {
-  ResolvedLLMBinding,
-  TesterRuntimeInvocationClient,
+import {
+  TESTER_APP_ID,
+  type ResolvedLLMBinding,
+  type TesterRuntimeInvocationClient,
 } from './tester-runtime-invokers-core.js';
 
 type ImageProfileEntry = JsonObject;
+type RuntimeVoiceAsset = ListVoiceAssetsResponse['assets'][number];
 type ImageEntryOverride = JsonObject & {
   readonly entry_id: string;
   readonly local_asset_id: string;
@@ -44,6 +47,10 @@ function selectedParamRecord(resolved: ResolvedLLMBinding): Record<string, unkno
 
 function optionalText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
+}
+
+function normalizedText(value: unknown): string {
+  return String(value ?? '').trim();
 }
 
 function selectedCompanionSlots(params: Record<string, unknown>): Record<string, string> {
@@ -304,6 +311,8 @@ function parseVoiceReference(value: unknown): NimiRuntimeSpeechVoiceReference | 
   }
   const text = optionalText(value);
   if (!text) return undefined;
+  const lower = text.toLowerCase();
+  if (lower === 'default' || lower === 'auto') return undefined;
   const [prefix, ...rest] = text.split(':');
   const payload = rest.join(':').trim();
   if (prefix === 'preset_voice_id' && payload) return { kind: 'preset_voice_id', presetVoiceId: payload };
@@ -324,6 +333,45 @@ function voiceReferenceFromParams(resolved: ResolvedLLMBinding) {
     ?? params.voiceAssetId
     ?? params.voice_asset_id,
   ));
+}
+
+function activeVoiceAssetReference(asset: RuntimeVoiceAsset | undefined): ReturnType<typeof toNimiRuntimeVoiceReference> | undefined {
+  const voiceAssetId = normalizedText(asset?.voiceAssetId);
+  const providerVoiceRef = normalizedText(asset?.providerVoiceRef);
+  if (!voiceAssetId || !providerVoiceRef || asset?.status !== VoiceAssetStatus.ACTIVE) {
+    return undefined;
+  }
+  return toNimiRuntimeVoiceReference({ kind: 'voice_asset_id', voiceAssetId });
+}
+
+async function findAdmittedVoiceAssetReference(input: {
+  readonly client: TesterRuntimeInvocationClient;
+  readonly resolved: ResolvedLLMBinding;
+  readonly subjectUserId: string;
+}): Promise<ReturnType<typeof toNimiRuntimeVoiceReference> | undefined> {
+  const listVoiceAssets = input.client.runtime.ai.listVoiceAssets;
+  if (!listVoiceAssets) {
+    throw new Error('audio.synthesize local TTS default voice requires Runtime voice asset listing; reload Runtime projection, then configure a Voice reference or create an admitted voice asset.');
+  }
+  const model = normalizedText(input.resolved.model);
+  const baseRequest = {
+    appId: TESTER_APP_ID,
+    subjectUserId: input.subjectUserId,
+    workflowType: VoiceWorkflowType.UNSPECIFIED,
+    status: VoiceAssetStatus.ACTIVE,
+    pageSize: 20,
+    pageToken: '',
+    connectorId: input.resolved.connectorId || '',
+  };
+  for (const request of [
+    { ...baseRequest, modelId: '', targetModelId: model },
+    { ...baseRequest, modelId: model, targetModelId: '' },
+  ]) {
+    const response = await listVoiceAssets(request);
+    const resolved = response.assets.map(activeVoiceAssetReference).find(Boolean);
+    if (resolved) return resolved;
+  }
+  return undefined;
 }
 
 function optionalFiniteNumber(value: unknown, fieldName: string): number | undefined {
@@ -357,5 +405,24 @@ export function speechSynthesisParamsFromBinding(resolved: ResolvedLLMBinding): 
     pitch: optionalFiniteNumber(params.pitchSemitones ?? params.pitch_semitones ?? params.pitch, 'pitchSemitones'),
     volume: optionalFiniteNumber(params.volume, 'volume'),
     timeoutMs: positiveInteger(params.timeoutMs ?? params.timeout_ms, 'timeoutMs'),
+  };
+}
+
+export async function resolveSpeechSynthesisParams(input: {
+  readonly client: TesterRuntimeInvocationClient;
+  readonly resolved: ResolvedLLMBinding;
+  readonly subjectUserId: string;
+}): Promise<SpeechSynthesisRuntimeParams> {
+  const params = speechSynthesisParamsFromBinding(input.resolved);
+  if (params.voiceRef || input.resolved.routePolicy !== 'local') {
+    return params;
+  }
+  const voiceRef = await findAdmittedVoiceAssetReference(input);
+  if (!voiceRef) {
+    throw new Error(`audio.synthesize local model ${input.resolved.model} requires an explicit admitted Voice reference. Select a voice asset, enter provider_voice_ref:<id>, or run a voice clone/design workflow before using Default.`);
+  }
+  return {
+    ...params,
+    voiceRef,
   };
 }

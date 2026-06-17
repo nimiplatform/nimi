@@ -28,6 +28,7 @@ import {
   type NimiRuntimeEmbeddingScenarioClient,
 } from '@nimiplatform/sdk/ai';
 import type { NimiRuntimeLocalAssetListClient, NimiRuntimeScenarioJobClient } from '@nimiplatform/sdk/runtime';
+import type { ListVoiceAssetsRequest, ListVoiceAssetsResponse } from '@nimiplatform/sdk/runtime/generated';
 import {
   textPart,
   type NimiMessage,
@@ -128,6 +129,9 @@ export type TesterRuntimeInvocationClient = {
         readonly modelResolved?: string;
         readonly traceId?: string;
       }>;
+      readonly listVoiceAssets?: (
+        request: ListVoiceAssetsRequest,
+      ) => Promise<ListVoiceAssetsResponse>;
     };
     readonly scheduling: NimiRuntimeAISchedulingClient;
     readonly local?: NimiRuntimeLocalAssetListClient['local'];
@@ -152,7 +156,7 @@ export type TesterRuntimeInvocationClient = {
   };
 };
 
-const TESTER_APP_ID = 'nimi.tester';
+export const TESTER_APP_ID = 'nimi.tester';
 export type ResolvedLLMBinding = NimiAIConfigRuntimeBinding;
 
 export type SchedulingPreflightResult = {
