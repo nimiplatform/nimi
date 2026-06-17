@@ -380,10 +380,9 @@ func (r publicChatRuntime) runTurn(
 	// Project committed runtime interpretation into state+presentation per
 	// K-AGCORE-037 / K-AGCORE-038 only after the commit point succeeds.
 	r.projectCommittedStatusCue(session, turn, structured)
-	// K-AGCORE-051 voice/lipsync projection: derive runtime-owned timeline
-	// events (`voice_playback_requested` + `lipsync_frame_batch`) from the
-	// committed assistant text. Synthesizer + emit failures are logged but
-	// do not block turn completion (parallels projectCommittedStatusCue).
+	// Voice/lipsync projection is policy-gated. Missing avatar autoplay,
+	// speech model, route, voice reference, or audio bytes leaves the turn as
+	// normal text-only output.
 	r.projectCommittedVoiceLipsync(ctx, session, turn, structured)
 	if err := r.executeCommittedActions(ctx, session, turn, structured); err != nil {
 		r.failCommittedPublicChatTurn(session, turn, traceID, modelResolved, routeDecision, structured, usage, finish, publicChatActionFailureReason(err), err.Error())

@@ -246,11 +246,18 @@ func (s *Service) syncManagedEndpointProjectionLocked(engineName string, endpoin
 // SetManagedImageBackendConfig records whether the managed image
 // backend is configured for daemon-supervised local media workflows.
 func (s *Service) SetManagedImageBackendConfig(enabled bool, address string) {
+	s.SetManagedImageBackendConfigWithSource(enabled, address, "")
+}
+
+// SetManagedImageBackendConfigWithSource records whether the managed image
+// backend is configured and which admitted package source owns startup.
+func (s *Service) SetManagedImageBackendConfigWithSource(enabled bool, address string, packageSource string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.managedMediaBackendConfigured = enabled
 	s.managedMediaBackendHealthy = false
 	s.managedMediaBackendAddress = strings.TrimSpace(address)
+	s.managedMediaBackendPackageSource = strings.TrimSpace(packageSource)
 	s.managedMediaBackendEpoch++
 	s.resetManagedMediaImageLoadCacheLocked()
 	now := nowISO()
@@ -289,6 +296,22 @@ func (s *Service) SetManagedImageBackendHealth(healthy bool, detail string) {
 	}
 	s.managedMediaBackendStatus = runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_UNHEALTHY
 	s.managedMediaBackendDetail = defaultString(trimmed, "daemon-managed image backend unhealthy")
+}
+
+// SetManagedImageBackendIdle marks an intentionally stopped backend as
+// installed-but-cold. It is used by keep_alive reclamation, not by crash probes.
+func (s *Service) SetManagedImageBackendIdle(detail string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if !s.managedMediaBackendConfigured {
+		return
+	}
+	s.managedMediaBackendHealthy = false
+	s.managedMediaBackendUpdatedAt = nowISO()
+	s.managedMediaBackendEpoch++
+	s.resetManagedMediaImageLoadCacheLocked()
+	s.managedMediaBackendStatus = runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_INSTALLED
+	s.managedMediaBackendDetail = defaultString(strings.TrimSpace(detail), "daemon-managed image backend idle")
 }
 
 // SyncManagedLlamaAssets rebuilds the runtime-managed llama config from the

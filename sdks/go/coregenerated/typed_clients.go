@@ -2776,6 +2776,16 @@ type CheckModelHealthResponse struct {
 	ModelId string `json:"model_id,omitempty"`
 }
 
+type CleanupGeneratedVoiceArtifactsRequest struct {
+	AgentId string `json:"agent_id,omitempty"`
+	ConversationAnchorId string `json:"conversation_anchor_id,omitempty"`
+}
+
+type CleanupGeneratedVoiceArtifactsResponse struct {
+	DeletedCount int32 `json:"deleted_count,omitempty"`
+	DeletedArtifactIds []string `json:"deleted_artifact_ids,omitempty"`
+}
+
 type ClearAgentPresentationProfile struct {
 
 }
@@ -8718,6 +8728,14 @@ func (c RuntimeTypedClient) WatchAppInstallJobEvents(ctx context.Context, reques
 	return &RuntimeTypedStream[AppInstallJobEvent]{reader: reader}, nil
 }
 
+func (c RuntimeTypedClient) CleanupGeneratedVoiceArtifacts(ctx context.Context, request CleanupGeneratedVoiceArtifactsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CleanupGeneratedVoiceArtifactsResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeArtifactService/CleanupGeneratedVoiceArtifacts", request, metadata, timeoutMS)
+	if err != nil {
+		return CleanupGeneratedVoiceArtifactsResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[CleanupGeneratedVoiceArtifactsResponse](raw, "CleanupGeneratedVoiceArtifactsResponse")
+}
+
 func (c RuntimeTypedClient) ReadArtifactBytes(ctx context.Context, request ReadArtifactBytesRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ReadArtifactBytesResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes", request, metadata, timeoutMS)
 	if err != nil {
@@ -12065,6 +12083,11 @@ type NsfwConsentStatusResponseDto struct {
 	UserNsfwEnabled bool `json:"userNsfwEnabled,omitempty"`
 }
 
+type OAuthLinkResponseDto struct {
+	Provider string `json:"provider,omitempty"`
+	Status string `json:"status,omitempty"`
+}
+
 type OAuthLoginDto struct {
 	AccessToken string `json:"accessToken,omitempty"`
 	Code string `json:"code,omitempty"`
@@ -12947,6 +12970,10 @@ type UpdateCreatorAgentDto struct {
 
 type UpdateGroupInputDto struct {
 	Title string `json:"title,omitempty"`
+}
+
+type UpdateMyHandleDto struct {
+	Handle string `json:"handle,omitempty"`
 }
 
 type UpdateNsfwConsentResponseDto struct {
@@ -18410,7 +18437,7 @@ type RealmUpdateMyHandleOperationRequest struct {
 	Path    RealmUpdateMyHandleOperationPath `json:"path,omitempty"`
 	Query   RealmUpdateMyHandleOperationQuery `json:"query,omitempty"`
 	Headers RealmUpdateMyHandleOperationHeaders `json:"headers,omitempty"`
-	Body    map[string]any `json:"body,omitempty"`
+	Body    UpdateMyHandleDto `json:"body,omitempty"`
 }
 
 type RealmUpdateMyNotificationSettingsOperationPath struct {
@@ -20616,12 +20643,12 @@ func (c RealmTypedClient) LikePost(ctx context.Context, request RealmLikePostOpe
 	return decodeTypedResponse[struct{}](raw)
 }
 
-func (c RealmTypedClient) LinkOauth(ctx context.Context, request RealmLinkOauthOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (struct{}, error) {
+func (c RealmTypedClient) LinkOauth(ctx context.Context, request RealmLinkOauthOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (OAuthLinkResponseDto, error) {
 	raw, err := c.operationTyped(ctx, "linkOauth", request, metadata, timeoutMS)
 	if err != nil {
-		return struct{}{}, err
+		return OAuthLinkResponseDto{}, err
 	}
-	return decodeTypedResponse[struct{}](raw)
+	return decodeTypedResponse[OAuthLinkResponseDto](raw)
 }
 
 func (c RealmTypedClient) ListAssets(ctx context.Context, request RealmListAssetsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AssetListDto, error) {

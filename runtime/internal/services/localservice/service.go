@@ -37,6 +37,7 @@ type EngineManager interface {
 	EnsurePythonTorchWheelDependency(ctx context.Context, uvPath string, venvRoot string, consumer string) (engine.PythonTorchWheelDependencyStatus, error)
 	EnsureManagedImageBackend(ctx context.Context, cfg *engine.ManagedImageBackendConfig) error
 	EnsureManagedImageBackendDependency(ctx context.Context, cfg *engine.ManagedImageBackendConfig) (engine.ManagedImageBackendDependencyStatus, error)
+	StartInstalledManagedImageBackend(ctx context.Context, cfg *engine.ManagedImageBackendConfig) error
 	ResolveSharedAcceleratorDependency(dependencyID string, consumerID string) engine.SharedAcceleratorDependencyStatus
 	EnsureSharedAcceleratorDependency(ctx context.Context, dependencyID string) (engine.SharedAcceleratorDependencyStatus, error)
 	StartEngine(ctx context.Context, engine string, port int, version string) error
@@ -56,28 +57,29 @@ type RuntimeAccountProjectionProvider interface {
 type Service struct {
 	runtimev1.UnimplementedRuntimeLocalServiceServer
 
-	logger                         *slog.Logger
-	auditStore                     *auditlog.Store
-	localProviderCatalog           *catalog.LocalProviderCatalog
-	runtimeAccountProvider         RuntimeAccountProjectionProvider
-	stateStorePath                 string
-	localAuditCap                  int
-	productVersion                 string
-	localModelsPath                string
-	runtimeDataRoot                string
-	managedLlamaModelsConfigPath   string
-	managedLlamaEnabled            bool
-	managedLlamaEndpointValue      string
-	managedMediaEndpointValue      string
-	managedSpeechEndpointValue     string
-	managedMediaBackendConfigured  bool
-	managedMediaBackendHealthy     bool
-	managedMediaBackendAddress     string
-	managedMediaBackendStatus      runtimev1.LocalServiceStatus
-	managedMediaBackendDetail      string
-	managedMediaBackendInstalledAt string
-	managedMediaBackendUpdatedAt   string
-	managedMediaBackendEpoch       uint64
+	logger                           *slog.Logger
+	auditStore                       *auditlog.Store
+	localProviderCatalog             *catalog.LocalProviderCatalog
+	runtimeAccountProvider           RuntimeAccountProjectionProvider
+	stateStorePath                   string
+	localAuditCap                    int
+	productVersion                   string
+	localModelsPath                  string
+	runtimeDataRoot                  string
+	managedLlamaModelsConfigPath     string
+	managedLlamaEnabled              bool
+	managedLlamaEndpointValue        string
+	managedMediaEndpointValue        string
+	managedSpeechEndpointValue       string
+	managedMediaBackendConfigured    bool
+	managedMediaBackendHealthy       bool
+	managedMediaBackendAddress       string
+	managedMediaBackendPackageSource string
+	managedMediaBackendStatus        runtimev1.LocalServiceStatus
+	managedMediaBackendDetail        string
+	managedMediaBackendInstalledAt   string
+	managedMediaBackendUpdatedAt     string
+	managedMediaBackendEpoch         uint64
 
 	mu                                      sync.RWMutex
 	assets                                  map[string]*runtimev1.LocalAssetRecord

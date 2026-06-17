@@ -94,15 +94,16 @@ func (t *fakeTransport) Unary(ctx context.Context, req sdkstypes.CoreUnaryReques
 		return json.Marshal(t.fixtures.Cases.RuntimeUnary.ResponseBody)
 	case t.fixtures.Cases.RealmOperation.OperationID:
 		if os.Getenv("SDKS_CONFORMANCE_PROFILE") == "typed-core" {
+			status := LocalAgentProvisionIntentStatus("ACKED")
 			return json.Marshal(LocalAgentProvisionIntentDto{
-				Id:             "intent-conformance",
-				Status:         "ACKED",
-				LocalAgentRef:  "local-agent",
-				OwnerUserId:    "owner",
-				RealmAgentId:   "realm-agent",
-				Attempts:       1,
-				AvailableAt:    "2026-01-01T00:00:00Z",
-				CreatedAt:      "2026-01-01T00:00:00Z",
+				Id:            "intent-conformance",
+				Status:        &status,
+				LocalAgentRef: "local-agent",
+				OwnerUserId:   "owner",
+				RealmAgentId:  "realm-agent",
+				Attempts:      1,
+				AvailableAt:   "2026-01-01T00:00:00Z",
+				CreatedAt:     "2026-01-01T00:00:00Z",
 			})
 		}
 		return json.Marshal(t.fixtures.Cases.RealmOperation.ResponseBody)
@@ -217,11 +218,15 @@ func TestGeneratedClientsWithFakeTransport(t *testing.T) {
 			t.Fatalf("expected typed EOF, got %v", err)
 		}
 
+		outcome := LocalAgentProvisionIntentAckOutcome("established")
 		realmResponse, err := typedRealm.AckMyLocalAgentProvisionIntent(
 			context.Background(),
 			RealmAckMyLocalAgentProvisionIntentOperationRequest{
-				Path:    RealmAckMyLocalAgentProvisionIntentOperationPath{IntentId: "intent-conformance"},
-				Body:    LocalAgentProvisionIntentAckDto{Outcome: "established", Detail: "ok"},
+				Path: RealmAckMyLocalAgentProvisionIntentOperationPath{IntentId: "intent-conformance"},
+				Body: LocalAgentProvisionIntentAckDto{
+					Outcome: &outcome,
+					Detail:  "ok",
+				},
 			},
 			nil,
 			0,

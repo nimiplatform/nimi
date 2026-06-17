@@ -36,6 +36,7 @@ const (
 	publicChatTurnFailedType                 = "runtime.agent.turn.failed"
 	publicChatTurnInterruptedType            = "runtime.agent.turn.interrupted"
 	publicChatTurnInterruptAckType           = "runtime.agent.turn.interrupt_ack"
+	publicChatTurnVoiceRenderType            = "runtime.agent.turn.voice_render"
 	publicChatAssistantMemorySource          = "runtime.agent.chat"
 	publicChatAssistantMemoryPolicy          = "runtime_agent_chat_assistant_turn"
 	publicChatDefaultTurnTimeoutMs     int32 = 120_000
@@ -85,30 +86,31 @@ type avatarLiveInstanceBindingState struct {
 // `subject_user_id` is captured at anchor-open time and is runtime truth.
 // ActiveTurn / LastTurn remain anchor-scoped per K-AGCORE-035.
 type publicChatAnchorState struct {
-	ConversationAnchorID string
-	AgentID              string
-	LocalAgentRef        string
-	OwnerUserID          string
-	RealmAgentID         string
-	CallerAppID          string
-	SubjectUserID        string
-	ThreadID             string
-	Binding              publicChatExecutionBinding
-	Bindings             publicChatExecutionBindings
-	ExecutionParams      map[string]map[string]any
-	ActiveTurnID         string
-	SystemPrompt         string
-	MaxTokens            int32
-	Reasoning            *publicChatReasoningConfig
-	Transcript           []*runtimev1.ChatMessage
-	ActiveTurnSnapshot   *publicChatTurnProjectionState
-	LastTurnSnapshot     *publicChatTurnProjectionState
-	PendingFollowUpID    string
-	Status               runtimev1.ConversationAnchorStatus
-	LastTurnID           string
-	LastMessageID        string
-	CreatedAt            time.Time
-	UpdatedAt            time.Time
+	ConversationAnchorID   string
+	AgentID                string
+	LocalAgentRef          string
+	OwnerUserID            string
+	RealmAgentID           string
+	CallerAppID            string
+	SubjectUserID          string
+	ThreadID               string
+	Binding                publicChatExecutionBinding
+	Bindings               publicChatExecutionBindings
+	ExecutionParams        map[string]map[string]any
+	ActiveTurnID           string
+	SystemPrompt           string
+	MaxTokens              int32
+	Reasoning              *publicChatReasoningConfig
+	Transcript             []*runtimev1.ChatMessage
+	ActiveTurnSnapshot     *publicChatTurnProjectionState
+	LastTurnSnapshot       *publicChatTurnProjectionState
+	CompletedTurnSnapshots map[string]*publicChatTurnProjectionState
+	PendingFollowUpID      string
+	Status                 runtimev1.ConversationAnchorStatus
+	LastTurnID             string
+	LastMessageID          string
+	CreatedAt              time.Time
+	UpdatedAt              time.Time
 }
 type publicChatTurnState struct {
 	ConversationAnchorID string
@@ -184,6 +186,13 @@ type publicChatTurnInterruptPayload struct {
 	ConversationAnchorID string `json:"conversation_anchor_id"`
 	TurnID               string `json:"turn_id,omitempty"`
 	Reason               string `json:"reason,omitempty"`
+}
+type publicChatTurnVoiceRenderPayload struct {
+	ConversationAnchorID string `json:"conversation_anchor_id"`
+	TurnID               string `json:"turn_id"`
+	MessageID            string `json:"message_id"`
+	Text                 string `json:"text,omitempty"`
+	PlaybackTarget       string `json:"playback_target,omitempty"`
 }
 type PublicChatTurnExecutionRequest struct {
 	AppID         string

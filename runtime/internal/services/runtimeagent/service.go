@@ -65,10 +65,8 @@ type Service struct {
 	delegatedProviderProfiles map[string]*runtimev1.DelegatedProviderProfile
 	delegatedApprovalRequests map[string]*runtimev1.DelegatedApprovalRequest
 	delegatedPausedRequests   map[string]*runtimeAgentPausedDelegatedCapabilityRequest
-	// voiceLipsync is the K-AGCORE-051 synthesizer that turns committed
-	// assistant text into runtime-owned lipsync frames. Constructor injects
-	// the deterministic synthetic adapter; real TTS providers can implement
-	// voiceLipsyncSynthesizer for future provider integration.
+	// voiceLipsync is the K-AGCORE-051/K-VOICE-018 synthesizer path. Default
+	// synthetic output is frame-only and cannot become a playable voice event.
 	voiceLipsync voiceLipsyncSynthesizer
 	// runtimeArtifacts is the runtime-owned by-id artifact byte store. Any
 	// runtime event carrying an artifact id must put bytes here before emit.

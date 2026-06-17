@@ -309,10 +309,16 @@ Fixed rules:
   re-admit public `<motion>`, `<expression>`, `<lookat>`, `<pose>`, or
   `<clear-pose>` syntax by translating it client-side.
 - SDK may combine typed `runtime.agent.presentation.voice_playback_requested`
-  and `runtime.agent.presentation.lipsync_frame_batch` events into a
+  / `runtime.agent.presentation.voice_stream_chunk_available` /
+  `runtime.agent.presentation.lipsync_frame_batch` events into a
   non-authoritative playback schedule for app/Kit consumers when all Runtime
   timeline authority fields, turn identity, stream identity, audio artifact
   identity, and drift bounds remain explicit and fail closed.
+- SDK must not decide whether Desktop manual playback, Avatar autoplay, or
+  text-only fallback applies. Those decisions are Runtime voice policy truth.
+- SDK runtime packages must not import browser-only audio processing dependencies
+  such as WebAudio worklets or `wlipsync`; Avatar/browser helpers may live in
+  Kit Avatar entrypoints downstream of typed Runtime events.
 
 ## S-RUNTIME-104 Renderer-Local Transient Non-Owner Boundary
 
@@ -473,16 +479,20 @@ local first-party 与 developer-registered local app login UX 由 kit / Desktop 
 
 > Upstream Runtime authority: `K-AGCORE-053`（`runtime-artifact-contract.md`）。
 
-SDK 必须暴露通用 artifact bytes 取回 surface，与 typed media projection 体系（`S-RUNTIME-073`）正交。avatar 等 first-party app 用此 surface 按 `audio_artifact_id`（来自 `voice_playback_requested.detail`）/ `lipsync_frame_batch.detail` 取回 runtime-emitted artifact 的原始 bytes，用于本地 audio decode + wLipSync 等下游消费。
+SDK 必须暴露通用 artifact bytes 取回 surface，与 typed media projection 体系（`S-RUNTIME-073`）正交。avatar 等 first-party app 用此 surface 按 `audio_artifact_id`（来自 `voice_playback_requested.detail` / `voice_stream_chunk_available.detail`）取回 runtime-emitted audio artifact 的原始 bytes，用于本地 audio decode + wLipSync 等下游消费。`lipsync_frame_batch` 若继续存在，其 metadata artifact identity 不得与 playable audio artifact identity 混用。
 
 固定规则：
 
 - SDK 必须以 `Runtime` class `readonly artifacts: RuntimeArtifactsModule` 字段暴露 `runtime.artifacts.readBytes({ artifactId, expectedMimePrefix? }): Promise<{ bytes: ArrayBuffer; mimeType: string; sizeBytes: number; mimeInferred: boolean }>` 稳定 high-level convenience API。
 - SDK 必须以 `Runtime['client']` / RPC binding 形态暴露底层 `runtimeClient.readArtifactBytes(request: ReadArtifactBytesRequest, options?: RuntimeCallOptions): Promise<ReadArtifactBytesResponse>`，绑定到 `RuntimeArtifactService.ReadArtifactBytes` proto method id。
+- SDK Runtime class 的 `artifacts` module 必须暴露 Runtime-owned generated voice cleanup RPC binding：`cleanupGeneratedVoiceArtifacts({ agentId?, conversationAnchorId? })`，绑定到 `RuntimeArtifactService.CleanupGeneratedVoiceArtifacts`；SDK 不得在 app/Avatar 层实现文件删除逻辑。
 - SDK 不得以 singleton const（如 `export const runtime = { artifacts }`）形式暴露 artifacts namespace；必须通过 Runtime class 实例化路径（`new Runtime(options)` 或 `createLocalFirstPartyRuntimePlatformClient(...)`）。
 - `expectedMimePrefix` 用于 SDK fail-fast：runtime 返回 `mime_type` 不以 prefix 开头（case-insensitive）时，SDK throw `NimiError(reasonCode: ARTIFACT_MIME_MISMATCH)`，不暴露 bytes。
 - SDK 必须在该 surface 上 enforce `fallback: 'deny'`（与 `runtime.media.*` 同 policy）；不允许调用方修改 fallback policy。
 - SDK 必须把 `ARTIFACT_INVALID_INPUT` / `ARTIFACT_NOT_FOUND` / `ARTIFACT_TOO_LARGE` / `ARTIFACT_FORBIDDEN` / `ARTIFACT_MIME_MISMATCH`（`K-AGCORE-053`）作为稳定 reason code，必须 fail-close 透传到 caller；不得返回空 bytes / 默认 mime / 假装成功。
+- SDK 对 voice playback/chunk audio artifact 的 `expectedMimePrefix` 应使用
+  `audio/`；返回非 audio mime 必须 fail-close，不得把 lipsync metadata 或
+  synthetic placeholder 交给 audio decoder。
 - SDK runtime client 不得在 mime 缺失时填默认值；mime 必须由 runtime 端打 `mime_inferred: true`。
 - 此 surface 不替代 `getScenarioArtifacts(jobId)`（job-typed projection；S-RUNTIME-073）或 `getVoiceAsset(GetVoiceAssetRequest)`（voice asset library）；用例正交，三者并存。
 - `runtime.artifacts.readBytes` 入参 `expectedMimePrefix` 仅接受 RFC-6838 合法 top-level type（`audio/`、`image/`、`video/`、`text/`、`application/`、`model/` 等）；`music/` 不是合法 top-level type（music artifacts 实际为 `audio/*`），SDK 不得 advertise 它为合法 prefix。

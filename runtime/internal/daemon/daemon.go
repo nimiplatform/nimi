@@ -350,10 +350,9 @@ func (d *Daemon) consumeStartupDegradedReason() string {
 }
 func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 	svc := d.grpc.LocalService()
-	effectiveManagedLlama := d.cfg.EngineLlamaEnabled
-	if !effectiveManagedLlama && svc != nil && svc.HasManagedSupervisedLlamaModels() {
-		effectiveManagedLlama = true
-	}
+	managedLlamaAssetsPresent := svc != nil && svc.HasManagedSupervisedLlamaModels()
+	managedLlamaRegistrationEnabled := d.cfg.EngineLlamaEnabled || managedLlamaAssetsPresent
+	bootstrapManagedLlama := d.cfg.EngineLlamaEnabled
 	managedImageAssetsPresent := svc != nil && svc.HasManagedSupervisedImageModels()
 	onState := func(kind engine.EngineKind, status engine.EngineStatus, detail string) {
 		d.onEngineStateChange(string(kind), string(status), detail)
@@ -371,7 +370,7 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 		Environments: strings.TrimSpace(d.cfg.ManagedRoots.Environments),
 		Dependencies: strings.TrimSpace(d.cfg.ManagedRoots.Dependencies),
 	}
-	engineWorkRequested := effectiveManagedLlama || managedImageAssetsPresent ||
+	engineWorkRequested := managedLlamaRegistrationEnabled || managedImageAssetsPresent ||
 		d.cfg.EngineMediaEnabled || d.cfg.EngineSpeechEnabled || d.cfg.EngineSidecarEnabled
 	mgr, err := managerFactory(d.logger, engineRoots, onState)
 	if err != nil {
@@ -393,7 +392,7 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 	managedLlamaConfigPath := resolveManagedLlamaModelsConfigPath()
 	mgr.SetLlamaPaths(d.cfg.LocalModelsPath, managedLlamaConfigPath)
 	if svc != nil {
-		svc.SetManagedLlamaRegistrationConfig(d.cfg.LocalModelsPath, managedLlamaConfigPath, effectiveManagedLlama)
+		svc.SetManagedLlamaRegistrationConfig(d.cfg.LocalModelsPath, managedLlamaConfigPath, managedLlamaRegistrationEnabled)
 		svc.SetEngineManager(engine.NewServiceAdapter(mgr))
 	}
 	if !engineWorkRequested {
@@ -423,26 +422,6 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 	}
 	mgr.SetManagedImageBackend(nil)
 	managedImageBackendConfigured := false
-	startInstalledManagedImageBackend := func() bool {
-		err := mgr.StartInstalledManagedImageBackend(ctx, &engine.ManagedImageBackendConfig{
-			Mode:          engine.ManagedImageBackendOfficial,
-			BackendName:   "stablediffusion-ggml",
-			PackageSource: strings.TrimSpace(d.cfg.EngineManagedImageBackendSource),
-			Address:       "127.0.0.1:50052",
-		})
-		if err == nil {
-			return true
-		}
-		detail := fmt.Sprintf("managed image backend local environment dependency is not ready: %v", err)
-		d.setDegradedStatus(detail)
-		if svc != nil {
-			svc.SetManagedImageBackendHealth(false, detail)
-		}
-		if !errors.Is(err, engine.ErrManagedImageBackendMaterializationRequired) {
-			appendStartupFailureAudit(d.auditStore, detail)
-		}
-		return false
-	}
 	if managedImageLoopback {
 		if managedImageSelection.EntryID == "windows-x64-nvidia-gguf" {
 			dependencyStatus := mgr.ResolveSharedAcceleratorDependency(engine.NVIDIACUDAUserSpaceRuntimeDependencyID, "stable-diffusion.cpp.cuda")
@@ -457,21 +436,18 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 				if svc != nil {
 					svc.SetManagedImageBackendHealth(false, detail)
 				}
-			} else if startInstalledManagedImageBackend() && svc != nil {
+			} else if svc != nil {
 				managedImageBackendConfigured = true
-				svc.MarkManagedEngineUsed(string(engineManagedImageBackend), "engine_bootstrap")
 			}
 		} else {
-			if startInstalledManagedImageBackend() && svc != nil {
+			if svc != nil {
 				managedImageBackendConfigured = true
-				svc.MarkManagedEngineUsed(string(engineManagedImageBackend), "engine_bootstrap")
 			}
 		}
 	}
 	managedMediaLoopback := d.cfg.EngineMediaEnabled && mediaHostSupport == engine.MediaHostSupportSupportedSupervised
 	if svc != nil {
-		svc.SetManagedLlamaRegistrationConfig(d.cfg.LocalModelsPath, managedLlamaConfigPath, effectiveManagedLlama)
-		if effectiveManagedLlama {
+		if bootstrapManagedLlama {
 			if err := svc.SyncManagedLlamaAssets(ctx); err != nil {
 				d.recordManagedLlamaBootstrapFailure(fmt.Sprintf("sync managed llama assets: %v", err))
 				skipLlamaBootstrap = true
@@ -480,7 +456,7 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 				skipLlamaBootstrap = true
 			}
 		}
-		if effectiveManagedLlama && !skipLlamaBootstrap {
+		if bootstrapManagedLlama && !skipLlamaBootstrap {
 			cfg := engine.DefaultLlamaConfig()
 			if strings.TrimSpace(d.cfg.EngineLlamaVersion) != "" {
 				cfg.Version = d.cfg.EngineLlamaVersion
@@ -497,7 +473,7 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 				}
 			}
 		}
-		if effectiveManagedLlama && !skipLlamaBootstrap {
+		if bootstrapManagedLlama && !skipLlamaBootstrap {
 			svc.SetManagedLlamaEndpoint(fmt.Sprintf("http://127.0.0.1:%d/v1", d.cfg.EngineLlamaPort))
 		} else {
 			svc.SetManagedLlamaEndpoint("")
@@ -513,7 +489,7 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 			svc.SetManagedSpeechEndpoint("")
 		}
 		if managedImageBackendConfigured {
-			svc.SetManagedImageBackendConfig(true, "127.0.0.1:50052")
+			svc.SetManagedImageBackendConfigWithSource(true, "127.0.0.1:50052", strings.TrimSpace(d.cfg.EngineManagedImageBackendSource))
 		} else {
 			svc.SetManagedImageBackendConfig(false, "")
 		}
@@ -527,16 +503,6 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 	startEngine := d.startEngineFn
 	if startEngine == nil {
 		startEngine = d.startEngine
-	}
-	speechBootstrapReady := d.cfg.EngineSpeechEnabled
-	if speechBootstrapReady {
-		if err := d.configureSpeechActivation(ctx, svc); err != nil {
-			speechBootstrapReady = false
-			failures <- bootstrapFailure{
-				kind:   engine.EngineSpeech,
-				detail: err.Error(),
-			}
-		}
 	}
 	bootstrap := func(kind engine.EngineKind, version string, port int, envKey string) {
 		wg.Add(1)
@@ -554,17 +520,13 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 			}
 		}()
 	}
-	if effectiveManagedLlama && !skipLlamaBootstrap {
+	if bootstrapManagedLlama && !skipLlamaBootstrap {
 		bootstrap(engine.EngineLlama, d.cfg.EngineLlamaVersion, d.cfg.EngineLlamaPort,
 			"NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL")
 	}
 	if managedMediaLoopback {
 		bootstrap(engine.EngineMedia, d.cfg.EngineMediaVersion, d.cfg.EngineMediaPort,
 			"NIMI_RUNTIME_LOCAL_MEDIA_BASE_URL")
-	}
-	if speechBootstrapReady {
-		bootstrap(engine.EngineSpeech, d.cfg.EngineSpeechVersion, d.cfg.EngineSpeechPort,
-			"NIMI_RUNTIME_LOCAL_SPEECH_BASE_URL")
 	}
 	if d.cfg.EngineSidecarEnabled {
 		bootstrap(engineSidecar, d.cfg.EngineSidecarVersion, d.cfg.EngineSidecarPort,

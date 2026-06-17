@@ -8,6 +8,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	runtimeartifact "github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -56,6 +57,7 @@ func TestCBDBSeededRealmAgentLocalAgentRunsPublicChatTurn(t *testing.T) {
 			"world_name":                    "CBDB Song slice",
 			"ownership_type":                "WORLD_OWNED",
 			"avatar_url":                    "https://cdn.example.com/cbdb/su-zhe-reviewed-portrait.png",
+			"avatar_autoplay":               true,
 			"default_voice_reference":       "preset_voice_id:zh_narrator",
 			"speech_model_id":               "speech/qwen3tts",
 			"speech_route_policy":           "local",
@@ -88,6 +90,14 @@ func TestCBDBSeededRealmAgentLocalAgentRunsPublicChatTurn(t *testing.T) {
 	capture := newPublicChatEmitCapture()
 	svc.SetPublicChatAppEmitter(capture.emit)
 	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
+	audioBytes := []byte("RIFF\x24\x00\x00\x00WAVEfmt ")
+	if err := svc.runtimeArtifacts.Put("artifact-cbdb-chain-voice", runtimeartifact.ArtifactRecord{
+		Bytes:     audioBytes,
+		MimeType:  "audio/wav",
+		SizeBytes: int64(len(audioBytes)),
+	}); err != nil {
+		t.Fatalf("Put CBDB voice artifact: %v", err)
+	}
 	voiceAI := &fakeVoiceLipsyncScenarioExecutor{
 		jobID:         "job-cbdb-chain-voice",
 		modelResolved: "speech/qwen3tts-ready",
@@ -244,14 +254,13 @@ func TestCBDBSeededRealmAgentLocalAgentRunsPublicChatTurn(t *testing.T) {
 	audioArtifactID := strings.TrimSpace(voiceDetail["audio_artifact_id"].(string))
 	record, ok := svc.runtimeArtifacts.Get(audioArtifactID)
 	if !ok {
-		t.Fatalf("expected CBDB voice lipsync artifact to be stored: %s", audioArtifactID)
+		t.Fatalf("expected CBDB voice audio artifact to be stored: %s", audioArtifactID)
 	}
-	if !strings.Contains(string(record.Bytes), "default_voice_reference=preset_voice_id:zh_narrator") {
-		t.Fatalf("expected stored CBDB lipsync artifact to carry reviewed voice reference, got %q", string(record.Bytes))
+	if string(record.Bytes) != string(audioBytes) {
+		t.Fatalf("CBDB audio artifact bytes must not be overwritten by lipsync metadata, got %q", string(record.Bytes))
 	}
-	if !strings.Contains(string(record.Bytes), "voice_route_status=bound") ||
-		!strings.Contains(string(record.Bytes), "voice_route_reason=tts_provider_route_bound") {
-		t.Fatalf("expected stored CBDB lipsync artifact to carry bound voice route binding, got %q", string(record.Bytes))
+	if got := strings.TrimSpace(record.MimeType); got != "audio/wav" {
+		t.Fatalf("expected stored CBDB audio mime type audio/wav, got %s", got)
 	}
 	lipsyncPayload := publicChatPayloadMap(t, lipsyncBatch)
 	lipsyncDetail := lipsyncPayload["detail"].(map[string]any)

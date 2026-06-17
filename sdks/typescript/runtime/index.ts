@@ -368,6 +368,7 @@ const RUNTIME_APP_LIFECYCLE_METHOD_SET = new Set<string>(RUNTIME_APP_LIFECYCLE_M
 
 export const RUNTIME_ARTIFACT_METHODS = [
   'readArtifactBytes',
+  'cleanupGeneratedVoiceArtifacts',
 ] as const satisfies readonly RuntimeTypedMethodName[];
 
 export type RuntimeAccountModule = RuntimeMethodModule<typeof RUNTIME_ACCOUNT_METHODS>;

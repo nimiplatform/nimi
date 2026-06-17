@@ -73,6 +73,7 @@ function createBootstrapHandle(): BootstrapHandle {
       conversationAnchorId: 'anchor-01',
       turnId: 'turn-01',
     })),
+    interruptActiveTurn: vi.fn(async () => undefined),
     requestCompanionParticipation: vi.fn(async () => ({
       projectionId: 'companion_participation_projection/anchor-01/avatar_companion/turn-01',
       agentId: 'local-agent:owner-product:agent-product-01',

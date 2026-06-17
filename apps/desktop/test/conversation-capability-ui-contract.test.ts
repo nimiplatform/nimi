@@ -100,6 +100,7 @@ test('conversation capability UI contract: Nimi active model selector uses Kit r
   const modelCardSource = readRepoSource('kit/features/model-config/src/components/capability-model-card.tsx');
   const modelDetailSource = readRepoSource('kit/features/model-config/src/components/model-config-capability-detail.tsx');
   const bindingHelpersSource = readRepoSource('kit/features/model-config/src/binding-helpers.ts');
+  const pickerSelectionAdapterSource = readRepoSource('kit/features/model-config/src/model-picker-selection-adapter.ts');
   const modelTypesSource = readRepoSource('kit/features/model-config/src/types.ts');
   assert.match(modelTypesSource, /provider\?: RouteModelPickerDataProvider \| null/);
   assert.match(modelDetailSource, /resolveProvider\([\s\S]*surface\.providerResolver\(routeCapability\)/);
@@ -108,10 +109,11 @@ test('conversation capability UI contract: Nimi active model selector uses Kit r
   assert.match(modelCardSource, /ModelPickerModal/);
   assert.match(modelCardSource, /targetRefToPickerSelection\(item\.targetRef\)/);
   assert.match(modelCardSource, /pickerSelectionToTargetRef\(pickerSelection\)/);
-  assert.match(bindingHelpersSource, /targetRefToPickerSelection/);
-  assert.match(bindingHelpersSource, /pickerSelectionToTargetRef/);
-  assert.match(bindingHelpersSource, /kind: 'cloud-connector'/);
-  assert.match(bindingHelpersSource, /kind: 'local-runtime'/);
+  assert.match(bindingHelpersSource, /summarizeTargetRef/);
+  assert.match(pickerSelectionAdapterSource, /targetRefToPickerSelection/);
+  assert.match(pickerSelectionAdapterSource, /pickerSelectionToTargetRef/);
+  assert.match(pickerSelectionAdapterSource, /kind: 'cloud-connector'/);
+  assert.match(pickerSelectionAdapterSource, /kind: 'local-runtime'/);
   assert.match(settingsSource, /getDesktopRouteModelPickerProvider/);
   assert.match(settingsSource, /providerResolver: \(routeCapability: string\) => getDesktopRouteModelPickerProvider\(routeCapability\)/);
   assert.match(settingsSource, /Model selection required/);

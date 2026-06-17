@@ -562,6 +562,22 @@ func (s *Service) checkManagedSupervisedSpeechHealthWithReason(ctx context.Conte
 	}
 
 	endpoint := s.effectiveLocalModelEndpoint(model)
+	if managedSupervisedSpeechColdRecovery(reason) && !s.managedSpeechEngineAlreadyRunning(model) {
+		if model.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
+			coldModel, err := s.updateModelAvailabilityAndWarmState(
+				localModelID,
+				runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+				runtimev1.LocalWarmState_LOCAL_WARM_STATE_COLD,
+				managedLocalModelColdDetail(),
+				true,
+			)
+			if err != nil {
+				return nil, err
+			}
+			return modelHealth(coldModel), nil
+		}
+		return modelHealth(model), nil
+	}
 	bootstrapErr := s.bootstrapLocalModelIfManaged(ctx, model)
 	probe := s.probeLocalModelEndpoint(ctx, model, endpoint)
 	if modelProbeSucceeded(model, probe, managedLlamaRegistration{}) {

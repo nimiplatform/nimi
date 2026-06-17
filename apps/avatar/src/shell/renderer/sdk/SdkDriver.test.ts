@@ -93,6 +93,60 @@ describe('SdkDriver', () => {
     await driver.stop();
   });
 
+  it('rejects unknown runtime activity ids before updating the Avatar bundle', async () => {
+    async function* stream() {
+      yield {
+        eventName: 'runtime.agent.presentation.activity_requested',
+        localAgentRef: LOCAL_IDENTITY.localAgentRef,
+        conversationAnchorId: 'anchor-1',
+        turnId: 'turn-1',
+        streamId: 'stream-1',
+        detail: {
+          activityName: 'mystery_activity',
+          category: 'emotion',
+          intensity: 'strong',
+          source: 'apml_output',
+          ...admissionDetail(),
+        },
+      };
+      await new Promise(() => {});
+    }
+
+    const runtimeAgent = {
+      turns: {
+        getSessionSnapshot: async () => ({
+          sessionStatus: 'active',
+          transcriptMessageCount: 0,
+        }),
+        subscribe: async () => stream(),
+      },
+    } as const;
+
+    const driver = new SdkDriver({
+      runtimeAgent: runtimeAgent as never,
+      ...LOCAL_IDENTITY,
+      conversationAnchorId: 'anchor-1',
+      activeWorldId: 'world-1',
+      activeUserId: 'user-1',
+      locale: 'en-US',
+      now: () => 1_710_000_010_000,
+    });
+
+    const events: AgentEvent[] = [];
+    driver.onEvent((event) => {
+      events.push(event);
+    });
+
+    await driver.start();
+    await waitForTasks();
+
+    expect(driver.getBundle().activity).toBeUndefined();
+    expect(driver.getBundle().history?.last_activity).toBeUndefined();
+    expect(events.find((event) => event.name === 'runtime.agent.presentation.activity_requested')).toBeUndefined();
+
+    await driver.stop();
+  });
+
   it('accepts runtime presentation events that carry envelope evidence without admission refs', async () => {
     async function* stream() {
       yield {
@@ -616,8 +670,36 @@ describe('SdkDriver', () => {
     await driver.stop();
   });
 
-  it('passes runtime-owned voice playback and lipsync presentation events through to Avatar consumers', async () => {
+  it('passes runtime-owned voice stream and playback presentation events through to Avatar consumers', async () => {
     async function* stream() {
+      yield {
+        eventName: 'runtime.agent.presentation.voice_stream_chunk_available',
+        localAgentRef: LOCAL_IDENTITY.localAgentRef,
+        conversationAnchorId: 'anchor-1',
+        turnId: 'turn-voice-1',
+        streamId: 'stream-voice-1',
+        timeline: {
+          turnId: 'turn-voice-1',
+          streamId: 'stream-voice-1',
+          channel: 'voice',
+          offsetMs: 0,
+          sequence: 1,
+          startedAtWall: '2026-04-25T00:00:00.000Z',
+          observedAtWall: '2026-04-25T00:00:00.015Z',
+          timebaseOwner: 'runtime',
+          projectionRuleId: 'K-AGCORE-133',
+          clockBasis: 'monotonic_with_wall_anchor',
+          providerNeutral: true,
+          appLocalAuthority: false,
+        },
+        detail: {
+          audioArtifactId: 'artifact-chunk-1',
+          audioMimeType: 'audio/wav',
+          chunkSequence: 1,
+          finalChunk: true,
+          playbackTarget: 'avatar_autoplay',
+        },
+      };
       yield {
         eventName: 'runtime.agent.presentation.voice_playback_requested',
         localAgentRef: LOCAL_IDENTITY.localAgentRef,
@@ -642,6 +724,8 @@ describe('SdkDriver', () => {
           audioArtifactId: 'artifact-1',
           audioMimeType: 'audio/wav',
           playbackState: 'requested',
+          playbackTarget: 'avatar_autoplay',
+          finalArtifact: true,
         },
       };
       // Wave 0 of topic 2026-04-30-avatar-vrm-backend-branch hard-cut:
@@ -677,17 +761,28 @@ describe('SdkDriver', () => {
     await waitForTasks();
 
     expect(events.map((event) => event.name)).toEqual(expect.arrayContaining([
+      'runtime.agent.presentation.voice_stream_chunk_available',
       'runtime.agent.presentation.voice_playback_requested',
     ]));
+    expect(events.find((event) => event.name === 'runtime.agent.presentation.voice_stream_chunk_available')?.detail)
+      .toEqual(expect.objectContaining({
+        runtime_timeline: expect.objectContaining({
+          projection_rule_id: 'K-AGCORE-133',
+        }),
+        playbackTarget: 'avatar_autoplay',
+      }));
     // Wave 0 hard-cut: the deprecated per-frame mouth-batch presentation
     // event is no longer in the SdkDriver event type union nor in the
-    // dispatch case set. Typecheck enforces absence; we additionally
-    // assert no presentation event other than voice_playback_requested
-    // is emitted.
+    // dispatch case set. Typecheck enforces absence; we additionally assert
+    // no presentation event outside the runtime-owned voice surfaces is
+    // emitted by this fixture.
     const presentationEvents = events.filter((event) =>
       event.name.startsWith('runtime.agent.presentation.'),
     );
-    expect(presentationEvents.every((event) => event.name === 'runtime.agent.presentation.voice_playback_requested'))
+    expect(presentationEvents.every((event) =>
+      event.name === 'runtime.agent.presentation.voice_playback_requested'
+      || event.name === 'runtime.agent.presentation.voice_stream_chunk_available',
+    ))
       .toBe(true);
 
     await driver.stop();

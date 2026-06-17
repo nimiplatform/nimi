@@ -72,6 +72,7 @@ function createBootstrapHandle(): BootstrapHandle {
       conversationAnchorId: baseBinding.conversationAnchorId,
       turnId: 'turn-1',
     })),
+    interruptActiveTurn: vi.fn(async () => undefined),
     requestCompanionParticipation: vi.fn(),
     shutdown: vi.fn(),
   } as unknown as BootstrapHandle;
@@ -238,7 +239,7 @@ describe('CompanionSurface - participation controls', () => {
     });
   });
 
-  it('routes interrupt through companion participation cancel', async () => {
+  it('routes interrupt through Runtime turn interrupt', async () => {
     const bootstrapHandle = createBootstrapHandle();
     render(
       <CompanionSurface
@@ -252,7 +253,7 @@ describe('CompanionSurface - participation controls', () => {
     fireEvent.click(screen.getByLabelText('Interrupt current reply'));
 
     await waitFor(() => {
-      expect(bootstrapHandle.cancelCompanionParticipation).toHaveBeenCalledWith({
+      expect(bootstrapHandle.interruptActiveTurn).toHaveBeenCalledWith({
         agentId: 'agent-test',
         conversationAnchorId: 'agent_anchor_TEST',
         turnId: 'turn-1',

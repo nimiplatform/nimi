@@ -150,6 +150,7 @@ func (s *Service) startConfiguredManagedSpeechEngine(ctx context.Context, mgr En
 		return err
 	}
 	if managedEngineAlreadyBound(mgr, "speech", cfg.Port) {
+		s.MarkManagedEngineUsed("speech", "speech_engine_start")
 		return nil
 	}
 	if err := mgr.StartEngineWithConfig(ctx, cfg); err != nil {
@@ -158,6 +159,7 @@ func (s *Service) startConfiguredManagedSpeechEngine(ctx context.Context, mgr En
 			return err
 		}
 	}
+	s.MarkManagedEngineUsed("speech", "speech_engine_start")
 	return nil
 }
 

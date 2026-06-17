@@ -44,6 +44,7 @@ const productControlOperationsSource = readRepo('apps/desktop/src-tauri/src/desk
 const productControlAdmissionSource = readRepo('apps/desktop/src-tauri/src/desktop_product_control_admission.rs');
 const avatarInstanceRegistryStoreSource = readRepo('apps/desktop/src-tauri/src/desktop_avatar_instance_registry/store.rs');
 const desktopE2eFixtureSource = readRepo('apps/desktop/src-tauri/src/desktop_e2e_fixture.rs');
+const desktopE2eFixtureEnabledSource = readRepo('apps/desktop/src-tauri/src/desktop_e2e_fixture/enabled.rs');
 const runtimeBridgeSource = readRepo('kit/shell/tauri/src/runtime_bridge/mod.rs');
 const realmAgentDetailDataSource = readRepo('apps/desktop/src/shell/renderer/features/agent-detail/data/realm-agent-detail-data.ts');
 const realmAgentCreateDataSource = readRepo('apps/desktop/src/shell/renderer/features/world/data/realm-agent-create-data.ts');
@@ -121,6 +122,6 @@ test('Desktop runtime bridge commands resolve through the shared Tauri shell aut
   assert.match(runtimeBridgeSource, /RUNTIME_APP_GET_ACCOUNT_APP_INVENTORY_METHOD_ID/);
   assert.doesNotMatch(desktopE2eFixtureSource, /"\/nimi\.runtime\.v1\./);
   assert.match(desktopE2eFixtureSource, /feature = "desktop-e2e-fixture"/);
-  assert.match(desktopE2eFixtureSource, /RUNTIME_AUTH_REGISTER_APP_METHOD_ID/);
+  assert.match(desktopE2eFixtureEnabledSource, /RUNTIME_AUTH_REGISTER_APP_METHOD_ID/);
   assertRepoFile('kit/shell/tauri/src/runtime_bridge/mod.rs');
 });

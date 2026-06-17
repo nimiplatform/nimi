@@ -250,7 +250,7 @@ avatar.user.long_press:
 
 avatar.activity.start:
   detail:
-    activity_name: string                          # "happy" | "ext:grateful" | "ext:proud"
+    activity_name: string                          # admitted runtime ontology id only, e.g. "happy" or spec-admitted "ext:grateful"
     category: enum(emotion|interaction|state)
     intensity: enum(weak|moderate|strong) | null   # null if not applicable
     source: enum(apml_output|direct_api|mock)
@@ -550,7 +550,7 @@ avatar.motion.preset.fail_close:
 avatar.emote.applied:
   detail:
     model_kind: enum(live2d|vrm)
-    emote: string                           # ontology emotion id or extended
+    emote: string                           # admitted ontology emotion id only; extension requires runtime/APML authority
     skipped_count: int                      # expressions skipped because preset missing on loaded model
     applied_at: string
 

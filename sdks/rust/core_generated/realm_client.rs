@@ -545,7 +545,7 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         operation_id: "ForgeProductCatalogController_getAgentCandidates",
         service: "Forge World Products",
         method: "GET",
-        path: Some("/api/world-products/{slug}/agent-candidates"),
+        path: Some("/api/world-products/by-slug/{slug}/agent-candidates"),
     },
     RealmOperationDescriptor {
         operation_id: "ForgeProductCatalogController_getCatalog",
@@ -557,25 +557,25 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         operation_id: "ForgeProductCatalogController_getProduct",
         service: "Forge World Products",
         method: "GET",
-        path: Some("/api/world-products/{slug}"),
+        path: Some("/api/world-products/by-slug/{slug}"),
     },
     RealmOperationDescriptor {
         operation_id: "ForgeProductCatalogController_getProductShard",
         service: "Forge World Products",
         method: "GET",
-        path: Some("/api/world-products/{slug}/shards/{kind}"),
+        path: Some("/api/world-products/by-slug/{slug}/shards/by-kind/{kind}"),
     },
     RealmOperationDescriptor {
         operation_id: "ForgeProductCatalogController_getProductShardIndex",
         service: "Forge World Products",
         method: "GET",
-        path: Some("/api/world-products/{slug}/shards"),
+        path: Some("/api/world-products/by-slug/{slug}/shards"),
     },
     RealmOperationDescriptor {
         operation_id: "ForgeProductCatalogController_verifyProductShards",
         service: "Forge World Products",
         method: "GET",
-        path: Some("/api/world-products/{slug}/shards/integrity"),
+        path: Some("/api/world-products/by-slug/{slug}/shards/integrity"),
     },
     RealmOperationDescriptor {
         operation_id: "getAgent",

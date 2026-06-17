@@ -30,7 +30,7 @@ entries:
   - evidence_catalog
   - rules
 rule_registry:
-  total_k_rules: 842
+  total_k_rules: 846
 fragments:
   evidence_catalog: rule-evidence.catalog.yaml
   rules:

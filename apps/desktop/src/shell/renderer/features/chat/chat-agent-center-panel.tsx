@@ -35,6 +35,11 @@ type AgentCenterPanelProps = {
   mutationPendingAction?: string | null;
   avatarConfigured?: boolean;
   backgroundConfigured?: boolean;
+  avatarAutoplay?: boolean;
+  voicePolicyPending?: boolean;
+  voicePolicyError?: string | null;
+  voiceCleanupPending?: boolean;
+  voiceCleanupError?: string | null;
   avatarContent?: ReactNode;
   localAppearanceContent?: ReactNode;
   modelContent: ReactNode;
@@ -42,6 +47,8 @@ type AgentCenterPanelProps = {
   diagnosticsContent?: ReactNode;
   onEnableAutonomy?: () => void;
   onDisableAutonomy?: () => void;
+  onAvatarAutoplayChange?: (enabled: boolean) => void;
+  onCleanupGeneratedVoiceArtifacts?: () => void;
   onUpdateAutonomyConfig?: (input: { mode: string; dailyTokenBudget: string; maxTokensPerHook: string }) => void;
 };
 // ── Main component ────────────────────────────────────────────────────────
@@ -77,6 +84,7 @@ export function AgentCenterPanel(props: AgentCenterPanelProps) {
     ? checking
     : props.runtimeInspect ? readOnly : unavailable;
   const behaviorStatus = props.runtimeInspect?.autonomyEnabled ? onLabel : props.runtimeInspect ? offLabel : unavailable;
+  const avatarAutoplayStatus = props.avatarAutoplay ? onLabel : offLabel;
   const modelStatus = props.routeReady ? ready : needsSetup;
   const avatarStatus = props.avatarConfigured ? ready : needsSetup;
   const backgroundStatus = props.backgroundConfigured ? ready : needsSetup;
@@ -166,6 +174,11 @@ export function AgentCenterPanel(props: AgentCenterPanelProps) {
       : autonomyModeDirty
         ? t('Chat.agentCenterBehaviorModeSaving', { defaultValue: 'Saving mode change…' })
         : null;
+  const avatarAutoplayDisabled = Boolean(props.voicePolicyPending) || !props.onAvatarAutoplayChange;
+  const avatarAutoplayDisabledHint = !props.onAvatarAutoplayChange
+    ? t('Chat.agentCenterVoicePolicyUnavailableReason', { defaultValue: 'Agent voice playback policy is unavailable.' })
+    : null;
+  const voiceCleanupDisabled = Boolean(props.voiceCleanupPending) || !props.onCleanupGeneratedVoiceArtifacts;
 
   // ── Setup score (Avatar / Background / Model / Behavior / Cognition) ──
   const setupTotal = 5;
@@ -344,6 +357,36 @@ export function AgentCenterPanel(props: AgentCenterPanelProps) {
               : t('Chat.agentCenterProactiveOffDesc', { defaultValue: 'Agent only replies when spoken to.' })}
             updatingLabel={t('Chat.agentCenterBehaviorUpdating', { defaultValue: 'Updating…' })}
           />
+          <ProactiveToggleRow
+            checked={props.avatarAutoplay === true}
+            disabled={avatarAutoplayDisabled}
+            disabledHint={avatarAutoplayDisabledHint}
+            pending={props.voicePolicyPending === true}
+            onChange={(next) => props.onAvatarAutoplayChange?.(next)}
+            label={t('Chat.agentCenterAvatarAutoplayLabel', { defaultValue: 'Avatar voice autoplay' })}
+            description={props.voicePolicyError
+              ? props.voicePolicyError
+              : t('Chat.agentCenterAvatarAutoplayDesc', { defaultValue: 'Avatar may play Runtime voice responses automatically.' })}
+            updatingLabel={t('Chat.agentCenterVoicePolicyUpdating', { defaultValue: 'Updating…' })}
+          />
+          <Row
+            label={t('Chat.agentCenterVoiceCleanupLabel', { defaultValue: 'Generated voice cache' })}
+            desc={props.voiceCleanupError
+              ? props.voiceCleanupError
+              : t('Chat.agentCenterVoiceCleanupDesc', { defaultValue: 'Clear generated voice artifacts for this conversation.' })}
+            right={(
+              <Btn
+                size="sm"
+                variant="danger"
+                disabled={voiceCleanupDisabled}
+                onClick={props.onCleanupGeneratedVoiceArtifacts}
+              >
+                {props.voiceCleanupPending
+                  ? t('Chat.agentCenterVoiceCleanupPending', { defaultValue: 'Clearing' })
+                  : t('Chat.agentCenterVoiceCleanupAction', { defaultValue: 'Clear' })}
+              </Btn>
+            )}
+          />
         </Card>
       </Group>
 
@@ -365,6 +408,10 @@ export function AgentCenterPanel(props: AgentCenterPanelProps) {
             label={t('Chat.agentCenterPendingActions', { defaultValue: 'Pending actions' })}
             desc={t('Chat.agentCenterPendingActionsHint', { defaultValue: 'Queued for the next turn.' })}
             right={<span className="text-[13px] font-semibold text-slate-900">{pendingHooksStatus}</span>}
+          />
+          <Row
+            label={t('Chat.agentCenterAvatarAutoplayLabel', { defaultValue: 'Avatar voice autoplay' })}
+            right={<StatusPill tone={props.avatarAutoplay ? 'ready' : 'muted'} label={avatarAutoplayStatus} />}
           />
         </Card>
       </Group>

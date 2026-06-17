@@ -49,6 +49,12 @@ class FakeRuntimeTransport implements CoreTransport {
         loginAttemptId: 'login-1',
       } as Response;
     }
+    if (request.methodId === '/nimi.runtime.v1.RuntimeArtifactService/CleanupGeneratedVoiceArtifacts') {
+      return {
+        deletedCount: 1,
+        deletedArtifactIds: ['voice-artifact-1'],
+      } as Response;
+    }
     throw Object.assign(new Error(`unexpected unary ${request.methodId}`), {
       code: 'unexpected_runtime_unary',
     });
@@ -89,6 +95,7 @@ test('Runtime facade exposes active typed namespaces over generated Runtime core
   assert.equal(typeof runtime.memory.subscribeMemoryEvents, 'function');
   assert.equal(typeof runtime.local.resolveLocalEnvironmentPlan, 'function');
   assert.equal(typeof runtime.appMessages.sendAppMessage, 'function');
+  assert.equal(typeof runtime.artifacts.cleanupGeneratedVoiceArtifacts, 'function');
 
   const response = await runtime.ai.executeScenario(
     {},
@@ -105,6 +112,10 @@ test('Runtime facade exposes active typed namespaces over generated Runtime core
 
   await runtime.scheduling.peekScheduling({ appId: 'app', targets: [] });
   assert.equal(transport.unaryCalls[1]?.methodId, '/nimi.runtime.v1.RuntimeAiService/PeekScheduling');
+
+  const cleanup = await runtime.artifacts.cleanupGeneratedVoiceArtifacts({ agentId: 'agent-1' });
+  assert.deepEqual(cleanup.deletedArtifactIds, ['voice-artifact-1']);
+  assert.equal(transport.unaryCalls[2]?.methodId, '/nimi.runtime.v1.RuntimeArtifactService/CleanupGeneratedVoiceArtifacts');
 });
 
 test('Runtime facade streams through generated server-stream methods without reconnect semantics', async () => {

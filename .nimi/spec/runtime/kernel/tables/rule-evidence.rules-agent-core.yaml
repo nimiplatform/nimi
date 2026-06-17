@@ -162,6 +162,7 @@ entries:
   - K-AGCORE-130
   - K-AGCORE-131
   - K-AGCORE-132
+  - K-AGCORE-133
   - K-AGCORE-138
   - K-AGCORE-139
   - K-AGCORE-140
@@ -434,6 +435,14 @@ rules:
     note: Later implementation status rule for Avatar debug projection; closure evidence is owned by
       the owning implementation authority.
     evidence_requirement: deferred
+  - rule_id: K-AGCORE-133
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - sdk_runtime_test
+    note: Runtime-owned voice chunk stream projection requires runtime artifact/turn-stream behavior and
+      SDK projection consumption evidence.
+    evidence_requirement: required
   - rule_id: K-AGCORE-061
     evidence_refs:
       - runtime_kernel_consistency

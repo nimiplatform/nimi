@@ -11,6 +11,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/engine"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/managedimagebackend"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
@@ -104,6 +105,59 @@ func (s *Service) managedMediaBackendSnapshot() (string, string, uint64) {
 	return modelsRoot, address, epoch
 }
 
+func (s *Service) ensureManagedImageBackendStarted(ctx context.Context, reason string) error {
+	if s == nil {
+		return fmt.Errorf("managed local image is unavailable")
+	}
+	s.mu.RLock()
+	configured := s.managedMediaBackendConfigured
+	healthy := s.managedMediaBackendHealthy
+	address := strings.TrimSpace(s.managedMediaBackendAddress)
+	packageSource := strings.TrimSpace(s.managedMediaBackendPackageSource)
+	s.mu.RUnlock()
+	if !configured || address == "" {
+		return grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
+			Message:    "managed image backend is not configured",
+			ActionHint: "resolve_local_environment_plan_and_start_dependency_job",
+		})
+	}
+	if healthy {
+		return nil
+	}
+	mgr := s.engineManagerOrNil()
+	if mgr == nil {
+		return grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
+			Message:    "managed image backend engine manager is unavailable",
+			ActionHint: "enable_supervised_engine_mode",
+		})
+	}
+	startedAt := time.Now()
+	cfg := &engine.ManagedImageBackendConfig{
+		Mode:          engine.ManagedImageBackendOfficial,
+		BackendName:   "stablediffusion-ggml",
+		PackageSource: packageSource,
+		Address:       address,
+	}
+	if err := mgr.StartInstalledManagedImageBackend(ctx, cfg); err != nil {
+		detail := fmt.Sprintf("managed image backend start failed: %v", err)
+		s.SetManagedImageBackendHealth(false, detail)
+		return grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
+			Message:    detail,
+			ActionHint: "resolve_local_environment_plan_and_start_dependency_job",
+		})
+	}
+	s.SetManagedImageBackendHealth(true, "daemon-managed image backend active")
+	s.MarkManagedEngineUsed(managedImageBackendEngineName, defaultString(strings.TrimSpace(reason), "managed_image_load"))
+	if s.logger != nil {
+		s.logger.Info("managed image backend started for load",
+			"backend_address", address,
+			"duration_ms", time.Since(startedAt).Milliseconds(),
+			"start_reason", defaultString(strings.TrimSpace(reason), "managed_image_load"),
+		)
+	}
+	return nil
+}
+
 func (s *Service) resetManagedMediaImageLoadCacheLocked() {
 	s.managedImageLoadCache = make(map[string]managedImageLoadedState)
 }
@@ -174,6 +228,9 @@ func (s *Service) ensureManagedSupervisedImageLoaded(
 		s.cacheManagedMediaImageProfile(localAssetID, resolvedAlias, resolvedProfile)
 	}
 
+	if err := s.ensureManagedImageBackendStarted(ctx, loadReason); err != nil {
+		return nil, err
+	}
 	modelsRoot, backendAddress, backendEpoch := s.managedMediaBackendSnapshot()
 	loadReq, err := managedImageLoadRequest(modelsRoot, backendAddress, resolvedProfile, scenarioExtensions)
 	if err != nil {
@@ -465,9 +522,6 @@ func (s *Service) releaseIdleManagedMediaImagesForText(ctx context.Context, rele
 		reclaimedAssetIDs = append(reclaimedAssetIDs, candidate.localAssetID)
 		s.clearLocalAssetResidency(candidate.localAssetID)
 		for _, engineName := range residencyEnginesForModel(model, s.modelRuntimeMode(candidate.localAssetID)) {
-			if normalizeManagedEngineName(engineName) == managedImageBackendEngineName {
-				continue
-			}
 			if s.markManagedEngineReclaimable(engineName) {
 				enginesToStop[normalizeManagedEngineName(engineName)] = struct{}{}
 			}
@@ -479,13 +533,19 @@ func (s *Service) releaseIdleManagedMediaImagesForText(ctx context.Context, rele
 			continue
 		}
 		s.markAssetsIdleForEngine(engineName)
-		if err := s.stopManagedEngineIfIdle(engineName); err != nil && s.logger != nil {
-			s.logger.Warn(
-				"managed image engine reclaim before text lease failed",
-				"engine", engineName,
-				"release_reason", defaultString(strings.TrimSpace(releaseReason), "unspecified"),
-				"error", err,
-			)
+		if err := s.stopManagedEngineIfIdle(engineName); err != nil {
+			if s.logger != nil {
+				s.logger.Warn(
+					"managed image engine reclaim before text lease failed",
+					"engine", engineName,
+					"release_reason", defaultString(strings.TrimSpace(releaseReason), "unspecified"),
+					"error", err,
+				)
+			}
+			continue
+		}
+		if normalizeManagedEngineName(engineName) == managedImageBackendEngineName {
+			s.SetManagedImageBackendIdle("resident released for text generation")
 		}
 	}
 	for _, localAssetID := range reclaimedAssetIDs {

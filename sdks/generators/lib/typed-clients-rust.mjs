@@ -37,6 +37,7 @@ impl Default for ${schema.name} {
     .map((schema) => {
       const fields = schema.fields.map((field) => `    pub ${rustFieldName(field.name)}: ${rustProtoType(field, runtime)},`).join('\n');
       const encoders = schema.fields.map((field) => {
+        if (field.repeated && field.type === 'string') return `        for value in &self.${rustFieldName(field.name)} { pairs.push(format!("${field.name}={}", value)); }`;
         if (field.repeated || field.type === 'map') return `        if !self.${rustFieldName(field.name)}.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode ${field.name}"); }`;
         const kind = protoTypeKind(field.type, runtime);
         if (field.type === 'string' || field.type === 'google.protobuf.Timestamp' || field.type === 'google.protobuf.Duration') return `        if let Some(value) = &self.${rustFieldName(field.name)} { pairs.push(format!("${field.name}={}", value)); }`;
@@ -45,6 +46,7 @@ impl Default for ${schema.name} {
         return `        if self.${rustFieldName(field.name)}.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode ${field.name}"); }`;
       }).filter(Boolean).join('\n');
       const decoderEntries = schema.fields.map((field) => {
+        if (field.repeated && field.type === 'string') return `        out.${rustFieldName(field.name)} = parse_repeated_string(raw, "${field.name}");`;
         if (field.repeated || field.type === 'map') return '';
         if (field.type === 'string' || field.type === 'google.protobuf.Timestamp' || field.type === 'google.protobuf.Duration') return `        out.${rustFieldName(field.name)} = pairs.get("${field.name}").cloned();`;
         if (field.type === 'bool') return `        out.${rustFieldName(field.name)} = pairs.get("${field.name}").and_then(|value| value.parse().ok());`;
@@ -59,7 +61,7 @@ ${encoders}
         pairs.join(";").into_bytes()`
         : '        Vec::new()';
       const unsupportedFields = schema.fields
-        .filter((field) => field.repeated || field.type === 'map' || !decodedFields.has(field.name))
+        .filter((field) => (field.repeated && field.type !== 'string') || field.type === 'map' || !decodedFields.has(field.name))
         .map((field) => field.name);
       const unsupportedGuard = unsupportedFields.length
         ? `        for key in [${unsupportedFields.map((name) => quote(name)).join(', ')}] {
@@ -189,6 +191,28 @@ fn parse_pairs(raw: &[u8]) -> BTreeMap<String, String> {
         }
         if let Some((key, value)) = pair.split_once('=') {
             out.insert(key.to_string(), value.to_string());
+        }
+    }
+    out
+}
+
+fn parse_repeated_string(raw: &[u8], target_key: &str) -> Vec<String> {
+    let text = String::from_utf8_lossy(raw);
+    let mut out = Vec::new();
+    for pair in text.split(';') {
+        if pair.is_empty() {
+            continue;
+        }
+        if let Some((key, value)) = pair.split_once('=') {
+            if key != target_key {
+                continue;
+            }
+            for item in value.split(',') {
+                let trimmed = item.trim();
+                if !trimmed.is_empty() {
+                    out.push(trimmed.to_string());
+                }
+            }
         }
     }
     out

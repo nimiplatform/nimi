@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	runtimeartifact "github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
 )
 
@@ -14,66 +15,82 @@ func (s *Service) SetRuntimeArtifactStore(store runtimeartifact.Store) {
 	s.runtimeArtifacts = store
 }
 
-func (s *Service) storeVoiceLipsyncArtifact(output voiceLipsyncSynthesisOutput) error {
+func (s *Service) verifyVoiceAudioArtifact(output voiceLipsyncSynthesisOutput) error {
 	if s == nil || s.runtimeArtifacts == nil {
 		return fmt.Errorf("runtime artifact store is required")
 	}
 	artifactID := strings.TrimSpace(output.AudioArtifactID)
 	mimeType := strings.TrimSpace(output.AudioMimeType)
 	if artifactID == "" {
-		return fmt.Errorf("runtime lipsync artifact id is required")
+		return fmt.Errorf("runtime voice audio artifact id is required")
 	}
-	if mimeType == "" {
-		return fmt.Errorf("runtime lipsync artifact mime type is required")
+	if !isPlayableAudioMimeType(mimeType) {
+		return fmt.Errorf("runtime voice audio artifact mime type must be audio/*")
 	}
-	payloadText := fmt.Sprintf(
-		"nimi.synthetic_lipsync.v1\nartifact_id=%s\nduration_ms=%d\nframe_count=%d\n",
-		artifactID,
-		output.DurationMs,
-		len(output.Frames),
-	)
-	if voiceRef := strings.TrimSpace(output.DefaultVoiceReference); voiceRef != "" {
-		payloadText += fmt.Sprintf("default_voice_reference=%s\n", voiceRef)
+	record, ok := s.runtimeArtifacts.Get(artifactID)
+	if !ok {
+		return fmt.Errorf("runtime voice audio artifact %s is not stored", artifactID)
 	}
-	if binding := output.VoiceRouteBinding; binding != nil {
-		if value := strings.TrimSpace(binding.Capability); value != "" {
-			payloadText += fmt.Sprintf("voice_route_capability=%s\n", value)
-		}
-		if value := strings.TrimSpace(binding.VoiceReferenceKind); value != "" {
-			payloadText += fmt.Sprintf("voice_reference_kind=%s\n", value)
-		}
-		if value := strings.TrimSpace(binding.VoiceReferenceValue); value != "" {
-			payloadText += fmt.Sprintf("voice_reference_value=%s\n", value)
-		}
-		if value := strings.TrimSpace(binding.ModelID); value != "" {
-			payloadText += fmt.Sprintf("voice_model_id=%s\n", value)
-		}
-		if value := strings.TrimSpace(binding.ModelResolved); value != "" {
-			payloadText += fmt.Sprintf("voice_model_resolved=%s\n", value)
-		}
-		if value := strings.TrimSpace(binding.ScenarioJobID); value != "" {
-			payloadText += fmt.Sprintf("voice_scenario_job_id=%s\n", value)
-		}
-		if value := strings.TrimSpace(binding.AudioArtifactID); value != "" {
-			payloadText += fmt.Sprintf("voice_bound_audio_artifact_id=%s\n", value)
-		}
-		if value := strings.TrimSpace(binding.AudioMimeType); value != "" {
-			payloadText += fmt.Sprintf("voice_bound_audio_mime_type=%s\n", value)
-		}
-		if value := strings.TrimSpace(binding.SynthesisMode); value != "" {
-			payloadText += fmt.Sprintf("voice_synthesis_mode=%s\n", value)
-		}
-		if value := strings.TrimSpace(binding.Status); value != "" {
-			payloadText += fmt.Sprintf("voice_route_status=%s\n", value)
-		}
-		if value := strings.TrimSpace(binding.Reason); value != "" {
-			payloadText += fmt.Sprintf("voice_route_reason=%s\n", value)
-		}
+	recordMimeType := strings.TrimSpace(record.MimeType)
+	if !isPlayableAudioMimeType(recordMimeType) {
+		return fmt.Errorf("runtime voice audio artifact %s stored mime type must be audio/*", artifactID)
 	}
-	payload := []byte(payloadText)
-	return s.runtimeArtifacts.Put(artifactID, runtimeartifact.ArtifactRecord{
-		Bytes:     payload,
-		MimeType:  mimeType,
-		SizeBytes: int64(len(payload)),
-	})
+	if !strings.EqualFold(recordMimeType, mimeType) {
+		return fmt.Errorf("runtime voice audio artifact %s mime type mismatch: event=%s stored=%s", artifactID, mimeType, recordMimeType)
+	}
+	if len(record.Bytes) == 0 || record.SizeBytes <= 0 {
+		return fmt.Errorf("runtime voice audio artifact %s has no audio bytes", artifactID)
+	}
+	return nil
+}
+
+func (s *Service) retainGeneratedVoiceArtifact(input voiceLipsyncSynthesisInput, output voiceLipsyncSynthesisOutput, session publicChatAnchorState) error {
+	if s == nil || s.runtimeArtifacts == nil {
+		return fmt.Errorf("runtime artifact store is required")
+	}
+	artifactID := strings.TrimSpace(output.AudioArtifactID)
+	if artifactID == "" {
+		return fmt.Errorf("runtime voice audio artifact id is required")
+	}
+	record, ok := s.runtimeArtifacts.Get(artifactID)
+	if !ok {
+		return fmt.Errorf("runtime voice audio artifact %s is not stored", artifactID)
+	}
+	speechModelID := strings.TrimSpace(input.SpeechModelID)
+	if output.VoiceRouteBinding != nil && strings.TrimSpace(output.VoiceRouteBinding.ModelID) != "" {
+		speechModelID = strings.TrimSpace(output.VoiceRouteBinding.ModelID)
+	}
+	voiceReference := strings.TrimSpace(output.DefaultVoiceReference)
+	if voiceReference == "" {
+		voiceReference = strings.TrimSpace(input.DefaultVoiceReference)
+	}
+	record.GeneratedVoice = &runtimeartifact.GeneratedVoiceArtifactMetadata{
+		AgentID:              firstNonEmpty(strings.TrimSpace(session.AgentID), strings.TrimSpace(input.AgentID)),
+		ConversationAnchorID: strings.TrimSpace(session.ConversationAnchorID),
+		TurnID:               strings.TrimSpace(input.TurnID),
+		MessageID:            strings.TrimSpace(input.MessageID),
+		VoiceReference:       voiceReference,
+		SpeechModelID:        speechModelID,
+		RoutePolicy:          voiceArtifactRoutePolicy(input.SpeechRoutePolicy),
+		RetentionScope:       "generated_agent_voice",
+	}
+	if err := s.runtimeArtifacts.Put(artifactID, record); err != nil {
+		return fmt.Errorf("record generated voice artifact metadata %s: %w", artifactID, err)
+	}
+	return nil
+}
+
+func voiceArtifactRoutePolicy(policy runtimev1.RoutePolicy) string {
+	switch policy {
+	case runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL:
+		return "local"
+	case runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD:
+		return "cloud"
+	default:
+		return ""
+	}
+}
+
+func isPlayableAudioMimeType(mimeType string) bool {
+	return strings.HasPrefix(strings.ToLower(strings.TrimSpace(mimeType)), "audio/")
 }

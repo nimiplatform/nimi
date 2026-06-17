@@ -124,6 +124,11 @@ func (m *registrarTestEngineManager) EnsureManagedImageBackendDependency(_ conte
 	}, nil
 }
 
+func (m *registrarTestEngineManager) StartInstalledManagedImageBackend(_ context.Context, _ *engine.ManagedImageBackendConfig) error {
+	m.startCalls++
+	return m.startErr
+}
+
 func (m *registrarTestEngineManager) ResolveSharedAcceleratorDependency(dependencyID string, consumerID string) engine.SharedAcceleratorDependencyStatus {
 	return engine.SharedAcceleratorDependencyStatus{
 		DependencyID: engine.NormalizeSharedAcceleratorDependencyID(dependencyID),

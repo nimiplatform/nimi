@@ -245,6 +245,8 @@ describe('NAS handler registry hot reload', () => {
       activity: [
         { file_stem: 'ext:grateful', absolute_path: '/model/runtime/nimi/activity/ext:grateful.js' },
         { file_stem: 'ext_grateful', absolute_path: '/model/runtime/nimi/activity/ext_grateful.js' },
+        { file_stem: 'mystery_activity', absolute_path: '/model/runtime/nimi/activity/mystery_activity.js' },
+        { file_stem: 'mod_pack_wave', absolute_path: '/model/runtime/nimi/activity/mod_pack_wave.js' },
       ],
       event: [
         { file_stem: 'unknown_event_name', absolute_path: '/model/runtime/nimi/event/unknown_event_name.js' },
@@ -254,7 +256,9 @@ describe('NAS handler registry hot reload', () => {
     });
 
     expect(result.validationErrors.join('\n')).toContain('duplicate normalized activity handler id ext_grateful');
+    expect(result.validationErrors.join('\n')).toContain('mystery_activity has no matching admitted activity id');
     expect(result.validationErrors.join('\n')).toContain('unknown_event_name has no matching event');
+    expect(registry.activity.get('mod_pack_wave')?.activityId).toBe('mod_pack_wave');
     expect(registry.event.size).toBe(0);
   });
 

@@ -2,6 +2,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 import { readYamlWithFragments } from './lib/read-yaml-with-fragments.mjs';
 
 const PROJECT_ROOT = process.cwd();
@@ -241,6 +242,18 @@ function getContractTables() {
 }
 
 function main() {
+  if (!fs.existsSync(TABLES_DIR)) {
+    const guard = spawnSync(process.execPath, ['scripts/check-realm-spec-projection-guard.mjs'], {
+      cwd: PROJECT_ROOT,
+      stdio: 'inherit',
+    });
+    if (guard.status !== 0) {
+      process.exit(guard.status ?? 1);
+    }
+    process.stdout.write('realm kernel consistency skipped (external pointer mode)\n');
+    return;
+  }
+
   const issues = [];
   const contractTables = getContractTables();
   const catalog = readYaml(RULE_CATALOG_PATH);

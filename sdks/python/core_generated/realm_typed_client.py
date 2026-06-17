@@ -2221,6 +2221,11 @@ class NsfwConsentStatusResponseDto:
     userNsfwEnabled: bool | None = None
 
 @dataclass(frozen=True)
+class OAuthLinkResponseDto:
+    provider: Literal["google", "wechat", "twitter", "tiktok"] | None = None
+    status: Literal["linked"] | None = None
+
+@dataclass(frozen=True)
 class OAuthLoginDto:
     accessToken: str | None = None
     code: str | None = None
@@ -3103,6 +3108,10 @@ class UpdateCreatorAgentDto:
 @dataclass(frozen=True)
 class UpdateGroupInputDto:
     title: str | None = None
+
+@dataclass(frozen=True)
+class UpdateMyHandleDto:
+    handle: str | None = None
 
 @dataclass(frozen=True)
 class UpdateNsfwConsentResponseDto:
@@ -9247,7 +9256,7 @@ class RealmUpdateMyHandleOperationRequest:
     path: RealmUpdateMyHandleOperationPath
     query: RealmUpdateMyHandleOperationQuery | None = None
     headers: RealmUpdateMyHandleOperationHeaders | None = None
-    body: Mapping[str, object] | None = None
+    body: UpdateMyHandleDto | None = None
 
 @dataclass(frozen=True)
 class RealmUpdateMyNotificationSettingsOperationPath:
@@ -11900,7 +11909,7 @@ class RealmTypedClient:
             "body": _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="linkOauth", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(None, raw)
+        return _decode_model(OAuthLinkResponseDto, raw)
 
     async def list_assets(self, request: RealmListAssetsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmListAssetsOperationResponse:
         envelope: dict[str, object] = {

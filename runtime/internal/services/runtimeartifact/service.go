@@ -11,6 +11,7 @@ package runtimeartifact
 import (
 	"context"
 	"log/slog"
+	"sort"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -23,6 +24,37 @@ type Service struct {
 	runtimev1.UnimplementedRuntimeArtifactServiceServer
 	store  Store
 	logger *slog.Logger
+}
+
+// CleanupGeneratedVoiceArtifacts deletes generated assistant voice artifacts by
+// Runtime-owned selector. Empty selector fails closed; no matches is a
+// successful idempotent cleanup.
+func (s *Service) CleanupGeneratedVoiceArtifacts(
+	ctx context.Context,
+	req *runtimev1.CleanupGeneratedVoiceArtifactsRequest,
+) (*runtimev1.CleanupGeneratedVoiceArtifactsResponse, error) {
+	_ = ctx
+	agentID := ""
+	conversationAnchorID := ""
+	if req != nil {
+		agentID = strings.TrimSpace(req.GetAgentId())
+		conversationAnchorID = strings.TrimSpace(req.GetConversationAnchorId())
+	}
+	if (agentID == "" && conversationAnchorID == "") || s.store == nil {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_ARTIFACT_INVALID_INPUT)
+	}
+	deleted, err := s.store.CleanupGeneratedVoiceArtifacts(GeneratedVoiceArtifactSelector{
+		AgentID:              agentID,
+		ConversationAnchorID: conversationAnchorID,
+	})
+	if err != nil {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_ARTIFACT_INVALID_INPUT)
+	}
+	sort.Strings(deleted)
+	return &runtimev1.CleanupGeneratedVoiceArtifactsResponse{
+		DeletedCount:       int32(len(deleted)),
+		DeletedArtifactIds: deleted,
+	}, nil
 }
 
 // New constructs a Service with constructor-injected Store and logger

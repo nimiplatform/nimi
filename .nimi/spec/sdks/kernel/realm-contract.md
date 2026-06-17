@@ -11,6 +11,11 @@
 > Local first-party account / login / refresh-token custody 真相由 `RuntimeAccountService`（`K-ACCSVC-*`）拥有；SDK 投影由 `S-RUNTIME-109` / `S-RUNTIME-110` 约束。
 >
 > Web / cloud adapter mode 必须显式声明 mode 标记，且与 local first-party Runtime mode 在公共 surface 上严格 fenced；不得在 local first-party 消费者中可达。
+>
+> `realm-api-consumer-contract.md` owns the external `<nimi-realm>` consumer
+> boundary. This file may constrain SDK facade behavior, but it must not
+> restate Realm server/domain authority or rely on `.nimi/spec/realm/**` as a
+> mirrored source of truth.
 
 ## S-REALM-010 Instance Isolation
 
@@ -76,3 +81,10 @@ Realm SDK 允许在 `accessToken` 为空时调用以下公开决策端点，返�
 - `AuthService.requestEmailOtp` / `verifyEmailOtp` / `passwordLogin` — 认证端点本身不需要前置 token
 
 此为 S-REALM-012 所述 "NO_AUTH 显式模式" 的正式边界。除上述端点外，`accessToken` 缺失时的所有其他 Realm 调用仍必须 fail-close。
+
+## S-REALM-039 No Local Realm Authority Mirror
+
+Realm facade behavior must be derived from generated Realm core, explicit SDK
+consumer contracts, and runtime/client mode configuration. SDK must not consult
+or recreate `.nimi/spec/realm/**` as Realm server authority inside this
+repository.

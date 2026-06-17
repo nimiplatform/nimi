@@ -19,7 +19,8 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	RuntimeArtifactService_ReadArtifactBytes_FullMethodName = "/nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes"
+	RuntimeArtifactService_ReadArtifactBytes_FullMethodName              = "/nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes"
+	RuntimeArtifactService_CleanupGeneratedVoiceArtifacts_FullMethodName = "/nimi.runtime.v1.RuntimeArtifactService/CleanupGeneratedVoiceArtifacts"
 )
 
 // RuntimeArtifactServiceClient is the client API for RuntimeArtifactService service.
@@ -69,6 +70,16 @@ type RuntimeArtifactServiceClient interface {
 	// runtimev1.ReasonCode_ARTIFACT_*) per K-ERR-003 (ReasonCode in ErrorInfo
 	// details, not status message string).
 	ReadArtifactBytes(ctx context.Context, in *ReadArtifactBytesRequest, opts ...grpc.CallOption) (*ReadArtifactBytesResponse, error)
+	// Delete generated assistant voice artifacts by Runtime-owned scope.
+	//
+	// Exactly one or both of agent_id / conversation_anchor_id may be supplied.
+	// When both are supplied, only artifacts matching both selectors are removed.
+	// The cleanup is idempotent: no matching artifacts returns deleted_count=0.
+	//
+	// This surface is limited to generated agent voice artifacts admitted by
+	// K-VOICE-020. It does not delete scenario images/video/music, uploaded
+	// user files, committed text messages, or conversation history.
+	CleanupGeneratedVoiceArtifacts(ctx context.Context, in *CleanupGeneratedVoiceArtifactsRequest, opts ...grpc.CallOption) (*CleanupGeneratedVoiceArtifactsResponse, error)
 }
 
 type runtimeArtifactServiceClient struct {
@@ -83,6 +94,16 @@ func (c *runtimeArtifactServiceClient) ReadArtifactBytes(ctx context.Context, in
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ReadArtifactBytesResponse)
 	err := c.cc.Invoke(ctx, RuntimeArtifactService_ReadArtifactBytes_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeArtifactServiceClient) CleanupGeneratedVoiceArtifacts(ctx context.Context, in *CleanupGeneratedVoiceArtifactsRequest, opts ...grpc.CallOption) (*CleanupGeneratedVoiceArtifactsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CleanupGeneratedVoiceArtifactsResponse)
+	err := c.cc.Invoke(ctx, RuntimeArtifactService_CleanupGeneratedVoiceArtifacts_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -136,6 +157,16 @@ type RuntimeArtifactServiceServer interface {
 	// runtimev1.ReasonCode_ARTIFACT_*) per K-ERR-003 (ReasonCode in ErrorInfo
 	// details, not status message string).
 	ReadArtifactBytes(context.Context, *ReadArtifactBytesRequest) (*ReadArtifactBytesResponse, error)
+	// Delete generated assistant voice artifacts by Runtime-owned scope.
+	//
+	// Exactly one or both of agent_id / conversation_anchor_id may be supplied.
+	// When both are supplied, only artifacts matching both selectors are removed.
+	// The cleanup is idempotent: no matching artifacts returns deleted_count=0.
+	//
+	// This surface is limited to generated agent voice artifacts admitted by
+	// K-VOICE-020. It does not delete scenario images/video/music, uploaded
+	// user files, committed text messages, or conversation history.
+	CleanupGeneratedVoiceArtifacts(context.Context, *CleanupGeneratedVoiceArtifactsRequest) (*CleanupGeneratedVoiceArtifactsResponse, error)
 }
 
 // UnimplementedRuntimeArtifactServiceServer should be embedded to have
@@ -147,6 +178,9 @@ type UnimplementedRuntimeArtifactServiceServer struct{}
 
 func (UnimplementedRuntimeArtifactServiceServer) ReadArtifactBytes(context.Context, *ReadArtifactBytesRequest) (*ReadArtifactBytesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ReadArtifactBytes not implemented")
+}
+func (UnimplementedRuntimeArtifactServiceServer) CleanupGeneratedVoiceArtifacts(context.Context, *CleanupGeneratedVoiceArtifactsRequest) (*CleanupGeneratedVoiceArtifactsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CleanupGeneratedVoiceArtifacts not implemented")
 }
 func (UnimplementedRuntimeArtifactServiceServer) testEmbeddedByValue() {}
 
@@ -186,6 +220,24 @@ func _RuntimeArtifactService_ReadArtifactBytes_Handler(srv interface{}, ctx cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RuntimeArtifactService_CleanupGeneratedVoiceArtifacts_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CleanupGeneratedVoiceArtifactsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeArtifactServiceServer).CleanupGeneratedVoiceArtifacts(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeArtifactService_CleanupGeneratedVoiceArtifacts_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeArtifactServiceServer).CleanupGeneratedVoiceArtifacts(ctx, req.(*CleanupGeneratedVoiceArtifactsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // RuntimeArtifactService_ServiceDesc is the grpc.ServiceDesc for RuntimeArtifactService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -196,6 +248,10 @@ var RuntimeArtifactService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ReadArtifactBytes",
 			Handler:    _RuntimeArtifactService_ReadArtifactBytes_Handler,
+		},
+		{
+			MethodName: "CleanupGeneratedVoiceArtifacts",
+			Handler:    _RuntimeArtifactService_CleanupGeneratedVoiceArtifacts_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

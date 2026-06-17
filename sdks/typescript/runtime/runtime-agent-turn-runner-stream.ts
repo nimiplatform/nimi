@@ -488,6 +488,7 @@ export function createNimiRuntimeAgentTurnStream(
           case 'runtime.agent.presentation.pose_cleared':
           case 'runtime.agent.presentation.lookat_requested':
           case 'runtime.agent.presentation.voice_playback_requested':
+          case 'runtime.agent.presentation.voice_stream_chunk_available':
           case 'runtime.agent.presentation.lipsync_frame_batch':
             if (!isNimiRuntimeAgentProjectionEvent(event)
               || !matchesNimiRuntimeAgentProjectionScope({

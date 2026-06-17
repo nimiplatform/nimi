@@ -11,7 +11,7 @@ import type { CancelScenarioJobRequest, CancelScenarioJobResponse, ExecuteScenar
 import type { AppendRealtimeInputRequest, AppendRealtimeInputResponse, CloseRealtimeSessionRequest, CloseRealtimeSessionResponse, OpenRealtimeSessionRequest, OpenRealtimeSessionResponse, ReadRealtimeEventsRequest, RealtimeEvent } from "./runtime-protobuf/runtime/v1/ai_realtime";
 import type { PeekSchedulingRequest, PeekSchedulingResponse } from "./runtime-protobuf/runtime/v1/ai_scheduling";
 import type { AdoptLocalAppRequest, AdoptLocalAppResponse, AppInstallJobEvent, AppMessageEvent, GetAccountAppInventoryRequest, GetAccountAppInventoryResponse, GetAppInstallJobRequest, GetAppInstallJobResponse, GetAppPackageReadinessRequest, GetAppPackageReadinessResponse, GetAppStorageRequest, GetAppStorageResponse, HealthRepairAppRequest, HealthRepairAppResponse, InstallAppRequest, InstallAppResponse, ListAppInstallJobsRequest, ListAppInstallJobsResponse, ListLocalAppAdoptionsRequest, ListLocalAppAdoptionsResponse, OpenAppRequest, OpenAppResponse, RemoveLocalAppAdoptionRequest, RemoveLocalAppAdoptionResponse, SendAppMessageRequest, SendAppMessageResponse, SubscribeAppMessagesRequest, UninstallAppRequest, UninstallAppResponse, UpdateAppRequest, UpdateAppResponse, WatchAppInstallJobEventsRequest } from "./runtime-protobuf/runtime/v1/app";
-import type { ReadArtifactBytesRequest, ReadArtifactBytesResponse } from "./runtime-protobuf/runtime/v1/artifact_service";
+import type { CleanupGeneratedVoiceArtifactsRequest, CleanupGeneratedVoiceArtifactsResponse, ReadArtifactBytesRequest, ReadArtifactBytesResponse } from "./runtime-protobuf/runtime/v1/artifact_service";
 import type { AIProviderHealthEvent, AuditExportChunk, ExportAuditEventsRequest, GetRuntimeHealthRequest, GetRuntimeHealthResponse, ListAIProviderHealthRequest, ListAIProviderHealthResponse, ListAuditEventsRequest, ListAuditEventsResponse, ListUsageStatsRequest, ListUsageStatsResponse, RuntimeHealthEvent, SubscribeAIProviderHealthEventsRequest, SubscribeRuntimeHealthEventsRequest } from "./runtime-protobuf/runtime/v1/audit";
 import type { OpenExternalPrincipalSessionRequest, OpenExternalPrincipalSessionResponse, OpenSessionRequest, OpenSessionResponse, RefreshSessionRequest, RefreshSessionResponse, RegisterAppRequest, RegisterAppResponse, RegisterExternalPrincipalRequest, RegisterExternalPrincipalResponse, RevokeExternalPrincipalSessionRequest, RevokeSessionRequest } from "./runtime-protobuf/runtime/v1/auth";
 import type { Ack } from "./runtime-protobuf/runtime/v1/common";
@@ -43,7 +43,7 @@ export type { ArtifactChunk, ArtifactStreamDelta, AudioChunks, CancelScenarioJob
 export type { AppendRealtimeInputRequest, AppendRealtimeInputResponse, CloseRealtimeSessionRequest, CloseRealtimeSessionResponse, OpenRealtimeSessionRequest, OpenRealtimeSessionResponse, ReadRealtimeEventsRequest, RealtimeAudioChunk, RealtimeAudioInput, RealtimeCompleted, RealtimeEvent, RealtimeFailed, RealtimeInputItem, RealtimeSessionOpened, RealtimeTextDelta } from "./runtime-protobuf/runtime/v1/ai_realtime";
 export type { PeekSchedulingRequest, PeekSchedulingResponse, SchedulingEvaluationTarget, SchedulingJudgement, SchedulingOccupancySnapshot, SchedulingResourceHint, SchedulingTargetJudgement } from "./runtime-protobuf/runtime/v1/ai_scheduling";
 export type { AccountAppInventoryRecord, AccountAppInventoryRow, AdoptLocalAppRequest, AdoptLocalAppResponse, AppInstallJob, AppInstallJobEvent, AppInstallStorageProjection, AppMessageEvent, AppOpenProjection, AppOpenScopeRef, AppPackageReadinessProjection, AppStorageProjection, AppUninstallResult, GetAccountAppInventoryRequest, GetAccountAppInventoryResponse, GetAppInstallJobRequest, GetAppInstallJobResponse, GetAppPackageReadinessRequest, GetAppPackageReadinessResponse, GetAppStorageRequest, GetAppStorageResponse, HealthRepairAppRequest, HealthRepairAppResponse, InstallAppRequest, InstallAppResponse, ListAppInstallJobsRequest, ListAppInstallJobsResponse, ListLocalAppAdoptionsRequest, ListLocalAppAdoptionsResponse, LocalAppAdoption, OpenAppRequest, OpenAppResponse, RemoveLocalAppAdoptionRequest, RemoveLocalAppAdoptionResponse, SendAppMessageRequest, SendAppMessageResponse, SubscribeAppMessagesRequest, UninstallAppRequest, UninstallAppResponse, UpdateAppRequest, UpdateAppResponse, WatchAppInstallJobEventsRequest } from "./runtime-protobuf/runtime/v1/app";
-export type { ReadArtifactBytesRequest, ReadArtifactBytesResponse } from "./runtime-protobuf/runtime/v1/artifact_service";
+export type { CleanupGeneratedVoiceArtifactsRequest, CleanupGeneratedVoiceArtifactsResponse, ReadArtifactBytesRequest, ReadArtifactBytesResponse } from "./runtime-protobuf/runtime/v1/artifact_service";
 export type { AIProviderHealthEvent, AIProviderHealthSnapshot, AIProviderSubHealth, AuditEventRecord, AuditExportChunk, ExportAuditEventsRequest, GetRuntimeHealthRequest, GetRuntimeHealthResponse, ListAIProviderHealthRequest, ListAIProviderHealthResponse, ListAuditEventsRequest, ListAuditEventsResponse, ListUsageStatsRequest, ListUsageStatsResponse, RuntimeHealthEvent, SubscribeAIProviderHealthEventsRequest, SubscribeRuntimeHealthEventsRequest, UsageStatRecord } from "./runtime-protobuf/runtime/v1/audit";
 export type { AppModeManifest, OpenExternalPrincipalSessionRequest, OpenExternalPrincipalSessionResponse, OpenSessionRequest, OpenSessionResponse, RefreshSessionRequest, RefreshSessionResponse, RegisterAppRequest, RegisterAppResponse, RegisterExternalPrincipalRequest, RegisterExternalPrincipalResponse, RevokeExternalPrincipalSessionRequest, RevokeSessionRequest } from "./runtime-protobuf/runtime/v1/auth";
 export type { Ack, ConsentRef, ErrorInfo, ResourceSelectors, ScopedRuntimeBindingAttachment, UsageStats, WorkspaceBindingAttachment } from "./runtime-protobuf/runtime/v1/common";
@@ -1166,6 +1166,17 @@ export class RuntimeTypedClient {
   watchAppInstallJobEvents(request: WatchAppInstallJobEventsRequest, options: RuntimeTypedCallOptions = {}): AsyncIterable<AppInstallJobEvent> {
     return this.core.serverStream<AppInstallJobEvent, WatchAppInstallJobEventsRequest>({
       methodId: "/nimi.runtime.v1.RuntimeAppService/WatchAppInstallJobEvents",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async cleanupGeneratedVoiceArtifacts(request: CleanupGeneratedVoiceArtifactsRequest, options: RuntimeTypedCallOptions = {}): Promise<CleanupGeneratedVoiceArtifactsResponse> {
+    return this.core.unary<CleanupGeneratedVoiceArtifactsResponse, CleanupGeneratedVoiceArtifactsRequest>({
+      methodId: "/nimi.runtime.v1.RuntimeArtifactService/CleanupGeneratedVoiceArtifacts",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,

@@ -1,0 +1,225 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { ConversationCanonicalMessage } from '@nimiplatform/kit/features/chat/headless';
+import {
+  createNimiRuntimeAgentTurnsModule,
+} from '@nimiplatform/sdk/runtime';
+import type { AgentLocalTargetSnapshot } from '@renderer/bridge/runtime-bridge/types';
+import {
+  getDesktopRuntime,
+  getDesktopRuntimeAgentTurnsRuntime,
+  withDesktopRuntimeProtectedScopes,
+} from '@renderer/infra/sdk/desktop-nimi-client-session';
+import type { ReportAgentConversationHostError } from './chat-agent-shell-adapter-host-feedback';
+import {
+  resolveAgentManualVoiceRenderRequest,
+} from './chat-agent-manual-voice-request';
+
+const MANUAL_VOICE_RENDER_TIMEOUT_MS = 45_000;
+
+type PlaybackStatus = 'idle' | 'rendering' | 'playing' | 'unavailable' | 'error';
+
+type VoicePlaybackState = {
+  conversationAnchorId: string;
+  messageId: string;
+  active: boolean;
+  amplitude: number;
+  visemeId: 'aa' | 'ee' | 'ih' | 'oh' | 'ou' | null;
+};
+
+function normalizeText(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function createAudioObjectUrl(bytes: Uint8Array, mimeType: string): string {
+  const copy = new ArrayBuffer(bytes.byteLength);
+  new Uint8Array(copy).set(bytes);
+  const blob = new Blob([copy], { type: mimeType });
+  return URL.createObjectURL(blob);
+}
+
+export function AgentManualVoicePlaybackButton(props: {
+  message: ConversationCanonicalMessage;
+  activeTarget: AgentLocalTargetSnapshot | null;
+  activeConversationAnchorId: string | null;
+  playLabel: string;
+  stopLabel: string;
+  renderingLabel: string;
+  unavailableLabel: string;
+  errorLabel: string;
+  onPlaybackStateChange?: (state: VoicePlaybackState) => void;
+  reportHostError?: ReportAgentConversationHostError;
+}) {
+  const {
+    activeConversationAnchorId,
+    activeTarget,
+    errorLabel,
+    message,
+    onPlaybackStateChange,
+    playLabel,
+    renderingLabel,
+    reportHostError,
+    stopLabel,
+    unavailableLabel,
+  } = props;
+  const [status, setStatus] = useState<PlaybackStatus>('idle');
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const objectUrlRef = useRef<string | null>(null);
+  const request = useMemo(() => resolveAgentManualVoiceRenderRequest({
+    message,
+    activeTarget,
+    activeConversationAnchorId,
+  }), [activeConversationAnchorId, activeTarget, message]);
+
+  const emitPlaybackState = useCallback((active: boolean) => {
+    if (!request) {
+      return;
+    }
+    onPlaybackStateChange?.({
+      conversationAnchorId: request.conversationAnchorId,
+      messageId: request.messageId,
+      active,
+      amplitude: active ? 0.24 : 0,
+      visemeId: active ? 'aa' : null,
+    });
+  }, [onPlaybackStateChange, request]);
+
+  const releaseObjectUrl = useCallback(() => {
+    if (objectUrlRef.current) {
+      URL.revokeObjectURL(objectUrlRef.current);
+      objectUrlRef.current = null;
+    }
+  }, []);
+
+  const stopPlayback = useCallback(() => {
+    const audio = audioRef.current;
+    if (audio) {
+      audio.pause();
+      audio.src = '';
+      audioRef.current = null;
+    }
+    releaseObjectUrl();
+    emitPlaybackState(false);
+    setStatus((current) => (current === 'rendering' ? current : 'idle'));
+  }, [emitPlaybackState, releaseObjectUrl]);
+
+  useEffect(() => () => {
+    const audio = audioRef.current;
+    if (audio) {
+      audio.pause();
+      audio.src = '';
+      audioRef.current = null;
+    }
+    releaseObjectUrl();
+    emitPlaybackState(false);
+  }, [emitPlaybackState, releaseObjectUrl]);
+
+  const handleClick = useCallback(async () => {
+    if (!request) {
+      return;
+    }
+    if (status === 'playing') {
+      stopPlayback();
+      return;
+    }
+    stopPlayback();
+    setStatus('rendering');
+    try {
+      const turns = createNimiRuntimeAgentTurnsModule({
+        runtime: getDesktopRuntimeAgentTurnsRuntime(),
+        getSubjectUserId: () => request.ownerUserId,
+        withScopes: withDesktopRuntimeProtectedScopes,
+      });
+      const result = await turns.renderVoice({
+        ...request,
+        timeoutMs: MANUAL_VOICE_RENDER_TIMEOUT_MS,
+      });
+      if (result.status !== 'ready') {
+        setStatus('unavailable');
+        emitPlaybackState(false);
+        return;
+      }
+      const artifact = await getDesktopRuntime().artifacts.readArtifactBytes({
+        artifactId: result.audioArtifactId,
+      });
+      const mimeType = normalizeText(artifact.mimeType) || result.audioMimeType;
+      if (!mimeType.toLowerCase().startsWith('audio/') || artifact.bytes.length === 0) {
+        setStatus('unavailable');
+        emitPlaybackState(false);
+        return;
+      }
+      const objectUrl = createAudioObjectUrl(artifact.bytes, mimeType);
+      objectUrlRef.current = objectUrl;
+      const audio = new Audio(objectUrl);
+      audioRef.current = audio;
+      audio.onplay = () => {
+        setStatus('playing');
+        emitPlaybackState(true);
+      };
+      audio.onended = () => {
+        audioRef.current = null;
+        releaseObjectUrl();
+        emitPlaybackState(false);
+        setStatus('idle');
+      };
+      audio.onpause = () => {
+        if (!audio.ended) {
+          emitPlaybackState(false);
+          setStatus('idle');
+        }
+      };
+      await audio.play();
+    } catch (error) {
+      setStatus('error');
+      emitPlaybackState(false);
+      reportHostError?.(error, {
+        action: 'render-runtime-agent-manual-voice',
+        extra: {
+          conversationAnchorId: request.conversationAnchorId,
+          turnId: request.turnId,
+          messageId: request.messageId,
+        },
+      });
+    }
+  }, [emitPlaybackState, releaseObjectUrl, reportHostError, request, status, stopPlayback]);
+
+  if (!request) {
+    return null;
+  }
+
+  const disabled = status === 'rendering';
+  const label = status === 'rendering'
+    ? renderingLabel
+    : status === 'playing'
+      ? stopLabel
+      : status === 'unavailable'
+        ? unavailableLabel
+        : status === 'error'
+          ? errorLabel
+          : playLabel;
+
+  return (
+    <button
+      type="button"
+      onClick={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        void handleClick();
+      }}
+      disabled={disabled}
+      aria-label={label}
+      title={label}
+      className="mt-2 inline-flex h-7 w-7 items-center justify-center rounded-full border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_86%,white)] text-[var(--nimi-text-secondary)] transition hover:bg-white disabled:cursor-wait disabled:opacity-60"
+    >
+      {status === 'playing' ? (
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <rect x="6" y="5" width="4" height="14" rx="1" />
+          <rect x="14" y="5" width="4" height="14" rx="1" />
+        </svg>
+      ) : (
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <polygon points="6 3 20 12 6 21 6 3" />
+        </svg>
+      )}
+    </button>
+  );
+}

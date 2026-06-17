@@ -7,8 +7,9 @@ use crate::core_generated::realm_client::RealmGeneratedClient;
 use crate::core_generated::runtime_client::RuntimeGeneratedClient;
 use crate::core_generated::typed_clients::{
     AccountCaller, BeginLoginRequest, CoreTypedStream, LocalAgentProvisionIntentAckDto,
-    RealmAckMyLocalAgentProvisionIntentOperationPath, RealmAckMyLocalAgentProvisionIntentOperationRequest,
-    RealmTypedClient, RuntimeTypedClient, SubscribeAccountSessionEventsRequest,
+    RealmAckMyLocalAgentProvisionIntentOperationPath,
+    RealmAckMyLocalAgentProvisionIntentOperationRequest, RealmTypedClient, RuntimeTypedClient,
+    SubscribeAccountSessionEventsRequest,
 };
 use crate::types::{CoreMetadata, CoreStreamRequest, CoreUnaryRequest};
 
@@ -48,7 +49,10 @@ impl CoreTransport for FakeTransport {
     fn unary(&self, request: CoreUnaryRequest) -> Result<Vec<u8>, Self::Error> {
         self.unary_calls.borrow_mut().push(request.clone());
         if String::from_utf8_lossy(&request.body).contains("redirect_uri=force-error") {
-            return Err("SDK_RUNTIME_METHOD_UNAVAILABLE: typed conformance error: fixture=typed-core".to_string());
+            return Err(
+                "SDK_RUNTIME_METHOD_UNAVAILABLE: typed conformance error: fixture=typed-core"
+                    .to_string(),
+            );
         }
         if std::env::var("SDKS_CONFORMANCE_PROFILE").ok().as_deref() == Some("typed-core") {
             if request.method_id.contains("BeginLogin") {
@@ -81,14 +85,18 @@ impl CoreTransport for FakeTransport {
 
 fn auth_metadata() -> CoreMetadata {
     let mut metadata = BTreeMap::new();
-    metadata.insert("x-nimi-access-token-id".to_string(), "conformance-token-id".to_string());
+    metadata.insert(
+        "x-nimi-access-token-id".to_string(),
+        "conformance-token-id".to_string(),
+    );
     metadata
 }
 
 #[test]
 fn generated_clients_use_fake_transport() {
     if std::env::var("SDKS_CONFORMANCE_PROFILE").ok().as_deref() == Some("typed-core") {
-        let runtime_core = crate::core_client::CoreClient::new(FakeTransport::default(), Some(auth_metadata));
+        let runtime_core =
+            crate::core_client::CoreClient::new(FakeTransport::default(), Some(auth_metadata));
         let runtime = RuntimeTypedClient::new(runtime_core);
         let mut metadata = BTreeMap::new();
         metadata.insert("x-nimi-caller".to_string(), "sdks-conformance".to_string());
@@ -122,9 +130,13 @@ fn generated_clients_use_fake_transport() {
             )
             .expect("typed runtime call");
         assert_eq!(response.accepted, Some(true));
-        assert_eq!(response.login_attempt_id.as_deref(), Some("login-conformance"));
+        assert_eq!(
+            response.login_attempt_id.as_deref(),
+            Some("login-conformance")
+        );
 
-        let stream_core = crate::core_client::CoreClient::new(FakeTransport::default(), Some(auth_metadata));
+        let stream_core =
+            crate::core_client::CoreClient::new(FakeTransport::default(), Some(auth_metadata));
         let runtime_stream = RuntimeTypedClient::new(stream_core);
         let mut stream = runtime_stream
             .subscribe_account_session_events(
@@ -142,14 +154,19 @@ fn generated_clients_use_fake_transport() {
         assert_eq!(second.event_id.as_deref(), Some("event-2"));
         assert!(stream.recv().is_none());
 
-        let realm_core = crate::core_client::CoreClient::new(FakeTransport::default(), Some(auth_metadata));
+        let realm_core =
+            crate::core_client::CoreClient::new(FakeTransport::default(), Some(auth_metadata));
         let realm = RealmTypedClient::new(realm_core);
         let realm_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            realm
-            .ack_my_local_agent_provision_intent(
+            realm.ack_my_local_agent_provision_intent(
                 RealmAckMyLocalAgentProvisionIntentOperationRequest {
-                    path: RealmAckMyLocalAgentProvisionIntentOperationPath { intent_id: "intent-conformance".to_string() },
-                    body: LocalAgentProvisionIntentAckDto { outcome: "established".to_string(), detail: "ok".to_string() },
+                    path: RealmAckMyLocalAgentProvisionIntentOperationPath {
+                        intent_id: "intent-conformance".to_string(),
+                    },
+                    body: LocalAgentProvisionIntentAckDto {
+                        outcome: Box::new("established".to_string()),
+                        detail: "ok".to_string(),
+                    },
                     ..Default::default()
                 },
                 BTreeMap::new(),
@@ -158,7 +175,14 @@ fn generated_clients_use_fake_transport() {
         }));
         assert!(realm_result.is_err());
         let error = runtime
-            .begin_login(BeginLoginRequest { redirect_uri: Some("force-error".to_string()), ..Default::default() }, BTreeMap::new(), None)
+            .begin_login(
+                BeginLoginRequest {
+                    redirect_uri: Some("force-error".to_string()),
+                    ..Default::default()
+                },
+                BTreeMap::new(),
+                None,
+            )
             .expect_err("typed structured error");
         assert!(error.contains("SDK_RUNTIME_METHOD_UNAVAILABLE"));
         assert!(error.contains("typed conformance error"));
@@ -178,7 +202,8 @@ fn generated_clients_use_fake_transport() {
         .first()
         .expect("realm operation");
 
-    let runtime_core = crate::core_client::CoreClient::new(FakeTransport::default(), Some(auth_metadata));
+    let runtime_core =
+        crate::core_client::CoreClient::new(FakeTransport::default(), Some(auth_metadata));
     let runtime = RuntimeGeneratedClient::new(runtime_core);
     let mut metadata = BTreeMap::new();
     metadata.insert("x-nimi-caller".to_string(), "sdks-conformance".to_string());
@@ -190,21 +215,37 @@ fn generated_clients_use_fake_transport() {
             Some(Duration::from_millis(1234)),
         )
         .expect("runtime call");
-    assert!(String::from_utf8(response).expect("utf8").contains(runtime_method.method_id));
+    assert!(String::from_utf8(response)
+        .expect("utf8")
+        .contains(runtime_method.method_id));
 
-    let stream_core = crate::core_client::CoreClient::new(FakeTransport::default(), Some(auth_metadata));
+    let stream_core =
+        crate::core_client::CoreClient::new(FakeTransport::default(), Some(auth_metadata));
     let runtime_stream = RuntimeGeneratedClient::new(stream_core);
     let mut stream = runtime_stream
-        .stream(stream_method.method_id, b"stream-body".to_vec(), BTreeMap::new(), None)
+        .stream(
+            stream_method.method_id,
+            b"stream-body".to_vec(),
+            BTreeMap::new(),
+            None,
+        )
         .expect("runtime stream");
     assert_eq!(stream.recv(), Some(b"event:1".to_vec()));
     assert_eq!(stream.recv(), Some(b"event:2".to_vec()));
     assert_eq!(stream.recv(), None);
 
-    let realm_core = crate::core_client::CoreClient::new(FakeTransport::default(), Some(auth_metadata));
+    let realm_core =
+        crate::core_client::CoreClient::new(FakeTransport::default(), Some(auth_metadata));
     let realm = RealmGeneratedClient::new(realm_core);
     let realm_response = realm
-        .operation(realm_operation.operation_id, b"realm-body".to_vec(), BTreeMap::new(), None)
+        .operation(
+            realm_operation.operation_id,
+            b"realm-body".to_vec(),
+            BTreeMap::new(),
+            None,
+        )
         .expect("realm operation");
-    assert!(String::from_utf8(realm_response).expect("utf8").contains(realm_operation.operation_id));
+    assert!(String::from_utf8(realm_response)
+        .expect("utf8")
+        .contains(realm_operation.operation_id));
 }

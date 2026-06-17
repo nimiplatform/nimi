@@ -7,6 +7,9 @@ import type {
   AgentCenterAvatarAssetModule,
 } from './chat-agent-center-avatar-config-types';
 import type {
+  AgentCenterVoiceModule,
+} from './chat-agent-center-local-config';
+import type {
   AvatarAssetValidationPresentation,
   DecommissionedAvatarAssetLibraryResult,
 } from './chat-agent-shell-avatar-asset-diagnostics';
@@ -54,8 +57,11 @@ type AgentConversationSettingsContentProps = {
   backgroundValid: boolean;
   avatarAssetChecking: boolean;
   avatarAssetConfig: AgentCenterAvatarAssetModule | null;
+  avatarVoicePolicy: AgentCenterVoiceModule | null;
   avatarAssetValidationPresentation: AvatarAssetValidationPresentation;
   avatarConfigMutation: MutationLike<AgentCenterAvatarConfigPatch>;
+  voicePolicyMutation: MutationLike<{ avatar_autoplay: boolean }>;
+  voiceArtifactCleanupMutation: MutationLike;
   avatarAssetImportMutation: MutationLike<AgentCenterAvatarAssetKind>;
   avatarAssetLibraryQuery: AvatarAssetLibraryQueryLike;
   avatarAssetSelectMutation: MutationLike<string>;
@@ -80,8 +86,11 @@ export function AgentConversationSettingsContent(props: AgentConversationSetting
     backgroundValid,
     avatarAssetChecking,
     avatarAssetConfig,
+    avatarVoicePolicy,
     avatarAssetValidationPresentation,
     avatarConfigMutation,
+    voicePolicyMutation,
+    voiceArtifactCleanupMutation,
     avatarAssetImportMutation,
     avatarAssetLibraryQuery,
     avatarAssetSelectMutation,
@@ -106,6 +115,13 @@ export function AgentConversationSettingsContent(props: AgentConversationSetting
         mutationPendingAction={input.mutationPendingAction}
         avatarConfigured={avatarAssetValid}
         backgroundConfigured={Boolean(backgroundValid)}
+        avatarAutoplay={avatarVoicePolicy?.avatar_autoplay === true}
+        voicePolicyPending={voicePolicyMutation.isPending}
+        voicePolicyError={voicePolicyMutation.error instanceof Error ? voicePolicyMutation.error.message : null}
+        onAvatarAutoplayChange={(avatar_autoplay) => voicePolicyMutation.mutate({ avatar_autoplay })}
+        voiceCleanupPending={voiceArtifactCleanupMutation.isPending}
+        voiceCleanupError={voiceArtifactCleanupMutation.error instanceof Error ? voiceArtifactCleanupMutation.error.message : null}
+        onCleanupGeneratedVoiceArtifacts={() => voiceArtifactCleanupMutation.mutate()}
         avatarContent={(
           <AgentConversationAvatarSettingsContent
             input={input}

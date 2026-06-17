@@ -9,6 +9,7 @@ const RUNTIME_EXPRESSION_EVENT = 'runtime.agent.presentation.expression_requeste
 const RUNTIME_VOICE_PLAYBACK_EVENT = 'runtime.agent.presentation.voice_playback_requested';
 const ACTIVITY_CATEGORIES = ['emotion', 'interaction', 'state'] as const;
 const ACTIVITY_INTENSITIES = ['weak', 'moderate', 'strong'] as const;
+const AVATAR_VOICE_PLAYBACK_TARGET = 'avatar_autoplay';
 
 export class ScenarioValidationError extends Error {
   readonly path: string;
@@ -88,6 +89,12 @@ function assertRuntimeVoicePlaybackDetail(detail: Record<string, unknown>, path:
   }
   if (!detail['audio_mime_type'].trim()) {
     throw new ScenarioValidationError('audio_mime_type must be non-empty', `${path}.audio_mime_type`);
+  }
+  if (detail['playback_target'] !== AVATAR_VOICE_PLAYBACK_TARGET) {
+    throw new ScenarioValidationError(
+      `playback_target must be ${AVATAR_VOICE_PLAYBACK_TARGET}`,
+      `${path}.playback_target`,
+    );
   }
   if (detail['duration_ms'] !== undefined) {
     assertNumber(detail['duration_ms'], `${path}.duration_ms`);

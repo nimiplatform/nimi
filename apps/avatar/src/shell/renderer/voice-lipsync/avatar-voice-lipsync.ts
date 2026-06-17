@@ -17,7 +17,8 @@
 //     accepts that the Live2D mouth is dormant until that driver lands.
 //
 // What this orchestrator still does:
-//   - Subscribe to `runtime.agent.presentation.voice_playback_requested`.
+//   - Subscribe to `runtime.agent.presentation.voice_playback_requested`
+//     and ordered `voice_stream_chunk_available` events.
 //   - Mirror the runtime playback state machine (requested / started /
 //     completed / interrupted / canceled / failed) into the avatar voice
 //     state bus + the audio pipeline controller.
@@ -45,6 +46,12 @@ import {
 } from '@nimiplatform/kit/features/avatar/headless';
 
 type RuntimeTimelineDetail = NimiRuntimeAgentTimelineEnvelope;
+type VoicePlaybackInput = {
+  audioArtifactId: string;
+  audioMimeType: string;
+};
+
+const AVATAR_AUTOPLAY_TARGET = 'avatar_autoplay';
 
 export type AvatarVoiceLipsyncPipeline = {
   handleEvent(event: AgentEvent): void;
@@ -60,6 +67,15 @@ function readRecord(value: unknown): Record<string, unknown> | null {
 function readString(record: Record<string, unknown>, key: string): string | null {
   const value = record[key];
   return typeof value === 'string' && value.trim() ? value : null;
+}
+
+function readBoolean(record: Record<string, unknown>, camelKey: string, snakeKey: string): boolean | null {
+  const value = record[camelKey] ?? record[snakeKey];
+  return typeof value === 'boolean' ? value : null;
+}
+
+function readPlaybackTarget(detail: Record<string, unknown>): string | null {
+  return readString(detail, 'playbackTarget') ?? readString(detail, 'playback_target');
 }
 
 function parseRuntimeTimeline(
@@ -128,6 +144,8 @@ export function createAvatarVoiceLipsyncPipeline(input: {
   backend?: BackendBranch;
 }): AvatarVoiceLipsyncPipeline {
   const canceled = new Set<string>();
+  const streamingPlaybackChains = new Map<string, Promise<void>>();
+  const streamingTimelines = new Set<string>();
   let disposed = false;
   const stateBus = input.stateBus ?? getSharedVoiceLipsyncStateBus();
   const audioPipeline = input.audioPipeline ?? getSharedAudioPipelineController();
@@ -155,6 +173,56 @@ export function createAvatarVoiceLipsyncPipeline(input: {
     }
   }
 
+  function playVoiceArtifactAndWait(voiceInput: VoicePlaybackInput): Promise<void> {
+    return new Promise((resolve) => {
+      let settled = false;
+      let unsubscribe: () => void = () => {};
+      const settle = () => {
+        if (settled) return;
+        settled = true;
+        unsubscribe();
+        resolve();
+      };
+      unsubscribe = audioPipeline.subscribe((snapshot) => {
+        if (snapshot.audioArtifactId !== voiceInput.audioArtifactId) return;
+        if (
+          snapshot.state === 'completed' ||
+          snapshot.state === 'failed' ||
+          snapshot.state === 'interrupted'
+        ) {
+          settle();
+        }
+      });
+      void audioPipeline.play(voiceInput).catch(() => {
+        settle();
+      });
+    });
+  }
+
+  function enqueueStreamingChunk(
+    timeline: RuntimeTimelineDetail,
+    voiceInput: VoicePlaybackInput,
+  ): void {
+    const identity = timelineIdentity(timeline);
+    streamingTimelines.add(identity);
+    const previous = streamingPlaybackChains.get(identity) ?? Promise.resolve();
+    let next: Promise<void>;
+    next = previous
+      .catch(() => undefined)
+      .then(async () => {
+        if (disposed || canceled.has(identity)) return;
+        stateBus.publish({ kind: 'activate', audioArtifactId: voiceInput.audioArtifactId });
+        publishPlaybackState('requested');
+        await playVoiceArtifactAndWait(voiceInput);
+      })
+      .finally(() => {
+        if (streamingPlaybackChains.get(identity) === next) {
+          streamingPlaybackChains.delete(identity);
+        }
+      });
+    streamingPlaybackChains.set(identity, next);
+  }
+
   function handleVoicePlaybackRequested(
     event: AgentEvent,
     detail: Record<string, unknown>,
@@ -169,9 +237,16 @@ export function createAvatarVoiceLipsyncPipeline(input: {
       readString(detail, 'audioArtifactId') ?? readString(detail, 'audio_artifact_id');
     const audioMimeType =
       readString(detail, 'audioMimeType') ?? readString(detail, 'audio_mime_type');
+    const playbackTarget = readPlaybackTarget(detail);
+    if (playbackTarget !== AVATAR_AUTOPLAY_TARGET) {
+      return true;
+    }
 
     if (state === 'requested') {
       if (!timeline || timeline.channel !== 'voice' || !audioArtifactId || !audioMimeType) {
+        return true;
+      }
+      if (streamingTimelines.has(timelineIdentity(timeline))) {
         return true;
       }
       stateBus.publish({ kind: 'activate', audioArtifactId });
@@ -193,6 +268,7 @@ export function createAvatarVoiceLipsyncPipeline(input: {
     if (state === 'interrupted' || state === 'canceled' || state === 'failed') {
       if (!timeline || timeline.channel !== 'voice') return true;
       canceled.add(timelineIdentity(timeline));
+      streamingTimelines.delete(timelineIdentity(timeline));
       audioPipeline.stop('interrupted');
       stateBus.publish({ kind: 'deactivate' });
       publishPlaybackState(state === 'failed' ? 'failed' : 'interrupted');
@@ -207,6 +283,32 @@ export function createAvatarVoiceLipsyncPipeline(input: {
     return false;
   }
 
+  function handleVoiceStreamChunkAvailable(
+    event: AgentEvent,
+    detail: Record<string, unknown>,
+  ): boolean {
+    if (event.name !== 'runtime.agent.presentation.voice_stream_chunk_available') {
+      return false;
+    }
+    if (readPlaybackTarget(detail) !== AVATAR_AUTOPLAY_TARGET) {
+      return true;
+    }
+    const finalChunk = readBoolean(detail, 'finalChunk', 'final_chunk') ?? false;
+    if (finalChunk) {
+      return true;
+    }
+    const timeline = parseRuntimeTimeline(detail, event.name);
+    const audioArtifactId =
+      readString(detail, 'audioArtifactId') ?? readString(detail, 'audio_artifact_id');
+    const audioMimeType =
+      readString(detail, 'audioMimeType') ?? readString(detail, 'audio_mime_type');
+    if (!timeline || timeline.channel !== 'voice' || !audioArtifactId || !audioMimeType) {
+      return true;
+    }
+    enqueueStreamingChunk(timeline, { audioArtifactId, audioMimeType });
+    return true;
+  }
+
   return {
     handleEvent(event) {
       if (disposed) return;
@@ -219,6 +321,9 @@ export function createAvatarVoiceLipsyncPipeline(input: {
         handleInterrupt(event, detail);
         return;
       }
+      if (handleVoiceStreamChunkAvailable(event, detail)) {
+        return;
+      }
       handleVoicePlaybackRequested(event, detail);
     },
     dispose() {
@@ -227,6 +332,8 @@ export function createAvatarVoiceLipsyncPipeline(input: {
       stateBus.publish({ kind: 'deactivate' });
       publishPlaybackState('idle');
       canceled.clear();
+      streamingPlaybackChains.clear();
+      streamingTimelines.clear();
       if (unregisterSink) unregisterSink();
     },
   };

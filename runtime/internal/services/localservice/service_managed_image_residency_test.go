@@ -146,6 +146,41 @@ func TestEnsureManagedMediaImageLoadedUsesBoundedLoadTimeout(t *testing.T) {
 	}
 }
 
+func TestEnsureManagedMediaImageLoadedStartsColdManagedImageBackend(t *testing.T) {
+	svc := newTestService(t)
+	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
+	setManagedImageHostForTest(t, "Apple M4 Max")
+	svc.SetManagedImageBackendConfig(true, "127.0.0.1:50052")
+	engineMgr := &mockEngineManager{}
+	svc.SetEngineManager(engineMgr)
+
+	loadCalls := 0
+	svc.managedImageLoadModel = func(_ context.Context, _ managedimagebackend.LoadModelRequest) (*managedimagebackend.LoadModelDiagnostics, error) {
+		loadCalls++
+		return nil, nil
+	}
+
+	asset := mustImportManagedImageAssetForTest(t, svc, "nimi/image-cold-backend")
+	profile := cacheManagedImageProfileForTest(t, svc, asset.GetLocalAssetId())
+
+	if _, err := svc.EnsureManagedMediaImageLoaded(context.Background(), "media/"+asset.GetAssetId(), "", profile, nil, "generate_request"); err != nil {
+		t.Fatalf("EnsureManagedMediaImageLoaded: %v", err)
+	}
+	if loadCalls != 1 {
+		t.Fatalf("expected one managed image load, got %d", loadCalls)
+	}
+	if !containsString(engineMgr.startEngines, managedImageBackendEngineName) {
+		t.Fatalf("expected cold image load to start managed image backend, got %#v", engineMgr.startEngines)
+	}
+	listed, err := svc.ListLocalServices(context.Background(), &runtimev1.ListLocalServicesRequest{})
+	if err != nil {
+		t.Fatalf("ListLocalServices: %v", err)
+	}
+	if len(listed.GetServices()) != 1 || listed.GetServices()[0].GetStatus() != runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_ACTIVE {
+		t.Fatalf("expected active managed image backend service, got %#v", listed.GetServices())
+	}
+}
+
 func TestManagedImageRecoverySweepSkipsBackgroundLoad(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
@@ -356,8 +391,8 @@ func TestManagedImageIdleSweepFreesBackendAndStopsIdleEngines(t *testing.T) {
 	if !containsString(engineMgr.stopEngines, "media") {
 		t.Fatalf("expected media engine idle-stop, got %#v", engineMgr.stopEngines)
 	}
-	if containsString(engineMgr.stopEngines, managedImageBackendEngineName) {
-		t.Fatalf("managed image backend should stay running for later image reuse, got %#v", engineMgr.stopEngines)
+	if !containsString(engineMgr.stopEngines, managedImageBackendEngineName) {
+		t.Fatalf("expected managed image backend idle-stop, got %#v", engineMgr.stopEngines)
 	}
 	updated := svc.modelByID(asset.GetLocalAssetId())
 	if updated == nil || updated.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED {
@@ -448,7 +483,7 @@ func TestAcquireLocalAssetLeaseKeepsIdleManagedImageResidentWhenCurrentTextWorke
 		t.Fatalf("expected healthy text lease to avoid stopping media engine, got %#v", mockMgr.stopEngines)
 	}
 	if containsString(mockMgr.stopEngines, managedImageBackendEngineName) {
-		t.Fatalf("managed image backend should remain running during text reclaim, got %#v", mockMgr.stopEngines)
+		t.Fatalf("managed image backend should remain running while current text worker stays healthy, got %#v", mockMgr.stopEngines)
 	}
 	updatedImage := svc.modelByID(imageAsset.GetLocalAssetId())
 	if updatedImage == nil {
@@ -553,6 +588,9 @@ func TestAcquireLocalAssetLeaseReclaimsIdleManagedImageResidentBeforeTextWorkerS
 	}
 	if !containsString(mockMgr.stopEngines, "media") {
 		t.Fatalf("expected text worker switch to stop media engine, got %#v", mockMgr.stopEngines)
+	}
+	if !containsString(mockMgr.stopEngines, managedImageBackendEngineName) {
+		t.Fatalf("expected text worker switch to stop managed image backend, got %#v", mockMgr.stopEngines)
 	}
 	updatedImage := svc.modelByID(imageAsset.GetLocalAssetId())
 	if updatedImage == nil {

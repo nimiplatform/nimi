@@ -10,7 +10,7 @@ import type {
   Live2DBackendExtension,
 } from '../carrier/backend-branch.js';
 import { isAvatarUserInteractionEvent, type InteractionPhysicsController } from '../live2d/interaction-physics.js';
-import { activityHandlerKey } from './activity-naming.js';
+import { activityHandlerKey, isKnownActivityId } from './activity-naming.js';
 import { createDefaultActivityHandler } from './default-fallback.js';
 import { HandlerExecutor } from './handler-executor.js';
 import type { HandlerRegistry } from './handler-registry.js';
@@ -96,6 +96,9 @@ function parseRuntimeActivityProjection(event: AgentEvent): NonNullable<AgentDat
   const intensity = event.detail['intensity'];
   const source = event.detail['source'];
   if (!activityName || (category !== 'emotion' && category !== 'interaction' && category !== 'state')) {
+    return null;
+  }
+  if (!isKnownActivityId(activityName)) {
     return null;
   }
   if (source !== 'apml_output' && source !== 'direct_api') {

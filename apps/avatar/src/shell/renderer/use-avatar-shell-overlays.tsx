@@ -342,7 +342,7 @@ export function useAvatarShellOverlays(input: {
         kind: 'avatar.shell.interrupt.requested',
         detail,
       });
-      void bootstrapHandle.cancelCompanionParticipation({
+      void bootstrapHandle.interruptActiveTurn({
         agentId: companionBinding.agentId,
         conversationAnchorId: companionBinding.conversationAnchorId,
         turnId: activeTurnCue.turnId,
@@ -353,7 +353,7 @@ export function useAvatarShellOverlays(input: {
           detail: {
             ...composerIdentity(),
             active_turn_id: activeTurnCue.turnId,
-            reason_code: 'runtime_companion_participation_cancel_rejected',
+            reason_code: 'runtime_turn_interrupt_rejected',
             error: toErrorMessage(error),
             failed_at: new Date().toISOString(),
           },

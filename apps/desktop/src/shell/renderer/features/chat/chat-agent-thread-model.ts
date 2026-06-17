@@ -183,6 +183,23 @@ export function mergeAgentTargetWithPresentationProfile(
   };
 }
 
+export function mergeAgentTargetWithLocalVoicePolicy(
+  target: AgentLocalTargetSnapshot | null,
+  input: { avatarAutoplay?: boolean | null } | null | undefined,
+): AgentLocalTargetSnapshot | null {
+  if (!target) {
+    return null;
+  }
+  const nextAvatarAutoplay = input?.avatarAutoplay === true;
+  if ((target.avatarAutoplay ?? false) === nextAvatarAutoplay) {
+    return target;
+  }
+  return {
+    ...target,
+    avatarAutoplay: nextAvatarAutoplay,
+  };
+}
+
 /**
  * Overlay the live Realm/SDK projected RealmAgent profile content onto a
  * persisted thread target.
@@ -215,6 +232,9 @@ export function overlayAgentTargetWithLiveProfileContent(
   const nextSpeechSynthesis = liveTarget.speechSynthesis
     ?? threadTarget.speechSynthesis
     ?? null;
+  const nextAvatarAutoplay = liveTarget.avatarAutoplay
+    ?? threadTarget.avatarAutoplay
+    ?? null;
   const nextOwnerSettingsProjection = liveTarget.ownerSettingsProjection
     ?? threadTarget.ownerSettingsProjection
     ?? null;
@@ -223,6 +243,7 @@ export function overlayAgentTargetWithLiveProfileContent(
     && nextDocs === (threadTarget.builtinDocsContext ?? null)
     && nextDefaultVoiceReference === (threadTarget.defaultVoiceReference ?? null)
     && areSpeechSynthesisRoutesEqual(nextSpeechSynthesis, threadTarget.speechSynthesis ?? null)
+    && (nextAvatarAutoplay ?? false) === (threadTarget.avatarAutoplay ?? false)
     && areOwnerSettingsProjectionsEqual(
       nextOwnerSettingsProjection,
       threadTarget.ownerSettingsProjection ?? null,
@@ -237,6 +258,7 @@ export function overlayAgentTargetWithLiveProfileContent(
     builtinDocsContext: nextDocs,
     defaultVoiceReference: nextDefaultVoiceReference,
     speechSynthesis: nextSpeechSynthesis,
+    avatarAutoplay: nextAvatarAutoplay,
     ownerSettingsProjection: nextOwnerSettingsProjection,
   };
 }
@@ -313,6 +335,7 @@ export function areAgentTargetSnapshotsEquivalent(
     && (left.avatarUrl || null) === (right.avatarUrl || null)
     && (left.defaultVoiceReference || null) === (right.defaultVoiceReference || null)
     && areSpeechSynthesisRoutesEqual(left.speechSynthesis, right.speechSynthesis)
+    && (left.avatarAutoplay ?? false) === (right.avatarAutoplay ?? false)
     && (left.worldId || null) === (right.worldId || null)
     && (left.worldName || null) === (right.worldName || null)
     && (left.bio || null) === (right.bio || null)

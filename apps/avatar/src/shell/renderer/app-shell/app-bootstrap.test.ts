@@ -28,6 +28,7 @@ const getSessionSnapshotMock = vi.fn();
 const subscribeTurnsMock = vi.fn();
 const requestCompanionParticipationMock = vi.fn();
 const cancelCompanionParticipationMock = vi.fn();
+const sendAppMessageMock = vi.fn();
 const subscribeAppMessagesMock = vi.fn();
 const subscribeAgentEventsMock = vi.fn();
 const submitScenarioJobMock = vi.fn();
@@ -73,6 +74,7 @@ const runtimeMock = {
     }),
   },
   appMessages: {
+    sendAppMessage: (...args: unknown[]) => sendAppMessageMock(...args),
     subscribeAppMessages: (...args: unknown[]) => subscribeAppMessagesMock(...args),
   },
   ai: {
@@ -333,6 +335,7 @@ describe('bootstrapAvatar', () => {
     subscribeTurnsMock.mockReset();
     requestCompanionParticipationMock.mockReset();
     cancelCompanionParticipationMock.mockReset();
+    sendAppMessageMock.mockReset();
     subscribeAppMessagesMock.mockReset();
     subscribeAgentEventsMock.mockReset();
     submitScenarioJobMock.mockReset();
@@ -445,6 +448,11 @@ describe('bootstrapAvatar', () => {
       },
     });
     subscribeTurnsMock.mockResolvedValue((async function* emptyStream() {})());
+    sendAppMessageMock.mockResolvedValue({
+      messageId: 'runtime-turn-interrupt-message',
+      accepted: true,
+      reasonCode: ReasonCode.ACTION_EXECUTED,
+    });
     subscribeAppMessagesMock.mockReturnValue((async function* emptyAppMessageStream() {})());
     subscribeAgentEventsMock.mockReturnValue((async function* emptyAgentEventStream() {})());
     resolveLocalAvatarAssetManifestMock.mockResolvedValue({
@@ -652,6 +660,31 @@ describe('bootstrapAvatar', () => {
       turnId: 'turn-runtime',
       reason: 'avatar_voice_interrupt',
     }), undefined);
+
+    await handle.shutdown();
+  });
+
+  it('routes Avatar active-turn interrupt through Runtime turn interrupt', async () => {
+    const { bootstrapAvatar } = await import('./app-bootstrap.js');
+
+    const handle = await bootstrapAvatar();
+
+    await handle.interruptActiveTurn({
+      agentId: LOCAL_AGENT_REF,
+      conversationAnchorId: 'anchor-runtime',
+      turnId: 'turn-runtime',
+      reason: 'user_cancel',
+    });
+
+    expect(sendAppMessageMock).toHaveBeenCalledWith(expect.objectContaining({
+      fromAppId: 'nimi.avatar',
+      toAppId: 'runtime.agent',
+      messageType: 'runtime.agent.turn.interrupt',
+      requireAck: false,
+    }), expect.anything());
+    const payload = sendAppMessageMock.mock.calls[0]?.[0]?.payload as { fields?: Record<string, unknown> };
+    expect(JSON.stringify(payload)).toContain('turn-runtime');
+    expect(JSON.stringify(payload)).toContain('user_cancel');
 
     await handle.shutdown();
   });

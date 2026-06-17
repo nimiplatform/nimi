@@ -50,6 +50,7 @@ const TURN_EVENT_TYPES = new Set([
   'runtime.agent.turn.interrupted',
   'runtime.agent.turn.interrupt_ack',
   'runtime.agent.presentation.voice_playback_requested',
+  'runtime.agent.presentation.voice_stream_chunk_available',
   'runtime.agent.presentation.lipsync_frame_batch',
   'runtime.agent.state.status_text_changed',
   'runtime.agent.state.execution_state_changed',
@@ -387,7 +388,10 @@ function projectAppMessageDetail(messageType: string, payload: JsonObject): Json
       return {
         audioArtifactId: optionalString(detail.audio_artifact_id, detail.audioArtifactId, payload.audio_artifact_id, payload.audioArtifactId) || '',
         audioMimeType: optionalString(detail.audio_mime_type, detail.audioMimeType, payload.audio_mime_type, payload.audioMimeType) || '',
+        messageId: optionalString(detail.message_id, detail.messageId, payload.message_id, payload.messageId),
         playbackState: optionalString(detail.playback_state, detail.playbackState, payload.playback_state, payload.playbackState) || '',
+        playbackTarget: optionalString(detail.playback_target, detail.playbackTarget, payload.playback_target, payload.playbackTarget),
+        finalArtifact: optionalBoolean(detail.final_artifact ?? detail.finalArtifact ?? payload.final_artifact ?? payload.finalArtifact),
         durationMs: optionalNumber(detail.duration_ms ?? detail.durationMs ?? payload.duration_ms ?? payload.durationMs),
         deadlineOffsetMs: optionalNumber(detail.deadline_offset_ms ?? detail.deadlineOffsetMs ?? payload.deadline_offset_ms ?? payload.deadlineOffsetMs),
         reason: optionalString(detail.reason, payload.reason),
@@ -395,6 +399,17 @@ function projectAppMessageDetail(messageType: string, payload: JsonObject): Json
         ...(parseVoiceRouteBinding(detail.voice_route_binding ?? detail.voiceRouteBinding ?? payload.voice_route_binding ?? payload.voiceRouteBinding)
           ? { voiceRouteBinding: parseVoiceRouteBinding(detail.voice_route_binding ?? detail.voiceRouteBinding ?? payload.voice_route_binding ?? payload.voiceRouteBinding) }
           : {}),
+      };
+    case 'runtime.agent.presentation.voice_stream_chunk_available':
+      return {
+        audioArtifactId: optionalString(detail.audio_artifact_id, detail.audioArtifactId, payload.audio_artifact_id, payload.audioArtifactId) || '',
+        audioMimeType: optionalString(detail.audio_mime_type, detail.audioMimeType, payload.audio_mime_type, payload.audioMimeType) || '',
+        messageId: optionalString(detail.message_id, detail.messageId, payload.message_id, payload.messageId),
+        chunkSequence: optionalNumber(detail.chunk_sequence ?? detail.chunkSequence ?? payload.chunk_sequence ?? payload.chunkSequence),
+        finalChunk: optionalBoolean(detail.final_chunk ?? detail.finalChunk ?? payload.final_chunk ?? payload.finalChunk),
+        durationMs: optionalNumber(detail.duration_ms ?? detail.durationMs ?? payload.duration_ms ?? payload.durationMs),
+        reason: optionalString(detail.reason, payload.reason),
+        playbackTarget: optionalString(detail.playback_target, detail.playbackTarget, payload.playback_target, payload.playbackTarget),
       };
     default:
       return {};
@@ -428,6 +443,10 @@ function parseVoiceRouteBinding(value: unknown): JsonObject | null {
     }
   }
   return Object.keys(result).length > 0 ? result : null;
+}
+
+function optionalBoolean(value: unknown): boolean | undefined {
+  return typeof value === 'boolean' ? value : undefined;
 }
 
 export function projectNimiRuntimeAgentServiceEvent(event: AgentEvent): NimiRuntimeAgentConsumeEvent {
@@ -685,8 +704,9 @@ export function parseNimiRuntimeAgentTimeline(
   ) {
     runtimeAgentError('Runtime Agent timeline timebase owner must be runtime', 'SDK_RUNTIME_AGENT_TIMELINE_INVALID', 'check_runtime_agent_timeline_projection_shape');
   }
+  const expectedProjectionRuleId = projectionRuleIdForEvent(messageType);
   if (
-    (payload.projection_rule_id ?? payload.projectionRuleId) !== 'K-AGCORE-051'
+    (payload.projection_rule_id ?? payload.projectionRuleId) !== expectedProjectionRuleId
     || (payload.clock_basis ?? payload.clockBasis) !== 'monotonic_with_wall_anchor'
     || (payload.provider_neutral ?? payload.providerNeutral) !== true
     || (payload.app_local_authority ?? payload.appLocalAuthority) !== false
@@ -702,7 +722,7 @@ export function parseNimiRuntimeAgentTimeline(
     startedAtWall: requireText(payload.started_at_wall ?? payload.startedAtWall, 'timeline.startedAtWall'),
     observedAtWall: requireText(payload.observed_at_wall ?? payload.observedAtWall, 'timeline.observedAtWall'),
     timebaseOwner: 'runtime',
-    projectionRuleId: 'K-AGCORE-051',
+    projectionRuleId: expectedProjectionRuleId,
     clockBasis: 'monotonic_with_wall_anchor',
     providerNeutral: true,
     appLocalAuthority: false,
@@ -732,8 +752,18 @@ function timelineChannelForEvent(messageType: string): NimiRuntimeAgentTimelineC
   if (messageType === 'runtime.agent.presentation.voice_playback_requested') {
     return 'voice';
   }
+  if (messageType === 'runtime.agent.presentation.voice_stream_chunk_available') {
+    return 'voice';
+  }
   if (messageType === 'runtime.agent.presentation.lipsync_frame_batch') {
     return 'lipsync';
   }
   return 'state';
+}
+
+function projectionRuleIdForEvent(messageType: string): NimiRuntimeAgentTimelineEnvelope['projectionRuleId'] {
+  if (messageType === 'runtime.agent.presentation.voice_stream_chunk_available') {
+    return 'K-AGCORE-133';
+  }
+  return 'K-AGCORE-051';
 }

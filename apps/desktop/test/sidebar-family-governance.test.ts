@@ -15,6 +15,7 @@ const chatPageSource = readWorkspace('src/shell/renderer/features/chat/chat-page
 const chatAiModeContentSource = readWorkspace('src/shell/renderer/features/chat/chat-nimi-mode-content.tsx');
 const chatAgentModeContentSource = readWorkspace('src/shell/renderer/features/chat/chat-agent-mode-content.tsx');
 const chatHumanModeContentSource = readWorkspace('src/shell/renderer/features/chat/chat-human-mode-content.tsx');
+const chatCanonicalModeFrameSource = readWorkspace('src/shell/renderer/features/chat/chat-canonical-mode-frame.tsx');
 const chatRelationshipRailSource = readWorkspace('src/shell/renderer/features/chat/chat-relationship-rail.tsx');
 const mainLayoutViewSource = readWorkspace('src/shell/renderer/app-shell/layouts/main-layout-view.tsx');
 const mainLayoutTopbarSource = readWorkspace('src/shell/renderer/app-shell/layouts/main-layout-topbar.tsx');
@@ -82,8 +83,9 @@ test('chat surface composes the canonical shell with an app-owned relationship r
   assert.match(chatPageSource, /ChatAgentModeContent/);
   assert.match(chatPageSource, /E2E_IDS\.chatPage/);
   for (const source of [chatHumanModeContentSource, chatAiModeContentSource, chatAgentModeContentSource]) {
-    assert.match(source, /CanonicalConversationShell/);
+    assert.match(source, /ChatCanonicalModeFrame/);
   }
+  assert.match(chatCanonicalModeFrameSource, /CanonicalConversationShell/);
   assert.match(chatRelationshipRailSource, /E2E_IDS\.chatList/);
   assert.match(chatRelationshipRailSource, /E2E_IDS\.chatRow/);
   assert.doesNotMatch(chatRelationshipRailSource, /components\/sidebar\.js/);

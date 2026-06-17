@@ -8,7 +8,6 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
-	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -381,7 +380,7 @@ func TestStartSupervisedEnginesDefersManagedLlamaWhenEnginePackageMissing(t *tes
 	}
 }
 
-func TestStartSupervisedEnginesBootstrapsManagedLlamaControlPlaneFromStateWhenEnginePackageReady(t *testing.T) {
+func TestStartSupervisedEnginesRegistersManagedLlamaFromStateWithoutBootstrapping(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	homeDir := t.TempDir()
 	setDaemonTestHome(t, homeDir)
@@ -438,15 +437,15 @@ func TestStartSupervisedEnginesBootstrapsManagedLlamaControlPlaneFromStateWhenEn
 
 	daemon.startSupervisedEngines(context.Background())
 
-	if !slices.Equal(calls, []engine.EngineKind{engine.EngineLlama}) {
-		t.Fatalf("expected managed local state to bootstrap llama, got=%v", calls)
+	if len(calls) != 0 {
+		t.Fatalf("managed local state must register llama without daemon bootstrap, got=%v", calls)
 	}
 	configPath := filepath.Join(homeDir, ".nimi", "runtime", "llama-models.yaml")
 	if _, err := os.Stat(configPath); err != nil {
 		t.Fatalf("expected managed llama config to be generated: %v", err)
 	}
-	if managedEndpoint := svc.ManagedLlamaEndpoint(); managedEndpoint != "http://127.0.0.1:1234/v1" {
-		t.Fatalf("expected managed llama endpoint to be exposed, got %q", managedEndpoint)
+	if managedEndpoint := svc.ManagedLlamaEndpoint(); managedEndpoint != "" {
+		t.Fatalf("managed llama endpoint must stay cold until a lease starts the worker, got %q", managedEndpoint)
 	}
 }
 

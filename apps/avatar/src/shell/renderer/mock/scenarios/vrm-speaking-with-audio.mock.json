@@ -21,7 +21,7 @@
   },
 
   "events": [
-    { "kind": "time", "at_ms": 0, "type": "runtime.agent.presentation.voice_playback_requested", "detail": { "audio_artifact_id": "mock-artifact-001", "audio_mime_type": "audio/wav", "duration_ms": 512, "source": "mock" } }
+    { "kind": "time", "at_ms": 0, "type": "runtime.agent.presentation.voice_playback_requested", "detail": { "audio_artifact_id": "mock-artifact-001", "audio_mime_type": "audio/wav", "duration_ms": 512, "playback_target": "avatar_autoplay", "source": "mock" } }
   ],
 
   "vrm_mock_scenario": {

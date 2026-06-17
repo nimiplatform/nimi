@@ -82,6 +82,8 @@ Desktop may:
 - display Runtime-projected assistant messages and action states
 - display Runtime-projected media / voice / workflow progress
 - expose user controls that submit typed user intent
+- expose explicit user controls to request Runtime-owned voice rendering/replay
+  for a committed assistant message
 - invoke admitted Runtime SDK speech-to-text projection only for explicit user
   voice input capture before submitting text intent to Runtime Agent Chat
 - map Runtime failure reason codes to user-facing copy
@@ -93,8 +95,27 @@ Desktop may not:
 - choose between text, image, voice, or voice workflow execution paths
 - turn capability readiness into action admission
 - turn runtime job acceptance into product success
+- autoplay assistant voice in Desktop Agent Chat
 - derive transcript reveal, caption, or voice-session semantics from local
   capture / playback helper state
+
+## D-LLM-024a — Desktop Manual Voice Playback
+
+Desktop Agent Chat voice output is click-to-play by default.
+
+Fixed rules:
+
+- `runtime.agent.turn.message_committed` must render text without automatically
+  starting assistant voice playback.
+- A user play action may request Runtime to render voice for the committed
+  message/turn or replay an existing Runtime-owned generated voice artifact.
+- Desktop must not call provider TTS, local speech engines, or app-level REST
+  bypasses directly from Agent Chat.
+- Desktop stop for replayed/completed audio is local playback stop only. If the
+  underlying Runtime turn is still active, the UI must expose interruption as a
+  separate Runtime-owned cancel/interrupt action.
+- Missing TTS model, unhealthy route, or unavailable voice reference must remain
+  text-only/unavailable UI. Desktop must not synthesize pseudo voice success.
 
 ## D-LLM-025 — Presentation Failure Semantics
 

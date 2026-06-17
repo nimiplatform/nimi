@@ -100,6 +100,19 @@ func profileStringList(fields map[string]*structpb.Value, keys ...string) []stri
 	return nil
 }
 
+func profileBool(fields map[string]*structpb.Value, keys ...string) bool {
+	for _, key := range keys {
+		value := fields[key]
+		if value == nil {
+			continue
+		}
+		if value.GetBoolValue() {
+			return true
+		}
+	}
+	return false
+}
+
 func compactAnchorProfilePromptText(value string, maxRunes int) string {
 	text := strings.Join(strings.Fields(strings.TrimSpace(value)), " ")
 	if text == "" || maxRunes <= 0 || utf8.RuneCountInString(text) <= maxRunes {

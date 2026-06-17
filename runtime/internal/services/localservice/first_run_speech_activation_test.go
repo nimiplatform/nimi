@@ -136,6 +136,40 @@ func TestEnsureFirstRunSpeechEngineReadyPublishesSpeechProviderEndpoint(t *testi
 	}
 }
 
+func TestEnsureFirstRunSpeechEngineReadyRegistersSpeechResidency(t *testing.T) {
+	svc := newLocalEnvironmentTestService(t)
+	defer func() { svc.Close() }()
+	svc.localModelKeepAlive = 0
+
+	mgr := &mockEngineManager{status: &EngineInfo{
+		Engine:   "speech",
+		Status:   "healthy",
+		Port:     8330,
+		Endpoint: "http://127.0.0.1:8330",
+	}}
+	svc.SetEngineManager(mgr)
+	svc.localModelsPath = filepath.Join(t.TempDir(), "models")
+
+	ttsRoot := filepath.Join(t.TempDir(), "speech", "0.1.0-qwen3-tts")
+	asrRoot := filepath.Join(t.TempDir(), "speech", "0.1.0-qwen3-asr")
+	upsertVerifiedSpeechPackageSetForTest(t, svc, "speech.qwen3-tts.python", "local-speech-qwen3-tts.package-set", ttsRoot, "NIMI_RUNTIME_SPEECH_QWEN3_TTS_CMD", engine.SpeechQwen3TTSDriverPath)
+	upsertVerifiedSpeechPackageSetForTest(t, svc, "speech.qwen3-asr.python", "local-speech-qwen3-asr.package-set", asrRoot, "NIMI_RUNTIME_SPEECH_QWEN3_ASR_CMD", engine.SpeechQwen3ASRDriverPath)
+
+	err := svc.ensureFirstRunSpeechEngineReady(context.Background(), runtimeBaselineReadinessRecord{
+		ActivationReadyResponses: []runtimeBaselineActivationConsumerEvidence{
+			{ConsumerID: "speech.qwen3-asr.python"},
+			{ConsumerID: "speech.qwen3-tts.python"},
+		},
+	})
+	if err != nil {
+		t.Fatalf("ensure first-run speech engine ready: %v", err)
+	}
+	svc.runResidencySweep(context.Background())
+	if !containsString(mgr.stopEngines, "speech") {
+		t.Fatalf("expected speech engine idle-stop after first-run residency expires, got %#v", mgr.stopEngines)
+	}
+}
+
 func TestEnsureFirstRunSpeechEngineReadyFailsBeforeStartWhenPackageSetArtifactsMissing(t *testing.T) {
 	svc := newLocalEnvironmentTestService(t)
 	defer func() { svc.Close() }()

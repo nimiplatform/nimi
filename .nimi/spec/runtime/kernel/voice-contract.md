@@ -200,3 +200,91 @@ workflow-capable speech family 的验收必须保持 family-level 边界，不�
 - baseline admission 不承诺 durable local `VoiceAsset` substrate，不得把 local generated handle 升格为跨重启 durable truth
 - `audio.transcribe` 继续由独立 `STT` family 负责；当前 baseline default `STT`
   family 固定为 `Qwen3-ASR`，不得由 `qwen3_tts` workflow success 隐式覆盖
+
+## K-VOICE-018 Agent Voice Output Policy
+
+Agent voice output is Runtime-owned presentation policy projected from the local
+agent config / runtime profile. Desktop and Avatar may render controls and
+consume projections, but they must not decide provider route, model binding,
+voice workflow choice, or whether a committed assistant message has voice
+semantics.
+
+Minimum policy fields:
+
+- `avatar_autoplay`: per-agent boolean. When false, Avatar must remain text /
+  expression / activity only for ordinary assistant turns.
+- `desktop_autoplay`: fixed false for Desktop Agent Chat unless a later Desktop
+  authority admits a user-facing setting. Desktop manual play is an explicit user
+  request, not autoplay.
+- `default_voice_reference`: agent-owned `VoiceReference` used by ordinary speech
+  synthesis.
+- `speech_model_id` or resolved `audio.synthesize` binding: runtime-owned TTS
+  model route.
+- `speech_route_policy`: local/cloud/unspecified route intent projected from
+  local agent config.
+- `voice_artifact_retention`: durable local retention with user cleanup for
+  generated turn audio.
+
+Fixed rules:
+
+- Runtime must not emit playable voice projection for an ordinary assistant
+  message unless the effective playback target is admitted by policy and the
+  speech route resolves to playable audio.
+- Missing TTS model, missing/default voice reference, unhealthy route, provider
+  failure, or unavailable voice workflow must complete the agent turn as normal
+  text-only output unless another hard turn error exists.
+- Text-only fallback must not emit fake `voice_playback_requested` success and
+  must not materialize synthetic non-audio bytes under an audio artifact id.
+- `voice_workflow.voice_clone` / `voice_workflow.voice_design` may create or
+  update a `VoiceAsset` / `VoiceReference`, but ordinary assistant speech uses
+  `audio.synthesize` with the effective `VoiceReference` unless a future runtime
+  authority admits a provider-specific combined workflow.
+- Voice identity follows the agent profile. Avatar asset, Avatar instance, and
+  Desktop chat surface are projection layers and must not own voice identity.
+
+## K-VOICE-019 Agent Voice Streaming And Interruption
+
+Runtime owns voice stream lifecycle for active agent turns.
+
+Fixed rules:
+
+- Voice stream identity must stay tied to the same `agent_id`,
+  `conversation_anchor_id`, `turn_id`, and `stream_id` as the text turn.
+- Runtime may emit ordered chunk artifacts or expose a typed SDK voice stream, but
+  raw audio bytes must not be embedded directly in app messages.
+- A final durable audio artifact must be persisted for replay/export when a voice
+  stream completes successfully.
+- Runtime cancellation of an active turn must cancel the LLM stream, the TTS
+  stream, queued voice chunks, and terminal playback projection as one accepted
+  interruption truth.
+- Avatar interrupt is a request to Runtime. Avatar must not locally synthesize
+  successful interruption; it may only stop local playback in response to
+  Runtime terminal projection or an accepted Runtime cancellation response.
+
+## K-VOICE-020 Durable Agent Voice Artifacts
+
+Generated assistant voice audio is a Runtime artifact retained on the user's
+local disk until explicit user cleanup or a future admitted quota policy removes
+it.
+
+Required metadata for generated agent voice artifacts:
+
+- `agent_id`
+- `conversation_anchor_id`
+- `turn_id`
+- `message_id`
+- `voice_reference`
+- `speech_model_id`
+- `route_policy`
+- `mime_type`
+- `byte_digest`
+- `created_at`
+- `retention_scope`
+
+Cleanup must be Runtime-owned and must support at least:
+
+- delete generated voice artifacts by `agent_id`
+- delete generated voice artifacts by `conversation_anchor_id`
+
+Avatar must not own durable voice cache state. Desktop may expose cleanup UI, but
+the cleanup action must call the Runtime-owned artifact/voice cleanup surface.

@@ -4645,7 +4645,7 @@
     {
       "operation_id": "ForgeProductCatalogController_getAgentCandidates",
       "method": "GET",
-      "path": "/api/world-products/{slug}/agent-candidates",
+      "path": "/api/world-products/by-slug/{slug}/agent-candidates",
       "service": "Forge World Products",
       "tags": [
         "Forge World Products"
@@ -4842,7 +4842,7 @@
     {
       "operation_id": "ForgeProductCatalogController_getProduct",
       "method": "GET",
-      "path": "/api/world-products/{slug}",
+      "path": "/api/world-products/by-slug/{slug}",
       "service": "Forge World Products",
       "tags": [
         "Forge World Products"
@@ -4898,7 +4898,7 @@
     {
       "operation_id": "ForgeProductCatalogController_getProductShard",
       "method": "GET",
-      "path": "/api/world-products/{slug}/shards/{kind}",
+      "path": "/api/world-products/by-slug/{slug}/shards/by-kind/{kind}",
       "service": "Forge World Products",
       "tags": [
         "Forge World Products"
@@ -5010,7 +5010,7 @@
     {
       "operation_id": "ForgeProductCatalogController_getProductShardIndex",
       "method": "GET",
-      "path": "/api/world-products/{slug}/shards",
+      "path": "/api/world-products/by-slug/{slug}/shards",
       "service": "Forge World Products",
       "tags": [
         "Forge World Products"
@@ -5066,7 +5066,7 @@
     {
       "operation_id": "ForgeProductCatalogController_verifyProductShards",
       "method": "GET",
-      "path": "/api/world-products/{slug}/shards/integrity",
+      "path": "/api/world-products/by-slug/{slug}/shards/integrity",
       "service": "Forge World Products",
       "tags": [
         "Forge World Products"
@@ -8353,8 +8353,23 @@
         "ref_name": "OAuthLoginDto"
       },
       "request_schema_ref": "#/components/schemas/OAuthLoginDto",
-      "response_schemas": [],
-      "response_schema_refs": []
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/OAuthLinkResponseDto",
+            "ref_name": "OAuthLinkResponseDto"
+          },
+          "schema_ref": "#/components/schemas/OAuthLinkResponseDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/OAuthLinkResponseDto"
+        }
+      ]
     },
     {
       "operation_id": "listAssets",
@@ -13503,21 +13518,11 @@
       "query_parameters": [],
       "header_parameters": [],
       "request_schema": {
-        "kind": "object",
-        "properties": [
-          {
-            "name": "handle",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null
-            }
-          }
-        ],
-        "additional_properties": null
+        "kind": "ref",
+        "ref": "#/components/schemas/UpdateMyHandleDto",
+        "ref_name": "UpdateMyHandleDto"
       },
-      "request_schema_ref": null,
+      "request_schema_ref": "#/components/schemas/UpdateMyHandleDto",
       "response_schemas": [
         {
           "status": "200",
@@ -17084,7 +17089,7 @@
       "operation_id": "ForgeProductCatalogController_getAgentCandidates",
       "service": "Forge World Products",
       "method": "GET",
-      "path": "/api/world-products/{slug}/agent-candidates"
+      "path": "/api/world-products/by-slug/{slug}/agent-candidates"
     },
     {
       "operation_id": "ForgeProductCatalogController_getCatalog",
@@ -17096,25 +17101,25 @@
       "operation_id": "ForgeProductCatalogController_getProduct",
       "service": "Forge World Products",
       "method": "GET",
-      "path": "/api/world-products/{slug}"
+      "path": "/api/world-products/by-slug/{slug}"
     },
     {
       "operation_id": "ForgeProductCatalogController_getProductShard",
       "service": "Forge World Products",
       "method": "GET",
-      "path": "/api/world-products/{slug}/shards/{kind}"
+      "path": "/api/world-products/by-slug/{slug}/shards/by-kind/{kind}"
     },
     {
       "operation_id": "ForgeProductCatalogController_getProductShardIndex",
       "service": "Forge World Products",
       "method": "GET",
-      "path": "/api/world-products/{slug}/shards"
+      "path": "/api/world-products/by-slug/{slug}/shards"
     },
     {
       "operation_id": "ForgeProductCatalogController_verifyProductShards",
       "service": "Forge World Products",
       "method": "GET",
-      "path": "/api/world-products/{slug}/shards/integrity"
+      "path": "/api/world-products/by-slug/{slug}/shards/integrity"
     },
     {
       "operation_id": "getAgent",
@@ -19506,6 +19511,9 @@
       "name": "NsfwConsentStatusResponseDto"
     },
     {
+      "name": "OAuthLinkResponseDto"
+    },
+    {
       "name": "OAuthLoginDto"
     },
     {
@@ -19846,6 +19854,9 @@
     },
     {
       "name": "UpdateGroupInputDto"
+    },
+    {
+      "name": "UpdateMyHandleDto"
     },
     {
       "name": "UpdateNsfwConsentResponseDto"
@@ -36536,6 +36547,38 @@
       }
     },
     {
+      "name": "OAuthLinkResponseDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "provider",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "google",
+                "wechat",
+                "twitter",
+                "tiktok"
+              ]
+            }
+          },
+          {
+            "name": "status",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "linked"
+              ]
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
       "name": "OAuthLoginDto",
       "schema": {
         "kind": "object",
@@ -43076,6 +43119,24 @@
           {
             "name": "title",
             "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "UpdateMyHandleDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "handle",
+            "required": true,
             "schema": {
               "kind": "scalar",
               "type": "string",

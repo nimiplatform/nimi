@@ -31,29 +31,30 @@ type persistedPublicChatSurfaceState struct {
 }
 
 type persistedPublicChatAnchor struct {
-	ConversationAnchorID string                           `json:"conversationAnchorId"`
-	AgentID              string                           `json:"agentId"`
-	LocalAgentRef        string                           `json:"localAgentRef"`
-	OwnerUserID          string                           `json:"ownerUserId"`
-	RealmAgentID         string                           `json:"realmAgentId"`
-	CallerAppID          string                           `json:"callerAppId"`
-	SubjectUserID        string                           `json:"subjectUserId"`
-	ThreadID             string                           `json:"threadId"`
-	Binding              publicChatExecutionBinding       `json:"binding"`
-	Bindings             publicChatExecutionBindings      `json:"bindings,omitempty"`
-	ExecutionParams      map[string]map[string]any        `json:"executionParams,omitempty"`
-	SystemPrompt         string                           `json:"systemPrompt"`
-	MaxTokens            int32                            `json:"maxTokens"`
-	Reasoning            *publicChatReasoningConfig       `json:"reasoning,omitempty"`
-	Transcript           []json.RawMessage                `json:"transcript"`
-	ActiveTurnSnapshot   *persistedPublicChatTurnSnapshot `json:"activeTurnSnapshot,omitempty"`
-	LastTurnSnapshot     *persistedPublicChatTurnSnapshot `json:"lastTurnSnapshot,omitempty"`
-	PendingFollowUpID    string                           `json:"pendingFollowUpId,omitempty"`
-	Status               int32                            `json:"status,omitempty"`
-	LastTurnID           string                           `json:"lastTurnId,omitempty"`
-	LastMessageID        string                           `json:"lastMessageId,omitempty"`
-	CreatedAt            string                           `json:"createdAt,omitempty"`
-	UpdatedAt            string                           `json:"updatedAt,omitempty"`
+	ConversationAnchorID   string                                      `json:"conversationAnchorId"`
+	AgentID                string                                      `json:"agentId"`
+	LocalAgentRef          string                                      `json:"localAgentRef"`
+	OwnerUserID            string                                      `json:"ownerUserId"`
+	RealmAgentID           string                                      `json:"realmAgentId"`
+	CallerAppID            string                                      `json:"callerAppId"`
+	SubjectUserID          string                                      `json:"subjectUserId"`
+	ThreadID               string                                      `json:"threadId"`
+	Binding                publicChatExecutionBinding                  `json:"binding"`
+	Bindings               publicChatExecutionBindings                 `json:"bindings,omitempty"`
+	ExecutionParams        map[string]map[string]any                   `json:"executionParams,omitempty"`
+	SystemPrompt           string                                      `json:"systemPrompt"`
+	MaxTokens              int32                                       `json:"maxTokens"`
+	Reasoning              *publicChatReasoningConfig                  `json:"reasoning,omitempty"`
+	Transcript             []json.RawMessage                           `json:"transcript"`
+	ActiveTurnSnapshot     *persistedPublicChatTurnSnapshot            `json:"activeTurnSnapshot,omitempty"`
+	LastTurnSnapshot       *persistedPublicChatTurnSnapshot            `json:"lastTurnSnapshot,omitempty"`
+	CompletedTurnSnapshots map[string]*persistedPublicChatTurnSnapshot `json:"completedTurnSnapshots,omitempty"`
+	PendingFollowUpID      string                                      `json:"pendingFollowUpId,omitempty"`
+	Status                 int32                                       `json:"status,omitempty"`
+	LastTurnID             string                                      `json:"lastTurnId,omitempty"`
+	LastMessageID          string                                      `json:"lastMessageId,omitempty"`
+	CreatedAt              string                                      `json:"createdAt,omitempty"`
+	UpdatedAt              string                                      `json:"updatedAt,omitempty"`
 }
 
 type persistedPublicChatTurnSnapshot struct {
@@ -62,6 +63,7 @@ type persistedPublicChatTurnSnapshot struct {
 	Status            string                            `json:"status"`
 	TraceID           string                            `json:"traceId,omitempty"`
 	StreamSequence    uint64                            `json:"streamSequence"`
+	TimelineStartedAt string                            `json:"timelineStartedAt,omitempty"`
 	Origin            string                            `json:"origin,omitempty"`
 	ChainID           string                            `json:"chainId,omitempty"`
 	FollowUpDepth     int                               `json:"followUpDepth,omitempty"`
@@ -84,6 +86,24 @@ type persistedPublicChatTurnSnapshot struct {
 	ActionHint        string                            `json:"actionHint,omitempty"`
 	Message           string                            `json:"message,omitempty"`
 	UpdatedAt         string                            `json:"updatedAt,omitempty"`
+}
+
+func formatOptionalTime(value time.Time) string {
+	if value.IsZero() {
+		return ""
+	}
+	return value.UTC().Format(time.RFC3339Nano)
+}
+
+func parseOptionalTime(value string) time.Time {
+	if strings.TrimSpace(value) == "" {
+		return time.Time{}
+	}
+	parsed, err := time.Parse(time.RFC3339Nano, value)
+	if err != nil {
+		return time.Time{}
+	}
+	return parsed.UTC()
 }
 
 type persistedPublicChatFollowUp struct {
@@ -131,27 +151,28 @@ func (s *Service) capturePublicChatSurfaceSnapshotLocked() (persistedPublicChatS
 			continue
 		}
 		item := persistedPublicChatAnchor{
-			ConversationAnchorID: session.ConversationAnchorID,
-			AgentID:              session.AgentID,
-			LocalAgentRef:        session.LocalAgentRef,
-			OwnerUserID:          session.OwnerUserID,
-			RealmAgentID:         session.RealmAgentID,
-			CallerAppID:          session.CallerAppID,
-			SubjectUserID:        session.SubjectUserID,
-			ThreadID:             session.ThreadID,
-			Binding:              session.Binding,
-			Bindings:             clonePublicChatExecutionBindings(session.Bindings),
-			ExecutionParams:      clonePublicChatExecutionParams(session.ExecutionParams),
-			SystemPrompt:         session.SystemPrompt,
-			MaxTokens:            session.MaxTokens,
-			Reasoning:            clonePublicChatReasoningConfig(session.Reasoning),
-			ActiveTurnSnapshot:   toPersistedPublicChatTurnSnapshot(session.ActiveTurnSnapshot),
-			LastTurnSnapshot:     toPersistedPublicChatTurnSnapshot(session.LastTurnSnapshot),
-			PendingFollowUpID:    session.PendingFollowUpID,
-			Transcript:           make([]json.RawMessage, 0, len(session.Transcript)),
-			Status:               int32(session.Status),
-			LastTurnID:           session.LastTurnID,
-			LastMessageID:        session.LastMessageID,
+			ConversationAnchorID:   session.ConversationAnchorID,
+			AgentID:                session.AgentID,
+			LocalAgentRef:          session.LocalAgentRef,
+			OwnerUserID:            session.OwnerUserID,
+			RealmAgentID:           session.RealmAgentID,
+			CallerAppID:            session.CallerAppID,
+			SubjectUserID:          session.SubjectUserID,
+			ThreadID:               session.ThreadID,
+			Binding:                session.Binding,
+			Bindings:               clonePublicChatExecutionBindings(session.Bindings),
+			ExecutionParams:        clonePublicChatExecutionParams(session.ExecutionParams),
+			SystemPrompt:           session.SystemPrompt,
+			MaxTokens:              session.MaxTokens,
+			Reasoning:              clonePublicChatReasoningConfig(session.Reasoning),
+			ActiveTurnSnapshot:     toPersistedPublicChatTurnSnapshot(session.ActiveTurnSnapshot),
+			LastTurnSnapshot:       toPersistedPublicChatTurnSnapshot(session.LastTurnSnapshot),
+			CompletedTurnSnapshots: toPersistedPublicChatTurnSnapshotMap(session.CompletedTurnSnapshots),
+			PendingFollowUpID:      session.PendingFollowUpID,
+			Transcript:             make([]json.RawMessage, 0, len(session.Transcript)),
+			Status:                 int32(session.Status),
+			LastTurnID:             session.LastTurnID,
+			LastMessageID:          session.LastMessageID,
 		}
 		if !session.CreatedAt.IsZero() {
 			item.CreatedAt = session.CreatedAt.UTC().Format(time.RFC3339Nano)
@@ -450,30 +471,31 @@ func (r *publicChatSurfaceStateRepository) loadPublicChatSurfaceStateFromDB(s *S
 			binding = bindings["text.generate"]
 		}
 		s.chatAnchors[item.ConversationAnchorID] = &publicChatAnchorState{
-			ConversationAnchorID: item.ConversationAnchorID,
-			AgentID:              item.AgentID,
-			LocalAgentRef:        item.LocalAgentRef,
-			OwnerUserID:          item.OwnerUserID,
-			RealmAgentID:         item.RealmAgentID,
-			CallerAppID:          item.CallerAppID,
-			SubjectUserID:        item.SubjectUserID,
-			ThreadID:             item.ThreadID,
-			Binding:              binding,
-			Bindings:             bindings,
-			ExecutionParams:      clonePublicChatExecutionParams(item.ExecutionParams),
-			ActiveTurnID:         "",
-			SystemPrompt:         item.SystemPrompt,
-			MaxTokens:            item.MaxTokens,
-			Reasoning:            clonePublicChatReasoningConfig(item.Reasoning),
-			Transcript:           transcript,
-			ActiveTurnSnapshot:   fromPersistedPublicChatTurnSnapshot(item.ActiveTurnSnapshot),
-			LastTurnSnapshot:     fromPersistedPublicChatTurnSnapshot(item.LastTurnSnapshot),
-			PendingFollowUpID:    item.PendingFollowUpID,
-			Status:               status,
-			LastTurnID:           item.LastTurnID,
-			LastMessageID:        item.LastMessageID,
-			CreatedAt:            createdAt,
-			UpdatedAt:            updatedAt,
+			ConversationAnchorID:   item.ConversationAnchorID,
+			AgentID:                item.AgentID,
+			LocalAgentRef:          item.LocalAgentRef,
+			OwnerUserID:            item.OwnerUserID,
+			RealmAgentID:           item.RealmAgentID,
+			CallerAppID:            item.CallerAppID,
+			SubjectUserID:          item.SubjectUserID,
+			ThreadID:               item.ThreadID,
+			Binding:                binding,
+			Bindings:               bindings,
+			ExecutionParams:        clonePublicChatExecutionParams(item.ExecutionParams),
+			ActiveTurnID:           "",
+			SystemPrompt:           item.SystemPrompt,
+			MaxTokens:              item.MaxTokens,
+			Reasoning:              clonePublicChatReasoningConfig(item.Reasoning),
+			Transcript:             transcript,
+			ActiveTurnSnapshot:     fromPersistedPublicChatTurnSnapshot(item.ActiveTurnSnapshot),
+			LastTurnSnapshot:       fromPersistedPublicChatTurnSnapshot(item.LastTurnSnapshot),
+			CompletedTurnSnapshots: fromPersistedPublicChatTurnSnapshotMap(item.CompletedTurnSnapshots),
+			PendingFollowUpID:      item.PendingFollowUpID,
+			Status:                 status,
+			LastTurnID:             item.LastTurnID,
+			LastMessageID:          item.LastMessageID,
+			CreatedAt:              createdAt,
+			UpdatedAt:              updatedAt,
 		}
 		if restored := s.chatAnchors[item.ConversationAnchorID]; restored != nil && restored.ActiveTurnSnapshot != nil {
 			recovered := clonePublicChatTurnProjectionState(restored.ActiveTurnSnapshot)
@@ -623,6 +645,7 @@ func toPersistedPublicChatTurnSnapshot(input *publicChatTurnProjectionState) *pe
 		Status:            input.Status,
 		TraceID:           input.TraceID,
 		StreamSequence:    input.StreamSequence,
+		TimelineStartedAt: formatOptionalTime(input.TimelineStartedAt),
 		Origin:            input.Origin,
 		ChainID:           input.ChainID,
 		FollowUpDepth:     input.FollowUpDepth,
@@ -648,6 +671,27 @@ func toPersistedPublicChatTurnSnapshot(input *publicChatTurnProjectionState) *pe
 	}
 }
 
+func toPersistedPublicChatTurnSnapshotMap(input map[string]*publicChatTurnProjectionState) map[string]*persistedPublicChatTurnSnapshot {
+	if len(input) == 0 {
+		return nil
+	}
+	out := make(map[string]*persistedPublicChatTurnSnapshot, len(input))
+	for key, projection := range input {
+		trimmedKey := strings.TrimSpace(key)
+		if trimmedKey == "" && projection != nil {
+			trimmedKey = strings.TrimSpace(projection.TurnID)
+		}
+		if trimmedKey == "" || projection == nil {
+			continue
+		}
+		out[trimmedKey] = toPersistedPublicChatTurnSnapshot(projection)
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
+}
+
 func fromPersistedPublicChatTurnSnapshot(input *persistedPublicChatTurnSnapshot) *publicChatTurnProjectionState {
 	if input == nil {
 		return nil
@@ -664,6 +708,7 @@ func fromPersistedPublicChatTurnSnapshot(input *persistedPublicChatTurnSnapshot)
 		Status:            input.Status,
 		TraceID:           input.TraceID,
 		StreamSequence:    input.StreamSequence,
+		TimelineStartedAt: parseOptionalTime(input.TimelineStartedAt),
 		Origin:            input.Origin,
 		ChainID:           input.ChainID,
 		FollowUpDepth:     input.FollowUpDepth,
@@ -687,4 +732,25 @@ func fromPersistedPublicChatTurnSnapshot(input *persistedPublicChatTurnSnapshot)
 		Message:           input.Message,
 		UpdatedAt:         updatedAt,
 	}
+}
+
+func fromPersistedPublicChatTurnSnapshotMap(input map[string]*persistedPublicChatTurnSnapshot) map[string]*publicChatTurnProjectionState {
+	if len(input) == 0 {
+		return nil
+	}
+	out := make(map[string]*publicChatTurnProjectionState, len(input))
+	for key, projection := range input {
+		trimmedKey := strings.TrimSpace(key)
+		if trimmedKey == "" && projection != nil {
+			trimmedKey = strings.TrimSpace(projection.TurnID)
+		}
+		if trimmedKey == "" || projection == nil {
+			continue
+		}
+		out[trimmedKey] = fromPersistedPublicChatTurnSnapshot(projection)
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
 }

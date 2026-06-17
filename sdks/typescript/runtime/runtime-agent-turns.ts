@@ -38,6 +38,7 @@ import type {
   NimiRuntimeAgentSessionSnapshotRequest,
   NimiRuntimeAgentTurnInterruptRequest,
   NimiRuntimeAgentTurnRequest,
+  NimiRuntimeAgentTurnVoiceRenderResult,
   NimiRuntimeAgentTurnsModule,
 } from './runtime-agent-turn-runner-types';
 
@@ -47,7 +48,9 @@ const TURN_WRITE_SCOPE = 'runtime.agent.turn.write';
 const TURN_READ_SCOPE = 'runtime.agent.turn.read';
 const TURN_REQUEST_TYPE = 'runtime.agent.turn.request';
 const TURN_INTERRUPT_TYPE = 'runtime.agent.turn.interrupt';
+const TURN_VOICE_RENDER_TYPE = 'runtime.agent.turn.voice_render';
 const TURN_ROUTES = new Set(['local', 'cloud']);
+const VOICE_RENDER_TIMEOUT_MS = 1500;
 
 export interface NimiRuntimeAgentTurnsRuntime {
   readonly appId: string;
@@ -355,6 +358,75 @@ function agentEvents(
   });
 }
 
+function nonNegativeTimeoutMs(value: unknown, fallback: number): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return fallback;
+  }
+  return Math.max(0, Math.floor(value));
+}
+
+type NimiRuntimeAgentVoicePlaybackConsumeEvent = NimiRuntimeAgentConsumeEvent & {
+  readonly eventName: 'runtime.agent.presentation.voice_playback_requested';
+};
+
+async function waitForVoiceRenderProjection(
+  stream: AsyncIterable<NimiRuntimeAgentConsumeEvent>,
+  input: {
+    readonly conversationAnchorId: string;
+    readonly turnId: string;
+    readonly messageId: string;
+    readonly playbackTarget: 'desktop_manual' | 'replay';
+    readonly timeoutMs: number;
+  },
+): Promise<NimiRuntimeAgentTurnVoiceRenderResult> {
+  const iterator = stream[Symbol.asyncIterator]();
+  let timeout: ReturnType<typeof setTimeout> | null = null;
+  const timeoutPromise = new Promise<'timeout'>((resolve) => {
+    timeout = setTimeout(() => resolve('timeout'), input.timeoutMs);
+  });
+  try {
+    while (true) {
+      const next = await Promise.race([
+        iterator.next(),
+        timeoutPromise,
+      ]);
+      if (next === 'timeout') {
+        return { status: 'text_only', reason: 'voice_projection_unavailable' };
+      }
+      if (next.done) {
+        return { status: 'text_only', reason: 'voice_projection_unavailable' };
+      }
+      const event = next.value;
+      if (
+        event.eventName === 'runtime.agent.presentation.voice_playback_requested'
+        && event.conversationAnchorId === input.conversationAnchorId
+        && event.turnId === input.turnId
+        && event.detail.messageId === input.messageId
+        && event.detail.playbackTarget === input.playbackTarget
+        && typeof event.detail.audioArtifactId === 'string'
+        && event.detail.audioArtifactId.trim()
+        && typeof event.detail.audioMimeType === 'string'
+        && event.detail.audioMimeType.trim().toLowerCase().startsWith('audio/')
+      ) {
+        const voiceEvent = event as NimiRuntimeAgentVoicePlaybackConsumeEvent;
+        const audioArtifactId = event.detail.audioArtifactId;
+        const audioMimeType = event.detail.audioMimeType;
+        return {
+          status: 'ready',
+          event: voiceEvent,
+          audioArtifactId,
+          audioMimeType,
+        };
+      }
+    }
+  } finally {
+    if (timeout) {
+      clearTimeout(timeout);
+    }
+    await Promise.resolve(iterator.return?.()).catch(() => undefined);
+  }
+}
+
 function mergeAsyncIterables<T>(sources: readonly AsyncIterable<T>[]): AsyncIterable<T> {
   return {
     async *[Symbol.asyncIterator]() {
@@ -477,6 +549,64 @@ export function createNimiRuntimeAgentTurnsModule(
         }, callOptions),
       );
       return assertAccepted(response, TURN_INTERRUPT_TYPE);
+    },
+    async renderVoice(request) {
+      const identity = localIdentity(request);
+      const conversationAnchorId = requireConversationAnchorId(request.conversationAnchorId);
+      const turnId = optionalString(request.turnId);
+      const messageId = optionalString(request.messageId);
+      if (!turnId) {
+        runtimeAgentInputError('runtime agent voice render request requires turnId', 'select_committed_runtime_agent_message');
+      }
+      if (!messageId) {
+        runtimeAgentInputError('runtime agent voice render request requires messageId', 'select_committed_runtime_agent_message');
+      }
+      const playbackTarget = request.playbackTarget === 'replay' ? 'replay' : 'desktop_manual';
+      const scopedBinding = toScopedBindingAttachment(request.scopedBinding, {
+        runtimeAppId: runtime.appId,
+        localAgentRef: identity.localAgentRef,
+        conversationAnchorId,
+        worldId: request.worldId,
+      });
+      const subjectUserId = await resolveSubjectUserId(options, request.subjectUserId || identity.ownerUserId);
+      const appStream = await withTurnScopes(options, subjectUserId, [TURN_READ_SCOPE], async (callOptions) =>
+        runtime.appMessages.subscribeAppMessages({
+          appId: runtime.appId,
+          subjectUserId: scopedBinding ? '' : subjectUserId,
+          scopedBinding,
+          cursor: '',
+          fromAppIds: [RUNTIME_AGENT_APP_ID],
+        }, callOptions),
+      );
+      const payload = toNimiRuntimeProtoStruct({
+        conversation_anchor_id: conversationAnchorId,
+        turn_id: turnId,
+        message_id: messageId,
+        ...(optionalString(request.text) ? { text: optionalString(request.text) } : {}),
+        playback_target: playbackTarget,
+      });
+      const response = await withTurnScopes(options, subjectUserId, [TURN_WRITE_SCOPE], async (callOptions) =>
+        runtime.appMessages.sendAppMessage({
+          fromAppId: runtime.appId,
+          toAppId: RUNTIME_AGENT_APP_ID,
+          subjectUserId: scopedBinding ? '' : subjectUserId,
+          scopedBinding,
+          messageType: TURN_VOICE_RENDER_TYPE,
+          payload,
+          requireAck: false,
+        }, callOptions),
+      );
+      assertAccepted(response, TURN_VOICE_RENDER_TYPE);
+      return waitForVoiceRenderProjection(appMessageEvents(appStream, {
+        ...identity,
+        conversationAnchorId,
+      }), {
+        conversationAnchorId,
+        turnId,
+        messageId,
+        playbackTarget,
+        timeoutMs: nonNegativeTimeoutMs(request.timeoutMs, VOICE_RENDER_TIMEOUT_MS),
+      });
     },
     async getSessionSnapshot(request) {
       const identity = localIdentity(request);

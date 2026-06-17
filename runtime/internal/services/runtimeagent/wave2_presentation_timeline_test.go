@@ -190,6 +190,21 @@ func TestPublicChatVoiceAndLipsyncTimelinePayloadValidationRejectsMalformedInput
 	}); err == nil {
 		t.Fatalf("expected invalid voice playback state to fail closed")
 	}
+	if _, err := publicChatBuildVoiceStreamChunkDetail(publicChatVoiceStreamChunkProjection{
+		AudioArtifactID: "artifact-voice-1",
+		AudioMimeType:   syntheticVoiceMimeType,
+		ChunkSequence:   1,
+		FinalChunk:      true,
+	}); err == nil {
+		t.Fatalf("expected non-audio voice stream chunk to fail closed")
+	}
+	if _, err := publicChatBuildVoiceStreamChunkDetail(publicChatVoiceStreamChunkProjection{
+		AudioArtifactID: "artifact-voice-1",
+		AudioMimeType:   "audio/wav",
+		ChunkSequence:   0,
+	}); err == nil {
+		t.Fatalf("expected non-positive voice stream chunk sequence to fail closed")
+	}
 	if _, err := publicChatBuildLipsyncFrameBatchDetail(publicChatLipsyncFrameBatchProjection{
 		AudioArtifactID: "artifact-voice-1",
 		Frames: []publicChatLipsyncFrameProjection{
@@ -217,8 +232,12 @@ func TestPublicChatVoiceAndLipsyncTimelinePayloadValidationRejectsMalformedInput
 	}
 }
 
-func requirePublicChatTimelineEnvelope(t *testing.T, payload map[string]any, turnID string, streamID string, channel string) {
+func requirePublicChatTimelineEnvelope(t *testing.T, payload map[string]any, turnID string, streamID string, channel string, expectedRuleID ...string) {
 	t.Helper()
+	ruleID := "K-AGCORE-051"
+	if len(expectedRuleID) > 0 && strings.TrimSpace(expectedRuleID[0]) != "" {
+		ruleID = strings.TrimSpace(expectedRuleID[0])
+	}
 	timeline, ok := payload["timeline"].(map[string]any)
 	if !ok {
 		t.Fatalf("expected runtime timeline envelope on payload=%v", payload)
@@ -235,8 +254,8 @@ func requirePublicChatTimelineEnvelope(t *testing.T, payload map[string]any, tur
 	if got := strings.TrimSpace(timeline["timebase_owner"].(string)); got != "runtime" {
 		t.Fatalf("expected runtime timebase owner, got %s", got)
 	}
-	if got := strings.TrimSpace(timeline["projection_rule_id"].(string)); got != "K-AGCORE-051" {
-		t.Fatalf("expected K-AGCORE-051 projection rule, got %s", got)
+	if got := strings.TrimSpace(timeline["projection_rule_id"].(string)); got != ruleID {
+		t.Fatalf("expected %s projection rule, got %s", ruleID, got)
 	}
 	if got := strings.TrimSpace(timeline["clock_basis"].(string)); got != "monotonic_with_wall_anchor" {
 		t.Fatalf("expected monotonic_with_wall_anchor clock basis, got %s", got)

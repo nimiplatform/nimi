@@ -37,6 +37,7 @@ surfaces:
   - runtime.agent.presentation.pose_cleared
   - runtime.agent.presentation.lookat_requested
   - runtime.agent.presentation.voice_playback_requested
+  - runtime.agent.presentation.voice_stream_chunk_available
   - runtime.agent.presentation.lipsync_frame_batch
   - runtime.agent.state.status_text_changed
   - runtime.agent.state.execution_state_changed
@@ -347,14 +348,41 @@ presentation_events:
     detail:
       audio_artifact_id: string
       audio_mime_type: string
+      message_id: string
       playback_state: enum(requested|started|completed|interrupted|canceled|failed)
       duration_ms: int_optional
       deadline_offset_ms: int_optional
       reason: string_optional
+      playback_target: enum(avatar_autoplay|desktop_manual|replay)_optional
+      final_artifact: bool_optional
     notes:
       - audio_artifact_id is runtime-owned artifact identity; provider/model
         timing metadata is not timeline authority.
       - timeline must use turn_envelope.timeline fixed values and channel=voice.
+      - requested/started/completed states that ask a consumer to play audio must
+        reference a playable audio/* artifact; text-only fallback must not emit a
+        pseudo playable request.
+      - playback_target records Runtime-owned target policy, not app-owned route
+        selection.
+  - event: runtime.agent.presentation.voice_stream_chunk_available
+    source_rule: K-AGCORE-133
+    timeline_channel: voice
+    detail:
+      audio_artifact_id: string
+      audio_mime_type: string
+      message_id: string
+      chunk_sequence: positive_int
+      final_chunk: bool
+      duration_ms: int_optional
+      reason: string_optional
+      playback_target: enum(avatar_autoplay|desktop_manual|replay)_optional
+    notes:
+      - chunk_sequence must be monotonic within the turn_id/stream_id voice
+        stream.
+      - audio_artifact_id must reference playable audio bytes for this chunk and
+        must not be reused for lipsync metadata.
+      - raw audio bytes are not embedded in this event; consumers read bytes
+        through Runtime artifact or an admitted SDK streaming surface.
   - event: runtime.agent.presentation.lipsync_frame_batch
     source_rule: K-AGCORE-051
     timeline_channel: lipsync

@@ -35,6 +35,7 @@ import {
   type RuntimeAgentConsumeEvent,
   type RuntimeAgentSessionSnapshot,
 } from './sdk-driver-event-helpers.js';
+import { isKnownActivityId } from '../nas/activity-naming.js';
 
 type InternalEvents = {
   'agent-event': AgentEvent;
@@ -457,6 +458,9 @@ export class SdkDriver implements AgentDataDriver {
       case 'runtime.agent.presentation.activity_requested': {
         const timestampNow = this.now();
         const activityName = requireRuntimeDetailText(event.detail.activityName, 'runtime activity name');
+        if (!isKnownActivityId(activityName)) {
+          return;
+        }
         const category = requireRuntimeActivityCategory(event.detail.category);
         const intensity = requireRuntimeActivityIntensity(event.detail.intensity);
         const runtimeSource = requireRuntimeProjectionSource(event.detail.source, 'runtime activity projection');
@@ -667,6 +671,7 @@ export class SdkDriver implements AgentDataDriver {
       case 'runtime.agent.presentation.pose_cleared':
       case 'runtime.agent.presentation.lookat_requested':
       case 'runtime.agent.presentation.voice_playback_requested':
+      case 'runtime.agent.presentation.voice_stream_chunk_available':
       case 'runtime.agent.hook.intent_proposed':
       case 'runtime.agent.hook.pending':
       case 'runtime.agent.hook.rejected':

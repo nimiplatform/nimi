@@ -100,6 +100,70 @@ func TestStreamScenarioSpeechSynthesizeSuccess(t *testing.T) {
 	}
 }
 
+func TestStreamScenarioSpeechSynthesizeLocalRouteUsesAssetLease(t *testing.T) {
+	payload := []byte("speech-audio-payload")
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/audio/speech" {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "audio/mpeg")
+		_, _ = w.Write(payload)
+	}))
+	defer func() { server.Close() }()
+
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	svc.SetLocalProviderEndpoint("speech", server.URL+"/v1", "")
+	localModels := &fakeLocalModelLister{
+		responses: repeatedLocalAssetResponses(4, &runtimev1.LocalAssetRecord{
+			LocalAssetId: "local-speech-tts",
+			AssetId:      "speech/qwen3tts",
+			Engine:       "speech",
+			Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+			Capabilities: []string{"audio.synthesize"},
+		}),
+	}
+	svc.localModel = localModels
+	stream := &mockScenarioEventStream{ctx: context.Background()}
+	req := &runtimev1.StreamScenarioRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         "nimi.desktop",
+			SubjectUserId: "user-001",
+			ModelId:       "speech/qwen3tts",
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     30_000,
+		},
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_STREAM,
+		Spec: &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{
+				SpeechSynthesize: &runtimev1.SpeechSynthesizeScenarioSpec{
+					Text: "hello world",
+				},
+			},
+		},
+	}
+
+	if err := svc.StreamScenario(req, stream); err != nil {
+		t.Fatalf("stream scenario speech synthesize: %v", err)
+	}
+	wantAcquire := "acquire:local-speech-tts:stream_speech_synthesize_request"
+	wantRelease := "release:local-speech-tts:stream_speech_synthesize_request_cleanup"
+	if !testStringSliceContains(localModels.leaseCalls, wantAcquire) || !testStringSliceContains(localModels.leaseCalls, wantRelease) {
+		t.Fatalf("expected local speech lease acquire/release, got %#v", localModels.leaseCalls)
+	}
+}
+
+func testStringSliceContains(values []string, target string) bool {
+	for _, value := range values {
+		if value == target {
+			return true
+		}
+	}
+	return false
+}
+
 func TestStreamScenarioSpeechSynthesizeValidation(t *testing.T) {
 	// K-STREAM-002: pre-stream validation failures return a gRPC error without emitting stream events.
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))

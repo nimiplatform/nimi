@@ -1,6 +1,6 @@
 import { CoreClient, type CoreClientOptions, type CoreTransport } from '../core-client';
 import { RealmTypedClient } from '../core-generated/realm-typed-client';
-import { createNimiError } from '../types';
+import { createNimiError, type CoreMetadata, type CoreResponseMetadataObserver } from '../types';
 
 export type { CoreClientOptions, CoreTransport };
 export {
@@ -517,6 +517,30 @@ export type RealmNotificationModule = RealmMethodModule<typeof REALM_NOTIFICATIO
 export type RealmWorldModule = RealmMethodModule<typeof REALM_WORLD_METHODS>;
 
 export interface RealmOptions extends CoreClientOptions {}
+
+export interface RealmCoreOperationInput<Body = unknown> {
+  readonly operationId: string;
+  readonly body: Body;
+  readonly metadata?: CoreMetadata;
+  readonly timeoutMs?: number;
+  readonly signal?: AbortSignal;
+  readonly responseMetadataObserver?: CoreResponseMetadataObserver;
+}
+
+export class RealmCore {
+  constructor(readonly core: CoreClient) {}
+
+  operation<Response = unknown, Body = unknown>(input: RealmCoreOperationInput<Body>): Promise<Response> {
+    return this.core.unary<Response, Body>({
+      methodId: input.operationId,
+      body: input.body,
+      metadata: input.metadata,
+      timeoutMs: input.timeoutMs,
+      signal: input.signal,
+      responseMetadataObserver: input.responseMetadataObserver,
+    });
+  }
+}
 
 export class Realm {
   readonly core: CoreClient;

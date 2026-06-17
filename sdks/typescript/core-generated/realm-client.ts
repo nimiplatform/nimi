@@ -544,7 +544,7 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "operationId": "ForgeProductCatalogController_getAgentCandidates",
     "service": "Forge World Products",
     "method": "GET",
-    "path": "/api/world-products/{slug}/agent-candidates"
+    "path": "/api/world-products/by-slug/{slug}/agent-candidates"
   },
   {
     "operationId": "ForgeProductCatalogController_getCatalog",
@@ -556,25 +556,25 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "operationId": "ForgeProductCatalogController_getProduct",
     "service": "Forge World Products",
     "method": "GET",
-    "path": "/api/world-products/{slug}"
+    "path": "/api/world-products/by-slug/{slug}"
   },
   {
     "operationId": "ForgeProductCatalogController_getProductShard",
     "service": "Forge World Products",
     "method": "GET",
-    "path": "/api/world-products/{slug}/shards/{kind}"
+    "path": "/api/world-products/by-slug/{slug}/shards/by-kind/{kind}"
   },
   {
     "operationId": "ForgeProductCatalogController_getProductShardIndex",
     "service": "Forge World Products",
     "method": "GET",
-    "path": "/api/world-products/{slug}/shards"
+    "path": "/api/world-products/by-slug/{slug}/shards"
   },
   {
     "operationId": "ForgeProductCatalogController_verifyProductShards",
     "service": "Forge World Products",
     "method": "GET",
-    "path": "/api/world-products/{slug}/shards/integrity"
+    "path": "/api/world-products/by-slug/{slug}/shards/integrity"
   },
   {
     "operationId": "getAgent",

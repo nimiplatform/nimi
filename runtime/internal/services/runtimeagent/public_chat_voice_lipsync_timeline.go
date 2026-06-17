@@ -11,15 +11,19 @@ import (
 
 const (
 	publicChatPresentationVoicePlaybackRequestedType = "runtime.agent.presentation.voice_playback_requested"
+	publicChatPresentationVoiceStreamChunkType       = "runtime.agent.presentation.voice_stream_chunk_available"
 	publicChatPresentationLipsyncFrameBatchType      = "runtime.agent.presentation.lipsync_frame_batch"
 )
 
 type publicChatVoicePlaybackProjection struct {
 	AudioArtifactID       string
 	AudioMimeType         string
+	MessageID             string
 	DurationMs            int64
 	DeadlineOffsetMs      int64
 	PlaybackState         string
+	PlaybackTarget        string
+	FinalArtifact         bool
 	Reason                string
 	DefaultVoiceReference string
 	VoiceRouteBinding     *voiceRouteBindingProjection
@@ -33,6 +37,17 @@ type publicChatLipsyncFrameProjection struct {
 	AudioLevel    float64
 }
 
+type publicChatVoiceStreamChunkProjection struct {
+	AudioArtifactID string
+	AudioMimeType   string
+	MessageID       string
+	ChunkSequence   uint64
+	FinalChunk      bool
+	DurationMs      int64
+	Reason          string
+	PlaybackTarget  string
+}
+
 type publicChatLipsyncFrameBatchProjection struct {
 	AudioArtifactID string
 	Frames          []publicChatLipsyncFrameProjection
@@ -43,6 +58,9 @@ func publicChatBuildVoicePlaybackDetail(input publicChatVoicePlaybackProjection)
 	audioMimeType := strings.TrimSpace(input.AudioMimeType)
 	if audioArtifactID == "" || audioMimeType == "" {
 		return nil, status.Error(codes.FailedPrecondition, "runtime.agent.presentation.voice_playback_requested requires runtime-owned audio identity")
+	}
+	if !isPlayableAudioMimeType(audioMimeType) {
+		return nil, status.Error(codes.FailedPrecondition, "runtime.agent.presentation.voice_playback_requested requires playable audio artifact")
 	}
 	if input.DurationMs < 0 || input.DeadlineOffsetMs < 0 {
 		return nil, status.Error(codes.InvalidArgument, "runtime.agent.presentation.voice_playback_requested duration/deadline must be non-negative")
@@ -58,6 +76,20 @@ func publicChatBuildVoicePlaybackDetail(input publicChatVoicePlaybackProjection)
 		"audio_mime_type":   audioMimeType,
 		"playback_state":    playbackState,
 	}
+	if messageID := strings.TrimSpace(input.MessageID); messageID != "" {
+		detail["message_id"] = messageID
+	}
+	if target := strings.TrimSpace(input.PlaybackTarget); target != "" {
+		switch target {
+		case "avatar_autoplay", "desktop_manual", "replay":
+			detail["playback_target"] = target
+		default:
+			return nil, status.Error(codes.InvalidArgument, "runtime.agent.presentation.voice_playback_requested playback_target invalid")
+		}
+	}
+	if input.FinalArtifact {
+		detail["final_artifact"] = true
+	}
 	if input.DurationMs > 0 {
 		detail["duration_ms"] = input.DurationMs
 	}
@@ -72,6 +104,47 @@ func publicChatBuildVoicePlaybackDetail(input publicChatVoicePlaybackProjection)
 	}
 	if binding := publicChatVoiceRouteBindingDetail(input.VoiceRouteBinding); binding != nil {
 		detail["voice_route_binding"] = binding
+	}
+	return detail, nil
+}
+
+func publicChatBuildVoiceStreamChunkDetail(input publicChatVoiceStreamChunkProjection) (map[string]any, error) {
+	audioArtifactID := strings.TrimSpace(input.AudioArtifactID)
+	audioMimeType := strings.TrimSpace(input.AudioMimeType)
+	if audioArtifactID == "" || audioMimeType == "" {
+		return nil, status.Error(codes.FailedPrecondition, "runtime.agent.presentation.voice_stream_chunk_available requires runtime-owned audio identity")
+	}
+	if !isPlayableAudioMimeType(audioMimeType) {
+		return nil, status.Error(codes.FailedPrecondition, "runtime.agent.presentation.voice_stream_chunk_available requires playable audio artifact")
+	}
+	if input.ChunkSequence == 0 {
+		return nil, status.Error(codes.InvalidArgument, "runtime.agent.presentation.voice_stream_chunk_available chunk_sequence must be positive")
+	}
+	if input.DurationMs < 0 {
+		return nil, status.Error(codes.InvalidArgument, "runtime.agent.presentation.voice_stream_chunk_available duration must be non-negative")
+	}
+	detail := map[string]any{
+		"audio_artifact_id": audioArtifactID,
+		"audio_mime_type":   audioMimeType,
+		"chunk_sequence":    int64(input.ChunkSequence),
+		"final_chunk":       input.FinalChunk,
+	}
+	if messageID := strings.TrimSpace(input.MessageID); messageID != "" {
+		detail["message_id"] = messageID
+	}
+	if input.DurationMs > 0 {
+		detail["duration_ms"] = input.DurationMs
+	}
+	if reason := strings.TrimSpace(input.Reason); reason != "" {
+		detail["reason"] = reason
+	}
+	if target := strings.TrimSpace(input.PlaybackTarget); target != "" {
+		switch target {
+		case "avatar_autoplay", "desktop_manual", "replay":
+			detail["playback_target"] = target
+		default:
+			return nil, status.Error(codes.InvalidArgument, "runtime.agent.presentation.voice_stream_chunk_available playback_target invalid")
+		}
 	}
 	return detail, nil
 }
@@ -174,6 +247,14 @@ func (r publicChatRuntime) emitVoicePlaybackTimelineEvent(session publicChatAnch
 	return r.emitTimelineEventForChannel(session, turn.TurnID, publicChatPresentationVoicePlaybackRequestedType, publicChatTimelineChannelVoice, detail)
 }
 
+func (r publicChatRuntime) emitVoiceStreamChunkTimelineEvent(session publicChatAnchorState, turn publicChatTurnState, input publicChatVoiceStreamChunkProjection) error {
+	detail, err := publicChatBuildVoiceStreamChunkDetail(input)
+	if err != nil {
+		return err
+	}
+	return r.emitTimelineEventForChannel(session, turn.TurnID, publicChatPresentationVoiceStreamChunkType, publicChatTimelineChannelVoice, detail)
+}
+
 func (r publicChatRuntime) emitLipsyncFrameBatchTimelineEvent(session publicChatAnchorState, turn publicChatTurnState, input publicChatLipsyncFrameBatchProjection) error {
 	detail, err := publicChatBuildLipsyncFrameBatchDetail(input)
 	if err != nil {
@@ -193,6 +274,7 @@ func (r publicChatRuntime) emitTimelineEventForChannel(session publicChatAnchorS
 	if err != nil {
 		return err
 	}
+	timeline["projection_rule_id"] = publicChatProjectionRuleIDForTimelineMessage(messageType)
 	out := map[string]any{
 		"agent_id":               session.AgentID,
 		"conversation_anchor_id": session.ConversationAnchorID,
@@ -202,4 +284,11 @@ func (r publicChatRuntime) emitTimelineEventForChannel(session publicChatAnchorS
 		"detail":                 detail,
 	}
 	return r.emitEvent(session.CallerAppID, session.SubjectUserID, messageType, out)
+}
+
+func publicChatProjectionRuleIDForTimelineMessage(messageType string) string {
+	if strings.TrimSpace(messageType) == publicChatPresentationVoiceStreamChunkType {
+		return "K-AGCORE-133"
+	}
+	return "K-AGCORE-051"
 }

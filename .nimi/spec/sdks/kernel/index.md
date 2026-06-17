@@ -15,5 +15,8 @@ Current scope:
 - Adapter public package names are not decided by source-root files.
 - `realm-core-contract.md` owns Realm generated core authority for the SDK
   family.
+- `realm-api-consumer-contract.md` owns Nimi's external `<nimi-realm>` API
+  consumer boundary; it forbids mirroring Realm authority under
+  `.nimi/spec/realm/**`.
 - `runtime-agent-participation-contract.md` owns the vNext SDK-facing Runtime
   Agent Participation method projection gate.

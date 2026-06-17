@@ -276,6 +276,13 @@ pub(crate) struct AgentCenterLocalHistoryModule {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
+pub(crate) struct AgentCenterVoiceModule {
+    pub schema_version: u8,
+    pub avatar_autoplay: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(crate) struct AgentCenterUiModule {
     pub schema_version: u8,
     pub last_section: AgentCenterSectionId,
@@ -287,6 +294,7 @@ pub(crate) struct AgentCenterLocalConfigModules {
     pub appearance: AgentCenterAppearanceModule,
     pub avatar_asset: AgentCenterAvatarAssetModule,
     pub local_history: AgentCenterLocalHistoryModule,
+    pub voice: AgentCenterVoiceModule,
     pub ui: AgentCenterUiModule,
 }
 

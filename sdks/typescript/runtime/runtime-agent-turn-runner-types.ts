@@ -76,6 +76,30 @@ export type NimiRuntimeAgentTurnInterruptRequest = RuntimeLocalAgentIdentityInpu
   readonly scopedBinding?: ScopedRuntimeBindingAttachment;
 };
 
+export type NimiRuntimeAgentTurnVoiceRenderRequest = RuntimeLocalAgentIdentityInput & {
+  readonly conversationAnchorId: string;
+  readonly turnId: string;
+  readonly messageId: string;
+  readonly text?: string;
+  readonly playbackTarget?: 'desktop_manual' | 'replay';
+  readonly subjectUserId?: string;
+  readonly worldId?: string;
+  readonly timeoutMs?: number;
+  readonly scopedBinding?: ScopedRuntimeBindingAttachment;
+};
+
+export type NimiRuntimeAgentTurnVoiceRenderResult =
+  | {
+    readonly status: 'ready';
+    readonly event: NimiRuntimeAgentConsumeEvent & { readonly eventName: 'runtime.agent.presentation.voice_playback_requested' };
+    readonly audioArtifactId: string;
+    readonly audioMimeType: string;
+  }
+  | {
+    readonly status: 'text_only';
+    readonly reason: 'voice_projection_unavailable';
+  };
+
 export type NimiRuntimeAgentConsumeRequest = RuntimeLocalAgentIdentityInput & {
   readonly conversationAnchorId?: string;
   readonly subjectUserId?: string;
@@ -101,6 +125,9 @@ export type NimiRuntimeAgentTurnsModule = {
   interrupt(
     request: NimiRuntimeAgentTurnInterruptRequest,
   ): Promise<SendAppMessageResponse>;
+  renderVoice(
+    request: NimiRuntimeAgentTurnVoiceRenderRequest,
+  ): Promise<NimiRuntimeAgentTurnVoiceRenderResult>;
   getSessionSnapshot(
     request: NimiRuntimeAgentSessionSnapshotRequest,
   ): Promise<NimiRuntimeAgentSessionSnapshot>;

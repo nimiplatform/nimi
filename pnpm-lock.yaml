@@ -528,6 +528,9 @@ importers:
       three:
         specifier: ^0.184.0
         version: 0.184.0
+      wlipsync:
+        specifier: ^1.3.0
+        version: 1.3.0
       zod:
         specifier: 4.4.3
         version: 4.4.3

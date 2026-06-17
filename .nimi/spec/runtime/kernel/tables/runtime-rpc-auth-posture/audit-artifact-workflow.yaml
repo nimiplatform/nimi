@@ -22,6 +22,7 @@ surfaces:
   - methods_10
   - methods_11
   - methods_12
+  - methods_13
 description: Audit, artifact, and workflow posture entries.
 services:
   - RuntimeAuditService
@@ -31,6 +32,12 @@ methods:
   - method_id: /nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes
     posture: anonymous_read
     rationale: pure id-based artifact byte read; no JWT validation, no owner gate
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeArtifactService/CleanupGeneratedVoiceArtifacts
+    posture: anonymous_read
+    rationale: machine-local generated voice artifact cleanup; no JWT validation, no Realm-subject-bound write side effect
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
@@ -106,4 +113,3 @@ methods:
       - K-AUTH-001
       - K-AUTH-002
       - K-AUTH-006
-

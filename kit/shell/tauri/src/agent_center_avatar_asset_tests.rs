@@ -221,6 +221,10 @@ fn write_local_avatar_asset_config(
                 "provenance": { "source": "test" }
             },
             "local_history": { "schema_version": 1 },
+            "voice": {
+                "schema_version": 1,
+                "avatar_autoplay": false
+            },
             "ui": { "schema_version": 1 }
         }
     });

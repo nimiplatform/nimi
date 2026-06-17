@@ -90,8 +90,8 @@ describe('NAS creator runtime examples', () => {
     const result = await populateRegistry(registry, {
       nimiDir: fixtureNimiDir,
       activity: [{
-        file_stem: 'malformed_missing_execute',
-        absolute_path: fixturePath('activity/malformed_missing_execute.js'),
+        file_stem: 'focused',
+        absolute_path: fixturePath('activity/focused.js'),
       }],
       event: [],
       continuous: [],
@@ -99,6 +99,6 @@ describe('NAS creator runtime examples', () => {
     });
 
     expect(result.validationErrors.join('\n')).toContain('missing execute');
-    expect(registry.activity.has('malformed_missing_execute')).toBe(false);
+    expect(registry.activity.has('focused')).toBe(false);
   });
 });

@@ -621,9 +621,12 @@ test('Runtime Agent consume app-message projection covers state hook presentatio
       conversation_anchor_id: 'anchor-1',
       turn_id: 'turn-1',
       stream_id: 'stream-1',
+      message_id: 'message-1',
       audio_artifact_id: 'artifact-1',
       audio_mime_type: 'audio/wav',
       playback_state: 'queued',
+      playback_target: 'avatar_autoplay',
+      final_artifact: true,
       default_voice_reference: 'preset_voice_id:zh_narrator',
       voice_route_binding: {
         capability: 'audio.synthesize',
@@ -663,6 +666,9 @@ test('Runtime Agent consume app-message projection covers state hook presentatio
   assert.equal(hook?.eventName, 'runtime.agent.hook.pending');
   assert.deepEqual(hook?.detail.triggerDetail, { tool: 'search' });
   assert.equal(voice?.detail.audioArtifactId, 'artifact-1');
+  assert.equal(voice?.detail.messageId, 'message-1');
+  assert.equal(voice?.detail.playbackTarget, 'avatar_autoplay');
+  assert.equal(voice?.detail.finalArtifact, true);
   assert.deepEqual(voice?.detail.voiceRouteBinding, {
     capability: 'audio.synthesize',
     defaultVoiceReference: 'preset_voice_id:zh_narrator',
@@ -678,9 +684,52 @@ test('Runtime Agent consume app-message projection covers state hook presentatio
     reason: 'tts_provider_route_bound',
   });
   assert.equal(voice?.timeline?.channel, 'voice');
-  assert.equal(projectNimiRuntimeAgentAppMessageEvent({
+  const voiceChunk = projectNimiRuntimeAgentAppMessageEvent({
     eventType: 0,
     sequence: '4',
+    fromAppId: 'runtime.agent',
+    toAppId: 'nimi.avatar',
+    subjectUserId: 'owner-1',
+    messageType: 'runtime.agent.presentation.voice_stream_chunk_available',
+    payload: toNimiRuntimeProtoStruct({
+      local_agent_ref: 'local-agent:owner-1:agent-1',
+      conversation_anchor_id: 'anchor-1',
+      turn_id: 'turn-1',
+      stream_id: 'stream-1',
+      message_id: 'message-1',
+      audio_artifact_id: 'artifact-1',
+      audio_mime_type: 'audio/wav',
+      chunk_sequence: 1,
+      final_chunk: true,
+      duration_ms: 1200,
+      reason: 'final_artifact_available',
+      playback_target: 'avatar_autoplay',
+      runtime_timeline: {
+        turn_id: 'turn-1',
+        stream_id: 'stream-1',
+        channel: 'voice',
+        offset_ms: 13,
+        sequence: 2,
+        started_at_wall: '2026-06-05T00:00:00.000Z',
+        observed_at_wall: '2026-06-05T00:00:00.013Z',
+        timebase_owner: 'runtime',
+        projection_rule_id: 'K-AGCORE-133',
+        clock_basis: 'monotonic_with_wall_anchor',
+        provider_neutral: true,
+        app_local_authority: false,
+      },
+    }),
+  });
+  assert.equal(voiceChunk?.eventName, 'runtime.agent.presentation.voice_stream_chunk_available');
+  assert.equal(voiceChunk?.detail.audioArtifactId, 'artifact-1');
+  assert.equal(voiceChunk?.detail.messageId, 'message-1');
+  assert.equal(voiceChunk?.detail.chunkSequence, 1);
+  assert.equal(voiceChunk?.detail.finalChunk, true);
+  assert.equal(voiceChunk?.detail.playbackTarget, 'avatar_autoplay');
+  assert.equal(voiceChunk?.timeline?.projectionRuleId, 'K-AGCORE-133');
+  assert.equal(projectNimiRuntimeAgentAppMessageEvent({
+    eventType: 0,
+    sequence: '5',
     fromAppId: 'runtime.agent',
     toAppId: 'nimi.avatar',
     subjectUserId: 'owner-1',
@@ -690,7 +739,7 @@ test('Runtime Agent consume app-message projection covers state hook presentatio
   assert.throws(
     () => projectNimiRuntimeAgentAppMessageEvent({
       eventType: 0,
-      sequence: '5',
+      sequence: '6',
       fromAppId: 'runtime.agent',
       toAppId: 'nimi.avatar',
       subjectUserId: 'owner-1',

@@ -178,7 +178,10 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 		return nil, fmt.Errorf("ensure cloud connectors: %w", err)
 	}
 
-	artifactStore := runtimeartifactservice.NewMemoryStore()
+	artifactStore, err := runtimeartifactservice.NewDiskStoreForLocalStatePath(cfg.LocalStatePath)
+	if err != nil {
+		return nil, fmt.Errorf("init runtime artifact store: %w", err)
+	}
 	aiSvc, err := aiservice.New(logger, modelRegistry, aiHealth, auditStore, connStore, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("init ai service: %w", err)

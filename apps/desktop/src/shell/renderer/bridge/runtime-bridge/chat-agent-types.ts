@@ -25,6 +25,7 @@ export type AgentLocalTargetSnapshot = {
   avatarUrl: string | null;
   defaultVoiceReference?: string | null;
   speechSynthesis?: AgentSpeechSynthesisRoute | null;
+  avatarAutoplay?: boolean | null;
   presentationProfile?: AvatarPresentationProfile | null;
   worldId: string | null;
   worldName: string | null;

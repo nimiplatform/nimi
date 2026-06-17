@@ -79,8 +79,8 @@ test('group rendering wires avatar renderers and sender labels through transcrip
 
   assert.match(groupModeSource, /const transcriptProps = useGroupCanonicalTranscriptProps\(\);/);
   assert.match(groupModeSource, /const stagePanelProps = useGroupCanonicalStagePanelProps\(\);/);
-  assert.match(groupModeSource, /transcriptProps=\{transcriptProps\}/);
-  assert.match(groupModeSource, /stagePanelProps=\{stagePanelProps\}/);
+  assert.match(groupModeSource, /transcriptPropsOverride=\{transcriptProps\}/);
+  assert.match(groupModeSource, /stagePanelPropsOverride=\{stagePanelProps\}/);
   assert.match(canonicalComponentsSource, /EntityAvatar/);
   assert.match(canonicalComponentsSource, /kind=\{senderKind\}/);
 });

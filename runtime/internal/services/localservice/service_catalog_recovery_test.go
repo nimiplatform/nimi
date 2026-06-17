@@ -438,8 +438,10 @@ func TestProbeLocalModelEndpointJoinsConcurrentSameAssetProbe(t *testing.T) {
 	}
 }
 
-func TestLocalRecoverySweepManagedSpeechProjectsColdAfterThreshold(t *testing.T) {
+func TestLocalRecoverySweepDoesNotBootstrapColdManagedSpeech(t *testing.T) {
+	probeCalls := 0
 	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
+		probeCalls++
 		return endpointProbeResult{
 			healthy:   true,
 			responded: true,
@@ -474,17 +476,7 @@ func TestLocalRecoverySweepManagedSpeechProjectsColdAfterThreshold(t *testing.T)
 		t.Fatalf("seed supervised speech unhealthy state: %v", err)
 	}
 
-	for i := 1; i <= 2; i++ {
-		if i > 1 {
-			svc.mu.Lock()
-			state := svc.assetProbeState[installed.GetLocalAssetId()]
-			if state == nil {
-				svc.mu.Unlock()
-				t.Fatal("expected speech probe state to exist")
-			}
-			state.lastProbeAt = time.Now().UTC().Add(-localRecoveryDefaultProbeInterval)
-			svc.mu.Unlock()
-		}
+	for i := 1; i <= 3; i++ {
 		svc.runRecoverySweep(context.Background())
 
 		current := svc.modelByID(installed.GetLocalAssetId())
@@ -498,29 +490,11 @@ func TestLocalRecoverySweepManagedSpeechProjectsColdAfterThreshold(t *testing.T)
 			t.Fatalf("speech recovery sweep #%d warm_state = %s, want FAILED", i, current.GetWarmState())
 		}
 	}
-
-	svc.mu.Lock()
-	state := svc.assetProbeState[installed.GetLocalAssetId()]
-	if state == nil {
-		svc.mu.Unlock()
-		t.Fatal("expected speech probe state before final sweep")
+	if probeCalls != 0 {
+		t.Fatalf("recovery sweep must not probe or bootstrap cold managed speech, got %d probes", probeCalls)
 	}
-	state.lastProbeAt = time.Now().UTC().Add(-localRecoveryDefaultProbeInterval)
-	svc.mu.Unlock()
-	svc.runRecoverySweep(context.Background())
-
-	current := svc.modelByID(installed.GetLocalAssetId())
-	if current == nil {
-		t.Fatal("speech asset should still exist")
-	}
-	if current.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
-		t.Fatalf("speech recovery sweep final status = %s, want ACTIVE", current.GetStatus())
-	}
-	if current.GetWarmState() != runtimev1.LocalWarmState_LOCAL_WARM_STATE_COLD {
-		t.Fatalf("speech recovery sweep final warm_state = %s, want COLD", current.GetWarmState())
-	}
-	if current.GetHealthDetail() != managedLocalModelColdDetail() {
-		t.Fatalf("speech recovery sweep final detail = %q", current.GetHealthDetail())
+	if state := svc.assetProbeState[installed.GetLocalAssetId()]; state != nil {
+		t.Fatalf("cold managed speech recovery must not create probe state, got %+v", state)
 	}
 }
 
@@ -601,11 +575,11 @@ func TestListLocalAssetsManagedSpeechDoesNotProbeOrMutateState(t *testing.T) {
 	if stored.GetWarmState() != runtimev1.LocalWarmState_LOCAL_WARM_STATE_COLD {
 		t.Fatalf("stored warm_state after recovery sweep = %s, want COLD", stored.GetWarmState())
 	}
-	if !strings.Contains(stored.GetHealthDetail(), "connection refused") {
-		t.Fatalf("stored detail after recovery sweep = %q, want probe failure detail", stored.GetHealthDetail())
+	if stored.GetHealthDetail() != managedLocalModelColdDetail() {
+		t.Fatalf("stored detail after recovery sweep = %q, want cold detail", stored.GetHealthDetail())
 	}
-	if probeCalls != 1 {
-		t.Fatalf("recovery sweep should own the single managed speech probe, got %d probe calls", probeCalls)
+	if probeCalls != 0 {
+		t.Fatalf("recovery sweep must not probe cold managed speech, got %d probe calls", probeCalls)
 	}
 }
 
@@ -668,8 +642,8 @@ func TestListLocalAssetsDoesNotDriveManagedSpeechRecovery(t *testing.T) {
 	}
 
 	svc.runRecoverySweep(context.Background())
-	if probeCalls != 1 {
-		t.Fatalf("recovery sweep should perform first managed speech probe, got %d", probeCalls)
+	if probeCalls != 0 {
+		t.Fatalf("recovery sweep must not probe or bootstrap cold managed speech, got %d", probeCalls)
 	}
 	current := svc.modelByID(installed.GetLocalAssetId())
 	if current == nil {
@@ -677,6 +651,9 @@ func TestListLocalAssetsDoesNotDriveManagedSpeechRecovery(t *testing.T) {
 	}
 	if current.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
 		t.Fatalf("first recovery sweep status = %s, want UNHEALTHY", current.GetStatus())
+	}
+	if state := svc.assetProbeState[installed.GetLocalAssetId()]; state != nil {
+		t.Fatalf("cold managed speech recovery must not create probe state, got %+v", state)
 	}
 }
 

@@ -58,6 +58,40 @@ export interface ReadArtifactBytesResponse {
      */
     mimeInferred: boolean;
 }
+/**
+ * @generated from protobuf message nimi.runtime.v1.CleanupGeneratedVoiceArtifactsRequest
+ */
+export interface CleanupGeneratedVoiceArtifactsRequest {
+    /**
+     * Generated voice artifacts for this runtime agent id.
+     *
+     * @generated from protobuf field: string agent_id = 1
+     */
+    agentId: string;
+    /**
+     * Generated voice artifacts scoped to this conversation anchor.
+     *
+     * @generated from protobuf field: string conversation_anchor_id = 2
+     */
+    conversationAnchorId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.CleanupGeneratedVoiceArtifactsResponse
+ */
+export interface CleanupGeneratedVoiceArtifactsResponse {
+    /**
+     * Number of generated voice artifacts deleted by this call.
+     *
+     * @generated from protobuf field: int32 deleted_count = 1
+     */
+    deletedCount: number;
+    /**
+     * Runtime artifact ids removed by this call.
+     *
+     * @generated from protobuf field: repeated string deleted_artifact_ids = 2
+     */
+    deletedArtifactIds: string[];
+}
 // @generated message type with reflection information, may provide speed optimized methods
 class ReadArtifactBytesRequest$Type extends MessageType<ReadArtifactBytesRequest> {
     constructor() {
@@ -176,3 +210,113 @@ class ReadArtifactBytesResponse$Type extends MessageType<ReadArtifactBytesRespon
  * @generated MessageType for protobuf message nimi.runtime.v1.ReadArtifactBytesResponse
  */
 export const ReadArtifactBytesResponse = new ReadArtifactBytesResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class CleanupGeneratedVoiceArtifactsRequest$Type extends MessageType<CleanupGeneratedVoiceArtifactsRequest> {
+    constructor() {
+        super("nimi.runtime.v1.CleanupGeneratedVoiceArtifactsRequest", [
+            { no: 1, name: "agent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "conversation_anchor_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<CleanupGeneratedVoiceArtifactsRequest>): CleanupGeneratedVoiceArtifactsRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.agentId = "";
+        message.conversationAnchorId = "";
+        if (value !== undefined)
+            reflectionMergePartial<CleanupGeneratedVoiceArtifactsRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: CleanupGeneratedVoiceArtifactsRequest): CleanupGeneratedVoiceArtifactsRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string agent_id */ 1:
+                    message.agentId = reader.string();
+                    break;
+                case /* string conversation_anchor_id */ 2:
+                    message.conversationAnchorId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: CleanupGeneratedVoiceArtifactsRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string agent_id = 1; */
+        if (message.agentId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.agentId);
+        /* string conversation_anchor_id = 2; */
+        if (message.conversationAnchorId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.conversationAnchorId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.CleanupGeneratedVoiceArtifactsRequest
+ */
+export const CleanupGeneratedVoiceArtifactsRequest = new CleanupGeneratedVoiceArtifactsRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class CleanupGeneratedVoiceArtifactsResponse$Type extends MessageType<CleanupGeneratedVoiceArtifactsResponse> {
+    constructor() {
+        super("nimi.runtime.v1.CleanupGeneratedVoiceArtifactsResponse", [
+            { no: 1, name: "deleted_count", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 2, name: "deleted_artifact_ids", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<CleanupGeneratedVoiceArtifactsResponse>): CleanupGeneratedVoiceArtifactsResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.deletedCount = 0;
+        message.deletedArtifactIds = [];
+        if (value !== undefined)
+            reflectionMergePartial<CleanupGeneratedVoiceArtifactsResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: CleanupGeneratedVoiceArtifactsResponse): CleanupGeneratedVoiceArtifactsResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* int32 deleted_count */ 1:
+                    message.deletedCount = reader.int32();
+                    break;
+                case /* repeated string deleted_artifact_ids */ 2:
+                    message.deletedArtifactIds.push(reader.string());
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: CleanupGeneratedVoiceArtifactsResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* int32 deleted_count = 1; */
+        if (message.deletedCount !== 0)
+            writer.tag(1, WireType.Varint).int32(message.deletedCount);
+        /* repeated string deleted_artifact_ids = 2; */
+        for (let i = 0; i < message.deletedArtifactIds.length; i++)
+            writer.tag(2, WireType.LengthDelimited).string(message.deletedArtifactIds[i]);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.CleanupGeneratedVoiceArtifactsResponse
+ */
+export const CleanupGeneratedVoiceArtifactsResponse = new CleanupGeneratedVoiceArtifactsResponse$Type();

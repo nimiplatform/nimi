@@ -53,17 +53,18 @@ export function activityHandlerKey(activityId: string): string {
   return activityIdToHandlerFilename(activityId);
 }
 
+export function isKnownActivityId(activityId: string): boolean {
+  return (KNOWN_ACTIVITY_IDS as readonly string[]).includes(activityId);
+}
+
 export function handlerFilenameToActivityId(filename: string): string | null {
   const stem = filename.replace(/\.js$/, '');
   for (const activityId of KNOWN_ACTIVITY_IDS) {
-    if (activityIdToHandlerFilename(activityId) === stem) {
+    if (activityId === stem || activityIdToHandlerFilename(activityId) === stem) {
       return activityId;
     }
   }
   if (/^mod_[a-z0-9_]+_[a-z0-9_]+$/.test(stem)) {
-    return stem;
-  }
-  if (/^[a-z0-9_]+$/.test(stem)) {
     return stem;
   }
   return null;

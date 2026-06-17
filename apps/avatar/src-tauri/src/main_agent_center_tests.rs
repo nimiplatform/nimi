@@ -223,6 +223,10 @@ fn write_agent_center_local_avatar_asset_config_with_calibration_ref(
                 "schema_version": 1,
                 "last_cleared_at": null
             },
+            "voice": {
+                "schema_version": 1,
+                "avatar_autoplay": false
+            },
             "ui": {
                 "schema_version": 1,
                 "last_section": "overview"

@@ -276,8 +276,11 @@ export function useAgentConversationPresentation(
         backgroundValid={localAvatar.backgroundValid}
         avatarAssetChecking={localAvatar.avatarAssetChecking}
         avatarAssetConfig={localAvatar.avatarAssetConfig}
+        avatarVoicePolicy={localAvatar.avatarVoicePolicy}
         avatarAssetValidationPresentation={localAvatar.avatarAssetValidationPresentation}
         avatarConfigMutation={localAvatar.avatarConfigMutation}
+        voicePolicyMutation={localAvatar.voicePolicyMutation}
+        voiceArtifactCleanupMutation={localAvatar.voiceArtifactCleanupMutation}
         avatarAssetImportMutation={localAvatar.avatarAssetImportMutation}
         avatarAssetLibraryQuery={localAvatar.avatarAssetLibraryQuery}
         avatarAssetSelectMutation={localAvatar.avatarAssetSelectMutation}

@@ -33,6 +33,18 @@ const desktopE2eFixtureSource = fs.readFileSync(
   path.join(root, 'src-tauri/src/desktop_e2e_fixture.rs'),
   'utf8',
 );
+const desktopE2eFixtureEnabledSource = fs.readFileSync(
+  path.join(root, 'src-tauri/src/desktop_e2e_fixture/enabled.rs'),
+  'utf8',
+);
+const desktopE2eFixtureDisabledSource = fs.readFileSync(
+  path.join(root, 'src-tauri/src/desktop_e2e_fixture/disabled.rs'),
+  'utf8',
+);
+const desktopE2eFixtureRuntimeAppSource = fs.readFileSync(
+  path.join(root, 'src-tauri/src/desktop_e2e_fixture/runtime_app.rs'),
+  'utf8',
+);
 const tauriHttpEnvSource = fs.readFileSync(
   path.join(root, 'src-tauri/src/main_parts/env_http.rs'),
   'utf8',
@@ -161,10 +173,10 @@ test('core navigation smoke waits for the authenticated rail before tab assertio
 });
 
 test('desktop E2E fixture Runtime overrides are test-feature gated and production no-op', () => {
-  assert.match(desktopE2eFixtureSource, /#\[cfg\(any\(test, feature = "desktop-e2e-fixture"\)\)\]\s*mod enabled/);
-  assert.match(desktopE2eFixtureSource, /#\[cfg\(not\(any\(test, feature = "desktop-e2e-fixture"\)\)\)\]\s*(?:#\[allow\(dead_code\)\]\s*)?mod disabled/);
-  assert.match(desktopE2eFixtureSource, /RUNTIME_ACCOUNT_GET_ACCOUNT_SESSION_STATUS_METHOD_ID/);
-  assert.match(desktopE2eFixtureSource, /RUNTIME_ACCOUNT_GET_ACCESS_TOKEN_METHOD_ID/);
-  assert.match(desktopE2eFixtureSource, /AccountSessionState::Authenticated as i32/);
-  assert.match(desktopE2eFixtureSource, /pub fn runtime_bridge_unary_override\([\s\S]*?Ok\(None\)/);
+  assert.match(desktopE2eFixtureSource, /#\[cfg\(any\(test, feature = "desktop-e2e-fixture"\)\)\][\s\S]*#\[path = "desktop_e2e_fixture\/enabled\.rs"\][\s\S]*mod enabled/);
+  assert.match(desktopE2eFixtureSource, /#\[cfg\(not\(any\(test, feature = "desktop-e2e-fixture"\)\)\)\][\s\S]*(?:#\[allow\(dead_code\)\][\s\S]*)?#\[path = "desktop_e2e_fixture\/disabled\.rs"\][\s\S]*mod disabled/);
+  assert.match(desktopE2eFixtureEnabledSource, /RUNTIME_ACCOUNT_GET_ACCOUNT_SESSION_STATUS_METHOD_ID/);
+  assert.match(desktopE2eFixtureEnabledSource, /RUNTIME_ACCOUNT_GET_ACCESS_TOKEN_METHOD_ID/);
+  assert.match(desktopE2eFixtureRuntimeAppSource, /AccountSessionState::Authenticated as i32/);
+  assert.match(desktopE2eFixtureDisabledSource, /pub fn runtime_bridge_unary_override\([\s\S]*?Ok\(None\)/);
 });

@@ -17,7 +17,7 @@ services:
   - RuntimeAuditService
   - RuntimeModelService
   - RuntimeArtifactService
-method_count: 16
+method_count: 17
 method_mappings:
   - design_service: RuntimeWorkflowService
     design_method: SubmitWorkflow
@@ -98,4 +98,9 @@ method_mappings:
     design_method: ReadArtifactBytes
     proto_service: RuntimeArtifactService
     proto_method: ReadArtifactBytes
+    mapping_posture: aligned
+  - design_service: RuntimeArtifactService
+    design_method: CleanupGeneratedVoiceArtifacts
+    proto_service: RuntimeArtifactService
+    proto_method: CleanupGeneratedVoiceArtifacts
     mapping_posture: aligned

@@ -42,12 +42,58 @@ artifact lifecycle is owned by runtime:
 - referenced by emit events (e.g. voice_playback_requested) carrying its id
 - bytes retrieval is best-effort idempotent: same id returns same bytes if
   artifact still in storage
-- TTL / GC / quota policies are runtime implementation detail; consumers
-  receive `ARTIFACT_NOT_FOUND` reason code if artifact has been garbage
-  collected before retrieval
+- TTL / GC / quota policies are runtime implementation detail except for
+  generated agent voice artifacts admitted by `K-VOICE-020`, which must remain
+  durable on the user's local disk until explicit user cleanup or a later
+  admitted quota policy removes them
 - emitter-side invariant: `Store.Put(artifact_id, bytes, mime_type)` must
   complete BEFORE the runtime emit event referencing the id (e.g.
   `voice_playback_requested`); violation logs fatal at the emitter site
+
+### Voice Artifact Identity
+
+Generated assistant voice artifact ids must identify playable audio bytes only.
+
+Fixed rules:
+
+- `voice_playback_requested.detail.audio_artifact_id` must resolve through
+  `ReadArtifactBytes` to bytes whose returned `mime_type` starts with `audio/`
+  unless the event is a terminal failed/interrupted/canceled state that carries a
+  reason and is not requesting playback.
+- Runtime must not store lipsync metadata, timing metadata, debug records, or
+  synthetic placeholders under the same id used as a playable audio artifact id.
+- Provider-returned audio artifact identity must not be overwritten by
+  runtime-generated lipsync metadata.
+- If Runtime emits separate lipsync/timing/debug artifacts, those ids must be
+  distinct from the audio artifact id and must declare their own mime type.
+- A text-only fallback or unavailable TTS route must not create a pseudo audio
+  artifact and must not emit a playable voice request.
+
+### Generated Agent Voice Retention
+
+Generated assistant voice audio is a durable local Runtime artifact class.
+
+Minimum stored metadata for this class:
+
+- `agent_id`
+- `conversation_anchor_id`
+- `turn_id`
+- `message_id`
+- `voice_reference`
+- `speech_model_id`
+- `route_policy`
+- `mime_type`
+- `byte_digest`
+- `created_at`
+- `retention_scope`
+
+Runtime must provide a cleanup surface for generated voice artifacts by:
+
+- `agent_id`
+- `conversation_anchor_id`
+
+Cleanup removes durable audio bytes and associated voice-artifact metadata. It
+does not mutate committed text messages or conversation history.
 
 ### ReadArtifactBytes RPC
 
@@ -68,6 +114,29 @@ convention shared by `RuntimeAccountService`, `RuntimeAgentService`,
 - `size_bytes: int64` (required) — artifact total size
 - `mime_inferred: bool` (optional default false) — true if mime_type was
   runtime-inferred rather than provider-declared
+
+### CleanupGeneratedVoiceArtifacts RPC
+
+Carried over `RuntimeArtifactService`.
+
+`CleanupGeneratedVoiceArtifactsRequest`:
+
+- `agent_id: string` (optional selector)
+- `conversation_anchor_id: string` (optional selector)
+
+At least one selector is required. If both selectors are supplied, Runtime must
+delete only generated voice artifacts that match both. The call is idempotent:
+no matching generated voice artifacts returns `deleted_count=0`.
+
+`CleanupGeneratedVoiceArtifactsResponse`:
+
+- `deleted_count: int32`
+- `deleted_artifact_ids: repeated string`
+
+This RPC is restricted to generated assistant voice artifacts whose metadata
+declares the `generated_agent_voice` retention scope. It must not delete
+scenario image/video/music artifacts, uploaded user files, committed text
+messages, or conversation history.
 
 ### Reason Codes
 
@@ -141,10 +210,11 @@ media result projection / voice asset library).
 
 ## Out of Scope (requires future authority)
 
-- artifact governance: TTL / GC / quota enforcement
+- generic artifact governance beyond generated agent voice artifacts
 - multi-tenant artifact ACL
-- chunked retrieval (streaming bytes)
-- artifact metadata API (`describeArtifact`)
-- by-tag / by-source artifact discovery
+- generic chunked retrieval for arbitrary artifact classes
+- generic artifact metadata API (`describeArtifact`) beyond the generated voice
+  metadata required above
+- generic by-tag / by-source artifact discovery beyond generated voice cleanup
 - artifact upload by id (`uploadArtifact` already exists with distinct semantics)
 - platform-side `lipsync_frame_batch` deprecation
