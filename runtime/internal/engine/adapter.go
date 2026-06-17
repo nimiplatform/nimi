@@ -89,6 +89,10 @@ func (a *ServiceAdapter) EnsureManagedImageBackendDependency(ctx context.Context
 	return a.mgr.EnsureManagedImageBackendDependency(ctx, cfg)
 }
 
+func (a *ServiceAdapter) StartInstalledManagedImageBackend(ctx context.Context, cfg *ManagedImageBackendConfig) error {
+	return a.mgr.StartInstalledManagedImageBackend(ctx, cfg)
+}
+
 func (a *ServiceAdapter) ResolveSharedAcceleratorDependency(dependencyID string, consumerID string) SharedAcceleratorDependencyStatus {
 	return a.mgr.ResolveSharedAcceleratorDependency(dependencyID, consumerID)
 }

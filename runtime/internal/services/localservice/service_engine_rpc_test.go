@@ -241,6 +241,12 @@ func (m *mockEngineManager) EnsureManagedImageBackendDependency(_ context.Contex
 	}, m.ensureManagedImageBackendErr
 }
 
+func (m *mockEngineManager) StartInstalledManagedImageBackend(_ context.Context, cfg *engine.ManagedImageBackendConfig) error {
+	m.managedImageBackendConfigs = append(m.managedImageBackendConfigs, cfg)
+	m.startEngines = append(m.startEngines, managedImageBackendEngineName)
+	return m.startErr
+}
+
 func (m *mockEngineManager) ResolveSharedAcceleratorDependency(dependencyID string, consumerID string) engine.SharedAcceleratorDependencyStatus {
 	if m.sharedAcceleratorDependencyStatus != nil {
 		status := *m.sharedAcceleratorDependencyStatus

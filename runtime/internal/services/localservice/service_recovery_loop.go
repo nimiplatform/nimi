@@ -67,7 +67,7 @@ func (s *Service) runRecoverySweep(ctx context.Context) {
 			continue
 		}
 		if isManagedSupervisedSpeechModel(localModel, model.mode) {
-			if _, err := s.checkManagedSupervisedSpeechHealth(ctx, localModel); err != nil {
+			if _, err := s.checkManagedSupervisedSpeechHealthWithReason(ctx, localModel, "recovery_sweep"); err != nil {
 				s.logger.Debug("managed speech recovery health failed", "local_model_id", localModelID, "error", err)
 			}
 			continue

@@ -560,6 +560,54 @@ func TestStartSupervisedEnginesDoesNotExposeManagedMediaLoopbackOnAttachedOnlyHo
 	}
 }
 
+func TestStartSupervisedEnginesRegistersSpeechWithoutBootstrapping(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	cfg := config.Config{
+		GRPCAddr:             "127.0.0.1:0",
+		HTTPAddr:             "127.0.0.1:0",
+		LocalStatePath:       filepath.Join(t.TempDir(), "local-state.json"),
+		AuditRingBufferSize:  64,
+		UsageStatsBufferSize: 64,
+		IdempotencyCapacity:  32,
+		EngineSpeechEnabled:  true,
+		EngineSpeechPort:     8330,
+		EngineSpeechVersion:  "0.1.0-qwen3-tts",
+	}
+	daemon, err := New(cfg, logger, "test")
+	if err != nil {
+		t.Fatalf("create daemon: %v", err)
+	}
+	closeDaemonForTest(t, daemon)
+	if svc := daemon.grpc.LocalService(); svc != nil {
+		t.Cleanup(func() { svc.Close() })
+	}
+
+	daemon.newEngineManager = func(_ *slog.Logger, _ engine.ManagedRoots, _ engine.StateChangeFunc) (*engine.Manager, error) {
+		return engine.NewManager(slog.New(slog.NewTextHandler(io.Discard, nil)), engine.ManagedRoots{Environments: t.TempDir(), Dependencies: t.TempDir()}, nil)
+	}
+
+	startCalls := make([]engine.EngineKind, 0, 1)
+	var startCallsMu sync.Mutex
+	daemon.startEngineFn = func(_ context.Context, kind engine.EngineKind, _ string, _ int, _ string) error {
+		startCallsMu.Lock()
+		startCalls = append(startCalls, kind)
+		startCallsMu.Unlock()
+		return nil
+	}
+
+	daemon.startSupervisedEngines(context.Background())
+
+	if daemon.engineMgr == nil {
+		t.Fatal("expected engine manager to initialize for managed speech requests")
+	}
+	if len(startCalls) != 0 {
+		t.Fatalf("speech must stay cold until a speech lease starts the worker, got=%v", startCalls)
+	}
+	if snapshot := daemon.state.Snapshot(); snapshot.Status == health.StatusDegraded {
+		t.Fatalf("speech cold registration must not degrade Runtime core readiness: %s", snapshot.Reason)
+	}
+}
+
 func TestStartSupervisedEnginesExposesManagedMediaLoopbackOnSupportedHost(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	cfg := config.Config{

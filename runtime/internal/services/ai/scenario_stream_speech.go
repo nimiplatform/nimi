@@ -82,6 +82,17 @@ func streamSpeechSynthesizeScenario(s *Service, req *runtimev1.StreamScenarioReq
 	if err := s.validateScenarioCapability(stream.Context(), req, modelResolved, remoteTarget, selectedProvider); err != nil {
 		return err
 	}
+	releaseLocalLease, err := s.acquireSelectedLocalModelLease(
+		requestCtx,
+		modelResolved,
+		remoteTarget,
+		runtimev1.Modal_MODAL_TTS,
+		"stream_speech_synthesize_request",
+	)
+	if err != nil {
+		return err
+	}
+	defer releaseLocalLease()
 	s.recordRouteAutoSwitch(
 		req.GetHead().GetAppId(),
 		req.GetHead().GetSubjectUserId(),
