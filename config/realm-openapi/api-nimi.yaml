@@ -11635,7 +11635,7 @@ info:
   description: |-
     The Nimi Social Platform API
 
-    Last updated: 2026-06-17T04:59:13.957Z
+    Last updated: 2026-06-17T06:02:52.316Z
   title: Nimi Realm SDK API
   version: '1.0'
 openapi: 3.0.0
@@ -17149,23 +17149,7 @@ paths:
       summary: Publish world draft
       tags:
         - World Control
-  /api/world-products/catalog:
-    get:
-      operationId: ForgeProductCatalogController_getCatalog
-      parameters: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ForgeWorldCatalogDto'
-          description: ''
-        '404':
-          description: Forge world product catalog has not been generated
-      summary: Read the generated forge world product catalog
-      tags:
-        - Forge World Products
-  /api/world-products/{slug}:
+  /api/world-products/by-slug/{slug}:
     get:
       operationId: ForgeProductCatalogController_getProduct
       parameters:
@@ -17187,7 +17171,7 @@ paths:
       summary: Read a generated forge world product manifest
       tags:
         - Forge World Products
-  /api/world-products/{slug}/agent-candidates:
+  /api/world-products/by-slug/{slug}/agent-candidates:
     get:
       operationId: ForgeProductCatalogController_getAgentCandidates
       parameters:
@@ -17238,7 +17222,7 @@ paths:
       summary: Query forge agent candidates for a generated world product
       tags:
         - Forge World Products
-  /api/world-products/{slug}/shards:
+  /api/world-products/by-slug/{slug}/shards:
     get:
       operationId: ForgeProductCatalogController_getProductShardIndex
       parameters:
@@ -17262,31 +17246,7 @@ paths:
       summary: Read the checksum-anchored forge product shard index
       tags:
         - Forge World Products
-  /api/world-products/{slug}/shards/integrity:
-    get:
-      operationId: ForgeProductCatalogController_verifyProductShards
-      parameters:
-        - description: Forge world product slug
-          in: path
-          name: slug
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ForgeProductShardIntegrityReportDto'
-          description: ''
-        '404':
-          description: Forge world product manifest has not been generated
-        '500':
-          description: Forge product shard manifest violates its contract
-      summary: Scan forge product shard payload integrity without returning records
-      tags:
-        - Forge World Products
-  /api/world-products/{slug}/shards/{kind}:
+  /api/world-products/by-slug/{slug}/shards/by-kind/{kind}:
     get:
       operationId: ForgeProductCatalogController_getProductShard
       parameters:
@@ -17335,6 +17295,46 @@ paths:
         '500':
           description: Forge product shard violates its contract
       summary: Read a checksum-verified forge product shard section
+      tags:
+        - Forge World Products
+  /api/world-products/by-slug/{slug}/shards/integrity:
+    get:
+      operationId: ForgeProductCatalogController_verifyProductShards
+      parameters:
+        - description: Forge world product slug
+          in: path
+          name: slug
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForgeProductShardIntegrityReportDto'
+          description: ''
+        '404':
+          description: Forge world product manifest has not been generated
+        '500':
+          description: Forge product shard manifest violates its contract
+      summary: Scan forge product shard payload integrity without returning records
+      tags:
+        - Forge World Products
+  /api/world-products/catalog:
+    get:
+      operationId: ForgeProductCatalogController_getCatalog
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForgeWorldCatalogDto'
+          description: ''
+        '404':
+          description: Forge world product catalog has not been generated
+      summary: Read the generated forge world product catalog
       tags:
         - Forge World Products
   /api/world/by-id/{id}:

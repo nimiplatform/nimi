@@ -92,6 +92,9 @@ export async function inspectTesterRuntimeAgentTurnRunnerProjection(): Promise<T
     async interrupt() {
       return { messageId: 'tester-interrupt-message', accepted: true, reasonCode: 0 as never };
     },
+    async renderVoice() {
+      return { status: 'text_only', reason: 'voice_projection_unavailable' };
+    },
     async getSessionSnapshot() {
       snapshotQueryCount += 1;
       return {};
