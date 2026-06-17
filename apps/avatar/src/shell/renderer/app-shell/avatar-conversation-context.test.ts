@@ -4,8 +4,8 @@ import { type NimiRuntimeAgentConsumeClient } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/runtime/generated';
 
 const OWNER_USER_ID = 'account-runtime';
-const REALM_AGENT_ID = 'agent-e2e-alpha';
-const LOCAL_AGENT_REF = `local-agent:${OWNER_USER_ID}:${REALM_AGENT_ID}`;
+const RUNTIME_SOURCE_REF = 'agent-e2e-alpha';
+const LOCAL_AGENT_REF = `local-agent:${OWNER_USER_ID}:${RUNTIME_SOURCE_REF}`;
 
 describe('resolveAvatarConversationContext', () => {
   beforeEach(() => {
@@ -20,7 +20,7 @@ describe('resolveAvatarConversationContext', () => {
         conversationAnchorId: 'anchor-desktop-current',
         localAgentRef: LOCAL_AGENT_REF,
         ownerUserId: OWNER_USER_ID,
-        realmAgentId: REALM_AGENT_ID,
+        runtimeSourceRef: RUNTIME_SOURCE_REF,
       },
       snapshot: {
         anchor: {
@@ -42,7 +42,7 @@ describe('resolveAvatarConversationContext', () => {
       runtimeAgent,
       accountId: OWNER_USER_ID,
       ownerUserId: OWNER_USER_ID,
-      realmAgentId: REALM_AGENT_ID,
+      runtimeSourceRef: RUNTIME_SOURCE_REF,
       localAgentRef: LOCAL_AGENT_REF,
       avatarInstanceId: 'instance-1',
     });
@@ -55,7 +55,7 @@ describe('resolveAvatarConversationContext', () => {
     expect(open).not.toHaveBeenCalled();
     expect(resolveAvatarLiveInstance).toHaveBeenCalledWith({
       ownerUserId: OWNER_USER_ID,
-      realmAgentId: REALM_AGENT_ID,
+      runtimeSourceRef: RUNTIME_SOURCE_REF,
       localAgentRef: LOCAL_AGENT_REF,
       avatarInstanceId: 'instance-1',
     }, undefined);
@@ -78,7 +78,7 @@ describe('resolveAvatarConversationContext', () => {
       runtimeAgent,
       accountId: OWNER_USER_ID,
       ownerUserId: OWNER_USER_ID,
-      realmAgentId: REALM_AGENT_ID,
+      runtimeSourceRef: RUNTIME_SOURCE_REF,
       localAgentRef: LOCAL_AGENT_REF,
       avatarInstanceId: 'instance-1',
     })).rejects.toMatchObject({ reasonCode: ReasonCode.PRINCIPAL_UNAUTHORIZED });

@@ -26,17 +26,17 @@ export interface CreateRealmGroupMessageCandidateRequest {
      */
     realmGroupThreadId: string;
     /**
-     * @generated from protobuf field: string realm_group_agent_slot_id = 3
+     * @generated from protobuf field: string runtime_participant_slot = 3
      */
-    realmGroupAgentSlotId: string;
+    runtimeParticipantSlot: string;
     /**
      * @generated from protobuf field: string owner_user_id = 4
      */
     ownerUserId: string;
     /**
-     * @generated from protobuf field: string realm_agent_id = 5
+     * @generated from protobuf field: string runtime_source_ref = 5
      */
-    realmAgentId: string;
+    runtimeSourceRef: string;
     /**
      * @generated from protobuf field: string local_agent_ref = 6
      */
@@ -101,17 +101,17 @@ export interface RealmGroupMessageCandidateCommitHandle {
      */
     realmGroupThreadId: string;
     /**
-     * @generated from protobuf field: string realm_group_agent_slot_id = 7
+     * @generated from protobuf field: string runtime_participant_slot = 7
      */
-    realmGroupAgentSlotId: string;
+    runtimeParticipantSlot: string;
     /**
      * @generated from protobuf field: string owner_user_id = 8
      */
     ownerUserId: string;
     /**
-     * @generated from protobuf field: string realm_agent_id = 9
+     * @generated from protobuf field: string runtime_source_ref = 9
      */
-    realmAgentId: string;
+    runtimeSourceRef: string;
     /**
      * @generated from protobuf field: string local_agent_ref = 10
      */
@@ -219,9 +219,9 @@ export interface GetRealmGroupMessageCandidateEvidenceRequest {
      */
     runtimeTraceRef: string;
     /**
-     * @generated from protobuf field: string expected_realm_group_agent_slot_id = 7
+     * @generated from protobuf field: string expected_runtime_participant_slot = 7
      */
-    expectedRealmGroupAgentSlotId: string;
+    expectedRuntimeParticipantSlot: string;
     /**
      * @generated from protobuf field: string expected_local_agent_ref = 8
      */
@@ -252,17 +252,17 @@ export interface RealmGroupMessageCandidateEvidence {
      */
     realmGroupThreadId: string;
     /**
-     * @generated from protobuf field: string realm_group_agent_slot_id = 4
+     * @generated from protobuf field: string runtime_participant_slot = 4
      */
-    realmGroupAgentSlotId: string;
+    runtimeParticipantSlot: string;
     /**
      * @generated from protobuf field: string owner_user_id = 5
      */
     ownerUserId: string;
     /**
-     * @generated from protobuf field: string realm_agent_id = 6
+     * @generated from protobuf field: string runtime_source_ref = 6
      */
-    realmAgentId: string;
+    runtimeSourceRef: string;
     /**
      * @generated from protobuf field: string local_agent_ref = 7
      */
@@ -396,9 +396,9 @@ class CreateRealmGroupMessageCandidateRequest$Type extends MessageType<CreateRea
         super("nimi.runtime.v1.CreateRealmGroupMessageCandidateRequest", [
             { no: 1, name: "context", kind: "message", T: () => AgentRequestContext },
             { no: 2, name: "realm_group_thread_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "realm_group_agent_slot_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "runtime_participant_slot", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "owner_user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 5, name: "realm_agent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "runtime_source_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 6, name: "local_agent_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 7, name: "trigger_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 8, name: "membership_snapshot_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
@@ -412,9 +412,9 @@ class CreateRealmGroupMessageCandidateRequest$Type extends MessageType<CreateRea
     create(value?: PartialMessage<CreateRealmGroupMessageCandidateRequest>): CreateRealmGroupMessageCandidateRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.realmGroupThreadId = "";
-        message.realmGroupAgentSlotId = "";
+        message.runtimeParticipantSlot = "";
         message.ownerUserId = "";
-        message.realmAgentId = "";
+        message.runtimeSourceRef = "";
         message.localAgentRef = "";
         message.triggerRef = "";
         message.membershipSnapshotRef = "";
@@ -438,14 +438,14 @@ class CreateRealmGroupMessageCandidateRequest$Type extends MessageType<CreateRea
                 case /* string realm_group_thread_id */ 2:
                     message.realmGroupThreadId = reader.string();
                     break;
-                case /* string realm_group_agent_slot_id */ 3:
-                    message.realmGroupAgentSlotId = reader.string();
+                case /* string runtime_participant_slot */ 3:
+                    message.runtimeParticipantSlot = reader.string();
                     break;
                 case /* string owner_user_id */ 4:
                     message.ownerUserId = reader.string();
                     break;
-                case /* string realm_agent_id */ 5:
-                    message.realmAgentId = reader.string();
+                case /* string runtime_source_ref */ 5:
+                    message.runtimeSourceRef = reader.string();
                     break;
                 case /* string local_agent_ref */ 6:
                     message.localAgentRef = reader.string();
@@ -505,15 +505,15 @@ class CreateRealmGroupMessageCandidateRequest$Type extends MessageType<CreateRea
         /* string realm_group_thread_id = 2; */
         if (message.realmGroupThreadId !== "")
             writer.tag(2, WireType.LengthDelimited).string(message.realmGroupThreadId);
-        /* string realm_group_agent_slot_id = 3; */
-        if (message.realmGroupAgentSlotId !== "")
-            writer.tag(3, WireType.LengthDelimited).string(message.realmGroupAgentSlotId);
+        /* string runtime_participant_slot = 3; */
+        if (message.runtimeParticipantSlot !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.runtimeParticipantSlot);
         /* string owner_user_id = 4; */
         if (message.ownerUserId !== "")
             writer.tag(4, WireType.LengthDelimited).string(message.ownerUserId);
-        /* string realm_agent_id = 5; */
-        if (message.realmAgentId !== "")
-            writer.tag(5, WireType.LengthDelimited).string(message.realmAgentId);
+        /* string runtime_source_ref = 5; */
+        if (message.runtimeSourceRef !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.runtimeSourceRef);
         /* string local_agent_ref = 6; */
         if (message.localAgentRef !== "")
             writer.tag(6, WireType.LengthDelimited).string(message.localAgentRef);
@@ -558,9 +558,9 @@ class RealmGroupMessageCandidateCommitHandle$Type extends MessageType<RealmGroup
             { no: 4, name: "evidence_hash", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 5, name: "runtime_trace_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 6, name: "realm_group_thread_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 7, name: "realm_group_agent_slot_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "runtime_participant_slot", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 8, name: "owner_user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 9, name: "realm_agent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 9, name: "runtime_source_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 10, name: "local_agent_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 11, name: "trigger_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 12, name: "output_candidate_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
@@ -588,9 +588,9 @@ class RealmGroupMessageCandidateCommitHandle$Type extends MessageType<RealmGroup
         message.evidenceHash = "";
         message.runtimeTraceRef = "";
         message.realmGroupThreadId = "";
-        message.realmGroupAgentSlotId = "";
+        message.runtimeParticipantSlot = "";
         message.ownerUserId = "";
-        message.realmAgentId = "";
+        message.runtimeSourceRef = "";
         message.localAgentRef = "";
         message.triggerRef = "";
         message.outputCandidateRef = "";
@@ -633,14 +633,14 @@ class RealmGroupMessageCandidateCommitHandle$Type extends MessageType<RealmGroup
                 case /* string realm_group_thread_id */ 6:
                     message.realmGroupThreadId = reader.string();
                     break;
-                case /* string realm_group_agent_slot_id */ 7:
-                    message.realmGroupAgentSlotId = reader.string();
+                case /* string runtime_participant_slot */ 7:
+                    message.runtimeParticipantSlot = reader.string();
                     break;
                 case /* string owner_user_id */ 8:
                     message.ownerUserId = reader.string();
                     break;
-                case /* string realm_agent_id */ 9:
-                    message.realmAgentId = reader.string();
+                case /* string runtime_source_ref */ 9:
+                    message.runtimeSourceRef = reader.string();
                     break;
                 case /* string local_agent_ref */ 10:
                     message.localAgentRef = reader.string();
@@ -723,15 +723,15 @@ class RealmGroupMessageCandidateCommitHandle$Type extends MessageType<RealmGroup
         /* string realm_group_thread_id = 6; */
         if (message.realmGroupThreadId !== "")
             writer.tag(6, WireType.LengthDelimited).string(message.realmGroupThreadId);
-        /* string realm_group_agent_slot_id = 7; */
-        if (message.realmGroupAgentSlotId !== "")
-            writer.tag(7, WireType.LengthDelimited).string(message.realmGroupAgentSlotId);
+        /* string runtime_participant_slot = 7; */
+        if (message.runtimeParticipantSlot !== "")
+            writer.tag(7, WireType.LengthDelimited).string(message.runtimeParticipantSlot);
         /* string owner_user_id = 8; */
         if (message.ownerUserId !== "")
             writer.tag(8, WireType.LengthDelimited).string(message.ownerUserId);
-        /* string realm_agent_id = 9; */
-        if (message.realmAgentId !== "")
-            writer.tag(9, WireType.LengthDelimited).string(message.realmAgentId);
+        /* string runtime_source_ref = 9; */
+        if (message.runtimeSourceRef !== "")
+            writer.tag(9, WireType.LengthDelimited).string(message.runtimeSourceRef);
         /* string local_agent_ref = 10; */
         if (message.localAgentRef !== "")
             writer.tag(10, WireType.LengthDelimited).string(message.localAgentRef);
@@ -849,7 +849,7 @@ class GetRealmGroupMessageCandidateEvidenceRequest$Type extends MessageType<GetR
             { no: 4, name: "candidate_evidence_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 5, name: "evidence_hash", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 6, name: "runtime_trace_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 7, name: "expected_realm_group_agent_slot_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "expected_runtime_participant_slot", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 8, name: "expected_local_agent_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 9, name: "trigger_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 10, name: "target_realm_group_thread_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
@@ -862,7 +862,7 @@ class GetRealmGroupMessageCandidateEvidenceRequest$Type extends MessageType<GetR
         message.candidateEvidenceRef = "";
         message.evidenceHash = "";
         message.runtimeTraceRef = "";
-        message.expectedRealmGroupAgentSlotId = "";
+        message.expectedRuntimeParticipantSlot = "";
         message.expectedLocalAgentRef = "";
         message.triggerRef = "";
         message.targetRealmGroupThreadId = "";
@@ -893,8 +893,8 @@ class GetRealmGroupMessageCandidateEvidenceRequest$Type extends MessageType<GetR
                 case /* string runtime_trace_ref */ 6:
                     message.runtimeTraceRef = reader.string();
                     break;
-                case /* string expected_realm_group_agent_slot_id */ 7:
-                    message.expectedRealmGroupAgentSlotId = reader.string();
+                case /* string expected_runtime_participant_slot */ 7:
+                    message.expectedRuntimeParticipantSlot = reader.string();
                     break;
                 case /* string expected_local_agent_ref */ 8:
                     message.expectedLocalAgentRef = reader.string();
@@ -935,9 +935,9 @@ class GetRealmGroupMessageCandidateEvidenceRequest$Type extends MessageType<GetR
         /* string runtime_trace_ref = 6; */
         if (message.runtimeTraceRef !== "")
             writer.tag(6, WireType.LengthDelimited).string(message.runtimeTraceRef);
-        /* string expected_realm_group_agent_slot_id = 7; */
-        if (message.expectedRealmGroupAgentSlotId !== "")
-            writer.tag(7, WireType.LengthDelimited).string(message.expectedRealmGroupAgentSlotId);
+        /* string expected_runtime_participant_slot = 7; */
+        if (message.expectedRuntimeParticipantSlot !== "")
+            writer.tag(7, WireType.LengthDelimited).string(message.expectedRuntimeParticipantSlot);
         /* string expected_local_agent_ref = 8; */
         if (message.expectedLocalAgentRef !== "")
             writer.tag(8, WireType.LengthDelimited).string(message.expectedLocalAgentRef);
@@ -964,9 +964,9 @@ class RealmGroupMessageCandidateEvidence$Type extends MessageType<RealmGroupMess
             { no: 1, name: "candidate_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "candidate_kind", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "realm_group_thread_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "realm_group_agent_slot_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "runtime_participant_slot", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 5, name: "owner_user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 6, name: "realm_agent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "runtime_source_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 7, name: "local_agent_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 8, name: "trigger_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 9, name: "output_candidate_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
@@ -999,9 +999,9 @@ class RealmGroupMessageCandidateEvidence$Type extends MessageType<RealmGroupMess
         message.candidateId = "";
         message.candidateKind = "";
         message.realmGroupThreadId = "";
-        message.realmGroupAgentSlotId = "";
+        message.runtimeParticipantSlot = "";
         message.ownerUserId = "";
-        message.realmAgentId = "";
+        message.runtimeSourceRef = "";
         message.localAgentRef = "";
         message.triggerRef = "";
         message.outputCandidateRef = "";
@@ -1043,14 +1043,14 @@ class RealmGroupMessageCandidateEvidence$Type extends MessageType<RealmGroupMess
                 case /* string realm_group_thread_id */ 3:
                     message.realmGroupThreadId = reader.string();
                     break;
-                case /* string realm_group_agent_slot_id */ 4:
-                    message.realmGroupAgentSlotId = reader.string();
+                case /* string runtime_participant_slot */ 4:
+                    message.runtimeParticipantSlot = reader.string();
                     break;
                 case /* string owner_user_id */ 5:
                     message.ownerUserId = reader.string();
                     break;
-                case /* string realm_agent_id */ 6:
-                    message.realmAgentId = reader.string();
+                case /* string runtime_source_ref */ 6:
+                    message.runtimeSourceRef = reader.string();
                     break;
                 case /* string local_agent_ref */ 7:
                     message.localAgentRef = reader.string();
@@ -1148,15 +1148,15 @@ class RealmGroupMessageCandidateEvidence$Type extends MessageType<RealmGroupMess
         /* string realm_group_thread_id = 3; */
         if (message.realmGroupThreadId !== "")
             writer.tag(3, WireType.LengthDelimited).string(message.realmGroupThreadId);
-        /* string realm_group_agent_slot_id = 4; */
-        if (message.realmGroupAgentSlotId !== "")
-            writer.tag(4, WireType.LengthDelimited).string(message.realmGroupAgentSlotId);
+        /* string runtime_participant_slot = 4; */
+        if (message.runtimeParticipantSlot !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.runtimeParticipantSlot);
         /* string owner_user_id = 5; */
         if (message.ownerUserId !== "")
             writer.tag(5, WireType.LengthDelimited).string(message.ownerUserId);
-        /* string realm_agent_id = 6; */
-        if (message.realmAgentId !== "")
-            writer.tag(6, WireType.LengthDelimited).string(message.realmAgentId);
+        /* string runtime_source_ref = 6; */
+        if (message.runtimeSourceRef !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.runtimeSourceRef);
         /* string local_agent_ref = 7; */
         if (message.localAgentRef !== "")
             writer.tag(7, WireType.LengthDelimited).string(message.localAgentRef);

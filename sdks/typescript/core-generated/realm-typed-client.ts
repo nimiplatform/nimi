@@ -2997,7 +2997,7 @@ export interface RealmGetHomeFeedOperationRequest {
     readonly authorId?: string;
     readonly limit?: number;
     readonly cursor?: string;
-    readonly scope?: "personal" | "friends";
+    readonly scope?: "personal" | "friends" | "persona_activity" | "world_character_activity";
   };
   readonly headers?: {
 
@@ -3302,7 +3302,7 @@ export interface RealmGetWorldPostsOperationRequest {
     readonly authorId?: string;
     readonly limit?: number;
     readonly cursor?: string;
-    readonly scope?: "personal" | "friends";
+    readonly scope?: "personal" | "friends" | "persona_activity" | "world_character_activity";
   };
   readonly headers?: {
 

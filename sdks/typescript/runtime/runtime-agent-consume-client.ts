@@ -76,7 +76,7 @@ export function createNimiRuntimeAgentConsumeClient(
           subjectUserId: context.subjectUserId,
           localAgentRef: context.localAgentRef,
           ownerUserId: context.ownerUserId,
-          realmAgentId: context.realmAgentId,
+          runtimeSourceRef: context.runtimeSourceRef,
           ...(input.metadata ? { metadata: toNimiRuntimeProtoStruct(input.metadata) } : {}),
         }, callOptions);
         return requireProjection(response.snapshot, 'Runtime Agent open conversation anchor returned no snapshot');

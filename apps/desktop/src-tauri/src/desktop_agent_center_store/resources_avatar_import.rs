@@ -231,7 +231,7 @@ pub(crate) fn desktop_agent_center_avatar_asset_import_blocking(
     let account_id = validate_normalized_id(&payload.account_id, "accountId")?;
     let scope = validate_local_agent_scope(
         &payload.owner_user_id,
-        &payload.realm_agent_id,
+        &payload.runtime_source_ref,
         &payload.local_agent_ref,
     )?;
     let kind = backend_kind_id(payload.kind)?;

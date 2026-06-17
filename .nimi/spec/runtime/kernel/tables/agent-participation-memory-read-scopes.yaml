@@ -26,12 +26,12 @@ memory_read_scopes:
     source_rule: K-AGCORE-076
     dyadic_private_read: forbidden
     allowed_profiles:
-      - realm_group_agent
+      - realm_group_source
   - id: PUBLIC_SHARED_ONLY
     source_rule: K-AGCORE-067
     dyadic_private_read: forbidden
     allowed_profiles:
-      - realm_group_agent
+      - realm_group_source
   - id: DOMAIN_SHARED_ONLY
     source_rule: K-AGCORE-077
     dyadic_private_read: forbidden

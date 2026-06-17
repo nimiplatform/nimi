@@ -25,10 +25,10 @@ Realm 不可达时的行为规则：
 - 聊天消息写入 Desktop bounded chat shell scaffold 的本地 outbox 队列（DataSync non-admission owner map records this ownership boundary; current code must not depend on a DataSync facade）。
 - outbox 消息按 FIFO 顺序排列，每条消息附带 `enqueued_at` 时间戳。
 - outbox 最大容量 1000 条消息；超出后拒绝新写入并提示用户。
-- 社交 post interaction 操作（例如点赞/取消点赞）可静默排队，重连后批量提交。Friendship / AgentFriend / LocalAgent linkage 相关 mutation 不得进入 generic social outbox；离线时必须失败关闭，除非 Realm Social contract 明确提供后端持久化 intent。
+- 社交 post interaction 操作（例如点赞/取消点赞）可静默排队，重连后批量提交。Friendship / source admission / LocalAgent linkage 相关 mutation 不得进入 generic social outbox；离线时必须失败关闭，除非 Realm Social/Core contract 明确提供后端持久化 intent。
 - 本地 outbox 是 Desktop shell/scaffold 的待提交 intent transport，不能表示 Realm commit success，也不能作为 Chat/Social canonical state。重放必须通过 Realm/SDK public API，只有 Realm 接受后才可删除待提交记录；非网络失败必须标记 `failed` 并停止自动重放。
 - 经济交易（充值、打赏）不得离线排队，必须在线执行。向用户展示明确提示。
-- 世界/Agent 浏览使用本地缓存数据，标记"离线模式"水印。
+- 世界/source 浏览使用本地缓存数据，标记"离线模式"水印。
 
 ## D-OFFLINE-003 — 全离线行为（L2）
 
@@ -59,7 +59,7 @@ Runtime 和 Realm 均不可达时的行为规则：
 ## D-OFFLINE-005 — 本地缓存策略
 
 - 聊天历史：最近 50 条消息/会话，最近 20 个会话。
-- Agent/World 元数据：用户已访问的 agent/world profile 缓存。
+- Source/World 元数据：用户已访问的 source/world profile 缓存。
 - Runtime local model / asset inventory must be read from Runtime/SDK local asset
   projections when Runtime is reachable. Desktop must not persist a browser or
   IndexedDB model-manifest fallback as local readiness/capability truth.

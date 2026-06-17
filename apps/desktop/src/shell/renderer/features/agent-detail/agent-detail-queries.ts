@@ -1,9 +1,9 @@
-import { realmAgentDetailData } from './data/realm-agent-detail-data';
+import { realmSourceDetailData } from './data/realm-source-detail-data';
 import { parseOptionalJsonObject, type JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
 import {
-  loadRealmAgentSocialProjection,
-  resolveRealmAgentFriendState,
-} from '@renderer/features/explore/realm-agent-friend-state';
+  loadRealmPersonaSourceAdmissionProjection,
+  resolveRealmPersonaSourceState,
+} from '@renderer/features/explore/realm-persona-source-admission';
 import type { AgentDetailData } from './agent-detail-model.js';
 import { toAgentDetailData } from './agent-detail-model.js';
 
@@ -50,19 +50,14 @@ export async function fetchAgentDisplayDetail(agentIdentifier: string): Promise<
     return null;
   }
   const [result, socialProjection] = await Promise.all([
-    realmAgentDetailData.loadAgentDetails(normalizedIdentifier),
-    loadRealmAgentSocialProjection(),
+    realmSourceDetailData.loadRealmSourceDetailsForDisplay(normalizedIdentifier),
+    loadRealmPersonaSourceAdmissionProjection(),
   ]);
   const agentId = String(result.id || '').trim();
-  // Friend state is the Realm social-truth projection (AgentFriend / Friendship
-  // graph + quota). D-EXPL-005: not guessed renderer-side.
-  const friendState = resolveRealmAgentFriendState(agentId, socialProjection);
-  const patched = result.isFriend !== true && friendState === 'friend'
-    ? { ...result, isFriend: true }
-    : result;
+  const sourceState = resolveRealmPersonaSourceState(agentId, socialProjection);
   return {
-    agent: toAgentDetailData(patched, friendState),
-    stats: normalizeAgentStats(patched),
-    worldScore: normalizeWorldScore(patched),
+    agent: toAgentDetailData(result, sourceState),
+    stats: normalizeAgentStats(result),
+    worldScore: normalizeWorldScore(result),
   };
 }

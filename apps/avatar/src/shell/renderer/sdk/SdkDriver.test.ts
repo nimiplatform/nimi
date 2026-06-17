@@ -8,7 +8,7 @@ function waitForTasks(): Promise<void> {
 
 const LOCAL_IDENTITY = {
   ownerUserId: 'owner-1',
-  realmAgentId: 'agent-1',
+  runtimeSourceRef: 'agent-1',
   localAgentRef: 'local-agent:owner-1:agent-1',
 };
 

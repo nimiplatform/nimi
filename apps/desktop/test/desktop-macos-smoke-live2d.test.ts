@@ -14,7 +14,7 @@ const AVATAR_CARRIER_FAILURE_EVIDENCE_TIMEOUT_MS = 50;
 function createRuntimeVerifiedAgentAnchorBinding() {
   return {
     ownerUserId: 'user-e2e-primary',
-    realmAgentId: 'agent-e2e-alpha',
+    runtimeSourceRef: 'agent-e2e-alpha',
     localAgentRef: 'local-agent:user-e2e-primary:agent-e2e-alpha',
     conversationAnchorId: 'anchor-1',
     updatedAtMs: Date.now(),
@@ -494,7 +494,7 @@ test('desktop macos smoke live2d avatar product scenario waits for same-anchor A
       return [{
         avatarInstanceId: 'desktop-avatar-agent-e2e-alpha-anchor-1',
         ownerUserId: 'desktop-smoke',
-        realmAgentId: 'agent-e2e-alpha',
+        runtimeSourceRef: 'agent-e2e-alpha',
         localAgentRef: 'local-agent:user-e2e-primary:agent-e2e-alpha',
         launchSource: 'desktop-agent-chat',
       }];
@@ -705,7 +705,7 @@ test('desktop macos smoke live2d avatar local asset missing scenario requires ty
       return [{
         avatarInstanceId: 'desktop-avatar-agent-e2e-alpha-anchor-1',
         ownerUserId: 'desktop-smoke',
-        realmAgentId: 'agent-e2e-alpha',
+        runtimeSourceRef: 'agent-e2e-alpha',
         localAgentRef: 'local-agent:user-e2e-primary:agent-e2e-alpha',
         launchSource: 'desktop-agent-chat',
       }];
@@ -838,7 +838,7 @@ test('desktop macos smoke live2d avatar product scenario fails without local Ava
         return [{
           avatarInstanceId: 'desktop-avatar-agent-e2e-alpha-anchor-1',
           ownerUserId: 'desktop-smoke',
-          realmAgentId: 'agent-e2e-alpha',
+          runtimeSourceRef: 'agent-e2e-alpha',
           localAgentRef: 'local-agent:user-e2e-primary:agent-e2e-alpha',
           launchSource: 'desktop-agent-chat',
         }];
@@ -929,7 +929,7 @@ test('desktop macos smoke avatar carrier evidence reports pre-anchor runtime bin
         return [{
           avatarInstanceId: 'desktop-avatar-agent-e2e-alpha-anchor-1',
           ownerUserId: 'desktop-smoke',
-          realmAgentId: 'agent-e2e-alpha',
+          runtimeSourceRef: 'agent-e2e-alpha',
           localAgentRef: 'local-agent:user-e2e-primary:agent-e2e-alpha',
           launchSource: 'desktop-agent-chat',
         }];
@@ -1118,7 +1118,7 @@ test('desktop macos smoke live2d avatar product scenario fails without Runtime c
         return [{
           avatarInstanceId: 'desktop-avatar-agent-e2e-alpha-anchor-1',
           ownerUserId: 'desktop-smoke',
-          realmAgentId: 'agent-e2e-alpha',
+          runtimeSourceRef: 'agent-e2e-alpha',
           localAgentRef: 'local-agent:user-e2e-primary:agent-e2e-alpha',
           launchSource: 'desktop-agent-chat',
         }];
@@ -1203,7 +1203,7 @@ test('desktop macos smoke live2d avatar product scenario fails without hit-regio
         return [{
           avatarInstanceId: 'desktop-avatar-agent-e2e-alpha-anchor-1',
           ownerUserId: 'desktop-smoke',
-          realmAgentId: 'agent-e2e-alpha',
+          runtimeSourceRef: 'agent-e2e-alpha',
           localAgentRef: 'local-agent:user-e2e-primary:agent-e2e-alpha',
           launchSource: 'desktop-agent-chat',
         }];

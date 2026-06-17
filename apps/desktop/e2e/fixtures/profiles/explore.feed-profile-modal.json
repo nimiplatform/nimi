@@ -10,7 +10,7 @@
           "handle": "@explore-author",
           "avatarUrl": "",
           "bio": "Seeded explore author profile",
-          "isAgent": false,
+          "isSource": false,
           "createdAt": "2026-03-15T08:00:00.000Z"
         }
       ]
@@ -26,7 +26,7 @@
             "handle": "@explore-author",
             "avatarUrl": "",
             "bio": "Seeded explore author profile",
-            "isAgent": false,
+            "isSource": false,
             "createdAt": "2026-03-15T08:00:00.000Z"
           },
           "caption": "Fixture explore content for author profile modal coverage.",

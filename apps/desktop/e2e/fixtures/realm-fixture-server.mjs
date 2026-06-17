@@ -88,10 +88,10 @@ function lookupAgent(manifest, agentId) {
     agents.push(...fixture.creatorAgents);
   }
   if (Array.isArray(fixture.searchUsers?.items)) {
-    agents.push(...fixture.searchUsers.items.filter((item) => item?.isAgent === true));
+    agents.push(...fixture.searchUsers.items.filter((item) => item?.isSource === true));
   }
   if (Array.isArray(fixture.friends?.items)) {
-    agents.push(...fixture.friends.items.filter((item) => item?.isAgent === true));
+    agents.push(...fixture.friends.items.filter((item) => item?.isSource === true));
   }
   for (const world of Array.isArray(fixture.worlds) ? fixture.worlds : []) {
     if (Array.isArray(world?.agents)) {
@@ -347,25 +347,6 @@ function handleApi(request, response, manifestPath) {
 
   if (request.method === 'GET' && pathname === '/api/human/me/blocks') {
     json(response, 200, fixture.blocked || { items: [] });
-    return undefined;
-  }
-
-  if (request.method === 'GET' && pathname === '/api/human/me/friends/agent-limit') {
-    const explicitLimit = fixture.agentFriendLimit;
-    if (explicitLimit && typeof explicitLimit === 'object') {
-      json(response, 200, explicitLimit);
-      return undefined;
-    }
-    const friends = Array.isArray(fixture.friends?.items) ? fixture.friends.items : [];
-    const used = friends.filter((item) => item?.isAgent === true).length;
-    const limit = Number.isFinite(Number(fixture.agentFriendLimitValue))
-      ? Number(fixture.agentFriendLimitValue)
-      : Math.max(used + 1, 5);
-    json(response, 200, {
-      used,
-      limit,
-      canAdd: used < limit,
-    });
     return undefined;
   }
 

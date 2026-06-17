@@ -148,7 +148,7 @@ function buildRunnerDiagnostics(input: NimiRuntimeAgentTurnRunnerDiagnosticsInpu
 export function nimiRuntimeAgentLocalIdentityFromRequest(request: NimiRuntimeAgentTurnRequest) {
   return {
     ownerUserId: request.ownerUserId,
-    realmAgentId: request.realmAgentId,
+    runtimeSourceRef: request.runtimeSourceRef,
     localAgentRef: request.localAgentRef,
   };
 }
@@ -231,7 +231,7 @@ export function createNimiRuntimeAgentTurnStream(
     const recoveryIdentity = projectRuntimeLocalAgentIdentity(input.request);
     const recoveryRequest = {
       ownerUserId: recoveryIdentity.ownerUserId,
-      realmAgentId: recoveryIdentity.realmAgentId,
+      runtimeSourceRef: recoveryIdentity.runtimeSourceRef,
       localAgentRef: recoveryIdentity.localAgentRef,
       conversationAnchorId: input.request.conversationAnchorId,
       ...(input.request.threadId ? { threadId: input.request.threadId } : {}),

@@ -6,11 +6,11 @@ import { Surface } from '@nimiplatform/kit/ui';
 // .nimi/spec/desktop/kernel/tables/explore-sections.yaml (D-EXPL-002).
 // The sections are fixed; do not add/remove/rename without updating the
 // table and the explore-surface-contract.
-export type ExploreSectionId = 'worlds' | 'agents' | 'activity';
+export type ExploreSectionId = 'worlds' | 'personas' | 'activity';
 
 export const EXPLORE_SECTION_IDS: readonly ExploreSectionId[] = [
   'worlds',
-  'agents',
+  'personas',
   'activity',
 ] as const;
 
@@ -28,7 +28,7 @@ const ICON_WORLDS = (
   </svg>
 );
 
-const ICON_AGENTS = (
+const ICON_PERSONAS = (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
     <circle cx="9" cy="7" r="4" />
@@ -56,10 +56,10 @@ const SECTION_META: Record<ExploreSectionId, SectionMeta> = {
     labelKey: 'Explore.sectionWorlds',
     icon: ICON_WORLDS,
   },
-  agents: {
-    id: 'agents',
-    labelKey: 'Explore.sectionAgents',
-    icon: ICON_AGENTS,
+  personas: {
+    id: 'personas',
+    labelKey: 'Explore.sectionPersonas',
+    icon: ICON_PERSONAS,
   },
   activity: {
     id: 'activity',
@@ -173,7 +173,7 @@ export function ExploreSearchField({
         type="search"
         className="min-w-0 flex-1 bg-transparent text-sm font-medium text-[color:var(--nimi-fg-1)] outline-none placeholder:text-[color:var(--nimi-fg-3)] focus:ring-0"
         style={{ fontFamily: 'var(--nimi-font-sans)' }}
-        placeholder={placeholder ?? t('Explore.searchPlaceholder', { defaultValue: 'Search worlds, agents, posts...' })}
+        placeholder={placeholder ?? t('Explore.searchPlaceholder', { defaultValue: 'Search worlds, personas, posts...' })}
         value={value}
         onChange={(e) => onChange(e.target.value)}
       />

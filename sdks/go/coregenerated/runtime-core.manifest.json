@@ -8308,7 +8308,7 @@
             "number": 21
           },
           {
-            "name": "realm_agent_id",
+            "name": "runtime_source_ref",
             "type": "string",
             "repeated": false,
             "optional": false,
@@ -8707,7 +8707,7 @@
             "number": 21
           },
           {
-            "name": "realm_agent_id",
+            "name": "runtime_source_ref",
             "type": "string",
             "repeated": false,
             "optional": false,
@@ -8768,7 +8768,7 @@
             "number": 4
           },
           {
-            "name": "realm_agent_id",
+            "name": "runtime_source_ref",
             "type": "string",
             "repeated": false,
             "optional": false,
@@ -11460,7 +11460,7 @@
             "number": 21
           },
           {
-            "name": "realm_agent_id",
+            "name": "runtime_source_ref",
             "type": "string",
             "repeated": false,
             "optional": false,
@@ -13497,7 +13497,7 @@
             "number": 21
           },
           {
-            "name": "realm_agent_id",
+            "name": "runtime_source_ref",
             "type": "string",
             "repeated": false,
             "optional": false,
@@ -13720,7 +13720,7 @@
             "number": 2
           },
           {
-            "name": "realm_group_agent_slot_id",
+            "name": "runtime_participant_slot",
             "type": "string",
             "repeated": false,
             "optional": false,
@@ -13734,7 +13734,7 @@
             "number": 4
           },
           {
-            "name": "realm_agent_id",
+            "name": "runtime_source_ref",
             "type": "string",
             "repeated": false,
             "optional": false,
@@ -17121,7 +17121,7 @@
             "number": 6
           },
           {
-            "name": "expected_realm_group_agent_slot_id",
+            "name": "expected_runtime_participant_slot",
             "type": "string",
             "repeated": false,
             "optional": false,
@@ -18120,7 +18120,7 @@
             "number": 21
           },
           {
-            "name": "realm_agent_id",
+            "name": "runtime_source_ref",
             "type": "string",
             "repeated": false,
             "optional": false,
@@ -27194,7 +27194,7 @@
             "number": 21
           },
           {
-            "name": "realm_agent_id",
+            "name": "runtime_source_ref",
             "type": "string",
             "repeated": false,
             "optional": false,
@@ -28811,7 +28811,7 @@
             "number": 6
           },
           {
-            "name": "realm_group_agent_slot_id",
+            "name": "runtime_participant_slot",
             "type": "string",
             "repeated": false,
             "optional": false,
@@ -28825,7 +28825,7 @@
             "number": 8
           },
           {
-            "name": "realm_agent_id",
+            "name": "runtime_source_ref",
             "type": "string",
             "repeated": false,
             "optional": false,
@@ -28978,7 +28978,7 @@
             "number": 3
           },
           {
-            "name": "realm_group_agent_slot_id",
+            "name": "runtime_participant_slot",
             "type": "string",
             "repeated": false,
             "optional": false,
@@ -28992,7 +28992,7 @@
             "number": 5
           },
           {
-            "name": "realm_agent_id",
+            "name": "runtime_source_ref",
             "type": "string",
             "repeated": false,
             "optional": false,

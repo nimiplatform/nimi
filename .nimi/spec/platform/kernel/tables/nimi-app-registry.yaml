@@ -12,7 +12,7 @@ entries:
   - ordinary Apps visibility requires admission_status admitted and ordinary_visibility ordinary-visible
   - no ordinary-visible first-party app is admitted in this cut
   - Avatar must remain hidden-internal for ordinary Apps even when package/update coordination rows exist
-  - Realm Agent Studio and Realm World Studio are admitted only as developer-only
+  - Realm Persona Studio and Realm World Studio are admitted only as developer-only
     first-party Apps in this cut so standalone desktop dev-shell account
     registration can use Runtime registry truth and short-lived Realm account
     tokens without app-owned refresh-token custody
@@ -132,8 +132,8 @@ apps:
     source_repo_url: null
     admission_status: admitted
     source_rule: P-NAPP-011
-  - app_id: nimi.realm-agent-studio
-    display_label: Realm Agent Studio
+  - app_id: nimi.realm-persona-studio
+    display_label: Realm Persona Studio
     publisher: nimi-first-party
     trust_tier_ref: nimi-first-party
     package_kind: nimi-app
@@ -151,16 +151,16 @@ apps:
       - local-gpu-support
     runtime_registration_mode: app-managed
     permission_scope_ref:
-      - appId: nimi.realm-agent-studio
+      - appId: nimi.realm-persona-studio
         scopeFamily: account
         scopeName: account.session.read
-      - appId: nimi.realm-agent-studio
+      - appId: nimi.realm-persona-studio
         scopeFamily: realm
-        scopeName: realm.me.agents.read
-      - appId: nimi.realm-agent-studio
+        scopeName: realm.me.personas.read
+      - appId: nimi.realm-persona-studio
         scopeFamily: realm
-        scopeName: realm.me.agents.write
-      - appId: nimi.realm-agent-studio
+        scopeName: realm.me.personas.write
+      - appId: nimi.realm-persona-studio
         scopeFamily: ai_spend
         scopeName: ai.spend.meter
     health_repair_projection:
@@ -173,7 +173,7 @@ apps:
       - repair-required
       - stale-projection
     ordinary_visibility: developer-only
-    release_descriptor_ref: nimi.realm-agent-studio.bundled-with-nimi
+    release_descriptor_ref: nimi.realm-persona-studio.bundled-with-nimi
     install_storage_policy_ref: nimi-data-app-roots
     source_repo_url: null
     admission_status: admitted

@@ -138,7 +138,7 @@ export function nimiRuntimeAgentSnapshotCompletedTurnHasRecoverableContent(
 export function buildNimiRuntimeAgentSnapshotRecoveryEvents(options: {
   readonly turn: NimiRuntimeAgentSessionTurnSnapshot;
   readonly ownerUserId?: unknown;
-  readonly realmAgentId?: unknown;
+  readonly runtimeSourceRef?: unknown;
   readonly localAgentRef: unknown;
   readonly conversationAnchorId: string;
   readonly requestId: string;
@@ -319,7 +319,7 @@ export async function recoverNimiRuntimeAgentTerminalSnapshot(options: {
     const events = buildNimiRuntimeAgentSnapshotRecoveryEvents({
       turn,
       ownerUserId: options.request.ownerUserId,
-      realmAgentId: options.request.realmAgentId,
+      runtimeSourceRef: options.request.runtimeSourceRef,
       localAgentRef: options.request.localAgentRef,
       conversationAnchorId: options.request.conversationAnchorId,
       requestId: options.requestId,
@@ -364,7 +364,7 @@ export async function recoverNimiRuntimeAgentTerminalSnapshot(options: {
   const events = buildNimiRuntimeAgentSnapshotRecoveryEvents({
     turn,
     ownerUserId: options.request.ownerUserId,
-    realmAgentId: options.request.realmAgentId,
+    runtimeSourceRef: options.request.runtimeSourceRef,
     localAgentRef: options.request.localAgentRef,
     conversationAnchorId: options.request.conversationAnchorId,
     requestId: options.requestId,

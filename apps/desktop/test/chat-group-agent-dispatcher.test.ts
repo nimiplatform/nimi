@@ -50,7 +50,7 @@ describe('Realm group agent participation Desktop hardcut', () => {
     assert.doesNotMatch(flowSource, /outputCandidateRef: evidence\.outputCandidateRef/);
     assert.doesNotMatch(flowSource, /assertCandidateHandleMatchesExpectedSlot/);
     assert.doesNotMatch(flowSource, /assertCandidateEvidenceMatchesHandle/);
-    assert.doesNotMatch(flowSource, /expectedRealmGroupAgentSlotId: slot\.realmGroupAgentSlotId/);
+    assert.doesNotMatch(flowSource, /expectedRuntimeParticipantSlot: slot\.runtimeParticipantSlot/);
     assert.doesNotMatch(flowSource, /expectedLocalAgentRef: slot\.localAgentRef/);
     assert.doesNotMatch(flowSource, /unsafeRaw|fetch\(|\/agent-messages|message_committed|runtime\.agent\.turn\.request/);
   });

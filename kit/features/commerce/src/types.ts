@@ -13,7 +13,10 @@ export type CommerceGiftRecipient = {
   name: string;
   handle?: string;
   avatarUrl?: string | null;
-  isAgent?: boolean;
+  isSource?: boolean;
+  sourceRef?: string | null;
+  runtimeSourceRef?: string | null;
+  sourceKind?: string | null;
 };
 
 export type CommerceGiftParty = {
@@ -21,7 +24,7 @@ export type CommerceGiftParty = {
   displayName?: string | null;
   handle?: string | null;
   avatarUrl?: string | null;
-  isAgent?: boolean;
+  isSource?: boolean;
 };
 
 export type CommerceGiftSummary = {

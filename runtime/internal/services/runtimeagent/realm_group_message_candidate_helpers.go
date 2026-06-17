@@ -59,8 +59,8 @@ func newRealmGroupMessageCandidateID(scope string, createdAt time.Time) string {
 	return "rgmc_" + hex.EncodeToString(sum[:16])
 }
 
-func buildRealmGroupLocalAgentRef(ownerUserID string, realmAgentID string) string {
-	return "local-agent:" + strings.TrimSpace(ownerUserID) + ":" + strings.TrimSpace(realmAgentID)
+func buildRealmGroupLocalAgentRef(ownerUserID string, runtimeSourceRef string) string {
+	return "local-agent:" + strings.TrimSpace(ownerUserID) + ":" + strings.TrimSpace(runtimeSourceRef)
 }
 
 func canonicalRealmGroupCandidateTime(value time.Time) string {

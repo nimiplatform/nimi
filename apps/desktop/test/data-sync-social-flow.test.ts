@@ -33,8 +33,6 @@ const profileFlowSocialSource = readFileSync(
 function resetCachedContacts() {
   updateCachedContacts({
     friends: [],
-    agents: [],
-    groups: [],
     pendingReceived: [],
     pendingSent: [],
     blocked: [],
@@ -133,8 +131,6 @@ test('social snapshot ignores local test and fallback contacts when Realm return
       { id: 'test-local-user', displayName: 'Local Test' },
       { id: 'fallback-user', displayName: 'Fallback', __localFallbackUntil: Date.now() + 60_000 },
     ],
-    agents: [],
-    groups: [],
     pendingReceived: [],
     pendingSent: [],
     blocked: [{ id: 'test-blocked-user', displayName: 'Local Blocked' }],

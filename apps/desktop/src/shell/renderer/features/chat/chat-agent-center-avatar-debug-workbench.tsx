@@ -59,7 +59,7 @@ type AgentCenterAvatarDebugWorkbenchProps = {
 
 export async function requestDesktopCompanionParticipationProjection(input: {
   ownerUserId: string;
-  realmAgentId: string;
+  runtimeSourceRef: string;
   localAgentRef: string;
   conversationAnchorId: string;
   surfaceKind?: NimiRuntimeAgentCompanionParticipationSurfaceKind;
@@ -71,14 +71,14 @@ export async function requestDesktopCompanionParticipationProjection(input: {
 
 export async function requestAvatarDebugWorkbenchProbe(input: {
   ownerUserId: string;
-  realmAgentId: string;
+  runtimeSourceRef: string;
   localAgentRef: string;
   conversationAnchorId: string;
   probeKind: AvatarDebugProbeKind;
 }) {
   return createDesktopAvatarDebugRuntimeAgentClient().avatarDebug.requestProbe({
     ownerUserId: input.ownerUserId,
-    realmAgentId: input.realmAgentId,
+    runtimeSourceRef: input.runtimeSourceRef,
     localAgentRef: input.localAgentRef,
     conversationAnchorId: input.conversationAnchorId,
     probeKind: input.probeKind,
@@ -120,7 +120,7 @@ export function AgentCenterAvatarDebugWorkbench(props: AgentCenterAvatarDebugWor
 
   const localAgentRef = input.activeTarget?.localAgentRef || '';
   const ownerUserId = input.activeTarget?.ownerUserId || '';
-  const realmAgentId = input.activeTarget?.realmAgentId || '';
+  const runtimeSourceRef = input.activeTarget?.runtimeSourceRef || '';
   const conversationAnchorId = input.activeConversationAnchorId || '';
   const launchHealth = useMemo(() => buildAvatarDebugWorkbenchLaunchHealth({
     avatarAssetValid,
@@ -136,10 +136,10 @@ export function AgentCenterAvatarDebugWorkbench(props: AgentCenterAvatarDebugWor
   const diagnostics = useMemo(() => buildAvatarDebugWorkbenchDiagnostics(avatarAssetConfig), [
     avatarAssetConfig,
   ]);
-  const canRequestProbe = Boolean(localAgentRef && ownerUserId && realmAgentId && conversationAnchorId && launchHealth.status === 'ready');
+  const canRequestProbe = Boolean(localAgentRef && ownerUserId && runtimeSourceRef && conversationAnchorId && launchHealth.status === 'ready');
 
   const refreshSnapshot = useCallback(async () => {
-    if (!localAgentRef || !ownerUserId || !realmAgentId || !conversationAnchorId) {
+    if (!localAgentRef || !ownerUserId || !runtimeSourceRef || !conversationAnchorId) {
       setErrorMessage(input.t('Chat.agentCenterAvatarDebugMissingAnchor', { defaultValue: 'Open an agent conversation before refreshing avatar debug state.' }));
       return;
     }
@@ -149,7 +149,7 @@ export function AgentCenterAvatarDebugWorkbench(props: AgentCenterAvatarDebugWor
       const runtimeAgent = createDesktopAvatarDebugRuntimeAgentClient();
       const nextSnapshot = await runtimeAgent.avatarDebug.snapshot({
         ownerUserId,
-        realmAgentId,
+        runtimeSourceRef,
         localAgentRef,
         conversationAnchorId,
       });
@@ -158,7 +158,7 @@ export function AgentCenterAvatarDebugWorkbench(props: AgentCenterAvatarDebugWor
       setLatestReplay((nextSnapshot.replayRefs[0] as AvatarDebugReplayRef | undefined) || null);
       setLatestParticipationProjection(await requestDesktopCompanionParticipationProjection({
         ownerUserId,
-        realmAgentId,
+        runtimeSourceRef,
         localAgentRef,
         conversationAnchorId,
       }));
@@ -167,10 +167,10 @@ export function AgentCenterAvatarDebugWorkbench(props: AgentCenterAvatarDebugWor
     } finally {
       setPendingKind(null);
     }
-  }, [conversationAnchorId, input, localAgentRef, ownerUserId, realmAgentId]);
+  }, [conversationAnchorId, input, localAgentRef, ownerUserId, runtimeSourceRef]);
 
   const runProbe = useCallback(async (probeKind: AvatarDebugProbeKind) => {
-    if (!localAgentRef || !ownerUserId || !realmAgentId || !conversationAnchorId) {
+    if (!localAgentRef || !ownerUserId || !runtimeSourceRef || !conversationAnchorId) {
       setErrorMessage(input.t('Chat.agentCenterAvatarDebugMissingAnchor', { defaultValue: 'Open an agent conversation before running probes.' }));
       return;
     }
@@ -179,7 +179,7 @@ export function AgentCenterAvatarDebugWorkbench(props: AgentCenterAvatarDebugWor
     try {
       const response = await requestAvatarDebugWorkbenchProbe({
         ownerUserId,
-        realmAgentId,
+        runtimeSourceRef,
         localAgentRef,
         conversationAnchorId,
         probeKind,
@@ -189,7 +189,7 @@ export function AgentCenterAvatarDebugWorkbench(props: AgentCenterAvatarDebugWor
       const probeId = (response.result as AvatarDebugProbeResultEnvelope | undefined)?.probeId || '';
       let nextSnapshot = await createDesktopAvatarDebugRuntimeAgentClient().avatarDebug.snapshot({
         ownerUserId,
-        realmAgentId,
+        runtimeSourceRef,
         localAgentRef,
         conversationAnchorId,
       });
@@ -201,7 +201,7 @@ export function AgentCenterAvatarDebugWorkbench(props: AgentCenterAvatarDebugWor
         await delay(AVATAR_DEBUG_RESULT_POLL_INTERVAL_MS);
         nextSnapshot = await createDesktopAvatarDebugRuntimeAgentClient().avatarDebug.snapshot({
           ownerUserId,
-          realmAgentId,
+          runtimeSourceRef,
           localAgentRef,
           conversationAnchorId,
         });
@@ -216,7 +216,7 @@ export function AgentCenterAvatarDebugWorkbench(props: AgentCenterAvatarDebugWor
       }
       setLatestParticipationProjection(await requestDesktopCompanionParticipationProjection({
         ownerUserId,
-        realmAgentId,
+        runtimeSourceRef,
         localAgentRef,
         conversationAnchorId,
       }));
@@ -225,11 +225,11 @@ export function AgentCenterAvatarDebugWorkbench(props: AgentCenterAvatarDebugWor
     } finally {
       setPendingKind(null);
     }
-  }, [conversationAnchorId, input, localAgentRef, ownerUserId, realmAgentId]);
+  }, [conversationAnchorId, input, localAgentRef, ownerUserId, runtimeSourceRef]);
 
   const openReplay = useCallback(async () => {
     const probeId = latestResult?.probeId || latestReplay?.probeId || '';
-    if (!localAgentRef || !ownerUserId || !realmAgentId || !conversationAnchorId || !probeId) {
+    if (!localAgentRef || !ownerUserId || !runtimeSourceRef || !conversationAnchorId || !probeId) {
       return;
     }
     setPendingKind(AvatarDebugProbeKind.UNSPECIFIED);
@@ -237,7 +237,7 @@ export function AgentCenterAvatarDebugWorkbench(props: AgentCenterAvatarDebugWor
     try {
       const replay = await createDesktopAvatarDebugRuntimeAgentClient().avatarDebug.getReplay({
         ownerUserId,
-        realmAgentId,
+        runtimeSourceRef,
         localAgentRef,
         conversationAnchorId,
         probeId,
@@ -246,7 +246,7 @@ export function AgentCenterAvatarDebugWorkbench(props: AgentCenterAvatarDebugWor
       setLatestReplay((replay.replayRef as AvatarDebugReplayRef | undefined) || latestReplay);
       setLatestParticipationProjection(await requestDesktopCompanionParticipationProjection({
         ownerUserId,
-        realmAgentId,
+        runtimeSourceRef,
         localAgentRef,
         conversationAnchorId,
       }));
@@ -255,7 +255,7 @@ export function AgentCenterAvatarDebugWorkbench(props: AgentCenterAvatarDebugWor
     } finally {
       setPendingKind(null);
     }
-  }, [conversationAnchorId, input, latestReplay, latestResult, localAgentRef, ownerUserId, realmAgentId]);
+  }, [conversationAnchorId, input, latestReplay, latestResult, localAgentRef, ownerUserId, runtimeSourceRef]);
 
   const latestStatus = avatarDebugProbePresentationStatusLabel(latestResult, latestReplay);
   const participationStatus = desktopCompanionParticipationStatusLabel(latestParticipationProjection);
@@ -299,7 +299,7 @@ export function AgentCenterAvatarDebugWorkbench(props: AgentCenterAvatarDebugWor
       <div className="mt-3 flex flex-wrap gap-2">
         <button
           type="button"
-          disabled={!localAgentRef || !ownerUserId || !realmAgentId || !conversationAnchorId || pendingKind !== null}
+          disabled={!localAgentRef || !ownerUserId || !runtimeSourceRef || !conversationAnchorId || pendingKind !== null}
           onClick={() => { void refreshSnapshot(); }}
           className="rounded-md border border-emerald-200 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-50"
         >

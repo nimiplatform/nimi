@@ -19,7 +19,7 @@ import {
 const CONFIG_IDENTITY = {
   account_id: 'account_1',
   owner_user_id: 'owner_1',
-  realm_agent_id: 'agent_1',
+  runtime_source_ref: 'agent_1',
   local_agent_ref: 'local-agent:owner_1:agent_1',
 } as const;
 
@@ -136,7 +136,7 @@ test('Agent Center local config default includes closed avatar configuration fie
   const config = createDefaultAgentCenterLocalConfig({
     accountId: CONFIG_IDENTITY.account_id,
     ownerUserId: CONFIG_IDENTITY.owner_user_id,
-    realmAgentId: CONFIG_IDENTITY.realm_agent_id,
+    runtimeSourceRef: CONFIG_IDENTITY.runtime_source_ref,
     localAgentRef: CONFIG_IDENTITY.local_agent_ref,
   });
 

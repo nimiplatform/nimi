@@ -10,39 +10,39 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func testLocalAgentContext(ownerUserID string, realmAgentID string) *runtimev1.AgentRequestContext {
+func testLocalAgentContext(ownerUserID string, runtimeSourceRef string) *runtimev1.AgentRequestContext {
 	return &runtimev1.AgentRequestContext{
-		AppId:         "runtime-agent-hardcut-test",
-		SubjectUserId: ownerUserID,
-		OwnerUserId:   ownerUserID,
-		RealmAgentId:  realmAgentID,
-		LocalAgentRef: buildLocalAgentRef(ownerUserID, realmAgentID),
+		AppId:            "runtime-agent-hardcut-test",
+		SubjectUserId:    ownerUserID,
+		OwnerUserId:      ownerUserID,
+		RuntimeSourceRef: runtimeSourceRef,
+		LocalAgentRef:    buildLocalAgentRef(ownerUserID, runtimeSourceRef),
 	}
 }
 
-func testRuntimeAgentIdentityContext(realmAgentID string) *runtimev1.AgentRequestContext {
-	return testLocalAgentContext("user-1", realmAgentID)
+func testRuntimeAgentIdentityContext(runtimeSourceRef string) *runtimev1.AgentRequestContext {
+	return testLocalAgentContext("user-1", runtimeSourceRef)
 }
 
-func testRuntimeAgentLocalRef(realmAgentID string) string {
-	if strings.HasPrefix(strings.TrimSpace(realmAgentID), localAgentRefPrefix) {
-		return strings.TrimSpace(realmAgentID)
+func testRuntimeAgentLocalRef(runtimeSourceRef string) string {
+	if strings.HasPrefix(strings.TrimSpace(runtimeSourceRef), localAgentRefPrefix) {
+		return strings.TrimSpace(runtimeSourceRef)
 	}
-	return buildLocalAgentRef("user-1", realmAgentID)
+	return buildLocalAgentRef("user-1", runtimeSourceRef)
 }
 
-func testInitializeLocalAgent(t *testing.T, svc *Service, ownerUserID string, realmAgentID string) string {
+func testInitializeLocalAgent(t *testing.T, svc *Service, ownerUserID string, runtimeSourceRef string) string {
 	t.Helper()
-	ctx := testLocalAgentContext(ownerUserID, realmAgentID)
+	ctx := testLocalAgentContext(ownerUserID, runtimeSourceRef)
 	resp, err := svc.InitializeAgent(context.Background(), &runtimev1.InitializeAgentRequest{
-		Context:       ctx,
-		LocalAgentRef: ctx.GetLocalAgentRef(),
-		OwnerUserId:   ownerUserID,
-		RealmAgentId:  realmAgentID,
-		DisplayName:   ownerUserID + " local fork",
+		Context:          ctx,
+		LocalAgentRef:    ctx.GetLocalAgentRef(),
+		OwnerUserId:      ownerUserID,
+		RuntimeSourceRef: runtimeSourceRef,
+		DisplayName:      ownerUserID + " local fork",
 	})
 	if err != nil {
-		t.Fatalf("InitializeAgent(%s,%s): %v", ownerUserID, realmAgentID, err)
+		t.Fatalf("InitializeAgent(%s,%s): %v", ownerUserID, runtimeSourceRef, err)
 	}
 	if resp.GetAgent().GetLocalAgentRef() != ctx.GetLocalAgentRef() {
 		t.Fatalf("local_agent_ref mismatch: got %q want %q", resp.GetAgent().GetLocalAgentRef(), ctx.GetLocalAgentRef())
@@ -50,19 +50,19 @@ func testInitializeLocalAgent(t *testing.T, svc *Service, ownerUserID string, re
 	return ctx.GetLocalAgentRef()
 }
 
-func TestRuntimeAgentLocalAgentRefIsolatesTwoOwnersForSameRealmAgent(t *testing.T) {
+func TestRuntimeAgentLocalAgentRefIsolatesTwoOwnersForSameRuntimeSource(t *testing.T) {
 	t.Parallel()
 
 	svc := newRuntimeAgentTestService(t)
-	realmAgentID := "realm-agent-shared"
-	userALocalRef := testInitializeLocalAgent(t, svc, "user-a", realmAgentID)
-	userBLocalRef := testInitializeLocalAgent(t, svc, "user-b", realmAgentID)
+	runtimeSourceRef := "runtime-source-shared"
+	userALocalRef := testInitializeLocalAgent(t, svc, "user-a", runtimeSourceRef)
+	userBLocalRef := testInitializeLocalAgent(t, svc, "user-b", runtimeSourceRef)
 	if userALocalRef == userBLocalRef {
 		t.Fatalf("expected distinct local refs for two owners, got %q", userALocalRef)
 	}
 
-	ctxA := testLocalAgentContext("user-a", realmAgentID)
-	ctxB := testLocalAgentContext("user-b", realmAgentID)
+	ctxA := testLocalAgentContext("user-a", runtimeSourceRef)
+	ctxB := testLocalAgentContext("user-b", runtimeSourceRef)
 	if _, err := svc.UpdateAgentState(context.Background(), &runtimev1.UpdateAgentStateRequest{
 		Context: ctxA,
 		Mutations: []*runtimev1.AgentStateMutation{{
@@ -89,21 +89,21 @@ func TestRuntimeAgentLocalAgentRefIsolatesTwoOwnersForSameRealmAgent(t *testing.
 	}
 
 	anchorA, err := svc.OpenConversationAnchor(context.Background(), &runtimev1.OpenConversationAnchorRequest{
-		Context:       ctxA,
-		LocalAgentRef: userALocalRef,
-		OwnerUserId:   "user-a",
-		RealmAgentId:  realmAgentID,
-		SubjectUserId: "user-a",
+		Context:          ctxA,
+		LocalAgentRef:    userALocalRef,
+		OwnerUserId:      "user-a",
+		RuntimeSourceRef: runtimeSourceRef,
+		SubjectUserId:    "user-a",
 	})
 	if err != nil {
 		t.Fatalf("OpenConversationAnchor(user-a): %v", err)
 	}
 	anchorB, err := svc.OpenConversationAnchor(context.Background(), &runtimev1.OpenConversationAnchorRequest{
-		Context:       ctxB,
-		LocalAgentRef: userBLocalRef,
-		OwnerUserId:   "user-b",
-		RealmAgentId:  realmAgentID,
-		SubjectUserId: "user-b",
+		Context:          ctxB,
+		LocalAgentRef:    userBLocalRef,
+		OwnerUserId:      "user-b",
+		RuntimeSourceRef: runtimeSourceRef,
+		SubjectUserId:    "user-b",
 	})
 	if err != nil {
 		t.Fatalf("OpenConversationAnchor(user-b): %v", err)
@@ -145,21 +145,21 @@ func TestRuntimeAgentLocalAgentIdentityNegativeGates(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
-		name       string
-		owner      string
-		realm      string
-		local      string
-		wantStatus codes.Code
+		name          string
+		owner         string
+		runtimeSource string
+		local         string
+		wantStatus    codes.Code
 	}{
-		{name: "missing localAgentRef", owner: "user-a", realm: "realm-agent-1", local: "", wantStatus: codes.InvalidArgument},
-		{name: "bare realmAgentId", owner: "user-a", realm: "realm-agent-1", local: "realm-agent-1", wantStatus: codes.InvalidArgument},
-		{name: "owner mismatch", owner: "user-a", realm: "realm-agent-1", local: "local-agent:user-b:realm-agent-1", wantStatus: codes.InvalidArgument},
-		{name: "realmAgentId mismatch", owner: "user-a", realm: "realm-agent-1", local: "local-agent:user-a:realm-agent-2", wantStatus: codes.InvalidArgument},
-		{name: "malformed localAgentRef", owner: "user-a", realm: "realm-agent-1", local: "agent:user-a:realm-agent-1", wantStatus: codes.InvalidArgument},
+		{name: "missing localAgentRef", owner: "user-a", runtimeSource: "runtime-source-1", local: "", wantStatus: codes.InvalidArgument},
+		{name: "bare runtimeSourceRef", owner: "user-a", runtimeSource: "runtime-source-1", local: "runtime-source-1", wantStatus: codes.InvalidArgument},
+		{name: "owner mismatch", owner: "user-a", runtimeSource: "runtime-source-1", local: "local-agent:user-b:runtime-source-1", wantStatus: codes.InvalidArgument},
+		{name: "runtimeSourceRef mismatch", owner: "user-a", runtimeSource: "runtime-source-1", local: "local-agent:user-a:runtime-source-2", wantStatus: codes.InvalidArgument},
+		{name: "malformed localAgentRef", owner: "user-a", runtimeSource: "runtime-source-1", local: "agent:user-a:runtime-source-1", wantStatus: codes.InvalidArgument},
 	}
 	for _, tt := range cases {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := validateLocalAgentIdentity(tt.owner, tt.realm, tt.local)
+			_, err := validateLocalAgentIdentity(tt.owner, tt.runtimeSource, tt.local)
 			if err == nil {
 				t.Fatalf("expected validation failure")
 			}
@@ -174,14 +174,14 @@ func TestRuntimeAgentConversationAnchorRejectsOwnerMismatch(t *testing.T) {
 	t.Parallel()
 
 	svc := newRuntimeAgentTestService(t)
-	realmAgentID := "realm-agent-anchor"
-	localRef := testInitializeLocalAgent(t, svc, "user-a", realmAgentID)
+	runtimeSourceRef := "runtime-source-anchor"
+	localRef := testInitializeLocalAgent(t, svc, "user-a", runtimeSourceRef)
 	_, err := svc.OpenConversationAnchor(context.Background(), &runtimev1.OpenConversationAnchorRequest{
-		Context:       testLocalAgentContext("user-a", realmAgentID),
-		LocalAgentRef: localRef,
-		OwnerUserId:   "user-a",
-		RealmAgentId:  realmAgentID,
-		SubjectUserId: "user-b",
+		Context:          testLocalAgentContext("user-a", runtimeSourceRef),
+		LocalAgentRef:    localRef,
+		OwnerUserId:      "user-a",
+		RuntimeSourceRef: runtimeSourceRef,
+		SubjectUserId:    "user-b",
 	})
 	if status.Code(err) != codes.FailedPrecondition {
 		t.Fatalf("expected owner mismatch failure, got %v", err)

@@ -5,16 +5,16 @@ fn owner_user_id() -> &'static str {
     "owner_1"
 }
 
-fn realm_agent_id() -> &'static str {
+fn runtime_source_ref() -> &'static str {
     "agent_1"
 }
 
-fn local_agent_ref_for(owner_user_id: &str, realm_agent_id: &str) -> String {
-    format!("local-agent:{owner_user_id}:{realm_agent_id}")
+fn local_agent_ref_for(owner_user_id: &str, runtime_source_ref: &str) -> String {
+    format!("local-agent:{owner_user_id}:{runtime_source_ref}")
 }
 
 fn local_agent_ref() -> String {
-    local_agent_ref_for(owner_user_id(), realm_agent_id())
+    local_agent_ref_for(owner_user_id(), runtime_source_ref())
 }
 
 fn agent_center_root(home: &Path, account_id: &str, local_agent_ref: &str) -> PathBuf {
@@ -41,12 +41,12 @@ fn materialization_ref(
 fn resolve_payload(
     account_id: &str,
     owner_user_id: &str,
-    realm_agent_id: &str,
+    runtime_source_ref: &str,
 ) -> AgentCenterAvatarAssetResolvePayload {
     resolve_payload_with_package(
         account_id,
         owner_user_id,
-        realm_agent_id,
+        runtime_source_ref,
         "live2d",
         "live2d_ab12cd34ef56",
     )
@@ -55,15 +55,15 @@ fn resolve_payload(
 fn resolve_payload_with_package(
     account_id: &str,
     owner_user_id: &str,
-    realm_agent_id: &str,
+    runtime_source_ref: &str,
     backend_kind: &str,
     local_avatar_asset_ref: &str,
 ) -> AgentCenterAvatarAssetResolvePayload {
-    let local_agent_ref = local_agent_ref_for(owner_user_id, realm_agent_id);
+    let local_agent_ref = local_agent_ref_for(owner_user_id, runtime_source_ref);
     AgentCenterAvatarAssetResolvePayload {
         account_id: account_id.to_string(),
         owner_user_id: owner_user_id.to_string(),
-        realm_agent_id: realm_agent_id.to_string(),
+        runtime_source_ref: runtime_source_ref.to_string(),
         local_agent_ref: local_agent_ref.clone(),
         backend_kind: backend_kind.to_string(),
         local_avatar_asset_ref: local_avatar_asset_ref.to_string(),
@@ -86,7 +86,7 @@ fn write_agent_center_live2d_package_for_local_agent(
         home,
         "account_1",
         owner_user_id(),
-        realm_agent_id(),
+        runtime_source_ref(),
         local_agent_ref,
         entry_content,
     )
@@ -96,7 +96,7 @@ fn write_agent_center_live2d_package_for_account_agent(
     home: &Path,
     account_id: &str,
     owner_user_id: &str,
-    realm_agent_id: &str,
+    runtime_source_ref: &str,
     local_agent_ref: &str,
     entry_content: &str,
 ) -> PathBuf {
@@ -146,7 +146,7 @@ fn write_agent_center_live2d_package_for_account_agent(
         serde_json::to_string_pretty(&manifest).unwrap(),
     )
     .unwrap();
-    let _ = (owner_user_id, realm_agent_id);
+    let _ = (owner_user_id, runtime_source_ref);
     package_dir
 }
 
@@ -158,7 +158,7 @@ fn write_agent_center_local_avatar_asset_config(
     home: &Path,
     account_id: &str,
     owner_user_id: &str,
-    realm_agent_id: &str,
+    runtime_source_ref: &str,
     local_agent_ref: &str,
     backend_kind: &str,
     local_avatar_asset_ref: &str,
@@ -167,7 +167,7 @@ fn write_agent_center_local_avatar_asset_config(
         home,
         account_id,
         owner_user_id,
-        realm_agent_id,
+        runtime_source_ref,
         local_agent_ref,
         backend_kind,
         local_avatar_asset_ref,
@@ -179,7 +179,7 @@ fn write_agent_center_local_avatar_asset_config_with_calibration_ref(
     home: &Path,
     account_id: &str,
     owner_user_id: &str,
-    realm_agent_id: &str,
+    runtime_source_ref: &str,
     local_agent_ref: &str,
     backend_kind: &str,
     local_avatar_asset_ref: &str,
@@ -192,7 +192,7 @@ fn write_agent_center_local_avatar_asset_config_with_calibration_ref(
         "config_kind": "agent_center_local_config",
         "account_id": account_id,
         "owner_user_id": owner_user_id,
-        "realm_agent_id": realm_agent_id,
+        "runtime_source_ref": runtime_source_ref,
         "local_agent_ref": local_agent_ref,
         "modules": {
             "appearance": {
@@ -302,7 +302,7 @@ async fn resolve_local_avatar_asset_accepts_current_agent_center_config_modules(
         &home,
         owner_user_id(),
         owner_user_id(),
-        realm_agent_id(),
+        runtime_source_ref(),
         &local_agent_ref,
         r#"{"Version":3}"#,
     );
@@ -310,7 +310,7 @@ async fn resolve_local_avatar_asset_accepts_current_agent_center_config_modules(
         &home,
         owner_user_id(),
         owner_user_id(),
-        realm_agent_id(),
+        runtime_source_ref(),
         &local_agent_ref,
         "live2d",
         "live2d_ab12cd34ef56",
@@ -319,7 +319,7 @@ async fn resolve_local_avatar_asset_accepts_current_agent_center_config_modules(
     let manifest = nimi_avatar_resolve_local_avatar_asset(LocalAvatarAssetResolvePayload {
         account_id: owner_user_id().to_string(),
         owner_user_id: owner_user_id().to_string(),
-        realm_agent_id: realm_agent_id().to_string(),
+        runtime_source_ref: runtime_source_ref().to_string(),
         local_agent_ref,
     })
     .await
@@ -348,7 +348,7 @@ async fn resolve_local_avatar_asset_projects_live2d_calibration_ref() {
         &home,
         owner_user_id(),
         owner_user_id(),
-        realm_agent_id(),
+        runtime_source_ref(),
         &local_agent_ref,
         r#"{"Version":3}"#,
     );
@@ -356,7 +356,7 @@ async fn resolve_local_avatar_asset_projects_live2d_calibration_ref() {
         &home,
         owner_user_id(),
         owner_user_id(),
-        realm_agent_id(),
+        runtime_source_ref(),
         &local_agent_ref,
         "live2d",
         "live2d_ab12cd34ef56",
@@ -366,7 +366,7 @@ async fn resolve_local_avatar_asset_projects_live2d_calibration_ref() {
     let manifest = nimi_avatar_resolve_local_avatar_asset(LocalAvatarAssetResolvePayload {
         account_id: owner_user_id().to_string(),
         owner_user_id: owner_user_id().to_string(),
-        realm_agent_id: realm_agent_id().to_string(),
+        runtime_source_ref: runtime_source_ref().to_string(),
         local_agent_ref,
     })
     .await
@@ -396,7 +396,7 @@ async fn resolve_local_avatar_asset_rejects_invalid_live2d_calibration_ref() {
         &home,
         owner_user_id(),
         owner_user_id(),
-        realm_agent_id(),
+        runtime_source_ref(),
         &local_agent_ref,
         r#"{"Version":3}"#,
     );
@@ -404,7 +404,7 @@ async fn resolve_local_avatar_asset_rejects_invalid_live2d_calibration_ref() {
         &home,
         owner_user_id(),
         owner_user_id(),
-        realm_agent_id(),
+        runtime_source_ref(),
         &local_agent_ref,
         "live2d",
         "live2d_ab12cd34ef56",
@@ -414,7 +414,7 @@ async fn resolve_local_avatar_asset_rejects_invalid_live2d_calibration_ref() {
     let error = nimi_avatar_resolve_local_avatar_asset(LocalAvatarAssetResolvePayload {
         account_id: owner_user_id().to_string(),
         owner_user_id: owner_user_id().to_string(),
-        realm_agent_id: realm_agent_id().to_string(),
+        runtime_source_ref: runtime_source_ref().to_string(),
         local_agent_ref,
     })
     .await
@@ -433,7 +433,7 @@ async fn resolve_local_avatar_asset_rejects_invalid_live2d_calibration_ref() {
 #[test]
 fn normalize_avatar_launch_instance_id_writes_generated_id_when_omitted() {
     let mut context = AvatarLaunchContext {
-        agent_id: realm_agent_id().to_string(),
+        agent_id: runtime_source_ref().to_string(),
         avatar_instance_id: None,
         launch_source: Some("desktop-agent-chat".to_string()),
     };
@@ -451,7 +451,7 @@ fn normalize_avatar_launch_instance_id_writes_generated_id_when_omitted() {
 #[test]
 fn normalize_avatar_launch_instance_id_preserves_explicit_id() {
     let mut context = AvatarLaunchContext {
-        agent_id: realm_agent_id().to_string(),
+        agent_id: runtime_source_ref().to_string(),
         avatar_instance_id: Some("instance-explicit".to_string()),
         launch_source: None,
     };
@@ -539,7 +539,7 @@ async fn resolve_agent_center_avatar_asset_returns_live2d_model_manifest() {
     let manifest = nimi_avatar_resolve_agent_center_avatar_asset(resolve_payload(
         "account_1",
         owner_user_id(),
-        realm_agent_id(),
+        runtime_source_ref(),
     ))
     .await
     .expect("resolve asset manifest");
@@ -597,7 +597,7 @@ async fn resolve_agent_center_avatar_asset_rejects_local_config_external_live2d_
     let manifest = nimi_avatar_resolve_agent_center_avatar_asset(resolve_payload(
         "account_1",
         owner_user_id(),
-        realm_agent_id(),
+        runtime_source_ref(),
     ))
     .await
     .expect("resolve asset manifest");
@@ -649,7 +649,7 @@ async fn resolve_agent_center_avatar_asset_uses_explicit_embedded_live2d_adapter
     let manifest = nimi_avatar_resolve_agent_center_avatar_asset(resolve_payload(
         "account_1",
         owner_user_id(),
-        realm_agent_id(),
+        runtime_source_ref(),
     ))
     .await
     .expect("resolve asset manifest");
@@ -674,20 +674,20 @@ async fn resolve_agent_center_avatar_asset_uses_explicit_embedded_live2d_adapter
 }
 
 #[tokio::test(flavor = "current_thread")]
-async fn resolve_agent_center_avatar_asset_accepts_runtime_scoped_realm_agent_id() {
+async fn resolve_agent_center_avatar_asset_accepts_runtime_scoped_runtime_source_ref() {
     let _guard = test_env_guard();
     let home = unique_temp_dir("agent-center-package-runtime-agent");
     fs::create_dir_all(&home).unwrap();
     let previous_home = std::env::var("HOME").ok();
     std::env::set_var("HOME", &home);
-    let runtime_scoped_realm_agent_id = "~agent_1_tffk";
+    let runtime_scoped_runtime_source_ref = "~agent_1_tffk";
     let runtime_scoped_local_agent_ref =
-        local_agent_ref_for(owner_user_id(), runtime_scoped_realm_agent_id);
+        local_agent_ref_for(owner_user_id(), runtime_scoped_runtime_source_ref);
     let package_dir = write_agent_center_live2d_package_for_account_agent(
         &home,
         "account_1",
         owner_user_id(),
-        runtime_scoped_realm_agent_id,
+        runtime_scoped_runtime_source_ref,
         &runtime_scoped_local_agent_ref,
         r#"{"Version":3}"#,
     );
@@ -695,7 +695,7 @@ async fn resolve_agent_center_avatar_asset_accepts_runtime_scoped_realm_agent_id
     let manifest = nimi_avatar_resolve_agent_center_avatar_asset(resolve_payload(
         "account_1",
         owner_user_id(),
-        runtime_scoped_realm_agent_id,
+        runtime_scoped_runtime_source_ref,
     ))
     .await
     .expect("resolve runtime scoped asset manifest");
@@ -718,19 +718,19 @@ async fn resolve_agent_center_avatar_asset_accepts_runtime_scoped_realm_agent_id
 }
 
 #[tokio::test(flavor = "current_thread")]
-async fn resolve_agent_center_avatar_asset_accepts_opaque_realm_agent_id() {
+async fn resolve_agent_center_avatar_asset_accepts_opaque_runtime_source_ref() {
     let _guard = test_env_guard();
     let home = unique_temp_dir("agent-center-package-opaque-agent");
     fs::create_dir_all(&home).unwrap();
     let previous_home = std::env::var("HOME").ok();
     std::env::set_var("HOME", &home);
-    let opaque_realm_agent_id = "agent.abc.def+1";
-    let opaque_local_agent_ref = local_agent_ref_for(owner_user_id(), opaque_realm_agent_id);
+    let opaque_runtime_source_ref = "agent.abc.def+1";
+    let opaque_local_agent_ref = local_agent_ref_for(owner_user_id(), opaque_runtime_source_ref);
     let package_dir = write_agent_center_live2d_package_for_account_agent(
         &home,
         "account_1",
         owner_user_id(),
-        opaque_realm_agent_id,
+        opaque_runtime_source_ref,
         &opaque_local_agent_ref,
         r#"{"Version":3}"#,
     );
@@ -738,7 +738,7 @@ async fn resolve_agent_center_avatar_asset_accepts_opaque_realm_agent_id() {
     let manifest = nimi_avatar_resolve_agent_center_avatar_asset(resolve_payload(
         "account_1",
         owner_user_id(),
-        opaque_realm_agent_id,
+        opaque_runtime_source_ref,
     ))
     .await
     .expect("resolve opaque runtime scoped asset manifest");
@@ -772,7 +772,7 @@ async fn resolve_agent_center_avatar_asset_uses_runtime_account_projection_scope
         &home,
         account_id,
         owner_user_id(),
-        realm_agent_id(),
+        runtime_source_ref(),
         &local_agent_ref(),
         r#"{"Version":3}"#,
     );
@@ -780,7 +780,7 @@ async fn resolve_agent_center_avatar_asset_uses_runtime_account_projection_scope
     let manifest = nimi_avatar_resolve_agent_center_avatar_asset(resolve_payload(
         account_id,
         owner_user_id(),
-        realm_agent_id(),
+        runtime_source_ref(),
     ))
     .await
     .expect("resolve asset manifest with Runtime account projection");
@@ -815,7 +815,7 @@ async fn resolve_agent_center_avatar_asset_returns_vrm_model_manifest_and_reject
     let vrm_manifest = nimi_avatar_resolve_agent_center_avatar_asset(resolve_payload_with_package(
         "account_1",
         owner_user_id(),
-        realm_agent_id(),
+        runtime_source_ref(),
         "vrm",
         "vrm_ab12cd34ef56",
     ))
@@ -845,7 +845,7 @@ async fn resolve_agent_center_avatar_asset_returns_vrm_model_manifest_and_reject
     let digest_error = nimi_avatar_resolve_agent_center_avatar_asset(resolve_payload(
         "account_1",
         owner_user_id(),
-        realm_agent_id(),
+        runtime_source_ref(),
     ))
     .await
     .expect_err("digest mismatch should fail closed");

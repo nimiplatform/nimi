@@ -228,7 +228,7 @@ export function useAgentConversationModeHost(
         ? getAgentCenterLocalConfig({
           accountId,
           ownerUserId: baseActiveTarget.ownerUserId,
-          realmAgentId: baseActiveTarget.realmAgentId,
+          runtimeSourceRef: baseActiveTarget.runtimeSourceRef,
           localAgentRef: baseActiveTarget.localAgentRef,
         })
         : null
@@ -442,7 +442,7 @@ export function useAgentConversationModeHost(
       signal: turnInput.signal,
       metadata: {
         ownerUserId: turnInput.target.ownerUserId,
-        realmAgentId: turnInput.target.realmAgentId,
+        runtimeSourceRef: turnInput.target.runtimeSourceRef,
         localAgentRef: turnInput.target.localAgentRef,
         conversationAnchorId: turnInput.conversationAnchorId,
         textExecutionSnapshot: turnInput.textExecutionSnapshot,

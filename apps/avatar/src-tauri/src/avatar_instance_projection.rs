@@ -16,7 +16,7 @@ const AVATAR_INSTANCE_PROJECTION_SCHEMA_VERSION: u32 = 2;
 pub struct AvatarInstanceProjectionRecord {
     pub avatar_instance_id: String,
     pub owner_user_id: String,
-    pub realm_agent_id: String,
+    pub runtime_source_ref: String,
     pub local_agent_ref: String,
     pub launch_source: Option<String>,
 }
@@ -97,7 +97,7 @@ fn resolve_local_agent_ref_parts(local_agent_ref: &str) -> Option<(String, Strin
             local_agent_ref,
         )
         .ok()?;
-    Some((identity.owner_user_id, identity.realm_agent_id))
+    Some((identity.owner_user_id, identity.runtime_source_ref))
 }
 
 pub fn projection_record_from_launch_context(
@@ -105,7 +105,7 @@ pub fn projection_record_from_launch_context(
     fallback_avatar_instance_id: &str,
 ) -> Option<AvatarInstanceProjectionRecord> {
     let local_agent_ref = context.agent_id.trim();
-    let (owner_user_id, realm_agent_id) = resolve_local_agent_ref_parts(local_agent_ref)?;
+    let (owner_user_id, runtime_source_ref) = resolve_local_agent_ref_parts(local_agent_ref)?;
     let avatar_instance_id = context
         .avatar_instance_id
         .as_deref()
@@ -117,7 +117,7 @@ pub fn projection_record_from_launch_context(
     Some(AvatarInstanceProjectionRecord {
         avatar_instance_id: avatar_instance_id.to_string(),
         owner_user_id,
-        realm_agent_id,
+        runtime_source_ref,
         local_agent_ref: local_agent_ref.to_string(),
         launch_source: context.launch_source.clone(),
     })
@@ -128,24 +128,24 @@ fn projection_record_from_runtime_identity(
 ) -> Option<AvatarInstanceProjectionRecord> {
     let avatar_instance_id = identity.avatar_instance_id.trim();
     let owner_user_id = identity.owner_user_id.trim();
-    let realm_agent_id = identity.realm_agent_id.trim();
+    let runtime_source_ref = identity.runtime_source_ref.trim();
     let local_agent_ref = identity.local_agent_ref.trim();
     if avatar_instance_id.is_empty()
         || owner_user_id.is_empty()
-        || realm_agent_id.is_empty()
+        || runtime_source_ref.is_empty()
         || local_agent_ref.is_empty()
     {
         return None;
     }
-    let (resolved_owner_user_id, resolved_realm_agent_id) =
+    let (resolved_owner_user_id, resolved_runtime_source_ref) =
         resolve_local_agent_ref_parts(local_agent_ref)?;
-    if resolved_owner_user_id != owner_user_id || resolved_realm_agent_id != realm_agent_id {
+    if resolved_owner_user_id != owner_user_id || resolved_runtime_source_ref != runtime_source_ref {
         return None;
     }
     Some(AvatarInstanceProjectionRecord {
         avatar_instance_id: avatar_instance_id.to_string(),
         owner_user_id: owner_user_id.to_string(),
-        realm_agent_id: realm_agent_id.to_string(),
+        runtime_source_ref: runtime_source_ref.to_string(),
         local_agent_ref: local_agent_ref.to_string(),
         launch_source: identity.launch_source.clone(),
     })
@@ -196,7 +196,7 @@ mod tests {
             instances: vec![AvatarInstanceProjectionRecord {
                 avatar_instance_id: "instance-1".to_string(),
                 owner_user_id: "owner-1".to_string(),
-                realm_agent_id: "agent-1".to_string(),
+                runtime_source_ref: "agent-1".to_string(),
                 local_agent_ref: "local-agent:owner-1:agent-1".to_string(),
                 launch_source: Some("desktop-agent-chat".to_string()),
             }],
@@ -209,7 +209,7 @@ mod tests {
         assert!(raw.contains("\"publisherPid\": 42"));
         assert!(raw.contains("\"avatarInstanceId\": \"instance-1\""));
         assert!(raw.contains("\"ownerUserId\": \"owner-1\""));
-        assert!(raw.contains("\"realmAgentId\": \"agent-1\""));
+        assert!(raw.contains("\"runtimeSourceRef\": \"agent-1\""));
         assert!(raw.contains("\"localAgentRef\": \"local-agent:owner-1:agent-1\""));
         assert!(!raw.contains("\"agentId\""));
         assert!(raw.contains("\"publishedAtMs\": 123"));
@@ -234,7 +234,7 @@ mod tests {
 
         assert_eq!(record.avatar_instance_id, "instance-1");
         assert_eq!(record.owner_user_id, "owner-1");
-        assert_eq!(record.realm_agent_id, "agent-opaque");
+        assert_eq!(record.runtime_source_ref, "agent-opaque");
         assert_eq!(record.local_agent_ref, "local-agent:owner-1:agent-opaque");
     }
 
@@ -250,7 +250,7 @@ mod tests {
             runtime_identity: Some(AvatarInstanceRuntimeIdentity {
                 avatar_instance_id: "instance-1".to_string(),
                 owner_user_id: "owner-1".to_string(),
-                realm_agent_id: "agent-1".to_string(),
+                runtime_source_ref: "agent-1".to_string(),
                 local_agent_ref: "local-agent:owner-1:agent-1".to_string(),
                 launch_source: Some("desktop-agent-chat".to_string()),
             }),
@@ -260,7 +260,7 @@ mod tests {
             .expect("runtime identity projection record");
 
         assert_eq!(record.owner_user_id, "owner-1");
-        assert_eq!(record.realm_agent_id, "agent-1");
+        assert_eq!(record.runtime_source_ref, "agent-1");
         assert_eq!(record.local_agent_ref, "local-agent:owner-1:agent-1");
     }
 }

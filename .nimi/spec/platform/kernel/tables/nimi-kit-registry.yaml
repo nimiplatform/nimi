@@ -101,14 +101,13 @@ modules:
     kind: logic
     surface_level: logic
     adapter_contract: none
-    description: Pure-logic utilities (OAuth, env, shell-mode, Character Card V2 parsing, renderer-safe storage JSON helpers, and reusable notification headless presentation helpers)
+    description: Pure-logic utilities (OAuth, env, shell-mode, renderer-safe storage JSON helpers, runtime capability helpers, model config helpers, and reusable notification headless presentation helpers)
     dependencies:
       - sdk
     peer_dependencies: []
     exports:
       - ./core/shell-mode
       - ./core/oauth
-      - ./core/character-card
       - ./core/storage-json
       - ./core/offline-coordinator
       - ./core/notifications
@@ -116,7 +115,6 @@ modules:
     headless_exports:
       - ./core/shell-mode
       - ./core/oauth
-      - ./core/character-card
       - ./core/storage-json
       - ./core/offline-coordinator
       - ./core/notifications
@@ -125,7 +123,6 @@ modules:
     reuse_entrypoints:
       - ./core/shell-mode
       - ./core/oauth
-      - ./core/character-card
       - ./core/storage-json
       - ./core/offline-coordinator
       - ./core/notifications

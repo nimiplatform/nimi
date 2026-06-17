@@ -85,7 +85,7 @@ func (s *Service) RequestCompanionParticipation(ctx context.Context, req *runtim
 	payload, err := structpb.NewStruct(map[string]any{
 		"local_agent_ref":        session.LocalAgentRef,
 		"owner_user_id":          session.OwnerUserID,
-		"realm_agent_id":         session.RealmAgentID,
+		"runtime_source_ref":         session.RuntimeSourceRef,
 		"conversation_anchor_id": session.ConversationAnchorID,
 		"request_id":             firstNonEmpty(strings.TrimSpace(req.GetRequestId()), "companion-participation-"+session.ConversationAnchorID),
 		"thread_id":              strings.TrimSpace(req.GetThreadId()),

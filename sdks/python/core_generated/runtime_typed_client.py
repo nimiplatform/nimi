@@ -432,7 +432,7 @@ class AgentEvent:
     avatar_debug: AgentAvatarDebugEventDetail | None = None
     local_agent_ref: str | None = None
     owner_user_id: str | None = None
-    realm_agent_id: str | None = None
+    runtime_source_ref: str | None = None
 
 @dataclass(frozen=True)
 class AgentHookEventDetail:
@@ -504,7 +504,7 @@ class AgentRecord:
     updated_at: str | None = None
     local_agent_ref: str | None = None
     owner_user_id: str | None = None
-    realm_agent_id: str | None = None
+    runtime_source_ref: str | None = None
 
 @dataclass(frozen=True)
 class AgentReplicationEventDetail:
@@ -517,7 +517,7 @@ class AgentRequestContext:
     subject_user_id: str | None = None
     scoped_binding: ScopedRuntimeBindingAttachment | None = None
     owner_user_id: str | None = None
-    realm_agent_id: str | None = None
+    runtime_source_ref: str | None = None
     local_agent_ref: str | None = None
 
 @dataclass(frozen=True)
@@ -983,7 +983,7 @@ class AvatarLiveInstanceBinding:
     updated_at: str | None = None
     local_agent_ref: str | None = None
     owner_user_id: str | None = None
-    realm_agent_id: str | None = None
+    runtime_source_ref: str | None = None
     caller_app_id: str | None = None
 
 @dataclass(frozen=True)
@@ -1392,7 +1392,7 @@ class ConversationAnchor:
     metadata: Mapping[str, object] | None = None
     local_agent_ref: str | None = None
     owner_user_id: str | None = None
-    realm_agent_id: str | None = None
+    runtime_source_ref: str | None = None
 
 @dataclass(frozen=True)
 class ConversationAnchorSnapshot:
@@ -1441,9 +1441,9 @@ class CreateKnowledgeBankResponse:
 class CreateRealmGroupMessageCandidateRequest:
     context: AgentRequestContext | None = None
     realm_group_thread_id: str | None = None
-    realm_group_agent_slot_id: str | None = None
+    runtime_participant_slot: str | None = None
     owner_user_id: str | None = None
-    realm_agent_id: str | None = None
+    runtime_source_ref: str | None = None
     local_agent_ref: str | None = None
     trigger_ref: str | None = None
     membership_snapshot_ref: str | None = None
@@ -2195,7 +2195,7 @@ class GetRealmGroupMessageCandidateEvidenceRequest:
     candidate_evidence_ref: str | None = None
     evidence_hash: str | None = None
     runtime_trace_ref: str | None = None
-    expected_realm_group_agent_slot_id: str | None = None
+    expected_runtime_participant_slot: str | None = None
     expected_local_agent_ref: str | None = None
     trigger_ref: str | None = None
     target_realm_group_thread_id: str | None = None
@@ -2415,7 +2415,7 @@ class InitializeAgentRequest:
     metadata: Mapping[str, object] | None = None
     local_agent_ref: str | None = None
     owner_user_id: str | None = None
-    realm_agent_id: str | None = None
+    runtime_source_ref: str | None = None
 
 @dataclass(frozen=True)
 class InitializeAgentResponse:
@@ -4165,7 +4165,7 @@ class OpenConversationAnchorRequest:
     metadata: Mapping[str, object] | None = None
     local_agent_ref: str | None = None
     owner_user_id: str | None = None
-    realm_agent_id: str | None = None
+    runtime_source_ref: str | None = None
 
 @dataclass(frozen=True)
 class OpenConversationAnchorResponse:
@@ -4486,9 +4486,9 @@ class RealmGroupMessageCandidateCommitHandle:
     evidence_hash: str | None = None
     runtime_trace_ref: str | None = None
     realm_group_thread_id: str | None = None
-    realm_group_agent_slot_id: str | None = None
+    runtime_participant_slot: str | None = None
     owner_user_id: str | None = None
-    realm_agent_id: str | None = None
+    runtime_source_ref: str | None = None
     local_agent_ref: str | None = None
     trigger_ref: str | None = None
     output_candidate_ref: str | None = None
@@ -4512,9 +4512,9 @@ class RealmGroupMessageCandidateEvidence:
     candidate_id: str | None = None
     candidate_kind: str | None = None
     realm_group_thread_id: str | None = None
-    realm_group_agent_slot_id: str | None = None
+    runtime_participant_slot: str | None = None
     owner_user_id: str | None = None
-    realm_agent_id: str | None = None
+    runtime_source_ref: str | None = None
     local_agent_ref: str | None = None
     trigger_ref: str | None = None
     output_candidate_ref: str | None = None

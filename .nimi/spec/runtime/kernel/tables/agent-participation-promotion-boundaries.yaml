@@ -33,7 +33,7 @@ promotion_targets:
       - C-COG-*
     admitted_source_profiles:
       - canonical_agent_chat
-      - realm_group_agent
+      - realm_group_source
       - scenario_sandbox
       - oasis_world_participation
     forbidden_source_profiles:
@@ -61,7 +61,7 @@ promotion_targets:
     owner_rule_families:
       - K-AGCORE-*
     admitted_source_profiles:
-      - realm_group_agent
+      - realm_group_source
       - scenario_sandbox
       - oasis_world_participation
     forbidden_source_profiles:
@@ -86,7 +86,7 @@ promotion_targets:
     owner_rule_families:
       - R-CHAT-*
     admitted_source_profiles:
-      - realm_group_agent
+      - realm_group_source
     forbidden_source_profiles:
       - scenario_sandbox
       - oasis_world_participation
@@ -98,7 +98,7 @@ promotion_targets:
       - output_candidate_ref
       - audit_id
       - realm_thread_ref
-      - realm_agent_slot_ref
+      - runtime_participant_slot_ref
       - realm_authenticated_commit_ref
     default_write_without_promotion: forbidden
     direct_write_by_participation: forbidden
@@ -117,7 +117,7 @@ promotion_targets:
       - scenario_sandbox
       - oasis_world_participation
     forbidden_source_profiles:
-      - realm_group_agent
+      - realm_group_source
       - external_agent_entry
       - debug_or_probe
     required_evidence:

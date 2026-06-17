@@ -13,7 +13,8 @@ export const DEFAULT_HOME_FEED_SCOPE: NimiRealmFeedScope = 'friends';
 function scopeLabelDefault(scope: NimiRealmFeedScope): string {
   if (scope === 'personal') return 'Me';
   if (scope === 'friends') return 'Friends';
-  return 'Agent';
+  if (scope === 'persona_activity') return 'Personas';
+  return 'World Characters';
 }
 
 export function HomeFeedScopeNav({

@@ -19,9 +19,9 @@ test('agent runtime turns interrupt stays bound to the aborted anchor and does n
     allowAnonymousRealm: true,
     runtimeTransport: null,
   });
-  const subscribeCalls: Array<{ ownerUserId: string; realmAgentId: string; localAgentRef: string; conversationAnchorId?: string }> = [];
-  const requestCalls: Array<{ ownerUserId: string; realmAgentId: string; localAgentRef: string; conversationAnchorId: string; threadId: string }> = [];
-  const interruptCalls: Array<{ ownerUserId: string; realmAgentId: string; localAgentRef: string; conversationAnchorId: string; turnId?: string; reason: string }> = [];
+  const subscribeCalls: Array<{ ownerUserId: string; runtimeSourceRef: string; localAgentRef: string; conversationAnchorId?: string }> = [];
+  const requestCalls: Array<{ ownerUserId: string; runtimeSourceRef: string; localAgentRef: string; conversationAnchorId: string; threadId: string }> = [];
+  const interruptCalls: Array<{ ownerUserId: string; runtimeSourceRef: string; localAgentRef: string; conversationAnchorId: string; turnId?: string; reason: string }> = [];
   (client as unknown as { runtime: unknown }).runtime = {
     local: {
       listLocalAssets: async () => ({
@@ -43,7 +43,7 @@ test('agent runtime turns interrupt stays bound to the aborted anchor and does n
     },
     agent: {
       turns: {
-        subscribe: async (request: { ownerUserId: string; realmAgentId: string; localAgentRef: string; conversationAnchorId?: string }) => {
+        subscribe: async (request: { ownerUserId: string; runtimeSourceRef: string; localAgentRef: string; conversationAnchorId?: string }) => {
           subscribeCalls.push(request);
           return {
             async *[Symbol.asyncIterator]() {
@@ -51,10 +51,10 @@ test('agent runtime turns interrupt stays bound to the aborted anchor and does n
             },
           };
         },
-        request: async (request: { ownerUserId: string; realmAgentId: string; localAgentRef: string; conversationAnchorId: string; threadId: string }) => {
+        request: async (request: { ownerUserId: string; runtimeSourceRef: string; localAgentRef: string; conversationAnchorId: string; threadId: string }) => {
           requestCalls.push(request);
         },
-        interrupt: async (request: { ownerUserId: string; realmAgentId: string; localAgentRef: string; conversationAnchorId: string; turnId?: string; reason: string }) => {
+        interrupt: async (request: { ownerUserId: string; runtimeSourceRef: string; localAgentRef: string; conversationAnchorId: string; turnId?: string; reason: string }) => {
           interruptCalls.push(request);
         },
       },
@@ -77,7 +77,7 @@ test('agent runtime turns interrupt stays bound to the aborted anchor and does n
     const anchorBController = new AbortController();
     await streamChatAgentRuntimeAgentTurn({
       ownerUserId: 'user-1',
-      realmAgentId: 'agent-1',
+      runtimeSourceRef: 'agent-1',
       localAgentRef: 'local-agent:user-1:agent-1',
       conversationAnchorId: 'anchor-a',
       threadId: 'thread-a',
@@ -91,7 +91,7 @@ test('agent runtime turns interrupt stays bound to the aborted anchor and does n
     });
     await streamChatAgentRuntimeAgentTurn({
       ownerUserId: 'user-1',
-      realmAgentId: 'agent-1',
+      runtimeSourceRef: 'agent-1',
       localAgentRef: 'local-agent:user-1:agent-1',
       conversationAnchorId: 'anchor-b',
       threadId: 'thread-b',
@@ -120,13 +120,13 @@ test('agent runtime turns interrupt stays bound to the aborted anchor and does n
     );
     assert.deepEqual(interruptCalls.map((call) => ({
       ownerUserId: call.ownerUserId,
-      realmAgentId: call.realmAgentId,
+      runtimeSourceRef: call.runtimeSourceRef,
       localAgentRef: call.localAgentRef,
       conversationAnchorId: call.conversationAnchorId,
       reason: call.reason,
     })), [{
       ownerUserId: 'user-1',
-      realmAgentId: 'agent-1',
+      runtimeSourceRef: 'agent-1',
       localAgentRef: 'local-agent:user-1:agent-1',
       conversationAnchorId: 'anchor-a',
       reason: 'desktop_agent_chat_abort',
@@ -260,7 +260,7 @@ test('agent runtime turn stream binds to the current request_id and ignores back
 
     const result = await streamChatAgentRuntimeAgentTurn({
       ownerUserId: 'user-1',
-      realmAgentId: 'agent-1',
+      runtimeSourceRef: 'agent-1',
       localAgentRef: 'local-agent:user-1:agent-1',
       conversationAnchorId: 'anchor-1',
       threadId: 'thread-1',
@@ -428,7 +428,7 @@ test('agent runtime turn starts consuming subscription events before request ack
 
     const result = await streamChatAgentRuntimeAgentTurn({
       ownerUserId: 'user-1',
-      realmAgentId: 'agent-1',
+      runtimeSourceRef: 'agent-1',
       localAgentRef: 'local-agent:user-1:agent-1',
       conversationAnchorId: 'anchor-eager',
       threadId: 'thread-eager',
@@ -548,7 +548,7 @@ test('agent runtime provider projects Runtime image action artifact events as im
       history: [],
       metadata: {
         ownerUserId: 'user-1',
-        realmAgentId: 'agent-1',
+        runtimeSourceRef: 'agent-1',
         localAgentRef: 'local-agent:user-1:agent-1',
         conversationAnchorId: 'anchor-image',
         textExecutionSnapshot: null,

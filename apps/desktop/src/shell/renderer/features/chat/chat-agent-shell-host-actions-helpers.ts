@@ -79,7 +79,7 @@ export function buildAgentConversationAnchorMetadata(target: AgentLocalTargetSna
   const realmProfileContext: JsonObject = {
     displayName: normalizeText(target.displayName),
     handle: normalizeText(target.handle),
-    realmAgentId: normalizeText(target.realmAgentId),
+    runtimeSourceRef: normalizeText(target.runtimeSourceRef),
     localAgentRef: normalizeText(target.localAgentRef),
   };
   const optionalFields: Array<[string, string | null | undefined]> = [
@@ -141,7 +141,7 @@ async function syncRuntimePresentationProfile(input: {
     appId: string;
     subjectUserId: string;
     ownerUserId: string;
-    realmAgentId: string;
+    runtimeSourceRef: string;
     localAgentRef: string;
   };
 }): Promise<void> {
@@ -169,7 +169,7 @@ export async function ensureRuntimeAgentExists(target: AgentLocalTargetSnapshot)
     appId: runtime.appId,
     subjectUserId,
     ownerUserId: target.ownerUserId,
-    realmAgentId: target.realmAgentId,
+    runtimeSourceRef: target.runtimeSourceRef,
     localAgentRef: target.localAgentRef,
   };
   const lifecycleSurface = createNimiHostRuntimeAgentLifecycleSurface({
@@ -180,8 +180,8 @@ export async function ensureRuntimeAgentExists(target: AgentLocalTargetSnapshot)
   await lifecycleSurface.ensureLocalAgentInitialized({
     localAgentRef: target.localAgentRef,
     ownerUserId: target.ownerUserId,
-    realmAgentId: target.realmAgentId,
-    displayName: target.displayName || target.realmAgentId,
+    runtimeSourceRef: target.runtimeSourceRef,
+    displayName: target.displayName || target.runtimeSourceRef,
     worldId: normalizeText(target.worldId),
   });
   await syncRuntimePresentationProfile({ target, context });
@@ -216,7 +216,7 @@ async function openConversationAnchorForTarget(
   const snapshot = await client.anchors.open({
     localAgentRef: target.localAgentRef,
     ownerUserId: target.ownerUserId,
-    realmAgentId: target.realmAgentId,
+    runtimeSourceRef: target.runtimeSourceRef,
     metadata: buildAgentConversationAnchorMetadata(target),
   }).catch((error) => {
     const normalized = normalizeRuntimeError(error, 'open_runtime_agent_anchor');
@@ -255,7 +255,7 @@ async function ensureConversationAnchorBindingUpstream(input: {
     await client.anchors.getSnapshot({
       localAgentRef: input.target.localAgentRef,
       ownerUserId: input.target.ownerUserId,
-      realmAgentId: input.target.realmAgentId,
+      runtimeSourceRef: input.target.runtimeSourceRef,
       conversationAnchorId: input.binding.conversationAnchorId,
     });
     return input.binding;
@@ -281,7 +281,7 @@ export async function createThreadForTarget(
   const thread: AgentLocalThreadRecord = {
     id: createAgentConversationCacheThreadId(target.localAgentRef),
     ownerUserId: target.ownerUserId,
-    realmAgentId: target.realmAgentId,
+    runtimeSourceRef: target.runtimeSourceRef,
     localAgentRef: target.localAgentRef,
     title: target.displayName,
     createdAtMs: timestampMs,
@@ -321,7 +321,7 @@ export async function ensureThreadAnchorBindingForTarget(input: {
     const conversationAnchorId = await openConversationAnchorForTarget(input.target);
     anchorBinding = persistAgentConversationAnchorBinding({
       ownerUserId: input.target.ownerUserId,
-      realmAgentId: input.target.realmAgentId,
+      runtimeSourceRef: input.target.runtimeSourceRef,
       localAgentRef: input.target.localAgentRef,
       conversationAnchorId,
       updatedAtMs: Date.now(),

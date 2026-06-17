@@ -37,19 +37,19 @@ context_blocks:
   - id: realm_group_thread_ref
     source_rule: K-AGCORE-076
     profiles:
-      - realm_group_agent
+      - realm_group_source
     required_fields:
       - thread_id
   - id: trigger_message_ref
     source_rule: K-AGCORE-076
     profiles:
-      - realm_group_agent
+      - realm_group_source
     required_fields:
       - message_id
   - id: participant_projection
     source_rule: K-AGCORE-076
     profiles:
-      - realm_group_agent
+      - realm_group_source
       - oasis_world_participation
       - external_agent_entry
     required_fields:
@@ -58,14 +58,14 @@ context_blocks:
   - id: recent_group_transcript_projection
     source_rule: K-AGCORE-076
     profiles:
-      - realm_group_agent
+      - realm_group_source
     required_fields:
       - transcript_ref
       - trust_posture
   - id: agent_slot_projection
     source_rule: K-AGCORE-076
     profiles:
-      - realm_group_agent
+      - realm_group_source
     required_fields:
       - agent_id
       - slot_ref

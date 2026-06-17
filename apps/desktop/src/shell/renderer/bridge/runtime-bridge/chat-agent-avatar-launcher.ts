@@ -33,8 +33,8 @@ export type DesktopAvatarLaunchHandoffPayload = {
 const FORBIDDEN_LAUNCH_INPUT_FIELDS = [
   'ownerUserId',
   'owner_user_id',
-  'realmAgentId',
-  'realm_agent_id',
+  'runtimeSourceRef',
+  'runtime_source_ref',
   'localAgentRef',
   'local_agent_ref',
   'conversationAnchorId',
@@ -192,8 +192,8 @@ function normalizeRequiredLocalAgentRef(value: string, field: string): string {
     : '';
   const separatorIndex = rest.indexOf(':');
   const ownerUserId = separatorIndex >= 0 ? rest.slice(0, separatorIndex).trim() : '';
-  const realmAgentId = separatorIndex >= 0 ? rest.slice(separatorIndex + 1).trim() : '';
-  if (!ownerUserId || !realmAgentId) {
+  const runtimeSourceRef = separatorIndex >= 0 ? rest.slice(separatorIndex + 1).trim() : '';
+  if (!ownerUserId || !runtimeSourceRef) {
     throw new Error(`desktop avatar handoff requires ${field} to be a local-agent ref`);
   }
   return normalized;

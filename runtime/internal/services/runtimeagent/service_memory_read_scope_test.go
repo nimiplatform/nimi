@@ -58,7 +58,7 @@ func TestQueryAgentMemoryRejectsDyadicReadWithoutOwnerContext(t *testing.T) {
 	}
 
 	_, err := svc.QueryAgentMemory(ctx, &runtimev1.QueryAgentMemoryRequest{
-		Context:          &runtimev1.AgentRequestContext{OwnerUserId: "user-1", RealmAgentId: "agent-read-scope", LocalAgentRef: testRuntimeAgentLocalRef("agent-read-scope")},
+		Context:          &runtimev1.AgentRequestContext{OwnerUserId: "user-1", RuntimeSourceRef: "agent-read-scope", LocalAgentRef: testRuntimeAgentLocalRef("agent-read-scope")},
 		AgentId:          "agent-read-scope",
 		CanonicalClasses: []runtimev1.MemoryCanonicalClass{runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_DYADIC},
 	})
@@ -70,7 +70,7 @@ func TestQueryAgentMemoryRejectsDyadicReadWithoutOwnerContext(t *testing.T) {
 	}
 
 	_, err = svc.QueryAgentMemory(ctx, &runtimev1.QueryAgentMemoryRequest{
-		Context:          &runtimev1.AgentRequestContext{SubjectUserId: "user-2", OwnerUserId: "user-1", RealmAgentId: "agent-read-scope", LocalAgentRef: testRuntimeAgentLocalRef("agent-read-scope")},
+		Context:          &runtimev1.AgentRequestContext{SubjectUserId: "user-2", OwnerUserId: "user-1", RuntimeSourceRef: "agent-read-scope", LocalAgentRef: testRuntimeAgentLocalRef("agent-read-scope")},
 		AgentId:          "agent-read-scope",
 		CanonicalClasses: []runtimev1.MemoryCanonicalClass{runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_DYADIC},
 	})

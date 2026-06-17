@@ -35,7 +35,7 @@ type persistedPublicChatAnchor struct {
 	AgentID                string                                      `json:"agentId"`
 	LocalAgentRef          string                                      `json:"localAgentRef"`
 	OwnerUserID            string                                      `json:"ownerUserId"`
-	RealmAgentID           string                                      `json:"realmAgentId"`
+	RuntimeSourceRef           string                                      `json:"runtimeSourceRef"`
 	CallerAppID            string                                      `json:"callerAppId"`
 	SubjectUserID          string                                      `json:"subjectUserId"`
 	ThreadID               string                                      `json:"threadId"`
@@ -129,7 +129,7 @@ type persistedAvatarLiveInstanceBinding struct {
 	AgentID              string `json:"agentId"`
 	LocalAgentRef        string `json:"localAgentRef"`
 	OwnerUserID          string `json:"ownerUserId"`
-	RealmAgentID         string `json:"realmAgentId"`
+	RuntimeSourceRef         string `json:"runtimeSourceRef"`
 	CallerAppID          string `json:"callerAppId"`
 	SubjectUserID        string `json:"subjectUserId"`
 	RegisteredAt         string `json:"registeredAt,omitempty"`
@@ -155,7 +155,7 @@ func (s *Service) capturePublicChatSurfaceSnapshotLocked() (persistedPublicChatS
 			AgentID:                session.AgentID,
 			LocalAgentRef:          session.LocalAgentRef,
 			OwnerUserID:            session.OwnerUserID,
-			RealmAgentID:           session.RealmAgentID,
+			RuntimeSourceRef:           session.RuntimeSourceRef,
 			CallerAppID:            session.CallerAppID,
 			SubjectUserID:          session.SubjectUserID,
 			ThreadID:               session.ThreadID,
@@ -230,7 +230,7 @@ func (s *Service) capturePublicChatSurfaceSnapshotLocked() (persistedPublicChatS
 			AgentID:              binding.AgentID,
 			LocalAgentRef:        binding.LocalAgentRef,
 			OwnerUserID:          binding.OwnerUserID,
-			RealmAgentID:         binding.RealmAgentID,
+			RuntimeSourceRef:         binding.RuntimeSourceRef,
 			CallerAppID:          binding.CallerAppID,
 			SubjectUserID:        binding.SubjectUserID,
 		}
@@ -435,7 +435,7 @@ func (r *publicChatSurfaceStateRepository) loadPublicChatSurfaceStateFromDB(s *S
 		delete(s.chatActiveByAgent, key)
 	}
 	for _, item := range persisted.Anchors {
-		if _, err := validateLocalAgentIdentity(item.OwnerUserID, item.RealmAgentID, item.LocalAgentRef); err != nil {
+		if _, err := validateLocalAgentIdentity(item.OwnerUserID, item.RuntimeSourceRef, item.LocalAgentRef); err != nil {
 			return fmt.Errorf("persisted conversation anchor %s local identity invalid: %w", item.ConversationAnchorID, err)
 		}
 		transcript := make([]*runtimev1.ChatMessage, 0, len(item.Transcript))
@@ -475,7 +475,7 @@ func (r *publicChatSurfaceStateRepository) loadPublicChatSurfaceStateFromDB(s *S
 			AgentID:                item.AgentID,
 			LocalAgentRef:          item.LocalAgentRef,
 			OwnerUserID:            item.OwnerUserID,
-			RealmAgentID:           item.RealmAgentID,
+			RuntimeSourceRef:           item.RuntimeSourceRef,
 			CallerAppID:            item.CallerAppID,
 			SubjectUserID:          item.SubjectUserID,
 			ThreadID:               item.ThreadID,
@@ -509,7 +509,7 @@ func (r *publicChatSurfaceStateRepository) loadPublicChatSurfaceStateFromDB(s *S
 		}
 	}
 	for _, item := range persisted.AvatarLiveInstances {
-		if _, err := validateLocalAgentIdentity(item.OwnerUserID, item.RealmAgentID, item.LocalAgentRef); err != nil {
+		if _, err := validateLocalAgentIdentity(item.OwnerUserID, item.RuntimeSourceRef, item.LocalAgentRef); err != nil {
 			return fmt.Errorf("persisted avatar live instance %s local identity invalid: %w", item.AvatarInstanceID, err)
 		}
 		if strings.TrimSpace(item.AvatarInstanceID) == "" || strings.TrimSpace(item.ConversationAnchorID) == "" {
@@ -517,7 +517,7 @@ func (r *publicChatSurfaceStateRepository) loadPublicChatSurfaceStateFromDB(s *S
 		}
 		if anchor := s.chatAnchors[item.ConversationAnchorID]; anchor == nil {
 			continue
-		} else if anchor.LocalAgentRef != item.LocalAgentRef || anchor.OwnerUserID != item.OwnerUserID || anchor.RealmAgentID != item.RealmAgentID {
+		} else if anchor.LocalAgentRef != item.LocalAgentRef || anchor.OwnerUserID != item.OwnerUserID || anchor.RuntimeSourceRef != item.RuntimeSourceRef {
 			return fmt.Errorf("persisted avatar live instance %s anchor identity mismatch", item.AvatarInstanceID)
 		}
 		registeredAt := time.Time{}
@@ -539,7 +539,7 @@ func (r *publicChatSurfaceStateRepository) loadPublicChatSurfaceStateFromDB(s *S
 			AgentID:              item.AgentID,
 			LocalAgentRef:        item.LocalAgentRef,
 			OwnerUserID:          item.OwnerUserID,
-			RealmAgentID:         item.RealmAgentID,
+			RuntimeSourceRef:         item.RuntimeSourceRef,
 			CallerAppID:          item.CallerAppID,
 			SubjectUserID:        item.SubjectUserID,
 			RegisteredAt:         registeredAt,

@@ -88,7 +88,7 @@ test('runtime agent client composes RuntimeAgentService and reserved turn seam a
   });
   const identity = {
     ownerUserId: 'user-1',
-    realmAgentId: 'agent-1',
+    runtimeSourceRef: 'agent-1',
     localAgentRef: 'local-agent:user-1:agent-1',
   };
 

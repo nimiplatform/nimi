@@ -49,8 +49,8 @@ describe('parseAvatarLaunchContext', () => {
     for (const field of [
       'ownerUserId',
       'owner_user_id',
-      'realmAgentId',
-      'realm_agent_id',
+      'runtimeSourceRef',
+      'runtime_source_ref',
       'localAgentRef',
       'local_agent_ref',
       'conversationAnchorId',

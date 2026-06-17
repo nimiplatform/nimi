@@ -1,6 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
-import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { realmExploreData } from './data/realm-explore-data';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
@@ -14,21 +13,18 @@ import type { ExploreAgentCardData } from './explore-cards';
 import type { ExploreSectionId } from './explore-section-nav';
 import type { PostCardAuthorProfileTarget } from '../home/post-card';
 import { parseAgents, toProfileTargetFromAgent } from './explore-agent-projection';
-import { toWorldListItemFromTruth } from '../world/world-list-model';
 import {
   fetchWorldListItems,
   prefetchWorldDetailAndHistory,
   worldListQueryKey,
 } from '../world/world-detail-queries.js';
 import { prefetchWorldDetailPanel } from '../world/world-detail-route-state';
-import { QuickAddFriendModal } from './quick-add-friend-modal';
-import { resolveAgentFriendLimit } from '../relationship/agent-friend-limit';
 import {
-  loadRealmAgentSocialProjection,
-  realmAgentSocialProjectionQueryKey,
-  resolveRealmAgentFriendState,
-} from './realm-agent-friend-state';
-import { addRealmAgentFriend, openRealmAgentLocalChat } from './realm-agent-friend-actions';
+  loadRealmPersonaSourceAdmissionProjection,
+  realmPersonaSourceAdmissionQueryKey,
+  realmPersonaSourceHandoffMessage,
+  resolveRealmPersonaSourceState,
+} from './realm-persona-source-admission';
 
 type PostDto = RealmModel<'PostDto'>;
 
@@ -45,13 +41,8 @@ type ExplorePanelProps = {
 };
 
 export function ExplorePanel(props: ExplorePanelProps) {
-  const { t } = useTranslation();
   const authStatus = useAppStore((state) => state.auth.status);
   const navigateToWorld = useAppStore((state) => state.navigateToWorld);
-  const setActiveTab = useAppStore((state) => state.setActiveTab);
-  const setChatMode = useAppStore((state) => state.setChatMode);
-  const setSelectedTargetForSource = useAppStore((state) => state.setSelectedTargetForSource);
-  const setAgentConversationSelection = useAppStore((state) => state.setAgentConversationSelection);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedProfileTarget, setSelectedProfileTarget] = useState<PostCardAuthorProfileTarget | null>(null);
   const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
@@ -59,7 +50,7 @@ export function ExplorePanel(props: ExplorePanelProps) {
   // Fetch worlds for banner carousel
   const worldsQuery = useQuery({
     queryKey: worldListQueryKey(),
-    queryFn: async () => (await fetchWorldListItems()).map((item) => toWorldListItemFromTruth(item)),
+    queryFn: async () => fetchWorldListItems(),
     staleTime: 30_000,
   });
 
@@ -101,12 +92,9 @@ export function ExplorePanel(props: ExplorePanelProps) {
     enabled: authStatus === 'authenticated',
   });
 
-  // Realm social-truth projection (AgentFriend / Friendship graph + quota).
-  // Drives every RealmAgent card's friendState (D-EXPL-005). Resolved once and
-  // shared by id lookup — not guessed per card.
-  const socialProjectionQuery = useQuery({
-    queryKey: realmAgentSocialProjectionQueryKey,
-    queryFn: async () => loadRealmAgentSocialProjection(),
+  const sourceAdmissionQuery = useQuery({
+    queryKey: realmPersonaSourceAdmissionQueryKey,
+    queryFn: async () => loadRealmPersonaSourceAdmissionProjection(),
     enabled: authStatus === 'authenticated',
     staleTime: 15_000,
   });
@@ -114,13 +102,13 @@ export function ExplorePanel(props: ExplorePanelProps) {
   const agents = useMemo(
     () => {
       const mapped = parseAgents(agentsQuery.data, worldsMap);
-      const projection = socialProjectionQuery.data ?? null;
+      const projection = sourceAdmissionQuery.data ?? null;
       return mapped.map((agent) => ({
         ...agent,
-        friendState: resolveRealmAgentFriendState(agent.id, projection),
+        sourceState: resolveRealmPersonaSourceState(agent.id, projection),
       }));
     },
-    [agentsQuery.data, worldsMap, socialProjectionQuery.data],
+    [agentsQuery.data, worldsMap, sourceAdmissionQuery.data],
   );
 
   const categories = useMemo(() => {
@@ -158,103 +146,21 @@ export function ExplorePanel(props: ExplorePanelProps) {
   const [refreshKey, setRefreshKey] = useState(0);
   const postFeedKey = `explore-${selectedCategory ?? 'all'}-${refreshKey}`;
 
-  // Add Contact Modal state
-  const [addContactModalOpen, setAddContactModalOpen] = useState(false);
-  const [selectedAgentForAdd, setSelectedAgentForAdd] = useState<ExploreAgentCardData | null>(null);
-
   // Send Gift Modal state
   const [giftModalOpen, setGiftModalOpen] = useState(false);
   const [selectedAgentForGift, setSelectedAgentForGift] = useState<ExploreAgentCardData | null>(null);
 
-  // Agent friend limit query
-  const agentLimitQuery = useQuery({
-    queryKey: ['agent-friend-limit'],
-    queryFn: async () => resolveAgentFriendLimit(),
-  });
-
-  const onAgentAddFriend = useCallback(
-    (agentId: string) => {
-      const target = agents.find((item) => item.id === agentId);
-      if (target) {
-        setSelectedAgentForAdd(target);
-        setAddContactModalOpen(true);
-      }
-      logRendererEvent({
-        level: 'info',
-        area: 'explore',
-        message: 'action:agent-add-friend:clicked',
-        details: {
-          agentId,
-          targetId: target?.id ?? null,
-          targetHandle: target?.handle ?? null,
-        },
-      });
-    },
-    [agents],
-  );
-
-  // D-EXPL-007 Add Friend dual-effect: create the AgentFriend relation AND
-  // ensure the idempotent account-scoped LocalAgent projection. The LocalAgent
-  // projection is ensured here at Add Friend time, not deferred to first
-  // chat-open. On success, the social projection is refetched so the card's
-  // friendState transitions to `friend` / `pending`.
-  const onAddFriend = useCallback(async (agentId: string, message?: string) => {
-    if (agentLimitQuery.data && !agentLimitQuery.data.canAdd) {
-      throw new Error(agentLimitQuery.data.reason || t('Relationship.agentFriendLimitReachedShort', { defaultValue: 'Agent friend limit reached' }));
-    }
-    const target = agents.find((item) => item.id === agentId) ?? null;
-    await addRealmAgentFriend(
-      {
-        realmAgentId: agentId,
-        displayName: target?.name ?? agentId,
-        handle: target?.handle ?? '',
-        avatarUrl: target?.avatarUrl ?? null,
-        worldId: target?.worldId ?? null,
-        worldName: target?.worldName ?? null,
-        bio: target?.bio ?? null,
-      },
-      message,
-    );
-    await Promise.all([
-      socialProjectionQuery.refetch(),
-      agentLimitQuery.refetch(),
-    ]);
-    setAddContactModalOpen(false);
-    setSelectedAgentForAdd(null);
-  }, [agentLimitQuery, agents, socialProjectionQuery, t]);
-
-  // `friend` → Open Agent Chat. Opens the one-to-one LocalAgent Chat for the
-  // RealmAgent's deterministic localAgentRef. The only chat entry for a
-  // RealmAgent — there is no RealmAgent direct chat (D-EXPL-006).
-  const onAgentOpenChat = useCallback(async (agentId: string) => {
-    const target = agents.find((item) => item.id === agentId);
-    if (!target) {
-      return;
-    }
-    await openRealmAgentLocalChat(
-      {
-        realmAgentId: target.id,
-        displayName: target.name,
-        handle: target.handle,
-        avatarUrl: target.avatarUrl,
-        worldId: target.worldId,
-        worldName: target.worldName,
-        bio: target.bio,
-      },
-      { setActiveTab, setChatMode, setSelectedTargetForSource, setAgentConversationSelection },
-    );
-  }, [agents, setActiveTab, setChatMode, setSelectedTargetForSource, setAgentConversationSelection]);
-
-  // `limit_reached` stays inline. Keep the
-  // action fail-closed until an in-context management action is admitted.
   const onAgentManageFriends = useCallback(() => {
     setFeedback({
       kind: 'warning',
-      message: t('Explore.agentFriendLimitManagementUnavailable', {
-        defaultValue: 'Agent friend limit reached. Remove an agent friend from a profile before adding another.',
-      }),
+      message: realmPersonaSourceHandoffMessage(),
     });
-  }, [t]);
+    logRendererEvent({
+      level: 'info',
+      area: 'explore',
+      message: 'action:realm-persona-source-admission:handoff-required',
+    });
+  }, []);
 
   const onAgentSendGift = useCallback(
     (agentId: string) => {
@@ -298,8 +204,6 @@ export function ExplorePanel(props: ExplorePanelProps) {
     [agents],
   );
 
-  const agentLimit = agentLimitQuery.data ?? null;
-
   return (
     <>
       <InlineFeedback
@@ -321,30 +225,18 @@ export function ExplorePanel(props: ExplorePanelProps) {
         onPostDelete={() => setRefreshKey((k) => k + 1)}
         loading={agentsQuery.isPending}
         onToggleCategory={onToggleCategory}
-        onAgentAddFriend={onAgentAddFriend}
-        onAgentOpenChat={onAgentOpenChat}
         onAgentManageFriends={onAgentManageFriends}
         onAgentSendGift={onAgentSendGift}
         onAgentOpen={onAgentOpen}
         onPostAuthorOpen={setSelectedProfileTarget}
         onWorldOpen={onWorldOpen}
       />
-      <QuickAddFriendModal
-        open={addContactModalOpen}
-        agent={selectedAgentForAdd}
-        agentLimit={agentLimit}
-        onClose={() => {
-          setAddContactModalOpen(false);
-          setSelectedAgentForAdd(null);
-        }}
-        onAdd={onAddFriend}
-      />
       <SendGiftModal
         open={giftModalOpen}
         receiverId={selectedAgentForGift?.id || ''}
         receiverName={selectedAgentForGift?.name || 'Agent'}
         receiverHandle={selectedAgentForGift?.handle}
-        receiverIsAgent={selectedAgentForGift?.isAgent === true}
+        receiverIsSource={selectedAgentForGift?.isSource === true}
         receiverAvatarUrl={selectedAgentForGift?.avatarUrl}
         onClose={() => {
           setGiftModalOpen(false);

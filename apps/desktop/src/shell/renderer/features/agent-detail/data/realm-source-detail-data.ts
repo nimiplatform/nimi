@@ -1,7 +1,4 @@
 import {
-  loadNimiRealmAgentDetails,
-} from '@nimiplatform/sdk/realm';
-import {
   isRealmOfflineErrorLike as isRealmOfflineError,
   type JsonObject,
 } from '@nimiplatform/sdk/types';
@@ -27,13 +24,13 @@ function cacheSet(key: string, value: unknown, ttlMs: number) {
   profileCache.set(key, { value, expiresAt: Date.now() + ttlMs });
 }
 
-async function applyAgentProfileReadFilters(input: {
-  emitRealmAgentDetailError: RealmDataErrorEmitter;
+async function applyRealmSourceProfileReadFilters(input: {
+  emitRealmSourceDetailError: RealmDataErrorEmitter;
   viewerUserId?: string;
   worldId?: string;
   profile: JsonObject;
 }): Promise<JsonObject> {
-  void input.emitRealmAgentDetailError;
+  void input.emitRealmSourceDetailError;
   void input.viewerUserId;
   void input.worldId;
   return {
@@ -45,29 +42,77 @@ function toNonEmptyString(value: unknown): string {
   return String(value || '').trim();
 }
 
-export async function loadAgentDetails(
-  emitRealmAgentDetailError: RealmDataErrorEmitter,
-  agentIdentifier: string,
+function asRecord(value: unknown): JsonObject {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as JsonObject
+    : {};
+}
+
+async function loadRealmSourceDetails(identifier: string): Promise<JsonObject> {
+  const realm = getDesktopRealm();
+  try {
+    const persona = await realm.worldCore.worldCoreControllerGetRealmPersona({
+      path: { personaId: identifier },
+    });
+    const core = asRecord(persona.core);
+    return {
+      ...core,
+      id: persona.id,
+      displayName: toNonEmptyString(core.displayName) || toNonEmptyString(core.name) || persona.id,
+      handle: toNonEmptyString(core.handle),
+      avatarUrl: toNonEmptyString(core.avatarUrl) || null,
+      bio: toNonEmptyString(core.bio) || toNonEmptyString(core.description) || null,
+      createdAt: persona.createdAt,
+      updatedAt: persona.updatedAt,
+      homeWorldId: persona.homeWorldId,
+      ownerId: persona.ownerId,
+      sourceKind: 'realmPersona',
+      contentHash: persona.contentHash,
+    };
+  } catch {
+    const character = await realm.worldCore.worldCoreControllerGetWorldCharacter({
+      path: { characterId: identifier },
+    });
+    const core = asRecord(character.core);
+    return {
+      ...core,
+      id: character.id,
+      displayName: toNonEmptyString(core.displayName) || toNonEmptyString(core.name) || character.id,
+      handle: toNonEmptyString(core.handle),
+      avatarUrl: toNonEmptyString(core.avatarUrl) || null,
+      bio: toNonEmptyString(core.bio) || toNonEmptyString(core.description) || null,
+      createdAt: character.createdAt,
+      updatedAt: character.updatedAt,
+      worldId: character.worldId,
+      sourceKind: 'worldCharacter',
+      contentHash: character.contentHash,
+    };
+  }
+}
+
+export async function loadRealmSourceDetailsForDisplay(
+  emitRealmSourceDetailError: RealmDataErrorEmitter,
+  sourceIdentifier: string,
   context?: {
     viewerUserId?: string;
     worldId?: string;
   },
 ) {
-  const normalizedIdentifier = toNonEmptyString(agentIdentifier);
+  const normalizedIdentifier = toNonEmptyString(sourceIdentifier);
 
   try {
     const cacheKey = `agent-profile:${normalizedIdentifier}`;
     const cached = cacheGet(cacheKey);
     if (cached && typeof cached === 'object') {
-      return applyAgentProfileReadFilters({
-        emitRealmAgentDetailError,
+      return applyRealmSourceProfileReadFilters({
+        emitRealmSourceDetailError,
         viewerUserId: context?.viewerUserId,
         worldId: context?.worldId,
         profile: cached as JsonObject,
       });
     }
 
-    const enrichedProfile = await loadNimiRealmAgentDetails(getDesktopRealm(), normalizedIdentifier);
+    const enrichedProfile = await loadRealmSourceDetails(normalizedIdentifier);
 
     const resolvedId = toNonEmptyString(enrichedProfile.id);
     if (resolvedId) {
@@ -86,8 +131,8 @@ export async function loadAgentDetails(
     if (resolvedHandle) {
       await cache.syncAgentMetadata(`agent-profile:${resolvedHandle}`, enrichedProfile);
     }
-    return applyAgentProfileReadFilters({
-      emitRealmAgentDetailError,
+    return applyRealmSourceProfileReadFilters({
+      emitRealmSourceDetailError,
       viewerUserId: context?.viewerUserId,
       worldId: context?.worldId,
       profile: enrichedProfile,
@@ -97,22 +142,22 @@ export async function loadAgentDetails(
       const cached = await (await getOfflineCacheManager()).getCachedAgentMetadata<JsonObject>(`agent-profile:${normalizedIdentifier}`);
       if (cached) {
         getOfflineCoordinator().markCacheFallbackUsed();
-        return applyAgentProfileReadFilters({
-          emitRealmAgentDetailError,
+        return applyRealmSourceProfileReadFilters({
+          emitRealmSourceDetailError,
           viewerUserId: context?.viewerUserId,
           worldId: context?.worldId,
           profile: cached,
         });
       }
     }
-    emitRealmAgentDetailError('load-agent-details', error, { agentIdentifier: normalizedIdentifier });
+    emitRealmSourceDetailError('load-realm-source-details', error, { sourceIdentifier: normalizedIdentifier });
     throw error;
   }
 }
 
-export const realmAgentDetailData = {
-  loadAgentDetails: (agentIdentifier: string) =>
-    loadAgentDetails(emitRealmDataError, agentIdentifier, {
+export const realmSourceDetailData = {
+  loadRealmSourceDetailsForDisplay: (sourceIdentifier: string) =>
+    loadRealmSourceDetailsForDisplay(emitRealmDataError, sourceIdentifier, {
       viewerUserId: String(useAppStore.getState().auth.user?.id || '').trim() || undefined,
     }),
 };

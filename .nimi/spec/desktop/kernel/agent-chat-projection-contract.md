@@ -150,7 +150,8 @@ Fixed rules:
 - Desktop must not persist Agent Chat drafts. Composer text is transient
   renderer state only and is allowed to be lost on reload or restart.
 - Desktop must not admit Agent Chat rename or archive conversation semantics.
-  Agent Chat exposes a single active Runtime conversation per AgentFriend; any
+  Agent Chat exposes a single active Runtime conversation per runtime source
+  snapshot / LocalAgent projection; any
   display title is derived projection text, not user-authored conversation
   metadata.
 - Runtime-owned session snapshots and `runtime.agent.turn.*` /
@@ -187,7 +188,8 @@ Store retirement requirements:
   behavior.
 - Agent Chat rename, archive, and multi-conversation session management are not
   product requirements. Runtime / SDK should expose one active conversation per
-  AgentFriend unless a later product decision admits multiple conversations.
+  runtime source snapshot / LocalAgent projection unless a later product
+  decision admits multiple conversations.
 - Desktop submit paths use in-memory optimistic projection only; committed user
   and assistant transcript state replays from Runtime session snapshots or
   `runtime.agent.turn.*` / `runtime.agent.presentation.*` projections.

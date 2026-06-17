@@ -33,7 +33,7 @@ pub(crate) struct AvatarManualDragWindowOrigin {
 pub(crate) struct AvatarRuntimeIdentityBindingPayload {
     pub(crate) avatar_instance_id: String,
     pub(crate) owner_user_id: String,
-    pub(crate) realm_agent_id: String,
+    pub(crate) runtime_source_ref: String,
     pub(crate) local_agent_ref: String,
     pub(crate) launch_source: Option<String>,
 }

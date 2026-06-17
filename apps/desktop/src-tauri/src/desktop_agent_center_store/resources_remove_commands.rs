@@ -19,7 +19,7 @@ pub(crate) fn desktop_agent_center_background_remove_blocking(
     let account_id = validate_normalized_id(&payload.account_id, "accountId")?;
     let scope = validate_local_agent_scope(
         &payload.owner_user_id,
-        &payload.realm_agent_id,
+        &payload.runtime_source_ref,
         &payload.local_agent_ref,
     )?;
     validate_background_id(&payload.background_asset_id, "backgroundAssetId")?;
@@ -92,7 +92,7 @@ pub(crate) fn desktop_agent_center_agent_local_resources_remove_blocking(
     let account_id = validate_normalized_id(&payload.account_id, "accountId")?;
     let scope = validate_local_agent_scope(
         &payload.owner_user_id,
-        &payload.realm_agent_id,
+        &payload.runtime_source_ref,
         &payload.local_agent_ref,
     )?;
     quarantine_agent_center_tree(&account_id, &scope.local_agent_ref, "agent_removed")

@@ -98,7 +98,7 @@ fn forbidden_launch_query_parameter(key: &str) -> bool {
             | "agent_center_account_id"
             | "account_id"
             | "owner_user_id"
-            | "realm_agent_id"
+            | "runtime_source_ref"
             | "local_agent_ref"
             | "conversation_anchor_id"
             | "user_id"
@@ -251,11 +251,11 @@ mod tests {
     }
 
     #[test]
-    fn parse_avatar_launch_context_rejects_bare_realm_agent_id() {
+    fn parse_avatar_launch_context_rejects_bare_runtime_source_ref() {
         let error = parse_avatar_launch_context(&format!(
             "{AVATAR_LAUNCH_SCHEME}://{AVATAR_LAUNCH_HOST}?agent_id=agent-1&avatar_instance_id=instance-1",
         ))
-        .expect_err("bare realm agent id should fail");
+        .expect_err("bare runtime source id should fail");
 
         assert!(error.contains("local-agent ref"));
     }
@@ -301,7 +301,7 @@ mod tests {
             "scoped_binding",
             "account_id",
             "owner_user_id",
-            "realm_agent_id",
+            "runtime_source_ref",
             "local_agent_ref",
             "conversation_anchor_id",
             "user_id",

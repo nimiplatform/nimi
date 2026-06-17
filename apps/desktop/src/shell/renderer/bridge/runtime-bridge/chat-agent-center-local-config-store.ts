@@ -92,7 +92,7 @@ function parseAgentCenterLocalResourceRemoveResult(value: unknown): AgentCenterL
 export type AgentCenterLocalIdentityInput = {
   accountId: string;
   ownerUserId: string;
-  realmAgentId: string;
+  runtimeSourceRef: string;
   localAgentRef: string;
 };
 
@@ -110,7 +110,7 @@ export async function getAgentCenterLocalConfig(input: AgentCenterLocalIdentityI
 export async function putAgentCenterLocalConfig(input: {
   accountId: string;
   ownerUserId: string;
-  realmAgentId: string;
+  runtimeSourceRef: string;
   localAgentRef: string;
   config: AgentCenterLocalConfig;
 }): Promise<AgentCenterLocalConfig> {
@@ -122,7 +122,7 @@ export async function putAgentCenterLocalConfig(input: {
         ...input.config,
         account_id: input.accountId,
         owner_user_id: input.ownerUserId,
-        realm_agent_id: input.realmAgentId,
+        runtime_source_ref: input.runtimeSourceRef,
         local_agent_ref: input.localAgentRef,
       },
     },
@@ -163,7 +163,7 @@ export async function pickAgentCenterBackgroundSource(): Promise<string | null> 
 export async function importAgentCenterLive2dAdapterManifest(input: {
   accountId: string;
   ownerUserId: string;
-  realmAgentId: string;
+  runtimeSourceRef: string;
   localAgentRef: string;
   localAssetId: string;
   sourcePath: string;
@@ -178,7 +178,7 @@ export async function importAgentCenterLive2dAdapterManifest(input: {
 export async function importAgentCenterAvatarAsset(input: {
   accountId: string;
   ownerUserId: string;
-  realmAgentId: string;
+  runtimeSourceRef: string;
   localAgentRef: string;
   kind: 'live2d' | 'vrm';
   sourcePath: string;
@@ -194,7 +194,7 @@ export async function importAgentCenterAvatarAsset(input: {
 export async function validateAgentCenterAvatarAsset(input: {
   accountId: string;
   ownerUserId: string;
-  realmAgentId: string;
+  runtimeSourceRef: string;
   localAgentRef: string;
   localAssetId: string;
 }): Promise<AgentCenterAvatarAssetValidationResult> {
@@ -207,7 +207,7 @@ export async function validateAgentCenterAvatarAsset(input: {
 export async function importAgentCenterBackground(input: {
   accountId: string;
   ownerUserId: string;
-  realmAgentId: string;
+  runtimeSourceRef: string;
   localAgentRef: string;
   sourcePath: string;
   displayName?: string;
@@ -222,7 +222,7 @@ export async function importAgentCenterBackground(input: {
 export async function removeAgentCenterBackground(input: {
   accountId: string;
   ownerUserId: string;
-  realmAgentId: string;
+  runtimeSourceRef: string;
   localAgentRef: string;
   backgroundAssetId: string;
 }): Promise<AgentCenterLocalResourceRemoveResult> {
@@ -253,7 +253,7 @@ export async function removeAgentCenterAccountLocalResources(input: {
 export async function validateAgentCenterBackground(input: {
   accountId: string;
   ownerUserId: string;
-  realmAgentId: string;
+  runtimeSourceRef: string;
   localAgentRef: string;
   backgroundAssetId: string;
 }): Promise<AgentCenterBackgroundValidationResult> {
@@ -266,7 +266,7 @@ export async function validateAgentCenterBackground(input: {
 export async function getAgentCenterBackgroundAsset(input: {
   accountId: string;
   ownerUserId: string;
-  realmAgentId: string;
+  runtimeSourceRef: string;
   localAgentRef: string;
   backgroundAssetId: string;
 }): Promise<AgentCenterBackgroundAssetResult> {

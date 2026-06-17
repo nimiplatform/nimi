@@ -50,17 +50,17 @@ extend the kit surface first when the missing behavior is cross-app.
 
 ## Current Public Surface
 
-The current package publishes 58 public subpath exports through
+The current package publishes 57 public subpath exports through
 `kit/package.json`:
 
 - 8 UI entries (`./ui`, `./ui/glass`, `./ui/motion`, `./ui/a11y`,
   `./ui/styles.css`, `./ui/themes/light.css`, `./ui/themes/dark.css`,
   and `./ui/themes/nimi-accent.css`)
 - 3 auth entries (`./auth`, `./auth/styles.css`, `./auth/native-oauth-result-page`)
-- 9 core entries (`./core/shell-mode`, `./core/oauth`,
+- 8 core entries (`./core/shell-mode`, `./core/oauth`,
   `./core/storage-json`, `./core/offline-coordinator`,
   `./core/notifications`, `./core/runtime-capabilities`,
-  `./core/model-config`, `./core/character-card`, `./core/sdk-contract`)
+  `./core/model-config`, `./core/sdk-contract`)
 - 2 renderer-shell entries (`./shell/renderer/bridge`,
   `./shell/renderer/bootstrap`)
 - 2 telemetry entries (`./telemetry`, `./telemetry/error-boundary`)
@@ -108,7 +108,6 @@ import '@nimiplatform/kit/auth/styles.css';
 import { ShellMode } from '@nimiplatform/kit/core/shell-mode';
 import { OAuthShellContract } from '@nimiplatform/kit/core/oauth';
 import { classifyCapability } from '@nimiplatform/kit/core/runtime-capabilities';
-import { parseCharacterCard } from '@nimiplatform/kit/core/character-card';
 import { getNimiNotificationBadgeKey } from '@nimiplatform/kit/core/notifications';
 ```
 

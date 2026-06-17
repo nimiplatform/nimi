@@ -30,7 +30,7 @@ func TestPublicChatTurnRequestRejectsExecutionBindingOmission(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"realm_agent_id":         "agent-alpha",
+			"runtime_source_ref":         "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"thread_id":              "thread-route-omission",
 			"messages": []any{
@@ -55,7 +55,7 @@ func TestPublicChatTurnRequestRejectsCallerSystemPrompt(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"realm_agent_id":         "agent-alpha",
+			"runtime_source_ref":         "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"thread_id":              "thread-reject-system-prompt",
 			"system_prompt":          "caller supplied raw prompt",
@@ -120,7 +120,7 @@ func TestPublicChatTurnInvalidStructuredOutputFailsClosed(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"realm_agent_id":         "agent-alpha",
+			"runtime_source_ref":         "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
@@ -222,7 +222,7 @@ func TestPublicChatTurnRepairsMalformedAPMLOnceBeforeFailClosed(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"realm_agent_id":         "agent-alpha",
+			"runtime_source_ref":         "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
@@ -316,7 +316,7 @@ func TestPublicChatTurnRequestPreservesCommittedTranscriptOnFailedTurn(t *testin
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"realm_agent_id":         "agent-alpha",
+			"runtime_source_ref":         "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
@@ -425,7 +425,7 @@ func TestPublicChatTurnRequestFoldsCommittedLastTurnIntoTranscript(t *testing.T)
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"realm_agent_id":         "agent-alpha",
+			"runtime_source_ref":         "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"messages": []any{
 				map[string]any{"role": "user", "content": "test"},
@@ -513,7 +513,7 @@ func TestPublicChatTurnRequestRejectsUnknownEmotionBeforeCommit(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"realm_agent_id":         "agent-alpha",
+			"runtime_source_ref":         "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
@@ -620,7 +620,7 @@ func TestPublicChatFollowUpRunsInsideRuntime(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"realm_agent_id":         "agent-alpha",
+			"runtime_source_ref":         "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"thread_id":              "thread-follow-up",
 			"messages": []any{

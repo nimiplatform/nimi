@@ -108,7 +108,7 @@ export function SendGiftDialog({
               <img src={recipient.avatarUrl} alt={recipient.name} className="h-20 w-20 rounded-full object-cover" />
             ) : (
               <div className={`flex h-20 w-20 items-center justify-center rounded-full text-2xl font-bold ${
-                recipient.isAgent
+                recipient.isSource
                   ? 'bg-[var(--nimi-surface-card)] text-[var(--nimi-text-secondary)]'
                   : 'bg-[color-mix(in_srgb,var(--nimi-status-success)_20%,transparent)] text-[var(--nimi-status-success)]'
               }`}>

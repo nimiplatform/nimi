@@ -33,7 +33,7 @@ test('group agent slot controls require Realm admin projection at visibility and
   assert.match(participantPanelSource, /if \(addAgentOpen && !canManageAgentSlots\) \{\s*setAddAgentOpen\(false\);/s);
   assert.match(participantPanelSource, /\{showAddAgentPicker && \(/);
   assert.match(participantPanelSource, /if \(!canManageAgentSlots\) \{\s*setPanelError\(t\('Chat\.groupAgentSlotManagementDenied'/s);
-  assert.match(participantPanelSource, /data-chat-group-agent-slot-refusal="realm-role-required"/);
+  assert.match(participantPanelSource, /data-chat-runtime-participant-slot-refusal="realm-role-required"/);
   assert.doesNotMatch(participantPanelSource, /agentOwnerId\s*===\s*currentUserId/);
   assert.doesNotMatch(participantPanelSource, /canManageAgentSlots[\s\S]{0,240}agentOwnerId/);
 });
@@ -49,7 +49,7 @@ test('group composer mention surface is text insertion posture only', () => {
   assert.doesNotMatch(composerSource, /chat-agent-orchestration|chat-agent-continuity|chat-agent-runtime-memory/);
 });
 
-test('group adapter feeds committed Realm agent slots into split candidate handoff', () => {
+test('group adapter feeds committed runtime source slots into split candidate handoff', () => {
   assert.match(groupAdapterSource, /const participants: readonly GroupParticipantDto\[] = selectedGroup\?\.participants \|\| \[];/);
   assert.match(groupAdapterSource, /composerAdapter:\s*null/);
   assert.doesNotMatch(groupAdapterSource, /submit:\s*async\s*\(\)\s*=>\s*undefined/);

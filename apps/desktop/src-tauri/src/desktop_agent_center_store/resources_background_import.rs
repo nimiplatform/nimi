@@ -10,7 +10,7 @@ pub(super) fn select_imported_background(
         DesktopAgentCenterConfigScopePayload {
             account_id: account_id.to_string(),
             owner_user_id: scope.owner_user_id.clone(),
-            realm_agent_id: scope.realm_agent_id.clone(),
+            runtime_source_ref: scope.runtime_source_ref.clone(),
             local_agent_ref: scope.local_agent_ref.clone(),
         },
     )?;
@@ -20,7 +20,7 @@ pub(super) fn select_imported_background(
         DesktopAgentCenterConfigPutPayload {
             account_id: account_id.to_string(),
             owner_user_id: scope.owner_user_id.clone(),
-            realm_agent_id: scope.realm_agent_id.clone(),
+            runtime_source_ref: scope.runtime_source_ref.clone(),
             local_agent_ref: scope.local_agent_ref.clone(),
             config,
         },
@@ -38,7 +38,7 @@ pub(super) fn clear_selected_background(
         DesktopAgentCenterConfigScopePayload {
             account_id: account_id.to_string(),
             owner_user_id: scope.owner_user_id.clone(),
-            realm_agent_id: scope.realm_agent_id.clone(),
+            runtime_source_ref: scope.runtime_source_ref.clone(),
             local_agent_ref: scope.local_agent_ref.clone(),
         },
     )?;
@@ -49,7 +49,7 @@ pub(super) fn clear_selected_background(
             DesktopAgentCenterConfigPutPayload {
                 account_id: account_id.to_string(),
                 owner_user_id: scope.owner_user_id.clone(),
-                realm_agent_id: scope.realm_agent_id.clone(),
+                runtime_source_ref: scope.runtime_source_ref.clone(),
                 local_agent_ref: scope.local_agent_ref.clone(),
                 config,
             },
@@ -64,7 +64,7 @@ pub(crate) fn desktop_agent_center_background_import_blocking(
     let account_id = validate_normalized_id(&payload.account_id, "accountId")?;
     let scope = validate_local_agent_scope(
         &payload.owner_user_id,
-        &payload.realm_agent_id,
+        &payload.runtime_source_ref,
         &payload.local_agent_ref,
     )?;
     let source_path = PathBuf::from(&payload.source_path);

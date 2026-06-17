@@ -111,9 +111,9 @@ function FullAgentCard({
           <div className="mt-3 text-[11px] text-[#d8efe4]/45">{t('WorldDetail.xianxia.v2.agents.vitality')} {agent.stats.vitalityScore}</div>
         ) : null}
       </button>
-      {/* No chat/voice action on a World RealmAgent card. RealmAgent direct
-          chat is not admitted (D-EXPL-006 / T3); the card opens the quick-sheet
-          whose only action is View profile → agent-detail. */}
+      {/* No chat/voice action on a WorldCharacter card. Source direct chat is
+          not admitted; the card opens the quick-sheet whose only action is
+          View profile. */}
     </article>
   );
 }
@@ -121,12 +121,10 @@ function FullAgentCard({
 export function WorldAgentsSection({
   agents,
   agentsLoading,
-  onCreateAgent,
   onSelectAgent,
 }: {
   agents: WorldAgent[];
   agentsLoading?: boolean;
-  onCreateAgent?: () => void;
   onSelectAgent?: (agent: WorldAgent) => void;
 }) {
   const { t } = useTranslation();
@@ -142,14 +140,6 @@ export function WorldAgentsSection({
     >
       <div className="mb-4 flex items-center justify-between gap-3">
         <div className="text-sm text-[#d8efe4]/58">{t('WorldDetail.xianxia.v2.agents.totalCount', { count: totalCount })}</div>
-        {onCreateAgent ? (
-          <button
-            onClick={onCreateAgent}
-            className="rounded-full border border-[#4ECCA3]/20 bg-[#4ECCA3]/12 px-4 py-2 text-sm text-[#dffdf2] transition-colors hover:bg-[#4ECCA3]/18"
-          >
-            {t('WorldDetail.xianxia.v2.agents.createAgent')}
-          </button>
-        ) : null}
       </div>
 
       {agentsLoading ? (

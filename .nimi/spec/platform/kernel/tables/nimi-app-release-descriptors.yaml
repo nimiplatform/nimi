@@ -62,8 +62,8 @@ descriptors:
       mutable_source_allowed: false
       install_digest_verification_required: inherited_from_atomic_bundle
     source_rule: P-NAPP-014
-  - descriptor_id: nimi.realm-agent-studio.bundled-with-nimi
-    app_id: nimi.realm-agent-studio
+  - descriptor_id: nimi.realm-persona-studio.bundled-with-nimi
+    app_id: nimi.realm-persona-studio
     version: bundled-with-current-nimi-release
     descriptor_class: bundled-with-nimi
     source:
@@ -77,9 +77,9 @@ descriptors:
       signature_or_provenance_ref: nimi-first-party-signature-policy
     runtime:
       package_kind: nimi-app
-      entry_ref: realm-agent-studio-runtime-registration
+      entry_ref: realm-persona-studio-runtime-registration
       sandbox_ref: first-party-bundled-app
-    permissions_ref: nimi.realm-agent-studio.permission_scope_ref
+    permissions_ref: nimi.realm-persona-studio.permission_scope_ref
     storage_policy_ref: nimi-data-app-roots
     review:
       admission_path: first-party-bundled-release

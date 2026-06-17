@@ -10,7 +10,6 @@ import {
 } from './social-snapshot';
 import {
   blockUser,
-  loadAgentFriendLimit,
   loadContactList,
   loadCurrentUserProfile,
   loadPendingFriendRequests,
@@ -60,8 +59,6 @@ export const realmSocialData = {
     loadSocialSnapshot(callRealmApi, emitRealmDataError),
   loadFriendRequests: () =>
     loadPendingFriendRequests(callRealmApi, emitRealmDataError),
-  loadAgentFriendLimit: () =>
-    loadAgentFriendLimit(callRealmApi, emitRealmDataError),
   loadUserProfile: (id: string) =>
     loadUserProfileById(callRealmApi, emitRealmDataError, id),
   requestOrAcceptFriend: (userId: string, message?: string) =>

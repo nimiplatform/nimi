@@ -51,10 +51,10 @@ export type StartWithChatGateInput = {
   /** Condition 2 — the selected target's LocalAgent ref, or null. */
   localAgentRef: string | null;
   /**
-   * Condition 2 — the bare RealmAgent id of the selected target. Used to
-   * fail closed when a target resolves to a RealmAgent rather than a LocalAgent.
+   * Condition 2 — the bare runtime source ref of the selected target. Used to
+   * fail closed when a target resolves to a source rather than a LocalAgent.
    */
-  realmAgentId: string | null;
+  runtimeSourceRef: string | null;
   /** Condition 3 — the resolved conversation anchor id, or null. */
   conversationAnchorId: string | null;
   /** Condition 4 — the selected local Avatar asset ref, or null. */
@@ -102,15 +102,15 @@ function isResolvableInstancePolicy(value: string | null): value is AgentCenterA
   return value !== null && (AVATAR_INSTANCE_POLICY_VALUES as readonly string[]).includes(value);
 }
 
-function isLocalAgentTarget(localAgentRef: string | null, realmAgentId: string | null): boolean {
+function isLocalAgentTarget(localAgentRef: string | null, runtimeSourceRef: string | null): boolean {
   if (!localAgentRef) {
     return false;
   }
   if (!localAgentRef.startsWith(LOCAL_AGENT_REF_PREFIX)) {
     return false;
   }
-  // A bare RealmAgent id is not a LocalAgent target.
-  if (realmAgentId !== null && localAgentRef === realmAgentId) {
+  // A bare runtime source ref is not a LocalAgent target.
+  if (runtimeSourceRef !== null && localAgentRef === runtimeSourceRef) {
     return false;
   }
   return true;
@@ -132,7 +132,7 @@ export function evaluateStartWithChatGate(input: StartWithChatGateInput): StartW
     },
     {
       id: 'local_agent_target',
-      passed: isLocalAgentTarget(input.localAgentRef, input.realmAgentId),
+      passed: isLocalAgentTarget(input.localAgentRef, input.runtimeSourceRef),
     },
     {
       id: 'conversation_anchor_present',

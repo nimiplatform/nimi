@@ -72,16 +72,12 @@ export function NotificationPanelItemCard({
           <EntityAvatar
             imageUrl={item.actorAvatarUrl}
             name={item.actorName}
-            kind={item.actorIsAgent ? 'agent' : 'human'}
+            kind="human"
             sizeClassName="h-12 w-12"
-            className={item.actorIsAgent ? undefined : 'ring-2 ring-gray-100'}
-            fallbackClassName={
-              item.actorIsAgent
-                ? undefined
-                : (item.isRead
-                  ? 'bg-gray-100 text-gray-500 ring-2 ring-gray-100'
-                  : 'bg-mint-100 text-mint-700 ring-2 ring-gray-100')
-            }
+            className="ring-2 ring-gray-100"
+            fallbackClassName={item.isRead
+              ? 'bg-gray-100 text-gray-500 ring-2 ring-gray-100'
+              : 'bg-mint-100 text-mint-700 ring-2 ring-gray-100'}
             textClassName="text-sm font-semibold"
           />
         </div>

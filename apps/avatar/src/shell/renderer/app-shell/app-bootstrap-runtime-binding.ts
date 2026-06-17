@@ -56,7 +56,7 @@ export function resolveLaunchAgentIdentity(input: {
   accountId: string;
 }): {
   ownerUserId: string;
-  realmAgentId: string;
+  runtimeSourceRef: string;
   localAgentRef: string;
 } {
   const agentId = readNormalizedString(input.agentId);
@@ -76,6 +76,6 @@ export function resolveLaunchAgentIdentity(input: {
   }
   return projectRuntimeLocalAgentIdentity({
     ownerUserId: accountId,
-    realmAgentId: agentId,
+    runtimeSourceRef: agentId,
   });
 }

@@ -266,7 +266,6 @@ describe('chat realm helpers', () => {
           displayName: '',
           handle: '~alice',
           avatarUrl: '/alice.png',
-          isAgent: false,
         },
         lastMessage: {
           id: 'msg-older',
@@ -290,7 +289,6 @@ describe('chat realm helpers', () => {
           displayName: 'Alice',
           handle: 'alice',
           avatarUrl: '/alice.png',
-          isAgent: false,
         },
         lastMessage: {
           id: 'msg-newer',
@@ -304,23 +302,23 @@ describe('chat realm helpers', () => {
         },
       },
       {
-        id: 'chat-agent',
+        id: 'chat-source',
         createdAt: '2026-04-03T00:00:00.000Z',
         updatedAt: '2026-04-03T00:00:00.000Z',
         lastMessageAt: '2026-04-03T00:00:00.000Z',
         unreadCount: 9,
+        sourceRef: 'realm-persona:persona-1',
+        runtimeSourceRef: 'runtime-source-1',
         otherUser: {
-          id: 'agent-1',
-          displayName: 'Agent',
-          handle: 'agent',
-          isAgent: true,
+          id: 'persona-1',
+          displayName: 'Persona',
+          handle: 'persona',
         },
         lastMessage: null,
       },
       {
-        id: 'chat-missing-discriminator',
+        id: 'chat-missing-id',
         otherUser: {
-          id: 'user-2',
           displayName: 'Bob',
         },
       },
@@ -677,7 +675,6 @@ describe('chat realm helpers', () => {
               createdAt: '2026-03-24T08:00:00.000Z',
               displayName: 'Alex',
               handle: 'alex',
-              isAgent: false,
             },
             lastMessage: {
               id: 'old-msg',
@@ -1162,7 +1159,6 @@ describe('chat realm helpers', () => {
             createdAt: '2026-03-10T09:58:00.000Z',
             displayName: 'Alex',
             handle: 'alex',
-            isAgent: false,
           },
           lastMessage: newer,
           lastMessageAt: newer.createdAt,

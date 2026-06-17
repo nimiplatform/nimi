@@ -258,7 +258,7 @@ func (m memoryPolicyRuntime) validateDirectMemoryPromotionEvidence(candidate *ru
 		}
 	}
 	switch strings.TrimSpace(evidence.SourceProfile) {
-	case "canonical_agent_chat", "realm_group_agent", "scenario_sandbox", "oasis_world_participation":
+	case "canonical_agent_chat", "realm_group_source", "scenario_sandbox", "oasis_world_participation":
 	default:
 		return rejection(candidate, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, "source_profile is not admitted for runtime memory promotion")
 	}

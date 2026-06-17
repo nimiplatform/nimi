@@ -1,8 +1,8 @@
 import {
-  realmSocialData } from '@renderer/features/social/data/realm-social-data';
-import { useCallback,
+  useCallback,
   useMemo,
-  useSyncExternalStore } from 'react';
+  useSyncExternalStore,
+} from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { RouteModelPickerSelection } from '@nimiplatform/kit/features/model-picker';
 import {
@@ -17,7 +17,6 @@ import type {
 } from '@renderer/bridge/runtime-bridge/types';
 import {
   overlayAgentTargetWithLiveProfileContent,
-  toAgentFriendTargetsFromSocialSnapshot,
   toConversationMessageViewModel,
 } from './chat-agent-thread-model';
 import type { AgentConversationSelection } from './chat-shell-types';
@@ -32,7 +31,6 @@ import {
   createAgentConversationCacheThreadId,
   isEmptyPendingAssistantMessage,
   sortThreadSummaries,
-  TARGETS_QUERY_KEY,
 } from './chat-agent-shell-core';
 import {
   listRuntimeAgentConversationSummaries,
@@ -44,15 +42,13 @@ import {
 } from './conversation-capability';
 import { loadDesktopRouteOptions } from '../runtime-config/desktop-route-options-service';
 
-type SocialSnapshot = Awaited<ReturnType<typeof realmSocialData.loadSocialSnapshot>>;
-
 function synthesizeAgentThreadSummaryFromRuntimeSummary(
   summary: AgentRuntimeConversationSummary,
 ): AgentLocalThreadSummary {
   return {
     id: createAgentConversationCacheThreadId(summary.localAgentRef),
     ownerUserId: summary.ownerUserId,
-    realmAgentId: summary.realmAgentId,
+    runtimeSourceRef: summary.runtimeSourceRef,
     localAgentRef: summary.localAgentRef,
     title: summary.title,
     updatedAtMs: summary.updatedAtMs,
@@ -67,7 +63,7 @@ function synthesizeAgentThreadSummaryFromTarget(
   return {
     id: createAgentConversationCacheThreadId(target.localAgentRef),
     ownerUserId: target.ownerUserId,
-    realmAgentId: target.realmAgentId,
+    runtimeSourceRef: target.runtimeSourceRef,
     localAgentRef: target.localAgentRef,
     title: target.displayName,
     updatedAtMs: 0,
@@ -131,18 +127,9 @@ export function useAgentConversationShellState(
     return {};
   }, []);
 
-  const targetsQuery = useQuery({
-    queryKey: [...TARGETS_QUERY_KEY, input.authStatus],
-    queryFn: async (): Promise<AgentLocalTargetSnapshot[]> => {
-      const snapshot = await realmSocialData.loadSocialSnapshot() as SocialSnapshot;
-      const ownerUserId = String((useAppStore.getState().auth.user as Record<string, unknown> | null)?.id || '').trim();
-      return toAgentFriendTargetsFromSocialSnapshot({ ...snapshot, ownerUserId });
-    },
-    enabled: input.authStatus === 'authenticated',
-  });
   const targets = useMemo(
-    () => targetsQuery.data || [],
-    [targetsQuery.data],
+    (): AgentLocalTargetSnapshot[] => [],
+    [],
   );
   const targetByLocalAgentRef = useMemo(
     () => new Map(targets.map((target) => [target.localAgentRef, target])),
@@ -158,7 +145,7 @@ export function useAgentConversationShellState(
       runtimeConversationSummaryTargetKey,
     ],
     queryFn: () => listRuntimeAgentConversationSummaries(targets),
-    enabled: input.authStatus === 'authenticated' && targetsQuery.isSuccess && targets.length > 0,
+    enabled: input.authStatus === 'authenticated' && targets.length > 0,
     staleTime: 60_000,
   });
   const runtimeConversationSummaries = useMemo(
@@ -166,7 +153,7 @@ export function useAgentConversationShellState(
     [runtimeConversationSummariesQuery.data, targets.length],
   );
   const runtimeConversationSummariesReady = targets.length === 0
-    ? targetsQuery.isSuccess
+    ? true
     : runtimeConversationSummariesQuery.isSuccess;
 
   const selectedTarget = useMemo(
@@ -255,8 +242,8 @@ export function useAgentConversationShellState(
     streamState,
     targetByLocalAgentRef,
     targets,
-    targetsPending: targetsQuery.isPending,
-    targetsReady: targetsQuery.isSuccess,
+    targetsPending: false,
+    targetsReady: true,
     textRouteModelProfile,
     threads,
     threadsReady: runtimeConversationSummariesReady,

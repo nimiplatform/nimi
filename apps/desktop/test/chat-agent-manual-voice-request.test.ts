@@ -10,7 +10,7 @@ import type { AgentLocalTargetSnapshot } from '../src/shell/renderer/bridge/runt
 function target(): AgentLocalTargetSnapshot {
   return {
     ownerUserId: 'user-1',
-    realmAgentId: 'agent-1',
+    runtimeSourceRef: 'agent-1',
     localAgentRef: 'local-agent:user-1:agent-1',
     displayName: 'Companion',
     handle: 'companion',
@@ -75,7 +75,7 @@ test('desktop manual voice request targets a committed Runtime assistant message
     activeConversationAnchorId: 'anchor-1',
   }), {
     ownerUserId: 'user-1',
-    realmAgentId: 'agent-1',
+    runtimeSourceRef: 'agent-1',
     localAgentRef: 'local-agent:user-1:agent-1',
     conversationAnchorId: 'anchor-1',
     turnId: 'turn-1',

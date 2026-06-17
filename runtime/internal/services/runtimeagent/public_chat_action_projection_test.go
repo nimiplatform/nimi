@@ -92,7 +92,7 @@ func publicChatImageActionTurnPayload(t *testing.T, anchorID string, includeImag
 	return publicChatStructPayload(t, map[string]any{
 		"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 		"owner_user_id":          "user-1",
-		"realm_agent_id":         "agent-alpha",
+		"runtime_source_ref":         "agent-alpha",
 		"conversation_anchor_id": anchorID,
 		"request_id":             "image-action-turn",
 		"messages": []any{

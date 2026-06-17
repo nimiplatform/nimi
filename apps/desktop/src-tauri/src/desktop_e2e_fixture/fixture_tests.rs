@@ -109,13 +109,13 @@ fn runtime_agent_fixture_projects_cbdb_chat_open_chain() {
     let local_agent_ref =
         "local-agent:user-e2e-primary:cbdb-song-slice-real-20260614-agent-8af2c5ca8a".to_string();
     let owner_user_id = "user-e2e-primary".to_string();
-    let realm_agent_id = "cbdb-song-slice-real-20260614-agent-8af2c5ca8a".to_string();
+    let runtime_source_ref = "cbdb-song-slice-real-20260614-agent-8af2c5ca8a".to_string();
     let context = runtime_bridge_generated::AgentRequestContext {
         app_id: "nimi.desktop".to_string(),
         subject_user_id: owner_user_id.clone(),
         scoped_binding: None,
         owner_user_id: owner_user_id.clone(),
-        realm_agent_id: realm_agent_id.clone(),
+        runtime_source_ref: runtime_source_ref.clone(),
         local_agent_ref: local_agent_ref.clone(),
     };
 
@@ -132,7 +132,7 @@ fn runtime_agent_fixture_projects_cbdb_chat_open_chain() {
     let agent = get_agent_response.agent.expect("agent projection");
     assert_eq!(agent.local_agent_ref, local_agent_ref);
     assert_eq!(agent.owner_user_id, owner_user_id);
-    assert_eq!(agent.realm_agent_id, realm_agent_id);
+    assert_eq!(agent.runtime_source_ref, runtime_source_ref);
     assert_eq!(
         agent.lifecycle_status,
         runtime_bridge_generated::AgentLifecycleStatus::Active as i32
@@ -147,7 +147,7 @@ fn runtime_agent_fixture_projects_cbdb_chat_open_chain() {
             metadata: None,
             local_agent_ref: local_agent_ref.clone(),
             owner_user_id: owner_user_id.clone(),
-            realm_agent_id: realm_agent_id.clone(),
+            runtime_source_ref: runtime_source_ref.clone(),
         },
     ))
     .expect("open anchor fixture");

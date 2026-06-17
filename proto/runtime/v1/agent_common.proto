@@ -9,6 +9,6 @@ message AgentRequestContext {
   string subject_user_id = 2;
   ScopedRuntimeBindingAttachment scoped_binding = 3;
   string owner_user_id = 4;
-  string realm_agent_id = 5;
+  string runtime_source_ref = 5;
   string local_agent_ref = 6;
 }

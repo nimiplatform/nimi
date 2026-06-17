@@ -2,7 +2,7 @@ import { realmSocialData } from '@renderer/features/social/data/realm-social-dat
 import { useCallback, useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { OverlayShell } from '@nimiplatform/kit/ui';
-import { realmAgentDetailData } from '@renderer/features/agent-detail/data/realm-agent-detail-data';
+import { realmSourceDetailData } from '@renderer/features/agent-detail/data/realm-source-detail-data';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal.js';
@@ -29,7 +29,7 @@ export type ProfileDetailSeed = {
   handle: string;
   avatarUrl?: string | null;
   bio?: string | null;
-  isAgent: boolean;
+  isSource: boolean;
   isOnline?: boolean;
   createdAt?: string;
   tags?: string[];
@@ -98,18 +98,18 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
   }, [t]);
 
   const profileQuery = useQuery({
-    queryKey: ['profile-detail-modal', props.profileId, props.profileSeed?.handle, props.profileSeed?.isAgent, 'restricted-state-v1'],
+    queryKey: ['profile-detail-modal', props.profileId, props.profileSeed?.handle, props.profileSeed?.isSource, 'restricted-state-v1'],
     queryFn: async () => {
       if (!props.profileId) {
         return null;
       }
       try {
-        const result = props.profileSeed?.isAgent
-          ? await realmAgentDetailData.loadAgentDetails(props.profileId)
+        const result = props.profileSeed?.isSource
+          ? await realmSourceDetailData.loadRealmSourceDetailsForDisplay(props.profileId)
           : await realmSocialData.loadUserProfile(props.profileId);
         return toProfileData(result as ProfileSource);
       } catch (error) {
-        if (props.profileSeed && !props.profileSeed.isAgent && isPrivateProfileAccessError(error)) {
+        if (props.profileSeed && !props.profileSeed.isSource && isPrivateProfileAccessError(error)) {
           return toRestrictedContactProfileData(props.profileSeed);
         }
         throw error;
@@ -131,7 +131,7 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
     }
 
     try {
-      if (profile.isAgent) {
+      if (profile.isSource) {
         if (!profile.isFriend) {
           throw new Error(t('Relationship.agentFriendRequiredForChat', { defaultValue: 'Add this Agent as a friend before opening local chat.' }));
         }
@@ -194,7 +194,7 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
         displayName: profile.displayName,
         handle: profile.handle,
         avatarUrl: profile.avatarUrl,
-        isAgent: profile.isAgent,
+        isSource: profile.isSource,
       });
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['contacts'], exact: false }),
@@ -295,7 +295,7 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
               showMessageButton={
                 !isBlockedProfile
                 && profile.accessState !== 'restricted'
-                && (!profile.isAgent || profile.isFriend)
+                && (!profile.isSource || profile.isFriend)
               }
             />
           ) : profileQuery.isError ? (
@@ -320,7 +320,7 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
           receiverId={profile.id}
           receiverName={profile.displayName}
           receiverHandle={profile.handle}
-          receiverIsAgent={profile.isAgent === true}
+          receiverIsSource={profile.isSource === true}
           receiverAvatarUrl={profile.avatarUrl}
           onClose={() => setGiftModalOpen(false)}
           onSent={() => {

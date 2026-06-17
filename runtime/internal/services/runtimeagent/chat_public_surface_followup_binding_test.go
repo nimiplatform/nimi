@@ -68,7 +68,7 @@ func TestPublicChatTurnRejectsConcurrentTurnForSameAgent(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"realm_agent_id":         "agent-alpha",
+			"runtime_source_ref":         "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
@@ -92,7 +92,7 @@ func TestPublicChatTurnRejectsConcurrentTurnForSameAgent(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"realm_agent_id":         "agent-alpha",
+			"runtime_source_ref":         "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"messages": []any{
 				map[string]any{"role": "user", "content": "second turn"},
@@ -166,7 +166,7 @@ func TestPublicChatSessionRejectsThreadIdentityDrift(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"realm_agent_id":         "agent-alpha",
+			"runtime_source_ref":         "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"thread_id":              "thread-1",
 			"messages": []any{
@@ -196,7 +196,7 @@ func TestPublicChatSessionRejectsThreadIdentityDrift(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"realm_agent_id":         "agent-alpha",
+			"runtime_source_ref":         "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"thread_id":              "thread-2",
 			"messages": []any{
@@ -261,7 +261,7 @@ func TestPublicChatSessionRejectsExecutionBindingDrift(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"realm_agent_id":         "agent-alpha",
+			"runtime_source_ref":         "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"thread_id":              "thread-1",
 			"messages": []any{
@@ -291,7 +291,7 @@ func TestPublicChatSessionRejectsExecutionBindingDrift(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"realm_agent_id":         "agent-alpha",
+			"runtime_source_ref":         "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"thread_id":              "thread-1",
 			"messages": []any{
@@ -331,7 +331,7 @@ func TestPublicChatTurnRequestRejectsMissingConversationAnchorID(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref": testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":   "user-1",
-			"realm_agent_id":  "agent-alpha",
+			"runtime_source_ref":  "agent-alpha",
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
 			},
@@ -372,7 +372,7 @@ func TestPublicChatTurnRequestRejectsUnknownConversationAnchorID(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"realm_agent_id":         "agent-alpha",
+			"runtime_source_ref":         "agent-alpha",
 			"conversation_anchor_id": "agent_anchor_never_opened",
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
@@ -423,7 +423,7 @@ func TestPublicChatIngressRejectsLegacyAgentChatCarrier(t *testing.T) {
 				Payload: publicChatStructPayload(t, map[string]any{
 					"local_agent_ref": testRuntimeAgentLocalRef("agent-alpha"),
 					"owner_user_id":   "user-1",
-					"realm_agent_id":  "agent-alpha",
+					"runtime_source_ref":  "agent-alpha",
 					"session_id":      "session-legacy",
 					"messages": []any{
 						map[string]any{"role": "user", "content": "hello"},

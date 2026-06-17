@@ -30,7 +30,7 @@ export async function registerDesktopAvatarLiveInstanceBinding(input: {
   const subjectUserId = normalizeText(input.subjectUserId) || requireRuntimeSubjectUserId();
   await runtimeAgent.anchors.registerAvatarLiveInstance({
     ownerUserId: input.target.ownerUserId,
-    realmAgentId: input.target.realmAgentId,
+    runtimeSourceRef: input.target.runtimeSourceRef,
     localAgentRef: input.target.localAgentRef,
     avatarInstanceId,
     conversationAnchorId,

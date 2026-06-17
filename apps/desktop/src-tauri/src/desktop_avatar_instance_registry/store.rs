@@ -14,7 +14,7 @@ const LOCAL_AGENT_REF_PREFIX: &str = "local-agent:";
 #[derive(Debug, Clone)]
 pub(crate) struct AvatarInstanceLocalAgentScope {
     pub(crate) owner_user_id: String,
-    pub(crate) realm_agent_id: String,
+    pub(crate) runtime_source_ref: String,
     pub(crate) local_agent_ref: String,
 }
 
@@ -177,26 +177,26 @@ fn normalize_required(value: &str, field: &str) -> Result<String, String> {
 
 fn validate_local_agent_scope(
     owner_user_id: &str,
-    realm_agent_id: &str,
+    runtime_source_ref: &str,
     local_agent_ref: &str,
 ) -> Result<AvatarInstanceLocalAgentScope, String> {
     let owner_user_id = normalize_required(owner_user_id, "ownerUserId")?;
-    let realm_agent_id = normalize_required(realm_agent_id, "realmAgentId")?;
+    let runtime_source_ref = normalize_required(runtime_source_ref, "runtimeSourceRef")?;
     let local_agent_ref = normalize_required(local_agent_ref, "localAgentRef")?;
-    if local_agent_ref == realm_agent_id {
-        return Err("localAgentRef must not be a bare realmAgentId".to_string());
+    if local_agent_ref == runtime_source_ref {
+        return Err("localAgentRef must not be a bare runtimeSourceRef".to_string());
     }
     if !local_agent_ref.starts_with(LOCAL_AGENT_REF_PREFIX) {
         return Err("localAgentRef must start with local-agent:".to_string());
     }
-    if local_agent_ref != format!("{LOCAL_AGENT_REF_PREFIX}{owner_user_id}:{realm_agent_id}") {
+    if local_agent_ref != format!("{LOCAL_AGENT_REF_PREFIX}{owner_user_id}:{runtime_source_ref}") {
         return Err(
-            "localAgentRef must equal local-agent:${ownerUserId}:${realmAgentId}".to_string(),
+            "localAgentRef must equal local-agent:${ownerUserId}:${runtimeSourceRef}".to_string(),
         );
     }
     Ok(AvatarInstanceLocalAgentScope {
         owner_user_id,
-        realm_agent_id,
+        runtime_source_ref,
         local_agent_ref,
     })
 }
@@ -205,7 +205,7 @@ fn validate_instance_record(record: &DesktopAvatarInstanceRegistryRecord) -> Res
     required_trimmed(&record.avatar_instance_id, "avatar_instance_id")?;
     validate_local_agent_scope(
         &record.owner_user_id,
-        &record.realm_agent_id,
+        &record.runtime_source_ref,
         &record.local_agent_ref,
     )?;
     Ok(())
@@ -257,7 +257,7 @@ fn list_instances_from_file_at(
                 .as_ref()
                 .map(|expected| {
                     record.owner_user_id == expected.owner_user_id
-                        && record.realm_agent_id == expected.realm_agent_id
+                        && record.runtime_source_ref == expected.runtime_source_ref
                         && record.local_agent_ref == expected.local_agent_ref
                 })
                 .unwrap_or(true)
@@ -267,17 +267,17 @@ fn list_instances_from_file_at(
 
 pub(crate) fn list_instances(
     owner_user_id: Option<&str>,
-    realm_agent_id: Option<&str>,
+    runtime_source_ref: Option<&str>,
     local_agent_ref: Option<&str>,
 ) -> Result<Vec<DesktopAvatarInstanceRegistryRecord>, String> {
-    let scope = match (owner_user_id, realm_agent_id, local_agent_ref) {
+    let scope = match (owner_user_id, runtime_source_ref, local_agent_ref) {
         (None, None, None) => None,
-        (Some(owner_user_id), Some(realm_agent_id), Some(local_agent_ref)) => Some(
-            validate_local_agent_scope(owner_user_id, realm_agent_id, local_agent_ref)?,
+        (Some(owner_user_id), Some(runtime_source_ref), Some(local_agent_ref)) => Some(
+            validate_local_agent_scope(owner_user_id, runtime_source_ref, local_agent_ref)?,
         ),
         _ => {
             return Err(
-                "avatar instance registry lookup requires ownerUserId, realmAgentId, and localAgentRef together"
+                "avatar instance registry lookup requires ownerUserId, runtimeSourceRef, and localAgentRef together"
                     .to_string(),
             )
         }
@@ -322,7 +322,7 @@ mod tests {
         super::DesktopAvatarInstanceRegistryRecord {
             avatar_instance_id: "instance-1".to_string(),
             owner_user_id: "owner-1".to_string(),
-            realm_agent_id: "agent-1".to_string(),
+            runtime_source_ref: "agent-1".to_string(),
             local_agent_ref: "local-agent:owner-1:agent-1".to_string(),
             launch_source: Some("desktop-agent-chat".to_string()),
         }
@@ -355,7 +355,7 @@ mod tests {
         super::DesktopAvatarInstanceRegistryRecord {
             avatar_instance_id: "instance-2".to_string(),
             owner_user_id: "owner-2".to_string(),
-            realm_agent_id: "agent-1".to_string(),
+            runtime_source_ref: "agent-1".to_string(),
             local_agent_ref: "local-agent:owner-2:agent-1".to_string(),
             launch_source: Some("desktop-agent-chat".to_string()),
         }
@@ -447,7 +447,7 @@ mod tests {
     {{
       "avatarInstanceId": "instance-1",
       "ownerUserId": "owner-1",
-      "realmAgentId": "agent-1",
+      "runtimeSourceRef": "agent-1",
       "localAgentRef": "local-agent:owner-1:agent-1",
       "launchSource": "desktop-agent-chat"
     }}
@@ -555,7 +555,7 @@ mod tests {
     {{
       "avatarInstanceId": "instance-1",
       "ownerUserId": "owner-1",
-      "realmAgentId": "agent-1",
+      "runtimeSourceRef": "agent-1",
       "localAgentRef": "local-agent:owner-1:agent-1",
       "conversationAnchorId": "anchor-1"
     }}
@@ -584,7 +584,7 @@ mod tests {
     {{
       "avatarInstanceId": "instance-1",
       "ownerUserId": "owner-1",
-      "realmAgentId": "agent-1",
+      "runtimeSourceRef": "agent-1",
       "localAgentRef": "local-agent:owner-1:agent-1",
       "conversationAnchorId": "anchor-1"
     }}
@@ -628,7 +628,7 @@ mod tests {
 
         assert_eq!(listed.len(), 1);
         assert_eq!(listed[0].owner_user_id, "owner-1");
-        assert_eq!(listed[0].realm_agent_id, "agent-1");
+        assert_eq!(listed[0].runtime_source_ref, "agent-1");
         assert_eq!(listed[0].local_agent_ref, "local-agent:owner-1:agent-1");
     }
 
@@ -642,23 +642,23 @@ mod tests {
         assert!(
             validate_local_agent_scope("owner-1", "", "local-agent:owner-1:agent-1")
                 .expect_err("missing realm")
-                .contains("realmAgentId")
+                .contains("runtimeSourceRef")
         );
         assert!(validate_local_agent_scope("owner-1", "agent-1", "")
             .expect_err("missing local ref")
             .contains("localAgentRef"));
         assert!(validate_local_agent_scope("owner-1", "agent-1", "agent-1")
             .expect_err("bare realm")
-            .contains("bare realmAgentId"));
+            .contains("bare runtimeSourceRef"));
         assert!(
             validate_local_agent_scope("owner-1", "agent-1", "local-agent:owner-2:agent-1")
                 .expect_err("owner mismatch")
-                .contains("local-agent:${ownerUserId}:${realmAgentId}")
+                .contains("local-agent:${ownerUserId}:${runtimeSourceRef}")
         );
         assert!(
             validate_local_agent_scope("owner-1", "agent-1", "local-agent:owner-1:agent-2")
                 .expect_err("realm mismatch")
-                .contains("local-agent:${ownerUserId}:${realmAgentId}")
+                .contains("local-agent:${ownerUserId}:${runtimeSourceRef}")
         );
         assert!(
             validate_local_agent_scope("owner-1", "agent-1", "agent:abc.def+1")

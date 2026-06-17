@@ -27,7 +27,7 @@ concurrency_policies:
   - id: PER_AGENT_PARTICIPATION_QUEUE
     source_rule: K-AGCORE-076
     profiles:
-      - realm_group_agent
+      - realm_group_source
     owner: K-AGCORE
     same_agent_cross_profile_decision: runtime_owned
     app_local_queueing_authority: forbidden

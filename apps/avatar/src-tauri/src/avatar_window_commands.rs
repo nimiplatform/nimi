@@ -47,7 +47,7 @@ pub(crate) async fn nimi_avatar_bind_runtime_identity(
         AvatarInstanceRuntimeIdentity {
             avatar_instance_id: payload.avatar_instance_id,
             owner_user_id: payload.owner_user_id,
-            realm_agent_id: payload.realm_agent_id,
+            runtime_source_ref: payload.runtime_source_ref,
             local_agent_ref: payload.local_agent_ref,
             launch_source: payload.launch_source.or(context.launch_source.clone()),
         },

@@ -6,7 +6,7 @@ pub(crate) fn desktop_agent_center_live2d_adapter_manifest_import_blocking(
     let account_id = validate_normalized_id(&payload.account_id, "accountId")?;
     let scope = validate_local_agent_scope(
         &payload.owner_user_id,
-        &payload.realm_agent_id,
+        &payload.runtime_source_ref,
         &payload.local_agent_ref,
     )?;
     validate_local_asset_id(&payload.local_asset_id, "localAssetId")?;

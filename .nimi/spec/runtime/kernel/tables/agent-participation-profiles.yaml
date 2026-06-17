@@ -4,7 +4,7 @@ owner: runtime
 catalog_id: runtime_agent_participation_profiles
 entries:
   - canonical_agent_chat
-  - realm_group_agent
+  - realm_group_source
   - scenario_sandbox
   - oasis_world_participation
   - external_agent_entry
@@ -29,7 +29,7 @@ profiles:
     promotion_posture: EXISTING_CANONICAL_POLICY
     execution_concurrency: CANONICAL_CHAT_BUDGET
     posture: reference_existing_runtime_agent_service
-  - id: realm_group_agent
+  - id: realm_group_source
     source_rule: K-AGCORE-076
     transcript_owner: REALM
     identity_source: USER_OWNED_NIMI_AGENT

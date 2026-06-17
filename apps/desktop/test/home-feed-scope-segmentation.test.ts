@@ -21,7 +21,7 @@ test('Desktop post feed delegates Realm service scope and pagination behavior to
   assert.doesNotMatch(postFeedDataSource, /realm\.services\.PostsService\.getHomeFeed/);
 });
 
-test('Home feed controls present exactly the three canonical feed scopes (D-HOMEFEED-004)', () => {
+test('Home feed controls present the canonical core feed scopes (D-HOMEFEED-004)', () => {
   assert.match(homeFeedControlsSource, /NIMI_REALM_FEED_SCOPES/);
   assert.match(homeFeedControlsSource, /HOME_FEED_SCOPES\s*=\s*NIMI_REALM_FEED_SCOPES/);
   assert.match(homeFeedControlsSource, /from '@nimiplatform\/sdk\/realm'/);

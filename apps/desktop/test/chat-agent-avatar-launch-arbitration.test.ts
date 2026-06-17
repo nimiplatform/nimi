@@ -19,7 +19,7 @@ function passingGateInput(): StartWithChatGateInput {
   return {
     userLoggedIn: true,
     localAgentRef: LOCAL_AGENT,
-    realmAgentId: 'agent-1',
+    runtimeSourceRef: 'agent-1',
     conversationAnchorId: 'anchor-1',
     localAvatarAssetRef: 'asset-ref-1',
     localAvatarAssetValidationStatus: 'valid',
@@ -45,7 +45,7 @@ test('start_with_chat gate auto-launches when all eight conditions hold', () => 
 test('start_with_chat gate fails closed when any single condition is false', () => {
   const mutators: Array<{ id: StartWithChatGateConditionId; mutate: (input: StartWithChatGateInput) => void }> = [
     { id: 'user_logged_in', mutate: (input) => { input.userLoggedIn = false; } },
-    { id: 'local_agent_target', mutate: (input) => { input.localAgentRef = 'agent-1'; input.realmAgentId = 'agent-1'; } },
+    { id: 'local_agent_target', mutate: (input) => { input.localAgentRef = 'agent-1'; input.runtimeSourceRef = 'agent-1'; } },
     { id: 'conversation_anchor_present', mutate: (input) => { input.conversationAnchorId = null; } },
     { id: 'local_avatar_asset_valid', mutate: (input) => { input.localAvatarAssetRef = null; } },
     { id: 'backend_capability_posture_valid', mutate: (input) => { input.backendCapabilityProfileRef = null; } },
@@ -64,10 +64,10 @@ test('start_with_chat gate fails closed when any single condition is false', () 
   }
 });
 
-test('start_with_chat gate condition 2 rejects a RealmAgent target', () => {
+test('start_with_chat gate condition 2 rejects a bare runtime source target', () => {
   const input = passingGateInput();
-  input.localAgentRef = 'realm-agent-99';
-  input.realmAgentId = 'realm-agent-99';
+  input.localAgentRef = 'runtime-source-99';
+  input.runtimeSourceRef = 'runtime-source-99';
   const result = evaluateStartWithChatGate(input);
   assert.equal(result.decision, 'no_launch');
   if (result.decision === 'no_launch') {

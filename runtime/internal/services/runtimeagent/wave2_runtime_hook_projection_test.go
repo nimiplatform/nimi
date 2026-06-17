@@ -68,7 +68,7 @@ func TestWave2PublicChatEventHookRejectsWithoutHostEventDetector(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"realm_agent_id":         "agent-alpha",
+			"runtime_source_ref":         "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"messages": []any{
 				map[string]any{"role": "user", "content": "propose idle follow up"},

@@ -28,7 +28,7 @@ export interface NimiRuntimeAgentLifecycleSurface {
 export interface NimiRuntimeAgentInitializeLocalAgentInput {
   readonly localAgentRef: unknown;
   readonly ownerUserId: unknown;
-  readonly realmAgentId: unknown;
+  readonly runtimeSourceRef: unknown;
   readonly displayName?: unknown;
   readonly worldId?: unknown;
 }
@@ -38,7 +38,7 @@ export type NimiRuntimeAgentEnsureLocalAgentInitializedInput = NimiRuntimeAgentI
 export interface NimiRuntimeAgentTerminateLocalAgentInput {
   readonly localAgentRef: unknown;
   readonly ownerUserId: unknown;
-  readonly realmAgentId: unknown;
+  readonly runtimeSourceRef: unknown;
   readonly reason?: unknown;
 }
 
@@ -79,12 +79,12 @@ function requireLifecycleText(value: unknown, reasonCode: string, actionHint: st
 function buildLifecycleRequest(input: NimiRuntimeAgentInitializeLocalAgentInput) {
   const localAgentRef = requireLifecycleText(input.localAgentRef, 'SDK_RUNTIME_AGENT_LOCAL_REF_REQUIRED', 'provide_runtime_agent_local_ref');
   const ownerUserId = requireLifecycleText(input.ownerUserId, 'SDK_RUNTIME_AGENT_OWNER_REQUIRED', 'provide_runtime_agent_owner_user_id');
-  const realmAgentId = requireLifecycleText(input.realmAgentId, 'SDK_RUNTIME_AGENT_REALM_ID_REQUIRED', 'provide_runtime_agent_realm_agent_id');
+  const runtimeSourceRef = requireLifecycleText(input.runtimeSourceRef, 'SDK_RUNTIME_AGENT_REALM_ID_REQUIRED', 'provide_runtime_agent_runtime_source_ref');
   return {
     localAgentRef,
     ownerUserId,
-    realmAgentId,
-    displayName: normalizeNimiRuntimeAgentText(input.displayName) || realmAgentId,
+    runtimeSourceRef,
+    displayName: normalizeNimiRuntimeAgentText(input.displayName) || runtimeSourceRef,
     worldId: normalizeNimiRuntimeAgentText(input.worldId),
   };
 }
@@ -114,7 +114,7 @@ export function createNimiHostRuntimeAgentLifecycleSurface(
         agentId: '',
         localAgentRef: request.localAgentRef,
         ownerUserId: request.ownerUserId,
-        realmAgentId: request.realmAgentId,
+        runtimeSourceRef: request.runtimeSourceRef,
         displayName: request.displayName,
         autonomyConfig: undefined,
         worldId: request.worldId,
@@ -177,7 +177,7 @@ export function createNimiHostRuntimeAgentLifecycleSurface(
       const runtime = options.getRuntime();
       const localAgentRef = requireLifecycleText(input.localAgentRef, 'SDK_RUNTIME_AGENT_LOCAL_REF_REQUIRED', 'provide_runtime_agent_local_ref');
       const ownerUserId = requireLifecycleText(input.ownerUserId, 'SDK_RUNTIME_AGENT_OWNER_REQUIRED', 'provide_runtime_agent_owner_user_id');
-      requireLifecycleText(input.realmAgentId, 'SDK_RUNTIME_AGENT_REALM_ID_REQUIRED', 'provide_runtime_agent_realm_agent_id');
+      requireLifecycleText(input.runtimeSourceRef, 'SDK_RUNTIME_AGENT_REALM_ID_REQUIRED', 'provide_runtime_agent_runtime_source_ref');
       const context = buildRuntimeAgentRequestContext({
         runtimeAppId: runtime.appId,
         subjectUserId: ownerUserId,

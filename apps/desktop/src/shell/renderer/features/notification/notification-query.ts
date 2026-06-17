@@ -1,5 +1,5 @@
 import type { QueryClient } from '@tanstack/react-query';
-import type { NimiRealmNotificationUnreadProjection } from '@nimiplatform/sdk/realm';
+import type { NimiRealmNotificationUnreadView } from '@nimiplatform/sdk/realm';
 import { queryClient } from '@renderer/infra/query-client/query-client';
 
 interface NotificationIdentityUser {
@@ -48,9 +48,9 @@ export function patchNotificationUnreadCaches(
 
   client.setQueryData(
     notificationQueryKeys.unreadCount(identityRef),
-    (current: unknown): NimiRealmNotificationUnreadProjection => {
+    (current: unknown): NimiRealmNotificationUnreadView => {
       if (current && typeof current === 'object' && !Array.isArray(current)) {
-        const currentProjection = current as Partial<NimiRealmNotificationUnreadProjection>;
+        const currentProjection = current as Partial<NimiRealmNotificationUnreadView>;
         return {
           ...currentProjection,
           total: nextUnreadCount,
@@ -66,9 +66,9 @@ export function patchNotificationUnreadCaches(
 
   client.setQueryData(
     notificationQueryKeys.topbarUnreadCount(identityRef),
-    (current: unknown): NimiRealmNotificationUnreadProjection => {
+    (current: unknown): NimiRealmNotificationUnreadView => {
       if (current && typeof current === 'object' && !Array.isArray(current)) {
-        const currentProjection = current as Partial<NimiRealmNotificationUnreadProjection>;
+        const currentProjection = current as Partial<NimiRealmNotificationUnreadView>;
         return {
           ...currentProjection,
           total: nextUnreadCount,

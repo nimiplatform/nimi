@@ -48,7 +48,7 @@ export function ChatGroupComposer(props: {
   const agentOptions: AgentMentionOption[] = useMemo(
     () =>
       (agentParticipants || [])
-        .filter((p): p is GroupParticipantDto & { type: 'agent' } => p.type === 'agent')
+        .filter((p): p is GroupParticipantDto & { type: 'source' } => p.type === 'source')
         .map((p) => ({
           accountId: String(p.accountId || ''),
           displayName: String(p.displayName || p.handle || '').trim(),

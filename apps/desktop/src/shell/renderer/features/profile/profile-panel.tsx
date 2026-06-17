@@ -16,7 +16,7 @@ import {
   ProfileDetailLoadingState,
 } from '@renderer/features/relationship/profile-detail-view-content-shell.js';
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';
-import { resolveAgentFriendLimit } from '@renderer/features/relationship/agent-friend-limit';
+import { realmPersonaSourceHandoffMessage } from '@renderer/features/explore/realm-persona-source-admission';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { toProfileData, type ProfileSource } from './profile-model.js';
 import { toFriendContact, type ContactRecord } from '@renderer/features/relationship/relationship-model';
@@ -87,7 +87,7 @@ export function ProfilePanel() {
             handle: contact.handle,
             avatarUrl: contact.avatarUrl,
             bio: contact.bio,
-            isAgent: contact.isAgent,
+            isSource: contact.isSource,
             createdAt: contact.friendsSince,
             isFriend: true,
             // Add other fields with defaults
@@ -109,12 +109,6 @@ export function ProfilePanel() {
     enabled: authStatus === 'authenticated' && !!selectedProfileId,
     retry: 1,
   });
-  const agentLimitQuery = useQuery({
-    queryKey: ['agent-friend-limit', authStatus],
-    queryFn: async () => resolveAgentFriendLimit(),
-    enabled: authStatus === 'authenticated',
-  });
-
   const profile = useMemo(() => {
     if (isOwnProfile && currentUser) {
       return toProfileData(currentUser);
@@ -127,13 +121,9 @@ export function ProfilePanel() {
 
   const loading = !isOwnProfile && profileQuery.isPending;
   const error = !isOwnProfile && profileQuery.isError;
-  const addFriendBlocked = Boolean(
-    profile?.isAgent && agentLimitQuery.data && !agentLimitQuery.data.canAdd,
-  );
   const isBlockedProfile = Boolean(!isOwnProfile && profile && realmSocialData.isBlockedUser(profile.id));
-  // D-CONTACTS-006: the hint is the typed reason from the single-baseline quota
-  // projection; no renderer-rebuilt tier-coupled message.
-  const addFriendHint = profile?.isAgent ? (agentLimitQuery.data?.reason ?? null) : null;
+  const addFriendBlocked = Boolean(profile?.isSource);
+  const addFriendHint = profile?.isSource ? realmPersonaSourceHandoffMessage() : null;
 
   const onMessage = async () => {
     if (!profile) {
@@ -165,8 +155,8 @@ export function ProfilePanel() {
   const onAddFriend = async () => {
     if (!selectedProfileId) return;
     try {
-      if (profile?.isAgent && addFriendBlocked) {
-        throw new Error(addFriendHint || i18n.t('Relationship.agentFriendLimitReachedShort', { defaultValue: 'Agent friend limit reached' }));
+      if (profile?.isSource && addFriendBlocked) {
+        throw new Error(addFriendHint || realmPersonaSourceHandoffMessage());
       }
       await realmSocialData.requestOrAcceptFriend(selectedProfileId);
       await Promise.all([
@@ -175,7 +165,6 @@ export function ProfilePanel() {
         queryClient.invalidateQueries({ queryKey: ['contact-profile'], exact: false }),
       ]);
       setFeedback(null);
-      void agentLimitQuery.refetch();
     } catch (error) {
       setFeedback({
         kind: 'error',
@@ -195,7 +184,7 @@ export function ProfilePanel() {
         handle: profile.handle,
         avatarUrl: profile.avatarUrl,
         bio: profile.bio,
-        isAgent: profile.isAgent,
+        isSource: profile.isSource,
       });
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['contacts'], exact: false }),
@@ -371,7 +360,7 @@ export function ProfilePanel() {
           onRemove={!isOwnProfile && !isBlockedProfile && profile.isFriend ? () => {
             void onRemoveProfile();
           } : undefined}
-          showMessageButton={!isOwnProfile && !profile.isAgent && !isBlockedProfile}
+          showMessageButton={!isOwnProfile && !profile.isSource && !isBlockedProfile}
           onSaveProfile={isOwnProfile ? onSaveOwnProfile : undefined}
         />
       </Surface>
@@ -380,7 +369,7 @@ export function ProfilePanel() {
         receiverId={profile?.id || ''}
         receiverName={profile?.displayName || profile?.handle || 'User'}
         receiverHandle={profile?.handle}
-        receiverIsAgent={profile?.isAgent === true}
+        receiverIsSource={profile?.isSource === true}
         receiverAvatarUrl={profile?.avatarUrl}
         onClose={() => setGiftModalOpen(false)}
         onSent={() => {

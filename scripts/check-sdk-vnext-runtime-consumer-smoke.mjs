@@ -117,15 +117,15 @@ assert.equal('generate' in runtime, false);
 assert.equal('stream' in runtime, false);
 assert.deepEqual(projectRuntimeLocalAgentIdentity({
   ownerUserId: 'user-1',
-  realmAgentId: 'agent-1',
+  runtimeSourceRef: 'agent-1',
 }), {
   ownerUserId: 'user-1',
-  realmAgentId: 'agent-1',
+  runtimeSourceRef: 'agent-1',
   localAgentRef: 'local-agent:user-1:agent-1',
 });
 assert.deepEqual(parseRuntimeLocalAgentIdentity('local-agent:user-1:agent-1'), {
   ownerUserId: 'user-1',
-  realmAgentId: 'agent-1',
+  runtimeSourceRef: 'agent-1',
   localAgentRef: 'local-agent:user-1:agent-1',
 });
 assert.equal(buildRuntimeAgentRequestContext({

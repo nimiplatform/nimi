@@ -14,7 +14,7 @@ type SendGiftModalProps = {
   receiverId: string;
   receiverName: string;
   receiverHandle?: string;
-  receiverIsAgent?: boolean;
+  receiverIsSource?: boolean;
   receiverAvatarUrl?: string | null;
   onClose: () => void;
   onSent?: () => void;
@@ -41,17 +41,17 @@ export function SendGiftModal(props: SendGiftModalProps) {
         name: props.receiverName,
         handle: props.receiverHandle,
         avatarUrl: props.receiverAvatarUrl,
-        isAgent: props.receiverIsAgent,
+        isSource: props.receiverIsSource,
       }}
       renderRecipientAvatar={(
         <EntityAvatar
           imageUrl={props.receiverAvatarUrl}
           name={props.receiverName}
-          kind={props.receiverIsAgent === true ? 'agent' : 'human'}
+          kind={props.receiverIsSource === true ? 'agent' : 'human'}
           sizeClassName="h-20 w-20"
-          className={props.receiverIsAgent === true ? undefined : 'ring-4 ring-[#E0F7F4]'}
+          className={props.receiverIsSource === true ? undefined : 'ring-4 ring-[#E0F7F4]'}
           textClassName="text-2xl font-bold"
-          fallbackClassName={props.receiverIsAgent === true ? undefined : 'bg-gradient-to-br from-[#E0F7F4] to-[#C5F0E8] text-[#4ECCA3]'}
+          fallbackClassName={props.receiverIsSource === true ? undefined : 'bg-gradient-to-br from-[#E0F7F4] to-[#C5F0E8] text-[#4ECCA3]'}
         />
       )}
       title={t('GiftSend.sendGift', { defaultValue: 'Send Gift' })}

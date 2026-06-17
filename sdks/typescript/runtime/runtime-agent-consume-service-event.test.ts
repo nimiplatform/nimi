@@ -11,7 +11,7 @@ test('Runtime Agent consume projects AgentService presentation and state events'
     agentId: 'local-agent:owner-1:agent-1',
     localAgentRef: 'local-agent:owner-1:agent-1',
     ownerUserId: 'owner-1',
-    realmAgentId: 'agent-1',
+    runtimeSourceRef: 'agent-1',
     detail: {
       oneofKind: 'presentation',
       presentation: {
@@ -47,7 +47,7 @@ test('Runtime Agent consume projects AgentService presentation and state events'
     agentId: 'local-agent:owner-1:agent-1',
     localAgentRef: 'local-agent:owner-1:agent-1',
     ownerUserId: 'owner-1',
-    realmAgentId: 'agent-1',
+    runtimeSourceRef: 'agent-1',
     detail: {
       oneofKind: 'state',
       state: {

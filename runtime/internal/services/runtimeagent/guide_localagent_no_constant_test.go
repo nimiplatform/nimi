@@ -14,9 +14,8 @@ import (
 //	prompt, or guide identity constant as parallel product truth;
 //
 // and K-AGCORE-139's MUST-NOT forbids a "special official-guide path". The
-// Nimi guide welcome copy and system prompt are ordinary RealmAgent profile
-// content (`AgentProfile.greeting` / `systemPromptBase` from the W1 backend
-// bootstrap) reached through ordinary Realm/SDK projection.
+// Nimi guide welcome copy and system prompt are ordinary runtime source
+// snapshot content reached through the standard RuntimeSourceSnapshot path.
 //
 // This guard walks every non-generated, non-test `.go` file under `runtime/`
 // and fails if any references the Nimi guide agent by name. A guide constant,
@@ -26,7 +25,7 @@ import (
 // Scope of the scan:
 //   - includes: all `*.go` source under the runtime module root;
 //   - excludes: `*_test.go` (tests legitimately reference the guide
-//     realm_agent_id as an opaque input — see
+//     runtime_source_ref as an opaque input — see
 //     guide_localagent_projection_test.go), `gen/` (generated proto), and
 //     `vendor/`.
 func TestRuntimeHoldsNoGuideConstant(t *testing.T) {
@@ -84,7 +83,7 @@ func TestRuntimeHoldsNoGuideConstant(t *testing.T) {
 	if len(violations) > 0 {
 		t.Fatalf("K-AGCORE-140 violation: runtime source must not hold a hardcoded "+
 			"Nimi guide constant/prompt/identity/branch — guide content is ordinary "+
-			"RealmAgent profile truth reached through Realm/SDK projection. Found:\n  %s",
+			"runtime source snapshot content. Found:\n  %s",
 			strings.Join(violations, "\n  "))
 	}
 }

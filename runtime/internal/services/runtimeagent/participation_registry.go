@@ -95,7 +95,7 @@ var participationProfileRegistry = []participationProfileRow{
 		posture:              participationPostureReferenceExistingRuntimeAgentService,
 	},
 	{
-		// K-AGCORE-076 realm_group_agent: candidate-first; Realm commit truth
+		// K-AGCORE-076 realm_group_source: candidate-first; Realm commit truth
 		// stays R-CHAT-* (K-AGCORE-083, K-AGCORE-104).
 		kind:                 runtimev1.ParticipationProfileKind_PARTICIPATION_PROFILE_KIND_REALM_GROUP_AGENT,
 		sourceRule:           "K-AGCORE-076",

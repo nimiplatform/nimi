@@ -24,7 +24,7 @@
             "displayName": "Fixture Friend",
             "handle": "@fixture-friend",
             "avatarUrl": "",
-            "isAgent": false
+            "isSource": false
           }
         }
       ]
@@ -81,7 +81,7 @@
           "handle": "@fixture-friend",
           "avatarUrl": "",
           "bio": "Seeded desktop friend",
-          "isAgent": false
+          "isSource": false
         }
       ]
     },
@@ -99,7 +99,7 @@
         "handle": "~fixture-agent",
         "avatarUrl": "",
         "bio": "Seeded creator agent",
-        "isAgent": true,
+        "isSource": true,
         "agentProfile": {
           "worldId": "world-e2e-1"
         }
@@ -262,7 +262,7 @@
           "handle": "~fixture-agent",
           "avatarUrl": "",
           "bio": "Seeded creator agent",
-          "isAgent": true,
+          "isSource": true,
           "agentProfile": {
             "worldId": "world-e2e-1"
           }
@@ -289,7 +289,7 @@
             "handle": "@fixture-friend",
             "avatarUrl": "",
             "bio": "Seeded desktop friend",
-            "isAgent": false,
+            "isSource": false,
             "createdAt": "2026-03-15T00:00:00.000Z"
           },
           "caption": "Fixture friend profile post",

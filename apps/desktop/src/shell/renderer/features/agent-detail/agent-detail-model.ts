@@ -1,5 +1,5 @@
 import { parseOptionalJsonObject, type JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
-import type { RealmAgentFriendState } from '@renderer/features/explore/realm-agent-friend-state';
+import type { RealmPersonaSourceState } from '@renderer/features/explore/realm-persona-source-admission';
 
 export type AgentDetailData = {
   id: string;
@@ -20,10 +20,7 @@ export type AgentDetailData = {
   worldId: string | null;
   ownerWorldId: string | null;
   isFriend: boolean;
-  // RealmAgent friend state from Realm social truth (D-EXPL-005). Resolved by
-  // the agent-detail query against the AgentFriend / Friendship graph; drives
-  // the D-EXPL-006 primary action on the detail surface.
-  friendState: RealmAgentFriendState;
+  sourceState: RealmPersonaSourceState;
   worldBannerUrl: string | null;
 };
 
@@ -34,7 +31,7 @@ function readOptionalString(record: JsonObject | undefined, key: string): string
 
 export function toAgentDetailData(
   raw: JsonObject,
-  friendState: RealmAgentFriendState,
+  sourceState: RealmPersonaSourceState,
 ): AgentDetailData {
   const agent = parseOptionalJsonObject(raw.agent);
   const agentProfile = parseOptionalJsonObject(raw.agentProfile);
@@ -72,7 +69,7 @@ export function toAgentDetailData(
       || readOptionalString(agentProfile, 'ownerWorldId')
     ),
     isFriend: raw.isFriend === true,
-    friendState,
+    sourceState,
     worldBannerUrl: (
       (typeof raw.worldBannerUrl === 'string' ? raw.worldBannerUrl : null)
       || readOptionalString(agentProfile, 'worldBannerUrl')

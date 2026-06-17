@@ -38,8 +38,8 @@ function escapeRegExp(value: string): string {
 
 /**
  * Whether `participant` is a LocalAgent the current user can invoke in this
- * group: an agent slot the user owns with a fully Realm-projected slot/agent/
- * local-agent identity. This is the canonical Group LocalAgent participation
+ * group: a source slot the user owns with a fully materializable runtime
+ * source identity. This is the canonical Group LocalAgent participation
  * criterion shared by mention resolution and NimiAIConfig scope binding.
  */
 function isInvokableGroupLocalAgentParticipant(
@@ -47,11 +47,10 @@ function isInvokableGroupLocalAgentParticipant(
   userId: string,
 ): boolean {
   return (
-    participant.type === 'agent'
-    && normalizeText(participant.agentOwnerId) === userId
-    && Boolean(normalizeText(participant.realmGroupAgentSlotId))
-    && Boolean(normalizeText(participant.realmAgentId))
-    && Boolean(normalizeText(participant.localAgentRef))
+    participant.type === 'source'
+    && normalizeText(participant.sourceOwnerId) === userId
+    && Boolean(normalizeText(participant.runtimeParticipantSlot))
+    && Boolean(normalizeText(participant.runtimeSourceRef))
   );
 }
 

@@ -7,7 +7,7 @@ export type RestrictedContactProfileSeed = {
   handle: string;
   avatarUrl?: string | null;
   bio?: string | null;
-  isAgent: boolean;
+  isSource: boolean;
   isOnline?: boolean;
   createdAt?: string | null;
   friendsSince?: string | null;
@@ -81,7 +81,7 @@ export function toRestrictedContactProfileData(seed: RestrictedContactProfileSee
     handle: seed.handle,
     avatarUrl: seed.avatarUrl ?? null,
     bio: seed.bio ?? null,
-    isAgent: seed.isAgent,
+    isSource: seed.isSource,
     isOnline: seed.isOnline === true,
     createdAt: seed.createdAt || seed.friendsSince || '',
     tags: seed.tags ?? [],

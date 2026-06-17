@@ -36,13 +36,13 @@ fn normalize_required_local_agent_handoff_value(
     let rest = normalized
         .strip_prefix(LOCAL_AGENT_REF_PREFIX)
         .unwrap_or_default();
-    let Some((owner_user_id, realm_agent_id)) = rest.split_once(':') else {
+    let Some((owner_user_id, runtime_source_ref)) = rest.split_once(':') else {
         return Err(structured_avatar_handoff_error(
             "DESKTOP_AVATAR_HANDOFF_INVALID",
             &format!("avatar handoff requires {field} to be a local-agent ref"),
         ));
     };
-    if owner_user_id.trim().is_empty() || realm_agent_id.trim().is_empty() {
+    if owner_user_id.trim().is_empty() || runtime_source_ref.trim().is_empty() {
         return Err(structured_avatar_handoff_error(
             "DESKTOP_AVATAR_HANDOFF_INVALID",
             &format!("avatar handoff requires {field} to be a local-agent ref"),

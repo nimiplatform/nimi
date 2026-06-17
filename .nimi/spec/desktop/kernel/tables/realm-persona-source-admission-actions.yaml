@@ -1,0 +1,12 @@
+table_family: state_machine
+owner: desktop
+machine_id: desktop_realm_persona_source_admission_action_model
+authority_refs:
+  - D-EXPL-006
+  - D-EXPL-007
+  - K-AGCORE-139
+  - K-AGCORE-141
+states:
+  - state: source_core_handoff_required
+    description: Desktop has a RealmPersona source record but no admitted RuntimeSourceSnapshot materialization projection for opening LocalAgent Chat. Primary action is disabled source setup pending.
+transitions: []

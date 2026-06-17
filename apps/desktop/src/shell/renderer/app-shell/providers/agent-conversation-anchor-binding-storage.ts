@@ -2,7 +2,7 @@ import { projectRuntimeLocalAgentIdentity } from '@nimiplatform/sdk/runtime';
 
 export type AgentConversationAnchorBinding = {
   ownerUserId: string;
-  realmAgentId: string;
+  runtimeSourceRef: string;
   localAgentRef: string;
   conversationAnchorId: string;
   updatedAtMs: number;
@@ -31,20 +31,20 @@ function normalizeBinding(
   }
   const record = value as Record<string, unknown>;
   const ownerUserId = normalizeText(record.ownerUserId);
-  const realmAgentId = normalizeText(record.realmAgentId);
+  const runtimeSourceRef = normalizeText(record.runtimeSourceRef);
   const localAgentRef = normalizeText(record.localAgentRef);
   const conversationAnchorId = normalizeText(record.conversationAnchorId);
-  if (!ownerUserId || !realmAgentId || !localAgentRef || !conversationAnchorId) {
+  if (!ownerUserId || !runtimeSourceRef || !localAgentRef || !conversationAnchorId) {
     return null;
   }
   try {
-    projectRuntimeLocalAgentIdentity({ ownerUserId, realmAgentId, localAgentRef });
+    projectRuntimeLocalAgentIdentity({ ownerUserId, runtimeSourceRef, localAgentRef });
   } catch {
     return null;
   }
   return {
     ownerUserId,
-    realmAgentId,
+    runtimeSourceRef,
     localAgentRef,
     conversationAnchorId,
     updatedAtMs: normalizeUpdatedAtMs(record.updatedAtMs),

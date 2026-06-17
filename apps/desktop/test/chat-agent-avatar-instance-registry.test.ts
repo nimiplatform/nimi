@@ -50,7 +50,7 @@ test('desktop avatar live instance parser rejects old authority fields', () => {
     parseDesktopAvatarLiveInstanceRecord({
       avatarInstanceId: 'instance-1',
       ownerUserId: 'owner-1',
-      realmAgentId: 'agent-1',
+      runtimeSourceRef: 'agent-1',
       localAgentRef: 'local-agent:owner-1:agent-1',
       launchSource: 'desktop-agent-chat',
       conversationAnchorId: 'anchor-1',
@@ -61,7 +61,7 @@ test('desktop avatar live instance parser rejects old authority fields', () => {
     parseDesktopAvatarLiveInstanceRecord({
       avatarInstanceId: 'instance-1',
       ownerUserId: 'owner-1',
-      realmAgentId: 'agent-1',
+      runtimeSourceRef: 'agent-1',
       localAgentRef: 'local-agent:owner-1:agent-1',
       avatarPackageId: 'live2d_ab12cd34ef56',
     });
@@ -72,12 +72,12 @@ test('desktop avatar live instance parser rejects bare and mismatched localAgent
   const base = {
     avatarInstanceId: 'instance-1',
     ownerUserId: 'owner-1',
-    realmAgentId: 'agent-1',
+    runtimeSourceRef: 'agent-1',
   };
   assert.throws(() => parseDesktopAvatarLiveInstanceRecord({
     ...base,
     localAgentRef: 'agent-1',
-  }), /bare realmAgentId/);
+  }), /bare runtimeSourceRef/);
   assert.throws(() => parseDesktopAvatarLiveInstanceRecord({
     ...base,
     localAgentRef: 'agent:abc.def+1',
@@ -89,14 +89,14 @@ test('desktop avatar live instance parser rejects bare and mismatched localAgent
   assert.throws(() => parseDesktopAvatarLiveInstanceRecord({
     ...base,
     localAgentRef: 'local-agent:owner-1:agent-2',
-  }), /realmAgentId/);
+  }), /runtimeSourceRef/);
 });
 
 test('desktop avatar live instance bridge rejects authority-bearing projection records', async () => {
   const restore = installTauriInvokeMock(async () => [{
     avatarInstanceId: 'instance-1',
     ownerUserId: 'owner-1',
-    realmAgentId: 'agent-1',
+    runtimeSourceRef: 'agent-1',
     localAgentRef: 'local-agent:owner-1:agent-1',
     bindingId: 'binding-1',
   }]);
@@ -105,7 +105,7 @@ test('desktop avatar live instance bridge rejects authority-bearing projection r
     await assert.rejects(
       listDesktopAvatarLiveInstances({
         ownerUserId: 'owner-1',
-        realmAgentId: 'agent-1',
+        runtimeSourceRef: 'agent-1',
         localAgentRef: 'local-agent:owner-1:agent-1',
       }),
       /forbidden authority field: bindingId/,
@@ -204,7 +204,7 @@ test('desktop avatar live instance bridge invokes fixed command and payload shap
     return [{
       avatarInstanceId: 'instance-1',
       ownerUserId: 'owner-1',
-      realmAgentId: 'agent-1',
+      runtimeSourceRef: 'agent-1',
       localAgentRef: 'local-agent:owner-1:agent-1',
       launchSource: 'desktop-agent-chat',
     }];
@@ -213,7 +213,7 @@ test('desktop avatar live instance bridge invokes fixed command and payload shap
   try {
     const instances = await listDesktopAvatarLiveInstances({
       ownerUserId: 'owner-1',
-      realmAgentId: 'agent-1',
+      runtimeSourceRef: 'agent-1',
       localAgentRef: 'local-agent:owner-1:agent-1',
     });
 
@@ -224,7 +224,7 @@ test('desktop avatar live instance bridge invokes fixed command and payload shap
       payload: {
         payload: {
           ownerUserId: 'owner-1',
-          realmAgentId: 'agent-1',
+          runtimeSourceRef: 'agent-1',
           localAgentRef: 'local-agent:owner-1:agent-1',
         },
       },

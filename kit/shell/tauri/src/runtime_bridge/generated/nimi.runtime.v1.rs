@@ -15302,7 +15302,7 @@ pub struct AgentRequestContext {
     #[prost(string, tag = "4")]
     pub owner_user_id: ::prost::alloc::string::String,
     #[prost(string, tag = "5")]
-    pub realm_agent_id: ::prost::alloc::string::String,
+    pub runtime_source_ref: ::prost::alloc::string::String,
     #[prost(string, tag = "6")]
     pub local_agent_ref: ::prost::alloc::string::String,
 }
@@ -18255,11 +18255,11 @@ pub struct CreateRealmGroupMessageCandidateRequest {
     #[prost(string, tag = "2")]
     pub realm_group_thread_id: ::prost::alloc::string::String,
     #[prost(string, tag = "3")]
-    pub realm_group_agent_slot_id: ::prost::alloc::string::String,
+    pub runtime_participant_slot: ::prost::alloc::string::String,
     #[prost(string, tag = "4")]
     pub owner_user_id: ::prost::alloc::string::String,
     #[prost(string, tag = "5")]
-    pub realm_agent_id: ::prost::alloc::string::String,
+    pub runtime_source_ref: ::prost::alloc::string::String,
     #[prost(string, tag = "6")]
     pub local_agent_ref: ::prost::alloc::string::String,
     #[prost(string, tag = "7")]
@@ -18295,11 +18295,11 @@ pub struct RealmGroupMessageCandidateCommitHandle {
     #[prost(string, tag = "6")]
     pub realm_group_thread_id: ::prost::alloc::string::String,
     #[prost(string, tag = "7")]
-    pub realm_group_agent_slot_id: ::prost::alloc::string::String,
+    pub runtime_participant_slot: ::prost::alloc::string::String,
     #[prost(string, tag = "8")]
     pub owner_user_id: ::prost::alloc::string::String,
     #[prost(string, tag = "9")]
-    pub realm_agent_id: ::prost::alloc::string::String,
+    pub runtime_source_ref: ::prost::alloc::string::String,
     #[prost(string, tag = "10")]
     pub local_agent_ref: ::prost::alloc::string::String,
     #[prost(string, tag = "11")]
@@ -18355,7 +18355,7 @@ pub struct GetRealmGroupMessageCandidateEvidenceRequest {
     #[prost(string, tag = "6")]
     pub runtime_trace_ref: ::prost::alloc::string::String,
     #[prost(string, tag = "7")]
-    pub expected_realm_group_agent_slot_id: ::prost::alloc::string::String,
+    pub expected_runtime_participant_slot: ::prost::alloc::string::String,
     #[prost(string, tag = "8")]
     pub expected_local_agent_ref: ::prost::alloc::string::String,
     #[prost(string, tag = "9")]
@@ -18372,11 +18372,11 @@ pub struct RealmGroupMessageCandidateEvidence {
     #[prost(string, tag = "3")]
     pub realm_group_thread_id: ::prost::alloc::string::String,
     #[prost(string, tag = "4")]
-    pub realm_group_agent_slot_id: ::prost::alloc::string::String,
+    pub runtime_participant_slot: ::prost::alloc::string::String,
     #[prost(string, tag = "5")]
     pub owner_user_id: ::prost::alloc::string::String,
     #[prost(string, tag = "6")]
-    pub realm_agent_id: ::prost::alloc::string::String,
+    pub runtime_source_ref: ::prost::alloc::string::String,
     #[prost(string, tag = "7")]
     pub local_agent_ref: ::prost::alloc::string::String,
     #[prost(string, tag = "8")]
@@ -18525,7 +18525,7 @@ pub struct AgentRecord {
     #[prost(string, tag = "21")]
     pub owner_user_id: ::prost::alloc::string::String,
     #[prost(string, tag = "22")]
-    pub realm_agent_id: ::prost::alloc::string::String,
+    pub runtime_source_ref: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AgentStateProjection {
@@ -19015,7 +19015,7 @@ pub struct AgentEvent {
     #[prost(string, tag = "21")]
     pub owner_user_id: ::prost::alloc::string::String,
     #[prost(string, tag = "22")]
-    pub realm_agent_id: ::prost::alloc::string::String,
+    pub runtime_source_ref: ::prost::alloc::string::String,
     #[prost(oneof = "agent_event::Detail", tags = "10, 11, 12, 13, 14, 15, 16, 17")]
     pub detail: ::core::option::Option<agent_event::Detail>,
 }
@@ -19060,7 +19060,7 @@ pub struct InitializeAgentRequest {
     #[prost(string, tag = "21")]
     pub owner_user_id: ::prost::alloc::string::String,
     #[prost(string, tag = "22")]
-    pub realm_agent_id: ::prost::alloc::string::String,
+    pub runtime_source_ref: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct InitializeAgentResponse {
@@ -19375,7 +19375,7 @@ pub struct ConversationAnchor {
     #[prost(string, tag = "21")]
     pub owner_user_id: ::prost::alloc::string::String,
     #[prost(string, tag = "22")]
-    pub realm_agent_id: ::prost::alloc::string::String,
+    pub runtime_source_ref: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ConversationAnchorSnapshot {
@@ -19401,7 +19401,7 @@ pub struct OpenConversationAnchorRequest {
     #[prost(string, tag = "21")]
     pub owner_user_id: ::prost::alloc::string::String,
     #[prost(string, tag = "22")]
-    pub realm_agent_id: ::prost::alloc::string::String,
+    pub runtime_source_ref: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct OpenConversationAnchorResponse {
@@ -19446,7 +19446,7 @@ pub struct AvatarLiveInstanceBinding {
     #[prost(string, tag = "21")]
     pub owner_user_id: ::prost::alloc::string::String,
     #[prost(string, tag = "22")]
-    pub realm_agent_id: ::prost::alloc::string::String,
+    pub runtime_source_ref: ::prost::alloc::string::String,
     #[prost(string, tag = "23")]
     pub caller_app_id: ::prost::alloc::string::String,
 }

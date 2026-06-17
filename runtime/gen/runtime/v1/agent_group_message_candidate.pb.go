@@ -72,22 +72,22 @@ func (RealmGroupMessageCandidateCommitDisposition) EnumDescriptor() ([]byte, []i
 }
 
 type CreateRealmGroupMessageCandidateRequest struct {
-	state                 protoimpl.MessageState `protogen:"open.v1"`
-	Context               *AgentRequestContext   `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`
-	RealmGroupThreadId    string                 `protobuf:"bytes,2,opt,name=realm_group_thread_id,json=realmGroupThreadId,proto3" json:"realm_group_thread_id,omitempty"`
-	RealmGroupAgentSlotId string                 `protobuf:"bytes,3,opt,name=realm_group_agent_slot_id,json=realmGroupAgentSlotId,proto3" json:"realm_group_agent_slot_id,omitempty"`
-	OwnerUserId           string                 `protobuf:"bytes,4,opt,name=owner_user_id,json=ownerUserId,proto3" json:"owner_user_id,omitempty"`
-	RealmAgentId          string                 `protobuf:"bytes,5,opt,name=realm_agent_id,json=realmAgentId,proto3" json:"realm_agent_id,omitempty"`
-	LocalAgentRef         string                 `protobuf:"bytes,6,opt,name=local_agent_ref,json=localAgentRef,proto3" json:"local_agent_ref,omitempty"`
-	TriggerRef            string                 `protobuf:"bytes,7,opt,name=trigger_ref,json=triggerRef,proto3" json:"trigger_ref,omitempty"`
-	MembershipSnapshotRef string                 `protobuf:"bytes,8,opt,name=membership_snapshot_ref,json=membershipSnapshotRef,proto3" json:"membership_snapshot_ref,omitempty"`
-	ReadCursorRef         string                 `protobuf:"bytes,9,opt,name=read_cursor_ref,json=readCursorRef,proto3" json:"read_cursor_ref,omitempty"`
-	ReplyTargetRef        string                 `protobuf:"bytes,10,opt,name=reply_target_ref,json=replyTargetRef,proto3" json:"reply_target_ref,omitempty"`
-	RoomOrchestrationRef  string                 `protobuf:"bytes,11,opt,name=room_orchestration_ref,json=roomOrchestrationRef,proto3" json:"room_orchestration_ref,omitempty"`
-	IdempotencyKey        string                 `protobuf:"bytes,12,opt,name=idempotency_key,json=idempotencyKey,proto3" json:"idempotency_key,omitempty"`
-	ContextRefs           map[string]string      `protobuf:"bytes,13,rep,name=context_refs,json=contextRefs,proto3" json:"context_refs,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"open.v1"`
+	Context                *AgentRequestContext   `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`
+	RealmGroupThreadId     string                 `protobuf:"bytes,2,opt,name=realm_group_thread_id,json=realmGroupThreadId,proto3" json:"realm_group_thread_id,omitempty"`
+	RuntimeParticipantSlot string                 `protobuf:"bytes,3,opt,name=runtime_participant_slot,json=runtimeParticipantSlot,proto3" json:"runtime_participant_slot,omitempty"`
+	OwnerUserId            string                 `protobuf:"bytes,4,opt,name=owner_user_id,json=ownerUserId,proto3" json:"owner_user_id,omitempty"`
+	RuntimeSourceRef       string                 `protobuf:"bytes,5,opt,name=runtime_source_ref,json=runtimeSourceRef,proto3" json:"runtime_source_ref,omitempty"`
+	LocalAgentRef          string                 `protobuf:"bytes,6,opt,name=local_agent_ref,json=localAgentRef,proto3" json:"local_agent_ref,omitempty"`
+	TriggerRef             string                 `protobuf:"bytes,7,opt,name=trigger_ref,json=triggerRef,proto3" json:"trigger_ref,omitempty"`
+	MembershipSnapshotRef  string                 `protobuf:"bytes,8,opt,name=membership_snapshot_ref,json=membershipSnapshotRef,proto3" json:"membership_snapshot_ref,omitempty"`
+	ReadCursorRef          string                 `protobuf:"bytes,9,opt,name=read_cursor_ref,json=readCursorRef,proto3" json:"read_cursor_ref,omitempty"`
+	ReplyTargetRef         string                 `protobuf:"bytes,10,opt,name=reply_target_ref,json=replyTargetRef,proto3" json:"reply_target_ref,omitempty"`
+	RoomOrchestrationRef   string                 `protobuf:"bytes,11,opt,name=room_orchestration_ref,json=roomOrchestrationRef,proto3" json:"room_orchestration_ref,omitempty"`
+	IdempotencyKey         string                 `protobuf:"bytes,12,opt,name=idempotency_key,json=idempotencyKey,proto3" json:"idempotency_key,omitempty"`
+	ContextRefs            map[string]string      `protobuf:"bytes,13,rep,name=context_refs,json=contextRefs,proto3" json:"context_refs,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *CreateRealmGroupMessageCandidateRequest) Reset() {
@@ -134,9 +134,9 @@ func (x *CreateRealmGroupMessageCandidateRequest) GetRealmGroupThreadId() string
 	return ""
 }
 
-func (x *CreateRealmGroupMessageCandidateRequest) GetRealmGroupAgentSlotId() string {
+func (x *CreateRealmGroupMessageCandidateRequest) GetRuntimeParticipantSlot() string {
 	if x != nil {
-		return x.RealmGroupAgentSlotId
+		return x.RuntimeParticipantSlot
 	}
 	return ""
 }
@@ -148,9 +148,9 @@ func (x *CreateRealmGroupMessageCandidateRequest) GetOwnerUserId() string {
 	return ""
 }
 
-func (x *CreateRealmGroupMessageCandidateRequest) GetRealmAgentId() string {
+func (x *CreateRealmGroupMessageCandidateRequest) GetRuntimeSourceRef() string {
 	if x != nil {
-		return x.RealmAgentId
+		return x.RuntimeSourceRef
 	}
 	return ""
 }
@@ -219,9 +219,9 @@ type RealmGroupMessageCandidateCommitHandle struct {
 	EvidenceHash           string                                      `protobuf:"bytes,4,opt,name=evidence_hash,json=evidenceHash,proto3" json:"evidence_hash,omitempty"`
 	RuntimeTraceRef        string                                      `protobuf:"bytes,5,opt,name=runtime_trace_ref,json=runtimeTraceRef,proto3" json:"runtime_trace_ref,omitempty"`
 	RealmGroupThreadId     string                                      `protobuf:"bytes,6,opt,name=realm_group_thread_id,json=realmGroupThreadId,proto3" json:"realm_group_thread_id,omitempty"`
-	RealmGroupAgentSlotId  string                                      `protobuf:"bytes,7,opt,name=realm_group_agent_slot_id,json=realmGroupAgentSlotId,proto3" json:"realm_group_agent_slot_id,omitempty"`
+	RuntimeParticipantSlot string                                      `protobuf:"bytes,7,opt,name=runtime_participant_slot,json=runtimeParticipantSlot,proto3" json:"runtime_participant_slot,omitempty"`
 	OwnerUserId            string                                      `protobuf:"bytes,8,opt,name=owner_user_id,json=ownerUserId,proto3" json:"owner_user_id,omitempty"`
-	RealmAgentId           string                                      `protobuf:"bytes,9,opt,name=realm_agent_id,json=realmAgentId,proto3" json:"realm_agent_id,omitempty"`
+	RuntimeSourceRef       string                                      `protobuf:"bytes,9,opt,name=runtime_source_ref,json=runtimeSourceRef,proto3" json:"runtime_source_ref,omitempty"`
 	LocalAgentRef          string                                      `protobuf:"bytes,10,opt,name=local_agent_ref,json=localAgentRef,proto3" json:"local_agent_ref,omitempty"`
 	TriggerRef             string                                      `protobuf:"bytes,11,opt,name=trigger_ref,json=triggerRef,proto3" json:"trigger_ref,omitempty"`
 	OutputCandidateRef     string                                      `protobuf:"bytes,12,opt,name=output_candidate_ref,json=outputCandidateRef,proto3" json:"output_candidate_ref,omitempty"`
@@ -315,9 +315,9 @@ func (x *RealmGroupMessageCandidateCommitHandle) GetRealmGroupThreadId() string 
 	return ""
 }
 
-func (x *RealmGroupMessageCandidateCommitHandle) GetRealmGroupAgentSlotId() string {
+func (x *RealmGroupMessageCandidateCommitHandle) GetRuntimeParticipantSlot() string {
 	if x != nil {
-		return x.RealmGroupAgentSlotId
+		return x.RuntimeParticipantSlot
 	}
 	return ""
 }
@@ -329,9 +329,9 @@ func (x *RealmGroupMessageCandidateCommitHandle) GetOwnerUserId() string {
 	return ""
 }
 
-func (x *RealmGroupMessageCandidateCommitHandle) GetRealmAgentId() string {
+func (x *RealmGroupMessageCandidateCommitHandle) GetRuntimeSourceRef() string {
 	if x != nil {
-		return x.RealmAgentId
+		return x.RuntimeSourceRef
 	}
 	return ""
 }
@@ -500,19 +500,19 @@ func (x *CreateRealmGroupMessageCandidateResponse) GetCandidate() *RealmGroupMes
 }
 
 type GetRealmGroupMessageCandidateEvidenceRequest struct {
-	state                         protoimpl.MessageState `protogen:"open.v1"`
-	Context                       *AgentRequestContext   `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`
-	CandidateId                   string                 `protobuf:"bytes,2,opt,name=candidate_id,json=candidateId,proto3" json:"candidate_id,omitempty"`
-	CandidateKind                 string                 `protobuf:"bytes,3,opt,name=candidate_kind,json=candidateKind,proto3" json:"candidate_kind,omitempty"`
-	CandidateEvidenceRef          string                 `protobuf:"bytes,4,opt,name=candidate_evidence_ref,json=candidateEvidenceRef,proto3" json:"candidate_evidence_ref,omitempty"`
-	EvidenceHash                  string                 `protobuf:"bytes,5,opt,name=evidence_hash,json=evidenceHash,proto3" json:"evidence_hash,omitempty"`
-	RuntimeTraceRef               string                 `protobuf:"bytes,6,opt,name=runtime_trace_ref,json=runtimeTraceRef,proto3" json:"runtime_trace_ref,omitempty"`
-	ExpectedRealmGroupAgentSlotId string                 `protobuf:"bytes,7,opt,name=expected_realm_group_agent_slot_id,json=expectedRealmGroupAgentSlotId,proto3" json:"expected_realm_group_agent_slot_id,omitempty"`
-	ExpectedLocalAgentRef         string                 `protobuf:"bytes,8,opt,name=expected_local_agent_ref,json=expectedLocalAgentRef,proto3" json:"expected_local_agent_ref,omitempty"`
-	TriggerRef                    string                 `protobuf:"bytes,9,opt,name=trigger_ref,json=triggerRef,proto3" json:"trigger_ref,omitempty"`
-	TargetRealmGroupThreadId      string                 `protobuf:"bytes,10,opt,name=target_realm_group_thread_id,json=targetRealmGroupThreadId,proto3" json:"target_realm_group_thread_id,omitempty"`
-	unknownFields                 protoimpl.UnknownFields
-	sizeCache                     protoimpl.SizeCache
+	state                          protoimpl.MessageState `protogen:"open.v1"`
+	Context                        *AgentRequestContext   `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`
+	CandidateId                    string                 `protobuf:"bytes,2,opt,name=candidate_id,json=candidateId,proto3" json:"candidate_id,omitempty"`
+	CandidateKind                  string                 `protobuf:"bytes,3,opt,name=candidate_kind,json=candidateKind,proto3" json:"candidate_kind,omitempty"`
+	CandidateEvidenceRef           string                 `protobuf:"bytes,4,opt,name=candidate_evidence_ref,json=candidateEvidenceRef,proto3" json:"candidate_evidence_ref,omitempty"`
+	EvidenceHash                   string                 `protobuf:"bytes,5,opt,name=evidence_hash,json=evidenceHash,proto3" json:"evidence_hash,omitempty"`
+	RuntimeTraceRef                string                 `protobuf:"bytes,6,opt,name=runtime_trace_ref,json=runtimeTraceRef,proto3" json:"runtime_trace_ref,omitempty"`
+	ExpectedRuntimeParticipantSlot string                 `protobuf:"bytes,7,opt,name=expected_runtime_participant_slot,json=expectedRuntimeParticipantSlot,proto3" json:"expected_runtime_participant_slot,omitempty"`
+	ExpectedLocalAgentRef          string                 `protobuf:"bytes,8,opt,name=expected_local_agent_ref,json=expectedLocalAgentRef,proto3" json:"expected_local_agent_ref,omitempty"`
+	TriggerRef                     string                 `protobuf:"bytes,9,opt,name=trigger_ref,json=triggerRef,proto3" json:"trigger_ref,omitempty"`
+	TargetRealmGroupThreadId       string                 `protobuf:"bytes,10,opt,name=target_realm_group_thread_id,json=targetRealmGroupThreadId,proto3" json:"target_realm_group_thread_id,omitempty"`
+	unknownFields                  protoimpl.UnknownFields
+	sizeCache                      protoimpl.SizeCache
 }
 
 func (x *GetRealmGroupMessageCandidateEvidenceRequest) Reset() {
@@ -587,9 +587,9 @@ func (x *GetRealmGroupMessageCandidateEvidenceRequest) GetRuntimeTraceRef() stri
 	return ""
 }
 
-func (x *GetRealmGroupMessageCandidateEvidenceRequest) GetExpectedRealmGroupAgentSlotId() string {
+func (x *GetRealmGroupMessageCandidateEvidenceRequest) GetExpectedRuntimeParticipantSlot() string {
 	if x != nil {
-		return x.ExpectedRealmGroupAgentSlotId
+		return x.ExpectedRuntimeParticipantSlot
 	}
 	return ""
 }
@@ -620,9 +620,9 @@ type RealmGroupMessageCandidateEvidence struct {
 	CandidateId            string                                      `protobuf:"bytes,1,opt,name=candidate_id,json=candidateId,proto3" json:"candidate_id,omitempty"`
 	CandidateKind          string                                      `protobuf:"bytes,2,opt,name=candidate_kind,json=candidateKind,proto3" json:"candidate_kind,omitempty"`
 	RealmGroupThreadId     string                                      `protobuf:"bytes,3,opt,name=realm_group_thread_id,json=realmGroupThreadId,proto3" json:"realm_group_thread_id,omitempty"`
-	RealmGroupAgentSlotId  string                                      `protobuf:"bytes,4,opt,name=realm_group_agent_slot_id,json=realmGroupAgentSlotId,proto3" json:"realm_group_agent_slot_id,omitempty"`
+	RuntimeParticipantSlot string                                      `protobuf:"bytes,4,opt,name=runtime_participant_slot,json=runtimeParticipantSlot,proto3" json:"runtime_participant_slot,omitempty"`
 	OwnerUserId            string                                      `protobuf:"bytes,5,opt,name=owner_user_id,json=ownerUserId,proto3" json:"owner_user_id,omitempty"`
-	RealmAgentId           string                                      `protobuf:"bytes,6,opt,name=realm_agent_id,json=realmAgentId,proto3" json:"realm_agent_id,omitempty"`
+	RuntimeSourceRef       string                                      `protobuf:"bytes,6,opt,name=runtime_source_ref,json=runtimeSourceRef,proto3" json:"runtime_source_ref,omitempty"`
 	LocalAgentRef          string                                      `protobuf:"bytes,7,opt,name=local_agent_ref,json=localAgentRef,proto3" json:"local_agent_ref,omitempty"`
 	TriggerRef             string                                      `protobuf:"bytes,8,opt,name=trigger_ref,json=triggerRef,proto3" json:"trigger_ref,omitempty"`
 	OutputCandidateRef     string                                      `protobuf:"bytes,9,opt,name=output_candidate_ref,json=outputCandidateRef,proto3" json:"output_candidate_ref,omitempty"`
@@ -703,9 +703,9 @@ func (x *RealmGroupMessageCandidateEvidence) GetRealmGroupThreadId() string {
 	return ""
 }
 
-func (x *RealmGroupMessageCandidateEvidence) GetRealmGroupAgentSlotId() string {
+func (x *RealmGroupMessageCandidateEvidence) GetRuntimeParticipantSlot() string {
 	if x != nil {
-		return x.RealmGroupAgentSlotId
+		return x.RuntimeParticipantSlot
 	}
 	return ""
 }
@@ -717,9 +717,9 @@ func (x *RealmGroupMessageCandidateEvidence) GetOwnerUserId() string {
 	return ""
 }
 
-func (x *RealmGroupMessageCandidateEvidence) GetRealmAgentId() string {
+func (x *RealmGroupMessageCandidateEvidence) GetRuntimeSourceRef() string {
 	if x != nil {
-		return x.RealmAgentId
+		return x.RuntimeSourceRef
 	}
 	return ""
 }
@@ -947,13 +947,13 @@ var File_runtime_v1_agent_group_message_candidate_proto protoreflect.FileDescrip
 
 const file_runtime_v1_agent_group_message_candidate_proto_rawDesc = "" +
 	"\n" +
-	".runtime/v1/agent_group_message_candidate.proto\x12\x0fnimi.runtime.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1druntime/v1/agent_common.proto\"\x80\x06\n" +
+	".runtime/v1/agent_group_message_candidate.proto\x12\x0fnimi.runtime.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1druntime/v1/agent_common.proto\"\x88\x06\n" +
 	"'CreateRealmGroupMessageCandidateRequest\x12>\n" +
 	"\acontext\x18\x01 \x01(\v2$.nimi.runtime.v1.AgentRequestContextR\acontext\x121\n" +
 	"\x15realm_group_thread_id\x18\x02 \x01(\tR\x12realmGroupThreadId\x128\n" +
-	"\x19realm_group_agent_slot_id\x18\x03 \x01(\tR\x15realmGroupAgentSlotId\x12\"\n" +
-	"\rowner_user_id\x18\x04 \x01(\tR\vownerUserId\x12$\n" +
-	"\x0erealm_agent_id\x18\x05 \x01(\tR\frealmAgentId\x12&\n" +
+	"\x18runtime_participant_slot\x18\x03 \x01(\tR\x16runtimeParticipantSlot\x12\"\n" +
+	"\rowner_user_id\x18\x04 \x01(\tR\vownerUserId\x12,\n" +
+	"\x12runtime_source_ref\x18\x05 \x01(\tR\x10runtimeSourceRef\x12&\n" +
 	"\x0flocal_agent_ref\x18\x06 \x01(\tR\rlocalAgentRef\x12\x1f\n" +
 	"\vtrigger_ref\x18\a \x01(\tR\n" +
 	"triggerRef\x126\n" +
@@ -966,7 +966,7 @@ const file_runtime_v1_agent_group_message_candidate_proto_rawDesc = "" +
 	"\fcontext_refs\x18\r \x03(\v2I.nimi.runtime.v1.CreateRealmGroupMessageCandidateRequest.ContextRefsEntryR\vcontextRefs\x1a>\n" +
 	"\x10ContextRefsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xf1\t\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xf9\t\n" +
 	"&RealmGroupMessageCandidateCommitHandle\x12!\n" +
 	"\fcandidate_id\x18\x01 \x01(\tR\vcandidateId\x12%\n" +
 	"\x0ecandidate_kind\x18\x02 \x01(\tR\rcandidateKind\x124\n" +
@@ -974,9 +974,9 @@ const file_runtime_v1_agent_group_message_candidate_proto_rawDesc = "" +
 	"\revidence_hash\x18\x04 \x01(\tR\fevidenceHash\x12*\n" +
 	"\x11runtime_trace_ref\x18\x05 \x01(\tR\x0fruntimeTraceRef\x121\n" +
 	"\x15realm_group_thread_id\x18\x06 \x01(\tR\x12realmGroupThreadId\x128\n" +
-	"\x19realm_group_agent_slot_id\x18\a \x01(\tR\x15realmGroupAgentSlotId\x12\"\n" +
-	"\rowner_user_id\x18\b \x01(\tR\vownerUserId\x12$\n" +
-	"\x0erealm_agent_id\x18\t \x01(\tR\frealmAgentId\x12&\n" +
+	"\x18runtime_participant_slot\x18\a \x01(\tR\x16runtimeParticipantSlot\x12\"\n" +
+	"\rowner_user_id\x18\b \x01(\tR\vownerUserId\x12,\n" +
+	"\x12runtime_source_ref\x18\t \x01(\tR\x10runtimeSourceRef\x12&\n" +
 	"\x0flocal_agent_ref\x18\n" +
 	" \x01(\tR\rlocalAgentRef\x12\x1f\n" +
 	"\vtrigger_ref\x18\v \x01(\tR\n" +
@@ -1007,20 +1007,19 @@ const file_runtime_v1_agent_group_message_candidate_proto_rawDesc = "" +
 	"\x16candidate_evidence_ref\x18\x04 \x01(\tR\x14candidateEvidenceRef\x12#\n" +
 	"\revidence_hash\x18\x05 \x01(\tR\fevidenceHash\x12*\n" +
 	"\x11runtime_trace_ref\x18\x06 \x01(\tR\x0fruntimeTraceRef\x12I\n" +
-	"\"expected_realm_group_agent_slot_id\x18\a \x01(\tR\x1dexpectedRealmGroupAgentSlotId\x127\n" +
+	"!expected_runtime_participant_slot\x18\a \x01(\tR\x1eexpectedRuntimeParticipantSlot\x127\n" +
 	"\x18expected_local_agent_ref\x18\b \x01(\tR\x15expectedLocalAgentRef\x12\x1f\n" +
 	"\vtrigger_ref\x18\t \x01(\tR\n" +
 	"triggerRef\x12>\n" +
 	"\x1ctarget_realm_group_thread_id\x18\n" +
-	" \x01(\tR\x18targetRealmGroupThreadId\"\xf8\n" +
-	"\n" +
+	" \x01(\tR\x18targetRealmGroupThreadId\"\x80\v\n" +
 	"\"RealmGroupMessageCandidateEvidence\x12!\n" +
 	"\fcandidate_id\x18\x01 \x01(\tR\vcandidateId\x12%\n" +
 	"\x0ecandidate_kind\x18\x02 \x01(\tR\rcandidateKind\x121\n" +
 	"\x15realm_group_thread_id\x18\x03 \x01(\tR\x12realmGroupThreadId\x128\n" +
-	"\x19realm_group_agent_slot_id\x18\x04 \x01(\tR\x15realmGroupAgentSlotId\x12\"\n" +
-	"\rowner_user_id\x18\x05 \x01(\tR\vownerUserId\x12$\n" +
-	"\x0erealm_agent_id\x18\x06 \x01(\tR\frealmAgentId\x12&\n" +
+	"\x18runtime_participant_slot\x18\x04 \x01(\tR\x16runtimeParticipantSlot\x12\"\n" +
+	"\rowner_user_id\x18\x05 \x01(\tR\vownerUserId\x12,\n" +
+	"\x12runtime_source_ref\x18\x06 \x01(\tR\x10runtimeSourceRef\x12&\n" +
 	"\x0flocal_agent_ref\x18\a \x01(\tR\rlocalAgentRef\x12\x1f\n" +
 	"\vtrigger_ref\x18\b \x01(\tR\n" +
 	"triggerRef\x120\n" +

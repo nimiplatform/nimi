@@ -195,8 +195,8 @@ Runtime / SDK must provide admitted coverage for:
 - a close / delete / clear policy for user-visible conversation history
 - message-level delete / redact policy before any app exposes per-message
   deletion or redaction controls
-- a single-active-conversation policy for each AgentFriend / local agent
-  projection
+- a single-active-conversation policy for each runtime source snapshot /
+  LocalAgent projection
 - explicit rejection of Agent Chat draft persistence, rename/archive
   conversation semantics, and Desktop offline transcript recovery
 
@@ -227,8 +227,8 @@ Fixed rules:
 - Agent Chat rename and archive are not product surfaces. Runtime must not add
   persistent user-authored conversation titles, archive flags, or multi-session
   management for Agent Chat unless a later product decision admits them.
-- Runtime must present one active Agent Chat conversation per AgentFriend /
-  local agent projection. `ListAgentConversationSummaries` may page over
+- Runtime must present one active Agent Chat conversation per runtime source
+  snapshot / LocalAgent projection. `ListAgentConversationSummaries` may page over
   different agents and historical Runtime anchors as migration evidence, but it
   must not become a user-facing multi-conversation product model.
 
@@ -794,72 +794,69 @@ Fixed rules:
 - Default local first-party Avatar must not be forced through this binding
   attachment path solely because Desktop launched it.
 
-## K-AGCORE-139 Ordinary AgentFriend LocalAgent Projection Creation And Repair
+## K-AGCORE-139 RuntimeSourceSnapshot LocalAgent Materialization And Repair
 
 `InitializeAgent` is the runtime creation/repair lifecycle for an
-account-scoped LocalAgent projection. `RuntimeAgentService` may project the
-LocalAgent of any ordinary AgentFriend — the Nimi-authored guide AgentFriend and
-every other RealmAgent AgentFriend alike — only through the same ordinary
-AgentFriend mechanics. This rule is the creation/repair counterpart to the
-deletion lifecycle owned by `K-AGCORE-141`, and applies to every ordinary
-AgentFriend LocalAgent, not only the Nimi guide.
+account-scoped LocalAgent projection. `RuntimeAgentService` may materialize a
+LocalAgent only from an admitted `RuntimeSourceSnapshot` produced by Realm
+source admission. This rule is the creation/repair counterpart to the deletion
+lifecycle owned by `K-AGCORE-141`, and applies to every admitted runtime source,
+not only the Nimi guide.
 
-For any ordinary AgentFriend, Runtime must:
+For any admitted runtime source, Runtime must:
 
-- consume the ordinary RealmAgent and AgentFriend projection through admitted
-  Realm/SDK projection, not through Desktop fixtures;
-- require the account's ordinary AgentFriend relationship to exist before local
-  projection;
-- create or repair one account-scoped LocalAgent projection for that ordinary
-  AgentFriend idempotently;
+- consume the RuntimeSourceSnapshot through admitted Realm/SDK source-core
+  data, not through Desktop fixtures;
+- require the account's source admission snapshot before local projection;
+- create or repair one account-scoped LocalAgent projection for that runtime
+  source idempotently;
 - preserve conversation anchor and RuntimeAgentService lifecycle semantics;
 - expose provisioning failures as typed repair/blocked states.
 
 Creation trigger owner:
 
-- when an AgentFriend relationship is created, the upstream Realm social
+- when Realm source admission produces a RuntimeSourceSnapshot, the upstream
   admission path issues `InitializeAgent` for the resolved `local_agent_ref`,
   and `RuntimeAgentService` materializes that projection. The creation trigger
-  is owned by the upstream Realm creation path, not by the renderer; Runtime
-  does not author the creation linkage and does not infer that an AgentFriend
-  exists from renderer-supplied context. This is the creation-side counterpart
-  to the `K-AGCORE-141` sentence that the upstream Realm social admission path
-  issues `TerminateAgent` on AgentFriend removal. The Realm-side authority for
-  the creation linkage, the durable provision intent, and the device courier
-  that delivers `InitializeAgent` to the loopback runtime is owned by
-  `R-SOC-009`;
+  is owned by the upstream Realm source admission path, not by the renderer;
+  Runtime does not author the creation linkage and does not infer source
+  admission from renderer-supplied context. This is the creation-side
+  counterpart to the `K-AGCORE-141` sentence that the upstream Realm source
+  admission path issues `TerminateAgent` on source removal. The Realm-side
+  authority for the creation linkage, the durable provision intent, and the
+  device courier that delivers `InitializeAgent` to the loopback runtime is
+  owned by `R-SOC-009`;
 - `InitializeAgent` must be idempotent. `InitializeAgent` for a
   `local_agent_ref` whose LocalAgent projection already exists must succeed as a
   typed no-op that converges to the same single projection rather than creating
   a second projection or failing with an already-exists error. Repeated
   delivery — including a courier re-delivering after a lost acknowledgement —
-  converges to exactly one LocalAgent per AgentFriend;
+  converges to exactly one LocalAgent per runtime source snapshot;
 - a lazy first-chat-open `InitializeAgent` remains an admitted idempotent repair
   path for a projection that is absent or stale; it is not the creation trigger.
   The creation trigger is the upstream Realm creation path above.
 
-`MUST NOT`: Runtime must not create any LocalAgent — the guide AgentFriend's or
-any other AgentFriend's — as a standalone local-only agent, fake contact,
+`MUST NOT`: Runtime must not create any LocalAgent — the guide source's or
+any other source's — as a standalone local-only agent, fake contact,
 server-bot bypass, Avatar instance, privileged Agent class, special
 official-guide path, quota bypass, or default global agent.
 
 ## K-AGCORE-140 Nimi Guide Prompt And Documentation Context
 
-When the Nimi guide LocalAgent is available through ordinary AgentFriend
-projection, Runtime may initialize the first conversation from Nimi guide
+When the Nimi guide LocalAgent is available through RuntimeSourceSnapshot
+materialization, Runtime may initialize the first conversation from Nimi guide
 welcome copy and may attach built-in Nimi usage documentation as product
 knowledge/context.
 
 Source of truth:
 
-- the Nimi guide welcome copy and guide system prompt are ordinary RealmAgent
-  profile content carried on the projected RealmAgent (the
-  AgentFriend's `greeting` / `systemPromptBase` equivalents), reached through
-  the same admitted Realm/SDK projection used for any RealmAgent;
+- the Nimi guide welcome copy and guide system prompt are ordinary source
+  snapshot content carried on the admitted RuntimeSourceSnapshot, reached
+  through the same source-core path used for any runtime source;
 - Runtime MUST NOT hold a runtime-local hardcoded guide welcome string, guide
   prompt, or guide identity constant as parallel product truth;
 - built-in Nimi usage documentation attached as context is product
-  knowledge/context only and is not RealmAgent authority, not memory truth, and
+  knowledge/context only and is not Realm source authority, not memory truth, and
   not a runtime-owned guide catalog.
 
 `MUST NOT`: prompt/docs context must not create Agent authority, memory truth,
@@ -868,15 +865,15 @@ The guide may direct the user to product surfaces but cannot bypass setup
 confirmations, permissions, install plans, app admission, or ordinary LocalAgent
 mechanics.
 
-## K-AGCORE-141 AgentFriend Removal LocalAgent Projection Deletion
+## K-AGCORE-141 Source Admission Removal LocalAgent Projection Deletion
 
 `TerminateAgent` is the runtime deletion lifecycle for an account-scoped
-LocalAgent projection. When an AgentFriend relationship is removed, the
-upstream Realm social admission path issues `TerminateAgent` for the resolved
+LocalAgent projection. When source admission is removed, the upstream Realm
+source admission path issues `TerminateAgent` for the resolved
 `local_agent_ref`, and `RuntimeAgentService` must hard-delete that projection.
 This rule is the deletion counterpart to the creation/repair idempotency of
-`K-AGCORE-139` and applies to every ordinary AgentFriend LocalAgent, not only
-the Nimi guide.
+`K-AGCORE-139` and applies to every admitted source LocalAgent, not only the
+Nimi guide.
 
 `TerminateAgent` deletion scope:
 
@@ -888,10 +885,10 @@ the Nimi guide.
   `MEMORY_BANK_SCOPE_AGENT_DYADIC` owned by that agent);
 - the deletion is a hard delete: the projection and its agent-scoped memory are
   physically removed. `RuntimeAgentService` must not retain a `TERMINATED`
-  tombstone row as the steady-state outcome of AgentFriend removal, because a
+  tombstone row as the steady-state outcome of source admission removal, because a
   retained row is the orphan LocalAgent the upstream linkage forbids.
-  `local_agent_ref` is deterministically re-derivable, so a later AgentFriend
-  re-add re-materializes the projection through `K-AGCORE-139` rather than
+  `local_agent_ref` is deterministically re-derivable, so a later source
+  re-admission re-materializes the projection through `K-AGCORE-139` rather than
   resurrecting deleted state.
 
 Fixed rules:
@@ -910,7 +907,7 @@ Fixed rules:
   rather than reporting pseudo-success. The upstream Realm linkage owns retry of
   the durable termination intent; runtime must not mask an incomplete deletion.
 - `TerminateAgent` deletes the runtime-owned LocalAgent projection only. It must
-  not mutate, delete, or write back the canonical RealmAgent identity, and it
+  not mutate, delete, or write back the canonical Realm source identity, and it
   must not delete account-scoped truth wider than the target agent.
 
 `MUST NOT`: `TerminateAgent` must not leave a partially deleted projection — a
@@ -929,19 +926,19 @@ attachment, without introducing a special official-guide path.
 
 Authoring and storage:
 
-- the built-in Nimi usage documentation corpus is ordinary RealmAgent profile
-  content authored alongside the guide RealmAgent definition (the same
+- the built-in Nimi usage documentation corpus is ordinary source profile
+  content authored alongside the guide source definition (the same
   Nimi-authored bootstrap definition that owns the guide `greeting` /
   `systemPromptBase`), not a separate platform-owned bespoke docs artifact and
   not a separate admitted docs schema;
-- the corpus is stored inside the projected RealmAgent's ordinary profile
+- the corpus is stored inside the projected source's ordinary profile
   knowledge payload (the `AgentProfile.dna` knowledge slot), so it rides the
-  same admitted Realm/SDK RealmAgent projection used for any RealmAgent's
+  same admitted source-core projection used for any runtime source's
   profile content;
 - the corpus is bounded built-in product knowledge — first-run setup, Runtime,
-  profiles, Apps, Worlds, RealmAgents, LocalAgents, and Avatar — authored as
+  profiles, Apps, Worlds, RealmPersonas, LocalAgents, and Avatar — authored as
   static structured text;
-- the corpus is ordinary RealmAgent profile content: any RealmAgent profile may
+- the corpus is ordinary source profile content: any admitted source profile may
   carry a built-in documentation knowledge payload through the same field. It
   is not a guide-only schema, not a privileged Agent class field, and not a
   quota/admission exception.
@@ -960,7 +957,7 @@ Source of truth and authoring location remain ordinary:
 
 - Runtime MUST NOT hold a runtime-local hardcoded usage documentation corpus,
   guide docs catalog, or guide identity constant as parallel product truth; the
-  corpus is reached only through the admitted Realm/SDK RealmAgent projection,
+  corpus is reached only through the admitted source-core projection,
   consistent with K-AGCORE-140;
 - the desktop/consumer attaches the projected corpus to the per-turn context;
   it does not author a parallel renderer-local docs corpus.

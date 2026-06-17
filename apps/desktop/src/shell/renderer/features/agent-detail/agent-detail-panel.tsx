@@ -3,16 +3,9 @@ import { useQuery } from '@tanstack/react-query';
 import { i18n } from '@renderer/i18n';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';
-import { QuickAddFriendModal } from '@renderer/features/explore/quick-add-friend-modal';
-import { resolveAgentFriendLimit } from '@renderer/features/relationship/agent-friend-limit';
 import { prefetchWorldDetailAndHistory } from '@renderer/features/world/world-detail-queries.js';
 import { prefetchWorldDetailPanel } from '@renderer/features/world/world-detail-route-state';
-import { queryClient } from '@renderer/infra/query-client/query-client';
-import {
-  addRealmAgentFriend,
-  openRealmAgentLocalChat,
-} from '@renderer/features/explore/realm-agent-friend-actions';
-import { realmAgentSocialProjectionQueryKey } from '@renderer/features/explore/realm-agent-friend-state';
+import { realmPersonaSourceHandoffMessage } from '@renderer/features/explore/realm-persona-source-admission';
 import {
   agentDisplayDetailQueryKey,
   fetchAgentDisplayDetail,
@@ -25,12 +18,7 @@ export function AgentDetailPanel() {
   const selectedProfileId = useAppStore((state) => state.selectedProfileId);
   const navigateBack = useAppStore((state) => state.navigateBack);
   const navigateToWorld = useAppStore((state) => state.navigateToWorld);
-  const setActiveTab = useAppStore((state) => state.setActiveTab);
-  const setChatMode = useAppStore((state) => state.setChatMode);
-  const setSelectedTargetForSource = useAppStore((state) => state.setSelectedTargetForSource);
-  const setAgentConversationSelection = useAppStore((state) => state.setAgentConversationSelection);
   const [giftModalOpen, setGiftModalOpen] = useState(false);
-  const [addFriendModalOpen, setAddFriendModalOpen] = useState(false);
   const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
 
   const agentIdentifier = String(selectedProfileId || '').trim();
@@ -40,12 +28,6 @@ export function AgentDetailPanel() {
     queryFn: async () => fetchAgentDisplayDetail(agentIdentifier),
     enabled: authStatus === 'authenticated' && !!agentIdentifier,
   });
-  const agentLimitQuery = useQuery({
-    queryKey: ['agent-friend-limit', authStatus],
-    queryFn: async () => resolveAgentFriendLimit(),
-    enabled: authStatus === 'authenticated',
-  });
-
   const resolvedAgentId = useMemo(() => {
     const profileId = String(profileQuery.data?.agent.id || '').trim();
     if (profileId) {
@@ -69,77 +51,11 @@ export function AgentDetailPanel() {
     return profileQuery.data.worldScore;
   }, [profileQuery.data]);
 
-  const handleAddFriendClick = () => {
-    if (!resolvedAgentId) return;
-    if (agentLimitQuery.data && !agentLimitQuery.data.canAdd) {
-      setFeedback({
-        kind: 'error',
-        message: agentLimitQuery.data.reason || i18n.t('Relationship.agentFriendLimitReachedShort', { defaultValue: 'Agent friend limit reached' }),
-      });
-      return;
-    }
-    setAddFriendModalOpen(true);
-  };
-
-  // D-EXPL-007 Add Friend dual-effect: AgentFriend relation + idempotent
-  // account-scoped LocalAgent projection ensured at Add Friend time.
-  const handleAddFriendSubmit = async (agentId: string, message?: string) => {
-    await addRealmAgentFriend(
-      {
-        realmAgentId: agentId,
-        displayName: agent?.displayName ?? agentId,
-        handle: agent?.handle ?? '',
-        avatarUrl: agent?.avatarUrl ?? null,
-        worldId: agent?.worldId ?? null,
-        worldName: null,
-        bio: agent?.bio ?? null,
-      },
-      message,
-    );
-    setFeedback(null);
-    await Promise.all([
-      agentLimitQuery.refetch(),
-      queryClient.invalidateQueries({ queryKey: realmAgentSocialProjectionQueryKey }),
-      queryClient.invalidateQueries({ queryKey: agentDisplayDetailQueryKey(agentIdentifier) }),
-    ]);
-  };
-
-  // `friend` → Open Agent Chat — opens the one-to-one LocalAgent Chat.
-  const handleOpenChat = async () => {
-    if (!agent) {
-      return;
-    }
-    try {
-      await openRealmAgentLocalChat(
-        {
-          realmAgentId: agent.id,
-          displayName: agent.displayName,
-          handle: agent.handle,
-          avatarUrl: agent.avatarUrl,
-          worldId: agent.worldId,
-          worldName: null,
-          bio: agent.bio,
-        },
-        { setActiveTab, setChatMode, setSelectedTargetForSource, setAgentConversationSelection },
-      );
-    } catch (error) {
-      setFeedback({
-        kind: 'error',
-        message: error instanceof Error
-          ? error.message
-          : i18n.t('Relationship.openChatFailed', { defaultValue: 'Failed to open chat' }),
-      });
-    }
-  };
-
-  // `limit_reached` stays inline. Keep the
-  // action fail-closed until an in-context management action is admitted.
   const handleManageFriends = () => {
+    if (!resolvedAgentId) return;
     setFeedback({
       kind: 'warning',
-      message: i18n.t('AgentDetail.agentFriendLimitManagementUnavailable', {
-        defaultValue: 'Agent friend limit reached. Remove an agent friend from a profile before adding another.',
-      }),
+      message: realmPersonaSourceHandoffMessage(),
     });
   };
 
@@ -181,8 +97,6 @@ export function AgentDetailPanel() {
           prefetchWorldDetailAndHistory(agent.worldId);
           navigateToWorld(agent.worldId);
         }}
-        onAddFriend={handleAddFriendClick}
-        onOpenChat={() => { void handleOpenChat(); }}
         onManageFriends={handleManageFriends}
         onSendGift={() => setGiftModalOpen(true)}
       />
@@ -191,31 +105,12 @@ export function AgentDetailPanel() {
         receiverId={agent?.id || ''}
         receiverName={agent?.displayName || agent?.handle || 'Agent'}
         receiverHandle={agent?.handle}
-        receiverIsAgent
+        receiverIsSource
         receiverAvatarUrl={agent?.avatarUrl}
         onClose={() => setGiftModalOpen(false)}
         onSent={() => {
           setFeedback(null);
         }}
-      />
-      <QuickAddFriendModal
-        open={addFriendModalOpen}
-        agent={agent ? {
-          id: agent.id,
-          name: agent.displayName,
-          handle: agent.handle,
-          avatarUrl: agent.avatarUrl,
-          tags: [],
-          worldId: agent.worldId,
-          worldName: null,
-          worldBannerUrl: agent.worldBannerUrl,
-          isAgent: true,
-          bio: agent.bio,
-          category: agent.category,
-        } : null}
-        agentLimit={agentLimitQuery.data ?? null}
-        onClose={() => setAddFriendModalOpen(false)}
-        onAdd={handleAddFriendSubmit}
       />
     </>
   );

@@ -56,7 +56,7 @@ func (r agentAdminRuntime) initialize(ctx context.Context, req *runtimev1.Initia
 		AgentId:         localAgentRef,
 		LocalAgentRef:   localAgentRef,
 		OwnerUserId:     identity.OwnerUserID,
-		RealmAgentId:    identity.RealmAgentID,
+		RuntimeSourceRef:    identity.RuntimeSourceRef,
 		DisplayName:     firstNonEmpty(strings.TrimSpace(req.GetDisplayName()), localAgentRef),
 		LifecycleStatus: runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_ACTIVE,
 		Autonomy:        autonomy,
@@ -108,8 +108,7 @@ func (r agentAdminRuntime) initialize(ctx context.Context, req *runtimev1.Initia
 // memory banks (`MEMORY_BANK_SCOPE_AGENT_CORE` and every
 // `MEMORY_BANK_SCOPE_AGENT_DYADIC` owned by the agent). It does not retain a
 // TERMINATED tombstone — `local_agent_ref` is deterministically re-derivable,
-// so a later AgentFriend re-add re-materializes the projection through
-// K-AGCORE-139.
+// so a later source admission re-materializes the projection through K-AGCORE-139.
 //
 // Ordering is retry-safety-driven. Agent-scoped memory is deleted before the
 // runtime-agent row: if memory deletion fails the row is still present, so an

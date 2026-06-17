@@ -3,13 +3,13 @@ import { createNimiError, ReasonCode } from '../types';
 
 export interface RuntimeLocalAgentIdentityInput {
   readonly ownerUserId: unknown;
-  readonly realmAgentId: unknown;
+  readonly runtimeSourceRef: unknown;
   readonly localAgentRef?: unknown;
 }
 
 export interface RuntimeLocalAgentIdentityProjection {
   readonly ownerUserId: string;
-  readonly realmAgentId: string;
+  readonly runtimeSourceRef: string;
   readonly localAgentRef: string;
 }
 
@@ -35,17 +35,17 @@ function localAgentIdentityError(message: string): never {
 
 export function buildRuntimeLocalAgentRef(input: {
   readonly ownerUserId: unknown;
-  readonly realmAgentId: unknown;
+  readonly runtimeSourceRef: unknown;
 }): string {
   const ownerUserId = normalizeIdentityPart(input.ownerUserId);
   if (!ownerUserId) {
     localAgentIdentityError('runtime local agent identity requires ownerUserId');
   }
-  const realmAgentId = normalizeIdentityPart(input.realmAgentId);
-  if (!realmAgentId) {
-    localAgentIdentityError('runtime local agent identity requires realmAgentId');
+  const runtimeSourceRef = normalizeIdentityPart(input.runtimeSourceRef);
+  if (!runtimeSourceRef) {
+    localAgentIdentityError('runtime local agent identity requires runtimeSourceRef');
   }
-  return `local-agent:${ownerUserId}:${realmAgentId}`;
+  return `local-agent:${ownerUserId}:${runtimeSourceRef}`;
 }
 
 export function isRuntimeLocalAgentRef(value: unknown): value is string {
@@ -59,30 +59,31 @@ export function projectRuntimeLocalAgentIdentity(
   if (!ownerUserId) {
     localAgentIdentityError('runtime local agent identity requires ownerUserId');
   }
-  const realmAgentId = normalizeIdentityPart(input.realmAgentId);
-  if (!realmAgentId) {
-    localAgentIdentityError('runtime local agent identity requires realmAgentId');
+  const runtimeSourceRef = normalizeIdentityPart(input.runtimeSourceRef);
+  if (!runtimeSourceRef) {
+    localAgentIdentityError('runtime local agent identity requires runtimeSourceRef');
   }
-  const expected = buildRuntimeLocalAgentRef({ ownerUserId, realmAgentId });
+  const expected = buildRuntimeLocalAgentRef({ ownerUserId, runtimeSourceRef });
   const localAgentRef = normalizeIdentityPart(input.localAgentRef) || expected;
   if (!isRuntimeLocalAgentRef(localAgentRef)) {
     localAgentIdentityError('runtime local agent identity localAgentRef is malformed');
   }
   if (localAgentRef !== expected) {
-    localAgentIdentityError('runtime local agent identity localAgentRef must match ownerUserId and realmAgentId');
+    localAgentIdentityError('runtime local agent identity localAgentRef must match ownerUserId and runtimeSourceRef');
   }
-  return { ownerUserId, realmAgentId, localAgentRef };
+  return { ownerUserId, runtimeSourceRef, localAgentRef };
 }
 
 export function parseRuntimeLocalAgentIdentity(localAgentRef: unknown): RuntimeLocalAgentIdentityProjection {
   const normalized = normalizeIdentityPart(localAgentRef);
   const parts = normalized.split(':');
-  if (parts.length !== 3 || parts[0] !== 'local-agent') {
+  if (parts.length < 3 || parts[0] !== 'local-agent') {
     localAgentIdentityError('runtime local agent identity localAgentRef is malformed');
   }
+  const runtimeSourceRef = parts.slice(2).join(':');
   return projectRuntimeLocalAgentIdentity({
     ownerUserId: parts[1],
-    realmAgentId: parts[2],
+    runtimeSourceRef,
     localAgentRef: normalized,
   });
 }

@@ -240,9 +240,9 @@ export function GiftInboxPanel() {
               <EntityAvatar
                 imageUrl={party?.avatarUrl || null}
                 name={getUserDisplayName(party)}
-                kind={party?.isAgent ? 'agent' : 'human'}
+                kind={party?.isSource ? 'agent' : 'human'}
                 sizeClassName="h-11 w-11"
-                className={party?.isAgent ? undefined : 'ring-2 ring-white'}
+                className={party?.isSource ? undefined : 'ring-2 ring-white'}
                 textClassName="text-sm font-semibold"
               />
             )}

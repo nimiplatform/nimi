@@ -59,7 +59,7 @@ import {
 const consumeContext = {
   runtimeAppId: 'nimi.avatar',
   ownerUserId: 'owner-1',
-  realmAgentId: 'agent-1',
+  runtimeSourceRef: 'agent-1',
   localAgentRef: 'local-agent:owner-1:agent-1',
 };
 
@@ -240,7 +240,7 @@ test('Runtime Agent consume subscribe filters app messages and merges generated 
       agentId: 'local-agent:owner-1:agent-1',
       localAgentRef: 'local-agent:owner-1:agent-1',
       ownerUserId: 'owner-1',
-      realmAgentId: 'agent-1',
+      runtimeSourceRef: 'agent-1',
       detail: {
         oneofKind: 'state',
         state: {
@@ -265,7 +265,7 @@ test('Runtime Agent consume subscribe filters app messages and merges generated 
       agentId: 'local-agent:owner-1:agent-1',
       localAgentRef: 'local-agent:owner-1:agent-1',
       ownerUserId: 'owner-1',
-      realmAgentId: 'agent-1',
+      runtimeSourceRef: 'agent-1',
       detail: {
         oneofKind: 'presentation',
         presentation: {
@@ -373,7 +373,7 @@ test('Runtime Agent consume projects generated event families and fails closed o
       agentId: 'local-agent:owner-1:agent-1',
       localAgentRef: 'local-agent:owner-1:agent-1',
       ownerUserId: 'owner-1',
-      realmAgentId: 'agent-1',
+      runtimeSourceRef: 'agent-1',
       detail: {
         oneofKind: 'state',
         state: {
@@ -418,7 +418,7 @@ test('Runtime Agent consume projects generated event families and fails closed o
       agentId: 'local-agent:owner-1:agent-1',
       localAgentRef: 'local-agent:owner-1:agent-1',
       ownerUserId: 'owner-1',
-      realmAgentId: 'agent-1',
+      runtimeSourceRef: 'agent-1',
       detail: {
         oneofKind: 'presentation',
         presentation: {
@@ -458,7 +458,7 @@ test('Runtime Agent consume projects generated event families and fails closed o
     agentId: 'local-agent:owner-1:agent-1',
     localAgentRef: 'local-agent:owner-1:agent-1',
     ownerUserId: 'owner-1',
-    realmAgentId: 'agent-1',
+    runtimeSourceRef: 'agent-1',
     detail: {
       oneofKind: 'avatarDebug',
       avatarDebug: {
@@ -522,7 +522,7 @@ test('Runtime Agent consume projects generated event families and fails closed o
       agentId: 'local-agent:owner-1:agent-1',
       localAgentRef: 'local-agent:owner-1:agent-1',
       ownerUserId: 'owner-1',
-      realmAgentId: 'agent-1',
+      runtimeSourceRef: 'agent-1',
       detail: {
         oneofKind: 'hook',
         hook: {
@@ -545,7 +545,7 @@ test('Runtime Agent consume projects generated event families and fails closed o
       agentId: 'local-agent:owner-1:agent-1',
       localAgentRef: 'local-agent:owner-1:agent-1',
       ownerUserId: 'owner-1',
-      realmAgentId: 'agent-1',
+      runtimeSourceRef: 'agent-1',
       detail: {
         oneofKind: 'state',
         state: {
@@ -565,7 +565,7 @@ test('Runtime Agent consume projects generated event families and fails closed o
       agentId: 'local-agent:owner-1:agent-1',
       localAgentRef: 'local-agent:owner-1:agent-1',
       ownerUserId: 'owner-1',
-      realmAgentId: 'agent-1',
+      runtimeSourceRef: 'agent-1',
       detail: { oneofKind: undefined },
     } as AgentEvent),
     (error: unknown) => {

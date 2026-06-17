@@ -1,7 +1,7 @@
 export type AgentCenterLocalAvatarAssetReference = {
   accountId: string;
   ownerUserId: string;
-  realmAgentId: string;
+  runtimeSourceRef: string;
   localAgentRef: string;
   localAvatarAssetRef: string;
   backendKind: 'live2d' | 'vrm';
@@ -12,7 +12,7 @@ export type AgentCenterLocalAvatarAssetReference = {
 export type LocalAvatarAssetReference = {
   accountId: string;
   ownerUserId: string;
-  realmAgentId: string;
+  runtimeSourceRef: string;
   localAgentRef: string;
 };
 

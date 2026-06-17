@@ -214,7 +214,7 @@ export function buildNimiRuntimeAgentTurnPayload(request: NimiRuntimeAgentTurnRe
   return {
     local_agent_ref: identity.localAgentRef,
     owner_user_id: identity.ownerUserId,
-    realm_agent_id: identity.realmAgentId,
+    runtime_source_ref: identity.runtimeSourceRef,
     conversation_anchor_id: conversationAnchorId,
     ...(optionalString(request.requestId) ? { request_id: optionalString(request.requestId) } : {}),
     ...(optionalString(request.threadId) ? { thread_id: optionalString(request.threadId) } : {}),

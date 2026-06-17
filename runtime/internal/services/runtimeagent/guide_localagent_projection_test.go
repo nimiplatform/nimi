@@ -9,28 +9,28 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// guideRealmAgentID is the `~archivist` Nimi guide RealmAgent's realm_agent_id.
+// guideRuntimeSourceRef is the `~archivist` Nimi guide runtime_source_ref.
 //
 // It is the W1 backend bootstrap's `AgentProfile.id` for the guide agent
 // (`NIMI_GUIDE_AGENT_IDS.archivist` in the Realm public projection boundary).
 // It is referenced here
-// only as an ordinary opaque realm_agent_id test input: the runtime treats it
-// as any other RealmAgent identifier. This is NOT a runtime-local guide
+// only as an ordinary opaque runtime_source_ref test input: the runtime treats it
+// as any other runtime source identifier. This is NOT a runtime-local guide
 // constant — it carries no welcome copy, no prompt, no guide branch — and the
 // anti-regression guard in guide_localagent_no_constant_test.go deliberately
 // exempts `_test.go` files for exactly this reason.
-const guideRealmAgentID = "nimi-guide-archivist"
+const guideRuntimeSourceRef = "nimi-guide-archivist"
 
 // TestRuntimeAgentGuideProjectsAsOrdinaryLocalAgent is the K-AGCORE-139 /
 // K-AGCORE-140 runtime conformance evidence: it proves the `~archivist` guide
-// RealmAgent projects through InitializeAgent into a
+// runtime source materializes through InitializeAgent into a
 // `local-agent:${owner}:${realm}` LocalAgent via the identical ordinary code
-// path as any non-guide RealmAgent.
+// path as any non-guide runtime source.
 //
-// The proof is by construction: the test drives the guide realm_agent_id
+// The proof is by construction: the test drives the guide runtime_source_ref
 // through the same public Service methods, with the same request shapes, that
-// TestRuntimeAgentLocalAgentRefIsolatesTwoOwnersForSameRealmAgent uses for a
-// plain `realm-agent-shared` id. There is no guide-specific code path to take,
+// TestRuntimeAgentLocalAgentRefIsolatesTwoOwnersForSameRuntimeSource uses for a
+// plain `runtime-source-shared` id. There is no guide-specific code path to take,
 // so identical behavior is the conformance result.
 func TestRuntimeAgentGuideProjectsAsOrdinaryLocalAgent(t *testing.T) {
 	t.Parallel()
@@ -38,13 +38,13 @@ func TestRuntimeAgentGuideProjectsAsOrdinaryLocalAgent(t *testing.T) {
 	svc := newRuntimeAgentTestService(t)
 	ctx := context.Background()
 	ownerUserID := "user-guide-owner"
-	guideCtx := testLocalAgentContext(ownerUserID, guideRealmAgentID)
+	guideCtx := testLocalAgentContext(ownerUserID, guideRuntimeSourceRef)
 
 	// Ordinary projection identity: local_agent_ref is the deterministic
-	// owner-scoped projection of the guide realm_agent_id, with no special
+	// owner-scoped projection of the guide runtime_source_ref, with no special
 	// prefix or branch.
-	wantLocalRef := buildLocalAgentRef(ownerUserID, guideRealmAgentID)
-	if wantLocalRef != "local-agent:"+ownerUserID+":"+guideRealmAgentID {
+	wantLocalRef := buildLocalAgentRef(ownerUserID, guideRuntimeSourceRef)
+	if wantLocalRef != "local-agent:"+ownerUserID+":"+guideRuntimeSourceRef {
 		t.Fatalf("guide local_agent_ref is not an ordinary projection: %q", wantLocalRef)
 	}
 
@@ -53,7 +53,7 @@ func TestRuntimeAgentGuideProjectsAsOrdinaryLocalAgent(t *testing.T) {
 		Context:       guideCtx,
 		LocalAgentRef: wantLocalRef,
 		OwnerUserId:   ownerUserID,
-		RealmAgentId:  guideRealmAgentID,
+		RuntimeSourceRef:  guideRuntimeSourceRef,
 		DisplayName:   "Archivist",
 	})
 	if err != nil {
@@ -63,8 +63,8 @@ func TestRuntimeAgentGuideProjectsAsOrdinaryLocalAgent(t *testing.T) {
 	if agent.GetLocalAgentRef() != wantLocalRef {
 		t.Fatalf("local_agent_ref = %q, want %q", agent.GetLocalAgentRef(), wantLocalRef)
 	}
-	if agent.GetRealmAgentId() != guideRealmAgentID {
-		t.Fatalf("realm_agent_id = %q, want %q", agent.GetRealmAgentId(), guideRealmAgentID)
+	if agent.GetRuntimeSourceRef() != guideRuntimeSourceRef {
+		t.Fatalf("runtime_source_ref = %q, want %q", agent.GetRuntimeSourceRef(), guideRuntimeSourceRef)
 	}
 	if agent.GetOwnerUserId() != ownerUserID {
 		t.Fatalf("owner_user_id = %q, want %q", agent.GetOwnerUserId(), ownerUserID)
@@ -79,7 +79,7 @@ func TestRuntimeAgentGuideProjectsAsOrdinaryLocalAgent(t *testing.T) {
 		Context:       guideCtx,
 		LocalAgentRef: wantLocalRef,
 		OwnerUserId:   ownerUserID,
-		RealmAgentId:  guideRealmAgentID,
+		RuntimeSourceRef:  guideRuntimeSourceRef,
 		DisplayName:   "Archivist",
 	})
 	if err != nil {
@@ -95,7 +95,7 @@ func TestRuntimeAgentGuideProjectsAsOrdinaryLocalAgent(t *testing.T) {
 		Context:       guideCtx,
 		LocalAgentRef: wantLocalRef,
 		OwnerUserId:   ownerUserID,
-		RealmAgentId:  guideRealmAgentID,
+		RuntimeSourceRef:  guideRuntimeSourceRef,
 		SubjectUserId: ownerUserID,
 	})
 	if err != nil {
@@ -116,7 +116,7 @@ func TestRuntimeAgentGuideProjectsAsOrdinaryLocalAgent(t *testing.T) {
 		t.Fatalf("guide anchor carries seeded turn/message linkage; runtime must not seed welcome copy")
 	}
 
-	// Ordinary lifecycle: TerminateAgent behaves as for any RealmAgent. Per
+	// Ordinary lifecycle: TerminateAgent behaves as for any runtime source. Per
 	// K-AGCORE-141 TerminateAgent hard-deletes the LocalAgent projection — it
 	// does not flip a status field and does not retain a TERMINATED tombstone.
 	if _, err := svc.TerminateAgent(ctx, &runtimev1.TerminateAgentRequest{
@@ -147,39 +147,39 @@ func TestRuntimeAgentGuideProjectsAsOrdinaryLocalAgent(t *testing.T) {
 		Context:       guideCtx,
 		LocalAgentRef: wantLocalRef,
 		OwnerUserId:   ownerUserID,
-		RealmAgentId:  guideRealmAgentID,
+		RuntimeSourceRef:  guideRuntimeSourceRef,
 		DisplayName:   "Archivist",
 	}); err != nil {
 		t.Fatalf("re-init guide after terminate (clean re-materialize): %v", err)
 	}
 }
 
-// TestRuntimeAgentGuideRealmAgentIDTakesNoSpecialBranch asserts the guide
-// realm_agent_id is treated identically to an arbitrary non-guide id by the
+// TestRuntimeAgentGuideRuntimeSourceRefTakesNoSpecialBranch asserts the guide
+// runtime_source_ref is treated identically to an arbitrary non-guide id by the
 // projection identity layer — there is no privileged-id recognition anywhere
 // in the LocalAgent identity surface (K-AGCORE-139 "no special official-guide
 // path").
-func TestRuntimeAgentGuideRealmAgentIDTakesNoSpecialBranch(t *testing.T) {
+func TestRuntimeAgentGuideRuntimeSourceRefTakesNoSpecialBranch(t *testing.T) {
 	t.Parallel()
 
 	ownerUserID := "user-branch-check"
 	guideIdentity, err := validateLocalAgentIdentity(
-		ownerUserID, guideRealmAgentID, buildLocalAgentRef(ownerUserID, guideRealmAgentID),
+		ownerUserID, guideRuntimeSourceRef, buildLocalAgentRef(ownerUserID, guideRuntimeSourceRef),
 	)
 	if err != nil {
 		t.Fatalf("validateLocalAgentIdentity(guide): %v", err)
 	}
 	plainIdentity, err := validateLocalAgentIdentity(
-		ownerUserID, "realm-agent-plain", buildLocalAgentRef(ownerUserID, "realm-agent-plain"),
+		ownerUserID, "runtime-source-plain", buildLocalAgentRef(ownerUserID, "runtime-source-plain"),
 	)
 	if err != nil {
 		t.Fatalf("validateLocalAgentIdentity(plain): %v", err)
 	}
-	// The only difference between the guide and a plain RealmAgent is the
-	// opaque realm_agent_id string; the identity struct shape, the ref
+	// The only difference between the guide and a plain runtime source is the
+	// opaque runtime_source_ref string; the identity struct shape, the ref
 	// construction rule, and the validation path are identical.
 	if guideIdentity.LocalAgentRef == plainIdentity.LocalAgentRef {
-		t.Fatalf("distinct realm_agent_id values must yield distinct refs")
+		t.Fatalf("distinct runtime_source_ref values must yield distinct refs")
 	}
 	if guideIdentity.OwnerUserID != plainIdentity.OwnerUserID {
 		t.Fatalf("owner scoping diverges between guide and plain identity")

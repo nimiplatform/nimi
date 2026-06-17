@@ -150,7 +150,7 @@ message AgentRecord {
   google.protobuf.Timestamp updated_at = 7;
   string local_agent_ref = 20;
   string owner_user_id = 21;
-  string realm_agent_id = 22;
+  string runtime_source_ref = 22;
 }
 message AgentStateProjection {
   AgentExecutionState execution_state = 1;
@@ -408,7 +408,7 @@ message AgentEvent {
   google.protobuf.Timestamp timestamp = 4;
   string local_agent_ref = 20;
   string owner_user_id = 21;
-  string realm_agent_id = 22;
+  string runtime_source_ref = 22;
   oneof detail {
     AgentLifecycleEventDetail lifecycle = 10;
     AgentHookEventDetail hook = 11;
@@ -429,7 +429,7 @@ message InitializeAgentRequest {
   google.protobuf.Struct metadata = 6;
   string local_agent_ref = 20;
   string owner_user_id = 21;
-  string realm_agent_id = 22;
+  string runtime_source_ref = 22;
 }
 message InitializeAgentResponse {
   AgentRecord agent = 1;
@@ -609,7 +609,7 @@ message ConversationAnchor {
   google.protobuf.Struct metadata = 9;
   string local_agent_ref = 20;
   string owner_user_id = 21;
-  string realm_agent_id = 22;
+  string runtime_source_ref = 22;
 }
 message ConversationAnchorSnapshot {
   ConversationAnchor anchor = 1;
@@ -623,7 +623,7 @@ message OpenConversationAnchorRequest {
   google.protobuf.Struct metadata = 4;
   string local_agent_ref = 20;
   string owner_user_id = 21;
-  string realm_agent_id = 22;
+  string runtime_source_ref = 22;
 }
 message OpenConversationAnchorResponse {
   ConversationAnchorSnapshot snapshot = 1;
@@ -650,7 +650,7 @@ message AvatarLiveInstanceBinding {
   google.protobuf.Timestamp updated_at = 6;
   string local_agent_ref = 20;
   string owner_user_id = 21;
-  string realm_agent_id = 22;
+  string runtime_source_ref = 22;
   string caller_app_id = 23;
 }
 message RegisterAvatarLiveInstanceBindingRequest {

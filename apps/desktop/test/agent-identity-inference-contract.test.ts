@@ -7,16 +7,19 @@ function readSource(relativePath: string): string {
   return fs.readFileSync(path.join(import.meta.dirname, relativePath), 'utf8');
 }
 
-test('product-side profile and contacts models do not infer agent identity from handle prefixes', () => {
+test('product-side profile and contacts models do not infer source identity from handle prefixes', () => {
   const profileModelSource = readSource('../src/shell/renderer/features/profile/profile-model.ts');
   const contactsModelSource = readSource('../src/shell/renderer/features/relationship/relationship-model.ts');
-  const friendLimitSource = readSource('../src/shell/renderer/features/relationship/agent-friend-limit.ts');
+  const legacyLimitPath = ['agent', 'friend', 'limit'].join('-');
+  const friendLimitPath = path.join(import.meta.dirname, `../src/shell/renderer/features/relationship/${legacyLimitPath}.ts`);
 
   assert.doesNotMatch(profileModelSource, /startsWith\('~'\)/);
   assert.doesNotMatch(contactsModelSource, /startsWith\('~'\)/);
-  assert.doesNotMatch(friendLimitSource, /startsWith\('~'\)/);
-  assert.match(profileModelSource, /isAgent:\s*raw\.isAgent === true/);
-  assert.match(contactsModelSource, /const isAgent = item\.isAgent === true/);
+  assert.equal(fs.existsSync(friendLimitPath), false);
+  assert.match(profileModelSource, /function hasRealmSourceIdentity/);
+  assert.match(profileModelSource, /isSource:\s*hasRealmSourceIdentity\(raw\)/);
+  assert.match(contactsModelSource, /function hasRealmSourceIdentity/);
+  assert.match(contactsModelSource, /const isSource = hasRealmSourceIdentity\(item, agentProfile\)/);
   assert.match(contactsModelSource, /item\.tags\.map\(\(tag\) => String\(tag\)\)/);
   assert.doesNotMatch(contactsModelSource, /item\.tags\.map\(\(t\) => String\(t\)\)/);
 });
@@ -29,22 +32,22 @@ test('product-side social and explore flows do not infer agent identity from han
   ]
     .map(readSource)
     .join('\n');
-  const agentRuntimeFlowSource = readSource('../src/shell/renderer/features/agent-detail/data/realm-agent-detail-data.ts');
+  const agentRuntimeFlowSource = readSource('../src/shell/renderer/features/agent-detail/data/realm-source-detail-data.ts');
   const handleIdentifierPath = path.join(import.meta.dirname, '../src/shell/renderer/features/agent-detail/data/handle-identifier.ts');
 
   assert.doesNotMatch(socialProfileFlowSource, /startsWith\('~'\)/);
   assert.doesNotMatch(explorePanelSource, /handle\.startsWith\('~'\)/);
-  assert.match(explorePanelSource, /const isAgent = source\.isAgent === true \|\| Boolean\(agent\) \|\| Boolean\(agentProfile\)/);
+  assert.match(explorePanelSource, /const isSource = source\.isSource === true \|\| Boolean\(agent\) \|\| Boolean\(agentProfile\)/);
   assert.equal(fs.existsSync(handleIdentifierPath), false);
   assert.doesNotMatch(agentRuntimeFlowSource, /handle-identifier/);
   assert.doesNotMatch(agentRuntimeFlowSource, /buildHandleLookupCandidates/);
 });
 
-test('loadAgentDetails rejects legacy @ and ~ prefixes', async () => {
-  const agentRuntimeFlowSource = readSource('../src/shell/renderer/features/agent-detail/data/realm-agent-detail-data.ts');
+test('Realm source detail loading rejects legacy @ and ~ prefixes', async () => {
+  const agentRuntimeFlowSource = readSource('../src/shell/renderer/features/agent-detail/data/realm-source-detail-data.ts');
 
-  assert.match(agentRuntimeFlowSource, /loadNimiRealmAgentDetails/);
-  assert.match(agentRuntimeFlowSource, /from '@nimiplatform\/sdk\/realm'/);
+  assert.match(agentRuntimeFlowSource, /worldCoreControllerGetRealmPersona/);
+  assert.match(agentRuntimeFlowSource, /worldCoreControllerGetWorldCharacter/);
   assert.doesNotMatch(agentRuntimeFlowSource, /AgentsService\.getAgent/);
   assert.doesNotMatch(agentRuntimeFlowSource, /AgentsService\.getAgentByHandle/);
 });

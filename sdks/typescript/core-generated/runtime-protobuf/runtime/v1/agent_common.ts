@@ -33,9 +33,9 @@ export interface AgentRequestContext {
      */
     ownerUserId: string;
     /**
-     * @generated from protobuf field: string realm_agent_id = 5
+     * @generated from protobuf field: string runtime_source_ref = 5
      */
-    realmAgentId: string;
+    runtimeSourceRef: string;
     /**
      * @generated from protobuf field: string local_agent_ref = 6
      */
@@ -49,7 +49,7 @@ class AgentRequestContext$Type extends MessageType<AgentRequestContext> {
             { no: 2, name: "subject_user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "scoped_binding", kind: "message", T: () => ScopedRuntimeBindingAttachment },
             { no: 4, name: "owner_user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 5, name: "realm_agent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "runtime_source_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 6, name: "local_agent_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
@@ -58,7 +58,7 @@ class AgentRequestContext$Type extends MessageType<AgentRequestContext> {
         message.appId = "";
         message.subjectUserId = "";
         message.ownerUserId = "";
-        message.realmAgentId = "";
+        message.runtimeSourceRef = "";
         message.localAgentRef = "";
         if (value !== undefined)
             reflectionMergePartial<AgentRequestContext>(this, message, value);
@@ -81,8 +81,8 @@ class AgentRequestContext$Type extends MessageType<AgentRequestContext> {
                 case /* string owner_user_id */ 4:
                     message.ownerUserId = reader.string();
                     break;
-                case /* string realm_agent_id */ 5:
-                    message.realmAgentId = reader.string();
+                case /* string runtime_source_ref */ 5:
+                    message.runtimeSourceRef = reader.string();
                     break;
                 case /* string local_agent_ref */ 6:
                     message.localAgentRef = reader.string();
@@ -111,9 +111,9 @@ class AgentRequestContext$Type extends MessageType<AgentRequestContext> {
         /* string owner_user_id = 4; */
         if (message.ownerUserId !== "")
             writer.tag(4, WireType.LengthDelimited).string(message.ownerUserId);
-        /* string realm_agent_id = 5; */
-        if (message.realmAgentId !== "")
-            writer.tag(5, WireType.LengthDelimited).string(message.realmAgentId);
+        /* string runtime_source_ref = 5; */
+        if (message.runtimeSourceRef !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.runtimeSourceRef);
         /* string local_agent_ref = 6; */
         if (message.localAgentRef !== "")
             writer.tag(6, WireType.LengthDelimited).string(message.localAgentRef);

@@ -11,7 +11,7 @@ const LOCAL_AGENT_REF_PREFIX: &str = "local-agent:";
 #[derive(Debug, Clone)]
 pub(super) struct LocalAgentScope {
     pub(super) owner_user_id: String,
-    pub(super) realm_agent_id: String,
+    pub(super) runtime_source_ref: String,
     pub(super) local_agent_ref: String,
 }
 
@@ -71,7 +71,7 @@ pub(crate) fn desktop_agent_center_config_put_blocking(
         scope_from_payload(&DesktopAgentCenterConfigScopePayload {
             account_id: payload.account_id,
             owner_user_id: payload.owner_user_id,
-            realm_agent_id: payload.realm_agent_id,
+            runtime_source_ref: payload.runtime_source_ref,
             local_agent_ref: payload.local_agent_ref,
         })?;
     let account_id = validate_normalized_id(account_id, "accountId")?;

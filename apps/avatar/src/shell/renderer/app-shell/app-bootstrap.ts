@@ -310,7 +310,7 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
 
         const {
           ownerUserId,
-          realmAgentId,
+          runtimeSourceRef,
           localAgentRef,
         } = resolveLaunchAgentIdentity({
           agentId: launchContext.agentId,
@@ -375,7 +375,7 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
           withScopes: withAvatarRuntimeAgentScopes,
           accountId,
           ownerUserId,
-          realmAgentId,
+          runtimeSourceRef,
           localAgentRef,
           avatarInstanceId,
         }));
@@ -398,7 +398,7 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
         await runFirstPartyStage('runtime_identity_binding', () => bindAvatarRuntimeIdentity({
           avatarInstanceId,
           ownerUserId,
-          realmAgentId,
+          runtimeSourceRef,
           localAgentRef,
           launchSource: launchContext.launchSource,
         }));
@@ -411,7 +411,7 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
         const modelManifest = await runFirstPartyStage('local_avatar_asset_manifest', () => resolveLocalAvatarAssetManifest({
           accountId,
           ownerUserId,
-          realmAgentId,
+          runtimeSourceRef,
           localAgentRef,
         }));
         driver = await runFirstPartyStage('driver_create', async () => createDriver({
@@ -420,7 +420,7 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
             runtimeAgent,
             withScopes: withAvatarRuntimeAgentScopes,
             ownerUserId,
-            realmAgentId,
+            runtimeSourceRef,
             localAgentRef,
             conversationAnchorId,
             activeWorldId: '',
@@ -470,7 +470,7 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
         }) => {
           return runtimeAgent.companionParticipation.request({
             ownerUserId,
-            realmAgentId,
+            runtimeSourceRef,
             localAgentRef: input.agentId,
             conversationAnchorId: input.conversationAnchorId,
             surfaceKind: 'avatar_companion',
@@ -516,7 +516,7 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
         };
         cancelCompanionParticipation = async (input) => runtimeAgent.companionParticipation.cancel({
           ownerUserId,
-          realmAgentId,
+          runtimeSourceRef,
           localAgentRef: input.agentId,
           conversationAnchorId: input.conversationAnchorId,
           surfaceKind: 'avatar_companion',
@@ -528,7 +528,7 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
         interruptActiveTurn = async (input) => {
           await runtimeAgentTurns.interrupt({
             ownerUserId,
-            realmAgentId,
+            runtimeSourceRef,
             localAgentRef: input.agentId,
             conversationAnchorId: input.conversationAnchorId,
             ...(input.turnId ? { turnId: input.turnId } : {}),
@@ -540,7 +540,7 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
             ['runtime.agent.avatar_debug.read'],
             (options) => runtimeAgent.avatarDebug.snapshot({
               ownerUserId,
-              realmAgentId,
+              runtimeSourceRef,
               localAgentRef: input.agentId,
               conversationAnchorId: input.conversationAnchorId,
             }, options),
@@ -549,7 +549,7 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
             ['runtime.agent.avatar_debug.write'],
             (options) => runtimeAgent.avatarDebug.requestProbe({
               ownerUserId,
-              realmAgentId,
+              runtimeSourceRef,
               localAgentRef: input.agentId,
               conversationAnchorId: input.conversationAnchorId,
               probeKind: input.probeKind,
@@ -562,7 +562,7 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
             ['runtime.agent.avatar_debug.read'],
             (options) => runtimeAgent.avatarDebug.listProbeResults({
               ownerUserId,
-              realmAgentId,
+              runtimeSourceRef,
               localAgentRef: input.agentId,
               conversationAnchorId: input.conversationAnchorId,
               ...(input.probeKind ? { probeKind: input.probeKind } : {}),
@@ -589,7 +589,7 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
                     appId: runtimeAppId,
                     subjectUserId,
                     ownerUserId,
-                    realmAgentId,
+                    runtimeSourceRef,
                     localAgentRef,
                     ...(scopedBindingRecord ? { scopedBinding: scopedBindingRecord as never } : {}),
                   },

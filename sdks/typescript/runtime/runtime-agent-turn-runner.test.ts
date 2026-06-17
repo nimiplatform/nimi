@@ -104,7 +104,7 @@ test('Runtime Agent turn runner filters backlog and seals committed message', as
     turns,
     request: {
       ownerUserId: 'owner',
-      realmAgentId: 'agent',
+      runtimeSourceRef: 'agent',
       localAgentRef: 'local-agent:owner:agent',
       conversationAnchorId: 'anchor',
       threadId: 'thread',
@@ -159,7 +159,7 @@ test('Runtime Agent turn runner recovers terminal snapshot after subscription cl
     turns,
     request: {
       ownerUserId: 'owner',
-      realmAgentId: 'agent',
+      runtimeSourceRef: 'agent',
       localAgentRef: 'local-agent:owner:agent',
       conversationAnchorId: 'anchor',
       threadId: 'thread',
@@ -222,7 +222,7 @@ test('Runtime Agent turn runner recovers terminal snapshot after active-turn sna
     turns,
     request: {
       ownerUserId: 'owner',
-      realmAgentId: 'agent',
+      runtimeSourceRef: 'agent',
       localAgentRef: 'local-agent:owner:agent',
       conversationAnchorId: 'anchor',
       threadId: 'thread',
@@ -334,7 +334,7 @@ test('Runtime Agent turn runner projects Runtime action artifact events', async 
     turns,
     request: {
       ownerUserId: 'owner',
-      realmAgentId: 'agent',
+      runtimeSourceRef: 'agent',
       localAgentRef: 'local-agent:owner:agent',
       conversationAnchorId: 'anchor',
       threadId: 'thread',

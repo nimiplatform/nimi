@@ -72,7 +72,7 @@ func (s *Service) RegisterAvatarLiveInstanceBinding(_ context.Context, req *runt
 		AgentID:              identity.LocalAgentRef,
 		LocalAgentRef:        identity.LocalAgentRef,
 		OwnerUserID:          identity.OwnerUserID,
-		RealmAgentID:         identity.RealmAgentID,
+		RuntimeSourceRef:         identity.RuntimeSourceRef,
 		CallerAppID:          callerAppID,
 		SubjectUserID:        subjectUserID,
 		RegisteredAt:         registeredAt,
@@ -128,7 +128,7 @@ func (s *Service) ResolveAvatarLiveInstanceBinding(_ context.Context, req *runti
 		s.chatSurfaceMu.Unlock()
 		return nil, status.Error(codes.NotFound, "avatar live instance binding not found")
 	}
-	if binding.OwnerUserID != identity.OwnerUserID || binding.RealmAgentID != identity.RealmAgentID || binding.LocalAgentRef != identity.LocalAgentRef {
+	if binding.OwnerUserID != identity.OwnerUserID || binding.RuntimeSourceRef != identity.RuntimeSourceRef || binding.LocalAgentRef != identity.LocalAgentRef {
 		s.chatSurfaceMu.Unlock()
 		return nil, status.Error(codes.FailedPrecondition, "avatar live instance local identity mismatch")
 	}
@@ -174,7 +174,7 @@ func (s *Service) avatarLiveInstanceBindingAuthorizesAnchorLocked(callerAppID st
 		if binding.ConversationAnchorID != trimmedAnchorID {
 			continue
 		}
-		if binding.OwnerUserID != identity.OwnerUserID || binding.RealmAgentID != identity.RealmAgentID || binding.LocalAgentRef != identity.LocalAgentRef {
+		if binding.OwnerUserID != identity.OwnerUserID || binding.RuntimeSourceRef != identity.RuntimeSourceRef || binding.LocalAgentRef != identity.LocalAgentRef {
 			continue
 		}
 		return true
@@ -189,7 +189,7 @@ func validateAnchorIdentity(anchor *publicChatAnchorState, identity localAgentId
 	if anchor.AgentID != identity.LocalAgentRef || anchor.LocalAgentRef != identity.LocalAgentRef {
 		return status.Error(codes.FailedPrecondition, "conversation anchor local_agent_ref mismatch")
 	}
-	if anchor.OwnerUserID != identity.OwnerUserID || anchor.RealmAgentID != identity.RealmAgentID {
+	if anchor.OwnerUserID != identity.OwnerUserID || anchor.RuntimeSourceRef != identity.RuntimeSourceRef {
 		return status.Error(codes.FailedPrecondition, "conversation anchor local identity mismatch")
 	}
 	return nil
@@ -205,7 +205,7 @@ func runtimeAvatarLiveInstanceBinding(binding *avatarLiveInstanceBindingState) *
 		AgentId:              binding.AgentID,
 		LocalAgentRef:        binding.LocalAgentRef,
 		OwnerUserId:          binding.OwnerUserID,
-		RealmAgentId:         binding.RealmAgentID,
+		RuntimeSourceRef:         binding.RuntimeSourceRef,
 		CallerAppId:          binding.CallerAppID,
 		SubjectUserId:        binding.SubjectUserID,
 	}

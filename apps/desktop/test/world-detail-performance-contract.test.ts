@@ -33,11 +33,12 @@ const authStateWatcherSource = fs.readFileSync(
 );
 
 test('world semantic bundle no longer fetches world detail before worldview', () => {
-  const semanticBundleSection = worldFlowSource.slice(
-    worldFlowSource.indexOf('export async function loadWorldSemanticBundle'),
-  );
-  assert.match(semanticBundleSection, /loadNimiRealmWorldSemanticBundle/);
-  assert.doesNotMatch(semanticBundleSection, /loadWorldDetailById\(callApi, emitRealmWorldError, normalizedWorldId\)/);
+  const semanticStart = worldFlowSource.indexOf('export async function loadWorldSemanticBundle');
+  const semanticEnd = worldFlowSource.indexOf('\nexport const realmWorldData', semanticStart);
+  const semanticBundleSection = worldFlowSource.slice(semanticStart, semanticEnd);
+  assert.match(semanticBundleSection, /getWorldCore\(realm, worldId\)/);
+  assert.match(semanticBundleSection, /semanticBundle/);
+  assert.doesNotMatch(semanticBundleSection, /loadWorldDetailById/);
   assert.doesNotMatch(semanticBundleSection, /catch\s*\{\s*return null;\s*\}/);
 });
 
@@ -55,14 +56,14 @@ test('world detail prefetch is limited to first-screen queries', () => {
   assert.doesNotMatch(prefetchSection, /worldPublicAssetsQueryKey/);
 });
 
-test('world detail primary query adopts sdk world truth through a bounded adapter', () => {
+test('world detail primary query adopts SDK WorldCore through a bounded adapter', () => {
   const oldRootSingletonPattern = new RegExp('get' + 'PlatformClient');
-  assert.match(worldDetailQueriesSource, /normalizeNimiRealmWorldTruthDetail/);
+  assert.match(worldDetailQueriesSource, /toWorldListItem\(asRecord\(detailValue\)\)/);
   assert.doesNotMatch(worldDetailQueriesSource, oldRootSingletonPattern);
   assert.match(worldDetailQueriesSource, /realmWorldData\.loadWorldSemanticBundle/);
   assert.match(worldDetailQueriesSource, /realmWorldData\.loadWorldDetailWithAgents/);
-  assert.match(worldDetailQueriesSource, /mergeNimiRealmWorldPrimaryDetailTruth/);
-  assert.match(worldDetailQueriesSource, /WORLD_DETAIL_WORLD_TRUTH_INVALID/);
+  assert.doesNotMatch(worldDetailQueriesSource, /mergeNimiRealmWorldPrimaryDetailTruth/);
+  assert.doesNotMatch(worldDetailQueriesSource, /WORLD_DETAIL_WORLD_TRUTH_INVALID/);
 });
 
 test('world detail panel can resolve the selected world from cache before world list finishes loading', () => {

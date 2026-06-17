@@ -46,40 +46,33 @@ const avatarInstanceRegistryStoreSource = readRepo('apps/desktop/src-tauri/src/d
 const desktopE2eFixtureSource = readRepo('apps/desktop/src-tauri/src/desktop_e2e_fixture.rs');
 const desktopE2eFixtureEnabledSource = readRepo('apps/desktop/src-tauri/src/desktop_e2e_fixture/enabled.rs');
 const runtimeBridgeSource = readRepo('kit/shell/tauri/src/runtime_bridge/mod.rs');
-const realmAgentDetailDataSource = readRepo('apps/desktop/src/shell/renderer/features/agent-detail/data/realm-agent-detail-data.ts');
-const realmAgentCreateDataSource = readRepo('apps/desktop/src/shell/renderer/features/world/data/realm-agent-create-data.ts');
+const realmSourceDetailDataSource = readRepo('apps/desktop/src/shell/renderer/features/agent-detail/data/realm-source-detail-data.ts');
 const runtimePageSource = readRepo('apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-page-runtime.tsx');
 const settingsPagesSource = readRepo('apps/desktop/src/shell/renderer/features/settings/settings-pages.tsx');
 
-test('Agent Detail module map resolves to live Realm feature-data evidence', () => {
-  assert.match(realmAgentDetailDataSource, /export async function loadAgentDetails/);
-  assert.match(realmAgentCreateDataSource, /export async function createMasterAgent/);
-  assertRepoFile('apps/desktop/src/shell/renderer/features/agent-detail/data/realm-agent-detail-data.ts');
-  assertRepoFile('apps/desktop/src/shell/renderer/features/world/data/realm-agent-create-data.ts');
+test('Agent Detail module map resolves to live Realm source feature-data evidence', () => {
+  assert.match(realmSourceDetailDataSource, /export async function loadRealmSourceDetailsForDisplay/);
+  assertRepoFile('apps/desktop/src/shell/renderer/features/agent-detail/data/realm-source-detail-data.ts');
+  assert.equal(
+    fs.existsSync(path.join(repoRoot, 'apps/desktop/src/shell/renderer/features/world/data/runtime-source-create-data.ts')),
+    false,
+  );
 });
 
-test('Agent Detail reaches Agent Chat only through the friend-state LocalAgent path', () => {
-  // T5-2 (`9d558335d`) introduced the D-EXPL-006 friend-state primary action.
-  // For a befriended RealmAgent, Agent Detail's `friend` -> Open Agent Chat
-  // action opens the one-to-one LocalAgent Chat. It must NOT construct a chat
-  // session from a bare RealmAgent id: the panel routes exclusively through
-  // `openRealmAgentLocalChat`, which materializes the deterministic
-  // `local-agent:` ref and delegates to the shared LocalAgent launcher.
+test('Agent Detail blocks RealmPersona source chat until RuntimeSourceSnapshot handoff', () => {
   const panelSource = readRepo('apps/desktop/src/shell/renderer/features/agent-detail/agent-detail-panel.tsx');
   const viewSource = readRepo('apps/desktop/src/shell/renderer/features/agent-detail/agent-detail-view.tsx');
 
-  // Agent Detail never imports or calls the raw launcher directly; the only
-  // chat entry point is the LocalAgent-projecting `openRealmAgentLocalChat`.
   assert.doesNotMatch(panelSource, /launchAgentConversationFromDisplay/);
-  assert.doesNotMatch(panelSource, /launchRealmAgentChat|launchRealmAgentConversation/);
-  assert.match(panelSource, /openRealmAgentLocalChat/);
+  const legacyLaunchPattern = new RegExp(`launch${['Realm', 'Agent'].join('')}Chat|launch${['Realm', 'Agent'].join('')}Conversation`);
+  const legacyOpenPattern = new RegExp(`open${['Realm', 'Agent'].join('')}LocalChat`);
+  assert.doesNotMatch(panelSource, legacyLaunchPattern);
+  assert.doesNotMatch(panelSource, legacyOpenPattern);
+  assert.match(panelSource, /realmPersonaSourceHandoffMessage/);
 
-  // The view's primary action for the `friend` state is onOpenChat, which the
-  // panel wires to the LocalAgent chat path — there is no direct-RealmAgent
-  // chat affordance.
-  assert.match(viewSource, /onOpenChat/);
-  assert.match(viewSource, /describeRealmAgentPrimaryAction/);
-  assert.doesNotMatch(viewSource, /launchRealmAgentChat|launchRealmAgentConversation/);
+  assert.doesNotMatch(viewSource, /onOpenChat/);
+  assert.match(viewSource, /describeRealmPersonaPrimaryAction/);
+  assert.doesNotMatch(viewSource, legacyLaunchPattern);
 });
 
 test('Economy Wallet module map resolves to the current settings wallet page', () => {

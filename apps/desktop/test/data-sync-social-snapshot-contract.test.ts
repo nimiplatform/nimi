@@ -36,7 +36,7 @@ test('loadContactList skips creator agents when warming the social graph', async
   );
 
   assert.equal(creatorAgentsCalls, 0);
-  assert.deepEqual(result.agents, []);
+  assert.equal('agents' in result, false);
   assert.equal(errors.length, 0);
 });
 
@@ -61,6 +61,6 @@ test('loadSocialSnapshot does not list creator agents through the contacts socia
   );
 
   assert.equal(creatorAgentsCalls, 0);
-  assert.deepEqual(result.agents, []);
+  assert.equal('agents' in result, false);
   assert.equal(errors.length, 0);
 });

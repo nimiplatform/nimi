@@ -26,7 +26,7 @@ export type AgentChatUserAttachment = {
 
 export type AgentRuntimeChatTurnRequest = {
   ownerUserId: string;
-  realmAgentId: string;
+  runtimeSourceRef: string;
   localAgentRef: string;
   conversationAnchorId: string;
   threadId: string;

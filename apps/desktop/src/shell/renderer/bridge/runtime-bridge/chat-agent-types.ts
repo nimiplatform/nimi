@@ -18,7 +18,7 @@ export type AgentSpeechSynthesisRoute = {
 
 export type AgentLocalTargetSnapshot = {
   ownerUserId: string;
-  realmAgentId: string;
+  runtimeSourceRef: string;
   localAgentRef: string;
   displayName: string;
   handle: string;
@@ -31,12 +31,11 @@ export type AgentLocalTargetSnapshot = {
   worldName: string | null;
   bio: string | null;
   ownershipType: 'MASTER_OWNED' | 'WORLD_OWNED' | null;
-  // Ordinary RealmAgent profile content projected from the Realm/SDK agent
-  // projection. `greeting` is the RealmAgent's first-turn opening message
-  // (`AgentProfile.greeting`); when non-empty it seeds the first assistant
-  // message of an empty AgentFriend thread. `builtinDocsContext` is optional
-  // built-in usage documentation carried on the RealmAgent profile knowledge
-  // payload, attached per-turn as prompt context only (K-AGCORE-140/142).
+  // Runtime source snapshot content. `greeting` is the source first-turn
+  // opening message; when non-empty it seeds the first assistant message of an
+  // empty LocalAgent thread. `builtinDocsContext` is optional built-in usage
+  // documentation carried on source profile knowledge, attached per-turn as
+  // prompt context only (K-AGCORE-140/142).
   // Both are live projection data, not persisted desktop thread state.
   greeting: string | null;
   builtinDocsContext: string | null;
@@ -48,7 +47,7 @@ export type AgentLocalTargetSnapshot = {
 export type AgentLocalThreadSummary = {
   id: string;
   ownerUserId: string;
-  realmAgentId: string;
+  runtimeSourceRef: string;
   localAgentRef: string;
   title: string;
   updatedAtMs: number;

@@ -4,7 +4,7 @@ import { parseAgentTextTurnDebugMetadata } from './chat-agent-debug-metadata';
 
 export type AgentManualVoiceRenderRequest = {
   ownerUserId: string;
-  realmAgentId: string;
+  runtimeSourceRef: string;
   localAgentRef: string;
   conversationAnchorId: string;
   turnId: string;
@@ -51,7 +51,7 @@ export function resolveAgentManualVoiceRenderRequest(input: {
   }
   return {
     ownerUserId: target.ownerUserId,
-    realmAgentId: target.realmAgentId,
+    runtimeSourceRef: target.runtimeSourceRef,
     localAgentRef: target.localAgentRef,
     conversationAnchorId,
     turnId,

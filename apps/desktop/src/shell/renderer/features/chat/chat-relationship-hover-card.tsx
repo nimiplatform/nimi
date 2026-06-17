@@ -57,9 +57,9 @@ function getMetadataText(target: ConversationTargetSummary, key: string): string
   return typeof value === 'string' ? value.trim() : '';
 }
 
-function parseRealmAgentIdFromLocalRef(localAgentRef: string): string {
+function parseRuntimeSourceRefFromLocalRef(localAgentRef: string): string {
   try {
-    return parseRuntimeLocalAgentIdentity(localAgentRef).realmAgentId;
+    return parseRuntimeLocalAgentIdentity(localAgentRef).runtimeSourceRef;
   } catch {
     return '';
   }
@@ -72,8 +72,8 @@ function resolveProfileTargetId(target: ConversationTargetSummary): string {
   if (target.source !== 'agent') {
     return '';
   }
-  return getMetadataText(target, 'realmAgentId')
-    || parseRealmAgentIdFromLocalRef(target.id)
+  return getMetadataText(target, 'runtimeSourceRef')
+    || parseRuntimeSourceRefFromLocalRef(target.id)
     || target.handle?.replace(/^@/, '').trim()
     || '';
 }
@@ -95,7 +95,7 @@ export function buildRelationshipProfileSeed(target: ConversationTargetSummary):
       handle: target.handle?.replace(/^@/, '').trim() || '',
       avatarUrl: target.avatarUrl || null,
       bio: target.bio || null,
-      isAgent: target.source === 'agent',
+      isSource: target.source === 'agent',
       isOnline: target.isOnline ?? undefined,
       worldName: getMetadataText(target, 'worldName') || null,
       agentOwnershipType: ownershipType || null,
@@ -133,10 +133,10 @@ export function RelationshipHoverCard({
   const sourceLabel = getSourceLabel(target.source, t);
   const identity = getIdentityLabel(target, sourceLabel);
   const preview = target.previewText || target.bio || t('Chat.hoverCardNoPreview', { defaultValue: 'No recent message' });
-  const isAgent = target.source === 'agent';
+  const isSource = target.source === 'agent';
   const agentPillLabel = t('Chat.hoverCardAgent', { defaultValue: 'Agent' });
 
-  const avatarVisual = isAgent ? (
+  const avatarVisual = isSource ? (
     <EntityAvatar
       imageUrl={target.avatarUrl || null}
       name={target.avatarFallback || target.title || '?'}
@@ -203,7 +203,7 @@ export function RelationshipHoverCard({
             <h3 className="min-w-0 truncate text-[16px] font-semibold leading-6 tracking-normal text-slate-950">
               {target.title}
             </h3>
-            {isAgent ? (
+            {isSource ? (
               <span
                 className="inline-flex shrink-0 items-center gap-1 rounded-full bg-violet-100 px-1.5 py-0.5 text-[10px] font-medium leading-4 text-violet-700"
                 aria-label={agentPillLabel}

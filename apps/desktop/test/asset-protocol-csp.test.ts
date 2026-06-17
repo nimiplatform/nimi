@@ -67,11 +67,11 @@ test('desktop CSP allows reviewed remote profile media without widening script e
 
   assert.ok(
     imgDirective.includes('https:'),
-    'img-src must allow HTTPS reviewed portrait URLs promoted from Realm Agent Studio',
+    'img-src must allow HTTPS reviewed portrait URLs promoted from Realm Persona Studio',
   );
   assert.ok(
     mediaDirective.includes('https:'),
-    'media-src must allow HTTPS reviewed voice/profile media URLs promoted from Realm Agent Studio',
+    'media-src must allow HTTPS reviewed voice/profile media URLs promoted from Realm Persona Studio',
   );
   assert.ok(
     !scriptDirective.includes('https:'),

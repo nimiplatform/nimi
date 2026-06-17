@@ -450,7 +450,7 @@ pub(crate) fn desktop_agent_center_avatar_asset_validate_blocking(
     let account_id = validate_normalized_id(&payload.account_id, "accountId")?;
     let scope = validate_local_agent_scope(
         &payload.owner_user_id,
-        &payload.realm_agent_id,
+        &payload.runtime_source_ref,
         &payload.local_agent_ref,
     )?;
     validate_local_asset_id(&payload.local_asset_id, "localAssetId")?;
@@ -501,7 +501,7 @@ pub(crate) fn desktop_agent_center_background_validate_blocking(
     let account_id = validate_normalized_id(&payload.account_id, "accountId")?;
     let scope = validate_local_agent_scope(
         &payload.owner_user_id,
-        &payload.realm_agent_id,
+        &payload.runtime_source_ref,
         &payload.local_agent_ref,
     )?;
     validate_background_id(&payload.background_asset_id, "backgroundAssetId")?;
@@ -546,7 +546,7 @@ pub(crate) fn desktop_agent_center_background_asset_get_blocking(
     let account_id = validate_normalized_id(&payload.account_id, "accountId")?;
     let scope = validate_local_agent_scope(
         &payload.owner_user_id,
-        &payload.realm_agent_id,
+        &payload.runtime_source_ref,
         &payload.local_agent_ref,
     )?;
     validate_background_id(&payload.background_asset_id, "backgroundAssetId")?;

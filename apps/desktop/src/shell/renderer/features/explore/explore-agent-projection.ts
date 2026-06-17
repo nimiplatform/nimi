@@ -76,7 +76,7 @@ function mapAgent(raw: unknown, worldsMap: AgentWorldProjectionMap): ExploreAgen
   const bio = asString(source.bio).trim()
     || asString(agentProfile?.bio).trim()
     || null;
-  const isAgent = source.isAgent === true || Boolean(agent) || Boolean(agentProfile);
+  const isSource = source.isSource === true || Boolean(agent) || Boolean(agentProfile);
   const isOnline = source.isOnline === true;
 
   const category = asString(agent?.category).trim()
@@ -129,7 +129,7 @@ function mapAgent(raw: unknown, worldsMap: AgentWorldProjectionMap): ExploreAgen
     handle,
     avatarUrl,
     bio,
-    isAgent,
+    isSource,
     worldId,
     worldName,
     worldBannerUrl,
@@ -165,7 +165,7 @@ export function toProfileTargetFromAgent(agent: ExploreAgentCardData): PostCardA
     handle: agent.handle,
     avatarUrl: agent.avatarUrl,
     bio: agent.bio,
-    isAgent: agent.isAgent,
+    isSource: agent.isSource,
     isOnline: agent.isOnline,
     tags: agent.tags,
     worldName: agent.worldName,

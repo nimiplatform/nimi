@@ -94,7 +94,7 @@ describe('Avatar shell/local-assets domain boundary', () => {
 
     assert.match(registryTypes, /avatar_instance_id/);
     assert.match(registryTypes, /owner_user_id/);
-    assert.match(registryTypes, /realm_agent_id/);
+    assert.match(registryTypes, /runtime_source_ref/);
     assert.match(registryTypes, /local_agent_ref/);
     assert.doesNotMatch(registryTypes, /conversation_anchor|binding|token|package_path|manifest_path/);
 
@@ -154,7 +154,7 @@ describe('Avatar shell/local-assets domain boundary', () => {
     assert.match(launchControls, /executeArbitratedLaunch/);
     assert.match(launchControls, /launchDesktopAvatarHandoff/);
     assert.match(launchControls, /agentId:\s*presentation\.activeTarget\.localAgentRef/);
-    assert.doesNotMatch(launchControls, /agentId:\s*presentation\.activeTarget\.realmAgentId/);
+    assert.doesNotMatch(launchControls, /agentId:\s*presentation\.activeTarget\.runtimeSourceRef/);
 
     assert.match(configSurfaceTest, /does not widen Avatar launch handoff/);
     assert.match(configSurfaceTest, /fails closed without local asset and backend evidence/);

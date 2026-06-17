@@ -264,15 +264,14 @@ through an admitted Runtime-managed dependency/materialization path. App
 uninstall must not delete shared models, Runtime dependencies, account data, or
 other app data by implication.
 
-## P-NAPP-017 — Retired Realm Agent Studio Admission
+## P-NAPP-017 — Retired Agent-Named Studio Admission
 
 P-NAPP-017 was retired on 2026-05-25. It admits no active Nimi App, grants no
-permission scope, and must not be used as an active admission authority. The
-`nimi.realm-agent-studio` app_id, the
-`nimi.realm-agent-studio.bundled-with-nimi` release descriptor, the
-`app.nimi.realm-agent-studio` Runtime caller identity, and the
-`apps/realm-agent-studio` source tree are withdrawn; any future Realm Agent
-Studio admission requires a new P-NAPP-* rule.
+permission scope, and must not be used as an active admission authority. Any
+previous agent-named studio app id, release descriptor, Runtime caller identity,
+and source tree are withdrawn. Current Realm Persona Studio admission is owned
+by the active first-party app rows and their release descriptors, not by this
+retired rule.
 
 ## P-NAPP-018 — Third-Party Release Descriptor Shape
 

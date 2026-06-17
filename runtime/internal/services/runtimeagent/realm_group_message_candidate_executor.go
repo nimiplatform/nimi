@@ -17,10 +17,10 @@ const (
 	realmGroupMessageCandidatePromptMaxTokens = 768
 	realmGroupMessageCandidateExecutorAppID   = "runtime.agent.internal.realm_group_candidate"
 	realmGroupMessageCandidateRefMaxBytes     = 256
-	realmGroupMessageCandidateRoutingProfile  = "runtime-participation-profile/realm_group_agent"
+	realmGroupMessageCandidateRoutingProfile  = "runtime-participation-profile/realm_group_source"
 
 	realmGroupCandidateContextThreadSnapshot = "realm.group.thread.snapshot"
-	realmGroupCandidateContextSlotSnapshot   = "realm.group.agent_slot.snapshot"
+	realmGroupCandidateContextSlotSnapshot   = "realm.group.runtime_participant_slot.snapshot"
 	realmGroupCandidateContextRecentMessages = "realm.group.recent_messages.snapshot"
 	realmGroupCandidateContextReplyTarget    = "realm.group.reply_target.snapshot"
 	realmGroupCandidateContextPolicy         = "realm.group.policy.snapshot"
@@ -172,17 +172,17 @@ func (e *aiBackedRealmGroupMessageCandidateExecutor) buildRealmGroupMessageCandi
 
 func validateRealmGroupMessageCandidateExecutorInput(input RealmGroupMessageCandidateExecutionInput) error {
 	required := map[string]string{
-		"candidate_id":              input.CandidateID,
-		"candidate_evidence_ref":    input.CandidateEvidenceRef,
-		"realm_group_thread_id":     input.RealmGroupThreadID,
-		"realm_group_agent_slot_id": input.RealmGroupAgentSlotID,
-		"owner_user_id":             input.OwnerUserID,
-		"realm_agent_id":            input.RealmAgentID,
-		"local_agent_ref":           input.LocalAgentRef,
-		"trigger_ref":               input.TriggerRef,
-		"membership_snapshot_ref":   input.MembershipSnapshotRef,
-		"read_cursor_ref":           input.ReadCursorRef,
-		"room_orchestration_ref":    input.RoomOrchestrationRef,
+		"candidate_id":             input.CandidateID,
+		"candidate_evidence_ref":   input.CandidateEvidenceRef,
+		"realm_group_thread_id":    input.RealmGroupThreadID,
+		"runtime_participant_slot": input.RuntimeParticipantSlot,
+		"owner_user_id":            input.OwnerUserID,
+		"runtime_source_ref":       input.RuntimeSourceRef,
+		"local_agent_ref":          input.LocalAgentRef,
+		"trigger_ref":              input.TriggerRef,
+		"membership_snapshot_ref":  input.MembershipSnapshotRef,
+		"read_cursor_ref":          input.ReadCursorRef,
+		"room_orchestration_ref":   input.RoomOrchestrationRef,
 	}
 	for field, value := range required {
 		if strings.TrimSpace(value) == "" {
@@ -190,11 +190,11 @@ func validateRealmGroupMessageCandidateExecutorInput(input RealmGroupMessageCand
 		}
 	}
 	for field, value := range map[string]string{
-		"candidate_id":              input.CandidateID,
-		"realm_group_thread_id":     input.RealmGroupThreadID,
-		"realm_group_agent_slot_id": input.RealmGroupAgentSlotID,
-		"owner_user_id":             input.OwnerUserID,
-		"realm_agent_id":            input.RealmAgentID,
+		"candidate_id":             input.CandidateID,
+		"realm_group_thread_id":    input.RealmGroupThreadID,
+		"runtime_participant_slot": input.RuntimeParticipantSlot,
+		"owner_user_id":            input.OwnerUserID,
+		"runtime_source_ref":       input.RuntimeSourceRef,
 	} {
 		if err := validateRealmGroupCandidateOpaqueIdentifier(field, value); err != nil {
 			return err
@@ -391,33 +391,33 @@ func realmGroupMessageCandidatePrompts(input RealmGroupMessageCandidateExecution
 		contextRefs[key] = strings.TrimSpace(value)
 	}
 	contextRaw, err := json.Marshal(struct {
-		CandidateID           string            `json:"candidate_id"`
-		CandidateEvidenceRef  string            `json:"candidate_evidence_ref"`
-		RealmGroupThreadID    string            `json:"realm_group_thread_id"`
-		RealmGroupAgentSlotID string            `json:"realm_group_agent_slot_id"`
-		OwnerUserID           string            `json:"owner_user_id"`
-		RealmAgentID          string            `json:"realm_agent_id"`
-		LocalAgentRef         string            `json:"local_agent_ref"`
-		TriggerRef            string            `json:"trigger_ref"`
-		MembershipSnapshotRef string            `json:"membership_snapshot_ref"`
-		ReadCursorRef         string            `json:"read_cursor_ref"`
-		ReplyTargetRef        string            `json:"reply_target_ref,omitempty"`
-		RoomOrchestrationRef  string            `json:"room_orchestration_ref"`
-		ContextRefs           map[string]string `json:"context_refs"`
+		CandidateID            string            `json:"candidate_id"`
+		CandidateEvidenceRef   string            `json:"candidate_evidence_ref"`
+		RealmGroupThreadID     string            `json:"realm_group_thread_id"`
+		RuntimeParticipantSlot string            `json:"runtime_participant_slot"`
+		OwnerUserID            string            `json:"owner_user_id"`
+		RuntimeSourceRef       string            `json:"runtime_source_ref"`
+		LocalAgentRef          string            `json:"local_agent_ref"`
+		TriggerRef             string            `json:"trigger_ref"`
+		MembershipSnapshotRef  string            `json:"membership_snapshot_ref"`
+		ReadCursorRef          string            `json:"read_cursor_ref"`
+		ReplyTargetRef         string            `json:"reply_target_ref,omitempty"`
+		RoomOrchestrationRef   string            `json:"room_orchestration_ref"`
+		ContextRefs            map[string]string `json:"context_refs"`
 	}{
-		CandidateID:           input.CandidateID,
-		CandidateEvidenceRef:  input.CandidateEvidenceRef,
-		RealmGroupThreadID:    input.RealmGroupThreadID,
-		RealmGroupAgentSlotID: input.RealmGroupAgentSlotID,
-		OwnerUserID:           input.OwnerUserID,
-		RealmAgentID:          input.RealmAgentID,
-		LocalAgentRef:         input.LocalAgentRef,
-		TriggerRef:            input.TriggerRef,
-		MembershipSnapshotRef: input.MembershipSnapshotRef,
-		ReadCursorRef:         input.ReadCursorRef,
-		ReplyTargetRef:        input.ReplyTargetRef,
-		RoomOrchestrationRef:  input.RoomOrchestrationRef,
-		ContextRefs:           contextRefs,
+		CandidateID:            input.CandidateID,
+		CandidateEvidenceRef:   input.CandidateEvidenceRef,
+		RealmGroupThreadID:     input.RealmGroupThreadID,
+		RuntimeParticipantSlot: input.RuntimeParticipantSlot,
+		OwnerUserID:            input.OwnerUserID,
+		RuntimeSourceRef:       input.RuntimeSourceRef,
+		LocalAgentRef:          input.LocalAgentRef,
+		TriggerRef:             input.TriggerRef,
+		MembershipSnapshotRef:  input.MembershipSnapshotRef,
+		ReadCursorRef:          input.ReadCursorRef,
+		ReplyTargetRef:         input.ReplyTargetRef,
+		RoomOrchestrationRef:   input.RoomOrchestrationRef,
+		ContextRefs:            contextRefs,
 	})
 	if err != nil {
 		return "", "", fmt.Errorf("marshal realm group candidate context: %w", err)
@@ -468,7 +468,7 @@ func decodeRealmGroupMessageCandidateExecutorResult(
 		OutputCandidateRef:     input.OutputCandidateRef,
 		AuditLineageRef:        input.AuditLineageRef,
 		PolicyVerdictRef:       input.PolicyVerdictRef,
-		ProfileKind:            "realm_group_agent",
+		ProfileKind:            "realm_group_source",
 		IdentitySource:         "runtime_local_agent_identity",
 		ParticipantRef:         input.LocalAgentRef,
 		ContextBlockRefs:       realmGroupCandidateContextBlockRefs(input.ContextRefs),

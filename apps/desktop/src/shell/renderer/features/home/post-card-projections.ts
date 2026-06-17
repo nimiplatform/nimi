@@ -74,8 +74,6 @@ export function buildPostCardAuthorProjection(input: {
 } {
   const { authorId, post } = input;
   const author = post.author ?? null;
-  const agent = author?.agent ?? null;
-  const agentProfile = author?.agentProfile ?? null;
 
   if (!authorId) {
     return {
@@ -91,19 +89,18 @@ export function buildPostCardAuthorProjection(input: {
       handle: author?.handle || '',
       avatarUrl: author?.avatarUrl ?? null,
       bio: author?.bio ?? null,
-      isAgent: author?.isAgent === true,
+      isSource: false,
       isOnline: author?.isOnline === true,
       createdAt: author?.createdAt ?? '',
       friendsCount: author?.friendCount,
-      agentState: agent?.state ?? agentProfile?.state ?? null,
-      agentCategory: agent?.category ?? null,
-      agentOrigin: agent?.origin ?? null,
-      agentTier: agent?.tier ?? null,
-      agentWakeStrategy: agent?.wakeStrategy ?? null,
-      agentOwnershipType:
-        agent?.ownershipType ?? agentProfile?.ownershipType ?? null,
-      agentWorldId: agent?.worldId ?? agentProfile?.worldId ?? null,
-      agentOwnerWorldId: agent?.ownerWorldId ?? agentProfile?.ownerWorldId ?? null,
+      agentState: null,
+      agentCategory: null,
+      agentOrigin: null,
+      agentTier: null,
+      agentWakeStrategy: null,
+      agentOwnershipType: null,
+      agentWorldId: null,
+      agentOwnerWorldId: null,
     },
   };
 }

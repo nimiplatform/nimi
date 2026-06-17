@@ -64,7 +64,7 @@ func (s *Service) validateAvatarDebugAnchor(identity localAgentIdentity, entry *
 	s.chatSurfaceMu.Unlock()
 	if cloned.AgentID != identity.LocalAgentRef ||
 		cloned.OwnerUserID != identity.OwnerUserID ||
-		cloned.RealmAgentID != identity.RealmAgentID ||
+		cloned.RuntimeSourceRef != identity.RuntimeSourceRef ||
 		cloned.LocalAgentRef != identity.LocalAgentRef {
 		return status.Error(codes.FailedPrecondition, "conversation anchor local identity mismatch")
 	}

@@ -96,11 +96,6 @@
       "import": "./dist/core/model-config/index.js",
       "default": "./dist/core/model-config/index.js"
     },
-    "./core/character-card": {
-      "types": "./dist/core/character-card/index.d.ts",
-      "import": "./dist/core/character-card/index.js",
-      "default": "./dist/core/character-card/index.js"
-    },
     "./core/sdk-contract": {
       "types": "./dist/core/sdk-contract.d.ts",
       "import": "./dist/core/sdk-contract.js",

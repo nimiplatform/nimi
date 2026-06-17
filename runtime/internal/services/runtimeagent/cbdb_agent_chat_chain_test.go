@@ -14,23 +14,23 @@ import (
 
 const (
 	cbdbChainVerifierOwnerID     = "cbdb-chain-agent-chat-verifier-user"
-	cbdbChainSuZheRealmAgentID   = "cbdb-song-slice-real-20260614-agent-8af2c5ca8a"
+	cbdbChainSuZheRuntimeSourceRef   = "cbdb-song-slice-real-20260614-agent-8af2c5ca8a"
 	cbdbChainSuZheLocalAgentRef  = "local-agent:cbdb-chain-agent-chat-verifier-user:cbdb-song-slice-real-20260614-agent-8af2c5ca8a"
 	cbdbChainDesktopCallerAppID  = "nimi.desktop.test.cbdb-agent-chat-runtime-chain"
 	cbdbChainValidationThreadID  = "cbdb-chain-validation-thread"
 	cbdbChainValidationRequestID = "cbdb-chain-validation-request"
 )
 
-func TestCBDBSeededRealmAgentLocalAgentRunsPublicChatTurn(t *testing.T) {
+func TestCBDBSeededRuntimeSourceLocalAgentRunsPublicChatTurn(t *testing.T) {
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
-	ctx := testLocalAgentContext(cbdbChainVerifierOwnerID, cbdbChainSuZheRealmAgentID)
+	ctx := testLocalAgentContext(cbdbChainVerifierOwnerID, cbdbChainSuZheRuntimeSourceRef)
 	ctx.AppId = cbdbChainDesktopCallerAppID
 
 	initResp, err := svc.InitializeAgent(context.Background(), &runtimev1.InitializeAgentRequest{
 		Context:       ctx,
 		LocalAgentRef: cbdbChainSuZheLocalAgentRef,
 		OwnerUserId:   cbdbChainVerifierOwnerID,
-		RealmAgentId:  cbdbChainSuZheRealmAgentID,
+		RuntimeSourceRef:  cbdbChainSuZheRuntimeSourceRef,
 		DisplayName:   "CBDB Su Zhe",
 	})
 	if err != nil {
@@ -39,8 +39,8 @@ func TestCBDBSeededRealmAgentLocalAgentRunsPublicChatTurn(t *testing.T) {
 	if got := initResp.GetAgent().GetLocalAgentRef(); got != cbdbChainSuZheLocalAgentRef {
 		t.Fatalf("expected CBDB local_agent_ref %q, got %q", cbdbChainSuZheLocalAgentRef, got)
 	}
-	if got := initResp.GetAgent().GetRealmAgentId(); got != cbdbChainSuZheRealmAgentID {
-		t.Fatalf("expected CBDB realm_agent_id %q, got %q", cbdbChainSuZheRealmAgentID, got)
+	if got := initResp.GetAgent().GetRuntimeSourceRef(); got != cbdbChainSuZheRuntimeSourceRef {
+		t.Fatalf("expected CBDB runtime_source_ref %q, got %q", cbdbChainSuZheRuntimeSourceRef, got)
 	}
 	if got := initResp.GetAgent().GetOwnerUserId(); got != cbdbChainVerifierOwnerID {
 		t.Fatalf("expected CBDB owner_user_id %q, got %q", cbdbChainVerifierOwnerID, got)
@@ -70,13 +70,13 @@ func TestCBDBSeededRealmAgentLocalAgentRunsPublicChatTurn(t *testing.T) {
 	if err != nil {
 		t.Fatalf("structpb.NewStruct(anchorMetadata): %v", err)
 	}
-	anchorCtx := testLocalAgentContext(cbdbChainVerifierOwnerID, cbdbChainSuZheRealmAgentID)
+	anchorCtx := testLocalAgentContext(cbdbChainVerifierOwnerID, cbdbChainSuZheRuntimeSourceRef)
 	anchorCtx.AppId = cbdbChainDesktopCallerAppID
 	anchorResp, err := svc.OpenConversationAnchor(context.Background(), &runtimev1.OpenConversationAnchorRequest{
 		Context:       anchorCtx,
 		LocalAgentRef: cbdbChainSuZheLocalAgentRef,
 		OwnerUserId:   cbdbChainVerifierOwnerID,
-		RealmAgentId:  cbdbChainSuZheRealmAgentID,
+		RuntimeSourceRef:  cbdbChainSuZheRuntimeSourceRef,
 		SubjectUserId: cbdbChainVerifierOwnerID,
 		Metadata:      anchorMetadata,
 	})
@@ -183,7 +183,7 @@ func TestCBDBSeededRealmAgentLocalAgentRunsPublicChatTurn(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        cbdbChainSuZheLocalAgentRef,
 			"owner_user_id":          cbdbChainVerifierOwnerID,
-			"realm_agent_id":         cbdbChainSuZheRealmAgentID,
+			"runtime_source_ref":         cbdbChainSuZheRuntimeSourceRef,
 			"conversation_anchor_id": anchorID,
 			"request_id":             cbdbChainValidationRequestID,
 			"thread_id":              cbdbChainValidationThreadID,
@@ -281,8 +281,8 @@ func TestCBDBSeededRealmAgentLocalAgentRunsPublicChatTurn(t *testing.T) {
 	if got := anchor.OwnerUserID; got != cbdbChainVerifierOwnerID {
 		t.Fatalf("expected anchor owner_user_id %q, got %q", cbdbChainVerifierOwnerID, got)
 	}
-	if got := anchor.RealmAgentID; got != cbdbChainSuZheRealmAgentID {
-		t.Fatalf("expected anchor realm_agent_id %q, got %q", cbdbChainSuZheRealmAgentID, got)
+	if got := anchor.RuntimeSourceRef; got != cbdbChainSuZheRuntimeSourceRef {
+		t.Fatalf("expected anchor runtime_source_ref %q, got %q", cbdbChainSuZheRuntimeSourceRef, got)
 	}
 	detail := publicChatSessionSnapshotDetail(t, snapshot)
 	if got := detail["thread_id"]; got != cbdbChainValidationThreadID {
@@ -302,7 +302,7 @@ func TestCBDBSeededRealmAgentLocalAgentRunsPublicChatTurn(t *testing.T) {
 
 func waitForCBDBRuntimeAgentIdle(t *testing.T, svc *Service) {
 	t.Helper()
-	ctx := testLocalAgentContext(cbdbChainVerifierOwnerID, cbdbChainSuZheRealmAgentID)
+	ctx := testLocalAgentContext(cbdbChainVerifierOwnerID, cbdbChainSuZheRuntimeSourceRef)
 	ctx.AppId = cbdbChainDesktopCallerAppID
 	deadline := time.Now().Add(2 * time.Second)
 	for time.Now().Before(deadline) {

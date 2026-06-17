@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 pub(crate) struct DesktopAgentCenterConfigScopePayload {
     pub account_id: String,
     pub owner_user_id: String,
-    pub realm_agent_id: String,
+    pub runtime_source_ref: String,
     pub local_agent_ref: String,
 }
 
@@ -14,7 +14,7 @@ pub(crate) struct DesktopAgentCenterConfigScopePayload {
 pub(crate) struct DesktopAgentCenterConfigPutPayload {
     pub account_id: String,
     pub owner_user_id: String,
-    pub realm_agent_id: String,
+    pub runtime_source_ref: String,
     pub local_agent_ref: String,
     pub config: AgentCenterLocalConfig,
 }
@@ -24,7 +24,7 @@ pub(crate) struct DesktopAgentCenterConfigPutPayload {
 pub(crate) struct DesktopAgentCenterLive2dAdapterManifestImportPayload {
     pub account_id: String,
     pub owner_user_id: String,
-    pub realm_agent_id: String,
+    pub runtime_source_ref: String,
     pub local_agent_ref: String,
     pub local_asset_id: String,
     pub source_path: String,
@@ -36,7 +36,7 @@ pub(crate) struct DesktopAgentCenterLive2dAdapterManifestImportPayload {
 pub(crate) struct DesktopAgentCenterAvatarAssetImportPayload {
     pub account_id: String,
     pub owner_user_id: String,
-    pub realm_agent_id: String,
+    pub runtime_source_ref: String,
     pub local_agent_ref: String,
     pub kind: AgentCenterAvatarBackendKind,
     pub source_path: String,
@@ -49,7 +49,7 @@ pub(crate) struct DesktopAgentCenterAvatarAssetImportPayload {
 pub(crate) struct DesktopAgentCenterAvatarAssetValidatePayload {
     pub account_id: String,
     pub owner_user_id: String,
-    pub realm_agent_id: String,
+    pub runtime_source_ref: String,
     pub local_agent_ref: String,
     pub local_asset_id: String,
 }
@@ -59,7 +59,7 @@ pub(crate) struct DesktopAgentCenterAvatarAssetValidatePayload {
 pub(crate) struct DesktopAgentCenterAgentLocalResourcesRemovePayload {
     pub account_id: String,
     pub owner_user_id: String,
-    pub realm_agent_id: String,
+    pub runtime_source_ref: String,
     pub local_agent_ref: String,
 }
 
@@ -106,7 +106,7 @@ pub(crate) struct DesktopAgentCenterLocalResourceRemoveResult {
 pub(crate) struct DesktopAgentCenterBackgroundValidatePayload {
     pub account_id: String,
     pub owner_user_id: String,
-    pub realm_agent_id: String,
+    pub runtime_source_ref: String,
     pub local_agent_ref: String,
     pub background_asset_id: String,
 }
@@ -116,7 +116,7 @@ pub(crate) struct DesktopAgentCenterBackgroundValidatePayload {
 pub(crate) struct DesktopAgentCenterBackgroundRemovePayload {
     pub account_id: String,
     pub owner_user_id: String,
-    pub realm_agent_id: String,
+    pub runtime_source_ref: String,
     pub local_agent_ref: String,
     pub background_asset_id: String,
 }
@@ -126,7 +126,7 @@ pub(crate) struct DesktopAgentCenterBackgroundRemovePayload {
 pub(crate) struct DesktopAgentCenterBackgroundImportPayload {
     pub account_id: String,
     pub owner_user_id: String,
-    pub realm_agent_id: String,
+    pub runtime_source_ref: String,
     pub local_agent_ref: String,
     pub source_path: String,
     pub display_name: Option<String>,
@@ -305,7 +305,7 @@ pub(crate) struct AgentCenterLocalConfig {
     pub config_kind: String,
     pub account_id: String,
     pub owner_user_id: String,
-    pub realm_agent_id: String,
+    pub runtime_source_ref: String,
     pub local_agent_ref: String,
     pub modules: AgentCenterLocalConfigModules,
 }

@@ -25,7 +25,7 @@ test('Agent Chat spec forbids draft, archive, rename, and offline transcript per
   assert.match(spec, /must not provide offline Agent Chat transcript\s+recovery/);
   assert.match(spec, /must not persist Agent Chat drafts/);
   assert.match(spec, /must not admit Agent Chat rename or archive conversation semantics/);
-  assert.match(spec, /single active Runtime conversation per AgentFriend/);
+  assert.match(spec, /single active Runtime conversation per runtime source\s+snapshot/);
   assert.match(spec, /Runtime-owned session snapshots and `runtime\.agent\.turn\.\*`/);
   assert.match(spec, /No steady-state Desktop `chat_agent_\*` store/);
 });
@@ -41,7 +41,7 @@ test('Agent Chat store cutover is closed by Runtime and SDK replacement coverage
   assert.match(desktopSpec, /GetPublicChatSessionSnapshot/);
   assert.match(desktopSpec, /Agent Chat draft persistence is not a product requirement/);
   assert.match(desktopSpec, /message-level delete \/ redact policy/);
-  assert.match(desktopSpec, /one active conversation per\s+AgentFriend/);
+  assert.match(desktopSpec, /one active conversation per\s+runtime source snapshot/);
   assert.match(desktopSpec, /in-memory optimistic projection only/);
   assert.match(desktopSpec, /No offline Agent Chat transcript product is admitted/);
 
@@ -63,7 +63,7 @@ test('Runtime admits Agent Chat conversation summaries before store cutover impl
   assert.match(runtimeSpec, /derived\s+presentation text/);
   assert.match(runtimeSpec, /does not admit close, delete, clear, archive, rename, draft, or/);
   assert.match(runtimeSpec, /rename and archive are not product surfaces/);
-  assert.match(runtimeSpec, /one active Agent Chat conversation per AgentFriend/);
+  assert.match(runtimeSpec, /one active Agent Chat conversation per runtime source/);
   assert.match(runtimeSpec, /K-AGCORE-006c/);
   assert.match(runtimeSpec, /Runtime-owned replay identity fields/);
   assert.match(runtimeSpec, /must not be re-derived differently by apps/);
@@ -121,7 +121,7 @@ test('Desktop wires Runtime Agent conversation summaries as read-only projection
 test('Runtime Agent conversation summary adapter keeps Runtime anchor identity explicit', () => {
   const target: AgentLocalTargetSnapshot = {
     ownerUserId: 'owner-1',
-    realmAgentId: 'agent-1',
+    runtimeSourceRef: 'agent-1',
     localAgentRef: 'local-agent:owner-1:agent-1',
     displayName: 'Guide',
     handle: '@guide',
@@ -145,7 +145,7 @@ test('Runtime Agent conversation summary adapter keeps Runtime anchor identity e
       lastMessageId: 'msg-anchor',
       localAgentRef: 'local-agent:owner-1:agent-1',
       ownerUserId: 'owner-1',
-      realmAgentId: 'agent-1',
+      runtimeSourceRef: 'agent-1',
       createdAt: { seconds: '1700000000', nanos: 0 },
       updatedAt: { seconds: '1700000001', nanos: 250000000 },
     },

@@ -69,20 +69,20 @@ test('human sidebar targets include human friends without duplicating existing c
         id: 'user-1',
         displayName: 'Alice',
         handle: 'alice',
-        isAgent: false,
+        isSource: false,
       },
       {
         id: 'user-2',
         displayName: 'Bob',
         handle: 'bob',
         avatarUrl: 'https://example.test/bob.png',
-        isAgent: false,
+        isSource: false,
       },
       {
         id: 'agent-1',
         displayName: 'Companion',
         handle: 'companion',
-        isAgent: true,
+        isSource: true,
       },
     ],
   });

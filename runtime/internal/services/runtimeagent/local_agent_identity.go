@@ -13,25 +13,25 @@ const localAgentRefPrefix = "local-agent:"
 
 type localAgentIdentity struct {
 	OwnerUserID   string
-	RealmAgentID  string
+	RuntimeSourceRef  string
 	LocalAgentRef string
 }
 
-func buildLocalAgentRef(ownerUserID string, realmAgentID string) string {
-	return localAgentRefPrefix + strings.TrimSpace(ownerUserID) + ":" + strings.TrimSpace(realmAgentID)
+func buildLocalAgentRef(ownerUserID string, runtimeSourceRef string) string {
+	return localAgentRefPrefix + strings.TrimSpace(ownerUserID) + ":" + strings.TrimSpace(runtimeSourceRef)
 }
 
-func validateLocalAgentIdentity(ownerUserID string, realmAgentID string, localAgentRef string) (localAgentIdentity, error) {
+func validateLocalAgentIdentity(ownerUserID string, runtimeSourceRef string, localAgentRef string) (localAgentIdentity, error) {
 	identity := localAgentIdentity{
 		OwnerUserID:   strings.TrimSpace(ownerUserID),
-		RealmAgentID:  strings.TrimSpace(realmAgentID),
+		RuntimeSourceRef:  strings.TrimSpace(runtimeSourceRef),
 		LocalAgentRef: strings.TrimSpace(localAgentRef),
 	}
 	if identity.OwnerUserID == "" {
 		return localAgentIdentity{}, status.Error(codes.InvalidArgument, "owner_user_id is required")
 	}
-	if identity.RealmAgentID == "" {
-		return localAgentIdentity{}, status.Error(codes.InvalidArgument, "realm_agent_id is required")
+	if identity.RuntimeSourceRef == "" {
+		return localAgentIdentity{}, status.Error(codes.InvalidArgument, "runtime_source_ref is required")
 	}
 	if identity.LocalAgentRef == "" {
 		return localAgentIdentity{}, status.Error(codes.InvalidArgument, "local_agent_ref is required")
@@ -39,12 +39,12 @@ func validateLocalAgentIdentity(ownerUserID string, realmAgentID string, localAg
 	if !strings.HasPrefix(identity.LocalAgentRef, localAgentRefPrefix) {
 		return localAgentIdentity{}, status.Error(codes.InvalidArgument, "local_agent_ref is malformed")
 	}
-	if identity.LocalAgentRef == identity.RealmAgentID {
-		return localAgentIdentity{}, status.Error(codes.InvalidArgument, "local_agent_ref must not be bare realm_agent_id")
+	if identity.LocalAgentRef == identity.RuntimeSourceRef {
+		return localAgentIdentity{}, status.Error(codes.InvalidArgument, "local_agent_ref must not be bare runtime_source_ref")
 	}
-	expected := buildLocalAgentRef(identity.OwnerUserID, identity.RealmAgentID)
+	expected := buildLocalAgentRef(identity.OwnerUserID, identity.RuntimeSourceRef)
 	if identity.LocalAgentRef != expected {
-		return localAgentIdentity{}, status.Error(codes.InvalidArgument, "local_agent_ref does not match owner_user_id and realm_agent_id")
+		return localAgentIdentity{}, status.Error(codes.InvalidArgument, "local_agent_ref does not match owner_user_id and runtime_source_ref")
 	}
 	return identity, nil
 }
@@ -53,7 +53,7 @@ func localAgentIdentityFromContext(ctx *runtimev1.AgentRequestContext) (localAge
 	if ctx == nil {
 		return localAgentIdentity{}, status.Error(codes.InvalidArgument, "agent request context is required")
 	}
-	return validateLocalAgentIdentity(ctx.GetOwnerUserId(), ctx.GetRealmAgentId(), ctx.GetLocalAgentRef())
+	return validateLocalAgentIdentity(ctx.GetOwnerUserId(), ctx.GetRuntimeSourceRef(), ctx.GetLocalAgentRef())
 }
 
 func localAgentIdentityFromInitializeRequest(req *runtimev1.InitializeAgentRequest) (localAgentIdentity, error) {
@@ -61,12 +61,12 @@ func localAgentIdentityFromInitializeRequest(req *runtimev1.InitializeAgentReque
 		return localAgentIdentity{}, status.Error(codes.InvalidArgument, "initialize agent request is required")
 	}
 	ownerUserID := firstNonEmpty(strings.TrimSpace(req.GetOwnerUserId()), strings.TrimSpace(req.GetContext().GetOwnerUserId()))
-	realmAgentID := firstNonEmpty(strings.TrimSpace(req.GetRealmAgentId()), strings.TrimSpace(req.GetContext().GetRealmAgentId()))
+	runtimeSourceRef := firstNonEmpty(strings.TrimSpace(req.GetRuntimeSourceRef()), strings.TrimSpace(req.GetContext().GetRuntimeSourceRef()))
 	localAgentRef := firstNonEmpty(strings.TrimSpace(req.GetLocalAgentRef()), strings.TrimSpace(req.GetContext().GetLocalAgentRef()))
 	if strings.TrimSpace(req.GetAgentId()) != "" {
 		return localAgentIdentity{}, status.Error(codes.InvalidArgument, "agent_id is not local execution identity; use local_agent_ref")
 	}
-	return validateLocalAgentIdentity(ownerUserID, realmAgentID, localAgentRef)
+	return validateLocalAgentIdentity(ownerUserID, runtimeSourceRef, localAgentRef)
 }
 
 func localAgentIdentityFromOpenAnchorRequest(req *runtimev1.OpenConversationAnchorRequest) (localAgentIdentity, error) {
@@ -74,12 +74,12 @@ func localAgentIdentityFromOpenAnchorRequest(req *runtimev1.OpenConversationAnch
 		return localAgentIdentity{}, status.Error(codes.InvalidArgument, "open conversation anchor request is required")
 	}
 	ownerUserID := firstNonEmpty(strings.TrimSpace(req.GetOwnerUserId()), strings.TrimSpace(req.GetContext().GetOwnerUserId()))
-	realmAgentID := firstNonEmpty(strings.TrimSpace(req.GetRealmAgentId()), strings.TrimSpace(req.GetContext().GetRealmAgentId()))
+	runtimeSourceRef := firstNonEmpty(strings.TrimSpace(req.GetRuntimeSourceRef()), strings.TrimSpace(req.GetContext().GetRuntimeSourceRef()))
 	localAgentRef := firstNonEmpty(strings.TrimSpace(req.GetLocalAgentRef()), strings.TrimSpace(req.GetContext().GetLocalAgentRef()))
 	if strings.TrimSpace(req.GetAgentId()) != "" {
 		return localAgentIdentity{}, status.Error(codes.InvalidArgument, "agent_id is not local execution identity; use local_agent_ref")
 	}
-	return validateLocalAgentIdentity(ownerUserID, realmAgentID, localAgentRef)
+	return validateLocalAgentIdentity(ownerUserID, runtimeSourceRef, localAgentRef)
 }
 
 func validateAgentRecordIdentity(agent *runtimev1.AgentRecord, identity localAgentIdentity) error {
@@ -92,8 +92,8 @@ func validateAgentRecordIdentity(agent *runtimev1.AgentRecord, identity localAge
 	if strings.TrimSpace(agent.GetOwnerUserId()) != identity.OwnerUserID {
 		return status.Error(codes.FailedPrecondition, "owner_user_id mismatch")
 	}
-	if strings.TrimSpace(agent.GetRealmAgentId()) != identity.RealmAgentID {
-		return status.Error(codes.FailedPrecondition, "realm_agent_id mismatch")
+	if strings.TrimSpace(agent.GetRuntimeSourceRef()) != identity.RuntimeSourceRef {
+		return status.Error(codes.FailedPrecondition, "runtime_source_ref mismatch")
 	}
 	return nil
 }

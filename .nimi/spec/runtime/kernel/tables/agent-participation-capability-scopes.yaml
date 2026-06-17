@@ -21,7 +21,7 @@ capability_scopes:
   - id: PROFILE_LIMITED
     source_rule: K-AGCORE-076
     allowed_profiles:
-      - realm_group_agent
+      - realm_group_source
     agentrule_mutation_default: forbidden
     private_file_access_default: forbidden
     paid_cloud_capability_default: forbidden

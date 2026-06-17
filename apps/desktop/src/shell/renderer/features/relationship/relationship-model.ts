@@ -6,7 +6,7 @@ export type ContactRecord = {
   handle: string;
   avatarUrl: string | null;
   bio: string | null;
-  isAgent: boolean;
+  isSource: boolean;
   friendsSince: string | null;
   agentOwnershipType?: 'MASTER_OWNED' | 'WORLD_OWNED' | null;
   agentCreatorId?: string | null;
@@ -23,12 +23,21 @@ export type ContactRecord = {
 
 type ContactPayload = JsonObject;
 
+function hasRealmSourceIdentity(item: ContactPayload, agentProfile: JsonObject | null): boolean {
+  if (item.isSource === true) return true;
+  if (typeof item.sourceRef === 'string' && item.sourceRef.trim()) return true;
+  if (typeof item.runtimeSourceRef === 'string' && item.runtimeSourceRef.trim()) return true;
+  if (typeof item.sourceKind === 'string' && item.sourceKind.trim()) return true;
+  if (typeof item.originKind === 'string' && item.originKind.trim()) return true;
+  return agentProfile !== null;
+}
+
 export function toFriendContact(item: ContactPayload): ContactRecord {
   const handle = String(item.handle || '');
-  const isAgent = item.isAgent === true;
   
   // Parse agent ownership type
   const agentProfile = parseOptionalJsonObject(item.agentProfile) ?? null;
+  const isSource = hasRealmSourceIdentity(item, agentProfile);
   const ownershipRaw = String(item.ownershipType || agentProfile?.ownershipType || '').trim();
   const agentOwnershipType = ownershipRaw === 'MASTER_OWNED' || ownershipRaw === 'WORLD_OWNED'
     ? ownershipRaw
@@ -78,7 +87,7 @@ export function toFriendContact(item: ContactPayload): ContactRecord {
     handle,
     avatarUrl: typeof item.avatarUrl === 'string' ? item.avatarUrl : null,
     bio: typeof item.bio === 'string' ? item.bio : null,
-    isAgent,
+    isSource,
     agentOwnershipType,
     friendsSince: typeof item.friendsSince === 'string' ? item.friendsSince : null,
     worldId,

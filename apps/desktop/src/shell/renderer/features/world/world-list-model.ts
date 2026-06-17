@@ -1,12 +1,16 @@
-import type {
-  NimiRealmWorldAgentSummary as WorldAgentSummaryDto,
-  NimiRealmWorldDetail as WorldDetailDto,
-  NimiRealmWorldDetailWithAgents as WorldDetailWithAgentsDto,
-  NimiRealmWorldTruthListItem as WorldTruthListItem,
-} from '@nimiplatform/sdk/realm';
 import { isMainWorldType } from './shared';
 
 type LooseObject = { [key: string]: unknown };
+type WorldDetailDto = LooseObject;
+type WorldDetailWithAgentsDto = LooseObject & { agents?: WorldAgentSummaryDto[] };
+type WorldAgentSummaryDto = {
+  id: string;
+  name?: string;
+  handle?: string | null;
+  bio?: string | null;
+  avatarUrl?: string | null;
+  createdAt?: string;
+};
 
 export type WorldAgentItem = {
   id: string;
@@ -168,67 +172,6 @@ export function isMainWorld(item: Pick<WorldListItem, 'type' | 'creatorId'>): bo
   return isMainWorldType(item.type) || !item.creatorId;
 }
 
-export function toWorldListItemFromTruth(raw: WorldTruthListItem): WorldListItem {
-  const computed = raw.computed;
-  return {
-    id: raw.worldId,
-    name: raw.title || 'Unknown World',
-    description: raw.description ?? null,
-    tagline: raw.tagline ?? null,
-    motto: raw.motto ?? null,
-    overview: raw.overview ?? null,
-    contentRating: raw.contentRating ?? null,
-    genre: raw.genre ?? null,
-    themes: [...(raw.themes ?? [])],
-    era: raw.era ?? null,
-    iconUrl: raw.iconUrl ?? null,
-    bannerUrl: raw.bannerUrl ?? null,
-    type: raw.type ?? 'CREATOR',
-    status: raw.status ?? 'DRAFT',
-    level: raw.level ?? 1,
-    levelUpdatedAt: raw.levelUpdatedAt ?? null,
-    agentCount: raw.agentCount ?? 0,
-    createdAt: raw.createdAt ?? '',
-    updatedAt: raw.updatedAt ?? null,
-    creatorId: raw.creatorId ?? null,
-    freezeReason: raw.freezeReason ?? null,
-    lorebookEntryLimit: raw.lorebookEntryLimit ?? 0,
-    nativeAgentLimit: raw.nativeAgentLimit ?? 0,
-    nativeCreationState: raw.nativeCreationState ?? 'OPEN',
-    scoreA: raw.scoreA ?? 0,
-    scoreC: raw.scoreC ?? 0,
-    scoreE: raw.scoreE ?? 0,
-    scoreEwma: raw.scoreEwma ?? computed?.score?.scoreEwma ?? 0,
-    scoreQ: raw.scoreQ ?? 0,
-    transitInLimit: raw.transitInLimit ?? 0,
-    computed: {
-      time: {
-        currentWorldTime: computed?.time?.currentWorldTime ?? null,
-        currentLabel: computed?.time?.currentLabel ?? null,
-        eraLabel: computed?.time?.eraLabel ?? null,
-        flowRatio: Math.max(0.0001, computed?.time?.flowRatio ?? 1),
-        isPaused: computed?.time?.isPaused ?? false,
-      },
-      languages: {
-        primary: computed?.languages?.primary ?? null,
-        common: [...(computed?.languages?.common ?? [])],
-      },
-      entry: {
-        recommendedAgents: (computed?.entry?.recommendedAgents ?? []).map((agent) => ({
-          id: agent.agentId,
-          name: agent.name,
-          handle: agent.handle ?? null,
-          avatarUrl: agent.avatarUrl ?? null,
-        })),
-      },
-      score: {
-        scoreEwma: computed?.score?.scoreEwma ?? raw.scoreEwma ?? 0,
-      },
-      featuredAgentCount: computed?.featuredAgentCount ?? 0,
-    },
-  };
-}
-
 export function toWorldListItem(raw: WorldDetailDto | WorldDetailWithAgentsDto): WorldListItem {
   let parsedAgents: WorldAgentItem[] | undefined;
   if ('agents' in raw && Array.isArray(raw.agents)) {
@@ -236,8 +179,8 @@ export function toWorldListItem(raw: WorldDetailDto | WorldDetailWithAgentsDto):
       return {
         id: agent.id,
         name: agent.name || 'Unknown',
-        handle: agent.handle,
-        bio: agent.bio,
+        handle: agent.handle ?? undefined,
+        bio: agent.bio ?? undefined,
         avatarUrl: agent.avatarUrl ?? null,
         createdAt: agent.createdAt,
       };

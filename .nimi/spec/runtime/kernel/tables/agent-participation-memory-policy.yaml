@@ -4,7 +4,7 @@ owner: runtime
 matrix_id: runtime_agent_participation_memory_policy
 rows:
   - canonical_agent_chat
-  - realm_group_agent
+  - realm_group_source
   - scenario_sandbox
   - oasis_world_participation
   - external_agent_entry
@@ -20,7 +20,7 @@ memory_write_defaults:
     memory_write_default: CANONICAL_WRITE_ALLOWED
     cognition_commit_default: existing_canonical_policy
     canonical_chat_commit_default: existing_canonical_policy
-  - profile: realm_group_agent
+  - profile: realm_group_source
     source_rule: K-AGCORE-076
     memory_write_default: WRITE_NONE
     cognition_commit_default: forbid

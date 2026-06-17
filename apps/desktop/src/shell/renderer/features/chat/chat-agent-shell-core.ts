@@ -6,8 +6,6 @@ import type {
 } from '@renderer/bridge/runtime-bridge/types';
 import { toConversationMessageViewModel } from './chat-agent-thread-model';
 
-export const TARGETS_QUERY_KEY = ['chat-agent-friends'];
-
 export function bundleQueryKey(threadId: string): readonly ['chat-agent-thread-bundle', string] {
   return ['chat-agent-thread-bundle', threadId];
 }

@@ -66,7 +66,7 @@ func (e *testRealmGroupMessageCandidateExecutor) CreateRealmGroupMessageCandidat
 		output.PolicyVerdictRef = input.PolicyVerdictRef
 	}
 	if output.ProfileKind == "" {
-		output.ProfileKind = "realm_group_agent"
+		output.ProfileKind = "realm_group_source"
 	}
 	if output.IdentitySource == "" {
 		output.IdentitySource = "runtime_local_agent_identity"
@@ -138,16 +138,16 @@ func TestRealmGroupMessageCandidateCreatesImmutableEvidence(t *testing.T) {
 	}
 
 	evidenceResp, err := svc.GetRealmGroupMessageCandidateEvidence(context.Background(), &runtimev1.GetRealmGroupMessageCandidateEvidenceRequest{
-		Context:                       req.GetContext(),
-		CandidateId:                   candidate.GetCandidateId(),
-		CandidateKind:                 candidate.GetCandidateKind(),
-		CandidateEvidenceRef:          candidate.GetCandidateEvidenceRef(),
-		EvidenceHash:                  candidate.GetEvidenceHash(),
-		RuntimeTraceRef:               candidate.GetRuntimeTraceRef(),
-		ExpectedRealmGroupAgentSlotId: req.GetRealmGroupAgentSlotId(),
-		ExpectedLocalAgentRef:         req.GetLocalAgentRef(),
-		TriggerRef:                    req.GetTriggerRef(),
-		TargetRealmGroupThreadId:      req.GetRealmGroupThreadId(),
+		Context:                        req.GetContext(),
+		CandidateId:                    candidate.GetCandidateId(),
+		CandidateKind:                  candidate.GetCandidateKind(),
+		CandidateEvidenceRef:           candidate.GetCandidateEvidenceRef(),
+		EvidenceHash:                   candidate.GetEvidenceHash(),
+		RuntimeTraceRef:                candidate.GetRuntimeTraceRef(),
+		ExpectedRuntimeParticipantSlot: req.GetRuntimeParticipantSlot(),
+		ExpectedLocalAgentRef:          req.GetLocalAgentRef(),
+		TriggerRef:                     req.GetTriggerRef(),
+		TargetRealmGroupThreadId:       req.GetRealmGroupThreadId(),
 	})
 	if err != nil {
 		t.Fatalf("GetRealmGroupMessageCandidateEvidence: %v", err)
@@ -238,16 +238,16 @@ func TestAIBackedRealmGroupMessageCandidateExecutorCreatesMessageEvidence(t *tes
 		t.Fatalf("unexpected disposition: %v", candidate.GetCommitDisposition())
 	}
 	evidenceResp, err := svc.GetRealmGroupMessageCandidateEvidence(context.Background(), &runtimev1.GetRealmGroupMessageCandidateEvidenceRequest{
-		Context:                       req.GetContext(),
-		CandidateId:                   candidate.GetCandidateId(),
-		CandidateKind:                 candidate.GetCandidateKind(),
-		CandidateEvidenceRef:          candidate.GetCandidateEvidenceRef(),
-		EvidenceHash:                  candidate.GetEvidenceHash(),
-		RuntimeTraceRef:               candidate.GetRuntimeTraceRef(),
-		ExpectedRealmGroupAgentSlotId: req.GetRealmGroupAgentSlotId(),
-		ExpectedLocalAgentRef:         req.GetLocalAgentRef(),
-		TriggerRef:                    req.GetTriggerRef(),
-		TargetRealmGroupThreadId:      req.GetRealmGroupThreadId(),
+		Context:                        req.GetContext(),
+		CandidateId:                    candidate.GetCandidateId(),
+		CandidateKind:                  candidate.GetCandidateKind(),
+		CandidateEvidenceRef:           candidate.GetCandidateEvidenceRef(),
+		EvidenceHash:                   candidate.GetEvidenceHash(),
+		RuntimeTraceRef:                candidate.GetRuntimeTraceRef(),
+		ExpectedRuntimeParticipantSlot: req.GetRuntimeParticipantSlot(),
+		ExpectedLocalAgentRef:          req.GetLocalAgentRef(),
+		TriggerRef:                     req.GetTriggerRef(),
+		TargetRealmGroupThreadId:       req.GetRealmGroupThreadId(),
 	})
 	if err != nil {
 		t.Fatalf("Get AI-backed evidence: %v", err)
@@ -297,16 +297,16 @@ func TestAIBackedRealmGroupMessageCandidateExecutorCreatesRefusalEvidence(t *tes
 		t.Fatalf("unexpected disposition: %v", candidate.GetCommitDisposition())
 	}
 	evidenceResp, err := svc.GetRealmGroupMessageCandidateEvidence(context.Background(), &runtimev1.GetRealmGroupMessageCandidateEvidenceRequest{
-		Context:                       req.GetContext(),
-		CandidateId:                   candidate.GetCandidateId(),
-		CandidateKind:                 candidate.GetCandidateKind(),
-		CandidateEvidenceRef:          candidate.GetCandidateEvidenceRef(),
-		EvidenceHash:                  candidate.GetEvidenceHash(),
-		RuntimeTraceRef:               candidate.GetRuntimeTraceRef(),
-		ExpectedRealmGroupAgentSlotId: req.GetRealmGroupAgentSlotId(),
-		ExpectedLocalAgentRef:         req.GetLocalAgentRef(),
-		TriggerRef:                    req.GetTriggerRef(),
-		TargetRealmGroupThreadId:      req.GetRealmGroupThreadId(),
+		Context:                        req.GetContext(),
+		CandidateId:                    candidate.GetCandidateId(),
+		CandidateKind:                  candidate.GetCandidateKind(),
+		CandidateEvidenceRef:           candidate.GetCandidateEvidenceRef(),
+		EvidenceHash:                   candidate.GetEvidenceHash(),
+		RuntimeTraceRef:                candidate.GetRuntimeTraceRef(),
+		ExpectedRuntimeParticipantSlot: req.GetRuntimeParticipantSlot(),
+		ExpectedLocalAgentRef:          req.GetLocalAgentRef(),
+		TriggerRef:                     req.GetTriggerRef(),
+		TargetRealmGroupThreadId:       req.GetRealmGroupThreadId(),
 	})
 	if err != nil {
 		t.Fatalf("Get AI-backed refusal evidence: %v", err)
@@ -408,16 +408,16 @@ func TestRealmGroupMessageCandidateRefusalHashMatchesRealm(t *testing.T) {
 		t.Fatalf("Create refusal: %v", err)
 	}
 	evidenceResp, err := svc.GetRealmGroupMessageCandidateEvidence(context.Background(), &runtimev1.GetRealmGroupMessageCandidateEvidenceRequest{
-		Context:                       req.GetContext(),
-		CandidateId:                   resp.GetCandidate().GetCandidateId(),
-		CandidateKind:                 resp.GetCandidate().GetCandidateKind(),
-		CandidateEvidenceRef:          resp.GetCandidate().GetCandidateEvidenceRef(),
-		EvidenceHash:                  resp.GetCandidate().GetEvidenceHash(),
-		RuntimeTraceRef:               resp.GetCandidate().GetRuntimeTraceRef(),
-		ExpectedRealmGroupAgentSlotId: req.GetRealmGroupAgentSlotId(),
-		ExpectedLocalAgentRef:         req.GetLocalAgentRef(),
-		TriggerRef:                    req.GetTriggerRef(),
-		TargetRealmGroupThreadId:      req.GetRealmGroupThreadId(),
+		Context:                        req.GetContext(),
+		CandidateId:                    resp.GetCandidate().GetCandidateId(),
+		CandidateKind:                  resp.GetCandidate().GetCandidateKind(),
+		CandidateEvidenceRef:           resp.GetCandidate().GetCandidateEvidenceRef(),
+		EvidenceHash:                   resp.GetCandidate().GetEvidenceHash(),
+		RuntimeTraceRef:                resp.GetCandidate().GetRuntimeTraceRef(),
+		ExpectedRuntimeParticipantSlot: req.GetRuntimeParticipantSlot(),
+		ExpectedLocalAgentRef:          req.GetLocalAgentRef(),
+		TriggerRef:                     req.GetTriggerRef(),
+		TargetRealmGroupThreadId:       req.GetRealmGroupThreadId(),
 	})
 	if err != nil {
 		t.Fatalf("Get refusal evidence: %v", err)
@@ -463,16 +463,16 @@ func TestRealmGroupMessageCandidateFailsClosed(t *testing.T) {
 		t.Fatalf("Create candidate: %v", err)
 	}
 	_, err = svc.GetRealmGroupMessageCandidateEvidence(context.Background(), &runtimev1.GetRealmGroupMessageCandidateEvidenceRequest{
-		Context:                       req.GetContext(),
-		CandidateId:                   resp.GetCandidate().GetCandidateId(),
-		CandidateKind:                 resp.GetCandidate().GetCandidateKind(),
-		CandidateEvidenceRef:          resp.GetCandidate().GetCandidateEvidenceRef(),
-		EvidenceHash:                  resp.GetCandidate().GetEvidenceHash(),
-		RuntimeTraceRef:               resp.GetCandidate().GetRuntimeTraceRef(),
-		ExpectedRealmGroupAgentSlotId: req.GetRealmGroupAgentSlotId(),
-		ExpectedLocalAgentRef:         "local-agent:user-other:agent-01",
-		TriggerRef:                    req.GetTriggerRef(),
-		TargetRealmGroupThreadId:      req.GetRealmGroupThreadId(),
+		Context:                        req.GetContext(),
+		CandidateId:                    resp.GetCandidate().GetCandidateId(),
+		CandidateKind:                  resp.GetCandidate().GetCandidateKind(),
+		CandidateEvidenceRef:           resp.GetCandidate().GetCandidateEvidenceRef(),
+		EvidenceHash:                   resp.GetCandidate().GetEvidenceHash(),
+		RuntimeTraceRef:                resp.GetCandidate().GetRuntimeTraceRef(),
+		ExpectedRuntimeParticipantSlot: req.GetRuntimeParticipantSlot(),
+		ExpectedLocalAgentRef:          "local-agent:user-other:agent-01",
+		TriggerRef:                     req.GetTriggerRef(),
+		TargetRealmGroupThreadId:       req.GetRealmGroupThreadId(),
 	})
 	if status.Code(err) != codes.InvalidArgument {
 		t.Fatalf("expected InvalidArgument for local agent mismatch, got %v", err)
@@ -480,16 +480,16 @@ func TestRealmGroupMessageCandidateFailsClosed(t *testing.T) {
 
 	wrongContext := &runtimev1.AgentRequestContext{AppId: "realm", SubjectUserId: "user-other"}
 	_, err = svc.GetRealmGroupMessageCandidateEvidence(context.Background(), &runtimev1.GetRealmGroupMessageCandidateEvidenceRequest{
-		Context:                       wrongContext,
-		CandidateId:                   resp.GetCandidate().GetCandidateId(),
-		CandidateKind:                 resp.GetCandidate().GetCandidateKind(),
-		CandidateEvidenceRef:          resp.GetCandidate().GetCandidateEvidenceRef(),
-		EvidenceHash:                  resp.GetCandidate().GetEvidenceHash(),
-		RuntimeTraceRef:               resp.GetCandidate().GetRuntimeTraceRef(),
-		ExpectedRealmGroupAgentSlotId: req.GetRealmGroupAgentSlotId(),
-		ExpectedLocalAgentRef:         req.GetLocalAgentRef(),
-		TriggerRef:                    req.GetTriggerRef(),
-		TargetRealmGroupThreadId:      req.GetRealmGroupThreadId(),
+		Context:                        wrongContext,
+		CandidateId:                    resp.GetCandidate().GetCandidateId(),
+		CandidateKind:                  resp.GetCandidate().GetCandidateKind(),
+		CandidateEvidenceRef:           resp.GetCandidate().GetCandidateEvidenceRef(),
+		EvidenceHash:                   resp.GetCandidate().GetEvidenceHash(),
+		RuntimeTraceRef:                resp.GetCandidate().GetRuntimeTraceRef(),
+		ExpectedRuntimeParticipantSlot: req.GetRuntimeParticipantSlot(),
+		ExpectedLocalAgentRef:          req.GetLocalAgentRef(),
+		TriggerRef:                     req.GetTriggerRef(),
+		TargetRealmGroupThreadId:       req.GetRealmGroupThreadId(),
 	})
 	if status.Code(err) != codes.PermissionDenied {
 		t.Fatalf("expected PermissionDenied for mismatched evidence context, got %v", err)
@@ -570,16 +570,16 @@ func validRealmGroupMessageCandidateRequest(idempotencyKey string) *runtimev1.Cr
 			AppId:         "realm",
 			SubjectUserId: "user-01",
 		},
-		RealmGroupThreadId:    "chat-01",
-		RealmGroupAgentSlotId: "slot-01",
-		OwnerUserId:           "user-01",
-		RealmAgentId:          "agent-01",
-		LocalAgentRef:         "local-agent:user-01:agent-01",
-		TriggerRef:            "runtime://room-orchestration/realm-group/chat-01/trigger-event/canonical_user_turn/message-01",
-		MembershipSnapshotRef: "runtime-context://realm-group/chat-01/membership-snapshots/current",
-		ReadCursorRef:         "runtime-context://realm-group/chat-01/read-cursors/user-01",
-		RoomOrchestrationRef:  "runtime://realm-group/chat-01/orchestration/current",
-		IdempotencyKey:        idempotencyKey,
+		RealmGroupThreadId:     "chat-01",
+		RuntimeParticipantSlot: "slot-01",
+		OwnerUserId:            "user-01",
+		RuntimeSourceRef:       "agent-01",
+		LocalAgentRef:          "local-agent:user-01:agent-01",
+		TriggerRef:             "runtime://room-orchestration/realm-group/chat-01/trigger-event/canonical_user_turn/message-01",
+		MembershipSnapshotRef:  "runtime-context://realm-group/chat-01/membership-snapshots/current",
+		ReadCursorRef:          "runtime-context://realm-group/chat-01/read-cursors/user-01",
+		RoomOrchestrationRef:   "runtime://realm-group/chat-01/orchestration/current",
+		IdempotencyKey:         idempotencyKey,
 		ContextRefs: map[string]string{
 			realmGroupCandidateContextThreadSnapshot: "runtime-context://realm-group/chat-01/thread",
 			realmGroupCandidateContextSlotSnapshot:   "runtime-context://realm-group/chat-01/slot-01",

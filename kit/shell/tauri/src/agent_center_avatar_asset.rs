@@ -32,7 +32,7 @@ pub struct ModelManifest {
 pub struct AgentCenterAvatarAssetResolvePayload {
     pub account_id: String,
     pub owner_user_id: String,
-    pub realm_agent_id: String,
+    pub runtime_source_ref: String,
     pub local_agent_ref: String,
     pub backend_kind: String,
     pub local_avatar_asset_ref: String,
@@ -45,7 +45,7 @@ pub struct AgentCenterAvatarAssetResolvePayload {
 pub struct LocalAvatarAssetResolvePayload {
     pub account_id: String,
     pub owner_user_id: String,
-    pub realm_agent_id: String,
+    pub runtime_source_ref: String,
     pub local_agent_ref: String,
 }
 
@@ -56,7 +56,7 @@ struct AgentCenterLocalConfigFile {
     config_kind: String,
     account_id: String,
     owner_user_id: String,
-    realm_agent_id: String,
+    runtime_source_ref: String,
     local_agent_ref: String,
     modules: AgentCenterLocalConfigModules,
 }
@@ -244,7 +244,7 @@ fn read_local_avatar_asset_selection(
     data_root: &Path,
     account_id: &str,
     owner_user_id: &str,
-    realm_agent_id: &str,
+    runtime_source_ref: &str,
     local_agent_ref: &str,
 ) -> Result<AgentCenterLocalAvatarAssetSelection, String> {
     let config_path = data_root
@@ -263,7 +263,7 @@ fn read_local_avatar_asset_selection(
     }
     if config.account_id != account_id
         || config.owner_user_id != owner_user_id
-        || config.realm_agent_id != realm_agent_id
+        || config.runtime_source_ref != runtime_source_ref
         || config.local_agent_ref != local_agent_ref
     {
         return Err("local Avatar asset config scope mismatch".to_string());
@@ -364,7 +364,8 @@ pub async fn nimi_avatar_resolve_agent_center_avatar_asset(
 ) -> Result<ModelManifest, String> {
     let account_id = validate_agent_center_id(&payload.account_id, "account_id")?;
     let owner_user_id = validate_agent_center_id(&payload.owner_user_id, "owner_user_id")?;
-    let realm_agent_id = validate_agent_center_id(&payload.realm_agent_id, "realm_agent_id")?;
+    let runtime_source_ref =
+        validate_agent_center_id(&payload.runtime_source_ref, "runtime_source_ref")?;
     let local_agent_ref = validate_agent_center_id(&payload.local_agent_ref, "local_agent_ref")?;
     let kind = payload.backend_kind.trim().to_string();
     if kind != "live2d" && kind != "vrm" {
@@ -375,17 +376,17 @@ pub async fn nimi_avatar_resolve_agent_center_avatar_asset(
         &payload.backend_capability_profile_ref,
         "backend_capability_profile_ref",
     )?;
-    if local_agent_ref == realm_agent_id {
-        return Err("local_agent_ref must not be a bare realm_agent_id".to_string());
+    if local_agent_ref == runtime_source_ref {
+        return Err("local_agent_ref must not be a bare runtime_source_ref".to_string());
     }
     let local_agent_ref = project_runtime_local_agent_identity(
         &owner_user_id,
-        &realm_agent_id,
+        &runtime_source_ref,
         Some(&local_agent_ref),
     )
     .map(|identity| identity.local_agent_ref)
     .map_err(|_| {
-        "local_agent_ref must equal local-agent:${owner_user_id}:${realm_agent_id}".to_string()
+        "local_agent_ref must equal local-agent:${owner_user_id}:${runtime_source_ref}".to_string()
     })?;
     let data_root = resolve_admitted_data_root()?;
     let materialization_ref =
@@ -617,19 +618,20 @@ pub async fn nimi_avatar_resolve_local_avatar_asset(
 ) -> Result<ModelManifest, String> {
     let account_id = validate_agent_center_id(&payload.account_id, "account_id")?;
     let owner_user_id = validate_agent_center_id(&payload.owner_user_id, "owner_user_id")?;
-    let realm_agent_id = validate_agent_center_id(&payload.realm_agent_id, "realm_agent_id")?;
+    let runtime_source_ref =
+        validate_agent_center_id(&payload.runtime_source_ref, "runtime_source_ref")?;
     let local_agent_ref = validate_agent_center_id(&payload.local_agent_ref, "local_agent_ref")?;
     if account_id != owner_user_id {
         return Err("local Avatar asset account_id must equal owner_user_id".to_string());
     }
     let local_agent_ref = project_runtime_local_agent_identity(
         &owner_user_id,
-        &realm_agent_id,
+        &runtime_source_ref,
         Some(&local_agent_ref),
     )
     .map(|identity| identity.local_agent_ref)
     .map_err(|_| {
-        "local Avatar asset local_agent_ref must equal local-agent:${owner_user_id}:${realm_agent_id}"
+        "local Avatar asset local_agent_ref must equal local-agent:${owner_user_id}:${runtime_source_ref}"
             .to_string()
     })?;
     let data_root = resolve_admitted_data_root()?;
@@ -637,7 +639,7 @@ pub async fn nimi_avatar_resolve_local_avatar_asset(
         &data_root,
         &account_id,
         &owner_user_id,
-        &realm_agent_id,
+        &runtime_source_ref,
         &local_agent_ref,
     )?;
     let kind = selection.backend_kind.trim().to_string();
@@ -676,7 +678,7 @@ pub async fn nimi_avatar_resolve_local_avatar_asset(
         nimi_avatar_resolve_agent_center_avatar_asset(AgentCenterAvatarAssetResolvePayload {
             account_id,
             owner_user_id,
-            realm_agent_id,
+            runtime_source_ref,
             local_agent_ref,
             backend_kind: kind,
             local_avatar_asset_ref,

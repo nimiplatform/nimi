@@ -8,7 +8,7 @@ export const RUNTIME_AGENT_CONVERSATION_SUMMARIES_QUERY_KEY = ['chat-agent-runti
 export type AgentRuntimeConversationSummary = {
   conversationAnchorId: string;
   ownerUserId: string;
-  realmAgentId: string;
+  runtimeSourceRef: string;
   localAgentRef: string;
   title: string;
   lastMessageRole: string;
@@ -59,7 +59,7 @@ export function toAgentRuntimeConversationSummary(
   return {
     conversationAnchorId,
     ownerUserId: normalizeText(anchor?.ownerUserId) || target.ownerUserId,
-    realmAgentId: normalizeText(anchor?.realmAgentId) || target.realmAgentId,
+    runtimeSourceRef: normalizeText(anchor?.runtimeSourceRef) || target.runtimeSourceRef,
     localAgentRef,
     title: normalizeText(summary.title) || target.displayName,
     lastMessageRole: normalizeText(summary.lastMessageRole),
@@ -93,7 +93,7 @@ export async function listRuntimeAgentConversationSummaries(
   const responses = await Promise.all(targets.map(async (target) => {
     const response = await runtimeAgent.anchors.listSummaries({
       ownerUserId: target.ownerUserId,
-      realmAgentId: target.realmAgentId,
+      runtimeSourceRef: target.runtimeSourceRef,
       localAgentRef: target.localAgentRef,
       subjectUserId: target.ownerUserId,
       statusFilter: ['active'],

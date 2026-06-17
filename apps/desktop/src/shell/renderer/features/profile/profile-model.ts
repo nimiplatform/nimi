@@ -20,7 +20,7 @@ export type ProfileData = {
   handle: string;
   avatarUrl: string | null;
   bio: string | null;
-  isAgent: boolean;
+  isSource: boolean;
   isOnline: boolean;
   isFriend: boolean;
   isPendingFriendRequest: boolean;
@@ -99,7 +99,7 @@ type ProfileSourceGeneratedBase = Partial<Omit<
   | 'giftStats'
   | 'handle'
   | 'id'
-  | 'isAgent'
+  | 'isSource'
   | 'languages'
   | 'stats'
   | 'tags'
@@ -110,7 +110,11 @@ export type ProfileSource = ProfileSourceGeneratedBase & {
   handle?: string;
   gender?: string | null;
   id?: string;
-  isAgent?: boolean;
+  isSource?: boolean;
+  sourceRef?: string | null;
+  runtimeSourceRef?: string | null;
+  sourceKind?: string | null;
+  originKind?: string | null;
   isCreator?: boolean;
   isVerified?: boolean;
   followerCount?: number;
@@ -138,6 +142,15 @@ export type ProfileSource = ProfileSourceGeneratedBase & {
   world?: ProfileWorldLike | null;
 };
 
+function hasRealmSourceIdentity(raw: ProfileSource): boolean {
+  if (raw.isSource === true) return true;
+  if (typeof raw.sourceRef === 'string' && raw.sourceRef.trim()) return true;
+  if (typeof raw.runtimeSourceRef === 'string' && raw.runtimeSourceRef.trim()) return true;
+  if (typeof raw.sourceKind === 'string' && raw.sourceKind.trim()) return true;
+  if (typeof raw.originKind === 'string' && raw.originKind.trim()) return true;
+  return Boolean(raw.agent) || Boolean(raw.agentProfile);
+}
+
 export function toProfileData(raw: ProfileSource): ProfileData {
   const agent = raw.agent ?? undefined;
   const stats = raw.stats;
@@ -159,7 +172,7 @@ export function toProfileData(raw: ProfileSource): ProfileData {
     handle: String(raw.handle || ''),
     avatarUrl: typeof raw.avatarUrl === 'string' ? raw.avatarUrl : null,
     bio: typeof raw.bio === 'string' ? raw.bio : null,
-    isAgent: raw.isAgent === true,
+    isSource: hasRealmSourceIdentity(raw),
     isOnline: raw.isOnline === true,
     createdAt: typeof raw.createdAt === 'string' ? raw.createdAt : '',
     tags: Array.isArray(raw.tags) ? raw.tags.map(String) : [],

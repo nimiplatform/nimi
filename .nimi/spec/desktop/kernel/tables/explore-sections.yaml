@@ -7,9 +7,9 @@ entries:
   - id: worlds
     name: Worlds
     semantics: Browse admitted Realm Worlds and enter World detail.
-  - id: agents
-    name: Agents
-    semantics: Discover RealmAgents across Worlds.
+  - id: personas
+    name: Personas
+    semantics: Discover RealmPersona sources across Worlds.
   - id: activity
     name: Activity
-    semantics: Public Realm activity from Worlds, friends, and Agents where admitted.
+    semantics: Public Realm activity from Worlds, friends, personas, and world characters where admitted.

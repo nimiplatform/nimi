@@ -23,7 +23,7 @@ export function HumanConversationGiftModal({
       receiverId={otherUserId}
       receiverName={contactName}
       receiverHandle={String(otherUser?.handle || '')}
-      receiverIsAgent={otherUser?.isAgent === true}
+      receiverIsSource={false}
       receiverAvatarUrl={contactAvatarUrl}
       onClose={onClose}
       onSent={onClose}

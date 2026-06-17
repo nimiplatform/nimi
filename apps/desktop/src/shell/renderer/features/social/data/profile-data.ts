@@ -3,7 +3,7 @@ import {
   blockNimiRealmUser,
   loadNimiRealmCurrentUserProfile,
   loadNimiRealmUserProfileById,
-  type NimiRealmSocialProfileProjection,
+  type NimiRealmSocialProfileView,
   removeNimiRealmFriendById,
   unblockNimiRealmUser,
   updateNimiRealmCurrentUserProfile,
@@ -15,7 +15,6 @@ import {
 import { getOfflineCacheManager } from '@renderer/infra/offline/cache-manager';
 import { getOfflineCoordinator } from '@renderer/infra/offline/coordinator';
 import {
-  fetchAgentFriendLimit,
   fetchPendingFriendRequests,
   loadMergedSocialSnapshot,
   type RealmApiCaller,
@@ -24,7 +23,7 @@ import {
 } from './social-snapshot';
 import { dispatchBlockedUsersUpdated } from './blocked-content';
 
-type UserProfileProjection = NimiRealmSocialProfileProjection;
+type UserProfileProjection = NimiRealmSocialProfileView;
 
 export type { SocialContactSnapshot } from './social-snapshot';
 
@@ -78,13 +77,6 @@ export async function loadPendingFriendRequests(
   emitRealmDataError: RealmDataErrorEmitter,
 ) {
   return fetchPendingFriendRequests(callApi, emitRealmDataError);
-}
-
-export async function loadAgentFriendLimit(
-  callApi: RealmApiCaller,
-  emitRealmDataError: RealmDataErrorEmitter,
-) {
-  return fetchAgentFriendLimit(callApi, emitRealmDataError);
 }
 
 export async function loadUserProfileById(

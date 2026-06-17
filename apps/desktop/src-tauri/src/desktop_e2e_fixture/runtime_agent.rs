@@ -15,19 +15,19 @@ pub(super) fn request_identity(
     context: Option<&runtime_bridge_generated::AgentRequestContext>,
     local_agent_ref: &str,
     owner_user_id: &str,
-    realm_agent_id: &str,
+    runtime_source_ref: &str,
 ) -> (String, String, String) {
     let normalized_local_agent_ref = normalize_fixture_text(local_agent_ref);
     let normalized_owner_user_id = normalize_fixture_text(owner_user_id);
-    let normalized_realm_agent_id = normalize_fixture_text(realm_agent_id);
+    let normalized_runtime_source_ref = normalize_fixture_text(runtime_source_ref);
     let context_local_agent_ref = context
         .map(|value| normalize_fixture_text(value.local_agent_ref.as_str()))
         .unwrap_or_default();
     let context_owner_user_id = context
         .map(|value| normalize_fixture_text(value.owner_user_id.as_str()))
         .unwrap_or_default();
-    let context_realm_agent_id = context
-        .map(|value| normalize_fixture_text(value.realm_agent_id.as_str()))
+    let context_runtime_source_ref = context
+        .map(|value| normalize_fixture_text(value.runtime_source_ref.as_str()))
         .unwrap_or_default();
     (
         if normalized_local_agent_ref.is_empty() {
@@ -40,10 +40,10 @@ pub(super) fn request_identity(
         } else {
             normalized_owner_user_id
         },
-        if normalized_realm_agent_id.is_empty() {
-            context_realm_agent_id
+        if normalized_runtime_source_ref.is_empty() {
+            context_runtime_source_ref
         } else {
-            normalized_realm_agent_id
+            normalized_runtime_source_ref
         },
     )
 }
@@ -51,7 +51,7 @@ pub(super) fn request_identity(
 pub(super) fn runtime_agent_record(
     local_agent_ref: String,
     owner_user_id: String,
-    realm_agent_id: String,
+    runtime_source_ref: String,
     display_name: String,
 ) -> runtime_bridge_generated::AgentRecord {
     runtime_bridge_generated::AgentRecord {
@@ -68,7 +68,7 @@ pub(super) fn runtime_agent_record(
         updated_at: Some(fixture_timestamp()),
         local_agent_ref,
         owner_user_id,
-        realm_agent_id,
+        runtime_source_ref,
     }
 }
 
@@ -76,14 +76,14 @@ pub(super) fn runtime_agent_get_response(
     payload: &RuntimeBridgeUnaryPayload,
 ) -> Result<RuntimeBridgeUnaryResult, String> {
     let request: runtime_bridge_generated::GetAgentRequest = decode_unary_request(payload)?;
-    let (local_agent_ref, owner_user_id, realm_agent_id) =
+    let (local_agent_ref, owner_user_id, runtime_source_ref) =
         request_identity(request.context.as_ref(), request.agent_id.as_str(), "", "");
     Ok(encode_unary_response(
         runtime_bridge_generated::GetAgentResponse {
             agent: Some(runtime_agent_record(
                 local_agent_ref,
                 owner_user_id,
-                realm_agent_id,
+                runtime_source_ref,
                 String::new(),
             )),
         },
@@ -94,18 +94,18 @@ pub(super) fn runtime_agent_initialize_response(
     payload: &RuntimeBridgeUnaryPayload,
 ) -> Result<RuntimeBridgeUnaryResult, String> {
     let request: runtime_bridge_generated::InitializeAgentRequest = decode_unary_request(payload)?;
-    let (local_agent_ref, owner_user_id, realm_agent_id) = request_identity(
+    let (local_agent_ref, owner_user_id, runtime_source_ref) = request_identity(
         request.context.as_ref(),
         request.local_agent_ref.as_str(),
         request.owner_user_id.as_str(),
-        request.realm_agent_id.as_str(),
+        request.runtime_source_ref.as_str(),
     );
     Ok(encode_unary_response(
         runtime_bridge_generated::InitializeAgentResponse {
             agent: Some(runtime_agent_record(
                 local_agent_ref,
                 owner_user_id,
-                realm_agent_id,
+                runtime_source_ref,
                 request.display_name,
             )),
             state: Some(runtime_bridge_generated::AgentStateProjection {
@@ -145,7 +145,7 @@ pub(super) fn runtime_agent_set_presentation_profile_response(
 pub(super) fn runtime_agent_anchor_snapshot(
     local_agent_ref: String,
     owner_user_id: String,
-    realm_agent_id: String,
+    runtime_source_ref: String,
     subject_user_id: String,
     conversation_anchor_id: String,
     metadata: Option<prost_types::Struct>,
@@ -163,7 +163,7 @@ pub(super) fn runtime_agent_anchor_snapshot(
             metadata,
             local_agent_ref,
             owner_user_id,
-            realm_agent_id,
+            runtime_source_ref,
         }),
         active_turn_id: String::new(),
         active_stream_id: String::new(),
@@ -175,11 +175,11 @@ pub(super) fn runtime_agent_open_anchor_response(
 ) -> Result<RuntimeBridgeUnaryResult, String> {
     let request: runtime_bridge_generated::OpenConversationAnchorRequest =
         decode_unary_request(payload)?;
-    let (local_agent_ref, owner_user_id, realm_agent_id) = request_identity(
+    let (local_agent_ref, owner_user_id, runtime_source_ref) = request_identity(
         request.context.as_ref(),
         request.local_agent_ref.as_str(),
         request.owner_user_id.as_str(),
-        request.realm_agent_id.as_str(),
+        request.runtime_source_ref.as_str(),
     );
     let subject_user_id = normalize_fixture_text(request.subject_user_id.as_str())
         .if_empty_then(owner_user_id.as_str());
@@ -189,7 +189,7 @@ pub(super) fn runtime_agent_open_anchor_response(
             snapshot: Some(runtime_agent_anchor_snapshot(
                 local_agent_ref,
                 owner_user_id,
-                realm_agent_id,
+                runtime_source_ref,
                 subject_user_id,
                 anchor_id,
                 request.metadata,
@@ -203,7 +203,7 @@ pub(super) fn runtime_agent_get_anchor_snapshot_response(
 ) -> Result<RuntimeBridgeUnaryResult, String> {
     let request: runtime_bridge_generated::GetConversationAnchorSnapshotRequest =
         decode_unary_request(payload)?;
-    let (local_agent_ref, owner_user_id, realm_agent_id) =
+    let (local_agent_ref, owner_user_id, runtime_source_ref) =
         request_identity(request.context.as_ref(), request.agent_id.as_str(), "", "");
     let subject_user_id = request
         .context
@@ -216,7 +216,7 @@ pub(super) fn runtime_agent_get_anchor_snapshot_response(
             snapshot: Some(runtime_agent_anchor_snapshot(
                 local_agent_ref,
                 owner_user_id,
-                realm_agent_id,
+                runtime_source_ref,
                 subject_user_id,
                 request.conversation_anchor_id,
                 None,
@@ -230,7 +230,7 @@ pub(super) fn runtime_agent_list_conversation_summaries_response(
 ) -> Result<RuntimeBridgeUnaryResult, String> {
     let request: runtime_bridge_generated::ListAgentConversationSummariesRequest =
         decode_unary_request(payload)?;
-    let (local_agent_ref, owner_user_id, realm_agent_id) =
+    let (local_agent_ref, owner_user_id, runtime_source_ref) =
         request_identity(request.context.as_ref(), request.agent_id.as_str(), "", "");
     let subject_user_id = request
         .context
@@ -241,7 +241,7 @@ pub(super) fn runtime_agent_list_conversation_summaries_response(
     let anchor = runtime_agent_anchor_snapshot(
         local_agent_ref.clone(),
         owner_user_id,
-        realm_agent_id,
+        runtime_source_ref,
         subject_user_id,
         format!("e2e-anchor:{}", local_agent_ref),
         None,

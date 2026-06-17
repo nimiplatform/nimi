@@ -169,7 +169,7 @@ func (r *runtimeAgentStateRepository) loadStateFromDB(s *Service) error {
 		if err := protojson.Unmarshal([]byte(agentRaw), agent); err != nil {
 			return fmt.Errorf("parse persisted agent %s: %w", localAgentRef, err)
 		}
-		if strings.TrimSpace(agent.GetLocalAgentRef()) != localAgentRef || strings.TrimSpace(agent.GetOwnerUserId()) == "" || strings.TrimSpace(agent.GetRealmAgentId()) == "" {
+		if strings.TrimSpace(agent.GetLocalAgentRef()) != localAgentRef || strings.TrimSpace(agent.GetOwnerUserId()) == "" || strings.TrimSpace(agent.GetRuntimeSourceRef()) == "" {
 			return fmt.Errorf("persisted runtime agent %s local identity invalid", localAgentRef)
 		}
 		s.agents[localAgentRef] = &agentEntry{

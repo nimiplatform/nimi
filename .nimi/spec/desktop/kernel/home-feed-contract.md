@@ -5,8 +5,9 @@
 ## Scope
 
 定义 Desktop primary-navigation `Home` tab 作为 **Realm feed 表面** 的产品
-语义内核：`home` tab 渲染 Realm feed surface、三个 feed scope
-（`personal` / `friends` / `agent_activity`）的呈现、Create Post affordance、
+语义内核：`home` tab 渲染 Realm feed surface、四个 feed scope
+（`personal` / `friends` / `persona_activity` / `world_character_activity`）
+的呈现、Create Post affordance、
 SDK-typed Realm feed projection 的消费边界、以及 `Home` 与 `Nimi Home`
 installed shell（`D-HOME-*`）的显式 non-overlap。
 
@@ -20,12 +21,12 @@ installed shell（`D-HOME-*`）的显式 non-overlap。
 - Realm Post / Feed canonical 真值、feed scope 投影语义、Create Post
   truth-write admission —— 由 Realm `feed-contract.md`（`R-FEED-001` ~
   `R-FEED-010`）拥有；
-- Friendship / AgentFriend canonical 社交 admission —— 由 Realm
-  `social-contract.md`（`R-SOC-001` ~ `R-SOC-006`）拥有；
+- Friendship / core source relationship admission —— 由 Realm
+  `social-contract.md` 与 `R-CORE-010` 拥有；
 - `Nimi Home` installed shell 的 hosted-shell IA、first-run / return-run
   state machine、surface registry、Apps placement —— 由
   `nimi-home-shell-contract.md`（`D-HOME-001` ~ `D-HOME-012`）拥有；
-- Realm discovery（Worlds / RealmAgents / public activity 发现）—— 由
+- Realm discovery（Worlds / RealmPersona sources / public activity 发现）—— 由
   `explore-surface-contract.md`（`D-EXPL-001` ~ `D-EXPL-013`）拥有。
 
 本契约只把上述上游真值在 `Home` feed 产品表面上 **如何被呈现、消费、触发**
@@ -73,26 +74,27 @@ machine、Apps placement、self-update UI、或 failure-projection surface
 ownership —— 这些由 `D-HOME-*` 拥有。`D-HOME-*` 也不得被本契约解读为
 “`Nimi Home` == `Home` feed tab”。
 
-## D-HOMEFEED-004 — 三个 Feed Scope 呈现
+## D-HOMEFEED-004 — Feed Scope 呈现
 
 `MUST`：`Home` feed 表面必须呈现 Realm `feed-contract.md`（`R-FEED-005`）
-定义的三个 canonical feed scope，呈现事实源为
+定义的 canonical feed scope，呈现事实源为
 `tables/home-feed-scopes.yaml`：
 
 | Scope | `Home` 表面呈现职责 |
 |---|---|
 | `personal` | 呈现 viewer 本人发布的 Post。 |
 | `friends` | 呈现 viewer 的 ACTIVE human friends 发布的、对 viewer 可见的 Post。 |
-| `agent_activity` | 呈现 RealmAgent 发布的 public activity Post。 |
+| `persona_activity` | 呈现 RealmPersona 发布的 public activity Post。 |
+| `world_character_activity` | 呈现明确准入的 WorldCharacterCore public activity Post。 |
 
-`MUST`：三个 scope 的投影语义、可见性过滤、author 归属由 Realm
+`MUST`：feed scope 的投影语义、可见性过滤、author 归属由 Realm
 `R-FEED-005` ~ `R-FEED-007` 拥有；本规则只固定 `Home` 表面必须呈现且区分
-这三个 scope。
+这些 scope。
 
 `MUST NOT`：`Home` feed 表面不得新增、删除、或重命名 feed scope 而不更新
-`tables/home-feed-scopes.yaml` 与本规则；不得把三个 scope 压缩成无区分的
+`tables/home-feed-scopes.yaml` 与本规则；不得把 feed scopes 压缩成无区分的
 单一混合流而丢失 scope 语义；不得把 LocalAgent 私有 activity 当作
-`agent_activity` 内容呈现（`R-FEED-007`）。
+Realm feed 内容呈现（`R-FEED-007`）。
 
 ## D-HOMEFEED-005 — Create Post Affordance
 
@@ -126,14 +128,14 @@ feed projection 与 Create Post，不执行 AI。
 
 `MUST NOT`：`Home` feed 表面不得携带 `AIScopeRef`、prompt 文本、
 provider/model 选择、或 runtime turn 载荷；不得在 feed read / Create Post
-路径上调用 Runtime AI execution。RealmAgent public activity 内容如何生成
-属于 Realm Agent 与 Runtime 契约，不在本契约范围（`R-FEED-010`）。
+路径上调用 Runtime AI execution。RealmPersona / WorldCharacterCore public
+activity 内容如何生成不在本契约范围（`R-FEED-010`）。
 
 ## Fact Sources
 
-- `.nimi/spec/desktop/kernel/tables/home-feed-scopes.yaml` — `Home` 表面三个 feed scope 呈现 catalog
+- `.nimi/spec/desktop/kernel/tables/home-feed-scopes.yaml` — `Home` 表面 feed scope 呈现 catalog
 - `.nimi/spec/realm/kernel/feed-contract.md` — `R-FEED-001` ~ `R-FEED-010`（Realm Post / Feed canonical 真值、三个 feed scope、Create Post admission）
-- `.nimi/spec/realm/kernel/social-contract.md` — `R-SOC-001` ~ `R-SOC-006`（Friendship / AgentFriend canonical 真值，`friends` scope 的社交 admission 来源）
+- `.nimi/spec/realm/kernel/social-contract.md` 与 `.nimi/spec/realm/kernel/core-contract.md` — Friendship 与 core source relationship admission
 - `.nimi/spec/desktop/kernel/nimi-home-shell-contract.md` — `D-HOME-001` ~ `D-HOME-012`（`Nimi Home` installed shell；与本契约显式 non-overlap）
 - `.nimi/spec/desktop/kernel/ui-shell-contract.md` — `D-SHELL-001`（primary navigation tab placement；`home` tab placement 不属本契约）
 - `.nimi/spec/desktop/kernel/explore-surface-contract.md` — `D-EXPL-001` ~ `D-EXPL-013`（Realm discovery；与 `Home` feed 表面互不重叠）

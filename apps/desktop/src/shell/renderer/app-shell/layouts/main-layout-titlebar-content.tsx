@@ -47,7 +47,7 @@ export function MainLayoutTitlebarContent(props: MainLayoutTitlebarContentProps)
             <ExploreSearchField
               value={props.exploreSearchText}
               onChange={props.onExploreSearchTextChange}
-              placeholder={t('Explore.searchPlaceholder', { defaultValue: 'Search agents by name/handle...' })}
+              placeholder={t('Explore.searchPlaceholder', { defaultValue: 'Search personas by name/handle...' })}
             />
           </div>
         </div>

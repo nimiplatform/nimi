@@ -22,15 +22,15 @@ const (
 )
 
 type AgentRequestContext struct {
-	state         protoimpl.MessageState          `protogen:"open.v1"`
-	AppId         string                          `protobuf:"bytes,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
-	SubjectUserId string                          `protobuf:"bytes,2,opt,name=subject_user_id,json=subjectUserId,proto3" json:"subject_user_id,omitempty"`
-	ScopedBinding *ScopedRuntimeBindingAttachment `protobuf:"bytes,3,opt,name=scoped_binding,json=scopedBinding,proto3" json:"scoped_binding,omitempty"`
-	OwnerUserId   string                          `protobuf:"bytes,4,opt,name=owner_user_id,json=ownerUserId,proto3" json:"owner_user_id,omitempty"`
-	RealmAgentId  string                          `protobuf:"bytes,5,opt,name=realm_agent_id,json=realmAgentId,proto3" json:"realm_agent_id,omitempty"`
-	LocalAgentRef string                          `protobuf:"bytes,6,opt,name=local_agent_ref,json=localAgentRef,proto3" json:"local_agent_ref,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state            protoimpl.MessageState          `protogen:"open.v1"`
+	AppId            string                          `protobuf:"bytes,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
+	SubjectUserId    string                          `protobuf:"bytes,2,opt,name=subject_user_id,json=subjectUserId,proto3" json:"subject_user_id,omitempty"`
+	ScopedBinding    *ScopedRuntimeBindingAttachment `protobuf:"bytes,3,opt,name=scoped_binding,json=scopedBinding,proto3" json:"scoped_binding,omitempty"`
+	OwnerUserId      string                          `protobuf:"bytes,4,opt,name=owner_user_id,json=ownerUserId,proto3" json:"owner_user_id,omitempty"`
+	RuntimeSourceRef string                          `protobuf:"bytes,5,opt,name=runtime_source_ref,json=runtimeSourceRef,proto3" json:"runtime_source_ref,omitempty"`
+	LocalAgentRef    string                          `protobuf:"bytes,6,opt,name=local_agent_ref,json=localAgentRef,proto3" json:"local_agent_ref,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *AgentRequestContext) Reset() {
@@ -91,9 +91,9 @@ func (x *AgentRequestContext) GetOwnerUserId() string {
 	return ""
 }
 
-func (x *AgentRequestContext) GetRealmAgentId() string {
+func (x *AgentRequestContext) GetRuntimeSourceRef() string {
 	if x != nil {
-		return x.RealmAgentId
+		return x.RuntimeSourceRef
 	}
 	return ""
 }
@@ -109,13 +109,13 @@ var File_runtime_v1_agent_common_proto protoreflect.FileDescriptor
 
 const file_runtime_v1_agent_common_proto_rawDesc = "" +
 	"\n" +
-	"\x1druntime/v1/agent_common.proto\x12\x0fnimi.runtime.v1\x1a\x17runtime/v1/common.proto\"\x9e\x02\n" +
+	"\x1druntime/v1/agent_common.proto\x12\x0fnimi.runtime.v1\x1a\x17runtime/v1/common.proto\"\xa6\x02\n" +
 	"\x13AgentRequestContext\x12\x15\n" +
 	"\x06app_id\x18\x01 \x01(\tR\x05appId\x12&\n" +
 	"\x0fsubject_user_id\x18\x02 \x01(\tR\rsubjectUserId\x12V\n" +
 	"\x0escoped_binding\x18\x03 \x01(\v2/.nimi.runtime.v1.ScopedRuntimeBindingAttachmentR\rscopedBinding\x12\"\n" +
-	"\rowner_user_id\x18\x04 \x01(\tR\vownerUserId\x12$\n" +
-	"\x0erealm_agent_id\x18\x05 \x01(\tR\frealmAgentId\x12&\n" +
+	"\rowner_user_id\x18\x04 \x01(\tR\vownerUserId\x12,\n" +
+	"\x12runtime_source_ref\x18\x05 \x01(\tR\x10runtimeSourceRef\x12&\n" +
 	"\x0flocal_agent_ref\x18\x06 \x01(\tR\rlocalAgentRefB?Z=github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1b\x06proto3"
 
 var (

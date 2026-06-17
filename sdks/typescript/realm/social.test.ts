@@ -181,8 +181,14 @@ test('Realm social helpers call generated/facade methods and fail closed on unsu
 });
 
 test('Realm social feed empty response keeps generated page shape', () => {
-  assert.deepEqual([...NIMI_REALM_FEED_SCOPES], ['personal', 'friends']);
+  assert.deepEqual([...NIMI_REALM_FEED_SCOPES], [
+    'personal',
+    'friends',
+    'persona_activity',
+    'world_character_activity',
+  ]);
   assert.equal(isNimiRealmFeedScope('friends'), true);
+  assert.equal(isNimiRealmFeedScope('persona_activity'), true);
   assert.equal(isNimiRealmFeedScope('source-activity'), false);
   assert.equal(isNimiRealmFeedScope(null), false);
   assert.equal(

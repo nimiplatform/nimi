@@ -70,7 +70,7 @@ export type AvatarDebugWorkbenchDiagnostics = {
 
 export type DesktopCompanionParticipationProjectionRequest = {
   ownerUserId: string;
-  realmAgentId: string;
+  runtimeSourceRef: string;
   localAgentRef: string;
   conversationAnchorId: string;
   surfaceKind: NimiRuntimeAgentCompanionParticipationSurfaceKind;
@@ -318,14 +318,14 @@ export function avatarDebugProbeRemediation(
 
 export function buildDesktopCompanionParticipationProjectionRequest(input: {
   ownerUserId: string;
-  realmAgentId: string;
+  runtimeSourceRef: string;
   localAgentRef: string;
   conversationAnchorId: string;
   surfaceKind?: NimiRuntimeAgentCompanionParticipationSurfaceKind;
 }): DesktopCompanionParticipationProjectionRequest {
   return {
     ownerUserId: input.ownerUserId,
-    realmAgentId: input.realmAgentId,
+    runtimeSourceRef: input.runtimeSourceRef,
     localAgentRef: input.localAgentRef,
     conversationAnchorId: input.conversationAnchorId,
     surfaceKind: input.surfaceKind || 'avatar_debug_workbench',

@@ -91,7 +91,7 @@ export type AppStoreState = {
   chatSetupState: ChatSetupStateByMode;
   selectedChatId: string | null;
   selectedProfileId: string | null;
-  selectedProfileIsAgent: boolean | null;
+  selectedProfileIsSource: boolean | null;
   selectedWorldId: string | null;
   selectedGiftTransactionId: string | null;
   profileDetailOverlayOpen: boolean;
@@ -131,7 +131,7 @@ export type AppStoreState = {
   setChatSetupState: (mode: ConversationMode, setupState: ConversationSetupState | null) => void;
   setSelectedChatId: (chatId: string | null) => void;
   setSelectedProfileId: (profileId: string | null) => void;
-  setSelectedProfileIsAgent: (isAgent: boolean | null) => void;
+  setSelectedProfileIsSource: (isSource: boolean | null) => void;
   setSelectedWorldId: (worldId: string | null) => void;
   setSelectedGiftTransactionId: (giftTransactionId: string | null) => void;
   setProfileDetailOverlayOpen: (open: boolean) => void;

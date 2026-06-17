@@ -10,7 +10,7 @@ entries:
   - R-CHAT-016
   - group_thread_ref
   - membership_snapshot_ref
-  - agent_slot_ref
+  - runtime_participant_slot_ref
   - trigger_event_ref
   - read_cursor_ref
   - reply_target_ref
@@ -30,7 +30,7 @@ realm_product_rules:
   - R-CHAT-010
   - R-CHAT-011
   - R-CHAT-016
-runtime_profile: realm_group_agent
+runtime_profile: realm_group_source
 output_destination: REALM_GROUP_MESSAGE_CANDIDATE
 context_blocks:
   - id: group_thread_ref
@@ -51,12 +51,12 @@ context_blocks:
     forbidden_fields:
       - app_local_participant_list
       - unbounded_transcript_dump
-  - id: agent_slot_ref
+  - id: runtime_participant_slot_ref
     realm_owner: R-CHAT-009
     required_fields:
       - slot_id
       - owner_user_id
-      - realm_agent_id
+      - runtime_source_ref
       - local_agent_ref
       - lifecycle_state
       - display_identity_ref

@@ -16,7 +16,7 @@ type SmokeStepRecorder = (step: string) => void;
 
 async function waitForAvatarLiveInstance(
   deps: DesktopMacosSmokeDriverDeps,
-  realmAgentId: string,
+  runtimeSourceRef: string,
   localAgentRef: string,
   _expectedConversationAnchorId: string | null = null,
   timeoutMs = SMOKE_STEP_TIMEOUT_MS,
@@ -27,7 +27,7 @@ async function waitForAvatarLiveInstance(
     const instances = await deps.listAvatarLiveInstances(localAgentRef);
     lastCount = instances.length;
     const current = instances.find((instance) => (
-      instance.realmAgentId === realmAgentId
+      instance.runtimeSourceRef === runtimeSourceRef
       && instance.localAgentRef === localAgentRef
     ));
     if (current) {
@@ -36,7 +36,7 @@ async function waitForAvatarLiveInstance(
     await new Promise((resolve) => setTimeout(resolve, 250));
   }
   throw new Error(
-    `missing same-anchor Avatar live instance for ${realmAgentId}`
+    `missing same-anchor Avatar live instance for ${runtimeSourceRef}`
     + `; observed ${lastCount} instance(s)`,
   );
 }
@@ -44,7 +44,7 @@ async function waitForAvatarLiveInstance(
 async function waitForAgentConversationAnchorBinding(
   deps: DesktopMacosSmokeDriverDeps,
   input: {
-    realmAgentId: string;
+    runtimeSourceRef: string;
     localAgentRef: string;
   },
   notBeforeMs = 0,
@@ -59,7 +59,7 @@ async function waitForAgentConversationAnchorBinding(
     if (
       binding
       && binding.localAgentRef === input.localAgentRef
-      && binding.realmAgentId === input.realmAgentId
+      && binding.runtimeSourceRef === input.runtimeSourceRef
       && anchor
       && binding.updatedAtMs >= notBeforeMs
     ) {
@@ -140,7 +140,7 @@ export async function runChatLive2dAvatarProductSmokeScenario(
   const conversationAnchorId = await waitForAgentConversationAnchorBinding(
     deps,
     {
-      realmAgentId: E2E_PRIMARY_REALM_AGENT_ID,
+      runtimeSourceRef: E2E_PRIMARY_REALM_AGENT_ID,
       localAgentRef: E2E_PRIMARY_LOCAL_AGENT_REF,
     },
     anchorWriteNotBeforeMs,

@@ -1,7 +1,7 @@
 import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
 import { useEffect, useMemo, useState } from 'react';
 import { AppCardSurface, Button, ScrollArea } from '@nimiplatform/kit/ui';
-import { loadNimiRealmNotifications, loadNimiRealmNotificationUnreadCount, markNimiRealmNotificationRead, markNimiRealmNotificationsRead, toNimiRealmNotificationListProjection } from '@nimiplatform/sdk/realm';
+import { loadNimiRealmNotifications, loadNimiRealmNotificationUnreadCount, markNimiRealmNotificationRead, markNimiRealmNotificationsRead, toNimiRealmNotificationListView } from '@nimiplatform/sdk/realm';
 import { type RealmModel } from '@nimiplatform/sdk/realm/generated';
 import {
   getNimiNotificationCategory,
@@ -77,7 +77,7 @@ export function NotificationPanel() {
     ),
     enabled: authStatus === 'authenticated' && Boolean(notificationIdentityRef),
     getNextPageParam: (lastPage) => {
-      const parsed = toNimiRealmNotificationListProjection(
+      const parsed = toNimiRealmNotificationListView(
         lastPage,
         t('NotificationPanel.title', { defaultValue: 'Notification' }),
         i18n.t('Common.unknown', { defaultValue: 'Unknown' }),
@@ -112,7 +112,7 @@ export function NotificationPanel() {
 
     const byId = new Map<string, NotificationItemView>();
     for (const page of notificationsQuery.data.pages) {
-      const parsed = toNimiRealmNotificationListProjection(
+      const parsed = toNimiRealmNotificationListView(
         page,
         t('NotificationPanel.title', { defaultValue: 'Notification' }),
         i18n.t('Common.unknown', { defaultValue: 'Unknown' }),
@@ -263,7 +263,7 @@ export function NotificationPanel() {
       });
     } finally {
       setPendingItemAction((current) => (
-        current?.itemId === input.item.id && current.action === input.action
+        current !== null && current.itemId === input.item.id && current.action === input.action
           ? null
           : current
       ));

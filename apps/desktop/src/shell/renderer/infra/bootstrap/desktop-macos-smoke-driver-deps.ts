@@ -406,7 +406,7 @@ export function createDomDriverDeps(options: DesktopMacosSmokeDriverDepsOptions 
       }
       return listDesktopAvatarLiveInstances({
         ownerUserId: identity.ownerUserId,
-        realmAgentId: identity.realmAgentId,
+        runtimeSourceRef: identity.runtimeSourceRef,
         localAgentRef: identity.localAgentRef,
       });
     },

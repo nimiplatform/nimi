@@ -14,9 +14,9 @@ enum RealmGroupMessageCandidateCommitDisposition {
 message CreateRealmGroupMessageCandidateRequest {
   AgentRequestContext context = 1;
   string realm_group_thread_id = 2;
-  string realm_group_agent_slot_id = 3;
+  string runtime_participant_slot = 3;
   string owner_user_id = 4;
-  string realm_agent_id = 5;
+  string runtime_source_ref = 5;
   string local_agent_ref = 6;
   string trigger_ref = 7;
   string membership_snapshot_ref = 8;
@@ -34,9 +34,9 @@ message RealmGroupMessageCandidateCommitHandle {
   string evidence_hash = 4;
   string runtime_trace_ref = 5;
   string realm_group_thread_id = 6;
-  string realm_group_agent_slot_id = 7;
+  string runtime_participant_slot = 7;
   string owner_user_id = 8;
-  string realm_agent_id = 9;
+  string runtime_source_ref = 9;
   string local_agent_ref = 10;
   string trigger_ref = 11;
   string output_candidate_ref = 12;
@@ -67,7 +67,7 @@ message GetRealmGroupMessageCandidateEvidenceRequest {
   string candidate_evidence_ref = 4;
   string evidence_hash = 5;
   string runtime_trace_ref = 6;
-  string expected_realm_group_agent_slot_id = 7;
+  string expected_runtime_participant_slot = 7;
   string expected_local_agent_ref = 8;
   string trigger_ref = 9;
   string target_realm_group_thread_id = 10;
@@ -77,9 +77,9 @@ message RealmGroupMessageCandidateEvidence {
   string candidate_id = 1;
   string candidate_kind = 2;
   string realm_group_thread_id = 3;
-  string realm_group_agent_slot_id = 4;
+  string runtime_participant_slot = 4;
   string owner_user_id = 5;
-  string realm_agent_id = 6;
+  string runtime_source_ref = 6;
   string local_agent_ref = 7;
   string trigger_ref = 8;
   string output_candidate_ref = 9;

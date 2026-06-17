@@ -2,9 +2,10 @@ import {
   assert,
   test,
   ReasonCode,
-  toAgentFriendTargetsFromSocialSnapshot,
   hydrateAgentThreadBundleFromRuntimeSessionSnapshot,
 } from './chat-agent-local-mode-test-utils.js';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import type { NimiRuntimeAgentMessage, NimiRuntimeAgentSessionSnapshot } from '@nimiplatform/sdk/runtime';
 
 type RuntimeAgentReplaySessionSnapshot = NimiRuntimeAgentSessionSnapshot & {
@@ -17,104 +18,20 @@ function transcriptWithoutRuntimeReplayEnvelope(
   return messages as unknown as RuntimeAgentReplaySessionSnapshot['transcript'];
 }
 
-test('agent local mode filters social snapshot to agent friends and fails close on broken agent targets', () => {
-  const targets = toAgentFriendTargetsFromSocialSnapshot({
-    ownerUserId: 'user-1',
-    friends: [
-      {
-        id: 'human-1',
-        displayName: 'Human',
-        handle: 'human',
-        isAgent: false,
-      },
-      {
-        id: 'agent-1',
-        displayName: 'Companion',
-        handle: 'companion',
-        isAgent: true,
-        worldId: 'world-1',
-        worldName: 'World One',
-        bio: 'friend agent',
-        ownershipType: 'MASTER_OWNED',
-      },
-    ],
-  });
-
-  assert.deepEqual(targets, [{
-    ownerUserId: 'user-1',
-    realmAgentId: 'agent-1',
-    localAgentRef: 'local-agent:user-1:agent-1',
-    displayName: 'Companion',
-    handle: 'companion',
-    avatarUrl: null,
-    defaultVoiceReference: null,
-    speechSynthesis: null,
-    presentationProfile: null,
-    worldId: 'world-1',
-    worldName: 'World One',
-    bio: 'friend agent',
-    ownershipType: 'MASTER_OWNED',
-    greeting: null,
-    builtinDocsContext: null,
-    ownerSettingsProjection: null,
-  }]);
-
-  assert.throws(() => {
-    toAgentFriendTargetsFromSocialSnapshot({
-      ownerUserId: 'user-1',
-      friends: [{
-        id: 'agent-2',
-        displayName: '',
-        handle: 'broken',
-        isAgent: true,
-      }],
-    });
-  }, /displayName is required/);
-});
-
-test('agent local mode treats Archivist as an ordinary agent friend target', () => {
-  const targets = toAgentFriendTargetsFromSocialSnapshot({
-    ownerUserId: 'user-1',
-    friends: [
-      {
-        id: 'nimi-guide-archivist',
-        displayName: 'Archivist',
-        handle: '~archivist',
-        isAgent: true,
-        worldId: 'oasis',
-        worldName: 'OASIS',
-        bio: 'Nimi guide agent',
-        ownershipType: 'MASTER_OWNED',
-      },
-    ],
-  });
-
-  assert.deepEqual(targets, [{
-    ownerUserId: 'user-1',
-    realmAgentId: 'nimi-guide-archivist',
-    localAgentRef: 'local-agent:user-1:nimi-guide-archivist',
-    displayName: 'Archivist',
-    handle: '~archivist',
-    avatarUrl: null,
-    defaultVoiceReference: null,
-    speechSynthesis: null,
-    presentationProfile: null,
-    worldId: 'oasis',
-    worldName: 'OASIS',
-    bio: 'Nimi guide agent',
-    ownershipType: 'MASTER_OWNED',
-    greeting: null,
-    builtinDocsContext: null,
-    ownerSettingsProjection: null,
-  }]);
-  assert.notEqual(targets[0]?.handle, '@archivist.nimi');
+test('agent local mode does not derive runtime targets from Realm social friends', () => {
+  const source = readFileSync(
+    resolve(import.meta.dirname, '../src/shell/renderer/features/chat/chat-agent-thread-model.ts'),
+    'utf8',
+  );
+  assert.doesNotMatch(source, new RegExp(['to', 'Agent', 'Friend', 'Targets', 'From', 'Social', 'Snapshot'].join('')));
+  assert.doesNotMatch(source, new RegExp(['parse', 'Agent', 'Friend', 'Target'].join('')));
 });
 
 test('agent session hydration does not replace missing local bundle with text-only runtime snapshot without envelope', () => {
   const thread = {
     id: 'thread-1',
     ownerUserId: 'user-1',
-    realmAgentId: 'agent-1',
+    runtimeSourceRef: 'agent-1',
     localAgentRef: 'local-agent:user-1:agent-1',
     title: 'Agent One',
     createdAtMs: 1000,
@@ -122,7 +39,7 @@ test('agent session hydration does not replace missing local bundle with text-on
     lastMessageAtMs: null,
     targetSnapshot: {
       ownerUserId: 'user-1',
-    realmAgentId: 'agent-1',
+    runtimeSourceRef: 'agent-1',
     localAgentRef: 'local-agent:user-1:agent-1',
       displayName: 'Agent One',
       handle: 'agent-one',
@@ -158,7 +75,7 @@ test('agent session hydration can rebuild missing local bundle from Runtime repl
   const thread = {
     id: 'thread-1',
     ownerUserId: 'user-1',
-    realmAgentId: 'agent-1',
+    runtimeSourceRef: 'agent-1',
     localAgentRef: 'local-agent:user-1:agent-1',
     title: 'Agent One',
     createdAtMs: 1000,
@@ -166,7 +83,7 @@ test('agent session hydration can rebuild missing local bundle from Runtime repl
     lastMessageAtMs: null,
     targetSnapshot: {
       ownerUserId: 'user-1',
-    realmAgentId: 'agent-1',
+    runtimeSourceRef: 'agent-1',
     localAgentRef: 'local-agent:user-1:agent-1',
       displayName: 'Agent One',
       handle: 'agent-one',
@@ -246,7 +163,7 @@ test('agent session hydration rejects missing replay envelope even when local bu
   const thread = {
     id: 'thread-1',
     ownerUserId: 'user-1',
-    realmAgentId: 'agent-1',
+    runtimeSourceRef: 'agent-1',
     localAgentRef: 'local-agent:user-1:agent-1',
     title: 'Agent One',
     createdAtMs: 1000,
@@ -254,7 +171,7 @@ test('agent session hydration rejects missing replay envelope even when local bu
     lastMessageAtMs: 1001,
     targetSnapshot: {
       ownerUserId: 'user-1',
-      realmAgentId: 'agent-1',
+      runtimeSourceRef: 'agent-1',
       localAgentRef: 'local-agent:user-1:agent-1',
       displayName: 'Agent One',
       handle: 'agent-one',
@@ -310,7 +227,7 @@ test('agent session hydration preserves local pending projections over runtime s
   const thread = {
     id: 'thread-1',
     ownerUserId: 'user-1',
-    realmAgentId: 'agent-1',
+    runtimeSourceRef: 'agent-1',
     localAgentRef: 'local-agent:user-1:agent-1',
     title: 'Agent One',
     createdAtMs: 1000,
@@ -318,7 +235,7 @@ test('agent session hydration preserves local pending projections over runtime s
     lastMessageAtMs: null,
     targetSnapshot: {
       ownerUserId: 'user-1',
-    realmAgentId: 'agent-1',
+    runtimeSourceRef: 'agent-1',
     localAgentRef: 'local-agent:user-1:agent-1',
       displayName: 'Agent One',
       handle: 'agent-one',
@@ -374,7 +291,7 @@ test('agent session hydration does not drop committed assistant text when failed
   const thread = {
     id: 'thread-1',
     ownerUserId: 'user-1',
-    realmAgentId: 'agent-1',
+    runtimeSourceRef: 'agent-1',
     localAgentRef: 'local-agent:user-1:agent-1',
     title: 'Agent One',
     createdAtMs: 1000,
@@ -382,7 +299,7 @@ test('agent session hydration does not drop committed assistant text when failed
     lastMessageAtMs: 3000,
     targetSnapshot: {
       ownerUserId: 'user-1',
-    realmAgentId: 'agent-1',
+    runtimeSourceRef: 'agent-1',
     localAgentRef: 'local-agent:user-1:agent-1',
       displayName: 'Agent One',
       handle: 'agent-one',
@@ -482,7 +399,7 @@ test('agent session hydration preserves committed assistant image projection whe
   const thread = {
     id: 'thread-1',
     ownerUserId: 'user-1',
-    realmAgentId: 'agent-1',
+    runtimeSourceRef: 'agent-1',
     localAgentRef: 'local-agent:user-1:agent-1',
     title: 'Agent One',
     createdAtMs: 1000,
@@ -490,7 +407,7 @@ test('agent session hydration preserves committed assistant image projection whe
     lastMessageAtMs: 3000,
     targetSnapshot: {
       ownerUserId: 'user-1',
-    realmAgentId: 'agent-1',
+    runtimeSourceRef: 'agent-1',
     localAgentRef: 'local-agent:user-1:agent-1',
       displayName: 'Agent One',
       handle: 'agent-one',
@@ -584,7 +501,7 @@ test('agent session hydration merges committed media projections when runtime te
   const thread = {
     id: 'thread-1',
     ownerUserId: 'user-1',
-    realmAgentId: 'agent-1',
+    runtimeSourceRef: 'agent-1',
     localAgentRef: 'local-agent:user-1:agent-1',
     title: 'Agent One',
     createdAtMs: 1000,
@@ -592,7 +509,7 @@ test('agent session hydration merges committed media projections when runtime te
     lastMessageAtMs: 3000,
     targetSnapshot: {
       ownerUserId: 'user-1',
-    realmAgentId: 'agent-1',
+    runtimeSourceRef: 'agent-1',
     localAgentRef: 'local-agent:user-1:agent-1',
       displayName: 'Agent One',
       handle: 'agent-one',

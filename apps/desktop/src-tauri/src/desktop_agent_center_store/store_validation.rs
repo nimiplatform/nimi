@@ -29,33 +29,33 @@ pub(crate) fn validate_normalized_id(value: &str, field_name: &str) -> Result<St
     Ok(trimmed.to_string())
 }
 
-pub(crate) fn expected_local_agent_ref(owner_user_id: &str, realm_agent_id: &str) -> String {
-    format!("{LOCAL_AGENT_REF_PREFIX}{owner_user_id}:{realm_agent_id}")
+pub(crate) fn expected_local_agent_ref(owner_user_id: &str, runtime_source_ref: &str) -> String {
+    format!("{LOCAL_AGENT_REF_PREFIX}{owner_user_id}:{runtime_source_ref}")
 }
 
 pub(crate) fn validate_local_agent_scope(
     owner_user_id: &str,
-    realm_agent_id: &str,
+    runtime_source_ref: &str,
     local_agent_ref: &str,
 ) -> Result<LocalAgentScope, String> {
     let owner_user_id = validate_normalized_id(owner_user_id, "ownerUserId")?;
-    let realm_agent_id = validate_normalized_id(realm_agent_id, "realmAgentId")?;
+    let runtime_source_ref = validate_normalized_id(runtime_source_ref, "runtimeSourceRef")?;
     let local_agent_ref = validate_normalized_id(local_agent_ref, "localAgentRef")?;
-    if local_agent_ref == realm_agent_id {
-        return Err("localAgentRef must not be a bare realmAgentId".to_string());
+    if local_agent_ref == runtime_source_ref {
+        return Err("localAgentRef must not be a bare runtimeSourceRef".to_string());
     }
     if !local_agent_ref.starts_with(LOCAL_AGENT_REF_PREFIX) {
         return Err("localAgentRef must start with local-agent:".to_string());
     }
-    let expected = expected_local_agent_ref(&owner_user_id, &realm_agent_id);
+    let expected = expected_local_agent_ref(&owner_user_id, &runtime_source_ref);
     if local_agent_ref != expected {
         return Err(
-            "localAgentRef must equal local-agent:${ownerUserId}:${realmAgentId}".to_string(),
+            "localAgentRef must equal local-agent:${ownerUserId}:${runtimeSourceRef}".to_string(),
         );
     }
     Ok(LocalAgentScope {
         owner_user_id,
-        realm_agent_id,
+        runtime_source_ref,
         local_agent_ref,
     })
 }
@@ -158,7 +158,7 @@ fn validate_agent_center_config(config: &AgentCenterLocalConfig) -> Result<(), S
     validate_normalized_id(&config.account_id, "account_id")?;
     validate_local_agent_scope(
         &config.owner_user_id,
-        &config.realm_agent_id,
+        &config.runtime_source_ref,
         &config.local_agent_ref,
     )?;
 
@@ -308,7 +308,7 @@ pub(crate) fn validate_agent_center_config_scope(
     validate_agent_center_config(config)?;
     if config.account_id != account_id
         || config.owner_user_id != scope.owner_user_id
-        || config.realm_agent_id != scope.realm_agent_id
+        || config.runtime_source_ref != scope.runtime_source_ref
         || config.local_agent_ref != scope.local_agent_ref
     {
         return Err(
@@ -324,7 +324,7 @@ pub(crate) fn default_config(account_id: &str, scope: &LocalAgentScope) -> Agent
         config_kind: AGENT_CENTER_CONFIG_KIND.to_string(),
         account_id: account_id.to_string(),
         owner_user_id: scope.owner_user_id.clone(),
-        realm_agent_id: scope.realm_agent_id.clone(),
+        runtime_source_ref: scope.runtime_source_ref.clone(),
         local_agent_ref: scope.local_agent_ref.clone(),
         modules: AgentCenterLocalConfigModules {
             appearance: AgentCenterAppearanceModule {
@@ -375,7 +375,7 @@ pub(crate) fn scope_from_payload(
         validate_normalized_id(&payload.account_id, "accountId")?,
         validate_local_agent_scope(
             &payload.owner_user_id,
-            &payload.realm_agent_id,
+            &payload.runtime_source_ref,
             &payload.local_agent_ref,
         )?,
     ))
@@ -393,8 +393,8 @@ fn project_missing_pre_cutover_modules(
         serde_json::Value::String(scope.owner_user_id.clone()),
     );
     object.insert(
-        "realm_agent_id".to_string(),
-        serde_json::Value::String(scope.realm_agent_id.clone()),
+        "runtime_source_ref".to_string(),
+        serde_json::Value::String(scope.runtime_source_ref.clone()),
     );
     object.insert(
         "local_agent_ref".to_string(),

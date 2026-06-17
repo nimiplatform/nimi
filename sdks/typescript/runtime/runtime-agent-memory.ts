@@ -124,7 +124,7 @@ function buildAgentCanonicalMemoryRequest(
       appId: normalizeNimiRuntimeAgentText(runtime.appId),
       subjectUserId,
       ownerUserId: identity.ownerUserId,
-      realmAgentId: identity.realmAgentId,
+      runtimeSourceRef: identity.runtimeSourceRef,
       localAgentRef: identity.localAgentRef,
     },
   };

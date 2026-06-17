@@ -3334,7 +3334,7 @@ pub struct AgentEvent {
     pub avatar_debug: Option<Box<AgentAvatarDebugEventDetail>>,
     pub local_agent_ref: Option<String>,
     pub owner_user_id: Option<String>,
-    pub realm_agent_id: Option<String>,
+    pub runtime_source_ref: Option<String>,
 }
 
 impl AgentEvent {
@@ -3354,7 +3354,7 @@ impl AgentEvent {
         if self.avatar_debug.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode avatar_debug"); }
         if let Some(value) = &self.local_agent_ref { pairs.push(format!("local_agent_ref={}", value)); }
         if let Some(value) = &self.owner_user_id { pairs.push(format!("owner_user_id={}", value)); }
-        if let Some(value) = &self.realm_agent_id { pairs.push(format!("realm_agent_id={}", value)); }
+        if let Some(value) = &self.runtime_source_ref { pairs.push(format!("runtime_source_ref={}", value)); }
         pairs.join(";").into_bytes()
     }
 
@@ -3372,7 +3372,7 @@ impl AgentEvent {
         out.timestamp = pairs.get("timestamp").cloned();
         out.local_agent_ref = pairs.get("local_agent_ref").cloned();
         out.owner_user_id = pairs.get("owner_user_id").cloned();
-        out.realm_agent_id = pairs.get("realm_agent_id").cloned();
+        out.runtime_source_ref = pairs.get("runtime_source_ref").cloned();
         out
     }
 }
@@ -3643,7 +3643,7 @@ pub struct AgentRecord {
     pub updated_at: Option<String>,
     pub local_agent_ref: Option<String>,
     pub owner_user_id: Option<String>,
-    pub realm_agent_id: Option<String>,
+    pub runtime_source_ref: Option<String>,
 }
 
 impl AgentRecord {
@@ -3658,7 +3658,7 @@ impl AgentRecord {
         if let Some(value) = &self.updated_at { pairs.push(format!("updated_at={}", value)); }
         if let Some(value) = &self.local_agent_ref { pairs.push(format!("local_agent_ref={}", value)); }
         if let Some(value) = &self.owner_user_id { pairs.push(format!("owner_user_id={}", value)); }
-        if let Some(value) = &self.realm_agent_id { pairs.push(format!("realm_agent_id={}", value)); }
+        if let Some(value) = &self.runtime_source_ref { pairs.push(format!("runtime_source_ref={}", value)); }
         pairs.join(";").into_bytes()
     }
 
@@ -3677,7 +3677,7 @@ impl AgentRecord {
         out.updated_at = pairs.get("updated_at").cloned();
         out.local_agent_ref = pairs.get("local_agent_ref").cloned();
         out.owner_user_id = pairs.get("owner_user_id").cloned();
-        out.realm_agent_id = pairs.get("realm_agent_id").cloned();
+        out.runtime_source_ref = pairs.get("runtime_source_ref").cloned();
         out
     }
 }
@@ -3716,7 +3716,7 @@ pub struct AgentRequestContext {
     pub subject_user_id: Option<String>,
     pub scoped_binding: Option<Box<ScopedRuntimeBindingAttachment>>,
     pub owner_user_id: Option<String>,
-    pub realm_agent_id: Option<String>,
+    pub runtime_source_ref: Option<String>,
     pub local_agent_ref: Option<String>,
 }
 
@@ -3727,7 +3727,7 @@ impl AgentRequestContext {
         if let Some(value) = &self.subject_user_id { pairs.push(format!("subject_user_id={}", value)); }
         if self.scoped_binding.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode scoped_binding"); }
         if let Some(value) = &self.owner_user_id { pairs.push(format!("owner_user_id={}", value)); }
-        if let Some(value) = &self.realm_agent_id { pairs.push(format!("realm_agent_id={}", value)); }
+        if let Some(value) = &self.runtime_source_ref { pairs.push(format!("runtime_source_ref={}", value)); }
         if let Some(value) = &self.local_agent_ref { pairs.push(format!("local_agent_ref={}", value)); }
         pairs.join(";").into_bytes()
     }
@@ -3744,7 +3744,7 @@ impl AgentRequestContext {
         out.app_id = pairs.get("app_id").cloned();
         out.subject_user_id = pairs.get("subject_user_id").cloned();
         out.owner_user_id = pairs.get("owner_user_id").cloned();
-        out.realm_agent_id = pairs.get("realm_agent_id").cloned();
+        out.runtime_source_ref = pairs.get("runtime_source_ref").cloned();
         out.local_agent_ref = pairs.get("local_agent_ref").cloned();
         out
     }
@@ -5644,7 +5644,7 @@ pub struct AvatarLiveInstanceBinding {
     pub updated_at: Option<String>,
     pub local_agent_ref: Option<String>,
     pub owner_user_id: Option<String>,
-    pub realm_agent_id: Option<String>,
+    pub runtime_source_ref: Option<String>,
     pub caller_app_id: Option<String>,
 }
 
@@ -5659,7 +5659,7 @@ impl AvatarLiveInstanceBinding {
         if let Some(value) = &self.updated_at { pairs.push(format!("updated_at={}", value)); }
         if let Some(value) = &self.local_agent_ref { pairs.push(format!("local_agent_ref={}", value)); }
         if let Some(value) = &self.owner_user_id { pairs.push(format!("owner_user_id={}", value)); }
-        if let Some(value) = &self.realm_agent_id { pairs.push(format!("realm_agent_id={}", value)); }
+        if let Some(value) = &self.runtime_source_ref { pairs.push(format!("runtime_source_ref={}", value)); }
         if let Some(value) = &self.caller_app_id { pairs.push(format!("caller_app_id={}", value)); }
         pairs.join(";").into_bytes()
     }
@@ -5676,7 +5676,7 @@ impl AvatarLiveInstanceBinding {
         out.updated_at = pairs.get("updated_at").cloned();
         out.local_agent_ref = pairs.get("local_agent_ref").cloned();
         out.owner_user_id = pairs.get("owner_user_id").cloned();
-        out.realm_agent_id = pairs.get("realm_agent_id").cloned();
+        out.runtime_source_ref = pairs.get("runtime_source_ref").cloned();
         out.caller_app_id = pairs.get("caller_app_id").cloned();
         out
     }
@@ -7461,7 +7461,7 @@ pub struct ConversationAnchor {
     pub metadata: Option<BTreeMap<String, String>>,
     pub local_agent_ref: Option<String>,
     pub owner_user_id: Option<String>,
-    pub realm_agent_id: Option<String>,
+    pub runtime_source_ref: Option<String>,
 }
 
 impl ConversationAnchor {
@@ -7478,7 +7478,7 @@ impl ConversationAnchor {
         if self.metadata.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode metadata"); }
         if let Some(value) = &self.local_agent_ref { pairs.push(format!("local_agent_ref={}", value)); }
         if let Some(value) = &self.owner_user_id { pairs.push(format!("owner_user_id={}", value)); }
-        if let Some(value) = &self.realm_agent_id { pairs.push(format!("realm_agent_id={}", value)); }
+        if let Some(value) = &self.runtime_source_ref { pairs.push(format!("runtime_source_ref={}", value)); }
         pairs.join(";").into_bytes()
     }
 
@@ -7500,7 +7500,7 @@ impl ConversationAnchor {
         out.updated_at = pairs.get("updated_at").cloned();
         out.local_agent_ref = pairs.get("local_agent_ref").cloned();
         out.owner_user_id = pairs.get("owner_user_id").cloned();
-        out.realm_agent_id = pairs.get("realm_agent_id").cloned();
+        out.runtime_source_ref = pairs.get("runtime_source_ref").cloned();
         out
     }
 }
@@ -7736,9 +7736,9 @@ impl CreateKnowledgeBankResponse {
 pub struct CreateRealmGroupMessageCandidateRequest {
     pub context: Option<Box<AgentRequestContext>>,
     pub realm_group_thread_id: Option<String>,
-    pub realm_group_agent_slot_id: Option<String>,
+    pub runtime_participant_slot: Option<String>,
     pub owner_user_id: Option<String>,
-    pub realm_agent_id: Option<String>,
+    pub runtime_source_ref: Option<String>,
     pub local_agent_ref: Option<String>,
     pub trigger_ref: Option<String>,
     pub membership_snapshot_ref: Option<String>,
@@ -7754,9 +7754,9 @@ impl CreateRealmGroupMessageCandidateRequest {
         let mut pairs: Vec<String> = Vec::new();
         if self.context.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode context"); }
         if let Some(value) = &self.realm_group_thread_id { pairs.push(format!("realm_group_thread_id={}", value)); }
-        if let Some(value) = &self.realm_group_agent_slot_id { pairs.push(format!("realm_group_agent_slot_id={}", value)); }
+        if let Some(value) = &self.runtime_participant_slot { pairs.push(format!("runtime_participant_slot={}", value)); }
         if let Some(value) = &self.owner_user_id { pairs.push(format!("owner_user_id={}", value)); }
-        if let Some(value) = &self.realm_agent_id { pairs.push(format!("realm_agent_id={}", value)); }
+        if let Some(value) = &self.runtime_source_ref { pairs.push(format!("runtime_source_ref={}", value)); }
         if let Some(value) = &self.local_agent_ref { pairs.push(format!("local_agent_ref={}", value)); }
         if let Some(value) = &self.trigger_ref { pairs.push(format!("trigger_ref={}", value)); }
         if let Some(value) = &self.membership_snapshot_ref { pairs.push(format!("membership_snapshot_ref={}", value)); }
@@ -7778,9 +7778,9 @@ impl CreateRealmGroupMessageCandidateRequest {
         }
 
         out.realm_group_thread_id = pairs.get("realm_group_thread_id").cloned();
-        out.realm_group_agent_slot_id = pairs.get("realm_group_agent_slot_id").cloned();
+        out.runtime_participant_slot = pairs.get("runtime_participant_slot").cloned();
         out.owner_user_id = pairs.get("owner_user_id").cloned();
-        out.realm_agent_id = pairs.get("realm_agent_id").cloned();
+        out.runtime_source_ref = pairs.get("runtime_source_ref").cloned();
         out.local_agent_ref = pairs.get("local_agent_ref").cloned();
         out.trigger_ref = pairs.get("trigger_ref").cloned();
         out.membership_snapshot_ref = pairs.get("membership_snapshot_ref").cloned();
@@ -11551,7 +11551,7 @@ pub struct GetRealmGroupMessageCandidateEvidenceRequest {
     pub candidate_evidence_ref: Option<String>,
     pub evidence_hash: Option<String>,
     pub runtime_trace_ref: Option<String>,
-    pub expected_realm_group_agent_slot_id: Option<String>,
+    pub expected_runtime_participant_slot: Option<String>,
     pub expected_local_agent_ref: Option<String>,
     pub trigger_ref: Option<String>,
     pub target_realm_group_thread_id: Option<String>,
@@ -11566,7 +11566,7 @@ impl GetRealmGroupMessageCandidateEvidenceRequest {
         if let Some(value) = &self.candidate_evidence_ref { pairs.push(format!("candidate_evidence_ref={}", value)); }
         if let Some(value) = &self.evidence_hash { pairs.push(format!("evidence_hash={}", value)); }
         if let Some(value) = &self.runtime_trace_ref { pairs.push(format!("runtime_trace_ref={}", value)); }
-        if let Some(value) = &self.expected_realm_group_agent_slot_id { pairs.push(format!("expected_realm_group_agent_slot_id={}", value)); }
+        if let Some(value) = &self.expected_runtime_participant_slot { pairs.push(format!("expected_runtime_participant_slot={}", value)); }
         if let Some(value) = &self.expected_local_agent_ref { pairs.push(format!("expected_local_agent_ref={}", value)); }
         if let Some(value) = &self.trigger_ref { pairs.push(format!("trigger_ref={}", value)); }
         if let Some(value) = &self.target_realm_group_thread_id { pairs.push(format!("target_realm_group_thread_id={}", value)); }
@@ -11587,7 +11587,7 @@ impl GetRealmGroupMessageCandidateEvidenceRequest {
         out.candidate_evidence_ref = pairs.get("candidate_evidence_ref").cloned();
         out.evidence_hash = pairs.get("evidence_hash").cloned();
         out.runtime_trace_ref = pairs.get("runtime_trace_ref").cloned();
-        out.expected_realm_group_agent_slot_id = pairs.get("expected_realm_group_agent_slot_id").cloned();
+        out.expected_runtime_participant_slot = pairs.get("expected_runtime_participant_slot").cloned();
         out.expected_local_agent_ref = pairs.get("expected_local_agent_ref").cloned();
         out.trigger_ref = pairs.get("trigger_ref").cloned();
         out.target_realm_group_thread_id = pairs.get("target_realm_group_thread_id").cloned();
@@ -12639,7 +12639,7 @@ pub struct InitializeAgentRequest {
     pub metadata: Option<BTreeMap<String, String>>,
     pub local_agent_ref: Option<String>,
     pub owner_user_id: Option<String>,
-    pub realm_agent_id: Option<String>,
+    pub runtime_source_ref: Option<String>,
 }
 
 impl InitializeAgentRequest {
@@ -12653,7 +12653,7 @@ impl InitializeAgentRequest {
         if self.metadata.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode metadata"); }
         if let Some(value) = &self.local_agent_ref { pairs.push(format!("local_agent_ref={}", value)); }
         if let Some(value) = &self.owner_user_id { pairs.push(format!("owner_user_id={}", value)); }
-        if let Some(value) = &self.realm_agent_id { pairs.push(format!("realm_agent_id={}", value)); }
+        if let Some(value) = &self.runtime_source_ref { pairs.push(format!("runtime_source_ref={}", value)); }
         pairs.join(";").into_bytes()
     }
 
@@ -12671,7 +12671,7 @@ impl InitializeAgentRequest {
         out.world_id = pairs.get("world_id").cloned();
         out.local_agent_ref = pairs.get("local_agent_ref").cloned();
         out.owner_user_id = pairs.get("owner_user_id").cloned();
-        out.realm_agent_id = pairs.get("realm_agent_id").cloned();
+        out.runtime_source_ref = pairs.get("runtime_source_ref").cloned();
         out
     }
 }
@@ -20298,7 +20298,7 @@ pub struct OpenConversationAnchorRequest {
     pub metadata: Option<BTreeMap<String, String>>,
     pub local_agent_ref: Option<String>,
     pub owner_user_id: Option<String>,
-    pub realm_agent_id: Option<String>,
+    pub runtime_source_ref: Option<String>,
 }
 
 impl OpenConversationAnchorRequest {
@@ -20310,7 +20310,7 @@ impl OpenConversationAnchorRequest {
         if self.metadata.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode metadata"); }
         if let Some(value) = &self.local_agent_ref { pairs.push(format!("local_agent_ref={}", value)); }
         if let Some(value) = &self.owner_user_id { pairs.push(format!("owner_user_id={}", value)); }
-        if let Some(value) = &self.realm_agent_id { pairs.push(format!("realm_agent_id={}", value)); }
+        if let Some(value) = &self.runtime_source_ref { pairs.push(format!("runtime_source_ref={}", value)); }
         pairs.join(";").into_bytes()
     }
 
@@ -20327,7 +20327,7 @@ impl OpenConversationAnchorRequest {
         out.subject_user_id = pairs.get("subject_user_id").cloned();
         out.local_agent_ref = pairs.get("local_agent_ref").cloned();
         out.owner_user_id = pairs.get("owner_user_id").cloned();
-        out.realm_agent_id = pairs.get("realm_agent_id").cloned();
+        out.runtime_source_ref = pairs.get("runtime_source_ref").cloned();
         out
     }
 }
@@ -21746,9 +21746,9 @@ pub struct RealmGroupMessageCandidateCommitHandle {
     pub evidence_hash: Option<String>,
     pub runtime_trace_ref: Option<String>,
     pub realm_group_thread_id: Option<String>,
-    pub realm_group_agent_slot_id: Option<String>,
+    pub runtime_participant_slot: Option<String>,
     pub owner_user_id: Option<String>,
-    pub realm_agent_id: Option<String>,
+    pub runtime_source_ref: Option<String>,
     pub local_agent_ref: Option<String>,
     pub trigger_ref: Option<String>,
     pub output_candidate_ref: Option<String>,
@@ -21777,9 +21777,9 @@ impl RealmGroupMessageCandidateCommitHandle {
         if let Some(value) = &self.evidence_hash { pairs.push(format!("evidence_hash={}", value)); }
         if let Some(value) = &self.runtime_trace_ref { pairs.push(format!("runtime_trace_ref={}", value)); }
         if let Some(value) = &self.realm_group_thread_id { pairs.push(format!("realm_group_thread_id={}", value)); }
-        if let Some(value) = &self.realm_group_agent_slot_id { pairs.push(format!("realm_group_agent_slot_id={}", value)); }
+        if let Some(value) = &self.runtime_participant_slot { pairs.push(format!("runtime_participant_slot={}", value)); }
         if let Some(value) = &self.owner_user_id { pairs.push(format!("owner_user_id={}", value)); }
-        if let Some(value) = &self.realm_agent_id { pairs.push(format!("realm_agent_id={}", value)); }
+        if let Some(value) = &self.runtime_source_ref { pairs.push(format!("runtime_source_ref={}", value)); }
         if let Some(value) = &self.local_agent_ref { pairs.push(format!("local_agent_ref={}", value)); }
         if let Some(value) = &self.trigger_ref { pairs.push(format!("trigger_ref={}", value)); }
         if let Some(value) = &self.output_candidate_ref { pairs.push(format!("output_candidate_ref={}", value)); }
@@ -21815,9 +21815,9 @@ impl RealmGroupMessageCandidateCommitHandle {
         out.evidence_hash = pairs.get("evidence_hash").cloned();
         out.runtime_trace_ref = pairs.get("runtime_trace_ref").cloned();
         out.realm_group_thread_id = pairs.get("realm_group_thread_id").cloned();
-        out.realm_group_agent_slot_id = pairs.get("realm_group_agent_slot_id").cloned();
+        out.runtime_participant_slot = pairs.get("runtime_participant_slot").cloned();
         out.owner_user_id = pairs.get("owner_user_id").cloned();
-        out.realm_agent_id = pairs.get("realm_agent_id").cloned();
+        out.runtime_source_ref = pairs.get("runtime_source_ref").cloned();
         out.local_agent_ref = pairs.get("local_agent_ref").cloned();
         out.trigger_ref = pairs.get("trigger_ref").cloned();
         out.output_candidate_ref = pairs.get("output_candidate_ref").cloned();
@@ -21843,9 +21843,9 @@ pub struct RealmGroupMessageCandidateEvidence {
     pub candidate_id: Option<String>,
     pub candidate_kind: Option<String>,
     pub realm_group_thread_id: Option<String>,
-    pub realm_group_agent_slot_id: Option<String>,
+    pub runtime_participant_slot: Option<String>,
     pub owner_user_id: Option<String>,
-    pub realm_agent_id: Option<String>,
+    pub runtime_source_ref: Option<String>,
     pub local_agent_ref: Option<String>,
     pub trigger_ref: Option<String>,
     pub output_candidate_ref: Option<String>,
@@ -21879,9 +21879,9 @@ impl RealmGroupMessageCandidateEvidence {
         if let Some(value) = &self.candidate_id { pairs.push(format!("candidate_id={}", value)); }
         if let Some(value) = &self.candidate_kind { pairs.push(format!("candidate_kind={}", value)); }
         if let Some(value) = &self.realm_group_thread_id { pairs.push(format!("realm_group_thread_id={}", value)); }
-        if let Some(value) = &self.realm_group_agent_slot_id { pairs.push(format!("realm_group_agent_slot_id={}", value)); }
+        if let Some(value) = &self.runtime_participant_slot { pairs.push(format!("runtime_participant_slot={}", value)); }
         if let Some(value) = &self.owner_user_id { pairs.push(format!("owner_user_id={}", value)); }
-        if let Some(value) = &self.realm_agent_id { pairs.push(format!("realm_agent_id={}", value)); }
+        if let Some(value) = &self.runtime_source_ref { pairs.push(format!("runtime_source_ref={}", value)); }
         if let Some(value) = &self.local_agent_ref { pairs.push(format!("local_agent_ref={}", value)); }
         if let Some(value) = &self.trigger_ref { pairs.push(format!("trigger_ref={}", value)); }
         if let Some(value) = &self.output_candidate_ref { pairs.push(format!("output_candidate_ref={}", value)); }
@@ -21922,9 +21922,9 @@ impl RealmGroupMessageCandidateEvidence {
         out.candidate_id = pairs.get("candidate_id").cloned();
         out.candidate_kind = pairs.get("candidate_kind").cloned();
         out.realm_group_thread_id = pairs.get("realm_group_thread_id").cloned();
-        out.realm_group_agent_slot_id = pairs.get("realm_group_agent_slot_id").cloned();
+        out.runtime_participant_slot = pairs.get("runtime_participant_slot").cloned();
         out.owner_user_id = pairs.get("owner_user_id").cloned();
-        out.realm_agent_id = pairs.get("realm_agent_id").cloned();
+        out.runtime_source_ref = pairs.get("runtime_source_ref").cloned();
         out.local_agent_ref = pairs.get("local_agent_ref").cloned();
         out.trigger_ref = pairs.get("trigger_ref").cloned();
         out.output_candidate_ref = pairs.get("output_candidate_ref").cloned();

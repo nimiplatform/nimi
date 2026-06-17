@@ -79,7 +79,7 @@ export function useAgentLocalAvatarLaunchControls(input: {
       presentation.activeTarget?.localAgentRef
         ? listDesktopAvatarLiveInstances({
           ownerUserId: presentation.activeTarget.ownerUserId,
-          realmAgentId: presentation.activeTarget.realmAgentId,
+          runtimeSourceRef: presentation.activeTarget.runtimeSourceRef,
           localAgentRef: presentation.activeTarget.localAgentRef,
         })
         : []
@@ -319,7 +319,7 @@ export function useAgentLocalAvatarLaunchControls(input: {
     const gateResult = evaluateStartWithChatGate({
       userLoggedIn: avatarRuntimeAccountReady,
       localAgentRef: presentation.activeTarget?.localAgentRef ?? null,
-      realmAgentId: presentation.activeTarget?.realmAgentId ?? null,
+      runtimeSourceRef: presentation.activeTarget?.runtimeSourceRef ?? null,
       conversationAnchorId: presentation.activeConversationAnchorId,
       localAvatarAssetRef: input.avatarAssetConfig?.local_avatar_asset_ref ?? null,
       localAvatarAssetValidationStatus: input.avatarAssetValidation?.status ?? null,

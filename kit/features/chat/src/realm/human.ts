@@ -23,11 +23,16 @@ export function isRealmDirectHumanChat(chat: unknown): chat is RealmChatViewDto 
   if (!chat || typeof chat !== 'object') {
     return false;
   }
+  const sourceLike = chat as { sourceRef?: unknown; runtimeSourceRef?: unknown };
+  if (typeof sourceLike.sourceRef === 'string' || typeof sourceLike.runtimeSourceRef === 'string') {
+    return false;
+  }
   const otherUser = (chat as { otherUser?: unknown }).otherUser;
   if (!otherUser || typeof otherUser !== 'object') {
     return false;
   }
-  return (otherUser as { isAgent?: unknown }).isAgent === false;
+  return typeof (otherUser as { id?: unknown }).id === 'string'
+    && String((otherUser as { id?: unknown }).id).trim().length > 0;
 }
 
 export function filterRealmDirectHumanChats(items: readonly unknown[] | null | undefined): RealmChatViewDto[] {

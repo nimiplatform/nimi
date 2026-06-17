@@ -125,7 +125,7 @@ export function useAgentRuntimeSessionSnapshotHydration(
     void runtimeAgent.turns.getSessionSnapshot({
       localAgentRef,
       ownerUserId: thread.ownerUserId,
-      realmAgentId: thread.realmAgentId,
+      runtimeSourceRef: thread.runtimeSourceRef,
       conversationAnchorId,
     })
       .then((snapshot) => {

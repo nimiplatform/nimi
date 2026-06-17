@@ -64,20 +64,20 @@ func TestTerminateAgentHardDeletesProjectionAndAgentScopedMemory(t *testing.T) {
 
 	svc, memorySvc := newRuntimeAgentHardDeleteTestService(t)
 	ctx := context.Background()
-	const realmAgent = "agent-hard-delete"
-	localRef := testRuntimeAgentLocalRef(realmAgent)
+	const runtimeSourceRef = "agent-hard-delete"
+	localRef := testRuntimeAgentLocalRef(runtimeSourceRef)
 
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		Context: testRuntimeAgentIdentityContext(realmAgent),
+		Context: testRuntimeAgentIdentityContext(runtimeSourceRef),
 	}); err != nil {
 		t.Fatalf("InitializeAgent: %v", err)
 	}
 
 	// Materialize a second agent so the delete is provably scoped.
-	const survivorRealm = "agent-hard-delete-survivor"
-	survivorRef := testRuntimeAgentLocalRef(survivorRealm)
+	const survivorRuntimeSourceRef = "agent-hard-delete-survivor"
+	survivorRef := testRuntimeAgentLocalRef(survivorRuntimeSourceRef)
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		Context: testRuntimeAgentIdentityContext(survivorRealm),
+		Context: testRuntimeAgentIdentityContext(survivorRuntimeSourceRef),
 	}); err != nil {
 		t.Fatalf("InitializeAgent(survivor): %v", err)
 	}
@@ -85,8 +85,8 @@ func TestTerminateAgentHardDeletesProjectionAndAgentScopedMemory(t *testing.T) {
 	// Set a dyadic context and write a dyadic memory record so the agent owns
 	// an AGENT_DYADIC bank in addition to its AGENT_CORE bank.
 	if _, err := svc.UpdateAgentState(ctx, &runtimev1.UpdateAgentStateRequest{
-		Context: testRuntimeAgentIdentityContext(realmAgent),
-		AgentId: realmAgent,
+		Context: testRuntimeAgentIdentityContext(runtimeSourceRef),
+		AgentId: runtimeSourceRef,
 		Mutations: []*runtimev1.AgentStateMutation{
 			{Mutation: &runtimev1.AgentStateMutation_SetDyadicContext{
 				SetDyadicContext: &runtimev1.AgentStateSetDyadicContext{UserId: "user-hd"},
@@ -96,8 +96,8 @@ func TestTerminateAgentHardDeletesProjectionAndAgentScopedMemory(t *testing.T) {
 		t.Fatalf("UpdateAgentState(dyadic): %v", err)
 	}
 	if _, err := svc.WriteAgentMemory(ctx, &runtimev1.WriteAgentMemoryRequest{
-		Context: testRuntimeAgentIdentityContext(realmAgent),
-		AgentId: realmAgent,
+		Context: testRuntimeAgentIdentityContext(runtimeSourceRef),
+		AgentId: runtimeSourceRef,
 		Candidates: []*runtimev1.CanonicalMemoryCandidate{
 			{
 				CanonicalClass: runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_DYADIC,
@@ -158,8 +158,8 @@ func TestTerminateAgentHardDeletesProjectionAndAgentScopedMemory(t *testing.T) {
 	}
 
 	if _, err := svc.TerminateAgent(ctx, &runtimev1.TerminateAgentRequest{
-		Context: testRuntimeAgentIdentityContext(realmAgent),
-		AgentId: realmAgent,
+		Context: testRuntimeAgentIdentityContext(runtimeSourceRef),
+		AgentId: runtimeSourceRef,
 		Reason:  "agent friend removed",
 	}); err != nil {
 		t.Fatalf("TerminateAgent: %v", err)
@@ -195,7 +195,7 @@ func TestTerminateAgentHardDeletesProjectionAndAgentScopedMemory(t *testing.T) {
 	}
 
 	// In-memory: agent is gone, memory banks gone.
-	if _, err := svc.GetAgent(ctx, &runtimev1.GetAgentRequest{Context: testRuntimeAgentIdentityContext(realmAgent)}); status.Code(err) != codes.NotFound {
+	if _, err := svc.GetAgent(ctx, &runtimev1.GetAgentRequest{Context: testRuntimeAgentIdentityContext(runtimeSourceRef)}); status.Code(err) != codes.NotFound {
 		t.Fatalf("GetAgent after terminate: status = %s, want NotFound", status.Code(err))
 	}
 	if _, err := memorySvc.GetBank(ctx, &runtimev1.GetBankRequest{Locator: &runtimev1.MemoryBankLocator{
@@ -206,7 +206,7 @@ func TestTerminateAgentHardDeletesProjectionAndAgentScopedMemory(t *testing.T) {
 	}
 
 	// Survivor agent untouched: row and every seeded projection table intact.
-	if _, err := svc.GetAgent(ctx, &runtimev1.GetAgentRequest{Context: testRuntimeAgentIdentityContext(survivorRealm)}); err != nil {
+	if _, err := svc.GetAgent(ctx, &runtimev1.GetAgentRequest{Context: testRuntimeAgentIdentityContext(survivorRuntimeSourceRef)}); err != nil {
 		t.Fatalf("GetAgent(survivor) after terminate: %v", err)
 	}
 	if got := runtimeAgentRowCount(t, svc, "runtime_local_agent", "local_agent_ref", survivorRef); got != 1 {
@@ -231,15 +231,15 @@ func TestTerminateAgentSnapshotDoesNotReinsertDeletedRef(t *testing.T) {
 
 	svc, _ := newRuntimeAgentHardDeleteTestService(t)
 	ctx := context.Background()
-	const realmAgent = "agent-snapshot-delete"
+	const runtimeSourceRef = "agent-snapshot-delete"
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		Context: testRuntimeAgentIdentityContext(realmAgent),
+		Context: testRuntimeAgentIdentityContext(runtimeSourceRef),
 	}); err != nil {
 		t.Fatalf("InitializeAgent: %v", err)
 	}
 	if _, err := svc.TerminateAgent(ctx, &runtimev1.TerminateAgentRequest{
-		Context: testRuntimeAgentIdentityContext(realmAgent),
-		AgentId: realmAgent,
+		Context: testRuntimeAgentIdentityContext(runtimeSourceRef),
+		AgentId: runtimeSourceRef,
 	}); err != nil {
 		t.Fatalf("TerminateAgent: %v", err)
 	}
@@ -247,7 +247,7 @@ func TestTerminateAgentSnapshotDoesNotReinsertDeletedRef(t *testing.T) {
 	if err := svc.loadState(); err != nil {
 		t.Fatalf("loadState after terminate: %v", err)
 	}
-	if _, err := svc.GetAgent(ctx, &runtimev1.GetAgentRequest{Context: testRuntimeAgentIdentityContext(realmAgent)}); status.Code(err) != codes.NotFound {
+	if _, err := svc.GetAgent(ctx, &runtimev1.GetAgentRequest{Context: testRuntimeAgentIdentityContext(runtimeSourceRef)}); status.Code(err) != codes.NotFound {
 		t.Fatalf("GetAgent after snapshot reload: status = %s, want NotFound (deleted ref must not reappear)", status.Code(err))
 	}
 }
@@ -272,16 +272,16 @@ func TestTerminateAgentIdempotentTypedNoOpForAbsentRef(t *testing.T) {
 	}
 
 	// And idempotent after a real delete: a second terminate is still a no-op.
-	const realmAgent = "agent-idempotent-delete"
+	const runtimeSourceRef = "agent-idempotent-delete"
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		Context: testRuntimeAgentIdentityContext(realmAgent),
+		Context: testRuntimeAgentIdentityContext(runtimeSourceRef),
 	}); err != nil {
 		t.Fatalf("InitializeAgent: %v", err)
 	}
 	for i := 0; i < 2; i++ {
 		resp, err := svc.TerminateAgent(ctx, &runtimev1.TerminateAgentRequest{
-			Context: testRuntimeAgentIdentityContext(realmAgent),
-			AgentId: realmAgent,
+			Context: testRuntimeAgentIdentityContext(runtimeSourceRef),
+			AgentId: runtimeSourceRef,
 		})
 		if err != nil {
 			t.Fatalf("TerminateAgent attempt %d: %v", i, err)
@@ -301,10 +301,10 @@ func TestTerminateAgentSubstrateFailureFailsClosed(t *testing.T) {
 
 	svc, memorySvc := newRuntimeAgentHardDeleteTestService(t)
 	ctx := context.Background()
-	const realmAgent = "agent-fail-closed"
-	localRef := testRuntimeAgentLocalRef(realmAgent)
+	const runtimeSourceRef = "agent-fail-closed"
+	localRef := testRuntimeAgentLocalRef(runtimeSourceRef)
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		Context: testRuntimeAgentIdentityContext(realmAgent),
+		Context: testRuntimeAgentIdentityContext(runtimeSourceRef),
 	}); err != nil {
 		t.Fatalf("InitializeAgent: %v", err)
 	}
@@ -315,15 +315,15 @@ func TestTerminateAgentSubstrateFailureFailsClosed(t *testing.T) {
 	}
 
 	if _, err := svc.TerminateAgent(ctx, &runtimev1.TerminateAgentRequest{
-		Context: testRuntimeAgentIdentityContext(realmAgent),
-		AgentId: realmAgent,
+		Context: testRuntimeAgentIdentityContext(runtimeSourceRef),
+		AgentId: runtimeSourceRef,
 	}); err == nil {
 		t.Fatal("TerminateAgent on a failed substrate must return a typed error, not pseudo-success")
 	}
 
 	// No partial deletion: the in-memory projection row and the agent-scoped
 	// memory bank both survive the failed delete.
-	if _, err := svc.GetAgent(ctx, &runtimev1.GetAgentRequest{Context: testRuntimeAgentIdentityContext(realmAgent)}); err != nil {
+	if _, err := svc.GetAgent(ctx, &runtimev1.GetAgentRequest{Context: testRuntimeAgentIdentityContext(runtimeSourceRef)}); err != nil {
 		t.Fatalf("GetAgent after failed terminate: %v (the row must not be partially deleted)", err)
 	}
 	if _, err := memorySvc.GetBank(ctx, &runtimev1.GetBankRequest{Locator: &runtimev1.MemoryBankLocator{

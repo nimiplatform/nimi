@@ -86,9 +86,9 @@ const runtimeMock = {
   },
 };
 
-const REALM_AGENT_ID = 'agent-launch';
+const RUNTIME_SOURCE_REF = 'agent-launch';
 const OWNER_USER_ID = 'account-runtime';
-const LOCAL_AGENT_REF = `local-agent:${OWNER_USER_ID}:${REALM_AGENT_ID}`;
+const LOCAL_AGENT_REF = `local-agent:${OWNER_USER_ID}:${RUNTIME_SOURCE_REF}`;
 const OTHER_LOCAL_AGENT_REF = `local-agent:${OWNER_USER_ID}:agent-other`;
 function launchContext(overrides: Partial<{
   agentId: string;
@@ -96,7 +96,7 @@ function launchContext(overrides: Partial<{
   launchSource: string | null;
 }> = {}) {
   return {
-    agentId: REALM_AGENT_ID,
+    agentId: RUNTIME_SOURCE_REF,
     avatarInstanceId: 'instance-1',
     launchSource: 'desktop-agent-chat',
     ...overrides,
@@ -108,7 +108,7 @@ function runtimeAgentContextMatcher() {
     appId: 'nimi.avatar',
     subjectUserId: OWNER_USER_ID,
     ownerUserId: OWNER_USER_ID,
-    realmAgentId: REALM_AGENT_ID,
+    runtimeSourceRef: RUNTIME_SOURCE_REF,
     localAgentRef: LOCAL_AGENT_REF,
   });
 }
@@ -118,7 +118,7 @@ function openAnchorRequestMatcher() {
     context: runtimeAgentContextMatcher(),
     localAgentRef: LOCAL_AGENT_REF,
     ownerUserId: OWNER_USER_ID,
-    realmAgentId: REALM_AGENT_ID,
+    runtimeSourceRef: RUNTIME_SOURCE_REF,
   });
 }
 
@@ -556,7 +556,7 @@ describe('bootstrapAvatar', () => {
     expect(resolveLocalAvatarAssetManifestMock).toHaveBeenCalledWith({
       accountId: OWNER_USER_ID,
       ownerUserId: OWNER_USER_ID,
-      realmAgentId: REALM_AGENT_ID,
+      runtimeSourceRef: RUNTIME_SOURCE_REF,
       localAgentRef: LOCAL_AGENT_REF,
     });
     const localAssetResolvedCall = recordAvatarEvidenceEventuallyMock.mock.calls.find(([payload]) => (
@@ -582,7 +582,7 @@ describe('bootstrapAvatar', () => {
     expect((localAssetResolvedCall?.[0] as { detail?: Record<string, unknown> } | undefined)?.detail).not.toHaveProperty('model3_json_path');
     expect((localAssetResolvedCall?.[0] as { detail?: Record<string, unknown> } | undefined)?.detail).not.toHaveProperty('model_path');
     expect(useAvatarStore.getState().launch.context).toEqual({
-      agentId: REALM_AGENT_ID,
+      agentId: RUNTIME_SOURCE_REF,
       avatarInstanceId: 'instance-1',
       launchSource: 'desktop-agent-chat',
     });
@@ -604,7 +604,7 @@ describe('bootstrapAvatar', () => {
         }),
         withScopes: expect.any(Function),
         ownerUserId: OWNER_USER_ID,
-        realmAgentId: REALM_AGENT_ID,
+        runtimeSourceRef: RUNTIME_SOURCE_REF,
         localAgentRef: LOCAL_AGENT_REF,
         conversationAnchorId: 'anchor-runtime',
         activeWorldId: '',
@@ -764,7 +764,7 @@ describe('bootstrapAvatar', () => {
     const handle = await bootstrapAvatar();
 
     expect(useAvatarStore.getState().launch.context).toEqual({
-      agentId: REALM_AGENT_ID,
+      agentId: RUNTIME_SOURCE_REF,
       avatarInstanceId: null,
       launchSource: null,
     });

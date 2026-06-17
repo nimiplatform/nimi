@@ -14,7 +14,7 @@ updated: 2026-05-13
 ## Scope
 
 This contract defines the Runtime-side consumer boundary for Realm `GROUP` agent
-participation. It binds the `realm_group_agent` Runtime Participation profile to
+participation. It binds the `realm_group_source` Runtime Participation profile to
 Realm-owned group thread, membership, slot, trigger, and commit evidence without
 creating a new Runtime Participation axis, Room Orchestration axis, or app-local
 execution path.
@@ -29,13 +29,13 @@ execution path.
 ## K-AGCORE-119
 
 Realm Group participation is a Runtime Agent Participation consumer bound to the
-existing `realm_group_agent` profile. Runtime must not create a new participation
+existing `realm_group_source` profile. Runtime must not create a new participation
 profile, concurrency axis value, capability scope, or memory policy for this
 product surface.
 
 ## K-AGCORE-120
 
-Runtime `realm_group_agent` admission must consume only typed Realm group context
+Runtime `realm_group_source` admission must consume only typed Realm group context
 references declared in `tables/realm-group-participation-context.yaml`. Context
 may include thread, membership snapshot, agent slot, trigger event, read cursor,
 reply target, room orchestration, and Realm commit handoff references. Raw prompt

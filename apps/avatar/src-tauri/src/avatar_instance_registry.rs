@@ -14,7 +14,7 @@ pub struct AvatarInstanceRegistryEntry {
 pub struct AvatarInstanceRuntimeIdentity {
     pub avatar_instance_id: String,
     pub owner_user_id: String,
-    pub realm_agent_id: String,
+    pub runtime_source_ref: String,
     pub local_agent_ref: String,
     pub launch_source: Option<String>,
 }

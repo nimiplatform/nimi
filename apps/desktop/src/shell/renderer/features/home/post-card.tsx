@@ -59,7 +59,7 @@ export type PostCardActionAdapter = {
     authorId: string;
     authorName: string;
     authorHandle: string;
-    authorIsAgent: boolean;
+    authorIsSource: boolean;
     authorAvatarUrl?: string | null;
     onClose: () => void;
     onSent: () => void;
@@ -70,7 +70,7 @@ export type PostCardActionAdapter = {
       name: string;
       handle: string;
       avatarUrl?: string | null;
-      isAgent: boolean;
+      isSource: boolean;
     };
     onClose: () => void;
     onAddFriend: (message?: string) => Promise<void>;
@@ -420,7 +420,7 @@ export function PostCard(input: PostCardProps) {
         onChat={() => {
           void handleChat();
         }}
-        showChatButton={post.author?.isAgent !== true}
+        showChatButton
         onOpenGift={ui.openGiftModal}
       />
 
@@ -430,7 +430,7 @@ export function PostCard(input: PostCardProps) {
         authorName:
           post.author?.displayName || i18n.t('Common.unknown', { defaultValue: 'Unknown' }),
         authorHandle: post.author?.handle || '',
-        authorIsAgent: post.author?.isAgent === true,
+        authorIsSource: false,
         authorAvatarUrl: post.author?.avatarUrl,
         onClose: () => ui.setIsSendGiftOpen(false),
         onSent: () => {
@@ -445,7 +445,7 @@ export function PostCard(input: PostCardProps) {
           name: post.author?.displayName || i18n.t('Common.unknown', { defaultValue: 'Unknown' }),
           handle: post.author?.handle || '',
           avatarUrl: post.author?.avatarUrl,
-          isAgent: post.author?.isAgent || false,
+          isSource: false,
         },
         onClose: () => ui.setShowAddFriendModal(false),
         onAddFriend: handleAddFriend,

@@ -87,7 +87,7 @@ export async function closeAvatarWindow(): Promise<void> {
 export async function bindAvatarRuntimeIdentity(input: {
   avatarInstanceId: string;
   ownerUserId: string;
-  realmAgentId: string;
+  runtimeSourceRef: string;
   localAgentRef: string;
   launchSource?: string | null;
 }): Promise<void> {
@@ -96,7 +96,7 @@ export async function bindAvatarRuntimeIdentity(input: {
     payload: {
       avatarInstanceId: input.avatarInstanceId,
       ownerUserId: input.ownerUserId,
-      realmAgentId: input.realmAgentId,
+      runtimeSourceRef: input.runtimeSourceRef,
       localAgentRef: input.localAgentRef,
       launchSource: input.launchSource || null,
     },

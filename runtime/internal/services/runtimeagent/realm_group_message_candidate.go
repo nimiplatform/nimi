@@ -34,9 +34,9 @@ type RealmGroupMessageCandidateExecutionInput struct {
 	AppID                  string
 	SubjectUserID          string
 	RealmGroupThreadID     string
-	RealmGroupAgentSlotID  string
+	RuntimeParticipantSlot  string
 	OwnerUserID            string
-	RealmAgentID           string
+	RuntimeSourceRef           string
 	LocalAgentRef          string
 	TriggerRef             string
 	MembershipSnapshotRef  string
@@ -113,9 +113,9 @@ type realmGroupMessageCandidateEvidenceRecord struct {
 	AppID                  string   `json:"appId"`
 	SubjectUserID          string   `json:"subjectUserId"`
 	RealmGroupThreadID     string   `json:"realmGroupThreadId"`
-	RealmGroupAgentSlotID  string   `json:"realmGroupAgentSlotId"`
+	RuntimeParticipantSlot  string   `json:"runtimeParticipantSlot"`
 	OwnerUserID            string   `json:"ownerUserId"`
-	RealmAgentID           string   `json:"realmAgentId"`
+	RuntimeSourceRef           string   `json:"runtimeSourceRef"`
 	LocalAgentRef          string   `json:"localAgentRef"`
 	TriggerRef             string   `json:"triggerRef"`
 	MembershipSnapshotRef  string   `json:"membershipSnapshotRef"`
@@ -252,9 +252,9 @@ func validateRealmGroupMessageCandidateRequest(req *runtimev1.CreateRealmGroupMe
 	appID := strings.TrimSpace(ctx.GetAppId())
 	subjectUserID := strings.TrimSpace(ctx.GetSubjectUserId())
 	threadID := strings.TrimSpace(req.GetRealmGroupThreadId())
-	slotID := strings.TrimSpace(req.GetRealmGroupAgentSlotId())
+	slotID := strings.TrimSpace(req.GetRuntimeParticipantSlot())
 	ownerUserID := strings.TrimSpace(req.GetOwnerUserId())
-	realmAgentID := strings.TrimSpace(req.GetRealmAgentId())
+	runtimeSourceRef := strings.TrimSpace(req.GetRuntimeSourceRef())
 	localAgentRef := strings.TrimSpace(req.GetLocalAgentRef())
 	triggerRef := strings.TrimSpace(req.GetTriggerRef())
 	idempotencyKey := strings.TrimSpace(req.GetIdempotencyKey())
@@ -262,9 +262,9 @@ func validateRealmGroupMessageCandidateRequest(req *runtimev1.CreateRealmGroupMe
 		"context.app_id":            appID,
 		"context.subject_user_id":   subjectUserID,
 		"realm_group_thread_id":     threadID,
-		"realm_group_agent_slot_id": slotID,
+		"runtime_participant_slot": slotID,
 		"owner_user_id":             ownerUserID,
-		"realm_agent_id":            realmAgentID,
+		"runtime_source_ref":            runtimeSourceRef,
 		"local_agent_ref":           localAgentRef,
 		"trigger_ref":               triggerRef,
 		"membership_snapshot_ref":   strings.TrimSpace(req.GetMembershipSnapshotRef()),
@@ -280,9 +280,9 @@ func validateRealmGroupMessageCandidateRequest(req *runtimev1.CreateRealmGroupMe
 	if subjectUserID != ownerUserID {
 		return RealmGroupMessageCandidateExecutionInput{}, "", status.Error(codes.PermissionDenied, "subject user must match local agent owner")
 	}
-	expectedLocalAgentRef := buildRealmGroupLocalAgentRef(ownerUserID, realmAgentID)
+	expectedLocalAgentRef := buildRealmGroupLocalAgentRef(ownerUserID, runtimeSourceRef)
 	if localAgentRef != expectedLocalAgentRef {
-		return RealmGroupMessageCandidateExecutionInput{}, "", status.Error(codes.InvalidArgument, "local_agent_ref does not match owner_user_id and realm_agent_id")
+		return RealmGroupMessageCandidateExecutionInput{}, "", status.Error(codes.InvalidArgument, "local_agent_ref does not match owner_user_id and runtime_source_ref")
 	}
 	for field, value := range map[string]string{
 		"membership_snapshot_ref": strings.TrimSpace(req.GetMembershipSnapshotRef()),
@@ -325,9 +325,9 @@ func validateRealmGroupMessageCandidateRequest(req *runtimev1.CreateRealmGroupMe
 		AppID:                 appID,
 		SubjectUserID:         subjectUserID,
 		RealmGroupThreadID:    threadID,
-		RealmGroupAgentSlotID: slotID,
+		RuntimeParticipantSlot: slotID,
 		OwnerUserID:           ownerUserID,
-		RealmAgentID:          realmAgentID,
+		RuntimeSourceRef:          runtimeSourceRef,
 		LocalAgentRef:         localAgentRef,
 		TriggerRef:            triggerRef,
 		MembershipSnapshotRef: strings.TrimSpace(req.GetMembershipSnapshotRef()),
@@ -424,9 +424,9 @@ func buildRealmGroupMessageCandidateRecord(input RealmGroupMessageCandidateExecu
 		AppID:                  input.AppID,
 		SubjectUserID:          input.SubjectUserID,
 		RealmGroupThreadID:     input.RealmGroupThreadID,
-		RealmGroupAgentSlotID:  input.RealmGroupAgentSlotID,
+		RuntimeParticipantSlot:  input.RuntimeParticipantSlot,
 		OwnerUserID:            input.OwnerUserID,
-		RealmAgentID:           input.RealmAgentID,
+		RuntimeSourceRef:           input.RuntimeSourceRef,
 		LocalAgentRef:          input.LocalAgentRef,
 		TriggerRef:             input.TriggerRef,
 		MembershipSnapshotRef:  input.MembershipSnapshotRef,
@@ -497,7 +497,7 @@ func (r *realmGroupMessageCandidateEvidenceRecord) matchesEvidenceRequest(req *r
 		{r.CandidateEvidenceRef == strings.TrimSpace(req.GetCandidateEvidenceRef()), "candidate_evidence_ref mismatch"},
 		{r.EvidenceHash == strings.TrimSpace(req.GetEvidenceHash()), "evidence_hash mismatch"},
 		{r.RuntimeTraceRef == strings.TrimSpace(req.GetRuntimeTraceRef()), "runtime_trace_ref mismatch"},
-		{r.RealmGroupAgentSlotID == strings.TrimSpace(req.GetExpectedRealmGroupAgentSlotId()), "realm_group_agent_slot_id mismatch"},
+		{r.RuntimeParticipantSlot == strings.TrimSpace(req.GetExpectedRuntimeParticipantSlot()), "runtime_participant_slot mismatch"},
 		{r.LocalAgentRef == strings.TrimSpace(req.GetExpectedLocalAgentRef()), "local_agent_ref mismatch"},
 		{r.TriggerRef == strings.TrimSpace(req.GetTriggerRef()), "trigger_ref mismatch"},
 		{r.RealmGroupThreadID == strings.TrimSpace(req.GetTargetRealmGroupThreadId()), "realm_group_thread_id mismatch"},
@@ -530,9 +530,9 @@ func (r *realmGroupMessageCandidateEvidenceRecord) toCommitHandle() *runtimev1.R
 		EvidenceHash:           r.EvidenceHash,
 		RuntimeTraceRef:        r.RuntimeTraceRef,
 		RealmGroupThreadId:     r.RealmGroupThreadID,
-		RealmGroupAgentSlotId:  r.RealmGroupAgentSlotID,
+		RuntimeParticipantSlot:  r.RuntimeParticipantSlot,
 		OwnerUserId:            r.OwnerUserID,
-		RealmAgentId:           r.RealmAgentID,
+		RuntimeSourceRef:           r.RuntimeSourceRef,
 		LocalAgentRef:          r.LocalAgentRef,
 		TriggerRef:             r.TriggerRef,
 		OutputCandidateRef:     r.OutputCandidateRef,
@@ -563,9 +563,9 @@ func (r *realmGroupMessageCandidateEvidenceRecord) toEvidence() *runtimev1.Realm
 		CandidateId:            r.CandidateID,
 		CandidateKind:          r.CandidateKind,
 		RealmGroupThreadId:     r.RealmGroupThreadID,
-		RealmGroupAgentSlotId:  r.RealmGroupAgentSlotID,
+		RuntimeParticipantSlot:  r.RuntimeParticipantSlot,
 		OwnerUserId:            r.OwnerUserID,
-		RealmAgentId:           r.RealmAgentID,
+		RuntimeSourceRef:           r.RuntimeSourceRef,
 		LocalAgentRef:          r.LocalAgentRef,
 		TriggerRef:             r.TriggerRef,
 		OutputCandidateRef:     r.OutputCandidateRef,
@@ -612,9 +612,9 @@ func realmGroupMessageCandidateEvidenceHash(record *realmGroupMessageCandidateEv
 		"appId":                 record.AppID,
 		"subjectUserId":         record.SubjectUserID,
 		"realmGroupThreadId":    record.RealmGroupThreadID,
-		"realmGroupAgentSlotId": record.RealmGroupAgentSlotID,
+		"runtimeParticipantSlot": record.RuntimeParticipantSlot,
 		"ownerUserId":           record.OwnerUserID,
-		"realmAgentId":          record.RealmAgentID,
+		"runtimeSourceRef":          record.RuntimeSourceRef,
 		"localAgentRef":         record.LocalAgentRef,
 		"triggerRef":            record.TriggerRef,
 		"membershipSnapshotRef": record.MembershipSnapshotRef,

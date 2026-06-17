@@ -205,14 +205,14 @@ export function createNimiRuntimeAgentClient(options: NimiRuntimeAgentClientOpti
             appId: runtime.appId,
             subjectUserId,
             ownerUserId: identity.ownerUserId,
-            realmAgentId: identity.realmAgentId,
+            runtimeSourceRef: identity.runtimeSourceRef,
             localAgentRef: identity.localAgentRef,
           },
           agentId: identity.localAgentRef,
           subjectUserId,
           localAgentRef: identity.localAgentRef,
           ownerUserId: identity.ownerUserId,
-          realmAgentId: identity.realmAgentId,
+          runtimeSourceRef: identity.runtimeSourceRef,
           metadata: input.metadata ? toNimiRuntimeProtoStruct(input.metadata) : undefined,
         }, callOptions),
       );
@@ -249,7 +249,7 @@ export function createNimiRuntimeAgentClient(options: NimiRuntimeAgentClientOpti
             appId: runtime.appId,
             subjectUserId,
             ownerUserId: identity.ownerUserId,
-            realmAgentId: identity.realmAgentId,
+            runtimeSourceRef: identity.runtimeSourceRef,
             localAgentRef: identity.localAgentRef,
           },
           agentId: identity.localAgentRef,
@@ -274,7 +274,7 @@ export function createNimiRuntimeAgentClient(options: NimiRuntimeAgentClientOpti
             appId: runtime.appId,
             subjectUserId,
             ownerUserId: identity.ownerUserId,
-            realmAgentId: identity.realmAgentId,
+            runtimeSourceRef: identity.runtimeSourceRef,
             localAgentRef: identity.localAgentRef,
           },
           agentId: identity.localAgentRef,
@@ -319,16 +319,16 @@ function normalizeRuntime(runtime: NimiRuntimeAgentClientRuntime, appIdOverride:
 
 function runtimeAgentIdentity(input: RuntimeLocalAgentIdentityInput) {
   const ownerUserId = normalizeNimiRuntimeAgentText(input.ownerUserId);
-  const realmAgentId = normalizeNimiRuntimeAgentText(input.realmAgentId);
-  const localAgentRef = normalizeNimiRuntimeAgentText(input.localAgentRef) || `local-agent:${ownerUserId}:${realmAgentId}`;
-  if (!ownerUserId || !realmAgentId || localAgentRef !== `local-agent:${ownerUserId}:${realmAgentId}`) {
+  const runtimeSourceRef = normalizeNimiRuntimeAgentText(input.runtimeSourceRef);
+  const localAgentRef = normalizeNimiRuntimeAgentText(input.localAgentRef) || `local-agent:${ownerUserId}:${runtimeSourceRef}`;
+  if (!ownerUserId || !runtimeSourceRef || localAgentRef !== `local-agent:${ownerUserId}:${runtimeSourceRef}`) {
     runtimeAgentClientError(
       'Nimi runtime agent client requires explicit matching local agent identity.',
       ReasonCode.AI_INPUT_INVALID,
       'provide_runtime_agent_local_identity',
     );
   }
-  return { ownerUserId, realmAgentId, localAgentRef };
+  return { ownerUserId, runtimeSourceRef, localAgentRef };
 }
 
 async function withRuntimeAgentScopes<T>(

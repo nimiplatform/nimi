@@ -78,10 +78,10 @@ export function ChatProfileCard({
           <EntityAvatar
             imageUrl={profileData.avatarUrl}
             name={profileData.displayName}
-            kind={profileData.isAgent ? 'agent' : 'human'}
+            kind={profileData.isSource ? 'agent' : 'human'}
             sizeClassName="h-20 w-20"
-            className={profileData.isAgent ? undefined : 'ring-2 ring-white/70'}
-            fallbackClassName={profileData.isAgent ? undefined : 'bg-gradient-to-br from-[#E0F7F4] to-[#C5F0E8] text-[#4ECCA3]'}
+            className={profileData.isSource ? undefined : 'ring-2 ring-white/70'}
+            fallbackClassName={profileData.isSource ? undefined : 'bg-gradient-to-br from-[#E0F7F4] to-[#C5F0E8] text-[#4ECCA3]'}
             textClassName="text-2xl font-bold"
           />
           {profileData.isOnline ? (
@@ -95,7 +95,7 @@ export function ChatProfileCard({
         <p className="text-xs text-gray-500">{profileData.handle}</p>
 
         <span className="mt-2 inline-flex items-center rounded-full bg-[#4ECCA3]/10 px-2.5 py-0.5 text-xs font-medium text-[#2A9D8F]">
-          {profileData.isAgent ? t('ChatTimeline.agent') : t('ChatTimeline.human')}
+          {profileData.isSource ? t('ChatTimeline.agent') : t('ChatTimeline.human')}
         </span>
 
         {profileData.bio ? (

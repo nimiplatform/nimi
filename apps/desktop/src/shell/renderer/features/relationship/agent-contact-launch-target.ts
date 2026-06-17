@@ -9,7 +9,7 @@ type AgentContactLaunchSource = {
   handle: string;
   avatarUrl: string | null;
   bio: string | null;
-  isAgent: boolean;
+  isSource: boolean;
   worldId?: string | null;
   worldName?: string | null;
   agentWorldId?: string | null;
@@ -36,15 +36,15 @@ export function toAgentContactLaunchTarget(
   source: AgentContactLaunchSource,
   ownerUserIdInput: string | null | undefined,
 ): AgentLocalTargetSnapshot {
-  if (!source.isAgent) {
+  if (!source.isSource) {
     throw new Error('agent conversation launch requires an agent contact');
   }
   const ownerUserId = normalizeRequiredText(ownerUserIdInput, 'ownerUserId');
-  const realmAgentId = normalizeRequiredText(source.id, 'realmAgentId');
+  const runtimeSourceRef = normalizeRequiredText(source.id, 'runtimeSourceRef');
   return {
     ownerUserId,
-    realmAgentId,
-    localAgentRef: buildRuntimeLocalAgentRef({ ownerUserId, realmAgentId }),
+    runtimeSourceRef,
+    localAgentRef: buildRuntimeLocalAgentRef({ ownerUserId, runtimeSourceRef }),
     displayName: normalizeRequiredText(source.displayName, 'displayName'),
     handle: String(source.handle || '').trim(),
     avatarUrl: source.avatarUrl || null,
@@ -52,7 +52,7 @@ export function toAgentContactLaunchTarget(
     worldName: source.worldName || null,
     bio: source.bio || null,
     ownershipType: normalizeOwnershipType(source.agentOwnershipType),
-    // Contact-launch sources carry identity only, not RealmAgent profile
+    // Contact-launch sources carry identity only, not RealmPersona profile
     // content. `greeting` / `builtinDocsContext` are supplied by the live
     // Realm/SDK agent projection (the chat-surface targets) and overlaid onto
     // the chat target at chat time; a relationship-launch target leaves them null.

@@ -1,11 +1,9 @@
 import type { Realm } from '@nimiplatform/sdk/realm';
 import {
-  loadNimiRealmExploreAgents,
   loadNimiRealmExploreFeedItems,
 } from '@nimiplatform/sdk/realm';
 import type {
   RealmGetExploreFeedOperationResponse,
-  RealmSearchIndexedUsersOperationResponse,
 } from '@nimiplatform/sdk/realm/generated';
 import { callRealmApi, emitRealmDataError } from '@renderer/infra/realm/realm-api';
 
@@ -26,6 +24,10 @@ export type RealmExploreErrorEmitter = (
   details?: Record<string, unknown>,
 ) => void;
 
+export type RealmSourceExploreResponse = {
+  items: Array<Record<string, unknown>>;
+};
+
 function normalizeText(value: unknown): string | undefined {
   const normalized = typeof value === 'string' ? value.trim() : '';
   return normalized || undefined;
@@ -35,12 +37,53 @@ export async function loadExploreAgents(
   callApi: RealmExploreApiCaller,
   emitRealmExploreError: RealmExploreErrorEmitter,
   input: LoadExploreAgentsInput = {},
-): Promise<RealmSearchIndexedUsersOperationResponse> {
+): Promise<RealmSourceExploreResponse> {
   const tag = normalizeText(input.tag);
   const query = normalizeText(input.query);
   const limit = input.limit ?? 20;
   return callApi(
-    (realm) => loadNimiRealmExploreAgents(realm, emitRealmExploreError, { tag, query, limit }),
+    async (realm) => {
+      void emitRealmExploreError;
+      const rows = await realm.worldCore.worldCoreControllerListRealmPersonas({
+        path: {},
+        query: { limit },
+      });
+      const normalizedQuery = query?.toLowerCase();
+      const normalizedTag = tag?.toLowerCase();
+      const items = rows.map((persona) => {
+        const core = persona.core && typeof persona.core === 'object' && !Array.isArray(persona.core)
+          ? persona.core as Record<string, unknown>
+          : {};
+        const displayName = normalizeText(core.displayName) ?? normalizeText(core.name) ?? persona.id;
+        const handle = normalizeText(core.handle) ?? displayName;
+        return {
+          ...core,
+          id: persona.id,
+          displayName,
+          name: displayName,
+          handle,
+          avatarUrl: normalizeText(core.avatarUrl) ?? null,
+          bio: normalizeText(core.bio) ?? normalizeText(core.description) ?? null,
+          tags: Array.isArray(core.tags) ? core.tags : [],
+          agentProfile: core,
+          sourceKind: 'realmPersona',
+          worldId: persona.homeWorldId,
+          createdAt: persona.createdAt,
+          updatedAt: persona.updatedAt,
+        };
+      }).filter((item) => {
+        const haystack = [
+          item.id,
+          item.displayName,
+          item.handle,
+          item.bio,
+          ...(Array.isArray(item.tags) ? item.tags : []),
+        ].join(' ').toLowerCase();
+        return (!normalizedQuery || haystack.includes(normalizedQuery))
+          && (!normalizedTag || haystack.includes(normalizedTag));
+      });
+      return { items };
+    },
     '加载探索 Agent 失败',
   );
 }

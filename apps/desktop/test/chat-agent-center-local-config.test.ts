@@ -10,7 +10,7 @@ function createConfig() {
   return createDefaultAgentCenterLocalConfig({
     accountId: 'account_123',
     ownerUserId: 'owner_123',
-    realmAgentId: 'agent_456',
+    runtimeSourceRef: 'agent_456',
     localAgentRef: 'local-agent:owner_123:agent_456',
   });
 }

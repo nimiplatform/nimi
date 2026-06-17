@@ -223,12 +223,12 @@ test('avatar debug workbench requires Avatar carrier visual refs for backend rea
 test('desktop avatar debug workbench requests typed companion participation projection', () => {
   assert.deepEqual(buildDesktopCompanionParticipationProjectionRequest({
     ownerUserId: 'owner-1',
-    realmAgentId: 'agent-1',
+    runtimeSourceRef: 'agent-1',
     localAgentRef: 'local-agent:owner-1:agent-1',
     conversationAnchorId: 'anchor-1',
   }), {
     ownerUserId: 'owner-1',
-    realmAgentId: 'agent-1',
+    runtimeSourceRef: 'agent-1',
     localAgentRef: 'local-agent:owner-1:agent-1',
     conversationAnchorId: 'anchor-1',
     surfaceKind: 'avatar_debug_workbench',

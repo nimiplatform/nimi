@@ -37,7 +37,7 @@ export function useAgentCenterAvatarConfigMutation(input: UseAgentConversationPr
       return putAgentCenterLocalConfig({
         accountId: input.accountId,
         ownerUserId: input.activeTarget.ownerUserId,
-        realmAgentId: input.activeTarget.realmAgentId,
+        runtimeSourceRef: input.activeTarget.runtimeSourceRef,
         localAgentRef: input.activeTarget.localAgentRef,
         config: {
           ...currentConfig,

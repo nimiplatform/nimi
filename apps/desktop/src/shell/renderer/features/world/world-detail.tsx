@@ -1,22 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
-import { useMutation, useQuery } from '@tanstack/react-query';
-import { uploadNimiRealmResourceFile } from '@nimiplatform/sdk/realm';
-import { realmAgentCreateData } from './data/realm-agent-create-data';
-import { queryClient } from '@renderer/infra/query-client/query-client';
+import { useQuery } from '@tanstack/react-query';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { getDesktopRealm } from '@renderer/infra/sdk/desktop-nimi-client-session';
 import { ScrollArea } from '@nimiplatform/kit/ui';
 import { createRendererFlowId, logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
-import { i18n } from '@renderer/i18n';
 import {
   NarrativeWorldDetailPage,
   OasisWorldDetailPage,
 } from './world-detail-template';
 import type { WorldAgent } from './world-detail-types';
-import { worldAdmitsUserCreatedRealmAgents } from './world-create-agent-admission';
-import { clearCreateAgentDraft, type CreateAgentConfirmInput } from './create-agent-drawer';
-import { buildRealmAgentWritePayload } from './create-agent/realm-agent-draft-submit';
 import type { WorldListItem } from './world-list-model';
 import {
   fetchWorldDisplayDetail,
@@ -34,7 +26,6 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
   const navigateToProfile = useAppStore((state) => state.navigateToProfile);
   const isReady = authStatus === 'authenticated' && !!world.id;
   const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
-  const [createAgentRejection, setCreateAgentRejection] = useState<string | null>(null);
   const flowIdRef = useRef('');
   const enteredAtRef = useRef(0);
   const primaryReadyLoggedRef = useRef(false);
@@ -58,7 +49,6 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
   const pageError = initialError || supplementalError;
   const worldData = display?.world ?? toWorldDisplayFallback(world);
   const agents: WorldAgent[] = display?.agents ?? [];
-  const createAgentAdmitted = worldAdmitsUserCreatedRealmAgents(worldData);
   const safeHistory = display?.history ?? { items: [], summary: null };
   const safeSemantic = display?.semantic ?? {
     operationTitle: null,
@@ -160,14 +150,8 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
     });
   }, [display, world.id]);
 
-  // A RealmAgent in a World is NOT chat-reachable from World detail. Per
-  // D-EXPL-006 / T3 there is no RealmAgent direct-chat path: chat is reachable
-  // ONLY after friendship, via the `friend` → Open Agent Chat action that
-  // routes to the one-to-one LocalAgent Chat. The previous `handleChatAgent` /
-  // `handleVoiceAgent` synthesized a `localAgentRef` from a non-befriended
-  // RealmAgent and launched a session directly — that drift is removed. World
-  // detail's agent affordance is View profile → agent-detail, where the
-  // friend-state primary action lives.
+  // World characters are not chat-reachable from World detail. Chat materializes
+  // only after a RuntimeSourceSnapshot creates a LocalAgent by value.
   const handleViewAgent = (agent: WorldAgent) => {
     navigateToProfile(agent.id, 'agent-detail');
   };
@@ -193,61 +177,6 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
       },
     });
   };
-
-  // The single Realm truth write for lightweight RealmAgent creation
-  // (D-EXPL-010). The drawer owns the draft-review-confirm flow; this mutation
-  // runs only on the explicit confirm. On rejection the draft stays locally
-  // recoverable in the drawer (D-EXPL-011) and a typed message is shown.
-  const createAgentMutation = useMutation({
-    mutationFn: async (input: CreateAgentConfirmInput) => {
-      if (!worldAdmitsUserCreatedRealmAgents(worldData)) {
-        throw new Error(i18n.t('World.createAgent.notAdmitted', {
-          defaultValue: 'This World is not admitting new user-created RealmAgents.',
-        }));
-      }
-      let resolvedImageUrl: string | undefined;
-      if (input.avatarFile) {
-        const uploaded = await uploadNimiRealmResourceFile(getDesktopRealm(), {
-          kind: 'image',
-          file: input.avatarFile,
-          failureMessage: i18n.t('World.createAgent.avatarUploadFailed', {
-            defaultValue: 'Avatar upload failed, please retry.',
-          }),
-        });
-        resolvedImageUrl = uploaded.resource.url ?? undefined;
-      }
-      const payload = buildRealmAgentWritePayload(input.draft, resolvedImageUrl);
-      return realmAgentCreateData.createAgent({
-        worldId: payload.worldId,
-        handle: payload.handle,
-        concept: payload.concept,
-        displayName: payload.displayName,
-        description: payload.description,
-        referenceImageUrl: payload.referenceImageUrl,
-        dnaPrimary: payload.dnaPrimary,
-        dnaSecondary: payload.dnaSecondary,
-      });
-    },
-    onSuccess: async (data) => {
-      const agentId = typeof data?.id === 'string' && data.id ? data.id : null;
-      setFeedback(null);
-      setCreateAgentRejection(null);
-      // Realm truth was written: the locally persisted draft is no longer
-      // needed and is cleared so it does not resurface as recoverable.
-      clearCreateAgentDraft(world.id);
-      await queryClient.invalidateQueries({ queryKey: worldDisplayDetailQueryKey(world.id) });
-      if (agentId) {
-        navigateToProfile(agentId, 'agent-detail');
-      }
-    },
-    onError: (error) => {
-      const message = error instanceof Error
-        ? error.message
-        : i18n.t('World.createAgent.failed', { defaultValue: 'Could not create the agent, please retry.' });
-      // Surfaced inside the drawer; the draft remains recoverable (D-EXPL-011).
-      setCreateAgentRejection(message);
-    },
-  });
 
   return (
     <ScrollArea className="h-full bg-transparent" viewportClassName="bg-transparent">
@@ -275,9 +204,6 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
           onEnterEdit={handleEnterEdit}
           onCreateSubWorld={handleCreateSubWorld}
           onViewAgent={handleViewAgent}
-          onCreateAgent={createAgentAdmitted ? (input) => createAgentMutation.mutate(input) : undefined}
-          createAgentMutating={createAgentMutation.isPending}
-          createAgentRejection={createAgentRejection}
         />
       ) : (
         <NarrativeWorldDetailPage
@@ -298,9 +224,6 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
           onEnterEdit={handleEnterEdit}
           onCreateSubWorld={handleCreateSubWorld}
           onViewAgent={handleViewAgent}
-          onCreateAgent={createAgentAdmitted ? (input) => createAgentMutation.mutate(input) : undefined}
-          createAgentMutating={createAgentMutation.isPending}
-          createAgentRejection={createAgentRejection}
         />
       )}
     </ScrollArea>

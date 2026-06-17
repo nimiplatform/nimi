@@ -9,7 +9,7 @@ import {
   worldDisplayDetailQueryKey,
   worldListQueryKey,
 } from './world-detail-queries';
-import { toWorldListItem, toWorldListItemFromTruth } from './world-list-model';
+import { toWorldListItem } from './world-list-model';
 import { WorldDetailSkeletonPage } from './world-detail-route-state';
 
 export function WorldDetailActivePanel() {
@@ -30,7 +30,7 @@ export function WorldDetailActivePanel() {
 
   const worldsQuery = useQuery({
     queryKey: worldListQueryKey(),
-    queryFn: async () => (await fetchWorldListItems()).map((item) => toWorldListItemFromTruth(item)),
+    queryFn: async () => fetchWorldListItems(),
     enabled: authStatus === 'authenticated' && Boolean(selectedWorldId),
     initialData: cachedWorlds ?? undefined,
     staleTime: 30_000,

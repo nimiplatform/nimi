@@ -17,7 +17,7 @@ func (r publicChatRuntime) reserveTurn(
 	subjectUserID string,
 	req publicChatTurnRequestPayload,
 ) (publicChatAnchorState, publicChatTurnState, context.Context, error) {
-	identity, err := validateLocalAgentIdentity(req.OwnerUserID, req.RealmAgentID, req.LocalAgentRef)
+	identity, err := validateLocalAgentIdentity(req.OwnerUserID, req.RuntimeSourceRef, req.LocalAgentRef)
 	if err != nil {
 		return publicChatAnchorState{}, publicChatTurnState{}, nil, err
 	}
@@ -69,7 +69,7 @@ func (r publicChatRuntime) reserveTurn(
 			r.svc.chatSurfaceMu.Unlock()
 			return publicChatAnchorState{}, publicChatTurnState{}, nil, status.Error(codes.FailedPrecondition, "public chat anchor local_agent_ref mismatch")
 		}
-		if session.OwnerUserID != identity.OwnerUserID || session.RealmAgentID != identity.RealmAgentID || session.LocalAgentRef != identity.LocalAgentRef {
+		if session.OwnerUserID != identity.OwnerUserID || session.RuntimeSourceRef != identity.RuntimeSourceRef || session.LocalAgentRef != identity.LocalAgentRef {
 			r.svc.chatSurfaceMu.Unlock()
 			return publicChatAnchorState{}, publicChatTurnState{}, nil, status.Error(codes.FailedPrecondition, "public chat anchor local identity mismatch")
 		}

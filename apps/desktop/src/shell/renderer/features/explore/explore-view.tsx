@@ -49,8 +49,6 @@ type ExploreViewProps = {
   onPostDelete?: () => void;
   loading: boolean;
   onToggleCategory: (category: string) => void;
-  onAgentAddFriend: (agentId: string) => void;
-  onAgentOpenChat: (agentId: string) => void;
   onAgentManageFriends: () => void;
   onAgentSendGift?: (agentId: string) => void;
   onAgentOpen?: (agentId: string) => void;
@@ -293,19 +291,13 @@ function FeaturedWorldHero({
   );
 }
 
-// Agents section: a full browsable RealmAgent discovery grid across Worlds.
-// Per D-EXPL-002 this is NOT a truncated carousel — every discovered agent is
-// rendered.
+// RealmPersona section: a full browsable discovery grid across Worlds.
 function ExploreAgentsSection({
   agents,
-  onAgentAddFriend,
-  onAgentOpenChat,
   onAgentManageFriends,
   onAgentOpen,
 }: {
   agents: ExploreAgentCardData[];
-  onAgentAddFriend: (agentId: string) => void;
-  onAgentOpenChat: (agentId: string) => void;
   onAgentManageFriends: () => void;
   onAgentOpen?: (agentId: string) => void;
 }) {
@@ -336,8 +328,6 @@ function ExploreAgentsSection({
         <AgentRecommendationCard
           key={agent.id}
           agent={agent}
-          onAddFriend={() => onAgentAddFriend(agent.id)}
-          onOpenChat={() => onAgentOpenChat(agent.id)}
           onManageFriends={onAgentManageFriends}
           onOpen={() => onAgentOpen?.(agent.id)}
         />
@@ -442,13 +432,11 @@ export function ExploreView(props: ExploreViewProps) {
           </section>
         )}
 
-        {props.activeSection === 'agents' && (
-          <section data-testid="explore-agents-section">
-            <ExploreSectionHeader section="agents" />
+        {props.activeSection === 'personas' && (
+          <section data-testid="explore-personas-section">
+            <ExploreSectionHeader section="personas" />
             <ExploreAgentsSection
               agents={props.agents}
-              onAgentAddFriend={props.onAgentAddFriend}
-              onAgentOpenChat={props.onAgentOpenChat}
               onAgentManageFriends={props.onAgentManageFriends}
               onAgentOpen={props.onAgentOpen}
             />

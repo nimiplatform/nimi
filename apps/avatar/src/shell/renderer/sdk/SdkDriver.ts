@@ -51,7 +51,7 @@ export type SdkDriverOptions = {
   runtimeAgent: NimiRuntimeAgentConsumeClient;
   withScopes?: NimiRuntimeAgentScopeRunner;
   ownerUserId: string;
-  realmAgentId: string;
+  runtimeSourceRef: string;
   localAgentRef: string;
   conversationAnchorId: string;
   activeWorldId: string;
@@ -69,7 +69,7 @@ export class SdkDriver implements AgentDataDriver {
   private readonly runtimeAgent: NimiRuntimeAgentConsumeClient;
   private readonly withScopes?: NimiRuntimeAgentScopeRunner;
   private readonly ownerUserId: string;
-  private readonly realmAgentId: string;
+  private readonly runtimeSourceRef: string;
   private readonly localAgentRef: string;
   private readonly conversationAnchorId: string;
   private readonly activeWorldId: string;
@@ -88,7 +88,7 @@ export class SdkDriver implements AgentDataDriver {
     this.runtimeAgent = options.runtimeAgent;
     this.withScopes = options.withScopes;
     this.ownerUserId = options.ownerUserId;
-    this.realmAgentId = options.realmAgentId;
+    this.runtimeSourceRef = options.runtimeSourceRef;
     this.localAgentRef = options.localAgentRef;
     this.conversationAnchorId = options.conversationAnchorId;
     this.activeWorldId = options.activeWorldId;
@@ -121,7 +121,7 @@ export class SdkDriver implements AgentDataDriver {
         (options) => this.runtimeAgent.turns.getSessionSnapshot(
           {
             ownerUserId: this.ownerUserId,
-            realmAgentId: this.realmAgentId,
+            runtimeSourceRef: this.runtimeSourceRef,
             localAgentRef: this.localAgentRef,
             conversationAnchorId: this.conversationAnchorId,
             ...(this.activeWorldId ? { worldId: this.activeWorldId } : {}),
@@ -134,7 +134,7 @@ export class SdkDriver implements AgentDataDriver {
         (options) => this.runtimeAgent.turns.subscribe(
           {
             ownerUserId: this.ownerUserId,
-            realmAgentId: this.realmAgentId,
+            runtimeSourceRef: this.runtimeSourceRef,
             localAgentRef: this.localAgentRef,
             conversationAnchorId: this.conversationAnchorId,
           },

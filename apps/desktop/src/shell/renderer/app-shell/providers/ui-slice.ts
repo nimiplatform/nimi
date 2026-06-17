@@ -34,7 +34,7 @@ type UiSlice = Pick<AppStoreState,
   | 'chatSetupState'
   | 'selectedChatId'
   | 'selectedProfileId'
-  | 'selectedProfileIsAgent'
+  | 'selectedProfileIsSource'
   | 'selectedWorldId'
   | 'selectedGiftTransactionId'
   | 'profileDetailOverlayOpen'
@@ -59,7 +59,7 @@ type UiSlice = Pick<AppStoreState,
   | 'setChatSetupState'
   | 'setSelectedChatId'
   | 'setSelectedProfileId'
-  | 'setSelectedProfileIsAgent'
+  | 'setSelectedProfileIsSource'
   | 'setSelectedWorldId'
   | 'setSelectedGiftTransactionId'
   | 'setProfileDetailOverlayOpen'
@@ -91,7 +91,7 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
     chatSetupState: { ...DEFAULT_CHAT_SETUP_STATE },
     selectedChatId: null,
     selectedProfileId: null,
-    selectedProfileIsAgent: null,
+    selectedProfileIsSource: null,
     selectedWorldId: null,
     selectedGiftTransactionId: null,
     profileDetailOverlayOpen: false,
@@ -183,7 +183,7 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
         },
       })),
     setSelectedProfileId: (profileId) => set({ selectedProfileId: profileId }),
-    setSelectedProfileIsAgent: (isAgent) => set({ selectedProfileIsAgent: isAgent }),
+    setSelectedProfileIsSource: (isSource) => set({ selectedProfileIsSource: isSource }),
     setSelectedWorldId: (worldId) => set({ selectedWorldId: worldId }),
     setSelectedGiftTransactionId: (giftTransactionId) => set({ selectedGiftTransactionId: giftTransactionId }),
     setProfileDetailOverlayOpen: (open) => set({ profileDetailOverlayOpen: open }),
@@ -192,7 +192,7 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
       set((state) => ({
         previousTab: state.activeTab,
         selectedProfileId: profileId,
-        selectedProfileIsAgent: tab === 'agent-detail',
+        selectedProfileIsSource: tab === 'agent-detail',
         selectedGiftTransactionId: null,
         activeTab: tab,
       })),
@@ -240,7 +240,7 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
           activeTab: target,
           previousTab: null,
           selectedProfileId: keepProfile ? state.selectedProfileId : null,
-          selectedProfileIsAgent: keepProfile ? state.selectedProfileIsAgent : null,
+          selectedProfileIsSource: keepProfile ? state.selectedProfileIsSource : null,
           selectedWorldId: target === 'world-detail' ? state.selectedWorldId : null,
           selectedGiftTransactionId: null,
         };

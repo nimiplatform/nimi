@@ -10,7 +10,7 @@
           "handle": "@fixture-friend",
           "avatarUrl": "",
           "bio": "Seeded desktop friend",
-          "isAgent": false
+          "isSource": false
         },
         {
           "id": "agent-e2e-alpha",
@@ -18,7 +18,7 @@
           "handle": "~fixture-agent",
           "avatarUrl": "",
           "bio": "Seeded creator agent",
-          "isAgent": true,
+          "isSource": true,
           "agentProfile": {
             "worldId": "world-e2e-1"
           }

@@ -41,7 +41,7 @@ test('agent conversation shell does not expose local thread selection as product
   assert.match(adapterStateSource, /createAgentConversationCacheThreadId/u);
 });
 
-test('agent runtime summary projection requests one active conversation per AgentFriend', () => {
+test('agent runtime summary projection requests one active conversation per runtime source', () => {
   const source = readSource('apps/desktop/src/shell/renderer/features/chat/chat-agent-runtime-conversation-summaries.ts');
   assert.match(source, /createNimiRuntimeAgentConsumeClient/u);
   assert.match(source, /getDesktopRuntime\(\)\.agents/u);

@@ -22,7 +22,7 @@ function toAgentListFromSocialSnapshot(
   const friends = Array.isArray(snapshot?.friends) ? snapshot.friends : [];
   return friends
     .filter((item): item is Record<string, unknown> =>
-      typeof item === 'object' && item !== null && (item as Record<string, unknown>).isAgent === true,
+      typeof item === 'object' && item !== null && (item as Record<string, unknown>).isSource === true,
     )
     .map((item) => ({
       agentId: String(item.accountId || item.id || ''),
@@ -69,7 +69,7 @@ export function ChatGroupParticipantPanel(props: {
   const [panelError, setPanelError] = useState<string | null>(null);
 
   const humans = participants.filter((p) => p.type === 'human');
-  const agents = participants.filter((p) => p.type === 'agent');
+  const agents = participants.filter((p) => p.type === 'source');
   const existingAgentIds = new Set(agents.map((a) => String(a.accountId || '')));
   const canManageAgentSlots = Boolean(
     currentUserId
@@ -114,7 +114,7 @@ export function ChatGroupParticipantPanel(props: {
       ));
       logRendererEvent({
         level: 'warn',
-        area: 'group-agent-slot',
+        area: 'runtime-participant-slot',
         message: `add-error: ${error instanceof Error ? error.message : String(error)}`,
         details: { chatId, agentAccountId },
       });
@@ -142,7 +142,7 @@ export function ChatGroupParticipantPanel(props: {
       ));
       logRendererEvent({
         level: 'warn',
-        area: 'group-agent-slot',
+        area: 'runtime-participant-slot',
         message: `remove-error: ${error instanceof Error ? error.message : String(error)}`,
         details: { chatId, agentAccountId },
       });
@@ -199,7 +199,7 @@ export function ChatGroupParticipantPanel(props: {
           {chatId && !canManageAgentSlots ? (
             <div
               className="px-2 pb-2 text-xs text-slate-400"
-              data-chat-group-agent-slot-refusal="realm-role-required"
+              data-chat-runtime-participant-slot-refusal="realm-role-required"
             >
               {t('Chat.groupAgentSlotManagementDenied', { defaultValue: 'Only group admins can manage agents.' })}
             </div>
@@ -285,7 +285,7 @@ function ParticipantRow(props: {
       ) : (
         <div className={[
           'flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-medium',
-          participant.type === 'agent'
+          participant.type === 'source'
             ? 'bg-violet-100 text-violet-600'
             : 'bg-slate-100 text-slate-500',
         ].join(' ')}>
@@ -305,7 +305,7 @@ function ParticipantRow(props: {
               {t('Chat.groupAdmin', { defaultValue: 'Admin' })}
             </span>
           )}
-          {participant.type === 'agent' && (
+          {participant.type === 'source' && (
             <span className="shrink-0 rounded bg-violet-100 px-1 py-0.5 text-[10px] font-medium text-violet-600">
               {t('Chat.groupAgent', { defaultValue: 'Agent' })}
             </span>

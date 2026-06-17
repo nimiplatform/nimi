@@ -30,7 +30,7 @@ type IntentDto = {
   id: string;
   localAgentRef: string;
   ownerUserId: string;
-  realmAgentId: string;
+  runtimeSourceRef: string;
   status: 'OPEN' | 'ACKED' | 'FAILED';
   attempts: number;
   availableAt: string;
@@ -42,12 +42,12 @@ type AckCall = { intentId: string; outcome: string; detail?: string };
 
 function makeIntent(id: string, overrides: Partial<IntentDto> = {}): IntentDto {
   const ownerUserId = overrides.ownerUserId ?? 'owner-1';
-  const realmAgentId = overrides.realmAgentId ?? `agent-${id}`;
+  const runtimeSourceRef = overrides.runtimeSourceRef ?? `agent-${id}`;
   return {
     id,
     ownerUserId,
-    realmAgentId,
-    localAgentRef: `local-agent:${ownerUserId}:${realmAgentId}`,
+    runtimeSourceRef,
+    localAgentRef: `local-agent:${ownerUserId}:${runtimeSourceRef}`,
     status: 'OPEN',
     attempts: 0,
     availableAt: '2026-05-21T00:00:00.000Z',
@@ -157,7 +157,7 @@ describe('R-SOC-009 T6.2-B: courier pull + deliver + ack on success', () => {
 
 describe('R-SOC-009 T6.2-B: AlreadyExists no-op converges', () => {
   test('K-AGCORE-139 already-exists typed no-op (deliverer resolves) → acks established', async () => {
-    // An AgentFriend whose LocalAgent projection already exists: the production
+    // A source admission whose LocalAgent projection already exists: the production
     // deliverer treats RUNTIME_GRPC_ALREADY_EXISTS as a typed success and
     // resolves, so the courier acks `established` and the intent converges.
     const backend = createBackendDouble([makeIntent('intent-exists')]);

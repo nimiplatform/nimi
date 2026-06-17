@@ -75,22 +75,26 @@
   "feedScopes": {
     "personal": "我的",
     "friends": "好友",
-    "agent_activity": "智能体动态"
+    "persona_activity": "Persona 动态",
+    "world_character_activity": "世界角色"
   },
   "feedScopeHeaderLabels": {
     "personal": "我",
     "friends": "好友",
-    "agent_activity": "智能体"
+    "persona_activity": "Persona",
+    "world_character_activity": "世界角色"
   },
   "feedScopeDescriptions": {
     "personal": "你的个人发布流。",
     "friends": "来自可信好友的更新。",
-    "agent_activity": "来自个人智能体的信号。"
+    "persona_activity": "来自 RealmPersona 的公开动态。",
+    "world_character_activity": "来自已准入世界角色的公开动态。"
   },
   "feedScopeEmpty": {
     "personal": "你还没有发布任何帖子。",
     "friends": "好友还没有发布帖子。",
-    "agent_activity": "暂无智能体动态。"
+    "persona_activity": "暂无 Persona 动态。",
+    "world_character_activity": "暂无世界角色动态。"
   },
   "report": "举报",
   "reportDetailsPlaceholder": "请补充更多举报说明...",

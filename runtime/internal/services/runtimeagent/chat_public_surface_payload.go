@@ -78,7 +78,7 @@ func decodePublicChatTurnRequestPayload(payload any) (publicChatTurnRequestPaylo
 	if strings.TrimSpace(decoded.SystemPrompt) != "" {
 		return publicChatTurnRequestPayload{}, status.Error(codes.InvalidArgument, "public chat turn payload must not include system_prompt")
 	}
-	if _, err := validateLocalAgentIdentity(decoded.OwnerUserID, decoded.RealmAgentID, decoded.LocalAgentRef); err != nil {
+	if _, err := validateLocalAgentIdentity(decoded.OwnerUserID, decoded.RuntimeSourceRef, decoded.LocalAgentRef); err != nil {
 		return publicChatTurnRequestPayload{}, err
 	}
 	if len(toProtoPublicChatMessages(decoded.Messages)) == 0 {

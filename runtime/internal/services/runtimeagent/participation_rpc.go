@@ -290,7 +290,7 @@ func (s *Service) ExecuteParticipation(_ context.Context, req *runtimev1.Execute
 			}
 		case "candidate_first_realm_commit":
 			// K-AGCORE-076 blocks carry no Realm identity evidence
-			// (owner/realm-agent/local-agent refs with subject verification),
+			// (owner/runtime-source/local-agent refs with subject verification),
 			// which the shared candidate executor requires. The admitted
 			// execution entry for this profile is CreateRealmGroupMessageCandidate
 			// with full caller-held identity evidence; refusing here with a

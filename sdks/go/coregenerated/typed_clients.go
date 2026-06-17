@@ -1933,7 +1933,7 @@ type AgentEvent struct {
 	AvatarDebug *AgentAvatarDebugEventDetail `json:"avatar_debug,omitempty"`
 	LocalAgentRef string `json:"local_agent_ref,omitempty"`
 	OwnerUserId string `json:"owner_user_id,omitempty"`
-	RealmAgentId string `json:"realm_agent_id,omitempty"`
+	RuntimeSourceRef string `json:"runtime_source_ref,omitempty"`
 }
 
 type AgentHookEventDetail struct {
@@ -2005,7 +2005,7 @@ type AgentRecord struct {
 	UpdatedAt string `json:"updated_at,omitempty"`
 	LocalAgentRef string `json:"local_agent_ref,omitempty"`
 	OwnerUserId string `json:"owner_user_id,omitempty"`
-	RealmAgentId string `json:"realm_agent_id,omitempty"`
+	RuntimeSourceRef string `json:"runtime_source_ref,omitempty"`
 }
 
 type AgentReplicationEventDetail struct {
@@ -2018,7 +2018,7 @@ type AgentRequestContext struct {
 	SubjectUserId string `json:"subject_user_id,omitempty"`
 	ScopedBinding *ScopedRuntimeBindingAttachment `json:"scoped_binding,omitempty"`
 	OwnerUserId string `json:"owner_user_id,omitempty"`
-	RealmAgentId string `json:"realm_agent_id,omitempty"`
+	RuntimeSourceRef string `json:"runtime_source_ref,omitempty"`
 	LocalAgentRef string `json:"local_agent_ref,omitempty"`
 }
 
@@ -2484,7 +2484,7 @@ type AvatarLiveInstanceBinding struct {
 	UpdatedAt string `json:"updated_at,omitempty"`
 	LocalAgentRef string `json:"local_agent_ref,omitempty"`
 	OwnerUserId string `json:"owner_user_id,omitempty"`
-	RealmAgentId string `json:"realm_agent_id,omitempty"`
+	RuntimeSourceRef string `json:"runtime_source_ref,omitempty"`
 	CallerAppId string `json:"caller_app_id,omitempty"`
 }
 
@@ -2893,7 +2893,7 @@ type ConversationAnchor struct {
 	Metadata map[string]any `json:"metadata,omitempty"`
 	LocalAgentRef string `json:"local_agent_ref,omitempty"`
 	OwnerUserId string `json:"owner_user_id,omitempty"`
-	RealmAgentId string `json:"realm_agent_id,omitempty"`
+	RuntimeSourceRef string `json:"runtime_source_ref,omitempty"`
 }
 
 type ConversationAnchorSnapshot struct {
@@ -2942,9 +2942,9 @@ type CreateKnowledgeBankResponse struct {
 type CreateRealmGroupMessageCandidateRequest struct {
 	Context *AgentRequestContext `json:"context,omitempty"`
 	RealmGroupThreadId string `json:"realm_group_thread_id,omitempty"`
-	RealmGroupAgentSlotId string `json:"realm_group_agent_slot_id,omitempty"`
+	RuntimeParticipantSlot string `json:"runtime_participant_slot,omitempty"`
 	OwnerUserId string `json:"owner_user_id,omitempty"`
-	RealmAgentId string `json:"realm_agent_id,omitempty"`
+	RuntimeSourceRef string `json:"runtime_source_ref,omitempty"`
 	LocalAgentRef string `json:"local_agent_ref,omitempty"`
 	TriggerRef string `json:"trigger_ref,omitempty"`
 	MembershipSnapshotRef string `json:"membership_snapshot_ref,omitempty"`
@@ -3696,7 +3696,7 @@ type GetRealmGroupMessageCandidateEvidenceRequest struct {
 	CandidateEvidenceRef string `json:"candidate_evidence_ref,omitempty"`
 	EvidenceHash string `json:"evidence_hash,omitempty"`
 	RuntimeTraceRef string `json:"runtime_trace_ref,omitempty"`
-	ExpectedRealmGroupAgentSlotId string `json:"expected_realm_group_agent_slot_id,omitempty"`
+	ExpectedRuntimeParticipantSlot string `json:"expected_runtime_participant_slot,omitempty"`
 	ExpectedLocalAgentRef string `json:"expected_local_agent_ref,omitempty"`
 	TriggerRef string `json:"trigger_ref,omitempty"`
 	TargetRealmGroupThreadId string `json:"target_realm_group_thread_id,omitempty"`
@@ -3916,7 +3916,7 @@ type InitializeAgentRequest struct {
 	Metadata map[string]any `json:"metadata,omitempty"`
 	LocalAgentRef string `json:"local_agent_ref,omitempty"`
 	OwnerUserId string `json:"owner_user_id,omitempty"`
-	RealmAgentId string `json:"realm_agent_id,omitempty"`
+	RuntimeSourceRef string `json:"runtime_source_ref,omitempty"`
 }
 
 type InitializeAgentResponse struct {
@@ -5666,7 +5666,7 @@ type OpenConversationAnchorRequest struct {
 	Metadata map[string]any `json:"metadata,omitempty"`
 	LocalAgentRef string `json:"local_agent_ref,omitempty"`
 	OwnerUserId string `json:"owner_user_id,omitempty"`
-	RealmAgentId string `json:"realm_agent_id,omitempty"`
+	RuntimeSourceRef string `json:"runtime_source_ref,omitempty"`
 }
 
 type OpenConversationAnchorResponse struct {
@@ -5987,9 +5987,9 @@ type RealmGroupMessageCandidateCommitHandle struct {
 	EvidenceHash string `json:"evidence_hash,omitempty"`
 	RuntimeTraceRef string `json:"runtime_trace_ref,omitempty"`
 	RealmGroupThreadId string `json:"realm_group_thread_id,omitempty"`
-	RealmGroupAgentSlotId string `json:"realm_group_agent_slot_id,omitempty"`
+	RuntimeParticipantSlot string `json:"runtime_participant_slot,omitempty"`
 	OwnerUserId string `json:"owner_user_id,omitempty"`
-	RealmAgentId string `json:"realm_agent_id,omitempty"`
+	RuntimeSourceRef string `json:"runtime_source_ref,omitempty"`
 	LocalAgentRef string `json:"local_agent_ref,omitempty"`
 	TriggerRef string `json:"trigger_ref,omitempty"`
 	OutputCandidateRef string `json:"output_candidate_ref,omitempty"`
@@ -6013,9 +6013,9 @@ type RealmGroupMessageCandidateEvidence struct {
 	CandidateId string `json:"candidate_id,omitempty"`
 	CandidateKind string `json:"candidate_kind,omitempty"`
 	RealmGroupThreadId string `json:"realm_group_thread_id,omitempty"`
-	RealmGroupAgentSlotId string `json:"realm_group_agent_slot_id,omitempty"`
+	RuntimeParticipantSlot string `json:"runtime_participant_slot,omitempty"`
 	OwnerUserId string `json:"owner_user_id,omitempty"`
-	RealmAgentId string `json:"realm_agent_id,omitempty"`
+	RuntimeSourceRef string `json:"runtime_source_ref,omitempty"`
 	LocalAgentRef string `json:"local_agent_ref,omitempty"`
 	TriggerRef string `json:"trigger_ref,omitempty"`
 	OutputCandidateRef string `json:"output_candidate_ref,omitempty"`

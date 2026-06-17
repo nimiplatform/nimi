@@ -33,7 +33,7 @@ import { fromNimiRuntimeProtoStruct, toNimiRuntimeProtoStruct } from './runtime-
 test('Runtime Agent turn helpers build explicit payloads and fail closed on invalid input', async () => {
   const baseTurn = {
     ownerUserId: 'user-1',
-    realmAgentId: 'agent-1',
+    runtimeSourceRef: 'agent-1',
     conversationAnchorId: 'anchor-1',
     requestId: 'request-1',
     threadId: 'thread-1',
@@ -139,7 +139,7 @@ test('Runtime Agent turn helpers build explicit payloads and fail closed on inva
 
   await module.interrupt({
     ownerUserId: 'user-1',
-    realmAgentId: 'agent-1',
+    runtimeSourceRef: 'agent-1',
     conversationAnchorId: 'anchor-1',
     turnId: 'turn-1',
     reason: 'stop',
@@ -233,7 +233,7 @@ test('Runtime Agent turn helper requests committed-message voice render and reso
 
   const result = await module.renderVoice({
     ownerUserId: 'user-1',
-    realmAgentId: 'agent-1',
+    runtimeSourceRef: 'agent-1',
     conversationAnchorId: 'anchor-1',
     turnId: 'turn-1',
     messageId: 'message-1',
@@ -288,7 +288,7 @@ test('Runtime Agent turn helper reports text_only when Runtime emits no playable
 
   const result = await module.renderVoice({
     ownerUserId: 'user-1',
-    realmAgentId: 'agent-1',
+    runtimeSourceRef: 'agent-1',
     conversationAnchorId: 'anchor-1',
     turnId: 'turn-1',
     messageId: 'message-1',
@@ -341,7 +341,7 @@ test('Runtime Agent turn subscription cancels sibling streams on early consumer 
 
   const stream = await module.subscribe({
     ownerUserId: 'user-1',
-    realmAgentId: 'agent-1',
+    runtimeSourceRef: 'agent-1',
     conversationAnchorId: 'anchor-1',
     includeAgentEvents: true,
   });
@@ -434,7 +434,7 @@ test('Runtime Realm group message candidate surface builds verified commit paylo
     ...agentIdentity(),
     participantType: 'agent',
     currentUserId: 'user-1',
-    realmGroupAgentSlotId: 'slot-1',
+    runtimeParticipantSlot: 'slot-1',
     realmGroupThreadId: 'thread-1',
     triggerMessageId: 'message-1',
     idempotencyKey: 'idem-1',
@@ -455,7 +455,7 @@ test('Runtime Realm group message candidate surface builds verified commit paylo
       ...agentIdentity(),
       participantType: 'agent',
       currentUserId: 'user-1',
-      realmGroupAgentSlotId: 'slot-1',
+      runtimeParticipantSlot: 'slot-1',
       realmGroupThreadId: 'thread-1',
       triggerMessageId: 'message-1',
       idempotencyKey: 'idem-2',
@@ -468,7 +468,7 @@ test('Runtime Realm group message candidate surface builds verified commit paylo
       ...agentIdentity(),
       participantType: 'agent',
       currentUserId: 'user-1',
-      realmGroupAgentSlotId: 'slot-1',
+      runtimeParticipantSlot: 'slot-1',
       realmGroupThreadId: 'thread-1',
       triggerMessageId: 'message-1',
       idempotencyKey: 'idem-3',
@@ -518,8 +518,8 @@ class CancellableStream<T> implements AsyncIterable<T> {
 function agentIdentity() {
   return {
     ownerUserId: 'user-1',
-    realmAgentId: 'agent-1',
-    localAgentRef: buildRuntimeLocalAgentRef({ ownerUserId: 'user-1', realmAgentId: 'agent-1' }),
+    runtimeSourceRef: 'agent-1',
+    localAgentRef: buildRuntimeLocalAgentRef({ ownerUserId: 'user-1', runtimeSourceRef: 'agent-1' }),
   };
 }
 
@@ -555,9 +555,9 @@ function candidateHandle() {
     evidenceHash: 'hash-1',
     runtimeTraceRef: 'trace-1',
     realmGroupThreadId: 'thread-1',
-    realmGroupAgentSlotId: 'slot-1',
+    runtimeParticipantSlot: 'slot-1',
     ownerUserId: 'user-1',
-    realmAgentId: 'agent-1',
+    runtimeSourceRef: 'agent-1',
     localAgentRef: 'local-agent:user-1:agent-1',
     triggerRef: 'realm://group-chats/thread-1/messages/message-1',
     outputCandidateRef: 'candidate-output-1',
@@ -574,9 +574,9 @@ function candidateEvidence() {
     candidateId: 'candidate-1',
     candidateKind: 'REALM_GROUP_MESSAGE_CANDIDATE',
     realmGroupThreadId: 'thread-1',
-    realmGroupAgentSlotId: 'slot-1',
+    runtimeParticipantSlot: 'slot-1',
     ownerUserId: 'user-1',
-    realmAgentId: 'agent-1',
+    runtimeSourceRef: 'agent-1',
     localAgentRef: 'local-agent:user-1:agent-1',
     triggerRef: 'realm://group-chats/thread-1/messages/message-1',
     outputCandidateRef: 'candidate-output-1',

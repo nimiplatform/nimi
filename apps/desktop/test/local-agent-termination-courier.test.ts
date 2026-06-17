@@ -30,7 +30,7 @@ type IntentDto = {
   id: string;
   localAgentRef: string;
   ownerUserId: string;
-  realmAgentId: string;
+  runtimeSourceRef: string;
   status: 'OPEN' | 'ACKED' | 'FAILED';
   attempts: number;
   availableAt: string;
@@ -42,12 +42,12 @@ type AckCall = { intentId: string; outcome: string; detail?: string };
 
 function makeIntent(id: string, overrides: Partial<IntentDto> = {}): IntentDto {
   const ownerUserId = overrides.ownerUserId ?? 'owner-1';
-  const realmAgentId = overrides.realmAgentId ?? `agent-${id}`;
+  const runtimeSourceRef = overrides.runtimeSourceRef ?? `agent-${id}`;
   return {
     id,
     ownerUserId,
-    realmAgentId,
-    localAgentRef: `local-agent:${ownerUserId}:${realmAgentId}`,
+    runtimeSourceRef,
+    localAgentRef: `local-agent:${ownerUserId}:${runtimeSourceRef}`,
     status: 'OPEN',
     attempts: 0,
     availableAt: '2026-05-21T00:00:00.000Z',

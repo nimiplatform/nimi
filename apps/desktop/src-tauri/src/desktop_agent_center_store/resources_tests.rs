@@ -21,7 +21,7 @@ fn owner_user_id() -> String {
     "owner_1".to_string()
 }
 
-fn realm_agent_id() -> String {
+fn runtime_source_ref() -> String {
     "agent_1".to_string()
 }
 
@@ -38,14 +38,14 @@ fn local_agent_ref_two() -> String {
 }
 
 fn local_scope() -> LocalAgentScope {
-    validate_local_agent_scope(&owner_user_id(), &realm_agent_id(), &local_agent_ref())
+    validate_local_agent_scope(&owner_user_id(), &runtime_source_ref(), &local_agent_ref())
         .expect("local scope")
 }
 
 fn second_owner_scope() -> LocalAgentScope {
     validate_local_agent_scope(
         &owner_user_id_two(),
-        &realm_agent_id(),
+        &runtime_source_ref(),
         &local_agent_ref_two(),
     )
     .expect("second owner scope")
@@ -216,7 +216,7 @@ fn imports_live2d_avatar_asset_and_selects_launch_evidence() {
             DesktopAgentCenterAvatarAssetImportPayload {
                 account_id: "account_1".to_string(),
                 owner_user_id: owner_user_id(),
-                realm_agent_id: realm_agent_id(),
+                runtime_source_ref: runtime_source_ref(),
                 local_agent_ref: local_agent_ref(),
                 kind: AgentCenterAvatarBackendKind::Live2d,
                 source_path: source.to_string_lossy().to_string(),
@@ -255,7 +255,7 @@ fn imports_live2d_avatar_asset_and_selects_launch_evidence() {
             DesktopAgentCenterConfigScopePayload {
                 account_id: "account_1".to_string(),
                 owner_user_id: owner_user_id(),
-                realm_agent_id: realm_agent_id(),
+                runtime_source_ref: runtime_source_ref(),
                 local_agent_ref: local_agent_ref(),
             },
         )
@@ -292,7 +292,7 @@ fn rejects_live2d_avatar_asset_when_model3_moc_reference_is_missing() {
             DesktopAgentCenterAvatarAssetImportPayload {
                 account_id: "account_1".to_string(),
                 owner_user_id: owner_user_id(),
-                realm_agent_id: realm_agent_id(),
+                runtime_source_ref: runtime_source_ref(),
                 local_agent_ref: local_agent_ref(),
                 kind: AgentCenterAvatarBackendKind::Live2d,
                 source_path: source.to_string_lossy().to_string(),
@@ -316,7 +316,7 @@ fn rejects_live2d_avatar_asset_when_model3_reference_case_does_not_match() {
             DesktopAgentCenterAvatarAssetImportPayload {
                 account_id: "account_1".to_string(),
                 owner_user_id: owner_user_id(),
-                realm_agent_id: realm_agent_id(),
+                runtime_source_ref: runtime_source_ref(),
                 local_agent_ref: local_agent_ref(),
                 kind: AgentCenterAvatarBackendKind::Live2d,
                 source_path: source.to_string_lossy().to_string(),
@@ -340,7 +340,7 @@ fn rejects_live2d_avatar_asset_when_moc_header_is_invalid() {
             DesktopAgentCenterAvatarAssetImportPayload {
                 account_id: "account_1".to_string(),
                 owner_user_id: owner_user_id(),
-                realm_agent_id: realm_agent_id(),
+                runtime_source_ref: runtime_source_ref(),
                 local_agent_ref: local_agent_ref(),
                 kind: AgentCenterAvatarBackendKind::Live2d,
                 source_path: source.to_string_lossy().to_string(),
@@ -364,7 +364,7 @@ fn imports_live2d_avatar_asset_with_portability_warnings() {
             DesktopAgentCenterAvatarAssetImportPayload {
                 account_id: "account_1".to_string(),
                 owner_user_id: owner_user_id(),
-                realm_agent_id: realm_agent_id(),
+                runtime_source_ref: runtime_source_ref(),
                 local_agent_ref: local_agent_ref(),
                 kind: AgentCenterAvatarBackendKind::Live2d,
                 source_path: source.to_string_lossy().to_string(),
@@ -400,7 +400,7 @@ fn imports_vrm_avatar_asset_and_selects_launch_evidence() {
             DesktopAgentCenterAvatarAssetImportPayload {
                 account_id: "account_1".to_string(),
                 owner_user_id: owner_user_id(),
-                realm_agent_id: realm_agent_id(),
+                runtime_source_ref: runtime_source_ref(),
                 local_agent_ref: local_agent_ref(),
                 kind: AgentCenterAvatarBackendKind::Vrm,
                 source_path: source.to_string_lossy().to_string(),
@@ -428,7 +428,7 @@ fn imports_vrm_avatar_asset_and_selects_launch_evidence() {
             DesktopAgentCenterAvatarAssetValidatePayload {
                 account_id: "account_1".to_string(),
                 owner_user_id: owner_user_id(),
-                realm_agent_id: realm_agent_id(),
+                runtime_source_ref: runtime_source_ref(),
                 local_agent_ref: local_agent_ref(),
                 local_asset_id: result.local_asset_id,
             },
@@ -450,7 +450,7 @@ fn imports_background_transactionally_and_selects_it() {
             DesktopAgentCenterBackgroundImportPayload {
                 account_id: "account_1".to_string(),
                 owner_user_id: owner_user_id(),
-                realm_agent_id: realm_agent_id(),
+                runtime_source_ref: runtime_source_ref(),
                 local_agent_ref: local_agent_ref(),
                 source_path: source.to_string_lossy().to_string(),
                 display_name: Some("Imported Background".to_string()),
@@ -474,7 +474,7 @@ fn imports_background_transactionally_and_selects_it() {
             DesktopAgentCenterConfigScopePayload {
                 account_id: "account_1".to_string(),
                 owner_user_id: owner_user_id(),
-                realm_agent_id: realm_agent_id(),
+                runtime_source_ref: runtime_source_ref(),
                 local_agent_ref: local_agent_ref(),
             },
         )
@@ -487,7 +487,7 @@ fn imports_background_transactionally_and_selects_it() {
             DesktopAgentCenterBackgroundValidatePayload {
                 account_id: "account_1".to_string(),
                 owner_user_id: owner_user_id(),
-                realm_agent_id: realm_agent_id(),
+                runtime_source_ref: runtime_source_ref(),
                 local_agent_ref: local_agent_ref(),
                 background_asset_id: result.background_asset_id,
             },
@@ -505,7 +505,7 @@ fn imports_background_transactionally_and_selects_it() {
 }
 
 #[test]
-fn same_realm_agent_id_does_not_share_agent_center_resources_across_owners() {
+fn same_runtime_source_ref_does_not_share_agent_center_resources_across_owners() {
     let home = temp_home("owner-isolation");
     with_product_data_home(&home, || {
         let source = write_background_import_source(&home);
@@ -513,7 +513,7 @@ fn same_realm_agent_id_does_not_share_agent_center_resources_across_owners() {
             DesktopAgentCenterBackgroundImportPayload {
                 account_id: "account_1".to_string(),
                 owner_user_id: owner_user_id(),
-                realm_agent_id: realm_agent_id(),
+                runtime_source_ref: runtime_source_ref(),
                 local_agent_ref: local_agent_ref(),
                 source_path: source.to_string_lossy().to_string(),
                 display_name: Some("Owner one".to_string()),
@@ -527,7 +527,7 @@ fn same_realm_agent_id_does_not_share_agent_center_resources_across_owners() {
             DesktopAgentCenterConfigScopePayload {
                 account_id: "account_1".to_string(),
                 owner_user_id: owner_user_id_two(),
-                realm_agent_id: realm_agent_id(),
+                runtime_source_ref: runtime_source_ref(),
                 local_agent_ref: local_agent_ref_two(),
             },
         )
@@ -568,7 +568,7 @@ fn removes_selected_background_by_clearing_config_and_quarantining_directory() {
             DesktopAgentCenterBackgroundRemovePayload {
                 account_id: "account_1".to_string(),
                 owner_user_id: owner_user_id(),
-                realm_agent_id: realm_agent_id(),
+                runtime_source_ref: runtime_source_ref(),
                 local_agent_ref: local_agent_ref(),
                 background_asset_id: "bg_ab12cd34ef56".to_string(),
             },
@@ -582,7 +582,7 @@ fn removes_selected_background_by_clearing_config_and_quarantining_directory() {
             DesktopAgentCenterConfigScopePayload {
                 account_id: "account_1".to_string(),
                 owner_user_id: owner_user_id(),
-                realm_agent_id: realm_agent_id(),
+                runtime_source_ref: runtime_source_ref(),
                 local_agent_ref: local_agent_ref(),
             },
         )

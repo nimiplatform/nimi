@@ -224,8 +224,9 @@ test('loadWorldSemanticBundle only requests worldview and skips redundant world 
 
   assert.equal(worldDetailCalls, 0);
   assert.equal(worldviewCalls, 1);
-  assert.equal(result.world, null);
-  assert.equal(result.worldview?.id, 'view-1');
+  const resultRecord = result as { world?: unknown; worldview?: { id?: unknown } };
+  assert.equal(resultRecord.world, null);
+  assert.equal(resultRecord.worldview?.id, 'view-1');
   assert.equal(errors.length, 0);
 });
 

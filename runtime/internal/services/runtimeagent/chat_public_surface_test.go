@@ -349,7 +349,7 @@ func requestPublicChatSessionSnapshot(
 	callerAppID := anchor.CallerAppID
 	subjectUserID := anchor.SubjectUserID
 	ownerUserID := anchor.OwnerUserID
-	realmAgentID := anchor.RealmAgentID
+	runtimeSourceRef := anchor.RuntimeSourceRef
 	localAgentRef := anchor.LocalAgentRef
 	svc.chatSurfaceMu.Unlock()
 	resp, err := svc.GetPublicChatSessionSnapshot(context.Background(), &runtimev1.GetPublicChatSessionSnapshotRequest{
@@ -357,7 +357,7 @@ func requestPublicChatSessionSnapshot(
 			AppId:         callerAppID,
 			SubjectUserId: subjectUserID,
 			OwnerUserId:   ownerUserID,
-			RealmAgentId:  realmAgentID,
+			RuntimeSourceRef:  runtimeSourceRef,
 			LocalAgentRef: localAgentRef,
 			ScopedBinding: &runtimev1.ScopedRuntimeBindingAttachment{
 				BindingId:            "binding-" + anchorID,
@@ -629,7 +629,7 @@ func TestPublicChatTurnRequestInjectsRuntimePreTurnMemoryContext(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"realm_agent_id":         "agent-alpha",
+			"runtime_source_ref":         "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"request_id":             "desktop-turn-memory-context",
 			"thread_id":              "thread-memory-context",
@@ -689,7 +689,7 @@ func TestPublicChatTurnRequestFailsClosedWhenPreTurnMemoryReadFails(t *testing.T
 	req := publicChatTurnRequestPayload{
 		LocalAgentRef:        testRuntimeAgentLocalRef("agent-alpha"),
 		OwnerUserID:          "user-1",
-		RealmAgentID:         "agent-alpha",
+		RuntimeSourceRef:         "agent-alpha",
 		ConversationAnchorID: anchorID,
 		RequestID:            "desktop-turn-memory-read-fails",
 		ThreadID:             "thread-memory-read-fails",
@@ -736,7 +736,7 @@ func TestPublicChatPreTurnMemoryRequiresSubjectContext(t *testing.T) {
 		AgentID:       testRuntimeAgentLocalRef("agent-alpha"),
 		LocalAgentRef: testRuntimeAgentLocalRef("agent-alpha"),
 		OwnerUserID:   "user-1",
-		RealmAgentID:  "agent-alpha",
+		RuntimeSourceRef:  "agent-alpha",
 		CallerAppID:   "desktop.app",
 	}, publicChatTurnRequestPayload{
 		SystemPrompt: "You are Alpha.",
@@ -808,7 +808,7 @@ func TestPublicChatTurnRequestStreamsAndAppliesPostTurnEffects(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"realm_agent_id":         "agent-alpha",
+			"runtime_source_ref":         "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"request_id":             "desktop-turn-request-1",
 			"thread_id":              "thread-1",
@@ -1009,7 +1009,7 @@ func TestPublicChatTurnMessageCommitFailureFailsClosed(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"realm_agent_id":         "agent-alpha",
+			"runtime_source_ref":         "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
@@ -1100,7 +1100,7 @@ func TestPublicChatCompletedEmissionFailureFinalizesFailed(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"realm_agent_id":         "agent-alpha",
+			"runtime_source_ref":         "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
@@ -1197,7 +1197,7 @@ func TestPublicChatTurnRequestDetachesExecutionFromIngressContext(t *testing.T) 
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"realm_agent_id":         "agent-alpha",
+			"runtime_source_ref":         "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"thread_id":              "thread-detached-context",
 			"messages": []any{

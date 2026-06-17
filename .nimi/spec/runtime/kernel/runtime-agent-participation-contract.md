@@ -238,7 +238,7 @@ Participation profile kinds are closed and defined by
 Fixed profile kinds:
 
 - `canonical_agent_chat`
-- `realm_group_agent`
+- `realm_group_source`
 - `scenario_sandbox`
 - `oasis_world_participation`
 - `external_agent_entry`
@@ -263,7 +263,7 @@ Those remain governed by `K-AGCORE-*`.
 
 ## K-AGCORE-076 Realm Group Agent Profile
 
-`realm_group_agent` represents a Runtime-executed agent reply candidate for a
+`realm_group_source` represents a Runtime-executed agent reply candidate for a
 Realm GROUP transcript.
 
 Fixed posture:
@@ -725,7 +725,7 @@ this target.
 Realm GROUP transcript commit remains owned by Realm Chat.
 
 Runtime participation must not directly commit Realm GROUP messages. A Realm
-GROUP promotion candidate is valid only for `realm_group_agent` and must carry
+GROUP promotion candidate is valid only for `realm_group_source` and must carry
 Realm thread, agent slot, audit, output candidate, and authenticated commit
 references.
 

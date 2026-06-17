@@ -97,7 +97,7 @@ export function ProfileDetailViewContent(input: {
   const isRestrictedProfile = (input.isRestrictedProfile === true || profile.accessState === 'restricted') && !input.isOwnProfile;
   const headline = isRestrictedProfile
     ? t('Profile.privateProfileDescription', { defaultValue: 'This profile is private. Only basic contact information is available.' })
-    : profile.bio || (profile.isAgent
+    : profile.bio || (profile.isSource
     ? t('Profile.agentNoSummary', { defaultValue: 'This contact has no public profile summary yet.' })
     : t('Profile.noDescription', { defaultValue: 'No profile summary has been added yet.' }));
   const contentRestricted = (input.isBlockedProfile === true || isRestrictedProfile) && !input.isOwnProfile;
@@ -196,11 +196,11 @@ export function ProfileDetailViewContent(input: {
                               <EntityAvatar
                                 imageUrl={isEditing ? draft.avatarUrl || null : profile.avatarUrl}
                                 name={isEditing ? draft.displayName || profile.displayName : profile.displayName}
-                                kind={profile.isAgent ? 'agent' : 'human'}
+                                kind={profile.isSource ? 'agent' : 'human'}
                                 sizeClassName="h-24 w-24"
                                 textClassName="text-3xl font-bold"
-                                fallbackClassName={profile.isAgent ? undefined : 'bg-gradient-to-br from-[#4ECCA3]/20 to-[#4ECCA3]/5 text-[#1f8f69]'}
-                                className={profile.isAgent ? '' : 'rounded-full border border-white/85 shadow-[0_14px_34px_rgba(15,23,42,0.12)]'}
+                                fallbackClassName={profile.isSource ? undefined : 'bg-gradient-to-br from-[#4ECCA3]/20 to-[#4ECCA3]/5 text-[#1f8f69]'}
+                                className={profile.isSource ? '' : 'rounded-full border border-white/85 shadow-[0_14px_34px_rgba(15,23,42,0.12)]'}
                               />
 
                               {SHOW_AVATAR_ONLINE_INDICATOR && profile.isOnline ? (
@@ -220,7 +220,7 @@ export function ProfileDetailViewContent(input: {
                                   />
                                   <div
                                     onClick={() => !isUploadingAvatar && avatarInputRef.current?.click()}
-                                    className={`absolute inset-0 flex items-center justify-center ${profile.isAgent ? 'rounded-[12px]' : 'rounded-full'} transition-all ${
+                                    className={`absolute inset-0 flex items-center justify-center ${profile.isSource ? 'rounded-[12px]' : 'rounded-full'} transition-all ${
                                       isUploadingAvatar
                                         ? 'bg-black/50'
                                         : 'cursor-pointer bg-black/0 group-hover:bg-black/40'

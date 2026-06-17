@@ -146,8 +146,12 @@ function normalizeGiftParty(value: unknown, fallbackId?: string | null): Commerc
   const displayName = asString(record?.displayName);
   const handle = asString(record?.handle);
   const avatarUrl = asString(record?.avatarUrl);
-  const isAgent = record?.isAgent === true;
-  if (!id && !displayName && !handle && !avatarUrl && !isAgent) {
+  const isSource = record?.isSource === true
+    || Boolean(asString(record?.sourceRef))
+    || Boolean(asString(record?.runtimeSourceRef))
+    || Boolean(asString(record?.sourceKind))
+    || Boolean(asString(record?.originKind));
+  if (!id && !displayName && !handle && !avatarUrl && !isSource) {
     return null;
   }
   return {
@@ -155,7 +159,7 @@ function normalizeGiftParty(value: unknown, fallbackId?: string | null): Commerc
     displayName,
     handle,
     avatarUrl,
-    isAgent,
+    isSource,
   };
 }
 

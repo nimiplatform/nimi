@@ -50,7 +50,7 @@ func (r publicChatRuntime) queryPublicChatPreTurnMemory(
 			AppId:         strings.TrimSpace(session.CallerAppID),
 			SubjectUserId: strings.TrimSpace(session.SubjectUserID),
 			OwnerUserId:   strings.TrimSpace(session.OwnerUserID),
-			RealmAgentId:  strings.TrimSpace(session.RealmAgentID),
+			RuntimeSourceRef:  strings.TrimSpace(session.RuntimeSourceRef),
 			LocalAgentRef: strings.TrimSpace(session.LocalAgentRef),
 		},
 		AgentId:          strings.TrimSpace(session.AgentID),

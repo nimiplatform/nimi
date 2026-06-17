@@ -360,8 +360,8 @@ export function seedAvatarProductSmokeAgentCenterConfig(avatarProductLive2dPacka
   }
   const accountId = 'user-e2e-primary';
   const ownerUserId = 'user-e2e-primary';
-  const realmAgentId = 'agent-e2e-alpha';
-  const localAgentRef = `local-agent:${ownerUserId}:${realmAgentId}`;
+  const runtimeSourceRef = 'agent-e2e-alpha';
+  const localAgentRef = `local-agent:${ownerUserId}:${runtimeSourceRef}`;
   const packageHash = crypto.createHash('sha256')
     .update(path.resolve(avatarProductLive2dPackage.packageRoot))
     .digest('hex')
@@ -445,7 +445,7 @@ export function seedAvatarProductSmokeAgentCenterConfig(avatarProductLive2dPacka
     config_kind: 'agent_center_local_config',
     account_id: accountId,
     owner_user_id: ownerUserId,
-    realm_agent_id: realmAgentId,
+    runtime_source_ref: runtimeSourceRef,
     local_agent_ref: localAgentRef,
     modules: {
       appearance: {
@@ -497,7 +497,7 @@ export function seedAvatarProductSmokeAgentCenterConfig(avatarProductLive2dPacka
     dataDir,
     accountId,
     ownerUserId,
-    realmAgentId,
+    runtimeSourceRef,
     localAgentRef,
     packageDir,
     avatarAssetRef: config.modules.avatar_asset.local_avatar_asset_ref,

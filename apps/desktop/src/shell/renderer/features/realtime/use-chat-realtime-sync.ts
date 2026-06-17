@@ -21,7 +21,7 @@ import {
   rememberRealmChatSeenEvent,
   useRealmChatRealtimeController,
 } from '@nimiplatform/kit/features/chat/realm';
-import { projectNimiRealmRealtimeUrl } from '@nimiplatform/sdk/realm';
+import { resolveNimiRealmRealtimeUrl } from '@nimiplatform/sdk/realm';
 import { getOfflineCoordinator } from '@renderer/infra/offline/coordinator';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { queryClient } from '@renderer/infra/query-client/query-client';
@@ -248,7 +248,7 @@ export function useChatRealtimeSync(): void {
   const offlineCoordinator = getOfflineCoordinator();
 
   const realtimeBaseUrl = useMemo(
-    () => projectNimiRealmRealtimeUrl({
+    () => resolveNimiRealmRealtimeUrl({
       realmBaseUrl: runtimeDefaults?.realm.realmBaseUrl,
       realtimeUrl: runtimeDefaults?.realm.realtimeUrl,
     }),

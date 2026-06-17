@@ -147,7 +147,7 @@ async function validatePersistedAnchor(input: {
   runtimeAgent: NimiRuntimeAgentConsumeClient;
   withScopes?: NimiRuntimeAgentScopeRunner;
   ownerUserId: string;
-  realmAgentId: string;
+  runtimeSourceRef: string;
   localAgentRef: string;
   conversationAnchorId: string;
 }): Promise<AvatarConversationContextResult | null> {
@@ -157,7 +157,7 @@ async function validatePersistedAnchor(input: {
       ['runtime.agent.read'],
       (options) => input.runtimeAgent.anchors.getSnapshot({
         ownerUserId: input.ownerUserId,
-        realmAgentId: input.realmAgentId,
+        runtimeSourceRef: input.runtimeSourceRef,
         localAgentRef: input.localAgentRef,
         conversationAnchorId: input.conversationAnchorId,
       }, options),
@@ -187,7 +187,7 @@ async function resolveRegisteredLiveInstanceAnchor(input: {
   runtimeAgent: NimiRuntimeAgentConsumeClient;
   withScopes?: NimiRuntimeAgentScopeRunner;
   ownerUserId: string;
-  realmAgentId: string;
+  runtimeSourceRef: string;
   localAgentRef: string;
   avatarInstanceId: string;
 }): Promise<AvatarConversationContextResult | null> {
@@ -197,7 +197,7 @@ async function resolveRegisteredLiveInstanceAnchor(input: {
       ['runtime.agent.read'],
       (options) => input.runtimeAgent.anchors.resolveAvatarLiveInstance({
         ownerUserId: input.ownerUserId,
-        realmAgentId: input.realmAgentId,
+        runtimeSourceRef: input.runtimeSourceRef,
         localAgentRef: input.localAgentRef,
         avatarInstanceId: input.avatarInstanceId,
       }, options),
@@ -217,7 +217,7 @@ async function resolveRegisteredLiveInstanceAnchor(input: {
       || anchorAgentId !== input.localAgentRef
       || normalizeText(binding.localAgentRef) !== input.localAgentRef
       || normalizeText(binding.ownerUserId) !== input.ownerUserId
-      || normalizeText(binding.realmAgentId) !== input.realmAgentId
+      || normalizeText(binding.runtimeSourceRef) !== input.runtimeSourceRef
       || subjectUserId !== input.ownerUserId
     ) {
       return null;
@@ -240,7 +240,7 @@ export async function resolveAvatarConversationContext(input: {
   withScopes?: NimiRuntimeAgentScopeRunner;
   accountId: string;
   ownerUserId: string;
-  realmAgentId: string;
+  runtimeSourceRef: string;
   localAgentRef: string;
   avatarInstanceId: string;
 }): Promise<AvatarConversationContextResult> {
@@ -251,7 +251,7 @@ export async function resolveAvatarConversationContext(input: {
     runtimeAgent: input.runtimeAgent,
     withScopes: input.withScopes,
     ownerUserId: input.ownerUserId,
-    realmAgentId: input.realmAgentId,
+    runtimeSourceRef: input.runtimeSourceRef,
     localAgentRef: input.localAgentRef,
     avatarInstanceId: input.avatarInstanceId,
   });
@@ -275,7 +275,7 @@ export async function resolveAvatarConversationContext(input: {
       runtimeAgent: input.runtimeAgent,
       withScopes: input.withScopes,
       ownerUserId: input.ownerUserId,
-      realmAgentId: input.realmAgentId,
+      runtimeSourceRef: input.runtimeSourceRef,
       localAgentRef: input.localAgentRef,
       conversationAnchorId: persisted.conversationAnchorId,
     });
@@ -295,7 +295,7 @@ export async function resolveAvatarConversationContext(input: {
     ['runtime.agent.write'],
     (options) => input.runtimeAgent.anchors.open({
       ownerUserId: input.ownerUserId,
-      realmAgentId: input.realmAgentId,
+      runtimeSourceRef: input.runtimeSourceRef,
       localAgentRef: input.localAgentRef,
     }, options),
   );

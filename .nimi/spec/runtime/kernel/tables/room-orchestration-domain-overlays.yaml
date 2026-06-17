@@ -37,13 +37,13 @@ overlays:
   - id: realm_group
     matrix_row: realm_group
     source_rule: K-AGCORE-116
-    downstream_admission_ref: realm_group_agent_participation_product
+    downstream_admission_ref: realm_group_source_participation_product
     domain_truth_owner: Realm owns GROUP transcript, membership, message, read-state, sync, and authenticated commit truth.
     orchestration_owner: K-AGCORE
     evidence_bindings:
       - realm_group_thread_ref
       - realm_group_membership_ref
-      - realm_agent_slot_ref
+      - runtime_participant_slot_ref
       - realm_message_trigger_ref
       - runtime_output_candidate_ref
     display_projection_guidance: Realm and apps may display runtime.agent.* queue/status projection only.

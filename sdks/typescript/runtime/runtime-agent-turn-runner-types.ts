@@ -319,7 +319,7 @@ export type NimiRuntimeAgentTurnRunnerOptions = {
 
 export type NimiRuntimeAgentSnapshotRecoveryRequestContext = {
   readonly ownerUserId?: unknown;
-  readonly realmAgentId?: unknown;
+  readonly runtimeSourceRef?: unknown;
   readonly localAgentRef: unknown;
   readonly conversationAnchorId: string;
   readonly threadId?: string;

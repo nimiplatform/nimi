@@ -73,8 +73,8 @@ where
     result
 }
 
-fn local_agent_ref(owner_user_id: &str, realm_agent_id: &str) -> String {
-    format!("local-agent:{owner_user_id}:{realm_agent_id}")
+fn local_agent_ref(owner_user_id: &str, runtime_source_ref: &str) -> String {
+    format!("local-agent:{owner_user_id}:{runtime_source_ref}")
 }
 
 fn agent_center_root(home: &Path, account_id: &str, local_agent_ref: &str) -> PathBuf {
@@ -101,15 +101,15 @@ fn materialization_ref(
 fn resolve_payload(
     account_id: &str,
     owner_user_id: &str,
-    realm_agent_id: &str,
+    runtime_source_ref: &str,
     kind: &str,
     local_asset_id: &str,
 ) -> AgentCenterAvatarAssetResolvePayload {
-    let local_agent_ref = local_agent_ref(owner_user_id, realm_agent_id);
+    let local_agent_ref = local_agent_ref(owner_user_id, runtime_source_ref);
     AgentCenterAvatarAssetResolvePayload {
         account_id: account_id.to_string(),
         owner_user_id: owner_user_id.to_string(),
-        realm_agent_id: realm_agent_id.to_string(),
+        runtime_source_ref: runtime_source_ref.to_string(),
         local_agent_ref: local_agent_ref.clone(),
         backend_kind: kind.to_string(),
         local_avatar_asset_ref: local_asset_id.to_string(),
@@ -127,14 +127,14 @@ fn write_avatar_asset_package(
     home: &Path,
     account_id: &str,
     owner_user_id: &str,
-    realm_agent_id: &str,
+    runtime_source_ref: &str,
     kind: &str,
     local_asset_id: &str,
     entry_file: &str,
     entry_mime: &str,
     entry_bytes: &[u8],
 ) -> PathBuf {
-    let local_agent_ref = local_agent_ref(owner_user_id, realm_agent_id);
+    let local_agent_ref = local_agent_ref(owner_user_id, runtime_source_ref);
     let package_dir = agent_center_root(home, account_id, &local_agent_ref)
         .join("modules/avatar_asset/packages")
         .join(kind)
@@ -189,11 +189,11 @@ fn write_local_avatar_asset_config(
     home: &Path,
     account_id: &str,
     owner_user_id: &str,
-    realm_agent_id: &str,
+    runtime_source_ref: &str,
     kind: &str,
     local_asset_id: &str,
 ) {
-    let local_agent_ref = local_agent_ref(owner_user_id, realm_agent_id);
+    let local_agent_ref = local_agent_ref(owner_user_id, runtime_source_ref);
     let config_path = agent_center_root(home, account_id, &local_agent_ref).join("config.json");
     fs::create_dir_all(config_path.parent().expect("config parent")).expect("config dir");
     let config = json!({
@@ -201,7 +201,7 @@ fn write_local_avatar_asset_config(
         "config_kind": "agent_center_local_config",
         "account_id": account_id,
         "owner_user_id": owner_user_id,
-        "realm_agent_id": realm_agent_id,
+        "runtime_source_ref": runtime_source_ref,
         "local_agent_ref": local_agent_ref,
         "modules": {
             "appearance": { "schema_version": 1 },
@@ -309,7 +309,7 @@ async fn resolves_local_avatar_asset_from_agent_center_config_selection() {
         nimi_avatar_resolve_local_avatar_asset(LocalAvatarAssetResolvePayload {
             account_id: "owner_1".to_string(),
             owner_user_id: "owner_1".to_string(),
-            realm_agent_id: "agent_1".to_string(),
+            runtime_source_ref: "agent_1".to_string(),
             local_agent_ref: local_agent_ref("owner_1", "agent_1"),
         })
         .await

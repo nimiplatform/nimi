@@ -408,7 +408,7 @@ func testAvatarDebugService() *Service {
 				Agent: &runtimev1.AgentRecord{
 					AgentId:         agentID,
 					OwnerUserId:     "user-1",
-					RealmAgentId:    "agent-1",
+					RuntimeSourceRef:    "agent-1",
 					LocalAgentRef:   agentID,
 					LifecycleStatus: runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_ACTIVE,
 				},
@@ -425,7 +425,7 @@ func testAvatarDebugService() *Service {
 		ConversationAnchorID: anchorID,
 		AgentID:              agentID,
 		OwnerUserID:          "user-1",
-		RealmAgentID:         "agent-1",
+		RuntimeSourceRef:         "agent-1",
 		LocalAgentRef:        agentID,
 		CallerAppID:          "nimi.desktop",
 		SubjectUserID:        "user-1",
@@ -460,7 +460,7 @@ func testAvatarDebugContext(anchorID string) *runtimev1.AgentRequestContext {
 		AppId:         "nimi.desktop",
 		SubjectUserId: "user-1",
 		OwnerUserId:   "user-1",
-		RealmAgentId:  "agent-1",
+		RuntimeSourceRef:  "agent-1",
 		LocalAgentRef: agentID,
 		ScopedBinding: &runtimev1.ScopedRuntimeBindingAttachment{
 			BindingId:            "binding-avatar-debug",

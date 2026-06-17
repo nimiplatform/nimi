@@ -1,6 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { CreateAgentDrawer, type CreateAgentConfirmInput } from './create-agent-drawer';
 import {
   OASIS_WORLD_DETAIL_COMPOSITION,
   NARRATIVE_WORLD_DETAIL_COMPOSITION,
@@ -43,18 +42,9 @@ export type WorldDetailPageProps = {
   onBack?: () => void;
   onEnterEdit?: () => void;
   onCreateSubWorld?: () => void;
-  // No onChatAgent / onVoiceAgent: a RealmAgent in a World offers View profile
-  // only. RealmAgent direct chat is not admitted (D-EXPL-006 / T3) — chat is
-  // reachable solely via friend → Open Agent Chat on the agent-detail surface.
+  // No onChatAgent / onVoiceAgent: a WorldCharacter offers View profile only.
+  // Chat is materialized only after RuntimeSourceSnapshot handoff.
   onViewAgent?: (agent: WorldAgent) => void;
-  /**
-   * Present only when the World admits user-created RealmAgents (D-EXPL-004).
-   * Invoked on the explicit review confirm — the single Realm truth write.
-   */
-  onCreateAgent?: (input: CreateAgentConfirmInput) => void;
-  createAgentMutating?: boolean;
-  /** Typed creation-rejection feedback surfaced in the drawer (D-EXPL-012). */
-  createAgentRejection?: string | null;
 };
 
 export type XianxiaWorldTemplateProps = WorldDetailPageProps;
@@ -121,7 +111,6 @@ function WorldDetailPageBody({
 }: WorldDetailPageBodyProps) {
   const { t } = useTranslation();
   const world = props.world;
-  const [showCreateAgent, setShowCreateAgent] = useState(false);
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
   const [selectedSceneId, setSelectedSceneId] = useState<string | null>(null);
   const prefersReducedMotion = usePrefersReducedMotion();
@@ -234,7 +223,6 @@ function WorldDetailPageBody({
       <WorldAgentsSection
         agents={props.agents}
         agentsLoading={props.agentsLoading}
-        onCreateAgent={props.onCreateAgent ? () => setShowCreateAgent(true) : undefined}
         onSelectAgent={(agent) => setSelectedAgentId(agent.id)}
       />
     ),
@@ -301,20 +289,6 @@ function WorldDetailPageBody({
           scene={selectedScene}
         />
       ) : null}
-
-      <CreateAgentDrawer
-        isOpen={showCreateAgent && Boolean(props.onCreateAgent)}
-        onClose={() => setShowCreateAgent(false)}
-        onConfirm={(input) => {
-          props.onCreateAgent?.(input);
-        }}
-        worldId={world.id}
-        worldName={world.name}
-        worldBannerUrl={world.bannerUrl}
-        worldDescription={world.description}
-        submitting={props.createAgentMutating}
-        rejectionMessage={props.createAgentRejection}
-      />
     </>
   );
 }

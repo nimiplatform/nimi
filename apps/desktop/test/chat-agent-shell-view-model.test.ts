@@ -17,7 +17,7 @@ import type {
 function sampleTargets(): AgentLocalTargetSnapshot[] {
   return [{
     ownerUserId: 'user-1',
-    realmAgentId: 'agent-1',
+    runtimeSourceRef: 'agent-1',
     localAgentRef: 'local-agent:user-1:agent-1',
     displayName: 'Companion',
     handle: 'companion',
@@ -30,7 +30,7 @@ function sampleTargets(): AgentLocalTargetSnapshot[] {
     builtinDocsContext: null,
   }, {
     ownerUserId: 'user-1',
-    realmAgentId: 'agent-2',
+    runtimeSourceRef: 'agent-2',
     localAgentRef: 'local-agent:user-1:agent-2',
     displayName: 'Scout',
     handle: 'scout',
@@ -48,7 +48,7 @@ function sampleThreads(): AgentLocalThreadSummary[] {
   return [{
     id: 'thread-agent-1',
     ownerUserId: 'user-1',
-    realmAgentId: 'agent-1',
+    runtimeSourceRef: 'agent-1',
     localAgentRef: 'local-agent:user-1:agent-1',
     title: 'Companion',
     updatedAtMs: 100,
@@ -122,7 +122,7 @@ test('agent shell view model uses Runtime summaries for target preview metadata'
     runtimeConversationSummaries: [{
       conversationAnchorId: 'anchor-agent-1',
       ownerUserId: 'user-1',
-      realmAgentId: 'agent-1',
+      runtimeSourceRef: 'agent-1',
       localAgentRef: 'local-agent:user-1:agent-1',
       title: 'Runtime title',
       lastMessageRole: 'assistant',

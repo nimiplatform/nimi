@@ -34,7 +34,7 @@ export function ChatGroupCreateModal(props: {
       for (const item of items) {
         if (!item || typeof item !== 'object') continue;
         const f = item as Record<string, unknown>;
-        if (f.isAgent === true) continue;
+        if (f.isSource === true) continue;
         friends.push({
           id: String(f.id || f.accountId || ''),
           displayName: String(f.displayName || '').trim(),

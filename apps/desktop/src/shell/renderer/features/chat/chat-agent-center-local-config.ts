@@ -98,7 +98,7 @@ export type AgentCenterLocalConfig = {
   config_kind: typeof AGENT_CENTER_LOCAL_CONFIG_KIND;
   account_id: string;
   owner_user_id: string;
-  realm_agent_id: string;
+  runtime_source_ref: string;
   local_agent_ref: string;
   modules: {
     appearance: AgentCenterAppearanceModule;
@@ -125,7 +125,7 @@ const ROOT_KEYS = [
   'config_kind',
   'account_id',
   'owner_user_id',
-  'realm_agent_id',
+  'runtime_source_ref',
   'local_agent_ref',
   'modules',
 ] as const;
@@ -253,14 +253,14 @@ function validateNormalizedId(value: unknown, path: string, errors: string[]): s
   return id;
 }
 
-function validateLocalAgentRef(value: unknown, ownerUserId: string, realmAgentId: string, path: string, errors: string[]): string {
+function validateLocalAgentRef(value: unknown, ownerUserId: string, runtimeSourceRef: string, path: string, errors: string[]): string {
   const localAgentRef = validateNormalizedId(value, path, errors);
   if (localAgentRef && !localAgentRef.startsWith('local-agent:')) {
     errors.push(`${path}: must start with local-agent:`);
   }
-  const expected = ownerUserId && realmAgentId ? `local-agent:${ownerUserId}:${realmAgentId}` : '';
+  const expected = ownerUserId && runtimeSourceRef ? `local-agent:${ownerUserId}:${runtimeSourceRef}` : '';
   if (localAgentRef && expected && localAgentRef !== expected) {
-    errors.push(`${path}: must equal local-agent:${ownerUserId}:${realmAgentId}`);
+    errors.push(`${path}: must equal local-agent:${ownerUserId}:${runtimeSourceRef}`);
   }
   return localAgentRef;
 }
@@ -338,11 +338,11 @@ export function validateAgentCenterLocalConfig(value: unknown): AgentCenterLocal
   }
   const accountId = validateNormalizedId(root.account_id, 'config.account_id', errors);
   const ownerUserId = validateNormalizedId(root.owner_user_id, 'config.owner_user_id', errors);
-  const realmAgentId = validateNormalizedId(root.realm_agent_id, 'config.realm_agent_id', errors);
+  const runtimeSourceRef = validateNormalizedId(root.runtime_source_ref, 'config.runtime_source_ref', errors);
   const localAgentRef = validateLocalAgentRef(
     root.local_agent_ref,
     ownerUserId,
-    realmAgentId,
+    runtimeSourceRef,
     'config.local_agent_ref',
     errors,
   );
@@ -360,7 +360,7 @@ export function validateAgentCenterLocalConfig(value: unknown): AgentCenterLocal
     config_kind: AGENT_CENTER_LOCAL_CONFIG_KIND,
     account_id: accountId,
     owner_user_id: ownerUserId,
-    realm_agent_id: realmAgentId,
+    runtime_source_ref: runtimeSourceRef,
     local_agent_ref: localAgentRef,
     modules: {
       appearance: validateAppearanceModule(modules.appearance, errors),
@@ -380,7 +380,7 @@ export function validateAgentCenterLocalConfig(value: unknown): AgentCenterLocal
 export function createDefaultAgentCenterLocalConfig(input: {
   accountId: string;
   ownerUserId: string;
-  realmAgentId: string;
+  runtimeSourceRef: string;
   localAgentRef: string;
 }): AgentCenterLocalConfig {
   return {
@@ -388,7 +388,7 @@ export function createDefaultAgentCenterLocalConfig(input: {
     config_kind: AGENT_CENTER_LOCAL_CONFIG_KIND,
     account_id: input.accountId,
     owner_user_id: input.ownerUserId,
-    realm_agent_id: input.realmAgentId,
+    runtime_source_ref: input.runtimeSourceRef,
     local_agent_ref: input.localAgentRef,
     modules: {
       appearance: {

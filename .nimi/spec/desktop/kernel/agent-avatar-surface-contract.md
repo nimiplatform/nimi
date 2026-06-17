@@ -466,7 +466,7 @@ The gate's admitted condition set is closed and pinned. Avatar auto-launch is
 permitted **only when all eight of the following are true**:
 
 1. user is logged in;
-2. selected target is a LocalAgent, not a RealmAgent;
+2. selected target is a LocalAgent, not a bare RealmPersona source;
 3. conversation anchor exists;
 4. local Avatar asset is selected and valid;
 5. backend capability posture is valid;
@@ -490,7 +490,7 @@ Fixed rules:
 - the gate MUST NOT auto-launch Avatar globally on Nimi start, and MUST NOT
   auto-launch from Nimi Chat, Human Chat, Group Chat, standalone relationship
   management, Explore, or Apps. Auto-launch is exclusively a per-LocalAgent Agent Chat posture and is
-  never applied to every AgentFriend.
+  never applied to every source admission.
 - the gate MUST NOT widen the launch payload. A passed gate emits only the
   D-LLM-072 payload (`agent_id`, optional `avatar_instance_id`, optional
   non-authoritative `launch_source`); the configuration record MUST NOT be

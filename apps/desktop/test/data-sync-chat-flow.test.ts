@@ -181,10 +181,10 @@ describe('desktop human chat filtering', () => {
     const result = await loadChatList({
       listChats: async () => ({
         items: [
-          { id: 'human-1', otherUser: { id: 'user-1', isAgent: false } },
+          { id: 'human-1', otherUser: { id: 'user-1', isSource: false } },
           { id: 'missing-other-user' },
           { id: 'malformed-other-user', otherUser: 'user-2' },
-          { id: 'agent-1', otherUser: { id: 'agent-1', isAgent: true } },
+          { id: 'agent-1', otherUser: { id: 'agent-1', isSource: true } },
           { id: 'missing-discriminator', otherUser: { id: 'user-3' } },
         ],
       }),

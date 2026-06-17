@@ -59,7 +59,7 @@ func (s *Service) OpenConversationAnchor(_ context.Context, req *runtimev1.OpenC
 		ConversationAnchorID: anchorID,
 		AgentID:              localAgentRef,
 		OwnerUserID:          identity.OwnerUserID,
-		RealmAgentID:         identity.RealmAgentID,
+		RuntimeSourceRef:         identity.RuntimeSourceRef,
 		LocalAgentRef:        localAgentRef,
 		CallerAppID:          callerAppID,
 		SubjectUserID:        subjectUserID,
@@ -126,7 +126,7 @@ func (s *Service) GetConversationAnchorSnapshot(_ context.Context, req *runtimev
 		s.chatSurfaceMu.Unlock()
 		return nil, status.Error(codes.FailedPrecondition, "conversation anchor local_agent_ref mismatch")
 	}
-	if anchor.OwnerUserID != identity.OwnerUserID || anchor.RealmAgentID != identity.RealmAgentID || anchor.LocalAgentRef != identity.LocalAgentRef {
+	if anchor.OwnerUserID != identity.OwnerUserID || anchor.RuntimeSourceRef != identity.RuntimeSourceRef || anchor.LocalAgentRef != identity.LocalAgentRef {
 		s.chatSurfaceMu.Unlock()
 		return nil, status.Error(codes.FailedPrecondition, "conversation anchor local identity mismatch")
 	}
@@ -203,7 +203,7 @@ func (s *Service) ListAgentConversationSummaries(_ context.Context, req *runtime
 			anchor.LocalAgentRef != identity.LocalAgentRef ||
 			anchor.AgentID != localAgentRef ||
 			anchor.OwnerUserID != identity.OwnerUserID ||
-			anchor.RealmAgentID != identity.RealmAgentID {
+			anchor.RuntimeSourceRef != identity.RuntimeSourceRef {
 			continue
 		}
 		cloned := *anchor
@@ -270,7 +270,7 @@ func (s *Service) buildConversationAnchorSnapshotLocked(anchor *publicChatAnchor
 		AgentId:              anchor.AgentID,
 		LocalAgentRef:        anchor.LocalAgentRef,
 		OwnerUserId:          anchor.OwnerUserID,
-		RealmAgentId:         anchor.RealmAgentID,
+		RuntimeSourceRef:         anchor.RuntimeSourceRef,
 		SubjectUserId:        anchor.SubjectUserID,
 		Status:               status,
 		LastTurnId:           anchor.LastTurnID,

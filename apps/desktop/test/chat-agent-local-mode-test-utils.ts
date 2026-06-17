@@ -32,9 +32,6 @@ import {
   resolveAgentChatRequestedMaxOutputTokens,
   } from '../src/shell/renderer/features/chat/chat-nimi-route-view.js';
 import { resolveAgentTurnTotalTimeoutMs } from '../src/shell/renderer/features/chat/chat-agent-timeouts.js';
-import {
-  toAgentFriendTargetsFromSocialSnapshot,
-  } from '../src/shell/renderer/features/chat/chat-agent-thread-model.js';
 import { hydrateAgentThreadBundleFromRuntimeSessionSnapshot } from '../src/shell/renderer/features/chat/chat-agent-session-hydration.js';
 import {
   resolveAgentChatThinkingSupport,
@@ -141,7 +138,7 @@ function decodeRuntimeAgentTurnRequestPayload(value: unknown): NimiRuntimeAgentT
     : [];
   return {
     ownerUserId: normalizeTestText(payload.owner_user_id),
-    realmAgentId: normalizeTestText(payload.realm_agent_id),
+    runtimeSourceRef: normalizeTestText(payload.runtime_source_ref),
     localAgentRef: normalizeTestText(payload.local_agent_ref),
     conversationAnchorId: normalizeTestText(payload.conversation_anchor_id),
     requestId: normalizeTestText(payload.request_id) || undefined,
@@ -238,7 +235,7 @@ function createDesktopTestRuntimeFromAgentTurns(input: {
       subscribeAppMessages: async () => {
         activeSubscribeRequest = {
           ownerUserId: '',
-          realmAgentId: '',
+          runtimeSourceRef: '',
           localAgentRef: '',
           conversationAnchorId: '',
           includeAgentEvents: false,
@@ -266,7 +263,7 @@ function createDesktopTestRuntimeFromAgentTurns(input: {
           if (activeSubscribeRequest) {
             Object.assign(activeSubscribeRequest, {
               ownerUserId: payloadRequest.ownerUserId,
-              realmAgentId: payloadRequest.realmAgentId,
+              runtimeSourceRef: payloadRequest.runtimeSourceRef,
               localAgentRef: payloadRequest.localAgentRef,
               conversationAnchorId: payloadRequest.conversationAnchorId,
               threadId: payloadRequest.threadId,
@@ -282,7 +279,7 @@ function createDesktopTestRuntimeFromAgentTurns(input: {
         const interruptPayload = fromNimiRuntimeProtoStruct(request.payload as Parameters<typeof fromNimiRuntimeProtoStruct>[0]);
         const interrupt: NimiRuntimeAgentTurnInterruptRequest = {
           ownerUserId: normalizeTestText(lastTurnRequest?.ownerUserId),
-          realmAgentId: normalizeTestText(lastTurnRequest?.realmAgentId),
+          runtimeSourceRef: normalizeTestText(lastTurnRequest?.runtimeSourceRef),
           localAgentRef: normalizeTestText(lastTurnRequest?.localAgentRef),
           conversationAnchorId: normalizeTestText(interruptPayload.conversation_anchor_id),
           reason: normalizeTestText(interruptPayload.reason) || undefined,
@@ -474,7 +471,6 @@ export {
   findNimiRuntimeRouteModelProfile,
   resolveAgentChatRequestedMaxOutputTokens,
   resolveAgentTurnTotalTimeoutMs,
-  toAgentFriendTargetsFromSocialSnapshot,
   hydrateAgentThreadBundleFromRuntimeSessionSnapshot,
   resolveAgentChatThinkingSupport,
   resolveChatThinkingConfig,

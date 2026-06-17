@@ -48,7 +48,7 @@ export function startAuthStateWatcher() {
       // R-SOC-008 desktop reconciliation courier: on every authenticated
       // transition (startup / post-login / re-login) run one stateless courier
       // pass and register the ~60s tick. The startup pass is what converges a
-      // device that was offline when the AgentFriend was removed — the intent
+      // device that was offline when the source admission was removed — the intent
       // has stayed OPEN server-side and the loopback runtime is reachable
       // exactly when this device is online.
       startLocalAgentTerminationCourier();
@@ -59,7 +59,7 @@ export function startAuthStateWatcher() {
       // R-SOC-009 desktop reconciliation courier (creation side): on every
       // authenticated transition run one stateless provision courier pass and
       // register the ~60s tick. The startup pass converges a device that was
-      // offline when the AgentFriend was created — the provision intent has
+      // offline when the source admission was created — the provision intent has
       // stayed OPEN server-side and the loopback runtime is reachable exactly
       // when this device is online.
       startLocalAgentProvisionCourier();

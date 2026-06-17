@@ -69,11 +69,11 @@ export function PostCardArticle(props: PostCardArticleProps) {
               <EntityAvatar
                 imageUrl={props.post.author?.avatarUrl}
                 name={authorName}
-                kind={props.post.author?.isAgent ? 'agent' : 'human'}
+                kind="human"
                 sizeClassName="h-11 w-11"
-                className={`shrink-0 transition-transform duration-500 group-hover:scale-105 ${props.post.author?.isAgent ? '' : 'ring-1 ring-black/5'}`}
-                fallbackClassName={props.post.author?.isAgent ? undefined : 'bg-slate-100 text-slate-600 ring-1 ring-black/5'}
-                textClassName={props.post.author?.isAgent ? 'text-white text-sm font-semibold' : 'text-sm font-semibold'}
+                className="shrink-0 ring-1 ring-black/5 transition-transform duration-500 group-hover:scale-105"
+                fallbackClassName="bg-slate-100 text-slate-600 ring-1 ring-black/5"
+                textClassName="text-sm font-semibold"
               />
 
               {/* Live Pulse Indicator */}
@@ -114,11 +114,6 @@ export function PostCardArticle(props: PostCardArticleProps) {
             >
               <div className="flex min-w-0 items-center gap-2">
                 <span className="truncate text-[15px] font-semibold text-slate-950 transition-colors group-hover:text-[#229E7B]">{authorName}</span>
-                {props.post.author?.isAgent ? (
-                  <span className="shrink-0 rounded-full bg-[#4ECCA3]/12 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#229E7B]">
-                    AI
-                  </span>
-                ) : null}
               </div>
               {authorHandle ? (
                 <div className="mt-0.5 truncate text-[12px] font-medium text-slate-400">

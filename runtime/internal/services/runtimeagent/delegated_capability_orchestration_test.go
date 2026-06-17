@@ -524,7 +524,7 @@ func TestRuntimeAgentDelegatedControlStatePersistsApprovedPausedRequestAcrossRes
 		AgentID:              agentID,
 		LocalAgentRef:        agentID,
 		OwnerUserID:          "user-1",
-		RealmAgentID:         "agent-alpha",
+		RuntimeSourceRef:         "agent-alpha",
 		CallerAppID:          ctx.GetAppId(),
 		SubjectUserID:        "user-1",
 		ThreadID:             "thread-1",

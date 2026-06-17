@@ -9,7 +9,7 @@ pub(crate) fn desktop_avatar_instance_registry_list(
 ) -> Result<Vec<DesktopAvatarInstanceRegistryRecord>, String> {
     list_instances(
         payload.owner_user_id.as_deref(),
-        payload.realm_agent_id.as_deref(),
+        payload.runtime_source_ref.as_deref(),
         payload.local_agent_ref.as_deref(),
     )
 }

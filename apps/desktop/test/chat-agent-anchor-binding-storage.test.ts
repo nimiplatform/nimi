@@ -59,7 +59,7 @@ test('agent conversation anchor binding keeps only explicit anchor pointers in m
 
   const binding = persistAgentConversationAnchorBinding({
     ownerUserId: ' user-a ',
-    realmAgentId: ' agent-alpha ',
+    runtimeSourceRef: ' agent-alpha ',
     localAgentRef: ' local-agent:user-a:agent-alpha ',
     conversationAnchorId: ' anchor-1 ',
     updatedAtMs: 10.7,
@@ -67,7 +67,7 @@ test('agent conversation anchor binding keeps only explicit anchor pointers in m
 
   assert.deepEqual(binding, {
     ownerUserId: 'user-a',
-    realmAgentId: 'agent-alpha',
+    runtimeSourceRef: 'agent-alpha',
     localAgentRef: 'local-agent:user-a:agent-alpha',
     conversationAnchorId: 'anchor-1',
     updatedAtMs: 10,
@@ -83,14 +83,14 @@ test('agent conversation anchor binding ignores legacy persisted localStorage en
   storage.setItem(LEGACY_AGENT_CHAT_ANCHOR_BINDINGS_STORAGE_KEY, JSON.stringify([
     {
       ownerUserId: 'user-a',
-      realmAgentId: 'agent-alpha',
+      runtimeSourceRef: 'agent-alpha',
       localAgentRef: 'local-agent:user-a:agent-alpha',
       conversationAnchorId: 'anchor-a',
       updatedAtMs: 1,
     },
     {
       ownerUserId: 'user-a',
-      realmAgentId: 'agent-alpha',
+      runtimeSourceRef: 'agent-alpha',
       localAgentRef: 'local-agent:user-a:agent-alpha',
       conversationAnchorId: 'anchor-b',
       updatedAtMs: 2,
@@ -101,19 +101,19 @@ test('agent conversation anchor binding ignores legacy persisted localStorage en
   assert.equal(getAgentConversationAnchorBinding('local-agent:user-a:agent-alpha'), null);
 });
 
-test('agent conversation anchor binding keeps same realmAgentId separate across owners', () => {
+test('agent conversation anchor binding keeps same runtimeSourceRef separate across owners', () => {
   resetAgentConversationAnchorBindings();
 
   persistAgentConversationAnchorBinding({
     ownerUserId: 'owner-a',
-    realmAgentId: 'agent-shared',
+    runtimeSourceRef: 'agent-shared',
     localAgentRef: 'local-agent:owner-a:agent-shared',
     conversationAnchorId: 'anchor-owner-a',
     updatedAtMs: 10,
   });
   persistAgentConversationAnchorBinding({
     ownerUserId: 'owner-b',
-    realmAgentId: 'agent-shared',
+    runtimeSourceRef: 'agent-shared',
     localAgentRef: 'local-agent:owner-b:agent-shared',
     conversationAnchorId: 'anchor-owner-b',
     updatedAtMs: 11,
@@ -121,14 +121,14 @@ test('agent conversation anchor binding keeps same realmAgentId separate across 
 
   assert.deepEqual(getAgentConversationAnchorBinding('local-agent:owner-a:agent-shared'), {
     ownerUserId: 'owner-a',
-    realmAgentId: 'agent-shared',
+    runtimeSourceRef: 'agent-shared',
     localAgentRef: 'local-agent:owner-a:agent-shared',
     conversationAnchorId: 'anchor-owner-a',
     updatedAtMs: 10,
   });
   assert.deepEqual(getAgentConversationAnchorBinding('local-agent:owner-b:agent-shared'), {
     ownerUserId: 'owner-b',
-    realmAgentId: 'agent-shared',
+    runtimeSourceRef: 'agent-shared',
     localAgentRef: 'local-agent:owner-b:agent-shared',
     conversationAnchorId: 'anchor-owner-b',
     updatedAtMs: 11,
@@ -140,7 +140,7 @@ test('agent conversation anchor binding rejects malformed explicit pointers and 
 
   assert.throws(() => persistAgentConversationAnchorBinding({
     ownerUserId: 'user-a',
-    realmAgentId: 'agent-alpha',
+    runtimeSourceRef: 'agent-alpha',
     localAgentRef: 'local-agent:user-a:agent-alpha',
     conversationAnchorId: '',
     updatedAtMs: 4,
@@ -148,7 +148,7 @@ test('agent conversation anchor binding rejects malformed explicit pointers and 
 
   persistAgentConversationAnchorBinding({
     ownerUserId: 'user-a',
-    realmAgentId: 'agent-alpha',
+    runtimeSourceRef: 'agent-alpha',
     localAgentRef: 'local-agent:user-a:agent-alpha',
     conversationAnchorId: 'anchor-valid',
     updatedAtMs: 3,
@@ -169,7 +169,7 @@ test('agent conversation anchor binding notifies same-window subscribers', () =>
   try {
     persistAgentConversationAnchorBinding({
       ownerUserId: 'user-a',
-    realmAgentId: 'agent-alpha',
+    runtimeSourceRef: 'agent-alpha',
     localAgentRef: 'local-agent:user-a:agent-alpha',
       conversationAnchorId: 'anchor-live',
       updatedAtMs: 5,

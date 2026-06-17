@@ -119,7 +119,7 @@ test('Runtime Agent builders produce generated Runtime requests without old alia
       appId: 'sdk.test',
       subjectUserId: 'user-1',
     },
-    agentId: 'local-agent:user-1:realm-agent-1',
+    agentId: 'local-agent:user-1:runtime-source-1',
     profile: {
       backendKind: 'live2d',
       avatarAssetRef: 'avatar://agent/live2d',
@@ -133,7 +133,7 @@ test('Runtime Agent builders produce generated Runtime requests without old alia
   });
 
   assert.equal(request.context?.appId, 'sdk.test');
-  assert.equal(request.agentId, 'local-agent:user-1:realm-agent-1');
+  assert.equal(request.agentId, 'local-agent:user-1:runtime-source-1');
   assert.equal(request.mutation.oneofKind, 'profile');
   assert.equal(request.mutation.profile.backendKind, AgentPresentationBackendKind.LIVE2D);
   assert.equal(request.mutation.profile.defaultVoiceReference, 'voice_asset_id:voice-1');
@@ -199,7 +199,7 @@ test('Runtime Agent protected presentation surface requests scoped Runtime acces
     getSubjectUserId: () => 'user-1',
   });
 
-  await surface.setPresentationProfile('local-agent:user-1:realm-agent-1', {
+  await surface.setPresentationProfile('local-agent:user-1:runtime-source-1', {
     backendKind: 'vrm',
     avatarAssetRef: 'avatar://agent/default',
     defaultVoiceReference: 'provider_voice_ref:voice-1',
@@ -575,7 +575,7 @@ test('Runtime Agent smoke verification reads protected anchor snapshot and healt
               lastMessageId: 'message-1',
               localAgentRef: 'local-agent:user-1:agent-1',
               ownerUserId: 'user-1',
-              realmAgentId: 'agent-1',
+              runtimeSourceRef: 'agent-1',
             },
             activeTurnId: '',
             activeStreamId: 'stream-1',
@@ -619,7 +619,7 @@ test('Runtime Agent smoke verification reads protected anchor snapshot and healt
       appId: 'sdk.test',
       subjectUserId: 'user-1',
       ownerUserId: 'user-1',
-      realmAgentId: 'agent-1',
+      runtimeSourceRef: 'agent-1',
       localAgentRef: 'local-agent:user-1:agent-1',
     },
     agentId: 'local-agent:user-1:agent-1',

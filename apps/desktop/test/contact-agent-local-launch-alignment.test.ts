@@ -17,26 +17,26 @@ test('profile detail modal only exposes agent chat after ordinary friendship evi
   assert.match(source, /toAgentContactLaunchTargetFromProfile\(profile,\s*ownerUserId\)/);
   assert.match(source, /!profile\.isFriend/);
   assert.match(source, /profile\.isFriend/);
-  assert.doesNotMatch(source, /profile\.isAgent\s*\|\|\s*isBlockedProfile/);
+  assert.doesNotMatch(source, /profile\.isSource\s*\|\|\s*isBlockedProfile/);
 });
 
-test('shared profile detail modal does not hide ordinary agent-friend message actions', () => {
+test('shared profile detail modal keeps admitted source message actions fail-closed', () => {
   const source = readRepo('apps/desktop/src/shell/renderer/features/relationship/profile-detail-modal.tsx');
 
   assert.match(source, /isBlockedProfile/);
-  assert.match(source, /profile\.isAgent/);
+  assert.match(source, /profile\.isSource/);
   assert.match(source, /!profile\.isFriend/);
-  assert.match(source, /!isBlockedProfile\s*&& profile\.accessState !== 'restricted'\s*&& \(!profile\.isAgent \|\| profile\.isFriend\)/);
-  assert.doesNotMatch(source, /showMessageButton=\{!profile\?\.isAgent &&/);
+  assert.match(source, /!isBlockedProfile\s*&& profile\.accessState !== 'restricted'\s*&& \(!profile\.isSource \|\| profile\.isFriend\)/);
+  assert.doesNotMatch(source, /showMessageButton=\{!profile\?\.isSource &&/);
 });
 
-test('World detail offers View profile only for a RealmAgent — no direct chat/voice path', () => {
-  // T5-2 (`9d558335d`) removed the world-detail RealmAgent direct-chat drift:
+test('World detail offers View profile only for a Realm source — no direct chat/voice path', () => {
+  // T5-2 (`9d558335d`) removed the world-detail source direct-chat drift:
   // `handleChatAgent` / `handleVoiceAgent` synthesized a `localAgentRef` from a
-  // non-befriended RealmAgent and launched a session directly. Per D-EXPL-006
-  // a RealmAgent in a World is NOT chat-reachable from World detail; chat is
-  // reachable solely via friend -> Open Agent Chat -> LocalAgent Chat. World
-  // detail's agent affordance is now View profile only.
+  // non-materialized source and launched a session directly. A Realm source in
+  // a World is NOT chat-reachable from World detail; chat requires
+  // RuntimeSourceSnapshot materialization. World detail's affordance is now
+  // View profile only.
   const source = readRepo('apps/desktop/src/shell/renderer/features/world/world-detail.tsx');
   const templateSource = readRepo(
     'apps/desktop/src/shell/renderer/features/world/world-detail-template.tsx',
@@ -48,8 +48,8 @@ test('World detail offers View profile only for a RealmAgent — no direct chat/
   assert.doesNotMatch(source, /launchAgentConversationFromDisplay/);
   assert.doesNotMatch(source, /launchAgentVoiceFromDisplay/);
 
-  // The sole RealmAgent affordance is View profile, routed to agent-detail
-  // where the friend-state primary action lives.
+  // The sole source affordance is View profile, routed to agent-detail where
+  // source admission remains fail-closed until RuntimeSourceSnapshot handoff.
   assert.match(source, /const handleViewAgent = \(agent: WorldAgent\) => \{/);
   assert.match(source, /navigateToProfile\(agent\.id, 'agent-detail'\)/);
   assert.match(source, /onViewAgent=\{handleViewAgent\}/);
@@ -68,24 +68,24 @@ test('agent contact launch target fails closed and builds owner-scoped LocalAgen
     displayName: 'Archivist',
     handle: 'archivist',
     avatarUrl: null,
-    bio: 'ordinary agent friend',
-    isAgent: true,
+    bio: 'ordinary source contact',
+    isSource: true,
     worldId: 'oasis',
     worldName: 'OASIS',
     agentOwnershipType: 'MASTER_OWNED',
   }, 'user-1'), {
     ownerUserId: 'user-1',
-    realmAgentId: 'agent-1',
+    runtimeSourceRef: 'agent-1',
     localAgentRef: 'local-agent:user-1:agent-1',
     displayName: 'Archivist',
     handle: 'archivist',
     avatarUrl: null,
     worldId: 'oasis',
     worldName: 'OASIS',
-    bio: 'ordinary agent friend',
+    bio: 'ordinary source contact',
     ownershipType: 'MASTER_OWNED',
-    // Contact-launch sources carry identity only; ordinary RealmAgent profile
-    // content (greeting / docs) is supplied by the live Realm/SDK projection.
+    // Contact-launch sources carry identity only; runtime source content
+    // (greeting / docs) is supplied by RuntimeSourceSnapshot materialization.
     greeting: null,
     builtinDocsContext: null,
   });
@@ -97,7 +97,7 @@ test('agent contact launch target fails closed and builds owner-scoped LocalAgen
       handle: 'human',
       avatarUrl: null,
       bio: null,
-      isAgent: false,
+      isSource: false,
     }, 'user-1');
   }, /requires an agent contact/);
 
@@ -108,7 +108,7 @@ test('agent contact launch target fails closed and builds owner-scoped LocalAgen
       handle: 'agent',
       avatarUrl: null,
       bio: null,
-      isAgent: true,
+      isSource: true,
     }, '');
   }, /requires ownerUserId/);
 
@@ -119,7 +119,7 @@ test('agent contact launch target fails closed and builds owner-scoped LocalAgen
       handle: 'agent',
       avatarUrl: null,
       bio: null,
-      isAgent: true,
+      isSource: true,
     }, 'user-1');
-  }, /requires realmAgentId/);
+  }, /requires runtimeSourceRef/);
 });

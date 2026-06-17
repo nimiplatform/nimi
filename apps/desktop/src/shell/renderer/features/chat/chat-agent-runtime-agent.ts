@@ -273,7 +273,7 @@ export async function streamChatAgentRuntimeAgentTurn(
   const connectorId = executionBinding.connectorId;
   const localIdentity = {
     ownerUserId: request.ownerUserId,
-    realmAgentId: request.realmAgentId,
+    runtimeSourceRef: request.runtimeSourceRef,
     localAgentRef: request.localAgentRef,
   };
 

@@ -28,7 +28,7 @@ func (s *Service) newEventForIdentityAt(identity localAgentIdentity, eventType r
 	event := s.newEventAt(identity.LocalAgentRef, eventType, detail, observedAt)
 	event.LocalAgentRef = identity.LocalAgentRef
 	event.OwnerUserId = identity.OwnerUserID
-	event.RealmAgentId = identity.RealmAgentID
+	event.RuntimeSourceRef = identity.RuntimeSourceRef
 	return event
 }
 

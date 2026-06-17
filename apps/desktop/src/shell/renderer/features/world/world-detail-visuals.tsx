@@ -181,7 +181,7 @@ export function CultivationRingsCard({
   );
 }
 
-function layoutRealms(realms: WorldSemanticRealm[]) {
+function layoutRealms(realms: readonly WorldSemanticRealm[]) {
   const centerX = 180;
   const centerY = 150;
   const radius = 106;

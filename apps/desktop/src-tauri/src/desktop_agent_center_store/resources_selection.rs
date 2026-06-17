@@ -13,7 +13,7 @@ pub(super) fn select_imported_avatar_asset(
         DesktopAgentCenterConfigScopePayload {
             account_id: account_id.to_string(),
             owner_user_id: scope.owner_user_id.clone(),
-            realm_agent_id: scope.realm_agent_id.clone(),
+            runtime_source_ref: scope.runtime_source_ref.clone(),
             local_agent_ref: scope.local_agent_ref.clone(),
         },
     )?;
@@ -42,7 +42,7 @@ pub(super) fn select_imported_avatar_asset(
         DesktopAgentCenterConfigPutPayload {
             account_id: account_id.to_string(),
             owner_user_id: scope.owner_user_id.clone(),
-            realm_agent_id: scope.realm_agent_id.clone(),
+            runtime_source_ref: scope.runtime_source_ref.clone(),
             local_agent_ref: scope.local_agent_ref.clone(),
             config,
         },
@@ -61,7 +61,7 @@ pub(super) fn select_imported_live2d_adapter_manifest(
         DesktopAgentCenterConfigScopePayload {
             account_id: account_id.to_string(),
             owner_user_id: scope.owner_user_id.clone(),
-            realm_agent_id: scope.realm_agent_id.clone(),
+            runtime_source_ref: scope.runtime_source_ref.clone(),
             local_agent_ref: scope.local_agent_ref.clone(),
         },
     )?;
@@ -92,7 +92,7 @@ pub(super) fn select_imported_live2d_adapter_manifest(
         DesktopAgentCenterConfigPutPayload {
             account_id: account_id.to_string(),
             owner_user_id: scope.owner_user_id.clone(),
-            realm_agent_id: scope.realm_agent_id.clone(),
+            runtime_source_ref: scope.runtime_source_ref.clone(),
             local_agent_ref: scope.local_agent_ref.clone(),
             config,
         },

@@ -15,7 +15,7 @@ export function ProfileDetailView(props: ProfileDetailViewProps) {
   const { t } = useTranslation();
   const navigateToWorld = useAppStore((state) => state.navigateToWorld);
   const setSelectedProfileId = useAppStore((state) => state.setSelectedProfileId);
-  const setSelectedProfileIsAgent = useAppStore((state) => state.setSelectedProfileIsAgent);
+  const setSelectedProfileIsSource = useAppStore((state) => state.setSelectedProfileIsSource);
   const realmBaseUrl = useAppStore((state) => String(state.runtimeDefaults?.realm.realmBaseUrl || '').replace(/\/$/, ''));
   const controller = useProfileDetailViewController(props, realmBaseUrl);
 
@@ -39,7 +39,7 @@ export function ProfileDetailView(props: ProfileDetailViewProps) {
       controller={controller}
       onVisitWorld={(worldNavigationId) => {
         setSelectedProfileId(props.profile.id);
-        setSelectedProfileIsAgent(props.profile.isAgent);
+        setSelectedProfileIsSource(props.profile.isSource);
         navigateToWorld(worldNavigationId);
       }}
     />

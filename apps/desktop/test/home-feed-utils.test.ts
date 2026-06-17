@@ -23,16 +23,14 @@ function makePost(input: {
   id: string;
   createdAt: string;
   authorId: string;
-  isAgent?: boolean;
 }): PostDto {
   return {
     id: input.id,
     authorId: input.authorId,
     author: {
       id: input.authorId,
-      handle: input.isAgent ? input.authorId : `@${input.authorId}`,
-      displayName: input.isAgent ? 'Agent Author' : 'Human Author',
-      isAgent: input.isAgent === true,
+      handle: `@${input.authorId}`,
+      displayName: 'Human Author',
       createdAt: '2026-03-10T00:00:00.000Z',
     },
     attachments: [],
@@ -43,7 +41,7 @@ function makePost(input: {
 }
 
 describe('prepareHomeFeedItems', () => {
-  test('preserves all service-returned items, including agent posts', () => {
+  test('preserves all service-returned account-authored posts', () => {
     const posts = [
       makePost({
         id: 'human-post',
@@ -51,10 +49,9 @@ describe('prepareHomeFeedItems', () => {
         createdAt: '2026-03-10T09:00:00.000Z',
       }),
       makePost({
-        id: 'agent-post',
-        authorId: 'agent-1',
+        id: 'second-post',
+        authorId: 'user-2',
         createdAt: '2026-03-10T10:00:00.000Z',
-        isAgent: true,
       }),
     ] as const satisfies readonly PostDto[];
 
@@ -64,7 +61,7 @@ describe('prepareHomeFeedItems', () => {
     assert.equal(result.length, 2);
     assert.deepEqual(
       result.map((post) => post.id),
-      ['agent-post', 'human-post'],
+      ['second-post', 'human-post'],
     );
   });
 });

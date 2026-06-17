@@ -42,7 +42,7 @@ export function useAgentConversationLocalAvatarControls(input: UseAgentConversat
         ? getAgentCenterLocalConfig({
           accountId: input.accountId,
           ownerUserId: input.activeTarget.ownerUserId,
-          realmAgentId: input.activeTarget.realmAgentId,
+          runtimeSourceRef: input.activeTarget.runtimeSourceRef,
           localAgentRef: input.activeTarget.localAgentRef,
         })
         : null
@@ -67,7 +67,7 @@ export function useAgentConversationLocalAvatarControls(input: UseAgentConversat
         ? getAgentCenterBackgroundAsset({
           accountId: input.accountId,
           ownerUserId: input.activeTarget.ownerUserId,
-          realmAgentId: input.activeTarget.realmAgentId,
+          runtimeSourceRef: input.activeTarget.runtimeSourceRef,
           localAgentRef: input.activeTarget.localAgentRef,
           backgroundAssetId: selectedBackgroundAssetId,
         })
@@ -92,7 +92,7 @@ export function useAgentConversationLocalAvatarControls(input: UseAgentConversat
         ? validateAgentCenterAvatarAsset({
           accountId: input.accountId,
           ownerUserId: input.activeTarget.ownerUserId,
-          realmAgentId: input.activeTarget.realmAgentId,
+          runtimeSourceRef: input.activeTarget.runtimeSourceRef,
           localAgentRef: input.activeTarget.localAgentRef,
           localAssetId: avatarAssetConfig.local_avatar_asset_ref,
         })
@@ -137,7 +137,7 @@ export function useAgentConversationLocalAvatarControls(input: UseAgentConversat
       return putAgentCenterLocalConfig({
         accountId: input.accountId,
         ownerUserId: input.activeTarget.ownerUserId,
-        realmAgentId: input.activeTarget.realmAgentId,
+        runtimeSourceRef: input.activeTarget.runtimeSourceRef,
         localAgentRef: input.activeTarget.localAgentRef,
         config: {
           ...agentCenterLocalConfigQuery.data,
@@ -202,7 +202,7 @@ export function useAgentConversationLocalAvatarControls(input: UseAgentConversat
       return importAgentCenterAvatarAsset({
         accountId: input.accountId,
         ownerUserId: input.activeTarget.ownerUserId,
-        realmAgentId: input.activeTarget.realmAgentId,
+        runtimeSourceRef: input.activeTarget.runtimeSourceRef,
         localAgentRef: input.activeTarget.localAgentRef,
         kind,
         sourcePath,
@@ -240,7 +240,7 @@ export function useAgentConversationLocalAvatarControls(input: UseAgentConversat
       return importAgentCenterLive2dAdapterManifest({
         accountId: input.accountId,
         ownerUserId: input.activeTarget.ownerUserId,
-        realmAgentId: input.activeTarget.realmAgentId,
+        runtimeSourceRef: input.activeTarget.runtimeSourceRef,
         localAgentRef: input.activeTarget.localAgentRef,
         localAssetId: avatarAssetConfig.local_avatar_asset_ref,
         sourcePath,
@@ -264,7 +264,7 @@ export function useAgentConversationLocalAvatarControls(input: UseAgentConversat
       return putAgentCenterLocalConfig({
         accountId: input.accountId,
         ownerUserId: input.activeTarget.ownerUserId,
-        realmAgentId: input.activeTarget.realmAgentId,
+        runtimeSourceRef: input.activeTarget.runtimeSourceRef,
         localAgentRef: input.activeTarget.localAgentRef,
         config: {
           ...agentCenterLocalConfigQuery.data,
@@ -322,7 +322,7 @@ export function useAgentConversationLocalAvatarControls(input: UseAgentConversat
       return importAgentCenterBackground({
         accountId: input.accountId,
         ownerUserId: input.activeTarget.ownerUserId,
-        realmAgentId: input.activeTarget.realmAgentId,
+        runtimeSourceRef: input.activeTarget.runtimeSourceRef,
         localAgentRef: input.activeTarget.localAgentRef,
         sourcePath,
         select: true,
@@ -355,7 +355,7 @@ export function useAgentConversationLocalAvatarControls(input: UseAgentConversat
       return removeAgentCenterBackground({
         accountId: input.accountId,
         ownerUserId: input.activeTarget.ownerUserId,
-        realmAgentId: input.activeTarget.realmAgentId,
+        runtimeSourceRef: input.activeTarget.runtimeSourceRef,
         localAgentRef: input.activeTarget.localAgentRef,
         backgroundAssetId: selectedBackgroundAssetId,
       });

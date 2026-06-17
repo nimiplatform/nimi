@@ -1,7 +1,7 @@
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RuntimeLocalAgentIdentity {
     pub owner_user_id: String,
-    pub realm_agent_id: String,
+    pub runtime_source_ref: String,
     pub local_agent_ref: String,
 }
 
@@ -15,7 +15,7 @@ fn identity_error(message: &str) -> String {
 
 pub fn build_runtime_local_agent_ref(
     owner_user_id: &str,
-    realm_agent_id: &str,
+    runtime_source_ref: &str,
 ) -> Result<String, String> {
     let owner_user_id = normalize_identity_part(owner_user_id);
     if owner_user_id.is_empty() {
@@ -23,13 +23,13 @@ pub fn build_runtime_local_agent_ref(
             "runtime local agent identity requires owner_user_id",
         ));
     }
-    let realm_agent_id = normalize_identity_part(realm_agent_id);
-    if realm_agent_id.is_empty() {
+    let runtime_source_ref = normalize_identity_part(runtime_source_ref);
+    if runtime_source_ref.is_empty() {
         return Err(identity_error(
-            "runtime local agent identity requires realm_agent_id",
+            "runtime local agent identity requires runtime_source_ref",
         ));
     }
-    Ok(format!("local-agent:{owner_user_id}:{realm_agent_id}"))
+    Ok(format!("local-agent:{owner_user_id}:{runtime_source_ref}"))
 }
 
 pub fn is_runtime_local_agent_ref(value: &str) -> bool {
@@ -38,7 +38,7 @@ pub fn is_runtime_local_agent_ref(value: &str) -> bool {
 
 pub fn project_runtime_local_agent_identity(
     owner_user_id: &str,
-    realm_agent_id: &str,
+    runtime_source_ref: &str,
     local_agent_ref: Option<&str>,
 ) -> Result<RuntimeLocalAgentIdentity, String> {
     let owner_user_id = normalize_identity_part(owner_user_id);
@@ -47,13 +47,13 @@ pub fn project_runtime_local_agent_identity(
             "runtime local agent identity requires owner_user_id",
         ));
     }
-    let realm_agent_id = normalize_identity_part(realm_agent_id);
-    if realm_agent_id.is_empty() {
+    let runtime_source_ref = normalize_identity_part(runtime_source_ref);
+    if runtime_source_ref.is_empty() {
         return Err(identity_error(
-            "runtime local agent identity requires realm_agent_id",
+            "runtime local agent identity requires runtime_source_ref",
         ));
     }
-    let expected = build_runtime_local_agent_ref(&owner_user_id, &realm_agent_id)?;
+    let expected = build_runtime_local_agent_ref(&owner_user_id, &runtime_source_ref)?;
     let local_agent_ref = local_agent_ref
         .map(normalize_identity_part)
         .filter(|value| !value.is_empty())
@@ -65,12 +65,12 @@ pub fn project_runtime_local_agent_identity(
     }
     if local_agent_ref != expected {
         return Err(identity_error(
-            "runtime local agent identity local_agent_ref must match owner_user_id and realm_agent_id",
+            "runtime local agent identity local_agent_ref must match owner_user_id and runtime_source_ref",
         ));
     }
     Ok(RuntimeLocalAgentIdentity {
         owner_user_id,
-        realm_agent_id,
+        runtime_source_ref,
         local_agent_ref,
     })
 }
@@ -105,7 +105,7 @@ mod tests {
         .expect("project identity");
 
         assert_eq!(identity.owner_user_id, "owner-1");
-        assert_eq!(identity.realm_agent_id, "agent-1");
+        assert_eq!(identity.runtime_source_ref, "agent-1");
         assert_eq!(identity.local_agent_ref, "local-agent:owner-1:agent-1");
     }
 
@@ -123,7 +123,7 @@ mod tests {
             parse_runtime_local_agent_identity(" local-agent:owner-1:agent-1 ").expect("parse");
 
         assert_eq!(identity.owner_user_id, "owner-1");
-        assert_eq!(identity.realm_agent_id, "agent-1");
+        assert_eq!(identity.runtime_source_ref, "agent-1");
         assert_eq!(identity.local_agent_ref, "local-agent:owner-1:agent-1");
     }
 

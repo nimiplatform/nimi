@@ -33,7 +33,7 @@ type ReportResponseDto = RealmModel<'ReportResponseDto'>;
  * Server-side filter branches; the renderer never infers scope membership
  * client-side.
  */
-export type PostFeedScope = 'personal' | 'friends' | 'agent_activity';
+export type PostFeedScope = 'personal' | 'friends' | 'persona_activity' | 'world_character_activity';
 
 export type LoadPostFeedInput = NimiRealmPostFeedInput;
 

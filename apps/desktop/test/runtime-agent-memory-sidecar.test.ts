@@ -114,7 +114,7 @@ test('runtime agent memory adapter consumes Runtime Agent canonical bank status'
       appId: 'desktop-test',
       subjectUserId: 'user-1',
       ownerUserId: 'user-1',
-      realmAgentId: 'agent-1',
+      runtimeSourceRef: 'agent-1',
       localAgentRef: LOCAL_AGENT_REF,
     },
   });

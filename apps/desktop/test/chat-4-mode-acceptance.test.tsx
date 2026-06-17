@@ -7,7 +7,7 @@ import type { AIScopeRef } from '@nimiplatform/sdk/ai';
 import type { ConversationMode } from '@nimiplatform/kit/features/chat/headless';
 
 /**
- * T3-3 — Chat 4-mode acceptance + no-RealmAgent-direct-chat proof.
+ * T3-3 — Chat 4-mode acceptance + no bare-source direct-chat proof.
  *
  * Final wave of portfolio topic T3 (Chat 4-mode implementation). This is an
  * acceptance + guard surface only: it proves the behavior delivered by T3-1
@@ -19,7 +19,7 @@ import type { ConversationMode } from '@nimiplatform/kit/features/chat/headless'
  *   - all 4 modes proven (`human`, `ai`/Nimi, `agent`, `group`);
  *   - built-in chat scopes use the `feature` shape;
  *   - Group reuses the Agent scope;
- *   - no RealmAgent direct chat.
+ *   - no bare runtime source direct chat.
  *
  * E2E posture: a real WebdriverIO whole-product screenshot of the mode
  * switcher is not producible in the renderer-shell test harness. The
@@ -172,7 +172,7 @@ test('T3-3 acceptance: mode switching preserves each mode\'s thread/session sele
 });
 
 // ---------------------------------------------------------------------------
-// Task 2 — No-RealmAgent-direct-chat proof: Agent Chat is LocalAgent-only
+// Task 2 — No bare-source direct-chat proof: Agent Chat is LocalAgent-only
 // ---------------------------------------------------------------------------
 
 test('T3-3 proof: agent-conversation-launcher hard-requires localAgentRef and throws without it', async () => {
@@ -186,8 +186,8 @@ test('T3-3 proof: agent-conversation-launcher hard-requires localAgentRef and th
     /if \(!localAgentRef\) \{\s*\n?\s*throw new Error\('Agent conversation launch requires localAgentRef'\)/,
   );
 
-  // Behavioral: launching with a RealmAgent-only target (no localAgentRef)
-  // throws — there is no realmAgentId-only chat entry. The launcher resolves
+  // Behavioral: launching with a runtime-source-only target (no localAgentRef)
+  // throws — there is no runtimeSourceRef-only chat entry. The launcher resolves
   // a real LocalAgent thread before it touches any chat-mode state, so a
   // missing localAgentRef can never produce a chat session.
   const { launchAgentConversationFromDisplay } = await import(
@@ -196,13 +196,13 @@ test('T3-3 proof: agent-conversation-launcher hard-requires localAgentRef and th
   let setChatModeCalls = 0;
   await assert.rejects(
     () => launchAgentConversationFromDisplay({
-      // A RealmAgent identity with NO localAgentRef — i.e. not yet befriended.
+      // A runtime source identity with NO localAgentRef.
       target: {
         ownerUserId: 'user-1',
-        realmAgentId: 'realm-agent-1',
+        runtimeSourceRef: 'runtime-source-1',
         localAgentRef: '',
-        displayName: 'Realm Agent',
-        handle: 'realm-agent',
+        displayName: 'Runtime Source',
+        handle: 'runtime-source',
         avatarUrl: null,
         worldId: 'world-1',
         worldName: 'World',
@@ -220,7 +220,7 @@ test('T3-3 proof: agent-conversation-launcher hard-requires localAgentRef and th
   assert.equal(setChatModeCalls, 0);
 });
 
-test('T3-3 proof: Agent Chat always means LocalAgent Chat — no direct-RealmAgent-chat code path', () => {
+test('T3-3 proof: Agent Chat always means LocalAgent Chat — no bare-source direct-chat code path', () => {
   // `agent-conversation-launcher.ts` is the SOLE module that opens an Agent
   // Chat session. Every consumer routes through it, and it only selects the
   // LocalAgent target; submit owns creating any temporary local projection
@@ -228,19 +228,16 @@ test('T3-3 proof: Agent Chat always means LocalAgent Chat — no direct-RealmAge
   const launcherSource = readWorkspaceFile(
     'src/shell/renderer/features/chat/agent-conversation-launcher.ts',
   );
-  // Launch selection is keyed by localAgentRef, not realmAgentId, and does not
+  // Launch selection is keyed by localAgentRef, not runtimeSourceRef, and does not
   // pre-author a Desktop-local thread.
   assert.doesNotMatch(launcherSource, /threadId:/);
   assert.match(launcherSource, /localAgentRef,\s*\n\s*targetId: localAgentRef/);
   assert.doesNotMatch(launcherSource, /chatAgentStoreClient/);
   assert.doesNotMatch(launcherSource, /createAgentThread|createThread\(/);
 
-  // The RealmAgent / Explore surfaces never construct a chat session from a
-  // bare RealmAgent id. T5-2 (`9d558335d`) hardened this further: World detail
-  // has NO chat path at all — a RealmAgent in a World offers View profile
-  // only, and chat is reachable solely through friend -> Open Agent Chat ->
-  // LocalAgent Chat. The previous world-detail `handleChatAgent` that
-  // synthesized a `local-agent:` ref from a non-befriended RealmAgent is gone.
+  // Explore and World surfaces never construct a chat session from a bare
+  // runtime source ref. World detail has NO chat path at all; chat requires a
+  // materialized LocalAgent.
   const worldDetailSource = readWorkspaceFile(
     'src/shell/renderer/features/world/world-detail.tsx',
   );
@@ -248,10 +245,12 @@ test('T3-3 proof: Agent Chat always means LocalAgent Chat — no direct-RealmAge
   assert.doesNotMatch(worldDetailSource, /launchAgentVoiceFromDisplay/);
   assert.doesNotMatch(worldDetailSource, /const handleChatAgent/);
 
-  // No consumer reaches a chat session straight from a RealmAgent: there is no
-  // launcher variant that accepts only a realmAgentId. The launcher's only
-  // public entrypoints both require the full target with localAgentRef.
+  // No consumer reaches a chat session straight from a runtime source: there
+  // is no launcher variant that accepts only a runtimeSourceRef. The
+  // launcher's public entrypoints both require the full target with
+  // localAgentRef.
   assert.match(launcherSource, /export async function launchAgentConversationFromDisplay/);
   assert.match(launcherSource, /export async function launchAgentVoiceFromDisplay/);
-  assert.doesNotMatch(launcherSource, /launchRealmAgentChat|launchRealmAgentConversation/);
+  const legacyLaunchPattern = new RegExp(`launch${['Realm', 'Agent'].join('')}Chat|launch${['Realm', 'Agent'].join('')}Conversation`);
+  assert.doesNotMatch(launcherSource, legacyLaunchPattern);
 });

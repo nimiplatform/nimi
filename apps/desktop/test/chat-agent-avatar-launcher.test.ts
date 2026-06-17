@@ -15,8 +15,8 @@ import { parseAvatarLaunchContext } from '../../avatar/src/shell/renderer/bridge
 const forbiddenLaunchFields = [
   'ownerUserId',
   'owner_user_id',
-  'realmAgentId',
-  'realm_agent_id',
+  'runtimeSourceRef',
+  'runtime_source_ref',
   'localAgentRef',
   'local_agent_ref',
   'conversationAnchorId',
@@ -136,7 +136,7 @@ test('desktop avatar launcher allows required agent selector only', () => {
   });
 });
 
-test('desktop avatar launcher rejects bare realm agent ids', () => {
+test('desktop avatar launcher rejects bare runtime source ids', () => {
   assert.throws(
     () => buildDesktopAvatarLaunchHandoffPayload({
       agentId: 'agent-1',
@@ -189,7 +189,7 @@ test('desktop avatar prepared payload rejects old launch authority tuple inputs'
   await assert.rejects(
     prepareDesktopAvatarLaunchHandoffPayload({
       ownerUserId: 'owner-1',
-      realmAgentId: 'agent-1',
+      runtimeSourceRef: 'agent-1',
       localAgentRef: 'local-agent:owner-1:agent-1',
       avatarInstanceId: 'instance-1',
       sourceSurface: 'desktop-agent-chat',

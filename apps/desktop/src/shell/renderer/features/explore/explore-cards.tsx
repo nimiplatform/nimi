@@ -1,4 +1,4 @@
-import type { RealmAgentFriendState } from './realm-agent-friend-state';
+import type { RealmPersonaSourceState } from './realm-persona-source-admission';
 export { AgentRecommendationCard } from './explore-agent-recommendation-card';
 export { toSafeBackgroundImage } from './explore-background-image';
 export type ExploreAgentCardData = {
@@ -8,7 +8,7 @@ export type ExploreAgentCardData = {
   handle: string;
   avatarUrl: string | null;
   bio: string | null;
-  isAgent: boolean;
+  isSource: boolean;
   // World info
   worldId: string | null;
   worldName: string | null;
@@ -30,8 +30,5 @@ export type ExploreAgentCardData = {
   giftStats?: Record<string, number>;
   // World score for progress bar
   worldScoreEwma?: number;
-  // RealmAgent friend state from Realm social truth (D-EXPL-005). Derived by
-  // `resolveRealmAgentFriendState` against the AgentFriend / Friendship graph;
-  // never guessed renderer-side. Drives the D-EXPL-006 primary action.
-  friendState?: RealmAgentFriendState;
+  sourceState?: RealmPersonaSourceState;
 };

@@ -13,7 +13,7 @@ fn owner_user_id() -> String {
     "owner_1".to_string()
 }
 
-fn realm_agent_id() -> String {
+fn runtime_source_ref() -> String {
     "agent_1".to_string()
 }
 
@@ -25,7 +25,7 @@ fn scope_payload() -> DesktopAgentCenterConfigScopePayload {
     DesktopAgentCenterConfigScopePayload {
         account_id: "account_1".to_string(),
         owner_user_id: owner_user_id(),
-        realm_agent_id: realm_agent_id(),
+        runtime_source_ref: runtime_source_ref(),
         local_agent_ref: local_agent_ref(),
     }
 }
@@ -62,7 +62,7 @@ fn missing_config_returns_default_without_creating_file() {
         assert_eq!(config.config_kind, AGENT_CENTER_CONFIG_KIND);
         assert_eq!(config.account_id, "account_1");
         assert_eq!(config.owner_user_id, owner_user_id());
-        assert_eq!(config.realm_agent_id, realm_agent_id());
+        assert_eq!(config.runtime_source_ref, runtime_source_ref());
         assert_eq!(config.local_agent_ref, local_agent_ref());
         assert!(config.modules.avatar_asset.local_avatar_asset_ref.is_none());
         assert!(config.modules.avatar_asset.live2d_calibration_ref.is_none());
@@ -86,7 +86,7 @@ fn put_persists_and_get_reads_valid_config() {
             DesktopAgentCenterConfigPutPayload {
                 account_id: "account_1".to_string(),
                 owner_user_id: owner_user_id(),
-                realm_agent_id: realm_agent_id(),
+                runtime_source_ref: runtime_source_ref(),
                 local_agent_ref: local_agent_ref(),
                 config,
             },
@@ -96,7 +96,7 @@ fn put_persists_and_get_reads_valid_config() {
             .expect("get config");
         assert_eq!(loaded.account_id, "account_1");
         assert_eq!(loaded.owner_user_id, owner_user_id());
-        assert_eq!(loaded.realm_agent_id, realm_agent_id());
+        assert_eq!(loaded.runtime_source_ref, runtime_source_ref());
         assert_eq!(loaded.local_agent_ref, local_agent_ref());
         assert_eq!(
             loaded
@@ -121,7 +121,7 @@ fn put_persists_agent_voice_policy() {
             DesktopAgentCenterConfigPutPayload {
                 account_id: "account_1".to_string(),
                 owner_user_id: owner_user_id(),
-                realm_agent_id: realm_agent_id(),
+                runtime_source_ref: runtime_source_ref(),
                 local_agent_ref: local_agent_ref(),
                 config,
             },
@@ -145,7 +145,7 @@ fn put_accepts_opaque_live2d_calibration_ref() {
             DesktopAgentCenterConfigPutPayload {
                 account_id: "account_1".to_string(),
                 owner_user_id: owner_user_id(),
-                realm_agent_id: realm_agent_id(),
+                runtime_source_ref: runtime_source_ref(),
                 local_agent_ref: local_agent_ref(),
                 config,
             },
@@ -176,7 +176,7 @@ fn put_rejects_malformed_live2d_calibration_ref() {
             DesktopAgentCenterConfigPutPayload {
                 account_id: "account_1".to_string(),
                 owner_user_id: owner_user_id(),
-                realm_agent_id: realm_agent_id(),
+                runtime_source_ref: runtime_source_ref(),
                 local_agent_ref: local_agent_ref(),
                 config,
             },
@@ -202,7 +202,7 @@ fn put_rejects_live2d_calibration_ref_for_non_live2d_backend() {
             DesktopAgentCenterConfigPutPayload {
                 account_id: "account_1".to_string(),
                 owner_user_id: owner_user_id(),
-                realm_agent_id: realm_agent_id(),
+                runtime_source_ref: runtime_source_ref(),
                 local_agent_ref: local_agent_ref(),
                 config,
             },
@@ -225,7 +225,7 @@ fn put_rejects_avatar_backend_kind_mismatch_for_selected_local_asset() {
             DesktopAgentCenterConfigPutPayload {
                 account_id: "account_1".to_string(),
                 owner_user_id: owner_user_id(),
-                realm_agent_id: realm_agent_id(),
+                runtime_source_ref: runtime_source_ref(),
                 local_agent_ref: local_agent_ref(),
                 config,
             },
@@ -247,7 +247,7 @@ fn put_rejects_malformed_avatar_asset_ref() {
             DesktopAgentCenterConfigPutPayload {
                 account_id: "account_1".to_string(),
                 owner_user_id: owner_user_id(),
-                realm_agent_id: realm_agent_id(),
+                runtime_source_ref: runtime_source_ref(),
                 local_agent_ref: local_agent_ref(),
                 config,
             },
@@ -264,7 +264,7 @@ fn config_put_payload_rejects_forbidden_launch_context_fields() {
     let payload = serde_json::json!({
         "accountId": "account_1",
         "ownerUserId": owner_user_id(),
-        "realmAgentId": realm_agent_id(),
+        "runtimeSourceRef": runtime_source_ref(),
         "localAgentRef": local_agent_ref(),
         "packagePath": "/tmp/avatar.vrm",
         "config": valid_config(),
@@ -284,7 +284,7 @@ fn put_rejects_scope_mismatch() {
             DesktopAgentCenterConfigPutPayload {
                 account_id: "account_1".to_string(),
                 owner_user_id: owner_user_id(),
-                realm_agent_id: "agent_2".to_string(),
+                runtime_source_ref: "agent_2".to_string(),
                 local_agent_ref: local_agent_ref(),
                 config: valid_config(),
             },
@@ -337,7 +337,7 @@ fn get_projects_scoped_identity_into_pre_cutover_config() {
 
         assert_eq!(loaded.account_id, "account_1");
         assert_eq!(loaded.owner_user_id, owner_user_id());
-        assert_eq!(loaded.realm_agent_id, realm_agent_id());
+        assert_eq!(loaded.runtime_source_ref, runtime_source_ref());
         assert_eq!(loaded.local_agent_ref, local_agent_ref());
         assert!(!loaded.modules.voice.avatar_autoplay);
         let persisted = fs::read_to_string(dir.join(CONFIG_FILE_NAME)).expect("persisted");
@@ -363,7 +363,7 @@ fn get_rejects_unknown_fields_in_stored_json() {
               "config_kind": "agent_center_local_config",
               "account_id": "account_1",
               "owner_user_id": "owner_1",
-              "realm_agent_id": "agent_1",
+              "runtime_source_ref": "agent_1",
               "local_agent_ref": "local-agent:owner_1:agent_1",
               "runtime_profile": "forbidden",
               "modules": {

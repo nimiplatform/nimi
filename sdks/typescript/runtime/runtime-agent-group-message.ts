@@ -23,19 +23,19 @@ const CANDIDATE_KIND = 'REALM_GROUP_MESSAGE_CANDIDATE';
 const CREATE_CANDIDATE_SCOPE = 'runtime.agent.create_realm_group_message_candidate';
 const READ_CANDIDATE_EVIDENCE_SCOPE = 'runtime.agent.get_realm_group_message_candidate_evidence';
 
-export interface NimiRuntimeRealmGroupAgentSlotIdentity {
-  readonly realmGroupAgentSlotId: string;
+export interface NimiRuntimeParticipantSlotIdentity {
+  readonly runtimeParticipantSlot: string;
   readonly ownerUserId: string;
-  readonly realmAgentId: string;
+  readonly runtimeSourceRef: string;
   readonly localAgentRef: string;
 }
 
-export interface NimiRuntimeRealmGroupAgentSlotIdentityInput {
+export interface NimiRuntimeParticipantSlotIdentityInput {
   readonly participantType?: unknown;
   readonly currentUserId: unknown;
-  readonly realmGroupAgentSlotId: unknown;
+  readonly runtimeParticipantSlot: unknown;
   readonly ownerUserId: unknown;
-  readonly realmAgentId: unknown;
+  readonly runtimeSourceRef: unknown;
   readonly localAgentRef: unknown;
 }
 
@@ -45,7 +45,7 @@ export interface NimiRuntimeRealmGroupMessageCandidateCommitPayload {
   readonly candidateEvidenceRef: string;
   readonly evidenceHash: string;
   readonly runtimeTraceRef: string;
-  readonly expectedRealmGroupAgentSlotId: string;
+  readonly expectedRuntimeParticipantSlot: string;
   readonly expectedLocalAgentRef: string;
   readonly triggerRef: string;
   readonly outputCandidateRef: string;
@@ -65,7 +65,7 @@ export interface NimiRuntimeRealmGroupMessageCandidateCommitPayload {
 }
 
 export type NimiRuntimeRealmGroupMessageCandidateCommitInput =
-  NimiRuntimeRealmGroupAgentSlotIdentityInput & {
+  NimiRuntimeParticipantSlotIdentityInput & {
     readonly realmGroupThreadId: unknown;
     readonly triggerMessageId: unknown;
     readonly idempotencyKey: unknown;
@@ -77,7 +77,7 @@ export type NimiRuntimeRealmGroupMessageCandidateCommitInput =
   };
 
 export interface NimiRuntimeRealmGroupMessageCandidateCommitResult {
-  readonly slot: NimiRuntimeRealmGroupAgentSlotIdentity;
+  readonly slot: NimiRuntimeParticipantSlotIdentity;
   readonly triggerRef: string;
   readonly candidate: RealmGroupMessageCandidateCommitHandle;
   readonly evidence: RealmGroupMessageCandidateEvidence;
@@ -133,40 +133,40 @@ function optionalText(value: unknown): string {
   return normalizeNimiRuntimeAgentText(value);
 }
 
-export function resolveNimiRuntimeRealmGroupAgentSlotIdentity(
-  input: NimiRuntimeRealmGroupAgentSlotIdentityInput,
-): NimiRuntimeRealmGroupAgentSlotIdentity {
+export function resolveNimiRuntimeParticipantSlotIdentity(
+  input: NimiRuntimeParticipantSlotIdentityInput,
+): NimiRuntimeParticipantSlotIdentity {
   const participantType = optionalText(input.participantType);
   if (participantType && participantType !== 'agent') {
-    inputError('Realm group agent candidate handoff requires a Realm projected agent slot', 'provide_realm_group_agent_slot');
+    inputError('runtime source candidate handoff requires a runtime participant slot', 'provide_runtime_participant_slot');
   }
-  const currentUserId = requireText(input.currentUserId, 'Realm group agent candidate handoff requires authenticated current user id', 'authenticate_realm_group_agent_owner');
-  const realmGroupAgentSlotId = requireText(input.realmGroupAgentSlotId, 'Realm group agent candidate handoff requires Realm group agent slot id', 'provide_realm_group_agent_slot');
-  const ownerUserId = requireText(input.ownerUserId, 'Realm group agent candidate handoff requires owner user id', 'provide_realm_group_agent_slot_owner');
-  const realmAgentId = requireText(input.realmAgentId, 'Realm group agent candidate handoff requires Realm agent id', 'provide_realm_group_agent_slot_agent');
-  const localAgentRef = requireText(input.localAgentRef, 'Realm group agent candidate handoff requires local agent ref', 'provide_realm_group_agent_local_ref');
+  const currentUserId = requireText(input.currentUserId, 'runtime source candidate handoff requires authenticated current user id', 'authenticate_runtime_source_owner');
+  const runtimeParticipantSlot = requireText(input.runtimeParticipantSlot, 'runtime source candidate handoff requires Runtime participant slot id', 'provide_runtime_participant_slot');
+  const ownerUserId = requireText(input.ownerUserId, 'runtime source candidate handoff requires owner user id', 'provide_runtime_source_owner');
+  const runtimeSourceRef = requireText(input.runtimeSourceRef, 'runtime source candidate handoff requires runtime source ref', 'provide_runtime_source_ref');
+  const localAgentRef = requireText(input.localAgentRef, 'runtime source candidate handoff requires local agent ref', 'provide_runtime_source_local_agent_ref');
   if (ownerUserId !== currentUserId) {
-    inputError('Realm group agent candidate handoff requires the current user to own the local agent slot', 'use_owned_realm_group_agent_slot');
+    inputError('runtime source candidate handoff requires the current user to own the local agent slot', 'use_owned_runtime_source');
   }
-  const expectedLocalAgentRef = buildRuntimeLocalAgentRef({ ownerUserId, realmAgentId });
+  const expectedLocalAgentRef = buildRuntimeLocalAgentRef({ ownerUserId, runtimeSourceRef });
   if (localAgentRef !== expectedLocalAgentRef) {
-    inputError('Realm group agent candidate handoff local agent ref does not match Realm slot identity', 'repair_realm_group_agent_slot_projection');
+    inputError('runtime source candidate handoff local agent ref does not match runtime source identity', 'repair_runtime_participant_slot_projection');
   }
   return {
-    realmGroupAgentSlotId,
+    runtimeParticipantSlot,
     ownerUserId,
-    realmAgentId,
+    runtimeSourceRef,
     localAgentRef,
   };
 }
 
 function defaultContextRefs(input: {
   readonly realmGroupThreadId: string;
-  readonly realmGroupAgentSlotId: string;
+  readonly runtimeParticipantSlot: string;
 }): Record<string, string> {
   return {
     'realm.group.thread.snapshot': `realm-context://group-chats/${input.realmGroupThreadId}/thread/current`,
-    'realm.group.agent_slot.snapshot': `realm-context://group-agent-slots/${input.realmGroupAgentSlotId}/current`,
+    'realm.group.runtime_participant_slot.snapshot': `realm-context://runtime-participant-slots/${input.runtimeParticipantSlot}/current`,
     'realm.group.recent_messages.snapshot': `realm-context://group-chats/${input.realmGroupThreadId}/recent-messages/current`,
     'realm.group.policy.snapshot': `realm-context://group-chats/${input.realmGroupThreadId}/policy/current`,
   };
@@ -192,24 +192,24 @@ function requireCandidateEvidence(
 
 function assertCandidateHandleMatchesExpectedSlot(input: {
   readonly candidate: RealmGroupMessageCandidateCommitHandle;
-  readonly slot: NimiRuntimeRealmGroupAgentSlotIdentity;
+  readonly slot: NimiRuntimeParticipantSlotIdentity;
   readonly triggerRef: string;
   readonly realmGroupThreadId: string;
 }): void {
   if (
     input.candidate.realmGroupThreadId !== input.realmGroupThreadId
-    || input.candidate.realmGroupAgentSlotId !== input.slot.realmGroupAgentSlotId
+    || input.candidate.runtimeParticipantSlot !== input.slot.runtimeParticipantSlot
     || input.candidate.localAgentRef !== input.slot.localAgentRef
     || input.candidate.triggerRef !== input.triggerRef
   ) {
-    inputError('Runtime Realm group message candidate handle does not match expected Realm slot handoff', 'check_realm_group_message_candidate_handle');
+    inputError('Runtime Realm group message candidate handle does not match expected runtime participant slot handoff', 'check_realm_group_message_candidate_handle');
   }
 }
 
 function assertCandidateEvidenceMatchesHandle(input: {
   readonly candidate: RealmGroupMessageCandidateCommitHandle;
   readonly evidence: RealmGroupMessageCandidateEvidence;
-  readonly slot: NimiRuntimeRealmGroupAgentSlotIdentity;
+  readonly slot: NimiRuntimeParticipantSlotIdentity;
   readonly triggerRef: string;
   readonly realmGroupThreadId: string;
 }): void {
@@ -218,7 +218,7 @@ function assertCandidateEvidenceMatchesHandle(input: {
     || input.evidence.evidenceHash !== input.candidate.evidenceHash
     || input.evidence.runtimeTraceRef !== input.candidate.runtimeTraceRef
     || input.evidence.realmGroupThreadId !== input.realmGroupThreadId
-    || input.evidence.realmGroupAgentSlotId !== input.slot.realmGroupAgentSlotId
+    || input.evidence.runtimeParticipantSlot !== input.slot.runtimeParticipantSlot
     || input.evidence.localAgentRef !== input.slot.localAgentRef
     || input.evidence.triggerRef !== input.triggerRef
   ) {
@@ -249,7 +249,7 @@ function requireIsoTimestamp(value: Parameters<typeof toNimiRuntimeIsoFromTimest
 function buildRealmCommitPayload(input: {
   readonly candidate: RealmGroupMessageCandidateCommitHandle;
   readonly evidence: RealmGroupMessageCandidateEvidence;
-  readonly slot: NimiRuntimeRealmGroupAgentSlotIdentity;
+  readonly slot: NimiRuntimeParticipantSlotIdentity;
   readonly triggerRef: string;
   readonly idempotencyKey: string;
 }): NimiRuntimeRealmGroupMessageCandidateCommitPayload {
@@ -259,7 +259,7 @@ function buildRealmCommitPayload(input: {
     candidateEvidenceRef: input.candidate.candidateEvidenceRef,
     evidenceHash: input.candidate.evidenceHash,
     runtimeTraceRef: input.candidate.runtimeTraceRef,
-    expectedRealmGroupAgentSlotId: input.slot.realmGroupAgentSlotId,
+    expectedRuntimeParticipantSlot: input.slot.runtimeParticipantSlot,
     expectedLocalAgentRef: input.slot.localAgentRef,
     triggerRef: input.triggerRef,
     outputCandidateRef: input.evidence.outputCandidateRef,
@@ -289,16 +289,16 @@ export function createNimiHostRuntimeRealmGroupMessageCandidateSurface(
         options.getSubjectUserId,
         'Realm group message candidate surface requires authenticated subject user id.',
       );
-      const slot = resolveNimiRuntimeRealmGroupAgentSlotIdentity({
+      const slot = resolveNimiRuntimeParticipantSlotIdentity({
         participantType: input.participantType,
         currentUserId: input.currentUserId,
-        realmGroupAgentSlotId: input.realmGroupAgentSlotId,
+        runtimeParticipantSlot: input.runtimeParticipantSlot,
         ownerUserId: input.ownerUserId,
-        realmAgentId: input.realmAgentId,
+        runtimeSourceRef: input.runtimeSourceRef,
         localAgentRef: input.localAgentRef,
       });
       if (subjectUserId !== slot.ownerUserId) {
-        inputError('Realm group agent candidate subject user must match the slot owner', 'authenticate_realm_group_agent_owner');
+        inputError('runtime source candidate subject user must match the slot owner', 'authenticate_realm_group_source_owner');
       }
       const realmGroupThreadId = requireText(input.realmGroupThreadId, 'Realm group message candidate handoff requires Realm group thread id', 'provide_realm_group_thread');
       const triggerMessageId = requireText(input.triggerMessageId, 'Realm group message candidate handoff requires a committed Realm trigger message', 'provide_realm_group_trigger_message');
@@ -319,9 +319,9 @@ export function createNimiHostRuntimeRealmGroupMessageCandidateSurface(
       }, [CREATE_CANDIDATE_SCOPE], (callOptions) => runtime.agent.createRealmGroupMessageCandidate({
         context,
         realmGroupThreadId,
-        realmGroupAgentSlotId: slot.realmGroupAgentSlotId,
+        runtimeParticipantSlot: slot.runtimeParticipantSlot,
         ownerUserId: slot.ownerUserId,
-        realmAgentId: slot.realmAgentId,
+        runtimeSourceRef: slot.runtimeSourceRef,
         localAgentRef: slot.localAgentRef,
         triggerRef,
         membershipSnapshotRef: optionalText(input.membershipSnapshotRef)
@@ -334,7 +334,7 @@ export function createNimiHostRuntimeRealmGroupMessageCandidateSurface(
         idempotencyKey,
         contextRefs: defaultContextRefs({
           realmGroupThreadId,
-          realmGroupAgentSlotId: slot.realmGroupAgentSlotId,
+          runtimeParticipantSlot: slot.runtimeParticipantSlot,
         }),
       }, callOptions));
       const candidate = requireCandidateHandle(candidateResponse.candidate);
@@ -350,7 +350,7 @@ export function createNimiHostRuntimeRealmGroupMessageCandidateSurface(
         candidateEvidenceRef: candidate.candidateEvidenceRef,
         evidenceHash: candidate.evidenceHash,
         runtimeTraceRef: candidate.runtimeTraceRef,
-        expectedRealmGroupAgentSlotId: slot.realmGroupAgentSlotId,
+        expectedRuntimeParticipantSlot: slot.runtimeParticipantSlot,
         expectedLocalAgentRef: slot.localAgentRef,
         triggerRef,
         targetRealmGroupThreadId: realmGroupThreadId,

@@ -106,7 +106,7 @@ fn avatar_handoff_uri_includes_only_minimal_launch_intent() {
         ]
     );
     assert!(!uri.contains("owner_user_id"));
-    assert!(!uri.contains("realm_agent_id"));
+    assert!(!uri.contains("runtime_source_ref"));
     assert!(!uri.contains("local_agent_ref"));
     assert!(!uri.contains("conversation_anchor_id"));
     assert!(!uri.contains("runtime_app_id"));
@@ -515,7 +515,7 @@ fn avatar_launch_payload_rejects_old_authority_fields() {
     let payload = serde_json::json!({
         "agentId": "local-agent:owner-1:agent-1",
         "ownerUserId": "owner-1",
-        "realmAgentId": "agent-1",
+        "runtimeSourceRef": "agent-1",
         "localAgentRef": "local-agent:owner-1:agent-1",
         "conversationAnchorId": "anchor-1",
         "avatarInstanceId": "instance-1"

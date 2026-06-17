@@ -10,7 +10,7 @@ fn removes_agent_local_resources_by_quarantining_agent_center_tree() {
             DesktopAgentCenterAgentLocalResourcesRemovePayload {
                 account_id: "account_1".to_string(),
                 owner_user_id: owner_user_id(),
-                realm_agent_id: realm_agent_id(),
+                runtime_source_ref: runtime_source_ref(),
                 local_agent_ref: local_agent_ref(),
             },
         )
@@ -117,7 +117,7 @@ fn import_rejects_svg_background_before_staging() {
             DesktopAgentCenterBackgroundImportPayload {
                 account_id: "account_1".to_string(),
                 owner_user_id: owner_user_id(),
-                realm_agent_id: realm_agent_id(),
+                runtime_source_ref: runtime_source_ref(),
                 local_agent_ref: local_agent_ref(),
                 source_path: source.to_string_lossy().to_string(),
                 display_name: None,
@@ -143,7 +143,7 @@ fn validates_background_and_writes_sidecar() {
             DesktopAgentCenterBackgroundValidatePayload {
                 account_id: "account_1".to_string(),
                 owner_user_id: owner_user_id(),
-                realm_agent_id: realm_agent_id(),
+                runtime_source_ref: runtime_source_ref(),
                 local_agent_ref: local_agent_ref(),
                 background_asset_id: "bg_ab12cd34ef56".to_string(),
             },
@@ -171,7 +171,7 @@ fn rejects_svg_background_manifest() {
             DesktopAgentCenterBackgroundValidatePayload {
                 account_id: "account_1".to_string(),
                 owner_user_id: owner_user_id(),
-                realm_agent_id: realm_agent_id(),
+                runtime_source_ref: runtime_source_ref(),
                 local_agent_ref: local_agent_ref(),
                 background_asset_id: "bg_ab12cd34ef56".to_string(),
             },
