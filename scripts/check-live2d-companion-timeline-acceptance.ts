@@ -13,8 +13,8 @@ import type { AudioPlaybackState } from '@nimiplatform/kit/features/avatar/headl
 const turnId = 'acceptance-turn-1';
 const streamId = 'acceptance-stream-1';
 const ownerUserId = 'user-acceptance';
-const realmAgentId = 'agent-acceptance';
-const localAgentRef = `local-agent:${ownerUserId}:${realmAgentId}`;
+const runtimeSourceRef = 'runtime-source:acceptance';
+const localAgentRef = `local-agent:${ownerUserId}:acceptance`;
 
 const runtimePayload = {
   agent_id: localAgentRef,
@@ -83,7 +83,7 @@ async function main(): Promise<void> {
   const driver = new SdkDriver({
     runtimeAgent,
     ownerUserId,
-    realmAgentId,
+    runtimeSourceRef,
     localAgentRef,
     conversationAnchorId: 'anchor-acceptance',
     activeWorldId: 'world-acceptance',
