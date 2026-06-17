@@ -1053,7 +1053,7 @@ function checkPackageAuthorityAdmissions(definedRuleIds) {
 }
 
 function isDelegatedSourceRef(ref) {
-  return ref.startsWith('package://') || ref.startsWith('external-projection://');
+  return ref.startsWith('package://') || ref.startsWith('external-projection://') || ref.startsWith('external-authority://');
 }
 
 function isDelegatedEvidencePrefix(ref) {
@@ -1152,8 +1152,8 @@ function checkDelegatedProjectionAdmissions(definedRuleIds) {
       fail(`${rel}: ${id} must declare required_verification_commands`);
     }
     for (const command of requiredCommands) {
-      if (!command.startsWith('external-verifier://')) {
-        fail(`${rel}: ${id} required_verification_command must be an explicit external verifier locator: ${command}`);
+      if (!command.startsWith('external-verifier://') && !command.startsWith('local-guard://')) {
+        fail(`${rel}: ${id} required_verification_command must be an explicit external verifier or local guard locator: ${command}`);
       }
     }
     if (!definedRuleIds.has(source)) {

@@ -1,23 +1,19 @@
-# Realm Spec Guidance
+# External Realm Pointer Guidance
 
 ## Scope
 
 - Applies to `.nimi/spec/realm/**`.
 
-## Reading Path
+## Authority
 
-- Realm kernel index: `.nimi/spec/realm/kernel/index.md`
-- Realm projection authority:
-  `.nimi/spec/realm/kernel/projection-contract.md`
-- Realm projection table:
-  `.nimi/spec/realm/kernel/tables/projection-contract.yaml`
-- Delegated projection admission:
-  `.nimi/spec/platform/kernel/tables/delegated-projection-admissions.yaml`
-- Projection guard implementation: `scripts/check-realm-spec-projection-guard.mjs`
+- This subtree is not Realm product authority.
+- Realm canonical authority lives in the external private root `<nimi-realm>`.
+- Nimi consumes Realm through generated SDK/OpenAPI surfaces and SDK consumer
+  contracts under `.nimi/spec/sdks/**`.
 
 ## Editing Route
 
-- For Realm projection changes, follow the projection authority and delegated
-  admission above.
-- Keep this file as navigation guidance; product rules live in kernel authority
-  files and typed tables.
+- Do not add Realm kernel contracts, tables, generated docs, or domain authority
+  mirrors here.
+- Update `README.md` and `external-realm.md` only when the external pointer
+  or SDK consumer route changes.
