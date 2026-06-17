@@ -57,6 +57,7 @@ function buildBehaviorModules() {
     'src/tester/tester-ai-config-store.ts',
     'src/tester/tester-runtime-model-provider.ts',
     'src/tester/tester-run-target.ts',
+    'src/tester/tester-history.ts',
   ], {
     cwd: root,
     stdio: 'pipe',

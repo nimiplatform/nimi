@@ -128,6 +128,8 @@ export type TesterFlatRunRecord = TesterRunHistoryRecord & {
 
 export type TesterRunStatusTone = 'success' | 'warning' | 'danger' | 'info';
 export type TesterRunModelSource = 'local' | 'cloud' | 'unknown';
+type TesterUnavailableRunResult = Extract<TesterCapabilityRunResult, { ok: false }>;
+type TesterUnavailableHistorySnapshot = Extract<TesterRunHistoryResultSnapshot, { ok: false }>;
 export type TesterRunPromptControlFact = {
   label: string;
   value: string;
@@ -225,13 +227,14 @@ export function formatTesterRunTimestamp(value: string, now = new Date()): strin
 
 export function formatTesterRunHistoryTimestamp(value: string, now = new Date()): string {
   try {
+    if (!value.trim()) return 'Unknown date';
     const date = new Date(value);
-    if (Number.isNaN(date.valueOf())) return value;
+    if (Number.isNaN(date.valueOf())) return 'Unknown date';
     if (isSameLocalCalendarDate(date, now)) return testerRunTimeFormatter.format(date);
     if (date.getFullYear() === now.getFullYear()) return testerRunDateFormatter.format(date);
     return testerRunDateWithYearFormatter.format(date);
   } catch {
-    return value;
+    return 'Unknown date';
   }
 }
 
@@ -242,12 +245,20 @@ function compactBodySummary(value: string): string {
 }
 
 function traceFields(result: TesterCapabilityRunResult): Pick<Extract<TesterRunHistoryResultSnapshot, { ok: true }>, 'traceId' | 'modelResolved' | 'routeDecision'> {
-  if (!result.ok) return {};
+  if (isTesterUnavailableRunResult(result)) return {};
   return {
     traceId: result.trace?.traceId,
     modelResolved: result.trace?.modelResolved,
     routeDecision: result.trace?.routeDecision,
   };
+}
+
+function isTesterUnavailableRunResult(result: TesterCapabilityRunResult): result is TesterUnavailableRunResult {
+  return result.ok === false;
+}
+
+function isTesterUnavailableHistorySnapshot(result: TesterRunHistoryResultSnapshot): result is TesterUnavailableHistorySnapshot {
+  return result.ok === false;
 }
 
 function hostedArtifactUrl(url: string | undefined): string | undefined {
@@ -256,7 +267,7 @@ function hostedArtifactUrl(url: string | undefined): string | undefined {
 }
 
 export function createTesterRunHistoryResultSnapshot(result: TesterCapabilityRunResult): TesterRunHistoryResultSnapshot {
-  if (!result.ok) {
+  if (isTesterUnavailableRunResult(result)) {
     return {
       ok: false,
       kind: 'unavailable',
@@ -362,6 +373,16 @@ function cleanTesterRunModelName(value: string): string {
   return normalized.replace(/^(local-import|local|cloud)\//i, '').trim() || normalized;
 }
 
+function isOpaqueRuntimeModelId(value: string): boolean {
+  return /^[0-9A-HJKMNP-TV-Z]{20,32}$/u.test(value.trim());
+}
+
+function genericTesterRunModelLabel(source: TesterRunModelSource): string {
+  if (source === 'local') return 'Local runtime model';
+  if (source === 'cloud') return 'Cloud model';
+  return 'Runtime model';
+}
+
 function compactSettingValue(value: string, maxLength = 220): string {
   const normalized = value.replace(/\s+/g, ' ').trim();
   if (!normalized) return '';
@@ -428,6 +449,14 @@ const TEXT_MODEL_PARAM_ORDER: ReadonlyArray<{ key: string; label: string; group:
   { key: 'frequencyPenalty', label: 'Frequency Penalty', group: PARAM_GROUP_LABELS.advanced },
 ];
 
+const HIDDEN_MODEL_PARAM_KEYS = new Set([
+  'companionSlots',
+  'profileEntries',
+  'profile_entries',
+  'entryOverrides',
+  'entry_overrides',
+]);
+
 function hasRunConfigParam(value: unknown): boolean {
   if (typeof value === 'string') return value.trim().length > 0;
   if (typeof value === 'number') return Number.isFinite(value);
@@ -440,7 +469,9 @@ function runConfigParamDefinitions(runConfig: TesterRunConfigSnapshot): Readonly
   if (runConfig.target.capabilityId === 'text.generate' || runConfig.target.capabilityId === 'chat.stream') {
     return TEXT_MODEL_PARAM_ORDER;
   }
-  return Object.keys(runConfig.target.params).map((key) => ({ key, label: key, group: 'Model parameters' }));
+  return Object.keys(runConfig.target.params)
+    .filter((key) => !HIDDEN_MODEL_PARAM_KEYS.has(key))
+    .map((key) => ({ key, label: key, group: 'Model parameters' }));
 }
 
 export function getTesterRunConfigParamRows(runConfig: TesterRunConfigSnapshot): TesterRunConfigParamRow[] {
@@ -476,12 +507,21 @@ function modelNameSource(value: string | undefined): TesterRunModelSource {
 
 export function getTesterRunModelLabel(record: TesterRunHistoryRecord): string {
   if (record.runConfig?.target.modelLabel) {
-    return cleanTesterRunModelName(record.runConfig.target.modelLabel);
+    const modelLabel = cleanTesterRunModelName(record.runConfig.target.modelLabel);
+    if (isOpaqueRuntimeModelId(modelLabel)) {
+      return genericTesterRunModelLabel(getTesterRunModelSource(record));
+    }
+    return modelLabel;
   }
   const result = record.result;
   if (result?.ok) {
     const modelResolved = 'modelResolved' in result ? result.modelResolved?.trim() : '';
-    if (modelResolved) return cleanTesterRunModelName(modelResolved);
+    if (modelResolved) {
+      const modelLabel = cleanTesterRunModelName(modelResolved);
+      return isOpaqueRuntimeModelId(modelLabel)
+        ? genericTesterRunModelLabel(getTesterRunModelSource(record))
+        : modelLabel;
+    }
   }
   if (record.status === 'local-fixture') return 'local fixture';
   if (!result) return 'model not captured';
@@ -504,7 +544,7 @@ export function getTesterRunModelSource(record: TesterRunHistoryRecord): TesterR
 export function getTesterRunMetricSummary(record: TesterRunHistoryRecord): string {
   const result = record.result;
   if (!result) return getTesterRunResultSummary(record);
-  if (!result.ok) return result.reason;
+  if (isTesterUnavailableHistorySnapshot(result)) return result.reason;
   if (result.kind === 'text') {
     return [
       formatTesterTokenUsage(result.inputTokens, result.outputTokens, result.totalTokens),
@@ -527,7 +567,7 @@ export function getTesterRunResultTags(record: TesterRunHistoryRecord): string[]
   const result = record.result;
   const params = record.runConfig?.target.paramsSummary ?? [];
   if (!result) return [record.status === 'ready' ? 'Runtime' : getTesterRunStatusLabel(record.status), ...params.slice(0, 2)];
-  if (!result.ok) return [result.reason];
+  if (isTesterUnavailableHistorySnapshot(result)) return [result.reason];
   if (result.kind === 'text') {
     return [
       result.streamed ? 'Stream' : 'Runtime',
@@ -536,9 +576,9 @@ export function getTesterRunResultTags(record: TesterRunHistoryRecord): string[]
       ...params.slice(0, 2),
     ].filter(Boolean);
   }
-  if (result.kind === 'embedding') return [`${result.dimensions} dims`, `${result.vectorCount} vector${result.vectorCount === 1 ? '' : 's'}`];
-  if (result.kind === 'artifacts') return [result.jobState || 'unknown', `${result.artifactCount} artifact${result.artifactCount === 1 ? '' : 's'}`];
-  if (result.kind === 'transcript') return [result.jobState || 'unknown', `${result.charCount} chars`];
+  if (result.kind === 'embedding') return ['Embedding ready'];
+  if (result.kind === 'artifacts') return ['Ready'];
+  if (result.kind === 'transcript') return ['Ready'];
   return [`${result.voiceCount} voices`, result.modelResolved].filter(Boolean);
 }
 
