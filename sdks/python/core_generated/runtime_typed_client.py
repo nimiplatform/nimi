@@ -1275,6 +1275,16 @@ class CheckModelHealthResponse:
     model_id: str | None = None
 
 @dataclass(frozen=True)
+class CleanupGeneratedVoiceArtifactsRequest:
+    agent_id: str | None = None
+    conversation_anchor_id: str | None = None
+
+@dataclass(frozen=True)
+class CleanupGeneratedVoiceArtifactsResponse:
+    deleted_count: int | None = None
+    deleted_artifact_ids: tuple[str, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
 class ClearAgentPresentationProfile:
     pass
 
@@ -6716,6 +6726,10 @@ class RuntimeTypedClient:
 
     def watch_app_install_job_events(self, request: WatchAppInstallJobEventsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AsyncIterator[AppInstallJobEvent]:
         return self._stream("/nimi.runtime.v1.RuntimeAppService/WatchAppInstallJobEvents", _model_body(request), AppInstallJobEvent, metadata=metadata, timeout_ms=timeout_ms)
+
+    async def cleanup_generated_voice_artifacts(self, request: CleanupGeneratedVoiceArtifactsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> CleanupGeneratedVoiceArtifactsResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeArtifactService/CleanupGeneratedVoiceArtifacts", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(CleanupGeneratedVoiceArtifactsResponse, raw)
 
     async def read_artifact_bytes(self, request: ReadArtifactBytesRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ReadArtifactBytesResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))

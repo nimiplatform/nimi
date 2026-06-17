@@ -61,6 +61,9 @@ entries:
   - K-VOICE-015
   - K-VOICE-016
   - K-VOICE-017
+  - K-VOICE-018
+  - K-VOICE-019
+  - K-VOICE-020
 rules:
   - rule_id: K-PROV-001
     evidence_refs:
@@ -253,4 +256,29 @@ rules:
     evidence_refs:
       - runtime_kernel_consistency
       - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-VOICE-018
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - sdk_runtime_test
+      - desktop_boundary_test
+    note: Agent voice output policy is Runtime-owned and must be consumed by apps without app-side TTS
+      route or autoplay authority.
+    evidence_requirement: required
+  - rule_id: K-VOICE-019
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - sdk_runtime_test
+    note: Agent voice streaming and interruption require Runtime stream/cancel semantics and SDK event
+      consumption evidence.
+    evidence_requirement: required
+  - rule_id: K-VOICE-020
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - sdk_runtime_test
+    note: Durable generated agent voice artifacts require Runtime artifact identity, retention, and
+      cleanup behavior evidence.
     evidence_requirement: required

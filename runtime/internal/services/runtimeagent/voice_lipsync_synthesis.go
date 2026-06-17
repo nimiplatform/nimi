@@ -15,17 +15,14 @@ import (
 
 // Wave 3 — Voice/lipsync synthesis adapter for committed assistant turns.
 //
-// Per spec K-AGCORE-051 (`.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md`)
-// runtime owns timeline truth for lipsync frames; provider selection is
-// explicitly outside the rule. This file admits a deterministic, in-process
-// synthesizer that produces lipsync frames from committed assistant text
-// without external dependencies. Real TTS providers (Piper / kokoro / cloud
-// providers) integrate by implementing the same `voiceLipsyncSynthesizer`
-// interface and registering through constructor injection.
+// Per spec K-AGCORE-051 and K-VOICE-018, runtime owns whether voice/lipsync
+// projection is emitted, and it may emit playable voice only after policy and
+// provider audio resolve. This file keeps a deterministic frame generator for
+// tests and local frame math; it is not a playable voice fallback.
 //
 // The synthetic adapter does NOT produce audio bytes. It produces:
 //   - audio_artifact_id with `synthetic://lipsync/<turn_id>` prefix so
-//     consumers can detect frame-only timelines and fail-close audio playback.
+//     callers can detect frame-only output and fail-close audio playback.
 //   - audio_mime_type = `application/x-nimi-synthetic-lipsync` (clearly
 //     non-audio MIME) so any client treating it as audio fails closed.
 //   - frame timing derived from character cadence (~14 chars/sec) and a
@@ -60,6 +57,7 @@ type voiceLipsyncSynthesisInput struct {
 	SpeechModelID         string
 	SpeechRoutePolicy     runtimev1.RoutePolicy
 	AgentID               string
+	IdempotencyKey        string
 }
 
 type voiceLipsyncSynthesisOutput struct {
@@ -94,6 +92,7 @@ type voiceLipsyncSynthesizer interface {
 }
 
 type syntheticVoiceLipsyncSynthesizer struct{}
+type unavailableVoiceLipsyncSynthesizer struct{}
 
 type voiceLipsyncScenarioExecutor interface {
 	SubmitScenarioJob(context.Context, *runtimev1.SubmitScenarioJobRequest) (*runtimev1.SubmitScenarioJobResponse, error)
@@ -103,7 +102,6 @@ type voiceLipsyncScenarioExecutor interface {
 
 type aiBackedVoiceLipsyncSynthesizer struct {
 	ai             voiceLipsyncScenarioExecutor
-	fallback       voiceLipsyncSynthesizer
 	modelID        string
 	routePolicy    runtimev1.RoutePolicy
 	fallbackPolicy runtimev1.FallbackPolicy
@@ -115,22 +113,15 @@ func newSyntheticVoiceLipsyncSynthesizer() syntheticVoiceLipsyncSynthesizer {
 	return syntheticVoiceLipsyncSynthesizer{}
 }
 
-func newAIBackedVoiceLipsyncSynthesizer(ai voiceLipsyncScenarioExecutor, modelID string, routePolicy runtimev1.RoutePolicy, fallback voiceLipsyncSynthesizer) voiceLipsyncSynthesizer {
+func newAIBackedVoiceLipsyncSynthesizer(ai voiceLipsyncScenarioExecutor, modelID string, routePolicy runtimev1.RoutePolicy) voiceLipsyncSynthesizer {
 	if ai == nil {
-		if fallback != nil {
-			return fallback
-		}
-		return newSyntheticVoiceLipsyncSynthesizer()
-	}
-	if fallback == nil {
-		fallback = newSyntheticVoiceLipsyncSynthesizer()
+		return unavailableVoiceLipsyncSynthesizer{}
 	}
 	if routePolicy == runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED {
 		routePolicy = runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL
 	}
 	return &aiBackedVoiceLipsyncSynthesizer{
 		ai:             ai,
-		fallback:       fallback,
 		modelID:        strings.TrimSpace(modelID),
 		routePolicy:    routePolicy,
 		fallbackPolicy: runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
@@ -143,7 +134,7 @@ func (s *Service) SetVoiceLipsyncScenarioExecutor(ai voiceLipsyncScenarioExecuto
 	if s == nil {
 		return
 	}
-	s.voiceLipsync = newAIBackedVoiceLipsyncSynthesizer(ai, modelID, routePolicy, s.voiceLipsync)
+	s.voiceLipsync = newAIBackedVoiceLipsyncSynthesizer(ai, modelID, routePolicy)
 }
 
 func (s *Service) HasVoiceLipsyncScenarioExecutor() bool {
@@ -180,22 +171,20 @@ func (syntheticVoiceLipsyncSynthesizer) synthesize(input voiceLipsyncSynthesisIn
 	}, nil
 }
 
+func (unavailableVoiceLipsyncSynthesizer) synthesize(voiceLipsyncSynthesisInput) (voiceLipsyncSynthesisOutput, error) {
+	return voiceLipsyncSynthesisOutput{}, nil
+}
+
 func (s *aiBackedVoiceLipsyncSynthesizer) synthesize(input voiceLipsyncSynthesisInput) (voiceLipsyncSynthesisOutput, error) {
 	if s == nil || s.ai == nil {
-		if s != nil && s.fallback != nil {
-			return s.fallback.synthesize(input)
-		}
-		return newSyntheticVoiceLipsyncSynthesizer().synthesize(input)
+		return voiceLipsyncSynthesisOutput{}, nil
 	}
 	modelID := strings.TrimSpace(input.SpeechModelID)
 	if modelID == "" {
 		modelID = strings.TrimSpace(s.modelID)
 	}
 	if modelID == "" {
-		if s.fallback != nil {
-			return s.fallback.synthesize(input)
-		}
-		return newSyntheticVoiceLipsyncSynthesizer().synthesize(input)
+		return voiceLipsyncSynthesisOutput{}, nil
 	}
 	routePolicy := input.SpeechRoutePolicy
 	if routePolicy == runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED {
@@ -235,7 +224,7 @@ func (s *aiBackedVoiceLipsyncSynthesizer) synthesize(input voiceLipsyncSynthesis
 		},
 		ScenarioType:   runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
 		ExecutionMode:  runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
-		IdempotencyKey: "runtime-agent-voice-lipsync:" + turnID,
+		IdempotencyKey: runtimeAgentVoiceLipsyncIdempotencyKey(input),
 		Spec: &runtimev1.ScenarioSpec{
 			Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{
 				SpeechSynthesize: &runtimev1.SpeechSynthesizeScenarioSpec{
@@ -290,6 +279,17 @@ func (s *aiBackedVoiceLipsyncSynthesizer) synthesize(input voiceLipsyncSynthesis
 		),
 		Frames: frames,
 	}, nil
+}
+
+func runtimeAgentVoiceLipsyncIdempotencyKey(input voiceLipsyncSynthesisInput) string {
+	if key := strings.TrimSpace(input.IdempotencyKey); key != "" {
+		return key
+	}
+	parts := []string{"runtime-agent-voice-lipsync", strings.TrimSpace(input.TurnID)}
+	if messageID := strings.TrimSpace(input.MessageID); messageID != "" {
+		parts = append(parts, messageID)
+	}
+	return strings.Join(parts, ":")
 }
 
 func (s *aiBackedVoiceLipsyncSynthesizer) waitVoiceSynthesisJob(ctx context.Context, jobID string) (*runtimev1.ScenarioJob, error) {

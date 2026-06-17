@@ -47,6 +47,17 @@ service RuntimeArtifactService {
   // runtimev1.ReasonCode_ARTIFACT_*) per K-ERR-003 (ReasonCode in ErrorInfo
   // details, not status message string).
   rpc ReadArtifactBytes(ReadArtifactBytesRequest) returns (ReadArtifactBytesResponse) {}
+
+  // Delete generated assistant voice artifacts by Runtime-owned scope.
+  //
+  // Exactly one or both of agent_id / conversation_anchor_id may be supplied.
+  // When both are supplied, only artifacts matching both selectors are removed.
+  // The cleanup is idempotent: no matching artifacts returns deleted_count=0.
+  //
+  // This surface is limited to generated agent voice artifacts admitted by
+  // K-VOICE-020. It does not delete scenario images/video/music, uploaded
+  // user files, committed text messages, or conversation history.
+  rpc CleanupGeneratedVoiceArtifacts(CleanupGeneratedVoiceArtifactsRequest) returns (CleanupGeneratedVoiceArtifactsResponse) {}
 }
 
 message ReadArtifactBytesRequest {
@@ -73,4 +84,20 @@ message ReadArtifactBytesResponse {
   // True if mime_type was runtime-inferred rather than provider-declared.
   // Consumers may log/observe but typically still consume.
   bool mime_inferred = 4;
+}
+
+message CleanupGeneratedVoiceArtifactsRequest {
+  // Generated voice artifacts for this runtime agent id.
+  string agent_id = 1;
+
+  // Generated voice artifacts scoped to this conversation anchor.
+  string conversation_anchor_id = 2;
+}
+
+message CleanupGeneratedVoiceArtifactsResponse {
+  // Number of generated voice artifacts deleted by this call.
+  int32 deleted_count = 1;
+
+  // Runtime artifact ids removed by this call.
+  repeated string deleted_artifact_ids = 2;
 }

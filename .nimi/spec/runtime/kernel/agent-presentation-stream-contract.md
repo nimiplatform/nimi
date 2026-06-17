@@ -44,6 +44,9 @@ The admitted runtime-owned stable projection families are:
 - `runtime.agent.presentation.pose_requested`
 - `runtime.agent.presentation.pose_cleared`
 - `runtime.agent.presentation.lookat_requested`
+- `runtime.agent.presentation.voice_playback_requested`
+- `runtime.agent.presentation.voice_stream_chunk_available`
+- `runtime.agent.presentation.lipsync_frame_batch`
 - `runtime.agent.state.status_text_changed`
 - `runtime.agent.state.execution_state_changed`
 - `runtime.agent.state.emotion_changed`
@@ -66,6 +69,11 @@ Family-specific envelope requirements are pinned in
   a specific continuity branch
 
 `runtime.agent.turn.message_committed` must additionally carry `message_id`.
+Playable voice projection events (`voice_playback_requested` and
+`voice_stream_chunk_available`) must carry the committed assistant
+`message_id` in `detail.message_id` so Avatar autoplay, Desktop manual
+playback, and replay consumers do not collapse multiple committed messages
+under the same turn identity.
 
 Fixed rules:
 
@@ -234,9 +242,37 @@ Fixed rules:
 - voice provider selection remains outside this rule; runtime may carry
   provider-produced timing/audio-level evidence, but it must not hardcode a
   provider or model as timeline authority
+- ordinary agent voice output must be gated by Runtime-owned agent voice policy
+  (`K-VOICE-018`); text commit does not by itself imply playable voice output
+- Desktop Agent Chat manual playback and Avatar autoplay are distinct playback
+  targets. Runtime owns whether a target receives voice stream/playback
+  projection; apps own only local rendering/playback controls.
+- if speech route resolution is missing or unhealthy, Runtime must keep the turn
+  as text-only and must not emit a fake playable voice request
 
 Implementation work must not report this rule as product-complete until
 runtime, SDK/Desktop, Avatar, and cross-surface acceptance evidence all exist.
+
+## K-AGCORE-133 Runtime Agent Voice Stream Projection
+
+Runtime-owned voice stream projection is admitted for active agent turns. It is
+part of the `runtime.agent.presentation.*` family and must use the same turn
+envelope identity as text/presentation projection.
+
+Fixed rules:
+
+- `runtime.agent.presentation.voice_stream_chunk_available` may reference ordered
+  audio chunk artifacts for low-latency playback. Each chunk artifact id must
+  identify playable audio bytes and must not be reused for lipsync metadata.
+- Each voice chunk must carry the committed assistant `message_id` in its detail
+  payload.
+- A completed voice stream must materialize a final durable audio artifact for
+  replay/export and local retention under `K-VOICE-020`.
+- Chunk sequence must be monotonic per `turn_id` / `stream_id`.
+- Runtime terminal interruption/cancel/failure must stop further chunk projection
+  and must be observable by consumers through the same stream identity.
+- Avatar may compute lipsync locally from streamed or final audio. Runtime must
+  not own renderer mouth parameters.
 
 ## Fact Sources
 

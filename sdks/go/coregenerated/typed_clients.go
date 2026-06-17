@@ -2776,6 +2776,16 @@ type CheckModelHealthResponse struct {
 	ModelId string `json:"model_id,omitempty"`
 }
 
+type CleanupGeneratedVoiceArtifactsRequest struct {
+	AgentId string `json:"agent_id,omitempty"`
+	ConversationAnchorId string `json:"conversation_anchor_id,omitempty"`
+}
+
+type CleanupGeneratedVoiceArtifactsResponse struct {
+	DeletedCount int32 `json:"deleted_count,omitempty"`
+	DeletedArtifactIds []string `json:"deleted_artifact_ids,omitempty"`
+}
+
 type ClearAgentPresentationProfile struct {
 
 }
@@ -8716,6 +8726,14 @@ func (c RuntimeTypedClient) WatchAppInstallJobEvents(ctx context.Context, reques
 		return nil, err
 	}
 	return &RuntimeTypedStream[AppInstallJobEvent]{reader: reader}, nil
+}
+
+func (c RuntimeTypedClient) CleanupGeneratedVoiceArtifacts(ctx context.Context, request CleanupGeneratedVoiceArtifactsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CleanupGeneratedVoiceArtifactsResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeArtifactService/CleanupGeneratedVoiceArtifacts", request, metadata, timeoutMS)
+	if err != nil {
+		return CleanupGeneratedVoiceArtifactsResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[CleanupGeneratedVoiceArtifactsResponse](raw, "CleanupGeneratedVoiceArtifactsResponse")
 }
 
 func (c RuntimeTypedClient) ReadArtifactBytes(ctx context.Context, request ReadArtifactBytesRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ReadArtifactBytesResponse, error) {

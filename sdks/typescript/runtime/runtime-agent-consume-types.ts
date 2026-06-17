@@ -51,7 +51,7 @@ export interface NimiRuntimeAgentTimelineEnvelope {
   readonly startedAtWall: string;
   readonly observedAtWall: string;
   readonly timebaseOwner: 'runtime';
-  readonly projectionRuleId: 'K-AGCORE-051';
+  readonly projectionRuleId: 'K-AGCORE-051' | 'K-AGCORE-133';
   readonly clockBasis: 'monotonic_with_wall_anchor';
   readonly providerNeutral: true;
   readonly appLocalAuthority: false;
@@ -144,6 +144,7 @@ export interface NimiRuntimeAgentTurnConsumeEvent extends NimiRuntimeAgentBaseCo
     | 'runtime.agent.turn.interrupted'
     | 'runtime.agent.turn.interrupt_ack'
     | 'runtime.agent.presentation.voice_playback_requested'
+    | 'runtime.agent.presentation.voice_stream_chunk_available'
     | 'runtime.agent.presentation.lipsync_frame_batch';
   readonly conversationAnchorId: string;
   readonly turnId: string;

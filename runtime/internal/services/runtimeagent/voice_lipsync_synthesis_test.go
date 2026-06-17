@@ -75,7 +75,7 @@ func TestSyntheticVoiceLipsyncSynthesizerProducesMonotonicFrames(t *testing.T) {
 	}
 }
 
-func TestSyntheticVoiceLipsyncSynthesizerProjectsUnboundVoiceRouteBinding(t *testing.T) {
+func TestSyntheticVoiceLipsyncSynthesizerCannotProjectPlayableVoiceRequest(t *testing.T) {
 	t.Parallel()
 	synth := newSyntheticVoiceLipsyncSynthesizer()
 	out, err := synth.synthesize(voiceLipsyncSynthesisInput{
@@ -108,7 +108,7 @@ func TestSyntheticVoiceLipsyncSynthesizerProjectsUnboundVoiceRouteBinding(t *tes
 	if got := out.VoiceRouteBinding.Reason; got != "tts_provider_route_not_bound" {
 		t.Fatalf("voice route reason = %q", got)
 	}
-	detail, err := publicChatBuildVoicePlaybackDetail(publicChatVoicePlaybackProjection{
+	_, err = publicChatBuildVoicePlaybackDetail(publicChatVoicePlaybackProjection{
 		AudioArtifactID:       out.AudioArtifactID,
 		AudioMimeType:         out.AudioMimeType,
 		DurationMs:            out.DurationMs,
@@ -116,15 +116,8 @@ func TestSyntheticVoiceLipsyncSynthesizerProjectsUnboundVoiceRouteBinding(t *tes
 		DefaultVoiceReference: out.DefaultVoiceReference,
 		VoiceRouteBinding:     out.VoiceRouteBinding,
 	})
-	if err != nil {
-		t.Fatalf("voice playback detail rejected route binding: %v", err)
-	}
-	binding, ok := detail["voice_route_binding"].(map[string]any)
-	if !ok {
-		t.Fatalf("expected voice_route_binding detail, got %v", detail)
-	}
-	if got := strings.TrimSpace(binding["status"].(string)); got != "unbound" {
-		t.Fatalf("voice_route_binding.status = %q", got)
+	if err == nil {
+		t.Fatalf("synthetic lipsync output must not project a playable voice request")
 	}
 }
 
@@ -158,7 +151,7 @@ func TestAIBackedVoiceLipsyncSynthesizerSubmitsSpeechSynthesisJob(t *testing.T) 
 			MimeType:   "audio/wav",
 		},
 	}
-	synth := newAIBackedVoiceLipsyncSynthesizer(ai, "speech/qwen3tts", runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL, nil)
+	synth := newAIBackedVoiceLipsyncSynthesizer(ai, "speech/qwen3tts", runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL)
 	out, err := synth.synthesize(voiceLipsyncSynthesisInput{
 		Context:               context.Background(),
 		TurnID:                "turn-provider-voice",
@@ -265,16 +258,16 @@ func TestServiceVoiceLipsyncScenarioExecutorRequiresExplicitModel(t *testing.T) 
 	out, err := svc.voiceLipsync.synthesize(voiceLipsyncSynthesisInput{
 		TurnID:    "turn-service-fallback",
 		MessageID: "message-service-fallback",
-		Text:      "Missing speech model must stay synthetic.",
+		Text:      "Missing speech model must stay text-only.",
 	})
 	if err != nil {
-		t.Fatalf("synthesize fallback: %v", err)
+		t.Fatalf("synthesize without model: %v", err)
 	}
 	if ai.submitReq != nil {
 		t.Fatalf("did not expect provider submit without explicit speech model")
 	}
-	if !strings.HasPrefix(out.AudioArtifactID, syntheticVoiceArtifactScheme+"/") {
-		t.Fatalf("expected synthetic artifact without model, got %q", out.AudioArtifactID)
+	if strings.TrimSpace(out.AudioArtifactID) != "" || len(out.Frames) != 0 {
+		t.Fatalf("missing speech model must not fabricate voice output, got %+v", out)
 	}
 
 	ai = &fakeVoiceLipsyncScenarioExecutor{
@@ -367,23 +360,23 @@ func (f *fakeVoiceLipsyncScenarioExecutor) GetScenarioArtifacts(context.Context,
 	}, nil
 }
 
-func TestAIBackedVoiceLipsyncSynthesizerFallsBackWithoutModel(t *testing.T) {
+func TestAIBackedVoiceLipsyncSynthesizerSkipsWithoutModel(t *testing.T) {
 	t.Parallel()
 	ai := &fakeVoiceLipsyncScenarioExecutor{jobID: "job-unused"}
-	synth := newAIBackedVoiceLipsyncSynthesizer(ai, " ", runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL, nil)
+	synth := newAIBackedVoiceLipsyncSynthesizer(ai, " ", runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL)
 	out, err := synth.synthesize(voiceLipsyncSynthesisInput{
 		TurnID:    "turn-fallback",
 		MessageID: "message-fallback",
 		Text:      "No speech model means no provider route.",
 	})
 	if err != nil {
-		t.Fatalf("synthesize fallback: %v", err)
+		t.Fatalf("synthesize without model: %v", err)
 	}
 	if ai.submitReq != nil {
 		t.Fatalf("did not expect provider submit without explicit model")
 	}
-	if !strings.HasPrefix(out.AudioArtifactID, syntheticVoiceArtifactScheme+"/") {
-		t.Fatalf("expected synthetic fallback artifact, got %q", out.AudioArtifactID)
+	if strings.TrimSpace(out.AudioArtifactID) != "" || len(out.Frames) != 0 {
+		t.Fatalf("missing speech model must not fabricate voice output, got %+v", out)
 	}
 }
 

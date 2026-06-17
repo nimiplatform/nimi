@@ -166,3 +166,111 @@ func TestStoreDeleteIdempotent(t *testing.T) {
 		t.Fatalf("Delete left record")
 	}
 }
+
+func TestCleanupGeneratedVoiceArtifactsByAgentAndConversation(t *testing.T) {
+	store := NewMemoryStore()
+	if err := store.Put("voice-1", ArtifactRecord{
+		Bytes:     []byte("audio-1"),
+		MimeType:  "audio/wav",
+		SizeBytes: 7,
+		GeneratedVoice: &GeneratedVoiceArtifactMetadata{
+			AgentID:              "agent-1",
+			ConversationAnchorID: "anchor-1",
+			TurnID:               "turn-1",
+			MessageID:            "message-1",
+			VoiceReference:       "preset_voice_id:voice-1",
+			SpeechModelID:        "speech/model",
+			RoutePolicy:          "local",
+		},
+	}); err != nil {
+		t.Fatalf("Put voice-1: %v", err)
+	}
+	if err := store.Put("voice-2", ArtifactRecord{
+		Bytes:     []byte("audio-2"),
+		MimeType:  "audio/wav",
+		SizeBytes: 7,
+		GeneratedVoice: &GeneratedVoiceArtifactMetadata{
+			AgentID:              "agent-1",
+			ConversationAnchorID: "anchor-2",
+			TurnID:               "turn-2",
+			MessageID:            "message-2",
+		},
+	}); err != nil {
+		t.Fatalf("Put voice-2: %v", err)
+	}
+	if err := store.Put("image-1", ArtifactRecord{
+		Bytes:     []byte("image"),
+		MimeType:  "image/png",
+		SizeBytes: 5,
+	}); err != nil {
+		t.Fatalf("Put image-1: %v", err)
+	}
+
+	record, ok := store.Get("voice-1")
+	if !ok || record.GeneratedVoice == nil || record.GeneratedVoice.ByteDigest == "" {
+		t.Fatalf("expected generated voice metadata with byte digest, got %#v ok=%v", record.GeneratedVoice, ok)
+	}
+	deleted, err := store.CleanupGeneratedVoiceArtifacts(GeneratedVoiceArtifactSelector{
+		AgentID:              "agent-1",
+		ConversationAnchorID: "anchor-1",
+	})
+	if err != nil {
+		t.Fatalf("CleanupGeneratedVoiceArtifacts: %v", err)
+	}
+	if len(deleted) != 1 || deleted[0] != "voice-1" {
+		t.Fatalf("deleted mismatch: %#v", deleted)
+	}
+	if _, ok := store.Get("voice-1"); ok {
+		t.Fatalf("voice-1 should be deleted")
+	}
+	if _, ok := store.Get("voice-2"); !ok {
+		t.Fatalf("voice-2 should remain")
+	}
+	if _, ok := store.Get("image-1"); !ok {
+		t.Fatalf("non-voice artifact should remain")
+	}
+}
+
+func TestCleanupGeneratedVoiceArtifactsRPC(t *testing.T) {
+	svc, store := newTestService(t)
+	for _, artifactID := range []string{"voice-a", "voice-b"} {
+		if err := store.Put(artifactID, ArtifactRecord{
+			Bytes:     []byte(artifactID),
+			MimeType:  "audio/wav",
+			SizeBytes: int64(len(artifactID)),
+			GeneratedVoice: &GeneratedVoiceArtifactMetadata{
+				AgentID:              "agent-rpc",
+				ConversationAnchorID: "anchor-rpc",
+			},
+		}); err != nil {
+			t.Fatalf("Put %s: %v", artifactID, err)
+		}
+	}
+	resp, err := svc.CleanupGeneratedVoiceArtifacts(context.Background(), &runtimev1.CleanupGeneratedVoiceArtifactsRequest{
+		AgentId: "agent-rpc",
+	})
+	if err != nil {
+		t.Fatalf("CleanupGeneratedVoiceArtifacts: %v", err)
+	}
+	if resp.GetDeletedCount() != 2 {
+		t.Fatalf("deleted_count mismatch: got=%d", resp.GetDeletedCount())
+	}
+	if got := resp.GetDeletedArtifactIds(); len(got) != 2 || got[0] != "voice-a" || got[1] != "voice-b" {
+		t.Fatalf("deleted ids mismatch: %#v", got)
+	}
+	if store.Len() != 0 {
+		t.Fatalf("store should be empty after cleanup, len=%d", store.Len())
+	}
+}
+
+func TestCleanupGeneratedVoiceArtifactsRejectsEmptySelector(t *testing.T) {
+	svc, _ := newTestService(t)
+	_, err := svc.CleanupGeneratedVoiceArtifacts(context.Background(), &runtimev1.CleanupGeneratedVoiceArtifactsRequest{})
+	if err == nil {
+		t.Fatalf("CleanupGeneratedVoiceArtifacts empty selector: expected error, got nil")
+	}
+	reason, ok := grpcerr.ExtractReasonCode(err)
+	if !ok || reason != runtimev1.ReasonCode_ARTIFACT_INVALID_INPUT {
+		t.Fatalf("reason mismatch: got=%v ok=%v want=%v", reason, ok, runtimev1.ReasonCode_ARTIFACT_INVALID_INPUT)
+	}
+}

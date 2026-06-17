@@ -974,6 +974,15 @@
           "response_type": "ReadArtifactBytesResponse",
           "request_stream": false,
           "response_stream": false
+        },
+        {
+          "name": "CleanupGeneratedVoiceArtifacts",
+          "method_id": "/nimi.runtime.v1.RuntimeArtifactService/CleanupGeneratedVoiceArtifacts",
+          "kind": "unary",
+          "request_type": "CleanupGeneratedVoiceArtifactsRequest",
+          "response_type": "CleanupGeneratedVoiceArtifactsResponse",
+          "request_stream": false,
+          "response_stream": false
         }
       ]
     },
@@ -2428,6 +2437,7 @@
     "/nimi.runtime.v1.RuntimeAppService/UninstallApp",
     "/nimi.runtime.v1.RuntimeAppService/UpdateApp",
     "/nimi.runtime.v1.RuntimeAppService/WatchAppInstallJobEvents",
+    "/nimi.runtime.v1.RuntimeArtifactService/CleanupGeneratedVoiceArtifacts",
     "/nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes",
     "/nimi.runtime.v1.RuntimeAuditService/ExportAuditEvents",
     "/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth",
@@ -3366,6 +3376,14 @@
       "kind": "server_stream",
       "request_type": "WatchAppInstallJobEventsRequest",
       "response_type": "AppInstallJobEvent"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeArtifactService/CleanupGeneratedVoiceArtifacts",
+      "service": "RuntimeArtifactService",
+      "method": "CleanupGeneratedVoiceArtifacts",
+      "kind": "unary",
+      "request_type": "CleanupGeneratedVoiceArtifactsRequest",
+      "response_type": "CleanupGeneratedVoiceArtifactsResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes",
@@ -5322,6 +5340,14 @@
       "response_type": "AppInstallJobEvent"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeArtifactService/CleanupGeneratedVoiceArtifacts",
+      "service": "RuntimeArtifactService",
+      "method": "CleanupGeneratedVoiceArtifacts",
+      "kind": "unary",
+      "request_type": "CleanupGeneratedVoiceArtifactsRequest",
+      "response_type": "CleanupGeneratedVoiceArtifactsResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes",
       "service": "RuntimeArtifactService",
       "method": "ReadArtifactBytes",
@@ -6603,6 +6629,8 @@
       "CheckLocalServiceHealthResponse",
       "CheckModelHealthRequest",
       "CheckModelHealthResponse",
+      "CleanupGeneratedVoiceArtifactsRequest",
+      "CleanupGeneratedVoiceArtifactsResponse",
       "ClearAgentPresentationProfile",
       "CloseRealtimeSessionRequest",
       "CloseRealtimeSessionResponse",
@@ -12878,6 +12906,46 @@
           }
         ],
         "source_file": "proto/runtime/v1/model.proto"
+      },
+      {
+        "name": "CleanupGeneratedVoiceArtifactsRequest",
+        "fields": [
+          {
+            "name": "agent_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "conversation_anchor_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/artifact_service.proto"
+      },
+      {
+        "name": "CleanupGeneratedVoiceArtifactsResponse",
+        "fields": [
+          {
+            "name": "deleted_count",
+            "type": "int32",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "deleted_artifact_ids",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/artifact_service.proto"
       },
       {
         "name": "ClearAgentPresentationProfile",

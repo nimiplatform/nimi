@@ -179,6 +179,129 @@ test('Runtime Agent turn helpers build explicit payloads and fail closed on inva
   );
 });
 
+test('Runtime Agent turn helper requests committed-message voice render and resolves playable Runtime projection', async () => {
+  const sendCalls: SendAppMessageRequest[] = [];
+  const scopes: readonly string[][] = [];
+  const voiceEvent = {
+    messageType: 'runtime.agent.presentation.voice_playback_requested',
+    payload: toNimiRuntimeProtoStruct({
+      local_agent_ref: 'local-agent:user-1:agent-1',
+      agent_id: 'local-agent:user-1:agent-1',
+      conversation_anchor_id: 'anchor-1',
+      turn_id: 'turn-1',
+      stream_id: 'stream-1',
+      detail: {
+        audio_artifact_id: 'artifact-audio-1',
+        audio_mime_type: 'audio/wav',
+        message_id: 'message-1',
+        playback_state: 'requested',
+        playback_target: 'desktop_manual',
+        final_artifact: true,
+      },
+    }),
+  } as AppMessageEvent;
+  const appStream = new CancellableStream<AppMessageEvent>([voiceEvent]);
+  const module = createNimiRuntimeAgentTurnsModule({
+    runtime: {
+      appId: 'desktop',
+      auth: protectedAuth(),
+      appAuth: protectedAppAuth(),
+      agents: {
+        async getPublicChatSessionSnapshot() {
+          return {};
+        },
+        async *subscribeAgentEvents() {
+          yield undefined;
+        },
+      },
+      appMessages: {
+        async sendAppMessage(request) {
+          sendCalls.push(request);
+          return { messageId: 'request-message-1', accepted: true, reasonCode: RuntimeGeneratedReasonCode.ACTION_EXECUTED };
+        },
+        subscribeAppMessages() {
+          return appStream;
+        },
+      },
+    },
+    getSubjectUserId: () => 'user-1',
+    withScopes: async (nextScopes, operation) => {
+      scopes.push(nextScopes);
+      return operation({ metadata: { scoped: nextScopes.join(',') } });
+    },
+  });
+
+  const result = await module.renderVoice({
+    ownerUserId: 'user-1',
+    realmAgentId: 'agent-1',
+    conversationAnchorId: 'anchor-1',
+    turnId: 'turn-1',
+    messageId: 'message-1',
+    text: 'Committed answer',
+  });
+
+  assert.equal(result.status, 'ready');
+  assert.equal(result.status === 'ready' ? result.audioArtifactId : '', 'artifact-audio-1');
+  assert.deepEqual(scopes, [
+    ['runtime.agent.turn.read'],
+    ['runtime.agent.turn.write'],
+  ]);
+  assert.equal(sendCalls[0]?.messageType, 'runtime.agent.turn.voice_render');
+  assert.equal(sendCalls[0]?.subjectUserId, 'user-1');
+  assert.deepEqual(fromNimiRuntimeProtoStruct(sendCalls[0]?.payload), {
+    conversation_anchor_id: 'anchor-1',
+    turn_id: 'turn-1',
+    message_id: 'message-1',
+    text: 'Committed answer',
+    playback_target: 'desktop_manual',
+  });
+  assert.equal(appStream.returnCount, 1);
+});
+
+test('Runtime Agent turn helper reports text_only when Runtime emits no playable voice projection', async () => {
+  const appStream = new CancellableStream<AppMessageEvent>([]);
+  const module = createNimiRuntimeAgentTurnsModule({
+    runtime: {
+      appId: 'desktop',
+      auth: protectedAuth(),
+      appAuth: protectedAppAuth(),
+      agents: {
+        async getPublicChatSessionSnapshot() {
+          return {};
+        },
+        async *subscribeAgentEvents() {
+          yield undefined;
+        },
+      },
+      appMessages: {
+        async sendAppMessage() {
+          return { messageId: 'request-message-1', accepted: true, reasonCode: RuntimeGeneratedReasonCode.ACTION_EXECUTED };
+        },
+        subscribeAppMessages() {
+          return appStream;
+        },
+      },
+    },
+    getSubjectUserId: () => 'user-1',
+    withScopes: async (_nextScopes, operation) => operation({}),
+  });
+
+  const result = await module.renderVoice({
+    ownerUserId: 'user-1',
+    realmAgentId: 'agent-1',
+    conversationAnchorId: 'anchor-1',
+    turnId: 'turn-1',
+    messageId: 'message-1',
+    timeoutMs: 0,
+  });
+
+  assert.deepEqual(result, {
+    status: 'text_only',
+    reason: 'voice_projection_unavailable',
+  });
+  assert.equal(appStream.returnCount, 1);
+});
+
 test('Runtime Agent turn subscription cancels sibling streams on early consumer exit', async () => {
   const appStream = new CancellableStream<AppMessageEvent>([{
     messageType: 'runtime.agent.turn.started',

@@ -129,6 +129,7 @@ func isWriteMethod(fullMethod string) bool {
 		"/nimi.runtime.v1.RuntimeAiService/CancelScenarioJob",
 		"/nimi.runtime.v1.RuntimeAiService/DeleteVoiceAsset",
 		"/nimi.runtime.v1.RuntimeAiService/UploadArtifact",
+		"/nimi.runtime.v1.RuntimeArtifactService/CleanupGeneratedVoiceArtifacts",
 		"/nimi.runtime.v1.RuntimeAiRealtimeService/OpenRealtimeSession",
 		"/nimi.runtime.v1.RuntimeAiRealtimeService/AppendRealtimeInput",
 		"/nimi.runtime.v1.RuntimeAiRealtimeService/CloseRealtimeSession",

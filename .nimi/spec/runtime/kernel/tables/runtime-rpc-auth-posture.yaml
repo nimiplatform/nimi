@@ -79,7 +79,7 @@ method_shards:
       - RuntimeModelService
   - path: ./runtime-rpc-auth-posture/audit-artifact-workflow.yaml
     id: nimicoding.runtime-rpc-auth-posture.audit-artifact-workflow.v1
-    method_count: 12
+    method_count: 13
     services:
       - RuntimeAuditService
       - RuntimeArtifactService

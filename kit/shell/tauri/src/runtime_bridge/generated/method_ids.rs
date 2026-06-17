@@ -101,6 +101,7 @@ pub const RUNTIME_BRIDGE_ALLOWLISTED_METHODS: &[&str] = &[
     "/nimi.runtime.v1.RuntimeAppService/UninstallApp",
     "/nimi.runtime.v1.RuntimeAppService/UpdateApp",
     "/nimi.runtime.v1.RuntimeAppService/WatchAppInstallJobEvents",
+    "/nimi.runtime.v1.RuntimeArtifactService/CleanupGeneratedVoiceArtifacts",
     "/nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes",
     "/nimi.runtime.v1.RuntimeAuditService/ExportAuditEvents",
     "/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth",

@@ -17,7 +17,7 @@
   "fixture_groups": [
     {
       "name": "runtime_method_presence",
-      "count": 244
+      "count": 245
     },
     {
       "name": "realm_operation_presence",
@@ -26,7 +26,7 @@
     },
     {
       "name": "request_response_codecs",
-      "count": 244
+      "count": 245
     },
     {
       "name": "stream_event_branch_preservation",

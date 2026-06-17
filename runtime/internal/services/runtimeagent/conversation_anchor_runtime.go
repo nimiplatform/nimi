@@ -208,6 +208,9 @@ func (s *Service) ListAgentConversationSummaries(_ context.Context, req *runtime
 		}
 		cloned := *anchor
 		cloned.Transcript = append([]*runtimev1.ChatMessage(nil), anchor.Transcript...)
+		cloned.ActiveTurnSnapshot = clonePublicChatTurnProjectionState(anchor.ActiveTurnSnapshot)
+		cloned.LastTurnSnapshot = clonePublicChatTurnProjectionState(anchor.LastTurnSnapshot)
+		cloned.CompletedTurnSnapshots = clonePublicChatTurnProjectionStateMap(anchor.CompletedTurnSnapshots)
 		anchors = append(anchors, &cloned)
 	}
 	s.chatSurfaceMu.Unlock()

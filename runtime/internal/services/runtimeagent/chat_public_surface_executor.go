@@ -19,7 +19,7 @@ func (rejectingPublicChatTurnExecutor) StreamChatTurn(context.Context, *PublicCh
 }
 func IsPublicChatIngressMessageType(messageType string) bool {
 	switch strings.TrimSpace(messageType) {
-	case publicChatTurnRequestType, publicChatTurnInterruptType:
+	case publicChatTurnRequestType, publicChatTurnInterruptType, publicChatTurnVoiceRenderType:
 		return true
 	default:
 		return false

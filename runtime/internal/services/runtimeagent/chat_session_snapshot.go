@@ -25,6 +25,7 @@ type publicChatTurnProjectionState struct {
 	Status            string
 	TraceID           string
 	StreamSequence    uint64
+	TimelineStartedAt time.Time
 	Origin            string
 	ChainID           string
 	FollowUpDepth     int
@@ -55,16 +56,17 @@ func newPublicChatTurnProjection(turn *publicChatTurnState) *publicChatTurnProje
 		return nil
 	}
 	return &publicChatTurnProjectionState{
-		TurnID:           turn.TurnID,
-		StreamID:         turn.StreamID,
-		Status:           publicChatTurnStatusAccepted,
-		Origin:           firstNonEmpty(strings.TrimSpace(turn.Origin), publicChatTurnOriginUser),
-		ChainID:          strings.TrimSpace(turn.ChainID),
-		FollowUpDepth:    turn.FollowUpDepth,
-		MaxFollowUpTurns: turn.MaxFollowUpTurns,
-		SourceTurnID:     strings.TrimSpace(turn.SourceTurnID),
-		SourceActionID:   strings.TrimSpace(turn.SourceActionID),
-		UpdatedAt:        time.Now().UTC(),
+		TurnID:            turn.TurnID,
+		StreamID:          turn.StreamID,
+		Status:            publicChatTurnStatusAccepted,
+		TimelineStartedAt: turn.TimelineStartedAt,
+		Origin:            firstNonEmpty(strings.TrimSpace(turn.Origin), publicChatTurnOriginUser),
+		ChainID:           strings.TrimSpace(turn.ChainID),
+		FollowUpDepth:     turn.FollowUpDepth,
+		MaxFollowUpTurns:  turn.MaxFollowUpTurns,
+		SourceTurnID:      strings.TrimSpace(turn.SourceTurnID),
+		SourceActionID:    strings.TrimSpace(turn.SourceActionID),
+		UpdatedAt:         time.Now().UTC(),
 	}
 }
 
@@ -81,6 +83,27 @@ func clonePublicChatTurnProjectionState(input *publicChatTurnProjectionState) *p
 		out.Usage = proto.Clone(input.Usage).(*runtimev1.UsageStats)
 	}
 	return &out
+}
+
+func clonePublicChatTurnProjectionStateMap(input map[string]*publicChatTurnProjectionState) map[string]*publicChatTurnProjectionState {
+	if len(input) == 0 {
+		return nil
+	}
+	out := make(map[string]*publicChatTurnProjectionState, len(input))
+	for key, projection := range input {
+		trimmedKey := strings.TrimSpace(key)
+		if trimmedKey == "" && projection != nil {
+			trimmedKey = strings.TrimSpace(projection.TurnID)
+		}
+		if trimmedKey == "" || projection == nil {
+			continue
+		}
+		out[trimmedKey] = clonePublicChatTurnProjectionState(projection)
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
 }
 
 func reconcilePublicChatSessionTranscript(current []*runtimev1.ChatMessage, incoming []*runtimev1.ChatMessage) []*runtimev1.ChatMessage {
@@ -245,6 +268,9 @@ func (p *publicChatTurnProjectionState) payload() map[string]any {
 		"reasoning_observed":  p.ReasoningObserved,
 		"updated_at":          p.UpdatedAt.UTC().Format(time.RFC3339Nano),
 	}
+	if !p.TimelineStartedAt.IsZero() {
+		out["timeline_started_at"] = p.TimelineStartedAt.UTC().Format(time.RFC3339Nano)
+	}
 	if strings.TrimSpace(p.TraceID) != "" {
 		out["trace_id"] = strings.TrimSpace(p.TraceID)
 	}
@@ -402,6 +428,14 @@ func (s *Service) finalizePublicChatTurnProjection(turnID string, persist bool, 
 		if strings.TrimSpace(projection.MessageID) != "" {
 			session.LastMessageID = strings.TrimSpace(projection.MessageID)
 		}
+		if projection.Status == publicChatTurnStatusCompleted &&
+			strings.TrimSpace(projection.TurnID) != "" &&
+			strings.TrimSpace(projection.MessageID) != "" {
+			if session.CompletedTurnSnapshots == nil {
+				session.CompletedTurnSnapshots = make(map[string]*publicChatTurnProjectionState)
+			}
+			session.CompletedTurnSnapshots[trimmedTurnID] = clonePublicChatTurnProjectionState(projection)
+		}
 		session.LastTurnID = trimmedTurnID
 		session.UpdatedAt = time.Now().UTC()
 	}
@@ -470,6 +504,7 @@ func (s *Service) snapshotPublicChatAnchor(anchorID string, callerAppID string, 
 	snapshot.Transcript = cloneChatMessages(session.Transcript)
 	snapshot.ActiveTurnSnapshot = clonePublicChatTurnProjectionState(session.ActiveTurnSnapshot)
 	snapshot.LastTurnSnapshot = clonePublicChatTurnProjectionState(session.LastTurnSnapshot)
+	snapshot.CompletedTurnSnapshots = clonePublicChatTurnProjectionStateMap(session.CompletedTurnSnapshots)
 	if strings.TrimSpace(snapshot.ActiveTurnID) == "" {
 		snapshot.Transcript = publicChatTranscriptWithCommittedAssistant(snapshot.Transcript, snapshot.LastTurnSnapshot)
 	}

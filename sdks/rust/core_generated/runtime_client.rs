@@ -808,6 +808,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "AppInstallJobEvent",
     },
     RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeArtifactService/CleanupGeneratedVoiceArtifacts",
+        service: "RuntimeArtifactService",
+        method: "CleanupGeneratedVoiceArtifacts",
+        kind: "unary",
+        request_type: "CleanupGeneratedVoiceArtifactsRequest",
+        response_type: "CleanupGeneratedVoiceArtifactsResponse",
+    },
+    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes",
         service: "RuntimeArtifactService",
         method: "ReadArtifactBytes",

@@ -807,6 +807,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "AppInstallJobEvent"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeArtifactService/CleanupGeneratedVoiceArtifacts",
+    "service": "RuntimeArtifactService",
+    "method": "CleanupGeneratedVoiceArtifacts",
+    "kind": "unary",
+    "requestType": "CleanupGeneratedVoiceArtifactsRequest",
+    "responseType": "CleanupGeneratedVoiceArtifactsResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes",
     "service": "RuntimeArtifactService",
     "method": "ReadArtifactBytes",

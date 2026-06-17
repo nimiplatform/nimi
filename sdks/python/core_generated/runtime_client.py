@@ -800,6 +800,14 @@ RUNTIME_METHODS = [
     "response_type": "AppInstallJobEvent"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeArtifactService/CleanupGeneratedVoiceArtifacts",
+    "service": "RuntimeArtifactService",
+    "method": "CleanupGeneratedVoiceArtifacts",
+    "kind": "unary",
+    "request_type": "CleanupGeneratedVoiceArtifactsRequest",
+    "response_type": "CleanupGeneratedVoiceArtifactsResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes",
     "service": "RuntimeArtifactService",
     "method": "ReadArtifactBytes",
