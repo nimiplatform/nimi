@@ -13518,21 +13518,11 @@
       "query_parameters": [],
       "header_parameters": [],
       "request_schema": {
-        "kind": "object",
-        "properties": [
-          {
-            "name": "handle",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null
-            }
-          }
-        ],
-        "additional_properties": null
+        "kind": "ref",
+        "ref": "#/components/schemas/UpdateMyHandleDto",
+        "ref_name": "UpdateMyHandleDto"
       },
-      "request_schema_ref": null,
+      "request_schema_ref": "#/components/schemas/UpdateMyHandleDto",
       "response_schemas": [
         {
           "status": "200",
@@ -19864,6 +19854,9 @@
     },
     {
       "name": "UpdateGroupInputDto"
+    },
+    {
+      "name": "UpdateMyHandleDto"
     },
     {
       "name": "UpdateNsfwConsentResponseDto"
@@ -43126,6 +43119,24 @@
           {
             "name": "title",
             "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "UpdateMyHandleDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "handle",
+            "required": true,
             "schema": {
               "kind": "scalar",
               "type": "string",

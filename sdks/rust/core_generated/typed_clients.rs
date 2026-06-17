@@ -41262,6 +41262,11 @@ pub struct UpdateGroupInputDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct UpdateMyHandleDto {
+    pub handle: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct UpdateNsfwConsentResponseDto {
     pub enabled: bool,
     pub success: bool,
@@ -47727,7 +47732,7 @@ pub struct RealmUpdateMyHandleOperationRequest {
     pub path: RealmUpdateMyHandleOperationPath,
     pub query: RealmUpdateMyHandleOperationQuery,
     pub headers: RealmUpdateMyHandleOperationHeaders,
-    pub body: BTreeMap<String, String>,
+    pub body: UpdateMyHandleDto,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

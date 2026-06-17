@@ -12954,6 +12954,10 @@ type UpdateGroupInputDto struct {
 	Title string `json:"title,omitempty"`
 }
 
+type UpdateMyHandleDto struct {
+	Handle string `json:"handle,omitempty"`
+}
+
 type UpdateNsfwConsentResponseDto struct {
 	Enabled bool `json:"enabled,omitempty"`
 	Success bool `json:"success,omitempty"`
@@ -18415,7 +18419,7 @@ type RealmUpdateMyHandleOperationRequest struct {
 	Path    RealmUpdateMyHandleOperationPath `json:"path,omitempty"`
 	Query   RealmUpdateMyHandleOperationQuery `json:"query,omitempty"`
 	Headers RealmUpdateMyHandleOperationHeaders `json:"headers,omitempty"`
-	Body    map[string]any `json:"body,omitempty"`
+	Body    UpdateMyHandleDto `json:"body,omitempty"`
 }
 
 type RealmUpdateMyNotificationSettingsOperationPath struct {

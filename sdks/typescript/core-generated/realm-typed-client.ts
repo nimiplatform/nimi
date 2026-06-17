@@ -2703,6 +2703,9 @@ export interface UpdateCreatorAgentDto {
 export interface UpdateGroupInputDto {
   readonly title?: string;
 }
+export interface UpdateMyHandleDto {
+  readonly handle: string;
+}
 export interface UpdateNsfwConsentResponseDto {
   readonly enabled: boolean;
   readonly success: boolean;
@@ -4566,6 +4569,7 @@ export interface RealmTypedModelMap {
   readonly "UpdateBundleDto": UpdateBundleDto;
   readonly "UpdateCreatorAgentDto": UpdateCreatorAgentDto;
   readonly "UpdateGroupInputDto": UpdateGroupInputDto;
+  readonly "UpdateMyHandleDto": UpdateMyHandleDto;
   readonly "UpdateNsfwConsentResponseDto": UpdateNsfwConsentResponseDto;
   readonly "UpdateOwnerAgentSettingsDto": UpdateOwnerAgentSettingsDto;
   readonly "UpdatePPSlotConfigDto": UpdatePPSlotConfigDto;
@@ -7736,7 +7740,7 @@ export interface RealmUpdateMyHandleOperationRequest {
   readonly headers?: {
 
   };
-  readonly body: Record<string, unknown>;
+  readonly body: UpdateMyHandleDto;
 }
 export type RealmUpdateMyHandleOperationResponse = UserPrivateDto;
 export interface RealmUpdateMyNotificationSettingsOperationRequest {

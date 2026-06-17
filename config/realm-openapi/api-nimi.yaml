@@ -8817,6 +8817,14 @@ components:
         title:
           type: string
       type: object
+    UpdateMyHandleDto:
+      properties:
+        handle:
+          pattern: ^[a-zA-Z0-9_][a-zA-Z0-9_-]{1,49}$
+          type: string
+      required:
+        - handle
+      type: object
     UpdateNsfwConsentResponseDto:
       properties:
         enabled:
@@ -11627,7 +11635,7 @@ info:
   description: |-
     The Nimi Social Platform API
 
-    Last updated: 2026-06-17T04:22:59.970Z
+    Last updated: 2026-06-17T04:59:13.957Z
   title: Nimi Realm SDK API
   version: '1.0'
 openapi: 3.0.0
@@ -13115,7 +13123,7 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        '204':
           description: API Key revoked
       security:
         - bearer: []
@@ -13551,7 +13559,7 @@ paths:
       operationId: EconomyController_cancelSubscription
       parameters: []
       responses:
-        '200':
+        '204':
           description: ''
       security:
         - bearer: []
@@ -14981,10 +14989,7 @@ paths:
         content:
           application/json:
             schema:
-              properties:
-                handle:
-                  type: string
-              type: object
+              $ref: '#/components/schemas/UpdateMyHandleDto'
         required: true
       responses:
         '200':

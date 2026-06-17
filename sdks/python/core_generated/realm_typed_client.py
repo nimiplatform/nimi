@@ -3110,6 +3110,10 @@ class UpdateGroupInputDto:
     title: str | None = None
 
 @dataclass(frozen=True)
+class UpdateMyHandleDto:
+    handle: str | None = None
+
+@dataclass(frozen=True)
 class UpdateNsfwConsentResponseDto:
     enabled: bool | None = None
     success: bool | None = None
@@ -9252,7 +9256,7 @@ class RealmUpdateMyHandleOperationRequest:
     path: RealmUpdateMyHandleOperationPath
     query: RealmUpdateMyHandleOperationQuery | None = None
     headers: RealmUpdateMyHandleOperationHeaders | None = None
-    body: Mapping[str, object] | None = None
+    body: UpdateMyHandleDto | None = None
 
 @dataclass(frozen=True)
 class RealmUpdateMyNotificationSettingsOperationPath:
