@@ -77,11 +77,11 @@ function TextStudioModelSettings({ record }: { record: TesterRunHistoryRecord })
       <div className="studio-history-settings__head">
         <SlidersHorizontal size={14} aria-hidden="true" />
         <strong>Model settings</strong>
-        <span>{paramSummary}</span>
+        <span className="studio-history-settings__summary">{paramSummary}</span>
       </div>
       {paramGroups.map((group) => (
         <div key={group.group} className="studio-history-settings__group">
-          <strong>{group.group}</strong>
+          <strong className="studio-history-settings__group-title">{group.group}</strong>
           <dl className="studio-history-settings__params">
             {group.rows.map((row) => (
               <div key={row.key}>
@@ -150,7 +150,7 @@ function TextStudioHistoryRecordResult({
       return;
     }
     if (!exportText.trim()) return;
-    downloadTextFile(`${record.capabilityId}-${stamp}.txt`, exportText);
+    void downloadTextFile(`${record.capabilityId}-${stamp}.txt`, exportText);
   }
   let body: ReactNode;
   if (!snapshot) {

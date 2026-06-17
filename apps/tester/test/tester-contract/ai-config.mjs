@@ -182,6 +182,7 @@ test('tester AI config is the Kit model-config surface in Settings with real SDK
   assert.match(modelConfigHub, /<ProfileConfigSection controller=\{profile\} variant="import-button" \/>/);
   assert.match(modelConfigHub, /<ModelConfigCapabilityDetail/);
   assert.doesNotMatch(surface, /targetRefDetail/);
+  assert.doesNotMatch(surface, /title:\s*'Target configured'/);
   assert.doesNotMatch(surface, /NimiAIConfigTargetRef/);
   assert.doesNotMatch(surface, /applyAIProfileToConfig/);
   assert.match(surface, /profileController\.onCancelPreview\(\)/);
@@ -206,6 +207,10 @@ test('tester AI config is the Kit model-config surface in Settings with real SDK
   // bespoke AIConfig panel was removed entirely.
   assert.match(capabilities, /TesterAiConfigSettingsPanel/);
   assert.match(capabilities, /CAPABILITY_TO_SECTION/);
+  assert.match(capabilities, /createRendererEntryModuleLoader/);
+  assert.match(capabilities, /DEFAULT_DEV_RENDERER_ENTRY_IMPORT_RETRY_DELAYS_MS/);
+  assert.match(capabilities, /testerModelConfigPanelLoader/);
+  assert.match(capabilities, /load\('tester model config panel'/);
   assert.match(capabilities, /onOpenConfig/);
   assert.doesNotMatch(capabilities, /function RunTargetBar/);
   assert.doesNotMatch(capabilities, /data-testid="studio-run-target"/);

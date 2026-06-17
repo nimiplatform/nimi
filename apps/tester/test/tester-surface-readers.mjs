@@ -33,5 +33,6 @@ export function readTesterAiTestingSurface(root) {
     'src/tester/workbench/section-ai-testing-result.tsx',
     'src/tester/workbench/section-ai-testing-run.ts',
     'src/tester/workbench/section-ai-testing-surface.tsx',
+    'src/tester/tester-export.ts',
   ]);
 }

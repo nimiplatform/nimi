@@ -6,7 +6,12 @@ import {
   Tooltip,
 } from '@nimiplatform/kit/ui';
 import {
+  DEFAULT_DEV_RENDERER_ENTRY_IMPORT_RETRY_DELAYS_MS,
+  createRendererEntryModuleLoader,
+} from '@nimiplatform/kit/shell/renderer/bootstrap';
+import {
   AlertTriangle,
+  ChevronRight,
   Clock,
   Copy as CopyIcon,
   Download as DownloadIcon,
@@ -19,6 +24,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import {
+  testerCapabilities,
   type TesterCapability,
   type TesterCapabilityId,
 } from '../tester-capabilities.js';
@@ -66,12 +72,20 @@ import {
   runtimeMethodFor,
   TONE_OPTIONS,
 } from './capability-studio-profiles.js';
+import { capabilityIcons } from './capability-icons.js';
+import { saveTesterExport } from '../tester-export.js';
 
 // The model-config drawer (and its runtime model-picker provider) is only needed
 // when the settings gear opens it, so it loads on demand - the always-on studio
 // surface stays decoupled from the heavier config subsystem.
+const testerModelConfigPanelLoader = createRendererEntryModuleLoader({
+  retryDelaysMs: DEFAULT_DEV_RENDERER_ENTRY_IMPORT_RETRY_DELAYS_MS,
+});
+
 export const TesterAiConfigSettingsPanel = lazy(() =>
-  import('./tester-ai-config-settings-panel.js').then((module) => ({ default: module.TesterAiConfigSettingsPanel })),
+  testerModelConfigPanelLoader
+    .load('tester model config panel', () => import('./tester-ai-config-settings-panel.js'))
+    .then((module) => ({ default: module.TesterAiConfigSettingsPanel })),
 );
 
 // Isolates the on-demand model-config drawer: if the panel module (or one of its
@@ -104,6 +118,11 @@ export type SectionAITestingProps = {
   summary: TesterAIConfigSummary | null;
   history: TesterRunHistory | null;
   lastResult: TesterCapabilityRunResult | null;
+  activeCapabilityId: TesterCapabilityId;
+  expandedHistoryCapabilityIds: ReadonlySet<TesterCapabilityId>;
+  historySelectionRequest: { requestId: number; record: TesterRunHistoryRecord } | null;
+  onToggleHistoryCapability: (id: TesterCapabilityId) => void;
+  onSelectHistoryRun: (record: TesterRunHistoryRecord) => void;
   verboseConsole: boolean;
   draftPersistence: boolean;
   headerActions?: ReactNode;
@@ -671,8 +690,11 @@ export function StudioResult({
   );
 }
 
-// Per-capability local run history, recovered from the desktop tester history
-// panel. Reads only the app-owned localStorage history store (no runtime claim).
+const runtimeHistoryCapabilities = testerCapabilities.filter((item) => item.execution === 'runtime-sdk');
+const historyPreviewLimit = 5;
+
+// Local run history recovered from the desktop tester history panel. Reads only
+// the app-owned history store; it does not claim Runtime or Realm truth.
 function historyToneForRun(record: TesterRunHistoryRecord): 'success' | 'warning' | 'info' | 'neutral' {
   const tone = getTesterRunStatusTone(record.status);
   if (tone === 'success') return 'success';
@@ -684,6 +706,10 @@ function historyToneForRun(record: TesterRunHistoryRecord): 'success' | 'warning
 function historyTitleForRun(record: TesterRunHistoryRecord): string {
   const prompt = getTesterRunPromptSummary(record).trim();
   return prompt || getTesterRunResultSummary(record);
+}
+
+function historyModelTitleForRun(record: TesterRunHistoryRecord): string {
+  return getTesterRunModelLabel(record);
 }
 
 function capitalizeHistoryValue(value: string): string {
@@ -703,6 +729,10 @@ function historyDetailForRun(record: TesterRunHistoryRecord): string {
   return [status, metrics, tone].filter(Boolean).join(' / ');
 }
 
+function historyMetaForRun(record: TesterRunHistoryRecord): string {
+  return [historyDetailForRun(record), historyTitleForRun(record)].filter(Boolean).join(' · ');
+}
+
 function historyLabelForRun(record: TesterRunHistoryRecord): string {
   const prompt = historyTitleForRun(record);
   const model = getTesterRunModelLabel(record);
@@ -711,100 +741,91 @@ function historyLabelForRun(record: TesterRunHistoryRecord): string {
   return [source === 'unknown' ? model : `${source} model: ${model}`, formatTesterRunHistoryTimestamp(record.createdAt), metrics, prompt ? `Prompt: ${prompt}` : ''].filter(Boolean).join(' / ');
 }
 
-type HistoryRecordGroup = {
-  label: 'Today' | 'Yesterday' | 'Earlier';
-  records: TesterRunHistoryRecord[];
-};
-
-function localDayKey(date: Date): string {
-  return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
-}
-
-function historyGroupLabel(createdAt: string, now = new Date()): HistoryRecordGroup['label'] {
-  const date = new Date(createdAt);
-  if (Number.isNaN(date.valueOf())) return 'Earlier';
-  if (localDayKey(date) === localDayKey(now)) return 'Today';
-  const yesterday = new Date(now);
-  yesterday.setDate(now.getDate() - 1);
-  if (localDayKey(date) === localDayKey(yesterday)) return 'Yesterday';
-  return 'Earlier';
-}
-
-function groupHistoryRecords(records: readonly TesterRunHistoryRecord[]): HistoryRecordGroup[] {
-  const groups: HistoryRecordGroup[] = [
-    { label: 'Today', records: [] },
-    { label: 'Yesterday', records: [] },
-    { label: 'Earlier', records: [] },
-  ];
-  for (const record of records) {
-    const label = historyGroupLabel(record.createdAt);
-    groups.find((group) => group.label === label)?.records.push(record);
-  }
-  return groups.filter((group) => group.records.length > 0);
-}
-
 export function CapabilityRunHistory({
-  capability,
   history,
+  activeCapabilityId,
   activeRunId,
+  expandedCapabilityIds,
+  onToggleCapability,
   onSelectRun,
 }: {
-  capability: TesterCapability;
   history: TesterRunHistory | null;
+  activeCapabilityId: TesterCapabilityId;
   activeRunId: string | null;
+  expandedCapabilityIds: ReadonlySet<TesterCapabilityId>;
+  onToggleCapability: (id: TesterCapabilityId) => void;
   onSelectRun: (record: TesterRunHistoryRecord) => void;
 }) {
-  const records = (history?.[capability.id] ?? []).slice(0, 12);
-  if (records.length === 0) return null;
-  const groups = groupHistoryRecords(records);
-
   return (
-    <aside className="studio-history" aria-label="Recent runs History">
+    <aside className="studio-history" aria-label="Runtime test History">
       <div className="studio-recent__head">
         <div className="studio-history__title">
           <strong>History</strong>
         </div>
       </div>
       <div className="studio-history__groups">
-        {groups.map((group) => (
-          <section key={group.label} className="studio-history__group" aria-label={`${group.label} runs`}>
-            <p>{group.label}</p>
-            <ul className="studio-recent__rows">
-              {group.records.map((record) => (
-                <li key={record.id}>
-                  <button
-                    type="button"
-                    className={record.id === activeRunId ? 'studio-recent__row studio-recent__row--active' : 'studio-recent__row'}
-                    onClick={() => onSelectRun(record)}
-                    aria-current={record.id === activeRunId ? 'true' : undefined}
-                    aria-label={historyLabelForRun(record)}
-                  >
-                    <span className={`studio-recent__dot studio-recent__dot--${historyToneForRun(record)}`} aria-hidden="true" />
-                    <span className="studio-recent__copy">
-                      <Tooltip content={historyTitleForRun(record)} placement="top" className="min-w-0">
-                        <span className="studio-recent__title">
-                          {historyTitleForRun(record)}
-                        </span>
-                      </Tooltip>
-                      <span className={record.status === 'failed' || record.status === 'unavailable' ? 'studio-recent__detail studio-recent__detail--failed' : 'studio-recent__detail'}>
-                        {historyDetailForRun(record)}
-                      </span>
-                    </span>
-                    <time dateTime={record.createdAt}>{formatTesterRunHistoryTimestamp(record.createdAt)}</time>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ))}
+        {runtimeHistoryCapabilities.map((capability) => {
+          const records = (history?.[capability.id] ?? []).slice(0, historyPreviewLimit);
+          const expanded = expandedCapabilityIds.has(capability.id);
+          const Icon = capabilityIcons[capability.id];
+          return (
+            <section key={capability.id} className="studio-history__group" aria-label={`${capability.label} runs`}>
+              <button
+                type="button"
+                className={capability.id === activeCapabilityId ? 'studio-history__capability studio-history__capability--active' : 'studio-history__capability'}
+                aria-expanded={expanded}
+                onClick={() => onToggleCapability(capability.id)}
+              >
+                <Icon size={17} strokeWidth={1.9} aria-hidden="true" />
+                <span>{capability.label}</span>
+                <ChevronRight className="studio-history__capability-arrow" size={15} strokeWidth={2} aria-hidden="true" />
+              </button>
+              {expanded ? (
+                records.length > 0 ? (
+                  <ul className="studio-recent__rows">
+                    {records.map((record) => (
+                      <li key={record.id}>
+                        <button
+                          type="button"
+                          className={record.id === activeRunId ? 'studio-recent__row studio-recent__row--active' : 'studio-recent__row'}
+                          onClick={() => onSelectRun(record)}
+                          aria-current={record.id === activeRunId ? 'true' : undefined}
+                          aria-label={historyLabelForRun(record)}
+                        >
+                          <span className={`studio-recent__dot studio-recent__dot--${historyToneForRun(record)}`} aria-hidden="true" />
+                          <span className="studio-recent__copy">
+                            <span className="studio-recent__summary">
+                              <Tooltip content={historyModelTitleForRun(record)} placement="top" className="min-w-0">
+                                <span className="studio-recent__title">
+                                  {historyModelTitleForRun(record)}
+                                </span>
+                              </Tooltip>
+                              <time className="studio-recent__time" dateTime={record.createdAt}>{formatTesterRunHistoryTimestamp(record.createdAt)}</time>
+                            </span>
+                            <Tooltip content={historyTitleForRun(record)} placement="top" className="min-w-0">
+                              <span className={record.status === 'failed' || record.status === 'unavailable' ? 'studio-recent__detail studio-recent__detail--failed' : 'studio-recent__detail'}>
+                                {historyMetaForRun(record)}
+                              </span>
+                            </Tooltip>
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="studio-history__empty">No runs yet</p>
+                )
+              ) : null}
+            </section>
+          );
+        })}
       </div>
     </aside>
   );
 }
 
-export function downloadTextFile(filename: string, body: string) {
+function anchorDownload(filename: string, blob: Blob) {
   if (typeof document === 'undefined') return;
-  const blob = new Blob([body], { type: 'text/plain;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
   anchor.href = url;
@@ -813,6 +834,16 @@ export function downloadTextFile(filename: string, body: string) {
   anchor.click();
   anchor.remove();
   URL.revokeObjectURL(url);
+}
+
+export async function downloadTextFile(filename: string, body: string) {
+  const blob = new Blob([body], { type: 'text/plain;charset=utf-8' });
+  try {
+    await saveTesterExport({ filename, mimeType: blob.type, body: blob });
+    return;
+  } catch {
+    anchorDownload(filename, blob);
+  }
 }
 
 // File extension for a saved media artifact, derived from its MIME subtype.
@@ -828,18 +859,15 @@ export function artifactExtension(mimeType?: string): string {
 // Save a runtime media artifact (image / audio / video) to disk. Works for both
 // inline data URLs and hosted URLs by streaming the resource through a Blob.
 export async function downloadArtifactUrl(filename: string, url: string) {
-  if (typeof document === 'undefined') return;
   try {
     const response = await fetch(url);
     const blob = await response.blob();
-    const objectUrl = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = objectUrl;
-    anchor.download = filename;
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
-    URL.revokeObjectURL(objectUrl);
+    try {
+      await saveTesterExport({ filename, mimeType: blob.type || undefined, body: blob });
+      return;
+    } catch {
+      anchorDownload(filename, blob);
+    }
   } catch {
     // Saving is best-effort; the inline preview remains the durable surface.
   }

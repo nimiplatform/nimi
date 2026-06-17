@@ -89,7 +89,6 @@ function bindingStatus(
     supported: true,
     tone: 'ready',
     badgeLabel: 'Bound',
-    title: 'Target configured',
     detail: null,
   };
 }
@@ -246,11 +245,12 @@ export function TesterAiConfigSettings({
         </header>
       ) : null}
       <ScrollArea className="min-h-0 flex-1">
-        <div className={drawer ? 'px-4 py-4 sm:px-6 sm:py-6' : 'px-4 py-4'}>
+        <div className={drawer ? 'min-w-0 px-4 py-4' : 'px-4 py-4'}>
           <ModelConfigAiModelHub
             surface={surface}
             profile={profileController}
             initialSection={initialSection}
+            className={drawer ? 'min-w-0 space-y-5' : undefined}
             detailOnly={drawer}
             detailActiveModelHint={null}
             detailHeaderAction={drawer && onClose ? (

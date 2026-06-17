@@ -2,7 +2,7 @@ import { Suspense, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { StatusBadge } from '@nimiplatform/kit/ui';
 import type { CanonicalCapabilitySectionId } from '@nimiplatform/kit/core/runtime-capabilities';
 import { createBrowserDataUrlAttachmentAdapter, useChatComposer, type BrowserDataUrlAttachment } from '@nimiplatform/kit/features/chat/headless';
-import { type TesterCapability } from '../tester-capabilities.js';
+import { type TesterCapability, type TesterCapabilityId } from '../tester-capabilities.js';
 import { CAPABILITY_TO_SECTION } from '../tester-capability-sections.js';
 import { getTesterRunModelLabel, type TesterRunConfigSnapshot, type TesterRunHistory, type TesterRunHistoryRecord } from '../tester-history.js';
 import { runTesterCapability, type TesterCapabilityRunResult, type TesterRuntimeInspection } from '../tester-runtime.js';
@@ -23,6 +23,11 @@ function TextStudioShell({
   draftPersistence,
   onOpenConfig,
   history,
+  activeCapabilityId,
+  expandedHistoryCapabilityIds,
+  historySelectionRequest,
+  onToggleHistoryCapability,
+  onSelectHistoryRun,
   headerActions,
 }: {
   capability: TesterCapability;
@@ -33,6 +38,11 @@ function TextStudioShell({
   draftPersistence: boolean;
   onOpenConfig: (section: CanonicalCapabilitySectionId) => void;
   history: TesterRunHistory | null;
+  activeCapabilityId: TesterCapabilityId;
+  expandedHistoryCapabilityIds: ReadonlySet<TesterCapabilityId>;
+  historySelectionRequest: { requestId: number; record: TesterRunHistoryRecord } | null;
+  onToggleHistoryCapability: (id: TesterCapabilityId) => void;
+  onSelectHistoryRun: (record: TesterRunHistoryRecord) => void;
   headerActions?: ReactNode;
 }) {
   const profile = getCapabilityStudioProfile(capability.id);
@@ -190,7 +200,7 @@ function TextStudioShell({
     }
     const text = resultPlainText(currentResult);
     if (!text) return;
-    downloadTextFile(`${capability.id}-${stamp}.txt`, text);
+    void downloadTextFile(`${capability.id}-${stamp}.txt`, text);
   }
 
   function selectHistoryRun(record: TesterRunHistoryRecord) {
@@ -215,6 +225,12 @@ function TextStudioShell({
     setContext(historyContext);
   }
 
+  useEffect(() => {
+    const record = historySelectionRequest?.record;
+    if (!record || record.capabilityId !== capability.id) return;
+    selectHistoryRun(record);
+  }, [historySelectionRequest?.requestId, capability.id]);
+
   const composer = (
     <TextStudioComposer
       capability={capability}
@@ -234,13 +250,11 @@ function TextStudioShell({
       onSubmit={() => void run()}
     />
   );
-  const historyRecords = history?.[capability.id] ?? [];
-  const hasHistory = historyRecords.length > 0;
   const showAdmissionBadge = admission.label !== 'ready';
 
   return (
     <div className={hasActiveRun ? 'studio studio--has-run' : 'studio studio--landing'}>
-      <div className={hasHistory ? 'studio__workspace studio__workspace--with-history' : 'studio__workspace'}>
+      <div className="studio__workspace studio__workspace--with-history">
         <div className="studio__primary">
           <header className="studio__head">
             <div className="studio__title">
@@ -274,14 +288,14 @@ function TextStudioShell({
             )}
           </main>
         </div>
-        {hasHistory ? (
-          <CapabilityRunHistory
-            capability={capability}
-            history={history}
-            activeRunId={activeRun?.id ?? null}
-            onSelectRun={selectHistoryRun}
-          />
-        ) : null}
+        <CapabilityRunHistory
+          history={history}
+          activeCapabilityId={activeCapabilityId}
+          activeRunId={activeRun?.id ?? null}
+          expandedCapabilityIds={expandedHistoryCapabilityIds}
+          onToggleCapability={onToggleHistoryCapability}
+          onSelectRun={onSelectHistoryRun}
+        />
       </div>
     </div>
   );
@@ -293,6 +307,11 @@ export function SectionAITesting({
   summary,
   history,
   lastResult,
+  activeCapabilityId,
+  expandedHistoryCapabilityIds,
+  historySelectionRequest,
+  onToggleHistoryCapability,
+  onSelectHistoryRun,
   verboseConsole,
   draftPersistence,
   headerActions,
@@ -316,6 +335,11 @@ export function SectionAITesting({
           draftPersistence={draftPersistence}
           onOpenConfig={setConfigSection}
           history={history}
+          activeCapabilityId={activeCapabilityId}
+          expandedHistoryCapabilityIds={expandedHistoryCapabilityIds}
+          historySelectionRequest={historySelectionRequest}
+          onToggleHistoryCapability={onToggleHistoryCapability}
+          onSelectHistoryRun={onSelectHistoryRun}
           headerActions={headerActions}
         />
       </div>

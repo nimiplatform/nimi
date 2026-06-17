@@ -26,7 +26,7 @@ import {
 
 test.after(cleanupBehaviorModules);
 
-test('tester run history is the per-capability evidence surface (no standalone Evidence module)', () => {
+test('tester run history is a global runtime capability accordion (no standalone Evidence module)', () => {
   const capabilities = readTesterAiTestingSurface(root);
   const historyStore = read('src/tester/tester-history.ts');
   const appStorage = read('src/tester/tester-app-storage.ts');
@@ -35,13 +35,21 @@ test('tester run history is the per-capability evidence surface (no standalone E
   // Evidence is folded into each capability's test panel as recent local runs,
   // rendered from the app-owned history store — not a separate Evidence route.
   assert.match(capabilities, /function CapabilityRunHistory/);
-  assert.match(capabilities, /Recent runs/);
+  assert.match(capabilities, /Runtime test History/);
+  assert.match(capabilities, /const runtimeHistoryCapabilities = testerCapabilities\.filter\(\(item\) => item\.execution === 'runtime-sdk'\)/);
+  assert.match(capabilities, /const historyPreviewLimit = 5/);
+  assert.match(capabilities, /className="studio-history__capability/);
+  assert.match(capabilities, /aria-expanded=\{expanded\}/);
+  assert.match(capabilities, /No runs yet/);
+  assert.match(capabilities, /capabilityIcons\[capability\.id\]/);
+  assert.match(workbench, /function createDefaultExpandedHistoryCapabilityIds\(history: TesterRunHistory\)/);
+  assert.match(workbench, /historyExpansionInitializedRef/);
+  assert.match(workbench, /setExpandedHistoryCapabilityIds\(createDefaultExpandedHistoryCapabilityIds\(next\)\)/);
   assert.match(capabilities, /getTesterRunStatusLabel/);
   assert.match(capabilities, /getTesterRunResultSummary/);
   assert.match(capabilities, /TextStudioHistorySnapshotBody/);
-  assert.match(capabilities, /if \(records\.length === 0\) return null/);
-  assert.doesNotMatch(capabilities, /className="studio-history__empty"/);
   assert.doesNotMatch(capabilities, /No recent runs yet\./);
+  assert.doesNotMatch(capabilities, /View more|Show less/);
   assert.doesNotMatch(capabilities, /does not contain the full generated body/);
   for (const helper of ['createTesterRunHistoryResultSnapshot', 'getTesterRunResultSummary', 'getTesterRunResultTags', 'getTesterRunStatusLabel', 'getTesterRunStatusTone', 'formatTesterRunTimestamp', 'flattenTesterRunHistory']) {
     assert.match(historyStore, new RegExp(helper));
@@ -76,11 +84,11 @@ test('right-side capability history uses date-only labels for older runs', () =>
   const capabilities = readTesterAiTestingSurface(root);
 
   assert.match(capabilities, /formatTesterRunHistoryTimestamp/);
-  assert.match(capabilities, /<time dateTime=\{record\.createdAt\}>\{formatTesterRunHistoryTimestamp\(record\.createdAt\)\}<\/time>/);
+  assert.match(capabilities, /<time className="studio-recent__time" dateTime=\{record\.createdAt\}>\{formatTesterRunHistoryTimestamp\(record\.createdAt\)\}<\/time>/);
   assert.match(capabilities, /formatTesterRunHistoryTimestamp\(record\.createdAt\), metrics/);
 });
 
-test('tester run history rows prioritize prompt title, recency groups, and run metrics', () => {
+test('tester run history rows prioritize prompt title, accordion groups, and run metrics', () => {
   const capabilities = readTesterAiTestingSurface(root);
   const historyStore = read('src/tester/tester-history.ts');
   const workbench = read('src/tester/workbench/section-ai-testing.tsx');
@@ -127,24 +135,33 @@ test('tester run history rows prioritize prompt title, recency groups, and run m
   assert.doesNotMatch(historyStore, /\bin \/.*\bout/);
   assert.doesNotMatch(historyStore, /\bout \/.*\btotal/);
   assert.match(capabilities, /historyLabelForRun/);
+  assert.match(capabilities, /historyModelTitleForRun/);
   assert.match(capabilities, /historyDetailForRun/);
-  assert.match(capabilities, /historyGroupLabel/);
-  assert.match(capabilities, /groupHistoryRecords/);
+  assert.match(capabilities, /historyMetaForRun/);
+  assert.match(capabilities, /runtimeHistoryCapabilities\.map/);
+  assert.match(capabilities, /\.slice\(0, historyPreviewLimit\)/);
+  assert.match(capabilities, /expandedCapabilityIds\.has\(capability\.id\)/);
+  assert.match(capabilities, /onToggleCapability\(capability\.id\)/);
+  assert.match(capabilities, /ChevronRight/);
   assert.match(capabilities, /getTesterRunModelSource\(record\)/);
   assert.match(capabilities, /getTesterRunModelLabel\(record\)/);
   assert.match(capabilities, /function isOpaqueRuntimeModelId\(value: string\)/);
   assert.match(capabilities, /!\s*isOpaqueRuntimeModelId\(resolved\)/);
-  assert.match(capabilities, /label: 'Today' \| 'Yesterday' \| 'Earlier'/);
-  assert.match(workbench, /const historyRecords = history\?\.\[capability\.id\] \?\? \[\]/);
-  assert.match(workbench, /const hasHistory = historyRecords\.length > 0/);
-  assert.match(workbench, /hasHistory \? 'studio__workspace studio__workspace--with-history' : 'studio__workspace'/);
-  assert.match(workbench, /\{hasHistory \? \(\s*<CapabilityRunHistory/s);
-  assert.doesNotMatch(capabilities, /studio-history__empty/);
+  assert.match(workbench, /expandedHistoryCapabilityIds/);
+  assert.match(workbench, /historySelectionRequest/);
+  assert.match(workbench, /onToggleHistoryCapability/);
+  assert.match(workbench, /onSelectHistoryRun/);
+  assert.doesNotMatch(workbench, /const historyRecords = history\?\.\[capability\.id\] \?\? \[\]/);
+  assert.doesNotMatch(workbench, /const hasHistory = historyRecords\.length > 0/);
+  assert.match(workbench, /className="studio__workspace studio__workspace--with-history"/);
+  assert.match(capabilities, /<CapabilityRunHistory/);
+  assert.match(capabilities, /studio-history__empty/);
   assert.doesNotMatch(capabilities, /<span>\{records\.length\}<\/span>/);
   assert.match(capabilities, /className="studio-history__groups"/);
   assert.match(capabilities, /className="studio-history__group"/);
-  assert.match(capabilities, /<p>\{group\.label\}<\/p>/);
+  assert.match(capabilities, /className="studio-history__capability/);
   assert.match(capabilities, /studio-recent__copy/);
+  assert.match(capabilities, /studio-recent__summary/);
   assert.match(capabilities, /studio-recent__title/);
   assert.match(capabilities, /studio-recent__detail/);
   assert.match(capabilities, /createRunConfigSnapshot/);
@@ -188,12 +205,18 @@ test('tester run history rows prioritize prompt title, recency groups, and run m
   assert.match(surface, /<Tooltip content="Copy" placement="top">/);
   assert.match(surface, /<Tooltip content="Download" placement="top">/);
   assert.match(surface, /<Tooltip content="Regenerate" placement="top">/);
+  assert.match(capabilities, /invokeTesterCommand<TesterExportSaveResult>\('tester_export_save'/);
+  assert.match(capabilities, /export async function saveTesterExport/);
+  assert.match(surface, /await saveTesterExport\(\{ filename, mimeType: blob\.type, body: blob \}\)/);
+  assert.match(surface, /await saveTesterExport\(\{ filename, mimeType: blob\.type \|\| undefined, body: blob \}\)/);
+  assert.match(surface, /function anchorDownload\(filename: string, blob: Blob\)/);
   assert.match(surface, /function studioResultModelLabel\(result: TesterCapabilityRunResult \| null, capability: TesterCapability, preferredLabel\?: string\)/);
   assert.match(surface, /const preferred = preferredLabel\?\.trim\(\)/);
   assert.match(surface, /const displayModelLabel = studioResultModelLabel\(result, capability, modelLabel\)/);
   assert.match(capabilities, /modelLabel=\{activeRun\.record \? getTesterRunModelLabel\(activeRun\.record\) : runTarget\.modelLabel\}/);
   assert.match(capabilities, /modelLabel=\{textStudioModelSummary\(headerResult, runTarget, activeRun\?\.record \?\? null\)\}/);
   assert.match(surface, /<Tooltip content=\{displayModelLabel\} placement="top" className="min-w-0">/);
+  assert.match(surface, /<Tooltip content=\{historyModelTitleForRun\(record\)\} placement="top" className="min-w-0">/);
   assert.match(surface, /<Tooltip content=\{historyTitleForRun\(record\)\} placement="top" className="min-w-0">/);
   assert.doesNotMatch(capabilities, /className="studio-result__action"[^>]*\btitle=/);
   assert.doesNotMatch(surface, /className="studio-result__action"[^>]*\btitle=/);
@@ -247,7 +270,11 @@ test('tester run history rows prioritize prompt title, recency groups, and run m
   assert.match(styles, /border-left:\s*1px solid/);
   assert.match(styles, /\.studio-history__groups/);
   assert.match(styles, /\.studio-history__group/);
+  assert.match(styles, /\.studio-history__capability/);
+  assert.match(styles, /\.studio-history__capability-arrow/);
+  assert.match(styles, /aria-expanded="true"/);
   assert.match(styles, /\.studio-recent__copy/);
+  assert.match(styles, /\.studio-recent__summary/);
   assert.match(styles, /\.studio-recent__title/);
   assert.match(styles, /\.studio-recent__detail/);
   assert.doesNotMatch(styles, /\.studio-history \.studio-recent__source--local/);
