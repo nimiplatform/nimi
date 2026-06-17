@@ -437,6 +437,31 @@ describe('Avatar NAS runtime event dispatch', () => {
     unwire();
   });
 
+  it('rejects unknown runtime activity projection before NAS fallback', async () => {
+    const driver = createDriver();
+    const projection = createProjection();
+    const unwire = wireEventDispatch({
+      driver,
+      registry: createHandlerRegistry(),
+      executor: new HandlerExecutor(),
+      projection,
+    });
+
+    driver.trigger(runtimeActivityEvent({
+      activity_name: 'mystery_activity',
+      category: 'emotion',
+      intensity: 'strong',
+      source: 'apml_output',
+      ...admissionDetail(),
+    }));
+    await Promise.resolve();
+
+    expect(projection.applyActivity).not.toHaveBeenCalled();
+    expect(driver.emitted).toEqual([]);
+
+    unwire();
+  });
+
   it('maps runtime expression projection into the backend expression API when no NAS handler exists', async () => {
     const driver = createDriver();
     const projection = createProjection();

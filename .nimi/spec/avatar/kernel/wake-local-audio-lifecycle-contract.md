@@ -62,6 +62,14 @@ Boundary invariants:
    and must fail closed on Runtime rejection.
 5. Every state that uses the microphone or plays agent audio must have a visible
    privacy or activity indicator in the presence capsule.
+6. Avatar autoplay is a per-agent Runtime/local-agent policy. Avatar instance
+   settings must not own voice enablement, TTS route, voice reference, or model
+   choice.
+7. Avatar must not call TTS directly. It only consumes Runtime voice
+   stream/playback projection and Runtime artifact bytes.
+8. If Runtime produces text-only output because TTS is missing or unavailable,
+   Avatar remains text/expression/activity only and must not show fake speaking
+   or fake lipsync.
 
 ---
 
@@ -105,6 +113,25 @@ The admitted voice mode is Runtime-owned wake/listening orchestration:
    capture controls in the default embodied output layer.
 5. Text input remains a transient Runtime-bound composer and does not imply
    voice authority.
+6. When Runtime policy enables per-agent Avatar autoplay, Avatar may automatically
+   play the Runtime-projected voice stream for the active agent/anchor.
+7. When Runtime policy disables Avatar autoplay, Avatar must not request or
+   synthesize speech for ordinary assistant messages.
+
+## 4.1 Runtime-Owned Voice Output Policy
+
+Avatar observes, but does not own, the agent voice output policy admitted by
+`K-VOICE-018`.
+
+Fixed rules:
+
+- `avatar_autoplay` is per agent, not per avatar instance.
+- Avatar-local shell settings may mute local playback or hide captions, but they
+  do not change Runtime policy or voice artifact generation truth.
+- Avatar may compute lipsync locally from playable audio via browser audio
+  processing. Runtime does not own mouth parameters.
+- Generated voice audio persistence and cleanup are Runtime-owned. Avatar does
+  not maintain a durable voice cache.
 
 ---
 

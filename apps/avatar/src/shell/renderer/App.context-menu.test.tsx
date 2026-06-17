@@ -179,6 +179,7 @@ function createBootstrapHandle(input: {
     })),
     submitVoiceCaptureTurn: vi.fn(async () => ({ transcript: 'voice hello' })),
     cancelCompanionParticipation: vi.fn(async () => createCompanionParticipationProjection()),
+    interruptActiveTurn: vi.fn(async () => undefined),
     requestCompanionParticipation: vi.fn(async () => createCompanionParticipationProjection()),
     avatarDebug: input.avatarDebug ?? null,
     shutdown: vi.fn(async () => {}),
@@ -597,7 +598,7 @@ describe('App context menu overlay', () => {
     fireEvent.click(interrupt);
 
     await waitFor(() => {
-      expect(handle.cancelCompanionParticipation).toHaveBeenCalledWith({
+      expect(handle.interruptActiveTurn).toHaveBeenCalledWith({
         agentId: 'local-agent:owner-product:agent-product-01',
         conversationAnchorId: 'anchor-01',
         turnId: 'turn-active-01',
@@ -625,14 +626,14 @@ describe('App context menu overlay', () => {
     });
   });
 
-  it('records interrupt failure when Runtime rejects companion participation cancel', async () => {
+  it('records interrupt failure when Runtime rejects turn interrupt', async () => {
     const handle = createBootstrapHandle();
-    const cancelCompanionParticipation = vi.fn(async () => {
-      throw new Error('runtime denied cancel');
+    const interruptActiveTurn = vi.fn(async () => {
+      throw new Error('runtime denied interrupt');
     });
     (handle as unknown as {
-      cancelCompanionParticipation: typeof cancelCompanionParticipation;
-    }).cancelCompanionParticipation = cancelCompanionParticipation;
+      interruptActiveTurn: typeof interruptActiveTurn;
+    }).interruptActiveTurn = interruptActiveTurn;
     bootstrapAvatarMock.mockResolvedValue(handle);
 
     render(<App />);
@@ -661,8 +662,8 @@ describe('App context menu overlay', () => {
             agent_id: 'local-agent:owner-product:agent-product-01',
             conversation_anchor_id: 'anchor-01',
             active_turn_id: 'turn-denied-01',
-            reason_code: 'runtime_companion_participation_cancel_rejected',
-            error: 'runtime denied cancel',
+            reason_code: 'runtime_turn_interrupt_rejected',
+            error: 'runtime denied interrupt',
           }),
         }),
       );

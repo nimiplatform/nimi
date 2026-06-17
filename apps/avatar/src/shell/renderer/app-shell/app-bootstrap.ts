@@ -2,18 +2,14 @@ import { createNimiClient } from '@nimiplatform/sdk';
 import { getSharedAudioPipelineController } from '@nimiplatform/kit/features/avatar/headless';
 import {
   createNimiRuntimeAgentConsumeClient,
+  createNimiRuntimeAgentTurnsModule,
   runNimiRuntimeScenarioJob,
   withNimiRuntimeAgentScopes,
-  type GetAvatarDebugSnapshotResponse,
-  type ListAvatarDebugProbeResultsResponse,
-  type NimiRuntimeAgentCompanionParticipationProjection,
   type NimiRuntimeAgentScopeRunner,
-  type RequestAvatarDebugProbeResponse,
 } from '@nimiplatform/sdk/runtime';
 import {
   AccountReasonCode,
   AccountSessionState,
-  AvatarDebugProbeKind,
   AvatarDebugRequestedBy,
   ReasonCode,
   type AvatarDebugProbeResultEnvelope,
@@ -32,6 +28,7 @@ import { readAvatarShellSettings } from '../settings-state.js';
 import type { AgentDataDriver } from '../driver/types.js';
 import { startAvatarVoiceCaptureSession, type AvatarVoiceCaptureSession } from '../voice-capture.js';
 import { recordAvatarEvidenceEventually } from './avatar-evidence.js';
+import type { BootstrapHandle } from './app-bootstrap-types.js';
 import { detectDeviceTier } from './device-tier-detector.js';
 import { resolveAvatarConversationContext } from './avatar-conversation-context.js';
 import { useAvatarStore } from './app-store.js';
@@ -67,68 +64,13 @@ import {
 const AVATAR_FIRST_PARTY_APP_ID = 'nimi.avatar';
 const AVATAR_FIRST_PARTY_DRIVER_START_TIMEOUT_MS = 12_000;
 
+export type { BootstrapHandle } from './app-bootstrap-types.js';
+
 function optionalRecord(value: unknown): Record<string, unknown> | undefined {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? value as Record<string, unknown>
     : undefined;
 }
-
-export type BootstrapHandle = {
-  driver?: AgentDataDriver | null;
-  carrier?: AvatarRuntimeCarrier | null;
-  getVoiceInputAvailability(input: {
-    agentId: string;
-    conversationAnchorId: string;
-  }): Promise<{
-    available: boolean;
-    reason: string | null;
-  }>;
-  startVoiceCapture(input: {
-    agentId: string;
-    conversationAnchorId: string;
-    onLevelChange?: (amplitude: number) => void;
-  }): Promise<AvatarVoiceCaptureSession>;
-  submitVoiceCaptureTurn(input: {
-    agentId: string;
-    conversationAnchorId: string;
-    audioBytes: Uint8Array;
-    mimeType: string;
-    language?: string;
-    signal?: AbortSignal;
-  }): Promise<{
-    transcript: string;
-  }>;
-  cancelCompanionParticipation(input: {
-    agentId: string;
-    conversationAnchorId: string;
-    projectionId?: string;
-    turnId?: string;
-    reason?: string;
-  }): Promise<NimiRuntimeAgentCompanionParticipationProjection>;
-  requestCompanionParticipation(input: {
-    agentId: string;
-    conversationAnchorId: string;
-    text: string;
-  }): Promise<NimiRuntimeAgentCompanionParticipationProjection>;
-  avatarDebug: {
-    snapshot(input: {
-      agentId: string;
-      conversationAnchorId: string;
-    }): Promise<GetAvatarDebugSnapshotResponse>;
-    requestProbe(input: {
-      agentId: string;
-      conversationAnchorId: string;
-      probeKind: AvatarDebugProbeKind;
-      avatarInstanceId?: string | null;
-    }): Promise<RequestAvatarDebugProbeResponse>;
-    listProbeResults(input: {
-      agentId: string;
-      conversationAnchorId: string;
-      probeKind?: AvatarDebugProbeKind;
-    }): Promise<ListAvatarDebugProbeResultsResponse>;
-  } | null;
-  shutdown(): Promise<void>;
-};
 
 export async function bootstrapAvatar(): Promise<BootstrapHandle> {
   let shellUnlisten: (() => void) | null = null;
@@ -149,6 +91,9 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
     throw new Error('Foreground voice is unavailable outside runtime-bound mode');
   };
   let cancelCompanionParticipation: BootstrapHandle['cancelCompanionParticipation'] = async () => {
+    throw new Error('Foreground voice is unavailable outside runtime-bound mode');
+  };
+  let interruptActiveTurn: BootstrapHandle['interruptActiveTurn'] = async () => {
     throw new Error('Foreground voice is unavailable outside runtime-bound mode');
   };
   let requestCompanionParticipation: BootstrapHandle['requestCompanionParticipation'] = async () => {
@@ -179,6 +124,7 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
     startVoiceCapture,
     submitVoiceCaptureTurn,
     cancelCompanionParticipation,
+    interruptActiveTurn,
     requestCompanionParticipation,
     avatarDebug,
     async shutdown() {
@@ -434,6 +380,20 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
           avatarInstanceId,
         }));
         const { conversationAnchorId, subjectUserId } = conversationContext;
+        const runtimeAgentTurns = createNimiRuntimeAgentTurnsModule({
+          runtime: {
+            appId: runtimeAppId,
+            auth: runtime.auth,
+            appAuth: runtime.grants,
+            agents: {
+              getPublicChatSessionSnapshot: runtime.agents.getPublicChatSessionSnapshot,
+              subscribeAgentEvents: runtime.agents.subscribeAgentEvents,
+            },
+            appMessages: runtime.appMessages,
+          },
+          getSubjectUserId: () => subjectUserId,
+          withScopes: withAvatarRuntimeAgentScopes,
+        });
         currentConversationAnchorId = conversationAnchorId;
         await runFirstPartyStage('runtime_identity_binding', () => bindAvatarRuntimeIdentity({
           avatarInstanceId,
@@ -565,6 +525,16 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
           ...(input.turnId ? { turnId: input.turnId } : {}),
           ...(input.reason ? { reason: input.reason } : {}),
         });
+        interruptActiveTurn = async (input) => {
+          await runtimeAgentTurns.interrupt({
+            ownerUserId,
+            realmAgentId,
+            localAgentRef: input.agentId,
+            conversationAnchorId: input.conversationAnchorId,
+            ...(input.turnId ? { turnId: input.turnId } : {}),
+            ...(input.reason ? { reason: input.reason } : {}),
+          });
+        };
         avatarDebug = {
           snapshot: async (input) => withAvatarRuntimeAgentScopes(
             ['runtime.agent.avatar_debug.read'],

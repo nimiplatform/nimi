@@ -179,6 +179,7 @@ function createBootstrapHandle(input: {
     })),
     submitVoiceCaptureTurn: vi.fn(async () => ({ transcript: 'voice hello' })),
     cancelCompanionParticipation: vi.fn(async () => createCompanionParticipationProjection()),
+    interruptActiveTurn: vi.fn(async () => undefined),
     requestCompanionParticipation: vi.fn(async () => createCompanionParticipationProjection()),
     avatarDebug: input.avatarDebug ?? null,
     shutdown: vi.fn(async () => {}),

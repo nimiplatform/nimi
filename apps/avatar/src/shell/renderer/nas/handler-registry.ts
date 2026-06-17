@@ -311,7 +311,12 @@ export async function populateRegistry(
 
   const activityKeys = new Map<string, string>();
   for (const entry of manifest.activity) {
-    const key = activityHandlerKey(entry.file_stem);
+    const activityId = handlerFilenameToActivityId(entry.file_stem + '.js');
+    if (!activityId) {
+      pushValidationError(validationErrors, `[nas] activity handler ${entry.file_stem} has no matching admitted activity id`);
+      continue;
+    }
+    const key = activityHandlerKey(activityId);
     const existing = activityKeys.get(key);
     if (existing) {
       pushValidationError(validationErrors, `[nas] duplicate normalized activity handler id ${key}: ${existing} and ${entry.file_stem}`);
@@ -344,7 +349,7 @@ export async function populateRegistry(
       }
       registry.activity.set(key, {
         kind: 'activity',
-        activityId: handlerFilenameToActivityId(entry.file_stem + '.js') ?? entry.file_stem,
+        activityId,
         handler: module,
         sourcePath: entry.absolute_path,
         requiresLive2DExtension: required.includes('live2d-extension'),

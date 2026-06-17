@@ -37,6 +37,15 @@ export type {
   AvatarAudioPipelineSinkSnapshot,
 } from './audio-pipeline.js';
 export {
+  createWLipSyncAudioConsumer,
+} from './wlipsync-audio-consumer.js';
+export type {
+  WLipSyncAudioConsumer,
+  WLipSyncAudioConsumerDeps,
+  WLipSyncAudioConsumerFactory,
+  WLipSyncAudioNode,
+} from './wlipsync-audio-consumer.js';
+export {
   resolveAgentVoicePlaybackAmplitude,
   resolveAgentVoicePlaybackCue,
   resolveAgentVoicePlaybackEstimatedFrame,

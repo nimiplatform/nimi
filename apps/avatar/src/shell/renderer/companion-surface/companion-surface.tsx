@@ -339,7 +339,7 @@ export function CompanionSurface(props: CompanionSurfaceProps) {
   const onInterruptClick = useCallback(() => {
     if (!bootstrapHandle || !binding) return;
     void bootstrapHandle
-      .cancelCompanionParticipation({
+      .interruptActiveTurn({
         agentId: binding.agentId,
         conversationAnchorId: binding.conversationAnchorId,
         turnId: voice.currentTurnId || undefined,

@@ -104,6 +104,13 @@ function createRuntimeTimeline(overrides: Record<string, unknown> = {}): Record<
   };
 }
 
+function createRuntimeVoiceChunkTimeline(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return createRuntimeTimeline({
+    projection_rule_id: 'K-AGCORE-133',
+    ...overrides,
+  });
+}
+
 function createVoicePlaybackRequestedEvent(detail: Record<string, unknown> = {}): AgentEvent {
   return {
     event_id: 'event-vpr-1',
@@ -116,6 +123,26 @@ function createVoicePlaybackRequestedEvent(detail: Record<string, unknown> = {})
       audioArtifactId: 'artifact-1',
       audioMimeType: 'audio/wav',
       playbackState: 'requested',
+      playbackTarget: 'avatar_autoplay',
+      ...detail,
+    },
+  };
+}
+
+function createVoiceStreamChunkAvailableEvent(detail: Record<string, unknown> = {}): AgentEvent {
+  return {
+    event_id: 'event-vsc-1',
+    name: 'runtime.agent.presentation.voice_stream_chunk_available',
+    timestamp: '2026-04-25T00:00:00.018Z',
+    detail: {
+      turn_id: 'turn-1',
+      stream_id: 'stream-1',
+      runtime_timeline: createRuntimeVoiceChunkTimeline(),
+      audioArtifactId: 'chunk-artifact-1',
+      audioMimeType: 'audio/wav',
+      chunkSequence: 1,
+      finalChunk: false,
+      playbackTarget: 'avatar_autoplay',
       ...detail,
     },
   };
@@ -142,6 +169,68 @@ describe('avatar-voice-lipsync orchestrator (wave 0 hard-cut)', () => {
     // those originate from runtime now (or are deprecated in
     // avatar-event-contract.md).
     expect(driver.emitted).toEqual([]);
+  });
+
+  it('ignores voice_playback_requested for non-avatar playback targets', () => {
+    const driver = createDriver();
+    const audioPipeline = new AudioPipelineController({
+      audioContextFactory: () => null,
+      logger: { warn: vi.fn(), error: vi.fn() },
+    });
+    audioPipeline.setRuntime(createRuntimeMock());
+    const playSpy = vi.spyOn(audioPipeline, 'play');
+    const pipeline = createAvatarVoiceLipsyncPipeline({ driver, audioPipeline });
+
+    pipeline.handleEvent(createVoicePlaybackRequestedEvent({ playbackTarget: 'desktop_manual' }));
+
+    expect(playSpy).not.toHaveBeenCalled();
+    expect(driver.emitted).toEqual([]);
+  });
+
+  it('queues non-final avatar voice stream chunks without replaying final-artifact chunk events', async () => {
+    const driver = createDriver();
+    const audioPipeline = new AudioPipelineController({
+      audioContextFactory: () => null,
+      logger: { warn: vi.fn(), error: vi.fn() },
+    });
+    audioPipeline.setRuntime(createRuntimeMock());
+    const playSpy = vi.spyOn(audioPipeline, 'play');
+    const pipeline = createAvatarVoiceLipsyncPipeline({ driver, audioPipeline });
+
+    pipeline.handleEvent(createVoiceStreamChunkAvailableEvent());
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(playSpy).toHaveBeenCalledWith({
+      audioArtifactId: 'chunk-artifact-1',
+      audioMimeType: 'audio/wav',
+    });
+
+    playSpy.mockClear();
+    pipeline.handleEvent(createVoiceStreamChunkAvailableEvent({
+      audioArtifactId: 'final-artifact-1',
+      finalChunk: true,
+      chunkSequence: 2,
+    }));
+    await Promise.resolve();
+
+    expect(playSpy).not.toHaveBeenCalled();
+  });
+
+  it('ignores voice stream chunks for non-avatar playback targets', async () => {
+    const driver = createDriver();
+    const audioPipeline = new AudioPipelineController({
+      audioContextFactory: () => null,
+      logger: { warn: vi.fn(), error: vi.fn() },
+    });
+    audioPipeline.setRuntime(createRuntimeMock());
+    const playSpy = vi.spyOn(audioPipeline, 'play');
+    const pipeline = createAvatarVoiceLipsyncPipeline({ driver, audioPipeline });
+
+    pipeline.handleEvent(createVoiceStreamChunkAvailableEvent({ playbackTarget: 'desktop_manual' }));
+    await Promise.resolve();
+
+    expect(playSpy).not.toHaveBeenCalled();
   });
 
   it('registers backend.audioConsumer as the lipsync sink when backend supplied', () => {
@@ -229,6 +318,7 @@ describe('avatar-voice-lipsync orchestrator (wave 0 hard-cut)', () => {
         audioArtifactId: 'artifact-1',
         audioMimeType: 'audio/wav',
         playbackState: 'canceled',
+        playbackTarget: 'avatar_autoplay',
       },
     });
 

@@ -79,6 +79,7 @@ function makeVoicePlaybackEvent(
       audio_artifact_id: FIXTURE_AUDIO_ARTIFACT,
       audio_mime_type: audioMimeType,
       playback_state: playbackState,
+      playback_target: 'avatar_autoplay',
     },
   };
 }

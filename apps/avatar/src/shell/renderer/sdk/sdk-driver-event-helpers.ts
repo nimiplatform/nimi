@@ -20,7 +20,7 @@ type RuntimeAgentTimelineForAvatar = {
   startedAtWall: string;
   observedAtWall: string;
   timebaseOwner: 'runtime';
-  projectionRuleId: 'K-AGCORE-051';
+  projectionRuleId: 'K-AGCORE-051' | 'K-AGCORE-133';
   clockBasis: 'monotonic_with_wall_anchor';
   providerNeutral: true;
   appLocalAuthority: false;
@@ -37,9 +37,29 @@ type RuntimeAgentVoicePlaybackEvent = {
     audioArtifactId: string;
     audioMimeType: string;
     playbackState: 'requested' | 'started' | 'completed' | 'interrupted' | 'canceled' | 'failed';
+    playbackTarget?: string | null;
+    finalArtifact?: boolean | null;
     durationMs?: number;
     deadlineOffsetMs?: number;
     reason?: string;
+  };
+};
+
+type RuntimeAgentVoiceStreamChunkEvent = {
+  eventName: 'runtime.agent.presentation.voice_stream_chunk_available';
+  localAgentRef: string;
+  conversationAnchorId: string;
+  turnId: string;
+  streamId: string;
+  timeline: RuntimeAgentTimelineForAvatar;
+  detail: {
+    audioArtifactId: string;
+    audioMimeType: string;
+    chunkSequence?: number;
+    finalChunk?: boolean | null;
+    durationMs?: number;
+    reason?: string | null;
+    playbackTarget?: string | null;
   };
 };
 
@@ -48,7 +68,8 @@ type RuntimeAgentVoicePlaybackEvent = {
 // Per-frame mouth movement now flows through `BackendAudioConsumer.snapshot()`.
 export type RuntimeAgentConsumeEvent =
   | SdkRuntimeAgentConsumeEvent
-  | RuntimeAgentVoicePlaybackEvent;
+  | RuntimeAgentVoicePlaybackEvent
+  | RuntimeAgentVoiceStreamChunkEvent;
 
 export type RuntimeAgentSessionSnapshot = SdkRuntimeAgentSessionSnapshot;
 
