@@ -62,12 +62,8 @@ struct AgentCenterLocalConfigFile {
 }
 
 #[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
 struct AgentCenterLocalConfigModules {
-    appearance: serde_json::Value,
     avatar_asset: AgentCenterLocalAvatarAssetSelection,
-    local_history: serde_json::Value,
-    ui: serde_json::Value,
 }
 
 #[derive(Deserialize)]
@@ -277,9 +273,6 @@ fn read_local_avatar_asset_selection(
         return Err("local Avatar asset module schema_version must be 1".to_string());
     }
     let _ = (
-        &config.modules.appearance,
-        &config.modules.local_history,
-        &config.modules.ui,
         &selection.conversation_anchor_scope,
         &selection.live2d_adapter_manifest_source,
         &selection.live2d_adapter_manifest_ref,
