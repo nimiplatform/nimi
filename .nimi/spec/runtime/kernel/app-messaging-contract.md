@@ -10,8 +10,8 @@
 2. `SubscribeAppMessages` — 订阅应用消息事件流
 3. `InstallApp` — 触发 Runtime-owned Nimi App install lifecycle（见 `K-APP-011`）
 4. `UninstallApp` — 触发 Runtime-owned Nimi App uninstall lifecycle（见 `K-APP-014`）
-5. `GetAppStorage` — 读取 app-scoped storage truth projection（见 `K-APP-022`）
-6. `GetAccountAppInventory` — 读取 authenticated account app-inventory truth projection（见 `K-APP-024`）
+5. `GetAppStorage` — 读取 app-scoped storage projection（见 `K-APP-022`）
+6. `GetAccountAppInventory` — 读取 authenticated account app-inventory projection（见 `K-APP-024`）
 7. `AdoptLocalApp` / `ListLocalAppAdoptions` / `RemoveLocalAppAdoption` — 显式本地 app 接入、读取、移除（见 `K-APP-025`）
 8. `GetAppPackageReadiness` — 读取 active release / install evidence package readiness projection（见 `K-APP-023`）
 9. `GetAppInstallJob` — 读取单个 install job 的 typed projection（见 `K-APP-012`）
@@ -697,10 +697,10 @@ alternate storage authority. Missing `dataRootRef`, invalid app id/path shape,
 symlink/non-directory corruption, or unsupported storage policy must fail
 closed with typed storage state/reason.
 
-## K-APP-023 App Package Readiness Truth Projection
+## K-APP-023 App Package Readiness Projection
 
 `MUST`：`GetAppPackageReadiness(app_id)` 是 Runtime-owned package readiness
-truth projection。它读取 Runtime admitted registry / release descriptor、
+projection。它读取 Runtime admitted registry / release descriptor、
 selected `nimi_data` app layout、active release pointer、与
 Runtime-written `install-evidence.json`，并返回 typed
 `AppPackageReadinessProjection`：
@@ -723,10 +723,10 @@ an alternate package authority. SDK may expose typed decoders and compose this
 projection with Platform registry/admission rows for developer ergonomics, but
 the readiness facts remain Runtime-owned.
 
-## K-APP-024 Account App-Inventory Truth Projection
+## K-APP-024 Account App-Inventory Projection
 
 `MUST`：`GetAccountAppInventory()` 是 Runtime-owned authenticated account
-app-inventory truth projection。Runtime resolves the account id from the
+app-inventory projection。Runtime resolves the account id from the
 current authenticated Runtime account projection; the request must not accept a
 renderer- or app-supplied `account_id`.
 

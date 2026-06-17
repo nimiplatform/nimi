@@ -44,10 +44,10 @@ Non-canonical output:
 - must be returned as an output candidate
 - must not write memory by default
 - must not commit cognition by default
-- must not write AgentRule by default
+- must not mutate Realm source-core by default
 - must not become canonical chat history by default
 
-Promotion into memory, cognition, AgentRule, or canonical chat requires a
+Promotion into memory, cognition, Realm source-core, or canonical chat requires a
 separate explicit promotion authority.
 
 ## K-AGCORE-063 Axis Registry
@@ -146,7 +146,7 @@ Fixed values:
 ## K-AGCORE-069 Capability Scope Axis
 
 `capability_scope` identifies which tools, files, delegated capabilities,
-AgentRule mutations, paid/cloud operations, or provider access may be used.
+Realm source-core mutations, paid/cloud operations, or provider access may be used.
 
 Fixed values:
 
@@ -406,7 +406,7 @@ Capability scope defaults are defined by
 Canonical Agent Chat capability grants must not automatically carry into
 non-canonical participation profiles.
 
-AgentRule mutation, private file access, paid/cloud capability use, external
+Realm source-core mutation, private file access, paid/cloud capability use, external
 provider calls, and delegated tool execution require an admitted capability
 scope for the active participation profile.
 

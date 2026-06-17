@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import type { WorldAgent, WorldDetailData } from './world-detail-types.js';
+import type { WorldCharacter, WorldDetailData } from './world-detail-types.js';
 
 export const statusGlowStyles = `
   @keyframes pulse-glow {
@@ -146,12 +146,12 @@ export function formatAuditEventType(eventType?: string | null, t?: TranslateFn)
   }
 }
 
-export function buildVisibleAgentGroups(agents: WorldAgent[], limit: number, expanded: boolean) {
-  const order: Array<WorldAgent['importance']> = ['PRIMARY', 'SECONDARY', 'BACKGROUND'];
+export function buildVisibleCharacterGroups(characters: WorldCharacter[], limit: number, expanded: boolean) {
+  const order: Array<WorldCharacter['importance']> = ['PRIMARY', 'SECONDARY', 'BACKGROUND'];
   const grouped = order.map((importance) => ({
     importance,
-    items: agents
-      .filter((agent) => agent.importance === importance)
+    items: characters
+      .filter((character) => character.importance === importance)
       .sort((left, right) => {
         const vitalityDelta = (right.stats?.vitalityScore ?? 0) - (left.stats?.vitalityScore ?? 0);
         if (vitalityDelta !== 0) return vitalityDelta;

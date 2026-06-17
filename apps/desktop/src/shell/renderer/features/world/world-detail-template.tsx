@@ -6,7 +6,7 @@ import {
   type WorldDetailComposition,
   type WorldDetailSectionKey,
 } from './world-detail-layout.js';
-import { WorldExtendedSection, WorldTimelineSection, WorldScenesSection, WorldAgentsSection } from './world-detail-content-sections.js';
+import { WorldExtendedSection, WorldTimelineSection, WorldScenesSection, WorldCharactersSection } from './world-detail-content-sections.js';
 import { statusGlowStyles, usePrefersReducedMotion } from './world-detail-primitives.js';
 import {
   OasisIdentityCard,
@@ -15,9 +15,9 @@ import {
   WorldHeroSection,
   WorldRecommendedEntrySection,
 } from './world-detail-overview-sections.js';
-import { WorldAgentQuickSheet, WorldSceneQuickSheet } from './world-detail-quick-sheets.js';
+import { WorldCharacterQuickSheet, WorldSceneQuickSheet } from './world-detail-quick-sheets.js';
 import type {
-  WorldAgent,
+  WorldCharacter,
   WorldAuditItem,
   WorldDetailData,
   WorldHistoryBundle,
@@ -27,14 +27,14 @@ import type {
 
 export type WorldDetailPageProps = {
   world: WorldDetailData;
-  agents: WorldAgent[];
+  characters: WorldCharacter[];
   history: WorldHistoryBundle;
   semantic: WorldSemanticData;
   audits: WorldAuditItem[];
   publicAssets: WorldPublicAssetsData;
   loading?: boolean;
   error?: boolean;
-  agentsLoading?: boolean;
+  charactersLoading?: boolean;
   historyLoading?: boolean;
   semanticLoading?: boolean;
   auditsLoading?: boolean;
@@ -42,9 +42,9 @@ export type WorldDetailPageProps = {
   onBack?: () => void;
   onEnterEdit?: () => void;
   onCreateSubWorld?: () => void;
-  // No onChatAgent / onVoiceAgent: a WorldCharacter offers View profile only.
+  // No onChatCharacter / onVoiceCharacter: a WorldCharacter offers View profile only.
   // Chat is materialized only after RuntimeSourceSnapshot handoff.
-  onViewAgent?: (agent: WorldAgent) => void;
+  onViewCharacter?: (character: WorldCharacter) => void;
 };
 
 export type XianxiaWorldTemplateProps = WorldDetailPageProps;
@@ -111,22 +111,22 @@ function WorldDetailPageBody({
 }: WorldDetailPageBodyProps) {
   const { t } = useTranslation();
   const world = props.world;
-  const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
+  const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
   const [selectedSceneId, setSelectedSceneId] = useState<string | null>(null);
   const prefersReducedMotion = usePrefersReducedMotion();
   const isOasisWorld = world.type === 'OASIS';
 
-  const selectedAgent = selectedAgentId
-    ? props.agents.find((agent) => agent.id === selectedAgentId) ?? null
+  const selectedCharacter = selectedCharacterId
+    ? props.characters.find((character) => character.id === selectedCharacterId) ?? null
     : null;
   const selectedScene = selectedSceneId
     ? props.publicAssets.scenes.find((scene) => scene.id === selectedSceneId) ?? null
     : null;
-  const selectedSceneRelatedAgents = selectedScene
-    ? props.agents.filter((agent) => (
-      selectedScene.activeEntities.includes(agent.name)
-      || agent.sceneName === selectedScene.name
-      || agent.location?.includes(selectedScene.name)
+  const selectedSceneRelatedCharacters = selectedScene
+    ? props.characters.filter((character) => (
+      selectedScene.activeEntities.includes(character.name)
+      || character.sceneName === selectedScene.name
+      || character.location?.includes(selectedScene.name)
     )).slice(0, 4)
     : [];
   const selectedSceneRelatedEvents = selectedScene
@@ -187,7 +187,7 @@ function WorldDetailPageBody({
     recommended: (
       <WorldRecommendedEntrySection
         world={world}
-        onSelectAgent={setSelectedAgentId}
+        onSelectCharacter={setSelectedCharacterId}
       />
     ),
     scenes: (
@@ -202,10 +202,10 @@ function WorldDetailPageBody({
       <WorldTimelineSection
         history={props.history}
         loading={props.historyLoading}
-        onSelectAgentName={(name) => {
-          const agent = props.agents.find((item) => item.name === name);
-          if (agent) {
-            setSelectedAgentId(agent.id);
+        onSelectCharacterName={(name) => {
+          const character = props.characters.find((item) => item.name === name);
+          if (character) {
+            setSelectedCharacterId(character.id);
           }
         }}
         onSelectSceneName={(name) => {
@@ -219,11 +219,11 @@ function WorldDetailPageBody({
         subtitle={isOasisWorld ? t('WorldDetail.xianxia.v2.timeline.oasisSubtitle') : undefined}
       />
     ),
-    agents: (
-      <WorldAgentsSection
-        agents={props.agents}
-        agentsLoading={props.agentsLoading}
-        onSelectAgent={(agent) => setSelectedAgentId(agent.id)}
+    characters: (
+      <WorldCharactersSection
+        characters={props.characters}
+        charactersLoading={props.charactersLoading}
+        onSelectCharacter={(character) => setSelectedCharacterId(character.id)}
       />
     ),
     extended: (
@@ -259,11 +259,11 @@ function WorldDetailPageBody({
         {renderedSections}
       </WorldDetailSurface>
 
-      {selectedAgent ? (
-        <WorldAgentQuickSheet
-          agent={selectedAgent}
-          onClose={() => setSelectedAgentId(null)}
-          onViewAgent={props.onViewAgent}
+      {selectedCharacter ? (
+        <WorldCharacterQuickSheet
+          character={selectedCharacter}
+          onClose={() => setSelectedCharacterId(null)}
+          onViewCharacter={props.onViewCharacter}
         />
       ) : null}
 
@@ -272,19 +272,19 @@ function WorldDetailPageBody({
           isOasisWorld={isOasisWorld}
           oasisSceneActionLabel={oasisSceneActionLabel}
           onClose={() => setSelectedSceneId(null)}
-          onSelectAgent={(agentId) => {
+          onSelectCharacter={(characterId) => {
             setSelectedSceneId(null);
-            setSelectedAgentId(agentId);
+            setSelectedCharacterId(characterId);
           }}
-          onViewAgents={() => {
+          onViewCharacters={() => {
             setSelectedSceneId(null);
-            scrollToSection('world-detail-agents');
+            scrollToSection('world-detail-characters');
           }}
           onViewEvents={() => {
             setSelectedSceneId(null);
             scrollToSection('world-detail-timeline');
           }}
-          relatedAgents={selectedSceneRelatedAgents}
+          relatedCharacters={selectedSceneRelatedCharacters}
           relatedEvents={selectedSceneRelatedEvents}
           scene={selectedScene}
         />

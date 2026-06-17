@@ -11,8 +11,7 @@ import (
 
 // guideRuntimeSourceRef is the `~archivist` Nimi guide runtime_source_ref.
 //
-// It is the W1 backend bootstrap's `AgentProfile.id` for the guide agent
-// (`NIMI_GUIDE_AGENT_IDS.archivist` in the Realm public projection boundary).
+// It is the W1 backend bootstrap's source-core id for the guide LocalAgent.
 // It is referenced here
 // only as an ordinary opaque runtime_source_ref test input: the runtime treats it
 // as any other runtime source identifier. This is NOT a runtime-local guide
@@ -50,11 +49,11 @@ func TestRuntimeAgentGuideProjectsAsOrdinaryLocalAgent(t *testing.T) {
 
 	// InitializeAgent: ordinary write path, no guide field on the request.
 	initResp, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		Context:       guideCtx,
-		LocalAgentRef: wantLocalRef,
-		OwnerUserId:   ownerUserID,
-		RuntimeSourceRef:  guideRuntimeSourceRef,
-		DisplayName:   "Archivist",
+		Context:          guideCtx,
+		LocalAgentRef:    wantLocalRef,
+		OwnerUserId:      ownerUserID,
+		RuntimeSourceRef: guideRuntimeSourceRef,
+		DisplayName:      "Archivist",
 	})
 	if err != nil {
 		t.Fatalf("InitializeAgent(guide): %v", err)
@@ -76,11 +75,11 @@ func TestRuntimeAgentGuideProjectsAsOrdinaryLocalAgent(t *testing.T) {
 	// Idempotency gate (K-AGCORE-139 "one account-scoped LocalAgent projection
 	// ... idempotently"): re-init is a typed no-op for the same LocalAgent.
 	reinitResp, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		Context:       guideCtx,
-		LocalAgentRef: wantLocalRef,
-		OwnerUserId:   ownerUserID,
-		RuntimeSourceRef:  guideRuntimeSourceRef,
-		DisplayName:   "Archivist",
+		Context:          guideCtx,
+		LocalAgentRef:    wantLocalRef,
+		OwnerUserId:      ownerUserID,
+		RuntimeSourceRef: guideRuntimeSourceRef,
+		DisplayName:      "Archivist",
 	})
 	if err != nil {
 		t.Fatalf("re-init guide: %v", err)
@@ -92,11 +91,11 @@ func TestRuntimeAgentGuideProjectsAsOrdinaryLocalAgent(t *testing.T) {
 	// Ordinary conversation anchor: opens through the same seam, no
 	// first-message / welcome-copy seeding by the runtime.
 	anchorResp, err := svc.OpenConversationAnchor(ctx, &runtimev1.OpenConversationAnchorRequest{
-		Context:       guideCtx,
-		LocalAgentRef: wantLocalRef,
-		OwnerUserId:   ownerUserID,
-		RuntimeSourceRef:  guideRuntimeSourceRef,
-		SubjectUserId: ownerUserID,
+		Context:          guideCtx,
+		LocalAgentRef:    wantLocalRef,
+		OwnerUserId:      ownerUserID,
+		RuntimeSourceRef: guideRuntimeSourceRef,
+		SubjectUserId:    ownerUserID,
 	})
 	if err != nil {
 		t.Fatalf("OpenConversationAnchor(guide): %v", err)
@@ -144,11 +143,11 @@ func TestRuntimeAgentGuideProjectsAsOrdinaryLocalAgent(t *testing.T) {
 	// ordinary clean create that re-materializes the projection through the
 	// K-AGCORE-139 path — not a tombstone repair.
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		Context:       guideCtx,
-		LocalAgentRef: wantLocalRef,
-		OwnerUserId:   ownerUserID,
-		RuntimeSourceRef:  guideRuntimeSourceRef,
-		DisplayName:   "Archivist",
+		Context:          guideCtx,
+		LocalAgentRef:    wantLocalRef,
+		OwnerUserId:      ownerUserID,
+		RuntimeSourceRef: guideRuntimeSourceRef,
+		DisplayName:      "Archivist",
 	}); err != nil {
 		t.Fatalf("re-init guide after terminate (clean re-materialize): %v", err)
 	}

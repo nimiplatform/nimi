@@ -13,7 +13,7 @@ export type WorldDetailSectionKey =
   | 'recommended'
   | 'scenes'
   | 'timeline'
-  | 'agents'
+  | 'characters'
   | 'extended';
 
 export type WorldDetailSectionSpec = {
@@ -56,8 +56,8 @@ export const NARRATIVE_WORLD_DETAIL_COMPOSITION: WorldDetailComposition = {
       quickNavLabelKey: 'WorldDetail.xianxia.v2.quickNav.timeline',
     },
     {
-      key: 'agents',
-      anchorId: 'world-detail-agents',
+      key: 'characters',
+      anchorId: 'world-detail-characters',
       showInQuickNav: true,
       quickNavLabelKey: 'WorldDetail.xianxia.v2.quickNav.roster',
     },
@@ -84,8 +84,8 @@ export const OASIS_WORLD_DETAIL_COMPOSITION: WorldDetailComposition = {
       anchorId: 'world-detail-timeline',
     },
     {
-      key: 'agents',
-      anchorId: 'world-detail-agents',
+      key: 'characters',
+      anchorId: 'world-detail-characters',
     },
   ],
 };

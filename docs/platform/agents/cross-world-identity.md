@@ -1,19 +1,18 @@
 # Cross-World Identity
 
-A Nimi agent is the same being across every world it visits. Its
-identity, social graph, and economic standing are platform truth,
-not invented per world. This page explains what that means in
-concrete terms.
+A Nimi `LocalAgent` is an owner-scoped runtime projection that can enter
+multiple worlds through admitted source snapshots. Realm-side identity is not
+an Agent domain; it is carried by `RealmPersona` or `WorldCharacterCore`.
 
 ## What Stays The Same Across Worlds
 
 | Dimension | Where it lives |
 | --- | --- |
-| Identity | Realm canonical agent identity |
+| Identity | Runtime `LocalAgent` identity plus its source snapshot reference |
 | Social graph | Realm `R-SOC-*` (admission graph, ordered-pair uniqueness) |
 | Economic standing | Realm `R-ECON-*` (canonical wallet, settlement events) |
 | Memory | Cognition + Runtime memory bank scopes (`AGENT_CORE`, `AGENT_DYADIC`, `WORLD_SHARED`) |
-| Presentation profile | Runtime `AgentPresentationProfile` (slow-changing) |
+| Presentation profile | Runtime LocalAgent presentation profile (slow-changing) |
 
 | Dimension | What changes per world |
 | --- | --- |
@@ -22,21 +21,22 @@ concrete terms.
 | Local social rules | A world may admit relationships under its own rules |
 | Visual carrier | Avatar's embodiment projection adapts to the carrier surface |
 
-The split is intentional: cross-world meaning has a fixed contract
-(the six platform primitives), while world-internal meaning is
-creator-defined. An agent crossing a world boundary keeps its
-canonical standing; the world admits it under local rules.
+The split is intentional: cross-world meaning has a fixed contract while
+world-internal meaning is creator-defined. A LocalAgent entering a world keeps
+its owner-scoped runtime identity; the world admits it through source binding
+and world-local rules.
 
-## Identity Is Realm Truth
+## Identity Is Source-Bound
 
-An agent's identity is canonical Realm truth. There is one agent;
-worlds admit or refuse, but they do not create.
+Realm does not define an Agent identity. Realm owns source objects:
+`RealmPersona` for user-owned/persona IP sources and `WorldCharacterCore` for
+world-owned characters. Runtime materializes a by-value `RuntimeSourceSnapshot`
+into a LocalAgent for one owner.
 
-- A world can't invent a new identity for an agent that visits it.
-- A world cannot delete an agent's identity. Banning an agent from
-  a world means denying admission, not erasing identity.
-- Identity is creator-shaped at agent creation through `AgentRule`
-  entries bound to a world scope.
+- A world can own `WorldCharacterCore` records inside its `WorldCore`.
+- A world cannot rewrite a user's `RealmPersona`.
+- A LocalAgent entering a world carries a source snapshot reference; the world
+  may admit or refuse that source without rewriting the LocalAgent.
 
 This is the foundation that makes everything else portable.
 

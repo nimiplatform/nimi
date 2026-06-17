@@ -9,7 +9,7 @@ export type ContactRecord = {
   isSource: boolean;
   friendsSince: string | null;
   sourceOwnershipType?: 'MASTER_OWNED' | 'WORLD_OWNED' | null;
-  agentCreatorId?: string | null;
+  sourceCreatorId?: string | null;
   // World info
   worldId?: string | null;
   worldName?: string | null;
@@ -23,22 +23,21 @@ export type ContactRecord = {
 
 type ContactPayload = JsonObject;
 
-function hasRealmSourceIdentity(item: ContactPayload, agentProfile: JsonObject | null): boolean {
+function hasRealmSourceIdentity(item: ContactPayload, sourceProfile: JsonObject | null): boolean {
   if (item.isSource === true) return true;
   if (typeof item.sourceRef === 'string' && item.sourceRef.trim()) return true;
   if (typeof item.runtimeSourceRef === 'string' && item.runtimeSourceRef.trim()) return true;
   if (typeof item.sourceKind === 'string' && item.sourceKind.trim()) return true;
   if (typeof item.originKind === 'string' && item.originKind.trim()) return true;
-  return agentProfile !== null;
+  return sourceProfile !== null;
 }
 
 export function toFriendContact(item: ContactPayload): ContactRecord {
   const handle = String(item.handle || '');
   
-  // Parse agent ownership type
-  const agentProfile = parseOptionalJsonObject(item.agentProfile) ?? null;
-  const isSource = hasRealmSourceIdentity(item, agentProfile);
-  const ownershipRaw = String(item.ownershipType || agentProfile?.ownershipType || '').trim();
+  const sourceProfile = parseOptionalJsonObject(item.sourceProfile) ?? null;
+  const isSource = hasRealmSourceIdentity(item, sourceProfile);
+  const ownershipRaw = String(item.ownershipType || sourceProfile?.ownershipType || '').trim();
   const sourceOwnershipType = ownershipRaw === 'MASTER_OWNED' || ownershipRaw === 'WORLD_OWNED'
     ? ownershipRaw
     : null;
@@ -75,8 +74,8 @@ export function toFriendContact(item: ContactPayload): ContactRecord {
     typeof worldData?.name === 'string' ? worldData.name : null;
   const worldBannerUrl = typeof item.worldBannerUrl === 'string'
     ? item.worldBannerUrl
-    : typeof agentProfile?.worldBannerUrl === 'string'
-      ? agentProfile.worldBannerUrl
+    : typeof sourceProfile?.worldBannerUrl === 'string'
+      ? sourceProfile.worldBannerUrl
       : typeof worldData?.bannerUrl === 'string'
         ? worldData.bannerUrl
         : null;

@@ -142,7 +142,7 @@ function areOwnerSettingsProjectionsEqual(
   if (!leftProjection || !rightProjection) {
     return false;
   }
-  return (leftProjection.agentRuleVersion ?? null) === (rightProjection.agentRuleVersion ?? null)
+  return (leftProjection.sourceCoreVersion ?? null) === (rightProjection.sourceCoreVersion ?? null)
     && (leftProjection.communicationStyle || null) === (rightProjection.communicationStyle || null)
     && leftProjection.selectedOwnerSettingFields.length === rightProjection.selectedOwnerSettingFields.length
     && leftProjection.selectedOwnerSettingFields.every(

@@ -61,8 +61,8 @@ Unknown status values fail closed at SDK/app consumers.
 ## K-AGCORE-128 Candidate And Commit Boundary
 
 `candidate_ready` means Runtime produced a candidate. It does not authorize
-domain commit, canonical chat commit, memory write, cognition write, or
-AgentRule mutation.
+domain commit, canonical chat commit, memory write, cognition write, or Realm
+source-core mutation.
 
 `committed_by_owner` may be projected only after the owning domain or canonical
 chat authority reports a typed commit reference.

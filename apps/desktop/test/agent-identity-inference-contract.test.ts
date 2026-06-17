@@ -19,7 +19,7 @@ test('product-side profile and contacts models do not infer source identity from
   assert.match(profileModelSource, /function hasRealmSourceIdentity/);
   assert.match(profileModelSource, /isSource:\s*hasRealmSourceIdentity\(raw\)/);
   assert.match(contactsModelSource, /function hasRealmSourceIdentity/);
-  assert.match(contactsModelSource, /const isSource = hasRealmSourceIdentity\(item, agentProfile\)/);
+  assert.match(contactsModelSource, /const isSource = hasRealmSourceIdentity\(item, sourceProfile\)/);
   assert.match(contactsModelSource, /item\.tags\.map\(\(tag\) => String\(tag\)\)/);
   assert.doesNotMatch(contactsModelSource, /item\.tags\.map\(\(t\) => String\(t\)\)/);
 });

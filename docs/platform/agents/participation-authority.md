@@ -58,10 +58,10 @@ non-canonical by default. Non-canonical output:
 - must be returned as an output candidate
 - must not write memory by default
 - must not commit cognition by default
-- must not write AgentRule by default
+- must not mutate Realm source-core by default
 - must not become canonical chat history by default
 
-Promotion into memory, cognition, AgentRule, or canonical chat
+Promotion into memory, cognition, Realm source-core, or canonical chat
 requires a **later explicit promotion authority**. There is no
 implicit elevation.
 

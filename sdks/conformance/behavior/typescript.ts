@@ -37,17 +37,20 @@ class FakeTransport implements CoreTransport {
       }
       return fixtures.cases.runtime_unary.response_body as Response;
     }
-    if (request.methodId === fixtures.cases.realm_operation.operation_id) {
+    if (request.methodId === 'WorldCoreController_createRuntimeSourceSnapshot') {
       if (process.env.SDKS_CONFORMANCE_PROFILE === 'typed-core') {
         return {
-          id: 'intent-conformance',
-          status: 'ACKED',
-          localAgentRef: 'local-agent',
-          ownerUserId: 'owner',
-          realmAgentId: 'realm-agent',
-          attempts: 1,
-          availableAt: '2026-01-01T00:00:00Z',
-          createdAt: '2026-01-01T00:00:00Z',
+          snapshotId: 'snapshot-conformance',
+          snapshotSchemaVersion: 'runtime-source-snapshot.v1',
+          runtimeSourceRef: 'runtime-source:realmPersona:persona-conformance:hash-conformance',
+          sourceKind: 'realmPersona',
+          sourceId: 'persona-conformance',
+          sourceWorldId: 'oasis',
+          sourceContentHash: 'hash-conformance',
+          sourceContentRevision: 1,
+          payloadHash: 'payload-hash-conformance',
+          payload: { displayName: 'Conformance Persona' },
+          capturedAt: '2026-01-01T00:00:00Z',
         } as Response;
       }
       return fixtures.cases.realm_operation.response_body as Response;
@@ -111,16 +114,33 @@ async function main() {
     assert.equal(typedEvents[0].eventType, AccountEventType.LOGIN_STARTED);
     assert.equal(typedEvents[1].eventType, AccountEventType.LOGIN_COMPLETED);
 
-    const typedRealmResponse = await typedRealm.ackMyLocalAgentProvisionIntent({
-      path: { intentId: 'intent-conformance' },
-      body: { outcome: 'established', detail: 'ok' },
+    const typedRealmResponse = await typedRealm.worldCoreControllerCreateRuntimeSourceSnapshot({
+      path: {},
+      body: {
+        sourceRef: {
+          kind: 'realmPersona',
+          sourceId: 'persona-conformance',
+          sourceContentHash: 'hash-conformance',
+          worldId: 'oasis',
+        },
+      },
     });
-    assert.equal(typedRealmResponse.id, 'intent-conformance');
+    assert.equal(typedRealmResponse.runtimeSourceRef, 'runtime-source:realmPersona:persona-conformance:hash-conformance');
 
     assert.equal(transport.unaryCalls[0].methodId, fixtures.cases.runtime_unary.method_id);
     assert.deepEqual(transport.unaryCalls[0].body, runtimeRequest);
-    assert.equal(transport.unaryCalls[1].methodId, fixtures.cases.realm_operation.operation_id);
-    assert.deepEqual(transport.unaryCalls[1].body, { path: { intentId: 'intent-conformance' }, body: { outcome: 'established', detail: 'ok' } });
+    assert.equal(transport.unaryCalls[1].methodId, 'WorldCoreController_createRuntimeSourceSnapshot');
+    assert.deepEqual(transport.unaryCalls[1].body, {
+      path: {},
+      body: {
+        sourceRef: {
+          kind: 'realmPersona',
+          sourceId: 'persona-conformance',
+          sourceContentHash: 'hash-conformance',
+          worldId: 'oasis',
+        },
+      },
+    });
     const abortController = new AbortController();
     abortController.abort();
     await assert.rejects(

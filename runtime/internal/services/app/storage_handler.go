@@ -15,7 +15,7 @@ import (
 const defaultAppStoragePolicyRef = "nimi-data-app-roots"
 const avatarAppID = "nimi.avatar"
 
-// GetAppStorage returns the Runtime-owned app-scoped storage truth projection.
+// GetAppStorage returns the Runtime-owned app-scoped storage projection.
 // It is intentionally independent from install job state: runtime-registered
 // developer apps can receive data/cache/tmp roots even before an install
 // descriptor or active release exists, while ordinary installed apps still

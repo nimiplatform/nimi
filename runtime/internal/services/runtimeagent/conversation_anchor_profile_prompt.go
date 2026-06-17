@@ -1,6 +1,7 @@
 package runtimeagent
 
 import (
+	"strconv"
 	"strings"
 	"unicode/utf8"
 
@@ -44,6 +45,9 @@ func publicChatAnchorSystemPromptFromMetadata(metadata *structpb.Struct) string 
 	addProfileLine("communicationStyle", "communicationStyle", "communication_style", "contentStyle", "content_style")
 	if fields := profileStringList(profile, "selectedOwnerSettingFields", "selected_owner_setting_fields"); len(fields) > 0 {
 		lines = append(lines, "- selectedOwnerSettingFields: "+strings.Join(fields, ", "))
+	}
+	if version := profileNumber(profile, "sourceCoreVersion", "source_core_version"); version != "" {
+		lines = append(lines, "- sourceCoreVersion: "+version)
 	}
 
 	if len(lines) <= 3 {
@@ -111,6 +115,22 @@ func profileBool(fields map[string]*structpb.Value, keys ...string) bool {
 		}
 	}
 	return false
+}
+
+func profileNumber(fields map[string]*structpb.Value, keys ...string) string {
+	for _, key := range keys {
+		value := fields[key]
+		if value == nil {
+			continue
+		}
+		if number := value.GetNumberValue(); number != 0 {
+			return strconv.FormatFloat(number, 'f', -1, 64)
+		}
+		if text := compactAnchorProfilePromptText(value.GetStringValue(), 80); text != "" {
+			return text
+		}
+	}
+	return ""
 }
 
 func compactAnchorProfilePromptText(value string, maxRunes int) string {

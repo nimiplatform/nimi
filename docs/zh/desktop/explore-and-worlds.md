@@ -68,8 +68,8 @@
 
 | 来源 | 提供什么 |
 | --- | --- |
-| Realm | 世界、Agent、社交动态 |
-| Runtime | Agent 呈现资料预览 |
+| Realm | 世界、RealmPersona、WorldCharacterCore、社交动态 |
+| Runtime | LocalAgent 呈现资料预览 |
 | Realm 聊天 / 社交 | 社交动态流 |
 
 组合受准入接口约束。探索不会自造与上游真相不一致的缓存。
@@ -78,8 +78,7 @@
 
 - [`.nimi/spec/desktop/explore.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/explore.md)
 - [`.nimi/spec/desktop/world-detail.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/world-detail.md)
-- [`.nimi/spec/desktop/agent-detail.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/agent-detail.md)
 - [`.nimi/spec/realm/world.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/world.md)
-- [`.nimi/spec/realm/agent.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/agent.md)
+- [`.nimi/spec/realm/core.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/core.md)
 - [`.nimi/spec/realm/kernel/transit-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/kernel/transit-contract.md)
 - [`.nimi/spec/realm/transit.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/transit.md)

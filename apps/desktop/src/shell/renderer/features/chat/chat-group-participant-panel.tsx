@@ -9,28 +9,28 @@ import { realmGroupChatData } from './data/realm-group-chat-data';
 
 type GroupParticipantDto = RealmModel<'GroupParticipantDto'>;
 
-type AgentFromSnapshot = {
-  agentId: string;
+type SourceFromSnapshot = {
+  sourceAccountId: string;
   displayName: string;
   handle: string;
   avatarUrl: string | null;
 };
 
-function toAgentListFromSocialSnapshot(
+function toSourceListFromSocialSnapshot(
   snapshot: { friends?: readonly unknown[] } | null | undefined,
-): AgentFromSnapshot[] {
+): SourceFromSnapshot[] {
   const friends = Array.isArray(snapshot?.friends) ? snapshot.friends : [];
   return friends
     .filter((item): item is Record<string, unknown> =>
       typeof item === 'object' && item !== null && (item as Record<string, unknown>).isSource === true,
     )
     .map((item) => ({
-      agentId: String(item.accountId || item.id || ''),
+      sourceAccountId: String(item.accountId || item.id || ''),
       displayName: String(item.displayName || item.name || '').trim(),
       handle: String(item.handle || '').trim(),
       avatarUrl: typeof item.avatarUrl === 'string' ? item.avatarUrl : null,
     }))
-    .filter((a) => a.agentId)
+    .filter((a) => a.sourceAccountId)
     .sort((a, b) => a.displayName.localeCompare(b.displayName));
 }
 
@@ -58,93 +58,93 @@ export function ChatGroupParticipantPanel(props: {
   participants: readonly GroupParticipantDto[];
   currentUserId: string | null;
   chatId?: string | null;
-  onAgentSlotChanged?: () => void;
+  onSourceSlotChanged?: () => void;
   embedded?: boolean;
 }) {
-  const { participants, currentUserId, chatId, onAgentSlotChanged, embedded = false } = props;
+  const { participants, currentUserId, chatId, onSourceSlotChanged, embedded = false } = props;
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const [addAgentOpen, setAddAgentOpen] = useState(false);
+  const [addSourceOpen, setAddSourceOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [panelError, setPanelError] = useState<string | null>(null);
 
   const humans = participants.filter((p) => p.type === 'human');
-  const agents = participants.filter((p) => p.type === 'source');
-  const existingAgentIds = new Set(agents.map((a) => String(a.accountId || '')));
-  const canManageAgentSlots = Boolean(
+  const sources = participants.filter((p) => p.type === 'source');
+  const existingSourceIds = new Set(sources.map((a) => String(a.accountId || '')));
+  const canManageSourceSlots = Boolean(
     currentUserId
     && humans.some((p) => p.accountId === currentUserId && p.role === 'admin'),
   );
-  const showAddAgentPicker = addAgentOpen && canManageAgentSlots;
+  const showAddSourcePicker = addSourceOpen && canManageSourceSlots;
 
   const socialQuery = useQuery({
-    queryKey: ['social-snapshot-for-group-agents'],
+    queryKey: ['social-snapshot-for-group-sources'],
     queryFn: async () => realmSocialData.loadSocialSnapshot(),
-    enabled: showAddAgentPicker,
+    enabled: showAddSourcePicker,
     staleTime: 30_000,
   });
 
   useEffect(() => {
-    if (addAgentOpen && !canManageAgentSlots) {
-      setAddAgentOpen(false);
+    if (addSourceOpen && !canManageSourceSlots) {
+      setAddSourceOpen(false);
     }
-  }, [addAgentOpen, canManageAgentSlots]);
+  }, [addSourceOpen, canManageSourceSlots]);
 
-  const availableAgents = toAgentListFromSocialSnapshot(
+  const availableSources = toSourceListFromSocialSnapshot(
     socialQuery.data ?? null,
-  ).filter((a) => !existingAgentIds.has(a.agentId));
+  ).filter((a) => !existingSourceIds.has(a.sourceAccountId));
 
-  const handleAddAgent = async (agentAccountId: string) => {
+  const handleAddSource = async (sourceAccountId: string) => {
     if (!chatId || pendingAction) return;
-    if (!canManageAgentSlots) {
-      setPanelError(t('Chat.groupAgentSlotManagementDenied', { defaultValue: 'Only group admins can manage agents.' }));
+    if (!canManageSourceSlots) {
+      setPanelError(t('Chat.groupSourceSlotManagementDenied', { defaultValue: 'Only group admins can manage sources.' }));
       return;
     }
-    setPendingAction(agentAccountId);
+    setPendingAction(sourceAccountId);
     setPanelError(null);
     try {
-      await realmGroupChatData.addGroupAgent(chatId, agentAccountId);
+      await realmGroupChatData.addGroupSource(chatId, sourceAccountId);
       void queryClient.invalidateQueries({ queryKey: ['group-chats'] });
-      onAgentSlotChanged?.();
-      setAddAgentOpen(false);
+      onSourceSlotChanged?.();
+      setAddSourceOpen(false);
     } catch (error) {
       setPanelError(toPanelErrorMessage(
         error,
-        t('Chat.groupAddAgentError', { defaultValue: 'Failed to add agent to the group' }),
+        t('Chat.groupAddSourceError', { defaultValue: 'Failed to add source to the group' }),
       ));
       logRendererEvent({
         level: 'warn',
         area: 'runtime-participant-slot',
         message: `add-error: ${error instanceof Error ? error.message : String(error)}`,
-        details: { chatId, agentAccountId },
+        details: { chatId, sourceAccountId },
       });
     } finally {
       setPendingAction(null);
     }
   };
 
-  const handleRemoveAgent = async (agentAccountId: string) => {
+  const handleRemoveSource = async (sourceAccountId: string) => {
     if (!chatId || pendingAction) return;
-    if (!canManageAgentSlots) {
-      setPanelError(t('Chat.groupAgentSlotManagementDenied', { defaultValue: 'Only group admins can manage agents.' }));
+    if (!canManageSourceSlots) {
+      setPanelError(t('Chat.groupSourceSlotManagementDenied', { defaultValue: 'Only group admins can manage sources.' }));
       return;
     }
-    setPendingAction(agentAccountId);
+    setPendingAction(sourceAccountId);
     setPanelError(null);
     try {
-      await realmGroupChatData.removeGroupAgent(chatId, agentAccountId);
+      await realmGroupChatData.removeGroupSource(chatId, sourceAccountId);
       void queryClient.invalidateQueries({ queryKey: ['group-chats'] });
-      onAgentSlotChanged?.();
+      onSourceSlotChanged?.();
     } catch (error) {
       setPanelError(toPanelErrorMessage(
         error,
-        t('Chat.groupRemoveAgentError', { defaultValue: 'Failed to remove agent from the group' }),
+        t('Chat.groupRemoveSourceError', { defaultValue: 'Failed to remove source from the group' }),
       ));
       logRendererEvent({
         level: 'warn',
         area: 'runtime-participant-slot',
         message: `remove-error: ${error instanceof Error ? error.message : String(error)}`,
-        details: { chatId, agentAccountId },
+        details: { chatId, sourceAccountId },
       });
     } finally {
       setPendingAction(null);
@@ -179,29 +179,29 @@ export function ChatGroupParticipantPanel(props: {
         <div>
           <div className="flex items-center justify-between px-2 pb-1">
             <span className="text-[11px] font-medium uppercase tracking-wider text-slate-400">
-              {t('Chat.groupAgents', { defaultValue: 'Agents' })}
+              {t('Chat.groupSources', { defaultValue: 'Sources' })}
             </span>
-            {chatId && canManageAgentSlots && (
+            {chatId && canManageSourceSlots && (
               <button
                 type="button"
                 onClick={() => {
                   setPanelError(null);
-                  setAddAgentOpen(!addAgentOpen);
+                  setAddSourceOpen(!addSourceOpen);
                 }}
                 className="rounded px-1.5 py-0.5 text-[11px] font-medium text-violet-600 hover:bg-violet-50"
               >
-                {addAgentOpen
+                {addSourceOpen
                   ? t('Common.cancel', { defaultValue: 'Cancel' })
-                  : t('Chat.groupAddAgent', { defaultValue: '+ Add Agent' })}
+                  : t('Chat.groupAddSource', { defaultValue: '+ Add Source' })}
               </button>
             )}
           </div>
-          {chatId && !canManageAgentSlots ? (
+          {chatId && !canManageSourceSlots ? (
             <div
               className="px-2 pb-2 text-xs text-slate-400"
               data-chat-runtime-participant-slot-refusal="realm-role-required"
             >
-              {t('Chat.groupAgentSlotManagementDenied', { defaultValue: 'Only group admins can manage agents.' })}
+              {t('Chat.groupSourceSlotManagementDenied', { defaultValue: 'Only group admins can manage sources.' })}
             </div>
           ) : null}
           {panelError ? (
@@ -209,47 +209,47 @@ export function ChatGroupParticipantPanel(props: {
               {panelError}
             </div>
           ) : null}
-          {agents.map((p) => (
+          {sources.map((p) => (
             <ParticipantRow
               key={p.accountId}
               participant={p}
               isCurrentUser={false}
-              canRemove={canManageAgentSlots}
-              onRemove={() => handleRemoveAgent(String(p.accountId || ''))}
+              canRemove={canManageSourceSlots}
+              onRemove={() => handleRemoveSource(String(p.accountId || ''))}
               isPending={pendingAction === p.accountId}
             />
           ))}
-          {agents.length === 0 && !addAgentOpen && (
+          {sources.length === 0 && !addSourceOpen && (
             <div className="px-2 py-2 text-xs text-slate-400">
-              {t('Chat.groupNoAgents', { defaultValue: 'No agents in this group' })}
+              {t('Chat.groupNoSources', { defaultValue: 'No sources in this group' })}
             </div>
           )}
-          {showAddAgentPicker && (
+          {showAddSourcePicker && (
             <div className="mt-1 rounded-lg border border-violet-200/60 bg-violet-50/50 p-2">
-              {availableAgents.length > 0 ? (
-                availableAgents.map((agent) => (
+              {availableSources.length > 0 ? (
+                availableSources.map((source) => (
                   <button
-                    key={agent.agentId}
+                    key={source.sourceAccountId}
                     type="button"
-                    onClick={() => handleAddAgent(agent.agentId)}
+                    onClick={() => handleAddSource(source.sourceAccountId)}
                     disabled={pendingAction !== null}
                     className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-violet-100/60 disabled:opacity-50"
                   >
-                    {agent.avatarUrl ? (
-                      <img src={agent.avatarUrl} alt="" className="h-6 w-6 rounded-full object-cover" />
+                    {source.avatarUrl ? (
+                      <img src={source.avatarUrl} alt="" className="h-6 w-6 rounded-full object-cover" />
                     ) : (
                       <div className="flex h-6 w-6 items-center justify-center rounded-full bg-violet-200 text-[10px] font-medium text-violet-700">
-                        {(agent.displayName || '?').charAt(0).toUpperCase()}
+                        {(source.displayName || '?').charAt(0).toUpperCase()}
                       </div>
                     )}
-                    <span className="truncate text-sm text-slate-700">{agent.displayName || agent.handle}</span>
+                    <span className="truncate text-sm text-slate-700">{source.displayName || source.handle}</span>
                   </button>
                 ))
               ) : (
                 <div className="px-2 py-1.5 text-xs text-slate-400">
                   {socialQuery.isLoading
                     ? t('Common.loading', { defaultValue: 'Loading...' })
-                    : t('Chat.groupNoAvailableAgents', { defaultValue: 'No agents available to add' })}
+                    : t('Chat.groupNoAvailableSources', { defaultValue: 'No sources available to add' })}
                 </div>
               )}
             </div>
@@ -307,7 +307,7 @@ function ParticipantRow(props: {
           )}
           {participant.type === 'source' && (
             <span className="shrink-0 rounded bg-violet-100 px-1 py-0.5 text-[10px] font-medium text-violet-600">
-              {t('Chat.groupAgent', { defaultValue: 'Agent' })}
+              {t('Chat.groupSource', { defaultValue: 'Source' })}
             </span>
           )}
         </div>
@@ -321,7 +321,7 @@ function ParticipantRow(props: {
           onClick={onRemove}
           disabled={isPending}
           className="shrink-0 rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-500 disabled:opacity-50"
-          title={t('Chat.groupRemoveAgent', { defaultValue: 'Remove agent' })}
+          title={t('Chat.groupRemoveSource', { defaultValue: 'Remove source' })}
         >
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M4 4l6 6M10 4l-6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
         </button>

@@ -14,8 +14,8 @@ type WorldCharacterCoreDto = RealmModel<'WorldCharacterCoreDto'>;
 type CoreRecord = Record<string, unknown>;
 type WorldDetailDto = WorldCoreDto & CoreRecord;
 type WorldLevelAuditEventDto = CoreRecord;
-type WorldDetailWithAgentsDto = WorldDetailDto & { agents: WorldAgentSummaryDto[] };
-type WorldAgentSummaryDto = {
+type WorldDetailWithCharactersDto = WorldDetailDto & { characters: WorldCharacterSummaryDto[] };
+type WorldCharacterSummaryDto = {
   id: string;
   name: string;
   handle?: string | null;
@@ -90,13 +90,13 @@ function projectWorldCore(core: WorldCoreDto): WorldDetailDto {
     status: readString(payload, 'status') ?? core.visibility,
     level: readNumber(payload, 'level') ?? 1,
     levelUpdatedAt: readString(payload, 'levelUpdatedAt', 'level_updated_at') ?? null,
-    agentCount: readNumber(payload, 'characterCount', 'agentCount') ?? 0,
+    characterCount: readNumber(payload, 'characterCount', 'characterCount') ?? 0,
     createdAt: core.createdAt,
     updatedAt: core.updatedAt,
     creatorId: core.creatorId ?? null,
     freezeReason: readString(payload, 'freezeReason', 'freeze_reason') ?? null,
     lorebookEntryLimit: readNumber(payload, 'lorebookEntryLimit') ?? 0,
-    nativeAgentLimit: readNumber(payload, 'nativeCharacterLimit', 'nativeAgentLimit') ?? 0,
+    nativeCharacterLimit: readNumber(payload, 'nativeCharacterLimit', 'nativeCharacterLimit') ?? 0,
     nativeCreationState: readString(payload, 'nativeCreationState') ?? 'OPEN',
     scoreA: readNumber(payload, 'scoreA') ?? 0,
     scoreC: readNumber(payload, 'scoreC') ?? 0,
@@ -108,7 +108,7 @@ function projectWorldCore(core: WorldCoreDto): WorldDetailDto {
   };
 }
 
-function projectWorldCharacter(character: WorldCharacterCoreDto): WorldAgentSummaryDto {
+function projectWorldCharacter(character: WorldCharacterCoreDto): WorldCharacterSummaryDto {
   const payload = asRecord(character.core);
   return {
     id: character.id,
@@ -135,7 +135,7 @@ async function getWorldCore(realm: Realm, worldId: string): Promise<WorldDetailD
   }));
 }
 
-async function listWorldCharacters(realm: Realm, worldId: string): Promise<WorldAgentSummaryDto[]> {
+async function listWorldCharacters(realm: Realm, worldId: string): Promise<WorldCharacterSummaryDto[]> {
   const rows = await realm.worldCore.worldCoreControllerListWorldCharacters({
     path: { worldId },
     query: {},
@@ -143,8 +143,8 @@ async function listWorldCharacters(realm: Realm, worldId: string): Promise<World
   return rows.map(projectWorldCharacter);
 }
 
-function worldDetailWithAgentsCacheKey(worldId: string, recommendedAgentLimit?: number): string {
-  return `world-core:${worldId}:characters:${recommendedAgentLimit ?? 'all'}`;
+function worldDetailWithCharactersCacheKey(worldId: string, recommendedCharacterLimit?: number): string {
+  return `world-core:${worldId}:characters:${recommendedCharacterLimit ?? 'all'}`;
 }
 
 export async function loadWorldList(
@@ -315,44 +315,44 @@ export async function loadWorldScenes(
   }
 }
 
-export async function loadWorldAgents(
+export async function loadWorldCharacters(
   callApi: RealmWorldApiCaller,
   emitRealmWorldError: RealmWorldErrorEmitter,
   worldId: string,
-): Promise<WorldAgentSummaryDto[]> {
+): Promise<WorldCharacterSummaryDto[]> {
   try {
     return await callApi(
       (realm) => listWorldCharacters(realm, worldId),
       'Failed to load world personas',
     );
   } catch (error) {
-    emitRealmWorldError('load-world-agents', error, { worldId });
+    emitRealmWorldError('load-world-characters', error, { worldId });
     throw error;
   }
 }
 
-export async function loadWorldDetailWithAgents(
+export async function loadWorldDetailWithCharacters(
   callApi: RealmWorldApiCaller,
   emitRealmWorldError: RealmWorldErrorEmitter,
   worldId: string,
-  recommendedAgentLimit?: number,
-): Promise<WorldDetailWithAgentsDto | null> {
+  recommendedCharacterLimit?: number,
+): Promise<WorldDetailWithCharactersDto | null> {
   const normalizedWorldId = String(worldId || '').trim();
-  const cacheKey = worldDetailWithAgentsCacheKey(normalizedWorldId, recommendedAgentLimit);
+  const cacheKey = worldDetailWithCharactersCacheKey(normalizedWorldId, recommendedCharacterLimit);
   try {
     const detail = await callApi(
       async (realm) => {
         const world = await getWorldCore(realm, normalizedWorldId);
         if (!world) return null;
-        const agents = await listWorldCharacters(realm, normalizedWorldId);
+        const characters = await listWorldCharacters(realm, normalizedWorldId);
         return {
           ...world,
-          agents: typeof recommendedAgentLimit === 'number'
-            ? agents.slice(0, Math.max(0, Math.floor(recommendedAgentLimit)))
-            : agents,
+          characters: typeof recommendedCharacterLimit === 'number'
+            ? characters.slice(0, Math.max(0, Math.floor(recommendedCharacterLimit)))
+            : characters,
         };
       },
-      'Failed to load world detail with agents',
+      'Failed to load world detail with characters',
     );
     if (detail) {
       await (await getOfflineCacheManager()).syncWorldMetadata(cacheKey, detail);
@@ -360,13 +360,13 @@ export async function loadWorldDetailWithAgents(
     return detail;
   } catch (error) {
     if (isRealmOfflineError(error)) {
-      const cached = await (await getOfflineCacheManager()).getCachedWorldMetadata<WorldDetailWithAgentsDto>(cacheKey);
+      const cached = await (await getOfflineCacheManager()).getCachedWorldMetadata<WorldDetailWithCharactersDto>(cacheKey);
       if (cached) {
         getOfflineCoordinator().markCacheFallbackUsed();
         return cached;
       }
     }
-    emitRealmWorldError('load-world-detail-with-agents', error, { worldId: normalizedWorldId });
+    emitRealmWorldError('load-world-detail-with-characters', error, { worldId: normalizedWorldId });
     throw error;
   }
 }
@@ -398,10 +398,10 @@ export const realmWorldData = {
     loadMainWorld(callRealmApi, emitRealmDataError),
   loadWorldLevelAudits: (worldId: string, limit = 20) =>
     loadWorldLevelAudits(callRealmApi, emitRealmDataError, worldId, limit),
-  loadWorldAgents: (worldId: string) =>
-    loadWorldAgents(callRealmApi, emitRealmDataError, worldId),
-  loadWorldDetailWithAgents: (worldId: string, recommendedAgentLimit?: number) =>
-    loadWorldDetailWithAgents(callRealmApi, emitRealmDataError, worldId, recommendedAgentLimit),
+  loadWorldCharacters: (worldId: string) =>
+    loadWorldCharacters(callRealmApi, emitRealmDataError, worldId),
+  loadWorldDetailWithCharacters: (worldId: string, recommendedCharacterLimit?: number) =>
+    loadWorldDetailWithCharacters(callRealmApi, emitRealmDataError, worldId, recommendedCharacterLimit),
   loadWorldHistory: (worldId: string) =>
     loadWorldHistory(callRealmApi, emitRealmDataError, worldId),
   loadWorldLorebooks: (worldId: string) =>

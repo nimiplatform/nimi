@@ -32,17 +32,20 @@ class FakeTransport:
                     "callback_origin": "https://app.example",
                 }
             return FIXTURES["cases"]["runtime_unary"]["response_body"]
-        if request.method_id == FIXTURES["cases"]["realm_operation"]["operation_id"]:
+        if request.method_id == "WorldCoreController_createRuntimeSourceSnapshot":
             if os.environ.get("SDKS_CONFORMANCE_PROFILE") == "typed-core":
                 return {
-                    "id": "intent-conformance",
-                    "status": "ACKED",
-                    "localAgentRef": "local-agent",
-                    "ownerUserId": "owner",
-                    "realmAgentId": "realm-agent",
-                    "attempts": 1,
-                    "availableAt": "2026-01-01T00:00:00Z",
-                    "createdAt": "2026-01-01T00:00:00Z",
+                    "snapshotId": "snapshot-conformance",
+                    "snapshotSchemaVersion": "runtime-source-snapshot.v1",
+                    "runtimeSourceRef": "runtime-source:realmPersona:persona-conformance:hash-conformance",
+                    "sourceKind": "realmPersona",
+                    "sourceId": "persona-conformance",
+                    "sourceWorldId": "oasis",
+                    "sourceContentHash": "hash-conformance",
+                    "sourceContentRevision": 1,
+                    "payloadHash": "payload-hash-conformance",
+                    "payload": {"displayName": "Conformance Persona"},
+                    "capturedAt": "2026-01-01T00:00:00Z",
                 }
             return FIXTURES["cases"]["realm_operation"]["response_body"]
         error = RuntimeError(f"unexpected unary {request.method_id}")
@@ -100,17 +103,23 @@ async def main():
         assert events[0].event_type == "ACCOUNT_EVENT_TYPE_LOGIN_STARTED"
         assert events[1].event_type == "ACCOUNT_EVENT_TYPE_LOGIN_COMPLETED"
 
-        realm_request = realm_typed.RealmAckMyLocalAgentProvisionIntentOperationRequest(
-            path=realm_typed.RealmAckMyLocalAgentProvisionIntentOperationPath(intentId="intent-conformance"),
-            body=realm_typed.LocalAgentProvisionIntentAckDto(outcome="established", detail="ok"),
+        realm_request = realm_typed.RealmWorldCoreControllerCreateRuntimeSourceSnapshotOperationRequest(
+            path=realm_typed.RealmWorldCoreControllerCreateRuntimeSourceSnapshotOperationPath(),
+            body=realm_typed.CreateRuntimeSourceSnapshotDto(
+                sourceRef=realm_typed.TypedSourceRefDto(
+                    kind="realmPersona",
+                    sourceId="persona-conformance",
+                    sourceContentHash="hash-conformance",
+                    worldId="oasis",
+                ),
+            ),
         )
-        realm_response = await typed_realm.ack_my_local_agent_provision_intent(realm_request)
-        assert realm_response.id == "intent-conformance"
+        realm_response = await typed_realm.world_core_controller_create_runtime_source_snapshot(realm_request)
+        assert realm_response.runtimeSourceRef == "runtime-source:realmPersona:persona-conformance:hash-conformance"
         assert transport.unary_calls[0].method_id == FIXTURES["cases"]["runtime_unary"]["method_id"]
         assert transport.unary_calls[0].body["redirect_uri"] == "https://app.example/callback"
-        assert transport.unary_calls[1].method_id == FIXTURES["cases"]["realm_operation"]["operation_id"]
-        assert transport.unary_calls[1].body["path"]["intentId"] == "intent-conformance"
-        assert transport.unary_calls[1].body["body"]["outcome"] == "established"
+        assert transport.unary_calls[1].method_id == "WorldCoreController_createRuntimeSourceSnapshot"
+        assert transport.unary_calls[1].body["body"]["sourceRef"]["sourceId"] == "persona-conformance"
         error_request = runtime_typed.BeginLoginRequest(**{**runtime_request.__dict__, "redirect_uri": "force-error"})
         try:
             await typed_runtime.begin_login(error_request)

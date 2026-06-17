@@ -92,18 +92,20 @@ func (t *fakeTransport) Unary(ctx context.Context, req sdkstypes.CoreUnaryReques
 			})
 		}
 		return json.Marshal(t.fixtures.Cases.RuntimeUnary.ResponseBody)
-	case t.fixtures.Cases.RealmOperation.OperationID:
+	case "WorldCoreController_createRuntimeSourceSnapshot":
 		if os.Getenv("SDKS_CONFORMANCE_PROFILE") == "typed-core" {
-			status := LocalAgentProvisionIntentStatus("ACKED")
-			return json.Marshal(LocalAgentProvisionIntentDto{
-				Id:            "intent-conformance",
-				Status:        &status,
-				LocalAgentRef: "local-agent",
-				OwnerUserId:   "owner",
-				RealmAgentId:  "realm-agent",
-				Attempts:      1,
-				AvailableAt:   "2026-01-01T00:00:00Z",
-				CreatedAt:     "2026-01-01T00:00:00Z",
+			return json.Marshal(RuntimeSourceSnapshotDto{
+				SnapshotId:            "snapshot-conformance",
+				SnapshotSchemaVersion: "runtime-source-snapshot.v1",
+				RuntimeSourceRef:      "runtime-source:realmPersona:persona-conformance:hash-conformance",
+				SourceKind:            "realmPersona",
+				SourceId:              "persona-conformance",
+				SourceWorldId:         "oasis",
+				SourceContentHash:     "hash-conformance",
+				SourceContentRevision: 1,
+				PayloadHash:           "payload-hash-conformance",
+				Payload:               map[string]any{"displayName": "Conformance Persona"},
+				CapturedAt:            "2026-01-01T00:00:00Z",
 			})
 		}
 		return json.Marshal(t.fixtures.Cases.RealmOperation.ResponseBody)
@@ -218,14 +220,17 @@ func TestGeneratedClientsWithFakeTransport(t *testing.T) {
 			t.Fatalf("expected typed EOF, got %v", err)
 		}
 
-		outcome := LocalAgentProvisionIntentAckOutcome("established")
-		realmResponse, err := typedRealm.AckMyLocalAgentProvisionIntent(
+		realmResponse, err := typedRealm.WorldCoreControllerCreateRuntimeSourceSnapshot(
 			context.Background(),
-			RealmAckMyLocalAgentProvisionIntentOperationRequest{
-				Path: RealmAckMyLocalAgentProvisionIntentOperationPath{IntentId: "intent-conformance"},
-				Body: LocalAgentProvisionIntentAckDto{
-					Outcome: &outcome,
-					Detail:  "ok",
+			RealmWorldCoreControllerCreateRuntimeSourceSnapshotOperationRequest{
+				Path: RealmWorldCoreControllerCreateRuntimeSourceSnapshotOperationPath{},
+				Body: CreateRuntimeSourceSnapshotDto{
+					SourceRef: &TypedSourceRefDto{
+						Kind:              "realmPersona",
+						SourceId:          "persona-conformance",
+						SourceContentHash: "hash-conformance",
+						WorldId:           "oasis",
+					},
 				},
 			},
 			nil,
@@ -234,10 +239,10 @@ func TestGeneratedClientsWithFakeTransport(t *testing.T) {
 		if err != nil {
 			t.Fatalf("typed realm operation: %v", err)
 		}
-		if realmResponse.Id != "intent-conformance" {
+		if realmResponse.RuntimeSourceRef != "runtime-source:realmPersona:persona-conformance:hash-conformance" {
 			t.Fatalf("typed realm response mismatch: %#v", realmResponse)
 		}
-		if transport.unaryCalls[1].MethodID != fixtures.Cases.RealmOperation.OperationID {
+		if transport.unaryCalls[1].MethodID != "WorldCoreController_createRuntimeSourceSnapshot" {
 			t.Fatalf("typed realm operation mismatch: %s", transport.unaryCalls[1].MethodID)
 		}
 		ctx, cancel := context.WithCancel(context.Background())

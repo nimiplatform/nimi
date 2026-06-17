@@ -92,15 +92,15 @@
     "blocked": {
       "items": []
     },
-    "creatorAgents": [
+    "creatorCharacters": [
       {
-        "id": "agent-e2e-alpha",
-        "displayName": "Fixture Agent",
-        "handle": "~fixture-agent",
+        "id": "character-e2e-alpha",
+        "displayName": "Fixture Character",
+        "handle": "~fixture-character",
         "avatarUrl": "",
-        "bio": "Seeded creator agent",
+        "bio": "Seeded creator character",
         "isSource": true,
-        "agentProfile": {
+        "characterProfile": {
           "worldId": "world-e2e-1"
         }
       }
@@ -120,13 +120,13 @@
         "type": "OASIS",
         "status": "ACTIVE",
         "level": 1,
-        "agentCount": 1,
+        "characterCount": 1,
         "createdAt": "2026-03-15T00:00:00.000Z",
         "updatedAt": "2026-03-15T00:00:00.000Z",
         "creatorId": "user-e2e-primary",
         "freezeReason": null,
         "lorebookEntryLimit": 0,
-        "nativeAgentLimit": 0,
+        "nativeCharacterLimit": 0,
         "nativeCreationState": "OPEN",
         "scoreA": 0,
         "scoreC": 0,
@@ -149,11 +149,11 @@
             ]
           },
           "entry": {
-            "recommendedAgents": [
+            "recommendedCharacters": [
               {
-                "id": "agent-e2e-alpha",
-                "name": "Fixture Agent",
-                "handle": "~fixture-agent",
+                "id": "character-e2e-alpha",
+                "name": "Fixture Character",
+                "handle": "~fixture-character",
                 "avatarUrl": null
               }
             ]
@@ -161,20 +161,20 @@
           "score": {
             "scoreEwma": 87
           },
-          "featuredAgentCount": 1
+          "featuredCharacterCount": 1
         },
-        "agents": [
+        "characters": [
           {
-            "id": "agent-e2e-alpha",
-            "name": "Fixture Agent",
-            "handle": "~fixture-agent",
+            "id": "character-e2e-alpha",
+            "name": "Fixture Character",
+            "handle": "~fixture-character",
             "avatarUrl": null,
-            "bio": "Fixture agent profile used for desktop contract coverage.",
+            "bio": "Fixture character profile used for desktop contract coverage.",
             "activeRuleCount": 3
           }
         ],
-        "agentRuleSummary": {
-          "totalAgentRuleCount": 3,
+        "characterRuleSummary": {
+          "totalCharacterRuleCount": 3,
           "byLayer": {
             "DNA": 1,
             "BEHAVIORAL": 1,
@@ -257,13 +257,13 @@
     "searchUsers": {
       "items": [
         {
-          "id": "agent-e2e-alpha",
-          "displayName": "Fixture Agent",
-          "handle": "~fixture-agent",
+          "id": "character-e2e-alpha",
+          "displayName": "Fixture Character",
+          "handle": "~fixture-character",
           "avatarUrl": "",
-          "bio": "Seeded creator agent",
+          "bio": "Seeded creator character",
           "isSource": true,
-          "agentProfile": {
+          "characterProfile": {
             "worldId": "world-e2e-1"
           }
         }
@@ -325,7 +325,7 @@
         "connectorId": "",
         "targetType": "",
         "targetAccountId": "",
-        "agentId": "agent-e2e-alpha",
+        "characterId": "character-e2e-alpha",
         "worldId": "world-e2e-1",
         "provider": "",
         "userConfirmedUpload": false
@@ -370,7 +370,7 @@
         "accountDefaultProfileRef": "account-default:e2e",
         "builtInAiConfigRefs": [
           "ai-config:nimi-chat:e2e",
-          "ai-config:agent-chat:e2e"
+          "ai-config:character-chat:e2e"
         ],
         "runtimeBaselineRef": "runtime-baseline:e2e",
         "executionEvidenceRef": "e2e-ready-entry"

@@ -366,7 +366,7 @@ export function WorldCard({ world, onOpen }: { world: WorldListItem; onOpen: () 
           }}
         >
           <div style={{ display: 'flex', gap: 16 }}>
-            <Stat label={t('World.stats.online')} value={formatNum(world.agentCount)} valueSize={13} />
+            <Stat label={t('World.stats.online')} value={formatNum(world.characterCount)} valueSize={13} />
             <Stat label={t('World.stats.day')} value={String(world.level)} valueSize={13} />
             <Stat
               label={t('World.stats.flow')}
@@ -452,7 +452,7 @@ export function WorldListRow({ world, onOpen }: { world: WorldListItem; onOpen: 
           <Chip key={tag}>{tag}</Chip>
         ))}
       </div>
-      <Stat label={t('World.stats.online')} value={formatNum(world.agentCount)} valueSize={13} />
+      <Stat label={t('World.stats.online')} value={formatNum(world.characterCount)} valueSize={13} />
       <Stat label={t('World.stats.day')} value={String(world.level)} valueSize={13} />
       <Stat
         label={t('World.stats.flow')}

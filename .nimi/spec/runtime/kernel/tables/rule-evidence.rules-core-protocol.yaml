@@ -257,7 +257,7 @@ rules:
       - runtime_kernel_consistency
       - runtime_go_test
       - sdk_runtime_test
-    note: GetAppStorage is the Runtime-owned app storage truth projection; tests cover Runtime root projection and SDK typed client consumption.
+    note: GetAppStorage is the Runtime-owned app storage projection; tests cover Runtime root projection and SDK typed client consumption.
     evidence_requirement: required
   - rule_id: K-APP-023
     evidence_refs:
@@ -272,7 +272,7 @@ rules:
       - runtime_go_test
       - sdk_runtime_test
       - desktop_boundary_test
-    note: GetAccountAppInventory is the Runtime-owned authenticated account app-inventory truth projection; tests cover verified-but-not-installed rows and Desktop/SDK consumption without Desktop-local file reads.
+    note: GetAccountAppInventory is the Runtime-owned authenticated account app-inventory projection; tests cover verified-but-not-installed rows and Desktop/SDK consumption without Desktop-local file reads.
     evidence_requirement: required
   - rule_id: K-APP-025
     evidence_refs:

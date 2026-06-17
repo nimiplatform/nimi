@@ -18,7 +18,7 @@ scope:
   included:
     - Runtime route request metadata, target call options, stream call options, provider health, local warm orchestration, and text generation timeout constants.
     - Runtime reason-code extraction/local-AI reason projection bridge removal.
-    - Desktop chat, voice transcription, RealmAgent draft generation, and conversation route bootstrap consumption of the SDK host route access surface.
+    - Desktop chat, voice transcription, source-core draft assistance, and conversation route bootstrap consumption of the SDK host route access surface.
     - Tester consumption of the same SDK host route access surface as second-app proof.
   excluded:
     - Product-specific chat turn orchestration, prompt construction, draft parsing, and UI state.
@@ -49,7 +49,7 @@ audited_globs:
   - apps/desktop/src/shell/renderer/features/chat/chat-nimi-runtime.ts
   - apps/desktop/src/shell/renderer/features/chat/chat-agent-voice-transcribe-runtime.ts
   - apps/desktop/src/shell/renderer/features/chat/chat-agent-runtime-types.ts
-  - apps/desktop/src/shell/renderer/features/world/create-agent/realm-agent-ai-generation.ts
+  - apps/desktop/src/shell/renderer/features/world
   - apps/desktop/test/llm-health-check.test.ts
   - apps/desktop/test/runtime-ai-bridge-metadata.test.ts
   - apps/desktop/test/runtime-ai-bridge-reason-map.test.ts
@@ -84,7 +84,7 @@ migrated:
     - apps/desktop/src/shell/renderer/infra/bootstrap/runtime-bootstrap-conversation-route-runtime.ts
     - apps/desktop/src/shell/renderer/features/chat/chat-nimi-runtime.ts
     - apps/desktop/src/shell/renderer/features/chat/chat-agent-voice-transcribe-runtime.ts
-    - apps/desktop/src/shell/renderer/features/world/create-agent/realm-agent-ai-generation.ts
+    - apps/desktop/src/shell/renderer/features/world
   tester_consumers:
     - apps/tester/src/tester/tester-runtime-route-host-access.ts
     - apps/tester/src/shell/routes/settings.tsx
@@ -95,8 +95,8 @@ legal_desktop_residue:
     rationale: Product chat orchestration and text message shaping; Runtime route metadata/local warm/call options come from SDK host access.
   - path: apps/desktop/src/shell/renderer/features/chat/chat-agent-voice-transcribe-runtime.ts
     rationale: Product voice transcription input validation and transcript handling; request metadata and Runtime client access come through SDK-configured shell infra.
-  - path: apps/desktop/src/shell/renderer/features/world/create-agent/realm-agent-ai-generation.ts
-    rationale: Product-specific RealmAgent draft prompt/parsing/review flow; Runtime metadata/client access comes through SDK-configured shell infra.
+  - path: apps/desktop/src/shell/renderer/features/world
+    rationale: Product-specific source-core draft prompt/parsing/review flow; Runtime metadata/client access comes through SDK-configured shell infra.
 tester_proof:
   - apps/tester/src/tester/tester-runtime-route-host-access.ts creates a Tester route host access surface through createHostRuntimeRouteAccessSurface.
   - apps/tester/src/shell/routes/settings.tsx renders Runtime route host access projection in Tester settings.

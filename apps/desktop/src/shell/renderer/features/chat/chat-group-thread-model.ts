@@ -126,11 +126,11 @@ export function groupMessageToCanonical(
 ): ConversationCanonicalMessage {
   const author = msg.author;
   const isCurrentUser = Boolean(currentUserId && author?.accountId === currentUserId);
-  const senderKind: 'human' | 'agent' = author?.type === 'source' ? 'agent' : 'human';
+  const senderKind: 'human' | 'source' = author?.type === 'source' ? 'source' : 'human';
   const role = isCurrentUser
     ? 'user' as const
     : author?.type === 'source'
-      ? 'agent' as const
+      ? 'assistant' as const
       : 'assistant' as const;
 
   let text = '';

@@ -49,7 +49,7 @@ test('world detail prefetch is limited to first-screen queries', () => {
   assert.match(prefetchSection, /worldDisplayDetailQueryKey/);
   assert.match(prefetchSection, /fetchWorldDisplayDetail/);
   assert.doesNotMatch(prefetchSection, /worldListQueryKey/);
-  assert.doesNotMatch(prefetchSection, /worldDetailWithAgentsQueryKey/);
+  assert.doesNotMatch(prefetchSection, /worldDetailWithCharactersQueryKey/);
   assert.doesNotMatch(prefetchSection, /worldHistoryQueryKey/);
   assert.doesNotMatch(prefetchSection, /worldSemanticBundleQueryKey/);
   assert.doesNotMatch(prefetchSection, /worldLevelAuditsQueryKey/);
@@ -61,7 +61,7 @@ test('world detail primary query adopts SDK WorldCore through a bounded adapter'
   assert.match(worldDetailQueriesSource, /toWorldListItem\(asRecord\(detailValue\)\)/);
   assert.doesNotMatch(worldDetailQueriesSource, oldRootSingletonPattern);
   assert.match(worldDetailQueriesSource, /realmWorldData\.loadWorldSemanticBundle/);
-  assert.match(worldDetailQueriesSource, /realmWorldData\.loadWorldDetailWithAgents/);
+  assert.match(worldDetailQueriesSource, /realmWorldData\.loadWorldDetailWithCharacters/);
   assert.doesNotMatch(worldDetailQueriesSource, /mergeNimiRealmWorldPrimaryDetailTruth/);
   assert.doesNotMatch(worldDetailQueriesSource, /WORLD_DETAIL_WORLD_TRUTH_INVALID/);
 });
@@ -92,11 +92,11 @@ test('world detail error state keeps a back escape hatch', () => {
   assert.match(worldDetailTemplateSource, /return <WorldDetailErrorState onBack=\{props\.onBack\} \/>;/);
 });
 
-test('explore shares the world list cache key and does not refetch agents when world metadata changes', () => {
+test('explore shares the world list cache key and does not refetch characters when world metadata changes', () => {
   assert.match(explorePanelSource, /fetchWorldListItems\(\)/);
   assert.match(explorePanelSource, /queryKey: worldListQueryKey\(\)/);
   assert.match(explorePanelSource, /queryKey: \['explore-personas', authStatus, selectedCategory, props\.searchText\]/);
-  assert.match(explorePanelSource, /const agents = useMemo\(/);
+  assert.match(explorePanelSource, /const characters = useMemo\(/);
   assert.doesNotMatch(explorePanelSource, /dataSync\.loadWorlds\(/);
   assert.doesNotMatch(explorePanelSource, /worldsDataVersion/);
 });

@@ -65,7 +65,7 @@ export async function loadExploreAgents(
           avatarUrl: normalizeText(core.avatarUrl) ?? null,
           bio: normalizeText(core.bio) ?? normalizeText(core.description) ?? null,
           tags: Array.isArray(core.tags) ? core.tags : [],
-          agentProfile: core,
+          sourceProfile: core,
           sourceKind: 'realmPersona',
           worldId: persona.homeWorldId,
           createdAt: persona.createdAt,

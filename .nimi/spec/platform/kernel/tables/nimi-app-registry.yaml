@@ -206,10 +206,10 @@ apps:
         qualifier: creator-worlds
       - appId: nimi.realm-world-studio
         scopeFamily: realm
-        scopeName: realm.creator.worldAgents.read
+        scopeName: realm.creator.worldCharacters.read
       - appId: nimi.realm-world-studio
         scopeFamily: realm
-        scopeName: realm.creator.worldAgents.write
+        scopeName: realm.creator.worldCharacters.write
       - appId: nimi.realm-world-studio
         scopeFamily: ai_spend
         scopeName: ai.spend.meter

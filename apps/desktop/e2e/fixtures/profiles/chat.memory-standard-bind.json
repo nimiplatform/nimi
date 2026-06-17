@@ -19,7 +19,7 @@
           "avatarUrl": "",
           "bio": "Seeded creator agent",
           "isSource": true,
-          "agentProfile": {
+          "sourceProfile": {
             "worldId": "world-e2e-1"
           }
         }

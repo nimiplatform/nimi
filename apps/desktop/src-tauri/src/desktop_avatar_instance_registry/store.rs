@@ -618,7 +618,7 @@ mod tests {
     }
 
     #[test]
-    fn list_instances_keeps_same_realm_agent_separate_by_owner() {
+    fn list_instances_keeps_same_runtime_source_separate_by_owner() {
         let listed = list_instances_from_file_at(
             live_registry_file(vec![valid_record(), second_owner_record()]),
             Some(&valid_scope()),

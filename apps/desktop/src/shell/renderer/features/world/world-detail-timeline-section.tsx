@@ -11,7 +11,7 @@ import type { WorldHistoryBundle } from './world-detail-types.js';
 export function WorldTimelineSection({
   history,
   loading,
-  onSelectAgentName,
+  onSelectCharacterName,
   onSelectSceneName,
   compact = false,
   title,
@@ -19,7 +19,7 @@ export function WorldTimelineSection({
 }: {
   history: WorldHistoryBundle;
   loading?: boolean;
-  onSelectAgentName?: (name: string) => void;
+  onSelectCharacterName?: (name: string) => void;
   onSelectSceneName?: (name: string) => void;
   compact?: boolean;
   title?: string;
@@ -136,7 +136,7 @@ export function WorldTimelineSection({
                                 <button
                                   key={`${event.id}-char-${name}`}
                                   type="button"
-                                  onClick={() => onSelectAgentName?.(name)}
+                                  onClick={() => onSelectCharacterName?.(name)}
                                   className="rounded-full border border-[#4ECCA3]/14 bg-[#4ECCA3]/10 px-3 py-1 text-xs text-[#dffdf2] transition-colors hover:bg-[#4ECCA3]/16"
                                 >
                                   {name}

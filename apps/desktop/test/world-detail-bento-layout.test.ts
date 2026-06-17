@@ -103,7 +103,7 @@ function makeSemantic(): WorldSemanticData {
 test('narrative world detail composition remains fixed and includes the current quick-nav contract', () => {
   assert.deepEqual(
     NARRATIVE_WORLD_DETAIL_COMPOSITION.sections.map((section) => section.key),
-    ['hero', 'dashboard', 'core-rules', 'recommended', 'scenes', 'timeline', 'agents', 'extended'],
+    ['hero', 'dashboard', 'core-rules', 'recommended', 'scenes', 'timeline', 'characters', 'extended'],
   );
   assert.deepEqual(
     NARRATIVE_WORLD_DETAIL_COMPOSITION.sections
@@ -114,7 +114,7 @@ test('narrative world detail composition remains fixed and includes the current 
       ['world-detail-recommended', 'WorldDetail.xianxia.v2.quickNav.characters'],
       ['world-detail-scenes', 'WorldDetail.xianxia.v2.quickNav.scenes'],
       ['world-detail-timeline', 'WorldDetail.xianxia.v2.quickNav.timeline'],
-      ['world-detail-agents', 'WorldDetail.xianxia.v2.quickNav.roster'],
+      ['world-detail-characters', 'WorldDetail.xianxia.v2.quickNav.roster'],
       ['world-detail-governance-card', 'WorldDetail.xianxia.v2.quickNav.governance'],
     ],
   );
@@ -123,7 +123,7 @@ test('narrative world detail composition remains fixed and includes the current 
 test('oasis world detail composition stays distinct from narrative-only sections', () => {
   assert.deepEqual(
     OASIS_WORLD_DETAIL_COMPOSITION.sections.map((section) => section.key),
-    ['hero', 'oasis-identity', 'dashboard', 'scenes', 'timeline', 'agents'],
+    ['hero', 'oasis-identity', 'dashboard', 'scenes', 'timeline', 'characters'],
   );
   assert.equal(
     OASIS_WORLD_DETAIL_COMPOSITION.sections.some((section) => section.key === 'core-rules' || section.key === 'recommended' || section.key === 'extended'),
@@ -229,7 +229,7 @@ test('world detail pages are composition-driven and expose stable test surfaces'
   assert.match(worldDashboardSource, /data-testid="world-detail-dashboard"/);
   assert.match(worldCoreRulesSource, /dataTestId="world-detail-core-rules"/);
   assert.match(worldContentSource, /dataTestId="world-detail-timeline"/);
-  assert.match(worldContentSource, /buildVisibleAgentGroups\(agents, 9, expanded\)/);
+  assert.match(worldContentSource, /buildVisibleCharacterGroups\(characters, 9, expanded\)/);
   assert.match(worldContentSource, /totalCount > 9/);
 });
 

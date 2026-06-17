@@ -603,11 +603,11 @@ export function withAgentPresentationProfile(agent, presentationProfile) {
     ...agent,
     presentationProfile,
   };
-  const agentProfile = next.agentProfile && typeof next.agentProfile === 'object' && !Array.isArray(next.agentProfile)
-    ? next.agentProfile
+  const sourceProfile = next.sourceProfile && typeof next.sourceProfile === 'object' && !Array.isArray(next.sourceProfile)
+    ? next.sourceProfile
     : {};
-  next.agentProfile = {
-    ...agentProfile,
+  next.sourceProfile = {
+    ...sourceProfile,
     presentationProfile,
   };
   return next;

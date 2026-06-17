@@ -1,4 +1,4 @@
-export type WorldRecommendedAgentDisplay = {
+export type WorldRecommendedCharacterDisplay = {
   readonly role?: string | null;
   readonly faction?: string | null;
   readonly rank?: string | null;
@@ -6,13 +6,13 @@ export type WorldRecommendedAgentDisplay = {
   readonly location?: string | null;
 };
 
-export type WorldRecommendedAgent = {
+export type WorldRecommendedCharacter = {
   readonly id: string;
   readonly name: string;
   readonly handle?: string | null;
   readonly avatarUrl?: string | null;
   readonly importance?: 'PRIMARY' | 'SECONDARY' | 'BACKGROUND' | null;
-  readonly display?: WorldRecommendedAgentDisplay | null;
+  readonly display?: WorldRecommendedCharacterDisplay | null;
 };
 
 export type WorldDetailData = {
@@ -29,12 +29,12 @@ export type WorldDetailData = {
   readonly status: 'DRAFT' | 'PENDING_REVIEW' | 'ACTIVE' | 'SUSPENDED' | 'ARCHIVED';
   readonly level: number;
   readonly levelUpdatedAt: string | null;
-  readonly agentCount: number;
+  readonly characterCount: number;
   readonly createdAt: string;
   readonly creatorId: string | null;
   readonly freezeReason: 'QUOTA_OVERFLOW' | 'WORLD_INACTIVE' | 'GOVERNANCE_LOCK' | null;
   readonly lorebookEntryLimit: number;
-  readonly nativeAgentLimit: number;
+  readonly nativeCharacterLimit: number;
   readonly nativeCreationState: 'OPEN' | 'NATIVE_CREATION_FROZEN';
   readonly scoreA: number;
   readonly scoreC: number;
@@ -52,10 +52,10 @@ export type WorldDetailData = {
   readonly eraLabel?: string | null;
   readonly primaryLanguage?: string | null;
   readonly commonLanguages?: readonly string[];
-  readonly recommendedAgents?: readonly WorldRecommendedAgent[];
+  readonly recommendedCharacters?: readonly WorldRecommendedCharacter[];
 };
 
-export type WorldAgentStats = {
+export type WorldCharacterStats = {
   readonly vitalityScore?: number | null;
   readonly influenceTier?: string | null;
   readonly interactionTier?: string | null;
@@ -63,7 +63,7 @@ export type WorldAgentStats = {
   readonly lastActiveAt?: string | null;
 };
 
-export type WorldAgent = {
+export type WorldCharacter = {
   readonly id: string;
   readonly name: string;
   readonly handle: string;
@@ -76,7 +76,7 @@ export type WorldAgent = {
   readonly createdAt: string;
   readonly avatarUrl?: string | null;
   readonly importance: 'PRIMARY' | 'SECONDARY' | 'BACKGROUND';
-  readonly stats?: WorldAgentStats | null;
+  readonly stats?: WorldCharacterStats | null;
 };
 
 export type WorldHistoryEvidenceRef = {

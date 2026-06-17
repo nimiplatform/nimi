@@ -209,9 +209,9 @@ func TestDaemonNewRestoresHealthySQLiteBackup(t *testing.T) {
 	}
 }
 
-func writeRuntimeLocalAgentState(localStatePath string, realmAgentID string, scheduledFor time.Time) error {
+func writeRuntimeLocalAgentState(localStatePath string, runtimeSourceRef string, scheduledFor time.Time) error {
 	ownerUserID := "user-1"
-	localAgentRef := "local-agent:" + ownerUserID + ":" + realmAgentID
+	localAgentRef := "local-agent:" + ownerUserID + ":" + runtimeSourceRef
 	now := time.Now().UTC()
 	backend, err := runtimepersistence.Open(nil, localStatePath)
 	if err != nil {
@@ -219,12 +219,12 @@ func writeRuntimeLocalAgentState(localStatePath string, realmAgentID string, sch
 	}
 	defer func() { _ = backend.Close() }()
 	agentRaw, err := protojson.Marshal(&runtimev1.AgentRecord{
-		AgentId:         localAgentRef,
-		LocalAgentRef:   localAgentRef,
-		OwnerUserId:     ownerUserID,
-		RealmAgentId:    realmAgentID,
-		DisplayName:     realmAgentID,
-		LifecycleStatus: runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_ACTIVE,
+		AgentId:          localAgentRef,
+		LocalAgentRef:    localAgentRef,
+		OwnerUserId:      ownerUserID,
+		RuntimeSourceRef: runtimeSourceRef,
+		DisplayName:      runtimeSourceRef,
+		LifecycleStatus:  runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_ACTIVE,
 		Autonomy: &runtimev1.AgentAutonomyState{
 			Enabled: true,
 			Config: &runtimev1.AgentAutonomyConfig{
@@ -289,14 +289,14 @@ func writeRuntimeLocalAgentState(localStatePath string, realmAgentID string, sch
 	})
 }
 
-func runtimeAgentRequestContext(realmAgentID string) *runtimev1.AgentRequestContext {
+func runtimeAgentRequestContext(runtimeSourceRef string) *runtimev1.AgentRequestContext {
 	ownerUserID := "user-1"
 	return &runtimev1.AgentRequestContext{
-		AppId:         "daemon-test",
-		SubjectUserId: ownerUserID,
-		OwnerUserId:   ownerUserID,
-		RealmAgentId:  realmAgentID,
-		LocalAgentRef: "local-agent:" + ownerUserID + ":" + realmAgentID,
+		AppId:            "daemon-test",
+		SubjectUserId:    ownerUserID,
+		OwnerUserId:      ownerUserID,
+		RuntimeSourceRef: runtimeSourceRef,
+		LocalAgentRef:    "local-agent:" + ownerUserID + ":" + runtimeSourceRef,
 	}
 }
 

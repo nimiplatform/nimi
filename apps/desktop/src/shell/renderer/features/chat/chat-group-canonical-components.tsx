@@ -8,13 +8,13 @@ import type {
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 
 function resolveSenderName(message: ConversationCanonicalMessage): string {
-  return String(message.senderName || '').trim() || (message.senderKind === 'agent' ? 'Agent' : 'User');
+  return String(message.senderName || '').trim() || (message.senderKind === 'source' ? 'Source' : 'User');
 }
 
 export function useGroupMessageAvatarRenderer(): CanonicalMessageAvatarSlot {
   return useCallback<CanonicalMessageAvatarSlot>((message) => {
     const senderName = resolveSenderName(message);
-    const senderKind = message.senderKind === 'agent' ? 'agent' : 'human';
+    const senderKind = message.senderKind === 'source' ? 'source' : 'human';
     return (
       <div className="shrink-0">
         <EntityAvatar

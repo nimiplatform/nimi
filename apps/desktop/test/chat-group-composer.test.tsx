@@ -3,8 +3,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 import {
-  applyGroupAgentMentionSelection,
-  shouldOpenGroupAgentMentionPicker,
+  applyGroupSourceMentionSelection,
+  shouldOpenGroupSourceMentionPicker,
 } from '../src/shell/renderer/features/chat/chat-group-composer';
 
 test('group composer renders stacked rows with toolbar and send control', () => {
@@ -22,11 +22,11 @@ test('group composer renders stacked rows with toolbar and send control', () => 
 });
 
 test('group mention helpers preserve trigger and insertion behavior', () => {
-  assert.equal(shouldOpenGroupAgentMentionPicker('@', 1), true);
-  assert.equal(shouldOpenGroupAgentMentionPicker('hello @', 7), true);
-  assert.equal(shouldOpenGroupAgentMentionPicker('email@test', 10), false);
+  assert.equal(shouldOpenGroupSourceMentionPicker('@', 1), true);
+  assert.equal(shouldOpenGroupSourceMentionPicker('hello @', 7), true);
+  assert.equal(shouldOpenGroupSourceMentionPicker('email@test', 10), false);
 
-  assert.equal(applyGroupAgentMentionSelection('@', 'Sage'), '@Sage ');
-  assert.equal(applyGroupAgentMentionSelection('hello @sa', 'Sage'), 'hello @Sage ');
-  assert.equal(applyGroupAgentMentionSelection('hello', 'Sage'), 'hello@Sage ');
+  assert.equal(applyGroupSourceMentionSelection('@', 'Sage'), '@Sage ');
+  assert.equal(applyGroupSourceMentionSelection('hello @sa', 'Sage'), 'hello @Sage ');
+  assert.equal(applyGroupSourceMentionSelection('hello', 'Sage'), 'hello@Sage ');
 });

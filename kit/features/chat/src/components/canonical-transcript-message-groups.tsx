@@ -61,7 +61,7 @@ function renderMessageItem(
           data-canonical-sender-kind={virtualItem.item.message.senderKind || 'unknown'}
           className={cn(
             'pl-10 text-[11px] font-medium tracking-[0.01em]',
-            virtualItem.item.message.senderKind === 'agent'
+            virtualItem.item.message.senderKind === 'agent' || virtualItem.item.message.senderKind === 'source'
               ? 'text-violet-600'
               : 'text-slate-500',
           )}

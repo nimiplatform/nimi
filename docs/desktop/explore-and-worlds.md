@@ -100,8 +100,8 @@ Explore reads from many places to compose its feed:
 
 | Source | What it provides |
 | --- | --- |
-| Realm | Worlds, agents, social posts |
-| Runtime | Agent presentation profile previews |
+| Realm | Worlds, RealmPersonas, WorldCharacterCore rows, social posts |
+| Runtime | LocalAgent presentation profile previews |
 | Realm chat / social | Social post stream |
 
 The composition is bounded by admitted seams; Explore does not
@@ -111,8 +111,7 @@ invent its own caches that diverge from upstream truth.
 
 - [`.nimi/spec/desktop/explore.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/explore.md)
 - [`.nimi/spec/desktop/world-detail.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/world-detail.md)
-- [`.nimi/spec/desktop/agent-detail.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/agent-detail.md)
 - [`.nimi/spec/realm/world.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/world.md)
-- [`.nimi/spec/realm/agent.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/agent.md)
+- [`.nimi/spec/realm/core.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/core.md)
 - [`.nimi/spec/realm/kernel/transit-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/kernel/transit-contract.md)
 - [`.nimi/spec/realm/transit.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/transit.md)

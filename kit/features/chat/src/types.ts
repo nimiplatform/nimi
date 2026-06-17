@@ -301,7 +301,7 @@ export type ConversationCanonicalMessage = {
   senderName?: string | null;
   senderAvatarUrl?: string | null;
   senderHandle?: string | null;
-  senderKind?: 'ai' | 'human' | 'agent' | 'system' | null;
+  senderKind?: 'ai' | 'human' | 'agent' | 'source' | 'system' | null;
   metadata?: Record<string, unknown>;
 };
 

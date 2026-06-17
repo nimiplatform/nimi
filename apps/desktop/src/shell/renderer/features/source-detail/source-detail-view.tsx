@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { getSemanticAgentPalette } from '@renderer/components/agent-theme.js';
+import { getSemanticSourcePalette } from '@renderer/components/source-theme.js';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { ScrollArea } from '@nimiplatform/kit/ui';
 import { describeRealmPersonaPrimaryAction } from '@renderer/features/explore/realm-persona-source-admission';
@@ -132,7 +132,7 @@ export function SourceDetailView(props: SourceDetailViewProps) {
   }
 
   const { source } = props;
-  const palette = getSemanticAgentPalette({
+  const palette = getSemanticSourcePalette({
     category: source.category,
     origin: source.origin,
     description: source.bio || source.category,

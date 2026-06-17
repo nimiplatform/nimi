@@ -87,8 +87,6 @@ type ProfileWorldLike = {
 };
 type ProfileSourceGeneratedBase = Partial<Omit<
   UserProfileDto,
-  | 'agent'
-  | 'agentProfile'
   | 'avatarUrl'
   | 'bio'
   | 'city'
@@ -130,15 +128,15 @@ export type ProfileSource = ProfileSourceGeneratedBase & {
   isPendingFriendRequest?: boolean;
   worldId?: string | null;
   sourceWorldId?: string | null;
-  agentConfig?: object | null;
+  sourceConfig?: object | null;
   worldName?: string | null;
   worldBannerUrl?: string | null;
   likesCount?: number;
   likeCount?: number;
   stats?: ProfileStatsLike | null;
   giftStats?: Record<string, unknown> | null;
-  agent?: ProfileSourceRecordLike | null;
-  agentProfile?: ProfileSourceProfileLike | null;
+  source?: ProfileSourceRecordLike | null;
+  sourceProfile?: ProfileSourceProfileLike | null;
   world?: ProfileWorldLike | null;
 };
 
@@ -148,14 +146,14 @@ function hasRealmSourceIdentity(raw: ProfileSource): boolean {
   if (typeof raw.runtimeSourceRef === 'string' && raw.runtimeSourceRef.trim()) return true;
   if (typeof raw.sourceKind === 'string' && raw.sourceKind.trim()) return true;
   if (typeof raw.originKind === 'string' && raw.originKind.trim()) return true;
-  return Boolean(raw.agent) || Boolean(raw.agentProfile);
+  return Boolean(raw.source) || Boolean(raw.sourceProfile);
 }
 
 export function toProfileData(raw: ProfileSource): ProfileData {
-  const sourceRecord = raw.agent ?? undefined;
+  const sourceRecord = raw.source ?? undefined;
   const stats = raw.stats;
   const giftStats = raw.giftStats;
-  const sourceProfile = raw.agentProfile ?? undefined;
+  const sourceProfile = raw.sourceProfile ?? undefined;
   const world = raw.world;
 
   const parsedGiftStats: Record<string, number> = {};

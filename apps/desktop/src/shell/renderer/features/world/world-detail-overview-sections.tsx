@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
-import { getSemanticAgentPalette } from '@renderer/components/agent-theme.js';
+import { getSemanticSourcePalette } from '@renderer/components/source-theme.js';
 import {
   displayValue,
   formatSemanticValue,
@@ -14,7 +14,7 @@ import {
 } from './world-detail-primitives.js';
 import type {
   WorldPublicAssetsData,
-  WorldRecommendedAgent,
+  WorldRecommendedCharacter,
   WorldSemanticData,
 } from './world-detail-types.js';
 
@@ -179,7 +179,7 @@ export function WorldHeroSection({
               <div className="mt-5 flex flex-wrap gap-2.5">
                 <MetricPill label={t('WorldDetail.xianxia.v2.hero.status')} value={formatStatus(world.status, t)} />
                 <MetricPill label={t('WorldDetail.xianxia.v2.hero.level')} value={`Lv.${world.level}`} />
-                <MetricPill label={t('WorldDetail.xianxia.v2.hero.agentCount')} value={`${world.agentCount}`} />
+                <MetricPill label={t('WorldDetail.xianxia.v2.hero.characterCount')} value={`${world.characterCount}`} />
                 {heroTimeLine ? (
                   <MetricPill
                     label={t('WorldDetail.xianxia.v2.hero.worldTime')}
@@ -237,8 +237,8 @@ export function OasisIdentityCard({
         }
       : null,
     {
-      label: t('WorldDetail.xianxia.v2.oasisIdentity.activeAgents'),
-      value: String(world.agentCount),
+      label: t('WorldDetail.xianxia.v2.oasisIdentity.activeCharacters'),
+      value: String(world.characterCount),
     },
     {
       label: t('WorldDetail.xianxia.v2.oasisIdentity.onlineScenes'),
@@ -330,22 +330,22 @@ export function OasisIdentityCard({
   );
 }
 
-function RecommendedAgentCard({
-  agent,
-  onSelectAgent,
+function RecommendedCharacterTile({
+  character,
+  onSelectCharacter,
   featured = false,
 }: {
-  agent: WorldRecommendedAgent;
-  onSelectAgent?: (agentId: string) => void;
+  character: WorldRecommendedCharacter;
+  onSelectCharacter?: (characterId: string) => void;
   featured?: boolean;
 }) {
-  const palette = getSemanticAgentPalette({
-    description: joinParts([agent.display?.role, agent.display?.faction, agent.display?.rank]),
-    worldName: agent.name,
+  const palette = getSemanticSourcePalette({
+    description: joinParts([character.display?.role, character.display?.faction, character.display?.rank]),
+    worldName: character.name,
   });
   const { t } = useTranslation();
-  const identityLine = joinParts([agent.display?.role, agent.display?.faction, agent.display?.rank]);
-  const locationLine = joinParts([agent.display?.sceneName, agent.display?.location]);
+  const identityLine = joinParts([character.display?.role, character.display?.faction, character.display?.rank]);
+  const locationLine = joinParts([character.display?.sceneName, character.display?.location]);
   const entryReason = locationLine
     ? t('WorldDetail.xianxia.v2.sidebar.entryReasonScene', { value: locationLine })
     : identityLine
@@ -358,14 +358,14 @@ function RecommendedAgentCard({
   return (
     <button
       type="button"
-      onClick={() => onSelectAgent?.(agent.id)}
+      onClick={() => onSelectCharacter?.(character.id)}
       className={`w-full rounded-2xl border border-[#4ECCA3]/10 bg-[#0a0f0c]/56 text-left transition-all hover:border-[#4ECCA3]/22 hover:bg-[#0d1511]/70 ${featured ? 'p-5' : 'p-4'}`}
     >
       <div className="flex items-start gap-3">
         <EntityAvatar
-          imageUrl={agent.avatarUrl}
-          name={agent.name}
-          kind="agent"
+          imageUrl={character.avatarUrl}
+          name={character.name}
+          kind="source"
           sizeClassName={featured ? 'h-16 w-16' : 'h-14 w-14'}
           radiusClassName="rounded-[12px]"
           innerRadiusClassName="rounded-[10px]"
@@ -385,7 +385,7 @@ function RecommendedAgentCard({
             </span>
             <span className="text-[11px] text-white/42">{t('WorldDetail.xianxia.v2.sidebar.inspectProfile')}</span>
           </div>
-          <div className={featured ? 'text-lg font-semibold text-[#effff8]' : 'text-base font-semibold text-[#effff8]'}>{agent.name}</div>
+          <div className={featured ? 'text-lg font-semibold text-[#effff8]' : 'text-base font-semibold text-[#effff8]'}>{character.name}</div>
           {identityLine ? <div className={`mt-1 ${featured ? 'text-[15px]' : 'text-sm'} text-[#d8efe4]/66`}>{identityLine}</div> : null}
           {locationLine ? <div className="mt-1 text-xs" style={{ color: palette.accent }}>{locationLine}</div> : null}
           <div className={`mt-3 rounded-xl border border-white/6 bg-white/[0.03] px-3 py-2 ${featured ? 'text-sm' : 'text-xs'} text-white/62`}>
@@ -397,36 +397,36 @@ function RecommendedAgentCard({
   );
 }
 
-function WorldRecommendedAgentsCard({
-  agents,
-  onSelectAgent,
+function WorldRecommendedCharactersCard({
+  characters,
+  onSelectCharacter,
 }: {
-  agents: WorldRecommendedAgent[];
-  onSelectAgent?: (agentId: string) => void;
+  characters: WorldRecommendedCharacter[];
+  onSelectCharacter?: (characterId: string) => void;
 }) {
   const { t } = useTranslation();
-  if (!agents.length) {
+  if (!characters.length) {
     return null;
   }
-  const recommendedAgents = agents.slice(0, 4);
+  const recommendedCharacters = characters.slice(0, 4);
 
   return (
     <SectionShell
-      title={t('WorldDetail.xianxia.v2.sidebar.recommendedAgents')}
-      subtitle={t('WorldDetail.xianxia.v2.sidebar.recommendedAgentsSubtitle')}
+      title={t('WorldDetail.xianxia.v2.sidebar.recommendedCharacters')}
+      subtitle={t('WorldDetail.xianxia.v2.sidebar.recommendedCharactersSubtitle')}
       className="h-full"
-      dataTestId="world-detail-recommended-agents-card"
+      dataTestId="world-detail-recommended-characters-card"
     >
       <div className="grid gap-3">
         <div className="rounded-2xl border border-[#4ECCA3]/10 bg-[linear-gradient(180deg,rgba(78,204,163,0.08),rgba(10,15,12,0.24))] px-4 py-3 text-sm leading-relaxed text-[#d8efe4]/68">
-          {t('WorldDetail.xianxia.v2.sidebar.recommendedAgentsHint')}
+          {t('WorldDetail.xianxia.v2.sidebar.recommendedCharactersHint')}
         </div>
         <div className="grid gap-3 md:grid-cols-2">
-          {recommendedAgents.map((agent, index) => (
-            <RecommendedAgentCard
-              key={agent.id}
-              agent={agent}
-              onSelectAgent={onSelectAgent}
+          {recommendedCharacters.map((character, index) => (
+            <RecommendedCharacterTile
+              key={character.id}
+              character={character}
+              onSelectCharacter={onSelectCharacter}
               featured={index === 0}
             />
           ))}
@@ -438,15 +438,15 @@ function WorldRecommendedAgentsCard({
 
 export function WorldRecommendedEntrySection({
   world,
-  onSelectAgent,
+  onSelectCharacter,
 }: {
   world: XianxiaWorldData;
-  onSelectAgent?: (agentId: string) => void;
+  onSelectCharacter?: (characterId: string) => void;
 }) {
-  const recommendedAgents = world.recommendedAgents?.slice(0, 4) ?? [];
-  if (!recommendedAgents.length) {
+  const recommendedCharacters = world.recommendedCharacters?.slice(0, 4) ?? [];
+  if (!recommendedCharacters.length) {
     return null;
   }
 
-  return <WorldRecommendedAgentsCard agents={recommendedAgents} onSelectAgent={onSelectAgent} />;
+  return <WorldRecommendedCharactersCard characters={recommendedCharacters} onSelectCharacter={onSelectCharacter} />;
 }

@@ -71,7 +71,7 @@ export function ExplorePanel(props: ExplorePanelProps) {
       eraLabel: world.computed?.time?.eraLabel ?? null,
       currentLabel: world.computed?.time?.currentLabel ?? world.computed?.time?.currentWorldTime ?? null,
       flowRatio: typeof world.computed?.time?.flowRatio === 'number' ? world.computed.time.flowRatio : null,
-      agentCount: typeof world.agentCount === 'number' ? world.agentCount : null,
+      agentCount: typeof world.characterCount === 'number' ? world.characterCount : null,
     }));
   }, [worldsQuery.data]);
 

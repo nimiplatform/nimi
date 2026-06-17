@@ -146,7 +146,7 @@
     "check:sdks-generators": "node sdks/generators/generate.mjs --check",
     "check:sdks-conformance-typed-core": "node sdks/conformance/run.mjs --language all --profile typed-core",
     "check:sdk-consumer-smoke": "node scripts/check-sdk-consumer-smoke.mjs",
-    "check:desktop-group-chat-contract": "pnpm --filter @nimiplatform/desktop exec tsx --test test/chat-group-first-run-flow.test.ts test/chat-group-agent-dispatcher.test.ts test/polling-realtime-coordination.test.ts test/chat-unified-shell-a2.test.ts test/chat-group-rendering.test.ts",
+    "check:desktop-group-chat-contract": "pnpm --filter @nimiplatform/desktop exec tsx --test test/chat-group-first-run-flow.test.ts test/chat-group-source-dispatcher.test.ts test/polling-realtime-coordination.test.ts test/chat-unified-shell-a2.test.ts test/chat-group-rendering.test.ts",
     "check:realm-group-chat-contract": "pnpm check:sdk-vnext-realm-consumer-smoke && pnpm check:sdk-consumer-smoke && pnpm check:desktop-group-chat-contract",
     "check:desktop-bootstrap-hardcut": "node scripts/check-desktop-bootstrap-hardcut.mjs",
     "check:runtime-startup-hardcut": "node scripts/check-runtime-startup-hardcut.mjs",

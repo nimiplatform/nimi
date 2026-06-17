@@ -92,7 +92,7 @@ export function toRestrictedContactProfileData(seed: RestrictedContactProfileSee
     worldBannerUrl: seed.worldBannerUrl ?? null,
     stats: toStats(seed),
     giftStats: seed.giftStats ?? null,
-    agent: {
+    source: {
       state: seed.sourceState ?? null,
       category: seed.sourceCategory ?? null,
       origin: seed.sourceOrigin ?? null,

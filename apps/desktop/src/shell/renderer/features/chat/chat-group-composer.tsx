@@ -6,19 +6,19 @@ import { CHAT_CONTENT_POSITION_CLASS, CHAT_CONTENT_WIDTH_CLASS } from './chat-sh
 
 type GroupParticipantDto = RealmModel<'GroupParticipantDto'>;
 
-type AgentMentionOption = {
+type SourceMentionOption = {
   accountId: string;
   displayName: string;
 };
 
-export function shouldOpenGroupAgentMentionPicker(text: string, selectionStart: number | null | undefined) {
+export function shouldOpenGroupSourceMentionPicker(text: string, selectionStart: number | null | undefined) {
   const cursor = selectionStart ?? text.length;
   const charBefore = text[cursor - 1];
   const charTwoBefore = cursor >= 2 ? text[cursor - 2] : ' ';
   return charBefore === '@' && (!charTwoBefore || /\s/.test(charTwoBefore));
 }
 
-export function applyGroupAgentMentionSelection(text: string, displayName: string) {
+export function applyGroupSourceMentionSelection(text: string, displayName: string) {
   const lastAtIdx = text.lastIndexOf('@');
   const insertText = `@${displayName} `;
   if (lastAtIdx < 0) {
@@ -37,24 +37,24 @@ export function ChatGroupComposer(props: {
   selectedGroupId: string;
   onSendMessage: (content: string) => Promise<void>;
   isSending: boolean;
-  agentParticipants?: readonly GroupParticipantDto[];
+  sourceParticipants?: readonly GroupParticipantDto[];
 }) {
-  const { selectedGroupId, onSendMessage, isSending, agentParticipants } = props;
+  const { selectedGroupId, onSendMessage, isSending, sourceParticipants } = props;
   const { t } = useTranslation();
   const [text, setText] = useState('');
   const [mentionOpen, setMentionOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
 
-  const agentOptions: AgentMentionOption[] = useMemo(
+  const sourceOptions: SourceMentionOption[] = useMemo(
     () =>
-      (agentParticipants || [])
+      (sourceParticipants || [])
         .filter((p): p is GroupParticipantDto & { type: 'source' } => p.type === 'source')
         .map((p) => ({
           accountId: String(p.accountId || ''),
           displayName: String(p.displayName || p.handle || '').trim(),
         }))
         .filter((a) => a.accountId && a.displayName),
-    [agentParticipants],
+    [sourceParticipants],
   );
 
   const focusTextarea = useCallback(() => {
@@ -77,17 +77,17 @@ export function ChatGroupComposer(props: {
     const cursor = rootRef.current
       ?.querySelector<HTMLTextAreaElement>('[data-chat-composer-textarea="true"]')
       ?.selectionStart;
-    if (agentOptions.length > 0 && shouldOpenGroupAgentMentionPicker(newText, cursor)) {
+    if (sourceOptions.length > 0 && shouldOpenGroupSourceMentionPicker(newText, cursor)) {
       setMentionOpen(true);
       return;
     }
     if (!newText.includes('@')) {
       setMentionOpen(false);
     }
-  }, [agentOptions.length]);
+  }, [sourceOptions.length]);
 
-  const handleInsertMention = useCallback((agent: AgentMentionOption) => {
-    setText(applyGroupAgentMentionSelection(text, agent.displayName));
+  const handleInsertMention = useCallback((source: SourceMentionOption) => {
+    setText(applyGroupSourceMentionSelection(text, source.displayName));
     setMentionOpen(false);
     focusTextarea();
   }, [focusTextarea, text]);
@@ -100,22 +100,22 @@ export function ChatGroupComposer(props: {
       data-chat-group-composer-layout="stacked"
       data-chat-group-mention-posture="text-insertion-only"
     >
-      {mentionOpen && agentOptions.length > 0 && (
+      {mentionOpen && sourceOptions.length > 0 && (
         <div className="absolute bottom-full left-5 right-5 mb-1 rounded-lg border border-violet-200/80 bg-white shadow-lg">
           <div className="px-2 py-1.5 text-[11px] font-medium text-slate-400">
-            {t('Chat.groupMentionAgent', { defaultValue: 'Mention an agent' })}
+            {t('Chat.groupMentionSource', { defaultValue: 'Mention a source' })}
           </div>
-          {agentOptions.map((agent) => (
+          {sourceOptions.map((source) => (
             <button
-              key={agent.accountId}
+              key={source.accountId}
               type="button"
-              onClick={() => handleInsertMention(agent)}
+              onClick={() => handleInsertMention(source)}
               className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm text-slate-700 hover:bg-violet-50"
             >
               <div className="flex h-5 w-5 items-center justify-center rounded-full bg-violet-100 text-[10px] font-medium text-violet-600">
-                {agent.displayName.charAt(0).toUpperCase()}
+                {source.displayName.charAt(0).toUpperCase()}
               </div>
-              <span>@{agent.displayName}</span>
+              <span>@{source.displayName}</span>
             </button>
           ))}
         </div>
@@ -125,8 +125,8 @@ export function ChatGroupComposer(props: {
         text={text}
         onTextChange={handleTextChange}
         disabled={!selectedGroupId || isSending}
-        placeholder={agentOptions.length > 0
-          ? t('Chat.groupComposerWithAgents', { defaultValue: 'Type a message... Use @ to mention an agent' })
+        placeholder={sourceOptions.length > 0
+          ? t('Chat.groupComposerWithSources', { defaultValue: 'Type a message... Use @ to mention a source' })
           : t('TurnInput.typeMessage', { defaultValue: 'Type a message...' })}
         layout="stacked"
         widthClassName={CHAT_CONTENT_WIDTH_CLASS}

@@ -25,46 +25,46 @@ test('group create modal reports real create failures without closing or navigat
   assert.match(createControllerSource, /setSelectedTargetForSource\('group', newId\);/);
 });
 
-test('group agent slot controls require Realm admin projection at visibility and handler layers', () => {
-  assert.match(participantPanelSource, /const canManageAgentSlots = Boolean\(/);
+test('group source slot controls require Realm admin projection at visibility and handler layers', () => {
+  assert.match(participantPanelSource, /const canManageSourceSlots = Boolean\(/);
   assert.match(participantPanelSource, /humans\.some\(\(p\) => p\.accountId === currentUserId && p\.role === 'admin'\)/);
-  assert.match(participantPanelSource, /const showAddAgentPicker = addAgentOpen && canManageAgentSlots;/);
-  assert.match(participantPanelSource, /enabled: showAddAgentPicker,/);
-  assert.match(participantPanelSource, /if \(addAgentOpen && !canManageAgentSlots\) \{\s*setAddAgentOpen\(false\);/s);
-  assert.match(participantPanelSource, /\{showAddAgentPicker && \(/);
-  assert.match(participantPanelSource, /if \(!canManageAgentSlots\) \{\s*setPanelError\(t\('Chat\.groupAgentSlotManagementDenied'/s);
+  assert.match(participantPanelSource, /const showAddSourcePicker = addSourceOpen && canManageSourceSlots;/);
+  assert.match(participantPanelSource, /enabled: showAddSourcePicker,/);
+  assert.match(participantPanelSource, /if \(addSourceOpen && !canManageSourceSlots\) \{\s*setAddSourceOpen\(false\);/s);
+  assert.match(participantPanelSource, /\{showAddSourcePicker && \(/);
+  assert.match(participantPanelSource, /if \(!canManageSourceSlots\) \{\s*setPanelError\(t\('Chat\.groupSourceSlotManagementDenied'/s);
   assert.match(participantPanelSource, /data-chat-runtime-participant-slot-refusal="realm-role-required"/);
-  assert.doesNotMatch(participantPanelSource, /agentOwnerId\s*===\s*currentUserId/);
-  assert.doesNotMatch(participantPanelSource, /canManageAgentSlots[\s\S]{0,240}agentOwnerId/);
+  assert.doesNotMatch(participantPanelSource, /sourceOwnerId\s*===\s*currentUserId/);
+  assert.doesNotMatch(participantPanelSource, /canManageSourceSlots[\s\S]{0,240}sourceOwnerId/);
 });
 
 test('group composer mention surface is text insertion posture only', () => {
   assert.match(composerSource, /CanonicalComposer/);
   assert.match(composerSource, /data-chat-group-mention-posture="text-insertion-only"/);
-  assert.match(composerSource, /applyGroupAgentMentionSelection/);
+  assert.match(composerSource, /applyGroupSourceMentionSelection/);
   assert.doesNotMatch(composerSource, /ConversationComposerShell/);
-  assert.doesNotMatch(composerSource, /sendGroupAgentMessage/);
-  assert.doesNotMatch(composerSource, /sendGroupAgentChatMessage/);
-  assert.doesNotMatch(composerSource, /detectGroupAgentTriggers|TRIGGER_RECENCY_WINDOW_MS|triggerText/);
-  assert.doesNotMatch(composerSource, /chat-agent-orchestration|chat-agent-continuity|chat-agent-runtime-memory/);
+  assert.doesNotMatch(composerSource, /sendGroupSourceMessage/);
+  assert.doesNotMatch(composerSource, /sendGroupSourceChatMessage/);
+  assert.doesNotMatch(composerSource, /detectGroupSourceTriggers|TRIGGER_RECENCY_WINDOW_MS|triggerText/);
+  assert.doesNotMatch(composerSource, /chat-source-orchestration|chat-source-continuity|chat-source-runtime-memory/);
 });
 
 test('group adapter feeds committed runtime source slots into split candidate handoff', () => {
   assert.match(groupAdapterSource, /const participants: readonly GroupParticipantDto\[] = selectedGroup\?\.participants \|\| \[];/);
   assert.match(groupAdapterSource, /composerAdapter:\s*null/);
   assert.doesNotMatch(groupAdapterSource, /submit:\s*async\s*\(\)\s*=>\s*undefined/);
-  assert.match(groupAdapterSource, /<ChatGroupComposer[\s\S]*agentParticipants=\{participants\}/);
+  assert.match(groupAdapterSource, /<ChatGroupComposer[\s\S]*sourceParticipants=\{participants\}/);
   assert.match(groupAdapterSource, /realmGroupChatData\.sendGroupMessage\(chatId, content\)/);
-  assert.match(groupAdapterSource, /resolveInvokableGroupAgentMention/);
-  assert.match(groupAdapterSource, /normalizeText\(participant\.agentOwnerId\) === userId/);
+  assert.match(groupAdapterSource, /resolveInvokableGroupSourceMention/);
+  assert.match(groupAdapterSource, /normalizeText\(participant\.sourceOwnerId\) === userId/);
   assert.match(groupAdapterSource, /realmGroupChatData\.commitRealmGroupMessageCandidate/);
-  assert.doesNotMatch(groupAdapterSource, /sendGroupAgentMessage|sendGroupAgentChatMessage/);
+  assert.doesNotMatch(groupAdapterSource, /sendGroupSourceMessage|sendGroupSourceChatMessage/);
   assert.doesNotMatch(groupAdapterSource, /candidate output|runtime\.orchestration|GROUP_LIMITED/);
 });
 
-test('group control surface does not expose fake agent thinking copy', () => {
-  assert.doesNotMatch(enChatLocale, /groupAgentThinking|Agent is thinking/);
-  assert.doesNotMatch(zhChatLocale, /groupAgentThinking|智能体正在思考/);
-  assert.match(enChatLocale, /"groupAgentSlotManagementDenied": "Only group admins can manage agents\."/);
-  assert.match(zhChatLocale, /"groupAgentSlotManagementDenied": "只有群组管理员可以管理智能体。"/);
+test('group control surface does not expose fake source thinking copy', () => {
+  assert.doesNotMatch(enChatLocale, /groupSourceThinking|Source is thinking/);
+  assert.doesNotMatch(zhChatLocale, /groupSourceThinking|智能体正在思考/);
+  assert.match(enChatLocale, /"groupSourceSlotManagementDenied": "Only group admins can manage sources\."/);
+  assert.match(zhChatLocale, /"groupSourceSlotManagementDenied": "只有群组管理员可以管理 Source。"/);
 });

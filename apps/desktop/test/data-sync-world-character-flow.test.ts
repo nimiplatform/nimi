@@ -23,10 +23,10 @@ describe('D-DSYNC-005: world flow source scanning', () => {
     );
   });
 
-  test('D-DSYNC-005: loadWorldAgents exists in source', () => {
+  test('D-DSYNC-005: loadWorldCharacters exists in source', () => {
     assert.ok(
-      worldFlowSource.includes('export async function loadWorldAgents'),
-      'loadWorldAgents must be exported from world-flow',
+      worldFlowSource.includes('export async function loadWorldCharacters'),
+      'loadWorldCharacters must be exported from world-flow',
     );
   });
 
@@ -56,12 +56,12 @@ describe('D-DSYNC-005: world flow source scanning', () => {
   });
 });
 
-describe('D-DSYNC-011: old creator agent flow is hard-cut', () => {
+describe('D-DSYNC-011: old creator character flow is hard-cut', () => {
   test('D-DSYNC-011: runtime-source-create-data no longer exists', () => {
     assert.equal(
       existsSync(resolve(import.meta.dirname, '../src/shell/renderer/features/world/data/runtime-source-create-data.ts')),
       false,
     );
-    assert.doesNotMatch(worldFlowSource, /createNimiRealmMasterAgent|loadNimiRealmCreatorAgents/);
+    assert.doesNotMatch(worldFlowSource, /createNimiRealmMasterCharacter|loadNimiRealmCreatorCharacters/);
   });
 });

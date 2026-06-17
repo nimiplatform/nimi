@@ -15,7 +15,7 @@ function readWorkspaceFile(relativePath: string): string {
   return fs.readFileSync(path.join(workspaceRoot, relativePath), 'utf8');
 }
 
-test('groupMessageToCanonical maps current user, other human, and agent into distinct canonical roles', () => {
+test('groupMessageToCanonical maps current user, other human, and source into distinct canonical roles', () => {
   const currentUserMessage = groupMessageToCanonical({
     id: 'msg_self',
     chatId: 'chat_1',
@@ -53,24 +53,24 @@ test('groupMessageToCanonical maps current user, other human, and agent into dis
   assert.equal(otherHumanMessage.role, 'assistant');
   assert.equal(otherHumanMessage.senderKind, 'human');
 
-  const agentMessage = groupMessageToCanonical({
-    id: 'msg_agent',
+  const sourceMessage = groupMessageToCanonical({
+    id: 'msg_source',
     chatId: 'chat_1',
-    senderId: 'agent_1',
+    senderId: 'source_1',
     text: 'I can help.',
     payload: null,
     createdAt: '2026-04-15T00:02:00.000Z',
     editedAt: null,
     author: {
-      type: 'agent',
-      accountId: 'agent_1',
+      type: 'source',
+      accountId: 'source_1',
       displayName: 'CuiCui',
-      avatarUrl: 'https://example.com/agent.png',
-      agentOwnerId: 'user_self',
+      avatarUrl: 'https://example.com/source.png',
+      sourceOwnerId: 'user_self',
     },
   } as never, 'user_self');
-  assert.equal(agentMessage.role, 'agent');
-  assert.equal(agentMessage.senderKind, 'agent');
+  assert.equal(sourceMessage.role, 'assistant');
+  assert.equal(sourceMessage.senderKind, 'source');
 });
 
 test('group rendering wires avatar renderers and sender labels through transcript and stage surfaces', () => {

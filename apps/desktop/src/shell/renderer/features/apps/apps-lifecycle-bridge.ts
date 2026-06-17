@@ -175,7 +175,7 @@ export interface DesktopAppLifecycleBridge {
   getJob(jobId: string): Promise<NimiRuntimeAppInstallJob>;
   /** List lifecycle job projections for one app. There is no global job list. */
   listJobs(appId: string): Promise<NimiRuntimeAppInstallJob[]>;
-  /** Read the Runtime-owned app-scoped storage truth projection. */
+  /** Read the Runtime-owned app-scoped storage projection. */
   storage(
     input: { appId: string },
     options?: Parameters<NimiRuntimeAppLifecycleClient['storage']>[1],

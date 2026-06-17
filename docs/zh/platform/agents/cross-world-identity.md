@@ -19,15 +19,17 @@ Nimi 的 Agent 在它访问的每个世界里都是同一个生命体。它的�
 | 世界内社交规则 | 在世界自己的规则下准入关系 |
 | 视觉承载 | Avatar 的具身化呈现按承载面调整 |
 
-切分是有意为之：跨世界含义有固定契约（六条平台基础协议），世界内含义由创作者定义。Agent 越过世界边界时保持规范化地位；新世界按本地规则准入它。
+切分是有意为之：跨世界含义有固定契约，世界内含义由创作者定义。LocalAgent 进入世界时保持 owner-scoped runtime identity；世界通过 source binding 和本地规则准入它。
 
-## 身份是 Realm 真相
+## 身份绑定 Source
 
-Agent 的身份是 Realm 规范态。世上只有一个 Agent；世界要么准入要么拒绝，但不能创建。
+Realm 不定义 Agent 身份。Realm 拥有 source 对象：用户/IP source 使用
+`RealmPersona`，world-owned character 使用 `WorldCharacterCore`。Runtime 将
+`RuntimeSourceSnapshot` 按值物化为某个 owner 的 LocalAgent。
 
-- 世界不能给来访的 Agent 发明一个新身份。
-- 世界不能删除 Agent 的身份。把 Agent 从某个世界踢掉是拒绝准入，不是抹除身份。
-- 创建 Agent 时，身份由创作者通过绑定到世界作用域的 `AgentRule` 条目塑形。
+- 世界可以在自己的 `WorldCore` 内拥有 `WorldCharacterCore`。
+- 世界不能改写用户的 `RealmPersona`。
+- LocalAgent 进入世界时携带 source snapshot reference；世界可以准入或拒绝这个 source，但不会改写 LocalAgent 身份。
 
 这是其它一切可携带的根基。
 

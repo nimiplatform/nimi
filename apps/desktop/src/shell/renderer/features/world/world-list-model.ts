@@ -2,8 +2,8 @@ import { isMainWorldType } from './shared';
 
 type LooseObject = { [key: string]: unknown };
 type WorldDetailDto = LooseObject;
-type WorldDetailWithAgentsDto = LooseObject & { agents?: WorldAgentSummaryDto[] };
-type WorldAgentSummaryDto = {
+type WorldDetailWithCharactersDto = LooseObject & { characters?: WorldCharacterSummaryDto[] };
+type WorldCharacterSummaryDto = {
   id: string;
   name?: string;
   handle?: string | null;
@@ -12,7 +12,7 @@ type WorldAgentSummaryDto = {
   createdAt?: string;
 };
 
-export type WorldAgentItem = {
+export type WorldCharacterItem = {
   id: string;
   name: string;
   handle?: string;
@@ -34,7 +34,7 @@ export type WorldComputedLanguages = {
   common: string[];
 };
 
-export type WorldComputedEntryAgent = {
+export type WorldComputedEntryCharacter = {
   id: string;
   name: string;
   handle?: string | null;
@@ -45,12 +45,12 @@ export type WorldComputed = {
   time: WorldComputedTime;
   languages: WorldComputedLanguages;
   entry: {
-    recommendedAgents: WorldComputedEntryAgent[];
+    recommendedCharacters: WorldComputedEntryCharacter[];
   };
   score: {
     scoreEwma: number;
   };
-  featuredAgentCount: number;
+  featuredCharacterCount: number;
 };
 
 export type WorldListItem = {
@@ -70,13 +70,13 @@ export type WorldListItem = {
   status: string;
   level: number;
   levelUpdatedAt: string | null;
-  agentCount: number;
+  characterCount: number;
   createdAt: string;
   updatedAt: string | null;
   creatorId: string | null;
   freezeReason: string | null;
   lorebookEntryLimit: number;
-  nativeAgentLimit: number;
+  nativeCharacterLimit: number;
   nativeCreationState: string;
   scoreA: number;
   scoreC: number;
@@ -85,7 +85,7 @@ export type WorldListItem = {
   scoreQ: number;
   transitInLimit: number;
   computed: WorldComputed;
-  agents?: WorldAgentItem[];
+  characters?: WorldCharacterItem[];
 };
 
 function readString(value: unknown): string | null {
@@ -104,7 +104,7 @@ function readNumber(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }
 
-function toComputedAgent(raw: unknown): WorldComputedEntryAgent | null {
+function toComputedCharacter(raw: unknown): WorldComputedEntryCharacter | null {
   const record = readRecord(raw);
   if (!record) {
     return null;
@@ -143,14 +143,14 @@ function toWorldComputed(raw: unknown): WorldComputed {
         : [],
     },
     entry: {
-      recommendedAgents: Array.isArray(entry?.recommendedAgents)
-        ? entry.recommendedAgents.map(toComputedAgent).filter((value): value is WorldComputedEntryAgent => Boolean(value))
+      recommendedCharacters: Array.isArray(entry?.recommendedCharacters)
+        ? entry.recommendedCharacters.map(toComputedCharacter).filter((value): value is WorldComputedEntryCharacter => Boolean(value))
         : [],
     },
     score: {
       scoreEwma: readNumber(score?.scoreEwma) ?? 0,
     },
-    featuredAgentCount: readNumber(record?.featuredAgentCount) ?? 0,
+    featuredCharacterCount: readNumber(record?.featuredCharacterCount) ?? 0,
   };
 }
 
@@ -172,17 +172,17 @@ export function isMainWorld(item: Pick<WorldListItem, 'type' | 'creatorId'>): bo
   return isMainWorldType(item.type) || !item.creatorId;
 }
 
-export function toWorldListItem(raw: WorldDetailDto | WorldDetailWithAgentsDto): WorldListItem {
-  let parsedAgents: WorldAgentItem[] | undefined;
-  if ('agents' in raw && Array.isArray(raw.agents)) {
-    parsedAgents = raw.agents.map((agent: WorldAgentSummaryDto) => {
+export function toWorldListItem(raw: WorldDetailDto | WorldDetailWithCharactersDto): WorldListItem {
+  let parsedCharacters: WorldCharacterItem[] | undefined;
+  if ('characters' in raw && Array.isArray(raw.characters)) {
+    parsedCharacters = raw.characters.map((character: WorldCharacterSummaryDto) => {
       return {
-        id: agent.id,
-        name: agent.name || 'Unknown',
-        handle: agent.handle ?? undefined,
-        bio: agent.bio ?? undefined,
-        avatarUrl: agent.avatarUrl ?? null,
-        createdAt: agent.createdAt,
+        id: character.id,
+        name: character.name || 'Unknown',
+        handle: character.handle ?? undefined,
+        bio: character.bio ?? undefined,
+        avatarUrl: character.avatarUrl ?? null,
+        createdAt: character.createdAt,
       };
     });
   }
@@ -206,13 +206,13 @@ export function toWorldListItem(raw: WorldDetailDto | WorldDetailWithAgentsDto):
     status: typeof raw.status === 'string' ? raw.status : 'DRAFT',
     level: typeof raw.level === 'number' ? raw.level : 1,
     levelUpdatedAt: typeof raw.levelUpdatedAt === 'string' ? raw.levelUpdatedAt : null,
-    agentCount: typeof raw.agentCount === 'number' ? raw.agentCount : 0,
+    characterCount: typeof raw.characterCount === 'number' ? raw.characterCount : 0,
     createdAt: typeof raw.createdAt === 'string' ? raw.createdAt : '',
     updatedAt: typeof raw.updatedAt === 'string' ? raw.updatedAt : null,
     creatorId: resolveCreatorId(raw),
     freezeReason: typeof raw.freezeReason === 'string' ? raw.freezeReason : null,
     lorebookEntryLimit: typeof raw.lorebookEntryLimit === 'number' ? raw.lorebookEntryLimit : 0,
-    nativeAgentLimit: typeof raw.nativeAgentLimit === 'number' ? raw.nativeAgentLimit : 0,
+    nativeCharacterLimit: typeof raw.nativeCharacterLimit === 'number' ? raw.nativeCharacterLimit : 0,
     nativeCreationState:
       typeof raw.nativeCreationState === 'string' ? raw.nativeCreationState : 'OPEN',
     scoreA: typeof raw.scoreA === 'number' ? raw.scoreA : 0,
@@ -222,6 +222,6 @@ export function toWorldListItem(raw: WorldDetailDto | WorldDetailWithAgentsDto):
     scoreQ: typeof raw.scoreQ === 'number' ? raw.scoreQ : 0,
     transitInLimit: typeof raw.transitInLimit === 'number' ? raw.transitInLimit : 0,
     computed: toWorldComputed(raw.computed),
-    agents: parsedAgents,
+    characters: parsedCharacters,
   };
 }

@@ -19,7 +19,7 @@ scope:
     - Tester consumption of the same SDK Realm social/feed/explore helpers as second-app proof.
   excluded:
     - Desktop blocked-content filtering, offline cache persistence, local social outbox storage, and local-agent courier side effects.
-    - Agent detail and RealmAgent creation data, which remain separate audit domains.
+    - Source detail and RealmPersona/WorldCharacterCore authoring data, which remain separate audit domains.
 preflight_violation_inventory:
   platform_truth:
     - finding: Desktop social/feed/explore data files selected Realm service methods directly for UserService, MeService, PostsService, SearchService, ExploreService, and GovernanceService.

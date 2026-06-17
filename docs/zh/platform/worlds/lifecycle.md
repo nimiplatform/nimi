@@ -6,27 +6,29 @@ Nimi 的世界是长时存活的对象。这一页走完它的生命周期：从
 
 ## 撰写与发布
 
-世界由创作者撰写。创作者工具产出**真相** —— `WorldRule`、绑到这个世界的 `AgentRule`、场景、Agent、呈现 —— 并打包待发布。
+世界由创作者撰写。创作者工具维护规范的 `WorldCore`，以及准入的
+`WorldCharacterCore`、timeline、scene、history 和产品元数据，并通过
+`WorldCoreIngressPackage` 或 `CorePatch` 原子提交。
 
-发布的那一刻是一次 **`WorldRelease`**：一次原子事务，把真相、呈现、包版本冻结成同一个规范化锚点。一次 release 携带：
+发布的那一刻是一次 core commit：一次原子事务，把已准入 core 对象状态冻结成同一个规范化锚点。一次 commit 携带：
 
-- 包版本
+- Core schema version
 - 出处（谁发布、用什么工具）
 - 校验和 / 差异元数据
-- 回滚血缘
+- replacement 或 patch 血缘
 
-原子性是关键。真相、Agent rule 作用域、呈现，必须落在同一次事务提交里。半发布的世界不被准入。
+原子性是关键。WorldCore、WorldCharacterCore、scene、timeline、history 状态必须落在同一次事务提交里。半发布的世界不被准入。
 
-发布走 **`CanonicalTruthPackage`** —— 官方上行真相入口对象。它区分：
+发布走 **`WorldCoreIngressPackage`** 或 **`CorePatch`**。它区分：
 
 | 组成 | 用途 |
 | --- | --- |
-| 规范化真相单元 | 世界规则、Agent 规则、场景规则等 |
-| 派生 / 继承输入 | 世界真相对 Agent 真相施加的约束 |
-| 呈现输入 | 世界支持哪些读视图 |
+| Core world object | identity、ownership、time model、timeline、history 和产品元数据 |
+| Core character objects | 绑定到世界的 world-owned characters |
+| Runtime source snapshot 输入 | 用于按值物化 LocalAgent 的数据 |
 | 治理 / 发布元数据 | 版本、出处、审计 |
 
-Lorebook 文本与 prompt payload 永远不是这个包的规范化中心。它们可能是呈现的输入，但本身不是真相。
+Lorebook 文本与 prompt payload 永远不是这个包的规范化中心。它们可以是 source-core 字段或下游 prompt-context 输入，但不能替代 core 对象。
 
 ## 回滚也是发布操作
 

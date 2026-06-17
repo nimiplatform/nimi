@@ -6,7 +6,7 @@ export type AgentLocalMessageStatus = 'pending' | 'complete' | 'error';
 export type AgentLocalMessageKind = 'text' | 'image' | 'voice';
 
 export type AgentOwnerSettingsProjectionSummary = {
-  agentRuleVersion: number | null;
+  sourceCoreVersion: number | null;
   selectedOwnerSettingFields: string[];
   communicationStyle: string | null;
 };
@@ -40,7 +40,7 @@ export type AgentLocalTargetSnapshot = {
   greeting: string | null;
   builtinDocsContext: string | null;
   // Reviewed owner-controlled profile settings projected by Realm. This is a
-  // product-safe summary, not the raw rules cache or AgentRule statements.
+  // product-safe summary, not a raw source-core mutation payload.
   ownerSettingsProjection?: AgentOwnerSettingsProjectionSummary | null;
 };
 

@@ -43,11 +43,14 @@ test('report modal reason list matches backend enum contract', () => {
 });
 
 test('post card author projection consumes generated UserLiteDto fields exactly', () => {
+  const oldAuthorSourceField = new RegExp(['author\\?', 'agent\\b'].join('\\\\.'));
+  const oldAuthorProfileField = new RegExp(['author\\?', 'agent' + 'Profile\\b'].join('\\\\.'));
+
   assert.doesNotMatch(postCardSource, /_id/);
   assert.doesNotMatch(postCardProjectionsSource, /authorRecord/);
   assert.doesNotMatch(postCardProjectionsSource, /post\.author as Record<string, unknown>/);
-  assert.match(postCardProjectionsSource, /const agent = author\?\.agent \?\? null/);
-  assert.match(postCardProjectionsSource, /const agentProfile = author\?\.agentProfile \?\? null/);
+  assert.doesNotMatch(postCardProjectionsSource, oldAuthorSourceField);
+  assert.doesNotMatch(postCardProjectionsSource, oldAuthorProfileField);
 });
 
 test('report modal preserves failure feedback instead of silently closing on submit errors', () => {

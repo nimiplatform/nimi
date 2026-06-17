@@ -6,10 +6,10 @@ use crate::core_client::CoreTransport;
 use crate::core_generated::realm_client::RealmGeneratedClient;
 use crate::core_generated::runtime_client::RuntimeGeneratedClient;
 use crate::core_generated::typed_clients::{
-    AccountCaller, BeginLoginRequest, CoreTypedStream, LocalAgentProvisionIntentAckDto,
-    RealmAckMyLocalAgentProvisionIntentOperationPath,
-    RealmAckMyLocalAgentProvisionIntentOperationRequest, RealmTypedClient, RuntimeTypedClient,
-    SubscribeAccountSessionEventsRequest,
+    AccountCaller, BeginLoginRequest, CoreTypedStream, CreateRuntimeSourceSnapshotDto,
+    RealmTypedClient, RealmWorldCoreControllerCreateRuntimeSourceSnapshotOperationPath,
+    RealmWorldCoreControllerCreateRuntimeSourceSnapshotOperationRequest, RuntimeTypedClient,
+    SubscribeAccountSessionEventsRequest, TypedSourceRefDto,
 };
 use crate::types::{CoreMetadata, CoreStreamRequest, CoreUnaryRequest};
 
@@ -58,7 +58,7 @@ impl CoreTransport for FakeTransport {
             if request.method_id.contains("BeginLogin") {
                 return Ok(b"accepted=true;login_attempt_id=login-conformance;callback_origin=https://app.example".to_vec());
             }
-            if request.method_id == "ackMyLocalAgentProvisionIntent" {
+            if request.method_id == "WorldCoreController_createRuntimeSourceSnapshot" {
                 return Ok(b"source=realm-operation;ok=true".to_vec());
             }
         }
@@ -158,14 +158,16 @@ fn generated_clients_use_fake_transport() {
             crate::core_client::CoreClient::new(FakeTransport::default(), Some(auth_metadata));
         let realm = RealmTypedClient::new(realm_core);
         let realm_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            realm.ack_my_local_agent_provision_intent(
-                RealmAckMyLocalAgentProvisionIntentOperationRequest {
-                    path: RealmAckMyLocalAgentProvisionIntentOperationPath {
-                        intent_id: "intent-conformance".to_string(),
-                    },
-                    body: LocalAgentProvisionIntentAckDto {
-                        outcome: Box::new("established".to_string()),
-                        detail: "ok".to_string(),
+            realm.world_core_controller_create_runtime_source_snapshot(
+                RealmWorldCoreControllerCreateRuntimeSourceSnapshotOperationRequest {
+                    path: RealmWorldCoreControllerCreateRuntimeSourceSnapshotOperationPath {},
+                    body: CreateRuntimeSourceSnapshotDto {
+                        source_ref: Box::new(TypedSourceRefDto {
+                            kind: "realmPersona".to_string(),
+                            source_id: "persona-conformance".to_string(),
+                            source_content_hash: "hash-conformance".to_string(),
+                            world_id: "oasis".to_string(),
+                        }),
                     },
                     ..Default::default()
                 },

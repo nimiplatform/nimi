@@ -241,37 +241,37 @@ export async function createGroupChat(
   }
 }
 
-export async function addGroupChatAgent(
+export async function addGroupChatSource(
   callApi: RealmGroupChatApiCaller,
   emitRealmGroupChatError: RealmGroupChatErrorEmitter,
   chatId: string,
-  agentAccountId: string,
+  sourceAccountId: string,
 ) {
   try {
     const result = await callApi(
-      (realm) => addNimiRealmGroupParticipant(realm, chatId, agentAccountId),
-      '添加群组 Agent 失败',
+      (realm) => addNimiRealmGroupParticipant(realm, chatId, sourceAccountId),
+      '添加群组 Source 失败',
     );
     return result;
   } catch (error) {
-    emitRealmGroupChatError('add-group-agent', error, { chatId, agentAccountId });
+    emitRealmGroupChatError('add-group-source', error, { chatId, sourceAccountId });
     throw error;
   }
 }
 
-export async function removeGroupChatAgent(
+export async function removeGroupChatSource(
   callApi: RealmGroupChatApiCaller,
   emitRealmGroupChatError: RealmGroupChatErrorEmitter,
   chatId: string,
-  agentAccountId: string,
+  sourceAccountId: string,
 ) {
   try {
     await callApi(
-      (realm) => removeNimiRealmGroupParticipant(realm, chatId, agentAccountId),
-      '移除群组 Agent 失败',
+      (realm) => removeNimiRealmGroupParticipant(realm, chatId, sourceAccountId),
+      '移除群组 Source 失败',
     );
   } catch (error) {
-    emitRealmGroupChatError('remove-group-agent', error, { chatId, agentAccountId });
+    emitRealmGroupChatError('remove-group-source', error, { chatId, sourceAccountId });
     throw error;
   }
 }
@@ -329,8 +329,8 @@ export const realmGroupChatData = {
     createGroupChat(callRealmApi, emitRealmDataError, title, participantIds, initialMessage),
   syncGroupEvents: (chatId: string, afterSeq: number, limit = 100) =>
     syncGroupChatEvents(callRealmApi, emitRealmDataError, chatId, afterSeq, Math.min(limit, 100)),
-  addGroupAgent: (chatId: string, agentAccountId: string) =>
-    addGroupChatAgent(callRealmApi, emitRealmDataError, chatId, agentAccountId),
-  removeGroupAgent: (chatId: string, agentAccountId: string) =>
-    removeGroupChatAgent(callRealmApi, emitRealmDataError, chatId, agentAccountId),
+  addGroupSource: (chatId: string, sourceAccountId: string) =>
+    addGroupChatSource(callRealmApi, emitRealmDataError, chatId, sourceAccountId),
+  removeGroupSource: (chatId: string, sourceAccountId: string) =>
+    removeGroupChatSource(callRealmApi, emitRealmDataError, chatId, sourceAccountId),
 };

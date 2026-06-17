@@ -67,12 +67,12 @@ export function WorldDetailSkeletonPage() {
           <div className="h-[420px] animate-pulse rounded-[16px] bg-[#0f1612] border border-[#4ECCA3]/10" />
         </div>
 
-        {/* Agents section skeleton */}
+        {/* Characters section skeleton */}
         <section className="relative overflow-hidden rounded-[16px] nimi-material-glass-thin border border-[#4ECCA3]/15 bg-[#0f1612]/80 backdrop-blur-[var(--nimi-backdrop-blur-thin)] p-5">
           <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#4ECCA3]/50 to-transparent" />
           {/* Section title placeholder */}
           <div className="h-4 w-20 rounded bg-[#173422] animate-pulse mb-5" />
-          {/* Agent card grid */}
+          {/* Character card grid */}
           <div className="grid grid-cols-4 gap-4">
             {[0, 1, 2, 3].map((i) => (
               <div

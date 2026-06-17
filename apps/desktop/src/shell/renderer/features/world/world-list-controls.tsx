@@ -212,7 +212,7 @@ export function WorldCatalogSidebar({
 }: WorldCatalogSidebarProps) {
   const { t } = useTranslation();
   const collections = useMemo(() => buildCollections(worlds), [worlds]);
-  const totalAgents = useMemo(() => worlds.reduce((sum, world) => sum + world.agentCount, 0), [worlds]);
+  const totalCharacters = useMemo(() => worlds.reduce((sum, world) => sum + world.characterCount, 0), [worlds]);
   const activeCount = useMemo(() => worlds.filter((world) => !isArchivedWorld(world)).length, [worlds]);
   const filters: { id: FilterId; label: string; count: number }[] = [
     { id: 'all', label: t('World.sidebar.filters.all'), count: counts.all },
@@ -367,7 +367,7 @@ export function WorldCatalogSidebar({
           <div style={{ height: 1, background: 'var(--nimi-border-subtle)' }} />
           <Stat
             label={t('World.sidebar.inhabitants')}
-            value={formatNum(totalAgents)}
+            value={formatNum(totalCharacters)}
             sub={t('World.sidebar.inhabitantsSub')}
           />
         </div>

@@ -96,7 +96,7 @@ test('chat unified shell a2: chat page mounts the canonical target-first shell',
   assert.doesNotMatch(chatAgentModeContentSource, /ChatRightPanelUtilityRail/);
   assert.match(chatSidebarTargetsSource, /source: 'ai'/);
   assert.match(chatSidebarTargetsSource, /toRealmHumanTargetSummary/);
-  assert.match(chatSidebarTargetsSource, /source: 'agent'/);
+  assert.match(chatAgentModeContentSource, /source: 'agent' as const/);
   assert.doesNotMatch(chatPageSource, /resolveAgentConversationSurfaceState/);
   assert.doesNotMatch(chatPageSource, /resolveAgentConversationHostView/);
   assert.doesNotMatch(chatPageSource, /resolveAgentConversationHostSnapshot/);

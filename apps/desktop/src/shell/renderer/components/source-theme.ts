@@ -1,4 +1,4 @@
-export type SemanticAgentThemeInput = {
+export type SemanticSourceThemeInput = {
   category?: string | null;
   origin?: string | null;
   worldName?: string | null;
@@ -6,7 +6,7 @@ export type SemanticAgentThemeInput = {
   tags?: string[];
 };
 
-export type SemanticAgentPalette = {
+export type SemanticSourcePalette = {
   background: string;
   ring: string;
   accent: string;
@@ -14,7 +14,7 @@ export type SemanticAgentPalette = {
   badgeText: string;
 };
 
-const DEFAULT_AGENT_PALETTE: SemanticAgentPalette = {
+const DEFAULT_SOURCE_PALETTE: SemanticSourcePalette = {
   background: 'linear-gradient(135deg, rgba(236,254,255,0.92) 0%, rgba(219,234,254,0.78) 100%)',
   ring: 'linear-gradient(135deg, #67e1f5 0%, #155dfc 100%)',
   accent: '#007595',
@@ -22,7 +22,7 @@ const DEFAULT_AGENT_PALETTE: SemanticAgentPalette = {
   badgeText: '#0f172a',
 };
 
-const AGENT_THEME_PALETTES: Array<{ keywords: string[]; palette: SemanticAgentPalette }> = [
+const SOURCE_THEME_PALETTES: Array<{ keywords: string[]; palette: SemanticSourcePalette }> = [
   {
     keywords: ['xianxia', 'cultivation', 'immortal', 'dao', 'fantasy', '修仙', '仙侠', '宗门'],
     palette: {
@@ -65,7 +65,7 @@ const AGENT_THEME_PALETTES: Array<{ keywords: string[]; palette: SemanticAgentPa
   },
 ];
 
-function normalizeAgentThemeText(input: SemanticAgentThemeInput): string {
+function normalizeSourceThemeText(input: SemanticSourceThemeInput): string {
   return [
     input.category,
     input.origin,
@@ -78,12 +78,12 @@ function normalizeAgentThemeText(input: SemanticAgentThemeInput): string {
     .toLowerCase();
 }
 
-export function getSemanticAgentPalette(input: SemanticAgentThemeInput): SemanticAgentPalette {
-  const haystack = normalizeAgentThemeText(input);
-  for (const entry of AGENT_THEME_PALETTES) {
+export function getSemanticSourcePalette(input: SemanticSourceThemeInput): SemanticSourcePalette {
+  const haystack = normalizeSourceThemeText(input);
+  for (const entry of SOURCE_THEME_PALETTES) {
     if (entry.keywords.some((keyword) => haystack.includes(keyword))) {
       return entry.palette;
     }
   }
-  return DEFAULT_AGENT_PALETTE;
+  return DEFAULT_SOURCE_PALETTE;
 }

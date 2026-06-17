@@ -1,8 +1,8 @@
 import { realmWorldData } from './data/realm-world-data';
 import { queryClient } from '@renderer/infra/query-client/query-client';
 import type {
-  WorldAgent,
-  WorldAgentStats,
+  WorldCharacter,
+  WorldCharacterStats,
   WorldAuditItem,
   WorldBindingItem,
   WorldDetailData,
@@ -26,13 +26,13 @@ import type {
 import { toWorldListItem, type WorldListItem } from './world-list-model';
 
 type JsonRecord = Record<string, unknown>;
-type WorldDetailWithAgentsResponse = Awaited<ReturnType<typeof realmWorldData.loadWorldDetailWithAgents>>;
-type WorldPrimaryDetailRecord = NonNullable<WorldDetailWithAgentsResponse>;
+type WorldDetailWithCharactersResponse = Awaited<ReturnType<typeof realmWorldData.loadWorldDetailWithCharacters>>;
+type WorldPrimaryDetailRecord = NonNullable<WorldDetailWithCharactersResponse>;
 
 export type WorldDisplayDetail = {
   primary: WorldPrimaryDetailRecord;
   world: WorldDetailData;
-  agents: WorldAgent[];
+  characters: WorldCharacter[];
   history: WorldHistoryBundle;
   semantic: WorldSemanticData;
   audits: WorldAuditItem[];
@@ -169,12 +169,12 @@ function toWorldDisplayData(detailValue: unknown): WorldDetailData {
     status: normalizeDisplayStatus(listItem.status),
     level: listItem.level,
     levelUpdatedAt: listItem.levelUpdatedAt,
-    agentCount: listItem.agentCount,
+    characterCount: listItem.characterCount,
     createdAt: listItem.createdAt,
     creatorId: listItem.creatorId,
     freezeReason: normalizeDisplayFreezeReason(listItem.freezeReason),
     lorebookEntryLimit: listItem.lorebookEntryLimit,
-    nativeAgentLimit: listItem.nativeAgentLimit,
+    nativeCharacterLimit: listItem.nativeCharacterLimit,
     nativeCreationState: normalizeDisplayNativeCreationState(listItem.nativeCreationState),
     scoreA: listItem.scoreA,
     scoreC: listItem.scoreC,
@@ -192,11 +192,11 @@ function toWorldDisplayData(detailValue: unknown): WorldDetailData {
     eraLabel: listItem.computed.time.eraLabel,
     primaryLanguage: listItem.computed.languages.primary,
     commonLanguages: listItem.computed.languages.common,
-    recommendedAgents: listItem.computed.entry.recommendedAgents.map((agent) => ({
-      id: agent.id,
-      name: agent.name,
-      handle: agent.handle ?? null,
-      avatarUrl: agent.avatarUrl ?? null,
+    recommendedCharacters: listItem.computed.entry.recommendedCharacters.map((character) => ({
+      id: character.id,
+      name: character.name,
+      handle: character.handle ?? null,
+      avatarUrl: character.avatarUrl ?? null,
       importance: null,
       display: null,
     })),
@@ -242,8 +242,8 @@ export function worldPublicAssetsQueryKey(worldId: string) {
   return ['world-public-assets', normalizeWorldId(worldId)] as const;
 }
 
-export async function fetchWorldDetailWithAgents(worldId: string): Promise<WorldPrimaryDetailRecord> {
-  const detail = await realmWorldData.loadWorldDetailWithAgents(
+export async function fetchWorldDetailWithCharacters(worldId: string): Promise<WorldPrimaryDetailRecord> {
+  const detail = await realmWorldData.loadWorldDetailWithCharacters(
     normalizeWorldId(worldId),
     DEFAULT_WORLD_DETAIL_RECOMMENDED_AGENT_LIMIT,
   );
@@ -560,33 +560,33 @@ export async function fetchWorldPublicAssets(worldId: string): Promise<WorldPubl
   };
 }
 
-function toWorldDisplayAgent(agentValue: unknown, worldCreatedAt: string): WorldAgent {
-  const agent = asRecord(agentValue);
-  const display = asRecord(agent.display);
-  const stats = asRecord(agent.stats);
-  const importance = readStringValue(agent.importance);
+function toWorldDisplayCharacter(characterValue: unknown, worldCreatedAt: string): WorldCharacter {
+  const character = asRecord(characterValue);
+  const display = asRecord(character.display);
+  const stats = asRecord(character.stats);
+  const importance = readStringValue(character.importance);
   return {
-    id: readString(agent, 'id'),
-    name: readString(agent, 'name', 'displayName') || 'Unknown',
-    handle: readString(agent, 'handle'),
-    bio: readString(agent, 'bio', 'description'),
+    id: readString(character, 'id'),
+    name: readString(character, 'name', 'displayName') || 'Unknown',
+    handle: readString(character, 'handle'),
+    bio: readString(character, 'bio', 'description'),
     role: readString(display, 'role') || null,
     faction: readString(display, 'faction') || null,
     rank: readString(display, 'rank') || null,
     sceneName: readString(display, 'sceneName') || null,
     location: readString(display, 'location') || null,
-    createdAt: readString(agent, 'createdAt') || worldCreatedAt,
-    avatarUrl: readString(agent, 'avatarUrl') || null,
+    createdAt: readString(character, 'createdAt') || worldCreatedAt,
+    avatarUrl: readString(character, 'avatarUrl') || null,
     importance: importance === 'SECONDARY' || importance === 'BACKGROUND' ? importance : 'PRIMARY',
-    stats: Object.keys(stats).length > 0 ? stats as WorldAgentStats : null,
+    stats: Object.keys(stats).length > 0 ? stats as WorldCharacterStats : null,
   };
 }
 
 export async function fetchWorldDisplayDetail(worldId: string): Promise<WorldDisplayDetail> {
-  const primary = await fetchWorldDetailWithAgents(worldId);
+  const primary = await fetchWorldDetailWithCharacters(worldId);
   const world = toWorldDisplayData(primary);
-  const agentRecords = Array.isArray(primary.agents) ? primary.agents : [];
-  const agents = agentRecords.map((agent) => toWorldDisplayAgent(agent, world.createdAt));
+  const characterRecords = Array.isArray(primary.characters) ? primary.characters : [];
+  const characters = characterRecords.map((character) => toWorldDisplayCharacter(character, world.createdAt));
   const [historyResult, semanticResult, auditsResult, publicAssetsResult] = await Promise.allSettled([
     fetchWorldHistory(worldId),
     fetchWorldSemanticBundle(worldId),
@@ -596,7 +596,7 @@ export async function fetchWorldDisplayDetail(worldId: string): Promise<WorldDis
   return {
     primary,
     world,
-    agents,
+    characters,
     history: historyResult.status === 'fulfilled' ? historyResult.value : EMPTY_WORLD_HISTORY,
     semantic: semanticResult.status === 'fulfilled' ? semanticResult.value : EMPTY_WORLD_SEMANTIC,
     audits: auditsResult.status === 'fulfilled' ? auditsResult.value : [],

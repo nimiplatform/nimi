@@ -33,8 +33,8 @@ export function toSourceDetailData(
   raw: JsonObject,
   sourceState: RealmPersonaSourceState,
 ): SourceDetailData {
-  const sourceRecord = parseOptionalJsonObject(raw.agent);
-  const sourceProfile = parseOptionalJsonObject(raw.agentProfile);
+  const sourceRecord = parseOptionalJsonObject(raw.source);
+  const sourceProfile = parseOptionalJsonObject(raw.sourceProfile);
   const world = parseOptionalJsonObject(raw.world);
 
   return {

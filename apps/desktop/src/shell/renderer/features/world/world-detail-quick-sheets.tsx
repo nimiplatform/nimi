@@ -2,16 +2,16 @@ import { useTranslation } from 'react-i18next';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { ScrollArea } from '@nimiplatform/kit/ui';
 import { joinParts } from './world-detail-primitives.js';
-import type { WorldAgent, WorldHistoryItem, WorldSceneItem } from './world-detail-types.js';
+import type { WorldCharacter, WorldHistoryItem, WorldSceneItem } from './world-detail-types.js';
 
-export function WorldAgentQuickSheet({
-  agent,
+export function WorldCharacterQuickSheet({
+  character,
   onClose,
-  onViewAgent,
+  onViewCharacter,
 }: {
-  agent: WorldAgent;
+  character: WorldCharacter;
   onClose: () => void;
-  onViewAgent?: (agent: WorldAgent) => void;
+  onViewCharacter?: (character: WorldCharacter) => void;
 }) {
   const { t } = useTranslation();
   return (
@@ -19,7 +19,7 @@ export function WorldAgentQuickSheet({
       <button
         type="button"
         className="absolute inset-0"
-        aria-label={t('WorldDetail.xianxia.v2.agents.quickSheetClose')}
+        aria-label={t('WorldDetail.xianxia.v2.characters.quickSheetClose')}
         onClick={onClose}
       />
       <div className="relative flex items-center justify-center">
@@ -29,26 +29,26 @@ export function WorldAgentQuickSheet({
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
                 <div className="text-xs uppercase tracking-[0.16em] text-[#86f0ca]/76">
-                  {t('WorldDetail.xianxia.v2.agents.quickSheetTitle')}
+                  {t('WorldDetail.xianxia.v2.characters.quickSheetTitle')}
                 </div>
-                <h3 className="mt-2 text-2xl font-semibold text-[#effff8]">{agent.name}</h3>
-                <div className="mt-1 text-sm text-[#86f0ca]">{agent.handle}</div>
+                <h3 className="mt-2 text-2xl font-semibold text-[#effff8]">{character.name}</h3>
+                <div className="mt-1 text-sm text-[#86f0ca]">{character.handle}</div>
               </div>
               <button
                 type="button"
                 onClick={onClose}
                 className="rounded-full border border-[#4ECCA3]/18 bg-black/18 px-3 py-1.5 text-xs text-[#d8efe4]/72 transition-colors hover:border-[#4ECCA3]/28 hover:text-[#effff8]"
               >
-                {t('WorldDetail.xianxia.v2.agents.quickSheetClose')}
+                {t('WorldDetail.xianxia.v2.characters.quickSheetClose')}
               </button>
             </div>
 
             <div className="grid gap-5 md:grid-cols-[120px_minmax(0,1fr)]">
               <div className="flex justify-center md:justify-start">
                 <EntityAvatar
-                  imageUrl={agent.avatarUrl}
-                  name={agent.name}
-                  kind="agent"
+                  imageUrl={character.avatarUrl}
+                  name={character.name}
+                  kind="source"
                   sizeClassName="h-28 w-28"
                   radiusClassName="rounded-[20px]"
                   innerRadiusClassName="rounded-[16px]"
@@ -57,53 +57,53 @@ export function WorldAgentQuickSheet({
               </div>
 
               <div className="grid gap-3">
-                {joinParts([agent.role, agent.faction, agent.rank]) ? (
+                {joinParts([character.role, character.faction, character.rank]) ? (
                   <div className="rounded-2xl border border-[#4ECCA3]/10 bg-[#0a0f0c]/56 p-4">
                     <div className="text-[11px] uppercase tracking-[0.14em] text-[#86f0ca]/74">
-                      {t('WorldDetail.xianxia.v2.agents.quickSheetIdentity')}
+                      {t('WorldDetail.xianxia.v2.characters.quickSheetIdentity')}
                     </div>
                     <div className="mt-2 text-sm leading-relaxed text-[#effff8]">
-                      {joinParts([agent.role, agent.faction, agent.rank])}
+                      {joinParts([character.role, character.faction, character.rank])}
                     </div>
                   </div>
                 ) : null}
 
-                {joinParts([agent.sceneName, agent.location]) ? (
+                {joinParts([character.sceneName, character.location]) ? (
                   <div className="rounded-2xl border border-[#4ECCA3]/10 bg-[#0a0f0c]/56 p-4">
                     <div className="text-[11px] uppercase tracking-[0.14em] text-[#86f0ca]/74">
-                      {t('WorldDetail.xianxia.v2.agents.quickSheetLocation')}
+                      {t('WorldDetail.xianxia.v2.characters.quickSheetLocation')}
                     </div>
                     <div className="mt-2 text-sm leading-relaxed text-[#effff8]">
-                      {joinParts([agent.sceneName, agent.location])}
+                      {joinParts([character.sceneName, character.location])}
                     </div>
                   </div>
                 ) : null}
 
                 <div className="rounded-2xl border border-[#4ECCA3]/10 bg-[#0a0f0c]/56 p-4">
                   <div className="text-[11px] uppercase tracking-[0.14em] text-[#86f0ca]/74">
-                    {t('WorldDetail.xianxia.v2.agents.quickSheetBio')}
+                    {t('WorldDetail.xianxia.v2.characters.quickSheetBio')}
                   </div>
                   <div className="mt-2 text-sm leading-relaxed text-[#d8efe4]/72">
-                    {agent.bio || t('WorldDetail.noDescription')}
+                    {character.bio || t('WorldDetail.noDescription')}
                   </div>
                 </div>
 
-                {agent.stats?.vitalityScore != null ? (
+                {character.stats?.vitalityScore != null ? (
                   <div className="rounded-2xl border border-[#4ECCA3]/10 bg-black/16 px-4 py-3 text-sm text-[#d8efe4]/72">
-                    {t('WorldDetail.xianxia.v2.agents.vitality')} {agent.stats.vitalityScore}
+                    {t('WorldDetail.xianxia.v2.characters.vitality')} {character.stats.vitalityScore}
                   </div>
                 ) : null}
               </div>
             </div>
 
-            {onViewAgent ? (
+            {onViewCharacter ? (
               <div className="mt-5 flex flex-wrap gap-2">
                 <button
                   type="button"
-                  onClick={() => onViewAgent(agent)}
+                  onClick={() => onViewCharacter(character)}
                   className="rounded-full border border-[#4ECCA3]/18 bg-black/18 px-4 py-2 text-sm text-[#d8efe4]/72 transition-colors hover:border-[#4ECCA3]/28 hover:text-[#effff8]"
                 >
-                  {t('WorldDetail.xianxia.v2.agents.quickSheetViewProfile')}
+                  {t('WorldDetail.xianxia.v2.characters.quickSheetViewProfile')}
                 </button>
               </div>
             ) : null}
@@ -118,20 +118,20 @@ export function WorldSceneQuickSheet({
   isOasisWorld,
   oasisSceneActionLabel,
   onClose,
-  onSelectAgent,
-  onViewAgents,
+  onSelectCharacter,
+  onViewCharacters,
   onViewEvents,
-  relatedAgents,
+  relatedCharacters,
   relatedEvents,
   scene,
 }: {
   isOasisWorld: boolean;
   oasisSceneActionLabel: string;
   onClose: () => void;
-  onSelectAgent: (agentId: string) => void;
-  onViewAgents: () => void;
+  onSelectCharacter: (characterId: string) => void;
+  onViewCharacters: () => void;
   onViewEvents: () => void;
-  relatedAgents: readonly WorldAgent[];
+  relatedCharacters: readonly WorldCharacter[];
   relatedEvents: readonly WorldHistoryItem[];
   scene: WorldSceneItem;
 }) {
@@ -181,14 +181,14 @@ export function WorldSceneQuickSheet({
                   </div>
                   <div className="mt-3 flex flex-wrap gap-2">
                     {scene.activeEntities.map((entity) => {
-                      const agent = relatedAgents.find((item) => item.name === entity) || null;
+                      const character = relatedCharacters.find((item) => item.name === entity) || null;
                       return (
                         <button
                           key={`${scene.id}-${entity}`}
                           type="button"
                           onClick={() => {
-                            if (agent) {
-                              onSelectAgent(agent.id);
+                            if (character) {
+                              onSelectCharacter(character.id);
                             }
                           }}
                           className="rounded-full border border-[#4ECCA3]/16 bg-[#4ECCA3]/10 px-3 py-1 text-xs text-[#dffdf2]"
@@ -201,20 +201,20 @@ export function WorldSceneQuickSheet({
                 </div>
               ) : null}
 
-              {relatedAgents.length ? (
+              {relatedCharacters.length ? (
                 <div className="rounded-2xl border border-[#4ECCA3]/10 bg-[#0a0f0c]/56 p-4">
                   <div className="text-[11px] uppercase tracking-[0.14em] text-[#86f0ca]/74">
-                    {t('WorldDetail.xianxia.v2.scenes.quickSheetViewAgents')}
+                    {t('WorldDetail.xianxia.v2.scenes.quickSheetViewCharacters')}
                   </div>
                   <div className="mt-3 flex flex-wrap gap-2">
-                    {relatedAgents.map((agent) => (
+                    {relatedCharacters.map((character) => (
                       <button
-                        key={`${scene.id}-related-${agent.id}`}
+                        key={`${scene.id}-related-${character.id}`}
                         type="button"
-                        onClick={() => onSelectAgent(agent.id)}
+                        onClick={() => onSelectCharacter(character.id)}
                         className="rounded-full border border-[#4ECCA3]/16 bg-black/16 px-3 py-1 text-xs text-[#dffdf2] transition-colors hover:bg-[#4ECCA3]/12"
                       >
-                        {agent.name}
+                        {character.name}
                       </button>
                     ))}
                   </div>
@@ -253,10 +253,10 @@ export function WorldSceneQuickSheet({
               ) : null}
               <button
                 type="button"
-                onClick={onViewAgents}
+                onClick={onViewCharacters}
                 className="rounded-full border border-[#4ECCA3]/18 bg-black/18 px-4 py-2 text-sm text-[#d8efe4]/72 transition-colors hover:border-[#4ECCA3]/28 hover:text-[#effff8]"
               >
-                {t('WorldDetail.xianxia.v2.scenes.quickSheetViewAgents')}
+                {t('WorldDetail.xianxia.v2.scenes.quickSheetViewCharacters')}
               </button>
               <button
                 type="button"

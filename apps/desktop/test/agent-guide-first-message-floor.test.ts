@@ -17,7 +17,7 @@ import { createEmptyAgentThreadBundle } from '../src/shell/renderer/features/cha
 
 // Verbatim manual floor (`product-manual-full-authority.md` "Default Nimi
 // Guide Agent" → First message floor). The Archivist greeting is the W1
-// `AgentProfile.greeting`; W3 must render it byte-identical.
+// source-core `greeting`; W3 must render it byte-identical.
 const MANUAL_ARCHIVIST_FLOOR =
   'Welcome to Nimi. I am Archivist, your guide to this world. I can help you set up Runtime, understand profiles, find Worlds and RealmPersonas, and materialize a LocalAgent companion. What would you like to do first?';
 

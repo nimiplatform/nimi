@@ -1,7 +1,7 @@
 import { useMemo, type CSSProperties, type MouseEvent } from 'react';
 import { i18n } from '@renderer/i18n';
 import { AppCardSurface } from '@nimiplatform/kit/ui';
-import { getSemanticAgentPalette } from '@renderer/components/agent-theme.js';
+import { getSemanticSourcePalette } from '@renderer/components/source-theme.js';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import type { ExplorePersonaSourceCardData } from './explore-cards';
@@ -83,7 +83,7 @@ export function PersonaSourceCard({
   onManageFriends?: () => Promise<void> | void;
   onOpen?: () => void;
 }) {
-  const palette = getSemanticAgentPalette({
+  const palette = getSemanticSourcePalette({
     category: source.category,
     origin: source.origin,
     description: source.bio || null,

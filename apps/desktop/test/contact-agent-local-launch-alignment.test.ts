@@ -10,10 +10,10 @@ function readRepo(relativePath: string): string {
   return fs.readFileSync(path.join(repoRoot, relativePath), 'utf8');
 }
 
-test('profile detail modal only exposes agent chat after ordinary friendship evidence', () => {
+test('profile detail modal only exposes character chat after ordinary friendship evidence', () => {
   const source = readRepo('apps/desktop/src/shell/renderer/features/relationship/profile-detail-modal.tsx');
 
-  assert.match(source, /launchAgentConversationFromDisplay/);
+  assert.match(source, /launchCharacterConversationFromDisplay/);
   assert.match(source, /toSourceContactLaunchTargetFromProfile\(profile,\s*ownerUserId\)/);
   assert.match(source, /!profile\.isFriend/);
   assert.match(source, /profile\.isFriend/);
@@ -32,7 +32,7 @@ test('shared profile detail modal keeps admitted source message actions fail-clo
 
 test('World detail offers View profile only for a Realm source — no direct chat/voice path', () => {
   // T5-2 (`9d558335d`) removed the world-detail source direct-chat drift:
-  // `handleChatAgent` / `handleVoiceAgent` synthesized a `localAgentRef` from a
+  // `handleChatCharacter` / `handleVoiceCharacter` synthesized a `localCharacterRef` from a
   // non-materialized source and launched a session directly. A Realm source in
   // a World is NOT chat-reachable from World detail; chat requires
   // RuntimeSourceSnapshot materialization. World detail's affordance is now
@@ -43,28 +43,28 @@ test('World detail offers View profile only for a Realm source — no direct cha
   );
 
   // The removed direct-launch handlers must not reappear.
-  assert.doesNotMatch(source, /const handleChatAgent/);
-  assert.doesNotMatch(source, /const handleVoiceAgent/);
-  assert.doesNotMatch(source, /launchAgentConversationFromDisplay/);
-  assert.doesNotMatch(source, /launchAgentVoiceFromDisplay/);
+  assert.doesNotMatch(source, /const handleChatCharacter/);
+  assert.doesNotMatch(source, /const handleVoiceCharacter/);
+  assert.doesNotMatch(source, /launchCharacterConversationFromDisplay/);
+  assert.doesNotMatch(source, /launchCharacterVoiceFromDisplay/);
 
   // The sole source affordance is View profile, routed to source-detail where
   // source admission remains fail-closed until RuntimeSourceSnapshot handoff.
-  assert.match(source, /const handleViewAgent = \(agent: WorldAgent\) => \{/);
-  assert.match(source, /navigateToProfile\(agent\.id, 'source-detail'\)/);
-  assert.match(source, /onViewAgent=\{handleViewAgent\}/);
+  assert.match(source, /const handleViewCharacter = \(character: WorldCharacter\) => \{/);
+  assert.match(source, /navigateToProfile\(character\.id, 'source-detail'\)/);
+  assert.match(source, /onViewCharacter=\{handleViewCharacter\}/);
 
-  // The template exposes only an onViewAgent affordance — no chat/voice props.
-  // A real prop is the `onXAgent?: (...)` typed form; the only textual mention
+  // The template exposes only an onViewCharacter affordance — no chat/voice props.
+  // A real prop is the `onXCharacter?: (...)` typed form; the only textual mention
   // of chat/voice is a comment explaining the deliberate absence.
-  assert.match(templateSource, /onViewAgent\?: \(agent: WorldAgent\) => void;/);
-  assert.doesNotMatch(templateSource, /onChatAgent\?: \(/);
-  assert.doesNotMatch(templateSource, /onVoiceAgent\?: \(/);
+  assert.match(templateSource, /onViewCharacter\?: \(character: WorldCharacter\) => void;/);
+  assert.doesNotMatch(templateSource, /onChatCharacter\?: \(/);
+  assert.doesNotMatch(templateSource, /onVoiceCharacter\?: \(/);
 });
 
-test('agent contact launch target fails closed and builds owner-scoped LocalAgent identity', () => {
+test('character contact launch target fails closed and builds owner-scoped LocalCharacter identity', () => {
   assert.deepEqual(toSourceContactLaunchTarget({
-    id: 'agent-1',
+    id: 'character-1',
     displayName: 'Archivist',
     handle: 'archivist',
     avatarUrl: null,
@@ -75,8 +75,8 @@ test('agent contact launch target fails closed and builds owner-scoped LocalAgen
     sourceOwnershipType: 'MASTER_OWNED',
   }, 'user-1'), {
     ownerUserId: 'user-1',
-    runtimeSourceRef: 'agent-1',
-    localAgentRef: 'local-agent:user-1:agent-1',
+    runtimeSourceRef: 'character-1',
+    localCharacterRef: 'local-character:user-1:character-1',
     displayName: 'Archivist',
     handle: 'archivist',
     avatarUrl: null,
@@ -103,9 +103,9 @@ test('agent contact launch target fails closed and builds owner-scoped LocalAgen
 
   assert.throws(() => {
     toSourceContactLaunchTarget({
-      id: 'agent-1',
-      displayName: 'Agent',
-      handle: 'agent',
+      id: 'character-1',
+      displayName: 'Character',
+      handle: 'character',
       avatarUrl: null,
       bio: null,
       isSource: true,
@@ -115,8 +115,8 @@ test('agent contact launch target fails closed and builds owner-scoped LocalAgen
   assert.throws(() => {
     toSourceContactLaunchTarget({
       id: '',
-      displayName: 'Agent',
-      handle: 'agent',
+      displayName: 'Character',
+      handle: 'character',
       avatarUrl: null,
       bio: null,
       isSource: true,

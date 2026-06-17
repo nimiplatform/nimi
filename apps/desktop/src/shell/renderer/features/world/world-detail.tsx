@@ -8,7 +8,7 @@ import {
   NarrativeWorldDetailPage,
   OasisWorldDetailPage,
 } from './world-detail-template';
-import type { WorldAgent } from './world-detail-types';
+import type { WorldCharacter } from './world-detail-types';
 import type { WorldListItem } from './world-list-model';
 import {
   fetchWorldDisplayDetail,
@@ -48,7 +48,7 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
     : false;
   const pageError = initialError || supplementalError;
   const worldData = display?.world ?? toWorldDisplayFallback(world);
-  const agents: WorldAgent[] = display?.agents ?? [];
+  const characters: WorldCharacter[] = display?.characters ?? [];
   const safeHistory = display?.history ?? { items: [], summary: null };
   const safeSemantic = display?.semantic ?? {
     operationTitle: null,
@@ -151,9 +151,9 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
   }, [display, world.id]);
 
   // World characters are not chat-reachable from World detail. Chat materializes
-  // only after a RuntimeSourceSnapshot creates a LocalAgent by value.
-  const handleViewAgent = (agent: WorldAgent) => {
-    navigateToProfile(agent.id, 'source-detail');
+  // only after a RuntimeSourceSnapshot creates a LocalCharacter by value.
+  const handleViewCharacter = (character: WorldCharacter) => {
+    navigateToProfile(character.id, 'source-detail');
   };
 
   const handleEnterEdit = () => {
@@ -188,14 +188,14 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
       {worldData.type === 'OASIS' ? (
         <OasisWorldDetailPage
           world={worldData}
-          agents={agents}
+          characters={characters}
           history={safeHistory}
           semantic={safeSemantic}
           audits={safeAudits}
           publicAssets={safePublicAssets}
           loading={initialLoading}
           error={pageError}
-          agentsLoading={worldCompositeQuery.isPending}
+          charactersLoading={worldCompositeQuery.isPending}
           historyLoading={worldCompositeQuery.isPending}
           semanticLoading={worldCompositeQuery.isPending}
           auditsLoading={worldCompositeQuery.isPending}
@@ -203,19 +203,19 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
           onBack={onBack}
           onEnterEdit={handleEnterEdit}
           onCreateSubWorld={handleCreateSubWorld}
-          onViewAgent={handleViewAgent}
+          onViewCharacter={handleViewCharacter}
         />
       ) : (
         <NarrativeWorldDetailPage
           world={worldData}
-          agents={agents}
+          characters={characters}
           history={safeHistory}
           semantic={safeSemantic}
           audits={safeAudits}
           publicAssets={safePublicAssets}
           loading={initialLoading}
           error={pageError}
-          agentsLoading={worldCompositeQuery.isPending}
+          charactersLoading={worldCompositeQuery.isPending}
           historyLoading={worldCompositeQuery.isPending}
           semanticLoading={worldCompositeQuery.isPending}
           auditsLoading={worldCompositeQuery.isPending}
@@ -223,7 +223,7 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
           onBack={onBack}
           onEnterEdit={handleEnterEdit}
           onCreateSubWorld={handleCreateSubWorld}
-          onViewAgent={handleViewAgent}
+          onViewCharacter={handleViewCharacter}
         />
       )}
     </ScrollArea>

@@ -1,8 +1,8 @@
 # Local AI
 
 Desktop's Local AI surface — the Local Model Center — is the user
-UI for managing local AI on their machine. All UI is a runtime-
-truth projection. Desktop never reads its own local state for AI
+UI for managing local AI on their machine. All UI is a Runtime-owned
+typed projection. Desktop never reads its own local state for AI
 configuration; it asks Runtime.
 
 ## What Local AI Surfaces

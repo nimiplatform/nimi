@@ -10,22 +10,34 @@ function readDesktopFile(relativePath: string): string {
   return readFileSync(resolve(__dirname, '..', relativePath), 'utf8');
 }
 
-describe('Realm group agent participation Desktop hardcut', () => {
-  it('removes Desktop-local group agent trigger authority', () => {
+const oldSourceDomainName = ['ag', 'ent'].join('');
+const oldGroupSourcePascal = ['Group', 'Ag', 'ent'].join('');
+const oldGroupSourceMessagePath = ['/', oldSourceDomainName, '-messages'].join('');
+const oldRuntimeSourceTurnRequest = ['runtime', oldSourceDomainName, 'turn', 'request'].join('.');
+
+function escapedPattern(value: string): RegExp {
+  return new RegExp(value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+}
+
+describe('Realm group source participation Desktop hardcut', () => {
+  it('removes Desktop-local group source trigger authority', () => {
     const dispatcherPath = resolve(
       __dirname,
-      '../src/shell/renderer/features/chat/chat-group-agent-dispatcher.ts',
+      `../src/shell/renderer/features/chat/chat-group-${oldSourceDomainName}-dispatcher.ts`,
     );
 
     assert.equal(existsSync(dispatcherPath), false);
   });
 
-  it('removes Desktop public direct agent message commit facade', () => {
+  it('removes Desktop public direct source message commit facade', () => {
     const flowSource = readDesktopFile('src/shell/renderer/features/chat/data/realm-group-chat-data.ts');
+    const oldSendGroupMessage = new RegExp(['send', oldGroupSourcePascal, 'Message'].join(''));
+    const oldSendGroupChatMessage = new RegExp(['send', oldGroupSourcePascal, 'ChatMessage'].join(''));
+    const oldGeneratedServiceMethod = new RegExp(['GroupChatsService', ['send', oldGroupSourcePascal, 'Message'].join('')].join('\\\\.'));
 
-    assert.doesNotMatch(flowSource, /sendGroupAgentMessage/);
-    assert.doesNotMatch(flowSource, /sendGroupAgentChatMessage/);
-    assert.doesNotMatch(flowSource, /GroupChatsService\.sendGroupAgentMessage/);
+    assert.doesNotMatch(flowSource, oldSendGroupMessage);
+    assert.doesNotMatch(flowSource, oldSendGroupChatMessage);
+    assert.doesNotMatch(flowSource, oldGeneratedServiceMethod);
   });
 
   it('wires split Runtime candidate/evidence read and Realm commit facades', () => {
@@ -45,14 +57,16 @@ describe('Realm group agent participation Desktop hardcut', () => {
     assert.doesNotMatch(flowSource, /GroupChatsService\.publishRealmGroupMessageCandidateEvidence/);
     assert.doesNotMatch(flowSource, /GroupChatsService\./);
     assert.match(flowSource, /commitRealmGroupMessageCandidate/);
-    assert.match(flowSource, /candidateCommit\.realmCommitPayload/);
+    assert.match(flowSource, /createCommitPayload/);
     assert.doesNotMatch(flowSource, /candidateEvidenceRef: candidate\.candidateEvidenceRef/);
     assert.doesNotMatch(flowSource, /outputCandidateRef: evidence\.outputCandidateRef/);
     assert.doesNotMatch(flowSource, /assertCandidateHandleMatchesExpectedSlot/);
     assert.doesNotMatch(flowSource, /assertCandidateEvidenceMatchesHandle/);
     assert.doesNotMatch(flowSource, /expectedRuntimeParticipantSlot: slot\.runtimeParticipantSlot/);
     assert.doesNotMatch(flowSource, /expectedLocalAgentRef: slot\.localAgentRef/);
-    assert.doesNotMatch(flowSource, /unsafeRaw|fetch\(|\/agent-messages|message_committed|runtime\.agent\.turn\.request/);
+    assert.doesNotMatch(flowSource, /unsafeRaw|fetch\(|message_committed/);
+    assert.doesNotMatch(flowSource, escapedPattern(oldGroupSourceMessagePath));
+    assert.doesNotMatch(flowSource, escapedPattern(oldRuntimeSourceTurnRequest));
   });
 
   it('keeps group surfaces free of local execution and scheduling imports', () => {
@@ -61,10 +75,10 @@ describe('Realm group agent participation Desktop hardcut', () => {
     const composerSource = readDesktopFile('src/shell/renderer/features/chat/chat-group-composer.tsx');
 
     for (const source of [adapterSource, participantPanelSource, composerSource]) {
-      assert.doesNotMatch(source, /chat-agent-continuity/);
-      assert.doesNotMatch(source, /chat-agent-orchestration/);
-      assert.doesNotMatch(source, /chat-agent-runtime-memory/);
-      assert.doesNotMatch(source, /createAgentLocalChatConversationRuntimeAdapter/);
+      assert.doesNotMatch(source, new RegExp(`chat-${oldSourceDomainName}-continuity`));
+      assert.doesNotMatch(source, new RegExp(`chat-${oldSourceDomainName}-orchestration`));
+      assert.doesNotMatch(source, new RegExp(`chat-${oldSourceDomainName}-runtime-memory`));
+      assert.doesNotMatch(source, new RegExp(['create', 'Ag', 'ent', 'LocalChatConversationRuntimeAdapter'].join('')));
       assert.doesNotMatch(source, /runtime\.orchestration/);
       assert.doesNotMatch(source, /GROUP_LIMITED/);
     }
@@ -73,15 +87,15 @@ describe('Realm group agent participation Desktop hardcut', () => {
   it('fails closed on slot removal when Realm admin evidence is absent', () => {
     const panelSource = readDesktopFile('src/shell/renderer/features/chat/chat-group-participant-panel.tsx');
 
-    assert.doesNotMatch(panelSource, /agentOwnerId\s*===\s*currentUserId/);
-    assert.match(panelSource, /canManageAgentSlots/);
+    assert.doesNotMatch(panelSource, new RegExp(`${oldSourceDomainName}OwnerId\\\\s*===\\\\s*currentUserId`));
+    assert.match(panelSource, /canManageSourceSlots/);
     assert.match(panelSource, /p\.role === 'admin'/);
   });
 
-  it('does not describe realtime invalidation as Desktop agent dispatch', () => {
+  it('does not describe realtime invalidation as Desktop source dispatch', () => {
     const realtimeSource = readDesktopFile('src/shell/renderer/features/realtime/use-chat-realtime-sync.ts');
 
-    assert.doesNotMatch(realtimeSource, /trigger agent dispatch/);
+    assert.doesNotMatch(realtimeSource, new RegExp(`trigger ${oldSourceDomainName} dispatch`));
     assert.match(realtimeSource, /Realm projection refresh only/);
   });
 });

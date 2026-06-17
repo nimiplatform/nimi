@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
-import { getSemanticAgentPalette } from '@renderer/components/agent-theme.js';
+import { getSemanticSourcePalette } from '@renderer/components/source-theme.js';
 import {
-  buildVisibleAgentGroups,
+  buildVisibleCharacterGroups,
   DataFactCard,
   formatAuditEventType,
   formatDateTime,
@@ -14,7 +14,7 @@ import {
   SectionShell,
 } from './world-detail-primitives.js';
 import type {
-  WorldAgent,
+  WorldCharacter,
   WorldAuditItem,
   WorldDetailData,
   WorldPublicAssetsData,
@@ -64,51 +64,51 @@ export function WorldScenesSection({
   );
 }
 
-function FullAgentCard({
-  agent,
-  onSelectAgent,
+function FullCharacterTile({
+  character,
+  onSelectCharacter,
 }: {
-  agent: WorldAgent;
-  onSelectAgent?: (agent: WorldAgent) => void;
+  character: WorldCharacter;
+  onSelectCharacter?: (character: WorldCharacter) => void;
 }) {
   const { t } = useTranslation();
-  const palette = getSemanticAgentPalette({
-    description: agent.bio,
-    worldName: agent.name,
+  const palette = getSemanticSourcePalette({
+    description: character.bio,
+    worldName: character.name,
   });
-  const identityLine = joinParts([agent.role, agent.faction, agent.rank]);
-  const locationLine = joinParts([agent.sceneName, agent.location]);
+  const identityLine = joinParts([character.role, character.faction, character.rank]);
+  const locationLine = joinParts([character.sceneName, character.location]);
 
   return (
     <article className="flex h-full flex-col rounded-2xl border border-[#4ECCA3]/10 bg-[#0a0f0c]/58 p-4">
       <button
         type="button"
-        onClick={() => onSelectAgent?.(agent)}
+        onClick={() => onSelectCharacter?.(character)}
         className="flex flex-1 flex-col text-left transition-opacity hover:opacity-95"
       >
         <div className="flex items-start gap-3">
           <EntityAvatar
-            imageUrl={agent.avatarUrl}
-            name={agent.name || 'Agent'}
-            kind="agent"
+            imageUrl={character.avatarUrl}
+            name={character.name || 'Character'}
+            kind="source"
             sizeClassName="h-14 w-14"
             radiusClassName="rounded-[10px]"
             innerRadiusClassName="rounded-[8px]"
             textClassName="text-lg font-serif"
           />
           <div className="min-w-0 flex-1">
-            <h4 className="truncate text-sm font-semibold text-[#effff8]">{agent.name}</h4>
-            <div className="truncate text-xs" style={{ color: palette.accent }}>{agent.handle}</div>
+            <h4 className="truncate text-sm font-semibold text-[#effff8]">{character.name}</h4>
+            <div className="truncate text-xs" style={{ color: palette.accent }}>{character.handle}</div>
             {identityLine ? <div className="mt-1 text-xs text-[#d8efe4]/62">{identityLine}</div> : null}
           </div>
         </div>
 
-        <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-[#d8efe4]/62">{agent.bio}</p>
+        <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-[#d8efe4]/62">{character.bio}</p>
 
         {locationLine ? <div className="mt-3 text-xs text-[#86f0ca]/76">{locationLine}</div> : null}
 
-        {agent.stats?.vitalityScore != null ? (
-          <div className="mt-3 text-[11px] text-[#d8efe4]/45">{t('WorldDetail.xianxia.v2.agents.vitality')} {agent.stats.vitalityScore}</div>
+        {character.stats?.vitalityScore != null ? (
+          <div className="mt-3 text-[11px] text-[#d8efe4]/45">{t('WorldDetail.xianxia.v2.characters.vitality')} {character.stats.vitalityScore}</div>
         ) : null}
       </button>
       {/* No chat/voice action on a WorldCharacter card. Source direct chat is
@@ -118,49 +118,49 @@ function FullAgentCard({
   );
 }
 
-export function WorldAgentsSection({
-  agents,
-  agentsLoading,
-  onSelectAgent,
+export function WorldCharactersSection({
+  characters,
+  charactersLoading,
+  onSelectCharacter,
 }: {
-  agents: WorldAgent[];
-  agentsLoading?: boolean;
-  onSelectAgent?: (agent: WorldAgent) => void;
+  characters: WorldCharacter[];
+  charactersLoading?: boolean;
+  onSelectCharacter?: (character: WorldCharacter) => void;
 }) {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
-  const visibleGroups = useMemo(() => buildVisibleAgentGroups(agents, 9, expanded), [agents, expanded]);
-  const totalCount = agents.length;
+  const visibleGroups = useMemo(() => buildVisibleCharacterGroups(characters, 9, expanded), [characters, expanded]);
+  const totalCount = characters.length;
 
   return (
     <SectionShell
-      title={t('WorldDetail.xianxia.v2.agents.title')}
-      subtitle={t('WorldDetail.xianxia.v2.agents.subtitle')}
-      dataTestId="world-detail-agents"
+      title={t('WorldDetail.xianxia.v2.characters.title')}
+      subtitle={t('WorldDetail.xianxia.v2.characters.subtitle')}
+      dataTestId="world-detail-characters"
     >
       <div className="mb-4 flex items-center justify-between gap-3">
-        <div className="text-sm text-[#d8efe4]/58">{t('WorldDetail.xianxia.v2.agents.totalCount', { count: totalCount })}</div>
+        <div className="text-sm text-[#d8efe4]/58">{t('WorldDetail.xianxia.v2.characters.totalCount', { count: totalCount })}</div>
       </div>
 
-      {agentsLoading ? (
-        <div className="flex min-h-[260px] items-center justify-center text-sm text-[#d8efe4]/42">{t('WorldDetail.xianxia.v2.agents.loading')}</div>
+      {charactersLoading ? (
+        <div className="flex min-h-[260px] items-center justify-center text-sm text-[#d8efe4]/42">{t('WorldDetail.xianxia.v2.characters.loading')}</div>
       ) : totalCount ? (
         <div className="grid gap-6">
           {visibleGroups.map((group) => (
             <div key={group.importance}>
               <div className="mb-3 inline-flex rounded-full border border-[#4ECCA3]/18 bg-[#4ECCA3]/10 px-3 py-1 text-xs font-medium text-[#86f0ca]">
                 {group.importance === 'PRIMARY'
-                  ? t('WorldDetail.xianxia.v2.agents.groupPrimary')
+                  ? t('WorldDetail.xianxia.v2.characters.groupPrimary')
                   : group.importance === 'SECONDARY'
-                    ? t('WorldDetail.xianxia.v2.agents.groupSecondary')
-                    : t('WorldDetail.xianxia.v2.agents.groupBackground')}
+                    ? t('WorldDetail.xianxia.v2.characters.groupSecondary')
+                    : t('WorldDetail.xianxia.v2.characters.groupBackground')}
               </div>
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {group.items.map((agent) => (
-                  <FullAgentCard
-                    key={agent.id}
-                    agent={agent}
-                    onSelectAgent={onSelectAgent}
+                {group.items.map((character) => (
+                  <FullCharacterTile
+                    key={character.id}
+                    character={character}
+                    onSelectCharacter={onSelectCharacter}
                   />
                 ))}
               </div>
@@ -169,7 +169,7 @@ export function WorldAgentsSection({
         </div>
       ) : (
         <div className="rounded-2xl border border-dashed border-[#4ECCA3]/14 bg-black/12 p-6 text-sm text-[#d8efe4]/46">
-          {t('WorldDetail.xianxia.v2.agents.empty')}
+          {t('WorldDetail.xianxia.v2.characters.empty')}
         </div>
       )}
 
@@ -278,7 +278,7 @@ function WorldRuntimeSummaryCard({
 }) {
   const { t } = useTranslation();
   const facts = [
-    { label: t('WorldDetail.xianxia.v2.runtimeFacts.agentCount'), value: `${world.agentCount}` },
+    { label: t('WorldDetail.xianxia.v2.runtimeFacts.characterCount'), value: `${world.characterCount}` },
     { label: t('WorldDetail.xianxia.v2.runtimeFacts.lorebookCount'), value: `${lorebookCount}` },
     { label: t('WorldDetail.xianxia.v2.runtimeFacts.sceneCount'), value: `${sceneCount}` },
     {
@@ -374,7 +374,7 @@ export function WorldExtendedSection({
 }) {
   const hasKnowledge = publicAssets.lorebooks.length > 0;
   const hasGovernance = audits.length > 0 || Boolean(auditsLoading);
-  const hasRuntimeOrGovernance = hasGovernance || world.agentCount > 0 || publicAssets.lorebooks.length > 0 || publicAssets.scenes.length > 0;
+  const hasRuntimeOrGovernance = hasGovernance || world.characterCount > 0 || publicAssets.lorebooks.length > 0 || publicAssets.scenes.length > 0;
 
   if (!hasKnowledge && !hasRuntimeOrGovernance && !semantic.worldviewEvents.length && !semantic.worldviewSnapshots.length) {
     return null;

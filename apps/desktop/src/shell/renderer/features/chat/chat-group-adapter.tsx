@@ -73,7 +73,7 @@ export function hasInvokableGroupLocalAgentParticipation(
   );
 }
 
-export function resolveInvokableGroupAgentMention(
+export function resolveInvokableGroupSourceMention(
   content: string,
   participants: readonly GroupParticipantDto[],
   currentUserId: string | null,
@@ -265,16 +265,16 @@ export function useGroupConversationModeHost(
   const handleSendMessage = useCallback(async (content: string) => {
     if (!selectedGroupId || !content.trim()) return;
     const trimmed = content.trim();
-    const mentionedAgent = resolveInvokableGroupAgentMention(
+    const mentionedSource = resolveInvokableGroupSourceMention(
       trimmed,
       participants,
       currentUserId,
     );
     const sentMessage = await sendMutation.mutateAsync({ chatId: selectedGroupId, content: trimmed });
-    if (mentionedAgent) {
+    if (mentionedSource) {
       await candidateCommitMutation.mutateAsync({
         chatId: selectedGroupId,
-        participant: mentionedAgent,
+        participant: mentionedSource,
         triggerMessage: sentMessage,
       });
     }
@@ -324,7 +324,7 @@ export function useGroupConversationModeHost(
         currentUserId={currentUserId}
         chatId={selectedGroupId}
         embedded
-        onAgentSlotChanged={() => {
+        onSourceSlotChanged={() => {
           if (selectedGroupId) {
             void queryClient.invalidateQueries({ queryKey: ['group-chats'] });
             void queryClient.invalidateQueries({ queryKey: ['group-messages', selectedGroupId] });
@@ -337,7 +337,7 @@ export function useGroupConversationModeHost(
         selectedGroupId={selectedGroupId}
         onSendMessage={handleSendMessage}
         isSending={sendMutation.isPending || candidateCommitMutation.isPending}
-        agentParticipants={participants}
+        sourceParticipants={participants}
       />
     ) : null,
     setupDescription: t('Chat.groupSetupRequired', {

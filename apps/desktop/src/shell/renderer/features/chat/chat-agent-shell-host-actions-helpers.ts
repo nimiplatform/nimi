@@ -115,8 +115,8 @@ export function buildAgentConversationAnchorMetadata(target: AgentLocalTargetSna
   }
   const ownerSettingsProjection = target.ownerSettingsProjection ?? null;
   if (ownerSettingsProjection) {
-    if (typeof ownerSettingsProjection.agentRuleVersion === 'number') {
-      realmProfileContext.agentRuleVersion = ownerSettingsProjection.agentRuleVersion;
+    if (typeof ownerSettingsProjection.sourceCoreVersion === 'number') {
+      realmProfileContext.sourceCoreVersion = ownerSettingsProjection.sourceCoreVersion;
     }
     const communicationStyle = normalizeText(ownerSettingsProjection.communicationStyle);
     if (communicationStyle) {

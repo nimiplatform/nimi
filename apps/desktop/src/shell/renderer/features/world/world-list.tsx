@@ -25,7 +25,7 @@ function sortWorlds(list: WorldListItem[], sort: SortId): WorldListItem[] {
   } else if (sort === 'alpha') {
     arr.sort((a, b) => a.name.localeCompare(b.name));
   } else if (sort === 'inhabitants') {
-    arr.sort((a, b) => b.agentCount - a.agentCount);
+    arr.sort((a, b) => b.characterCount - a.characterCount);
   }
   return arr;
 }

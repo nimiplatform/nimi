@@ -57,7 +57,7 @@ function mapPersonaSource(raw: unknown, worldsMap: SourceWorldProjectionMap): Ex
     return null;
   }
 
-  const sourceRecord = toRecord(source.agent);
+  const sourceRecord = toRecord(source.source);
   const sourceProfile = toRecord(source.sourceProfile);
   const stats = toRecord(source.stats);
 

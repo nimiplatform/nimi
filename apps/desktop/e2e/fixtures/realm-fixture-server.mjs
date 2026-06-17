@@ -66,9 +66,9 @@ function lookupUser(manifest, idOrHandle, mode) {
   }
   const friendItems = Array.isArray(fixture.friends?.items) ? fixture.friends.items : [];
   const blockedItems = Array.isArray(fixture.blocked?.items) ? fixture.blocked.items : [];
-  const creatorAgents = Array.isArray(fixture.creatorAgents) ? fixture.creatorAgents : [];
+  const creatorCharacters = Array.isArray(fixture.creatorCharacters) ? fixture.creatorCharacters : [];
   const searchUsers = Array.isArray(fixture.searchUsers?.items) ? fixture.searchUsers.items : [];
-  users.push(...friendItems, ...blockedItems, ...creatorAgents, ...searchUsers);
+  users.push(...friendItems, ...blockedItems, ...creatorCharacters, ...searchUsers);
   if (mode === 'id') {
     return users.find((item) => String(item?.id || '') === idOrHandle) || null;
   }
@@ -81,24 +81,24 @@ function lookupWorld(manifest, worldId) {
   return worlds.find((item) => String(item?.id || '') === String(worldId || '')) || null;
 }
 
-function lookupAgent(manifest, agentId) {
+function lookupCharacter(manifest, characterId) {
   const fixture = manifest.realmFixture || {};
-  const agents = [];
-  if (Array.isArray(fixture.creatorAgents)) {
-    agents.push(...fixture.creatorAgents);
+  const characters = [];
+  if (Array.isArray(fixture.creatorCharacters)) {
+    characters.push(...fixture.creatorCharacters);
   }
   if (Array.isArray(fixture.searchUsers?.items)) {
-    agents.push(...fixture.searchUsers.items.filter((item) => item?.isSource === true));
+    characters.push(...fixture.searchUsers.items.filter((item) => item?.isSource === true));
   }
   if (Array.isArray(fixture.friends?.items)) {
-    agents.push(...fixture.friends.items.filter((item) => item?.isSource === true));
+    characters.push(...fixture.friends.items.filter((item) => item?.isSource === true));
   }
   for (const world of Array.isArray(fixture.worlds) ? fixture.worlds : []) {
-    if (Array.isArray(world?.agents)) {
-      agents.push(...world.agents);
+    if (Array.isArray(world?.characters)) {
+      characters.push(...world.characters);
     }
   }
-  return agents.find((item) => String(item?.id || '') === String(agentId || '')) || null;
+  return characters.find((item) => String(item?.id || '') === String(characterId || '')) || null;
 }
 
 function positiveInt(value, fallback) {
@@ -350,19 +350,19 @@ function handleApi(request, response, manifestPath) {
     return undefined;
   }
 
-  if (request.method === 'GET' && pathname === '/api/creator/agents') {
-    json(response, 200, Array.isArray(fixture.creatorAgents) ? fixture.creatorAgents : []);
+  if (request.method === 'GET' && pathname === '/api/creator/characters') {
+    json(response, 200, Array.isArray(fixture.creatorCharacters) ? fixture.creatorCharacters : []);
     return undefined;
   }
 
-  const creatorAgentMatch = pathname.match(/^\/api\/creator\/agents\/([^/]+)$/u);
-  if (request.method === 'GET' && creatorAgentMatch) {
-    const agent = lookupAgent(manifest, decodeURIComponent(creatorAgentMatch[1]));
-    if (!agent) {
+  const creatorCharacterMatch = pathname.match(/^\/api\/creator\/characters\/([^/]+)$/u);
+  if (request.method === 'GET' && creatorCharacterMatch) {
+    const character = lookupCharacter(manifest, decodeURIComponent(creatorCharacterMatch[1]));
+    if (!character) {
       notFound(response, pathname);
       return undefined;
     }
-    json(response, 200, agent);
+    json(response, 200, character);
     return undefined;
   }
 
@@ -382,23 +382,23 @@ function handleApi(request, response, manifestPath) {
     return undefined;
   }
 
-  const worldAgentsMatch = pathname.match(/^\/api\/world\/by-id\/([^/]+)\/agents$/u);
-  if (request.method === 'GET' && worldAgentsMatch) {
-    const world = lookupWorld(manifest, decodeURIComponent(worldAgentsMatch[1]));
-    json(response, 200, Array.isArray(world?.agents) ? world.agents : []);
+  const worldCharactersMatch = pathname.match(/^\/api\/world\/by-id\/([^/]+)\/characters$/u);
+  if (request.method === 'GET' && worldCharactersMatch) {
+    const world = lookupWorld(manifest, decodeURIComponent(worldCharactersMatch[1]));
+    json(response, 200, Array.isArray(world?.characters) ? world.characters : []);
     return undefined;
   }
 
-  const worldDetailWithAgentsMatch = pathname.match(/^\/api\/world\/by-id\/([^/]+)\/detail-with-agents$/u);
-  if (request.method === 'GET' && worldDetailWithAgentsMatch) {
-    const world = lookupWorld(manifest, decodeURIComponent(worldDetailWithAgentsMatch[1]));
+  const worldDetailWithCharactersMatch = pathname.match(/^\/api\/world\/by-id\/([^/]+)\/detail-with-characters$/u);
+  if (request.method === 'GET' && worldDetailWithCharactersMatch) {
+    const world = lookupWorld(manifest, decodeURIComponent(worldDetailWithCharactersMatch[1]));
     if (!world) {
       notFound(response, pathname);
       return undefined;
     }
     json(response, 200, {
       ...world,
-      agents: Array.isArray(world.agents) ? world.agents : [],
+      characters: Array.isArray(world.characters) ? world.characters : [],
     });
     return undefined;
   }

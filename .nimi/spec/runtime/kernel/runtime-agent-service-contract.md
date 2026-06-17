@@ -931,10 +931,9 @@ Authoring and storage:
   Nimi-authored bootstrap definition that owns the guide `greeting` /
   `systemPromptBase`), not a separate platform-owned bespoke docs artifact and
   not a separate admitted docs schema;
-- the corpus is stored inside the projected source's ordinary profile
-  knowledge payload (the `AgentProfile.dna` knowledge slot), so it rides the
-  same admitted source-core projection used for any runtime source's
-  profile content;
+- the corpus is stored inside the projected source's ordinary source-core
+  profile knowledge payload, so it rides the same admitted source-core
+  projection used for any runtime source's profile content;
 - the corpus is bounded built-in product knowledge — first-run setup, Runtime,
   profiles, Apps, Worlds, RealmPersonas, LocalAgents, and Avatar — authored as
   static structured text;

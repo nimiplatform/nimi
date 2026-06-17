@@ -12,35 +12,35 @@ For schema-level state field definitions, see
 
 ## Authoring And Publish
 
-A world is authored by a creator. The creator's tooling produces
-**truth** — `WorldRule` entries, `AgentRule` entries bound to the
-world, scenes, agents, projections — and packages it for publish.
+A world is authored by a creator. Creator tooling maintains the
+world's canonical `WorldCore` plus admitted `WorldCharacterCore`
+records, timeline, scene, history, and product metadata.
 
-The publish moment is a **`WorldRelease`**: an atomic transaction
-that freezes truth, projections, and the package version into a
-single canonical anchor. A release carries:
+The publish moment is a core commit: an atomic `WorldCoreIngressPackage`
+or `CorePatch` that freezes the admitted core object state into a single
+canonical anchor. A commit carries:
 
-- Package version
+- Core schema version
 - Provenance (who released, what tooling)
 - Checksum / diff metadata
-- Rollback lineage
+- Replacement or patch lineage
 
-Atomicity matters. Truth, agent rule scope, and projections all land
-in one transactional commit. Half-published worlds are not admitted.
+Atomicity matters. World core, character core, scene, timeline, and history
+state land in one transactional commit. Half-published worlds are not admitted.
 
-The release is published through the **`CanonicalTruthPackage`** —
-the official upstream truth ingress object. It distinguishes:
+The commit is published through the **`WorldCoreIngressPackage`** or
+**`CorePatch`**. It distinguishes:
 
 | Component | Purpose |
 | --- | --- |
-| Canonical truth units | World rules, agent rules, scene rules, etc. |
-| Derivation/inheritance inputs | How world truth constrains agent truth |
-| Projection inputs | What read views the world supports |
+| Core world object | Identity, ownership, time model, timeline, history, and product metadata |
+| Core character objects | World-owned characters bound to the world |
+| Runtime source snapshot inputs | By-value materialization data for LocalAgent creation |
 | Governance/release metadata | Version, provenance, audit |
 
-Lorebook text and prompt payloads are never the package's canonical
-center. They may be inputs to projection but are not truth on their
-own.
+Lorebook text and prompt payloads are never the package's canonical center.
+They may be source-core fields or downstream prompt-context inputs, but they do
+not replace the core objects.
 
 ## Rollback Is A Release Operation
 
