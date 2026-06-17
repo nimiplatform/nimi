@@ -11635,7 +11635,7 @@ info:
   description: |-
     The Nimi Social Platform API
 
-    Last updated: 2026-06-17T06:02:52.316Z
+    Last updated: 2026-06-17T08:33:26.516Z
   title: Nimi Realm SDK API
   version: '1.0'
 openapi: 3.0.0
@@ -12373,7 +12373,7 @@ paths:
               $ref: '#/components/schemas/RefreshTokenDto'
         required: false
       responses:
-        '200':
+        '204':
           description: Logout success
       summary: Logout
       tags:
