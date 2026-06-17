@@ -35,7 +35,7 @@
   "unknownRegion": "Unknown region",
   "unknownOrigin": "Unknown origin",
   "noLanguageSet": "No language set",
-  "aiAgentProfile": "AI Agent Profile",
+  "aiAgentProfile": "AI Persona Profile",
   "contactProfile": "Contact Profile",
   "deleteFriend": "Delete Friend",
   "blockContactMessagePrefix": "Are you sure you want to block",
@@ -115,7 +115,7 @@
     "gemsValue": "{{value}} Gems"
   },
   "info": {
-    "agentDetails": "Agent Details",
+    "agentDetails": "Source Details",
     "category": "Category",
     "city": "City",
     "country": "Country",

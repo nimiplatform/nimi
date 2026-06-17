@@ -54,7 +54,7 @@ test('top agent cards sanitize banner URLs before interpolating them into backgr
 });
 
 test('explore panel keeps agent queries declarative without imperative refetch loops', () => {
-  assert.match(explorePanelSource, /queryKey: \['explore-agents', authStatus, selectedCategory, props\.searchText\]/);
+  assert.match(explorePanelSource, /queryKey: \['explore-personas', authStatus, selectedCategory, props\.searchText\]/);
   assert.doesNotMatch(explorePanelSource, /agentsQuery\.refetch\(\)/);
 });
 

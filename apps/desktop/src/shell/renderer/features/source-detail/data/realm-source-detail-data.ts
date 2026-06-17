@@ -101,7 +101,7 @@ export async function loadRealmSourceDetailsForDisplay(
   const normalizedIdentifier = toNonEmptyString(sourceIdentifier);
 
   try {
-    const cacheKey = `agent-profile:${normalizedIdentifier}`;
+    const cacheKey = `source-profile:${normalizedIdentifier}`;
     const cached = cacheGet(cacheKey);
     if (cached && typeof cached === 'object') {
       return applyRealmSourceProfileReadFilters({
@@ -116,20 +116,20 @@ export async function loadRealmSourceDetailsForDisplay(
 
     const resolvedId = toNonEmptyString(enrichedProfile.id);
     if (resolvedId) {
-      cacheSet(`agent-profile:${resolvedId}`, enrichedProfile, 5 * 60 * 1000);
+      cacheSet(`source-profile:${resolvedId}`, enrichedProfile, 5 * 60 * 1000);
     }
     const resolvedHandle = toNonEmptyString(enrichedProfile.handle);
     if (resolvedHandle) {
-      cacheSet(`agent-profile:${resolvedHandle}`, enrichedProfile, 5 * 60 * 1000);
+      cacheSet(`source-profile:${resolvedHandle}`, enrichedProfile, 5 * 60 * 1000);
     }
     cacheSet(cacheKey, enrichedProfile, 5 * 60 * 1000);
     const cache = await getOfflineCacheManager();
-    await cache.syncAgentMetadata(cacheKey, enrichedProfile);
+    await cache.syncProfileMetadata(cacheKey, enrichedProfile);
     if (resolvedId) {
-      await cache.syncAgentMetadata(`agent-profile:${resolvedId}`, enrichedProfile);
+      await cache.syncProfileMetadata(`source-profile:${resolvedId}`, enrichedProfile);
     }
     if (resolvedHandle) {
-      await cache.syncAgentMetadata(`agent-profile:${resolvedHandle}`, enrichedProfile);
+      await cache.syncProfileMetadata(`source-profile:${resolvedHandle}`, enrichedProfile);
     }
     return applyRealmSourceProfileReadFilters({
       emitRealmSourceDetailError,
@@ -139,7 +139,7 @@ export async function loadRealmSourceDetailsForDisplay(
     });
   } catch (error) {
     if (isRealmOfflineError(error)) {
-      const cached = await (await getOfflineCacheManager()).getCachedAgentMetadata<JsonObject>(`agent-profile:${normalizedIdentifier}`);
+      const cached = await (await getOfflineCacheManager()).getCachedProfileMetadata<JsonObject>(`source-profile:${normalizedIdentifier}`);
       if (cached) {
         getOfflineCoordinator().markCacheFallbackUsed();
         return applyRealmSourceProfileReadFilters({

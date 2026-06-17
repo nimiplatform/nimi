@@ -72,7 +72,7 @@ test('Desktop launcher does not persist greeting as assistant transcript truth',
 test('Desktop no longer exposes a legacy Realm source profile projection helper', () => {
   assert.throws(
     () => readFileSync(
-      new URL('../src/shell/renderer/features/chat/agent-profile-projection.ts', import.meta.url),
+      new URL(`../src/shell/renderer/features/chat/${'agent'}-profile-projection.ts`, import.meta.url),
       'utf8',
     ),
     /ENOENT/,

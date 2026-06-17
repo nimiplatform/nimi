@@ -21,7 +21,7 @@ Tab 分组：
    但不得作为普通 primary nav 项。
 3. **Developer/Internal**：developer mode、diagnostics。这些 surface 不得作为
    Nimi Home 普通用户公开产品入口。
-4. **Detail Tab**：profile、agent-detail、world-detail、notification、
+4. **Detail Tab**：profile、source-detail、world-detail、notification、
    gift-inbox、privacy-policy、terms-of-service。
 
 `World` 必须折入 `Explore`；`AI Runtime` 的普通产品 label 必须为

@@ -5,7 +5,7 @@ export const OFFLINE_STORE_CHAT_LIST = 'chat-list';
 export const OFFLINE_STORE_CHAT_MESSAGES = 'chat-messages';
 export const OFFLINE_STORE_CHAT_OUTBOX = 'chat-outbox';
 export const OFFLINE_STORE_SOCIAL_OUTBOX = 'social-outbox';
-export const OFFLINE_STORE_AGENT_METADATA = 'agent-metadata';
+export const OFFLINE_STORE_PROFILE_METADATA = 'profile-metadata';
 export const OFFLINE_STORE_WORLD_METADATA = 'world-metadata';
 
 export function hasIndexedDb(): boolean {
@@ -33,8 +33,8 @@ export function openOfflineDatabase(): Promise<IDBDatabase> {
         const socialStore = db.createObjectStore(OFFLINE_STORE_SOCIAL_OUTBOX, { keyPath: 'id' });
         socialStore.createIndex('enqueuedAt', 'enqueuedAt', { unique: false });
       }
-      if (!db.objectStoreNames.contains(OFFLINE_STORE_AGENT_METADATA)) {
-        db.createObjectStore(OFFLINE_STORE_AGENT_METADATA, { keyPath: 'cacheKey' });
+      if (!db.objectStoreNames.contains(OFFLINE_STORE_PROFILE_METADATA)) {
+        db.createObjectStore(OFFLINE_STORE_PROFILE_METADATA, { keyPath: 'cacheKey' });
       }
       if (!db.objectStoreNames.contains(OFFLINE_STORE_WORLD_METADATA)) {
         db.createObjectStore(OFFLINE_STORE_WORLD_METADATA, { keyPath: 'cacheKey' });

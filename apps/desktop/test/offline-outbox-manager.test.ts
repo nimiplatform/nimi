@@ -139,12 +139,12 @@ describe('D-OFFLINE-005: explicit ephemeral cache behavior', () => {
     assert.equal(cached[cached.length - 1]?.id, 'msg-49');
   });
 
-  test('agent and world metadata survive explicit ephemeral store round-trips', async () => {
+  test('profile and world metadata survive explicit ephemeral store round-trips', async () => {
     const manager = new OfflineCacheManager({ enableEphemeralStore: true });
     await manager.open();
 
-    await manager.syncAgentMetadata('agent:alice', {
-      id: 'agent:alice',
+    await manager.syncProfileMetadata('profile:alice', {
+      id: 'profile:alice',
       name: 'Alice',
     });
     await manager.syncWorldList([
@@ -156,8 +156,8 @@ describe('D-OFFLINE-005: explicit ephemeral cache behavior', () => {
       slug: 'main',
     });
 
-    assert.deepEqual(await manager.getCachedAgentMetadata('agent:alice'), {
-      id: 'agent:alice',
+    assert.deepEqual(await manager.getCachedProfileMetadata('profile:alice'), {
+      id: 'profile:alice',
       name: 'Alice',
     });
     assert.deepEqual(await manager.getCachedWorldList(), [

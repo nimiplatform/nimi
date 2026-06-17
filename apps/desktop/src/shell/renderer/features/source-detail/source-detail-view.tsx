@@ -3,11 +3,11 @@ import { getSemanticAgentPalette } from '@renderer/components/agent-theme.js';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { ScrollArea } from '@nimiplatform/kit/ui';
 import { describeRealmPersonaPrimaryAction } from '@renderer/features/explore/realm-persona-source-admission';
-import type { AgentDetailData } from './agent-detail-model.js';
-import { getStateBadgeColor } from './agent-detail-model.js';
+import type { SourceDetailData } from './source-detail-model.js';
+import { getStateBadgeColor } from './source-detail-model.js';
 
-type AgentDetailViewProps = {
-  agent: AgentDetailData;
+type SourceDetailViewProps = {
+  source: SourceDetailData;
   stats?: { friendsCount: number; postsCount: number; likesCount: number } | null;
   worldScore?: number;
   loading: boolean;
@@ -35,8 +35,8 @@ function ScoreProgressBar({ score = 0 }: { score?: number }) {
   );
 }
 
-// Agent state badge
-function AgentStateBadge({ state }: { state?: string }) {
+// Source state badge
+function SourceStateBadge({ state }: { state?: string }) {
   if (!state) return null;
   const colors = getStateBadgeColor(state);
   return (
@@ -72,7 +72,7 @@ function OwnershipBadge({ ownershipType }: { ownershipType?: string }) {
   return (
     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${isMasterOwned ? 'bg-purple-100 text-purple-700' : 'bg-cyan-100 text-cyan-700'}`}>
       <span className={`w-1.5 h-1.5 rounded-full ${isMasterOwned ? 'bg-purple-500' : 'bg-cyan-500'}`} />
-      {isMasterOwned ? 'My Agent' : 'World Owned'}
+      {isMasterOwned ? 'My Persona' : 'World Owned'}
     </span>
   );
 }
@@ -92,7 +92,7 @@ function OnlineIndicator({ isOnline }: { isOnline?: boolean }) {
   );
 }
 
-function AgentDetailPrimaryActionIcon({
+function SourceDetailPrimaryActionIcon({
   action: _action,
 }: {
   action: ReturnType<typeof describeRealmPersonaPrimaryAction>['action'];
@@ -105,13 +105,13 @@ function AgentDetailPrimaryActionIcon({
   );
 }
 
-export function AgentDetailView(props: AgentDetailViewProps) {
+export function SourceDetailView(props: SourceDetailViewProps) {
   const { t } = useTranslation();
 
   if (props.loading) {
     return (
       <div className="flex flex-1 items-center justify-center text-sm text-gray-500">
-        {t('AgentDetail.loading')}
+        {t('SourceDetail.loading')}
       </div>
     );
   }
@@ -119,7 +119,7 @@ export function AgentDetailView(props: AgentDetailViewProps) {
   if (props.error) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-3">
-        <p className="text-sm text-red-600">{t('AgentDetail.error')}</p>
+        <p className="text-sm text-red-600">{t('SourceDetail.error')}</p>
         <button
           type="button"
           onClick={props.onBack}
@@ -131,14 +131,14 @@ export function AgentDetailView(props: AgentDetailViewProps) {
     );
   }
 
-  const { agent } = props;
+  const { source } = props;
   const palette = getSemanticAgentPalette({
-    category: agent.category,
-    origin: agent.origin,
-    description: agent.bio || agent.category,
-    tags: agent.tags,
+    category: source.category,
+    origin: source.origin,
+    description: source.bio || source.category,
+    tags: source.tags,
   });
-  const primaryAction = describeRealmPersonaPrimaryAction(agent.sourceState);
+  const primaryAction = describeRealmPersonaPrimaryAction(source.sourceState);
   const handlePrimaryAction = () => {
     props.onManageFriends();
   };
@@ -154,9 +154,9 @@ export function AgentDetailView(props: AgentDetailViewProps) {
           <div className="relative rounded-[24px] bg-white shadow-lg overflow-hidden">
             {/* Banner Background */}
             <div className="relative h-32 w-full overflow-hidden">
-              {agent.worldBannerUrl ? (
+              {source.worldBannerUrl ? (
                 <img
-                  src={agent.worldBannerUrl}
+                  src={source.worldBannerUrl}
                   alt="World Banner"
                   className="w-full h-full object-cover"
                 />
@@ -179,13 +179,13 @@ export function AgentDetailView(props: AgentDetailViewProps) {
               </button>
 
               {/* Tag Pill - Top Right */}
-              {agent.tags.length > 0 && (
+              {source.tags.length > 0 && (
                 <div className="absolute top-4 right-4">
                   <span
                     className="inline-flex items-center rounded-full px-3 py-1.5 text-xs font-medium shadow-sm"
                     style={{ backgroundColor: palette.badgeBg, color: palette.badgeText }}
                   >
-                    {agent.tags[0]}
+                    {source.tags[0]}
                   </span>
                 </div>
               )}
@@ -196,12 +196,12 @@ export function AgentDetailView(props: AgentDetailViewProps) {
               type="button"
               onClick={handlePrimaryAction}
               disabled={primaryAction.disabled}
-              data-source-state={agent.sourceState}
+              data-source-state={source.sourceState}
               data-primary-action={primaryAction.action}
               className="absolute top-4 right-4 z-10 flex h-8 items-center gap-1.5 rounded-full bg-white/90 px-3 text-xs font-medium text-gray-700 shadow-md transition-all hover:bg-white disabled:cursor-default disabled:opacity-60"
               title={primaryAction.label}
             >
-              <AgentDetailPrimaryActionIcon action={primaryAction.action} />
+              <SourceDetailPrimaryActionIcon action={primaryAction.action} />
               {primaryAction.label}
             </button>
 
@@ -210,41 +210,41 @@ export function AgentDetailView(props: AgentDetailViewProps) {
               {/* Avatar with gradient ring */}
               <div className="relative">
                 <EntityAvatar
-                  imageUrl={agent.avatarUrl}
-                  name={agent.displayName}
-                  kind="agent"
+                  imageUrl={source.avatarUrl}
+                  name={source.displayName}
+                  kind="source"
                   sizeClassName="h-24 w-24"
                   textClassName="text-2xl font-semibold"
                 />
-                <OnlineIndicator isOnline={agent.isOnline} />
+                <OnlineIndicator isOnline={source.isOnline} />
               </div>
 
               {/* Name and Badges */}
               <div className="mt-4 flex items-center gap-2 flex-wrap justify-center">
                 <h2 className="text-xl font-bold text-gray-900">
-                  {agent.displayName}
+                  {source.displayName}
                 </h2>
-                <AgentStateBadge state={agent.state} />
-                <TierBadge tier={agent.tier} />
+                <SourceStateBadge state={source.state} />
+                <TierBadge tier={source.tier} />
               </div>
               
               {/* Handle with ownership badge */}
               <div className="flex items-center gap-2 mt-1">
-                <p className="text-sm text-gray-500 font-mono">{agent.handle}</p>
-                <OwnershipBadge ownershipType={agent.ownershipType} />
+                <p className="text-sm text-gray-500 font-mono">{source.handle}</p>
+                <OwnershipBadge ownershipType={source.ownershipType} />
               </div>
 
               {/* Bio */}
-              {agent.bio ? (
+              {source.bio ? (
                 <p className="mt-3 text-center text-sm text-gray-600 max-w-xs">
-                  {agent.bio}
+                  {source.bio}
                 </p>
               ) : null}
 
               {/* Category & Origin */}
-              {(agent.category || agent.origin) && (
+              {(source.category || source.origin) && (
                 <p className="mt-2 text-xs" style={{ color: palette.accent }}>
-                  {agent.category}{agent.category && agent.origin ? ' • ' : ''}{agent.origin ? `Origin: ${agent.origin}` : ''}
+                  {source.category}{source.category && source.origin ? ' • ' : ''}{source.origin ? `Origin: ${source.origin}` : ''}
                 </p>
               )}
 
@@ -252,7 +252,7 @@ export function AgentDetailView(props: AgentDetailViewProps) {
               <div className="mt-5 w-full px-4">
                 <div className="flex items-center gap-3">
                     <span className="text-xs text-gray-500 font-medium whitespace-nowrap">
-                      {t('AgentDetail.score', { defaultValue: 'Score' })}
+                      {t('SourceDetail.score', { defaultValue: 'Score' })}
                     </span>
                   <ScoreProgressBar score={props.worldScore} />
                 </div>
@@ -265,7 +265,7 @@ export function AgentDetailView(props: AgentDetailViewProps) {
                     {props.stats?.friendsCount ?? '--'}
                   </p>
                   <p className="text-[10px] text-gray-400 uppercase tracking-wider mt-0.5">
-                    {t('AgentDetail.friends', { defaultValue: 'Friends' })}
+                    {t('SourceDetail.friends', { defaultValue: 'Friends' })}
                   </p>
                 </div>
                 <div className="w-px h-10 bg-gray-200" />
@@ -274,7 +274,7 @@ export function AgentDetailView(props: AgentDetailViewProps) {
                     {props.stats?.postsCount ?? '--'}
                   </p>
                   <p className="text-[10px] text-gray-400 uppercase tracking-wider mt-0.5">
-                    {t('AgentDetail.posts', { defaultValue: 'Posts' })}
+                    {t('SourceDetail.posts', { defaultValue: 'Posts' })}
                   </p>
                 </div>
                 <div className="w-px h-10 bg-gray-200" />
@@ -283,7 +283,7 @@ export function AgentDetailView(props: AgentDetailViewProps) {
                     {props.stats?.likesCount ?? '--'}
                   </p>
                   <p className="text-[10px] text-gray-400 uppercase tracking-wider mt-0.5">
-                    {t('AgentDetail.likes', { defaultValue: 'Likes' })}
+                    {t('SourceDetail.likes', { defaultValue: 'Likes' })}
                   </p>
                 </div>
               </div>
@@ -294,7 +294,7 @@ export function AgentDetailView(props: AgentDetailViewProps) {
                   type="button"
                   onClick={props.onSendGift}
                   className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
-                  title={t('AgentDetail.sendGift')}
+                  title={t('SourceDetail.sendGift')}
                 >
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <rect x="3" y="8" width="18" height="4" rx="1" />
@@ -303,12 +303,12 @@ export function AgentDetailView(props: AgentDetailViewProps) {
                     <path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5" />
                   </svg>
                 </button>
-                {agent.worldId ? (
+                {source.worldId ? (
                   <button
                     type="button"
                     onClick={props.onOpenWorld}
                     className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
-                    title={t('AgentDetail.openWorld')}
+                    title={t('SourceDetail.openWorld')}
                   >
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <circle cx="12" cy="12" r="10" />

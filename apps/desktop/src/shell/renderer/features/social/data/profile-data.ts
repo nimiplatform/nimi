@@ -91,12 +91,12 @@ export async function loadUserProfileById(
       'Failed to load Realm user profile',
     );
     const cache = await getOfflineCacheManager();
-    await cache.syncAgentMetadata(`user:${normalizedId}`, enriched);
+    await cache.syncProfileMetadata(`user:${normalizedId}`, enriched);
     return enriched;
   } catch (error) {
     if (isRealmOfflineError(error)) {
       const cache = await getOfflineCacheManager();
-      const cached = await cache.getCachedAgentMetadata<UserProfileProjection>(`user:${normalizedId}`);
+      const cached = await cache.getCachedProfileMetadata<UserProfileProjection>(`user:${normalizedId}`);
       if (cached) {
         getOfflineCoordinator().markCacheFallbackUsed();
         return cached;

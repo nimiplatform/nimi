@@ -62,7 +62,7 @@ flows:
   - flow: explore
     methods: []
     replacement_owner: Realm / SDK projection / Kit headless
-    description: Explore search, recommendations, discovery feed, and public agent profile reads are not Desktop DataSync authority
+    description: Explore search, recommendations, discovery feed, and public source profile reads are not Desktop DataSync authority
     source_rule: D-DSYNC-008
   - flow: notification
     methods: []
@@ -74,10 +74,10 @@ flows:
     replacement_owner: Realm / SDK projection / SDK DX-client-orchestration
     description: User settings, notification preferences, creator eligibility, password, OAuth, and 2FA flows are Realm truth consumed through SDK Realm account/settings helpers
     source_rule: D-DSYNC-010
-  - flow: agent
+  - flow: source
     methods: []
     replacement_owner: Realm / Runtime / Cognition / SDK projection
-    description: Creator agent reads belong to Realm helpers; local lifecycle, execution, memory, and route truth belong to Runtime/Cognition
+    description: Creator source reads belong to Realm helpers; LocalAgent lifecycle, execution, memory, and route truth belong to Runtime/Cognition
     source_rule: D-DSYNC-011
   - flow: transit
     methods: []

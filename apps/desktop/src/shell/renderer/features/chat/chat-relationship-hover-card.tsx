@@ -47,7 +47,7 @@ function getIdentityLabel(target: ConversationTargetSummary, sourceLabel: string
 
 function getProfileOpenLabel(source: ConversationTargetSummary['source'], title: string, t: TFunction): string {
   const action = source === 'agent'
-    ? t('Chat.composerAvatarOpenAgent', { defaultValue: 'Open agent profile' })
+    ? t('Chat.composerAvatarOpenSource', { defaultValue: 'Open persona profile' })
     : t('Chat.composerAvatarOpenContact', { defaultValue: 'Open profile' });
   return `${action}: ${title}`;
 }
@@ -98,7 +98,7 @@ export function buildRelationshipProfileSeed(target: ConversationTargetSummary):
       isSource: target.source === 'agent',
       isOnline: target.isOnline ?? undefined,
       worldName: getMetadataText(target, 'worldName') || null,
-      agentOwnershipType: ownershipType || null,
+      sourceOwnershipType: ownershipType || null,
     },
   };
 }

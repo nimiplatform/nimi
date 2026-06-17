@@ -13,8 +13,8 @@ import {
 } from '../world/world-list';
 import type { WorldListItem } from '../world/world-list-model';
 import {
-  AgentRecommendationCard,
-  type ExploreAgentCardData,
+  PersonaSourceCard,
+  type ExplorePersonaSourceCardData,
 } from './explore-cards';
 import {
   ExploreSectionHeader,
@@ -38,7 +38,7 @@ type WorldBanner = {
 type ExploreViewProps = {
   selectedCategory: string | null;
   categories: string[];
-  agents: ExploreAgentCardData[];
+  personaSources: ExplorePersonaSourceCardData[];
   worldBanners: WorldBanner[];
   worldCatalogItems: WorldListItem[];
   worldsLoading: boolean;
@@ -49,9 +49,9 @@ type ExploreViewProps = {
   onPostDelete?: () => void;
   loading: boolean;
   onToggleCategory: (category: string) => void;
-  onAgentManageFriends: () => void;
-  onAgentSendGift?: (agentId: string) => void;
-  onAgentOpen?: (agentId: string) => void;
+  onPersonaSourceManage: () => void;
+  onPersonaSourceSendGift?: (sourceId: string) => void;
+  onPersonaSourceOpen?: (sourceId: string) => void;
   onPostAuthorOpen?: (target: PostCardAuthorProfileTarget) => void;
   onWorldOpen?: (worldId: string) => void;
 };
@@ -292,17 +292,17 @@ function FeaturedWorldHero({
 }
 
 // RealmPersona section: a full browsable discovery grid across Worlds.
-function ExploreAgentsSection({
-  agents,
-  onAgentManageFriends,
-  onAgentOpen,
+function ExplorePersonaSourcesSection({
+  personaSources,
+  onPersonaSourceManage,
+  onPersonaSourceOpen,
 }: {
-  agents: ExploreAgentCardData[];
-  onAgentManageFriends: () => void;
-  onAgentOpen?: (agentId: string) => void;
+  personaSources: ExplorePersonaSourceCardData[];
+  onPersonaSourceManage: () => void;
+  onPersonaSourceOpen?: (sourceId: string) => void;
 }) {
   const { t } = useTranslation();
-  if (agents.length === 0) {
+  if (personaSources.length === 0) {
     return (
       <div
         className="rounded-[2rem] border border-dashed p-12 text-center"
@@ -312,9 +312,9 @@ function ExploreAgentsSection({
           fontSize: 13,
           fontFamily: 'var(--nimi-font-sans)',
         }}
-        data-testid="explore-agents-empty"
+        data-testid="explore-personas-empty"
       >
-        {t('Explore.agentsEmpty', { defaultValue: 'No agents match the current filters.' })}
+        {t('Explore.personaSourcesEmpty', { defaultValue: 'No personas match the current filters.' })}
       </div>
     );
   }
@@ -322,14 +322,14 @@ function ExploreAgentsSection({
     <div
       className="grid items-stretch gap-4"
       style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' }}
-      data-testid="explore-agents-grid"
+      data-testid="explore-personas-grid"
     >
-      {agents.map((agent) => (
-        <AgentRecommendationCard
-          key={agent.id}
-          agent={agent}
-          onManageFriends={onAgentManageFriends}
-          onOpen={() => onAgentOpen?.(agent.id)}
+      {personaSources.map((personaSource) => (
+        <PersonaSourceCard
+          key={personaSource.id}
+ source={personaSource}
+          onManageFriends={onPersonaSourceManage}
+          onOpen={() => onPersonaSourceOpen?.(personaSource.id)}
         />
       ))}
     </div>
@@ -435,10 +435,10 @@ export function ExploreView(props: ExploreViewProps) {
         {props.activeSection === 'personas' && (
           <section data-testid="explore-personas-section">
             <ExploreSectionHeader section="personas" />
-            <ExploreAgentsSection
-              agents={props.agents}
-              onAgentManageFriends={props.onAgentManageFriends}
-              onAgentOpen={props.onAgentOpen}
+            <ExplorePersonaSourcesSection
+              personaSources={props.personaSources}
+              onPersonaSourceManage={props.onPersonaSourceManage}
+              onPersonaSourceOpen={props.onPersonaSourceOpen}
             />
           </section>
         )}

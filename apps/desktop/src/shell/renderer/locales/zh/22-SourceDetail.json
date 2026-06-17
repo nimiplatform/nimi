@@ -26,6 +26,6 @@
   "friends": "好友",
   "posts": "帖子",
   "likes": "点赞",
-  "noAgentSelected": "未选择 Agent",
-  "noAgentDataAvailable": "没有可用的 Agent 数据"
+  "noSourceSelected": "未选择 Source",
+  "noSourceDataAvailable": "没有可用的 Source 数据"
 }

@@ -69,7 +69,7 @@
   "agentsDesc": "展示根据世界生成的 Agent 卡片，支持聊天和语音入口占位。",
   "agentCards": "Agent 卡片",
   "agentsLoading": "正在加载 Agent...",
-  "noAgentsYet": "这个世界里还没有 Agent",
+  "noPersonaSourcesYet": "这个世界里还没有 Persona",
   "startChat": "开始聊天",
   "voiceInteraction": "语音互动",
   "createdAt": "创建于",

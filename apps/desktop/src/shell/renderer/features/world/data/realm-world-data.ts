@@ -323,7 +323,7 @@ export async function loadWorldAgents(
   try {
     return await callApi(
       (realm) => listWorldCharacters(realm, worldId),
-      'Failed to load world agents',
+      'Failed to load world personas',
     );
   } catch (error) {
     emitRealmWorldError('load-world-agents', error, { worldId });

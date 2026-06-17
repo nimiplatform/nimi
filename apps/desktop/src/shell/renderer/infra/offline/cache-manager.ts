@@ -5,7 +5,7 @@ import {
 } from './types.js';
 import {
   hasIndexedDb,
-  OFFLINE_STORE_AGENT_METADATA,
+  OFFLINE_STORE_PROFILE_METADATA,
   OFFLINE_STORE_CHAT_LIST,
   OFFLINE_STORE_CHAT_MESSAGES,
   OFFLINE_STORE_WORLD_METADATA,
@@ -26,7 +26,7 @@ export type OfflineEphemeralStoreOptions = {
 type OfflineEphemeralStore = {
   chatList: Map<string, object>;
   chatMessages: Map<string, Map<string, object>>;
-  agentMetadata: Map<string, MetadataRow>;
+  profileMetadata: Map<string, MetadataRow>;
   worldMetadata: Map<string, MetadataRow>;
 };
 
@@ -34,7 +34,7 @@ function createEphemeralStore(): OfflineEphemeralStore {
   return {
     chatList: new Map(),
     chatMessages: new Map(),
-    agentMetadata: new Map(),
+    profileMetadata: new Map(),
     worldMetadata: new Map(),
   };
 }
@@ -211,24 +211,24 @@ export class OfflineCacheManager {
     });
   }
 
-  async syncAgentMetadata<T extends object>(agentId: string, payload: T): Promise<void> {
-    const row = toMetadataRow(agentId, payload);
+  async syncProfileMetadata<T extends object>(profileKey: string, payload: T): Promise<void> {
+    const row = toMetadataRow(profileKey, payload);
     if (this.ephemeral) {
-      this.ensureEphemeralStore().agentMetadata.set(agentId, row);
+      this.ensureEphemeralStore().profileMetadata.set(profileKey, row);
       return;
     }
     const db = this.ensureDb();
-    const tx = db.transaction(OFFLINE_STORE_AGENT_METADATA, 'readwrite');
-    tx.objectStore(OFFLINE_STORE_AGENT_METADATA).put(row);
+    const tx = db.transaction(OFFLINE_STORE_PROFILE_METADATA, 'readwrite');
+    tx.objectStore(OFFLINE_STORE_PROFILE_METADATA).put(row);
     await this.complete(tx);
   }
 
-  async getCachedAgentMetadata<T extends object = JsonObject>(agentId: string): Promise<T | null> {
+  async getCachedProfileMetadata<T extends object = JsonObject>(profileKey: string): Promise<T | null> {
     if (this.ephemeral) {
-      const row = this.ensureEphemeralStore().agentMetadata.get(agentId);
+      const row = this.ensureEphemeralStore().profileMetadata.get(profileKey);
       return row && !Array.isArray(row.payload) ? row.payload as T : null;
     }
-    const row = await this.getByKey<MetadataRow>(OFFLINE_STORE_AGENT_METADATA, agentId);
+    const row = await this.getByKey<MetadataRow>(OFFLINE_STORE_PROFILE_METADATA, profileKey);
     return row && !Array.isArray(row.payload) ? row.payload as T : null;
   }
 

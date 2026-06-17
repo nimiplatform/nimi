@@ -18,8 +18,8 @@ function readRendererSelectorFactory(name, parameterName) {
 }
 
 const runtimeSidebarPageTestId = readRendererSelectorFactory('runtimeSidebarPage', 'pageId');
-const exploreAgentCardTestId = readRendererSelectorFactory('exploreAgentCard', 'agentId');
-const exploreAgentPrimaryActionTestId = readRendererSelectorFactory('exploreAgentPrimaryAction', 'agentId');
+const explorePersonaSourceCardTestId = readRendererSelectorFactory('explorePersonaSourceCard', 'sourceId');
+const explorePersonaSourcePrimaryActionTestId = readRendererSelectorFactory('explorePersonaSourcePrimaryAction', 'sourceId');
 
 export const E2E_IDS = {
   appLoadingScreen: 'app-loading-screen',
@@ -42,8 +42,8 @@ export const E2E_IDS = {
   panel: (name) => `panel:${name}`,
   navTab: (tabId) => `nav-tab:${tabId}`,
   runtimeConnectorScopeBadge: (connectorId) => `runtime-connector-scope-badge:${connectorId}`,
-  exploreAgentCard: exploreAgentCardTestId,
-  exploreAgentPrimaryAction: exploreAgentPrimaryActionTestId,
+  explorePersonaSourceCard: explorePersonaSourceCardTestId,
+  explorePersonaSourcePrimaryAction: explorePersonaSourcePrimaryActionTestId,
   chatPage: 'chat-page',
   chatList: 'chat-list',
   chatRow: (chatId) => `chat-row:${chatId}`,

@@ -9,10 +9,10 @@ import { ProfileDetailModal } from '@renderer/features/relationship/profile-deta
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';
 import { parseOptionalJsonObject, type JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
 import { ExploreView } from './explore-view';
-import type { ExploreAgentCardData } from './explore-cards';
+import type { ExplorePersonaSourceCardData } from './explore-cards';
 import type { ExploreSectionId } from './explore-section-nav';
 import type { PostCardAuthorProfileTarget } from '../home/post-card';
-import { parseAgents, toProfileTargetFromAgent } from './explore-agent-projection';
+import { parsePersonaSources, toProfileTargetFromPersonaSource } from './explore-persona-source-projection';
 import {
   fetchWorldListItems,
   prefetchWorldDetailAndHistory,
@@ -75,15 +75,15 @@ export function ExplorePanel(props: ExplorePanelProps) {
     }));
   }, [worldsQuery.data]);
 
-  // Create worlds map for agent mapping
+  // Create worlds map for personaSource mapping
   const worldsMap = useMemo(() => {
     const worlds = worldsQuery.data ?? [];
     return new Map(worlds.map((w) => [w.id, { bannerUrl: w.bannerUrl, scoreEwma: w.scoreEwma, name: w.name }]));
   }, [worldsQuery.data]);
 
-  // Fetch agents for sidebar
-  const agentsQuery = useQuery({
-    queryKey: ['explore-agents', authStatus, selectedCategory, props.searchText],
+  // Fetch personaSources for sidebar
+  const personaSourcesQuery = useQuery({
+    queryKey: ['explore-personas', authStatus, selectedCategory, props.searchText],
     queryFn: async () => {
       const tag = selectedCategory || undefined;
       const query = props.searchText.trim() || undefined;
@@ -99,22 +99,22 @@ export function ExplorePanel(props: ExplorePanelProps) {
     staleTime: 15_000,
   });
 
-  const agents = useMemo(
+  const personaSources = useMemo(
     () => {
-      const mapped = parseAgents(agentsQuery.data, worldsMap);
+      const mapped = parsePersonaSources(personaSourcesQuery.data, worldsMap);
       const projection = sourceAdmissionQuery.data ?? null;
-      return mapped.map((agent) => ({
-        ...agent,
-        sourceState: resolveRealmPersonaSourceState(agent.id, projection),
+      return mapped.map((personaSource) => ({
+        ...personaSource,
+        sourceState: resolveRealmPersonaSourceState(personaSource.id, projection),
       }));
     },
-    [agentsQuery.data, worldsMap, sourceAdmissionQuery.data],
+    [personaSourcesQuery.data, worldsMap, sourceAdmissionQuery.data],
   );
 
   const categories = useMemo(() => {
     const dynamicTags = new Set<string>();
-    for (const agent of agents) {
-      for (const tag of agent.tags) {
+    for (const personaSource of personaSources) {
+      for (const tag of personaSource.tags) {
         const normalized = tag.trim();
         if (normalized) {
           dynamicTags.add(normalized);
@@ -123,7 +123,7 @@ export function ExplorePanel(props: ExplorePanelProps) {
     }
     const combined = [...DEFAULT_CATEGORIES, ...Array.from(dynamicTags)];
     return Array.from(new Set(combined)).slice(0, 16);
-  }, [agents]);
+  }, [personaSources]);
 
   // fetchPostPage for PostFeed — PostFeed manages its own pagination internally
   const fetchPostPage = useCallback(
@@ -148,9 +148,9 @@ export function ExplorePanel(props: ExplorePanelProps) {
 
   // Send Gift Modal state
   const [giftModalOpen, setGiftModalOpen] = useState(false);
-  const [selectedAgentForGift, setSelectedAgentForGift] = useState<ExploreAgentCardData | null>(null);
+  const [selectedSourceForGift, setSelectedSourceForGift] = useState<ExplorePersonaSourceCardData | null>(null);
 
-  const onAgentManageFriends = useCallback(() => {
+  const onPersonaSourceManage = useCallback(() => {
     setFeedback({
       kind: 'warning',
       message: realmPersonaSourceHandoffMessage(),
@@ -162,15 +162,15 @@ export function ExplorePanel(props: ExplorePanelProps) {
     });
   }, []);
 
-  const onAgentSendGift = useCallback(
-    (agentId: string) => {
-      const target = agents.find((item) => item.id === agentId);
+  const onPersonaSourceSendGift = useCallback(
+    (sourceId: string) => {
+      const target = personaSources.find((item) => item.id === sourceId);
       if (target) {
-        setSelectedAgentForGift(target);
+        setSelectedSourceForGift(target);
         setGiftModalOpen(true);
       }
     },
-    [agents],
+    [personaSources],
   );
 
   const onToggleCategory = useCallback(
@@ -193,15 +193,15 @@ export function ExplorePanel(props: ExplorePanelProps) {
     [navigateToWorld],
   );
 
-  const onAgentOpen = useCallback(
-    (agentId: string) => {
-      const target = agents.find((item) => item.id === agentId) || null;
+  const onPersonaSourceOpen = useCallback(
+    (sourceId: string) => {
+      const target = personaSources.find((item) => item.id === sourceId) || null;
       if (!target) {
         return;
       }
-      setSelectedProfileTarget(toProfileTargetFromAgent(target));
+      setSelectedProfileTarget(toProfileTargetFromPersonaSource(target));
     },
-    [agents],
+    [personaSources],
   );
 
   return (
@@ -214,7 +214,7 @@ export function ExplorePanel(props: ExplorePanelProps) {
       <ExploreView
         selectedCategory={selectedCategory}
         categories={categories}
-        agents={agents}
+        personaSources={personaSources}
         worldBanners={worldBanners}
         worldCatalogItems={worldsQuery.data ?? []}
         worldsLoading={worldsQuery.isPending}
@@ -223,28 +223,28 @@ export function ExplorePanel(props: ExplorePanelProps) {
         fetchPostPage={fetchPostPage}
         postFeedKey={postFeedKey}
         onPostDelete={() => setRefreshKey((k) => k + 1)}
-        loading={agentsQuery.isPending}
+        loading={personaSourcesQuery.isPending}
         onToggleCategory={onToggleCategory}
-        onAgentManageFriends={onAgentManageFriends}
-        onAgentSendGift={onAgentSendGift}
-        onAgentOpen={onAgentOpen}
+        onPersonaSourceManage={onPersonaSourceManage}
+        onPersonaSourceSendGift={onPersonaSourceSendGift}
+        onPersonaSourceOpen={onPersonaSourceOpen}
         onPostAuthorOpen={setSelectedProfileTarget}
         onWorldOpen={onWorldOpen}
       />
       <SendGiftModal
         open={giftModalOpen}
-        receiverId={selectedAgentForGift?.id || ''}
-        receiverName={selectedAgentForGift?.name || 'Agent'}
-        receiverHandle={selectedAgentForGift?.handle}
-        receiverIsSource={selectedAgentForGift?.isSource === true}
-        receiverAvatarUrl={selectedAgentForGift?.avatarUrl}
+        receiverId={selectedSourceForGift?.id || ''}
+        receiverName={selectedSourceForGift?.name || 'Persona'}
+        receiverHandle={selectedSourceForGift?.handle}
+        receiverIsSource={selectedSourceForGift?.isSource === true}
+        receiverAvatarUrl={selectedSourceForGift?.avatarUrl}
         onClose={() => {
           setGiftModalOpen(false);
-          setSelectedAgentForGift(null);
+          setSelectedSourceForGift(null);
         }}
         onSent={() => {
           setGiftModalOpen(false);
-          setSelectedAgentForGift(null);
+          setSelectedSourceForGift(null);
         }}
       />
       <ProfileDetailModal

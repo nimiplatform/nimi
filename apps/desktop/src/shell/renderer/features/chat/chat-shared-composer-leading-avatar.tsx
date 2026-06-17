@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { Popover, PopoverContent, PopoverTrigger } from '@nimiplatform/kit/ui';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { realmSourceDetailData } from '@renderer/features/agent-detail/data/realm-source-detail-data';
+import { realmSourceDetailData } from '@renderer/features/source-detail/data/realm-source-detail-data';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { EntityAvatar } from '@renderer/components/entity-avatar';
 import { toProfileData, type ProfileData, type ProfileSource } from '@renderer/features/profile/profile-model';
@@ -164,7 +164,7 @@ function ChatComposerAvatarHoverPreview(props: {
   }, [cancelTimers]);
 
   const ariaLabel = props.kind === 'agent'
-    ? t('Chat.composerAvatarOpenAgent', { defaultValue: 'Open agent profile' })
+    ? t('Chat.composerAvatarOpenSource', { defaultValue: 'Open persona profile' })
     : t('Chat.composerAvatarOpenContact', { defaultValue: 'Open profile' });
 
   const profileSeed: ProfileDetailSeed | null = profileModalOpen
@@ -247,7 +247,7 @@ function ChatComposerAvatarPreviewCard(props: {
     : profile.city || profile.countryCode?.toUpperCase() || null;
   const hasMeta = Boolean(profile.worldName || locationLabel);
   const openLabel = props.kind === 'agent'
-    ? t('Chat.composerAvatarOpenAgent', { defaultValue: 'Open agent profile' })
+    ? t('Chat.composerAvatarOpenSource', { defaultValue: 'Open persona profile' })
     : t('Chat.composerAvatarOpenContact', { defaultValue: 'Open profile' });
 
   return (

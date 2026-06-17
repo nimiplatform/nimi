@@ -29,10 +29,10 @@ test('CBDB legacy source-open E2E journey is not registered after Realm core har
 
 test('Explore source card E2E selector remains but primary action is source handoff', () => {
   const e2eIdsSource = readDesktop('src/shell/renderer/testability/e2e-ids.ts');
-  const agentCardSource = readDesktop('src/shell/renderer/features/explore/explore-agent-recommendation-card.tsx');
+  const personaSourceCardSource = readDesktop('src/shell/renderer/features/explore/explore-persona-source-card.tsx');
 
-  assert.match(e2eIdsSource, /exploreAgentCard:\s*\(agentId: string\) => `explore-agent-card:\$\{agentId\}`/);
-  assert.match(e2eIdsSource, /exploreAgentPrimaryAction:\s*\(agentId: string\) => `explore-agent-primary-action:\$\{agentId\}`/);
-  assert.match(agentCardSource, /data-source-state=\{sourceState\}/);
-  assert.match(agentCardSource, /source_core_handoff_required/);
+  assert.match(e2eIdsSource, /explorePersonaSourceCard:\s*\(sourceId: string\) => `explore-persona-source-card:\$\{sourceId\}`/);
+  assert.match(e2eIdsSource, /explorePersonaSourcePrimaryAction:\s*\(sourceId: string\) => `explore-persona-source-primary-action:\$\{sourceId\}`/);
+  assert.match(personaSourceCardSource, /data-source-state=\{sourceState\}/);
+  assert.match(personaSourceCardSource, /source_core_handoff_required/);
 });

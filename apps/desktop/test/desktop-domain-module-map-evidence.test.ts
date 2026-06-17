@@ -46,22 +46,22 @@ const avatarInstanceRegistryStoreSource = readRepo('apps/desktop/src-tauri/src/d
 const desktopE2eFixtureSource = readRepo('apps/desktop/src-tauri/src/desktop_e2e_fixture.rs');
 const desktopE2eFixtureEnabledSource = readRepo('apps/desktop/src-tauri/src/desktop_e2e_fixture/enabled.rs');
 const runtimeBridgeSource = readRepo('kit/shell/tauri/src/runtime_bridge/mod.rs');
-const realmSourceDetailDataSource = readRepo('apps/desktop/src/shell/renderer/features/agent-detail/data/realm-source-detail-data.ts');
+const realmSourceDetailDataSource = readRepo('apps/desktop/src/shell/renderer/features/source-detail/data/realm-source-detail-data.ts');
 const runtimePageSource = readRepo('apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-page-runtime.tsx');
 const settingsPagesSource = readRepo('apps/desktop/src/shell/renderer/features/settings/settings-pages.tsx');
 
-test('Agent Detail module map resolves to live Realm source feature-data evidence', () => {
+test('Source Detail module map resolves to live Realm source feature-data evidence', () => {
   assert.match(realmSourceDetailDataSource, /export async function loadRealmSourceDetailsForDisplay/);
-  assertRepoFile('apps/desktop/src/shell/renderer/features/agent-detail/data/realm-source-detail-data.ts');
+  assertRepoFile('apps/desktop/src/shell/renderer/features/source-detail/data/realm-source-detail-data.ts');
   assert.equal(
     fs.existsSync(path.join(repoRoot, 'apps/desktop/src/shell/renderer/features/world/data/runtime-source-create-data.ts')),
     false,
   );
 });
 
-test('Agent Detail blocks RealmPersona source chat until RuntimeSourceSnapshot handoff', () => {
-  const panelSource = readRepo('apps/desktop/src/shell/renderer/features/agent-detail/agent-detail-panel.tsx');
-  const viewSource = readRepo('apps/desktop/src/shell/renderer/features/agent-detail/agent-detail-view.tsx');
+test('Source Detail blocks RealmPersona source chat until RuntimeSourceSnapshot handoff', () => {
+  const panelSource = readRepo('apps/desktop/src/shell/renderer/features/source-detail/source-detail-panel.tsx');
+  const viewSource = readRepo('apps/desktop/src/shell/renderer/features/source-detail/source-detail-view.tsx');
 
   assert.doesNotMatch(panelSource, /launchAgentConversationFromDisplay/);
   const legacyLaunchPattern = new RegExp(`launch${['Realm', 'Agent'].join('')}Chat|launch${['Realm', 'Agent'].join('')}Conversation`);

@@ -235,7 +235,7 @@ test('desktop shell source guardrails keep auth helpers centralized', () => {
     'features/chat/data/realm-group-chat-data.ts',
     'features/social/data/profile-data.ts',
     'features/social/data/realm-social-data.ts',
-    'features/agent-detail/data/realm-source-detail-data.ts',
+    'features/source-detail/data/realm-source-detail-data.ts',
     'features/world/data/realm-world-data.ts',
   ]) {
     const source = fs.readFileSync(path.join(desktopRendererRoot, sourcePath), 'utf8');

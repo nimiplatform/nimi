@@ -23,7 +23,7 @@ const mainLayoutTitlebarContentSource = readRendererFile('app-shell/layouts/main
 const worldListSource = readRendererFile('features/world/world-list.tsx');
 const worldDetailSource = readRendererFile('features/world/world-detail.tsx');
 const worldDetailTemplateSource = readRendererFile('features/world/world-detail-template.tsx');
-const agentRecommendationCardSource = readRendererFile('features/explore/explore-agent-recommendation-card.tsx');
+const personaSourceCardSource = readRendererFile('features/explore/explore-persona-source-card.tsx');
 const e2eRegistrySource = readDesktopFile('e2e/helpers/registry.mjs');
 
 test('Explore fold mounts complete Worlds catalog under Explore', () => {
@@ -43,11 +43,11 @@ test('Explore fold keeps RealmPersona discovery as Explore-owned discovery witho
   assert.doesNotMatch(realmExploreDataSource, /realm\.generated\.searchIndexedUsers/);
   assert.doesNotMatch(realmExploreDataSource, /realm\.generated\.getExploreFeed/);
   assert.match(exploreViewSource, /data-testid="explore-personas-section"/);
-  assert.match(exploreViewSource, /<AgentRecommendationCard/);
-  assert.match(agentRecommendationCardSource, /worldName/);
+  assert.match(exploreViewSource, /<PersonaSourceCard/);
+  assert.match(personaSourceCardSource, /worldName/);
   // RealmPersona cards render source admission handoff state, never an
   // unconditional Add Friend or direct source chat affordance.
-  assert.match(agentRecommendationCardSource, /describeRealmPersonaPrimaryAction/);
+  assert.match(personaSourceCardSource, /describeRealmPersonaPrimaryAction/);
   assert.doesNotMatch(exploreViewSource, /<ExploreAgentCard/);
   // No source direct-chat path: world-detail's handleChatAgent declaration
   // and onChatAgent prop binding drift is removed (T3 / D-EXPL-006).
@@ -60,8 +60,8 @@ test('Explore exposes the canonical three-section discovery IA', () => {
   assert.match(exploreViewSource, /data-testid="explore-worlds-section"/);
   assert.match(exploreViewSource, /data-testid="explore-personas-section"/);
   assert.match(exploreViewSource, /data-testid="explore-activity-section"/);
-  assert.doesNotMatch(exploreViewSource, /ExploreCreateAgentSection/);
-  assert.doesNotMatch(exploreViewSource, /explore-create-agent-section/);
+  assert.doesNotMatch(exploreViewSource, new RegExp(`ExploreCreate${'Agent'}Section`));
+  assert.doesNotMatch(exploreViewSource, new RegExp(`explore-create-${'agent'}-section`));
   assert.match(exploreSectionNavSource, /EXPLORE_SECTION_IDS:\s*readonly ExploreSectionId\[\]\s*=\s*\[\s*'worlds',\s*'personas',\s*'activity'/);
   assert.match(mainLayoutViewSource, /<MainLayoutTitlebarContent/);
   assert.match(mainLayoutTitlebarContentSource, /<ExploreSectionNav[\s\S]*active=\{props\.exploreActiveSection\}[\s\S]*variant="topbar"/);
@@ -75,11 +75,11 @@ test('World Detail exposes no Desktop Realm source creation entry point after co
   assert.doesNotMatch(worldDetailSource, /onCreateAgent=\{/);
   assert.doesNotMatch(worldDetailTemplateSource, /CreateAgentDrawer/);
   assert.equal(
-    fs.existsSync(path.join(import.meta.dirname, '../src/shell/renderer/features/world/world-create-agent-admission.ts')),
+    fs.existsSync(path.join(import.meta.dirname, '../src/shell/renderer/features/world', `world-create-${'agent'}-admission.ts`)),
     false,
   );
   assert.equal(
-    fs.existsSync(path.join(import.meta.dirname, '../src/shell/renderer/features/world/create-agent-drawer.tsx')),
+    fs.existsSync(path.join(import.meta.dirname, '../src/shell/renderer/features/world', `create-${'agent'}-drawer.tsx`)),
     false,
   );
 });

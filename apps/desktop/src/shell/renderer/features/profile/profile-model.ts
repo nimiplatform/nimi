@@ -32,15 +32,15 @@ export type ProfileData = {
   gender: string | null;
   stats: { friendsCount: number; postsCount: number; likesCount: number } | null;
   giftStats: Record<string, number>;
-  agentState: string | null;
-  agentCategory: string | null;
-  agentOrigin: string | null;
-  agentTier: string | null;
-  agentAccountVisibility: string | null;
-  agentWakeStrategy: string | null;
-  agentOwnershipType: string | null;
-  agentWorldId: string | null;
-  agentOwnerWorldId: string | null;
+  sourceState: string | null;
+  sourceCategory: string | null;
+  sourceOrigin: string | null;
+  sourceTier: string | null;
+  sourceAccountVisibility: string | null;
+  sourceWakeStrategy: string | null;
+  sourceOwnershipType: string | null;
+  sourceWorldId: string | null;
+  sourceOwnerWorldId: string | null;
   worldName: string | null;
   worldBannerUrl: string | null;
 };
@@ -50,7 +50,7 @@ type ProfileStatsLike = NonNullable<UserProfileDto['stats']> & {
   likesCount?: number;
   likeCount?: number;
 };
-type ProfileAgentLike = {
+type ProfileSourceRecordLike = {
   activeWorldId?: string | null;
   accountVisibility?: string | null;
   category?: string | null;
@@ -63,7 +63,7 @@ type ProfileAgentLike = {
   wakeStrategy?: string | null;
   worldId?: string | null;
 };
-type ProfileAgentProfileLike = {
+type ProfileSourceProfileLike = {
   activeWorldId?: string | null;
   accountVisibility?: string | null;
   category?: string | null;
@@ -129,7 +129,7 @@ export type ProfileSource = ProfileSourceGeneratedBase & {
   isFriend?: boolean;
   isPendingFriendRequest?: boolean;
   worldId?: string | null;
-  agentWorldId?: string | null;
+  sourceWorldId?: string | null;
   agentConfig?: object | null;
   worldName?: string | null;
   worldBannerUrl?: string | null;
@@ -137,8 +137,8 @@ export type ProfileSource = ProfileSourceGeneratedBase & {
   likeCount?: number;
   stats?: ProfileStatsLike | null;
   giftStats?: Record<string, unknown> | null;
-  agent?: ProfileAgentLike | null;
-  agentProfile?: ProfileAgentProfileLike | null;
+  agent?: ProfileSourceRecordLike | null;
+  agentProfile?: ProfileSourceProfileLike | null;
   world?: ProfileWorldLike | null;
 };
 
@@ -152,10 +152,10 @@ function hasRealmSourceIdentity(raw: ProfileSource): boolean {
 }
 
 export function toProfileData(raw: ProfileSource): ProfileData {
-  const agent = raw.agent ?? undefined;
+  const sourceRecord = raw.agent ?? undefined;
   const stats = raw.stats;
   const giftStats = raw.giftStats;
-  const agentProfile = raw.agentProfile ?? undefined;
+  const sourceProfile = raw.agentProfile ?? undefined;
   const world = raw.world;
 
   const parsedGiftStats: Record<string, number> = {};
@@ -196,35 +196,35 @@ export function toProfileData(raw: ProfileSource): ProfileData {
         }
       : null,
     giftStats: parsedGiftStats,
-    agentState: agent && typeof agent.state === 'string' ? agent.state : null,
-    agentCategory: agent && typeof agent.category === 'string' ? agent.category : null,
-    agentOrigin: agent && typeof agent.origin === 'string' ? agent.origin : null,
-    agentTier: agent && typeof agent.tier === 'string' ? agent.tier : null,
-    agentAccountVisibility: (
-      (agent && typeof agent.accountVisibility === 'string' ? agent.accountVisibility : null)
-      || (typeof agentProfile?.accountVisibility === 'string' ? agentProfile.accountVisibility : null)
+    sourceState: sourceRecord && typeof sourceRecord.state === 'string' ? sourceRecord.state : null,
+    sourceCategory: sourceRecord && typeof sourceRecord.category === 'string' ? sourceRecord.category : null,
+    sourceOrigin: sourceRecord && typeof sourceRecord.origin === 'string' ? sourceRecord.origin : null,
+    sourceTier: sourceRecord && typeof sourceRecord.tier === 'string' ? sourceRecord.tier : null,
+    sourceAccountVisibility: (
+      (sourceRecord && typeof sourceRecord.accountVisibility === 'string' ? sourceRecord.accountVisibility : null)
+      || (typeof sourceProfile?.accountVisibility === 'string' ? sourceProfile.accountVisibility : null)
     ),
-    agentWakeStrategy: agent && typeof agent.wakeStrategy === 'string' ? agent.wakeStrategy : null,
-    agentOwnershipType: (
-      (agent && typeof agent.ownershipType === 'string' ? agent.ownershipType : null)
-      || (typeof agentProfile?.ownershipType === 'string' ? agentProfile.ownershipType : null)
+    sourceWakeStrategy: sourceRecord && typeof sourceRecord.wakeStrategy === 'string' ? sourceRecord.wakeStrategy : null,
+    sourceOwnershipType: (
+      (sourceRecord && typeof sourceRecord.ownershipType === 'string' ? sourceRecord.ownershipType : null)
+      || (typeof sourceProfile?.ownershipType === 'string' ? sourceProfile.ownershipType : null)
     ),
-    agentWorldId: (
-      (agent && typeof agent.worldId === 'string' ? agent.worldId : null)
-      || (typeof agentProfile?.worldId === 'string' ? agentProfile.worldId : null)
+    sourceWorldId: (
+      (sourceRecord && typeof sourceRecord.worldId === 'string' ? sourceRecord.worldId : null)
+      || (typeof sourceProfile?.worldId === 'string' ? sourceProfile.worldId : null)
     ),
-    agentOwnerWorldId: (
-      (agent && typeof agent.ownerWorldId === 'string' ? agent.ownerWorldId : null)
-      || (typeof agentProfile?.ownerWorldId === 'string' ? agentProfile.ownerWorldId : null)
+    sourceOwnerWorldId: (
+      (sourceRecord && typeof sourceRecord.ownerWorldId === 'string' ? sourceRecord.ownerWorldId : null)
+      || (typeof sourceProfile?.ownerWorldId === 'string' ? sourceProfile.ownerWorldId : null)
     ),
     worldName: (
       (typeof raw.worldName === 'string' ? raw.worldName : null)
-      || (typeof agentProfile?.worldName === 'string' ? agentProfile.worldName : null)
+      || (typeof sourceProfile?.worldName === 'string' ? sourceProfile.worldName : null)
       || (typeof world?.name === 'string' ? world.name : null)
     ),
     worldBannerUrl: (
       (typeof raw.worldBannerUrl === 'string' ? raw.worldBannerUrl : null)
-      || (typeof agentProfile?.worldBannerUrl === 'string' ? agentProfile.worldBannerUrl : null)
+      || (typeof sourceProfile?.worldBannerUrl === 'string' ? sourceProfile.worldBannerUrl : null)
       || (typeof world?.bannerUrl === 'string' ? world.bannerUrl : null)
     ),
     isFriend: raw.isFriend === true,

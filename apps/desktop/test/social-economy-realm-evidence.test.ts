@@ -10,7 +10,7 @@ function readSource(relativePath: string): string {
 const giftBubbleSource = readSource('../src/shell/renderer/features/economy/gift-message-bubble.tsx');
 const giftInboxSource = readSource('../src/shell/renderer/features/economy/gift-inbox-panel.tsx');
 const walletPageSource = readSource('../src/shell/renderer/features/settings/settings-advanced-panel.tsx');
-const exploreRecommendationSource = readSource('../src/shell/renderer/features/explore/explore-agent-recommendation-card.tsx');
+const exploreRecommendationSource = readSource('../src/shell/renderer/features/explore/explore-persona-source-card.tsx');
 
 test('gift actions require loaded Realm transaction evidence', () => {
   assert.match(giftBubbleSource, /loadRealmGiftTransaction/);

@@ -2,7 +2,7 @@ import { realmSocialData } from '@renderer/features/social/data/realm-social-dat
 import { useCallback, useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { OverlayShell } from '@nimiplatform/kit/ui';
-import { realmSourceDetailData } from '@renderer/features/agent-detail/data/realm-source-detail-data';
+import { realmSourceDetailData } from '@renderer/features/source-detail/data/realm-source-detail-data';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal.js';
@@ -20,7 +20,7 @@ import {
   toRestrictedContactProfileData,
 } from './profile-private-state.js';
 import { launchAgentConversationFromDisplay } from '@renderer/features/chat/agent-conversation-launcher.js';
-import { toAgentContactLaunchTargetFromProfile } from './agent-contact-launch-target.js';
+import { toSourceContactLaunchTargetFromProfile } from './source-contact-launch-target.js';
 import { startChatWithTarget } from '@renderer/features/chat/data/realm-human-chat-data';
 
 export type ProfileDetailSeed = {
@@ -42,14 +42,14 @@ export type ProfileDetailSeed = {
   postsCount?: number;
   likesCount?: number;
   giftStats?: Record<string, number>;
-  agentState?: string | null;
-  agentCategory?: string | null;
-  agentOrigin?: string | null;
-  agentTier?: string | null;
-  agentWakeStrategy?: string | null;
-  agentOwnershipType?: string | null;
-  agentWorldId?: string | null;
-  agentOwnerWorldId?: string | null;
+  sourceState?: string | null;
+  sourceCategory?: string | null;
+  sourceOrigin?: string | null;
+  sourceTier?: string | null;
+  sourceWakeStrategy?: string | null;
+  sourceOwnershipType?: string | null;
+  sourceWorldId?: string | null;
+  sourceOwnerWorldId?: string | null;
 };
 
 type ProfileDetailModalProps = {
@@ -133,10 +133,10 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
     try {
       if (profile.isSource) {
         if (!profile.isFriend) {
-          throw new Error(t('Relationship.agentFriendRequiredForChat', { defaultValue: 'Add this Agent as a friend before opening local chat.' }));
+          throw new Error(t('Relationship.sourceHandoffRequiredForChat', { defaultValue: 'This source requires RuntimeSourceSnapshot handoff before local chat.' }));
         }
         await launchAgentConversationFromDisplay({
-          target: toAgentContactLaunchTargetFromProfile(profile, ownerUserId),
+          target: toSourceContactLaunchTargetFromProfile(profile, ownerUserId),
           setActiveTab,
           setChatMode,
           setSelectedTargetForSource,

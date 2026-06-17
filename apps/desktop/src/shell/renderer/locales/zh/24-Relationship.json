@@ -7,7 +7,7 @@
   "agentFriendLimitReached": "已达到 Agent 好友上限（{{used}}/{{limit}}）",
   "agentFriendLimitReachedShort": "已达到 Agent 好友上限",
   "agentFriendLimitUnavailable": "Agent 好友配额当前不可用",
-  "agentFriendRequiredForChat": "先将这个 Agent 加为好友，才能打开本地聊天。",
+  "sourceHandoffRequiredForChat": "这个 Source 需要 RuntimeSourceSnapshot handoff 后才能打开本地聊天。",
   "bio": "简介",
   "blockUserFailed": "屏蔽用户失败",
   "changePhoto": "更换头像",

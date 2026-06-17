@@ -105,13 +105,13 @@ reusable composer/headless primitives belong to Kit.
   invalidation, and product-specific error presentation.
 - Desktop DataSync must not remain the canonical post/resource facade.
 
-## D-DSYNC-008 — Explore/Agent Discovery Owner Map
+## D-DSYNC-008 — Explore Source Discovery Owner Map
 
-Explore search, public recommendation, public agent profile, and discovery feed
+Explore search, public recommendation, public source profile, and discovery feed
 truth belong to Realm. Typed helpers belong to SDK/Kit.
 
 - Desktop may own Explore panel state and preview composition.
-- Desktop DataSync must not wrap Search/Explore/Agents services as app-local
+- Desktop DataSync must not wrap Search/Explore/source discovery services as app-local
   platform truth.
 
 ## D-DSYNC-009 — Notification Owner Map
@@ -134,14 +134,14 @@ Desktop settings surfaces consume SDK Realm account/settings helpers.
   localized messages, and post-mutation query/session refresh wiring.
 - Desktop DataSync must not expose settings/security/OAuth facade methods.
 
-## D-DSYNC-011 — Agent Owner Map
+## D-DSYNC-011 — Source Owner Map
 
-Creator agent lists and public agent profile reads belong to Realm. Agent
-execution, local agent lifecycle, LLM routing, memory, and Runtime substrate
+Creator source lists and public source profile reads belong to Realm. LocalAgent
+execution, local lifecycle, LLM routing, memory, and Runtime substrate
 state belong to Runtime/Cognition.
 
-- Desktop may own product-specific create-agent drawers and display pages.
-- Desktop DataSync must not own Agent LLM route, memory, lifecycle, or mixed
+- Desktop may own source display pages but not Realm source creation surfaces.
+- Desktop DataSync must not own LocalAgent LLM route, memory, lifecycle, or mixed
   runtime/realm authority.
 
 ## D-DSYNC-012 — Transit Owner Map

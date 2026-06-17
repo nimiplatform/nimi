@@ -1,7 +1,7 @@
 {
-  "title": "Agent Profile",
-  "loading": "Loading agent details...",
-  "error": "Failed to load agent details",
+  "title": "Persona Profile",
+  "loading": "Loading source details...",
+  "error": "Failed to load source details",
   "chat": "Chat",
   "chatOpensInConversation": "Chat opens inside the agent conversation surface.",
   "addFriend": "Add Friend",
@@ -26,6 +26,6 @@
   "friends": "Friends",
   "posts": "Posts",
   "likes": "Likes",
-  "noAgentSelected": "No agent selected",
-  "noAgentDataAvailable": "No agent data available"
+  "noSourceSelected": "No source selected",
+  "noSourceDataAvailable": "No source data available"
 }

@@ -94,7 +94,7 @@ export function ProfilePanel() {
             isCreator: false,
             isVerified: false,
             worldId: null,
-            agentWorldId: null,
+            sourceWorldId: null,
             agentConfig: null,
             tags: contact.tags || [],
             followerCount: 0,

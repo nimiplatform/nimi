@@ -1,7 +1,7 @@
 import { parseOptionalJsonObject, type JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { RealmPersonaSourceState } from '@renderer/features/explore/realm-persona-source-admission';
 
-export type AgentDetailData = {
+export type SourceDetailData = {
   id: string;
   displayName: string;
   handle: string;
@@ -29,12 +29,12 @@ function readOptionalString(record: JsonObject | undefined, key: string): string
   return typeof value === 'string' ? value : null;
 }
 
-export function toAgentDetailData(
+export function toSourceDetailData(
   raw: JsonObject,
   sourceState: RealmPersonaSourceState,
-): AgentDetailData {
-  const agent = parseOptionalJsonObject(raw.agent);
-  const agentProfile = parseOptionalJsonObject(raw.agentProfile);
+): SourceDetailData {
+  const sourceRecord = parseOptionalJsonObject(raw.agent);
+  const sourceProfile = parseOptionalJsonObject(raw.agentProfile);
   const world = parseOptionalJsonObject(raw.world);
 
   return {
@@ -46,39 +46,39 @@ export function toAgentDetailData(
     createdAt: typeof raw.createdAt === 'string' ? raw.createdAt : '',
     tags: Array.isArray(raw.tags) ? raw.tags.map(String) : [],
     isOnline: raw.isOnline === true,
-    state: (agent && typeof agent.state === 'string' ? agent.state : 'UNKNOWN'),
-    category: (agent && typeof agent.category === 'string' ? agent.category : 'GENERAL'),
-    origin: (agent && typeof agent.origin === 'string' ? agent.origin : 'COMMUNITY'),
-    tier: (agent && typeof agent.tier === 'string' ? agent.tier : 'COMMUNITY'),
-    wakeStrategy: (agent && typeof agent.wakeStrategy === 'string' ? agent.wakeStrategy : 'PASSIVE'),
+    state: (sourceRecord && typeof sourceRecord.state === 'string' ? sourceRecord.state : 'UNKNOWN'),
+    category: (sourceRecord && typeof sourceRecord.category === 'string' ? sourceRecord.category : 'GENERAL'),
+    origin: (sourceRecord && typeof sourceRecord.origin === 'string' ? sourceRecord.origin : 'COMMUNITY'),
+    tier: (sourceRecord && typeof sourceRecord.tier === 'string' ? sourceRecord.tier : 'COMMUNITY'),
+    wakeStrategy: (sourceRecord && typeof sourceRecord.wakeStrategy === 'string' ? sourceRecord.wakeStrategy : 'PASSIVE'),
     accountVisibility: (
-      (agent && typeof agent.accountVisibility === 'string' ? agent.accountVisibility : null)
-      || readOptionalString(agentProfile, 'accountVisibility')
+      (sourceRecord && typeof sourceRecord.accountVisibility === 'string' ? sourceRecord.accountVisibility : null)
+      || readOptionalString(sourceProfile, 'accountVisibility')
     ),
     ownershipType: (
-      (agent && typeof agent.ownershipType === 'string' ? agent.ownershipType : '')
-      || readOptionalString(agentProfile, 'ownershipType')
+      (sourceRecord && typeof sourceRecord.ownershipType === 'string' ? sourceRecord.ownershipType : '')
+      || readOptionalString(sourceProfile, 'ownershipType')
       || 'MASTER_OWNED'
     ),
     worldId: (
-      (agent && typeof agent.worldId === 'string' ? agent.worldId : null)
-      || readOptionalString(agentProfile, 'worldId')
+      (sourceRecord && typeof sourceRecord.worldId === 'string' ? sourceRecord.worldId : null)
+      || readOptionalString(sourceProfile, 'worldId')
     ),
     ownerWorldId: (
-      (agent && typeof agent.ownerWorldId === 'string' ? agent.ownerWorldId : null)
-      || readOptionalString(agentProfile, 'ownerWorldId')
+      (sourceRecord && typeof sourceRecord.ownerWorldId === 'string' ? sourceRecord.ownerWorldId : null)
+      || readOptionalString(sourceProfile, 'ownerWorldId')
     ),
     isFriend: raw.isFriend === true,
     sourceState,
     worldBannerUrl: (
       (typeof raw.worldBannerUrl === 'string' ? raw.worldBannerUrl : null)
-      || readOptionalString(agentProfile, 'worldBannerUrl')
+      || readOptionalString(sourceProfile, 'worldBannerUrl')
       || readOptionalString(world, 'bannerUrl')
     ),
   };
 }
 
-export function getAgentInitial(name: string): string {
+export function getSourceInitial(name: string): string {
   return name.charAt(0).toUpperCase();
 }
 

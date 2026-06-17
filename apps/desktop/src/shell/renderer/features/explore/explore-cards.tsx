@@ -1,7 +1,7 @@
 import type { RealmPersonaSourceState } from './realm-persona-source-admission';
-export { AgentRecommendationCard } from './explore-agent-recommendation-card';
+export { PersonaSourceCard } from './explore-persona-source-card';
 export { toSafeBackgroundImage } from './explore-background-image';
-export type ExploreAgentCardData = {
+export type ExplorePersonaSourceCardData = {
   // Basic contact info
   id: string;
   name: string;

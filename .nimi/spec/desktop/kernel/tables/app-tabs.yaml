@@ -11,7 +11,7 @@ entries:
   - support
   - developer-tools
   - profile
-  - agent-detail
+  - source-detail
   - world-detail
   - notification
   - gift-inbox
@@ -80,9 +80,9 @@ tabs:
     gated_by: null
     source_rule: D-SHELL-001
 
-  - id: agent-detail
+  - id: source-detail
     nav_group: detail
-    label: Agent Detail
+    label: Source Detail
     gated_by: null
     source_rule: D-SHELL-001
 

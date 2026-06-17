@@ -4,22 +4,22 @@ import {
   loadRealmPersonaSourceAdmissionProjection,
   resolveRealmPersonaSourceState,
 } from '@renderer/features/explore/realm-persona-source-admission';
-import type { AgentDetailData } from './agent-detail-model.js';
-import { toAgentDetailData } from './agent-detail-model.js';
+import type { SourceDetailData } from './source-detail-model.js';
+import { toSourceDetailData } from './source-detail-model.js';
 
-export type AgentDetailStats = {
+export type SourceDetailStats = {
   friendsCount: number;
   postsCount: number;
   likesCount: number;
 };
 
-export type AgentDisplayDetail = {
-  agent: AgentDetailData;
-  stats: AgentDetailStats | null;
+export type SourceDisplayDetail = {
+  source: SourceDetailData;
+  stats: SourceDetailStats | null;
   worldScore: number;
 };
 
-function normalizeAgentStats(raw: JsonObject): AgentDetailStats | null {
+function normalizeSourceStats(raw: JsonObject): SourceDetailStats | null {
   const statsData = parseOptionalJsonObject(raw.stats) as (JsonObject & {
     friendsCount?: number;
     postsCount?: number;
@@ -40,12 +40,12 @@ function normalizeWorldScore(raw: JsonObject): number {
   );
 }
 
-export function agentDisplayDetailQueryKey(agentIdentifier: string) {
-  return ['agent-display-detail', String(agentIdentifier || '').trim()] as const;
+export function sourceDisplayDetailQueryKey(sourceIdentifier: string) {
+  return ['source-display-detail', String(sourceIdentifier || '').trim()] as const;
 }
 
-export async function fetchAgentDisplayDetail(agentIdentifier: string): Promise<AgentDisplayDetail | null> {
-  const normalizedIdentifier = String(agentIdentifier || '').trim();
+export async function fetchSourceDisplayDetail(sourceIdentifier: string): Promise<SourceDisplayDetail | null> {
+  const normalizedIdentifier = String(sourceIdentifier || '').trim();
   if (!normalizedIdentifier) {
     return null;
   }
@@ -53,11 +53,11 @@ export async function fetchAgentDisplayDetail(agentIdentifier: string): Promise<
     realmSourceDetailData.loadRealmSourceDetailsForDisplay(normalizedIdentifier),
     loadRealmPersonaSourceAdmissionProjection(),
   ]);
-  const agentId = String(result.id || '').trim();
-  const sourceState = resolveRealmPersonaSourceState(agentId, socialProjection);
+  const sourceId = String(result.id || '').trim();
+  const sourceState = resolveRealmPersonaSourceState(sourceId, socialProjection);
   return {
-    agent: toAgentDetailData(result, sourceState),
-    stats: normalizeAgentStats(result),
+    source: toSourceDetailData(result, sourceState),
+    stats: normalizeSourceStats(result),
     worldScore: normalizeWorldScore(result),
   };
 }

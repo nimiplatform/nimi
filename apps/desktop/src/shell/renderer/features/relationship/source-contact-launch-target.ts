@@ -3,7 +3,7 @@ import type { ProfileData } from '@renderer/features/profile/profile-model';
 import type { ContactRecord } from './relationship-model';
 import { buildRuntimeLocalAgentRef } from '@nimiplatform/sdk/runtime';
 
-type AgentContactLaunchSource = {
+type SourceContactLaunchSource = {
   id: string;
   displayName: string;
   handle: string;
@@ -12,14 +12,14 @@ type AgentContactLaunchSource = {
   isSource: boolean;
   worldId?: string | null;
   worldName?: string | null;
-  agentWorldId?: string | null;
-  agentOwnershipType?: string | null;
+  sourceWorldId?: string | null;
+  sourceOwnershipType?: string | null;
 };
 
 function normalizeRequiredText(value: unknown, field: string): string {
   const normalized = String(value || '').trim();
   if (!normalized) {
-    throw new Error(`agent conversation launch requires ${field}`);
+    throw new Error(`source conversation launch requires ${field}`);
   }
   return normalized;
 }
@@ -32,12 +32,12 @@ function normalizeOwnershipType(value: unknown): AgentLocalTargetSnapshot['owner
   return null;
 }
 
-export function toAgentContactLaunchTarget(
-  source: AgentContactLaunchSource,
+export function toSourceContactLaunchTarget(
+  source: SourceContactLaunchSource,
   ownerUserIdInput: string | null | undefined,
 ): AgentLocalTargetSnapshot {
   if (!source.isSource) {
-    throw new Error('agent conversation launch requires an agent contact');
+    throw new Error('source conversation launch requires a Realm source contact');
   }
   const ownerUserId = normalizeRequiredText(ownerUserIdInput, 'ownerUserId');
   const runtimeSourceRef = normalizeRequiredText(source.id, 'runtimeSourceRef');
@@ -48,29 +48,29 @@ export function toAgentContactLaunchTarget(
     displayName: normalizeRequiredText(source.displayName, 'displayName'),
     handle: String(source.handle || '').trim(),
     avatarUrl: source.avatarUrl || null,
-    worldId: source.agentWorldId || source.worldId || null,
+    worldId: source.sourceWorldId || source.worldId || null,
     worldName: source.worldName || null,
     bio: source.bio || null,
-    ownershipType: normalizeOwnershipType(source.agentOwnershipType),
+    ownershipType: normalizeOwnershipType(source.sourceOwnershipType),
     // Contact-launch sources carry identity only, not RealmPersona profile
     // content. `greeting` / `builtinDocsContext` are supplied by the live
-    // Realm/SDK agent projection (the chat-surface targets) and overlaid onto
+    // Realm/SDK source projection (the chat-surface targets) and overlaid onto
     // the chat target at chat time; a relationship-launch target leaves them null.
     greeting: null,
     builtinDocsContext: null,
   };
 }
 
-export function toAgentContactLaunchTargetFromContact(
+export function toSourceContactLaunchTargetFromContact(
   contact: ContactRecord,
   ownerUserId: string | null | undefined,
 ): AgentLocalTargetSnapshot {
-  return toAgentContactLaunchTarget(contact, ownerUserId);
+  return toSourceContactLaunchTarget(contact, ownerUserId);
 }
 
-export function toAgentContactLaunchTargetFromProfile(
+export function toSourceContactLaunchTargetFromProfile(
   profile: ProfileData,
   ownerUserId: string | null | undefined,
 ): AgentLocalTargetSnapshot {
-  return toAgentContactLaunchTarget(profile, ownerUserId);
+  return toSourceContactLaunchTarget(profile, ownerUserId);
 }

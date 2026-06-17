@@ -1,10 +1,10 @@
-# Agent Detail
+# Source Detail
 
 > Normative Imports: `.nimi/spec/desktop/kernel/*`
 
 ## Scope
 
-This guide points to the desktop authority surfaces for agent-detail. It does not define product rules.
+This guide points to the desktop authority surfaces for source-detail. It does not define product rules.
 
 ## Reading Path
 

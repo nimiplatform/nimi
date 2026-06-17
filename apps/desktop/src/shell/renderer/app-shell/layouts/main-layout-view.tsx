@@ -123,7 +123,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
   if (runtimeActive) runtimeEverMountedRef.current = true;
   const runtimeEverMounted = runtimeEverMountedRef.current;
 
-  const immersiveRoute = props.activeTab === 'agent-detail'
+  const immersiveRoute = props.activeTab === 'source-detail'
     || props.activeTab === 'gift-inbox';
   const hidePrimaryRail = immersiveRoute
     || (props.activeTab === 'profile' && Boolean(selectedProfileId))

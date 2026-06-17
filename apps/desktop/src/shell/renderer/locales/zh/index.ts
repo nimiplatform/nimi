@@ -19,7 +19,7 @@ import section17 from './18-Auth.json';
 import section18 from './19-AuthLogin.json';
 import section19 from './20-DesktopRelease.json';
 import section20 from './21-ProfileView.json';
-import section21 from './22-AgentDetail.json';
+import section21 from './22-SourceDetail.json';
 import section22 from './23-GiftSend.json';
 import section23 from './24-Relationship.json';
 import section24 from './25-GiftBubble.json';
@@ -73,7 +73,7 @@ const messages = {
   "AuthLogin": section18,
   "DesktopRelease": section19,
   "ProfileView": section20,
-  "AgentDetail": section21,
+  "SourceDetail": section21,
   "GiftSend": section22,
   "Relationship": section23,
   "GiftBubble": section24,

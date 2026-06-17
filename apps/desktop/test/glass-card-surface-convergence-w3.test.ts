@@ -11,7 +11,7 @@ const homePostFeedSource = readWorkspaceFile('src/shell/renderer/features/home/p
 const homeArticleSource = readWorkspaceFile('src/shell/renderer/features/home/article.tsx');
 const exploreCardsSource = [
   readWorkspaceFile('src/shell/renderer/features/explore/explore-cards.tsx'),
-  readWorkspaceFile('src/shell/renderer/features/explore/explore-agent-recommendation-card.tsx'),
+  readWorkspaceFile('src/shell/renderer/features/explore/explore-persona-source-card.tsx'),
 ].join('\n');
 const notificationPanelSource = [
   readWorkspaceFile('src/shell/renderer/features/notification/notification-panel.tsx'),

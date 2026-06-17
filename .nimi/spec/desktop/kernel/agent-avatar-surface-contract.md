@@ -136,7 +136,7 @@ cross-session persistence truth。
 - surface close、anchor change、agent switch、或 permission loss 时，avatar interaction state
   必须 deterministic teardown 或重建；不得静默沿用上一 surface 的 active cues
 - 当前 admitted route 不允许把 avatar interaction snapshots 直接持久化为 runtime-owned
-  agent profile truth
+  LocalAgent profile truth
 - app 若需要持久化 avatar placement 或 cosmetic preferences，必须与本契约中的 transient
   interaction state 明确分层
 

@@ -462,10 +462,10 @@ test('agent diagnostics view model shows runtime agent state and pending hook in
   });
 
   assert.equal(viewModel.stateCards.length, 5);
-  const agentStateCard = viewModel.stateCards.find((card) => card.label === 'Agent State');
-  assert.equal(agentStateCard?.value, 'waiting to follow up');
-  assert.match(agentStateCard?.detail || '', /lifecycle=active/);
-  assert.match(agentStateCard?.detail || '', /executionState=life-pending/);
+  const sourceStateCard = viewModel.stateCards.find((card) => card.label === 'Agent State');
+  assert.equal(sourceStateCard?.value, 'waiting to follow up');
+  assert.match(sourceStateCard?.detail || '', /lifecycle=active/);
+  assert.match(sourceStateCard?.detail || '', /executionState=life-pending/);
   const autonomyCard = viewModel.stateCards.find((card) => card.label === 'Autonomy');
   assert.equal(autonomyCard?.value, 'Enabled');
   assert.match(autonomyCard?.detail || '', /mode=medium/);

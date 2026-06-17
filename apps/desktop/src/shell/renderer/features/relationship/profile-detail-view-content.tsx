@@ -89,10 +89,10 @@ export function ProfileDetailViewContent(input: {
   const locationLabel = profile.city && profile.countryCode
     ? `${profile.city}, ${profile.countryCode.toUpperCase()}`
     : profile.city || profile.countryCode?.toUpperCase() || t('Profile.unknownRegion', { defaultValue: 'Unknown region' });
-  const originLabel = profile.agentOrigin || t('Profile.unknownOrigin', { defaultValue: 'Unknown origin' });
+  const originLabel = profile.sourceOrigin || t('Profile.unknownOrigin', { defaultValue: 'Unknown origin' });
   const joinedLabel = formatProfileDate(profile.createdAt) || t('Profile.unknownJoinedDate', { defaultValue: 'Unknown joined date' });
   const worldLabel = profile.worldName || t('Profile.unknownWorld', { defaultValue: 'Unknown world' });
-  const worldNavigationId = profile.agentOwnerWorldId || profile.agentWorldId || '';
+  const worldNavigationId = profile.sourceOwnerWorldId || profile.sourceWorldId || '';
   const canVisitWorld = Boolean(worldNavigationId);
   const isRestrictedProfile = (input.isRestrictedProfile === true || profile.accessState === 'restricted') && !input.isOwnProfile;
   const headline = isRestrictedProfile

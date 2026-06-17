@@ -34,26 +34,26 @@ test('runtime sidebar E2E helper derives selector truth from renderer E2E_IDS', 
   const { E2E_IDS } = await import('../e2e/helpers/selectors.mjs') as {
     E2E_IDS: {
       runtimeSidebarPage: (pageId: string) => string;
-      exploreAgentCard: (agentId: string) => string;
-      exploreAgentPrimaryAction: (agentId: string) => string;
+      explorePersonaSourceCard: (sourceId: string) => string;
+      explorePersonaSourcePrimaryAction: (sourceId: string) => string;
     };
   };
   const rendererPrefix = extractRendererRuntimeSidebarPrefix();
-  const exploreAgentCardPrefix = extractRendererSelectorPrefix('exploreAgentCard', 'agentId');
-  const exploreAgentPrimaryActionPrefix = extractRendererSelectorPrefix('exploreAgentPrimaryAction', 'agentId');
+  const explorePersonaSourceCardPrefix = extractRendererSelectorPrefix('explorePersonaSourceCard', 'sourceId');
+  const explorePersonaSourcePrimaryActionPrefix = extractRendererSelectorPrefix('explorePersonaSourcePrimaryAction', 'sourceId');
 
   assert.equal(E2E_IDS.runtimeSidebarPage('runtime'), `${rendererPrefix}runtime`);
   assert.equal(E2E_IDS.runtimeSidebarPage('local'), `${rendererPrefix}local`);
-  assert.equal(E2E_IDS.exploreAgentCard('agent-a'), `${exploreAgentCardPrefix}agent-a`);
-  assert.equal(E2E_IDS.exploreAgentPrimaryAction('agent-a'), `${exploreAgentPrimaryActionPrefix}agent-a`);
+  assert.equal(E2E_IDS.explorePersonaSourceCard('agent-a'), `${explorePersonaSourceCardPrefix}agent-a`);
+  assert.equal(E2E_IDS.explorePersonaSourcePrimaryAction('agent-a'), `${explorePersonaSourcePrimaryActionPrefix}agent-a`);
   assert.match(e2eSelectorsSource, /readRendererSelectorFactory/);
   assert.doesNotMatch(e2eSelectorsSource, /runtime-sidebar-page:/);
   assert.doesNotMatch(
     e2eSelectorsSource,
     /runtimeSidebarPage:\s*\(pageId\)\s*=>\s*`runtime-sidebar:/,
   );
-  assert.doesNotMatch(e2eSelectorsSource, /exploreAgentCard:\s*\(agentId\)\s*=>/);
-  assert.doesNotMatch(e2eSelectorsSource, /exploreAgentPrimaryAction:\s*\(agentId\)\s*=>/);
+  assert.doesNotMatch(e2eSelectorsSource, /explorePersonaSourceCard:\s*\(sourceId\)\s*=>/);
+  assert.doesNotMatch(e2eSelectorsSource, /explorePersonaSourcePrimaryAction:\s*\(sourceId\)\s*=>/);
 });
 
 test('runtime config sidebar renders renderer-owned runtime sidebar test ids', () => {

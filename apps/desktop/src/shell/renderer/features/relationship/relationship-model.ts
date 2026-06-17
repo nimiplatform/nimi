@@ -8,7 +8,7 @@ export type ContactRecord = {
   bio: string | null;
   isSource: boolean;
   friendsSince: string | null;
-  agentOwnershipType?: 'MASTER_OWNED' | 'WORLD_OWNED' | null;
+  sourceOwnershipType?: 'MASTER_OWNED' | 'WORLD_OWNED' | null;
   agentCreatorId?: string | null;
   // World info
   worldId?: string | null;
@@ -39,7 +39,7 @@ export function toFriendContact(item: ContactPayload): ContactRecord {
   const agentProfile = parseOptionalJsonObject(item.agentProfile) ?? null;
   const isSource = hasRealmSourceIdentity(item, agentProfile);
   const ownershipRaw = String(item.ownershipType || agentProfile?.ownershipType || '').trim();
-  const agentOwnershipType = ownershipRaw === 'MASTER_OWNED' || ownershipRaw === 'WORLD_OWNED'
+  const sourceOwnershipType = ownershipRaw === 'MASTER_OWNED' || ownershipRaw === 'WORLD_OWNED'
     ? ownershipRaw
     : null;
   
@@ -88,7 +88,7 @@ export function toFriendContact(item: ContactPayload): ContactRecord {
     avatarUrl: typeof item.avatarUrl === 'string' ? item.avatarUrl : null,
     bio: typeof item.bio === 'string' ? item.bio : null,
     isSource,
-    agentOwnershipType,
+    sourceOwnershipType,
     friendsSince: typeof item.friendsSince === 'string' ? item.friendsSince : null,
     worldId,
     worldName,

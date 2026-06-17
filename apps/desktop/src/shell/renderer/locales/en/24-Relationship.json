@@ -7,7 +7,7 @@
   "agentFriendLimitReached": "Agent friend limit reached ({{used}}/{{limit}})",
   "agentFriendLimitReachedShort": "Agent friend limit reached",
   "agentFriendLimitUnavailable": "Agent friend quota is currently unavailable",
-  "agentFriendRequiredForChat": "Add this Agent as a friend before opening local chat.",
+  "sourceHandoffRequiredForChat": "This source requires RuntimeSourceSnapshot handoff before local chat.",
   "bio": "Bio",
   "blockUserFailed": "Failed to block user",
   "changePhoto": "Change Photo",

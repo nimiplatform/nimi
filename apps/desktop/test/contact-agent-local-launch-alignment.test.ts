@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
-import { toAgentContactLaunchTarget } from '../src/shell/renderer/features/relationship/agent-contact-launch-target.js';
+import { toSourceContactLaunchTarget } from '../src/shell/renderer/features/relationship/source-contact-launch-target.js';
 
 const repoRoot = path.join(import.meta.dirname, '../../..');
 
@@ -14,7 +14,7 @@ test('profile detail modal only exposes agent chat after ordinary friendship evi
   const source = readRepo('apps/desktop/src/shell/renderer/features/relationship/profile-detail-modal.tsx');
 
   assert.match(source, /launchAgentConversationFromDisplay/);
-  assert.match(source, /toAgentContactLaunchTargetFromProfile\(profile,\s*ownerUserId\)/);
+  assert.match(source, /toSourceContactLaunchTargetFromProfile\(profile,\s*ownerUserId\)/);
   assert.match(source, /!profile\.isFriend/);
   assert.match(source, /profile\.isFriend/);
   assert.doesNotMatch(source, /profile\.isSource\s*\|\|\s*isBlockedProfile/);
@@ -48,10 +48,10 @@ test('World detail offers View profile only for a Realm source — no direct cha
   assert.doesNotMatch(source, /launchAgentConversationFromDisplay/);
   assert.doesNotMatch(source, /launchAgentVoiceFromDisplay/);
 
-  // The sole source affordance is View profile, routed to agent-detail where
+  // The sole source affordance is View profile, routed to source-detail where
   // source admission remains fail-closed until RuntimeSourceSnapshot handoff.
   assert.match(source, /const handleViewAgent = \(agent: WorldAgent\) => \{/);
-  assert.match(source, /navigateToProfile\(agent\.id, 'agent-detail'\)/);
+  assert.match(source, /navigateToProfile\(agent\.id, 'source-detail'\)/);
   assert.match(source, /onViewAgent=\{handleViewAgent\}/);
 
   // The template exposes only an onViewAgent affordance — no chat/voice props.
@@ -63,7 +63,7 @@ test('World detail offers View profile only for a Realm source — no direct cha
 });
 
 test('agent contact launch target fails closed and builds owner-scoped LocalAgent identity', () => {
-  assert.deepEqual(toAgentContactLaunchTarget({
+  assert.deepEqual(toSourceContactLaunchTarget({
     id: 'agent-1',
     displayName: 'Archivist',
     handle: 'archivist',
@@ -72,7 +72,7 @@ test('agent contact launch target fails closed and builds owner-scoped LocalAgen
     isSource: true,
     worldId: 'oasis',
     worldName: 'OASIS',
-    agentOwnershipType: 'MASTER_OWNED',
+    sourceOwnershipType: 'MASTER_OWNED',
   }, 'user-1'), {
     ownerUserId: 'user-1',
     runtimeSourceRef: 'agent-1',
@@ -91,7 +91,7 @@ test('agent contact launch target fails closed and builds owner-scoped LocalAgen
   });
 
   assert.throws(() => {
-    toAgentContactLaunchTarget({
+    toSourceContactLaunchTarget({
       id: 'human-1',
       displayName: 'Human',
       handle: 'human',
@@ -99,10 +99,10 @@ test('agent contact launch target fails closed and builds owner-scoped LocalAgen
       bio: null,
       isSource: false,
     }, 'user-1');
-  }, /requires an agent contact/);
+  }, /requires a Realm source contact/);
 
   assert.throws(() => {
-    toAgentContactLaunchTarget({
+    toSourceContactLaunchTarget({
       id: 'agent-1',
       displayName: 'Agent',
       handle: 'agent',
@@ -113,7 +113,7 @@ test('agent contact launch target fails closed and builds owner-scoped LocalAgen
   }, /requires ownerUserId/);
 
   assert.throws(() => {
-    toAgentContactLaunchTarget({
+    toSourceContactLaunchTarget({
       id: '',
       displayName: 'Agent',
       handle: 'agent',

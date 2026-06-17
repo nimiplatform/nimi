@@ -37,7 +37,7 @@ export type AppTab =
   | 'support'
   | 'developer-tools'
   | 'profile'
-  | 'agent-detail'
+  | 'source-detail'
   | 'world-detail'
   | 'gift-inbox'
   | 'notification'
@@ -136,7 +136,7 @@ export type AppStoreState = {
   setSelectedGiftTransactionId: (giftTransactionId: string | null) => void;
   setProfileDetailOverlayOpen: (open: boolean) => void;
   setChatProfilePanelTarget: (target: 'self' | 'other' | null) => void;
-  navigateToProfile: (profileId: string | null, tab: 'profile' | 'agent-detail') => void;
+  navigateToProfile: (profileId: string | null, tab: 'profile' | 'source-detail') => void;
   navigateToWorld: (worldId: string) => void;
   navigateToGiftInbox: (giftTransactionId?: string | null) => void;
   navigateBack: () => void;

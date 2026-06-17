@@ -41,9 +41,9 @@ const ProfilePanel = lazy(async () => {
   const mod = await import('@renderer/features/profile/profile-panel');
   return { default: mod.ProfilePanel };
 });
-const AgentDetailPanel = lazy(async () => {
-  const mod = await import('@renderer/features/agent-detail/agent-detail-panel');
-  return { default: mod.AgentDetailPanel };
+const SourceDetailPanel = lazy(async () => {
+  const mod = await import('@renderer/features/source-detail/source-detail-panel');
+  return { default: mod.SourceDetailPanel };
 });
 const WorldDetailPanel = lazy(async () => {
   const mod = await loadWorldDetailPanelModule();
@@ -161,9 +161,9 @@ export function MainLayoutPanelStack({
           </div>
         ) : null}
 
-        {activeTab === 'agent-detail' ? (
-          <div data-testid={E2E_IDS.panel('agent-detail')} className="flex min-h-0 flex-1 flex-col">
-            <AgentDetailPanel />
+        {activeTab === 'source-detail' ? (
+          <div data-testid={E2E_IDS.panel('source-detail')} className="flex min-h-0 flex-1 flex-col">
+            <SourceDetailPanel />
           </div>
         ) : null}
 

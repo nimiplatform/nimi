@@ -153,7 +153,7 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
   // World characters are not chat-reachable from World detail. Chat materializes
   // only after a RuntimeSourceSnapshot creates a LocalAgent by value.
   const handleViewAgent = (agent: WorldAgent) => {
-    navigateToProfile(agent.id, 'agent-detail');
+    navigateToProfile(agent.id, 'source-detail');
   };
 
   const handleEnterEdit = () => {

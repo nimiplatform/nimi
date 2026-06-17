@@ -30,7 +30,7 @@ const explorePanelSource = fs.readFileSync(
   'utf8',
 );
 const agentDetailPanelSource = fs.readFileSync(
-  path.join(import.meta.dirname, '../src/shell/renderer/features/agent-detail/agent-detail-panel.tsx'),
+  path.join(import.meta.dirname, '../src/shell/renderer/features/source-detail/source-detail-panel.tsx'),
   'utf8',
 );
 const uiSliceSource = fs.readFileSync(
@@ -71,7 +71,7 @@ test('explore world banner click prefetches world detail and history before navi
   assert.match(explorePanelSource, /prefetchWorldDetailAndHistory\(worldId\)/);
 });
 
-test('agent detail open world prefetches world detail and history before navigation', () => {
+test('source detail open world prefetches world detail and history before navigation', () => {
   assert.match(agentDetailPanelSource, /prefetchWorldDetailPanel\(\)/);
   assert.match(agentDetailPanelSource, /prefetchWorldDetailAndHistory\(agent\.worldId\)/);
 });

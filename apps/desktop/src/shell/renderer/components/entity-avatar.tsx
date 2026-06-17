@@ -3,7 +3,7 @@ import { Avatar } from '@nimiplatform/kit/ui';
 type EntityAvatarProps = {
   imageUrl?: string | null;
   name: string;
-  kind: 'agent' | 'human';
+  kind: 'agent' | 'source' | 'human';
   sizeClassName?: string;
   className?: string;
   imageClassName?: string;
@@ -21,12 +21,13 @@ const AGENT_BORDER_STYLE = {
 
 export function EntityAvatar(props: EntityAvatarProps) {
   const sizeClassName = props.sizeClassName || 'h-10 w-10';
+  const usesSourceShape = props.kind === 'agent' || props.kind === 'source';
   const radiusClassName =
-    props.radiusClassName || (props.kind === 'agent' ? 'rounded-[12px]' : 'rounded-full');
+    props.radiusClassName || (usesSourceShape ? 'rounded-[12px]' : 'rounded-full');
   const innerRadiusClassName =
-    props.innerRadiusClassName || (props.kind === 'agent' ? 'rounded-[10px]' : 'rounded-full');
+    props.innerRadiusClassName || (usesSourceShape ? 'rounded-[10px]' : 'rounded-full');
 
-  if (props.kind === 'agent') {
+  if (usesSourceShape) {
     return (
       <div
         className={`${sizeClassName} ${radiusClassName} overflow-hidden p-[2px] ${props.className || ''}`.trim()}

@@ -95,7 +95,7 @@ test('world detail error state keeps a back escape hatch', () => {
 test('explore shares the world list cache key and does not refetch agents when world metadata changes', () => {
   assert.match(explorePanelSource, /fetchWorldListItems\(\)/);
   assert.match(explorePanelSource, /queryKey: worldListQueryKey\(\)/);
-  assert.match(explorePanelSource, /queryKey: \['explore-agents', authStatus, selectedCategory, props\.searchText\]/);
+  assert.match(explorePanelSource, /queryKey: \['explore-personas', authStatus, selectedCategory, props\.searchText\]/);
   assert.match(explorePanelSource, /const agents = useMemo\(/);
   assert.doesNotMatch(explorePanelSource, /dataSync\.loadWorlds\(/);
   assert.doesNotMatch(explorePanelSource, /worldsDataVersion/);

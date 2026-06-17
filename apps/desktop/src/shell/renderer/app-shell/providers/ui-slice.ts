@@ -192,7 +192,7 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
       set((state) => ({
         previousTab: state.activeTab,
         selectedProfileId: profileId,
-        selectedProfileIsSource: tab === 'agent-detail',
+        selectedProfileIsSource: tab === 'source-detail',
         selectedGiftTransactionId: null,
         activeTab: tab,
       })),

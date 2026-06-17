@@ -21,14 +21,14 @@ export type RestrictedContactProfileSeed = {
   postsCount?: number;
   likesCount?: number;
   giftStats?: Record<string, number>;
-  agentState?: string | null;
-  agentCategory?: string | null;
-  agentOrigin?: string | null;
-  agentTier?: string | null;
-  agentWakeStrategy?: string | null;
-  agentOwnershipType?: string | null;
-  agentWorldId?: string | null;
-  agentOwnerWorldId?: string | null;
+  sourceState?: string | null;
+  sourceCategory?: string | null;
+  sourceOrigin?: string | null;
+  sourceTier?: string | null;
+  sourceWakeStrategy?: string | null;
+  sourceOwnershipType?: string | null;
+  sourceWorldId?: string | null;
+  sourceOwnerWorldId?: string | null;
 };
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -93,14 +93,14 @@ export function toRestrictedContactProfileData(seed: RestrictedContactProfileSee
     stats: toStats(seed),
     giftStats: seed.giftStats ?? null,
     agent: {
-      state: seed.agentState ?? null,
-      category: seed.agentCategory ?? null,
-      origin: seed.agentOrigin ?? null,
-      tier: seed.agentTier ?? null,
-      wakeStrategy: seed.agentWakeStrategy ?? null,
-      ownershipType: seed.agentOwnershipType ?? null,
-      worldId: seed.agentWorldId ?? null,
-      ownerWorldId: seed.agentOwnerWorldId ?? null,
+      state: seed.sourceState ?? null,
+      category: seed.sourceCategory ?? null,
+      origin: seed.sourceOrigin ?? null,
+      tier: seed.sourceTier ?? null,
+      wakeStrategy: seed.sourceWakeStrategy ?? null,
+      ownershipType: seed.sourceOwnershipType ?? null,
+      worldId: seed.sourceWorldId ?? null,
+      ownerWorldId: seed.sourceOwnerWorldId ?? null,
     },
     isFriend: true,
     isPendingFriendRequest: false,

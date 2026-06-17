@@ -4,15 +4,15 @@ import { AppCardSurface } from '@nimiplatform/kit/ui';
 import { getSemanticAgentPalette } from '@renderer/components/agent-theme.js';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
-import type { ExploreAgentCardData } from './explore-cards';
+import type { ExplorePersonaSourceCardData } from './explore-cards';
 import {
   describeRealmPersonaPrimaryAction,
   type RealmPersonaSourceState,
 } from './realm-persona-source-admission';
 
 // Hash an identifier into a stable 12-point curve in [0.3, 1]. This powers the
-// decorative activity sparkline on the agent card — we have no time-series
-// engagement data, so the curve is deterministic per-agent rather than
+// decorative activity sparkline on the persona source card — we have no time-series
+// engagement data, so the curve is deterministic per-source rather than
 // synthesized per render (which would flicker) or mocked as uniform fake data.
 function deterministicPulse(seed: string, points = 12): number[] {
   let h = 0;
@@ -27,7 +27,7 @@ function deterministicPulse(seed: string, points = 12): number[] {
   return out;
 }
 function MiniSparkline({ seed, width = 52, height = 18 }: { seed: string; width?: number; height?: number }) {
-  const id = useMemo(() => `agent-pulse-${Math.random().toString(36).slice(2, 10)}`, []);
+  const id = useMemo(() => `source-pulse-${Math.random().toString(36).slice(2, 10)}`, []);
   const data = useMemo(() => deterministicPulse(seed), [seed]);
   const max = Math.max(...data, 1);
   const step = width / Math.max(data.length - 1, 1);
@@ -69,36 +69,36 @@ function PrimaryActionIcon({ action: _action }: { action: RealmPersonaPrimaryAct
   );
 }
 type RealmPersonaPrimaryActionGlyph = ReturnType<typeof describeRealmPersonaPrimaryAction>['action'];
-// Compact Agent Card for horizontal scrolling recommendation section.
+// Compact Persona Source Card for horizontal scrolling recommendation section.
 // Layout: rank kicker + Public pill · aurora blob · glyph tile + name/role ·
 // Origin meta row · footer (sparkline + count + stateful friend pill). Every
 // color uses fg-*/accent-*/border-* tokens, every font uses the three font
 // tokens. The sparkline is decorative — see deterministicPulse comment.
-export function AgentRecommendationCard({
-  agent,
+export function PersonaSourceCard({
+  source,
   onManageFriends,
   onOpen,
 }: {
-  agent: ExploreAgentCardData;
+  source: ExplorePersonaSourceCardData;
   onManageFriends?: () => Promise<void> | void;
   onOpen?: () => void;
 }) {
   const palette = getSemanticAgentPalette({
-    category: agent.category,
-    origin: agent.origin,
-    description: agent.bio || null,
-    worldName: agent.worldName,
-    tags: agent.tags,
+    category: source.category,
+    origin: source.origin,
+    description: source.bio || null,
+    worldName: source.worldName,
+    tags: source.tags,
   });
-  const roleText = agent.bio
-    || agent.category
-    || agent.tags[0]
+  const roleText = source.bio
+    || source.category
+    || source.tags[0]
     || i18n.t('Explore.defaultRole', { defaultValue: 'Companion' });
-  const originText = agent.origin || agent.worldName || agent.category || i18n.t('Profile.unknownWorld', { defaultValue: 'Unknown world' });
-  const postsCount = typeof agent.postsCount === 'number' ? agent.postsCount : 0;
-  const isPublic = agent.accountVisibility === 'PUBLIC';
-  const glyph = agent.name ? agent.name.trim().charAt(0).toUpperCase() : '·';
-  const sourceState: RealmPersonaSourceState = agent.sourceState ?? 'source_core_handoff_required';
+  const originText = source.origin || source.worldName || source.category || i18n.t('Profile.unknownWorld', { defaultValue: 'Unknown world' });
+  const postsCount = typeof source.postsCount === 'number' ? source.postsCount : 0;
+  const isPublic = source.accountVisibility === 'PUBLIC';
+  const glyph = source.name ? source.name.trim().charAt(0).toUpperCase() : '·';
+  const sourceState: RealmPersonaSourceState = source.sourceState ?? 'source_core_handoff_required';
   const primaryAction = describeRealmPersonaPrimaryAction(sourceState);
   const handleFriendClick = (event: MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
@@ -110,7 +110,7 @@ export function AgentRecommendationCard({
       kind="promoted-glass"
       className="group relative flex h-full w-full min-w-0 cursor-pointer flex-col gap-3.5 overflow-hidden p-4 transition-all duration-200"
       style={{ background: palette.background }}
-      data-testid={E2E_IDS.exploreAgentCard(agent.id)}
+      data-testid={E2E_IDS.explorePersonaSourceCard(source.id)}
       onClick={() => onOpen?.()}
       onMouseEnter={(e) => {
         const el = e.currentTarget as HTMLElement;
@@ -125,7 +125,7 @@ export function AgentRecommendationCard({
         el.style.borderColor = 'var(--nimi-border-subtle)';
       }}
     >
-      {/* Aurora wash tied to agent palette */}
+      {/* Aurora wash tied to source palette */}
       <div
         aria-hidden
         className="pointer-events-none absolute -right-10 -top-10 h-[120px] w-[120px] rounded-full"
@@ -133,7 +133,7 @@ export function AgentRecommendationCard({
       />
       {/* Glyph tile + name + role + public pill */}
       <div className="relative flex items-start gap-3">
-        {agent.avatarUrl ? (
+        {source.avatarUrl ? (
           <div
             className="shrink-0 overflow-hidden"
             style={{
@@ -144,9 +144,9 @@ export function AgentRecommendationCard({
             }}
           >
             <EntityAvatar
-              imageUrl={agent.avatarUrl}
-              name={agent.name}
-              kind="agent"
+              imageUrl={source.avatarUrl}
+              name={source.name}
+              kind="source"
               sizeClassName="h-12 w-12"
               textClassName="text-base font-semibold"
             />
@@ -183,12 +183,12 @@ export function AgentRecommendationCard({
                 lineHeight: 1.2,
               }}
             >
-              {agent.name}
+              {source.name}
             </span>
             {isPublic && (
               <span
-                aria-label={i18n.t('AgentDetail.publicBadge', { defaultValue: 'Public' })}
-                title={i18n.t('AgentDetail.publicBadge', { defaultValue: 'Public' })}
+                aria-label={i18n.t('SourceDetail.publicBadge', { defaultValue: 'Public' })}
+                title={i18n.t('SourceDetail.publicBadge', { defaultValue: 'Public' })}
                 className="inline-flex h-1.5 w-1.5 shrink-0 rounded-full"
                 style={{
                   background: 'var(--nimi-accent)',
@@ -240,7 +240,7 @@ export function AgentRecommendationCard({
         style={{ borderColor: 'var(--nimi-border-subtle)' }}
       >
         <div className="flex items-center gap-2.5">
-          <MiniSparkline seed={agent.id} />
+          <MiniSparkline seed={source.id} />
           <div className="flex flex-col leading-tight">
             <span
               style={{
@@ -270,7 +270,7 @@ export function AgentRecommendationCard({
           type="button"
           onClick={handleFriendClick}
           disabled={primaryAction.disabled}
-          data-testid={E2E_IDS.exploreAgentPrimaryAction(agent.id)}
+          data-testid={E2E_IDS.explorePersonaSourcePrimaryAction(source.id)}
           data-source-state={sourceState}
           data-primary-action={primaryAction.action}
           className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 transition-colors disabled:cursor-default"

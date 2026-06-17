@@ -24,30 +24,30 @@ test('product-side profile and contacts models do not infer source identity from
   assert.doesNotMatch(contactsModelSource, /item\.tags\.map\(\(t\) => String\(t\)\)/);
 });
 
-test('product-side social and explore flows do not infer agent identity from handle prefixes', () => {
+test('product-side social and explore flows do not infer source identity from handle prefixes', () => {
   const socialProfileFlowSource = readSource('../src/shell/renderer/features/social/data/social-snapshot.ts');
   const explorePanelSource = [
     '../src/shell/renderer/features/explore/explore-panel.tsx',
-    '../src/shell/renderer/features/explore/explore-agent-projection.ts',
+    '../src/shell/renderer/features/explore/explore-persona-source-projection.ts',
   ]
     .map(readSource)
     .join('\n');
-  const agentRuntimeFlowSource = readSource('../src/shell/renderer/features/agent-detail/data/realm-source-detail-data.ts');
-  const handleIdentifierPath = path.join(import.meta.dirname, '../src/shell/renderer/features/agent-detail/data/handle-identifier.ts');
+  const sourceRuntimeFlowSource = readSource('../src/shell/renderer/features/source-detail/data/realm-source-detail-data.ts');
+  const handleIdentifierPath = path.join(import.meta.dirname, '../src/shell/renderer/features/source-detail/data/handle-identifier.ts');
 
   assert.doesNotMatch(socialProfileFlowSource, /startsWith\('~'\)/);
   assert.doesNotMatch(explorePanelSource, /handle\.startsWith\('~'\)/);
-  assert.match(explorePanelSource, /const isSource = source\.isSource === true \|\| Boolean\(agent\) \|\| Boolean\(agentProfile\)/);
+  assert.match(explorePanelSource, /const isSource = source\.isSource === true \|\| Boolean\(sourceRecord\) \|\| Boolean\(sourceProfile\)/);
   assert.equal(fs.existsSync(handleIdentifierPath), false);
-  assert.doesNotMatch(agentRuntimeFlowSource, /handle-identifier/);
-  assert.doesNotMatch(agentRuntimeFlowSource, /buildHandleLookupCandidates/);
+  assert.doesNotMatch(sourceRuntimeFlowSource, /handle-identifier/);
+  assert.doesNotMatch(sourceRuntimeFlowSource, /buildHandleLookupCandidates/);
 });
 
 test('Realm source detail loading rejects legacy @ and ~ prefixes', async () => {
-  const agentRuntimeFlowSource = readSource('../src/shell/renderer/features/agent-detail/data/realm-source-detail-data.ts');
+  const sourceRuntimeFlowSource = readSource('../src/shell/renderer/features/source-detail/data/realm-source-detail-data.ts');
 
-  assert.match(agentRuntimeFlowSource, /worldCoreControllerGetRealmPersona/);
-  assert.match(agentRuntimeFlowSource, /worldCoreControllerGetWorldCharacter/);
-  assert.doesNotMatch(agentRuntimeFlowSource, /AgentsService\.getAgent/);
-  assert.doesNotMatch(agentRuntimeFlowSource, /AgentsService\.getAgentByHandle/);
+  assert.match(sourceRuntimeFlowSource, /worldCoreControllerGetRealmPersona/);
+  assert.match(sourceRuntimeFlowSource, /worldCoreControllerGetWorldCharacter/);
+  assert.doesNotMatch(sourceRuntimeFlowSource, /AgentsService\.getAgent/);
+  assert.doesNotMatch(sourceRuntimeFlowSource, /AgentsService\.getAgentByHandle/);
 });
