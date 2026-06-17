@@ -212,6 +212,7 @@ test('tester app-owned Tauri commands are registered in standalone shell', () =>
   const main = read('src-tauri/src/main.rs');
   assert.match(main, /tester_run_history_load/);
   assert.match(main, /tester_image_history_save/);
+  assert.match(main, /tester_export_save/);
   assert.match(main, /open_world_tour_window/);
   assert.match(main, /claim_world_tour_viewer_launch/);
 });
