@@ -40264,6 +40264,12 @@ pub struct NsfwConsentStatusResponseDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct OAuthLinkResponseDto {
+    pub provider: String,
+    pub status: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct OAuthLoginDto {
     pub access_token: String,
     pub code: String,
@@ -49556,7 +49562,7 @@ where
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for likePost");
     }
 
-    pub fn link_oauth(&self, _request: RealmLinkOauthOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
+    pub fn link_oauth(&self, _request: RealmLinkOauthOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<OAuthLinkResponseDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for linkOauth");
     }
 

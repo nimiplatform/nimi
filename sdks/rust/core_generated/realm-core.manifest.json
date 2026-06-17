@@ -8353,8 +8353,23 @@
         "ref_name": "OAuthLoginDto"
       },
       "request_schema_ref": "#/components/schemas/OAuthLoginDto",
-      "response_schemas": [],
-      "response_schema_refs": []
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/OAuthLinkResponseDto",
+            "ref_name": "OAuthLinkResponseDto"
+          },
+          "schema_ref": "#/components/schemas/OAuthLinkResponseDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/OAuthLinkResponseDto"
+        }
+      ]
     },
     {
       "operation_id": "listAssets",
@@ -19504,6 +19519,9 @@
     },
     {
       "name": "NsfwConsentStatusResponseDto"
+    },
+    {
+      "name": "OAuthLinkResponseDto"
     },
     {
       "name": "OAuthLoginDto"
@@ -36529,6 +36547,38 @@
               "kind": "scalar",
               "type": "boolean",
               "format": null
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "OAuthLinkResponseDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "provider",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "google",
+                "wechat",
+                "twitter",
+                "tiktok"
+              ]
+            }
+          },
+          {
+            "name": "status",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "linked"
+              ]
             }
           }
         ],

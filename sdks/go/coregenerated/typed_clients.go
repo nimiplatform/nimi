@@ -12065,6 +12065,11 @@ type NsfwConsentStatusResponseDto struct {
 	UserNsfwEnabled bool `json:"userNsfwEnabled,omitempty"`
 }
 
+type OAuthLinkResponseDto struct {
+	Provider string `json:"provider,omitempty"`
+	Status string `json:"status,omitempty"`
+}
+
 type OAuthLoginDto struct {
 	AccessToken string `json:"accessToken,omitempty"`
 	Code string `json:"code,omitempty"`
@@ -20616,12 +20621,12 @@ func (c RealmTypedClient) LikePost(ctx context.Context, request RealmLikePostOpe
 	return decodeTypedResponse[struct{}](raw)
 }
 
-func (c RealmTypedClient) LinkOauth(ctx context.Context, request RealmLinkOauthOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (struct{}, error) {
+func (c RealmTypedClient) LinkOauth(ctx context.Context, request RealmLinkOauthOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (OAuthLinkResponseDto, error) {
 	raw, err := c.operationTyped(ctx, "linkOauth", request, metadata, timeoutMS)
 	if err != nil {
-		return struct{}{}, err
+		return OAuthLinkResponseDto{}, err
 	}
-	return decodeTypedResponse[struct{}](raw)
+	return decodeTypedResponse[OAuthLinkResponseDto](raw)
 }
 
 func (c RealmTypedClient) ListAssets(ctx context.Context, request RealmListAssetsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AssetListDto, error) {

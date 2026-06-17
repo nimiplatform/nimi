@@ -6340,6 +6340,23 @@ components:
         - agentNsfwEnabled
         - mutuallyConsented
       type: object
+    OAuthLinkResponseDto:
+      properties:
+        provider:
+          enum:
+            - google
+            - wechat
+            - twitter
+            - tiktok
+          type: string
+        status:
+          enum:
+            - linked
+          type: string
+      required:
+        - provider
+        - status
+      type: object
     OAuthLoginDto:
       properties:
         accessToken:
@@ -11610,7 +11627,7 @@ info:
   description: |-
     The Nimi Social Platform API
 
-    Last updated: 2026-06-16T14:30:52.093Z
+    Last updated: 2026-06-17T04:22:59.970Z
   title: Nimi Realm SDK API
   version: '1.0'
 openapi: 3.0.0
@@ -12565,7 +12582,11 @@ paths:
         required: true
       responses:
         '200':
-          description: OAuth linked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OAuthLinkResponseDto'
+          description: ''
       security:
         - bearer: []
       summary: Link OAuth

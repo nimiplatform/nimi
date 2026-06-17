@@ -1929,6 +1929,10 @@ export interface NsfwConsentStatusResponseDto {
   readonly mutuallyConsented: boolean;
   readonly userNsfwEnabled: boolean;
 }
+export interface OAuthLinkResponseDto {
+  readonly provider: "google" | "wechat" | "twitter" | "tiktok";
+  readonly status: "linked";
+}
 export interface OAuthLoginDto {
   readonly accessToken?: string;
   readonly code?: string;
@@ -4447,6 +4451,7 @@ export interface RealmTypedModelMap {
   readonly "NotificationTargetDto": NotificationTargetDto;
   readonly "NsfwConsentResponseDto": NsfwConsentResponseDto;
   readonly "NsfwConsentStatusResponseDto": NsfwConsentStatusResponseDto;
+  readonly "OAuthLinkResponseDto": OAuthLinkResponseDto;
   readonly "OAuthLoginDto": OAuthLoginDto;
   readonly "OAuthLoginResultDto": OAuthLoginResultDto;
   readonly "OAuthProvider": OAuthProvider;
@@ -6620,7 +6625,7 @@ export interface RealmLinkOauthOperationRequest {
   };
   readonly body: OAuthLoginDto;
 }
-export type RealmLinkOauthOperationResponse = Record<string, never>;
+export type RealmLinkOauthOperationResponse = OAuthLinkResponseDto;
 export interface RealmListAssetsOperationRequest {
   readonly path: {
 
