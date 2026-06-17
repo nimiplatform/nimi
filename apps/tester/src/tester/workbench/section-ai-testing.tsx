@@ -23,10 +23,7 @@ function TextStudioShell({
   draftPersistence,
   onOpenConfig,
   history,
-  activeCapabilityId,
-  expandedHistoryCapabilityIds,
   historySelectionRequest,
-  onToggleHistoryCapability,
   onSelectHistoryRun,
   headerActions,
 }: {
@@ -38,10 +35,7 @@ function TextStudioShell({
   draftPersistence: boolean;
   onOpenConfig: (section: CanonicalCapabilitySectionId) => void;
   history: TesterRunHistory | null;
-  activeCapabilityId: TesterCapabilityId;
-  expandedHistoryCapabilityIds: ReadonlySet<TesterCapabilityId>;
   historySelectionRequest: { requestId: number; record: TesterRunHistoryRecord } | null;
-  onToggleHistoryCapability: (id: TesterCapabilityId) => void;
   onSelectHistoryRun: (record: TesterRunHistoryRecord) => void;
   headerActions?: ReactNode;
 }) {
@@ -290,10 +284,7 @@ function TextStudioShell({
         </div>
         <CapabilityRunHistory
           history={history}
-          activeCapabilityId={activeCapabilityId}
           activeRunId={activeRun?.id ?? null}
-          expandedCapabilityIds={expandedHistoryCapabilityIds}
-          onToggleCapability={onToggleHistoryCapability}
           onSelectRun={onSelectHistoryRun}
         />
       </div>
@@ -307,10 +298,7 @@ export function SectionAITesting({
   summary,
   history,
   lastResult,
-  activeCapabilityId,
-  expandedHistoryCapabilityIds,
   historySelectionRequest,
-  onToggleHistoryCapability,
   onSelectHistoryRun,
   verboseConsole,
   draftPersistence,
@@ -335,10 +323,7 @@ export function SectionAITesting({
           draftPersistence={draftPersistence}
           onOpenConfig={setConfigSection}
           history={history}
-          activeCapabilityId={activeCapabilityId}
-          expandedHistoryCapabilityIds={expandedHistoryCapabilityIds}
           historySelectionRequest={historySelectionRequest}
-          onToggleHistoryCapability={onToggleHistoryCapability}
           onSelectHistoryRun={onSelectHistoryRun}
           headerActions={headerActions}
         />

@@ -83,6 +83,64 @@ test('tester run target summary hydrates local runtime model labels without expo
   assert.equal(hydrated.modelLabel, 'z-image-turbo-Q4_K_M');
 });
 
+test('tester run history never exposes opaque runtime model ids as model titles', async () => {
+  const { getTesterRunModelLabel, getTesterRunModelSource } = await importBehaviorModule('tester/tester-history.js');
+  const opaqueRuntimeModelId = '01KV2PAC69SRGAB30PCZ9ZH8MN';
+  const baseRecord = {
+    id: 'run-opaque-model',
+    capabilityId: 'text.generate',
+    prompt: 'Write a note',
+    status: 'failed',
+    message: 'Runtime call failed.',
+    createdAt: '2026-06-15T09:00:00.000Z',
+  };
+
+  const localRecord = {
+    ...baseRecord,
+    runConfig: {
+      target: {
+        capabilityId: 'text.generate',
+        bindingCapabilityId: 'text.generate',
+        section: 'text',
+        status: 'blocked',
+        source: 'local',
+        modelLabel: opaqueRuntimeModelId,
+        detail: 'runtime local profile',
+        params: {},
+        paramsSummary: [],
+        profileOrigin: null,
+      },
+      promptControls: {
+        contextAttached: false,
+        attachmentCount: 0,
+      },
+    },
+  };
+
+  assert.equal(getTesterRunModelSource(localRecord), 'local');
+  assert.equal(getTesterRunModelLabel(localRecord), 'Local runtime model');
+  assert.notEqual(getTesterRunModelLabel(localRecord), opaqueRuntimeModelId);
+
+  const resolvedRecord = {
+    ...baseRecord,
+    status: 'ready',
+    result: {
+      ok: true,
+      kind: 'text',
+      summary: 'done',
+      body: 'done',
+      charCount: 4,
+      finishReason: 'stop',
+      streamed: false,
+      modelResolved: opaqueRuntimeModelId,
+      routeDecision: 'route_policy_local',
+    },
+  };
+
+  assert.equal(getTesterRunModelSource(resolvedRecord), 'local');
+  assert.equal(getTesterRunModelLabel(resolvedRecord), 'Local runtime model');
+});
+
 test('tester text run target omits unconfigured model drawer placeholders from history', async () => {
   const { createTesterRunTargetSummary } = await importBehaviorModule('tester/tester-run-target.js');
   const capability = {
@@ -248,6 +306,8 @@ test('tester AI config is the Kit model-config surface in Settings with real SDK
   assert.doesNotMatch(styles, /\.studio-run-target__params/);
   assert.match(styles, /\.studio-generate-action--configure\s*\{[^}]*background:\s*#35c99d/s);
   assert.match(styles, /\.section-ai-testing__drawer\s*\{[^}]*position:\s*absolute/s);
+  assert.match(styles, /\.section-ai-testing__drawer\s*\{[^}]*animation:\s*section-ai-testing-drawer-slide-in/s);
+  assert.match(styles, /@keyframes section-ai-testing-drawer-slide-in[\s\S]*translate3d\(100%,\s*0,\s*0\)/);
   assert.match(styles, /@media \(max-width:\s*720px\)[\s\S]*\.section-ai-testing__drawer[\s\S]*width:\s*100%/);
 });
 

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import './tester-workbench.css';
 import { Tooltip } from '@nimiplatform/kit/ui';
 import { createRendererFlowId, emitRuntimeLog, logRendererEvent } from '@nimiplatform/kit/telemetry';
@@ -44,14 +44,6 @@ type TesterHistorySelectionRequest = {
 
 function makeRecordId() {
   return createNimiClientId('run');
-}
-
-function createDefaultExpandedHistoryCapabilityIds(history: TesterRunHistory): ReadonlySet<TesterCapabilityId> {
-  return new Set(
-    testerCapabilities
-      .filter((item) => item.execution === 'runtime-sdk' && (history[item.id]?.length ?? 0) > 0)
-      .map((item) => item.id),
-  );
 }
 
 function hasTraceMetadata(result: TesterCapabilityRunResult): boolean {
@@ -102,9 +94,7 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
   const [history, setHistory] = useState<TesterRunHistory | null>(null);
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [lastResult, setLastResult] = useState<TesterCapabilityRunResult | null>(null);
-  const [expandedHistoryCapabilityIds, setExpandedHistoryCapabilityIds] = useState<ReadonlySet<TesterCapabilityId>>(() => new Set());
   const [historySelectionRequest, setHistorySelectionRequest] = useState<TesterHistorySelectionRequest | null>(null);
-  const historyExpansionInitializedRef = useRef(false);
   const [preferenceState, setPreferenceState] = useState<{
     preferences: TesterPreferences;
     status: TesterPreferenceStoreStatus;
@@ -127,10 +117,6 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
         options: { maxAttempts: 2, initialDelayMs: 25, maxDelayMs: 50 },
       });
       setHistory(next);
-      if (!historyExpansionInitializedRef.current) {
-        setExpandedHistoryCapabilityIds(createDefaultExpandedHistoryCapabilityIds(next));
-        historyExpansionInitializedRef.current = true;
-      }
       setHistoryError(null);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error || 'History load failed.');
@@ -183,18 +169,6 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
     setPreferenceState(resetTesterPreferences());
   }, []);
 
-  const handleToggleHistoryCapability = useCallback((id: TesterCapabilityId) => {
-    setExpandedHistoryCapabilityIds((current) => {
-      const next = new Set(current);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  }, []);
-
   const handleSelectHistoryRun = useCallback((record: TesterRunHistoryRecord) => {
     const capabilityId = record.capabilityId as TesterCapabilityId;
     const selectedCapability = testerCapabilities.find((item) => item.id === capabilityId && item.execution === 'runtime-sdk');
@@ -230,15 +204,6 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
       try {
         const next = await appendTesterRunHistory(record);
         setHistory(next);
-        setExpandedHistoryCapabilityIds((current) => {
-          if (current.has(record.capabilityId as TesterCapabilityId)) return current;
-          const capabilityId = record.capabilityId as TesterCapabilityId;
-          const runtimeCapability = testerCapabilities.find((item) => item.id === capabilityId && item.execution === 'runtime-sdk');
-          if (!runtimeCapability) return current;
-          const expanded = new Set(current);
-          expanded.add(runtimeCapability.id);
-          return expanded;
-        });
         setHistoryError(null);
         if (shouldPersistTesterArtifactRecord(result)) {
           const firstArtifact = result.output.firstArtifact;
@@ -328,10 +293,7 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
                 summary={summary}
                 history={history}
                 lastResult={lastResult}
-                activeCapabilityId={activeCapabilityId}
-                expandedHistoryCapabilityIds={expandedHistoryCapabilityIds}
                 historySelectionRequest={historySelectionRequest}
-                onToggleHistoryCapability={handleToggleHistoryCapability}
                 onSelectHistoryRun={handleSelectHistoryRun}
                 verboseConsole={preferenceState.preferences.verboseConsole}
                 draftPersistence={preferenceState.preferences.draftPersistence}

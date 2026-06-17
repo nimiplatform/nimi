@@ -4,7 +4,7 @@ import { AlertTriangle, Copy as CopyIcon, Download as DownloadIcon, FileText, Me
 import type { TesterCapability } from '../tester-capabilities.js';
 import { formatTesterRunTimestamp, getTesterRunConfigParamRows, getTesterRunModelLabel, getTesterRunPromptControlFacts, getTesterRunResultTags, getTesterRunStatusLabel, getTesterRunStatusTone, type TesterRunConfigParamRow, type TesterRunHistoryRecord, type TesterRunHistoryResultSnapshot, type TesterRunPromptControlFact } from '../tester-history.js';
 import { unavailableReasonUserAction, unavailableReasonUserMessage } from '../tester-unavailable.js';
-import { StudioResult, TextStudioOutputBody, artifactExtension, downloadArtifactUrl, downloadTextFile, statusForCapability } from './section-ai-testing-surface.js';
+import { RuntimeDiagnosticsActions, StudioResult, TextStudioOutputBody, artifactExtension, downloadArtifactUrl, downloadTextFile, statusForCapability } from './section-ai-testing-surface.js';
 import type { TextStudioActiveRun } from './section-ai-testing-run.js';
 
 function TextStudioPromptControlFacts({ facts }: { facts: readonly TesterRunPromptControlFact[] }) {
@@ -104,6 +104,19 @@ function historyRecordPlainText(record: TesterRunHistoryRecord): string {
   return snapshot.summary;
 }
 
+function historyUnavailableDiagnosticsText(snapshot: Extract<TesterRunHistoryResultSnapshot, { ok: false }>): string {
+  return [
+    `Reason: ${snapshot.reason}`,
+    snapshot.missingSurface ? `Missing surface: ${snapshot.missingSurface}` : '',
+    '',
+    'Message:',
+    snapshot.message,
+    '',
+    'Action:',
+    snapshot.actionHint,
+  ].filter(Boolean).join('\n');
+}
+
 function historyRecordArtifact(record: TesterRunHistoryRecord): { url: string; mimeType?: string } | null {
   const snapshot = record.result;
   if (!snapshot?.ok || snapshot.kind !== 'artifacts' || !snapshot.firstArtifact?.url) return null;
@@ -130,7 +143,8 @@ function TextStudioHistoryRecordResult({
   const modelLabel = getTesterRunModelLabel(record);
   const toneClass = historyResultToneClass(record);
   const exportText = historyRecordPlainText(record);
-  const canExport = Boolean(exportText.trim() || historyRecordArtifact(record));
+  const blocked = snapshot && !snapshot.ok ? snapshot : null;
+  const canExport = !blocked && Boolean(exportText.trim() || historyRecordArtifact(record));
   function handleCopy() {
     if (!exportText.trim()) return;
     try {
@@ -163,6 +177,7 @@ function TextStudioHistoryRecordResult({
       </>
     );
   } else if (!snapshot.ok) {
+    const diagnosticsText = historyUnavailableDiagnosticsText(snapshot);
     body = (
       <div className="studio-result__blocked">
         <div className="studio-result__blocked-line">
@@ -173,18 +188,8 @@ function TextStudioHistoryRecordResult({
         <p className="studio-result__hint">{unavailableReasonUserAction(snapshot.reason)}</p>
         <details className="studio-diag">
           <summary>Runtime details</summary>
-          <pre className="studio-diag__json">
-            {[
-              `Reason: ${snapshot.reason}`,
-              snapshot.missingSurface ? `Missing surface: ${snapshot.missingSurface}` : '',
-              '',
-              'Message:',
-              snapshot.message,
-              '',
-              'Action:',
-              snapshot.actionHint,
-            ].filter(Boolean).join('\n')}
-          </pre>
+          <RuntimeDiagnosticsActions text={diagnosticsText} filenameBase={record.capabilityId} />
+          <pre className="studio-diag__json">{diagnosticsText}</pre>
         </details>
       </div>
     );
@@ -202,16 +207,20 @@ function TextStudioHistoryRecordResult({
           </span>
         </div>
         <div className="studio-result__actions studio-history-result__actions">
-          <Tooltip content="Copy" placement="top">
-            <button type="button" className="studio-result__action" onClick={handleCopy} disabled={!canExport} aria-label="Copy generation">
-              <CopyIcon size={16} aria-hidden="true" />
-            </button>
-          </Tooltip>
-          <Tooltip content="Download" placement="top">
-            <button type="button" className="studio-result__action" onClick={handleDownload} disabled={!canExport} aria-label="Download generation">
-              <DownloadIcon size={16} aria-hidden="true" />
-            </button>
-          </Tooltip>
+          {!blocked ? (
+            <>
+              <Tooltip content="Copy" placement="top">
+                <button type="button" className="studio-result__action" onClick={handleCopy} disabled={!canExport} aria-label="Copy generation">
+                  <CopyIcon size={16} aria-hidden="true" />
+                </button>
+              </Tooltip>
+              <Tooltip content="Download" placement="top">
+                <button type="button" className="studio-result__action" onClick={handleDownload} disabled={!canExport} aria-label="Download generation">
+                  <DownloadIcon size={16} aria-hidden="true" />
+                </button>
+              </Tooltip>
+            </>
+          ) : null}
           <Tooltip content="Regenerate" placement="top">
             <button type="button" className="studio-result__action" onClick={onRegenerate} aria-label="Regenerate">
               <RefreshCw size={16} aria-hidden="true" />
@@ -243,32 +252,14 @@ function TextStudioHistorySnapshotBody({ snapshot }: { snapshot: Extract<TesterR
   if (snapshot.kind === 'embedding') {
     return (
       <div className="studio-result__rich">
-        <p className="studio-result__plain">
-          {snapshot.vectorCount} vector{snapshot.vectorCount === 1 ? '' : 's'} / {snapshot.dimensions} dimensions
-          {typeof snapshot.totalTokens === 'number' ? ` / ${snapshot.totalTokens} tokens` : ''}
-        </p>
-        <div className="studio-chips">
-          {snapshot.sample.map((value, index) => (
-            <span key={index} className="studio-chip">{value.toFixed(4)}</span>
-          ))}
-        </div>
+        <p className="studio-result__plain">Embedding generated successfully.</p>
       </div>
     );
   }
   if (snapshot.kind === 'artifacts') {
-    const artifact = snapshot.firstArtifact;
     return (
       <div className="studio-result__rich">
-        <p className="studio-result__plain">
-          Job {snapshot.jobId || '(pending id)'} / {snapshot.jobState} / {snapshot.artifactCount} artifact
-          {snapshot.artifactCount === 1 ? '' : 's'}
-          {artifact?.mimeType ? ` / ${artifact.mimeType}` : ''}
-        </p>
-        {artifact?.url ? (
-          <p className="studio-result__hint">Hosted artifact: {artifact.displayName || artifact.artifactId || artifact.url}</p>
-        ) : (
-          <p className="studio-result__hint">Inline local media is not duplicated in run history; use the current-session preview or media artifact history.</p>
-        )}
+        <p className="studio-result__plain">Media generated successfully.</p>
       </div>
     );
   }
@@ -296,6 +287,7 @@ function TextStudioRunError({ message }: { message: string }) {
       <p className="studio-result__hint">No local fallback result was produced. Retry after Runtime is ready.</p>
       <details className="studio-diag">
         <summary>Runtime details</summary>
+        <RuntimeDiagnosticsActions text={message} filenameBase="runtime-call" />
         <pre className="studio-diag__json">{message}</pre>
       </details>
     </div>
