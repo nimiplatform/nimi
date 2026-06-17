@@ -75,9 +75,33 @@ const row = {
   installStoragePolicyRef: 'nimi-data-app-roots',
   sourceRule: 'P-NAPP-004',
 };
+function entryFor(appId = row.appId) {
+  const catalogRow = { ...row, appId };
+  return {
+    appId: catalogRow.appId,
+    appKind: catalogRow.appKind,
+    displayName: catalogRow.displayName,
+    trustTier: catalogRow.trustTier,
+    publisher: catalogRow.publisher,
+    aiProfileSelectionRef: catalogRow.aiProfileSelectionRef,
+    capabilitySet: catalogRow.capabilitySet,
+    releaseDescriptorRef: catalogRow.releaseDescriptorRef,
+    installStoragePolicyRef: catalogRow.installStoragePolicyRef,
+    sources: {
+      catalog: { status: 'present', value: catalogRow },
+      account: { status: 'absent' },
+      local: { status: 'absent' },
+      packageReadiness: { status: 'absent' },
+    },
+    installState: 'not-installed',
+    openReadiness: 'install-required',
+    activeJobs: [],
+    nextActions: [],
+  };
+}
 const appClient = createNimiAppClient({
-  async list() { return [row]; },
-  async get(appId) { return { ...row, appId }; },
+  async list() { return [entryFor()]; },
+  async get(appId) { return entryFor(appId); },
   async status(appId) { return { appId, launchReadiness: 'ready' }; },
 });
 assert(appClient instanceof NimiAppClient);
@@ -214,6 +238,7 @@ import {
   createPermissionClient,
   createScopeCatalogModule,
   type GrantSpec,
+  type NimiAppInventoryEntry,
   type NimiAppRow,
   type NimiAppScopeRef,
   type NimiAppStatus,
@@ -233,10 +258,31 @@ const row: NimiAppRow = {
   installStoragePolicyRef: 'nimi-data-app-roots',
   sourceRule: 'P-NAPP-004',
 };
+const entry: NimiAppInventoryEntry = {
+  appId: row.appId,
+  appKind: row.appKind,
+  displayName: row.displayName,
+  trustTier: row.trustTier,
+  publisher: row.publisher,
+  aiProfileSelectionRef: row.aiProfileSelectionRef,
+  capabilitySet: row.capabilitySet,
+  releaseDescriptorRef: row.releaseDescriptorRef,
+  installStoragePolicyRef: row.installStoragePolicyRef,
+  sources: {
+    catalog: { status: 'present', value: row },
+    account: { status: 'absent' },
+    local: { status: 'absent' },
+    packageReadiness: { status: 'absent' },
+  },
+  installState: 'not-installed',
+  openReadiness: 'install-required',
+  activeJobs: [],
+  nextActions: [],
+};
 const status: NimiAppStatus = { appId: row.appId, launchReadiness: 'ready' };
 const appClient: NimiAppClient = createNimiAppClient({
-  async list() { return [row]; },
-  async get() { return row; },
+  async list() { return [entry]; },
+  async get() { return entry; },
   async status() { return status; },
 });
 const scopeRef: NimiAppScopeRef = createAppScopeRef({ appId: 'tester.app', surfaceId: 'settings' });

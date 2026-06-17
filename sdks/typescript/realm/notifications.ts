@@ -13,12 +13,12 @@ export type NimiRealmNotificationListResult = NotificationListResultDto;
 export type NimiRealmMarkNotificationsReadInput = MarkNotificationsReadInputDto;
 export type NimiRealmNotificationType = NonNullable<NotificationDto['type']>;
 
-export interface NimiRealmNotificationUnreadProjection {
+export interface NimiRealmNotificationUnreadView {
   readonly total: number;
   readonly byType: Readonly<Record<string, number>>;
 }
 
-export interface NimiRealmNotificationItemProjection {
+export interface NimiRealmNotificationItemView {
   readonly id: string;
   readonly type: NimiRealmNotificationType;
   readonly title: string;
@@ -29,7 +29,7 @@ export interface NimiRealmNotificationItemProjection {
   readonly actorName: string;
   readonly actorHandle: string;
   readonly actorAvatarUrl: string | null;
-  readonly actorIsAgent: boolean;
+  readonly actorKind: 'account';
   readonly giftTransactionId: string | null;
   readonly giftStatus: string | null;
   readonly giftMessage: string | null;
@@ -37,8 +37,8 @@ export interface NimiRealmNotificationItemProjection {
   readonly reviewId: string | null;
 }
 
-export interface NimiRealmNotificationListProjection {
-  readonly items: readonly NimiRealmNotificationItemProjection[];
+export interface NimiRealmNotificationListView {
+  readonly items: readonly NimiRealmNotificationItemView[];
   readonly nextCursor: string | null;
   readonly hasNext: boolean;
 }
@@ -50,11 +50,11 @@ export interface NimiRealmNotificationListOptions {
   readonly cursor?: string;
 }
 
-export interface NimiRealmNotificationsReadProjection {
+export interface NimiRealmNotificationsReadView {
   readonly ok: true;
 }
 
-export interface NimiRealmNotificationReadProjection {
+export interface NimiRealmNotificationReadView {
   readonly id: string;
 }
 
@@ -70,7 +70,7 @@ export interface NimiRealmNotificationApi {
 
 export function normalizeNimiRealmNotificationUnreadCount(
   value: UnreadNotificationCountDto,
-): NimiRealmNotificationUnreadProjection {
+): NimiRealmNotificationUnreadView {
   const record = toRecord(value);
   const total = normalizeCount(record.total);
   if (total === null) {
@@ -86,11 +86,11 @@ export function normalizeNimiRealmNotificationUnreadCount(
   };
 }
 
-export function toNimiRealmNotificationItemProjection(
+export function toNimiRealmNotificationItemView(
   raw: NotificationDto | null | undefined,
   fallbackTitle: string,
   fallbackActorName: string,
-): NimiRealmNotificationItemProjection | null {
+): NimiRealmNotificationItemView | null {
   if (!raw) {
     return null;
   }
@@ -121,7 +121,7 @@ export function toNimiRealmNotificationItemProjection(
     actorName: actorName || actorHandle || fallbackActorName,
     actorHandle,
     actorAvatarUrl: rawActorAvatarUrl || null,
-    actorIsAgent: actor.isAgent === true,
+    actorKind: 'account',
     giftTransactionId: targetGiftTransactionId || dataGiftTransactionId || null,
     giftStatus: normalizeString(data.status).trim() || null,
     giftMessage: normalizeString(data.message).trim() || null,
@@ -130,15 +130,15 @@ export function toNimiRealmNotificationItemProjection(
   };
 }
 
-export function toNimiRealmNotificationListProjection(
+export function toNimiRealmNotificationListView(
   raw: NotificationListResultDto | null | undefined,
   fallbackTitle: string,
   fallbackActorName: string,
-): NimiRealmNotificationListProjection {
+): NimiRealmNotificationListView {
   const rawItems = Array.isArray(raw?.items) ? raw.items : [];
   const items = rawItems
-    .map((item) => toNimiRealmNotificationItemProjection(item, fallbackTitle, fallbackActorName))
-    .filter((item): item is NimiRealmNotificationItemProjection => item !== null);
+    .map((item) => toNimiRealmNotificationItemView(item, fallbackTitle, fallbackActorName))
+    .filter((item): item is NimiRealmNotificationItemView => item !== null);
 
   const page = toRecord(raw?.page);
   const nextCursor = normalizeString(page.nextCursor).trim() || null;
@@ -153,7 +153,7 @@ export function toNimiRealmNotificationListProjection(
 export async function loadNimiRealmNotificationUnreadCount(
   realm: NimiRealmNotificationApi,
   options?: RealmTypedCallOptions,
-): Promise<NimiRealmNotificationUnreadProjection> {
+): Promise<NimiRealmNotificationUnreadView> {
   const payload = await realm.notifications.getUnreadCount({ path: {} }, options);
   return normalizeNimiRealmNotificationUnreadCount(payload);
 }
@@ -178,7 +178,7 @@ export async function markNimiRealmNotificationsRead(
   realm: NimiRealmNotificationApi,
   input: NimiRealmMarkNotificationsReadInput,
   options?: RealmTypedCallOptions,
-): Promise<NimiRealmNotificationsReadProjection> {
+): Promise<NimiRealmNotificationsReadView> {
   await realm.notifications.markNotificationsRead({ path: {}, body: input }, options);
   return { ok: true };
 }
@@ -187,7 +187,7 @@ export async function markNimiRealmNotificationRead(
   realm: NimiRealmNotificationApi,
   notificationId: string,
   options?: RealmTypedCallOptions,
-): Promise<NimiRealmNotificationReadProjection> {
+): Promise<NimiRealmNotificationReadView> {
   const normalizedId = normalizeString(notificationId).trim();
   if (!normalizedId) {
     throw notificationError({

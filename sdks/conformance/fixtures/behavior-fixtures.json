@@ -54,17 +54,17 @@
       ]
     },
     "realm_operation": {
-      "operation_id": "ackMyLocalAgentProvisionIntent",
+      "operation_id": "addFriend",
       "typed_names": {
-        "typescript": "ackMyLocalAgentProvisionIntent",
-        "python": "ack_my_local_agent_provision_intent",
-        "go": "AckMyLocalAgentProvisionIntent",
-        "rust": "ack_my_local_agent_provision_intent"
+        "typescript": "addFriend",
+        "python": "add_friend",
+        "go": "AddFriend",
+        "rust": "add_friend"
       },
-      "request_type": "RealmAckMyLocalAgentProvisionIntentOperationRequest",
-      "response_type": "RealmAckMyLocalAgentProvisionIntentOperationResponse",
+      "request_type": "RealmAddFriendOperationRequest",
+      "response_type": "RealmAddFriendOperationResponse",
       "method": "POST",
-      "path": "/api/human/me/local-agent-provision-intents/{intentId}/ack",
+      "path": "/api/human/accounts/{id}/friends",
       "path_params": {
         "intentId": "intent-conformance"
       },

@@ -46,11 +46,11 @@ import { createRealm } from '@nimiplatform/sdk/realm';
 import {
   createWorldWorkflowPlan,
   executeWorldWorkflowPlan,
-  listWorldsStep,
-  mainWorldStep,
-  worldDetailWithAgentsStep,
-  worldHistoryStep,
-  worldSummaryStep,
+  listWorldCharactersStep,
+  listWorldCoresStep,
+  oasisWorldStep,
+  worldCharacterStep,
+  worldCoreStep,
 } from '@nimiplatform/sdk/features/workflow';
 
 let lastRequest;
@@ -59,8 +59,8 @@ const transport = {
   async unary(request) {
     lastRequest = request;
     calls.push(request.methodId);
-    if (request.methodId === 'WorldController_listWorlds') return [{ id: 'world-1', status: 'ACTIVE' }];
-    if (request.methodId === 'WorldController_getWorldHistory') return { items: [] };
+    if (request.methodId === 'WorldCoreController_listWorldCores') return [{ id: 'world-1', visibility: 'public' }];
+    if (request.methodId === 'WorldCoreController_listWorldCharacters') return [{ id: 'character-1', worldId: 'world-1' }];
     return { id: 'world-1', methodId: request.methodId };
   },
   async *serverStream() {
@@ -72,24 +72,24 @@ const realm = createRealm({ transport });
 const plan = createWorldWorkflowPlan({
   planId: 'consumer-world-plan',
   steps: [
-    mainWorldStep(),
-    worldSummaryStep('world-1'),
-    worldDetailWithAgentsStep({ worldId: 'world-1', recommendedAgentLimit: 1 }),
-    worldHistoryStep('world-1'),
-    listWorldsStep('ACTIVE'),
+    oasisWorldStep(),
+    worldCoreStep('world-1'),
+    listWorldCharactersStep('world-1'),
+    worldCharacterStep('character-1'),
+    listWorldCoresStep({ visibility: 'public', take: 1 }),
   ],
 });
 
 const result = await executeWorldWorkflowPlan(realm, plan);
 assert.deepEqual(calls, [
-  'WorldController_getMainWorld',
-  'WorldController_getWorld',
-  'WorldController_getWorldDetailWithAgents',
-  'WorldController_getWorldHistory',
-  'WorldController_listWorlds',
+  'WorldCoreController_getOasisWorld',
+  'WorldCoreController_getWorldCore',
+  'WorldCoreController_listWorldCharacters',
+  'WorldCoreController_getWorldCharacter',
+  'WorldCoreController_listWorldCores',
 ]);
 assert.equal(result.results.length, 5);
-assert.deepEqual(lastRequest.body, { path: {}, query: { status: 'ACTIVE' } });
+assert.deepEqual(lastRequest.body, { path: {}, query: { visibility: 'public', take: 1 } });
 
 await assert.rejects(
   import('@nimiplatform/sdk/world'),
@@ -102,7 +102,7 @@ import { createRealm, type CoreTransport } from '@nimiplatform/sdk/realm';
 import {
   createWorldWorkflowPlan,
   executeWorldWorkflowPlan,
-  listWorldsStep,
+  listWorldCoresStep,
   type WorldWorkflowReadResult,
 } from '@nimiplatform/sdk/features/workflow';
 
@@ -117,7 +117,7 @@ const transport: CoreTransport = {
 
 const plan = createWorldWorkflowPlan({
   planId: 'typed-world-plan',
-  steps: [listWorldsStep('ACTIVE')],
+  steps: [listWorldCoresStep({ visibility: 'public' })],
 });
 const result: Promise<{
   readonly events: readonly unknown[];

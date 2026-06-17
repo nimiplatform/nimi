@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 
-import type { NimiAgentEvent } from './index';
+import type { NimiAiRunnerEvent } from './index';
 
-export const NIMI_AGENT_GOLDEN_EVENT_ORDER = [
-  'agent-start',
+export const NIMI_AI_RUNNER_GOLDEN_EVENT_ORDER = [
+  'ai-runner-start',
   'model-request',
   'reasoning',
   'text',
@@ -16,20 +16,20 @@ export const NIMI_AGENT_GOLDEN_EVENT_ORDER = [
   'finish',
 ] as const;
 
-export function eventTypes(events: readonly NimiAgentEvent[]): readonly NimiAgentEvent['type'][] {
+export function eventTypes(events: readonly NimiAiRunnerEvent[]): readonly NimiAiRunnerEvent['type'][] {
   return events.map((event) => event.type);
 }
 
-export function assertNimiAgentEventOrder(
-  events: readonly NimiAgentEvent[],
-  expected: readonly NimiAgentEvent['type'][],
+export function assertNimiAiRunnerEventOrder(
+  events: readonly NimiAiRunnerEvent[],
+  expected: readonly NimiAiRunnerEvent['type'][],
 ): void {
   assert.deepEqual(eventTypes(events), expected);
 }
 
-export function assertNimiAgentEventSubsequence(
-  events: readonly NimiAgentEvent[],
-  expected: readonly NimiAgentEvent['type'][],
+export function assertNimiAiRunnerEventSubsequence(
+  events: readonly NimiAiRunnerEvent[],
+  expected: readonly NimiAiRunnerEvent['type'][],
 ): void {
   const actual = eventTypes(events);
   let cursor = 0;

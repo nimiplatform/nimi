@@ -15,7 +15,7 @@ entries:
   - id: NimiRunEvent
     owner: sdks/typescript/core/contracts
     semantics: Normalized run lifecycle, text, tool, warning, error, and trace events.
-  - id: NimiAgentTrace
+  - id: NimiAiTrace
     owner: sdks/typescript/core/contracts
     semantics: Run and step trace for debugging, evaluation, and adapter mapping.
   - id: NimiCapabilityManifest

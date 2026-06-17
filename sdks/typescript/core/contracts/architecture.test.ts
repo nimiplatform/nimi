@@ -29,7 +29,7 @@ test('contract inventory covers the shared adapter contract vocabulary', () => {
     'NimiMessage',
     'NimiTool',
     'NimiRunEvent',
-    'NimiAgentTrace',
+    'NimiAiTrace',
     'NimiCapabilityManifest',
   ] as const) {
     assert.equal(ids.has(id), true, `missing contract inventory entry ${id}`);

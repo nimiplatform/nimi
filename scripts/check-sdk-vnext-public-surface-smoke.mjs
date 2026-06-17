@@ -14,7 +14,7 @@ const vnextRoot = path.join(repoRoot, 'sdks', 'typescript');
 let tempRoot = '';
 
 const EXPECTED_EXPORTS = [
-  '.', './agent', './ai', './app', './contracts', './features/conversation',
+  '.', './ai-runner', './ai', './app', './contracts', './features/conversation',
   './features/evaluation', './features/generation', './features/knowledge-context',
   './features/memory-context', './features/toolkits', './features/workflow',
   './realm', './realm/generated', './runtime', './runtime/generated', './testing', './types',
@@ -67,7 +67,7 @@ const checks = [
   ['@nimiplatform/sdk/types', 'createNimiError'],
   ['@nimiplatform/sdk/contracts', 'textPart'],
   ['@nimiplatform/sdk/ai', 'createNimiRuntimeAIModel'],
-  ['@nimiplatform/sdk/agent', 'runNimiAgent'],
+  ['@nimiplatform/sdk/ai-runner', 'runNimiAiRunner'],
   ['@nimiplatform/sdk/testing', 'createNimiMockModel'],
   ['@nimiplatform/sdk/features/conversation', 'buildNimiConversationHistoryMessages'],
   ['@nimiplatform/sdk/features/knowledge-context', 'createNimiKnowledgeContextBundle'],
@@ -97,11 +97,11 @@ import { createRuntime, type CoreTransport } from '@nimiplatform/sdk/runtime';
 import { RuntimeTypedClient, ReasonCode as RuntimeGeneratedReasonCode } from '@nimiplatform/sdk/runtime/generated';
 import { createRealm, type Realm } from '@nimiplatform/sdk/realm';
 import { RealmTypedClient, type RealmModel, type RealmModelName } from '@nimiplatform/sdk/realm/generated';
-import { createNimiAppClient, type NimiAppRow } from '@nimiplatform/sdk/app';
+import { createNimiAppClient, type NimiAppInventoryEntry, type NimiAppRow } from '@nimiplatform/sdk/app';
 import { ReasonCode, createNimiError, type JsonObject, type NimiError } from '@nimiplatform/sdk/types';
 import { textPart, type NimiCapabilityManifest, type NimiMessage } from '@nimiplatform/sdk/contracts';
 import { collectNimiTextStream, type NimiAiModel } from '@nimiplatform/sdk/ai';
-import { runNimiAgent, type NimiAgentSpec } from '@nimiplatform/sdk/agent';
+import { runNimiAiRunner, type NimiAiRunnerSpec } from '@nimiplatform/sdk/ai-runner';
 import { createNimiMockModel, userTextMessage } from '@nimiplatform/sdk/testing';
 import { buildNimiConversationHistoryWindow } from '@nimiplatform/sdk/features/conversation';
 import { createNimiKnowledgeContextBundle } from '@nimiplatform/sdk/features/knowledge-context';
@@ -121,29 +121,49 @@ const runtime = createRuntime({ transport });
 const generatedRuntime = new RuntimeTypedClient(runtime.core as never);
 const realm: Realm = createRealm({ transport });
 const generatedRealm = new RealmTypedClient(realm.core as never);
-const appClient = createNimiAppClient({
-  async list(): Promise<readonly NimiAppRow[]> { return []; },
-  async get(): Promise<NimiAppRow> {
-    return {
-      appId: 'dev.nimi.surface',
-      appKind: 'nimi-app',
-      displayName: 'Surface',
-      trustTier: 'nimi-community',
-      publisher: 'Nimi',
-      aiProfileSelectionRef: 'local-standard',
-      capabilitySet: ['text.generate'],
-      releaseDescriptorRef: 'release',
-      installStoragePolicyRef: 'storage',
-      sourceRule: 'test',
-    };
+const appRow: NimiAppRow = {
+  appId: 'dev.nimi.surface',
+  appKind: 'nimi-app',
+  displayName: 'Surface',
+  trustTier: 'nimi-community',
+  publisher: 'Nimi',
+  aiProfileSelectionRef: 'local-standard',
+  capabilitySet: ['text.generate'],
+  releaseDescriptorRef: 'release',
+  installStoragePolicyRef: 'storage',
+  sourceRule: 'test',
+};
+const appEntry: NimiAppInventoryEntry = {
+  appId: appRow.appId,
+  appKind: appRow.appKind,
+  displayName: appRow.displayName,
+  trustTier: appRow.trustTier,
+  publisher: appRow.publisher,
+  aiProfileSelectionRef: appRow.aiProfileSelectionRef,
+  capabilitySet: appRow.capabilitySet,
+  releaseDescriptorRef: appRow.releaseDescriptorRef,
+  installStoragePolicyRef: appRow.installStoragePolicyRef,
+  sources: {
+    catalog: { status: 'present', value: appRow },
+    account: { status: 'absent' },
+    local: { status: 'absent' },
+    packageReadiness: { status: 'absent' },
   },
+  installState: 'not-installed',
+  openReadiness: 'install-required',
+  activeJobs: [],
+  nextActions: [],
+};
+const appClient = createNimiAppClient({
+  async list(): Promise<readonly NimiAppInventoryEntry[]> { return [appEntry]; },
+  async get(): Promise<NimiAppInventoryEntry> { return appEntry; },
   async status() { return { appId: 'dev.nimi.surface', launchReadiness: 'ready' }; },
 });
 const error: NimiError = createNimiError({ message: 'x', reasonCode: 'SDK_SURFACE', source: 'sdk' });
 const json: JsonObject = { reasonCode: ReasonCode.REALM_UNAVAILABLE };
 const generatedReason = RuntimeGeneratedReasonCode.REASON_CODE_UNSPECIFIED;
-const realmModelName: RealmModelName = 'AbilityDefinitionDto';
-const ability: Partial<RealmModel<'AbilityDefinitionDto'>> = { id: 'ability' };
+const realmModelName: RealmModelName = 'AccountGrantViewRowDto';
+const grantRow: Partial<RealmModel<'AccountGrantViewRowDto'>> = { grantId: 'grant' };
 const message: NimiMessage = { role: 'user', content: [textPart('hello')] };
 const manifest: NimiCapabilityManifest = {
   adapterId: 'surface',
@@ -153,13 +173,13 @@ const manifest: NimiCapabilityManifest = {
   unsupportedBehavior: 'throw',
 };
 const model: NimiAiModel = createNimiMockModel({ text: 'ok' });
-const agent: NimiAgentSpec = { id: 'agent', name: 'Agent' };
-const plan = createWorldWorkflowPlan({ planId: 'plan', steps: [{ kind: 'world-list' }] });
+const runner: NimiAiRunnerSpec = { id: 'runner', name: 'Runner' };
+const plan = createWorldWorkflowPlan({ planId: 'plan', steps: [{ kind: 'world-core-list' }] });
 const registry = createNimiToolRegistry([]);
 
-void client; void runtime; void generatedRuntime; void realm; void generatedRealm; void appClient; void error; void json; void generatedReason; void realmModelName; void ability; void message;
-void manifest; void model; void agent; void plan; void registry;
-void collectNimiTextStream; void runNimiAgent; void userTextMessage;
+void client; void runtime; void generatedRuntime; void realm; void generatedRealm; void appClient; void error; void json; void generatedReason; void realmModelName; void grantRow; void message;
+void manifest; void model; void runner; void plan; void registry;
+void collectNimiTextStream; void runNimiAiRunner; void userTextMessage;
 void buildNimiConversationHistoryWindow; void createNimiKnowledgeContextBundle;
 void buildNimiMemoryContextWindow; void createNimiGenerationJob; void createNimiGoldenRun;
 `);

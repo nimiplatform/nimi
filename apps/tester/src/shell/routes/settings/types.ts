@@ -6,13 +6,12 @@ import type {
 import type {
   NimiRealmCreatorEligibility,
   NimiRealmGroupChatListResult,
-  NimiRealmNotificationListProjection,
-  NimiRealmNotificationUnreadProjection,
+  NimiRealmNotificationListView,
+  NimiRealmNotificationUnreadView,
   NimiRealmRequestDataExportOutput,
 } from '@nimiplatform/sdk/realm';
 import type { CommerceCurrencyBalances } from '@nimiplatform/kit/features/commerce/realm';
 import type { RealmListChatsResultDto } from '@nimiplatform/kit/features/chat/realm';
-import type { TesterRuntimeAgentTurnRunnerProjection } from '../../../tester/tester-runtime-agent-turn-runner';
 import type { TesterRuntimeMediaGenerationRunnerProjection } from '../../../tester/tester-runtime-media-generation-runner';
 import type { TesterRuntimeRouteHostAccessProjection } from '../../../tester/tester-runtime-route-host-access';
 
@@ -29,14 +28,14 @@ export type GiftTransactionProjectionState =
 
 export type NotificationProjectionState =
   | { status: 'idle'; unread: null; error: null }
-  | { status: 'loading'; unread: NimiRealmNotificationUnreadProjection | null; error: null }
-  | { status: 'ready'; unread: NimiRealmNotificationUnreadProjection; error: null }
+  | { status: 'loading'; unread: NimiRealmNotificationUnreadView | null; error: null }
+  | { status: 'ready'; unread: NimiRealmNotificationUnreadView; error: null }
   | { status: 'error'; unread: null; error: string };
 
 export type NotificationListProjectionState =
   | { status: 'idle'; list: null; error: null }
-  | { status: 'loading'; list: NimiRealmNotificationListProjection | null; error: null }
-  | { status: 'ready'; list: NimiRealmNotificationListProjection; error: null }
+  | { status: 'loading'; list: NimiRealmNotificationListView | null; error: null }
+  | { status: 'ready'; list: NimiRealmNotificationListView; error: null }
   | { status: 'error'; list: null; error: string };
 
 export type ResourceUploadProjectionState =
@@ -94,11 +93,6 @@ export type RuntimeProviderHealthProjectionState =
 export type RuntimeRouteHostAccessProjectionState =
   | { status: 'loading'; projection: null; error: null }
   | { status: 'ready'; projection: TesterRuntimeRouteHostAccessProjection; error: null }
-  | { status: 'error'; projection: null; error: string };
-
-export type RuntimeAgentTurnRunnerProjectionState =
-  | { status: 'loading'; projection: null; error: null }
-  | { status: 'ready'; projection: TesterRuntimeAgentTurnRunnerProjection; error: null }
   | { status: 'error'; projection: null; error: string };
 
 export type RuntimeMediaGenerationRunnerProjectionState =

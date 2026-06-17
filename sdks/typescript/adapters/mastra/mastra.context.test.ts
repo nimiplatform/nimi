@@ -2,11 +2,11 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
-  createNimiRuntimeKnowledgeAgentContextProvider,
+  createNimiRuntimeKnowledgeAiContextProvider,
   type NimiRuntimeKnowledgeContextClient,
 } from '@nimiplatform/sdk/features/knowledge-context';
 import {
-  createNimiRuntimeMemoryAgentContextProvider,
+  createNimiRuntimeMemoryAiContextProvider,
   type NimiRuntimeMemoryContextClient,
 } from '@nimiplatform/sdk/features/memory-context';
 
@@ -80,11 +80,11 @@ test('Nimi Runtime memory and knowledge context feed a Mastra Agent without Mast
     },
   } satisfies NimiRuntimeKnowledgeContextClient;
   const bridge = createNimiMastraContextBridge({
-    agent: { id: 'nimi-runtime-owner', name: 'Nimi Runtime Owner' },
+    runner: { id: 'nimi-runtime-owner', name: 'Nimi Runtime Owner' },
     model: fixture.model,
     contextProviders: [
-      createNimiRuntimeMemoryAgentContextProvider({ client: memoryClient, recall: { limit: 1 } }),
-      createNimiRuntimeKnowledgeAgentContextProvider({
+      createNimiRuntimeMemoryAiContextProvider({ client: memoryClient, recall: { limit: 1 } }),
+      createNimiRuntimeKnowledgeAiContextProvider({
         client: knowledgeClient,
         search: { bankIds: ['nimi-sdk'], mode: 'keyword', limit: 1 },
       }),
@@ -120,7 +120,7 @@ test('Nimi Mastra context bridge also applies to Agent.stream', async () => {
     model: createNimiMastraModel({ model: fixture.model }),
   });
   const bridge = createNimiMastraContextBridge({
-    agent: { id: 'nimi-runtime-stream-owner', name: 'Nimi Runtime Stream Owner' },
+    runner: { id: 'nimi-runtime-stream-owner', name: 'Nimi Runtime Stream Owner' },
     model: fixture.model,
     contextProviders: [{
       id: 'runtime-context-provider',

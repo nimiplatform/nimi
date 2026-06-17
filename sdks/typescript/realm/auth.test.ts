@@ -21,7 +21,7 @@ import {
 } from './index';
 import { ReasonCode } from '../types';
 
-test('Realm auth projection normalizes token payloads and user records', () => {
+test('Realm auth view normalizes token payloads and user records', () => {
   assert.deepEqual(toNimiRealmAuthUserRecord({ id: 'user-1', hasPassword: false }), {
     id: 'user-1',
     hasPassword: false,
@@ -55,7 +55,7 @@ test('Realm auth projection normalizes token payloads and user records', () => {
   });
 });
 
-test('Realm OAuth login projection fail-closes malformed token payloads', () => {
+test('Realm OAuth login view fail-closes malformed token payloads', () => {
   const result = normalizeNimiRealmOAuthLoginResult({
     loginState: NIMI_REALM_OAUTH_LOGIN_STATE.OK,
     tokens: {

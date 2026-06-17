@@ -9,7 +9,7 @@ Public source-root targets:
 
 - `core/contracts`
 - `core/ai`
-- `core/agent`
+- `core/ai-runner`
 - `core/testing`
 - `features/conversation`
 - `features/knowledge-context`

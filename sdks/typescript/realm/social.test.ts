@@ -9,19 +9,17 @@ import {
   createNimiRealmPost,
   createNimiRealmReport,
   deleteNimiRealmPost,
-  enrichNimiRealmSocialProfileWithWorldBanner,
   executeNimiRealmSocialMutation,
+  isNimiRealmFeedScope,
   likeNimiRealmPost,
   loadNimiRealmCurrentUserProfile,
-  loadNimiRealmExploreAgents,
   loadNimiRealmExploreFeedItems,
   loadNimiRealmLikedPosts,
   loadNimiRealmPostById,
   loadNimiRealmPostFeed,
   loadNimiRealmSocialSnapshot,
   loadNimiRealmUserProfileById,
-  isNimiRealmFeedScope,
-  projectNimiRealmBaseUrl,
+  resolveNimiRealmBaseUrl,
   removeNimiRealmFriendById,
   resolveNimiRealmMediaUrl,
   unblockNimiRealmUser,
@@ -42,7 +40,13 @@ function createSocialRealmStub() {
         },
         async updateMe(request: { body: Record<string, unknown> }) {
           calls.push(`updateMe:${request.body.displayName ?? ''}`);
-          return { id: 'me', handle: 'me', displayName: request.body.displayName ?? 'Me', createdAt: 'now', role: 'USER' };
+          return {
+            id: 'me',
+            handle: 'me',
+            displayName: request.body.displayName ?? 'Me',
+            createdAt: 'now',
+            role: 'USER',
+          };
         },
       },
       social: {
@@ -65,29 +69,21 @@ function createSocialRealmStub() {
       },
       generated: {
         async listMyFriendsWithDetails() {
-          return { items: [{ id: 'friend-1', handle: 'friend', displayName: 'Friend', createdAt: 'now' }] };
+          return {
+            items: [{ id: 'friend-1', handle: 'friend', displayName: 'Friend', createdAt: 'now' }],
+          };
         },
         async getMyPendingFriendRequests() {
-          return { received: [{ userId: 'pending-1', requestedAt: '2026-06-05T00:00:00Z' }], sent: [] };
+          return {
+            received: [{ userId: 'pending-1', requestedAt: '2026-06-05T00:00:00Z' }],
+            sent: [],
+          };
         },
         async getMyBlockedUsers() {
           return { items: [{ id: 'blocked-1', handle: 'blocked' }] };
         },
-        async getMyAgentFriendLimit() {
-          return { canAdd: true };
-        },
         async getUser(request: { path: { id: string } }) {
           calls.push(`getUser:${request.path.id}`);
-          if (request.path.id === 'agent-1') {
-            return {
-              id: 'agent-1',
-              handle: 'agent',
-              displayName: 'Agent',
-              createdAt: 'now',
-              isAgent: true,
-              agentProfile: { worldId: 'world-1' },
-            };
-          }
           return {
             id: request.path.id,
             handle: request.path.id,
@@ -105,15 +101,26 @@ function createSocialRealmStub() {
         },
         async getHomeFeed(request: { query: Record<string, unknown> }) {
           calls.push(`home:${request.query.visibility ?? ''}:${request.query.limit ?? ''}`);
-          return { items: [{ id: 'home-post', createdAt: 'now' }], page: { cursor: request.query.cursor ?? null, nextCursor: null } };
+          return {
+            items: [{ id: 'home-post', createdAt: 'now' }],
+            page: { cursor: request.query.cursor ?? null, nextCursor: null },
+          };
         },
         async getExploreFeed(request: { query: Record<string, unknown> }) {
           calls.push(`explore:${request.query.tag ?? ''}:${request.query.cursor ?? ''}`);
-          return { items: [{ id: 'explore-post', createdAt: 'now' }], page: { cursor: request.query.cursor ?? null, nextCursor: 'next' } };
+          return {
+            items: [{ id: 'explore-post', createdAt: 'now' }],
+            page: { cursor: request.query.cursor ?? null, nextCursor: 'next' },
+          };
         },
         async listLikedPosts(request: { query: Record<string, unknown> }) {
-          calls.push(`liked:${request.query.userId}:${request.query.limit}:${request.query.cursor ?? ''}`);
-          return { items: [{ id: 'liked-post', createdAt: 'now' }], page: { cursor: request.query.cursor ?? null, nextCursor: null } };
+          calls.push(
+            `liked:${request.query.userId}:${request.query.limit}:${request.query.cursor ?? ''}`,
+          );
+          return {
+            items: [{ id: 'liked-post', createdAt: 'now' }],
+            page: { cursor: request.query.cursor ?? null, nextCursor: null },
+          };
         },
         async getPost(request: { path: { id: string } }) {
           calls.push(`getPost:${request.path.id}`);
@@ -134,16 +141,6 @@ function createSocialRealmStub() {
         async reportControllerCreateReport(request: { body: Record<string, unknown> }) {
           calls.push(`report:${request.body.targetId ?? ''}:${request.body.reason ?? ''}`);
           return { id: 'report-1' };
-        },
-        async searchIndexedUsers(request: { query: Record<string, unknown> }) {
-          calls.push(`search:${request.query.q ?? ''}:${request.query.tag ?? ''}:${request.query.limit ?? ''}:${request.query.isAgent}`);
-          return { items: [{ id: 'agent-1', isAgent: true }], page: { cursor: null, nextCursor: null } };
-        },
-      },
-      world: {
-        async worldControllerGetWorld(request: { path: { id: string } }) {
-          calls.push(`world:${request.path.id}`);
-          return { id: 'world-1', name: 'World', bannerUrl: '/world.png' };
         },
       },
     },
@@ -180,19 +177,22 @@ test('Realm social helpers call generated/facade methods and fail closed on unsu
     () => executeNimiRealmSocialMutation(realm, { kind: 'unknown', payload: {} }),
     /not supported/,
   );
-  await assert.rejects(
-    () => addNimiRealmFriendById(realm, ''),
-    /Realm user id is required/,
-  );
+  await assert.rejects(() => addNimiRealmFriendById(realm, ''), /Realm user id is required/);
 });
 
 test('Realm social feed empty response keeps generated page shape', () => {
-  assert.deepEqual([...NIMI_REALM_FEED_SCOPES], ['personal', 'friends', 'agent_activity']);
+  assert.deepEqual([...NIMI_REALM_FEED_SCOPES], ['personal', 'friends']);
   assert.equal(isNimiRealmFeedScope('friends'), true);
-  assert.equal(isNimiRealmFeedScope('agent-activity'), false);
+  assert.equal(isNimiRealmFeedScope('source-activity'), false);
   assert.equal(isNimiRealmFeedScope(null), false);
-  assert.equal(resolveNimiRealmMediaUrl({ mediaUrl: 'https://cdn.nimi.dev/a.png' }), 'https://cdn.nimi.dev/a.png');
-  assert.equal(resolveNimiRealmMediaUrl({ realmBaseUrl: 'http://localhost:3002/', mediaUrl: '/media/a.png' }), 'http://localhost:3002/media/a.png');
+  assert.equal(
+    resolveNimiRealmMediaUrl({ mediaUrl: 'https://cdn.nimi.dev/a.png' }),
+    'https://cdn.nimi.dev/a.png',
+  );
+  assert.equal(
+    resolveNimiRealmMediaUrl({ realmBaseUrl: 'http://localhost:3002/', mediaUrl: '/media/a.png' }),
+    'http://localhost:3002/media/a.png',
+  );
   assert.equal(resolveNimiRealmMediaUrl({ mediaUrl: '/media/a.png' }), undefined);
   assert.equal(resolveNimiRealmMediaUrl({ mediaUrl: 'storage-key' }), 'storage-key');
   assert.equal(resolveNimiRealmMediaUrl({ mediaUrl: '  ' }), undefined);
@@ -200,28 +200,21 @@ test('Realm social feed empty response keeps generated page shape', () => {
     items: [],
     page: { cursor: 'c1', limit: 10 },
   });
-  assert.equal(projectNimiRealmBaseUrl({ realmBaseUrl: 'http://localhost' }), 'http://localhost:3002');
+  assert.equal(resolveNimiRealmBaseUrl({ realmBaseUrl: 'http://localhost' }), 'http://localhost:3002');
 });
 
-test('Realm social profile helpers enrich world display data and preserve explicit user mutations', async () => {
-  const { realm, calls } = createSocialRealmStub();
+test('Realm social profile helpers preserve explicit user mutations', async () => {
+  const { realm } = createSocialRealmStub();
   const errors: string[] = [];
   const me = await loadNimiRealmCurrentUserProfile(realm, (action) => errors.push(action));
-  const updated = await updateNimiRealmCurrentUserProfile(realm, (action) => errors.push(action), { displayName: 'Me 2' });
-  const profile = await loadNimiRealmUserProfileById(realm, (action) => errors.push(action), 'agent-1');
-  const unchanged = await enrichNimiRealmSocialProfileWithWorldBanner(realm, {
-    id: 'agent-2',
-    worldId: 'world-2',
-    worldName: 'Existing',
-    worldBannerUrl: '/existing.png',
+  const updated = await updateNimiRealmCurrentUserProfile(realm, (action) => errors.push(action), {
+    displayName: 'Me 2',
   });
+  const profile = await loadNimiRealmUserProfileById(realm, (action) => errors.push(action), 'user-2');
 
   assert.equal(me.id, 'me');
   assert.equal(updated.displayName, 'Me 2');
-  assert.equal(profile.worldName, 'World');
-  assert.equal(profile.worldBannerUrl, '/world.png');
-  assert.equal(unchanged.worldName, 'Existing');
-  assert.equal(calls.filter((call) => call.startsWith('world:')).length, 1);
+  assert.equal(profile.id, 'user-2');
   assert.deepEqual(errors, []);
 });
 
@@ -229,44 +222,68 @@ test('Realm social post, feed, report, and explore helpers map SDK inputs to gen
   const { realm, calls } = createSocialRealmStub();
   const errors: string[] = [];
 
-  assert.equal((await loadNimiRealmPostFeed(realm, (action) => errors.push(action), {
-    visibility: 'PUBLIC',
-    worldId: 'world-1',
-    authorId: 'user-1',
-    limit: 5,
-    cursor: 'cursor-1',
-  })).items[0]?.id, 'home-post');
-  assert.equal((await loadNimiRealmLikedPosts(realm, (action) => errors.push(action), 'user-1', 7, 'liked-cursor')).items[0]?.id, 'liked-post');
+  assert.equal(
+    (
+      await loadNimiRealmPostFeed(realm, (action) => errors.push(action), {
+        visibility: 'PUBLIC',
+        worldId: 'world-1',
+        authorId: 'user-1',
+        limit: 5,
+        cursor: 'cursor-1',
+      })
+    ).items[0]?.id,
+    'home-post',
+  );
+  assert.equal(
+    (await loadNimiRealmLikedPosts(realm, (action) => errors.push(action), 'user-1', 7, 'liked-cursor'))
+      .items[0]?.id,
+    'liked-post',
+  );
   assert.equal((await loadNimiRealmPostById(realm, (action) => errors.push(action), 'post-1')).id, 'post-1');
-  assert.equal((await createNimiRealmPost(realm, (action) => errors.push(action), { body: 'hello' } as never)).id, 'post-1');
+  assert.equal(
+    (await createNimiRealmPost(realm, (action) => errors.push(action), { body: 'hello' } as never)).id,
+    'post-1',
+  );
   await deleteNimiRealmPost(realm, (action) => errors.push(action), 'post-1');
-  assert.equal((await updateNimiRealmPostVisibility(realm, (action) => errors.push(action), 'post-1', 'FRIENDS')).visibility, 'FRIENDS');
+  assert.equal(
+    (await updateNimiRealmPostVisibility(realm, (action) => errors.push(action), 'post-1', 'FRIENDS'))
+      .visibility,
+    'FRIENDS',
+  );
   await likeNimiRealmPost(realm, (action) => errors.push(action), 'post-2');
   await unlikeNimiRealmPost(realm, (action) => errors.push(action), 'post-2');
-  assert.equal((await createNimiRealmReport(realm, (action) => errors.push(action), {
-    targetId: 'post-2',
-    targetType: 'POST',
-    reason: 'SAFETY',
-  } as never)).id, 'report-1');
-  assert.equal((await loadNimiRealmExploreAgents(realm, (action) => errors.push(action), {
-    tag: ' ai ',
-    query: ' agent ',
-    limit: 3,
-  })).items[0]?.id, 'agent-1');
-  assert.equal((await loadNimiRealmExploreFeedItems(realm, (action) => errors.push(action), 'ai', 4, 'explore-cursor')).items[0]?.id, 'explore-post');
+  assert.equal(
+    (
+      await createNimiRealmReport(realm, (action) => errors.push(action), {
+        targetId: 'post-2',
+        targetType: 'POST',
+        reason: 'SAFETY',
+      } as never)
+    ).id,
+    'report-1',
+  );
+  assert.equal(
+    (await loadNimiRealmExploreFeedItems(realm, (action) => errors.push(action), 'ai', 4, 'explore-cursor'))
+      .items[0]?.id,
+    'explore-post',
+  );
 
   assert.deepEqual(errors, []);
-  assert.deepEqual(calls.filter((call) => /^(home|liked|getPost|createPost|deletePost|updatePost|like|unlike|report|search|explore):/.test(call)), [
-    'home:PUBLIC:5',
-    'liked:user-1:7:liked-cursor',
-    'getPost:post-1',
-    'createPost:hello',
-    'deletePost:post-1',
-    'updatePost:post-1:FRIENDS',
-    'like:post-2',
-    'unlike:post-2',
-    'report:post-2:SAFETY',
-    'search:agent:ai:3:true',
-    'explore:ai:explore-cursor',
-  ]);
+  assert.deepEqual(
+    calls.filter((call) =>
+      /^(home|liked|getPost|createPost|deletePost|updatePost|like|unlike|report|explore):/.test(call),
+    ),
+    [
+      'home:PUBLIC:5',
+      'liked:user-1:7:liked-cursor',
+      'getPost:post-1',
+      'createPost:hello',
+      'deletePost:post-1',
+      'updatePost:post-1:FRIENDS',
+      'like:post-2',
+      'unlike:post-2',
+      'report:post-2:SAFETY',
+      'explore:ai:explore-cursor',
+    ],
+  );
 });

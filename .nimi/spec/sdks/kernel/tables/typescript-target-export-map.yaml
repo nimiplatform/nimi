@@ -5,7 +5,7 @@ catalog_id: sdks_typescript_target_export_map
 entries:
   - id: root
     owner: sdks/typescript/index
-    semantics: Root developer-experience composition over vNext Runtime, Realm, App, AI, Agent, Contract, and Feature surfaces.
+    semantics: Root developer-experience composition over vNext Runtime, Realm, App, AI runner, Contract, and Feature surfaces.
   - id: runtime
     owner: sdks/typescript/runtime
     semantics: Browser-safe Runtime SDK projection facade over generated Runtime core, with explicit transport profiles and no raw generated DTO, enum namespace, or static Node gRPC implementation re-export.
@@ -26,13 +26,13 @@ entries:
     semantics: Third-party app identity, installation, scope, permission, binding, and ecosystem entry contracts.
   - id: contracts
     owner: sdks/typescript/core/contracts
-    semantics: Nimi-native AI, Agent, Tool, Trace, and adapter contract types.
+    semantics: Nimi-native AI, Tool, Trace, and adapter contract types.
   - id: ai
     owner: sdks/typescript/core/ai
     semantics: Nimi-native AI consumption substrate.
-  - id: agent
-    owner: sdks/typescript/core/agent
-    semantics: Framework-neutral agent facade.
+  - id: ai-runner
+    owner: sdks/typescript/core/ai-runner
+    semantics: Framework-neutral AI runner facade.
   - id: testing
     owner: sdks/typescript/core/testing
     semantics: Contract harness, fake model, stream simulator, and golden assertions.

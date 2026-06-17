@@ -25,35 +25,45 @@ import type {
   TerminateAgentResponse,
   WriteAgentMemoryRequest,
   WriteAgentMemoryResponse,
-} from '../../core-generated/runtime-typed-client';
-import { createNimiError, ReasonCode } from '../../types';
-import type { RuntimeLocalAgentIdentityInput } from '../../runtime/agent-local-identity';
+} from '../core-generated/runtime-typed-client';
+import { createNimiError, ReasonCode } from '../types';
+import type { RuntimeLocalAgentIdentityInput } from './agent-local-identity';
 import {
   createNimiHostRuntimeAgentLifecycleSurface,
+  type NimiRuntimeAgentEnsureLocalAgentInitializedInput,
+  type NimiRuntimeAgentInitializeLocalAgentInput,
+  type NimiRuntimeAgentTerminateLocalAgentInput,
+} from './runtime-agent-lifecycle';
+import {
   createNimiHostRuntimeAgentMemorySurface,
-  createNimiRuntimeAgentTurnsModule,
-  normalizeNimiRuntimeAgentText,
-  runNimiRuntimeAgentTurn,
-  toNimiRuntimeProtoStruct,
+  type NimiRuntimeAgentCanonicalMemoryBankStatus,
+} from './runtime-agent-memory';
+import {
   withNimiRuntimeAgentScopes,
   type NimiRuntimeAgentAppAuthClient,
   type NimiRuntimeAgentAuthClient,
-  type NimiRuntimeAgentCanonicalMemoryBankStatus,
-  type NimiRuntimeAgentConsumeEvent,
-  type NimiRuntimeAgentConsumeRequest,
-  type NimiRuntimeAgentEnsureLocalAgentInitializedInput,
-  type NimiRuntimeAgentInitializeLocalAgentInput,
-  type NimiRuntimeAgentMessage,
   type NimiRuntimeAgentScopeRunner,
-  type NimiRuntimeAgentSessionSnapshot,
-  type NimiRuntimeAgentSessionSnapshotRequest,
-  type NimiRuntimeAgentTerminateLocalAgentInput,
-  type NimiRuntimeAgentTurnInterruptRequest,
-  type NimiRuntimeAgentTurnRequest,
+} from './runtime-agent-protected';
+import {
+  createNimiRuntimeAgentTurnsModule,
+} from './runtime-agent-turns';
+import {
+  runNimiRuntimeAgentTurn,
   type NimiRuntimeAgentTurnRunnerOptions,
   type NimiRuntimeAgentTurnRunnerPart,
-} from '../../runtime';
-import type { NimiJsonObject } from '../contracts';
+} from './runtime-agent-turn-runner';
+import type {
+  NimiRuntimeAgentConsumeEvent,
+  NimiRuntimeAgentSessionSnapshot,
+} from './runtime-agent-consume-types';
+import type {
+  NimiRuntimeAgentConsumeRequest,
+  NimiRuntimeAgentSessionSnapshotRequest,
+  NimiRuntimeAgentTurnInterruptRequest,
+  NimiRuntimeAgentTurnRequest,
+} from './runtime-agent-turn-runner-types';
+import { normalizeNimiRuntimeAgentText, toNimiRuntimeProtoStruct } from './runtime-agent-values';
+import type { NimiJsonObject } from '../core/contracts';
 
 export interface NimiRuntimeAgentClientRuntime {
   readonly appId?: string;

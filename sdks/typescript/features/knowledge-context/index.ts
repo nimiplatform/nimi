@@ -12,8 +12,8 @@ import type {
 } from '../../core-generated/runtime-typed-client';
 import type { RuntimeTypedCallOptions } from '../../core-generated/runtime-typed-client';
 import { dataPart, type NimiDataPart, type NimiJsonObject, type NimiJsonValue } from '../../core/contracts';
-import type { NimiAgentContextProvider, NimiAgentContextQuery } from '../../core/agent';
-import { resolveNimiAgentContextQuery } from '../../core/agent';
+import type { NimiAiContextProvider, NimiAiContextQuery } from '../../core/ai-runner';
+import { resolveNimiAiContextQuery } from '../../core/ai-runner';
 import { createNimiError } from '../../types';
 
 export interface NimiKnowledgeReference {
@@ -77,10 +77,10 @@ export interface NimiRuntimeKnowledgeContextClient {
   }>;
 }
 
-export interface NimiRuntimeKnowledgeAgentContextProviderOptions {
+export interface NimiRuntimeKnowledgeAiContextProviderOptions {
   readonly id?: string;
   readonly client: NimiRuntimeKnowledgeContextClient;
-  readonly query?: NimiAgentContextQuery;
+  readonly query?: NimiAiContextQuery;
   readonly search: Omit<NimiRuntimeKnowledgeSearchOptions, 'query'>;
 }
 
@@ -198,18 +198,18 @@ export function createNimiRuntimeKnowledgeContextClient(
   };
 }
 
-export function createNimiRuntimeKnowledgeAgentContextProvider(
-  options: NimiRuntimeKnowledgeAgentContextProviderOptions,
-): NimiAgentContextProvider {
+export function createNimiRuntimeKnowledgeAiContextProvider(
+  options: NimiRuntimeKnowledgeAiContextProviderOptions,
+): NimiAiContextProvider {
   return {
     id: normalizeText(options.id) || 'runtime-knowledge-context',
     async load(input) {
-      const query = await resolveNimiAgentContextQuery(options.query, input);
+      const query = await resolveNimiAiContextQuery(options.query, input);
       if (!query) {
         throw knowledgeContextError(
-          'SDK_KNOWLEDGE_AGENT_CONTEXT_QUERY_REQUIRED',
-          'Runtime knowledge agent context provider requires a query or a user message',
-          'provide_knowledge_agent_context_query',
+          'SDK_KNOWLEDGE_AI_CONTEXT_QUERY_REQUIRED',
+          'Runtime knowledge AI context provider requires a query or a user message',
+          'provide_knowledge_ai_context_query',
         );
       }
       return [

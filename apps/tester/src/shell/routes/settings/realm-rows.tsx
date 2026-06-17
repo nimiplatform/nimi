@@ -262,8 +262,8 @@ export function SettingsRealmRows(props: SettingsRouteViewProps) {
       </div>
       <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 text-sm text-[var(--nimi-text-secondary)]">
         <span>Realm feed scope projection</span>
-        <StatusBadge tone={realmFeedScopeProjection.agentActivityAdmitted && !realmFeedScopeProjection.localAgentActivityAdmitted ? 'success' : 'warning'}>
-          {realmFeedScopeProjection.count} scopes / {realmFeedScopeProjection.agentActivityAdmitted ? 'agent activity' : 'missing'}
+        <StatusBadge tone={realmFeedScopeProjection.personalAdmitted && realmFeedScopeProjection.friendsAdmitted ? 'success' : 'warning'}>
+          {realmFeedScopeProjection.count} scopes / {realmFeedScopeProjection.personalAdmitted ? 'personal' : 'missing'} / {realmFeedScopeProjection.friendsAdmitted ? 'friends' : 'missing'}
         </StatusBadge>
       </div>
       <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 text-sm text-[var(--nimi-text-secondary)]">

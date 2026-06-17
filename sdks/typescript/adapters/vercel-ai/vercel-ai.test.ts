@@ -18,6 +18,7 @@ import type {
 import {
   createNimiVercelLanguageModel,
   createNimiVercelProvider,
+  type NimiVercelProviderOptions,
 } from './index';
 import { NIMI_VERCEL_AI_ADAPTER_MANIFEST } from './manifest';
 
@@ -546,7 +547,7 @@ test('vercel-ai provider fails closed on invalid configuration', () => {
     () => createNimiVercelProvider({
       model: createModel([]),
       client: {} as NimiClient,
-    }),
+    } as unknown as NimiVercelProviderOptions),
     { feature: 'provider.configuration' },
   );
 });

@@ -144,7 +144,7 @@ test('NimiClient uses Realm-owned permission grants when Realm is configured', a
   assert.deepEqual(realmCalls, ['listMyAppPermissionGrants']);
 });
 
-test('NimiClient agent surface hard-cuts generic local runner aliases', () => {
+test('NimiClient hard-cuts generic agent surface from root client', () => {
   const transport: CoreTransport = {
     async unary() {
       return {};
@@ -152,13 +152,13 @@ test('NimiClient agent surface hard-cuts generic local runner aliases', () => {
     async *serverStream() {},
   };
   const client = createNimiClient({ appId: 'dev.nimi.root', runtime: { transport } });
-  const agentSurface = client.agent as unknown as Record<string, unknown>;
+  const rootSurface = client as unknown as Record<string, unknown>;
 
-  assert.equal(typeof client.agent.createRuntimeClient({ getSubjectUserId: () => 'user-1' }).sendTurn, 'function');
-  assert.equal(typeof client.agent.createMemoryContextProvider, 'function');
-  assert.equal(typeof client.agent.createKnowledgeContextProvider, 'function');
-  assert.equal(typeof client.agent.localModelRunner.run, 'function');
-  assert.equal(agentSurface.run, undefined);
-  assert.equal(agentSurface.stream, undefined);
-  assert.equal(agentSurface.createRunner, undefined);
+  assert.equal(rootSurface.agent, undefined);
+  assert.equal(typeof client.localAgent.createRuntimeClient({ getSubjectUserId: () => 'user-1' }).sendTurn, 'function');
+  assert.equal(typeof client.localAgent.createMemoryContextProvider, 'function');
+  assert.equal(typeof client.localAgent.createKnowledgeContextProvider, 'function');
+  assert.equal(typeof client.ai.runner.run, 'function');
+  assert.equal(typeof client.ai.runner.stream, 'function');
+  assert.equal(typeof client.ai.runner.createRunner, 'function');
 });

@@ -11,9 +11,8 @@ import { createNimiRuntimeConnectorInventoryClient, createNimiRuntimeModelCatalo
 import { CatalogModelSource, ConnectorAuthKind, ConnectorKind, ConnectorOwnerType, ConnectorStatus, LocalAssetKind, LocalAssetStatus, ModelCatalogProviderSource, type LocalAssetRecord, type ProviderCatalogEntry } from '@nimiplatform/sdk/runtime/generated';
 import {
   loadNimiRealmSocialSnapshot,
-  loadNimiRealmWorldSemanticBundle,
   type Realm,
-  type NimiRealmWorldApi,
+  type WorldCoreDto,
 } from '@nimiplatform/sdk/realm';
 import type {
   RealmCommerceGiftService,
@@ -168,21 +167,36 @@ export async function resolveTesterRealmDataSyncProjection(): Promise<string> {
     },
   } as unknown as Realm);
   const errors: string[] = [];
-  const worldApi: NimiRealmWorldApi = {
-    world: {
-      worldControllerGetWorldview: async () => ({ id: 'tester-worldview', coreSystem: null }),
-    } as unknown as NimiRealmWorldApi['world'],
+  const testerWorldCore: WorldCoreDto = {
+    contentHash: 'tester-world-core-hash',
+    contentRevision: 1,
+    core: {
+      identity: {
+        id: 'tester-world',
+        name: 'Tester World',
+      },
+      timeline: {
+        timeScale: 'slow',
+      },
+    },
+    createdAt: '2026-06-18T00:00:00.000Z',
+    creatorId: 'tester-user',
+    id: 'tester-world',
+    origin: { kind: 'manual' },
+    schemaVersion: 'world-core.v1',
+    updatedAt: '2026-06-18T00:00:00.000Z',
+    visibility: 'private',
   };
-  const [social, world] = await Promise.all([
+  const [social, worldDisplay] = await Promise.all([
     callRealm((realm) => loadNimiRealmSocialSnapshot(realm, (action) => {
       errors.push(action);
     })),
-    loadNimiRealmWorldSemanticBundle(worldApi, 'tester-world'),
+    Promise.resolve(createTesterWorldDisplayProjection(testerWorldCore)),
   ]);
   if (errors.length > 0) {
     throw new Error(errors.join(', '));
   }
-  return `${social.friends.length}/${social.blocked.length}/${world.worldview?.id ?? 'none'}/${createTesterWorldDisplayProjection(world)}`;
+  return `${social.friends.length}/${social.blocked.length}/${testerWorldCore.id}/${worldDisplay}`;
 }
 
 const testerProviderCatalog: ProviderCatalogEntry[] = [{

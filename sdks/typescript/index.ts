@@ -28,4 +28,4 @@ export type {
 } from './types';
 export * from './core/contracts';
 export * from './core/ai';
-export * from './core/agent';
+export * from './core/ai-runner';

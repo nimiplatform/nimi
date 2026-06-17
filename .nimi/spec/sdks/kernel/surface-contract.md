@@ -15,7 +15,7 @@ The vNext TypeScript `@nimiplatform/sdk` package public subpaths are fixed to:
 - `@nimiplatform/sdk/types`
 - `@nimiplatform/sdk/contracts`
 - `@nimiplatform/sdk/ai`
-- `@nimiplatform/sdk/agent`
+- `@nimiplatform/sdk/ai-runner`
 - `@nimiplatform/sdk/testing`
 - `@nimiplatform/sdk/features/conversation`
 - `@nimiplatform/sdk/features/knowledge-context`
@@ -390,10 +390,10 @@ is stable.
 
 The old `@nimiplatform/sdk/ai-app` subpath is hardcut. Surviving session-loop,
 conversation, structured-output, tool, and stream-assembly capabilities move to
-TypeScript core AI/Agent and feature exports:
+TypeScript core AI/AI runner and feature exports:
 
 - `@nimiplatform/sdk/ai`
-- `@nimiplatform/sdk/agent`
+- `@nimiplatform/sdk/ai-runner`
 - `@nimiplatform/sdk/features/conversation`
 - `@nimiplatform/sdk/features/generation`
 - `@nimiplatform/sdk/features/toolkits`

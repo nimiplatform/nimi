@@ -3,12 +3,12 @@ import test from 'node:test';
 
 import { createNimiMockModel, userTextMessage } from '../testing';
 import {
-  runNimiAgentTextGenerate,
-  runNimiAgentTextTurn,
-  streamNimiAgentTextResponse,
+  runNimiAiTextGenerate,
+  runNimiAiTextTurn,
+  streamNimiAiTextResponse,
 } from './app-ai';
 
-test('agent text generate fails closed instead of locally executing model turns', async () => {
+test('AI text generate fails closed instead of locally executing model turns', async () => {
   let generateCalls = 0;
   const model = createNimiMockModel({
     async onGenerateText() {
@@ -17,8 +17,8 @@ test('agent text generate fails closed instead of locally executing model turns'
     },
   });
 
-  const result = await runNimiAgentTextGenerate<{ answer: string }>({
-    agent: { id: 'agent', name: 'Agent', instructions: 'Return JSON.' },
+  const result = await runNimiAiTextGenerate<{ answer: string }>({
+    runner: { id: 'runner', name: 'Runner', instructions: 'Return JSON.' },
     runtime: { model },
     messages: [userTextMessage('answer')],
     structuredOutput: { expect: 'object' },
@@ -29,7 +29,7 @@ test('agent text generate fails closed instead of locally executing model turns'
   assert.equal(generateCalls, 0);
 });
 
-test('agent text turn fails closed instead of locally streaming model turns', async () => {
+test('AI text turn fails closed instead of locally streaming model turns', async () => {
   const model = createNimiMockModel({
     streamEvents: [
       { type: 'text-delta', text: 'local bypass' },
@@ -38,8 +38,8 @@ test('agent text turn fails closed instead of locally streaming model turns', as
   });
 
   const events = [];
-  for await (const event of runNimiAgentTextTurn({
-    agent: { id: 'agent', name: 'Agent' },
+  for await (const event of runNimiAiTextTurn({
+    runner: { id: 'runner', name: 'Runner' },
     runtime: { model },
     messages: [userTextMessage('stream')],
     turnId: 'turn-1',
@@ -53,12 +53,12 @@ test('agent text turn fails closed instead of locally streaming model turns', as
   assert.equal(failed?.type === 'turn-failed' ? failed.error.code : '', 'SDK_RUNTIME_AGENT_PARTICIPATION_REQUIRED');
 });
 
-test('agent text response rejects Runtime participation bypass attempts', async () => {
+test('AI text response rejects Runtime participation bypass attempts', async () => {
   const model = createNimiMockModel({ text: 'local bypass' });
 
   await assert.rejects(
-    () => streamNimiAgentTextResponse({
-      agent: { id: 'agent', name: 'Agent' },
+    () => streamNimiAiTextResponse({
+      runner: { id: 'runner', name: 'Runner' },
       runtime: { model },
       messages: [userTextMessage('stream')],
     }),

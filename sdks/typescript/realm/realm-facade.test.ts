@@ -22,8 +22,8 @@ class FakeRealmTransport implements CoreTransport {
     if (request.methodId === 'listGroups') {
       return { items: [] } as Response;
     }
-    if (request.methodId === 'WorldController_getMainWorld') {
-      return { id: 'world-1', name: 'Main World' } as Response;
+    if (request.methodId === 'WorldCoreController_getOasisWorld') {
+      return { id: 'world-oasis', title: 'OASIS' } as Response;
     }
     return { ok: true, methodId: request.methodId } as Response;
   }
@@ -49,8 +49,8 @@ test('Realm facade exposes generated operation modules over CoreClient', async (
   assert.equal(typeof realm.account.getMyCreatorEligibility, 'function');
   assert.equal(typeof realm.notifications.getUnreadCount, 'function');
   assert.equal(typeof realm.groupChat.listGroups, 'function');
-  assert.equal(typeof realm.world.worldControllerGetMainWorld, 'function');
-  assert.equal(typeof realm.generated.worldControllerGetMainWorld, 'function');
+  assert.equal(typeof realm.worldCore.worldCoreControllerGetOasisWorld, 'function');
+  assert.equal(typeof realm.generated.worldCoreControllerGetOasisWorld, 'function');
 
   await realm.auth.checkEmail({ path: {}, body: { email: 'test@example.com' } });
   assert.equal(transport.unaryCalls[0]?.methodId, 'checkEmail');
@@ -63,16 +63,20 @@ test('Realm facade exposes generated operation modules over CoreClient', async (
   assert.equal(transport.unaryCalls[2]?.methodId, 'getMe');
   assert.deepEqual(transport.unaryCalls[2]?.body, { path: {} });
 
-  await realm.world.worldControllerGetMainWorld({ path: {} });
-  assert.equal(transport.unaryCalls[3]?.methodId, 'WorldController_getMainWorld');
+  await realm.worldCore.worldCoreControllerGetOasisWorld({ path: {} });
+  assert.equal(transport.unaryCalls[3]?.methodId, 'WorldCoreController_getOasisWorld');
 });
 
 test('Realm facade keeps generated core explicit and blocks generated permission bypass', async () => {
   const transport = new FakeRealmTransport();
   const realm = new Realm({ transport });
   assert.equal(await realm.generated.getMe({ path: {} }).then((value) => (value as { id?: string }).id), 'user-1');
-  await assert.rejects(
-    realm.generated.requestMyAppPermissionGrant({
+  assert.equal(typeof realm.generated.requestMyAppPermissionGrant, 'function');
+  assert.equal(
+    typeof realm.generated.grantMyAppPermissionGrant,
+    'undefined',
+  );
+  await realm.generated.requestMyAppPermissionGrant({
       path: {},
       body: {
         appId: 'app.example',
@@ -80,10 +84,7 @@ test('Realm facade keeps generated core explicit and blocks generated permission
         scopeName: 'account.read',
         reason: 'test',
       },
-    }),
-    (error: unknown) =>
-      (error as { reasonCode?: string }).reasonCode === 'SDK_REALM_PERMISSION_TYPED_CLIENT_REQUIRED',
-  );
+    });
 });
 
 test('Realm facade fails closed when transport is missing', () => {

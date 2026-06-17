@@ -3,328 +3,20 @@ import { RealmTypedClient } from '../core-generated/realm-typed-client';
 import { createNimiError, type CoreMetadata, type CoreResponseMetadataObserver } from '../types';
 
 export type { CoreClientOptions, CoreTransport };
-export {
-  normalizeNimiRealmBaseUrl,
-  projectNimiRealmBaseUrl,
-  projectNimiRealmRealtimeUrl,
-} from './endpoint';
-export type {
-  NimiRealmBaseUrlProjectionInput,
-  NimiRealmRealtimeUrlProjectionInput,
-} from './endpoint';
-export {
-  resolveNimiRealmMediaUrl,
-} from './media-url';
-export type {
-  NimiRealmMediaUrlProjectionInput,
-} from './media-url';
-export {
-  ackNimiRealmLocalAgentProvisionIntent,
-  ackNimiRealmLocalAgentTerminationIntent,
-  listNimiRealmLocalAgentProvisionIntents,
-  listNimiRealmLocalAgentTerminationIntents,
-} from './local-agent-intents';
-export type {
-  NimiRealmLocalAgentIntentApiCaller,
-  NimiRealmLocalAgentProvisionIntentAckDto,
-  NimiRealmLocalAgentProvisionIntentDto,
-  NimiRealmLocalAgentTerminationIntentAckDto,
-  NimiRealmLocalAgentTerminationIntentDto,
-} from './local-agent-intents';
-export {
-  uploadNimiRealmResourceFile,
-} from './resource-upload';
-export type {
-  NimiRealmResourceUploadApi,
-  NimiRealmResourceUploadDeliveryAccess,
-  NimiRealmResourceUploadFinalizeInput,
-  NimiRealmResourceUploadInput,
-  NimiRealmResourceUploadKind,
-  NimiRealmResourceUploadResource,
-  NimiRealmResourceUploadResult,
-  NimiRealmResourceUploadSession,
-  NimiRealmResourceUploadTransportMode,
-} from './resource-upload';
-export {
-  addNimiRealmGroupAgent,
-  commitNimiRealmGroupMessageCandidate,
-  createNimiRealmGroupChat,
-  createNimiRealmGroupTextMessageInput,
-  listNimiRealmGroupChats,
-  loadNimiRealmGroupChat,
-  loadNimiRealmGroupMessages,
-  markNimiRealmGroupRead,
-  removeNimiRealmGroupAgent,
-  sendNimiRealmGroupMessage,
-  syncNimiRealmGroupEvents,
-} from './group-chat';
-export type {
-  NimiRealmGroupChatApi,
-  NimiRealmGroupChatListResult,
-  NimiRealmGroupChatSyncResult,
-  NimiRealmGroupChatView,
-  NimiRealmGroupCreateInput,
-  NimiRealmGroupMessageCandidateCommitInput,
-  NimiRealmGroupMessageCandidateCommitResult,
-  NimiRealmGroupMessageListResult,
-  NimiRealmGroupMessageType,
-  NimiRealmGroupMessageView,
-  NimiRealmGroupParticipant,
-  NimiRealmGroupSendMessageInput,
-} from './group-chat';
-export {
-  createNimiRealmMasterAgent,
-  enrichNimiRealmAgentProfileWithWorldBanner,
-  loadNimiRealmAgentDetails,
-  loadNimiRealmCreatorAgents,
-} from './agent-profile';
-export type {
-  NimiRealmAgentProfileApi,
-  NimiRealmAgentProfileProjection,
-  NimiRealmCreateMasterAgentInput,
-  NimiRealmCreatorAgentProjection,
-} from './agent-profile';
-export {
-  NIMI_REALM_OAUTH_LOGIN_STATE,
-  NIMI_REALM_OAUTH_PROVIDER,
-} from './oauth';
-export type {
-  NimiRealmOAuthLoginState,
-  NimiRealmOAuthProvider,
-} from './oauth';
-export {
-  checkNimiRealmAuthEmail,
-  createNimiRealmWalletChallenge,
-  isNimiRealmExpectedAnonymousSessionError,
-  loginNimiRealmAuthPassword,
-  loginNimiRealmOAuth,
-  loginNimiRealmWallet,
-  normalizeNimiRealmAuthTokens,
-  normalizeNimiRealmCheckEmailResponse,
-  normalizeNimiRealmEmailOtpRequestResult,
-  normalizeNimiRealmOAuthLoginResult,
-  normalizeNimiRealmWalletChallengeResult,
-  requestNimiRealmEmailOtp,
-  readNimiRealmOAuthLoginTokens,
-  toNimiRealmAuthUserRecord,
-  verifyNimiRealmEmailOtp,
-  verifyNimiRealmTwoFactor,
-} from './auth';
-export type {
-  NimiRealmAuthApi,
-  NimiRealmAuthTokens,
-  NimiRealmAuthUserRecord,
-  NimiRealmCheckEmailResponse,
-  NimiRealmEmailOtpRequestResult,
-  NimiRealmOAuthLoginResult,
-  NimiRealmWalletChallengeInput,
-  NimiRealmWalletChallengeResult,
-  NimiRealmWalletLoginInput,
-} from './auth';
-export {
-  disableNimiRealmTwoFactor,
-  enableNimiRealmTwoFactor,
-  linkNimiRealmOAuth,
-  loadNimiRealmCreatorEligibility,
-  loadNimiRealmUserNotificationSettings,
-  loadNimiRealmUserSettings,
-  prepareNimiRealmTwoFactor,
-  unlinkNimiRealmOAuth,
-  updateNimiRealmPassword,
-  updateNimiRealmUserNotificationSettings,
-  updateNimiRealmUserSettings,
-} from './account-settings';
-export type {
-  NimiRealmAccountSettingsApi,
-  NimiRealmCreatorEligibility,
-  NimiRealmOAuthLinkProjection,
-  NimiRealmPasswordUpdateProjection,
-  NimiRealmTwoFactorPrepareOutput,
-  NimiRealmTwoFactorProjection,
-  NimiRealmTwoFactorVerifyInput,
-  NimiRealmUpdatePasswordInput,
-  NimiRealmUpdateUserNotificationSettingsInput,
-  NimiRealmUpdateUserSettingsInput,
-  NimiRealmUserNotificationSettings,
-  NimiRealmUserSettings,
-} from './account-settings';
-export {
-  requestNimiRealmAccountDeletion,
-  requestNimiRealmDataExport,
-} from './account-data';
-export type {
-  NimiRealmAccountDataApi,
-  NimiRealmAccountDataTaskStatus,
-  NimiRealmRequestAccountDeletionInput,
-  NimiRealmRequestAccountDeletionOutput,
-  NimiRealmRequestDataExportInput,
-  NimiRealmRequestDataExportOutput,
-} from './account-data';
-export {
-  createNimiRealmPermissionTransport,
-} from './permission-grants';
-export type {
-  NimiRealmPermissionGrantApi,
-  NimiRealmPermissionGrantModule,
-  NimiRealmPermissionTransportOptions,
-} from './permission-grants';
-export {
-  buildNimiRealmWorldDetailWithAgentsCacheKey,
-  buildNimiRealmWorldHistorySummary,
-  formatNimiRealmWorldDisplayLabel,
-  loadNimiRealmMainWorld,
-  loadNimiRealmWorldAgents,
-  loadNimiRealmWorldBindings,
-  loadNimiRealmWorldDetailById,
-  loadNimiRealmWorldDetailWithAgents,
-  loadNimiRealmWorldHistory,
-  loadNimiRealmWorldLevelAudits,
-  loadNimiRealmWorldList,
-  loadNimiRealmWorldLorebooks,
-  loadNimiRealmWorldScenes,
-  loadNimiRealmWorldSemanticBundle,
-  mergeNimiRealmWorldPrimaryDetailTruth,
-  normalizeNimiRealmWorldTruthAnchor,
-  normalizeNimiRealmWorldTruthDetail,
-  normalizeNimiRealmWorldTruthListItem,
-  normalizeNimiRealmWorldTruthSummary,
-  toNimiRealmWorldDisplayAgent,
-  toNimiRealmWorldDisplayAuditItem,
-  toNimiRealmWorldDisplayBindingItem,
-  toNimiRealmWorldDisplayData,
-  toNimiRealmWorldDisplayFallback,
-  toNimiRealmWorldDisplayHistoryBundle,
-  toNimiRealmWorldDisplayHistoryItem,
-  toNimiRealmWorldDisplayLorebookItem,
-  toNimiRealmWorldDisplaySceneItem,
-  toNimiRealmWorldDisplaySemanticBundle,
-} from './world-data';
-export type {
-  NimiRealmWorldAgent,
-  NimiRealmWorldAgentStats,
-  NimiRealmWorldAgentSummary,
-  NimiRealmWorldApi,
-  NimiRealmWorldAuditItem,
-  NimiRealmWorldBindingItem,
-  NimiRealmWorldBindingListPayload,
-  NimiRealmWorldDetail,
-  NimiRealmWorldDetailData,
-  NimiRealmWorldDetailWithAgents,
-  NimiRealmWorldDisplayComputed,
-  NimiRealmWorldHistoryBundle,
-  NimiRealmWorldHistoryEvidenceRef,
-  NimiRealmWorldHistoryItem,
-  NimiRealmWorldHistoryPayload,
-  NimiRealmWorldHistorySummary,
-  NimiRealmWorldLevelAuditEvent,
-  NimiRealmWorldLorebookItem,
-  NimiRealmWorldLorebookListPayload,
-  NimiRealmWorldPrimaryDetailRecord,
-  NimiRealmWorldPublicAssetsData,
-  NimiRealmWorldRecommendedAgent,
-  NimiRealmWorldRecommendedAgentDisplay,
-  NimiRealmWorldSceneItem,
-  NimiRealmWorldSceneListPayload,
-  NimiRealmWorldSemanticBundle,
-  NimiRealmWorldSemanticData,
-  NimiRealmWorldSemanticLanguage,
-  NimiRealmWorldSemanticLevel,
-  NimiRealmWorldSemanticPowerSystem,
-  NimiRealmWorldSemanticRealm,
-  NimiRealmWorldSemanticRule,
-  NimiRealmWorldSemanticSnapshotItem,
-  NimiRealmWorldSemanticTaboo,
-  NimiRealmWorldSemanticTimelineItem,
-  NimiRealmWorldSemanticTopology,
-  NimiRealmWorldStatus,
-  NimiRealmWorldTruthAnchor,
-  NimiRealmWorldTruthContentRating,
-  NimiRealmWorldTruthDetail,
-  NimiRealmWorldTruthListComputed,
-  NimiRealmWorldTruthListItem,
-  NimiRealmWorldTruthListRecommendedAgent,
-  NimiRealmWorldTruthNativeCreationState,
-  NimiRealmWorldTruthRecommendedAgent,
-  NimiRealmWorldTruthSummary,
-  NimiRealmWorldTruthWorldType,
-  NimiRealmWorldTruthWorldview,
-  NimiRealmWorldTruthWorldviewLifecycle,
-  NimiRealmWorldviewDetail,
-} from './world-data';
-export {
-  NIMI_REALM_FEED_SCOPES,
-  isNimiRealmFeedScope,
-} from './feed';
-export type {
-  NimiRealmFeedScope,
-} from './feed';
-export {
-  addNimiRealmFriendById,
-  blockNimiRealmUser,
-  buildEmptyNimiRealmPostFeedResponse,
-  createNimiRealmPost,
-  createNimiRealmReport,
-  deleteNimiRealmPost,
-  enrichNimiRealmSocialProfileWithWorldBanner,
-  executeNimiRealmSocialMutation,
-  fetchNimiRealmAgentFriendLimit,
-  fetchNimiRealmPendingFriendRequests,
-  likeNimiRealmPost,
-  loadNimiRealmCurrentUserProfile,
-  loadNimiRealmExploreAgents,
-  loadNimiRealmExploreFeedItems,
-  loadNimiRealmLikedPosts,
-  loadNimiRealmPostById,
-  loadNimiRealmPostFeed,
-  loadNimiRealmSocialSnapshot,
-  loadNimiRealmUserProfileById,
-  removeNimiRealmFriendById,
-  unblockNimiRealmUser,
-  unlikeNimiRealmPost,
-  updateNimiRealmCurrentUserProfile,
-  updateNimiRealmPostVisibility,
-} from './social';
-export type {
-  LoadNimiRealmExploreAgentsInput,
-  NimiRealmPendingFriendRequestDto,
-  NimiRealmPendingFriendRequestListDto,
-  NimiRealmPostFeedInput,
-  NimiRealmSocialApi,
-  NimiRealmSocialContactRecord,
-  NimiRealmSocialContactSnapshot,
-  NimiRealmSocialDataErrorEmitter,
-  NimiRealmSocialMutationExecutionInput,
-  NimiRealmSocialMutationKind,
-  NimiRealmSocialProfileProjection,
-} from './social';
-export {
-  loadNimiRealmNotificationUnreadCount,
-  loadNimiRealmNotifications,
-  markNimiRealmNotificationRead,
-  markNimiRealmNotificationsRead,
-  normalizeNimiRealmNotificationUnreadCount,
-  toNimiRealmNotificationItemProjection,
-  toNimiRealmNotificationListProjection,
-} from './notifications';
-export type {
-  NimiRealmMarkNotificationsReadInput,
-  NimiRealmNotification,
-  NimiRealmNotificationApi,
-  NimiRealmNotificationItemProjection,
-  NimiRealmNotificationListOptions,
-  NimiRealmNotificationListProjection,
-  NimiRealmNotificationListResult,
-  NimiRealmNotificationReadProjection,
-  NimiRealmNotificationType,
-  NimiRealmNotificationUnreadProjection,
-  NimiRealmNotificationsReadProjection,
-} from './notifications';
-export {
-  createRealmFetchTransport,
-} from './fetch-transport';
-export type {
-  RealmFetchTransportOptions,
-} from './fetch-transport';
+export * from './generated';
+export * from './endpoint';
+export * from './media-url';
+export * from './oauth';
+export * from './auth';
+export * from './account-settings';
+export * from './account-data';
+export * from './permission-grants';
+export * from './resource-upload';
+export * from './group-chat';
+export * from './feed';
+export * from './social';
+export * from './notifications';
+export * from './fetch-transport';
 
 type RealmTypedMethodName = {
   readonly [Key in keyof RealmTypedClient]: RealmTypedClient[Key] extends (...args: never[]) => unknown ? Key : never;
@@ -371,9 +63,14 @@ export const REALM_ACCOUNT_METHODS = [
 export const REALM_PERMISSION_GRANT_METHODS = [
   'getMyAppPermissionGrant',
   'getMyAppPermissionGrantStatus',
+  'getMyAppPermissionGrantView',
   'listMyAppPermissionGrants',
   'requestMyAppPermissionGrant',
+  'grantMyAppPermissionGrant',
+  'denyMyAppPermissionGrant',
+  'expireMyAppPermissionGrant',
   'revokeMyAppPermissionGrant',
+  'supersedeMyAppPermissionGrant',
 ] as const satisfies readonly RealmTypedMethodName[];
 
 const REALM_PERMISSION_GRANT_METHOD_SET = new Set<string>(REALM_PERMISSION_GRANT_METHODS);
@@ -383,30 +80,46 @@ export const REALM_SOCIAL_METHODS = [
   'blockUser',
   'unblockUser',
   'removeFriend',
+  'getMutualFriends',
+  'getMutualFriendsCount',
+  'getMyBlockedUsers',
+  'getMyPendingFriendRequests',
+  'getUser',
+  'getUserByHandle',
+  'getUserFriends',
   'listMyFriendIds',
   'listMyFriendsWithDetails',
   'listOnlineUsers',
+  'searchHumanUsers',
+  'searchIndexedUsers',
+  'searchPosts',
   'createPost',
   'deletePost',
+  'getExploreFeed',
+  'getHomeFeed',
   'getPost',
+  'getPublicPost',
+  'getWorldPosts',
   'listLikedPosts',
   'likePost',
   'unlikePost',
+  'updatePost',
 ] as const satisfies readonly RealmTypedMethodName[];
 
 export const REALM_GROUP_CHAT_METHODS = [
   'createGroup',
   'listGroups',
   'getGroup',
+  'updateGroup',
   'addGroupParticipant',
   'removeGroupParticipant',
-  'addGroupAgent',
-  'removeGroupAgent',
+  'updateGroupParticipantRole',
   'sendGroupMessage',
+  'editGroupMessage',
+  'recallGroupMessage',
   'listGroupMessages',
   'syncGroupEvents',
   'markGroupRead',
-  'commitRealmGroupMessageCandidate',
 ] as const satisfies readonly RealmTypedMethodName[];
 
 export const REALM_HUMAN_CHAT_METHODS = [
@@ -419,34 +132,6 @@ export const REALM_HUMAN_CHAT_METHODS = [
   'syncChatEvents',
 ] as const satisfies readonly RealmTypedMethodName[];
 
-export const REALM_AGENT_METHODS = [
-  'agentControllerCheckHandle',
-  'agentControllerCreate',
-  'agentControllerDelete',
-  'agentControllerGetRelationships',
-  'agentControllerGetVisibility',
-  'agentControllerMakePublic',
-  'agentControllerRemoveRelationship',
-  'agentControllerSelectAvatar',
-  'agentControllerSetRelationship',
-  'agentControllerUpdateDna',
-  'agentControllerUpdateVisibility',
-  'creatorControllerCreateAgent',
-  'creatorControllerGetAgent',
-  'creatorControllerListAgents',
-  'creatorControllerUpdateAgent',
-  'getAgent',
-  'getAgentByHandle',
-  'listMyRealmAgents',
-] as const satisfies readonly RealmTypedMethodName[];
-
-export const REALM_LOCAL_AGENT_INTENT_METHODS = [
-  'ackMyLocalAgentProvisionIntent',
-  'ackMyLocalAgentTerminationIntent',
-  'listMyLocalAgentProvisionIntents',
-  'listMyLocalAgentTerminationIntents',
-] as const satisfies readonly RealmTypedMethodName[];
-
 export const REALM_RESOURCE_METHODS = [
   'createAudioDirectUpload',
   'createImageDirectUpload',
@@ -454,7 +139,9 @@ export const REALM_RESOURCE_METHODS = [
   'createTextResource',
   'deleteResource',
   'finalizeResource',
+  'getResource',
   'listResources',
+  'updateResource',
 ] as const satisfies readonly RealmTypedMethodName[];
 
 export const REALM_NOTIFICATION_METHODS = [
@@ -464,44 +151,30 @@ export const REALM_NOTIFICATION_METHODS = [
   'markNotificationsRead',
 ] as const satisfies readonly RealmTypedMethodName[];
 
-export const REALM_WORLD_METHODS = [
-  'getWorldScenes',
-  'worldControlControllerAppendWorldHistory',
-  'worldControlControllerBatchUpsertWorldBindings',
-  'worldControlControllerCommitState',
-  'worldControlControllerCreateDraft',
-  'worldControlControllerDeleteWorldBinding',
-  'worldControlControllerGetDraft',
-  'worldControlControllerGetMyAccess',
-  'worldControlControllerGetState',
-  'worldControlControllerListDrafts',
-  'worldControlControllerListMyWorlds',
-  'worldControlControllerListWorldBindings',
-  'worldControlControllerListWorldHistory',
-  'worldControlControllerListWorldLorebooks',
-  'worldControlControllerPublishDraft',
-  'worldControlControllerResolveLanding',
-  'worldControlControllerUpdateDraft',
-  'worldControllerGetMainWorld',
-  'worldControllerGetWorld',
-  'worldControllerGetWorldAgents',
-  'worldControllerGetWorldBindings',
-  'worldControllerGetWorldDetailWithAgents',
-  'worldControllerGetWorldHistory',
-  'worldControllerGetWorldLevelAudits',
-  'worldControllerGetWorldLorebooks',
-  'worldControllerGetWorldview',
-  'worldControllerListWorlds',
-  'worldControllerReturnToMainWorld',
-  'worldControllerTransitToWorld',
-  'worldRulesControllerArchiveRule',
-  'worldRulesControllerCheckPermission',
-  'worldRulesControllerCreateRule',
-  'worldRulesControllerDeprecateRule',
-  'worldRulesControllerGetCreatorCapabilities',
-  'worldRulesControllerGetRules',
-  'worldRulesControllerUpdateRule',
-  'worldRulesControllerValidateRules',
+export const REALM_WORLD_CORE_METHODS = [
+  'worldCoreControllerBootstrapOasisWorld',
+  'worldCoreControllerCreateRealmPersona',
+  'worldCoreControllerCreateRuntimeSourceSnapshot',
+  'worldCoreControllerCreateWorldCharacter',
+  'worldCoreControllerCreateWorldCore',
+  'worldCoreControllerGetOasisWorld',
+  'worldCoreControllerGetRealmPersona',
+  'worldCoreControllerGetWorldCharacter',
+  'worldCoreControllerGetWorldCore',
+  'worldCoreControllerListRealmPersonas',
+  'worldCoreControllerListWorldCharacters',
+  'worldCoreControllerListWorldCores',
+  'worldCoreControllerReplaceRealmPersona',
+  'worldCoreControllerReplaceWorldCharacter',
+  'worldCoreControllerReplaceWorldCore',
+] as const satisfies readonly RealmTypedMethodName[];
+
+export const REALM_TRANSIT_METHODS = [
+  'transitControllerAbandon',
+  'transitControllerComplete',
+  'transitControllerGetActiveTransit',
+  'transitControllerGetTransit',
+  'transitControllerListTransits',
 ] as const satisfies readonly RealmTypedMethodName[];
 
 export type RealmAuthModule = RealmMethodModule<typeof REALM_AUTH_METHODS>;
@@ -510,11 +183,10 @@ export type RealmPermissionGrantModule = RealmMethodModule<typeof REALM_PERMISSI
 export type RealmSocialModule = RealmMethodModule<typeof REALM_SOCIAL_METHODS>;
 export type RealmGroupChatModule = RealmMethodModule<typeof REALM_GROUP_CHAT_METHODS>;
 export type RealmHumanChatModule = RealmMethodModule<typeof REALM_HUMAN_CHAT_METHODS>;
-export type RealmAgentModule = RealmMethodModule<typeof REALM_AGENT_METHODS>;
-export type RealmLocalAgentIntentModule = RealmMethodModule<typeof REALM_LOCAL_AGENT_INTENT_METHODS>;
 export type RealmResourceModule = RealmMethodModule<typeof REALM_RESOURCE_METHODS>;
 export type RealmNotificationModule = RealmMethodModule<typeof REALM_NOTIFICATION_METHODS>;
-export type RealmWorldModule = RealmMethodModule<typeof REALM_WORLD_METHODS>;
+export type RealmWorldCoreModule = RealmMethodModule<typeof REALM_WORLD_CORE_METHODS>;
+export type RealmTransitModule = RealmMethodModule<typeof REALM_TRANSIT_METHODS>;
 
 export interface RealmOptions extends CoreClientOptions {}
 
@@ -551,11 +223,10 @@ export class Realm {
   readonly social: RealmSocialModule;
   readonly groupChat: RealmGroupChatModule;
   readonly humanChats: RealmHumanChatModule;
-  readonly agents: RealmAgentModule;
-  readonly localAgentIntents: RealmLocalAgentIntentModule;
   readonly resources: RealmResourceModule;
   readonly notifications: RealmNotificationModule;
-  readonly world: RealmWorldModule;
+  readonly worldCore: RealmWorldCoreModule;
+  readonly transit: RealmTransitModule;
 
   constructor(options: RealmOptions | CoreClient | RealmTypedClient) {
     this.core = toCoreClient(options);
@@ -569,11 +240,10 @@ export class Realm {
     this.social = bindRealmModule(generated, REALM_SOCIAL_METHODS);
     this.groupChat = bindRealmModule(generated, REALM_GROUP_CHAT_METHODS);
     this.humanChats = bindRealmModule(generated, REALM_HUMAN_CHAT_METHODS);
-    this.agents = bindRealmModule(generated, REALM_AGENT_METHODS);
-    this.localAgentIntents = bindRealmModule(generated, REALM_LOCAL_AGENT_INTENT_METHODS);
     this.resources = bindRealmModule(generated, REALM_RESOURCE_METHODS);
     this.notifications = bindRealmModule(generated, REALM_NOTIFICATION_METHODS);
-    this.world = bindRealmModule(generated, REALM_WORLD_METHODS);
+    this.worldCore = bindRealmModule(generated, REALM_WORLD_CORE_METHODS);
+    this.transit = bindRealmModule(generated, REALM_TRANSIT_METHODS);
   }
 
   me(options = {}): ReturnType<RealmTypedClient['getMe']> {
@@ -590,46 +260,47 @@ function toCoreClient(options: RealmOptions | CoreClient | RealmTypedClient): Co
     return options;
   }
   if (options instanceof RealmTypedClient) {
-    return extractCoreClient(options);
+    return (options as unknown as { readonly core: CoreClient }).core;
   }
   return new CoreClient(options);
 }
 
-function extractCoreClient(client: RealmTypedClient): CoreClient {
-  const candidate = client as unknown as { readonly core?: unknown };
-  if (candidate.core instanceof CoreClient) {
-    return candidate.core;
-  }
-  throw new Error('RealmTypedClient was not constructed with the public CoreClient implementation');
-}
-
-function bindRealmModule<const Keys extends readonly RealmTypedMethodName[]>(
-  client: RealmTypedClient,
+function bindRealmModule<Keys extends readonly RealmTypedMethodName[]>(
+  generated: RealmTypedClient,
   keys: Keys,
 ): RealmMethodModule<Keys> {
-  const module: Partial<Record<RealmTypedMethodName, unknown>> = {};
+  const module = {} as Record<Keys[number], RealmTypedClient[Keys[number]]>;
   for (const key of keys) {
-    const method = client[key];
-    if (typeof method !== 'function') {
-      throw new Error(`Realm generated client is missing typed method: ${key}`);
+    const value = generated[key];
+    if (typeof value !== 'function') {
+      throw createNimiError({
+        code: 'REALM_METHOD_UNAVAILABLE',
+        reasonCode: 'REALM_METHOD_UNAVAILABLE',
+        message: `Realm method is unavailable: ${key}`,
+        source: 'sdk',
+        retryable: false,
+        actionHint: 'regenerate_realm_typed_client',
+      });
     }
-    module[key] = method.bind(client);
+    (module as Record<string, unknown>)[key] = value.bind(generated);
   }
   return module as RealmMethodModule<Keys>;
 }
 
-function createPublicRealmGeneratedClient(client: RealmTypedClient): RealmTypedClient {
-  return new Proxy(client, {
+function createPublicRealmGeneratedClient(generated: RealmTypedClient): RealmTypedClient {
+  return new Proxy(generated, {
     get(target, property, receiver) {
-      if (typeof property === 'string' && REALM_PERMISSION_GRANT_METHOD_SET.has(property)) {
-        return async () => {
-          throw createNimiError({
-            message: `Realm permission grant operation ${property} must run through PermissionClient.`,
-            reasonCode: 'SDK_REALM_PERMISSION_TYPED_CLIENT_REQUIRED',
-            actionHint: 'use_permission_client',
-            source: 'sdk',
-          });
-        };
+      if (
+        typeof property === 'string'
+        && REALM_PERMISSION_GRANT_METHOD_SET.has(property)
+        && property !== 'getMyAppPermissionGrant'
+        && property !== 'getMyAppPermissionGrantStatus'
+        && property !== 'getMyAppPermissionGrantView'
+        && property !== 'listMyAppPermissionGrants'
+        && property !== 'requestMyAppPermissionGrant'
+        && property !== 'revokeMyAppPermissionGrant'
+      ) {
+        return undefined;
       }
       return Reflect.get(target, property, receiver);
     },

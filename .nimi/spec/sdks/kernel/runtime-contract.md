@@ -373,12 +373,12 @@ historical trust checklist.
 
 Fixed rules:
 
-- SDK consumers must provide explicit `agentId` for every agent-scoped runtime
-  call; construction-time current-agent helpers are not canonical truth
+- SDK consumers must provide explicit `agentId` for every localAgent-scoped runtime
+  call; construction-time current-localAgent helpers are not canonical truth
 - `conversationAnchorId` is the only admitted cross-surface continuity scope for
   a selected conversation; SDK must not synthesize app-local session ids or
-  reuse same-agent traffic across anchors
-- auth credentials, subject context, agent identity, and conversation anchor
+  reuse same-localAgent traffic across anchors
+- auth credentials, subject context, localAgent identity, and conversation anchor
   identity remain separate inputs; SDK must not infer one from another
 - runtime reconnect/session recovery is consumer-owned per `S-RUNTIME-070`; SDK
   may expose recovery methods such as anchor snapshot/session snapshot reads,

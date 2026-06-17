@@ -226,6 +226,7 @@ groups:
       - BeginLogin
       - CompleteLogin
       - GetAccessToken
+      - InvokeRealmUnary
       - RefreshAccountSession
       - Logout
       - SwitchAccount
@@ -360,12 +361,16 @@ groups:
     phase: 1
     status: active
     note: >
-      App install/update/open/readiness/storage/job operations are Runtime-owned
-      lifecycle surfaces projected by the vNext SDK. App message operations
-      remain in app_service_projection because they carry the app-message bus
-      semantics.
+      App account inventory, local adoption, install/update/open/readiness,
+      storage, and job operations are Runtime-owned lifecycle surfaces projected
+      by the vNext SDK. App message operations remain in
+      app_service_projection because they carry the app-message bus semantics.
     source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
     methods:
+      - GetAccountAppInventory
+      - AdoptLocalApp
+      - ListLocalAppAdoptions
+      - RemoveLocalAppAdoption
       - InstallApp
       - UninstallApp
       - GetAppStorage
@@ -382,12 +387,14 @@ groups:
     phase: 1
     status: active
     note: >
-      ReadArtifactBytes is the SDK typed projection for Runtime-owned artifact
-      byte retrieval. Artifact identity, authorization, MIME, and size truth
-      remain Runtime-owned.
+      ReadArtifactBytes and generated voice artifact cleanup are SDK typed
+      projections for Runtime-owned artifact retrieval and cleanup. Artifact
+      identity, authorization, MIME, size, and lifecycle truth remain
+      Runtime-owned.
     source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
     methods:
       - ReadArtifactBytes
+      - CleanupGeneratedVoiceArtifacts
     source_rule: S-SURFACE-002
   - group: memory_service_projection
     service: RuntimeCognitionService

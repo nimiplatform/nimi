@@ -1,11 +1,10 @@
-import { buildNimiRuntimeAgentStateMutations, createNimiHostRuntimeAgentInspectSurface, projectNimiRuntimeAgentInspectEventSummary, projectNimiRuntimeAgentInspectSnapshot, projectNimiRuntimeAgentPendingHookInspect, readNimiRuntimeAgentPresentationProfile, toNimiRuntimeProtoStruct } from '@nimiplatform/sdk/runtime';
-import { AgentAutonomyMode, AgentEventType, AgentExecutionState, AgentLifecycleStatus, HookAdmissionState, HookTriggerFamily, MemoryReplicationOutcome } from '@nimiplatform/sdk/runtime/generated';
+import { buildNimiRuntimeAgentStateMutations, createNimiHostRuntimeAgentInspectSurface, projectNimiRuntimeAgentInspectSnapshot, projectNimiRuntimeAgentPendingHookInspect, readNimiRuntimeAgentPresentationProfile, toNimiRuntimeProtoStruct } from '@nimiplatform/sdk/runtime';
+import { AgentAutonomyMode, AgentExecutionState, AgentLifecycleStatus, HookAdmissionState, HookTriggerFamily } from '@nimiplatform/sdk/runtime/generated';
 
 export type TesterRuntimeAgentInspectProjection = {
   lifecycleStatus: string | null;
   presentationBackend: string;
   nextHookStatus: string | null;
-  eventSummary: string | null;
   mutationKinds: string;
 };
 
@@ -156,32 +155,6 @@ export function createTesterRuntimeAgentInspectProjection(): TesterRuntimeAgentI
     terminalHooks: [],
     recentCanonicalMemories: [],
   });
-  const event = projectNimiRuntimeAgentInspectEventSummary({
-    event: {
-      agentId: 'tester-agent',
-      eventType: AgentEventType.REPLICATION,
-      sequence: '7',
-      localAgentRef: 'local-agent:tester-user:tester-agent',
-      ownerUserId: 'tester-user',
-      realmAgentId: 'tester-agent',
-      timestamp: { seconds: '1776136500', nanos: 0 },
-      detail: {
-        oneofKind: 'replication',
-        replication: {
-          memoryId: 'tester-memory',
-          replication: {
-            outcome: MemoryReplicationOutcome.SYNCED,
-            localVersion: 'tester-local-version',
-            basisVersion: 'tester-basis-version',
-            detail: {
-              oneofKind: 'synced',
-              synced: { realmVersion: 'tester-realm-version', syncedAt: undefined },
-            },
-          },
-        },
-      },
-    },
-  });
   const mutationKinds = buildNimiRuntimeAgentStateMutations({
     statusText: 'tester ready',
     clearWorldContext: true,
@@ -192,7 +165,6 @@ export function createTesterRuntimeAgentInspectProjection(): TesterRuntimeAgentI
     lifecycleStatus: snapshot.lifecycleStatus,
     presentationBackend: presentation?.backendKind ?? 'none',
     nextHookStatus: snapshot.pendingHooks[0]?.status ?? null,
-    eventSummary: event.summaryText,
     mutationKinds,
   };
 }

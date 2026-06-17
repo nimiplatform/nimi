@@ -1,6 +1,6 @@
 import { Agent } from '@mastra/core/agent';
 
-import type { NimiAgentContextProvider } from '@nimiplatform/sdk';
+import type { NimiAiContextProvider } from '@nimiplatform/sdk';
 import type { NimiAiModel, NimiRuntimeEmbeddingSurface } from '@nimiplatform/sdk/ai';
 import type { NimiRuntimeGenerationHeadInput } from '@nimiplatform/sdk/features/generation';
 import type { NimiRuntimeAgentDelegatedCapabilitySurface } from '@nimiplatform/sdk/runtime';
@@ -33,24 +33,24 @@ export async function runMastraAgentExample(model: NimiAiModel): Promise<string>
 
 // Keep Mastra as the orchestration/helper layer while Nimi owns per-turn memory
 // and knowledge context. `contextProviders` can come from
-// `client.agent.createMemoryContextProvider(...)` and
-// `client.agent.createKnowledgeContextProvider(...)`.
+// `client.localAgent.createMemoryContextProvider(...)` and
+// `client.localAgent.createKnowledgeContextProvider(...)`.
 export async function runMastraAgentWithNimiRuntimeContextExample(
   model: NimiAiModel,
-  contextProviders: readonly NimiAgentContextProvider[],
+  contextProviders: readonly NimiAiContextProvider[],
 ): Promise<string> {
-  const agentSpec = {
+  const runnerSpec = {
     id: 'nimi-runtime-context-example',
     name: 'Nimi Runtime Context Example',
   };
   const agent = new Agent({
-    id: agentSpec.id,
-    name: agentSpec.name,
+    id: runnerSpec.id,
+    name: runnerSpec.name,
     instructions: 'Use the supplied Nimi Runtime context when relevant.',
     model: createNimiMastraModel({ model }),
   });
   const contextBridge = createNimiMastraContextBridge({
-    agent: agentSpec,
+    runner: runnerSpec,
     model,
     contextProviders,
   });

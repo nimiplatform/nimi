@@ -1,8 +1,7 @@
 import { ProgressIndicator, Surface, Toggle, type TypedProjectionState } from '@nimiplatform/kit/ui';
 import type { TesterProductControlProjection } from '../../../tester/tester-product-control-projection';
-import type { TesterRealmAgentProfileProjection } from '../../../tester/tester-realm-agent-profile-projection';
+import type { TesterRealmPersonaCoreProjection } from '../../../tester/tester-realm-persona-core-projection';
 import type { TesterRealmAuthProjection } from '../../../tester/tester-realm-auth-projection';
-import type { TesterRealmLocalAgentIntentsProjection } from '../../../tester/tester-realm-local-agent-intents-projection';
 import type { TesterRealmSocialFeedProjection } from '../../../tester/tester-realm-social-feed-projection';
 import type { TesterWorldEvolutionSelectorReadProjection } from '../../../tester/tester-world-evolution-selector-read';
 import type { TesterSettingsRealmKitProjections } from './realm-kit-projections';
@@ -18,7 +17,6 @@ import type {
   NotificationListProjectionState,
   NotificationProjectionState,
   ResourceUploadProjectionState,
-  RuntimeAgentTurnRunnerProjectionState,
   RuntimeCapabilityProjectionState,
   RuntimeMediaGenerationRunnerProjectionState,
   RuntimeProviderHealthProjectionState,
@@ -60,16 +58,14 @@ export type SettingsRouteViewProps = {
   readonly runtimeCapabilityProjection: RuntimeCapabilityProjectionState;
   readonly runtimeProviderHealthProjection: RuntimeProviderHealthProjectionState;
   readonly runtimeRouteHostAccessProjection: RuntimeRouteHostAccessProjectionState;
-  readonly runtimeAgentTurnRunnerProjection: RuntimeAgentTurnRunnerProjectionState;
   readonly runtimeMediaGenerationRunnerProjection: RuntimeMediaGenerationRunnerProjectionState;
   readonly localRuntimeFacadeProjection: TypedProjectionState<string>;
   readonly permissionClientProjection: TypedProjectionState<{ scopeOwner: string; grantCount: number; firstState: string; requestState: string; revokeState: string }>;
   readonly realmDataSyncProjection: TypedProjectionState<string>;
   readonly worldEvolutionSelectorReadProjection: TypedProjectionState<TesterWorldEvolutionSelectorReadProjection>;
   readonly realmSocialFeedProjection: TypedProjectionState<TesterRealmSocialFeedProjection>;
-  readonly realmAgentProfileProjection: TypedProjectionState<TesterRealmAgentProfileProjection>;
+  readonly realmPersonaCoreProjection: TypedProjectionState<TesterRealmPersonaCoreProjection>;
   readonly realmAuthProjection: TypedProjectionState<TesterRealmAuthProjection>;
-  readonly realmLocalAgentIntentsProjection: TypedProjectionState<TesterRealmLocalAgentIntentsProjection>;
   readonly productControlProjection: TypedProjectionState<TesterProductControlProjection>;
   readonly realmKit: TesterSettingsRealmKitProjections;
   readonly runtime: TesterSettingsRuntimeProjections;

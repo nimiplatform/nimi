@@ -2,7 +2,7 @@ import type { NimiAiModel, NimiGenerateTextRequest, NimiGenerateTextResult } fro
 import { createNimiError } from '../../types';
 import {
   textPart,
-  type NimiAgentTrace,
+  type NimiAiTrace,
   type NimiJsonObject,
   type NimiJsonValue,
   type NimiMessage,
@@ -10,30 +10,30 @@ import {
   type NimiTool,
 } from '../contracts';
 import type {
-  NimiAgentContextMaterial,
-  NimiAgentContextProviderInput,
-  NimiAgentEvent,
-  NimiAgentRunRequest,
-  NimiAgentSpec,
+  NimiAiContextMaterial,
+  NimiAiContextProviderInput,
+  NimiAiRunnerEvent,
+  NimiAiRunnerRunRequest,
+  NimiAiRunnerSpec,
 } from './index';
 
-export interface NimiAgentRunner {
-  run(request: NimiAgentRunRequest): Promise<NimiAgentRunnerResult>;
+export interface NimiAiRunner {
+  run(request: NimiAiRunnerRunRequest): Promise<NimiAiRunnerResult>;
 }
 
-export interface NimiAgentRunnerResult {
+export interface NimiAiRunnerResult {
   readonly result: NimiGenerateTextResult;
   readonly request: NimiGenerateTextRequest;
-  readonly events: readonly NimiAgentEvent[];
-  readonly trace: NimiAgentTrace;
+  readonly events: readonly NimiAiRunnerEvent[];
+  readonly trace: NimiAiTrace;
 }
 
-export function createNimiAgentRunner(): NimiAgentRunner {
+export function createNimiAiRunner(): NimiAiRunner {
   return {
     async run(request) {
-      const modelRequest = await buildNimiAgentModelRequest(request.agent, request.model, request.messages);
-      const events: NimiAgentEvent[] = [
-        { type: 'agent-start', agentId: request.agent.id },
+      const modelRequest = await buildNimiAiRunnerModelRequest(request.runner, request.model, request.messages);
+      const events: NimiAiRunnerEvent[] = [
+        { type: 'ai-runner-start', runnerId: request.runner.id },
         {
           type: 'model-request',
           messageCount: modelRequest.messages.length,
@@ -43,40 +43,40 @@ export function createNimiAgentRunner(): NimiAgentRunner {
 
       const result = await request.model.generateText(modelRequest);
       appendModelResultEvents(events, result);
-      await appendToolLifecycleEvents(events, result, request.agent.tools ?? []);
+      await appendToolLifecycleEvents(events, result, request.runner.tools ?? []);
       events.push({ type: 'finish', finishReason: result.finishReason, usage: result.usage });
 
       return {
         result,
         request: modelRequest,
         events,
-        trace: toNimiAgentTrace(request.agent.id, events),
+        trace: toNimiAiTrace(request.runner.id, events),
       };
     },
   };
 }
 
-export async function buildNimiAgentModelRequest(
-  agent: NimiAgentSpec,
+export async function buildNimiAiRunnerModelRequest(
+  runner: NimiAiRunnerSpec,
   model: NimiAiModel,
   messages: readonly NimiMessage[],
 ): Promise<NimiGenerateTextRequest> {
-  const contextInput: NimiAgentContextProviderInput = { agent, model, messages };
+  const contextInput: NimiAiContextProviderInput = { runner, model, messages };
   return {
     model: model.model,
     messages: [
-      ...materializeInstructionMessages(agent),
-      ...(await materializeContextMessages(agent, contextInput)),
+      ...materializeInstructionMessages(runner),
+      ...(await materializeContextMessages(runner, contextInput)),
       ...messages,
     ],
-    tools: agent.tools,
+    tools: runner.tools,
   };
 }
 
-function materializeInstructionMessages(agent: NimiAgentSpec): readonly NimiMessage[] {
+function materializeInstructionMessages(runner: NimiAiRunnerSpec): readonly NimiMessage[] {
   const instructions = [
-    agent.instructions,
-    ...(agent.instructionPacks?.map((pack) => pack.content) ?? []),
+    runner.instructions,
+    ...(runner.instructionPacks?.map((pack) => pack.content) ?? []),
   ].filter((content): content is string => Boolean(content && content.trim()));
 
   if (instructions.length === 0) {
@@ -92,18 +92,18 @@ function materializeInstructionMessages(agent: NimiAgentSpec): readonly NimiMess
 }
 
 async function materializeContextMessages(
-  agent: NimiAgentSpec,
-  input: NimiAgentContextProviderInput,
+  runner: NimiAiRunnerSpec,
+  input: NimiAiContextProviderInput,
 ): Promise<readonly NimiMessage[]> {
   const messages: NimiMessage[] = [];
-  for (const provider of agent.contextProviders ?? []) {
+  for (const provider of runner.contextProviders ?? []) {
     const material = await provider.load(input);
     messages.push(toContextMessage(material));
   }
   return messages;
 }
 
-function toContextMessage(material: NimiAgentContextMaterial): NimiMessage {
+function toContextMessage(material: NimiAiContextMaterial): NimiMessage {
   if (typeof material === 'string') {
     return { role: 'user', content: [textPart(material)] };
   }
@@ -120,7 +120,7 @@ function toContextMessage(material: NimiAgentContextMaterial): NimiMessage {
   return material;
 }
 
-function appendModelResultEvents(events: NimiAgentEvent[], result: NimiGenerateTextResult): void {
+function appendModelResultEvents(events: NimiAiRunnerEvent[], result: NimiGenerateTextResult): void {
   const reasoning = extractReasoningText(result.raw);
   if (reasoning) {
     events.push({ type: 'reasoning', text: reasoning });
@@ -148,7 +148,7 @@ function appendModelResultEvents(events: NimiAgentEvent[], result: NimiGenerateT
 }
 
 async function appendToolLifecycleEvents(
-  events: NimiAgentEvent[],
+  events: NimiAiRunnerEvent[],
   result: NimiGenerateTextResult,
   tools: readonly NimiTool[],
 ): Promise<void> {
@@ -161,7 +161,7 @@ async function appendToolLifecycleEvents(
     if (!tool) {
       const message = `tool ${toolCall.name} was not registered`;
       events.push({ type: 'error', code: 'unknown_tool', message });
-      throw agentToolError('SDK_AGENT_TOOL_UNKNOWN', message, toolCall.name);
+      throw aiRunnerToolError('SDK_AI_RUNNER_TOOL_UNKNOWN', message, toolCall.name);
     }
     if (tool.type === 'provider') {
       continue;
@@ -177,7 +177,7 @@ async function appendToolLifecycleEvents(
     if (!tool.execute) {
       const message = `tool ${tool.name} does not expose execute`;
       events.push({ type: 'error', code: 'tool_executor_missing', message });
-      throw agentToolError('SDK_AGENT_TOOL_EXECUTOR_MISSING', message, tool.name);
+      throw aiRunnerToolError('SDK_AI_RUNNER_TOOL_EXECUTOR_MISSING', message, tool.name);
     }
     try {
       const toolResult = await tool.execute(toolCall.arguments);
@@ -189,36 +189,36 @@ async function appendToolLifecycleEvents(
         code: 'tool_execution_failed',
         message,
       });
-      throw agentToolError('SDK_AGENT_TOOL_EXECUTION_FAILED', message, tool.name);
+      throw aiRunnerToolError('SDK_AI_RUNNER_TOOL_EXECUTION_FAILED', message, tool.name);
     }
   }
 }
 
-function agentToolError(reasonCode: string, message: string, toolName: string) {
+function aiRunnerToolError(reasonCode: string, message: string, toolName: string) {
   return createNimiError({
     message,
     code: reasonCode,
     reasonCode,
-    actionHint: 'check_agent_tool_execution',
+    actionHint: 'check_ai_runner_tool_execution',
     source: 'sdk',
     details: { toolName },
   });
 }
 
-export function toNimiAgentTrace(agentId: string, events: readonly NimiAgentEvent[]): NimiAgentTrace {
+export function toNimiAiTrace(runnerId: string, events: readonly NimiAiRunnerEvent[]): NimiAiTrace {
   return {
-    traceId: `agent:${agentId}`,
+    traceId: `ai-runner:${runnerId}`,
     events: events.map(toRunEvent),
     steps: events.map((event, index) => ({
-      id: `agent:${agentId}:${index}:${event.type}`,
-      kind: agentEventStepKind(event),
+      id: `ai-runner:${runnerId}:${index}:${event.type}`,
+      kind: aiRunnerEventStepKind(event),
       status: event.type === 'error' ? 'failed' : 'completed',
-      input: agentEventInput(event),
+      input: aiRunnerEventInput(event),
     })),
   };
 }
 
-function toRunEvent(event: NimiAgentEvent) {
+function toRunEvent(event: NimiAiRunnerEvent) {
   if (event.type === 'text') {
     return { type: 'text-delta' as const, text: event.text };
   }
@@ -237,7 +237,7 @@ function toRunEvent(event: NimiAgentEvent) {
   return { type: 'trace' as const, trace: { traceId: `event:${event.type}`, events: [], steps: [] } };
 }
 
-function agentEventStepKind(event: NimiAgentEvent): 'model' | 'tool' | 'approval' | 'external-execution' | 'workflow' {
+function aiRunnerEventStepKind(event: NimiAiRunnerEvent): 'model' | 'tool' | 'approval' | 'external-execution' | 'workflow' {
   if (event.type === 'tool-call' || event.type === 'tool-result') {
     return 'tool';
   }
@@ -253,7 +253,7 @@ function agentEventStepKind(event: NimiAgentEvent): 'model' | 'tool' | 'approval
   return 'workflow';
 }
 
-function agentEventInput(event: NimiAgentEvent): NimiJsonValue {
+function aiRunnerEventInput(event: NimiAiRunnerEvent): NimiJsonValue {
   return JSON.parse(JSON.stringify(event)) as NimiJsonValue;
 }
 
@@ -276,10 +276,10 @@ function isJsonObject(value: NimiJsonValue | undefined): value is NimiJsonObject
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function isMessagePartArray(value: NimiAgentContextMaterial): value is readonly NimiMessagePart[] {
+function isMessagePartArray(value: NimiAiContextMaterial): value is readonly NimiMessagePart[] {
   return Array.isArray(value);
 }
 
-function isNimiMessage(value: NimiAgentContextMaterial): value is NimiMessage {
+function isNimiMessage(value: NimiAiContextMaterial): value is NimiMessage {
   return typeof value === 'object' && value !== null && !Array.isArray(value) && Array.isArray((value as { readonly content?: unknown }).content);
 }

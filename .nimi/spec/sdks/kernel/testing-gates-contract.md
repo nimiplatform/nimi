@@ -18,7 +18,7 @@ SDK 门禁分层：单元/模块、consumer smoke、合同/边界、runtime 投�
 ## S-GATE-020 Contract & Boundary Gate
 
 导入边界、公开命名、旧入口回流禁止、ReasonCode 常量完整性、单包布局与
-agent-facing export authority posture 必须通过一致性检查。
+AI-runner-facing export authority posture 必须通过一致性检查。
 
 执行命令：
 
@@ -29,11 +29,11 @@ agent-facing export authority posture 必须通过一致性检查。
 - `pnpm check:sdk-vnext-realm-consumer-smoke`
 - `pnpm check:reason-code-constants`
 - `pnpm check:sdk-vnext-runtime-facade`
-- `pnpm check:sdk-agent-export-posture`
+- `pnpm check:sdk-ai-runner-export-posture`
 - `pnpm check:sdk-doctor`
 
-agent-facing 公开 export 的 authority posture 必须与
-`tables/agent-export-authority-posture.yaml` 注册表一致：enforced coverage
+AI-runner-facing 公开 export 的 authority posture 必须与
+`tables/ai-runner-export-authority-posture.yaml` 注册表一致：enforced coverage
 root 下每个公开符号必须声明 `runtime-projection`、
 `ephemeral-client-orchestration`、`pure-sugar` 三类之一；`runtime-projection`
 必须携带可解析的 `authority_ref`。新增公开 export 未登记 posture 时该 gate

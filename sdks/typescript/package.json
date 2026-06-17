@@ -58,10 +58,10 @@
       "import": "./dist/core/ai/index.js",
       "default": "./dist/core/ai/index.js"
     },
-    "./agent": {
-      "types": "./dist/core/agent/index.d.ts",
-      "import": "./dist/core/agent/index.js",
-      "default": "./dist/core/agent/index.js"
+    "./ai-runner": {
+      "types": "./dist/core/ai-runner/index.d.ts",
+      "import": "./dist/core/ai-runner/index.js",
+      "default": "./dist/core/ai-runner/index.js"
     },
     "./testing": {
       "types": "./dist/core/testing/index.d.ts",

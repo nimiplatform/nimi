@@ -2,38 +2,46 @@ import type {
   Realm,
 } from '../../realm';
 import type {
-  RealmWorldControllerGetMainWorldOperationResponse,
-  RealmWorldControllerListWorldsOperationRequest,
-  RealmWorldControllerGetWorldDetailWithAgentsOperationResponse,
-  RealmWorldControllerGetWorldHistoryOperationResponse,
-  RealmWorldControllerGetWorldOperationResponse,
-  RealmWorldControllerListWorldsOperationResponse,
+  RealmWorldCoreControllerGetOasisWorldOperationResponse,
+  RealmWorldCoreControllerGetRealmPersonaOperationResponse,
+  RealmWorldCoreControllerGetWorldCharacterOperationResponse,
+  RealmWorldCoreControllerGetWorldCoreOperationResponse,
+  RealmWorldCoreControllerListRealmPersonasOperationResponse,
+  RealmWorldCoreControllerListWorldCharactersOperationResponse,
+  RealmWorldCoreControllerListWorldCoresOperationRequest,
+  RealmWorldCoreControllerListWorldCoresOperationResponse,
 } from '../../realm/generated';
 import { createNimiError } from '../../types';
 
-export type WorldWorkflowStatusFilter =
-  NonNullable<RealmWorldControllerListWorldsOperationRequest['query']>['status'];
+export type WorldWorkflowVisibilityFilter =
+  NonNullable<RealmWorldCoreControllerListWorldCoresOperationRequest['query']>['visibility'];
 
 export type WorldWorkflowReadKind =
-  | 'main-world'
-  | 'world-summary'
-  | 'world-detail-with-agents'
-  | 'world-history'
-  | 'world-list';
+  | 'oasis-world'
+  | 'world-core'
+  | 'world-core-list'
+  | 'world-character'
+  | 'world-character-list'
+  | 'realm-persona'
+  | 'realm-persona-list';
 
 export interface WorldWorkflowReadStep {
   readonly kind: WorldWorkflowReadKind;
   readonly worldId?: string;
-  readonly status?: WorldWorkflowStatusFilter;
-  readonly recommendedAgentLimit?: number;
+  readonly characterId?: string;
+  readonly personaId?: string;
+  readonly visibility?: WorldWorkflowVisibilityFilter;
+  readonly take?: number;
 }
 
 export type WorldWorkflowReadResult =
-  | { readonly kind: 'main-world'; readonly world: RealmWorldControllerGetMainWorldOperationResponse }
-  | { readonly kind: 'world-summary'; readonly world: RealmWorldControllerGetWorldOperationResponse }
-  | { readonly kind: 'world-detail-with-agents'; readonly world: RealmWorldControllerGetWorldDetailWithAgentsOperationResponse }
-  | { readonly kind: 'world-history'; readonly history: RealmWorldControllerGetWorldHistoryOperationResponse }
-  | { readonly kind: 'world-list'; readonly worlds: RealmWorldControllerListWorldsOperationResponse };
+  | { readonly kind: 'oasis-world'; readonly world: RealmWorldCoreControllerGetOasisWorldOperationResponse }
+  | { readonly kind: 'world-core'; readonly world: RealmWorldCoreControllerGetWorldCoreOperationResponse }
+  | { readonly kind: 'world-core-list'; readonly worlds: RealmWorldCoreControllerListWorldCoresOperationResponse }
+  | { readonly kind: 'world-character'; readonly character: RealmWorldCoreControllerGetWorldCharacterOperationResponse }
+  | { readonly kind: 'world-character-list'; readonly characters: RealmWorldCoreControllerListWorldCharactersOperationResponse }
+  | { readonly kind: 'realm-persona'; readonly persona: RealmWorldCoreControllerGetRealmPersonaOperationResponse }
+  | { readonly kind: 'realm-persona-list'; readonly personas: RealmWorldCoreControllerListRealmPersonasOperationResponse };
 
 export interface WorldWorkflowPlan {
   readonly planId: string;
@@ -66,8 +74,8 @@ export async function executeWorldWorkflowPlan(
   readonly events: readonly WorldWorkflowEvent[];
   readonly results: readonly WorldWorkflowReadResult[];
 }> {
-  if (!realm?.world) {
-    workflowError('SDK_WORLD_WORKFLOW_REALM_REQUIRED', 'world workflow requires a vNext Realm facade', 'provide_realm_facade');
+  if (!realm?.worldCore) {
+    workflowError('SDK_WORLD_WORKFLOW_REALM_REQUIRED', 'world workflow requires a Realm facade with worldCore methods', 'provide_realm_facade');
   }
   const events: WorldWorkflowEvent[] = [
     { type: 'world.workflow.started', planId: plan.planId, stepCount: plan.steps.length },
@@ -86,78 +94,108 @@ export async function executeWorldWorkflowStep(
   step: WorldWorkflowReadStep,
 ): Promise<WorldWorkflowReadResult> {
   validateWorldWorkflowStep(step);
-  if (step.kind === 'main-world') {
-    const world = await realm.world.worldControllerGetMainWorld({ path: {} });
-    return { kind: 'main-world', world };
+  if (step.kind === 'oasis-world') {
+    const world = await realm.worldCore.worldCoreControllerGetOasisWorld({ path: {} });
+    return { kind: 'oasis-world', world };
   }
-  if (step.kind === 'world-summary') {
-    const world = await realm.world.worldControllerGetWorld({ path: { id: requireWorldId(step.worldId) } });
-    return { kind: 'world-summary', world };
+  if (step.kind === 'world-core') {
+    const world = await realm.worldCore.worldCoreControllerGetWorldCore({ path: { worldId: requireWorldId(step.worldId) } });
+    return { kind: 'world-core', world };
   }
-  if (step.kind === 'world-detail-with-agents') {
-    const world = await realm.world.worldControllerGetWorldDetailWithAgents({
-      path: { id: requireWorldId(step.worldId) },
-      query: step.recommendedAgentLimit === undefined ? {} : { recommendedAgentLimit: step.recommendedAgentLimit },
-    });
-    return { kind: 'world-detail-with-agents', world };
+  if (step.kind === 'world-character') {
+    const character = await realm.worldCore.worldCoreControllerGetWorldCharacter({ path: { characterId: requireCharacterId(step.characterId) } });
+    return { kind: 'world-character', character };
   }
-  if (step.kind === 'world-history') {
-    const history = await realm.world.worldControllerGetWorldHistory({ path: { id: requireWorldId(step.worldId) } });
-    return { kind: 'world-history', history };
+  if (step.kind === 'world-character-list') {
+    const characters = await realm.worldCore.worldCoreControllerListWorldCharacters({ path: { worldId: requireWorldId(step.worldId) } });
+    return { kind: 'world-character-list', characters };
   }
-  const worlds = await realm.world.worldControllerListWorlds({
+  if (step.kind === 'realm-persona') {
+    const persona = await realm.worldCore.worldCoreControllerGetRealmPersona({ path: { personaId: requirePersonaId(step.personaId) } });
+    return { kind: 'realm-persona', persona };
+  }
+  if (step.kind === 'realm-persona-list') {
+    const personas = await realm.worldCore.worldCoreControllerListRealmPersonas({ path: {} });
+    return { kind: 'realm-persona-list', personas };
+  }
+  const worlds = await realm.worldCore.worldCoreControllerListWorldCores({
     path: {},
-    query: step.status === undefined ? {} : { status: step.status },
+    query: {
+      ...(step.visibility === undefined ? {} : { visibility: step.visibility }),
+      ...(step.take === undefined ? {} : { take: step.take }),
+    },
   });
-  return { kind: 'world-list', worlds };
+  return { kind: 'world-core-list', worlds };
 }
 
-export function worldSummaryStep(worldId: string): WorldWorkflowReadStep {
-  return { kind: 'world-summary', worldId: requireWorldId(worldId) };
+export function oasisWorldStep(): WorldWorkflowReadStep {
+  return { kind: 'oasis-world' };
 }
 
-export function mainWorldStep(): WorldWorkflowReadStep {
-  return { kind: 'main-world' };
+export function worldCoreStep(worldId: string): WorldWorkflowReadStep {
+  return { kind: 'world-core', worldId: requireWorldId(worldId) };
 }
 
-export function worldDetailWithAgentsStep(input: {
-  readonly worldId: string;
-  readonly recommendedAgentLimit?: number;
-}): WorldWorkflowReadStep {
+export function listWorldCoresStep(input: {
+  readonly visibility?: WorldWorkflowVisibilityFilter;
+  readonly take?: number;
+} = {}): WorldWorkflowReadStep {
   const step: WorldWorkflowReadStep = {
-    kind: 'world-detail-with-agents',
-    worldId: requireWorldId(input.worldId),
-    ...(input.recommendedAgentLimit === undefined ? {} : { recommendedAgentLimit: input.recommendedAgentLimit }),
+    kind: 'world-core-list',
+    ...(input.visibility === undefined ? {} : { visibility: input.visibility }),
+    ...(input.take === undefined ? {} : { take: input.take }),
   };
   validateWorldWorkflowStep(step);
   return step;
 }
 
-export function worldHistoryStep(worldId: string): WorldWorkflowReadStep {
-  return { kind: 'world-history', worldId: requireWorldId(worldId) };
+export function worldCharacterStep(characterId: string): WorldWorkflowReadStep {
+  return { kind: 'world-character', characterId: requireCharacterId(characterId) };
 }
 
-export function listWorldsStep(status?: WorldWorkflowStatusFilter): WorldWorkflowReadStep {
-  return status === undefined ? { kind: 'world-list' } : { kind: 'world-list', status };
+export function listWorldCharactersStep(worldId: string): WorldWorkflowReadStep {
+  return { kind: 'world-character-list', worldId: requireWorldId(worldId) };
+}
+
+export function realmPersonaStep(personaId: string): WorldWorkflowReadStep {
+  return { kind: 'realm-persona', personaId: requirePersonaId(personaId) };
+}
+
+export function listRealmPersonasStep(): WorldWorkflowReadStep {
+  return { kind: 'realm-persona-list' };
 }
 
 function validateWorldWorkflowStep(step: WorldWorkflowReadStep | null | undefined): void {
   if (!step || typeof step !== 'object') {
     workflowError('SDK_WORLD_WORKFLOW_STEP_INVALID', 'world workflow step is required', 'provide_world_workflow_step');
   }
-  if (!['main-world', 'world-summary', 'world-detail-with-agents', 'world-history', 'world-list'].includes(step.kind)) {
+  if (!['oasis-world', 'world-core', 'world-core-list', 'world-character', 'world-character-list', 'realm-persona', 'realm-persona-list'].includes(step.kind)) {
     workflowError('SDK_WORLD_WORKFLOW_STEP_INVALID', `unsupported world workflow step kind: ${String(step.kind)}`, 'use_supported_world_workflow_step');
   }
-  if (['world-summary', 'world-detail-with-agents', 'world-history'].includes(step.kind)) {
+  if (step.kind === 'world-core' || step.kind === 'world-character-list') {
     requireWorldId(step.worldId);
   }
-  if (step.recommendedAgentLimit !== undefined && (!Number.isInteger(step.recommendedAgentLimit) || step.recommendedAgentLimit < 0)) {
-    workflowError('SDK_WORLD_WORKFLOW_STEP_INVALID', 'recommendedAgentLimit must be a non-negative integer', 'fix_recommended_agent_limit');
+  if (step.kind === 'world-character') {
+    requireCharacterId(step.characterId);
+  }
+  if (step.kind === 'realm-persona') {
+    requirePersonaId(step.personaId);
+  }
+  if (step.take !== undefined && (!Number.isInteger(step.take) || step.take < 1)) {
+    workflowError('SDK_WORLD_WORKFLOW_STEP_INVALID', 'take must be a positive integer', 'fix_world_core_take');
   }
 }
 
 function requireWorldId(value: unknown): string {
   return requireText(value, 'worldId is required', 'provide_world_id');
+}
+
+function requireCharacterId(value: unknown): string {
+  return requireText(value, 'characterId is required', 'provide_world_character_id');
+}
+
+function requirePersonaId(value: unknown): string {
+  return requireText(value, 'personaId is required', 'provide_realm_persona_id');
 }
 
 function requireText(value: unknown, message: string, actionHint: string): string {

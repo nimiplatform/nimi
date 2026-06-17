@@ -4,7 +4,6 @@ import type { SettingsRouteViewProps } from './view';
 export function SettingsSdkRows(props: SettingsRouteViewProps) {
   const {
     permissionClientProjection,
-    runtimeAgentTurnRunnerProjection,
     runtimeMediaGenerationRunnerProjection,
     runtime: {
       runtimeHealthWireProjection,
@@ -15,7 +14,6 @@ export function SettingsSdkRows(props: SettingsRouteViewProps) {
       accountAppInventoryProjection,
       runtimeAuditWireProjection,
       runtimeHealthCoordinatorProjection,
-      runtimeAgentConsumerProjection,
       runtimeAgentInspectProjection,
       externalAgentProjection,
       runtimeAgentPresentationProfileProjection,
@@ -84,26 +82,6 @@ export function SettingsSdkRows(props: SettingsRouteViewProps) {
         </StatusBadge>
       </div>
       <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 text-sm text-[var(--nimi-text-secondary)]">
-        <span>Runtime agent consumer projection</span>
-        <StatusBadge tone={runtimeAgentConsumerProjection.projectionScoped ? 'success' : 'warning'}>
-          {runtimeAgentConsumerProjection.projectionEventName}
-          {' / '}
-          {runtimeAgentConsumerProjection.timelineChannel}
-          {' / '}
-          {runtimeAgentConsumerProjection.recoveryEventCount}
-          {' / '}
-          {runtimeAgentConsumerProjection.terminalEventName}
-        </StatusBadge>
-      </div>
-      <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 text-sm text-[var(--nimi-text-secondary)]">
-        <span>Runtime agent turn runner projection</span>
-        <StatusBadge tone={runtimeAgentTurnRunnerProjection.status === 'ready' && runtimeAgentTurnRunnerProjection.projection.ignoredBacklog ? 'success' : 'warning'}>
-          {runtimeAgentTurnRunnerProjection.status === 'ready'
-            ? `${runtimeAgentTurnRunnerProjection.projection.sealedMessageId} / ${runtimeAgentTurnRunnerProjection.projection.outputText}`
-            : runtimeAgentTurnRunnerProjection.status}
-        </StatusBadge>
-      </div>
-      <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 text-sm text-[var(--nimi-text-secondary)]">
         <span>Runtime media generation runner projection</span>
         <StatusBadge tone={runtimeMediaGenerationRunnerProjection.status === 'ready' && runtimeMediaGenerationRunnerProjection.projection.artifactCount === 1 ? 'success' : 'warning'}>
           {runtimeMediaGenerationRunnerProjection.status === 'ready'
@@ -117,8 +95,6 @@ export function SettingsSdkRows(props: SettingsRouteViewProps) {
           {runtimeAgentInspectProjection.presentationBackend}
           {' / '}
           {runtimeAgentInspectProjection.nextHookStatus ?? 'none'}
-          {' / '}
-          {runtimeAgentInspectProjection.eventSummary ?? 'none'}
           {' / '}
           {runtimeAgentInspectProjection.mutationKinds}
         </StatusBadge>

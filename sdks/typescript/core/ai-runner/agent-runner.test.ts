@@ -3,10 +3,10 @@ import test from 'node:test';
 
 import type { NimiGenerateTextRequest } from '../ai';
 import { createNimiMockModel, createNimiToolCall, userTextMessage } from '../testing';
-import { createNimiAgentRunner } from './runner';
-import { assertNimiAgentEventOrder, assertNimiAgentEventSubsequence } from './trace-fixture';
+import { createNimiAiRunner } from './runner';
+import { assertNimiAiRunnerEventOrder, assertNimiAiRunnerEventSubsequence } from './trace-fixture';
 
-test('agent runner materializes instructions and context before model execution', async () => {
+test('AI runner materializes instructions and context before model execution', async () => {
   const seen: NimiGenerateTextRequest[] = [];
   const model = createNimiMockModel({
     onGenerateText(request) {
@@ -15,8 +15,8 @@ test('agent runner materializes instructions and context before model execution'
     },
   });
 
-  const result = await createNimiAgentRunner().run({
-    agent: {
+  const result = await createNimiAiRunner().run({
+    runner: {
       id: 'planner',
       name: 'Planner',
       instructions: 'Base instruction',
@@ -33,7 +33,7 @@ test('agent runner materializes instructions and context before model execution'
   assert.equal(result.events.at(-1)?.type, 'finish');
 });
 
-test('agent runner emits local tool, approval, external execution, artifact, warning, and trace events', async () => {
+test('AI runner emits local tool, approval, external execution, artifact, warning, and trace events', async () => {
   const localToolCall = createNimiToolCall('localLookup', { query: 'nimi' }, 'tool-local');
   const approvalToolCall = createNimiToolCall('approvalTool', { risk: 'write' }, 'tool-approval');
   const externalToolCall = createNimiToolCall('externalTool', { job: 'long' }, 'tool-external');
@@ -48,10 +48,10 @@ test('agent runner emits local tool, approval, external execution, artifact, war
     },
   });
 
-  const result = await createNimiAgentRunner().run({
-    agent: {
-      id: 'tool-agent',
-      name: 'Tool Agent',
+  const result = await createNimiAiRunner().run({
+    runner: {
+      id: 'tool-runner',
+      name: 'Tool Runner',
       tools: [
         {
           name: 'localLookup',
@@ -66,8 +66,8 @@ test('agent runner emits local tool, approval, external execution, artifact, war
     messages: [userTextMessage('use tools')],
   });
 
-  assertNimiAgentEventOrder(result.events, [
-    'agent-start',
+  assertNimiAiRunnerEventOrder(result.events, [
+    'ai-runner-start',
     'model-request',
     'reasoning',
     'text',
@@ -81,27 +81,27 @@ test('agent runner emits local tool, approval, external execution, artifact, war
     'external-execution-requested',
     'finish',
   ]);
-  assertNimiAgentEventSubsequence(result.events, ['tool-call', 'tool-result', 'finish']);
+  assertNimiAiRunnerEventSubsequence(result.events, ['tool-call', 'tool-result', 'finish']);
   assert.equal(result.trace.steps.some((step) => step.kind === 'approval'), true);
   assert.equal(result.trace.steps.some((step) => step.kind === 'external-execution'), true);
 });
 
-test('agent runner fails visibly for missing local tool executors', async () => {
+test('AI runner fails visibly for missing local tool executors', async () => {
   const model = createNimiMockModel({
     finishReason: 'tool-calls',
     toolCalls: [createNimiToolCall('missingExecute', {}, 'tool-missing')],
   });
 
   await assert.rejects(
-    createNimiAgentRunner().run({
-      agent: {
-        id: 'failure-agent',
-        name: 'Failure Agent',
+    createNimiAiRunner().run({
+      runner: {
+        id: 'failure-runner',
+        name: 'Failure Runner',
         tools: [{ name: 'missingExecute', inputSchema: { type: 'object' } }],
       },
       model,
       messages: [userTextMessage('fail visibly')],
     }),
-    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_AGENT_TOOL_EXECUTOR_MISSING',
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_AI_RUNNER_TOOL_EXECUTOR_MISSING',
   );
 });

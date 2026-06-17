@@ -4,7 +4,7 @@ import {
   parseNimiAppBridgeProjection,
   selectNimiAppFactoryAIProfileForFirstRun,
 } from '@nimiplatform/sdk/app';
-import { aggregateNimiFirstRunMaterializationDownloadProgress, buildNimiRuntimeLocalImageNativeEnvironmentPlanInput, buildRuntimeAgentRequestContext, buildNimiRuntimeAgentSnapshotRecoveryEvents, buildNimiRuntimeRouteRequestMetadata, buildNimiRuntimeRouteTargetCallOptions, bridgeNimiRuntimeLocalProfile, createEmptyNimiMemoryEmbeddingConfig, extractNimiRuntimeReasonCodeFromError, findNimiRuntimeRouteModelProfile, fromNimiRuntimeProtoStruct, getNimiRuntimeReasonCodeDefaultMessage, isNimiRuntimeLocalEnvironmentDependencyJobActiveState, isNimiRuntimeLocalEnvironmentDependencyJobRetryableState, isNimiRuntimeLocalEnvironmentDependencyJobTransferringState, isNimiRuntimeLocalEnvironmentDependencyRepairRequiredState, isNimiRuntimeLocalEnvironmentDependencyStartableState, isNimiRuntimeAgentProjectionEvent, isNimiRuntimeRouteLocalOptionSelectable, nimiRuntimeLocalRecommendationTierToRunGrade, matchesNimiRuntimeAgentProjectionScope, parseNimiRuntimeLocalRecommendationFeedCacheStateId, normalizeNimiRuntimeLocalProfilesDeclaration, normalizeNimiRuntimeReasonCode, parseNimiRuntimeLocalRecommendationFeedSourceId, projectNimiRuntimeLocalEnvironmentDependencyJob, projectNimiRuntimeLocalEnvironmentPlan, projectNimiRuntimeLocalRecommendationFeed, productStateForNimiFirstRunMaterializationStatus, projectNimiMemoryEmbeddingRouteAvailability, projectNimiRuntimeAgentCanonicalMemoryBankStatus, projectNimiRuntimeAuditCallerKindName, projectNimiRuntimeHealthStatusName, projectNimiRuntimeHealthSummary, projectRuntimeLocalAgentIdentity, projectNimiRuntimeRouteCapabilityCoverage, projectNimiRuntimeUsageWindowName, repairableNimiFirstRunMaterializationDependencies, retryableInterruptedNimiFirstRunMaterializationJobs, nimiRuntimeRouteBindingsMatch, nimiRuntimeRouteLocalOptionToBinding, summarizeNimiRuntimeLocalRecommendationFeedCacheState, summarizeNimiRuntimeAgentProjectionEvent, summarizeNimiRuntimeAgentTimeline, toCanonicalNimiRuntimeLocalAssetId, toCanonicalNimiRuntimeLocalAssetLookupKey, toNimiRuntimeIsoFromTimestamp, toNimiRuntimeProtoStruct, toNimiRuntimeUserFacingError, type NimiRuntimeAgentConsumeEvent, type NimiRuntimeLocalExecutionPlan, type NimiRuntimeResolvedBinding, type NimiRuntimeRouteDescribeResult } from '@nimiplatform/sdk/runtime';
+import { aggregateNimiFirstRunMaterializationDownloadProgress, buildNimiRuntimeLocalImageNativeEnvironmentPlanInput, buildNimiRuntimeRouteRequestMetadata, buildNimiRuntimeRouteTargetCallOptions, bridgeNimiRuntimeLocalProfile, createEmptyNimiMemoryEmbeddingConfig, extractNimiRuntimeReasonCodeFromError, findNimiRuntimeRouteModelProfile, fromNimiRuntimeProtoStruct, getNimiRuntimeReasonCodeDefaultMessage, isNimiRuntimeLocalEnvironmentDependencyJobActiveState, isNimiRuntimeLocalEnvironmentDependencyJobRetryableState, isNimiRuntimeLocalEnvironmentDependencyJobTransferringState, isNimiRuntimeLocalEnvironmentDependencyRepairRequiredState, isNimiRuntimeLocalEnvironmentDependencyStartableState, isNimiRuntimeRouteLocalOptionSelectable, nimiRuntimeLocalRecommendationTierToRunGrade, parseNimiRuntimeLocalRecommendationFeedCacheStateId, normalizeNimiRuntimeLocalProfilesDeclaration, normalizeNimiRuntimeReasonCode, parseNimiRuntimeLocalRecommendationFeedSourceId, projectNimiRuntimeLocalEnvironmentDependencyJob, projectNimiRuntimeLocalEnvironmentPlan, projectNimiRuntimeLocalRecommendationFeed, productStateForNimiFirstRunMaterializationStatus, projectNimiMemoryEmbeddingRouteAvailability, projectNimiRuntimeAgentCanonicalMemoryBankStatus, projectNimiRuntimeAuditCallerKindName, projectNimiRuntimeHealthStatusName, projectNimiRuntimeHealthSummary, projectNimiRuntimeRouteCapabilityCoverage, projectNimiRuntimeUsageWindowName, repairableNimiFirstRunMaterializationDependencies, retryableInterruptedNimiFirstRunMaterializationJobs, nimiRuntimeRouteBindingsMatch, nimiRuntimeRouteLocalOptionToBinding, summarizeNimiRuntimeLocalRecommendationFeedCacheState, toCanonicalNimiRuntimeLocalAssetId, toCanonicalNimiRuntimeLocalAssetLookupKey, toNimiRuntimeIsoFromTimestamp, toNimiRuntimeProtoStruct, toNimiRuntimeUserFacingError, type NimiRuntimeLocalExecutionPlan, type NimiRuntimeResolvedBinding, type NimiRuntimeRouteDescribeResult } from '@nimiplatform/sdk/runtime';
 import { AgentCanonicalMemoryBankMode, CallerKind, RuntimeHealthStatus, ReasonCode as RuntimeReasonCode, UsageWindow } from '@nimiplatform/sdk/runtime/generated';
 import { classifyOfflineError, classifyOfflineReasonCode, createOfflineNimiError, extractNimiErrorFields, ReasonCode } from '@nimiplatform/sdk/types';
 import { summarizeTargetRef } from '@nimiplatform/kit/features/model-config/headless';
@@ -66,15 +66,6 @@ export function createTesterSettingsRuntimeProjections() {
       retryable: true,
     }).traceId ?? 'unknown',
   };
-  const runtimeLocalAgentIdentityProjection = projectRuntimeLocalAgentIdentity({
-    ownerUserId: 'tester-owner',
-    realmAgentId: 'tester-realm-agent',
-  });
-  const runtimeAgentRequestContextProjection = buildRuntimeAgentRequestContext({
-    runtimeAppId: 'tester',
-    subjectUserId: 'tester-owner',
-    localAgentRef: runtimeLocalAgentIdentityProjection.localAgentRef,
-  });
   const offlineReasonProjection = {
     reasonCode: ReasonCode.RUNTIME_UNAVAILABLE,
     owner: classifyOfflineReasonCode(ReasonCode.RUNTIME_UNAVAILABLE) ?? 'unknown',
@@ -486,79 +477,6 @@ export function createTesterSettingsRuntimeProjections() {
     usageWindowName: projectNimiRuntimeUsageWindowName(UsageWindow.HOUR) ?? 'unknown',
   };
   const runtimeHealthCoordinatorProjection = runtimeHealthCoordinatorDiagnostics.getSnapshot();
-  const runtimeAgentConsumerProjection = (() => {
-    const projectionEvent = {
-      eventName: 'runtime.agent.hook.pending',
-      localAgentRef: 'local-agent:tester-owner:tester-agent',
-      conversationAnchorId: 'tester-anchor',
-      originatingTurnId: 'tester-turn',
-      originatingStreamId: 'tester-stream',
-      detail: { intentId: 'tester-hook' },
-    } as NimiRuntimeAgentConsumeEvent;
-    const timelineEvent = {
-      eventName: 'runtime.agent.turn.text_delta',
-      localAgentRef: 'local-agent:tester-owner:tester-agent',
-      conversationAnchorId: 'tester-anchor',
-      turnId: 'tester-turn',
-      streamId: 'tester-stream',
-      timeline: {
-        turnId: 'tester-turn',
-        streamId: 'tester-stream',
-        channel: 'text',
-        offsetMs: 24,
-        sequence: 2,
-        startedAtWall: '2026-05-31T00:00:00.000Z',
-        observedAtWall: '2026-05-31T00:00:00.024Z',
-        timebaseOwner: 'runtime',
-        projectionRuleId: 'K-AGCORE-051',
-        clockBasis: 'monotonic_with_wall_anchor',
-        providerNeutral: true,
-        appLocalAuthority: false,
-      },
-      detail: { text: 'tester' },
-    } as NimiRuntimeAgentConsumeEvent;
-    const recoveryEvents = buildNimiRuntimeAgentSnapshotRecoveryEvents({
-      turn: {
-        turnId: 'tester-turn',
-        streamId: 'tester-stream',
-        status: 'completed',
-        messageId: 'tester-message',
-        text: 'tester done',
-        structured: {
-          message: {
-            message_id: 'tester-message',
-            text: 'tester done',
-          },
-        },
-        finishReason: 'stop',
-      },
-      ownerUserId: 'tester-owner',
-      realmAgentId: 'tester-agent',
-      localAgentRef: 'local-agent:tester-owner:tester-agent',
-      conversationAnchorId: 'tester-anchor',
-      requestId: 'tester-request',
-      currentTurnAccepted: false,
-      currentRuntimeTurnId: '',
-      currentRuntimeStreamId: '',
-      hasStructuredEnvelope: false,
-      hasCommittedMessage: false,
-    });
-    const projectionSummary = summarizeNimiRuntimeAgentProjectionEvent(projectionEvent);
-    const timelineSummary = summarizeNimiRuntimeAgentTimeline(timelineEvent);
-    const terminal = recoveryEvents[recoveryEvents.length - 1];
-    return {
-      projectionScoped: isNimiRuntimeAgentProjectionEvent(projectionEvent) && matchesNimiRuntimeAgentProjectionScope({
-        event: projectionEvent,
-        conversationAnchorId: 'tester-anchor',
-        currentTurnAccepted: true,
-        currentRuntimeTurnId: 'tester-turn',
-      }),
-      projectionEventName: projectionSummary.eventName,
-      timelineChannel: timelineSummary?.channel ?? 'none',
-      recoveryEventCount: recoveryEvents.length,
-      terminalEventName: terminal?.eventName ?? 'none',
-    };
-  })();
   const runtimeStructProjection = (() => {
     const encoded = toNimiRuntimeProtoStruct({
       surfaceId: 'tester.settings',
@@ -583,7 +501,6 @@ export function createTesterSettingsRuntimeProjections() {
     recommendationFeedParserProjection,
     recommendationCopyProjection,
     runtimeReasonProjection,
-    runtimeAgentRequestContextProjection,
     offlineReasonProjection,
     runtimeDependencyStateProjection,
     runtimeDependencyPlanProjection,
@@ -619,7 +536,6 @@ export function createTesterSettingsRuntimeProjections() {
     accountAppInventoryProjection,
     runtimeAuditWireProjection,
     runtimeHealthCoordinatorProjection,
-    runtimeAgentConsumerProjection,
     runtimeStructProjection,
   };
 }

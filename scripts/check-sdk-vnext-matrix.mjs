@@ -37,7 +37,7 @@ function runVNextPackageContract() {
     ['scripts/check-sdk-vnext-realm-consumer-smoke.mjs'],
     ['scripts/check-sdk-vnext-world-consumer-smoke.mjs'],
     ['scripts/check-sdk-vnext-ai-consumer-smoke.mjs'],
-    ['scripts/check-sdk-vnext-agent-consumer-smoke.mjs'],
+    ['scripts/check-sdk-vnext-ai-runner-consumer-smoke.mjs'],
     ['scripts/check-sdk-vnext-root-consumer-smoke.mjs'],
     ['scripts/check-sdk-vnext-ai-capability-ledger.mjs'],
     ['scripts/check-sdk-vnext-adapter-capability-ledger.mjs'],

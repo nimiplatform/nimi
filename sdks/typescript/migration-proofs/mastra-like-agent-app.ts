@@ -6,7 +6,7 @@ import type { NimiMigrationProofResult } from './proof-contracts';
 // A Mastra app can migrate its LLM execution layer to Nimi by replacing the
 // Agent's model: MastraModelConfig admits the LanguageModelV3 returned by
 // createNimiMastraModel. This proof does not claim Nimi-owned Mastra memory,
-// knowledge, workflow checkpointing, or agent lifecycle state; those need a
+// knowledge, workflow checkpointing, or localAgent lifecycle state; those need a
 // Runtime/Cognition bridge.
 export async function runMastraLikeAgentAppProof(): Promise<NimiMigrationProofResult> {
   const fixture = createNimiProofModel({ modelId: 'mastra-proof-model', text: 'agent turn complete' });

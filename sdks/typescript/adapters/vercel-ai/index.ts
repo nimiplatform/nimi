@@ -138,13 +138,10 @@ export function createNimiVercelProvider(options: NimiVercelProviderOptions): Ni
 }
 
 function resolveProviderModel(options: NimiVercelProviderOptions, modelId: string): NimiAiModel {
-  if (options.model) {
+  if (!isRuntimeBackedProviderOptions(options)) {
     return options.model;
   }
   const client = options.client;
-  if (!client) {
-    throwUnsupportedVercelAiFeature('provider.configuration', 'missing NimiClient');
-  }
   assertRuntimeBackedProviderOptions(options);
   return client.ai.createRuntimeModel({
     appId: options.appId,
@@ -162,7 +159,15 @@ function resolveProviderModel(options: NimiVercelProviderOptions, modelId: strin
   });
 }
 
-function assertRuntimeBackedProviderOptions(options: NimiVercelProviderOptions): void {
+function isRuntimeBackedProviderOptions(
+  options: NimiVercelProviderOptions,
+): options is NimiVercelRuntimeModelOptions & { readonly client: NimiClient; readonly model?: never } {
+  return 'client' in options && options.client !== undefined;
+}
+
+function assertRuntimeBackedProviderOptions(
+  options: NimiVercelRuntimeModelOptions & { readonly client: NimiClient },
+): void {
   if (!options.routePolicy) {
     throwUnsupportedVercelAiFeature('provider.routePolicy', 'runtime-backed providers require explicit routePolicy');
   }

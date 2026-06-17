@@ -4,14 +4,14 @@ import { existsSync, globSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import YAML from 'yaml';
-import { collectRootExports, validateRegistry } from './lib/agent-export-posture-core.mjs';
+import { collectRootExports, validateRegistry } from './lib/ai-runner-export-posture-core.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const repoRoot = path.resolve(path.dirname(__filename), '..');
 
 const registryPath = path.join(
   repoRoot,
-  '.nimi/spec/sdks/kernel/tables/agent-export-authority-posture.yaml',
+  '.nimi/spec/sdks/kernel/tables/ai-runner-export-authority-posture.yaml',
 );
 const methodGroupsPath = path.join(
   repoRoot,
@@ -60,12 +60,12 @@ for (const coverageRoot of registry.coverage_roots ?? []) {
   });
   if (!ok) {
     failed = true;
-    console.error(`agent export authority posture check failed for ${coverageRoot.root}:`);
+    console.error(`ai-runner export authority posture check failed for ${coverageRoot.root}:`);
     for (const error of errors) {
       console.error(`  - ${error}`);
     }
   } else {
-    console.log(`agent export authority posture: ${coverageRoot.root} ok (${exportsBySymbol.size} public exports)`);
+    console.log(`ai-runner export authority posture: ${coverageRoot.root} ok (${exportsBySymbol.size} public exports)`);
   }
 }
 

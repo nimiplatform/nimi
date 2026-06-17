@@ -109,10 +109,6 @@ export const REALM_OPERATION_BY_ID: ReadonlyMap<string, RealmOperationDescriptor
   REALM_OPERATIONS.map((operation) => [operation.operationId, operation]),
 );
 
-const REALM_TYPED_FACADE_ONLY_OPERATION_IDS = new Set([
-  'commitRealmGroupMessageCandidate',
-]);
-
 export interface RealmCallOptions {
   readonly metadata?: CoreMetadata;
   readonly timeoutMs?: number;
@@ -134,11 +130,6 @@ export class RealmGeneratedClient {
 
   async operation<Response = unknown, Body = unknown>(operationId: string, body: Body, options: RealmCallOptions = {}): Promise<Response> {
     this.describe(operationId);
-    if (REALM_TYPED_FACADE_ONLY_OPERATION_IDS.has(operationId)) {
-      throw Object.assign(new Error(\`Realm operation requires its admitted typed facade: \${operationId}\`), {
-        code: 'SDK_REALM_OPERATION_TYPED_FACADE_REQUIRED',
-      });
-    }
     return this.core.unary<Response, Body>({
       methodId: operationId,
       body,
@@ -224,9 +215,6 @@ from sdks.python.types import CoreUnaryRequest
 
 REALM_OPERATIONS = ${toPythonLiteral(realmOperations)}
 REALM_OPERATION_BY_ID = {operation["operation_id"]: operation for operation in REALM_OPERATIONS}
-REALM_TYPED_FACADE_ONLY_OPERATION_IDS = {
-    "commitRealmGroupMessageCandidate",
-}
 
 
 class RealmGeneratedClient:
@@ -243,10 +231,6 @@ class RealmGeneratedClient:
 
     async def operation(self, operation_id: str, body: Any, *, metadata: dict[str, str] | None = None, timeout_ms: int | None = None) -> Any:
         self.describe(operation_id)
-        if operation_id in REALM_TYPED_FACADE_ONLY_OPERATION_IDS:
-            error = RuntimeError(f"Realm operation requires its admitted typed facade: {operation_id}")
-            setattr(error, "code", "SDK_REALM_OPERATION_TYPED_FACADE_REQUIRED")
-            raise error
         return await self._core.unary(CoreUnaryRequest(method_id=operation_id, body=body, metadata=metadata, timeout_ms=timeout_ms))
 `);
 }
@@ -370,10 +354,6 @@ var RealmOperationByID = func() map[string]RealmOperationDescriptor {
 	return out
 }()
 
-var RealmTypedFacadeOnlyOperationIDs = map[string]struct{}{
-	"commitRealmGroupMessageCandidate": {},
-}
-
 type RealmGeneratedClient struct {
 	core coreclient.Client
 }
@@ -393,9 +373,6 @@ func (c RealmGeneratedClient) Describe(operationID string) (RealmOperationDescri
 func (c RealmGeneratedClient) Operation(ctx context.Context, operationID string, body []byte, metadata sdkstypes.CoreMetadata, timeoutMS int64) ([]byte, error) {
 	if _, err := c.Describe(operationID); err != nil {
 		return nil, err
-	}
-	if _, blocked := RealmTypedFacadeOnlyOperationIDs[operationID]; blocked {
-		return nil, fmt.Errorf("SDK_REALM_OPERATION_TYPED_FACADE_REQUIRED: Realm operation requires its admitted typed facade %s", operationID)
 	}
 	return c.core.Unary(ctx, sdkstypes.CoreUnaryRequest{Context: ctx, MethodID: operationID, Metadata: metadata, Body: body, TimeoutMS: timeoutMS})
 }
@@ -541,10 +518,6 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
 ${realmOperations.map((item) => `    RealmOperationDescriptor {\n        operation_id: ${rustStr(item.operation_id)},\n        service: ${rustStr(item.service)},\n        method: ${rustStr(item.method)},\n        path: ${rustOptStr(item.path)},\n    },`).join('\n')}
 ];
 
-fn realm_typed_facade_only_operation_id(operation_id: &str) -> bool {
-    matches!(operation_id, "commitRealmGroupMessageCandidate")
-}
-
 pub struct RealmGeneratedClient<T, A>
 where
     T: CoreTransport,
@@ -572,9 +545,6 @@ where
     pub fn operation(&self, operation_id: &str, body: Vec<u8>, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<Vec<u8>, T::Error> {
         if let Err(message) = self.describe(operation_id) {
             panic!("{}", message);
-        }
-        if realm_typed_facade_only_operation_id(operation_id) {
-            panic!("SDK_REALM_OPERATION_TYPED_FACADE_REQUIRED: Realm operation requires its admitted typed facade {}", operation_id);
         }
         self.core.unary(CoreUnaryRequest {
             method_id: operation_id.to_string(),

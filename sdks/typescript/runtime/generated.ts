@@ -63,6 +63,7 @@ export type {
   SubmitAvatarDebugProbeResultResponse,
 } from '../core-generated/runtime-typed-client';
 export {
+  RuntimeTypedClient,
   AccountCallerMode,
   AccountReasonCode,
   AccountSessionState,

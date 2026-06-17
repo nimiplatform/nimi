@@ -20,7 +20,7 @@ function cleanup() {
 }
 
 function run(label, command, args, options = {}) {
-  process.stdout.write(`[check-sdk-vnext-agent-consumer-smoke] ${label}\n`);
+  process.stdout.write(`[check-sdk-vnext-ai-runner-consumer-smoke] ${label}\n`);
   const result = spawnSync(command, args, {
     cwd: repoRoot,
     env: process.env,
@@ -34,7 +34,7 @@ function run(label, command, args, options = {}) {
 }
 
 function writeConsumerFiles() {
-  tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-sdk-vnext-agent-consumer-'));
+  tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-sdk-vnext-ai-runner-consumer-'));
   const packageDir = path.join(tempRoot, 'node_modules', '@nimiplatform');
   mkdirSync(packageDir, { recursive: true });
   symlinkSync(vnextRoot, path.join(packageDir, 'sdk'), 'dir');
@@ -43,11 +43,11 @@ function writeConsumerFiles() {
   writeFileSync(path.join(tempRoot, 'consumer.mjs'), `
 import assert from 'node:assert/strict';
 import {
-  createNimiAgentRunner,
-  runNimiAgentTextGenerate,
-  runNimiAgentTextTurn,
-  streamNimiAgentTextResponse,
-} from '@nimiplatform/sdk/agent';
+  createNimiAiRunner,
+  runNimiAiTextGenerate,
+  runNimiAiTextTurn,
+  streamNimiAiTextResponse,
+} from '@nimiplatform/sdk/ai-runner';
 import {
   buildNimiConversationHistoryMessages,
   buildNimiConversationHistoryWindow,
@@ -82,22 +82,22 @@ import {
   userTextMessage,
 } from '@nimiplatform/sdk/testing';
 
-const structured = await runNimiAgentTextGenerate({
-  agent: { id: 'agent', name: 'Agent', instructions: 'Return JSON.' },
+const structured = await runNimiAiTextGenerate({
+  runner: { id: 'runner', name: 'Runner', instructions: 'Return JSON.' },
   runtime: { model: createNimiMockModel({ text: '{"answer":"yes"}', finishReason: 'stop' }) },
   messages: [userTextMessage('answer')],
   structuredOutput: { expect: 'object' },
 });
-assert.equal(structured.ok, true);
-assert.equal(structured.ok && structured.structuredOutput.value.answer, 'yes');
+assert.equal(structured.ok, false);
+assert.equal(structured.ok ? '' : structured.error.code, 'SDK_RUNTIME_AGENT_PARTICIPATION_REQUIRED');
 
 const streamEvents = [];
-for await (const event of runNimiAgentTextTurn({
-  agent: { id: 'agent', name: 'Agent' },
+for await (const event of runNimiAiTextTurn({
+  runner: { id: 'runner', name: 'Runner' },
   runtime: {
     model: createNimiMockModel({
       streamEvents: [
-        { type: 'start', traceId: 'trace-agent' },
+        { type: 'start', traceId: 'trace-runner' },
         { type: 'reasoning-delta', text: 'think ' },
         { type: 'text-delta', text: 'hello' },
         { type: 'done', finishReason: 'stop', usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 } },
@@ -108,11 +108,11 @@ for await (const event of runNimiAgentTextTurn({
 })) {
   streamEvents.push(event.type);
 }
-assert.deepEqual(streamEvents, ['turn-started', 'reasoning-delta', 'text-delta', 'turn-completed']);
+assert.deepEqual(streamEvents, ['turn-started', 'turn-failed']);
 
 await assert.rejects(
-  () => streamNimiAgentTextResponse({
-    agent: { id: 'agent', name: 'Agent' },
+  () => streamNimiAiTextResponse({
+    runner: { id: 'runner', name: 'Runner' },
     runtime: {
       model: createNimiMockModel({
         streamEvents: [
@@ -124,7 +124,7 @@ await assert.rejects(
     },
     messages: [userTextMessage('stream')],
   }),
-  /runtime failed/,
+  /Runtime Agent participation authority/,
 );
 
 const history = buildNimiConversationHistoryMessages({
@@ -268,10 +268,10 @@ assert.equal((await generation.submit({ scenario: { kind: 'image', prompt: 'imag
 assert.equal((await generation.artifacts('job-1'))[0].kind, 'image');
 assert.equal((await generation.readArtifactBytes('artifact-1')).bytes.length, 1);
 
-const runner = await createNimiAgentRunner().run({
-  agent: {
-    id: 'tool-agent',
-    name: 'Tool Agent',
+const runner = await createNimiAiRunner().run({
+  runner: {
+    id: 'tool-runner',
+    name: 'Tool Runner',
     tools: [
       { name: 'local', inputSchema: {}, execute: () => ({ ok: true }) },
       createNimiApprovalTool({ name: 'approval', description: 'Approval tool' }),
@@ -301,10 +301,10 @@ await assert.rejects(
 
   writeFileSync(path.join(tempRoot, 'consumer.ts'), `
 import {
-  runNimiAgentTextGenerate,
-  type NimiAgentTextGenerateResult,
-  type NimiAgentTextTurnEvent,
-} from '@nimiplatform/sdk/agent';
+  runNimiAiTextGenerate,
+  type NimiAiTextGenerateResult,
+  type NimiAiTextTurnEvent,
+} from '@nimiplatform/sdk/ai-runner';
 import {
   buildNimiConversationHistoryMessages,
   type NimiConversationMessage,
@@ -336,8 +336,8 @@ import {
 } from '@nimiplatform/sdk/features/toolkits';
 import { createNimiMockModel, userTextMessage } from '@nimiplatform/sdk/testing';
 
-const result: Promise<NimiAgentTextGenerateResult<{ ok: boolean }>> = runNimiAgentTextGenerate({
-  agent: { id: 'agent', name: 'Agent' },
+const result: Promise<NimiAiTextGenerateResult<{ ok: boolean }>> = runNimiAiTextGenerate({
+  runner: { id: 'runner', name: 'Runner' },
   runtime: { model: createNimiMockModel({ text: '{"ok":true}', finishReason: 'stop' }) },
   messages: [userTextMessage('typed')],
   structuredOutput: { expect: 'object' },
@@ -352,7 +352,7 @@ const history: readonly NimiConversationMessage[] = buildNimiConversationHistory
 const parsed: NimiStructuredOutputParseResult<{ ok: boolean }> = parseNimiStructuredJson({ raw: '{"ok":true}', expect: 'object' });
 const registry = createNimiToolRegistry([{ name: 'local', description: 'Local tool', inputSchema: {}, execute: () => ({ ok: true }) }]);
 const toolResult: Promise<NimiToolCallResult> = registry.execute({ toolName: 'local' });
-const eventType: NimiAgentTextTurnEvent['type'] = 'turn-started';
+const eventType: NimiAiTextTurnEvent['type'] = 'turn-started';
 const memoryClient: NimiRuntimeMemoryContextClient = createNimiRuntimeMemoryContextClient({
   context: { appId: 'typed-app' },
   bank: createNimiAppPrivateMemoryBankLocator({ accountId: 'acct', appId: 'typed-app' }),
@@ -441,14 +441,14 @@ function main() {
     '-p',
     path.join(tempRoot, 'tsconfig.json'),
   ]);
-  process.stdout.write('SDK vNext Agent consumer smoke passed\n');
+  process.stdout.write('SDK vNext AI runner consumer smoke passed\n');
 }
 
 try {
-  await withSdkDistLock('check-sdk-vnext-agent-consumer-smoke build+consumer', main);
+  await withSdkDistLock('check-sdk-vnext-ai-runner-consumer-smoke build+consumer', main);
 } catch (error) {
   const message = error instanceof Error ? error.message : String(error);
-  process.stderr.write(`check-sdk-vnext-agent-consumer-smoke failed: ${message}\n`);
+  process.stderr.write(`check-sdk-vnext-ai-runner-consumer-smoke failed: ${message}\n`);
   process.exitCode = 1;
 } finally {
   cleanup();

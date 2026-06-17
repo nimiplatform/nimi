@@ -1,0 +1,201 @@
+version: 1
+table_family: support_registry
+registry_id: sdk_ai_runner_export_authority_posture
+owner: sdks
+schema_ref: .nimi/contracts/table-family.schema.yaml#support_registry
+allowed_fields:
+  - symbol
+  - module
+  - kind
+  - posture
+  - authority_ref
+  - note
+forbidden_state_fields:
+  - done
+  - covered
+  - coverage_status
+  - audit_date
+  - evidence_report
+  - current
+  - proposed
+  - backlog_status
+  - migration_status
+  - mapping_status
+  - run_id
+  - ledger_ref
+source_rules:
+  - S-SURFACE-015
+  - S-SURFACE-016
+  - S-BOUNDARY-005
+semantics: >-
+  Per-export authority posture registry for SDK AI-runner-facing public surfaces.
+  Every public export under an enforced coverage root must declare exactly one
+  posture. The registry does not create new authority semantics; it makes the
+  existing S-SURFACE-015/S-SURFACE-016/S-BOUNDARY-005 distinction mechanically
+  checkable so client-side AI runner helpers cannot drift into an unbacked second
+  AI runner ontology. Enforced by scripts/check-sdk-ai-runner-export-posture.mjs.
+  Mechanical checks verify reference resolvability, not semantic backing:
+  whether a cited authority actually defines the projected vocabulary remains
+  a review obligation on every new runtime-projection entry.
+postures:
+  - id: runtime-projection
+    semantics: >-
+      Projects an admitted Runtime/Realm/Cognition/Platform surface. Must cite
+      at least one authority_ref whose target defines the projected vocabulary.
+      Must not own canonical truth, infer routing, or synthesize authority
+      evidence.
+  - id: ephemeral-client-orchestration
+    semantics: >-
+      Non-authoritative client orchestration per S-SURFACE-016. Process-local
+      state only. Output is ephemeral consumer state or an explicit request to
+      an authoritative service. Subject to the S-BOUNDARY-006 promotion rule.
+  - id: pure-sugar
+    semantics: >-
+      Stateless developer ergonomics: type utilities, builders, parsers,
+      converters, validators. No orchestration loop, no state, no authority.
+authority_ref_formats:
+  - prefix: 'rule:'
+    semantics: >-
+      Spec rule ID, pattern rule:<DOMAIN>-<FAMILY>-<NUMBER>; must resolve to a
+      rule heading in a kernel contract under .nimi/spec/.
+  - prefix: 'group:'
+    semantics: Runtime method group id resolvable in runtime-method-groups.yaml.
+  - prefix: 'contract:'
+    semantics: Spec contract path relative to .nimi/spec/, must exist on disk.
+coverage_roots:
+  - root: sdks/typescript/core/ai-runner
+    entry: index.ts
+    status: enforced
+entries:
+  # --- index.ts ---
+  - symbol: NimiAiRunnerEvent
+    module: sdks/typescript/core/ai-runner/index.ts
+    kind: type
+    posture: ephemeral-client-orchestration
+  - symbol: NimiAiRunnerSpec
+    module: sdks/typescript/core/ai-runner/index.ts
+    kind: type
+    posture: ephemeral-client-orchestration
+  - symbol: NimiAiContextProviderInput
+    module: sdks/typescript/core/ai-runner/index.ts
+    kind: type
+    posture: ephemeral-client-orchestration
+  - symbol: NimiAiInstructionPack
+    module: sdks/typescript/core/ai-runner/index.ts
+    kind: type
+    posture: ephemeral-client-orchestration
+  - symbol: NimiAiContextProvider
+    module: sdks/typescript/core/ai-runner/index.ts
+    kind: type
+    posture: ephemeral-client-orchestration
+  - symbol: NimiAiContextQuery
+    module: sdks/typescript/core/ai-runner/index.ts
+    kind: type
+    posture: ephemeral-client-orchestration
+  - symbol: NimiAiContextMaterial
+    module: sdks/typescript/core/ai-runner/index.ts
+    kind: type
+    posture: ephemeral-client-orchestration
+  - symbol: NimiAiRunnerRunRequest
+    module: sdks/typescript/core/ai-runner/index.ts
+    kind: type
+    posture: ephemeral-client-orchestration
+  - symbol: NimiAiRunnerRunResult
+    module: sdks/typescript/core/ai-runner/index.ts
+    kind: type
+    posture: ephemeral-client-orchestration
+  - symbol: runNimiAiRunner
+    module: sdks/typescript/core/ai-runner/index.ts
+    kind: value
+    posture: ephemeral-client-orchestration
+  - symbol: streamNimiAiRunner
+    module: sdks/typescript/core/ai-runner/index.ts
+    kind: value
+    posture: ephemeral-client-orchestration
+  - symbol: resolveNimiAiContextQuery
+    module: sdks/typescript/core/ai-runner/index.ts
+    kind: value
+    posture: pure-sugar
+  # --- runner.ts ---
+  - symbol: NimiAiRunner
+    module: sdks/typescript/core/ai-runner/runner.ts
+    kind: type
+    posture: ephemeral-client-orchestration
+  - symbol: NimiAiRunnerResult
+    module: sdks/typescript/core/ai-runner/runner.ts
+    kind: type
+    posture: ephemeral-client-orchestration
+  - symbol: createNimiAiRunner
+    module: sdks/typescript/core/ai-runner/runner.ts
+    kind: value
+    posture: ephemeral-client-orchestration
+  - symbol: buildNimiAiRunnerModelRequest
+    module: sdks/typescript/core/ai-runner/runner.ts
+    kind: value
+    posture: ephemeral-client-orchestration
+  - symbol: toNimiAiTrace
+    module: sdks/typescript/core/ai-runner/runner.ts
+    kind: value
+    posture: pure-sugar
+    note: >-
+      Mints local trace/step identity for debugging only. If NimiAiTrace
+      ever feeds an audit-adjacent or persisted surface, this entry must be
+      re-postured; S-SURFACE-016 forbids presenting client state as audit
+      truth.
+  # --- app-ai.ts ---
+  - symbol: NimiAiTextRuntime
+    module: sdks/typescript/core/ai-runner/app-ai.ts
+    kind: type
+    posture: ephemeral-client-orchestration
+  - symbol: NimiAiStructuredOutputOptions
+    module: sdks/typescript/core/ai-runner/app-ai.ts
+    kind: type
+    posture: ephemeral-client-orchestration
+  - symbol: NimiAiTextGenerateInput
+    module: sdks/typescript/core/ai-runner/app-ai.ts
+    kind: type
+    posture: ephemeral-client-orchestration
+  - symbol: NimiAiTextGenerateSuccess
+    module: sdks/typescript/core/ai-runner/app-ai.ts
+    kind: type
+    posture: ephemeral-client-orchestration
+  - symbol: NimiAiTextGenerateFailure
+    module: sdks/typescript/core/ai-runner/app-ai.ts
+    kind: type
+    posture: ephemeral-client-orchestration
+  - symbol: NimiAiTextGenerateResult
+    module: sdks/typescript/core/ai-runner/app-ai.ts
+    kind: type
+    posture: ephemeral-client-orchestration
+  - symbol: NimiAiTextTurnInput
+    module: sdks/typescript/core/ai-runner/app-ai.ts
+    kind: type
+    posture: ephemeral-client-orchestration
+  - symbol: NimiAiTextError
+    module: sdks/typescript/core/ai-runner/app-ai.ts
+    kind: type
+    posture: pure-sugar
+  - symbol: NimiAiTextTurnEvent
+    module: sdks/typescript/core/ai-runner/app-ai.ts
+    kind: type
+    posture: ephemeral-client-orchestration
+  - symbol: NimiAiTextStreamResponseResult
+    module: sdks/typescript/core/ai-runner/app-ai.ts
+    kind: type
+    posture: ephemeral-client-orchestration
+  - symbol: NimiAiTextStreamHandlers
+    module: sdks/typescript/core/ai-runner/app-ai.ts
+    kind: type
+    posture: ephemeral-client-orchestration
+  - symbol: runNimiAiTextGenerate
+    module: sdks/typescript/core/ai-runner/app-ai.ts
+    kind: value
+    posture: ephemeral-client-orchestration
+  - symbol: runNimiAiTextTurn
+    module: sdks/typescript/core/ai-runner/app-ai.ts
+    kind: value
+    posture: ephemeral-client-orchestration
+  - symbol: streamNimiAiTextResponse
+    module: sdks/typescript/core/ai-runner/app-ai.ts
+    kind: value
+    posture: ephemeral-client-orchestration

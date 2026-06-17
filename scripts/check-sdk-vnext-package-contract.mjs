@@ -34,7 +34,7 @@ const REQUIRED_IMPLEMENTED_EXPORTS = new Map([
   ['./types', 'types/index.ts'],
   ['./contracts', 'core/contracts/index.ts'],
   ['./ai', 'core/ai/index.ts'],
-  ['./agent', 'core/agent/index.ts'],
+  ['./ai-runner', 'core/ai-runner/index.ts'],
   ['./testing', 'core/testing/index.ts'],
   ['./features/conversation', 'features/conversation/index.ts'],
   ['./features/knowledge-context', 'features/knowledge-context/index.ts'],
@@ -55,7 +55,7 @@ const EXPECTED_TARGET_EXPORT_IDS = new Map([
   ['./types', 'types'],
   ['./contracts', 'contracts'],
   ['./ai', 'ai'],
-  ['./agent', 'agent'],
+  ['./ai-runner', 'ai-runner'],
   ['./testing', 'testing'],
   ['./features/conversation', 'features-conversation'],
   ['./features/knowledge-context', 'features-knowledge-context'],
@@ -166,7 +166,7 @@ async function main() {
   const targetExportMapRaw = await fs.readFile(targetExportMapPath, 'utf8');
   const runtimeIndexRaw = await fs.readFile(path.join(sdksTypescriptRoot, 'runtime', 'index.ts'), 'utf8');
   const rootIndexRaw = await fs.readFile(path.join(sdksTypescriptRoot, 'index.ts'), 'utf8');
-  const agentIndexRaw = await fs.readFile(path.join(sdksTypescriptRoot, 'core', 'agent', 'index.ts'), 'utf8');
+  const aiRunnerIndexRaw = await fs.readFile(path.join(sdksTypescriptRoot, 'core', 'ai-runner', 'index.ts'), 'utf8');
   const workspaceIncludesVNextPackage =
     workspaceRaw.includes("  - 'sdks/typescript'") || workspaceRaw.includes('  - "sdks/typescript"');
   const workspaceCutoverState = String(vnextPackage.nimi?.workspaceCutover ?? '');
@@ -210,14 +210,14 @@ async function main() {
   for (const [label, source] of [
     ['index.ts', rootIndexRaw],
     ['runtime/index.ts', runtimeIndexRaw],
-    ['core/agent/index.ts', agentIndexRaw],
+    ['core/ai-runner/index.ts', aiRunnerIndexRaw],
   ]) {
     if (/from\s+['"]node:/.test(source)) {
       violations.push(`${label} must not import Node built-ins from a browser-safe SDK facade`);
     }
   }
-  if (agentIndexRaw.includes('./trace-fixture')) {
-    violations.push('core/agent/index.ts must not re-export test trace fixtures from the production Agent facade');
+  if (aiRunnerIndexRaw.includes('./trace-fixture')) {
+    violations.push('core/ai-runner/index.ts must not re-export test trace fixtures from the production AI runner facade');
   }
 
   const vnextExports = collectPackageExports(vnextPackage);

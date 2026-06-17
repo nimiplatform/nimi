@@ -9896,36 +9896,28 @@ func (c RuntimeTypedClient) SubscribeWorkflowEvents(ctx context.Context, request
 	return &RuntimeTypedStream[WorkflowEvent]{reader: reader}, nil
 }
 
-type AbilityDefinitionDto struct {
-	Cost []ResourceCostDto `json:"cost,omitempty"`
-	Description string `json:"description,omitempty"`
-	Id string `json:"id,omitempty"`
-	Name string `json:"name,omitempty"`
-	TierRequired float64 `json:"tierRequired,omitempty"`
-}
-
-type AccountGrantProjectionRowDto struct {
+type AccountGrantViewRowDto struct {
 	AppId string `json:"appId,omitempty"`
 	ExpiresAt string `json:"expiresAt,omitempty"`
 	GrantId string `json:"grantId,omitempty"`
 	Qualifier string `json:"qualifier,omitempty"`
 	ScopeFamily *AppPermissionScopeFamily `json:"scopeFamily,omitempty"`
 	ScopeName *AppPermissionScopeName `json:"scopeName,omitempty"`
-	State *AccountGrantProjectionState `json:"state,omitempty"`
+	State *AccountGrantViewState `json:"state,omitempty"`
 	SubjectAccountId string `json:"subjectAccountId,omitempty"`
 	Version float64 `json:"version,omitempty"`
 }
 
-type AccountGrantProjectionState string
+type AccountGrantViewState string
 
-type AccountGrantsProjectionDto struct {
+type AccountGrantsViewDto struct {
 	AccountId string `json:"accountId,omitempty"`
-	Grants []AccountGrantProjectionRowDto `json:"grants,omitempty"`
+	Grants []AccountGrantViewRowDto `json:"grants,omitempty"`
 	SchemaVersion float64 `json:"schemaVersion,omitempty"`
 	UpdatedAt string `json:"updatedAt,omitempty"`
 }
 
-type AccountRole string
+type AccountRelationType string
 
 type AccountStatus string
 
@@ -9933,426 +9925,9 @@ type AddFriendBodyDto struct {
 	RequestMessage string `json:"requestMessage,omitempty"`
 }
 
-type AddGroupAgentInputDto struct {
-	AgentAccountId string `json:"agentAccountId,omitempty"`
-}
-
 type AddGroupParticipantInputDto struct {
 	AccountId string `json:"accountId,omitempty"`
 }
-
-type AgentAppearanceDto struct {
-	ArtStyle string `json:"artStyle,omitempty"`
-	Eyes string `json:"eyes,omitempty"`
-	FashionStyle string `json:"fashionStyle,omitempty"`
-	Hair string `json:"hair,omitempty"`
-	SignatureItems []string `json:"signatureItems,omitempty"`
-	Skin string `json:"skin,omitempty"`
-}
-
-type AgentAuthoringBehaviorCandidatePayloadDto struct {
-	Directives []string `json:"directives,omitempty"`
-}
-
-type AgentAuthoringDialogueCandidatePayloadDto struct {
-	Exemplars []string `json:"exemplars,omitempty"`
-}
-
-type AgentAuthoringDraftBatchDto struct {
-	AgentId string `json:"agentId,omitempty"`
-	AppliedAt string `json:"appliedAt,omitempty"`
-	Candidates []AgentAuthoringDraftCandidateDto `json:"candidates,omitempty"`
-	CreatedAt string `json:"createdAt,omitempty"`
-	CreatedBy string `json:"createdBy,omitempty"`
-	FailureCode string `json:"failureCode,omitempty"`
-	FailureMessage string `json:"failureMessage,omitempty"`
-	Id string `json:"id,omitempty"`
-	Metadata *AgentAuthoringDraftBatchMetadataDto `json:"metadata,omitempty"`
-	SkeletonId string `json:"skeletonId,omitempty"`
-	SourceKind string `json:"sourceKind,omitempty"`
-	Status string `json:"status,omitempty"`
-	UpdatedAt string `json:"updatedAt,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type AgentAuthoringDraftBatchListDto struct {
-	Items []AgentAuthoringDraftBatchDto `json:"items,omitempty"`
-}
-
-type AgentAuthoringDraftBatchMetadataDto struct {
-	Notes string `json:"notes,omitempty"`
-	RuntimeAppId string `json:"runtimeAppId,omitempty"`
-	SurfaceId string `json:"surfaceId,omitempty"`
-}
-
-type AgentAuthoringDraftCandidateDto struct {
-	AppliedAt string `json:"appliedAt,omitempty"`
-	EditedValue *AgentAuthoringDraftCandidateValueDto `json:"editedValue,omitempty"`
-	GeneratedAt string `json:"generatedAt,omitempty"`
-	Id string `json:"id,omitempty"`
-	ModelId string `json:"modelId,omitempty"`
-	PromptDigestSha256 string `json:"promptDigestSha256,omitempty"`
-	Provenance *AgentAuthoringRuntimeTraceDto `json:"provenance,omitempty"`
-	ReviewStatus string `json:"reviewStatus,omitempty"`
-	ReviewedAt string `json:"reviewedAt,omitempty"`
-	ReviewerId string `json:"reviewerId,omitempty"`
-	RoutePolicy string `json:"routePolicy,omitempty"`
-	RuntimeTraceId string `json:"runtimeTraceId,omitempty"`
-	SourceRefs []AgentAuthoringSourceRefDto `json:"sourceRefs,omitempty"`
-	TargetKey string `json:"targetKey,omitempty"`
-	Value *AgentAuthoringDraftCandidateValueDto `json:"value,omitempty"`
-}
-
-type AgentAuthoringDraftCandidateValueDto struct {
-	Behavior *AgentAuthoringBehaviorCandidatePayloadDto `json:"behavior,omitempty"`
-	Dialogue *AgentAuthoringDialogueCandidatePayloadDto `json:"dialogue,omitempty"`
-	Kind string `json:"kind,omitempty"`
-	Media *AgentAuthoringMediaCandidatePayloadDto `json:"media,omitempty"`
-	Provenance []AgentAuthoringValueProvenanceSegmentDto `json:"provenance,omitempty"`
-	Text string `json:"text,omitempty"`
-	Voice *AgentAuthoringVoiceCandidatePayloadDto `json:"voice,omitempty"`
-}
-
-type AgentAuthoringFinalMediaStateDto struct {
-	AvatarResourceId string `json:"avatarResourceId,omitempty"`
-	AvatarUrl string `json:"avatarUrl,omitempty"`
-	ProfileCoverResourceId string `json:"profileCoverResourceId,omitempty"`
-	ProfileCoverUrl string `json:"profileCoverUrl,omitempty"`
-}
-
-type AgentAuthoringFinalStateDto struct {
-	Media *AgentAuthoringFinalMediaStateDto `json:"media,omitempty"`
-	Settings *OwnerAgentSettingsDto `json:"settings,omitempty"`
-	Voice *AgentAuthoringFinalVoiceStateDto `json:"voice,omitempty"`
-}
-
-type AgentAuthoringFinalVoiceStateDto struct {
-	Voice *AgentAuthoringVoiceCandidatePayloadDto `json:"voice,omitempty"`
-}
-
-type AgentAuthoringGenerationContextDto struct {
-	CurrentFinalState *AgentAuthoringFinalStateDto `json:"currentFinalState,omitempty"`
-	GroundingRefs []AgentAuthoringSourceRefDto `json:"groundingRefs,omitempty"`
-	RequiredTargets []string `json:"requiredTargets,omitempty"`
-	SourceSkeleton *CreatorWorldAgentSourceSkeletonDto `json:"sourceSkeleton,omitempty"`
-	TargetStatuses []AgentAuthoringTargetStatusDto `json:"targetStatuses,omitempty"`
-}
-
-type AgentAuthoringMediaCandidatePayloadDto struct {
-	Height float64 `json:"height,omitempty"`
-	Mime string `json:"mime,omitempty"`
-	Model string `json:"model,omitempty"`
-	Moderation *AgentAuthoringMediaModerationDto `json:"moderation,omitempty"`
-	Prompt string `json:"prompt,omitempty"`
-	Provenance []AgentAuthoringValueProvenanceSegmentDto `json:"provenance,omitempty"`
-	ResourceId string `json:"resourceId,omitempty"`
-	Url string `json:"url,omitempty"`
-	Width float64 `json:"width,omitempty"`
-}
-
-type AgentAuthoringMediaModerationDto struct {
-	Provider string `json:"provider,omitempty"`
-	Reason string `json:"reason,omitempty"`
-	Status string `json:"status,omitempty"`
-}
-
-type AgentAuthoringRuntimeTraceDto struct {
-	PromptTemplateId string `json:"promptTemplateId,omitempty"`
-	RuntimeAppId string `json:"runtimeAppId,omitempty"`
-	ScenarioId string `json:"scenarioId,omitempty"`
-	SkeletonId string `json:"skeletonId,omitempty"`
-	SourceDigestSha256 string `json:"sourceDigestSha256,omitempty"`
-	SurfaceId string `json:"surfaceId,omitempty"`
-}
-
-type AgentAuthoringSourceRefDto struct {
-	FactPath string `json:"factPath,omitempty"`
-	Label string `json:"label,omitempty"`
-	SourceKind string `json:"sourceKind,omitempty"`
-	SourceRef string `json:"sourceRef,omitempty"`
-}
-
-type AgentAuthoringTargetStatusDto struct {
-	AppliedAt string `json:"appliedAt,omitempty"`
-	LatestBatchId string `json:"latestBatchId,omitempty"`
-	LatestCandidateId string `json:"latestCandidateId,omitempty"`
-	LatestReviewStatus string `json:"latestReviewStatus,omitempty"`
-	TargetKey string `json:"targetKey,omitempty"`
-}
-
-type AgentAuthoringValueProvenanceSegmentDto struct {
-	Category string `json:"category,omitempty"`
-	Refs []string `json:"refs,omitempty"`
-	Summary string `json:"summary,omitempty"`
-}
-
-type AgentAuthoringVoiceCandidatePayloadDto struct {
-	HistoricalClaim string `json:"historicalClaim,omitempty"`
-	NarrationDirection string `json:"narrationDirection,omitempty"`
-	ProviderVoiceRef string `json:"providerVoiceRef,omitempty"`
-	SpeechModelId string `json:"speechModelId,omitempty"`
-	SpeechRoutePolicy string `json:"speechRoutePolicy,omitempty"`
-	VoiceAssetResourceId string `json:"voiceAssetResourceId,omitempty"`
-}
-
-type AgentBiologicalDto struct {
-	Ethnicity string `json:"ethnicity,omitempty"`
-	Gender string `json:"gender,omitempty"`
-	HeightCm float64 `json:"heightCm,omitempty"`
-	VisualAge string `json:"visualAge,omitempty"`
-	WeightKg float64 `json:"weightKg,omitempty"`
-}
-
-type AgentCapabilitiesDto struct {
-	CanCreate bool `json:"canCreate,omitempty"`
-	CurrentCount float64 `json:"currentCount,omitempty"`
-	MaxAllowed float64 `json:"maxAllowed,omitempty"`
-	Remaining float64 `json:"remaining,omitempty"`
-}
-
-type AgentCategory string
-
-type AgentCommunicationDto struct {
-	Formality string `json:"formality,omitempty"`
-	ResponseLength string `json:"responseLength,omitempty"`
-	Sentiment string `json:"sentiment,omitempty"`
-	Summary string `json:"summary,omitempty"`
-}
-
-type AgentDisplayDto struct {
-	Faction string `json:"faction,omitempty"`
-	IsNative bool `json:"isNative,omitempty"`
-	IsTransitGuest bool `json:"isTransitGuest,omitempty"`
-	Location string `json:"location,omitempty"`
-	Rank string `json:"rank,omitempty"`
-	Role string `json:"role,omitempty"`
-	SceneName string `json:"sceneName,omitempty"`
-	StatusSummary string `json:"statusSummary,omitempty"`
-	VoiceSummary string `json:"voiceSummary,omitempty"`
-}
-
-type AgentDnaDto struct {
-	Appearance *AgentAppearanceDto `json:"appearance,omitempty"`
-	Biological *AgentBiologicalDto `json:"biological,omitempty"`
-	Communication *AgentCommunicationDto `json:"communication,omitempty"`
-	Identity *AgentIdentityDto `json:"identity,omitempty"`
-	NsfwLevel string `json:"nsfwLevel,omitempty"`
-	Personality *AgentPersonalityDto `json:"personality,omitempty"`
-	Voice *AgentVoiceConfigDto `json:"voice,omitempty"`
-}
-
-type AgentFriendLimitDto struct {
-	CanAdd bool `json:"canAdd,omitempty"`
-	Limit float64 `json:"limit,omitempty"`
-	Used float64 `json:"used,omitempty"`
-}
-
-type AgentHandleAvailabilityResponseDto struct {
-	Available bool `json:"available,omitempty"`
-	Message string `json:"message,omitempty"`
-	Normalized string `json:"normalized,omitempty"`
-}
-
-type AgentIdentityDto struct {
-	Name string `json:"name,omitempty"`
-	Role string `json:"role,omitempty"`
-	Species string `json:"species,omitempty"`
-	Summary string `json:"summary,omitempty"`
-	Worldview string `json:"worldview,omitempty"`
-}
-
-type AgentImportance string
-
-type AgentMetadataDto struct {
-	ActiveWorldId string `json:"activeWorldId,omitempty"`
-	Category *AgentCategory `json:"category,omitempty"`
-	Importance *AgentImportance `json:"importance,omitempty"`
-	Origin *AgentOrigin `json:"origin,omitempty"`
-	OwnerWorldId string `json:"ownerWorldId,omitempty"`
-	OwnershipType *AgentOwnershipType `json:"ownershipType,omitempty"`
-	State *AgentState `json:"state,omitempty"`
-	Tier *VerificationTier `json:"tier,omitempty"`
-	WakeStrategy *AgentWakeStrategy `json:"wakeStrategy,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type AgentOrigin string
-
-type AgentOriginDto struct {
-	AgentId string `json:"agentId,omitempty"`
-	IsNative bool `json:"isNative,omitempty"`
-	MasterId string `json:"masterId,omitempty"`
-	WorldCreatorId string `json:"worldCreatorId,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type AgentOwnershipType string
-
-type AgentPersonalityDto struct {
-	EmotionBaseline string `json:"emotionBaseline,omitempty"`
-	Goals []string `json:"goals,omitempty"`
-	Interests []string `json:"interests,omitempty"`
-	Mbti string `json:"mbti,omitempty"`
-	RelationshipMode string `json:"relationshipMode,omitempty"`
-	Summary string `json:"summary,omitempty"`
-}
-
-type AgentProfileDto struct {
-	ActiveWorldId string `json:"activeWorldId,omitempty"`
-	Greeting string `json:"greeting,omitempty"`
-	Importance *AgentImportance `json:"importance,omitempty"`
-	OwnerWorldId string `json:"ownerWorldId,omitempty"`
-	OwnershipType *AgentOwnershipType `json:"ownershipType,omitempty"`
-	State *AgentState `json:"state,omitempty"`
-	Stats *AgentStatsDto `json:"stats,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type AgentRelationType string
-
-type AgentRelationshipOtherAccountDto struct {
-	AvatarUrl string `json:"avatarUrl,omitempty"`
-	DisplayName string `json:"displayName,omitempty"`
-	Handle string `json:"handle,omitempty"`
-	Id string `json:"id,omitempty"`
-	IsAgent bool `json:"isAgent,omitempty"`
-}
-
-type AgentRelationshipRecordDto struct {
-	Context string `json:"context,omitempty"`
-	CreatedAt string `json:"createdAt,omitempty"`
-	Direction string `json:"direction,omitempty"`
-	Id string `json:"id,omitempty"`
-	OtherAccount *AgentRelationshipOtherAccountDto `json:"otherAccount,omitempty"`
-	Strength float64 `json:"strength,omitempty"`
-	Type *AgentRelationType `json:"type,omitempty"`
-}
-
-type AgentResponseMetadataDto struct {
-	ActiveWorldId string `json:"activeWorldId,omitempty"`
-	Category string `json:"category,omitempty"`
-	Importance *AgentImportance `json:"importance,omitempty"`
-	Origin *AgentOrigin `json:"origin,omitempty"`
-	OwnerWorldId string `json:"ownerWorldId,omitempty"`
-	OwnershipType *AgentOwnershipType `json:"ownershipType,omitempty"`
-	State *AgentState `json:"state,omitempty"`
-	Tier *VerificationTier `json:"tier,omitempty"`
-	WakeStrategy string `json:"wakeStrategy,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type AgentResponseProfileDto struct {
-	ActiveWorldId string `json:"activeWorldId,omitempty"`
-	Importance *AgentImportance `json:"importance,omitempty"`
-	OwnerWorldId string `json:"ownerWorldId,omitempty"`
-	OwnershipType *AgentOwnershipType `json:"ownershipType,omitempty"`
-	State *AgentState `json:"state,omitempty"`
-	Stats *AgentResponseProfileStatsDto `json:"stats,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type AgentResponseProfileStatsDto struct {
-	EngagementCount float64 `json:"engagementCount,omitempty"`
-	InfluenceTier float64 `json:"influenceTier,omitempty"`
-	InteractionTier float64 `json:"interactionTier,omitempty"`
-	LastActiveAt string `json:"lastActiveAt,omitempty"`
-	VitalityScore float64 `json:"vitalityScore,omitempty"`
-}
-
-type AgentResponseTierSummaryDto struct {
-	AssetTier float64 `json:"assetTier,omitempty"`
-	InfluenceTier float64 `json:"influenceTier,omitempty"`
-	InteractionTier float64 `json:"interactionTier,omitempty"`
-	VitalityScore float64 `json:"vitalityScore,omitempty"`
-}
-
-type AgentResponseUserDto struct {
-	Agent *AgentResponseMetadataDto `json:"agent,omitempty"`
-	AgentProfile *AgentResponseProfileDto `json:"agentProfile,omitempty"`
-	AvatarUrl string `json:"avatarUrl,omitempty"`
-	Bio string `json:"bio,omitempty"`
-	CreatedAt string `json:"createdAt,omitempty"`
-	DisplayName string `json:"displayName,omitempty"`
-	FriendCount float64 `json:"friendCount,omitempty"`
-	Handle string `json:"handle,omitempty"`
-	Id string `json:"id,omitempty"`
-	IsAgent bool `json:"isAgent,omitempty"`
-	IsOnline bool `json:"isOnline,omitempty"`
-	PresenceEmoji string `json:"presenceEmoji,omitempty"`
-	PresenceStatus string `json:"presenceStatus,omitempty"`
-	PresenceText string `json:"presenceText,omitempty"`
-	ProfileCoverUrl string `json:"profileCoverUrl,omitempty"`
-	Stats *AgentStatsDto `json:"stats,omitempty"`
-	Status *AccountStatus `json:"status,omitempty"`
-	Tiers *AgentResponseTierSummaryDto `json:"tiers,omitempty"`
-}
-
-type AgentRuleDto struct {
-	AgentId string `json:"agentId,omitempty"`
-	Category string `json:"category,omitempty"`
-	ConflictsWith []string `json:"conflictsWith,omitempty"`
-	CreatedAt string `json:"createdAt,omitempty"`
-	CreatedBy string `json:"createdBy,omitempty"`
-	DependsOn []string `json:"dependsOn,omitempty"`
-	Hardness string `json:"hardness,omitempty"`
-	Id string `json:"id,omitempty"`
-	Importance float64 `json:"importance,omitempty"`
-	InheritedWorldDomain string `json:"inheritedWorldDomain,omitempty"`
-	Layer string `json:"layer,omitempty"`
-	LineageId string `json:"lineageId,omitempty"`
-	Priority float64 `json:"priority,omitempty"`
-	Provenance string `json:"provenance,omitempty"`
-	Reasoning string `json:"reasoning,omitempty"`
-	RuleKey string `json:"ruleKey,omitempty"`
-	Scope string `json:"scope,omitempty"`
-	SourceRef string `json:"sourceRef,omitempty"`
-	Statement string `json:"statement,omitempty"`
-	Status string `json:"status,omitempty"`
-	Structured map[string]any `json:"structured,omitempty"`
-	Title string `json:"title,omitempty"`
-	UpdatedAt string `json:"updatedAt,omitempty"`
-	UpdatedBy string `json:"updatedBy,omitempty"`
-	Version float64 `json:"version,omitempty"`
-	WorldRuleRef string `json:"worldRuleRef,omitempty"`
-}
-
-type AgentRuleLayerCountDto struct {
-	BEHAVIORAL float64 `json:"BEHAVIORAL,omitempty"`
-	CONTEXTUAL float64 `json:"CONTEXTUAL,omitempty"`
-	DNA float64 `json:"DNA,omitempty"`
-	RELATIONAL float64 `json:"RELATIONAL,omitempty"`
-}
-
-type AgentState string
-
-type AgentStatsDto struct {
-	EngagementCount float64 `json:"engagementCount,omitempty"`
-	InfluenceTier float64 `json:"influenceTier,omitempty"`
-	InteractionTier float64 `json:"interactionTier,omitempty"`
-	LastActiveAt string `json:"lastActiveAt,omitempty"`
-	VitalityScore float64 `json:"vitalityScore,omitempty"`
-}
-
-type AgentVisibilitySettingsDto struct {
-	AccountVisibility *Visibility `json:"accountVisibility,omitempty"`
-	DefaultPostVisibility *Visibility `json:"defaultPostVisibility,omitempty"`
-	DmVisibility *Visibility `json:"dmVisibility,omitempty"`
-	ProfileVisibility *Visibility `json:"profileVisibility,omitempty"`
-}
-
-type AgentVoiceConfigDto struct {
-	Description string `json:"description,omitempty"`
-	EmotionEnabled bool `json:"emotionEnabled,omitempty"`
-	Pitch float64 `json:"pitch,omitempty"`
-	SpeechModelId string `json:"speechModelId,omitempty"`
-	SpeechRoutePolicy string `json:"speechRoutePolicy,omitempty"`
-	Speed float64 `json:"speed,omitempty"`
-	VoiceId string `json:"voiceId,omitempty"`
-}
-
-type AgentWakeStrategy string
-
-type ApiKeyType string
 
 type AppPermissionGrantDecisionDto struct {
 	ExpectedVersion float64 `json:"expectedVersion,omitempty"`
@@ -10419,18 +9994,6 @@ type AppPermissionScopeFamily string
 
 type AppPermissionScopeName string
 
-type AppendWorldHistoryDto struct {
-	Commit *MutationCommitEnvelopeDto `json:"commit,omitempty"`
-	HistoryAppends []WorldHistoryAppendItemDto `json:"historyAppends,omitempty"`
-	IfSnapshotVersion string `json:"ifSnapshotVersion,omitempty"`
-	Reason string `json:"reason,omitempty"`
-}
-
-type ApplyAgentAuthoringDraftBatchResponseDto struct {
-	AppliedTargetKeys []string `json:"appliedTargetKeys,omitempty"`
-	Batch *AgentAuthoringDraftBatchDto `json:"batch,omitempty"`
-}
-
 type AssetDetailDto struct {
 	AuthorId string `json:"authorId,omitempty"`
 	ClonePolicy string `json:"clonePolicy,omitempty"`
@@ -10490,40 +10053,7 @@ type AuthTokensDto struct {
 	User *AuthUserDto `json:"user,omitempty"`
 }
 
-type AuthUserAgentMetadataDto struct {
-	ActiveWorldId string `json:"activeWorldId,omitempty"`
-	Category string `json:"category,omitempty"`
-	Importance *AgentImportance `json:"importance,omitempty"`
-	Origin *AgentOrigin `json:"origin,omitempty"`
-	OwnerWorldId string `json:"ownerWorldId,omitempty"`
-	OwnershipType *AgentOwnershipType `json:"ownershipType,omitempty"`
-	State *AgentState `json:"state,omitempty"`
-	Tier *VerificationTier `json:"tier,omitempty"`
-	WakeStrategy string `json:"wakeStrategy,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type AuthUserAgentProfileDto struct {
-	ActiveWorldId string `json:"activeWorldId,omitempty"`
-	Importance *AgentImportance `json:"importance,omitempty"`
-	OwnerWorldId string `json:"ownerWorldId,omitempty"`
-	OwnershipType *AgentOwnershipType `json:"ownershipType,omitempty"`
-	State *AgentState `json:"state,omitempty"`
-	Stats *AuthUserAgentStatsDto `json:"stats,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type AuthUserAgentStatsDto struct {
-	EngagementCount float64 `json:"engagementCount,omitempty"`
-	InfluenceTier float64 `json:"influenceTier,omitempty"`
-	InteractionTier float64 `json:"interactionTier,omitempty"`
-	LastActiveAt string `json:"lastActiveAt,omitempty"`
-	VitalityScore float64 `json:"vitalityScore,omitempty"`
-}
-
 type AuthUserDto struct {
-	Agent *AuthUserAgentMetadataDto `json:"agent,omitempty"`
-	AgentProfile *AuthUserAgentProfileDto `json:"agentProfile,omitempty"`
 	AvatarUrl string `json:"avatarUrl,omitempty"`
 	Bio string `json:"bio,omitempty"`
 	BirthYear float64 `json:"birthYear,omitempty"`
@@ -10536,7 +10066,6 @@ type AuthUserDto struct {
 	Handle string `json:"handle,omitempty"`
 	HasPassword bool `json:"hasPassword,omitempty"`
 	Id string `json:"id,omitempty"`
-	IsAgent bool `json:"isAgent,omitempty"`
 	IsTwoFactorEnabled bool `json:"isTwoFactorEnabled,omitempty"`
 	Languages []string `json:"languages,omitempty"`
 	LastHandleChangeAt string `json:"lastHandleChangeAt,omitempty"`
@@ -10544,7 +10073,7 @@ type AuthUserDto struct {
 	PresenceEmoji string `json:"presenceEmoji,omitempty"`
 	PresenceStatus string `json:"presenceStatus,omitempty"`
 	PresenceText string `json:"presenceText,omitempty"`
-	Role *AccountRole `json:"role,omitempty"`
+	Role *PublicAccountRole `json:"role,omitempty"`
 	SocialProfiles []AuthUserSocialProfileDto `json:"socialProfiles,omitempty"`
 	Status *AccountStatus `json:"status,omitempty"`
 	Tags []string `json:"tags,omitempty"`
@@ -10578,102 +10107,18 @@ type AuthUserWalletDto struct {
 	UpdatedAt string `json:"updatedAt,omitempty"`
 }
 
-type BatchCreateAgentCreatedDto struct {
-	DisplayName string `json:"displayName,omitempty"`
-	Handle string `json:"handle,omitempty"`
-	Id string `json:"id,omitempty"`
-	Index float64 `json:"index,omitempty"`
-	OwnershipType string `json:"ownershipType,omitempty"`
-	State string `json:"state,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type BatchCreateAgentFailedDto struct {
-	Error string `json:"error,omitempty"`
-	Handle string `json:"handle,omitempty"`
-	Index float64 `json:"index,omitempty"`
-}
-
-type BatchCreateAgentsRequestDto struct {
-	ContinueOnError bool `json:"continueOnError,omitempty"`
-	Items []CreateAgentDto `json:"items,omitempty"`
-}
-
-type BatchCreateAgentsResponseDto struct {
-	Created []BatchCreateAgentCreatedDto `json:"created,omitempty"`
-	Failed []BatchCreateAgentFailedDto `json:"failed,omitempty"`
-}
-
-type BatchUpsertBindingsDto struct {
-	BindingUpserts []BindingUpsertDto `json:"bindingUpserts,omitempty"`
-}
-
 type BindEmailDto struct {
 	Email string `json:"email,omitempty"`
 	EmailOtpCode string `json:"emailOtpCode,omitempty"`
 	Password string `json:"password,omitempty"`
 }
 
-type BindingDetailDto struct {
-	BindingKind string `json:"bindingKind,omitempty"`
-	BindingPoint string `json:"bindingPoint,omitempty"`
-	ConditionHash string `json:"conditionHash,omitempty"`
-	Conditions map[string]any `json:"conditions,omitempty"`
-	CreatedAt string `json:"createdAt,omitempty"`
-	CreatedBy string `json:"createdBy,omitempty"`
-	HostId string `json:"hostId,omitempty"`
-	HostType string `json:"hostType,omitempty"`
-	Id string `json:"id,omitempty"`
-	IntentPrompt string `json:"intentPrompt,omitempty"`
-	ObjectId string `json:"objectId,omitempty"`
-	ObjectType string `json:"objectType,omitempty"`
-	Priority float64 `json:"priority,omitempty"`
-	Resource *BindingResourceDetailDto `json:"resource,omitempty"`
-	ScopeWorldId string `json:"scopeWorldId,omitempty"`
-	Tags []string `json:"tags,omitempty"`
-	UpdatedAt string `json:"updatedAt,omitempty"`
-	VersionPin string `json:"versionPin,omitempty"`
-}
-
-type BindingListDto struct {
-	Items []BindingDetailDto `json:"items,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type BindingResourceDetailDto struct {
-	DurationSec float64 `json:"durationSec,omitempty"`
-	HashSha256 string `json:"hashSha256,omitempty"`
-	Height float64 `json:"height,omitempty"`
-	Id string `json:"id,omitempty"`
-	Label string `json:"label,omitempty"`
-	MimeType string `json:"mimeType,omitempty"`
-	Provenance string `json:"provenance,omitempty"`
-	Provider string `json:"provider,omitempty"`
-	ResourceType string `json:"resourceType,omitempty"`
-	SizeBytes float64 `json:"sizeBytes,omitempty"`
-	SourceRef string `json:"sourceRef,omitempty"`
-	StorageRef string `json:"storageRef,omitempty"`
-	Tags []string `json:"tags,omitempty"`
-	Url string `json:"url,omitempty"`
-	Width float64 `json:"width,omitempty"`
-}
-
-type BindingUpsertDto struct {
-	BindingKind string `json:"bindingKind,omitempty"`
-	BindingPoint string `json:"bindingPoint,omitempty"`
-	Conditions map[string]any `json:"conditions,omitempty"`
-	HostId string `json:"hostId,omitempty"`
-	HostType string `json:"hostType,omitempty"`
-	IntentPrompt string `json:"intentPrompt,omitempty"`
-	ObjectId string `json:"objectId,omitempty"`
-	ObjectType string `json:"objectType,omitempty"`
-	Priority float64 `json:"priority,omitempty"`
-	Tags []string `json:"tags,omitempty"`
-	VersionPin string `json:"versionPin,omitempty"`
-}
-
 type BlockUserBodyDto struct {
 	Reason string `json:"reason,omitempty"`
+}
+
+type BootstrapOasisWorldDto struct {
+	Confirm string `json:"confirm,omitempty"`
 }
 
 type BundleDetailDto struct {
@@ -10701,40 +10146,12 @@ type BundleMemberDto struct {
 	SortOrder float64 `json:"sortOrder,omitempty"`
 }
 
-type CalendarSystemDto struct {
-	DaysPerMonth float64 `json:"daysPerMonth,omitempty"`
-	DaysPerWeek float64 `json:"daysPerWeek,omitempty"`
-	HoursPerDay float64 `json:"hoursPerDay,omitempty"`
-	MonthsPerYear float64 `json:"monthsPerYear,omitempty"`
-}
-
-type CanManageNsfwResponseDto struct {
-	CanManage bool `json:"canManage,omitempty"`
-	IsCreator bool `json:"isCreator,omitempty"`
-}
-
 type CanWithdrawDto struct {
 	Balance string `json:"balance,omitempty"`
 	CanWithdraw bool `json:"canWithdraw,omitempty"`
 	ConnectStatus *StripeConnectStatus `json:"connectStatus,omitempty"`
 	MinAmount string `json:"minAmount,omitempty"`
 	Reason string `json:"reason,omitempty"`
-}
-
-type CausalityModelDto struct {
-	AllowParadox bool `json:"allowParadox,omitempty"`
-	FateWeight float64 `json:"fateWeight,omitempty"`
-	KarmaEnabled bool `json:"karmaEnabled,omitempty"`
-	MaxChainDepth float64 `json:"maxChainDepth,omitempty"`
-	Rules []CausalityRuleDto `json:"rules,omitempty"`
-	Type string `json:"type,omitempty"`
-}
-
-type CausalityRuleDto struct {
-	Effect string `json:"effect,omitempty"`
-	Id string `json:"id,omitempty"`
-	Probability float64 `json:"probability,omitempty"`
-	Trigger string `json:"trigger,omitempty"`
 }
 
 type ChangeEmailDto struct {
@@ -10816,53 +10233,12 @@ type CheckEmailResponseDto struct {
 	EntryRoute string `json:"entryRoute,omitempty"`
 }
 
-type ClassDefinitionDto struct {
-	Abilities []string `json:"abilities,omitempty"`
-	Description string `json:"description,omitempty"`
-	Id string `json:"id,omitempty"`
-	Name string `json:"name,omitempty"`
-}
-
 type CloneAssetDto struct {
 	ClonePolicy string `json:"clonePolicy,omitempty"`
 	OwnerId string `json:"ownerId,omitempty"`
 	Status string `json:"status,omitempty"`
 	TransferPolicy string `json:"transferPolicy,omitempty"`
 	UsePolicy *UsePolicyDto `json:"usePolicy,omitempty"`
-}
-
-type CommitRealmGroupMessageCandidateInputDto struct {
-	AuditLineageRef string `json:"auditLineageRef,omitempty"`
-	Body string `json:"body,omitempty"`
-	BodyHash string `json:"bodyHash,omitempty"`
-	CandidateEvidenceRef string `json:"candidateEvidenceRef,omitempty"`
-	CandidateId string `json:"candidateId,omitempty"`
-	CandidateKind string `json:"candidateKind,omitempty"`
-	ClientCorrelationId string `json:"clientCorrelationId,omitempty"`
-	CommitDisposition string `json:"commitDisposition,omitempty"`
-	CreatedAt string `json:"createdAt,omitempty"`
-	EvidenceHash string `json:"evidenceHash,omitempty"`
-	ExpectedLocalAgentRef string `json:"expectedLocalAgentRef,omitempty"`
-	ExpectedRealmGroupAgentSlotId string `json:"expectedRealmGroupAgentSlotId,omitempty"`
-	ExpiresAt string `json:"expiresAt,omitempty"`
-	IdempotencyKey string `json:"idempotencyKey,omitempty"`
-	MessageType string `json:"messageType,omitempty"`
-	ModerationRef string `json:"moderationRef,omitempty"`
-	OutputCandidateRef string `json:"outputCandidateRef,omitempty"`
-	PolicyVerdictRef string `json:"policyVerdictRef,omitempty"`
-	RefusalCode string `json:"refusalCode,omitempty"`
-	RefusalHash string `json:"refusalHash,omitempty"`
-	RefusalReason string `json:"refusalReason,omitempty"`
-	RefusalRef string `json:"refusalRef,omitempty"`
-	RuntimeTraceRef string `json:"runtimeTraceRef,omitempty"`
-	TriggerRef string `json:"triggerRef,omitempty"`
-}
-
-type CommitWorldStateDto struct {
-	Commit *MutationCommitEnvelopeDto `json:"commit,omitempty"`
-	IfSnapshotVersion string `json:"ifSnapshotVersion,omitempty"`
-	Reason string `json:"reason,omitempty"`
-	Writes []WorldStateWriteDto `json:"writes,omitempty"`
 }
 
 type ConnectDashboardLinkDto struct {
@@ -10875,76 +10251,6 @@ type ConnectOnboardingResponseDto struct {
 }
 
 type ContentRatingString string
-
-type CreateAgentAuthoringDraftBatchDto struct {
-	Candidates []CreateAgentAuthoringDraftCandidateDto `json:"candidates,omitempty"`
-	Metadata *AgentAuthoringDraftBatchMetadataDto `json:"metadata,omitempty"`
-	SkeletonId string `json:"skeletonId,omitempty"`
-}
-
-type CreateAgentAuthoringDraftCandidateDto struct {
-	GeneratedAt string `json:"generatedAt,omitempty"`
-	ModelId string `json:"modelId,omitempty"`
-	PromptDigestSha256 string `json:"promptDigestSha256,omitempty"`
-	Provenance *AgentAuthoringRuntimeTraceDto `json:"provenance,omitempty"`
-	RoutePolicy string `json:"routePolicy,omitempty"`
-	RuntimeTraceId string `json:"runtimeTraceId,omitempty"`
-	SourceRefs []AgentAuthoringSourceRefDto `json:"sourceRefs,omitempty"`
-	TargetKey string `json:"targetKey,omitempty"`
-	Value *AgentAuthoringDraftCandidateValueDto `json:"value,omitempty"`
-}
-
-type CreateAgentDto struct {
-	Concept string `json:"concept,omitempty"`
-	Description string `json:"description,omitempty"`
-	DisplayName string `json:"displayName,omitempty"`
-	Dna map[string]any `json:"dna,omitempty"`
-	DnaPrimary string `json:"dnaPrimary,omitempty"`
-	DnaSecondary []DnaSecondaryTrait `json:"dnaSecondary,omitempty"`
-	Handle string `json:"handle,omitempty"`
-	OwnershipType string `json:"ownershipType,omitempty"`
-	ReferenceImageUrl string `json:"referenceImageUrl,omitempty"`
-	Rules *CreateAgentRulesDto `json:"rules,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type CreateAgentResponseDto struct {
-	Dna map[string]any `json:"dna,omitempty"`
-	Id string `json:"id,omitempty"`
-	State string `json:"state,omitempty"`
-	User *AgentResponseUserDto `json:"user,omitempty"`
-}
-
-type CreateAgentRuleDto struct {
-	Category string `json:"category,omitempty"`
-	ConflictsWith []string `json:"conflictsWith,omitempty"`
-	DependsOn []string `json:"dependsOn,omitempty"`
-	Hardness string `json:"hardness,omitempty"`
-	Importance float64 `json:"importance,omitempty"`
-	Layer string `json:"layer,omitempty"`
-	Priority float64 `json:"priority,omitempty"`
-	Provenance string `json:"provenance,omitempty"`
-	Reasoning string `json:"reasoning,omitempty"`
-	RuleKey string `json:"ruleKey,omitempty"`
-	Scope string `json:"scope,omitempty"`
-	SourceRef string `json:"sourceRef,omitempty"`
-	Statement string `json:"statement,omitempty"`
-	Structured map[string]any `json:"structured,omitempty"`
-	Title string `json:"title,omitempty"`
-	WorldRuleRef string `json:"worldRuleRef,omitempty"`
-}
-
-type CreateAgentRulesDto struct {
-	Format string `json:"format,omitempty"`
-	Lines []string `json:"lines,omitempty"`
-	Text string `json:"text,omitempty"`
-}
-
-type CreateApiKeyDto struct {
-	Label string `json:"label,omitempty"`
-	Scopes []string `json:"scopes,omitempty"`
-	Type *ApiKeyType `json:"type,omitempty"`
-}
 
 type CreateAssetDto struct {
 	AuthorId string `json:"authorId,omitempty"`
@@ -10963,7 +10269,6 @@ type CreateAssetDto struct {
 }
 
 type CreateAudioDirectUploadDto struct {
-	AgentId string `json:"agentId,omitempty"`
 	ControllerId string `json:"controllerId,omitempty"`
 	ControllerKind string `json:"controllerKind,omitempty"`
 	DeliveryAccess string `json:"deliveryAccess,omitempty"`
@@ -11026,11 +10331,18 @@ type CreatePostDto struct {
 	Tags []string `json:"tags,omitempty"`
 }
 
+type CreateRealmPersonaDto struct {
+	Core map[string]any `json:"core,omitempty"`
+	HomeWorldId string `json:"homeWorldId,omitempty"`
+	Id string `json:"id,omitempty"`
+	Origin *RealmCoreOriginDto `json:"origin,omitempty"`
+}
+
 type CreateRelationshipDto struct {
 	Context string `json:"context,omitempty"`
 	Strength float64 `json:"strength,omitempty"`
 	TargetId string `json:"targetId,omitempty"`
-	Type *AgentRelationType `json:"type,omitempty"`
+	Type *AccountRelationType `json:"type,omitempty"`
 }
 
 type CreateReportDto struct {
@@ -11047,6 +10359,10 @@ type CreateReviewDto struct {
 	Tags string `json:"tags,omitempty"`
 }
 
+type CreateRuntimeSourceSnapshotDto struct {
+	SourceRef *TypedSourceRefDto `json:"sourceRef,omitempty"`
+}
+
 type CreateSparkCheckoutDto struct {
 	CancelUrl string `json:"cancelUrl,omitempty"`
 	PackageId string `json:"packageId,omitempty"`
@@ -11060,7 +10376,6 @@ type CreateSubscriptionCheckoutDto struct {
 }
 
 type CreateTextResourceDto struct {
-	AgentId string `json:"agentId,omitempty"`
 	Content string `json:"content,omitempty"`
 	ControllerId string `json:"controllerId,omitempty"`
 	ControllerKind string `json:"controllerKind,omitempty"`
@@ -11089,184 +10404,27 @@ type CreateWithdrawalDto struct {
 	GemAmount string `json:"gemAmount,omitempty"`
 }
 
-type CreateWorldDraftDto struct {
-	DraftPayload *WorldDraftPayloadDto `json:"draftPayload,omitempty"`
-	SourceRef string `json:"sourceRef,omitempty"`
-	SourceType string `json:"sourceType,omitempty"`
-	TargetWorldId string `json:"targetWorldId,omitempty"`
-}
-
-type CreateWorldRuleDto struct {
-	Category string `json:"category,omitempty"`
-	ConflictsWith []string `json:"conflictsWith,omitempty"`
-	DependsOn []string `json:"dependsOn,omitempty"`
-	Domain string `json:"domain,omitempty"`
-	Hardness string `json:"hardness,omitempty"`
-	Overrides string `json:"overrides,omitempty"`
-	Priority float64 `json:"priority,omitempty"`
-	Provenance string `json:"provenance,omitempty"`
-	Reasoning string `json:"reasoning,omitempty"`
-	RuleKey string `json:"ruleKey,omitempty"`
-	Scope string `json:"scope,omitempty"`
-	SourceRef string `json:"sourceRef,omitempty"`
-	Statement string `json:"statement,omitempty"`
-	Structured map[string]any `json:"structured,omitempty"`
-	Title string `json:"title,omitempty"`
-	ValidFrom string `json:"validFrom,omitempty"`
-	ValidUntil string `json:"validUntil,omitempty"`
-}
-
-type CreateWorldTransitDto struct {
-	AgentId string `json:"agentId,omitempty"`
-	Context *TransitContextDto `json:"context,omitempty"`
-	FromWorldId string `json:"fromWorldId,omitempty"`
-	TransitType string `json:"transitType,omitempty"`
-}
-
-type CreatorAgentResponseDto struct {
-	Capabilities *UserAgentDnaDto `json:"capabilities,omitempty"`
+type CreateWorldCharacterCoreDto struct {
+	Core map[string]any `json:"core,omitempty"`
+	EntityId string `json:"entityId,omitempty"`
 	Id string `json:"id,omitempty"`
-	User *UserLiteDto `json:"user,omitempty"`
+	Origin *RealmCoreOriginDto `json:"origin,omitempty"`
 }
 
-type CreatorCapabilitiesResponseDto struct {
-	AllowedActions []string `json:"allowedActions,omitempty"`
-	ForbiddenActions []string `json:"forbiddenActions,omitempty"`
-	IsCreator bool `json:"isCreator,omitempty"`
-	WorldStatus string `json:"worldStatus,omitempty"`
+type CreateWorldCoreDto struct {
+	Core map[string]any `json:"core,omitempty"`
+	Id string `json:"id,omitempty"`
+	Origin *RealmCoreOriginDto `json:"origin,omitempty"`
+	Visibility string `json:"visibility,omitempty"`
 }
 
 type CreatorEligibilityResponseDto struct {
-	CanCreateAgent bool `json:"canCreateAgent,omitempty"`
+	CanCreateRealmPersona bool `json:"canCreateRealmPersona,omitempty"`
 	CanCreateWorld bool `json:"canCreateWorld,omitempty"`
 	IsEligible bool `json:"isEligible,omitempty"`
 	Message string `json:"message,omitempty"`
 	Status string `json:"status,omitempty"`
 	Tier string `json:"tier,omitempty"`
-}
-
-type CreatorWorldAgentChatReadinessDto struct {
-	AgentId string `json:"agentId,omitempty"`
-	AgentRuleCount float64 `json:"agentRuleCount,omitempty"`
-	AppliedAuthoringTargets []string `json:"appliedAuthoringTargets,omitempty"`
-	AuthorityReason string `json:"authorityReason,omitempty"`
-	ConsumerSurface string `json:"consumerSurface,omitempty"`
-	Gates *CreatorWorldAgentChatReadinessGatesDto `json:"gates,omitempty"`
-	OwnerScope string `json:"ownerScope,omitempty"`
-	Profile *CreatorWorldAgentChatReadinessProfileDto `json:"profile,omitempty"`
-	RawRuleContentExposed bool `json:"rawRuleContentExposed,omitempty"`
-	RuntimeProjectionChecksum string `json:"runtimeProjectionChecksum,omitempty"`
-	SelectedInputCount float64 `json:"selectedInputCount,omitempty"`
-	SelectedOwnerSettingFields []string `json:"selectedOwnerSettingFields,omitempty"`
-	SuppressedInputCount float64 `json:"suppressedInputCount,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
-	WorldRuleCount float64 `json:"worldRuleCount,omitempty"`
-}
-
-type CreatorWorldAgentChatReadinessGatesDto struct {
-	AuthoringDraftReady bool `json:"authoringDraftReady,omitempty"`
-	BehaviorDnaReady bool `json:"behaviorDnaReady,omitempty"`
-	DialogueExemplarsReady bool `json:"dialogueExemplarsReady,omitempty"`
-	GreetingReady bool `json:"greetingReady,omitempty"`
-	LocalAgentIdentityReady bool `json:"localAgentIdentityReady,omitempty"`
-	OwnerSettingsReady bool `json:"ownerSettingsReady,omitempty"`
-	ProfileContextReady bool `json:"profileContextReady,omitempty"`
-	ProfileCoverReady bool `json:"profileCoverReady,omitempty"`
-	ProfileMediaReady bool `json:"profileMediaReady,omitempty"`
-	SpeechRouteReady bool `json:"speechRouteReady,omitempty"`
-	VoiceReferenceReady bool `json:"voiceReferenceReady,omitempty"`
-}
-
-type CreatorWorldAgentChatReadinessProfileDto struct {
-	AvatarResourceId string `json:"avatarResourceId,omitempty"`
-	AvatarUrl string `json:"avatarUrl,omitempty"`
-	DefaultVoiceReference string `json:"defaultVoiceReference,omitempty"`
-	DisplayName string `json:"displayName,omitempty"`
-	Handle string `json:"handle,omitempty"`
-	ProfileCoverResourceId string `json:"profileCoverResourceId,omitempty"`
-	ProfileCoverUrl string `json:"profileCoverUrl,omitempty"`
-	SpeechModelId string `json:"speechModelId,omitempty"`
-	SpeechRoutePolicy string `json:"speechRoutePolicy,omitempty"`
-}
-
-type CreatorWorldAgentCompletionBriefDto struct {
-	AvatarBrief string `json:"avatarBrief,omitempty"`
-	ContentStyle string `json:"contentStyle,omitempty"`
-	Description string `json:"description,omitempty"`
-	DnaBrief string `json:"dnaBrief,omitempty"`
-	GreetingBrief string `json:"greetingBrief,omitempty"`
-	Positioning string `json:"positioning,omitempty"`
-	VoiceBrief string `json:"voiceBrief,omitempty"`
-}
-
-type CreatorWorldAgentRuntimeReadinessDto struct {
-	Reason string `json:"reason,omitempty"`
-	RequiredCreatorActions []string `json:"requiredCreatorActions,omitempty"`
-	RoleplayRuntime string `json:"roleplayRuntime,omitempty"`
-}
-
-type CreatorWorldAgentSkeletonFactsDto struct {
-	BirthYear float64 `json:"birthYear,omitempty"`
-	DeathYear float64 `json:"deathYear,omitempty"`
-	OfficeFacts []CreatorWorldAgentSkeletonOfficeFactDto `json:"officeFacts,omitempty"`
-	Relationships []CreatorWorldAgentSkeletonRelationshipDto `json:"relationships,omitempty"`
-	RepresentativeFacts []string `json:"representativeFacts,omitempty"`
-	TimelineFactCount float64 `json:"timelineFactCount,omitempty"`
-}
-
-type CreatorWorldAgentSkeletonOfficeFactDto struct {
-	EventId string `json:"eventId,omitempty"`
-	Name string `json:"name,omitempty"`
-	OfficeName string `json:"officeName,omitempty"`
-	Summary string `json:"summary,omitempty"`
-}
-
-type CreatorWorldAgentSkeletonRelationshipDto struct {
-	Context string `json:"context,omitempty"`
-	RelationType string `json:"relationType,omitempty"`
-	RelationshipId string `json:"relationshipId,omitempty"`
-	TargetEntityId string `json:"targetEntityId,omitempty"`
-	TargetName string `json:"targetName,omitempty"`
-}
-
-type CreatorWorldAgentSourceSkeletonDto struct {
-	AgentId string `json:"agentId,omitempty"`
-	Aliases []string `json:"aliases,omitempty"`
-	CandidateId string `json:"candidateId,omitempty"`
-	CanonicalName string `json:"canonicalName,omitempty"`
-	CompletionBrief *CreatorWorldAgentCompletionBriefDto `json:"completionBrief,omitempty"`
-	MissingFields []string `json:"missingFields,omitempty"`
-	PackageId string `json:"packageId,omitempty"`
-	PackageVersion string `json:"packageVersion,omitempty"`
-	RuntimeReadiness *CreatorWorldAgentRuntimeReadinessDto `json:"runtimeReadiness,omitempty"`
-	SkeletonId string `json:"skeletonId,omitempty"`
-	SourceEntityId string `json:"sourceEntityId,omitempty"`
-	SourceFacts *CreatorWorldAgentSkeletonFactsDto `json:"sourceFacts,omitempty"`
-	SourceKind string `json:"sourceKind,omitempty"`
-	SourceProfile string `json:"sourceProfile,omitempty"`
-	SourceRefs []string `json:"sourceRefs,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type CreatorWorldSummaryDto struct {
-	AgentCount float64 `json:"agentCount,omitempty"`
-	AuthorityReason string `json:"authorityReason,omitempty"`
-	BannerUrl string `json:"bannerUrl,omitempty"`
-	CreatorId string `json:"creatorId,omitempty"`
-	Description string `json:"description,omitempty"`
-	IconUrl string `json:"iconUrl,omitempty"`
-	Id string `json:"id,omitempty"`
-	Motto string `json:"motto,omitempty"`
-	Name string `json:"name,omitempty"`
-	Overview string `json:"overview,omitempty"`
-	Status string `json:"status,omitempty"`
-	Tagline string `json:"tagline,omitempty"`
-	Type string `json:"type,omitempty"`
-	UpdatedAt string `json:"updatedAt,omitempty"`
-}
-
-type CreatorWorldSummaryListDto struct {
-	Items []CreatorWorldSummaryDto `json:"items,omitempty"`
 }
 
 type CurrencyBalancesDto struct {
@@ -11295,15 +10453,9 @@ type CursorPageMetaDto struct {
 	NextCursor string `json:"nextCursor,omitempty"`
 }
 
-type DeleteAgentOperationResponseDto struct {
-	Success bool `json:"success,omitempty"`
-}
-
 type DeleteRelationshipResponseDto struct {
 	Deleted bool `json:"deleted,omitempty"`
 }
-
-type DnaSecondaryTrait string
 
 type EditMessageInputDto struct {
 	Payload any `json:"payload,omitempty"`
@@ -11324,25 +10476,6 @@ type EmailOtpVerifyDto struct {
 	Email string `json:"email,omitempty"`
 }
 
-type ExistenceDefinitionDto struct {
-	Classes []ClassDefinitionDto `json:"classes,omitempty"`
-	Factions []FactionDefinitionDto `json:"factions,omitempty"`
-	Species []SpeciesDefinitionDto `json:"species,omitempty"`
-}
-
-type FactionDefinitionDto struct {
-	Alignment string `json:"alignment,omitempty"`
-	Description string `json:"description,omitempty"`
-	Id string `json:"id,omitempty"`
-	Name string `json:"name,omitempty"`
-	Relationships []FactionRelationshipDto `json:"relationships,omitempty"`
-}
-
-type FactionRelationshipDto struct {
-	TargetFactionId string `json:"targetFactionId,omitempty"`
-	Type string `json:"type,omitempty"`
-}
-
 type FeedPageMetaDto struct {
 	Cursor string `json:"cursor,omitempty"`
 	Limit float64 `json:"limit,omitempty"`
@@ -11355,7 +10488,6 @@ type FeedResponseDto struct {
 }
 
 type FinalizeResourceDto struct {
-	AgentId string `json:"agentId,omitempty"`
 	ControllerId string `json:"controllerId,omitempty"`
 	ControllerKind string `json:"controllerKind,omitempty"`
 	DeliveryAccess string `json:"deliveryAccess,omitempty"`
@@ -11379,240 +10511,7 @@ type FinalizeResourceDto struct {
 	WorldId string `json:"worldId,omitempty"`
 }
 
-type ForgeAgentCandidateCapabilityCellDto struct {
-	EvidenceTruthRefCount float64 `json:"evidenceTruthRefCount,omitempty"`
-	EvidenceTruthRefs []string `json:"evidenceTruthRefs,omitempty"`
-	PredicateId string `json:"predicateId,omitempty"`
-	Requirements []ForgeAgentCandidateRequirementDto `json:"requirements,omitempty"`
-	Status string `json:"status,omitempty"`
-	Surface string `json:"surface,omitempty"`
-}
-
-type ForgeAgentCandidateDto struct {
-	AgentRef string `json:"agentRef,omitempty"`
-	CapabilityVector []ForgeAgentCandidateCapabilityCellDto `json:"capabilityVector,omitempty"`
-	CompletenessIntent string `json:"completenessIntent,omitempty"`
-	EntityRef string `json:"entityRef,omitempty"`
-	Id string `json:"id,omitempty"`
-	Name string `json:"name,omitempty"`
-	RuntimeMaterialization *ForgeAgentCandidateRuntimeMaterializationDto `json:"runtimeMaterialization,omitempty"`
-	SourceProfiles []ForgeAgentCandidateSourceProfileDto `json:"sourceProfiles,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type ForgeAgentCandidateQueryFiltersDto struct {
-	Query string `json:"query,omitempty"`
-	Status string `json:"status,omitempty"`
-	Surface string `json:"surface,omitempty"`
-}
-
-type ForgeAgentCandidateQueryResultDto struct {
-	Candidates []ForgeAgentCandidateDto `json:"candidates,omitempty"`
-	Filters *ForgeAgentCandidateQueryFiltersDto `json:"filters,omitempty"`
-	PackageId string `json:"packageId,omitempty"`
-	Returned float64 `json:"returned,omitempty"`
-	SchemaVersion string `json:"schemaVersion,omitempty"`
-	Slug string `json:"slug,omitempty"`
-	Total float64 `json:"total,omitempty"`
-}
-
-type ForgeAgentCandidateRequirementDto struct {
-	Actual float64 `json:"actual,omitempty"`
-	Gap float64 `json:"gap,omitempty"`
-	GapKind string `json:"gapKind,omitempty"`
-	Id string `json:"id,omitempty"`
-	Passed bool `json:"passed,omitempty"`
-	Required float64 `json:"required,omitempty"`
-}
-
-type ForgeAgentCandidateRuntimeMaterializationDto struct {
-	MaterializedRuntimeAgent bool `json:"materializedRuntimeAgent,omitempty"`
-	RoleplayRuntimeEligible bool `json:"roleplayRuntimeEligible,omitempty"`
-}
-
-type ForgeAgentCandidateSourceProfileDto struct {
-	Archetype string `json:"archetype,omitempty"`
-	AuthorityRank string `json:"authorityRank,omitempty"`
-	EvidenceLocatorKind string `json:"evidenceLocatorKind,omitempty"`
-	Profile string `json:"profile,omitempty"`
-	SourceId string `json:"sourceId,omitempty"`
-}
-
-type ForgeProductArtifactRefDto struct {
-	Checksum string `json:"checksum,omitempty"`
-	Kind string `json:"kind,omitempty"`
-	Path string `json:"path,omitempty"`
-}
-
-type ForgeProductCapabilitySummaryDto struct {
-	AgentCandidates float64 `json:"agentCandidates,omitempty"`
-	CompletenessIntentCounts map[string]any `json:"completenessIntentCounts,omitempty"`
-	MaterializedRuntimeAgents float64 `json:"materializedRuntimeAgents,omitempty"`
-	RuntimeReadyCandidates float64 `json:"runtimeReadyCandidates,omitempty"`
-	SurfaceStatusCounts map[string]any `json:"surfaceStatusCounts,omitempty"`
-}
-
-type ForgeProductCountsDto struct {
-	AgentBlueprints float64 `json:"agentBlueprints,omitempty"`
-	AgentCapabilities float64 `json:"agentCapabilities,omitempty"`
-	AgentExemplars float64 `json:"agentExemplars,omitempty"`
-	AgentRelationships float64 `json:"agentRelationships,omitempty"`
-	EvidenceRecords float64 `json:"evidenceRecords,omitempty"`
-	ProjectionInputs float64 `json:"projectionInputs,omitempty"`
-	Scenes float64 `json:"scenes,omitempty"`
-	WorldEntities float64 `json:"worldEntities,omitempty"`
-	WorldEvents float64 `json:"worldEvents,omitempty"`
-	WorldRelationships float64 `json:"worldRelationships,omitempty"`
-	WorldRules float64 `json:"worldRules,omitempty"`
-	WorldSystems float64 `json:"worldSystems,omitempty"`
-}
-
-type ForgeProductEvalScorecardDto struct {
-	AdmissionAuthority string `json:"admissionAuthority,omitempty"`
-	ArtifactPath string `json:"artifactPath,omitempty"`
-	Checksum string `json:"checksum,omitempty"`
-	PublicDataset bool `json:"publicDataset,omitempty"`
-	Suite string `json:"suite,omitempty"`
-	TrustTier string `json:"trustTier,omitempty"`
-}
-
-type ForgeProductOptionalArtifactQualityDto struct {
-	ArtifactPath string `json:"artifactPath,omitempty"`
-	Checksum string `json:"checksum,omitempty"`
-}
-
-type ForgeProductQualityDto struct {
-	EvalScorecards []ForgeProductEvalScorecardDto `json:"evalScorecards,omitempty"`
-	PresetZeroing *ForgeProductOptionalArtifactQualityDto `json:"presetZeroing,omitempty"`
-	UpdateRun *ForgeProductUpdateRunQualityDto `json:"updateRun,omitempty"`
-	Validation *ForgeProductValidationQualityDto `json:"validation,omitempty"`
-}
-
-type ForgeProductShardIndexDto struct {
-	PackageId string `json:"packageId,omitempty"`
-	PackageVersion string `json:"packageVersion,omitempty"`
-	SchemaVersion string `json:"schemaVersion,omitempty"`
-	ShardManifest *ForgeProductShardManifestRefDto `json:"shardManifest,omitempty"`
-	Shards []ForgeProductShardIndexItemDto `json:"shards,omitempty"`
-	Slug string `json:"slug,omitempty"`
-}
-
-type ForgeProductShardIndexItemDto struct {
-	ByteSize float64 `json:"byteSize,omitempty"`
-	Checksum string `json:"checksum,omitempty"`
-	ExportKeys []string `json:"exportKeys,omitempty"`
-	Kind string `json:"kind,omitempty"`
-	Path string `json:"path,omitempty"`
-}
-
-type ForgeProductShardIntegrityItemDto struct {
-	ActualChecksum string `json:"actualChecksum,omitempty"`
-	ByteSize float64 `json:"byteSize,omitempty"`
-	Error string `json:"error,omitempty"`
-	ExpectedChecksum string `json:"expectedChecksum,omitempty"`
-	ExportKeys []string `json:"exportKeys,omitempty"`
-	Kind string `json:"kind,omitempty"`
-	Path string `json:"path,omitempty"`
-	Status string `json:"status,omitempty"`
-}
-
-type ForgeProductShardIntegrityReportDto struct {
-	PackageId string `json:"packageId,omitempty"`
-	PackageVersion string `json:"packageVersion,omitempty"`
-	SchemaVersion string `json:"schemaVersion,omitempty"`
-	ShardManifest *ForgeProductShardManifestRefDto `json:"shardManifest,omitempty"`
-	Shards []ForgeProductShardIntegrityItemDto `json:"shards,omitempty"`
-	Slug string `json:"slug,omitempty"`
-	Status string `json:"status,omitempty"`
-}
-
-type ForgeProductShardManifestRefDto struct {
-	Checksum string `json:"checksum,omitempty"`
-	Path string `json:"path,omitempty"`
-}
-
-type ForgeProductShardReadDto struct {
-	Checksum string `json:"checksum,omitempty"`
-	Kind string `json:"kind,omitempty"`
-	PackageId string `json:"packageId,omitempty"`
-	PackageVersion string `json:"packageVersion,omitempty"`
-	Record map[string]any `json:"record,omitempty"`
-	SchemaVersion string `json:"schemaVersion,omitempty"`
-	Slug string `json:"slug,omitempty"`
-}
-
-type ForgeProductSourceProfileDto struct {
-	Archetype string `json:"archetype,omitempty"`
-	AuthorityRank string `json:"authorityRank,omitempty"`
-	EvidenceLocatorKind string `json:"evidenceLocatorKind,omitempty"`
-	InputCount float64 `json:"inputCount,omitempty"`
-	LocaleProfile string `json:"localeProfile,omitempty"`
-	Profile string `json:"profile,omitempty"`
-	SourceId string `json:"sourceId,omitempty"`
-	Title string `json:"title,omitempty"`
-}
-
-type ForgeProductUpdateRunQualityDto struct {
-	ArtifactPath string `json:"artifactPath,omitempty"`
-	Checksum string `json:"checksum,omitempty"`
-	RunStatus string `json:"runStatus,omitempty"`
-}
-
-type ForgeProductValidationQualityDto struct {
-	ArtifactPath string `json:"artifactPath,omitempty"`
-	Checksum string `json:"checksum,omitempty"`
-	Status string `json:"status,omitempty"`
-}
-
-type ForgeProductWorldRefDto struct {
-	Id string `json:"id,omitempty"`
-	Name string `json:"name,omitempty"`
-}
-
-type ForgeWorldCatalogDto struct {
-	QualitySummary *ForgeWorldCatalogQualitySummaryDto `json:"qualitySummary,omitempty"`
-	RootDir string `json:"rootDir,omitempty"`
-	SchemaVersion string `json:"schemaVersion,omitempty"`
-	Worlds []ForgeWorldProductDto `json:"worlds,omitempty"`
-}
-
-type ForgeWorldCatalogQualitySummaryDto struct {
-	EvalScorecards float64 `json:"evalScorecards,omitempty"`
-	GoldenGateScorecards float64 `json:"goldenGateScorecards,omitempty"`
-	PublicReferenceScorecards float64 `json:"publicReferenceScorecards,omitempty"`
-	ReportOnlyScorecards float64 `json:"reportOnlyScorecards,omitempty"`
-	UpdateRunBlocked float64 `json:"updateRunBlocked,omitempty"`
-	UpdateRunFailed float64 `json:"updateRunFailed,omitempty"`
-	UpdateRunNoop float64 `json:"updateRunNoop,omitempty"`
-	UpdateRunSuccess float64 `json:"updateRunSuccess,omitempty"`
-	ValidationFail float64 `json:"validationFail,omitempty"`
-	ValidationPass float64 `json:"validationPass,omitempty"`
-	Worlds float64 `json:"worlds,omitempty"`
-	WorldsWithGoldenGate float64 `json:"worldsWithGoldenGate,omitempty"`
-	WorldsWithPresetZeroing float64 `json:"worldsWithPresetZeroing,omitempty"`
-	WorldsWithPublicReference float64 `json:"worldsWithPublicReference,omitempty"`
-	WorldsWithUpdateRun float64 `json:"worldsWithUpdateRun,omitempty"`
-}
-
-type ForgeWorldProductDto struct {
-	Artifacts []ForgeProductArtifactRefDto `json:"artifacts,omitempty"`
-	CapabilitySummary *ForgeProductCapabilitySummaryDto `json:"capabilitySummary,omitempty"`
-	Counts *ForgeProductCountsDto `json:"counts,omitempty"`
-	DistributionShape string `json:"distributionShape,omitempty"`
-	PackageId string `json:"packageId,omitempty"`
-	PackageVersion string `json:"packageVersion,omitempty"`
-	ProductId string `json:"productId,omitempty"`
-	Quality *ForgeProductQualityDto `json:"quality,omitempty"`
-	SchemaVersion string `json:"schemaVersion,omitempty"`
-	Slug string `json:"slug,omitempty"`
-	SourceMix []ForgeProductSourceProfileDto `json:"sourceMix,omitempty"`
-	Target string `json:"target,omitempty"`
-	World *ForgeProductWorldRefDto `json:"world,omitempty"`
-}
-
 type FriendProfileDto struct {
-	Agent *AgentMetadataDto `json:"agent,omitempty"`
-	AgentProfile *AgentProfileDto `json:"agentProfile,omitempty"`
 	AvatarUrl string `json:"avatarUrl,omitempty"`
 	Bio string `json:"bio,omitempty"`
 	BirthYear float64 `json:"birthYear,omitempty"`
@@ -11626,7 +10525,6 @@ type FriendProfileDto struct {
 	GiftStats map[string]any `json:"giftStats,omitempty"`
 	Handle string `json:"handle,omitempty"`
 	Id string `json:"id,omitempty"`
-	IsAgent bool `json:"isAgent,omitempty"`
 	IsOnline bool `json:"isOnline,omitempty"`
 	Languages []string `json:"languages,omitempty"`
 	PresenceEmoji string `json:"presenceEmoji,omitempty"`
@@ -11700,14 +10598,6 @@ type GiftTransactionRichDto struct {
 	Status *GiftStatus `json:"status,omitempty"`
 }
 
-type GlossaryTermDto struct {
-	Category string `json:"category,omitempty"`
-	Definition string `json:"definition,omitempty"`
-	Id string `json:"id,omitempty"`
-	Importance string `json:"importance,omitempty"`
-	Term string `json:"term,omitempty"`
-}
-
 type GroupChatViewDto struct {
 	CreatedAt string `json:"createdAt,omitempty"`
 	CreatorId string `json:"creatorId,omitempty"`
@@ -11723,9 +10613,9 @@ type GroupChatViewDto struct {
 
 type GroupMessageAuthorDto struct {
 	AccountId string `json:"accountId,omitempty"`
-	AgentOwnerId string `json:"agentOwnerId,omitempty"`
 	AvatarUrl string `json:"avatarUrl,omitempty"`
 	DisplayName string `json:"displayName,omitempty"`
+	SourceOwnerId string `json:"sourceOwnerId,omitempty"`
 	Type string `json:"type,omitempty"`
 }
 
@@ -11746,16 +10636,16 @@ type GroupMessageViewDto struct {
 
 type GroupParticipantDto struct {
 	AccountId string `json:"accountId,omitempty"`
-	AgentOwnerId string `json:"agentOwnerId,omitempty"`
 	AvatarUrl string `json:"avatarUrl,omitempty"`
 	DisplayName string `json:"displayName,omitempty"`
 	Handle string `json:"handle,omitempty"`
 	IsOnline bool `json:"isOnline,omitempty"`
 	JoinedAt string `json:"joinedAt,omitempty"`
-	LocalAgentRef string `json:"localAgentRef,omitempty"`
-	RealmAgentId string `json:"realmAgentId,omitempty"`
-	RealmGroupAgentSlotId string `json:"realmGroupAgentSlotId,omitempty"`
 	Role string `json:"role,omitempty"`
+	RuntimeParticipantSlot string `json:"runtimeParticipantSlot,omitempty"`
+	RuntimeSourceRef string `json:"runtimeSourceRef,omitempty"`
+	SourceOwnerId string `json:"sourceOwnerId,omitempty"`
+	SourceRef string `json:"sourceRef,omitempty"`
 	Type string `json:"type,omitempty"`
 }
 
@@ -11831,76 +10721,6 @@ type ListMessagesResultDto struct {
 	NextBefore string `json:"nextBefore,omitempty"`
 }
 
-type LocalAgentProvisionIntentAckDto struct {
-	Detail string `json:"detail,omitempty"`
-	Outcome *LocalAgentProvisionIntentAckOutcome `json:"outcome,omitempty"`
-}
-
-type LocalAgentProvisionIntentAckOutcome string
-
-type LocalAgentProvisionIntentDto struct {
-	AckedAt string `json:"ackedAt,omitempty"`
-	Attempts float64 `json:"attempts,omitempty"`
-	AvailableAt string `json:"availableAt,omitempty"`
-	CreatedAt string `json:"createdAt,omitempty"`
-	Id string `json:"id,omitempty"`
-	LocalAgentRef string `json:"localAgentRef,omitempty"`
-	OwnerUserId string `json:"ownerUserId,omitempty"`
-	RealmAgentId string `json:"realmAgentId,omitempty"`
-	Status *LocalAgentProvisionIntentStatus `json:"status,omitempty"`
-}
-
-type LocalAgentProvisionIntentListDto struct {
-	Items []LocalAgentProvisionIntentDto `json:"items,omitempty"`
-}
-
-type LocalAgentProvisionIntentStatus string
-
-type LocalAgentTerminationIntentAckDto struct {
-	Detail string `json:"detail,omitempty"`
-	Outcome *LocalAgentTerminationIntentAckOutcome `json:"outcome,omitempty"`
-}
-
-type LocalAgentTerminationIntentAckOutcome string
-
-type LocalAgentTerminationIntentDto struct {
-	AckedAt string `json:"ackedAt,omitempty"`
-	Attempts float64 `json:"attempts,omitempty"`
-	AvailableAt string `json:"availableAt,omitempty"`
-	CreatedAt string `json:"createdAt,omitempty"`
-	Id string `json:"id,omitempty"`
-	LocalAgentRef string `json:"localAgentRef,omitempty"`
-	OwnerUserId string `json:"ownerUserId,omitempty"`
-	RealmAgentId string `json:"realmAgentId,omitempty"`
-	Status *LocalAgentTerminationIntentStatus `json:"status,omitempty"`
-}
-
-type LocalAgentTerminationIntentListDto struct {
-	Items []LocalAgentTerminationIntentDto `json:"items,omitempty"`
-}
-
-type LocalAgentTerminationIntentStatus string
-
-type LocationLandmarkDto struct {
-	Description string `json:"description,omitempty"`
-	Id string `json:"id,omitempty"`
-	Name string `json:"name,omitempty"`
-	RegionId string `json:"regionId,omitempty"`
-	Significance string `json:"significance,omitempty"`
-}
-
-type LocationRegionDto struct {
-	Climate string `json:"climate,omitempty"`
-	Description string `json:"description,omitempty"`
-	Id string `json:"id,omitempty"`
-	Name string `json:"name,omitempty"`
-}
-
-type MakeAgentPublicResponseDto struct {
-	AccountVisibility *Visibility `json:"accountVisibility,omitempty"`
-	Success bool `json:"success,omitempty"`
-}
-
 type MarkNotificationsReadInputDto struct {
 	Ids []string `json:"ids,omitempty"`
 	MarkAllBefore string `json:"markAllBefore,omitempty"`
@@ -11945,31 +10765,6 @@ type MessageViewDto struct {
 
 type ModerationStatusString string
 
-type MutationActorRefDto struct {
-	ActorId string `json:"actorId,omitempty"`
-	ActorType string `json:"actorType,omitempty"`
-	Role string `json:"role,omitempty"`
-}
-
-type MutationCommitEnvelopeDto struct {
-	ActorRefs []MutationActorRefDto `json:"actorRefs,omitempty"`
-	AppId string `json:"appId,omitempty"`
-	EffectClass string `json:"effectClass,omitempty"`
-	EvidenceRefs []MutationEvidenceRefDto `json:"evidenceRefs,omitempty"`
-	Reason string `json:"reason,omitempty"`
-	SchemaId string `json:"schemaId,omitempty"`
-	SchemaVersion string `json:"schemaVersion,omitempty"`
-	Scope string `json:"scope,omitempty"`
-	SessionId string `json:"sessionId,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type MutationEvidenceRefDto struct {
-	Kind string `json:"kind,omitempty"`
-	RefId string `json:"refId,omitempty"`
-	Uri string `json:"uri,omitempty"`
-}
-
 type NotificationActivityDto struct {
 	DirectMessages bool `json:"directMessages,omitempty"`
 	FriendRequests bool `json:"friendRequests,omitempty"`
@@ -11977,47 +10772,13 @@ type NotificationActivityDto struct {
 	Mentions bool `json:"mentions,omitempty"`
 }
 
-type NotificationActorAgentMetadataDto struct {
-	ActiveWorldId string `json:"activeWorldId,omitempty"`
-	Category string `json:"category,omitempty"`
-	Importance *AgentImportance `json:"importance,omitempty"`
-	Origin *AgentOrigin `json:"origin,omitempty"`
-	OwnerWorldId string `json:"ownerWorldId,omitempty"`
-	OwnershipType *AgentOwnershipType `json:"ownershipType,omitempty"`
-	State *AgentState `json:"state,omitempty"`
-	Tier *VerificationTier `json:"tier,omitempty"`
-	WakeStrategy string `json:"wakeStrategy,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type NotificationActorAgentProfileDto struct {
-	ActiveWorldId string `json:"activeWorldId,omitempty"`
-	Importance *AgentImportance `json:"importance,omitempty"`
-	OwnerWorldId string `json:"ownerWorldId,omitempty"`
-	OwnershipType *AgentOwnershipType `json:"ownershipType,omitempty"`
-	State *AgentState `json:"state,omitempty"`
-	Stats *NotificationActorAgentStatsDto `json:"stats,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type NotificationActorAgentStatsDto struct {
-	EngagementCount float64 `json:"engagementCount,omitempty"`
-	InfluenceTier float64 `json:"influenceTier,omitempty"`
-	InteractionTier float64 `json:"interactionTier,omitempty"`
-	LastActiveAt string `json:"lastActiveAt,omitempty"`
-	VitalityScore float64 `json:"vitalityScore,omitempty"`
-}
-
 type NotificationActorDto struct {
-	Agent *NotificationActorAgentMetadataDto `json:"agent,omitempty"`
-	AgentProfile *NotificationActorAgentProfileDto `json:"agentProfile,omitempty"`
 	AvatarUrl string `json:"avatarUrl,omitempty"`
 	Bio string `json:"bio,omitempty"`
 	CreatedAt string `json:"createdAt,omitempty"`
 	DisplayName string `json:"displayName,omitempty"`
 	Handle string `json:"handle,omitempty"`
 	Id string `json:"id,omitempty"`
-	IsAgent bool `json:"isAgent,omitempty"`
 	PresenceEmoji string `json:"presenceEmoji,omitempty"`
 	PresenceStatus string `json:"presenceStatus,omitempty"`
 	PresenceText string `json:"presenceText,omitempty"`
@@ -12070,19 +10831,6 @@ type NotificationTargetDto struct {
 	PostId string `json:"postId,omitempty"`
 }
 
-type NsfwConsentResponseDto struct {
-	AgentConsent bool `json:"agentConsent,omitempty"`
-	Allowed bool `json:"allowed,omitempty"`
-	Reason string `json:"reason,omitempty"`
-	UserConsent bool `json:"userConsent,omitempty"`
-}
-
-type NsfwConsentStatusResponseDto struct {
-	AgentNsfwEnabled bool `json:"agentNsfwEnabled,omitempty"`
-	MutuallyConsented bool `json:"mutuallyConsented,omitempty"`
-	UserNsfwEnabled bool `json:"userNsfwEnabled,omitempty"`
-}
-
 type OAuthLinkResponseDto struct {
 	Provider string `json:"provider,omitempty"`
 	Status string `json:"status,omitempty"`
@@ -12124,51 +10872,6 @@ type OAuthTokenResponseDto struct {
 	TokenType string `json:"token_type,omitempty"`
 }
 
-type OwnerAgentBoundarySettingsDto struct {
-	AllowedThemes []string `json:"allowedThemes,omitempty"`
-	DisallowedThemes []string `json:"disallowedThemes,omitempty"`
-}
-
-type OwnerAgentCommunicationSettingsDto struct {
-	ContentStyle string `json:"contentStyle,omitempty"`
-	Formality string `json:"formality,omitempty"`
-	ResponseLength string `json:"responseLength,omitempty"`
-	Sentiment string `json:"sentiment,omitempty"`
-}
-
-type OwnerAgentIdentitySettingsDto struct {
-	PublicRole string `json:"publicRole,omitempty"`
-	Worldview string `json:"worldview,omitempty"`
-}
-
-type OwnerAgentPersonalitySettingsDto struct {
-	Goals []string `json:"goals,omitempty"`
-	Interests []string `json:"interests,omitempty"`
-	RelationshipMode string `json:"relationshipMode,omitempty"`
-	Summary string `json:"summary,omitempty"`
-}
-
-type OwnerAgentPositioningSettingsDto struct {
-	Positioning string `json:"positioning,omitempty"`
-	TargetAudience string `json:"targetAudience,omitempty"`
-}
-
-type OwnerAgentSettingsDto struct {
-	AgentId string `json:"agentId,omitempty"`
-	AgentRuleVersion float64 `json:"agentRuleVersion,omitempty"`
-	Boundaries *OwnerAgentBoundarySettingsDto `json:"boundaries,omitempty"`
-	Communication *OwnerAgentCommunicationSettingsDto `json:"communication,omitempty"`
-	Description string `json:"description,omitempty"`
-	DisplayName string `json:"displayName,omitempty"`
-	Greeting string `json:"greeting,omitempty"`
-	Identity *OwnerAgentIdentitySettingsDto `json:"identity,omitempty"`
-	NaturalLanguageIntent string `json:"naturalLanguageIntent,omitempty"`
-	Personality *OwnerAgentPersonalitySettingsDto `json:"personality,omitempty"`
-	Positioning *OwnerAgentPositioningSettingsDto `json:"positioning,omitempty"`
-	UpdatedAt string `json:"updatedAt,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
-}
-
 type PPSlotConfigDto struct {
 	Slot1 *PPSlotItemDto `json:"slot1,omitempty"`
 	Slot2 *PPSlotItemDto `json:"slot2,omitempty"`
@@ -12193,14 +10896,6 @@ type PasswordLoginDto struct {
 type PasswordRegisterDto struct {
 	Email string `json:"email,omitempty"`
 	Password string `json:"password,omitempty"`
-}
-
-type PermissionCheckResponseDto struct {
-	Action string `json:"action,omitempty"`
-	Allowed bool `json:"allowed,omitempty"`
-	CreatorId string `json:"creatorId,omitempty"`
-	Reason string `json:"reason,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
 }
 
 type PortalSessionDto struct {
@@ -12237,65 +10932,9 @@ type PostDto struct {
 	WorldId string `json:"worldId,omitempty"`
 }
 
-type PowerSystemDto struct {
-	Abilities []AbilityDefinitionDto `json:"abilities,omitempty"`
-	Constraints []string `json:"constraints,omitempty"`
-	Description string `json:"description,omitempty"`
-	Levels []PowerSystemLevelDto `json:"levels,omitempty"`
-	Name string `json:"name,omitempty"`
-	PowerSystems []PowerSystemDto `json:"powerSystems,omitempty"`
-	Rules []WorldRuleItemDto `json:"rules,omitempty"`
-	Taboos []PowerSystemTabooDto `json:"taboos,omitempty"`
-	Tiers []PowerTierDto `json:"tiers,omitempty"`
-}
-
-type PowerSystemLevelDto struct {
-	BreakthroughCondition string `json:"breakthroughCondition,omitempty"`
-	Description string `json:"description,omitempty"`
-	Name string `json:"name,omitempty"`
-}
-
-type PowerSystemTabooDto struct {
-	Description string `json:"description,omitempty"`
-	Name string `json:"name,omitempty"`
-	Severity string `json:"severity,omitempty"`
-	Title string `json:"title,omitempty"`
-}
-
-type PowerTierDto struct {
-	Description string `json:"description,omitempty"`
-	Level float64 `json:"level,omitempty"`
-	Name string `json:"name,omitempty"`
-	Requirements []string `json:"requirements,omitempty"`
-}
-
 type PresenceStatus string
 
-type PublicBindingDto struct {
-	BindingKind string `json:"bindingKind,omitempty"`
-	BindingPoint string `json:"bindingPoint,omitempty"`
-	HostId string `json:"hostId,omitempty"`
-	HostType string `json:"hostType,omitempty"`
-	Id string `json:"id,omitempty"`
-	ObjectId string `json:"objectId,omitempty"`
-	ObjectType string `json:"objectType,omitempty"`
-	Priority float64 `json:"priority,omitempty"`
-	Resource *PublicBindingResourceDto `json:"resource,omitempty"`
-	Tags []string `json:"tags,omitempty"`
-	VersionPin string `json:"versionPin,omitempty"`
-}
-
-type PublicBindingListDto struct {
-	Items []PublicBindingDto `json:"items,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type PublicBindingResourceDto struct {
-	Id string `json:"id,omitempty"`
-	Label string `json:"label,omitempty"`
-	ResourceType string `json:"resourceType,omitempty"`
-	Url string `json:"url,omitempty"`
-}
+type PublicAccountRole string
 
 type PublicFilterDto struct {
 	MinViewerAssetTier float64 `json:"minViewerAssetTier,omitempty"`
@@ -12308,90 +10947,32 @@ type PublicFilterDto struct {
 	ViewerGenders []string `json:"viewerGenders,omitempty"`
 }
 
-type PublicWorldHistoryEventDto struct {
-	Cause string `json:"cause,omitempty"`
-	CharacterRefs []string `json:"characterRefs,omitempty"`
-	CommittedAt string `json:"committedAt,omitempty"`
-	DependsOnEventIds []string `json:"dependsOnEventIds,omitempty"`
-	EventId string `json:"eventId,omitempty"`
-	EventType string `json:"eventType,omitempty"`
-	EvidenceRefs []WorldEventEvidenceRefDto `json:"evidenceRefs,omitempty"`
-	HappenedAt string `json:"happenedAt,omitempty"`
+type RealmCoreOriginDto struct {
+	Kind string `json:"kind,omitempty"`
+	ParentCharacterId string `json:"parentCharacterId,omitempty"`
+	ParentWorldId string `json:"parentWorldId,omitempty"`
+	SourceContentHash string `json:"sourceContentHash,omitempty"`
+	SourceId string `json:"sourceId,omitempty"`
+	SourceVersion string `json:"sourceVersion,omitempty"`
+}
+
+type RealmPersonaDto struct {
+	ContentHash string `json:"contentHash,omitempty"`
+	ContentRevision float64 `json:"contentRevision,omitempty"`
+	Core map[string]any `json:"core,omitempty"`
+	CreatedAt string `json:"createdAt,omitempty"`
+	HomeWorldId string `json:"homeWorldId,omitempty"`
 	Id string `json:"id,omitempty"`
-	LocationRefs []string `json:"locationRefs,omitempty"`
-	Payload map[string]any `json:"payload,omitempty"`
-	Process string `json:"process,omitempty"`
-	Result string `json:"result,omitempty"`
-	Summary string `json:"summary,omitempty"`
-	TimeRef string `json:"timeRef,omitempty"`
-	Title string `json:"title,omitempty"`
-	Visibility string `json:"visibility,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
+	Origin *RealmCoreOriginDto `json:"origin,omitempty"`
+	OwnerId string `json:"ownerId,omitempty"`
+	SchemaVersion string `json:"schemaVersion,omitempty"`
+	UpdatedAt string `json:"updatedAt,omitempty"`
 }
 
-type PublicWorldHistoryListDto struct {
-	Items []PublicWorldHistoryEventDto `json:"items,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type PublicWorldLorebookDto struct {
-	Content string `json:"content,omitempty"`
-	Id string `json:"id,omitempty"`
-	Key string `json:"key,omitempty"`
-	Keywords []string `json:"keywords,omitempty"`
-	Name string `json:"name,omitempty"`
-	Priority float64 `json:"priority,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type PublicWorldLorebookListDto struct {
-	Items []PublicWorldLorebookDto `json:"items,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type PublicWorldSceneDto struct {
-	ActiveEntities []string `json:"activeEntities,omitempty"`
-	Description string `json:"description,omitempty"`
-	Id string `json:"id,omitempty"`
-	Name string `json:"name,omitempty"`
-}
-
-type PublicWorldSceneListDto struct {
-	Items []PublicWorldSceneDto `json:"items,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type PublishWorldDraftDto struct {
-	Reason string `json:"reason,omitempty"`
-}
-
-type PublishWorldDraftResultDto struct {
-	DraftId string `json:"draftId,omitempty"`
-	PublishedAt string `json:"publishedAt,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
-	WorldviewVersion float64 `json:"worldviewVersion,omitempty"`
-}
-
-type RealmGroupMessageCandidateCommitResultDto struct {
-	AuditRecordId string `json:"auditRecordId,omitempty"`
-	CandidateId string `json:"candidateId,omitempty"`
-	CommitDisposition string `json:"commitDisposition,omitempty"`
-	CommitId string `json:"commitId,omitempty"`
-	CommittedAt string `json:"committedAt,omitempty"`
-	CommittedMessage *GroupMessageViewDto `json:"committedMessage,omitempty"`
-	CommittedMessageId string `json:"committedMessageId,omitempty"`
-	EvidenceHash string `json:"evidenceHash,omitempty"`
-	IdempotencyKey string `json:"idempotencyKey,omitempty"`
-	LocalAgentRef string `json:"localAgentRef,omitempty"`
-	OwnerUserId string `json:"ownerUserId,omitempty"`
-	RealmAgentId string `json:"realmAgentId,omitempty"`
-	RealmGroupAgentSlotId string `json:"realmGroupAgentSlotId,omitempty"`
-	RefusalCode string `json:"refusalCode,omitempty"`
-	RefusalReason string `json:"refusalReason,omitempty"`
-	RejectionCode string `json:"rejectionCode,omitempty"`
-	RuntimeTraceRef string `json:"runtimeTraceRef,omitempty"`
-	Status string `json:"status,omitempty"`
-	SyncCursor float64 `json:"syncCursor,omitempty"`
+type RealmSourceCapabilitiesDto struct {
+	CanCreateRealmPersona bool `json:"canCreateRealmPersona,omitempty"`
+	CanCreateRuntimeSourceSnapshot bool `json:"canCreateRuntimeSourceSnapshot,omitempty"`
+	CanUseWorldCharacterSources bool `json:"canUseWorldCharacterSources,omitempty"`
 }
 
 type ReceivedGiftsResponseDto struct {
@@ -12414,12 +10995,31 @@ type RelationshipResponseDto struct {
 	SourceId string `json:"sourceId,omitempty"`
 	Strength float64 `json:"strength,omitempty"`
 	TargetId string `json:"targetId,omitempty"`
-	Type *AgentRelationType `json:"type,omitempty"`
+	Type *AccountRelationType `json:"type,omitempty"`
 }
 
-type RemoveAgentRelationshipDto struct {
-	TargetId string `json:"targetId,omitempty"`
-	Type *AgentRelationType `json:"type,omitempty"`
+type ReplaceRealmPersonaDto struct {
+	BaseContentHash string `json:"baseContentHash,omitempty"`
+	Core map[string]any `json:"core,omitempty"`
+	HomeWorldId string `json:"homeWorldId,omitempty"`
+	Id string `json:"id,omitempty"`
+	Origin *RealmCoreOriginDto `json:"origin,omitempty"`
+}
+
+type ReplaceWorldCharacterCoreDto struct {
+	BaseContentHash string `json:"baseContentHash,omitempty"`
+	Core map[string]any `json:"core,omitempty"`
+	EntityId string `json:"entityId,omitempty"`
+	Id string `json:"id,omitempty"`
+	Origin *RealmCoreOriginDto `json:"origin,omitempty"`
+}
+
+type ReplaceWorldCoreDto struct {
+	BaseContentHash string `json:"baseContentHash,omitempty"`
+	Core map[string]any `json:"core,omitempty"`
+	Id string `json:"id,omitempty"`
+	Origin *RealmCoreOriginDto `json:"origin,omitempty"`
+	Visibility string `json:"visibility,omitempty"`
 }
 
 type ReportReason string
@@ -12449,32 +11049,7 @@ type RequestDataExportDto struct {
 	Locale string `json:"locale,omitempty"`
 }
 
-type ResourceAcquisitionRuleDto struct {
-	Conditions []string `json:"conditions,omitempty"`
-	Rate float64 `json:"rate,omitempty"`
-	ResourceId string `json:"resourceId,omitempty"`
-	Source string `json:"source,omitempty"`
-}
-
-type ResourceConsumptionRuleDto struct {
-	Action string `json:"action,omitempty"`
-	Amount float64 `json:"amount,omitempty"`
-	ResourceId string `json:"resourceId,omitempty"`
-}
-
-type ResourceCostDto struct {
-	Amount float64 `json:"amount,omitempty"`
-	Type string `json:"type,omitempty"`
-}
-
-type ResourceDefinitionDto struct {
-	AcquisitionRules []ResourceAcquisitionRuleDto `json:"acquisitionRules,omitempty"`
-	ConsumptionRules []ResourceConsumptionRuleDto `json:"consumptionRules,omitempty"`
-	Types []ResourceTypeDto `json:"types,omitempty"`
-}
-
 type ResourceDetailDto struct {
-	AgentId string `json:"agentId,omitempty"`
 	ControllerId string `json:"controllerId,omitempty"`
 	ControllerKind string `json:"controllerKind,omitempty"`
 	CreatedAt string `json:"createdAt,omitempty"`
@@ -12523,30 +11098,16 @@ type ResourceListDto struct {
 	Items []ResourceDetailDto `json:"items,omitempty"`
 }
 
-type ResourceTypeDto struct {
-	Consumable bool `json:"consumable,omitempty"`
-	Description string `json:"description,omitempty"`
-	Id string `json:"id,omitempty"`
-	MaxAmount float64 `json:"maxAmount,omitempty"`
-	Name string `json:"name,omitempty"`
-	Tradeable bool `json:"tradeable,omitempty"`
-}
-
 type RevenueDistributionPreviewDto struct {
-	IsNativeAgent bool `json:"isNativeAgent,omitempty"`
-	MasterAmount string `json:"masterAmount,omitempty"`
+	IsWorldOwned bool `json:"isWorldOwned,omitempty"`
+	OwnerAmount string `json:"ownerAmount,omitempty"`
 	TotalAmount string `json:"totalAmount,omitempty"`
 	WorldCreatorAmount string `json:"worldCreatorAmount,omitempty"`
 }
 
 type RevenueShareConfigDto struct {
 	MinShareThreshold string `json:"minShareThreshold,omitempty"`
-	NativeAgentCreatorSharePercent float64 `json:"nativeAgentCreatorSharePercent,omitempty"`
-}
-
-type ReviewAgentAuthoringDraftCandidateDto struct {
-	EditedValue *AgentAuthoringDraftCandidateValueDto `json:"editedValue,omitempty"`
-	Status string `json:"status,omitempty"`
+	WorldCreatorSharePercent float64 `json:"worldCreatorSharePercent,omitempty"`
 }
 
 type ReviewDto struct {
@@ -12566,90 +11127,6 @@ type ReviewStatsDto struct {
 	TotalCount float64 `json:"totalCount,omitempty"`
 }
 
-type RuleValidationResponseDto struct {
-	IsValid bool `json:"isValid,omitempty"`
-	Violations []string `json:"violations,omitempty"`
-	Warnings []string `json:"warnings,omitempty"`
-}
-
-type RuntimeProjectionContextEnvelopeDto struct {
-	AllowedAgentLayers []string `json:"allowedAgentLayers,omitempty"`
-	AllowedAgentScopes []string `json:"allowedAgentScopes,omitempty"`
-	AllowedWorldScopes []string `json:"allowedWorldScopes,omitempty"`
-	FocusKeywords []string `json:"focusKeywords,omitempty"`
-	IncludeInheritedAgentRules bool `json:"includeInheritedAgentRules,omitempty"`
-	RequestedAgentRuleKeys []string `json:"requestedAgentRuleKeys,omitempty"`
-	RequestedWorldRuleKeys []string `json:"requestedWorldRuleKeys,omitempty"`
-	SceneId string `json:"sceneId,omitempty"`
-	StateVisibilityKeys []string `json:"stateVisibilityKeys,omitempty"`
-	TemporalPosition string `json:"temporalPosition,omitempty"`
-	TurnId string `json:"turnId,omitempty"`
-}
-
-type RuntimeProjectionInputDto struct {
-	AgentId string `json:"agentId,omitempty"`
-	Hardness string `json:"hardness,omitempty"`
-	Id string `json:"id,omitempty"`
-	Layer string `json:"layer,omitempty"`
-	LineageId string `json:"lineageId,omitempty"`
-	Priority float64 `json:"priority,omitempty"`
-	Provenance string `json:"provenance,omitempty"`
-	Reasoning string `json:"reasoning,omitempty"`
-	RuleKey string `json:"ruleKey,omitempty"`
-	Scope string `json:"scope,omitempty"`
-	SourceId string `json:"sourceId,omitempty"`
-	SourceRef string `json:"sourceRef,omitempty"`
-	SourceType string `json:"sourceType,omitempty"`
-	Statement string `json:"statement,omitempty"`
-	Structured map[string]any `json:"structured,omitempty"`
-	Title string `json:"title,omitempty"`
-	ValidFrom string `json:"validFrom,omitempty"`
-	ValidUntil string `json:"validUntil,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
-	WorldRuleRef string `json:"worldRuleRef,omitempty"`
-}
-
-type RuntimeProjectionPayloadDto struct {
-	AgentRules []RuntimeProjectionInputDto `json:"agentRules,omitempty"`
-	WorldRules []RuntimeProjectionInputDto `json:"worldRules,omitempty"`
-}
-
-type RuntimeProjectionRequestDto struct {
-	AgentId string `json:"agentId,omitempty"`
-	ContextEnvelope *RuntimeProjectionContextEnvelopeDto `json:"contextEnvelope,omitempty"`
-	ReleaseAnchor string `json:"releaseAnchor,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type RuntimeProjectionResolutionOutcomeDto struct {
-	Decision string `json:"decision,omitempty"`
-	InputId string `json:"inputId,omitempty"`
-	Reasons []string `json:"reasons,omitempty"`
-	SourceType string `json:"sourceType,omitempty"`
-}
-
-type RuntimeProjectionResponseDto struct {
-	AgentId string `json:"agentId,omitempty"`
-	Checksum string `json:"checksum,omitempty"`
-	ConsumerSurface string `json:"consumerSurface,omitempty"`
-	Payload *RuntimeProjectionPayloadDto `json:"payload,omitempty"`
-	ReleaseAnchor string `json:"releaseAnchor,omitempty"`
-	SelectedInputs []RuntimeProjectionInputDto `json:"selectedInputs,omitempty"`
-	Trace *RuntimeProjectionTraceDto `json:"trace,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type RuntimeProjectionSuppressedInputDto struct {
-	Input *RuntimeProjectionInputDto `json:"input,omitempty"`
-	Reason string `json:"reason,omitempty"`
-}
-
-type RuntimeProjectionTraceDto struct {
-	ResolutionOutcomes []RuntimeProjectionResolutionOutcomeDto `json:"resolutionOutcomes,omitempty"`
-	SelectedInputIds []string `json:"selectedInputIds,omitempty"`
-	SuppressedInputs []RuntimeProjectionSuppressedInputDto `json:"suppressedInputs,omitempty"`
-}
-
 type RuntimeRealmGrantIssueRequestDto struct {
 	AppId string `json:"appId,omitempty"`
 	Scopes []string `json:"scopes,omitempty"`
@@ -12662,49 +11139,18 @@ type RuntimeRealmGrantIssueResponseDto struct {
 	Version string `json:"version,omitempty"`
 }
 
-type SceneConnectionDto struct {
-	Bidirectional bool `json:"bidirectional,omitempty"`
-	Conditions []string `json:"conditions,omitempty"`
-	From string `json:"from,omitempty"`
-	To string `json:"to,omitempty"`
-}
-
-type SceneDefinitionDto struct {
-	Description string `json:"description,omitempty"`
-	Id string `json:"id,omitempty"`
-	Name string `json:"name,omitempty"`
-	Properties map[string]any `json:"properties,omitempty"`
-	Tier string `json:"tier,omitempty"`
-}
-
-type SceneTimeConfigDto struct {
-	Defaults *SceneTimeSettingsDto `json:"defaults,omitempty"`
-	Scenes map[string]any `json:"scenes,omitempty"`
-}
-
-type SceneTimeCycleDto struct {
-	Duration float64 `json:"duration,omitempty"`
-	Phases []SceneTimePhaseDto `json:"phases,omitempty"`
-}
-
-type SceneTimePhaseDto struct {
-	Description string `json:"description,omitempty"`
-	EndRatio float64 `json:"endRatio,omitempty"`
-	Name string `json:"name,omitempty"`
-	StartRatio float64 `json:"startRatio,omitempty"`
-	VisualEffect string `json:"visualEffect,omitempty"`
-}
-
-type SceneTimeSettingsDto struct {
-	FixedTime string `json:"fixedTime,omitempty"`
-	SyncWorldTime bool `json:"syncWorldTime,omitempty"`
-	Tier string `json:"tier,omitempty"`
-	TimeCycle *SceneTimeCycleDto `json:"timeCycle,omitempty"`
-	TimeModifier float64 `json:"timeModifier,omitempty"`
-}
-
-type SelectAvatarDto struct {
-	AvatarUrl string `json:"avatarUrl,omitempty"`
+type RuntimeSourceSnapshotDto struct {
+	CapturedAt string `json:"capturedAt,omitempty"`
+	Payload map[string]any `json:"payload,omitempty"`
+	PayloadHash string `json:"payloadHash,omitempty"`
+	RuntimeSourceRef string `json:"runtimeSourceRef,omitempty"`
+	SnapshotId string `json:"snapshotId,omitempty"`
+	SnapshotSchemaVersion string `json:"snapshotSchemaVersion,omitempty"`
+	SourceContentHash string `json:"sourceContentHash,omitempty"`
+	SourceContentRevision float64 `json:"sourceContentRevision,omitempty"`
+	SourceId string `json:"sourceId,omitempty"`
+	SourceKind string `json:"sourceKind,omitempty"`
+	SourceWorldId string `json:"sourceWorldId,omitempty"`
 }
 
 type SendGiftDto struct {
@@ -12722,13 +11168,6 @@ type SendMessageInputDto struct {
 	Type *MessageType `json:"type,omitempty"`
 }
 
-type SetAgentRelationshipDto struct {
-	Context string `json:"context,omitempty"`
-	Strength float64 `json:"strength,omitempty"`
-	TargetId string `json:"targetId,omitempty"`
-	Type *AgentRelationType `json:"type,omitempty"`
-}
-
 type SocialProfileDto struct {
 	Followers float64 `json:"followers,omitempty"`
 	Handle string `json:"handle,omitempty"`
@@ -12738,19 +11177,13 @@ type SocialProfileDto struct {
 	VerifiedAt string `json:"verifiedAt,omitempty"`
 }
 
-type SpaceRealmDto struct {
-	Accessibility string `json:"accessibility,omitempty"`
-	Description string `json:"description,omitempty"`
-	Name string `json:"name,omitempty"`
-}
-
-type SpaceTopologyDto struct {
-	Boundary string `json:"boundary,omitempty"`
-	Connections []SceneConnectionDto `json:"connections,omitempty"`
-	Dimensions float64 `json:"dimensions,omitempty"`
-	Realms []SpaceRealmDto `json:"realms,omitempty"`
-	Scenes []SceneDefinitionDto `json:"scenes,omitempty"`
-	Type string `json:"type,omitempty"`
+type SourceOriginDto struct {
+	IsWorldOwned bool `json:"isWorldOwned,omitempty"`
+	OwnerId string `json:"ownerId,omitempty"`
+	SourceId string `json:"sourceId,omitempty"`
+	SourceKind string `json:"sourceKind,omitempty"`
+	WorldCreatorId string `json:"worldCreatorId,omitempty"`
+	WorldId string `json:"worldId,omitempty"`
 }
 
 type SparkCheckoutSessionDto struct {
@@ -12765,14 +11198,6 @@ type SparkPackageDto struct {
 	Popular bool `json:"popular,omitempty"`
 	SparkAmount float64 `json:"sparkAmount,omitempty"`
 	UsdPrice float64 `json:"usdPrice,omitempty"`
-}
-
-type SpeciesDefinitionDto struct {
-	Description string `json:"description,omitempty"`
-	Id string `json:"id,omitempty"`
-	Lifespan string `json:"lifespan,omitempty"`
-	Name string `json:"name,omitempty"`
-	Traits []string `json:"traits,omitempty"`
 }
 
 type StartChatInputDto struct {
@@ -12835,21 +11260,6 @@ type TierDetailDto struct {
 	VitalityScore float64 `json:"vitalityScore,omitempty"`
 }
 
-type TimeCycleDto struct {
-	Duration float64 `json:"duration,omitempty"`
-	Name string `json:"name,omitempty"`
-	Phases []string `json:"phases,omitempty"`
-}
-
-type TimeModelDto struct {
-	AllowReverse bool `json:"allowReverse,omitempty"`
-	CalendarSystem *CalendarSystemDto `json:"calendarSystem,omitempty"`
-	Cycles []TimeCycleDto `json:"cycles,omitempty"`
-	TimeFlowRatio float64 `json:"timeFlowRatio,omitempty"`
-	Type string `json:"type,omitempty"`
-	Unit string `json:"unit,omitempty"`
-}
-
 type TransitContextDto struct {
 	HandoffRefs map[string]any `json:"handoffRefs,omitempty"`
 	MemoryRefIds []string `json:"memoryRefIds,omitempty"`
@@ -12858,13 +11268,14 @@ type TransitContextDto struct {
 }
 
 type TransitDetailDto struct {
-	AgentId string `json:"agentId,omitempty"`
 	ArrivedAt string `json:"arrivedAt,omitempty"`
 	Context *TransitContextDto `json:"context,omitempty"`
 	CreatedAt string `json:"createdAt,omitempty"`
 	DepartedAt string `json:"departedAt,omitempty"`
 	FromWorldId string `json:"fromWorldId,omitempty"`
 	Id string `json:"id,omitempty"`
+	RuntimeSourceRef string `json:"runtimeSourceRef,omitempty"`
+	SourceRef *TypedSourceRefDto `json:"sourceRef,omitempty"`
 	Status string `json:"status,omitempty"`
 	ToWorldId string `json:"toWorldId,omitempty"`
 	TransitType string `json:"transitType,omitempty"`
@@ -12883,56 +11294,16 @@ type TranslateResponseDto struct {
 	Translated string `json:"translated,omitempty"`
 }
 
+type TypedSourceRefDto struct {
+	Kind string `json:"kind,omitempty"`
+	SourceContentHash string `json:"sourceContentHash,omitempty"`
+	SourceId string `json:"sourceId,omitempty"`
+	WorldId string `json:"worldId,omitempty"`
+}
+
 type UnreadNotificationCountDto struct {
 	ByType map[string]any `json:"byType,omitempty"`
 	Total float64 `json:"total,omitempty"`
-}
-
-type UpdateAgentDnaDto struct {
-	Dna *AgentDnaDto `json:"dna,omitempty"`
-}
-
-type UpdateAgentNsfwConsentDto struct {
-	Enabled bool `json:"enabled,omitempty"`
-}
-
-type UpdateAgentProfileMediaDto struct {
-	AvatarUrl string `json:"avatarUrl,omitempty"`
-	ProfileCoverUrl string `json:"profileCoverUrl,omitempty"`
-}
-
-type UpdateAgentRuleDto struct {
-	Category string `json:"category,omitempty"`
-	ConflictsWith []string `json:"conflictsWith,omitempty"`
-	DependsOn []string `json:"dependsOn,omitempty"`
-	Hardness string `json:"hardness,omitempty"`
-	Importance float64 `json:"importance,omitempty"`
-	Priority float64 `json:"priority,omitempty"`
-	Provenance string `json:"provenance,omitempty"`
-	Reasoning string `json:"reasoning,omitempty"`
-	Scope string `json:"scope,omitempty"`
-	SourceRef string `json:"sourceRef,omitempty"`
-	Statement string `json:"statement,omitempty"`
-	Structured map[string]any `json:"structured,omitempty"`
-	Title string `json:"title,omitempty"`
-	WorldRuleRef string `json:"worldRuleRef,omitempty"`
-}
-
-type UpdateAgentVisibilityDto struct {
-	AccountVisibility *Visibility `json:"accountVisibility,omitempty"`
-	DefaultPostVisibility *Visibility `json:"defaultPostVisibility,omitempty"`
-	DmVisibility *Visibility `json:"dmVisibility,omitempty"`
-	ProfileVisibility *Visibility `json:"profileVisibility,omitempty"`
-}
-
-type UpdateAgentVoiceDto struct {
-	Description string `json:"description,omitempty"`
-	EmotionEnabled bool `json:"emotionEnabled,omitempty"`
-	Pitch float64 `json:"pitch,omitempty"`
-	SpeechModelId string `json:"speechModelId,omitempty"`
-	SpeechRoutePolicy string `json:"speechRoutePolicy,omitempty"`
-	Speed float64 `json:"speed,omitempty"`
-	VoiceId string `json:"voiceId,omitempty"`
 }
 
 type UpdateAssetDto struct {
@@ -12956,42 +11327,12 @@ type UpdateBundleDto struct {
 	Version string `json:"version,omitempty"`
 }
 
-type UpdateCreatorAgentDto struct {
-	AvatarUrl string `json:"avatarUrl,omitempty"`
-	Bio string `json:"bio,omitempty"`
-	Capabilities *UserAgentDnaDto `json:"capabilities,omitempty"`
-	Category string `json:"category,omitempty"`
-	ContentRating string `json:"contentRating,omitempty"`
-	DisplayName string `json:"displayName,omitempty"`
-	ProfileCoverUrl string `json:"profileCoverUrl,omitempty"`
-	Tags []string `json:"tags,omitempty"`
-	WebhookUrl string `json:"webhookUrl,omitempty"`
-}
-
 type UpdateGroupInputDto struct {
 	Title string `json:"title,omitempty"`
 }
 
 type UpdateMyHandleDto struct {
 	Handle string `json:"handle,omitempty"`
-}
-
-type UpdateNsfwConsentResponseDto struct {
-	Enabled bool `json:"enabled,omitempty"`
-	Success bool `json:"success,omitempty"`
-	UpdatedAt string `json:"updatedAt,omitempty"`
-}
-
-type UpdateOwnerAgentSettingsDto struct {
-	Boundaries *OwnerAgentBoundarySettingsDto `json:"boundaries,omitempty"`
-	Communication *OwnerAgentCommunicationSettingsDto `json:"communication,omitempty"`
-	Description string `json:"description,omitempty"`
-	DisplayName string `json:"displayName,omitempty"`
-	Greeting string `json:"greeting,omitempty"`
-	Identity *OwnerAgentIdentitySettingsDto `json:"identity,omitempty"`
-	NaturalLanguageIntent string `json:"naturalLanguageIntent,omitempty"`
-	Personality *OwnerAgentPersonalitySettingsDto `json:"personality,omitempty"`
-	Positioning *OwnerAgentPositioningSettingsDto `json:"positioning,omitempty"`
 }
 
 type UpdatePPSlotConfigDto struct {
@@ -13017,7 +11358,6 @@ type UpdateRelationshipDto struct {
 }
 
 type UpdateResourceDto struct {
-	AgentId string `json:"agentId,omitempty"`
 	ControllerId string `json:"controllerId,omitempty"`
 	ControllerKind string `json:"controllerKind,omitempty"`
 	DeliveryAccess string `json:"deliveryAccess,omitempty"`
@@ -13060,10 +11400,6 @@ type UpdateUserNotificationSettingsDto struct {
 	Gifts *NotificationGiftsDto `json:"gifts,omitempty"`
 }
 
-type UpdateUserNsfwConsentDto struct {
-	Enabled bool `json:"enabled,omitempty"`
-}
-
 type UpdateUserSettingsDto struct {
 	AccountVisibility *Visibility `json:"accountVisibility,omitempty"`
 	BlockedAccountIds []string `json:"blockedAccountIds,omitempty"`
@@ -13086,97 +11422,14 @@ type UpdateUserSettingsDto struct {
 	WalletVisibility *Visibility `json:"walletVisibility,omitempty"`
 }
 
-type UpdateWorldDraftDto struct {
-	DraftPayload *WorldDraftPayloadDto `json:"draftPayload,omitempty"`
-	Status string `json:"status,omitempty"`
-}
-
-type UpdateWorldRuleDto struct {
-	Category string `json:"category,omitempty"`
-	ConflictsWith []string `json:"conflictsWith,omitempty"`
-	DependsOn []string `json:"dependsOn,omitempty"`
-	Hardness string `json:"hardness,omitempty"`
-	Overrides string `json:"overrides,omitempty"`
-	Priority float64 `json:"priority,omitempty"`
-	Reasoning string `json:"reasoning,omitempty"`
-	Scope string `json:"scope,omitempty"`
-	SourceRef string `json:"sourceRef,omitempty"`
-	Statement string `json:"statement,omitempty"`
-	Structured map[string]any `json:"structured,omitempty"`
-	Title string `json:"title,omitempty"`
-	ValidFrom string `json:"validFrom,omitempty"`
-	ValidUntil string `json:"validUntil,omitempty"`
-}
-
 type UsePolicyDto struct {
 	AllowedBindingPoints []string `json:"allowedBindingPoints,omitempty"`
 	AllowedHostTypes []string `json:"allowedHostTypes,omitempty"`
 }
 
-type UserAgentAppearanceDto struct {
-	ArtStyle string `json:"artStyle,omitempty"`
-	Eyes string `json:"eyes,omitempty"`
-	FashionStyle string `json:"fashionStyle,omitempty"`
-	Hair string `json:"hair,omitempty"`
-	SignatureItems []string `json:"signatureItems,omitempty"`
-	Skin string `json:"skin,omitempty"`
-}
-
-type UserAgentBiologicalDto struct {
-	Ethnicity string `json:"ethnicity,omitempty"`
-	Gender string `json:"gender,omitempty"`
-	HeightCm float64 `json:"heightCm,omitempty"`
-	VisualAge string `json:"visualAge,omitempty"`
-	WeightKg float64 `json:"weightKg,omitempty"`
-}
-
-type UserAgentCommunicationDto struct {
-	Formality string `json:"formality,omitempty"`
-	ResponseLength string `json:"responseLength,omitempty"`
-	Sentiment string `json:"sentiment,omitempty"`
-	Summary string `json:"summary,omitempty"`
-}
-
-type UserAgentDnaDto struct {
-	Appearance *UserAgentAppearanceDto `json:"appearance,omitempty"`
-	Biological *UserAgentBiologicalDto `json:"biological,omitempty"`
-	Communication *UserAgentCommunicationDto `json:"communication,omitempty"`
-	Identity *UserAgentIdentityDto `json:"identity,omitempty"`
-	NsfwLevel string `json:"nsfwLevel,omitempty"`
-	Personality *UserAgentPersonalityDto `json:"personality,omitempty"`
-	Voice *UserAgentVoiceConfigDto `json:"voice,omitempty"`
-}
-
-type UserAgentIdentityDto struct {
-	Name string `json:"name,omitempty"`
-	Role string `json:"role,omitempty"`
-	Species string `json:"species,omitempty"`
-	Summary string `json:"summary,omitempty"`
-	Worldview string `json:"worldview,omitempty"`
-}
-
-type UserAgentPersonalityDto struct {
-	EmotionBaseline string `json:"emotionBaseline,omitempty"`
-	Goals []string `json:"goals,omitempty"`
-	Interests []string `json:"interests,omitempty"`
-	Mbti string `json:"mbti,omitempty"`
-	RelationshipMode string `json:"relationshipMode,omitempty"`
-	Summary string `json:"summary,omitempty"`
-}
-
-type UserAgentVoiceConfigDto struct {
-	Description string `json:"description,omitempty"`
-	EmotionEnabled bool `json:"emotionEnabled,omitempty"`
-	Pitch float64 `json:"pitch,omitempty"`
-	SpeechModelId string `json:"speechModelId,omitempty"`
-	SpeechRoutePolicy string `json:"speechRoutePolicy,omitempty"`
-	Speed float64 `json:"speed,omitempty"`
-	VoiceId string `json:"voiceId,omitempty"`
-}
-
 type UserCapabilitiesDto struct {
-	Agent *AgentCapabilitiesDto `json:"agent,omitempty"`
 	Features *UserFeatureCapabilitiesDto `json:"features,omitempty"`
+	RealmSource *RealmSourceCapabilitiesDto `json:"realmSource,omitempty"`
 }
 
 type UserFeatureCapabilitiesDto struct {
@@ -13187,8 +11440,6 @@ type UserFeatureCapabilitiesDto struct {
 }
 
 type UserLiteDto struct {
-	Agent *AgentMetadataDto `json:"agent,omitempty"`
-	AgentProfile *AgentProfileDto `json:"agentProfile,omitempty"`
 	AvatarUrl string `json:"avatarUrl,omitempty"`
 	Bio string `json:"bio,omitempty"`
 	CreatedAt string `json:"createdAt,omitempty"`
@@ -13196,7 +11447,6 @@ type UserLiteDto struct {
 	FriendCount float64 `json:"friendCount,omitempty"`
 	Handle string `json:"handle,omitempty"`
 	Id string `json:"id,omitempty"`
-	IsAgent bool `json:"isAgent,omitempty"`
 	IsOnline bool `json:"isOnline,omitempty"`
 	PresenceEmoji string `json:"presenceEmoji,omitempty"`
 	PresenceStatus string `json:"presenceStatus,omitempty"`
@@ -13213,8 +11463,6 @@ type UserNotificationSettingsDto struct {
 }
 
 type UserPrivateDto struct {
-	Agent *AgentMetadataDto `json:"agent,omitempty"`
-	AgentProfile *AgentProfileDto `json:"agentProfile,omitempty"`
 	AvatarUrl string `json:"avatarUrl,omitempty"`
 	Bio string `json:"bio,omitempty"`
 	BirthYear float64 `json:"birthYear,omitempty"`
@@ -13229,7 +11477,6 @@ type UserPrivateDto struct {
 	Handle string `json:"handle,omitempty"`
 	HasPassword bool `json:"hasPassword,omitempty"`
 	Id string `json:"id,omitempty"`
-	IsAgent bool `json:"isAgent,omitempty"`
 	IsOnline bool `json:"isOnline,omitempty"`
 	IsTwoFactorEnabled bool `json:"isTwoFactorEnabled,omitempty"`
 	Languages []string `json:"languages,omitempty"`
@@ -13240,7 +11487,7 @@ type UserPrivateDto struct {
 	PresenceText string `json:"presenceText,omitempty"`
 	ProfileCoverUrl string `json:"profileCoverUrl,omitempty"`
 	ReviewStats *ReviewStatsDto `json:"reviewStats,omitempty"`
-	Role *AccountRole `json:"role,omitempty"`
+	Role *PublicAccountRole `json:"role,omitempty"`
 	SocialProfiles []SocialProfileDto `json:"socialProfiles,omitempty"`
 	Stats *UserStatsDto `json:"stats,omitempty"`
 	Status *AccountStatus `json:"status,omitempty"`
@@ -13251,8 +11498,6 @@ type UserPrivateDto struct {
 }
 
 type UserProfileDto struct {
-	Agent *AgentMetadataDto `json:"agent,omitempty"`
-	AgentProfile *AgentProfileDto `json:"agentProfile,omitempty"`
 	AvatarUrl string `json:"avatarUrl,omitempty"`
 	Bio string `json:"bio,omitempty"`
 	BirthYear float64 `json:"birthYear,omitempty"`
@@ -13265,7 +11510,6 @@ type UserProfileDto struct {
 	GiftStats map[string]any `json:"giftStats,omitempty"`
 	Handle string `json:"handle,omitempty"`
 	Id string `json:"id,omitempty"`
-	IsAgent bool `json:"isAgent,omitempty"`
 	IsOnline bool `json:"isOnline,omitempty"`
 	Languages []string `json:"languages,omitempty"`
 	PresenceEmoji string `json:"presenceEmoji,omitempty"`
@@ -13332,29 +11576,11 @@ type UserWalletListResponseDto struct {
 	Items []UserWalletDto `json:"items,omitempty"`
 }
 
-type ValidateRulesDto struct {
-	Rules []WorldRuleItemDto `json:"rules,omitempty"`
-}
-
-type VerificationTier string
-
 type VerifyInvitationCodeDto struct {
 	InvitationCode string `json:"invitationCode,omitempty"`
 }
 
 type Visibility string
-
-type VisualGuideDto struct {
-	AccentColor string `json:"accentColor,omitempty"`
-	ArtStyle string `json:"artStyle,omitempty"`
-	Atmosphere string `json:"atmosphere,omitempty"`
-	ColorPalette string `json:"colorPalette,omitempty"`
-	CssVariables map[string]any `json:"cssVariables,omitempty"`
-	PrimaryColor string `json:"primaryColor,omitempty"`
-	ReferenceImages []string `json:"referenceImages,omitempty"`
-	SecondaryColor string `json:"secondaryColor,omitempty"`
-	StylePrompt string `json:"stylePrompt,omitempty"`
-}
 
 type WalletBindDto struct {
 	ChainId float64 `json:"chainId,omitempty"`
@@ -13428,624 +11654,30 @@ type WithdrawalSummaryDto struct {
 	UsdAmount float64 `json:"usdAmount,omitempty"`
 }
 
-type WorldAccessRecordDto struct {
-	CanCreateWorld bool `json:"canCreateWorld,omitempty"`
-	CanMaintainWorld bool `json:"canMaintainWorld,omitempty"`
-	ExpiresAt string `json:"expiresAt,omitempty"`
-	Id string `json:"id,omitempty"`
-	MaintainRole string `json:"maintainRole,omitempty"`
-	ScopeType string `json:"scopeType,omitempty"`
-	ScopeWorldId string `json:"scopeWorldId,omitempty"`
-	Status string `json:"status,omitempty"`
-	UserId string `json:"userId,omitempty"`
-}
-
-type WorldAccessSummaryDto struct {
-	CanCreateWorld bool `json:"canCreateWorld,omitempty"`
-	CanMaintainWorld bool `json:"canMaintainWorld,omitempty"`
-	HasActiveAccess bool `json:"hasActiveAccess,omitempty"`
-	Records []WorldAccessRecordDto `json:"records,omitempty"`
-	UserId string `json:"userId,omitempty"`
-}
-
-type WorldAgentRuleSummaryDto struct {
-	ByLayer *AgentRuleLayerCountDto `json:"byLayer,omitempty"`
-	TotalAgentRuleCount float64 `json:"totalAgentRuleCount,omitempty"`
-	WorldLinkedRuleCount float64 `json:"worldLinkedRuleCount,omitempty"`
-}
-
-type WorldAgentSummaryDto struct {
-	ActiveRuleCount float64 `json:"activeRuleCount,omitempty"`
-	ActiveWorldId string `json:"activeWorldId,omitempty"`
-	AvatarUrl string `json:"avatarUrl,omitempty"`
-	Bio string `json:"bio,omitempty"`
+type WorldCharacterCoreDto struct {
+	ContentHash string `json:"contentHash,omitempty"`
+	ContentRevision float64 `json:"contentRevision,omitempty"`
+	Core map[string]any `json:"core,omitempty"`
 	CreatedAt string `json:"createdAt,omitempty"`
-	Display *AgentDisplayDto `json:"display,omitempty"`
-	Handle string `json:"handle,omitempty"`
+	EntityId string `json:"entityId,omitempty"`
 	Id string `json:"id,omitempty"`
-	Importance string `json:"importance,omitempty"`
-	Name string `json:"name,omitempty"`
-	Stats *AgentStatsDto `json:"stats,omitempty"`
+	Origin *RealmCoreOriginDto `json:"origin,omitempty"`
+	SchemaVersion string `json:"schemaVersion,omitempty"`
+	UpdatedAt string `json:"updatedAt,omitempty"`
+	WorldId string `json:"worldId,omitempty"`
 }
 
-type WorldClockConfigDto struct {
-	AnchorRealTime string `json:"anchorRealTime,omitempty"`
-	AnchorWorldTime string `json:"anchorWorldTime,omitempty"`
-	CurrentEra string `json:"currentEra,omitempty"`
-	Eras []WorldClockEraDto `json:"eras,omitempty"`
-	IsPaused bool `json:"isPaused,omitempty"`
-	PausedAt string `json:"pausedAt,omitempty"`
-	StartRealTime string `json:"startRealTime,omitempty"`
-	StartWorldTime string `json:"startWorldTime,omitempty"`
-	TimeFormat *WorldTimeFormatDto `json:"timeFormat,omitempty"`
-}
-
-type WorldClockEraDto struct {
-	Id string `json:"id,omitempty"`
-	Name string `json:"name,omitempty"`
-	StartWorldTime string `json:"startWorldTime,omitempty"`
-}
-
-type WorldComputedEntryDto struct {
-	RecommendedAgents []WorldRecommendedAgentDto `json:"recommendedAgents,omitempty"`
-}
-
-type WorldComputedLanguagesDto struct {
-	Common []string `json:"common,omitempty"`
-	Primary string `json:"primary,omitempty"`
-}
-
-type WorldComputedScoreDto struct {
-	ScoreEwma float64 `json:"scoreEwma,omitempty"`
-}
-
-type WorldComputedTimeDto struct {
-	CurrentLabel string `json:"currentLabel,omitempty"`
-	CurrentWorldTime string `json:"currentWorldTime,omitempty"`
-	EraLabel string `json:"eraLabel,omitempty"`
-	FlowRatio float64 `json:"flowRatio,omitempty"`
-	IsPaused bool `json:"isPaused,omitempty"`
-}
-
-type WorldDetailDto struct {
-	AgentCount float64 `json:"agentCount,omitempty"`
-	BannerUrl string `json:"bannerUrl,omitempty"`
-	ClockConfig *WorldClockConfigDto `json:"clockConfig,omitempty"`
-	Computed *WorldDisplayComputedDto `json:"computed,omitempty"`
-	ContentRating string `json:"contentRating,omitempty"`
+type WorldCoreDto struct {
+	ContentHash string `json:"contentHash,omitempty"`
+	ContentRevision float64 `json:"contentRevision,omitempty"`
+	Core map[string]any `json:"core,omitempty"`
 	CreatedAt string `json:"createdAt,omitempty"`
 	CreatorId string `json:"creatorId,omitempty"`
-	Description string `json:"description,omitempty"`
-	Era string `json:"era,omitempty"`
-	FreezeReason string `json:"freezeReason,omitempty"`
-	Genre string `json:"genre,omitempty"`
-	IconUrl string `json:"iconUrl,omitempty"`
 	Id string `json:"id,omitempty"`
-	Languages *WorldviewLanguagesDto `json:"languages,omitempty"`
-	Level float64 `json:"level,omitempty"`
-	LevelUpdatedAt string `json:"levelUpdatedAt,omitempty"`
-	LorebookEntryLimit float64 `json:"lorebookEntryLimit,omitempty"`
-	Motto string `json:"motto,omitempty"`
-	Name string `json:"name,omitempty"`
-	NativeAgentLimit float64 `json:"nativeAgentLimit,omitempty"`
-	NativeCreationState string `json:"nativeCreationState,omitempty"`
-	Overview string `json:"overview,omitempty"`
-	ReviewedAt string `json:"reviewedAt,omitempty"`
-	ReviewedBy string `json:"reviewedBy,omitempty"`
-	SceneTimeConfig *SceneTimeConfigDto `json:"sceneTimeConfig,omitempty"`
-	ScoreA float64 `json:"scoreA,omitempty"`
-	ScoreC float64 `json:"scoreC,omitempty"`
-	ScoreE float64 `json:"scoreE,omitempty"`
-	ScoreEwma float64 `json:"scoreEwma,omitempty"`
-	ScoreQ float64 `json:"scoreQ,omitempty"`
-	Status string `json:"status,omitempty"`
-	Tagline string `json:"tagline,omitempty"`
-	Themes []string `json:"themes,omitempty"`
-	TimeModel *TimeModelDto `json:"timeModel,omitempty"`
-	TransitInLimit float64 `json:"transitInLimit,omitempty"`
-	Truth *WorldTruthDto `json:"truth,omitempty"`
-	Type string `json:"type,omitempty"`
-	UpdatedAt string `json:"updatedAt,omitempty"`
-}
-
-type WorldDetailWithAgentsDto struct {
-	AgentCount float64 `json:"agentCount,omitempty"`
-	AgentRuleSummary *WorldAgentRuleSummaryDto `json:"agentRuleSummary,omitempty"`
-	Agents []WorldAgentSummaryDto `json:"agents,omitempty"`
-	BannerUrl string `json:"bannerUrl,omitempty"`
-	ClockConfig *WorldClockConfigDto `json:"clockConfig,omitempty"`
-	Computed *WorldDisplayComputedDto `json:"computed,omitempty"`
-	ContentRating string `json:"contentRating,omitempty"`
-	CreatedAt string `json:"createdAt,omitempty"`
-	CreatorId string `json:"creatorId,omitempty"`
-	Description string `json:"description,omitempty"`
-	Era string `json:"era,omitempty"`
-	FreezeReason string `json:"freezeReason,omitempty"`
-	Genre string `json:"genre,omitempty"`
-	IconUrl string `json:"iconUrl,omitempty"`
-	Id string `json:"id,omitempty"`
-	Languages *WorldviewLanguagesDto `json:"languages,omitempty"`
-	Level float64 `json:"level,omitempty"`
-	LevelUpdatedAt string `json:"levelUpdatedAt,omitempty"`
-	LorebookEntryLimit float64 `json:"lorebookEntryLimit,omitempty"`
-	Motto string `json:"motto,omitempty"`
-	Name string `json:"name,omitempty"`
-	NativeAgentLimit float64 `json:"nativeAgentLimit,omitempty"`
-	NativeCreationState string `json:"nativeCreationState,omitempty"`
-	Overview string `json:"overview,omitempty"`
-	ReviewedAt string `json:"reviewedAt,omitempty"`
-	ReviewedBy string `json:"reviewedBy,omitempty"`
-	SceneTimeConfig *SceneTimeConfigDto `json:"sceneTimeConfig,omitempty"`
-	ScoreA float64 `json:"scoreA,omitempty"`
-	ScoreC float64 `json:"scoreC,omitempty"`
-	ScoreE float64 `json:"scoreE,omitempty"`
-	ScoreEwma float64 `json:"scoreEwma,omitempty"`
-	ScoreQ float64 `json:"scoreQ,omitempty"`
-	Status string `json:"status,omitempty"`
-	Tagline string `json:"tagline,omitempty"`
-	Themes []string `json:"themes,omitempty"`
-	TimeModel *TimeModelDto `json:"timeModel,omitempty"`
-	TransitInLimit float64 `json:"transitInLimit,omitempty"`
-	Truth *WorldTruthDto `json:"truth,omitempty"`
-	Type string `json:"type,omitempty"`
-	UpdatedAt string `json:"updatedAt,omitempty"`
-}
-
-type WorldDisplayComputedDto struct {
-	Entry *WorldComputedEntryDto `json:"entry,omitempty"`
-	FeaturedAgentCount float64 `json:"featuredAgentCount,omitempty"`
-	Languages *WorldComputedLanguagesDto `json:"languages,omitempty"`
-	Score *WorldComputedScoreDto `json:"score,omitempty"`
-	Time *WorldComputedTimeDto `json:"time,omitempty"`
-}
-
-type WorldDraftDetailDto struct {
-	CreatedAt string `json:"createdAt,omitempty"`
-	DraftPayload map[string]any `json:"draftPayload,omitempty"`
-	Id string `json:"id,omitempty"`
-	OwnerUserId string `json:"ownerUserId,omitempty"`
-	PublishResult map[string]any `json:"publishResult,omitempty"`
-	PublishedAt string `json:"publishedAt,omitempty"`
-	SourceRef string `json:"sourceRef,omitempty"`
-	SourceType string `json:"sourceType,omitempty"`
-	Status string `json:"status,omitempty"`
-	TargetWorldId string `json:"targetWorldId,omitempty"`
-	UpdatedAt string `json:"updatedAt,omitempty"`
-}
-
-type WorldDraftHistoryBucketsDto struct {
-	FutureHistorical []WorldDraftHistoryEventDto `json:"futureHistorical,omitempty"`
-	Primary []WorldDraftHistoryEventDto `json:"primary,omitempty"`
-	Secondary []WorldDraftHistoryEventDto `json:"secondary,omitempty"`
-}
-
-type WorldDraftHistoryDraftDto struct {
-	Events *WorldDraftHistoryBucketsDto `json:"events,omitempty"`
-}
-
-type WorldDraftHistoryEventDto struct {
-	Cause string `json:"cause,omitempty"`
-	CharacterRefs []string `json:"characterRefs,omitempty"`
-	DependsOnEventIds []string `json:"dependsOnEventIds,omitempty"`
-	EventId string `json:"eventId,omitempty"`
-	EventType string `json:"eventType,omitempty"`
-	EvidenceRefs []map[string]any `json:"evidenceRefs,omitempty"`
-	HappenedAt string `json:"happenedAt,omitempty"`
-	LocationRefs []string `json:"locationRefs,omitempty"`
-	OccurredAt string `json:"occurredAt,omitempty"`
-	Payload map[string]any `json:"payload,omitempty"`
-	Process string `json:"process,omitempty"`
-	Result string `json:"result,omitempty"`
-	Summary string `json:"summary,omitempty"`
-	TimeRef string `json:"timeRef,omitempty"`
-	Title string `json:"title,omitempty"`
-}
-
-type WorldDraftImportSourceDto struct {
-	SourceRef string `json:"sourceRef,omitempty"`
-	SourceText string `json:"sourceText,omitempty"`
-	SourceType string `json:"sourceType,omitempty"`
-}
-
-type WorldDraftPayloadDto struct {
-	HistoryDraft *WorldDraftHistoryDraftDto `json:"historyDraft,omitempty"`
-	ImportSource *WorldDraftImportSourceDto `json:"importSource,omitempty"`
-	StateDraft *WorldDraftStateDraftDto `json:"stateDraft,omitempty"`
-	TruthDraft *WorldDraftTruthDraftDto `json:"truthDraft,omitempty"`
-}
-
-type WorldDraftStateDraftDto struct {
-	WorldState map[string]any `json:"worldState,omitempty"`
-}
-
-type WorldDraftSummaryDto struct {
-	Id string `json:"id,omitempty"`
-	PublishedAt string `json:"publishedAt,omitempty"`
-	SourceRef string `json:"sourceRef,omitempty"`
-	SourceType string `json:"sourceType,omitempty"`
-	Status string `json:"status,omitempty"`
-	TargetWorldId string `json:"targetWorldId,omitempty"`
-	UpdatedAt string `json:"updatedAt,omitempty"`
-}
-
-type WorldDraftSummaryListDto struct {
-	Items []WorldDraftSummaryDto `json:"items,omitempty"`
-}
-
-type WorldDraftTruthDraftDto struct {
-	AgentRules []map[string]any `json:"agentRules,omitempty"`
-	WorldRules []WorldDraftTruthRuleDto `json:"worldRules,omitempty"`
-}
-
-type WorldDraftTruthRuleDto struct {
-	Category string `json:"category,omitempty"`
-	ConflictsWith []string `json:"conflictsWith,omitempty"`
-	DependsOn []string `json:"dependsOn,omitempty"`
-	Domain string `json:"domain,omitempty"`
-	Hardness string `json:"hardness,omitempty"`
-	Overrides string `json:"overrides,omitempty"`
-	Priority float64 `json:"priority,omitempty"`
-	Provenance string `json:"provenance,omitempty"`
-	Reasoning string `json:"reasoning,omitempty"`
-	RuleKey string `json:"ruleKey,omitempty"`
-	Scope string `json:"scope,omitempty"`
-	SourceRef string `json:"sourceRef,omitempty"`
-	Statement string `json:"statement,omitempty"`
-	Structured map[string]any `json:"structured,omitempty"`
-	Title string `json:"title,omitempty"`
-	ValidFrom string `json:"validFrom,omitempty"`
-	ValidUntil string `json:"validUntil,omitempty"`
-}
-
-type WorldEventEvidenceRefDto struct {
-	Confidence float64 `json:"confidence,omitempty"`
-	Excerpt string `json:"excerpt,omitempty"`
-	OffsetEnd float64 `json:"offsetEnd,omitempty"`
-	OffsetStart float64 `json:"offsetStart,omitempty"`
-	SegmentId string `json:"segmentId,omitempty"`
-	SourceType string `json:"sourceType,omitempty"`
-}
-
-type WorldEventEvidenceRefInputDto struct {
-	Confidence float64 `json:"confidence,omitempty"`
-	Excerpt string `json:"excerpt,omitempty"`
-	OffsetEnd float64 `json:"offsetEnd,omitempty"`
-	OffsetStart float64 `json:"offsetStart,omitempty"`
-	SegmentId string `json:"segmentId,omitempty"`
-	SourceType string `json:"sourceType,omitempty"`
-}
-
-type WorldHistoryAppendItemDto struct {
-	Cause string `json:"cause,omitempty"`
-	CharacterRefs []string `json:"characterRefs,omitempty"`
-	DependsOnEventIds []string `json:"dependsOnEventIds,omitempty"`
-	EventId string `json:"eventId,omitempty"`
-	EventType string `json:"eventType,omitempty"`
-	EvidenceRefs []WorldEventEvidenceRefInputDto `json:"evidenceRefs,omitempty"`
-	HappenedAt string `json:"happenedAt,omitempty"`
-	Invalidates []string `json:"invalidates,omitempty"`
-	LocationRefs []string `json:"locationRefs,omitempty"`
-	Operation string `json:"operation,omitempty"`
-	Payload map[string]any `json:"payload,omitempty"`
-	Process string `json:"process,omitempty"`
-	Reason string `json:"reason,omitempty"`
-	RelatedStateRefs []WorldHistoryRelatedStateRefDto `json:"relatedStateRefs,omitempty"`
-	Result string `json:"result,omitempty"`
-	Summary string `json:"summary,omitempty"`
-	Supersedes []string `json:"supersedes,omitempty"`
-	TimeRef string `json:"timeRef,omitempty"`
-	Title string `json:"title,omitempty"`
-	Visibility string `json:"visibility,omitempty"`
-}
-
-type WorldHistoryEventDto struct {
-	ActorRefs []MutationActorRefDto `json:"actorRefs,omitempty"`
-	AppId string `json:"appId,omitempty"`
-	Cause string `json:"cause,omitempty"`
-	CharacterRefs []string `json:"characterRefs,omitempty"`
-	CommitId string `json:"commitId,omitempty"`
-	CommittedAt string `json:"committedAt,omitempty"`
-	CreatedBy string `json:"createdBy,omitempty"`
-	DependsOnEventIds []string `json:"dependsOnEventIds,omitempty"`
-	EventId string `json:"eventId,omitempty"`
-	EventType string `json:"eventType,omitempty"`
-	EvidenceRefs []WorldEventEvidenceRefDto `json:"evidenceRefs,omitempty"`
-	HappenedAt string `json:"happenedAt,omitempty"`
-	Id string `json:"id,omitempty"`
-	InvalidatedAt string `json:"invalidatedAt,omitempty"`
-	Invalidates []string `json:"invalidates,omitempty"`
-	LocationRefs []string `json:"locationRefs,omitempty"`
-	Operation string `json:"operation,omitempty"`
-	Payload map[string]any `json:"payload,omitempty"`
-	Process string `json:"process,omitempty"`
-	RelatedStateRefs []WorldHistoryRelatedStateRefDto `json:"relatedStateRefs,omitempty"`
-	Result string `json:"result,omitempty"`
-	SchemaId string `json:"schemaId,omitempty"`
+	Origin *RealmCoreOriginDto `json:"origin,omitempty"`
 	SchemaVersion string `json:"schemaVersion,omitempty"`
-	SessionId string `json:"sessionId,omitempty"`
-	Summary string `json:"summary,omitempty"`
-	Supersedes []string `json:"supersedes,omitempty"`
-	TimeRef string `json:"timeRef,omitempty"`
-	Title string `json:"title,omitempty"`
+	UpdatedAt string `json:"updatedAt,omitempty"`
 	Visibility string `json:"visibility,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type WorldHistoryListDto struct {
-	Items []WorldHistoryEventDto `json:"items,omitempty"`
-	Version string `json:"version,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type WorldHistoryRelatedStateRefDto struct {
-	RecordId string `json:"recordId,omitempty"`
-	Scope string `json:"scope,omitempty"`
-	ScopeKey string `json:"scopeKey,omitempty"`
-	Version string `json:"version,omitempty"`
-}
-
-type WorldLandingDecisionDto struct {
-	Reason string `json:"reason,omitempty"`
-	Target string `json:"target,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type WorldLanguageDto struct {
-	Category string `json:"category,omitempty"`
-	Description string `json:"description,omitempty"`
-	Id string `json:"id,omitempty"`
-	IsCommon bool `json:"isCommon,omitempty"`
-	Name string `json:"name,omitempty"`
-	RealWorldBasis string `json:"realWorldBasis,omitempty"`
-	SpokenSample string `json:"spokenSample,omitempty"`
-	UsedBy []string `json:"usedBy,omitempty"`
-	WritingSample string `json:"writingSample,omitempty"`
-}
-
-type WorldLevelAuditEventDto struct {
-	A float64 `json:"a,omitempty"`
-	Actor string `json:"actor,omitempty"`
-	C float64 `json:"c,omitempty"`
-	E float64 `json:"e,omitempty"`
-	EventType string `json:"eventType,omitempty"`
-	EvidenceRef string `json:"evidenceRef,omitempty"`
-	EwmaScore float64 `json:"ewmaScore,omitempty"`
-	FreezeReason string `json:"freezeReason,omitempty"`
-	Id string `json:"id,omitempty"`
-	Meta map[string]any `json:"meta,omitempty"`
-	NativeCount float64 `json:"nativeCount,omitempty"`
-	NativeLimit float64 `json:"nativeLimit,omitempty"`
-	NextLevel float64 `json:"nextLevel,omitempty"`
-	NextScore float64 `json:"nextScore,omitempty"`
-	OccurredAt string `json:"occurredAt,omitempty"`
-	PrevLevel float64 `json:"prevLevel,omitempty"`
-	PrevScore float64 `json:"prevScore,omitempty"`
-	Q float64 `json:"q,omitempty"`
-	ReasonCode string `json:"reasonCode,omitempty"`
-	Seq float64 `json:"seq,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type WorldLorebookDetailDto struct {
-	Constant bool `json:"constant,omitempty"`
-	Content string `json:"content,omitempty"`
-	CreatedAt string `json:"createdAt,omitempty"`
-	Enabled bool `json:"enabled,omitempty"`
-	Id string `json:"id,omitempty"`
-	Key string `json:"key,omitempty"`
-	Keywords []string `json:"keywords,omitempty"`
-	Name string `json:"name,omitempty"`
-	Priority float64 `json:"priority,omitempty"`
-	Provenance map[string]any `json:"provenance,omitempty"`
-	UpdatedAt string `json:"updatedAt,omitempty"`
-	ValidFrom string `json:"validFrom,omitempty"`
-	ValidTo string `json:"validTo,omitempty"`
-	Value map[string]any `json:"value,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type WorldLorebookListDto struct {
-	Items []WorldLorebookDetailDto `json:"items,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type WorldRecommendedAgentDto struct {
-	AvatarUrl string `json:"avatarUrl,omitempty"`
-	Display *AgentDisplayDto `json:"display,omitempty"`
-	Handle string `json:"handle,omitempty"`
-	Id string `json:"id,omitempty"`
-	Importance string `json:"importance,omitempty"`
-	Name string `json:"name,omitempty"`
-}
-
-type WorldRuleDto struct {
-	Category string `json:"category,omitempty"`
-	ConflictsWith []string `json:"conflictsWith,omitempty"`
-	CreatedAt string `json:"createdAt,omitempty"`
-	CreatedBy string `json:"createdBy,omitempty"`
-	DependsOn []string `json:"dependsOn,omitempty"`
-	Domain string `json:"domain,omitempty"`
-	Hardness string `json:"hardness,omitempty"`
-	Id string `json:"id,omitempty"`
-	LineageId string `json:"lineageId,omitempty"`
-	Overrides string `json:"overrides,omitempty"`
-	Priority float64 `json:"priority,omitempty"`
-	Provenance string `json:"provenance,omitempty"`
-	Reasoning string `json:"reasoning,omitempty"`
-	RuleKey string `json:"ruleKey,omitempty"`
-	Scope string `json:"scope,omitempty"`
-	SourceRef string `json:"sourceRef,omitempty"`
-	Statement string `json:"statement,omitempty"`
-	Status string `json:"status,omitempty"`
-	Structured map[string]any `json:"structured,omitempty"`
-	Title string `json:"title,omitempty"`
-	UpdatedAt string `json:"updatedAt,omitempty"`
-	UpdatedBy string `json:"updatedBy,omitempty"`
-	ValidFrom string `json:"validFrom,omitempty"`
-	ValidUntil string `json:"validUntil,omitempty"`
-	Version float64 `json:"version,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type WorldRuleItemDto struct {
-	Key string `json:"key,omitempty"`
-	Title string `json:"title,omitempty"`
-	Value string `json:"value,omitempty"`
-}
-
-type WorldStateDto struct {
-	Items []WorldStateRecordDto `json:"items,omitempty"`
-	Version string `json:"version,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type WorldStateRecordDto struct {
-	ActorRefs []MutationActorRefDto `json:"actorRefs,omitempty"`
-	AppId string `json:"appId,omitempty"`
-	CommitId string `json:"commitId,omitempty"`
-	CommittedAt string `json:"committedAt,omitempty"`
-	CreatedBy string `json:"createdBy,omitempty"`
-	EffectClass string `json:"effectClass,omitempty"`
-	EvidenceRefs []MutationEvidenceRefDto `json:"evidenceRefs,omitempty"`
-	Id string `json:"id,omitempty"`
-	Metadata map[string]any `json:"metadata,omitempty"`
-	Payload map[string]any `json:"payload,omitempty"`
-	SchemaId string `json:"schemaId,omitempty"`
-	SchemaVersion string `json:"schemaVersion,omitempty"`
-	Scope string `json:"scope,omitempty"`
-	ScopeKey string `json:"scopeKey,omitempty"`
-	SessionId string `json:"sessionId,omitempty"`
-	TargetPath string `json:"targetPath,omitempty"`
-	Version string `json:"version,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type WorldStateWriteDto struct {
-	Metadata map[string]any `json:"metadata,omitempty"`
-	Payload map[string]any `json:"payload,omitempty"`
-	Scope string `json:"scope,omitempty"`
-	ScopeKey string `json:"scopeKey,omitempty"`
-	TargetPath string `json:"targetPath,omitempty"`
-}
-
-type WorldSummaryDto struct {
-	Description string `json:"description,omitempty"`
-	Id string `json:"id,omitempty"`
-	Name string `json:"name,omitempty"`
-	Status string `json:"status,omitempty"`
-	UpdatedAt string `json:"updatedAt,omitempty"`
-}
-
-type WorldSummaryListDto struct {
-	Items []WorldSummaryDto `json:"items,omitempty"`
-}
-
-type WorldTimeFormatDto struct {
-	DatePattern string `json:"datePattern,omitempty"`
-	EraName string `json:"eraName,omitempty"`
-	MonthNames []string `json:"monthNames,omitempty"`
-	TimePattern string `json:"timePattern,omitempty"`
-	WeekdayNames []string `json:"weekdayNames,omitempty"`
-}
-
-type WorldTruthDto struct {
-	Rules []WorldRuleDto `json:"rules,omitempty"`
-}
-
-type WorldviewDetailDto struct {
-	Causality *CausalityModelDto `json:"causality,omitempty"`
-	CoreSystem *PowerSystemDto `json:"coreSystem,omitempty"`
-	CreatedAt string `json:"createdAt,omitempty"`
-	Existences *ExistenceDefinitionDto `json:"existences,omitempty"`
-	Glossary *WorldviewGlossaryDto `json:"glossary,omitempty"`
-	Id string `json:"id,omitempty"`
-	Languages *WorldviewLanguagesDto `json:"languages,omitempty"`
-	Lifecycle string `json:"lifecycle,omitempty"`
-	Locations *WorldviewLocationsDto `json:"locations,omitempty"`
-	Resources *ResourceDefinitionDto `json:"resources,omitempty"`
-	SpaceTopology *SpaceTopologyDto `json:"spaceTopology,omitempty"`
-	Structures map[string]any `json:"structures,omitempty"`
-	TimeModel *TimeModelDto `json:"timeModel,omitempty"`
-	TruthRules []WorldviewTruthRuleSummaryDto `json:"truthRules,omitempty"`
-	UpdatedAt string `json:"updatedAt,omitempty"`
-	Version float64 `json:"version,omitempty"`
-	VisualGuide *VisualGuideDto `json:"visualGuide,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type WorldviewGlossaryDto struct {
-	Terms []GlossaryTermDto `json:"terms,omitempty"`
-}
-
-type WorldviewLanguagesDto struct {
-	Languages []WorldLanguageDto `json:"languages,omitempty"`
-}
-
-type WorldviewLocationsDto struct {
-	Landmarks []LocationLandmarkDto `json:"landmarks,omitempty"`
-	Regions []LocationRegionDto `json:"regions,omitempty"`
-}
-
-type WorldviewTruthRuleSummaryDto struct {
-	Category string `json:"category,omitempty"`
-	ConflictsWith []string `json:"conflictsWith,omitempty"`
-	DependsOn []string `json:"dependsOn,omitempty"`
-	Domain string `json:"domain,omitempty"`
-	Hardness string `json:"hardness,omitempty"`
-	Id string `json:"id,omitempty"`
-	LineageId string `json:"lineageId,omitempty"`
-	Overrides string `json:"overrides,omitempty"`
-	Priority float64 `json:"priority,omitempty"`
-	Provenance string `json:"provenance,omitempty"`
-	Reasoning string `json:"reasoning,omitempty"`
-	RuleKey string `json:"ruleKey,omitempty"`
-	Scope string `json:"scope,omitempty"`
-	SourceRef string `json:"sourceRef,omitempty"`
-	Statement string `json:"statement,omitempty"`
-	Status string `json:"status,omitempty"`
-	Structured map[string]any `json:"structured,omitempty"`
-	Title string `json:"title,omitempty"`
-	ValidFrom string `json:"validFrom,omitempty"`
-	ValidUntil string `json:"validUntil,omitempty"`
-	Version float64 `json:"version,omitempty"`
-}
-
-type RealmAckMyLocalAgentProvisionIntentOperationPath struct {
-	IntentId string `json:"intentId,omitempty"`
-}
-
-type RealmAckMyLocalAgentProvisionIntentOperationQuery struct {
-
-}
-
-type RealmAckMyLocalAgentProvisionIntentOperationHeaders struct {
-
-}
-
-type RealmAckMyLocalAgentProvisionIntentOperationRequest struct {
-	Path    RealmAckMyLocalAgentProvisionIntentOperationPath `json:"path,omitempty"`
-	Query   RealmAckMyLocalAgentProvisionIntentOperationQuery `json:"query,omitempty"`
-	Headers RealmAckMyLocalAgentProvisionIntentOperationHeaders `json:"headers,omitempty"`
-	Body    LocalAgentProvisionIntentAckDto `json:"body,omitempty"`
-}
-
-type RealmAckMyLocalAgentTerminationIntentOperationPath struct {
-	IntentId string `json:"intentId,omitempty"`
-}
-
-type RealmAckMyLocalAgentTerminationIntentOperationQuery struct {
-
-}
-
-type RealmAckMyLocalAgentTerminationIntentOperationHeaders struct {
-
-}
-
-type RealmAckMyLocalAgentTerminationIntentOperationRequest struct {
-	Path    RealmAckMyLocalAgentTerminationIntentOperationPath `json:"path,omitempty"`
-	Query   RealmAckMyLocalAgentTerminationIntentOperationQuery `json:"query,omitempty"`
-	Headers RealmAckMyLocalAgentTerminationIntentOperationHeaders `json:"headers,omitempty"`
-	Body    LocalAgentTerminationIntentAckDto `json:"body,omitempty"`
 }
 
 type RealmAddFriendOperationPath struct {
@@ -14067,25 +11699,6 @@ type RealmAddFriendOperationRequest struct {
 	Body    AddFriendBodyDto `json:"body,omitempty"`
 }
 
-type RealmAddGroupAgentOperationPath struct {
-	ChatId string `json:"chatId,omitempty"`
-}
-
-type RealmAddGroupAgentOperationQuery struct {
-
-}
-
-type RealmAddGroupAgentOperationHeaders struct {
-
-}
-
-type RealmAddGroupAgentOperationRequest struct {
-	Path    RealmAddGroupAgentOperationPath `json:"path,omitempty"`
-	Query   RealmAddGroupAgentOperationQuery `json:"query,omitempty"`
-	Headers RealmAddGroupAgentOperationHeaders `json:"headers,omitempty"`
-	Body    AddGroupAgentInputDto `json:"body,omitempty"`
-}
-
 type RealmAddGroupParticipantOperationPath struct {
 	ChatId string `json:"chatId,omitempty"`
 }
@@ -14103,359 +11716,6 @@ type RealmAddGroupParticipantOperationRequest struct {
 	Query   RealmAddGroupParticipantOperationQuery `json:"query,omitempty"`
 	Headers RealmAddGroupParticipantOperationHeaders `json:"headers,omitempty"`
 	Body    AddGroupParticipantInputDto `json:"body,omitempty"`
-}
-
-type RealmAgentControllerCheckHandleOperationPath struct {
-
-}
-
-type RealmAgentControllerCheckHandleOperationQuery struct {
-	Handle string `json:"handle,omitempty"`
-}
-
-type RealmAgentControllerCheckHandleOperationHeaders struct {
-
-}
-
-type RealmAgentControllerCheckHandleOperationRequest struct {
-	Path    RealmAgentControllerCheckHandleOperationPath `json:"path,omitempty"`
-	Query   RealmAgentControllerCheckHandleOperationQuery `json:"query,omitempty"`
-	Headers RealmAgentControllerCheckHandleOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmAgentControllerCreateOperationPath struct {
-
-}
-
-type RealmAgentControllerCreateOperationQuery struct {
-
-}
-
-type RealmAgentControllerCreateOperationHeaders struct {
-
-}
-
-type RealmAgentControllerCreateOperationRequest struct {
-	Path    RealmAgentControllerCreateOperationPath `json:"path,omitempty"`
-	Query   RealmAgentControllerCreateOperationQuery `json:"query,omitempty"`
-	Headers RealmAgentControllerCreateOperationHeaders `json:"headers,omitempty"`
-	Body    CreateAgentDto `json:"body,omitempty"`
-}
-
-type RealmAgentControllerDeleteOperationPath struct {
-	Id string `json:"id,omitempty"`
-}
-
-type RealmAgentControllerDeleteOperationQuery struct {
-
-}
-
-type RealmAgentControllerDeleteOperationHeaders struct {
-
-}
-
-type RealmAgentControllerDeleteOperationRequest struct {
-	Path    RealmAgentControllerDeleteOperationPath `json:"path,omitempty"`
-	Query   RealmAgentControllerDeleteOperationQuery `json:"query,omitempty"`
-	Headers RealmAgentControllerDeleteOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmAgentControllerGetRelationshipsOperationPath struct {
-	Id string `json:"id,omitempty"`
-}
-
-type RealmAgentControllerGetRelationshipsOperationQuery struct {
-
-}
-
-type RealmAgentControllerGetRelationshipsOperationHeaders struct {
-
-}
-
-type RealmAgentControllerGetRelationshipsOperationRequest struct {
-	Path    RealmAgentControllerGetRelationshipsOperationPath `json:"path,omitempty"`
-	Query   RealmAgentControllerGetRelationshipsOperationQuery `json:"query,omitempty"`
-	Headers RealmAgentControllerGetRelationshipsOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmAgentControllerGetVisibilityOperationPath struct {
-	Id string `json:"id,omitempty"`
-}
-
-type RealmAgentControllerGetVisibilityOperationQuery struct {
-
-}
-
-type RealmAgentControllerGetVisibilityOperationHeaders struct {
-
-}
-
-type RealmAgentControllerGetVisibilityOperationRequest struct {
-	Path    RealmAgentControllerGetVisibilityOperationPath `json:"path,omitempty"`
-	Query   RealmAgentControllerGetVisibilityOperationQuery `json:"query,omitempty"`
-	Headers RealmAgentControllerGetVisibilityOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmAgentControllerMakePublicOperationPath struct {
-	Id string `json:"id,omitempty"`
-}
-
-type RealmAgentControllerMakePublicOperationQuery struct {
-
-}
-
-type RealmAgentControllerMakePublicOperationHeaders struct {
-
-}
-
-type RealmAgentControllerMakePublicOperationRequest struct {
-	Path    RealmAgentControllerMakePublicOperationPath `json:"path,omitempty"`
-	Query   RealmAgentControllerMakePublicOperationQuery `json:"query,omitempty"`
-	Headers RealmAgentControllerMakePublicOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmAgentControllerRemoveRelationshipOperationPath struct {
-	Id string `json:"id,omitempty"`
-}
-
-type RealmAgentControllerRemoveRelationshipOperationQuery struct {
-
-}
-
-type RealmAgentControllerRemoveRelationshipOperationHeaders struct {
-
-}
-
-type RealmAgentControllerRemoveRelationshipOperationRequest struct {
-	Path    RealmAgentControllerRemoveRelationshipOperationPath `json:"path,omitempty"`
-	Query   RealmAgentControllerRemoveRelationshipOperationQuery `json:"query,omitempty"`
-	Headers RealmAgentControllerRemoveRelationshipOperationHeaders `json:"headers,omitempty"`
-	Body    RemoveAgentRelationshipDto `json:"body,omitempty"`
-}
-
-type RealmAgentControllerSelectAvatarOperationPath struct {
-	Id string `json:"id,omitempty"`
-}
-
-type RealmAgentControllerSelectAvatarOperationQuery struct {
-
-}
-
-type RealmAgentControllerSelectAvatarOperationHeaders struct {
-
-}
-
-type RealmAgentControllerSelectAvatarOperationRequest struct {
-	Path    RealmAgentControllerSelectAvatarOperationPath `json:"path,omitempty"`
-	Query   RealmAgentControllerSelectAvatarOperationQuery `json:"query,omitempty"`
-	Headers RealmAgentControllerSelectAvatarOperationHeaders `json:"headers,omitempty"`
-	Body    SelectAvatarDto `json:"body,omitempty"`
-}
-
-type RealmAgentControllerSetRelationshipOperationPath struct {
-	Id string `json:"id,omitempty"`
-}
-
-type RealmAgentControllerSetRelationshipOperationQuery struct {
-
-}
-
-type RealmAgentControllerSetRelationshipOperationHeaders struct {
-
-}
-
-type RealmAgentControllerSetRelationshipOperationRequest struct {
-	Path    RealmAgentControllerSetRelationshipOperationPath `json:"path,omitempty"`
-	Query   RealmAgentControllerSetRelationshipOperationQuery `json:"query,omitempty"`
-	Headers RealmAgentControllerSetRelationshipOperationHeaders `json:"headers,omitempty"`
-	Body    SetAgentRelationshipDto `json:"body,omitempty"`
-}
-
-type RealmAgentControllerUpdateDnaOperationPath struct {
-	Id string `json:"id,omitempty"`
-}
-
-type RealmAgentControllerUpdateDnaOperationQuery struct {
-
-}
-
-type RealmAgentControllerUpdateDnaOperationHeaders struct {
-
-}
-
-type RealmAgentControllerUpdateDnaOperationRequest struct {
-	Path    RealmAgentControllerUpdateDnaOperationPath `json:"path,omitempty"`
-	Query   RealmAgentControllerUpdateDnaOperationQuery `json:"query,omitempty"`
-	Headers RealmAgentControllerUpdateDnaOperationHeaders `json:"headers,omitempty"`
-	Body    UpdateAgentDnaDto `json:"body,omitempty"`
-}
-
-type RealmAgentControllerUpdateVisibilityOperationPath struct {
-	Id string `json:"id,omitempty"`
-}
-
-type RealmAgentControllerUpdateVisibilityOperationQuery struct {
-
-}
-
-type RealmAgentControllerUpdateVisibilityOperationHeaders struct {
-
-}
-
-type RealmAgentControllerUpdateVisibilityOperationRequest struct {
-	Path    RealmAgentControllerUpdateVisibilityOperationPath `json:"path,omitempty"`
-	Query   RealmAgentControllerUpdateVisibilityOperationQuery `json:"query,omitempty"`
-	Headers RealmAgentControllerUpdateVisibilityOperationHeaders `json:"headers,omitempty"`
-	Body    UpdateAgentVisibilityDto `json:"body,omitempty"`
-}
-
-type RealmAgentNsfwConsentControllerUpdateAgentConsentOperationPath struct {
-	Id string `json:"id,omitempty"`
-}
-
-type RealmAgentNsfwConsentControllerUpdateAgentConsentOperationQuery struct {
-
-}
-
-type RealmAgentNsfwConsentControllerUpdateAgentConsentOperationHeaders struct {
-
-}
-
-type RealmAgentNsfwConsentControllerUpdateAgentConsentOperationRequest struct {
-	Path    RealmAgentNsfwConsentControllerUpdateAgentConsentOperationPath `json:"path,omitempty"`
-	Query   RealmAgentNsfwConsentControllerUpdateAgentConsentOperationQuery `json:"query,omitempty"`
-	Headers RealmAgentNsfwConsentControllerUpdateAgentConsentOperationHeaders `json:"headers,omitempty"`
-	Body    UpdateAgentNsfwConsentDto `json:"body,omitempty"`
-}
-
-type RealmAgentRulesControllerArchiveRuleOperationPath struct {
-	RuleId string `json:"ruleId,omitempty"`
-	AgentId string `json:"agentId,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type RealmAgentRulesControllerArchiveRuleOperationQuery struct {
-
-}
-
-type RealmAgentRulesControllerArchiveRuleOperationHeaders struct {
-
-}
-
-type RealmAgentRulesControllerArchiveRuleOperationRequest struct {
-	Path    RealmAgentRulesControllerArchiveRuleOperationPath `json:"path,omitempty"`
-	Query   RealmAgentRulesControllerArchiveRuleOperationQuery `json:"query,omitempty"`
-	Headers RealmAgentRulesControllerArchiveRuleOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmAgentRulesControllerCreateRuleOperationPath struct {
-	AgentId string `json:"agentId,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type RealmAgentRulesControllerCreateRuleOperationQuery struct {
-
-}
-
-type RealmAgentRulesControllerCreateRuleOperationHeaders struct {
-
-}
-
-type RealmAgentRulesControllerCreateRuleOperationRequest struct {
-	Path    RealmAgentRulesControllerCreateRuleOperationPath `json:"path,omitempty"`
-	Query   RealmAgentRulesControllerCreateRuleOperationQuery `json:"query,omitempty"`
-	Headers RealmAgentRulesControllerCreateRuleOperationHeaders `json:"headers,omitempty"`
-	Body    CreateAgentRuleDto `json:"body,omitempty"`
-}
-
-type RealmAgentRulesControllerDeprecateRuleOperationPath struct {
-	RuleId string `json:"ruleId,omitempty"`
-	AgentId string `json:"agentId,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type RealmAgentRulesControllerDeprecateRuleOperationQuery struct {
-
-}
-
-type RealmAgentRulesControllerDeprecateRuleOperationHeaders struct {
-
-}
-
-type RealmAgentRulesControllerDeprecateRuleOperationRequest struct {
-	Path    RealmAgentRulesControllerDeprecateRuleOperationPath `json:"path,omitempty"`
-	Query   RealmAgentRulesControllerDeprecateRuleOperationQuery `json:"query,omitempty"`
-	Headers RealmAgentRulesControllerDeprecateRuleOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmAgentRulesControllerListRulesOperationPath struct {
-	AgentId string `json:"agentId,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type RealmAgentRulesControllerListRulesOperationQuery struct {
-	Layer string `json:"layer,omitempty"`
-	Status string `json:"status,omitempty"`
-}
-
-type RealmAgentRulesControllerListRulesOperationHeaders struct {
-
-}
-
-type RealmAgentRulesControllerListRulesOperationRequest struct {
-	Path    RealmAgentRulesControllerListRulesOperationPath `json:"path,omitempty"`
-	Query   RealmAgentRulesControllerListRulesOperationQuery `json:"query,omitempty"`
-	Headers RealmAgentRulesControllerListRulesOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmAgentRulesControllerUpdateRuleOperationPath struct {
-	RuleId string `json:"ruleId,omitempty"`
-	AgentId string `json:"agentId,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type RealmAgentRulesControllerUpdateRuleOperationQuery struct {
-
-}
-
-type RealmAgentRulesControllerUpdateRuleOperationHeaders struct {
-
-}
-
-type RealmAgentRulesControllerUpdateRuleOperationRequest struct {
-	Path    RealmAgentRulesControllerUpdateRuleOperationPath `json:"path,omitempty"`
-	Query   RealmAgentRulesControllerUpdateRuleOperationQuery `json:"query,omitempty"`
-	Headers RealmAgentRulesControllerUpdateRuleOperationHeaders `json:"headers,omitempty"`
-	Body    UpdateAgentRuleDto `json:"body,omitempty"`
-}
-
-type RealmApplyCreatorWorldAgentAuthoringDraftBatchOperationPath struct {
-	BatchId string `json:"batchId,omitempty"`
-	AgentId string `json:"agentId,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type RealmApplyCreatorWorldAgentAuthoringDraftBatchOperationQuery struct {
-
-}
-
-type RealmApplyCreatorWorldAgentAuthoringDraftBatchOperationHeaders struct {
-
-}
-
-type RealmApplyCreatorWorldAgentAuthoringDraftBatchOperationRequest struct {
-	Path    RealmApplyCreatorWorldAgentAuthoringDraftBatchOperationPath `json:"path,omitempty"`
-	Query   RealmApplyCreatorWorldAgentAuthoringDraftBatchOperationQuery `json:"query,omitempty"`
-	Headers RealmApplyCreatorWorldAgentAuthoringDraftBatchOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
 }
 
 type RealmArchiveBundleOperationPath struct {
@@ -14610,25 +11870,6 @@ type RealmCloneAssetOperationRequest struct {
 	Body    CloneAssetDto `json:"body,omitempty"`
 }
 
-type RealmCommitRealmGroupMessageCandidateOperationPath struct {
-	ChatId string `json:"chatId,omitempty"`
-}
-
-type RealmCommitRealmGroupMessageCandidateOperationQuery struct {
-
-}
-
-type RealmCommitRealmGroupMessageCandidateOperationHeaders struct {
-
-}
-
-type RealmCommitRealmGroupMessageCandidateOperationRequest struct {
-	Path    RealmCommitRealmGroupMessageCandidateOperationPath `json:"path,omitempty"`
-	Query   RealmCommitRealmGroupMessageCandidateOperationQuery `json:"query,omitempty"`
-	Headers RealmCommitRealmGroupMessageCandidateOperationHeaders `json:"headers,omitempty"`
-	Body    CommitRealmGroupMessageCandidateInputDto `json:"body,omitempty"`
-}
-
 type RealmCreateAssetOperationPath struct {
 
 }
@@ -14684,26 +11925,6 @@ type RealmCreateBundleOperationRequest struct {
 	Query   RealmCreateBundleOperationQuery `json:"query,omitempty"`
 	Headers RealmCreateBundleOperationHeaders `json:"headers,omitempty"`
 	Body    CreateBundleDto `json:"body,omitempty"`
-}
-
-type RealmCreateCreatorWorldAgentAuthoringDraftBatchOperationPath struct {
-	AgentId string `json:"agentId,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type RealmCreateCreatorWorldAgentAuthoringDraftBatchOperationQuery struct {
-
-}
-
-type RealmCreateCreatorWorldAgentAuthoringDraftBatchOperationHeaders struct {
-
-}
-
-type RealmCreateCreatorWorldAgentAuthoringDraftBatchOperationRequest struct {
-	Path    RealmCreateCreatorWorldAgentAuthoringDraftBatchOperationPath `json:"path,omitempty"`
-	Query   RealmCreateCreatorWorldAgentAuthoringDraftBatchOperationQuery `json:"query,omitempty"`
-	Headers RealmCreateCreatorWorldAgentAuthoringDraftBatchOperationHeaders `json:"headers,omitempty"`
-	Body    CreateAgentAuthoringDraftBatchDto `json:"body,omitempty"`
 }
 
 type RealmCreateGroupOperationPath struct {
@@ -14799,177 +12020,6 @@ type RealmCreateVideoDirectUploadOperationRequest struct {
 	Query   RealmCreateVideoDirectUploadOperationQuery `json:"query,omitempty"`
 	Headers RealmCreateVideoDirectUploadOperationHeaders `json:"headers,omitempty"`
 	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmCreatorControllerBatchCreateAgentsOperationPath struct {
-
-}
-
-type RealmCreatorControllerBatchCreateAgentsOperationQuery struct {
-
-}
-
-type RealmCreatorControllerBatchCreateAgentsOperationHeaders struct {
-
-}
-
-type RealmCreatorControllerBatchCreateAgentsOperationRequest struct {
-	Path    RealmCreatorControllerBatchCreateAgentsOperationPath `json:"path,omitempty"`
-	Query   RealmCreatorControllerBatchCreateAgentsOperationQuery `json:"query,omitempty"`
-	Headers RealmCreatorControllerBatchCreateAgentsOperationHeaders `json:"headers,omitempty"`
-	Body    BatchCreateAgentsRequestDto `json:"body,omitempty"`
-}
-
-type RealmCreatorControllerCreateAgentOperationPath struct {
-
-}
-
-type RealmCreatorControllerCreateAgentOperationQuery struct {
-
-}
-
-type RealmCreatorControllerCreateAgentOperationHeaders struct {
-
-}
-
-type RealmCreatorControllerCreateAgentOperationRequest struct {
-	Path    RealmCreatorControllerCreateAgentOperationPath `json:"path,omitempty"`
-	Query   RealmCreatorControllerCreateAgentOperationQuery `json:"query,omitempty"`
-	Headers RealmCreatorControllerCreateAgentOperationHeaders `json:"headers,omitempty"`
-	Body    CreateAgentDto `json:"body,omitempty"`
-}
-
-type RealmCreatorControllerCreateKeyOperationPath struct {
-
-}
-
-type RealmCreatorControllerCreateKeyOperationQuery struct {
-
-}
-
-type RealmCreatorControllerCreateKeyOperationHeaders struct {
-
-}
-
-type RealmCreatorControllerCreateKeyOperationRequest struct {
-	Path    RealmCreatorControllerCreateKeyOperationPath `json:"path,omitempty"`
-	Query   RealmCreatorControllerCreateKeyOperationQuery `json:"query,omitempty"`
-	Headers RealmCreatorControllerCreateKeyOperationHeaders `json:"headers,omitempty"`
-	Body    CreateApiKeyDto `json:"body,omitempty"`
-}
-
-type RealmCreatorControllerDeleteAgentOperationPath struct {
-	AgentId string `json:"agentId,omitempty"`
-}
-
-type RealmCreatorControllerDeleteAgentOperationQuery struct {
-
-}
-
-type RealmCreatorControllerDeleteAgentOperationHeaders struct {
-
-}
-
-type RealmCreatorControllerDeleteAgentOperationRequest struct {
-	Path    RealmCreatorControllerDeleteAgentOperationPath `json:"path,omitempty"`
-	Query   RealmCreatorControllerDeleteAgentOperationQuery `json:"query,omitempty"`
-	Headers RealmCreatorControllerDeleteAgentOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmCreatorControllerGetAgentOperationPath struct {
-	AgentId string `json:"agentId,omitempty"`
-}
-
-type RealmCreatorControllerGetAgentOperationQuery struct {
-
-}
-
-type RealmCreatorControllerGetAgentOperationHeaders struct {
-
-}
-
-type RealmCreatorControllerGetAgentOperationRequest struct {
-	Path    RealmCreatorControllerGetAgentOperationPath `json:"path,omitempty"`
-	Query   RealmCreatorControllerGetAgentOperationQuery `json:"query,omitempty"`
-	Headers RealmCreatorControllerGetAgentOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmCreatorControllerListAgentsOperationPath struct {
-
-}
-
-type RealmCreatorControllerListAgentsOperationQuery struct {
-
-}
-
-type RealmCreatorControllerListAgentsOperationHeaders struct {
-
-}
-
-type RealmCreatorControllerListAgentsOperationRequest struct {
-	Path    RealmCreatorControllerListAgentsOperationPath `json:"path,omitempty"`
-	Query   RealmCreatorControllerListAgentsOperationQuery `json:"query,omitempty"`
-	Headers RealmCreatorControllerListAgentsOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmCreatorControllerListKeysOperationPath struct {
-
-}
-
-type RealmCreatorControllerListKeysOperationQuery struct {
-
-}
-
-type RealmCreatorControllerListKeysOperationHeaders struct {
-
-}
-
-type RealmCreatorControllerListKeysOperationRequest struct {
-	Path    RealmCreatorControllerListKeysOperationPath `json:"path,omitempty"`
-	Query   RealmCreatorControllerListKeysOperationQuery `json:"query,omitempty"`
-	Headers RealmCreatorControllerListKeysOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmCreatorControllerRevokeKeyOperationPath struct {
-	Id string `json:"id,omitempty"`
-}
-
-type RealmCreatorControllerRevokeKeyOperationQuery struct {
-
-}
-
-type RealmCreatorControllerRevokeKeyOperationHeaders struct {
-
-}
-
-type RealmCreatorControllerRevokeKeyOperationRequest struct {
-	Path    RealmCreatorControllerRevokeKeyOperationPath `json:"path,omitempty"`
-	Query   RealmCreatorControllerRevokeKeyOperationQuery `json:"query,omitempty"`
-	Headers RealmCreatorControllerRevokeKeyOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmCreatorControllerUpdateAgentOperationPath struct {
-	AgentId string `json:"agentId,omitempty"`
-}
-
-type RealmCreatorControllerUpdateAgentOperationQuery struct {
-
-}
-
-type RealmCreatorControllerUpdateAgentOperationHeaders struct {
-
-}
-
-type RealmCreatorControllerUpdateAgentOperationRequest struct {
-	Path    RealmCreatorControllerUpdateAgentOperationPath `json:"path,omitempty"`
-	Query   RealmCreatorControllerUpdateAgentOperationQuery `json:"query,omitempty"`
-	Headers RealmCreatorControllerUpdateAgentOperationHeaders `json:"headers,omitempty"`
-	Body    UpdateCreatorAgentDto `json:"body,omitempty"`
 }
 
 type RealmDeletePostOperationPath struct {
@@ -15238,25 +12288,6 @@ type RealmEconomyControllerCreateWithdrawalOperationRequest struct {
 	Body    CreateWithdrawalDto `json:"body,omitempty"`
 }
 
-type RealmEconomyControllerGetAgentOriginOperationPath struct {
-	AgentId string `json:"agentId,omitempty"`
-}
-
-type RealmEconomyControllerGetAgentOriginOperationQuery struct {
-
-}
-
-type RealmEconomyControllerGetAgentOriginOperationHeaders struct {
-
-}
-
-type RealmEconomyControllerGetAgentOriginOperationRequest struct {
-	Path    RealmEconomyControllerGetAgentOriginOperationPath `json:"path,omitempty"`
-	Query   RealmEconomyControllerGetAgentOriginOperationQuery `json:"query,omitempty"`
-	Headers RealmEconomyControllerGetAgentOriginOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
 type RealmEconomyControllerGetBalancesOperationPath struct {
 
 }
@@ -15390,6 +12421,26 @@ type RealmEconomyControllerGetSentGiftsOperationRequest struct {
 	Path    RealmEconomyControllerGetSentGiftsOperationPath `json:"path,omitempty"`
 	Query   RealmEconomyControllerGetSentGiftsOperationQuery `json:"query,omitempty"`
 	Headers RealmEconomyControllerGetSentGiftsOperationHeaders `json:"headers,omitempty"`
+	Body    struct{} `json:"body,omitempty"`
+}
+
+type RealmEconomyControllerGetSourceOriginOperationPath struct {
+	SourceId string `json:"sourceId,omitempty"`
+	SourceKind string `json:"sourceKind,omitempty"`
+}
+
+type RealmEconomyControllerGetSourceOriginOperationQuery struct {
+	SourceWorldId string `json:"sourceWorldId,omitempty"`
+}
+
+type RealmEconomyControllerGetSourceOriginOperationHeaders struct {
+
+}
+
+type RealmEconomyControllerGetSourceOriginOperationRequest struct {
+	Path    RealmEconomyControllerGetSourceOriginOperationPath `json:"path,omitempty"`
+	Query   RealmEconomyControllerGetSourceOriginOperationQuery `json:"query,omitempty"`
+	Headers RealmEconomyControllerGetSourceOriginOperationHeaders `json:"headers,omitempty"`
 	Body    struct{} `json:"body,omitempty"`
 }
 
@@ -15534,7 +12585,9 @@ type RealmEconomyControllerPreviewRevenueDistributionOperationPath struct {
 
 type RealmEconomyControllerPreviewRevenueDistributionOperationQuery struct {
 	Amount string `json:"amount,omitempty"`
-	AgentId string `json:"agentId,omitempty"`
+	SourceWorldId string `json:"sourceWorldId,omitempty"`
+	SourceId string `json:"sourceId,omitempty"`
+	SourceKind string `json:"sourceKind,omitempty"`
 }
 
 type RealmEconomyControllerPreviewRevenueDistributionOperationHeaders struct {
@@ -15702,163 +12755,6 @@ type RealmFinalizeResourceOperationRequest struct {
 	Body    FinalizeResourceDto `json:"body,omitempty"`
 }
 
-type RealmForgeProductCatalogControllerGetAgentCandidatesOperationPath struct {
-	Slug string `json:"slug,omitempty"`
-}
-
-type RealmForgeProductCatalogControllerGetAgentCandidatesOperationQuery struct {
-	IncludeEvidenceRefs bool `json:"includeEvidenceRefs,omitempty"`
-	Limit float64 `json:"limit,omitempty"`
-	Status string `json:"status,omitempty"`
-	Surface string `json:"surface,omitempty"`
-	Query string `json:"query,omitempty"`
-}
-
-type RealmForgeProductCatalogControllerGetAgentCandidatesOperationHeaders struct {
-
-}
-
-type RealmForgeProductCatalogControllerGetAgentCandidatesOperationRequest struct {
-	Path    RealmForgeProductCatalogControllerGetAgentCandidatesOperationPath `json:"path,omitempty"`
-	Query   RealmForgeProductCatalogControllerGetAgentCandidatesOperationQuery `json:"query,omitempty"`
-	Headers RealmForgeProductCatalogControllerGetAgentCandidatesOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmForgeProductCatalogControllerGetCatalogOperationPath struct {
-
-}
-
-type RealmForgeProductCatalogControllerGetCatalogOperationQuery struct {
-
-}
-
-type RealmForgeProductCatalogControllerGetCatalogOperationHeaders struct {
-
-}
-
-type RealmForgeProductCatalogControllerGetCatalogOperationRequest struct {
-	Path    RealmForgeProductCatalogControllerGetCatalogOperationPath `json:"path,omitempty"`
-	Query   RealmForgeProductCatalogControllerGetCatalogOperationQuery `json:"query,omitempty"`
-	Headers RealmForgeProductCatalogControllerGetCatalogOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmForgeProductCatalogControllerGetProductOperationPath struct {
-	Slug string `json:"slug,omitempty"`
-}
-
-type RealmForgeProductCatalogControllerGetProductOperationQuery struct {
-
-}
-
-type RealmForgeProductCatalogControllerGetProductOperationHeaders struct {
-
-}
-
-type RealmForgeProductCatalogControllerGetProductOperationRequest struct {
-	Path    RealmForgeProductCatalogControllerGetProductOperationPath `json:"path,omitempty"`
-	Query   RealmForgeProductCatalogControllerGetProductOperationQuery `json:"query,omitempty"`
-	Headers RealmForgeProductCatalogControllerGetProductOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmForgeProductCatalogControllerGetProductShardOperationPath struct {
-	Kind string `json:"kind,omitempty"`
-	Slug string `json:"slug,omitempty"`
-}
-
-type RealmForgeProductCatalogControllerGetProductShardOperationQuery struct {
-
-}
-
-type RealmForgeProductCatalogControllerGetProductShardOperationHeaders struct {
-
-}
-
-type RealmForgeProductCatalogControllerGetProductShardOperationRequest struct {
-	Path    RealmForgeProductCatalogControllerGetProductShardOperationPath `json:"path,omitempty"`
-	Query   RealmForgeProductCatalogControllerGetProductShardOperationQuery `json:"query,omitempty"`
-	Headers RealmForgeProductCatalogControllerGetProductShardOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmForgeProductCatalogControllerGetProductShardIndexOperationPath struct {
-	Slug string `json:"slug,omitempty"`
-}
-
-type RealmForgeProductCatalogControllerGetProductShardIndexOperationQuery struct {
-
-}
-
-type RealmForgeProductCatalogControllerGetProductShardIndexOperationHeaders struct {
-
-}
-
-type RealmForgeProductCatalogControllerGetProductShardIndexOperationRequest struct {
-	Path    RealmForgeProductCatalogControllerGetProductShardIndexOperationPath `json:"path,omitempty"`
-	Query   RealmForgeProductCatalogControllerGetProductShardIndexOperationQuery `json:"query,omitempty"`
-	Headers RealmForgeProductCatalogControllerGetProductShardIndexOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmForgeProductCatalogControllerVerifyProductShardsOperationPath struct {
-	Slug string `json:"slug,omitempty"`
-}
-
-type RealmForgeProductCatalogControllerVerifyProductShardsOperationQuery struct {
-
-}
-
-type RealmForgeProductCatalogControllerVerifyProductShardsOperationHeaders struct {
-
-}
-
-type RealmForgeProductCatalogControllerVerifyProductShardsOperationRequest struct {
-	Path    RealmForgeProductCatalogControllerVerifyProductShardsOperationPath `json:"path,omitempty"`
-	Query   RealmForgeProductCatalogControllerVerifyProductShardsOperationQuery `json:"query,omitempty"`
-	Headers RealmForgeProductCatalogControllerVerifyProductShardsOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmGetAgentOperationPath struct {
-	Id string `json:"id,omitempty"`
-}
-
-type RealmGetAgentOperationQuery struct {
-
-}
-
-type RealmGetAgentOperationHeaders struct {
-
-}
-
-type RealmGetAgentOperationRequest struct {
-	Path    RealmGetAgentOperationPath `json:"path,omitempty"`
-	Query   RealmGetAgentOperationQuery `json:"query,omitempty"`
-	Headers RealmGetAgentOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmGetAgentByHandleOperationPath struct {
-	Handle string `json:"handle,omitempty"`
-}
-
-type RealmGetAgentByHandleOperationQuery struct {
-
-}
-
-type RealmGetAgentByHandleOperationHeaders struct {
-
-}
-
-type RealmGetAgentByHandleOperationRequest struct {
-	Path    RealmGetAgentByHandleOperationPath `json:"path,omitempty"`
-	Query   RealmGetAgentByHandleOperationQuery `json:"query,omitempty"`
-	Headers RealmGetAgentByHandleOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
 type RealmGetAssetOperationPath struct {
 	AssetId string `json:"assetId,omitempty"`
 }
@@ -15932,106 +12828,6 @@ type RealmGetChatByIdOperationRequest struct {
 	Path    RealmGetChatByIdOperationPath `json:"path,omitempty"`
 	Query   RealmGetChatByIdOperationQuery `json:"query,omitempty"`
 	Headers RealmGetChatByIdOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmGetCreatorWorldAgentOperationPath struct {
-	AgentId string `json:"agentId,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type RealmGetCreatorWorldAgentOperationQuery struct {
-
-}
-
-type RealmGetCreatorWorldAgentOperationHeaders struct {
-
-}
-
-type RealmGetCreatorWorldAgentOperationRequest struct {
-	Path    RealmGetCreatorWorldAgentOperationPath `json:"path,omitempty"`
-	Query   RealmGetCreatorWorldAgentOperationQuery `json:"query,omitempty"`
-	Headers RealmGetCreatorWorldAgentOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmGetCreatorWorldAgentAuthoringGenerationContextOperationPath struct {
-	AgentId string `json:"agentId,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type RealmGetCreatorWorldAgentAuthoringGenerationContextOperationQuery struct {
-
-}
-
-type RealmGetCreatorWorldAgentAuthoringGenerationContextOperationHeaders struct {
-
-}
-
-type RealmGetCreatorWorldAgentAuthoringGenerationContextOperationRequest struct {
-	Path    RealmGetCreatorWorldAgentAuthoringGenerationContextOperationPath `json:"path,omitempty"`
-	Query   RealmGetCreatorWorldAgentAuthoringGenerationContextOperationQuery `json:"query,omitempty"`
-	Headers RealmGetCreatorWorldAgentAuthoringGenerationContextOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmGetCreatorWorldAgentChatReadinessOperationPath struct {
-	AgentId string `json:"agentId,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type RealmGetCreatorWorldAgentChatReadinessOperationQuery struct {
-
-}
-
-type RealmGetCreatorWorldAgentChatReadinessOperationHeaders struct {
-
-}
-
-type RealmGetCreatorWorldAgentChatReadinessOperationRequest struct {
-	Path    RealmGetCreatorWorldAgentChatReadinessOperationPath `json:"path,omitempty"`
-	Query   RealmGetCreatorWorldAgentChatReadinessOperationQuery `json:"query,omitempty"`
-	Headers RealmGetCreatorWorldAgentChatReadinessOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmGetCreatorWorldAgentSettingsOperationPath struct {
-	AgentId string `json:"agentId,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type RealmGetCreatorWorldAgentSettingsOperationQuery struct {
-
-}
-
-type RealmGetCreatorWorldAgentSettingsOperationHeaders struct {
-
-}
-
-type RealmGetCreatorWorldAgentSettingsOperationRequest struct {
-	Path    RealmGetCreatorWorldAgentSettingsOperationPath `json:"path,omitempty"`
-	Query   RealmGetCreatorWorldAgentSettingsOperationQuery `json:"query,omitempty"`
-	Headers RealmGetCreatorWorldAgentSettingsOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmGetCreatorWorldAgentSourceSkeletonOperationPath struct {
-	AgentId string `json:"agentId,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type RealmGetCreatorWorldAgentSourceSkeletonOperationQuery struct {
-
-}
-
-type RealmGetCreatorWorldAgentSourceSkeletonOperationHeaders struct {
-
-}
-
-type RealmGetCreatorWorldAgentSourceSkeletonOperationRequest struct {
-	Path    RealmGetCreatorWorldAgentSourceSkeletonOperationPath `json:"path,omitempty"`
-	Query   RealmGetCreatorWorldAgentSourceSkeletonOperationQuery `json:"query,omitempty"`
-	Headers RealmGetCreatorWorldAgentSourceSkeletonOperationHeaders `json:"headers,omitempty"`
 	Body    struct{} `json:"body,omitempty"`
 }
 
@@ -16158,25 +12954,6 @@ type RealmGetMutualFriendsCountOperationRequest struct {
 	Body    struct{} `json:"body,omitempty"`
 }
 
-type RealmGetMyAgentFriendLimitOperationPath struct {
-
-}
-
-type RealmGetMyAgentFriendLimitOperationQuery struct {
-
-}
-
-type RealmGetMyAgentFriendLimitOperationHeaders struct {
-
-}
-
-type RealmGetMyAgentFriendLimitOperationRequest struct {
-	Path    RealmGetMyAgentFriendLimitOperationPath `json:"path,omitempty"`
-	Query   RealmGetMyAgentFriendLimitOperationQuery `json:"query,omitempty"`
-	Headers RealmGetMyAgentFriendLimitOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
 type RealmGetMyAppPermissionGrantOperationPath struct {
 	GrantId string `json:"grantId,omitempty"`
 }
@@ -16196,25 +12973,6 @@ type RealmGetMyAppPermissionGrantOperationRequest struct {
 	Body    struct{} `json:"body,omitempty"`
 }
 
-type RealmGetMyAppPermissionGrantProjectionOperationPath struct {
-
-}
-
-type RealmGetMyAppPermissionGrantProjectionOperationQuery struct {
-
-}
-
-type RealmGetMyAppPermissionGrantProjectionOperationHeaders struct {
-
-}
-
-type RealmGetMyAppPermissionGrantProjectionOperationRequest struct {
-	Path    RealmGetMyAppPermissionGrantProjectionOperationPath `json:"path,omitempty"`
-	Query   RealmGetMyAppPermissionGrantProjectionOperationQuery `json:"query,omitempty"`
-	Headers RealmGetMyAppPermissionGrantProjectionOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
 type RealmGetMyAppPermissionGrantStatusOperationPath struct {
 
 }
@@ -16231,6 +12989,25 @@ type RealmGetMyAppPermissionGrantStatusOperationRequest struct {
 	Path    RealmGetMyAppPermissionGrantStatusOperationPath `json:"path,omitempty"`
 	Query   RealmGetMyAppPermissionGrantStatusOperationQuery `json:"query,omitempty"`
 	Headers RealmGetMyAppPermissionGrantStatusOperationHeaders `json:"headers,omitempty"`
+	Body    struct{} `json:"body,omitempty"`
+}
+
+type RealmGetMyAppPermissionGrantViewOperationPath struct {
+
+}
+
+type RealmGetMyAppPermissionGrantViewOperationQuery struct {
+
+}
+
+type RealmGetMyAppPermissionGrantViewOperationHeaders struct {
+
+}
+
+type RealmGetMyAppPermissionGrantViewOperationRequest struct {
+	Path    RealmGetMyAppPermissionGrantViewOperationPath `json:"path,omitempty"`
+	Query   RealmGetMyAppPermissionGrantViewOperationQuery `json:"query,omitempty"`
+	Headers RealmGetMyAppPermissionGrantViewOperationHeaders `json:"headers,omitempty"`
 	Body    struct{} `json:"body,omitempty"`
 }
 
@@ -16346,44 +13123,6 @@ type RealmGetMyPPConfigOperationRequest struct {
 	Path    RealmGetMyPPConfigOperationPath `json:"path,omitempty"`
 	Query   RealmGetMyPPConfigOperationQuery `json:"query,omitempty"`
 	Headers RealmGetMyPPConfigOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmGetMyRealmAgentOperationPath struct {
-	AgentId string `json:"agentId,omitempty"`
-}
-
-type RealmGetMyRealmAgentOperationQuery struct {
-
-}
-
-type RealmGetMyRealmAgentOperationHeaders struct {
-
-}
-
-type RealmGetMyRealmAgentOperationRequest struct {
-	Path    RealmGetMyRealmAgentOperationPath `json:"path,omitempty"`
-	Query   RealmGetMyRealmAgentOperationQuery `json:"query,omitempty"`
-	Headers RealmGetMyRealmAgentOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmGetMyRealmAgentSettingsOperationPath struct {
-	AgentId string `json:"agentId,omitempty"`
-}
-
-type RealmGetMyRealmAgentSettingsOperationQuery struct {
-
-}
-
-type RealmGetMyRealmAgentSettingsOperationHeaders struct {
-
-}
-
-type RealmGetMyRealmAgentSettingsOperationRequest struct {
-	Path    RealmGetMyRealmAgentSettingsOperationPath `json:"path,omitempty"`
-	Query   RealmGetMyRealmAgentSettingsOperationQuery `json:"query,omitempty"`
-	Headers RealmGetMyRealmAgentSettingsOperationHeaders `json:"headers,omitempty"`
 	Body    struct{} `json:"body,omitempty"`
 }
 
@@ -16600,25 +13339,6 @@ type RealmGetWorldPostsOperationRequest struct {
 	Body    struct{} `json:"body,omitempty"`
 }
 
-type RealmGetWorldScenesOperationPath struct {
-	Id string `json:"id,omitempty"`
-}
-
-type RealmGetWorldScenesOperationQuery struct {
-
-}
-
-type RealmGetWorldScenesOperationHeaders struct {
-
-}
-
-type RealmGetWorldScenesOperationRequest struct {
-	Path    RealmGetWorldScenesOperationPath `json:"path,omitempty"`
-	Query   RealmGetWorldScenesOperationQuery `json:"query,omitempty"`
-	Headers RealmGetWorldScenesOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
 type RealmGrantMyAppPermissionGrantOperationPath struct {
 	GrantId string `json:"grantId,omitempty"`
 }
@@ -16636,82 +13356,6 @@ type RealmGrantMyAppPermissionGrantOperationRequest struct {
 	Query   RealmGrantMyAppPermissionGrantOperationQuery `json:"query,omitempty"`
 	Headers RealmGrantMyAppPermissionGrantOperationHeaders `json:"headers,omitempty"`
 	Body    AppPermissionGrantGrantDto `json:"body,omitempty"`
-}
-
-type RealmHumanNsfwConsentControllerCanManageAgentNsfwOperationPath struct {
-
-}
-
-type RealmHumanNsfwConsentControllerCanManageAgentNsfwOperationQuery struct {
-
-}
-
-type RealmHumanNsfwConsentControllerCanManageAgentNsfwOperationHeaders struct {
-
-}
-
-type RealmHumanNsfwConsentControllerCanManageAgentNsfwOperationRequest struct {
-	Path    RealmHumanNsfwConsentControllerCanManageAgentNsfwOperationPath `json:"path,omitempty"`
-	Query   RealmHumanNsfwConsentControllerCanManageAgentNsfwOperationQuery `json:"query,omitempty"`
-	Headers RealmHumanNsfwConsentControllerCanManageAgentNsfwOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmHumanNsfwConsentControllerCheckConsentOperationPath struct {
-
-}
-
-type RealmHumanNsfwConsentControllerCheckConsentOperationQuery struct {
-
-}
-
-type RealmHumanNsfwConsentControllerCheckConsentOperationHeaders struct {
-
-}
-
-type RealmHumanNsfwConsentControllerCheckConsentOperationRequest struct {
-	Path    RealmHumanNsfwConsentControllerCheckConsentOperationPath `json:"path,omitempty"`
-	Query   RealmHumanNsfwConsentControllerCheckConsentOperationQuery `json:"query,omitempty"`
-	Headers RealmHumanNsfwConsentControllerCheckConsentOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmHumanNsfwConsentControllerGetConsentStatusOperationPath struct {
-
-}
-
-type RealmHumanNsfwConsentControllerGetConsentStatusOperationQuery struct {
-
-}
-
-type RealmHumanNsfwConsentControllerGetConsentStatusOperationHeaders struct {
-
-}
-
-type RealmHumanNsfwConsentControllerGetConsentStatusOperationRequest struct {
-	Path    RealmHumanNsfwConsentControllerGetConsentStatusOperationPath `json:"path,omitempty"`
-	Query   RealmHumanNsfwConsentControllerGetConsentStatusOperationQuery `json:"query,omitempty"`
-	Headers RealmHumanNsfwConsentControllerGetConsentStatusOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmHumanNsfwConsentControllerUpdateUserConsentOperationPath struct {
-
-}
-
-type RealmHumanNsfwConsentControllerUpdateUserConsentOperationQuery struct {
-
-}
-
-type RealmHumanNsfwConsentControllerUpdateUserConsentOperationHeaders struct {
-
-}
-
-type RealmHumanNsfwConsentControllerUpdateUserConsentOperationRequest struct {
-	Path    RealmHumanNsfwConsentControllerUpdateUserConsentOperationPath `json:"path,omitempty"`
-	Query   RealmHumanNsfwConsentControllerUpdateUserConsentOperationQuery `json:"query,omitempty"`
-	Headers RealmHumanNsfwConsentControllerUpdateUserConsentOperationHeaders `json:"headers,omitempty"`
-	Body    UpdateUserNsfwConsentDto `json:"body,omitempty"`
 }
 
 type RealmIntrospectSessionOperationPath struct {
@@ -16905,45 +13549,6 @@ type RealmListChatsOperationRequest struct {
 	Body    struct{} `json:"body,omitempty"`
 }
 
-type RealmListCreatorWorldAgentAuthoringDraftBatchesOperationPath struct {
-	AgentId string `json:"agentId,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type RealmListCreatorWorldAgentAuthoringDraftBatchesOperationQuery struct {
-
-}
-
-type RealmListCreatorWorldAgentAuthoringDraftBatchesOperationHeaders struct {
-
-}
-
-type RealmListCreatorWorldAgentAuthoringDraftBatchesOperationRequest struct {
-	Path    RealmListCreatorWorldAgentAuthoringDraftBatchesOperationPath `json:"path,omitempty"`
-	Query   RealmListCreatorWorldAgentAuthoringDraftBatchesOperationQuery `json:"query,omitempty"`
-	Headers RealmListCreatorWorldAgentAuthoringDraftBatchesOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmListCreatorWorldAgentsOperationPath struct {
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type RealmListCreatorWorldAgentsOperationQuery struct {
-
-}
-
-type RealmListCreatorWorldAgentsOperationHeaders struct {
-
-}
-
-type RealmListCreatorWorldAgentsOperationRequest struct {
-	Path    RealmListCreatorWorldAgentsOperationPath `json:"path,omitempty"`
-	Query   RealmListCreatorWorldAgentsOperationQuery `json:"query,omitempty"`
-	Headers RealmListCreatorWorldAgentsOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
 type RealmListGroupMessagesOperationPath struct {
 	ChatId string `json:"chatId,omitempty"`
 }
@@ -17049,25 +13654,6 @@ type RealmListMyAppPermissionGrantsOperationRequest struct {
 	Body    struct{} `json:"body,omitempty"`
 }
 
-type RealmListMyCreatorWorldsOperationPath struct {
-
-}
-
-type RealmListMyCreatorWorldsOperationQuery struct {
-
-}
-
-type RealmListMyCreatorWorldsOperationHeaders struct {
-
-}
-
-type RealmListMyCreatorWorldsOperationRequest struct {
-	Path    RealmListMyCreatorWorldsOperationPath `json:"path,omitempty"`
-	Query   RealmListMyCreatorWorldsOperationQuery `json:"query,omitempty"`
-	Headers RealmListMyCreatorWorldsOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
 type RealmListMyFriendIdsOperationPath struct {
 
 }
@@ -17104,63 +13690,6 @@ type RealmListMyFriendsWithDetailsOperationRequest struct {
 	Path    RealmListMyFriendsWithDetailsOperationPath `json:"path,omitempty"`
 	Query   RealmListMyFriendsWithDetailsOperationQuery `json:"query,omitempty"`
 	Headers RealmListMyFriendsWithDetailsOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmListMyLocalAgentProvisionIntentsOperationPath struct {
-
-}
-
-type RealmListMyLocalAgentProvisionIntentsOperationQuery struct {
-
-}
-
-type RealmListMyLocalAgentProvisionIntentsOperationHeaders struct {
-
-}
-
-type RealmListMyLocalAgentProvisionIntentsOperationRequest struct {
-	Path    RealmListMyLocalAgentProvisionIntentsOperationPath `json:"path,omitempty"`
-	Query   RealmListMyLocalAgentProvisionIntentsOperationQuery `json:"query,omitempty"`
-	Headers RealmListMyLocalAgentProvisionIntentsOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmListMyLocalAgentTerminationIntentsOperationPath struct {
-
-}
-
-type RealmListMyLocalAgentTerminationIntentsOperationQuery struct {
-
-}
-
-type RealmListMyLocalAgentTerminationIntentsOperationHeaders struct {
-
-}
-
-type RealmListMyLocalAgentTerminationIntentsOperationRequest struct {
-	Path    RealmListMyLocalAgentTerminationIntentsOperationPath `json:"path,omitempty"`
-	Query   RealmListMyLocalAgentTerminationIntentsOperationQuery `json:"query,omitempty"`
-	Headers RealmListMyLocalAgentTerminationIntentsOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmListMyRealmAgentsOperationPath struct {
-
-}
-
-type RealmListMyRealmAgentsOperationQuery struct {
-
-}
-
-type RealmListMyRealmAgentsOperationHeaders struct {
-
-}
-
-type RealmListMyRealmAgentsOperationRequest struct {
-	Path    RealmListMyRealmAgentsOperationPath `json:"path,omitempty"`
-	Query   RealmListMyRealmAgentsOperationQuery `json:"query,omitempty"`
-	Headers RealmListMyRealmAgentsOperationHeaders `json:"headers,omitempty"`
 	Body    struct{} `json:"body,omitempty"`
 }
 
@@ -17458,25 +13987,6 @@ type RealmPrepareBindWalletOperationRequest struct {
 	Body    WalletPrepareBindDto `json:"body,omitempty"`
 }
 
-type RealmProjectRuntimePayloadOperationPath struct {
-
-}
-
-type RealmProjectRuntimePayloadOperationQuery struct {
-
-}
-
-type RealmProjectRuntimePayloadOperationHeaders struct {
-
-}
-
-type RealmProjectRuntimePayloadOperationRequest struct {
-	Path    RealmProjectRuntimePayloadOperationPath `json:"path,omitempty"`
-	Query   RealmProjectRuntimePayloadOperationQuery `json:"query,omitempty"`
-	Headers RealmProjectRuntimePayloadOperationHeaders `json:"headers,omitempty"`
-	Body    RuntimeProjectionRequestDto `json:"body,omitempty"`
-}
-
 type RealmPublishBundleOperationPath struct {
 	BundleId string `json:"bundleId,omitempty"`
 }
@@ -17650,26 +14160,6 @@ type RealmRemoveFriendOperationRequest struct {
 	Body    struct{} `json:"body,omitempty"`
 }
 
-type RealmRemoveGroupAgentOperationPath struct {
-	AgentAccountId string `json:"agentAccountId,omitempty"`
-	ChatId string `json:"chatId,omitempty"`
-}
-
-type RealmRemoveGroupAgentOperationQuery struct {
-
-}
-
-type RealmRemoveGroupAgentOperationHeaders struct {
-
-}
-
-type RealmRemoveGroupAgentOperationRequest struct {
-	Path    RealmRemoveGroupAgentOperationPath `json:"path,omitempty"`
-	Query   RealmRemoveGroupAgentOperationQuery `json:"query,omitempty"`
-	Headers RealmRemoveGroupAgentOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
 type RealmRemoveGroupParticipantOperationPath struct {
 	AccountId string `json:"accountId,omitempty"`
 	ChatId string `json:"chatId,omitempty"`
@@ -17823,28 +14313,6 @@ type RealmReviewControllerGetReviewsOperationRequest struct {
 	Body    struct{} `json:"body,omitempty"`
 }
 
-type RealmReviewCreatorWorldAgentAuthoringDraftCandidateOperationPath struct {
-	CandidateId string `json:"candidateId,omitempty"`
-	BatchId string `json:"batchId,omitempty"`
-	AgentId string `json:"agentId,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type RealmReviewCreatorWorldAgentAuthoringDraftCandidateOperationQuery struct {
-
-}
-
-type RealmReviewCreatorWorldAgentAuthoringDraftCandidateOperationHeaders struct {
-
-}
-
-type RealmReviewCreatorWorldAgentAuthoringDraftCandidateOperationRequest struct {
-	Path    RealmReviewCreatorWorldAgentAuthoringDraftCandidateOperationPath `json:"path,omitempty"`
-	Query   RealmReviewCreatorWorldAgentAuthoringDraftCandidateOperationQuery `json:"query,omitempty"`
-	Headers RealmReviewCreatorWorldAgentAuthoringDraftCandidateOperationHeaders `json:"headers,omitempty"`
-	Body    ReviewAgentAuthoringDraftCandidateDto `json:"body,omitempty"`
-}
-
 type RealmRevokeMyAppPermissionGrantOperationPath struct {
 	GrantId string `json:"grantId,omitempty"`
 }
@@ -17873,7 +14341,6 @@ type RealmSearchHumanUsersOperationQuery struct {
 	Cursor string `json:"cursor,omitempty"`
 	AgeMax float64 `json:"ageMax,omitempty"`
 	AgeMin float64 `json:"ageMin,omitempty"`
-	IsAgent bool `json:"isAgent,omitempty"`
 	City string `json:"city,omitempty"`
 	CountryCode string `json:"countryCode,omitempty"`
 	Gender string `json:"gender,omitempty"`
@@ -17905,7 +14372,6 @@ type RealmSearchIndexedUsersOperationQuery struct {
 	Cursor string `json:"cursor,omitempty"`
 	AgeMax float64 `json:"ageMax,omitempty"`
 	AgeMin float64 `json:"ageMin,omitempty"`
-	IsAgent bool `json:"isAgent,omitempty"`
 	City string `json:"city,omitempty"`
 	CountryCode string `json:"countryCode,omitempty"`
 	Gender string `json:"gender,omitempty"`
@@ -18112,7 +14578,7 @@ type RealmTransitControllerCompleteOperationRequest struct {
 }
 
 type RealmTransitControllerGetActiveTransitOperationPath struct {
-	AgentId string `json:"agentId,omitempty"`
+	RuntimeSourceRef string `json:"runtimeSourceRef,omitempty"`
 }
 
 type RealmTransitControllerGetActiveTransitOperationQuery struct {
@@ -18156,7 +14622,8 @@ type RealmTransitControllerListTransitsOperationPath struct {
 type RealmTransitControllerListTransitsOperationQuery struct {
 	TransitType string `json:"transitType,omitempty"`
 	Status string `json:"status,omitempty"`
-	AgentId string `json:"agentId,omitempty"`
+	RuntimeSourceRef string `json:"runtimeSourceRef,omitempty"`
+	SourceId string `json:"sourceId,omitempty"`
 }
 
 type RealmTransitControllerListTransitsOperationHeaders struct {
@@ -18303,66 +14770,6 @@ type RealmUpdateBundleOperationRequest struct {
 	Body    UpdateBundleDto `json:"body,omitempty"`
 }
 
-type RealmUpdateCreatorWorldAgentProfileMediaOperationPath struct {
-	AgentId string `json:"agentId,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type RealmUpdateCreatorWorldAgentProfileMediaOperationQuery struct {
-
-}
-
-type RealmUpdateCreatorWorldAgentProfileMediaOperationHeaders struct {
-
-}
-
-type RealmUpdateCreatorWorldAgentProfileMediaOperationRequest struct {
-	Path    RealmUpdateCreatorWorldAgentProfileMediaOperationPath `json:"path,omitempty"`
-	Query   RealmUpdateCreatorWorldAgentProfileMediaOperationQuery `json:"query,omitempty"`
-	Headers RealmUpdateCreatorWorldAgentProfileMediaOperationHeaders `json:"headers,omitempty"`
-	Body    UpdateAgentProfileMediaDto `json:"body,omitempty"`
-}
-
-type RealmUpdateCreatorWorldAgentSettingsOperationPath struct {
-	AgentId string `json:"agentId,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type RealmUpdateCreatorWorldAgentSettingsOperationQuery struct {
-
-}
-
-type RealmUpdateCreatorWorldAgentSettingsOperationHeaders struct {
-
-}
-
-type RealmUpdateCreatorWorldAgentSettingsOperationRequest struct {
-	Path    RealmUpdateCreatorWorldAgentSettingsOperationPath `json:"path,omitempty"`
-	Query   RealmUpdateCreatorWorldAgentSettingsOperationQuery `json:"query,omitempty"`
-	Headers RealmUpdateCreatorWorldAgentSettingsOperationHeaders `json:"headers,omitempty"`
-	Body    UpdateOwnerAgentSettingsDto `json:"body,omitempty"`
-}
-
-type RealmUpdateCreatorWorldAgentVoiceOperationPath struct {
-	AgentId string `json:"agentId,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type RealmUpdateCreatorWorldAgentVoiceOperationQuery struct {
-
-}
-
-type RealmUpdateCreatorWorldAgentVoiceOperationHeaders struct {
-
-}
-
-type RealmUpdateCreatorWorldAgentVoiceOperationRequest struct {
-	Path    RealmUpdateCreatorWorldAgentVoiceOperationPath `json:"path,omitempty"`
-	Query   RealmUpdateCreatorWorldAgentVoiceOperationQuery `json:"query,omitempty"`
-	Headers RealmUpdateCreatorWorldAgentVoiceOperationHeaders `json:"headers,omitempty"`
-	Body    UpdateAgentVoiceDto `json:"body,omitempty"`
-}
-
 type RealmUpdateGroupOperationPath struct {
 	ChatId string `json:"chatId,omitempty"`
 }
@@ -18478,25 +14885,6 @@ type RealmUpdateMyPPConfigOperationRequest struct {
 	Body    UpdatePPSlotConfigDto `json:"body,omitempty"`
 }
 
-type RealmUpdateMyRealmAgentSettingsOperationPath struct {
-	AgentId string `json:"agentId,omitempty"`
-}
-
-type RealmUpdateMyRealmAgentSettingsOperationQuery struct {
-
-}
-
-type RealmUpdateMyRealmAgentSettingsOperationHeaders struct {
-
-}
-
-type RealmUpdateMyRealmAgentSettingsOperationRequest struct {
-	Path    RealmUpdateMyRealmAgentSettingsOperationPath `json:"path,omitempty"`
-	Query   RealmUpdateMyRealmAgentSettingsOperationQuery `json:"query,omitempty"`
-	Headers RealmUpdateMyRealmAgentSettingsOperationHeaders `json:"headers,omitempty"`
-	Body    UpdateOwnerAgentSettingsDto `json:"body,omitempty"`
-}
-
 type RealmUpdateMySettingsOperationPath struct {
 
 }
@@ -18571,121 +14959,6 @@ type RealmUpdateResourceOperationRequest struct {
 	Query   RealmUpdateResourceOperationQuery `json:"query,omitempty"`
 	Headers RealmUpdateResourceOperationHeaders `json:"headers,omitempty"`
 	Body    UpdateResourceDto `json:"body,omitempty"`
-}
-
-type RealmV1DefaultVisibilityControllerApplyAgentDefaultsOperationPath struct {
-	AgentId string `json:"agentId,omitempty"`
-}
-
-type RealmV1DefaultVisibilityControllerApplyAgentDefaultsOperationQuery struct {
-
-}
-
-type RealmV1DefaultVisibilityControllerApplyAgentDefaultsOperationHeaders struct {
-
-}
-
-type RealmV1DefaultVisibilityControllerApplyAgentDefaultsOperationRequest struct {
-	Path    RealmV1DefaultVisibilityControllerApplyAgentDefaultsOperationPath `json:"path,omitempty"`
-	Query   RealmV1DefaultVisibilityControllerApplyAgentDefaultsOperationQuery `json:"query,omitempty"`
-	Headers RealmV1DefaultVisibilityControllerApplyAgentDefaultsOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmV1DefaultVisibilityControllerApplyUserDefaultsOperationPath struct {
-	UserId string `json:"userId,omitempty"`
-}
-
-type RealmV1DefaultVisibilityControllerApplyUserDefaultsOperationQuery struct {
-
-}
-
-type RealmV1DefaultVisibilityControllerApplyUserDefaultsOperationHeaders struct {
-
-}
-
-type RealmV1DefaultVisibilityControllerApplyUserDefaultsOperationRequest struct {
-	Path    RealmV1DefaultVisibilityControllerApplyUserDefaultsOperationPath `json:"path,omitempty"`
-	Query   RealmV1DefaultVisibilityControllerApplyUserDefaultsOperationQuery `json:"query,omitempty"`
-	Headers RealmV1DefaultVisibilityControllerApplyUserDefaultsOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmV1DefaultVisibilityControllerGetDefaultForScopeOperationPath struct {
-	Scope string `json:"scope,omitempty"`
-	EntityType string `json:"entityType,omitempty"`
-}
-
-type RealmV1DefaultVisibilityControllerGetDefaultForScopeOperationQuery struct {
-
-}
-
-type RealmV1DefaultVisibilityControllerGetDefaultForScopeOperationHeaders struct {
-
-}
-
-type RealmV1DefaultVisibilityControllerGetDefaultForScopeOperationRequest struct {
-	Path    RealmV1DefaultVisibilityControllerGetDefaultForScopeOperationPath `json:"path,omitempty"`
-	Query   RealmV1DefaultVisibilityControllerGetDefaultForScopeOperationQuery `json:"query,omitempty"`
-	Headers RealmV1DefaultVisibilityControllerGetDefaultForScopeOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmV1DefaultVisibilityControllerGetDefaultVisibilityOperationPath struct {
-	EntityType string `json:"entityType,omitempty"`
-}
-
-type RealmV1DefaultVisibilityControllerGetDefaultVisibilityOperationQuery struct {
-
-}
-
-type RealmV1DefaultVisibilityControllerGetDefaultVisibilityOperationHeaders struct {
-
-}
-
-type RealmV1DefaultVisibilityControllerGetDefaultVisibilityOperationRequest struct {
-	Path    RealmV1DefaultVisibilityControllerGetDefaultVisibilityOperationPath `json:"path,omitempty"`
-	Query   RealmV1DefaultVisibilityControllerGetDefaultVisibilityOperationQuery `json:"query,omitempty"`
-	Headers RealmV1DefaultVisibilityControllerGetDefaultVisibilityOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmV1DefaultVisibilityControllerValidateAgentVisibilityOperationPath struct {
-	AgentId string `json:"agentId,omitempty"`
-}
-
-type RealmV1DefaultVisibilityControllerValidateAgentVisibilityOperationQuery struct {
-
-}
-
-type RealmV1DefaultVisibilityControllerValidateAgentVisibilityOperationHeaders struct {
-
-}
-
-type RealmV1DefaultVisibilityControllerValidateAgentVisibilityOperationRequest struct {
-	Path    RealmV1DefaultVisibilityControllerValidateAgentVisibilityOperationPath `json:"path,omitempty"`
-	Query   RealmV1DefaultVisibilityControllerValidateAgentVisibilityOperationQuery `json:"query,omitempty"`
-	Headers RealmV1DefaultVisibilityControllerValidateAgentVisibilityOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmV1DefaultVisibilityControllerValidateUserVisibilityOperationPath struct {
-	UserId string `json:"userId,omitempty"`
-}
-
-type RealmV1DefaultVisibilityControllerValidateUserVisibilityOperationQuery struct {
-
-}
-
-type RealmV1DefaultVisibilityControllerValidateUserVisibilityOperationHeaders struct {
-
-}
-
-type RealmV1DefaultVisibilityControllerValidateUserVisibilityOperationRequest struct {
-	Path    RealmV1DefaultVisibilityControllerValidateUserVisibilityOperationPath `json:"path,omitempty"`
-	Query   RealmV1DefaultVisibilityControllerValidateUserVisibilityOperationQuery `json:"query,omitempty"`
-	Headers RealmV1DefaultVisibilityControllerValidateUserVisibilityOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
 }
 
 type RealmVerify2FaOperationPath struct {
@@ -18764,699 +15037,290 @@ type RealmWalletLoginOperationRequest struct {
 	Body    WalletLoginDto `json:"body,omitempty"`
 }
 
-type RealmWorldControlControllerAppendWorldHistoryOperationPath struct {
+type RealmWorldCoreControllerBootstrapOasisWorldOperationPath struct {
+
+}
+
+type RealmWorldCoreControllerBootstrapOasisWorldOperationQuery struct {
+
+}
+
+type RealmWorldCoreControllerBootstrapOasisWorldOperationHeaders struct {
+
+}
+
+type RealmWorldCoreControllerBootstrapOasisWorldOperationRequest struct {
+	Path    RealmWorldCoreControllerBootstrapOasisWorldOperationPath `json:"path,omitempty"`
+	Query   RealmWorldCoreControllerBootstrapOasisWorldOperationQuery `json:"query,omitempty"`
+	Headers RealmWorldCoreControllerBootstrapOasisWorldOperationHeaders `json:"headers,omitempty"`
+	Body    BootstrapOasisWorldDto `json:"body,omitempty"`
+}
+
+type RealmWorldCoreControllerCreateRealmPersonaOperationPath struct {
+
+}
+
+type RealmWorldCoreControllerCreateRealmPersonaOperationQuery struct {
+
+}
+
+type RealmWorldCoreControllerCreateRealmPersonaOperationHeaders struct {
+
+}
+
+type RealmWorldCoreControllerCreateRealmPersonaOperationRequest struct {
+	Path    RealmWorldCoreControllerCreateRealmPersonaOperationPath `json:"path,omitempty"`
+	Query   RealmWorldCoreControllerCreateRealmPersonaOperationQuery `json:"query,omitempty"`
+	Headers RealmWorldCoreControllerCreateRealmPersonaOperationHeaders `json:"headers,omitempty"`
+	Body    CreateRealmPersonaDto `json:"body,omitempty"`
+}
+
+type RealmWorldCoreControllerCreateRuntimeSourceSnapshotOperationPath struct {
+
+}
+
+type RealmWorldCoreControllerCreateRuntimeSourceSnapshotOperationQuery struct {
+
+}
+
+type RealmWorldCoreControllerCreateRuntimeSourceSnapshotOperationHeaders struct {
+
+}
+
+type RealmWorldCoreControllerCreateRuntimeSourceSnapshotOperationRequest struct {
+	Path    RealmWorldCoreControllerCreateRuntimeSourceSnapshotOperationPath `json:"path,omitempty"`
+	Query   RealmWorldCoreControllerCreateRuntimeSourceSnapshotOperationQuery `json:"query,omitempty"`
+	Headers RealmWorldCoreControllerCreateRuntimeSourceSnapshotOperationHeaders `json:"headers,omitempty"`
+	Body    CreateRuntimeSourceSnapshotDto `json:"body,omitempty"`
+}
+
+type RealmWorldCoreControllerCreateWorldCharacterOperationPath struct {
 	WorldId string `json:"worldId,omitempty"`
 }
 
-type RealmWorldControlControllerAppendWorldHistoryOperationQuery struct {
+type RealmWorldCoreControllerCreateWorldCharacterOperationQuery struct {
 
 }
 
-type RealmWorldControlControllerAppendWorldHistoryOperationHeaders struct {
+type RealmWorldCoreControllerCreateWorldCharacterOperationHeaders struct {
 
 }
 
-type RealmWorldControlControllerAppendWorldHistoryOperationRequest struct {
-	Path    RealmWorldControlControllerAppendWorldHistoryOperationPath `json:"path,omitempty"`
-	Query   RealmWorldControlControllerAppendWorldHistoryOperationQuery `json:"query,omitempty"`
-	Headers RealmWorldControlControllerAppendWorldHistoryOperationHeaders `json:"headers,omitempty"`
-	Body    AppendWorldHistoryDto `json:"body,omitempty"`
+type RealmWorldCoreControllerCreateWorldCharacterOperationRequest struct {
+	Path    RealmWorldCoreControllerCreateWorldCharacterOperationPath `json:"path,omitempty"`
+	Query   RealmWorldCoreControllerCreateWorldCharacterOperationQuery `json:"query,omitempty"`
+	Headers RealmWorldCoreControllerCreateWorldCharacterOperationHeaders `json:"headers,omitempty"`
+	Body    CreateWorldCharacterCoreDto `json:"body,omitempty"`
 }
 
-type RealmWorldControlControllerBatchUpsertWorldBindingsOperationPath struct {
+type RealmWorldCoreControllerCreateWorldCoreOperationPath struct {
+
+}
+
+type RealmWorldCoreControllerCreateWorldCoreOperationQuery struct {
+
+}
+
+type RealmWorldCoreControllerCreateWorldCoreOperationHeaders struct {
+
+}
+
+type RealmWorldCoreControllerCreateWorldCoreOperationRequest struct {
+	Path    RealmWorldCoreControllerCreateWorldCoreOperationPath `json:"path,omitempty"`
+	Query   RealmWorldCoreControllerCreateWorldCoreOperationQuery `json:"query,omitempty"`
+	Headers RealmWorldCoreControllerCreateWorldCoreOperationHeaders `json:"headers,omitempty"`
+	Body    CreateWorldCoreDto `json:"body,omitempty"`
+}
+
+type RealmWorldCoreControllerGetOasisWorldOperationPath struct {
+
+}
+
+type RealmWorldCoreControllerGetOasisWorldOperationQuery struct {
+
+}
+
+type RealmWorldCoreControllerGetOasisWorldOperationHeaders struct {
+
+}
+
+type RealmWorldCoreControllerGetOasisWorldOperationRequest struct {
+	Path    RealmWorldCoreControllerGetOasisWorldOperationPath `json:"path,omitempty"`
+	Query   RealmWorldCoreControllerGetOasisWorldOperationQuery `json:"query,omitempty"`
+	Headers RealmWorldCoreControllerGetOasisWorldOperationHeaders `json:"headers,omitempty"`
+	Body    struct{} `json:"body,omitempty"`
+}
+
+type RealmWorldCoreControllerGetRealmPersonaOperationPath struct {
+	PersonaId string `json:"personaId,omitempty"`
+}
+
+type RealmWorldCoreControllerGetRealmPersonaOperationQuery struct {
+
+}
+
+type RealmWorldCoreControllerGetRealmPersonaOperationHeaders struct {
+
+}
+
+type RealmWorldCoreControllerGetRealmPersonaOperationRequest struct {
+	Path    RealmWorldCoreControllerGetRealmPersonaOperationPath `json:"path,omitempty"`
+	Query   RealmWorldCoreControllerGetRealmPersonaOperationQuery `json:"query,omitempty"`
+	Headers RealmWorldCoreControllerGetRealmPersonaOperationHeaders `json:"headers,omitempty"`
+	Body    struct{} `json:"body,omitempty"`
+}
+
+type RealmWorldCoreControllerGetWorldCharacterOperationPath struct {
+	CharacterId string `json:"characterId,omitempty"`
+}
+
+type RealmWorldCoreControllerGetWorldCharacterOperationQuery struct {
+
+}
+
+type RealmWorldCoreControllerGetWorldCharacterOperationHeaders struct {
+
+}
+
+type RealmWorldCoreControllerGetWorldCharacterOperationRequest struct {
+	Path    RealmWorldCoreControllerGetWorldCharacterOperationPath `json:"path,omitempty"`
+	Query   RealmWorldCoreControllerGetWorldCharacterOperationQuery `json:"query,omitempty"`
+	Headers RealmWorldCoreControllerGetWorldCharacterOperationHeaders `json:"headers,omitempty"`
+	Body    struct{} `json:"body,omitempty"`
+}
+
+type RealmWorldCoreControllerGetWorldCoreOperationPath struct {
 	WorldId string `json:"worldId,omitempty"`
 }
 
-type RealmWorldControlControllerBatchUpsertWorldBindingsOperationQuery struct {
+type RealmWorldCoreControllerGetWorldCoreOperationQuery struct {
 
 }
 
-type RealmWorldControlControllerBatchUpsertWorldBindingsOperationHeaders struct {
+type RealmWorldCoreControllerGetWorldCoreOperationHeaders struct {
 
 }
 
-type RealmWorldControlControllerBatchUpsertWorldBindingsOperationRequest struct {
-	Path    RealmWorldControlControllerBatchUpsertWorldBindingsOperationPath `json:"path,omitempty"`
-	Query   RealmWorldControlControllerBatchUpsertWorldBindingsOperationQuery `json:"query,omitempty"`
-	Headers RealmWorldControlControllerBatchUpsertWorldBindingsOperationHeaders `json:"headers,omitempty"`
-	Body    BatchUpsertBindingsDto `json:"body,omitempty"`
+type RealmWorldCoreControllerGetWorldCoreOperationRequest struct {
+	Path    RealmWorldCoreControllerGetWorldCoreOperationPath `json:"path,omitempty"`
+	Query   RealmWorldCoreControllerGetWorldCoreOperationQuery `json:"query,omitempty"`
+	Headers RealmWorldCoreControllerGetWorldCoreOperationHeaders `json:"headers,omitempty"`
+	Body    struct{} `json:"body,omitempty"`
 }
 
-type RealmWorldControlControllerCommitStateOperationPath struct {
+type RealmWorldCoreControllerListRealmPersonasOperationPath struct {
+
+}
+
+type RealmWorldCoreControllerListRealmPersonasOperationQuery struct {
+
+}
+
+type RealmWorldCoreControllerListRealmPersonasOperationHeaders struct {
+
+}
+
+type RealmWorldCoreControllerListRealmPersonasOperationRequest struct {
+	Path    RealmWorldCoreControllerListRealmPersonasOperationPath `json:"path,omitempty"`
+	Query   RealmWorldCoreControllerListRealmPersonasOperationQuery `json:"query,omitempty"`
+	Headers RealmWorldCoreControllerListRealmPersonasOperationHeaders `json:"headers,omitempty"`
+	Body    struct{} `json:"body,omitempty"`
+}
+
+type RealmWorldCoreControllerListWorldCharactersOperationPath struct {
 	WorldId string `json:"worldId,omitempty"`
 }
 
-type RealmWorldControlControllerCommitStateOperationQuery struct {
+type RealmWorldCoreControllerListWorldCharactersOperationQuery struct {
 
 }
 
-type RealmWorldControlControllerCommitStateOperationHeaders struct {
+type RealmWorldCoreControllerListWorldCharactersOperationHeaders struct {
 
 }
 
-type RealmWorldControlControllerCommitStateOperationRequest struct {
-	Path    RealmWorldControlControllerCommitStateOperationPath `json:"path,omitempty"`
-	Query   RealmWorldControlControllerCommitStateOperationQuery `json:"query,omitempty"`
-	Headers RealmWorldControlControllerCommitStateOperationHeaders `json:"headers,omitempty"`
-	Body    CommitWorldStateDto `json:"body,omitempty"`
-}
-
-type RealmWorldControlControllerCreateDraftOperationPath struct {
-
-}
-
-type RealmWorldControlControllerCreateDraftOperationQuery struct {
-
-}
-
-type RealmWorldControlControllerCreateDraftOperationHeaders struct {
-
-}
-
-type RealmWorldControlControllerCreateDraftOperationRequest struct {
-	Path    RealmWorldControlControllerCreateDraftOperationPath `json:"path,omitempty"`
-	Query   RealmWorldControlControllerCreateDraftOperationQuery `json:"query,omitempty"`
-	Headers RealmWorldControlControllerCreateDraftOperationHeaders `json:"headers,omitempty"`
-	Body    CreateWorldDraftDto `json:"body,omitempty"`
-}
-
-type RealmWorldControlControllerDeleteWorldBindingOperationPath struct {
-	BindingId string `json:"bindingId,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type RealmWorldControlControllerDeleteWorldBindingOperationQuery struct {
-
-}
-
-type RealmWorldControlControllerDeleteWorldBindingOperationHeaders struct {
-
-}
-
-type RealmWorldControlControllerDeleteWorldBindingOperationRequest struct {
-	Path    RealmWorldControlControllerDeleteWorldBindingOperationPath `json:"path,omitempty"`
-	Query   RealmWorldControlControllerDeleteWorldBindingOperationQuery `json:"query,omitempty"`
-	Headers RealmWorldControlControllerDeleteWorldBindingOperationHeaders `json:"headers,omitempty"`
+type RealmWorldCoreControllerListWorldCharactersOperationRequest struct {
+	Path    RealmWorldCoreControllerListWorldCharactersOperationPath `json:"path,omitempty"`
+	Query   RealmWorldCoreControllerListWorldCharactersOperationQuery `json:"query,omitempty"`
+	Headers RealmWorldCoreControllerListWorldCharactersOperationHeaders `json:"headers,omitempty"`
 	Body    struct{} `json:"body,omitempty"`
 }
 
-type RealmWorldControlControllerGetDraftOperationPath struct {
-	DraftId string `json:"draftId,omitempty"`
-}
-
-type RealmWorldControlControllerGetDraftOperationQuery struct {
+type RealmWorldCoreControllerListWorldCoresOperationPath struct {
 
 }
 
-type RealmWorldControlControllerGetDraftOperationHeaders struct {
-
-}
-
-type RealmWorldControlControllerGetDraftOperationRequest struct {
-	Path    RealmWorldControlControllerGetDraftOperationPath `json:"path,omitempty"`
-	Query   RealmWorldControlControllerGetDraftOperationQuery `json:"query,omitempty"`
-	Headers RealmWorldControlControllerGetDraftOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmWorldControlControllerGetMyAccessOperationPath struct {
-
-}
-
-type RealmWorldControlControllerGetMyAccessOperationQuery struct {
-
-}
-
-type RealmWorldControlControllerGetMyAccessOperationHeaders struct {
-
-}
-
-type RealmWorldControlControllerGetMyAccessOperationRequest struct {
-	Path    RealmWorldControlControllerGetMyAccessOperationPath `json:"path,omitempty"`
-	Query   RealmWorldControlControllerGetMyAccessOperationQuery `json:"query,omitempty"`
-	Headers RealmWorldControlControllerGetMyAccessOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmWorldControlControllerGetStateOperationPath struct {
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type RealmWorldControlControllerGetStateOperationQuery struct {
-
-}
-
-type RealmWorldControlControllerGetStateOperationHeaders struct {
-
-}
-
-type RealmWorldControlControllerGetStateOperationRequest struct {
-	Path    RealmWorldControlControllerGetStateOperationPath `json:"path,omitempty"`
-	Query   RealmWorldControlControllerGetStateOperationQuery `json:"query,omitempty"`
-	Headers RealmWorldControlControllerGetStateOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmWorldControlControllerListDraftsOperationPath struct {
-
-}
-
-type RealmWorldControlControllerListDraftsOperationQuery struct {
-
-}
-
-type RealmWorldControlControllerListDraftsOperationHeaders struct {
-
-}
-
-type RealmWorldControlControllerListDraftsOperationRequest struct {
-	Path    RealmWorldControlControllerListDraftsOperationPath `json:"path,omitempty"`
-	Query   RealmWorldControlControllerListDraftsOperationQuery `json:"query,omitempty"`
-	Headers RealmWorldControlControllerListDraftsOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmWorldControlControllerListMyWorldsOperationPath struct {
-
-}
-
-type RealmWorldControlControllerListMyWorldsOperationQuery struct {
-
-}
-
-type RealmWorldControlControllerListMyWorldsOperationHeaders struct {
-
-}
-
-type RealmWorldControlControllerListMyWorldsOperationRequest struct {
-	Path    RealmWorldControlControllerListMyWorldsOperationPath `json:"path,omitempty"`
-	Query   RealmWorldControlControllerListMyWorldsOperationQuery `json:"query,omitempty"`
-	Headers RealmWorldControlControllerListMyWorldsOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmWorldControlControllerListWorldBindingsOperationPath struct {
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type RealmWorldControlControllerListWorldBindingsOperationQuery struct {
+type RealmWorldCoreControllerListWorldCoresOperationQuery struct {
 	Take float64 `json:"take,omitempty"`
-	BindingPoint string `json:"bindingPoint,omitempty"`
-	BindingKind string `json:"bindingKind,omitempty"`
-	HostId string `json:"hostId,omitempty"`
-	HostType string `json:"hostType,omitempty"`
-	ObjectId string `json:"objectId,omitempty"`
-	ObjectType string `json:"objectType,omitempty"`
+	Visibility string `json:"visibility,omitempty"`
 }
 
-type RealmWorldControlControllerListWorldBindingsOperationHeaders struct {
+type RealmWorldCoreControllerListWorldCoresOperationHeaders struct {
 
 }
 
-type RealmWorldControlControllerListWorldBindingsOperationRequest struct {
-	Path    RealmWorldControlControllerListWorldBindingsOperationPath `json:"path,omitempty"`
-	Query   RealmWorldControlControllerListWorldBindingsOperationQuery `json:"query,omitempty"`
-	Headers RealmWorldControlControllerListWorldBindingsOperationHeaders `json:"headers,omitempty"`
+type RealmWorldCoreControllerListWorldCoresOperationRequest struct {
+	Path    RealmWorldCoreControllerListWorldCoresOperationPath `json:"path,omitempty"`
+	Query   RealmWorldCoreControllerListWorldCoresOperationQuery `json:"query,omitempty"`
+	Headers RealmWorldCoreControllerListWorldCoresOperationHeaders `json:"headers,omitempty"`
 	Body    struct{} `json:"body,omitempty"`
 }
 
-type RealmWorldControlControllerListWorldHistoryOperationPath struct {
+type RealmWorldCoreControllerReplaceRealmPersonaOperationPath struct {
+	PersonaId string `json:"personaId,omitempty"`
+}
+
+type RealmWorldCoreControllerReplaceRealmPersonaOperationQuery struct {
+
+}
+
+type RealmWorldCoreControllerReplaceRealmPersonaOperationHeaders struct {
+
+}
+
+type RealmWorldCoreControllerReplaceRealmPersonaOperationRequest struct {
+	Path    RealmWorldCoreControllerReplaceRealmPersonaOperationPath `json:"path,omitempty"`
+	Query   RealmWorldCoreControllerReplaceRealmPersonaOperationQuery `json:"query,omitempty"`
+	Headers RealmWorldCoreControllerReplaceRealmPersonaOperationHeaders `json:"headers,omitempty"`
+	Body    ReplaceRealmPersonaDto `json:"body,omitempty"`
+}
+
+type RealmWorldCoreControllerReplaceWorldCharacterOperationPath struct {
+	CharacterId string `json:"characterId,omitempty"`
+}
+
+type RealmWorldCoreControllerReplaceWorldCharacterOperationQuery struct {
+
+}
+
+type RealmWorldCoreControllerReplaceWorldCharacterOperationHeaders struct {
+
+}
+
+type RealmWorldCoreControllerReplaceWorldCharacterOperationRequest struct {
+	Path    RealmWorldCoreControllerReplaceWorldCharacterOperationPath `json:"path,omitempty"`
+	Query   RealmWorldCoreControllerReplaceWorldCharacterOperationQuery `json:"query,omitempty"`
+	Headers RealmWorldCoreControllerReplaceWorldCharacterOperationHeaders `json:"headers,omitempty"`
+	Body    ReplaceWorldCharacterCoreDto `json:"body,omitempty"`
+}
+
+type RealmWorldCoreControllerReplaceWorldCoreOperationPath struct {
 	WorldId string `json:"worldId,omitempty"`
 }
 
-type RealmWorldControlControllerListWorldHistoryOperationQuery struct {
+type RealmWorldCoreControllerReplaceWorldCoreOperationQuery struct {
 
 }
 
-type RealmWorldControlControllerListWorldHistoryOperationHeaders struct {
+type RealmWorldCoreControllerReplaceWorldCoreOperationHeaders struct {
 
 }
 
-type RealmWorldControlControllerListWorldHistoryOperationRequest struct {
-	Path    RealmWorldControlControllerListWorldHistoryOperationPath `json:"path,omitempty"`
-	Query   RealmWorldControlControllerListWorldHistoryOperationQuery `json:"query,omitempty"`
-	Headers RealmWorldControlControllerListWorldHistoryOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmWorldControlControllerListWorldLorebooksOperationPath struct {
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type RealmWorldControlControllerListWorldLorebooksOperationQuery struct {
-
-}
-
-type RealmWorldControlControllerListWorldLorebooksOperationHeaders struct {
-
-}
-
-type RealmWorldControlControllerListWorldLorebooksOperationRequest struct {
-	Path    RealmWorldControlControllerListWorldLorebooksOperationPath `json:"path,omitempty"`
-	Query   RealmWorldControlControllerListWorldLorebooksOperationQuery `json:"query,omitempty"`
-	Headers RealmWorldControlControllerListWorldLorebooksOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmWorldControlControllerPublishDraftOperationPath struct {
-	DraftId string `json:"draftId,omitempty"`
-}
-
-type RealmWorldControlControllerPublishDraftOperationQuery struct {
-
-}
-
-type RealmWorldControlControllerPublishDraftOperationHeaders struct {
-
-}
-
-type RealmWorldControlControllerPublishDraftOperationRequest struct {
-	Path    RealmWorldControlControllerPublishDraftOperationPath `json:"path,omitempty"`
-	Query   RealmWorldControlControllerPublishDraftOperationQuery `json:"query,omitempty"`
-	Headers RealmWorldControlControllerPublishDraftOperationHeaders `json:"headers,omitempty"`
-	Body    PublishWorldDraftDto `json:"body,omitempty"`
-}
-
-type RealmWorldControlControllerResolveLandingOperationPath struct {
-
-}
-
-type RealmWorldControlControllerResolveLandingOperationQuery struct {
-
-}
-
-type RealmWorldControlControllerResolveLandingOperationHeaders struct {
-
-}
-
-type RealmWorldControlControllerResolveLandingOperationRequest struct {
-	Path    RealmWorldControlControllerResolveLandingOperationPath `json:"path,omitempty"`
-	Query   RealmWorldControlControllerResolveLandingOperationQuery `json:"query,omitempty"`
-	Headers RealmWorldControlControllerResolveLandingOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmWorldControlControllerUpdateDraftOperationPath struct {
-	DraftId string `json:"draftId,omitempty"`
-}
-
-type RealmWorldControlControllerUpdateDraftOperationQuery struct {
-
-}
-
-type RealmWorldControlControllerUpdateDraftOperationHeaders struct {
-
-}
-
-type RealmWorldControlControllerUpdateDraftOperationRequest struct {
-	Path    RealmWorldControlControllerUpdateDraftOperationPath `json:"path,omitempty"`
-	Query   RealmWorldControlControllerUpdateDraftOperationQuery `json:"query,omitempty"`
-	Headers RealmWorldControlControllerUpdateDraftOperationHeaders `json:"headers,omitempty"`
-	Body    UpdateWorldDraftDto `json:"body,omitempty"`
-}
-
-type RealmWorldControllerGetMainWorldOperationPath struct {
-
-}
-
-type RealmWorldControllerGetMainWorldOperationQuery struct {
-
-}
-
-type RealmWorldControllerGetMainWorldOperationHeaders struct {
-
-}
-
-type RealmWorldControllerGetMainWorldOperationRequest struct {
-	Path    RealmWorldControllerGetMainWorldOperationPath `json:"path,omitempty"`
-	Query   RealmWorldControllerGetMainWorldOperationQuery `json:"query,omitempty"`
-	Headers RealmWorldControllerGetMainWorldOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmWorldControllerGetWorldOperationPath struct {
-	Id string `json:"id,omitempty"`
-}
-
-type RealmWorldControllerGetWorldOperationQuery struct {
-
-}
-
-type RealmWorldControllerGetWorldOperationHeaders struct {
-
-}
-
-type RealmWorldControllerGetWorldOperationRequest struct {
-	Path    RealmWorldControllerGetWorldOperationPath `json:"path,omitempty"`
-	Query   RealmWorldControllerGetWorldOperationQuery `json:"query,omitempty"`
-	Headers RealmWorldControllerGetWorldOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmWorldControllerGetWorldAgentsOperationPath struct {
-	Id string `json:"id,omitempty"`
-}
-
-type RealmWorldControllerGetWorldAgentsOperationQuery struct {
-
-}
-
-type RealmWorldControllerGetWorldAgentsOperationHeaders struct {
-
-}
-
-type RealmWorldControllerGetWorldAgentsOperationRequest struct {
-	Path    RealmWorldControllerGetWorldAgentsOperationPath `json:"path,omitempty"`
-	Query   RealmWorldControllerGetWorldAgentsOperationQuery `json:"query,omitempty"`
-	Headers RealmWorldControllerGetWorldAgentsOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmWorldControllerGetWorldBindingsOperationPath struct {
-	Id string `json:"id,omitempty"`
-}
-
-type RealmWorldControllerGetWorldBindingsOperationQuery struct {
-
-}
-
-type RealmWorldControllerGetWorldBindingsOperationHeaders struct {
-
-}
-
-type RealmWorldControllerGetWorldBindingsOperationRequest struct {
-	Path    RealmWorldControllerGetWorldBindingsOperationPath `json:"path,omitempty"`
-	Query   RealmWorldControllerGetWorldBindingsOperationQuery `json:"query,omitempty"`
-	Headers RealmWorldControllerGetWorldBindingsOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmWorldControllerGetWorldDetailWithAgentsOperationPath struct {
-	Id string `json:"id,omitempty"`
-}
-
-type RealmWorldControllerGetWorldDetailWithAgentsOperationQuery struct {
-	RecommendedAgentLimit float64 `json:"recommendedAgentLimit,omitempty"`
-}
-
-type RealmWorldControllerGetWorldDetailWithAgentsOperationHeaders struct {
-
-}
-
-type RealmWorldControllerGetWorldDetailWithAgentsOperationRequest struct {
-	Path    RealmWorldControllerGetWorldDetailWithAgentsOperationPath `json:"path,omitempty"`
-	Query   RealmWorldControllerGetWorldDetailWithAgentsOperationQuery `json:"query,omitempty"`
-	Headers RealmWorldControllerGetWorldDetailWithAgentsOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmWorldControllerGetWorldHistoryOperationPath struct {
-	Id string `json:"id,omitempty"`
-}
-
-type RealmWorldControllerGetWorldHistoryOperationQuery struct {
-
-}
-
-type RealmWorldControllerGetWorldHistoryOperationHeaders struct {
-
-}
-
-type RealmWorldControllerGetWorldHistoryOperationRequest struct {
-	Path    RealmWorldControllerGetWorldHistoryOperationPath `json:"path,omitempty"`
-	Query   RealmWorldControllerGetWorldHistoryOperationQuery `json:"query,omitempty"`
-	Headers RealmWorldControllerGetWorldHistoryOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmWorldControllerGetWorldLevelAuditsOperationPath struct {
-	Id string `json:"id,omitempty"`
-}
-
-type RealmWorldControllerGetWorldLevelAuditsOperationQuery struct {
-	Limit float64 `json:"limit,omitempty"`
-}
-
-type RealmWorldControllerGetWorldLevelAuditsOperationHeaders struct {
-
-}
-
-type RealmWorldControllerGetWorldLevelAuditsOperationRequest struct {
-	Path    RealmWorldControllerGetWorldLevelAuditsOperationPath `json:"path,omitempty"`
-	Query   RealmWorldControllerGetWorldLevelAuditsOperationQuery `json:"query,omitempty"`
-	Headers RealmWorldControllerGetWorldLevelAuditsOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmWorldControllerGetWorldLorebooksOperationPath struct {
-	Id string `json:"id,omitempty"`
-}
-
-type RealmWorldControllerGetWorldLorebooksOperationQuery struct {
-
-}
-
-type RealmWorldControllerGetWorldLorebooksOperationHeaders struct {
-
-}
-
-type RealmWorldControllerGetWorldLorebooksOperationRequest struct {
-	Path    RealmWorldControllerGetWorldLorebooksOperationPath `json:"path,omitempty"`
-	Query   RealmWorldControllerGetWorldLorebooksOperationQuery `json:"query,omitempty"`
-	Headers RealmWorldControllerGetWorldLorebooksOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmWorldControllerGetWorldviewOperationPath struct {
-	Id string `json:"id,omitempty"`
-}
-
-type RealmWorldControllerGetWorldviewOperationQuery struct {
-
-}
-
-type RealmWorldControllerGetWorldviewOperationHeaders struct {
-
-}
-
-type RealmWorldControllerGetWorldviewOperationRequest struct {
-	Path    RealmWorldControllerGetWorldviewOperationPath `json:"path,omitempty"`
-	Query   RealmWorldControllerGetWorldviewOperationQuery `json:"query,omitempty"`
-	Headers RealmWorldControllerGetWorldviewOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmWorldControllerListWorldsOperationPath struct {
-
-}
-
-type RealmWorldControllerListWorldsOperationQuery struct {
-	Status string `json:"status,omitempty"`
-}
-
-type RealmWorldControllerListWorldsOperationHeaders struct {
-
-}
-
-type RealmWorldControllerListWorldsOperationRequest struct {
-	Path    RealmWorldControllerListWorldsOperationPath `json:"path,omitempty"`
-	Query   RealmWorldControllerListWorldsOperationQuery `json:"query,omitempty"`
-	Headers RealmWorldControllerListWorldsOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmWorldControllerReturnToMainWorldOperationPath struct {
-	Id string `json:"id,omitempty"`
-}
-
-type RealmWorldControllerReturnToMainWorldOperationQuery struct {
-
-}
-
-type RealmWorldControllerReturnToMainWorldOperationHeaders struct {
-
-}
-
-type RealmWorldControllerReturnToMainWorldOperationRequest struct {
-	Path    RealmWorldControllerReturnToMainWorldOperationPath `json:"path,omitempty"`
-	Query   RealmWorldControllerReturnToMainWorldOperationQuery `json:"query,omitempty"`
-	Headers RealmWorldControllerReturnToMainWorldOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmWorldControllerTransitToWorldOperationPath struct {
-	Id string `json:"id,omitempty"`
-}
-
-type RealmWorldControllerTransitToWorldOperationQuery struct {
-
-}
-
-type RealmWorldControllerTransitToWorldOperationHeaders struct {
-
-}
-
-type RealmWorldControllerTransitToWorldOperationRequest struct {
-	Path    RealmWorldControllerTransitToWorldOperationPath `json:"path,omitempty"`
-	Query   RealmWorldControllerTransitToWorldOperationQuery `json:"query,omitempty"`
-	Headers RealmWorldControllerTransitToWorldOperationHeaders `json:"headers,omitempty"`
-	Body    CreateWorldTransitDto `json:"body,omitempty"`
-}
-
-type RealmWorldRulesControllerArchiveRuleOperationPath struct {
-	RuleId string `json:"ruleId,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type RealmWorldRulesControllerArchiveRuleOperationQuery struct {
-
-}
-
-type RealmWorldRulesControllerArchiveRuleOperationHeaders struct {
-
-}
-
-type RealmWorldRulesControllerArchiveRuleOperationRequest struct {
-	Path    RealmWorldRulesControllerArchiveRuleOperationPath `json:"path,omitempty"`
-	Query   RealmWorldRulesControllerArchiveRuleOperationQuery `json:"query,omitempty"`
-	Headers RealmWorldRulesControllerArchiveRuleOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmWorldRulesControllerCheckPermissionOperationPath struct {
-	Action string `json:"action,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type RealmWorldRulesControllerCheckPermissionOperationQuery struct {
-
-}
-
-type RealmWorldRulesControllerCheckPermissionOperationHeaders struct {
-
-}
-
-type RealmWorldRulesControllerCheckPermissionOperationRequest struct {
-	Path    RealmWorldRulesControllerCheckPermissionOperationPath `json:"path,omitempty"`
-	Query   RealmWorldRulesControllerCheckPermissionOperationQuery `json:"query,omitempty"`
-	Headers RealmWorldRulesControllerCheckPermissionOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmWorldRulesControllerCreateRuleOperationPath struct {
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type RealmWorldRulesControllerCreateRuleOperationQuery struct {
-
-}
-
-type RealmWorldRulesControllerCreateRuleOperationHeaders struct {
-
-}
-
-type RealmWorldRulesControllerCreateRuleOperationRequest struct {
-	Path    RealmWorldRulesControllerCreateRuleOperationPath `json:"path,omitempty"`
-	Query   RealmWorldRulesControllerCreateRuleOperationQuery `json:"query,omitempty"`
-	Headers RealmWorldRulesControllerCreateRuleOperationHeaders `json:"headers,omitempty"`
-	Body    CreateWorldRuleDto `json:"body,omitempty"`
-}
-
-type RealmWorldRulesControllerDeprecateRuleOperationPath struct {
-	RuleId string `json:"ruleId,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type RealmWorldRulesControllerDeprecateRuleOperationQuery struct {
-
-}
-
-type RealmWorldRulesControllerDeprecateRuleOperationHeaders struct {
-
-}
-
-type RealmWorldRulesControllerDeprecateRuleOperationRequest struct {
-	Path    RealmWorldRulesControllerDeprecateRuleOperationPath `json:"path,omitempty"`
-	Query   RealmWorldRulesControllerDeprecateRuleOperationQuery `json:"query,omitempty"`
-	Headers RealmWorldRulesControllerDeprecateRuleOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmWorldRulesControllerGetCreatorCapabilitiesOperationPath struct {
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type RealmWorldRulesControllerGetCreatorCapabilitiesOperationQuery struct {
-
-}
-
-type RealmWorldRulesControllerGetCreatorCapabilitiesOperationHeaders struct {
-
-}
-
-type RealmWorldRulesControllerGetCreatorCapabilitiesOperationRequest struct {
-	Path    RealmWorldRulesControllerGetCreatorCapabilitiesOperationPath `json:"path,omitempty"`
-	Query   RealmWorldRulesControllerGetCreatorCapabilitiesOperationQuery `json:"query,omitempty"`
-	Headers RealmWorldRulesControllerGetCreatorCapabilitiesOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmWorldRulesControllerGetRulesOperationPath struct {
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type RealmWorldRulesControllerGetRulesOperationQuery struct {
-	Status string `json:"status,omitempty"`
-}
-
-type RealmWorldRulesControllerGetRulesOperationHeaders struct {
-
-}
-
-type RealmWorldRulesControllerGetRulesOperationRequest struct {
-	Path    RealmWorldRulesControllerGetRulesOperationPath `json:"path,omitempty"`
-	Query   RealmWorldRulesControllerGetRulesOperationQuery `json:"query,omitempty"`
-	Headers RealmWorldRulesControllerGetRulesOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmWorldRulesControllerUpdateRuleOperationPath struct {
-	RuleId string `json:"ruleId,omitempty"`
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type RealmWorldRulesControllerUpdateRuleOperationQuery struct {
-
-}
-
-type RealmWorldRulesControllerUpdateRuleOperationHeaders struct {
-
-}
-
-type RealmWorldRulesControllerUpdateRuleOperationRequest struct {
-	Path    RealmWorldRulesControllerUpdateRuleOperationPath `json:"path,omitempty"`
-	Query   RealmWorldRulesControllerUpdateRuleOperationQuery `json:"query,omitempty"`
-	Headers RealmWorldRulesControllerUpdateRuleOperationHeaders `json:"headers,omitempty"`
-	Body    UpdateWorldRuleDto `json:"body,omitempty"`
-}
-
-type RealmWorldRulesControllerValidateRulesOperationPath struct {
-	WorldId string `json:"worldId,omitempty"`
-}
-
-type RealmWorldRulesControllerValidateRulesOperationQuery struct {
-
-}
-
-type RealmWorldRulesControllerValidateRulesOperationHeaders struct {
-
-}
-
-type RealmWorldRulesControllerValidateRulesOperationRequest struct {
-	Path    RealmWorldRulesControllerValidateRulesOperationPath `json:"path,omitempty"`
-	Query   RealmWorldRulesControllerValidateRulesOperationQuery `json:"query,omitempty"`
-	Headers RealmWorldRulesControllerValidateRulesOperationHeaders `json:"headers,omitempty"`
-	Body    ValidateRulesDto `json:"body,omitempty"`
+type RealmWorldCoreControllerReplaceWorldCoreOperationRequest struct {
+	Path    RealmWorldCoreControllerReplaceWorldCoreOperationPath `json:"path,omitempty"`
+	Query   RealmWorldCoreControllerReplaceWorldCoreOperationQuery `json:"query,omitempty"`
+	Headers RealmWorldCoreControllerReplaceWorldCoreOperationHeaders `json:"headers,omitempty"`
+	Body    ReplaceWorldCoreDto `json:"body,omitempty"`
 }
 
 type RealmTypedClient struct {
@@ -19475,22 +15339,6 @@ func (c RealmTypedClient) operationTyped(ctx context.Context, operationID string
 	return c.core.Unary(ctx, sdkstypes.CoreUnaryRequest{Context: ctx, MethodID: operationID, Metadata: metadata, Body: encoded, TimeoutMS: timeoutMS})
 }
 
-func (c RealmTypedClient) AckMyLocalAgentProvisionIntent(ctx context.Context, request RealmAckMyLocalAgentProvisionIntentOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (LocalAgentProvisionIntentDto, error) {
-	raw, err := c.operationTyped(ctx, "ackMyLocalAgentProvisionIntent", request, metadata, timeoutMS)
-	if err != nil {
-		return LocalAgentProvisionIntentDto{}, err
-	}
-	return decodeTypedResponse[LocalAgentProvisionIntentDto](raw)
-}
-
-func (c RealmTypedClient) AckMyLocalAgentTerminationIntent(ctx context.Context, request RealmAckMyLocalAgentTerminationIntentOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (LocalAgentTerminationIntentDto, error) {
-	raw, err := c.operationTyped(ctx, "ackMyLocalAgentTerminationIntent", request, metadata, timeoutMS)
-	if err != nil {
-		return LocalAgentTerminationIntentDto{}, err
-	}
-	return decodeTypedResponse[LocalAgentTerminationIntentDto](raw)
-}
-
 func (c RealmTypedClient) AddFriend(ctx context.Context, request RealmAddFriendOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (struct{}, error) {
 	raw, err := c.operationTyped(ctx, "addFriend", request, metadata, timeoutMS)
 	if err != nil {
@@ -19499,164 +15347,12 @@ func (c RealmTypedClient) AddFriend(ctx context.Context, request RealmAddFriendO
 	return decodeTypedResponse[struct{}](raw)
 }
 
-func (c RealmTypedClient) AddGroupAgent(ctx context.Context, request RealmAddGroupAgentOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GroupParticipantDto, error) {
-	raw, err := c.operationTyped(ctx, "addGroupAgent", request, metadata, timeoutMS)
-	if err != nil {
-		return GroupParticipantDto{}, err
-	}
-	return decodeTypedResponse[GroupParticipantDto](raw)
-}
-
 func (c RealmTypedClient) AddGroupParticipant(ctx context.Context, request RealmAddGroupParticipantOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GroupParticipantDto, error) {
 	raw, err := c.operationTyped(ctx, "addGroupParticipant", request, metadata, timeoutMS)
 	if err != nil {
 		return GroupParticipantDto{}, err
 	}
 	return decodeTypedResponse[GroupParticipantDto](raw)
-}
-
-func (c RealmTypedClient) AgentControllerCheckHandle(ctx context.Context, request RealmAgentControllerCheckHandleOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AgentHandleAvailabilityResponseDto, error) {
-	raw, err := c.operationTyped(ctx, "AgentController_checkHandle", request, metadata, timeoutMS)
-	if err != nil {
-		return AgentHandleAvailabilityResponseDto{}, err
-	}
-	return decodeTypedResponse[AgentHandleAvailabilityResponseDto](raw)
-}
-
-func (c RealmTypedClient) AgentControllerCreate(ctx context.Context, request RealmAgentControllerCreateOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CreateAgentResponseDto, error) {
-	raw, err := c.operationTyped(ctx, "AgentController_create", request, metadata, timeoutMS)
-	if err != nil {
-		return CreateAgentResponseDto{}, err
-	}
-	return decodeTypedResponse[CreateAgentResponseDto](raw)
-}
-
-func (c RealmTypedClient) AgentControllerDelete(ctx context.Context, request RealmAgentControllerDeleteOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (DeleteAgentOperationResponseDto, error) {
-	raw, err := c.operationTyped(ctx, "AgentController_delete", request, metadata, timeoutMS)
-	if err != nil {
-		return DeleteAgentOperationResponseDto{}, err
-	}
-	return decodeTypedResponse[DeleteAgentOperationResponseDto](raw)
-}
-
-func (c RealmTypedClient) AgentControllerGetRelationships(ctx context.Context, request RealmAgentControllerGetRelationshipsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) ([]AgentRelationshipRecordDto, error) {
-	raw, err := c.operationTyped(ctx, "AgentController_getRelationships", request, metadata, timeoutMS)
-	if err != nil {
-		return []AgentRelationshipRecordDto{}, err
-	}
-	return decodeTypedResponse[[]AgentRelationshipRecordDto](raw)
-}
-
-func (c RealmTypedClient) AgentControllerGetVisibility(ctx context.Context, request RealmAgentControllerGetVisibilityOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AgentVisibilitySettingsDto, error) {
-	raw, err := c.operationTyped(ctx, "AgentController_getVisibility", request, metadata, timeoutMS)
-	if err != nil {
-		return AgentVisibilitySettingsDto{}, err
-	}
-	return decodeTypedResponse[AgentVisibilitySettingsDto](raw)
-}
-
-func (c RealmTypedClient) AgentControllerMakePublic(ctx context.Context, request RealmAgentControllerMakePublicOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (MakeAgentPublicResponseDto, error) {
-	raw, err := c.operationTyped(ctx, "AgentController_makePublic", request, metadata, timeoutMS)
-	if err != nil {
-		return MakeAgentPublicResponseDto{}, err
-	}
-	return decodeTypedResponse[MakeAgentPublicResponseDto](raw)
-}
-
-func (c RealmTypedClient) AgentControllerRemoveRelationship(ctx context.Context, request RealmAgentControllerRemoveRelationshipOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (DeleteRelationshipResponseDto, error) {
-	raw, err := c.operationTyped(ctx, "AgentController_removeRelationship", request, metadata, timeoutMS)
-	if err != nil {
-		return DeleteRelationshipResponseDto{}, err
-	}
-	return decodeTypedResponse[DeleteRelationshipResponseDto](raw)
-}
-
-func (c RealmTypedClient) AgentControllerSelectAvatar(ctx context.Context, request RealmAgentControllerSelectAvatarOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (DeleteAgentOperationResponseDto, error) {
-	raw, err := c.operationTyped(ctx, "AgentController_selectAvatar", request, metadata, timeoutMS)
-	if err != nil {
-		return DeleteAgentOperationResponseDto{}, err
-	}
-	return decodeTypedResponse[DeleteAgentOperationResponseDto](raw)
-}
-
-func (c RealmTypedClient) AgentControllerSetRelationship(ctx context.Context, request RealmAgentControllerSetRelationshipOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RelationshipResponseDto, error) {
-	raw, err := c.operationTyped(ctx, "AgentController_setRelationship", request, metadata, timeoutMS)
-	if err != nil {
-		return RelationshipResponseDto{}, err
-	}
-	return decodeTypedResponse[RelationshipResponseDto](raw)
-}
-
-func (c RealmTypedClient) AgentControllerUpdateDna(ctx context.Context, request RealmAgentControllerUpdateDnaOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (DeleteAgentOperationResponseDto, error) {
-	raw, err := c.operationTyped(ctx, "AgentController_updateDna", request, metadata, timeoutMS)
-	if err != nil {
-		return DeleteAgentOperationResponseDto{}, err
-	}
-	return decodeTypedResponse[DeleteAgentOperationResponseDto](raw)
-}
-
-func (c RealmTypedClient) AgentControllerUpdateVisibility(ctx context.Context, request RealmAgentControllerUpdateVisibilityOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AgentVisibilitySettingsDto, error) {
-	raw, err := c.operationTyped(ctx, "AgentController_updateVisibility", request, metadata, timeoutMS)
-	if err != nil {
-		return AgentVisibilitySettingsDto{}, err
-	}
-	return decodeTypedResponse[AgentVisibilitySettingsDto](raw)
-}
-
-func (c RealmTypedClient) AgentNsfwConsentControllerUpdateAgentConsent(ctx context.Context, request RealmAgentNsfwConsentControllerUpdateAgentConsentOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UpdateNsfwConsentResponseDto, error) {
-	raw, err := c.operationTyped(ctx, "AgentNsfwConsentController_updateAgentConsent", request, metadata, timeoutMS)
-	if err != nil {
-		return UpdateNsfwConsentResponseDto{}, err
-	}
-	return decodeTypedResponse[UpdateNsfwConsentResponseDto](raw)
-}
-
-func (c RealmTypedClient) AgentRulesControllerArchiveRule(ctx context.Context, request RealmAgentRulesControllerArchiveRuleOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AgentRuleDto, error) {
-	raw, err := c.operationTyped(ctx, "AgentRulesController_archiveRule", request, metadata, timeoutMS)
-	if err != nil {
-		return AgentRuleDto{}, err
-	}
-	return decodeTypedResponse[AgentRuleDto](raw)
-}
-
-func (c RealmTypedClient) AgentRulesControllerCreateRule(ctx context.Context, request RealmAgentRulesControllerCreateRuleOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AgentRuleDto, error) {
-	raw, err := c.operationTyped(ctx, "AgentRulesController_createRule", request, metadata, timeoutMS)
-	if err != nil {
-		return AgentRuleDto{}, err
-	}
-	return decodeTypedResponse[AgentRuleDto](raw)
-}
-
-func (c RealmTypedClient) AgentRulesControllerDeprecateRule(ctx context.Context, request RealmAgentRulesControllerDeprecateRuleOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AgentRuleDto, error) {
-	raw, err := c.operationTyped(ctx, "AgentRulesController_deprecateRule", request, metadata, timeoutMS)
-	if err != nil {
-		return AgentRuleDto{}, err
-	}
-	return decodeTypedResponse[AgentRuleDto](raw)
-}
-
-func (c RealmTypedClient) AgentRulesControllerListRules(ctx context.Context, request RealmAgentRulesControllerListRulesOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) ([]AgentRuleDto, error) {
-	raw, err := c.operationTyped(ctx, "AgentRulesController_listRules", request, metadata, timeoutMS)
-	if err != nil {
-		return []AgentRuleDto{}, err
-	}
-	return decodeTypedResponse[[]AgentRuleDto](raw)
-}
-
-func (c RealmTypedClient) AgentRulesControllerUpdateRule(ctx context.Context, request RealmAgentRulesControllerUpdateRuleOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AgentRuleDto, error) {
-	raw, err := c.operationTyped(ctx, "AgentRulesController_updateRule", request, metadata, timeoutMS)
-	if err != nil {
-		return AgentRuleDto{}, err
-	}
-	return decodeTypedResponse[AgentRuleDto](raw)
-}
-
-func (c RealmTypedClient) ApplyCreatorWorldAgentAuthoringDraftBatch(ctx context.Context, request RealmApplyCreatorWorldAgentAuthoringDraftBatchOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ApplyAgentAuthoringDraftBatchResponseDto, error) {
-	raw, err := c.operationTyped(ctx, "applyCreatorWorldAgentAuthoringDraftBatch", request, metadata, timeoutMS)
-	if err != nil {
-		return ApplyAgentAuthoringDraftBatchResponseDto{}, err
-	}
-	return decodeTypedResponse[ApplyAgentAuthoringDraftBatchResponseDto](raw)
 }
 
 func (c RealmTypedClient) ArchiveBundle(ctx context.Context, request RealmArchiveBundleOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (BundleDetailDto, error) {
@@ -19723,14 +15419,6 @@ func (c RealmTypedClient) CloneAsset(ctx context.Context, request RealmCloneAsse
 	return decodeTypedResponse[AssetDetailDto](raw)
 }
 
-func (c RealmTypedClient) CommitRealmGroupMessageCandidate(ctx context.Context, request RealmCommitRealmGroupMessageCandidateOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RealmGroupMessageCandidateCommitResultDto, error) {
-	raw, err := c.operationTyped(ctx, "commitRealmGroupMessageCandidate", request, metadata, timeoutMS)
-	if err != nil {
-		return RealmGroupMessageCandidateCommitResultDto{}, err
-	}
-	return decodeTypedResponse[RealmGroupMessageCandidateCommitResultDto](raw)
-}
-
 func (c RealmTypedClient) CreateAsset(ctx context.Context, request RealmCreateAssetOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AssetDetailDto, error) {
 	raw, err := c.operationTyped(ctx, "createAsset", request, metadata, timeoutMS)
 	if err != nil {
@@ -19753,14 +15441,6 @@ func (c RealmTypedClient) CreateBundle(ctx context.Context, request RealmCreateB
 		return BundleDetailDto{}, err
 	}
 	return decodeTypedResponse[BundleDetailDto](raw)
-}
-
-func (c RealmTypedClient) CreateCreatorWorldAgentAuthoringDraftBatch(ctx context.Context, request RealmCreateCreatorWorldAgentAuthoringDraftBatchOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AgentAuthoringDraftBatchDto, error) {
-	raw, err := c.operationTyped(ctx, "createCreatorWorldAgentAuthoringDraftBatch", request, metadata, timeoutMS)
-	if err != nil {
-		return AgentAuthoringDraftBatchDto{}, err
-	}
-	return decodeTypedResponse[AgentAuthoringDraftBatchDto](raw)
 }
 
 func (c RealmTypedClient) CreateGroup(ctx context.Context, request RealmCreateGroupOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GroupChatViewDto, error) {
@@ -19801,78 +15481,6 @@ func (c RealmTypedClient) CreateVideoDirectUpload(ctx context.Context, request R
 		return ResourceDirectUploadSessionDto{}, err
 	}
 	return decodeTypedResponse[ResourceDirectUploadSessionDto](raw)
-}
-
-func (c RealmTypedClient) CreatorControllerBatchCreateAgents(ctx context.Context, request RealmCreatorControllerBatchCreateAgentsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (BatchCreateAgentsResponseDto, error) {
-	raw, err := c.operationTyped(ctx, "CreatorController_batchCreateAgents", request, metadata, timeoutMS)
-	if err != nil {
-		return BatchCreateAgentsResponseDto{}, err
-	}
-	return decodeTypedResponse[BatchCreateAgentsResponseDto](raw)
-}
-
-func (c RealmTypedClient) CreatorControllerCreateAgent(ctx context.Context, request RealmCreatorControllerCreateAgentOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UserLiteDto, error) {
-	raw, err := c.operationTyped(ctx, "CreatorController_createAgent", request, metadata, timeoutMS)
-	if err != nil {
-		return UserLiteDto{}, err
-	}
-	return decodeTypedResponse[UserLiteDto](raw)
-}
-
-func (c RealmTypedClient) CreatorControllerCreateKey(ctx context.Context, request RealmCreatorControllerCreateKeyOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (map[string]any, error) {
-	raw, err := c.operationTyped(ctx, "CreatorController_createKey", request, metadata, timeoutMS)
-	if err != nil {
-		return map[string]any{}, err
-	}
-	return decodeTypedResponse[map[string]any](raw)
-}
-
-func (c RealmTypedClient) CreatorControllerDeleteAgent(ctx context.Context, request RealmCreatorControllerDeleteAgentOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (map[string]any, error) {
-	raw, err := c.operationTyped(ctx, "CreatorController_deleteAgent", request, metadata, timeoutMS)
-	if err != nil {
-		return map[string]any{}, err
-	}
-	return decodeTypedResponse[map[string]any](raw)
-}
-
-func (c RealmTypedClient) CreatorControllerGetAgent(ctx context.Context, request RealmCreatorControllerGetAgentOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CreatorAgentResponseDto, error) {
-	raw, err := c.operationTyped(ctx, "CreatorController_getAgent", request, metadata, timeoutMS)
-	if err != nil {
-		return CreatorAgentResponseDto{}, err
-	}
-	return decodeTypedResponse[CreatorAgentResponseDto](raw)
-}
-
-func (c RealmTypedClient) CreatorControllerListAgents(ctx context.Context, request RealmCreatorControllerListAgentsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) ([]UserLiteDto, error) {
-	raw, err := c.operationTyped(ctx, "CreatorController_listAgents", request, metadata, timeoutMS)
-	if err != nil {
-		return []UserLiteDto{}, err
-	}
-	return decodeTypedResponse[[]UserLiteDto](raw)
-}
-
-func (c RealmTypedClient) CreatorControllerListKeys(ctx context.Context, request RealmCreatorControllerListKeysOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) ([]map[string]any, error) {
-	raw, err := c.operationTyped(ctx, "CreatorController_listKeys", request, metadata, timeoutMS)
-	if err != nil {
-		return []map[string]any{}, err
-	}
-	return decodeTypedResponse[[]map[string]any](raw)
-}
-
-func (c RealmTypedClient) CreatorControllerRevokeKey(ctx context.Context, request RealmCreatorControllerRevokeKeyOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (struct{}, error) {
-	raw, err := c.operationTyped(ctx, "CreatorController_revokeKey", request, metadata, timeoutMS)
-	if err != nil {
-		return struct{}{}, err
-	}
-	return decodeTypedResponse[struct{}](raw)
-}
-
-func (c RealmTypedClient) CreatorControllerUpdateAgent(ctx context.Context, request RealmCreatorControllerUpdateAgentOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CreatorAgentResponseDto, error) {
-	raw, err := c.operationTyped(ctx, "CreatorController_updateAgent", request, metadata, timeoutMS)
-	if err != nil {
-		return CreatorAgentResponseDto{}, err
-	}
-	return decodeTypedResponse[CreatorAgentResponseDto](raw)
 }
 
 func (c RealmTypedClient) DeletePost(ctx context.Context, request RealmDeletePostOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (struct{}, error) {
@@ -19987,14 +15595,6 @@ func (c RealmTypedClient) EconomyControllerCreateWithdrawal(ctx context.Context,
 	return decodeTypedResponse[WithdrawalDto](raw)
 }
 
-func (c RealmTypedClient) EconomyControllerGetAgentOrigin(ctx context.Context, request RealmEconomyControllerGetAgentOriginOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AgentOriginDto, error) {
-	raw, err := c.operationTyped(ctx, "EconomyController_getAgentOrigin", request, metadata, timeoutMS)
-	if err != nil {
-		return AgentOriginDto{}, err
-	}
-	return decodeTypedResponse[AgentOriginDto](raw)
-}
-
 func (c RealmTypedClient) EconomyControllerGetBalances(ctx context.Context, request RealmEconomyControllerGetBalancesOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CurrencyBalancesDto, error) {
 	raw, err := c.operationTyped(ctx, "EconomyController_getBalances", request, metadata, timeoutMS)
 	if err != nil {
@@ -20049,6 +15649,14 @@ func (c RealmTypedClient) EconomyControllerGetSentGifts(ctx context.Context, req
 		return ReceivedGiftsResponseDto{}, err
 	}
 	return decodeTypedResponse[ReceivedGiftsResponseDto](raw)
+}
+
+func (c RealmTypedClient) EconomyControllerGetSourceOrigin(ctx context.Context, request RealmEconomyControllerGetSourceOriginOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SourceOriginDto, error) {
+	raw, err := c.operationTyped(ctx, "EconomyController_getSourceOrigin", request, metadata, timeoutMS)
+	if err != nil {
+		return SourceOriginDto{}, err
+	}
+	return decodeTypedResponse[SourceOriginDto](raw)
 }
 
 func (c RealmTypedClient) EconomyControllerGetSparkHistory(ctx context.Context, request RealmEconomyControllerGetSparkHistoryOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CurrencyTransactionHistoryDto, error) {
@@ -20179,70 +15787,6 @@ func (c RealmTypedClient) FinalizeResource(ctx context.Context, request RealmFin
 	return decodeTypedResponse[ResourceDetailDto](raw)
 }
 
-func (c RealmTypedClient) ForgeProductCatalogControllerGetAgentCandidates(ctx context.Context, request RealmForgeProductCatalogControllerGetAgentCandidatesOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ForgeAgentCandidateQueryResultDto, error) {
-	raw, err := c.operationTyped(ctx, "ForgeProductCatalogController_getAgentCandidates", request, metadata, timeoutMS)
-	if err != nil {
-		return ForgeAgentCandidateQueryResultDto{}, err
-	}
-	return decodeTypedResponse[ForgeAgentCandidateQueryResultDto](raw)
-}
-
-func (c RealmTypedClient) ForgeProductCatalogControllerGetCatalog(ctx context.Context, request RealmForgeProductCatalogControllerGetCatalogOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ForgeWorldCatalogDto, error) {
-	raw, err := c.operationTyped(ctx, "ForgeProductCatalogController_getCatalog", request, metadata, timeoutMS)
-	if err != nil {
-		return ForgeWorldCatalogDto{}, err
-	}
-	return decodeTypedResponse[ForgeWorldCatalogDto](raw)
-}
-
-func (c RealmTypedClient) ForgeProductCatalogControllerGetProduct(ctx context.Context, request RealmForgeProductCatalogControllerGetProductOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ForgeWorldProductDto, error) {
-	raw, err := c.operationTyped(ctx, "ForgeProductCatalogController_getProduct", request, metadata, timeoutMS)
-	if err != nil {
-		return ForgeWorldProductDto{}, err
-	}
-	return decodeTypedResponse[ForgeWorldProductDto](raw)
-}
-
-func (c RealmTypedClient) ForgeProductCatalogControllerGetProductShard(ctx context.Context, request RealmForgeProductCatalogControllerGetProductShardOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ForgeProductShardReadDto, error) {
-	raw, err := c.operationTyped(ctx, "ForgeProductCatalogController_getProductShard", request, metadata, timeoutMS)
-	if err != nil {
-		return ForgeProductShardReadDto{}, err
-	}
-	return decodeTypedResponse[ForgeProductShardReadDto](raw)
-}
-
-func (c RealmTypedClient) ForgeProductCatalogControllerGetProductShardIndex(ctx context.Context, request RealmForgeProductCatalogControllerGetProductShardIndexOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ForgeProductShardIndexDto, error) {
-	raw, err := c.operationTyped(ctx, "ForgeProductCatalogController_getProductShardIndex", request, metadata, timeoutMS)
-	if err != nil {
-		return ForgeProductShardIndexDto{}, err
-	}
-	return decodeTypedResponse[ForgeProductShardIndexDto](raw)
-}
-
-func (c RealmTypedClient) ForgeProductCatalogControllerVerifyProductShards(ctx context.Context, request RealmForgeProductCatalogControllerVerifyProductShardsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ForgeProductShardIntegrityReportDto, error) {
-	raw, err := c.operationTyped(ctx, "ForgeProductCatalogController_verifyProductShards", request, metadata, timeoutMS)
-	if err != nil {
-		return ForgeProductShardIntegrityReportDto{}, err
-	}
-	return decodeTypedResponse[ForgeProductShardIntegrityReportDto](raw)
-}
-
-func (c RealmTypedClient) GetAgent(ctx context.Context, request RealmGetAgentOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UserProfileDto, error) {
-	raw, err := c.operationTyped(ctx, "getAgent", request, metadata, timeoutMS)
-	if err != nil {
-		return UserProfileDto{}, err
-	}
-	return decodeTypedResponse[UserProfileDto](raw)
-}
-
-func (c RealmTypedClient) GetAgentByHandle(ctx context.Context, request RealmGetAgentByHandleOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UserProfileDto, error) {
-	raw, err := c.operationTyped(ctx, "getAgentByHandle", request, metadata, timeoutMS)
-	if err != nil {
-		return UserProfileDto{}, err
-	}
-	return decodeTypedResponse[UserProfileDto](raw)
-}
-
 func (c RealmTypedClient) GetAsset(ctx context.Context, request RealmGetAssetOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AssetDetailDto, error) {
 	raw, err := c.operationTyped(ctx, "getAsset", request, metadata, timeoutMS)
 	if err != nil {
@@ -20273,46 +15817,6 @@ func (c RealmTypedClient) GetChatById(ctx context.Context, request RealmGetChatB
 		return ChatViewDto{}, err
 	}
 	return decodeTypedResponse[ChatViewDto](raw)
-}
-
-func (c RealmTypedClient) GetCreatorWorldAgent(ctx context.Context, request RealmGetCreatorWorldAgentOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UserLiteDto, error) {
-	raw, err := c.operationTyped(ctx, "getCreatorWorldAgent", request, metadata, timeoutMS)
-	if err != nil {
-		return UserLiteDto{}, err
-	}
-	return decodeTypedResponse[UserLiteDto](raw)
-}
-
-func (c RealmTypedClient) GetCreatorWorldAgentAuthoringGenerationContext(ctx context.Context, request RealmGetCreatorWorldAgentAuthoringGenerationContextOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AgentAuthoringGenerationContextDto, error) {
-	raw, err := c.operationTyped(ctx, "getCreatorWorldAgentAuthoringGenerationContext", request, metadata, timeoutMS)
-	if err != nil {
-		return AgentAuthoringGenerationContextDto{}, err
-	}
-	return decodeTypedResponse[AgentAuthoringGenerationContextDto](raw)
-}
-
-func (c RealmTypedClient) GetCreatorWorldAgentChatReadiness(ctx context.Context, request RealmGetCreatorWorldAgentChatReadinessOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CreatorWorldAgentChatReadinessDto, error) {
-	raw, err := c.operationTyped(ctx, "getCreatorWorldAgentChatReadiness", request, metadata, timeoutMS)
-	if err != nil {
-		return CreatorWorldAgentChatReadinessDto{}, err
-	}
-	return decodeTypedResponse[CreatorWorldAgentChatReadinessDto](raw)
-}
-
-func (c RealmTypedClient) GetCreatorWorldAgentSettings(ctx context.Context, request RealmGetCreatorWorldAgentSettingsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (OwnerAgentSettingsDto, error) {
-	raw, err := c.operationTyped(ctx, "getCreatorWorldAgentSettings", request, metadata, timeoutMS)
-	if err != nil {
-		return OwnerAgentSettingsDto{}, err
-	}
-	return decodeTypedResponse[OwnerAgentSettingsDto](raw)
-}
-
-func (c RealmTypedClient) GetCreatorWorldAgentSourceSkeleton(ctx context.Context, request RealmGetCreatorWorldAgentSourceSkeletonOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CreatorWorldAgentSourceSkeletonDto, error) {
-	raw, err := c.operationTyped(ctx, "getCreatorWorldAgentSourceSkeleton", request, metadata, timeoutMS)
-	if err != nil {
-		return CreatorWorldAgentSourceSkeletonDto{}, err
-	}
-	return decodeTypedResponse[CreatorWorldAgentSourceSkeletonDto](raw)
 }
 
 func (c RealmTypedClient) GetExploreFeed(ctx context.Context, request RealmGetExploreFeedOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (FeedResponseDto, error) {
@@ -20363,14 +15867,6 @@ func (c RealmTypedClient) GetMutualFriendsCount(ctx context.Context, request Rea
 	return decodeTypedResponse[map[string]any](raw)
 }
 
-func (c RealmTypedClient) GetMyAgentFriendLimit(ctx context.Context, request RealmGetMyAgentFriendLimitOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AgentFriendLimitDto, error) {
-	raw, err := c.operationTyped(ctx, "getMyAgentFriendLimit", request, metadata, timeoutMS)
-	if err != nil {
-		return AgentFriendLimitDto{}, err
-	}
-	return decodeTypedResponse[AgentFriendLimitDto](raw)
-}
-
 func (c RealmTypedClient) GetMyAppPermissionGrant(ctx context.Context, request RealmGetMyAppPermissionGrantOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AppPermissionGrantDto, error) {
 	raw, err := c.operationTyped(ctx, "getMyAppPermissionGrant", request, metadata, timeoutMS)
 	if err != nil {
@@ -20379,20 +15875,20 @@ func (c RealmTypedClient) GetMyAppPermissionGrant(ctx context.Context, request R
 	return decodeTypedResponse[AppPermissionGrantDto](raw)
 }
 
-func (c RealmTypedClient) GetMyAppPermissionGrantProjection(ctx context.Context, request RealmGetMyAppPermissionGrantProjectionOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AccountGrantsProjectionDto, error) {
-	raw, err := c.operationTyped(ctx, "getMyAppPermissionGrantProjection", request, metadata, timeoutMS)
-	if err != nil {
-		return AccountGrantsProjectionDto{}, err
-	}
-	return decodeTypedResponse[AccountGrantsProjectionDto](raw)
-}
-
 func (c RealmTypedClient) GetMyAppPermissionGrantStatus(ctx context.Context, request RealmGetMyAppPermissionGrantStatusOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AppPermissionGrantStatusDto, error) {
 	raw, err := c.operationTyped(ctx, "getMyAppPermissionGrantStatus", request, metadata, timeoutMS)
 	if err != nil {
 		return AppPermissionGrantStatusDto{}, err
 	}
 	return decodeTypedResponse[AppPermissionGrantStatusDto](raw)
+}
+
+func (c RealmTypedClient) GetMyAppPermissionGrantView(ctx context.Context, request RealmGetMyAppPermissionGrantViewOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AccountGrantsViewDto, error) {
+	raw, err := c.operationTyped(ctx, "getMyAppPermissionGrantView", request, metadata, timeoutMS)
+	if err != nil {
+		return AccountGrantsViewDto{}, err
+	}
+	return decodeTypedResponse[AccountGrantsViewDto](raw)
 }
 
 func (c RealmTypedClient) GetMyBlockedUsers(ctx context.Context, request RealmGetMyBlockedUsersOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (map[string]any, error) {
@@ -20441,22 +15937,6 @@ func (c RealmTypedClient) GetMyPPConfig(ctx context.Context, request RealmGetMyP
 		return PPSlotConfigResponseDto{}, err
 	}
 	return decodeTypedResponse[PPSlotConfigResponseDto](raw)
-}
-
-func (c RealmTypedClient) GetMyRealmAgent(ctx context.Context, request RealmGetMyRealmAgentOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UserLiteDto, error) {
-	raw, err := c.operationTyped(ctx, "getMyRealmAgent", request, metadata, timeoutMS)
-	if err != nil {
-		return UserLiteDto{}, err
-	}
-	return decodeTypedResponse[UserLiteDto](raw)
-}
-
-func (c RealmTypedClient) GetMyRealmAgentSettings(ctx context.Context, request RealmGetMyRealmAgentSettingsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (OwnerAgentSettingsDto, error) {
-	raw, err := c.operationTyped(ctx, "getMyRealmAgentSettings", request, metadata, timeoutMS)
-	if err != nil {
-		return OwnerAgentSettingsDto{}, err
-	}
-	return decodeTypedResponse[OwnerAgentSettingsDto](raw)
 }
 
 func (c RealmTypedClient) GetMySettings(ctx context.Context, request RealmGetMySettingsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UserSettingsDto, error) {
@@ -20547,52 +16027,12 @@ func (c RealmTypedClient) GetWorldPosts(ctx context.Context, request RealmGetWor
 	return decodeTypedResponse[FeedResponseDto](raw)
 }
 
-func (c RealmTypedClient) GetWorldScenes(ctx context.Context, request RealmGetWorldScenesOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (PublicWorldSceneListDto, error) {
-	raw, err := c.operationTyped(ctx, "getWorldScenes", request, metadata, timeoutMS)
-	if err != nil {
-		return PublicWorldSceneListDto{}, err
-	}
-	return decodeTypedResponse[PublicWorldSceneListDto](raw)
-}
-
 func (c RealmTypedClient) GrantMyAppPermissionGrant(ctx context.Context, request RealmGrantMyAppPermissionGrantOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AppPermissionGrantDto, error) {
 	raw, err := c.operationTyped(ctx, "grantMyAppPermissionGrant", request, metadata, timeoutMS)
 	if err != nil {
 		return AppPermissionGrantDto{}, err
 	}
 	return decodeTypedResponse[AppPermissionGrantDto](raw)
-}
-
-func (c RealmTypedClient) HumanNsfwConsentControllerCanManageAgentNsfw(ctx context.Context, request RealmHumanNsfwConsentControllerCanManageAgentNsfwOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CanManageNsfwResponseDto, error) {
-	raw, err := c.operationTyped(ctx, "HumanNsfwConsentController_canManageAgentNsfw", request, metadata, timeoutMS)
-	if err != nil {
-		return CanManageNsfwResponseDto{}, err
-	}
-	return decodeTypedResponse[CanManageNsfwResponseDto](raw)
-}
-
-func (c RealmTypedClient) HumanNsfwConsentControllerCheckConsent(ctx context.Context, request RealmHumanNsfwConsentControllerCheckConsentOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (NsfwConsentResponseDto, error) {
-	raw, err := c.operationTyped(ctx, "HumanNsfwConsentController_checkConsent", request, metadata, timeoutMS)
-	if err != nil {
-		return NsfwConsentResponseDto{}, err
-	}
-	return decodeTypedResponse[NsfwConsentResponseDto](raw)
-}
-
-func (c RealmTypedClient) HumanNsfwConsentControllerGetConsentStatus(ctx context.Context, request RealmHumanNsfwConsentControllerGetConsentStatusOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (NsfwConsentStatusResponseDto, error) {
-	raw, err := c.operationTyped(ctx, "HumanNsfwConsentController_getConsentStatus", request, metadata, timeoutMS)
-	if err != nil {
-		return NsfwConsentStatusResponseDto{}, err
-	}
-	return decodeTypedResponse[NsfwConsentStatusResponseDto](raw)
-}
-
-func (c RealmTypedClient) HumanNsfwConsentControllerUpdateUserConsent(ctx context.Context, request RealmHumanNsfwConsentControllerUpdateUserConsentOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UpdateNsfwConsentResponseDto, error) {
-	raw, err := c.operationTyped(ctx, "HumanNsfwConsentController_updateUserConsent", request, metadata, timeoutMS)
-	if err != nil {
-		return UpdateNsfwConsentResponseDto{}, err
-	}
-	return decodeTypedResponse[UpdateNsfwConsentResponseDto](raw)
 }
 
 func (c RealmTypedClient) IntrospectSession(ctx context.Context, request RealmIntrospectSessionOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (IntrospectSessionResponseDto, error) {
@@ -20675,22 +16115,6 @@ func (c RealmTypedClient) ListChats(ctx context.Context, request RealmListChatsO
 	return decodeTypedResponse[ListChatsResultDto](raw)
 }
 
-func (c RealmTypedClient) ListCreatorWorldAgentAuthoringDraftBatches(ctx context.Context, request RealmListCreatorWorldAgentAuthoringDraftBatchesOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AgentAuthoringDraftBatchListDto, error) {
-	raw, err := c.operationTyped(ctx, "listCreatorWorldAgentAuthoringDraftBatches", request, metadata, timeoutMS)
-	if err != nil {
-		return AgentAuthoringDraftBatchListDto{}, err
-	}
-	return decodeTypedResponse[AgentAuthoringDraftBatchListDto](raw)
-}
-
-func (c RealmTypedClient) ListCreatorWorldAgents(ctx context.Context, request RealmListCreatorWorldAgentsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) ([]UserLiteDto, error) {
-	raw, err := c.operationTyped(ctx, "listCreatorWorldAgents", request, metadata, timeoutMS)
-	if err != nil {
-		return []UserLiteDto{}, err
-	}
-	return decodeTypedResponse[[]UserLiteDto](raw)
-}
-
 func (c RealmTypedClient) ListGroupMessages(ctx context.Context, request RealmListGroupMessagesOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListGroupMessagesResultDto, error) {
 	raw, err := c.operationTyped(ctx, "listGroupMessages", request, metadata, timeoutMS)
 	if err != nil {
@@ -20731,14 +16155,6 @@ func (c RealmTypedClient) ListMyAppPermissionGrants(ctx context.Context, request
 	return decodeTypedResponse[AppPermissionGrantListDto](raw)
 }
 
-func (c RealmTypedClient) ListMyCreatorWorlds(ctx context.Context, request RealmListMyCreatorWorldsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CreatorWorldSummaryListDto, error) {
-	raw, err := c.operationTyped(ctx, "listMyCreatorWorlds", request, metadata, timeoutMS)
-	if err != nil {
-		return CreatorWorldSummaryListDto{}, err
-	}
-	return decodeTypedResponse[CreatorWorldSummaryListDto](raw)
-}
-
 func (c RealmTypedClient) ListMyFriendIds(ctx context.Context, request RealmListMyFriendIdsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (struct{}, error) {
 	raw, err := c.operationTyped(ctx, "listMyFriendIds", request, metadata, timeoutMS)
 	if err != nil {
@@ -20753,30 +16169,6 @@ func (c RealmTypedClient) ListMyFriendsWithDetails(ctx context.Context, request 
 		return FriendProfileListDto{}, err
 	}
 	return decodeTypedResponse[FriendProfileListDto](raw)
-}
-
-func (c RealmTypedClient) ListMyLocalAgentProvisionIntents(ctx context.Context, request RealmListMyLocalAgentProvisionIntentsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (LocalAgentProvisionIntentListDto, error) {
-	raw, err := c.operationTyped(ctx, "listMyLocalAgentProvisionIntents", request, metadata, timeoutMS)
-	if err != nil {
-		return LocalAgentProvisionIntentListDto{}, err
-	}
-	return decodeTypedResponse[LocalAgentProvisionIntentListDto](raw)
-}
-
-func (c RealmTypedClient) ListMyLocalAgentTerminationIntents(ctx context.Context, request RealmListMyLocalAgentTerminationIntentsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (LocalAgentTerminationIntentListDto, error) {
-	raw, err := c.operationTyped(ctx, "listMyLocalAgentTerminationIntents", request, metadata, timeoutMS)
-	if err != nil {
-		return LocalAgentTerminationIntentListDto{}, err
-	}
-	return decodeTypedResponse[LocalAgentTerminationIntentListDto](raw)
-}
-
-func (c RealmTypedClient) ListMyRealmAgents(ctx context.Context, request RealmListMyRealmAgentsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) ([]UserLiteDto, error) {
-	raw, err := c.operationTyped(ctx, "listMyRealmAgents", request, metadata, timeoutMS)
-	if err != nil {
-		return []UserLiteDto{}, err
-	}
-	return decodeTypedResponse[[]UserLiteDto](raw)
 }
 
 func (c RealmTypedClient) ListNotifications(ctx context.Context, request RealmListNotificationsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (NotificationListResultDto, error) {
@@ -20899,14 +16291,6 @@ func (c RealmTypedClient) PrepareBindWallet(ctx context.Context, request RealmPr
 	return decodeTypedResponse[WalletPrepareBindResponseDto](raw)
 }
 
-func (c RealmTypedClient) ProjectRuntimePayload(ctx context.Context, request RealmProjectRuntimePayloadOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RuntimeProjectionResponseDto, error) {
-	raw, err := c.operationTyped(ctx, "projectRuntimePayload", request, metadata, timeoutMS)
-	if err != nil {
-		return RuntimeProjectionResponseDto{}, err
-	}
-	return decodeTypedResponse[RuntimeProjectionResponseDto](raw)
-}
-
 func (c RealmTypedClient) PublishBundle(ctx context.Context, request RealmPublishBundleOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (BundleDetailDto, error) {
 	raw, err := c.operationTyped(ctx, "publishBundle", request, metadata, timeoutMS)
 	if err != nil {
@@ -20979,14 +16363,6 @@ func (c RealmTypedClient) RemoveFriend(ctx context.Context, request RealmRemoveF
 	return decodeTypedResponse[struct{}](raw)
 }
 
-func (c RealmTypedClient) RemoveGroupAgent(ctx context.Context, request RealmRemoveGroupAgentOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (struct{}, error) {
-	raw, err := c.operationTyped(ctx, "removeGroupAgent", request, metadata, timeoutMS)
-	if err != nil {
-		return struct{}{}, err
-	}
-	return decodeTypedResponse[struct{}](raw)
-}
-
 func (c RealmTypedClient) RemoveGroupParticipant(ctx context.Context, request RealmRemoveGroupParticipantOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (struct{}, error) {
 	raw, err := c.operationTyped(ctx, "removeGroupParticipant", request, metadata, timeoutMS)
 	if err != nil {
@@ -21049,14 +16425,6 @@ func (c RealmTypedClient) ReviewControllerGetReviews(ctx context.Context, reques
 		return []ReviewDto{}, err
 	}
 	return decodeTypedResponse[[]ReviewDto](raw)
-}
-
-func (c RealmTypedClient) ReviewCreatorWorldAgentAuthoringDraftCandidate(ctx context.Context, request RealmReviewCreatorWorldAgentAuthoringDraftCandidateOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AgentAuthoringDraftCandidateDto, error) {
-	raw, err := c.operationTyped(ctx, "reviewCreatorWorldAgentAuthoringDraftCandidate", request, metadata, timeoutMS)
-	if err != nil {
-		return AgentAuthoringDraftCandidateDto{}, err
-	}
-	return decodeTypedResponse[AgentAuthoringDraftCandidateDto](raw)
 }
 
 func (c RealmTypedClient) RevokeMyAppPermissionGrant(ctx context.Context, request RealmRevokeMyAppPermissionGrantOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AppPermissionGrantDto, error) {
@@ -21235,30 +16603,6 @@ func (c RealmTypedClient) UpdateBundle(ctx context.Context, request RealmUpdateB
 	return decodeTypedResponse[BundleDetailDto](raw)
 }
 
-func (c RealmTypedClient) UpdateCreatorWorldAgentProfileMedia(ctx context.Context, request RealmUpdateCreatorWorldAgentProfileMediaOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UserLiteDto, error) {
-	raw, err := c.operationTyped(ctx, "updateCreatorWorldAgentProfileMedia", request, metadata, timeoutMS)
-	if err != nil {
-		return UserLiteDto{}, err
-	}
-	return decodeTypedResponse[UserLiteDto](raw)
-}
-
-func (c RealmTypedClient) UpdateCreatorWorldAgentSettings(ctx context.Context, request RealmUpdateCreatorWorldAgentSettingsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (OwnerAgentSettingsDto, error) {
-	raw, err := c.operationTyped(ctx, "updateCreatorWorldAgentSettings", request, metadata, timeoutMS)
-	if err != nil {
-		return OwnerAgentSettingsDto{}, err
-	}
-	return decodeTypedResponse[OwnerAgentSettingsDto](raw)
-}
-
-func (c RealmTypedClient) UpdateCreatorWorldAgentVoice(ctx context.Context, request RealmUpdateCreatorWorldAgentVoiceOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UserLiteDto, error) {
-	raw, err := c.operationTyped(ctx, "updateCreatorWorldAgentVoice", request, metadata, timeoutMS)
-	if err != nil {
-		return UserLiteDto{}, err
-	}
-	return decodeTypedResponse[UserLiteDto](raw)
-}
-
 func (c RealmTypedClient) UpdateGroup(ctx context.Context, request RealmUpdateGroupOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GroupChatViewDto, error) {
 	raw, err := c.operationTyped(ctx, "updateGroup", request, metadata, timeoutMS)
 	if err != nil {
@@ -21307,14 +16651,6 @@ func (c RealmTypedClient) UpdateMyPPConfig(ctx context.Context, request RealmUpd
 	return decodeTypedResponse[PPSlotConfigResponseDto](raw)
 }
 
-func (c RealmTypedClient) UpdateMyRealmAgentSettings(ctx context.Context, request RealmUpdateMyRealmAgentSettingsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (OwnerAgentSettingsDto, error) {
-	raw, err := c.operationTyped(ctx, "updateMyRealmAgentSettings", request, metadata, timeoutMS)
-	if err != nil {
-		return OwnerAgentSettingsDto{}, err
-	}
-	return decodeTypedResponse[OwnerAgentSettingsDto](raw)
-}
-
 func (c RealmTypedClient) UpdateMySettings(ctx context.Context, request RealmUpdateMySettingsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UserSettingsDto, error) {
 	raw, err := c.operationTyped(ctx, "updateMySettings", request, metadata, timeoutMS)
 	if err != nil {
@@ -21345,54 +16681,6 @@ func (c RealmTypedClient) UpdateResource(ctx context.Context, request RealmUpdat
 		return ResourceDetailDto{}, err
 	}
 	return decodeTypedResponse[ResourceDetailDto](raw)
-}
-
-func (c RealmTypedClient) V1DefaultVisibilityControllerApplyAgentDefaults(ctx context.Context, request RealmV1DefaultVisibilityControllerApplyAgentDefaultsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (struct{}, error) {
-	raw, err := c.operationTyped(ctx, "V1DefaultVisibilityController_applyAgentDefaults", request, metadata, timeoutMS)
-	if err != nil {
-		return struct{}{}, err
-	}
-	return decodeTypedResponse[struct{}](raw)
-}
-
-func (c RealmTypedClient) V1DefaultVisibilityControllerApplyUserDefaults(ctx context.Context, request RealmV1DefaultVisibilityControllerApplyUserDefaultsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (struct{}, error) {
-	raw, err := c.operationTyped(ctx, "V1DefaultVisibilityController_applyUserDefaults", request, metadata, timeoutMS)
-	if err != nil {
-		return struct{}{}, err
-	}
-	return decodeTypedResponse[struct{}](raw)
-}
-
-func (c RealmTypedClient) V1DefaultVisibilityControllerGetDefaultForScope(ctx context.Context, request RealmV1DefaultVisibilityControllerGetDefaultForScopeOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (struct{}, error) {
-	raw, err := c.operationTyped(ctx, "V1DefaultVisibilityController_getDefaultForScope", request, metadata, timeoutMS)
-	if err != nil {
-		return struct{}{}, err
-	}
-	return decodeTypedResponse[struct{}](raw)
-}
-
-func (c RealmTypedClient) V1DefaultVisibilityControllerGetDefaultVisibility(ctx context.Context, request RealmV1DefaultVisibilityControllerGetDefaultVisibilityOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (struct{}, error) {
-	raw, err := c.operationTyped(ctx, "V1DefaultVisibilityController_getDefaultVisibility", request, metadata, timeoutMS)
-	if err != nil {
-		return struct{}{}, err
-	}
-	return decodeTypedResponse[struct{}](raw)
-}
-
-func (c RealmTypedClient) V1DefaultVisibilityControllerValidateAgentVisibility(ctx context.Context, request RealmV1DefaultVisibilityControllerValidateAgentVisibilityOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (struct{}, error) {
-	raw, err := c.operationTyped(ctx, "V1DefaultVisibilityController_validateAgentVisibility", request, metadata, timeoutMS)
-	if err != nil {
-		return struct{}{}, err
-	}
-	return decodeTypedResponse[struct{}](raw)
-}
-
-func (c RealmTypedClient) V1DefaultVisibilityControllerValidateUserVisibility(ctx context.Context, request RealmV1DefaultVisibilityControllerValidateUserVisibilityOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (struct{}, error) {
-	raw, err := c.operationTyped(ctx, "V1DefaultVisibilityController_validateUserVisibility", request, metadata, timeoutMS)
-	if err != nil {
-		return struct{}{}, err
-	}
-	return decodeTypedResponse[struct{}](raw)
 }
 
 func (c RealmTypedClient) Verify2Fa(ctx context.Context, request RealmVerify2FaOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AuthTokensDto, error) {
@@ -21427,290 +16715,122 @@ func (c RealmTypedClient) WalletLogin(ctx context.Context, request RealmWalletLo
 	return decodeTypedResponse[OAuthLoginResultDto](raw)
 }
 
-func (c RealmTypedClient) WorldControlControllerAppendWorldHistory(ctx context.Context, request RealmWorldControlControllerAppendWorldHistoryOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WorldHistoryListDto, error) {
-	raw, err := c.operationTyped(ctx, "WorldControlController_appendWorldHistory", request, metadata, timeoutMS)
+func (c RealmTypedClient) WorldCoreControllerBootstrapOasisWorld(ctx context.Context, request RealmWorldCoreControllerBootstrapOasisWorldOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WorldCoreDto, error) {
+	raw, err := c.operationTyped(ctx, "WorldCoreController_bootstrapOasisWorld", request, metadata, timeoutMS)
 	if err != nil {
-		return WorldHistoryListDto{}, err
+		return WorldCoreDto{}, err
 	}
-	return decodeTypedResponse[WorldHistoryListDto](raw)
+	return decodeTypedResponse[WorldCoreDto](raw)
 }
 
-func (c RealmTypedClient) WorldControlControllerBatchUpsertWorldBindings(ctx context.Context, request RealmWorldControlControllerBatchUpsertWorldBindingsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (BindingListDto, error) {
-	raw, err := c.operationTyped(ctx, "WorldControlController_batchUpsertWorldBindings", request, metadata, timeoutMS)
+func (c RealmTypedClient) WorldCoreControllerCreateRealmPersona(ctx context.Context, request RealmWorldCoreControllerCreateRealmPersonaOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RealmPersonaDto, error) {
+	raw, err := c.operationTyped(ctx, "WorldCoreController_createRealmPersona", request, metadata, timeoutMS)
 	if err != nil {
-		return BindingListDto{}, err
+		return RealmPersonaDto{}, err
 	}
-	return decodeTypedResponse[BindingListDto](raw)
+	return decodeTypedResponse[RealmPersonaDto](raw)
 }
 
-func (c RealmTypedClient) WorldControlControllerCommitState(ctx context.Context, request RealmWorldControlControllerCommitStateOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WorldStateDto, error) {
-	raw, err := c.operationTyped(ctx, "WorldControlController_commitState", request, metadata, timeoutMS)
+func (c RealmTypedClient) WorldCoreControllerCreateRuntimeSourceSnapshot(ctx context.Context, request RealmWorldCoreControllerCreateRuntimeSourceSnapshotOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RuntimeSourceSnapshotDto, error) {
+	raw, err := c.operationTyped(ctx, "WorldCoreController_createRuntimeSourceSnapshot", request, metadata, timeoutMS)
 	if err != nil {
-		return WorldStateDto{}, err
+		return RuntimeSourceSnapshotDto{}, err
 	}
-	return decodeTypedResponse[WorldStateDto](raw)
+	return decodeTypedResponse[RuntimeSourceSnapshotDto](raw)
 }
 
-func (c RealmTypedClient) WorldControlControllerCreateDraft(ctx context.Context, request RealmWorldControlControllerCreateDraftOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WorldDraftDetailDto, error) {
-	raw, err := c.operationTyped(ctx, "WorldControlController_createDraft", request, metadata, timeoutMS)
+func (c RealmTypedClient) WorldCoreControllerCreateWorldCharacter(ctx context.Context, request RealmWorldCoreControllerCreateWorldCharacterOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WorldCharacterCoreDto, error) {
+	raw, err := c.operationTyped(ctx, "WorldCoreController_createWorldCharacter", request, metadata, timeoutMS)
 	if err != nil {
-		return WorldDraftDetailDto{}, err
+		return WorldCharacterCoreDto{}, err
 	}
-	return decodeTypedResponse[WorldDraftDetailDto](raw)
+	return decodeTypedResponse[WorldCharacterCoreDto](raw)
 }
 
-func (c RealmTypedClient) WorldControlControllerDeleteWorldBinding(ctx context.Context, request RealmWorldControlControllerDeleteWorldBindingOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (struct{}, error) {
-	raw, err := c.operationTyped(ctx, "WorldControlController_deleteWorldBinding", request, metadata, timeoutMS)
+func (c RealmTypedClient) WorldCoreControllerCreateWorldCore(ctx context.Context, request RealmWorldCoreControllerCreateWorldCoreOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WorldCoreDto, error) {
+	raw, err := c.operationTyped(ctx, "WorldCoreController_createWorldCore", request, metadata, timeoutMS)
 	if err != nil {
-		return struct{}{}, err
+		return WorldCoreDto{}, err
 	}
-	return decodeTypedResponse[struct{}](raw)
+	return decodeTypedResponse[WorldCoreDto](raw)
 }
 
-func (c RealmTypedClient) WorldControlControllerGetDraft(ctx context.Context, request RealmWorldControlControllerGetDraftOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WorldDraftDetailDto, error) {
-	raw, err := c.operationTyped(ctx, "WorldControlController_getDraft", request, metadata, timeoutMS)
+func (c RealmTypedClient) WorldCoreControllerGetOasisWorld(ctx context.Context, request RealmWorldCoreControllerGetOasisWorldOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WorldCoreDto, error) {
+	raw, err := c.operationTyped(ctx, "WorldCoreController_getOasisWorld", request, metadata, timeoutMS)
 	if err != nil {
-		return WorldDraftDetailDto{}, err
+		return WorldCoreDto{}, err
 	}
-	return decodeTypedResponse[WorldDraftDetailDto](raw)
+	return decodeTypedResponse[WorldCoreDto](raw)
 }
 
-func (c RealmTypedClient) WorldControlControllerGetMyAccess(ctx context.Context, request RealmWorldControlControllerGetMyAccessOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WorldAccessSummaryDto, error) {
-	raw, err := c.operationTyped(ctx, "WorldControlController_getMyAccess", request, metadata, timeoutMS)
+func (c RealmTypedClient) WorldCoreControllerGetRealmPersona(ctx context.Context, request RealmWorldCoreControllerGetRealmPersonaOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RealmPersonaDto, error) {
+	raw, err := c.operationTyped(ctx, "WorldCoreController_getRealmPersona", request, metadata, timeoutMS)
 	if err != nil {
-		return WorldAccessSummaryDto{}, err
+		return RealmPersonaDto{}, err
 	}
-	return decodeTypedResponse[WorldAccessSummaryDto](raw)
+	return decodeTypedResponse[RealmPersonaDto](raw)
 }
 
-func (c RealmTypedClient) WorldControlControllerGetState(ctx context.Context, request RealmWorldControlControllerGetStateOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WorldStateDto, error) {
-	raw, err := c.operationTyped(ctx, "WorldControlController_getState", request, metadata, timeoutMS)
+func (c RealmTypedClient) WorldCoreControllerGetWorldCharacter(ctx context.Context, request RealmWorldCoreControllerGetWorldCharacterOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WorldCharacterCoreDto, error) {
+	raw, err := c.operationTyped(ctx, "WorldCoreController_getWorldCharacter", request, metadata, timeoutMS)
 	if err != nil {
-		return WorldStateDto{}, err
+		return WorldCharacterCoreDto{}, err
 	}
-	return decodeTypedResponse[WorldStateDto](raw)
+	return decodeTypedResponse[WorldCharacterCoreDto](raw)
 }
 
-func (c RealmTypedClient) WorldControlControllerListDrafts(ctx context.Context, request RealmWorldControlControllerListDraftsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WorldDraftSummaryListDto, error) {
-	raw, err := c.operationTyped(ctx, "WorldControlController_listDrafts", request, metadata, timeoutMS)
+func (c RealmTypedClient) WorldCoreControllerGetWorldCore(ctx context.Context, request RealmWorldCoreControllerGetWorldCoreOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WorldCoreDto, error) {
+	raw, err := c.operationTyped(ctx, "WorldCoreController_getWorldCore", request, metadata, timeoutMS)
 	if err != nil {
-		return WorldDraftSummaryListDto{}, err
+		return WorldCoreDto{}, err
 	}
-	return decodeTypedResponse[WorldDraftSummaryListDto](raw)
+	return decodeTypedResponse[WorldCoreDto](raw)
 }
 
-func (c RealmTypedClient) WorldControlControllerListMyWorlds(ctx context.Context, request RealmWorldControlControllerListMyWorldsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WorldSummaryListDto, error) {
-	raw, err := c.operationTyped(ctx, "WorldControlController_listMyWorlds", request, metadata, timeoutMS)
+func (c RealmTypedClient) WorldCoreControllerListRealmPersonas(ctx context.Context, request RealmWorldCoreControllerListRealmPersonasOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) ([]RealmPersonaDto, error) {
+	raw, err := c.operationTyped(ctx, "WorldCoreController_listRealmPersonas", request, metadata, timeoutMS)
 	if err != nil {
-		return WorldSummaryListDto{}, err
+		return []RealmPersonaDto{}, err
 	}
-	return decodeTypedResponse[WorldSummaryListDto](raw)
+	return decodeTypedResponse[[]RealmPersonaDto](raw)
 }
 
-func (c RealmTypedClient) WorldControlControllerListWorldBindings(ctx context.Context, request RealmWorldControlControllerListWorldBindingsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (BindingListDto, error) {
-	raw, err := c.operationTyped(ctx, "WorldControlController_listWorldBindings", request, metadata, timeoutMS)
+func (c RealmTypedClient) WorldCoreControllerListWorldCharacters(ctx context.Context, request RealmWorldCoreControllerListWorldCharactersOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) ([]WorldCharacterCoreDto, error) {
+	raw, err := c.operationTyped(ctx, "WorldCoreController_listWorldCharacters", request, metadata, timeoutMS)
 	if err != nil {
-		return BindingListDto{}, err
+		return []WorldCharacterCoreDto{}, err
 	}
-	return decodeTypedResponse[BindingListDto](raw)
+	return decodeTypedResponse[[]WorldCharacterCoreDto](raw)
 }
 
-func (c RealmTypedClient) WorldControlControllerListWorldHistory(ctx context.Context, request RealmWorldControlControllerListWorldHistoryOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WorldHistoryListDto, error) {
-	raw, err := c.operationTyped(ctx, "WorldControlController_listWorldHistory", request, metadata, timeoutMS)
+func (c RealmTypedClient) WorldCoreControllerListWorldCores(ctx context.Context, request RealmWorldCoreControllerListWorldCoresOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) ([]WorldCoreDto, error) {
+	raw, err := c.operationTyped(ctx, "WorldCoreController_listWorldCores", request, metadata, timeoutMS)
 	if err != nil {
-		return WorldHistoryListDto{}, err
+		return []WorldCoreDto{}, err
 	}
-	return decodeTypedResponse[WorldHistoryListDto](raw)
+	return decodeTypedResponse[[]WorldCoreDto](raw)
 }
 
-func (c RealmTypedClient) WorldControlControllerListWorldLorebooks(ctx context.Context, request RealmWorldControlControllerListWorldLorebooksOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WorldLorebookListDto, error) {
-	raw, err := c.operationTyped(ctx, "WorldControlController_listWorldLorebooks", request, metadata, timeoutMS)
+func (c RealmTypedClient) WorldCoreControllerReplaceRealmPersona(ctx context.Context, request RealmWorldCoreControllerReplaceRealmPersonaOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RealmPersonaDto, error) {
+	raw, err := c.operationTyped(ctx, "WorldCoreController_replaceRealmPersona", request, metadata, timeoutMS)
 	if err != nil {
-		return WorldLorebookListDto{}, err
+		return RealmPersonaDto{}, err
 	}
-	return decodeTypedResponse[WorldLorebookListDto](raw)
+	return decodeTypedResponse[RealmPersonaDto](raw)
 }
 
-func (c RealmTypedClient) WorldControlControllerPublishDraft(ctx context.Context, request RealmWorldControlControllerPublishDraftOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (PublishWorldDraftResultDto, error) {
-	raw, err := c.operationTyped(ctx, "WorldControlController_publishDraft", request, metadata, timeoutMS)
+func (c RealmTypedClient) WorldCoreControllerReplaceWorldCharacter(ctx context.Context, request RealmWorldCoreControllerReplaceWorldCharacterOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WorldCharacterCoreDto, error) {
+	raw, err := c.operationTyped(ctx, "WorldCoreController_replaceWorldCharacter", request, metadata, timeoutMS)
 	if err != nil {
-		return PublishWorldDraftResultDto{}, err
+		return WorldCharacterCoreDto{}, err
 	}
-	return decodeTypedResponse[PublishWorldDraftResultDto](raw)
+	return decodeTypedResponse[WorldCharacterCoreDto](raw)
 }
 
-func (c RealmTypedClient) WorldControlControllerResolveLanding(ctx context.Context, request RealmWorldControlControllerResolveLandingOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WorldLandingDecisionDto, error) {
-	raw, err := c.operationTyped(ctx, "WorldControlController_resolveLanding", request, metadata, timeoutMS)
+func (c RealmTypedClient) WorldCoreControllerReplaceWorldCore(ctx context.Context, request RealmWorldCoreControllerReplaceWorldCoreOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WorldCoreDto, error) {
+	raw, err := c.operationTyped(ctx, "WorldCoreController_replaceWorldCore", request, metadata, timeoutMS)
 	if err != nil {
-		return WorldLandingDecisionDto{}, err
+		return WorldCoreDto{}, err
 	}
-	return decodeTypedResponse[WorldLandingDecisionDto](raw)
-}
-
-func (c RealmTypedClient) WorldControlControllerUpdateDraft(ctx context.Context, request RealmWorldControlControllerUpdateDraftOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WorldDraftDetailDto, error) {
-	raw, err := c.operationTyped(ctx, "WorldControlController_updateDraft", request, metadata, timeoutMS)
-	if err != nil {
-		return WorldDraftDetailDto{}, err
-	}
-	return decodeTypedResponse[WorldDraftDetailDto](raw)
-}
-
-func (c RealmTypedClient) WorldControllerGetMainWorld(ctx context.Context, request RealmWorldControllerGetMainWorldOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WorldDetailDto, error) {
-	raw, err := c.operationTyped(ctx, "WorldController_getMainWorld", request, metadata, timeoutMS)
-	if err != nil {
-		return WorldDetailDto{}, err
-	}
-	return decodeTypedResponse[WorldDetailDto](raw)
-}
-
-func (c RealmTypedClient) WorldControllerGetWorld(ctx context.Context, request RealmWorldControllerGetWorldOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WorldDetailDto, error) {
-	raw, err := c.operationTyped(ctx, "WorldController_getWorld", request, metadata, timeoutMS)
-	if err != nil {
-		return WorldDetailDto{}, err
-	}
-	return decodeTypedResponse[WorldDetailDto](raw)
-}
-
-func (c RealmTypedClient) WorldControllerGetWorldAgents(ctx context.Context, request RealmWorldControllerGetWorldAgentsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) ([]WorldAgentSummaryDto, error) {
-	raw, err := c.operationTyped(ctx, "WorldController_getWorldAgents", request, metadata, timeoutMS)
-	if err != nil {
-		return []WorldAgentSummaryDto{}, err
-	}
-	return decodeTypedResponse[[]WorldAgentSummaryDto](raw)
-}
-
-func (c RealmTypedClient) WorldControllerGetWorldBindings(ctx context.Context, request RealmWorldControllerGetWorldBindingsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (PublicBindingListDto, error) {
-	raw, err := c.operationTyped(ctx, "WorldController_getWorldBindings", request, metadata, timeoutMS)
-	if err != nil {
-		return PublicBindingListDto{}, err
-	}
-	return decodeTypedResponse[PublicBindingListDto](raw)
-}
-
-func (c RealmTypedClient) WorldControllerGetWorldDetailWithAgents(ctx context.Context, request RealmWorldControllerGetWorldDetailWithAgentsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WorldDetailWithAgentsDto, error) {
-	raw, err := c.operationTyped(ctx, "WorldController_getWorldDetailWithAgents", request, metadata, timeoutMS)
-	if err != nil {
-		return WorldDetailWithAgentsDto{}, err
-	}
-	return decodeTypedResponse[WorldDetailWithAgentsDto](raw)
-}
-
-func (c RealmTypedClient) WorldControllerGetWorldHistory(ctx context.Context, request RealmWorldControllerGetWorldHistoryOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (PublicWorldHistoryListDto, error) {
-	raw, err := c.operationTyped(ctx, "WorldController_getWorldHistory", request, metadata, timeoutMS)
-	if err != nil {
-		return PublicWorldHistoryListDto{}, err
-	}
-	return decodeTypedResponse[PublicWorldHistoryListDto](raw)
-}
-
-func (c RealmTypedClient) WorldControllerGetWorldLevelAudits(ctx context.Context, request RealmWorldControllerGetWorldLevelAuditsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) ([]WorldLevelAuditEventDto, error) {
-	raw, err := c.operationTyped(ctx, "WorldController_getWorldLevelAudits", request, metadata, timeoutMS)
-	if err != nil {
-		return []WorldLevelAuditEventDto{}, err
-	}
-	return decodeTypedResponse[[]WorldLevelAuditEventDto](raw)
-}
-
-func (c RealmTypedClient) WorldControllerGetWorldLorebooks(ctx context.Context, request RealmWorldControllerGetWorldLorebooksOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (PublicWorldLorebookListDto, error) {
-	raw, err := c.operationTyped(ctx, "WorldController_getWorldLorebooks", request, metadata, timeoutMS)
-	if err != nil {
-		return PublicWorldLorebookListDto{}, err
-	}
-	return decodeTypedResponse[PublicWorldLorebookListDto](raw)
-}
-
-func (c RealmTypedClient) WorldControllerGetWorldview(ctx context.Context, request RealmWorldControllerGetWorldviewOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WorldviewDetailDto, error) {
-	raw, err := c.operationTyped(ctx, "WorldController_getWorldview", request, metadata, timeoutMS)
-	if err != nil {
-		return WorldviewDetailDto{}, err
-	}
-	return decodeTypedResponse[WorldviewDetailDto](raw)
-}
-
-func (c RealmTypedClient) WorldControllerListWorlds(ctx context.Context, request RealmWorldControllerListWorldsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) ([]WorldDetailDto, error) {
-	raw, err := c.operationTyped(ctx, "WorldController_listWorlds", request, metadata, timeoutMS)
-	if err != nil {
-		return []WorldDetailDto{}, err
-	}
-	return decodeTypedResponse[[]WorldDetailDto](raw)
-}
-
-func (c RealmTypedClient) WorldControllerReturnToMainWorld(ctx context.Context, request RealmWorldControllerReturnToMainWorldOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (TransitDetailDto, error) {
-	raw, err := c.operationTyped(ctx, "WorldController_returnToMainWorld", request, metadata, timeoutMS)
-	if err != nil {
-		return TransitDetailDto{}, err
-	}
-	return decodeTypedResponse[TransitDetailDto](raw)
-}
-
-func (c RealmTypedClient) WorldControllerTransitToWorld(ctx context.Context, request RealmWorldControllerTransitToWorldOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (TransitDetailDto, error) {
-	raw, err := c.operationTyped(ctx, "WorldController_transitToWorld", request, metadata, timeoutMS)
-	if err != nil {
-		return TransitDetailDto{}, err
-	}
-	return decodeTypedResponse[TransitDetailDto](raw)
-}
-
-func (c RealmTypedClient) WorldRulesControllerArchiveRule(ctx context.Context, request RealmWorldRulesControllerArchiveRuleOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WorldRuleDto, error) {
-	raw, err := c.operationTyped(ctx, "WorldRulesController_archiveRule", request, metadata, timeoutMS)
-	if err != nil {
-		return WorldRuleDto{}, err
-	}
-	return decodeTypedResponse[WorldRuleDto](raw)
-}
-
-func (c RealmTypedClient) WorldRulesControllerCheckPermission(ctx context.Context, request RealmWorldRulesControllerCheckPermissionOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (PermissionCheckResponseDto, error) {
-	raw, err := c.operationTyped(ctx, "WorldRulesController_checkPermission", request, metadata, timeoutMS)
-	if err != nil {
-		return PermissionCheckResponseDto{}, err
-	}
-	return decodeTypedResponse[PermissionCheckResponseDto](raw)
-}
-
-func (c RealmTypedClient) WorldRulesControllerCreateRule(ctx context.Context, request RealmWorldRulesControllerCreateRuleOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WorldRuleDto, error) {
-	raw, err := c.operationTyped(ctx, "WorldRulesController_createRule", request, metadata, timeoutMS)
-	if err != nil {
-		return WorldRuleDto{}, err
-	}
-	return decodeTypedResponse[WorldRuleDto](raw)
-}
-
-func (c RealmTypedClient) WorldRulesControllerDeprecateRule(ctx context.Context, request RealmWorldRulesControllerDeprecateRuleOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WorldRuleDto, error) {
-	raw, err := c.operationTyped(ctx, "WorldRulesController_deprecateRule", request, metadata, timeoutMS)
-	if err != nil {
-		return WorldRuleDto{}, err
-	}
-	return decodeTypedResponse[WorldRuleDto](raw)
-}
-
-func (c RealmTypedClient) WorldRulesControllerGetCreatorCapabilities(ctx context.Context, request RealmWorldRulesControllerGetCreatorCapabilitiesOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CreatorCapabilitiesResponseDto, error) {
-	raw, err := c.operationTyped(ctx, "WorldRulesController_getCreatorCapabilities", request, metadata, timeoutMS)
-	if err != nil {
-		return CreatorCapabilitiesResponseDto{}, err
-	}
-	return decodeTypedResponse[CreatorCapabilitiesResponseDto](raw)
-}
-
-func (c RealmTypedClient) WorldRulesControllerGetRules(ctx context.Context, request RealmWorldRulesControllerGetRulesOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) ([]WorldRuleDto, error) {
-	raw, err := c.operationTyped(ctx, "WorldRulesController_getRules", request, metadata, timeoutMS)
-	if err != nil {
-		return []WorldRuleDto{}, err
-	}
-	return decodeTypedResponse[[]WorldRuleDto](raw)
-}
-
-func (c RealmTypedClient) WorldRulesControllerUpdateRule(ctx context.Context, request RealmWorldRulesControllerUpdateRuleOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WorldRuleDto, error) {
-	raw, err := c.operationTyped(ctx, "WorldRulesController_updateRule", request, metadata, timeoutMS)
-	if err != nil {
-		return WorldRuleDto{}, err
-	}
-	return decodeTypedResponse[WorldRuleDto](raw)
-}
-
-func (c RealmTypedClient) WorldRulesControllerValidateRules(ctx context.Context, request RealmWorldRulesControllerValidateRulesOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RuleValidationResponseDto, error) {
-	raw, err := c.operationTyped(ctx, "WorldRulesController_validateRules", request, metadata, timeoutMS)
-	if err != nil {
-		return RuleValidationResponseDto{}, err
-	}
-	return decodeTypedResponse[RuleValidationResponseDto](raw)
+	return decodeTypedResponse[WorldCoreDto](raw)
 }

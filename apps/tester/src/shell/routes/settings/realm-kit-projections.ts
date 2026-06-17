@@ -1,8 +1,8 @@
 import {
   isNimiRealmFeedScope,
   NIMI_REALM_FEED_SCOPES,
-  projectNimiRealmBaseUrl,
-  projectNimiRealmRealtimeUrl,
+  resolveNimiRealmBaseUrl,
+  resolveNimiRealmRealtimeUrl,
   resolveNimiRealmMediaUrl,
 } from '@nimiplatform/sdk/realm';
 import { resolveAgentVoicePlaybackCue } from '@nimiplatform/kit/features/avatar/headless';
@@ -19,16 +19,16 @@ export function createTesterSettingsRealmKitProjections() {
     realmBaseUrl: 'https://realm.example/',
     mediaUrl: '/api/resources/images/tester-preview',
   }) ?? 'unavailable';
-  const realmEndpointProjection = projectNimiRealmBaseUrl({
+  const realmEndpointProjection = resolveNimiRealmBaseUrl({
     realmBaseUrl: 'http://127.0.0.1',
   });
-  const realmRealtimeProjection = projectNimiRealmRealtimeUrl({
+  const realmRealtimeProjection = resolveNimiRealmRealtimeUrl({
     realmBaseUrl: 'http://127.0.0.1:3002/api',
   });
   const realmFeedScopeProjection = {
     count: NIMI_REALM_FEED_SCOPES.length,
-    agentActivityAdmitted: isNimiRealmFeedScope('agent_activity'),
-    localAgentActivityAdmitted: isNimiRealmFeedScope('local_agent_activity'),
+    personalAdmitted: isNimiRealmFeedScope('personal'),
+    friendsAdmitted: isNimiRealmFeedScope('friends'),
   };
   const realmChatAttachmentPayloadProjection = createRealmChatResourceAttachmentPayload('tester-resource-preview');
   const realmChatAttachmentProjection = {

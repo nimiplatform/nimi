@@ -37949,38 +37949,29 @@ where
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct AbilityDefinitionDto {
-    pub cost: Vec<ResourceCostDto>,
-    pub description: String,
-    pub id: String,
-    pub name: String,
-    pub tier_required: f64,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AccountGrantProjectionRowDto {
+pub struct AccountGrantViewRowDto {
     pub app_id: String,
     pub expires_at: String,
     pub grant_id: String,
     pub qualifier: String,
     pub scope_family: Box<AppPermissionScopeFamily>,
     pub scope_name: Box<AppPermissionScopeName>,
-    pub state: Box<AccountGrantProjectionState>,
+    pub state: Box<AccountGrantViewState>,
     pub subject_account_id: String,
     pub version: f64,
 }
 
-pub type AccountGrantProjectionState = String;
+pub type AccountGrantViewState = String;
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct AccountGrantsProjectionDto {
+pub struct AccountGrantsViewDto {
     pub account_id: String,
-    pub grants: Vec<AccountGrantProjectionRowDto>,
+    pub grants: Vec<AccountGrantViewRowDto>,
     pub schema_version: f64,
     pub updated_at: String,
 }
 
-pub type AccountRole = String;
+pub type AccountRelationType = String;
 
 pub type AccountStatus = String;
 
@@ -37990,470 +37981,9 @@ pub struct AddFriendBodyDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct AddGroupAgentInputDto {
-    pub agent_account_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct AddGroupParticipantInputDto {
     pub account_id: String,
 }
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AgentAppearanceDto {
-    pub art_style: String,
-    pub eyes: String,
-    pub fashion_style: String,
-    pub hair: String,
-    pub signature_items: Vec<String>,
-    pub skin: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AgentAuthoringBehaviorCandidatePayloadDto {
-    pub directives: Vec<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AgentAuthoringDialogueCandidatePayloadDto {
-    pub exemplars: Vec<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AgentAuthoringDraftBatchDto {
-    pub agent_id: String,
-    pub applied_at: String,
-    pub candidates: Vec<AgentAuthoringDraftCandidateDto>,
-    pub created_at: String,
-    pub created_by: String,
-    pub failure_code: String,
-    pub failure_message: String,
-    pub id: String,
-    pub metadata: Box<AgentAuthoringDraftBatchMetadataDto>,
-    pub skeleton_id: String,
-    pub source_kind: String,
-    pub status: String,
-    pub updated_at: String,
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AgentAuthoringDraftBatchListDto {
-    pub items: Vec<AgentAuthoringDraftBatchDto>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AgentAuthoringDraftBatchMetadataDto {
-    pub notes: String,
-    pub runtime_app_id: String,
-    pub surface_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AgentAuthoringDraftCandidateDto {
-    pub applied_at: String,
-    pub edited_value: Box<AgentAuthoringDraftCandidateValueDto>,
-    pub generated_at: String,
-    pub id: String,
-    pub model_id: String,
-    pub prompt_digest_sha256: String,
-    pub provenance: Box<AgentAuthoringRuntimeTraceDto>,
-    pub review_status: String,
-    pub reviewed_at: String,
-    pub reviewer_id: String,
-    pub route_policy: String,
-    pub runtime_trace_id: String,
-    pub source_refs: Vec<AgentAuthoringSourceRefDto>,
-    pub target_key: String,
-    pub value: Box<AgentAuthoringDraftCandidateValueDto>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AgentAuthoringDraftCandidateValueDto {
-    pub behavior: Box<AgentAuthoringBehaviorCandidatePayloadDto>,
-    pub dialogue: Box<AgentAuthoringDialogueCandidatePayloadDto>,
-    pub kind: String,
-    pub media: Box<AgentAuthoringMediaCandidatePayloadDto>,
-    pub provenance: Vec<AgentAuthoringValueProvenanceSegmentDto>,
-    pub text: String,
-    pub voice: Box<AgentAuthoringVoiceCandidatePayloadDto>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AgentAuthoringFinalMediaStateDto {
-    pub avatar_resource_id: String,
-    pub avatar_url: String,
-    pub profile_cover_resource_id: String,
-    pub profile_cover_url: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AgentAuthoringFinalStateDto {
-    pub media: Box<AgentAuthoringFinalMediaStateDto>,
-    pub settings: Box<OwnerAgentSettingsDto>,
-    pub voice: Box<AgentAuthoringFinalVoiceStateDto>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AgentAuthoringFinalVoiceStateDto {
-    pub voice: Box<AgentAuthoringVoiceCandidatePayloadDto>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AgentAuthoringGenerationContextDto {
-    pub current_final_state: Box<AgentAuthoringFinalStateDto>,
-    pub grounding_refs: Vec<AgentAuthoringSourceRefDto>,
-    pub required_targets: Vec<String>,
-    pub source_skeleton: Box<CreatorWorldAgentSourceSkeletonDto>,
-    pub target_statuses: Vec<AgentAuthoringTargetStatusDto>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AgentAuthoringMediaCandidatePayloadDto {
-    pub height: f64,
-    pub mime: String,
-    pub model: String,
-    pub moderation: Box<AgentAuthoringMediaModerationDto>,
-    pub prompt: String,
-    pub provenance: Vec<AgentAuthoringValueProvenanceSegmentDto>,
-    pub resource_id: String,
-    pub url: String,
-    pub width: f64,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AgentAuthoringMediaModerationDto {
-    pub provider: String,
-    pub reason: String,
-    pub status: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AgentAuthoringRuntimeTraceDto {
-    pub prompt_template_id: String,
-    pub runtime_app_id: String,
-    pub scenario_id: String,
-    pub skeleton_id: String,
-    pub source_digest_sha256: String,
-    pub surface_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AgentAuthoringSourceRefDto {
-    pub fact_path: String,
-    pub label: String,
-    pub source_kind: String,
-    pub source_ref: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AgentAuthoringTargetStatusDto {
-    pub applied_at: String,
-    pub latest_batch_id: String,
-    pub latest_candidate_id: String,
-    pub latest_review_status: String,
-    pub target_key: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AgentAuthoringValueProvenanceSegmentDto {
-    pub category: String,
-    pub refs: Vec<String>,
-    pub summary: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AgentAuthoringVoiceCandidatePayloadDto {
-    pub historical_claim: String,
-    pub narration_direction: String,
-    pub provider_voice_ref: String,
-    pub speech_model_id: String,
-    pub speech_route_policy: String,
-    pub voice_asset_resource_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AgentBiologicalDto {
-    pub ethnicity: String,
-    pub gender: String,
-    pub height_cm: f64,
-    pub visual_age: String,
-    pub weight_kg: f64,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AgentCapabilitiesDto {
-    pub can_create: bool,
-    pub current_count: f64,
-    pub max_allowed: f64,
-    pub remaining: f64,
-}
-
-pub type AgentCategory = String;
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AgentCommunicationDto {
-    pub formality: String,
-    pub response_length: String,
-    pub sentiment: String,
-    pub summary: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AgentDisplayDto {
-    pub faction: String,
-    pub is_native: bool,
-    pub is_transit_guest: bool,
-    pub location: String,
-    pub rank: String,
-    pub role: String,
-    pub scene_name: String,
-    pub status_summary: String,
-    pub voice_summary: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AgentDnaDto {
-    pub appearance: Box<AgentAppearanceDto>,
-    pub biological: Box<AgentBiologicalDto>,
-    pub communication: Box<AgentCommunicationDto>,
-    pub identity: Box<AgentIdentityDto>,
-    pub nsfw_level: String,
-    pub personality: Box<AgentPersonalityDto>,
-    pub voice: Box<AgentVoiceConfigDto>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AgentFriendLimitDto {
-    pub can_add: bool,
-    pub limit: f64,
-    pub used: f64,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AgentHandleAvailabilityResponseDto {
-    pub available: bool,
-    pub message: String,
-    pub normalized: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AgentIdentityDto {
-    pub name: String,
-    pub role: String,
-    pub species: String,
-    pub summary: String,
-    pub worldview: String,
-}
-
-pub type AgentImportance = String;
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AgentMetadataDto {
-    pub active_world_id: String,
-    pub category: Box<AgentCategory>,
-    pub importance: Box<AgentImportance>,
-    pub origin: Box<AgentOrigin>,
-    pub owner_world_id: String,
-    pub ownership_type: Box<AgentOwnershipType>,
-    pub state: Box<AgentState>,
-    pub tier: Box<VerificationTier>,
-    pub wake_strategy: Box<AgentWakeStrategy>,
-    pub world_id: String,
-}
-
-pub type AgentOrigin = String;
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AgentOriginDto {
-    pub agent_id: String,
-    pub is_native: bool,
-    pub master_id: String,
-    pub world_creator_id: String,
-    pub world_id: String,
-}
-
-pub type AgentOwnershipType = String;
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AgentPersonalityDto {
-    pub emotion_baseline: String,
-    pub goals: Vec<String>,
-    pub interests: Vec<String>,
-    pub mbti: String,
-    pub relationship_mode: String,
-    pub summary: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AgentProfileDto {
-    pub active_world_id: String,
-    pub greeting: String,
-    pub importance: Box<AgentImportance>,
-    pub owner_world_id: String,
-    pub ownership_type: Box<AgentOwnershipType>,
-    pub state: Box<AgentState>,
-    pub stats: Box<AgentStatsDto>,
-    pub world_id: String,
-}
-
-pub type AgentRelationType = String;
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AgentRelationshipOtherAccountDto {
-    pub avatar_url: String,
-    pub display_name: String,
-    pub handle: String,
-    pub id: String,
-    pub is_agent: bool,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AgentRelationshipRecordDto {
-    pub context: String,
-    pub created_at: String,
-    pub direction: String,
-    pub id: String,
-    pub other_account: Box<AgentRelationshipOtherAccountDto>,
-    pub strength: f64,
-    pub r#type: Box<AgentRelationType>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AgentResponseMetadataDto {
-    pub active_world_id: String,
-    pub category: String,
-    pub importance: Box<AgentImportance>,
-    pub origin: Box<AgentOrigin>,
-    pub owner_world_id: String,
-    pub ownership_type: Box<AgentOwnershipType>,
-    pub state: Box<AgentState>,
-    pub tier: Box<VerificationTier>,
-    pub wake_strategy: String,
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AgentResponseProfileDto {
-    pub active_world_id: String,
-    pub importance: Box<AgentImportance>,
-    pub owner_world_id: String,
-    pub ownership_type: Box<AgentOwnershipType>,
-    pub state: Box<AgentState>,
-    pub stats: Box<AgentResponseProfileStatsDto>,
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AgentResponseProfileStatsDto {
-    pub engagement_count: f64,
-    pub influence_tier: f64,
-    pub interaction_tier: f64,
-    pub last_active_at: String,
-    pub vitality_score: f64,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AgentResponseTierSummaryDto {
-    pub asset_tier: f64,
-    pub influence_tier: f64,
-    pub interaction_tier: f64,
-    pub vitality_score: f64,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AgentResponseUserDto {
-    pub agent: Box<AgentResponseMetadataDto>,
-    pub agent_profile: Box<AgentResponseProfileDto>,
-    pub avatar_url: String,
-    pub bio: String,
-    pub created_at: String,
-    pub display_name: String,
-    pub friend_count: f64,
-    pub handle: String,
-    pub id: String,
-    pub is_agent: bool,
-    pub is_online: bool,
-    pub presence_emoji: String,
-    pub presence_status: String,
-    pub presence_text: String,
-    pub profile_cover_url: String,
-    pub stats: Box<AgentStatsDto>,
-    pub status: Box<AccountStatus>,
-    pub tiers: Box<AgentResponseTierSummaryDto>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AgentRuleDto {
-    pub agent_id: String,
-    pub category: String,
-    pub conflicts_with: Vec<String>,
-    pub created_at: String,
-    pub created_by: String,
-    pub depends_on: Vec<String>,
-    pub hardness: String,
-    pub id: String,
-    pub importance: f64,
-    pub inherited_world_domain: String,
-    pub layer: String,
-    pub lineage_id: String,
-    pub priority: f64,
-    pub provenance: String,
-    pub reasoning: String,
-    pub rule_key: String,
-    pub scope: String,
-    pub source_ref: String,
-    pub statement: String,
-    pub status: String,
-    pub structured: BTreeMap<String, String>,
-    pub title: String,
-    pub updated_at: String,
-    pub updated_by: String,
-    pub version: f64,
-    pub world_rule_ref: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AgentRuleLayerCountDto {
-    pub behavioral: f64,
-    pub contextual: f64,
-    pub dna: f64,
-    pub relational: f64,
-}
-
-pub type AgentState = String;
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AgentStatsDto {
-    pub engagement_count: f64,
-    pub influence_tier: f64,
-    pub interaction_tier: f64,
-    pub last_active_at: String,
-    pub vitality_score: f64,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AgentVisibilitySettingsDto {
-    pub account_visibility: Box<Visibility>,
-    pub default_post_visibility: Box<Visibility>,
-    pub dm_visibility: Box<Visibility>,
-    pub profile_visibility: Box<Visibility>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AgentVoiceConfigDto {
-    pub description: String,
-    pub emotion_enabled: bool,
-    pub pitch: f64,
-    pub speech_model_id: String,
-    pub speech_route_policy: String,
-    pub speed: f64,
-    pub voice_id: String,
-}
-
-pub type AgentWakeStrategy = String;
-
-pub type ApiKeyType = String;
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct AppPermissionGrantDecisionDto {
@@ -38528,20 +38058,6 @@ pub type AppPermissionScopeFamily = String;
 pub type AppPermissionScopeName = String;
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct AppendWorldHistoryDto {
-    pub commit: Box<MutationCommitEnvelopeDto>,
-    pub history_appends: Vec<WorldHistoryAppendItemDto>,
-    pub if_snapshot_version: String,
-    pub reason: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ApplyAgentAuthoringDraftBatchResponseDto {
-    pub applied_target_keys: Vec<String>,
-    pub batch: Box<AgentAuthoringDraftBatchDto>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct AssetDetailDto {
     pub author_id: String,
     pub clone_policy: String,
@@ -38607,43 +38123,7 @@ pub struct AuthTokensDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct AuthUserAgentMetadataDto {
-    pub active_world_id: String,
-    pub category: String,
-    pub importance: Box<AgentImportance>,
-    pub origin: Box<AgentOrigin>,
-    pub owner_world_id: String,
-    pub ownership_type: Box<AgentOwnershipType>,
-    pub state: Box<AgentState>,
-    pub tier: Box<VerificationTier>,
-    pub wake_strategy: String,
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AuthUserAgentProfileDto {
-    pub active_world_id: String,
-    pub importance: Box<AgentImportance>,
-    pub owner_world_id: String,
-    pub ownership_type: Box<AgentOwnershipType>,
-    pub state: Box<AgentState>,
-    pub stats: Box<AuthUserAgentStatsDto>,
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AuthUserAgentStatsDto {
-    pub engagement_count: f64,
-    pub influence_tier: f64,
-    pub interaction_tier: f64,
-    pub last_active_at: String,
-    pub vitality_score: f64,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct AuthUserDto {
-    pub agent: Box<AuthUserAgentMetadataDto>,
-    pub agent_profile: Box<AuthUserAgentProfileDto>,
     pub avatar_url: String,
     pub bio: String,
     pub birth_year: f64,
@@ -38656,7 +38136,6 @@ pub struct AuthUserDto {
     pub handle: String,
     pub has_password: bool,
     pub id: String,
-    pub is_agent: bool,
     pub is_two_factor_enabled: bool,
     pub languages: Vec<String>,
     pub last_handle_change_at: String,
@@ -38664,7 +38143,7 @@ pub struct AuthUserDto {
     pub presence_emoji: String,
     pub presence_status: String,
     pub presence_text: String,
-    pub role: Box<AccountRole>,
+    pub role: Box<PublicAccountRole>,
     pub social_profiles: Vec<AuthUserSocialProfileDto>,
     pub status: Box<AccountStatus>,
     pub tags: Vec<String>,
@@ -38702,41 +38181,6 @@ pub struct AuthUserWalletDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct BatchCreateAgentCreatedDto {
-    pub display_name: String,
-    pub handle: String,
-    pub id: String,
-    pub index: f64,
-    pub ownership_type: String,
-    pub state: String,
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct BatchCreateAgentFailedDto {
-    pub error: String,
-    pub handle: String,
-    pub index: f64,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct BatchCreateAgentsRequestDto {
-    pub continue_on_error: bool,
-    pub items: Vec<CreateAgentDto>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct BatchCreateAgentsResponseDto {
-    pub created: Vec<BatchCreateAgentCreatedDto>,
-    pub failed: Vec<BatchCreateAgentFailedDto>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct BatchUpsertBindingsDto {
-    pub binding_upserts: Vec<BindingUpsertDto>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct BindEmailDto {
     pub email: String,
     pub email_otp_code: String,
@@ -38744,70 +38188,13 @@ pub struct BindEmailDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct BindingDetailDto {
-    pub binding_kind: String,
-    pub binding_point: String,
-    pub condition_hash: String,
-    pub conditions: BTreeMap<String, String>,
-    pub created_at: String,
-    pub created_by: String,
-    pub host_id: String,
-    pub host_type: String,
-    pub id: String,
-    pub intent_prompt: String,
-    pub object_id: String,
-    pub object_type: String,
-    pub priority: f64,
-    pub resource: Box<BindingResourceDetailDto>,
-    pub scope_world_id: String,
-    pub tags: Vec<String>,
-    pub updated_at: String,
-    pub version_pin: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct BindingListDto {
-    pub items: Vec<BindingDetailDto>,
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct BindingResourceDetailDto {
-    pub duration_sec: f64,
-    pub hash_sha256: String,
-    pub height: f64,
-    pub id: String,
-    pub label: String,
-    pub mime_type: String,
-    pub provenance: String,
-    pub provider: String,
-    pub resource_type: String,
-    pub size_bytes: f64,
-    pub source_ref: String,
-    pub storage_ref: String,
-    pub tags: Vec<String>,
-    pub url: String,
-    pub width: f64,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct BindingUpsertDto {
-    pub binding_kind: String,
-    pub binding_point: String,
-    pub conditions: BTreeMap<String, String>,
-    pub host_id: String,
-    pub host_type: String,
-    pub intent_prompt: String,
-    pub object_id: String,
-    pub object_type: String,
-    pub priority: f64,
-    pub tags: Vec<String>,
-    pub version_pin: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct BlockUserBodyDto {
     pub reason: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct BootstrapOasisWorldDto {
+    pub confirm: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -38839,44 +38226,12 @@ pub struct BundleMemberDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct CalendarSystemDto {
-    pub days_per_month: f64,
-    pub days_per_week: f64,
-    pub hours_per_day: f64,
-    pub months_per_year: f64,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct CanManageNsfwResponseDto {
-    pub can_manage: bool,
-    pub is_creator: bool,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct CanWithdrawDto {
     pub balance: String,
     pub can_withdraw: bool,
     pub connect_status: Box<StripeConnectStatus>,
     pub min_amount: String,
     pub reason: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct CausalityModelDto {
-    pub allow_paradox: bool,
-    pub fate_weight: f64,
-    pub karma_enabled: bool,
-    pub max_chain_depth: f64,
-    pub rules: Vec<CausalityRuleDto>,
-    pub r#type: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct CausalityRuleDto {
-    pub effect: String,
-    pub id: String,
-    pub probability: f64,
-    pub trigger: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -38972,56 +38327,12 @@ pub struct CheckEmailResponseDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct ClassDefinitionDto {
-    pub abilities: Vec<String>,
-    pub description: String,
-    pub id: String,
-    pub name: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct CloneAssetDto {
     pub clone_policy: String,
     pub owner_id: String,
     pub status: String,
     pub transfer_policy: String,
     pub use_policy: Box<UsePolicyDto>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct CommitRealmGroupMessageCandidateInputDto {
-    pub audit_lineage_ref: String,
-    pub body: String,
-    pub body_hash: String,
-    pub candidate_evidence_ref: String,
-    pub candidate_id: String,
-    pub candidate_kind: String,
-    pub client_correlation_id: String,
-    pub commit_disposition: String,
-    pub created_at: String,
-    pub evidence_hash: String,
-    pub expected_local_agent_ref: String,
-    pub expected_realm_group_agent_slot_id: String,
-    pub expires_at: String,
-    pub idempotency_key: String,
-    pub message_type: String,
-    pub moderation_ref: String,
-    pub output_candidate_ref: String,
-    pub policy_verdict_ref: String,
-    pub refusal_code: String,
-    pub refusal_hash: String,
-    pub refusal_reason: String,
-    pub refusal_ref: String,
-    pub runtime_trace_ref: String,
-    pub trigger_ref: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct CommitWorldStateDto {
-    pub commit: Box<MutationCommitEnvelopeDto>,
-    pub if_snapshot_version: String,
-    pub reason: String,
-    pub writes: Vec<WorldStateWriteDto>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -39036,83 +38347,6 @@ pub struct ConnectOnboardingResponseDto {
 }
 
 pub type ContentRatingString = String;
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct CreateAgentAuthoringDraftBatchDto {
-    pub candidates: Vec<CreateAgentAuthoringDraftCandidateDto>,
-    pub metadata: Box<AgentAuthoringDraftBatchMetadataDto>,
-    pub skeleton_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct CreateAgentAuthoringDraftCandidateDto {
-    pub generated_at: String,
-    pub model_id: String,
-    pub prompt_digest_sha256: String,
-    pub provenance: Box<AgentAuthoringRuntimeTraceDto>,
-    pub route_policy: String,
-    pub runtime_trace_id: String,
-    pub source_refs: Vec<AgentAuthoringSourceRefDto>,
-    pub target_key: String,
-    pub value: Box<AgentAuthoringDraftCandidateValueDto>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct CreateAgentDto {
-    pub concept: String,
-    pub description: String,
-    pub display_name: String,
-    pub dna: BTreeMap<String, String>,
-    pub dna_primary: String,
-    pub dna_secondary: Vec<DnaSecondaryTrait>,
-    pub handle: String,
-    pub ownership_type: String,
-    pub reference_image_url: String,
-    pub rules: Box<CreateAgentRulesDto>,
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct CreateAgentResponseDto {
-    pub dna: BTreeMap<String, String>,
-    pub id: String,
-    pub state: String,
-    pub user: Box<AgentResponseUserDto>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct CreateAgentRuleDto {
-    pub category: String,
-    pub conflicts_with: Vec<String>,
-    pub depends_on: Vec<String>,
-    pub hardness: String,
-    pub importance: f64,
-    pub layer: String,
-    pub priority: f64,
-    pub provenance: String,
-    pub reasoning: String,
-    pub rule_key: String,
-    pub scope: String,
-    pub source_ref: String,
-    pub statement: String,
-    pub structured: BTreeMap<String, String>,
-    pub title: String,
-    pub world_rule_ref: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct CreateAgentRulesDto {
-    pub format: String,
-    pub lines: Vec<String>,
-    pub text: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct CreateApiKeyDto {
-    pub label: String,
-    pub scopes: Vec<String>,
-    pub r#type: Box<ApiKeyType>,
-}
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CreateAssetDto {
@@ -39133,7 +38367,6 @@ pub struct CreateAssetDto {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CreateAudioDirectUploadDto {
-    pub agent_id: String,
     pub controller_id: String,
     pub controller_kind: String,
     pub delivery_access: String,
@@ -39203,11 +38436,19 @@ pub struct CreatePostDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct CreateRealmPersonaDto {
+    pub core: BTreeMap<String, String>,
+    pub home_world_id: String,
+    pub id: String,
+    pub origin: Box<RealmCoreOriginDto>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct CreateRelationshipDto {
     pub context: String,
     pub strength: f64,
     pub target_id: String,
-    pub r#type: Box<AgentRelationType>,
+    pub r#type: Box<AccountRelationType>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -39227,6 +38468,11 @@ pub struct CreateReviewDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct CreateRuntimeSourceSnapshotDto {
+    pub source_ref: Box<TypedSourceRefDto>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct CreateSparkCheckoutDto {
     pub cancel_url: String,
     pub package_id: String,
@@ -39242,7 +38488,6 @@ pub struct CreateSubscriptionCheckoutDto {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CreateTextResourceDto {
-    pub agent_id: String,
     pub content: String,
     pub controller_id: String,
     pub controller_kind: String,
@@ -39273,200 +38518,29 @@ pub struct CreateWithdrawalDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct CreateWorldDraftDto {
-    pub draft_payload: Box<WorldDraftPayloadDto>,
-    pub source_ref: String,
-    pub source_type: String,
-    pub target_world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct CreateWorldRuleDto {
-    pub category: String,
-    pub conflicts_with: Vec<String>,
-    pub depends_on: Vec<String>,
-    pub domain: String,
-    pub hardness: String,
-    pub overrides: String,
-    pub priority: f64,
-    pub provenance: String,
-    pub reasoning: String,
-    pub rule_key: String,
-    pub scope: String,
-    pub source_ref: String,
-    pub statement: String,
-    pub structured: BTreeMap<String, String>,
-    pub title: String,
-    pub valid_from: String,
-    pub valid_until: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct CreateWorldTransitDto {
-    pub agent_id: String,
-    pub context: Box<TransitContextDto>,
-    pub from_world_id: String,
-    pub transit_type: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct CreatorAgentResponseDto {
-    pub capabilities: Box<UserAgentDnaDto>,
+pub struct CreateWorldCharacterCoreDto {
+    pub core: BTreeMap<String, String>,
+    pub entity_id: String,
     pub id: String,
-    pub user: Box<UserLiteDto>,
+    pub origin: Box<RealmCoreOriginDto>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct CreatorCapabilitiesResponseDto {
-    pub allowed_actions: Vec<String>,
-    pub forbidden_actions: Vec<String>,
-    pub is_creator: bool,
-    pub world_status: String,
+pub struct CreateWorldCoreDto {
+    pub core: BTreeMap<String, String>,
+    pub id: String,
+    pub origin: Box<RealmCoreOriginDto>,
+    pub visibility: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CreatorEligibilityResponseDto {
-    pub can_create_agent: bool,
+    pub can_create_realm_persona: bool,
     pub can_create_world: bool,
     pub is_eligible: bool,
     pub message: String,
     pub status: String,
     pub tier: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct CreatorWorldAgentChatReadinessDto {
-    pub agent_id: String,
-    pub agent_rule_count: f64,
-    pub applied_authoring_targets: Vec<String>,
-    pub authority_reason: String,
-    pub consumer_surface: String,
-    pub gates: Box<CreatorWorldAgentChatReadinessGatesDto>,
-    pub owner_scope: String,
-    pub profile: Box<CreatorWorldAgentChatReadinessProfileDto>,
-    pub raw_rule_content_exposed: bool,
-    pub runtime_projection_checksum: String,
-    pub selected_input_count: f64,
-    pub selected_owner_setting_fields: Vec<String>,
-    pub suppressed_input_count: f64,
-    pub world_id: String,
-    pub world_rule_count: f64,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct CreatorWorldAgentChatReadinessGatesDto {
-    pub authoring_draft_ready: bool,
-    pub behavior_dna_ready: bool,
-    pub dialogue_exemplars_ready: bool,
-    pub greeting_ready: bool,
-    pub local_agent_identity_ready: bool,
-    pub owner_settings_ready: bool,
-    pub profile_context_ready: bool,
-    pub profile_cover_ready: bool,
-    pub profile_media_ready: bool,
-    pub speech_route_ready: bool,
-    pub voice_reference_ready: bool,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct CreatorWorldAgentChatReadinessProfileDto {
-    pub avatar_resource_id: String,
-    pub avatar_url: String,
-    pub default_voice_reference: String,
-    pub display_name: String,
-    pub handle: String,
-    pub profile_cover_resource_id: String,
-    pub profile_cover_url: String,
-    pub speech_model_id: String,
-    pub speech_route_policy: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct CreatorWorldAgentCompletionBriefDto {
-    pub avatar_brief: String,
-    pub content_style: String,
-    pub description: String,
-    pub dna_brief: String,
-    pub greeting_brief: String,
-    pub positioning: String,
-    pub voice_brief: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct CreatorWorldAgentRuntimeReadinessDto {
-    pub reason: String,
-    pub required_creator_actions: Vec<String>,
-    pub roleplay_runtime: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct CreatorWorldAgentSkeletonFactsDto {
-    pub birth_year: f64,
-    pub death_year: f64,
-    pub office_facts: Vec<CreatorWorldAgentSkeletonOfficeFactDto>,
-    pub relationships: Vec<CreatorWorldAgentSkeletonRelationshipDto>,
-    pub representative_facts: Vec<String>,
-    pub timeline_fact_count: f64,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct CreatorWorldAgentSkeletonOfficeFactDto {
-    pub event_id: String,
-    pub name: String,
-    pub office_name: String,
-    pub summary: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct CreatorWorldAgentSkeletonRelationshipDto {
-    pub context: String,
-    pub relation_type: String,
-    pub relationship_id: String,
-    pub target_entity_id: String,
-    pub target_name: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct CreatorWorldAgentSourceSkeletonDto {
-    pub agent_id: String,
-    pub aliases: Vec<String>,
-    pub candidate_id: String,
-    pub canonical_name: String,
-    pub completion_brief: Box<CreatorWorldAgentCompletionBriefDto>,
-    pub missing_fields: Vec<String>,
-    pub package_id: String,
-    pub package_version: String,
-    pub runtime_readiness: Box<CreatorWorldAgentRuntimeReadinessDto>,
-    pub skeleton_id: String,
-    pub source_entity_id: String,
-    pub source_facts: Box<CreatorWorldAgentSkeletonFactsDto>,
-    pub source_kind: String,
-    pub source_profile: String,
-    pub source_refs: Vec<String>,
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct CreatorWorldSummaryDto {
-    pub agent_count: f64,
-    pub authority_reason: String,
-    pub banner_url: String,
-    pub creator_id: String,
-    pub description: String,
-    pub icon_url: String,
-    pub id: String,
-    pub motto: String,
-    pub name: String,
-    pub overview: String,
-    pub status: String,
-    pub tagline: String,
-    pub r#type: String,
-    pub updated_at: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct CreatorWorldSummaryListDto {
-    pub items: Vec<CreatorWorldSummaryDto>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -39500,16 +38574,9 @@ pub struct CursorPageMetaDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct DeleteAgentOperationResponseDto {
-    pub success: bool,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct DeleteRelationshipResponseDto {
     pub deleted: bool,
 }
-
-pub type DnaSecondaryTrait = String;
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct EditMessageInputDto {
@@ -39535,28 +38602,6 @@ pub struct EmailOtpVerifyDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct ExistenceDefinitionDto {
-    pub classes: Vec<ClassDefinitionDto>,
-    pub factions: Vec<FactionDefinitionDto>,
-    pub species: Vec<SpeciesDefinitionDto>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct FactionDefinitionDto {
-    pub alignment: String,
-    pub description: String,
-    pub id: String,
-    pub name: String,
-    pub relationships: Vec<FactionRelationshipDto>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct FactionRelationshipDto {
-    pub target_faction_id: String,
-    pub r#type: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct FeedPageMetaDto {
     pub cursor: String,
     pub limit: f64,
@@ -39571,7 +38616,6 @@ pub struct FeedResponseDto {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct FinalizeResourceDto {
-    pub agent_id: String,
     pub controller_id: String,
     pub controller_kind: String,
     pub delivery_access: String,
@@ -39596,266 +38640,7 @@ pub struct FinalizeResourceDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct ForgeAgentCandidateCapabilityCellDto {
-    pub evidence_truth_ref_count: f64,
-    pub evidence_truth_refs: Vec<String>,
-    pub predicate_id: String,
-    pub requirements: Vec<ForgeAgentCandidateRequirementDto>,
-    pub status: String,
-    pub surface: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ForgeAgentCandidateDto {
-    pub agent_ref: String,
-    pub capability_vector: Vec<ForgeAgentCandidateCapabilityCellDto>,
-    pub completeness_intent: String,
-    pub entity_ref: String,
-    pub id: String,
-    pub name: String,
-    pub runtime_materialization: Box<ForgeAgentCandidateRuntimeMaterializationDto>,
-    pub source_profiles: Vec<ForgeAgentCandidateSourceProfileDto>,
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ForgeAgentCandidateQueryFiltersDto {
-    pub query: String,
-    pub status: String,
-    pub surface: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ForgeAgentCandidateQueryResultDto {
-    pub candidates: Vec<ForgeAgentCandidateDto>,
-    pub filters: Box<ForgeAgentCandidateQueryFiltersDto>,
-    pub package_id: String,
-    pub returned: f64,
-    pub schema_version: String,
-    pub slug: String,
-    pub total: f64,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ForgeAgentCandidateRequirementDto {
-    pub actual: f64,
-    pub gap: f64,
-    pub gap_kind: String,
-    pub id: String,
-    pub passed: bool,
-    pub required: f64,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ForgeAgentCandidateRuntimeMaterializationDto {
-    pub materialized_runtime_agent: bool,
-    pub roleplay_runtime_eligible: bool,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ForgeAgentCandidateSourceProfileDto {
-    pub archetype: String,
-    pub authority_rank: String,
-    pub evidence_locator_kind: String,
-    pub profile: String,
-    pub source_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ForgeProductArtifactRefDto {
-    pub checksum: String,
-    pub kind: String,
-    pub path: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ForgeProductCapabilitySummaryDto {
-    pub agent_candidates: f64,
-    pub completeness_intent_counts: BTreeMap<String, String>,
-    pub materialized_runtime_agents: f64,
-    pub runtime_ready_candidates: f64,
-    pub surface_status_counts: BTreeMap<String, String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ForgeProductCountsDto {
-    pub agent_blueprints: f64,
-    pub agent_capabilities: f64,
-    pub agent_exemplars: f64,
-    pub agent_relationships: f64,
-    pub evidence_records: f64,
-    pub projection_inputs: f64,
-    pub scenes: f64,
-    pub world_entities: f64,
-    pub world_events: f64,
-    pub world_relationships: f64,
-    pub world_rules: f64,
-    pub world_systems: f64,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ForgeProductEvalScorecardDto {
-    pub admission_authority: String,
-    pub artifact_path: String,
-    pub checksum: String,
-    pub public_dataset: bool,
-    pub suite: String,
-    pub trust_tier: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ForgeProductOptionalArtifactQualityDto {
-    pub artifact_path: String,
-    pub checksum: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ForgeProductQualityDto {
-    pub eval_scorecards: Vec<ForgeProductEvalScorecardDto>,
-    pub preset_zeroing: Box<ForgeProductOptionalArtifactQualityDto>,
-    pub update_run: Box<ForgeProductUpdateRunQualityDto>,
-    pub validation: Box<ForgeProductValidationQualityDto>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ForgeProductShardIndexDto {
-    pub package_id: String,
-    pub package_version: String,
-    pub schema_version: String,
-    pub shard_manifest: Box<ForgeProductShardManifestRefDto>,
-    pub shards: Vec<ForgeProductShardIndexItemDto>,
-    pub slug: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ForgeProductShardIndexItemDto {
-    pub byte_size: f64,
-    pub checksum: String,
-    pub export_keys: Vec<String>,
-    pub kind: String,
-    pub path: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ForgeProductShardIntegrityItemDto {
-    pub actual_checksum: String,
-    pub byte_size: f64,
-    pub error: String,
-    pub expected_checksum: String,
-    pub export_keys: Vec<String>,
-    pub kind: String,
-    pub path: String,
-    pub status: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ForgeProductShardIntegrityReportDto {
-    pub package_id: String,
-    pub package_version: String,
-    pub schema_version: String,
-    pub shard_manifest: Box<ForgeProductShardManifestRefDto>,
-    pub shards: Vec<ForgeProductShardIntegrityItemDto>,
-    pub slug: String,
-    pub status: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ForgeProductShardManifestRefDto {
-    pub checksum: String,
-    pub path: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ForgeProductShardReadDto {
-    pub checksum: String,
-    pub kind: String,
-    pub package_id: String,
-    pub package_version: String,
-    pub record: BTreeMap<String, String>,
-    pub schema_version: String,
-    pub slug: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ForgeProductSourceProfileDto {
-    pub archetype: String,
-    pub authority_rank: String,
-    pub evidence_locator_kind: String,
-    pub input_count: f64,
-    pub locale_profile: String,
-    pub profile: String,
-    pub source_id: String,
-    pub title: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ForgeProductUpdateRunQualityDto {
-    pub artifact_path: String,
-    pub checksum: String,
-    pub run_status: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ForgeProductValidationQualityDto {
-    pub artifact_path: String,
-    pub checksum: String,
-    pub status: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ForgeProductWorldRefDto {
-    pub id: String,
-    pub name: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ForgeWorldCatalogDto {
-    pub quality_summary: Box<ForgeWorldCatalogQualitySummaryDto>,
-    pub root_dir: String,
-    pub schema_version: String,
-    pub worlds: Vec<ForgeWorldProductDto>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ForgeWorldCatalogQualitySummaryDto {
-    pub eval_scorecards: f64,
-    pub golden_gate_scorecards: f64,
-    pub public_reference_scorecards: f64,
-    pub report_only_scorecards: f64,
-    pub update_run_blocked: f64,
-    pub update_run_failed: f64,
-    pub update_run_noop: f64,
-    pub update_run_success: f64,
-    pub validation_fail: f64,
-    pub validation_pass: f64,
-    pub worlds: f64,
-    pub worlds_with_golden_gate: f64,
-    pub worlds_with_preset_zeroing: f64,
-    pub worlds_with_public_reference: f64,
-    pub worlds_with_update_run: f64,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ForgeWorldProductDto {
-    pub artifacts: Vec<ForgeProductArtifactRefDto>,
-    pub capability_summary: Box<ForgeProductCapabilitySummaryDto>,
-    pub counts: Box<ForgeProductCountsDto>,
-    pub distribution_shape: String,
-    pub package_id: String,
-    pub package_version: String,
-    pub product_id: String,
-    pub quality: Box<ForgeProductQualityDto>,
-    pub schema_version: String,
-    pub slug: String,
-    pub source_mix: Vec<ForgeProductSourceProfileDto>,
-    pub target: String,
-    pub world: Box<ForgeProductWorldRefDto>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct FriendProfileDto {
-    pub agent: Box<AgentMetadataDto>,
-    pub agent_profile: Box<AgentProfileDto>,
     pub avatar_url: String,
     pub bio: String,
     pub birth_year: f64,
@@ -39869,7 +38654,6 @@ pub struct FriendProfileDto {
     pub gift_stats: BTreeMap<String, String>,
     pub handle: String,
     pub id: String,
-    pub is_agent: bool,
     pub is_online: bool,
     pub languages: Vec<String>,
     pub presence_emoji: String,
@@ -39948,15 +38732,6 @@ pub struct GiftTransactionRichDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct GlossaryTermDto {
-    pub category: String,
-    pub definition: String,
-    pub id: String,
-    pub importance: String,
-    pub term: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct GroupChatViewDto {
     pub created_at: String,
     pub creator_id: String,
@@ -39973,9 +38748,9 @@ pub struct GroupChatViewDto {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct GroupMessageAuthorDto {
     pub account_id: String,
-    pub agent_owner_id: String,
     pub avatar_url: String,
     pub display_name: String,
+    pub source_owner_id: String,
     pub r#type: String,
 }
 
@@ -39998,16 +38773,16 @@ pub struct GroupMessageViewDto {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct GroupParticipantDto {
     pub account_id: String,
-    pub agent_owner_id: String,
     pub avatar_url: String,
     pub display_name: String,
     pub handle: String,
     pub is_online: bool,
     pub joined_at: String,
-    pub local_agent_ref: String,
-    pub realm_agent_id: String,
-    pub realm_group_agent_slot_id: String,
     pub role: String,
+    pub runtime_participant_slot: String,
+    pub runtime_source_ref: String,
+    pub source_owner_id: String,
+    pub source_ref: String,
     pub r#type: String,
 }
 
@@ -40095,85 +38870,6 @@ pub struct ListMessagesResultDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct LocalAgentProvisionIntentAckDto {
-    pub detail: String,
-    pub outcome: Box<LocalAgentProvisionIntentAckOutcome>,
-}
-
-pub type LocalAgentProvisionIntentAckOutcome = String;
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct LocalAgentProvisionIntentDto {
-    pub acked_at: String,
-    pub attempts: f64,
-    pub available_at: String,
-    pub created_at: String,
-    pub id: String,
-    pub local_agent_ref: String,
-    pub owner_user_id: String,
-    pub realm_agent_id: String,
-    pub status: Box<LocalAgentProvisionIntentStatus>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct LocalAgentProvisionIntentListDto {
-    pub items: Vec<LocalAgentProvisionIntentDto>,
-}
-
-pub type LocalAgentProvisionIntentStatus = String;
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct LocalAgentTerminationIntentAckDto {
-    pub detail: String,
-    pub outcome: Box<LocalAgentTerminationIntentAckOutcome>,
-}
-
-pub type LocalAgentTerminationIntentAckOutcome = String;
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct LocalAgentTerminationIntentDto {
-    pub acked_at: String,
-    pub attempts: f64,
-    pub available_at: String,
-    pub created_at: String,
-    pub id: String,
-    pub local_agent_ref: String,
-    pub owner_user_id: String,
-    pub realm_agent_id: String,
-    pub status: Box<LocalAgentTerminationIntentStatus>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct LocalAgentTerminationIntentListDto {
-    pub items: Vec<LocalAgentTerminationIntentDto>,
-}
-
-pub type LocalAgentTerminationIntentStatus = String;
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct LocationLandmarkDto {
-    pub description: String,
-    pub id: String,
-    pub name: String,
-    pub region_id: String,
-    pub significance: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct LocationRegionDto {
-    pub climate: String,
-    pub description: String,
-    pub id: String,
-    pub name: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct MakeAgentPublicResponseDto {
-    pub account_visibility: Box<Visibility>,
-    pub success: bool,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct MarkNotificationsReadInputDto {
     pub ids: Vec<String>,
     pub mark_all_before: String,
@@ -40224,34 +38920,6 @@ pub struct MessageViewDto {
 pub type ModerationStatusString = String;
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct MutationActorRefDto {
-    pub actor_id: String,
-    pub actor_type: String,
-    pub role: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct MutationCommitEnvelopeDto {
-    pub actor_refs: Vec<MutationActorRefDto>,
-    pub app_id: String,
-    pub effect_class: String,
-    pub evidence_refs: Vec<MutationEvidenceRefDto>,
-    pub reason: String,
-    pub schema_id: String,
-    pub schema_version: String,
-    pub scope: String,
-    pub session_id: String,
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct MutationEvidenceRefDto {
-    pub kind: String,
-    pub ref_id: String,
-    pub uri: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct NotificationActivityDto {
     pub direct_messages: bool,
     pub friend_requests: bool,
@@ -40260,50 +38928,13 @@ pub struct NotificationActivityDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct NotificationActorAgentMetadataDto {
-    pub active_world_id: String,
-    pub category: String,
-    pub importance: Box<AgentImportance>,
-    pub origin: Box<AgentOrigin>,
-    pub owner_world_id: String,
-    pub ownership_type: Box<AgentOwnershipType>,
-    pub state: Box<AgentState>,
-    pub tier: Box<VerificationTier>,
-    pub wake_strategy: String,
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct NotificationActorAgentProfileDto {
-    pub active_world_id: String,
-    pub importance: Box<AgentImportance>,
-    pub owner_world_id: String,
-    pub ownership_type: Box<AgentOwnershipType>,
-    pub state: Box<AgentState>,
-    pub stats: Box<NotificationActorAgentStatsDto>,
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct NotificationActorAgentStatsDto {
-    pub engagement_count: f64,
-    pub influence_tier: f64,
-    pub interaction_tier: f64,
-    pub last_active_at: String,
-    pub vitality_score: f64,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct NotificationActorDto {
-    pub agent: Box<NotificationActorAgentMetadataDto>,
-    pub agent_profile: Box<NotificationActorAgentProfileDto>,
     pub avatar_url: String,
     pub bio: String,
     pub created_at: String,
     pub display_name: String,
     pub handle: String,
     pub id: String,
-    pub is_agent: bool,
     pub presence_emoji: String,
     pub presence_status: String,
     pub presence_text: String,
@@ -40363,21 +38994,6 @@ pub struct NotificationTargetDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct NsfwConsentResponseDto {
-    pub agent_consent: bool,
-    pub allowed: bool,
-    pub reason: String,
-    pub user_consent: bool,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct NsfwConsentStatusResponseDto {
-    pub agent_nsfw_enabled: bool,
-    pub mutually_consented: bool,
-    pub user_nsfw_enabled: bool,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct OAuthLinkResponseDto {
     pub provider: String,
     pub status: String,
@@ -40424,57 +39040,6 @@ pub struct OAuthTokenResponseDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct OwnerAgentBoundarySettingsDto {
-    pub allowed_themes: Vec<String>,
-    pub disallowed_themes: Vec<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct OwnerAgentCommunicationSettingsDto {
-    pub content_style: String,
-    pub formality: String,
-    pub response_length: String,
-    pub sentiment: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct OwnerAgentIdentitySettingsDto {
-    pub public_role: String,
-    pub worldview: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct OwnerAgentPersonalitySettingsDto {
-    pub goals: Vec<String>,
-    pub interests: Vec<String>,
-    pub relationship_mode: String,
-    pub summary: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct OwnerAgentPositioningSettingsDto {
-    pub positioning: String,
-    pub target_audience: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct OwnerAgentSettingsDto {
-    pub agent_id: String,
-    pub agent_rule_version: f64,
-    pub boundaries: Box<OwnerAgentBoundarySettingsDto>,
-    pub communication: Box<OwnerAgentCommunicationSettingsDto>,
-    pub description: String,
-    pub display_name: String,
-    pub greeting: String,
-    pub identity: Box<OwnerAgentIdentitySettingsDto>,
-    pub natural_language_intent: String,
-    pub personality: Box<OwnerAgentPersonalitySettingsDto>,
-    pub positioning: Box<OwnerAgentPositioningSettingsDto>,
-    pub updated_at: String,
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct PPSlotConfigDto {
     pub slot1: Box<PPSlotItemDto>,
     pub slot2: Box<PPSlotItemDto>,
@@ -40503,15 +39068,6 @@ pub struct PasswordLoginDto {
 pub struct PasswordRegisterDto {
     pub email: String,
     pub password: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct PermissionCheckResponseDto {
-    pub action: String,
-    pub allowed: bool,
-    pub creator_id: String,
-    pub reason: String,
-    pub world_id: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -40551,72 +39107,9 @@ pub struct PostDto {
     pub world_id: String,
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct PowerSystemDto {
-    pub abilities: Vec<AbilityDefinitionDto>,
-    pub constraints: Vec<String>,
-    pub description: String,
-    pub levels: Vec<PowerSystemLevelDto>,
-    pub name: String,
-    pub power_systems: Vec<PowerSystemDto>,
-    pub rules: Vec<WorldRuleItemDto>,
-    pub taboos: Vec<PowerSystemTabooDto>,
-    pub tiers: Vec<PowerTierDto>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct PowerSystemLevelDto {
-    pub breakthrough_condition: String,
-    pub description: String,
-    pub name: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct PowerSystemTabooDto {
-    pub description: String,
-    pub name: String,
-    pub severity: String,
-    pub title: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct PowerTierDto {
-    pub description: String,
-    pub level: f64,
-    pub name: String,
-    pub requirements: Vec<String>,
-}
-
 pub type PresenceStatus = String;
 
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct PublicBindingDto {
-    pub binding_kind: String,
-    pub binding_point: String,
-    pub host_id: String,
-    pub host_type: String,
-    pub id: String,
-    pub object_id: String,
-    pub object_type: String,
-    pub priority: f64,
-    pub resource: Box<PublicBindingResourceDto>,
-    pub tags: Vec<String>,
-    pub version_pin: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct PublicBindingListDto {
-    pub items: Vec<PublicBindingDto>,
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct PublicBindingResourceDto {
-    pub id: String,
-    pub label: String,
-    pub resource_type: String,
-    pub url: String,
-}
+pub type PublicAccountRole = String;
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct PublicFilterDto {
@@ -40631,98 +39124,34 @@ pub struct PublicFilterDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct PublicWorldHistoryEventDto {
-    pub cause: String,
-    pub character_refs: Vec<String>,
-    pub committed_at: String,
-    pub depends_on_event_ids: Vec<String>,
-    pub event_id: String,
-    pub event_type: String,
-    pub evidence_refs: Vec<WorldEventEvidenceRefDto>,
-    pub happened_at: String,
+pub struct RealmCoreOriginDto {
+    pub kind: String,
+    pub parent_character_id: String,
+    pub parent_world_id: String,
+    pub source_content_hash: String,
+    pub source_id: String,
+    pub source_version: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmPersonaDto {
+    pub content_hash: String,
+    pub content_revision: f64,
+    pub core: BTreeMap<String, String>,
+    pub created_at: String,
+    pub home_world_id: String,
     pub id: String,
-    pub location_refs: Vec<String>,
-    pub payload: BTreeMap<String, String>,
-    pub process: String,
-    pub result: String,
-    pub summary: String,
-    pub time_ref: String,
-    pub title: String,
-    pub visibility: String,
-    pub world_id: String,
+    pub origin: Box<RealmCoreOriginDto>,
+    pub owner_id: String,
+    pub schema_version: String,
+    pub updated_at: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct PublicWorldHistoryListDto {
-    pub items: Vec<PublicWorldHistoryEventDto>,
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct PublicWorldLorebookDto {
-    pub content: String,
-    pub id: String,
-    pub key: String,
-    pub keywords: Vec<String>,
-    pub name: String,
-    pub priority: f64,
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct PublicWorldLorebookListDto {
-    pub items: Vec<PublicWorldLorebookDto>,
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct PublicWorldSceneDto {
-    pub active_entities: Vec<String>,
-    pub description: String,
-    pub id: String,
-    pub name: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct PublicWorldSceneListDto {
-    pub items: Vec<PublicWorldSceneDto>,
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct PublishWorldDraftDto {
-    pub reason: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct PublishWorldDraftResultDto {
-    pub draft_id: String,
-    pub published_at: String,
-    pub world_id: String,
-    pub worldview_version: f64,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGroupMessageCandidateCommitResultDto {
-    pub audit_record_id: String,
-    pub candidate_id: String,
-    pub commit_disposition: String,
-    pub commit_id: String,
-    pub committed_at: String,
-    pub committed_message: Box<GroupMessageViewDto>,
-    pub committed_message_id: String,
-    pub evidence_hash: String,
-    pub idempotency_key: String,
-    pub local_agent_ref: String,
-    pub owner_user_id: String,
-    pub realm_agent_id: String,
-    pub realm_group_agent_slot_id: String,
-    pub refusal_code: String,
-    pub refusal_reason: String,
-    pub rejection_code: String,
-    pub runtime_trace_ref: String,
-    pub status: String,
-    pub sync_cursor: f64,
+pub struct RealmSourceCapabilitiesDto {
+    pub can_create_realm_persona: bool,
+    pub can_create_runtime_source_snapshot: bool,
+    pub can_use_world_character_sources: bool,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -40749,13 +39178,34 @@ pub struct RelationshipResponseDto {
     pub source_id: String,
     pub strength: f64,
     pub target_id: String,
-    pub r#type: Box<AgentRelationType>,
+    pub r#type: Box<AccountRelationType>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RemoveAgentRelationshipDto {
-    pub target_id: String,
-    pub r#type: Box<AgentRelationType>,
+pub struct ReplaceRealmPersonaDto {
+    pub base_content_hash: String,
+    pub core: BTreeMap<String, String>,
+    pub home_world_id: String,
+    pub id: String,
+    pub origin: Box<RealmCoreOriginDto>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ReplaceWorldCharacterCoreDto {
+    pub base_content_hash: String,
+    pub core: BTreeMap<String, String>,
+    pub entity_id: String,
+    pub id: String,
+    pub origin: Box<RealmCoreOriginDto>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ReplaceWorldCoreDto {
+    pub base_content_hash: String,
+    pub core: BTreeMap<String, String>,
+    pub id: String,
+    pub origin: Box<RealmCoreOriginDto>,
+    pub visibility: String,
 }
 
 pub type ReportReason = String;
@@ -40789,36 +39239,7 @@ pub struct RequestDataExportDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct ResourceAcquisitionRuleDto {
-    pub conditions: Vec<String>,
-    pub rate: f64,
-    pub resource_id: String,
-    pub source: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ResourceConsumptionRuleDto {
-    pub action: String,
-    pub amount: f64,
-    pub resource_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ResourceCostDto {
-    pub amount: f64,
-    pub r#type: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ResourceDefinitionDto {
-    pub acquisition_rules: Vec<ResourceAcquisitionRuleDto>,
-    pub consumption_rules: Vec<ResourceConsumptionRuleDto>,
-    pub types: Vec<ResourceTypeDto>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ResourceDetailDto {
-    pub agent_id: String,
     pub controller_id: String,
     pub controller_kind: String,
     pub created_at: String,
@@ -40870,19 +39291,9 @@ pub struct ResourceListDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct ResourceTypeDto {
-    pub consumable: bool,
-    pub description: String,
-    pub id: String,
-    pub max_amount: f64,
-    pub name: String,
-    pub tradeable: bool,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RevenueDistributionPreviewDto {
-    pub is_native_agent: bool,
-    pub master_amount: String,
+    pub is_world_owned: bool,
+    pub owner_amount: String,
     pub total_amount: String,
     pub world_creator_amount: String,
 }
@@ -40890,13 +39301,7 @@ pub struct RevenueDistributionPreviewDto {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct RevenueShareConfigDto {
     pub min_share_threshold: String,
-    pub native_agent_creator_share_percent: f64,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ReviewAgentAuthoringDraftCandidateDto {
-    pub edited_value: Box<AgentAuthoringDraftCandidateValueDto>,
-    pub status: String,
+    pub world_creator_share_percent: f64,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -40919,99 +39324,6 @@ pub struct ReviewStatsDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RuleValidationResponseDto {
-    pub is_valid: bool,
-    pub violations: Vec<String>,
-    pub warnings: Vec<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RuntimeProjectionContextEnvelopeDto {
-    pub allowed_agent_layers: Vec<String>,
-    pub allowed_agent_scopes: Vec<String>,
-    pub allowed_world_scopes: Vec<String>,
-    pub focus_keywords: Vec<String>,
-    pub include_inherited_agent_rules: bool,
-    pub requested_agent_rule_keys: Vec<String>,
-    pub requested_world_rule_keys: Vec<String>,
-    pub scene_id: String,
-    pub state_visibility_keys: Vec<String>,
-    pub temporal_position: String,
-    pub turn_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RuntimeProjectionInputDto {
-    pub agent_id: String,
-    pub hardness: String,
-    pub id: String,
-    pub layer: String,
-    pub lineage_id: String,
-    pub priority: f64,
-    pub provenance: String,
-    pub reasoning: String,
-    pub rule_key: String,
-    pub scope: String,
-    pub source_id: String,
-    pub source_ref: String,
-    pub source_type: String,
-    pub statement: String,
-    pub structured: BTreeMap<String, String>,
-    pub title: String,
-    pub valid_from: String,
-    pub valid_until: String,
-    pub world_id: String,
-    pub world_rule_ref: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RuntimeProjectionPayloadDto {
-    pub agent_rules: Vec<RuntimeProjectionInputDto>,
-    pub world_rules: Vec<RuntimeProjectionInputDto>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RuntimeProjectionRequestDto {
-    pub agent_id: String,
-    pub context_envelope: Box<RuntimeProjectionContextEnvelopeDto>,
-    pub release_anchor: String,
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RuntimeProjectionResolutionOutcomeDto {
-    pub decision: String,
-    pub input_id: String,
-    pub reasons: Vec<String>,
-    pub source_type: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RuntimeProjectionResponseDto {
-    pub agent_id: String,
-    pub checksum: String,
-    pub consumer_surface: String,
-    pub payload: Box<RuntimeProjectionPayloadDto>,
-    pub release_anchor: String,
-    pub selected_inputs: Vec<RuntimeProjectionInputDto>,
-    pub trace: Box<RuntimeProjectionTraceDto>,
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RuntimeProjectionSuppressedInputDto {
-    pub input: Box<RuntimeProjectionInputDto>,
-    pub reason: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RuntimeProjectionTraceDto {
-    pub resolution_outcomes: Vec<RuntimeProjectionResolutionOutcomeDto>,
-    pub selected_input_ids: Vec<String>,
-    pub suppressed_inputs: Vec<RuntimeProjectionSuppressedInputDto>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RuntimeRealmGrantIssueRequestDto {
     pub app_id: String,
     pub scopes: Vec<String>,
@@ -41026,55 +39338,18 @@ pub struct RuntimeRealmGrantIssueResponseDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct SceneConnectionDto {
-    pub bidirectional: bool,
-    pub conditions: Vec<String>,
-    pub from: String,
-    pub to: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct SceneDefinitionDto {
-    pub description: String,
-    pub id: String,
-    pub name: String,
-    pub properties: BTreeMap<String, String>,
-    pub tier: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct SceneTimeConfigDto {
-    pub defaults: Box<SceneTimeSettingsDto>,
-    pub scenes: BTreeMap<String, String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct SceneTimeCycleDto {
-    pub duration: f64,
-    pub phases: Vec<SceneTimePhaseDto>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct SceneTimePhaseDto {
-    pub description: String,
-    pub end_ratio: f64,
-    pub name: String,
-    pub start_ratio: f64,
-    pub visual_effect: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct SceneTimeSettingsDto {
-    pub fixed_time: String,
-    pub sync_world_time: bool,
-    pub tier: String,
-    pub time_cycle: Box<SceneTimeCycleDto>,
-    pub time_modifier: f64,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct SelectAvatarDto {
-    pub avatar_url: String,
+pub struct RuntimeSourceSnapshotDto {
+    pub captured_at: String,
+    pub payload: BTreeMap<String, String>,
+    pub payload_hash: String,
+    pub runtime_source_ref: String,
+    pub snapshot_id: String,
+    pub snapshot_schema_version: String,
+    pub source_content_hash: String,
+    pub source_content_revision: f64,
+    pub source_id: String,
+    pub source_kind: String,
+    pub source_world_id: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -41095,14 +39370,6 @@ pub struct SendMessageInputDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct SetAgentRelationshipDto {
-    pub context: String,
-    pub strength: f64,
-    pub target_id: String,
-    pub r#type: Box<AgentRelationType>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct SocialProfileDto {
     pub followers: f64,
     pub handle: String,
@@ -41113,20 +39380,13 @@ pub struct SocialProfileDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct SpaceRealmDto {
-    pub accessibility: String,
-    pub description: String,
-    pub name: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct SpaceTopologyDto {
-    pub boundary: String,
-    pub connections: Vec<SceneConnectionDto>,
-    pub dimensions: f64,
-    pub realms: Vec<SpaceRealmDto>,
-    pub scenes: Vec<SceneDefinitionDto>,
-    pub r#type: String,
+pub struct SourceOriginDto {
+    pub is_world_owned: bool,
+    pub owner_id: String,
+    pub source_id: String,
+    pub source_kind: String,
+    pub world_creator_id: String,
+    pub world_id: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -41143,15 +39403,6 @@ pub struct SparkPackageDto {
     pub popular: bool,
     pub spark_amount: f64,
     pub usd_price: f64,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct SpeciesDefinitionDto {
-    pub description: String,
-    pub id: String,
-    pub lifespan: String,
-    pub name: String,
-    pub traits: Vec<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -41222,23 +39473,6 @@ pub struct TierDetailDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct TimeCycleDto {
-    pub duration: f64,
-    pub name: String,
-    pub phases: Vec<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct TimeModelDto {
-    pub allow_reverse: bool,
-    pub calendar_system: Box<CalendarSystemDto>,
-    pub cycles: Vec<TimeCycleDto>,
-    pub time_flow_ratio: f64,
-    pub r#type: String,
-    pub unit: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct TransitContextDto {
     pub handoff_refs: BTreeMap<String, String>,
     pub memory_ref_ids: Vec<String>,
@@ -41248,13 +39482,14 @@ pub struct TransitContextDto {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct TransitDetailDto {
-    pub agent_id: String,
     pub arrived_at: String,
     pub context: Box<TransitContextDto>,
     pub created_at: String,
     pub departed_at: String,
     pub from_world_id: String,
     pub id: String,
+    pub runtime_source_ref: String,
+    pub source_ref: Box<TypedSourceRefDto>,
     pub status: String,
     pub to_world_id: String,
     pub transit_type: String,
@@ -41276,62 +39511,17 @@ pub struct TranslateResponseDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct TypedSourceRefDto {
+    pub kind: String,
+    pub source_content_hash: String,
+    pub source_id: String,
+    pub world_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct UnreadNotificationCountDto {
     pub by_type: BTreeMap<String, String>,
     pub total: f64,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct UpdateAgentDnaDto {
-    pub dna: Box<AgentDnaDto>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct UpdateAgentNsfwConsentDto {
-    pub enabled: bool,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct UpdateAgentProfileMediaDto {
-    pub avatar_url: String,
-    pub profile_cover_url: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct UpdateAgentRuleDto {
-    pub category: String,
-    pub conflicts_with: Vec<String>,
-    pub depends_on: Vec<String>,
-    pub hardness: String,
-    pub importance: f64,
-    pub priority: f64,
-    pub provenance: String,
-    pub reasoning: String,
-    pub scope: String,
-    pub source_ref: String,
-    pub statement: String,
-    pub structured: BTreeMap<String, String>,
-    pub title: String,
-    pub world_rule_ref: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct UpdateAgentVisibilityDto {
-    pub account_visibility: Box<Visibility>,
-    pub default_post_visibility: Box<Visibility>,
-    pub dm_visibility: Box<Visibility>,
-    pub profile_visibility: Box<Visibility>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct UpdateAgentVoiceDto {
-    pub description: String,
-    pub emotion_enabled: bool,
-    pub pitch: f64,
-    pub speech_model_id: String,
-    pub speech_route_policy: String,
-    pub speed: f64,
-    pub voice_id: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -41358,19 +39548,6 @@ pub struct UpdateBundleDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct UpdateCreatorAgentDto {
-    pub avatar_url: String,
-    pub bio: String,
-    pub capabilities: Box<UserAgentDnaDto>,
-    pub category: String,
-    pub content_rating: String,
-    pub display_name: String,
-    pub profile_cover_url: String,
-    pub tags: Vec<String>,
-    pub webhook_url: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct UpdateGroupInputDto {
     pub title: String,
 }
@@ -41378,26 +39555,6 @@ pub struct UpdateGroupInputDto {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct UpdateMyHandleDto {
     pub handle: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct UpdateNsfwConsentResponseDto {
-    pub enabled: bool,
-    pub success: bool,
-    pub updated_at: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct UpdateOwnerAgentSettingsDto {
-    pub boundaries: Box<OwnerAgentBoundarySettingsDto>,
-    pub communication: Box<OwnerAgentCommunicationSettingsDto>,
-    pub description: String,
-    pub display_name: String,
-    pub greeting: String,
-    pub identity: Box<OwnerAgentIdentitySettingsDto>,
-    pub natural_language_intent: String,
-    pub personality: Box<OwnerAgentPersonalitySettingsDto>,
-    pub positioning: Box<OwnerAgentPositioningSettingsDto>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -41429,7 +39586,6 @@ pub struct UpdateRelationshipDto {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct UpdateResourceDto {
-    pub agent_id: String,
     pub controller_id: String,
     pub controller_kind: String,
     pub delivery_access: String,
@@ -41475,11 +39631,6 @@ pub struct UpdateUserNotificationSettingsDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct UpdateUserNsfwConsentDto {
-    pub enabled: bool,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct UpdateUserSettingsDto {
     pub account_visibility: Box<Visibility>,
     pub blocked_account_ids: Vec<String>,
@@ -41503,107 +39654,15 @@ pub struct UpdateUserSettingsDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct UpdateWorldDraftDto {
-    pub draft_payload: Box<WorldDraftPayloadDto>,
-    pub status: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct UpdateWorldRuleDto {
-    pub category: String,
-    pub conflicts_with: Vec<String>,
-    pub depends_on: Vec<String>,
-    pub hardness: String,
-    pub overrides: String,
-    pub priority: f64,
-    pub reasoning: String,
-    pub scope: String,
-    pub source_ref: String,
-    pub statement: String,
-    pub structured: BTreeMap<String, String>,
-    pub title: String,
-    pub valid_from: String,
-    pub valid_until: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct UsePolicyDto {
     pub allowed_binding_points: Vec<String>,
     pub allowed_host_types: Vec<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct UserAgentAppearanceDto {
-    pub art_style: String,
-    pub eyes: String,
-    pub fashion_style: String,
-    pub hair: String,
-    pub signature_items: Vec<String>,
-    pub skin: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct UserAgentBiologicalDto {
-    pub ethnicity: String,
-    pub gender: String,
-    pub height_cm: f64,
-    pub visual_age: String,
-    pub weight_kg: f64,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct UserAgentCommunicationDto {
-    pub formality: String,
-    pub response_length: String,
-    pub sentiment: String,
-    pub summary: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct UserAgentDnaDto {
-    pub appearance: Box<UserAgentAppearanceDto>,
-    pub biological: Box<UserAgentBiologicalDto>,
-    pub communication: Box<UserAgentCommunicationDto>,
-    pub identity: Box<UserAgentIdentityDto>,
-    pub nsfw_level: String,
-    pub personality: Box<UserAgentPersonalityDto>,
-    pub voice: Box<UserAgentVoiceConfigDto>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct UserAgentIdentityDto {
-    pub name: String,
-    pub role: String,
-    pub species: String,
-    pub summary: String,
-    pub worldview: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct UserAgentPersonalityDto {
-    pub emotion_baseline: String,
-    pub goals: Vec<String>,
-    pub interests: Vec<String>,
-    pub mbti: String,
-    pub relationship_mode: String,
-    pub summary: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct UserAgentVoiceConfigDto {
-    pub description: String,
-    pub emotion_enabled: bool,
-    pub pitch: f64,
-    pub speech_model_id: String,
-    pub speech_route_policy: String,
-    pub speed: f64,
-    pub voice_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct UserCapabilitiesDto {
-    pub agent: Box<AgentCapabilitiesDto>,
     pub features: Box<UserFeatureCapabilitiesDto>,
+    pub realm_source: Box<RealmSourceCapabilitiesDto>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -41616,8 +39675,6 @@ pub struct UserFeatureCapabilitiesDto {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct UserLiteDto {
-    pub agent: Box<AgentMetadataDto>,
-    pub agent_profile: Box<AgentProfileDto>,
     pub avatar_url: String,
     pub bio: String,
     pub created_at: String,
@@ -41625,7 +39682,6 @@ pub struct UserLiteDto {
     pub friend_count: f64,
     pub handle: String,
     pub id: String,
-    pub is_agent: bool,
     pub is_online: bool,
     pub presence_emoji: String,
     pub presence_status: String,
@@ -41644,8 +39700,6 @@ pub struct UserNotificationSettingsDto {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct UserPrivateDto {
-    pub agent: Box<AgentMetadataDto>,
-    pub agent_profile: Box<AgentProfileDto>,
     pub avatar_url: String,
     pub bio: String,
     pub birth_year: f64,
@@ -41660,7 +39714,6 @@ pub struct UserPrivateDto {
     pub handle: String,
     pub has_password: bool,
     pub id: String,
-    pub is_agent: bool,
     pub is_online: bool,
     pub is_two_factor_enabled: bool,
     pub languages: Vec<String>,
@@ -41671,7 +39724,7 @@ pub struct UserPrivateDto {
     pub presence_text: String,
     pub profile_cover_url: String,
     pub review_stats: Box<ReviewStatsDto>,
-    pub role: Box<AccountRole>,
+    pub role: Box<PublicAccountRole>,
     pub social_profiles: Vec<SocialProfileDto>,
     pub stats: Box<UserStatsDto>,
     pub status: Box<AccountStatus>,
@@ -41683,8 +39736,6 @@ pub struct UserPrivateDto {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct UserProfileDto {
-    pub agent: Box<AgentMetadataDto>,
-    pub agent_profile: Box<AgentProfileDto>,
     pub avatar_url: String,
     pub bio: String,
     pub birth_year: f64,
@@ -41697,7 +39748,6 @@ pub struct UserProfileDto {
     pub gift_stats: BTreeMap<String, String>,
     pub handle: String,
     pub id: String,
-    pub is_agent: bool,
     pub is_online: bool,
     pub languages: Vec<String>,
     pub presence_emoji: String,
@@ -41771,31 +39821,11 @@ pub struct UserWalletListResponseDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct ValidateRulesDto {
-    pub rules: Vec<WorldRuleItemDto>,
-}
-
-pub type VerificationTier = String;
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct VerifyInvitationCodeDto {
     pub invitation_code: String,
 }
 
 pub type Visibility = String;
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct VisualGuideDto {
-    pub accent_color: String,
-    pub art_style: String,
-    pub atmosphere: String,
-    pub color_palette: String,
-    pub css_variables: BTreeMap<String, String>,
-    pub primary_color: String,
-    pub reference_images: Vec<String>,
-    pub secondary_color: String,
-    pub style_prompt: String,
-}
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct WalletBindDto {
@@ -41880,681 +39910,31 @@ pub struct WithdrawalSummaryDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldAccessRecordDto {
-    pub can_create_world: bool,
-    pub can_maintain_world: bool,
-    pub expires_at: String,
-    pub id: String,
-    pub maintain_role: String,
-    pub scope_type: String,
-    pub scope_world_id: String,
-    pub status: String,
-    pub user_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldAccessSummaryDto {
-    pub can_create_world: bool,
-    pub can_maintain_world: bool,
-    pub has_active_access: bool,
-    pub records: Vec<WorldAccessRecordDto>,
-    pub user_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldAgentRuleSummaryDto {
-    pub by_layer: Box<AgentRuleLayerCountDto>,
-    pub total_agent_rule_count: f64,
-    pub world_linked_rule_count: f64,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldAgentSummaryDto {
-    pub active_rule_count: f64,
-    pub active_world_id: String,
-    pub avatar_url: String,
-    pub bio: String,
+pub struct WorldCharacterCoreDto {
+    pub content_hash: String,
+    pub content_revision: f64,
+    pub core: BTreeMap<String, String>,
     pub created_at: String,
-    pub display: Box<AgentDisplayDto>,
-    pub handle: String,
+    pub entity_id: String,
     pub id: String,
-    pub importance: String,
-    pub name: String,
-    pub stats: Box<AgentStatsDto>,
+    pub origin: Box<RealmCoreOriginDto>,
+    pub schema_version: String,
+    pub updated_at: String,
+    pub world_id: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldClockConfigDto {
-    pub anchor_real_time: String,
-    pub anchor_world_time: String,
-    pub current_era: String,
-    pub eras: Vec<WorldClockEraDto>,
-    pub is_paused: bool,
-    pub paused_at: String,
-    pub start_real_time: String,
-    pub start_world_time: String,
-    pub time_format: Box<WorldTimeFormatDto>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldClockEraDto {
-    pub id: String,
-    pub name: String,
-    pub start_world_time: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldComputedEntryDto {
-    pub recommended_agents: Vec<WorldRecommendedAgentDto>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldComputedLanguagesDto {
-    pub common: Vec<String>,
-    pub primary: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldComputedScoreDto {
-    pub score_ewma: f64,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldComputedTimeDto {
-    pub current_label: String,
-    pub current_world_time: String,
-    pub era_label: String,
-    pub flow_ratio: f64,
-    pub is_paused: bool,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldDetailDto {
-    pub agent_count: f64,
-    pub banner_url: String,
-    pub clock_config: Box<WorldClockConfigDto>,
-    pub computed: Box<WorldDisplayComputedDto>,
-    pub content_rating: String,
+pub struct WorldCoreDto {
+    pub content_hash: String,
+    pub content_revision: f64,
+    pub core: BTreeMap<String, String>,
     pub created_at: String,
     pub creator_id: String,
-    pub description: String,
-    pub era: String,
-    pub freeze_reason: String,
-    pub genre: String,
-    pub icon_url: String,
     pub id: String,
-    pub languages: Box<WorldviewLanguagesDto>,
-    pub level: f64,
-    pub level_updated_at: String,
-    pub lorebook_entry_limit: f64,
-    pub motto: String,
-    pub name: String,
-    pub native_agent_limit: f64,
-    pub native_creation_state: String,
-    pub overview: String,
-    pub reviewed_at: String,
-    pub reviewed_by: String,
-    pub scene_time_config: Box<SceneTimeConfigDto>,
-    pub score_a: f64,
-    pub score_c: f64,
-    pub score_e: f64,
-    pub score_ewma: f64,
-    pub score_q: f64,
-    pub status: String,
-    pub tagline: String,
-    pub themes: Vec<String>,
-    pub time_model: Box<TimeModelDto>,
-    pub transit_in_limit: f64,
-    pub truth: Box<WorldTruthDto>,
-    pub r#type: String,
-    pub updated_at: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldDetailWithAgentsDto {
-    pub agent_count: f64,
-    pub agent_rule_summary: Box<WorldAgentRuleSummaryDto>,
-    pub agents: Vec<WorldAgentSummaryDto>,
-    pub banner_url: String,
-    pub clock_config: Box<WorldClockConfigDto>,
-    pub computed: Box<WorldDisplayComputedDto>,
-    pub content_rating: String,
-    pub created_at: String,
-    pub creator_id: String,
-    pub description: String,
-    pub era: String,
-    pub freeze_reason: String,
-    pub genre: String,
-    pub icon_url: String,
-    pub id: String,
-    pub languages: Box<WorldviewLanguagesDto>,
-    pub level: f64,
-    pub level_updated_at: String,
-    pub lorebook_entry_limit: f64,
-    pub motto: String,
-    pub name: String,
-    pub native_agent_limit: f64,
-    pub native_creation_state: String,
-    pub overview: String,
-    pub reviewed_at: String,
-    pub reviewed_by: String,
-    pub scene_time_config: Box<SceneTimeConfigDto>,
-    pub score_a: f64,
-    pub score_c: f64,
-    pub score_e: f64,
-    pub score_ewma: f64,
-    pub score_q: f64,
-    pub status: String,
-    pub tagline: String,
-    pub themes: Vec<String>,
-    pub time_model: Box<TimeModelDto>,
-    pub transit_in_limit: f64,
-    pub truth: Box<WorldTruthDto>,
-    pub r#type: String,
-    pub updated_at: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldDisplayComputedDto {
-    pub entry: Box<WorldComputedEntryDto>,
-    pub featured_agent_count: f64,
-    pub languages: Box<WorldComputedLanguagesDto>,
-    pub score: Box<WorldComputedScoreDto>,
-    pub time: Box<WorldComputedTimeDto>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldDraftDetailDto {
-    pub created_at: String,
-    pub draft_payload: BTreeMap<String, String>,
-    pub id: String,
-    pub owner_user_id: String,
-    pub publish_result: BTreeMap<String, String>,
-    pub published_at: String,
-    pub source_ref: String,
-    pub source_type: String,
-    pub status: String,
-    pub target_world_id: String,
-    pub updated_at: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldDraftHistoryBucketsDto {
-    pub future_historical: Vec<WorldDraftHistoryEventDto>,
-    pub primary: Vec<WorldDraftHistoryEventDto>,
-    pub secondary: Vec<WorldDraftHistoryEventDto>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldDraftHistoryDraftDto {
-    pub events: Box<WorldDraftHistoryBucketsDto>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldDraftHistoryEventDto {
-    pub cause: String,
-    pub character_refs: Vec<String>,
-    pub depends_on_event_ids: Vec<String>,
-    pub event_id: String,
-    pub event_type: String,
-    pub evidence_refs: Vec<BTreeMap<String, String>>,
-    pub happened_at: String,
-    pub location_refs: Vec<String>,
-    pub occurred_at: String,
-    pub payload: BTreeMap<String, String>,
-    pub process: String,
-    pub result: String,
-    pub summary: String,
-    pub time_ref: String,
-    pub title: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldDraftImportSourceDto {
-    pub source_ref: String,
-    pub source_text: String,
-    pub source_type: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldDraftPayloadDto {
-    pub history_draft: Box<WorldDraftHistoryDraftDto>,
-    pub import_source: Box<WorldDraftImportSourceDto>,
-    pub state_draft: Box<WorldDraftStateDraftDto>,
-    pub truth_draft: Box<WorldDraftTruthDraftDto>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldDraftStateDraftDto {
-    pub world_state: BTreeMap<String, String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldDraftSummaryDto {
-    pub id: String,
-    pub published_at: String,
-    pub source_ref: String,
-    pub source_type: String,
-    pub status: String,
-    pub target_world_id: String,
-    pub updated_at: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldDraftSummaryListDto {
-    pub items: Vec<WorldDraftSummaryDto>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldDraftTruthDraftDto {
-    pub agent_rules: Vec<BTreeMap<String, String>>,
-    pub world_rules: Vec<WorldDraftTruthRuleDto>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldDraftTruthRuleDto {
-    pub category: String,
-    pub conflicts_with: Vec<String>,
-    pub depends_on: Vec<String>,
-    pub domain: String,
-    pub hardness: String,
-    pub overrides: String,
-    pub priority: f64,
-    pub provenance: String,
-    pub reasoning: String,
-    pub rule_key: String,
-    pub scope: String,
-    pub source_ref: String,
-    pub statement: String,
-    pub structured: BTreeMap<String, String>,
-    pub title: String,
-    pub valid_from: String,
-    pub valid_until: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldEventEvidenceRefDto {
-    pub confidence: f64,
-    pub excerpt: String,
-    pub offset_end: f64,
-    pub offset_start: f64,
-    pub segment_id: String,
-    pub source_type: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldEventEvidenceRefInputDto {
-    pub confidence: f64,
-    pub excerpt: String,
-    pub offset_end: f64,
-    pub offset_start: f64,
-    pub segment_id: String,
-    pub source_type: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldHistoryAppendItemDto {
-    pub cause: String,
-    pub character_refs: Vec<String>,
-    pub depends_on_event_ids: Vec<String>,
-    pub event_id: String,
-    pub event_type: String,
-    pub evidence_refs: Vec<WorldEventEvidenceRefInputDto>,
-    pub happened_at: String,
-    pub invalidates: Vec<String>,
-    pub location_refs: Vec<String>,
-    pub operation: String,
-    pub payload: BTreeMap<String, String>,
-    pub process: String,
-    pub reason: String,
-    pub related_state_refs: Vec<WorldHistoryRelatedStateRefDto>,
-    pub result: String,
-    pub summary: String,
-    pub supersedes: Vec<String>,
-    pub time_ref: String,
-    pub title: String,
-    pub visibility: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldHistoryEventDto {
-    pub actor_refs: Vec<MutationActorRefDto>,
-    pub app_id: String,
-    pub cause: String,
-    pub character_refs: Vec<String>,
-    pub commit_id: String,
-    pub committed_at: String,
-    pub created_by: String,
-    pub depends_on_event_ids: Vec<String>,
-    pub event_id: String,
-    pub event_type: String,
-    pub evidence_refs: Vec<WorldEventEvidenceRefDto>,
-    pub happened_at: String,
-    pub id: String,
-    pub invalidated_at: String,
-    pub invalidates: Vec<String>,
-    pub location_refs: Vec<String>,
-    pub operation: String,
-    pub payload: BTreeMap<String, String>,
-    pub process: String,
-    pub related_state_refs: Vec<WorldHistoryRelatedStateRefDto>,
-    pub result: String,
-    pub schema_id: String,
+    pub origin: Box<RealmCoreOriginDto>,
     pub schema_version: String,
-    pub session_id: String,
-    pub summary: String,
-    pub supersedes: Vec<String>,
-    pub time_ref: String,
-    pub title: String,
+    pub updated_at: String,
     pub visibility: String,
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldHistoryListDto {
-    pub items: Vec<WorldHistoryEventDto>,
-    pub version: String,
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldHistoryRelatedStateRefDto {
-    pub record_id: String,
-    pub scope: String,
-    pub scope_key: String,
-    pub version: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldLandingDecisionDto {
-    pub reason: String,
-    pub target: String,
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldLanguageDto {
-    pub category: String,
-    pub description: String,
-    pub id: String,
-    pub is_common: bool,
-    pub name: String,
-    pub real_world_basis: String,
-    pub spoken_sample: String,
-    pub used_by: Vec<String>,
-    pub writing_sample: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldLevelAuditEventDto {
-    pub a: f64,
-    pub actor: String,
-    pub c: f64,
-    pub e: f64,
-    pub event_type: String,
-    pub evidence_ref: String,
-    pub ewma_score: f64,
-    pub freeze_reason: String,
-    pub id: String,
-    pub meta: BTreeMap<String, String>,
-    pub native_count: f64,
-    pub native_limit: f64,
-    pub next_level: f64,
-    pub next_score: f64,
-    pub occurred_at: String,
-    pub prev_level: f64,
-    pub prev_score: f64,
-    pub q: f64,
-    pub reason_code: String,
-    pub seq: f64,
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldLorebookDetailDto {
-    pub constant: bool,
-    pub content: String,
-    pub created_at: String,
-    pub enabled: bool,
-    pub id: String,
-    pub key: String,
-    pub keywords: Vec<String>,
-    pub name: String,
-    pub priority: f64,
-    pub provenance: BTreeMap<String, String>,
-    pub updated_at: String,
-    pub valid_from: String,
-    pub valid_to: String,
-    pub value: BTreeMap<String, String>,
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldLorebookListDto {
-    pub items: Vec<WorldLorebookDetailDto>,
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldRecommendedAgentDto {
-    pub avatar_url: String,
-    pub display: Box<AgentDisplayDto>,
-    pub handle: String,
-    pub id: String,
-    pub importance: String,
-    pub name: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldRuleDto {
-    pub category: String,
-    pub conflicts_with: Vec<String>,
-    pub created_at: String,
-    pub created_by: String,
-    pub depends_on: Vec<String>,
-    pub domain: String,
-    pub hardness: String,
-    pub id: String,
-    pub lineage_id: String,
-    pub overrides: String,
-    pub priority: f64,
-    pub provenance: String,
-    pub reasoning: String,
-    pub rule_key: String,
-    pub scope: String,
-    pub source_ref: String,
-    pub statement: String,
-    pub status: String,
-    pub structured: BTreeMap<String, String>,
-    pub title: String,
-    pub updated_at: String,
-    pub updated_by: String,
-    pub valid_from: String,
-    pub valid_until: String,
-    pub version: f64,
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldRuleItemDto {
-    pub key: String,
-    pub title: String,
-    pub value: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldStateDto {
-    pub items: Vec<WorldStateRecordDto>,
-    pub version: String,
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldStateRecordDto {
-    pub actor_refs: Vec<MutationActorRefDto>,
-    pub app_id: String,
-    pub commit_id: String,
-    pub committed_at: String,
-    pub created_by: String,
-    pub effect_class: String,
-    pub evidence_refs: Vec<MutationEvidenceRefDto>,
-    pub id: String,
-    pub metadata: BTreeMap<String, String>,
-    pub payload: BTreeMap<String, String>,
-    pub schema_id: String,
-    pub schema_version: String,
-    pub scope: String,
-    pub scope_key: String,
-    pub session_id: String,
-    pub target_path: String,
-    pub version: String,
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldStateWriteDto {
-    pub metadata: BTreeMap<String, String>,
-    pub payload: BTreeMap<String, String>,
-    pub scope: String,
-    pub scope_key: String,
-    pub target_path: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldSummaryDto {
-    pub description: String,
-    pub id: String,
-    pub name: String,
-    pub status: String,
-    pub updated_at: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldSummaryListDto {
-    pub items: Vec<WorldSummaryDto>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldTimeFormatDto {
-    pub date_pattern: String,
-    pub era_name: String,
-    pub month_names: Vec<String>,
-    pub time_pattern: String,
-    pub weekday_names: Vec<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldTruthDto {
-    pub rules: Vec<WorldRuleDto>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldviewDetailDto {
-    pub causality: Box<CausalityModelDto>,
-    pub core_system: Box<PowerSystemDto>,
-    pub created_at: String,
-    pub existences: Box<ExistenceDefinitionDto>,
-    pub glossary: Box<WorldviewGlossaryDto>,
-    pub id: String,
-    pub languages: Box<WorldviewLanguagesDto>,
-    pub lifecycle: String,
-    pub locations: Box<WorldviewLocationsDto>,
-    pub resources: Box<ResourceDefinitionDto>,
-    pub space_topology: Box<SpaceTopologyDto>,
-    pub structures: BTreeMap<String, String>,
-    pub time_model: Box<TimeModelDto>,
-    pub truth_rules: Vec<WorldviewTruthRuleSummaryDto>,
-    pub updated_at: String,
-    pub version: f64,
-    pub visual_guide: Box<VisualGuideDto>,
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldviewGlossaryDto {
-    pub terms: Vec<GlossaryTermDto>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldviewLanguagesDto {
-    pub languages: Vec<WorldLanguageDto>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldviewLocationsDto {
-    pub landmarks: Vec<LocationLandmarkDto>,
-    pub regions: Vec<LocationRegionDto>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct WorldviewTruthRuleSummaryDto {
-    pub category: String,
-    pub conflicts_with: Vec<String>,
-    pub depends_on: Vec<String>,
-    pub domain: String,
-    pub hardness: String,
-    pub id: String,
-    pub lineage_id: String,
-    pub overrides: String,
-    pub priority: f64,
-    pub provenance: String,
-    pub reasoning: String,
-    pub rule_key: String,
-    pub scope: String,
-    pub source_ref: String,
-    pub statement: String,
-    pub status: String,
-    pub structured: BTreeMap<String, String>,
-    pub title: String,
-    pub valid_from: String,
-    pub valid_until: String,
-    pub version: f64,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAckMyLocalAgentProvisionIntentOperationPath {
-    pub intent_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAckMyLocalAgentProvisionIntentOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAckMyLocalAgentProvisionIntentOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAckMyLocalAgentProvisionIntentOperationRequest {
-    pub path: RealmAckMyLocalAgentProvisionIntentOperationPath,
-    pub query: RealmAckMyLocalAgentProvisionIntentOperationQuery,
-    pub headers: RealmAckMyLocalAgentProvisionIntentOperationHeaders,
-    pub body: LocalAgentProvisionIntentAckDto,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAckMyLocalAgentTerminationIntentOperationPath {
-    pub intent_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAckMyLocalAgentTerminationIntentOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAckMyLocalAgentTerminationIntentOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAckMyLocalAgentTerminationIntentOperationRequest {
-    pub path: RealmAckMyLocalAgentTerminationIntentOperationPath,
-    pub query: RealmAckMyLocalAgentTerminationIntentOperationQuery,
-    pub headers: RealmAckMyLocalAgentTerminationIntentOperationHeaders,
-    pub body: LocalAgentTerminationIntentAckDto,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -42581,29 +39961,6 @@ pub struct RealmAddFriendOperationRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAddGroupAgentOperationPath {
-    pub chat_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAddGroupAgentOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAddGroupAgentOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAddGroupAgentOperationRequest {
-    pub path: RealmAddGroupAgentOperationPath,
-    pub query: RealmAddGroupAgentOperationQuery,
-    pub headers: RealmAddGroupAgentOperationHeaders,
-    pub body: AddGroupAgentInputDto,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmAddGroupParticipantOperationPath {
     pub chat_id: String,
 }
@@ -42624,431 +39981,6 @@ pub struct RealmAddGroupParticipantOperationRequest {
     pub query: RealmAddGroupParticipantOperationQuery,
     pub headers: RealmAddGroupParticipantOperationHeaders,
     pub body: AddGroupParticipantInputDto,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentControllerCheckHandleOperationPath {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentControllerCheckHandleOperationQuery {
-    pub handle: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentControllerCheckHandleOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentControllerCheckHandleOperationRequest {
-    pub path: RealmAgentControllerCheckHandleOperationPath,
-    pub query: RealmAgentControllerCheckHandleOperationQuery,
-    pub headers: RealmAgentControllerCheckHandleOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentControllerCreateOperationPath {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentControllerCreateOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentControllerCreateOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentControllerCreateOperationRequest {
-    pub path: RealmAgentControllerCreateOperationPath,
-    pub query: RealmAgentControllerCreateOperationQuery,
-    pub headers: RealmAgentControllerCreateOperationHeaders,
-    pub body: CreateAgentDto,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentControllerDeleteOperationPath {
-    pub id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentControllerDeleteOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentControllerDeleteOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentControllerDeleteOperationRequest {
-    pub path: RealmAgentControllerDeleteOperationPath,
-    pub query: RealmAgentControllerDeleteOperationQuery,
-    pub headers: RealmAgentControllerDeleteOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentControllerGetRelationshipsOperationPath {
-    pub id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentControllerGetRelationshipsOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentControllerGetRelationshipsOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentControllerGetRelationshipsOperationRequest {
-    pub path: RealmAgentControllerGetRelationshipsOperationPath,
-    pub query: RealmAgentControllerGetRelationshipsOperationQuery,
-    pub headers: RealmAgentControllerGetRelationshipsOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentControllerGetVisibilityOperationPath {
-    pub id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentControllerGetVisibilityOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentControllerGetVisibilityOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentControllerGetVisibilityOperationRequest {
-    pub path: RealmAgentControllerGetVisibilityOperationPath,
-    pub query: RealmAgentControllerGetVisibilityOperationQuery,
-    pub headers: RealmAgentControllerGetVisibilityOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentControllerMakePublicOperationPath {
-    pub id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentControllerMakePublicOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentControllerMakePublicOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentControllerMakePublicOperationRequest {
-    pub path: RealmAgentControllerMakePublicOperationPath,
-    pub query: RealmAgentControllerMakePublicOperationQuery,
-    pub headers: RealmAgentControllerMakePublicOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentControllerRemoveRelationshipOperationPath {
-    pub id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentControllerRemoveRelationshipOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentControllerRemoveRelationshipOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentControllerRemoveRelationshipOperationRequest {
-    pub path: RealmAgentControllerRemoveRelationshipOperationPath,
-    pub query: RealmAgentControllerRemoveRelationshipOperationQuery,
-    pub headers: RealmAgentControllerRemoveRelationshipOperationHeaders,
-    pub body: RemoveAgentRelationshipDto,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentControllerSelectAvatarOperationPath {
-    pub id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentControllerSelectAvatarOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentControllerSelectAvatarOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentControllerSelectAvatarOperationRequest {
-    pub path: RealmAgentControllerSelectAvatarOperationPath,
-    pub query: RealmAgentControllerSelectAvatarOperationQuery,
-    pub headers: RealmAgentControllerSelectAvatarOperationHeaders,
-    pub body: SelectAvatarDto,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentControllerSetRelationshipOperationPath {
-    pub id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentControllerSetRelationshipOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentControllerSetRelationshipOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentControllerSetRelationshipOperationRequest {
-    pub path: RealmAgentControllerSetRelationshipOperationPath,
-    pub query: RealmAgentControllerSetRelationshipOperationQuery,
-    pub headers: RealmAgentControllerSetRelationshipOperationHeaders,
-    pub body: SetAgentRelationshipDto,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentControllerUpdateDnaOperationPath {
-    pub id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentControllerUpdateDnaOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentControllerUpdateDnaOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentControllerUpdateDnaOperationRequest {
-    pub path: RealmAgentControllerUpdateDnaOperationPath,
-    pub query: RealmAgentControllerUpdateDnaOperationQuery,
-    pub headers: RealmAgentControllerUpdateDnaOperationHeaders,
-    pub body: UpdateAgentDnaDto,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentControllerUpdateVisibilityOperationPath {
-    pub id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentControllerUpdateVisibilityOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentControllerUpdateVisibilityOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentControllerUpdateVisibilityOperationRequest {
-    pub path: RealmAgentControllerUpdateVisibilityOperationPath,
-    pub query: RealmAgentControllerUpdateVisibilityOperationQuery,
-    pub headers: RealmAgentControllerUpdateVisibilityOperationHeaders,
-    pub body: UpdateAgentVisibilityDto,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentNsfwConsentControllerUpdateAgentConsentOperationPath {
-    pub id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentNsfwConsentControllerUpdateAgentConsentOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentNsfwConsentControllerUpdateAgentConsentOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentNsfwConsentControllerUpdateAgentConsentOperationRequest {
-    pub path: RealmAgentNsfwConsentControllerUpdateAgentConsentOperationPath,
-    pub query: RealmAgentNsfwConsentControllerUpdateAgentConsentOperationQuery,
-    pub headers: RealmAgentNsfwConsentControllerUpdateAgentConsentOperationHeaders,
-    pub body: UpdateAgentNsfwConsentDto,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentRulesControllerArchiveRuleOperationPath {
-    pub rule_id: String,
-    pub agent_id: String,
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentRulesControllerArchiveRuleOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentRulesControllerArchiveRuleOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentRulesControllerArchiveRuleOperationRequest {
-    pub path: RealmAgentRulesControllerArchiveRuleOperationPath,
-    pub query: RealmAgentRulesControllerArchiveRuleOperationQuery,
-    pub headers: RealmAgentRulesControllerArchiveRuleOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentRulesControllerCreateRuleOperationPath {
-    pub agent_id: String,
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentRulesControllerCreateRuleOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentRulesControllerCreateRuleOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentRulesControllerCreateRuleOperationRequest {
-    pub path: RealmAgentRulesControllerCreateRuleOperationPath,
-    pub query: RealmAgentRulesControllerCreateRuleOperationQuery,
-    pub headers: RealmAgentRulesControllerCreateRuleOperationHeaders,
-    pub body: CreateAgentRuleDto,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentRulesControllerDeprecateRuleOperationPath {
-    pub rule_id: String,
-    pub agent_id: String,
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentRulesControllerDeprecateRuleOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentRulesControllerDeprecateRuleOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentRulesControllerDeprecateRuleOperationRequest {
-    pub path: RealmAgentRulesControllerDeprecateRuleOperationPath,
-    pub query: RealmAgentRulesControllerDeprecateRuleOperationQuery,
-    pub headers: RealmAgentRulesControllerDeprecateRuleOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentRulesControllerListRulesOperationPath {
-    pub agent_id: String,
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentRulesControllerListRulesOperationQuery {
-    pub layer: Option<String>,
-    pub status: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentRulesControllerListRulesOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentRulesControllerListRulesOperationRequest {
-    pub path: RealmAgentRulesControllerListRulesOperationPath,
-    pub query: RealmAgentRulesControllerListRulesOperationQuery,
-    pub headers: RealmAgentRulesControllerListRulesOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentRulesControllerUpdateRuleOperationPath {
-    pub rule_id: String,
-    pub agent_id: String,
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentRulesControllerUpdateRuleOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentRulesControllerUpdateRuleOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmAgentRulesControllerUpdateRuleOperationRequest {
-    pub path: RealmAgentRulesControllerUpdateRuleOperationPath,
-    pub query: RealmAgentRulesControllerUpdateRuleOperationQuery,
-    pub headers: RealmAgentRulesControllerUpdateRuleOperationHeaders,
-    pub body: UpdateAgentRuleDto,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmApplyCreatorWorldAgentAuthoringDraftBatchOperationPath {
-    pub batch_id: String,
-    pub agent_id: String,
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmApplyCreatorWorldAgentAuthoringDraftBatchOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmApplyCreatorWorldAgentAuthoringDraftBatchOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmApplyCreatorWorldAgentAuthoringDraftBatchOperationRequest {
-    pub path: RealmApplyCreatorWorldAgentAuthoringDraftBatchOperationPath,
-    pub query: RealmApplyCreatorWorldAgentAuthoringDraftBatchOperationQuery,
-    pub headers: RealmApplyCreatorWorldAgentAuthoringDraftBatchOperationHeaders,
-    pub body: (),
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -43236,29 +40168,6 @@ pub struct RealmCloneAssetOperationRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCommitRealmGroupMessageCandidateOperationPath {
-    pub chat_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCommitRealmGroupMessageCandidateOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCommitRealmGroupMessageCandidateOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCommitRealmGroupMessageCandidateOperationRequest {
-    pub path: RealmCommitRealmGroupMessageCandidateOperationPath,
-    pub query: RealmCommitRealmGroupMessageCandidateOperationQuery,
-    pub headers: RealmCommitRealmGroupMessageCandidateOperationHeaders,
-    pub body: CommitRealmGroupMessageCandidateInputDto,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmCreateAssetOperationPath {
 
 }
@@ -43325,30 +40234,6 @@ pub struct RealmCreateBundleOperationRequest {
     pub query: RealmCreateBundleOperationQuery,
     pub headers: RealmCreateBundleOperationHeaders,
     pub body: CreateBundleDto,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreateCreatorWorldAgentAuthoringDraftBatchOperationPath {
-    pub agent_id: String,
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreateCreatorWorldAgentAuthoringDraftBatchOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreateCreatorWorldAgentAuthoringDraftBatchOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreateCreatorWorldAgentAuthoringDraftBatchOperationRequest {
-    pub path: RealmCreateCreatorWorldAgentAuthoringDraftBatchOperationPath,
-    pub query: RealmCreateCreatorWorldAgentAuthoringDraftBatchOperationQuery,
-    pub headers: RealmCreateCreatorWorldAgentAuthoringDraftBatchOperationHeaders,
-    pub body: CreateAgentAuthoringDraftBatchDto,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -43464,213 +40349,6 @@ pub struct RealmCreateVideoDirectUploadOperationRequest {
     pub query: RealmCreateVideoDirectUploadOperationQuery,
     pub headers: RealmCreateVideoDirectUploadOperationHeaders,
     pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorControllerBatchCreateAgentsOperationPath {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorControllerBatchCreateAgentsOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorControllerBatchCreateAgentsOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorControllerBatchCreateAgentsOperationRequest {
-    pub path: RealmCreatorControllerBatchCreateAgentsOperationPath,
-    pub query: RealmCreatorControllerBatchCreateAgentsOperationQuery,
-    pub headers: RealmCreatorControllerBatchCreateAgentsOperationHeaders,
-    pub body: BatchCreateAgentsRequestDto,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorControllerCreateAgentOperationPath {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorControllerCreateAgentOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorControllerCreateAgentOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorControllerCreateAgentOperationRequest {
-    pub path: RealmCreatorControllerCreateAgentOperationPath,
-    pub query: RealmCreatorControllerCreateAgentOperationQuery,
-    pub headers: RealmCreatorControllerCreateAgentOperationHeaders,
-    pub body: CreateAgentDto,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorControllerCreateKeyOperationPath {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorControllerCreateKeyOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorControllerCreateKeyOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorControllerCreateKeyOperationRequest {
-    pub path: RealmCreatorControllerCreateKeyOperationPath,
-    pub query: RealmCreatorControllerCreateKeyOperationQuery,
-    pub headers: RealmCreatorControllerCreateKeyOperationHeaders,
-    pub body: CreateApiKeyDto,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorControllerDeleteAgentOperationPath {
-    pub agent_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorControllerDeleteAgentOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorControllerDeleteAgentOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorControllerDeleteAgentOperationRequest {
-    pub path: RealmCreatorControllerDeleteAgentOperationPath,
-    pub query: RealmCreatorControllerDeleteAgentOperationQuery,
-    pub headers: RealmCreatorControllerDeleteAgentOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorControllerGetAgentOperationPath {
-    pub agent_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorControllerGetAgentOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorControllerGetAgentOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorControllerGetAgentOperationRequest {
-    pub path: RealmCreatorControllerGetAgentOperationPath,
-    pub query: RealmCreatorControllerGetAgentOperationQuery,
-    pub headers: RealmCreatorControllerGetAgentOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorControllerListAgentsOperationPath {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorControllerListAgentsOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorControllerListAgentsOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorControllerListAgentsOperationRequest {
-    pub path: RealmCreatorControllerListAgentsOperationPath,
-    pub query: RealmCreatorControllerListAgentsOperationQuery,
-    pub headers: RealmCreatorControllerListAgentsOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorControllerListKeysOperationPath {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorControllerListKeysOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorControllerListKeysOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorControllerListKeysOperationRequest {
-    pub path: RealmCreatorControllerListKeysOperationPath,
-    pub query: RealmCreatorControllerListKeysOperationQuery,
-    pub headers: RealmCreatorControllerListKeysOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorControllerRevokeKeyOperationPath {
-    pub id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorControllerRevokeKeyOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorControllerRevokeKeyOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorControllerRevokeKeyOperationRequest {
-    pub path: RealmCreatorControllerRevokeKeyOperationPath,
-    pub query: RealmCreatorControllerRevokeKeyOperationQuery,
-    pub headers: RealmCreatorControllerRevokeKeyOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorControllerUpdateAgentOperationPath {
-    pub agent_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorControllerUpdateAgentOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorControllerUpdateAgentOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorControllerUpdateAgentOperationRequest {
-    pub path: RealmCreatorControllerUpdateAgentOperationPath,
-    pub query: RealmCreatorControllerUpdateAgentOperationQuery,
-    pub headers: RealmCreatorControllerUpdateAgentOperationHeaders,
-    pub body: UpdateCreatorAgentDto,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -43996,29 +40674,6 @@ pub struct RealmEconomyControllerCreateWithdrawalOperationRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmEconomyControllerGetAgentOriginOperationPath {
-    pub agent_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmEconomyControllerGetAgentOriginOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmEconomyControllerGetAgentOriginOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmEconomyControllerGetAgentOriginOperationRequest {
-    pub path: RealmEconomyControllerGetAgentOriginOperationPath,
-    pub query: RealmEconomyControllerGetAgentOriginOperationQuery,
-    pub headers: RealmEconomyControllerGetAgentOriginOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmEconomyControllerGetBalancesOperationPath {
 
 }
@@ -44179,6 +40834,30 @@ pub struct RealmEconomyControllerGetSentGiftsOperationRequest {
     pub path: RealmEconomyControllerGetSentGiftsOperationPath,
     pub query: RealmEconomyControllerGetSentGiftsOperationQuery,
     pub headers: RealmEconomyControllerGetSentGiftsOperationHeaders,
+    pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmEconomyControllerGetSourceOriginOperationPath {
+    pub source_id: String,
+    pub source_kind: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmEconomyControllerGetSourceOriginOperationQuery {
+    pub source_world_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmEconomyControllerGetSourceOriginOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmEconomyControllerGetSourceOriginOperationRequest {
+    pub path: RealmEconomyControllerGetSourceOriginOperationPath,
+    pub query: RealmEconomyControllerGetSourceOriginOperationQuery,
+    pub headers: RealmEconomyControllerGetSourceOriginOperationHeaders,
     pub body: (),
 }
 
@@ -44353,7 +41032,9 @@ pub struct RealmEconomyControllerPreviewRevenueDistributionOperationPath {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmEconomyControllerPreviewRevenueDistributionOperationQuery {
     pub amount: Option<String>,
-    pub agent_id: Option<String>,
+    pub source_world_id: Option<String>,
+    pub source_id: Option<String>,
+    pub source_kind: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -44556,195 +41237,6 @@ pub struct RealmFinalizeResourceOperationRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmForgeProductCatalogControllerGetAgentCandidatesOperationPath {
-    pub slug: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmForgeProductCatalogControllerGetAgentCandidatesOperationQuery {
-    pub include_evidence_refs: Option<bool>,
-    pub limit: Option<f64>,
-    pub status: Option<String>,
-    pub surface: Option<String>,
-    pub query: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmForgeProductCatalogControllerGetAgentCandidatesOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmForgeProductCatalogControllerGetAgentCandidatesOperationRequest {
-    pub path: RealmForgeProductCatalogControllerGetAgentCandidatesOperationPath,
-    pub query: RealmForgeProductCatalogControllerGetAgentCandidatesOperationQuery,
-    pub headers: RealmForgeProductCatalogControllerGetAgentCandidatesOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmForgeProductCatalogControllerGetCatalogOperationPath {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmForgeProductCatalogControllerGetCatalogOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmForgeProductCatalogControllerGetCatalogOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmForgeProductCatalogControllerGetCatalogOperationRequest {
-    pub path: RealmForgeProductCatalogControllerGetCatalogOperationPath,
-    pub query: RealmForgeProductCatalogControllerGetCatalogOperationQuery,
-    pub headers: RealmForgeProductCatalogControllerGetCatalogOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmForgeProductCatalogControllerGetProductOperationPath {
-    pub slug: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmForgeProductCatalogControllerGetProductOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmForgeProductCatalogControllerGetProductOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmForgeProductCatalogControllerGetProductOperationRequest {
-    pub path: RealmForgeProductCatalogControllerGetProductOperationPath,
-    pub query: RealmForgeProductCatalogControllerGetProductOperationQuery,
-    pub headers: RealmForgeProductCatalogControllerGetProductOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmForgeProductCatalogControllerGetProductShardOperationPath {
-    pub kind: String,
-    pub slug: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmForgeProductCatalogControllerGetProductShardOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmForgeProductCatalogControllerGetProductShardOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmForgeProductCatalogControllerGetProductShardOperationRequest {
-    pub path: RealmForgeProductCatalogControllerGetProductShardOperationPath,
-    pub query: RealmForgeProductCatalogControllerGetProductShardOperationQuery,
-    pub headers: RealmForgeProductCatalogControllerGetProductShardOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmForgeProductCatalogControllerGetProductShardIndexOperationPath {
-    pub slug: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmForgeProductCatalogControllerGetProductShardIndexOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmForgeProductCatalogControllerGetProductShardIndexOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmForgeProductCatalogControllerGetProductShardIndexOperationRequest {
-    pub path: RealmForgeProductCatalogControllerGetProductShardIndexOperationPath,
-    pub query: RealmForgeProductCatalogControllerGetProductShardIndexOperationQuery,
-    pub headers: RealmForgeProductCatalogControllerGetProductShardIndexOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmForgeProductCatalogControllerVerifyProductShardsOperationPath {
-    pub slug: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmForgeProductCatalogControllerVerifyProductShardsOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmForgeProductCatalogControllerVerifyProductShardsOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmForgeProductCatalogControllerVerifyProductShardsOperationRequest {
-    pub path: RealmForgeProductCatalogControllerVerifyProductShardsOperationPath,
-    pub query: RealmForgeProductCatalogControllerVerifyProductShardsOperationQuery,
-    pub headers: RealmForgeProductCatalogControllerVerifyProductShardsOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetAgentOperationPath {
-    pub id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetAgentOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetAgentOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetAgentOperationRequest {
-    pub path: RealmGetAgentOperationPath,
-    pub query: RealmGetAgentOperationQuery,
-    pub headers: RealmGetAgentOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetAgentByHandleOperationPath {
-    pub handle: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetAgentByHandleOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetAgentByHandleOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetAgentByHandleOperationRequest {
-    pub path: RealmGetAgentByHandleOperationPath,
-    pub query: RealmGetAgentByHandleOperationQuery,
-    pub headers: RealmGetAgentByHandleOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmGetAssetOperationPath {
     pub asset_id: String,
 }
@@ -44833,126 +41325,6 @@ pub struct RealmGetChatByIdOperationRequest {
     pub path: RealmGetChatByIdOperationPath,
     pub query: RealmGetChatByIdOperationQuery,
     pub headers: RealmGetChatByIdOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetCreatorWorldAgentOperationPath {
-    pub agent_id: String,
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetCreatorWorldAgentOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetCreatorWorldAgentOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetCreatorWorldAgentOperationRequest {
-    pub path: RealmGetCreatorWorldAgentOperationPath,
-    pub query: RealmGetCreatorWorldAgentOperationQuery,
-    pub headers: RealmGetCreatorWorldAgentOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetCreatorWorldAgentAuthoringGenerationContextOperationPath {
-    pub agent_id: String,
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetCreatorWorldAgentAuthoringGenerationContextOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetCreatorWorldAgentAuthoringGenerationContextOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetCreatorWorldAgentAuthoringGenerationContextOperationRequest {
-    pub path: RealmGetCreatorWorldAgentAuthoringGenerationContextOperationPath,
-    pub query: RealmGetCreatorWorldAgentAuthoringGenerationContextOperationQuery,
-    pub headers: RealmGetCreatorWorldAgentAuthoringGenerationContextOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetCreatorWorldAgentChatReadinessOperationPath {
-    pub agent_id: String,
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetCreatorWorldAgentChatReadinessOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetCreatorWorldAgentChatReadinessOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetCreatorWorldAgentChatReadinessOperationRequest {
-    pub path: RealmGetCreatorWorldAgentChatReadinessOperationPath,
-    pub query: RealmGetCreatorWorldAgentChatReadinessOperationQuery,
-    pub headers: RealmGetCreatorWorldAgentChatReadinessOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetCreatorWorldAgentSettingsOperationPath {
-    pub agent_id: String,
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetCreatorWorldAgentSettingsOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetCreatorWorldAgentSettingsOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetCreatorWorldAgentSettingsOperationRequest {
-    pub path: RealmGetCreatorWorldAgentSettingsOperationPath,
-    pub query: RealmGetCreatorWorldAgentSettingsOperationQuery,
-    pub headers: RealmGetCreatorWorldAgentSettingsOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetCreatorWorldAgentSourceSkeletonOperationPath {
-    pub agent_id: String,
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetCreatorWorldAgentSourceSkeletonOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetCreatorWorldAgentSourceSkeletonOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetCreatorWorldAgentSourceSkeletonOperationRequest {
-    pub path: RealmGetCreatorWorldAgentSourceSkeletonOperationPath,
-    pub query: RealmGetCreatorWorldAgentSourceSkeletonOperationQuery,
-    pub headers: RealmGetCreatorWorldAgentSourceSkeletonOperationHeaders,
     pub body: (),
 }
 
@@ -45104,29 +41476,6 @@ pub struct RealmGetMutualFriendsCountOperationRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetMyAgentFriendLimitOperationPath {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetMyAgentFriendLimitOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetMyAgentFriendLimitOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetMyAgentFriendLimitOperationRequest {
-    pub path: RealmGetMyAgentFriendLimitOperationPath,
-    pub query: RealmGetMyAgentFriendLimitOperationQuery,
-    pub headers: RealmGetMyAgentFriendLimitOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmGetMyAppPermissionGrantOperationPath {
     pub grant_id: String,
 }
@@ -45150,29 +41499,6 @@ pub struct RealmGetMyAppPermissionGrantOperationRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetMyAppPermissionGrantProjectionOperationPath {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetMyAppPermissionGrantProjectionOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetMyAppPermissionGrantProjectionOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetMyAppPermissionGrantProjectionOperationRequest {
-    pub path: RealmGetMyAppPermissionGrantProjectionOperationPath,
-    pub query: RealmGetMyAppPermissionGrantProjectionOperationQuery,
-    pub headers: RealmGetMyAppPermissionGrantProjectionOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmGetMyAppPermissionGrantStatusOperationPath {
 
 }
@@ -45192,6 +41518,29 @@ pub struct RealmGetMyAppPermissionGrantStatusOperationRequest {
     pub path: RealmGetMyAppPermissionGrantStatusOperationPath,
     pub query: RealmGetMyAppPermissionGrantStatusOperationQuery,
     pub headers: RealmGetMyAppPermissionGrantStatusOperationHeaders,
+    pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetMyAppPermissionGrantViewOperationPath {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetMyAppPermissionGrantViewOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetMyAppPermissionGrantViewOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetMyAppPermissionGrantViewOperationRequest {
+    pub path: RealmGetMyAppPermissionGrantViewOperationPath,
+    pub query: RealmGetMyAppPermissionGrantViewOperationQuery,
+    pub headers: RealmGetMyAppPermissionGrantViewOperationHeaders,
     pub body: (),
 }
 
@@ -45331,52 +41680,6 @@ pub struct RealmGetMyPPConfigOperationRequest {
     pub path: RealmGetMyPPConfigOperationPath,
     pub query: RealmGetMyPPConfigOperationQuery,
     pub headers: RealmGetMyPPConfigOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetMyRealmAgentOperationPath {
-    pub agent_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetMyRealmAgentOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetMyRealmAgentOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetMyRealmAgentOperationRequest {
-    pub path: RealmGetMyRealmAgentOperationPath,
-    pub query: RealmGetMyRealmAgentOperationQuery,
-    pub headers: RealmGetMyRealmAgentOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetMyRealmAgentSettingsOperationPath {
-    pub agent_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetMyRealmAgentSettingsOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetMyRealmAgentSettingsOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetMyRealmAgentSettingsOperationRequest {
-    pub path: RealmGetMyRealmAgentSettingsOperationPath,
-    pub query: RealmGetMyRealmAgentSettingsOperationQuery,
-    pub headers: RealmGetMyRealmAgentSettingsOperationHeaders,
     pub body: (),
 }
 
@@ -45638,29 +41941,6 @@ pub struct RealmGetWorldPostsOperationRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetWorldScenesOperationPath {
-    pub id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetWorldScenesOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetWorldScenesOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmGetWorldScenesOperationRequest {
-    pub path: RealmGetWorldScenesOperationPath,
-    pub query: RealmGetWorldScenesOperationQuery,
-    pub headers: RealmGetWorldScenesOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmGrantMyAppPermissionGrantOperationPath {
     pub grant_id: String,
 }
@@ -45681,98 +41961,6 @@ pub struct RealmGrantMyAppPermissionGrantOperationRequest {
     pub query: RealmGrantMyAppPermissionGrantOperationQuery,
     pub headers: RealmGrantMyAppPermissionGrantOperationHeaders,
     pub body: AppPermissionGrantGrantDto,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmHumanNsfwConsentControllerCanManageAgentNsfwOperationPath {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmHumanNsfwConsentControllerCanManageAgentNsfwOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmHumanNsfwConsentControllerCanManageAgentNsfwOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmHumanNsfwConsentControllerCanManageAgentNsfwOperationRequest {
-    pub path: RealmHumanNsfwConsentControllerCanManageAgentNsfwOperationPath,
-    pub query: RealmHumanNsfwConsentControllerCanManageAgentNsfwOperationQuery,
-    pub headers: RealmHumanNsfwConsentControllerCanManageAgentNsfwOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmHumanNsfwConsentControllerCheckConsentOperationPath {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmHumanNsfwConsentControllerCheckConsentOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmHumanNsfwConsentControllerCheckConsentOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmHumanNsfwConsentControllerCheckConsentOperationRequest {
-    pub path: RealmHumanNsfwConsentControllerCheckConsentOperationPath,
-    pub query: RealmHumanNsfwConsentControllerCheckConsentOperationQuery,
-    pub headers: RealmHumanNsfwConsentControllerCheckConsentOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmHumanNsfwConsentControllerGetConsentStatusOperationPath {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmHumanNsfwConsentControllerGetConsentStatusOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmHumanNsfwConsentControllerGetConsentStatusOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmHumanNsfwConsentControllerGetConsentStatusOperationRequest {
-    pub path: RealmHumanNsfwConsentControllerGetConsentStatusOperationPath,
-    pub query: RealmHumanNsfwConsentControllerGetConsentStatusOperationQuery,
-    pub headers: RealmHumanNsfwConsentControllerGetConsentStatusOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmHumanNsfwConsentControllerUpdateUserConsentOperationPath {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmHumanNsfwConsentControllerUpdateUserConsentOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmHumanNsfwConsentControllerUpdateUserConsentOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmHumanNsfwConsentControllerUpdateUserConsentOperationRequest {
-    pub path: RealmHumanNsfwConsentControllerUpdateUserConsentOperationPath,
-    pub query: RealmHumanNsfwConsentControllerUpdateUserConsentOperationQuery,
-    pub headers: RealmHumanNsfwConsentControllerUpdateUserConsentOperationHeaders,
-    pub body: UpdateUserNsfwConsentDto,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -46007,53 +42195,6 @@ pub struct RealmListChatsOperationRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmListCreatorWorldAgentAuthoringDraftBatchesOperationPath {
-    pub agent_id: String,
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmListCreatorWorldAgentAuthoringDraftBatchesOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmListCreatorWorldAgentAuthoringDraftBatchesOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmListCreatorWorldAgentAuthoringDraftBatchesOperationRequest {
-    pub path: RealmListCreatorWorldAgentAuthoringDraftBatchesOperationPath,
-    pub query: RealmListCreatorWorldAgentAuthoringDraftBatchesOperationQuery,
-    pub headers: RealmListCreatorWorldAgentAuthoringDraftBatchesOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmListCreatorWorldAgentsOperationPath {
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmListCreatorWorldAgentsOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmListCreatorWorldAgentsOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmListCreatorWorldAgentsOperationRequest {
-    pub path: RealmListCreatorWorldAgentsOperationPath,
-    pub query: RealmListCreatorWorldAgentsOperationQuery,
-    pub headers: RealmListCreatorWorldAgentsOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmListGroupMessagesOperationPath {
     pub chat_id: String,
 }
@@ -46179,29 +42320,6 @@ pub struct RealmListMyAppPermissionGrantsOperationRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmListMyCreatorWorldsOperationPath {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmListMyCreatorWorldsOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmListMyCreatorWorldsOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmListMyCreatorWorldsOperationRequest {
-    pub path: RealmListMyCreatorWorldsOperationPath,
-    pub query: RealmListMyCreatorWorldsOperationQuery,
-    pub headers: RealmListMyCreatorWorldsOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmListMyFriendIdsOperationPath {
 
 }
@@ -46245,75 +42363,6 @@ pub struct RealmListMyFriendsWithDetailsOperationRequest {
     pub path: RealmListMyFriendsWithDetailsOperationPath,
     pub query: RealmListMyFriendsWithDetailsOperationQuery,
     pub headers: RealmListMyFriendsWithDetailsOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmListMyLocalAgentProvisionIntentsOperationPath {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmListMyLocalAgentProvisionIntentsOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmListMyLocalAgentProvisionIntentsOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmListMyLocalAgentProvisionIntentsOperationRequest {
-    pub path: RealmListMyLocalAgentProvisionIntentsOperationPath,
-    pub query: RealmListMyLocalAgentProvisionIntentsOperationQuery,
-    pub headers: RealmListMyLocalAgentProvisionIntentsOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmListMyLocalAgentTerminationIntentsOperationPath {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmListMyLocalAgentTerminationIntentsOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmListMyLocalAgentTerminationIntentsOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmListMyLocalAgentTerminationIntentsOperationRequest {
-    pub path: RealmListMyLocalAgentTerminationIntentsOperationPath,
-    pub query: RealmListMyLocalAgentTerminationIntentsOperationQuery,
-    pub headers: RealmListMyLocalAgentTerminationIntentsOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmListMyRealmAgentsOperationPath {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmListMyRealmAgentsOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmListMyRealmAgentsOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmListMyRealmAgentsOperationRequest {
-    pub path: RealmListMyRealmAgentsOperationPath,
-    pub query: RealmListMyRealmAgentsOperationQuery,
-    pub headers: RealmListMyRealmAgentsOperationHeaders,
     pub body: (),
 }
 
@@ -46672,29 +42721,6 @@ pub struct RealmPrepareBindWalletOperationRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmProjectRuntimePayloadOperationPath {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmProjectRuntimePayloadOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmProjectRuntimePayloadOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmProjectRuntimePayloadOperationRequest {
-    pub path: RealmProjectRuntimePayloadOperationPath,
-    pub query: RealmProjectRuntimePayloadOperationQuery,
-    pub headers: RealmProjectRuntimePayloadOperationHeaders,
-    pub body: RuntimeProjectionRequestDto,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmPublishBundleOperationPath {
     pub bundle_id: String,
 }
@@ -46904,30 +42930,6 @@ pub struct RealmRemoveFriendOperationRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmRemoveGroupAgentOperationPath {
-    pub agent_account_id: String,
-    pub chat_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmRemoveGroupAgentOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmRemoveGroupAgentOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmRemoveGroupAgentOperationRequest {
-    pub path: RealmRemoveGroupAgentOperationPath,
-    pub query: RealmRemoveGroupAgentOperationQuery,
-    pub headers: RealmRemoveGroupAgentOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmRemoveGroupParticipantOperationPath {
     pub account_id: String,
     pub chat_id: String,
@@ -47113,32 +43115,6 @@ pub struct RealmReviewControllerGetReviewsOperationRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmReviewCreatorWorldAgentAuthoringDraftCandidateOperationPath {
-    pub candidate_id: String,
-    pub batch_id: String,
-    pub agent_id: String,
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmReviewCreatorWorldAgentAuthoringDraftCandidateOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmReviewCreatorWorldAgentAuthoringDraftCandidateOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmReviewCreatorWorldAgentAuthoringDraftCandidateOperationRequest {
-    pub path: RealmReviewCreatorWorldAgentAuthoringDraftCandidateOperationPath,
-    pub query: RealmReviewCreatorWorldAgentAuthoringDraftCandidateOperationQuery,
-    pub headers: RealmReviewCreatorWorldAgentAuthoringDraftCandidateOperationHeaders,
-    pub body: ReviewAgentAuthoringDraftCandidateDto,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmRevokeMyAppPermissionGrantOperationPath {
     pub grant_id: String,
 }
@@ -47172,7 +43148,6 @@ pub struct RealmSearchHumanUsersOperationQuery {
     pub cursor: Option<String>,
     pub age_max: Option<f64>,
     pub age_min: Option<f64>,
-    pub is_agent: Option<bool>,
     pub city: Option<String>,
     pub country_code: Option<String>,
     pub gender: Option<String>,
@@ -47208,7 +43183,6 @@ pub struct RealmSearchIndexedUsersOperationQuery {
     pub cursor: Option<String>,
     pub age_max: Option<f64>,
     pub age_min: Option<f64>,
-    pub is_agent: Option<bool>,
     pub city: Option<String>,
     pub country_code: Option<String>,
     pub gender: Option<String>,
@@ -47454,7 +43428,7 @@ pub struct RealmTransitControllerCompleteOperationRequest {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmTransitControllerGetActiveTransitOperationPath {
-    pub agent_id: String,
+    pub runtime_source_ref: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -47507,7 +43481,8 @@ pub struct RealmTransitControllerListTransitsOperationPath {
 pub struct RealmTransitControllerListTransitsOperationQuery {
     pub transit_type: Option<String>,
     pub status: Option<String>,
-    pub agent_id: Option<String>,
+    pub runtime_source_ref: Option<String>,
+    pub source_id: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -47685,78 +43660,6 @@ pub struct RealmUpdateBundleOperationRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmUpdateCreatorWorldAgentProfileMediaOperationPath {
-    pub agent_id: String,
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmUpdateCreatorWorldAgentProfileMediaOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmUpdateCreatorWorldAgentProfileMediaOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmUpdateCreatorWorldAgentProfileMediaOperationRequest {
-    pub path: RealmUpdateCreatorWorldAgentProfileMediaOperationPath,
-    pub query: RealmUpdateCreatorWorldAgentProfileMediaOperationQuery,
-    pub headers: RealmUpdateCreatorWorldAgentProfileMediaOperationHeaders,
-    pub body: UpdateAgentProfileMediaDto,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmUpdateCreatorWorldAgentSettingsOperationPath {
-    pub agent_id: String,
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmUpdateCreatorWorldAgentSettingsOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmUpdateCreatorWorldAgentSettingsOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmUpdateCreatorWorldAgentSettingsOperationRequest {
-    pub path: RealmUpdateCreatorWorldAgentSettingsOperationPath,
-    pub query: RealmUpdateCreatorWorldAgentSettingsOperationQuery,
-    pub headers: RealmUpdateCreatorWorldAgentSettingsOperationHeaders,
-    pub body: UpdateOwnerAgentSettingsDto,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmUpdateCreatorWorldAgentVoiceOperationPath {
-    pub agent_id: String,
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmUpdateCreatorWorldAgentVoiceOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmUpdateCreatorWorldAgentVoiceOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmUpdateCreatorWorldAgentVoiceOperationRequest {
-    pub path: RealmUpdateCreatorWorldAgentVoiceOperationPath,
-    pub query: RealmUpdateCreatorWorldAgentVoiceOperationQuery,
-    pub headers: RealmUpdateCreatorWorldAgentVoiceOperationHeaders,
-    pub body: UpdateAgentVoiceDto,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmUpdateGroupOperationPath {
     pub chat_id: String,
 }
@@ -47896,29 +43799,6 @@ pub struct RealmUpdateMyPPConfigOperationRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmUpdateMyRealmAgentSettingsOperationPath {
-    pub agent_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmUpdateMyRealmAgentSettingsOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmUpdateMyRealmAgentSettingsOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmUpdateMyRealmAgentSettingsOperationRequest {
-    pub path: RealmUpdateMyRealmAgentSettingsOperationPath,
-    pub query: RealmUpdateMyRealmAgentSettingsOperationQuery,
-    pub headers: RealmUpdateMyRealmAgentSettingsOperationHeaders,
-    pub body: UpdateOwnerAgentSettingsDto,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmUpdateMySettingsOperationPath {
 
 }
@@ -48008,145 +43888,6 @@ pub struct RealmUpdateResourceOperationRequest {
     pub query: RealmUpdateResourceOperationQuery,
     pub headers: RealmUpdateResourceOperationHeaders,
     pub body: UpdateResourceDto,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmV1DefaultVisibilityControllerApplyAgentDefaultsOperationPath {
-    pub agent_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmV1DefaultVisibilityControllerApplyAgentDefaultsOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmV1DefaultVisibilityControllerApplyAgentDefaultsOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmV1DefaultVisibilityControllerApplyAgentDefaultsOperationRequest {
-    pub path: RealmV1DefaultVisibilityControllerApplyAgentDefaultsOperationPath,
-    pub query: RealmV1DefaultVisibilityControllerApplyAgentDefaultsOperationQuery,
-    pub headers: RealmV1DefaultVisibilityControllerApplyAgentDefaultsOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmV1DefaultVisibilityControllerApplyUserDefaultsOperationPath {
-    pub user_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmV1DefaultVisibilityControllerApplyUserDefaultsOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmV1DefaultVisibilityControllerApplyUserDefaultsOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmV1DefaultVisibilityControllerApplyUserDefaultsOperationRequest {
-    pub path: RealmV1DefaultVisibilityControllerApplyUserDefaultsOperationPath,
-    pub query: RealmV1DefaultVisibilityControllerApplyUserDefaultsOperationQuery,
-    pub headers: RealmV1DefaultVisibilityControllerApplyUserDefaultsOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmV1DefaultVisibilityControllerGetDefaultForScopeOperationPath {
-    pub scope: String,
-    pub entity_type: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmV1DefaultVisibilityControllerGetDefaultForScopeOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmV1DefaultVisibilityControllerGetDefaultForScopeOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmV1DefaultVisibilityControllerGetDefaultForScopeOperationRequest {
-    pub path: RealmV1DefaultVisibilityControllerGetDefaultForScopeOperationPath,
-    pub query: RealmV1DefaultVisibilityControllerGetDefaultForScopeOperationQuery,
-    pub headers: RealmV1DefaultVisibilityControllerGetDefaultForScopeOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmV1DefaultVisibilityControllerGetDefaultVisibilityOperationPath {
-    pub entity_type: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmV1DefaultVisibilityControllerGetDefaultVisibilityOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmV1DefaultVisibilityControllerGetDefaultVisibilityOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmV1DefaultVisibilityControllerGetDefaultVisibilityOperationRequest {
-    pub path: RealmV1DefaultVisibilityControllerGetDefaultVisibilityOperationPath,
-    pub query: RealmV1DefaultVisibilityControllerGetDefaultVisibilityOperationQuery,
-    pub headers: RealmV1DefaultVisibilityControllerGetDefaultVisibilityOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmV1DefaultVisibilityControllerValidateAgentVisibilityOperationPath {
-    pub agent_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmV1DefaultVisibilityControllerValidateAgentVisibilityOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmV1DefaultVisibilityControllerValidateAgentVisibilityOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmV1DefaultVisibilityControllerValidateAgentVisibilityOperationRequest {
-    pub path: RealmV1DefaultVisibilityControllerValidateAgentVisibilityOperationPath,
-    pub query: RealmV1DefaultVisibilityControllerValidateAgentVisibilityOperationQuery,
-    pub headers: RealmV1DefaultVisibilityControllerValidateAgentVisibilityOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmV1DefaultVisibilityControllerValidateUserVisibilityOperationPath {
-    pub user_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmV1DefaultVisibilityControllerValidateUserVisibilityOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmV1DefaultVisibilityControllerValidateUserVisibilityOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmV1DefaultVisibilityControllerValidateUserVisibilityOperationRequest {
-    pub path: RealmV1DefaultVisibilityControllerValidateUserVisibilityOperationPath,
-    pub query: RealmV1DefaultVisibilityControllerValidateUserVisibilityOperationQuery,
-    pub headers: RealmV1DefaultVisibilityControllerValidateUserVisibilityOperationHeaders,
-    pub body: (),
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -48242,842 +43983,349 @@ pub struct RealmWalletLoginOperationRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerAppendWorldHistoryOperationPath {
+pub struct RealmWorldCoreControllerBootstrapOasisWorldOperationPath {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerBootstrapOasisWorldOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerBootstrapOasisWorldOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerBootstrapOasisWorldOperationRequest {
+    pub path: RealmWorldCoreControllerBootstrapOasisWorldOperationPath,
+    pub query: RealmWorldCoreControllerBootstrapOasisWorldOperationQuery,
+    pub headers: RealmWorldCoreControllerBootstrapOasisWorldOperationHeaders,
+    pub body: BootstrapOasisWorldDto,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerCreateRealmPersonaOperationPath {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerCreateRealmPersonaOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerCreateRealmPersonaOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerCreateRealmPersonaOperationRequest {
+    pub path: RealmWorldCoreControllerCreateRealmPersonaOperationPath,
+    pub query: RealmWorldCoreControllerCreateRealmPersonaOperationQuery,
+    pub headers: RealmWorldCoreControllerCreateRealmPersonaOperationHeaders,
+    pub body: CreateRealmPersonaDto,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerCreateRuntimeSourceSnapshotOperationPath {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerCreateRuntimeSourceSnapshotOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerCreateRuntimeSourceSnapshotOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerCreateRuntimeSourceSnapshotOperationRequest {
+    pub path: RealmWorldCoreControllerCreateRuntimeSourceSnapshotOperationPath,
+    pub query: RealmWorldCoreControllerCreateRuntimeSourceSnapshotOperationQuery,
+    pub headers: RealmWorldCoreControllerCreateRuntimeSourceSnapshotOperationHeaders,
+    pub body: CreateRuntimeSourceSnapshotDto,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerCreateWorldCharacterOperationPath {
     pub world_id: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerAppendWorldHistoryOperationQuery {
+pub struct RealmWorldCoreControllerCreateWorldCharacterOperationQuery {
 
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerAppendWorldHistoryOperationHeaders {
+pub struct RealmWorldCoreControllerCreateWorldCharacterOperationHeaders {
 
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerAppendWorldHistoryOperationRequest {
-    pub path: RealmWorldControlControllerAppendWorldHistoryOperationPath,
-    pub query: RealmWorldControlControllerAppendWorldHistoryOperationQuery,
-    pub headers: RealmWorldControlControllerAppendWorldHistoryOperationHeaders,
-    pub body: AppendWorldHistoryDto,
+pub struct RealmWorldCoreControllerCreateWorldCharacterOperationRequest {
+    pub path: RealmWorldCoreControllerCreateWorldCharacterOperationPath,
+    pub query: RealmWorldCoreControllerCreateWorldCharacterOperationQuery,
+    pub headers: RealmWorldCoreControllerCreateWorldCharacterOperationHeaders,
+    pub body: CreateWorldCharacterCoreDto,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerBatchUpsertWorldBindingsOperationPath {
+pub struct RealmWorldCoreControllerCreateWorldCoreOperationPath {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerCreateWorldCoreOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerCreateWorldCoreOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerCreateWorldCoreOperationRequest {
+    pub path: RealmWorldCoreControllerCreateWorldCoreOperationPath,
+    pub query: RealmWorldCoreControllerCreateWorldCoreOperationQuery,
+    pub headers: RealmWorldCoreControllerCreateWorldCoreOperationHeaders,
+    pub body: CreateWorldCoreDto,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerGetOasisWorldOperationPath {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerGetOasisWorldOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerGetOasisWorldOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerGetOasisWorldOperationRequest {
+    pub path: RealmWorldCoreControllerGetOasisWorldOperationPath,
+    pub query: RealmWorldCoreControllerGetOasisWorldOperationQuery,
+    pub headers: RealmWorldCoreControllerGetOasisWorldOperationHeaders,
+    pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerGetRealmPersonaOperationPath {
+    pub persona_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerGetRealmPersonaOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerGetRealmPersonaOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerGetRealmPersonaOperationRequest {
+    pub path: RealmWorldCoreControllerGetRealmPersonaOperationPath,
+    pub query: RealmWorldCoreControllerGetRealmPersonaOperationQuery,
+    pub headers: RealmWorldCoreControllerGetRealmPersonaOperationHeaders,
+    pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerGetWorldCharacterOperationPath {
+    pub character_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerGetWorldCharacterOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerGetWorldCharacterOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerGetWorldCharacterOperationRequest {
+    pub path: RealmWorldCoreControllerGetWorldCharacterOperationPath,
+    pub query: RealmWorldCoreControllerGetWorldCharacterOperationQuery,
+    pub headers: RealmWorldCoreControllerGetWorldCharacterOperationHeaders,
+    pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerGetWorldCoreOperationPath {
     pub world_id: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerBatchUpsertWorldBindingsOperationQuery {
+pub struct RealmWorldCoreControllerGetWorldCoreOperationQuery {
 
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerBatchUpsertWorldBindingsOperationHeaders {
+pub struct RealmWorldCoreControllerGetWorldCoreOperationHeaders {
 
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerBatchUpsertWorldBindingsOperationRequest {
-    pub path: RealmWorldControlControllerBatchUpsertWorldBindingsOperationPath,
-    pub query: RealmWorldControlControllerBatchUpsertWorldBindingsOperationQuery,
-    pub headers: RealmWorldControlControllerBatchUpsertWorldBindingsOperationHeaders,
-    pub body: BatchUpsertBindingsDto,
+pub struct RealmWorldCoreControllerGetWorldCoreOperationRequest {
+    pub path: RealmWorldCoreControllerGetWorldCoreOperationPath,
+    pub query: RealmWorldCoreControllerGetWorldCoreOperationQuery,
+    pub headers: RealmWorldCoreControllerGetWorldCoreOperationHeaders,
+    pub body: (),
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerCommitStateOperationPath {
+pub struct RealmWorldCoreControllerListRealmPersonasOperationPath {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerListRealmPersonasOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerListRealmPersonasOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerListRealmPersonasOperationRequest {
+    pub path: RealmWorldCoreControllerListRealmPersonasOperationPath,
+    pub query: RealmWorldCoreControllerListRealmPersonasOperationQuery,
+    pub headers: RealmWorldCoreControllerListRealmPersonasOperationHeaders,
+    pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerListWorldCharactersOperationPath {
     pub world_id: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerCommitStateOperationQuery {
+pub struct RealmWorldCoreControllerListWorldCharactersOperationQuery {
 
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerCommitStateOperationHeaders {
+pub struct RealmWorldCoreControllerListWorldCharactersOperationHeaders {
 
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerCommitStateOperationRequest {
-    pub path: RealmWorldControlControllerCommitStateOperationPath,
-    pub query: RealmWorldControlControllerCommitStateOperationQuery,
-    pub headers: RealmWorldControlControllerCommitStateOperationHeaders,
-    pub body: CommitWorldStateDto,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerCreateDraftOperationPath {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerCreateDraftOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerCreateDraftOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerCreateDraftOperationRequest {
-    pub path: RealmWorldControlControllerCreateDraftOperationPath,
-    pub query: RealmWorldControlControllerCreateDraftOperationQuery,
-    pub headers: RealmWorldControlControllerCreateDraftOperationHeaders,
-    pub body: CreateWorldDraftDto,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerDeleteWorldBindingOperationPath {
-    pub binding_id: String,
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerDeleteWorldBindingOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerDeleteWorldBindingOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerDeleteWorldBindingOperationRequest {
-    pub path: RealmWorldControlControllerDeleteWorldBindingOperationPath,
-    pub query: RealmWorldControlControllerDeleteWorldBindingOperationQuery,
-    pub headers: RealmWorldControlControllerDeleteWorldBindingOperationHeaders,
+pub struct RealmWorldCoreControllerListWorldCharactersOperationRequest {
+    pub path: RealmWorldCoreControllerListWorldCharactersOperationPath,
+    pub query: RealmWorldCoreControllerListWorldCharactersOperationQuery,
+    pub headers: RealmWorldCoreControllerListWorldCharactersOperationHeaders,
     pub body: (),
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerGetDraftOperationPath {
-    pub draft_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerGetDraftOperationQuery {
+pub struct RealmWorldCoreControllerListWorldCoresOperationPath {
 
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerGetDraftOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerGetDraftOperationRequest {
-    pub path: RealmWorldControlControllerGetDraftOperationPath,
-    pub query: RealmWorldControlControllerGetDraftOperationQuery,
-    pub headers: RealmWorldControlControllerGetDraftOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerGetMyAccessOperationPath {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerGetMyAccessOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerGetMyAccessOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerGetMyAccessOperationRequest {
-    pub path: RealmWorldControlControllerGetMyAccessOperationPath,
-    pub query: RealmWorldControlControllerGetMyAccessOperationQuery,
-    pub headers: RealmWorldControlControllerGetMyAccessOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerGetStateOperationPath {
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerGetStateOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerGetStateOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerGetStateOperationRequest {
-    pub path: RealmWorldControlControllerGetStateOperationPath,
-    pub query: RealmWorldControlControllerGetStateOperationQuery,
-    pub headers: RealmWorldControlControllerGetStateOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerListDraftsOperationPath {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerListDraftsOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerListDraftsOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerListDraftsOperationRequest {
-    pub path: RealmWorldControlControllerListDraftsOperationPath,
-    pub query: RealmWorldControlControllerListDraftsOperationQuery,
-    pub headers: RealmWorldControlControllerListDraftsOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerListMyWorldsOperationPath {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerListMyWorldsOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerListMyWorldsOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerListMyWorldsOperationRequest {
-    pub path: RealmWorldControlControllerListMyWorldsOperationPath,
-    pub query: RealmWorldControlControllerListMyWorldsOperationQuery,
-    pub headers: RealmWorldControlControllerListMyWorldsOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerListWorldBindingsOperationPath {
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerListWorldBindingsOperationQuery {
+pub struct RealmWorldCoreControllerListWorldCoresOperationQuery {
     pub take: Option<f64>,
-    pub binding_point: Option<String>,
-    pub binding_kind: Option<String>,
-    pub host_id: Option<String>,
-    pub host_type: Option<String>,
-    pub object_id: Option<String>,
-    pub object_type: Option<String>,
+    pub visibility: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerListWorldBindingsOperationHeaders {
+pub struct RealmWorldCoreControllerListWorldCoresOperationHeaders {
 
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerListWorldBindingsOperationRequest {
-    pub path: RealmWorldControlControllerListWorldBindingsOperationPath,
-    pub query: RealmWorldControlControllerListWorldBindingsOperationQuery,
-    pub headers: RealmWorldControlControllerListWorldBindingsOperationHeaders,
+pub struct RealmWorldCoreControllerListWorldCoresOperationRequest {
+    pub path: RealmWorldCoreControllerListWorldCoresOperationPath,
+    pub query: RealmWorldCoreControllerListWorldCoresOperationQuery,
+    pub headers: RealmWorldCoreControllerListWorldCoresOperationHeaders,
     pub body: (),
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerListWorldHistoryOperationPath {
+pub struct RealmWorldCoreControllerReplaceRealmPersonaOperationPath {
+    pub persona_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerReplaceRealmPersonaOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerReplaceRealmPersonaOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerReplaceRealmPersonaOperationRequest {
+    pub path: RealmWorldCoreControllerReplaceRealmPersonaOperationPath,
+    pub query: RealmWorldCoreControllerReplaceRealmPersonaOperationQuery,
+    pub headers: RealmWorldCoreControllerReplaceRealmPersonaOperationHeaders,
+    pub body: ReplaceRealmPersonaDto,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerReplaceWorldCharacterOperationPath {
+    pub character_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerReplaceWorldCharacterOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerReplaceWorldCharacterOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerReplaceWorldCharacterOperationRequest {
+    pub path: RealmWorldCoreControllerReplaceWorldCharacterOperationPath,
+    pub query: RealmWorldCoreControllerReplaceWorldCharacterOperationQuery,
+    pub headers: RealmWorldCoreControllerReplaceWorldCharacterOperationHeaders,
+    pub body: ReplaceWorldCharacterCoreDto,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerReplaceWorldCoreOperationPath {
     pub world_id: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerListWorldHistoryOperationQuery {
+pub struct RealmWorldCoreControllerReplaceWorldCoreOperationQuery {
 
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerListWorldHistoryOperationHeaders {
+pub struct RealmWorldCoreControllerReplaceWorldCoreOperationHeaders {
 
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerListWorldHistoryOperationRequest {
-    pub path: RealmWorldControlControllerListWorldHistoryOperationPath,
-    pub query: RealmWorldControlControllerListWorldHistoryOperationQuery,
-    pub headers: RealmWorldControlControllerListWorldHistoryOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerListWorldLorebooksOperationPath {
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerListWorldLorebooksOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerListWorldLorebooksOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerListWorldLorebooksOperationRequest {
-    pub path: RealmWorldControlControllerListWorldLorebooksOperationPath,
-    pub query: RealmWorldControlControllerListWorldLorebooksOperationQuery,
-    pub headers: RealmWorldControlControllerListWorldLorebooksOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerPublishDraftOperationPath {
-    pub draft_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerPublishDraftOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerPublishDraftOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerPublishDraftOperationRequest {
-    pub path: RealmWorldControlControllerPublishDraftOperationPath,
-    pub query: RealmWorldControlControllerPublishDraftOperationQuery,
-    pub headers: RealmWorldControlControllerPublishDraftOperationHeaders,
-    pub body: PublishWorldDraftDto,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerResolveLandingOperationPath {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerResolveLandingOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerResolveLandingOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerResolveLandingOperationRequest {
-    pub path: RealmWorldControlControllerResolveLandingOperationPath,
-    pub query: RealmWorldControlControllerResolveLandingOperationQuery,
-    pub headers: RealmWorldControlControllerResolveLandingOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerUpdateDraftOperationPath {
-    pub draft_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerUpdateDraftOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerUpdateDraftOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControlControllerUpdateDraftOperationRequest {
-    pub path: RealmWorldControlControllerUpdateDraftOperationPath,
-    pub query: RealmWorldControlControllerUpdateDraftOperationQuery,
-    pub headers: RealmWorldControlControllerUpdateDraftOperationHeaders,
-    pub body: UpdateWorldDraftDto,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControllerGetMainWorldOperationPath {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControllerGetMainWorldOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControllerGetMainWorldOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControllerGetMainWorldOperationRequest {
-    pub path: RealmWorldControllerGetMainWorldOperationPath,
-    pub query: RealmWorldControllerGetMainWorldOperationQuery,
-    pub headers: RealmWorldControllerGetMainWorldOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControllerGetWorldOperationPath {
-    pub id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControllerGetWorldOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControllerGetWorldOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControllerGetWorldOperationRequest {
-    pub path: RealmWorldControllerGetWorldOperationPath,
-    pub query: RealmWorldControllerGetWorldOperationQuery,
-    pub headers: RealmWorldControllerGetWorldOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControllerGetWorldAgentsOperationPath {
-    pub id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControllerGetWorldAgentsOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControllerGetWorldAgentsOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControllerGetWorldAgentsOperationRequest {
-    pub path: RealmWorldControllerGetWorldAgentsOperationPath,
-    pub query: RealmWorldControllerGetWorldAgentsOperationQuery,
-    pub headers: RealmWorldControllerGetWorldAgentsOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControllerGetWorldBindingsOperationPath {
-    pub id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControllerGetWorldBindingsOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControllerGetWorldBindingsOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControllerGetWorldBindingsOperationRequest {
-    pub path: RealmWorldControllerGetWorldBindingsOperationPath,
-    pub query: RealmWorldControllerGetWorldBindingsOperationQuery,
-    pub headers: RealmWorldControllerGetWorldBindingsOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControllerGetWorldDetailWithAgentsOperationPath {
-    pub id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControllerGetWorldDetailWithAgentsOperationQuery {
-    pub recommended_agent_limit: Option<f64>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControllerGetWorldDetailWithAgentsOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControllerGetWorldDetailWithAgentsOperationRequest {
-    pub path: RealmWorldControllerGetWorldDetailWithAgentsOperationPath,
-    pub query: RealmWorldControllerGetWorldDetailWithAgentsOperationQuery,
-    pub headers: RealmWorldControllerGetWorldDetailWithAgentsOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControllerGetWorldHistoryOperationPath {
-    pub id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControllerGetWorldHistoryOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControllerGetWorldHistoryOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControllerGetWorldHistoryOperationRequest {
-    pub path: RealmWorldControllerGetWorldHistoryOperationPath,
-    pub query: RealmWorldControllerGetWorldHistoryOperationQuery,
-    pub headers: RealmWorldControllerGetWorldHistoryOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControllerGetWorldLevelAuditsOperationPath {
-    pub id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControllerGetWorldLevelAuditsOperationQuery {
-    pub limit: Option<f64>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControllerGetWorldLevelAuditsOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControllerGetWorldLevelAuditsOperationRequest {
-    pub path: RealmWorldControllerGetWorldLevelAuditsOperationPath,
-    pub query: RealmWorldControllerGetWorldLevelAuditsOperationQuery,
-    pub headers: RealmWorldControllerGetWorldLevelAuditsOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControllerGetWorldLorebooksOperationPath {
-    pub id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControllerGetWorldLorebooksOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControllerGetWorldLorebooksOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControllerGetWorldLorebooksOperationRequest {
-    pub path: RealmWorldControllerGetWorldLorebooksOperationPath,
-    pub query: RealmWorldControllerGetWorldLorebooksOperationQuery,
-    pub headers: RealmWorldControllerGetWorldLorebooksOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControllerGetWorldviewOperationPath {
-    pub id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControllerGetWorldviewOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControllerGetWorldviewOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControllerGetWorldviewOperationRequest {
-    pub path: RealmWorldControllerGetWorldviewOperationPath,
-    pub query: RealmWorldControllerGetWorldviewOperationQuery,
-    pub headers: RealmWorldControllerGetWorldviewOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControllerListWorldsOperationPath {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControllerListWorldsOperationQuery {
-    pub status: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControllerListWorldsOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControllerListWorldsOperationRequest {
-    pub path: RealmWorldControllerListWorldsOperationPath,
-    pub query: RealmWorldControllerListWorldsOperationQuery,
-    pub headers: RealmWorldControllerListWorldsOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControllerReturnToMainWorldOperationPath {
-    pub id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControllerReturnToMainWorldOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControllerReturnToMainWorldOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControllerReturnToMainWorldOperationRequest {
-    pub path: RealmWorldControllerReturnToMainWorldOperationPath,
-    pub query: RealmWorldControllerReturnToMainWorldOperationQuery,
-    pub headers: RealmWorldControllerReturnToMainWorldOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControllerTransitToWorldOperationPath {
-    pub id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControllerTransitToWorldOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControllerTransitToWorldOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldControllerTransitToWorldOperationRequest {
-    pub path: RealmWorldControllerTransitToWorldOperationPath,
-    pub query: RealmWorldControllerTransitToWorldOperationQuery,
-    pub headers: RealmWorldControllerTransitToWorldOperationHeaders,
-    pub body: CreateWorldTransitDto,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldRulesControllerArchiveRuleOperationPath {
-    pub rule_id: String,
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldRulesControllerArchiveRuleOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldRulesControllerArchiveRuleOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldRulesControllerArchiveRuleOperationRequest {
-    pub path: RealmWorldRulesControllerArchiveRuleOperationPath,
-    pub query: RealmWorldRulesControllerArchiveRuleOperationQuery,
-    pub headers: RealmWorldRulesControllerArchiveRuleOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldRulesControllerCheckPermissionOperationPath {
-    pub action: String,
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldRulesControllerCheckPermissionOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldRulesControllerCheckPermissionOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldRulesControllerCheckPermissionOperationRequest {
-    pub path: RealmWorldRulesControllerCheckPermissionOperationPath,
-    pub query: RealmWorldRulesControllerCheckPermissionOperationQuery,
-    pub headers: RealmWorldRulesControllerCheckPermissionOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldRulesControllerCreateRuleOperationPath {
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldRulesControllerCreateRuleOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldRulesControllerCreateRuleOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldRulesControllerCreateRuleOperationRequest {
-    pub path: RealmWorldRulesControllerCreateRuleOperationPath,
-    pub query: RealmWorldRulesControllerCreateRuleOperationQuery,
-    pub headers: RealmWorldRulesControllerCreateRuleOperationHeaders,
-    pub body: CreateWorldRuleDto,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldRulesControllerDeprecateRuleOperationPath {
-    pub rule_id: String,
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldRulesControllerDeprecateRuleOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldRulesControllerDeprecateRuleOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldRulesControllerDeprecateRuleOperationRequest {
-    pub path: RealmWorldRulesControllerDeprecateRuleOperationPath,
-    pub query: RealmWorldRulesControllerDeprecateRuleOperationQuery,
-    pub headers: RealmWorldRulesControllerDeprecateRuleOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldRulesControllerGetCreatorCapabilitiesOperationPath {
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldRulesControllerGetCreatorCapabilitiesOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldRulesControllerGetCreatorCapabilitiesOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldRulesControllerGetCreatorCapabilitiesOperationRequest {
-    pub path: RealmWorldRulesControllerGetCreatorCapabilitiesOperationPath,
-    pub query: RealmWorldRulesControllerGetCreatorCapabilitiesOperationQuery,
-    pub headers: RealmWorldRulesControllerGetCreatorCapabilitiesOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldRulesControllerGetRulesOperationPath {
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldRulesControllerGetRulesOperationQuery {
-    pub status: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldRulesControllerGetRulesOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldRulesControllerGetRulesOperationRequest {
-    pub path: RealmWorldRulesControllerGetRulesOperationPath,
-    pub query: RealmWorldRulesControllerGetRulesOperationQuery,
-    pub headers: RealmWorldRulesControllerGetRulesOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldRulesControllerUpdateRuleOperationPath {
-    pub rule_id: String,
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldRulesControllerUpdateRuleOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldRulesControllerUpdateRuleOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldRulesControllerUpdateRuleOperationRequest {
-    pub path: RealmWorldRulesControllerUpdateRuleOperationPath,
-    pub query: RealmWorldRulesControllerUpdateRuleOperationQuery,
-    pub headers: RealmWorldRulesControllerUpdateRuleOperationHeaders,
-    pub body: UpdateWorldRuleDto,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldRulesControllerValidateRulesOperationPath {
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldRulesControllerValidateRulesOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldRulesControllerValidateRulesOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmWorldRulesControllerValidateRulesOperationRequest {
-    pub path: RealmWorldRulesControllerValidateRulesOperationPath,
-    pub query: RealmWorldRulesControllerValidateRulesOperationQuery,
-    pub headers: RealmWorldRulesControllerValidateRulesOperationHeaders,
-    pub body: ValidateRulesDto,
+pub struct RealmWorldCoreControllerReplaceWorldCoreOperationRequest {
+    pub path: RealmWorldCoreControllerReplaceWorldCoreOperationPath,
+    pub query: RealmWorldCoreControllerReplaceWorldCoreOperationQuery,
+    pub headers: RealmWorldCoreControllerReplaceWorldCoreOperationHeaders,
+    pub body: ReplaceWorldCoreDto,
 }
 
 pub struct RealmTypedClient<T, A>
@@ -49097,96 +44345,12 @@ where
         Self { core }
     }
 
-    pub fn ack_my_local_agent_provision_intent(&self, _request: RealmAckMyLocalAgentProvisionIntentOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<LocalAgentProvisionIntentDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for ackMyLocalAgentProvisionIntent");
-    }
-
-    pub fn ack_my_local_agent_termination_intent(&self, _request: RealmAckMyLocalAgentTerminationIntentOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<LocalAgentTerminationIntentDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for ackMyLocalAgentTerminationIntent");
-    }
-
     pub fn add_friend(&self, _request: RealmAddFriendOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for addFriend");
     }
 
-    pub fn add_group_agent(&self, _request: RealmAddGroupAgentOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<GroupParticipantDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for addGroupAgent");
-    }
-
     pub fn add_group_participant(&self, _request: RealmAddGroupParticipantOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<GroupParticipantDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for addGroupParticipant");
-    }
-
-    pub fn agent_controller_check_handle(&self, _request: RealmAgentControllerCheckHandleOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AgentHandleAvailabilityResponseDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for AgentController_checkHandle");
-    }
-
-    pub fn agent_controller_create(&self, _request: RealmAgentControllerCreateOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<CreateAgentResponseDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for AgentController_create");
-    }
-
-    pub fn agent_controller_delete(&self, _request: RealmAgentControllerDeleteOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<DeleteAgentOperationResponseDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for AgentController_delete");
-    }
-
-    pub fn agent_controller_get_relationships(&self, _request: RealmAgentControllerGetRelationshipsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<Vec<AgentRelationshipRecordDto>, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for AgentController_getRelationships");
-    }
-
-    pub fn agent_controller_get_visibility(&self, _request: RealmAgentControllerGetVisibilityOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AgentVisibilitySettingsDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for AgentController_getVisibility");
-    }
-
-    pub fn agent_controller_make_public(&self, _request: RealmAgentControllerMakePublicOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<MakeAgentPublicResponseDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for AgentController_makePublic");
-    }
-
-    pub fn agent_controller_remove_relationship(&self, _request: RealmAgentControllerRemoveRelationshipOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<DeleteRelationshipResponseDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for AgentController_removeRelationship");
-    }
-
-    pub fn agent_controller_select_avatar(&self, _request: RealmAgentControllerSelectAvatarOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<DeleteAgentOperationResponseDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for AgentController_selectAvatar");
-    }
-
-    pub fn agent_controller_set_relationship(&self, _request: RealmAgentControllerSetRelationshipOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<RelationshipResponseDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for AgentController_setRelationship");
-    }
-
-    pub fn agent_controller_update_dna(&self, _request: RealmAgentControllerUpdateDnaOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<DeleteAgentOperationResponseDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for AgentController_updateDna");
-    }
-
-    pub fn agent_controller_update_visibility(&self, _request: RealmAgentControllerUpdateVisibilityOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AgentVisibilitySettingsDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for AgentController_updateVisibility");
-    }
-
-    pub fn agent_nsfw_consent_controller_update_agent_consent(&self, _request: RealmAgentNsfwConsentControllerUpdateAgentConsentOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<UpdateNsfwConsentResponseDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for AgentNsfwConsentController_updateAgentConsent");
-    }
-
-    pub fn agent_rules_controller_archive_rule(&self, _request: RealmAgentRulesControllerArchiveRuleOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AgentRuleDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for AgentRulesController_archiveRule");
-    }
-
-    pub fn agent_rules_controller_create_rule(&self, _request: RealmAgentRulesControllerCreateRuleOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AgentRuleDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for AgentRulesController_createRule");
-    }
-
-    pub fn agent_rules_controller_deprecate_rule(&self, _request: RealmAgentRulesControllerDeprecateRuleOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AgentRuleDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for AgentRulesController_deprecateRule");
-    }
-
-    pub fn agent_rules_controller_list_rules(&self, _request: RealmAgentRulesControllerListRulesOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<Vec<AgentRuleDto>, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for AgentRulesController_listRules");
-    }
-
-    pub fn agent_rules_controller_update_rule(&self, _request: RealmAgentRulesControllerUpdateRuleOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AgentRuleDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for AgentRulesController_updateRule");
-    }
-
-    pub fn apply_creator_world_agent_authoring_draft_batch(&self, _request: RealmApplyCreatorWorldAgentAuthoringDraftBatchOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<ApplyAgentAuthoringDraftBatchResponseDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for applyCreatorWorldAgentAuthoringDraftBatch");
     }
 
     pub fn archive_bundle(&self, _request: RealmArchiveBundleOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<BundleDetailDto, T::Error> {
@@ -49221,10 +44385,6 @@ where
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for cloneAsset");
     }
 
-    pub fn commit_realm_group_message_candidate(&self, _request: RealmCommitRealmGroupMessageCandidateOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<RealmGroupMessageCandidateCommitResultDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for commitRealmGroupMessageCandidate");
-    }
-
     pub fn create_asset(&self, _request: RealmCreateAssetOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AssetDetailDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for createAsset");
     }
@@ -49235,10 +44395,6 @@ where
 
     pub fn create_bundle(&self, _request: RealmCreateBundleOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<BundleDetailDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for createBundle");
-    }
-
-    pub fn create_creator_world_agent_authoring_draft_batch(&self, _request: RealmCreateCreatorWorldAgentAuthoringDraftBatchOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AgentAuthoringDraftBatchDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for createCreatorWorldAgentAuthoringDraftBatch");
     }
 
     pub fn create_group(&self, _request: RealmCreateGroupOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<GroupChatViewDto, T::Error> {
@@ -49259,42 +44415,6 @@ where
 
     pub fn create_video_direct_upload(&self, _request: RealmCreateVideoDirectUploadOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<ResourceDirectUploadSessionDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for createVideoDirectUpload");
-    }
-
-    pub fn creator_controller_batch_create_agents(&self, _request: RealmCreatorControllerBatchCreateAgentsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<BatchCreateAgentsResponseDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for CreatorController_batchCreateAgents");
-    }
-
-    pub fn creator_controller_create_agent(&self, _request: RealmCreatorControllerCreateAgentOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<UserLiteDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for CreatorController_createAgent");
-    }
-
-    pub fn creator_controller_create_key(&self, _request: RealmCreatorControllerCreateKeyOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<BTreeMap<String, String>, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for CreatorController_createKey");
-    }
-
-    pub fn creator_controller_delete_agent(&self, _request: RealmCreatorControllerDeleteAgentOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<BTreeMap<String, String>, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for CreatorController_deleteAgent");
-    }
-
-    pub fn creator_controller_get_agent(&self, _request: RealmCreatorControllerGetAgentOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<CreatorAgentResponseDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for CreatorController_getAgent");
-    }
-
-    pub fn creator_controller_list_agents(&self, _request: RealmCreatorControllerListAgentsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<Vec<UserLiteDto>, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for CreatorController_listAgents");
-    }
-
-    pub fn creator_controller_list_keys(&self, _request: RealmCreatorControllerListKeysOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<Vec<BTreeMap<String, String>>, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for CreatorController_listKeys");
-    }
-
-    pub fn creator_controller_revoke_key(&self, _request: RealmCreatorControllerRevokeKeyOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for CreatorController_revokeKey");
-    }
-
-    pub fn creator_controller_update_agent(&self, _request: RealmCreatorControllerUpdateAgentOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<CreatorAgentResponseDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for CreatorController_updateAgent");
     }
 
     pub fn delete_post(&self, _request: RealmDeletePostOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
@@ -49353,10 +44473,6 @@ where
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for EconomyController_createWithdrawal");
     }
 
-    pub fn economy_controller_get_agent_origin(&self, _request: RealmEconomyControllerGetAgentOriginOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AgentOriginDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for EconomyController_getAgentOrigin");
-    }
-
     pub fn economy_controller_get_balances(&self, _request: RealmEconomyControllerGetBalancesOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<CurrencyBalancesDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for EconomyController_getBalances");
     }
@@ -49383,6 +44499,10 @@ where
 
     pub fn economy_controller_get_sent_gifts(&self, _request: RealmEconomyControllerGetSentGiftsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<ReceivedGiftsResponseDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for EconomyController_getSentGifts");
+    }
+
+    pub fn economy_controller_get_source_origin(&self, _request: RealmEconomyControllerGetSourceOriginOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<SourceOriginDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for EconomyController_getSourceOrigin");
     }
 
     pub fn economy_controller_get_spark_history(&self, _request: RealmEconomyControllerGetSparkHistoryOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<CurrencyTransactionHistoryDto, T::Error> {
@@ -49449,38 +44569,6 @@ where
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for finalizeResource");
     }
 
-    pub fn forge_product_catalog_controller_get_agent_candidates(&self, _request: RealmForgeProductCatalogControllerGetAgentCandidatesOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<ForgeAgentCandidateQueryResultDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for ForgeProductCatalogController_getAgentCandidates");
-    }
-
-    pub fn forge_product_catalog_controller_get_catalog(&self, _request: RealmForgeProductCatalogControllerGetCatalogOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<ForgeWorldCatalogDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for ForgeProductCatalogController_getCatalog");
-    }
-
-    pub fn forge_product_catalog_controller_get_product(&self, _request: RealmForgeProductCatalogControllerGetProductOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<ForgeWorldProductDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for ForgeProductCatalogController_getProduct");
-    }
-
-    pub fn forge_product_catalog_controller_get_product_shard(&self, _request: RealmForgeProductCatalogControllerGetProductShardOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<ForgeProductShardReadDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for ForgeProductCatalogController_getProductShard");
-    }
-
-    pub fn forge_product_catalog_controller_get_product_shard_index(&self, _request: RealmForgeProductCatalogControllerGetProductShardIndexOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<ForgeProductShardIndexDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for ForgeProductCatalogController_getProductShardIndex");
-    }
-
-    pub fn forge_product_catalog_controller_verify_product_shards(&self, _request: RealmForgeProductCatalogControllerVerifyProductShardsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<ForgeProductShardIntegrityReportDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for ForgeProductCatalogController_verifyProductShards");
-    }
-
-    pub fn get_agent(&self, _request: RealmGetAgentOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<UserProfileDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getAgent");
-    }
-
-    pub fn get_agent_by_handle(&self, _request: RealmGetAgentByHandleOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<UserProfileDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getAgentByHandle");
-    }
-
     pub fn get_asset(&self, _request: RealmGetAssetOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AssetDetailDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getAsset");
     }
@@ -49495,26 +44583,6 @@ where
 
     pub fn get_chat_by_id(&self, _request: RealmGetChatByIdOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<ChatViewDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getChatById");
-    }
-
-    pub fn get_creator_world_agent(&self, _request: RealmGetCreatorWorldAgentOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<UserLiteDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getCreatorWorldAgent");
-    }
-
-    pub fn get_creator_world_agent_authoring_generation_context(&self, _request: RealmGetCreatorWorldAgentAuthoringGenerationContextOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AgentAuthoringGenerationContextDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getCreatorWorldAgentAuthoringGenerationContext");
-    }
-
-    pub fn get_creator_world_agent_chat_readiness(&self, _request: RealmGetCreatorWorldAgentChatReadinessOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<CreatorWorldAgentChatReadinessDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getCreatorWorldAgentChatReadiness");
-    }
-
-    pub fn get_creator_world_agent_settings(&self, _request: RealmGetCreatorWorldAgentSettingsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<OwnerAgentSettingsDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getCreatorWorldAgentSettings");
-    }
-
-    pub fn get_creator_world_agent_source_skeleton(&self, _request: RealmGetCreatorWorldAgentSourceSkeletonOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<CreatorWorldAgentSourceSkeletonDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getCreatorWorldAgentSourceSkeleton");
     }
 
     pub fn get_explore_feed(&self, _request: RealmGetExploreFeedOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<FeedResponseDto, T::Error> {
@@ -49541,20 +44609,16 @@ where
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getMutualFriendsCount");
     }
 
-    pub fn get_my_agent_friend_limit(&self, _request: RealmGetMyAgentFriendLimitOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AgentFriendLimitDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getMyAgentFriendLimit");
-    }
-
     pub fn get_my_app_permission_grant(&self, _request: RealmGetMyAppPermissionGrantOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AppPermissionGrantDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getMyAppPermissionGrant");
     }
 
-    pub fn get_my_app_permission_grant_projection(&self, _request: RealmGetMyAppPermissionGrantProjectionOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AccountGrantsProjectionDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getMyAppPermissionGrantProjection");
-    }
-
     pub fn get_my_app_permission_grant_status(&self, _request: RealmGetMyAppPermissionGrantStatusOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AppPermissionGrantStatusDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getMyAppPermissionGrantStatus");
+    }
+
+    pub fn get_my_app_permission_grant_view(&self, _request: RealmGetMyAppPermissionGrantViewOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AccountGrantsViewDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getMyAppPermissionGrantView");
     }
 
     pub fn get_my_blocked_users(&self, _request: RealmGetMyBlockedUsersOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<BTreeMap<String, String>, T::Error> {
@@ -49579,14 +44643,6 @@ where
 
     pub fn get_my_ppconfig(&self, _request: RealmGetMyPPConfigOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<PPSlotConfigResponseDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getMyPPConfig");
-    }
-
-    pub fn get_my_realm_agent(&self, _request: RealmGetMyRealmAgentOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<UserLiteDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getMyRealmAgent");
-    }
-
-    pub fn get_my_realm_agent_settings(&self, _request: RealmGetMyRealmAgentSettingsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<OwnerAgentSettingsDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getMyRealmAgentSettings");
     }
 
     pub fn get_my_settings(&self, _request: RealmGetMySettingsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<UserSettingsDto, T::Error> {
@@ -49633,28 +44689,8 @@ where
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getWorldPosts");
     }
 
-    pub fn get_world_scenes(&self, _request: RealmGetWorldScenesOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<PublicWorldSceneListDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getWorldScenes");
-    }
-
     pub fn grant_my_app_permission_grant(&self, _request: RealmGrantMyAppPermissionGrantOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AppPermissionGrantDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for grantMyAppPermissionGrant");
-    }
-
-    pub fn human_nsfw_consent_controller_can_manage_agent_nsfw(&self, _request: RealmHumanNsfwConsentControllerCanManageAgentNsfwOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<CanManageNsfwResponseDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for HumanNsfwConsentController_canManageAgentNsfw");
-    }
-
-    pub fn human_nsfw_consent_controller_check_consent(&self, _request: RealmHumanNsfwConsentControllerCheckConsentOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<NsfwConsentResponseDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for HumanNsfwConsentController_checkConsent");
-    }
-
-    pub fn human_nsfw_consent_controller_get_consent_status(&self, _request: RealmHumanNsfwConsentControllerGetConsentStatusOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<NsfwConsentStatusResponseDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for HumanNsfwConsentController_getConsentStatus");
-    }
-
-    pub fn human_nsfw_consent_controller_update_user_consent(&self, _request: RealmHumanNsfwConsentControllerUpdateUserConsentOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<UpdateNsfwConsentResponseDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for HumanNsfwConsentController_updateUserConsent");
     }
 
     pub fn introspect_session(&self, _request: RealmIntrospectSessionOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<IntrospectSessionResponseDto, T::Error> {
@@ -49697,14 +44733,6 @@ where
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for listChats");
     }
 
-    pub fn list_creator_world_agent_authoring_draft_batches(&self, _request: RealmListCreatorWorldAgentAuthoringDraftBatchesOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AgentAuthoringDraftBatchListDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for listCreatorWorldAgentAuthoringDraftBatches");
-    }
-
-    pub fn list_creator_world_agents(&self, _request: RealmListCreatorWorldAgentsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<Vec<UserLiteDto>, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for listCreatorWorldAgents");
-    }
-
     pub fn list_group_messages(&self, _request: RealmListGroupMessagesOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<ListGroupMessagesResultDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for listGroupMessages");
     }
@@ -49725,28 +44753,12 @@ where
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for listMyAppPermissionGrants");
     }
 
-    pub fn list_my_creator_worlds(&self, _request: RealmListMyCreatorWorldsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<CreatorWorldSummaryListDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for listMyCreatorWorlds");
-    }
-
     pub fn list_my_friend_ids(&self, _request: RealmListMyFriendIdsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for listMyFriendIds");
     }
 
     pub fn list_my_friends_with_details(&self, _request: RealmListMyFriendsWithDetailsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<FriendProfileListDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for listMyFriendsWithDetails");
-    }
-
-    pub fn list_my_local_agent_provision_intents(&self, _request: RealmListMyLocalAgentProvisionIntentsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<LocalAgentProvisionIntentListDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for listMyLocalAgentProvisionIntents");
-    }
-
-    pub fn list_my_local_agent_termination_intents(&self, _request: RealmListMyLocalAgentTerminationIntentsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<LocalAgentTerminationIntentListDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for listMyLocalAgentTerminationIntents");
-    }
-
-    pub fn list_my_realm_agents(&self, _request: RealmListMyRealmAgentsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<Vec<UserLiteDto>, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for listMyRealmAgents");
     }
 
     pub fn list_notifications(&self, _request: RealmListNotificationsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<NotificationListResultDto, T::Error> {
@@ -49809,10 +44821,6 @@ where
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for prepareBindWallet");
     }
 
-    pub fn project_runtime_payload(&self, _request: RealmProjectRuntimePayloadOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<RuntimeProjectionResponseDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for projectRuntimePayload");
-    }
-
     pub fn publish_bundle(&self, _request: RealmPublishBundleOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<BundleDetailDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for publishBundle");
     }
@@ -49849,10 +44857,6 @@ where
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for removeFriend");
     }
 
-    pub fn remove_group_agent(&self, _request: RealmRemoveGroupAgentOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for removeGroupAgent");
-    }
-
     pub fn remove_group_participant(&self, _request: RealmRemoveGroupParticipantOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for removeGroupParticipant");
     }
@@ -49883,10 +44887,6 @@ where
 
     pub fn review_controller_get_reviews(&self, _request: RealmReviewControllerGetReviewsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<Vec<ReviewDto>, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for ReviewController_getReviews");
-    }
-
-    pub fn review_creator_world_agent_authoring_draft_candidate(&self, _request: RealmReviewCreatorWorldAgentAuthoringDraftCandidateOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AgentAuthoringDraftCandidateDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for reviewCreatorWorldAgentAuthoringDraftCandidate");
     }
 
     pub fn revoke_my_app_permission_grant(&self, _request: RealmRevokeMyAppPermissionGrantOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AppPermissionGrantDto, T::Error> {
@@ -49977,18 +44977,6 @@ where
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for updateBundle");
     }
 
-    pub fn update_creator_world_agent_profile_media(&self, _request: RealmUpdateCreatorWorldAgentProfileMediaOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<UserLiteDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for updateCreatorWorldAgentProfileMedia");
-    }
-
-    pub fn update_creator_world_agent_settings(&self, _request: RealmUpdateCreatorWorldAgentSettingsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<OwnerAgentSettingsDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for updateCreatorWorldAgentSettings");
-    }
-
-    pub fn update_creator_world_agent_voice(&self, _request: RealmUpdateCreatorWorldAgentVoiceOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<UserLiteDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for updateCreatorWorldAgentVoice");
-    }
-
     pub fn update_group(&self, _request: RealmUpdateGroupOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<GroupChatViewDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for updateGroup");
     }
@@ -50013,10 +45001,6 @@ where
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for updateMyPPConfig");
     }
 
-    pub fn update_my_realm_agent_settings(&self, _request: RealmUpdateMyRealmAgentSettingsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<OwnerAgentSettingsDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for updateMyRealmAgentSettings");
-    }
-
     pub fn update_my_settings(&self, _request: RealmUpdateMySettingsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<UserSettingsDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for updateMySettings");
     }
@@ -50031,30 +45015,6 @@ where
 
     pub fn update_resource(&self, _request: RealmUpdateResourceOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<ResourceDetailDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for updateResource");
-    }
-
-    pub fn v1_default_visibility_controller_apply_agent_defaults(&self, _request: RealmV1DefaultVisibilityControllerApplyAgentDefaultsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for V1DefaultVisibilityController_applyAgentDefaults");
-    }
-
-    pub fn v1_default_visibility_controller_apply_user_defaults(&self, _request: RealmV1DefaultVisibilityControllerApplyUserDefaultsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for V1DefaultVisibilityController_applyUserDefaults");
-    }
-
-    pub fn v1_default_visibility_controller_get_default_for_scope(&self, _request: RealmV1DefaultVisibilityControllerGetDefaultForScopeOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for V1DefaultVisibilityController_getDefaultForScope");
-    }
-
-    pub fn v1_default_visibility_controller_get_default_visibility(&self, _request: RealmV1DefaultVisibilityControllerGetDefaultVisibilityOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for V1DefaultVisibilityController_getDefaultVisibility");
-    }
-
-    pub fn v1_default_visibility_controller_validate_agent_visibility(&self, _request: RealmV1DefaultVisibilityControllerValidateAgentVisibilityOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for V1DefaultVisibilityController_validateAgentVisibility");
-    }
-
-    pub fn v1_default_visibility_controller_validate_user_visibility(&self, _request: RealmV1DefaultVisibilityControllerValidateUserVisibilityOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for V1DefaultVisibilityController_validateUserVisibility");
     }
 
     pub fn verify2_fa(&self, _request: RealmVerify2FaOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AuthTokensDto, T::Error> {
@@ -50073,147 +45033,63 @@ where
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for walletLogin");
     }
 
-    pub fn world_control_controller_append_world_history(&self, _request: RealmWorldControlControllerAppendWorldHistoryOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldHistoryListDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldControlController_appendWorldHistory");
+    pub fn world_core_controller_bootstrap_oasis_world(&self, _request: RealmWorldCoreControllerBootstrapOasisWorldOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldCoreDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldCoreController_bootstrapOasisWorld");
     }
 
-    pub fn world_control_controller_batch_upsert_world_bindings(&self, _request: RealmWorldControlControllerBatchUpsertWorldBindingsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<BindingListDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldControlController_batchUpsertWorldBindings");
+    pub fn world_core_controller_create_realm_persona(&self, _request: RealmWorldCoreControllerCreateRealmPersonaOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<RealmPersonaDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldCoreController_createRealmPersona");
     }
 
-    pub fn world_control_controller_commit_state(&self, _request: RealmWorldControlControllerCommitStateOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldStateDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldControlController_commitState");
+    pub fn world_core_controller_create_runtime_source_snapshot(&self, _request: RealmWorldCoreControllerCreateRuntimeSourceSnapshotOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<RuntimeSourceSnapshotDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldCoreController_createRuntimeSourceSnapshot");
     }
 
-    pub fn world_control_controller_create_draft(&self, _request: RealmWorldControlControllerCreateDraftOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldDraftDetailDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldControlController_createDraft");
+    pub fn world_core_controller_create_world_character(&self, _request: RealmWorldCoreControllerCreateWorldCharacterOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldCharacterCoreDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldCoreController_createWorldCharacter");
     }
 
-    pub fn world_control_controller_delete_world_binding(&self, _request: RealmWorldControlControllerDeleteWorldBindingOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldControlController_deleteWorldBinding");
+    pub fn world_core_controller_create_world_core(&self, _request: RealmWorldCoreControllerCreateWorldCoreOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldCoreDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldCoreController_createWorldCore");
     }
 
-    pub fn world_control_controller_get_draft(&self, _request: RealmWorldControlControllerGetDraftOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldDraftDetailDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldControlController_getDraft");
+    pub fn world_core_controller_get_oasis_world(&self, _request: RealmWorldCoreControllerGetOasisWorldOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldCoreDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldCoreController_getOasisWorld");
     }
 
-    pub fn world_control_controller_get_my_access(&self, _request: RealmWorldControlControllerGetMyAccessOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldAccessSummaryDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldControlController_getMyAccess");
+    pub fn world_core_controller_get_realm_persona(&self, _request: RealmWorldCoreControllerGetRealmPersonaOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<RealmPersonaDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldCoreController_getRealmPersona");
     }
 
-    pub fn world_control_controller_get_state(&self, _request: RealmWorldControlControllerGetStateOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldStateDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldControlController_getState");
+    pub fn world_core_controller_get_world_character(&self, _request: RealmWorldCoreControllerGetWorldCharacterOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldCharacterCoreDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldCoreController_getWorldCharacter");
     }
 
-    pub fn world_control_controller_list_drafts(&self, _request: RealmWorldControlControllerListDraftsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldDraftSummaryListDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldControlController_listDrafts");
+    pub fn world_core_controller_get_world_core(&self, _request: RealmWorldCoreControllerGetWorldCoreOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldCoreDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldCoreController_getWorldCore");
     }
 
-    pub fn world_control_controller_list_my_worlds(&self, _request: RealmWorldControlControllerListMyWorldsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldSummaryListDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldControlController_listMyWorlds");
+    pub fn world_core_controller_list_realm_personas(&self, _request: RealmWorldCoreControllerListRealmPersonasOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<Vec<RealmPersonaDto>, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldCoreController_listRealmPersonas");
     }
 
-    pub fn world_control_controller_list_world_bindings(&self, _request: RealmWorldControlControllerListWorldBindingsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<BindingListDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldControlController_listWorldBindings");
+    pub fn world_core_controller_list_world_characters(&self, _request: RealmWorldCoreControllerListWorldCharactersOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<Vec<WorldCharacterCoreDto>, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldCoreController_listWorldCharacters");
     }
 
-    pub fn world_control_controller_list_world_history(&self, _request: RealmWorldControlControllerListWorldHistoryOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldHistoryListDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldControlController_listWorldHistory");
+    pub fn world_core_controller_list_world_cores(&self, _request: RealmWorldCoreControllerListWorldCoresOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<Vec<WorldCoreDto>, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldCoreController_listWorldCores");
     }
 
-    pub fn world_control_controller_list_world_lorebooks(&self, _request: RealmWorldControlControllerListWorldLorebooksOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldLorebookListDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldControlController_listWorldLorebooks");
+    pub fn world_core_controller_replace_realm_persona(&self, _request: RealmWorldCoreControllerReplaceRealmPersonaOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<RealmPersonaDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldCoreController_replaceRealmPersona");
     }
 
-    pub fn world_control_controller_publish_draft(&self, _request: RealmWorldControlControllerPublishDraftOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<PublishWorldDraftResultDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldControlController_publishDraft");
+    pub fn world_core_controller_replace_world_character(&self, _request: RealmWorldCoreControllerReplaceWorldCharacterOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldCharacterCoreDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldCoreController_replaceWorldCharacter");
     }
 
-    pub fn world_control_controller_resolve_landing(&self, _request: RealmWorldControlControllerResolveLandingOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldLandingDecisionDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldControlController_resolveLanding");
-    }
-
-    pub fn world_control_controller_update_draft(&self, _request: RealmWorldControlControllerUpdateDraftOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldDraftDetailDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldControlController_updateDraft");
-    }
-
-    pub fn world_controller_get_main_world(&self, _request: RealmWorldControllerGetMainWorldOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldDetailDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldController_getMainWorld");
-    }
-
-    pub fn world_controller_get_world(&self, _request: RealmWorldControllerGetWorldOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldDetailDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldController_getWorld");
-    }
-
-    pub fn world_controller_get_world_agents(&self, _request: RealmWorldControllerGetWorldAgentsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<Vec<WorldAgentSummaryDto>, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldController_getWorldAgents");
-    }
-
-    pub fn world_controller_get_world_bindings(&self, _request: RealmWorldControllerGetWorldBindingsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<PublicBindingListDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldController_getWorldBindings");
-    }
-
-    pub fn world_controller_get_world_detail_with_agents(&self, _request: RealmWorldControllerGetWorldDetailWithAgentsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldDetailWithAgentsDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldController_getWorldDetailWithAgents");
-    }
-
-    pub fn world_controller_get_world_history(&self, _request: RealmWorldControllerGetWorldHistoryOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<PublicWorldHistoryListDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldController_getWorldHistory");
-    }
-
-    pub fn world_controller_get_world_level_audits(&self, _request: RealmWorldControllerGetWorldLevelAuditsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<Vec<WorldLevelAuditEventDto>, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldController_getWorldLevelAudits");
-    }
-
-    pub fn world_controller_get_world_lorebooks(&self, _request: RealmWorldControllerGetWorldLorebooksOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<PublicWorldLorebookListDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldController_getWorldLorebooks");
-    }
-
-    pub fn world_controller_get_worldview(&self, _request: RealmWorldControllerGetWorldviewOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldviewDetailDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldController_getWorldview");
-    }
-
-    pub fn world_controller_list_worlds(&self, _request: RealmWorldControllerListWorldsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<Vec<WorldDetailDto>, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldController_listWorlds");
-    }
-
-    pub fn world_controller_return_to_main_world(&self, _request: RealmWorldControllerReturnToMainWorldOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<TransitDetailDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldController_returnToMainWorld");
-    }
-
-    pub fn world_controller_transit_to_world(&self, _request: RealmWorldControllerTransitToWorldOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<TransitDetailDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldController_transitToWorld");
-    }
-
-    pub fn world_rules_controller_archive_rule(&self, _request: RealmWorldRulesControllerArchiveRuleOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldRuleDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldRulesController_archiveRule");
-    }
-
-    pub fn world_rules_controller_check_permission(&self, _request: RealmWorldRulesControllerCheckPermissionOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<PermissionCheckResponseDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldRulesController_checkPermission");
-    }
-
-    pub fn world_rules_controller_create_rule(&self, _request: RealmWorldRulesControllerCreateRuleOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldRuleDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldRulesController_createRule");
-    }
-
-    pub fn world_rules_controller_deprecate_rule(&self, _request: RealmWorldRulesControllerDeprecateRuleOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldRuleDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldRulesController_deprecateRule");
-    }
-
-    pub fn world_rules_controller_get_creator_capabilities(&self, _request: RealmWorldRulesControllerGetCreatorCapabilitiesOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<CreatorCapabilitiesResponseDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldRulesController_getCreatorCapabilities");
-    }
-
-    pub fn world_rules_controller_get_rules(&self, _request: RealmWorldRulesControllerGetRulesOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<Vec<WorldRuleDto>, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldRulesController_getRules");
-    }
-
-    pub fn world_rules_controller_update_rule(&self, _request: RealmWorldRulesControllerUpdateRuleOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldRuleDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldRulesController_updateRule");
-    }
-
-    pub fn world_rules_controller_validate_rules(&self, _request: RealmWorldRulesControllerValidateRulesOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<RuleValidationResponseDto, T::Error> {
-        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldRulesController_validateRules");
+    pub fn world_core_controller_replace_world_core(&self, _request: RealmWorldCoreControllerReplaceWorldCoreOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldCoreDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldCoreController_replaceWorldCore");
     }
 }

@@ -7,7 +7,7 @@ import {
   collectRootExports,
   parseModuleExports,
   validateRegistry,
-} from './lib/agent-export-posture-core.mjs';
+} from './lib/ai-runner-export-posture-core.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const repoRoot = path.resolve(path.dirname(__filename), '..');
@@ -215,11 +215,11 @@ test('validateRegistry accepts a fully aligned registry', () => {
   assert.equal(ok, true);
 });
 
-test('integration: repo registry matches the real core/agent export surface', () => {
-  const result = spawnSync(process.execPath, [path.join(repoRoot, 'scripts/check-sdk-agent-export-posture.mjs')], {
+test('integration: repo registry matches the real core/ai-runner export surface', () => {
+  const result = spawnSync(process.execPath, [path.join(repoRoot, 'scripts/check-sdk-ai-runner-export-posture.mjs')], {
     cwd: repoRoot,
     encoding: 'utf8',
   });
   assert.equal(result.status, 0, `check failed:\n${result.stdout}\n${result.stderr}`);
-  assert.match(result.stdout, /sdks\/typescript\/core\/agent ok \(\d+ public exports\)/);
+  assert.match(result.stdout, /sdks\/typescript\/core\/ai-runner ok \(\d+ public exports\)/);
 });

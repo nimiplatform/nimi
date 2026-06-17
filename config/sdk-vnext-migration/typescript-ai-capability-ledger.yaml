@@ -176,7 +176,7 @@ surfaces:
     vnext_owner: sdks/typescript/features/memory-context
     required_binding: Memory embedding state must bind to public Runtime memory methods and feature context surfaces; SDK AI config may reference capability intent only.
     verification_gates:
-      - check:sdk-vnext-agent-consumer-smoke
+      - check:sdk-vnext-ai-runner-consumer-smoke
       - check:sdk-vnext-matrix
 
   - id: generation-jobs-and-artifacts
@@ -194,7 +194,7 @@ surfaces:
     vnext_owner: sdks/typescript/features/generation
     required_binding: Generation helpers must use generated Runtime Scenario job and artifact methods; no fake job completion or hidden Runtime REST bypass.
     verification_gates:
-      - check:sdk-vnext-agent-consumer-smoke
+      - check:sdk-vnext-ai-runner-consumer-smoke
       - check:sdks-conformance-typed-core
 
   - id: ai-app-public-subpath
@@ -204,13 +204,13 @@ surfaces:
     decision: delete-hardcut
     implementation_status: hardcut
     vnext_exports:
-      - "@nimiplatform/sdk/agent"
+      - "@nimiplatform/sdk/ai-runner"
       - "@nimiplatform/sdk/features/conversation"
       - "@nimiplatform/sdk/features/evaluation"
       - "@nimiplatform/sdk/features/toolkits"
-    vnext_owner: sdks/typescript/core/agent + sdks/typescript/features
-    required_binding: Surviving AI App capabilities must move to Agent and feature exports; `@nimiplatform/sdk/ai-app` must not be restored.
-    hardcut_reason: The old subpath implies app-session convenience as a separate SDK authority; vNext needs agent and feature-owned boundaries.
+    vnext_owner: sdks/typescript/core/ai-runner + sdks/typescript/features
+    required_binding: Surviving AI App capabilities must move to AI runner and feature exports; `@nimiplatform/sdk/ai-app` must not be restored.
+    hardcut_reason: The old subpath implies app-session convenience as a separate SDK authority; vNext needs AI runner and feature-owned boundaries.
     verification_gates:
       - check:sdk-vnext-package-contract
       - check:sdk-vnext-ai-consumer-smoke
@@ -227,7 +227,7 @@ surfaces:
     vnext_owner: sdks/typescript/features/conversation
     required_binding: Conversation history windows must be framework-neutral, deterministic, role-safe, and package-consumable as vNext conversation features.
     verification_gates:
-      - check:sdk-vnext-agent-consumer-smoke
+      - check:sdk-vnext-ai-runner-consumer-smoke
 
   - id: ai-app-session-text-accumulator
     current_sources:
@@ -238,12 +238,12 @@ surfaces:
     decision: retain-redesign
     implementation_status: implemented
     vnext_exports:
-      - "@nimiplatform/sdk/agent"
+      - "@nimiplatform/sdk/ai-runner"
       - "@nimiplatform/sdk/features/conversation"
-    vnext_owner: sdks/typescript/core/agent + sdks/typescript/features/conversation
-    required_binding: Agent and conversation streams must preserve reasoning, text, usage, trace, cancellation, and Runtime error details without pseudo-success.
+    vnext_owner: sdks/typescript/core/ai-runner + sdks/typescript/features/conversation
+    required_binding: AI runner and conversation streams must preserve reasoning, text, usage, trace, cancellation, and Runtime error details without pseudo-success.
     verification_gates:
-      - check:sdk-vnext-agent-consumer-smoke
+      - check:sdk-vnext-ai-runner-consumer-smoke
 
   - id: ai-app-text-generate-stream-turn
     current_sources:
@@ -255,12 +255,12 @@ surfaces:
     decision: retain-redesign
     implementation_status: implemented
     vnext_exports:
-      - "@nimiplatform/sdk/agent"
+      - "@nimiplatform/sdk/ai-runner"
       - "@nimiplatform/sdk/features/conversation"
-    vnext_owner: sdks/typescript/core/agent + sdks/typescript/features/conversation
-    required_binding: vNext must expose explicit agent/conversation helpers over Runtime-backed AI; hidden platform singleton chat helpers are hard-cut.
+    vnext_owner: sdks/typescript/core/ai-runner + sdks/typescript/features/conversation
+    required_binding: vNext must expose explicit AI runner/conversation helpers over Runtime-backed AI; hidden platform singleton chat helpers are hard-cut.
     verification_gates:
-      - check:sdk-vnext-agent-consumer-smoke
+      - check:sdk-vnext-ai-runner-consumer-smoke
       - check:sdk-vnext-ai-consumer-smoke
 
   - id: ai-app-structured-output
@@ -278,7 +278,7 @@ surfaces:
     required_binding: Structured output helpers must preserve parse/repair semantics and fail closed when required output is invalid; no silent text-only success.
     verification_gates:
       - check:sdk-vnext-ai-consumer-smoke
-      - check:sdk-vnext-agent-consumer-smoke
+      - check:sdk-vnext-ai-runner-consumer-smoke
 
   - id: ai-app-tool-registry
     current_sources:
@@ -287,12 +287,12 @@ surfaces:
     decision: retain-redesign
     implementation_status: implemented
     vnext_exports:
-      - "@nimiplatform/sdk/agent"
+      - "@nimiplatform/sdk/ai-runner"
       - "@nimiplatform/sdk/features/toolkits"
-    vnext_owner: sdks/typescript/core/agent + sdks/typescript/features/toolkits
-    required_binding: Tools must be explicit agent/toolkit contracts; Runtime Scenario tool-call parity may not be faked and external execution must remain caller-owned.
+    vnext_owner: sdks/typescript/core/ai-runner + sdks/typescript/features/toolkits
+    required_binding: Tools must be explicit AI runner/toolkit contracts; Runtime Scenario tool-call parity may not be faked and external execution must remain caller-owned.
     verification_gates:
-      - check:sdk-vnext-agent-consumer-smoke
+      - check:sdk-vnext-ai-runner-consumer-smoke
 
   - id: runtime-agent-participation
     current_sources:
@@ -302,10 +302,9 @@ surfaces:
     decision: defer-blocking
     implementation_status: deferred
     vnext_exports:
-      - "@nimiplatform/sdk/agent"
       - "@nimiplatform/sdk/runtime"
-    vnext_owner: sdks/typescript/core/agent + sdks/typescript/runtime
-    required_binding: Do not claim production Runtime Agent Participation until proto stubs and generated Runtime method gates admit it.
+    vnext_owner: sdks/typescript/runtime
+    required_binding: Do not claim production Runtime localAgent participation until proto stubs and generated Runtime method gates admit it.
     hardcut_reason: Production support is not admitted by current Runtime generated core; semantic contract only is not implementation evidence.
     verification_gates:
       - check:sdks-conformance-typed-core

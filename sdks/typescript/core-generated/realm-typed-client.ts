@@ -10,404 +10,32 @@ export interface RealmTypedCallOptions {
   readonly responseMetadataObserver?: CoreResponseMetadataObserver;
 }
 
-export interface AbilityDefinitionDto {
-  readonly cost?: readonly (ResourceCostDto)[];
-  readonly description?: string;
-  readonly id: string;
-  readonly name: string;
-  readonly tierRequired?: number;
-}
-export interface AccountGrantProjectionRowDto {
+export interface AccountGrantViewRowDto {
   readonly appId: string;
   readonly expiresAt?: string | null;
   readonly grantId: string;
   readonly qualifier?: string | null;
   readonly scopeFamily: AppPermissionScopeFamily;
   readonly scopeName: AppPermissionScopeName;
-  readonly state: AccountGrantProjectionState;
+  readonly state: AccountGrantViewState;
   readonly subjectAccountId: string;
   readonly version: number;
 }
-export type AccountGrantProjectionState = "pending" | "granted" | "denied" | "expired" | "revoked" | "superseded";
-export interface AccountGrantsProjectionDto {
+export type AccountGrantViewState = "pending" | "granted" | "denied" | "expired" | "revoked" | "superseded";
+export interface AccountGrantsViewDto {
   readonly accountId: string;
-  readonly grants: readonly (AccountGrantProjectionRowDto)[];
+  readonly grants: readonly (AccountGrantViewRowDto)[];
   readonly schemaVersion: number;
   readonly updatedAt: string;
 }
-export type AccountRole = "USER" | "AGENT" | "SERVICE_ACC" | "SYSTEM_BOT" | "ADMIN";
+export type AccountRelationType = "ALLY" | "RIVAL" | "ENEMY";
 export type AccountStatus = "ONBOARDING" | "CHECK_INVITED" | "ACTIVE" | "SUSPENDED" | "BANNED";
 export interface AddFriendBodyDto {
   readonly requestMessage?: string;
 }
-export interface AddGroupAgentInputDto {
-  readonly agentAccountId: string;
-}
 export interface AddGroupParticipantInputDto {
   readonly accountId: string;
 }
-export interface AgentAppearanceDto {
-  readonly artStyle: string;
-  readonly eyes: string;
-  readonly fashionStyle: string;
-  readonly hair: string;
-  readonly signatureItems: readonly (string)[];
-  readonly skin: string;
-}
-export interface AgentAuthoringBehaviorCandidatePayloadDto {
-  readonly directives: readonly (string)[];
-}
-export interface AgentAuthoringDialogueCandidatePayloadDto {
-  readonly exemplars: readonly (string)[];
-}
-export interface AgentAuthoringDraftBatchDto {
-  readonly agentId: string;
-  readonly appliedAt: string | null;
-  readonly candidates: readonly (AgentAuthoringDraftCandidateDto)[];
-  readonly createdAt: string;
-  readonly createdBy: string;
-  readonly failureCode: string | null;
-  readonly failureMessage: string | null;
-  readonly id: string;
-  readonly metadata: AgentAuthoringDraftBatchMetadataDto | null;
-  readonly skeletonId: string;
-  readonly sourceKind: "CBDB";
-  readonly status: "ready_for_review" | "partially_applied" | "applied" | "failed";
-  readonly updatedAt: string;
-  readonly worldId: string;
-}
-export interface AgentAuthoringDraftBatchListDto {
-  readonly items: readonly (AgentAuthoringDraftBatchDto)[];
-}
-export interface AgentAuthoringDraftBatchMetadataDto {
-  readonly notes?: string | null;
-  readonly runtimeAppId?: string | null;
-  readonly surfaceId?: string | null;
-}
-export interface AgentAuthoringDraftCandidateDto {
-  readonly appliedAt: string | null;
-  readonly editedValue?: AgentAuthoringDraftCandidateValueDto | null;
-  readonly generatedAt: string;
-  readonly id: string;
-  readonly modelId: string;
-  readonly promptDigestSha256: string;
-  readonly provenance: AgentAuthoringRuntimeTraceDto;
-  readonly reviewStatus: "pending" | "accepted" | "rejected" | "edited" | "applied";
-  readonly reviewedAt: string | null;
-  readonly reviewerId: string | null;
-  readonly routePolicy: string | null;
-  readonly runtimeTraceId: string | null;
-  readonly sourceRefs: readonly (AgentAuthoringSourceRefDto)[];
-  readonly targetKey: "description" | "contentStyle" | "publicPositioning" | "avatar" | "profileCover" | "voice" | "greeting" | "dialogueExemplars" | "behaviorDna";
-  readonly value: AgentAuthoringDraftCandidateValueDto;
-}
-export interface AgentAuthoringDraftCandidateValueDto {
-  readonly behavior?: AgentAuthoringBehaviorCandidatePayloadDto;
-  readonly dialogue?: AgentAuthoringDialogueCandidatePayloadDto;
-  readonly kind: "text" | "media" | "voice" | "dialogue" | "behavior";
-  readonly media?: AgentAuthoringMediaCandidatePayloadDto;
-  readonly provenance: readonly (AgentAuthoringValueProvenanceSegmentDto)[];
-  readonly text?: string | null;
-  readonly voice?: AgentAuthoringVoiceCandidatePayloadDto;
-}
-export interface AgentAuthoringFinalMediaStateDto {
-  readonly avatarResourceId: string | null;
-  readonly avatarUrl: string | null;
-  readonly profileCoverResourceId: string | null;
-  readonly profileCoverUrl: string | null;
-}
-export interface AgentAuthoringFinalStateDto {
-  readonly media: AgentAuthoringFinalMediaStateDto;
-  readonly settings: OwnerAgentSettingsDto;
-  readonly voice: AgentAuthoringFinalVoiceStateDto;
-}
-export interface AgentAuthoringFinalVoiceStateDto {
-  readonly voice: AgentAuthoringVoiceCandidatePayloadDto | null;
-}
-export interface AgentAuthoringGenerationContextDto {
-  readonly currentFinalState: AgentAuthoringFinalStateDto;
-  readonly groundingRefs: readonly (AgentAuthoringSourceRefDto)[];
-  readonly requiredTargets: readonly ("description" | "contentStyle" | "publicPositioning" | "avatar" | "profileCover" | "voice" | "greeting" | "dialogueExemplars" | "behaviorDna")[];
-  readonly sourceSkeleton: CreatorWorldAgentSourceSkeletonDto;
-  readonly targetStatuses: readonly (AgentAuthoringTargetStatusDto)[];
-}
-export interface AgentAuthoringMediaCandidatePayloadDto {
-  readonly height: number;
-  readonly mime: string;
-  readonly model: string;
-  readonly moderation: AgentAuthoringMediaModerationDto;
-  readonly prompt: string;
-  readonly provenance: readonly (AgentAuthoringValueProvenanceSegmentDto)[];
-  readonly resourceId: string;
-  readonly url: string;
-  readonly width: number;
-}
-export interface AgentAuthoringMediaModerationDto {
-  readonly provider?: string | null;
-  readonly reason?: string | null;
-  readonly status: "passed" | "blocked" | "not_checked";
-}
-export interface AgentAuthoringRuntimeTraceDto {
-  readonly promptTemplateId?: string | null;
-  readonly runtimeAppId: string;
-  readonly scenarioId?: string | null;
-  readonly skeletonId: string;
-  readonly sourceDigestSha256?: string | null;
-  readonly surfaceId: string;
-}
-export interface AgentAuthoringSourceRefDto {
-  readonly factPath?: string | null;
-  readonly label?: string | null;
-  readonly sourceKind?: string | null;
-  readonly sourceRef: string;
-}
-export interface AgentAuthoringTargetStatusDto {
-  readonly appliedAt: string | null;
-  readonly latestBatchId: string | null;
-  readonly latestCandidateId: string | null;
-  readonly latestReviewStatus: "pending" | "accepted" | "rejected" | "edited" | "applied" | null;
-  readonly targetKey: "description" | "contentStyle" | "publicPositioning" | "avatar" | "profileCover" | "voice" | "greeting" | "dialogueExemplars" | "behaviorDna";
-}
-export interface AgentAuthoringValueProvenanceSegmentDto {
-  readonly category: "source_fact" | "historical_inference" | "creator_preference" | "ai_authored_texture";
-  readonly refs: readonly (string)[];
-  readonly summary: string;
-}
-export interface AgentAuthoringVoiceCandidatePayloadDto {
-  readonly historicalClaim: "narration_direction_not_authentic_voice";
-  readonly narrationDirection: string;
-  readonly providerVoiceRef?: string | null;
-  readonly speechModelId?: string | null;
-  readonly speechRoutePolicy?: "local" | "cloud" | null;
-  readonly voiceAssetResourceId?: string | null;
-}
-export interface AgentBiologicalDto {
-  readonly ethnicity: string;
-  readonly gender: string;
-  readonly heightCm: number;
-  readonly visualAge: string;
-  readonly weightKg: number;
-}
-export interface AgentCapabilitiesDto {
-  readonly canCreate: boolean;
-  readonly currentCount: number;
-  readonly maxAllowed: number;
-  readonly remaining: number;
-}
-export type AgentCategory = "GENERAL" | "COMPANION" | "ASSISTANT" | "GAME" | "CRYPTO" | "NSFW_AGENT";
-export interface AgentCommunicationDto {
-  readonly formality: "casual" | "formal" | "slang";
-  readonly responseLength: "short" | "medium" | "long";
-  readonly sentiment: "positive" | "neutral" | "cynical";
-  readonly summary?: string;
-}
-export interface AgentDisplayDto {
-  readonly faction?: string;
-  readonly isNative: boolean;
-  readonly isTransitGuest: boolean;
-  readonly location?: string;
-  readonly rank?: string;
-  readonly role?: string;
-  readonly sceneName?: string;
-  readonly statusSummary?: string;
-  readonly voiceSummary?: string;
-}
-export interface AgentDnaDto {
-  readonly appearance: AgentAppearanceDto;
-  readonly biological: AgentBiologicalDto;
-  readonly communication: AgentCommunicationDto;
-  readonly identity: AgentIdentityDto;
-  readonly nsfwLevel?: string;
-  readonly personality: AgentPersonalityDto;
-  readonly voice?: AgentVoiceConfigDto;
-}
-export interface AgentFriendLimitDto {
-  readonly canAdd: boolean;
-  readonly limit: number;
-  readonly used: number;
-}
-export interface AgentHandleAvailabilityResponseDto {
-  readonly available: boolean;
-  readonly message?: string;
-  readonly normalized: string;
-}
-export interface AgentIdentityDto {
-  readonly name: string;
-  readonly role: string;
-  readonly species: string;
-  readonly summary?: string;
-  readonly worldview: string;
-}
-export type AgentImportance = "PRIMARY" | "SECONDARY" | "BACKGROUND";
-export interface AgentMetadataDto {
-  readonly activeWorldId?: string;
-  readonly category?: AgentCategory;
-  readonly importance?: AgentImportance;
-  readonly origin?: AgentOrigin;
-  readonly ownerWorldId?: string | null;
-  readonly ownershipType?: AgentOwnershipType;
-  readonly state?: AgentState;
-  readonly tier?: VerificationTier;
-  readonly wakeStrategy?: AgentWakeStrategy;
-  readonly worldId?: string;
-}
-export type AgentOrigin = "COMMUNITY" | "NAF" | "PARTNER" | "SYSTEM";
-export interface AgentOriginDto {
-  readonly agentId: string;
-  readonly isNative: boolean;
-  readonly masterId: string;
-  readonly worldCreatorId: string | null;
-  readonly worldId: string;
-}
-export type AgentOwnershipType = "MASTER_OWNED" | "WORLD_OWNED";
-export interface AgentPersonalityDto {
-  readonly emotionBaseline?: string;
-  readonly goals: readonly (string)[];
-  readonly interests: readonly (string)[];
-  readonly mbti: string;
-  readonly relationshipMode: string;
-  readonly summary?: string;
-}
-export interface AgentProfileDto {
-  readonly activeWorldId?: string;
-  readonly greeting?: string | null;
-  readonly importance?: AgentImportance;
-  readonly ownerWorldId?: string | null;
-  readonly ownershipType?: AgentOwnershipType;
-  readonly state?: AgentState;
-  readonly stats?: AgentStatsDto;
-  readonly worldId?: string;
-}
-export type AgentRelationType = "ALLY" | "RIVAL" | "ENEMY";
-export interface AgentRelationshipOtherAccountDto {
-  readonly avatarUrl: string | null;
-  readonly displayName: string | null;
-  readonly handle: string;
-  readonly id: string;
-  readonly isAgent: boolean;
-}
-export interface AgentRelationshipRecordDto {
-  readonly context: string | null;
-  readonly createdAt: string;
-  readonly direction: string;
-  readonly id: string;
-  readonly otherAccount: AgentRelationshipOtherAccountDto;
-  readonly strength: number;
-  readonly type: AgentRelationType;
-}
-export interface AgentResponseMetadataDto {
-  readonly activeWorldId?: string | null;
-  readonly category?: string | null;
-  readonly importance?: AgentImportance | null;
-  readonly origin?: AgentOrigin;
-  readonly ownerWorldId?: string | null;
-  readonly ownershipType?: AgentOwnershipType;
-  readonly state?: AgentState;
-  readonly tier?: VerificationTier;
-  readonly wakeStrategy?: string | null;
-  readonly worldId?: string;
-}
-export interface AgentResponseProfileDto {
-  readonly activeWorldId?: string | null;
-  readonly importance?: AgentImportance | null;
-  readonly ownerWorldId?: string | null;
-  readonly ownershipType?: AgentOwnershipType;
-  readonly state?: AgentState;
-  readonly stats?: AgentResponseProfileStatsDto;
-  readonly worldId?: string;
-}
-export interface AgentResponseProfileStatsDto {
-  readonly engagementCount?: number;
-  readonly influenceTier?: number;
-  readonly interactionTier?: number;
-  readonly lastActiveAt?: string | null;
-  readonly vitalityScore?: number;
-}
-export interface AgentResponseTierSummaryDto {
-  readonly assetTier?: number;
-  readonly influenceTier?: number;
-  readonly interactionTier?: number;
-  readonly vitalityScore?: number;
-}
-export interface AgentResponseUserDto {
-  readonly agent?: AgentResponseMetadataDto;
-  readonly agentProfile?: AgentResponseProfileDto;
-  readonly avatarUrl?: string | null;
-  readonly bio?: string | null;
-  readonly createdAt: string;
-  readonly displayName: string;
-  readonly friendCount?: number;
-  readonly handle: string;
-  readonly id: string;
-  readonly isAgent?: boolean;
-  readonly isOnline?: boolean;
-  readonly presenceEmoji?: string | null;
-  readonly presenceStatus?: string | null;
-  readonly presenceText?: string | null;
-  readonly profileCoverUrl?: string | null;
-  readonly stats?: AgentStatsDto;
-  readonly status?: AccountStatus;
-  readonly tiers?: AgentResponseTierSummaryDto;
-}
-export interface AgentRuleDto {
-  readonly agentId: string;
-  readonly category: "CONSTRAINT" | "MECHANISM" | "DEFINITION" | "RELATION" | "POLICY";
-  readonly conflictsWith: readonly (string)[];
-  readonly createdAt: string;
-  readonly createdBy: string;
-  readonly dependsOn: readonly (string)[];
-  readonly hardness: "HARD" | "FIRM" | "SOFT" | "AESTHETIC";
-  readonly id: string;
-  readonly importance: number;
-  readonly inheritedWorldDomain?: "AXIOM" | "PHYSICS" | "SOCIETY" | "ECONOMY" | "CHARACTER" | "NARRATIVE" | "META";
-  readonly layer: "DNA" | "BEHAVIORAL" | "RELATIONAL" | "CONTEXTUAL";
-  readonly lineageId: string;
-  readonly priority: number;
-  readonly provenance: "CREATOR" | "WORLD_INHERITED" | "NARRATIVE_EMERGED" | "SYSTEM";
-  readonly reasoning?: string;
-  readonly ruleKey: string;
-  readonly scope: "SELF" | "DYAD" | "GROUP" | "WORLD";
-  readonly sourceRef?: string;
-  readonly statement: string;
-  readonly status: "ACTIVE" | "DEPRECATED" | "SUPERSEDED" | "PROPOSED" | "ARCHIVED";
-  readonly structured?: Record<string, unknown>;
-  readonly title: string;
-  readonly updatedAt: string;
-  readonly updatedBy: string;
-  readonly version: number;
-  readonly worldRuleRef?: string;
-}
-export interface AgentRuleLayerCountDto {
-  readonly BEHAVIORAL: number;
-  readonly CONTEXTUAL: number;
-  readonly DNA: number;
-  readonly RELATIONAL: number;
-}
-export type AgentState = "INCUBATING" | "READY" | "ACTIVE" | "SUSPENDED" | "FAILED";
-export interface AgentStatsDto {
-  readonly engagementCount?: number;
-  readonly influenceTier?: number;
-  readonly interactionTier?: number;
-  readonly lastActiveAt?: string | null;
-  readonly vitalityScore?: number;
-}
-export interface AgentVisibilitySettingsDto {
-  readonly accountVisibility: Visibility;
-  readonly defaultPostVisibility: Visibility;
-  readonly dmVisibility: Visibility;
-  readonly profileVisibility: Visibility;
-}
-export interface AgentVoiceConfigDto {
-  readonly description?: string;
-  readonly emotionEnabled?: boolean;
-  readonly pitch?: number;
-  readonly speechModelId?: string;
-  readonly speechRoutePolicy?: "local" | "cloud";
-  readonly speed?: number;
-  readonly voiceId?: string;
-}
-export type AgentWakeStrategy = "PASSIVE" | "PROACTIVE";
-export type ApiKeyType = "PERSONAL" | "ENTERPRISE";
 export interface AppPermissionGrantDecisionDto {
   readonly expectedVersion: number;
   readonly reason?: string;
@@ -461,18 +89,8 @@ export interface AppPermissionGrantSupersedeDto {
   readonly reason?: string;
   readonly supersededByGrantId?: string;
 }
-export type AppPermissionScopeFamily = "account" | "data" | "agent" | "ai_spend" | "memory" | "knowledge" | "notification" | "file_device" | "audit" | "ai_profile";
-export type AppPermissionScopeName = "account.read" | "account.session.read" | "data.scope.read" | "data.scope.write" | "agent.identity.project" | "agent.identity.bind" | "ai.spend.meter" | "ai.spend.delegate" | "memory.read.bounded" | "memory.write.admitted" | "knowledge.read.bounded" | "knowledge.write.admitted" | "notification.send" | "notification.subscribe" | "file.read.scoped" | "file.write.scoped" | "device.use.scoped" | "audit.read.scoped" | "ai_profile.selection.consume";
-export interface AppendWorldHistoryDto {
-  readonly commit: MutationCommitEnvelopeDto;
-  readonly historyAppends: readonly (WorldHistoryAppendItemDto)[];
-  readonly ifSnapshotVersion?: string;
-  readonly reason?: string;
-}
-export interface ApplyAgentAuthoringDraftBatchResponseDto {
-  readonly appliedTargetKeys: readonly ("description" | "contentStyle" | "publicPositioning" | "avatar" | "profileCover" | "voice" | "greeting" | "dialogueExemplars" | "behaviorDna")[];
-  readonly batch: AgentAuthoringDraftBatchDto;
-}
+export type AppPermissionScopeFamily = "account" | "data" | "realm_source" | "ai_spend" | "memory" | "knowledge" | "notification" | "file_device" | "audit" | "ai_profile";
+export type AppPermissionScopeName = "account.read" | "account.session.read" | "data.scope.read" | "data.scope.write" | "realm_source.snapshot.consume" | "realm_source.snapshot.bind" | "ai.spend.meter" | "ai.spend.delegate" | "memory.read.bounded" | "memory.write.admitted" | "knowledge.read.bounded" | "knowledge.write.admitted" | "notification.send" | "notification.subscribe" | "file.read.scoped" | "file.write.scoped" | "device.use.scoped" | "audit.read.scoped" | "ai_profile.selection.consume";
 export interface AssetDetailDto {
   readonly authorId: string;
   readonly clonePolicy: "ALLOW" | "DENY" | "INHERIT";
@@ -524,37 +142,7 @@ export interface AuthTokensDto {
   readonly tokenType: string;
   readonly user?: AuthUserDto;
 }
-export interface AuthUserAgentMetadataDto {
-  readonly activeWorldId?: string;
-  readonly category?: string;
-  readonly importance?: AgentImportance;
-  readonly origin?: AgentOrigin;
-  readonly ownerWorldId?: string;
-  readonly ownershipType?: AgentOwnershipType;
-  readonly state?: AgentState;
-  readonly tier?: VerificationTier;
-  readonly wakeStrategy?: string;
-  readonly worldId?: string;
-}
-export interface AuthUserAgentProfileDto {
-  readonly activeWorldId?: string;
-  readonly importance?: AgentImportance;
-  readonly ownerWorldId?: string;
-  readonly ownershipType?: AgentOwnershipType;
-  readonly state?: AgentState;
-  readonly stats?: AuthUserAgentStatsDto;
-  readonly worldId?: string;
-}
-export interface AuthUserAgentStatsDto {
-  readonly engagementCount: number;
-  readonly influenceTier: number;
-  readonly interactionTier: number;
-  readonly lastActiveAt?: string;
-  readonly vitalityScore: number;
-}
 export interface AuthUserDto {
-  readonly agent?: AuthUserAgentMetadataDto;
-  readonly agentProfile?: AuthUserAgentProfileDto;
   readonly avatarUrl?: string | null;
   readonly bio?: string | null;
   readonly birthYear?: number | null;
@@ -567,7 +155,6 @@ export interface AuthUserDto {
   readonly handle: string;
   readonly hasPassword: boolean;
   readonly id: string;
-  readonly isAgent: boolean;
   readonly isTwoFactorEnabled: boolean;
   readonly languages: readonly (string)[];
   readonly lastHandleChangeAt?: string;
@@ -575,7 +162,7 @@ export interface AuthUserDto {
   readonly presenceEmoji?: string | null;
   readonly presenceStatus?: string | null;
   readonly presenceText?: string | null;
-  readonly role: AccountRole;
+  readonly role: PublicAccountRole;
   readonly socialProfiles: readonly (AuthUserSocialProfileDto)[];
   readonly status: AccountStatus;
   readonly tags: readonly (string)[];
@@ -605,92 +192,16 @@ export interface AuthUserWalletDto {
   readonly id: string;
   readonly updatedAt?: string;
 }
-export interface BatchCreateAgentCreatedDto {
-  readonly displayName?: string | null;
-  readonly handle?: string | null;
-  readonly id: string;
-  readonly index: number;
-  readonly ownershipType: "MASTER_OWNED" | "WORLD_OWNED";
-  readonly state?: string | null;
-  readonly worldId?: string | null;
-}
-export interface BatchCreateAgentFailedDto {
-  readonly error: string;
-  readonly handle?: string | null;
-  readonly index: number;
-}
-export interface BatchCreateAgentsRequestDto {
-  readonly continueOnError?: boolean;
-  readonly items: readonly (CreateAgentDto)[];
-}
-export interface BatchCreateAgentsResponseDto {
-  readonly created: readonly (BatchCreateAgentCreatedDto)[];
-  readonly failed: readonly (BatchCreateAgentFailedDto)[];
-}
-export interface BatchUpsertBindingsDto {
-  readonly bindingUpserts: readonly (BindingUpsertDto)[];
-}
 export interface BindEmailDto {
   readonly email: string;
   readonly emailOtpCode: string;
   readonly password: string;
 }
-export interface BindingDetailDto {
-  readonly bindingKind: "PRESENTATION" | "USE" | "IMPORT";
-  readonly bindingPoint?: "WORLD_ICON" | "WORLD_BANNER" | "WORLD_GALLERY" | "WORLD_THEME_AUDIO" | "WORLD_TRAILER_VIDEO" | "SCENE_BACKGROUND" | "SCENE_AMBIENT_AUDIO" | "EVENT_CG" | "WORLDVIEW_REFERENCE" | "AGENT_AVATAR" | "AGENT_PORTRAIT" | "AGENT_EXPRESSION" | "AGENT_OUTFIT" | "AGENT_CANDIDATE" | "AGENT_VOICE_SAMPLE" | null;
-  readonly conditionHash: string;
-  readonly conditions?: Record<string, unknown>;
-  readonly createdAt: string;
-  readonly createdBy: string;
-  readonly hostId: string;
-  readonly hostType: "WORLD" | "AGENT" | "SCENE" | "WORLD_EVENT" | "WORLDVIEW";
-  readonly id: string;
-  readonly intentPrompt?: string;
-  readonly objectId: string;
-  readonly objectType: "RESOURCE" | "ASSET" | "BUNDLE";
-  readonly priority: number;
-  readonly resource?: BindingResourceDetailDto | null;
-  readonly scopeWorldId: string;
-  readonly tags: readonly (string)[];
-  readonly updatedAt: string;
-  readonly versionPin?: string | null;
-}
-export interface BindingListDto {
-  readonly items: readonly (BindingDetailDto)[];
-  readonly worldId: string;
-}
-export interface BindingResourceDetailDto {
-  readonly durationSec?: number;
-  readonly hashSha256?: string;
-  readonly height?: number;
-  readonly id: string;
-  readonly label?: string;
-  readonly mimeType?: string;
-  readonly provenance: "UPLOADED" | "GENERATED" | "IMPORTED" | "REFERENCE";
-  readonly provider: "CF_IMAGE" | "CF_STREAM" | "S3_OBJECT" | "EXTERNAL_URL";
-  readonly resourceType: "IMAGE" | "VIDEO" | "AUDIO" | "TEXT";
-  readonly sizeBytes?: number;
-  readonly sourceRef?: string;
-  readonly storageRef: string;
-  readonly tags: readonly (string)[];
-  readonly url: string;
-  readonly width?: number;
-}
-export interface BindingUpsertDto {
-  readonly bindingKind: "PRESENTATION" | "USE" | "IMPORT";
-  readonly bindingPoint?: "WORLD_ICON" | "WORLD_BANNER" | "WORLD_GALLERY" | "WORLD_THEME_AUDIO" | "WORLD_TRAILER_VIDEO" | "SCENE_BACKGROUND" | "SCENE_AMBIENT_AUDIO" | "EVENT_CG" | "WORLDVIEW_REFERENCE" | "AGENT_AVATAR" | "AGENT_PORTRAIT" | "AGENT_EXPRESSION" | "AGENT_OUTFIT" | "AGENT_CANDIDATE" | "AGENT_VOICE_SAMPLE" | null;
-  readonly conditions?: Record<string, unknown>;
-  readonly hostId: string;
-  readonly hostType: "WORLD" | "AGENT" | "SCENE" | "WORLD_EVENT" | "WORLDVIEW";
-  readonly intentPrompt?: string;
-  readonly objectId: string;
-  readonly objectType: "RESOURCE" | "ASSET" | "BUNDLE";
-  readonly priority?: number;
-  readonly tags?: readonly (string)[];
-  readonly versionPin?: string | null;
-}
 export interface BlockUserBodyDto {
   readonly reason?: string;
+}
+export interface BootstrapOasisWorldDto {
+  readonly confirm: "bootstrap-oasis-world-core";
 }
 export interface BundleDetailDto {
   readonly compatibleApps: readonly (string)[];
@@ -714,36 +225,12 @@ export interface BundleMemberDto {
   readonly assetId: string;
   readonly sortOrder: number;
 }
-export interface CalendarSystemDto {
-  readonly daysPerMonth?: number;
-  readonly daysPerWeek?: number;
-  readonly hoursPerDay?: number;
-  readonly monthsPerYear?: number;
-}
-export interface CanManageNsfwResponseDto {
-  readonly canManage: boolean;
-  readonly isCreator: boolean;
-}
 export interface CanWithdrawDto {
   readonly balance: string;
   readonly canWithdraw: boolean;
   readonly connectStatus: StripeConnectStatus;
   readonly minAmount: string;
   readonly reason?: string | null;
-}
-export interface CausalityModelDto {
-  readonly allowParadox?: boolean;
-  readonly fateWeight?: number;
-  readonly karmaEnabled?: boolean;
-  readonly maxChainDepth?: number;
-  readonly rules?: readonly (CausalityRuleDto)[];
-  readonly type: "DETERMINISTIC" | "PROBABILISTIC" | "NARRATIVE";
-}
-export interface CausalityRuleDto {
-  readonly effect: string;
-  readonly id: string;
-  readonly probability?: number;
-  readonly trigger: string;
 }
 export interface ChangeEmailDto {
   readonly emailOtpCode: string;
@@ -811,50 +298,12 @@ export interface CheckEmailResponseDto {
   readonly available: boolean;
   readonly entryRoute: "register_with_otp" | "login_with_otp" | "login_with_password";
 }
-export interface ClassDefinitionDto {
-  readonly abilities?: readonly (string)[];
-  readonly description?: string;
-  readonly id: string;
-  readonly name: string;
-}
 export interface CloneAssetDto {
   readonly clonePolicy?: "ALLOW" | "DENY" | "INHERIT";
   readonly ownerId?: string;
   readonly status?: "DRAFT" | "READY" | "ARCHIVED" | "DELETED";
   readonly transferPolicy?: "ALLOW" | "DENY" | "INHERIT";
   readonly usePolicy?: UsePolicyDto | null;
-}
-export interface CommitRealmGroupMessageCandidateInputDto {
-  readonly auditLineageRef: string;
-  readonly body?: string;
-  readonly bodyHash?: string;
-  readonly candidateEvidenceRef: string;
-  readonly candidateId: string;
-  readonly candidateKind: "REALM_GROUP_MESSAGE_CANDIDATE";
-  readonly clientCorrelationId?: string;
-  readonly commitDisposition: "MESSAGE_CANDIDATE" | "REFUSAL_CANDIDATE";
-  readonly createdAt: string;
-  readonly evidenceHash: string;
-  readonly expectedLocalAgentRef: string;
-  readonly expectedRealmGroupAgentSlotId: string;
-  readonly expiresAt: string;
-  readonly idempotencyKey: string;
-  readonly messageType?: "TEXT";
-  readonly moderationRef?: string;
-  readonly outputCandidateRef: string;
-  readonly policyVerdictRef: string;
-  readonly refusalCode?: string;
-  readonly refusalHash?: string;
-  readonly refusalReason?: string;
-  readonly refusalRef?: string;
-  readonly runtimeTraceRef: string;
-  readonly triggerRef: string;
-}
-export interface CommitWorldStateDto {
-  readonly commit: MutationCommitEnvelopeDto;
-  readonly ifSnapshotVersion?: string;
-  readonly reason?: string;
-  readonly writes: readonly (WorldStateWriteDto)[];
 }
 export interface ConnectDashboardLinkDto {
   readonly url: string;
@@ -864,69 +313,6 @@ export interface ConnectOnboardingResponseDto {
   readonly onboardingUrl: string;
 }
 export type ContentRatingString = "UNRATED" | "G" | "PG13" | "R18" | "EXPLICIT";
-export interface CreateAgentAuthoringDraftBatchDto {
-  readonly candidates: readonly (CreateAgentAuthoringDraftCandidateDto)[];
-  readonly metadata?: AgentAuthoringDraftBatchMetadataDto | null;
-  readonly skeletonId: string;
-}
-export interface CreateAgentAuthoringDraftCandidateDto {
-  readonly generatedAt: string;
-  readonly modelId: string;
-  readonly promptDigestSha256: string;
-  readonly provenance: AgentAuthoringRuntimeTraceDto;
-  readonly routePolicy?: string | null;
-  readonly runtimeTraceId?: string | null;
-  readonly sourceRefs: readonly (AgentAuthoringSourceRefDto)[];
-  readonly targetKey: "description" | "contentStyle" | "publicPositioning" | "avatar" | "profileCover" | "voice" | "greeting" | "dialogueExemplars" | "behaviorDna";
-  readonly value: AgentAuthoringDraftCandidateValueDto;
-}
-export interface CreateAgentDto {
-  readonly concept: string;
-  readonly description?: string;
-  readonly displayName?: string;
-  readonly dna?: Record<string, unknown>;
-  readonly dnaPrimary?: "CARING" | "PLAYFUL" | "INTELLECTUAL" | "CONFIDENT" | "MYSTERIOUS" | "ROMANTIC";
-  readonly dnaSecondary?: readonly (DnaSecondaryTrait)[];
-  readonly handle: string;
-  readonly ownershipType?: "MASTER_OWNED" | "WORLD_OWNED";
-  readonly referenceImageUrl?: string;
-  readonly rules?: CreateAgentRulesDto;
-  readonly worldId: string;
-}
-export interface CreateAgentResponseDto {
-  readonly dna: Record<string, unknown>;
-  readonly id: string;
-  readonly state: "INCUBATING" | "READY" | "ACTIVE" | "SUSPENDED" | "FAILED";
-  readonly user: AgentResponseUserDto;
-}
-export interface CreateAgentRuleDto {
-  readonly category: "CONSTRAINT" | "MECHANISM" | "DEFINITION" | "RELATION" | "POLICY";
-  readonly conflictsWith?: readonly (string)[];
-  readonly dependsOn?: readonly (string)[];
-  readonly hardness: "HARD" | "FIRM" | "SOFT" | "AESTHETIC";
-  readonly importance?: number;
-  readonly layer: "DNA" | "BEHAVIORAL" | "RELATIONAL" | "CONTEXTUAL";
-  readonly priority?: number;
-  readonly provenance: "CREATOR" | "WORLD_INHERITED" | "NARRATIVE_EMERGED" | "SYSTEM";
-  readonly reasoning?: string;
-  readonly ruleKey: string;
-  readonly scope?: "SELF" | "DYAD" | "GROUP" | "WORLD";
-  readonly sourceRef?: string;
-  readonly statement: string;
-  readonly structured?: Record<string, unknown>;
-  readonly title: string;
-  readonly worldRuleRef?: string;
-}
-export interface CreateAgentRulesDto {
-  readonly format: string;
-  readonly lines: readonly (string)[];
-  readonly text: string;
-}
-export interface CreateApiKeyDto {
-  readonly label: string;
-  readonly scopes?: readonly (string)[];
-  readonly type?: ApiKeyType;
-}
 export interface CreateAssetDto {
   readonly authorId?: string;
   readonly clonePolicy: "ALLOW" | "DENY" | "INHERIT";
@@ -943,7 +329,6 @@ export interface CreateAssetDto {
   readonly usePolicy?: UsePolicyDto | null;
 }
 export interface CreateAudioDirectUploadDto {
-  readonly agentId?: string;
   readonly controllerId?: string;
   readonly controllerKind?: "ACCOUNT" | "WORLD";
   readonly deliveryAccess?: "PUBLIC" | "SIGNED";
@@ -999,23 +384,32 @@ export interface CreatePostDto {
   readonly caption?: string;
   readonly tags?: readonly (string)[];
 }
+export interface CreateRealmPersonaDto {
+  readonly core: Record<string, unknown>;
+  readonly homeWorldId?: string;
+  readonly id?: string;
+  readonly origin: RealmCoreOriginDto;
+}
 export interface CreateRelationshipDto {
   readonly context?: string;
   readonly strength?: number;
   readonly targetId: string;
-  readonly type: AgentRelationType;
+  readonly type: AccountRelationType;
 }
 export interface CreateReportDto {
   readonly description?: string;
   readonly reason: ReportReason;
   readonly targetId: string;
-  readonly targetType: "USER" | "POST" | "AGENT";
+  readonly targetType: "USER" | "POST";
 }
 export interface CreateReviewDto {
   readonly comment?: string;
   readonly giftTransactionId: string;
   readonly rating: ReviewRating;
   readonly tags?: string;
+}
+export interface CreateRuntimeSourceSnapshotDto {
+  readonly sourceRef: TypedSourceRefDto;
 }
 export interface CreateSparkCheckoutDto {
   readonly cancelUrl: string;
@@ -1028,7 +422,6 @@ export interface CreateSubscriptionCheckoutDto {
   readonly tier: SubscriptionTier;
 }
 export interface CreateTextResourceDto {
-  readonly agentId?: string;
   readonly content: string;
   readonly controllerId?: string;
   readonly controllerKind?: "ACCOUNT" | "WORLD";
@@ -1055,168 +448,25 @@ export interface CreateTextResourceDto {
 export interface CreateWithdrawalDto {
   readonly gemAmount: string;
 }
-export interface CreateWorldDraftDto {
-  readonly draftPayload?: WorldDraftPayloadDto;
-  readonly sourceRef?: string;
-  readonly sourceType: "TEXT" | "FILE";
-  readonly targetWorldId?: string;
+export interface CreateWorldCharacterCoreDto {
+  readonly core: Record<string, unknown>;
+  readonly entityId?: string;
+  readonly id?: string;
+  readonly origin: RealmCoreOriginDto;
 }
-export interface CreateWorldRuleDto {
-  readonly category: "CONSTRAINT" | "MECHANISM" | "DEFINITION" | "RELATION" | "POLICY";
-  readonly conflictsWith?: readonly (string)[];
-  readonly dependsOn?: readonly (string)[];
-  readonly domain: "AXIOM" | "PHYSICS" | "SOCIETY" | "ECONOMY" | "CHARACTER" | "NARRATIVE" | "META";
-  readonly hardness: "HARD" | "FIRM" | "SOFT" | "AESTHETIC";
-  readonly overrides?: string;
-  readonly priority?: number;
-  readonly provenance: "SEED" | "CREATOR" | "MOJING_MERGED" | "RENDER_BACKFLOW" | "WORLD_STUDIO" | "SYSTEM";
-  readonly reasoning?: string;
-  readonly ruleKey: string;
-  readonly scope: "WORLD" | "REGION" | "FACTION" | "INDIVIDUAL" | "SCENE";
-  readonly sourceRef?: string;
-  readonly statement: string;
-  readonly structured?: Record<string, unknown>;
-  readonly title: string;
-  readonly validFrom?: string;
-  readonly validUntil?: string;
-}
-export interface CreateWorldTransitDto {
-  readonly agentId: string;
-  readonly context?: TransitContextDto;
-  readonly fromWorldId?: string;
-  readonly transitType?: "INBOUND" | "OUTBOUND";
-}
-export interface CreatorAgentResponseDto {
-  readonly capabilities?: UserAgentDnaDto;
-  readonly id: string;
-  readonly user: UserLiteDto;
-}
-export interface CreatorCapabilitiesResponseDto {
-  readonly allowedActions: readonly ("DEFINE_RULES" | "UPDATE_SETTINGS" | "PUBLISH_WORLD" | "ARCHIVE_WORLD" | "CONTROL_AGENT" | "CONTROL_USER" | "FORCE_AGENT_BEHAVIOR" | "MODIFY_AGENT_IDENTITY")[];
-  readonly forbiddenActions: readonly ("DEFINE_RULES" | "UPDATE_SETTINGS" | "PUBLISH_WORLD" | "ARCHIVE_WORLD" | "CONTROL_AGENT" | "CONTROL_USER" | "FORCE_AGENT_BEHAVIOR" | "MODIFY_AGENT_IDENTITY")[];
-  readonly isCreator: boolean;
-  readonly worldStatus?: string;
+export interface CreateWorldCoreDto {
+  readonly core: Record<string, unknown>;
+  readonly id?: string;
+  readonly origin: RealmCoreOriginDto;
+  readonly visibility?: "private" | "unlisted" | "public" | "system";
 }
 export interface CreatorEligibilityResponseDto {
-  readonly canCreateAgent: boolean;
+  readonly canCreateRealmPersona: boolean;
   readonly canCreateWorld: boolean;
   readonly isEligible: boolean;
   readonly message: string;
   readonly status: "ACTIVE" | "CANCELED" | "PAST_DUE" | "PAUSED";
   readonly tier: "FREE" | "PRO" | "MAX";
-}
-export interface CreatorWorldAgentChatReadinessDto {
-  readonly agentId: string;
-  readonly agentRuleCount: number;
-  readonly appliedAuthoringTargets: readonly (string)[];
-  readonly authorityReason: "CREATOR_OWNER" | "MAINTAIN_ACCESS";
-  readonly consumerSurface: "AGENT_CHAT_READINESS";
-  readonly gates: CreatorWorldAgentChatReadinessGatesDto;
-  readonly ownerScope: "creator-world";
-  readonly profile: CreatorWorldAgentChatReadinessProfileDto;
-  readonly rawRuleContentExposed: boolean;
-  readonly runtimeProjectionChecksum: string;
-  readonly selectedInputCount: number;
-  readonly selectedOwnerSettingFields: readonly (string)[];
-  readonly suppressedInputCount: number;
-  readonly worldId: string;
-  readonly worldRuleCount: number;
-}
-export interface CreatorWorldAgentChatReadinessGatesDto {
-  readonly authoringDraftReady: boolean;
-  readonly behaviorDnaReady: boolean;
-  readonly dialogueExemplarsReady: boolean;
-  readonly greetingReady: boolean;
-  readonly localAgentIdentityReady: boolean;
-  readonly ownerSettingsReady: boolean;
-  readonly profileContextReady: boolean;
-  readonly profileCoverReady: boolean;
-  readonly profileMediaReady: boolean;
-  readonly speechRouteReady: boolean;
-  readonly voiceReferenceReady: boolean;
-}
-export interface CreatorWorldAgentChatReadinessProfileDto {
-  readonly avatarResourceId: string | null;
-  readonly avatarUrl: string | null;
-  readonly defaultVoiceReference: string | null;
-  readonly displayName: string;
-  readonly handle: string;
-  readonly profileCoverResourceId: string | null;
-  readonly profileCoverUrl: string | null;
-  readonly speechModelId: string | null;
-  readonly speechRoutePolicy: "local" | "cloud" | null;
-}
-export interface CreatorWorldAgentCompletionBriefDto {
-  readonly avatarBrief: string;
-  readonly contentStyle: string;
-  readonly description: string;
-  readonly dnaBrief: string;
-  readonly greetingBrief: string;
-  readonly positioning: string;
-  readonly voiceBrief: string;
-}
-export interface CreatorWorldAgentRuntimeReadinessDto {
-  readonly reason: string;
-  readonly requiredCreatorActions: readonly (string)[];
-  readonly roleplayRuntime: "blocked";
-}
-export interface CreatorWorldAgentSkeletonFactsDto {
-  readonly birthYear: number | null;
-  readonly deathYear: number | null;
-  readonly officeFacts: readonly (CreatorWorldAgentSkeletonOfficeFactDto)[];
-  readonly relationships: readonly (CreatorWorldAgentSkeletonRelationshipDto)[];
-  readonly representativeFacts: readonly (string)[];
-  readonly timelineFactCount: number;
-}
-export interface CreatorWorldAgentSkeletonOfficeFactDto {
-  readonly eventId: string;
-  readonly name: string;
-  readonly officeName: string | null;
-  readonly summary: string;
-}
-export interface CreatorWorldAgentSkeletonRelationshipDto {
-  readonly context: string | null;
-  readonly relationType: string;
-  readonly relationshipId: string;
-  readonly targetEntityId: string;
-  readonly targetName: string;
-}
-export interface CreatorWorldAgentSourceSkeletonDto {
-  readonly agentId: string;
-  readonly aliases: readonly (string)[];
-  readonly candidateId: string | null;
-  readonly canonicalName: string;
-  readonly completionBrief: CreatorWorldAgentCompletionBriefDto;
-  readonly missingFields: readonly ("avatar" | "profileCover" | "voice" | "greeting" | "dialogueExemplars" | "behaviorDna")[];
-  readonly packageId: string | null;
-  readonly packageVersion: string | null;
-  readonly runtimeReadiness: CreatorWorldAgentRuntimeReadinessDto;
-  readonly skeletonId: string;
-  readonly sourceEntityId: string;
-  readonly sourceFacts: CreatorWorldAgentSkeletonFactsDto;
-  readonly sourceKind: "CBDB";
-  readonly sourceProfile: "cbdb-historical";
-  readonly sourceRefs: readonly (string)[];
-  readonly worldId: string;
-}
-export interface CreatorWorldSummaryDto {
-  readonly agentCount: number;
-  readonly authorityReason: "CREATOR_OWNER" | "MAINTAIN_ACCESS";
-  readonly bannerUrl?: string;
-  readonly creatorId: string;
-  readonly description?: string;
-  readonly iconUrl?: string;
-  readonly id: string;
-  readonly motto?: string;
-  readonly name: string;
-  readonly overview?: string;
-  readonly status: "DRAFT" | "PENDING_REVIEW" | "ACTIVE" | "SUSPENDED" | "ARCHIVED";
-  readonly tagline?: string;
-  readonly type: "CREATOR";
-  readonly updatedAt: string;
-}
-export interface CreatorWorldSummaryListDto {
-  readonly items: readonly (CreatorWorldSummaryDto)[];
 }
 export interface CurrencyBalancesDto {
   readonly gemBalance: string;
@@ -1240,13 +490,9 @@ export interface CursorPageMetaDto {
   readonly hasNext: boolean;
   readonly nextCursor: string | null;
 }
-export interface DeleteAgentOperationResponseDto {
-  readonly success: boolean;
-}
 export interface DeleteRelationshipResponseDto {
   readonly deleted: boolean;
 }
-export type DnaSecondaryTrait = "HUMOROUS" | "SARCASTIC" | "GENTLE" | "DIRECT" | "OPTIMISTIC" | "REALISTIC" | "DRAMATIC" | "PASSIONATE" | "REBELLIOUS" | "INNOCENT" | "WISE" | "ECCENTRIC";
 export interface EditMessageInputDto {
   readonly payload?: ChatTextPayloadDto | Record<string, unknown> | ChatPostRefPayloadDto | ChatUserRefPayloadDto | ChatLinkRefPayloadDto | ChatGiftPayloadDto | ChatFriendRequestPayloadDto;
   readonly text?: string;
@@ -1262,22 +508,6 @@ export interface EmailOtpVerifyDto {
   readonly code: string;
   readonly email: string;
 }
-export interface ExistenceDefinitionDto {
-  readonly classes?: readonly (ClassDefinitionDto)[];
-  readonly factions?: readonly (FactionDefinitionDto)[];
-  readonly species?: readonly (SpeciesDefinitionDto)[];
-}
-export interface FactionDefinitionDto {
-  readonly alignment?: string;
-  readonly description?: string;
-  readonly id: string;
-  readonly name: string;
-  readonly relationships?: readonly (FactionRelationshipDto)[];
-}
-export interface FactionRelationshipDto {
-  readonly targetFactionId: string;
-  readonly type: "ALLY" | "NEUTRAL" | "RIVAL" | "ENEMY";
-}
 export interface FeedPageMetaDto {
   readonly cursor?: string | null;
   readonly limit?: number;
@@ -1288,7 +518,6 @@ export interface FeedResponseDto {
   readonly page: FeedPageMetaDto;
 }
 export interface FinalizeResourceDto {
-  readonly agentId?: string;
   readonly controllerId?: string;
   readonly controllerKind?: "ACCOUNT" | "WORLD";
   readonly deliveryAccess?: "PUBLIC" | "SIGNED";
@@ -1311,214 +540,7 @@ export interface FinalizeResourceDto {
   readonly width?: number;
   readonly worldId?: string;
 }
-export interface ForgeAgentCandidateCapabilityCellDto {
-  readonly evidenceTruthRefCount: number;
-  readonly evidenceTruthRefs?: readonly (string)[];
-  readonly predicateId: string;
-  readonly requirements: readonly (ForgeAgentCandidateRequirementDto)[];
-  readonly status: "ready" | "sparse" | "blocked";
-  readonly surface: string;
-}
-export interface ForgeAgentCandidateDto {
-  readonly agentRef?: string | null;
-  readonly capabilityVector: readonly (ForgeAgentCandidateCapabilityCellDto)[];
-  readonly completenessIntent: string;
-  readonly entityRef?: string | null;
-  readonly id: string;
-  readonly name: string;
-  readonly runtimeMaterialization: ForgeAgentCandidateRuntimeMaterializationDto;
-  readonly sourceProfiles: readonly (ForgeAgentCandidateSourceProfileDto)[];
-  readonly worldId: string;
-}
-export interface ForgeAgentCandidateQueryFiltersDto {
-  readonly query?: string | null;
-  readonly status?: "ready" | "sparse" | "blocked" | null;
-  readonly surface?: string | null;
-}
-export interface ForgeAgentCandidateQueryResultDto {
-  readonly candidates: readonly (ForgeAgentCandidateDto)[];
-  readonly filters: ForgeAgentCandidateQueryFiltersDto;
-  readonly packageId: string;
-  readonly returned: number;
-  readonly schemaVersion: string;
-  readonly slug: string;
-  readonly total: number;
-}
-export interface ForgeAgentCandidateRequirementDto {
-  readonly actual: number;
-  readonly gap: number;
-  readonly gapKind: "open" | "bounded";
-  readonly id: string;
-  readonly passed: boolean;
-  readonly required: number;
-}
-export interface ForgeAgentCandidateRuntimeMaterializationDto {
-  readonly materializedRuntimeAgent: boolean;
-  readonly roleplayRuntimeEligible: boolean;
-}
-export interface ForgeAgentCandidateSourceProfileDto {
-  readonly archetype: string;
-  readonly authorityRank: string;
-  readonly evidenceLocatorKind: string;
-  readonly profile: string;
-  readonly sourceId: string;
-}
-export interface ForgeProductArtifactRefDto {
-  readonly checksum: string;
-  readonly kind: string;
-  readonly path: string;
-}
-export interface ForgeProductCapabilitySummaryDto {
-  readonly agentCandidates: number;
-  readonly completenessIntentCounts: Record<string, unknown>;
-  readonly materializedRuntimeAgents: number;
-  readonly runtimeReadyCandidates: number;
-  readonly surfaceStatusCounts: Record<string, unknown>;
-}
-export interface ForgeProductCountsDto {
-  readonly agentBlueprints: number;
-  readonly agentCapabilities: number;
-  readonly agentExemplars: number;
-  readonly agentRelationships: number;
-  readonly evidenceRecords: number;
-  readonly projectionInputs: number;
-  readonly scenes: number;
-  readonly worldEntities: number;
-  readonly worldEvents: number;
-  readonly worldRelationships: number;
-  readonly worldRules: number;
-  readonly worldSystems: number;
-}
-export interface ForgeProductEvalScorecardDto {
-  readonly admissionAuthority: string;
-  readonly artifactPath: string;
-  readonly checksum: string;
-  readonly publicDataset: boolean;
-  readonly suite: string;
-  readonly trustTier: string;
-}
-export interface ForgeProductOptionalArtifactQualityDto {
-  readonly artifactPath: string;
-  readonly checksum: string;
-}
-export interface ForgeProductQualityDto {
-  readonly evalScorecards: readonly (ForgeProductEvalScorecardDto)[];
-  readonly presetZeroing?: ForgeProductOptionalArtifactQualityDto | null;
-  readonly updateRun?: ForgeProductUpdateRunQualityDto | null;
-  readonly validation: ForgeProductValidationQualityDto;
-}
-export interface ForgeProductShardIndexDto {
-  readonly packageId: string;
-  readonly packageVersion: string;
-  readonly schemaVersion: string;
-  readonly shardManifest: ForgeProductShardManifestRefDto;
-  readonly shards: readonly (ForgeProductShardIndexItemDto)[];
-  readonly slug: string;
-}
-export interface ForgeProductShardIndexItemDto {
-  readonly byteSize: number;
-  readonly checksum: string;
-  readonly exportKeys: readonly (string)[];
-  readonly kind: string;
-  readonly path: string;
-}
-export interface ForgeProductShardIntegrityItemDto {
-  readonly actualChecksum: string | null;
-  readonly byteSize: number | null;
-  readonly error: string | null;
-  readonly expectedChecksum: string;
-  readonly exportKeys: readonly (string)[];
-  readonly kind: string;
-  readonly path: string;
-  readonly status: "pass" | "failed";
-}
-export interface ForgeProductShardIntegrityReportDto {
-  readonly packageId: string;
-  readonly packageVersion: string;
-  readonly schemaVersion: string;
-  readonly shardManifest: ForgeProductShardManifestRefDto;
-  readonly shards: readonly (ForgeProductShardIntegrityItemDto)[];
-  readonly slug: string;
-  readonly status: "pass" | "failed";
-}
-export interface ForgeProductShardManifestRefDto {
-  readonly checksum: string;
-  readonly path: string;
-}
-export interface ForgeProductShardReadDto {
-  readonly checksum: string;
-  readonly kind: string;
-  readonly packageId: string;
-  readonly packageVersion: string;
-  readonly record: Record<string, unknown>;
-  readonly schemaVersion: string;
-  readonly slug: string;
-}
-export interface ForgeProductSourceProfileDto {
-  readonly archetype: string;
-  readonly authorityRank: string;
-  readonly evidenceLocatorKind: string;
-  readonly inputCount: number;
-  readonly localeProfile: string;
-  readonly profile: string;
-  readonly sourceId: string;
-  readonly title: string;
-}
-export interface ForgeProductUpdateRunQualityDto {
-  readonly artifactPath: string;
-  readonly checksum: string;
-  readonly runStatus: "success" | "failed" | "blocked" | "no-op";
-}
-export interface ForgeProductValidationQualityDto {
-  readonly artifactPath: string;
-  readonly checksum: string;
-  readonly status: "PASS" | "FAIL";
-}
-export interface ForgeProductWorldRefDto {
-  readonly id: string;
-  readonly name: string;
-}
-export interface ForgeWorldCatalogDto {
-  readonly qualitySummary: ForgeWorldCatalogQualitySummaryDto;
-  readonly rootDir: string;
-  readonly schemaVersion: string;
-  readonly worlds: readonly (ForgeWorldProductDto)[];
-}
-export interface ForgeWorldCatalogQualitySummaryDto {
-  readonly evalScorecards: number;
-  readonly goldenGateScorecards: number;
-  readonly publicReferenceScorecards: number;
-  readonly reportOnlyScorecards: number;
-  readonly updateRunBlocked: number;
-  readonly updateRunFailed: number;
-  readonly updateRunNoop: number;
-  readonly updateRunSuccess: number;
-  readonly validationFail: number;
-  readonly validationPass: number;
-  readonly worlds: number;
-  readonly worldsWithGoldenGate: number;
-  readonly worldsWithPresetZeroing: number;
-  readonly worldsWithPublicReference: number;
-  readonly worldsWithUpdateRun: number;
-}
-export interface ForgeWorldProductDto {
-  readonly artifacts: readonly (ForgeProductArtifactRefDto)[];
-  readonly capabilitySummary: ForgeProductCapabilitySummaryDto;
-  readonly counts: ForgeProductCountsDto;
-  readonly distributionShape: "authoring-package" | "compact-shards";
-  readonly packageId: string;
-  readonly packageVersion: string;
-  readonly productId: string;
-  readonly quality: ForgeProductQualityDto;
-  readonly schemaVersion: string;
-  readonly slug: string;
-  readonly sourceMix: readonly (ForgeProductSourceProfileDto)[];
-  readonly target: string;
-  readonly world: ForgeProductWorldRefDto;
-}
 export interface FriendProfileDto {
-  readonly agent?: AgentMetadataDto;
-  readonly agentProfile?: AgentProfileDto;
   readonly avatarUrl?: string | null;
   readonly bio?: string | null;
   readonly birthYear?: number | null;
@@ -1532,7 +554,6 @@ export interface FriendProfileDto {
   readonly giftStats?: Record<string, unknown>;
   readonly handle: string;
   readonly id: string;
-  readonly isAgent?: boolean;
   readonly isOnline?: boolean;
   readonly languages?: readonly (string)[];
   readonly presenceEmoji?: string | null;
@@ -1599,13 +620,6 @@ export interface GiftTransactionRichDto {
   readonly sparkCost: string;
   readonly status: GiftStatus;
 }
-export interface GlossaryTermDto {
-  readonly category?: string;
-  readonly definition: string;
-  readonly id: string;
-  readonly importance?: string;
-  readonly term: string;
-}
 export interface GroupChatViewDto {
   readonly createdAt: string;
   readonly creatorId: string;
@@ -1620,10 +634,10 @@ export interface GroupChatViewDto {
 }
 export interface GroupMessageAuthorDto {
   readonly accountId: string;
-  readonly agentOwnerId: string | null;
   readonly avatarUrl: string | null;
   readonly displayName: string;
-  readonly type: "human" | "agent";
+  readonly sourceOwnerId: string | null;
+  readonly type: "human" | "source";
 }
 export interface GroupMessageViewDto {
   readonly author: GroupMessageAuthorDto;
@@ -1641,17 +655,17 @@ export interface GroupMessageViewDto {
 }
 export interface GroupParticipantDto {
   readonly accountId: string;
-  readonly agentOwnerId: string | null;
   readonly avatarUrl: string | null;
   readonly displayName: string;
   readonly handle: string;
   readonly isOnline: boolean;
   readonly joinedAt: string;
-  readonly localAgentRef: string | null;
-  readonly realmAgentId: string | null;
-  readonly realmGroupAgentSlotId: string | null;
   readonly role: "admin" | "member";
-  readonly type: "human" | "agent";
+  readonly runtimeParticipantSlot: string | null;
+  readonly runtimeSourceRef: string | null;
+  readonly sourceOwnerId: string | null;
+  readonly sourceRef: string | null;
+  readonly type: "human" | "source";
 }
 export interface HandleAvailabilityDto {
   readonly available: boolean;
@@ -1714,63 +728,6 @@ export interface ListMessagesResultDto {
   readonly nextAfter: string | null;
   readonly nextBefore: string | null;
 }
-export interface LocalAgentProvisionIntentAckDto {
-  readonly detail?: string;
-  readonly outcome: LocalAgentProvisionIntentAckOutcome;
-}
-export type LocalAgentProvisionIntentAckOutcome = "established" | "substrate_failure";
-export interface LocalAgentProvisionIntentDto {
-  readonly ackedAt?: string | null;
-  readonly attempts: number;
-  readonly availableAt: string;
-  readonly createdAt: string;
-  readonly id: string;
-  readonly localAgentRef: string;
-  readonly ownerUserId: string;
-  readonly realmAgentId: string;
-  readonly status: LocalAgentProvisionIntentStatus;
-}
-export interface LocalAgentProvisionIntentListDto {
-  readonly items: readonly (LocalAgentProvisionIntentDto)[];
-}
-export type LocalAgentProvisionIntentStatus = "OPEN" | "ACKED" | "FAILED";
-export interface LocalAgentTerminationIntentAckDto {
-  readonly detail?: string;
-  readonly outcome: LocalAgentTerminationIntentAckOutcome;
-}
-export type LocalAgentTerminationIntentAckOutcome = "terminated" | "substrate_failure";
-export interface LocalAgentTerminationIntentDto {
-  readonly ackedAt?: string | null;
-  readonly attempts: number;
-  readonly availableAt: string;
-  readonly createdAt: string;
-  readonly id: string;
-  readonly localAgentRef: string;
-  readonly ownerUserId: string;
-  readonly realmAgentId: string;
-  readonly status: LocalAgentTerminationIntentStatus;
-}
-export interface LocalAgentTerminationIntentListDto {
-  readonly items: readonly (LocalAgentTerminationIntentDto)[];
-}
-export type LocalAgentTerminationIntentStatus = "OPEN" | "ACKED" | "FAILED";
-export interface LocationLandmarkDto {
-  readonly description: string;
-  readonly id: string;
-  readonly name: string;
-  readonly regionId?: string;
-  readonly significance?: string;
-}
-export interface LocationRegionDto {
-  readonly climate?: string;
-  readonly description: string;
-  readonly id: string;
-  readonly name: string;
-}
-export interface MakeAgentPublicResponseDto {
-  readonly accountVisibility: Visibility;
-  readonly success: boolean;
-}
 export interface MarkNotificationsReadInputDto {
   readonly ids?: readonly (string)[];
   readonly markAllBefore?: string;
@@ -1807,72 +764,19 @@ export interface MessageViewDto {
   readonly type: MessageType;
 }
 export type ModerationStatusString = "ACTIVE" | "UNDER_REVIEW" | "FLAGGED" | "BANNED";
-export interface MutationActorRefDto {
-  readonly actorId: string;
-  readonly actorType: string;
-  readonly role?: string;
-}
-export interface MutationCommitEnvelopeDto {
-  readonly actorRefs: readonly (MutationActorRefDto)[];
-  readonly appId: string;
-  readonly effectClass: "NONE" | "STATE_ONLY" | "STATE_AND_HISTORY";
-  readonly evidenceRefs?: readonly (MutationEvidenceRefDto)[];
-  readonly reason: string;
-  readonly schemaId: string;
-  readonly schemaVersion: string;
-  readonly scope: string;
-  readonly sessionId: string;
-  readonly worldId: string;
-}
-export interface MutationEvidenceRefDto {
-  readonly kind: string;
-  readonly refId: string;
-  readonly uri?: string;
-}
 export interface NotificationActivityDto {
   readonly directMessages?: boolean;
   readonly friendRequests?: boolean;
   readonly likes?: boolean;
   readonly mentions?: boolean;
 }
-export interface NotificationActorAgentMetadataDto {
-  readonly activeWorldId?: string | null;
-  readonly category?: string | null;
-  readonly importance?: AgentImportance | null;
-  readonly origin?: AgentOrigin;
-  readonly ownerWorldId?: string | null;
-  readonly ownershipType?: AgentOwnershipType;
-  readonly state?: AgentState;
-  readonly tier?: VerificationTier | null;
-  readonly wakeStrategy?: string | null;
-  readonly worldId?: string | null;
-}
-export interface NotificationActorAgentProfileDto {
-  readonly activeWorldId?: string | null;
-  readonly importance?: AgentImportance | null;
-  readonly ownerWorldId?: string | null;
-  readonly ownershipType?: AgentOwnershipType;
-  readonly state?: AgentState;
-  readonly stats?: NotificationActorAgentStatsDto;
-  readonly worldId?: string | null;
-}
-export interface NotificationActorAgentStatsDto {
-  readonly engagementCount: number;
-  readonly influenceTier: number;
-  readonly interactionTier: number;
-  readonly lastActiveAt?: string | null;
-  readonly vitalityScore: number;
-}
 export interface NotificationActorDto {
-  readonly agent?: NotificationActorAgentMetadataDto;
-  readonly agentProfile?: NotificationActorAgentProfileDto;
   readonly avatarUrl?: string | null;
   readonly bio?: string | null;
   readonly createdAt: string;
   readonly displayName: string;
   readonly handle: string;
   readonly id: string;
-  readonly isAgent?: boolean;
   readonly presenceEmoji?: string | null;
   readonly presenceStatus?: string | null;
   readonly presenceText?: string | null;
@@ -1918,17 +822,6 @@ export interface NotificationTargetDto {
   readonly interactionId?: string | null;
   readonly postId?: string | null;
 }
-export interface NsfwConsentResponseDto {
-  readonly agentConsent: boolean;
-  readonly allowed: boolean;
-  readonly reason?: string;
-  readonly userConsent: boolean;
-}
-export interface NsfwConsentStatusResponseDto {
-  readonly agentNsfwEnabled: boolean;
-  readonly mutuallyConsented: boolean;
-  readonly userNsfwEnabled: boolean;
-}
 export interface OAuthLinkResponseDto {
   readonly provider: "google" | "wechat" | "twitter" | "tiktok";
   readonly status: "linked";
@@ -1964,45 +857,6 @@ export interface OAuthTokenResponseDto {
   readonly refresh_token: string;
   readonly token_type: string;
 }
-export interface OwnerAgentBoundarySettingsDto {
-  readonly allowedThemes?: readonly (string)[];
-  readonly disallowedThemes?: readonly (string)[];
-}
-export interface OwnerAgentCommunicationSettingsDto {
-  readonly contentStyle?: string | null;
-  readonly formality?: "casual" | "formal" | "slang";
-  readonly responseLength?: "short" | "medium" | "long";
-  readonly sentiment?: "positive" | "neutral" | "cynical";
-}
-export interface OwnerAgentIdentitySettingsDto {
-  readonly publicRole?: string | null;
-  readonly worldview?: string | null;
-}
-export interface OwnerAgentPersonalitySettingsDto {
-  readonly goals?: readonly (string)[];
-  readonly interests?: readonly (string)[];
-  readonly relationshipMode?: string | null;
-  readonly summary?: string | null;
-}
-export interface OwnerAgentPositioningSettingsDto {
-  readonly positioning?: string | null;
-  readonly targetAudience?: string | null;
-}
-export interface OwnerAgentSettingsDto {
-  readonly agentId: string;
-  readonly agentRuleVersion: number;
-  readonly boundaries: OwnerAgentBoundarySettingsDto;
-  readonly communication: OwnerAgentCommunicationSettingsDto;
-  readonly description?: string | null;
-  readonly displayName?: string | null;
-  readonly greeting?: string | null;
-  readonly identity: OwnerAgentIdentitySettingsDto;
-  readonly naturalLanguageIntent?: string | null;
-  readonly personality: OwnerAgentPersonalitySettingsDto;
-  readonly positioning: OwnerAgentPositioningSettingsDto;
-  readonly updatedAt: string;
-  readonly worldId: string;
-}
 export interface PPSlotConfigDto {
   readonly slot1?: PPSlotItemDto;
   readonly slot2?: PPSlotItemDto;
@@ -2023,13 +877,6 @@ export interface PasswordLoginDto {
 export interface PasswordRegisterDto {
   readonly email: string;
   readonly password: string;
-}
-export interface PermissionCheckResponseDto {
-  readonly action?: "DEFINE_RULES" | "UPDATE_SETTINGS" | "PUBLISH_WORLD" | "ARCHIVE_WORLD" | "CONTROL_AGENT" | "CONTROL_USER" | "FORCE_AGENT_BEHAVIOR" | "MODIFY_AGENT_IDENTITY";
-  readonly allowed: boolean;
-  readonly creatorId?: string;
-  readonly reason?: string;
-  readonly worldId?: string;
 }
 export interface PortalSessionDto {
   readonly url: string;
@@ -2062,58 +909,8 @@ export interface PostDto {
   readonly visibility: Visibility;
   readonly worldId?: string;
 }
-export interface PowerSystemDto {
-  readonly abilities?: readonly (AbilityDefinitionDto)[];
-  readonly constraints?: readonly (string)[];
-  readonly description?: string;
-  readonly levels?: readonly (PowerSystemLevelDto)[];
-  readonly name: string;
-  readonly powerSystems?: readonly (PowerSystemDto)[];
-  readonly rules?: readonly (WorldRuleItemDto)[];
-  readonly taboos?: readonly (PowerSystemTabooDto)[];
-  readonly tiers?: readonly (PowerTierDto)[];
-}
-export interface PowerSystemLevelDto {
-  readonly breakthroughCondition?: string;
-  readonly description?: string;
-  readonly name: string;
-}
-export interface PowerSystemTabooDto {
-  readonly description?: string;
-  readonly name?: string;
-  readonly severity?: string;
-  readonly title?: string;
-}
-export interface PowerTierDto {
-  readonly description?: string;
-  readonly level: number;
-  readonly name: string;
-  readonly requirements?: readonly (string)[];
-}
 export type PresenceStatus = "online" | "invisible";
-export interface PublicBindingDto {
-  readonly bindingKind: "PRESENTATION" | "USE" | "IMPORT";
-  readonly bindingPoint?: "WORLD_ICON" | "WORLD_BANNER" | "WORLD_GALLERY" | "WORLD_THEME_AUDIO" | "WORLD_TRAILER_VIDEO" | "SCENE_BACKGROUND" | "SCENE_AMBIENT_AUDIO" | "EVENT_CG" | "WORLDVIEW_REFERENCE" | "AGENT_AVATAR" | "AGENT_PORTRAIT" | "AGENT_EXPRESSION" | "AGENT_OUTFIT" | "AGENT_CANDIDATE" | "AGENT_VOICE_SAMPLE" | null;
-  readonly hostId: string;
-  readonly hostType: "WORLD" | "AGENT" | "SCENE" | "WORLD_EVENT" | "WORLDVIEW";
-  readonly id: string;
-  readonly objectId: string;
-  readonly objectType: "RESOURCE" | "ASSET" | "BUNDLE";
-  readonly priority: number;
-  readonly resource?: PublicBindingResourceDto | null;
-  readonly tags: readonly (string)[];
-  readonly versionPin?: string | null;
-}
-export interface PublicBindingListDto {
-  readonly items: readonly (PublicBindingDto)[];
-  readonly worldId: string;
-}
-export interface PublicBindingResourceDto {
-  readonly id: string;
-  readonly label?: string;
-  readonly resourceType: "IMAGE" | "VIDEO" | "AUDIO" | "TEXT";
-  readonly url: string;
-}
+export type PublicAccountRole = "USER" | "SERVICE_ACC" | "SYSTEM_BOT" | "ADMIN";
 export interface PublicFilterDto {
   readonly minViewerAssetTier?: number;
   readonly minViewerInfluenceTier?: number;
@@ -2124,82 +921,30 @@ export interface PublicFilterDto {
   readonly viewerCountryCode?: string;
   readonly viewerGenders?: readonly (string)[];
 }
-export interface PublicWorldHistoryEventDto {
-  readonly cause?: string;
-  readonly characterRefs: readonly (string)[];
-  readonly committedAt: string;
-  readonly dependsOnEventIds: readonly (string)[];
-  readonly eventId: string;
-  readonly eventType: string;
-  readonly evidenceRefs: readonly (WorldEventEvidenceRefDto)[];
-  readonly happenedAt: string;
+export interface RealmCoreOriginDto {
+  readonly kind: "manual" | "forge" | "worldCharacterDerivation" | "import" | "system";
+  readonly parentCharacterId?: string;
+  readonly parentWorldId?: string;
+  readonly sourceContentHash?: string;
+  readonly sourceId?: string;
+  readonly sourceVersion?: string;
+}
+export interface RealmPersonaDto {
+  readonly contentHash: string;
+  readonly contentRevision: number;
+  readonly core: Record<string, unknown>;
+  readonly createdAt: string;
+  readonly homeWorldId: string;
   readonly id: string;
-  readonly locationRefs: readonly (string)[];
-  readonly payload?: Record<string, unknown> | null;
-  readonly process?: string;
-  readonly result?: string;
-  readonly summary?: string;
-  readonly timeRef?: string;
-  readonly title: string;
-  readonly visibility?: "PUBLIC" | "WORLD" | "RESTRICTED";
-  readonly worldId: string;
+  readonly origin: RealmCoreOriginDto;
+  readonly ownerId: string;
+  readonly schemaVersion: string;
+  readonly updatedAt: string;
 }
-export interface PublicWorldHistoryListDto {
-  readonly items: readonly (PublicWorldHistoryEventDto)[];
-  readonly worldId: string;
-}
-export interface PublicWorldLorebookDto {
-  readonly content: string;
-  readonly id: string;
-  readonly key: string;
-  readonly keywords?: readonly (string)[];
-  readonly name?: string;
-  readonly priority?: number;
-  readonly worldId: string;
-}
-export interface PublicWorldLorebookListDto {
-  readonly items: readonly (PublicWorldLorebookDto)[];
-  readonly worldId: string;
-}
-export interface PublicWorldSceneDto {
-  readonly activeEntities: readonly (string)[];
-  readonly description?: string | null;
-  readonly id: string;
-  readonly name: string;
-}
-export interface PublicWorldSceneListDto {
-  readonly items: readonly (PublicWorldSceneDto)[];
-  readonly worldId: string;
-}
-export interface PublishWorldDraftDto {
-  readonly reason?: string;
-}
-export interface PublishWorldDraftResultDto {
-  readonly draftId: string;
-  readonly publishedAt: string;
-  readonly worldId: string;
-  readonly worldviewVersion: number;
-}
-export interface RealmGroupMessageCandidateCommitResultDto {
-  readonly auditRecordId: string;
-  readonly candidateId: string;
-  readonly commitDisposition: "MESSAGE_CANDIDATE" | "REFUSAL_CANDIDATE";
-  readonly commitId: string;
-  readonly committedAt: string;
-  readonly committedMessage?: GroupMessageViewDto;
-  readonly committedMessageId: string | null;
-  readonly evidenceHash: string;
-  readonly idempotencyKey: string;
-  readonly localAgentRef: string;
-  readonly ownerUserId: string;
-  readonly realmAgentId: string;
-  readonly realmGroupAgentSlotId: string;
-  readonly refusalCode: string | null;
-  readonly refusalReason: string | null;
-  readonly rejectionCode: string | null;
-  readonly runtimeTraceRef: string;
-  readonly status: "COMMITTED" | "REFUSED" | "REJECTED" | "IDEMPOTENT_REPLAY";
-  readonly syncCursor: number;
+export interface RealmSourceCapabilitiesDto {
+  readonly canCreateRealmPersona: boolean;
+  readonly canCreateRuntimeSourceSnapshot: boolean;
+  readonly canUseWorldCharacterSources: boolean;
 }
 export interface ReceivedGiftsResponseDto {
   readonly items: readonly (GiftTransactionRichDto)[];
@@ -2218,11 +963,28 @@ export interface RelationshipResponseDto {
   readonly sourceId: string;
   readonly strength: number;
   readonly targetId: string;
-  readonly type: AgentRelationType;
+  readonly type: AccountRelationType;
 }
-export interface RemoveAgentRelationshipDto {
-  readonly targetId: string;
-  readonly type: AgentRelationType;
+export interface ReplaceRealmPersonaDto {
+  readonly baseContentHash: string;
+  readonly core: Record<string, unknown>;
+  readonly homeWorldId?: string;
+  readonly id?: string;
+  readonly origin: RealmCoreOriginDto;
+}
+export interface ReplaceWorldCharacterCoreDto {
+  readonly baseContentHash: string;
+  readonly core: Record<string, unknown>;
+  readonly entityId?: string;
+  readonly id?: string;
+  readonly origin: RealmCoreOriginDto;
+}
+export interface ReplaceWorldCoreDto {
+  readonly baseContentHash: string;
+  readonly core: Record<string, unknown>;
+  readonly id?: string;
+  readonly origin: RealmCoreOriginDto;
+  readonly visibility?: "private" | "unlisted" | "public" | "system";
 }
 export type ReportReason = "SPAM" | "NSFW" | "HATE_SPEECH" | "SCAM" | "OTHER";
 export interface ReportResponseDto {
@@ -2247,28 +1009,7 @@ export interface RequestDataExportDto {
   readonly includeMessages?: boolean;
   readonly locale?: string;
 }
-export interface ResourceAcquisitionRuleDto {
-  readonly conditions?: readonly (string)[];
-  readonly rate?: number;
-  readonly resourceId: string;
-  readonly source: string;
-}
-export interface ResourceConsumptionRuleDto {
-  readonly action: string;
-  readonly amount: number;
-  readonly resourceId: string;
-}
-export interface ResourceCostDto {
-  readonly amount: number;
-  readonly type: string;
-}
-export interface ResourceDefinitionDto {
-  readonly acquisitionRules?: readonly (ResourceAcquisitionRuleDto)[];
-  readonly consumptionRules?: readonly (ResourceConsumptionRuleDto)[];
-  readonly types: readonly (ResourceTypeDto)[];
-}
 export interface ResourceDetailDto {
-  readonly agentId?: string | null;
   readonly controllerId: string;
   readonly controllerKind: "ACCOUNT" | "WORLD";
   readonly createdAt: string;
@@ -2314,27 +1055,15 @@ export interface ResourceDirectUploadSessionDto {
 export interface ResourceListDto {
   readonly items: readonly (ResourceDetailDto)[];
 }
-export interface ResourceTypeDto {
-  readonly consumable?: boolean;
-  readonly description?: string;
-  readonly id: string;
-  readonly maxAmount?: number;
-  readonly name: string;
-  readonly tradeable?: boolean;
-}
 export interface RevenueDistributionPreviewDto {
-  readonly isNativeAgent: boolean;
-  readonly masterAmount: string;
+  readonly isWorldOwned: boolean;
+  readonly ownerAmount: string;
   readonly totalAmount: string;
   readonly worldCreatorAmount: string;
 }
 export interface RevenueShareConfigDto {
   readonly minShareThreshold: string;
-  readonly nativeAgentCreatorSharePercent: number;
-}
-export interface ReviewAgentAuthoringDraftCandidateDto {
-  readonly editedValue?: AgentAuthoringDraftCandidateValueDto;
-  readonly status: "accepted" | "rejected" | "edited";
+  readonly worldCreatorSharePercent: number;
 }
 export interface ReviewDto {
   readonly comment?: string | null;
@@ -2350,81 +1079,6 @@ export interface ReviewStatsDto {
   readonly positiveRate?: number;
   readonly totalCount?: number;
 }
-export interface RuleValidationResponseDto {
-  readonly isValid: boolean;
-  readonly violations: readonly (string)[];
-  readonly warnings: readonly (string)[];
-}
-export interface RuntimeProjectionContextEnvelopeDto {
-  readonly allowedAgentLayers?: readonly ("DNA" | "BEHAVIORAL" | "RELATIONAL" | "CONTEXTUAL")[];
-  readonly allowedAgentScopes?: readonly ("SELF" | "DYAD" | "GROUP" | "WORLD")[];
-  readonly allowedWorldScopes?: readonly ("WORLD" | "REGION" | "FACTION" | "INDIVIDUAL" | "SCENE")[];
-  readonly focusKeywords?: readonly (string)[];
-  readonly includeInheritedAgentRules?: boolean;
-  readonly requestedAgentRuleKeys?: readonly (string)[];
-  readonly requestedWorldRuleKeys?: readonly (string)[];
-  readonly sceneId?: string;
-  readonly stateVisibilityKeys?: readonly (string)[];
-  readonly temporalPosition?: string;
-  readonly turnId?: string;
-}
-export interface RuntimeProjectionInputDto {
-  readonly agentId?: string;
-  readonly hardness: "HARD" | "FIRM" | "SOFT" | "AESTHETIC";
-  readonly id: string;
-  readonly layer?: "DNA" | "BEHAVIORAL" | "RELATIONAL" | "CONTEXTUAL";
-  readonly lineageId: string;
-  readonly priority: number;
-  readonly provenance: string;
-  readonly reasoning?: string | null;
-  readonly ruleKey: string;
-  readonly scope: string;
-  readonly sourceId: string;
-  readonly sourceRef?: string | null;
-  readonly sourceType: "WORLD_RULE" | "AGENT_RULE";
-  readonly statement: string;
-  readonly structured?: Record<string, unknown> | null;
-  readonly title: string;
-  readonly validFrom?: string | null;
-  readonly validUntil?: string | null;
-  readonly worldId: string;
-  readonly worldRuleRef?: string | null;
-}
-export interface RuntimeProjectionPayloadDto {
-  readonly agentRules: readonly (RuntimeProjectionInputDto)[];
-  readonly worldRules: readonly (RuntimeProjectionInputDto)[];
-}
-export interface RuntimeProjectionRequestDto {
-  readonly agentId?: string;
-  readonly contextEnvelope?: RuntimeProjectionContextEnvelopeDto;
-  readonly releaseAnchor?: string | null;
-  readonly worldId: string;
-}
-export interface RuntimeProjectionResolutionOutcomeDto {
-  readonly decision: "SELECTED" | "SUPPRESSED";
-  readonly inputId: string;
-  readonly reasons: readonly (string)[];
-  readonly sourceType: "WORLD_RULE" | "AGENT_RULE";
-}
-export interface RuntimeProjectionResponseDto {
-  readonly agentId?: string;
-  readonly checksum: string;
-  readonly consumerSurface: "RUNTIME_PAYLOAD";
-  readonly payload: RuntimeProjectionPayloadDto;
-  readonly releaseAnchor?: string | null;
-  readonly selectedInputs: readonly (RuntimeProjectionInputDto)[];
-  readonly trace: RuntimeProjectionTraceDto;
-  readonly worldId: string;
-}
-export interface RuntimeProjectionSuppressedInputDto {
-  readonly input: RuntimeProjectionInputDto;
-  readonly reason: "RULE_KEY_FILTER" | "SCOPE_FILTER" | "LAYER_FILTER" | "PROVENANCE_FILTER" | "FOCUS_MISS" | "SURFACE_POLICY";
-}
-export interface RuntimeProjectionTraceDto {
-  readonly resolutionOutcomes: readonly (RuntimeProjectionResolutionOutcomeDto)[];
-  readonly selectedInputIds: readonly (string)[];
-  readonly suppressedInputs: readonly (RuntimeProjectionSuppressedInputDto)[];
-}
 export interface RuntimeRealmGrantIssueRequestDto {
   readonly appId: string;
   readonly scopes: readonly (string)[];
@@ -2435,43 +1089,18 @@ export interface RuntimeRealmGrantIssueResponseDto {
   readonly token: string;
   readonly version: string;
 }
-export interface SceneConnectionDto {
-  readonly bidirectional?: boolean;
-  readonly conditions?: readonly (string)[];
-  readonly from: string;
-  readonly to: string;
-}
-export interface SceneDefinitionDto {
-  readonly description?: string;
-  readonly id: string;
-  readonly name: string;
-  readonly properties?: Record<string, unknown>;
-  readonly tier?: "TIER0_SANCTUARY" | "TIER1_TRANSIT" | "TIER2_ACTIVE";
-}
-export interface SceneTimeConfigDto {
-  readonly defaults: SceneTimeSettingsDto;
-  readonly scenes: Record<string, unknown>;
-}
-export interface SceneTimeCycleDto {
-  readonly duration: number;
-  readonly phases: readonly (SceneTimePhaseDto)[];
-}
-export interface SceneTimePhaseDto {
-  readonly description?: string;
-  readonly endRatio: number;
-  readonly name: string;
-  readonly startRatio: number;
-  readonly visualEffect?: string;
-}
-export interface SceneTimeSettingsDto {
-  readonly fixedTime?: string;
-  readonly syncWorldTime?: boolean;
-  readonly tier: "TIER0_SANCTUARY" | "TIER1_TRANSIT" | "TIER2_ACTIVE";
-  readonly timeCycle?: SceneTimeCycleDto;
-  readonly timeModifier?: number;
-}
-export interface SelectAvatarDto {
-  readonly avatarUrl: string;
+export interface RuntimeSourceSnapshotDto {
+  readonly capturedAt: string;
+  readonly payload: Record<string, unknown>;
+  readonly payloadHash: string;
+  readonly runtimeSourceRef: string;
+  readonly snapshotId: string;
+  readonly snapshotSchemaVersion: string;
+  readonly sourceContentHash: string;
+  readonly sourceContentRevision: number;
+  readonly sourceId: string;
+  readonly sourceKind: "worldCharacter" | "realmPersona";
+  readonly sourceWorldId: string;
 }
 export interface SendGiftDto {
   readonly giftId: string;
@@ -2486,12 +1115,6 @@ export interface SendMessageInputDto {
   readonly text?: string;
   readonly type: MessageType;
 }
-export interface SetAgentRelationshipDto {
-  readonly context?: string;
-  readonly strength?: number;
-  readonly targetId: string;
-  readonly type: AgentRelationType;
-}
 export interface SocialProfileDto {
   readonly followers?: number;
   readonly handle: string;
@@ -2500,18 +1123,13 @@ export interface SocialProfileDto {
   readonly url?: string | null;
   readonly verifiedAt?: string | null;
 }
-export interface SpaceRealmDto {
-  readonly accessibility?: string;
-  readonly description?: string;
-  readonly name: string;
-}
-export interface SpaceTopologyDto {
-  readonly boundary: "FINITE" | "INFINITE" | "CYCLIC";
-  readonly connections?: readonly (SceneConnectionDto)[];
-  readonly dimensions?: number;
-  readonly realms?: readonly (SpaceRealmDto)[];
-  readonly scenes?: readonly (SceneDefinitionDto)[];
-  readonly type: "GRAPH" | "GRID" | "FREE";
+export interface SourceOriginDto {
+  readonly isWorldOwned: boolean;
+  readonly ownerId: string;
+  readonly sourceId: string;
+  readonly sourceKind: "worldCharacter" | "realmPersona";
+  readonly worldCreatorId: string | null;
+  readonly worldId: string;
 }
 export interface SparkCheckoutSessionDto {
   readonly sessionId: string;
@@ -2524,13 +1142,6 @@ export interface SparkPackageDto {
   readonly popular?: boolean;
   readonly sparkAmount: number;
   readonly usdPrice: number;
-}
-export interface SpeciesDefinitionDto {
-  readonly description?: string;
-  readonly id: string;
-  readonly lifespan?: string;
-  readonly name: string;
-  readonly traits?: readonly (string)[];
 }
 export interface StartChatInputDto {
   readonly asFriendRequest?: boolean;
@@ -2583,19 +1194,6 @@ export interface TierDetailDto {
   readonly userId: string;
   readonly vitalityScore: number;
 }
-export interface TimeCycleDto {
-  readonly duration: number;
-  readonly name: string;
-  readonly phases?: readonly (string)[];
-}
-export interface TimeModelDto {
-  readonly allowReverse?: boolean;
-  readonly calendarSystem?: CalendarSystemDto;
-  readonly cycles?: readonly (TimeCycleDto)[];
-  readonly timeFlowRatio?: number;
-  readonly type: "TICK_BASED" | "CONTINUOUS" | "RELATIVE";
-  readonly unit?: string;
-}
 export interface TransitContextDto {
   readonly handoffRefs?: Record<string, unknown>;
   readonly memoryRefIds?: readonly (string)[];
@@ -2603,13 +1201,14 @@ export interface TransitContextDto {
   readonly stateRecordIds?: readonly (string)[];
 }
 export interface TransitDetailDto {
-  readonly agentId: string;
   readonly arrivedAt?: string | null;
   readonly context?: TransitContextDto | null;
   readonly createdAt: string;
   readonly departedAt: string;
   readonly fromWorldId?: string | null;
   readonly id: string;
+  readonly runtimeSourceRef: string;
+  readonly sourceRef: TypedSourceRefDto;
   readonly status: "ACTIVE" | "COMPLETED" | "ABANDONED";
   readonly toWorldId: string;
   readonly transitType: "INBOUND" | "OUTBOUND";
@@ -2625,50 +1224,15 @@ export interface TranslateResponseDto {
   readonly original: string;
   readonly translated: string;
 }
+export interface TypedSourceRefDto {
+  readonly kind: "worldCharacter" | "realmPersona";
+  readonly sourceContentHash: string;
+  readonly sourceId: string;
+  readonly worldId: string;
+}
 export interface UnreadNotificationCountDto {
   readonly byType: Record<string, unknown>;
   readonly total: number;
-}
-export interface UpdateAgentDnaDto {
-  readonly dna: AgentDnaDto;
-}
-export interface UpdateAgentNsfwConsentDto {
-  readonly enabled: boolean;
-}
-export interface UpdateAgentProfileMediaDto {
-  readonly avatarUrl?: string;
-  readonly profileCoverUrl?: string;
-}
-export interface UpdateAgentRuleDto {
-  readonly category?: "CONSTRAINT" | "MECHANISM" | "DEFINITION" | "RELATION" | "POLICY";
-  readonly conflictsWith?: readonly (string)[];
-  readonly dependsOn?: readonly (string)[];
-  readonly hardness?: "HARD" | "FIRM" | "SOFT" | "AESTHETIC";
-  readonly importance?: number;
-  readonly priority?: number;
-  readonly provenance?: "CREATOR" | "WORLD_INHERITED" | "NARRATIVE_EMERGED" | "SYSTEM";
-  readonly reasoning?: string;
-  readonly scope?: "SELF" | "DYAD" | "GROUP" | "WORLD";
-  readonly sourceRef?: string;
-  readonly statement?: string;
-  readonly structured?: Record<string, unknown>;
-  readonly title?: string;
-  readonly worldRuleRef?: string;
-}
-export interface UpdateAgentVisibilityDto {
-  readonly accountVisibility?: Visibility;
-  readonly defaultPostVisibility?: Visibility;
-  readonly dmVisibility?: Visibility;
-  readonly profileVisibility?: Visibility;
-}
-export interface UpdateAgentVoiceDto {
-  readonly description?: string;
-  readonly emotionEnabled?: boolean;
-  readonly pitch?: number;
-  readonly speechModelId?: string;
-  readonly speechRoutePolicy?: "local" | "cloud";
-  readonly speed?: number;
-  readonly voiceId?: string;
 }
 export interface UpdateAssetDto {
   readonly clonePolicy?: "ALLOW" | "DENY" | "INHERIT";
@@ -2689,38 +1253,11 @@ export interface UpdateBundleDto {
   readonly title?: string;
   readonly version?: string;
 }
-export interface UpdateCreatorAgentDto {
-  readonly avatarUrl?: string;
-  readonly bio?: string;
-  readonly capabilities?: UserAgentDnaDto;
-  readonly category?: string;
-  readonly contentRating?: string;
-  readonly displayName?: string;
-  readonly profileCoverUrl?: string;
-  readonly tags?: readonly (string)[];
-  readonly webhookUrl?: string;
-}
 export interface UpdateGroupInputDto {
   readonly title?: string;
 }
 export interface UpdateMyHandleDto {
   readonly handle: string;
-}
-export interface UpdateNsfwConsentResponseDto {
-  readonly enabled: boolean;
-  readonly success: boolean;
-  readonly updatedAt: string;
-}
-export interface UpdateOwnerAgentSettingsDto {
-  readonly boundaries?: OwnerAgentBoundarySettingsDto;
-  readonly communication?: OwnerAgentCommunicationSettingsDto;
-  readonly description?: string | null;
-  readonly displayName?: string | null;
-  readonly greeting?: string | null;
-  readonly identity?: OwnerAgentIdentitySettingsDto;
-  readonly naturalLanguageIntent?: string | null;
-  readonly personality?: OwnerAgentPersonalitySettingsDto;
-  readonly positioning?: OwnerAgentPositioningSettingsDto;
 }
 export interface UpdatePPSlotConfigDto {
   readonly ppSlotConfig: PPSlotConfigDto;
@@ -2740,7 +1277,6 @@ export interface UpdateRelationshipDto {
   readonly strength?: number;
 }
 export interface UpdateResourceDto {
-  readonly agentId?: string;
   readonly controllerId?: string;
   readonly controllerKind?: "ACCOUNT" | "WORLD";
   readonly deliveryAccess?: "PUBLIC" | "SIGNED";
@@ -2780,9 +1316,6 @@ export interface UpdateUserNotificationSettingsDto {
   readonly channels?: NotificationChannelsDto;
   readonly gifts?: NotificationGiftsDto;
 }
-export interface UpdateUserNsfwConsentDto {
-  readonly enabled: boolean;
-}
 export interface UpdateUserSettingsDto {
   readonly accountVisibility?: Visibility;
   readonly blockedAccountIds?: readonly (string)[];
@@ -2804,87 +1337,13 @@ export interface UpdateUserSettingsDto {
   readonly walletSecurityChallengeEnabled?: boolean;
   readonly walletVisibility?: Visibility;
 }
-export interface UpdateWorldDraftDto {
-  readonly draftPayload?: WorldDraftPayloadDto;
-  readonly status?: "DRAFT" | "SYNTHESIZE" | "REVIEW" | "PUBLISH" | "FAILED";
-}
-export interface UpdateWorldRuleDto {
-  readonly category?: "CONSTRAINT" | "MECHANISM" | "DEFINITION" | "RELATION" | "POLICY";
-  readonly conflictsWith?: readonly (string)[];
-  readonly dependsOn?: readonly (string)[];
-  readonly hardness?: "HARD" | "FIRM" | "SOFT" | "AESTHETIC";
-  readonly overrides?: string;
-  readonly priority?: number;
-  readonly reasoning?: string;
-  readonly scope?: "WORLD" | "REGION" | "FACTION" | "INDIVIDUAL" | "SCENE";
-  readonly sourceRef?: string;
-  readonly statement?: string;
-  readonly structured?: Record<string, unknown>;
-  readonly title?: string;
-  readonly validFrom?: string;
-  readonly validUntil?: string;
-}
 export interface UsePolicyDto {
-  readonly allowedBindingPoints?: readonly ("WORLD_ICON" | "WORLD_BANNER" | "WORLD_GALLERY" | "WORLD_THEME_AUDIO" | "WORLD_TRAILER_VIDEO" | "SCENE_BACKGROUND" | "SCENE_AMBIENT_AUDIO" | "EVENT_CG" | "WORLDVIEW_REFERENCE" | "AGENT_AVATAR" | "AGENT_PORTRAIT" | "AGENT_EXPRESSION" | "AGENT_OUTFIT" | "AGENT_CANDIDATE" | "AGENT_VOICE_SAMPLE")[];
-  readonly allowedHostTypes: readonly ("WORLD" | "AGENT" | "SCENE")[];
-}
-export interface UserAgentAppearanceDto {
-  readonly artStyle?: string;
-  readonly eyes?: string;
-  readonly fashionStyle?: string;
-  readonly hair?: string;
-  readonly signatureItems?: readonly (string)[];
-  readonly skin?: string;
-}
-export interface UserAgentBiologicalDto {
-  readonly ethnicity?: string;
-  readonly gender?: string;
-  readonly heightCm?: number;
-  readonly visualAge?: string;
-  readonly weightKg?: number;
-}
-export interface UserAgentCommunicationDto {
-  readonly formality?: "casual" | "formal" | "slang";
-  readonly responseLength?: "short" | "medium" | "long";
-  readonly sentiment?: "positive" | "neutral" | "cynical";
-  readonly summary?: string;
-}
-export interface UserAgentDnaDto {
-  readonly appearance?: UserAgentAppearanceDto;
-  readonly biological?: UserAgentBiologicalDto;
-  readonly communication?: UserAgentCommunicationDto;
-  readonly identity?: UserAgentIdentityDto;
-  readonly nsfwLevel?: string;
-  readonly personality?: UserAgentPersonalityDto;
-  readonly voice?: UserAgentVoiceConfigDto;
-}
-export interface UserAgentIdentityDto {
-  readonly name?: string;
-  readonly role?: string;
-  readonly species?: string;
-  readonly summary?: string;
-  readonly worldview?: string;
-}
-export interface UserAgentPersonalityDto {
-  readonly emotionBaseline?: string;
-  readonly goals?: readonly (string)[];
-  readonly interests?: readonly (string)[];
-  readonly mbti?: string;
-  readonly relationshipMode?: string;
-  readonly summary?: string;
-}
-export interface UserAgentVoiceConfigDto {
-  readonly description?: string;
-  readonly emotionEnabled?: boolean;
-  readonly pitch?: number;
-  readonly speechModelId?: string;
-  readonly speechRoutePolicy?: "local" | "cloud";
-  readonly speed?: number;
-  readonly voiceId?: string;
+  readonly allowedBindingPoints?: readonly ("WORLD_ICON" | "WORLD_BANNER" | "WORLD_GALLERY" | "WORLD_THEME_AUDIO" | "WORLD_TRAILER_VIDEO" | "SCENE_BACKGROUND" | "SCENE_AMBIENT_AUDIO" | "EVENT_CG" | "WORLDVIEW_REFERENCE" | "WORLD_CHARACTER_AVATAR" | "WORLD_CHARACTER_PORTRAIT" | "WORLD_CHARACTER_EXPRESSION" | "WORLD_CHARACTER_OUTFIT" | "WORLD_CHARACTER_CANDIDATE" | "WORLD_CHARACTER_VOICE_SAMPLE" | "REALM_PERSONA_AVATAR" | "REALM_PERSONA_PORTRAIT" | "REALM_PERSONA_EXPRESSION" | "REALM_PERSONA_OUTFIT" | "REALM_PERSONA_CANDIDATE" | "REALM_PERSONA_VOICE_SAMPLE")[];
+  readonly allowedHostTypes: readonly ("WORLD" | "WORLD_CHARACTER" | "REALM_PERSONA" | "SCENE")[];
 }
 export interface UserCapabilitiesDto {
-  readonly agent: AgentCapabilitiesDto;
   readonly features: UserFeatureCapabilitiesDto;
+  readonly realmSource: RealmSourceCapabilitiesDto;
 }
 export interface UserFeatureCapabilitiesDto {
   readonly canChat: boolean;
@@ -2893,8 +1352,6 @@ export interface UserFeatureCapabilitiesDto {
   readonly canPost: boolean;
 }
 export interface UserLiteDto {
-  readonly agent?: AgentMetadataDto;
-  readonly agentProfile?: AgentProfileDto;
   readonly avatarUrl?: string | null;
   readonly bio?: string | null;
   readonly createdAt: string;
@@ -2902,7 +1359,6 @@ export interface UserLiteDto {
   readonly friendCount?: number;
   readonly handle: string;
   readonly id: string;
-  readonly isAgent?: boolean;
   readonly isOnline?: boolean;
   readonly presenceEmoji?: string | null;
   readonly presenceStatus?: string | null;
@@ -2917,8 +1373,6 @@ export interface UserNotificationSettingsDto {
   readonly gifts?: NotificationGiftsDto;
 }
 export interface UserPrivateDto {
-  readonly agent?: AgentMetadataDto;
-  readonly agentProfile?: AgentProfileDto;
   readonly avatarUrl?: string | null;
   readonly bio?: string | null;
   readonly birthYear?: number | null;
@@ -2933,7 +1387,6 @@ export interface UserPrivateDto {
   readonly handle: string;
   readonly hasPassword?: boolean;
   readonly id: string;
-  readonly isAgent?: boolean;
   readonly isOnline?: boolean;
   readonly isTwoFactorEnabled?: boolean;
   readonly languages?: readonly (string)[];
@@ -2944,7 +1397,7 @@ export interface UserPrivateDto {
   readonly presenceText?: string | null;
   readonly profileCoverUrl?: string | null;
   readonly reviewStats?: ReviewStatsDto;
-  readonly role: AccountRole;
+  readonly role: PublicAccountRole;
   readonly socialProfiles?: readonly (SocialProfileDto)[];
   readonly stats?: UserStatsDto;
   readonly status?: AccountStatus;
@@ -2954,8 +1407,6 @@ export interface UserPrivateDto {
   readonly wallets?: readonly (UserWalletDto)[];
 }
 export interface UserProfileDto {
-  readonly agent?: AgentMetadataDto;
-  readonly agentProfile?: AgentProfileDto;
   readonly avatarUrl?: string | null;
   readonly bio?: string | null;
   readonly birthYear?: number | null;
@@ -2968,7 +1419,6 @@ export interface UserProfileDto {
   readonly giftStats?: Record<string, unknown>;
   readonly handle: string;
   readonly id: string;
-  readonly isAgent?: boolean;
   readonly isOnline?: boolean;
   readonly languages?: readonly (string)[];
   readonly presenceEmoji?: string | null;
@@ -3028,25 +1478,10 @@ export interface UserWalletDto {
 export interface UserWalletListResponseDto {
   readonly items: readonly (UserWalletDto)[];
 }
-export interface ValidateRulesDto {
-  readonly rules: readonly (WorldRuleItemDto)[];
-}
-export type VerificationTier = "COMMUNITY" | "VERIFIED" | "OFFICIAL";
 export interface VerifyInvitationCodeDto {
   readonly invitationCode: string;
 }
 export type Visibility = "PUBLIC" | "FRIENDS" | "PRIVATE";
-export interface VisualGuideDto {
-  readonly accentColor?: string;
-  readonly artStyle?: string;
-  readonly atmosphere?: string;
-  readonly colorPalette?: string;
-  readonly cssVariables?: Record<string, unknown>;
-  readonly primaryColor?: string;
-  readonly referenceImages?: readonly (string)[];
-  readonly secondaryColor?: string;
-  readonly stylePrompt?: string;
-}
 export interface WalletBindDto {
   readonly chainId?: number;
   readonly message?: string;
@@ -3108,572 +1543,60 @@ export interface WithdrawalSummaryDto {
   readonly netAmount: string;
   readonly usdAmount: number;
 }
-export interface WorldAccessRecordDto {
-  readonly canCreateWorld: boolean;
-  readonly canMaintainWorld: boolean;
-  readonly expiresAt?: string;
-  readonly id: string;
-  readonly maintainRole: "OWNER" | "MAINTAINER";
-  readonly scopeType: "CREATE" | "MAINTAIN";
-  readonly scopeWorldId?: string;
-  readonly status: "ACTIVE" | "REVOKED" | "EXPIRED" | "SUSPENDED";
-  readonly userId: string;
-}
-export interface WorldAccessSummaryDto {
-  readonly canCreateWorld: boolean;
-  readonly canMaintainWorld: boolean;
-  readonly hasActiveAccess: boolean;
-  readonly records: readonly (WorldAccessRecordDto)[];
-  readonly userId: string;
-}
-export interface WorldAgentRuleSummaryDto {
-  readonly byLayer: AgentRuleLayerCountDto;
-  readonly totalAgentRuleCount: number;
-  readonly worldLinkedRuleCount: number;
-}
-export interface WorldAgentSummaryDto {
-  readonly activeRuleCount: number;
-  readonly activeWorldId: string;
-  readonly avatarUrl?: string;
-  readonly bio?: string;
+export interface WorldCharacterCoreDto {
+  readonly contentHash: string;
+  readonly contentRevision: number;
+  readonly core: Record<string, unknown>;
   readonly createdAt: string;
-  readonly display: AgentDisplayDto;
-  readonly handle?: string;
+  readonly entityId?: string | null;
   readonly id: string;
-  readonly importance: "PRIMARY" | "SECONDARY" | "BACKGROUND";
-  readonly name: string;
-  readonly stats?: AgentStatsDto;
-}
-export interface WorldClockConfigDto {
-  readonly anchorRealTime: string;
-  readonly anchorWorldTime: string;
-  readonly currentEra?: string;
-  readonly eras?: readonly (WorldClockEraDto)[];
-  readonly isPaused?: boolean;
-  readonly pausedAt?: string;
-  readonly startRealTime: string;
-  readonly startWorldTime: string;
-  readonly timeFormat?: WorldTimeFormatDto;
-}
-export interface WorldClockEraDto {
-  readonly id: string;
-  readonly name: string;
-  readonly startWorldTime?: string;
-}
-export interface WorldComputedEntryDto {
-  readonly recommendedAgents: readonly (WorldRecommendedAgentDto)[];
-}
-export interface WorldComputedLanguagesDto {
-  readonly common: readonly (string)[];
-  readonly primary?: string;
-}
-export interface WorldComputedScoreDto {
-  readonly scoreEwma: number;
-}
-export interface WorldComputedTimeDto {
-  readonly currentLabel?: string;
-  readonly currentWorldTime?: string;
-  readonly eraLabel?: string;
-  readonly flowRatio: number;
-  readonly isPaused: boolean;
-}
-export interface WorldDetailDto {
-  readonly agentCount: number;
-  readonly bannerUrl?: string;
-  readonly clockConfig?: WorldClockConfigDto;
-  readonly computed: WorldDisplayComputedDto;
-  readonly contentRating: "UNRATED" | "G" | "PG13" | "R18" | "EXPLICIT";
-  readonly createdAt: string;
-  readonly creatorId?: string;
-  readonly description?: string;
-  readonly era?: string;
-  readonly freezeReason?: "QUOTA_OVERFLOW" | "WORLD_INACTIVE" | "GOVERNANCE_LOCK";
-  readonly genre?: string;
-  readonly iconUrl?: string;
-  readonly id: string;
-  readonly languages?: WorldviewLanguagesDto;
-  readonly level: number;
-  readonly levelUpdatedAt?: string;
-  readonly lorebookEntryLimit: number;
-  readonly motto?: string;
-  readonly name: string;
-  readonly nativeAgentLimit: number;
-  readonly nativeCreationState: "OPEN" | "NATIVE_CREATION_FROZEN";
-  readonly overview?: string;
-  readonly reviewedAt?: string;
-  readonly reviewedBy?: string;
-  readonly sceneTimeConfig?: SceneTimeConfigDto;
-  readonly scoreA: number;
-  readonly scoreC: number;
-  readonly scoreE: number;
-  readonly scoreEwma: number;
-  readonly scoreQ: number;
-  readonly status: "DRAFT" | "PENDING_REVIEW" | "ACTIVE" | "SUSPENDED" | "ARCHIVED";
-  readonly tagline?: string;
-  readonly themes?: readonly (string)[];
-  readonly timeModel?: TimeModelDto;
-  readonly transitInLimit: number;
-  readonly truth: WorldTruthDto;
-  readonly type: "OASIS" | "CREATOR";
-  readonly updatedAt?: string;
-}
-export interface WorldDetailWithAgentsDto {
-  readonly agentCount: number;
-  readonly agentRuleSummary: WorldAgentRuleSummaryDto;
-  readonly agents: readonly (WorldAgentSummaryDto)[];
-  readonly bannerUrl?: string;
-  readonly clockConfig?: WorldClockConfigDto;
-  readonly computed: WorldDisplayComputedDto;
-  readonly contentRating: "UNRATED" | "G" | "PG13" | "R18" | "EXPLICIT";
-  readonly createdAt: string;
-  readonly creatorId?: string;
-  readonly description?: string;
-  readonly era?: string;
-  readonly freezeReason?: "QUOTA_OVERFLOW" | "WORLD_INACTIVE" | "GOVERNANCE_LOCK";
-  readonly genre?: string;
-  readonly iconUrl?: string;
-  readonly id: string;
-  readonly languages?: WorldviewLanguagesDto;
-  readonly level: number;
-  readonly levelUpdatedAt?: string;
-  readonly lorebookEntryLimit: number;
-  readonly motto?: string;
-  readonly name: string;
-  readonly nativeAgentLimit: number;
-  readonly nativeCreationState: "OPEN" | "NATIVE_CREATION_FROZEN";
-  readonly overview?: string;
-  readonly reviewedAt?: string;
-  readonly reviewedBy?: string;
-  readonly sceneTimeConfig?: SceneTimeConfigDto;
-  readonly scoreA: number;
-  readonly scoreC: number;
-  readonly scoreE: number;
-  readonly scoreEwma: number;
-  readonly scoreQ: number;
-  readonly status: "DRAFT" | "PENDING_REVIEW" | "ACTIVE" | "SUSPENDED" | "ARCHIVED";
-  readonly tagline?: string;
-  readonly themes?: readonly (string)[];
-  readonly timeModel?: TimeModelDto;
-  readonly transitInLimit: number;
-  readonly truth: WorldTruthDto;
-  readonly type: "OASIS" | "CREATOR";
-  readonly updatedAt?: string;
-}
-export interface WorldDisplayComputedDto {
-  readonly entry: WorldComputedEntryDto;
-  readonly featuredAgentCount: number;
-  readonly languages: WorldComputedLanguagesDto;
-  readonly score: WorldComputedScoreDto;
-  readonly time: WorldComputedTimeDto;
-}
-export interface WorldDraftDetailDto {
-  readonly createdAt: string;
-  readonly draftPayload?: Record<string, unknown>;
-  readonly id: string;
-  readonly ownerUserId: string;
-  readonly publishResult?: Record<string, unknown>;
-  readonly publishedAt?: string;
-  readonly sourceRef?: string;
-  readonly sourceType: "TEXT" | "FILE";
-  readonly status: "DRAFT" | "SYNTHESIZE" | "REVIEW" | "PUBLISH" | "FAILED";
-  readonly targetWorldId?: string;
-  readonly updatedAt: string;
-}
-export interface WorldDraftHistoryBucketsDto {
-  readonly futureHistorical?: readonly (WorldDraftHistoryEventDto)[];
-  readonly primary: readonly (WorldDraftHistoryEventDto)[];
-  readonly secondary: readonly (WorldDraftHistoryEventDto)[];
-}
-export interface WorldDraftHistoryDraftDto {
-  readonly events: WorldDraftHistoryBucketsDto;
-}
-export interface WorldDraftHistoryEventDto {
-  readonly cause?: string;
-  readonly characterRefs?: readonly (string)[];
-  readonly dependsOnEventIds?: readonly (string)[];
-  readonly eventId?: string;
-  readonly eventType: string;
-  readonly evidenceRefs?: readonly (Record<string, unknown>)[];
-  readonly happenedAt: string;
-  readonly locationRefs?: readonly (string)[];
-  readonly occurredAt?: string;
-  readonly payload?: Record<string, unknown>;
-  readonly process?: string;
-  readonly result?: string;
-  readonly summary?: string;
-  readonly timeRef?: string;
-  readonly title: string;
-}
-export interface WorldDraftImportSourceDto {
-  readonly sourceRef?: string;
-  readonly sourceText?: string;
-  readonly sourceType: "TEXT" | "FILE";
-}
-export interface WorldDraftPayloadDto {
-  readonly historyDraft: WorldDraftHistoryDraftDto;
-  readonly importSource: WorldDraftImportSourceDto;
-  readonly stateDraft: WorldDraftStateDraftDto;
-  readonly truthDraft: WorldDraftTruthDraftDto;
-}
-export interface WorldDraftStateDraftDto {
-  readonly worldState: Record<string, unknown>;
-}
-export interface WorldDraftSummaryDto {
-  readonly id: string;
-  readonly publishedAt?: string;
-  readonly sourceRef?: string;
-  readonly sourceType: "TEXT" | "FILE";
-  readonly status: "DRAFT" | "SYNTHESIZE" | "REVIEW" | "PUBLISH" | "FAILED";
-  readonly targetWorldId?: string;
-  readonly updatedAt: string;
-}
-export interface WorldDraftSummaryListDto {
-  readonly items: readonly (WorldDraftSummaryDto)[];
-}
-export interface WorldDraftTruthDraftDto {
-  readonly agentRules: readonly (Record<string, unknown>)[];
-  readonly worldRules: readonly (WorldDraftTruthRuleDto)[];
-}
-export interface WorldDraftTruthRuleDto {
-  readonly category: string;
-  readonly conflictsWith?: readonly (string)[];
-  readonly dependsOn?: readonly (string)[];
-  readonly domain: string;
-  readonly hardness: string;
-  readonly overrides?: string;
-  readonly priority?: number;
-  readonly provenance: string;
-  readonly reasoning?: string;
-  readonly ruleKey: string;
-  readonly scope: string;
-  readonly sourceRef?: string;
-  readonly statement: string;
-  readonly structured?: Record<string, unknown>;
-  readonly title: string;
-  readonly validFrom?: string;
-  readonly validUntil?: string;
-}
-export interface WorldEventEvidenceRefDto {
-  readonly confidence: number;
-  readonly excerpt: string;
-  readonly offsetEnd: number;
-  readonly offsetStart: number;
-  readonly segmentId: string;
-  readonly sourceType: string;
-}
-export interface WorldEventEvidenceRefInputDto {
-  readonly confidence?: number;
-  readonly excerpt: string;
-  readonly offsetEnd: number;
-  readonly offsetStart: number;
-  readonly segmentId: string;
-  readonly sourceType?: string;
-}
-export interface WorldHistoryAppendItemDto {
-  readonly cause?: string;
-  readonly characterRefs?: readonly (string)[];
-  readonly dependsOnEventIds?: readonly (string)[];
-  readonly eventId?: string;
-  readonly eventType: string;
-  readonly evidenceRefs?: readonly (WorldEventEvidenceRefInputDto)[];
-  readonly happenedAt: string;
-  readonly invalidates?: readonly (string)[];
-  readonly locationRefs?: readonly (string)[];
-  readonly operation: "APPEND" | "SUPERSEDE" | "INVALIDATE";
-  readonly payload?: Record<string, unknown>;
-  readonly process?: string;
-  readonly reason: string;
-  readonly relatedStateRefs: readonly (WorldHistoryRelatedStateRefDto)[];
-  readonly result?: string;
-  readonly summary?: string;
-  readonly supersedes?: readonly (string)[];
-  readonly timeRef?: string;
-  readonly title: string;
-  readonly visibility: "PUBLIC" | "WORLD" | "RESTRICTED";
-}
-export interface WorldHistoryEventDto {
-  readonly actorRefs: readonly (MutationActorRefDto)[];
-  readonly appId: string;
-  readonly cause?: string;
-  readonly characterRefs: readonly (string)[];
-  readonly commitId: string;
-  readonly committedAt: string;
-  readonly createdBy: string;
-  readonly dependsOnEventIds: readonly (string)[];
-  readonly eventId: string;
-  readonly eventType: string;
-  readonly evidenceRefs: readonly (WorldEventEvidenceRefDto)[];
-  readonly happenedAt: string;
-  readonly id: string;
-  readonly invalidatedAt?: string | null;
-  readonly invalidates: readonly (string)[];
-  readonly locationRefs: readonly (string)[];
-  readonly operation: "APPEND" | "SUPERSEDE" | "INVALIDATE";
-  readonly payload?: Record<string, unknown> | null;
-  readonly process?: string;
-  readonly relatedStateRefs: readonly (WorldHistoryRelatedStateRefDto)[];
-  readonly result?: string;
-  readonly schemaId: string;
+  readonly origin: RealmCoreOriginDto;
   readonly schemaVersion: string;
-  readonly sessionId: string;
-  readonly summary?: string;
-  readonly supersedes: readonly (string)[];
-  readonly timeRef?: string;
-  readonly title: string;
-  readonly visibility: "PUBLIC" | "WORLD" | "RESTRICTED";
-  readonly worldId: string;
-}
-export interface WorldHistoryListDto {
-  readonly items: readonly (WorldHistoryEventDto)[];
-  readonly version: string;
-  readonly worldId: string;
-}
-export interface WorldHistoryRelatedStateRefDto {
-  readonly recordId: string;
-  readonly scope: "WORLD" | "ENTITY" | "RELATION";
-  readonly scopeKey: string;
-  readonly version?: string;
-}
-export interface WorldLandingDecisionDto {
-  readonly reason?: string;
-  readonly target: "NO_ACCESS" | "CREATE" | "MAINTAIN";
-  readonly worldId?: string;
-}
-export interface WorldLanguageDto {
-  readonly category?: string;
-  readonly description?: string;
-  readonly id: string;
-  readonly isCommon?: boolean;
-  readonly name: string;
-  readonly realWorldBasis?: string;
-  readonly spokenSample?: string;
-  readonly usedBy?: readonly (string)[];
-  readonly writingSample?: string;
-}
-export interface WorldLevelAuditEventDto {
-  readonly a?: number;
-  readonly actor: string;
-  readonly c?: number;
-  readonly e?: number;
-  readonly eventType: "WORLD_LEVEL_RECALCULATED" | "WORLD_LEVEL_EMERGENCY_DOWNGRADED" | "NATIVE_CREATION_FROZEN" | "NATIVE_CREATION_UNFROZEN";
-  readonly evidenceRef?: string;
-  readonly ewmaScore?: number;
-  readonly freezeReason?: "QUOTA_OVERFLOW" | "WORLD_INACTIVE" | "GOVERNANCE_LOCK";
-  readonly id: string;
-  readonly meta?: Record<string, unknown> | null;
-  readonly nativeCount?: number;
-  readonly nativeLimit?: number;
-  readonly nextLevel?: number;
-  readonly nextScore?: number;
-  readonly occurredAt: string;
-  readonly prevLevel?: number;
-  readonly prevScore?: number;
-  readonly q?: number;
-  readonly reasonCode?: string;
-  readonly seq: number;
-  readonly worldId: string;
-}
-export interface WorldLorebookDetailDto {
-  readonly constant: boolean;
-  readonly content: string;
-  readonly createdAt?: string;
-  readonly enabled: boolean;
-  readonly id: string;
-  readonly key: string;
-  readonly keywords?: readonly (string)[];
-  readonly name?: string;
-  readonly priority?: number;
-  readonly provenance?: Record<string, unknown>;
-  readonly updatedAt?: string;
-  readonly validFrom: string;
-  readonly validTo?: string;
-  readonly value: Record<string, unknown>;
-  readonly worldId: string;
-}
-export interface WorldLorebookListDto {
-  readonly items: readonly (WorldLorebookDetailDto)[];
-  readonly worldId: string;
-}
-export interface WorldRecommendedAgentDto {
-  readonly avatarUrl?: string;
-  readonly display?: AgentDisplayDto;
-  readonly handle?: string;
-  readonly id: string;
-  readonly importance: "PRIMARY" | "SECONDARY" | "BACKGROUND";
-  readonly name: string;
-}
-export interface WorldRuleDto {
-  readonly category: "CONSTRAINT" | "MECHANISM" | "DEFINITION" | "RELATION" | "POLICY";
-  readonly conflictsWith: readonly (string)[];
-  readonly createdAt: string;
-  readonly createdBy: string;
-  readonly dependsOn: readonly (string)[];
-  readonly domain: "AXIOM" | "PHYSICS" | "SOCIETY" | "ECONOMY" | "CHARACTER" | "NARRATIVE" | "META";
-  readonly hardness: "HARD" | "FIRM" | "SOFT" | "AESTHETIC";
-  readonly id: string;
-  readonly lineageId: string;
-  readonly overrides?: string;
-  readonly priority: number;
-  readonly provenance: "SEED" | "CREATOR" | "MOJING_MERGED" | "RENDER_BACKFLOW" | "WORLD_STUDIO" | "SYSTEM";
-  readonly reasoning?: string;
-  readonly ruleKey: string;
-  readonly scope: "WORLD" | "REGION" | "FACTION" | "INDIVIDUAL" | "SCENE";
-  readonly sourceRef?: string;
-  readonly statement: string;
-  readonly status: "ACTIVE" | "DEPRECATED" | "SUPERSEDED" | "PROPOSED" | "ARCHIVED";
-  readonly structured?: Record<string, unknown>;
-  readonly title: string;
   readonly updatedAt: string;
-  readonly updatedBy: string;
-  readonly validFrom?: string;
-  readonly validUntil?: string;
-  readonly version: number;
   readonly worldId: string;
 }
-export interface WorldRuleItemDto {
-  readonly key: string;
-  readonly title: string;
-  readonly value: string;
-}
-export interface WorldStateDto {
-  readonly items: readonly (WorldStateRecordDto)[];
-  readonly version: string;
-  readonly worldId: string;
-}
-export interface WorldStateRecordDto {
-  readonly actorRefs: readonly (MutationActorRefDto)[];
-  readonly appId: string;
-  readonly commitId: string;
-  readonly committedAt: string;
-  readonly createdBy: string;
-  readonly effectClass: "STATE_ONLY";
-  readonly evidenceRefs?: readonly (MutationEvidenceRefDto)[] | null;
+export interface WorldCoreDto {
+  readonly contentHash: string;
+  readonly contentRevision: number;
+  readonly core: Record<string, unknown>;
+  readonly createdAt: string;
+  readonly creatorId?: string | null;
   readonly id: string;
-  readonly metadata?: Record<string, unknown> | null;
-  readonly payload: Record<string, unknown>;
-  readonly schemaId: string;
+  readonly origin: RealmCoreOriginDto;
   readonly schemaVersion: string;
-  readonly scope: "WORLD" | "ENTITY" | "RELATION";
-  readonly scopeKey: string;
-  readonly sessionId: string;
-  readonly targetPath: string;
-  readonly version: string;
-  readonly worldId: string;
-}
-export interface WorldStateWriteDto {
-  readonly metadata?: Record<string, unknown>;
-  readonly payload: Record<string, unknown>;
-  readonly scope: "WORLD" | "ENTITY" | "RELATION";
-  readonly scopeKey: string;
-  readonly targetPath?: string;
-}
-export interface WorldSummaryDto {
-  readonly description?: string;
-  readonly id: string;
-  readonly name: string;
-  readonly status: "DRAFT" | "PENDING_REVIEW" | "ACTIVE" | "SUSPENDED" | "ARCHIVED";
   readonly updatedAt: string;
-}
-export interface WorldSummaryListDto {
-  readonly items: readonly (WorldSummaryDto)[];
-}
-export interface WorldTimeFormatDto {
-  readonly datePattern: string;
-  readonly eraName?: string;
-  readonly monthNames?: readonly (string)[];
-  readonly timePattern: string;
-  readonly weekdayNames?: readonly (string)[];
-}
-export interface WorldTruthDto {
-  readonly rules: readonly (WorldRuleDto)[];
-}
-export interface WorldviewDetailDto {
-  readonly causality: CausalityModelDto;
-  readonly coreSystem: PowerSystemDto;
-  readonly createdAt: string;
-  readonly existences?: ExistenceDefinitionDto;
-  readonly glossary?: WorldviewGlossaryDto;
-  readonly id: string;
-  readonly languages?: WorldviewLanguagesDto;
-  readonly lifecycle: "ACTIVE" | "MAINTENANCE" | "FROZEN" | "ARCHIVED";
-  readonly locations?: WorldviewLocationsDto;
-  readonly resources?: ResourceDefinitionDto;
-  readonly spaceTopology: SpaceTopologyDto;
-  readonly structures?: Record<string, unknown>;
-  readonly timeModel: TimeModelDto;
-  readonly truthRules?: readonly (WorldviewTruthRuleSummaryDto)[];
-  readonly updatedAt: string;
-  readonly version: number;
-  readonly visualGuide?: VisualGuideDto;
-  readonly worldId: string;
-}
-export interface WorldviewGlossaryDto {
-  readonly terms: readonly (GlossaryTermDto)[];
-}
-export interface WorldviewLanguagesDto {
-  readonly languages: readonly (WorldLanguageDto)[];
-}
-export interface WorldviewLocationsDto {
-  readonly landmarks?: readonly (LocationLandmarkDto)[];
-  readonly regions?: readonly (LocationRegionDto)[];
-}
-export interface WorldviewTruthRuleSummaryDto {
-  readonly category: "CONSTRAINT" | "MECHANISM" | "DEFINITION" | "RELATION" | "POLICY";
-  readonly conflictsWith: readonly (string)[];
-  readonly dependsOn: readonly (string)[];
-  readonly domain: "AXIOM" | "PHYSICS" | "SOCIETY" | "ECONOMY" | "CHARACTER" | "NARRATIVE" | "META";
-  readonly hardness: "HARD" | "FIRM" | "SOFT" | "AESTHETIC";
-  readonly id: string;
-  readonly lineageId: string;
-  readonly overrides?: string;
-  readonly priority: number;
-  readonly provenance: "SEED" | "CREATOR" | "MOJING_MERGED" | "RENDER_BACKFLOW" | "WORLD_STUDIO" | "SYSTEM";
-  readonly reasoning?: string;
-  readonly ruleKey: string;
-  readonly scope: "WORLD" | "REGION" | "FACTION" | "INDIVIDUAL" | "SCENE";
-  readonly sourceRef?: string;
-  readonly statement: string;
-  readonly status: "ACTIVE" | "DEPRECATED" | "SUPERSEDED" | "PROPOSED" | "ARCHIVED";
-  readonly structured?: Record<string, unknown>;
-  readonly title: string;
-  readonly validFrom?: string;
-  readonly validUntil?: string;
-  readonly version: number;
+  readonly visibility: "private" | "unlisted" | "public" | "system";
 }
 
-export const AccountGrantProjectionStateValues = [
+export const AccountGrantViewStateValues = [
   "pending",
   "granted",
   "denied",
   "expired",
   "revoked",
   "superseded",
-] as const satisfies readonly AccountGrantProjectionState[];
+] as const satisfies readonly AccountGrantViewState[];
 
-export const AccountGrantProjectionStateValue = {
+export const AccountGrantViewStateValue = {
   PENDING: "pending",
   GRANTED: "granted",
   DENIED: "denied",
   EXPIRED: "expired",
   REVOKED: "revoked",
   SUPERSEDED: "superseded",
-} as const satisfies Record<string, AccountGrantProjectionState>;
+} as const satisfies Record<string, AccountGrantViewState>;
 
-export const AccountRoleValues = [
-  "USER",
-  "AGENT",
-  "SERVICE_ACC",
-  "SYSTEM_BOT",
-  "ADMIN",
-] as const satisfies readonly AccountRole[];
+export const AccountRelationTypeValues = [
+  "ALLY",
+  "RIVAL",
+  "ENEMY",
+] as const satisfies readonly AccountRelationType[];
 
-export const AccountRoleValue = {
-  USER: "USER",
-  AGENT: "AGENT",
-  SERVICE_ACC: "SERVICE_ACC",
-  SYSTEM_BOT: "SYSTEM_BOT",
-  ADMIN: "ADMIN",
-} as const satisfies Record<string, AccountRole>;
+export const AccountRelationTypeValue = {
+  ALLY: "ALLY",
+  RIVAL: "RIVAL",
+  ENEMY: "ENEMY",
+} as const satisfies Record<string, AccountRelationType>;
 
 export const AccountStatusValues = [
   "ONBOARDING",
@@ -3690,108 +1613,6 @@ export const AccountStatusValue = {
   SUSPENDED: "SUSPENDED",
   BANNED: "BANNED",
 } as const satisfies Record<string, AccountStatus>;
-
-export const AgentCategoryValues = [
-  "GENERAL",
-  "COMPANION",
-  "ASSISTANT",
-  "GAME",
-  "CRYPTO",
-  "NSFW_AGENT",
-] as const satisfies readonly AgentCategory[];
-
-export const AgentCategoryValue = {
-  GENERAL: "GENERAL",
-  COMPANION: "COMPANION",
-  ASSISTANT: "ASSISTANT",
-  GAME: "GAME",
-  CRYPTO: "CRYPTO",
-  NSFW_AGENT: "NSFW_AGENT",
-} as const satisfies Record<string, AgentCategory>;
-
-export const AgentImportanceValues = [
-  "PRIMARY",
-  "SECONDARY",
-  "BACKGROUND",
-] as const satisfies readonly AgentImportance[];
-
-export const AgentImportanceValue = {
-  PRIMARY: "PRIMARY",
-  SECONDARY: "SECONDARY",
-  BACKGROUND: "BACKGROUND",
-} as const satisfies Record<string, AgentImportance>;
-
-export const AgentOriginValues = [
-  "COMMUNITY",
-  "NAF",
-  "PARTNER",
-  "SYSTEM",
-] as const satisfies readonly AgentOrigin[];
-
-export const AgentOriginValue = {
-  COMMUNITY: "COMMUNITY",
-  NAF: "NAF",
-  PARTNER: "PARTNER",
-  SYSTEM: "SYSTEM",
-} as const satisfies Record<string, AgentOrigin>;
-
-export const AgentOwnershipTypeValues = [
-  "MASTER_OWNED",
-  "WORLD_OWNED",
-] as const satisfies readonly AgentOwnershipType[];
-
-export const AgentOwnershipTypeValue = {
-  MASTER_OWNED: "MASTER_OWNED",
-  WORLD_OWNED: "WORLD_OWNED",
-} as const satisfies Record<string, AgentOwnershipType>;
-
-export const AgentRelationTypeValues = [
-  "ALLY",
-  "RIVAL",
-  "ENEMY",
-] as const satisfies readonly AgentRelationType[];
-
-export const AgentRelationTypeValue = {
-  ALLY: "ALLY",
-  RIVAL: "RIVAL",
-  ENEMY: "ENEMY",
-} as const satisfies Record<string, AgentRelationType>;
-
-export const AgentStateValues = [
-  "INCUBATING",
-  "READY",
-  "ACTIVE",
-  "SUSPENDED",
-  "FAILED",
-] as const satisfies readonly AgentState[];
-
-export const AgentStateValue = {
-  INCUBATING: "INCUBATING",
-  READY: "READY",
-  ACTIVE: "ACTIVE",
-  SUSPENDED: "SUSPENDED",
-  FAILED: "FAILED",
-} as const satisfies Record<string, AgentState>;
-
-export const AgentWakeStrategyValues = [
-  "PASSIVE",
-  "PROACTIVE",
-] as const satisfies readonly AgentWakeStrategy[];
-
-export const AgentWakeStrategyValue = {
-  PASSIVE: "PASSIVE",
-  PROACTIVE: "PROACTIVE",
-} as const satisfies Record<string, AgentWakeStrategy>;
-
-export const ApiKeyTypeValues = [
-  "PERSONAL",
-  "ENTERPRISE",
-] as const satisfies readonly ApiKeyType[];
-
-export const ApiKeyTypeValue = {
-  PERSONAL: "PERSONAL",
-  ENTERPRISE: "ENTERPRISE",
-} as const satisfies Record<string, ApiKeyType>;
 
 export const AppPermissionGrantStateValues = [
   "PENDING",
@@ -3814,7 +1635,7 @@ export const AppPermissionGrantStateValue = {
 export const AppPermissionScopeFamilyValues = [
   "account",
   "data",
-  "agent",
+  "realm_source",
   "ai_spend",
   "memory",
   "knowledge",
@@ -3827,7 +1648,7 @@ export const AppPermissionScopeFamilyValues = [
 export const AppPermissionScopeFamilyValue = {
   ACCOUNT: "account",
   DATA: "data",
-  AGENT: "agent",
+  REALM_SOURCE: "realm_source",
   AI_SPEND: "ai_spend",
   MEMORY: "memory",
   KNOWLEDGE: "knowledge",
@@ -3842,8 +1663,8 @@ export const AppPermissionScopeNameValues = [
   "account.session.read",
   "data.scope.read",
   "data.scope.write",
-  "agent.identity.project",
-  "agent.identity.bind",
+  "realm_source.snapshot.consume",
+  "realm_source.snapshot.bind",
   "ai.spend.meter",
   "ai.spend.delegate",
   "memory.read.bounded",
@@ -3864,8 +1685,8 @@ export const AppPermissionScopeNameValue = {
   ACCOUNT_SESSION_READ: "account.session.read",
   DATA_SCOPE_READ: "data.scope.read",
   DATA_SCOPE_WRITE: "data.scope.write",
-  AGENT_IDENTITY_PROJECT: "agent.identity.project",
-  AGENT_IDENTITY_BIND: "agent.identity.bind",
+  REALM_SOURCE_SNAPSHOT_CONSUME: "realm_source.snapshot.consume",
+  REALM_SOURCE_SNAPSHOT_BIND: "realm_source.snapshot.bind",
   AI_SPEND_METER: "ai.spend.meter",
   AI_SPEND_DELEGATE: "ai.spend.delegate",
   MEMORY_READ_BOUNDED: "memory.read.bounded",
@@ -3925,36 +1746,6 @@ export const ContentRatingStringValue = {
   EXPLICIT: "EXPLICIT",
 } as const satisfies Record<string, ContentRatingString>;
 
-export const DnaSecondaryTraitValues = [
-  "HUMOROUS",
-  "SARCASTIC",
-  "GENTLE",
-  "DIRECT",
-  "OPTIMISTIC",
-  "REALISTIC",
-  "DRAMATIC",
-  "PASSIONATE",
-  "REBELLIOUS",
-  "INNOCENT",
-  "WISE",
-  "ECCENTRIC",
-] as const satisfies readonly DnaSecondaryTrait[];
-
-export const DnaSecondaryTraitValue = {
-  HUMOROUS: "HUMOROUS",
-  SARCASTIC: "SARCASTIC",
-  GENTLE: "GENTLE",
-  DIRECT: "DIRECT",
-  OPTIMISTIC: "OPTIMISTIC",
-  REALISTIC: "REALISTIC",
-  DRAMATIC: "DRAMATIC",
-  PASSIONATE: "PASSIONATE",
-  REBELLIOUS: "REBELLIOUS",
-  INNOCENT: "INNOCENT",
-  WISE: "WISE",
-  ECCENTRIC: "ECCENTRIC",
-} as const satisfies Record<string, DnaSecondaryTrait>;
-
 export const GenderValues = [
   "MALE",
   "FEMALE",
@@ -3984,50 +1775,6 @@ export const GiftStatusValue = {
   EXPIRED: "EXPIRED",
   REFUNDED: "REFUNDED",
 } as const satisfies Record<string, GiftStatus>;
-
-export const LocalAgentProvisionIntentAckOutcomeValues = [
-  "established",
-  "substrate_failure",
-] as const satisfies readonly LocalAgentProvisionIntentAckOutcome[];
-
-export const LocalAgentProvisionIntentAckOutcomeValue = {
-  ESTABLISHED: "established",
-  SUBSTRATE_FAILURE: "substrate_failure",
-} as const satisfies Record<string, LocalAgentProvisionIntentAckOutcome>;
-
-export const LocalAgentProvisionIntentStatusValues = [
-  "OPEN",
-  "ACKED",
-  "FAILED",
-] as const satisfies readonly LocalAgentProvisionIntentStatus[];
-
-export const LocalAgentProvisionIntentStatusValue = {
-  OPEN: "OPEN",
-  ACKED: "ACKED",
-  FAILED: "FAILED",
-} as const satisfies Record<string, LocalAgentProvisionIntentStatus>;
-
-export const LocalAgentTerminationIntentAckOutcomeValues = [
-  "terminated",
-  "substrate_failure",
-] as const satisfies readonly LocalAgentTerminationIntentAckOutcome[];
-
-export const LocalAgentTerminationIntentAckOutcomeValue = {
-  TERMINATED: "terminated",
-  SUBSTRATE_FAILURE: "substrate_failure",
-} as const satisfies Record<string, LocalAgentTerminationIntentAckOutcome>;
-
-export const LocalAgentTerminationIntentStatusValues = [
-  "OPEN",
-  "ACKED",
-  "FAILED",
-] as const satisfies readonly LocalAgentTerminationIntentStatus[];
-
-export const LocalAgentTerminationIntentStatusValue = {
-  OPEN: "OPEN",
-  ACKED: "ACKED",
-  FAILED: "FAILED",
-} as const satisfies Record<string, LocalAgentTerminationIntentStatus>;
 
 export const MessageTypeValues = [
   "TEXT",
@@ -4091,6 +1838,20 @@ export const PresenceStatusValue = {
   INVISIBLE: "invisible",
 } as const satisfies Record<string, PresenceStatus>;
 
+export const PublicAccountRoleValues = [
+  "USER",
+  "SERVICE_ACC",
+  "SYSTEM_BOT",
+  "ADMIN",
+] as const satisfies readonly PublicAccountRole[];
+
+export const PublicAccountRoleValue = {
+  USER: "USER",
+  SERVICE_ACC: "SERVICE_ACC",
+  SYSTEM_BOT: "SYSTEM_BOT",
+  ADMIN: "ADMIN",
+} as const satisfies Record<string, PublicAccountRole>;
+
 export const ReportReasonValues = [
   "SPAM",
   "NSFW",
@@ -4145,18 +1906,6 @@ export const SubscriptionTierValue = {
   MAX: "MAX",
 } as const satisfies Record<string, SubscriptionTier>;
 
-export const VerificationTierValues = [
-  "COMMUNITY",
-  "VERIFIED",
-  "OFFICIAL",
-] as const satisfies readonly VerificationTier[];
-
-export const VerificationTierValue = {
-  COMMUNITY: "COMMUNITY",
-  VERIFIED: "VERIFIED",
-  OFFICIAL: "OFFICIAL",
-} as const satisfies Record<string, VerificationTier>;
-
 export const VisibilityValues = [
   "PUBLIC",
   "FRIENDS",
@@ -4186,66 +1935,13 @@ export const WithdrawalStatusValue = {
 } as const satisfies Record<string, WithdrawalStatus>;
 
 export interface RealmTypedModelMap {
-  readonly "AbilityDefinitionDto": AbilityDefinitionDto;
-  readonly "AccountGrantProjectionRowDto": AccountGrantProjectionRowDto;
-  readonly "AccountGrantProjectionState": AccountGrantProjectionState;
-  readonly "AccountGrantsProjectionDto": AccountGrantsProjectionDto;
-  readonly "AccountRole": AccountRole;
+  readonly "AccountGrantViewRowDto": AccountGrantViewRowDto;
+  readonly "AccountGrantViewState": AccountGrantViewState;
+  readonly "AccountGrantsViewDto": AccountGrantsViewDto;
+  readonly "AccountRelationType": AccountRelationType;
   readonly "AccountStatus": AccountStatus;
   readonly "AddFriendBodyDto": AddFriendBodyDto;
-  readonly "AddGroupAgentInputDto": AddGroupAgentInputDto;
   readonly "AddGroupParticipantInputDto": AddGroupParticipantInputDto;
-  readonly "AgentAppearanceDto": AgentAppearanceDto;
-  readonly "AgentAuthoringBehaviorCandidatePayloadDto": AgentAuthoringBehaviorCandidatePayloadDto;
-  readonly "AgentAuthoringDialogueCandidatePayloadDto": AgentAuthoringDialogueCandidatePayloadDto;
-  readonly "AgentAuthoringDraftBatchDto": AgentAuthoringDraftBatchDto;
-  readonly "AgentAuthoringDraftBatchListDto": AgentAuthoringDraftBatchListDto;
-  readonly "AgentAuthoringDraftBatchMetadataDto": AgentAuthoringDraftBatchMetadataDto;
-  readonly "AgentAuthoringDraftCandidateDto": AgentAuthoringDraftCandidateDto;
-  readonly "AgentAuthoringDraftCandidateValueDto": AgentAuthoringDraftCandidateValueDto;
-  readonly "AgentAuthoringFinalMediaStateDto": AgentAuthoringFinalMediaStateDto;
-  readonly "AgentAuthoringFinalStateDto": AgentAuthoringFinalStateDto;
-  readonly "AgentAuthoringFinalVoiceStateDto": AgentAuthoringFinalVoiceStateDto;
-  readonly "AgentAuthoringGenerationContextDto": AgentAuthoringGenerationContextDto;
-  readonly "AgentAuthoringMediaCandidatePayloadDto": AgentAuthoringMediaCandidatePayloadDto;
-  readonly "AgentAuthoringMediaModerationDto": AgentAuthoringMediaModerationDto;
-  readonly "AgentAuthoringRuntimeTraceDto": AgentAuthoringRuntimeTraceDto;
-  readonly "AgentAuthoringSourceRefDto": AgentAuthoringSourceRefDto;
-  readonly "AgentAuthoringTargetStatusDto": AgentAuthoringTargetStatusDto;
-  readonly "AgentAuthoringValueProvenanceSegmentDto": AgentAuthoringValueProvenanceSegmentDto;
-  readonly "AgentAuthoringVoiceCandidatePayloadDto": AgentAuthoringVoiceCandidatePayloadDto;
-  readonly "AgentBiologicalDto": AgentBiologicalDto;
-  readonly "AgentCapabilitiesDto": AgentCapabilitiesDto;
-  readonly "AgentCategory": AgentCategory;
-  readonly "AgentCommunicationDto": AgentCommunicationDto;
-  readonly "AgentDisplayDto": AgentDisplayDto;
-  readonly "AgentDnaDto": AgentDnaDto;
-  readonly "AgentFriendLimitDto": AgentFriendLimitDto;
-  readonly "AgentHandleAvailabilityResponseDto": AgentHandleAvailabilityResponseDto;
-  readonly "AgentIdentityDto": AgentIdentityDto;
-  readonly "AgentImportance": AgentImportance;
-  readonly "AgentMetadataDto": AgentMetadataDto;
-  readonly "AgentOrigin": AgentOrigin;
-  readonly "AgentOriginDto": AgentOriginDto;
-  readonly "AgentOwnershipType": AgentOwnershipType;
-  readonly "AgentPersonalityDto": AgentPersonalityDto;
-  readonly "AgentProfileDto": AgentProfileDto;
-  readonly "AgentRelationType": AgentRelationType;
-  readonly "AgentRelationshipOtherAccountDto": AgentRelationshipOtherAccountDto;
-  readonly "AgentRelationshipRecordDto": AgentRelationshipRecordDto;
-  readonly "AgentResponseMetadataDto": AgentResponseMetadataDto;
-  readonly "AgentResponseProfileDto": AgentResponseProfileDto;
-  readonly "AgentResponseProfileStatsDto": AgentResponseProfileStatsDto;
-  readonly "AgentResponseTierSummaryDto": AgentResponseTierSummaryDto;
-  readonly "AgentResponseUserDto": AgentResponseUserDto;
-  readonly "AgentRuleDto": AgentRuleDto;
-  readonly "AgentRuleLayerCountDto": AgentRuleLayerCountDto;
-  readonly "AgentState": AgentState;
-  readonly "AgentStatsDto": AgentStatsDto;
-  readonly "AgentVisibilitySettingsDto": AgentVisibilitySettingsDto;
-  readonly "AgentVoiceConfigDto": AgentVoiceConfigDto;
-  readonly "AgentWakeStrategy": AgentWakeStrategy;
-  readonly "ApiKeyType": ApiKeyType;
   readonly "AppPermissionGrantDecisionDto": AppPermissionGrantDecisionDto;
   readonly "AppPermissionGrantDto": AppPermissionGrantDto;
   readonly "AppPermissionGrantGrantDto": AppPermissionGrantGrantDto;
@@ -4256,8 +1952,6 @@ export interface RealmTypedModelMap {
   readonly "AppPermissionGrantSupersedeDto": AppPermissionGrantSupersedeDto;
   readonly "AppPermissionScopeFamily": AppPermissionScopeFamily;
   readonly "AppPermissionScopeName": AppPermissionScopeName;
-  readonly "AppendWorldHistoryDto": AppendWorldHistoryDto;
-  readonly "ApplyAgentAuthoringDraftBatchResponseDto": ApplyAgentAuthoringDraftBatchResponseDto;
   readonly "AssetDetailDto": AssetDetailDto;
   readonly "AssetListDto": AssetListDto;
   readonly "AttachmentDisplayKind": AttachmentDisplayKind;
@@ -4266,32 +1960,17 @@ export interface RealmTypedModelMap {
   readonly "AttachmentTargetType": AttachmentTargetType;
   readonly "Auth2faVerifyDto": Auth2faVerifyDto;
   readonly "AuthTokensDto": AuthTokensDto;
-  readonly "AuthUserAgentMetadataDto": AuthUserAgentMetadataDto;
-  readonly "AuthUserAgentProfileDto": AuthUserAgentProfileDto;
-  readonly "AuthUserAgentStatsDto": AuthUserAgentStatsDto;
   readonly "AuthUserDto": AuthUserDto;
   readonly "AuthUserSocialProfileDto": AuthUserSocialProfileDto;
   readonly "AuthUserTierSummaryDto": AuthUserTierSummaryDto;
   readonly "AuthUserWalletDto": AuthUserWalletDto;
-  readonly "BatchCreateAgentCreatedDto": BatchCreateAgentCreatedDto;
-  readonly "BatchCreateAgentFailedDto": BatchCreateAgentFailedDto;
-  readonly "BatchCreateAgentsRequestDto": BatchCreateAgentsRequestDto;
-  readonly "BatchCreateAgentsResponseDto": BatchCreateAgentsResponseDto;
-  readonly "BatchUpsertBindingsDto": BatchUpsertBindingsDto;
   readonly "BindEmailDto": BindEmailDto;
-  readonly "BindingDetailDto": BindingDetailDto;
-  readonly "BindingListDto": BindingListDto;
-  readonly "BindingResourceDetailDto": BindingResourceDetailDto;
-  readonly "BindingUpsertDto": BindingUpsertDto;
   readonly "BlockUserBodyDto": BlockUserBodyDto;
+  readonly "BootstrapOasisWorldDto": BootstrapOasisWorldDto;
   readonly "BundleDetailDto": BundleDetailDto;
   readonly "BundleListDto": BundleListDto;
   readonly "BundleMemberDto": BundleMemberDto;
-  readonly "CalendarSystemDto": CalendarSystemDto;
-  readonly "CanManageNsfwResponseDto": CanManageNsfwResponseDto;
   readonly "CanWithdrawDto": CanWithdrawDto;
-  readonly "CausalityModelDto": CausalityModelDto;
-  readonly "CausalityRuleDto": CausalityRuleDto;
   readonly "ChangeEmailDto": ChangeEmailDto;
   readonly "ChatEventEnvelopeDto": ChatEventEnvelopeDto;
   readonly "ChatFriendRequestPayloadDto": ChatFriendRequestPayloadDto;
@@ -4305,20 +1984,10 @@ export interface RealmTypedModelMap {
   readonly "ChatViewDto": ChatViewDto;
   readonly "CheckEmailDto": CheckEmailDto;
   readonly "CheckEmailResponseDto": CheckEmailResponseDto;
-  readonly "ClassDefinitionDto": ClassDefinitionDto;
   readonly "CloneAssetDto": CloneAssetDto;
-  readonly "CommitRealmGroupMessageCandidateInputDto": CommitRealmGroupMessageCandidateInputDto;
-  readonly "CommitWorldStateDto": CommitWorldStateDto;
   readonly "ConnectDashboardLinkDto": ConnectDashboardLinkDto;
   readonly "ConnectOnboardingResponseDto": ConnectOnboardingResponseDto;
   readonly "ContentRatingString": ContentRatingString;
-  readonly "CreateAgentAuthoringDraftBatchDto": CreateAgentAuthoringDraftBatchDto;
-  readonly "CreateAgentAuthoringDraftCandidateDto": CreateAgentAuthoringDraftCandidateDto;
-  readonly "CreateAgentDto": CreateAgentDto;
-  readonly "CreateAgentResponseDto": CreateAgentResponseDto;
-  readonly "CreateAgentRuleDto": CreateAgentRuleDto;
-  readonly "CreateAgentRulesDto": CreateAgentRulesDto;
-  readonly "CreateApiKeyDto": CreateApiKeyDto;
   readonly "CreateAssetDto": CreateAssetDto;
   readonly "CreateAudioDirectUploadDto": CreateAudioDirectUploadDto;
   readonly "CreateBundleDto": CreateBundleDto;
@@ -4327,73 +1996,30 @@ export interface RealmTypedModelMap {
   readonly "CreatePortalSessionDto": CreatePortalSessionDto;
   readonly "CreatePostAttachmentDto": CreatePostAttachmentDto;
   readonly "CreatePostDto": CreatePostDto;
+  readonly "CreateRealmPersonaDto": CreateRealmPersonaDto;
   readonly "CreateRelationshipDto": CreateRelationshipDto;
   readonly "CreateReportDto": CreateReportDto;
   readonly "CreateReviewDto": CreateReviewDto;
+  readonly "CreateRuntimeSourceSnapshotDto": CreateRuntimeSourceSnapshotDto;
   readonly "CreateSparkCheckoutDto": CreateSparkCheckoutDto;
   readonly "CreateSubscriptionCheckoutDto": CreateSubscriptionCheckoutDto;
   readonly "CreateTextResourceDto": CreateTextResourceDto;
   readonly "CreateWithdrawalDto": CreateWithdrawalDto;
-  readonly "CreateWorldDraftDto": CreateWorldDraftDto;
-  readonly "CreateWorldRuleDto": CreateWorldRuleDto;
-  readonly "CreateWorldTransitDto": CreateWorldTransitDto;
-  readonly "CreatorAgentResponseDto": CreatorAgentResponseDto;
-  readonly "CreatorCapabilitiesResponseDto": CreatorCapabilitiesResponseDto;
+  readonly "CreateWorldCharacterCoreDto": CreateWorldCharacterCoreDto;
+  readonly "CreateWorldCoreDto": CreateWorldCoreDto;
   readonly "CreatorEligibilityResponseDto": CreatorEligibilityResponseDto;
-  readonly "CreatorWorldAgentChatReadinessDto": CreatorWorldAgentChatReadinessDto;
-  readonly "CreatorWorldAgentChatReadinessGatesDto": CreatorWorldAgentChatReadinessGatesDto;
-  readonly "CreatorWorldAgentChatReadinessProfileDto": CreatorWorldAgentChatReadinessProfileDto;
-  readonly "CreatorWorldAgentCompletionBriefDto": CreatorWorldAgentCompletionBriefDto;
-  readonly "CreatorWorldAgentRuntimeReadinessDto": CreatorWorldAgentRuntimeReadinessDto;
-  readonly "CreatorWorldAgentSkeletonFactsDto": CreatorWorldAgentSkeletonFactsDto;
-  readonly "CreatorWorldAgentSkeletonOfficeFactDto": CreatorWorldAgentSkeletonOfficeFactDto;
-  readonly "CreatorWorldAgentSkeletonRelationshipDto": CreatorWorldAgentSkeletonRelationshipDto;
-  readonly "CreatorWorldAgentSourceSkeletonDto": CreatorWorldAgentSourceSkeletonDto;
-  readonly "CreatorWorldSummaryDto": CreatorWorldSummaryDto;
-  readonly "CreatorWorldSummaryListDto": CreatorWorldSummaryListDto;
   readonly "CurrencyBalancesDto": CurrencyBalancesDto;
   readonly "CurrencyTransactionDto": CurrencyTransactionDto;
   readonly "CurrencyTransactionHistoryDto": CurrencyTransactionHistoryDto;
   readonly "CursorPageMetaDto": CursorPageMetaDto;
-  readonly "DeleteAgentOperationResponseDto": DeleteAgentOperationResponseDto;
   readonly "DeleteRelationshipResponseDto": DeleteRelationshipResponseDto;
-  readonly "DnaSecondaryTrait": DnaSecondaryTrait;
   readonly "EditMessageInputDto": EditMessageInputDto;
   readonly "EmailOtpRequestDto": EmailOtpRequestDto;
   readonly "EmailOtpResponseDto": EmailOtpResponseDto;
   readonly "EmailOtpVerifyDto": EmailOtpVerifyDto;
-  readonly "ExistenceDefinitionDto": ExistenceDefinitionDto;
-  readonly "FactionDefinitionDto": FactionDefinitionDto;
-  readonly "FactionRelationshipDto": FactionRelationshipDto;
   readonly "FeedPageMetaDto": FeedPageMetaDto;
   readonly "FeedResponseDto": FeedResponseDto;
   readonly "FinalizeResourceDto": FinalizeResourceDto;
-  readonly "ForgeAgentCandidateCapabilityCellDto": ForgeAgentCandidateCapabilityCellDto;
-  readonly "ForgeAgentCandidateDto": ForgeAgentCandidateDto;
-  readonly "ForgeAgentCandidateQueryFiltersDto": ForgeAgentCandidateQueryFiltersDto;
-  readonly "ForgeAgentCandidateQueryResultDto": ForgeAgentCandidateQueryResultDto;
-  readonly "ForgeAgentCandidateRequirementDto": ForgeAgentCandidateRequirementDto;
-  readonly "ForgeAgentCandidateRuntimeMaterializationDto": ForgeAgentCandidateRuntimeMaterializationDto;
-  readonly "ForgeAgentCandidateSourceProfileDto": ForgeAgentCandidateSourceProfileDto;
-  readonly "ForgeProductArtifactRefDto": ForgeProductArtifactRefDto;
-  readonly "ForgeProductCapabilitySummaryDto": ForgeProductCapabilitySummaryDto;
-  readonly "ForgeProductCountsDto": ForgeProductCountsDto;
-  readonly "ForgeProductEvalScorecardDto": ForgeProductEvalScorecardDto;
-  readonly "ForgeProductOptionalArtifactQualityDto": ForgeProductOptionalArtifactQualityDto;
-  readonly "ForgeProductQualityDto": ForgeProductQualityDto;
-  readonly "ForgeProductShardIndexDto": ForgeProductShardIndexDto;
-  readonly "ForgeProductShardIndexItemDto": ForgeProductShardIndexItemDto;
-  readonly "ForgeProductShardIntegrityItemDto": ForgeProductShardIntegrityItemDto;
-  readonly "ForgeProductShardIntegrityReportDto": ForgeProductShardIntegrityReportDto;
-  readonly "ForgeProductShardManifestRefDto": ForgeProductShardManifestRefDto;
-  readonly "ForgeProductShardReadDto": ForgeProductShardReadDto;
-  readonly "ForgeProductSourceProfileDto": ForgeProductSourceProfileDto;
-  readonly "ForgeProductUpdateRunQualityDto": ForgeProductUpdateRunQualityDto;
-  readonly "ForgeProductValidationQualityDto": ForgeProductValidationQualityDto;
-  readonly "ForgeProductWorldRefDto": ForgeProductWorldRefDto;
-  readonly "ForgeWorldCatalogDto": ForgeWorldCatalogDto;
-  readonly "ForgeWorldCatalogQualitySummaryDto": ForgeWorldCatalogQualitySummaryDto;
-  readonly "ForgeWorldProductDto": ForgeWorldProductDto;
   readonly "FriendProfileDto": FriendProfileDto;
   readonly "FriendProfileListDto": FriendProfileListDto;
   readonly "Gender": Gender;
@@ -4401,7 +2027,6 @@ export interface RealmTypedModelMap {
   readonly "GiftStatus": GiftStatus;
   readonly "GiftTransactionDto": GiftTransactionDto;
   readonly "GiftTransactionRichDto": GiftTransactionRichDto;
-  readonly "GlossaryTermDto": GlossaryTermDto;
   readonly "GroupChatViewDto": GroupChatViewDto;
   readonly "GroupMessageAuthorDto": GroupMessageAuthorDto;
   readonly "GroupMessageViewDto": GroupMessageViewDto;
@@ -4417,19 +2042,6 @@ export interface RealmTypedModelMap {
   readonly "ListGroupChatsResultDto": ListGroupChatsResultDto;
   readonly "ListGroupMessagesResultDto": ListGroupMessagesResultDto;
   readonly "ListMessagesResultDto": ListMessagesResultDto;
-  readonly "LocalAgentProvisionIntentAckDto": LocalAgentProvisionIntentAckDto;
-  readonly "LocalAgentProvisionIntentAckOutcome": LocalAgentProvisionIntentAckOutcome;
-  readonly "LocalAgentProvisionIntentDto": LocalAgentProvisionIntentDto;
-  readonly "LocalAgentProvisionIntentListDto": LocalAgentProvisionIntentListDto;
-  readonly "LocalAgentProvisionIntentStatus": LocalAgentProvisionIntentStatus;
-  readonly "LocalAgentTerminationIntentAckDto": LocalAgentTerminationIntentAckDto;
-  readonly "LocalAgentTerminationIntentAckOutcome": LocalAgentTerminationIntentAckOutcome;
-  readonly "LocalAgentTerminationIntentDto": LocalAgentTerminationIntentDto;
-  readonly "LocalAgentTerminationIntentListDto": LocalAgentTerminationIntentListDto;
-  readonly "LocalAgentTerminationIntentStatus": LocalAgentTerminationIntentStatus;
-  readonly "LocationLandmarkDto": LocationLandmarkDto;
-  readonly "LocationRegionDto": LocationRegionDto;
-  readonly "MakeAgentPublicResponseDto": MakeAgentPublicResponseDto;
   readonly "MarkNotificationsReadInputDto": MarkNotificationsReadInputDto;
   readonly "Me2faOperationResultDto": Me2faOperationResultDto;
   readonly "Me2faPrepareResponseDto": Me2faPrepareResponseDto;
@@ -4438,13 +2050,7 @@ export interface RealmTypedModelMap {
   readonly "MessageType": MessageType;
   readonly "MessageViewDto": MessageViewDto;
   readonly "ModerationStatusString": ModerationStatusString;
-  readonly "MutationActorRefDto": MutationActorRefDto;
-  readonly "MutationCommitEnvelopeDto": MutationCommitEnvelopeDto;
-  readonly "MutationEvidenceRefDto": MutationEvidenceRefDto;
   readonly "NotificationActivityDto": NotificationActivityDto;
-  readonly "NotificationActorAgentMetadataDto": NotificationActorAgentMetadataDto;
-  readonly "NotificationActorAgentProfileDto": NotificationActorAgentProfileDto;
-  readonly "NotificationActorAgentStatsDto": NotificationActorAgentStatsDto;
   readonly "NotificationActorDto": NotificationActorDto;
   readonly "NotificationActorTierSummaryDto": NotificationActorTierSummaryDto;
   readonly "NotificationChannelsDto": NotificationChannelsDto;
@@ -4452,97 +2058,54 @@ export interface RealmTypedModelMap {
   readonly "NotificationGiftsDto": NotificationGiftsDto;
   readonly "NotificationListResultDto": NotificationListResultDto;
   readonly "NotificationTargetDto": NotificationTargetDto;
-  readonly "NsfwConsentResponseDto": NsfwConsentResponseDto;
-  readonly "NsfwConsentStatusResponseDto": NsfwConsentStatusResponseDto;
   readonly "OAuthLinkResponseDto": OAuthLinkResponseDto;
   readonly "OAuthLoginDto": OAuthLoginDto;
   readonly "OAuthLoginResultDto": OAuthLoginResultDto;
   readonly "OAuthProvider": OAuthProvider;
   readonly "OAuthTokenRequestDto": OAuthTokenRequestDto;
   readonly "OAuthTokenResponseDto": OAuthTokenResponseDto;
-  readonly "OwnerAgentBoundarySettingsDto": OwnerAgentBoundarySettingsDto;
-  readonly "OwnerAgentCommunicationSettingsDto": OwnerAgentCommunicationSettingsDto;
-  readonly "OwnerAgentIdentitySettingsDto": OwnerAgentIdentitySettingsDto;
-  readonly "OwnerAgentPersonalitySettingsDto": OwnerAgentPersonalitySettingsDto;
-  readonly "OwnerAgentPositioningSettingsDto": OwnerAgentPositioningSettingsDto;
-  readonly "OwnerAgentSettingsDto": OwnerAgentSettingsDto;
   readonly "PPSlotConfigDto": PPSlotConfigDto;
   readonly "PPSlotConfigResponseDto": PPSlotConfigResponseDto;
   readonly "PPSlotItemDto": PPSlotItemDto;
   readonly "PasswordLoginDto": PasswordLoginDto;
   readonly "PasswordRegisterDto": PasswordRegisterDto;
-  readonly "PermissionCheckResponseDto": PermissionCheckResponseDto;
   readonly "PortalSessionDto": PortalSessionDto;
   readonly "PostAttachmentDto": PostAttachmentDto;
   readonly "PostDto": PostDto;
-  readonly "PowerSystemDto": PowerSystemDto;
-  readonly "PowerSystemLevelDto": PowerSystemLevelDto;
-  readonly "PowerSystemTabooDto": PowerSystemTabooDto;
-  readonly "PowerTierDto": PowerTierDto;
   readonly "PresenceStatus": PresenceStatus;
-  readonly "PublicBindingDto": PublicBindingDto;
-  readonly "PublicBindingListDto": PublicBindingListDto;
-  readonly "PublicBindingResourceDto": PublicBindingResourceDto;
+  readonly "PublicAccountRole": PublicAccountRole;
   readonly "PublicFilterDto": PublicFilterDto;
-  readonly "PublicWorldHistoryEventDto": PublicWorldHistoryEventDto;
-  readonly "PublicWorldHistoryListDto": PublicWorldHistoryListDto;
-  readonly "PublicWorldLorebookDto": PublicWorldLorebookDto;
-  readonly "PublicWorldLorebookListDto": PublicWorldLorebookListDto;
-  readonly "PublicWorldSceneDto": PublicWorldSceneDto;
-  readonly "PublicWorldSceneListDto": PublicWorldSceneListDto;
-  readonly "PublishWorldDraftDto": PublishWorldDraftDto;
-  readonly "PublishWorldDraftResultDto": PublishWorldDraftResultDto;
-  readonly "RealmGroupMessageCandidateCommitResultDto": RealmGroupMessageCandidateCommitResultDto;
+  readonly "RealmCoreOriginDto": RealmCoreOriginDto;
+  readonly "RealmPersonaDto": RealmPersonaDto;
+  readonly "RealmSourceCapabilitiesDto": RealmSourceCapabilitiesDto;
   readonly "ReceivedGiftsResponseDto": ReceivedGiftsResponseDto;
   readonly "RefreshTokenDto": RefreshTokenDto;
   readonly "RejectGiftDto": RejectGiftDto;
   readonly "RelationshipResponseDto": RelationshipResponseDto;
-  readonly "RemoveAgentRelationshipDto": RemoveAgentRelationshipDto;
+  readonly "ReplaceRealmPersonaDto": ReplaceRealmPersonaDto;
+  readonly "ReplaceWorldCharacterCoreDto": ReplaceWorldCharacterCoreDto;
+  readonly "ReplaceWorldCoreDto": ReplaceWorldCoreDto;
   readonly "ReportReason": ReportReason;
   readonly "ReportResponseDto": ReportResponseDto;
   readonly "RequestAccountDeletionDto": RequestAccountDeletionDto;
   readonly "RequestDataExportDto": RequestDataExportDto;
-  readonly "ResourceAcquisitionRuleDto": ResourceAcquisitionRuleDto;
-  readonly "ResourceConsumptionRuleDto": ResourceConsumptionRuleDto;
-  readonly "ResourceCostDto": ResourceCostDto;
-  readonly "ResourceDefinitionDto": ResourceDefinitionDto;
   readonly "ResourceDetailDto": ResourceDetailDto;
   readonly "ResourceDirectUploadSessionDto": ResourceDirectUploadSessionDto;
   readonly "ResourceListDto": ResourceListDto;
-  readonly "ResourceTypeDto": ResourceTypeDto;
   readonly "RevenueDistributionPreviewDto": RevenueDistributionPreviewDto;
   readonly "RevenueShareConfigDto": RevenueShareConfigDto;
-  readonly "ReviewAgentAuthoringDraftCandidateDto": ReviewAgentAuthoringDraftCandidateDto;
   readonly "ReviewDto": ReviewDto;
   readonly "ReviewRating": ReviewRating;
   readonly "ReviewStatsDto": ReviewStatsDto;
-  readonly "RuleValidationResponseDto": RuleValidationResponseDto;
-  readonly "RuntimeProjectionContextEnvelopeDto": RuntimeProjectionContextEnvelopeDto;
-  readonly "RuntimeProjectionInputDto": RuntimeProjectionInputDto;
-  readonly "RuntimeProjectionPayloadDto": RuntimeProjectionPayloadDto;
-  readonly "RuntimeProjectionRequestDto": RuntimeProjectionRequestDto;
-  readonly "RuntimeProjectionResolutionOutcomeDto": RuntimeProjectionResolutionOutcomeDto;
-  readonly "RuntimeProjectionResponseDto": RuntimeProjectionResponseDto;
-  readonly "RuntimeProjectionSuppressedInputDto": RuntimeProjectionSuppressedInputDto;
-  readonly "RuntimeProjectionTraceDto": RuntimeProjectionTraceDto;
   readonly "RuntimeRealmGrantIssueRequestDto": RuntimeRealmGrantIssueRequestDto;
   readonly "RuntimeRealmGrantIssueResponseDto": RuntimeRealmGrantIssueResponseDto;
-  readonly "SceneConnectionDto": SceneConnectionDto;
-  readonly "SceneDefinitionDto": SceneDefinitionDto;
-  readonly "SceneTimeConfigDto": SceneTimeConfigDto;
-  readonly "SceneTimeCycleDto": SceneTimeCycleDto;
-  readonly "SceneTimePhaseDto": SceneTimePhaseDto;
-  readonly "SceneTimeSettingsDto": SceneTimeSettingsDto;
-  readonly "SelectAvatarDto": SelectAvatarDto;
+  readonly "RuntimeSourceSnapshotDto": RuntimeSourceSnapshotDto;
   readonly "SendGiftDto": SendGiftDto;
   readonly "SendMessageInputDto": SendMessageInputDto;
-  readonly "SetAgentRelationshipDto": SetAgentRelationshipDto;
   readonly "SocialProfileDto": SocialProfileDto;
-  readonly "SpaceRealmDto": SpaceRealmDto;
-  readonly "SpaceTopologyDto": SpaceTopologyDto;
+  readonly "SourceOriginDto": SourceOriginDto;
   readonly "SparkCheckoutSessionDto": SparkCheckoutSessionDto;
   readonly "SparkPackageDto": SparkPackageDto;
-  readonly "SpeciesDefinitionDto": SpeciesDefinitionDto;
   readonly "StartChatInputDto": StartChatInputDto;
   readonly "StartChatResultDto": StartChatResultDto;
   readonly "StripeConnectStatus": StripeConnectStatus;
@@ -4552,26 +2115,16 @@ export interface RealmTypedModelMap {
   readonly "SubscriptionTier": SubscriptionTier;
   readonly "SubscriptionTierConfigDto": SubscriptionTierConfigDto;
   readonly "TierDetailDto": TierDetailDto;
-  readonly "TimeCycleDto": TimeCycleDto;
-  readonly "TimeModelDto": TimeModelDto;
   readonly "TransitContextDto": TransitContextDto;
   readonly "TransitDetailDto": TransitDetailDto;
   readonly "TranslateRequestDto": TranslateRequestDto;
   readonly "TranslateResponseDto": TranslateResponseDto;
+  readonly "TypedSourceRefDto": TypedSourceRefDto;
   readonly "UnreadNotificationCountDto": UnreadNotificationCountDto;
-  readonly "UpdateAgentDnaDto": UpdateAgentDnaDto;
-  readonly "UpdateAgentNsfwConsentDto": UpdateAgentNsfwConsentDto;
-  readonly "UpdateAgentProfileMediaDto": UpdateAgentProfileMediaDto;
-  readonly "UpdateAgentRuleDto": UpdateAgentRuleDto;
-  readonly "UpdateAgentVisibilityDto": UpdateAgentVisibilityDto;
-  readonly "UpdateAgentVoiceDto": UpdateAgentVoiceDto;
   readonly "UpdateAssetDto": UpdateAssetDto;
   readonly "UpdateBundleDto": UpdateBundleDto;
-  readonly "UpdateCreatorAgentDto": UpdateCreatorAgentDto;
   readonly "UpdateGroupInputDto": UpdateGroupInputDto;
   readonly "UpdateMyHandleDto": UpdateMyHandleDto;
-  readonly "UpdateNsfwConsentResponseDto": UpdateNsfwConsentResponseDto;
-  readonly "UpdateOwnerAgentSettingsDto": UpdateOwnerAgentSettingsDto;
   readonly "UpdatePPSlotConfigDto": UpdatePPSlotConfigDto;
   readonly "UpdateParticipantRoleInputDto": UpdateParticipantRoleInputDto;
   readonly "UpdatePasswordRequestDto": UpdatePasswordRequestDto;
@@ -4580,18 +2133,8 @@ export interface RealmTypedModelMap {
   readonly "UpdateResourceDto": UpdateResourceDto;
   readonly "UpdateUserDto": UpdateUserDto;
   readonly "UpdateUserNotificationSettingsDto": UpdateUserNotificationSettingsDto;
-  readonly "UpdateUserNsfwConsentDto": UpdateUserNsfwConsentDto;
   readonly "UpdateUserSettingsDto": UpdateUserSettingsDto;
-  readonly "UpdateWorldDraftDto": UpdateWorldDraftDto;
-  readonly "UpdateWorldRuleDto": UpdateWorldRuleDto;
   readonly "UsePolicyDto": UsePolicyDto;
-  readonly "UserAgentAppearanceDto": UserAgentAppearanceDto;
-  readonly "UserAgentBiologicalDto": UserAgentBiologicalDto;
-  readonly "UserAgentCommunicationDto": UserAgentCommunicationDto;
-  readonly "UserAgentDnaDto": UserAgentDnaDto;
-  readonly "UserAgentIdentityDto": UserAgentIdentityDto;
-  readonly "UserAgentPersonalityDto": UserAgentPersonalityDto;
-  readonly "UserAgentVoiceConfigDto": UserAgentVoiceConfigDto;
   readonly "UserCapabilitiesDto": UserCapabilitiesDto;
   readonly "UserFeatureCapabilitiesDto": UserFeatureCapabilitiesDto;
   readonly "UserLiteDto": UserLiteDto;
@@ -4604,11 +2147,8 @@ export interface RealmTypedModelMap {
   readonly "UserTierSummaryDto": UserTierSummaryDto;
   readonly "UserWalletDto": UserWalletDto;
   readonly "UserWalletListResponseDto": UserWalletListResponseDto;
-  readonly "ValidateRulesDto": ValidateRulesDto;
-  readonly "VerificationTier": VerificationTier;
   readonly "VerifyInvitationCodeDto": VerifyInvitationCodeDto;
   readonly "Visibility": Visibility;
-  readonly "VisualGuideDto": VisualGuideDto;
   readonly "WalletBindDto": WalletBindDto;
   readonly "WalletChallengeDto": WalletChallengeDto;
   readonly "WalletChallengeResponseDto": WalletChallengeResponseDto;
@@ -4620,87 +2160,13 @@ export interface RealmTypedModelMap {
   readonly "WithdrawalHistoryDto": WithdrawalHistoryDto;
   readonly "WithdrawalStatus": WithdrawalStatus;
   readonly "WithdrawalSummaryDto": WithdrawalSummaryDto;
-  readonly "WorldAccessRecordDto": WorldAccessRecordDto;
-  readonly "WorldAccessSummaryDto": WorldAccessSummaryDto;
-  readonly "WorldAgentRuleSummaryDto": WorldAgentRuleSummaryDto;
-  readonly "WorldAgentSummaryDto": WorldAgentSummaryDto;
-  readonly "WorldClockConfigDto": WorldClockConfigDto;
-  readonly "WorldClockEraDto": WorldClockEraDto;
-  readonly "WorldComputedEntryDto": WorldComputedEntryDto;
-  readonly "WorldComputedLanguagesDto": WorldComputedLanguagesDto;
-  readonly "WorldComputedScoreDto": WorldComputedScoreDto;
-  readonly "WorldComputedTimeDto": WorldComputedTimeDto;
-  readonly "WorldDetailDto": WorldDetailDto;
-  readonly "WorldDetailWithAgentsDto": WorldDetailWithAgentsDto;
-  readonly "WorldDisplayComputedDto": WorldDisplayComputedDto;
-  readonly "WorldDraftDetailDto": WorldDraftDetailDto;
-  readonly "WorldDraftHistoryBucketsDto": WorldDraftHistoryBucketsDto;
-  readonly "WorldDraftHistoryDraftDto": WorldDraftHistoryDraftDto;
-  readonly "WorldDraftHistoryEventDto": WorldDraftHistoryEventDto;
-  readonly "WorldDraftImportSourceDto": WorldDraftImportSourceDto;
-  readonly "WorldDraftPayloadDto": WorldDraftPayloadDto;
-  readonly "WorldDraftStateDraftDto": WorldDraftStateDraftDto;
-  readonly "WorldDraftSummaryDto": WorldDraftSummaryDto;
-  readonly "WorldDraftSummaryListDto": WorldDraftSummaryListDto;
-  readonly "WorldDraftTruthDraftDto": WorldDraftTruthDraftDto;
-  readonly "WorldDraftTruthRuleDto": WorldDraftTruthRuleDto;
-  readonly "WorldEventEvidenceRefDto": WorldEventEvidenceRefDto;
-  readonly "WorldEventEvidenceRefInputDto": WorldEventEvidenceRefInputDto;
-  readonly "WorldHistoryAppendItemDto": WorldHistoryAppendItemDto;
-  readonly "WorldHistoryEventDto": WorldHistoryEventDto;
-  readonly "WorldHistoryListDto": WorldHistoryListDto;
-  readonly "WorldHistoryRelatedStateRefDto": WorldHistoryRelatedStateRefDto;
-  readonly "WorldLandingDecisionDto": WorldLandingDecisionDto;
-  readonly "WorldLanguageDto": WorldLanguageDto;
-  readonly "WorldLevelAuditEventDto": WorldLevelAuditEventDto;
-  readonly "WorldLorebookDetailDto": WorldLorebookDetailDto;
-  readonly "WorldLorebookListDto": WorldLorebookListDto;
-  readonly "WorldRecommendedAgentDto": WorldRecommendedAgentDto;
-  readonly "WorldRuleDto": WorldRuleDto;
-  readonly "WorldRuleItemDto": WorldRuleItemDto;
-  readonly "WorldStateDto": WorldStateDto;
-  readonly "WorldStateRecordDto": WorldStateRecordDto;
-  readonly "WorldStateWriteDto": WorldStateWriteDto;
-  readonly "WorldSummaryDto": WorldSummaryDto;
-  readonly "WorldSummaryListDto": WorldSummaryListDto;
-  readonly "WorldTimeFormatDto": WorldTimeFormatDto;
-  readonly "WorldTruthDto": WorldTruthDto;
-  readonly "WorldviewDetailDto": WorldviewDetailDto;
-  readonly "WorldviewGlossaryDto": WorldviewGlossaryDto;
-  readonly "WorldviewLanguagesDto": WorldviewLanguagesDto;
-  readonly "WorldviewLocationsDto": WorldviewLocationsDto;
-  readonly "WorldviewTruthRuleSummaryDto": WorldviewTruthRuleSummaryDto;
+  readonly "WorldCharacterCoreDto": WorldCharacterCoreDto;
+  readonly "WorldCoreDto": WorldCoreDto;
 }
 
 export type RealmTypedModelName = keyof RealmTypedModelMap & string;
 export type RealmTypedModel<Name extends RealmTypedModelName> = RealmTypedModelMap[Name];
 
-export interface RealmAckMyLocalAgentProvisionIntentOperationRequest {
-  readonly path: {
-    readonly intentId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body: LocalAgentProvisionIntentAckDto;
-}
-export type RealmAckMyLocalAgentProvisionIntentOperationResponse = LocalAgentProvisionIntentDto;
-export interface RealmAckMyLocalAgentTerminationIntentOperationRequest {
-  readonly path: {
-    readonly intentId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body: LocalAgentTerminationIntentAckDto;
-}
-export type RealmAckMyLocalAgentTerminationIntentOperationResponse = LocalAgentTerminationIntentDto;
 export interface RealmAddFriendOperationRequest {
   readonly path: {
     readonly id: string;
@@ -4714,19 +2180,6 @@ export interface RealmAddFriendOperationRequest {
   readonly body: AddFriendBodyDto;
 }
 export type RealmAddFriendOperationResponse = Record<string, never>;
-export interface RealmAddGroupAgentOperationRequest {
-  readonly path: {
-    readonly chatId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body: AddGroupAgentInputDto;
-}
-export type RealmAddGroupAgentOperationResponse = GroupParticipantDto;
 export interface RealmAddGroupParticipantOperationRequest {
   readonly path: {
     readonly chatId: string;
@@ -4740,251 +2193,6 @@ export interface RealmAddGroupParticipantOperationRequest {
   readonly body: AddGroupParticipantInputDto;
 }
 export type RealmAddGroupParticipantOperationResponse = GroupParticipantDto;
-export interface RealmAgentControllerCheckHandleOperationRequest {
-  readonly path: {
-
-  };
-  readonly query?: {
-    readonly handle: string;
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmAgentControllerCheckHandleOperationResponse = AgentHandleAvailabilityResponseDto;
-export interface RealmAgentControllerCreateOperationRequest {
-  readonly path: {
-
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body: CreateAgentDto;
-}
-export type RealmAgentControllerCreateOperationResponse = CreateAgentResponseDto;
-export interface RealmAgentControllerDeleteOperationRequest {
-  readonly path: {
-    readonly id: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmAgentControllerDeleteOperationResponse = DeleteAgentOperationResponseDto;
-export interface RealmAgentControllerGetRelationshipsOperationRequest {
-  readonly path: {
-    readonly id: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmAgentControllerGetRelationshipsOperationResponse = readonly (AgentRelationshipRecordDto)[];
-export interface RealmAgentControllerGetVisibilityOperationRequest {
-  readonly path: {
-    readonly id: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmAgentControllerGetVisibilityOperationResponse = AgentVisibilitySettingsDto;
-export interface RealmAgentControllerMakePublicOperationRequest {
-  readonly path: {
-    readonly id: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmAgentControllerMakePublicOperationResponse = MakeAgentPublicResponseDto;
-export interface RealmAgentControllerRemoveRelationshipOperationRequest {
-  readonly path: {
-    readonly id: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body: RemoveAgentRelationshipDto;
-}
-export type RealmAgentControllerRemoveRelationshipOperationResponse = DeleteRelationshipResponseDto;
-export interface RealmAgentControllerSelectAvatarOperationRequest {
-  readonly path: {
-    readonly id: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body: SelectAvatarDto;
-}
-export type RealmAgentControllerSelectAvatarOperationResponse = DeleteAgentOperationResponseDto;
-export interface RealmAgentControllerSetRelationshipOperationRequest {
-  readonly path: {
-    readonly id: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body: SetAgentRelationshipDto;
-}
-export type RealmAgentControllerSetRelationshipOperationResponse = RelationshipResponseDto;
-export interface RealmAgentControllerUpdateDnaOperationRequest {
-  readonly path: {
-    readonly id: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body: UpdateAgentDnaDto;
-}
-export type RealmAgentControllerUpdateDnaOperationResponse = DeleteAgentOperationResponseDto;
-export interface RealmAgentControllerUpdateVisibilityOperationRequest {
-  readonly path: {
-    readonly id: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body: UpdateAgentVisibilityDto;
-}
-export type RealmAgentControllerUpdateVisibilityOperationResponse = AgentVisibilitySettingsDto;
-export interface RealmAgentNsfwConsentControllerUpdateAgentConsentOperationRequest {
-  readonly path: {
-    readonly id: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body: UpdateAgentNsfwConsentDto;
-}
-export type RealmAgentNsfwConsentControllerUpdateAgentConsentOperationResponse = UpdateNsfwConsentResponseDto;
-export interface RealmAgentRulesControllerArchiveRuleOperationRequest {
-  readonly path: {
-    readonly ruleId: string;
-    readonly agentId: string;
-    readonly worldId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmAgentRulesControllerArchiveRuleOperationResponse = AgentRuleDto;
-export interface RealmAgentRulesControllerCreateRuleOperationRequest {
-  readonly path: {
-    readonly agentId: string;
-    readonly worldId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body: CreateAgentRuleDto;
-}
-export type RealmAgentRulesControllerCreateRuleOperationResponse = AgentRuleDto;
-export interface RealmAgentRulesControllerDeprecateRuleOperationRequest {
-  readonly path: {
-    readonly ruleId: string;
-    readonly agentId: string;
-    readonly worldId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmAgentRulesControllerDeprecateRuleOperationResponse = AgentRuleDto;
-export interface RealmAgentRulesControllerListRulesOperationRequest {
-  readonly path: {
-    readonly agentId: string;
-    readonly worldId: string;
-  };
-  readonly query?: {
-    readonly layer?: "DNA" | "BEHAVIORAL" | "RELATIONAL" | "CONTEXTUAL";
-    readonly status?: "ACTIVE" | "DEPRECATED" | "SUPERSEDED" | "PROPOSED" | "ARCHIVED";
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmAgentRulesControllerListRulesOperationResponse = readonly (AgentRuleDto)[];
-export interface RealmAgentRulesControllerUpdateRuleOperationRequest {
-  readonly path: {
-    readonly ruleId: string;
-    readonly agentId: string;
-    readonly worldId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body: UpdateAgentRuleDto;
-}
-export type RealmAgentRulesControllerUpdateRuleOperationResponse = AgentRuleDto;
-export interface RealmApplyCreatorWorldAgentAuthoringDraftBatchOperationRequest {
-  readonly path: {
-    readonly batchId: string;
-    readonly agentId: string;
-    readonly worldId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmApplyCreatorWorldAgentAuthoringDraftBatchOperationResponse = ApplyAgentAuthoringDraftBatchResponseDto;
 export interface RealmArchiveBundleOperationRequest {
   readonly path: {
     readonly bundleId: string;
@@ -5089,19 +2297,6 @@ export interface RealmCloneAssetOperationRequest {
   readonly body: CloneAssetDto;
 }
 export type RealmCloneAssetOperationResponse = AssetDetailDto;
-export interface RealmCommitRealmGroupMessageCandidateOperationRequest {
-  readonly path: {
-    readonly chatId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body: CommitRealmGroupMessageCandidateInputDto;
-}
-export type RealmCommitRealmGroupMessageCandidateOperationResponse = RealmGroupMessageCandidateCommitResultDto;
 export interface RealmCreateAssetOperationRequest {
   readonly path: {
 
@@ -5141,20 +2336,6 @@ export interface RealmCreateBundleOperationRequest {
   readonly body: CreateBundleDto;
 }
 export type RealmCreateBundleOperationResponse = BundleDetailDto;
-export interface RealmCreateCreatorWorldAgentAuthoringDraftBatchOperationRequest {
-  readonly path: {
-    readonly agentId: string;
-    readonly worldId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body: CreateAgentAuthoringDraftBatchDto;
-}
-export type RealmCreateCreatorWorldAgentAuthoringDraftBatchOperationResponse = AgentAuthoringDraftBatchDto;
 export interface RealmCreateGroupOperationRequest {
   readonly path: {
 
@@ -5220,123 +2401,6 @@ export interface RealmCreateVideoDirectUploadOperationRequest {
   readonly body?: Record<string, never>;
 }
 export type RealmCreateVideoDirectUploadOperationResponse = ResourceDirectUploadSessionDto;
-export interface RealmCreatorControllerBatchCreateAgentsOperationRequest {
-  readonly path: {
-
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body: BatchCreateAgentsRequestDto;
-}
-export type RealmCreatorControllerBatchCreateAgentsOperationResponse = BatchCreateAgentsResponseDto;
-export interface RealmCreatorControllerCreateAgentOperationRequest {
-  readonly path: {
-
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body: CreateAgentDto;
-}
-export type RealmCreatorControllerCreateAgentOperationResponse = UserLiteDto;
-export interface RealmCreatorControllerCreateKeyOperationRequest {
-  readonly path: {
-
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body: CreateApiKeyDto;
-}
-export type RealmCreatorControllerCreateKeyOperationResponse = Record<string, unknown>;
-export interface RealmCreatorControllerDeleteAgentOperationRequest {
-  readonly path: {
-    readonly agentId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmCreatorControllerDeleteAgentOperationResponse = Record<string, unknown>;
-export interface RealmCreatorControllerGetAgentOperationRequest {
-  readonly path: {
-    readonly agentId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmCreatorControllerGetAgentOperationResponse = CreatorAgentResponseDto;
-export interface RealmCreatorControllerListAgentsOperationRequest {
-  readonly path: {
-
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmCreatorControllerListAgentsOperationResponse = readonly (UserLiteDto)[];
-export interface RealmCreatorControllerListKeysOperationRequest {
-  readonly path: {
-
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmCreatorControllerListKeysOperationResponse = readonly (Record<string, unknown>)[];
-export interface RealmCreatorControllerRevokeKeyOperationRequest {
-  readonly path: {
-    readonly id: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmCreatorControllerRevokeKeyOperationResponse = Record<string, never>;
-export interface RealmCreatorControllerUpdateAgentOperationRequest {
-  readonly path: {
-    readonly agentId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body: UpdateCreatorAgentDto;
-}
-export type RealmCreatorControllerUpdateAgentOperationResponse = CreatorAgentResponseDto;
 export interface RealmDeletePostOperationRequest {
   readonly path: {
     readonly id: string;
@@ -5519,19 +2583,6 @@ export interface RealmEconomyControllerCreateWithdrawalOperationRequest {
   readonly body: CreateWithdrawalDto;
 }
 export type RealmEconomyControllerCreateWithdrawalOperationResponse = WithdrawalDto;
-export interface RealmEconomyControllerGetAgentOriginOperationRequest {
-  readonly path: {
-    readonly agentId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmEconomyControllerGetAgentOriginOperationResponse = AgentOriginDto;
 export interface RealmEconomyControllerGetBalancesOperationRequest {
   readonly path: {
 
@@ -5626,6 +2677,20 @@ export interface RealmEconomyControllerGetSentGiftsOperationRequest {
   readonly body?: Record<string, never>;
 }
 export type RealmEconomyControllerGetSentGiftsOperationResponse = ReceivedGiftsResponseDto;
+export interface RealmEconomyControllerGetSourceOriginOperationRequest {
+  readonly path: {
+    readonly sourceId: string;
+    readonly sourceKind: "worldCharacter" | "realmPersona";
+  };
+  readonly query?: {
+    readonly sourceWorldId: string;
+  };
+  readonly headers?: {
+
+  };
+  readonly body?: Record<string, never>;
+}
+export type RealmEconomyControllerGetSourceOriginOperationResponse = SourceOriginDto;
 export interface RealmEconomyControllerGetSparkHistoryOperationRequest {
   readonly path: {
 
@@ -5725,7 +2790,9 @@ export interface RealmEconomyControllerPreviewRevenueDistributionOperationReques
   };
   readonly query?: {
     readonly amount: string;
-    readonly agentId: string;
+    readonly sourceWorldId: string;
+    readonly sourceId: string;
+    readonly sourceKind: "worldCharacter" | "realmPersona";
   };
   readonly headers?: {
 
@@ -5839,115 +2906,6 @@ export interface RealmFinalizeResourceOperationRequest {
   readonly body: FinalizeResourceDto;
 }
 export type RealmFinalizeResourceOperationResponse = ResourceDetailDto;
-export interface RealmForgeProductCatalogControllerGetAgentCandidatesOperationRequest {
-  readonly path: {
-    readonly slug: string;
-  };
-  readonly query?: {
-    readonly includeEvidenceRefs?: boolean;
-    readonly limit?: number;
-    readonly status?: "ready" | "sparse" | "blocked";
-    readonly surface?: string;
-    readonly query?: string;
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmForgeProductCatalogControllerGetAgentCandidatesOperationResponse = ForgeAgentCandidateQueryResultDto;
-export interface RealmForgeProductCatalogControllerGetCatalogOperationRequest {
-  readonly path: {
-
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmForgeProductCatalogControllerGetCatalogOperationResponse = ForgeWorldCatalogDto;
-export interface RealmForgeProductCatalogControllerGetProductOperationRequest {
-  readonly path: {
-    readonly slug: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmForgeProductCatalogControllerGetProductOperationResponse = ForgeWorldProductDto;
-export interface RealmForgeProductCatalogControllerGetProductShardOperationRequest {
-  readonly path: {
-    readonly kind: "package-meta" | "world-source" | "world-rules" | "agent-blueprints" | "agent-skeletons" | "truth" | "sufficiency" | "capability" | "derivation" | "projection" | "evidence" | "governance" | "agent-relationships" | "scenes" | "world-lorebooks" | "agent-lorebooks" | "resources-bindings" | "world-drafts";
-    readonly slug: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmForgeProductCatalogControllerGetProductShardOperationResponse = ForgeProductShardReadDto;
-export interface RealmForgeProductCatalogControllerGetProductShardIndexOperationRequest {
-  readonly path: {
-    readonly slug: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmForgeProductCatalogControllerGetProductShardIndexOperationResponse = ForgeProductShardIndexDto;
-export interface RealmForgeProductCatalogControllerVerifyProductShardsOperationRequest {
-  readonly path: {
-    readonly slug: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmForgeProductCatalogControllerVerifyProductShardsOperationResponse = ForgeProductShardIntegrityReportDto;
-export interface RealmGetAgentOperationRequest {
-  readonly path: {
-    readonly id: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmGetAgentOperationResponse = UserProfileDto;
-export interface RealmGetAgentByHandleOperationRequest {
-  readonly path: {
-    readonly handle: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmGetAgentByHandleOperationResponse = UserProfileDto;
 export interface RealmGetAssetOperationRequest {
   readonly path: {
     readonly assetId: string;
@@ -6000,76 +2958,6 @@ export interface RealmGetChatByIdOperationRequest {
   readonly body?: Record<string, never>;
 }
 export type RealmGetChatByIdOperationResponse = ChatViewDto;
-export interface RealmGetCreatorWorldAgentOperationRequest {
-  readonly path: {
-    readonly agentId: string;
-    readonly worldId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmGetCreatorWorldAgentOperationResponse = UserLiteDto;
-export interface RealmGetCreatorWorldAgentAuthoringGenerationContextOperationRequest {
-  readonly path: {
-    readonly agentId: string;
-    readonly worldId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmGetCreatorWorldAgentAuthoringGenerationContextOperationResponse = AgentAuthoringGenerationContextDto;
-export interface RealmGetCreatorWorldAgentChatReadinessOperationRequest {
-  readonly path: {
-    readonly agentId: string;
-    readonly worldId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmGetCreatorWorldAgentChatReadinessOperationResponse = CreatorWorldAgentChatReadinessDto;
-export interface RealmGetCreatorWorldAgentSettingsOperationRequest {
-  readonly path: {
-    readonly agentId: string;
-    readonly worldId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmGetCreatorWorldAgentSettingsOperationResponse = OwnerAgentSettingsDto;
-export interface RealmGetCreatorWorldAgentSourceSkeletonOperationRequest {
-  readonly path: {
-    readonly agentId: string;
-    readonly worldId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmGetCreatorWorldAgentSourceSkeletonOperationResponse = CreatorWorldAgentSourceSkeletonDto;
 export interface RealmGetExploreFeedOperationRequest {
   readonly path: {
 
@@ -6109,7 +2997,7 @@ export interface RealmGetHomeFeedOperationRequest {
     readonly authorId?: string;
     readonly limit?: number;
     readonly cursor?: string;
-    readonly scope?: "personal" | "friends" | "agent_activity";
+    readonly scope?: "personal" | "friends";
   };
   readonly headers?: {
 
@@ -6157,19 +3045,6 @@ export interface RealmGetMutualFriendsCountOperationRequest {
   readonly body?: Record<string, never>;
 }
 export type RealmGetMutualFriendsCountOperationResponse = Record<string, unknown>;
-export interface RealmGetMyAgentFriendLimitOperationRequest {
-  readonly path: {
-
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmGetMyAgentFriendLimitOperationResponse = AgentFriendLimitDto;
 export interface RealmGetMyAppPermissionGrantOperationRequest {
   readonly path: {
     readonly grantId: string;
@@ -6183,19 +3058,6 @@ export interface RealmGetMyAppPermissionGrantOperationRequest {
   readonly body?: Record<string, never>;
 }
 export type RealmGetMyAppPermissionGrantOperationResponse = AppPermissionGrantDto;
-export interface RealmGetMyAppPermissionGrantProjectionOperationRequest {
-  readonly path: {
-
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmGetMyAppPermissionGrantProjectionOperationResponse = AccountGrantsProjectionDto;
 export interface RealmGetMyAppPermissionGrantStatusOperationRequest {
   readonly path: {
 
@@ -6209,6 +3071,19 @@ export interface RealmGetMyAppPermissionGrantStatusOperationRequest {
   readonly body?: Record<string, never>;
 }
 export type RealmGetMyAppPermissionGrantStatusOperationResponse = AppPermissionGrantStatusDto;
+export interface RealmGetMyAppPermissionGrantViewOperationRequest {
+  readonly path: {
+
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body?: Record<string, never>;
+}
+export type RealmGetMyAppPermissionGrantViewOperationResponse = AccountGrantsViewDto;
 export interface RealmGetMyBlockedUsersOperationRequest {
   readonly path: {
 
@@ -6288,32 +3163,6 @@ export interface RealmGetMyPPConfigOperationRequest {
   readonly body?: Record<string, never>;
 }
 export type RealmGetMyPPConfigOperationResponse = PPSlotConfigResponseDto;
-export interface RealmGetMyRealmAgentOperationRequest {
-  readonly path: {
-    readonly agentId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmGetMyRealmAgentOperationResponse = UserLiteDto;
-export interface RealmGetMyRealmAgentSettingsOperationRequest {
-  readonly path: {
-    readonly agentId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmGetMyRealmAgentSettingsOperationResponse = OwnerAgentSettingsDto;
 export interface RealmGetMySettingsOperationRequest {
   readonly path: {
 
@@ -6453,7 +3302,7 @@ export interface RealmGetWorldPostsOperationRequest {
     readonly authorId?: string;
     readonly limit?: number;
     readonly cursor?: string;
-    readonly scope?: "personal" | "friends" | "agent_activity";
+    readonly scope?: "personal" | "friends";
   };
   readonly headers?: {
 
@@ -6461,19 +3310,6 @@ export interface RealmGetWorldPostsOperationRequest {
   readonly body?: Record<string, never>;
 }
 export type RealmGetWorldPostsOperationResponse = FeedResponseDto;
-export interface RealmGetWorldScenesOperationRequest {
-  readonly path: {
-    readonly id: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmGetWorldScenesOperationResponse = PublicWorldSceneListDto;
 export interface RealmGrantMyAppPermissionGrantOperationRequest {
   readonly path: {
     readonly grantId: string;
@@ -6487,58 +3323,6 @@ export interface RealmGrantMyAppPermissionGrantOperationRequest {
   readonly body: AppPermissionGrantGrantDto;
 }
 export type RealmGrantMyAppPermissionGrantOperationResponse = AppPermissionGrantDto;
-export interface RealmHumanNsfwConsentControllerCanManageAgentNsfwOperationRequest {
-  readonly path: {
-
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmHumanNsfwConsentControllerCanManageAgentNsfwOperationResponse = CanManageNsfwResponseDto;
-export interface RealmHumanNsfwConsentControllerCheckConsentOperationRequest {
-  readonly path: {
-
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmHumanNsfwConsentControllerCheckConsentOperationResponse = NsfwConsentResponseDto;
-export interface RealmHumanNsfwConsentControllerGetConsentStatusOperationRequest {
-  readonly path: {
-
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmHumanNsfwConsentControllerGetConsentStatusOperationResponse = NsfwConsentStatusResponseDto;
-export interface RealmHumanNsfwConsentControllerUpdateUserConsentOperationRequest {
-  readonly path: {
-
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body: UpdateUserNsfwConsentDto;
-}
-export type RealmHumanNsfwConsentControllerUpdateUserConsentOperationResponse = UpdateNsfwConsentResponseDto;
 export interface RealmIntrospectSessionOperationRequest {
   readonly path: {
 
@@ -6670,33 +3454,6 @@ export interface RealmListChatsOperationRequest {
   readonly body?: Record<string, never>;
 }
 export type RealmListChatsOperationResponse = ListChatsResultDto;
-export interface RealmListCreatorWorldAgentAuthoringDraftBatchesOperationRequest {
-  readonly path: {
-    readonly agentId: string;
-    readonly worldId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmListCreatorWorldAgentAuthoringDraftBatchesOperationResponse = AgentAuthoringDraftBatchListDto;
-export interface RealmListCreatorWorldAgentsOperationRequest {
-  readonly path: {
-    readonly worldId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmListCreatorWorldAgentsOperationResponse = readonly (UserLiteDto)[];
 export interface RealmListGroupMessagesOperationRequest {
   readonly path: {
     readonly chatId: string;
@@ -6772,19 +3529,6 @@ export interface RealmListMyAppPermissionGrantsOperationRequest {
   readonly body?: Record<string, never>;
 }
 export type RealmListMyAppPermissionGrantsOperationResponse = AppPermissionGrantListDto;
-export interface RealmListMyCreatorWorldsOperationRequest {
-  readonly path: {
-
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmListMyCreatorWorldsOperationResponse = CreatorWorldSummaryListDto;
 export interface RealmListMyFriendIdsOperationRequest {
   readonly path: {
 
@@ -6812,45 +3556,6 @@ export interface RealmListMyFriendsWithDetailsOperationRequest {
   readonly body?: Record<string, never>;
 }
 export type RealmListMyFriendsWithDetailsOperationResponse = FriendProfileListDto;
-export interface RealmListMyLocalAgentProvisionIntentsOperationRequest {
-  readonly path: {
-
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmListMyLocalAgentProvisionIntentsOperationResponse = LocalAgentProvisionIntentListDto;
-export interface RealmListMyLocalAgentTerminationIntentsOperationRequest {
-  readonly path: {
-
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmListMyLocalAgentTerminationIntentsOperationResponse = LocalAgentTerminationIntentListDto;
-export interface RealmListMyRealmAgentsOperationRequest {
-  readonly path: {
-
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmListMyRealmAgentsOperationResponse = readonly (UserLiteDto)[];
 export interface RealmListNotificationsOperationRequest {
   readonly path: {
 
@@ -7055,19 +3760,6 @@ export interface RealmPrepareBindWalletOperationRequest {
   readonly body: WalletPrepareBindDto;
 }
 export type RealmPrepareBindWalletOperationResponse = WalletPrepareBindResponseDto;
-export interface RealmProjectRuntimePayloadOperationRequest {
-  readonly path: {
-
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body: RuntimeProjectionRequestDto;
-}
-export type RealmProjectRuntimePayloadOperationResponse = RuntimeProjectionResponseDto;
 export interface RealmPublishBundleOperationRequest {
   readonly path: {
     readonly bundleId: string;
@@ -7187,20 +3879,6 @@ export interface RealmRemoveFriendOperationRequest {
   readonly body?: Record<string, never>;
 }
 export type RealmRemoveFriendOperationResponse = Record<string, never>;
-export interface RealmRemoveGroupAgentOperationRequest {
-  readonly path: {
-    readonly agentAccountId: string;
-    readonly chatId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmRemoveGroupAgentOperationResponse = Record<string, never>;
 export interface RealmRemoveGroupParticipantOperationRequest {
   readonly path: {
     readonly accountId: string;
@@ -7306,22 +3984,6 @@ export interface RealmReviewControllerGetReviewsOperationRequest {
   readonly body?: Record<string, never>;
 }
 export type RealmReviewControllerGetReviewsOperationResponse = readonly (ReviewDto)[];
-export interface RealmReviewCreatorWorldAgentAuthoringDraftCandidateOperationRequest {
-  readonly path: {
-    readonly candidateId: string;
-    readonly batchId: string;
-    readonly agentId: string;
-    readonly worldId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body: ReviewAgentAuthoringDraftCandidateDto;
-}
-export type RealmReviewCreatorWorldAgentAuthoringDraftCandidateOperationResponse = AgentAuthoringDraftCandidateDto;
 export interface RealmRevokeMyAppPermissionGrantOperationRequest {
   readonly path: {
     readonly grantId: string;
@@ -7344,7 +4006,6 @@ export interface RealmSearchHumanUsersOperationRequest {
     readonly cursor?: string;
     readonly ageMax?: number;
     readonly ageMin?: number;
-    readonly isAgent?: boolean;
     readonly city?: string;
     readonly countryCode?: string;
     readonly gender?: string;
@@ -7370,7 +4031,6 @@ export interface RealmSearchIndexedUsersOperationRequest {
     readonly cursor?: string;
     readonly ageMax?: number;
     readonly ageMin?: number;
-    readonly isAgent?: boolean;
     readonly city?: string;
     readonly countryCode?: string;
     readonly gender?: string;
@@ -7518,7 +4178,7 @@ export interface RealmTransitControllerCompleteOperationRequest {
 export type RealmTransitControllerCompleteOperationResponse = TransitDetailDto;
 export interface RealmTransitControllerGetActiveTransitOperationRequest {
   readonly path: {
-    readonly agentId: string;
+    readonly runtimeSourceRef: string;
   };
   readonly query?: {
 
@@ -7549,7 +4209,8 @@ export interface RealmTransitControllerListTransitsOperationRequest {
   readonly query?: {
     readonly transitType?: string;
     readonly status?: string;
-    readonly agentId?: string;
+    readonly runtimeSourceRef?: string;
+    readonly sourceId?: string;
   };
   readonly headers?: {
 
@@ -7648,48 +4309,6 @@ export interface RealmUpdateBundleOperationRequest {
   readonly body: UpdateBundleDto;
 }
 export type RealmUpdateBundleOperationResponse = BundleDetailDto;
-export interface RealmUpdateCreatorWorldAgentProfileMediaOperationRequest {
-  readonly path: {
-    readonly agentId: string;
-    readonly worldId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body: UpdateAgentProfileMediaDto;
-}
-export type RealmUpdateCreatorWorldAgentProfileMediaOperationResponse = UserLiteDto;
-export interface RealmUpdateCreatorWorldAgentSettingsOperationRequest {
-  readonly path: {
-    readonly agentId: string;
-    readonly worldId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body: UpdateOwnerAgentSettingsDto;
-}
-export type RealmUpdateCreatorWorldAgentSettingsOperationResponse = OwnerAgentSettingsDto;
-export interface RealmUpdateCreatorWorldAgentVoiceOperationRequest {
-  readonly path: {
-    readonly agentId: string;
-    readonly worldId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body: UpdateAgentVoiceDto;
-}
-export type RealmUpdateCreatorWorldAgentVoiceOperationResponse = UserLiteDto;
 export interface RealmUpdateGroupOperationRequest {
   readonly path: {
     readonly chatId: string;
@@ -7769,19 +4388,6 @@ export interface RealmUpdateMyPPConfigOperationRequest {
   readonly body: UpdatePPSlotConfigDto;
 }
 export type RealmUpdateMyPPConfigOperationResponse = PPSlotConfigResponseDto;
-export interface RealmUpdateMyRealmAgentSettingsOperationRequest {
-  readonly path: {
-    readonly agentId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body: UpdateOwnerAgentSettingsDto;
-}
-export type RealmUpdateMyRealmAgentSettingsOperationResponse = OwnerAgentSettingsDto;
 export interface RealmUpdateMySettingsOperationRequest {
   readonly path: {
 
@@ -7834,85 +4440,6 @@ export interface RealmUpdateResourceOperationRequest {
   readonly body: UpdateResourceDto;
 }
 export type RealmUpdateResourceOperationResponse = ResourceDetailDto;
-export interface RealmV1DefaultVisibilityControllerApplyAgentDefaultsOperationRequest {
-  readonly path: {
-    readonly agentId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmV1DefaultVisibilityControllerApplyAgentDefaultsOperationResponse = Record<string, never>;
-export interface RealmV1DefaultVisibilityControllerApplyUserDefaultsOperationRequest {
-  readonly path: {
-    readonly userId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmV1DefaultVisibilityControllerApplyUserDefaultsOperationResponse = Record<string, never>;
-export interface RealmV1DefaultVisibilityControllerGetDefaultForScopeOperationRequest {
-  readonly path: {
-    readonly scope: "account" | "profile" | "defaultPost" | "wallet" | "social" | "dm" | "friendList" | "friendRequest" | "mention" | "onlineStatus";
-    readonly entityType: "USER" | "AGENT";
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmV1DefaultVisibilityControllerGetDefaultForScopeOperationResponse = Record<string, never>;
-export interface RealmV1DefaultVisibilityControllerGetDefaultVisibilityOperationRequest {
-  readonly path: {
-    readonly entityType: "USER" | "AGENT";
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmV1DefaultVisibilityControllerGetDefaultVisibilityOperationResponse = Record<string, never>;
-export interface RealmV1DefaultVisibilityControllerValidateAgentVisibilityOperationRequest {
-  readonly path: {
-    readonly agentId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmV1DefaultVisibilityControllerValidateAgentVisibilityOperationResponse = Record<string, never>;
-export interface RealmV1DefaultVisibilityControllerValidateUserVisibilityOperationRequest {
-  readonly path: {
-    readonly userId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmV1DefaultVisibilityControllerValidateUserVisibilityOperationResponse = Record<string, never>;
 export interface RealmVerify2FaOperationRequest {
   readonly path: {
 
@@ -7965,7 +4492,46 @@ export interface RealmWalletLoginOperationRequest {
   readonly body: WalletLoginDto;
 }
 export type RealmWalletLoginOperationResponse = OAuthLoginResultDto;
-export interface RealmWorldControlControllerAppendWorldHistoryOperationRequest {
+export interface RealmWorldCoreControllerBootstrapOasisWorldOperationRequest {
+  readonly path: {
+
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body: BootstrapOasisWorldDto;
+}
+export type RealmWorldCoreControllerBootstrapOasisWorldOperationResponse = WorldCoreDto;
+export interface RealmWorldCoreControllerCreateRealmPersonaOperationRequest {
+  readonly path: {
+
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body: CreateRealmPersonaDto;
+}
+export type RealmWorldCoreControllerCreateRealmPersonaOperationResponse = RealmPersonaDto;
+export interface RealmWorldCoreControllerCreateRuntimeSourceSnapshotOperationRequest {
+  readonly path: {
+
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body: CreateRuntimeSourceSnapshotDto;
+}
+export type RealmWorldCoreControllerCreateRuntimeSourceSnapshotOperationResponse = RuntimeSourceSnapshotDto;
+export interface RealmWorldCoreControllerCreateWorldCharacterOperationRequest {
   readonly path: {
     readonly worldId: string;
   };
@@ -7975,36 +4541,10 @@ export interface RealmWorldControlControllerAppendWorldHistoryOperationRequest {
   readonly headers?: {
 
   };
-  readonly body: AppendWorldHistoryDto;
+  readonly body: CreateWorldCharacterCoreDto;
 }
-export type RealmWorldControlControllerAppendWorldHistoryOperationResponse = WorldHistoryListDto;
-export interface RealmWorldControlControllerBatchUpsertWorldBindingsOperationRequest {
-  readonly path: {
-    readonly worldId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body: BatchUpsertBindingsDto;
-}
-export type RealmWorldControlControllerBatchUpsertWorldBindingsOperationResponse = BindingListDto;
-export interface RealmWorldControlControllerCommitStateOperationRequest {
-  readonly path: {
-    readonly worldId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body: CommitWorldStateDto;
-}
-export type RealmWorldControlControllerCommitStateOperationResponse = WorldStateDto;
-export interface RealmWorldControlControllerCreateDraftOperationRequest {
+export type RealmWorldCoreControllerCreateWorldCharacterOperationResponse = WorldCharacterCoreDto;
+export interface RealmWorldCoreControllerCreateWorldCoreOperationRequest {
   readonly path: {
 
   };
@@ -8014,37 +4554,10 @@ export interface RealmWorldControlControllerCreateDraftOperationRequest {
   readonly headers?: {
 
   };
-  readonly body: CreateWorldDraftDto;
+  readonly body: CreateWorldCoreDto;
 }
-export type RealmWorldControlControllerCreateDraftOperationResponse = WorldDraftDetailDto;
-export interface RealmWorldControlControllerDeleteWorldBindingOperationRequest {
-  readonly path: {
-    readonly bindingId: string;
-    readonly worldId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmWorldControlControllerDeleteWorldBindingOperationResponse = Record<string, never>;
-export interface RealmWorldControlControllerGetDraftOperationRequest {
-  readonly path: {
-    readonly draftId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmWorldControlControllerGetDraftOperationResponse = WorldDraftDetailDto;
-export interface RealmWorldControlControllerGetMyAccessOperationRequest {
+export type RealmWorldCoreControllerCreateWorldCoreOperationResponse = WorldCoreDto;
+export interface RealmWorldCoreControllerGetOasisWorldOperationRequest {
   readonly path: {
 
   };
@@ -8056,8 +4569,34 @@ export interface RealmWorldControlControllerGetMyAccessOperationRequest {
   };
   readonly body?: Record<string, never>;
 }
-export type RealmWorldControlControllerGetMyAccessOperationResponse = WorldAccessSummaryDto;
-export interface RealmWorldControlControllerGetStateOperationRequest {
+export type RealmWorldCoreControllerGetOasisWorldOperationResponse = WorldCoreDto;
+export interface RealmWorldCoreControllerGetRealmPersonaOperationRequest {
+  readonly path: {
+    readonly personaId: string;
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body?: Record<string, never>;
+}
+export type RealmWorldCoreControllerGetRealmPersonaOperationResponse = RealmPersonaDto;
+export interface RealmWorldCoreControllerGetWorldCharacterOperationRequest {
+  readonly path: {
+    readonly characterId: string;
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body?: Record<string, never>;
+}
+export type RealmWorldCoreControllerGetWorldCharacterOperationResponse = WorldCharacterCoreDto;
+export interface RealmWorldCoreControllerGetWorldCoreOperationRequest {
   readonly path: {
     readonly worldId: string;
   };
@@ -8069,8 +4608,8 @@ export interface RealmWorldControlControllerGetStateOperationRequest {
   };
   readonly body?: Record<string, never>;
 }
-export type RealmWorldControlControllerGetStateOperationResponse = WorldStateDto;
-export interface RealmWorldControlControllerListDraftsOperationRequest {
+export type RealmWorldCoreControllerGetWorldCoreOperationResponse = WorldCoreDto;
+export interface RealmWorldCoreControllerListRealmPersonasOperationRequest {
   readonly path: {
 
   };
@@ -8082,40 +4621,61 @@ export interface RealmWorldControlControllerListDraftsOperationRequest {
   };
   readonly body?: Record<string, never>;
 }
-export type RealmWorldControlControllerListDraftsOperationResponse = WorldDraftSummaryListDto;
-export interface RealmWorldControlControllerListMyWorldsOperationRequest {
-  readonly path: {
-
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmWorldControlControllerListMyWorldsOperationResponse = WorldSummaryListDto;
-export interface RealmWorldControlControllerListWorldBindingsOperationRequest {
+export type RealmWorldCoreControllerListRealmPersonasOperationResponse = readonly (RealmPersonaDto)[];
+export interface RealmWorldCoreControllerListWorldCharactersOperationRequest {
   readonly path: {
     readonly worldId: string;
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body?: Record<string, never>;
+}
+export type RealmWorldCoreControllerListWorldCharactersOperationResponse = readonly (WorldCharacterCoreDto)[];
+export interface RealmWorldCoreControllerListWorldCoresOperationRequest {
+  readonly path: {
+
   };
   readonly query?: {
     readonly take?: number;
-    readonly bindingPoint?: "WORLD_ICON" | "WORLD_BANNER" | "WORLD_GALLERY" | "WORLD_THEME_AUDIO" | "WORLD_TRAILER_VIDEO" | "SCENE_BACKGROUND" | "SCENE_AMBIENT_AUDIO" | "EVENT_CG" | "WORLDVIEW_REFERENCE" | "AGENT_AVATAR" | "AGENT_PORTRAIT" | "AGENT_EXPRESSION" | "AGENT_OUTFIT" | "AGENT_CANDIDATE" | "AGENT_VOICE_SAMPLE";
-    readonly bindingKind?: "PRESENTATION" | "USE" | "IMPORT";
-    readonly hostId?: string;
-    readonly hostType?: "WORLD" | "AGENT" | "SCENE" | "WORLD_EVENT" | "WORLDVIEW";
-    readonly objectId?: string;
-    readonly objectType?: "RESOURCE" | "ASSET" | "BUNDLE";
+    readonly visibility?: "private" | "unlisted" | "public" | "system";
   };
   readonly headers?: {
 
   };
   readonly body?: Record<string, never>;
 }
-export type RealmWorldControlControllerListWorldBindingsOperationResponse = BindingListDto;
-export interface RealmWorldControlControllerListWorldHistoryOperationRequest {
+export type RealmWorldCoreControllerListWorldCoresOperationResponse = readonly (WorldCoreDto)[];
+export interface RealmWorldCoreControllerReplaceRealmPersonaOperationRequest {
+  readonly path: {
+    readonly personaId: string;
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body: ReplaceRealmPersonaDto;
+}
+export type RealmWorldCoreControllerReplaceRealmPersonaOperationResponse = RealmPersonaDto;
+export interface RealmWorldCoreControllerReplaceWorldCharacterOperationRequest {
+  readonly path: {
+    readonly characterId: string;
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body: ReplaceWorldCharacterCoreDto;
+}
+export type RealmWorldCoreControllerReplaceWorldCharacterOperationResponse = WorldCharacterCoreDto;
+export interface RealmWorldCoreControllerReplaceWorldCoreOperationRequest {
   readonly path: {
     readonly worldId: string;
   };
@@ -8125,350 +4685,12 @@ export interface RealmWorldControlControllerListWorldHistoryOperationRequest {
   readonly headers?: {
 
   };
-  readonly body?: Record<string, never>;
+  readonly body: ReplaceWorldCoreDto;
 }
-export type RealmWorldControlControllerListWorldHistoryOperationResponse = WorldHistoryListDto;
-export interface RealmWorldControlControllerListWorldLorebooksOperationRequest {
-  readonly path: {
-    readonly worldId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmWorldControlControllerListWorldLorebooksOperationResponse = WorldLorebookListDto;
-export interface RealmWorldControlControllerPublishDraftOperationRequest {
-  readonly path: {
-    readonly draftId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body: PublishWorldDraftDto;
-}
-export type RealmWorldControlControllerPublishDraftOperationResponse = PublishWorldDraftResultDto;
-export interface RealmWorldControlControllerResolveLandingOperationRequest {
-  readonly path: {
-
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmWorldControlControllerResolveLandingOperationResponse = WorldLandingDecisionDto;
-export interface RealmWorldControlControllerUpdateDraftOperationRequest {
-  readonly path: {
-    readonly draftId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body: UpdateWorldDraftDto;
-}
-export type RealmWorldControlControllerUpdateDraftOperationResponse = WorldDraftDetailDto;
-export interface RealmWorldControllerGetMainWorldOperationRequest {
-  readonly path: {
-
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmWorldControllerGetMainWorldOperationResponse = WorldDetailDto;
-export interface RealmWorldControllerGetWorldOperationRequest {
-  readonly path: {
-    readonly id: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmWorldControllerGetWorldOperationResponse = WorldDetailDto;
-export interface RealmWorldControllerGetWorldAgentsOperationRequest {
-  readonly path: {
-    readonly id: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmWorldControllerGetWorldAgentsOperationResponse = readonly (WorldAgentSummaryDto)[];
-export interface RealmWorldControllerGetWorldBindingsOperationRequest {
-  readonly path: {
-    readonly id: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmWorldControllerGetWorldBindingsOperationResponse = PublicBindingListDto;
-export interface RealmWorldControllerGetWorldDetailWithAgentsOperationRequest {
-  readonly path: {
-    readonly id: string;
-  };
-  readonly query?: {
-    readonly recommendedAgentLimit?: number;
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmWorldControllerGetWorldDetailWithAgentsOperationResponse = WorldDetailWithAgentsDto;
-export interface RealmWorldControllerGetWorldHistoryOperationRequest {
-  readonly path: {
-    readonly id: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmWorldControllerGetWorldHistoryOperationResponse = PublicWorldHistoryListDto;
-export interface RealmWorldControllerGetWorldLevelAuditsOperationRequest {
-  readonly path: {
-    readonly id: string;
-  };
-  readonly query?: {
-    readonly limit?: number;
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmWorldControllerGetWorldLevelAuditsOperationResponse = readonly (WorldLevelAuditEventDto)[];
-export interface RealmWorldControllerGetWorldLorebooksOperationRequest {
-  readonly path: {
-    readonly id: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmWorldControllerGetWorldLorebooksOperationResponse = PublicWorldLorebookListDto;
-export interface RealmWorldControllerGetWorldviewOperationRequest {
-  readonly path: {
-    readonly id: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmWorldControllerGetWorldviewOperationResponse = WorldviewDetailDto;
-export interface RealmWorldControllerListWorldsOperationRequest {
-  readonly path: {
-
-  };
-  readonly query?: {
-    readonly status?: "DRAFT" | "PENDING_REVIEW" | "ACTIVE" | "SUSPENDED" | "ARCHIVED";
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmWorldControllerListWorldsOperationResponse = readonly (WorldDetailDto)[];
-export interface RealmWorldControllerReturnToMainWorldOperationRequest {
-  readonly path: {
-    readonly id: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmWorldControllerReturnToMainWorldOperationResponse = TransitDetailDto;
-export interface RealmWorldControllerTransitToWorldOperationRequest {
-  readonly path: {
-    readonly id: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body: CreateWorldTransitDto;
-}
-export type RealmWorldControllerTransitToWorldOperationResponse = TransitDetailDto;
-export interface RealmWorldRulesControllerArchiveRuleOperationRequest {
-  readonly path: {
-    readonly ruleId: string;
-    readonly worldId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmWorldRulesControllerArchiveRuleOperationResponse = WorldRuleDto;
-export interface RealmWorldRulesControllerCheckPermissionOperationRequest {
-  readonly path: {
-    readonly action: "DEFINE_RULES" | "UPDATE_SETTINGS" | "PUBLISH_WORLD" | "ARCHIVE_WORLD" | "CONTROL_AGENT" | "CONTROL_USER" | "FORCE_AGENT_BEHAVIOR" | "MODIFY_AGENT_IDENTITY";
-    readonly worldId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmWorldRulesControllerCheckPermissionOperationResponse = PermissionCheckResponseDto;
-export interface RealmWorldRulesControllerCreateRuleOperationRequest {
-  readonly path: {
-    readonly worldId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body: CreateWorldRuleDto;
-}
-export type RealmWorldRulesControllerCreateRuleOperationResponse = WorldRuleDto;
-export interface RealmWorldRulesControllerDeprecateRuleOperationRequest {
-  readonly path: {
-    readonly ruleId: string;
-    readonly worldId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmWorldRulesControllerDeprecateRuleOperationResponse = WorldRuleDto;
-export interface RealmWorldRulesControllerGetCreatorCapabilitiesOperationRequest {
-  readonly path: {
-    readonly worldId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmWorldRulesControllerGetCreatorCapabilitiesOperationResponse = CreatorCapabilitiesResponseDto;
-export interface RealmWorldRulesControllerGetRulesOperationRequest {
-  readonly path: {
-    readonly worldId: string;
-  };
-  readonly query?: {
-    readonly status?: "ACTIVE" | "DEPRECATED" | "SUPERSEDED" | "PROPOSED" | "ARCHIVED";
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmWorldRulesControllerGetRulesOperationResponse = readonly (WorldRuleDto)[];
-export interface RealmWorldRulesControllerUpdateRuleOperationRequest {
-  readonly path: {
-    readonly ruleId: string;
-    readonly worldId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body: UpdateWorldRuleDto;
-}
-export type RealmWorldRulesControllerUpdateRuleOperationResponse = WorldRuleDto;
-export interface RealmWorldRulesControllerValidateRulesOperationRequest {
-  readonly path: {
-    readonly worldId: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body: ValidateRulesDto;
-}
-export type RealmWorldRulesControllerValidateRulesOperationResponse = RuleValidationResponseDto;
+export type RealmWorldCoreControllerReplaceWorldCoreOperationResponse = WorldCoreDto;
 
 export class RealmTypedClient {
   constructor(private readonly core: CoreClient) {}
-
-  async ackMyLocalAgentProvisionIntent(request: RealmAckMyLocalAgentProvisionIntentOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmAckMyLocalAgentProvisionIntentOperationResponse> {
-    return this.core.unary<RealmAckMyLocalAgentProvisionIntentOperationResponse, RealmAckMyLocalAgentProvisionIntentOperationRequest>({
-      methodId: "ackMyLocalAgentProvisionIntent",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async ackMyLocalAgentTerminationIntent(request: RealmAckMyLocalAgentTerminationIntentOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmAckMyLocalAgentTerminationIntentOperationResponse> {
-    return this.core.unary<RealmAckMyLocalAgentTerminationIntentOperationResponse, RealmAckMyLocalAgentTerminationIntentOperationRequest>({
-      methodId: "ackMyLocalAgentTerminationIntent",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
 
   async addFriend(request: RealmAddFriendOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmAddFriendOperationResponse> {
     return this.core.unary<RealmAddFriendOperationResponse, RealmAddFriendOperationRequest>({
@@ -8481,218 +4703,9 @@ export class RealmTypedClient {
     });
   }
 
-  async addGroupAgent(request: RealmAddGroupAgentOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmAddGroupAgentOperationResponse> {
-    return this.core.unary<RealmAddGroupAgentOperationResponse, RealmAddGroupAgentOperationRequest>({
-      methodId: "addGroupAgent",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
   async addGroupParticipant(request: RealmAddGroupParticipantOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmAddGroupParticipantOperationResponse> {
     return this.core.unary<RealmAddGroupParticipantOperationResponse, RealmAddGroupParticipantOperationRequest>({
       methodId: "addGroupParticipant",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async agentControllerCheckHandle(request: RealmAgentControllerCheckHandleOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmAgentControllerCheckHandleOperationResponse> {
-    return this.core.unary<RealmAgentControllerCheckHandleOperationResponse, RealmAgentControllerCheckHandleOperationRequest>({
-      methodId: "AgentController_checkHandle",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async agentControllerCreate(request: RealmAgentControllerCreateOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmAgentControllerCreateOperationResponse> {
-    return this.core.unary<RealmAgentControllerCreateOperationResponse, RealmAgentControllerCreateOperationRequest>({
-      methodId: "AgentController_create",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async agentControllerDelete(request: RealmAgentControllerDeleteOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmAgentControllerDeleteOperationResponse> {
-    return this.core.unary<RealmAgentControllerDeleteOperationResponse, RealmAgentControllerDeleteOperationRequest>({
-      methodId: "AgentController_delete",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async agentControllerGetRelationships(request: RealmAgentControllerGetRelationshipsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmAgentControllerGetRelationshipsOperationResponse> {
-    return this.core.unary<RealmAgentControllerGetRelationshipsOperationResponse, RealmAgentControllerGetRelationshipsOperationRequest>({
-      methodId: "AgentController_getRelationships",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async agentControllerGetVisibility(request: RealmAgentControllerGetVisibilityOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmAgentControllerGetVisibilityOperationResponse> {
-    return this.core.unary<RealmAgentControllerGetVisibilityOperationResponse, RealmAgentControllerGetVisibilityOperationRequest>({
-      methodId: "AgentController_getVisibility",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async agentControllerMakePublic(request: RealmAgentControllerMakePublicOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmAgentControllerMakePublicOperationResponse> {
-    return this.core.unary<RealmAgentControllerMakePublicOperationResponse, RealmAgentControllerMakePublicOperationRequest>({
-      methodId: "AgentController_makePublic",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async agentControllerRemoveRelationship(request: RealmAgentControllerRemoveRelationshipOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmAgentControllerRemoveRelationshipOperationResponse> {
-    return this.core.unary<RealmAgentControllerRemoveRelationshipOperationResponse, RealmAgentControllerRemoveRelationshipOperationRequest>({
-      methodId: "AgentController_removeRelationship",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async agentControllerSelectAvatar(request: RealmAgentControllerSelectAvatarOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmAgentControllerSelectAvatarOperationResponse> {
-    return this.core.unary<RealmAgentControllerSelectAvatarOperationResponse, RealmAgentControllerSelectAvatarOperationRequest>({
-      methodId: "AgentController_selectAvatar",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async agentControllerSetRelationship(request: RealmAgentControllerSetRelationshipOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmAgentControllerSetRelationshipOperationResponse> {
-    return this.core.unary<RealmAgentControllerSetRelationshipOperationResponse, RealmAgentControllerSetRelationshipOperationRequest>({
-      methodId: "AgentController_setRelationship",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async agentControllerUpdateDna(request: RealmAgentControllerUpdateDnaOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmAgentControllerUpdateDnaOperationResponse> {
-    return this.core.unary<RealmAgentControllerUpdateDnaOperationResponse, RealmAgentControllerUpdateDnaOperationRequest>({
-      methodId: "AgentController_updateDna",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async agentControllerUpdateVisibility(request: RealmAgentControllerUpdateVisibilityOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmAgentControllerUpdateVisibilityOperationResponse> {
-    return this.core.unary<RealmAgentControllerUpdateVisibilityOperationResponse, RealmAgentControllerUpdateVisibilityOperationRequest>({
-      methodId: "AgentController_updateVisibility",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async agentNsfwConsentControllerUpdateAgentConsent(request: RealmAgentNsfwConsentControllerUpdateAgentConsentOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmAgentNsfwConsentControllerUpdateAgentConsentOperationResponse> {
-    return this.core.unary<RealmAgentNsfwConsentControllerUpdateAgentConsentOperationResponse, RealmAgentNsfwConsentControllerUpdateAgentConsentOperationRequest>({
-      methodId: "AgentNsfwConsentController_updateAgentConsent",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async agentRulesControllerArchiveRule(request: RealmAgentRulesControllerArchiveRuleOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmAgentRulesControllerArchiveRuleOperationResponse> {
-    return this.core.unary<RealmAgentRulesControllerArchiveRuleOperationResponse, RealmAgentRulesControllerArchiveRuleOperationRequest>({
-      methodId: "AgentRulesController_archiveRule",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async agentRulesControllerCreateRule(request: RealmAgentRulesControllerCreateRuleOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmAgentRulesControllerCreateRuleOperationResponse> {
-    return this.core.unary<RealmAgentRulesControllerCreateRuleOperationResponse, RealmAgentRulesControllerCreateRuleOperationRequest>({
-      methodId: "AgentRulesController_createRule",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async agentRulesControllerDeprecateRule(request: RealmAgentRulesControllerDeprecateRuleOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmAgentRulesControllerDeprecateRuleOperationResponse> {
-    return this.core.unary<RealmAgentRulesControllerDeprecateRuleOperationResponse, RealmAgentRulesControllerDeprecateRuleOperationRequest>({
-      methodId: "AgentRulesController_deprecateRule",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async agentRulesControllerListRules(request: RealmAgentRulesControllerListRulesOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmAgentRulesControllerListRulesOperationResponse> {
-    return this.core.unary<RealmAgentRulesControllerListRulesOperationResponse, RealmAgentRulesControllerListRulesOperationRequest>({
-      methodId: "AgentRulesController_listRules",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async agentRulesControllerUpdateRule(request: RealmAgentRulesControllerUpdateRuleOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmAgentRulesControllerUpdateRuleOperationResponse> {
-    return this.core.unary<RealmAgentRulesControllerUpdateRuleOperationResponse, RealmAgentRulesControllerUpdateRuleOperationRequest>({
-      methodId: "AgentRulesController_updateRule",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async applyCreatorWorldAgentAuthoringDraftBatch(request: RealmApplyCreatorWorldAgentAuthoringDraftBatchOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmApplyCreatorWorldAgentAuthoringDraftBatchOperationResponse> {
-    return this.core.unary<RealmApplyCreatorWorldAgentAuthoringDraftBatchOperationResponse, RealmApplyCreatorWorldAgentAuthoringDraftBatchOperationRequest>({
-      methodId: "applyCreatorWorldAgentAuthoringDraftBatch",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -8789,17 +4802,6 @@ export class RealmTypedClient {
     });
   }
 
-  async commitRealmGroupMessageCandidate(request: RealmCommitRealmGroupMessageCandidateOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmCommitRealmGroupMessageCandidateOperationResponse> {
-    return this.core.unary<RealmCommitRealmGroupMessageCandidateOperationResponse, RealmCommitRealmGroupMessageCandidateOperationRequest>({
-      methodId: "commitRealmGroupMessageCandidate",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
   async createAsset(request: RealmCreateAssetOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmCreateAssetOperationResponse> {
     return this.core.unary<RealmCreateAssetOperationResponse, RealmCreateAssetOperationRequest>({
       methodId: "createAsset",
@@ -8825,17 +4827,6 @@ export class RealmTypedClient {
   async createBundle(request: RealmCreateBundleOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmCreateBundleOperationResponse> {
     return this.core.unary<RealmCreateBundleOperationResponse, RealmCreateBundleOperationRequest>({
       methodId: "createBundle",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async createCreatorWorldAgentAuthoringDraftBatch(request: RealmCreateCreatorWorldAgentAuthoringDraftBatchOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmCreateCreatorWorldAgentAuthoringDraftBatchOperationResponse> {
-    return this.core.unary<RealmCreateCreatorWorldAgentAuthoringDraftBatchOperationResponse, RealmCreateCreatorWorldAgentAuthoringDraftBatchOperationRequest>({
-      methodId: "createCreatorWorldAgentAuthoringDraftBatch",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -8891,105 +4882,6 @@ export class RealmTypedClient {
   async createVideoDirectUpload(request: RealmCreateVideoDirectUploadOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmCreateVideoDirectUploadOperationResponse> {
     return this.core.unary<RealmCreateVideoDirectUploadOperationResponse, RealmCreateVideoDirectUploadOperationRequest>({
       methodId: "createVideoDirectUpload",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async creatorControllerBatchCreateAgents(request: RealmCreatorControllerBatchCreateAgentsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmCreatorControllerBatchCreateAgentsOperationResponse> {
-    return this.core.unary<RealmCreatorControllerBatchCreateAgentsOperationResponse, RealmCreatorControllerBatchCreateAgentsOperationRequest>({
-      methodId: "CreatorController_batchCreateAgents",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async creatorControllerCreateAgent(request: RealmCreatorControllerCreateAgentOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmCreatorControllerCreateAgentOperationResponse> {
-    return this.core.unary<RealmCreatorControllerCreateAgentOperationResponse, RealmCreatorControllerCreateAgentOperationRequest>({
-      methodId: "CreatorController_createAgent",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async creatorControllerCreateKey(request: RealmCreatorControllerCreateKeyOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmCreatorControllerCreateKeyOperationResponse> {
-    return this.core.unary<RealmCreatorControllerCreateKeyOperationResponse, RealmCreatorControllerCreateKeyOperationRequest>({
-      methodId: "CreatorController_createKey",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async creatorControllerDeleteAgent(request: RealmCreatorControllerDeleteAgentOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmCreatorControllerDeleteAgentOperationResponse> {
-    return this.core.unary<RealmCreatorControllerDeleteAgentOperationResponse, RealmCreatorControllerDeleteAgentOperationRequest>({
-      methodId: "CreatorController_deleteAgent",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async creatorControllerGetAgent(request: RealmCreatorControllerGetAgentOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmCreatorControllerGetAgentOperationResponse> {
-    return this.core.unary<RealmCreatorControllerGetAgentOperationResponse, RealmCreatorControllerGetAgentOperationRequest>({
-      methodId: "CreatorController_getAgent",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async creatorControllerListAgents(request: RealmCreatorControllerListAgentsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmCreatorControllerListAgentsOperationResponse> {
-    return this.core.unary<RealmCreatorControllerListAgentsOperationResponse, RealmCreatorControllerListAgentsOperationRequest>({
-      methodId: "CreatorController_listAgents",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async creatorControllerListKeys(request: RealmCreatorControllerListKeysOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmCreatorControllerListKeysOperationResponse> {
-    return this.core.unary<RealmCreatorControllerListKeysOperationResponse, RealmCreatorControllerListKeysOperationRequest>({
-      methodId: "CreatorController_listKeys",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async creatorControllerRevokeKey(request: RealmCreatorControllerRevokeKeyOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmCreatorControllerRevokeKeyOperationResponse> {
-    return this.core.unary<RealmCreatorControllerRevokeKeyOperationResponse, RealmCreatorControllerRevokeKeyOperationRequest>({
-      methodId: "CreatorController_revokeKey",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async creatorControllerUpdateAgent(request: RealmCreatorControllerUpdateAgentOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmCreatorControllerUpdateAgentOperationResponse> {
-    return this.core.unary<RealmCreatorControllerUpdateAgentOperationResponse, RealmCreatorControllerUpdateAgentOperationRequest>({
-      methodId: "CreatorController_updateAgent",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -9152,17 +5044,6 @@ export class RealmTypedClient {
     });
   }
 
-  async economyControllerGetAgentOrigin(request: RealmEconomyControllerGetAgentOriginOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmEconomyControllerGetAgentOriginOperationResponse> {
-    return this.core.unary<RealmEconomyControllerGetAgentOriginOperationResponse, RealmEconomyControllerGetAgentOriginOperationRequest>({
-      methodId: "EconomyController_getAgentOrigin",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
   async economyControllerGetBalances(request: RealmEconomyControllerGetBalancesOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmEconomyControllerGetBalancesOperationResponse> {
     return this.core.unary<RealmEconomyControllerGetBalancesOperationResponse, RealmEconomyControllerGetBalancesOperationRequest>({
       methodId: "EconomyController_getBalances",
@@ -9232,6 +5113,17 @@ export class RealmTypedClient {
   async economyControllerGetSentGifts(request: RealmEconomyControllerGetSentGiftsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmEconomyControllerGetSentGiftsOperationResponse> {
     return this.core.unary<RealmEconomyControllerGetSentGiftsOperationResponse, RealmEconomyControllerGetSentGiftsOperationRequest>({
       methodId: "EconomyController_getSentGifts",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async economyControllerGetSourceOrigin(request: RealmEconomyControllerGetSourceOriginOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmEconomyControllerGetSourceOriginOperationResponse> {
+    return this.core.unary<RealmEconomyControllerGetSourceOriginOperationResponse, RealmEconomyControllerGetSourceOriginOperationRequest>({
+      methodId: "EconomyController_getSourceOrigin",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -9416,94 +5308,6 @@ export class RealmTypedClient {
     });
   }
 
-  async forgeProductCatalogControllerGetAgentCandidates(request: RealmForgeProductCatalogControllerGetAgentCandidatesOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmForgeProductCatalogControllerGetAgentCandidatesOperationResponse> {
-    return this.core.unary<RealmForgeProductCatalogControllerGetAgentCandidatesOperationResponse, RealmForgeProductCatalogControllerGetAgentCandidatesOperationRequest>({
-      methodId: "ForgeProductCatalogController_getAgentCandidates",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async forgeProductCatalogControllerGetCatalog(request: RealmForgeProductCatalogControllerGetCatalogOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmForgeProductCatalogControllerGetCatalogOperationResponse> {
-    return this.core.unary<RealmForgeProductCatalogControllerGetCatalogOperationResponse, RealmForgeProductCatalogControllerGetCatalogOperationRequest>({
-      methodId: "ForgeProductCatalogController_getCatalog",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async forgeProductCatalogControllerGetProduct(request: RealmForgeProductCatalogControllerGetProductOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmForgeProductCatalogControllerGetProductOperationResponse> {
-    return this.core.unary<RealmForgeProductCatalogControllerGetProductOperationResponse, RealmForgeProductCatalogControllerGetProductOperationRequest>({
-      methodId: "ForgeProductCatalogController_getProduct",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async forgeProductCatalogControllerGetProductShard(request: RealmForgeProductCatalogControllerGetProductShardOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmForgeProductCatalogControllerGetProductShardOperationResponse> {
-    return this.core.unary<RealmForgeProductCatalogControllerGetProductShardOperationResponse, RealmForgeProductCatalogControllerGetProductShardOperationRequest>({
-      methodId: "ForgeProductCatalogController_getProductShard",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async forgeProductCatalogControllerGetProductShardIndex(request: RealmForgeProductCatalogControllerGetProductShardIndexOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmForgeProductCatalogControllerGetProductShardIndexOperationResponse> {
-    return this.core.unary<RealmForgeProductCatalogControllerGetProductShardIndexOperationResponse, RealmForgeProductCatalogControllerGetProductShardIndexOperationRequest>({
-      methodId: "ForgeProductCatalogController_getProductShardIndex",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async forgeProductCatalogControllerVerifyProductShards(request: RealmForgeProductCatalogControllerVerifyProductShardsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmForgeProductCatalogControllerVerifyProductShardsOperationResponse> {
-    return this.core.unary<RealmForgeProductCatalogControllerVerifyProductShardsOperationResponse, RealmForgeProductCatalogControllerVerifyProductShardsOperationRequest>({
-      methodId: "ForgeProductCatalogController_verifyProductShards",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async getAgent(request: RealmGetAgentOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetAgentOperationResponse> {
-    return this.core.unary<RealmGetAgentOperationResponse, RealmGetAgentOperationRequest>({
-      methodId: "getAgent",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async getAgentByHandle(request: RealmGetAgentByHandleOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetAgentByHandleOperationResponse> {
-    return this.core.unary<RealmGetAgentByHandleOperationResponse, RealmGetAgentByHandleOperationRequest>({
-      methodId: "getAgentByHandle",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
   async getAsset(request: RealmGetAssetOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetAssetOperationResponse> {
     return this.core.unary<RealmGetAssetOperationResponse, RealmGetAssetOperationRequest>({
       methodId: "getAsset",
@@ -9540,61 +5344,6 @@ export class RealmTypedClient {
   async getChatById(request: RealmGetChatByIdOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetChatByIdOperationResponse> {
     return this.core.unary<RealmGetChatByIdOperationResponse, RealmGetChatByIdOperationRequest>({
       methodId: "getChatById",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async getCreatorWorldAgent(request: RealmGetCreatorWorldAgentOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetCreatorWorldAgentOperationResponse> {
-    return this.core.unary<RealmGetCreatorWorldAgentOperationResponse, RealmGetCreatorWorldAgentOperationRequest>({
-      methodId: "getCreatorWorldAgent",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async getCreatorWorldAgentAuthoringGenerationContext(request: RealmGetCreatorWorldAgentAuthoringGenerationContextOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetCreatorWorldAgentAuthoringGenerationContextOperationResponse> {
-    return this.core.unary<RealmGetCreatorWorldAgentAuthoringGenerationContextOperationResponse, RealmGetCreatorWorldAgentAuthoringGenerationContextOperationRequest>({
-      methodId: "getCreatorWorldAgentAuthoringGenerationContext",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async getCreatorWorldAgentChatReadiness(request: RealmGetCreatorWorldAgentChatReadinessOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetCreatorWorldAgentChatReadinessOperationResponse> {
-    return this.core.unary<RealmGetCreatorWorldAgentChatReadinessOperationResponse, RealmGetCreatorWorldAgentChatReadinessOperationRequest>({
-      methodId: "getCreatorWorldAgentChatReadiness",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async getCreatorWorldAgentSettings(request: RealmGetCreatorWorldAgentSettingsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetCreatorWorldAgentSettingsOperationResponse> {
-    return this.core.unary<RealmGetCreatorWorldAgentSettingsOperationResponse, RealmGetCreatorWorldAgentSettingsOperationRequest>({
-      methodId: "getCreatorWorldAgentSettings",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async getCreatorWorldAgentSourceSkeleton(request: RealmGetCreatorWorldAgentSourceSkeletonOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetCreatorWorldAgentSourceSkeletonOperationResponse> {
-    return this.core.unary<RealmGetCreatorWorldAgentSourceSkeletonOperationResponse, RealmGetCreatorWorldAgentSourceSkeletonOperationRequest>({
-      methodId: "getCreatorWorldAgentSourceSkeleton",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -9669,17 +5418,6 @@ export class RealmTypedClient {
     });
   }
 
-  async getMyAgentFriendLimit(request: RealmGetMyAgentFriendLimitOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetMyAgentFriendLimitOperationResponse> {
-    return this.core.unary<RealmGetMyAgentFriendLimitOperationResponse, RealmGetMyAgentFriendLimitOperationRequest>({
-      methodId: "getMyAgentFriendLimit",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
   async getMyAppPermissionGrant(request: RealmGetMyAppPermissionGrantOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetMyAppPermissionGrantOperationResponse> {
     return this.core.unary<RealmGetMyAppPermissionGrantOperationResponse, RealmGetMyAppPermissionGrantOperationRequest>({
       methodId: "getMyAppPermissionGrant",
@@ -9691,9 +5429,9 @@ export class RealmTypedClient {
     });
   }
 
-  async getMyAppPermissionGrantProjection(request: RealmGetMyAppPermissionGrantProjectionOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetMyAppPermissionGrantProjectionOperationResponse> {
-    return this.core.unary<RealmGetMyAppPermissionGrantProjectionOperationResponse, RealmGetMyAppPermissionGrantProjectionOperationRequest>({
-      methodId: "getMyAppPermissionGrantProjection",
+  async getMyAppPermissionGrantStatus(request: RealmGetMyAppPermissionGrantStatusOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetMyAppPermissionGrantStatusOperationResponse> {
+    return this.core.unary<RealmGetMyAppPermissionGrantStatusOperationResponse, RealmGetMyAppPermissionGrantStatusOperationRequest>({
+      methodId: "getMyAppPermissionGrantStatus",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -9702,9 +5440,9 @@ export class RealmTypedClient {
     });
   }
 
-  async getMyAppPermissionGrantStatus(request: RealmGetMyAppPermissionGrantStatusOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetMyAppPermissionGrantStatusOperationResponse> {
-    return this.core.unary<RealmGetMyAppPermissionGrantStatusOperationResponse, RealmGetMyAppPermissionGrantStatusOperationRequest>({
-      methodId: "getMyAppPermissionGrantStatus",
+  async getMyAppPermissionGrantView(request: RealmGetMyAppPermissionGrantViewOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetMyAppPermissionGrantViewOperationResponse> {
+    return this.core.unary<RealmGetMyAppPermissionGrantViewOperationResponse, RealmGetMyAppPermissionGrantViewOperationRequest>({
+      methodId: "getMyAppPermissionGrantView",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -9771,28 +5509,6 @@ export class RealmTypedClient {
   async getMyPPConfig(request: RealmGetMyPPConfigOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetMyPPConfigOperationResponse> {
     return this.core.unary<RealmGetMyPPConfigOperationResponse, RealmGetMyPPConfigOperationRequest>({
       methodId: "getMyPPConfig",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async getMyRealmAgent(request: RealmGetMyRealmAgentOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetMyRealmAgentOperationResponse> {
-    return this.core.unary<RealmGetMyRealmAgentOperationResponse, RealmGetMyRealmAgentOperationRequest>({
-      methodId: "getMyRealmAgent",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async getMyRealmAgentSettings(request: RealmGetMyRealmAgentSettingsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetMyRealmAgentSettingsOperationResponse> {
-    return this.core.unary<RealmGetMyRealmAgentSettingsOperationResponse, RealmGetMyRealmAgentSettingsOperationRequest>({
-      methodId: "getMyRealmAgentSettings",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -9922,64 +5638,9 @@ export class RealmTypedClient {
     });
   }
 
-  async getWorldScenes(request: RealmGetWorldScenesOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetWorldScenesOperationResponse> {
-    return this.core.unary<RealmGetWorldScenesOperationResponse, RealmGetWorldScenesOperationRequest>({
-      methodId: "getWorldScenes",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
   async grantMyAppPermissionGrant(request: RealmGrantMyAppPermissionGrantOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGrantMyAppPermissionGrantOperationResponse> {
     return this.core.unary<RealmGrantMyAppPermissionGrantOperationResponse, RealmGrantMyAppPermissionGrantOperationRequest>({
       methodId: "grantMyAppPermissionGrant",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async humanNsfwConsentControllerCanManageAgentNsfw(request: RealmHumanNsfwConsentControllerCanManageAgentNsfwOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmHumanNsfwConsentControllerCanManageAgentNsfwOperationResponse> {
-    return this.core.unary<RealmHumanNsfwConsentControllerCanManageAgentNsfwOperationResponse, RealmHumanNsfwConsentControllerCanManageAgentNsfwOperationRequest>({
-      methodId: "HumanNsfwConsentController_canManageAgentNsfw",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async humanNsfwConsentControllerCheckConsent(request: RealmHumanNsfwConsentControllerCheckConsentOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmHumanNsfwConsentControllerCheckConsentOperationResponse> {
-    return this.core.unary<RealmHumanNsfwConsentControllerCheckConsentOperationResponse, RealmHumanNsfwConsentControllerCheckConsentOperationRequest>({
-      methodId: "HumanNsfwConsentController_checkConsent",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async humanNsfwConsentControllerGetConsentStatus(request: RealmHumanNsfwConsentControllerGetConsentStatusOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmHumanNsfwConsentControllerGetConsentStatusOperationResponse> {
-    return this.core.unary<RealmHumanNsfwConsentControllerGetConsentStatusOperationResponse, RealmHumanNsfwConsentControllerGetConsentStatusOperationRequest>({
-      methodId: "HumanNsfwConsentController_getConsentStatus",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async humanNsfwConsentControllerUpdateUserConsent(request: RealmHumanNsfwConsentControllerUpdateUserConsentOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmHumanNsfwConsentControllerUpdateUserConsentOperationResponse> {
-    return this.core.unary<RealmHumanNsfwConsentControllerUpdateUserConsentOperationResponse, RealmHumanNsfwConsentControllerUpdateUserConsentOperationRequest>({
-      methodId: "HumanNsfwConsentController_updateUserConsent",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -10098,28 +5759,6 @@ export class RealmTypedClient {
     });
   }
 
-  async listCreatorWorldAgentAuthoringDraftBatches(request: RealmListCreatorWorldAgentAuthoringDraftBatchesOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmListCreatorWorldAgentAuthoringDraftBatchesOperationResponse> {
-    return this.core.unary<RealmListCreatorWorldAgentAuthoringDraftBatchesOperationResponse, RealmListCreatorWorldAgentAuthoringDraftBatchesOperationRequest>({
-      methodId: "listCreatorWorldAgentAuthoringDraftBatches",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async listCreatorWorldAgents(request: RealmListCreatorWorldAgentsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmListCreatorWorldAgentsOperationResponse> {
-    return this.core.unary<RealmListCreatorWorldAgentsOperationResponse, RealmListCreatorWorldAgentsOperationRequest>({
-      methodId: "listCreatorWorldAgents",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
   async listGroupMessages(request: RealmListGroupMessagesOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmListGroupMessagesOperationResponse> {
     return this.core.unary<RealmListGroupMessagesOperationResponse, RealmListGroupMessagesOperationRequest>({
       methodId: "listGroupMessages",
@@ -10175,17 +5814,6 @@ export class RealmTypedClient {
     });
   }
 
-  async listMyCreatorWorlds(request: RealmListMyCreatorWorldsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmListMyCreatorWorldsOperationResponse> {
-    return this.core.unary<RealmListMyCreatorWorldsOperationResponse, RealmListMyCreatorWorldsOperationRequest>({
-      methodId: "listMyCreatorWorlds",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
   async listMyFriendIds(request: RealmListMyFriendIdsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmListMyFriendIdsOperationResponse> {
     return this.core.unary<RealmListMyFriendIdsOperationResponse, RealmListMyFriendIdsOperationRequest>({
       methodId: "listMyFriendIds",
@@ -10200,39 +5828,6 @@ export class RealmTypedClient {
   async listMyFriendsWithDetails(request: RealmListMyFriendsWithDetailsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmListMyFriendsWithDetailsOperationResponse> {
     return this.core.unary<RealmListMyFriendsWithDetailsOperationResponse, RealmListMyFriendsWithDetailsOperationRequest>({
       methodId: "listMyFriendsWithDetails",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async listMyLocalAgentProvisionIntents(request: RealmListMyLocalAgentProvisionIntentsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmListMyLocalAgentProvisionIntentsOperationResponse> {
-    return this.core.unary<RealmListMyLocalAgentProvisionIntentsOperationResponse, RealmListMyLocalAgentProvisionIntentsOperationRequest>({
-      methodId: "listMyLocalAgentProvisionIntents",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async listMyLocalAgentTerminationIntents(request: RealmListMyLocalAgentTerminationIntentsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmListMyLocalAgentTerminationIntentsOperationResponse> {
-    return this.core.unary<RealmListMyLocalAgentTerminationIntentsOperationResponse, RealmListMyLocalAgentTerminationIntentsOperationRequest>({
-      methodId: "listMyLocalAgentTerminationIntents",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async listMyRealmAgents(request: RealmListMyRealmAgentsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmListMyRealmAgentsOperationResponse> {
-    return this.core.unary<RealmListMyRealmAgentsOperationResponse, RealmListMyRealmAgentsOperationRequest>({
-      methodId: "listMyRealmAgents",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -10406,17 +6001,6 @@ export class RealmTypedClient {
     });
   }
 
-  async projectRuntimePayload(request: RealmProjectRuntimePayloadOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmProjectRuntimePayloadOperationResponse> {
-    return this.core.unary<RealmProjectRuntimePayloadOperationResponse, RealmProjectRuntimePayloadOperationRequest>({
-      methodId: "projectRuntimePayload",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
   async publishBundle(request: RealmPublishBundleOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmPublishBundleOperationResponse> {
     return this.core.unary<RealmPublishBundleOperationResponse, RealmPublishBundleOperationRequest>({
       methodId: "publishBundle",
@@ -10516,17 +6100,6 @@ export class RealmTypedClient {
     });
   }
 
-  async removeGroupAgent(request: RealmRemoveGroupAgentOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmRemoveGroupAgentOperationResponse> {
-    return this.core.unary<RealmRemoveGroupAgentOperationResponse, RealmRemoveGroupAgentOperationRequest>({
-      methodId: "removeGroupAgent",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
   async removeGroupParticipant(request: RealmRemoveGroupParticipantOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmRemoveGroupParticipantOperationResponse> {
     return this.core.unary<RealmRemoveGroupParticipantOperationResponse, RealmRemoveGroupParticipantOperationRequest>({
       methodId: "removeGroupParticipant",
@@ -10607,17 +6180,6 @@ export class RealmTypedClient {
   async reviewControllerGetReviews(request: RealmReviewControllerGetReviewsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmReviewControllerGetReviewsOperationResponse> {
     return this.core.unary<RealmReviewControllerGetReviewsOperationResponse, RealmReviewControllerGetReviewsOperationRequest>({
       methodId: "ReviewController_getReviews",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async reviewCreatorWorldAgentAuthoringDraftCandidate(request: RealmReviewCreatorWorldAgentAuthoringDraftCandidateOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmReviewCreatorWorldAgentAuthoringDraftCandidateOperationResponse> {
-    return this.core.unary<RealmReviewCreatorWorldAgentAuthoringDraftCandidateOperationResponse, RealmReviewCreatorWorldAgentAuthoringDraftCandidateOperationRequest>({
-      methodId: "reviewCreatorWorldAgentAuthoringDraftCandidate",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -10868,39 +6430,6 @@ export class RealmTypedClient {
     });
   }
 
-  async updateCreatorWorldAgentProfileMedia(request: RealmUpdateCreatorWorldAgentProfileMediaOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmUpdateCreatorWorldAgentProfileMediaOperationResponse> {
-    return this.core.unary<RealmUpdateCreatorWorldAgentProfileMediaOperationResponse, RealmUpdateCreatorWorldAgentProfileMediaOperationRequest>({
-      methodId: "updateCreatorWorldAgentProfileMedia",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async updateCreatorWorldAgentSettings(request: RealmUpdateCreatorWorldAgentSettingsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmUpdateCreatorWorldAgentSettingsOperationResponse> {
-    return this.core.unary<RealmUpdateCreatorWorldAgentSettingsOperationResponse, RealmUpdateCreatorWorldAgentSettingsOperationRequest>({
-      methodId: "updateCreatorWorldAgentSettings",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async updateCreatorWorldAgentVoice(request: RealmUpdateCreatorWorldAgentVoiceOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmUpdateCreatorWorldAgentVoiceOperationResponse> {
-    return this.core.unary<RealmUpdateCreatorWorldAgentVoiceOperationResponse, RealmUpdateCreatorWorldAgentVoiceOperationRequest>({
-      methodId: "updateCreatorWorldAgentVoice",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
   async updateGroup(request: RealmUpdateGroupOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmUpdateGroupOperationResponse> {
     return this.core.unary<RealmUpdateGroupOperationResponse, RealmUpdateGroupOperationRequest>({
       methodId: "updateGroup",
@@ -10967,17 +6496,6 @@ export class RealmTypedClient {
     });
   }
 
-  async updateMyRealmAgentSettings(request: RealmUpdateMyRealmAgentSettingsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmUpdateMyRealmAgentSettingsOperationResponse> {
-    return this.core.unary<RealmUpdateMyRealmAgentSettingsOperationResponse, RealmUpdateMyRealmAgentSettingsOperationRequest>({
-      methodId: "updateMyRealmAgentSettings",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
   async updateMySettings(request: RealmUpdateMySettingsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmUpdateMySettingsOperationResponse> {
     return this.core.unary<RealmUpdateMySettingsOperationResponse, RealmUpdateMySettingsOperationRequest>({
       methodId: "updateMySettings",
@@ -11014,72 +6532,6 @@ export class RealmTypedClient {
   async updateResource(request: RealmUpdateResourceOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmUpdateResourceOperationResponse> {
     return this.core.unary<RealmUpdateResourceOperationResponse, RealmUpdateResourceOperationRequest>({
       methodId: "updateResource",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async v1DefaultVisibilityControllerApplyAgentDefaults(request: RealmV1DefaultVisibilityControllerApplyAgentDefaultsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmV1DefaultVisibilityControllerApplyAgentDefaultsOperationResponse> {
-    return this.core.unary<RealmV1DefaultVisibilityControllerApplyAgentDefaultsOperationResponse, RealmV1DefaultVisibilityControllerApplyAgentDefaultsOperationRequest>({
-      methodId: "V1DefaultVisibilityController_applyAgentDefaults",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async v1DefaultVisibilityControllerApplyUserDefaults(request: RealmV1DefaultVisibilityControllerApplyUserDefaultsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmV1DefaultVisibilityControllerApplyUserDefaultsOperationResponse> {
-    return this.core.unary<RealmV1DefaultVisibilityControllerApplyUserDefaultsOperationResponse, RealmV1DefaultVisibilityControllerApplyUserDefaultsOperationRequest>({
-      methodId: "V1DefaultVisibilityController_applyUserDefaults",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async v1DefaultVisibilityControllerGetDefaultForScope(request: RealmV1DefaultVisibilityControllerGetDefaultForScopeOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmV1DefaultVisibilityControllerGetDefaultForScopeOperationResponse> {
-    return this.core.unary<RealmV1DefaultVisibilityControllerGetDefaultForScopeOperationResponse, RealmV1DefaultVisibilityControllerGetDefaultForScopeOperationRequest>({
-      methodId: "V1DefaultVisibilityController_getDefaultForScope",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async v1DefaultVisibilityControllerGetDefaultVisibility(request: RealmV1DefaultVisibilityControllerGetDefaultVisibilityOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmV1DefaultVisibilityControllerGetDefaultVisibilityOperationResponse> {
-    return this.core.unary<RealmV1DefaultVisibilityControllerGetDefaultVisibilityOperationResponse, RealmV1DefaultVisibilityControllerGetDefaultVisibilityOperationRequest>({
-      methodId: "V1DefaultVisibilityController_getDefaultVisibility",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async v1DefaultVisibilityControllerValidateAgentVisibility(request: RealmV1DefaultVisibilityControllerValidateAgentVisibilityOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmV1DefaultVisibilityControllerValidateAgentVisibilityOperationResponse> {
-    return this.core.unary<RealmV1DefaultVisibilityControllerValidateAgentVisibilityOperationResponse, RealmV1DefaultVisibilityControllerValidateAgentVisibilityOperationRequest>({
-      methodId: "V1DefaultVisibilityController_validateAgentVisibility",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async v1DefaultVisibilityControllerValidateUserVisibility(request: RealmV1DefaultVisibilityControllerValidateUserVisibilityOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmV1DefaultVisibilityControllerValidateUserVisibilityOperationResponse> {
-    return this.core.unary<RealmV1DefaultVisibilityControllerValidateUserVisibilityOperationResponse, RealmV1DefaultVisibilityControllerValidateUserVisibilityOperationRequest>({
-      methodId: "V1DefaultVisibilityController_validateUserVisibility",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -11132,9 +6584,9 @@ export class RealmTypedClient {
     });
   }
 
-  async worldControlControllerAppendWorldHistory(request: RealmWorldControlControllerAppendWorldHistoryOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldControlControllerAppendWorldHistoryOperationResponse> {
-    return this.core.unary<RealmWorldControlControllerAppendWorldHistoryOperationResponse, RealmWorldControlControllerAppendWorldHistoryOperationRequest>({
-      methodId: "WorldControlController_appendWorldHistory",
+  async worldCoreControllerBootstrapOasisWorld(request: RealmWorldCoreControllerBootstrapOasisWorldOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerBootstrapOasisWorldOperationResponse> {
+    return this.core.unary<RealmWorldCoreControllerBootstrapOasisWorldOperationResponse, RealmWorldCoreControllerBootstrapOasisWorldOperationRequest>({
+      methodId: "WorldCoreController_bootstrapOasisWorld",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -11143,9 +6595,9 @@ export class RealmTypedClient {
     });
   }
 
-  async worldControlControllerBatchUpsertWorldBindings(request: RealmWorldControlControllerBatchUpsertWorldBindingsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldControlControllerBatchUpsertWorldBindingsOperationResponse> {
-    return this.core.unary<RealmWorldControlControllerBatchUpsertWorldBindingsOperationResponse, RealmWorldControlControllerBatchUpsertWorldBindingsOperationRequest>({
-      methodId: "WorldControlController_batchUpsertWorldBindings",
+  async worldCoreControllerCreateRealmPersona(request: RealmWorldCoreControllerCreateRealmPersonaOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerCreateRealmPersonaOperationResponse> {
+    return this.core.unary<RealmWorldCoreControllerCreateRealmPersonaOperationResponse, RealmWorldCoreControllerCreateRealmPersonaOperationRequest>({
+      methodId: "WorldCoreController_createRealmPersona",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -11154,9 +6606,9 @@ export class RealmTypedClient {
     });
   }
 
-  async worldControlControllerCommitState(request: RealmWorldControlControllerCommitStateOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldControlControllerCommitStateOperationResponse> {
-    return this.core.unary<RealmWorldControlControllerCommitStateOperationResponse, RealmWorldControlControllerCommitStateOperationRequest>({
-      methodId: "WorldControlController_commitState",
+  async worldCoreControllerCreateRuntimeSourceSnapshot(request: RealmWorldCoreControllerCreateRuntimeSourceSnapshotOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerCreateRuntimeSourceSnapshotOperationResponse> {
+    return this.core.unary<RealmWorldCoreControllerCreateRuntimeSourceSnapshotOperationResponse, RealmWorldCoreControllerCreateRuntimeSourceSnapshotOperationRequest>({
+      methodId: "WorldCoreController_createRuntimeSourceSnapshot",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -11165,9 +6617,9 @@ export class RealmTypedClient {
     });
   }
 
-  async worldControlControllerCreateDraft(request: RealmWorldControlControllerCreateDraftOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldControlControllerCreateDraftOperationResponse> {
-    return this.core.unary<RealmWorldControlControllerCreateDraftOperationResponse, RealmWorldControlControllerCreateDraftOperationRequest>({
-      methodId: "WorldControlController_createDraft",
+  async worldCoreControllerCreateWorldCharacter(request: RealmWorldCoreControllerCreateWorldCharacterOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerCreateWorldCharacterOperationResponse> {
+    return this.core.unary<RealmWorldCoreControllerCreateWorldCharacterOperationResponse, RealmWorldCoreControllerCreateWorldCharacterOperationRequest>({
+      methodId: "WorldCoreController_createWorldCharacter",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -11176,9 +6628,9 @@ export class RealmTypedClient {
     });
   }
 
-  async worldControlControllerDeleteWorldBinding(request: RealmWorldControlControllerDeleteWorldBindingOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldControlControllerDeleteWorldBindingOperationResponse> {
-    return this.core.unary<RealmWorldControlControllerDeleteWorldBindingOperationResponse, RealmWorldControlControllerDeleteWorldBindingOperationRequest>({
-      methodId: "WorldControlController_deleteWorldBinding",
+  async worldCoreControllerCreateWorldCore(request: RealmWorldCoreControllerCreateWorldCoreOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerCreateWorldCoreOperationResponse> {
+    return this.core.unary<RealmWorldCoreControllerCreateWorldCoreOperationResponse, RealmWorldCoreControllerCreateWorldCoreOperationRequest>({
+      methodId: "WorldCoreController_createWorldCore",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -11187,9 +6639,9 @@ export class RealmTypedClient {
     });
   }
 
-  async worldControlControllerGetDraft(request: RealmWorldControlControllerGetDraftOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldControlControllerGetDraftOperationResponse> {
-    return this.core.unary<RealmWorldControlControllerGetDraftOperationResponse, RealmWorldControlControllerGetDraftOperationRequest>({
-      methodId: "WorldControlController_getDraft",
+  async worldCoreControllerGetOasisWorld(request: RealmWorldCoreControllerGetOasisWorldOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerGetOasisWorldOperationResponse> {
+    return this.core.unary<RealmWorldCoreControllerGetOasisWorldOperationResponse, RealmWorldCoreControllerGetOasisWorldOperationRequest>({
+      methodId: "WorldCoreController_getOasisWorld",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -11198,9 +6650,9 @@ export class RealmTypedClient {
     });
   }
 
-  async worldControlControllerGetMyAccess(request: RealmWorldControlControllerGetMyAccessOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldControlControllerGetMyAccessOperationResponse> {
-    return this.core.unary<RealmWorldControlControllerGetMyAccessOperationResponse, RealmWorldControlControllerGetMyAccessOperationRequest>({
-      methodId: "WorldControlController_getMyAccess",
+  async worldCoreControllerGetRealmPersona(request: RealmWorldCoreControllerGetRealmPersonaOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerGetRealmPersonaOperationResponse> {
+    return this.core.unary<RealmWorldCoreControllerGetRealmPersonaOperationResponse, RealmWorldCoreControllerGetRealmPersonaOperationRequest>({
+      methodId: "WorldCoreController_getRealmPersona",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -11209,9 +6661,9 @@ export class RealmTypedClient {
     });
   }
 
-  async worldControlControllerGetState(request: RealmWorldControlControllerGetStateOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldControlControllerGetStateOperationResponse> {
-    return this.core.unary<RealmWorldControlControllerGetStateOperationResponse, RealmWorldControlControllerGetStateOperationRequest>({
-      methodId: "WorldControlController_getState",
+  async worldCoreControllerGetWorldCharacter(request: RealmWorldCoreControllerGetWorldCharacterOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerGetWorldCharacterOperationResponse> {
+    return this.core.unary<RealmWorldCoreControllerGetWorldCharacterOperationResponse, RealmWorldCoreControllerGetWorldCharacterOperationRequest>({
+      methodId: "WorldCoreController_getWorldCharacter",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -11220,9 +6672,9 @@ export class RealmTypedClient {
     });
   }
 
-  async worldControlControllerListDrafts(request: RealmWorldControlControllerListDraftsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldControlControllerListDraftsOperationResponse> {
-    return this.core.unary<RealmWorldControlControllerListDraftsOperationResponse, RealmWorldControlControllerListDraftsOperationRequest>({
-      methodId: "WorldControlController_listDrafts",
+  async worldCoreControllerGetWorldCore(request: RealmWorldCoreControllerGetWorldCoreOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerGetWorldCoreOperationResponse> {
+    return this.core.unary<RealmWorldCoreControllerGetWorldCoreOperationResponse, RealmWorldCoreControllerGetWorldCoreOperationRequest>({
+      methodId: "WorldCoreController_getWorldCore",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -11231,9 +6683,9 @@ export class RealmTypedClient {
     });
   }
 
-  async worldControlControllerListMyWorlds(request: RealmWorldControlControllerListMyWorldsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldControlControllerListMyWorldsOperationResponse> {
-    return this.core.unary<RealmWorldControlControllerListMyWorldsOperationResponse, RealmWorldControlControllerListMyWorldsOperationRequest>({
-      methodId: "WorldControlController_listMyWorlds",
+  async worldCoreControllerListRealmPersonas(request: RealmWorldCoreControllerListRealmPersonasOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerListRealmPersonasOperationResponse> {
+    return this.core.unary<RealmWorldCoreControllerListRealmPersonasOperationResponse, RealmWorldCoreControllerListRealmPersonasOperationRequest>({
+      methodId: "WorldCoreController_listRealmPersonas",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -11242,9 +6694,9 @@ export class RealmTypedClient {
     });
   }
 
-  async worldControlControllerListWorldBindings(request: RealmWorldControlControllerListWorldBindingsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldControlControllerListWorldBindingsOperationResponse> {
-    return this.core.unary<RealmWorldControlControllerListWorldBindingsOperationResponse, RealmWorldControlControllerListWorldBindingsOperationRequest>({
-      methodId: "WorldControlController_listWorldBindings",
+  async worldCoreControllerListWorldCharacters(request: RealmWorldCoreControllerListWorldCharactersOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerListWorldCharactersOperationResponse> {
+    return this.core.unary<RealmWorldCoreControllerListWorldCharactersOperationResponse, RealmWorldCoreControllerListWorldCharactersOperationRequest>({
+      methodId: "WorldCoreController_listWorldCharacters",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -11253,9 +6705,9 @@ export class RealmTypedClient {
     });
   }
 
-  async worldControlControllerListWorldHistory(request: RealmWorldControlControllerListWorldHistoryOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldControlControllerListWorldHistoryOperationResponse> {
-    return this.core.unary<RealmWorldControlControllerListWorldHistoryOperationResponse, RealmWorldControlControllerListWorldHistoryOperationRequest>({
-      methodId: "WorldControlController_listWorldHistory",
+  async worldCoreControllerListWorldCores(request: RealmWorldCoreControllerListWorldCoresOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerListWorldCoresOperationResponse> {
+    return this.core.unary<RealmWorldCoreControllerListWorldCoresOperationResponse, RealmWorldCoreControllerListWorldCoresOperationRequest>({
+      methodId: "WorldCoreController_listWorldCores",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -11264,9 +6716,9 @@ export class RealmTypedClient {
     });
   }
 
-  async worldControlControllerListWorldLorebooks(request: RealmWorldControlControllerListWorldLorebooksOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldControlControllerListWorldLorebooksOperationResponse> {
-    return this.core.unary<RealmWorldControlControllerListWorldLorebooksOperationResponse, RealmWorldControlControllerListWorldLorebooksOperationRequest>({
-      methodId: "WorldControlController_listWorldLorebooks",
+  async worldCoreControllerReplaceRealmPersona(request: RealmWorldCoreControllerReplaceRealmPersonaOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerReplaceRealmPersonaOperationResponse> {
+    return this.core.unary<RealmWorldCoreControllerReplaceRealmPersonaOperationResponse, RealmWorldCoreControllerReplaceRealmPersonaOperationRequest>({
+      methodId: "WorldCoreController_replaceRealmPersona",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -11275,9 +6727,9 @@ export class RealmTypedClient {
     });
   }
 
-  async worldControlControllerPublishDraft(request: RealmWorldControlControllerPublishDraftOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldControlControllerPublishDraftOperationResponse> {
-    return this.core.unary<RealmWorldControlControllerPublishDraftOperationResponse, RealmWorldControlControllerPublishDraftOperationRequest>({
-      methodId: "WorldControlController_publishDraft",
+  async worldCoreControllerReplaceWorldCharacter(request: RealmWorldCoreControllerReplaceWorldCharacterOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerReplaceWorldCharacterOperationResponse> {
+    return this.core.unary<RealmWorldCoreControllerReplaceWorldCharacterOperationResponse, RealmWorldCoreControllerReplaceWorldCharacterOperationRequest>({
+      methodId: "WorldCoreController_replaceWorldCharacter",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -11286,240 +6738,9 @@ export class RealmTypedClient {
     });
   }
 
-  async worldControlControllerResolveLanding(request: RealmWorldControlControllerResolveLandingOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldControlControllerResolveLandingOperationResponse> {
-    return this.core.unary<RealmWorldControlControllerResolveLandingOperationResponse, RealmWorldControlControllerResolveLandingOperationRequest>({
-      methodId: "WorldControlController_resolveLanding",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async worldControlControllerUpdateDraft(request: RealmWorldControlControllerUpdateDraftOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldControlControllerUpdateDraftOperationResponse> {
-    return this.core.unary<RealmWorldControlControllerUpdateDraftOperationResponse, RealmWorldControlControllerUpdateDraftOperationRequest>({
-      methodId: "WorldControlController_updateDraft",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async worldControllerGetMainWorld(request: RealmWorldControllerGetMainWorldOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldControllerGetMainWorldOperationResponse> {
-    return this.core.unary<RealmWorldControllerGetMainWorldOperationResponse, RealmWorldControllerGetMainWorldOperationRequest>({
-      methodId: "WorldController_getMainWorld",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async worldControllerGetWorld(request: RealmWorldControllerGetWorldOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldControllerGetWorldOperationResponse> {
-    return this.core.unary<RealmWorldControllerGetWorldOperationResponse, RealmWorldControllerGetWorldOperationRequest>({
-      methodId: "WorldController_getWorld",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async worldControllerGetWorldAgents(request: RealmWorldControllerGetWorldAgentsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldControllerGetWorldAgentsOperationResponse> {
-    return this.core.unary<RealmWorldControllerGetWorldAgentsOperationResponse, RealmWorldControllerGetWorldAgentsOperationRequest>({
-      methodId: "WorldController_getWorldAgents",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async worldControllerGetWorldBindings(request: RealmWorldControllerGetWorldBindingsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldControllerGetWorldBindingsOperationResponse> {
-    return this.core.unary<RealmWorldControllerGetWorldBindingsOperationResponse, RealmWorldControllerGetWorldBindingsOperationRequest>({
-      methodId: "WorldController_getWorldBindings",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async worldControllerGetWorldDetailWithAgents(request: RealmWorldControllerGetWorldDetailWithAgentsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldControllerGetWorldDetailWithAgentsOperationResponse> {
-    return this.core.unary<RealmWorldControllerGetWorldDetailWithAgentsOperationResponse, RealmWorldControllerGetWorldDetailWithAgentsOperationRequest>({
-      methodId: "WorldController_getWorldDetailWithAgents",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async worldControllerGetWorldHistory(request: RealmWorldControllerGetWorldHistoryOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldControllerGetWorldHistoryOperationResponse> {
-    return this.core.unary<RealmWorldControllerGetWorldHistoryOperationResponse, RealmWorldControllerGetWorldHistoryOperationRequest>({
-      methodId: "WorldController_getWorldHistory",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async worldControllerGetWorldLevelAudits(request: RealmWorldControllerGetWorldLevelAuditsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldControllerGetWorldLevelAuditsOperationResponse> {
-    return this.core.unary<RealmWorldControllerGetWorldLevelAuditsOperationResponse, RealmWorldControllerGetWorldLevelAuditsOperationRequest>({
-      methodId: "WorldController_getWorldLevelAudits",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async worldControllerGetWorldLorebooks(request: RealmWorldControllerGetWorldLorebooksOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldControllerGetWorldLorebooksOperationResponse> {
-    return this.core.unary<RealmWorldControllerGetWorldLorebooksOperationResponse, RealmWorldControllerGetWorldLorebooksOperationRequest>({
-      methodId: "WorldController_getWorldLorebooks",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async worldControllerGetWorldview(request: RealmWorldControllerGetWorldviewOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldControllerGetWorldviewOperationResponse> {
-    return this.core.unary<RealmWorldControllerGetWorldviewOperationResponse, RealmWorldControllerGetWorldviewOperationRequest>({
-      methodId: "WorldController_getWorldview",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async worldControllerListWorlds(request: RealmWorldControllerListWorldsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldControllerListWorldsOperationResponse> {
-    return this.core.unary<RealmWorldControllerListWorldsOperationResponse, RealmWorldControllerListWorldsOperationRequest>({
-      methodId: "WorldController_listWorlds",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async worldControllerReturnToMainWorld(request: RealmWorldControllerReturnToMainWorldOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldControllerReturnToMainWorldOperationResponse> {
-    return this.core.unary<RealmWorldControllerReturnToMainWorldOperationResponse, RealmWorldControllerReturnToMainWorldOperationRequest>({
-      methodId: "WorldController_returnToMainWorld",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async worldControllerTransitToWorld(request: RealmWorldControllerTransitToWorldOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldControllerTransitToWorldOperationResponse> {
-    return this.core.unary<RealmWorldControllerTransitToWorldOperationResponse, RealmWorldControllerTransitToWorldOperationRequest>({
-      methodId: "WorldController_transitToWorld",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async worldRulesControllerArchiveRule(request: RealmWorldRulesControllerArchiveRuleOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldRulesControllerArchiveRuleOperationResponse> {
-    return this.core.unary<RealmWorldRulesControllerArchiveRuleOperationResponse, RealmWorldRulesControllerArchiveRuleOperationRequest>({
-      methodId: "WorldRulesController_archiveRule",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async worldRulesControllerCheckPermission(request: RealmWorldRulesControllerCheckPermissionOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldRulesControllerCheckPermissionOperationResponse> {
-    return this.core.unary<RealmWorldRulesControllerCheckPermissionOperationResponse, RealmWorldRulesControllerCheckPermissionOperationRequest>({
-      methodId: "WorldRulesController_checkPermission",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async worldRulesControllerCreateRule(request: RealmWorldRulesControllerCreateRuleOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldRulesControllerCreateRuleOperationResponse> {
-    return this.core.unary<RealmWorldRulesControllerCreateRuleOperationResponse, RealmWorldRulesControllerCreateRuleOperationRequest>({
-      methodId: "WorldRulesController_createRule",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async worldRulesControllerDeprecateRule(request: RealmWorldRulesControllerDeprecateRuleOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldRulesControllerDeprecateRuleOperationResponse> {
-    return this.core.unary<RealmWorldRulesControllerDeprecateRuleOperationResponse, RealmWorldRulesControllerDeprecateRuleOperationRequest>({
-      methodId: "WorldRulesController_deprecateRule",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async worldRulesControllerGetCreatorCapabilities(request: RealmWorldRulesControllerGetCreatorCapabilitiesOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldRulesControllerGetCreatorCapabilitiesOperationResponse> {
-    return this.core.unary<RealmWorldRulesControllerGetCreatorCapabilitiesOperationResponse, RealmWorldRulesControllerGetCreatorCapabilitiesOperationRequest>({
-      methodId: "WorldRulesController_getCreatorCapabilities",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async worldRulesControllerGetRules(request: RealmWorldRulesControllerGetRulesOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldRulesControllerGetRulesOperationResponse> {
-    return this.core.unary<RealmWorldRulesControllerGetRulesOperationResponse, RealmWorldRulesControllerGetRulesOperationRequest>({
-      methodId: "WorldRulesController_getRules",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async worldRulesControllerUpdateRule(request: RealmWorldRulesControllerUpdateRuleOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldRulesControllerUpdateRuleOperationResponse> {
-    return this.core.unary<RealmWorldRulesControllerUpdateRuleOperationResponse, RealmWorldRulesControllerUpdateRuleOperationRequest>({
-      methodId: "WorldRulesController_updateRule",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async worldRulesControllerValidateRules(request: RealmWorldRulesControllerValidateRulesOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldRulesControllerValidateRulesOperationResponse> {
-    return this.core.unary<RealmWorldRulesControllerValidateRulesOperationResponse, RealmWorldRulesControllerValidateRulesOperationRequest>({
-      methodId: "WorldRulesController_validateRules",
+  async worldCoreControllerReplaceWorldCore(request: RealmWorldCoreControllerReplaceWorldCoreOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerReplaceWorldCoreOperationResponse> {
+    return this.core.unary<RealmWorldCoreControllerReplaceWorldCoreOperationResponse, RealmWorldCoreControllerReplaceWorldCoreOperationRequest>({
+      methodId: "WorldCoreController_replaceWorldCore",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,

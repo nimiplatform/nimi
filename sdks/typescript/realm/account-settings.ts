@@ -23,16 +23,16 @@ export type NimiRealmUpdatePasswordInput = UpdatePasswordRequestDto;
 export type NimiRealmTwoFactorPrepareOutput = Me2faPrepareResponseDto;
 export type NimiRealmTwoFactorVerifyInput = Me2faVerifyDto;
 
-export interface NimiRealmPasswordUpdateProjection {
+export interface NimiRealmPasswordUpdateView {
   readonly ok: true;
 }
 
-export interface NimiRealmTwoFactorProjection {
+export interface NimiRealmTwoFactorView {
   readonly enabled: boolean;
   readonly success: boolean;
 }
 
-export interface NimiRealmOAuthLinkProjection {
+export interface NimiRealmOAuthLinkView {
   readonly linked: boolean;
 }
 
@@ -97,7 +97,7 @@ export async function updateNimiRealmPassword(
   realm: NimiRealmAccountSettingsApi,
   input: NimiRealmUpdatePasswordInput,
   options?: RealmTypedCallOptions,
-): Promise<NimiRealmPasswordUpdateProjection> {
+): Promise<NimiRealmPasswordUpdateView> {
   await realm.auth.updatePassword({ path: {}, body: input }, options);
   return { ok: true };
 }
@@ -121,7 +121,7 @@ export async function enableNimiRealmTwoFactor(
   realm: NimiRealmAccountSettingsApi,
   input: NimiRealmTwoFactorVerifyInput,
   options?: RealmTypedCallOptions,
-): Promise<NimiRealmTwoFactorProjection> {
+): Promise<NimiRealmTwoFactorView> {
   const response = await realm.auth.enable2Fa({ path: {}, body: input }, options);
   return normalizeTwoFactorOperationResult(response, true);
 }
@@ -130,7 +130,7 @@ export async function disableNimiRealmTwoFactor(
   realm: NimiRealmAccountSettingsApi,
   input: NimiRealmTwoFactorVerifyInput,
   options?: RealmTypedCallOptions,
-): Promise<NimiRealmTwoFactorProjection> {
+): Promise<NimiRealmTwoFactorView> {
   const response = await realm.auth.disable2Fa({ path: {}, body: input }, options);
   return normalizeTwoFactorOperationResult(response, false);
 }
@@ -140,7 +140,7 @@ export async function linkNimiRealmOAuth(
   provider: OAuthProvider,
   accessToken: string,
   options?: RealmTypedCallOptions,
-): Promise<NimiRealmOAuthLinkProjection> {
+): Promise<NimiRealmOAuthLinkView> {
   await realm.auth.linkOauth({ path: {}, body: { provider, accessToken } }, options);
   return { linked: true };
 }
@@ -149,7 +149,7 @@ export async function unlinkNimiRealmOAuth(
   realm: NimiRealmAccountSettingsApi,
   provider: OAuthProvider,
   options?: RealmTypedCallOptions,
-): Promise<NimiRealmOAuthLinkProjection> {
+): Promise<NimiRealmOAuthLinkView> {
   await realm.auth.unlinkOauth({ path: { provider } }, options);
   return { linked: false };
 }
@@ -157,7 +157,7 @@ export async function unlinkNimiRealmOAuth(
 function normalizeTwoFactorOperationResult(
   response: Me2faOperationResultDto,
   enabled: boolean,
-): NimiRealmTwoFactorProjection {
+): NimiRealmTwoFactorView {
   if (response.success !== true) {
     throw accountSettingsError({
       reasonCode: 'SDK_REALM_TWO_FACTOR_OPERATION_REJECTED',

@@ -23,8 +23,8 @@ import type {
 import { MemoryBankScope as RuntimeMemoryBankScope } from '../../core-generated/runtime-typed-client';
 import type { RuntimeTypedCallOptions } from '../../core-generated/runtime-typed-client';
 import { dataPart, type NimiDataPart, type NimiJsonObject, type NimiJsonValue } from '../../core/contracts';
-import type { NimiAgentContextProvider, NimiAgentContextQuery } from '../../core/agent';
-import { resolveNimiAgentContextQuery } from '../../core/agent';
+import type { NimiAiContextProvider, NimiAiContextQuery } from '../../core/ai-runner';
+import { resolveNimiAiContextQuery } from '../../core/ai-runner';
 import { createNimiError } from '../../types';
 
 export interface NimiMemorySnippet {
@@ -127,10 +127,10 @@ export interface NimiRuntimeMemoryContextClient {
   subscribeEvents?(cursor?: string): AsyncIterable<MemoryEvent>;
 }
 
-export interface NimiRuntimeMemoryAgentContextProviderOptions {
+export interface NimiRuntimeMemoryAiContextProviderOptions {
   readonly id?: string;
   readonly client: NimiRuntimeMemoryContextClient;
-  readonly query?: NimiAgentContextQuery;
+  readonly query?: NimiAiContextQuery;
   readonly recall?: Omit<NimiRuntimeMemoryRecallOptions, 'query'>;
 }
 
@@ -248,18 +248,18 @@ export function createNimiRuntimeMemoryContextClient(
   };
 }
 
-export function createNimiRuntimeMemoryAgentContextProvider(
-  options: NimiRuntimeMemoryAgentContextProviderOptions,
-): NimiAgentContextProvider {
+export function createNimiRuntimeMemoryAiContextProvider(
+  options: NimiRuntimeMemoryAiContextProviderOptions,
+): NimiAiContextProvider {
   return {
     id: normalizeText(options.id) || 'runtime-memory-context',
     async load(input) {
-      const query = await resolveNimiAgentContextQuery(options.query, input);
+      const query = await resolveNimiAiContextQuery(options.query, input);
       if (!query) {
         throw memoryContextError(
-          'SDK_MEMORY_AGENT_CONTEXT_QUERY_REQUIRED',
-          'Runtime memory agent context provider requires a query or a user message',
-          'provide_memory_agent_context_query',
+          'SDK_MEMORY_AI_CONTEXT_QUERY_REQUIRED',
+          'Runtime memory AI context provider requires a query or a user message',
+          'provide_memory_ai_context_query',
         );
       }
       return [

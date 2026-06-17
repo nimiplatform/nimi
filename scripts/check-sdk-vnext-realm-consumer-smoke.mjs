@@ -48,7 +48,7 @@ import {
   createRealm,
   createNimiRealmPermissionTransport,
   REALM_AUTH_METHODS,
-  REALM_WORLD_METHODS,
+  REALM_WORLD_CORE_METHODS,
 } from '@nimiplatform/sdk/realm';
 import {
   createAppScopeRef,
@@ -75,7 +75,22 @@ const transport = {
   async unary(request) {
     lastRequest = request;
     if (request.methodId === 'getMe') return { id: 'user-1', status: 'ACTIVE' };
-    if (request.methodId === 'WorldController_getMainWorld') return { id: 'world-1' };
+    if (request.methodId === 'WorldCoreController_getOasisWorld') {
+      return {
+        id: 'world-oasis',
+        slug: 'oasis',
+        title: 'OASIS',
+        type: 'OASIS',
+        schemaVersion: 'world-core/v1',
+        createdByAccountId: 'system',
+        status: 'ACTIVE',
+        isOfficial: true,
+        timeModel: { kind: 'relative' },
+        sourceRefs: [],
+        createdAt: '2026-06-10T00:00:00.000Z',
+        updatedAt: '2026-06-10T00:00:00.000Z',
+      };
+    }
     if (request.methodId === 'listMyAppPermissionGrants') return { items: [grant()] };
     if (request.methodId === 'getMyAppPermissionGrantStatus') {
       return { generatedAt: '2026-06-10T00:00:01.000Z', grants: [grant()] };
@@ -93,16 +108,16 @@ const transport = {
 const realm = createRealm({ transport, authMetadata: () => ({ authorization: 'Bearer token' }) });
 assert(realm instanceof Realm);
 assert.equal(REALM_AUTH_METHODS.includes('checkEmail'), true);
-assert.equal(REALM_WORLD_METHODS.includes('worldControllerGetMainWorld'), true);
+assert.equal(REALM_WORLD_CORE_METHODS.includes('worldCoreControllerGetOasisWorld'), true);
 assert.equal(typeof realm.auth.checkEmail, 'function');
-assert.equal(typeof realm.world.worldControllerGetMainWorld, 'function');
+assert.equal(typeof realm.worldCore.worldCoreControllerGetOasisWorld, 'function');
 
 await realm.me();
 assert.equal(lastRequest.methodId, 'getMe');
 assert.equal(lastRequest.metadata.authorization, 'Bearer token');
 
-await realm.world.worldControllerGetMainWorld({ path: {} });
-assert.equal(lastRequest.methodId, 'WorldController_getMainWorld');
+await realm.worldCore.worldCoreControllerGetOasisWorld({ path: {} });
+assert.equal(lastRequest.methodId, 'WorldCoreController_getOasisWorld');
 
 const scopeRef = createAppScopeRef({ appId: 'tester.app', surfaceId: 'settings' });
 const permissionScope = {
@@ -143,7 +158,7 @@ import {
 } from '@nimiplatform/sdk/app';
 import {
   type RealmGetMeOperationResponse,
-  type RealmWorldControllerGetMainWorldOperationResponse,
+  type RealmWorldCoreControllerGetOasisWorldOperationResponse,
 } from '@nimiplatform/sdk/realm/generated';
 
 const transport: CoreTransport = {
@@ -159,8 +174,8 @@ const realm: Realm = createRealm({ transport });
 const core: RealmCore = new RealmCore(realm.core);
 const permission: PermissionClient = createPermissionClient(createNimiRealmPermissionTransport(realm));
 const me: Promise<RealmGetMeOperationResponse> = realm.me();
-const world: Promise<RealmWorldControllerGetMainWorldOperationResponse> =
-  realm.world.worldControllerGetMainWorld({ path: {} });
+const world: Promise<RealmWorldCoreControllerGetOasisWorldOperationResponse> =
+  realm.worldCore.worldCoreControllerGetOasisWorld({ path: {} });
 const grants: Promise<readonly GrantStatus[]> = permission.list(
   createAppScopeRef({ appId: 'tester.app', surfaceId: 'settings' }),
 );

@@ -61,6 +61,7 @@ export * from './route-host-options';
 export * from './route-host-projection';
 export * from './route-options';
 export * from './runtime-agent-values';
+export * from './runtime-agent-client';
 export * from './runtime-agent-consume-types';
 export * from './runtime-agent-consume-projection';
 export * from './runtime-agent-consume-client';

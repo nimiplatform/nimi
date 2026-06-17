@@ -87,7 +87,7 @@ export const NIMI_MASTRA_ADAPTER_MANIFEST = {
     runtimeContext: {
       support: 'supported',
       mode: 'runtime-owned',
-      note: 'createNimiMastraContextBridge loads Nimi agent context providers (including Runtime memory/knowledge providers) and injects their per-turn material through Mastra Agent.generate()/stream() context without configuring or persisting Mastra Memory.',
+      note: 'createNimiMastraContextBridge loads Nimi AI context providers (including Runtime memory/knowledge providers) and injects their per-turn material through Mastra Agent.generate()/stream() context without configuring or persisting Mastra Memory.',
     },
     runtimeDelegatedTools: {
       support: 'supported',
@@ -182,7 +182,7 @@ export const NIMI_MASTRA_ADAPTER_MANIFEST = {
       mode: 'framework-owned',
       gaps: [
         'A Nimi-backed text model can be called inside a Mastra Workflow step (verified with createWorkflow/createStep), but workflow lifecycle/checkpoint ownership remains Mastra-owned and is not Nimi Runtime workflow state.',
-        'A Nimi-owned agent/workflow bridge must use Runtime agent/workflow owner surfaces; this adapter only supplies the model each step drives.',
+        'A Nimi-owned localAgent/workflow bridge must use Runtime localAgent/workflow owner surfaces; this adapter only supplies the model each step drives.',
         'S-AIP-009: workflow run/suspend/checkpoint state persists in Mastra storage — durable framework state, not reconstructible from Nimi truth — declared framework-owned-non-canonical.',
       ],
     },
@@ -197,7 +197,7 @@ export const NIMI_MASTRA_ADAPTER_MANIFEST = {
     workflowCheckpoint: {
       support: 'not-applicable',
       mode: 'out-of-domain',
-      note: 'Workflow checkpoint/resume/suspend durable state is not a text LanguageModelV3 interface. A Nimi-owned implementation must live in Runtime workflow/agent owner surfaces, not in this adapter.',
+      note: 'Workflow checkpoint/resume/suspend durable state is not a text LanguageModelV3 interface. A Nimi-owned implementation must live in Runtime workflow/localAgent owner surfaces, not in this adapter.',
     },
     ragEmbeddings: {
       support: 'supported',

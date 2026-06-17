@@ -14,16 +14,14 @@ export function SettingsRuntimeRows(props: SettingsRouteViewProps) {
     realmDataSyncProjection,
     worldEvolutionSelectorReadProjection,
     realmSocialFeedProjection,
-    realmAgentProfileProjection,
+    realmPersonaCoreProjection,
     realmAuthProjection,
-    realmLocalAgentIntentsProjection,
     productControlProjection,
     runtime: {
       recommendationFeedProjection,
       recommendationFeedParserProjection,
       recommendationCopyProjection,
       runtimeReasonProjection,
-      runtimeAgentRequestContextProjection,
       offlineReasonProjection,
       runtimeDependencyStateProjection,
       runtimeDependencyPlanProjection,
@@ -119,12 +117,6 @@ export function SettingsRuntimeRows(props: SettingsRouteViewProps) {
         </StatusBadge>
       </div>
       <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 text-sm text-[var(--nimi-text-secondary)]">
-        <span>Runtime LocalAgent identity projection</span>
-        <StatusBadge tone="neutral">
-          {runtimeAgentRequestContextProjection.localAgentRef}
-        </StatusBadge>
-      </div>
-      <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 text-sm text-[var(--nimi-text-secondary)]">
         <span>Offline reason projection</span>
         <StatusBadge tone="neutral">
           {offlineReasonProjection.owner}: {offlineReasonProjection.reasonCode} / {offlineReasonProjection.errorOwner}
@@ -217,12 +209,12 @@ export function SettingsRuntimeRows(props: SettingsRouteViewProps) {
         </StatusBadge>
       </div>
       <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 text-sm text-[var(--nimi-text-secondary)]">
-        <span>SDK Realm agent profile projection</span>
-        <StatusBadge tone={realmAgentProfileProjection.status === 'ready' ? 'success' : realmAgentProfileProjection.status === 'failed' ? 'danger' : 'warning'}>
-          {realmAgentProfileProjection.status === 'ready' && realmAgentProfileProjection.data
-            ? `${realmAgentProfileProjection.data.agentId}/${realmAgentProfileProjection.data.creatorCount}/${realmAgentProfileProjection.data.createdOwnershipType}`
-            : realmAgentProfileProjection.status === 'failed'
-              ? realmAgentProfileProjection.error
+        <span>SDK Realm persona core projection</span>
+        <StatusBadge tone={realmPersonaCoreProjection.status === 'ready' ? 'success' : realmPersonaCoreProjection.status === 'failed' ? 'danger' : 'warning'}>
+          {realmPersonaCoreProjection.status === 'ready' && realmPersonaCoreProjection.data
+            ? `${realmPersonaCoreProjection.data.personaId}/${realmPersonaCoreProjection.data.worldCount}/${realmPersonaCoreProjection.data.runtimeSourceKind}`
+            : realmPersonaCoreProjection.status === 'failed'
+              ? realmPersonaCoreProjection.error
               : 'checking'}
         </StatusBadge>
       </div>
@@ -233,16 +225,6 @@ export function SettingsRuntimeRows(props: SettingsRouteViewProps) {
             ? `${realmAuthProjection.data.entryRoute}/${realmAuthProjection.data.passwordLoginState}/${realmAuthProjection.data.projectedLoginState}`
             : realmAuthProjection.status === 'failed'
               ? realmAuthProjection.error
-              : 'checking'}
-        </StatusBadge>
-      </div>
-      <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 text-sm text-[var(--nimi-text-secondary)]">
-        <span>SDK Realm local-agent intents projection</span>
-        <StatusBadge tone={realmLocalAgentIntentsProjection.status === 'ready' ? 'success' : realmLocalAgentIntentsProjection.status === 'failed' ? 'danger' : 'warning'}>
-          {realmLocalAgentIntentsProjection.status === 'ready' && realmLocalAgentIntentsProjection.data
-            ? `${realmLocalAgentIntentsProjection.data.provisionCount}/${realmLocalAgentIntentsProjection.data.terminationCount}/${realmLocalAgentIntentsProjection.data.ackedProvisionOutcome}/${realmLocalAgentIntentsProjection.data.ackedTerminationOutcome}`
-            : realmLocalAgentIntentsProjection.status === 'failed'
-              ? realmLocalAgentIntentsProjection.error
               : 'checking'}
         </StatusBadge>
       </div>

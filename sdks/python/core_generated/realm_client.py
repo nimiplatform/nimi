@@ -8,142 +8,16 @@ from sdks.python.types import CoreUnaryRequest
 
 REALM_OPERATIONS = [
   {
-    "operation_id": "ackMyLocalAgentProvisionIntent",
-    "service": "Me",
-    "method": "POST",
-    "path": "/api/human/me/local-agent-provision-intents/{intentId}/ack"
-  },
-  {
-    "operation_id": "ackMyLocalAgentTerminationIntent",
-    "service": "Me",
-    "method": "POST",
-    "path": "/api/human/me/local-agent-termination-intents/{intentId}/ack"
-  },
-  {
     "operation_id": "addFriend",
     "service": "User",
     "method": "POST",
     "path": "/api/human/accounts/{id}/friends"
   },
   {
-    "operation_id": "addGroupAgent",
-    "service": "Group Chats",
-    "method": "POST",
-    "path": "/api/human/group-chats/{chatId}/agents"
-  },
-  {
     "operation_id": "addGroupParticipant",
     "service": "Group Chats",
     "method": "POST",
     "path": "/api/human/group-chats/{chatId}/participants"
-  },
-  {
-    "operation_id": "AgentController_checkHandle",
-    "service": "Agents",
-    "method": "GET",
-    "path": "/api/agent/handles/check"
-  },
-  {
-    "operation_id": "AgentController_create",
-    "service": "Agents",
-    "method": "POST",
-    "path": "/api/agent"
-  },
-  {
-    "operation_id": "AgentController_delete",
-    "service": "Agents",
-    "method": "DELETE",
-    "path": "/api/agent/accounts/{id}"
-  },
-  {
-    "operation_id": "AgentController_getRelationships",
-    "service": "Agents",
-    "method": "GET",
-    "path": "/api/agent/accounts/{id}/relationships"
-  },
-  {
-    "operation_id": "AgentController_getVisibility",
-    "service": "Agents",
-    "method": "GET",
-    "path": "/api/agent/accounts/{id}/visibility"
-  },
-  {
-    "operation_id": "AgentController_makePublic",
-    "service": "Agents",
-    "method": "POST",
-    "path": "/api/agent/accounts/{id}/public"
-  },
-  {
-    "operation_id": "AgentController_removeRelationship",
-    "service": "Agents",
-    "method": "DELETE",
-    "path": "/api/agent/accounts/{id}/relationships"
-  },
-  {
-    "operation_id": "AgentController_selectAvatar",
-    "service": "Agents",
-    "method": "POST",
-    "path": "/api/agent/accounts/{id}/avatar"
-  },
-  {
-    "operation_id": "AgentController_setRelationship",
-    "service": "Agents",
-    "method": "POST",
-    "path": "/api/agent/accounts/{id}/relationships"
-  },
-  {
-    "operation_id": "AgentController_updateDna",
-    "service": "Agents",
-    "method": "PATCH",
-    "path": "/api/agent/accounts/{id}/dna"
-  },
-  {
-    "operation_id": "AgentController_updateVisibility",
-    "service": "Agents",
-    "method": "PATCH",
-    "path": "/api/agent/accounts/{id}/visibility"
-  },
-  {
-    "operation_id": "AgentNsfwConsentController_updateAgentConsent",
-    "service": "Agent NSFW Consent",
-    "method": "PUT",
-    "path": "/api/agent/accounts/{id}/visibility/nsfw-consent"
-  },
-  {
-    "operation_id": "AgentRulesController_archiveRule",
-    "service": "Agent Rules",
-    "method": "POST",
-    "path": "/api/world/by-id/{worldId}/agents/{agentId}/rules/{ruleId}/archive"
-  },
-  {
-    "operation_id": "AgentRulesController_createRule",
-    "service": "Agent Rules",
-    "method": "POST",
-    "path": "/api/world/by-id/{worldId}/agents/{agentId}/rules"
-  },
-  {
-    "operation_id": "AgentRulesController_deprecateRule",
-    "service": "Agent Rules",
-    "method": "POST",
-    "path": "/api/world/by-id/{worldId}/agents/{agentId}/rules/{ruleId}/deprecate"
-  },
-  {
-    "operation_id": "AgentRulesController_listRules",
-    "service": "Agent Rules",
-    "method": "GET",
-    "path": "/api/world/by-id/{worldId}/agents/{agentId}/rules"
-  },
-  {
-    "operation_id": "AgentRulesController_updateRule",
-    "service": "Agent Rules",
-    "method": "PATCH",
-    "path": "/api/world/by-id/{worldId}/agents/{agentId}/rules/{ruleId}"
-  },
-  {
-    "operation_id": "applyCreatorWorldAgentAuthoringDraftBatch",
-    "service": "Agent / Creator World",
-    "method": "POST",
-    "path": "/api/me/creator/worlds/{worldId}/agents/{agentId}/authoring-draft-batches/{batchId}/apply"
   },
   {
     "operation_id": "archiveBundle",
@@ -194,12 +68,6 @@ REALM_OPERATIONS = [
     "path": "/api/assets/{assetId}/clone"
   },
   {
-    "operation_id": "commitRealmGroupMessageCandidate",
-    "service": "Group Chats",
-    "method": "POST",
-    "path": "/api/human/group-chats/{chatId}/agent-message-candidate-commits"
-  },
-  {
     "operation_id": "createAsset",
     "service": "Assets",
     "method": "POST",
@@ -216,12 +84,6 @@ REALM_OPERATIONS = [
     "service": "Bundles",
     "method": "POST",
     "path": "/api/bundles"
-  },
-  {
-    "operation_id": "createCreatorWorldAgentAuthoringDraftBatch",
-    "service": "Agent / Creator World",
-    "method": "POST",
-    "path": "/api/me/creator/worlds/{worldId}/agents/{agentId}/authoring-draft-batches"
   },
   {
     "operation_id": "createGroup",
@@ -252,60 +114,6 @@ REALM_OPERATIONS = [
     "service": "Resources",
     "method": "POST",
     "path": "/api/resources/videos/direct-upload"
-  },
-  {
-    "operation_id": "CreatorController_batchCreateAgents",
-    "service": "Creator",
-    "method": "POST",
-    "path": "/api/creator/agents/batch-create"
-  },
-  {
-    "operation_id": "CreatorController_createAgent",
-    "service": "Creator",
-    "method": "POST",
-    "path": "/api/creator/agents"
-  },
-  {
-    "operation_id": "CreatorController_createKey",
-    "service": "Creator",
-    "method": "POST",
-    "path": "/api/creator/keys"
-  },
-  {
-    "operation_id": "CreatorController_deleteAgent",
-    "service": "Creator",
-    "method": "DELETE",
-    "path": "/api/creator/agents/{agentId}"
-  },
-  {
-    "operation_id": "CreatorController_getAgent",
-    "service": "Creator",
-    "method": "GET",
-    "path": "/api/creator/agents/{agentId}"
-  },
-  {
-    "operation_id": "CreatorController_listAgents",
-    "service": "Creator",
-    "method": "GET",
-    "path": "/api/creator/agents"
-  },
-  {
-    "operation_id": "CreatorController_listKeys",
-    "service": "Creator",
-    "method": "GET",
-    "path": "/api/creator/keys"
-  },
-  {
-    "operation_id": "CreatorController_revokeKey",
-    "service": "Creator",
-    "method": "DELETE",
-    "path": "/api/creator/keys/{id}"
-  },
-  {
-    "operation_id": "CreatorController_updateAgent",
-    "service": "Creator",
-    "method": "PATCH",
-    "path": "/api/creator/agents/{agentId}"
   },
   {
     "operation_id": "deletePost",
@@ -392,12 +200,6 @@ REALM_OPERATIONS = [
     "path": "/api/economy/withdrawals/create"
   },
   {
-    "operation_id": "EconomyController_getAgentOrigin",
-    "service": "Economy (Currency & Gifts)",
-    "method": "GET",
-    "path": "/api/economy/revenue-share/agent-origin/{agentId}"
-  },
-  {
     "operation_id": "EconomyController_getBalances",
     "service": "Economy (Currency & Gifts)",
     "method": "GET",
@@ -438,6 +240,12 @@ REALM_OPERATIONS = [
     "service": "Economy (Currency & Gifts)",
     "method": "GET",
     "path": "/api/economy/gifts/sent"
+  },
+  {
+    "operation_id": "EconomyController_getSourceOrigin",
+    "service": "Economy (Currency & Gifts)",
+    "method": "GET",
+    "path": "/api/economy/revenue-share/source-origin/{sourceKind}/{sourceId}"
   },
   {
     "operation_id": "EconomyController_getSparkHistory",
@@ -536,54 +344,6 @@ REALM_OPERATIONS = [
     "path": "/api/resources/{resourceId}/finalize"
   },
   {
-    "operation_id": "ForgeProductCatalogController_getAgentCandidates",
-    "service": "Forge World Products",
-    "method": "GET",
-    "path": "/api/world-products/by-slug/{slug}/agent-candidates"
-  },
-  {
-    "operation_id": "ForgeProductCatalogController_getCatalog",
-    "service": "Forge World Products",
-    "method": "GET",
-    "path": "/api/world-products/catalog"
-  },
-  {
-    "operation_id": "ForgeProductCatalogController_getProduct",
-    "service": "Forge World Products",
-    "method": "GET",
-    "path": "/api/world-products/by-slug/{slug}"
-  },
-  {
-    "operation_id": "ForgeProductCatalogController_getProductShard",
-    "service": "Forge World Products",
-    "method": "GET",
-    "path": "/api/world-products/by-slug/{slug}/shards/by-kind/{kind}"
-  },
-  {
-    "operation_id": "ForgeProductCatalogController_getProductShardIndex",
-    "service": "Forge World Products",
-    "method": "GET",
-    "path": "/api/world-products/by-slug/{slug}/shards"
-  },
-  {
-    "operation_id": "ForgeProductCatalogController_verifyProductShards",
-    "service": "Forge World Products",
-    "method": "GET",
-    "path": "/api/world-products/by-slug/{slug}/shards/integrity"
-  },
-  {
-    "operation_id": "getAgent",
-    "service": "Agents",
-    "method": "GET",
-    "path": "/api/agent/accounts/{id}"
-  },
-  {
-    "operation_id": "getAgentByHandle",
-    "service": "Agents",
-    "method": "GET",
-    "path": "/api/agent/handle/{handle}"
-  },
-  {
     "operation_id": "getAsset",
     "service": "Assets",
     "method": "GET",
@@ -606,36 +366,6 @@ REALM_OPERATIONS = [
     "service": "Human Chats",
     "method": "GET",
     "path": "/api/human/chats/{chatId}"
-  },
-  {
-    "operation_id": "getCreatorWorldAgent",
-    "service": "Agent / Creator World",
-    "method": "GET",
-    "path": "/api/me/creator/worlds/{worldId}/agents/{agentId}"
-  },
-  {
-    "operation_id": "getCreatorWorldAgentAuthoringGenerationContext",
-    "service": "Agent / Creator World",
-    "method": "GET",
-    "path": "/api/me/creator/worlds/{worldId}/agents/{agentId}/authoring-generation-context"
-  },
-  {
-    "operation_id": "getCreatorWorldAgentChatReadiness",
-    "service": "Agent / Creator World",
-    "method": "GET",
-    "path": "/api/me/creator/worlds/{worldId}/agents/{agentId}/chat-readiness"
-  },
-  {
-    "operation_id": "getCreatorWorldAgentSettings",
-    "service": "Agent / Creator World",
-    "method": "GET",
-    "path": "/api/me/creator/worlds/{worldId}/agents/{agentId}/settings"
-  },
-  {
-    "operation_id": "getCreatorWorldAgentSourceSkeleton",
-    "service": "Agent / Creator World",
-    "method": "GET",
-    "path": "/api/me/creator/worlds/{worldId}/agents/{agentId}/source-skeleton"
   },
   {
     "operation_id": "getExploreFeed",
@@ -674,28 +404,22 @@ REALM_OPERATIONS = [
     "path": "/api/human/accounts/{id}/mutual-friends/count"
   },
   {
-    "operation_id": "getMyAgentFriendLimit",
-    "service": "Me",
-    "method": "GET",
-    "path": "/api/human/me/friends/agent-limit"
-  },
-  {
     "operation_id": "getMyAppPermissionGrant",
     "service": "Me / Permission Grants",
     "method": "GET",
     "path": "/api/human/me/permission-grants/by-id/{grantId}"
   },
   {
-    "operation_id": "getMyAppPermissionGrantProjection",
-    "service": "Me / Permission Grants",
-    "method": "GET",
-    "path": "/api/human/me/permission-grants/projection"
-  },
-  {
     "operation_id": "getMyAppPermissionGrantStatus",
     "service": "Me / Permission Grants",
     "method": "GET",
     "path": "/api/human/me/permission-grants/status"
+  },
+  {
+    "operation_id": "getMyAppPermissionGrantView",
+    "service": "Me / Permission Grants",
+    "method": "GET",
+    "path": "/api/human/me/permission-grants/view"
   },
   {
     "operation_id": "getMyBlockedUsers",
@@ -732,18 +456,6 @@ REALM_OPERATIONS = [
     "service": "Me",
     "method": "GET",
     "path": "/api/human/me/pp-config"
-  },
-  {
-    "operation_id": "getMyRealmAgent",
-    "service": "Me",
-    "method": "GET",
-    "path": "/api/me/agents/{agentId}"
-  },
-  {
-    "operation_id": "getMyRealmAgentSettings",
-    "service": "Me",
-    "method": "GET",
-    "path": "/api/me/agents/{agentId}/settings"
   },
   {
     "operation_id": "getMySettings",
@@ -812,40 +524,10 @@ REALM_OPERATIONS = [
     "path": "/api/world/by-id/{worldId}/posts"
   },
   {
-    "operation_id": "getWorldScenes",
-    "service": "Worlds",
-    "method": "GET",
-    "path": "/api/world/by-id/{id}/scenes"
-  },
-  {
     "operation_id": "grantMyAppPermissionGrant",
     "service": "Me / Permission Grants",
     "method": "POST",
     "path": "/api/human/me/permission-grants/by-id/{grantId}/grant"
-  },
-  {
-    "operation_id": "HumanNsfwConsentController_canManageAgentNsfw",
-    "service": "Human NSFW Consent",
-    "method": "GET",
-    "path": "/api/human/nsfw-consent/can-manage"
-  },
-  {
-    "operation_id": "HumanNsfwConsentController_checkConsent",
-    "service": "Human NSFW Consent",
-    "method": "GET",
-    "path": "/api/human/nsfw-consent/check"
-  },
-  {
-    "operation_id": "HumanNsfwConsentController_getConsentStatus",
-    "service": "Human NSFW Consent",
-    "method": "GET",
-    "path": "/api/human/nsfw-consent/status"
-  },
-  {
-    "operation_id": "HumanNsfwConsentController_updateUserConsent",
-    "service": "Human NSFW Consent",
-    "method": "PUT",
-    "path": "/api/human/me/settings/nsfw-consent"
   },
   {
     "operation_id": "introspectSession",
@@ -908,18 +590,6 @@ REALM_OPERATIONS = [
     "path": "/api/human/chats"
   },
   {
-    "operation_id": "listCreatorWorldAgentAuthoringDraftBatches",
-    "service": "Agent / Creator World",
-    "method": "GET",
-    "path": "/api/me/creator/worlds/{worldId}/agents/{agentId}/authoring-draft-batches"
-  },
-  {
-    "operation_id": "listCreatorWorldAgents",
-    "service": "Agent / Creator World",
-    "method": "GET",
-    "path": "/api/me/creator/worlds/{worldId}/agents"
-  },
-  {
     "operation_id": "listGroupMessages",
     "service": "Group Chats",
     "method": "GET",
@@ -950,12 +620,6 @@ REALM_OPERATIONS = [
     "path": "/api/human/me/permission-grants"
   },
   {
-    "operation_id": "listMyCreatorWorlds",
-    "service": "World Control",
-    "method": "GET",
-    "path": "/api/me/creator/worlds"
-  },
-  {
     "operation_id": "listMyFriendIds",
     "service": "Me",
     "method": "GET",
@@ -966,24 +630,6 @@ REALM_OPERATIONS = [
     "service": "Me",
     "method": "GET",
     "path": "/api/human/me/friends/list"
-  },
-  {
-    "operation_id": "listMyLocalAgentProvisionIntents",
-    "service": "Me",
-    "method": "GET",
-    "path": "/api/human/me/local-agent-provision-intents"
-  },
-  {
-    "operation_id": "listMyLocalAgentTerminationIntents",
-    "service": "Me",
-    "method": "GET",
-    "path": "/api/human/me/local-agent-termination-intents"
-  },
-  {
-    "operation_id": "listMyRealmAgents",
-    "service": "Me",
-    "method": "GET",
-    "path": "/api/me/agents"
   },
   {
     "operation_id": "listNotifications",
@@ -1076,12 +722,6 @@ REALM_OPERATIONS = [
     "path": "/api/human/me/wallets/prepare-bind"
   },
   {
-    "operation_id": "projectRuntimePayload",
-    "service": "Runtime Projections",
-    "method": "POST",
-    "path": "/api/runtime/projections/project"
-  },
-  {
     "operation_id": "publishBundle",
     "service": "Bundles",
     "method": "POST",
@@ -1136,12 +776,6 @@ REALM_OPERATIONS = [
     "path": "/api/human/accounts/{id}/friends"
   },
   {
-    "operation_id": "removeGroupAgent",
-    "service": "Group Chats",
-    "method": "DELETE",
-    "path": "/api/human/group-chats/{chatId}/agents/{agentAccountId}"
-  },
-  {
     "operation_id": "removeGroupParticipant",
     "service": "Group Chats",
     "method": "DELETE",
@@ -1188,12 +822,6 @@ REALM_OPERATIONS = [
     "service": "Reviews (Economy/Trust)",
     "method": "GET",
     "path": "/api/economy/reviews"
-  },
-  {
-    "operation_id": "reviewCreatorWorldAgentAuthoringDraftCandidate",
-    "service": "Agent / Creator World",
-    "method": "PATCH",
-    "path": "/api/me/creator/worlds/{worldId}/agents/{agentId}/authoring-draft-batches/{batchId}/candidates/{candidateId}/review"
   },
   {
     "operation_id": "revokeMyAppPermissionGrant",
@@ -1271,7 +899,7 @@ REALM_OPERATIONS = [
     "operation_id": "TransitController_getActiveTransit",
     "service": "Transits",
     "method": "GET",
-    "path": "/api/world/transit/active/{agentId}"
+    "path": "/api/world/transit/active/{runtimeSourceRef}"
   },
   {
     "operation_id": "TransitController_getTransit",
@@ -1328,24 +956,6 @@ REALM_OPERATIONS = [
     "path": "/api/bundles/{bundleId}"
   },
   {
-    "operation_id": "updateCreatorWorldAgentProfileMedia",
-    "service": "Agent / Creator World",
-    "method": "PATCH",
-    "path": "/api/me/creator/worlds/{worldId}/agents/{agentId}/profile-media"
-  },
-  {
-    "operation_id": "updateCreatorWorldAgentSettings",
-    "service": "Agent / Creator World",
-    "method": "PATCH",
-    "path": "/api/me/creator/worlds/{worldId}/agents/{agentId}/settings"
-  },
-  {
-    "operation_id": "updateCreatorWorldAgentVoice",
-    "service": "Agent / Creator World",
-    "method": "PATCH",
-    "path": "/api/me/creator/worlds/{worldId}/agents/{agentId}/voice"
-  },
-  {
     "operation_id": "updateGroup",
     "service": "Group Chats",
     "method": "PATCH",
@@ -1382,12 +992,6 @@ REALM_OPERATIONS = [
     "path": "/api/human/me/pp-config"
   },
   {
-    "operation_id": "updateMyRealmAgentSettings",
-    "service": "Me",
-    "method": "PATCH",
-    "path": "/api/me/agents/{agentId}/settings"
-  },
-  {
     "operation_id": "updateMySettings",
     "service": "Me",
     "method": "PATCH",
@@ -1410,42 +1014,6 @@ REALM_OPERATIONS = [
     "service": "Resources",
     "method": "PATCH",
     "path": "/api/resources/{resourceId}"
-  },
-  {
-    "operation_id": "V1DefaultVisibilityController_applyAgentDefaults",
-    "service": "Social - V1 Default Visibility",
-    "method": "POST",
-    "path": "/api/agent/visibility/defaults/apply/agent/{agentId}"
-  },
-  {
-    "operation_id": "V1DefaultVisibilityController_applyUserDefaults",
-    "service": "Social - V1 Default Visibility",
-    "method": "POST",
-    "path": "/api/agent/visibility/defaults/apply/user/{userId}"
-  },
-  {
-    "operation_id": "V1DefaultVisibilityController_getDefaultForScope",
-    "service": "Social - V1 Default Visibility",
-    "method": "GET",
-    "path": "/api/agent/visibility/defaults/defaults/{entityType}/{scope}"
-  },
-  {
-    "operation_id": "V1DefaultVisibilityController_getDefaultVisibility",
-    "service": "Social - V1 Default Visibility",
-    "method": "GET",
-    "path": "/api/agent/visibility/defaults/defaults/{entityType}"
-  },
-  {
-    "operation_id": "V1DefaultVisibilityController_validateAgentVisibility",
-    "service": "Social - V1 Default Visibility",
-    "method": "GET",
-    "path": "/api/agent/visibility/defaults/validate/agent/{agentId}"
-  },
-  {
-    "operation_id": "V1DefaultVisibilityController_validateUserVisibility",
-    "service": "Social - V1 Default Visibility",
-    "method": "GET",
-    "path": "/api/agent/visibility/defaults/validate/user/{userId}"
   },
   {
     "operation_id": "verify2Fa",
@@ -1472,226 +1040,97 @@ REALM_OPERATIONS = [
     "path": "/api/auth/wallet/login"
   },
   {
-    "operation_id": "WorldControlController_appendWorldHistory",
-    "service": "World Control",
+    "operation_id": "WorldCoreController_bootstrapOasisWorld",
+    "service": "Realm Core",
     "method": "POST",
-    "path": "/api/worlds/{worldId}/history/appends"
+    "path": "/api/realm/core/worlds/oasis/bootstrap"
   },
   {
-    "operation_id": "WorldControlController_batchUpsertWorldBindings",
-    "service": "World Control",
+    "operation_id": "WorldCoreController_createRealmPersona",
+    "service": "Realm Core",
     "method": "POST",
-    "path": "/api/worlds/{worldId}/bindings"
+    "path": "/api/realm/core/personas"
   },
   {
-    "operation_id": "WorldControlController_commitState",
-    "service": "World Control",
+    "operation_id": "WorldCoreController_createRuntimeSourceSnapshot",
+    "service": "Realm Core",
     "method": "POST",
-    "path": "/api/worlds/{worldId}/state/commits"
+    "path": "/api/realm/core/runtime-source-snapshots"
   },
   {
-    "operation_id": "WorldControlController_createDraft",
-    "service": "World Control",
+    "operation_id": "WorldCoreController_createWorldCharacter",
+    "service": "Realm Core",
     "method": "POST",
-    "path": "/api/world-drafts"
+    "path": "/api/realm/core/worlds/{worldId}/characters"
   },
   {
-    "operation_id": "WorldControlController_deleteWorldBinding",
-    "service": "World Control",
-    "method": "DELETE",
-    "path": "/api/worlds/{worldId}/bindings/{bindingId}"
-  },
-  {
-    "operation_id": "WorldControlController_getDraft",
-    "service": "World Control",
-    "method": "GET",
-    "path": "/api/world-drafts/{draftId}"
-  },
-  {
-    "operation_id": "WorldControlController_getMyAccess",
-    "service": "World Control",
-    "method": "GET",
-    "path": "/api/world-control/access/me"
-  },
-  {
-    "operation_id": "WorldControlController_getState",
-    "service": "World Control",
-    "method": "GET",
-    "path": "/api/worlds/{worldId}/state"
-  },
-  {
-    "operation_id": "WorldControlController_listDrafts",
-    "service": "World Control",
-    "method": "GET",
-    "path": "/api/world-drafts"
-  },
-  {
-    "operation_id": "WorldControlController_listMyWorlds",
-    "service": "World Control",
-    "method": "GET",
-    "path": "/api/worlds/mine"
-  },
-  {
-    "operation_id": "WorldControlController_listWorldBindings",
-    "service": "World Control",
-    "method": "GET",
-    "path": "/api/worlds/{worldId}/bindings"
-  },
-  {
-    "operation_id": "WorldControlController_listWorldHistory",
-    "service": "World Control",
-    "method": "GET",
-    "path": "/api/worlds/{worldId}/history"
-  },
-  {
-    "operation_id": "WorldControlController_listWorldLorebooks",
-    "service": "World Control",
-    "method": "GET",
-    "path": "/api/worlds/{worldId}/lorebooks"
-  },
-  {
-    "operation_id": "WorldControlController_publishDraft",
-    "service": "World Control",
+    "operation_id": "WorldCoreController_createWorldCore",
+    "service": "Realm Core",
     "method": "POST",
-    "path": "/api/world-drafts/{draftId}/publish"
+    "path": "/api/realm/core/worlds"
   },
   {
-    "operation_id": "WorldControlController_resolveLanding",
-    "service": "World Control",
+    "operation_id": "WorldCoreController_getOasisWorld",
+    "service": "Realm Core",
     "method": "GET",
-    "path": "/api/world-control/landing"
+    "path": "/api/realm/core/worlds/oasis"
   },
   {
-    "operation_id": "WorldControlController_updateDraft",
-    "service": "World Control",
-    "method": "PATCH",
-    "path": "/api/world-drafts/{draftId}"
-  },
-  {
-    "operation_id": "WorldController_getMainWorld",
-    "service": "Worlds",
+    "operation_id": "WorldCoreController_getRealmPersona",
+    "service": "Realm Core",
     "method": "GET",
-    "path": "/api/world/oasis"
+    "path": "/api/realm/core/personas/{personaId}"
   },
   {
-    "operation_id": "WorldController_getWorld",
-    "service": "Worlds",
+    "operation_id": "WorldCoreController_getWorldCharacter",
+    "service": "Realm Core",
     "method": "GET",
-    "path": "/api/world/by-id/{id}"
+    "path": "/api/realm/core/world-characters/{characterId}"
   },
   {
-    "operation_id": "WorldController_getWorldAgents",
-    "service": "Worlds",
+    "operation_id": "WorldCoreController_getWorldCore",
+    "service": "Realm Core",
     "method": "GET",
-    "path": "/api/world/by-id/{id}/agents"
+    "path": "/api/realm/core/worlds/{worldId}"
   },
   {
-    "operation_id": "WorldController_getWorldBindings",
-    "service": "Worlds",
+    "operation_id": "WorldCoreController_listRealmPersonas",
+    "service": "Realm Core",
     "method": "GET",
-    "path": "/api/world/by-id/{id}/bindings"
+    "path": "/api/realm/core/personas"
   },
   {
-    "operation_id": "WorldController_getWorldDetailWithAgents",
-    "service": "Worlds",
+    "operation_id": "WorldCoreController_listWorldCharacters",
+    "service": "Realm Core",
     "method": "GET",
-    "path": "/api/world/by-id/{id}/detail-with-agents"
+    "path": "/api/realm/core/worlds/{worldId}/characters"
   },
   {
-    "operation_id": "WorldController_getWorldHistory",
-    "service": "Worlds",
+    "operation_id": "WorldCoreController_listWorldCores",
+    "service": "Realm Core",
     "method": "GET",
-    "path": "/api/world/by-id/{id}/history"
+    "path": "/api/realm/core/worlds"
   },
   {
-    "operation_id": "WorldController_getWorldLevelAudits",
-    "service": "Worlds",
-    "method": "GET",
-    "path": "/api/world/by-id/{id}/level/audits"
+    "operation_id": "WorldCoreController_replaceRealmPersona",
+    "service": "Realm Core",
+    "method": "PUT",
+    "path": "/api/realm/core/personas/{personaId}"
   },
   {
-    "operation_id": "WorldController_getWorldLorebooks",
-    "service": "Worlds",
-    "method": "GET",
-    "path": "/api/world/by-id/{id}/lorebooks"
+    "operation_id": "WorldCoreController_replaceWorldCharacter",
+    "service": "Realm Core",
+    "method": "PUT",
+    "path": "/api/realm/core/world-characters/{characterId}"
   },
   {
-    "operation_id": "WorldController_getWorldview",
-    "service": "Worlds",
-    "method": "GET",
-    "path": "/api/world/by-id/{id}/worldview"
-  },
-  {
-    "operation_id": "WorldController_listWorlds",
-    "service": "Worlds",
-    "method": "GET",
-    "path": "/api/world"
-  },
-  {
-    "operation_id": "WorldController_returnToMainWorld",
-    "service": "Worlds",
-    "method": "POST",
-    "path": "/api/world/by-id/{id}/return"
-  },
-  {
-    "operation_id": "WorldController_transitToWorld",
-    "service": "Worlds",
-    "method": "POST",
-    "path": "/api/world/by-id/{id}/transit"
-  },
-  {
-    "operation_id": "WorldRulesController_archiveRule",
-    "service": "World Rules",
-    "method": "POST",
-    "path": "/api/world/by-id/{worldId}/rules/{ruleId}/archive"
-  },
-  {
-    "operation_id": "WorldRulesController_checkPermission",
-    "service": "World Rules",
-    "method": "GET",
-    "path": "/api/world/by-id/{worldId}/rules/check/{action}"
-  },
-  {
-    "operation_id": "WorldRulesController_createRule",
-    "service": "World Rules",
-    "method": "POST",
-    "path": "/api/world/by-id/{worldId}/rules"
-  },
-  {
-    "operation_id": "WorldRulesController_deprecateRule",
-    "service": "World Rules",
-    "method": "POST",
-    "path": "/api/world/by-id/{worldId}/rules/{ruleId}/deprecate"
-  },
-  {
-    "operation_id": "WorldRulesController_getCreatorCapabilities",
-    "service": "World Rules",
-    "method": "GET",
-    "path": "/api/world/by-id/{worldId}/rules/capabilities"
-  },
-  {
-    "operation_id": "WorldRulesController_getRules",
-    "service": "World Rules",
-    "method": "GET",
-    "path": "/api/world/by-id/{worldId}/rules"
-  },
-  {
-    "operation_id": "WorldRulesController_updateRule",
-    "service": "World Rules",
-    "method": "PATCH",
-    "path": "/api/world/by-id/{worldId}/rules/{ruleId}"
-  },
-  {
-    "operation_id": "WorldRulesController_validateRules",
-    "service": "World Rules",
-    "method": "POST",
-    "path": "/api/world/by-id/{worldId}/rules/validate"
+    "operation_id": "WorldCoreController_replaceWorldCore",
+    "service": "Realm Core",
+    "method": "PUT",
+    "path": "/api/realm/core/worlds/{worldId}"
   }
 ]
 REALM_OPERATION_BY_ID = {operation["operation_id"]: operation for operation in REALM_OPERATIONS}
-REALM_TYPED_FACADE_ONLY_OPERATION_IDS = {
-    "commitRealmGroupMessageCandidate",
-}
 
 
 class RealmGeneratedClient:
@@ -1708,8 +1147,4 @@ class RealmGeneratedClient:
 
     async def operation(self, operation_id: str, body: Any, *, metadata: dict[str, str] | None = None, timeout_ms: int | None = None) -> Any:
         self.describe(operation_id)
-        if operation_id in REALM_TYPED_FACADE_ONLY_OPERATION_IDS:
-            error = RuntimeError(f"Realm operation requires its admitted typed facade: {operation_id}")
-            setattr(error, "code", "SDK_REALM_OPERATION_TYPED_FACADE_REQUIRED")
-            raise error
         return await self._core.unary(CoreUnaryRequest(method_id=operation_id, body=body, metadata=metadata, timeout_ms=timeout_ms))

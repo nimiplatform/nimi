@@ -34,35 +34,27 @@ def _decode_model(model_type, value: object):
 
 
 @dataclass(frozen=True)
-class AbilityDefinitionDto:
-    cost: tuple[ResourceCostDto, ...] = field(default_factory=tuple)
-    description: str | None = None
-    id: str | None = None
-    name: str | None = None
-    tierRequired: float | None = None
-
-@dataclass(frozen=True)
-class AccountGrantProjectionRowDto:
+class AccountGrantViewRowDto:
     appId: str | None = None
     expiresAt: str | None = None
     grantId: str | None = None
     qualifier: str | None = None
     scopeFamily: AppPermissionScopeFamily | None = None
     scopeName: AppPermissionScopeName | None = None
-    state: AccountGrantProjectionState | None = None
+    state: AccountGrantViewState | None = None
     subjectAccountId: str | None = None
     version: float | None = None
 
-AccountGrantProjectionState = Literal["pending", "granted", "denied", "expired", "revoked", "superseded"]
+AccountGrantViewState = Literal["pending", "granted", "denied", "expired", "revoked", "superseded"]
 
 @dataclass(frozen=True)
-class AccountGrantsProjectionDto:
+class AccountGrantsViewDto:
     accountId: str | None = None
-    grants: tuple[AccountGrantProjectionRowDto, ...] = field(default_factory=tuple)
+    grants: tuple[AccountGrantViewRowDto, ...] = field(default_factory=tuple)
     schemaVersion: float | None = None
     updatedAt: str | None = None
 
-AccountRole = Literal["USER", "AGENT", "SERVICE_ACC", "SYSTEM_BOT", "ADMIN"]
+AccountRelationType = Literal["ALLY", "RIVAL", "ENEMY"]
 
 AccountStatus = Literal["ONBOARDING", "CHECK_INVITED", "ACTIVE", "SUSPENDED", "BANNED"]
 
@@ -71,425 +63,8 @@ class AddFriendBodyDto:
     requestMessage: str | None = None
 
 @dataclass(frozen=True)
-class AddGroupAgentInputDto:
-    agentAccountId: str | None = None
-
-@dataclass(frozen=True)
 class AddGroupParticipantInputDto:
     accountId: str | None = None
-
-@dataclass(frozen=True)
-class AgentAppearanceDto:
-    artStyle: str | None = None
-    eyes: str | None = None
-    fashionStyle: str | None = None
-    hair: str | None = None
-    signatureItems: tuple[str, ...] = field(default_factory=tuple)
-    skin: str | None = None
-
-@dataclass(frozen=True)
-class AgentAuthoringBehaviorCandidatePayloadDto:
-    directives: tuple[str, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class AgentAuthoringDialogueCandidatePayloadDto:
-    exemplars: tuple[str, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class AgentAuthoringDraftBatchDto:
-    agentId: str | None = None
-    appliedAt: str | None = None
-    candidates: tuple[AgentAuthoringDraftCandidateDto, ...] = field(default_factory=tuple)
-    createdAt: str | None = None
-    createdBy: str | None = None
-    failureCode: str | None = None
-    failureMessage: str | None = None
-    id: str | None = None
-    metadata: AgentAuthoringDraftBatchMetadataDto | None = None
-    skeletonId: str | None = None
-    sourceKind: Literal["CBDB"] | None = None
-    status: Literal["ready_for_review", "partially_applied", "applied", "failed"] | None = None
-    updatedAt: str | None = None
-    worldId: str | None = None
-
-@dataclass(frozen=True)
-class AgentAuthoringDraftBatchListDto:
-    items: tuple[AgentAuthoringDraftBatchDto, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class AgentAuthoringDraftBatchMetadataDto:
-    notes: str | None = None
-    runtimeAppId: str | None = None
-    surfaceId: str | None = None
-
-@dataclass(frozen=True)
-class AgentAuthoringDraftCandidateDto:
-    appliedAt: str | None = None
-    editedValue: AgentAuthoringDraftCandidateValueDto | None = None
-    generatedAt: str | None = None
-    id: str | None = None
-    modelId: str | None = None
-    promptDigestSha256: str | None = None
-    provenance: AgentAuthoringRuntimeTraceDto | None = None
-    reviewStatus: Literal["pending", "accepted", "rejected", "edited", "applied"] | None = None
-    reviewedAt: str | None = None
-    reviewerId: str | None = None
-    routePolicy: str | None = None
-    runtimeTraceId: str | None = None
-    sourceRefs: tuple[AgentAuthoringSourceRefDto, ...] = field(default_factory=tuple)
-    targetKey: Literal["description", "contentStyle", "publicPositioning", "avatar", "profileCover", "voice", "greeting", "dialogueExemplars", "behaviorDna"] | None = None
-    value: AgentAuthoringDraftCandidateValueDto | None = None
-
-@dataclass(frozen=True)
-class AgentAuthoringDraftCandidateValueDto:
-    behavior: AgentAuthoringBehaviorCandidatePayloadDto | None = None
-    dialogue: AgentAuthoringDialogueCandidatePayloadDto | None = None
-    kind: Literal["text", "media", "voice", "dialogue", "behavior"] | None = None
-    media: AgentAuthoringMediaCandidatePayloadDto | None = None
-    provenance: tuple[AgentAuthoringValueProvenanceSegmentDto, ...] = field(default_factory=tuple)
-    text: str | None = None
-    voice: AgentAuthoringVoiceCandidatePayloadDto | None = None
-
-@dataclass(frozen=True)
-class AgentAuthoringFinalMediaStateDto:
-    avatarResourceId: str | None = None
-    avatarUrl: str | None = None
-    profileCoverResourceId: str | None = None
-    profileCoverUrl: str | None = None
-
-@dataclass(frozen=True)
-class AgentAuthoringFinalStateDto:
-    media: AgentAuthoringFinalMediaStateDto | None = None
-    settings: OwnerAgentSettingsDto | None = None
-    voice: AgentAuthoringFinalVoiceStateDto | None = None
-
-@dataclass(frozen=True)
-class AgentAuthoringFinalVoiceStateDto:
-    voice: AgentAuthoringVoiceCandidatePayloadDto | None = None
-
-@dataclass(frozen=True)
-class AgentAuthoringGenerationContextDto:
-    currentFinalState: AgentAuthoringFinalStateDto | None = None
-    groundingRefs: tuple[AgentAuthoringSourceRefDto, ...] = field(default_factory=tuple)
-    requiredTargets: tuple[Literal["description", "contentStyle", "publicPositioning", "avatar", "profileCover", "voice", "greeting", "dialogueExemplars", "behaviorDna"], ...] = field(default_factory=tuple)
-    sourceSkeleton: CreatorWorldAgentSourceSkeletonDto | None = None
-    targetStatuses: tuple[AgentAuthoringTargetStatusDto, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class AgentAuthoringMediaCandidatePayloadDto:
-    height: float | None = None
-    mime: str | None = None
-    model: str | None = None
-    moderation: AgentAuthoringMediaModerationDto | None = None
-    prompt: str | None = None
-    provenance: tuple[AgentAuthoringValueProvenanceSegmentDto, ...] = field(default_factory=tuple)
-    resourceId: str | None = None
-    url: str | None = None
-    width: float | None = None
-
-@dataclass(frozen=True)
-class AgentAuthoringMediaModerationDto:
-    provider: str | None = None
-    reason: str | None = None
-    status: Literal["passed", "blocked", "not_checked"] | None = None
-
-@dataclass(frozen=True)
-class AgentAuthoringRuntimeTraceDto:
-    promptTemplateId: str | None = None
-    runtimeAppId: str | None = None
-    scenarioId: str | None = None
-    skeletonId: str | None = None
-    sourceDigestSha256: str | None = None
-    surfaceId: str | None = None
-
-@dataclass(frozen=True)
-class AgentAuthoringSourceRefDto:
-    factPath: str | None = None
-    label: str | None = None
-    sourceKind: str | None = None
-    sourceRef: str | None = None
-
-@dataclass(frozen=True)
-class AgentAuthoringTargetStatusDto:
-    appliedAt: str | None = None
-    latestBatchId: str | None = None
-    latestCandidateId: str | None = None
-    latestReviewStatus: Literal["pending", "accepted", "rejected", "edited", "applied"] | None = None
-    targetKey: Literal["description", "contentStyle", "publicPositioning", "avatar", "profileCover", "voice", "greeting", "dialogueExemplars", "behaviorDna"] | None = None
-
-@dataclass(frozen=True)
-class AgentAuthoringValueProvenanceSegmentDto:
-    category: Literal["source_fact", "historical_inference", "creator_preference", "ai_authored_texture"] | None = None
-    refs: tuple[str, ...] = field(default_factory=tuple)
-    summary: str | None = None
-
-@dataclass(frozen=True)
-class AgentAuthoringVoiceCandidatePayloadDto:
-    historicalClaim: Literal["narration_direction_not_authentic_voice"] | None = None
-    narrationDirection: str | None = None
-    providerVoiceRef: str | None = None
-    speechModelId: str | None = None
-    speechRoutePolicy: Literal["local", "cloud"] | None = None
-    voiceAssetResourceId: str | None = None
-
-@dataclass(frozen=True)
-class AgentBiologicalDto:
-    ethnicity: str | None = None
-    gender: str | None = None
-    heightCm: float | None = None
-    visualAge: str | None = None
-    weightKg: float | None = None
-
-@dataclass(frozen=True)
-class AgentCapabilitiesDto:
-    canCreate: bool | None = None
-    currentCount: float | None = None
-    maxAllowed: float | None = None
-    remaining: float | None = None
-
-AgentCategory = Literal["GENERAL", "COMPANION", "ASSISTANT", "GAME", "CRYPTO", "NSFW_AGENT"]
-
-@dataclass(frozen=True)
-class AgentCommunicationDto:
-    formality: Literal["casual", "formal", "slang"] | None = None
-    responseLength: Literal["short", "medium", "long"] | None = None
-    sentiment: Literal["positive", "neutral", "cynical"] | None = None
-    summary: str | None = None
-
-@dataclass(frozen=True)
-class AgentDisplayDto:
-    faction: str | None = None
-    isNative: bool | None = None
-    isTransitGuest: bool | None = None
-    location: str | None = None
-    rank: str | None = None
-    role: str | None = None
-    sceneName: str | None = None
-    statusSummary: str | None = None
-    voiceSummary: str | None = None
-
-@dataclass(frozen=True)
-class AgentDnaDto:
-    appearance: AgentAppearanceDto | None = None
-    biological: AgentBiologicalDto | None = None
-    communication: AgentCommunicationDto | None = None
-    identity: AgentIdentityDto | None = None
-    nsfwLevel: str | None = None
-    personality: AgentPersonalityDto | None = None
-    voice: AgentVoiceConfigDto | None = None
-
-@dataclass(frozen=True)
-class AgentFriendLimitDto:
-    canAdd: bool | None = None
-    limit: float | None = None
-    used: float | None = None
-
-@dataclass(frozen=True)
-class AgentHandleAvailabilityResponseDto:
-    available: bool | None = None
-    message: str | None = None
-    normalized: str | None = None
-
-@dataclass(frozen=True)
-class AgentIdentityDto:
-    name: str | None = None
-    role: str | None = None
-    species: str | None = None
-    summary: str | None = None
-    worldview: str | None = None
-
-AgentImportance = Literal["PRIMARY", "SECONDARY", "BACKGROUND"]
-
-@dataclass(frozen=True)
-class AgentMetadataDto:
-    activeWorldId: str | None = None
-    category: AgentCategory | None = None
-    importance: AgentImportance | None = None
-    origin: AgentOrigin | None = None
-    ownerWorldId: str | None = None
-    ownershipType: AgentOwnershipType | None = None
-    state: AgentState | None = None
-    tier: VerificationTier | None = None
-    wakeStrategy: AgentWakeStrategy | None = None
-    worldId: str | None = None
-
-AgentOrigin = Literal["COMMUNITY", "NAF", "PARTNER", "SYSTEM"]
-
-@dataclass(frozen=True)
-class AgentOriginDto:
-    agentId: str | None = None
-    isNative: bool | None = None
-    masterId: str | None = None
-    worldCreatorId: str | None = None
-    worldId: str | None = None
-
-AgentOwnershipType = Literal["MASTER_OWNED", "WORLD_OWNED"]
-
-@dataclass(frozen=True)
-class AgentPersonalityDto:
-    emotionBaseline: str | None = None
-    goals: tuple[str, ...] = field(default_factory=tuple)
-    interests: tuple[str, ...] = field(default_factory=tuple)
-    mbti: str | None = None
-    relationshipMode: str | None = None
-    summary: str | None = None
-
-@dataclass(frozen=True)
-class AgentProfileDto:
-    activeWorldId: str | None = None
-    greeting: str | None = None
-    importance: AgentImportance | None = None
-    ownerWorldId: str | None = None
-    ownershipType: AgentOwnershipType | None = None
-    state: AgentState | None = None
-    stats: AgentStatsDto | None = None
-    worldId: str | None = None
-
-AgentRelationType = Literal["ALLY", "RIVAL", "ENEMY"]
-
-@dataclass(frozen=True)
-class AgentRelationshipOtherAccountDto:
-    avatarUrl: str | None = None
-    displayName: str | None = None
-    handle: str | None = None
-    id: str | None = None
-    isAgent: bool | None = None
-
-@dataclass(frozen=True)
-class AgentRelationshipRecordDto:
-    context: str | None = None
-    createdAt: str | None = None
-    direction: str | None = None
-    id: str | None = None
-    otherAccount: AgentRelationshipOtherAccountDto | None = None
-    strength: float | None = None
-    type: AgentRelationType | None = None
-
-@dataclass(frozen=True)
-class AgentResponseMetadataDto:
-    activeWorldId: str | None = None
-    category: str | None = None
-    importance: AgentImportance | None = None
-    origin: AgentOrigin | None = None
-    ownerWorldId: str | None = None
-    ownershipType: AgentOwnershipType | None = None
-    state: AgentState | None = None
-    tier: VerificationTier | None = None
-    wakeStrategy: str | None = None
-    worldId: str | None = None
-
-@dataclass(frozen=True)
-class AgentResponseProfileDto:
-    activeWorldId: str | None = None
-    importance: AgentImportance | None = None
-    ownerWorldId: str | None = None
-    ownershipType: AgentOwnershipType | None = None
-    state: AgentState | None = None
-    stats: AgentResponseProfileStatsDto | None = None
-    worldId: str | None = None
-
-@dataclass(frozen=True)
-class AgentResponseProfileStatsDto:
-    engagementCount: float | None = None
-    influenceTier: float | None = None
-    interactionTier: float | None = None
-    lastActiveAt: str | None = None
-    vitalityScore: float | None = None
-
-@dataclass(frozen=True)
-class AgentResponseTierSummaryDto:
-    assetTier: float | None = None
-    influenceTier: float | None = None
-    interactionTier: float | None = None
-    vitalityScore: float | None = None
-
-@dataclass(frozen=True)
-class AgentResponseUserDto:
-    agent: AgentResponseMetadataDto | None = None
-    agentProfile: AgentResponseProfileDto | None = None
-    avatarUrl: str | None = None
-    bio: str | None = None
-    createdAt: str | None = None
-    displayName: str | None = None
-    friendCount: float | None = None
-    handle: str | None = None
-    id: str | None = None
-    isAgent: bool | None = None
-    isOnline: bool | None = None
-    presenceEmoji: str | None = None
-    presenceStatus: str | None = None
-    presenceText: str | None = None
-    profileCoverUrl: str | None = None
-    stats: AgentStatsDto | None = None
-    status: AccountStatus | None = None
-    tiers: AgentResponseTierSummaryDto | None = None
-
-@dataclass(frozen=True)
-class AgentRuleDto:
-    agentId: str | None = None
-    category: Literal["CONSTRAINT", "MECHANISM", "DEFINITION", "RELATION", "POLICY"] | None = None
-    conflictsWith: tuple[str, ...] = field(default_factory=tuple)
-    createdAt: str | None = None
-    createdBy: str | None = None
-    dependsOn: tuple[str, ...] = field(default_factory=tuple)
-    hardness: Literal["HARD", "FIRM", "SOFT", "AESTHETIC"] | None = None
-    id: str | None = None
-    importance: float | None = None
-    inheritedWorldDomain: Literal["AXIOM", "PHYSICS", "SOCIETY", "ECONOMY", "CHARACTER", "NARRATIVE", "META"] | None = None
-    layer: Literal["DNA", "BEHAVIORAL", "RELATIONAL", "CONTEXTUAL"] | None = None
-    lineageId: str | None = None
-    priority: float | None = None
-    provenance: Literal["CREATOR", "WORLD_INHERITED", "NARRATIVE_EMERGED", "SYSTEM"] | None = None
-    reasoning: str | None = None
-    ruleKey: str | None = None
-    scope: Literal["SELF", "DYAD", "GROUP", "WORLD"] | None = None
-    sourceRef: str | None = None
-    statement: str | None = None
-    status: Literal["ACTIVE", "DEPRECATED", "SUPERSEDED", "PROPOSED", "ARCHIVED"] | None = None
-    structured: Mapping[str, object] = field(default_factory=dict)
-    title: str | None = None
-    updatedAt: str | None = None
-    updatedBy: str | None = None
-    version: float | None = None
-    worldRuleRef: str | None = None
-
-@dataclass(frozen=True)
-class AgentRuleLayerCountDto:
-    BEHAVIORAL: float | None = None
-    CONTEXTUAL: float | None = None
-    DNA: float | None = None
-    RELATIONAL: float | None = None
-
-AgentState = Literal["INCUBATING", "READY", "ACTIVE", "SUSPENDED", "FAILED"]
-
-@dataclass(frozen=True)
-class AgentStatsDto:
-    engagementCount: float | None = None
-    influenceTier: float | None = None
-    interactionTier: float | None = None
-    lastActiveAt: str | None = None
-    vitalityScore: float | None = None
-
-@dataclass(frozen=True)
-class AgentVisibilitySettingsDto:
-    accountVisibility: Visibility | None = None
-    defaultPostVisibility: Visibility | None = None
-    dmVisibility: Visibility | None = None
-    profileVisibility: Visibility | None = None
-
-@dataclass(frozen=True)
-class AgentVoiceConfigDto:
-    description: str | None = None
-    emotionEnabled: bool | None = None
-    pitch: float | None = None
-    speechModelId: str | None = None
-    speechRoutePolicy: Literal["local", "cloud"] | None = None
-    speed: float | None = None
-    voiceId: str | None = None
-
-AgentWakeStrategy = Literal["PASSIVE", "PROACTIVE"]
-
-ApiKeyType = Literal["PERSONAL", "ENTERPRISE"]
 
 @dataclass(frozen=True)
 class AppPermissionGrantDecisionDto:
@@ -552,21 +127,9 @@ class AppPermissionGrantSupersedeDto:
     reason: str | None = None
     supersededByGrantId: str | None = None
 
-AppPermissionScopeFamily = Literal["account", "data", "agent", "ai_spend", "memory", "knowledge", "notification", "file_device", "audit", "ai_profile"]
+AppPermissionScopeFamily = Literal["account", "data", "realm_source", "ai_spend", "memory", "knowledge", "notification", "file_device", "audit", "ai_profile"]
 
-AppPermissionScopeName = Literal["account.read", "account.session.read", "data.scope.read", "data.scope.write", "agent.identity.project", "agent.identity.bind", "ai.spend.meter", "ai.spend.delegate", "memory.read.bounded", "memory.write.admitted", "knowledge.read.bounded", "knowledge.write.admitted", "notification.send", "notification.subscribe", "file.read.scoped", "file.write.scoped", "device.use.scoped", "audit.read.scoped", "ai_profile.selection.consume"]
-
-@dataclass(frozen=True)
-class AppendWorldHistoryDto:
-    commit: MutationCommitEnvelopeDto | None = None
-    historyAppends: tuple[WorldHistoryAppendItemDto, ...] = field(default_factory=tuple)
-    ifSnapshotVersion: str | None = None
-    reason: str | None = None
-
-@dataclass(frozen=True)
-class ApplyAgentAuthoringDraftBatchResponseDto:
-    appliedTargetKeys: tuple[Literal["description", "contentStyle", "publicPositioning", "avatar", "profileCover", "voice", "greeting", "dialogueExemplars", "behaviorDna"], ...] = field(default_factory=tuple)
-    batch: AgentAuthoringDraftBatchDto | None = None
+AppPermissionScopeName = Literal["account.read", "account.session.read", "data.scope.read", "data.scope.write", "realm_source.snapshot.consume", "realm_source.snapshot.bind", "ai.spend.meter", "ai.spend.delegate", "memory.read.bounded", "memory.write.admitted", "knowledge.read.bounded", "knowledge.write.admitted", "notification.send", "notification.subscribe", "file.read.scoped", "file.write.scoped", "device.use.scoped", "audit.read.scoped", "ai_profile.selection.consume"]
 
 @dataclass(frozen=True)
 class AssetDetailDto:
@@ -628,40 +191,7 @@ class AuthTokensDto:
     user: AuthUserDto | None = None
 
 @dataclass(frozen=True)
-class AuthUserAgentMetadataDto:
-    activeWorldId: str | None = None
-    category: str | None = None
-    importance: AgentImportance | None = None
-    origin: AgentOrigin | None = None
-    ownerWorldId: str | None = None
-    ownershipType: AgentOwnershipType | None = None
-    state: AgentState | None = None
-    tier: VerificationTier | None = None
-    wakeStrategy: str | None = None
-    worldId: str | None = None
-
-@dataclass(frozen=True)
-class AuthUserAgentProfileDto:
-    activeWorldId: str | None = None
-    importance: AgentImportance | None = None
-    ownerWorldId: str | None = None
-    ownershipType: AgentOwnershipType | None = None
-    state: AgentState | None = None
-    stats: AuthUserAgentStatsDto | None = None
-    worldId: str | None = None
-
-@dataclass(frozen=True)
-class AuthUserAgentStatsDto:
-    engagementCount: float | None = None
-    influenceTier: float | None = None
-    interactionTier: float | None = None
-    lastActiveAt: str | None = None
-    vitalityScore: float | None = None
-
-@dataclass(frozen=True)
 class AuthUserDto:
-    agent: AuthUserAgentMetadataDto | None = None
-    agentProfile: AuthUserAgentProfileDto | None = None
     avatarUrl: str | None = None
     bio: str | None = None
     birthYear: float | None = None
@@ -674,7 +204,6 @@ class AuthUserDto:
     handle: str | None = None
     hasPassword: bool | None = None
     id: str | None = None
-    isAgent: bool | None = None
     isTwoFactorEnabled: bool | None = None
     languages: tuple[str, ...] = field(default_factory=tuple)
     lastHandleChangeAt: str | None = None
@@ -682,7 +211,7 @@ class AuthUserDto:
     presenceEmoji: str | None = None
     presenceStatus: str | None = None
     presenceText: str | None = None
-    role: AccountRole | None = None
+    role: PublicAccountRole | None = None
     socialProfiles: tuple[AuthUserSocialProfileDto, ...] = field(default_factory=tuple)
     status: AccountStatus | None = None
     tags: tuple[str, ...] = field(default_factory=tuple)
@@ -716,102 +245,18 @@ class AuthUserWalletDto:
     updatedAt: str | None = None
 
 @dataclass(frozen=True)
-class BatchCreateAgentCreatedDto:
-    displayName: str | None = None
-    handle: str | None = None
-    id: str | None = None
-    index: float | None = None
-    ownershipType: Literal["MASTER_OWNED", "WORLD_OWNED"] | None = None
-    state: str | None = None
-    worldId: str | None = None
-
-@dataclass(frozen=True)
-class BatchCreateAgentFailedDto:
-    error: str | None = None
-    handle: str | None = None
-    index: float | None = None
-
-@dataclass(frozen=True)
-class BatchCreateAgentsRequestDto:
-    continueOnError: bool | None = None
-    items: tuple[CreateAgentDto, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class BatchCreateAgentsResponseDto:
-    created: tuple[BatchCreateAgentCreatedDto, ...] = field(default_factory=tuple)
-    failed: tuple[BatchCreateAgentFailedDto, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class BatchUpsertBindingsDto:
-    bindingUpserts: tuple[BindingUpsertDto, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
 class BindEmailDto:
     email: str | None = None
     emailOtpCode: str | None = None
     password: str | None = None
 
 @dataclass(frozen=True)
-class BindingDetailDto:
-    bindingKind: Literal["PRESENTATION", "USE", "IMPORT"] | None = None
-    bindingPoint: Literal["WORLD_ICON", "WORLD_BANNER", "WORLD_GALLERY", "WORLD_THEME_AUDIO", "WORLD_TRAILER_VIDEO", "SCENE_BACKGROUND", "SCENE_AMBIENT_AUDIO", "EVENT_CG", "WORLDVIEW_REFERENCE", "AGENT_AVATAR", "AGENT_PORTRAIT", "AGENT_EXPRESSION", "AGENT_OUTFIT", "AGENT_CANDIDATE", "AGENT_VOICE_SAMPLE"] | None = None
-    conditionHash: str | None = None
-    conditions: Mapping[str, object] = field(default_factory=dict)
-    createdAt: str | None = None
-    createdBy: str | None = None
-    hostId: str | None = None
-    hostType: Literal["WORLD", "AGENT", "SCENE", "WORLD_EVENT", "WORLDVIEW"] | None = None
-    id: str | None = None
-    intentPrompt: str | None = None
-    objectId: str | None = None
-    objectType: Literal["RESOURCE", "ASSET", "BUNDLE"] | None = None
-    priority: float | None = None
-    resource: BindingResourceDetailDto | None = None
-    scopeWorldId: str | None = None
-    tags: tuple[str, ...] = field(default_factory=tuple)
-    updatedAt: str | None = None
-    versionPin: str | None = None
-
-@dataclass(frozen=True)
-class BindingListDto:
-    items: tuple[BindingDetailDto, ...] = field(default_factory=tuple)
-    worldId: str | None = None
-
-@dataclass(frozen=True)
-class BindingResourceDetailDto:
-    durationSec: float | None = None
-    hashSha256: str | None = None
-    height: float | None = None
-    id: str | None = None
-    label: str | None = None
-    mimeType: str | None = None
-    provenance: Literal["UPLOADED", "GENERATED", "IMPORTED", "REFERENCE"] | None = None
-    provider: Literal["CF_IMAGE", "CF_STREAM", "S3_OBJECT", "EXTERNAL_URL"] | None = None
-    resourceType: Literal["IMAGE", "VIDEO", "AUDIO", "TEXT"] | None = None
-    sizeBytes: float | None = None
-    sourceRef: str | None = None
-    storageRef: str | None = None
-    tags: tuple[str, ...] = field(default_factory=tuple)
-    url: str | None = None
-    width: float | None = None
-
-@dataclass(frozen=True)
-class BindingUpsertDto:
-    bindingKind: Literal["PRESENTATION", "USE", "IMPORT"] | None = None
-    bindingPoint: Literal["WORLD_ICON", "WORLD_BANNER", "WORLD_GALLERY", "WORLD_THEME_AUDIO", "WORLD_TRAILER_VIDEO", "SCENE_BACKGROUND", "SCENE_AMBIENT_AUDIO", "EVENT_CG", "WORLDVIEW_REFERENCE", "AGENT_AVATAR", "AGENT_PORTRAIT", "AGENT_EXPRESSION", "AGENT_OUTFIT", "AGENT_CANDIDATE", "AGENT_VOICE_SAMPLE"] | None = None
-    conditions: Mapping[str, object] = field(default_factory=dict)
-    hostId: str | None = None
-    hostType: Literal["WORLD", "AGENT", "SCENE", "WORLD_EVENT", "WORLDVIEW"] | None = None
-    intentPrompt: str | None = None
-    objectId: str | None = None
-    objectType: Literal["RESOURCE", "ASSET", "BUNDLE"] | None = None
-    priority: float | None = None
-    tags: tuple[str, ...] = field(default_factory=tuple)
-    versionPin: str | None = None
-
-@dataclass(frozen=True)
 class BlockUserBodyDto:
     reason: str | None = None
+
+@dataclass(frozen=True)
+class BootstrapOasisWorldDto:
+    confirm: Literal["bootstrap-oasis-world-core"] | None = None
 
 @dataclass(frozen=True)
 class BundleDetailDto:
@@ -839,40 +284,12 @@ class BundleMemberDto:
     sortOrder: float | None = None
 
 @dataclass(frozen=True)
-class CalendarSystemDto:
-    daysPerMonth: float | None = None
-    daysPerWeek: float | None = None
-    hoursPerDay: float | None = None
-    monthsPerYear: float | None = None
-
-@dataclass(frozen=True)
-class CanManageNsfwResponseDto:
-    canManage: bool | None = None
-    isCreator: bool | None = None
-
-@dataclass(frozen=True)
 class CanWithdrawDto:
     balance: str | None = None
     canWithdraw: bool | None = None
     connectStatus: StripeConnectStatus | None = None
     minAmount: str | None = None
     reason: str | None = None
-
-@dataclass(frozen=True)
-class CausalityModelDto:
-    allowParadox: bool | None = None
-    fateWeight: float | None = None
-    karmaEnabled: bool | None = None
-    maxChainDepth: float | None = None
-    rules: tuple[CausalityRuleDto, ...] = field(default_factory=tuple)
-    type: Literal["DETERMINISTIC", "PROBABILISTIC", "NARRATIVE"] | None = None
-
-@dataclass(frozen=True)
-class CausalityRuleDto:
-    effect: str | None = None
-    id: str | None = None
-    probability: float | None = None
-    trigger: str | None = None
 
 @dataclass(frozen=True)
 class ChangeEmailDto:
@@ -954,53 +371,12 @@ class CheckEmailResponseDto:
     entryRoute: Literal["register_with_otp", "login_with_otp", "login_with_password"] | None = None
 
 @dataclass(frozen=True)
-class ClassDefinitionDto:
-    abilities: tuple[str, ...] = field(default_factory=tuple)
-    description: str | None = None
-    id: str | None = None
-    name: str | None = None
-
-@dataclass(frozen=True)
 class CloneAssetDto:
     clonePolicy: Literal["ALLOW", "DENY", "INHERIT"] | None = None
     ownerId: str | None = None
     status: Literal["DRAFT", "READY", "ARCHIVED", "DELETED"] | None = None
     transferPolicy: Literal["ALLOW", "DENY", "INHERIT"] | None = None
     usePolicy: UsePolicyDto | None = None
-
-@dataclass(frozen=True)
-class CommitRealmGroupMessageCandidateInputDto:
-    auditLineageRef: str | None = None
-    body: str | None = None
-    bodyHash: str | None = None
-    candidateEvidenceRef: str | None = None
-    candidateId: str | None = None
-    candidateKind: Literal["REALM_GROUP_MESSAGE_CANDIDATE"] | None = None
-    clientCorrelationId: str | None = None
-    commitDisposition: Literal["MESSAGE_CANDIDATE", "REFUSAL_CANDIDATE"] | None = None
-    createdAt: str | None = None
-    evidenceHash: str | None = None
-    expectedLocalAgentRef: str | None = None
-    expectedRealmGroupAgentSlotId: str | None = None
-    expiresAt: str | None = None
-    idempotencyKey: str | None = None
-    messageType: Literal["TEXT"] | None = None
-    moderationRef: str | None = None
-    outputCandidateRef: str | None = None
-    policyVerdictRef: str | None = None
-    refusalCode: str | None = None
-    refusalHash: str | None = None
-    refusalReason: str | None = None
-    refusalRef: str | None = None
-    runtimeTraceRef: str | None = None
-    triggerRef: str | None = None
-
-@dataclass(frozen=True)
-class CommitWorldStateDto:
-    commit: MutationCommitEnvelopeDto | None = None
-    ifSnapshotVersion: str | None = None
-    reason: str | None = None
-    writes: tuple[WorldStateWriteDto, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
 class ConnectDashboardLinkDto:
@@ -1012,76 +388,6 @@ class ConnectOnboardingResponseDto:
     onboardingUrl: str | None = None
 
 ContentRatingString = Literal["UNRATED", "G", "PG13", "R18", "EXPLICIT"]
-
-@dataclass(frozen=True)
-class CreateAgentAuthoringDraftBatchDto:
-    candidates: tuple[CreateAgentAuthoringDraftCandidateDto, ...] = field(default_factory=tuple)
-    metadata: AgentAuthoringDraftBatchMetadataDto | None = None
-    skeletonId: str | None = None
-
-@dataclass(frozen=True)
-class CreateAgentAuthoringDraftCandidateDto:
-    generatedAt: str | None = None
-    modelId: str | None = None
-    promptDigestSha256: str | None = None
-    provenance: AgentAuthoringRuntimeTraceDto | None = None
-    routePolicy: str | None = None
-    runtimeTraceId: str | None = None
-    sourceRefs: tuple[AgentAuthoringSourceRefDto, ...] = field(default_factory=tuple)
-    targetKey: Literal["description", "contentStyle", "publicPositioning", "avatar", "profileCover", "voice", "greeting", "dialogueExemplars", "behaviorDna"] | None = None
-    value: AgentAuthoringDraftCandidateValueDto | None = None
-
-@dataclass(frozen=True)
-class CreateAgentDto:
-    concept: str | None = None
-    description: str | None = None
-    displayName: str | None = None
-    dna: Mapping[str, object] = field(default_factory=dict)
-    dnaPrimary: Literal["CARING", "PLAYFUL", "INTELLECTUAL", "CONFIDENT", "MYSTERIOUS", "ROMANTIC"] | None = None
-    dnaSecondary: tuple[DnaSecondaryTrait, ...] = field(default_factory=tuple)
-    handle: str | None = None
-    ownershipType: Literal["MASTER_OWNED", "WORLD_OWNED"] | None = None
-    referenceImageUrl: str | None = None
-    rules: CreateAgentRulesDto | None = None
-    worldId: str | None = None
-
-@dataclass(frozen=True)
-class CreateAgentResponseDto:
-    dna: Mapping[str, object] = field(default_factory=dict)
-    id: str | None = None
-    state: Literal["INCUBATING", "READY", "ACTIVE", "SUSPENDED", "FAILED"] | None = None
-    user: AgentResponseUserDto | None = None
-
-@dataclass(frozen=True)
-class CreateAgentRuleDto:
-    category: Literal["CONSTRAINT", "MECHANISM", "DEFINITION", "RELATION", "POLICY"] | None = None
-    conflictsWith: tuple[str, ...] = field(default_factory=tuple)
-    dependsOn: tuple[str, ...] = field(default_factory=tuple)
-    hardness: Literal["HARD", "FIRM", "SOFT", "AESTHETIC"] | None = None
-    importance: float | None = None
-    layer: Literal["DNA", "BEHAVIORAL", "RELATIONAL", "CONTEXTUAL"] | None = None
-    priority: float | None = None
-    provenance: Literal["CREATOR", "WORLD_INHERITED", "NARRATIVE_EMERGED", "SYSTEM"] | None = None
-    reasoning: str | None = None
-    ruleKey: str | None = None
-    scope: Literal["SELF", "DYAD", "GROUP", "WORLD"] | None = None
-    sourceRef: str | None = None
-    statement: str | None = None
-    structured: Mapping[str, object] = field(default_factory=dict)
-    title: str | None = None
-    worldRuleRef: str | None = None
-
-@dataclass(frozen=True)
-class CreateAgentRulesDto:
-    format: str | None = None
-    lines: tuple[str, ...] = field(default_factory=tuple)
-    text: str | None = None
-
-@dataclass(frozen=True)
-class CreateApiKeyDto:
-    label: str | None = None
-    scopes: tuple[str, ...] = field(default_factory=tuple)
-    type: ApiKeyType | None = None
 
 @dataclass(frozen=True)
 class CreateAssetDto:
@@ -1101,7 +407,6 @@ class CreateAssetDto:
 
 @dataclass(frozen=True)
 class CreateAudioDirectUploadDto:
-    agentId: str | None = None
     controllerId: str | None = None
     controllerKind: Literal["ACCOUNT", "WORLD"] | None = None
     deliveryAccess: Literal["PUBLIC", "SIGNED"] | None = None
@@ -1164,18 +469,25 @@ class CreatePostDto:
     tags: tuple[str, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
+class CreateRealmPersonaDto:
+    core: Mapping[str, object] = field(default_factory=dict)
+    homeWorldId: str | None = None
+    id: str | None = None
+    origin: RealmCoreOriginDto | None = None
+
+@dataclass(frozen=True)
 class CreateRelationshipDto:
     context: str | None = None
     strength: float | None = None
     targetId: str | None = None
-    type: AgentRelationType | None = None
+    type: AccountRelationType | None = None
 
 @dataclass(frozen=True)
 class CreateReportDto:
     description: str | None = None
     reason: ReportReason | None = None
     targetId: str | None = None
-    targetType: Literal["USER", "POST", "AGENT"] | None = None
+    targetType: Literal["USER", "POST"] | None = None
 
 @dataclass(frozen=True)
 class CreateReviewDto:
@@ -1183,6 +495,10 @@ class CreateReviewDto:
     giftTransactionId: str | None = None
     rating: ReviewRating | None = None
     tags: str | None = None
+
+@dataclass(frozen=True)
+class CreateRuntimeSourceSnapshotDto:
+    sourceRef: TypedSourceRefDto | None = None
 
 @dataclass(frozen=True)
 class CreateSparkCheckoutDto:
@@ -1198,7 +514,6 @@ class CreateSubscriptionCheckoutDto:
 
 @dataclass(frozen=True)
 class CreateTextResourceDto:
-    agentId: str | None = None
     content: str | None = None
     controllerId: str | None = None
     controllerKind: Literal["ACCOUNT", "WORLD"] | None = None
@@ -1227,184 +542,27 @@ class CreateWithdrawalDto:
     gemAmount: str | None = None
 
 @dataclass(frozen=True)
-class CreateWorldDraftDto:
-    draftPayload: WorldDraftPayloadDto | None = None
-    sourceRef: str | None = None
-    sourceType: Literal["TEXT", "FILE"] | None = None
-    targetWorldId: str | None = None
-
-@dataclass(frozen=True)
-class CreateWorldRuleDto:
-    category: Literal["CONSTRAINT", "MECHANISM", "DEFINITION", "RELATION", "POLICY"] | None = None
-    conflictsWith: tuple[str, ...] = field(default_factory=tuple)
-    dependsOn: tuple[str, ...] = field(default_factory=tuple)
-    domain: Literal["AXIOM", "PHYSICS", "SOCIETY", "ECONOMY", "CHARACTER", "NARRATIVE", "META"] | None = None
-    hardness: Literal["HARD", "FIRM", "SOFT", "AESTHETIC"] | None = None
-    overrides: str | None = None
-    priority: float | None = None
-    provenance: Literal["SEED", "CREATOR", "MOJING_MERGED", "RENDER_BACKFLOW", "WORLD_STUDIO", "SYSTEM"] | None = None
-    reasoning: str | None = None
-    ruleKey: str | None = None
-    scope: Literal["WORLD", "REGION", "FACTION", "INDIVIDUAL", "SCENE"] | None = None
-    sourceRef: str | None = None
-    statement: str | None = None
-    structured: Mapping[str, object] = field(default_factory=dict)
-    title: str | None = None
-    validFrom: str | None = None
-    validUntil: str | None = None
-
-@dataclass(frozen=True)
-class CreateWorldTransitDto:
-    agentId: str | None = None
-    context: TransitContextDto | None = None
-    fromWorldId: str | None = None
-    transitType: Literal["INBOUND", "OUTBOUND"] | None = None
-
-@dataclass(frozen=True)
-class CreatorAgentResponseDto:
-    capabilities: UserAgentDnaDto | None = None
+class CreateWorldCharacterCoreDto:
+    core: Mapping[str, object] = field(default_factory=dict)
+    entityId: str | None = None
     id: str | None = None
-    user: UserLiteDto | None = None
+    origin: RealmCoreOriginDto | None = None
 
 @dataclass(frozen=True)
-class CreatorCapabilitiesResponseDto:
-    allowedActions: tuple[Literal["DEFINE_RULES", "UPDATE_SETTINGS", "PUBLISH_WORLD", "ARCHIVE_WORLD", "CONTROL_AGENT", "CONTROL_USER", "FORCE_AGENT_BEHAVIOR", "MODIFY_AGENT_IDENTITY"], ...] = field(default_factory=tuple)
-    forbiddenActions: tuple[Literal["DEFINE_RULES", "UPDATE_SETTINGS", "PUBLISH_WORLD", "ARCHIVE_WORLD", "CONTROL_AGENT", "CONTROL_USER", "FORCE_AGENT_BEHAVIOR", "MODIFY_AGENT_IDENTITY"], ...] = field(default_factory=tuple)
-    isCreator: bool | None = None
-    worldStatus: str | None = None
+class CreateWorldCoreDto:
+    core: Mapping[str, object] = field(default_factory=dict)
+    id: str | None = None
+    origin: RealmCoreOriginDto | None = None
+    visibility: Literal["private", "unlisted", "public", "system"] | None = None
 
 @dataclass(frozen=True)
 class CreatorEligibilityResponseDto:
-    canCreateAgent: bool | None = None
+    canCreateRealmPersona: bool | None = None
     canCreateWorld: bool | None = None
     isEligible: bool | None = None
     message: str | None = None
     status: Literal["ACTIVE", "CANCELED", "PAST_DUE", "PAUSED"] | None = None
     tier: Literal["FREE", "PRO", "MAX"] | None = None
-
-@dataclass(frozen=True)
-class CreatorWorldAgentChatReadinessDto:
-    agentId: str | None = None
-    agentRuleCount: float | None = None
-    appliedAuthoringTargets: tuple[str, ...] = field(default_factory=tuple)
-    authorityReason: Literal["CREATOR_OWNER", "MAINTAIN_ACCESS"] | None = None
-    consumerSurface: Literal["AGENT_CHAT_READINESS"] | None = None
-    gates: CreatorWorldAgentChatReadinessGatesDto | None = None
-    ownerScope: Literal["creator-world"] | None = None
-    profile: CreatorWorldAgentChatReadinessProfileDto | None = None
-    rawRuleContentExposed: bool | None = None
-    runtimeProjectionChecksum: str | None = None
-    selectedInputCount: float | None = None
-    selectedOwnerSettingFields: tuple[str, ...] = field(default_factory=tuple)
-    suppressedInputCount: float | None = None
-    worldId: str | None = None
-    worldRuleCount: float | None = None
-
-@dataclass(frozen=True)
-class CreatorWorldAgentChatReadinessGatesDto:
-    authoringDraftReady: bool | None = None
-    behaviorDnaReady: bool | None = None
-    dialogueExemplarsReady: bool | None = None
-    greetingReady: bool | None = None
-    localAgentIdentityReady: bool | None = None
-    ownerSettingsReady: bool | None = None
-    profileContextReady: bool | None = None
-    profileCoverReady: bool | None = None
-    profileMediaReady: bool | None = None
-    speechRouteReady: bool | None = None
-    voiceReferenceReady: bool | None = None
-
-@dataclass(frozen=True)
-class CreatorWorldAgentChatReadinessProfileDto:
-    avatarResourceId: str | None = None
-    avatarUrl: str | None = None
-    defaultVoiceReference: str | None = None
-    displayName: str | None = None
-    handle: str | None = None
-    profileCoverResourceId: str | None = None
-    profileCoverUrl: str | None = None
-    speechModelId: str | None = None
-    speechRoutePolicy: Literal["local", "cloud"] | None = None
-
-@dataclass(frozen=True)
-class CreatorWorldAgentCompletionBriefDto:
-    avatarBrief: str | None = None
-    contentStyle: str | None = None
-    description: str | None = None
-    dnaBrief: str | None = None
-    greetingBrief: str | None = None
-    positioning: str | None = None
-    voiceBrief: str | None = None
-
-@dataclass(frozen=True)
-class CreatorWorldAgentRuntimeReadinessDto:
-    reason: str | None = None
-    requiredCreatorActions: tuple[str, ...] = field(default_factory=tuple)
-    roleplayRuntime: Literal["blocked"] | None = None
-
-@dataclass(frozen=True)
-class CreatorWorldAgentSkeletonFactsDto:
-    birthYear: float | None = None
-    deathYear: float | None = None
-    officeFacts: tuple[CreatorWorldAgentSkeletonOfficeFactDto, ...] = field(default_factory=tuple)
-    relationships: tuple[CreatorWorldAgentSkeletonRelationshipDto, ...] = field(default_factory=tuple)
-    representativeFacts: tuple[str, ...] = field(default_factory=tuple)
-    timelineFactCount: float | None = None
-
-@dataclass(frozen=True)
-class CreatorWorldAgentSkeletonOfficeFactDto:
-    eventId: str | None = None
-    name: str | None = None
-    officeName: str | None = None
-    summary: str | None = None
-
-@dataclass(frozen=True)
-class CreatorWorldAgentSkeletonRelationshipDto:
-    context: str | None = None
-    relationType: str | None = None
-    relationshipId: str | None = None
-    targetEntityId: str | None = None
-    targetName: str | None = None
-
-@dataclass(frozen=True)
-class CreatorWorldAgentSourceSkeletonDto:
-    agentId: str | None = None
-    aliases: tuple[str, ...] = field(default_factory=tuple)
-    candidateId: str | None = None
-    canonicalName: str | None = None
-    completionBrief: CreatorWorldAgentCompletionBriefDto | None = None
-    missingFields: tuple[Literal["avatar", "profileCover", "voice", "greeting", "dialogueExemplars", "behaviorDna"], ...] = field(default_factory=tuple)
-    packageId: str | None = None
-    packageVersion: str | None = None
-    runtimeReadiness: CreatorWorldAgentRuntimeReadinessDto | None = None
-    skeletonId: str | None = None
-    sourceEntityId: str | None = None
-    sourceFacts: CreatorWorldAgentSkeletonFactsDto | None = None
-    sourceKind: Literal["CBDB"] | None = None
-    sourceProfile: Literal["cbdb-historical"] | None = None
-    sourceRefs: tuple[str, ...] = field(default_factory=tuple)
-    worldId: str | None = None
-
-@dataclass(frozen=True)
-class CreatorWorldSummaryDto:
-    agentCount: float | None = None
-    authorityReason: Literal["CREATOR_OWNER", "MAINTAIN_ACCESS"] | None = None
-    bannerUrl: str | None = None
-    creatorId: str | None = None
-    description: str | None = None
-    iconUrl: str | None = None
-    id: str | None = None
-    motto: str | None = None
-    name: str | None = None
-    overview: str | None = None
-    status: Literal["DRAFT", "PENDING_REVIEW", "ACTIVE", "SUSPENDED", "ARCHIVED"] | None = None
-    tagline: str | None = None
-    type: Literal["CREATOR"] | None = None
-    updatedAt: str | None = None
-
-@dataclass(frozen=True)
-class CreatorWorldSummaryListDto:
-    items: tuple[CreatorWorldSummaryDto, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
 class CurrencyBalancesDto:
@@ -1433,14 +591,8 @@ class CursorPageMetaDto:
     nextCursor: str | None = None
 
 @dataclass(frozen=True)
-class DeleteAgentOperationResponseDto:
-    success: bool | None = None
-
-@dataclass(frozen=True)
 class DeleteRelationshipResponseDto:
     deleted: bool | None = None
-
-DnaSecondaryTrait = Literal["HUMOROUS", "SARCASTIC", "GENTLE", "DIRECT", "OPTIMISTIC", "REALISTIC", "DRAMATIC", "PASSIONATE", "REBELLIOUS", "INNOCENT", "WISE", "ECCENTRIC"]
 
 @dataclass(frozen=True)
 class EditMessageInputDto:
@@ -1462,25 +614,6 @@ class EmailOtpVerifyDto:
     email: str | None = None
 
 @dataclass(frozen=True)
-class ExistenceDefinitionDto:
-    classes: tuple[ClassDefinitionDto, ...] = field(default_factory=tuple)
-    factions: tuple[FactionDefinitionDto, ...] = field(default_factory=tuple)
-    species: tuple[SpeciesDefinitionDto, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class FactionDefinitionDto:
-    alignment: str | None = None
-    description: str | None = None
-    id: str | None = None
-    name: str | None = None
-    relationships: tuple[FactionRelationshipDto, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class FactionRelationshipDto:
-    targetFactionId: str | None = None
-    type: Literal["ALLY", "NEUTRAL", "RIVAL", "ENEMY"] | None = None
-
-@dataclass(frozen=True)
 class FeedPageMetaDto:
     cursor: str | None = None
     limit: float | None = None
@@ -1493,7 +626,6 @@ class FeedResponseDto:
 
 @dataclass(frozen=True)
 class FinalizeResourceDto:
-    agentId: str | None = None
     controllerId: str | None = None
     controllerKind: Literal["ACCOUNT", "WORLD"] | None = None
     deliveryAccess: Literal["PUBLIC", "SIGNED"] | None = None
@@ -1517,240 +649,7 @@ class FinalizeResourceDto:
     worldId: str | None = None
 
 @dataclass(frozen=True)
-class ForgeAgentCandidateCapabilityCellDto:
-    evidenceTruthRefCount: float | None = None
-    evidenceTruthRefs: tuple[str, ...] = field(default_factory=tuple)
-    predicateId: str | None = None
-    requirements: tuple[ForgeAgentCandidateRequirementDto, ...] = field(default_factory=tuple)
-    status: Literal["ready", "sparse", "blocked"] | None = None
-    surface: str | None = None
-
-@dataclass(frozen=True)
-class ForgeAgentCandidateDto:
-    agentRef: str | None = None
-    capabilityVector: tuple[ForgeAgentCandidateCapabilityCellDto, ...] = field(default_factory=tuple)
-    completenessIntent: str | None = None
-    entityRef: str | None = None
-    id: str | None = None
-    name: str | None = None
-    runtimeMaterialization: ForgeAgentCandidateRuntimeMaterializationDto | None = None
-    sourceProfiles: tuple[ForgeAgentCandidateSourceProfileDto, ...] = field(default_factory=tuple)
-    worldId: str | None = None
-
-@dataclass(frozen=True)
-class ForgeAgentCandidateQueryFiltersDto:
-    query: str | None = None
-    status: Literal["ready", "sparse", "blocked"] | None = None
-    surface: str | None = None
-
-@dataclass(frozen=True)
-class ForgeAgentCandidateQueryResultDto:
-    candidates: tuple[ForgeAgentCandidateDto, ...] = field(default_factory=tuple)
-    filters: ForgeAgentCandidateQueryFiltersDto | None = None
-    packageId: str | None = None
-    returned: float | None = None
-    schemaVersion: str | None = None
-    slug: str | None = None
-    total: float | None = None
-
-@dataclass(frozen=True)
-class ForgeAgentCandidateRequirementDto:
-    actual: float | None = None
-    gap: float | None = None
-    gapKind: Literal["open", "bounded"] | None = None
-    id: str | None = None
-    passed: bool | None = None
-    required: float | None = None
-
-@dataclass(frozen=True)
-class ForgeAgentCandidateRuntimeMaterializationDto:
-    materializedRuntimeAgent: bool | None = None
-    roleplayRuntimeEligible: bool | None = None
-
-@dataclass(frozen=True)
-class ForgeAgentCandidateSourceProfileDto:
-    archetype: str | None = None
-    authorityRank: str | None = None
-    evidenceLocatorKind: str | None = None
-    profile: str | None = None
-    sourceId: str | None = None
-
-@dataclass(frozen=True)
-class ForgeProductArtifactRefDto:
-    checksum: str | None = None
-    kind: str | None = None
-    path: str | None = None
-
-@dataclass(frozen=True)
-class ForgeProductCapabilitySummaryDto:
-    agentCandidates: float | None = None
-    completenessIntentCounts: Mapping[str, object] = field(default_factory=dict)
-    materializedRuntimeAgents: float | None = None
-    runtimeReadyCandidates: float | None = None
-    surfaceStatusCounts: Mapping[str, object] = field(default_factory=dict)
-
-@dataclass(frozen=True)
-class ForgeProductCountsDto:
-    agentBlueprints: float | None = None
-    agentCapabilities: float | None = None
-    agentExemplars: float | None = None
-    agentRelationships: float | None = None
-    evidenceRecords: float | None = None
-    projectionInputs: float | None = None
-    scenes: float | None = None
-    worldEntities: float | None = None
-    worldEvents: float | None = None
-    worldRelationships: float | None = None
-    worldRules: float | None = None
-    worldSystems: float | None = None
-
-@dataclass(frozen=True)
-class ForgeProductEvalScorecardDto:
-    admissionAuthority: str | None = None
-    artifactPath: str | None = None
-    checksum: str | None = None
-    publicDataset: bool | None = None
-    suite: str | None = None
-    trustTier: str | None = None
-
-@dataclass(frozen=True)
-class ForgeProductOptionalArtifactQualityDto:
-    artifactPath: str | None = None
-    checksum: str | None = None
-
-@dataclass(frozen=True)
-class ForgeProductQualityDto:
-    evalScorecards: tuple[ForgeProductEvalScorecardDto, ...] = field(default_factory=tuple)
-    presetZeroing: ForgeProductOptionalArtifactQualityDto | None = None
-    updateRun: ForgeProductUpdateRunQualityDto | None = None
-    validation: ForgeProductValidationQualityDto | None = None
-
-@dataclass(frozen=True)
-class ForgeProductShardIndexDto:
-    packageId: str | None = None
-    packageVersion: str | None = None
-    schemaVersion: str | None = None
-    shardManifest: ForgeProductShardManifestRefDto | None = None
-    shards: tuple[ForgeProductShardIndexItemDto, ...] = field(default_factory=tuple)
-    slug: str | None = None
-
-@dataclass(frozen=True)
-class ForgeProductShardIndexItemDto:
-    byteSize: float | None = None
-    checksum: str | None = None
-    exportKeys: tuple[str, ...] = field(default_factory=tuple)
-    kind: str | None = None
-    path: str | None = None
-
-@dataclass(frozen=True)
-class ForgeProductShardIntegrityItemDto:
-    actualChecksum: str | None = None
-    byteSize: float | None = None
-    error: str | None = None
-    expectedChecksum: str | None = None
-    exportKeys: tuple[str, ...] = field(default_factory=tuple)
-    kind: str | None = None
-    path: str | None = None
-    status: Literal["pass", "failed"] | None = None
-
-@dataclass(frozen=True)
-class ForgeProductShardIntegrityReportDto:
-    packageId: str | None = None
-    packageVersion: str | None = None
-    schemaVersion: str | None = None
-    shardManifest: ForgeProductShardManifestRefDto | None = None
-    shards: tuple[ForgeProductShardIntegrityItemDto, ...] = field(default_factory=tuple)
-    slug: str | None = None
-    status: Literal["pass", "failed"] | None = None
-
-@dataclass(frozen=True)
-class ForgeProductShardManifestRefDto:
-    checksum: str | None = None
-    path: str | None = None
-
-@dataclass(frozen=True)
-class ForgeProductShardReadDto:
-    checksum: str | None = None
-    kind: str | None = None
-    packageId: str | None = None
-    packageVersion: str | None = None
-    record: Mapping[str, object] = field(default_factory=dict)
-    schemaVersion: str | None = None
-    slug: str | None = None
-
-@dataclass(frozen=True)
-class ForgeProductSourceProfileDto:
-    archetype: str | None = None
-    authorityRank: str | None = None
-    evidenceLocatorKind: str | None = None
-    inputCount: float | None = None
-    localeProfile: str | None = None
-    profile: str | None = None
-    sourceId: str | None = None
-    title: str | None = None
-
-@dataclass(frozen=True)
-class ForgeProductUpdateRunQualityDto:
-    artifactPath: str | None = None
-    checksum: str | None = None
-    runStatus: Literal["success", "failed", "blocked", "no-op"] | None = None
-
-@dataclass(frozen=True)
-class ForgeProductValidationQualityDto:
-    artifactPath: str | None = None
-    checksum: str | None = None
-    status: Literal["PASS", "FAIL"] | None = None
-
-@dataclass(frozen=True)
-class ForgeProductWorldRefDto:
-    id: str | None = None
-    name: str | None = None
-
-@dataclass(frozen=True)
-class ForgeWorldCatalogDto:
-    qualitySummary: ForgeWorldCatalogQualitySummaryDto | None = None
-    rootDir: str | None = None
-    schemaVersion: str | None = None
-    worlds: tuple[ForgeWorldProductDto, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class ForgeWorldCatalogQualitySummaryDto:
-    evalScorecards: float | None = None
-    goldenGateScorecards: float | None = None
-    publicReferenceScorecards: float | None = None
-    reportOnlyScorecards: float | None = None
-    updateRunBlocked: float | None = None
-    updateRunFailed: float | None = None
-    updateRunNoop: float | None = None
-    updateRunSuccess: float | None = None
-    validationFail: float | None = None
-    validationPass: float | None = None
-    worlds: float | None = None
-    worldsWithGoldenGate: float | None = None
-    worldsWithPresetZeroing: float | None = None
-    worldsWithPublicReference: float | None = None
-    worldsWithUpdateRun: float | None = None
-
-@dataclass(frozen=True)
-class ForgeWorldProductDto:
-    artifacts: tuple[ForgeProductArtifactRefDto, ...] = field(default_factory=tuple)
-    capabilitySummary: ForgeProductCapabilitySummaryDto | None = None
-    counts: ForgeProductCountsDto | None = None
-    distributionShape: Literal["authoring-package", "compact-shards"] | None = None
-    packageId: str | None = None
-    packageVersion: str | None = None
-    productId: str | None = None
-    quality: ForgeProductQualityDto | None = None
-    schemaVersion: str | None = None
-    slug: str | None = None
-    sourceMix: tuple[ForgeProductSourceProfileDto, ...] = field(default_factory=tuple)
-    target: str | None = None
-    world: ForgeProductWorldRefDto | None = None
-
-@dataclass(frozen=True)
 class FriendProfileDto:
-    agent: AgentMetadataDto | None = None
-    agentProfile: AgentProfileDto | None = None
     avatarUrl: str | None = None
     bio: str | None = None
     birthYear: float | None = None
@@ -1764,7 +663,6 @@ class FriendProfileDto:
     giftStats: Mapping[str, object] = field(default_factory=dict)
     handle: str | None = None
     id: str | None = None
-    isAgent: bool | None = None
     isOnline: bool | None = None
     languages: tuple[str, ...] = field(default_factory=tuple)
     presenceEmoji: str | None = None
@@ -1838,14 +736,6 @@ class GiftTransactionRichDto:
     status: GiftStatus | None = None
 
 @dataclass(frozen=True)
-class GlossaryTermDto:
-    category: str | None = None
-    definition: str | None = None
-    id: str | None = None
-    importance: str | None = None
-    term: str | None = None
-
-@dataclass(frozen=True)
 class GroupChatViewDto:
     createdAt: str | None = None
     creatorId: str | None = None
@@ -1861,10 +751,10 @@ class GroupChatViewDto:
 @dataclass(frozen=True)
 class GroupMessageAuthorDto:
     accountId: str | None = None
-    agentOwnerId: str | None = None
     avatarUrl: str | None = None
     displayName: str | None = None
-    type: Literal["human", "agent"] | None = None
+    sourceOwnerId: str | None = None
+    type: Literal["human", "source"] | None = None
 
 @dataclass(frozen=True)
 class GroupMessageViewDto:
@@ -1884,17 +774,17 @@ class GroupMessageViewDto:
 @dataclass(frozen=True)
 class GroupParticipantDto:
     accountId: str | None = None
-    agentOwnerId: str | None = None
     avatarUrl: str | None = None
     displayName: str | None = None
     handle: str | None = None
     isOnline: bool | None = None
     joinedAt: str | None = None
-    localAgentRef: str | None = None
-    realmAgentId: str | None = None
-    realmGroupAgentSlotId: str | None = None
     role: Literal["admin", "member"] | None = None
-    type: Literal["human", "agent"] | None = None
+    runtimeParticipantSlot: str | None = None
+    runtimeSourceRef: str | None = None
+    sourceOwnerId: str | None = None
+    sourceRef: str | None = None
+    type: Literal["human", "source"] | None = None
 
 @dataclass(frozen=True)
 class HandleAvailabilityDto:
@@ -1969,76 +859,6 @@ class ListMessagesResultDto:
     nextBefore: str | None = None
 
 @dataclass(frozen=True)
-class LocalAgentProvisionIntentAckDto:
-    detail: str | None = None
-    outcome: LocalAgentProvisionIntentAckOutcome | None = None
-
-LocalAgentProvisionIntentAckOutcome = Literal["established", "substrate_failure"]
-
-@dataclass(frozen=True)
-class LocalAgentProvisionIntentDto:
-    ackedAt: str | None = None
-    attempts: float | None = None
-    availableAt: str | None = None
-    createdAt: str | None = None
-    id: str | None = None
-    localAgentRef: str | None = None
-    ownerUserId: str | None = None
-    realmAgentId: str | None = None
-    status: LocalAgentProvisionIntentStatus | None = None
-
-@dataclass(frozen=True)
-class LocalAgentProvisionIntentListDto:
-    items: tuple[LocalAgentProvisionIntentDto, ...] = field(default_factory=tuple)
-
-LocalAgentProvisionIntentStatus = Literal["OPEN", "ACKED", "FAILED"]
-
-@dataclass(frozen=True)
-class LocalAgentTerminationIntentAckDto:
-    detail: str | None = None
-    outcome: LocalAgentTerminationIntentAckOutcome | None = None
-
-LocalAgentTerminationIntentAckOutcome = Literal["terminated", "substrate_failure"]
-
-@dataclass(frozen=True)
-class LocalAgentTerminationIntentDto:
-    ackedAt: str | None = None
-    attempts: float | None = None
-    availableAt: str | None = None
-    createdAt: str | None = None
-    id: str | None = None
-    localAgentRef: str | None = None
-    ownerUserId: str | None = None
-    realmAgentId: str | None = None
-    status: LocalAgentTerminationIntentStatus | None = None
-
-@dataclass(frozen=True)
-class LocalAgentTerminationIntentListDto:
-    items: tuple[LocalAgentTerminationIntentDto, ...] = field(default_factory=tuple)
-
-LocalAgentTerminationIntentStatus = Literal["OPEN", "ACKED", "FAILED"]
-
-@dataclass(frozen=True)
-class LocationLandmarkDto:
-    description: str | None = None
-    id: str | None = None
-    name: str | None = None
-    regionId: str | None = None
-    significance: str | None = None
-
-@dataclass(frozen=True)
-class LocationRegionDto:
-    climate: str | None = None
-    description: str | None = None
-    id: str | None = None
-    name: str | None = None
-
-@dataclass(frozen=True)
-class MakeAgentPublicResponseDto:
-    accountVisibility: Visibility | None = None
-    success: bool | None = None
-
-@dataclass(frozen=True)
 class MarkNotificationsReadInputDto:
     ids: tuple[str, ...] = field(default_factory=tuple)
     markAllBefore: str | None = None
@@ -2083,31 +903,6 @@ class MessageViewDto:
 ModerationStatusString = Literal["ACTIVE", "UNDER_REVIEW", "FLAGGED", "BANNED"]
 
 @dataclass(frozen=True)
-class MutationActorRefDto:
-    actorId: str | None = None
-    actorType: str | None = None
-    role: str | None = None
-
-@dataclass(frozen=True)
-class MutationCommitEnvelopeDto:
-    actorRefs: tuple[MutationActorRefDto, ...] = field(default_factory=tuple)
-    appId: str | None = None
-    effectClass: Literal["NONE", "STATE_ONLY", "STATE_AND_HISTORY"] | None = None
-    evidenceRefs: tuple[MutationEvidenceRefDto, ...] = field(default_factory=tuple)
-    reason: str | None = None
-    schemaId: str | None = None
-    schemaVersion: str | None = None
-    scope: str | None = None
-    sessionId: str | None = None
-    worldId: str | None = None
-
-@dataclass(frozen=True)
-class MutationEvidenceRefDto:
-    kind: str | None = None
-    refId: str | None = None
-    uri: str | None = None
-
-@dataclass(frozen=True)
 class NotificationActivityDto:
     directMessages: bool | None = None
     friendRequests: bool | None = None
@@ -2115,47 +910,13 @@ class NotificationActivityDto:
     mentions: bool | None = None
 
 @dataclass(frozen=True)
-class NotificationActorAgentMetadataDto:
-    activeWorldId: str | None = None
-    category: str | None = None
-    importance: AgentImportance | None = None
-    origin: AgentOrigin | None = None
-    ownerWorldId: str | None = None
-    ownershipType: AgentOwnershipType | None = None
-    state: AgentState | None = None
-    tier: VerificationTier | None = None
-    wakeStrategy: str | None = None
-    worldId: str | None = None
-
-@dataclass(frozen=True)
-class NotificationActorAgentProfileDto:
-    activeWorldId: str | None = None
-    importance: AgentImportance | None = None
-    ownerWorldId: str | None = None
-    ownershipType: AgentOwnershipType | None = None
-    state: AgentState | None = None
-    stats: NotificationActorAgentStatsDto | None = None
-    worldId: str | None = None
-
-@dataclass(frozen=True)
-class NotificationActorAgentStatsDto:
-    engagementCount: float | None = None
-    influenceTier: float | None = None
-    interactionTier: float | None = None
-    lastActiveAt: str | None = None
-    vitalityScore: float | None = None
-
-@dataclass(frozen=True)
 class NotificationActorDto:
-    agent: NotificationActorAgentMetadataDto | None = None
-    agentProfile: NotificationActorAgentProfileDto | None = None
     avatarUrl: str | None = None
     bio: str | None = None
     createdAt: str | None = None
     displayName: str | None = None
     handle: str | None = None
     id: str | None = None
-    isAgent: bool | None = None
     presenceEmoji: str | None = None
     presenceStatus: str | None = None
     presenceText: str | None = None
@@ -2208,19 +969,6 @@ class NotificationTargetDto:
     postId: str | None = None
 
 @dataclass(frozen=True)
-class NsfwConsentResponseDto:
-    agentConsent: bool | None = None
-    allowed: bool | None = None
-    reason: str | None = None
-    userConsent: bool | None = None
-
-@dataclass(frozen=True)
-class NsfwConsentStatusResponseDto:
-    agentNsfwEnabled: bool | None = None
-    mutuallyConsented: bool | None = None
-    userNsfwEnabled: bool | None = None
-
-@dataclass(frozen=True)
 class OAuthLinkResponseDto:
     provider: Literal["google", "wechat", "twitter", "tiktok"] | None = None
     status: Literal["linked"] | None = None
@@ -2262,51 +1010,6 @@ class OAuthTokenResponseDto:
     token_type: str | None = None
 
 @dataclass(frozen=True)
-class OwnerAgentBoundarySettingsDto:
-    allowedThemes: tuple[str, ...] = field(default_factory=tuple)
-    disallowedThemes: tuple[str, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class OwnerAgentCommunicationSettingsDto:
-    contentStyle: str | None = None
-    formality: Literal["casual", "formal", "slang"] | None = None
-    responseLength: Literal["short", "medium", "long"] | None = None
-    sentiment: Literal["positive", "neutral", "cynical"] | None = None
-
-@dataclass(frozen=True)
-class OwnerAgentIdentitySettingsDto:
-    publicRole: str | None = None
-    worldview: str | None = None
-
-@dataclass(frozen=True)
-class OwnerAgentPersonalitySettingsDto:
-    goals: tuple[str, ...] = field(default_factory=tuple)
-    interests: tuple[str, ...] = field(default_factory=tuple)
-    relationshipMode: str | None = None
-    summary: str | None = None
-
-@dataclass(frozen=True)
-class OwnerAgentPositioningSettingsDto:
-    positioning: str | None = None
-    targetAudience: str | None = None
-
-@dataclass(frozen=True)
-class OwnerAgentSettingsDto:
-    agentId: str | None = None
-    agentRuleVersion: float | None = None
-    boundaries: OwnerAgentBoundarySettingsDto | None = None
-    communication: OwnerAgentCommunicationSettingsDto | None = None
-    description: str | None = None
-    displayName: str | None = None
-    greeting: str | None = None
-    identity: OwnerAgentIdentitySettingsDto | None = None
-    naturalLanguageIntent: str | None = None
-    personality: OwnerAgentPersonalitySettingsDto | None = None
-    positioning: OwnerAgentPositioningSettingsDto | None = None
-    updatedAt: str | None = None
-    worldId: str | None = None
-
-@dataclass(frozen=True)
 class PPSlotConfigDto:
     slot1: PPSlotItemDto | None = None
     slot2: PPSlotItemDto | None = None
@@ -2331,14 +1034,6 @@ class PasswordLoginDto:
 class PasswordRegisterDto:
     email: str | None = None
     password: str | None = None
-
-@dataclass(frozen=True)
-class PermissionCheckResponseDto:
-    action: Literal["DEFINE_RULES", "UPDATE_SETTINGS", "PUBLISH_WORLD", "ARCHIVE_WORLD", "CONTROL_AGENT", "CONTROL_USER", "FORCE_AGENT_BEHAVIOR", "MODIFY_AGENT_IDENTITY"] | None = None
-    allowed: bool | None = None
-    creatorId: str | None = None
-    reason: str | None = None
-    worldId: str | None = None
 
 @dataclass(frozen=True)
 class PortalSessionDto:
@@ -2374,65 +1069,9 @@ class PostDto:
     visibility: Visibility | None = None
     worldId: str | None = None
 
-@dataclass(frozen=True)
-class PowerSystemDto:
-    abilities: tuple[AbilityDefinitionDto, ...] = field(default_factory=tuple)
-    constraints: tuple[str, ...] = field(default_factory=tuple)
-    description: str | None = None
-    levels: tuple[PowerSystemLevelDto, ...] = field(default_factory=tuple)
-    name: str | None = None
-    powerSystems: tuple[PowerSystemDto, ...] = field(default_factory=tuple)
-    rules: tuple[WorldRuleItemDto, ...] = field(default_factory=tuple)
-    taboos: tuple[PowerSystemTabooDto, ...] = field(default_factory=tuple)
-    tiers: tuple[PowerTierDto, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class PowerSystemLevelDto:
-    breakthroughCondition: str | None = None
-    description: str | None = None
-    name: str | None = None
-
-@dataclass(frozen=True)
-class PowerSystemTabooDto:
-    description: str | None = None
-    name: str | None = None
-    severity: str | None = None
-    title: str | None = None
-
-@dataclass(frozen=True)
-class PowerTierDto:
-    description: str | None = None
-    level: float | None = None
-    name: str | None = None
-    requirements: tuple[str, ...] = field(default_factory=tuple)
-
 PresenceStatus = Literal["online", "invisible"]
 
-@dataclass(frozen=True)
-class PublicBindingDto:
-    bindingKind: Literal["PRESENTATION", "USE", "IMPORT"] | None = None
-    bindingPoint: Literal["WORLD_ICON", "WORLD_BANNER", "WORLD_GALLERY", "WORLD_THEME_AUDIO", "WORLD_TRAILER_VIDEO", "SCENE_BACKGROUND", "SCENE_AMBIENT_AUDIO", "EVENT_CG", "WORLDVIEW_REFERENCE", "AGENT_AVATAR", "AGENT_PORTRAIT", "AGENT_EXPRESSION", "AGENT_OUTFIT", "AGENT_CANDIDATE", "AGENT_VOICE_SAMPLE"] | None = None
-    hostId: str | None = None
-    hostType: Literal["WORLD", "AGENT", "SCENE", "WORLD_EVENT", "WORLDVIEW"] | None = None
-    id: str | None = None
-    objectId: str | None = None
-    objectType: Literal["RESOURCE", "ASSET", "BUNDLE"] | None = None
-    priority: float | None = None
-    resource: PublicBindingResourceDto | None = None
-    tags: tuple[str, ...] = field(default_factory=tuple)
-    versionPin: str | None = None
-
-@dataclass(frozen=True)
-class PublicBindingListDto:
-    items: tuple[PublicBindingDto, ...] = field(default_factory=tuple)
-    worldId: str | None = None
-
-@dataclass(frozen=True)
-class PublicBindingResourceDto:
-    id: str | None = None
-    label: str | None = None
-    resourceType: Literal["IMAGE", "VIDEO", "AUDIO", "TEXT"] | None = None
-    url: str | None = None
+PublicAccountRole = Literal["USER", "SERVICE_ACC", "SYSTEM_BOT", "ADMIN"]
 
 @dataclass(frozen=True)
 class PublicFilterDto:
@@ -2446,90 +1085,32 @@ class PublicFilterDto:
     viewerGenders: tuple[str, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
-class PublicWorldHistoryEventDto:
-    cause: str | None = None
-    characterRefs: tuple[str, ...] = field(default_factory=tuple)
-    committedAt: str | None = None
-    dependsOnEventIds: tuple[str, ...] = field(default_factory=tuple)
-    eventId: str | None = None
-    eventType: str | None = None
-    evidenceRefs: tuple[WorldEventEvidenceRefDto, ...] = field(default_factory=tuple)
-    happenedAt: str | None = None
+class RealmCoreOriginDto:
+    kind: Literal["manual", "forge", "worldCharacterDerivation", "import", "system"] | None = None
+    parentCharacterId: str | None = None
+    parentWorldId: str | None = None
+    sourceContentHash: str | None = None
+    sourceId: str | None = None
+    sourceVersion: str | None = None
+
+@dataclass(frozen=True)
+class RealmPersonaDto:
+    contentHash: str | None = None
+    contentRevision: float | None = None
+    core: Mapping[str, object] = field(default_factory=dict)
+    createdAt: str | None = None
+    homeWorldId: str | None = None
     id: str | None = None
-    locationRefs: tuple[str, ...] = field(default_factory=tuple)
-    payload: Mapping[str, object] = field(default_factory=dict)
-    process: str | None = None
-    result: str | None = None
-    summary: str | None = None
-    timeRef: str | None = None
-    title: str | None = None
-    visibility: Literal["PUBLIC", "WORLD", "RESTRICTED"] | None = None
-    worldId: str | None = None
+    origin: RealmCoreOriginDto | None = None
+    ownerId: str | None = None
+    schemaVersion: str | None = None
+    updatedAt: str | None = None
 
 @dataclass(frozen=True)
-class PublicWorldHistoryListDto:
-    items: tuple[PublicWorldHistoryEventDto, ...] = field(default_factory=tuple)
-    worldId: str | None = None
-
-@dataclass(frozen=True)
-class PublicWorldLorebookDto:
-    content: str | None = None
-    id: str | None = None
-    key: str | None = None
-    keywords: tuple[str, ...] = field(default_factory=tuple)
-    name: str | None = None
-    priority: float | None = None
-    worldId: str | None = None
-
-@dataclass(frozen=True)
-class PublicWorldLorebookListDto:
-    items: tuple[PublicWorldLorebookDto, ...] = field(default_factory=tuple)
-    worldId: str | None = None
-
-@dataclass(frozen=True)
-class PublicWorldSceneDto:
-    activeEntities: tuple[str, ...] = field(default_factory=tuple)
-    description: str | None = None
-    id: str | None = None
-    name: str | None = None
-
-@dataclass(frozen=True)
-class PublicWorldSceneListDto:
-    items: tuple[PublicWorldSceneDto, ...] = field(default_factory=tuple)
-    worldId: str | None = None
-
-@dataclass(frozen=True)
-class PublishWorldDraftDto:
-    reason: str | None = None
-
-@dataclass(frozen=True)
-class PublishWorldDraftResultDto:
-    draftId: str | None = None
-    publishedAt: str | None = None
-    worldId: str | None = None
-    worldviewVersion: float | None = None
-
-@dataclass(frozen=True)
-class RealmGroupMessageCandidateCommitResultDto:
-    auditRecordId: str | None = None
-    candidateId: str | None = None
-    commitDisposition: Literal["MESSAGE_CANDIDATE", "REFUSAL_CANDIDATE"] | None = None
-    commitId: str | None = None
-    committedAt: str | None = None
-    committedMessage: GroupMessageViewDto | None = None
-    committedMessageId: str | None = None
-    evidenceHash: str | None = None
-    idempotencyKey: str | None = None
-    localAgentRef: str | None = None
-    ownerUserId: str | None = None
-    realmAgentId: str | None = None
-    realmGroupAgentSlotId: str | None = None
-    refusalCode: str | None = None
-    refusalReason: str | None = None
-    rejectionCode: str | None = None
-    runtimeTraceRef: str | None = None
-    status: Literal["COMMITTED", "REFUSED", "REJECTED", "IDEMPOTENT_REPLAY"] | None = None
-    syncCursor: float | None = None
+class RealmSourceCapabilitiesDto:
+    canCreateRealmPersona: bool | None = None
+    canCreateRuntimeSourceSnapshot: bool | None = None
+    canUseWorldCharacterSources: bool | None = None
 
 @dataclass(frozen=True)
 class ReceivedGiftsResponseDto:
@@ -2552,12 +1133,31 @@ class RelationshipResponseDto:
     sourceId: str | None = None
     strength: float | None = None
     targetId: str | None = None
-    type: AgentRelationType | None = None
+    type: AccountRelationType | None = None
 
 @dataclass(frozen=True)
-class RemoveAgentRelationshipDto:
-    targetId: str | None = None
-    type: AgentRelationType | None = None
+class ReplaceRealmPersonaDto:
+    baseContentHash: str | None = None
+    core: Mapping[str, object] = field(default_factory=dict)
+    homeWorldId: str | None = None
+    id: str | None = None
+    origin: RealmCoreOriginDto | None = None
+
+@dataclass(frozen=True)
+class ReplaceWorldCharacterCoreDto:
+    baseContentHash: str | None = None
+    core: Mapping[str, object] = field(default_factory=dict)
+    entityId: str | None = None
+    id: str | None = None
+    origin: RealmCoreOriginDto | None = None
+
+@dataclass(frozen=True)
+class ReplaceWorldCoreDto:
+    baseContentHash: str | None = None
+    core: Mapping[str, object] = field(default_factory=dict)
+    id: str | None = None
+    origin: RealmCoreOriginDto | None = None
+    visibility: Literal["private", "unlisted", "public", "system"] | None = None
 
 ReportReason = Literal["SPAM", "NSFW", "HATE_SPEECH", "SCAM", "OTHER"]
 
@@ -2587,32 +1187,7 @@ class RequestDataExportDto:
     locale: str | None = None
 
 @dataclass(frozen=True)
-class ResourceAcquisitionRuleDto:
-    conditions: tuple[str, ...] = field(default_factory=tuple)
-    rate: float | None = None
-    resourceId: str | None = None
-    source: str | None = None
-
-@dataclass(frozen=True)
-class ResourceConsumptionRuleDto:
-    action: str | None = None
-    amount: float | None = None
-    resourceId: str | None = None
-
-@dataclass(frozen=True)
-class ResourceCostDto:
-    amount: float | None = None
-    type: str | None = None
-
-@dataclass(frozen=True)
-class ResourceDefinitionDto:
-    acquisitionRules: tuple[ResourceAcquisitionRuleDto, ...] = field(default_factory=tuple)
-    consumptionRules: tuple[ResourceConsumptionRuleDto, ...] = field(default_factory=tuple)
-    types: tuple[ResourceTypeDto, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
 class ResourceDetailDto:
-    agentId: str | None = None
     controllerId: str | None = None
     controllerKind: Literal["ACCOUNT", "WORLD"] | None = None
     createdAt: str | None = None
@@ -2661,30 +1236,16 @@ class ResourceListDto:
     items: tuple[ResourceDetailDto, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
-class ResourceTypeDto:
-    consumable: bool | None = None
-    description: str | None = None
-    id: str | None = None
-    maxAmount: float | None = None
-    name: str | None = None
-    tradeable: bool | None = None
-
-@dataclass(frozen=True)
 class RevenueDistributionPreviewDto:
-    isNativeAgent: bool | None = None
-    masterAmount: str | None = None
+    isWorldOwned: bool | None = None
+    ownerAmount: str | None = None
     totalAmount: str | None = None
     worldCreatorAmount: str | None = None
 
 @dataclass(frozen=True)
 class RevenueShareConfigDto:
     minShareThreshold: str | None = None
-    nativeAgentCreatorSharePercent: float | None = None
-
-@dataclass(frozen=True)
-class ReviewAgentAuthoringDraftCandidateDto:
-    editedValue: AgentAuthoringDraftCandidateValueDto | None = None
-    status: Literal["accepted", "rejected", "edited"] | None = None
+    worldCreatorSharePercent: float | None = None
 
 @dataclass(frozen=True)
 class ReviewDto:
@@ -2704,90 +1265,6 @@ class ReviewStatsDto:
     totalCount: float | None = None
 
 @dataclass(frozen=True)
-class RuleValidationResponseDto:
-    isValid: bool | None = None
-    violations: tuple[str, ...] = field(default_factory=tuple)
-    warnings: tuple[str, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class RuntimeProjectionContextEnvelopeDto:
-    allowedAgentLayers: tuple[Literal["DNA", "BEHAVIORAL", "RELATIONAL", "CONTEXTUAL"], ...] = field(default_factory=tuple)
-    allowedAgentScopes: tuple[Literal["SELF", "DYAD", "GROUP", "WORLD"], ...] = field(default_factory=tuple)
-    allowedWorldScopes: tuple[Literal["WORLD", "REGION", "FACTION", "INDIVIDUAL", "SCENE"], ...] = field(default_factory=tuple)
-    focusKeywords: tuple[str, ...] = field(default_factory=tuple)
-    includeInheritedAgentRules: bool | None = None
-    requestedAgentRuleKeys: tuple[str, ...] = field(default_factory=tuple)
-    requestedWorldRuleKeys: tuple[str, ...] = field(default_factory=tuple)
-    sceneId: str | None = None
-    stateVisibilityKeys: tuple[str, ...] = field(default_factory=tuple)
-    temporalPosition: str | None = None
-    turnId: str | None = None
-
-@dataclass(frozen=True)
-class RuntimeProjectionInputDto:
-    agentId: str | None = None
-    hardness: Literal["HARD", "FIRM", "SOFT", "AESTHETIC"] | None = None
-    id: str | None = None
-    layer: Literal["DNA", "BEHAVIORAL", "RELATIONAL", "CONTEXTUAL"] | None = None
-    lineageId: str | None = None
-    priority: float | None = None
-    provenance: str | None = None
-    reasoning: str | None = None
-    ruleKey: str | None = None
-    scope: str | None = None
-    sourceId: str | None = None
-    sourceRef: str | None = None
-    sourceType: Literal["WORLD_RULE", "AGENT_RULE"] | None = None
-    statement: str | None = None
-    structured: Mapping[str, object] = field(default_factory=dict)
-    title: str | None = None
-    validFrom: str | None = None
-    validUntil: str | None = None
-    worldId: str | None = None
-    worldRuleRef: str | None = None
-
-@dataclass(frozen=True)
-class RuntimeProjectionPayloadDto:
-    agentRules: tuple[RuntimeProjectionInputDto, ...] = field(default_factory=tuple)
-    worldRules: tuple[RuntimeProjectionInputDto, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class RuntimeProjectionRequestDto:
-    agentId: str | None = None
-    contextEnvelope: RuntimeProjectionContextEnvelopeDto | None = None
-    releaseAnchor: str | None = None
-    worldId: str | None = None
-
-@dataclass(frozen=True)
-class RuntimeProjectionResolutionOutcomeDto:
-    decision: Literal["SELECTED", "SUPPRESSED"] | None = None
-    inputId: str | None = None
-    reasons: tuple[str, ...] = field(default_factory=tuple)
-    sourceType: Literal["WORLD_RULE", "AGENT_RULE"] | None = None
-
-@dataclass(frozen=True)
-class RuntimeProjectionResponseDto:
-    agentId: str | None = None
-    checksum: str | None = None
-    consumerSurface: Literal["RUNTIME_PAYLOAD"] | None = None
-    payload: RuntimeProjectionPayloadDto | None = None
-    releaseAnchor: str | None = None
-    selectedInputs: tuple[RuntimeProjectionInputDto, ...] = field(default_factory=tuple)
-    trace: RuntimeProjectionTraceDto | None = None
-    worldId: str | None = None
-
-@dataclass(frozen=True)
-class RuntimeProjectionSuppressedInputDto:
-    input: RuntimeProjectionInputDto | None = None
-    reason: Literal["RULE_KEY_FILTER", "SCOPE_FILTER", "LAYER_FILTER", "PROVENANCE_FILTER", "FOCUS_MISS", "SURFACE_POLICY"] | None = None
-
-@dataclass(frozen=True)
-class RuntimeProjectionTraceDto:
-    resolutionOutcomes: tuple[RuntimeProjectionResolutionOutcomeDto, ...] = field(default_factory=tuple)
-    selectedInputIds: tuple[str, ...] = field(default_factory=tuple)
-    suppressedInputs: tuple[RuntimeProjectionSuppressedInputDto, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
 class RuntimeRealmGrantIssueRequestDto:
     appId: str | None = None
     scopes: tuple[str, ...] = field(default_factory=tuple)
@@ -2800,49 +1277,18 @@ class RuntimeRealmGrantIssueResponseDto:
     version: str | None = None
 
 @dataclass(frozen=True)
-class SceneConnectionDto:
-    bidirectional: bool | None = None
-    conditions: tuple[str, ...] = field(default_factory=tuple)
-    from_: str | None = None
-    to: str | None = None
-
-@dataclass(frozen=True)
-class SceneDefinitionDto:
-    description: str | None = None
-    id: str | None = None
-    name: str | None = None
-    properties: Mapping[str, object] = field(default_factory=dict)
-    tier: Literal["TIER0_SANCTUARY", "TIER1_TRANSIT", "TIER2_ACTIVE"] | None = None
-
-@dataclass(frozen=True)
-class SceneTimeConfigDto:
-    defaults: SceneTimeSettingsDto | None = None
-    scenes: Mapping[str, object] = field(default_factory=dict)
-
-@dataclass(frozen=True)
-class SceneTimeCycleDto:
-    duration: float | None = None
-    phases: tuple[SceneTimePhaseDto, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class SceneTimePhaseDto:
-    description: str | None = None
-    endRatio: float | None = None
-    name: str | None = None
-    startRatio: float | None = None
-    visualEffect: str | None = None
-
-@dataclass(frozen=True)
-class SceneTimeSettingsDto:
-    fixedTime: str | None = None
-    syncWorldTime: bool | None = None
-    tier: Literal["TIER0_SANCTUARY", "TIER1_TRANSIT", "TIER2_ACTIVE"] | None = None
-    timeCycle: SceneTimeCycleDto | None = None
-    timeModifier: float | None = None
-
-@dataclass(frozen=True)
-class SelectAvatarDto:
-    avatarUrl: str | None = None
+class RuntimeSourceSnapshotDto:
+    capturedAt: str | None = None
+    payload: Mapping[str, object] = field(default_factory=dict)
+    payloadHash: str | None = None
+    runtimeSourceRef: str | None = None
+    snapshotId: str | None = None
+    snapshotSchemaVersion: str | None = None
+    sourceContentHash: str | None = None
+    sourceContentRevision: float | None = None
+    sourceId: str | None = None
+    sourceKind: Literal["worldCharacter", "realmPersona"] | None = None
+    sourceWorldId: str | None = None
 
 @dataclass(frozen=True)
 class SendGiftDto:
@@ -2860,13 +1306,6 @@ class SendMessageInputDto:
     type: MessageType | None = None
 
 @dataclass(frozen=True)
-class SetAgentRelationshipDto:
-    context: str | None = None
-    strength: float | None = None
-    targetId: str | None = None
-    type: AgentRelationType | None = None
-
-@dataclass(frozen=True)
 class SocialProfileDto:
     followers: float | None = None
     handle: str | None = None
@@ -2876,19 +1315,13 @@ class SocialProfileDto:
     verifiedAt: str | None = None
 
 @dataclass(frozen=True)
-class SpaceRealmDto:
-    accessibility: str | None = None
-    description: str | None = None
-    name: str | None = None
-
-@dataclass(frozen=True)
-class SpaceTopologyDto:
-    boundary: Literal["FINITE", "INFINITE", "CYCLIC"] | None = None
-    connections: tuple[SceneConnectionDto, ...] = field(default_factory=tuple)
-    dimensions: float | None = None
-    realms: tuple[SpaceRealmDto, ...] = field(default_factory=tuple)
-    scenes: tuple[SceneDefinitionDto, ...] = field(default_factory=tuple)
-    type: Literal["GRAPH", "GRID", "FREE"] | None = None
+class SourceOriginDto:
+    isWorldOwned: bool | None = None
+    ownerId: str | None = None
+    sourceId: str | None = None
+    sourceKind: Literal["worldCharacter", "realmPersona"] | None = None
+    worldCreatorId: str | None = None
+    worldId: str | None = None
 
 @dataclass(frozen=True)
 class SparkCheckoutSessionDto:
@@ -2903,14 +1336,6 @@ class SparkPackageDto:
     popular: bool | None = None
     sparkAmount: float | None = None
     usdPrice: float | None = None
-
-@dataclass(frozen=True)
-class SpeciesDefinitionDto:
-    description: str | None = None
-    id: str | None = None
-    lifespan: str | None = None
-    name: str | None = None
-    traits: tuple[str, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
 class StartChatInputDto:
@@ -2973,21 +1398,6 @@ class TierDetailDto:
     vitalityScore: float | None = None
 
 @dataclass(frozen=True)
-class TimeCycleDto:
-    duration: float | None = None
-    name: str | None = None
-    phases: tuple[str, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class TimeModelDto:
-    allowReverse: bool | None = None
-    calendarSystem: CalendarSystemDto | None = None
-    cycles: tuple[TimeCycleDto, ...] = field(default_factory=tuple)
-    timeFlowRatio: float | None = None
-    type: Literal["TICK_BASED", "CONTINUOUS", "RELATIVE"] | None = None
-    unit: str | None = None
-
-@dataclass(frozen=True)
 class TransitContextDto:
     handoffRefs: Mapping[str, object] = field(default_factory=dict)
     memoryRefIds: tuple[str, ...] = field(default_factory=tuple)
@@ -2996,13 +1406,14 @@ class TransitContextDto:
 
 @dataclass(frozen=True)
 class TransitDetailDto:
-    agentId: str | None = None
     arrivedAt: str | None = None
     context: TransitContextDto | None = None
     createdAt: str | None = None
     departedAt: str | None = None
     fromWorldId: str | None = None
     id: str | None = None
+    runtimeSourceRef: str | None = None
+    sourceRef: TypedSourceRefDto | None = None
     status: Literal["ACTIVE", "COMPLETED", "ABANDONED"] | None = None
     toWorldId: str | None = None
     transitType: Literal["INBOUND", "OUTBOUND"] | None = None
@@ -3021,56 +1432,16 @@ class TranslateResponseDto:
     translated: str | None = None
 
 @dataclass(frozen=True)
+class TypedSourceRefDto:
+    kind: Literal["worldCharacter", "realmPersona"] | None = None
+    sourceContentHash: str | None = None
+    sourceId: str | None = None
+    worldId: str | None = None
+
+@dataclass(frozen=True)
 class UnreadNotificationCountDto:
     byType: Mapping[str, object] = field(default_factory=dict)
     total: float | None = None
-
-@dataclass(frozen=True)
-class UpdateAgentDnaDto:
-    dna: AgentDnaDto | None = None
-
-@dataclass(frozen=True)
-class UpdateAgentNsfwConsentDto:
-    enabled: bool | None = None
-
-@dataclass(frozen=True)
-class UpdateAgentProfileMediaDto:
-    avatarUrl: str | None = None
-    profileCoverUrl: str | None = None
-
-@dataclass(frozen=True)
-class UpdateAgentRuleDto:
-    category: Literal["CONSTRAINT", "MECHANISM", "DEFINITION", "RELATION", "POLICY"] | None = None
-    conflictsWith: tuple[str, ...] = field(default_factory=tuple)
-    dependsOn: tuple[str, ...] = field(default_factory=tuple)
-    hardness: Literal["HARD", "FIRM", "SOFT", "AESTHETIC"] | None = None
-    importance: float | None = None
-    priority: float | None = None
-    provenance: Literal["CREATOR", "WORLD_INHERITED", "NARRATIVE_EMERGED", "SYSTEM"] | None = None
-    reasoning: str | None = None
-    scope: Literal["SELF", "DYAD", "GROUP", "WORLD"] | None = None
-    sourceRef: str | None = None
-    statement: str | None = None
-    structured: Mapping[str, object] = field(default_factory=dict)
-    title: str | None = None
-    worldRuleRef: str | None = None
-
-@dataclass(frozen=True)
-class UpdateAgentVisibilityDto:
-    accountVisibility: Visibility | None = None
-    defaultPostVisibility: Visibility | None = None
-    dmVisibility: Visibility | None = None
-    profileVisibility: Visibility | None = None
-
-@dataclass(frozen=True)
-class UpdateAgentVoiceDto:
-    description: str | None = None
-    emotionEnabled: bool | None = None
-    pitch: float | None = None
-    speechModelId: str | None = None
-    speechRoutePolicy: Literal["local", "cloud"] | None = None
-    speed: float | None = None
-    voiceId: str | None = None
 
 @dataclass(frozen=True)
 class UpdateAssetDto:
@@ -3094,42 +1465,12 @@ class UpdateBundleDto:
     version: str | None = None
 
 @dataclass(frozen=True)
-class UpdateCreatorAgentDto:
-    avatarUrl: str | None = None
-    bio: str | None = None
-    capabilities: UserAgentDnaDto | None = None
-    category: str | None = None
-    contentRating: str | None = None
-    displayName: str | None = None
-    profileCoverUrl: str | None = None
-    tags: tuple[str, ...] = field(default_factory=tuple)
-    webhookUrl: str | None = None
-
-@dataclass(frozen=True)
 class UpdateGroupInputDto:
     title: str | None = None
 
 @dataclass(frozen=True)
 class UpdateMyHandleDto:
     handle: str | None = None
-
-@dataclass(frozen=True)
-class UpdateNsfwConsentResponseDto:
-    enabled: bool | None = None
-    success: bool | None = None
-    updatedAt: str | None = None
-
-@dataclass(frozen=True)
-class UpdateOwnerAgentSettingsDto:
-    boundaries: OwnerAgentBoundarySettingsDto | None = None
-    communication: OwnerAgentCommunicationSettingsDto | None = None
-    description: str | None = None
-    displayName: str | None = None
-    greeting: str | None = None
-    identity: OwnerAgentIdentitySettingsDto | None = None
-    naturalLanguageIntent: str | None = None
-    personality: OwnerAgentPersonalitySettingsDto | None = None
-    positioning: OwnerAgentPositioningSettingsDto | None = None
 
 @dataclass(frozen=True)
 class UpdatePPSlotConfigDto:
@@ -3155,7 +1496,6 @@ class UpdateRelationshipDto:
 
 @dataclass(frozen=True)
 class UpdateResourceDto:
-    agentId: str | None = None
     controllerId: str | None = None
     controllerKind: Literal["ACCOUNT", "WORLD"] | None = None
     deliveryAccess: Literal["PUBLIC", "SIGNED"] | None = None
@@ -3198,10 +1538,6 @@ class UpdateUserNotificationSettingsDto:
     gifts: NotificationGiftsDto | None = None
 
 @dataclass(frozen=True)
-class UpdateUserNsfwConsentDto:
-    enabled: bool | None = None
-
-@dataclass(frozen=True)
 class UpdateUserSettingsDto:
     accountVisibility: Visibility | None = None
     blockedAccountIds: tuple[str, ...] = field(default_factory=tuple)
@@ -3224,97 +1560,14 @@ class UpdateUserSettingsDto:
     walletVisibility: Visibility | None = None
 
 @dataclass(frozen=True)
-class UpdateWorldDraftDto:
-    draftPayload: WorldDraftPayloadDto | None = None
-    status: Literal["DRAFT", "SYNTHESIZE", "REVIEW", "PUBLISH", "FAILED"] | None = None
-
-@dataclass(frozen=True)
-class UpdateWorldRuleDto:
-    category: Literal["CONSTRAINT", "MECHANISM", "DEFINITION", "RELATION", "POLICY"] | None = None
-    conflictsWith: tuple[str, ...] = field(default_factory=tuple)
-    dependsOn: tuple[str, ...] = field(default_factory=tuple)
-    hardness: Literal["HARD", "FIRM", "SOFT", "AESTHETIC"] | None = None
-    overrides: str | None = None
-    priority: float | None = None
-    reasoning: str | None = None
-    scope: Literal["WORLD", "REGION", "FACTION", "INDIVIDUAL", "SCENE"] | None = None
-    sourceRef: str | None = None
-    statement: str | None = None
-    structured: Mapping[str, object] = field(default_factory=dict)
-    title: str | None = None
-    validFrom: str | None = None
-    validUntil: str | None = None
-
-@dataclass(frozen=True)
 class UsePolicyDto:
-    allowedBindingPoints: tuple[Literal["WORLD_ICON", "WORLD_BANNER", "WORLD_GALLERY", "WORLD_THEME_AUDIO", "WORLD_TRAILER_VIDEO", "SCENE_BACKGROUND", "SCENE_AMBIENT_AUDIO", "EVENT_CG", "WORLDVIEW_REFERENCE", "AGENT_AVATAR", "AGENT_PORTRAIT", "AGENT_EXPRESSION", "AGENT_OUTFIT", "AGENT_CANDIDATE", "AGENT_VOICE_SAMPLE"], ...] = field(default_factory=tuple)
-    allowedHostTypes: tuple[Literal["WORLD", "AGENT", "SCENE"], ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class UserAgentAppearanceDto:
-    artStyle: str | None = None
-    eyes: str | None = None
-    fashionStyle: str | None = None
-    hair: str | None = None
-    signatureItems: tuple[str, ...] = field(default_factory=tuple)
-    skin: str | None = None
-
-@dataclass(frozen=True)
-class UserAgentBiologicalDto:
-    ethnicity: str | None = None
-    gender: str | None = None
-    heightCm: float | None = None
-    visualAge: str | None = None
-    weightKg: float | None = None
-
-@dataclass(frozen=True)
-class UserAgentCommunicationDto:
-    formality: Literal["casual", "formal", "slang"] | None = None
-    responseLength: Literal["short", "medium", "long"] | None = None
-    sentiment: Literal["positive", "neutral", "cynical"] | None = None
-    summary: str | None = None
-
-@dataclass(frozen=True)
-class UserAgentDnaDto:
-    appearance: UserAgentAppearanceDto | None = None
-    biological: UserAgentBiologicalDto | None = None
-    communication: UserAgentCommunicationDto | None = None
-    identity: UserAgentIdentityDto | None = None
-    nsfwLevel: str | None = None
-    personality: UserAgentPersonalityDto | None = None
-    voice: UserAgentVoiceConfigDto | None = None
-
-@dataclass(frozen=True)
-class UserAgentIdentityDto:
-    name: str | None = None
-    role: str | None = None
-    species: str | None = None
-    summary: str | None = None
-    worldview: str | None = None
-
-@dataclass(frozen=True)
-class UserAgentPersonalityDto:
-    emotionBaseline: str | None = None
-    goals: tuple[str, ...] = field(default_factory=tuple)
-    interests: tuple[str, ...] = field(default_factory=tuple)
-    mbti: str | None = None
-    relationshipMode: str | None = None
-    summary: str | None = None
-
-@dataclass(frozen=True)
-class UserAgentVoiceConfigDto:
-    description: str | None = None
-    emotionEnabled: bool | None = None
-    pitch: float | None = None
-    speechModelId: str | None = None
-    speechRoutePolicy: Literal["local", "cloud"] | None = None
-    speed: float | None = None
-    voiceId: str | None = None
+    allowedBindingPoints: tuple[Literal["WORLD_ICON", "WORLD_BANNER", "WORLD_GALLERY", "WORLD_THEME_AUDIO", "WORLD_TRAILER_VIDEO", "SCENE_BACKGROUND", "SCENE_AMBIENT_AUDIO", "EVENT_CG", "WORLDVIEW_REFERENCE", "WORLD_CHARACTER_AVATAR", "WORLD_CHARACTER_PORTRAIT", "WORLD_CHARACTER_EXPRESSION", "WORLD_CHARACTER_OUTFIT", "WORLD_CHARACTER_CANDIDATE", "WORLD_CHARACTER_VOICE_SAMPLE", "REALM_PERSONA_AVATAR", "REALM_PERSONA_PORTRAIT", "REALM_PERSONA_EXPRESSION", "REALM_PERSONA_OUTFIT", "REALM_PERSONA_CANDIDATE", "REALM_PERSONA_VOICE_SAMPLE"], ...] = field(default_factory=tuple)
+    allowedHostTypes: tuple[Literal["WORLD", "WORLD_CHARACTER", "REALM_PERSONA", "SCENE"], ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
 class UserCapabilitiesDto:
-    agent: AgentCapabilitiesDto | None = None
     features: UserFeatureCapabilitiesDto | None = None
+    realmSource: RealmSourceCapabilitiesDto | None = None
 
 @dataclass(frozen=True)
 class UserFeatureCapabilitiesDto:
@@ -3325,8 +1578,6 @@ class UserFeatureCapabilitiesDto:
 
 @dataclass(frozen=True)
 class UserLiteDto:
-    agent: AgentMetadataDto | None = None
-    agentProfile: AgentProfileDto | None = None
     avatarUrl: str | None = None
     bio: str | None = None
     createdAt: str | None = None
@@ -3334,7 +1585,6 @@ class UserLiteDto:
     friendCount: float | None = None
     handle: str | None = None
     id: str | None = None
-    isAgent: bool | None = None
     isOnline: bool | None = None
     presenceEmoji: str | None = None
     presenceStatus: str | None = None
@@ -3351,8 +1601,6 @@ class UserNotificationSettingsDto:
 
 @dataclass(frozen=True)
 class UserPrivateDto:
-    agent: AgentMetadataDto | None = None
-    agentProfile: AgentProfileDto | None = None
     avatarUrl: str | None = None
     bio: str | None = None
     birthYear: float | None = None
@@ -3367,7 +1615,6 @@ class UserPrivateDto:
     handle: str | None = None
     hasPassword: bool | None = None
     id: str | None = None
-    isAgent: bool | None = None
     isOnline: bool | None = None
     isTwoFactorEnabled: bool | None = None
     languages: tuple[str, ...] = field(default_factory=tuple)
@@ -3378,7 +1625,7 @@ class UserPrivateDto:
     presenceText: str | None = None
     profileCoverUrl: str | None = None
     reviewStats: ReviewStatsDto | None = None
-    role: AccountRole | None = None
+    role: PublicAccountRole | None = None
     socialProfiles: tuple[SocialProfileDto, ...] = field(default_factory=tuple)
     stats: UserStatsDto | None = None
     status: AccountStatus | None = None
@@ -3389,8 +1636,6 @@ class UserPrivateDto:
 
 @dataclass(frozen=True)
 class UserProfileDto:
-    agent: AgentMetadataDto | None = None
-    agentProfile: AgentProfileDto | None = None
     avatarUrl: str | None = None
     bio: str | None = None
     birthYear: float | None = None
@@ -3403,7 +1648,6 @@ class UserProfileDto:
     giftStats: Mapping[str, object] = field(default_factory=dict)
     handle: str | None = None
     id: str | None = None
-    isAgent: bool | None = None
     isOnline: bool | None = None
     languages: tuple[str, ...] = field(default_factory=tuple)
     presenceEmoji: str | None = None
@@ -3470,28 +1714,10 @@ class UserWalletListResponseDto:
     items: tuple[UserWalletDto, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
-class ValidateRulesDto:
-    rules: tuple[WorldRuleItemDto, ...] = field(default_factory=tuple)
-
-VerificationTier = Literal["COMMUNITY", "VERIFIED", "OFFICIAL"]
-
-@dataclass(frozen=True)
 class VerifyInvitationCodeDto:
     invitationCode: str | None = None
 
 Visibility = Literal["PUBLIC", "FRIENDS", "PRIVATE"]
-
-@dataclass(frozen=True)
-class VisualGuideDto:
-    accentColor: str | None = None
-    artStyle: str | None = None
-    atmosphere: str | None = None
-    colorPalette: str | None = None
-    cssVariables: Mapping[str, object] = field(default_factory=dict)
-    primaryColor: str | None = None
-    referenceImages: tuple[str, ...] = field(default_factory=tuple)
-    secondaryColor: str | None = None
-    stylePrompt: str | None = None
 
 @dataclass(frozen=True)
 class WalletBindDto:
@@ -3566,630 +1792,30 @@ class WithdrawalSummaryDto:
     usdAmount: float | None = None
 
 @dataclass(frozen=True)
-class WorldAccessRecordDto:
-    canCreateWorld: bool | None = None
-    canMaintainWorld: bool | None = None
-    expiresAt: str | None = None
-    id: str | None = None
-    maintainRole: Literal["OWNER", "MAINTAINER"] | None = None
-    scopeType: Literal["CREATE", "MAINTAIN"] | None = None
-    scopeWorldId: str | None = None
-    status: Literal["ACTIVE", "REVOKED", "EXPIRED", "SUSPENDED"] | None = None
-    userId: str | None = None
-
-@dataclass(frozen=True)
-class WorldAccessSummaryDto:
-    canCreateWorld: bool | None = None
-    canMaintainWorld: bool | None = None
-    hasActiveAccess: bool | None = None
-    records: tuple[WorldAccessRecordDto, ...] = field(default_factory=tuple)
-    userId: str | None = None
-
-@dataclass(frozen=True)
-class WorldAgentRuleSummaryDto:
-    byLayer: AgentRuleLayerCountDto | None = None
-    totalAgentRuleCount: float | None = None
-    worldLinkedRuleCount: float | None = None
-
-@dataclass(frozen=True)
-class WorldAgentSummaryDto:
-    activeRuleCount: float | None = None
-    activeWorldId: str | None = None
-    avatarUrl: str | None = None
-    bio: str | None = None
+class WorldCharacterCoreDto:
+    contentHash: str | None = None
+    contentRevision: float | None = None
+    core: Mapping[str, object] = field(default_factory=dict)
     createdAt: str | None = None
-    display: AgentDisplayDto | None = None
-    handle: str | None = None
+    entityId: str | None = None
     id: str | None = None
-    importance: Literal["PRIMARY", "SECONDARY", "BACKGROUND"] | None = None
-    name: str | None = None
-    stats: AgentStatsDto | None = None
+    origin: RealmCoreOriginDto | None = None
+    schemaVersion: str | None = None
+    updatedAt: str | None = None
+    worldId: str | None = None
 
 @dataclass(frozen=True)
-class WorldClockConfigDto:
-    anchorRealTime: str | None = None
-    anchorWorldTime: str | None = None
-    currentEra: str | None = None
-    eras: tuple[WorldClockEraDto, ...] = field(default_factory=tuple)
-    isPaused: bool | None = None
-    pausedAt: str | None = None
-    startRealTime: str | None = None
-    startWorldTime: str | None = None
-    timeFormat: WorldTimeFormatDto | None = None
-
-@dataclass(frozen=True)
-class WorldClockEraDto:
-    id: str | None = None
-    name: str | None = None
-    startWorldTime: str | None = None
-
-@dataclass(frozen=True)
-class WorldComputedEntryDto:
-    recommendedAgents: tuple[WorldRecommendedAgentDto, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class WorldComputedLanguagesDto:
-    common: tuple[str, ...] = field(default_factory=tuple)
-    primary: str | None = None
-
-@dataclass(frozen=True)
-class WorldComputedScoreDto:
-    scoreEwma: float | None = None
-
-@dataclass(frozen=True)
-class WorldComputedTimeDto:
-    currentLabel: str | None = None
-    currentWorldTime: str | None = None
-    eraLabel: str | None = None
-    flowRatio: float | None = None
-    isPaused: bool | None = None
-
-@dataclass(frozen=True)
-class WorldDetailDto:
-    agentCount: float | None = None
-    bannerUrl: str | None = None
-    clockConfig: WorldClockConfigDto | None = None
-    computed: WorldDisplayComputedDto | None = None
-    contentRating: Literal["UNRATED", "G", "PG13", "R18", "EXPLICIT"] | None = None
+class WorldCoreDto:
+    contentHash: str | None = None
+    contentRevision: float | None = None
+    core: Mapping[str, object] = field(default_factory=dict)
     createdAt: str | None = None
     creatorId: str | None = None
-    description: str | None = None
-    era: str | None = None
-    freezeReason: Literal["QUOTA_OVERFLOW", "WORLD_INACTIVE", "GOVERNANCE_LOCK"] | None = None
-    genre: str | None = None
-    iconUrl: str | None = None
     id: str | None = None
-    languages: WorldviewLanguagesDto | None = None
-    level: float | None = None
-    levelUpdatedAt: str | None = None
-    lorebookEntryLimit: float | None = None
-    motto: str | None = None
-    name: str | None = None
-    nativeAgentLimit: float | None = None
-    nativeCreationState: Literal["OPEN", "NATIVE_CREATION_FROZEN"] | None = None
-    overview: str | None = None
-    reviewedAt: str | None = None
-    reviewedBy: str | None = None
-    sceneTimeConfig: SceneTimeConfigDto | None = None
-    scoreA: float | None = None
-    scoreC: float | None = None
-    scoreE: float | None = None
-    scoreEwma: float | None = None
-    scoreQ: float | None = None
-    status: Literal["DRAFT", "PENDING_REVIEW", "ACTIVE", "SUSPENDED", "ARCHIVED"] | None = None
-    tagline: str | None = None
-    themes: tuple[str, ...] = field(default_factory=tuple)
-    timeModel: TimeModelDto | None = None
-    transitInLimit: float | None = None
-    truth: WorldTruthDto | None = None
-    type: Literal["OASIS", "CREATOR"] | None = None
-    updatedAt: str | None = None
-
-@dataclass(frozen=True)
-class WorldDetailWithAgentsDto:
-    agentCount: float | None = None
-    agentRuleSummary: WorldAgentRuleSummaryDto | None = None
-    agents: tuple[WorldAgentSummaryDto, ...] = field(default_factory=tuple)
-    bannerUrl: str | None = None
-    clockConfig: WorldClockConfigDto | None = None
-    computed: WorldDisplayComputedDto | None = None
-    contentRating: Literal["UNRATED", "G", "PG13", "R18", "EXPLICIT"] | None = None
-    createdAt: str | None = None
-    creatorId: str | None = None
-    description: str | None = None
-    era: str | None = None
-    freezeReason: Literal["QUOTA_OVERFLOW", "WORLD_INACTIVE", "GOVERNANCE_LOCK"] | None = None
-    genre: str | None = None
-    iconUrl: str | None = None
-    id: str | None = None
-    languages: WorldviewLanguagesDto | None = None
-    level: float | None = None
-    levelUpdatedAt: str | None = None
-    lorebookEntryLimit: float | None = None
-    motto: str | None = None
-    name: str | None = None
-    nativeAgentLimit: float | None = None
-    nativeCreationState: Literal["OPEN", "NATIVE_CREATION_FROZEN"] | None = None
-    overview: str | None = None
-    reviewedAt: str | None = None
-    reviewedBy: str | None = None
-    sceneTimeConfig: SceneTimeConfigDto | None = None
-    scoreA: float | None = None
-    scoreC: float | None = None
-    scoreE: float | None = None
-    scoreEwma: float | None = None
-    scoreQ: float | None = None
-    status: Literal["DRAFT", "PENDING_REVIEW", "ACTIVE", "SUSPENDED", "ARCHIVED"] | None = None
-    tagline: str | None = None
-    themes: tuple[str, ...] = field(default_factory=tuple)
-    timeModel: TimeModelDto | None = None
-    transitInLimit: float | None = None
-    truth: WorldTruthDto | None = None
-    type: Literal["OASIS", "CREATOR"] | None = None
-    updatedAt: str | None = None
-
-@dataclass(frozen=True)
-class WorldDisplayComputedDto:
-    entry: WorldComputedEntryDto | None = None
-    featuredAgentCount: float | None = None
-    languages: WorldComputedLanguagesDto | None = None
-    score: WorldComputedScoreDto | None = None
-    time: WorldComputedTimeDto | None = None
-
-@dataclass(frozen=True)
-class WorldDraftDetailDto:
-    createdAt: str | None = None
-    draftPayload: Mapping[str, object] = field(default_factory=dict)
-    id: str | None = None
-    ownerUserId: str | None = None
-    publishResult: Mapping[str, object] = field(default_factory=dict)
-    publishedAt: str | None = None
-    sourceRef: str | None = None
-    sourceType: Literal["TEXT", "FILE"] | None = None
-    status: Literal["DRAFT", "SYNTHESIZE", "REVIEW", "PUBLISH", "FAILED"] | None = None
-    targetWorldId: str | None = None
-    updatedAt: str | None = None
-
-@dataclass(frozen=True)
-class WorldDraftHistoryBucketsDto:
-    futureHistorical: tuple[WorldDraftHistoryEventDto, ...] = field(default_factory=tuple)
-    primary: tuple[WorldDraftHistoryEventDto, ...] = field(default_factory=tuple)
-    secondary: tuple[WorldDraftHistoryEventDto, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class WorldDraftHistoryDraftDto:
-    events: WorldDraftHistoryBucketsDto | None = None
-
-@dataclass(frozen=True)
-class WorldDraftHistoryEventDto:
-    cause: str | None = None
-    characterRefs: tuple[str, ...] = field(default_factory=tuple)
-    dependsOnEventIds: tuple[str, ...] = field(default_factory=tuple)
-    eventId: str | None = None
-    eventType: str | None = None
-    evidenceRefs: tuple[Mapping[str, object], ...] = field(default_factory=tuple)
-    happenedAt: str | None = None
-    locationRefs: tuple[str, ...] = field(default_factory=tuple)
-    occurredAt: str | None = None
-    payload: Mapping[str, object] = field(default_factory=dict)
-    process: str | None = None
-    result: str | None = None
-    summary: str | None = None
-    timeRef: str | None = None
-    title: str | None = None
-
-@dataclass(frozen=True)
-class WorldDraftImportSourceDto:
-    sourceRef: str | None = None
-    sourceText: str | None = None
-    sourceType: Literal["TEXT", "FILE"] | None = None
-
-@dataclass(frozen=True)
-class WorldDraftPayloadDto:
-    historyDraft: WorldDraftHistoryDraftDto | None = None
-    importSource: WorldDraftImportSourceDto | None = None
-    stateDraft: WorldDraftStateDraftDto | None = None
-    truthDraft: WorldDraftTruthDraftDto | None = None
-
-@dataclass(frozen=True)
-class WorldDraftStateDraftDto:
-    worldState: Mapping[str, object] = field(default_factory=dict)
-
-@dataclass(frozen=True)
-class WorldDraftSummaryDto:
-    id: str | None = None
-    publishedAt: str | None = None
-    sourceRef: str | None = None
-    sourceType: Literal["TEXT", "FILE"] | None = None
-    status: Literal["DRAFT", "SYNTHESIZE", "REVIEW", "PUBLISH", "FAILED"] | None = None
-    targetWorldId: str | None = None
-    updatedAt: str | None = None
-
-@dataclass(frozen=True)
-class WorldDraftSummaryListDto:
-    items: tuple[WorldDraftSummaryDto, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class WorldDraftTruthDraftDto:
-    agentRules: tuple[Mapping[str, object], ...] = field(default_factory=tuple)
-    worldRules: tuple[WorldDraftTruthRuleDto, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class WorldDraftTruthRuleDto:
-    category: str | None = None
-    conflictsWith: tuple[str, ...] = field(default_factory=tuple)
-    dependsOn: tuple[str, ...] = field(default_factory=tuple)
-    domain: str | None = None
-    hardness: str | None = None
-    overrides: str | None = None
-    priority: float | None = None
-    provenance: str | None = None
-    reasoning: str | None = None
-    ruleKey: str | None = None
-    scope: str | None = None
-    sourceRef: str | None = None
-    statement: str | None = None
-    structured: Mapping[str, object] = field(default_factory=dict)
-    title: str | None = None
-    validFrom: str | None = None
-    validUntil: str | None = None
-
-@dataclass(frozen=True)
-class WorldEventEvidenceRefDto:
-    confidence: float | None = None
-    excerpt: str | None = None
-    offsetEnd: float | None = None
-    offsetStart: float | None = None
-    segmentId: str | None = None
-    sourceType: str | None = None
-
-@dataclass(frozen=True)
-class WorldEventEvidenceRefInputDto:
-    confidence: float | None = None
-    excerpt: str | None = None
-    offsetEnd: float | None = None
-    offsetStart: float | None = None
-    segmentId: str | None = None
-    sourceType: str | None = None
-
-@dataclass(frozen=True)
-class WorldHistoryAppendItemDto:
-    cause: str | None = None
-    characterRefs: tuple[str, ...] = field(default_factory=tuple)
-    dependsOnEventIds: tuple[str, ...] = field(default_factory=tuple)
-    eventId: str | None = None
-    eventType: str | None = None
-    evidenceRefs: tuple[WorldEventEvidenceRefInputDto, ...] = field(default_factory=tuple)
-    happenedAt: str | None = None
-    invalidates: tuple[str, ...] = field(default_factory=tuple)
-    locationRefs: tuple[str, ...] = field(default_factory=tuple)
-    operation: Literal["APPEND", "SUPERSEDE", "INVALIDATE"] | None = None
-    payload: Mapping[str, object] = field(default_factory=dict)
-    process: str | None = None
-    reason: str | None = None
-    relatedStateRefs: tuple[WorldHistoryRelatedStateRefDto, ...] = field(default_factory=tuple)
-    result: str | None = None
-    summary: str | None = None
-    supersedes: tuple[str, ...] = field(default_factory=tuple)
-    timeRef: str | None = None
-    title: str | None = None
-    visibility: Literal["PUBLIC", "WORLD", "RESTRICTED"] | None = None
-
-@dataclass(frozen=True)
-class WorldHistoryEventDto:
-    actorRefs: tuple[MutationActorRefDto, ...] = field(default_factory=tuple)
-    appId: str | None = None
-    cause: str | None = None
-    characterRefs: tuple[str, ...] = field(default_factory=tuple)
-    commitId: str | None = None
-    committedAt: str | None = None
-    createdBy: str | None = None
-    dependsOnEventIds: tuple[str, ...] = field(default_factory=tuple)
-    eventId: str | None = None
-    eventType: str | None = None
-    evidenceRefs: tuple[WorldEventEvidenceRefDto, ...] = field(default_factory=tuple)
-    happenedAt: str | None = None
-    id: str | None = None
-    invalidatedAt: str | None = None
-    invalidates: tuple[str, ...] = field(default_factory=tuple)
-    locationRefs: tuple[str, ...] = field(default_factory=tuple)
-    operation: Literal["APPEND", "SUPERSEDE", "INVALIDATE"] | None = None
-    payload: Mapping[str, object] = field(default_factory=dict)
-    process: str | None = None
-    relatedStateRefs: tuple[WorldHistoryRelatedStateRefDto, ...] = field(default_factory=tuple)
-    result: str | None = None
-    schemaId: str | None = None
+    origin: RealmCoreOriginDto | None = None
     schemaVersion: str | None = None
-    sessionId: str | None = None
-    summary: str | None = None
-    supersedes: tuple[str, ...] = field(default_factory=tuple)
-    timeRef: str | None = None
-    title: str | None = None
-    visibility: Literal["PUBLIC", "WORLD", "RESTRICTED"] | None = None
-    worldId: str | None = None
-
-@dataclass(frozen=True)
-class WorldHistoryListDto:
-    items: tuple[WorldHistoryEventDto, ...] = field(default_factory=tuple)
-    version: str | None = None
-    worldId: str | None = None
-
-@dataclass(frozen=True)
-class WorldHistoryRelatedStateRefDto:
-    recordId: str | None = None
-    scope: Literal["WORLD", "ENTITY", "RELATION"] | None = None
-    scopeKey: str | None = None
-    version: str | None = None
-
-@dataclass(frozen=True)
-class WorldLandingDecisionDto:
-    reason: str | None = None
-    target: Literal["NO_ACCESS", "CREATE", "MAINTAIN"] | None = None
-    worldId: str | None = None
-
-@dataclass(frozen=True)
-class WorldLanguageDto:
-    category: str | None = None
-    description: str | None = None
-    id: str | None = None
-    isCommon: bool | None = None
-    name: str | None = None
-    realWorldBasis: str | None = None
-    spokenSample: str | None = None
-    usedBy: tuple[str, ...] = field(default_factory=tuple)
-    writingSample: str | None = None
-
-@dataclass(frozen=True)
-class WorldLevelAuditEventDto:
-    a: float | None = None
-    actor: str | None = None
-    c: float | None = None
-    e: float | None = None
-    eventType: Literal["WORLD_LEVEL_RECALCULATED", "WORLD_LEVEL_EMERGENCY_DOWNGRADED", "NATIVE_CREATION_FROZEN", "NATIVE_CREATION_UNFROZEN"] | None = None
-    evidenceRef: str | None = None
-    ewmaScore: float | None = None
-    freezeReason: Literal["QUOTA_OVERFLOW", "WORLD_INACTIVE", "GOVERNANCE_LOCK"] | None = None
-    id: str | None = None
-    meta: Mapping[str, object] = field(default_factory=dict)
-    nativeCount: float | None = None
-    nativeLimit: float | None = None
-    nextLevel: float | None = None
-    nextScore: float | None = None
-    occurredAt: str | None = None
-    prevLevel: float | None = None
-    prevScore: float | None = None
-    q: float | None = None
-    reasonCode: str | None = None
-    seq: float | None = None
-    worldId: str | None = None
-
-@dataclass(frozen=True)
-class WorldLorebookDetailDto:
-    constant: bool | None = None
-    content: str | None = None
-    createdAt: str | None = None
-    enabled: bool | None = None
-    id: str | None = None
-    key: str | None = None
-    keywords: tuple[str, ...] = field(default_factory=tuple)
-    name: str | None = None
-    priority: float | None = None
-    provenance: Mapping[str, object] = field(default_factory=dict)
     updatedAt: str | None = None
-    validFrom: str | None = None
-    validTo: str | None = None
-    value: Mapping[str, object] = field(default_factory=dict)
-    worldId: str | None = None
-
-@dataclass(frozen=True)
-class WorldLorebookListDto:
-    items: tuple[WorldLorebookDetailDto, ...] = field(default_factory=tuple)
-    worldId: str | None = None
-
-@dataclass(frozen=True)
-class WorldRecommendedAgentDto:
-    avatarUrl: str | None = None
-    display: AgentDisplayDto | None = None
-    handle: str | None = None
-    id: str | None = None
-    importance: Literal["PRIMARY", "SECONDARY", "BACKGROUND"] | None = None
-    name: str | None = None
-
-@dataclass(frozen=True)
-class WorldRuleDto:
-    category: Literal["CONSTRAINT", "MECHANISM", "DEFINITION", "RELATION", "POLICY"] | None = None
-    conflictsWith: tuple[str, ...] = field(default_factory=tuple)
-    createdAt: str | None = None
-    createdBy: str | None = None
-    dependsOn: tuple[str, ...] = field(default_factory=tuple)
-    domain: Literal["AXIOM", "PHYSICS", "SOCIETY", "ECONOMY", "CHARACTER", "NARRATIVE", "META"] | None = None
-    hardness: Literal["HARD", "FIRM", "SOFT", "AESTHETIC"] | None = None
-    id: str | None = None
-    lineageId: str | None = None
-    overrides: str | None = None
-    priority: float | None = None
-    provenance: Literal["SEED", "CREATOR", "MOJING_MERGED", "RENDER_BACKFLOW", "WORLD_STUDIO", "SYSTEM"] | None = None
-    reasoning: str | None = None
-    ruleKey: str | None = None
-    scope: Literal["WORLD", "REGION", "FACTION", "INDIVIDUAL", "SCENE"] | None = None
-    sourceRef: str | None = None
-    statement: str | None = None
-    status: Literal["ACTIVE", "DEPRECATED", "SUPERSEDED", "PROPOSED", "ARCHIVED"] | None = None
-    structured: Mapping[str, object] = field(default_factory=dict)
-    title: str | None = None
-    updatedAt: str | None = None
-    updatedBy: str | None = None
-    validFrom: str | None = None
-    validUntil: str | None = None
-    version: float | None = None
-    worldId: str | None = None
-
-@dataclass(frozen=True)
-class WorldRuleItemDto:
-    key: str | None = None
-    title: str | None = None
-    value: str | None = None
-
-@dataclass(frozen=True)
-class WorldStateDto:
-    items: tuple[WorldStateRecordDto, ...] = field(default_factory=tuple)
-    version: str | None = None
-    worldId: str | None = None
-
-@dataclass(frozen=True)
-class WorldStateRecordDto:
-    actorRefs: tuple[MutationActorRefDto, ...] = field(default_factory=tuple)
-    appId: str | None = None
-    commitId: str | None = None
-    committedAt: str | None = None
-    createdBy: str | None = None
-    effectClass: Literal["STATE_ONLY"] | None = None
-    evidenceRefs: tuple[MutationEvidenceRefDto, ...] = field(default_factory=tuple)
-    id: str | None = None
-    metadata: Mapping[str, object] = field(default_factory=dict)
-    payload: Mapping[str, object] = field(default_factory=dict)
-    schemaId: str | None = None
-    schemaVersion: str | None = None
-    scope: Literal["WORLD", "ENTITY", "RELATION"] | None = None
-    scopeKey: str | None = None
-    sessionId: str | None = None
-    targetPath: str | None = None
-    version: str | None = None
-    worldId: str | None = None
-
-@dataclass(frozen=True)
-class WorldStateWriteDto:
-    metadata: Mapping[str, object] = field(default_factory=dict)
-    payload: Mapping[str, object] = field(default_factory=dict)
-    scope: Literal["WORLD", "ENTITY", "RELATION"] | None = None
-    scopeKey: str | None = None
-    targetPath: str | None = None
-
-@dataclass(frozen=True)
-class WorldSummaryDto:
-    description: str | None = None
-    id: str | None = None
-    name: str | None = None
-    status: Literal["DRAFT", "PENDING_REVIEW", "ACTIVE", "SUSPENDED", "ARCHIVED"] | None = None
-    updatedAt: str | None = None
-
-@dataclass(frozen=True)
-class WorldSummaryListDto:
-    items: tuple[WorldSummaryDto, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class WorldTimeFormatDto:
-    datePattern: str | None = None
-    eraName: str | None = None
-    monthNames: tuple[str, ...] = field(default_factory=tuple)
-    timePattern: str | None = None
-    weekdayNames: tuple[str, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class WorldTruthDto:
-    rules: tuple[WorldRuleDto, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class WorldviewDetailDto:
-    causality: CausalityModelDto | None = None
-    coreSystem: PowerSystemDto | None = None
-    createdAt: str | None = None
-    existences: ExistenceDefinitionDto | None = None
-    glossary: WorldviewGlossaryDto | None = None
-    id: str | None = None
-    languages: WorldviewLanguagesDto | None = None
-    lifecycle: Literal["ACTIVE", "MAINTENANCE", "FROZEN", "ARCHIVED"] | None = None
-    locations: WorldviewLocationsDto | None = None
-    resources: ResourceDefinitionDto | None = None
-    spaceTopology: SpaceTopologyDto | None = None
-    structures: Mapping[str, object] = field(default_factory=dict)
-    timeModel: TimeModelDto | None = None
-    truthRules: tuple[WorldviewTruthRuleSummaryDto, ...] = field(default_factory=tuple)
-    updatedAt: str | None = None
-    version: float | None = None
-    visualGuide: VisualGuideDto | None = None
-    worldId: str | None = None
-
-@dataclass(frozen=True)
-class WorldviewGlossaryDto:
-    terms: tuple[GlossaryTermDto, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class WorldviewLanguagesDto:
-    languages: tuple[WorldLanguageDto, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class WorldviewLocationsDto:
-    landmarks: tuple[LocationLandmarkDto, ...] = field(default_factory=tuple)
-    regions: tuple[LocationRegionDto, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class WorldviewTruthRuleSummaryDto:
-    category: Literal["CONSTRAINT", "MECHANISM", "DEFINITION", "RELATION", "POLICY"] | None = None
-    conflictsWith: tuple[str, ...] = field(default_factory=tuple)
-    dependsOn: tuple[str, ...] = field(default_factory=tuple)
-    domain: Literal["AXIOM", "PHYSICS", "SOCIETY", "ECONOMY", "CHARACTER", "NARRATIVE", "META"] | None = None
-    hardness: Literal["HARD", "FIRM", "SOFT", "AESTHETIC"] | None = None
-    id: str | None = None
-    lineageId: str | None = None
-    overrides: str | None = None
-    priority: float | None = None
-    provenance: Literal["SEED", "CREATOR", "MOJING_MERGED", "RENDER_BACKFLOW", "WORLD_STUDIO", "SYSTEM"] | None = None
-    reasoning: str | None = None
-    ruleKey: str | None = None
-    scope: Literal["WORLD", "REGION", "FACTION", "INDIVIDUAL", "SCENE"] | None = None
-    sourceRef: str | None = None
-    statement: str | None = None
-    status: Literal["ACTIVE", "DEPRECATED", "SUPERSEDED", "PROPOSED", "ARCHIVED"] | None = None
-    structured: Mapping[str, object] = field(default_factory=dict)
-    title: str | None = None
-    validFrom: str | None = None
-    validUntil: str | None = None
-    version: float | None = None
-
-@dataclass(frozen=True)
-class RealmAckMyLocalAgentProvisionIntentOperationPath:
-    intentId: str
-
-
-@dataclass(frozen=True)
-class RealmAckMyLocalAgentProvisionIntentOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmAckMyLocalAgentProvisionIntentOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmAckMyLocalAgentProvisionIntentOperationRequest:
-    path: RealmAckMyLocalAgentProvisionIntentOperationPath
-    query: RealmAckMyLocalAgentProvisionIntentOperationQuery | None = None
-    headers: RealmAckMyLocalAgentProvisionIntentOperationHeaders | None = None
-    body: LocalAgentProvisionIntentAckDto | None = None
-
-@dataclass(frozen=True)
-class RealmAckMyLocalAgentTerminationIntentOperationPath:
-    intentId: str
-
-
-@dataclass(frozen=True)
-class RealmAckMyLocalAgentTerminationIntentOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmAckMyLocalAgentTerminationIntentOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmAckMyLocalAgentTerminationIntentOperationRequest:
-    path: RealmAckMyLocalAgentTerminationIntentOperationPath
-    query: RealmAckMyLocalAgentTerminationIntentOperationQuery | None = None
-    headers: RealmAckMyLocalAgentTerminationIntentOperationHeaders | None = None
-    body: LocalAgentTerminationIntentAckDto | None = None
+    visibility: Literal["private", "unlisted", "public", "system"] | None = None
 
 @dataclass(frozen=True)
 class RealmAddFriendOperationPath:
@@ -4214,28 +1840,6 @@ class RealmAddFriendOperationRequest:
     body: AddFriendBodyDto | None = None
 
 @dataclass(frozen=True)
-class RealmAddGroupAgentOperationPath:
-    chatId: str
-
-
-@dataclass(frozen=True)
-class RealmAddGroupAgentOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmAddGroupAgentOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmAddGroupAgentOperationRequest:
-    path: RealmAddGroupAgentOperationPath
-    query: RealmAddGroupAgentOperationQuery | None = None
-    headers: RealmAddGroupAgentOperationHeaders | None = None
-    body: AddGroupAgentInputDto | None = None
-
-@dataclass(frozen=True)
 class RealmAddGroupParticipantOperationPath:
     chatId: str
 
@@ -4256,413 +1860,6 @@ class RealmAddGroupParticipantOperationRequest:
     query: RealmAddGroupParticipantOperationQuery | None = None
     headers: RealmAddGroupParticipantOperationHeaders | None = None
     body: AddGroupParticipantInputDto | None = None
-
-@dataclass(frozen=True)
-class RealmAgentControllerCheckHandleOperationPath:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmAgentControllerCheckHandleOperationQuery:
-    handle: str | None = None
-
-
-@dataclass(frozen=True)
-class RealmAgentControllerCheckHandleOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmAgentControllerCheckHandleOperationRequest:
-    path: RealmAgentControllerCheckHandleOperationPath
-    query: RealmAgentControllerCheckHandleOperationQuery | None = None
-    headers: RealmAgentControllerCheckHandleOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmAgentControllerCreateOperationPath:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmAgentControllerCreateOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmAgentControllerCreateOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmAgentControllerCreateOperationRequest:
-    path: RealmAgentControllerCreateOperationPath
-    query: RealmAgentControllerCreateOperationQuery | None = None
-    headers: RealmAgentControllerCreateOperationHeaders | None = None
-    body: CreateAgentDto | None = None
-
-@dataclass(frozen=True)
-class RealmAgentControllerDeleteOperationPath:
-    id: str
-
-
-@dataclass(frozen=True)
-class RealmAgentControllerDeleteOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmAgentControllerDeleteOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmAgentControllerDeleteOperationRequest:
-    path: RealmAgentControllerDeleteOperationPath
-    query: RealmAgentControllerDeleteOperationQuery | None = None
-    headers: RealmAgentControllerDeleteOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmAgentControllerGetRelationshipsOperationPath:
-    id: str
-
-
-@dataclass(frozen=True)
-class RealmAgentControllerGetRelationshipsOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmAgentControllerGetRelationshipsOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmAgentControllerGetRelationshipsOperationRequest:
-    path: RealmAgentControllerGetRelationshipsOperationPath
-    query: RealmAgentControllerGetRelationshipsOperationQuery | None = None
-    headers: RealmAgentControllerGetRelationshipsOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmAgentControllerGetVisibilityOperationPath:
-    id: str
-
-
-@dataclass(frozen=True)
-class RealmAgentControllerGetVisibilityOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmAgentControllerGetVisibilityOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmAgentControllerGetVisibilityOperationRequest:
-    path: RealmAgentControllerGetVisibilityOperationPath
-    query: RealmAgentControllerGetVisibilityOperationQuery | None = None
-    headers: RealmAgentControllerGetVisibilityOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmAgentControllerMakePublicOperationPath:
-    id: str
-
-
-@dataclass(frozen=True)
-class RealmAgentControllerMakePublicOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmAgentControllerMakePublicOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmAgentControllerMakePublicOperationRequest:
-    path: RealmAgentControllerMakePublicOperationPath
-    query: RealmAgentControllerMakePublicOperationQuery | None = None
-    headers: RealmAgentControllerMakePublicOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmAgentControllerRemoveRelationshipOperationPath:
-    id: str
-
-
-@dataclass(frozen=True)
-class RealmAgentControllerRemoveRelationshipOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmAgentControllerRemoveRelationshipOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmAgentControllerRemoveRelationshipOperationRequest:
-    path: RealmAgentControllerRemoveRelationshipOperationPath
-    query: RealmAgentControllerRemoveRelationshipOperationQuery | None = None
-    headers: RealmAgentControllerRemoveRelationshipOperationHeaders | None = None
-    body: RemoveAgentRelationshipDto | None = None
-
-@dataclass(frozen=True)
-class RealmAgentControllerSelectAvatarOperationPath:
-    id: str
-
-
-@dataclass(frozen=True)
-class RealmAgentControllerSelectAvatarOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmAgentControllerSelectAvatarOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmAgentControllerSelectAvatarOperationRequest:
-    path: RealmAgentControllerSelectAvatarOperationPath
-    query: RealmAgentControllerSelectAvatarOperationQuery | None = None
-    headers: RealmAgentControllerSelectAvatarOperationHeaders | None = None
-    body: SelectAvatarDto | None = None
-
-@dataclass(frozen=True)
-class RealmAgentControllerSetRelationshipOperationPath:
-    id: str
-
-
-@dataclass(frozen=True)
-class RealmAgentControllerSetRelationshipOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmAgentControllerSetRelationshipOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmAgentControllerSetRelationshipOperationRequest:
-    path: RealmAgentControllerSetRelationshipOperationPath
-    query: RealmAgentControllerSetRelationshipOperationQuery | None = None
-    headers: RealmAgentControllerSetRelationshipOperationHeaders | None = None
-    body: SetAgentRelationshipDto | None = None
-
-@dataclass(frozen=True)
-class RealmAgentControllerUpdateDnaOperationPath:
-    id: str
-
-
-@dataclass(frozen=True)
-class RealmAgentControllerUpdateDnaOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmAgentControllerUpdateDnaOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmAgentControllerUpdateDnaOperationRequest:
-    path: RealmAgentControllerUpdateDnaOperationPath
-    query: RealmAgentControllerUpdateDnaOperationQuery | None = None
-    headers: RealmAgentControllerUpdateDnaOperationHeaders | None = None
-    body: UpdateAgentDnaDto | None = None
-
-@dataclass(frozen=True)
-class RealmAgentControllerUpdateVisibilityOperationPath:
-    id: str
-
-
-@dataclass(frozen=True)
-class RealmAgentControllerUpdateVisibilityOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmAgentControllerUpdateVisibilityOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmAgentControllerUpdateVisibilityOperationRequest:
-    path: RealmAgentControllerUpdateVisibilityOperationPath
-    query: RealmAgentControllerUpdateVisibilityOperationQuery | None = None
-    headers: RealmAgentControllerUpdateVisibilityOperationHeaders | None = None
-    body: UpdateAgentVisibilityDto | None = None
-
-@dataclass(frozen=True)
-class RealmAgentNsfwConsentControllerUpdateAgentConsentOperationPath:
-    id: str
-
-
-@dataclass(frozen=True)
-class RealmAgentNsfwConsentControllerUpdateAgentConsentOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmAgentNsfwConsentControllerUpdateAgentConsentOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmAgentNsfwConsentControllerUpdateAgentConsentOperationRequest:
-    path: RealmAgentNsfwConsentControllerUpdateAgentConsentOperationPath
-    query: RealmAgentNsfwConsentControllerUpdateAgentConsentOperationQuery | None = None
-    headers: RealmAgentNsfwConsentControllerUpdateAgentConsentOperationHeaders | None = None
-    body: UpdateAgentNsfwConsentDto | None = None
-
-@dataclass(frozen=True)
-class RealmAgentRulesControllerArchiveRuleOperationPath:
-    ruleId: str
-    agentId: str
-    worldId: str
-
-
-@dataclass(frozen=True)
-class RealmAgentRulesControllerArchiveRuleOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmAgentRulesControllerArchiveRuleOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmAgentRulesControllerArchiveRuleOperationRequest:
-    path: RealmAgentRulesControllerArchiveRuleOperationPath
-    query: RealmAgentRulesControllerArchiveRuleOperationQuery | None = None
-    headers: RealmAgentRulesControllerArchiveRuleOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmAgentRulesControllerCreateRuleOperationPath:
-    agentId: str
-    worldId: str
-
-
-@dataclass(frozen=True)
-class RealmAgentRulesControllerCreateRuleOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmAgentRulesControllerCreateRuleOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmAgentRulesControllerCreateRuleOperationRequest:
-    path: RealmAgentRulesControllerCreateRuleOperationPath
-    query: RealmAgentRulesControllerCreateRuleOperationQuery | None = None
-    headers: RealmAgentRulesControllerCreateRuleOperationHeaders | None = None
-    body: CreateAgentRuleDto | None = None
-
-@dataclass(frozen=True)
-class RealmAgentRulesControllerDeprecateRuleOperationPath:
-    ruleId: str
-    agentId: str
-    worldId: str
-
-
-@dataclass(frozen=True)
-class RealmAgentRulesControllerDeprecateRuleOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmAgentRulesControllerDeprecateRuleOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmAgentRulesControllerDeprecateRuleOperationRequest:
-    path: RealmAgentRulesControllerDeprecateRuleOperationPath
-    query: RealmAgentRulesControllerDeprecateRuleOperationQuery | None = None
-    headers: RealmAgentRulesControllerDeprecateRuleOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmAgentRulesControllerListRulesOperationPath:
-    agentId: str
-    worldId: str
-
-
-@dataclass(frozen=True)
-class RealmAgentRulesControllerListRulesOperationQuery:
-    layer: Literal["DNA", "BEHAVIORAL", "RELATIONAL", "CONTEXTUAL"] | None = None
-    status: Literal["ACTIVE", "DEPRECATED", "SUPERSEDED", "PROPOSED", "ARCHIVED"] | None = None
-
-
-@dataclass(frozen=True)
-class RealmAgentRulesControllerListRulesOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmAgentRulesControllerListRulesOperationRequest:
-    path: RealmAgentRulesControllerListRulesOperationPath
-    query: RealmAgentRulesControllerListRulesOperationQuery | None = None
-    headers: RealmAgentRulesControllerListRulesOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmAgentRulesControllerUpdateRuleOperationPath:
-    ruleId: str
-    agentId: str
-    worldId: str
-
-
-@dataclass(frozen=True)
-class RealmAgentRulesControllerUpdateRuleOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmAgentRulesControllerUpdateRuleOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmAgentRulesControllerUpdateRuleOperationRequest:
-    path: RealmAgentRulesControllerUpdateRuleOperationPath
-    query: RealmAgentRulesControllerUpdateRuleOperationQuery | None = None
-    headers: RealmAgentRulesControllerUpdateRuleOperationHeaders | None = None
-    body: UpdateAgentRuleDto | None = None
-
-@dataclass(frozen=True)
-class RealmApplyCreatorWorldAgentAuthoringDraftBatchOperationPath:
-    batchId: str
-    agentId: str
-    worldId: str
-
-
-@dataclass(frozen=True)
-class RealmApplyCreatorWorldAgentAuthoringDraftBatchOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmApplyCreatorWorldAgentAuthoringDraftBatchOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmApplyCreatorWorldAgentAuthoringDraftBatchOperationRequest:
-    path: RealmApplyCreatorWorldAgentAuthoringDraftBatchOperationPath
-    query: RealmApplyCreatorWorldAgentAuthoringDraftBatchOperationQuery | None = None
-    headers: RealmApplyCreatorWorldAgentAuthoringDraftBatchOperationHeaders | None = None
-    body: None | None = None
 
 @dataclass(frozen=True)
 class RealmArchiveBundleOperationPath:
@@ -4841,28 +2038,6 @@ class RealmCloneAssetOperationRequest:
     body: CloneAssetDto | None = None
 
 @dataclass(frozen=True)
-class RealmCommitRealmGroupMessageCandidateOperationPath:
-    chatId: str
-
-
-@dataclass(frozen=True)
-class RealmCommitRealmGroupMessageCandidateOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmCommitRealmGroupMessageCandidateOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmCommitRealmGroupMessageCandidateOperationRequest:
-    path: RealmCommitRealmGroupMessageCandidateOperationPath
-    query: RealmCommitRealmGroupMessageCandidateOperationQuery | None = None
-    headers: RealmCommitRealmGroupMessageCandidateOperationHeaders | None = None
-    body: CommitRealmGroupMessageCandidateInputDto | None = None
-
-@dataclass(frozen=True)
 class RealmCreateAssetOperationPath:
     pass
 
@@ -4927,29 +2102,6 @@ class RealmCreateBundleOperationRequest:
     query: RealmCreateBundleOperationQuery | None = None
     headers: RealmCreateBundleOperationHeaders | None = None
     body: CreateBundleDto | None = None
-
-@dataclass(frozen=True)
-class RealmCreateCreatorWorldAgentAuthoringDraftBatchOperationPath:
-    agentId: str
-    worldId: str
-
-
-@dataclass(frozen=True)
-class RealmCreateCreatorWorldAgentAuthoringDraftBatchOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmCreateCreatorWorldAgentAuthoringDraftBatchOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmCreateCreatorWorldAgentAuthoringDraftBatchOperationRequest:
-    path: RealmCreateCreatorWorldAgentAuthoringDraftBatchOperationPath
-    query: RealmCreateCreatorWorldAgentAuthoringDraftBatchOperationQuery | None = None
-    headers: RealmCreateCreatorWorldAgentAuthoringDraftBatchOperationHeaders | None = None
-    body: CreateAgentAuthoringDraftBatchDto | None = None
 
 @dataclass(frozen=True)
 class RealmCreateGroupOperationPath:
@@ -5060,204 +2212,6 @@ class RealmCreateVideoDirectUploadOperationRequest:
     query: RealmCreateVideoDirectUploadOperationQuery | None = None
     headers: RealmCreateVideoDirectUploadOperationHeaders | None = None
     body: None | None = None
-
-@dataclass(frozen=True)
-class RealmCreatorControllerBatchCreateAgentsOperationPath:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmCreatorControllerBatchCreateAgentsOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmCreatorControllerBatchCreateAgentsOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmCreatorControllerBatchCreateAgentsOperationRequest:
-    path: RealmCreatorControllerBatchCreateAgentsOperationPath
-    query: RealmCreatorControllerBatchCreateAgentsOperationQuery | None = None
-    headers: RealmCreatorControllerBatchCreateAgentsOperationHeaders | None = None
-    body: BatchCreateAgentsRequestDto | None = None
-
-@dataclass(frozen=True)
-class RealmCreatorControllerCreateAgentOperationPath:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmCreatorControllerCreateAgentOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmCreatorControllerCreateAgentOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmCreatorControllerCreateAgentOperationRequest:
-    path: RealmCreatorControllerCreateAgentOperationPath
-    query: RealmCreatorControllerCreateAgentOperationQuery | None = None
-    headers: RealmCreatorControllerCreateAgentOperationHeaders | None = None
-    body: CreateAgentDto | None = None
-
-@dataclass(frozen=True)
-class RealmCreatorControllerCreateKeyOperationPath:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmCreatorControllerCreateKeyOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmCreatorControllerCreateKeyOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmCreatorControllerCreateKeyOperationRequest:
-    path: RealmCreatorControllerCreateKeyOperationPath
-    query: RealmCreatorControllerCreateKeyOperationQuery | None = None
-    headers: RealmCreatorControllerCreateKeyOperationHeaders | None = None
-    body: CreateApiKeyDto | None = None
-
-@dataclass(frozen=True)
-class RealmCreatorControllerDeleteAgentOperationPath:
-    agentId: str
-
-
-@dataclass(frozen=True)
-class RealmCreatorControllerDeleteAgentOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmCreatorControllerDeleteAgentOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmCreatorControllerDeleteAgentOperationRequest:
-    path: RealmCreatorControllerDeleteAgentOperationPath
-    query: RealmCreatorControllerDeleteAgentOperationQuery | None = None
-    headers: RealmCreatorControllerDeleteAgentOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmCreatorControllerGetAgentOperationPath:
-    agentId: str
-
-
-@dataclass(frozen=True)
-class RealmCreatorControllerGetAgentOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmCreatorControllerGetAgentOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmCreatorControllerGetAgentOperationRequest:
-    path: RealmCreatorControllerGetAgentOperationPath
-    query: RealmCreatorControllerGetAgentOperationQuery | None = None
-    headers: RealmCreatorControllerGetAgentOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmCreatorControllerListAgentsOperationPath:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmCreatorControllerListAgentsOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmCreatorControllerListAgentsOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmCreatorControllerListAgentsOperationRequest:
-    path: RealmCreatorControllerListAgentsOperationPath
-    query: RealmCreatorControllerListAgentsOperationQuery | None = None
-    headers: RealmCreatorControllerListAgentsOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmCreatorControllerListKeysOperationPath:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmCreatorControllerListKeysOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmCreatorControllerListKeysOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmCreatorControllerListKeysOperationRequest:
-    path: RealmCreatorControllerListKeysOperationPath
-    query: RealmCreatorControllerListKeysOperationQuery | None = None
-    headers: RealmCreatorControllerListKeysOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmCreatorControllerRevokeKeyOperationPath:
-    id: str
-
-
-@dataclass(frozen=True)
-class RealmCreatorControllerRevokeKeyOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmCreatorControllerRevokeKeyOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmCreatorControllerRevokeKeyOperationRequest:
-    path: RealmCreatorControllerRevokeKeyOperationPath
-    query: RealmCreatorControllerRevokeKeyOperationQuery | None = None
-    headers: RealmCreatorControllerRevokeKeyOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmCreatorControllerUpdateAgentOperationPath:
-    agentId: str
-
-
-@dataclass(frozen=True)
-class RealmCreatorControllerUpdateAgentOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmCreatorControllerUpdateAgentOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmCreatorControllerUpdateAgentOperationRequest:
-    path: RealmCreatorControllerUpdateAgentOperationPath
-    query: RealmCreatorControllerUpdateAgentOperationQuery | None = None
-    headers: RealmCreatorControllerUpdateAgentOperationHeaders | None = None
-    body: UpdateCreatorAgentDto | None = None
 
 @dataclass(frozen=True)
 class RealmDeletePostOperationPath:
@@ -5568,28 +2522,6 @@ class RealmEconomyControllerCreateWithdrawalOperationRequest:
     body: CreateWithdrawalDto | None = None
 
 @dataclass(frozen=True)
-class RealmEconomyControllerGetAgentOriginOperationPath:
-    agentId: str
-
-
-@dataclass(frozen=True)
-class RealmEconomyControllerGetAgentOriginOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmEconomyControllerGetAgentOriginOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmEconomyControllerGetAgentOriginOperationRequest:
-    path: RealmEconomyControllerGetAgentOriginOperationPath
-    query: RealmEconomyControllerGetAgentOriginOperationQuery | None = None
-    headers: RealmEconomyControllerGetAgentOriginOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
 class RealmEconomyControllerGetBalancesOperationPath:
     pass
 
@@ -5744,6 +2676,29 @@ class RealmEconomyControllerGetSentGiftsOperationRequest:
     path: RealmEconomyControllerGetSentGiftsOperationPath
     query: RealmEconomyControllerGetSentGiftsOperationQuery | None = None
     headers: RealmEconomyControllerGetSentGiftsOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
+class RealmEconomyControllerGetSourceOriginOperationPath:
+    sourceId: str
+    sourceKind: Literal["worldCharacter", "realmPersona"]
+
+
+@dataclass(frozen=True)
+class RealmEconomyControllerGetSourceOriginOperationQuery:
+    sourceWorldId: str | None = None
+
+
+@dataclass(frozen=True)
+class RealmEconomyControllerGetSourceOriginOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmEconomyControllerGetSourceOriginOperationRequest:
+    path: RealmEconomyControllerGetSourceOriginOperationPath
+    query: RealmEconomyControllerGetSourceOriginOperationQuery | None = None
+    headers: RealmEconomyControllerGetSourceOriginOperationHeaders | None = None
     body: None | None = None
 
 @dataclass(frozen=True)
@@ -5910,7 +2865,9 @@ class RealmEconomyControllerPreviewRevenueDistributionOperationPath:
 @dataclass(frozen=True)
 class RealmEconomyControllerPreviewRevenueDistributionOperationQuery:
     amount: str | None = None
-    agentId: str | None = None
+    sourceWorldId: str | None = None
+    sourceId: str | None = None
+    sourceKind: Literal["worldCharacter", "realmPersona"] | None = None
 
 
 @dataclass(frozen=True)
@@ -6104,187 +3061,6 @@ class RealmFinalizeResourceOperationRequest:
     body: FinalizeResourceDto | None = None
 
 @dataclass(frozen=True)
-class RealmForgeProductCatalogControllerGetAgentCandidatesOperationPath:
-    slug: str
-
-
-@dataclass(frozen=True)
-class RealmForgeProductCatalogControllerGetAgentCandidatesOperationQuery:
-    includeEvidenceRefs: bool | None = None
-    limit: float | None = None
-    status: Literal["ready", "sparse", "blocked"] | None = None
-    surface: str | None = None
-    query: str | None = None
-
-
-@dataclass(frozen=True)
-class RealmForgeProductCatalogControllerGetAgentCandidatesOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmForgeProductCatalogControllerGetAgentCandidatesOperationRequest:
-    path: RealmForgeProductCatalogControllerGetAgentCandidatesOperationPath
-    query: RealmForgeProductCatalogControllerGetAgentCandidatesOperationQuery | None = None
-    headers: RealmForgeProductCatalogControllerGetAgentCandidatesOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmForgeProductCatalogControllerGetCatalogOperationPath:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmForgeProductCatalogControllerGetCatalogOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmForgeProductCatalogControllerGetCatalogOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmForgeProductCatalogControllerGetCatalogOperationRequest:
-    path: RealmForgeProductCatalogControllerGetCatalogOperationPath
-    query: RealmForgeProductCatalogControllerGetCatalogOperationQuery | None = None
-    headers: RealmForgeProductCatalogControllerGetCatalogOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmForgeProductCatalogControllerGetProductOperationPath:
-    slug: str
-
-
-@dataclass(frozen=True)
-class RealmForgeProductCatalogControllerGetProductOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmForgeProductCatalogControllerGetProductOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmForgeProductCatalogControllerGetProductOperationRequest:
-    path: RealmForgeProductCatalogControllerGetProductOperationPath
-    query: RealmForgeProductCatalogControllerGetProductOperationQuery | None = None
-    headers: RealmForgeProductCatalogControllerGetProductOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmForgeProductCatalogControllerGetProductShardOperationPath:
-    kind: Literal["package-meta", "world-source", "world-rules", "agent-blueprints", "agent-skeletons", "truth", "sufficiency", "capability", "derivation", "projection", "evidence", "governance", "agent-relationships", "scenes", "world-lorebooks", "agent-lorebooks", "resources-bindings", "world-drafts"]
-    slug: str
-
-
-@dataclass(frozen=True)
-class RealmForgeProductCatalogControllerGetProductShardOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmForgeProductCatalogControllerGetProductShardOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmForgeProductCatalogControllerGetProductShardOperationRequest:
-    path: RealmForgeProductCatalogControllerGetProductShardOperationPath
-    query: RealmForgeProductCatalogControllerGetProductShardOperationQuery | None = None
-    headers: RealmForgeProductCatalogControllerGetProductShardOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmForgeProductCatalogControllerGetProductShardIndexOperationPath:
-    slug: str
-
-
-@dataclass(frozen=True)
-class RealmForgeProductCatalogControllerGetProductShardIndexOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmForgeProductCatalogControllerGetProductShardIndexOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmForgeProductCatalogControllerGetProductShardIndexOperationRequest:
-    path: RealmForgeProductCatalogControllerGetProductShardIndexOperationPath
-    query: RealmForgeProductCatalogControllerGetProductShardIndexOperationQuery | None = None
-    headers: RealmForgeProductCatalogControllerGetProductShardIndexOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmForgeProductCatalogControllerVerifyProductShardsOperationPath:
-    slug: str
-
-
-@dataclass(frozen=True)
-class RealmForgeProductCatalogControllerVerifyProductShardsOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmForgeProductCatalogControllerVerifyProductShardsOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmForgeProductCatalogControllerVerifyProductShardsOperationRequest:
-    path: RealmForgeProductCatalogControllerVerifyProductShardsOperationPath
-    query: RealmForgeProductCatalogControllerVerifyProductShardsOperationQuery | None = None
-    headers: RealmForgeProductCatalogControllerVerifyProductShardsOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmGetAgentOperationPath:
-    id: str
-
-
-@dataclass(frozen=True)
-class RealmGetAgentOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmGetAgentOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmGetAgentOperationRequest:
-    path: RealmGetAgentOperationPath
-    query: RealmGetAgentOperationQuery | None = None
-    headers: RealmGetAgentOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmGetAgentByHandleOperationPath:
-    handle: str
-
-
-@dataclass(frozen=True)
-class RealmGetAgentByHandleOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmGetAgentByHandleOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmGetAgentByHandleOperationRequest:
-    path: RealmGetAgentByHandleOperationPath
-    query: RealmGetAgentByHandleOperationQuery | None = None
-    headers: RealmGetAgentByHandleOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
 class RealmGetAssetOperationPath:
     assetId: str
 
@@ -6373,121 +3149,6 @@ class RealmGetChatByIdOperationRequest:
     body: None | None = None
 
 @dataclass(frozen=True)
-class RealmGetCreatorWorldAgentOperationPath:
-    agentId: str
-    worldId: str
-
-
-@dataclass(frozen=True)
-class RealmGetCreatorWorldAgentOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmGetCreatorWorldAgentOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmGetCreatorWorldAgentOperationRequest:
-    path: RealmGetCreatorWorldAgentOperationPath
-    query: RealmGetCreatorWorldAgentOperationQuery | None = None
-    headers: RealmGetCreatorWorldAgentOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmGetCreatorWorldAgentAuthoringGenerationContextOperationPath:
-    agentId: str
-    worldId: str
-
-
-@dataclass(frozen=True)
-class RealmGetCreatorWorldAgentAuthoringGenerationContextOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmGetCreatorWorldAgentAuthoringGenerationContextOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmGetCreatorWorldAgentAuthoringGenerationContextOperationRequest:
-    path: RealmGetCreatorWorldAgentAuthoringGenerationContextOperationPath
-    query: RealmGetCreatorWorldAgentAuthoringGenerationContextOperationQuery | None = None
-    headers: RealmGetCreatorWorldAgentAuthoringGenerationContextOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmGetCreatorWorldAgentChatReadinessOperationPath:
-    agentId: str
-    worldId: str
-
-
-@dataclass(frozen=True)
-class RealmGetCreatorWorldAgentChatReadinessOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmGetCreatorWorldAgentChatReadinessOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmGetCreatorWorldAgentChatReadinessOperationRequest:
-    path: RealmGetCreatorWorldAgentChatReadinessOperationPath
-    query: RealmGetCreatorWorldAgentChatReadinessOperationQuery | None = None
-    headers: RealmGetCreatorWorldAgentChatReadinessOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmGetCreatorWorldAgentSettingsOperationPath:
-    agentId: str
-    worldId: str
-
-
-@dataclass(frozen=True)
-class RealmGetCreatorWorldAgentSettingsOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmGetCreatorWorldAgentSettingsOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmGetCreatorWorldAgentSettingsOperationRequest:
-    path: RealmGetCreatorWorldAgentSettingsOperationPath
-    query: RealmGetCreatorWorldAgentSettingsOperationQuery | None = None
-    headers: RealmGetCreatorWorldAgentSettingsOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmGetCreatorWorldAgentSourceSkeletonOperationPath:
-    agentId: str
-    worldId: str
-
-
-@dataclass(frozen=True)
-class RealmGetCreatorWorldAgentSourceSkeletonOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmGetCreatorWorldAgentSourceSkeletonOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmGetCreatorWorldAgentSourceSkeletonOperationRequest:
-    path: RealmGetCreatorWorldAgentSourceSkeletonOperationPath
-    query: RealmGetCreatorWorldAgentSourceSkeletonOperationQuery | None = None
-    headers: RealmGetCreatorWorldAgentSourceSkeletonOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
 class RealmGetExploreFeedOperationPath:
     pass
 
@@ -6546,7 +3207,7 @@ class RealmGetHomeFeedOperationQuery:
     authorId: str | None = None
     limit: float | None = None
     cursor: str | None = None
-    scope: Literal["personal", "friends", "agent_activity"] | None = None
+    scope: Literal["personal", "friends"] | None = None
 
 
 @dataclass(frozen=True)
@@ -6629,28 +3290,6 @@ class RealmGetMutualFriendsCountOperationRequest:
     body: None | None = None
 
 @dataclass(frozen=True)
-class RealmGetMyAgentFriendLimitOperationPath:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmGetMyAgentFriendLimitOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmGetMyAgentFriendLimitOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmGetMyAgentFriendLimitOperationRequest:
-    path: RealmGetMyAgentFriendLimitOperationPath
-    query: RealmGetMyAgentFriendLimitOperationQuery | None = None
-    headers: RealmGetMyAgentFriendLimitOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
 class RealmGetMyAppPermissionGrantOperationPath:
     grantId: str
 
@@ -6673,28 +3312,6 @@ class RealmGetMyAppPermissionGrantOperationRequest:
     body: None | None = None
 
 @dataclass(frozen=True)
-class RealmGetMyAppPermissionGrantProjectionOperationPath:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmGetMyAppPermissionGrantProjectionOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmGetMyAppPermissionGrantProjectionOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmGetMyAppPermissionGrantProjectionOperationRequest:
-    path: RealmGetMyAppPermissionGrantProjectionOperationPath
-    query: RealmGetMyAppPermissionGrantProjectionOperationQuery | None = None
-    headers: RealmGetMyAppPermissionGrantProjectionOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
 class RealmGetMyAppPermissionGrantStatusOperationPath:
     pass
 
@@ -6714,6 +3331,28 @@ class RealmGetMyAppPermissionGrantStatusOperationRequest:
     path: RealmGetMyAppPermissionGrantStatusOperationPath
     query: RealmGetMyAppPermissionGrantStatusOperationQuery | None = None
     headers: RealmGetMyAppPermissionGrantStatusOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
+class RealmGetMyAppPermissionGrantViewOperationPath:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmGetMyAppPermissionGrantViewOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmGetMyAppPermissionGrantViewOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmGetMyAppPermissionGrantViewOperationRequest:
+    path: RealmGetMyAppPermissionGrantViewOperationPath
+    query: RealmGetMyAppPermissionGrantViewOperationQuery | None = None
+    headers: RealmGetMyAppPermissionGrantViewOperationHeaders | None = None
     body: None | None = None
 
 @dataclass(frozen=True)
@@ -6847,50 +3486,6 @@ class RealmGetMyPPConfigOperationRequest:
     path: RealmGetMyPPConfigOperationPath
     query: RealmGetMyPPConfigOperationQuery | None = None
     headers: RealmGetMyPPConfigOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmGetMyRealmAgentOperationPath:
-    agentId: str
-
-
-@dataclass(frozen=True)
-class RealmGetMyRealmAgentOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmGetMyRealmAgentOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmGetMyRealmAgentOperationRequest:
-    path: RealmGetMyRealmAgentOperationPath
-    query: RealmGetMyRealmAgentOperationQuery | None = None
-    headers: RealmGetMyRealmAgentOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmGetMyRealmAgentSettingsOperationPath:
-    agentId: str
-
-
-@dataclass(frozen=True)
-class RealmGetMyRealmAgentSettingsOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmGetMyRealmAgentSettingsOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmGetMyRealmAgentSettingsOperationRequest:
-    path: RealmGetMyRealmAgentSettingsOperationPath
-    query: RealmGetMyRealmAgentSettingsOperationQuery | None = None
-    headers: RealmGetMyRealmAgentSettingsOperationHeaders | None = None
     body: None | None = None
 
 @dataclass(frozen=True)
@@ -7124,7 +3719,7 @@ class RealmGetWorldPostsOperationQuery:
     authorId: str | None = None
     limit: float | None = None
     cursor: str | None = None
-    scope: Literal["personal", "friends", "agent_activity"] | None = None
+    scope: Literal["personal", "friends"] | None = None
 
 
 @dataclass(frozen=True)
@@ -7137,28 +3732,6 @@ class RealmGetWorldPostsOperationRequest:
     path: RealmGetWorldPostsOperationPath
     query: RealmGetWorldPostsOperationQuery | None = None
     headers: RealmGetWorldPostsOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmGetWorldScenesOperationPath:
-    id: str
-
-
-@dataclass(frozen=True)
-class RealmGetWorldScenesOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmGetWorldScenesOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmGetWorldScenesOperationRequest:
-    path: RealmGetWorldScenesOperationPath
-    query: RealmGetWorldScenesOperationQuery | None = None
-    headers: RealmGetWorldScenesOperationHeaders | None = None
     body: None | None = None
 
 @dataclass(frozen=True)
@@ -7182,94 +3755,6 @@ class RealmGrantMyAppPermissionGrantOperationRequest:
     query: RealmGrantMyAppPermissionGrantOperationQuery | None = None
     headers: RealmGrantMyAppPermissionGrantOperationHeaders | None = None
     body: AppPermissionGrantGrantDto | None = None
-
-@dataclass(frozen=True)
-class RealmHumanNsfwConsentControllerCanManageAgentNsfwOperationPath:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmHumanNsfwConsentControllerCanManageAgentNsfwOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmHumanNsfwConsentControllerCanManageAgentNsfwOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmHumanNsfwConsentControllerCanManageAgentNsfwOperationRequest:
-    path: RealmHumanNsfwConsentControllerCanManageAgentNsfwOperationPath
-    query: RealmHumanNsfwConsentControllerCanManageAgentNsfwOperationQuery | None = None
-    headers: RealmHumanNsfwConsentControllerCanManageAgentNsfwOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmHumanNsfwConsentControllerCheckConsentOperationPath:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmHumanNsfwConsentControllerCheckConsentOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmHumanNsfwConsentControllerCheckConsentOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmHumanNsfwConsentControllerCheckConsentOperationRequest:
-    path: RealmHumanNsfwConsentControllerCheckConsentOperationPath
-    query: RealmHumanNsfwConsentControllerCheckConsentOperationQuery | None = None
-    headers: RealmHumanNsfwConsentControllerCheckConsentOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmHumanNsfwConsentControllerGetConsentStatusOperationPath:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmHumanNsfwConsentControllerGetConsentStatusOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmHumanNsfwConsentControllerGetConsentStatusOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmHumanNsfwConsentControllerGetConsentStatusOperationRequest:
-    path: RealmHumanNsfwConsentControllerGetConsentStatusOperationPath
-    query: RealmHumanNsfwConsentControllerGetConsentStatusOperationQuery | None = None
-    headers: RealmHumanNsfwConsentControllerGetConsentStatusOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmHumanNsfwConsentControllerUpdateUserConsentOperationPath:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmHumanNsfwConsentControllerUpdateUserConsentOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmHumanNsfwConsentControllerUpdateUserConsentOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmHumanNsfwConsentControllerUpdateUserConsentOperationRequest:
-    path: RealmHumanNsfwConsentControllerUpdateUserConsentOperationPath
-    query: RealmHumanNsfwConsentControllerUpdateUserConsentOperationQuery | None = None
-    headers: RealmHumanNsfwConsentControllerUpdateUserConsentOperationHeaders | None = None
-    body: UpdateUserNsfwConsentDto | None = None
 
 @dataclass(frozen=True)
 class RealmIntrospectSessionOperationPath:
@@ -7493,51 +3978,6 @@ class RealmListChatsOperationRequest:
     body: None | None = None
 
 @dataclass(frozen=True)
-class RealmListCreatorWorldAgentAuthoringDraftBatchesOperationPath:
-    agentId: str
-    worldId: str
-
-
-@dataclass(frozen=True)
-class RealmListCreatorWorldAgentAuthoringDraftBatchesOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmListCreatorWorldAgentAuthoringDraftBatchesOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmListCreatorWorldAgentAuthoringDraftBatchesOperationRequest:
-    path: RealmListCreatorWorldAgentAuthoringDraftBatchesOperationPath
-    query: RealmListCreatorWorldAgentAuthoringDraftBatchesOperationQuery | None = None
-    headers: RealmListCreatorWorldAgentAuthoringDraftBatchesOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmListCreatorWorldAgentsOperationPath:
-    worldId: str
-
-
-@dataclass(frozen=True)
-class RealmListCreatorWorldAgentsOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmListCreatorWorldAgentsOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmListCreatorWorldAgentsOperationRequest:
-    path: RealmListCreatorWorldAgentsOperationPath
-    query: RealmListCreatorWorldAgentsOperationQuery | None = None
-    headers: RealmListCreatorWorldAgentsOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
 class RealmListGroupMessagesOperationPath:
     chatId: str
 
@@ -7658,28 +4098,6 @@ class RealmListMyAppPermissionGrantsOperationRequest:
     body: None | None = None
 
 @dataclass(frozen=True)
-class RealmListMyCreatorWorldsOperationPath:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmListMyCreatorWorldsOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmListMyCreatorWorldsOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmListMyCreatorWorldsOperationRequest:
-    path: RealmListMyCreatorWorldsOperationPath
-    query: RealmListMyCreatorWorldsOperationQuery | None = None
-    headers: RealmListMyCreatorWorldsOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
 class RealmListMyFriendIdsOperationPath:
     pass
 
@@ -7722,72 +4140,6 @@ class RealmListMyFriendsWithDetailsOperationRequest:
     path: RealmListMyFriendsWithDetailsOperationPath
     query: RealmListMyFriendsWithDetailsOperationQuery | None = None
     headers: RealmListMyFriendsWithDetailsOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmListMyLocalAgentProvisionIntentsOperationPath:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmListMyLocalAgentProvisionIntentsOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmListMyLocalAgentProvisionIntentsOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmListMyLocalAgentProvisionIntentsOperationRequest:
-    path: RealmListMyLocalAgentProvisionIntentsOperationPath
-    query: RealmListMyLocalAgentProvisionIntentsOperationQuery | None = None
-    headers: RealmListMyLocalAgentProvisionIntentsOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmListMyLocalAgentTerminationIntentsOperationPath:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmListMyLocalAgentTerminationIntentsOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmListMyLocalAgentTerminationIntentsOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmListMyLocalAgentTerminationIntentsOperationRequest:
-    path: RealmListMyLocalAgentTerminationIntentsOperationPath
-    query: RealmListMyLocalAgentTerminationIntentsOperationQuery | None = None
-    headers: RealmListMyLocalAgentTerminationIntentsOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmListMyRealmAgentsOperationPath:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmListMyRealmAgentsOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmListMyRealmAgentsOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmListMyRealmAgentsOperationRequest:
-    path: RealmListMyRealmAgentsOperationPath
-    query: RealmListMyRealmAgentsOperationQuery | None = None
-    headers: RealmListMyRealmAgentsOperationHeaders | None = None
     body: None | None = None
 
 @dataclass(frozen=True)
@@ -8130,28 +4482,6 @@ class RealmPrepareBindWalletOperationRequest:
     body: WalletPrepareBindDto | None = None
 
 @dataclass(frozen=True)
-class RealmProjectRuntimePayloadOperationPath:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmProjectRuntimePayloadOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmProjectRuntimePayloadOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmProjectRuntimePayloadOperationRequest:
-    path: RealmProjectRuntimePayloadOperationPath
-    query: RealmProjectRuntimePayloadOperationQuery | None = None
-    headers: RealmProjectRuntimePayloadOperationHeaders | None = None
-    body: RuntimeProjectionRequestDto | None = None
-
-@dataclass(frozen=True)
 class RealmPublishBundleOperationPath:
     bundleId: str
 
@@ -8352,29 +4682,6 @@ class RealmRemoveFriendOperationRequest:
     body: None | None = None
 
 @dataclass(frozen=True)
-class RealmRemoveGroupAgentOperationPath:
-    agentAccountId: str
-    chatId: str
-
-
-@dataclass(frozen=True)
-class RealmRemoveGroupAgentOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmRemoveGroupAgentOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmRemoveGroupAgentOperationRequest:
-    path: RealmRemoveGroupAgentOperationPath
-    query: RealmRemoveGroupAgentOperationQuery | None = None
-    headers: RealmRemoveGroupAgentOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
 class RealmRemoveGroupParticipantOperationPath:
     accountId: str
     chatId: str
@@ -8552,31 +4859,6 @@ class RealmReviewControllerGetReviewsOperationRequest:
     body: None | None = None
 
 @dataclass(frozen=True)
-class RealmReviewCreatorWorldAgentAuthoringDraftCandidateOperationPath:
-    candidateId: str
-    batchId: str
-    agentId: str
-    worldId: str
-
-
-@dataclass(frozen=True)
-class RealmReviewCreatorWorldAgentAuthoringDraftCandidateOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmReviewCreatorWorldAgentAuthoringDraftCandidateOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmReviewCreatorWorldAgentAuthoringDraftCandidateOperationRequest:
-    path: RealmReviewCreatorWorldAgentAuthoringDraftCandidateOperationPath
-    query: RealmReviewCreatorWorldAgentAuthoringDraftCandidateOperationQuery | None = None
-    headers: RealmReviewCreatorWorldAgentAuthoringDraftCandidateOperationHeaders | None = None
-    body: ReviewAgentAuthoringDraftCandidateDto | None = None
-
-@dataclass(frozen=True)
 class RealmRevokeMyAppPermissionGrantOperationPath:
     grantId: str
 
@@ -8609,7 +4891,6 @@ class RealmSearchHumanUsersOperationQuery:
     cursor: str | None = None
     ageMax: float | None = None
     ageMin: float | None = None
-    isAgent: bool | None = None
     city: str | None = None
     countryCode: str | None = None
     gender: str | None = None
@@ -8644,7 +4925,6 @@ class RealmSearchIndexedUsersOperationQuery:
     cursor: str | None = None
     ageMax: float | None = None
     ageMin: float | None = None
-    isAgent: bool | None = None
     city: str | None = None
     countryCode: str | None = None
     gender: str | None = None
@@ -8880,7 +5160,7 @@ class RealmTransitControllerCompleteOperationRequest:
 
 @dataclass(frozen=True)
 class RealmTransitControllerGetActiveTransitOperationPath:
-    agentId: str
+    runtimeSourceRef: str
 
 
 @dataclass(frozen=True)
@@ -8931,7 +5211,8 @@ class RealmTransitControllerListTransitsOperationPath:
 class RealmTransitControllerListTransitsOperationQuery:
     transitType: str | None = None
     status: str | None = None
-    agentId: str | None = None
+    runtimeSourceRef: str | None = None
+    sourceId: str | None = None
 
 
 @dataclass(frozen=True)
@@ -9101,75 +5382,6 @@ class RealmUpdateBundleOperationRequest:
     body: UpdateBundleDto | None = None
 
 @dataclass(frozen=True)
-class RealmUpdateCreatorWorldAgentProfileMediaOperationPath:
-    agentId: str
-    worldId: str
-
-
-@dataclass(frozen=True)
-class RealmUpdateCreatorWorldAgentProfileMediaOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmUpdateCreatorWorldAgentProfileMediaOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmUpdateCreatorWorldAgentProfileMediaOperationRequest:
-    path: RealmUpdateCreatorWorldAgentProfileMediaOperationPath
-    query: RealmUpdateCreatorWorldAgentProfileMediaOperationQuery | None = None
-    headers: RealmUpdateCreatorWorldAgentProfileMediaOperationHeaders | None = None
-    body: UpdateAgentProfileMediaDto | None = None
-
-@dataclass(frozen=True)
-class RealmUpdateCreatorWorldAgentSettingsOperationPath:
-    agentId: str
-    worldId: str
-
-
-@dataclass(frozen=True)
-class RealmUpdateCreatorWorldAgentSettingsOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmUpdateCreatorWorldAgentSettingsOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmUpdateCreatorWorldAgentSettingsOperationRequest:
-    path: RealmUpdateCreatorWorldAgentSettingsOperationPath
-    query: RealmUpdateCreatorWorldAgentSettingsOperationQuery | None = None
-    headers: RealmUpdateCreatorWorldAgentSettingsOperationHeaders | None = None
-    body: UpdateOwnerAgentSettingsDto | None = None
-
-@dataclass(frozen=True)
-class RealmUpdateCreatorWorldAgentVoiceOperationPath:
-    agentId: str
-    worldId: str
-
-
-@dataclass(frozen=True)
-class RealmUpdateCreatorWorldAgentVoiceOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmUpdateCreatorWorldAgentVoiceOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmUpdateCreatorWorldAgentVoiceOperationRequest:
-    path: RealmUpdateCreatorWorldAgentVoiceOperationPath
-    query: RealmUpdateCreatorWorldAgentVoiceOperationQuery | None = None
-    headers: RealmUpdateCreatorWorldAgentVoiceOperationHeaders | None = None
-    body: UpdateAgentVoiceDto | None = None
-
-@dataclass(frozen=True)
 class RealmUpdateGroupOperationPath:
     chatId: str
 
@@ -9303,28 +5515,6 @@ class RealmUpdateMyPPConfigOperationRequest:
     body: UpdatePPSlotConfigDto | None = None
 
 @dataclass(frozen=True)
-class RealmUpdateMyRealmAgentSettingsOperationPath:
-    agentId: str
-
-
-@dataclass(frozen=True)
-class RealmUpdateMyRealmAgentSettingsOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmUpdateMyRealmAgentSettingsOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmUpdateMyRealmAgentSettingsOperationRequest:
-    path: RealmUpdateMyRealmAgentSettingsOperationPath
-    query: RealmUpdateMyRealmAgentSettingsOperationQuery | None = None
-    headers: RealmUpdateMyRealmAgentSettingsOperationHeaders | None = None
-    body: UpdateOwnerAgentSettingsDto | None = None
-
-@dataclass(frozen=True)
 class RealmUpdateMySettingsOperationPath:
     pass
 
@@ -9411,139 +5601,6 @@ class RealmUpdateResourceOperationRequest:
     query: RealmUpdateResourceOperationQuery | None = None
     headers: RealmUpdateResourceOperationHeaders | None = None
     body: UpdateResourceDto | None = None
-
-@dataclass(frozen=True)
-class RealmV1DefaultVisibilityControllerApplyAgentDefaultsOperationPath:
-    agentId: str
-
-
-@dataclass(frozen=True)
-class RealmV1DefaultVisibilityControllerApplyAgentDefaultsOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmV1DefaultVisibilityControllerApplyAgentDefaultsOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmV1DefaultVisibilityControllerApplyAgentDefaultsOperationRequest:
-    path: RealmV1DefaultVisibilityControllerApplyAgentDefaultsOperationPath
-    query: RealmV1DefaultVisibilityControllerApplyAgentDefaultsOperationQuery | None = None
-    headers: RealmV1DefaultVisibilityControllerApplyAgentDefaultsOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmV1DefaultVisibilityControllerApplyUserDefaultsOperationPath:
-    userId: str
-
-
-@dataclass(frozen=True)
-class RealmV1DefaultVisibilityControllerApplyUserDefaultsOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmV1DefaultVisibilityControllerApplyUserDefaultsOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmV1DefaultVisibilityControllerApplyUserDefaultsOperationRequest:
-    path: RealmV1DefaultVisibilityControllerApplyUserDefaultsOperationPath
-    query: RealmV1DefaultVisibilityControllerApplyUserDefaultsOperationQuery | None = None
-    headers: RealmV1DefaultVisibilityControllerApplyUserDefaultsOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmV1DefaultVisibilityControllerGetDefaultForScopeOperationPath:
-    scope: Literal["account", "profile", "defaultPost", "wallet", "social", "dm", "friendList", "friendRequest", "mention", "onlineStatus"]
-    entityType: Literal["USER", "AGENT"]
-
-
-@dataclass(frozen=True)
-class RealmV1DefaultVisibilityControllerGetDefaultForScopeOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmV1DefaultVisibilityControllerGetDefaultForScopeOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmV1DefaultVisibilityControllerGetDefaultForScopeOperationRequest:
-    path: RealmV1DefaultVisibilityControllerGetDefaultForScopeOperationPath
-    query: RealmV1DefaultVisibilityControllerGetDefaultForScopeOperationQuery | None = None
-    headers: RealmV1DefaultVisibilityControllerGetDefaultForScopeOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmV1DefaultVisibilityControllerGetDefaultVisibilityOperationPath:
-    entityType: Literal["USER", "AGENT"]
-
-
-@dataclass(frozen=True)
-class RealmV1DefaultVisibilityControllerGetDefaultVisibilityOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmV1DefaultVisibilityControllerGetDefaultVisibilityOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmV1DefaultVisibilityControllerGetDefaultVisibilityOperationRequest:
-    path: RealmV1DefaultVisibilityControllerGetDefaultVisibilityOperationPath
-    query: RealmV1DefaultVisibilityControllerGetDefaultVisibilityOperationQuery | None = None
-    headers: RealmV1DefaultVisibilityControllerGetDefaultVisibilityOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmV1DefaultVisibilityControllerValidateAgentVisibilityOperationPath:
-    agentId: str
-
-
-@dataclass(frozen=True)
-class RealmV1DefaultVisibilityControllerValidateAgentVisibilityOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmV1DefaultVisibilityControllerValidateAgentVisibilityOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmV1DefaultVisibilityControllerValidateAgentVisibilityOperationRequest:
-    path: RealmV1DefaultVisibilityControllerValidateAgentVisibilityOperationPath
-    query: RealmV1DefaultVisibilityControllerValidateAgentVisibilityOperationQuery | None = None
-    headers: RealmV1DefaultVisibilityControllerValidateAgentVisibilityOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmV1DefaultVisibilityControllerValidateUserVisibilityOperationPath:
-    userId: str
-
-
-@dataclass(frozen=True)
-class RealmV1DefaultVisibilityControllerValidateUserVisibilityOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmV1DefaultVisibilityControllerValidateUserVisibilityOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmV1DefaultVisibilityControllerValidateUserVisibilityOperationRequest:
-    path: RealmV1DefaultVisibilityControllerValidateUserVisibilityOperationPath
-    query: RealmV1DefaultVisibilityControllerValidateUserVisibilityOperationQuery | None = None
-    headers: RealmV1DefaultVisibilityControllerValidateUserVisibilityOperationHeaders | None = None
-    body: None | None = None
 
 @dataclass(frozen=True)
 class RealmVerify2FaOperationPath:
@@ -9634,832 +5691,340 @@ class RealmWalletLoginOperationRequest:
     body: WalletLoginDto | None = None
 
 @dataclass(frozen=True)
-class RealmWorldControlControllerAppendWorldHistoryOperationPath:
+class RealmWorldCoreControllerBootstrapOasisWorldOperationPath:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerBootstrapOasisWorldOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerBootstrapOasisWorldOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerBootstrapOasisWorldOperationRequest:
+    path: RealmWorldCoreControllerBootstrapOasisWorldOperationPath
+    query: RealmWorldCoreControllerBootstrapOasisWorldOperationQuery | None = None
+    headers: RealmWorldCoreControllerBootstrapOasisWorldOperationHeaders | None = None
+    body: BootstrapOasisWorldDto | None = None
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerCreateRealmPersonaOperationPath:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerCreateRealmPersonaOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerCreateRealmPersonaOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerCreateRealmPersonaOperationRequest:
+    path: RealmWorldCoreControllerCreateRealmPersonaOperationPath
+    query: RealmWorldCoreControllerCreateRealmPersonaOperationQuery | None = None
+    headers: RealmWorldCoreControllerCreateRealmPersonaOperationHeaders | None = None
+    body: CreateRealmPersonaDto | None = None
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerCreateRuntimeSourceSnapshotOperationPath:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerCreateRuntimeSourceSnapshotOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerCreateRuntimeSourceSnapshotOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerCreateRuntimeSourceSnapshotOperationRequest:
+    path: RealmWorldCoreControllerCreateRuntimeSourceSnapshotOperationPath
+    query: RealmWorldCoreControllerCreateRuntimeSourceSnapshotOperationQuery | None = None
+    headers: RealmWorldCoreControllerCreateRuntimeSourceSnapshotOperationHeaders | None = None
+    body: CreateRuntimeSourceSnapshotDto | None = None
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerCreateWorldCharacterOperationPath:
     worldId: str
 
 
 @dataclass(frozen=True)
-class RealmWorldControlControllerAppendWorldHistoryOperationQuery:
+class RealmWorldCoreControllerCreateWorldCharacterOperationQuery:
     pass
 
 
 @dataclass(frozen=True)
-class RealmWorldControlControllerAppendWorldHistoryOperationHeaders:
+class RealmWorldCoreControllerCreateWorldCharacterOperationHeaders:
     pass
 
 
 @dataclass(frozen=True)
-class RealmWorldControlControllerAppendWorldHistoryOperationRequest:
-    path: RealmWorldControlControllerAppendWorldHistoryOperationPath
-    query: RealmWorldControlControllerAppendWorldHistoryOperationQuery | None = None
-    headers: RealmWorldControlControllerAppendWorldHistoryOperationHeaders | None = None
-    body: AppendWorldHistoryDto | None = None
+class RealmWorldCoreControllerCreateWorldCharacterOperationRequest:
+    path: RealmWorldCoreControllerCreateWorldCharacterOperationPath
+    query: RealmWorldCoreControllerCreateWorldCharacterOperationQuery | None = None
+    headers: RealmWorldCoreControllerCreateWorldCharacterOperationHeaders | None = None
+    body: CreateWorldCharacterCoreDto | None = None
 
 @dataclass(frozen=True)
-class RealmWorldControlControllerBatchUpsertWorldBindingsOperationPath:
+class RealmWorldCoreControllerCreateWorldCoreOperationPath:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerCreateWorldCoreOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerCreateWorldCoreOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerCreateWorldCoreOperationRequest:
+    path: RealmWorldCoreControllerCreateWorldCoreOperationPath
+    query: RealmWorldCoreControllerCreateWorldCoreOperationQuery | None = None
+    headers: RealmWorldCoreControllerCreateWorldCoreOperationHeaders | None = None
+    body: CreateWorldCoreDto | None = None
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerGetOasisWorldOperationPath:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerGetOasisWorldOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerGetOasisWorldOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerGetOasisWorldOperationRequest:
+    path: RealmWorldCoreControllerGetOasisWorldOperationPath
+    query: RealmWorldCoreControllerGetOasisWorldOperationQuery | None = None
+    headers: RealmWorldCoreControllerGetOasisWorldOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerGetRealmPersonaOperationPath:
+    personaId: str
+
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerGetRealmPersonaOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerGetRealmPersonaOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerGetRealmPersonaOperationRequest:
+    path: RealmWorldCoreControllerGetRealmPersonaOperationPath
+    query: RealmWorldCoreControllerGetRealmPersonaOperationQuery | None = None
+    headers: RealmWorldCoreControllerGetRealmPersonaOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerGetWorldCharacterOperationPath:
+    characterId: str
+
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerGetWorldCharacterOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerGetWorldCharacterOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerGetWorldCharacterOperationRequest:
+    path: RealmWorldCoreControllerGetWorldCharacterOperationPath
+    query: RealmWorldCoreControllerGetWorldCharacterOperationQuery | None = None
+    headers: RealmWorldCoreControllerGetWorldCharacterOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerGetWorldCoreOperationPath:
     worldId: str
 
 
 @dataclass(frozen=True)
-class RealmWorldControlControllerBatchUpsertWorldBindingsOperationQuery:
+class RealmWorldCoreControllerGetWorldCoreOperationQuery:
     pass
 
 
 @dataclass(frozen=True)
-class RealmWorldControlControllerBatchUpsertWorldBindingsOperationHeaders:
+class RealmWorldCoreControllerGetWorldCoreOperationHeaders:
     pass
 
 
 @dataclass(frozen=True)
-class RealmWorldControlControllerBatchUpsertWorldBindingsOperationRequest:
-    path: RealmWorldControlControllerBatchUpsertWorldBindingsOperationPath
-    query: RealmWorldControlControllerBatchUpsertWorldBindingsOperationQuery | None = None
-    headers: RealmWorldControlControllerBatchUpsertWorldBindingsOperationHeaders | None = None
-    body: BatchUpsertBindingsDto | None = None
+class RealmWorldCoreControllerGetWorldCoreOperationRequest:
+    path: RealmWorldCoreControllerGetWorldCoreOperationPath
+    query: RealmWorldCoreControllerGetWorldCoreOperationQuery | None = None
+    headers: RealmWorldCoreControllerGetWorldCoreOperationHeaders | None = None
+    body: None | None = None
 
 @dataclass(frozen=True)
-class RealmWorldControlControllerCommitStateOperationPath:
+class RealmWorldCoreControllerListRealmPersonasOperationPath:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerListRealmPersonasOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerListRealmPersonasOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerListRealmPersonasOperationRequest:
+    path: RealmWorldCoreControllerListRealmPersonasOperationPath
+    query: RealmWorldCoreControllerListRealmPersonasOperationQuery | None = None
+    headers: RealmWorldCoreControllerListRealmPersonasOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerListWorldCharactersOperationPath:
     worldId: str
 
 
 @dataclass(frozen=True)
-class RealmWorldControlControllerCommitStateOperationQuery:
+class RealmWorldCoreControllerListWorldCharactersOperationQuery:
     pass
 
 
 @dataclass(frozen=True)
-class RealmWorldControlControllerCommitStateOperationHeaders:
+class RealmWorldCoreControllerListWorldCharactersOperationHeaders:
     pass
 
 
 @dataclass(frozen=True)
-class RealmWorldControlControllerCommitStateOperationRequest:
-    path: RealmWorldControlControllerCommitStateOperationPath
-    query: RealmWorldControlControllerCommitStateOperationQuery | None = None
-    headers: RealmWorldControlControllerCommitStateOperationHeaders | None = None
-    body: CommitWorldStateDto | None = None
-
-@dataclass(frozen=True)
-class RealmWorldControlControllerCreateDraftOperationPath:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldControlControllerCreateDraftOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldControlControllerCreateDraftOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldControlControllerCreateDraftOperationRequest:
-    path: RealmWorldControlControllerCreateDraftOperationPath
-    query: RealmWorldControlControllerCreateDraftOperationQuery | None = None
-    headers: RealmWorldControlControllerCreateDraftOperationHeaders | None = None
-    body: CreateWorldDraftDto | None = None
-
-@dataclass(frozen=True)
-class RealmWorldControlControllerDeleteWorldBindingOperationPath:
-    bindingId: str
-    worldId: str
-
-
-@dataclass(frozen=True)
-class RealmWorldControlControllerDeleteWorldBindingOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldControlControllerDeleteWorldBindingOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldControlControllerDeleteWorldBindingOperationRequest:
-    path: RealmWorldControlControllerDeleteWorldBindingOperationPath
-    query: RealmWorldControlControllerDeleteWorldBindingOperationQuery | None = None
-    headers: RealmWorldControlControllerDeleteWorldBindingOperationHeaders | None = None
+class RealmWorldCoreControllerListWorldCharactersOperationRequest:
+    path: RealmWorldCoreControllerListWorldCharactersOperationPath
+    query: RealmWorldCoreControllerListWorldCharactersOperationQuery | None = None
+    headers: RealmWorldCoreControllerListWorldCharactersOperationHeaders | None = None
     body: None | None = None
 
 @dataclass(frozen=True)
-class RealmWorldControlControllerGetDraftOperationPath:
-    draftId: str
-
-
-@dataclass(frozen=True)
-class RealmWorldControlControllerGetDraftOperationQuery:
+class RealmWorldCoreControllerListWorldCoresOperationPath:
     pass
 
 
 @dataclass(frozen=True)
-class RealmWorldControlControllerGetDraftOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldControlControllerGetDraftOperationRequest:
-    path: RealmWorldControlControllerGetDraftOperationPath
-    query: RealmWorldControlControllerGetDraftOperationQuery | None = None
-    headers: RealmWorldControlControllerGetDraftOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmWorldControlControllerGetMyAccessOperationPath:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldControlControllerGetMyAccessOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldControlControllerGetMyAccessOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldControlControllerGetMyAccessOperationRequest:
-    path: RealmWorldControlControllerGetMyAccessOperationPath
-    query: RealmWorldControlControllerGetMyAccessOperationQuery | None = None
-    headers: RealmWorldControlControllerGetMyAccessOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmWorldControlControllerGetStateOperationPath:
-    worldId: str
-
-
-@dataclass(frozen=True)
-class RealmWorldControlControllerGetStateOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldControlControllerGetStateOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldControlControllerGetStateOperationRequest:
-    path: RealmWorldControlControllerGetStateOperationPath
-    query: RealmWorldControlControllerGetStateOperationQuery | None = None
-    headers: RealmWorldControlControllerGetStateOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmWorldControlControllerListDraftsOperationPath:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldControlControllerListDraftsOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldControlControllerListDraftsOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldControlControllerListDraftsOperationRequest:
-    path: RealmWorldControlControllerListDraftsOperationPath
-    query: RealmWorldControlControllerListDraftsOperationQuery | None = None
-    headers: RealmWorldControlControllerListDraftsOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmWorldControlControllerListMyWorldsOperationPath:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldControlControllerListMyWorldsOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldControlControllerListMyWorldsOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldControlControllerListMyWorldsOperationRequest:
-    path: RealmWorldControlControllerListMyWorldsOperationPath
-    query: RealmWorldControlControllerListMyWorldsOperationQuery | None = None
-    headers: RealmWorldControlControllerListMyWorldsOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmWorldControlControllerListWorldBindingsOperationPath:
-    worldId: str
-
-
-@dataclass(frozen=True)
-class RealmWorldControlControllerListWorldBindingsOperationQuery:
+class RealmWorldCoreControllerListWorldCoresOperationQuery:
     take: float | None = None
-    bindingPoint: Literal["WORLD_ICON", "WORLD_BANNER", "WORLD_GALLERY", "WORLD_THEME_AUDIO", "WORLD_TRAILER_VIDEO", "SCENE_BACKGROUND", "SCENE_AMBIENT_AUDIO", "EVENT_CG", "WORLDVIEW_REFERENCE", "AGENT_AVATAR", "AGENT_PORTRAIT", "AGENT_EXPRESSION", "AGENT_OUTFIT", "AGENT_CANDIDATE", "AGENT_VOICE_SAMPLE"] | None = None
-    bindingKind: Literal["PRESENTATION", "USE", "IMPORT"] | None = None
-    hostId: str | None = None
-    hostType: Literal["WORLD", "AGENT", "SCENE", "WORLD_EVENT", "WORLDVIEW"] | None = None
-    objectId: str | None = None
-    objectType: Literal["RESOURCE", "ASSET", "BUNDLE"] | None = None
+    visibility: Literal["private", "unlisted", "public", "system"] | None = None
 
 
 @dataclass(frozen=True)
-class RealmWorldControlControllerListWorldBindingsOperationHeaders:
+class RealmWorldCoreControllerListWorldCoresOperationHeaders:
     pass
 
 
 @dataclass(frozen=True)
-class RealmWorldControlControllerListWorldBindingsOperationRequest:
-    path: RealmWorldControlControllerListWorldBindingsOperationPath
-    query: RealmWorldControlControllerListWorldBindingsOperationQuery | None = None
-    headers: RealmWorldControlControllerListWorldBindingsOperationHeaders | None = None
+class RealmWorldCoreControllerListWorldCoresOperationRequest:
+    path: RealmWorldCoreControllerListWorldCoresOperationPath
+    query: RealmWorldCoreControllerListWorldCoresOperationQuery | None = None
+    headers: RealmWorldCoreControllerListWorldCoresOperationHeaders | None = None
     body: None | None = None
 
 @dataclass(frozen=True)
-class RealmWorldControlControllerListWorldHistoryOperationPath:
+class RealmWorldCoreControllerReplaceRealmPersonaOperationPath:
+    personaId: str
+
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerReplaceRealmPersonaOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerReplaceRealmPersonaOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerReplaceRealmPersonaOperationRequest:
+    path: RealmWorldCoreControllerReplaceRealmPersonaOperationPath
+    query: RealmWorldCoreControllerReplaceRealmPersonaOperationQuery | None = None
+    headers: RealmWorldCoreControllerReplaceRealmPersonaOperationHeaders | None = None
+    body: ReplaceRealmPersonaDto | None = None
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerReplaceWorldCharacterOperationPath:
+    characterId: str
+
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerReplaceWorldCharacterOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerReplaceWorldCharacterOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerReplaceWorldCharacterOperationRequest:
+    path: RealmWorldCoreControllerReplaceWorldCharacterOperationPath
+    query: RealmWorldCoreControllerReplaceWorldCharacterOperationQuery | None = None
+    headers: RealmWorldCoreControllerReplaceWorldCharacterOperationHeaders | None = None
+    body: ReplaceWorldCharacterCoreDto | None = None
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerReplaceWorldCoreOperationPath:
     worldId: str
 
 
 @dataclass(frozen=True)
-class RealmWorldControlControllerListWorldHistoryOperationQuery:
+class RealmWorldCoreControllerReplaceWorldCoreOperationQuery:
     pass
 
 
 @dataclass(frozen=True)
-class RealmWorldControlControllerListWorldHistoryOperationHeaders:
+class RealmWorldCoreControllerReplaceWorldCoreOperationHeaders:
     pass
 
 
 @dataclass(frozen=True)
-class RealmWorldControlControllerListWorldHistoryOperationRequest:
-    path: RealmWorldControlControllerListWorldHistoryOperationPath
-    query: RealmWorldControlControllerListWorldHistoryOperationQuery | None = None
-    headers: RealmWorldControlControllerListWorldHistoryOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmWorldControlControllerListWorldLorebooksOperationPath:
-    worldId: str
-
-
-@dataclass(frozen=True)
-class RealmWorldControlControllerListWorldLorebooksOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldControlControllerListWorldLorebooksOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldControlControllerListWorldLorebooksOperationRequest:
-    path: RealmWorldControlControllerListWorldLorebooksOperationPath
-    query: RealmWorldControlControllerListWorldLorebooksOperationQuery | None = None
-    headers: RealmWorldControlControllerListWorldLorebooksOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmWorldControlControllerPublishDraftOperationPath:
-    draftId: str
-
-
-@dataclass(frozen=True)
-class RealmWorldControlControllerPublishDraftOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldControlControllerPublishDraftOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldControlControllerPublishDraftOperationRequest:
-    path: RealmWorldControlControllerPublishDraftOperationPath
-    query: RealmWorldControlControllerPublishDraftOperationQuery | None = None
-    headers: RealmWorldControlControllerPublishDraftOperationHeaders | None = None
-    body: PublishWorldDraftDto | None = None
-
-@dataclass(frozen=True)
-class RealmWorldControlControllerResolveLandingOperationPath:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldControlControllerResolveLandingOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldControlControllerResolveLandingOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldControlControllerResolveLandingOperationRequest:
-    path: RealmWorldControlControllerResolveLandingOperationPath
-    query: RealmWorldControlControllerResolveLandingOperationQuery | None = None
-    headers: RealmWorldControlControllerResolveLandingOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmWorldControlControllerUpdateDraftOperationPath:
-    draftId: str
-
-
-@dataclass(frozen=True)
-class RealmWorldControlControllerUpdateDraftOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldControlControllerUpdateDraftOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldControlControllerUpdateDraftOperationRequest:
-    path: RealmWorldControlControllerUpdateDraftOperationPath
-    query: RealmWorldControlControllerUpdateDraftOperationQuery | None = None
-    headers: RealmWorldControlControllerUpdateDraftOperationHeaders | None = None
-    body: UpdateWorldDraftDto | None = None
-
-@dataclass(frozen=True)
-class RealmWorldControllerGetMainWorldOperationPath:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldControllerGetMainWorldOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldControllerGetMainWorldOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldControllerGetMainWorldOperationRequest:
-    path: RealmWorldControllerGetMainWorldOperationPath
-    query: RealmWorldControllerGetMainWorldOperationQuery | None = None
-    headers: RealmWorldControllerGetMainWorldOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmWorldControllerGetWorldOperationPath:
-    id: str
-
-
-@dataclass(frozen=True)
-class RealmWorldControllerGetWorldOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldControllerGetWorldOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldControllerGetWorldOperationRequest:
-    path: RealmWorldControllerGetWorldOperationPath
-    query: RealmWorldControllerGetWorldOperationQuery | None = None
-    headers: RealmWorldControllerGetWorldOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmWorldControllerGetWorldAgentsOperationPath:
-    id: str
-
-
-@dataclass(frozen=True)
-class RealmWorldControllerGetWorldAgentsOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldControllerGetWorldAgentsOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldControllerGetWorldAgentsOperationRequest:
-    path: RealmWorldControllerGetWorldAgentsOperationPath
-    query: RealmWorldControllerGetWorldAgentsOperationQuery | None = None
-    headers: RealmWorldControllerGetWorldAgentsOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmWorldControllerGetWorldBindingsOperationPath:
-    id: str
-
-
-@dataclass(frozen=True)
-class RealmWorldControllerGetWorldBindingsOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldControllerGetWorldBindingsOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldControllerGetWorldBindingsOperationRequest:
-    path: RealmWorldControllerGetWorldBindingsOperationPath
-    query: RealmWorldControllerGetWorldBindingsOperationQuery | None = None
-    headers: RealmWorldControllerGetWorldBindingsOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmWorldControllerGetWorldDetailWithAgentsOperationPath:
-    id: str
-
-
-@dataclass(frozen=True)
-class RealmWorldControllerGetWorldDetailWithAgentsOperationQuery:
-    recommendedAgentLimit: float | None = None
-
-
-@dataclass(frozen=True)
-class RealmWorldControllerGetWorldDetailWithAgentsOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldControllerGetWorldDetailWithAgentsOperationRequest:
-    path: RealmWorldControllerGetWorldDetailWithAgentsOperationPath
-    query: RealmWorldControllerGetWorldDetailWithAgentsOperationQuery | None = None
-    headers: RealmWorldControllerGetWorldDetailWithAgentsOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmWorldControllerGetWorldHistoryOperationPath:
-    id: str
-
-
-@dataclass(frozen=True)
-class RealmWorldControllerGetWorldHistoryOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldControllerGetWorldHistoryOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldControllerGetWorldHistoryOperationRequest:
-    path: RealmWorldControllerGetWorldHistoryOperationPath
-    query: RealmWorldControllerGetWorldHistoryOperationQuery | None = None
-    headers: RealmWorldControllerGetWorldHistoryOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmWorldControllerGetWorldLevelAuditsOperationPath:
-    id: str
-
-
-@dataclass(frozen=True)
-class RealmWorldControllerGetWorldLevelAuditsOperationQuery:
-    limit: float | None = None
-
-
-@dataclass(frozen=True)
-class RealmWorldControllerGetWorldLevelAuditsOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldControllerGetWorldLevelAuditsOperationRequest:
-    path: RealmWorldControllerGetWorldLevelAuditsOperationPath
-    query: RealmWorldControllerGetWorldLevelAuditsOperationQuery | None = None
-    headers: RealmWorldControllerGetWorldLevelAuditsOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmWorldControllerGetWorldLorebooksOperationPath:
-    id: str
-
-
-@dataclass(frozen=True)
-class RealmWorldControllerGetWorldLorebooksOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldControllerGetWorldLorebooksOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldControllerGetWorldLorebooksOperationRequest:
-    path: RealmWorldControllerGetWorldLorebooksOperationPath
-    query: RealmWorldControllerGetWorldLorebooksOperationQuery | None = None
-    headers: RealmWorldControllerGetWorldLorebooksOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmWorldControllerGetWorldviewOperationPath:
-    id: str
-
-
-@dataclass(frozen=True)
-class RealmWorldControllerGetWorldviewOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldControllerGetWorldviewOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldControllerGetWorldviewOperationRequest:
-    path: RealmWorldControllerGetWorldviewOperationPath
-    query: RealmWorldControllerGetWorldviewOperationQuery | None = None
-    headers: RealmWorldControllerGetWorldviewOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmWorldControllerListWorldsOperationPath:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldControllerListWorldsOperationQuery:
-    status: Literal["DRAFT", "PENDING_REVIEW", "ACTIVE", "SUSPENDED", "ARCHIVED"] | None = None
-
-
-@dataclass(frozen=True)
-class RealmWorldControllerListWorldsOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldControllerListWorldsOperationRequest:
-    path: RealmWorldControllerListWorldsOperationPath
-    query: RealmWorldControllerListWorldsOperationQuery | None = None
-    headers: RealmWorldControllerListWorldsOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmWorldControllerReturnToMainWorldOperationPath:
-    id: str
-
-
-@dataclass(frozen=True)
-class RealmWorldControllerReturnToMainWorldOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldControllerReturnToMainWorldOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldControllerReturnToMainWorldOperationRequest:
-    path: RealmWorldControllerReturnToMainWorldOperationPath
-    query: RealmWorldControllerReturnToMainWorldOperationQuery | None = None
-    headers: RealmWorldControllerReturnToMainWorldOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmWorldControllerTransitToWorldOperationPath:
-    id: str
-
-
-@dataclass(frozen=True)
-class RealmWorldControllerTransitToWorldOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldControllerTransitToWorldOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldControllerTransitToWorldOperationRequest:
-    path: RealmWorldControllerTransitToWorldOperationPath
-    query: RealmWorldControllerTransitToWorldOperationQuery | None = None
-    headers: RealmWorldControllerTransitToWorldOperationHeaders | None = None
-    body: CreateWorldTransitDto | None = None
-
-@dataclass(frozen=True)
-class RealmWorldRulesControllerArchiveRuleOperationPath:
-    ruleId: str
-    worldId: str
-
-
-@dataclass(frozen=True)
-class RealmWorldRulesControllerArchiveRuleOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldRulesControllerArchiveRuleOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldRulesControllerArchiveRuleOperationRequest:
-    path: RealmWorldRulesControllerArchiveRuleOperationPath
-    query: RealmWorldRulesControllerArchiveRuleOperationQuery | None = None
-    headers: RealmWorldRulesControllerArchiveRuleOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmWorldRulesControllerCheckPermissionOperationPath:
-    action: Literal["DEFINE_RULES", "UPDATE_SETTINGS", "PUBLISH_WORLD", "ARCHIVE_WORLD", "CONTROL_AGENT", "CONTROL_USER", "FORCE_AGENT_BEHAVIOR", "MODIFY_AGENT_IDENTITY"]
-    worldId: str
-
-
-@dataclass(frozen=True)
-class RealmWorldRulesControllerCheckPermissionOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldRulesControllerCheckPermissionOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldRulesControllerCheckPermissionOperationRequest:
-    path: RealmWorldRulesControllerCheckPermissionOperationPath
-    query: RealmWorldRulesControllerCheckPermissionOperationQuery | None = None
-    headers: RealmWorldRulesControllerCheckPermissionOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmWorldRulesControllerCreateRuleOperationPath:
-    worldId: str
-
-
-@dataclass(frozen=True)
-class RealmWorldRulesControllerCreateRuleOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldRulesControllerCreateRuleOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldRulesControllerCreateRuleOperationRequest:
-    path: RealmWorldRulesControllerCreateRuleOperationPath
-    query: RealmWorldRulesControllerCreateRuleOperationQuery | None = None
-    headers: RealmWorldRulesControllerCreateRuleOperationHeaders | None = None
-    body: CreateWorldRuleDto | None = None
-
-@dataclass(frozen=True)
-class RealmWorldRulesControllerDeprecateRuleOperationPath:
-    ruleId: str
-    worldId: str
-
-
-@dataclass(frozen=True)
-class RealmWorldRulesControllerDeprecateRuleOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldRulesControllerDeprecateRuleOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldRulesControllerDeprecateRuleOperationRequest:
-    path: RealmWorldRulesControllerDeprecateRuleOperationPath
-    query: RealmWorldRulesControllerDeprecateRuleOperationQuery | None = None
-    headers: RealmWorldRulesControllerDeprecateRuleOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmWorldRulesControllerGetCreatorCapabilitiesOperationPath:
-    worldId: str
-
-
-@dataclass(frozen=True)
-class RealmWorldRulesControllerGetCreatorCapabilitiesOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldRulesControllerGetCreatorCapabilitiesOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldRulesControllerGetCreatorCapabilitiesOperationRequest:
-    path: RealmWorldRulesControllerGetCreatorCapabilitiesOperationPath
-    query: RealmWorldRulesControllerGetCreatorCapabilitiesOperationQuery | None = None
-    headers: RealmWorldRulesControllerGetCreatorCapabilitiesOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmWorldRulesControllerGetRulesOperationPath:
-    worldId: str
-
-
-@dataclass(frozen=True)
-class RealmWorldRulesControllerGetRulesOperationQuery:
-    status: Literal["ACTIVE", "DEPRECATED", "SUPERSEDED", "PROPOSED", "ARCHIVED"] | None = None
-
-
-@dataclass(frozen=True)
-class RealmWorldRulesControllerGetRulesOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldRulesControllerGetRulesOperationRequest:
-    path: RealmWorldRulesControllerGetRulesOperationPath
-    query: RealmWorldRulesControllerGetRulesOperationQuery | None = None
-    headers: RealmWorldRulesControllerGetRulesOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmWorldRulesControllerUpdateRuleOperationPath:
-    ruleId: str
-    worldId: str
-
-
-@dataclass(frozen=True)
-class RealmWorldRulesControllerUpdateRuleOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldRulesControllerUpdateRuleOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldRulesControllerUpdateRuleOperationRequest:
-    path: RealmWorldRulesControllerUpdateRuleOperationPath
-    query: RealmWorldRulesControllerUpdateRuleOperationQuery | None = None
-    headers: RealmWorldRulesControllerUpdateRuleOperationHeaders | None = None
-    body: UpdateWorldRuleDto | None = None
-
-@dataclass(frozen=True)
-class RealmWorldRulesControllerValidateRulesOperationPath:
-    worldId: str
-
-
-@dataclass(frozen=True)
-class RealmWorldRulesControllerValidateRulesOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldRulesControllerValidateRulesOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldRulesControllerValidateRulesOperationRequest:
-    path: RealmWorldRulesControllerValidateRulesOperationPath
-    query: RealmWorldRulesControllerValidateRulesOperationQuery | None = None
-    headers: RealmWorldRulesControllerValidateRulesOperationHeaders | None = None
-    body: ValidateRulesDto | None = None
+class RealmWorldCoreControllerReplaceWorldCoreOperationRequest:
+    path: RealmWorldCoreControllerReplaceWorldCoreOperationPath
+    query: RealmWorldCoreControllerReplaceWorldCoreOperationQuery | None = None
+    headers: RealmWorldCoreControllerReplaceWorldCoreOperationHeaders | None = None
+    body: ReplaceWorldCoreDto | None = None
 
 
 class RealmTypedClient:
     def __init__(self, core: CoreClient) -> None:
         self._core = core
-
-    async def ack_my_local_agent_provision_intent(self, request: RealmAckMyLocalAgentProvisionIntentOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmAckMyLocalAgentProvisionIntentOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="ackMyLocalAgentProvisionIntent", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(LocalAgentProvisionIntentDto, raw)
-
-    async def ack_my_local_agent_termination_intent(self, request: RealmAckMyLocalAgentTerminationIntentOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmAckMyLocalAgentTerminationIntentOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="ackMyLocalAgentTerminationIntent", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(LocalAgentTerminationIntentDto, raw)
 
     async def add_friend(self, request: RealmAddFriendOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmAddFriendOperationResponse:
         envelope: dict[str, object] = {
@@ -10471,16 +6036,6 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="addFriend", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(None, raw)
 
-    async def add_group_agent(self, request: RealmAddGroupAgentOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmAddGroupAgentOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="addGroupAgent", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(GroupParticipantDto, raw)
-
     async def add_group_participant(self, request: RealmAddGroupParticipantOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmAddGroupParticipantOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
@@ -10490,186 +6045,6 @@ class RealmTypedClient:
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="addGroupParticipant", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GroupParticipantDto, raw)
-
-    async def agent_controller_check_handle(self, request: RealmAgentControllerCheckHandleOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmAgentControllerCheckHandleOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="AgentController_checkHandle", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(AgentHandleAvailabilityResponseDto, raw)
-
-    async def agent_controller_create(self, request: RealmAgentControllerCreateOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmAgentControllerCreateOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="AgentController_create", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(CreateAgentResponseDto, raw)
-
-    async def agent_controller_delete(self, request: RealmAgentControllerDeleteOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmAgentControllerDeleteOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="AgentController_delete", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(DeleteAgentOperationResponseDto, raw)
-
-    async def agent_controller_get_relationships(self, request: RealmAgentControllerGetRelationshipsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmAgentControllerGetRelationshipsOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="AgentController_getRelationships", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(tuple[AgentRelationshipRecordDto, ...], raw)
-
-    async def agent_controller_get_visibility(self, request: RealmAgentControllerGetVisibilityOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmAgentControllerGetVisibilityOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="AgentController_getVisibility", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(AgentVisibilitySettingsDto, raw)
-
-    async def agent_controller_make_public(self, request: RealmAgentControllerMakePublicOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmAgentControllerMakePublicOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="AgentController_makePublic", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(MakeAgentPublicResponseDto, raw)
-
-    async def agent_controller_remove_relationship(self, request: RealmAgentControllerRemoveRelationshipOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmAgentControllerRemoveRelationshipOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="AgentController_removeRelationship", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(DeleteRelationshipResponseDto, raw)
-
-    async def agent_controller_select_avatar(self, request: RealmAgentControllerSelectAvatarOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmAgentControllerSelectAvatarOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="AgentController_selectAvatar", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(DeleteAgentOperationResponseDto, raw)
-
-    async def agent_controller_set_relationship(self, request: RealmAgentControllerSetRelationshipOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmAgentControllerSetRelationshipOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="AgentController_setRelationship", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(RelationshipResponseDto, raw)
-
-    async def agent_controller_update_dna(self, request: RealmAgentControllerUpdateDnaOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmAgentControllerUpdateDnaOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="AgentController_updateDna", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(DeleteAgentOperationResponseDto, raw)
-
-    async def agent_controller_update_visibility(self, request: RealmAgentControllerUpdateVisibilityOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmAgentControllerUpdateVisibilityOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="AgentController_updateVisibility", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(AgentVisibilitySettingsDto, raw)
-
-    async def agent_nsfw_consent_controller_update_agent_consent(self, request: RealmAgentNsfwConsentControllerUpdateAgentConsentOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmAgentNsfwConsentControllerUpdateAgentConsentOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="AgentNsfwConsentController_updateAgentConsent", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(UpdateNsfwConsentResponseDto, raw)
-
-    async def agent_rules_controller_archive_rule(self, request: RealmAgentRulesControllerArchiveRuleOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmAgentRulesControllerArchiveRuleOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="AgentRulesController_archiveRule", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(AgentRuleDto, raw)
-
-    async def agent_rules_controller_create_rule(self, request: RealmAgentRulesControllerCreateRuleOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmAgentRulesControllerCreateRuleOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="AgentRulesController_createRule", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(AgentRuleDto, raw)
-
-    async def agent_rules_controller_deprecate_rule(self, request: RealmAgentRulesControllerDeprecateRuleOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmAgentRulesControllerDeprecateRuleOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="AgentRulesController_deprecateRule", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(AgentRuleDto, raw)
-
-    async def agent_rules_controller_list_rules(self, request: RealmAgentRulesControllerListRulesOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmAgentRulesControllerListRulesOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="AgentRulesController_listRules", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(tuple[AgentRuleDto, ...], raw)
-
-    async def agent_rules_controller_update_rule(self, request: RealmAgentRulesControllerUpdateRuleOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmAgentRulesControllerUpdateRuleOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="AgentRulesController_updateRule", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(AgentRuleDto, raw)
-
-    async def apply_creator_world_agent_authoring_draft_batch(self, request: RealmApplyCreatorWorldAgentAuthoringDraftBatchOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmApplyCreatorWorldAgentAuthoringDraftBatchOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="applyCreatorWorldAgentAuthoringDraftBatch", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(ApplyAgentAuthoringDraftBatchResponseDto, raw)
 
     async def archive_bundle(self, request: RealmArchiveBundleOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmArchiveBundleOperationResponse:
         envelope: dict[str, object] = {
@@ -10751,16 +6126,6 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="cloneAsset", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(AssetDetailDto, raw)
 
-    async def commit_realm_group_message_candidate(self, request: RealmCommitRealmGroupMessageCandidateOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmCommitRealmGroupMessageCandidateOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="commitRealmGroupMessageCandidate", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(RealmGroupMessageCandidateCommitResultDto, raw)
-
     async def create_asset(self, request: RealmCreateAssetOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmCreateAssetOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
@@ -10790,16 +6155,6 @@ class RealmTypedClient:
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="createBundle", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(BundleDetailDto, raw)
-
-    async def create_creator_world_agent_authoring_draft_batch(self, request: RealmCreateCreatorWorldAgentAuthoringDraftBatchOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmCreateCreatorWorldAgentAuthoringDraftBatchOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="createCreatorWorldAgentAuthoringDraftBatch", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(AgentAuthoringDraftBatchDto, raw)
 
     async def create_group(self, request: RealmCreateGroupOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmCreateGroupOperationResponse:
         envelope: dict[str, object] = {
@@ -10850,96 +6205,6 @@ class RealmTypedClient:
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="createVideoDirectUpload", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ResourceDirectUploadSessionDto, raw)
-
-    async def creator_controller_batch_create_agents(self, request: RealmCreatorControllerBatchCreateAgentsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmCreatorControllerBatchCreateAgentsOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="CreatorController_batchCreateAgents", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(BatchCreateAgentsResponseDto, raw)
-
-    async def creator_controller_create_agent(self, request: RealmCreatorControllerCreateAgentOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmCreatorControllerCreateAgentOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="CreatorController_createAgent", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(UserLiteDto, raw)
-
-    async def creator_controller_create_key(self, request: RealmCreatorControllerCreateKeyOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmCreatorControllerCreateKeyOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="CreatorController_createKey", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(Mapping[str, object], raw)
-
-    async def creator_controller_delete_agent(self, request: RealmCreatorControllerDeleteAgentOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmCreatorControllerDeleteAgentOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="CreatorController_deleteAgent", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(Mapping[str, object], raw)
-
-    async def creator_controller_get_agent(self, request: RealmCreatorControllerGetAgentOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmCreatorControllerGetAgentOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="CreatorController_getAgent", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(CreatorAgentResponseDto, raw)
-
-    async def creator_controller_list_agents(self, request: RealmCreatorControllerListAgentsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmCreatorControllerListAgentsOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="CreatorController_listAgents", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(tuple[UserLiteDto, ...], raw)
-
-    async def creator_controller_list_keys(self, request: RealmCreatorControllerListKeysOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmCreatorControllerListKeysOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="CreatorController_listKeys", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(tuple[Mapping[str, object], ...], raw)
-
-    async def creator_controller_revoke_key(self, request: RealmCreatorControllerRevokeKeyOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmCreatorControllerRevokeKeyOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="CreatorController_revokeKey", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(None, raw)
-
-    async def creator_controller_update_agent(self, request: RealmCreatorControllerUpdateAgentOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmCreatorControllerUpdateAgentOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="CreatorController_updateAgent", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(CreatorAgentResponseDto, raw)
 
     async def delete_post(self, request: RealmDeletePostOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmDeletePostOperationResponse:
         envelope: dict[str, object] = {
@@ -11081,16 +6346,6 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="EconomyController_createWithdrawal", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(WithdrawalDto, raw)
 
-    async def economy_controller_get_agent_origin(self, request: RealmEconomyControllerGetAgentOriginOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmEconomyControllerGetAgentOriginOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="EconomyController_getAgentOrigin", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(AgentOriginDto, raw)
-
     async def economy_controller_get_balances(self, request: RealmEconomyControllerGetBalancesOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmEconomyControllerGetBalancesOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
@@ -11160,6 +6415,16 @@ class RealmTypedClient:
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="EconomyController_getSentGifts", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ReceivedGiftsResponseDto, raw)
+
+    async def economy_controller_get_source_origin(self, request: RealmEconomyControllerGetSourceOriginOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmEconomyControllerGetSourceOriginOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="EconomyController_getSourceOrigin", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(SourceOriginDto, raw)
 
     async def economy_controller_get_spark_history(self, request: RealmEconomyControllerGetSparkHistoryOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmEconomyControllerGetSparkHistoryOperationResponse:
         envelope: dict[str, object] = {
@@ -11321,86 +6586,6 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="finalizeResource", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ResourceDetailDto, raw)
 
-    async def forge_product_catalog_controller_get_agent_candidates(self, request: RealmForgeProductCatalogControllerGetAgentCandidatesOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmForgeProductCatalogControllerGetAgentCandidatesOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="ForgeProductCatalogController_getAgentCandidates", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(ForgeAgentCandidateQueryResultDto, raw)
-
-    async def forge_product_catalog_controller_get_catalog(self, request: RealmForgeProductCatalogControllerGetCatalogOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmForgeProductCatalogControllerGetCatalogOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="ForgeProductCatalogController_getCatalog", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(ForgeWorldCatalogDto, raw)
-
-    async def forge_product_catalog_controller_get_product(self, request: RealmForgeProductCatalogControllerGetProductOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmForgeProductCatalogControllerGetProductOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="ForgeProductCatalogController_getProduct", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(ForgeWorldProductDto, raw)
-
-    async def forge_product_catalog_controller_get_product_shard(self, request: RealmForgeProductCatalogControllerGetProductShardOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmForgeProductCatalogControllerGetProductShardOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="ForgeProductCatalogController_getProductShard", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(ForgeProductShardReadDto, raw)
-
-    async def forge_product_catalog_controller_get_product_shard_index(self, request: RealmForgeProductCatalogControllerGetProductShardIndexOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmForgeProductCatalogControllerGetProductShardIndexOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="ForgeProductCatalogController_getProductShardIndex", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(ForgeProductShardIndexDto, raw)
-
-    async def forge_product_catalog_controller_verify_product_shards(self, request: RealmForgeProductCatalogControllerVerifyProductShardsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmForgeProductCatalogControllerVerifyProductShardsOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="ForgeProductCatalogController_verifyProductShards", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(ForgeProductShardIntegrityReportDto, raw)
-
-    async def get_agent(self, request: RealmGetAgentOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetAgentOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="getAgent", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(UserProfileDto, raw)
-
-    async def get_agent_by_handle(self, request: RealmGetAgentByHandleOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetAgentByHandleOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="getAgentByHandle", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(UserProfileDto, raw)
-
     async def get_asset(self, request: RealmGetAssetOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetAssetOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
@@ -11440,56 +6625,6 @@ class RealmTypedClient:
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="getChatById", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ChatViewDto, raw)
-
-    async def get_creator_world_agent(self, request: RealmGetCreatorWorldAgentOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetCreatorWorldAgentOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="getCreatorWorldAgent", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(UserLiteDto, raw)
-
-    async def get_creator_world_agent_authoring_generation_context(self, request: RealmGetCreatorWorldAgentAuthoringGenerationContextOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetCreatorWorldAgentAuthoringGenerationContextOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="getCreatorWorldAgentAuthoringGenerationContext", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(AgentAuthoringGenerationContextDto, raw)
-
-    async def get_creator_world_agent_chat_readiness(self, request: RealmGetCreatorWorldAgentChatReadinessOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetCreatorWorldAgentChatReadinessOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="getCreatorWorldAgentChatReadiness", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(CreatorWorldAgentChatReadinessDto, raw)
-
-    async def get_creator_world_agent_settings(self, request: RealmGetCreatorWorldAgentSettingsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetCreatorWorldAgentSettingsOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="getCreatorWorldAgentSettings", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(OwnerAgentSettingsDto, raw)
-
-    async def get_creator_world_agent_source_skeleton(self, request: RealmGetCreatorWorldAgentSourceSkeletonOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetCreatorWorldAgentSourceSkeletonOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="getCreatorWorldAgentSourceSkeleton", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(CreatorWorldAgentSourceSkeletonDto, raw)
 
     async def get_explore_feed(self, request: RealmGetExploreFeedOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetExploreFeedOperationResponse:
         envelope: dict[str, object] = {
@@ -11551,16 +6686,6 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="getMutualFriendsCount", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(Mapping[str, object], raw)
 
-    async def get_my_agent_friend_limit(self, request: RealmGetMyAgentFriendLimitOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetMyAgentFriendLimitOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="getMyAgentFriendLimit", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(AgentFriendLimitDto, raw)
-
     async def get_my_app_permission_grant(self, request: RealmGetMyAppPermissionGrantOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetMyAppPermissionGrantOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
@@ -11571,16 +6696,6 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="getMyAppPermissionGrant", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(AppPermissionGrantDto, raw)
 
-    async def get_my_app_permission_grant_projection(self, request: RealmGetMyAppPermissionGrantProjectionOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetMyAppPermissionGrantProjectionOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="getMyAppPermissionGrantProjection", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(AccountGrantsProjectionDto, raw)
-
     async def get_my_app_permission_grant_status(self, request: RealmGetMyAppPermissionGrantStatusOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetMyAppPermissionGrantStatusOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
@@ -11590,6 +6705,16 @@ class RealmTypedClient:
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="getMyAppPermissionGrantStatus", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(AppPermissionGrantStatusDto, raw)
+
+    async def get_my_app_permission_grant_view(self, request: RealmGetMyAppPermissionGrantViewOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetMyAppPermissionGrantViewOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="getMyAppPermissionGrantView", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(AccountGrantsViewDto, raw)
 
     async def get_my_blocked_users(self, request: RealmGetMyBlockedUsersOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetMyBlockedUsersOperationResponse:
         envelope: dict[str, object] = {
@@ -11650,26 +6775,6 @@ class RealmTypedClient:
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="getMyPPConfig", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(PPSlotConfigResponseDto, raw)
-
-    async def get_my_realm_agent(self, request: RealmGetMyRealmAgentOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetMyRealmAgentOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="getMyRealmAgent", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(UserLiteDto, raw)
-
-    async def get_my_realm_agent_settings(self, request: RealmGetMyRealmAgentSettingsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetMyRealmAgentSettingsOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="getMyRealmAgentSettings", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(OwnerAgentSettingsDto, raw)
 
     async def get_my_settings(self, request: RealmGetMySettingsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetMySettingsOperationResponse:
         envelope: dict[str, object] = {
@@ -11781,16 +6886,6 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="getWorldPosts", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(FeedResponseDto, raw)
 
-    async def get_world_scenes(self, request: RealmGetWorldScenesOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetWorldScenesOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="getWorldScenes", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(PublicWorldSceneListDto, raw)
-
     async def grant_my_app_permission_grant(self, request: RealmGrantMyAppPermissionGrantOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGrantMyAppPermissionGrantOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
@@ -11800,46 +6895,6 @@ class RealmTypedClient:
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="grantMyAppPermissionGrant", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(AppPermissionGrantDto, raw)
-
-    async def human_nsfw_consent_controller_can_manage_agent_nsfw(self, request: RealmHumanNsfwConsentControllerCanManageAgentNsfwOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmHumanNsfwConsentControllerCanManageAgentNsfwOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="HumanNsfwConsentController_canManageAgentNsfw", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(CanManageNsfwResponseDto, raw)
-
-    async def human_nsfw_consent_controller_check_consent(self, request: RealmHumanNsfwConsentControllerCheckConsentOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmHumanNsfwConsentControllerCheckConsentOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="HumanNsfwConsentController_checkConsent", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(NsfwConsentResponseDto, raw)
-
-    async def human_nsfw_consent_controller_get_consent_status(self, request: RealmHumanNsfwConsentControllerGetConsentStatusOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmHumanNsfwConsentControllerGetConsentStatusOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="HumanNsfwConsentController_getConsentStatus", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(NsfwConsentStatusResponseDto, raw)
-
-    async def human_nsfw_consent_controller_update_user_consent(self, request: RealmHumanNsfwConsentControllerUpdateUserConsentOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmHumanNsfwConsentControllerUpdateUserConsentOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="HumanNsfwConsentController_updateUserConsent", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(UpdateNsfwConsentResponseDto, raw)
 
     async def introspect_session(self, request: RealmIntrospectSessionOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmIntrospectSessionOperationResponse:
         envelope: dict[str, object] = {
@@ -11941,26 +6996,6 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="listChats", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListChatsResultDto, raw)
 
-    async def list_creator_world_agent_authoring_draft_batches(self, request: RealmListCreatorWorldAgentAuthoringDraftBatchesOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmListCreatorWorldAgentAuthoringDraftBatchesOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="listCreatorWorldAgentAuthoringDraftBatches", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(AgentAuthoringDraftBatchListDto, raw)
-
-    async def list_creator_world_agents(self, request: RealmListCreatorWorldAgentsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmListCreatorWorldAgentsOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="listCreatorWorldAgents", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(tuple[UserLiteDto, ...], raw)
-
     async def list_group_messages(self, request: RealmListGroupMessagesOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmListGroupMessagesOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
@@ -12011,16 +7046,6 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="listMyAppPermissionGrants", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(AppPermissionGrantListDto, raw)
 
-    async def list_my_creator_worlds(self, request: RealmListMyCreatorWorldsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmListMyCreatorWorldsOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="listMyCreatorWorlds", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(CreatorWorldSummaryListDto, raw)
-
     async def list_my_friend_ids(self, request: RealmListMyFriendIdsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmListMyFriendIdsOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
@@ -12040,36 +7065,6 @@ class RealmTypedClient:
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="listMyFriendsWithDetails", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(FriendProfileListDto, raw)
-
-    async def list_my_local_agent_provision_intents(self, request: RealmListMyLocalAgentProvisionIntentsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmListMyLocalAgentProvisionIntentsOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="listMyLocalAgentProvisionIntents", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(LocalAgentProvisionIntentListDto, raw)
-
-    async def list_my_local_agent_termination_intents(self, request: RealmListMyLocalAgentTerminationIntentsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmListMyLocalAgentTerminationIntentsOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="listMyLocalAgentTerminationIntents", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(LocalAgentTerminationIntentListDto, raw)
-
-    async def list_my_realm_agents(self, request: RealmListMyRealmAgentsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmListMyRealmAgentsOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="listMyRealmAgents", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(tuple[UserLiteDto, ...], raw)
 
     async def list_notifications(self, request: RealmListNotificationsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmListNotificationsOperationResponse:
         envelope: dict[str, object] = {
@@ -12221,16 +7216,6 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="prepareBindWallet", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(WalletPrepareBindResponseDto, raw)
 
-    async def project_runtime_payload(self, request: RealmProjectRuntimePayloadOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmProjectRuntimePayloadOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="projectRuntimePayload", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(RuntimeProjectionResponseDto, raw)
-
     async def publish_bundle(self, request: RealmPublishBundleOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmPublishBundleOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
@@ -12321,16 +7306,6 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="removeFriend", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(None, raw)
 
-    async def remove_group_agent(self, request: RealmRemoveGroupAgentOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmRemoveGroupAgentOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="removeGroupAgent", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(None, raw)
-
     async def remove_group_participant(self, request: RealmRemoveGroupParticipantOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmRemoveGroupParticipantOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
@@ -12410,16 +7385,6 @@ class RealmTypedClient:
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="ReviewController_getReviews", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(tuple[ReviewDto, ...], raw)
-
-    async def review_creator_world_agent_authoring_draft_candidate(self, request: RealmReviewCreatorWorldAgentAuthoringDraftCandidateOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmReviewCreatorWorldAgentAuthoringDraftCandidateOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="reviewCreatorWorldAgentAuthoringDraftCandidate", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(AgentAuthoringDraftCandidateDto, raw)
 
     async def revoke_my_app_permission_grant(self, request: RealmRevokeMyAppPermissionGrantOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmRevokeMyAppPermissionGrantOperationResponse:
         envelope: dict[str, object] = {
@@ -12641,36 +7606,6 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="updateBundle", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(BundleDetailDto, raw)
 
-    async def update_creator_world_agent_profile_media(self, request: RealmUpdateCreatorWorldAgentProfileMediaOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmUpdateCreatorWorldAgentProfileMediaOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="updateCreatorWorldAgentProfileMedia", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(UserLiteDto, raw)
-
-    async def update_creator_world_agent_settings(self, request: RealmUpdateCreatorWorldAgentSettingsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmUpdateCreatorWorldAgentSettingsOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="updateCreatorWorldAgentSettings", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(OwnerAgentSettingsDto, raw)
-
-    async def update_creator_world_agent_voice(self, request: RealmUpdateCreatorWorldAgentVoiceOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmUpdateCreatorWorldAgentVoiceOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="updateCreatorWorldAgentVoice", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(UserLiteDto, raw)
-
     async def update_group(self, request: RealmUpdateGroupOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmUpdateGroupOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
@@ -12731,16 +7666,6 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="updateMyPPConfig", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(PPSlotConfigResponseDto, raw)
 
-    async def update_my_realm_agent_settings(self, request: RealmUpdateMyRealmAgentSettingsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmUpdateMyRealmAgentSettingsOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="updateMyRealmAgentSettings", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(OwnerAgentSettingsDto, raw)
-
     async def update_my_settings(self, request: RealmUpdateMySettingsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmUpdateMySettingsOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
@@ -12780,66 +7705,6 @@ class RealmTypedClient:
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="updateResource", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ResourceDetailDto, raw)
-
-    async def v1_default_visibility_controller_apply_agent_defaults(self, request: RealmV1DefaultVisibilityControllerApplyAgentDefaultsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmV1DefaultVisibilityControllerApplyAgentDefaultsOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="V1DefaultVisibilityController_applyAgentDefaults", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(None, raw)
-
-    async def v1_default_visibility_controller_apply_user_defaults(self, request: RealmV1DefaultVisibilityControllerApplyUserDefaultsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmV1DefaultVisibilityControllerApplyUserDefaultsOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="V1DefaultVisibilityController_applyUserDefaults", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(None, raw)
-
-    async def v1_default_visibility_controller_get_default_for_scope(self, request: RealmV1DefaultVisibilityControllerGetDefaultForScopeOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmV1DefaultVisibilityControllerGetDefaultForScopeOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="V1DefaultVisibilityController_getDefaultForScope", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(None, raw)
-
-    async def v1_default_visibility_controller_get_default_visibility(self, request: RealmV1DefaultVisibilityControllerGetDefaultVisibilityOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmV1DefaultVisibilityControllerGetDefaultVisibilityOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="V1DefaultVisibilityController_getDefaultVisibility", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(None, raw)
-
-    async def v1_default_visibility_controller_validate_agent_visibility(self, request: RealmV1DefaultVisibilityControllerValidateAgentVisibilityOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmV1DefaultVisibilityControllerValidateAgentVisibilityOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="V1DefaultVisibilityController_validateAgentVisibility", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(None, raw)
-
-    async def v1_default_visibility_controller_validate_user_visibility(self, request: RealmV1DefaultVisibilityControllerValidateUserVisibilityOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmV1DefaultVisibilityControllerValidateUserVisibilityOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="V1DefaultVisibilityController_validateUserVisibility", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(None, raw)
 
     async def verify2_fa(self, request: RealmVerify2FaOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmVerify2FaOperationResponse:
         envelope: dict[str, object] = {
@@ -12881,362 +7746,152 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="walletLogin", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(OAuthLoginResultDto, raw)
 
-    async def world_control_controller_append_world_history(self, request: RealmWorldControlControllerAppendWorldHistoryOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldControlControllerAppendWorldHistoryOperationResponse:
+    async def world_core_controller_bootstrap_oasis_world(self, request: RealmWorldCoreControllerBootstrapOasisWorldOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerBootstrapOasisWorldOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
             "query": _model_body(request.query),
             "headers": _model_body(request.headers),
             "body": _model_body(request.body),
         }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldControlController_appendWorldHistory", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(WorldHistoryListDto, raw)
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_bootstrapOasisWorld", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(WorldCoreDto, raw)
 
-    async def world_control_controller_batch_upsert_world_bindings(self, request: RealmWorldControlControllerBatchUpsertWorldBindingsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldControlControllerBatchUpsertWorldBindingsOperationResponse:
+    async def world_core_controller_create_realm_persona(self, request: RealmWorldCoreControllerCreateRealmPersonaOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerCreateRealmPersonaOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
             "query": _model_body(request.query),
             "headers": _model_body(request.headers),
             "body": _model_body(request.body),
         }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldControlController_batchUpsertWorldBindings", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(BindingListDto, raw)
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_createRealmPersona", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(RealmPersonaDto, raw)
 
-    async def world_control_controller_commit_state(self, request: RealmWorldControlControllerCommitStateOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldControlControllerCommitStateOperationResponse:
+    async def world_core_controller_create_runtime_source_snapshot(self, request: RealmWorldCoreControllerCreateRuntimeSourceSnapshotOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerCreateRuntimeSourceSnapshotOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
             "query": _model_body(request.query),
             "headers": _model_body(request.headers),
             "body": _model_body(request.body),
         }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldControlController_commitState", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(WorldStateDto, raw)
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_createRuntimeSourceSnapshot", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(RuntimeSourceSnapshotDto, raw)
 
-    async def world_control_controller_create_draft(self, request: RealmWorldControlControllerCreateDraftOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldControlControllerCreateDraftOperationResponse:
+    async def world_core_controller_create_world_character(self, request: RealmWorldCoreControllerCreateWorldCharacterOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerCreateWorldCharacterOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
             "query": _model_body(request.query),
             "headers": _model_body(request.headers),
             "body": _model_body(request.body),
         }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldControlController_createDraft", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(WorldDraftDetailDto, raw)
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_createWorldCharacter", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(WorldCharacterCoreDto, raw)
 
-    async def world_control_controller_delete_world_binding(self, request: RealmWorldControlControllerDeleteWorldBindingOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldControlControllerDeleteWorldBindingOperationResponse:
+    async def world_core_controller_create_world_core(self, request: RealmWorldCoreControllerCreateWorldCoreOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerCreateWorldCoreOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
             "query": _model_body(request.query),
             "headers": _model_body(request.headers),
             "body": _model_body(request.body),
         }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldControlController_deleteWorldBinding", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(None, raw)
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_createWorldCore", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(WorldCoreDto, raw)
 
-    async def world_control_controller_get_draft(self, request: RealmWorldControlControllerGetDraftOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldControlControllerGetDraftOperationResponse:
+    async def world_core_controller_get_oasis_world(self, request: RealmWorldCoreControllerGetOasisWorldOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerGetOasisWorldOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
             "query": _model_body(request.query),
             "headers": _model_body(request.headers),
             "body": _model_body(request.body),
         }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldControlController_getDraft", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(WorldDraftDetailDto, raw)
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_getOasisWorld", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(WorldCoreDto, raw)
 
-    async def world_control_controller_get_my_access(self, request: RealmWorldControlControllerGetMyAccessOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldControlControllerGetMyAccessOperationResponse:
+    async def world_core_controller_get_realm_persona(self, request: RealmWorldCoreControllerGetRealmPersonaOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerGetRealmPersonaOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
             "query": _model_body(request.query),
             "headers": _model_body(request.headers),
             "body": _model_body(request.body),
         }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldControlController_getMyAccess", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(WorldAccessSummaryDto, raw)
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_getRealmPersona", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(RealmPersonaDto, raw)
 
-    async def world_control_controller_get_state(self, request: RealmWorldControlControllerGetStateOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldControlControllerGetStateOperationResponse:
+    async def world_core_controller_get_world_character(self, request: RealmWorldCoreControllerGetWorldCharacterOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerGetWorldCharacterOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
             "query": _model_body(request.query),
             "headers": _model_body(request.headers),
             "body": _model_body(request.body),
         }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldControlController_getState", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(WorldStateDto, raw)
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_getWorldCharacter", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(WorldCharacterCoreDto, raw)
 
-    async def world_control_controller_list_drafts(self, request: RealmWorldControlControllerListDraftsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldControlControllerListDraftsOperationResponse:
+    async def world_core_controller_get_world_core(self, request: RealmWorldCoreControllerGetWorldCoreOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerGetWorldCoreOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
             "query": _model_body(request.query),
             "headers": _model_body(request.headers),
             "body": _model_body(request.body),
         }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldControlController_listDrafts", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(WorldDraftSummaryListDto, raw)
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_getWorldCore", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(WorldCoreDto, raw)
 
-    async def world_control_controller_list_my_worlds(self, request: RealmWorldControlControllerListMyWorldsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldControlControllerListMyWorldsOperationResponse:
+    async def world_core_controller_list_realm_personas(self, request: RealmWorldCoreControllerListRealmPersonasOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerListRealmPersonasOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
             "query": _model_body(request.query),
             "headers": _model_body(request.headers),
             "body": _model_body(request.body),
         }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldControlController_listMyWorlds", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(WorldSummaryListDto, raw)
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_listRealmPersonas", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(tuple[RealmPersonaDto, ...], raw)
 
-    async def world_control_controller_list_world_bindings(self, request: RealmWorldControlControllerListWorldBindingsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldControlControllerListWorldBindingsOperationResponse:
+    async def world_core_controller_list_world_characters(self, request: RealmWorldCoreControllerListWorldCharactersOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerListWorldCharactersOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
             "query": _model_body(request.query),
             "headers": _model_body(request.headers),
             "body": _model_body(request.body),
         }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldControlController_listWorldBindings", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(BindingListDto, raw)
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_listWorldCharacters", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(tuple[WorldCharacterCoreDto, ...], raw)
 
-    async def world_control_controller_list_world_history(self, request: RealmWorldControlControllerListWorldHistoryOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldControlControllerListWorldHistoryOperationResponse:
+    async def world_core_controller_list_world_cores(self, request: RealmWorldCoreControllerListWorldCoresOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerListWorldCoresOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
             "query": _model_body(request.query),
             "headers": _model_body(request.headers),
             "body": _model_body(request.body),
         }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldControlController_listWorldHistory", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(WorldHistoryListDto, raw)
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_listWorldCores", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(tuple[WorldCoreDto, ...], raw)
 
-    async def world_control_controller_list_world_lorebooks(self, request: RealmWorldControlControllerListWorldLorebooksOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldControlControllerListWorldLorebooksOperationResponse:
+    async def world_core_controller_replace_realm_persona(self, request: RealmWorldCoreControllerReplaceRealmPersonaOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerReplaceRealmPersonaOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
             "query": _model_body(request.query),
             "headers": _model_body(request.headers),
             "body": _model_body(request.body),
         }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldControlController_listWorldLorebooks", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(WorldLorebookListDto, raw)
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_replaceRealmPersona", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(RealmPersonaDto, raw)
 
-    async def world_control_controller_publish_draft(self, request: RealmWorldControlControllerPublishDraftOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldControlControllerPublishDraftOperationResponse:
+    async def world_core_controller_replace_world_character(self, request: RealmWorldCoreControllerReplaceWorldCharacterOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerReplaceWorldCharacterOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
             "query": _model_body(request.query),
             "headers": _model_body(request.headers),
             "body": _model_body(request.body),
         }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldControlController_publishDraft", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(PublishWorldDraftResultDto, raw)
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_replaceWorldCharacter", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(WorldCharacterCoreDto, raw)
 
-    async def world_control_controller_resolve_landing(self, request: RealmWorldControlControllerResolveLandingOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldControlControllerResolveLandingOperationResponse:
+    async def world_core_controller_replace_world_core(self, request: RealmWorldCoreControllerReplaceWorldCoreOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerReplaceWorldCoreOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
             "query": _model_body(request.query),
             "headers": _model_body(request.headers),
             "body": _model_body(request.body),
         }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldControlController_resolveLanding", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(WorldLandingDecisionDto, raw)
-
-    async def world_control_controller_update_draft(self, request: RealmWorldControlControllerUpdateDraftOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldControlControllerUpdateDraftOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldControlController_updateDraft", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(WorldDraftDetailDto, raw)
-
-    async def world_controller_get_main_world(self, request: RealmWorldControllerGetMainWorldOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldControllerGetMainWorldOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldController_getMainWorld", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(WorldDetailDto, raw)
-
-    async def world_controller_get_world(self, request: RealmWorldControllerGetWorldOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldControllerGetWorldOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldController_getWorld", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(WorldDetailDto, raw)
-
-    async def world_controller_get_world_agents(self, request: RealmWorldControllerGetWorldAgentsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldControllerGetWorldAgentsOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldController_getWorldAgents", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(tuple[WorldAgentSummaryDto, ...], raw)
-
-    async def world_controller_get_world_bindings(self, request: RealmWorldControllerGetWorldBindingsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldControllerGetWorldBindingsOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldController_getWorldBindings", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(PublicBindingListDto, raw)
-
-    async def world_controller_get_world_detail_with_agents(self, request: RealmWorldControllerGetWorldDetailWithAgentsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldControllerGetWorldDetailWithAgentsOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldController_getWorldDetailWithAgents", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(WorldDetailWithAgentsDto, raw)
-
-    async def world_controller_get_world_history(self, request: RealmWorldControllerGetWorldHistoryOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldControllerGetWorldHistoryOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldController_getWorldHistory", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(PublicWorldHistoryListDto, raw)
-
-    async def world_controller_get_world_level_audits(self, request: RealmWorldControllerGetWorldLevelAuditsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldControllerGetWorldLevelAuditsOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldController_getWorldLevelAudits", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(tuple[WorldLevelAuditEventDto, ...], raw)
-
-    async def world_controller_get_world_lorebooks(self, request: RealmWorldControllerGetWorldLorebooksOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldControllerGetWorldLorebooksOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldController_getWorldLorebooks", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(PublicWorldLorebookListDto, raw)
-
-    async def world_controller_get_worldview(self, request: RealmWorldControllerGetWorldviewOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldControllerGetWorldviewOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldController_getWorldview", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(WorldviewDetailDto, raw)
-
-    async def world_controller_list_worlds(self, request: RealmWorldControllerListWorldsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldControllerListWorldsOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldController_listWorlds", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(tuple[WorldDetailDto, ...], raw)
-
-    async def world_controller_return_to_main_world(self, request: RealmWorldControllerReturnToMainWorldOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldControllerReturnToMainWorldOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldController_returnToMainWorld", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(TransitDetailDto, raw)
-
-    async def world_controller_transit_to_world(self, request: RealmWorldControllerTransitToWorldOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldControllerTransitToWorldOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldController_transitToWorld", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(TransitDetailDto, raw)
-
-    async def world_rules_controller_archive_rule(self, request: RealmWorldRulesControllerArchiveRuleOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldRulesControllerArchiveRuleOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldRulesController_archiveRule", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(WorldRuleDto, raw)
-
-    async def world_rules_controller_check_permission(self, request: RealmWorldRulesControllerCheckPermissionOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldRulesControllerCheckPermissionOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldRulesController_checkPermission", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(PermissionCheckResponseDto, raw)
-
-    async def world_rules_controller_create_rule(self, request: RealmWorldRulesControllerCreateRuleOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldRulesControllerCreateRuleOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldRulesController_createRule", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(WorldRuleDto, raw)
-
-    async def world_rules_controller_deprecate_rule(self, request: RealmWorldRulesControllerDeprecateRuleOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldRulesControllerDeprecateRuleOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldRulesController_deprecateRule", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(WorldRuleDto, raw)
-
-    async def world_rules_controller_get_creator_capabilities(self, request: RealmWorldRulesControllerGetCreatorCapabilitiesOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldRulesControllerGetCreatorCapabilitiesOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldRulesController_getCreatorCapabilities", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(CreatorCapabilitiesResponseDto, raw)
-
-    async def world_rules_controller_get_rules(self, request: RealmWorldRulesControllerGetRulesOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldRulesControllerGetRulesOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldRulesController_getRules", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(tuple[WorldRuleDto, ...], raw)
-
-    async def world_rules_controller_update_rule(self, request: RealmWorldRulesControllerUpdateRuleOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldRulesControllerUpdateRuleOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldRulesController_updateRule", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(WorldRuleDto, raw)
-
-    async def world_rules_controller_validate_rules(self, request: RealmWorldRulesControllerValidateRulesOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldRulesControllerValidateRulesOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldRulesController_validateRules", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(RuleValidationResponseDto, raw)
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_replaceWorldCore", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(WorldCoreDto, raw)

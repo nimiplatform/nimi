@@ -176,6 +176,13 @@ export type NimiMastraRuntimeModelOptions =
     readonly subjectMode?: 'external-principal';
   };
 
+export type NimiMastraRuntimeModelProviderOptions =
+  Omit<NimiClientRuntimeModelOptions, 'model' | 'routePolicy'> & {
+    readonly routePolicy?: NimiRuntimeAIRoutePolicy;
+    readonly providerId?: string;
+    readonly subjectMode?: 'external-principal';
+  };
+
 export type NimiMastraRuntimeEmbeddingOptions =
   Omit<NimiClientEmbeddingOptions, 'model'> & {
     readonly providerId?: string;
@@ -186,7 +193,7 @@ export type NimiMastraRuntimeEmbeddingOptions =
   };
 
 export type NimiMastraProviderOptions =
-  | (NimiMastraRuntimeModelOptions & {
+  | (NimiMastraRuntimeModelProviderOptions & {
     readonly client: NimiClient;
     readonly model?: never;
     readonly embedding?: NimiMastraRuntimeEmbeddingOptions;
@@ -196,6 +203,12 @@ export type NimiMastraProviderOptions =
     readonly client?: never;
     readonly embedding?: NimiMastraRuntimeEmbeddingOptions;
   };
+
+type NimiMastraClientProviderOptions = NimiMastraRuntimeModelProviderOptions & {
+  readonly client: NimiClient;
+  readonly model?: never;
+  readonly embedding?: NimiMastraRuntimeEmbeddingOptions;
+};
 
 export interface NimiMastraLanguageModelProvider {
   readonly manifest: NimiCapabilityManifest;
@@ -241,12 +254,11 @@ function resolveProviderModel(options: NimiMastraProviderOptions, modelId: strin
   if (options.model) {
     return options.model;
   }
-  const client = options.client;
-  if (!client) {
+  if (!isClientProviderOptions(options)) {
     throwUnsupportedMastraFeature('provider.configuration', 'missing NimiClient');
   }
   assertRuntimeBackedModelOptions(options);
-  return client.ai.createRuntimeModel({
+  return options.client.ai.createRuntimeModel({
     appId: options.appId,
     runtime: options.runtime,
     model: {
@@ -301,8 +313,8 @@ function resolveProviderEmbeddingModel(options: NimiMastraProviderOptions, model
   }
   return createNimiMastraEmbeddingModel({
     model,
-    runtime: embedding.runtime ?? options.runtime,
-    appId: embedding.appId ?? options.appId,
+    runtime: embedding.runtime,
+    appId: embedding.appId,
     routePolicy: embedding.routePolicy,
     connectorId: embedding.connectorId,
     subjectUserId: embedding.subjectUserId,
@@ -313,7 +325,13 @@ function resolveProviderEmbeddingModel(options: NimiMastraProviderOptions, model
   });
 }
 
-function assertRuntimeBackedModelOptions(options: NimiMastraProviderOptions): void {
+function isClientProviderOptions(options: NimiMastraProviderOptions): options is NimiMastraClientProviderOptions {
+  return Boolean(options.client);
+}
+
+function assertRuntimeBackedModelOptions(
+  options: NimiMastraClientProviderOptions,
+): asserts options is NimiMastraClientProviderOptions & { readonly routePolicy: NimiRuntimeAIRoutePolicy } {
   if (!options.routePolicy) {
     throwUnsupportedMastraFeature('provider.routePolicy', 'runtime-backed providers require explicit routePolicy');
   }

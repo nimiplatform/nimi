@@ -13,7 +13,7 @@ import {
   loadNimiRealmNotificationUnreadCount,
   loadNimiRealmNotifications,
   requestNimiRealmDataExport,
-  toNimiRealmNotificationListProjection,
+  toNimiRealmNotificationListView,
   uploadNimiRealmResourceFile,
 } from '@nimiplatform/sdk/realm';
 import { getRuntimePlatformProjection } from '../auth/runtime-platform';
@@ -23,13 +23,11 @@ import { resolveConversationRuntimeRouteSetupStateFromProjection } from '@nimipl
 import { listRealmChats } from '@nimiplatform/kit/features/chat/realm';
 import { useTypedProjection } from '@nimiplatform/kit/ui';
 import { loadTesterProductControlProjection } from '../../tester/tester-product-control-projection';
-import { inspectTesterRuntimeAgentTurnRunnerProjection } from '../../tester/tester-runtime-agent-turn-runner';
 import { inspectTesterRuntimeMediaGenerationRunnerProjection } from '../../tester/tester-runtime-media-generation-runner';
 import { loadTesterWorldEvolutionSelectorReadProjection } from '../../tester/tester-world-evolution-selector-read';
 import { loadTesterRealmSocialFeedProjection } from '../../tester/tester-realm-social-feed-projection';
-import { loadTesterRealmAgentProfileProjection } from '../../tester/tester-realm-agent-profile-projection';
+import { loadTesterRealmPersonaCoreProjection } from '../../tester/tester-realm-persona-core-projection';
 import { loadTesterRealmAuthProjection } from '../../tester/tester-realm-auth-projection';
-import { loadTesterRealmLocalAgentIntentsProjection } from '../../tester/tester-realm-local-agent-intents-projection';
 import { loadTesterRuntimeRouteHostAccessProjection } from '../../tester/tester-runtime-route-host-access';
 import {
   errorMessage,
@@ -54,7 +52,6 @@ import type {
   NotificationListProjectionState,
   NotificationProjectionState,
   ResourceUploadProjectionState,
-  RuntimeAgentTurnRunnerProjectionState,
   RuntimeCapabilityProjectionState,
   RuntimeMediaGenerationRunnerProjectionState,
   RuntimeProviderHealthProjectionState,
@@ -91,7 +88,6 @@ export function SettingsRoute() {
   const [runtimeCapabilityProjection, setRuntimeCapabilityProjection] = useState<RuntimeCapabilityProjectionState>({ status: 'loading', summary: null, error: null });
   const [runtimeProviderHealthProjection, setRuntimeProviderHealthProjection] = useState<RuntimeProviderHealthProjectionState>({ status: 'loading', health: null, error: null });
   const [runtimeRouteHostAccessProjection, setRuntimeRouteHostAccessProjection] = useState<RuntimeRouteHostAccessProjectionState>({ status: 'loading', projection: null, error: null });
-  const [runtimeAgentTurnRunnerProjection, setRuntimeAgentTurnRunnerProjection] = useState<RuntimeAgentTurnRunnerProjectionState>({ status: 'loading', projection: null, error: null });
   const [runtimeMediaGenerationRunnerProjection, setRuntimeMediaGenerationRunnerProjection] = useState<RuntimeMediaGenerationRunnerProjectionState>({ status: 'loading', projection: null, error: null });
 
   const localRuntimeFacadeProjection = useTypedProjection(resolveTesterLocalRuntimeFacadeProjection, {
@@ -109,29 +105,15 @@ export function SettingsRoute() {
   const realmSocialFeedProjection = useTypedProjection(loadTesterRealmSocialFeedProjection, {
     failClosedMessage: 'SDK Realm social/feed projection unavailable',
   });
-  const realmAgentProfileProjection = useTypedProjection(loadTesterRealmAgentProfileProjection, {
-    failClosedMessage: 'SDK Realm agent profile projection unavailable',
+  const realmPersonaCoreProjection = useTypedProjection(loadTesterRealmPersonaCoreProjection, {
+    failClosedMessage: 'SDK Realm persona core projection unavailable',
   });
   const realmAuthProjection = useTypedProjection(loadTesterRealmAuthProjection, {
     failClosedMessage: 'SDK Realm auth projection unavailable',
   });
-  const realmLocalAgentIntentsProjection = useTypedProjection(loadTesterRealmLocalAgentIntentsProjection, {
-    failClosedMessage: 'SDK Realm local-agent intents projection unavailable',
-  });
   const productControlProjection = useTypedProjection(loadTesterProductControlProjection, {
     failClosedMessage: 'SDK Runtime product-control projection unavailable',
   });
-
-  useEffect(() => {
-    let cancelled = false;
-    setRuntimeAgentTurnRunnerProjection({ status: 'loading', projection: null, error: null });
-    void inspectTesterRuntimeAgentTurnRunnerProjection().then((projection) => {
-      if (!cancelled) setRuntimeAgentTurnRunnerProjection({ status: 'ready', projection, error: null });
-    }).catch((error: unknown) => {
-      if (!cancelled) setRuntimeAgentTurnRunnerProjection({ status: 'error', projection: null, error: errorMessage(error) });
-    });
-    return () => { cancelled = true; };
-  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -313,7 +295,7 @@ export function SettingsRoute() {
       });
       setNotificationListProjection({
         status: 'ready',
-        list: toNimiRealmNotificationListProjection(list, 'Tester notification', 'Unknown actor'),
+        list: toNimiRealmNotificationListView(list, 'Tester notification', 'Unknown actor'),
         error: null,
       });
     } catch (error) {
@@ -417,16 +399,14 @@ export function SettingsRoute() {
       runtimeCapabilityProjection={runtimeCapabilityProjection}
       runtimeProviderHealthProjection={runtimeProviderHealthProjection}
       runtimeRouteHostAccessProjection={runtimeRouteHostAccessProjection}
-      runtimeAgentTurnRunnerProjection={runtimeAgentTurnRunnerProjection}
       runtimeMediaGenerationRunnerProjection={runtimeMediaGenerationRunnerProjection}
       localRuntimeFacadeProjection={localRuntimeFacadeProjection}
       permissionClientProjection={permissionClientProjection}
       realmDataSyncProjection={realmDataSyncProjection}
       worldEvolutionSelectorReadProjection={worldEvolutionSelectorReadProjection}
       realmSocialFeedProjection={realmSocialFeedProjection}
-      realmAgentProfileProjection={realmAgentProfileProjection}
+      realmPersonaCoreProjection={realmPersonaCoreProjection}
       realmAuthProjection={realmAuthProjection}
-      realmLocalAgentIntentsProjection={realmLocalAgentIntentsProjection}
       productControlProjection={productControlProjection}
       realmKit={realmKit}
       runtime={runtime}

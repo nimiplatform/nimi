@@ -7,7 +7,7 @@ import {
   markNimiRealmNotificationRead,
   markNimiRealmNotificationsRead,
   normalizeNimiRealmNotificationUnreadCount,
-  toNimiRealmNotificationListProjection,
+  toNimiRealmNotificationListView,
   type NimiRealmNotificationApi,
 } from './index';
 
@@ -57,10 +57,10 @@ test('Realm notification helpers map to generated notification requests', async 
     limit: 20,
     cursor: 'cursor-1',
   });
-  const projection = toNimiRealmNotificationListProjection(page, 'Notification', 'Unknown');
-  assert.equal(projection.items[0]?.actorName, 'Ada');
-  assert.equal(projection.items[0]?.giftTransactionId, 'gift-1');
-  assert.equal(projection.nextCursor, 'cursor-2');
+  const view = toNimiRealmNotificationListView(page, 'Notification', 'Unknown');
+  assert.equal(view.items[0]?.actorName, 'Ada');
+  assert.equal(view.items[0]?.giftTransactionId, 'gift-1');
+  assert.equal(view.nextCursor, 'cursor-2');
   assert.deepEqual(await markNimiRealmNotificationRead(realm, ' notification-1 '), { id: 'notification-1' });
   assert.deepEqual(await markNimiRealmNotificationsRead(realm, { ids: ['notification-1'] }), { ok: true });
 
@@ -84,7 +84,7 @@ test('Realm notification helpers map to generated notification requests', async 
   });
 });
 
-test('Realm notification projections fail closed on invalid required values', async () => {
+test('Realm notification views fail closed on invalid required values', async () => {
   assert.throws(
     () => normalizeNimiRealmNotificationUnreadCount({ total: -1, byType: {} }),
     (error: unknown) => (error as { code?: string }).code === 'SDK_REALM_NOTIFICATION_UNREAD_CONTRACT_INVALID',

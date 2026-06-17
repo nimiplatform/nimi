@@ -1,8 +1,8 @@
 import type { AgentExecutionOptionsBase } from '@mastra/core/agent';
 import type {
-  NimiAgentContextMaterial,
-  NimiAgentContextProvider,
-  NimiAgentSpec,
+  NimiAiContextMaterial,
+  NimiAiContextProvider,
+  NimiAiRunnerSpec,
   NimiAiModel,
   NimiJsonObject,
   NimiJsonValue,
@@ -14,9 +14,9 @@ import { textPart } from '@nimiplatform/sdk';
 type MastraContextMessage = NonNullable<AgentExecutionOptionsBase<unknown>['context']>[number];
 
 export interface NimiMastraContextBridgeOptions {
-  readonly agent: NimiAgentSpec;
+  readonly runner: NimiAiRunnerSpec;
   readonly model: NimiAiModel;
-  readonly contextProviders: readonly NimiAgentContextProvider[];
+  readonly contextProviders: readonly NimiAiContextProvider[];
   readonly role?: 'system' | 'user';
   readonly title?: string;
 }
@@ -44,7 +44,7 @@ export interface NimiMastraStreamTarget<TMessages, TResult, OUTPUT = unknown> {
 }
 
 /**
- * Builds Mastra `context` messages from Nimi agent context providers. Providers
+ * Builds Mastra `context` messages from Nimi AI context providers. Providers
  * remain Nimi-owned; Mastra only receives a text projection through its public
  * per-call context API and does not own or persist memory/knowledge state.
  */
@@ -60,7 +60,7 @@ export function createNimiMastraContextBridge(options: NimiMastraContextBridgeOp
       }
       const providerMessages = toProviderMessages(input);
       const providerInput = {
-        agent: options.agent,
+        runner: options.runner,
         model: options.model,
         messages: providerMessages,
       };
@@ -178,7 +178,7 @@ function toTextParts(content: unknown): readonly NimiMessagePart[] {
   });
 }
 
-function materialToText(material: NimiAgentContextMaterial): string {
+function materialToText(material: NimiAiContextMaterial): string {
   if (typeof material === 'string') {
     return normalizeText(material);
   }

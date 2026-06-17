@@ -172,7 +172,7 @@ export type NimiRunEvent =
     }
   | {
       readonly type: 'trace';
-      readonly trace: NimiAgentTrace;
+      readonly trace: NimiAiTrace;
     }
   | {
       readonly type: 'done';
@@ -186,7 +186,7 @@ export type NimiRunEvent =
       readonly cause?: unknown;
     };
 
-export interface NimiAgentTraceStep {
+export interface NimiAiTraceStep {
   readonly id: string;
   readonly kind: 'model' | 'tool' | 'approval' | 'external-execution' | 'workflow';
   readonly status: 'started' | 'completed' | 'failed';
@@ -197,10 +197,10 @@ export interface NimiAgentTraceStep {
   readonly error?: string;
 }
 
-export interface NimiAgentTrace {
+export interface NimiAiTrace {
   readonly traceId: string;
   readonly events: readonly NimiRunEvent[];
-  readonly steps: readonly NimiAgentTraceStep[];
+  readonly steps: readonly NimiAiTraceStep[];
 }
 
 export function textPart(text: string): NimiTextPart {

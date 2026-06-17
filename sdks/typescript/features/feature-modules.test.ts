@@ -22,11 +22,11 @@ import {
   measureNimiConversationHistoryWindow,
 } from './conversation';
 import type { NimiGenerateTextRequest } from '../core/ai';
-import { createNimiAgentRunner } from '../core/agent';
+import { createNimiAiRunner } from '../core/ai-runner';
 import { textPart } from '../core/contracts';
 import { ReasonCode } from '../types';
 import {
-  createNimiRuntimeKnowledgeAgentContextProvider,
+  createNimiRuntimeKnowledgeAiContextProvider,
   createNimiRuntimeKnowledgeContextClient,
   createNimiKnowledgeContextBundle,
   selectNimiKnowledgeContext,
@@ -35,7 +35,7 @@ import {
 import {
   buildNimiMemoryContextWindow,
   createNimiAppPrivateMemoryBankLocator,
-  createNimiRuntimeMemoryAgentContextProvider,
+  createNimiRuntimeMemoryAiContextProvider,
   createNimiRuntimeMemoryContextClient,
   toNimiMemoryContextPart,
 } from './memory-context';
@@ -270,13 +270,13 @@ test('Runtime-bound memory and knowledge context clients project Runtime-owned d
   );
 
   const agentRequests: NimiGenerateTextRequest[] = [];
-  await createNimiAgentRunner().run({
-    agent: {
+  await createNimiAiRunner().run({
+    runner: {
       id: 'context-agent',
       name: 'Context Agent',
       contextProviders: [
-        createNimiRuntimeMemoryAgentContextProvider({ client: memory, recall: { limit: 1 } }),
-        createNimiRuntimeKnowledgeAgentContextProvider({ client: knowledge, search: { bankIds: ['kb-1'], limit: 1 } }),
+        createNimiRuntimeMemoryAiContextProvider({ client: memory, recall: { limit: 1 } }),
+        createNimiRuntimeKnowledgeAiContextProvider({ client: knowledge, search: { bankIds: ['kb-1'], limit: 1 } }),
       ],
     },
     model: {

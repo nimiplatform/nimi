@@ -51,7 +51,7 @@ export const NIMI_TYPESCRIPT_TARGET_EXPORTS = [
   {
     id: 'root',
     owner: 'sdks/typescript/index',
-    semantics: 'Root developer-experience composition over vNext Runtime, Realm, App, AI, Agent, Contract, and Feature surfaces.',
+    semantics: 'Root developer-experience composition over vNext Runtime, Realm, App, AI runner, Contract, and Feature surfaces.',
   },
   {
     id: 'runtime',
@@ -76,7 +76,7 @@ export const NIMI_TYPESCRIPT_TARGET_EXPORTS = [
   {
     id: 'contracts',
     owner: 'sdks/typescript/core/contracts',
-    semantics: 'Nimi-native AI, Agent, Tool, Trace, and adapter contract types.',
+    semantics: 'Nimi-native AI, Tool, Trace, and adapter contract types.',
   },
   {
     id: 'ai',
@@ -84,9 +84,9 @@ export const NIMI_TYPESCRIPT_TARGET_EXPORTS = [
     semantics: 'Nimi-native AI consumption substrate.',
   },
   {
-    id: 'agent',
-    owner: 'sdks/typescript/core/agent',
-    semantics: 'Framework-neutral agent facade.',
+    id: 'ai-runner',
+    owner: 'sdks/typescript/core/ai-runner',
+    semantics: 'Framework-neutral AI runner facade.',
   },
   {
     id: 'testing',
@@ -157,7 +157,7 @@ export const NIMI_CONTRACT_INVENTORY = [
     semantics: 'Normalized run lifecycle, text, tool, warning, error, and trace events.',
   },
   {
-    id: 'NimiAgentTrace',
+    id: 'NimiAiTrace',
     owner: 'sdks/typescript/core/contracts',
     semantics: 'Run and step trace for debugging, evaluation, and adapter mapping.',
   },
@@ -239,7 +239,7 @@ export const NIMI_MIGRATION_TARGETS = [
   {
     id: 'mastra',
     name: 'Mastra',
-    semantics: 'Agent framework adapter after core agent contracts stabilize.',
+    semantics: 'Agent framework adapter after core AI runner contracts stabilize.',
   },
   {
     id: 'langgraph',

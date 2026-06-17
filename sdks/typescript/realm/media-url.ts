@@ -1,9 +1,9 @@
-export interface NimiRealmMediaUrlProjectionInput {
+export interface NimiRealmMediaUrlViewInput {
   readonly realmBaseUrl?: unknown;
   readonly mediaUrl?: unknown;
 }
 
-export function resolveNimiRealmMediaUrl(input: NimiRealmMediaUrlProjectionInput | null | undefined): string | undefined {
+export function resolveNimiRealmMediaUrl(input: NimiRealmMediaUrlViewInput | null | undefined): string | undefined {
   const mediaUrl = String(input?.mediaUrl || '').trim();
   if (!mediaUrl) {
     return undefined;

@@ -1,10 +1,10 @@
 import { ReasonCode, createNimiError } from '../types';
 
-export interface NimiRealmBaseUrlProjectionInput {
+export interface NimiRealmBaseUrlViewInput {
   readonly realmBaseUrl?: unknown;
 }
 
-export interface NimiRealmRealtimeUrlProjectionInput {
+export interface NimiRealmRealtimeUrlViewInput {
   readonly realmBaseUrl?: unknown;
   readonly realtimeUrl?: unknown;
 }
@@ -55,7 +55,7 @@ export function normalizeNimiRealmBaseUrl(input: unknown): string {
   return parsed.toString().replace(/\/+$/u, '');
 }
 
-export function projectNimiRealmBaseUrl(input: NimiRealmBaseUrlProjectionInput | null | undefined): string {
+export function resolveNimiRealmBaseUrl(input: NimiRealmBaseUrlViewInput | null | undefined): string {
   return normalizeNimiRealmBaseUrl(input?.realmBaseUrl);
 }
 
@@ -71,7 +71,7 @@ function toNimiRealmEndpointOrigin(input: unknown): string {
   }
 }
 
-export function projectNimiRealmRealtimeUrl(input: NimiRealmRealtimeUrlProjectionInput | null | undefined): string {
+export function resolveNimiRealmRealtimeUrl(input: NimiRealmRealtimeUrlViewInput | null | undefined): string {
   const explicitRealtimeOrigin = toNimiRealmEndpointOrigin(input?.realtimeUrl);
   if (explicitRealtimeOrigin) {
     return explicitRealtimeOrigin;

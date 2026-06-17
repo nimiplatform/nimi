@@ -15,26 +15,26 @@ import {
   type NimiStructuredOutputParseSuccess,
   type NimiStructuredOutputRepairRequest,
 } from '../../features/evaluation';
-import type { NimiAgentSpec } from './index';
+import type { NimiAiRunnerSpec } from './index';
 
-export interface NimiAgentTextRuntime {
+export interface NimiAiTextRuntime {
   readonly model: NimiAiModel;
 }
 
-export interface NimiAgentStructuredOutputOptions<TValue>
+export interface NimiAiStructuredOutputOptions<TValue>
   extends Omit<NimiStructuredJsonParseInput<TValue>, 'raw'> {
   readonly required?: boolean;
   readonly repairInstruction?: string;
 }
 
-export interface NimiAgentTextGenerateInput<TStructured = unknown> {
-  readonly agent: NimiAgentSpec;
-  readonly runtime: NimiAgentTextRuntime;
+export interface NimiAiTextGenerateInput<TStructured = unknown> {
+  readonly runner: NimiAiRunnerSpec;
+  readonly runtime: NimiAiTextRuntime;
   readonly messages: readonly NimiMessage[];
-  readonly structuredOutput?: NimiAgentStructuredOutputOptions<TStructured>;
+  readonly structuredOutput?: NimiAiStructuredOutputOptions<TStructured>;
 }
 
-export interface NimiAgentTextGenerateSuccess<TStructured = unknown> {
+export interface NimiAiTextGenerateSuccess<TStructured = unknown> {
   readonly ok: true;
   readonly text: string;
   readonly result: NimiGenerateTextResult;
@@ -43,33 +43,33 @@ export interface NimiAgentTextGenerateSuccess<TStructured = unknown> {
   readonly repairRequest?: NimiStructuredOutputRepairRequest;
 }
 
-export interface NimiAgentTextGenerateFailure {
+export interface NimiAiTextGenerateFailure {
   readonly ok: false;
-  readonly error: NimiAgentTextError;
+  readonly error: NimiAiTextError;
   readonly result?: NimiGenerateTextResult;
   readonly structuredOutputFailure?: NimiStructuredOutputParseFailure;
   readonly repairRequest?: NimiStructuredOutputRepairRequest;
   readonly canceled?: boolean;
 }
 
-export type NimiAgentTextGenerateResult<TStructured = unknown> =
-  | NimiAgentTextGenerateSuccess<TStructured>
-  | NimiAgentTextGenerateFailure;
+export type NimiAiTextGenerateResult<TStructured = unknown> =
+  | NimiAiTextGenerateSuccess<TStructured>
+  | NimiAiTextGenerateFailure;
 
-export interface NimiAgentTextTurnInput<TStructured = unknown>
-  extends NimiAgentTextGenerateInput<TStructured> {
+export interface NimiAiTextTurnInput<TStructured = unknown>
+  extends NimiAiTextGenerateInput<TStructured> {
   readonly turnId?: string;
   readonly threadId?: string;
   readonly signal?: AbortSignal;
 }
 
-export interface NimiAgentTextError {
+export interface NimiAiTextError {
   readonly code: string;
   readonly message: string;
   readonly cause?: unknown;
 }
 
-export type NimiAgentTextTurnEvent<TStructured = unknown> =
+export type NimiAiTextTurnEvent<TStructured = unknown> =
   | { readonly type: 'turn-started'; readonly turnId?: string; readonly threadId?: string }
   | {
     readonly type: 'reasoning-delta';
@@ -107,38 +107,38 @@ export type NimiAgentTextTurnEvent<TStructured = unknown> =
   | {
     readonly type: 'turn-failed';
     readonly turnId?: string;
-    readonly error: NimiAgentTextError;
+    readonly error: NimiAiTextError;
     readonly snapshot: NimiConversationTextAccumulatorSnapshot;
     readonly structuredOutputFailure?: NimiStructuredOutputParseFailure;
     readonly repairRequest?: NimiStructuredOutputRepairRequest;
   }
   | { readonly type: 'turn-canceled'; readonly turnId?: string; readonly snapshot: NimiConversationTextAccumulatorSnapshot };
 
-export interface NimiAgentTextStreamResponseResult {
+export interface NimiAiTextStreamResponseResult {
   readonly text: string;
   readonly finishReason?: string;
   readonly usage?: NimiUsage;
 }
 
-export interface NimiAgentTextStreamHandlers {
-  readonly onDelta?: (text: string, event: Extract<NimiAgentTextTurnEvent, { readonly type: 'text-delta' }>) => void | Promise<void>;
+export interface NimiAiTextStreamHandlers {
+  readonly onDelta?: (text: string, event: Extract<NimiAiTextTurnEvent, { readonly type: 'text-delta' }>) => void | Promise<void>;
   readonly onSnapshot?: (snapshot: NimiConversationTextAccumulatorSnapshot) => void | Promise<void>;
-  readonly onFinish?: (result: NimiAgentTextStreamResponseResult) => void | Promise<void>;
-  readonly onError?: (error: NimiAgentTextError) => void | Promise<void>;
+  readonly onFinish?: (result: NimiAiTextStreamResponseResult) => void | Promise<void>;
+  readonly onError?: (error: NimiAiTextError) => void | Promise<void>;
 }
 
-export async function runNimiAgentTextGenerate<TStructured = unknown>(
-  _input: NimiAgentTextGenerateInput<TStructured>,
-): Promise<NimiAgentTextGenerateResult<TStructured>> {
+export async function runNimiAiTextGenerate<TStructured = unknown>(
+  _input: NimiAiTextGenerateInput<TStructured>,
+): Promise<NimiAiTextGenerateResult<TStructured>> {
   return {
     ok: false,
     error: runtimeParticipationRequiredError(),
   };
 }
 
-export async function* runNimiAgentTextTurn<TStructured = unknown>(
-  input: NimiAgentTextTurnInput<TStructured>,
-): AsyncIterable<NimiAgentTextTurnEvent<TStructured>> {
+export async function* runNimiAiTextTurn<TStructured = unknown>(
+  input: NimiAiTextTurnInput<TStructured>,
+): AsyncIterable<NimiAiTextTurnEvent<TStructured>> {
   let snapshot = createNimiConversationTextAccumulator();
   yield { type: 'turn-started', turnId: input.turnId, threadId: input.threadId };
 
@@ -151,11 +151,11 @@ export async function* runNimiAgentTextTurn<TStructured = unknown>(
   yield { type: 'turn-failed', turnId: input.turnId, error, snapshot };
 }
 
-export async function streamNimiAgentTextResponse(
-  input: NimiAgentTextTurnInput,
-  handlers: NimiAgentTextStreamHandlers = {},
-): Promise<NimiAgentTextStreamResponseResult> {
-  for await (const event of runNimiAgentTextTurn(input)) {
+export async function streamNimiAiTextResponse(
+  input: NimiAiTextTurnInput,
+  handlers: NimiAiTextStreamHandlers = {},
+): Promise<NimiAiTextStreamResponseResult> {
+  for await (const event of runNimiAiTextTurn(input)) {
     if (event.type === 'text-delta') {
       await handlers.onDelta?.(event.textDelta, event);
       await handlers.onSnapshot?.(event.snapshot);
@@ -176,18 +176,18 @@ export async function streamNimiAgentTextResponse(
       throw error;
     }
   }
-  throw new Error('Agent text stream ended without a terminal event');
+  throw new Error('AI runner text stream ended without a terminal event');
 }
 
-function toError(error: NimiAgentTextError): Error {
+function toError(error: NimiAiTextError): Error {
   const next = new Error(error.message);
   next.name = error.code;
   return next;
 }
 
-function runtimeParticipationRequiredError(): NimiAgentTextError {
+function runtimeParticipationRequiredError(): NimiAiTextError {
   return {
     code: 'SDK_RUNTIME_AGENT_PARTICIPATION_REQUIRED',
-    message: 'Agent text execution must run through Runtime Agent participation authority.',
+    message: 'AI runner text execution must run through Runtime Agent participation authority.',
   };
 }

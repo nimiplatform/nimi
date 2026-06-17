@@ -9,8 +9,6 @@ export type NimiRealmSocialContactRecord = JsonObject;
 
 export interface NimiRealmSocialContactSnapshot {
   readonly friends: readonly NimiRealmSocialContactRecord[];
-  readonly agents: readonly NimiRealmSocialContactRecord[];
-  readonly groups: readonly NimiRealmSocialContactRecord[];
   readonly pendingReceived: readonly NimiRealmSocialContactRecord[];
   readonly pendingSent: readonly NimiRealmSocialContactRecord[];
   readonly blocked: readonly NimiRealmSocialContactRecord[];
@@ -33,11 +31,7 @@ export interface NimiRealmPendingFriendRequestListDto {
   readonly sent?: readonly NimiRealmPendingFriendRequestDto[];
 }
 
-export type NimiRealmSocialProfileProjection = JsonObject & Partial<UserProfileDto> & {
-  readonly worldName?: string | null;
-  readonly worldBannerUrl?: string | null;
-  readonly world?: JsonObject | null;
-};
+export type NimiRealmSocialProfileView = JsonObject & Partial<UserProfileDto>;
 
 export interface NimiRealmSocialApi {
   readonly account: Pick<RealmTypedClient, 'getMe' | 'updateMe'>;
@@ -48,7 +42,6 @@ export interface NimiRealmSocialApi {
     | 'deletePost'
     | 'getExploreFeed'
     | 'getHomeFeed'
-    | 'getMyAgentFriendLimit'
     | 'getMyBlockedUsers'
     | 'getMyPendingFriendRequests'
     | 'getPost'
@@ -57,11 +50,9 @@ export interface NimiRealmSocialApi {
     | 'listLikedPosts'
     | 'listMyFriendsWithDetails'
     | 'reportControllerCreateReport'
-    | 'searchIndexedUsers'
     | 'unlikePost'
     | 'updatePost'
   >;
-  readonly world: Pick<RealmTypedClient, 'worldControllerGetWorld'>;
 }
 
 export type NimiRealmPostFeedInput = {
@@ -80,10 +71,4 @@ export type NimiRealmSocialMutationKind =
 export interface NimiRealmSocialMutationExecutionInput {
   readonly kind: NimiRealmSocialMutationKind | string;
   readonly payload: JsonObject;
-}
-
-export interface LoadNimiRealmExploreAgentsInput {
-  readonly tag?: string | null;
-  readonly query?: string | null;
-  readonly limit?: number;
 }

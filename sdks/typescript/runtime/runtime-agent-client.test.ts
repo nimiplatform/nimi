@@ -10,8 +10,8 @@ import {
   type QueryAgentMemoryRequest,
   type RuntimeTypedCallOptions,
   type SendAppMessageRequest,
-} from '../../core-generated/runtime-typed-client';
-import { createNimiRuntimeAgentClient } from './runtime-client';
+} from '../core-generated/runtime-typed-client';
+import { createNimiRuntimeAgentClient } from './runtime-agent-client';
 
 test('runtime agent client composes RuntimeAgentService and reserved turn seam as the owner path', async () => {
   const calls: Array<{

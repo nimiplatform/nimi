@@ -28,12 +28,12 @@ subpath_migration_rules:
   - current_subpath: "@nimiplatform/sdk/ai-app"
     decision: hardcut
     vnext_targets:
-      - "@nimiplatform/sdk/agent"
+      - "@nimiplatform/sdk/ai-runner"
       - "@nimiplatform/sdk/features/conversation"
       - "@nimiplatform/sdk/features/evaluation"
       - "@nimiplatform/sdk/features/toolkits"
-    hardcut_reason: AI App conflates app-session convenience with SDK authority; vNext splits surviving behavior into Agent and feature modules.
-    reason: First-party chat/session callers must move to Agent and feature surfaces instead of restoring `ai-app`.
+    hardcut_reason: AI App conflates app-session convenience with SDK authority; vNext splits surviving behavior into AI runner and feature modules.
+    reason: First-party chat/session callers must move to AI runner and feature surfaces instead of restoring `ai-app`.
 
   - current_subpath: "@nimiplatform/sdk/ai-provider"
     decision: hardcut
@@ -68,8 +68,8 @@ subpath_migration_rules:
     decision: retain-redesign
     vnext_targets:
       - "@nimiplatform/sdk/runtime"
-      - "@nimiplatform/sdk/agent"
-    reason: Runtime remains public, but local helper and agent identity behavior is split between Runtime and Agent surfaces.
+      - "@nimiplatform/sdk/ai-runner"
+    reason: Runtime remains public, but local helper and AI runner behavior is split between Runtime and AI runner surfaces.
 
   - current_subpath: "@nimiplatform/sdk/runtime/browser"
     decision: hardcut

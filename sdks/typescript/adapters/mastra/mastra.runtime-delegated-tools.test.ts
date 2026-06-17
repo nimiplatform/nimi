@@ -258,8 +258,12 @@ test('Mastra Runtime delegated tool fails closed when firewall verdict evidence 
     },
   });
 
+  const execute = tool.execute;
+  if (!execute) {
+    throw new Error('delegated tool execute function is required');
+  }
   await assert.rejects(
-    () => tool.execute?.({ q: 'nimi' }, {} as never),
+    () => execute({ q: 'nimi' }, {} as never),
     (error: unknown) => (
       (error as { readonly reasonCode?: string }).reasonCode
       === 'NIMI_MASTRA_RUNTIME_DELEGATED_TOOL_FIREWALL_VERDICT_REQUIRED'

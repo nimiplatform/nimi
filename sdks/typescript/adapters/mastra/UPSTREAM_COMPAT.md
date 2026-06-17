@@ -30,13 +30,13 @@ Agent/tool/structured-output contract into an adapter test or classify it
 out of domain.
 
 The goal is Mastra target-library **LLM execution-layer** coverage, not Runtime
-route ownership or Nimi agent-state ownership. Tests expose adapter mapping gaps
+route ownership or Nimi localAgent-state ownership. Tests expose adapter mapping gaps
 and Nimi protocol gaps; Runtime/provider route gaps fail closed with the adapter's
 own typed `NimiMastraUnsupportedFeatureError` rather than being hidden by a shim.
 Mastra-owned orchestration is supported only when it drives repeated model calls
 (tool execution, multi-step, structured-output parsing, callbacks) or consumes
 explicit Nimi Runtime-backed helper surfaces (embedding, speech synthesis,
-speech transcription). Surfaces that own durable agent lifecycle, memory,
+speech transcription). Surfaces that own durable localAgent lifecycle, memory,
 knowledge, or workflow state are compatibility-only until bound to Nimi
 Runtime/Cognition owner surfaces.
 
@@ -63,7 +63,7 @@ Runtime/Cognition owner surfaces.
 - `includeRawChunks` forwarding and raw stream-part surfacing
 - file input parts mapping onto Nimi file parts (binary base64 / URL passthrough)
 - **Nimi Runtime context bridge**: `createNimiMastraContextBridge` loads Nimi
-  agent context providers, including Runtime memory/knowledge providers, and
+  AI context providers, including Runtime memory/knowledge providers, and
   injects their per-turn material through Mastra `Agent.generate()`/`stream()`
   `context` without configuring or persisting Mastra Memory.
 - **Nimi Runtime delegated tools**: `createNimiMastraRuntimeDelegatedTool` lets
@@ -132,10 +132,10 @@ are not blurred into the supported set.
 | structured-output repair retry | `structuredOutputRepair` (partial) | partial | No-object failure is verified fail-closed; Mastra's repair retry path (fixing malformed JSON) is not yet exhaustively exercised. |
 | reasoning / providerMetadata / providerOptions / multimodal acceptance | `reasoning`, `providerMetadata`, `providerOptions`, `multimodalInput` (partial) | partial | Mapped by the adapter; end-to-end surfacing/acceptance is Runtime-route-dependent. |
 | Memory / durable context | `memory` (partial), `runtimeContext` (supported) | partial | Mastra Memory can inject prior-turn context into the Nimi text-model prompt, but the store remains Mastra-owned. `NimiMastraContextBridge` now supports per-turn Nimi Runtime-owned memory/knowledge context injection through Mastra `context`; remaining gaps are conversation writeback, thread/resource lifecycle, and any Mastra Memory-compatible persistence contract. |
-| Workflows / lifecycle state | `workflows` (partial) | compatibility-only | Mastra Workflow steps can call a Nimi-backed text model, but workflow lifecycle/checkpoint/suspend state remains Mastra-owned. Nimi-owned workflow/agent lifecycle must use Runtime owner surfaces. |
+| Workflows / lifecycle state | `workflows` (partial) | compatibility-only | Mastra Workflow steps can call a Nimi-backed text model, but workflow lifecycle/checkpoint/suspend state remains Mastra-owned. Nimi-owned workflow/localAgent lifecycle must use Runtime owner surfaces. |
 | telemetry / tracing spans | `telemetry` (not-applicable) | out-of-domain | Mastra tracing is framework-owned observability, not a model interface; the adapter emits no Mastra spans. A future decision could add span emission. |
 | agent networks / multi-agent routing | `agentNetwork` (partial) | partial | Network members can use Nimi-backed text models, but routing/hand-off and shared state are not bound to Nimi Runtime/Cognition owner surfaces. |
-| workflow checkpoint / suspend-resume durable state; evals/scorers/processors | `workflowCheckpoint` (not-applicable) | out-of-domain | Above-the-model framework orchestration and durable state; persistence/scoring is Mastra-owned in this path, not an adapter capability. Nimi-owned checkpointing belongs in Runtime workflow/agent owner surfaces. |
+| workflow checkpoint / suspend-resume durable state; evals/scorers/processors | `workflowCheckpoint` (not-applicable) | out-of-domain | Above-the-model framework orchestration and durable state; persistence/scoring is Mastra-owned in this path, not an adapter capability. Nimi-owned checkpointing belongs in Runtime workflow/localAgent owner surfaces. |
 | RAG / vector recall | `ragEmbeddings` | supported | `createNimiMastraEmbeddingModel` exposes Runtime `TEXT_EMBED` as AI SDK `EmbeddingModelV3`; vector store persistence and canonical Memory/Knowledge state are still not owned by Mastra. |
 | Voice STT/TTS | `voice` (partial) | partial | `createNimiMastraVoice` supports `speak()`/`listen()`/`getSpeakers()` through Runtime speech and voice catalog surfaces. Runtime Scenario idempotency keys are caller-supplied and fail closed; the adapter never fabricates them. Realtime `connect/send/answer` remains fail-closed until Runtime realtime-session ownership is bridged. |
 | legacy `generateLegacy` / `streamLegacy` | `legacyV1Api` (not-applicable) | out-of-domain | Require `LanguageModelV1`; the adapter targets Mastra's modern V2/V3 model interface backing `generate()`/`stream()`. |
@@ -155,5 +155,5 @@ are not blurred into the supported set.
    required.
 5. Add a Runtime realtime-session voice bridge before promoting Mastra realtime
    voice beyond fail-closed partial support.
-6. Add a Runtime-owned agent lifecycle/workflow bridge before promoting workflow
+6. Add a Runtime-owned localAgent lifecycle/workflow bridge before promoting workflow
    and agent-network state beyond compatibility-only.

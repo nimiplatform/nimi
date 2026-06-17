@@ -1,6 +1,5 @@
 import type {
   AddFriendBodyDto,
-  AgentFriendLimitDto,
   BlockUserBodyDto,
   CreatePostDto,
   CreateReportDto,
@@ -9,16 +8,13 @@ import type {
   FriendProfileDto,
   PostDto,
   RealmTypedCallOptions,
-  RealmTypedClient,
   ReportResponseDto,
   UpdatePostDto,
   UpdateUserDto,
   UserPrivateDto,
-  UserSearchResponseDto,
 } from '../core-generated/realm-typed-client';
 import { createNimiError, type JsonObject } from '../types';
 import type {
-  LoadNimiRealmExploreAgentsInput,
   NimiRealmPendingFriendRequestDto,
   NimiRealmPendingFriendRequestListDto,
   NimiRealmPostFeedInput,
@@ -27,10 +23,10 @@ import type {
   NimiRealmSocialContactSnapshot,
   NimiRealmSocialDataErrorEmitter,
   NimiRealmSocialMutationExecutionInput,
-  NimiRealmSocialProfileProjection,
+  NimiRealmSocialProfileView,
 } from './social-types';
+
 export type {
-  LoadNimiRealmExploreAgentsInput,
   NimiRealmPendingFriendRequestDto,
   NimiRealmPendingFriendRequestListDto,
   NimiRealmPostFeedInput,
@@ -40,7 +36,7 @@ export type {
   NimiRealmSocialDataErrorEmitter,
   NimiRealmSocialMutationExecutionInput,
   NimiRealmSocialMutationKind,
-  NimiRealmSocialProfileProjection,
+  NimiRealmSocialProfileView,
 } from './social-types';
 
 type PendingRequestMapValue = {
@@ -108,86 +104,6 @@ function normalizePostFeedInput(input: NimiRealmPostFeedInput): NimiRealmPostFee
   };
 }
 
-function extractAgentWorldId(profile: JsonObject): string | null {
-  const direct = normalizeText(profile.worldId);
-  if (direct) {
-    return direct;
-  }
-  const agent = toRecord(profile.agent);
-  const fromAgent = normalizeText(agent?.worldId);
-  if (fromAgent) {
-    return fromAgent;
-  }
-  const agentProfile = toRecord(profile.agentProfile);
-  return normalizeText(agentProfile?.worldId) || null;
-}
-
-function extractWorldBannerUrl(profile: JsonObject): string | null {
-  const direct = normalizeText(profile.worldBannerUrl);
-  if (direct) {
-    return direct;
-  }
-  const world = toRecord(profile.world);
-  const fromWorld = normalizeText(world?.bannerUrl);
-  if (fromWorld) {
-    return fromWorld;
-  }
-  const agentProfile = toRecord(profile.agentProfile);
-  return normalizeText(agentProfile?.worldBannerUrl) || null;
-}
-
-function extractWorldName(profile: JsonObject): string | null {
-  const direct = normalizeText(profile.worldName);
-  if (direct) {
-    return direct;
-  }
-  const world = toRecord(profile.world);
-  const fromWorld = normalizeText(world?.name);
-  if (fromWorld) {
-    return fromWorld;
-  }
-  const agentProfile = toRecord(profile.agentProfile);
-  return normalizeText(agentProfile?.worldName) || null;
-}
-
-export async function enrichNimiRealmSocialProfileWithWorldBanner(
-  realm: Pick<NimiRealmSocialApi, 'world'>,
-  profile: NimiRealmSocialProfileProjection,
-  options?: RealmTypedCallOptions,
-): Promise<NimiRealmSocialProfileProjection> {
-  const profileRecord = profile as JsonObject;
-  const existingBannerUrl = extractWorldBannerUrl(profileRecord);
-  const existingWorldName = extractWorldName(profileRecord);
-  if (existingBannerUrl && existingWorldName) {
-    return profile;
-  }
-
-  const worldId = extractAgentWorldId(profileRecord);
-  if (!worldId) {
-    return profile;
-  }
-
-  try {
-    const world = await realm.world.worldControllerGetWorld({ path: { id: worldId } }, options);
-    const worldRecord = toRecord(world);
-    if (!worldRecord) {
-      return profile;
-    }
-    return {
-      ...profile,
-      worldName: existingWorldName || toNullableString(worldRecord.name),
-      worldBannerUrl: existingBannerUrl || toNullableString(worldRecord.bannerUrl),
-      world: {
-        ...(toRecord(profile.world) || {}),
-        ...worldRecord,
-        bannerUrl: existingBannerUrl || toNullableString(worldRecord.bannerUrl),
-      },
-    } as unknown as NimiRealmSocialProfileProjection;
-  } catch {
-    return profile;
-  }
-}
-
 function toPendingRequestItem(value: unknown): NimiRealmPendingFriendRequestDto | null {
   const record = toRecord(value);
   if (!record) {
@@ -245,7 +161,6 @@ async function resolvePendingRequestProfiles(
       const profile = await realm.generated.getUser({ path: { id: userId } }, options);
       const profileRecord = toRecord(profile) || {};
       const handle = normalizeText(profileRecord.handle);
-      const isAgent = profileRecord.isAgent === true;
       return {
         id: userId,
         userId,
@@ -256,8 +171,6 @@ async function resolvePendingRequestProfiles(
         handle,
         avatarUrl: toNullableString(profileRecord.avatarUrl),
         bio: toNullableString(profileRecord.bio),
-        isAgent,
-        worldId: isAgent ? extractAgentWorldId(profileRecord) : null,
       };
     } catch (error) {
       emitRealmDataError('load-pending-friend-request-profile', error, { userId, direction });
@@ -296,19 +209,6 @@ export async function fetchNimiRealmPendingFriendRequests(
   }
 }
 
-export async function fetchNimiRealmAgentFriendLimit(
-  realm: Pick<NimiRealmSocialApi, 'generated'>,
-  emitRealmDataError: NimiRealmSocialDataErrorEmitter,
-  options?: RealmTypedCallOptions,
-): Promise<AgentFriendLimitDto> {
-  try {
-    return await realm.generated.getMyAgentFriendLimit({ path: {} }, options);
-  } catch (error) {
-    emitRealmDataError('load-agent-friend-limit', error);
-    throw error;
-  }
-}
-
 async function fetchNimiRealmBlockedUsers(
   realm: Pick<NimiRealmSocialApi, 'generated'>,
   emitRealmDataError: NimiRealmSocialDataErrorEmitter,
@@ -328,7 +228,6 @@ async function fetchNimiRealmBlockedUsers(
         handle,
         avatarUrl: toNullableString(item.avatarUrl),
         bio: toNullableString(item.bio),
-        isAgent: item.isAgent === true,
         blockedAt: toNullableString(item.blockedAt),
         reason: toNullableString(item.reason),
       };
@@ -374,8 +273,6 @@ export async function loadNimiRealmSocialSnapshot(
 
   return {
     friends,
-    agents: [],
-    groups: [],
     pendingReceived,
     pendingSent,
     blocked: blockedUsers,
@@ -424,19 +321,18 @@ export async function updateNimiRealmCurrentUserProfile(
 }
 
 export async function loadNimiRealmUserProfileById(
-  realm: Pick<NimiRealmSocialApi, 'generated' | 'world'>,
+  realm: Pick<NimiRealmSocialApi, 'generated'>,
   emitRealmDataError: NimiRealmSocialDataErrorEmitter,
   id: unknown,
   options?: RealmTypedCallOptions,
-): Promise<NimiRealmSocialProfileProjection> {
+): Promise<NimiRealmSocialProfileView> {
   const normalizedId = requireText(id, {
     reasonCode: 'SDK_REALM_USER_ID_REQUIRED',
     message: 'Realm user id is required.',
     actionHint: 'provide_realm_user_id',
   });
   try {
-    const profile = await realm.generated.getUser({ path: { id: normalizedId } }, options);
-    return enrichNimiRealmSocialProfileWithWorldBanner(realm, profile as unknown as NimiRealmSocialProfileProjection, options);
+    return await realm.generated.getUser({ path: { id: normalizedId } }, options) as unknown as NimiRealmSocialProfileView;
   } catch (error) {
     emitRealmDataError('load-user-profile', error, { id: normalizedId });
     throw error;
@@ -711,31 +607,6 @@ export async function executeNimiRealmSocialMutation(
     actionHint: 'use_supported_realm_social_mutation_kind',
     details: { kind: entry.kind },
   });
-}
-
-export async function loadNimiRealmExploreAgents(
-  realm: Pick<NimiRealmSocialApi, 'generated'>,
-  emitRealmDataError: NimiRealmSocialDataErrorEmitter,
-  input: LoadNimiRealmExploreAgentsInput = {},
-  options?: RealmTypedCallOptions,
-): Promise<UserSearchResponseDto> {
-  const tag = input.tag?.trim() || undefined;
-  const query = input.query?.trim() || undefined;
-  const limit = input.limit ?? 20;
-  try {
-    return await realm.generated.searchIndexedUsers({
-      path: {},
-      query: {
-        limit,
-        isAgent: true,
-        tag,
-        q: query,
-      },
-    }, options);
-  } catch (error) {
-    emitRealmDataError('load-explore-agents', error, { tag, query, limit });
-    throw error;
-  }
 }
 
 export async function loadNimiRealmExploreFeedItems(

@@ -29,7 +29,7 @@ export async function loadTesterRealmSocialFeedProjection(): Promise<TesterRealm
   };
 
   const postFeed = await loadNimiRealmPostFeed(realm as never, () => undefined, {
-    scope: 'agent_activity',
+    scope: 'friends',
     limit: 1,
   });
   const exploreFeed = await loadNimiRealmExploreFeedItems(realm as never, () => undefined, 'tester', 1, 'cursor-tester');
