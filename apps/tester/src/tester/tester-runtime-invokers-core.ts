@@ -180,14 +180,83 @@ export function buildMetadata(surfaceId: string, extra?: Record<string, string |
   return metadata;
 }
 
+function asErrorRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return {};
+  }
+  return value as Record<string, unknown>;
+}
+
+function parseEmbeddedJsonRecord(value: unknown): Record<string, unknown> {
+  const text = normalizeText(value);
+  if (!text) return {};
+  const parse = (candidate: string): Record<string, unknown> => {
+    try {
+      const parsed = JSON.parse(candidate) as unknown;
+      return asErrorRecord(parsed);
+    } catch {
+      return {};
+    }
+  };
+  const direct = parse(text);
+  if (Object.keys(direct).length > 0) return direct;
+  const start = text.indexOf('{');
+  const end = text.lastIndexOf('}');
+  if (start >= 0 && end > start) {
+    return parse(text.slice(start, end + 1));
+  }
+  return {};
+}
+
+function sdkErrorDiagnosticRecords(error: unknown): Record<string, unknown>[] {
+  const records: Record<string, unknown>[] = [];
+  const direct = asErrorRecord(error);
+  if (Object.keys(direct).length > 0) {
+    records.push(direct);
+    const details = asErrorRecord(direct.details);
+    if (Object.keys(details).length > 0) records.push(details);
+    const parsedDetails = parseEmbeddedJsonRecord(direct.details);
+    if (Object.keys(parsedDetails).length > 0) records.push(parsedDetails);
+    const nestedError = asErrorRecord(direct.error);
+    if (Object.keys(nestedError).length > 0) records.push(nestedError);
+  }
+  if (error instanceof Error) {
+    const cause = asErrorRecord(error.cause);
+    if (Object.keys(cause).length > 0) records.push(cause);
+    const parsedMessage = parseEmbeddedJsonRecord(error.message);
+    if (Object.keys(parsedMessage).length > 0) records.push(parsedMessage);
+  } else {
+    const parsedText = parseEmbeddedJsonRecord(error);
+    if (Object.keys(parsedText).length > 0) records.push(parsedText);
+  }
+  return records;
+}
+
+function providerDetailFromSdkError(error: unknown): string {
+  for (const record of sdkErrorDiagnosticRecords(error)) {
+    const details = asErrorRecord(record.details);
+    const candidates = [record, details];
+    for (const candidate of candidates) {
+      const detail = normalizeText(candidate.provider_message ?? candidate.providerMessage);
+      if (detail) return detail;
+    }
+  }
+  return '';
+}
+
 function describeSdkError(error: unknown): string {
   if (!error) return 'Runtime SDK call failed with no error message.';
+  const providerDetail = providerDetailFromSdkError(error);
+  const withProviderDetail = (message: string): string => {
+    if (!providerDetail || message.includes(providerDetail)) return message;
+    return `${message}\nProvider detail: ${providerDetail}`;
+  };
   if (error instanceof Error) {
     const message = error.message || error.name || 'Runtime SDK call failed.';
     const reasonCode = (error as { reasonCode?: string }).reasonCode;
-    return reasonCode ? `${reasonCode}: ${message}` : message;
+    return withProviderDetail(reasonCode ? `${reasonCode}: ${message}` : message);
   }
-  return String(error);
+  return withProviderDetail(String(error));
 }
 
 // Map the SDK ReasonCode to a precise tester reason. The runtime fails closed

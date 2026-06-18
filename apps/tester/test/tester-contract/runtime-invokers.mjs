@@ -593,6 +593,65 @@ test('tester local text.generate binding omits runtime connectorId payload', asy
   }]);
 });
 
+test('tester Runtime failures surface provider metadata details', async () => {
+  const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');
+  const store = await importBehaviorModule('tester/tester-ai-config-store.js');
+  const scopeRef = store.createTesterAppLabAIScopeRef();
+  store.saveTesterAIConfig({
+    scopeRef,
+    capabilities: {
+      targetRefs: {
+        'text.generate': {
+          kind: 'local-runtime',
+          targetId: 'core:runtime',
+          profileId: 'local/local-import/gemma-4-26B-A4B-it-Q8_0',
+        },
+      },
+      selectedParams: {},
+    },
+    profileOrigin: null,
+  });
+
+  const client = {
+    runtime: {
+      scheduling: {
+        async peekScheduling() {
+          return runnableSchedulingResponse();
+        },
+      },
+      ai: {
+        async executeScenario() {
+          const error = new Error('provider request failed');
+          error.reasonCode = 'AI_INPUT_INVALID';
+          error.actionHint = 'check_input_and_extensions';
+          error.retryable = false;
+          error.details = {
+            provider_message: 'llama.cpp rejected model id local/local-import/gemma-4-26B-A4B-it-Q8_0',
+          };
+          throw error;
+        },
+        streamScenario() {
+          throw new Error('streamScenario should not be called');
+        },
+      },
+    },
+  };
+
+  const result = await invokers.invokeTesterCapability(client, 'text.generate', {
+    prompt: 'Hello provider detail',
+    scenarioId: 'provider-detail',
+    subjectUserId: 'subject-user-1',
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'runtime-call-failed');
+  assert.match(result.message, /AI_INPUT_INVALID: provider request failed/);
+  assert.match(
+    result.message,
+    /Provider detail: llama\.cpp rejected model id local\/local-import\/gemma-4-26B-A4B-it-Q8_0/,
+  );
+});
+
 test('tester local LLM scheduling denial fails closed before Runtime execution', async () => {
   const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');
   const store = await importBehaviorModule('tester/tester-ai-config-store.js');
