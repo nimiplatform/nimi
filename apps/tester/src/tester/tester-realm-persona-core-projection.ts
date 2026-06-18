@@ -45,6 +45,7 @@ const testerPersonaCore: RealmPersonaDto = {
   ownerId: 'tester-user',
   schemaVersion: 'realm-persona.v1',
   updatedAt: '2026-06-18T00:00:00.000Z',
+  visibility: 'public',
 };
 
 function createTesterRuntimeSnapshot(input: CreateRuntimeSourceSnapshotDto): RuntimeSourceSnapshotDto {
@@ -112,6 +113,7 @@ export async function loadTesterRealmPersonaCoreProjection(): Promise<TesterReal
         homeWorldId: testerPersonaCore.homeWorldId,
         id: testerPersonaCore.id,
         origin: testerPersonaCore.origin,
+        visibility: testerPersonaCore.visibility,
       },
     }),
     worldCore.worldCoreControllerCreateRuntimeSourceSnapshot({

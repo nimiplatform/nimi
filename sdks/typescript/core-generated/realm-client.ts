@@ -25,6 +25,12 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/human/group-chats/{chatId}/participants"
   },
   {
+    "operationId": "addGroupSourceParticipant",
+    "service": "Group Chats",
+    "method": "POST",
+    "path": "/api/human/group-chats/{chatId}/source-participants"
+  },
+  {
     "operationId": "archiveBundle",
     "service": "Bundles",
     "method": "POST",
@@ -71,6 +77,12 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "service": "Assets",
     "method": "POST",
     "path": "/api/assets/{assetId}/clone"
+  },
+  {
+    "operationId": "commitRealmGroupSourceMessageCandidate",
+    "service": "Group Chats",
+    "method": "POST",
+    "path": "/api/human/group-chats/{chatId}/source-message-candidate-commits"
   },
   {
     "operationId": "createAsset",
@@ -250,7 +262,7 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "operationId": "EconomyController_getSourceOrigin",
     "service": "Economy (Currency & Gifts)",
     "method": "GET",
-    "path": "/api/economy/revenue-share/source-origin/{sourceKind}/{sourceId}"
+    "path": "/api/economy/revenue-share/source-origin/{sourceRef}"
   },
   {
     "operationId": "EconomyController_getSparkHistory",
@@ -787,6 +799,12 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/human/group-chats/{chatId}/participants/{accountId}"
   },
   {
+    "operationId": "removeGroupSourceParticipant",
+    "service": "Group Chats",
+    "method": "DELETE",
+    "path": "/api/human/group-chats/{chatId}/source-participants/{runtimeParticipantSlotId}"
+  },
+  {
     "operationId": "ReportController_createReport",
     "service": "Governance",
     "method": "POST",
@@ -865,6 +883,30 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/human/chats/{chatId}/messages"
   },
   {
+    "operationId": "SourceConnectionController_connect",
+    "service": "Source Connections",
+    "method": "POST",
+    "path": "/api/human/source-connections"
+  },
+  {
+    "operationId": "SourceConnectionController_get",
+    "service": "Source Connections",
+    "method": "GET",
+    "path": "/api/human/source-connections/{id}"
+  },
+  {
+    "operationId": "SourceConnectionController_list",
+    "service": "Source Connections",
+    "method": "GET",
+    "path": "/api/human/source-connections"
+  },
+  {
+    "operationId": "SourceConnectionController_remove",
+    "service": "Source Connections",
+    "method": "DELETE",
+    "path": "/api/human/source-connections/{id}"
+  },
+  {
     "operationId": "startChat",
     "service": "Human Chats",
     "method": "POST",
@@ -899,6 +941,12 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "service": "Transits",
     "method": "POST",
     "path": "/api/world/transit/{id}/complete"
+  },
+  {
+    "operationId": "TransitController_createTransit",
+    "service": "Transits",
+    "method": "POST",
+    "path": "/api/world/transit"
   },
   {
     "operationId": "TransitController_getActiveTransit",
@@ -1048,7 +1096,7 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "operationId": "WorldCoreController_bootstrapOasisWorld",
     "service": "Realm Core",
     "method": "POST",
-    "path": "/api/realm/core/worlds/oasis/bootstrap"
+    "path": "/api/realm/core/oasis/bootstrap"
   },
   {
     "operationId": "WorldCoreController_createRealmPersona",
@@ -1078,7 +1126,7 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "operationId": "WorldCoreController_getOasisWorld",
     "service": "Realm Core",
     "method": "GET",
-    "path": "/api/realm/core/worlds/oasis"
+    "path": "/api/realm/core/oasis"
   },
   {
     "operationId": "WorldCoreController_getRealmPersona",

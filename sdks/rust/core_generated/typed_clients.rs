@@ -37986,6 +37986,15 @@ pub struct AddGroupParticipantInputDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct AddGroupSourceParticipantInputDto {
+    pub avatar_url: String,
+    pub display_name: String,
+    pub handle: String,
+    pub runtime_source_ref: String,
+    pub source_ref: Box<GroupSourceRefDto>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct AppPermissionGrantDecisionDto {
     pub expected_version: f64,
     pub reason: String,
@@ -38336,6 +38345,31 @@ pub struct CloneAssetDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct CommitRealmGroupSourceMessageCandidateInputDto {
+    pub audit_lineage_ref: String,
+    pub body: String,
+    pub body_hash: String,
+    pub candidate_evidence_ref: String,
+    pub candidate_id: String,
+    pub candidate_kind: String,
+    pub commit_disposition: String,
+    pub created_at: String,
+    pub evidence_hash: String,
+    pub expected_runtime_participant_slot_id: String,
+    pub expected_runtime_source_ref: String,
+    pub expires_at: String,
+    pub idempotency_key: String,
+    pub message_type: String,
+    pub output_candidate_ref: String,
+    pub policy_verdict_ref: String,
+    pub refusal_code: String,
+    pub refusal_hash: String,
+    pub refusal_reason: String,
+    pub runtime_trace_ref: String,
+    pub trigger_ref: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ConnectDashboardLinkDto {
     pub url: String,
 }
@@ -38432,6 +38466,8 @@ pub struct CreatePostAttachmentDto {
 pub struct CreatePostDto {
     pub attachments: Vec<CreatePostAttachmentDto>,
     pub caption: String,
+    pub runtime_source_ref: String,
+    pub source_ref: Box<PostSourceRefDto>,
     pub tags: Vec<String>,
 }
 
@@ -38441,6 +38477,12 @@ pub struct CreateRealmPersonaDto {
     pub home_world_id: String,
     pub id: String,
     pub origin: Box<RealmCoreOriginDto>,
+    pub visibility: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CreateRealmSourceConnectionDto {
+    pub source_ref: Box<RelationshipSourceRefDto>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -38510,6 +38552,15 @@ pub struct CreateTextResourceDto {
     pub trace_id: String,
     pub width: f64,
     pub world_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CreateTransitDto {
+    pub context: Box<TransitContextDto>,
+    pub from_world_id: String,
+    pub source_ref: Box<TypedSourceRefDto>,
+    pub to_world_id: String,
+    pub transit_type: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -38750,7 +38801,10 @@ pub struct GroupMessageAuthorDto {
     pub account_id: String,
     pub avatar_url: String,
     pub display_name: String,
+    pub runtime_participant_slot: String,
+    pub runtime_source_ref: String,
     pub source_owner_id: String,
+    pub source_ref: Box<GroupSourceRefDto>,
     pub r#type: String,
 }
 
@@ -38782,8 +38836,16 @@ pub struct GroupParticipantDto {
     pub runtime_participant_slot: String,
     pub runtime_source_ref: String,
     pub source_owner_id: String,
-    pub source_ref: String,
+    pub source_ref: Box<GroupSourceRefDto>,
     pub r#type: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GroupSourceRefDto {
+    pub kind: String,
+    pub source_content_hash: String,
+    pub source_id: String,
+    pub world_id: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -39095,15 +39157,40 @@ pub struct PostDto {
     pub attachments: Vec<PostAttachmentDto>,
     pub author: Box<UserLiteDto>,
     pub author_id: String,
+    pub author_kind: String,
     pub caption: String,
     pub content_rating: Box<ContentRatingString>,
     pub created_at: String,
     pub id: String,
     pub liked_by_current_user: bool,
     pub moderation_status: Box<ModerationStatusString>,
+    pub runtime_source_ref: String,
+    pub source_author: Box<PostSourceAuthorDto>,
+    pub source_ref: Box<PostSourceRefDto>,
     pub tags: Vec<String>,
     pub updated_at: String,
     pub visibility: Box<Visibility>,
+    pub world_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct PostSourceAuthorDto {
+    pub avatar_url: String,
+    pub display_name: String,
+    pub handle: String,
+    pub id: String,
+    pub kind: String,
+    pub owner_user_id: String,
+    pub runtime_source_ref: String,
+    pub source_ref: Box<PostSourceRefDto>,
+    pub world_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct PostSourceRefDto {
+    pub kind: String,
+    pub source_content_hash: String,
+    pub source_id: String,
     pub world_id: String,
 }
 
@@ -39134,6 +39221,13 @@ pub struct RealmCoreOriginDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGroupMessageCandidateCommitResultDto {
+    pub candidate_id: String,
+    pub message: Box<GroupMessageViewDto>,
+    pub status: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmPersonaDto {
     pub content_hash: String,
     pub content_revision: f64,
@@ -39145,6 +39239,7 @@ pub struct RealmPersonaDto {
     pub owner_id: String,
     pub schema_version: String,
     pub updated_at: String,
+    pub visibility: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -39152,6 +39247,19 @@ pub struct RealmSourceCapabilitiesDto {
     pub can_create_realm_persona: bool,
     pub can_create_runtime_source_snapshot: bool,
     pub can_use_world_character_sources: bool,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmSourceConnectionDto {
+    pub connected_at: String,
+    pub created_at: String,
+    pub id: String,
+    pub owner_user_id: String,
+    pub removed_at: String,
+    pub runtime_source_ref: String,
+    pub source_ref: Box<RelationshipSourceRefDto>,
+    pub status: String,
+    pub updated_at: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -39182,12 +39290,21 @@ pub struct RelationshipResponseDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct RelationshipSourceRefDto {
+    pub kind: String,
+    pub source_content_hash: String,
+    pub source_id: String,
+    pub world_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ReplaceRealmPersonaDto {
     pub base_content_hash: String,
     pub core: BTreeMap<String, String>,
     pub home_world_id: String,
     pub id: String,
     pub origin: Box<RealmCoreOriginDto>,
+    pub visibility: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -39383,8 +39500,10 @@ pub struct SocialProfileDto {
 pub struct SourceOriginDto {
     pub is_world_owned: bool,
     pub owner_id: String,
+    pub source_content_hash: String,
     pub source_id: String,
     pub source_kind: String,
+    pub source_ref: BTreeMap<String, String>,
     pub world_creator_id: String,
     pub world_id: String,
 }
@@ -39984,6 +40103,29 @@ pub struct RealmAddGroupParticipantOperationRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmAddGroupSourceParticipantOperationPath {
+    pub chat_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmAddGroupSourceParticipantOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmAddGroupSourceParticipantOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmAddGroupSourceParticipantOperationRequest {
+    pub path: RealmAddGroupSourceParticipantOperationPath,
+    pub query: RealmAddGroupSourceParticipantOperationQuery,
+    pub headers: RealmAddGroupSourceParticipantOperationHeaders,
+    pub body: AddGroupSourceParticipantInputDto,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmArchiveBundleOperationPath {
     pub bundle_id: String,
 }
@@ -40165,6 +40307,29 @@ pub struct RealmCloneAssetOperationRequest {
     pub query: RealmCloneAssetOperationQuery,
     pub headers: RealmCloneAssetOperationHeaders,
     pub body: CloneAssetDto,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmCommitRealmGroupSourceMessageCandidateOperationPath {
+    pub chat_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmCommitRealmGroupSourceMessageCandidateOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmCommitRealmGroupSourceMessageCandidateOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmCommitRealmGroupSourceMessageCandidateOperationRequest {
+    pub path: RealmCommitRealmGroupSourceMessageCandidateOperationPath,
+    pub query: RealmCommitRealmGroupSourceMessageCandidateOperationQuery,
+    pub headers: RealmCommitRealmGroupSourceMessageCandidateOperationHeaders,
+    pub body: CommitRealmGroupSourceMessageCandidateInputDto,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -40839,13 +41004,12 @@ pub struct RealmEconomyControllerGetSentGiftsOperationRequest {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmEconomyControllerGetSourceOriginOperationPath {
-    pub source_id: String,
-    pub source_kind: String,
+    pub source_ref: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmEconomyControllerGetSourceOriginOperationQuery {
-    pub source_world_id: Option<String>,
+
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -41032,9 +41196,7 @@ pub struct RealmEconomyControllerPreviewRevenueDistributionOperationPath {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmEconomyControllerPreviewRevenueDistributionOperationQuery {
     pub amount: Option<String>,
-    pub source_world_id: Option<String>,
-    pub source_id: Option<String>,
-    pub source_kind: Option<String>,
+    pub source_ref: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -42954,6 +43116,30 @@ pub struct RealmRemoveGroupParticipantOperationRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmRemoveGroupSourceParticipantOperationPath {
+    pub runtime_participant_slot_id: String,
+    pub chat_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmRemoveGroupSourceParticipantOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmRemoveGroupSourceParticipantOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmRemoveGroupSourceParticipantOperationRequest {
+    pub path: RealmRemoveGroupSourceParticipantOperationPath,
+    pub query: RealmRemoveGroupSourceParticipantOperationQuery,
+    pub headers: RealmRemoveGroupSourceParticipantOperationHeaders,
+    pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmReportControllerCreateReportOperationPath {
 
 }
@@ -43287,6 +43473,99 @@ pub struct RealmSendMessageOperationRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmSourceConnectionControllerConnectOperationPath {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmSourceConnectionControllerConnectOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmSourceConnectionControllerConnectOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmSourceConnectionControllerConnectOperationRequest {
+    pub path: RealmSourceConnectionControllerConnectOperationPath,
+    pub query: RealmSourceConnectionControllerConnectOperationQuery,
+    pub headers: RealmSourceConnectionControllerConnectOperationHeaders,
+    pub body: CreateRealmSourceConnectionDto,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmSourceConnectionControllerGetOperationPath {
+    pub id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmSourceConnectionControllerGetOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmSourceConnectionControllerGetOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmSourceConnectionControllerGetOperationRequest {
+    pub path: RealmSourceConnectionControllerGetOperationPath,
+    pub query: RealmSourceConnectionControllerGetOperationQuery,
+    pub headers: RealmSourceConnectionControllerGetOperationHeaders,
+    pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmSourceConnectionControllerListOperationPath {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmSourceConnectionControllerListOperationQuery {
+    pub kind: Option<String>,
+    pub status: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmSourceConnectionControllerListOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmSourceConnectionControllerListOperationRequest {
+    pub path: RealmSourceConnectionControllerListOperationPath,
+    pub query: RealmSourceConnectionControllerListOperationQuery,
+    pub headers: RealmSourceConnectionControllerListOperationHeaders,
+    pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmSourceConnectionControllerRemoveOperationPath {
+    pub id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmSourceConnectionControllerRemoveOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmSourceConnectionControllerRemoveOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmSourceConnectionControllerRemoveOperationRequest {
+    pub path: RealmSourceConnectionControllerRemoveOperationPath,
+    pub query: RealmSourceConnectionControllerRemoveOperationQuery,
+    pub headers: RealmSourceConnectionControllerRemoveOperationHeaders,
+    pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmStartChatOperationPath {
 
 }
@@ -43427,6 +43706,29 @@ pub struct RealmTransitControllerCompleteOperationRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmTransitControllerCreateTransitOperationPath {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmTransitControllerCreateTransitOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmTransitControllerCreateTransitOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmTransitControllerCreateTransitOperationRequest {
+    pub path: RealmTransitControllerCreateTransitOperationPath,
+    pub query: RealmTransitControllerCreateTransitOperationQuery,
+    pub headers: RealmTransitControllerCreateTransitOperationHeaders,
+    pub body: CreateTransitDto,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmTransitControllerGetActiveTransitOperationPath {
     pub runtime_source_ref: String,
 }
@@ -43482,7 +43784,6 @@ pub struct RealmTransitControllerListTransitsOperationQuery {
     pub transit_type: Option<String>,
     pub status: Option<String>,
     pub runtime_source_ref: Option<String>,
-    pub source_id: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -44196,7 +44497,8 @@ pub struct RealmWorldCoreControllerListRealmPersonasOperationPath {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmWorldCoreControllerListRealmPersonasOperationQuery {
-
+    pub take: Option<f64>,
+    pub visibility: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -44353,6 +44655,10 @@ where
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for addGroupParticipant");
     }
 
+    pub fn add_group_source_participant(&self, _request: RealmAddGroupSourceParticipantOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<GroupParticipantDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for addGroupSourceParticipant");
+    }
+
     pub fn archive_bundle(&self, _request: RealmArchiveBundleOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<BundleDetailDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for archiveBundle");
     }
@@ -44383,6 +44689,10 @@ where
 
     pub fn clone_asset(&self, _request: RealmCloneAssetOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AssetDetailDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for cloneAsset");
+    }
+
+    pub fn commit_realm_group_source_message_candidate(&self, _request: RealmCommitRealmGroupSourceMessageCandidateOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<RealmGroupMessageCandidateCommitResultDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for commitRealmGroupSourceMessageCandidate");
     }
 
     pub fn create_asset(&self, _request: RealmCreateAssetOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AssetDetailDto, T::Error> {
@@ -44861,6 +45171,10 @@ where
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for removeGroupParticipant");
     }
 
+    pub fn remove_group_source_participant(&self, _request: RealmRemoveGroupSourceParticipantOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for removeGroupSourceParticipant");
+    }
+
     pub fn report_controller_create_report(&self, _request: RealmReportControllerCreateReportOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<ReportResponseDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for ReportController_createReport");
     }
@@ -44913,6 +45227,22 @@ where
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for sendMessage");
     }
 
+    pub fn source_connection_controller_connect(&self, _request: RealmSourceConnectionControllerConnectOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<RealmSourceConnectionDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for SourceConnectionController_connect");
+    }
+
+    pub fn source_connection_controller_get(&self, _request: RealmSourceConnectionControllerGetOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<RealmSourceConnectionDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for SourceConnectionController_get");
+    }
+
+    pub fn source_connection_controller_list(&self, _request: RealmSourceConnectionControllerListOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<Vec<RealmSourceConnectionDto>, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for SourceConnectionController_list");
+    }
+
+    pub fn source_connection_controller_remove(&self, _request: RealmSourceConnectionControllerRemoveOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<RealmSourceConnectionDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for SourceConnectionController_remove");
+    }
+
     pub fn start_chat(&self, _request: RealmStartChatOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<StartChatResultDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for startChat");
     }
@@ -44935,6 +45265,10 @@ where
 
     pub fn transit_controller_complete(&self, _request: RealmTransitControllerCompleteOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<TransitDetailDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for TransitController_complete");
+    }
+
+    pub fn transit_controller_create_transit(&self, _request: RealmTransitControllerCreateTransitOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<TransitDetailDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for TransitController_createTransit");
     }
 
     pub fn transit_controller_get_active_transit(&self, _request: RealmTransitControllerGetActiveTransitOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<TransitDetailDto, T::Error> {

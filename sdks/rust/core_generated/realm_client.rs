@@ -26,6 +26,12 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         path: Some("/api/human/group-chats/{chatId}/participants"),
     },
     RealmOperationDescriptor {
+        operation_id: "addGroupSourceParticipant",
+        service: "Group Chats",
+        method: "POST",
+        path: Some("/api/human/group-chats/{chatId}/source-participants"),
+    },
+    RealmOperationDescriptor {
         operation_id: "archiveBundle",
         service: "Bundles",
         method: "POST",
@@ -72,6 +78,12 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         service: "Assets",
         method: "POST",
         path: Some("/api/assets/{assetId}/clone"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "commitRealmGroupSourceMessageCandidate",
+        service: "Group Chats",
+        method: "POST",
+        path: Some("/api/human/group-chats/{chatId}/source-message-candidate-commits"),
     },
     RealmOperationDescriptor {
         operation_id: "createAsset",
@@ -251,7 +263,7 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         operation_id: "EconomyController_getSourceOrigin",
         service: "Economy (Currency & Gifts)",
         method: "GET",
-        path: Some("/api/economy/revenue-share/source-origin/{sourceKind}/{sourceId}"),
+        path: Some("/api/economy/revenue-share/source-origin/{sourceRef}"),
     },
     RealmOperationDescriptor {
         operation_id: "EconomyController_getSparkHistory",
@@ -788,6 +800,12 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         path: Some("/api/human/group-chats/{chatId}/participants/{accountId}"),
     },
     RealmOperationDescriptor {
+        operation_id: "removeGroupSourceParticipant",
+        service: "Group Chats",
+        method: "DELETE",
+        path: Some("/api/human/group-chats/{chatId}/source-participants/{runtimeParticipantSlotId}"),
+    },
+    RealmOperationDescriptor {
         operation_id: "ReportController_createReport",
         service: "Governance",
         method: "POST",
@@ -866,6 +884,30 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         path: Some("/api/human/chats/{chatId}/messages"),
     },
     RealmOperationDescriptor {
+        operation_id: "SourceConnectionController_connect",
+        service: "Source Connections",
+        method: "POST",
+        path: Some("/api/human/source-connections"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "SourceConnectionController_get",
+        service: "Source Connections",
+        method: "GET",
+        path: Some("/api/human/source-connections/{id}"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "SourceConnectionController_list",
+        service: "Source Connections",
+        method: "GET",
+        path: Some("/api/human/source-connections"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "SourceConnectionController_remove",
+        service: "Source Connections",
+        method: "DELETE",
+        path: Some("/api/human/source-connections/{id}"),
+    },
+    RealmOperationDescriptor {
         operation_id: "startChat",
         service: "Human Chats",
         method: "POST",
@@ -900,6 +942,12 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         service: "Transits",
         method: "POST",
         path: Some("/api/world/transit/{id}/complete"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "TransitController_createTransit",
+        service: "Transits",
+        method: "POST",
+        path: Some("/api/world/transit"),
     },
     RealmOperationDescriptor {
         operation_id: "TransitController_getActiveTransit",
@@ -1049,7 +1097,7 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         operation_id: "WorldCoreController_bootstrapOasisWorld",
         service: "Realm Core",
         method: "POST",
-        path: Some("/api/realm/core/worlds/oasis/bootstrap"),
+        path: Some("/api/realm/core/oasis/bootstrap"),
     },
     RealmOperationDescriptor {
         operation_id: "WorldCoreController_createRealmPersona",
@@ -1079,7 +1127,7 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         operation_id: "WorldCoreController_getOasisWorld",
         service: "Realm Core",
         method: "GET",
-        path: Some("/api/realm/core/worlds/oasis"),
+        path: Some("/api/realm/core/oasis"),
     },
     RealmOperationDescriptor {
         operation_id: "WorldCoreController_getRealmPersona",

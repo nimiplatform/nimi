@@ -67,6 +67,14 @@ class AddGroupParticipantInputDto:
     accountId: str | None = None
 
 @dataclass(frozen=True)
+class AddGroupSourceParticipantInputDto:
+    avatarUrl: str | None = None
+    displayName: str | None = None
+    handle: str | None = None
+    runtimeSourceRef: str | None = None
+    sourceRef: GroupSourceRefDto | None = None
+
+@dataclass(frozen=True)
 class AppPermissionGrantDecisionDto:
     expectedVersion: float | None = None
     reason: str | None = None
@@ -379,6 +387,30 @@ class CloneAssetDto:
     usePolicy: UsePolicyDto | None = None
 
 @dataclass(frozen=True)
+class CommitRealmGroupSourceMessageCandidateInputDto:
+    auditLineageRef: str | None = None
+    body: str | None = None
+    bodyHash: str | None = None
+    candidateEvidenceRef: str | None = None
+    candidateId: str | None = None
+    candidateKind: Literal["REALM_GROUP_MESSAGE_CANDIDATE"] | None = None
+    commitDisposition: Literal["MESSAGE_CANDIDATE", "REFUSAL_CANDIDATE"] | None = None
+    createdAt: str | None = None
+    evidenceHash: str | None = None
+    expectedRuntimeParticipantSlotId: str | None = None
+    expectedRuntimeSourceRef: str | None = None
+    expiresAt: str | None = None
+    idempotencyKey: str | None = None
+    messageType: Literal["TEXT"] | None = None
+    outputCandidateRef: str | None = None
+    policyVerdictRef: str | None = None
+    refusalCode: str | None = None
+    refusalHash: str | None = None
+    refusalReason: str | None = None
+    runtimeTraceRef: str | None = None
+    triggerRef: str | None = None
+
+@dataclass(frozen=True)
 class ConnectDashboardLinkDto:
     url: str | None = None
 
@@ -466,6 +498,8 @@ class CreatePostAttachmentDto:
 class CreatePostDto:
     attachments: tuple[CreatePostAttachmentDto, ...] = field(default_factory=tuple)
     caption: str | None = None
+    runtimeSourceRef: str | None = None
+    sourceRef: PostSourceRefDto | None = None
     tags: tuple[str, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
@@ -474,6 +508,11 @@ class CreateRealmPersonaDto:
     homeWorldId: str | None = None
     id: str | None = None
     origin: RealmCoreOriginDto | None = None
+    visibility: Literal["private", "unlisted", "public", "system"] | None = None
+
+@dataclass(frozen=True)
+class CreateRealmSourceConnectionDto:
+    sourceRef: RelationshipSourceRefDto | None = None
 
 @dataclass(frozen=True)
 class CreateRelationshipDto:
@@ -536,6 +575,14 @@ class CreateTextResourceDto:
     traceId: str | None = None
     width: float | None = None
     worldId: str | None = None
+
+@dataclass(frozen=True)
+class CreateTransitDto:
+    context: TransitContextDto | None = None
+    fromWorldId: str | None = None
+    sourceRef: TypedSourceRefDto | None = None
+    toWorldId: str | None = None
+    transitType: Literal["INBOUND", "OUTBOUND"] | None = None
 
 @dataclass(frozen=True)
 class CreateWithdrawalDto:
@@ -753,7 +800,10 @@ class GroupMessageAuthorDto:
     accountId: str | None = None
     avatarUrl: str | None = None
     displayName: str | None = None
+    runtimeParticipantSlot: str | None = None
+    runtimeSourceRef: str | None = None
     sourceOwnerId: str | None = None
+    sourceRef: GroupSourceRefDto | None = None
     type: Literal["human", "source"] | None = None
 
 @dataclass(frozen=True)
@@ -783,8 +833,15 @@ class GroupParticipantDto:
     runtimeParticipantSlot: str | None = None
     runtimeSourceRef: str | None = None
     sourceOwnerId: str | None = None
-    sourceRef: str | None = None
+    sourceRef: GroupSourceRefDto | None = None
     type: Literal["human", "source"] | None = None
+
+@dataclass(frozen=True)
+class GroupSourceRefDto:
+    kind: Literal["worldCharacter", "realmPersona"] | None = None
+    sourceContentHash: str | None = None
+    sourceId: str | None = None
+    worldId: str | None = None
 
 @dataclass(frozen=True)
 class HandleAvailabilityDto:
@@ -1058,15 +1115,38 @@ class PostDto:
     attachments: tuple[PostAttachmentDto, ...] = field(default_factory=tuple)
     author: UserLiteDto | None = None
     authorId: str | None = None
+    authorKind: Literal["human", "worldCharacter", "realmPersona"] | None = None
     caption: str | None = None
     contentRating: ContentRatingString | None = None
     createdAt: str | None = None
     id: str | None = None
     likedByCurrentUser: bool | None = None
     moderationStatus: ModerationStatusString | None = None
+    runtimeSourceRef: str | None = None
+    sourceAuthor: PostSourceAuthorDto | None = None
+    sourceRef: PostSourceRefDto | None = None
     tags: tuple[str, ...] = field(default_factory=tuple)
     updatedAt: str | None = None
     visibility: Visibility | None = None
+    worldId: str | None = None
+
+@dataclass(frozen=True)
+class PostSourceAuthorDto:
+    avatarUrl: str | None = None
+    displayName: str | None = None
+    handle: str | None = None
+    id: str | None = None
+    kind: Literal["worldCharacter", "realmPersona"] | None = None
+    ownerUserId: str | None = None
+    runtimeSourceRef: str | None = None
+    sourceRef: PostSourceRefDto | None = None
+    worldId: str | None = None
+
+@dataclass(frozen=True)
+class PostSourceRefDto:
+    kind: Literal["worldCharacter", "realmPersona"] | None = None
+    sourceContentHash: str | None = None
+    sourceId: str | None = None
     worldId: str | None = None
 
 PresenceStatus = Literal["online", "invisible"]
@@ -1094,6 +1174,12 @@ class RealmCoreOriginDto:
     sourceVersion: str | None = None
 
 @dataclass(frozen=True)
+class RealmGroupMessageCandidateCommitResultDto:
+    candidateId: str | None = None
+    message: GroupMessageViewDto | None = None
+    status: Literal["committed", "duplicate"] | None = None
+
+@dataclass(frozen=True)
 class RealmPersonaDto:
     contentHash: str | None = None
     contentRevision: float | None = None
@@ -1105,12 +1191,25 @@ class RealmPersonaDto:
     ownerId: str | None = None
     schemaVersion: str | None = None
     updatedAt: str | None = None
+    visibility: Literal["private", "unlisted", "public", "system"] | None = None
 
 @dataclass(frozen=True)
 class RealmSourceCapabilitiesDto:
     canCreateRealmPersona: bool | None = None
     canCreateRuntimeSourceSnapshot: bool | None = None
     canUseWorldCharacterSources: bool | None = None
+
+@dataclass(frozen=True)
+class RealmSourceConnectionDto:
+    connectedAt: str | None = None
+    createdAt: str | None = None
+    id: str | None = None
+    ownerUserId: str | None = None
+    removedAt: str | None = None
+    runtimeSourceRef: str | None = None
+    sourceRef: RelationshipSourceRefDto | None = None
+    status: Literal["active", "removed"] | None = None
+    updatedAt: str | None = None
 
 @dataclass(frozen=True)
 class ReceivedGiftsResponseDto:
@@ -1136,12 +1235,20 @@ class RelationshipResponseDto:
     type: AccountRelationType | None = None
 
 @dataclass(frozen=True)
+class RelationshipSourceRefDto:
+    kind: Literal["worldCharacter", "realmPersona"] | None = None
+    sourceContentHash: str | None = None
+    sourceId: str | None = None
+    worldId: str | None = None
+
+@dataclass(frozen=True)
 class ReplaceRealmPersonaDto:
     baseContentHash: str | None = None
     core: Mapping[str, object] = field(default_factory=dict)
     homeWorldId: str | None = None
     id: str | None = None
     origin: RealmCoreOriginDto | None = None
+    visibility: Literal["private", "unlisted", "public", "system"] | None = None
 
 @dataclass(frozen=True)
 class ReplaceWorldCharacterCoreDto:
@@ -1318,8 +1425,10 @@ class SocialProfileDto:
 class SourceOriginDto:
     isWorldOwned: bool | None = None
     ownerId: str | None = None
+    sourceContentHash: str | None = None
     sourceId: str | None = None
     sourceKind: Literal["worldCharacter", "realmPersona"] | None = None
+    sourceRef: Mapping[str, object] = field(default_factory=dict)
     worldCreatorId: str | None = None
     worldId: str | None = None
 
@@ -1862,6 +1971,28 @@ class RealmAddGroupParticipantOperationRequest:
     body: AddGroupParticipantInputDto | None = None
 
 @dataclass(frozen=True)
+class RealmAddGroupSourceParticipantOperationPath:
+    chatId: str
+
+
+@dataclass(frozen=True)
+class RealmAddGroupSourceParticipantOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmAddGroupSourceParticipantOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmAddGroupSourceParticipantOperationRequest:
+    path: RealmAddGroupSourceParticipantOperationPath
+    query: RealmAddGroupSourceParticipantOperationQuery | None = None
+    headers: RealmAddGroupSourceParticipantOperationHeaders | None = None
+    body: AddGroupSourceParticipantInputDto | None = None
+
+@dataclass(frozen=True)
 class RealmArchiveBundleOperationPath:
     bundleId: str
 
@@ -2036,6 +2167,28 @@ class RealmCloneAssetOperationRequest:
     query: RealmCloneAssetOperationQuery | None = None
     headers: RealmCloneAssetOperationHeaders | None = None
     body: CloneAssetDto | None = None
+
+@dataclass(frozen=True)
+class RealmCommitRealmGroupSourceMessageCandidateOperationPath:
+    chatId: str
+
+
+@dataclass(frozen=True)
+class RealmCommitRealmGroupSourceMessageCandidateOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmCommitRealmGroupSourceMessageCandidateOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmCommitRealmGroupSourceMessageCandidateOperationRequest:
+    path: RealmCommitRealmGroupSourceMessageCandidateOperationPath
+    query: RealmCommitRealmGroupSourceMessageCandidateOperationQuery | None = None
+    headers: RealmCommitRealmGroupSourceMessageCandidateOperationHeaders | None = None
+    body: CommitRealmGroupSourceMessageCandidateInputDto | None = None
 
 @dataclass(frozen=True)
 class RealmCreateAssetOperationPath:
@@ -2680,13 +2833,12 @@ class RealmEconomyControllerGetSentGiftsOperationRequest:
 
 @dataclass(frozen=True)
 class RealmEconomyControllerGetSourceOriginOperationPath:
-    sourceId: str
-    sourceKind: Literal["worldCharacter", "realmPersona"]
+    sourceRef: str
 
 
 @dataclass(frozen=True)
 class RealmEconomyControllerGetSourceOriginOperationQuery:
-    sourceWorldId: str | None = None
+    pass
 
 
 @dataclass(frozen=True)
@@ -2865,9 +3017,7 @@ class RealmEconomyControllerPreviewRevenueDistributionOperationPath:
 @dataclass(frozen=True)
 class RealmEconomyControllerPreviewRevenueDistributionOperationQuery:
     amount: str | None = None
-    sourceWorldId: str | None = None
-    sourceId: str | None = None
-    sourceKind: Literal["worldCharacter", "realmPersona"] | None = None
+    sourceRef: str | None = None
 
 
 @dataclass(frozen=True)
@@ -4705,6 +4855,29 @@ class RealmRemoveGroupParticipantOperationRequest:
     body: None | None = None
 
 @dataclass(frozen=True)
+class RealmRemoveGroupSourceParticipantOperationPath:
+    runtimeParticipantSlotId: str
+    chatId: str
+
+
+@dataclass(frozen=True)
+class RealmRemoveGroupSourceParticipantOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmRemoveGroupSourceParticipantOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmRemoveGroupSourceParticipantOperationRequest:
+    path: RealmRemoveGroupSourceParticipantOperationPath
+    query: RealmRemoveGroupSourceParticipantOperationQuery | None = None
+    headers: RealmRemoveGroupSourceParticipantOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
 class RealmReportControllerCreateReportOperationPath:
     pass
 
@@ -5025,6 +5198,95 @@ class RealmSendMessageOperationRequest:
     body: SendMessageInputDto | None = None
 
 @dataclass(frozen=True)
+class RealmSourceConnectionControllerConnectOperationPath:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmSourceConnectionControllerConnectOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmSourceConnectionControllerConnectOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmSourceConnectionControllerConnectOperationRequest:
+    path: RealmSourceConnectionControllerConnectOperationPath
+    query: RealmSourceConnectionControllerConnectOperationQuery | None = None
+    headers: RealmSourceConnectionControllerConnectOperationHeaders | None = None
+    body: CreateRealmSourceConnectionDto | None = None
+
+@dataclass(frozen=True)
+class RealmSourceConnectionControllerGetOperationPath:
+    id: str
+
+
+@dataclass(frozen=True)
+class RealmSourceConnectionControllerGetOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmSourceConnectionControllerGetOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmSourceConnectionControllerGetOperationRequest:
+    path: RealmSourceConnectionControllerGetOperationPath
+    query: RealmSourceConnectionControllerGetOperationQuery | None = None
+    headers: RealmSourceConnectionControllerGetOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
+class RealmSourceConnectionControllerListOperationPath:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmSourceConnectionControllerListOperationQuery:
+    kind: Literal["worldCharacter", "realmPersona"] | None = None
+    status: Literal["active", "removed"] | None = None
+
+
+@dataclass(frozen=True)
+class RealmSourceConnectionControllerListOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmSourceConnectionControllerListOperationRequest:
+    path: RealmSourceConnectionControllerListOperationPath
+    query: RealmSourceConnectionControllerListOperationQuery | None = None
+    headers: RealmSourceConnectionControllerListOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
+class RealmSourceConnectionControllerRemoveOperationPath:
+    id: str
+
+
+@dataclass(frozen=True)
+class RealmSourceConnectionControllerRemoveOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmSourceConnectionControllerRemoveOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmSourceConnectionControllerRemoveOperationRequest:
+    path: RealmSourceConnectionControllerRemoveOperationPath
+    query: RealmSourceConnectionControllerRemoveOperationQuery | None = None
+    headers: RealmSourceConnectionControllerRemoveOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
 class RealmStartChatOperationPath:
     pass
 
@@ -5159,6 +5421,28 @@ class RealmTransitControllerCompleteOperationRequest:
     body: None | None = None
 
 @dataclass(frozen=True)
+class RealmTransitControllerCreateTransitOperationPath:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmTransitControllerCreateTransitOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmTransitControllerCreateTransitOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmTransitControllerCreateTransitOperationRequest:
+    path: RealmTransitControllerCreateTransitOperationPath
+    query: RealmTransitControllerCreateTransitOperationQuery | None = None
+    headers: RealmTransitControllerCreateTransitOperationHeaders | None = None
+    body: CreateTransitDto | None = None
+
+@dataclass(frozen=True)
 class RealmTransitControllerGetActiveTransitOperationPath:
     runtimeSourceRef: str
 
@@ -5212,7 +5496,6 @@ class RealmTransitControllerListTransitsOperationQuery:
     transitType: str | None = None
     status: str | None = None
     runtimeSourceRef: str | None = None
-    sourceId: str | None = None
 
 
 @dataclass(frozen=True)
@@ -5895,7 +6178,8 @@ class RealmWorldCoreControllerListRealmPersonasOperationPath:
 
 @dataclass(frozen=True)
 class RealmWorldCoreControllerListRealmPersonasOperationQuery:
-    pass
+    take: float | None = None
+    visibility: Literal["private", "unlisted", "public", "system"] | None = None
 
 
 @dataclass(frozen=True)
@@ -6046,6 +6330,16 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="addGroupParticipant", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GroupParticipantDto, raw)
 
+    async def add_group_source_participant(self, request: RealmAddGroupSourceParticipantOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmAddGroupSourceParticipantOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="addGroupSourceParticipant", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(GroupParticipantDto, raw)
+
     async def archive_bundle(self, request: RealmArchiveBundleOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmArchiveBundleOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
@@ -6125,6 +6419,16 @@ class RealmTypedClient:
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="cloneAsset", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(AssetDetailDto, raw)
+
+    async def commit_realm_group_source_message_candidate(self, request: RealmCommitRealmGroupSourceMessageCandidateOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmCommitRealmGroupSourceMessageCandidateOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="commitRealmGroupSourceMessageCandidate", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(RealmGroupMessageCandidateCommitResultDto, raw)
 
     async def create_asset(self, request: RealmCreateAssetOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmCreateAssetOperationResponse:
         envelope: dict[str, object] = {
@@ -7316,6 +7620,16 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="removeGroupParticipant", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(None, raw)
 
+    async def remove_group_source_participant(self, request: RealmRemoveGroupSourceParticipantOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmRemoveGroupSourceParticipantOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="removeGroupSourceParticipant", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(None, raw)
+
     async def report_controller_create_report(self, request: RealmReportControllerCreateReportOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmReportControllerCreateReportOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
@@ -7446,6 +7760,46 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="sendMessage", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(MessageViewDto, raw)
 
+    async def source_connection_controller_connect(self, request: RealmSourceConnectionControllerConnectOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmSourceConnectionControllerConnectOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="SourceConnectionController_connect", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(RealmSourceConnectionDto, raw)
+
+    async def source_connection_controller_get(self, request: RealmSourceConnectionControllerGetOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmSourceConnectionControllerGetOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="SourceConnectionController_get", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(RealmSourceConnectionDto, raw)
+
+    async def source_connection_controller_list(self, request: RealmSourceConnectionControllerListOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmSourceConnectionControllerListOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="SourceConnectionController_list", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(tuple[RealmSourceConnectionDto, ...], raw)
+
+    async def source_connection_controller_remove(self, request: RealmSourceConnectionControllerRemoveOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmSourceConnectionControllerRemoveOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="SourceConnectionController_remove", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(RealmSourceConnectionDto, raw)
+
     async def start_chat(self, request: RealmStartChatOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmStartChatOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
@@ -7504,6 +7858,16 @@ class RealmTypedClient:
             "body": _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="TransitController_complete", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(TransitDetailDto, raw)
+
+    async def transit_controller_create_transit(self, request: RealmTransitControllerCreateTransitOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmTransitControllerCreateTransitOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="TransitController_createTransit", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(TransitDetailDto, raw)
 
     async def transit_controller_get_active_transit(self, request: RealmTransitControllerGetActiveTransitOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmTransitControllerGetActiveTransitOperationResponse:

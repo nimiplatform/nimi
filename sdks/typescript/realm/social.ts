@@ -1,12 +1,14 @@
 import type {
   AddFriendBodyDto,
   BlockUserBodyDto,
+  CreateRealmSourceConnectionDto,
   CreatePostDto,
   CreateReportDto,
   FeedPageMetaDto,
   FeedResponseDto,
   FriendProfileDto,
   PostDto,
+  RealmSourceConnectionDto,
   RealmTypedCallOptions,
   ReportResponseDto,
   UpdatePostDto,
@@ -22,8 +24,10 @@ import type {
   NimiRealmSocialContactRecord,
   NimiRealmSocialContactSnapshot,
   NimiRealmSocialDataErrorEmitter,
+  NimiRealmCoreSourceRef,
   NimiRealmSocialMutationExecutionInput,
   NimiRealmSocialProfileView,
+  NimiRealmSourceConnectionView,
 } from './social-types';
 
 export type {
@@ -34,9 +38,11 @@ export type {
   NimiRealmSocialContactRecord,
   NimiRealmSocialContactSnapshot,
   NimiRealmSocialDataErrorEmitter,
+  NimiRealmCoreSourceRef,
   NimiRealmSocialMutationExecutionInput,
   NimiRealmSocialMutationKind,
   NimiRealmSocialProfileView,
+  NimiRealmSourceConnectionView,
 } from './social-types';
 
 type PendingRequestMapValue = {
@@ -335,6 +341,86 @@ export async function loadNimiRealmUserProfileById(
     return await realm.generated.getUser({ path: { id: normalizedId } }, options) as unknown as NimiRealmSocialProfileView;
   } catch (error) {
     emitRealmDataError('load-user-profile', error, { id: normalizedId });
+    throw error;
+  }
+}
+
+function requireNimiRealmCoreSourceRef(input: unknown): NimiRealmCoreSourceRef {
+  const sourceRef = toRecord(input);
+  if (!sourceRef) {
+    throw socialError({
+      reasonCode: 'SDK_REALM_SOURCE_REF_REQUIRED',
+      message: 'Realm sourceRef is required.',
+      actionHint: 'provide_hash_bearing_realm_source_ref',
+    });
+  }
+  const kind = requireText(sourceRef.kind, {
+    reasonCode: 'SDK_REALM_SOURCE_KIND_REQUIRED',
+    message: 'Realm sourceRef.kind is required.',
+    actionHint: 'provide_world_character_or_realm_persona_source_kind',
+  });
+  if (kind !== 'worldCharacter' && kind !== 'realmPersona') {
+    throw socialError({
+      reasonCode: 'SDK_REALM_SOURCE_KIND_UNSUPPORTED',
+      message: 'Realm sourceRef.kind is not supported.',
+      actionHint: 'use_world_character_or_realm_persona_source_kind',
+      details: { kind },
+    });
+  }
+  return {
+    kind,
+    worldId: requireText(sourceRef.worldId, {
+      reasonCode: 'SDK_REALM_SOURCE_WORLD_ID_REQUIRED',
+      message: 'Realm sourceRef.worldId is required.',
+      actionHint: 'provide_realm_source_world_id',
+    }),
+    sourceId: requireText(sourceRef.sourceId, {
+      reasonCode: 'SDK_REALM_SOURCE_ID_REQUIRED',
+      message: 'Realm sourceRef.sourceId is required.',
+      actionHint: 'provide_realm_source_id',
+    }),
+    sourceContentHash: requireText(sourceRef.sourceContentHash, {
+      reasonCode: 'SDK_REALM_SOURCE_CONTENT_HASH_REQUIRED',
+      message: 'Realm sourceRef.sourceContentHash is required.',
+      actionHint: 'provide_current_realm_source_content_hash',
+    }),
+  };
+}
+
+export async function connectNimiRealmSource(
+  realm: Pick<NimiRealmSocialApi, 'generated'>,
+  emitRealmDataError: NimiRealmSocialDataErrorEmitter,
+  sourceRefInput: unknown,
+  options?: RealmTypedCallOptions,
+): Promise<NimiRealmSourceConnectionView> {
+  const sourceRef = requireNimiRealmCoreSourceRef(sourceRefInput);
+  const body: CreateRealmSourceConnectionDto = { sourceRef };
+  const sourceRefDetails: JsonObject = {
+    kind: sourceRef.kind,
+    worldId: sourceRef.worldId,
+    sourceId: sourceRef.sourceId,
+    sourceContentHash: sourceRef.sourceContentHash,
+  };
+  try {
+    return await realm.generated.sourceConnectionControllerConnect({ path: {}, body }, options);
+  } catch (error) {
+    emitRealmDataError('connect-source', error, { sourceRef: sourceRefDetails });
+    throw error;
+  }
+}
+
+export async function listNimiRealmSourceConnections(
+  realm: Pick<NimiRealmSocialApi, 'generated'>,
+  emitRealmDataError: NimiRealmSocialDataErrorEmitter,
+  options?: RealmTypedCallOptions,
+): Promise<readonly RealmSourceConnectionDto[]> {
+  try {
+    return await realm.generated.sourceConnectionControllerList({
+      path: {},
+      query: { status: 'active' },
+    }, options);
+  } catch (error) {
+    emitRealmDataError('list-source-connections', error);
     throw error;
   }
 }

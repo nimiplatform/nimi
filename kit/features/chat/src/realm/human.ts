@@ -24,7 +24,10 @@ export function isRealmDirectHumanChat(chat: unknown): chat is RealmChatViewDto 
     return false;
   }
   const sourceLike = chat as { sourceRef?: unknown; runtimeSourceRef?: unknown };
-  if (typeof sourceLike.sourceRef === 'string' || typeof sourceLike.runtimeSourceRef === 'string') {
+  if (sourceLike.sourceRef !== null && sourceLike.sourceRef !== undefined) {
+    return false;
+  }
+  if (sourceLike.runtimeSourceRef !== null && sourceLike.runtimeSourceRef !== undefined) {
     return false;
   }
   const otherUser = (chat as { otherUser?: unknown }).otherUser;

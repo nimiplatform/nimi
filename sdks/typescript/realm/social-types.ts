@@ -1,5 +1,7 @@
 import type {
+  CreateRealmSourceConnectionDto,
   RealmTypedClient,
+  RealmSourceConnectionDto,
   UserProfileDto,
 } from '../core-generated/realm-typed-client';
 import type { JsonObject } from '../types';
@@ -32,6 +34,8 @@ export interface NimiRealmPendingFriendRequestListDto {
 }
 
 export type NimiRealmSocialProfileView = JsonObject & Partial<UserProfileDto>;
+export type NimiRealmCoreSourceRef = CreateRealmSourceConnectionDto['sourceRef'];
+export type NimiRealmSourceConnectionView = RealmSourceConnectionDto;
 
 export interface NimiRealmSocialApi {
   readonly account: Pick<RealmTypedClient, 'getMe' | 'updateMe'>;
@@ -50,6 +54,10 @@ export interface NimiRealmSocialApi {
     | 'listLikedPosts'
     | 'listMyFriendsWithDetails'
     | 'reportControllerCreateReport'
+    | 'sourceConnectionControllerConnect'
+    | 'sourceConnectionControllerGet'
+    | 'sourceConnectionControllerList'
+    | 'sourceConnectionControllerRemove'
     | 'unlikePost'
     | 'updatePost'
   >;

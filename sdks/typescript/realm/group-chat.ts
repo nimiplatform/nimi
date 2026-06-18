@@ -1,7 +1,10 @@
 import type {
   AddGroupParticipantInputDto,
+  AddGroupSourceParticipantInputDto,
   ChatSyncResultDto,
+  CommitRealmGroupSourceMessageCandidateInputDto,
   CreateGroupInputDto,
+  GroupSourceRefDto,
   GroupChatViewDto,
   GroupMessageViewDto,
   GroupParticipantDto,
@@ -11,6 +14,7 @@ import type {
   RealmTypedCallOptions,
   RealmTypedClient,
   SendMessageInputDto,
+  RealmGroupMessageCandidateCommitResultDto,
   UpdateGroupInputDto,
   UpdateParticipantRoleInputDto,
 } from '../core-generated/realm-typed-client';
@@ -27,11 +31,17 @@ export type NimiRealmGroupParticipantRoleInput = UpdateParticipantRoleInputDto;
 export type NimiRealmGroupSendMessageInput = SendMessageInputDto;
 export type NimiRealmGroupChatSyncResult = ChatSyncResultDto;
 export type NimiRealmGroupMessageType = MessageType;
+export type NimiRealmGroupSourceRef = GroupSourceRefDto;
+export type NimiRealmGroupSourceParticipantInput = AddGroupSourceParticipantInputDto;
+export type NimiRealmGroupMessageCandidateCommitInput = CommitRealmGroupSourceMessageCandidateInputDto;
+export type NimiRealmGroupMessageCandidateCommitResult = RealmGroupMessageCandidateCommitResultDto;
 
 export interface NimiRealmGroupChatApi {
   readonly groupChat: Pick<
     RealmTypedClient,
     | 'addGroupParticipant'
+    | 'addGroupSourceParticipant'
+    | 'commitRealmGroupSourceMessageCandidate'
     | 'createGroup'
     | 'editGroupMessage'
     | 'getGroup'
@@ -40,6 +50,7 @@ export interface NimiRealmGroupChatApi {
     | 'markGroupRead'
     | 'recallGroupMessage'
     | 'removeGroupParticipant'
+    | 'removeGroupSourceParticipant'
     | 'sendGroupMessage'
     | 'syncGroupEvents'
     | 'updateGroup'
@@ -85,6 +96,18 @@ function requireAccountId(accountId: unknown): string {
       reasonCode: 'SDK_REALM_GROUP_ACCOUNT_ID_REQUIRED',
       message: 'Realm group participant account id is required.',
       actionHint: 'provide_realm_group_account_id',
+    });
+  }
+  return normalized;
+}
+
+function requireRuntimeParticipantSlot(runtimeParticipantSlot: unknown): string {
+  const normalized = normalizeString(runtimeParticipantSlot);
+  if (!normalized) {
+    fail({
+      reasonCode: 'SDK_REALM_GROUP_RUNTIME_PARTICIPANT_SLOT_REQUIRED',
+      message: 'Realm group runtime participant slot id is required.',
+      actionHint: 'provide_runtime_participant_slot',
     });
   }
   return normalized;
@@ -273,6 +296,30 @@ export async function addNimiRealmGroupParticipant(
   }, options);
 }
 
+export async function addNimiRealmGroupSourceParticipant(
+  realm: NimiRealmGroupChatApi,
+  chatId: unknown,
+  input: NimiRealmGroupSourceParticipantInput,
+  options?: RealmTypedCallOptions,
+): Promise<NimiRealmGroupParticipant> {
+  return realm.groupChat.addGroupSourceParticipant({
+    path: { chatId: requireRealmGroupChatId(chatId) },
+    body: input,
+  }, options);
+}
+
+export async function commitNimiRealmGroupSourceMessageCandidate(
+  realm: NimiRealmGroupChatApi,
+  chatId: unknown,
+  input: NimiRealmGroupMessageCandidateCommitInput,
+  options?: RealmTypedCallOptions,
+): Promise<NimiRealmGroupMessageCandidateCommitResult> {
+  return realm.groupChat.commitRealmGroupSourceMessageCandidate({
+    path: { chatId: requireRealmGroupChatId(chatId) },
+    body: input,
+  }, options);
+}
+
 export async function removeNimiRealmGroupParticipant(
   realm: NimiRealmGroupChatApi,
   chatId: unknown,
@@ -283,6 +330,20 @@ export async function removeNimiRealmGroupParticipant(
     path: {
       chatId: requireRealmGroupChatId(chatId),
       accountId: requireAccountId(accountId),
+    },
+  }, options);
+}
+
+export async function removeNimiRealmGroupSourceParticipant(
+  realm: NimiRealmGroupChatApi,
+  chatId: unknown,
+  runtimeParticipantSlot: unknown,
+  options?: RealmTypedCallOptions,
+): Promise<void> {
+  await realm.groupChat.removeGroupSourceParticipant({
+    path: {
+      chatId: requireRealmGroupChatId(chatId),
+      runtimeParticipantSlotId: requireRuntimeParticipantSlot(runtimeParticipantSlot),
     },
   }, options);
 }

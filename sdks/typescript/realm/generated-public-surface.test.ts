@@ -12,7 +12,9 @@ test('realm generated public barrel does not expose raw descriptor client surfac
   assert.equal('REALM_OPERATIONS' in realmGenerated, false);
   assert.equal('REALM_OPERATION_BY_ID' in realmGenerated, false);
   assert.equal('RealmTypedClient' in realmGenerated, true);
-  assert.equal(REALM_OPERATION_BY_ID.has('commitRealmGroupMessageCandidate'), false);
+  assert.equal(REALM_OPERATION_BY_ID.has('commitRealmGroupSourceMessageCandidate'), true);
+  assert.equal(REALM_OPERATION_BY_ID.has('addGroupSourceParticipant'), true);
+  assert.equal(REALM_OPERATION_BY_ID.has('removeGroupSourceParticipant'), true);
   assert.equal(REALM_OPERATION_BY_ID.has(oldAddGroupSourceOperation), false);
   assert.equal(REALM_OPERATION_BY_ID.has(oldRemoveGroupSourceOperation), false);
 });

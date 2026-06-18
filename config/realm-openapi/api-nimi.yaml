@@ -90,6 +90,22 @@ components:
       required:
         - accountId
       type: object
+    AddGroupSourceParticipantInputDto:
+      properties:
+        avatarUrl:
+          type: string
+        displayName:
+          type: string
+        handle:
+          type: string
+        runtimeSourceRef:
+          type: string
+        sourceRef:
+          $ref: '#/components/schemas/GroupSourceRefDto'
+      required:
+        - sourceRef
+        - runtimeSourceRef
+      type: object
     AppPermissionGrantDecisionDto:
       properties:
         expectedVersion:
@@ -964,6 +980,76 @@ components:
           nullable: true
           type: object
       type: object
+    CommitRealmGroupSourceMessageCandidateInputDto:
+      properties:
+        auditLineageRef:
+          type: string
+        body:
+          type: string
+        bodyHash:
+          type: string
+        candidateEvidenceRef:
+          type: string
+        candidateId:
+          type: string
+        candidateKind:
+          enum:
+            - REALM_GROUP_MESSAGE_CANDIDATE
+          type: string
+        commitDisposition:
+          enum:
+            - MESSAGE_CANDIDATE
+            - REFUSAL_CANDIDATE
+          type: string
+        createdAt:
+          format: date-time
+          type: string
+        evidenceHash:
+          type: string
+        expectedRuntimeParticipantSlotId:
+          type: string
+        expectedRuntimeSourceRef:
+          type: string
+        expiresAt:
+          format: date-time
+          type: string
+        idempotencyKey:
+          type: string
+        messageType:
+          enum:
+            - TEXT
+          type: string
+        outputCandidateRef:
+          type: string
+        policyVerdictRef:
+          type: string
+        refusalCode:
+          type: string
+        refusalHash:
+          type: string
+        refusalReason:
+          type: string
+        runtimeTraceRef:
+          type: string
+        triggerRef:
+          type: string
+      required:
+        - candidateId
+        - candidateKind
+        - candidateEvidenceRef
+        - evidenceHash
+        - runtimeTraceRef
+        - expectedRuntimeParticipantSlotId
+        - expectedRuntimeSourceRef
+        - triggerRef
+        - outputCandidateRef
+        - auditLineageRef
+        - policyVerdictRef
+        - createdAt
+        - expiresAt
+        - commitDisposition
+        - idempotencyKey
+      type: object
     ConnectDashboardLinkDto:
       properties:
         url:
@@ -1200,6 +1286,10 @@ components:
           type: array
         caption:
           type: string
+        runtimeSourceRef:
+          type: string
+        sourceRef:
+          $ref: '#/components/schemas/PostSourceRefDto'
         tags:
           items:
             type: string
@@ -1210,7 +1300,246 @@ components:
     CreateRealmPersonaDto:
       properties:
         core:
-          additionalProperties: true
+          additionalProperties: false
+          properties:
+            assets:
+              additionalProperties: false
+              properties:
+                externalRefs:
+                  items:
+                    additionalProperties: false
+                    properties:
+                      kind:
+                        minLength: 1
+                        type: string
+                      label:
+                        type: string
+                      purpose:
+                        type: string
+                      refId:
+                        minLength: 1
+                        type: string
+                      uri:
+                        minLength: 1
+                        type: string
+                    required:
+                      - refId
+                      - kind
+                      - uri
+                    type: object
+                  type: array
+                intents:
+                  items:
+                    additionalProperties: false
+                    properties:
+                      intentId:
+                        minLength: 1
+                        type: string
+                      kind:
+                        minLength: 1
+                        type: string
+                      summary:
+                        type: string
+                    required:
+                      - intentId
+                      - kind
+                    type: object
+                  type: array
+                resourceRefs:
+                  items:
+                    additionalProperties: false
+                    properties:
+                      kind:
+                        minLength: 1
+                        type: string
+                      label:
+                        type: string
+                      purpose:
+                        type: string
+                      refId:
+                        minLength: 1
+                        type: string
+                    required:
+                      - refId
+                      - kind
+                    type: object
+                  type: array
+              required:
+                - resourceRefs
+                - intents
+              type: object
+            authoring:
+              additionalProperties: false
+              properties:
+                extensions:
+                  additionalProperties: true
+                  type: object
+                maintainers:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                notes:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                review:
+                  additionalProperties: false
+                  properties:
+                    reviewedAt:
+                      type: string
+                    reviewedBy:
+                      type: string
+                    status:
+                      minLength: 1
+                      type: string
+                  required:
+                    - status
+                  type: object
+                source:
+                  minLength: 1
+                  type: string
+              required:
+                - source
+              type: object
+            contentProfile:
+              additionalProperties: false
+              properties:
+                boundaries:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                guidelines:
+                  items:
+                    additionalProperties: false
+                    properties:
+                      guidelineId:
+                        minLength: 1
+                        type: string
+                      source:
+                        type: string
+                      statement:
+                        minLength: 1
+                        type: string
+                    required:
+                      - guidelineId
+                      - statement
+                    type: object
+                  type: array
+                topics:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+              required:
+                - topics
+                - boundaries
+                - guidelines
+              type: object
+            identity:
+              additionalProperties: false
+              properties:
+                aliases:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                concept:
+                  type: string
+                handle:
+                  minLength: 1
+                  type: string
+                name:
+                  minLength: 1
+                  type: string
+                summary:
+                  minLength: 1
+                  type: string
+              required:
+                - handle
+                - name
+                - summary
+              type: object
+            interactionProfile:
+              additionalProperties: false
+              properties:
+                dialogueExemplars:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                greeting:
+                  type: string
+                greetingVariants:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                homeWorldId:
+                  minLength: 1
+                  type: string
+                interactionModes:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                scenario:
+                  type: string
+              required:
+                - homeWorldId
+                - interactionModes
+              type: object
+            personaStyle:
+              additionalProperties: false
+              properties:
+                archetype:
+                  minLength: 1
+                  type: string
+                communicationStyle:
+                  type: string
+                dialogueExemplars:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                pacing:
+                  minLength: 1
+                  type: string
+                traits:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                voice:
+                  minLength: 1
+                  type: string
+              required:
+                - archetype
+                - traits
+                - voice
+                - pacing
+              type: object
+            presentation:
+              additionalProperties: false
+              properties:
+                avatarResourceRef:
+                  type: string
+                displayName:
+                  minLength: 1
+                  type: string
+                profileCoverResourceRef:
+                  type: string
+                profileLine:
+                  minLength: 1
+                  type: string
+                shortBio:
+                  type: string
+              required:
+                - displayName
+                - profileLine
+              type: object
           type: object
         homeWorldId:
           description: Defaults to OASIS when omitted.
@@ -1219,9 +1548,24 @@ components:
           type: string
         origin:
           $ref: '#/components/schemas/RealmCoreOriginDto'
+        visibility:
+          default: private
+          enum:
+            - private
+            - unlisted
+            - public
+            - system
+          type: string
       required:
         - origin
         - core
+      type: object
+    CreateRealmSourceConnectionDto:
+      properties:
+        sourceRef:
+          $ref: '#/components/schemas/RelationshipSourceRefDto'
+      required:
+        - sourceRef
       type: object
     CreateRelationshipDto:
       properties:
@@ -1383,6 +1727,26 @@ components:
       required:
         - content
       type: object
+    CreateTransitDto:
+      properties:
+        context:
+          $ref: '#/components/schemas/TransitContextDto'
+        fromWorldId:
+          type: string
+        sourceRef:
+          $ref: '#/components/schemas/TypedSourceRefDto'
+        toWorldId:
+          type: string
+        transitType:
+          enum:
+            - INBOUND
+            - OUTBOUND
+          type: string
+      required:
+        - sourceRef
+        - toWorldId
+        - transitType
+      type: object
     CreateWithdrawalDto:
       properties:
         gemAmount:
@@ -1394,7 +1758,289 @@ components:
     CreateWorldCharacterCoreDto:
       properties:
         core:
-          additionalProperties: true
+          additionalProperties: false
+          properties:
+            assets:
+              additionalProperties: false
+              properties:
+                externalRefs:
+                  items:
+                    additionalProperties: false
+                    properties:
+                      kind:
+                        minLength: 1
+                        type: string
+                      label:
+                        type: string
+                      purpose:
+                        type: string
+                      refId:
+                        minLength: 1
+                        type: string
+                      uri:
+                        minLength: 1
+                        type: string
+                    required:
+                      - refId
+                      - kind
+                      - uri
+                    type: object
+                  type: array
+                intents:
+                  items:
+                    additionalProperties: false
+                    properties:
+                      intentId:
+                        minLength: 1
+                        type: string
+                      kind:
+                        minLength: 1
+                        type: string
+                      summary:
+                        type: string
+                    required:
+                      - intentId
+                      - kind
+                    type: object
+                  type: array
+                resourceRefs:
+                  items:
+                    additionalProperties: false
+                    properties:
+                      kind:
+                        minLength: 1
+                        type: string
+                      label:
+                        type: string
+                      purpose:
+                        type: string
+                      refId:
+                        minLength: 1
+                        type: string
+                    required:
+                      - refId
+                      - kind
+                    type: object
+                  type: array
+              required:
+                - resourceRefs
+                - intents
+              type: object
+            authoring:
+              additionalProperties: false
+              properties:
+                extensions:
+                  additionalProperties: true
+                  type: object
+                maintainers:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                notes:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                review:
+                  additionalProperties: false
+                  properties:
+                    reviewedAt:
+                      type: string
+                    reviewedBy:
+                      type: string
+                    status:
+                      minLength: 1
+                      type: string
+                  required:
+                    - status
+                  type: object
+                source:
+                  minLength: 1
+                  type: string
+              required:
+                - source
+              type: object
+            biography:
+              additionalProperties: false
+              properties:
+                milestones:
+                  items:
+                    additionalProperties: false
+                    properties:
+                      milestoneId:
+                        minLength: 1
+                        type: string
+                      sequence:
+                        type: number
+                      summary:
+                        minLength: 1
+                        type: string
+                      title:
+                        minLength: 1
+                        type: string
+                    required:
+                      - milestoneId
+                      - title
+                      - summary
+                    type: object
+                  type: array
+                sourceNotes:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+              required:
+                - milestones
+                - sourceNotes
+              type: object
+            capabilities:
+              additionalProperties: false
+              properties:
+                interactionModes:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                tools:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+              required:
+                - interactionModes
+                - tools
+              type: object
+            identity:
+              additionalProperties: false
+              properties:
+                aliases:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                name:
+                  minLength: 1
+                  type: string
+                summary:
+                  minLength: 1
+                  type: string
+              required:
+                - name
+                - summary
+              type: object
+            interactionProfile:
+              additionalProperties: false
+              properties:
+                cadence:
+                  minLength: 1
+                  type: string
+                dialogueExemplars:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                greeting:
+                  type: string
+                greetingVariants:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                scenario:
+                  type: string
+                tone:
+                  minLength: 1
+                  type: string
+              required:
+                - tone
+                - cadence
+              type: object
+            knowledge:
+              additionalProperties: false
+              properties:
+                constraints:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                topics:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+              required:
+                - topics
+                - constraints
+              type: object
+            placement:
+              additionalProperties: false
+              properties:
+                entityId:
+                  type: string
+                sceneRefs:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                worldId:
+                  minLength: 1
+                  type: string
+              required:
+                - worldId
+                - sceneRefs
+              type: object
+            presentation:
+              additionalProperties: false
+              properties:
+                avatarResourceRef:
+                  type: string
+                displayName:
+                  minLength: 1
+                  type: string
+                profileCoverResourceRef:
+                  type: string
+                shortBio:
+                  minLength: 1
+                  type: string
+              required:
+                - displayName
+                - shortBio
+              type: object
+            psychology:
+              additionalProperties: false
+              properties:
+                boundaries:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                drives:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+              required:
+                - drives
+                - boundaries
+              type: object
+            relationships:
+              items:
+                additionalProperties: false
+                properties:
+                  relationType:
+                    minLength: 1
+                    type: string
+                  summary:
+                    type: string
+                  targetRef:
+                    minLength: 1
+                    type: string
+                required:
+                  - targetRef
+                  - relationType
+                type: object
+              type: array
           type: object
         entityId:
           type: string
@@ -1409,7 +2055,353 @@ components:
     CreateWorldCoreDto:
       properties:
         core:
-          additionalProperties: true
+          additionalProperties: false
+          properties:
+            assets:
+              additionalProperties: false
+              properties:
+                externalRefs:
+                  items:
+                    additionalProperties: false
+                    properties:
+                      kind:
+                        minLength: 1
+                        type: string
+                      label:
+                        type: string
+                      purpose:
+                        type: string
+                      refId:
+                        minLength: 1
+                        type: string
+                      uri:
+                        minLength: 1
+                        type: string
+                    required:
+                      - refId
+                      - kind
+                      - uri
+                    type: object
+                  type: array
+                intents:
+                  items:
+                    additionalProperties: false
+                    properties:
+                      intentId:
+                        minLength: 1
+                        type: string
+                      kind:
+                        minLength: 1
+                        type: string
+                      summary:
+                        type: string
+                    required:
+                      - intentId
+                      - kind
+                    type: object
+                  type: array
+                resourceRefs:
+                  items:
+                    additionalProperties: false
+                    properties:
+                      kind:
+                        minLength: 1
+                        type: string
+                      label:
+                        type: string
+                      purpose:
+                        type: string
+                      refId:
+                        minLength: 1
+                        type: string
+                    required:
+                      - refId
+                      - kind
+                    type: object
+                  type: array
+              required:
+                - resourceRefs
+                - intents
+              type: object
+            authoring:
+              additionalProperties: false
+              properties:
+                extensions:
+                  additionalProperties: true
+                  type: object
+                maintainers:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                notes:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                review:
+                  additionalProperties: false
+                  properties:
+                    reviewedAt:
+                      type: string
+                    reviewedBy:
+                      type: string
+                    status:
+                      minLength: 1
+                      type: string
+                  required:
+                    - status
+                  type: object
+                source:
+                  minLength: 1
+                  type: string
+              required:
+                - source
+              type: object
+            entities:
+              items:
+                additionalProperties: false
+                properties:
+                  attributes:
+                    additionalProperties: true
+                    type: object
+                  entityId:
+                    minLength: 1
+                    type: string
+                  kind:
+                    minLength: 1
+                    type: string
+                  name:
+                    minLength: 1
+                    type: string
+                  summary:
+                    type: string
+                required:
+                  - entityId
+                  - kind
+                  - name
+                type: object
+              type: array
+            identity:
+              additionalProperties: false
+              properties:
+                divergences:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                era:
+                  type: string
+                genre:
+                  type: string
+                name:
+                  minLength: 1
+                  type: string
+                summary:
+                  minLength: 1
+                  type: string
+                tagline:
+                  type: string
+                themes:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                worldType:
+                  type: string
+              required:
+                - name
+                - summary
+              type: object
+            ontology:
+              additionalProperties: false
+              properties:
+                concepts:
+                  items:
+                    additionalProperties: false
+                    properties:
+                      conceptId:
+                        minLength: 1
+                        type: string
+                      name:
+                        minLength: 1
+                        type: string
+                      summary:
+                        type: string
+                    required:
+                      - conceptId
+                      - name
+                    type: object
+                  type: array
+                entityKinds:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                relationshipTypes:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+              required:
+                - entityKinds
+                - relationshipTypes
+              type: object
+            presentation:
+              additionalProperties: false
+              properties:
+                bannerResourceRef:
+                  type: string
+                displayName:
+                  type: string
+                iconResourceRef:
+                  type: string
+                palette:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                tagline:
+                  type: string
+                title:
+                  type: string
+              type: object
+            relationships:
+              items:
+                additionalProperties: false
+                properties:
+                  attributes:
+                    additionalProperties: true
+                    type: object
+                  relationshipId:
+                    minLength: 1
+                    type: string
+                  sourceEntityId:
+                    minLength: 1
+                    type: string
+                  summary:
+                    type: string
+                  targetEntityId:
+                    minLength: 1
+                    type: string
+                  type:
+                    minLength: 1
+                    type: string
+                required:
+                  - relationshipId
+                  - sourceEntityId
+                  - targetEntityId
+                  - type
+                type: object
+              type: array
+            scenes:
+              items:
+                additionalProperties: false
+                properties:
+                  assetRefs:
+                    items:
+                      minLength: 1
+                      type: string
+                    type: array
+                  entityRefs:
+                    items:
+                      minLength: 1
+                      type: string
+                    type: array
+                  name:
+                    minLength: 1
+                    type: string
+                  sceneId:
+                    minLength: 1
+                    type: string
+                  summary:
+                    minLength: 1
+                    type: string
+                required:
+                  - sceneId
+                  - name
+                  - summary
+                type: object
+              type: array
+            systems:
+              items:
+                additionalProperties: false
+                properties:
+                  name:
+                    minLength: 1
+                    type: string
+                  parameters:
+                    additionalProperties: true
+                    type: object
+                  principles:
+                    items:
+                      minLength: 1
+                      type: string
+                    type: array
+                  summary:
+                    minLength: 1
+                    type: string
+                  systemId:
+                    minLength: 1
+                    type: string
+                required:
+                  - systemId
+                  - name
+                  - summary
+                type: object
+              type: array
+            timeModel:
+              additionalProperties: false
+              properties:
+                calendar:
+                  type: string
+                epoch:
+                  type: string
+                flowRatio:
+                  type: number
+                isPaused:
+                  type: boolean
+                mode:
+                  minLength: 1
+                  type: string
+              required:
+                - mode
+                - flowRatio
+                - isPaused
+              type: object
+            timeline:
+              additionalProperties: false
+              properties:
+                events:
+                  items:
+                    additionalProperties: false
+                    properties:
+                      endsAt:
+                        type: string
+                      eventId:
+                        minLength: 1
+                        type: string
+                      importance:
+                        type: number
+                      sequence:
+                        type: number
+                      startsAt:
+                        type: string
+                      summary:
+                        type: string
+                      timestamp:
+                        type: string
+                      title:
+                        minLength: 1
+                        type: string
+                    required:
+                      - eventId
+                      - title
+                    type: object
+                  type: array
+              required:
+                - events
+              type: object
           type: object
         id:
           type: string
@@ -1993,9 +2985,20 @@ components:
           type: string
         displayName:
           type: string
+        runtimeParticipantSlot:
+          nullable: true
+          type: string
+        runtimeSourceRef:
+          nullable: true
+          type: string
         sourceOwnerId:
           nullable: true
           type: string
+        sourceRef:
+          allOf:
+            - $ref: '#/components/schemas/GroupSourceRefDto'
+          nullable: true
+          type: object
         type:
           enum:
             - human
@@ -2007,6 +3010,9 @@ components:
         - displayName
         - avatarUrl
         - sourceOwnerId
+        - runtimeParticipantSlot
+        - sourceRef
+        - runtimeSourceRef
       type: object
     GroupMessageViewDto:
       properties:
@@ -2110,8 +3116,10 @@ components:
           nullable: true
           type: string
         sourceRef:
+          allOf:
+            - $ref: '#/components/schemas/GroupSourceRefDto'
           nullable: true
-          type: string
+          type: object
         type:
           enum:
             - human
@@ -2130,6 +3138,25 @@ components:
         - runtimeSourceRef
         - joinedAt
         - isOnline
+      type: object
+    GroupSourceRefDto:
+      properties:
+        kind:
+          enum:
+            - worldCharacter
+            - realmPersona
+          type: string
+        sourceContentHash:
+          type: string
+        sourceId:
+          type: string
+        worldId:
+          type: string
+      required:
+        - kind
+        - worldId
+        - sourceId
+        - sourceContentHash
       type: object
     HandleAvailabilityDto:
       properties:
@@ -2883,6 +3910,12 @@ components:
           $ref: '#/components/schemas/UserLiteDto'
         authorId:
           type: string
+        authorKind:
+          enum:
+            - human
+            - worldCharacter
+            - realmPersona
+          type: string
         caption:
           nullable: true
           type: string
@@ -2899,6 +3932,19 @@ components:
         moderationStatus:
           allOf:
             - $ref: '#/components/schemas/ModerationStatusString'
+        runtimeSourceRef:
+          nullable: true
+          type: string
+        sourceAuthor:
+          allOf:
+            - $ref: '#/components/schemas/PostSourceAuthorDto'
+          nullable: true
+          type: object
+        sourceRef:
+          allOf:
+            - $ref: '#/components/schemas/PostSourceRefDto'
+          nullable: true
+          type: object
         tags:
           items:
             type: string
@@ -2916,9 +3962,63 @@ components:
         - id
         - authorId
         - author
+        - authorKind
         - attachments
         - visibility
         - createdAt
+      type: object
+    PostSourceAuthorDto:
+      properties:
+        avatarUrl:
+          nullable: true
+          type: string
+        displayName:
+          type: string
+        handle:
+          type: string
+        id:
+          type: string
+        kind:
+          enum:
+            - worldCharacter
+            - realmPersona
+          type: string
+        ownerUserId:
+          type: string
+        runtimeSourceRef:
+          type: string
+        sourceRef:
+          $ref: '#/components/schemas/PostSourceRefDto'
+        worldId:
+          type: string
+      required:
+        - kind
+        - id
+        - worldId
+        - displayName
+        - handle
+        - ownerUserId
+        - sourceRef
+        - runtimeSourceRef
+      type: object
+    PostSourceRefDto:
+      properties:
+        kind:
+          enum:
+            - worldCharacter
+            - realmPersona
+          type: string
+        sourceContentHash:
+          type: string
+        sourceId:
+          type: string
+        worldId:
+          type: string
+      required:
+        - kind
+        - worldId
+        - sourceId
+        - sourceContentHash
       type: object
     PresenceStatus:
       enum:
@@ -2977,6 +4077,22 @@ components:
       required:
         - kind
       type: object
+    RealmGroupMessageCandidateCommitResultDto:
+      properties:
+        candidateId:
+          type: string
+        message:
+          $ref: '#/components/schemas/GroupMessageViewDto'
+        status:
+          enum:
+            - committed
+            - duplicate
+          type: string
+      required:
+        - candidateId
+        - status
+        - message
+      type: object
     RealmPersonaDto:
       properties:
         contentHash:
@@ -2984,7 +4100,246 @@ components:
         contentRevision:
           type: number
         core:
-          additionalProperties: true
+          additionalProperties: false
+          properties:
+            assets:
+              additionalProperties: false
+              properties:
+                externalRefs:
+                  items:
+                    additionalProperties: false
+                    properties:
+                      kind:
+                        minLength: 1
+                        type: string
+                      label:
+                        type: string
+                      purpose:
+                        type: string
+                      refId:
+                        minLength: 1
+                        type: string
+                      uri:
+                        minLength: 1
+                        type: string
+                    required:
+                      - refId
+                      - kind
+                      - uri
+                    type: object
+                  type: array
+                intents:
+                  items:
+                    additionalProperties: false
+                    properties:
+                      intentId:
+                        minLength: 1
+                        type: string
+                      kind:
+                        minLength: 1
+                        type: string
+                      summary:
+                        type: string
+                    required:
+                      - intentId
+                      - kind
+                    type: object
+                  type: array
+                resourceRefs:
+                  items:
+                    additionalProperties: false
+                    properties:
+                      kind:
+                        minLength: 1
+                        type: string
+                      label:
+                        type: string
+                      purpose:
+                        type: string
+                      refId:
+                        minLength: 1
+                        type: string
+                    required:
+                      - refId
+                      - kind
+                    type: object
+                  type: array
+              required:
+                - resourceRefs
+                - intents
+              type: object
+            authoring:
+              additionalProperties: false
+              properties:
+                extensions:
+                  additionalProperties: true
+                  type: object
+                maintainers:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                notes:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                review:
+                  additionalProperties: false
+                  properties:
+                    reviewedAt:
+                      type: string
+                    reviewedBy:
+                      type: string
+                    status:
+                      minLength: 1
+                      type: string
+                  required:
+                    - status
+                  type: object
+                source:
+                  minLength: 1
+                  type: string
+              required:
+                - source
+              type: object
+            contentProfile:
+              additionalProperties: false
+              properties:
+                boundaries:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                guidelines:
+                  items:
+                    additionalProperties: false
+                    properties:
+                      guidelineId:
+                        minLength: 1
+                        type: string
+                      source:
+                        type: string
+                      statement:
+                        minLength: 1
+                        type: string
+                    required:
+                      - guidelineId
+                      - statement
+                    type: object
+                  type: array
+                topics:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+              required:
+                - topics
+                - boundaries
+                - guidelines
+              type: object
+            identity:
+              additionalProperties: false
+              properties:
+                aliases:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                concept:
+                  type: string
+                handle:
+                  minLength: 1
+                  type: string
+                name:
+                  minLength: 1
+                  type: string
+                summary:
+                  minLength: 1
+                  type: string
+              required:
+                - handle
+                - name
+                - summary
+              type: object
+            interactionProfile:
+              additionalProperties: false
+              properties:
+                dialogueExemplars:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                greeting:
+                  type: string
+                greetingVariants:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                homeWorldId:
+                  minLength: 1
+                  type: string
+                interactionModes:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                scenario:
+                  type: string
+              required:
+                - homeWorldId
+                - interactionModes
+              type: object
+            personaStyle:
+              additionalProperties: false
+              properties:
+                archetype:
+                  minLength: 1
+                  type: string
+                communicationStyle:
+                  type: string
+                dialogueExemplars:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                pacing:
+                  minLength: 1
+                  type: string
+                traits:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                voice:
+                  minLength: 1
+                  type: string
+              required:
+                - archetype
+                - traits
+                - voice
+                - pacing
+              type: object
+            presentation:
+              additionalProperties: false
+              properties:
+                avatarResourceRef:
+                  type: string
+                displayName:
+                  minLength: 1
+                  type: string
+                profileCoverResourceRef:
+                  type: string
+                profileLine:
+                  minLength: 1
+                  type: string
+                shortBio:
+                  type: string
+              required:
+                - displayName
+                - profileLine
+              type: object
           type: object
         createdAt:
           format: date-time
@@ -3002,6 +4357,13 @@ components:
         updatedAt:
           format: date-time
           type: string
+        visibility:
+          enum:
+            - private
+            - unlisted
+            - public
+            - system
+          type: string
       required:
         - id
         - schemaVersion
@@ -3010,6 +4372,7 @@ components:
         - origin
         - ownerId
         - homeWorldId
+        - visibility
         - core
         - createdAt
         - updatedAt
@@ -3026,6 +4389,44 @@ components:
         - canCreateRealmPersona
         - canCreateRuntimeSourceSnapshot
         - canUseWorldCharacterSources
+      type: object
+    RealmSourceConnectionDto:
+      properties:
+        connectedAt:
+          format: date-time
+          type: string
+        createdAt:
+          format: date-time
+          type: string
+        id:
+          type: string
+        ownerUserId:
+          type: string
+        removedAt:
+          format: date-time
+          nullable: true
+          type: string
+        runtimeSourceRef:
+          type: string
+        sourceRef:
+          $ref: '#/components/schemas/RelationshipSourceRefDto'
+        status:
+          enum:
+            - active
+            - removed
+          type: string
+        updatedAt:
+          format: date-time
+          type: string
+      required:
+        - id
+        - ownerUserId
+        - sourceRef
+        - runtimeSourceRef
+        - status
+        - connectedAt
+        - createdAt
+        - updatedAt
       type: object
     ReceivedGiftsResponseDto:
       properties:
@@ -3079,12 +4480,270 @@ components:
         - strength
         - createdAt
       type: object
+    RelationshipSourceRefDto:
+      properties:
+        kind:
+          enum:
+            - worldCharacter
+            - realmPersona
+          type: string
+        sourceContentHash:
+          type: string
+        sourceId:
+          type: string
+        worldId:
+          type: string
+      required:
+        - kind
+        - worldId
+        - sourceId
+        - sourceContentHash
+      type: object
     ReplaceRealmPersonaDto:
       properties:
         baseContentHash:
           type: string
         core:
-          additionalProperties: true
+          additionalProperties: false
+          properties:
+            assets:
+              additionalProperties: false
+              properties:
+                externalRefs:
+                  items:
+                    additionalProperties: false
+                    properties:
+                      kind:
+                        minLength: 1
+                        type: string
+                      label:
+                        type: string
+                      purpose:
+                        type: string
+                      refId:
+                        minLength: 1
+                        type: string
+                      uri:
+                        minLength: 1
+                        type: string
+                    required:
+                      - refId
+                      - kind
+                      - uri
+                    type: object
+                  type: array
+                intents:
+                  items:
+                    additionalProperties: false
+                    properties:
+                      intentId:
+                        minLength: 1
+                        type: string
+                      kind:
+                        minLength: 1
+                        type: string
+                      summary:
+                        type: string
+                    required:
+                      - intentId
+                      - kind
+                    type: object
+                  type: array
+                resourceRefs:
+                  items:
+                    additionalProperties: false
+                    properties:
+                      kind:
+                        minLength: 1
+                        type: string
+                      label:
+                        type: string
+                      purpose:
+                        type: string
+                      refId:
+                        minLength: 1
+                        type: string
+                    required:
+                      - refId
+                      - kind
+                    type: object
+                  type: array
+              required:
+                - resourceRefs
+                - intents
+              type: object
+            authoring:
+              additionalProperties: false
+              properties:
+                extensions:
+                  additionalProperties: true
+                  type: object
+                maintainers:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                notes:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                review:
+                  additionalProperties: false
+                  properties:
+                    reviewedAt:
+                      type: string
+                    reviewedBy:
+                      type: string
+                    status:
+                      minLength: 1
+                      type: string
+                  required:
+                    - status
+                  type: object
+                source:
+                  minLength: 1
+                  type: string
+              required:
+                - source
+              type: object
+            contentProfile:
+              additionalProperties: false
+              properties:
+                boundaries:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                guidelines:
+                  items:
+                    additionalProperties: false
+                    properties:
+                      guidelineId:
+                        minLength: 1
+                        type: string
+                      source:
+                        type: string
+                      statement:
+                        minLength: 1
+                        type: string
+                    required:
+                      - guidelineId
+                      - statement
+                    type: object
+                  type: array
+                topics:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+              required:
+                - topics
+                - boundaries
+                - guidelines
+              type: object
+            identity:
+              additionalProperties: false
+              properties:
+                aliases:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                concept:
+                  type: string
+                handle:
+                  minLength: 1
+                  type: string
+                name:
+                  minLength: 1
+                  type: string
+                summary:
+                  minLength: 1
+                  type: string
+              required:
+                - handle
+                - name
+                - summary
+              type: object
+            interactionProfile:
+              additionalProperties: false
+              properties:
+                dialogueExemplars:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                greeting:
+                  type: string
+                greetingVariants:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                homeWorldId:
+                  minLength: 1
+                  type: string
+                interactionModes:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                scenario:
+                  type: string
+              required:
+                - homeWorldId
+                - interactionModes
+              type: object
+            personaStyle:
+              additionalProperties: false
+              properties:
+                archetype:
+                  minLength: 1
+                  type: string
+                communicationStyle:
+                  type: string
+                dialogueExemplars:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                pacing:
+                  minLength: 1
+                  type: string
+                traits:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                voice:
+                  minLength: 1
+                  type: string
+              required:
+                - archetype
+                - traits
+                - voice
+                - pacing
+              type: object
+            presentation:
+              additionalProperties: false
+              properties:
+                avatarResourceRef:
+                  type: string
+                displayName:
+                  minLength: 1
+                  type: string
+                profileCoverResourceRef:
+                  type: string
+                profileLine:
+                  minLength: 1
+                  type: string
+                shortBio:
+                  type: string
+              required:
+                - displayName
+                - profileLine
+              type: object
           type: object
         homeWorldId:
           description: Defaults to OASIS when omitted.
@@ -3093,6 +4752,14 @@ components:
           type: string
         origin:
           $ref: '#/components/schemas/RealmCoreOriginDto'
+        visibility:
+          default: private
+          enum:
+            - private
+            - unlisted
+            - public
+            - system
+          type: string
       required:
         - origin
         - core
@@ -3103,7 +4770,289 @@ components:
         baseContentHash:
           type: string
         core:
-          additionalProperties: true
+          additionalProperties: false
+          properties:
+            assets:
+              additionalProperties: false
+              properties:
+                externalRefs:
+                  items:
+                    additionalProperties: false
+                    properties:
+                      kind:
+                        minLength: 1
+                        type: string
+                      label:
+                        type: string
+                      purpose:
+                        type: string
+                      refId:
+                        minLength: 1
+                        type: string
+                      uri:
+                        minLength: 1
+                        type: string
+                    required:
+                      - refId
+                      - kind
+                      - uri
+                    type: object
+                  type: array
+                intents:
+                  items:
+                    additionalProperties: false
+                    properties:
+                      intentId:
+                        minLength: 1
+                        type: string
+                      kind:
+                        minLength: 1
+                        type: string
+                      summary:
+                        type: string
+                    required:
+                      - intentId
+                      - kind
+                    type: object
+                  type: array
+                resourceRefs:
+                  items:
+                    additionalProperties: false
+                    properties:
+                      kind:
+                        minLength: 1
+                        type: string
+                      label:
+                        type: string
+                      purpose:
+                        type: string
+                      refId:
+                        minLength: 1
+                        type: string
+                    required:
+                      - refId
+                      - kind
+                    type: object
+                  type: array
+              required:
+                - resourceRefs
+                - intents
+              type: object
+            authoring:
+              additionalProperties: false
+              properties:
+                extensions:
+                  additionalProperties: true
+                  type: object
+                maintainers:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                notes:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                review:
+                  additionalProperties: false
+                  properties:
+                    reviewedAt:
+                      type: string
+                    reviewedBy:
+                      type: string
+                    status:
+                      minLength: 1
+                      type: string
+                  required:
+                    - status
+                  type: object
+                source:
+                  minLength: 1
+                  type: string
+              required:
+                - source
+              type: object
+            biography:
+              additionalProperties: false
+              properties:
+                milestones:
+                  items:
+                    additionalProperties: false
+                    properties:
+                      milestoneId:
+                        minLength: 1
+                        type: string
+                      sequence:
+                        type: number
+                      summary:
+                        minLength: 1
+                        type: string
+                      title:
+                        minLength: 1
+                        type: string
+                    required:
+                      - milestoneId
+                      - title
+                      - summary
+                    type: object
+                  type: array
+                sourceNotes:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+              required:
+                - milestones
+                - sourceNotes
+              type: object
+            capabilities:
+              additionalProperties: false
+              properties:
+                interactionModes:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                tools:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+              required:
+                - interactionModes
+                - tools
+              type: object
+            identity:
+              additionalProperties: false
+              properties:
+                aliases:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                name:
+                  minLength: 1
+                  type: string
+                summary:
+                  minLength: 1
+                  type: string
+              required:
+                - name
+                - summary
+              type: object
+            interactionProfile:
+              additionalProperties: false
+              properties:
+                cadence:
+                  minLength: 1
+                  type: string
+                dialogueExemplars:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                greeting:
+                  type: string
+                greetingVariants:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                scenario:
+                  type: string
+                tone:
+                  minLength: 1
+                  type: string
+              required:
+                - tone
+                - cadence
+              type: object
+            knowledge:
+              additionalProperties: false
+              properties:
+                constraints:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                topics:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+              required:
+                - topics
+                - constraints
+              type: object
+            placement:
+              additionalProperties: false
+              properties:
+                entityId:
+                  type: string
+                sceneRefs:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                worldId:
+                  minLength: 1
+                  type: string
+              required:
+                - worldId
+                - sceneRefs
+              type: object
+            presentation:
+              additionalProperties: false
+              properties:
+                avatarResourceRef:
+                  type: string
+                displayName:
+                  minLength: 1
+                  type: string
+                profileCoverResourceRef:
+                  type: string
+                shortBio:
+                  minLength: 1
+                  type: string
+              required:
+                - displayName
+                - shortBio
+              type: object
+            psychology:
+              additionalProperties: false
+              properties:
+                boundaries:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                drives:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+              required:
+                - drives
+                - boundaries
+              type: object
+            relationships:
+              items:
+                additionalProperties: false
+                properties:
+                  relationType:
+                    minLength: 1
+                    type: string
+                  summary:
+                    type: string
+                  targetRef:
+                    minLength: 1
+                    type: string
+                required:
+                  - targetRef
+                  - relationType
+                type: object
+              type: array
           type: object
         entityId:
           type: string
@@ -3121,7 +5070,353 @@ components:
         baseContentHash:
           type: string
         core:
-          additionalProperties: true
+          additionalProperties: false
+          properties:
+            assets:
+              additionalProperties: false
+              properties:
+                externalRefs:
+                  items:
+                    additionalProperties: false
+                    properties:
+                      kind:
+                        minLength: 1
+                        type: string
+                      label:
+                        type: string
+                      purpose:
+                        type: string
+                      refId:
+                        minLength: 1
+                        type: string
+                      uri:
+                        minLength: 1
+                        type: string
+                    required:
+                      - refId
+                      - kind
+                      - uri
+                    type: object
+                  type: array
+                intents:
+                  items:
+                    additionalProperties: false
+                    properties:
+                      intentId:
+                        minLength: 1
+                        type: string
+                      kind:
+                        minLength: 1
+                        type: string
+                      summary:
+                        type: string
+                    required:
+                      - intentId
+                      - kind
+                    type: object
+                  type: array
+                resourceRefs:
+                  items:
+                    additionalProperties: false
+                    properties:
+                      kind:
+                        minLength: 1
+                        type: string
+                      label:
+                        type: string
+                      purpose:
+                        type: string
+                      refId:
+                        minLength: 1
+                        type: string
+                    required:
+                      - refId
+                      - kind
+                    type: object
+                  type: array
+              required:
+                - resourceRefs
+                - intents
+              type: object
+            authoring:
+              additionalProperties: false
+              properties:
+                extensions:
+                  additionalProperties: true
+                  type: object
+                maintainers:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                notes:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                review:
+                  additionalProperties: false
+                  properties:
+                    reviewedAt:
+                      type: string
+                    reviewedBy:
+                      type: string
+                    status:
+                      minLength: 1
+                      type: string
+                  required:
+                    - status
+                  type: object
+                source:
+                  minLength: 1
+                  type: string
+              required:
+                - source
+              type: object
+            entities:
+              items:
+                additionalProperties: false
+                properties:
+                  attributes:
+                    additionalProperties: true
+                    type: object
+                  entityId:
+                    minLength: 1
+                    type: string
+                  kind:
+                    minLength: 1
+                    type: string
+                  name:
+                    minLength: 1
+                    type: string
+                  summary:
+                    type: string
+                required:
+                  - entityId
+                  - kind
+                  - name
+                type: object
+              type: array
+            identity:
+              additionalProperties: false
+              properties:
+                divergences:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                era:
+                  type: string
+                genre:
+                  type: string
+                name:
+                  minLength: 1
+                  type: string
+                summary:
+                  minLength: 1
+                  type: string
+                tagline:
+                  type: string
+                themes:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                worldType:
+                  type: string
+              required:
+                - name
+                - summary
+              type: object
+            ontology:
+              additionalProperties: false
+              properties:
+                concepts:
+                  items:
+                    additionalProperties: false
+                    properties:
+                      conceptId:
+                        minLength: 1
+                        type: string
+                      name:
+                        minLength: 1
+                        type: string
+                      summary:
+                        type: string
+                    required:
+                      - conceptId
+                      - name
+                    type: object
+                  type: array
+                entityKinds:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                relationshipTypes:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+              required:
+                - entityKinds
+                - relationshipTypes
+              type: object
+            presentation:
+              additionalProperties: false
+              properties:
+                bannerResourceRef:
+                  type: string
+                displayName:
+                  type: string
+                iconResourceRef:
+                  type: string
+                palette:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                tagline:
+                  type: string
+                title:
+                  type: string
+              type: object
+            relationships:
+              items:
+                additionalProperties: false
+                properties:
+                  attributes:
+                    additionalProperties: true
+                    type: object
+                  relationshipId:
+                    minLength: 1
+                    type: string
+                  sourceEntityId:
+                    minLength: 1
+                    type: string
+                  summary:
+                    type: string
+                  targetEntityId:
+                    minLength: 1
+                    type: string
+                  type:
+                    minLength: 1
+                    type: string
+                required:
+                  - relationshipId
+                  - sourceEntityId
+                  - targetEntityId
+                  - type
+                type: object
+              type: array
+            scenes:
+              items:
+                additionalProperties: false
+                properties:
+                  assetRefs:
+                    items:
+                      minLength: 1
+                      type: string
+                    type: array
+                  entityRefs:
+                    items:
+                      minLength: 1
+                      type: string
+                    type: array
+                  name:
+                    minLength: 1
+                    type: string
+                  sceneId:
+                    minLength: 1
+                    type: string
+                  summary:
+                    minLength: 1
+                    type: string
+                required:
+                  - sceneId
+                  - name
+                  - summary
+                type: object
+              type: array
+            systems:
+              items:
+                additionalProperties: false
+                properties:
+                  name:
+                    minLength: 1
+                    type: string
+                  parameters:
+                    additionalProperties: true
+                    type: object
+                  principles:
+                    items:
+                      minLength: 1
+                      type: string
+                    type: array
+                  summary:
+                    minLength: 1
+                    type: string
+                  systemId:
+                    minLength: 1
+                    type: string
+                required:
+                  - systemId
+                  - name
+                  - summary
+                type: object
+              type: array
+            timeModel:
+              additionalProperties: false
+              properties:
+                calendar:
+                  type: string
+                epoch:
+                  type: string
+                flowRatio:
+                  type: number
+                isPaused:
+                  type: boolean
+                mode:
+                  minLength: 1
+                  type: string
+              required:
+                - mode
+                - flowRatio
+                - isPaused
+              type: object
+            timeline:
+              additionalProperties: false
+              properties:
+                events:
+                  items:
+                    additionalProperties: false
+                    properties:
+                      endsAt:
+                        type: string
+                      eventId:
+                        minLength: 1
+                        type: string
+                      importance:
+                        type: number
+                      sequence:
+                        type: number
+                      startsAt:
+                        type: string
+                      summary:
+                        type: string
+                      timestamp:
+                        type: string
+                      title:
+                        minLength: 1
+                        type: string
+                    required:
+                      - eventId
+                      - title
+                    type: object
+                  type: array
+              required:
+                - events
+              type: object
           type: object
         id:
           type: string
@@ -3627,6 +5922,8 @@ components:
         ownerId:
           description: Source owner ID
           type: string
+        sourceContentHash:
+          type: string
         sourceId:
           type: string
         sourceKind:
@@ -3634,6 +5931,9 @@ components:
             - worldCharacter
             - realmPersona
           type: string
+        sourceRef:
+          additionalProperties: true
+          type: object
         worldCreatorId:
           description: World creator ID (null for OASIS world)
           nullable: true
@@ -3642,8 +5942,10 @@ components:
           description: WorldCore ID the source is bound to
           type: string
       required:
+        - sourceRef
         - sourceKind
         - sourceId
+        - sourceContentHash
         - ownerId
         - worldId
         - worldCreatorId
@@ -4903,7 +7205,289 @@ components:
         contentRevision:
           type: number
         core:
-          additionalProperties: true
+          additionalProperties: false
+          properties:
+            assets:
+              additionalProperties: false
+              properties:
+                externalRefs:
+                  items:
+                    additionalProperties: false
+                    properties:
+                      kind:
+                        minLength: 1
+                        type: string
+                      label:
+                        type: string
+                      purpose:
+                        type: string
+                      refId:
+                        minLength: 1
+                        type: string
+                      uri:
+                        minLength: 1
+                        type: string
+                    required:
+                      - refId
+                      - kind
+                      - uri
+                    type: object
+                  type: array
+                intents:
+                  items:
+                    additionalProperties: false
+                    properties:
+                      intentId:
+                        minLength: 1
+                        type: string
+                      kind:
+                        minLength: 1
+                        type: string
+                      summary:
+                        type: string
+                    required:
+                      - intentId
+                      - kind
+                    type: object
+                  type: array
+                resourceRefs:
+                  items:
+                    additionalProperties: false
+                    properties:
+                      kind:
+                        minLength: 1
+                        type: string
+                      label:
+                        type: string
+                      purpose:
+                        type: string
+                      refId:
+                        minLength: 1
+                        type: string
+                    required:
+                      - refId
+                      - kind
+                    type: object
+                  type: array
+              required:
+                - resourceRefs
+                - intents
+              type: object
+            authoring:
+              additionalProperties: false
+              properties:
+                extensions:
+                  additionalProperties: true
+                  type: object
+                maintainers:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                notes:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                review:
+                  additionalProperties: false
+                  properties:
+                    reviewedAt:
+                      type: string
+                    reviewedBy:
+                      type: string
+                    status:
+                      minLength: 1
+                      type: string
+                  required:
+                    - status
+                  type: object
+                source:
+                  minLength: 1
+                  type: string
+              required:
+                - source
+              type: object
+            biography:
+              additionalProperties: false
+              properties:
+                milestones:
+                  items:
+                    additionalProperties: false
+                    properties:
+                      milestoneId:
+                        minLength: 1
+                        type: string
+                      sequence:
+                        type: number
+                      summary:
+                        minLength: 1
+                        type: string
+                      title:
+                        minLength: 1
+                        type: string
+                    required:
+                      - milestoneId
+                      - title
+                      - summary
+                    type: object
+                  type: array
+                sourceNotes:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+              required:
+                - milestones
+                - sourceNotes
+              type: object
+            capabilities:
+              additionalProperties: false
+              properties:
+                interactionModes:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                tools:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+              required:
+                - interactionModes
+                - tools
+              type: object
+            identity:
+              additionalProperties: false
+              properties:
+                aliases:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                name:
+                  minLength: 1
+                  type: string
+                summary:
+                  minLength: 1
+                  type: string
+              required:
+                - name
+                - summary
+              type: object
+            interactionProfile:
+              additionalProperties: false
+              properties:
+                cadence:
+                  minLength: 1
+                  type: string
+                dialogueExemplars:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                greeting:
+                  type: string
+                greetingVariants:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                scenario:
+                  type: string
+                tone:
+                  minLength: 1
+                  type: string
+              required:
+                - tone
+                - cadence
+              type: object
+            knowledge:
+              additionalProperties: false
+              properties:
+                constraints:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                topics:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+              required:
+                - topics
+                - constraints
+              type: object
+            placement:
+              additionalProperties: false
+              properties:
+                entityId:
+                  type: string
+                sceneRefs:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                worldId:
+                  minLength: 1
+                  type: string
+              required:
+                - worldId
+                - sceneRefs
+              type: object
+            presentation:
+              additionalProperties: false
+              properties:
+                avatarResourceRef:
+                  type: string
+                displayName:
+                  minLength: 1
+                  type: string
+                profileCoverResourceRef:
+                  type: string
+                shortBio:
+                  minLength: 1
+                  type: string
+              required:
+                - displayName
+                - shortBio
+              type: object
+            psychology:
+              additionalProperties: false
+              properties:
+                boundaries:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                drives:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+              required:
+                - drives
+                - boundaries
+              type: object
+            relationships:
+              items:
+                additionalProperties: false
+                properties:
+                  relationType:
+                    minLength: 1
+                    type: string
+                  summary:
+                    type: string
+                  targetRef:
+                    minLength: 1
+                    type: string
+                required:
+                  - targetRef
+                  - relationType
+                type: object
+              type: array
           type: object
         createdAt:
           format: date-time
@@ -4940,7 +7524,353 @@ components:
         contentRevision:
           type: number
         core:
-          additionalProperties: true
+          additionalProperties: false
+          properties:
+            assets:
+              additionalProperties: false
+              properties:
+                externalRefs:
+                  items:
+                    additionalProperties: false
+                    properties:
+                      kind:
+                        minLength: 1
+                        type: string
+                      label:
+                        type: string
+                      purpose:
+                        type: string
+                      refId:
+                        minLength: 1
+                        type: string
+                      uri:
+                        minLength: 1
+                        type: string
+                    required:
+                      - refId
+                      - kind
+                      - uri
+                    type: object
+                  type: array
+                intents:
+                  items:
+                    additionalProperties: false
+                    properties:
+                      intentId:
+                        minLength: 1
+                        type: string
+                      kind:
+                        minLength: 1
+                        type: string
+                      summary:
+                        type: string
+                    required:
+                      - intentId
+                      - kind
+                    type: object
+                  type: array
+                resourceRefs:
+                  items:
+                    additionalProperties: false
+                    properties:
+                      kind:
+                        minLength: 1
+                        type: string
+                      label:
+                        type: string
+                      purpose:
+                        type: string
+                      refId:
+                        minLength: 1
+                        type: string
+                    required:
+                      - refId
+                      - kind
+                    type: object
+                  type: array
+              required:
+                - resourceRefs
+                - intents
+              type: object
+            authoring:
+              additionalProperties: false
+              properties:
+                extensions:
+                  additionalProperties: true
+                  type: object
+                maintainers:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                notes:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                review:
+                  additionalProperties: false
+                  properties:
+                    reviewedAt:
+                      type: string
+                    reviewedBy:
+                      type: string
+                    status:
+                      minLength: 1
+                      type: string
+                  required:
+                    - status
+                  type: object
+                source:
+                  minLength: 1
+                  type: string
+              required:
+                - source
+              type: object
+            entities:
+              items:
+                additionalProperties: false
+                properties:
+                  attributes:
+                    additionalProperties: true
+                    type: object
+                  entityId:
+                    minLength: 1
+                    type: string
+                  kind:
+                    minLength: 1
+                    type: string
+                  name:
+                    minLength: 1
+                    type: string
+                  summary:
+                    type: string
+                required:
+                  - entityId
+                  - kind
+                  - name
+                type: object
+              type: array
+            identity:
+              additionalProperties: false
+              properties:
+                divergences:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                era:
+                  type: string
+                genre:
+                  type: string
+                name:
+                  minLength: 1
+                  type: string
+                summary:
+                  minLength: 1
+                  type: string
+                tagline:
+                  type: string
+                themes:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                worldType:
+                  type: string
+              required:
+                - name
+                - summary
+              type: object
+            ontology:
+              additionalProperties: false
+              properties:
+                concepts:
+                  items:
+                    additionalProperties: false
+                    properties:
+                      conceptId:
+                        minLength: 1
+                        type: string
+                      name:
+                        minLength: 1
+                        type: string
+                      summary:
+                        type: string
+                    required:
+                      - conceptId
+                      - name
+                    type: object
+                  type: array
+                entityKinds:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                relationshipTypes:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+              required:
+                - entityKinds
+                - relationshipTypes
+              type: object
+            presentation:
+              additionalProperties: false
+              properties:
+                bannerResourceRef:
+                  type: string
+                displayName:
+                  type: string
+                iconResourceRef:
+                  type: string
+                palette:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                tagline:
+                  type: string
+                title:
+                  type: string
+              type: object
+            relationships:
+              items:
+                additionalProperties: false
+                properties:
+                  attributes:
+                    additionalProperties: true
+                    type: object
+                  relationshipId:
+                    minLength: 1
+                    type: string
+                  sourceEntityId:
+                    minLength: 1
+                    type: string
+                  summary:
+                    type: string
+                  targetEntityId:
+                    minLength: 1
+                    type: string
+                  type:
+                    minLength: 1
+                    type: string
+                required:
+                  - relationshipId
+                  - sourceEntityId
+                  - targetEntityId
+                  - type
+                type: object
+              type: array
+            scenes:
+              items:
+                additionalProperties: false
+                properties:
+                  assetRefs:
+                    items:
+                      minLength: 1
+                      type: string
+                    type: array
+                  entityRefs:
+                    items:
+                      minLength: 1
+                      type: string
+                    type: array
+                  name:
+                    minLength: 1
+                    type: string
+                  sceneId:
+                    minLength: 1
+                    type: string
+                  summary:
+                    minLength: 1
+                    type: string
+                required:
+                  - sceneId
+                  - name
+                  - summary
+                type: object
+              type: array
+            systems:
+              items:
+                additionalProperties: false
+                properties:
+                  name:
+                    minLength: 1
+                    type: string
+                  parameters:
+                    additionalProperties: true
+                    type: object
+                  principles:
+                    items:
+                      minLength: 1
+                      type: string
+                    type: array
+                  summary:
+                    minLength: 1
+                    type: string
+                  systemId:
+                    minLength: 1
+                    type: string
+                required:
+                  - systemId
+                  - name
+                  - summary
+                type: object
+              type: array
+            timeModel:
+              additionalProperties: false
+              properties:
+                calendar:
+                  type: string
+                epoch:
+                  type: string
+                flowRatio:
+                  type: number
+                isPaused:
+                  type: boolean
+                mode:
+                  minLength: 1
+                  type: string
+              required:
+                - mode
+                - flowRatio
+                - isPaused
+              type: object
+            timeline:
+              additionalProperties: false
+              properties:
+                events:
+                  items:
+                    additionalProperties: false
+                    properties:
+                      endsAt:
+                        type: string
+                      eventId:
+                        minLength: 1
+                        type: string
+                      importance:
+                        type: number
+                      sequence:
+                        type: number
+                      startsAt:
+                        type: string
+                      summary:
+                        type: string
+                      timestamp:
+                        type: string
+                      title:
+                        minLength: 1
+                        type: string
+                    required:
+                      - eventId
+                      - title
+                    type: object
+                  type: array
+              required:
+                - events
+              type: object
           type: object
         createdAt:
           format: date-time
@@ -4985,7 +7915,7 @@ info:
   description: |-
     The Nimi Social Platform API
 
-    Last updated: 2026-06-18T03:10:19.298Z
+    Last updated: 2026-06-18T11:20:51.449Z
   title: Nimi Realm SDK API
   version: '1.0'
 openapi: 3.0.0
@@ -6034,25 +8964,13 @@ paths:
           required: true
           schema:
             type: string
-        - description: WorldCore ID bound to the source
+        - description: >-
+            Hash-bearing sourceRef:
+            source:{kind}:{worldId}:{sourceId}:{sourceContentHash}
           in: query
-          name: sourceWorldId
+          name: sourceRef
           required: true
           schema:
-            type: string
-        - description: Core source ID
-          in: query
-          name: sourceId
-          required: true
-          schema:
-            type: string
-        - in: query
-          name: sourceKind
-          required: true
-          schema:
-            enum:
-              - worldCharacter
-              - realmPersona
             type: string
       responses:
         '200':
@@ -6066,29 +8984,17 @@ paths:
       summary: Preview revenue distribution for a core source
       tags:
         - Economy (Currency & Gifts)
-  /api/economy/revenue-share/source-origin/{sourceKind}/{sourceId}:
+  /api/economy/revenue-share/source-origin/{sourceRef}:
     get:
       operationId: EconomyController_getSourceOrigin
       parameters:
-        - description: WorldCore ID bound to the source
-          in: query
-          name: sourceWorldId
-          required: true
-          schema:
-            type: string
-        - description: Core source ID
+        - description: >-
+            Hash-bearing sourceRef:
+            source:{kind}:{worldId}:{sourceId}:{sourceContentHash}
           in: path
-          name: sourceId
+          name: sourceRef
           required: true
           schema:
-            type: string
-        - in: path
-          name: sourceKind
-          required: true
-          schema:
-            enum:
-              - worldCharacter
-              - realmPersona
             type: string
       responses:
         '200':
@@ -7222,6 +10128,83 @@ paths:
       summary: Mark group chat read
       tags:
         - Group Chats
+  /api/human/group-chats/{chatId}/source-message-candidate-commits:
+    post:
+      operationId: commitRealmGroupSourceMessageCandidate
+      parameters:
+        - in: path
+          name: chatId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: >-
+                #/components/schemas/CommitRealmGroupSourceMessageCandidateInputDto
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RealmGroupMessageCandidateCommitResultDto'
+          description: ''
+      security:
+        - bearer: []
+      summary: Commit a Runtime source group message candidate
+      tags:
+        - Group Chats
+  /api/human/group-chats/{chatId}/source-participants:
+    post:
+      operationId: addGroupSourceParticipant
+      parameters:
+        - in: path
+          name: chatId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddGroupSourceParticipantInputDto'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupParticipantDto'
+          description: ''
+      security:
+        - bearer: []
+      summary: Add runtime source participant slot
+      tags:
+        - Group Chats
+  /api/human/group-chats/{chatId}/source-participants/{runtimeParticipantSlotId}:
+    delete:
+      operationId: removeGroupSourceParticipant
+      parameters:
+        - in: path
+          name: runtimeParticipantSlotId
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: chatId
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Runtime source participant disabled
+      security:
+        - bearer: []
+      summary: Disable runtime source participant slot
+      tags:
+        - Group Chats
   /api/human/group-chats/{chatId}/sync:
     get:
       operationId: syncGroupEvents
@@ -8316,6 +11299,102 @@ paths:
       summary: Search users
       tags:
         - User
+  /api/human/source-connections:
+    get:
+      operationId: SourceConnectionController_list
+      parameters:
+        - in: query
+          name: kind
+          required: false
+          schema:
+            enum:
+              - worldCharacter
+              - realmPersona
+            type: string
+        - in: query
+          name: status
+          required: false
+          schema:
+            enum:
+              - active
+              - removed
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/RealmSourceConnectionDto'
+                type: array
+          description: ''
+      security:
+        - bearer: []
+      summary: List source connections for the current user
+      tags:
+        - Source Connections
+    post:
+      operationId: SourceConnectionController_connect
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRealmSourceConnectionDto'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RealmSourceConnectionDto'
+          description: ''
+      security:
+        - bearer: []
+      summary: Connect the current user to a Realm core sourceRef
+      tags:
+        - Source Connections
+  /api/human/source-connections/{id}:
+    delete:
+      operationId: SourceConnectionController_remove
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RealmSourceConnectionDto'
+          description: ''
+      security:
+        - bearer: []
+      summary: Remove a source connection without touching LocalAgent runtime state
+      tags:
+        - Source Connections
+    get:
+      operationId: SourceConnectionController_get
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RealmSourceConnectionDto'
+          description: ''
+      security:
+        - bearer: []
+      summary: Get one source connection for the current user
+      tags:
+        - Source Connections
   /api/invitations:
     get:
       operationId: InvitationController_listMyCodes
@@ -8371,10 +11450,63 @@ paths:
       summary: Verify and redeem an invitation code
       tags:
         - Invitations
+  /api/realm/core/oasis:
+    get:
+      operationId: WorldCoreController_getOasisWorld
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorldCoreDto'
+          description: ''
+      security:
+        - bearer: []
+      summary: Get OASIS WorldCore
+      tags:
+        - Realm Core
+  /api/realm/core/oasis/bootstrap:
+    post:
+      operationId: WorldCoreController_bootstrapOasisWorld
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BootstrapOasisWorldDto'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorldCoreDto'
+          description: ''
+      security:
+        - bearer: []
+      summary: Bootstrap or return the system OASIS WorldCore
+      tags:
+        - Realm Core
   /api/realm/core/personas:
     get:
       operationId: WorldCoreController_listRealmPersonas
-      parameters: []
+      parameters:
+        - in: query
+          name: take
+          required: false
+          schema:
+            type: number
+        - in: query
+          name: visibility
+          required: false
+          schema:
+            enum:
+              - private
+              - unlisted
+              - public
+              - system
+            type: string
       responses:
         '200':
           content:
@@ -8386,7 +11518,7 @@ paths:
           description: ''
       security:
         - bearer: []
-      summary: List my RealmPersona records
+      summary: List readable RealmPersona records
       tags:
         - Realm Core
     post:
@@ -8428,7 +11560,7 @@ paths:
           description: ''
       security:
         - bearer: []
-      summary: Get one of my RealmPersona records
+      summary: Get a readable RealmPersona record
       tags:
         - Realm Core
     put:
@@ -8578,44 +11710,6 @@ paths:
       security:
         - bearer: []
       summary: Create a WorldCore
-      tags:
-        - Realm Core
-  /api/realm/core/worlds/oasis:
-    get:
-      operationId: WorldCoreController_getOasisWorld
-      parameters: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/WorldCoreDto'
-          description: ''
-      security:
-        - bearer: []
-      summary: Get OASIS WorldCore
-      tags:
-        - Realm Core
-  /api/realm/core/worlds/oasis/bootstrap:
-    post:
-      operationId: WorldCoreController_bootstrapOasisWorld
-      parameters: []
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/BootstrapOasisWorldDto'
-        required: true
-      responses:
-        '201':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/WorldCoreDto'
-          description: ''
-      security:
-        - bearer: []
-      summary: Bootstrap or return the system OASIS WorldCore
       tags:
         - Realm Core
   /api/realm/core/worlds/{worldId}:
@@ -9447,11 +12541,6 @@ paths:
           required: false
           schema:
             type: string
-        - in: query
-          name: sourceId
-          required: false
-          schema:
-            type: string
       responses:
         '200':
           content:
@@ -9464,6 +12553,27 @@ paths:
       security:
         - bearer: []
       summary: List my transits
+      tags:
+        - Transits
+    post:
+      operationId: TransitController_createTransit
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTransitDto'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransitDetailDto'
+          description: ''
+      security:
+        - bearer: []
+      summary: Create a sourceRef-backed transit session
       tags:
         - Transits
   /api/world/transit/active/{runtimeSourceRef}:

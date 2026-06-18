@@ -432,7 +432,7 @@ test('Runtime Realm group message candidate surface builds verified commit paylo
 
   const result = await surface.createCommitPayload({
     ...agentIdentity(),
-    participantType: 'agent',
+    participantType: 'source',
     currentUserId: 'user-1',
     runtimeParticipantSlot: 'slot-1',
     realmGroupThreadId: 'thread-1',
@@ -446,14 +446,16 @@ test('Runtime Realm group message candidate surface builds verified commit paylo
   assert.equal(evidenceCalls[0]?.candidateId, 'candidate-1');
   assert.equal(result.realmCommitPayload.commitDisposition, 'MESSAGE_CANDIDATE');
   assert.equal(result.realmCommitPayload.body, 'hello group');
-  assert.equal(result.realmCommitPayload.clientCorrelationId, 'idem-1');
+  assert.equal(result.realmCommitPayload.idempotencyKey, 'idem-1');
+  assert.equal(result.realmCommitPayload.expectedRuntimeParticipantSlotId, 'slot-1');
+  assert.equal(result.realmCommitPayload.expectedRuntimeSourceRef, 'agent-1');
   assert.equal(result.realmCommitPayload.createdAt, '2026-06-05T00:00:00.000Z');
 
   evidence = { ...candidateEvidence(), candidateId: 'other-candidate' };
   await assert.rejects(
     () => surface.createCommitPayload({
       ...agentIdentity(),
-      participantType: 'agent',
+      participantType: 'source',
       currentUserId: 'user-1',
       runtimeParticipantSlot: 'slot-1',
       realmGroupThreadId: 'thread-1',
@@ -466,7 +468,7 @@ test('Runtime Realm group message candidate surface builds verified commit paylo
   await assert.rejects(
     () => surface.createCommitPayload({
       ...agentIdentity(),
-      participantType: 'agent',
+      participantType: 'source',
       currentUserId: 'user-1',
       runtimeParticipantSlot: 'slot-1',
       realmGroupThreadId: 'thread-1',

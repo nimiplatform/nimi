@@ -122,6 +122,7 @@ func TestCBDBSeededRuntimeSourceLocalAgentRunsPublicChatTurn(t *testing.T) {
 			for _, expected := range []string{
 				publicChatRealmProfilePromptHeader,
 				"CBDB historical profile",
+				"curated system source profile",
 				"CBDB Su Zhe",
 				"Ask what the record supports before imagining.",
 				"Uses reviewed Song-literati register.",
@@ -132,6 +133,9 @@ func TestCBDBSeededRuntimeSourceLocalAgentRunsPublicChatTurn(t *testing.T) {
 				if !strings.Contains(prompt, expected) {
 					t.Fatalf("expected CBDB profile prompt to contain %q, got %q", expected, prompt)
 				}
+			}
+			if strings.Contains(prompt, "system-agent profile") {
+				t.Fatalf("CBDB profile prompt must use source-profile wording, got %q", prompt)
 			}
 			if err := emit(&runtimev1.StreamScenarioEvent{
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_STARTED,

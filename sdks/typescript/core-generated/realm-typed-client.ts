@@ -36,6 +36,13 @@ export interface AddFriendBodyDto {
 export interface AddGroupParticipantInputDto {
   readonly accountId: string;
 }
+export interface AddGroupSourceParticipantInputDto {
+  readonly avatarUrl?: string;
+  readonly displayName?: string;
+  readonly handle?: string;
+  readonly runtimeSourceRef: string;
+  readonly sourceRef: GroupSourceRefDto;
+}
 export interface AppPermissionGrantDecisionDto {
   readonly expectedVersion: number;
   readonly reason?: string;
@@ -305,6 +312,29 @@ export interface CloneAssetDto {
   readonly transferPolicy?: "ALLOW" | "DENY" | "INHERIT";
   readonly usePolicy?: UsePolicyDto | null;
 }
+export interface CommitRealmGroupSourceMessageCandidateInputDto {
+  readonly auditLineageRef: string;
+  readonly body?: string;
+  readonly bodyHash?: string;
+  readonly candidateEvidenceRef: string;
+  readonly candidateId: string;
+  readonly candidateKind: "REALM_GROUP_MESSAGE_CANDIDATE";
+  readonly commitDisposition: "MESSAGE_CANDIDATE" | "REFUSAL_CANDIDATE";
+  readonly createdAt: string;
+  readonly evidenceHash: string;
+  readonly expectedRuntimeParticipantSlotId: string;
+  readonly expectedRuntimeSourceRef: string;
+  readonly expiresAt: string;
+  readonly idempotencyKey: string;
+  readonly messageType?: "TEXT";
+  readonly outputCandidateRef: string;
+  readonly policyVerdictRef: string;
+  readonly refusalCode?: string;
+  readonly refusalHash?: string;
+  readonly refusalReason?: string;
+  readonly runtimeTraceRef: string;
+  readonly triggerRef: string;
+}
 export interface ConnectDashboardLinkDto {
   readonly url: string;
 }
@@ -382,6 +412,8 @@ export interface CreatePostAttachmentDto {
 export interface CreatePostDto {
   readonly attachments: readonly (CreatePostAttachmentDto)[];
   readonly caption?: string;
+  readonly runtimeSourceRef?: string;
+  readonly sourceRef?: PostSourceRefDto;
   readonly tags?: readonly (string)[];
 }
 export interface CreateRealmPersonaDto {
@@ -389,6 +421,10 @@ export interface CreateRealmPersonaDto {
   readonly homeWorldId?: string;
   readonly id?: string;
   readonly origin: RealmCoreOriginDto;
+  readonly visibility?: "private" | "unlisted" | "public" | "system";
+}
+export interface CreateRealmSourceConnectionDto {
+  readonly sourceRef: RelationshipSourceRefDto;
 }
 export interface CreateRelationshipDto {
   readonly context?: string;
@@ -444,6 +480,13 @@ export interface CreateTextResourceDto {
   readonly traceId?: string;
   readonly width?: number;
   readonly worldId?: string;
+}
+export interface CreateTransitDto {
+  readonly context?: TransitContextDto;
+  readonly fromWorldId?: string;
+  readonly sourceRef: TypedSourceRefDto;
+  readonly toWorldId: string;
+  readonly transitType: "INBOUND" | "OUTBOUND";
 }
 export interface CreateWithdrawalDto {
   readonly gemAmount: string;
@@ -636,7 +679,10 @@ export interface GroupMessageAuthorDto {
   readonly accountId: string;
   readonly avatarUrl: string | null;
   readonly displayName: string;
+  readonly runtimeParticipantSlot: string | null;
+  readonly runtimeSourceRef: string | null;
   readonly sourceOwnerId: string | null;
+  readonly sourceRef: GroupSourceRefDto | null;
   readonly type: "human" | "source";
 }
 export interface GroupMessageViewDto {
@@ -664,8 +710,14 @@ export interface GroupParticipantDto {
   readonly runtimeParticipantSlot: string | null;
   readonly runtimeSourceRef: string | null;
   readonly sourceOwnerId: string | null;
-  readonly sourceRef: string | null;
+  readonly sourceRef: GroupSourceRefDto | null;
   readonly type: "human" | "source";
+}
+export interface GroupSourceRefDto {
+  readonly kind: "worldCharacter" | "realmPersona";
+  readonly sourceContentHash: string;
+  readonly sourceId: string;
+  readonly worldId: string;
 }
 export interface HandleAvailabilityDto {
   readonly available: boolean;
@@ -898,16 +950,37 @@ export interface PostDto {
   readonly attachments: readonly (PostAttachmentDto)[];
   readonly author: UserLiteDto;
   readonly authorId: string;
+  readonly authorKind: "human" | "worldCharacter" | "realmPersona";
   readonly caption?: string | null;
   readonly contentRating?: ContentRatingString;
   readonly createdAt: string;
   readonly id: string;
   readonly likedByCurrentUser?: boolean;
   readonly moderationStatus?: ModerationStatusString;
+  readonly runtimeSourceRef?: string | null;
+  readonly sourceAuthor?: PostSourceAuthorDto | null;
+  readonly sourceRef?: PostSourceRefDto | null;
   readonly tags?: readonly (string)[];
   readonly updatedAt?: string | null;
   readonly visibility: Visibility;
   readonly worldId?: string;
+}
+export interface PostSourceAuthorDto {
+  readonly avatarUrl?: string | null;
+  readonly displayName: string;
+  readonly handle: string;
+  readonly id: string;
+  readonly kind: "worldCharacter" | "realmPersona";
+  readonly ownerUserId: string;
+  readonly runtimeSourceRef: string;
+  readonly sourceRef: PostSourceRefDto;
+  readonly worldId: string;
+}
+export interface PostSourceRefDto {
+  readonly kind: "worldCharacter" | "realmPersona";
+  readonly sourceContentHash: string;
+  readonly sourceId: string;
+  readonly worldId: string;
 }
 export type PresenceStatus = "online" | "invisible";
 export type PublicAccountRole = "USER" | "SERVICE_ACC" | "SYSTEM_BOT" | "ADMIN";
@@ -929,6 +1002,11 @@ export interface RealmCoreOriginDto {
   readonly sourceId?: string;
   readonly sourceVersion?: string;
 }
+export interface RealmGroupMessageCandidateCommitResultDto {
+  readonly candidateId: string;
+  readonly message: GroupMessageViewDto;
+  readonly status: "committed" | "duplicate";
+}
 export interface RealmPersonaDto {
   readonly contentHash: string;
   readonly contentRevision: number;
@@ -940,11 +1018,23 @@ export interface RealmPersonaDto {
   readonly ownerId: string;
   readonly schemaVersion: string;
   readonly updatedAt: string;
+  readonly visibility: "private" | "unlisted" | "public" | "system";
 }
 export interface RealmSourceCapabilitiesDto {
   readonly canCreateRealmPersona: boolean;
   readonly canCreateRuntimeSourceSnapshot: boolean;
   readonly canUseWorldCharacterSources: boolean;
+}
+export interface RealmSourceConnectionDto {
+  readonly connectedAt: string;
+  readonly createdAt: string;
+  readonly id: string;
+  readonly ownerUserId: string;
+  readonly removedAt?: string | null;
+  readonly runtimeSourceRef: string;
+  readonly sourceRef: RelationshipSourceRefDto;
+  readonly status: "active" | "removed";
+  readonly updatedAt: string;
 }
 export interface ReceivedGiftsResponseDto {
   readonly items: readonly (GiftTransactionRichDto)[];
@@ -965,12 +1055,19 @@ export interface RelationshipResponseDto {
   readonly targetId: string;
   readonly type: AccountRelationType;
 }
+export interface RelationshipSourceRefDto {
+  readonly kind: "worldCharacter" | "realmPersona";
+  readonly sourceContentHash: string;
+  readonly sourceId: string;
+  readonly worldId: string;
+}
 export interface ReplaceRealmPersonaDto {
   readonly baseContentHash: string;
   readonly core: Record<string, unknown>;
   readonly homeWorldId?: string;
   readonly id?: string;
   readonly origin: RealmCoreOriginDto;
+  readonly visibility?: "private" | "unlisted" | "public" | "system";
 }
 export interface ReplaceWorldCharacterCoreDto {
   readonly baseContentHash: string;
@@ -1126,8 +1223,10 @@ export interface SocialProfileDto {
 export interface SourceOriginDto {
   readonly isWorldOwned: boolean;
   readonly ownerId: string;
+  readonly sourceContentHash: string;
   readonly sourceId: string;
   readonly sourceKind: "worldCharacter" | "realmPersona";
+  readonly sourceRef: Record<string, unknown>;
   readonly worldCreatorId: string | null;
   readonly worldId: string;
 }
@@ -1942,6 +2041,7 @@ export interface RealmTypedModelMap {
   readonly "AccountStatus": AccountStatus;
   readonly "AddFriendBodyDto": AddFriendBodyDto;
   readonly "AddGroupParticipantInputDto": AddGroupParticipantInputDto;
+  readonly "AddGroupSourceParticipantInputDto": AddGroupSourceParticipantInputDto;
   readonly "AppPermissionGrantDecisionDto": AppPermissionGrantDecisionDto;
   readonly "AppPermissionGrantDto": AppPermissionGrantDto;
   readonly "AppPermissionGrantGrantDto": AppPermissionGrantGrantDto;
@@ -1985,6 +2085,7 @@ export interface RealmTypedModelMap {
   readonly "CheckEmailDto": CheckEmailDto;
   readonly "CheckEmailResponseDto": CheckEmailResponseDto;
   readonly "CloneAssetDto": CloneAssetDto;
+  readonly "CommitRealmGroupSourceMessageCandidateInputDto": CommitRealmGroupSourceMessageCandidateInputDto;
   readonly "ConnectDashboardLinkDto": ConnectDashboardLinkDto;
   readonly "ConnectOnboardingResponseDto": ConnectOnboardingResponseDto;
   readonly "ContentRatingString": ContentRatingString;
@@ -1997,6 +2098,7 @@ export interface RealmTypedModelMap {
   readonly "CreatePostAttachmentDto": CreatePostAttachmentDto;
   readonly "CreatePostDto": CreatePostDto;
   readonly "CreateRealmPersonaDto": CreateRealmPersonaDto;
+  readonly "CreateRealmSourceConnectionDto": CreateRealmSourceConnectionDto;
   readonly "CreateRelationshipDto": CreateRelationshipDto;
   readonly "CreateReportDto": CreateReportDto;
   readonly "CreateReviewDto": CreateReviewDto;
@@ -2004,6 +2106,7 @@ export interface RealmTypedModelMap {
   readonly "CreateSparkCheckoutDto": CreateSparkCheckoutDto;
   readonly "CreateSubscriptionCheckoutDto": CreateSubscriptionCheckoutDto;
   readonly "CreateTextResourceDto": CreateTextResourceDto;
+  readonly "CreateTransitDto": CreateTransitDto;
   readonly "CreateWithdrawalDto": CreateWithdrawalDto;
   readonly "CreateWorldCharacterCoreDto": CreateWorldCharacterCoreDto;
   readonly "CreateWorldCoreDto": CreateWorldCoreDto;
@@ -2031,6 +2134,7 @@ export interface RealmTypedModelMap {
   readonly "GroupMessageAuthorDto": GroupMessageAuthorDto;
   readonly "GroupMessageViewDto": GroupMessageViewDto;
   readonly "GroupParticipantDto": GroupParticipantDto;
+  readonly "GroupSourceRefDto": GroupSourceRefDto;
   readonly "HandleAvailabilityDto": HandleAvailabilityDto;
   readonly "ImportPolicyDto": ImportPolicyDto;
   readonly "IntrospectSessionErrorDto": IntrospectSessionErrorDto;
@@ -2072,16 +2176,21 @@ export interface RealmTypedModelMap {
   readonly "PortalSessionDto": PortalSessionDto;
   readonly "PostAttachmentDto": PostAttachmentDto;
   readonly "PostDto": PostDto;
+  readonly "PostSourceAuthorDto": PostSourceAuthorDto;
+  readonly "PostSourceRefDto": PostSourceRefDto;
   readonly "PresenceStatus": PresenceStatus;
   readonly "PublicAccountRole": PublicAccountRole;
   readonly "PublicFilterDto": PublicFilterDto;
   readonly "RealmCoreOriginDto": RealmCoreOriginDto;
+  readonly "RealmGroupMessageCandidateCommitResultDto": RealmGroupMessageCandidateCommitResultDto;
   readonly "RealmPersonaDto": RealmPersonaDto;
   readonly "RealmSourceCapabilitiesDto": RealmSourceCapabilitiesDto;
+  readonly "RealmSourceConnectionDto": RealmSourceConnectionDto;
   readonly "ReceivedGiftsResponseDto": ReceivedGiftsResponseDto;
   readonly "RefreshTokenDto": RefreshTokenDto;
   readonly "RejectGiftDto": RejectGiftDto;
   readonly "RelationshipResponseDto": RelationshipResponseDto;
+  readonly "RelationshipSourceRefDto": RelationshipSourceRefDto;
   readonly "ReplaceRealmPersonaDto": ReplaceRealmPersonaDto;
   readonly "ReplaceWorldCharacterCoreDto": ReplaceWorldCharacterCoreDto;
   readonly "ReplaceWorldCoreDto": ReplaceWorldCoreDto;
@@ -2193,6 +2302,19 @@ export interface RealmAddGroupParticipantOperationRequest {
   readonly body: AddGroupParticipantInputDto;
 }
 export type RealmAddGroupParticipantOperationResponse = GroupParticipantDto;
+export interface RealmAddGroupSourceParticipantOperationRequest {
+  readonly path: {
+    readonly chatId: string;
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body: AddGroupSourceParticipantInputDto;
+}
+export type RealmAddGroupSourceParticipantOperationResponse = GroupParticipantDto;
 export interface RealmArchiveBundleOperationRequest {
   readonly path: {
     readonly bundleId: string;
@@ -2297,6 +2419,19 @@ export interface RealmCloneAssetOperationRequest {
   readonly body: CloneAssetDto;
 }
 export type RealmCloneAssetOperationResponse = AssetDetailDto;
+export interface RealmCommitRealmGroupSourceMessageCandidateOperationRequest {
+  readonly path: {
+    readonly chatId: string;
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body: CommitRealmGroupSourceMessageCandidateInputDto;
+}
+export type RealmCommitRealmGroupSourceMessageCandidateOperationResponse = RealmGroupMessageCandidateCommitResultDto;
 export interface RealmCreateAssetOperationRequest {
   readonly path: {
 
@@ -2679,11 +2814,10 @@ export interface RealmEconomyControllerGetSentGiftsOperationRequest {
 export type RealmEconomyControllerGetSentGiftsOperationResponse = ReceivedGiftsResponseDto;
 export interface RealmEconomyControllerGetSourceOriginOperationRequest {
   readonly path: {
-    readonly sourceId: string;
-    readonly sourceKind: "worldCharacter" | "realmPersona";
+    readonly sourceRef: string;
   };
   readonly query?: {
-    readonly sourceWorldId: string;
+
   };
   readonly headers?: {
 
@@ -2790,9 +2924,7 @@ export interface RealmEconomyControllerPreviewRevenueDistributionOperationReques
   };
   readonly query?: {
     readonly amount: string;
-    readonly sourceWorldId: string;
-    readonly sourceId: string;
-    readonly sourceKind: "worldCharacter" | "realmPersona";
+    readonly sourceRef: string;
   };
   readonly headers?: {
 
@@ -3893,6 +4025,20 @@ export interface RealmRemoveGroupParticipantOperationRequest {
   readonly body?: Record<string, never>;
 }
 export type RealmRemoveGroupParticipantOperationResponse = Record<string, never>;
+export interface RealmRemoveGroupSourceParticipantOperationRequest {
+  readonly path: {
+    readonly runtimeParticipantSlotId: string;
+    readonly chatId: string;
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body?: Record<string, never>;
+}
+export type RealmRemoveGroupSourceParticipantOperationResponse = Record<string, never>;
 export interface RealmReportControllerCreateReportOperationRequest {
   readonly path: {
 
@@ -4096,6 +4242,59 @@ export interface RealmSendMessageOperationRequest {
   readonly body: SendMessageInputDto;
 }
 export type RealmSendMessageOperationResponse = MessageViewDto;
+export interface RealmSourceConnectionControllerConnectOperationRequest {
+  readonly path: {
+
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body: CreateRealmSourceConnectionDto;
+}
+export type RealmSourceConnectionControllerConnectOperationResponse = RealmSourceConnectionDto;
+export interface RealmSourceConnectionControllerGetOperationRequest {
+  readonly path: {
+    readonly id: string;
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body?: Record<string, never>;
+}
+export type RealmSourceConnectionControllerGetOperationResponse = RealmSourceConnectionDto;
+export interface RealmSourceConnectionControllerListOperationRequest {
+  readonly path: {
+
+  };
+  readonly query?: {
+    readonly kind?: "worldCharacter" | "realmPersona";
+    readonly status?: "active" | "removed";
+  };
+  readonly headers?: {
+
+  };
+  readonly body?: Record<string, never>;
+}
+export type RealmSourceConnectionControllerListOperationResponse = readonly (RealmSourceConnectionDto)[];
+export interface RealmSourceConnectionControllerRemoveOperationRequest {
+  readonly path: {
+    readonly id: string;
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body?: Record<string, never>;
+}
+export type RealmSourceConnectionControllerRemoveOperationResponse = RealmSourceConnectionDto;
 export interface RealmStartChatOperationRequest {
   readonly path: {
 
@@ -4176,6 +4375,19 @@ export interface RealmTransitControllerCompleteOperationRequest {
   readonly body?: Record<string, never>;
 }
 export type RealmTransitControllerCompleteOperationResponse = TransitDetailDto;
+export interface RealmTransitControllerCreateTransitOperationRequest {
+  readonly path: {
+
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body: CreateTransitDto;
+}
+export type RealmTransitControllerCreateTransitOperationResponse = TransitDetailDto;
 export interface RealmTransitControllerGetActiveTransitOperationRequest {
   readonly path: {
     readonly runtimeSourceRef: string;
@@ -4210,7 +4422,6 @@ export interface RealmTransitControllerListTransitsOperationRequest {
     readonly transitType?: string;
     readonly status?: string;
     readonly runtimeSourceRef?: string;
-    readonly sourceId?: string;
   };
   readonly headers?: {
 
@@ -4614,7 +4825,8 @@ export interface RealmWorldCoreControllerListRealmPersonasOperationRequest {
 
   };
   readonly query?: {
-
+    readonly take?: number;
+    readonly visibility?: "private" | "unlisted" | "public" | "system";
   };
   readonly headers?: {
 
@@ -4714,6 +4926,17 @@ export class RealmTypedClient {
     });
   }
 
+  async addGroupSourceParticipant(request: RealmAddGroupSourceParticipantOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmAddGroupSourceParticipantOperationResponse> {
+    return this.core.unary<RealmAddGroupSourceParticipantOperationResponse, RealmAddGroupSourceParticipantOperationRequest>({
+      methodId: "addGroupSourceParticipant",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
   async archiveBundle(request: RealmArchiveBundleOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmArchiveBundleOperationResponse> {
     return this.core.unary<RealmArchiveBundleOperationResponse, RealmArchiveBundleOperationRequest>({
       methodId: "archiveBundle",
@@ -4794,6 +5017,17 @@ export class RealmTypedClient {
   async cloneAsset(request: RealmCloneAssetOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmCloneAssetOperationResponse> {
     return this.core.unary<RealmCloneAssetOperationResponse, RealmCloneAssetOperationRequest>({
       methodId: "cloneAsset",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async commitRealmGroupSourceMessageCandidate(request: RealmCommitRealmGroupSourceMessageCandidateOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmCommitRealmGroupSourceMessageCandidateOperationResponse> {
+    return this.core.unary<RealmCommitRealmGroupSourceMessageCandidateOperationResponse, RealmCommitRealmGroupSourceMessageCandidateOperationRequest>({
+      methodId: "commitRealmGroupSourceMessageCandidate",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -6111,6 +6345,17 @@ export class RealmTypedClient {
     });
   }
 
+  async removeGroupSourceParticipant(request: RealmRemoveGroupSourceParticipantOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmRemoveGroupSourceParticipantOperationResponse> {
+    return this.core.unary<RealmRemoveGroupSourceParticipantOperationResponse, RealmRemoveGroupSourceParticipantOperationRequest>({
+      methodId: "removeGroupSourceParticipant",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
   async reportControllerCreateReport(request: RealmReportControllerCreateReportOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmReportControllerCreateReportOperationResponse> {
     return this.core.unary<RealmReportControllerCreateReportOperationResponse, RealmReportControllerCreateReportOperationRequest>({
       methodId: "ReportController_createReport",
@@ -6254,6 +6499,50 @@ export class RealmTypedClient {
     });
   }
 
+  async sourceConnectionControllerConnect(request: RealmSourceConnectionControllerConnectOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmSourceConnectionControllerConnectOperationResponse> {
+    return this.core.unary<RealmSourceConnectionControllerConnectOperationResponse, RealmSourceConnectionControllerConnectOperationRequest>({
+      methodId: "SourceConnectionController_connect",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async sourceConnectionControllerGet(request: RealmSourceConnectionControllerGetOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmSourceConnectionControllerGetOperationResponse> {
+    return this.core.unary<RealmSourceConnectionControllerGetOperationResponse, RealmSourceConnectionControllerGetOperationRequest>({
+      methodId: "SourceConnectionController_get",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async sourceConnectionControllerList(request: RealmSourceConnectionControllerListOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmSourceConnectionControllerListOperationResponse> {
+    return this.core.unary<RealmSourceConnectionControllerListOperationResponse, RealmSourceConnectionControllerListOperationRequest>({
+      methodId: "SourceConnectionController_list",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async sourceConnectionControllerRemove(request: RealmSourceConnectionControllerRemoveOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmSourceConnectionControllerRemoveOperationResponse> {
+    return this.core.unary<RealmSourceConnectionControllerRemoveOperationResponse, RealmSourceConnectionControllerRemoveOperationRequest>({
+      methodId: "SourceConnectionController_remove",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
   async startChat(request: RealmStartChatOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmStartChatOperationResponse> {
     return this.core.unary<RealmStartChatOperationResponse, RealmStartChatOperationRequest>({
       methodId: "startChat",
@@ -6312,6 +6601,17 @@ export class RealmTypedClient {
   async transitControllerComplete(request: RealmTransitControllerCompleteOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmTransitControllerCompleteOperationResponse> {
     return this.core.unary<RealmTransitControllerCompleteOperationResponse, RealmTransitControllerCompleteOperationRequest>({
       methodId: "TransitController_complete",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async transitControllerCreateTransit(request: RealmTransitControllerCreateTransitOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmTransitControllerCreateTransitOperationResponse> {
+    return this.core.unary<RealmTransitControllerCreateTransitOperationResponse, RealmTransitControllerCreateTransitOperationRequest>({
+      methodId: "TransitController_createTransit",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,

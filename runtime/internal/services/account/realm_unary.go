@@ -28,12 +28,12 @@ type realmUnaryOperation struct {
 }
 
 var realmUnaryOperations = map[string]realmUnaryOperation{
-	"WorldCoreController_bootstrapOasisWorld":         worldStudioRealmUnaryOperation(http.MethodPost, "/api/realm/core/worlds/oasis/bootstrap"),
+	"WorldCoreController_bootstrapOasisWorld":         worldStudioRealmUnaryOperation(http.MethodPost, "/api/realm/core/oasis/bootstrap"),
 	"WorldCoreController_createRealmPersona":          personaStudioRealmUnaryOperation(http.MethodPost, "/api/realm/core/personas"),
 	"WorldCoreController_createRuntimeSourceSnapshot": studioRealmUnaryOperation(http.MethodPost, "/api/realm/core/runtime-source-snapshots", realmPersonaStudioAppID, realmWorldStudioAppID),
 	"WorldCoreController_createWorldCharacter":        worldStudioRealmUnaryOperation(http.MethodPost, "/api/realm/core/worlds/{worldId}/characters"),
 	"WorldCoreController_createWorldCore":             worldStudioRealmUnaryOperation(http.MethodPost, "/api/realm/core/worlds"),
-	"WorldCoreController_getOasisWorld":               studioRealmUnaryOperation(http.MethodGet, "/api/realm/core/worlds/oasis", realmPersonaStudioAppID, realmWorldStudioAppID),
+	"WorldCoreController_getOasisWorld":               studioRealmUnaryOperation(http.MethodGet, "/api/realm/core/oasis", realmPersonaStudioAppID, realmWorldStudioAppID),
 	"WorldCoreController_getRealmPersona":             personaStudioRealmUnaryOperation(http.MethodGet, "/api/realm/core/personas/{personaId}"),
 	"WorldCoreController_getWorldCharacter":           worldStudioRealmUnaryOperation(http.MethodGet, "/api/realm/core/world-characters/{characterId}"),
 	"WorldCoreController_getWorldCore":                studioRealmUnaryOperation(http.MethodGet, "/api/realm/core/worlds/{worldId}", realmPersonaStudioAppID, realmWorldStudioAppID),

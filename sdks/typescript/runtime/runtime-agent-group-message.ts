@@ -45,8 +45,8 @@ export interface NimiRuntimeRealmGroupMessageCandidateCommitPayload {
   readonly candidateEvidenceRef: string;
   readonly evidenceHash: string;
   readonly runtimeTraceRef: string;
-  readonly expectedRuntimeParticipantSlot: string;
-  readonly expectedLocalAgentRef: string;
+  readonly expectedRuntimeParticipantSlotId: string;
+  readonly expectedRuntimeSourceRef: string;
   readonly triggerRef: string;
   readonly outputCandidateRef: string;
   readonly auditLineageRef: string;
@@ -61,7 +61,6 @@ export interface NimiRuntimeRealmGroupMessageCandidateCommitPayload {
   readonly refusalReason?: string;
   readonly refusalHash?: string;
   readonly idempotencyKey: string;
-  readonly clientCorrelationId: string;
 }
 
 export type NimiRuntimeRealmGroupMessageCandidateCommitInput =
@@ -137,7 +136,7 @@ export function resolveNimiRuntimeParticipantSlotIdentity(
   input: NimiRuntimeParticipantSlotIdentityInput,
 ): NimiRuntimeParticipantSlotIdentity {
   const participantType = optionalText(input.participantType);
-  if (participantType && participantType !== 'agent') {
+  if (participantType && participantType !== 'source') {
     inputError('runtime source candidate handoff requires a runtime participant slot', 'provide_runtime_participant_slot');
   }
   const currentUserId = requireText(input.currentUserId, 'runtime source candidate handoff requires authenticated current user id', 'authenticate_runtime_source_owner');
@@ -259,8 +258,8 @@ function buildRealmCommitPayload(input: {
     candidateEvidenceRef: input.candidate.candidateEvidenceRef,
     evidenceHash: input.candidate.evidenceHash,
     runtimeTraceRef: input.candidate.runtimeTraceRef,
-    expectedRuntimeParticipantSlot: input.slot.runtimeParticipantSlot,
-    expectedLocalAgentRef: input.slot.localAgentRef,
+    expectedRuntimeParticipantSlotId: input.slot.runtimeParticipantSlot,
+    expectedRuntimeSourceRef: input.slot.runtimeSourceRef,
     triggerRef: input.triggerRef,
     outputCandidateRef: input.evidence.outputCandidateRef,
     auditLineageRef: input.evidence.auditLineageRef,
@@ -275,7 +274,6 @@ function buildRealmCommitPayload(input: {
     ...(input.evidence.refusalReason ? { refusalReason: input.evidence.refusalReason } : {}),
     ...(input.evidence.refusalHash ? { refusalHash: input.evidence.refusalHash } : {}),
     idempotencyKey: input.idempotencyKey,
-    clientCorrelationId: input.idempotencyKey,
   };
 }
 

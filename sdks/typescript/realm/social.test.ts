@@ -1,16 +1,22 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import type {
+  RealmSourceConnectionDto,
+  RelationshipSourceRefDto,
+} from '../core-generated/realm-typed-client';
 import {
   NIMI_REALM_FEED_SCOPES,
   addNimiRealmFriendById,
   blockNimiRealmUser,
   buildEmptyNimiRealmPostFeedResponse,
+  connectNimiRealmSource,
   createNimiRealmPost,
   createNimiRealmReport,
   deleteNimiRealmPost,
   executeNimiRealmSocialMutation,
   isNimiRealmFeedScope,
+  listNimiRealmSourceConnections,
   likeNimiRealmPost,
   loadNimiRealmCurrentUserProfile,
   loadNimiRealmExploreFeedItems,
@@ -27,6 +33,27 @@ import {
   updateNimiRealmCurrentUserProfile,
   updateNimiRealmPostVisibility,
 } from './index';
+
+const realmPersonaSourceRef: RelationshipSourceRefDto = {
+  kind: 'realmPersona',
+  worldId: 'world-1',
+  sourceId: 'persona-1',
+  sourceContentHash: 'sha256:persona',
+};
+
+function createRealmSourceConnection(sourceRef: RelationshipSourceRefDto): RealmSourceConnectionDto {
+  return {
+    id: 'source-connection-1',
+    ownerUserId: 'me',
+    sourceRef,
+    runtimeSourceRef: `runtime-source:${sourceRef.kind}:${sourceRef.worldId}:${sourceRef.sourceId}:${sourceRef.sourceContentHash}`,
+    status: 'active',
+    connectedAt: '2026-06-18T00:00:00.000Z',
+    createdAt: '2026-06-18T00:00:00.000Z',
+    updatedAt: '2026-06-18T00:00:00.000Z',
+    removedAt: null,
+  };
+}
 
 function createSocialRealmStub() {
   const calls: string[] = [];
@@ -142,6 +169,15 @@ function createSocialRealmStub() {
           calls.push(`report:${request.body.targetId ?? ''}:${request.body.reason ?? ''}`);
           return { id: 'report-1' };
         },
+        async sourceConnectionControllerConnect(request: { body: { sourceRef: RelationshipSourceRefDto } }) {
+          const { sourceRef } = request.body;
+          calls.push(`connectSource:${sourceRef.kind}:${sourceRef.sourceId}`);
+          return createRealmSourceConnection(sourceRef);
+        },
+        async sourceConnectionControllerList(request: { query: { status?: string } }) {
+          calls.push(`listSources:${request.query.status ?? ''}`);
+          return [createRealmSourceConnection(realmPersonaSourceRef)];
+        },
       },
     },
   };
@@ -222,6 +258,95 @@ test('Realm social profile helpers preserve explicit user mutations', async () =
   assert.equal(updated.displayName, 'Me 2');
   assert.equal(profile.id, 'user-2');
   assert.deepEqual(errors, []);
+});
+
+test('Realm source connection helpers require hash-bearing source refs and map generated responses', async () => {
+  const { realm, calls } = createSocialRealmStub();
+  const errors: string[] = [];
+
+  const connection = await connectNimiRealmSource(
+    realm,
+    (action) => errors.push(action),
+    realmPersonaSourceRef,
+  );
+  const connections = await listNimiRealmSourceConnections(realm, (action) => errors.push(action));
+
+  assert.equal(connection.id, 'source-connection-1');
+  assert.equal(
+    connection.runtimeSourceRef,
+    'runtime-source:realmPersona:world-1:persona-1:sha256:persona',
+  );
+  assert.equal(connections[0]?.sourceRef.sourceContentHash, 'sha256:persona');
+  assert.deepEqual(errors, []);
+  assert.deepEqual(calls.filter((call) => /^(connectSource|listSources):/.test(call)), [
+    'connectSource:realmPersona:persona-1',
+    'listSources:active',
+  ]);
+});
+
+test('Realm source connection helpers fail closed on incomplete source refs', async () => {
+  const { realm } = createSocialRealmStub();
+  const errors: string[] = [];
+
+  await assert.rejects(
+    () => connectNimiRealmSource(realm, (action) => errors.push(action), null),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_REALM_SOURCE_REF_REQUIRED',
+  );
+  await assert.rejects(
+    () => connectNimiRealmSource(realm, (action) => errors.push(action), {}),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_REALM_SOURCE_KIND_REQUIRED',
+  );
+  await assert.rejects(
+    () => connectNimiRealmSource(realm, (action) => errors.push(action), {
+      ...realmPersonaSourceRef,
+      kind: 'profile',
+    }),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_REALM_SOURCE_KIND_UNSUPPORTED',
+  );
+  await assert.rejects(
+    () => connectNimiRealmSource(realm, (action) => errors.push(action), {
+      ...realmPersonaSourceRef,
+      worldId: ' ',
+    }),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_REALM_SOURCE_WORLD_ID_REQUIRED',
+  );
+  await assert.rejects(
+    () => connectNimiRealmSource(realm, (action) => errors.push(action), {
+      ...realmPersonaSourceRef,
+      sourceId: '',
+    }),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_REALM_SOURCE_ID_REQUIRED',
+  );
+  await assert.rejects(
+    () => connectNimiRealmSource(realm, (action) => errors.push(action), {
+      ...realmPersonaSourceRef,
+      sourceContentHash: '',
+    }),
+    (error: unknown) =>
+      (error as { reasonCode?: string }).reasonCode === 'SDK_REALM_SOURCE_CONTENT_HASH_REQUIRED',
+  );
+  assert.deepEqual(errors, []);
+});
+
+test('Realm source connection helpers emit operation-specific generated API failures', async () => {
+  const { realm } = createSocialRealmStub();
+  const errors: string[] = [];
+  realm.generated.sourceConnectionControllerConnect = async () => {
+    throw new Error('connect failed');
+  };
+  realm.generated.sourceConnectionControllerList = async () => {
+    throw new Error('list failed');
+  };
+
+  await assert.rejects(
+    () => connectNimiRealmSource(realm, (action) => errors.push(action), realmPersonaSourceRef),
+    /connect failed/,
+  );
+  await assert.rejects(
+    () => listNimiRealmSourceConnections(realm, (action) => errors.push(action)),
+    /list failed/,
+  );
+  assert.deepEqual(errors, ['connect-source', 'list-source-connections']);
 });
 
 test('Realm social post, feed, report, and explore helpers map SDK inputs to generated requests', async () => {

@@ -8,7 +8,7 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
-const publicChatRealmProfilePromptHeader = "Realm Agent profile context:"
+const publicChatRealmProfilePromptHeader = "Realm source profile context:"
 
 func publicChatAnchorSystemPromptFromMetadata(metadata *structpb.Struct) string {
 	profile := conversationAnchorProfileContext(metadata)
@@ -25,7 +25,7 @@ func publicChatAnchorSystemPromptFromMetadata(metadata *structpb.Struct) string 
 		lines = append(lines, "This is a CBDB historical profile; preserve sparse source-backed facts and say what is unknown instead of filling gaps.")
 	}
 	if scope := profileString(profile, "ownerScope", "owner_scope"); scope == "cbdb-curated-system" {
-		lines = append(lines, "This is a curated system-agent profile; keep Halliday/system ownership distinct from the user's LocalAgent projection.")
+		lines = append(lines, "This is a curated system source profile; keep source ownership distinct from the user's LocalAgent runtime.")
 	}
 
 	addProfileLine := func(label string, keys ...string) {
