@@ -1,6 +1,6 @@
 import type { ComponentType } from 'react';
 
-export type BackendKind = 'live2d' | 'vrm';
+export type BackendKind = 'live2d' | 'vrm' | 'nimi2d';
 
 export type BackendNominalBounds = {
   width: number;
@@ -66,4 +66,5 @@ export type BackendBranchBase = {
 
 export type BackendBranch =
   | (BackendBranchBase & { kind: 'live2d'; live2dExtension: Live2DBackendExtension })
-  | (BackendBranchBase & { kind: 'vrm' });
+  | (BackendBranchBase & { kind: 'vrm' })
+  | (BackendBranchBase & { kind: 'nimi2d' });

@@ -11,6 +11,7 @@
 import type { AvatarModelManifest } from '@nimiplatform/kit/features/avatar/headless';
 import type { BackendAudioConsumer, BackendBranch } from './backend-branch.js';
 import { createLive2DBackendBranch } from '../live2d/live2d-backend-branch.js';
+import { createNimi2DBackendBranch } from '../nimi2d/nimi2d-backend-branch.js';
 import { createVrmBackendBranch } from '../vrm/vrm-backend.js';
 
 // Branch-owned cue/signal handles used by carrier orchestration outside the
@@ -43,6 +44,9 @@ export async function createBackendBranch(
         audioConsumer: handle.audioConsumer,
         shutdown: handle.shutdown,
       };
+    }
+    case 'nimi2d': {
+      return createNimi2DBackendBranch(manifest);
     }
     default: {
       // Exhaustive: any new BackendKind must update this switch (and the

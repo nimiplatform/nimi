@@ -70,6 +70,11 @@ const ADMITTED_BACKEND_LIFECYCLE_EVIDENCE = new Set([
   'load_failed',
   'audio_pipeline_ready',
   'audio_pipeline_failed',
+  'renderer_pipeline_ready',
+  'renderer_pipeline_failed',
+  'hit_region_alpha_probe_ready',
+  'mounted_visual_frame_ready',
+  'mounted_visual_frame_failed',
   'hit_region_degraded',
 ]);
 
@@ -205,6 +210,66 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
         recordAvatarEvidenceEventually({
           kind: 'avatar.audio.pipeline.failed',
           detail: {
+            source: 'embodiment-stage',
+            ...detail,
+            failed_at: new Date().toISOString(),
+          },
+        });
+        return;
+      }
+      if (kind === 'renderer_pipeline_ready') {
+        recordAvatarEvidenceEventually({
+          kind: 'avatar.carrier.visual',
+          detail: {
+            status: 'ready',
+            source: 'embodiment-stage',
+            ...detail,
+            ready_at: new Date().toISOString(),
+          },
+        });
+        return;
+      }
+      if (kind === 'renderer_pipeline_failed') {
+        recordAvatarEvidenceEventually({
+          kind: 'avatar.carrier.visual',
+          detail: {
+            status: 'error',
+            source: 'embodiment-stage',
+            ...detail,
+            failed_at: new Date().toISOString(),
+          },
+        });
+        return;
+      }
+      if (kind === 'hit_region_alpha_probe_ready') {
+        recordAvatarEvidenceEventually({
+          kind: 'avatar.carrier.visual',
+          detail: {
+            status: 'ready',
+            source: 'embodiment-stage',
+            ...detail,
+            ready_at: new Date().toISOString(),
+          },
+        });
+        return;
+      }
+      if (kind === 'mounted_visual_frame_ready') {
+        recordAvatarEvidenceEventually({
+          kind: 'avatar.carrier.visual',
+          detail: {
+            status: 'ready',
+            source: 'embodiment-stage',
+            ...detail,
+            ready_at: new Date().toISOString(),
+          },
+        });
+        return;
+      }
+      if (kind === 'mounted_visual_frame_failed') {
+        recordAvatarEvidenceEventually({
+          kind: 'avatar.carrier.visual',
+          detail: {
+            status: 'error',
             source: 'embodiment-stage',
             ...detail,
             failed_at: new Date().toISOString(),

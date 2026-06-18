@@ -7,7 +7,7 @@ import {
 } from '@nimiplatform/kit/features/avatar/vrm';
 import type { VrmCapabilityProfile } from '../vrm/vrm-capability-profile.js';
 
-export type AvatarDebugBackendKind = 'vrm' | 'live2d' | 'future';
+export type AvatarDebugBackendKind = 'vrm' | 'live2d' | 'nimi2d' | 'future';
 
 export type AvatarDebugEvidenceKind =
   | 'package_descriptor_resolved'
@@ -307,6 +307,9 @@ function evaluateStatus(input: AvatarDebugSessionInput): {
   }
   if (input.backendKind === 'future') {
     return { status: 'unsupported', reasonCode: 'future_backend_not_admitted' };
+  }
+  if (input.backendKind === 'nimi2d') {
+    return { status: 'unsupported', reasonCode: 'nimi2d_backend_renderer_not_admitted' };
   }
 
   const resolverFailure = resolverFailureReason(input);

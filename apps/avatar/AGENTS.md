@@ -21,6 +21,7 @@
 | Embodiment projection | Kit `BackendProjection` / cue projection contracts; app-local NAS runtime wiring | `@nimiplatform/kit/features/avatar` + `src/shell/renderer/nas/` |
 | Live2D backend branch | Cubism SDK for Web (official) | `src/shell/renderer/live2d/` |
 | VRM backend branch | `@pixiv/three-vrm` + `@react-three/fiber` + `wlipsync` | `src/shell/renderer/vrm/` |
+| Nimi2D backend branch | `@nimiplatform/nimi2d` + `pixi.js` | `src/shell/renderer/nimi2d/` |
 | Audio pipeline | Kit headless audio pipeline; app consumes runtime artifact bytes (S-RUNTIME-111) | `@nimiplatform/kit/features/avatar` + avatar voice/lipsync wiring |
 | State | Zustand | `src/shell/renderer/app-shell/` |
 | AI / Events | `@nimiplatform/sdk` real consume path | workspace dep |
@@ -226,7 +227,7 @@ if (model.getCanvasWidth() > 1.0 && width < height) {
 pnpm dev:avatar
 
 # If no prior Desktop launch exists:
-pnpm dev:avatar --agent-id local-agent:<owner_user_id>:<realm_agent_id>
+pnpm dev:avatar --agent-id local-agent:<owner_user_id>:<runtime_source_ref>
 ```
 
 **Build + launch debug bundle**：
@@ -384,6 +385,7 @@ self-contained policy enforced by `pnpm check:apps-avatar-isolation`）；
 | `three@^0.183.2` | MIT | Three.js engine | ship |
 | `@react-three/fiber@^9.5.0` | MIT | R3F renderer | ship |
 | `wlipsync@^1.3.0` | MIT | wLipSync worklet | ship |
+| `pixi.js@^8.19.0` | MIT | Nimi2D renderer foundation | ship |
 | airi `_external/airi` | MIT | algorithm reference only; 0 lines imported | NOT shipped (reference-only) |
 
 ---
@@ -404,6 +406,7 @@ self-contained policy enforced by `pnpm check:apps-avatar-isolation`）；
 - `@pixiv/three-vrm` / `@pixiv/three-vrm-animation` / `@pixiv/three-vrm-core`
 - `three` / `@react-three/fiber` / `@react-three/drei`（按需，wave_2 可加）/
   `@react-three/postprocessing`（按需）
+- `pixi.js`
 - `wlipsync`
 - `react` / `react-dom` / `zustand`
 - `@tauri-apps/api`

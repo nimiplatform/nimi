@@ -49,7 +49,7 @@ function backendCapabilityRejection(
   backendKind: BackendKind | null,
   required: readonly NasHandlerCapability[],
 ): NasHandlerCapability | null {
-  if (backendKind === 'vrm' && required.includes('live2d-extension')) {
+  if (backendKind !== null && backendKind !== 'live2d' && required.includes('live2d-extension')) {
     return 'live2d-extension';
   }
   return null;

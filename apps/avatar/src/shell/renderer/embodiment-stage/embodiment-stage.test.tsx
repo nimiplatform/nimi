@@ -124,6 +124,42 @@ function createMockBackend(input?: {
   };
 }
 
+function createMockNimi2DBackend(input: {
+  lifecycleEvents: Array<{ kind: string; detail: Record<string, unknown> }>;
+  hitRegion?: BackendHitRegion;
+}): BackendBranch & { kind: 'nimi2d' } {
+  const audioConsumer = createAudioConsumerStub();
+  const hitRegion = input.hitRegion ?? createHitRegionStub();
+  const Component: ComponentType<BackendSurfaceProps> = (props) => {
+    useEffect(() => {
+      props.onAudioConsumerReady?.(audioConsumer);
+      props.onHitRegionChange?.(hitRegion);
+      for (const event of input.lifecycleEvents) {
+        props.onLifecycleEvidence?.(event.kind, event.detail);
+      }
+    }, [
+      props.onAudioConsumerReady,
+      props.onHitRegionChange,
+      props.onLifecycleEvidence,
+    ]);
+    return null;
+  };
+  return {
+    kind: 'nimi2d',
+    nominalBounds: { width: 512, height: 512, bodyCenterX: 0.5, bodyCenterY: 0.5 },
+    projection: {
+      applyActivity() {},
+      applyEmotion() {},
+      applyMotion() {},
+      applyExpression() {},
+      reset() {},
+    },
+    surface: { Component },
+    metadata: () => ({}),
+    shutdown() {},
+  };
+}
+
 beforeEach(() => {
   recordAvatarEvidenceEventuallyMock.mockReset();
   setIgnoreCursorEventsMock.mockReset();
@@ -267,6 +303,115 @@ describe('EmbodimentStage — BackendBranch surface mount (wave_1 step_4)', () =
         }),
       }),
     );
+  });
+
+  it('admits Nimi2D renderer and alpha-probe ready evidence as carrier visual evidence', () => {
+    const backend = createMockNimi2DBackend({
+      lifecycleEvents: [
+        {
+          kind: 'renderer_pipeline_ready',
+          detail: {
+            source: 'nimi2d-carrier-surface',
+            model_kind: 'nimi2d',
+            renderer: 'pixi.js',
+            mode: 'pixi_renderer_foundation',
+          },
+        },
+        {
+          kind: 'hit_region_alpha_probe_ready',
+          detail: {
+            source: 'nimi2d-carrier-surface',
+            model_kind: 'nimi2d',
+            mode: 'decoded_layer_alpha_probe',
+          },
+        },
+        {
+          kind: 'mounted_visual_frame_ready',
+          detail: {
+            source: 'nimi2d-carrier-surface',
+            model_kind: 'nimi2d',
+            mode: 'mounted_pixi_canvas_capture',
+            human_visible_artifact_path: '/evidence/nimi2d.png',
+            artifact_mime_type: 'image/png',
+            artifact_byte_length: 128,
+          },
+        },
+      ],
+    });
+    render(<EmbodimentStage {...baseProps} backend={backend} />);
+
+    expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        kind: 'avatar.carrier.visual',
+        detail: expect.objectContaining({
+          source: 'nimi2d-carrier-surface',
+          model_kind: 'nimi2d',
+          renderer: 'pixi.js',
+          mode: 'pixi_renderer_foundation',
+          status: 'ready',
+        }),
+      }),
+    );
+    expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        kind: 'avatar.carrier.visual',
+        detail: expect.objectContaining({
+          source: 'nimi2d-carrier-surface',
+          model_kind: 'nimi2d',
+          mode: 'decoded_layer_alpha_probe',
+          status: 'ready',
+        }),
+      }),
+    );
+    expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        kind: 'avatar.carrier.visual',
+        detail: expect.objectContaining({
+          source: 'nimi2d-carrier-surface',
+          model_kind: 'nimi2d',
+          mode: 'mounted_pixi_canvas_capture',
+          status: 'ready',
+          human_visible_artifact_path: '/evidence/nimi2d.png',
+        }),
+      }),
+    );
+    const failedClosedCalls = recordAvatarEvidenceEventuallyMock.mock.calls.filter(([payload]) => (
+      (payload as { kind?: string }).kind === 'avatar.carrier.lifecycle.failed_closed'
+    ));
+    expect(failedClosedCalls).toHaveLength(0);
+  });
+
+  it('admits Nimi2D mounted visual capture failure as carrier visual error evidence', () => {
+    const backend = createMockNimi2DBackend({
+      lifecycleEvents: [{
+        kind: 'mounted_visual_frame_failed',
+        detail: {
+          source: 'nimi2d-carrier-surface',
+          model_kind: 'nimi2d',
+          mode: 'mounted_pixi_canvas_capture',
+          reason_code: 'canvas_capture_failed',
+          error: 'no readable pixels',
+        },
+      }],
+    });
+    render(<EmbodimentStage {...baseProps} backend={backend} />);
+
+    expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        kind: 'avatar.carrier.visual',
+        detail: expect.objectContaining({
+          source: 'nimi2d-carrier-surface',
+          model_kind: 'nimi2d',
+          mode: 'mounted_pixi_canvas_capture',
+          status: 'error',
+          reason_code: 'canvas_capture_failed',
+        }),
+      }),
+    );
+    const failedClosedCalls = recordAvatarEvidenceEventuallyMock.mock.calls.filter(([payload]) => (
+      (payload as { kind?: string }).kind === 'avatar.carrier.lifecycle.failed_closed'
+    ));
+    expect(failedClosedCalls).toHaveLength(0);
   });
 
   it('unregisters the lipsync sink on unmount', () => {

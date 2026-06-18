@@ -99,6 +99,21 @@ describe('NAS handler-registry capability gating', () => {
     warnSpy.mockRestore();
   });
 
+  it('rejects a handler that requires live2d-extension on a Nimi2D backend', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const { createHandlerRegistry, populateRegistry } = await import('./handler-registry.js');
+    const registry = createHandlerRegistry();
+    invokeMock.mockImplementation(async (_cmd: string, _args: { path?: string }) => requiresLive2DSource);
+    const result = await populateRegistry(
+      registry,
+      createManifest('happy', 'activity'),
+      { backendKind: 'nimi2d' },
+    );
+    expect(result.validationErrors.join('\n')).toMatch(/requires 'live2d-extension'.*backend kind is 'nimi2d'/);
+    expect(registry.activity.has('happy')).toBe(false);
+    warnSpy.mockRestore();
+  });
+
   it('admits the same handler on a Live2D backend with requiresLive2DExtension flag set', async () => {
     const { createHandlerRegistry, populateRegistry } = await import('./handler-registry.js');
     const registry = createHandlerRegistry();
