@@ -339,7 +339,7 @@ func installManagedNVIDIACUDAUserSpaceRuntime(ctx context.Context, dependenciesP
 		archiveName = "payload.zip"
 	}
 	archivePath := filepath.Join(tmpDir, archiveName)
-	archiveHash, err := downloadURLToFile(archiveURL, archivePath)
+	archiveHash, err := downloadURLToFileWithProgress(ctx, archiveURL, archivePath, downloadProgressFromContext(ctx))
 	if err != nil {
 		return fmt.Errorf("download managed CUDA dependency: %w", err)
 	}

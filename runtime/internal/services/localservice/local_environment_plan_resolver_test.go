@@ -48,6 +48,27 @@ func planDependenciesByFamily(plan localEnvironmentPlan, family string) []localE
 	return out
 }
 
+func TestPlanResolvedSlotConsumerScopeMapsNativeImageAccelerator(t *testing.T) {
+	def := localComputePackDefinition{PackID: "local-image-native"}
+	req := localEnvironmentPlanRequest{ConsumerScope: "desktop.first-run"}
+	for _, tc := range []struct {
+		accelerator string
+		want        string
+	}{
+		{accelerator: "cuda", want: stableDiffusionCUDAConsumerID},
+		{accelerator: "metal", want: "stable-diffusion.cpp.metal"},
+		{accelerator: "cpu", want: "stable-diffusion.cpp.cpu"},
+	} {
+		slot := catalog.ResolvedSlot{
+			Capability:  localResolverCapabilityImageGenerate,
+			Accelerator: tc.accelerator,
+		}
+		if got := planResolvedSlotConsumerScope(def, slot, req); got != tc.want {
+			t.Fatalf("image slot accelerator %q consumer scope = %q, want %q", tc.accelerator, got, tc.want)
+		}
+	}
+}
+
 // TestResolveLocalEnvironmentPlanInstallLevelResolvesTextModelAsset verifies the
 // design/05 §2-3 materialization seam: a local-text plan with install_level and
 // no explicit assetId resolves the single model.asset dependency to a concrete

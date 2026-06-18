@@ -590,6 +590,11 @@ func (s *Service) localEnvironmentDependencyID(packID string, family string, req
 }
 
 func (s *Service) localEnvironmentModelAssetDependencyID(localAssetID string, assetID string) string {
+	if trimmed := strings.TrimSpace(localAssetID); trimmed != "" {
+		if s.modelByID(trimmed) != nil {
+			return "asset:" + trimmed
+		}
+	}
 	if trimmed := strings.TrimSpace(assetID); trimmed != "" {
 		return "asset-id:" + trimmed
 	}
@@ -641,7 +646,7 @@ func localComputePackDefinitions() []localComputePackDefinition {
 		{
 			PackID:                     "local-image-native",
 			ProductLabel:               "Local image native",
-			RequiredDependencyFamilies: []string{localEnvironmentFamilyPythonUV, localEnvironmentFamilyPythonRuntime, localEnvironmentFamilyPythonVenv, localEnvironmentFamilyPythonPackageSet, localEnvironmentFamilyNativeSDCPP, localEnvironmentFamilyModelAsset, localEnvironmentFamilyModelCompanion},
+			RequiredDependencyFamilies: []string{localEnvironmentFamilyNativeSDCPP, localEnvironmentFamilyModelAsset, localEnvironmentFamilyModelCompanion},
 			OptionalDependencyFamilies: []string{localEnvironmentFamilyCUDA},
 			CloudOnlyImpact:            "none",
 			HostedCapabilities:         []string{localResolverCapabilityImageGenerate},

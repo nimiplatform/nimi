@@ -172,7 +172,7 @@ func ensureManagedImageBackendMaterialized(ctx context.Context, backendsPath str
 
 	launchCfg, err := discoverInstalledManagedImageBackendLaunchConfig(backendsPath, sharedDependenciesPath, normalized.BackendName, packageSpec, normalized.Address)
 	if err != nil {
-		if installErr := installManagedImageBackendPackage(ctx, backendsPath, normalized.BackendName, packageSpec); installErr != nil {
+		if installErr := installManagedImageBackendPackage(ctx, backendsPath, normalized.BackendName, packageSpec, normalized.DownloadProgress); installErr != nil {
 			return nil, installErr
 		}
 		launchCfg, err = discoverInstalledManagedImageBackendLaunchConfig(backendsPath, sharedDependenciesPath, normalized.BackendName, packageSpec, normalized.Address)
@@ -266,7 +266,7 @@ func normalizeManagedImageBackendVerifiedArtifacts(cfg *ManagedImageBackendConfi
 	return artifacts
 }
 
-func installManagedImageBackendPackage(ctx context.Context, backendsPath string, backendName string, spec managedImageBackendPackageSpec) error {
+func installManagedImageBackendPackage(ctx context.Context, backendsPath string, backendName string, spec managedImageBackendPackageSpec, progress func(bytesReceived, bytesTotal int64)) error {
 	validatedBackendName, err := validateOfficialManagedImageBackendName(backendName)
 	if err != nil {
 		return err
@@ -275,7 +275,7 @@ func installManagedImageBackendPackage(ctx context.Context, backendsPath string,
 	case managedImageBackendPackageFormatOCIPayload:
 		return installManagedImageBackendFromOCI(ctx, backendsPath, validatedBackendName, spec)
 	case managedImageBackendPackageFormatDirectArchive:
-		return installManagedImageBackendFromDirectArchive(ctx, backendsPath, validatedBackendName, spec)
+		return installManagedImageBackendFromDirectArchive(ctx, backendsPath, validatedBackendName, spec, progress)
 	case managedImageBackendPackageFormatNone:
 		if strings.TrimSpace(spec.Detail) != "" {
 			return fmt.Errorf("%s", strings.TrimSpace(spec.Detail))
@@ -352,7 +352,7 @@ func installManagedImageBackendFromOCI(ctx context.Context, backendsPath string,
 	return nil
 }
 
-func installManagedImageBackendFromDirectArchive(ctx context.Context, backendsPath string, backendName string, spec managedImageBackendPackageSpec) error {
+func installManagedImageBackendFromDirectArchive(ctx context.Context, backendsPath string, backendName string, spec managedImageBackendPackageSpec, progress func(bytesReceived, bytesTotal int64)) error {
 	if strings.TrimSpace(spec.ArchiveURL) == "" {
 		return fmt.Errorf("install managed image backend %s: archive URL is required", backendName)
 	}
@@ -378,7 +378,7 @@ func installManagedImageBackendFromDirectArchive(ctx context.Context, backendsPa
 		archiveName = "payload.zip"
 	}
 	archivePath := filepath.Join(tmpDir, archiveName)
-	archiveHash, err := downloadURLToFile(strings.TrimSpace(spec.ArchiveURL), archivePath)
+	archiveHash, err := downloadURLToFileWithProgress(ctx, strings.TrimSpace(spec.ArchiveURL), archivePath, progress)
 	if err != nil {
 		return fmt.Errorf("install managed image backend %s: %w", backendName, err)
 	}

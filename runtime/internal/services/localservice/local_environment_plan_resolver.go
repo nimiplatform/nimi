@@ -199,7 +199,10 @@ func planResolvedSlotConsumerScope(def localComputePackDefinition, slot catalog.
 		case "local-image-python":
 			return "media.diffusers.cpu"
 		default:
-			return "stable-diffusion.cpp.metal"
+			if consumer, ok := recommendedImageConsumerByAccelerator(slot.Accelerator); ok {
+				return consumer
+			}
+			return scope
 		}
 	case localResolverCapabilityVideoGenerate:
 		return "media.video-python.cpu"

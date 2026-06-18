@@ -21,7 +21,7 @@ func (s *Service) executeCUDAEnvironmentDependencyJob(ctx context.Context, job l
 		return localEnvironmentDependencyJobResult{}, errors.New("runtime engine manager unavailable")
 	}
 	reportLocalEnvironmentJobProgress(report, localEnvironmentStateDownloading)
-	status, err := mgr.EnsureSharedAcceleratorDependency(ctx, cudaUserSpaceRuntimeDependencyID)
+	status, err := mgr.EnsureSharedAcceleratorDependency(localEnvironmentEngineDownloadProgressContext(ctx, report), cudaUserSpaceRuntimeDependencyID)
 	if err != nil {
 		return localEnvironmentDependencyJobResult{}, err
 	}

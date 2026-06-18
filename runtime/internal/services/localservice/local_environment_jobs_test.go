@@ -563,6 +563,130 @@ func TestLocalEnvironmentDependencyJobCarriesDownloadProgress(t *testing.T) {
 	}
 }
 
+func TestLocalEnvironmentDependencyJobHeartbeatRefreshesInstallingState(t *testing.T) {
+	previousInterval := localEnvironmentDependencyJobHeartbeatInterval
+	localEnvironmentDependencyJobHeartbeatInterval = 10 * time.Millisecond
+	defer func() {
+		localEnvironmentDependencyJobHeartbeatInterval = previousInterval
+	}()
+
+	svc := newLocalEnvironmentJobTestService(t)
+	defer func() { svc.Close() }()
+	req := localEnvironmentJobRequestForTest(t, svc)
+
+	release := make(chan struct{})
+	defer close(release)
+	started, err := svc.startLocalEnvironmentDependencyJob(context.Background(), req, func(_ context.Context, _ localEnvironmentDependencyJobState, report localEnvironmentDependencyJobProgressReporter) (localEnvironmentDependencyJobResult, error) {
+		reportLocalEnvironmentJobProgress(report, localEnvironmentStateInstalling)
+		<-release
+		return localEnvironmentDependencyJobResult{
+			State:                 localEnvironmentStateReadyManaged,
+			SourceKind:            localEnvironmentSourceManaged,
+			CanonicalRoot:         filepath.Join(t.TempDir(), "dependency-root"),
+			Version:               "1.0.0",
+			CompatibilityEvidence: []string{"test compatibility"},
+			VerifiedArtifacts:     []string{"bin/tool"},
+			SelectedConsumers:     []string{"llama.cpp.cuda"},
+			AuditReasonCode:       "LOCAL_ENVIRONMENT_DEPENDENCY_READY_MANAGED",
+		}, nil
+	})
+	if err != nil {
+		t.Fatalf("start job: %v", err)
+	}
+
+	var installing localEnvironmentDependencyJobState
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		job, ok := svc.localEnvironmentDependencyJob(started.JobID)
+		if !ok {
+			t.Fatalf("job %s not found", started.JobID)
+		}
+		if job.State == localEnvironmentStateInstalling {
+			installing = job
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("job did not reach installing (last=%q)", job.State)
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+
+	for {
+		job, ok := svc.localEnvironmentDependencyJob(started.JobID)
+		if !ok {
+			t.Fatalf("job %s not found", started.JobID)
+		}
+		if job.UpdatedAt != installing.UpdatedAt {
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("installing job heartbeat did not refresh updatedAt from %q", installing.UpdatedAt)
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+}
+
+func TestLocalEnvironmentDependencyJobHeartbeatDoesNotMaskDownloadingWithoutProgress(t *testing.T) {
+	previousInterval := localEnvironmentDependencyJobHeartbeatInterval
+	localEnvironmentDependencyJobHeartbeatInterval = 10 * time.Millisecond
+	defer func() {
+		localEnvironmentDependencyJobHeartbeatInterval = previousInterval
+	}()
+
+	svc := newLocalEnvironmentJobTestService(t)
+	defer func() { svc.Close() }()
+	req := localEnvironmentJobRequestForTest(t, svc)
+
+	release := make(chan struct{})
+	defer close(release)
+	started, err := svc.startLocalEnvironmentDependencyJob(context.Background(), req, func(_ context.Context, _ localEnvironmentDependencyJobState, report localEnvironmentDependencyJobProgressReporter) (localEnvironmentDependencyJobResult, error) {
+		reportLocalEnvironmentJobProgress(report, localEnvironmentStateDownloading)
+		<-release
+		return localEnvironmentDependencyJobResult{
+			State:                 localEnvironmentStateReadyManaged,
+			SourceKind:            localEnvironmentSourceManaged,
+			CanonicalRoot:         filepath.Join(t.TempDir(), "dependency-root"),
+			Version:               "1.0.0",
+			CompatibilityEvidence: []string{"test compatibility"},
+			VerifiedArtifacts:     []string{"bin/tool"},
+			SelectedConsumers:     []string{"llama.cpp.cuda"},
+			AuditReasonCode:       "LOCAL_ENVIRONMENT_DEPENDENCY_READY_MANAGED",
+		}, nil
+	})
+	if err != nil {
+		t.Fatalf("start job: %v", err)
+	}
+
+	deadline := time.Now().Add(5 * time.Second)
+	var downloading localEnvironmentDependencyJobState
+	for {
+		job, ok := svc.localEnvironmentDependencyJob(started.JobID)
+		if !ok {
+			t.Fatalf("job %s not found", started.JobID)
+		}
+		if job.State == localEnvironmentStateDownloading {
+			downloading = job
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("job did not reach downloading (last=%q)", job.State)
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+
+	time.Sleep(50 * time.Millisecond)
+	after, ok := svc.localEnvironmentDependencyJob(started.JobID)
+	if !ok {
+		t.Fatalf("job %s not found", started.JobID)
+	}
+	if after.State != localEnvironmentStateDownloading {
+		t.Fatalf("job state changed before release: %+v", after)
+	}
+	if after.UpdatedAt != downloading.UpdatedAt {
+		t.Fatalf("downloading job updatedAt changed without byte progress: before=%q after=%q", downloading.UpdatedAt, after.UpdatedAt)
+	}
+}
+
 // TestLocalEnvironmentDependencyJobPercentFailsClosedWithoutTotal asserts the
 // percent projection never fabricates a value when the total is unknown.
 func TestLocalEnvironmentDependencyJobPercentFailsClosedWithoutTotal(t *testing.T) {

@@ -21,7 +21,7 @@ func (s *Service) executeNativeLlamaEnvironmentDependencyJob(ctx context.Context
 		return localEnvironmentDependencyJobResult{}, errors.New("runtime engine manager unavailable")
 	}
 	reportLocalEnvironmentJobProgress(report, localEnvironmentStateDownloading)
-	status, err := mgr.EnsureEngineBinaryDependency(ctx, "llama", "")
+	status, err := mgr.EnsureEngineBinaryDependency(localEnvironmentEngineDownloadProgressContext(ctx, report), "llama", "")
 	if err != nil {
 		return localEnvironmentDependencyJobResult{}, err
 	}
@@ -87,10 +87,11 @@ func (s *Service) executeNativeSDCPPEnvironmentDependencyJob(ctx context.Context
 	}
 	reportLocalEnvironmentJobProgress(report, localEnvironmentStateDownloading)
 	status, err := mgr.EnsureManagedImageBackendDependency(ctx, &engine.ManagedImageBackendConfig{
-		Mode:          engine.ManagedImageBackendOfficial,
-		BackendName:   "stablediffusion-ggml",
-		PackageSource: contract.PackageSource,
-		Address:       "127.0.0.1:50052",
+		Mode:             engine.ManagedImageBackendOfficial,
+		BackendName:      "stablediffusion-ggml",
+		PackageSource:    contract.PackageSource,
+		Address:          "127.0.0.1:50052",
+		DownloadProgress: localEnvironmentManagedImageBackendDownloadProgress(report),
 	})
 	if err != nil {
 		return localEnvironmentDependencyJobResult{}, err
@@ -126,6 +127,15 @@ func (s *Service) executeNativeSDCPPEnvironmentDependencyJob(ctx context.Context
 		SelectedConsumers: []string{contract.Consumer},
 		AuditReasonCode:   "LOCAL_ENVIRONMENT_DEPENDENCY_READY_MANAGED",
 	}, nil
+}
+
+func localEnvironmentManagedImageBackendDownloadProgress(report localEnvironmentDependencyJobProgressReporter) func(bytesReceived, bytesTotal int64) {
+	return func(bytesReceived, bytesTotal int64) {
+		reportLocalEnvironmentJobDownloadProgress(report, localEnvironmentDependencyJobProgress{
+			BytesReceived: bytesReceived,
+			BytesTotal:    bytesTotal,
+		})
+	}
 }
 
 type nativeSDCPPPackageContract struct {

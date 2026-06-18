@@ -57,7 +57,6 @@ var managedUVArchiveSpecs = []managedUVArchiveSpec{
 }
 
 func (m *Manager) EnsureUVToolDependency(ctx context.Context) (UVToolDependencyStatus, error) {
-	_ = ctx
 	// The uv tool is a standalone downloaded dependency payload
 	// (python.tool.uv -> managed_root: dependencies in
 	// local-environment-dependencies.yaml), so it installs under the
@@ -70,7 +69,7 @@ func (m *Manager) EnsureUVToolDependency(ctx context.Context) (UVToolDependencyS
 	if status, ok := verifiedManagedUVToolStatus(uvRoot, spec); ok {
 		return status, nil
 	}
-	if err := installManagedUVTool(uvRoot, spec); err != nil {
+	if err := installManagedUVTool(ctx, uvRoot, spec); err != nil {
 		return UVToolDependencyStatus{}, err
 	}
 	status, ok := verifiedManagedUVToolStatus(uvRoot, spec)
@@ -110,7 +109,7 @@ func verifiedManagedUVToolStatus(root string, spec managedUVArchiveSpec) (UVTool
 	}, true
 }
 
-func installManagedUVTool(root string, spec managedUVArchiveSpec) error {
+func installManagedUVTool(ctx context.Context, root string, spec managedUVArchiveSpec) error {
 	if strings.TrimSpace(root) == "" {
 		return fmt.Errorf("uv install root is required")
 	}
@@ -121,7 +120,7 @@ func installManagedUVTool(root string, spec managedUVArchiveSpec) error {
 	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	archivePath := filepath.Join(tmpDir, strings.TrimSpace(spec.ArchiveName))
-	archiveHash, err := downloadURLToFile(managedUVArchiveURL(spec), archivePath)
+	archiveHash, err := downloadURLToFileWithProgress(ctx, managedUVArchiveURL(spec), archivePath, downloadProgressFromContext(ctx))
 	if err != nil {
 		return fmt.Errorf("install uv tool: %w", err)
 	}

@@ -118,6 +118,38 @@ func TestResolveLocalEnvironmentPlanIncludesPythonManagedFamilies(t *testing.T) 
 	}
 }
 
+func TestResolveLocalEnvironmentPlanNativeImageExcludesPythonManagedFamilies(t *testing.T) {
+	svc := newLocalEnvironmentTestService(t)
+	defer func() { svc.Close() }()
+	svc.SetEngineManager(&mockEngineManager{})
+
+	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+		PackID:           "local-image-native",
+		ConsumerScope:    stableDiffusionCUDAConsumerID,
+		HostProfile:      localEnvironmentNvidiaProfile(),
+		RuntimeDataRoot:  filepath.Join(t.TempDir(), "runtime-data"),
+		AssetID:          "image/test-native",
+		CompanionAssetID: "image/test-companion",
+		ParentAssetID:    "image/test-native",
+	})
+
+	for _, family := range []string{
+		localEnvironmentFamilyPythonUV,
+		localEnvironmentFamilyPythonRuntime,
+		localEnvironmentFamilyPythonVenv,
+		localEnvironmentFamilyPythonPackageSet,
+		localEnvironmentFamilyPythonTorchWheel,
+	} {
+		if deps := planDependenciesByFamily(localEnvironmentPlan{Dependencies: plan.Dependencies}, family); len(deps) != 0 {
+			t.Fatalf("local-image-native must not include Python family %s, got %+v", family, deps)
+		}
+	}
+	assertLocalEnvironmentFamily(t, plan, localEnvironmentFamilyNativeSDCPP)
+	assertLocalEnvironmentFamily(t, plan, localEnvironmentFamilyModelAsset)
+	assertLocalEnvironmentFamily(t, plan, localEnvironmentFamilyModelCompanion)
+	assertLocalEnvironmentFamily(t, plan, localEnvironmentFamilyCUDA)
+}
+
 func TestResolveLocalEnvironmentPlanRequiresAssetSpecificModelDependency(t *testing.T) {
 	svc := newLocalEnvironmentTestService(t)
 	defer func() { svc.Close() }()
@@ -605,6 +637,10 @@ func TestResolveLocalImageNativePlanInfersConsumerForExplicitInstalledAsset(t *t
 		if dep.ConsumerScope != stableDiffusionCUDAConsumerID {
 			t.Fatalf("dependency %s/%s consumer scope = %q, want %q", dep.DependencyFamily, dep.DependencyID, dep.ConsumerScope, stableDiffusionCUDAConsumerID)
 		}
+	}
+	modelDep := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyModelAsset)
+	if modelDep.DependencyID != "asset:"+model.GetLocalAssetId() {
+		t.Fatalf("explicit installed image model dependency id = %q, want local asset identity %q", modelDep.DependencyID, "asset:"+model.GetLocalAssetId())
 	}
 	nativeDep := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyNativeSDCPP)
 	if nativeDep.State != localEnvironmentStateNeedsConfirmation {

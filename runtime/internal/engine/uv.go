@@ -7,9 +7,16 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 const defaultManagedPythonVersion = "3.12"
+
+var (
+	managedPythonCommandTimeout        = 2 * time.Minute
+	managedPythonInstallCommandTimeout = 30 * time.Minute
+	managedPythonPipCommandTimeout     = 45 * time.Minute
+)
 
 func engineVersionDir(baseDir string, kind EngineKind, version string) string {
 	normalizedVersion := strings.TrimSpace(version)
@@ -47,7 +54,9 @@ func runCommand(ctx context.Context, dir string, env map[string]string, bin stri
 }
 
 func runCommandOutput(ctx context.Context, dir string, env map[string]string, bin string, args ...string) (string, error) {
-	cmd := exec.CommandContext(ctx, bin, args...)
+	commandCtx, cancel := contextWithManagedCommandTimeout(ctx, managedCommandTimeout(args))
+	defer cancel()
+	cmd := exec.CommandContext(commandCtx, bin, args...)
 	if strings.TrimSpace(dir) != "" {
 		cmd.Dir = dir
 	}
@@ -64,9 +73,35 @@ func runCommandOutput(ctx context.Context, dir string, env map[string]string, bi
 	}
 	output, err := cmd.CombinedOutput()
 	if err != nil {
+		if commandCtx.Err() != nil {
+			return "", fmt.Errorf("%s %s timed out: %w", bin, strings.Join(args, " "), commandCtx.Err())
+		}
 		return "", fmt.Errorf("%s %s failed: %w (%s)", bin, strings.Join(args, " "), err, strings.TrimSpace(string(output)))
 	}
 	return strings.TrimSpace(string(output)), nil
+}
+
+func contextWithManagedCommandTimeout(ctx context.Context, timeout time.Duration) (context.Context, context.CancelFunc) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if timeout <= 0 {
+		return context.WithCancel(ctx)
+	}
+	if _, ok := ctx.Deadline(); ok {
+		return context.WithCancel(ctx)
+	}
+	return context.WithTimeout(ctx, timeout)
+}
+
+func managedCommandTimeout(args []string) time.Duration {
+	if len(args) >= 2 && args[0] == "python" && args[1] == "install" {
+		return managedPythonInstallCommandTimeout
+	}
+	if len(args) >= 2 && args[0] == "pip" && args[1] == "install" {
+		return managedPythonPipCommandTimeout
+	}
+	return managedPythonCommandTimeout
 }
 
 func ensureUV(ctx context.Context, installDir string) (string, error) {

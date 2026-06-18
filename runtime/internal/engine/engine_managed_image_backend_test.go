@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -185,11 +186,53 @@ func TestDownloadOCIImageBlobToFileRejectsBodyDigestMismatch(t *testing.T) {
 	}
 }
 
+func TestDownloadOCIImageBlobToFileReportsProgress(t *testing.T) {
+	body := []byte("fake-oci-layer")
+	expectedDigest := fmt.Sprintf("sha256:%x", sha256.Sum256(body))
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/test/llama-backends/blobs/"+expectedDigest {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Length", strconv.Itoa(len(body)))
+		_, _ = w.Write(body)
+	}))
+	defer func() { server.Close() }()
+
+	oldTransport := http.DefaultTransport
+	http.DefaultTransport = server.Client().Transport
+	t.Cleanup(func() {
+		http.DefaultTransport = oldTransport
+	})
+
+	registryHost := strings.TrimPrefix(server.URL, "https://")
+	ref, err := parseOCIImageReference(registryHost + "/test/llama-backends:test-tag")
+	if err != nil {
+		t.Fatalf("parseOCIImageReference: %v", err)
+	}
+	progressCalls := 0
+	var lastReceived int64
+	var lastTotal int64
+	ctx := WithDownloadProgress(context.Background(), func(bytesReceived, bytesTotal int64) {
+		progressCalls++
+		lastReceived = bytesReceived
+		lastTotal = bytesTotal
+	})
+
+	if _, err := downloadOCIImageBlobToFile(ctx, ref, expectedDigest, filepath.Join(t.TempDir(), "layer.tar.gz")); err != nil {
+		t.Fatalf("downloadOCIImageBlobToFile: %v", err)
+	}
+	if progressCalls == 0 || lastReceived != int64(len(body)) || lastTotal != int64(len(body)) {
+		t.Fatalf("oci blob progress = calls:%d received:%d total:%d want final %d/%d", progressCalls, lastReceived, lastTotal, len(body), len(body))
+	}
+}
+
 func TestInstallManagedImageBackendFromDirectArchive(t *testing.T) {
 	archive := makeFakeArchiveAsset(t, "payload.zip", "sd.exe", []byte("fake-windows-backend"))
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/sd.zip":
+			w.Header().Set("Content-Length", strconv.Itoa(len(archive)))
 			_, _ = w.Write(archive)
 		default:
 			http.NotFound(w, r)
@@ -207,8 +250,19 @@ func TestInstallManagedImageBackendFromDirectArchive(t *testing.T) {
 		ExecutableCandidates: []string{"sd.exe"},
 		Supported:            true,
 	}
-	if err := installManagedImageBackendFromDirectArchive(context.Background(), backendsPath, "stablediffusion-ggml", spec); err != nil {
+	progressCalls := 0
+	var lastReceived int64
+	var lastTotal int64
+	progress := func(bytesReceived, bytesTotal int64) {
+		progressCalls++
+		lastReceived = bytesReceived
+		lastTotal = bytesTotal
+	}
+	if err := installManagedImageBackendFromDirectArchive(context.Background(), backendsPath, "stablediffusion-ggml", spec, progress); err != nil {
 		t.Fatalf("installManagedImageBackendFromDirectArchive: %v", err)
+	}
+	if progressCalls == 0 || lastReceived != int64(len(archive)) || lastTotal != int64(len(archive)) {
+		t.Fatalf("managed image direct archive progress = calls:%d received:%d total:%d want final %d/%d", progressCalls, lastReceived, lastTotal, len(archive), len(archive))
 	}
 	executablePath := filepath.Join(backendsPath, spec.InstallDirName, "sd.exe")
 	if _, err := os.Stat(executablePath); err != nil {

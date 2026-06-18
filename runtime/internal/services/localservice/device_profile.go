@@ -30,13 +30,14 @@ func defaultEngineProbePorts() []int32 {
 }
 
 var (
-	localRuntimeGOOS         = runtime.GOOS
-	localRuntimeGOARCH       = runtime.GOARCH
-	localRuntimeLookPath     = exec.LookPath
-	localRuntimeCommand      = exec.CommandContext
-	localRuntimeStat         = os.Stat
-	localRuntimeProbeRAM     = probeRAM
-	localRuntimeProgramFiles = func() string {
+	localRuntimeGOOS            = runtime.GOOS
+	localRuntimeGOARCH          = runtime.GOARCH
+	localRuntimeLookPath        = exec.LookPath
+	localRuntimeCommand         = exec.CommandContext
+	localRuntimeStat            = os.Stat
+	localRuntimeProbeRAM        = probeRAM
+	localRuntimeGPUProbeTimeout = 2 * time.Second
+	localRuntimeProgramFiles    = func() string {
 		value := strings.TrimSpace(os.Getenv("ProgramFiles"))
 		if value == "" {
 			return `C:\Program Files`
@@ -102,12 +103,10 @@ type gpuProbeCapabilities struct {
 
 func probeGPUCapabilities() gpuProbeCapabilities {
 	if _, err := localRuntimeLookPath("nvidia-smi"); err == nil {
-		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-		defer cancel()
 		// K-DEV-002: query name, memory.total, memory.free in one call.
-		output, runErr := localRuntimeCommand(ctx, "nvidia-smi",
+		output, runErr := localRuntimeCommandOutputWithTimeout(localRuntimeGPUProbeTimeout, "nvidia-smi",
 			"--query-gpu=name,memory.total,memory.free",
-			"--format=csv,noheader,nounits").Output()
+			"--format=csv,noheader,nounits")
 		if runErr == nil {
 			name, totalVRAM, freeVRAM := parseNvidiaSmiOutput(string(output))
 			return gpuProbeCapabilities{
@@ -125,9 +124,7 @@ func probeGPUCapabilities() gpuProbeCapabilities {
 	}
 
 	if strings.EqualFold(localRuntimeGOOS, "darwin") && strings.EqualFold(localRuntimeGOARCH, "arm64") {
-		ctx, cancel := context.WithTimeout(context.Background(), 1500*time.Millisecond)
-		defer cancel()
-		output, runErr := localRuntimeCommand(ctx, "sysctl", "-n", "machdep.cpu.brand_string").Output()
+		output, runErr := localRuntimeCommandOutputWithTimeout(1500*time.Millisecond, "sysctl", "-n", "machdep.cpu.brand_string")
 		model := strings.TrimSpace(string(output))
 		if runErr == nil || model != "" {
 			// K-DEV-002: Apple unified memory means VRAM = host RAM.
@@ -152,6 +149,42 @@ func probeGPUCapabilities() gpuProbeCapabilities {
 			MemoryModel: runtimev1.GpuMemoryModel_GPU_MEMORY_MODEL_UNSPECIFIED,
 		},
 		cudaReady: false,
+	}
+}
+
+func localRuntimeCommandOutputWithTimeout(timeout time.Duration, name string, args ...string) ([]byte, error) {
+	if localRuntimeCommand == nil {
+		return nil, fmt.Errorf("local runtime command runner unavailable")
+	}
+	if timeout <= 0 {
+		timeout = time.Second
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	result := make(chan struct {
+		output []byte
+		err    error
+	}, 1)
+	go func() {
+		cmd := localRuntimeCommand(ctx, name, args...)
+		if cmd == nil {
+			result <- struct {
+				output []byte
+				err    error
+			}{err: fmt.Errorf("local runtime command runner returned nil command")}
+			return
+		}
+		output, err := cmd.Output()
+		result <- struct {
+			output []byte
+			err    error
+		}{output: output, err: err}
+	}()
+	select {
+	case completed := <-result:
+		return completed.output, completed.err
+	case <-ctx.Done():
+		return nil, ctx.Err()
 	}
 }
 

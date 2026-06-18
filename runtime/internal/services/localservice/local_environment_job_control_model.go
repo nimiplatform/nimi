@@ -526,7 +526,7 @@ func (s *Service) selectedModelAssetSourceCandidatesForAssetID(assetID string) [
 		if record.DependencyFamily != localEnvironmentFamilyModelAsset {
 			continue
 		}
-		if strings.TrimSpace(record.DependencyID) != "asset-id:"+trimmedAssetID {
+		if !selectedModelAssetSourceRecordMatchesAssetID(record, trimmedAssetID) {
 			continue
 		}
 		candidates = append(candidates, record)
@@ -554,11 +554,22 @@ func (s *Service) selectedModelAssetSourceForAssetID(assetID string) (localEnvir
 		if record.DependencyFamily != localEnvironmentFamilyModelAsset {
 			continue
 		}
-		if strings.TrimSpace(record.DependencyID) == "asset-id:"+trimmedAssetID {
+		if selectedModelAssetSourceRecordMatchesAssetID(record, trimmedAssetID) {
 			return record, true
 		}
 	}
 	return localEnvironmentSelectedSourceRecordState{}, false
+}
+
+func selectedModelAssetSourceRecordMatchesAssetID(record localEnvironmentSelectedSourceRecordState, assetID string) bool {
+	trimmedAssetID := strings.TrimSpace(assetID)
+	if trimmedAssetID == "" {
+		return false
+	}
+	if strings.TrimSpace(record.DependencyID) == "asset-id:"+trimmedAssetID {
+		return true
+	}
+	return strings.TrimSpace(record.Hashes["asset_id"]) == trimmedAssetID
 }
 
 func mergeStringMaps(base map[string]string, overlay map[string]string) map[string]string {

@@ -318,7 +318,7 @@ func (m *Manager) ensureLlama(ctx context.Context, cfg EngineConfig) (EngineConf
 		"version", cfg.Version,
 	)
 
-	binaryPath, sha256hex, assetName, err := DownloadBinary(m.baseDir, EngineLlama, cfg.Version)
+	binaryPath, sha256hex, assetName, err := DownloadBinaryWithContext(ctx, m.baseDir, EngineLlama, cfg.Version)
 	if err != nil {
 		return cfg, fmt.Errorf("download llama: %w", err)
 	}

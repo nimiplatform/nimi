@@ -100,8 +100,28 @@ func downloadOCIImageBlobToFile(ctx context.Context, ref ociImageReference, dige
 		}
 	}()
 	hasher := sha256.New()
-	if _, err := io.Copy(io.MultiWriter(out, hasher), resp.Body); err != nil {
-		return "", fmt.Errorf("write OCI blob %s: %w", trimmedDigest, err)
+	progress := downloadProgressFromContext(ctx)
+	writer := io.MultiWriter(out, hasher)
+	var written int64
+	buf := make([]byte, 128*1024)
+	for {
+		n, readErr := resp.Body.Read(buf)
+		if n > 0 {
+			if _, err := writer.Write(buf[:n]); err != nil {
+				return "", fmt.Errorf("write OCI blob %s: %w", trimmedDigest, err)
+			}
+			written += int64(n)
+			if progress != nil {
+				progress(written, resp.ContentLength)
+			}
+		}
+		if readErr == nil {
+			continue
+		}
+		if readErr == io.EOF {
+			break
+		}
+		return "", fmt.Errorf("write OCI blob %s: %w", trimmedDigest, readErr)
 	}
 	if err := out.Close(); err != nil {
 		return "", fmt.Errorf("close OCI blob %s: %w", trimmedDigest, err)

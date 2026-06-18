@@ -64,6 +64,8 @@ type ManagedImageBackendConfig struct {
 	StartupTimeout  time.Duration
 	HealthInterval  time.Duration
 	ShutdownTimeout time.Duration
+
+	DownloadProgress func(bytesReceived, bytesTotal int64)
 }
 
 type ManagedImageBackendDependencyStatus struct {
@@ -160,16 +162,17 @@ func cloneManagedImageBackendConfig(input *ManagedImageBackendConfig) *ManagedIm
 		return nil
 	}
 	cloned := &ManagedImageBackendConfig{
-		Mode:            input.Mode,
-		BackendName:     input.BackendName,
-		PackageSource:   input.PackageSource,
-		Address:         input.Address,
-		Command:         input.Command,
-		Args:            append([]string(nil), input.Args...),
-		WorkingDir:      input.WorkingDir,
-		StartupTimeout:  input.StartupTimeout,
-		HealthInterval:  input.HealthInterval,
-		ShutdownTimeout: input.ShutdownTimeout,
+		Mode:             input.Mode,
+		BackendName:      input.BackendName,
+		PackageSource:    input.PackageSource,
+		Address:          input.Address,
+		Command:          input.Command,
+		Args:             append([]string(nil), input.Args...),
+		WorkingDir:       input.WorkingDir,
+		StartupTimeout:   input.StartupTimeout,
+		HealthInterval:   input.HealthInterval,
+		ShutdownTimeout:  input.ShutdownTimeout,
+		DownloadProgress: input.DownloadProgress,
 	}
 	if len(input.Env) > 0 {
 		cloned.Env = make(map[string]string, len(input.Env))

@@ -44,6 +44,50 @@ func awaitLocalEnvironmentDependencyJobTerminal(t *testing.T, svc *Service, jobI
 	}
 }
 
+func awaitLocalEnvironmentDependencyJobDownloadingProgressForTest(t *testing.T, svc *Service, jobID string, bytesReceived int64, bytesTotal int64) *runtimev1.LocalEnvironmentDependencyJob {
+	t.Helper()
+	if jobID == "" {
+		t.Fatal("awaitLocalEnvironmentDependencyJobDownloadingProgressForTest: empty job id")
+	}
+	deadline := time.Now().Add(10 * time.Second)
+	for {
+		job, ok := svc.localEnvironmentDependencyJob(jobID)
+		if !ok {
+			t.Fatalf("local environment dependency job %s not found", jobID)
+		}
+		if job.State == localEnvironmentStateDownloading &&
+			job.BytesReceived == bytesReceived &&
+			job.BytesTotal == bytesTotal {
+			return localEnvironmentDependencyJobToProto(job)
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("local environment dependency job %s did not reach downloading progress %d/%d (last state=%q bytes=%d/%d)", jobID, bytesReceived, bytesTotal, job.State, job.BytesReceived, job.BytesTotal)
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+}
+
+func awaitLocalEnvironmentDependencyJobStateForTest(t *testing.T, svc *Service, jobID string, state string) *runtimev1.LocalEnvironmentDependencyJob {
+	t.Helper()
+	if jobID == "" {
+		t.Fatal("awaitLocalEnvironmentDependencyJobStateForTest: empty job id")
+	}
+	deadline := time.Now().Add(10 * time.Second)
+	for {
+		job, ok := svc.localEnvironmentDependencyJob(jobID)
+		if !ok {
+			t.Fatalf("local environment dependency job %s not found", jobID)
+		}
+		if job.State == state {
+			return localEnvironmentDependencyJobToProto(job)
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("local environment dependency job %s did not reach state %q (last state=%q bytes=%d/%d)", jobID, state, job.State, job.BytesReceived, job.BytesTotal)
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+}
+
 // writeLocalEnvironmentAssetEntryForTest stages a model entry at the canonical
 // managed-download bundle layout that installManagedDownloadedModel produces and
 // the materializer verify path (resolveManagedModelEntryAbsolutePath) resolves:
@@ -195,6 +239,47 @@ func TestStartCUDADependencyJobPromotesVerifiedSelectedSource(t *testing.T) {
 	}
 	if len(source.GetVerifiedArtifacts()) != 3 {
 		t.Fatalf("verified artifacts = %v, want CUDA runtime artifact set", source.GetVerifiedArtifacts())
+	}
+}
+
+func TestCUDADependencyJobProjectsSharedAcceleratorDownloadProgress(t *testing.T) {
+	svc := newTestService(t)
+	release := make(chan struct{})
+	svc.SetEngineManager(&mockEngineManager{
+		sharedAcceleratorDependencyRelease: release,
+		sharedAcceleratorDependencyStatus: &engine.SharedAcceleratorDependencyStatus{
+			DependencyID:      cudaUserSpaceRuntimeDependencyID,
+			ConsumerID:        "media.diffusers.cuda",
+			State:             engine.SharedAcceleratorDependencyReadyManaged,
+			Source:            "runtime_managed",
+			CanonicalRoot:     `C:\nimi\runtime\dependencies\cuda`,
+			Detail:            "nvidia_cuda_user_space_runtime state=ready_managed source=runtime_managed",
+			RequiredArtifacts: []string{"cudart64_12.dll", "cublas64_12.dll", "cublasLt64_12.dll"},
+		},
+	})
+
+	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
+		EnvironmentKey:   "accelerator.cuda.runtime|nvidia-cuda-user-space-runtime|host|windows/amd64|root|media.diffusers.cuda",
+		DependencyFamily: localEnvironmentFamilyCUDA,
+		DependencyId:     cudaUserSpaceRuntimeDependencyID,
+		Confirmed:        true,
+	})
+	if err != nil {
+		t.Fatalf("StartLocalEnvironmentDependencyJob: %v", err)
+	}
+
+	downloading := awaitLocalEnvironmentDependencyJobDownloadingProgressForTest(t, svc, resp.GetJob().GetJobId(), 384, 1536)
+	if downloading.GetPercent() != 25 {
+		t.Fatalf("download percent = %d, want 25", downloading.GetPercent())
+	}
+	close(release)
+
+	terminal := awaitLocalEnvironmentDependencyJobTerminal(t, svc, resp.GetJob().GetJobId())
+	if terminal.GetState() != localEnvironmentStateReadyManaged {
+		t.Fatalf("job state = %q, want ready_managed", terminal.GetState())
+	}
+	if terminal.GetBytesReceived() != 0 || terminal.GetPercent() != 0 {
+		t.Fatalf("terminal job retained stale progress: %+v", terminal)
 	}
 }
 
@@ -530,6 +615,58 @@ func TestStartNativeSDCPPDependencyJobPromotesWindowsRuntimeWrapperSelectedSourc
 	}
 }
 
+func TestNativeSDCPPDependencyJobProjectsManagedBackendDownloadProgress(t *testing.T) {
+	svc := newTestService(t)
+	dep := nativeSDCPPPlanDependencyForTest(t, svc, stableDiffusionCUDAConsumerID, localEnvironmentNvidiaProfile())
+	release := make(chan struct{})
+	svc.SetEngineManager(&mockEngineManager{
+		managedImageBackendDependencyRelease: release,
+		managedImageBackendStatus: &engine.ManagedImageBackendDependencyStatus{
+			BackendName:       "stablediffusion-ggml",
+			PackageSource:     "canonical_runtime_wrapper",
+			PackageFormat:     "direct_archive",
+			LaunchMode:        "runtime_wrapper",
+			CanonicalRoot:     `C:\nimi\runtime\managed-image-backends\sd-win-cuda12-x64-stablediffusion-ggml`,
+			VerifiedArtifacts: []string{"sd.exe", "metadata.json"},
+			Detail:            "managed image backend package verified from canonical_runtime_wrapper",
+		},
+	})
+
+	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
+		EnvironmentKey:   dep.EnvironmentKey,
+		DependencyFamily: dep.DependencyFamily,
+		DependencyId:     dep.DependencyID,
+		Confirmed:        true,
+	})
+	if err != nil {
+		t.Fatalf("StartLocalEnvironmentDependencyJob: %v", err)
+	}
+
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		job, ok := svc.localEnvironmentDependencyJob(resp.GetJob().GetJobId())
+		if !ok {
+			t.Fatalf("job %s not found", resp.GetJob().GetJobId())
+		}
+		if job.State == localEnvironmentStateDownloading && job.BytesReceived == 256 && job.BytesTotal == 1024 && job.Percent == 25 {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("job did not project managed backend download progress: %+v", job)
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+
+	close(release)
+	terminal := awaitLocalEnvironmentDependencyJobTerminal(t, svc, resp.GetJob().GetJobId())
+	if terminal.GetState() != localEnvironmentStateReadyManaged {
+		t.Fatalf("job state = %q, want ready_managed", terminal.GetState())
+	}
+	if terminal.GetBytesReceived() != 0 || terminal.GetPercent() != 0 {
+		t.Fatalf("terminal job retained stale progress: %+v", terminal)
+	}
+}
+
 func TestStartNativeSDCPPDependencyJobRejectsOfficialDirectArchiveSource(t *testing.T) {
 	svc := newTestService(t)
 	dep := nativeSDCPPPlanDependencyForTest(t, svc, "stable-diffusion.cpp.metal", localEnvironmentAppleSilicon128GBProfile())
@@ -610,6 +747,48 @@ func TestStartNativeLlamaDependencyJobPromotesVerifiedSelectedSource(t *testing.
 	}
 }
 
+func TestNativeLlamaDependencyJobProjectsEngineDownloadProgress(t *testing.T) {
+	svc := newTestService(t)
+	release := make(chan struct{})
+	svc.SetEngineManager(&mockEngineManager{
+		engineBinaryDependencyRelease: release,
+		engineBinaryDependencyStatus: &engine.EngineBinaryDependencyStatus{
+			Engine:           "llama",
+			Version:          "b8645",
+			BinaryPath:       `C:\nimi\engines\llama\b8645\llama-server.exe`,
+			SHA256:           "0123456789abcdef",
+			Platform:         "windows/amd64",
+			AssetName:        "llama-b8645-bin-win-cuda-12.4-x64.zip",
+			AcceleratorPlane: "cuda",
+			Detail:           "llama engine package verified from Runtime registry",
+		},
+	})
+
+	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
+		EnvironmentKey:   "native-engine-package.llama|llama.cpp.package|host|windows/amd64|root|llama.cpp.cuda",
+		DependencyFamily: localEnvironmentFamilyNativeLlama,
+		DependencyId:     "llama.cpp.package",
+		Confirmed:        true,
+	})
+	if err != nil {
+		t.Fatalf("StartLocalEnvironmentDependencyJob: %v", err)
+	}
+
+	downloading := awaitLocalEnvironmentDependencyJobDownloadingProgressForTest(t, svc, resp.GetJob().GetJobId(), 300, 1200)
+	if downloading.GetPercent() != 25 {
+		t.Fatalf("download percent = %d, want 25", downloading.GetPercent())
+	}
+	close(release)
+
+	terminal := awaitLocalEnvironmentDependencyJobTerminal(t, svc, resp.GetJob().GetJobId())
+	if terminal.GetState() != localEnvironmentStateReadyManaged {
+		t.Fatalf("job state = %q, want ready_managed", terminal.GetState())
+	}
+	if terminal.GetBytesReceived() != 0 || terminal.GetPercent() != 0 {
+		t.Fatalf("terminal job retained stale progress: %+v", terminal)
+	}
+}
+
 func TestStartNativeLlamaDependencyJobRepairRequiredWithoutHash(t *testing.T) {
 	svc := newTestService(t)
 	svc.SetEngineManager(&mockEngineManager{
@@ -679,6 +858,47 @@ func TestStartPythonUVDependencyJobPromotesVerifiedSelectedSource(t *testing.T) 
 	}
 	if got := source.GetSelectedConsumers(); len(got) != 1 || got[0] != "media.diffusers.cuda" {
 		t.Fatalf("selected consumers = %v, want media.diffusers.cuda", got)
+	}
+}
+
+func TestPythonUVDependencyJobProjectsDownloadProgress(t *testing.T) {
+	svc := newTestService(t)
+	release := make(chan struct{})
+	svc.SetEngineManager(&mockEngineManager{
+		uvToolDependencyRelease: release,
+		uvToolDependencyStatus: &engine.UVToolDependencyStatus{
+			Version:          "0.11.8",
+			ExecutablePath:   `C:\nimi\engines\uv\uv.exe`,
+			SourceRoot:       `C:\nimi\engines\uv`,
+			ArchiveSHA256:    "c84629a56e0706b69a47ea35862208af827cb6fbfa1d0ca763c52c67594637e8",
+			ArchiveAssetName: "uv-x86_64-pc-windows-msvc.zip",
+			Platform:         "windows/amd64",
+			Detail:           "Runtime-managed uv tool verified from pinned official archive",
+		},
+	})
+
+	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
+		EnvironmentKey:   "python.tool.uv|uv|host|windows/amd64|root|media.diffusers.cuda",
+		DependencyFamily: localEnvironmentFamilyPythonUV,
+		DependencyId:     "uv",
+		Confirmed:        true,
+	})
+	if err != nil {
+		t.Fatalf("StartLocalEnvironmentDependencyJob: %v", err)
+	}
+
+	downloading := awaitLocalEnvironmentDependencyJobDownloadingProgressForTest(t, svc, resp.GetJob().GetJobId(), 128, 512)
+	if downloading.GetPercent() != 25 {
+		t.Fatalf("download percent = %d, want 25", downloading.GetPercent())
+	}
+	close(release)
+
+	terminal := awaitLocalEnvironmentDependencyJobTerminal(t, svc, resp.GetJob().GetJobId())
+	if terminal.GetState() != localEnvironmentStateReadyManaged {
+		t.Fatalf("job state = %q, want ready_managed", terminal.GetState())
+	}
+	if terminal.GetBytesReceived() != 0 || terminal.GetPercent() != 0 {
+		t.Fatalf("terminal job retained stale progress: %+v", terminal)
 	}
 }
 

@@ -45,6 +45,41 @@ func startFailedLocalEnvironmentDependencyJobForTest(t *testing.T, svc *Service,
 	return settled
 }
 
+func TestPythonMaterializerRejectsLocalImageNativePythonDependencies(t *testing.T) {
+	job := localEnvironmentDependencyJobState{
+		EnvironmentKey:   "python.venv|local-image-native.venv|host|windows/amd64|root|stable-diffusion.cpp.cuda",
+		DependencyFamily: localEnvironmentFamilyPythonVenv,
+		DependencyID:     "local-image-native.venv",
+		ConsumerScope:    "stable-diffusion.cpp.cuda",
+	}
+	if got := pythonMaterializerConsumerForDependency(job.DependencyID); got != "" {
+		t.Fatalf("native image Python dependency consumer = %q, want empty unsupported dependency mapping", got)
+	}
+	if got := pythonSelectedConsumersForDependency(job.DependencyID); len(got) != 1 || got[0] != "python.pipeline" {
+		t.Fatalf("native image Python dependency selected consumers = %v, want default fail-closed python.pipeline", got)
+	}
+}
+
+func TestStartLocalImageNativePythonPackageSetJobUnsupported(t *testing.T) {
+	svc := newTestService(t)
+	svc.SetEngineManager(&mockEngineManager{})
+
+	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
+		EnvironmentKey:   "python.package-set|local-image-native.package-set|host|windows/amd64|root|stable-diffusion.cpp.cuda",
+		DependencyFamily: localEnvironmentFamilyPythonPackageSet,
+		DependencyId:     "local-image-native.package-set",
+		ConsumerScope:    stableDiffusionCUDAConsumerID,
+		Confirmed:        true,
+	})
+	if err != nil {
+		t.Fatalf("StartLocalEnvironmentDependencyJob: %v", err)
+	}
+	job := awaitLocalEnvironmentDependencyJobTerminal(t, svc, resp.GetJob().GetJobId())
+	if job.GetState() != localEnvironmentStateUnsupported {
+		t.Fatalf("job state = %q, want unsupported for retired native Python package-set dependency", job.GetState())
+	}
+}
+
 func TestStartPythonRuntimeDependencyJobRequiresSelectedUVRecord(t *testing.T) {
 	svc := newTestService(t)
 	// A genuinely absent prerequisite still fails closed once the bounded
@@ -114,6 +149,51 @@ func TestStartPythonRuntimeDependencyJobPromotesVerifiedSelectedSource(t *testin
 	}
 	if got := source.GetSelectedConsumers(); len(got) != 1 || got[0] != "media.diffusers.cuda" {
 		t.Fatalf("selected consumers = %v, want media.diffusers.cuda", got)
+	}
+}
+
+func TestPythonRuntimeDependencyJobUsesInstallingWithoutDownloadProgress(t *testing.T) {
+	svc := newTestService(t)
+	upsertReadyPythonPrerequisiteForTest(t, svc, localEnvironmentSelectedSourceRecordState{
+		DependencyFamily:  localEnvironmentFamilyPythonUV,
+		DependencyID:      "uv",
+		EnvironmentKey:    "python.tool.uv|uv|host|windows/amd64|root|media.diffusers.cuda",
+		SourceKind:        localEnvironmentSourceManaged,
+		CanonicalRoot:     `C:\nimi\engines\uv\uv.exe`,
+		Version:           "0.11.8",
+		VerifiedArtifacts: []string{`C:\nimi\engines\uv\uv.exe`},
+		SelectedConsumers: []string{"media.diffusers.cuda"},
+	})
+	release := make(chan struct{})
+	svc.SetEngineManager(&mockEngineManager{
+		pythonRuntimeDependencyRelease: release,
+		pythonRuntimeStatus: &engine.PythonRuntimeDependencyStatus{
+			PythonVersion:   "Python 3.12.11",
+			InterpreterPath: `C:\nimi\engines\media\0.1.0\Scripts\python.exe`,
+			RuntimeRoot:     `C:\nimi\engines\media\0.1.0`,
+			UVExecutable:    `C:\nimi\engines\uv\uv.exe`,
+			Detail:          "Runtime-managed Python runtime verified through selected uv tool",
+		},
+	})
+
+	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
+		EnvironmentKey:   "python.runtime|python.runtime|host|windows/amd64|root|media.diffusers.cuda",
+		DependencyFamily: localEnvironmentFamilyPythonRuntime,
+		DependencyId:     "python.runtime",
+		Confirmed:        true,
+	})
+	if err != nil {
+		t.Fatalf("StartLocalEnvironmentDependencyJob: %v", err)
+	}
+	installing := awaitLocalEnvironmentDependencyJobStateForTest(t, svc, resp.GetJob().GetJobId(), localEnvironmentStateInstalling)
+	if installing.GetBytesReceived() != 0 || installing.GetBytesTotal() != 0 || installing.GetPercent() != 0 {
+		t.Fatalf("python runtime installing job must not fabricate download progress: %+v", installing)
+	}
+	close(release)
+
+	terminal := awaitLocalEnvironmentDependencyJobTerminal(t, svc, resp.GetJob().GetJobId())
+	if terminal.GetState() != localEnvironmentStateReadyManaged {
+		t.Fatalf("job state = %q, want ready_managed", terminal.GetState())
 	}
 }
 
@@ -412,6 +492,64 @@ func TestStartPythonPackageSetDependencyJobPromotesVerifiedSelectedSource(t *tes
 	}
 }
 
+func TestPythonPackageSetDependencyJobUsesInstallingWithoutDownloadProgress(t *testing.T) {
+	svc := newTestService(t)
+	upsertReadyPythonPrerequisiteForTest(t, svc, localEnvironmentSelectedSourceRecordState{
+		DependencyFamily:  localEnvironmentFamilyPythonUV,
+		DependencyID:      "uv",
+		EnvironmentKey:    "python.tool.uv|uv|host|windows/amd64|root|speech.qwen3-tts.python",
+		SourceKind:        localEnvironmentSourceManaged,
+		CanonicalRoot:     `C:\nimi\engines\uv\uv.exe`,
+		Version:           "0.11.8",
+		VerifiedArtifacts: []string{`C:\nimi\engines\uv\uv.exe`},
+		SelectedConsumers: []string{"speech.qwen3-tts.python"},
+	})
+	upsertReadyPythonPrerequisiteForTest(t, svc, localEnvironmentSelectedSourceRecordState{
+		DependencyFamily:  localEnvironmentFamilyPythonVenv,
+		DependencyID:      "local-speech-qwen3-tts.venv",
+		EnvironmentKey:    "python.venv|local-speech-qwen3-tts.venv|host|windows/amd64|root",
+		SourceKind:        localEnvironmentSourceManaged,
+		CanonicalRoot:     `C:\nimi\engines\speech\0.1.0`,
+		Version:           "Python 3.12.11",
+		VerifiedArtifacts: []string{`C:\nimi\engines\speech\0.1.0\Scripts\python.exe`},
+		SelectedConsumers: []string{"speech.qwen3-tts.python"},
+	})
+	release := make(chan struct{})
+	svc.SetEngineManager(&mockEngineManager{
+		pythonPackageSetDependencyRelease: release,
+		pythonPackageSetStatus: &engine.PythonPackageSetDependencyStatus{
+			PackageSetID:           "speech-qwen3-tts-python-core",
+			LockHash:               "9a9307c48e6d92fb600d63a330c126e93c8625978b753534e65926353b85a58e",
+			VenvRoot:               `C:\nimi\engines\speech\0.1.0`,
+			InterpreterPath:        `C:\nimi\engines\speech\0.1.0\Scripts\python.exe`,
+			UVExecutable:           `C:\nimi\engines\uv\uv.exe`,
+			InstalledDistributions: []string{"fastapi==0.121.1"},
+			ImportProbes:           []string{"fastapi"},
+			Detail:                 "Runtime-managed Python package set verified from declared lock manifest",
+		},
+	})
+
+	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
+		EnvironmentKey:   "python.package-set|local-speech-qwen3-tts.package-set|host|windows/amd64|root",
+		DependencyFamily: localEnvironmentFamilyPythonPackageSet,
+		DependencyId:     "local-speech-qwen3-tts.package-set",
+		Confirmed:        true,
+	})
+	if err != nil {
+		t.Fatalf("StartLocalEnvironmentDependencyJob: %v", err)
+	}
+	installing := awaitLocalEnvironmentDependencyJobStateForTest(t, svc, resp.GetJob().GetJobId(), localEnvironmentStateInstalling)
+	if installing.GetBytesReceived() != 0 || installing.GetBytesTotal() != 0 || installing.GetPercent() != 0 {
+		t.Fatalf("package-set installing job must not fabricate download progress: %+v", installing)
+	}
+	close(release)
+
+	terminal := awaitLocalEnvironmentDependencyJobTerminal(t, svc, resp.GetJob().GetJobId())
+	if terminal.GetState() != localEnvironmentStateReadyManaged {
+		t.Fatalf("job state = %q, want ready_managed", terminal.GetState())
+	}
+}
+
 func TestPythonPackageSetWaitsForVerifiedVenvInsteadOfStaleRepairRecord(t *testing.T) {
 	svc := newTestService(t)
 	upsertReadyPythonPrerequisiteForTest(t, svc, localEnvironmentSelectedSourceRecordState{
@@ -599,6 +737,76 @@ func TestStartPythonTorchWheelDependencyJobPromotesVerifiedSelectedSource(t *tes
 	}
 }
 
+func TestPythonTorchWheelDependencyJobUsesInstallingWithoutDownloadProgress(t *testing.T) {
+	svc := newTestService(t)
+	upsertReadyPythonPrerequisiteForTest(t, svc, localEnvironmentSelectedSourceRecordState{
+		DependencyFamily:  localEnvironmentFamilyPythonUV,
+		DependencyID:      "uv",
+		EnvironmentKey:    "python.tool.uv|uv|host|windows/amd64|root|media.diffusers.cuda",
+		SourceKind:        localEnvironmentSourceManaged,
+		CanonicalRoot:     `C:\nimi\engines\uv\uv.exe`,
+		Version:           "0.11.8",
+		VerifiedArtifacts: []string{`C:\nimi\engines\uv\uv.exe`},
+		SelectedConsumers: []string{"media.diffusers.cuda"},
+	})
+	upsertReadyPythonPrerequisiteForTest(t, svc, localEnvironmentSelectedSourceRecordState{
+		DependencyFamily:  localEnvironmentFamilyPythonVenv,
+		DependencyID:      "local-image-python.venv",
+		EnvironmentKey:    "python.venv|local-image-python.venv|host|windows/amd64|root|media.diffusers.cuda",
+		SourceKind:        localEnvironmentSourceManaged,
+		CanonicalRoot:     `C:\nimi\engines\media\0.1.0`,
+		Version:           "Python 3.12.11",
+		VerifiedArtifacts: []string{`C:\nimi\engines\media\0.1.0\Scripts\python.exe`},
+		SelectedConsumers: []string{"media.diffusers.cuda"},
+	})
+	upsertReadyPythonPrerequisiteForTest(t, svc, localEnvironmentSelectedSourceRecordState{
+		DependencyFamily:  localEnvironmentFamilyCUDA,
+		DependencyID:      cudaUserSpaceRuntimeDependencyID,
+		EnvironmentKey:    "accelerator.cuda.runtime|nvidia-cuda-user-space-runtime|host|windows/amd64|root|media.diffusers.cuda",
+		SourceKind:        localEnvironmentSourceManaged,
+		CanonicalRoot:     `C:\nimi\runtime\dependencies\cuda`,
+		VerifiedArtifacts: []string{`C:\nimi\runtime\dependencies\cuda\bin\cudart64_12.dll`},
+		SelectedConsumers: []string{"media.diffusers.cuda"},
+	})
+	release := make(chan struct{})
+	svc.SetEngineManager(&mockEngineManager{
+		pythonTorchWheelDependencyRelease: release,
+		pythonTorchWheelStatus: &engine.PythonTorchWheelDependencyStatus{
+			TorchVersion:     "2.7.1+cu126",
+			TorchvisionSpec:  "torchvision==0.22.1",
+			AcceleratorPlane: "cuda",
+			CUDAABI:          "cu126",
+			WheelIndex:       "https://download.pytorch.org/whl/cu126",
+			WheelLockHash:    "f7e7402ad7ef255ac2da7116eb5406dd403107d98035172016f749efca404546",
+			VenvRoot:         `C:\nimi\engines\media\0.1.0`,
+			InterpreterPath:  `C:\nimi\engines\media\0.1.0\Scripts\python.exe`,
+			UVExecutable:     `C:\nimi\engines\uv\uv.exe`,
+			ImportProbes:     []string{"torch", "torchvision"},
+			Detail:           "Runtime-managed Python torch wheel set verified from declared wheel index",
+		},
+	})
+
+	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
+		EnvironmentKey:   "python.torch-wheel|local-image-python.torch-wheel|host|windows/amd64|root|media.diffusers.cuda",
+		DependencyFamily: localEnvironmentFamilyPythonTorchWheel,
+		DependencyId:     "local-image-python.torch-wheel",
+		Confirmed:        true,
+	})
+	if err != nil {
+		t.Fatalf("StartLocalEnvironmentDependencyJob: %v", err)
+	}
+	installing := awaitLocalEnvironmentDependencyJobStateForTest(t, svc, resp.GetJob().GetJobId(), localEnvironmentStateInstalling)
+	if installing.GetBytesReceived() != 0 || installing.GetBytesTotal() != 0 || installing.GetPercent() != 0 {
+		t.Fatalf("torch-wheel installing job must not fabricate download progress: %+v", installing)
+	}
+	close(release)
+
+	terminal := awaitLocalEnvironmentDependencyJobTerminal(t, svc, resp.GetJob().GetJobId())
+	if terminal.GetState() != localEnvironmentStateReadyManaged {
+		t.Fatalf("job state = %q, want ready_managed", terminal.GetState())
+	}
+}
+
 func TestStartModelAssetDependencyJobRejectsPackPlaceholder(t *testing.T) {
 	svc := newTestService(t)
 
@@ -750,12 +958,15 @@ func TestStartModelCompanionDependencyJobPromotesVerifiedSelectedSource(t *testi
 	writeLocalEnvironmentAssetEntryForTest(t, svc, companion, "verified-companion")
 	parentRecord := svc.upsertLocalEnvironmentSelectedSourceRecord(verifiedSelectedSourceRecordForTest(localEnvironmentSelectedSourceRecordState{
 		DependencyFamily:  localEnvironmentFamilyModelAsset,
-		DependencyID:      "asset-id:" + parent.GetAssetId(),
-		EnvironmentKey:    "model.asset|asset-id:" + parent.GetAssetId() + "|host|windows/amd64|root",
+		DependencyID:      "asset:" + parent.GetLocalAssetId(),
+		EnvironmentKey:    "model.asset|asset:" + parent.GetLocalAssetId() + "|host|windows/amd64|root",
 		SourceKind:        localEnvironmentSourceManaged,
 		CanonicalRoot:     parentEntryPath,
 		VerifiedArtifacts: []string{parentEntryPath},
-		Hashes:            map[string]string{"local_asset_id": parent.GetLocalAssetId()},
+		Hashes: map[string]string{
+			"asset_id":       parent.GetAssetId(),
+			"local_asset_id": parent.GetLocalAssetId(),
+		},
 		SelectedConsumers: []string{"media.diffusers.cpu"},
 	}))
 

@@ -88,19 +88,22 @@ func TestEngineRPCsRequireEngineName(t *testing.T) {
 
 // mockEngineManager implements EngineManager for testing with configurable errors.
 type mockEngineManager struct {
-	ensureErr                    error
-	engineBinaryDependencyStatus *engine.EngineBinaryDependencyStatus
-	uvToolDependencyStatus       *engine.UVToolDependencyStatus
-	pythonRuntimeStatus          *engine.PythonRuntimeDependencyStatus
-	pythonVenvStatus             *engine.PythonVenvDependencyStatus
-	pythonPackageSetStatus       *engine.PythonPackageSetDependencyStatus
-	pythonTorchWheelStatus       *engine.PythonTorchWheelDependencyStatus
-	ensureManagedImageBackendErr error
-	managedImageBackendStatus    *engine.ManagedImageBackendDependencyStatus
-	startErr                     error
-	stopErr                      error
-	statusErr                    error
-	status                       *EngineInfo
+	ensureErr                         error
+	engineBinaryDependencyStatus      *engine.EngineBinaryDependencyStatus
+	uvToolDependencyStatus            *engine.UVToolDependencyStatus
+	pythonRuntimeStatus               *engine.PythonRuntimeDependencyStatus
+	pythonVenvStatus                  *engine.PythonVenvDependencyStatus
+	pythonPackageSetStatus            *engine.PythonPackageSetDependencyStatus
+	pythonTorchWheelStatus            *engine.PythonTorchWheelDependencyStatus
+	pythonRuntimeDependencyRelease    <-chan struct{}
+	pythonPackageSetDependencyRelease <-chan struct{}
+	pythonTorchWheelDependencyRelease <-chan struct{}
+	ensureManagedImageBackendErr      error
+	managedImageBackendStatus         *engine.ManagedImageBackendDependencyStatus
+	startErr                          error
+	stopErr                           error
+	statusErr                         error
+	status                            *EngineInfo
 
 	startCalls                             int
 	startConfigCalls                       int
@@ -113,8 +116,12 @@ type mockEngineManager struct {
 	startConfigs                           []engine.EngineConfig
 	stopEngines                            []string
 	managedImageBackendConfigs             []*engine.ManagedImageBackendConfig
+	engineBinaryDependencyRelease          <-chan struct{}
+	uvToolDependencyRelease                <-chan struct{}
+	managedImageBackendDependencyRelease   <-chan struct{}
 	ensureSharedAcceleratorDependencyCalls int
 	sharedAcceleratorDependencyStatus      *engine.SharedAcceleratorDependencyStatus
+	sharedAcceleratorDependencyRelease     <-chan struct{}
 }
 
 func (m *mockEngineManager) ListEngines() []EngineInfo {
@@ -127,7 +134,11 @@ func (m *mockEngineManager) EnsureEngine(_ context.Context, _ string, _ string) 
 	return m.ensureErr
 }
 
-func (m *mockEngineManager) EnsureEngineBinaryDependency(_ context.Context, engineName string, _ string) (engine.EngineBinaryDependencyStatus, error) {
+func (m *mockEngineManager) EnsureEngineBinaryDependency(ctx context.Context, engineName string, _ string) (engine.EngineBinaryDependencyStatus, error) {
+	engine.ReportDownloadProgress(ctx, 300, 1200)
+	if m.engineBinaryDependencyRelease != nil {
+		<-m.engineBinaryDependencyRelease
+	}
 	if m.engineBinaryDependencyStatus != nil {
 		return *m.engineBinaryDependencyStatus, m.ensureErr
 	}
@@ -143,7 +154,11 @@ func (m *mockEngineManager) EnsureEngineBinaryDependency(_ context.Context, engi
 	}, m.ensureErr
 }
 
-func (m *mockEngineManager) EnsureUVToolDependency(_ context.Context) (engine.UVToolDependencyStatus, error) {
+func (m *mockEngineManager) EnsureUVToolDependency(ctx context.Context) (engine.UVToolDependencyStatus, error) {
+	engine.ReportDownloadProgress(ctx, 128, 512)
+	if m.uvToolDependencyRelease != nil {
+		<-m.uvToolDependencyRelease
+	}
 	if m.uvToolDependencyStatus != nil {
 		return *m.uvToolDependencyStatus, m.ensureErr
 	}
@@ -159,6 +174,9 @@ func (m *mockEngineManager) EnsureUVToolDependency(_ context.Context) (engine.UV
 }
 
 func (m *mockEngineManager) EnsurePythonRuntimeDependency(_ context.Context, uvPath string, engineName string, _ string, _ string) (engine.PythonRuntimeDependencyStatus, error) {
+	if m.pythonRuntimeDependencyRelease != nil {
+		<-m.pythonRuntimeDependencyRelease
+	}
 	if m.pythonRuntimeStatus != nil {
 		return *m.pythonRuntimeStatus, m.ensureErr
 	}
@@ -185,6 +203,9 @@ func (m *mockEngineManager) EnsurePythonVenvDependency(_ context.Context, uvPath
 }
 
 func (m *mockEngineManager) EnsurePythonPackageSetDependency(_ context.Context, uvPath string, venvRoot string, consumer string) (engine.PythonPackageSetDependencyStatus, error) {
+	if m.pythonPackageSetDependencyRelease != nil {
+		<-m.pythonPackageSetDependencyRelease
+	}
 	if m.pythonPackageSetStatus != nil {
 		return *m.pythonPackageSetStatus, m.ensureErr
 	}
@@ -202,6 +223,9 @@ func (m *mockEngineManager) EnsurePythonPackageSetDependency(_ context.Context, 
 }
 
 func (m *mockEngineManager) EnsurePythonTorchWheelDependency(_ context.Context, uvPath string, venvRoot string, consumer string) (engine.PythonTorchWheelDependencyStatus, error) {
+	if m.pythonTorchWheelDependencyRelease != nil {
+		<-m.pythonTorchWheelDependencyRelease
+	}
 	if m.pythonTorchWheelStatus != nil {
 		return *m.pythonTorchWheelStatus, m.ensureErr
 	}
@@ -227,6 +251,12 @@ func (m *mockEngineManager) EnsureManagedImageBackend(_ context.Context, cfg *en
 
 func (m *mockEngineManager) EnsureManagedImageBackendDependency(_ context.Context, cfg *engine.ManagedImageBackendConfig) (engine.ManagedImageBackendDependencyStatus, error) {
 	m.managedImageBackendConfigs = append(m.managedImageBackendConfigs, cfg)
+	if cfg != nil && cfg.DownloadProgress != nil {
+		cfg.DownloadProgress(256, 1024)
+	}
+	if m.managedImageBackendDependencyRelease != nil {
+		<-m.managedImageBackendDependencyRelease
+	}
 	if m.managedImageBackendStatus != nil {
 		return *m.managedImageBackendStatus, m.ensureManagedImageBackendErr
 	}
@@ -265,8 +295,12 @@ func (m *mockEngineManager) ResolveSharedAcceleratorDependency(dependencyID stri
 	}
 }
 
-func (m *mockEngineManager) EnsureSharedAcceleratorDependency(_ context.Context, dependencyID string) (engine.SharedAcceleratorDependencyStatus, error) {
+func (m *mockEngineManager) EnsureSharedAcceleratorDependency(ctx context.Context, dependencyID string) (engine.SharedAcceleratorDependencyStatus, error) {
 	m.ensureSharedAcceleratorDependencyCalls++
+	engine.ReportDownloadProgress(ctx, 384, 1536)
+	if m.sharedAcceleratorDependencyRelease != nil {
+		<-m.sharedAcceleratorDependencyRelease
+	}
 	if m.sharedAcceleratorDependencyStatus != nil {
 		status := *m.sharedAcceleratorDependencyStatus
 		if strings.TrimSpace(status.DependencyID) == "" {

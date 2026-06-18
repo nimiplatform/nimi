@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
@@ -133,6 +134,45 @@ func TestHostProfileOrCollectedSelfCollectsWhenRequestOmitsProfile(t *testing.T)
 	}
 	if collected.GetTotalRamBytes() != memBytes {
 		t.Fatalf("collected total_ram_bytes = %d, want %d", collected.GetTotalRamBytes(), memBytes)
+	}
+}
+
+func TestProbeGPUProfileFailsClosedWhenNvidiaSmiTimesOut(t *testing.T) {
+	originalGOOS := localRuntimeGOOS
+	originalGOARCH := localRuntimeGOARCH
+	originalLookPath := localRuntimeLookPath
+	originalCommand := localRuntimeCommand
+	originalTimeout := localRuntimeGPUProbeTimeout
+	t.Cleanup(func() {
+		localRuntimeGOOS = originalGOOS
+		localRuntimeGOARCH = originalGOARCH
+		localRuntimeLookPath = originalLookPath
+		localRuntimeCommand = originalCommand
+		localRuntimeGPUProbeTimeout = originalTimeout
+	})
+
+	localRuntimeGOOS = "linux"
+	localRuntimeGOARCH = "amd64"
+	localRuntimeGPUProbeTimeout = 20 * time.Millisecond
+	localRuntimeLookPath = func(name string) (string, error) {
+		if name == "nvidia-smi" {
+			return "/usr/bin/nvidia-smi", nil
+		}
+		return "", exec.ErrNotFound
+	}
+	shellName := "sh"
+	shellArgs := []string{"-c", "sleep 2"}
+	if runtime.GOOS == "windows" {
+		shellName = "cmd"
+		shellArgs = []string{"/c", "ping -n 3 127.0.0.1 >NUL"}
+	}
+	localRuntimeCommand = func(ctx context.Context, name string, args ...string) *exec.Cmd {
+		return exec.CommandContext(ctx, shellName, shellArgs...)
+	}
+
+	caps := probeGPUCapabilities()
+	if caps.profile.GetAvailable() || caps.cudaReady {
+		t.Fatalf("timed-out nvidia-smi probe must fail closed, got %+v", caps)
 	}
 }
 

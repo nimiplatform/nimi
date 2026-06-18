@@ -55,10 +55,14 @@ type managedBinaryBootstrapSpec struct {
 // DownloadBinary downloads an engine binary to the engines base directory.
 // Returns the final binary path, binary SHA256 hash, and selected release asset.
 func DownloadBinary(baseDir string, kind EngineKind, version string) (binaryPath string, sha256hex string, assetName string, err error) {
+	return DownloadBinaryWithContext(context.Background(), baseDir, kind, version)
+}
+
+func DownloadBinaryWithContext(ctx context.Context, baseDir string, kind EngineKind, version string) (binaryPath string, sha256hex string, assetName string, err error) {
 	switch kind {
 	case EngineLlama:
 		destDir := filepath.Join(baseDir, string(kind), version)
-		return downloadManagedBinary(destDir, managedBinaryBootstrapSpec{
+		return downloadManagedBinary(ctx, destDir, managedBinaryBootstrapSpec{
 			BinaryName:   llamaBinaryName(),
 			ResolveAsset: llamaReleaseAsset,
 		}, version)
@@ -67,7 +71,7 @@ func DownloadBinary(baseDir string, kind EngineKind, version string) (binaryPath
 	}
 }
 
-func downloadManagedBinary(destDir string, spec managedBinaryBootstrapSpec, version string) (string, string, string, error) {
+func downloadManagedBinary(ctx context.Context, destDir string, spec managedBinaryBootstrapSpec, version string) (string, string, string, error) {
 	if strings.TrimSpace(spec.BinaryName) == "" {
 		return "", "", "", fmt.Errorf("%w: managed binary name is required", ErrEngineBinaryDownloadFailed)
 	}
@@ -88,7 +92,7 @@ func downloadManagedBinary(destDir string, spec managedBinaryBootstrapSpec, vers
 	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	downloadPath := filepath.Join(tmpDir, asset.Name)
-	archiveHash, err := downloadURLToFile(asset.DownloadURL, downloadPath)
+	archiveHash, err := downloadURLToFileWithProgress(ctx, asset.DownloadURL, downloadPath, downloadProgressFromContext(ctx))
 	if err != nil {
 		return "", "", "", err
 	}
@@ -166,12 +170,19 @@ func doEngineDownloadRequest(sourceURL string, base *http.Client, fallbackTimeou
 // the core covers connection-establishment retries AND the mid-stream body
 // drop that the old `doEngineDownloadRequest` 3x loop could not.
 func downloadURLToFile(sourceURL string, destPath string) (string, error) {
+	return downloadURLToFileWithProgress(context.Background(), sourceURL, destPath, nil)
+}
+
+func downloadURLToFileWithProgress(ctx context.Context, sourceURL string, destPath string, progress filedownload.ProgressFunc) (string, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	client := newEngineDownloadHTTPClient(sourceURL, nil, engineDownloadFallbackTimeout)
 	header := http.Header{}
 	header.Set("User-Agent", "nimi-runtime/0.1")
 	header.Set("Accept", "application/vnd.github+json")
 
-	result, err := filedownload.Download(context.Background(), filedownload.Options{
+	result, err := filedownload.Download(ctx, filedownload.Options{
 		URL:          sourceURL,
 		DestPath:     destPath,
 		Client:       client,
@@ -179,6 +190,7 @@ func downloadURLToFile(sourceURL string, destPath string) (string, error) {
 		MaxAttempts:  engineDownloadMaxAttempts,
 		RetryBackoff: engineDownloadRetryBackoff,
 		IsTransient:  isRetryableEngineDownloadError,
+		Progress:     progress,
 	})
 	if err != nil {
 		if errors.Is(err, filedownload.ErrHTTPStatus) {

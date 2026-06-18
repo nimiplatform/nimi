@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/nimiplatform/nimi/runtime/internal/engine"
 	"github.com/oklog/ulid/v2"
 )
 
@@ -21,6 +22,8 @@ const (
 	localEnvironmentJobRecoveryRepairRequired     = "repair_required"
 	localEnvironmentJobRecoveryNotRetryable       = "not_retryable"
 )
+
+var localEnvironmentDependencyJobHeartbeatInterval = 15 * time.Second
 
 type localEnvironmentDependencyJobState struct {
 	JobID                  string `json:"jobId"`
@@ -209,6 +212,10 @@ func (s *Service) runLocalEnvironmentDependencyJob(ctx context.Context, jobID st
 		},
 	}
 
+	heartbeatCtx, stopHeartbeat := context.WithCancel(ctx)
+	defer stopHeartbeat()
+	go s.runLocalEnvironmentDependencyJobHeartbeat(heartbeatCtx, jobID)
+
 	result, err := executor(ctx, job, reporter)
 	if err != nil {
 		if errors.Is(err, errLocalEnvironmentJobCancelled) || errors.Is(err, context.Canceled) {
@@ -303,6 +310,43 @@ func localEnvironmentDependencyJobResultDetail(result localEnvironmentDependency
 		return detail
 	}
 	return strings.TrimSpace(result.AuditReasonCode)
+}
+
+func (s *Service) runLocalEnvironmentDependencyJobHeartbeat(ctx context.Context, jobID string) {
+	interval := localEnvironmentDependencyJobHeartbeatInterval
+	if interval <= 0 {
+		return
+	}
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			if !s.touchLocalEnvironmentDependencyJobHeartbeat(jobID) {
+				return
+			}
+		}
+	}
+}
+
+func (s *Service) touchLocalEnvironmentDependencyJobHeartbeat(jobID string) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	job, ok := s.localEnvironmentDependencyJobs[strings.TrimSpace(jobID)]
+	if !ok || localEnvironmentDependencyJobTerminal(job.State) {
+		return false
+	}
+	// Downloading / verifying jobs must prove liveness with byte-progress
+	// updates. Heartbeats are only for non-byte phases such as installing,
+	// where a subprocess can legitimately run for minutes without a percent.
+	if localEnvironmentDependencyJobTransferring(job.State) {
+		return true
+	}
+	job.UpdatedAt = nowISO()
+	s.localEnvironmentDependencyJobs[job.JobID] = job
+	return true
 }
 
 // promoteLocalEnvironmentDependencyJobReady atomically writes the
@@ -1200,6 +1244,15 @@ func reportLocalEnvironmentJobDownloadProgress(report localEnvironmentDependency
 		return
 	}
 	report.Progress(progress)
+}
+
+func localEnvironmentEngineDownloadProgressContext(ctx context.Context, report localEnvironmentDependencyJobProgressReporter) context.Context {
+	return engine.WithDownloadProgress(ctx, func(bytesReceived, bytesTotal int64) {
+		reportLocalEnvironmentJobDownloadProgress(report, localEnvironmentDependencyJobProgress{
+			BytesReceived: bytesReceived,
+			BytesTotal:    bytesTotal,
+		})
+	})
 }
 
 func normalizeLocalEnvironmentDependencyJobRequest(req localEnvironmentDependencyJobRequest) localEnvironmentDependencyJobRequest {
