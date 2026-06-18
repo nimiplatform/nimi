@@ -80,6 +80,7 @@ test('tauri-ipc Runtime transport encodes and decodes protobuf unary calls', asy
       transport: { type: 'tauri-ipc' },
       authMetadata: () => ({
         'x-nimi-access-token-id': 'tauri-token-id',
+        'x-nimi-access-token-secret': 'tauri-token-secret',
         'x-nimi-session-id': 'session-tauri',
         'x-nimi-session-token': 'session-token-tauri',
       }),
@@ -97,8 +98,13 @@ test('tauri-ipc Runtime transport encodes and decodes protobuf unary calls', asy
       sessionId: 'session-tauri',
       sessionToken: 'session-token-tauri',
     });
+    assert.deepEqual(capturedPayload.protectedAccessToken, {
+      tokenId: 'tauri-token-id',
+      secret: 'tauri-token-secret',
+    });
     assert.equal((capturedPayload.metadata as { extra?: Record<string, string> }).extra?.['x-nimi-session-id'], undefined);
-    assert.equal((capturedPayload.metadata as { extra?: Record<string, string> }).extra?.['x-nimi-access-token-id'], 'tauri-token-id');
+    assert.equal((capturedPayload.metadata as { extra?: Record<string, string> }).extra?.['x-nimi-access-token-id'], undefined);
+    assert.equal((capturedPayload.metadata as { extra?: Record<string, string> }).extra?.['x-nimi-access-token-secret'], undefined);
     assert.equal(capturedPayload.authorization, undefined);
     assert.equal(runtime.runtimeVersion(), '0.5.0');
     assert.equal(runtime.versionCompatibility().state, 'compatible');

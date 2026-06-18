@@ -55,6 +55,11 @@ type RuntimeBridgeAppSession = {
   sessionToken: string;
 };
 
+type RuntimeBridgeProtectedAccessToken = {
+  tokenId: string;
+  secret: string;
+};
+
 type RuntimeBridgeMetadataScalarField = Exclude<keyof RuntimeBridgeMetadata, 'extra'>;
 
 type RuntimeBridgeUnaryResponse = {
@@ -269,11 +274,14 @@ function fromBase64(value: string): Uint8Array {
 function splitRuntimeMetadata(metadata: CoreMetadata | undefined): {
   readonly metadata?: RuntimeBridgeMetadata;
   readonly authorization?: string;
+  readonly protectedAccessToken?: RuntimeBridgeProtectedAccessToken;
   readonly appSession?: RuntimeBridgeAppSession;
 } {
   const bridgeMetadata: RuntimeBridgeMetadata = {};
   const extra: Record<string, string> = {};
   let authorization: string | undefined;
+  let accessTokenId = '';
+  let accessTokenSecret = '';
   let sessionId = '';
   let sessionToken = '';
 
@@ -297,6 +305,14 @@ function splitRuntimeMetadata(metadata: CoreMetadata | undefined): {
       );
     }
     const compactLookup = lookup.replaceAll('-', '');
+    if (lookup === 'x-nimi-access-token-id' || compactLookup === 'accesstokenid') {
+      accessTokenId = value;
+      continue;
+    }
+    if (lookup === 'x-nimi-access-token-secret' || compactLookup === 'accesstokensecret') {
+      accessTokenSecret = value;
+      continue;
+    }
     if (lookup === 'x-nimi-session-id' || compactLookup === 'sessionid') {
       sessionId = value;
       continue;
@@ -322,6 +338,7 @@ function splitRuntimeMetadata(metadata: CoreMetadata | undefined): {
   return {
     metadata: Object.keys(bridgeMetadata).length > 0 ? bridgeMetadata : undefined,
     authorization,
+    protectedAccessToken: accessTokenId && accessTokenSecret ? { tokenId: accessTokenId, secret: accessTokenSecret } : undefined,
     appSession: sessionId && sessionToken ? { sessionId, sessionToken } : undefined,
   };
 }
@@ -380,13 +397,14 @@ export function createRuntimeTauriIpcTransport(
 ): CoreTransport {
   const invokeUnaryBytes = async (methodId: string, body: Uint8Array, request: CoreUnaryRequest): Promise<Uint8Array> => {
     const invoke = ensureInvoke();
-    const { metadata, authorization, appSession } = splitRuntimeMetadata(request.metadata);
+    const { metadata, authorization, protectedAccessToken, appSession } = splitRuntimeMetadata(request.metadata);
     const response = asObject(await invoke(createCommandName(options, 'unary'), {
       payload: {
         methodId,
         requestBytesBase64: toBase64(body),
         metadata,
         authorization,
+        protectedAccessToken,
         appSession,
         timeoutMs: request.timeoutMs,
       },
@@ -410,7 +428,7 @@ export function createRuntimeTauriIpcTransport(
   ): Promise<AsyncIterable<Uint8Array>> => {
     const invoke = ensureInvoke();
     const listen = ensureListen();
-    const { metadata, authorization, appSession } = splitRuntimeMetadata(request.metadata);
+    const { metadata, authorization, protectedAccessToken, appSession } = splitRuntimeMetadata(request.metadata);
 
     let streamId = createClientStreamId();
     let unsubscribe: TauriListenUnsubscribe | undefined;
@@ -530,6 +548,7 @@ export function createRuntimeTauriIpcTransport(
           requestBytesBase64: toBase64(body),
           metadata,
           authorization,
+          protectedAccessToken,
           appSession,
           timeoutMs: request.timeoutMs,
           eventNamespace: options.eventNamespace,
