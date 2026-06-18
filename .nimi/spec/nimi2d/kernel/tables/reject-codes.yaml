@@ -1,0 +1,159 @@
+version: 1
+table_family: closed_enum
+owner: nimi2d
+enum_id: nimi2d_layer_input_reject_codes
+registry_id: "nimi.nimi2d.layer-input-reject-codes.v1"
+authority: "nimi2d.kernel.layer_input"
+source_rule: N2D-INPUT-003
+description: >
+  Closed typed reject registry for Nimi2D layer input admission. Codes are
+  Nimi2D package-generation input diagnostics only. They are not Runtime,
+  Avatar backend, Desktop UI, APML, MCP, A2A, or SDK ontology.
+
+namespace: "NIMI2D_LAYER_INPUT_*"
+closed_code_set: true
+consumer_posture:
+  avatar: "may display or log typed package-input diagnostics but does not own their meanings"
+  desktop: "may display typed diagnostics but does not own their meanings"
+  runtime: "does not own or reinterpret these diagnostics"
+  sdk: "does not define additional codes"
+
+codes: &nimi2d_layer_input_reject_values
+  NIMI2D_LAYER_INPUT_MANIFEST_MISSING:
+    meaning: "No layer input manifest was supplied."
+    trigger: "Layer input admission starts without a manifest file."
+    severity: error
+    claim_semantics: fail_closed
+  NIMI2D_LAYER_INPUT_MANIFEST_INVALID:
+    meaning: "The manifest cannot parse or violates the closed schema."
+    trigger: "Malformed YAML/JSON, missing required fields, forbidden unknown fields, or invalid field types."
+    severity: error
+    claim_semantics: fail_closed
+  NIMI2D_LAYER_INPUT_SCHEMA_VERSION_UNSUPPORTED:
+    meaning: "The manifest schema version is not admitted."
+    trigger: "schema_version is absent or is not literal 1."
+    severity: error
+    claim_semantics: fail_closed
+  NIMI2D_LAYER_INPUT_RAW_IMAGE_FORBIDDEN:
+    meaning: "Raw image input is not an admitted Nimi2D input."
+    trigger: "Input supplies raw_image_ref, source_image_ref, URL image, prompt-only source, PSD/SVG/editor document, or a single unlayered image."
+    severity: error
+    claim_semantics: fail_closed_raw_image_boundary
+  NIMI2D_LAYER_INPUT_ASSET_REF_INVALID:
+    meaning: "A layer asset ref is not a normalized in-root relative path."
+    trigger: "Asset ref is absolute, contains parent traversal, URL syntax, shell expansion, user-home path, or points outside the layer input directory."
+    severity: error
+    claim_semantics: fail_closed
+  NIMI2D_LAYER_INPUT_ASSET_MISSING:
+    meaning: "A referenced layer asset cannot be found."
+    trigger: "The relative asset ref does not resolve inside the layer input directory."
+    severity: error
+    claim_semantics: fail_closed
+  NIMI2D_LAYER_INPUT_ASSET_HASH_MISMATCH:
+    meaning: "A layer asset digest does not match the manifest."
+    trigger: "Computed sha256 differs from asset.sha256."
+    severity: error
+    claim_semantics: fail_closed
+  NIMI2D_LAYER_INPUT_ASSET_FORMAT_UNSUPPORTED:
+    meaning: "A layer asset format is unsupported."
+    trigger: "Decoded or declared format is not png."
+    severity: error
+    claim_semantics: fail_closed
+  NIMI2D_LAYER_INPUT_ASSET_NOT_RGBA:
+    meaning: "A layer asset is not RGBA."
+    trigger: "Decoded asset lacks an alpha channel, cannot decode to RGBA, or uses an unsupported pixel layout."
+    severity: error
+    claim_semantics: fail_closed
+  NIMI2D_LAYER_INPUT_COLOR_SPACE_UNSUPPORTED:
+    meaning: "A layer asset color space is unsupported."
+    trigger: "color_space is not srgb or decoded asset evidence conflicts with srgb."
+    severity: error
+    claim_semantics: fail_closed
+  NIMI2D_LAYER_INPUT_ALPHA_MODE_UNSUPPORTED:
+    meaning: "A layer asset alpha mode is unsupported."
+    trigger: "alpha_mode is not straight or premultiplied_alpha is not false."
+    severity: error
+    claim_semantics: fail_closed
+  NIMI2D_LAYER_INPUT_CANVAS_INVALID:
+    meaning: "Canvas or coordinate-space fields are invalid."
+    trigger: "Canvas size is non-positive, origin/unit/axis/overflow_policy differs from the admitted literals, or coordinates are non-integer."
+    severity: error
+    claim_semantics: fail_closed
+  NIMI2D_LAYER_INPUT_LAYER_ID_DUPLICATE:
+    meaning: "Layer ids are not unique."
+    trigger: "Two or more layers use the same layer_id."
+    severity: error
+    claim_semantics: fail_closed
+  NIMI2D_LAYER_INPUT_LAYER_BOUNDS_INVALID:
+    meaning: "Layer placement, texture bounds, or visible bounds are invalid."
+    trigger: "Bounds are negative, outside the decoded texture, outside the canvas after placement, or internally inconsistent."
+    severity: error
+    claim_semantics: fail_closed
+  NIMI2D_LAYER_INPUT_DRAW_ORDER_INVALID:
+    meaning: "Draw order does not exactly match the layer set."
+    trigger: "draw_order has missing layer ids, unknown layer ids, duplicates, or is absent."
+    severity: error
+    claim_semantics: fail_closed
+  NIMI2D_LAYER_INPUT_SEMANTIC_LABEL_MISSING:
+    meaning: "A layer has no semantic label."
+    trigger: "semantic_labels is absent or empty."
+    severity: error
+    claim_semantics: fail_closed_no_inference
+  NIMI2D_LAYER_INPUT_SEMANTIC_LABEL_UNKNOWN:
+    meaning: "A layer semantic label is not admitted."
+    trigger: "semantic_labels contains a value outside the closed enum."
+    severity: error
+    claim_semantics: fail_closed
+  NIMI2D_LAYER_INPUT_REQUIRED_SEMANTIC_COVERAGE_MISSING:
+    meaning: "The input kind lacks required semantic coverage."
+    trigger: "character_skin, wardrobe_item, accessory_item, prop_item, or scene_item lacks its required semantic label set."
+    severity: error
+    claim_semantics: fail_closed_no_inference
+  NIMI2D_LAYER_INPUT_OCCLUSION_FILL_INVALID:
+    meaning: "A layer has missing, partial, unknown, or unsupported occlusion fill state."
+    trigger: "occlusion_fill is absent or not not_applicable/filled_by_upstream."
+    severity: error
+    claim_semantics: fail_closed_no_inpainting
+  NIMI2D_LAYER_INPUT_OCCLUSION_EVIDENCE_MISSING:
+    meaning: "Required upstream occlusion completion evidence is missing."
+    trigger: "A layer declares filled_by_upstream without occlusion_evidence_ref or source_evidence lacks occlusion_completion_ref when required."
+    severity: error
+    claim_semantics: fail_closed_no_inpainting
+  NIMI2D_LAYER_INPUT_SOURCE_EVIDENCE_MISSING:
+    meaning: "Required upstream source evidence is missing."
+    trigger: "layer_generation_ref, identity_preservation_ref, or content_admission_ref is absent or malformed."
+    severity: error
+    claim_semantics: fail_closed
+  NIMI2D_LAYER_INPUT_ANCHOR_HINT_MISSING:
+    meaning: "Required anchor hints are missing for the input kind."
+    trigger: "global_anchor_hints is absent, empty, lacks required character_skin anchor kinds, or lacks an attachment/scene anchor for non-character input."
+    severity: error
+    claim_semantics: fail_closed_no_inference
+  NIMI2D_LAYER_INPUT_ANCHOR_OUT_OF_BOUNDS:
+    meaning: "An anchor hint point is outside the canvas."
+    trigger: "anchor.point_px is outside [0,0,width,height]."
+    severity: error
+    claim_semantics: fail_closed
+  NIMI2D_LAYER_INPUT_SLOT_HINT_INVALID:
+    meaning: "Slot hints are missing, unknown, duplicated, or outside the canvas."
+    trigger: "global_slot_hints is absent/empty, kind is outside the closed enum, bounds are invalid, or required slot hint coverage is missing."
+    severity: error
+    claim_semantics: fail_closed_no_inference
+  NIMI2D_LAYER_INPUT_FORBIDDEN_RUNTIME_FIELD:
+    meaning: "The layer input tries to define runtime or backend execution truth."
+    trigger: "Manifest includes runtime_channel, avatar_route_id, blend_tree, composer, raw_apml, pixi_runtime, or equivalent runtime/backend fields."
+    severity: error
+    claim_semantics: fail_closed_authority_boundary
+
+invariants:
+  - "Unknown NIMI2D_LAYER_INPUT_* codes require this registry to be updated before use."
+  - "Diagnostics are emitted by Nimi2D layer input admission only."
+  - "Diagnostics never widen Runtime, Avatar backend, Desktop, APML, MCP, A2A, or SDK ontology."
+  - "No reject code admits fallback success."
+
+refs:
+  markdown_contract: ".nimi/spec/nimi2d/kernel/layer-input-contract.md"
+  layer_input_schema: ".nimi/spec/nimi2d/kernel/tables/layer-input.schema.yaml"
+  boundary_contract: ".nimi/spec/nimi2d/kernel/authority-boundary-contract.md"
+
+values: *nimi2d_layer_input_reject_values

@@ -7,6 +7,7 @@ Nimi product authority is organized by active domain. Kernel markdown files and 
 - `avatar`
 - `cognition`
 - `desktop`
+- `nimi2d`
 - `platform`
 - `realm`
 - `runtime`

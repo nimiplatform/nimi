@@ -1,0 +1,495 @@
+version: 1
+table_family: protocol_surface
+owner: nimi2d
+schema_id: nimi.nimi2d.layer-input.v1
+authority: "nimi2d.kernel.layer_input"
+source_rule: N2D-INPUT-010
+description: >
+  Closed machine-readable schema authority for Nimi2D layer input manifests.
+  The schema accepts already-layered RGBA assets only. Raw image intake,
+  upstream segmentation details, renderer runtime behavior, and Avatar backend
+  execution are outside this schema.
+
+manifest_identity:
+  manifest_kind: "nimi.nimi2d.layer-input"
+  schema_version: 1
+  source_selection: "manifest_directory_only"
+  merge_policy: "forbidden"
+  unknown_top_level_fields: "reject"
+
+required_top_level_fields:
+  - manifest_kind
+  - schema_version
+  - input_id
+  - input_kind
+  - canvas
+  - coordinate_space
+  - source_evidence
+  - layers
+  - draw_order
+  - global_anchor_hints
+  - global_slot_hints
+
+closed_top_level_fields:
+  - manifest_kind
+  - schema_version
+  - input_id
+  - input_kind
+  - canvas
+  - coordinate_space
+  - source_evidence
+  - layers
+  - draw_order
+  - global_anchor_hints
+  - global_slot_hints
+
+fields:
+  manifest_kind:
+    type: literal
+    value: "nimi.nimi2d.layer-input"
+  schema_version:
+    type: literal
+    value: 1
+  input_id:
+    type: string
+    pattern: "^n2d_layer_input_[a-z0-9][a-z0-9_-]{2,63}$"
+    stability: "stable for the exact manifest plus asset digest set"
+  input_kind:
+    enum:
+      - character_skin
+      - wardrobe_item
+      - accessory_item
+      - prop_item
+      - scene_item
+  canvas:
+    required_fields:
+      - width_px
+      - height_px
+      - background
+    closed_fields:
+      - width_px
+      - height_px
+      - background
+    fields:
+      width_px:
+        type: positive_integer
+        minimum: 1
+      height_px:
+        type: positive_integer
+        minimum: 1
+      background:
+        enum:
+          - transparent
+  coordinate_space:
+    required_fields:
+      - origin
+      - unit
+      - axis
+      - overflow_policy
+    closed_fields:
+      - origin
+      - unit
+      - axis
+      - overflow_policy
+    fields:
+      origin:
+        literal: top_left
+      unit:
+        literal: px
+      axis:
+        literal: x_right_y_down
+      overflow_policy:
+        literal: reject
+  source_evidence:
+    required_fields:
+      - layer_generation_ref
+      - identity_preservation_ref
+      - content_admission_ref
+    closed_fields:
+      - layer_generation_ref
+      - occlusion_completion_ref
+      - identity_preservation_ref
+      - content_admission_ref
+    fields:
+      layer_generation_ref:
+        type: opaque_evidence_ref
+        required: true
+      occlusion_completion_ref:
+        type: opaque_evidence_ref
+        required_when: "any layer.occlusion_fill == filled_by_upstream"
+      identity_preservation_ref:
+        type: opaque_evidence_ref
+        required: true
+        semantics: "may point to upstream non-applicability evidence for prop_item or scene_item"
+      content_admission_ref:
+        type: opaque_evidence_ref
+        required: true
+  layers:
+    type: non_empty_array
+    item_required_fields:
+      - layer_id
+      - asset
+      - placement_px
+      - texture_bounds_px
+      - visible_bounds_px
+      - semantic_labels
+      - occlusion_fill
+    item_closed_fields:
+      - layer_id
+      - asset
+      - placement_px
+      - texture_bounds_px
+      - visible_bounds_px
+      - semantic_labels
+      - side_hint
+      - part_hints
+      - occlusion_fill
+      - occlusion_evidence_ref
+    item_fields:
+      layer_id:
+        type: string
+        pattern: "^layer_[a-z0-9][a-z0-9_-]{1,63}$"
+        uniqueness: required
+      asset:
+        required_fields:
+          - ref
+          - sha256
+          - format
+          - width_px
+          - height_px
+          - byte_size
+          - color_space
+          - alpha_mode
+          - premultiplied_alpha
+        closed_fields:
+          - ref
+          - sha256
+          - format
+          - width_px
+          - height_px
+          - byte_size
+          - color_space
+          - alpha_mode
+          - premultiplied_alpha
+        fields:
+          ref:
+            type: relative_path
+            root: "layer input directory"
+            forbidden:
+              - absolute_path
+              - parent_traversal
+              - url
+              - shell_expansion
+              - user_home_path
+          sha256:
+            type: lowercase_hex
+            length: 64
+          format:
+            literal: png
+          width_px:
+            type: positive_integer
+          height_px:
+            type: positive_integer
+          byte_size:
+            type: positive_integer
+          color_space:
+            literal: srgb
+          alpha_mode:
+            literal: straight
+          premultiplied_alpha:
+            literal: false
+      placement_px:
+        required_fields:
+          - x
+          - y
+        closed_fields:
+          - x
+          - y
+        coordinate_type: integer_canvas_px
+      texture_bounds_px:
+        required_fields:
+          - x
+          - y
+          - width
+          - height
+        closed_fields:
+          - x
+          - y
+          - width
+          - height
+        invariant: "must be inside decoded texture dimensions"
+      visible_bounds_px:
+        required_fields:
+          - x
+          - y
+          - width
+          - height
+        closed_fields:
+          - x
+          - y
+          - width
+          - height
+        invariant: "must be inside texture_bounds_px and canvas after placement"
+      semantic_labels:
+        type: non_empty_array
+        item_enum:
+          - head
+          - face
+          - eye
+          - brow
+          - mouth
+          - nose
+          - ear
+          - hair
+          - neck
+          - torso
+          - arm
+          - hand
+          - leg
+          - foot
+          - body
+          - outfit
+          - accessory
+          - prop
+          - scene
+          - shadow
+          - effect
+      side_hint:
+        optional: true
+        enum:
+          - left
+          - right
+          - center
+          - bilateral
+          - none
+      part_hints:
+        optional: true
+        type: array
+        item_enum:
+          - hair_front
+          - hair_back
+          - eye_left
+          - eye_right
+          - brow_left
+          - brow_right
+          - mouth_upper
+          - mouth_lower
+          - hand_left
+          - hand_right
+          - arm_left
+          - arm_right
+          - leg_left
+          - leg_right
+          - outfit_upper
+          - outfit_lower
+          - outfit_full
+          - accessory_head
+          - accessory_face
+          - accessory_hand
+          - prop_hand
+          - scene_back
+          - scene_front
+      occlusion_fill:
+        enum:
+          - not_applicable
+          - filled_by_upstream
+      occlusion_evidence_ref:
+        type: opaque_evidence_ref
+        required_when: "occlusion_fill == filled_by_upstream"
+  draw_order:
+    type: array
+    item_ref: layer_id
+    invariant: "contains every layer_id exactly once; lower index draws first"
+  global_anchor_hints:
+    type: non_empty_array
+    item_required_fields:
+      - anchor_id
+      - kind
+      - point_px
+      - source
+    item_closed_fields:
+      - anchor_id
+      - kind
+      - point_px
+      - source
+      - confidence
+      - layer_refs
+    item_fields:
+      anchor_id:
+        type: string
+        pattern: "^anchor_[a-z0-9][a-z0-9_-]{1,63}$"
+        uniqueness: required
+      kind:
+        enum:
+          - body_root
+          - neck_base
+          - head_center
+          - face_center
+          - left_eye_center
+          - right_eye_center
+          - mouth_center
+          - attachment_point
+          - scene_origin
+      point_px:
+        required_fields:
+          - x
+          - y
+        closed_fields:
+          - x
+          - y
+        coordinate_type: integer_canvas_px
+      source:
+        enum:
+          - upstream_manual
+          - upstream_model
+          - upstream_hybrid
+      confidence:
+        optional: true
+        type: number
+        minimum: 0
+        maximum: 1
+      layer_refs:
+        optional: true
+        type: array
+        item_ref: layer_id
+  global_slot_hints:
+    type: non_empty_array
+    item_required_fields:
+      - slot_hint_id
+      - kind
+      - bounds_px
+      - source
+    item_closed_fields:
+      - slot_hint_id
+      - kind
+      - bounds_px
+      - source
+      - confidence
+      - layer_refs
+    item_fields:
+      slot_hint_id:
+        type: string
+        pattern: "^slot_hint_[a-z0-9][a-z0-9_-]{1,63}$"
+        uniqueness: required
+      kind:
+        enum:
+          - head
+          - face
+          - hair
+          - neck
+          - torso
+          - hip
+          - left_arm
+          - right_arm
+          - left_hand
+          - right_hand
+          - left_leg
+          - right_leg
+          - left_foot
+          - right_foot
+          - outfit_upper
+          - outfit_lower
+          - outfit_full
+          - accessory_head
+          - accessory_face
+          - accessory_hand
+          - prop_hand
+          - scene_back
+          - scene_front
+      bounds_px:
+        required_fields:
+          - x
+          - y
+          - width
+          - height
+        closed_fields:
+          - x
+          - y
+          - width
+          - height
+        invariant: "must be within canvas bounds"
+      source:
+        enum:
+          - upstream_manual
+          - upstream_model
+          - upstream_hybrid
+      confidence:
+        optional: true
+        type: number
+        minimum: 0
+        maximum: 1
+      layer_refs:
+        optional: true
+        type: array
+        item_ref: layer_id
+
+coverage_rules:
+  character_skin:
+    semantic_labels_required_any:
+      - [body, torso]
+      - [head, face]
+      - [eye]
+      - [mouth]
+      - [outfit]
+    anchor_kinds_required:
+      - body_root
+      - neck_base
+      - head_center
+      - face_center
+      - left_eye_center
+      - right_eye_center
+      - mouth_center
+  wardrobe_item:
+    semantic_labels_required_any:
+      - [outfit]
+    slot_hint_required_any:
+      - outfit_upper
+      - outfit_lower
+      - outfit_full
+  accessory_item:
+    semantic_labels_required_any:
+      - [accessory]
+    slot_hint_required_any:
+      - accessory_head
+      - accessory_face
+      - accessory_hand
+  prop_item:
+    semantic_labels_required_any:
+      - [prop]
+    slot_hint_required_any:
+      - prop_hand
+  scene_item:
+    semantic_labels_required_any:
+      - [scene]
+    slot_hint_required_any:
+      - scene_back
+      - scene_front
+
+forbidden_fields_and_values:
+  - "raw_image_ref"
+  - "source_image_ref"
+  - "prompt"
+  - "segmentation_mask_generator"
+  - "inpainting_model"
+  - "runtime_channel"
+  - "avatar_route_id"
+  - "apml"
+  - "raw_apml"
+  - "pixi_runtime"
+  - "blend_tree"
+  - "composer"
+
+invariants:
+  - "Layer input is already-layered RGBA asset evidence, not raw image intake."
+  - "Unknown fields fail closed and do not become future success states."
+  - "All asset refs are relative to the layer input directory."
+  - "The validator checks decoded asset facts; manifest claims alone are insufficient."
+  - "Draw order is explicit and contains every layer exactly once."
+  - "Occlusion fill is upstream-complete or not applicable; Nimi2D does not inpaint."
+  - "Anchor and slot hints are input evidence only, not final rig topology."
+  - "The schema must not define Avatar runtime backend behavior."
+
+refs:
+  markdown_contract: ".nimi/spec/nimi2d/kernel/layer-input-contract.md"
+  reject_codes: ".nimi/spec/nimi2d/kernel/tables/reject-codes.yaml"
+  boundary_contract: ".nimi/spec/nimi2d/kernel/authority-boundary-contract.md"

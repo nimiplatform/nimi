@@ -1,0 +1,31 @@
+{
+  "name": "@nimiplatform/nimi2d",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.mjs",
+    "./runtime": {
+      "types": "./src/runtime/index.d.ts",
+      "import": "./src/runtime/index.mjs"
+    },
+    "./renderer-pixi": {
+      "types": "./src/renderer/pixi/index.d.ts",
+      "import": "./src/renderer/pixi/index.mjs"
+    },
+    "./proof": {
+      "types": "./src/proof/index.d.ts",
+      "import": "./src/proof/index.mjs"
+    }
+  },
+  "bin": {
+    "nimi2d": "./bin/nimi2d.mjs"
+  },
+  "scripts": {
+    "cli": "node bin/nimi2d.mjs",
+    "test": "node --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "pixi.js": "^8.19.0",
+    "yaml": "^2.9.0"
+  }
+}

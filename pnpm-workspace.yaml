@@ -4,6 +4,7 @@ packages:
   - 'docs'
   - 'examples'
   - 'app-tools'
+  - 'nimi2d'
   - 'nimi-cognition'
   - 'sdks/typescript'
   - 'sdks/typescript/adapters/*'

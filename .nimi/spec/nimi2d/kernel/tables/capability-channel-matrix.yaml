@@ -1,0 +1,183 @@
+version: 1
+table_family: product_catalog
+owner: nimi2d
+catalog_id: nimi2d_capability_channel_matrix
+matrix_id: "nimi.nimi2d.capability-channel-matrix.v1"
+authority: "nimi2d.kernel.capability_tier"
+source_rule: N2D-TIER-020
+description: >
+  Closed tier-to-channel requirement matrix for Nimi2D asset package capability
+  claims. Channels are asset-side package capabilities only. Runtime stream
+  composition, Avatar backend scheduling, PixiJS APIs, and APML syntax are out
+  of scope.
+
+tiers:
+  - tier-0_static_layered
+  - tier-1_agent_basic
+  - tier-2_viseme_gesture
+  - tier-3_full_body_semantic
+  - tier-N_reserved_deformation_extension
+
+dispositions:
+  - mandatory
+  - optional
+  - unsupported
+  - out_of_scope
+  - forbidden
+
+default_generated_target: tier-1_agent_basic
+highest_current_tier: tier-3_full_body_semantic
+reserved_extension_tier: tier-N_reserved_deformation_extension
+
+channels:
+  layer_input_lineage:
+    description: "Contract-conformant layer input evidence lineage."
+    tier-0_static_layered: mandatory
+    tier-1_agent_basic: mandatory
+    tier-2_viseme_gesture: mandatory
+    tier-3_full_body_semantic: mandatory
+    tier-N_reserved_deformation_extension: out_of_scope
+  base_body_topology:
+    description: "Base body topology, anchors, slots, morphology, and non-renderable rig ownership."
+    tier-0_static_layered: mandatory
+    tier-1_agent_basic: mandatory
+    tier-2_viseme_gesture: mandatory
+    tier-3_full_body_semantic: mandatory
+    tier-N_reserved_deformation_extension: out_of_scope
+  default_outfit_binding:
+    description: "Valid default outfit bound to base body before renderable character success."
+    tier-0_static_layered: mandatory
+    tier-1_agent_basic: mandatory
+    tier-2_viseme_gesture: mandatory
+    tier-3_full_body_semantic: mandatory
+    tier-N_reserved_deformation_extension: out_of_scope
+  static_draw_order:
+    description: "Explicit display draw order for admitted display layers."
+    tier-0_static_layered: mandatory
+    tier-1_agent_basic: mandatory
+    tier-2_viseme_gesture: mandatory
+    tier-3_full_body_semantic: mandatory
+    tier-N_reserved_deformation_extension: out_of_scope
+  wardrobe_reuse:
+    description: "Wardrobe assets bind to existing topology and switch without generation."
+    tier-0_static_layered: optional
+    tier-1_agent_basic: mandatory
+    tier-2_viseme_gesture: mandatory
+    tier-3_full_body_semantic: mandatory
+    tier-N_reserved_deformation_extension: out_of_scope
+  discrete_expression_set:
+    description: "Discrete face/expression assets for neutral and basic affect states."
+    tier-0_static_layered: optional
+    tier-1_agent_basic: mandatory
+    tier-2_viseme_gesture: mandatory
+    tier-3_full_body_semantic: mandatory
+    tier-N_reserved_deformation_extension: out_of_scope
+  expression_interpolation:
+    description: "Continuous expression interpolation channels."
+    tier-0_static_layered: unsupported
+    tier-1_agent_basic: optional
+    tier-2_viseme_gesture: mandatory
+    tier-3_full_body_semantic: mandatory
+    tier-N_reserved_deformation_extension: out_of_scope
+  blink_eye_open_close:
+    description: "Blink and eye open/close channels."
+    tier-0_static_layered: unsupported
+    tier-1_agent_basic: mandatory
+    tier-2_viseme_gesture: mandatory
+    tier-3_full_body_semantic: mandatory
+    tier-N_reserved_deformation_extension: out_of_scope
+  gaze_anchor_channels:
+    description: "Asset channels for basic gaze direction around solved eye/head anchors."
+    tier-0_static_layered: unsupported
+    tier-1_agent_basic: mandatory
+    tier-2_viseme_gesture: mandatory
+    tier-3_full_body_semantic: mandatory
+    tier-N_reserved_deformation_extension: out_of_scope
+  jaw_amplitude_mouth:
+    description: "Jaw/amplitude mouth open channel; not true AEIOU viseme."
+    tier-0_static_layered: unsupported
+    tier-1_agent_basic: mandatory
+    tier-2_viseme_gesture: mandatory
+    tier-3_full_body_semantic: mandatory
+    tier-N_reserved_deformation_extension: out_of_scope
+  aeiou_viseme_shapes:
+    description: "Distinct true viseme shape channels."
+    tier-0_static_layered: unsupported
+    tier-1_agent_basic: unsupported
+    tier-2_viseme_gesture: mandatory
+    tier-3_full_body_semantic: mandatory
+    tier-N_reserved_deformation_extension: out_of_scope
+  motion_primitive_refs:
+    description: "Asset-side references for idle/listen/speak/think/greet primitives."
+    tier-0_static_layered: unsupported
+    tier-1_agent_basic: mandatory
+    tier-2_viseme_gesture: mandatory
+    tier-3_full_body_semantic: mandatory
+    tier-N_reserved_deformation_extension: out_of_scope
+  safe_motion_bounds:
+    description: "Asset-side bounds and clamps for supported motion primitives."
+    tier-0_static_layered: unsupported
+    tier-1_agent_basic: mandatory
+    tier-2_viseme_gesture: mandatory
+    tier-3_full_body_semantic: mandatory
+    tier-N_reserved_deformation_extension: out_of_scope
+  gesture_overlay_channels:
+    description: "Gesture overlay asset channels that Avatar backend may execute later."
+    tier-0_static_layered: unsupported
+    tier-1_agent_basic: optional
+    tier-2_viseme_gesture: mandatory
+    tier-3_full_body_semantic: mandatory
+    tier-N_reserved_deformation_extension: out_of_scope
+  local_attachment_secondary_motion:
+    description: "Subordinate cloth/hair/accessory/prop local motion channels."
+    tier-0_static_layered: optional
+    tier-1_agent_basic: optional
+    tier-2_viseme_gesture: mandatory
+    tier-3_full_body_semantic: mandatory
+    tier-N_reserved_deformation_extension: out_of_scope
+  full_body_pose_families:
+    description: "Full-body pose asset families."
+    tier-0_static_layered: unsupported
+    tier-1_agent_basic: unsupported
+    tier-2_viseme_gesture: optional
+    tier-3_full_body_semantic: mandatory
+    tier-N_reserved_deformation_extension: out_of_scope
+  full_body_gesture_primitives:
+    description: "Full-body semantic gesture primitive asset set."
+    tier-0_static_layered: unsupported
+    tier-1_agent_basic: unsupported
+    tier-2_viseme_gesture: optional
+    tier-3_full_body_semantic: mandatory
+    tier-N_reserved_deformation_extension: out_of_scope
+  wardrobe_aware_deformation_masks:
+    description: "Deformation masks that keep outfits aligned during posture changes."
+    tier-0_static_layered: unsupported
+    tier-1_agent_basic: optional
+    tier-2_viseme_gesture: optional
+    tier-3_full_body_semantic: mandatory
+    tier-N_reserved_deformation_extension: out_of_scope
+  runtime_live_action_composer:
+    description: "Runtime multi-stream composer; Avatar backend authority only."
+    tier-0_static_layered: out_of_scope
+    tier-1_agent_basic: out_of_scope
+    tier-2_viseme_gesture: out_of_scope
+    tier-3_full_body_semantic: out_of_scope
+    tier-N_reserved_deformation_extension: out_of_scope
+  live2d_parity_claim:
+    description: "Any claim that Nimi2D tier equals Live2D/Cubism rig quality."
+    tier-0_static_layered: forbidden
+    tier-1_agent_basic: forbidden
+    tier-2_viseme_gesture: forbidden
+    tier-3_full_body_semantic: forbidden
+    tier-N_reserved_deformation_extension: forbidden
+
+invariants:
+  - "Tier-1 jaw_amplitude_mouth is mandatory and aeiou_viseme_shapes is unsupported."
+  - "No admitted tier claims Live2D parity."
+  - "Runtime live action composer is out of scope for every Nimi2D asset tier."
+  - "Tier-N is reserved and cannot be used as a current success target."
+  - "Unknown channels fail closed."
+
+refs:
+  capability_tier_contract: ".nimi/spec/nimi2d/kernel/capability-tier-contract.md"
+  package_manifest_contract: ".nimi/spec/nimi2d/kernel/package-manifest-contract.md"

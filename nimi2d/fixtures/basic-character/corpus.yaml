@@ -1,0 +1,126 @@
+corpus_id: n2d_generation_corpus_basic_character
+corpus_version: 0.0.0
+corpus_digest_sha256: e2b1a7e6b57f2f8656ee7947c745f1f367e685d44964b1fd03c1a743b021f4b5
+frozen: true
+created_at: "2026-06-17T00:00:00Z"
+case_splits:
+  certified_good_tier1:
+    - n2d_case_basic_character
+    - n2d_case_variant_character
+    - n2d_case_occlusion_filled_character
+  invalid_contract:
+    - n2d_case_invalid_missing_outfit
+    - n2d_case_invalid_missing_mouth_anchor
+    - n2d_case_invalid_draw_order
+    - n2d_case_invalid_raw_image
+    - n2d_case_invalid_occlusion_evidence
+cases:
+  - case_id: n2d_case_basic_character
+    split: certified_good_tier1
+    layer_input_manifest_ref: layer-input.yaml
+    content_hash_sha256: e1553408950b74124b53cbea340af04f74dafc123447b3b8b7ae9b5494003880
+    expected_outcome: admit
+    target_tier: tier-1_agent_basic
+    source_evidence:
+      layer_generation_ref: upstream.fixture.basic_character.layer_generation
+      identity_preservation_ref: upstream.fixture.basic_character.identity
+      content_admission_ref: upstream.fixture.basic_character.content
+    distribution_tags:
+      - realm_agent_representative
+  - case_id: n2d_case_variant_character
+    split: certified_good_tier1
+    layer_input_manifest_ref: layer-input-variant.yaml
+    content_hash_sha256: 3cb0b4b155917ba7fa53a558c0b445b74a9b68222b8f9d70d9346991d9994681
+    expected_outcome: admit
+    target_tier: tier-1_agent_basic
+    source_evidence:
+      layer_generation_ref: upstream.fixture.variant.layer_generation
+      identity_preservation_ref: upstream.fixture.variant.identity
+      content_admission_ref: upstream.fixture.variant.content
+    distribution_tags:
+      - realm_agent_representative
+      - accessory_layer_present
+  - case_id: n2d_case_occlusion_filled_character
+    split: certified_good_tier1
+    layer_input_manifest_ref: layer-input-occlusion-filled.yaml
+    content_hash_sha256: d6c1b065f19b27c06871aaf4c625a4dadab43d7d302b6c4d7cd5a0d6a62165ed
+    expected_outcome: admit
+    target_tier: tier-1_agent_basic
+    source_evidence:
+      layer_generation_ref: upstream.fixture.occlusion.layer_generation
+      identity_preservation_ref: upstream.fixture.occlusion.identity
+      content_admission_ref: upstream.fixture.occlusion.content
+      occlusion_completion_ref: upstream.fixture.occlusion.completion
+    distribution_tags:
+      - realm_agent_representative
+      - upstream_occlusion_filled
+  - case_id: n2d_case_invalid_missing_outfit
+    split: invalid_contract
+    layer_input_manifest_ref: layer-input-invalid-missing-outfit.yaml
+    content_hash_sha256: 9cf1ff0b2b276466b4cc98476550be7e2887d1617c2d8c253589bc40c9620208
+    expected_outcome: reject
+    expected_reject_codes:
+      - NIMI2D_LAYER_INPUT_REQUIRED_SEMANTIC_COVERAGE_MISSING
+    target_tier: tier-1_agent_basic
+    source_evidence:
+      layer_generation_ref: upstream.fixture.invalid_missing_outfit.layer_generation
+      identity_preservation_ref: upstream.fixture.invalid_missing_outfit.identity
+      content_admission_ref: upstream.fixture.invalid_missing_outfit.content
+    distribution_tags:
+      - no_outfit_no_render_boundary
+  - case_id: n2d_case_invalid_missing_mouth_anchor
+    split: invalid_contract
+    layer_input_manifest_ref: layer-input-invalid-missing-mouth-anchor.yaml
+    content_hash_sha256: 88bf9026e70d26a049b3bf5c79012f86a3d76ea8c9dcc479d3d04c70517d98be
+    expected_outcome: reject
+    expected_reject_codes:
+      - NIMI2D_LAYER_INPUT_ANCHOR_HINT_MISSING
+    target_tier: tier-1_agent_basic
+    source_evidence:
+      layer_generation_ref: upstream.fixture.invalid_missing_anchor.layer_generation
+      identity_preservation_ref: upstream.fixture.invalid_missing_anchor.identity
+      content_admission_ref: upstream.fixture.invalid_missing_anchor.content
+    distribution_tags:
+      - anchor_contract_boundary
+  - case_id: n2d_case_invalid_draw_order
+    split: invalid_contract
+    layer_input_manifest_ref: layer-input-invalid-draw-order.yaml
+    content_hash_sha256: fbb274cb57423b801da3c1a5c5d587430ee302ea8f1f58c69ea6de760595e9e2
+    expected_outcome: reject
+    expected_reject_codes:
+      - NIMI2D_LAYER_INPUT_DRAW_ORDER_INVALID
+    target_tier: tier-1_agent_basic
+    source_evidence:
+      layer_generation_ref: upstream.fixture.invalid_draw_order.layer_generation
+      identity_preservation_ref: upstream.fixture.invalid_draw_order.identity
+      content_admission_ref: upstream.fixture.invalid_draw_order.content
+    distribution_tags:
+      - draw_order_contract_boundary
+  - case_id: n2d_case_invalid_raw_image
+    split: invalid_contract
+    layer_input_manifest_ref: layer-input-invalid-raw-image.yaml
+    content_hash_sha256: 70f537c35ae73192c7bb49e7a0686e27f2d0006b69d1260ac51e49b1c4ef70f3
+    expected_outcome: reject
+    expected_reject_codes:
+      - NIMI2D_LAYER_INPUT_RAW_IMAGE_FORBIDDEN
+    target_tier: tier-1_agent_basic
+    source_evidence:
+      layer_generation_ref: upstream.fixture.invalid_raw.layer_generation
+      identity_preservation_ref: upstream.fixture.invalid_raw.identity
+      content_admission_ref: upstream.fixture.invalid_raw.content
+    distribution_tags:
+      - upstream_boundary
+  - case_id: n2d_case_invalid_occlusion_evidence
+    split: invalid_contract
+    layer_input_manifest_ref: layer-input-invalid-occlusion-evidence.yaml
+    content_hash_sha256: 0dd50167ae99067cbdb381ffa5659ffcbe9c92af239bc1f5a93b8fde1d732aef
+    expected_outcome: reject
+    expected_reject_codes:
+      - NIMI2D_LAYER_INPUT_OCCLUSION_EVIDENCE_MISSING
+    target_tier: tier-1_agent_basic
+    source_evidence:
+      layer_generation_ref: upstream.fixture.invalid_occlusion.layer_generation
+      identity_preservation_ref: upstream.fixture.invalid_occlusion.identity
+      content_admission_ref: upstream.fixture.invalid_occlusion.content
+    distribution_tags:
+      - upstream_occlusion_boundary

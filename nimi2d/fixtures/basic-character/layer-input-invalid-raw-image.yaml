@@ -1,0 +1,119 @@
+manifest_kind: nimi.nimi2d.layer-input
+schema_version: 1
+input_id: n2d_layer_input_invalid_raw_image
+input_kind: character_skin
+raw_image_ref: forbidden-source.png
+canvas:
+  width_px: 1
+  height_px: 1
+  background: transparent
+coordinate_space:
+  origin: top_left
+  unit: px
+  axis: x_right_y_down
+  overflow_policy: reject
+source_evidence:
+  layer_generation_ref: upstream.fixture.invalid_raw.layer_generation
+  identity_preservation_ref: upstream.fixture.invalid_raw.identity
+  content_admission_ref: upstream.fixture.invalid_raw.content
+layers:
+  - layer_id: layer_body
+    asset: &pixel_asset
+      ref: pixel.png
+      sha256: d5a51b6aed15684ec8c123e30fe5703155359d6543b6d7b47cb5766ef44939de
+      format: png
+      width_px: 1
+      height_px: 1
+      byte_size: 70
+      color_space: srgb
+      alpha_mode: straight
+      premultiplied_alpha: false
+    placement_px: { x: 0, y: 0 }
+    texture_bounds_px: { x: 0, y: 0, width: 1, height: 1 }
+    visible_bounds_px: { x: 0, y: 0, width: 1, height: 1 }
+    semantic_labels: [body]
+    occlusion_fill: not_applicable
+  - layer_id: layer_head
+    asset: *pixel_asset
+    placement_px: { x: 0, y: 0 }
+    texture_bounds_px: { x: 0, y: 0, width: 1, height: 1 }
+    visible_bounds_px: { x: 0, y: 0, width: 1, height: 1 }
+    semantic_labels: [head, face]
+    occlusion_fill: not_applicable
+  - layer_id: layer_eye
+    asset: *pixel_asset
+    placement_px: { x: 0, y: 0 }
+    texture_bounds_px: { x: 0, y: 0, width: 1, height: 1 }
+    visible_bounds_px: { x: 0, y: 0, width: 1, height: 1 }
+    semantic_labels: [eye]
+    occlusion_fill: not_applicable
+  - layer_id: layer_mouth
+    asset: *pixel_asset
+    placement_px: { x: 0, y: 0 }
+    texture_bounds_px: { x: 0, y: 0, width: 1, height: 1 }
+    visible_bounds_px: { x: 0, y: 0, width: 1, height: 1 }
+    semantic_labels: [mouth]
+    occlusion_fill: not_applicable
+  - layer_id: layer_outfit
+    asset: *pixel_asset
+    placement_px: { x: 0, y: 0 }
+    texture_bounds_px: { x: 0, y: 0, width: 1, height: 1 }
+    visible_bounds_px: { x: 0, y: 0, width: 1, height: 1 }
+    semantic_labels: [outfit]
+    occlusion_fill: not_applicable
+draw_order:
+  - layer_body
+  - layer_head
+  - layer_eye
+  - layer_mouth
+  - layer_outfit
+global_anchor_hints:
+  - anchor_id: anchor_body_root
+    kind: body_root
+    point_px: { x: 0, y: 0 }
+    source: fixture
+  - anchor_id: anchor_neck_base
+    kind: neck_base
+    point_px: { x: 0, y: 0 }
+    source: fixture
+  - anchor_id: anchor_head_center
+    kind: head_center
+    point_px: { x: 0, y: 0 }
+    source: fixture
+  - anchor_id: anchor_face_center
+    kind: face_center
+    point_px: { x: 0, y: 0 }
+    source: fixture
+  - anchor_id: anchor_left_eye_center
+    kind: left_eye_center
+    point_px: { x: 0, y: 0 }
+    source: fixture
+  - anchor_id: anchor_right_eye_center
+    kind: right_eye_center
+    point_px: { x: 0, y: 0 }
+    source: fixture
+  - anchor_id: anchor_mouth_center
+    kind: mouth_center
+    point_px: { x: 0, y: 0 }
+    source: fixture
+global_slot_hints:
+  - slot_hint_id: slot_torso
+    kind: torso
+    bounds_px: { x: 0, y: 0, width: 1, height: 1 }
+    source: fixture
+  - slot_hint_id: slot_hip
+    kind: hip
+    bounds_px: { x: 0, y: 0, width: 1, height: 1 }
+    source: fixture
+  - slot_hint_id: slot_outfit_upper
+    kind: outfit_upper
+    bounds_px: { x: 0, y: 0, width: 1, height: 1 }
+    source: fixture
+  - slot_hint_id: slot_outfit_lower
+    kind: outfit_lower
+    bounds_px: { x: 0, y: 0, width: 1, height: 1 }
+    source: fixture
+  - slot_hint_id: slot_outfit_full
+    kind: outfit_full
+    bounds_px: { x: 0, y: 0, width: 1, height: 1 }
+    source: fixture

@@ -1,0 +1,516 @@
+version: 1
+table_family: protocol_surface
+owner: nimi2d
+schema_id: nimi.nimi2d.package-manifest.v1
+authority: "nimi2d.kernel.package_manifest"
+source_rule: N2D-PKG-001
+description: >
+  Closed machine-readable schema authority for Nimi2D package manifests.
+  This schema records package asset topology, wardrobe binding, capability
+  claims, governance posture, and evidence refs. It is not an Avatar runtime
+  backend manifest.
+
+manifest_identity:
+  manifest_kind: "nimi.nimi2d.package"
+  schema_version: 1
+  merge_policy: forbidden
+  unknown_top_level_fields: reject
+
+required_top_level_fields:
+  - manifest_kind
+  - schema_version
+  - package_id
+  - package_version
+  - package_kind
+  - canvas
+  - source
+  - integrity
+  - governance
+  - capability
+  - base_body
+  - wardrobe
+  - render_layers
+  - assets
+
+closed_top_level_fields:
+  - manifest_kind
+  - schema_version
+  - package_id
+  - package_version
+  - package_kind
+  - canvas
+  - source
+  - integrity
+  - governance
+  - capability
+  - base_body
+  - wardrobe
+  - render_layers
+  - scenes
+  - assets
+
+fields:
+  manifest_kind:
+    type: literal
+    value: "nimi.nimi2d.package"
+  schema_version:
+    type: literal
+    value: 1
+  package_id:
+    type: string
+    pattern: "^n2d_pkg_[a-z0-9][a-z0-9_-]{2,63}$"
+  package_version:
+    type: semver
+  package_kind:
+    enum:
+      - character_package
+      - wardrobe_asset_package
+      - prop_package
+      - scene_package
+  canvas:
+    required_fields:
+      - width_px
+      - height_px
+    closed_fields:
+      - width_px
+      - height_px
+    fields:
+      width_px:
+        type: positive_integer
+      height_px:
+        type: positive_integer
+  source:
+    required_fields:
+      - layer_input_ref
+      - layer_generation_ref
+      - identity_preservation_ref
+      - content_admission_ref
+    closed_fields:
+      - layer_input_ref
+      - layer_generation_ref
+      - occlusion_completion_ref
+      - identity_preservation_ref
+      - content_admission_ref
+      - anchor_solving_evidence_ref
+      - slot_solving_evidence_ref
+      - wardrobe_binding_evidence_ref
+      - validator_evidence_ref
+    fields:
+      layer_input_ref:
+        type: opaque_evidence_ref
+      layer_generation_ref:
+        type: opaque_evidence_ref
+      occlusion_completion_ref:
+        type: opaque_evidence_ref_optional
+        semantics: "upstream source evidence only; Nimi2D does not own occlusion inpainting"
+      identity_preservation_ref:
+        type: opaque_evidence_ref
+      content_admission_ref:
+        type: opaque_evidence_ref
+      anchor_solving_evidence_ref:
+        type: opaque_evidence_ref_optional
+      slot_solving_evidence_ref:
+        type: opaque_evidence_ref_optional
+      wardrobe_binding_evidence_ref:
+        type: opaque_evidence_ref_optional
+      validator_evidence_ref:
+        type: opaque_evidence_ref_optional
+  integrity:
+    required_fields:
+      - package_digest_sha256
+      - asset_count
+    closed_fields:
+      - package_digest_sha256
+      - asset_count
+    fields:
+      package_digest_sha256:
+        type: lowercase_hex
+        length: 64
+      asset_count:
+        type: positive_integer
+  governance:
+    required_fields:
+      - base_body_renderable
+      - default_outfit_required
+      - adult_capability
+      - content_admission_ref
+      - underage_body_content
+    closed_fields:
+      - base_body_renderable
+      - default_outfit_required
+      - adult_capability
+      - content_admission_ref
+      - underage_body_content
+    fields:
+      base_body_renderable:
+        literal: false
+      default_outfit_required:
+        type: boolean
+        invariant: "must be true for character_package"
+      adult_capability:
+        literal: unavailable_v1
+      content_admission_ref:
+        type: opaque_evidence_ref
+      underage_body_content:
+        enum:
+          - rejected_or_not_present
+  capability:
+    required_fields:
+      - requested_tier
+      - proven_tier
+      - channel_matrix_ref
+      - channel_evidence
+    closed_fields:
+      - requested_tier
+      - proven_tier
+      - channel_matrix_ref
+      - channel_evidence
+    fields:
+      requested_tier:
+        enum:
+          - tier-0_static_layered
+          - tier-1_agent_basic
+          - tier-2_viseme_gesture
+          - tier-3_full_body_semantic
+      proven_tier:
+        enum:
+          - tier-0_static_layered
+          - tier-1_agent_basic
+          - tier-2_viseme_gesture
+          - tier-3_full_body_semantic
+      channel_matrix_ref:
+        literal: ".nimi/spec/nimi2d/kernel/tables/capability-channel-matrix.yaml"
+      channel_evidence:
+        type: map
+        key_source: ".nimi/spec/nimi2d/kernel/tables/capability-channel-matrix.yaml channels"
+        invariant: "all mandatory channels for proven_tier must have evidence"
+  base_body:
+    required_top_level: true
+    value_when_package_kind:
+      character_package: object
+      wardrobe_asset_package: null
+      prop_package: null
+      scene_package: null
+    required_fields:
+      - base_body_id
+      - topology_id
+      - topology_version
+      - slot_taxonomy_ref
+      - skeleton_id
+      - anchor_set_id
+      - slot_set_id
+      - anchors
+      - slots
+      - morphology_profile_id
+      - deformation_topology_id
+      - action_topology_ref
+      - owns_main_rig
+      - renderable
+      - detail_neutral
+      - layer_refs
+    closed_fields:
+      - base_body_id
+      - topology_id
+      - topology_version
+      - slot_taxonomy_ref
+      - skeleton_id
+      - anchor_set_id
+      - slot_set_id
+      - anchors
+      - slots
+      - morphology_profile_id
+      - deformation_topology_id
+      - action_topology_ref
+      - owns_main_rig
+      - renderable
+      - detail_neutral
+      - layer_refs
+    fields:
+      topology_id:
+        literal: "nimi.nimi2d.base-body.topology"
+      topology_version:
+        literal: 1
+      slot_taxonomy_ref:
+        literal: ".nimi/spec/nimi2d/kernel/tables/slot-taxonomy.yaml"
+      owns_main_rig:
+        literal: true
+      renderable:
+        literal: false
+      detail_neutral:
+        literal: true
+      anchors:
+        type: array
+        item_required_fields:
+          - kind
+          - point_px
+        item_closed_fields:
+          - kind
+          - point_px
+        item_source: ".nimi/spec/nimi2d/kernel/tables/slot-taxonomy.yaml anchor_kinds"
+      slots:
+        type: array
+        item_required_fields:
+          - kind
+          - bounds_px
+        item_closed_fields:
+          - kind
+          - bounds_px
+        item_source: ".nimi/spec/nimi2d/kernel/tables/slot-taxonomy.yaml slot_kinds"
+      layer_refs:
+        type: array
+        item_class: base_body_layer
+  wardrobe:
+    required_top_level: true
+    value_when_package_kind:
+      character_package: object
+      wardrobe_asset_package: object
+      prop_package: empty_object
+      scene_package: empty_object
+    required_fields:
+      - default_outfit_ref
+      - assets
+    closed_fields:
+      - default_outfit_ref
+      - assets
+    fields:
+      default_outfit_ref:
+        type: wardrobe_asset_ref
+        required_when_package_kind: character_package
+      assets:
+        type: array
+        item_required_fields:
+          - wardrobe_asset_id
+          - wardrobe_kind
+          - compatible_topology_id
+          - compatible_topology_version
+          - owns_main_rig
+          - slot_bindings
+          - coverage
+          - draw_order_group
+          - layer_refs
+        item_closed_fields:
+          - wardrobe_asset_id
+          - wardrobe_kind
+          - compatible_topology_id
+          - compatible_topology_version
+          - owns_main_rig
+          - slot_bindings
+          - coverage
+          - draw_order_group
+          - layer_refs
+          - local_attachment_rig_ref
+        item_fields:
+          wardrobe_kind:
+            enum:
+              - default_outfit
+              - outfit
+              - accessory
+              - hair_variant
+              - held_prop
+              - scene_layer
+          compatible_topology_id:
+            literal: "nimi.nimi2d.base-body.topology"
+          compatible_topology_version:
+            literal: 1
+          owns_main_rig:
+            literal: false
+          slot_bindings:
+            type: array
+            item_source: ".nimi/spec/nimi2d/kernel/tables/slot-taxonomy.yaml slot_kinds"
+          coverage:
+            type: array
+            item_enum:
+              - upper
+              - lower
+              - full
+              - hands
+              - feet
+              - head
+              - face
+              - hair
+              - prop
+              - scene
+          draw_order_group:
+            type: string
+          layer_refs:
+            type: array
+            item_class:
+              - wardrobe_layer
+              - accessory_layer
+              - prop_layer
+              - scene_layer
+          local_attachment_rig_ref:
+            type: string_optional
+  scenes:
+    optional: true
+    type: array
+    semantics: "scene display assets only; no character rig ownership"
+  render_layers:
+    type: array
+    semantics: >
+      Self-contained runtime layer geometry resolved from admitted layer input.
+      Avatar renderers consume this geometry and must not recover placement by
+      reading upstream layer-input manifests.
+    item_required_fields:
+      - layer_ref
+      - asset_id
+      - layer_kind
+      - draw_order_index
+      - placement_px
+      - texture_bounds_px
+      - visible_bounds_px
+    item_closed_fields:
+      - layer_ref
+      - asset_id
+      - layer_kind
+      - draw_order_index
+      - placement_px
+      - texture_bounds_px
+      - visible_bounds_px
+      - mask
+    item_fields:
+      layer_ref:
+        type: layer_ref
+      asset_id:
+        type: asset_ref
+      layer_kind:
+        enum:
+          - base_body_layer
+          - wardrobe_layer
+          - accessory_layer
+          - prop_layer
+          - scene_layer
+      draw_order_index:
+        type: zero_based_contiguous_integer
+      placement_px:
+        type: point
+        coordinate_space: package_canvas
+      texture_bounds_px:
+        type: rectangle
+        coordinate_space: layer_texture
+        semantics: source_texture_frame_cropped_by_renderer
+      visible_bounds_px:
+        type: rectangle
+        coordinate_space: layer_texture
+      mask:
+        type: object_optional
+        semantics: "package-level alpha mask asset binding; renderer substrate is not encoded here"
+        required_fields:
+          - mask_kind
+          - asset_id
+          - channel
+          - texture_bounds_px
+        closed_fields:
+          - mask_kind
+          - asset_id
+          - channel
+          - texture_bounds_px
+        fields:
+          mask_kind:
+            literal: alpha_mask_asset
+          asset_id:
+            type: asset_ref
+            invariant: "referenced asset_kind must be alpha_mask_layer"
+          channel:
+            literal: alpha
+          texture_bounds_px:
+            type: rectangle
+            coordinate_space: mask_texture
+            invariant: "must fit inside mask asset dimensions and match owning render layer texture_bounds_px width and height"
+  assets:
+    type: array
+    item_required_fields:
+      - asset_id
+      - asset_kind
+      - ref
+      - sha256
+      - format
+      - width_px
+      - height_px
+      - byte_size
+      - color_space
+      - alpha_mode
+      - premultiplied_alpha
+    item_closed_fields:
+      - asset_id
+      - asset_kind
+      - ref
+      - sha256
+      - format
+      - width_px
+      - height_px
+      - byte_size
+      - color_space
+      - alpha_mode
+      - premultiplied_alpha
+    item_fields:
+      asset_kind:
+        enum:
+          - base_body_layer
+          - wardrobe_layer
+          - accessory_layer
+          - prop_layer
+          - scene_layer
+          - alpha_mask_layer
+          - metadata
+      ref:
+        type: relative_path
+      sha256:
+        type: lowercase_hex
+        length: 64
+      format:
+        enum:
+          - png
+      width_px:
+        type: positive_integer
+      height_px:
+        type: positive_integer
+      byte_size:
+        type: positive_integer
+      color_space:
+        enum:
+          - srgb
+      alpha_mode:
+        enum:
+          - straight
+      premultiplied_alpha:
+        const: false
+
+forbidden_fields_and_values:
+  - "blend_tree"
+  - "runtime_composer"
+  - "performance_stream"
+  - "avatar_route_id"
+  - "backend_kind"
+  - "pixi_runtime"
+  - "raw_apml"
+  - "apml"
+  - "runtime_timeline"
+  - "audio_consumer"
+  - "hit_region_runtime"
+  - "adult_capability supported"
+  - "base_body.renderable true"
+  - "wardrobe.assets[].owns_main_rig true"
+  - "tier-N_reserved_deformation_extension as proven_tier"
+
+invariants:
+  - "Base body owns the main rig and is non-renderable."
+  - "Wardrobe assets bind slots and cannot own the main rig."
+  - "Character packages require a default outfit."
+  - "render_layers must cover every base_body.layer_refs and wardrobe.assets[].layer_refs entry exactly once."
+  - "render_layers draw_order_index values must be contiguous from zero."
+  - "render_layers visible_bounds_px must fit inside texture_bounds_px."
+  - "render_layers texture_bounds_px must fit inside referenced asset dimensions."
+  - "render_layers optional mask must reference an alpha_mask_layer PNG asset."
+  - "render_layers optional mask texture_bounds_px must fit inside mask asset dimensions and match the owning render layer texture_bounds_px size."
+  - "assets must be package-root-relative PNG RGBA assets with verified sha256, byte_size, dimensions, color_space, alpha_mode, and premultiplied_alpha."
+  - "requested_tier and proven_tier are distinct semantics; self-declared success is invalid."
+  - "Tier-1 may include jaw/amplitude mouth but not AEIOU true viseme."
+  - "Upstream segmentation and occlusion refs are source evidence only."
+  - "Runtime blend/composer/APML/Avatar route fields are forbidden."
+
+refs:
+  markdown_contract: ".nimi/spec/nimi2d/kernel/package-manifest-contract.md"
+  capability_matrix: ".nimi/spec/nimi2d/kernel/tables/capability-channel-matrix.yaml"
+  slot_taxonomy: ".nimi/spec/nimi2d/kernel/tables/slot-taxonomy.yaml"
+  renderability_governance_contract: ".nimi/spec/nimi2d/kernel/renderability-governance-contract.md"
