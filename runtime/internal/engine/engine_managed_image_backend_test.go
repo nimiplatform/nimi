@@ -319,6 +319,55 @@ func TestDiscoverInstalledManagedImageBackendLaunchConfigRuntimeWrapper(t *testi
 	}
 }
 
+func TestManagedImageBackendDependencyStatusUsesResolvedWrapperExecutableOnly(t *testing.T) {
+	backendDir := filepath.Join(t.TempDir(), "sd-win-cuda12-x64-stablediffusion-ggml")
+	resolvedBackendExecutable := filepath.Join(backendDir, "sd-cli.exe")
+	wrapperExecutable := filepath.Join(t.TempDir(), "nimi.exe")
+
+	status := managedImageBackendDependencyStatusFromConfig(&ManagedImageBackendConfig{
+		BackendName: "stablediffusion-ggml",
+		Command:     wrapperExecutable,
+		Args: []string{
+			"managed-image-backend",
+			"serve",
+			"--listen", "127.0.0.1:50052",
+			"--driver", "stable-diffusion.cpp",
+			"--backend-executable", resolvedBackendExecutable,
+		},
+		WorkingDir: backendDir,
+	}, managedImageBackendPackageSpec{
+		BackendName:          "stablediffusion-ggml",
+		InstallDirName:       "sd-win-cuda12-x64-stablediffusion-ggml",
+		PackageSource:        managedImageBackendPackageSourceCanonicalRuntimeWrapper,
+		PackageFormat:        managedImageBackendPackageFormatDirectArchive,
+		LaunchMode:           managedImageBackendLaunchModeRuntimeWrapper,
+		WrapperDriver:        "stable-diffusion.cpp",
+		ExecutableCandidates: []string{"sd.exe", "sd-cli.exe"},
+		Supported:            true,
+	})
+
+	if got := status.CanonicalRoot; got != backendDir {
+		t.Fatalf("canonical root = %q, want %q", got, backendDir)
+	}
+	if !managedImageBackendArtifactListContains(status.VerifiedArtifacts, resolvedBackendExecutable) {
+		t.Fatalf("verified artifacts = %v, want resolved backend executable %q", status.VerifiedArtifacts, resolvedBackendExecutable)
+	}
+	for _, artifact := range status.VerifiedArtifacts {
+		if strings.EqualFold(filepath.Base(artifact), "sd.exe") {
+			t.Fatalf("verified artifacts must not include unresolved executable candidate sd.exe: %v", status.VerifiedArtifacts)
+		}
+	}
+}
+
+func managedImageBackendArtifactListContains(artifacts []string, want string) bool {
+	for _, artifact := range artifacts {
+		if artifact == want {
+			return true
+		}
+	}
+	return false
+}
+
 func TestDiscoverInstalledManagedImageBackendLaunchConfigInjectsManagedCUDAPathProcessOnly(t *testing.T) {
 	if currentGOOS() != "windows" {
 		t.Skip("Windows-only process PATH injection")

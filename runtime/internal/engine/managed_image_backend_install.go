@@ -253,17 +253,37 @@ func managedImageBackendDependencyStatusFromConfig(cfg *ManagedImageBackendConfi
 }
 
 func normalizeManagedImageBackendVerifiedArtifacts(cfg *ManagedImageBackendConfig, spec managedImageBackendPackageSpec) []string {
-	artifacts := make([]string, 0, 1+len(spec.ExecutableCandidates))
-	if command := strings.TrimSpace(cfg.Command); command != "" {
-		artifacts = append(artifacts, command)
-	}
-	for _, candidate := range spec.ExecutableCandidates {
-		trimmed := strings.TrimSpace(candidate)
-		if trimmed != "" {
-			artifacts = append(artifacts, trimmed)
+	artifacts := make([]string, 0, 2)
+	appendArtifact := func(value string) {
+		trimmed := strings.TrimSpace(value)
+		if trimmed == "" {
+			return
 		}
+		for _, existing := range artifacts {
+			if existing == trimmed {
+				return
+			}
+		}
+		artifacts = append(artifacts, trimmed)
+	}
+	appendArtifact(cfg.Command)
+	if spec.LaunchMode == managedImageBackendLaunchModeRuntimeWrapper {
+		appendArtifact(managedImageBackendLaunchArgValue(cfg.Args, "--backend-executable"))
 	}
 	return artifacts
+}
+
+func managedImageBackendLaunchArgValue(args []string, name string) string {
+	trimmedName := strings.TrimSpace(name)
+	if trimmedName == "" {
+		return ""
+	}
+	for index := 0; index < len(args)-1; index++ {
+		if strings.TrimSpace(args[index]) == trimmedName {
+			return strings.TrimSpace(args[index+1])
+		}
+	}
+	return ""
 }
 
 func installManagedImageBackendPackage(ctx context.Context, backendsPath string, backendName string, spec managedImageBackendPackageSpec, progress func(bytesReceived, bytesTotal int64)) error {
