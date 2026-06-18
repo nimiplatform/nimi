@@ -23,7 +23,7 @@ type RuntimeConfigPanelEffectsInput = {
   setStatusBanner: (banner: StatusBanner | null) => void;
   setVaultEntryCount: (count: number) => void;
   vaultVersion: number;
-  discoverLocalModels: () => Promise<void>;
+  discoverLocalModels: (options?: { visible?: boolean }) => Promise<void>;
 };
 
 function mergeLocalSnapshot(

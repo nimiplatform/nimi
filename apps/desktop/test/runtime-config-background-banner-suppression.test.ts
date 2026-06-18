@@ -16,6 +16,21 @@ test('background local model discovery does not emit a success status banner', (
   assert.doesNotMatch(source, /Local Runtime model list is up to date/);
 });
 
+test('setup autodiscovery does not drive the global discovering indicator', () => {
+  const effectSource = readFileSync(
+    path.join(root, 'src/shell/renderer/features/runtime-config/runtime-config-effect-setup-autodiscover.ts'),
+    'utf8',
+  );
+  const commandSource = readFileSync(
+    path.join(root, 'src/shell/renderer/features/runtime-config/runtime-config-panel-commands.ts'),
+    'utf8',
+  );
+
+  assert.match(effectSource, /discoverLocalModels\(\{\s*visible:\s*false\s*\}\)/);
+  assert.match(commandSource, /const visible = options\.visible !== false/);
+  assert.match(commandSource, /if \(!visible\)\s*\{\s*await discoverLocalModelsAction\(\);\s*return;\s*\}/s);
+});
+
 test('healthy local runtime checks stay silent while degraded checks still warn', () => {
   const source = readFileSync(
     path.join(root, 'src/shell/renderer/features/runtime-config/runtime-config-connector-health-command.ts'),

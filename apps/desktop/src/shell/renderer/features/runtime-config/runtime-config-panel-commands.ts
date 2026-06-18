@@ -4,6 +4,7 @@ import {
   testSelectedConnectorCommand,
 } from './runtime-config-provider-commands';
 import type {
+  RuntimeConfigDiscoveryOptions,
   RuntimeConfigPanelCommandsInput,
 } from './runtime-config-command-context';
 import { runRuntimeConfigAsyncGuard } from './runtime-config-runtime-ops';
@@ -21,7 +22,12 @@ export function createRuntimeConfigPanelCommands(input: RuntimeConfigPanelComman
     await testSelectedConnectorCommand(input.provider.testSelectedConnector);
   };
 
-  const discoverLocalModels = async () => {
+  const discoverLocalModels = async (options: RuntimeConfigDiscoveryOptions = {}) => {
+    const visible = options.visible !== false;
+    if (!visible) {
+      await discoverLocalModelsAction();
+      return;
+    }
     await runRuntimeConfigAsyncGuard(
       input.guard.discovering,
       input.guard.setDiscovering,

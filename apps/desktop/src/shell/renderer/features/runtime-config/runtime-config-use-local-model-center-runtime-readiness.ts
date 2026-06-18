@@ -17,8 +17,8 @@ type RuntimeDependencyInput = {
   setAssetBusy: (busy: boolean) => void;
 };
 
-function firstImageAsset(assets: NimiRuntimeLocalAssetRecord[]): NimiRuntimeLocalAssetRecord | undefined {
-  return assets.find((asset) => asset.kind === 'image');
+function imageAssets(assets: NimiRuntimeLocalAssetRecord[]): NimiRuntimeLocalAssetRecord[] {
+  return assets.filter((asset) => asset.kind === 'image');
 }
 
 function dependencyBlocksSetup(dependency: NimiRuntimeLocalEnvironmentPlanDependency): boolean {
@@ -66,6 +66,33 @@ function runtimeDependenciesWithEnvironment(
   return (dependencies || []).filter((dependency) => Boolean(dependency.environmentKey));
 }
 
+function dedupeRuntimeDependencies(
+  dependencies: readonly NimiRuntimeLocalEnvironmentPlanDependency[],
+): NimiRuntimeLocalEnvironmentPlanDependency[] {
+  const seen = new Set<string>();
+  const next: NimiRuntimeLocalEnvironmentPlanDependency[] = [];
+  for (const dependency of dependencies) {
+    const key = [
+      dependency.environmentKey,
+      dependency.dependencyFamily,
+      dependency.dependencyId,
+      dependency.consumerScope,
+    ].join('\u0000');
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    next.push(dependency);
+  }
+  return next;
+}
+
+function firstPlanWithBlockingDependency(
+  plans: readonly NimiRuntimeLocalEnvironmentPlan[],
+): NimiRuntimeLocalEnvironmentPlan | undefined {
+  return plans.find((plan) => Boolean(firstBlockingDependency(plan)));
+}
+
 function dedupeRuntimeDependencyJobs(
   jobs: readonly NimiRuntimeLocalEnvironmentDependencyJob[],
 ): NimiRuntimeLocalEnvironmentDependencyJob[] {
@@ -111,6 +138,7 @@ export function useLocalModelCenterRuntimeDependencies({
 }: RuntimeDependencyInput) {
   const mountedRef = useRef(true);
   const [sharedRuntimeEnvironmentPlan, setSharedRuntimeEnvironmentPlan] = useState<NimiRuntimeLocalEnvironmentPlan | undefined>(undefined);
+  const [runtimeEnvironmentPlanByAssetId, setRuntimeEnvironmentPlanByAssetId] = useState<Record<string, NimiRuntimeLocalEnvironmentPlan | undefined>>({});
   const [sharedRuntimeDependencyJobs, setSharedRuntimeDependencyJobs] = useState<NimiRuntimeLocalEnvironmentDependencyJob[]>([]);
   const [runtimeDependencyError, setRuntimeDependencyError] = useState('');
   const [dependencyResolutionNonce, setDependencyResolutionNonce] = useState(0);
@@ -123,22 +151,37 @@ export function useLocalModelCenterRuntimeDependencies({
 
   useEffect(() => {
     let cancelled = false;
-    const imageAsset = firstImageAsset(assets);
+    const currentImageAssets = imageAssets(assets);
     const resolvePlan = async () => {
-      if (!imageAsset) {
-        return runtimeConfigLocalModelCenterClient.resolveEnvironmentPlan({
+      if (currentImageAssets.length === 0) {
+        const plan = await runtimeConfigLocalModelCenterClient.resolveEnvironmentPlan({
           packId: 'local-gpu-support',
           consumerScope: 'desktop.local-model-center',
         });
+        return { sharedPlan: plan, byAssetId: {} };
       }
-      return resolveNimiRuntimeLocalImageNativeEnvironmentPlan({
-        runtime: runtimeConfigLocalModelCenterClient,
-        asset: imageAsset,
-      });
+      const resolved = await Promise.all(currentImageAssets.map(async (asset) => ({
+        assetId: asset.localAssetId,
+        plan: await resolveNimiRuntimeLocalImageNativeEnvironmentPlan({
+          runtime: runtimeConfigLocalModelCenterClient,
+          asset,
+        }),
+      })));
+      const byAssetId: Record<string, NimiRuntimeLocalEnvironmentPlan | undefined> = {};
+      const plans: NimiRuntimeLocalEnvironmentPlan[] = [];
+      for (const item of resolved) {
+        byAssetId[item.assetId] = item.plan;
+        plans.push(item.plan);
+      }
+      return {
+        sharedPlan: firstPlanWithBlockingDependency(plans) || plans[0],
+        byAssetId,
+      };
     };
-    void resolvePlan().then((dependency) => {
+    void resolvePlan().then((resolution) => {
       if (!cancelled && mountedRef.current) {
-        setSharedRuntimeEnvironmentPlan(dependency);
+        setSharedRuntimeEnvironmentPlan(resolution.sharedPlan);
+        setRuntimeEnvironmentPlanByAssetId(resolution.byAssetId);
         setRuntimeDependencyError('');
       }
     }).catch((error: unknown) => {
@@ -154,6 +197,18 @@ export function useLocalModelCenterRuntimeDependencies({
   const sharedRuntimeDependency = useMemo(() => (
     firstBlockingDependency(sharedRuntimeEnvironmentPlan)
   ), [sharedRuntimeEnvironmentPlan]);
+
+  const allRuntimeEnvironmentPlans = useMemo(() => {
+    const assetPlans = Object.values(runtimeEnvironmentPlanByAssetId).filter((plan): plan is NimiRuntimeLocalEnvironmentPlan => Boolean(plan));
+    if (assetPlans.length > 0) {
+      return assetPlans;
+    }
+    return sharedRuntimeEnvironmentPlan ? [sharedRuntimeEnvironmentPlan] : [];
+  }, [runtimeEnvironmentPlanByAssetId, sharedRuntimeEnvironmentPlan]);
+
+  const allRuntimeDependencies = useMemo(() => (
+    dedupeRuntimeDependencies(allRuntimeEnvironmentPlans.flatMap((plan) => runtimeDependenciesWithEnvironment(plan.dependencies)))
+  ), [allRuntimeEnvironmentPlans]);
 
   const refreshRuntimeDependencyJobs = useCallback(async (
     dependencies: readonly NimiRuntimeLocalEnvironmentPlanDependency[] | undefined,
@@ -181,13 +236,12 @@ export function useLocalModelCenterRuntimeDependencies({
   }, []);
 
   useEffect(() => {
-    const dependencies = runtimeDependenciesWithEnvironment(sharedRuntimeEnvironmentPlan?.dependencies);
-    if (dependencies.length === 0) {
+    if (allRuntimeDependencies.length === 0) {
       setSharedRuntimeDependencyJobs([]);
       return;
     }
     let cancelled = false;
-    void refreshRuntimeDependencyJobs(dependencies).finally(() => {
+    void refreshRuntimeDependencyJobs(allRuntimeDependencies).finally(() => {
       if (cancelled) {
         return;
       }
@@ -195,7 +249,7 @@ export function useLocalModelCenterRuntimeDependencies({
     return () => {
       cancelled = true;
     };
-  }, [refreshRuntimeDependencyJobs, sharedRuntimeEnvironmentPlan]);
+  }, [allRuntimeDependencies, refreshRuntimeDependencyJobs]);
 
   const hasActiveRuntimeDependencyJob = useMemo(() => (
     sharedRuntimeDependencyJobs.some((job) => isNimiRuntimeLocalEnvironmentDependencyJobActiveState(job.state))
@@ -206,13 +260,12 @@ export function useLocalModelCenterRuntimeDependencies({
   }, []);
 
   useEffect(() => {
-    if (!hasActiveRuntimeDependencyJob || !sharedRuntimeEnvironmentPlan) {
+    if (!hasActiveRuntimeDependencyJob || allRuntimeDependencies.length === 0) {
       return undefined;
     }
     let cancelled = false;
     const tick = async () => {
-      const dependencies = runtimeDependenciesWithEnvironment(sharedRuntimeEnvironmentPlan.dependencies);
-      await refreshRuntimeDependencyJobs(dependencies);
+      await refreshRuntimeDependencyJobs(allRuntimeDependencies);
       await refreshAssetInventorySections();
       if (!cancelled && mountedRef.current) {
         refreshRuntimeDependencies();
@@ -228,25 +281,28 @@ export function useLocalModelCenterRuntimeDependencies({
     };
   }, [
     hasActiveRuntimeDependencyJob,
+    allRuntimeDependencies,
     refreshAssetInventorySections,
     refreshRuntimeDependencies,
     refreshRuntimeDependencyJobs,
-    sharedRuntimeEnvironmentPlan,
   ]);
 
   const runtimeDependencyByAssetId = useMemo(() => {
     const next: Record<string, NimiRuntimeLocalEnvironmentPlanDependency> = {};
     for (const asset of assets) {
-      if (asset.kind === 'image' && sharedRuntimeDependency) {
-        next[asset.localAssetId] = sharedRuntimeDependency;
+      if (asset.kind !== 'image') {
+        continue;
+      }
+      const assetDependency = firstBlockingDependency(runtimeEnvironmentPlanByAssetId[asset.localAssetId]);
+      if (assetDependency) {
+        next[asset.localAssetId] = assetDependency;
       }
     }
     return next;
-  }, [assets, sharedRuntimeDependency]);
+  }, [assets, runtimeEnvironmentPlanByAssetId]);
 
   const setupRuntimeDependency = useCallback(async () => {
-    const dependencies = sharedRuntimeEnvironmentPlan?.dependencies || [];
-    const startable = dependencies.filter((dependency) => dependencyStartable(dependency, sharedRuntimeDependencyJobs));
+    const startable = allRuntimeDependencies.filter((dependency) => dependencyStartable(dependency, sharedRuntimeDependencyJobs));
     if (startable.length === 0) {
       return;
     }
@@ -265,17 +321,17 @@ export function useLocalModelCenterRuntimeDependencies({
       }
       await refreshAssetInventorySections();
       refreshRuntimeDependencies();
-      await refreshRuntimeDependencyJobs(sharedRuntimeEnvironmentPlan?.dependencies);
+      await refreshRuntimeDependencyJobs(allRuntimeDependencies);
     } finally {
       setAssetBusy(false);
     }
   }, [
+    allRuntimeDependencies,
     refreshAssetInventorySections,
     refreshRuntimeDependencies,
     refreshRuntimeDependencyJobs,
     setAssetBusy,
     sharedRuntimeDependencyJobs,
-    sharedRuntimeEnvironmentPlan,
   ]);
 
   const prepareAssetRuntimeDependencies = useCallback(async (asset: NimiRuntimeLocalAssetRecord) => {
@@ -318,11 +374,11 @@ export function useLocalModelCenterRuntimeDependencies({
         setSharedRuntimeDependencyJobs((prev) => upsertRuntimeDependencyJob(prev, cancelledJob));
       }
       refreshRuntimeDependencies();
-      await refreshRuntimeDependencyJobs(sharedRuntimeEnvironmentPlan?.dependencies);
+      await refreshRuntimeDependencyJobs(allRuntimeDependencies);
     } finally {
       setAssetBusy(false);
     }
-  }, [refreshRuntimeDependencies, refreshRuntimeDependencyJobs, setAssetBusy, sharedRuntimeEnvironmentPlan]);
+  }, [allRuntimeDependencies, refreshRuntimeDependencies, refreshRuntimeDependencyJobs, setAssetBusy]);
 
   const retryRuntimeDependencyJob = useCallback(async (jobId: string) => {
     setAssetBusy(true);
@@ -335,11 +391,11 @@ export function useLocalModelCenterRuntimeDependencies({
         setSharedRuntimeDependencyJobs((prev) => upsertRuntimeDependencyJob(prev, retryJob));
       }
       refreshRuntimeDependencies();
-      await refreshRuntimeDependencyJobs(sharedRuntimeEnvironmentPlan?.dependencies);
+      await refreshRuntimeDependencyJobs(allRuntimeDependencies);
     } finally {
       setAssetBusy(false);
     }
-  }, [refreshRuntimeDependencies, refreshRuntimeDependencyJobs, setAssetBusy, sharedRuntimeEnvironmentPlan]);
+  }, [allRuntimeDependencies, refreshRuntimeDependencies, refreshRuntimeDependencyJobs, setAssetBusy]);
 
   const repairRuntimeDependency = useCallback(async () => {
     if (!sharedRuntimeDependency) {
@@ -359,11 +415,11 @@ export function useLocalModelCenterRuntimeDependencies({
         setSharedRuntimeDependencyJobs((prev) => upsertRuntimeDependencyJob(prev, repairJob));
       }
       refreshRuntimeDependencies();
-      await refreshRuntimeDependencyJobs(sharedRuntimeEnvironmentPlan?.dependencies);
+      await refreshRuntimeDependencyJobs(allRuntimeDependencies);
     } finally {
       setAssetBusy(false);
     }
-  }, [refreshRuntimeDependencies, refreshRuntimeDependencyJobs, setAssetBusy, sharedRuntimeDependency, sharedRuntimeEnvironmentPlan]);
+  }, [allRuntimeDependencies, refreshRuntimeDependencies, refreshRuntimeDependencyJobs, setAssetBusy, sharedRuntimeDependency]);
 
   return {
     cancelRuntimeDependencyJob,

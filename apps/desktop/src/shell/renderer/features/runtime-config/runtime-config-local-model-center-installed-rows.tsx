@@ -23,7 +23,10 @@ import {
   recommendationTierLabel,
   TrashIcon,
 } from './runtime-config-local-model-center-helpers';
-import { runtimeDependencyStatusDetail } from './runtime-config-local-model-center-runtime-dependency-banner';
+import {
+  runtimeDependencyShortStatusLabel,
+  runtimeDependencyStatusDetail,
+} from './runtime-config-local-model-center-runtime-dependency-banner';
 
 export {
   RuntimeDependencyAttentionBanner,
@@ -157,7 +160,8 @@ function runtimeDependencyReadinessLabel(
 ): string {
   const state = runtimeDependencyCurrentState(dependency, job);
   if (isNimiRuntimeLocalEnvironmentDependencyJobActiveState(state)) {
-    return i18n.t('runtimeConfig.localModelCenter.runtimeSetupRunningBadge', { defaultValue: 'Runtime setup running' });
+    return runtimeDependencyShortStatusLabel(dependency, job)
+      || i18n.t('runtimeConfig.localModelCenter.runtimeSetupRunningBadge', { defaultValue: 'Runtime setup running' });
   }
   if (isNimiRuntimeLocalEnvironmentDependencyJobFailedState(state)) {
     return i18n.t('runtimeConfig.localModelCenter.runtimeSetupFailedBadge', { defaultValue: 'Runtime setup failed' });

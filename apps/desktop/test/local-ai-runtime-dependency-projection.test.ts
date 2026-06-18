@@ -43,6 +43,8 @@ test('local model center resolves shared runtime dependency readiness before any
   assert.match(runtimeProjectionSources, /consumerScope:\s*'desktop\.local-model-center'/);
   assert.match(runtimeProjectionSources, /resolveNimiRuntimeLocalImageNativeEnvironmentPlan/);
   assert.match(runtimeProjectionSources, /sharedRuntimeEnvironmentPlan/);
+  assert.match(runtimeProjectionSources, /runtimeEnvironmentPlanByAssetId/);
+  assert.match(runtimeProjectionSources, /firstPlanWithBlockingDependency/);
   assert.match(runtimeProjectionSources, /sharedRuntimeDependency/);
   assert.match(runtimeProjectionSources, /sharedRuntimeDependencyJobs/);
   assert.match(runtimeProjectionSources, /setupRuntimeDependency/);
@@ -67,6 +69,9 @@ test('local model center resolves shared runtime dependency readiness before any
   assert.match(prepareBody, /confirmed:\s*false/);
   assert.doesNotMatch(prepareBody, /confirmed:\s*true/);
   assert.match(runtimeProjectionSources, /runtimeDependencyByAssetId/);
+  assert.match(runtimeReadinessSource, /const assetDependency = firstBlockingDependency\(runtimeEnvironmentPlanByAssetId\[asset\.localAssetId\]\)/);
+  assert.doesNotMatch(runtimeReadinessSource, /function firstImageAsset/);
+  assert.doesNotMatch(runtimeReadinessSource, /next\[asset\.localAssetId\] = sharedRuntimeDependency/);
 });
 
 test('local model center surfaces runtime inventory failures instead of replacing them with empty success', () => {
@@ -125,7 +130,7 @@ test('local model center setup CTA projects shared dependency resolver truth at 
 test('local image installed rows project runtime readiness instead of installed asset status', () => {
   assert.match(installedRowsSource, /function runtimeDependencyReadinessLabel/);
   assert.match(installedRowsSource, /Runtime setup required/);
-  assert.match(installedRowsSource, /Runtime setup running/);
+  assert.match(installedRowsSource, /runtimeDependencyShortStatusLabel/);
   assert.match(installedRowsSource, /Runtime setup failed/);
   assert.match(installedRowsSource, /const statusLabel = hasRuntimeDependencyWarning[\s\S]{0,160}runtimeDependencyReadinessLabel/);
   assert.match(installedRowsSource, /hasRuntimeDependencyWarning[\s\S]{0,160}assetStatusBadgeClass/);
@@ -134,6 +139,21 @@ test('local image installed rows project runtime readiness instead of installed 
   assert.match(installedSectionSource, /const canStartAssetRuntimeDependencySetup = runtimeDependencySetupAllowed\(runtimeDependency, runtimeDependencyJob\)/);
   assert.match(installedSectionSource, /canStartRuntimeDependencySetup=\{canStartAssetRuntimeDependencySetup\}/);
   assert.match(installedSectionSource, /onSetupRuntimeDependency=\{props\.onSetupRuntimeDependency\}/);
+});
+
+test('local image runtime setup surfaces job phase progress and stale evidence', () => {
+  assert.match(runtimeDependencyBannerSource, /runtimeDependencyStateStageLabel/);
+  assert.match(runtimeDependencyBannerSource, /Downloading local image runtime package/);
+  assert.match(runtimeDependencyBannerSource, /Installing local image runtime\. This step can take several minutes/);
+  assert.match(runtimeDependencyBannerSource, /runtimeDependencyProgressSummary/);
+  assert.match(runtimeDependencyBannerSource, /job\.bytesReceived/);
+  assert.match(runtimeDependencyBannerSource, /job\.bytesTotal/);
+  assert.match(runtimeDependencyBannerSource, /job\.speedBytesPerSec/);
+  assert.match(runtimeDependencyBannerSource, /job\.etaSeconds/);
+  assert.match(runtimeDependencyBannerSource, /runtimeDependencyJobIsStale/);
+  assert.match(runtimeDependencyBannerSource, /No progress has been reported for more than 5 minutes/);
+  assert.match(runtimeDependencyBannerSource, /Runtime details/);
+  assert.doesNotMatch(runtimeDependencyBannerSource, /Runtime job: \{\{state\}\}/);
 });
 
 test('local model center projects Runtime-owned local environment state instead of desktop file fallback', () => {
@@ -146,7 +166,7 @@ test('local model center projects Runtime-owned local environment state instead 
 test('runtime setup autodiscovery is debounced across panel remounts', () => {
   assert.match(setupAutodiscoverSource, /let runtimeConfigSetupAutodiscoverTriggered = false/);
   assert.match(setupAutodiscoverSource, /if \(runtimeConfigSetupAutodiscoverTriggered\) return/);
-  assert.match(setupAutodiscoverSource, /runtimeConfigSetupAutodiscoverTriggered = true;\s*void input\.discoverLocalModels\(\)/);
+  assert.match(setupAutodiscoverSource, /runtimeConfigSetupAutodiscoverTriggered = true;\s*void input\.discoverLocalModels\(\{ visible: false \}\)/);
   assert.doesNotMatch(setupAutodiscoverSource, /useRef/);
 });
 

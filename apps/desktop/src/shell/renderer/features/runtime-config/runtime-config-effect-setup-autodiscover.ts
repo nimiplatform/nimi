@@ -4,7 +4,7 @@ import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/ru
 type SetupAutodiscoverEffectInput = {
   state: RuntimeConfigStateV11 | null;
   hydrated: boolean;
-  discoverLocalModels: () => Promise<void>;
+  discoverLocalModels: (options?: { visible?: boolean }) => Promise<void>;
   activePage: string;
 };
 
@@ -21,6 +21,6 @@ export function useRuntimeConfigSetupAutodiscoverEffect(input: SetupAutodiscover
     if (!PAGES_REQUIRING_DISCOVERY.has(input.activePage)) return;
 
     runtimeConfigSetupAutodiscoverTriggered = true;
-    void input.discoverLocalModels();
+    void input.discoverLocalModels({ visible: false });
   }, [input.discoverLocalModels, input.hydrated, input.state, input.activePage]);
 }

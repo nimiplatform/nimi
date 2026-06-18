@@ -56,7 +56,7 @@ export type RuntimeConfigPanelControllerModel = {
   setConnectorTestFeedback: (value: InlineFeedbackState | null) => void;
   onChangePage: (pageId: RuntimeConfigStateV11['activePage']) => void;
   updateState: (updater: (prev: RuntimeConfigStateV11) => RuntimeConfigStateV11) => void;
-  discoverLocalModels: () => Promise<void>;
+  discoverLocalModels: (options?: { visible?: boolean }) => Promise<void>;
   runLocalHealthCheck: () => Promise<void>;
   testSelectedConnector: () => Promise<void>;
   resolveRuntimeProfile: (

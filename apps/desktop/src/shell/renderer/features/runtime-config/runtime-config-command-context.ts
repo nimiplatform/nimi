@@ -52,3 +52,7 @@ export type RuntimeConfigPanelCommandsInput = {
   guard: RuntimeConfigPanelAsyncGuardContext;
   provider: RuntimeConfigPanelProviderCommandFactories;
 };
+
+export type RuntimeConfigDiscoveryOptions = {
+  visible?: boolean;
+};
