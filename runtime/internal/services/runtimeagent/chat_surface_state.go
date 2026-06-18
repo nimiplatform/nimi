@@ -35,7 +35,7 @@ type persistedPublicChatAnchor struct {
 	AgentID                string                                      `json:"agentId"`
 	LocalAgentRef          string                                      `json:"localAgentRef"`
 	OwnerUserID            string                                      `json:"ownerUserId"`
-	RuntimeSourceRef           string                                      `json:"runtimeSourceRef"`
+	RuntimeSourceRef       string                                      `json:"runtimeSourceRef"`
 	CallerAppID            string                                      `json:"callerAppId"`
 	SubjectUserID          string                                      `json:"subjectUserId"`
 	ThreadID               string                                      `json:"threadId"`
@@ -129,7 +129,7 @@ type persistedAvatarLiveInstanceBinding struct {
 	AgentID              string `json:"agentId"`
 	LocalAgentRef        string `json:"localAgentRef"`
 	OwnerUserID          string `json:"ownerUserId"`
-	RuntimeSourceRef         string `json:"runtimeSourceRef"`
+	RuntimeSourceRef     string `json:"runtimeSourceRef"`
 	CallerAppID          string `json:"callerAppId"`
 	SubjectUserID        string `json:"subjectUserId"`
 	RegisteredAt         string `json:"registeredAt,omitempty"`
@@ -155,7 +155,7 @@ func (s *Service) capturePublicChatSurfaceSnapshotLocked() (persistedPublicChatS
 			AgentID:                session.AgentID,
 			LocalAgentRef:          session.LocalAgentRef,
 			OwnerUserID:            session.OwnerUserID,
-			RuntimeSourceRef:           session.RuntimeSourceRef,
+			RuntimeSourceRef:       session.RuntimeSourceRef,
 			CallerAppID:            session.CallerAppID,
 			SubjectUserID:          session.SubjectUserID,
 			ThreadID:               session.ThreadID,
@@ -230,7 +230,7 @@ func (s *Service) capturePublicChatSurfaceSnapshotLocked() (persistedPublicChatS
 			AgentID:              binding.AgentID,
 			LocalAgentRef:        binding.LocalAgentRef,
 			OwnerUserID:          binding.OwnerUserID,
-			RuntimeSourceRef:         binding.RuntimeSourceRef,
+			RuntimeSourceRef:     binding.RuntimeSourceRef,
 			CallerAppID:          binding.CallerAppID,
 			SubjectUserID:        binding.SubjectUserID,
 		}
@@ -415,6 +415,12 @@ func (r *publicChatSurfaceStateRepository) loadPublicChatSurfaceStateFromDB(s *S
 			persisted.Version = version
 		}
 	}
+	if hasPreCoreHardcutPublicChatSurfaceState(persisted) {
+		if s != nil && s.logger != nil {
+			s.logger.Warn("discarding pre-core hardcut public chat surface state")
+		}
+		return r.clearPublicChatSurfaceStateForCoreHardcut()
+	}
 	unmarshal := protojson.UnmarshalOptions{DiscardUnknown: false}
 	s.chatSurfaceMu.Lock()
 	defer s.chatSurfaceMu.Unlock()
@@ -475,7 +481,7 @@ func (r *publicChatSurfaceStateRepository) loadPublicChatSurfaceStateFromDB(s *S
 			AgentID:                item.AgentID,
 			LocalAgentRef:          item.LocalAgentRef,
 			OwnerUserID:            item.OwnerUserID,
-			RuntimeSourceRef:           item.RuntimeSourceRef,
+			RuntimeSourceRef:       item.RuntimeSourceRef,
 			CallerAppID:            item.CallerAppID,
 			SubjectUserID:          item.SubjectUserID,
 			ThreadID:               item.ThreadID,
@@ -539,7 +545,7 @@ func (r *publicChatSurfaceStateRepository) loadPublicChatSurfaceStateFromDB(s *S
 			AgentID:              item.AgentID,
 			LocalAgentRef:        item.LocalAgentRef,
 			OwnerUserID:          item.OwnerUserID,
-			RuntimeSourceRef:         item.RuntimeSourceRef,
+			RuntimeSourceRef:     item.RuntimeSourceRef,
 			CallerAppID:          item.CallerAppID,
 			SubjectUserID:        item.SubjectUserID,
 			RegisteredAt:         registeredAt,
@@ -576,6 +582,32 @@ func (r *publicChatSurfaceStateRepository) loadPublicChatSurfaceStateFromDB(s *S
 		}
 	}
 	return nil
+}
+
+func hasPreCoreHardcutPublicChatSurfaceState(persisted persistedPublicChatSurfaceState) bool {
+	for _, item := range persisted.Anchors {
+		if _, err := validateLocalAgentIdentity(item.OwnerUserID, item.RuntimeSourceRef, item.LocalAgentRef); err != nil {
+			return true
+		}
+	}
+	for _, item := range persisted.AvatarLiveInstances {
+		if _, err := validateLocalAgentIdentity(item.OwnerUserID, item.RuntimeSourceRef, item.LocalAgentRef); err != nil {
+			return true
+		}
+	}
+	return false
+}
+
+func (r *publicChatSurfaceStateRepository) clearPublicChatSurfaceStateForCoreHardcut() error {
+	return r.backend.WriteTx(context.Background(), func(tx *sql.Tx) error {
+		_, err := tx.Exec(
+			`DELETE FROM runtime_local_agent_meta WHERE key IN (?, ?) OR key LIKE ?`,
+			runtimeAgentMetaPublicChatSurfaceStateKey,
+			runtimeAgentMetaPublicChatSurfaceVersionKey,
+			runtimeAgentMetaConversationAnchorMetadata+"%",
+		)
+		return err
+	})
 }
 
 func (s *Service) resolveCommittedChatTurnOrigin(agentID string, turnID string) stateEventOrigin {

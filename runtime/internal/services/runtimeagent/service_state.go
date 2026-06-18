@@ -13,6 +13,8 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
+const hardcutObsoleteRealmAgentIDField = "realmAgentId"
+
 type persistedRuntimeAgentState struct {
 	SchemaVersion int                   `json:"schemaVersion"`
 	SavedAt       string                `json:"savedAt"`
@@ -154,6 +156,14 @@ func (r *runtimeAgentStateRepository) loadStateFromDB(s *Service) error {
 		delete(s.agents, key)
 	}
 	s.events = s.events[:0]
+	purged, err := r.purgePreCoreHardcutRuntimeLocalAgentState(s)
+	if err != nil {
+		return err
+	}
+	if purged {
+		s.sequence = 0
+		return nil
+	}
 	rows, err := r.backend.DB().Query(`SELECT local_agent_ref, agent_json FROM runtime_local_agent ORDER BY local_agent_ref`)
 	if err != nil {
 		return fmt.Errorf("load runtime agent records: %w", err)
@@ -251,6 +261,85 @@ func (r *runtimeAgentStateRepository) loadStateFromDB(s *Service) error {
 		s.sequence = value
 	}
 	return nil
+}
+
+func (r *runtimeAgentStateRepository) purgePreCoreHardcutRuntimeLocalAgentState(s *Service) (bool, error) {
+	rows, err := r.backend.DB().Query(`SELECT agent_json FROM runtime_local_agent`)
+	if err != nil {
+		return false, fmt.Errorf("scan runtime local-agent hardcut state: %w", err)
+	}
+	var obsoleteCount int
+	for rows.Next() {
+		var agentRaw string
+		if err := rows.Scan(&agentRaw); err != nil {
+			_ = rows.Close()
+			return false, err
+		}
+		if hasTopLevelJSONField(agentRaw, hardcutObsoleteRealmAgentIDField) {
+			obsoleteCount++
+		}
+	}
+	if err := rows.Close(); err != nil {
+		return false, err
+	}
+	if err := rows.Err(); err != nil {
+		return false, err
+	}
+	if obsoleteCount == 0 {
+		return false, nil
+	}
+	if s != nil && s.logger != nil {
+		s.logger.Warn(
+			"discarding pre-core hardcut runtime local-agent state",
+			"obsolete_field",
+			hardcutObsoleteRealmAgentIDField,
+			"obsolete_agent_rows",
+			obsoleteCount,
+		)
+	}
+	return true, r.clearRuntimeLocalAgentStateForCoreHardcut()
+}
+
+func hasTopLevelJSONField(raw string, field string) bool {
+	var object map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(raw), &object); err != nil {
+		return false
+	}
+	_, ok := object[field]
+	return ok
+}
+
+func (r *runtimeAgentStateRepository) clearRuntimeLocalAgentStateForCoreHardcut() error {
+	return r.backend.WriteTx(context.Background(), func(tx *sql.Tx) error {
+		for _, stmt := range []string{
+			`DELETE FROM runtime_local_agent`,
+			`DELETE FROM runtime_local_agent_state_projection`,
+			`DELETE FROM runtime_local_agent_hook`,
+			`DELETE FROM runtime_local_agent_event_log`,
+			`DELETE FROM runtime_local_agent_behavioral_posture`,
+			`DELETE FROM runtime_local_agent_review_run`,
+			`DELETE FROM runtime_local_agent_review_followup`,
+		} {
+			if _, err := tx.Exec(stmt); err != nil {
+				return err
+			}
+		}
+		if _, err := tx.Exec(
+			`DELETE FROM runtime_local_agent_meta WHERE key IN (?, ?) OR key LIKE ?`,
+			runtimeAgentMetaPublicChatSurfaceStateKey,
+			runtimeAgentMetaPublicChatSurfaceVersionKey,
+			runtimeAgentMetaConversationAnchorMetadata+"%",
+		); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(`INSERT INTO runtime_local_agent_meta(key, value) VALUES ('state_initialized','1') ON CONFLICT(key) DO UPDATE SET value=excluded.value`); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(`INSERT INTO runtime_local_agent_meta(key, value) VALUES ('agent_event_sequence', ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value`, encodeSequenceValue(0)); err != nil {
+			return err
+		}
+		return nil
+	})
 }
 
 // runtimeAgentStateTxHook runs additional row mutations inside the same
