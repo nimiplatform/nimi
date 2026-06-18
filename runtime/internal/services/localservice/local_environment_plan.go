@@ -227,9 +227,9 @@ func (s *Service) localImageNativeExplicitAssetConsumerScope(
 	if strings.TrimSpace(req.LocalAssetID) == "" && strings.TrimSpace(req.AssetID) == "" {
 		return ""
 	}
-	model := s.modelByID(strings.TrimSpace(req.LocalAssetID))
+	model := s.resolveManagedMediaImageModel(strings.TrimSpace(req.LocalAssetID))
 	if model == nil {
-		model = s.installedAssetRecordForAssetID(strings.TrimSpace(req.AssetID))
+		model = s.resolveManagedMediaImageModel(strings.TrimSpace(req.AssetID))
 	}
 	if model == nil {
 		return ""
@@ -320,7 +320,23 @@ func (s *Service) resolveCachedProfileModelAssetDependencies(
 	if strings.TrimSpace(req.LocalAssetID) == "" && strings.TrimSpace(req.AssetID) == "" {
 		return nil
 	}
-	cached, ok := s.cachedManagedMediaImageProfile(req.LocalAssetID)
+	cacheLocalAssetID := strings.TrimSpace(req.LocalAssetID)
+	if cacheLocalAssetID == "" {
+		if model := s.resolveManagedMediaImageModel(strings.TrimSpace(req.AssetID)); model != nil {
+			cacheLocalAssetID = strings.TrimSpace(model.GetLocalAssetId())
+		}
+	}
+	cached, ok := s.cachedManagedMediaImageProfile(cacheLocalAssetID)
+	if !ok || !cached.MaterializationResolved {
+		if s.ensureManagedImageProfileMaterializationFromSelectedSources(req.LocalAssetID, req.AssetID) {
+			if cacheLocalAssetID == "" {
+				if model := s.resolveManagedMediaImageModel(strings.TrimSpace(req.AssetID)); model != nil {
+					cacheLocalAssetID = strings.TrimSpace(model.GetLocalAssetId())
+				}
+			}
+			cached, ok = s.cachedManagedMediaImageProfile(cacheLocalAssetID)
+		}
+	}
 	if !ok || !cached.MaterializationResolved {
 		return map[string][]localEnvironmentPlanDependency{
 			localEnvironmentFamilyModelCompanion: {
@@ -596,6 +612,9 @@ func (s *Service) localEnvironmentModelAssetDependencyID(localAssetID string, as
 		}
 	}
 	if trimmed := strings.TrimSpace(assetID); trimmed != "" {
+		if model := s.localAssetRecordForIdentity(trimmed); model != nil {
+			return "asset:" + strings.TrimSpace(model.GetLocalAssetId())
+		}
 		return "asset-id:" + trimmed
 	}
 	if model := s.modelByID(strings.TrimSpace(localAssetID)); model != nil {

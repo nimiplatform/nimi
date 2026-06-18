@@ -536,8 +536,6 @@ func managedMediaEnsureImageOptions(options []string) []string {
 }
 
 func (s *Service) resolveManagedMediaImageModel(requestedModelID string) *runtimev1.LocalAssetRecord {
-	normalizedID, _, _ := parseManagedMediaRequestedModelID(requestedModelID)
-
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -546,7 +544,7 @@ func (s *Service) resolveManagedMediaImageModel(requestedModelID string) *runtim
 		if model == nil {
 			continue
 		}
-		if strings.TrimSpace(model.GetAssetId()) != normalizedID {
+		if !localAssetRecordMatchesIdentity(model, requestedModelID) {
 			continue
 		}
 		if model.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE &&
@@ -567,21 +565,6 @@ func (s *Service) resolveManagedMediaImageModel(requestedModelID string) *runtim
 		return nil
 	}
 	return candidates[0]
-}
-
-func parseManagedMediaRequestedModelID(requestedModelID string) (string, string, bool) {
-	raw := strings.TrimSpace(requestedModelID)
-	lower := strings.ToLower(raw)
-	switch {
-	case strings.HasPrefix(lower, "media/"):
-		return strings.TrimSpace(raw[len("media/"):]), "media", false
-	case strings.HasPrefix(lower, "llama/"):
-		return strings.TrimSpace(raw[len("llama/"):]), "llama", false
-	case strings.HasPrefix(lower, "local/"):
-		return strings.TrimSpace(raw[len("local/"):]), "", true
-	default:
-		return raw, "", false
-	}
 }
 
 func managedMediaEnginePriority(engine string) int {

@@ -652,6 +652,34 @@ func TestResolveLocalImageNativePlanInfersConsumerForExplicitInstalledAsset(t *t
 	}
 }
 
+func TestResolveLocalImageNativePlanAcceptsAssetIDLocalAssetIdentity(t *testing.T) {
+	svc := newLocalEnvironmentTestService(t)
+	defer func() { svc.Close() }()
+	runtimeDataRoot := filepath.Join(t.TempDir(), "runtime-data")
+	profile := localEnvironmentNvidiaProfile()
+	model := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "local/local-import/z_image_turbo-Q4_K",
+		capabilities: []string{"image"},
+		engine:       "media",
+		entry:        "z_image_turbo-Q4_K.gguf",
+	})
+
+	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+		PackID:          "local-image-native",
+		HostProfile:     profile,
+		RuntimeDataRoot: runtimeDataRoot,
+		AssetID:         "local/" + model.GetAssetId(),
+	})
+
+	if plan.ConsumerScope != stableDiffusionCUDAConsumerID {
+		t.Fatalf("plan consumer scope = %q, want %q", plan.ConsumerScope, stableDiffusionCUDAConsumerID)
+	}
+	modelDep := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyModelAsset)
+	if modelDep.DependencyID != "asset:"+model.GetLocalAssetId() {
+		t.Fatalf("explicit local identity dependency id = %q, want %q", modelDep.DependencyID, "asset:"+model.GetLocalAssetId())
+	}
+}
+
 func TestResolveLocalEnvironmentPlanDoesNotProjectLatestJobAcrossConsumers(t *testing.T) {
 	svc := newLocalEnvironmentTestService(t)
 	defer func() { svc.Close() }()

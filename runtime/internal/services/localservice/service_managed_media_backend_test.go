@@ -212,6 +212,46 @@ func TestResolveManagedMediaImageProfileInjectsDynamicSlots(t *testing.T) {
 	}
 }
 
+func TestResolveManagedMediaImageProfileAcceptsLocalAssetIDRequestIdentity(t *testing.T) {
+	svc := newTestService(t)
+	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
+	modelsRoot := filepath.Join(t.TempDir(), "models")
+	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
+
+	modelResp := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "local-import/z-image-turbo-Q4_K_M",
+		capabilities: []string{"image"},
+		engine:       "media",
+		entry:        "z-image-turbo-Q4_K_M.gguf",
+	})
+	svc.mu.Lock()
+	svc.assets[modelResp.GetLocalAssetId()].Status = runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE
+	svc.mu.Unlock()
+	writeManagedAssetEntryFixture(t, modelsRoot, modelResp, "main-model")
+
+	if _, err := svc.ResolveCanonicalImageSelection(context.Background(), modelResp.GetLocalAssetId()); err != nil {
+		t.Fatalf("canonical image selection should accept local asset id: %v", err)
+	}
+
+	_, profile, _, err := svc.ResolveManagedMediaImageProfile(context.Background(), modelResp.GetLocalAssetId(), map[string]any{
+		"profile_entries": []*runtimev1.LocalProfileEntryDescriptor{
+			{
+				EntryId:   "main-image",
+				Kind:      runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_ASSET,
+				AssetId:   modelResp.GetLocalAssetId(),
+				AssetKind: runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE,
+				Engine:    "media",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("resolve local media image profile by local asset id: %v", err)
+	}
+	if got := valueAsString(valueAsObject(profile["parameters"])["model"]); got != "resolved/local-import/z-image-turbo-Q4_K_M/z-image-turbo-Q4_K_M.gguf" {
+		t.Fatalf("unexpected model parameter: %q", got)
+	}
+}
+
 func TestResolveManagedMediaImageProfileDoesNotRequireEngineConfigDefaults(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "windows", "amd64")

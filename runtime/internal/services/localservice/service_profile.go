@@ -451,7 +451,7 @@ func (s *Service) findInstalledAssetForProfileEntry(entry *runtimev1.LocalProfil
 		if existing == nil || existing.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED {
 			continue
 		}
-		if assetID != "" && existing.GetAssetId() != assetID {
+		if assetID != "" && !localAssetRecordMatchesIdentity(existing, assetID) {
 			continue
 		}
 		if assetKind != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED && effectiveAssetKind(existing.GetKind(), existing.GetCapabilities()) != assetKind {

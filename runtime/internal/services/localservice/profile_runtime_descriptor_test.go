@@ -280,6 +280,34 @@ func seedProfileRuntimeNativeImageBackendForService(t *testing.T, svc *Service) 
 	svc.upsertLocalEnvironmentSelectedSourceRecord(record)
 }
 
+func seedProfileRuntimeImageSelectedSourceForService(t *testing.T, svc *Service, family string, dependencyID string) {
+	t.Helper()
+	hostState := localEnvironmentHostProfileFromDeviceProfile(hostProfileOrCollected(nil))
+	record := verifiedSelectedSourceRecordForTest(localEnvironmentSelectedSourceRecordState{
+		DependencyFamily: family,
+		DependencyID:     dependencyID,
+		EnvironmentKey: localEnvironmentKey(
+			family,
+			dependencyID,
+			hostState.HostProfileID,
+			localEnvironmentPlatformTuple(hostState),
+			svc.localEnvironmentRuntimeDataRoot(),
+		),
+		SourceKind:        localEnvironmentSourceImported,
+		CanonicalRoot:     "runtime-managed/" + shortHash(family+"|"+dependencyID),
+		Version:           "local-import",
+		SelectedConsumers: []string{"stable-diffusion.cpp.metal"},
+		AuditReasonCode:   "LOCAL_ENVIRONMENT_DEPENDENCY_READY_MANAGED",
+		CompatibilityEvidence: []string{
+			"selected-source-test",
+		},
+		VerifiedArtifacts: []string{
+			"artifact",
+		},
+	})
+	svc.upsertLocalEnvironmentSelectedSourceRecord(record)
+}
+
 func profileRuntimeNativeImageBackendEnvironmentKeyForTest(svc *Service) string {
 	hostState := localEnvironmentHostProfileFromDeviceProfile(hostProfileOrCollected(nil))
 	return localEnvironmentKey(
@@ -703,6 +731,55 @@ func TestProfileRuntimeDescriptorMaterializationPersistsAcrossRestart(t *testing
 	}
 	defer restored.Close()
 	assertProfileRuntimePlanCompanionsReady(t, restored)
+}
+
+func TestProfileRuntimeDescriptorMaterializationHealsFromReadySelectedSourcesOnPlan(t *testing.T) {
+	svc := newTestService(t)
+	seedProfileRuntimeLocalAssetForService(t, svc, "local-z-image", "z_image_turbo", runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE)
+	seedProfileRuntimeLocalAssetForService(t, svc, "local-z-image-ae", "z_image_ae", runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED)
+	seedProfileRuntimeLocalAssetForService(t, svc, "local-qwen3-4b", "qwen3_4b_companion", runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED)
+	seedProfileRuntimeImageSelectedSourceForService(t, svc, localEnvironmentFamilyModelAsset, "asset:local-z-image")
+	seedProfileRuntimeImageSelectedSourceForService(t, svc, localEnvironmentFamilyModelCompanion, "asset-id:z_image_ae|parent-asset-id:z_image_turbo")
+	seedProfileRuntimeImageSelectedSourceForService(t, svc, localEnvironmentFamilyModelCompanion, "asset-id:qwen3_4b_companion|parent-asset-id:z_image_turbo")
+
+	if cached, ok := svc.cachedManagedMediaImageProfile("local-z-image"); ok && cached.MaterializationResolved {
+		t.Fatalf("test must start without a materialization cache, got %+v", cached)
+	}
+
+	assertProfileRuntimePlanCompanionsReady(t, svc)
+	cached, ok := svc.cachedManagedMediaImageProfile("local-z-image")
+	if !ok || !cached.MaterializationResolved || len(cached.MaterializationBindings) != 3 {
+		t.Fatalf("plan resolution must heal materialization bindings from selected sources, ok=%v cached=%+v", ok, cached)
+	}
+}
+
+func TestProfileRuntimeDescriptorMaterializationHealsFromReadySelectedSourcesAcrossRestart(t *testing.T) {
+	svc := newTestService(t)
+	seedProfileRuntimeLocalAssetForService(t, svc, "local-z-image", "z_image_turbo", runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE)
+	seedProfileRuntimeLocalAssetForService(t, svc, "local-z-image-ae", "z_image_ae", runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED)
+	seedProfileRuntimeLocalAssetForService(t, svc, "local-qwen3-4b", "qwen3_4b_companion", runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED)
+	seedProfileRuntimeImageSelectedSourceForService(t, svc, localEnvironmentFamilyModelAsset, "asset:local-z-image")
+	seedProfileRuntimeImageSelectedSourceForService(t, svc, localEnvironmentFamilyModelCompanion, "asset-id:z_image_ae|parent-asset-id:z_image_turbo")
+	seedProfileRuntimeImageSelectedSourceForService(t, svc, localEnvironmentFamilyModelCompanion, "asset-id:qwen3_4b_companion|parent-asset-id:z_image_turbo")
+
+	snapshot, err := loadLocalStateSnapshot(svc.stateStorePath)
+	if err != nil {
+		t.Fatalf("load pre-restore state: %v", err)
+	}
+	if len(snapshot.ManagedImageProfileMaterializations) != 0 {
+		t.Fatalf("test must persist selected sources without materialization cache, got %+v", snapshot.ManagedImageProfileMaterializations)
+	}
+
+	restored, err := New(svc.logger, nil, svc.stateStorePath, 0, svc.localModelsPath)
+	if err != nil {
+		t.Fatalf("restore service: %v", err)
+	}
+	defer restored.Close()
+	assertProfileRuntimePlanCompanionsReady(t, restored)
+	cached, ok := restored.cachedManagedMediaImageProfile("local-z-image")
+	if !ok || !cached.MaterializationResolved || len(cached.MaterializationBindings) != 3 {
+		t.Fatalf("restore must heal materialization bindings from selected sources, ok=%v cached=%+v", ok, cached)
+	}
 }
 
 func TestProfileRuntimeDescriptorMaterializationRestoreFailsClosedForCorruptState(t *testing.T) {

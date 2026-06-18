@@ -345,6 +345,9 @@ func (s *Service) restoreState() error {
 			MaterializationBindings: bindings,
 		}
 	}
+	if s.healManagedImageProfileMaterializationsFromSelectedSourcesLocked() > 0 {
+		healedSnapshot = true
+	}
 	// Crash recovery: a job persisted at a non-terminal state across a daemon
 	// restart has no background goroutine driving it. Fail every orphan closed
 	// (retryable) so it is never a permanently frozen in-progress job.
