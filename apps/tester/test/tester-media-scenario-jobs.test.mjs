@@ -112,6 +112,34 @@ function protoString(value) {
   return value?.kind?.oneofKind === 'stringValue' ? value.kind.stringValue : '';
 }
 
+function readyLocalImageEnvironmentMethods() {
+  return {
+    async resolveLocalEnvironmentPlan() {
+      return {
+        plan: {
+          planId: 'local-image-native-ready',
+          packId: 'local-image-native',
+          productLabel: 'Local image native',
+          hostProfileId: 'tester-host',
+          platformTuple: 'windows-amd64',
+          runtimeDataRoot: 'tester-data-root',
+          consumerScope: 'local-image-native',
+          cloudOnlyImpact: 'none',
+          state: 'ready_managed',
+          reasonCode: 'LOCAL_ENVIRONMENT_PLAN_READY',
+          dependencies: [],
+        },
+      };
+    },
+    async listLocalEnvironmentDependencyJobs() {
+      return { jobs: [] };
+    },
+    async startLocalEnvironmentDependencyJob() {
+      throw new Error('local image dependency job should not start when environment is ready');
+    },
+  };
+}
+
 test('tester media lanes dispatch through Runtime Scenario jobs when vNext media facade is absent', async (t) => {
   installMemoryStorageHarness(t);
   const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');
@@ -167,6 +195,7 @@ test('tester media lanes dispatch through Runtime Scenario jobs when vNext media
   const client = {
     runtime: {
       local: {
+        ...readyLocalImageEnvironmentMethods(),
         async listLocalAssets() {
           return {
             nextPageToken: '',
@@ -375,6 +404,7 @@ test('audio.synthesize resolves Default local voice to admitted Runtime voice as
   const client = {
     runtime: {
       local: {
+        ...readyLocalImageEnvironmentMethods(),
         async listLocalAssets() {
           return {
             nextPageToken: '',
@@ -512,6 +542,7 @@ test('image.generate materializes local model and companion slots into Runtime p
     runtimeSubjectUserId: 'subject-user-1',
     runtime: {
       local: {
+        ...readyLocalImageEnvironmentMethods(),
         async listLocalAssets() {
           return {
             nextPageToken: '',
@@ -600,6 +631,137 @@ test('image.generate materializes local model and companion slots into Runtime p
   ]);
 });
 
+test('image.generate starts local image environment dependencies before submitting generation', async (t) => {
+  installMemoryStorageHarness(t);
+  const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');
+  const store = await importBehaviorModule('tester/tester-ai-config-store.js');
+  const scopeRef = store.createTesterAppLabAIScopeRef();
+  store.saveTesterAIConfig({
+    scopeRef,
+    capabilities: {
+      targetRefs: {
+        'image.generate': {
+          kind: 'local-runtime',
+          targetId: 'media',
+          profileId: 'local-main-image',
+        },
+      },
+      selectedParams: {},
+    },
+    profileOrigin: null,
+  });
+
+  const started = [];
+  let generateCalled = false;
+  const client = {
+    runtimeSubjectUserId: 'subject-user-1',
+    runtime: {
+      local: {
+        ...readyLocalImageEnvironmentMethods(),
+        async listLocalAssets() {
+          return {
+            nextPageToken: '',
+            assets: [{
+              localAssetId: 'local-main-image',
+              assetId: 'local-import/z-image-turbo-Q4_K_M',
+              kind: 'image',
+              engine: 'media',
+              status: 'active',
+            }],
+          };
+        },
+        async resolveLocalEnvironmentPlan() {
+          return {
+            plan: {
+              planId: 'local-image-native-needs-confirmation',
+              packId: 'local-image-native',
+              productLabel: 'Local image native',
+              hostProfileId: 'tester-host',
+              platformTuple: 'windows-amd64',
+              runtimeDataRoot: 'tester-data-root',
+              consumerScope: 'local-image-native',
+              cloudOnlyImpact: 'none',
+              state: 'needs_confirmation',
+              reasonCode: 'LOCAL_ENVIRONMENT_PLAN_REQUIRES_SETUP',
+              dependencies: [{
+                dependencyFamily: 'python.tool.uv',
+                dependencyId: 'uv',
+                consumerScope: 'local-image-native',
+                required: true,
+                state: 'needs_confirmation',
+                sourceKind: 'runtime_managed',
+                confirmationRequired: true,
+                environmentKey: 'env-python-tool-uv',
+                reasonCode: 'LOCAL_ENVIRONMENT_DEPENDENCY_CONFIRMATION_REQUIRED',
+                detail: '',
+              }],
+            },
+          };
+        },
+        async listLocalEnvironmentDependencyJobs() {
+          return { jobs: [] };
+        },
+        async startLocalEnvironmentDependencyJob(request) {
+          started.push(request);
+          return {
+            job: {
+              jobId: 'job-python-tool-uv',
+              ...request,
+              state: 'queued',
+              canonicalRoot: '',
+              selectedSourceRecordId: '',
+              failureDetail: '',
+              retryable: true,
+              createdAt: '2026-06-18T00:00:00.000Z',
+              updatedAt: '2026-06-18T00:00:00.000Z',
+              reasonCode: '',
+              recoveryDisposition: '',
+              bytesReceived: '0',
+              bytesTotal: '0',
+              percent: 0,
+              speedBytesPerSec: '0',
+              etaSeconds: '0',
+            },
+          };
+        },
+      },
+      scheduling: {
+        async peekScheduling() {
+          return runnableSchedulingResponse();
+        },
+      },
+      media: {
+        image: {
+          async generate() {
+            generateCalled = true;
+            throw new Error('image.generate must wait for local image setup readiness');
+          },
+        },
+      },
+      ai: {},
+    },
+  };
+
+  const result = await invokers.invokeTesterCapability(client, 'image.generate', {
+    prompt: 'a product panel',
+    scenarioId: 'scenario-local-image-setup',
+    subjectUserId: 'subject-user-1',
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'local-environment-preparing');
+  assert.match(result.message, /Runtime local image setup started 1 dependency job/);
+  assert.equal(generateCalled, false);
+  assert.deepEqual(started, [{
+    environmentKey: 'env-python-tool-uv',
+    dependencyFamily: 'python.tool.uv',
+    dependencyId: 'uv',
+    sourceKind: 'runtime_managed',
+    confirmed: true,
+    consumerScope: 'local-image-native',
+  }]);
+});
+
 test('audio.synthesize fails closed when Runtime media TTS does not complete before client timeout', async (t) => {
   installMemoryStorageHarness(t);
   const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');
@@ -631,6 +793,7 @@ test('audio.synthesize fails closed when Runtime media TTS does not complete bef
     runtimeSubjectUserId: 'subject-user-1',
     runtime: {
       local: {
+        ...readyLocalImageEnvironmentMethods(),
         async listLocalAssets() {
           return {
             nextPageToken: '',
@@ -722,6 +885,7 @@ test('tester surfaces inline runtime media artifact bytes as a previewable data 
   const client = {
     runtime: {
       local: {
+        ...readyLocalImageEnvironmentMethods(),
         async listLocalAssets() {
           return {
             nextPageToken: '',

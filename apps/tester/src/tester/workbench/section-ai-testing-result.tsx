@@ -1,10 +1,10 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Tooltip } from '@nimiplatform/kit/ui';
-import { AlertTriangle, Copy as CopyIcon, Download as DownloadIcon, FileText, MessageSquare, RefreshCw, SlidersHorizontal } from 'lucide-react';
+import { AlertTriangle, ChevronRight, Copy as CopyIcon, Download as DownloadIcon, FileText, MessageSquare, RefreshCw, SlidersHorizontal } from 'lucide-react';
 import type { TesterCapability } from '../tester-capabilities.js';
 import { formatTesterRunTimestamp, getTesterRunConfigParamRows, getTesterRunModelLabel, getTesterRunPromptControlFacts, getTesterRunResultTags, getTesterRunStatusLabel, getTesterRunStatusTone, type TesterRunConfigParamRow, type TesterRunHistoryRecord, type TesterRunHistoryResultSnapshot, type TesterRunPromptControlFact } from '../tester-history.js';
 import { unavailableReasonUserAction, unavailableReasonUserMessage } from '../tester-unavailable.js';
-import { RuntimeDiagnosticsActions, StudioResult, TextStudioOutputBody, artifactExtension, downloadArtifactUrl, downloadTextFile, statusForCapability } from './section-ai-testing-surface.js';
+import { ArtifactMediaPreview, RuntimeDiagnosticsActions, StudioResult, TextStudioOutputBody, artifactExtension, downloadArtifactUrl, downloadTextFile, hasPreviewableArtifact, statusForCapability } from './section-ai-testing-surface.js';
 import type { TextStudioActiveRun } from './section-ai-testing-run.js';
 
 function TextStudioPromptControlFacts({ facts }: { facts: readonly TesterRunPromptControlFact[] }) {
@@ -52,10 +52,6 @@ function groupParamRows(rows: readonly TesterRunConfigParamRow[]): Array<{ group
   return groups;
 }
 
-function summarizeParamRows(rows: readonly TesterRunConfigParamRow[]): string {
-  return rows.slice(0, 5).map((row) => `${row.label} ${row.value}`).join(' / ');
-}
-
 function TextStudioModelSettings({ record }: { record: TesterRunHistoryRecord }) {
   const runConfig = record.runConfig;
   if (!runConfig) {
@@ -68,16 +64,12 @@ function TextStudioModelSettings({ record }: { record: TesterRunHistoryRecord })
     return null;
   }
   const paramGroups = groupParamRows(paramRows);
-  const paramSummary = paramRows.length > 0
-    ? summarizeParamRows(paramRows)
-    : fallbackSummary;
 
   return (
     <section className="studio-history-settings" aria-label="Model settings">
       <div className="studio-history-settings__head">
         <SlidersHorizontal size={14} aria-hidden="true" />
         <strong>Model settings</strong>
-        <span className="studio-history-settings__summary">{paramSummary}</span>
       </div>
       {paramGroups.map((group) => (
         <div key={group.group} className="studio-history-settings__group">
@@ -94,6 +86,12 @@ function TextStudioModelSettings({ record }: { record: TesterRunHistoryRecord })
       ))}
     </section>
   );
+}
+
+function hasTextStudioModelSettings(record: TesterRunHistoryRecord): boolean {
+  const runConfig = record.runConfig;
+  if (!runConfig) return false;
+  return getTesterRunConfigParamRows(runConfig).length > 0 || Boolean(runConfig.target.paramsSummary.join(' / '));
 }
 
 function historyRecordPlainText(record: TesterRunHistoryRecord): string {
@@ -145,6 +143,8 @@ function TextStudioHistoryRecordResult({
   const exportText = historyRecordPlainText(record);
   const blocked = snapshot && !snapshot.ok ? snapshot : null;
   const canExport = !blocked && Boolean(exportText.trim() || historyRecordArtifact(record));
+  const hasModelSettings = hasTextStudioModelSettings(record);
+  const [modelSettingsOpen, setModelSettingsOpen] = useState(false);
   function handleCopy() {
     if (!exportText.trim()) return;
     try {
@@ -234,12 +234,27 @@ function TextStudioHistoryRecordResult({
         </div>
         <div className="studio-history-result__model">
           <span>Model</span>
-          <Tooltip content={modelLabel} placement="top" className="min-w-0">
-            <strong>{modelLabel}</strong>
-          </Tooltip>
+          <div className={hasModelSettings ? 'studio-model-pill__box' : 'studio-model-pill__box studio-model-pill__box--static'}>
+            <Tooltip content={modelLabel} placement="top" className="min-w-0">
+              <strong>{modelLabel}</strong>
+            </Tooltip>
+            {hasModelSettings ? (
+              <Tooltip content={modelSettingsOpen ? 'Hide model settings' : 'Show model settings'} placement="top">
+                <button
+                  type="button"
+                  className={modelSettingsOpen ? 'studio-model-pill__trigger studio-model-pill__trigger--open' : 'studio-model-pill__trigger'}
+                  aria-label={modelSettingsOpen ? 'Hide model settings' : 'Show model settings'}
+                  aria-expanded={modelSettingsOpen}
+                  onClick={() => setModelSettingsOpen((value) => !value)}
+                >
+                  <ChevronRight size={15} aria-hidden="true" />
+                </button>
+              </Tooltip>
+            ) : null}
+          </div>
         </div>
       </div>
-      <TextStudioModelSettings record={record} />
+      {modelSettingsOpen && hasModelSettings ? <TextStudioModelSettings record={record} /> : null}
       {body}
     </div>
   );
@@ -257,9 +272,13 @@ function TextStudioHistorySnapshotBody({ snapshot }: { snapshot: Extract<TesterR
     );
   }
   if (snapshot.kind === 'artifacts') {
+    const preview = hasPreviewableArtifact(snapshot.firstArtifact)
+      ? <ArtifactMediaPreview artifact={snapshot.firstArtifact} fallbackLabel={snapshot.jobId} />
+      : null;
     return (
       <div className="studio-result__rich">
-        <p className="studio-result__plain">Media generated successfully.</p>
+        {preview}
+        {!preview ? <p className="studio-result__plain">Media generated successfully.</p> : null}
       </div>
     );
   }
@@ -346,13 +365,13 @@ export function TextStudioResultState({
                 admission={admission}
                 createdAt={activeRun.createdAt}
                 modelLabel={modelLabel}
+                modelSettings={activeRun.record && hasTextStudioModelSettings(activeRun.record) ? <TextStudioModelSettings record={activeRun.record} /> : null}
                 streamingText={streamingText}
                 verboseConsole={verboseConsole}
                 onCopy={onCopy}
                 onDownload={onDownload}
                 onRegenerate={onRegenerate}
               />
-              {activeRun.record ? <TextStudioModelSettings record={activeRun.record} /> : null}
             </>
           ) : activeRun.record ? (
             <TextStudioHistoryRecordResult record={activeRun.record} onRegenerate={onRegenerate} />

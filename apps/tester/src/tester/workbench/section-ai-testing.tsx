@@ -330,17 +330,25 @@ export function SectionAITesting({
       </div>
 
       {configSection ? (
-        <aside className="section-ai-testing__drawer" aria-label="Configure model">
-          <DrawerErrorBoundary onClose={() => setConfigSection(null)}>
-            <Suspense fallback={<div className="section-ai-testing__drawer-loading">Loading model config...</div>}>
-              <TesterAiConfigSettingsPanel
-                runtime={runtime}
-                initialSection={configSection}
-                onClose={() => setConfigSection(null)}
-              />
-            </Suspense>
-          </DrawerErrorBoundary>
-        </aside>
+        <>
+          <button
+            type="button"
+            className="section-ai-testing__drawer-backdrop"
+            aria-label="Close model configuration"
+            onClick={() => setConfigSection(null)}
+          />
+          <aside className="section-ai-testing__drawer" aria-label="Configure model">
+            <DrawerErrorBoundary onClose={() => setConfigSection(null)}>
+              <Suspense fallback={<div className="section-ai-testing__drawer-loading">Loading model config...</div>}>
+                <TesterAiConfigSettingsPanel
+                  runtime={runtime}
+                  initialSection={configSection}
+                  onClose={() => setConfigSection(null)}
+                />
+              </Suspense>
+            </DrawerErrorBoundary>
+          </aside>
+        </>
       ) : null}
     </div>
   );

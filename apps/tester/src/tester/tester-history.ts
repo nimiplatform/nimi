@@ -189,11 +189,6 @@ const testerRunDateTimeFormatter = new Intl.DateTimeFormat('en-US', {
   hourCycle: 'h23',
 });
 
-const testerRunDateFormatter = new Intl.DateTimeFormat('en-US', {
-  month: 'short',
-  day: 'numeric',
-});
-
 const testerRunDateTimeWithYearFormatter = new Intl.DateTimeFormat('en-US', {
   year: 'numeric',
   month: 'short',
@@ -201,12 +196,6 @@ const testerRunDateTimeWithYearFormatter = new Intl.DateTimeFormat('en-US', {
   hour: '2-digit',
   minute: '2-digit',
   hourCycle: 'h23',
-});
-
-const testerRunDateWithYearFormatter = new Intl.DateTimeFormat('en-US', {
-  year: 'numeric',
-  month: 'short',
-  day: 'numeric',
 });
 
 function isSameLocalCalendarDate(left: Date, right: Date): boolean {
@@ -231,8 +220,8 @@ export function formatTesterRunHistoryTimestamp(value: string, now = new Date())
     const date = new Date(value);
     if (Number.isNaN(date.valueOf())) return 'Unknown date';
     if (isSameLocalCalendarDate(date, now)) return testerRunTimeFormatter.format(date);
-    if (date.getFullYear() === now.getFullYear()) return testerRunDateFormatter.format(date);
-    return testerRunDateWithYearFormatter.format(date);
+    if (date.getFullYear() === now.getFullYear()) return testerRunDateTimeFormatter.format(date);
+    return testerRunDateTimeWithYearFormatter.format(date);
   } catch {
     return 'Unknown date';
   }
@@ -565,15 +554,13 @@ export function getTesterRunMetricSummary(record: TesterRunHistoryRecord): strin
 
 export function getTesterRunResultTags(record: TesterRunHistoryRecord): string[] {
   const result = record.result;
-  const params = record.runConfig?.target.paramsSummary ?? [];
-  if (!result) return [record.status === 'ready' ? 'Runtime' : getTesterRunStatusLabel(record.status), ...params.slice(0, 2)];
+  if (!result) return [record.status === 'ready' ? 'Runtime' : getTesterRunStatusLabel(record.status)];
   if (isTesterUnavailableHistorySnapshot(result)) return [result.reason];
   if (result.kind === 'text') {
     return [
       result.streamed ? 'Stream' : 'Runtime',
       `${result.charCount} chars`,
       result.totalTokens === undefined ? '' : `${result.totalTokens} tokens`,
-      ...params.slice(0, 2),
     ].filter(Boolean);
   }
   if (result.kind === 'embedding') return ['Embedding ready'];

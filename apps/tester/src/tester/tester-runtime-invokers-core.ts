@@ -27,7 +27,7 @@ import {
   type NimiRuntimeAISchedulingClient,
   type NimiRuntimeEmbeddingScenarioClient,
 } from '@nimiplatform/sdk/ai';
-import type { NimiRuntimeLocalAssetListClient, NimiRuntimeScenarioJobClient } from '@nimiplatform/sdk/runtime';
+import type { NimiRuntimeLocalModelCenterRpc, NimiRuntimeScenarioJobClient } from '@nimiplatform/sdk/runtime';
 import type { ListVoiceAssetsRequest, ListVoiceAssetsResponse } from '@nimiplatform/sdk/runtime/generated';
 import {
   textPart,
@@ -134,7 +134,7 @@ export type TesterRuntimeInvocationClient = {
       ) => Promise<ListVoiceAssetsResponse>;
     };
     readonly scheduling: NimiRuntimeAISchedulingClient;
-    readonly local?: NimiRuntimeLocalAssetListClient['local'];
+    readonly local?: NimiRuntimeLocalModelCenterRpc;
     readonly artifacts?: {
       readonly readArtifactBytes: (request: {
         readonly artifactId: string;

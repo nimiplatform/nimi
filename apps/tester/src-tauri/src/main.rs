@@ -27,6 +27,7 @@ fn main() {
             @with_runtime_defaults nimi_shell_tauri::runtime_defaults::runtime_defaults;
             tester_storage::tester_image_history_load,
             tester_storage::tester_image_history_save,
+            tester_storage::tester_artifact_save,
             tester_storage::tester_export_save,
             tester_storage::tester_run_history_load,
             tester_storage::tester_run_history_save,

@@ -1,6 +1,9 @@
 import { Component, lazy, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   Button,
+  Dialog,
+  DialogContent,
+  DialogTitle,
   EmptyState,
   Surface,
   Tooltip,
@@ -18,12 +21,14 @@ import {
   Download as DownloadIcon,
   FileText,
   Loader2,
+  Maximize2,
   Play,
   RefreshCw,
   Settings,
   ShieldCheck,
   SlidersHorizontal,
   Sparkles,
+  X,
 } from 'lucide-react';
 import {
   testerCapabilities,
@@ -243,19 +248,57 @@ export function RuntimeDiagnosticsActions({
   );
 }
 
-// Rich media preview for runtime artifact results (image / audio / video),
-// recovered from the desktop tester result rendering. Falls back to the typed
-// JSON summary below when the artifact has no previewable URL/MIME.
-function ArtifactPreview({ result }: { result: TesterCapabilityRunResult & { ok: true } }) {
-  if (result.output.kind !== 'artifacts') return null;
-  const artifact = result.output.firstArtifact;
+export type StudioArtifactPreviewSource = {
+  artifactId?: string;
+  mimeType?: string;
+  url?: string;
+  displayName?: string;
+};
+
+export function hasPreviewableArtifact(artifact?: StudioArtifactPreviewSource): boolean {
+  const mimeType = artifact?.mimeType ?? '';
+  return Boolean(
+    artifact?.url
+      && (mimeType.startsWith('image/') || mimeType.startsWith('audio/') || mimeType.startsWith('video/')),
+  );
+}
+
+// Rich media preview for runtime artifact results (image / audio / video).
+// It only renders from a typed artifact URL/MIME pair; no placeholder media is
+// fabricated when Runtime returns metadata without previewable bytes.
+export function ArtifactMediaPreview({
+  artifact,
+  fallbackLabel,
+}: {
+  artifact?: StudioArtifactPreviewSource;
+  fallbackLabel: string;
+}) {
   const url = artifact?.url;
   const mimeType = artifact?.mimeType ?? '';
-  if (!url) return null;
-  const label = artifact?.displayName || artifact?.artifactId || result.output.jobId;
+  const [imagePreviewOpen, setImagePreviewOpen] = useState(false);
+  useEffect(() => {
+    setImagePreviewOpen(false);
+  }, [mimeType, url]);
+  if (!hasPreviewableArtifact(artifact) || !url) return null;
+  const label = artifact?.displayName || artifact?.artifactId || fallbackLabel;
+  const isImage = mimeType.startsWith('image/');
   let media: ReactNode = null;
-  if (mimeType.startsWith('image/')) {
-    media = <img src={url} alt={label} loading="lazy" />;
+  if (isImage) {
+    media = (
+      <div className="ai-result__media-frame">
+        <img src={url} alt={label} loading="lazy" />
+        <Tooltip content="Expand image" placement="top">
+          <button
+            type="button"
+            className="ai-result__media-expand"
+            aria-label="Expand generated image"
+            onClick={() => setImagePreviewOpen(true)}
+          >
+            <Maximize2 size={16} aria-hidden="true" />
+          </button>
+        </Tooltip>
+      </div>
+    );
   } else if (mimeType.startsWith('audio/')) {
     media = <audio controls src={url} />;
   } else if (mimeType.startsWith('video/')) {
@@ -263,10 +306,37 @@ function ArtifactPreview({ result }: { result: TesterCapabilityRunResult & { ok:
   }
   if (!media) return null;
   return (
-    <figure className="ai-result__media" data-mime={mimeType}>
-      {media}
-    </figure>
+    <>
+      <figure className="ai-result__media" data-mime={mimeType}>
+        {media}
+      </figure>
+      {isImage ? (
+        <Dialog open={imagePreviewOpen} onOpenChange={(open) => { if (!open) setImagePreviewOpen(false); }}>
+          <DialogContent
+            onClose={() => setImagePreviewOpen(false)}
+            overlayClassName="ai-result-preview-modal__overlay"
+            className="ai-result-preview-modal"
+          >
+            <DialogTitle className="ai-result-preview-modal__title">Image preview</DialogTitle>
+            <button
+              type="button"
+              className="ai-result-preview-modal__close"
+              aria-label="Close image preview"
+              onClick={() => setImagePreviewOpen(false)}
+            >
+              <X size={20} aria-hidden="true" />
+            </button>
+            <img src={url} alt={label} className="ai-result-preview-modal__image" />
+          </DialogContent>
+        </Dialog>
+      ) : null}
+    </>
   );
+}
+
+function ArtifactPreview({ result }: { result: TesterCapabilityRunResult & { ok: true } }) {
+  if (result.output.kind !== 'artifacts') return null;
+  return <ArtifactMediaPreview artifact={result.output.firstArtifact} fallbackLabel={result.output.jobId} />;
 }
 
 function splitSubjectLine(text: string): { subject: string; body: string } | null {
@@ -304,7 +374,7 @@ function ReadyBody({ result }: { result: TesterCapabilityRunResult & { ok: true 
     return <TextStudioOutputBody text={output.text} />;
   }
   if (output.kind === 'artifacts') {
-    const preview = <ArtifactPreview result={result} />;
+    const preview = hasPreviewableArtifact(output.firstArtifact) ? <ArtifactPreview result={result} /> : null;
     return (
       <div className="studio-result__rich">
         {preview}
@@ -335,6 +405,39 @@ function ReadyBody({ result }: { result: TesterCapabilityRunResult & { ok: true 
 // Runtime details disclosure - preserves the developer-tester diagnostic surface
 // (runtime method id, admission detail, typed JSON, trace) beneath the product
 // result view. Blockers are returned as typed unavailable results, surfaced here.
+function formatRuntimeDetailsExport({
+  capability,
+  result,
+  admission,
+  verboseConsole,
+}: {
+  capability: TesterCapability;
+  result: TesterCapabilityRunResult | null;
+  admission: CapabilityStatus;
+  verboseConsole: boolean;
+}): string {
+  const lines = [
+    'Runtime details',
+    '',
+    `Capability: ${capability.id}`,
+    `Method: ${runtimeMethodFor(capability.id)}`,
+    `Admission: ${admission.detail}`,
+  ];
+  if (result && !result.ok) {
+    lines.push(`Reason: ${result.reason}`);
+  }
+  if (result?.ok && result.trace?.traceId) {
+    lines.push(`Trace: ${result.trace.traceId}${result.trace.modelResolved ? ` / ${result.trace.modelResolved}` : ''}`);
+  }
+  if (result) {
+    lines.push('', result.ok ? 'Output:' : 'Diagnostics:', result.ok ? formatTypedOutput(result) : formatUnavailableOutput(result));
+  }
+  if (verboseConsole) {
+    lines.push('', `Verbose console: capability ${capability.id}; ${result ? (result.ok ? 'typed success' : `fail-closed ${result.reason}`) : 'no current-session result'}.`);
+  }
+  return lines.join('\n');
+}
+
 function RuntimeDetails({
   capability,
   result,
@@ -347,10 +450,11 @@ function RuntimeDetails({
   verboseConsole: boolean;
 }) {
   const diagnosticsText = result && !result.ok ? formatUnavailableOutput(result) : '';
+  const runtimeDetailsText = formatRuntimeDetailsExport({ capability, result, admission, verboseConsole });
   return (
     <details className="studio-diag">
       <summary>Runtime details</summary>
-      {diagnosticsText ? <RuntimeDiagnosticsActions text={diagnosticsText} filenameBase={capability.id} /> : null}
+      <RuntimeDiagnosticsActions text={runtimeDetailsText} filenameBase={capability.id} />
       <dl className="studio-diag__grid">
         <div>
           <dt>Method</dt>
@@ -450,6 +554,7 @@ export function StudioResult({
   admission,
   createdAt,
   modelLabel,
+  modelSettings,
   streamingText,
   verboseConsole,
   onCopy,
@@ -462,6 +567,7 @@ export function StudioResult({
   admission: CapabilityStatus;
   createdAt?: string;
   modelLabel?: string;
+  modelSettings?: ReactNode;
   streamingText?: string | null;
   verboseConsole: boolean;
   onCopy: () => void;
@@ -474,9 +580,14 @@ export function StudioResult({
   const plainText = ready ? resultPlainText(ready) : '';
   const canExport = Boolean(ready && plainText);
   const displayModelLabel = studioResultModelLabel(result, capability, modelLabel);
+  const [modelSettingsOpen, setModelSettingsOpen] = useState(false);
+  const hasModelSettings = Boolean(modelSettings);
   const runTimeLabel = createdAt ? formatTesterRunTimestamp(createdAt) : running ? 'Running' : 'Not recorded';
   const statusTitle = running ? 'Runtime running' : blocked ? 'Runtime blocked' : ready ? 'Runtime ready' : 'Runtime waiting';
   const statusTone = blocked ? 'warning' : ready ? 'success' : running ? 'info' : 'neutral';
+  useEffect(() => {
+    if (!hasModelSettings) setModelSettingsOpen(false);
+  }, [hasModelSettings]);
 
   let metric = '-';
   if (ready) {
@@ -564,7 +675,7 @@ export function StudioResult({
       <div className="studio-result__meta">
         <div className={`studio-result__runtime-chip studio-result__runtime-chip--${statusTone}`}>
           <Sparkles size={14} aria-hidden="true" />
-          <span>Runtime</span>
+          <span>Runtime SDK</span>
         </div>
         <div className="studio-result__stats studio-result__stats--top" aria-label="Generation metrics">
           {stats.map((stat) => (
@@ -576,11 +687,27 @@ export function StudioResult({
         </div>
         <div className="studio-result__model-pill">
           <span>Model</span>
-          <Tooltip content={displayModelLabel} placement="top" className="min-w-0">
-            <strong>{displayModelLabel}</strong>
-          </Tooltip>
+          <div className={hasModelSettings ? 'studio-model-pill__box' : 'studio-model-pill__box studio-model-pill__box--static'}>
+            <Tooltip content={displayModelLabel} placement="top" className="min-w-0">
+              <strong>{displayModelLabel}</strong>
+            </Tooltip>
+            {hasModelSettings ? (
+              <Tooltip content={modelSettingsOpen ? 'Hide model settings' : 'Show model settings'} placement="top">
+                <button
+                  type="button"
+                  className={modelSettingsOpen ? 'studio-model-pill__trigger studio-model-pill__trigger--open' : 'studio-model-pill__trigger'}
+                  aria-label={modelSettingsOpen ? 'Hide model settings' : 'Show model settings'}
+                  aria-expanded={modelSettingsOpen}
+                  onClick={() => setModelSettingsOpen((value) => !value)}
+                >
+                  <ChevronRight size={15} aria-hidden="true" />
+                </button>
+              </Tooltip>
+            ) : null}
+          </div>
         </div>
       </div>
+      {modelSettingsOpen && modelSettings ? modelSettings : null}
       <div className="studio-result__body">{body}</div>
       <RuntimeDetails capability={capability} result={result} admission={admission} verboseConsole={verboseConsole} />
     </Surface>
@@ -670,7 +797,7 @@ function historySubtitleForRun(record: TesterRunHistoryRecord): string {
   if (record.status === 'failed' || record.status === 'unavailable') {
     return ['Failed', source, historyFailureReasonForRun(record)].filter(Boolean).join(' / ');
   }
-  return [source, historyTitleForRun(record)].filter(Boolean).join(' / ');
+  return source;
 }
 
 function historyLabelForRun(record: TesterFlatRunRecord): string {

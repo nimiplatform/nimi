@@ -6,6 +6,7 @@ import { createNimiClientId } from '@nimiplatform/sdk';
 import { requestWithRetry } from '@nimiplatform/sdk/types';
 import { Camera } from 'lucide-react';
 import { getTesterCapability, testerCapabilities, type TesterCapabilityId } from './tester-capabilities.js';
+import { saveTesterArtifact } from './tester-artifact-storage.js';
 import { shouldPersistTesterArtifactRecord } from './tester-artifact-persistence.js';
 import {
   appendTesterRunHistory,
@@ -53,6 +54,49 @@ function hasTraceMetadata(result: TesterCapabilityRunResult): boolean {
 
 function getResultTraceId(result: TesterCapabilityRunResult): string | undefined {
   return result.ok ? result.trace?.traceId : undefined;
+}
+
+function artifactExtension(mimeType: string | undefined): string {
+  const normalized = String(mimeType || '').toLowerCase();
+  if (normalized.includes('png')) return 'png';
+  if (normalized.includes('jpeg') || normalized.includes('jpg')) return 'jpg';
+  if (normalized.includes('webp')) return 'webp';
+  if (normalized.includes('gif')) return 'gif';
+  if (normalized.includes('mp4')) return 'mp4';
+  if (normalized.includes('webm')) return 'webm';
+  if (normalized.includes('wav')) return 'wav';
+  if (normalized.includes('mpeg') || normalized.includes('mp3')) return 'mp3';
+  return 'bin';
+}
+
+async function materializeTesterArtifactResult(
+  result: TesterCapabilityRunResult,
+  runId: string,
+  createdAt: string,
+): Promise<TesterCapabilityRunResult> {
+  if (!shouldPersistTesterArtifactRecord(result)) return result;
+  const firstArtifact = result.output.firstArtifact;
+  const url = firstArtifact?.url?.trim();
+  if (!url?.startsWith('data:')) return result;
+  const stamp = createdAt.replace(/[:.]/g, '-');
+  const filename = `${result.capabilityId}-${stamp}-${runId}.${artifactExtension(firstArtifact?.mimeType)}`;
+  const saved = await saveTesterArtifact({
+    filename,
+    mimeType: firstArtifact?.mimeType,
+    dataUrl: url,
+  });
+  return {
+    ...result,
+    output: {
+      ...result.output,
+      firstArtifact: {
+        ...firstArtifact,
+        url: saved.previewUrl,
+        displayName: firstArtifact?.displayName || saved.filename,
+        mimeType: firstArtifact?.mimeType || saved.mimeType,
+      },
+    },
+  };
 }
 
 function runtimeBadge(summary: TesterAIConfigSummary | null): { label: string; tone: 'success' | 'warning' | 'neutral' } {
@@ -191,43 +235,53 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
       const flowId = createRendererFlowId('tester-capability-run');
       const traceId = getResultTraceId(result);
       const createdAt = new Date().toISOString();
+      let historyResult = result;
+      try {
+        historyResult = await materializeTesterArtifactResult(result, runId, createdAt);
+      } catch (error) {
+        emitRuntimeLog({
+          level: 'warn',
+          area: 'tester-artifact-history',
+          message: 'artifact-materialize-failed',
+          details: {
+            runId,
+            capabilityId: result.capabilityId,
+            error: error instanceof Error ? error.message : String(error || 'artifact materialization failed'),
+          },
+        });
+      }
       const record: TesterRunHistoryRecord = {
         id: runId,
-        capabilityId: result.capabilityId,
+        capabilityId: historyResult.capabilityId,
         prompt,
-        status: result.capabilityId === 'world.generate' && result.ok ? 'local-fixture' : result.ok ? 'ready' : 'unavailable',
-        message: result.message,
+        status: historyResult.capabilityId === 'world.generate' && historyResult.ok ? 'local-fixture' : historyResult.ok ? 'ready' : 'unavailable',
+        message: historyResult.message,
         createdAt,
-        result: createTesterRunHistoryResultSnapshot(result),
+        result: createTesterRunHistoryResultSnapshot(historyResult),
         runConfig: runConfig ? { ...runConfig, traceId } : undefined,
       };
       try {
         const next = await appendTesterRunHistory(record);
         setHistory(next);
         setHistoryError(null);
-        if (shouldPersistTesterArtifactRecord(result)) {
-          const firstArtifact = result.output.firstArtifact;
+        if (shouldPersistTesterArtifactRecord(historyResult)) {
+          const firstArtifact = historyResult.output.firstArtifact;
           await appendTesterImageHistoryRecord({
             id: runId,
             runId,
             kind: 'runtime-media',
-            capabilityId: result.capabilityId,
-            capabilityLabel: result.capabilityLabel,
-            title: firstArtifact?.displayName || firstArtifact?.artifactId || result.output.jobId || result.capabilityLabel,
+            capabilityId: historyResult.capabilityId,
+            capabilityLabel: historyResult.capabilityLabel,
+            title: firstArtifact?.displayName || firstArtifact?.artifactId || historyResult.output.jobId || historyResult.capabilityLabel,
             status: 'ready',
             createdAt,
-            artifactCount: result.output.artifactCount,
+            artifactCount: historyResult.output.artifactCount,
             artifactLabel: firstArtifact?.displayName || firstArtifact?.artifactId,
             mimeType: firstArtifact?.mimeType,
-            // Persist only hosted (cloud) URLs in the history file. Inline local
-            // artifacts arrive as large base64 data URLs that would bloat the
-            // record store; they remain previewable in the current-session result.
-            url: firstArtifact?.url && !firstArtifact.url.startsWith('data:')
-              ? firstArtifact.url
-              : undefined,
-            jobId: result.output.jobId,
-            jobState: result.output.jobState,
-            message: result.message,
+            url: firstArtifact?.url && !firstArtifact.url.startsWith('data:') ? firstArtifact.url : undefined,
+            jobId: historyResult.output.jobId,
+            jobState: historyResult.output.jobState,
+            message: historyResult.message,
             traceState: hasTraceMetadata(result) ? 'captured' : 'not-captured',
             traceId,
           });

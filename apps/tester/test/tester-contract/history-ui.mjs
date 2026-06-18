@@ -87,17 +87,22 @@ test('tester run history timestamps use English labels and preserve visible row 
   assert.match(historyStore, /formatTesterRunHistoryTimestamp\(value: string, now = new Date\(\)\)/);
   assert.match(historyStore, /if \(!value\.trim\(\)\) return 'Unknown date';/);
   assert.match(historyStore, /if \(Number\.isNaN\(date\.valueOf\(\)\)\) return 'Unknown date';/);
-  assert.match(historyStore, /return testerRunDateFormatter\.format\(date\);/);
-  assert.match(historyStore, /return testerRunDateWithYearFormatter\.format\(date\);/);
+  assert.match(historyStore, /return testerRunDateTimeFormatter\.format\(date\);/);
+  assert.match(historyStore, /return testerRunDateTimeWithYearFormatter\.format\(date\);/);
   assert.doesNotMatch(historyStore, /toLocaleString\(\[\]/);
 });
 
 test('right-side history timeline renders a visible timestamp slot', () => {
   const capabilities = readTesterAiTestingSurface(root);
+  const styles = read('src/tester/tester-workbench.css');
 
   assert.match(capabilities, /formatTesterRunHistoryTimestamp/);
   assert.match(capabilities, /<time dateTime=\{record\.createdAt\}>\{formatTesterRunHistoryTimestamp\(record\.createdAt\)\}<\/time>/);
   assert.match(capabilities, /formatTesterRunHistoryTimestamp\(record\.createdAt\), metrics/);
+  assert.match(styles, /\.studio-recent__model-tooltip\s*\{[^}]*min-width:\s*0/s);
+  assert.match(styles, /\.studio-recent__model-tooltip\s*\{[^}]*overflow:\s*hidden/s);
+  assert.match(styles, /\.studio-recent__title time\s*\{[^}]*min-width:\s*max-content/s);
+  assert.match(styles, /\.studio-recent__title time\s*\{[^}]*overflow:\s*visible/s);
 });
 
 test('tester run history rows prioritize prompt title, timeline filters, and run metrics', () => {
@@ -119,7 +124,8 @@ test('tester run history rows prioritize prompt title, timeline filters, and run
   assert.match(historyStore, /record\.runConfig\?\.target\.modelLabel/);
   assert.match(historyStore, /record\.runConfig\?\.target\.source/);
   assert.match(historyStore, /\| 'params'/);
-  assert.match(historyStore, /record\.runConfig\?\.target\.paramsSummary/);
+  assert.match(historyStore, /\| 'paramsSummary'/);
+  assert.doesNotMatch(historyStore, /const params = record\.runConfig\?\.target\.paramsSummary/);
   assert.match(historyStore, /toneSelected\?: boolean/);
   assert.match(historyStore, /lengthSelected\?: boolean/);
   assert.match(historyStore, /export function getTesterRunPromptControlFacts/);
@@ -217,7 +223,8 @@ test('tester run history rows prioritize prompt title, timeline filters, and run
   assert.match(surface, /<Tooltip content=\{historySubtitleForRun\(record\)\} placement="top" className="studio-recent__detail-tooltip">/);
   assert.match(surface, /\{historySubtitleForRun\(record\)\}/);
   assert.match(surface, /\['Failed', source, historyFailureReasonForRun\(record\)\]\.filter\(Boolean\)\.join\(' \/ '\)/);
-  assert.match(surface, /\[source, historyTitleForRun\(record\)\]\.filter\(Boolean\)\.join\(' \/ '\)/);
+  assert.match(surface, /return source;/);
+  assert.doesNotMatch(surface, /\[source, historyTitleForRun\(record\)\]\.filter\(Boolean\)\.join\(' \/ '\)/);
   assert.doesNotMatch(surface, /\[source, getTesterRunMetricSummary\(record\), historyTitleForRun\(record\)\]\.filter\(Boolean\)\.join\(' \/ '\)/);
   assert.doesNotMatch(surface, /\[record\.capabilityLabel, historySourceLabelForRun\(record\), historyMetaForRun\(record\)\]/);
   assert.doesNotMatch(surface, /historyMetaForRun/);
@@ -252,6 +259,9 @@ test('tester run history rows prioritize prompt title, timeline filters, and run
   assert.match(capabilities, /Embedding generated successfully\./);
   assert.match(surface, /Media generated successfully\./);
   assert.match(capabilities, /Media generated successfully\./);
+  assert.match(surface, /function hasPreviewableArtifact/);
+  assert.match(capabilities, /ArtifactMediaPreview/);
+  assert.match(capabilities, /hasPreviewableArtifact\(snapshot\.firstArtifact\)/);
   assert.match(historyStore, /if \(result\.kind === 'embedding'\) return \['Embedding ready'\]/);
   assert.match(historyStore, /if \(result\.kind === 'artifacts'\) return \['Ready'\]/);
   assert.match(historyStore, /if \(result\.kind === 'transcript'\) return \['Ready'\]/);
@@ -286,7 +296,7 @@ test('tester run history rows prioritize prompt title, timeline filters, and run
   assert.match(surface, /<Tooltip content="Copy" placement="top">/);
   assert.match(surface, /<Tooltip content="Download" placement="top">/);
   assert.match(surface, /<Tooltip content="Regenerate" placement="top">/);
-  assert.match(capabilities, /invokeTesterCommand<TesterExportSaveResult>\('tester_export_save'/);
+  assert.match(capabilities, /invokeTesterCommand<TesterExportSaveResult>\('tester_export_save',\s*\{\s*payload:\s*\{/s);
   assert.match(capabilities, /export async function saveTesterExport/);
   assert.match(surface, /await saveTesterExport\(\{ filename, mimeType: blob\.type, body: blob \}\)/);
   assert.match(surface, /await saveTesterExport\(\{ filename, mimeType: blob\.type \|\| undefined, body: blob \}\)/);
@@ -308,13 +318,23 @@ test('tester run history rows prioritize prompt title, timeline filters, and run
   assert.match(capabilities, /<CopyIcon size=\{16\} aria-hidden="true" \/>/);
   assert.match(capabilities, /<DownloadIcon size=\{16\} aria-hidden="true" \/>/);
   assert.match(capabilities, /<RefreshCw size=\{16\} aria-hidden="true" \/>/);
-  assert.match(capabilities, /function summarizeParamRows/);
+  assert.match(styles, /\.studio-diag\s*\{[^}]*position:\s*relative/s);
+  assert.match(styles, /\.studio-diag__actions\s*\{[^}]*position:\s*absolute/s);
+  assert.match(styles, /\.studio-diag__actions\s*\{[^}]*right:\s*16px/s);
+  assert.doesNotMatch(capabilities, /function summarizeParamRows/);
+  assert.doesNotMatch(capabilities, /studio-history-settings__summary/);
   assert.match(capabilities, /Model settings/);
   assert.match(capabilities, /className="studio-history-result__model"/);
   assert.doesNotMatch(capabilities, /className="studio-history-result__facts"/);
   assert.match(capabilities, /getTesterRunConfigParamRows\(runConfig\)/);
   assert.match(capabilities, /if \(!runConfig\) \{\s*return null;\s*\}/s);
   assert.match(capabilities, /if \(paramRows\.length === 0 && !fallbackSummary\) \{\s*return null;\s*\}/s);
+  assert.match(capabilities, /function hasTextStudioModelSettings\(record: TesterRunHistoryRecord\): boolean/);
+  assert.match(capabilities, /modelSettings=\{activeRun\.record && hasTextStudioModelSettings\(activeRun\.record\) \? <TextStudioModelSettings record=\{activeRun\.record\} \/> : null\}/);
+  assert.match(capabilities, /className=\{hasModelSettings \? 'studio-model-pill__box' : 'studio-model-pill__box studio-model-pill__box--static'\}/);
+  assert.match(capabilities, /className=\{modelSettingsOpen \? 'studio-model-pill__trigger studio-model-pill__trigger--open' : 'studio-model-pill__trigger'\}/);
+  assert.match(capabilities, /aria-expanded=\{modelSettingsOpen\}/);
+  assert.match(capabilities, /\{modelSettingsOpen && hasModelSettings \? <TextStudioModelSettings record=\{record\} \/> : null\}/);
   assert.doesNotMatch(capabilities, /No configured parameters|No model parameters were configured|studio-history-settings--missing/);
   assert.match(capabilities, /getTesterRunPromptControlFacts\(runConfig\)/);
   assert.match(capabilities, /record\.runConfig\?\.promptControls\.context/);
@@ -420,6 +440,9 @@ test('tester run history rows prioritize prompt title, timeline filters, and run
   assert.match(styles, /\.studio-result__runtime-chip--warning/);
   assert.match(styles, /\.studio-result__meta/);
   assert.match(styles, /\.studio-result__model-pill/);
+  assert.match(styles, /\.studio-model-pill__box\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\) 30px/s);
+  assert.match(styles, /\.studio-model-pill__trigger\s*\{[^}]*border-left/s);
+  assert.match(styles, /\.studio-model-pill__trigger--open svg\s*\{[^}]*rotate\(90deg\)/s);
   assert.match(styles, /\.studio-result__text\s*\{[^}]*font-size:\s*15px/s);
   assert.match(styles, /\.studio-result__subject\s*\{[^}]*font-size:\s*17px/s);
   assert.match(styles, /\.studio-result__divider/);
@@ -448,6 +471,8 @@ test('tester model settings hide runtime profile injection internals', () => {
 test('tester artifact history persistence is real and fail-closed', () => {
   const imageHistory = read('src/tester/tester-image-history.ts');
   const workbench = read('src/tester/tester-workbench.tsx');
+  const artifactStorage = read('src/tester/tester-artifact-storage.ts');
+  const testerStorage = read('src-tauri/src/tester_storage.rs');
   const capabilities = readTesterAiTestingSurface(root);
   const tauri = read('src/tester/tester-tauri.ts');
 
@@ -460,11 +485,19 @@ test('tester artifact history persistence is real and fail-closed', () => {
   assert.match(imageHistory, /traceState\?: 'captured' \| 'not-captured'/);
   assert.match(imageHistory, /records\.slice\(0, 80\)/);
   assert.match(workbench, /shouldPersistTesterArtifactRecord\(result\)/);
+  assert.match(workbench, /materializeTesterArtifactResult/);
+  assert.match(workbench, /saveTesterArtifact/);
+  assert.match(workbench, /createTesterRunHistoryResultSnapshot\(historyResult\)/);
   assert.match(workbench, /appendTesterImageHistoryRecord/);
+  assert.match(artifactStorage, /tester_artifact_save/);
+  assert.match(artifactStorage, /convertTauriFileSrc\(result\.artifactPath\)/);
+  assert.match(testerStorage, /pub fn tester_artifact_save/);
+  assert.match(testerStorage, /scoped_storage_child\(&payload\.storage_root, "tester data root", "artifacts"\)/);
   assert.doesNotMatch(imageHistory, /kind: record\.kind \|\| 'runtime-media'/);
 
   // Real runtime artifacts are previewed from their typed url/mimeType only â€?  // no fabricated placeholder media.
   assert.match(capabilities, /function ArtifactPreview/);
+  assert.match(capabilities, /function ArtifactMediaPreview/);
   assert.match(capabilities, /mimeType\.startsWith\('image\/'\)/);
   assert.doesNotMatch(capabilities, /fake thumbnail/i);
 });

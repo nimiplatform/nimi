@@ -31,6 +31,15 @@ pub struct TesterExportSavePayload {
     data_base64: String,
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TesterArtifactSavePayload {
+    storage_root: String,
+    filename: String,
+    mime_type: Option<String>,
+    data_base64: String,
+}
+
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TesterExportSaveResult {
@@ -254,6 +263,17 @@ pub fn tester_export_save(
     )?;
     reveal_in_os(Path::new(&result.artifact_path));
     Ok(result)
+}
+
+#[tauri::command]
+pub fn tester_artifact_save(
+    payload: TesterArtifactSavePayload,
+) -> Result<TesterExportSaveResult, String> {
+    let bytes = BASE64_STANDARD
+        .decode(payload.data_base64.trim())
+        .map_err(|error| format!("TESTER_ARTIFACT_INVALID_BASE64: {error}"))?;
+    let artifact_dir = scoped_storage_child(&payload.storage_root, "tester data root", "artifacts")?;
+    save_export_bytes(&artifact_dir, &payload.filename, payload.mime_type, &bytes)
 }
 
 #[cfg(test)]

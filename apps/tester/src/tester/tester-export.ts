@@ -27,8 +27,10 @@ export async function saveTesterExport(input: {
     : input.body;
   const dataBase64 = arrayBufferToBase64(await blob.arrayBuffer());
   return invokeTesterCommand<TesterExportSaveResult>('tester_export_save', {
-    filename: input.filename,
-    mimeType: input.mimeType || blob.type || undefined,
-    dataBase64,
+    payload: {
+      filename: input.filename,
+      mimeType: input.mimeType || blob.type || undefined,
+      dataBase64,
+    },
   });
 }
