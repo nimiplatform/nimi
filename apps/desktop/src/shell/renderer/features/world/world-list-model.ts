@@ -104,6 +104,57 @@ function readNumber(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }
 
+function readNamedString(record: LooseObject | null, ...keys: string[]): string | null {
+  if (!record) {
+    return null;
+  }
+  for (const key of keys) {
+    const value = readString(record[key]);
+    if (value) {
+      return value;
+    }
+  }
+  return null;
+}
+
+function readNamedNumber(record: LooseObject | null, ...keys: string[]): number | null {
+  if (!record) {
+    return null;
+  }
+  for (const key of keys) {
+    const value = readNumber(record[key]);
+    if (value != null) {
+      return value;
+    }
+  }
+  return null;
+}
+
+function readNamedBoolean(record: LooseObject | null, ...keys: string[]): boolean | null {
+  if (!record) {
+    return null;
+  }
+  for (const key of keys) {
+    const value = readBoolean(record[key]);
+    if (value != null) {
+      return value;
+    }
+  }
+  return null;
+}
+
+function readStringArray(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.map(readString).filter((item): item is string => Boolean(item))
+    : [];
+}
+
+function normalizeCoreEnum(value: unknown): string | null {
+  return typeof value === 'string' && value.trim()
+    ? value.trim().replace(/[-\s]+/g, '_').toUpperCase()
+    : null;
+}
+
 function toComputedCharacter(raw: unknown): WorldComputedEntryCharacter | null {
   const record = readRecord(raw);
   if (!record) {
@@ -121,26 +172,39 @@ function toComputedCharacter(raw: unknown): WorldComputedEntryCharacter | null {
   };
 }
 
-function toWorldComputed(raw: unknown): WorldComputed {
+function countWorldCharacterEntities(core: LooseObject | null): number {
+  const entities = Array.isArray(core?.entities) ? core.entities : [];
+  return entities.filter((entry) => {
+    const record = readRecord(entry);
+    const kind = readNamedString(record, 'kind', 'entityKind', 'type');
+    return kind === 'worldCharacter' || normalizeCoreEnum(kind) === 'WORLD_CHARACTER';
+  }).length;
+}
+
+function toWorldComputed(raw: unknown, coreInput?: unknown, fallbackCharacterCount = 0): WorldComputed {
   const record = readRecord(raw);
+  const core = readRecord(coreInput);
   const time = readRecord(record?.time);
+  const timeModel = readRecord(core?.timeModel);
   const languages = readRecord(record?.languages);
+  const coreLanguages = readRecord(core?.languages);
   const entry = readRecord(record?.entry);
   const score = readRecord(record?.score);
+  const coreScore = readRecord(core?.score);
 
   return {
     time: {
-      currentWorldTime: readString(time?.currentWorldTime),
-      currentLabel: readString(time?.currentLabel),
-      eraLabel: readString(time?.eraLabel),
-      flowRatio: Math.max(0.0001, readNumber(time?.flowRatio) ?? 1),
-      isPaused: readBoolean(time?.isPaused) ?? false,
+      currentWorldTime: readNamedString(time, 'currentWorldTime') ?? readNamedString(timeModel, 'currentWorldTime', 'currentTime'),
+      currentLabel: readNamedString(time, 'currentLabel') ?? readNamedString(timeModel, 'currentLabel', 'currentTimeLabel'),
+      eraLabel: readNamedString(time, 'eraLabel') ?? readNamedString(timeModel, 'eraLabel', 'era'),
+      flowRatio: Math.max(0.0001, readNamedNumber(time, 'flowRatio') ?? readNamedNumber(timeModel, 'flowRatio') ?? 1),
+      isPaused: readNamedBoolean(time, 'isPaused') ?? readNamedBoolean(timeModel, 'isPaused') ?? false,
     },
     languages: {
-      primary: readString(languages?.primary),
-      common: Array.isArray(languages?.common)
-        ? languages.common.filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
-        : [],
+      primary: readNamedString(languages, 'primary') ?? readNamedString(coreLanguages, 'primary'),
+      common: readStringArray(languages?.common).length
+        ? readStringArray(languages?.common)
+        : readStringArray(coreLanguages?.common),
     },
     entry: {
       recommendedCharacters: Array.isArray(entry?.recommendedCharacters)
@@ -148,17 +212,46 @@ function toWorldComputed(raw: unknown): WorldComputed {
         : [],
     },
     score: {
-      scoreEwma: readNumber(score?.scoreEwma) ?? 0,
+      scoreEwma: readNamedNumber(score, 'scoreEwma') ?? readNamedNumber(coreScore, 'scoreEwma') ?? 0,
     },
-    featuredCharacterCount: readNumber(record?.featuredCharacterCount) ?? 0,
+    featuredCharacterCount: readNumber(record?.featuredCharacterCount) ?? fallbackCharacterCount,
   };
 }
 
 function resolveWorldType(raw: WorldDetailDto): string {
+  const core = readRecord(raw.core);
+  const identity = readRecord(core?.identity);
+  const origin = readRecord(raw.origin);
+  const candidates = [
+    raw.id,
+    raw.visibility,
+    origin?.kind,
+    raw.type,
+    readNamedString(identity, 'worldType', 'type'),
+  ].map(normalizeCoreEnum);
+  if (candidates.some((candidate) => candidate === 'OASIS' || candidate === 'SYSTEM' || candidate === 'SYSTEM_DEFAULT')) {
+    return 'OASIS';
+  }
   return (
     readString(raw.type) ??
     'CREATOR'
   );
+}
+
+function resolveWorldStatus(raw: WorldDetailDto): string {
+  const core = readRecord(raw.core);
+  const lifecycle = readRecord(core?.lifecycle);
+  const explicit = normalizeCoreEnum(readNamedString(lifecycle, 'status') ?? readString(raw.status));
+  if (
+    explicit === 'ACTIVE'
+    || explicit === 'SUSPENDED'
+    || explicit === 'ARCHIVED'
+    || explicit === 'DRAFT'
+    || explicit === 'PENDING_REVIEW'
+  ) {
+    return explicit;
+  }
+  return 'ACTIVE';
 }
 
 function resolveCreatorId(raw: WorldDetailDto): string | null {
@@ -173,6 +266,10 @@ export function isMainWorld(item: Pick<WorldListItem, 'type' | 'creatorId'>): bo
 }
 
 export function toWorldListItem(raw: WorldDetailDto | WorldDetailWithCharactersDto): WorldListItem {
+  const core = readRecord(raw.core) ?? raw;
+  const identity = readRecord(core.identity);
+  const presentation = readRecord(core.presentation);
+  const timeModel = readRecord(core.timeModel);
   let parsedCharacters: WorldCharacterItem[] | undefined;
   if ('characters' in raw && Array.isArray(raw.characters)) {
     parsedCharacters = raw.characters.map((character: WorldCharacterSummaryDto) => {
@@ -186,12 +283,23 @@ export function toWorldListItem(raw: WorldDetailDto | WorldDetailWithCharactersD
       };
     });
   }
+  const entityCharacterCount = countWorldCharacterEntities(core);
+  const characterCount = typeof raw.characterCount === 'number'
+    ? raw.characterCount
+    : parsedCharacters?.length
+      ? parsedCharacters.length
+      : entityCharacterCount;
 
   return {
     id: String(raw.id || ''),
-    name: String(raw.name || 'Unknown World'),
-    description: typeof raw.description === 'string' ? raw.description : null,
-    tagline: typeof raw.tagline === 'string' ? raw.tagline : null,
+    name: readString(raw.name)
+      ?? readNamedString(identity, 'name', 'title', 'displayName')
+      ?? readNamedString(presentation, 'title', 'displayName', 'name')
+      ?? 'Unknown World',
+    description: readString(raw.description)
+      ?? readNamedString(identity, 'summary', 'description')
+      ?? readNamedString(presentation, 'summary', 'description', 'tagline'),
+    tagline: readString(raw.tagline) ?? readNamedString(presentation, 'tagline', 'profileLine'),
     motto: typeof raw.motto === 'string' ? raw.motto : null,
     overview: typeof raw.overview === 'string' ? raw.overview : null,
     contentRating: typeof raw.contentRating === 'string' ? raw.contentRating : null,
@@ -199,14 +307,14 @@ export function toWorldListItem(raw: WorldDetailDto | WorldDetailWithCharactersD
     themes: Array.isArray(raw.themes)
       ? raw.themes.filter((t): t is string => typeof t === 'string')
       : [],
-    era: typeof raw.era === 'string' ? raw.era : null,
-    iconUrl: typeof raw.iconUrl === 'string' ? raw.iconUrl : null,
-    bannerUrl: typeof raw.bannerUrl === 'string' ? raw.bannerUrl : null,
+    era: readString(raw.era) ?? readNamedString(timeModel, 'era', 'eraLabel'),
+    iconUrl: readString(raw.iconUrl) ?? readNamedString(presentation, 'iconUrl', 'icon_url'),
+    bannerUrl: readString(raw.bannerUrl) ?? readNamedString(presentation, 'bannerUrl', 'banner_url'),
     type: resolveWorldType(raw),
-    status: typeof raw.status === 'string' ? raw.status : 'DRAFT',
+    status: resolveWorldStatus(raw),
     level: typeof raw.level === 'number' ? raw.level : 1,
     levelUpdatedAt: typeof raw.levelUpdatedAt === 'string' ? raw.levelUpdatedAt : null,
-    characterCount: typeof raw.characterCount === 'number' ? raw.characterCount : 0,
+    characterCount,
     createdAt: typeof raw.createdAt === 'string' ? raw.createdAt : '',
     updatedAt: typeof raw.updatedAt === 'string' ? raw.updatedAt : null,
     creatorId: resolveCreatorId(raw),
@@ -221,7 +329,7 @@ export function toWorldListItem(raw: WorldDetailDto | WorldDetailWithCharactersD
     scoreEwma: typeof raw.scoreEwma === 'number' ? raw.scoreEwma : 0,
     scoreQ: typeof raw.scoreQ === 'number' ? raw.scoreQ : 0,
     transitInLimit: typeof raw.transitInLimit === 'number' ? raw.transitInLimit : 0,
-    computed: toWorldComputed(raw.computed),
+    computed: toWorldComputed(raw.computed, core, characterCount),
     characters: parsedCharacters,
   };
 }

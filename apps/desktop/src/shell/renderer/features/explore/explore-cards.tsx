@@ -13,7 +13,7 @@ export type ExplorePersonaSourceCardData = {
   worldId: string | null;
   worldName: string | null;
   worldBannerUrl: string | null;
-  // Agent specific fields
+  // RealmPersona source fields
   category?: string;
   origin?: string;
   tier?: string;

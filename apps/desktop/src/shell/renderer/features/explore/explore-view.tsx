@@ -32,7 +32,7 @@ type WorldBanner = {
   eraLabel: string | null;
   currentLabel: string | null;
   flowRatio: number | null;
-  agentCount: number | null;
+  characterCount: number | null;
 };
 
 type ExploreViewProps = {
@@ -254,7 +254,7 @@ function FeaturedWorldHero({
           </svg>
           {t('Explore.enterWorld', { defaultValue: 'Enter world' })}
         </button>
-        {(currentBanner.agentCount !== null || currentBanner.flowRatio !== null || currentBanner.eraLabel) && (
+        {(currentBanner.characterCount !== null || currentBanner.flowRatio !== null || currentBanner.eraLabel) && (
           <div
             className="absolute bottom-5 left-5 flex items-stretch gap-0 rounded-2xl px-4 py-3 nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]"
             style={{
@@ -262,13 +262,13 @@ function FeaturedWorldHero({
               border: '1px solid color-mix(in srgb, var(--nimi-fg-inverse) 22%, transparent)',
             }}
           >
-            {currentBanner.agentCount !== null && (
+            {currentBanner.characterCount !== null && (
               <StatCell
                 label={t('World.totalPlayers', { defaultValue: 'Inhabitants' })}
-                value={formatCount(currentBanner.agentCount)}
+                value={formatCount(currentBanner.characterCount)}
               />
             )}
-            {currentBanner.agentCount !== null && (currentBanner.flowRatio !== null || currentBanner.eraLabel) && (
+            {currentBanner.characterCount !== null && (currentBanner.flowRatio !== null || currentBanner.eraLabel) && (
               <StatDivider />
             )}
             {currentBanner.flowRatio !== null && (

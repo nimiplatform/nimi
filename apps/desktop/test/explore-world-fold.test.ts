@@ -37,7 +37,7 @@ test('Explore fold mounts complete Worlds catalog under Explore', () => {
 });
 
 test('Explore fold keeps RealmPersona discovery as Explore-owned discovery without direct source chat', () => {
-  assert.match(explorePanelSource, /realmExploreData\.loadExploreAgents/);
+  assert.match(explorePanelSource, /realmExploreData\.loadExplorePersonas/);
   assert.match(realmExploreDataSource, /worldCoreControllerListRealmPersonas/);
   assert.match(realmExploreDataSource, /loadNimiRealmExploreFeedItems/);
   assert.doesNotMatch(realmExploreDataSource, /realm\.generated\.searchIndexedUsers/);

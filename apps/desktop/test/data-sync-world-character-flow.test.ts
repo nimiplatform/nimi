@@ -4,7 +4,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const worldFlowSource = readFileSync(
-  resolve(import.meta.dirname, '../src/shell/renderer/features/world/data/runtimeSource-world-data.ts'),
+  resolve(import.meta.dirname, '../src/shell/renderer/features/world/data/realm-world-data.ts'),
   'utf8',
 );
 
@@ -51,8 +51,9 @@ describe('D-DSYNC-005: world flow source scanning', () => {
   test('D-DSYNC-005: public world data reads WorldCore and WorldCharacterCore surfaces', () => {
     assert.match(worldFlowSource, /worldCoreControllerGetWorldCore/);
     assert.match(worldFlowSource, /worldCoreControllerListWorldCharacters/);
-    assert.match(worldFlowSource, /from '@nimiplatform\/sdk\/runtimeSource'/);
+    assert.match(worldFlowSource, /from '@nimiplatform\/sdk\/realm'/);
     assert.doesNotMatch(worldFlowSource, /@nimiplatform\/sdk\/world/);
+    assert.doesNotMatch(worldFlowSource, /@nimiplatform\/sdk\/runtimeSource/);
   });
 });
 

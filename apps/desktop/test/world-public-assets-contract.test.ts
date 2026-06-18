@@ -40,7 +40,7 @@ test.after(() => {
   realmWorldData.loadWorldScenes = originalLoadWorldScenes;
 });
 
-test('fetchWorldPublicAssets decodes projection payloads without fallback synthesis', async () => {
+test('fetchWorldPublicAssets decodes WorldCore public asset payloads without fallback synthesis', async () => {
   stubPublicAssetLoads({
     lorebooks: {
       items: [{
@@ -77,7 +77,7 @@ test('fetchWorldPublicAssets decodes projection payloads without fallback synthe
         id: 'scene-1',
         name: '花果山',
         description: '齐天大圣的居所',
-        activeEntities: ['agent-wukong', 'agent-bajie'],
+        activeEntities: ['world-character-wukong', 'world-character-bajie'],
       }],
     },
   });
@@ -86,11 +86,11 @@ test('fetchWorldPublicAssets decodes projection payloads without fallback synthe
   assert.equal(payload.lorebooks[0]?.key, 'chronicle');
   assert.equal(payload.scenes.length, 1);
   assert.equal(payload.scenes[0]?.name, '花果山');
-  assert.deepEqual(payload.scenes[0]?.activeEntities, ['agent-wukong', 'agent-bajie']);
+  assert.deepEqual(payload.scenes[0]?.activeEntities, ['world-character-wukong', 'world-character-bajie']);
   assert.equal(payload.bindings[0]?.resource.resourceType, 'IMAGE');
 });
 
-test('fetchWorldPublicAssets fails close when projection contract fields are missing', async () => {
+test('fetchWorldPublicAssets fails close when WorldCore display binding fields are missing', async () => {
   stubPublicAssetLoads({
     bindings: {
       items: [{

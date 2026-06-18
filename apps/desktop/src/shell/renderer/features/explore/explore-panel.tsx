@@ -71,7 +71,7 @@ export function ExplorePanel(props: ExplorePanelProps) {
       eraLabel: world.computed?.time?.eraLabel ?? null,
       currentLabel: world.computed?.time?.currentLabel ?? world.computed?.time?.currentWorldTime ?? null,
       flowRatio: typeof world.computed?.time?.flowRatio === 'number' ? world.computed.time.flowRatio : null,
-      agentCount: typeof world.characterCount === 'number' ? world.characterCount : null,
+      characterCount: typeof world.characterCount === 'number' ? world.characterCount : null,
     }));
   }, [worldsQuery.data]);
 
@@ -87,7 +87,7 @@ export function ExplorePanel(props: ExplorePanelProps) {
     queryFn: async () => {
       const tag = selectedCategory || undefined;
       const query = props.searchText.trim() || undefined;
-      return realmExploreData.loadExploreAgents({ tag, query, limit: PAGE_SIZE });
+      return realmExploreData.loadExplorePersonas({ tag, query, limit: PAGE_SIZE });
     },
     enabled: authStatus === 'authenticated',
   });

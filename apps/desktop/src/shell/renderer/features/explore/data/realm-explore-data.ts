@@ -7,7 +7,7 @@ import type {
 } from '@nimiplatform/sdk/realm/generated';
 import { callRealmApi, emitRealmDataError } from '@renderer/infra/realm/realm-api';
 
-export type LoadExploreAgentsInput = {
+export type LoadExplorePersonasInput = {
   tag?: string | null;
   query?: string | null;
   limit?: number;
@@ -33,10 +33,40 @@ function normalizeText(value: unknown): string | undefined {
   return normalized || undefined;
 }
 
-export async function loadExploreAgents(
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+}
+
+function failRealmPersonaContract(reasonCode: string, message: string): never {
+  const error = new Error(message) as Error & { reasonCode?: string };
+  error.reasonCode = reasonCode;
+  throw error;
+}
+
+function requireRealmPersonaCore(value: unknown): Record<string, unknown> {
+  const persona = asRecord(value);
+  if (!persona.id || typeof persona.id !== 'string') {
+    failRealmPersonaContract(
+      'SDK_REALM_PERSONA_CORE_CONTRACT_INVALID',
+      'RealmPersona payload is missing id',
+    );
+  }
+  const core = asRecord(persona.core);
+  if (Object.keys(core).length === 0) {
+    failRealmPersonaContract(
+      'SDK_REALM_PERSONA_CORE_CONTRACT_INVALID',
+      `RealmPersona ${persona.id} payload is missing core object`,
+    );
+  }
+  return persona;
+}
+
+export async function loadExplorePersonas(
   callApi: RealmExploreApiCaller,
   emitRealmExploreError: RealmExploreErrorEmitter,
-  input: LoadExploreAgentsInput = {},
+  input: LoadExplorePersonasInput = {},
 ): Promise<RealmSourceExploreResponse> {
   const tag = normalizeText(input.tag);
   const query = normalizeText(input.query);
@@ -48,26 +78,61 @@ export async function loadExploreAgents(
         path: {},
         query: { limit },
       });
+      if (!Array.isArray(rows)) {
+        failRealmPersonaContract(
+          'SDK_REALM_PERSONA_CORE_LIST_CONTRACT_INVALID',
+          'RealmPersona list payload must be an array',
+        );
+      }
       const normalizedQuery = query?.toLowerCase();
       const normalizedTag = tag?.toLowerCase();
-      const items = rows.map((persona) => {
-        const core = persona.core && typeof persona.core === 'object' && !Array.isArray(persona.core)
-          ? persona.core as Record<string, unknown>
-          : {};
-        const displayName = normalizeText(core.displayName) ?? normalizeText(core.name) ?? persona.id;
-        const handle = normalizeText(core.handle) ?? displayName;
+      const items = rows.map((row) => {
+        const persona = requireRealmPersonaCore(row);
+        const core = asRecord(persona.core);
+        const identity = asRecord(core.identity);
+        const presentation = asRecord(core.presentation);
+        const interactionProfile = asRecord(core.interactionProfile);
+        const contentProfile = asRecord(core.contentProfile);
+        const personaStyle = asRecord(core.personaStyle);
+        const origin = asRecord(persona.origin);
+        const displayName = normalizeText(identity.name)
+          ?? normalizeText(presentation.displayName)
+          ?? normalizeText(presentation.name)
+          ?? normalizeText(core.displayName)
+          ?? normalizeText(core.name)
+          ?? String(persona.id);
+        const handle = normalizeText(identity.handle)
+          ?? normalizeText(presentation.handle)
+          ?? normalizeText(core.handle)
+          ?? displayName;
+        const tags = Array.isArray(contentProfile.topics)
+          ? contentProfile.topics.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+          : Array.isArray(core.tags)
+            ? core.tags.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+            : [];
         return {
           ...core,
           id: persona.id,
           displayName,
           name: displayName,
           handle,
-          avatarUrl: normalizeText(core.avatarUrl) ?? null,
-          bio: normalizeText(core.bio) ?? normalizeText(core.description) ?? null,
-          tags: Array.isArray(core.tags) ? core.tags : [],
+          avatarUrl: normalizeText(presentation.avatarUrl)
+            ?? normalizeText(presentation.portraitUrl)
+            ?? normalizeText(core.avatarUrl)
+            ?? null,
+          bio: normalizeText(identity.summary)
+            ?? normalizeText(presentation.profileLine)
+            ?? normalizeText(presentation.shortBio)
+            ?? normalizeText(core.bio)
+            ?? normalizeText(core.description)
+            ?? null,
+          tags,
           sourceProfile: core,
           sourceKind: 'realmPersona',
-          worldId: persona.homeWorldId,
+          category: normalizeText(personaStyle.voice) ?? normalizeText(core.category),
+          origin: normalizeText(origin.kind) ?? normalizeText(core.origin),
+          wakeStrategy: normalizeText(personaStyle.pacing) ?? normalizeText(core.wakeStrategy),
+          worldId: normalizeText(persona.homeWorldId) ?? normalizeText(interactionProfile.homeWorldId),
           createdAt: persona.createdAt,
           updatedAt: persona.updatedAt,
         };
@@ -84,7 +149,7 @@ export async function loadExploreAgents(
       });
       return { items };
     },
-    '加载探索 Agent 失败',
+    '加载 RealmPersona 探索失败',
   );
 }
 
@@ -117,8 +182,8 @@ export async function loadMoreExploreFeedItems(
 }
 
 export const realmExploreData = {
-  loadExploreAgents: (input: LoadExploreAgentsInput = {}) =>
-    loadExploreAgents(callRealmApi, emitRealmDataError, {
+  loadExplorePersonas: (input: LoadExplorePersonasInput = {}) =>
+    loadExplorePersonas(callRealmApi, emitRealmDataError, {
       ...input,
       limit: Math.min(input.limit ?? 20, 100),
     }),

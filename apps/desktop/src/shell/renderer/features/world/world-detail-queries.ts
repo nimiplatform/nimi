@@ -46,7 +46,7 @@ export type WorldDisplayDetail = {
 };
 
 const DEFAULT_WORLD_PREFETCH_STALE_TIME_MS = 30_000;
-const DEFAULT_WORLD_DETAIL_RECOMMENDED_AGENT_LIMIT = 4;
+const DEFAULT_WORLD_DETAIL_RECOMMENDED_CHARACTER_LIMIT = 4;
 
 const EMPTY_WORLD_HISTORY: WorldHistoryBundle = {
   items: [],
@@ -222,7 +222,7 @@ export function worldDisplayDetailQueryKey(worldId: string) {
   return [
     'world-display-detail',
     normalizeWorldId(worldId),
-    DEFAULT_WORLD_DETAIL_RECOMMENDED_AGENT_LIMIT,
+    DEFAULT_WORLD_DETAIL_RECOMMENDED_CHARACTER_LIMIT,
   ] as const;
 }
 
@@ -245,7 +245,7 @@ export function worldPublicAssetsQueryKey(worldId: string) {
 export async function fetchWorldDetailWithCharacters(worldId: string): Promise<WorldPrimaryDetailRecord> {
   const detail = await realmWorldData.loadWorldDetailWithCharacters(
     normalizeWorldId(worldId),
-    DEFAULT_WORLD_DETAIL_RECOMMENDED_AGENT_LIMIT,
+    DEFAULT_WORLD_DETAIL_RECOMMENDED_CHARACTER_LIMIT,
   );
   if (!detail) {
     throw new Error('WORLD_DETAIL_NOT_FOUND');
@@ -255,9 +255,9 @@ export async function fetchWorldDetailWithCharacters(worldId: string): Promise<W
 
 function toWorldDisplayHistoryItem(rawValue: unknown, index: number): WorldHistoryItem {
   const raw = asRecord(rawValue);
-  const id = readString(raw, 'id') || `world-history-${index + 1}`;
+  const id = readString(raw, 'id', 'eventId') || `world-history-${index + 1}`;
   const eventType = readString(raw, 'eventType', 'type');
-  const happenedAt = readString(raw, 'happenedAt', 'timeRef', 'time', 'createdAt') || new Date(0).toISOString();
+  const happenedAt = readString(raw, 'happenedAt', 'timestamp', 'timeRef', 'time', 'createdAt') || new Date(0).toISOString();
   const eventTypeLower = eventType.toLowerCase();
   const parsedHappenedAt = new Date(happenedAt);
   const eventHorizon = eventTypeLower.includes('future')
@@ -277,7 +277,7 @@ function toWorldDisplayHistoryItem(rawValue: unknown, index: number): WorldHisto
   }));
   return {
     id,
-    timelineSeq: readNumber(raw.timelineSeq) ?? index + 1,
+    timelineSeq: readNumber(raw.timelineSeq) ?? readNumber(raw.sequence) ?? index + 1,
     title: readString(raw, 'title', 'name', 'summary') || 'World event',
     description: readString(raw, 'description', 'summary', 'cause', 'process', 'result'),
     time: readString(raw, 'timeRef', 'time') || happenedAt,
@@ -288,8 +288,8 @@ function toWorldDisplayHistoryItem(rawValue: unknown, index: number): WorldHisto
     cause: readString(raw, 'cause') || null,
     process: readString(raw, 'process') || null,
     result: readString(raw, 'result') || null,
-    locationRefs: readStringArray(raw.locationRefs),
-    characterRefs: readStringArray(raw.characterRefs),
+    locationRefs: readStringArray(raw.locationRefs).length ? readStringArray(raw.locationRefs) : readStringArray(raw.sceneRefs),
+    characterRefs: readStringArray(raw.characterRefs).length ? readStringArray(raw.characterRefs) : readStringArray(raw.entityRefs),
     evidenceRefs,
     confidence: evidenceRefs.length > 0
       ? evidenceRefs.reduce((sum, item) => sum + item.confidence, 0) / evidenceRefs.length
@@ -494,8 +494,12 @@ function toWorldDisplaySceneItem(rawValue: unknown, index: number): WorldSceneIt
   return {
     id: readString(raw, 'id') || `scene-${index + 1}`,
     name: readString(raw, 'name', 'title') || 'Unnamed scene',
-    description: readString(raw, 'description'),
-    activeEntities: readStringArray(raw.activeEntities),
+    description: readString(raw, 'description', 'summary'),
+    activeEntities: readStringArray(raw.activeEntities).length
+      ? readStringArray(raw.activeEntities)
+      : readStringArray(raw.entityRefs).length
+        ? readStringArray(raw.entityRefs)
+        : readStringArray(raw.sourceRefs),
   };
 }
 
