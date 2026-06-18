@@ -117,12 +117,13 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 	}
 
 	routeStartedAt := time.Now()
-	selectedProvider, routeDecision, modelResolved, routeInfo, err := s.selector.resolveProviderWithTarget(
+	selectedProvider, routeDecision, modelResolved, routeInfo, err := s.selector.resolveProviderWithTargetAndModal(
 		stream.Context(),
 		req.GetHead().GetRoutePolicy(),
 		req.GetHead().GetFallback(),
 		req.GetHead().GetModelId(),
 		remoteTarget,
+		runtimev1.Modal_MODAL_TEXT,
 	)
 	s.observeLatency("runtime.ai.route_resolve_ms", routeStartedAt,
 		"caller_app_id", req.GetHead().GetAppId(),

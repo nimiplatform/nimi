@@ -37,12 +37,13 @@ func (s *Service) submitVoiceWorkflowJob(
 	s.attachQueueWaitUnary(ctx, acquireResult)
 	s.logQueueWait("submit_voice_workflow_job", req.GetHead().GetAppId(), acquireResult)
 
-	selectedProvider, routeDecision, modelResolved, routeInfo, err := s.selector.resolveProviderWithTarget(
+	selectedProvider, routeDecision, modelResolved, routeInfo, err := s.selector.resolveProviderWithTargetAndModal(
 		ctx,
 		req.GetHead().GetRoutePolicy(),
 		req.GetHead().GetFallback(),
 		req.GetHead().GetModelId(),
 		remoteTarget,
+		scenarioModalFromType(req.GetScenarioType()),
 	)
 	if err != nil {
 		return nil, err

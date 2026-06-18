@@ -261,12 +261,13 @@ func executeVoiceWorkflowRouteDescribeScenario(
 	s.attachQueueWaitUnary(ctx, acquireResult)
 	s.logQueueWait("execute_scenario_voice_workflow_route_describe", req.GetHead().GetAppId(), acquireResult)
 
-	selectedProvider, routeDecision, modelResolved, _, err := s.selector.resolveProviderWithTarget(
+	selectedProvider, routeDecision, modelResolved, _, err := s.selector.resolveProviderWithTargetAndModal(
 		ctx,
 		req.GetHead().GetRoutePolicy(),
 		req.GetHead().GetFallback(),
 		req.GetHead().GetModelId(),
 		remoteTarget,
+		scenarioModalFromType(req.GetScenarioType()),
 	)
 	if err != nil {
 		return nil, err

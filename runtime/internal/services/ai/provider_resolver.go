@@ -18,6 +18,10 @@ func (s *routeSelector) resolveProvider(ctx context.Context, requested runtimev1
 }
 
 func (s *routeSelector) resolveProviderWithTarget(ctx context.Context, requested runtimev1.RoutePolicy, fallback runtimev1.FallbackPolicy, modelID string, remoteTarget *nimillm.RemoteTarget) (provider, runtimev1.RoutePolicy, string, nimillm.RouteDecisionInfo, error) {
+	return s.resolveProviderWithTargetAndModal(ctx, requested, fallback, modelID, remoteTarget, runtimev1.Modal_MODAL_UNSPECIFIED)
+}
+
+func (s *routeSelector) resolveProviderWithTargetAndModal(ctx context.Context, requested runtimev1.RoutePolicy, fallback runtimev1.FallbackPolicy, modelID string, remoteTarget *nimillm.RemoteTarget, modal runtimev1.Modal) (provider, runtimev1.RoutePolicy, string, nimillm.RouteDecisionInfo, error) {
 	rawModel := strings.TrimSpace(modelID)
 	resolvedModel, err := texttarget.ResolveInternalDefaultAlias(s.targetConfig, rawModel)
 	if err != nil {
@@ -56,7 +60,7 @@ func (s *routeSelector) resolveProviderWithTarget(ctx context.Context, requested
 	}
 
 	modelResolved := target.ResolveModelID(rawModel)
-	if err := target.CheckModelAvailability(modelResolved); err != nil {
+	if err := checkProviderModelAvailability(target, modelResolved, modal); err != nil {
 		return nil, runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, "", decision, err
 	}
 
@@ -71,4 +75,15 @@ func (s *routeSelector) resolveProviderWithTarget(ctx context.Context, requested
 		}
 	}
 	return target, target.Route(), modelResolved, decision, nil
+}
+
+type modalAvailabilityProvider interface {
+	CheckModelAvailabilityForModal(string, runtimev1.Modal) error
+}
+
+func checkProviderModelAvailability(target provider, modelID string, modal runtimev1.Modal) error {
+	if targetWithModal, ok := target.(modalAvailabilityProvider); ok && targetWithModal != nil {
+		return targetWithModal.CheckModelAvailabilityForModal(modelID, modal)
+	}
+	return target.CheckModelAvailability(modelID)
 }

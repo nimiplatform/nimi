@@ -39,12 +39,13 @@ func executeTextGenerateScenario(ctx context.Context, s *Service, req *runtimev1
 	requestCtx, cancel := withTimeout(ctx, req.GetHead().GetTimeoutMs(), defaultGenerateTimeout)
 	defer cancel()
 
-	selectedProvider, routeDecision, modelResolved, routeInfo, err := s.selector.resolveProviderWithTarget(
+	selectedProvider, routeDecision, modelResolved, routeInfo, err := s.selector.resolveProviderWithTargetAndModal(
 		ctx,
 		req.GetHead().GetRoutePolicy(),
 		req.GetHead().GetFallback(),
 		req.GetHead().GetModelId(),
 		remoteTarget,
+		runtimev1.Modal_MODAL_TEXT,
 	)
 	if err != nil {
 		return nil, err
@@ -176,12 +177,13 @@ func executeTextEmbedScenario(ctx context.Context, s *Service, req *runtimev1.Ex
 	requestCtx, cancel := withTimeout(ctx, req.GetHead().GetTimeoutMs(), defaultEmbedTimeout)
 	defer cancel()
 
-	selectedProvider, routeDecision, modelResolved, routeInfo, err := s.selector.resolveProviderWithTarget(
+	selectedProvider, routeDecision, modelResolved, routeInfo, err := s.selector.resolveProviderWithTargetAndModal(
 		ctx,
 		req.GetHead().GetRoutePolicy(),
 		req.GetHead().GetFallback(),
 		req.GetHead().GetModelId(),
 		remoteTarget,
+		runtimev1.Modal_MODAL_EMBEDDING,
 	)
 	if err != nil {
 		return nil, err

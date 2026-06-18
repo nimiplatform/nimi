@@ -69,12 +69,13 @@ func (s *Service) submitScenarioAsyncJob(
 	s.logQueueWait("submit_scenario_job", req.GetHead().GetAppId(), acquireResult)
 
 	resolveStartedAt := time.Now()
-	selectedProvider, routeDecision, modelResolved, routeInfo, err := s.selector.resolveProviderWithTarget(
+	selectedProvider, routeDecision, modelResolved, routeInfo, err := s.selector.resolveProviderWithTargetAndModal(
 		ctx,
 		req.GetHead().GetRoutePolicy(),
 		req.GetHead().GetFallback(),
 		req.GetHead().GetModelId(),
 		remoteTarget,
+		scenarioModalFromType(req.GetScenarioType()),
 	)
 	if err != nil {
 		return nil, err

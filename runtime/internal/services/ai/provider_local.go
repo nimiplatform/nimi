@@ -66,7 +66,11 @@ func (p *localProvider) ResolveModelID(raw string) string {
 }
 
 func (p *localProvider) CheckModelAvailability(modelID string) error {
-	_, _, explicit, ok := p.pickAvailabilityBackend(modelID)
+	return p.CheckModelAvailabilityForModal(modelID, runtimev1.Modal_MODAL_UNSPECIFIED)
+}
+
+func (p *localProvider) CheckModelAvailabilityForModal(modelID string, modal runtimev1.Modal) error {
+	_, _, explicit, ok := p.pickAvailabilityBackendForModal(modelID, modal)
 	if explicit && !ok {
 		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MODEL_PROVIDER_MISMATCH)
 	}
@@ -163,7 +167,11 @@ func (p *localProvider) StreamGenerateTextScenarioRich(
 }
 
 func (p *localProvider) pickAvailabilityBackend(modelID string) (*nimillm.Backend, string, bool, bool) {
-	return p.pickCapabilityBackend(modelID, "text.generate", true)
+	return p.pickAvailabilityBackendForModal(modelID, runtimev1.Modal_MODAL_UNSPECIFIED)
+}
+
+func (p *localProvider) pickAvailabilityBackendForModal(modelID string, modal runtimev1.Modal) (*nimillm.Backend, string, bool, bool) {
+	return p.pickCapabilityBackend(modelID, localRoutingCapabilityForModal(modal), true)
 }
 
 func (p *localProvider) pickTextBackend(modelID string) (*nimillm.Backend, string, bool, bool) {

@@ -306,6 +306,39 @@ func TestLocalProviderCanonicalAvailabilityAndImageRouting(t *testing.T) {
 	}
 }
 
+func TestRouteSelectorUsesModalAwareLocalAvailabilityForImportedImageModel(t *testing.T) {
+	selector := newRouteSelector(Config{
+		LocalProviders: map[string]nimillm.ProviderCredentials{
+			"media": {BaseURL: "http://127.0.0.1:18181/v1"},
+		},
+	})
+
+	_, _, _, _, err := selector.resolveProvider(
+		context.Background(),
+		runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+		runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		"local-import/z-image-turbo-Q4_K_M",
+	)
+	if reason, _ := grpcerr.ExtractReasonCode(err); reason != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE {
+		t.Fatalf("default local availability should not treat imported image as text-ready, got err=%v reason=%v", err, reason)
+	}
+
+	provider, route, modelResolved, _, err := selector.resolveProviderWithTargetAndModal(
+		context.Background(),
+		runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+		runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		"local-import/z-image-turbo-Q4_K_M",
+		nil,
+		runtimev1.Modal_MODAL_IMAGE,
+	)
+	if err != nil {
+		t.Fatalf("image modal availability should resolve media provider: %v", err)
+	}
+	if provider == nil || route != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL || modelResolved != "local-import/z-image-turbo-Q4_K_M" {
+		t.Fatalf("unexpected image modal route resolution: provider=%v route=%v model=%q", provider, route, modelResolved)
+	}
+}
+
 func TestLocalProviderHardCutDoesNotFallbackAcrossEngines(t *testing.T) {
 	local := &localProvider{
 		llama: &nimillm.Backend{Name: "local-llama"},

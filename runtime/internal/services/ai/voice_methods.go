@@ -355,12 +355,13 @@ func (s *Service) ListPresetVoices(ctx context.Context, req *runtimev1.ListPrese
 		return nil, err
 	}
 
-	selectedProvider, _, modelResolved, routeInfo, err := s.selector.resolveProviderWithTarget(
+	selectedProvider, _, modelResolved, routeInfo, err := s.selector.resolveProviderWithTargetAndModal(
 		ctx,
 		routePolicy,
 		runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		effectiveModelID,
 		remoteTarget,
+		runtimev1.Modal_MODAL_TTS,
 	)
 	if err != nil {
 		return nil, err

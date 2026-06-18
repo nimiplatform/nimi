@@ -58,12 +58,13 @@ func (s *Service) OpenRealtimeSession(ctx context.Context, req *runtimev1.OpenRe
 	if err != nil {
 		return nil, err
 	}
-	selectedProvider, routeDecision, modelResolved, _, err := s.selector.resolveProviderWithTarget(
+	selectedProvider, routeDecision, modelResolved, _, err := s.selector.resolveProviderWithTargetAndModal(
 		ctx,
 		req.GetHead().GetRoutePolicy(),
 		req.GetHead().GetFallback(),
 		req.GetHead().GetModelId(),
 		remoteTarget,
+		runtimev1.Modal_MODAL_TEXT,
 	)
 	if err != nil {
 		return nil, err
