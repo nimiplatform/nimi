@@ -27,6 +27,9 @@ const installedSectionProjectionSource = `${installedSectionSource}\n${installed
 const runtimeViewSource = readWorkspaceFile(
   'src/shell/renderer/features/runtime-config/runtime-config-local-model-center-runtime-view.tsx',
 );
+const setupAutodiscoverSource = readWorkspaceFile(
+  'src/shell/renderer/features/runtime-config/runtime-config-effect-setup-autodiscover.ts',
+);
 const bridgeErrorsEnSource = readWorkspaceFile(
   'src/shell/renderer/locales/en/53-BridgeErrors.json',
 );
@@ -115,6 +118,22 @@ test('local model center setup CTA projects shared dependency resolver truth at 
     installedSectionProjectionSource,
     /props\.onSetupRuntimeDependency\(asset\.localAssetId\)/,
   );
+  assert.match(installedRowsSource, /job\.consumerScope === dependency\.consumerScope/);
+  assert.match(runtimeReadinessSource, /job\.consumerScope === dependency\.consumerScope/);
+});
+
+test('local image installed rows project runtime readiness instead of installed asset status', () => {
+  assert.match(installedRowsSource, /function runtimeDependencyReadinessLabel/);
+  assert.match(installedRowsSource, /Runtime setup required/);
+  assert.match(installedRowsSource, /Runtime setup running/);
+  assert.match(installedRowsSource, /Runtime setup failed/);
+  assert.match(installedRowsSource, /const statusLabel = hasRuntimeDependencyWarning[\s\S]{0,160}runtimeDependencyReadinessLabel/);
+  assert.match(installedRowsSource, /hasRuntimeDependencyWarning[\s\S]{0,160}assetStatusBadgeClass/);
+  assert.match(installedRowsSource, /props\.canStartRuntimeDependencySetup/);
+  assert.match(installedRowsSource, /runtimeConfig\.localModelCenter\.setupDependency/);
+  assert.match(installedSectionSource, /const canStartAssetRuntimeDependencySetup = runtimeDependencySetupAllowed\(runtimeDependency, runtimeDependencyJob\)/);
+  assert.match(installedSectionSource, /canStartRuntimeDependencySetup=\{canStartAssetRuntimeDependencySetup\}/);
+  assert.match(installedSectionSource, /onSetupRuntimeDependency=\{props\.onSetupRuntimeDependency\}/);
 });
 
 test('local model center projects Runtime-owned local environment state instead of desktop file fallback', () => {
@@ -122,6 +141,13 @@ test('local model center projects Runtime-owned local environment state instead 
   assert.match(runtimeProjectionSources, /sharedRuntimeEnvironmentPlan/);
   assert.match(runtimeViewSource, /LocalModelCenterInstalledAssetsSection/);
   assert.doesNotMatch(runtimeProjectionSources, /readTextFile|fs\.|state\.json/);
+});
+
+test('runtime setup autodiscovery is debounced across panel remounts', () => {
+  assert.match(setupAutodiscoverSource, /let runtimeConfigSetupAutodiscoverTriggered = false/);
+  assert.match(setupAutodiscoverSource, /if \(runtimeConfigSetupAutodiscoverTriggered\) return/);
+  assert.match(setupAutodiscoverSource, /runtimeConfigSetupAutodiscoverTriggered = true;\s*void input\.discoverLocalModels\(\)/);
+  assert.doesNotMatch(setupAutodiscoverSource, /useRef/);
 });
 
 test('local runtime facade exposes SDK-backed local environment projection methods', () => {

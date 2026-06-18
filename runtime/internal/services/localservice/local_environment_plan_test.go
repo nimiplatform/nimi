@@ -578,6 +578,44 @@ func TestResolveLocalEnvironmentPlanDoesNotReuseSelectedSourceAcrossConsumers(t 
 	}
 }
 
+func TestResolveLocalImageNativePlanInfersConsumerForExplicitInstalledAsset(t *testing.T) {
+	svc := newLocalEnvironmentTestService(t)
+	defer func() { svc.Close() }()
+	runtimeDataRoot := filepath.Join(t.TempDir(), "runtime-data")
+	profile := localEnvironmentNvidiaProfile()
+	model := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "local/local-import/z_image_turbo-Q4_K",
+		capabilities: []string{"image"},
+		engine:       "media",
+		entry:        "z_image_turbo-Q4_K.gguf",
+	})
+
+	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+		PackID:          "local-image-native",
+		HostProfile:     profile,
+		RuntimeDataRoot: runtimeDataRoot,
+		AssetID:         model.GetAssetId(),
+		LocalAssetID:    model.GetLocalAssetId(),
+	})
+
+	if plan.ConsumerScope != stableDiffusionCUDAConsumerID {
+		t.Fatalf("plan consumer scope = %q, want %q", plan.ConsumerScope, stableDiffusionCUDAConsumerID)
+	}
+	for _, dep := range plan.Dependencies {
+		if dep.ConsumerScope != stableDiffusionCUDAConsumerID {
+			t.Fatalf("dependency %s/%s consumer scope = %q, want %q", dep.DependencyFamily, dep.DependencyID, dep.ConsumerScope, stableDiffusionCUDAConsumerID)
+		}
+	}
+	nativeDep := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyNativeSDCPP)
+	if nativeDep.State != localEnvironmentStateNeedsConfirmation {
+		t.Fatalf("native dependency state = %q, want needs_confirmation: %+v", nativeDep.State, nativeDep)
+	}
+	cudaDep := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyCUDA)
+	if !cudaDep.Required {
+		t.Fatalf("cuda dependency should be required for inferred CUDA image consumer: %+v", cudaDep)
+	}
+}
+
 func TestResolveLocalEnvironmentPlanDoesNotProjectLatestJobAcrossConsumers(t *testing.T) {
 	svc := newLocalEnvironmentTestService(t)
 	defer func() { svc.Close() }()

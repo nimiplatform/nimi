@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 
 type SetupAutodiscoverEffectInput = {
@@ -12,15 +12,15 @@ const PAGES_REQUIRING_DISCOVERY: ReadonlySet<string> = new Set([
   'overview', 'models', 'cloud', 'environment',
 ]);
 
-export function useRuntimeConfigSetupAutodiscoverEffect(input: SetupAutodiscoverEffectInput) {
-  const autoDiscoverTriggeredRef = useRef(false);
+let runtimeConfigSetupAutodiscoverTriggered = false;
 
+export function useRuntimeConfigSetupAutodiscoverEffect(input: SetupAutodiscoverEffectInput) {
   useEffect(() => {
     if (!input.state || !input.hydrated) return;
-    if (autoDiscoverTriggeredRef.current) return;
+    if (runtimeConfigSetupAutodiscoverTriggered) return;
     if (!PAGES_REQUIRING_DISCOVERY.has(input.activePage)) return;
 
-    autoDiscoverTriggeredRef.current = true;
+    runtimeConfigSetupAutodiscoverTriggered = true;
     void input.discoverLocalModels();
   }, [input.discoverLocalModels, input.hydrated, input.state, input.activePage]);
 }

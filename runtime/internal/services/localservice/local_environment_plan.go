@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/engine"
 )
 
 const (
@@ -133,6 +134,9 @@ func (s *Service) resolveLocalEnvironmentPlan(req localEnvironmentPlanRequest) l
 	consumerScope := strings.TrimSpace(req.ConsumerScope)
 	if consumerScope == "" {
 		consumerScope = def.PackID
+		if resolved := s.localImageNativeExplicitAssetConsumerScope(def, req, profile); resolved != "" {
+			consumerScope = resolved
+		}
 	}
 	platformTuple := localEnvironmentPlatformTuple(hostState)
 
@@ -210,6 +214,35 @@ func (s *Service) resolveLocalEnvironmentPlan(req localEnvironmentPlanRequest) l
 		ReasonCode:      reasonCode,
 		Dependencies:    dependencies,
 	}
+}
+
+func (s *Service) localImageNativeExplicitAssetConsumerScope(
+	def localComputePackDefinition,
+	req localEnvironmentPlanRequest,
+	profile *runtimev1.LocalDeviceProfile,
+) string {
+	if def.PackID != "local-image-native" || strings.TrimSpace(req.InstallLevel) != "" {
+		return ""
+	}
+	if strings.TrimSpace(req.LocalAssetID) == "" && strings.TrimSpace(req.AssetID) == "" {
+		return ""
+	}
+	model := s.modelByID(strings.TrimSpace(req.LocalAssetID))
+	if model == nil {
+		model = s.installedAssetRecordForAssetID(strings.TrimSpace(req.AssetID))
+	}
+	if model == nil {
+		return ""
+	}
+	selection := canonicalSupervisedImageSelectionForLocalAsset(model, profile)
+	if !selection.Matched || selection.Conflict || selection.Entry == nil || selection.ProductState != engine.ImageProductStateSupported {
+		return ""
+	}
+	consumerID, ok := managedImageConsumerIDForMatrixEntry(selection.Entry)
+	if !ok {
+		return ""
+	}
+	return consumerID
 }
 
 func (s *Service) resolveLocalEnvironmentPlanDependencyJobProjection(dep localEnvironmentPlanDependency) localEnvironmentPlanDependency {

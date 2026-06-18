@@ -158,11 +158,13 @@ export function LocalModelCenterInstalledAssetsSection(props: InstalledAssetsSec
               const runtimeDependencyJob = latestRuntimeDependencyJob(props.sharedRuntimeDependencyJobs.filter((job) => (
                 runtimeDependencyJobMatchesDependency(job, runtimeDependency)
               )));
+              const canStartAssetRuntimeDependencySetup = runtimeDependencySetupAllowed(runtimeDependency, runtimeDependencyJob);
               return (
                 <RunnableInstalledAssetRow
                   key={asset.localAssetId}
                   asset={asset}
                   assetBusy={props.assetBusy}
+                  canStartRuntimeDependencySetup={canStartAssetRuntimeDependencySetup}
                   confirmRemoveAssetId={confirmRemoveAssetId}
                   repairAssetId={repairAssetId}
                   repairEndpoint={repairEndpoint}
@@ -191,6 +193,7 @@ export function LocalModelCenterInstalledAssetsSection(props: InstalledAssetsSec
                     setRepairAssetId(localAssetId);
                     setRepairEndpoint('');
                   }}
+                  onSetupRuntimeDependency={props.onSetupRuntimeDependency}
                   onRescanAsset={props.onRescanAsset}
                 />
               );

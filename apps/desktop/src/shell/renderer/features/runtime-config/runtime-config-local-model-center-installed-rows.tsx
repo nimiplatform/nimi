@@ -5,10 +5,13 @@ import type {
 } from '@nimiplatform/sdk/runtime';
 import {
   isNimiRuntimeLocalEnvironmentDependencyJobActiveState,
+  isNimiRuntimeLocalEnvironmentDependencyJobCancelledState,
+  isNimiRuntimeLocalEnvironmentDependencyJobFailedState,
   isNimiRuntimeLocalEnvironmentDependencyJobRetryableState,
   isNimiRuntimeLocalEnvironmentDependencyNeedsConfirmationState,
   isNimiRuntimeLocalEnvironmentDependencyReadyState,
   isNimiRuntimeLocalEnvironmentDependencyRepairRequiredState,
+  isNimiRuntimeLocalEnvironmentDependencyUnsupportedState,
 } from '@nimiplatform/sdk/runtime';
 import { i18n } from '@renderer/i18n';
 import { localSpeechReasonSummary } from './runtime-config-model-center-utils';
@@ -61,6 +64,7 @@ export function runtimeDependencyJobMatchesDependency(
     job.environmentKey === dependency.environmentKey
     && job.dependencyFamily === dependency.dependencyFamily
     && job.dependencyId === dependency.dependencyId
+    && job.consumerScope === dependency.consumerScope
   );
 }
 
@@ -147,9 +151,53 @@ function runtimeDependencyDetail(
   return String(dependency.detail || dependency.reasonCode || dependency.state || '').trim();
 }
 
+function runtimeDependencyReadinessLabel(
+  dependency?: NimiRuntimeLocalEnvironmentPlanDependency,
+  job?: NimiRuntimeLocalEnvironmentDependencyJob,
+): string {
+  const state = runtimeDependencyCurrentState(dependency, job);
+  if (isNimiRuntimeLocalEnvironmentDependencyJobActiveState(state)) {
+    return i18n.t('runtimeConfig.localModelCenter.runtimeSetupRunningBadge', { defaultValue: 'Runtime setup running' });
+  }
+  if (isNimiRuntimeLocalEnvironmentDependencyJobFailedState(state)) {
+    return i18n.t('runtimeConfig.localModelCenter.runtimeSetupFailedBadge', { defaultValue: 'Runtime setup failed' });
+  }
+  if (isNimiRuntimeLocalEnvironmentDependencyJobCancelledState(state)) {
+    return i18n.t('runtimeConfig.localModelCenter.runtimeSetupCancelledBadge', { defaultValue: 'Runtime setup cancelled' });
+  }
+  if (isNimiRuntimeLocalEnvironmentDependencyRepairRequiredState(state)) {
+    return i18n.t('runtimeConfig.localModelCenter.runtimeRepairRequiredBadge', { defaultValue: 'Runtime repair required' });
+  }
+  if (isNimiRuntimeLocalEnvironmentDependencyUnsupportedState(state)) {
+    return i18n.t('runtimeConfig.localModelCenter.runtimeUnsupportedBadge', { defaultValue: 'Runtime unsupported' });
+  }
+  if (dependency?.confirmationRequired && isNimiRuntimeLocalEnvironmentDependencyNeedsConfirmationState(state)) {
+    return i18n.t('runtimeConfig.localModelCenter.runtimeSetupRequiredBadge', { defaultValue: 'Runtime setup required' });
+  }
+  return i18n.t('runtimeConfig.localModelCenter.runtimeNotReadyBadge', { defaultValue: 'Runtime not ready' });
+}
+
+function assetStatusLabel(asset: NimiRuntimeLocalAssetRecord): string {
+  if (asset.status === 'installed') {
+    return i18n.t('runtimeConfig.localModelCenter.installed', { defaultValue: 'Installed' });
+  }
+  return asset.status;
+}
+
+function assetStatusBadgeClass(asset: NimiRuntimeLocalAssetRecord): string {
+  if (asset.status === 'active') {
+    return 'bg-[color-mix(in_srgb,var(--nimi-status-success)_18%,transparent)] text-[var(--nimi-status-success)]';
+  }
+  if (asset.status === 'unhealthy') {
+    return 'bg-[color-mix(in_srgb,var(--nimi-status-danger)_18%,transparent)] text-[var(--nimi-status-danger)]';
+  }
+  return 'bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] text-[var(--nimi-text-muted)]';
+}
+
 type RunnableInstalledAssetRowProps = {
   asset: NimiRuntimeLocalAssetRecord;
   assetBusy: boolean;
+  canStartRuntimeDependencySetup: boolean;
   confirmRemoveAssetId: string;
   repairAssetId: string;
   repairEndpoint: string;
@@ -162,6 +210,7 @@ type RunnableInstalledAssetRowProps = {
   onRepairEndpointChange: (value: string) => void;
   onRequestRemove: (localAssetId: string) => void;
   onRequestRepair: (localAssetId: string) => void;
+  onSetupRuntimeDependency: () => void;
   onRescanAsset: (localAssetId: string) => void;
 };
 
@@ -173,6 +222,9 @@ export function RunnableInstalledAssetRow(props: RunnableInstalledAssetRowProps)
     props.runtimeDependencyJob,
   );
   const dependencyDetail = runtimeDependencyDetail(props.asset, props.runtimeDependency, props.runtimeDependencyJob);
+  const statusLabel = hasRuntimeDependencyWarning
+    ? runtimeDependencyReadinessLabel(props.runtimeDependency, props.runtimeDependencyJob)
+    : assetStatusLabel(props.asset);
   const isRepairing = props.repairAssetId === props.asset.localAssetId;
   const supportsRescan = assetSupportsBundleRescan(props.asset);
   const unhealthyReasonSummary = props.asset.status === 'unhealthy'
@@ -224,12 +276,22 @@ export function RunnableInstalledAssetRow(props: RunnableInstalledAssetRowProps)
         </div>
         <div className="flex items-center gap-2">
           <span className={`rounded px-2 py-0.5 text-[10px] ${
-            props.asset.status === 'active' ? 'bg-[color-mix(in_srgb,var(--nimi-status-success)_18%,transparent)] text-[var(--nimi-status-success)]' : props.asset.status === 'unhealthy' ? 'bg-[color-mix(in_srgb,var(--nimi-status-danger)_18%,transparent)] text-[var(--nimi-status-danger)]' : 'bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] text-[var(--nimi-text-muted)]'
+            hasRuntimeDependencyWarning
+              ? 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_16%,transparent)] text-[var(--nimi-status-warning)]'
+              : assetStatusBadgeClass(props.asset)
           }`}>
-            {props.asset.status === 'installed'
-              ? i18n.t('runtimeConfig.localModelCenter.installed', { defaultValue: 'Installed' })
-              : props.asset.status}
+            {statusLabel}
           </span>
+          {props.canStartRuntimeDependencySetup ? (
+            <button
+              type="button"
+              onClick={props.onSetupRuntimeDependency}
+              disabled={props.assetBusy}
+              className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_10%,transparent)] px-2.5 py-1 text-[11px] font-medium text-[var(--nimi-status-warning)] transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-status-warning)_16%,transparent)] disabled:opacity-50"
+            >
+              {i18n.t('runtimeConfig.localModelCenter.setupDependency', { defaultValue: 'Set Up' })}
+            </button>
+          ) : null}
           {needsRepair ? (
             <button
               type="button"

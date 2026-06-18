@@ -56,6 +56,7 @@ function runtimeDependencyJobMatchesDependency(
     job.environmentKey === dependency.environmentKey
     && job.dependencyFamily === dependency.dependencyFamily
     && job.dependencyId === dependency.dependencyId
+    && job.consumerScope === dependency.consumerScope
   );
 }
 
