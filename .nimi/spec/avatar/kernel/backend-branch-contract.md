@@ -6,6 +6,7 @@
 > **Sibling contracts**:
 > - [VRM backend contract](vrm-backend-contract.md)
 > - [Live2D render contract](live2d-render-contract.md)
+> - [Nimi2D backend contract](nimi2d-backend-contract.md)
 > - [Embodiment projection contract](embodiment-projection-contract.md)
 > - [App shell contract](app-shell-contract.md)
 > - [Avatar event contract](avatar-event-contract.md)
@@ -18,7 +19,7 @@
 本 contract 定义 Nimi Avatar 的 **backend-agnostic carrier abstraction** —
 `BackendBranch`。它是 carrier / NAS projection / lipsync / embodiment-stage /
 window-bounds / hit-region 共同消费的统一接口。任何 backend（Live2D / VRM /
-未来 3D 等）必须 conform 此契约。
+Nimi2D / 未来 3D 等）必须 conform 此契约。
 
 本 contract 不定义具体 backend 的渲染细节（见 `live2d-render-contract.md` /
 `vrm-backend-contract.md`），不定义 ontology semantics（见
@@ -46,10 +47,13 @@ window-bounds / hit-region 共同消费的统一接口。任何 backend（Live2D
 ### 2.1 Kind
 
 ```ts
-export type BackendKind = 'live2d' | 'vrm';
+export type BackendKind = 'live2d' | 'vrm' | 'nimi2d';
 ```
 
 `BackendKind` 是 closed union；新 backend admit 必须先 minor-bump 本 contract。
+`nimi2d` is admitted as an Avatar-local runtime branch for admitted Nimi2D
+packages only. It does not admit default generated Nimi2D asset viability and
+must fail closed on missing or invalid package/profile evidence.
 
 ### 2.2 NominalBounds
 
@@ -215,14 +219,15 @@ export type BackendBranchBase = {
 // kind narrowing 暴露 backend-specific extension（仅 live2d 有 extension）
 export type BackendBranch =
   | (BackendBranchBase & { kind: 'live2d'; live2dExtension: Live2DBackendExtension })
-  | (BackendBranchBase & { kind: 'vrm' });
+  | (BackendBranchBase & { kind: 'vrm' })
+  | (BackendBranchBase & { kind: 'nimi2d' });
 ```
 
 - discriminated union 强制 typescript exhaustive check
 - `live2dExtension` 仅当 `kind === 'live2d'` 暴露（kind narrowing）；VRM branch
-  不允许携带 `live2dExtension` 字段
+  和 Nimi2D branch 不允许携带 `live2dExtension` 字段
 - `shutdown()` 释放所有 backend resources（GL context / Three.js scene /
-  Cubism instance / wLipSync node 等）
+  Cubism instance / Nimi2D compositor / wLipSync node 等）
 
 ---
 
@@ -235,6 +240,7 @@ async function createBackendBranch(model: ModelManifest): Promise<BackendBranch>
   switch (model.kind) {
     case 'vrm':    return createVrmBackendBranch(model);
     case 'live2d': return createLive2DBackendBranch(model);
+    case 'nimi2d': return createNimi2DBackendBranch(model);
   }
   // exhaustive check enforces fail-close on new kind:
   const _exhaustive: never = model.kind;
@@ -293,9 +299,13 @@ component 不允许 emit 未在 event-contract 列出的 kind。
 - **AudioConsumer 完整性**：新 backend 必须实现 `attachAudioSource`（async）/
   `detachAudioSource` / `silent` / `snapshot` 4 method；缺一即 type error。
 - **kind narrowing 强制**：`live2dExtension` 字段必须通过 discriminated
-  union 暴露；不允许 VRM branch 暴露此字段。
+  union 暴露；不允许 VRM 或 Nimi2D branch 暴露此字段。
 - **exhaustive switch**：`createBackendBranch` 对新 kind 必须强制 typecheck
   fail（`_exhaustive: never`）。
+- **Nimi2D bounded admission**：`kind: 'nimi2d'` 只允许在 package manifest 和
+  Avatar capability profile 均通过验证时返回真实 `BackendBranch`；缺失、
+  无 default outfit、无 renderer binding、或 invalid input 必须 fail closed，
+  不得返回 placeholder `BackendBranch`。
 
 ---
 

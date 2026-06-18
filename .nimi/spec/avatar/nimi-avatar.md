@@ -21,6 +21,8 @@ This guide points to the avatar authority surfaces for nimi-avatar. It does not 
 - `.nimi/spec/avatar/kernel/generated-motion-provider-contract.md`
 - `.nimi/spec/avatar/kernel/kit-ui-consumption-contract.md`
 - `.nimi/spec/avatar/kernel/live2d-asset-compatibility-contract.md`
+- `.nimi/spec/avatar/kernel/nimi2d-backend-contract.md`
+- `.nimi/spec/avatar/kernel/nimi2d-live-action-bench-contract.md`
 
 ## Tables
 
@@ -33,3 +35,5 @@ This guide points to the avatar authority surfaces for nimi-avatar. It does not 
 - `.nimi/spec/avatar/kernel/tables/generated-motion-routes.yaml`
 - `.nimi/spec/avatar/kernel/tables/live2d-adapter-diagnostics.yaml`
 - `.nimi/spec/avatar/kernel/tables/live2d-adapter-manifest.schema.yaml`
+- `.nimi/spec/avatar/kernel/tables/nimi2d-backend-capability-profile.schema.yaml`
+- `.nimi/spec/avatar/kernel/tables/nimi2d-live-action-routes.yaml`

@@ -15,13 +15,37 @@ SDK API / presentation timeline) are consumed as upstream references.
 
 Multi-backend carrier abstraction:
 
-- `BackendKind` closed union (`'live2d' | 'vrm'`)
+- `BackendKind` closed union (`'live2d' | 'vrm' | 'nimi2d'`)
 - `BackendBranch` discriminated union (kind narrowing exposes Live2D-only
   `live2dExtension`)
 - `BackendNominalBounds` / `BackendHitRegion` / `BackendAudioConsumer` /
   `BackendProjection` / `BackendSurface` types
 - `createBackendBranch(model)` factory exhaustive switch (only allowed `kind`
   branch site)
+
+### [`nimi2d-backend-contract.md`](nimi2d-backend-contract.md)
+
+Nimi2D backend branch admission boundary:
+
+- admits `kind: 'nimi2d'` as an Avatar-local backend branch for admitted Nimi2D
+  packages
+- keeps default generated tier-1 viability gated by Nimi2D Generation Bench
+- requires package `proven_tier`, validator evidence, default outfit, and
+  fail-closed live-action lanes
+- current implementation admits a PixiJS renderer foundation/composer proof and
+  deterministic offscreen pixel proof for valid package/profile input while
+  mounted-surface release visual acceptance remains open
+
+### [`nimi2d-live-action-bench-contract.md`](nimi2d-live-action-bench-contract.md)
+
+Nimi2D Live Action Bench authority:
+
+- exercises a real Avatar `kind: 'nimi2d'` backend surface
+- measures default outfit visibility, projection latency, state legibility,
+  tier-1 jaw/amplitude mouth behavior, blend stability, and interrupt recovery
+- reports gaze as `unsupported_v1` until a separate lane is admitted
+- cannot close Nimi2D Generation Bench or mounted-surface release visual
+  acceptance
 
 ### [`vrm-backend-contract.md`](vrm-backend-contract.md)
 
@@ -270,10 +294,23 @@ smoke proof.
 Avatar backend route ids for generated motion provider support. Route ids are
 downstream of typed runtime projection and are not public APML tags.
 
+### [`tables/nimi2d-live-action-routes.yaml`](tables/nimi2d-live-action-routes.yaml)
+
+Avatar-local Nimi2D live-action route families. These routes consume typed
+runtime projection and Nimi2D package capability evidence; they are not public
+APML syntax and cannot close Generation Bench.
+
 ### [`tables/backend-capability-profile.schema.yaml`](tables/backend-capability-profile.schema.yaml)
 
-Backend-agnostic capability profile schema with VRM and Live2D backend sections.
-Profiles describe model/backend support and fail closed on missing capability.
+Backend-agnostic capability profile schema with VRM, Live2D, and Nimi2D backend
+sections. Profiles describe model/backend support and fail closed on missing
+capability.
+
+### [`tables/nimi2d-backend-capability-profile.schema.yaml`](tables/nimi2d-backend-capability-profile.schema.yaml)
+
+Avatar-local Nimi2D backend capability profile schema. It consumes Nimi2D
+package evidence and proves only Avatar runtime lane support, not default
+generated asset viability.
 
 ### [`tables/acceptance-recording-matrix.yaml`](tables/acceptance-recording-matrix.yaml)
 

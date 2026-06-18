@@ -93,6 +93,29 @@ describe('avatar model manifest projection', () => {
     });
   });
 
+  it('normalizes shell-tauri Nimi2D manifests without admitting renderer success', () => {
+    expect(fromTauriAvatarModelManifest({
+      kind: 'nimi2d',
+      runtime_dir: '/runtime',
+      model_id: 'agent-skin',
+      nimi_dir: '/runtime/nimi',
+      nimi2d_package_manifest_path: '/runtime/nimi2d/package.yaml',
+      nimi2d_package_digest_sha256: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+      nimi2d_capability_profile_ref: 'avatar.nimi2d.capability-profile:agent-skin',
+    })).toEqual({
+      kind: 'nimi2d',
+      modelId: 'agent-skin',
+      runtimeDir: '/runtime',
+      nimiDir: '/runtime/nimi',
+      posterPath: null,
+      nimi2d: {
+        packageManifestPath: '/runtime/nimi2d/package.yaml',
+        packageDigestSha256: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+        capabilityProfileRef: 'avatar.nimi2d.capability-profile:agent-skin',
+      },
+    });
+  });
+
   it('fails closed on missing required backend fields', () => {
     expect(() => fromTauriAvatarModelManifest({
       kind: 'vrm',
@@ -127,5 +150,23 @@ describe('avatar model manifest projection', () => {
       vrm_file_path: '/runtime/model.vrm',
       live2d_calibration_ref: 'live2d_calibration_ab12cd34ef56',
     })).toThrow('avatar model manifest live2d_calibration_ref requires live2d kind');
+  });
+
+  it('fails closed when Nimi2D manifests are missing package evidence', () => {
+    expect(() => fromTauriAvatarModelManifest({
+      kind: 'nimi2d',
+      runtime_dir: '/runtime',
+      model_id: 'agent-skin',
+    })).toThrow('avatar model manifest missing nimi2d_package_manifest_path');
+  });
+
+  it('fails closed when non-Nimi2D manifests carry Nimi2D package refs', () => {
+    expect(() => fromTauriAvatarModelManifest({
+      kind: 'vrm',
+      runtime_dir: '/runtime',
+      model_id: 'model',
+      vrm_file_path: '/runtime/model.vrm',
+      nimi2d_package_manifest_path: '/runtime/nimi2d/package.yaml',
+    })).toThrow('avatar model manifest nimi2d_package_manifest_path requires nimi2d kind');
   });
 });

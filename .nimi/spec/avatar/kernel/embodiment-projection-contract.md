@@ -8,6 +8,7 @@
 > - [Backend branch contract](backend-branch-contract.md)
 > - [VRM backend contract](vrm-backend-contract.md)
 > - [Live2D render contract](live2d-render-contract.md)
+> - [Nimi2D backend contract](nimi2d-backend-contract.md)
 > - [App shell contract](app-shell-contract.md)
 > - [Agent script contract](agent-script-contract.md)
 > - [Avatar event contract](avatar-event-contract.md)
@@ -26,7 +27,7 @@ canonical teaching model 固定为：
 
 - runtime / SDK 继续拥有 agent semantic truth
 - avatar app 负责把这些语义投影成 embodiment-local cues
-- Live2D / VRM / 3D / robot / game-character 等 renderer 只是不同行为后端分支
+- Live2D / VRM / Nimi2D / 3D / robot / game-character 等 renderer 只是不同行为后端分支
 
 本 contract 不重定义 runtime presentation semantics，也不把 backend-local state 提升为
 platform truth。
@@ -113,7 +114,7 @@ without Avatar backend proof.
 
 以下内容必须留在 backend-specific branch：
 
-- Cubism SDK / VRM runtime / robot runtime 的接入细节
+- Cubism SDK / VRM runtime / Nimi2D compositor / robot runtime 的接入细节
 - motion group / expression file / parameter id 的具体命名
 - physics / lipsync / drag sway 的 renderer implementation
 - backend binary / asset layout / licensing
@@ -180,8 +181,10 @@ Rules:
   等）；parameter id 路径降级为 `Live2DBackendExtension.setParameter`
   escape hatch（详 `backend-branch-contract.md` §2.6）。
 - Activity-mapping resolution（ontology id → backend-specific route）由
-  `tables/activity-mapping.yaml` v2 admit；每 ontology core id 必须双
-  backend route 填全（live2d + vrm）。
+  `tables/activity-mapping.yaml` v2 admit for Live2D and VRM. Nimi2D
+  live-action route families are governed by
+  `tables/nimi2d-live-action-routes.yaml` and package capability profile
+  evidence; they must not be inferred from the Live2D/VRM mapping table.
 - emote 名称由 `tables/vrm-emote-states.yaml` admit；name 不一定与 ontology
   emotion id 同名（如 ontology `embarrassed` → emote state `shy` 复用）。
 
@@ -240,7 +243,7 @@ export interface NasActivityHandler {
 ## 11. Evolution
 
 - 新 backend branch 接入：本 contract 不变；新增 backend-specific contract
-  （如 `vrm-backend-contract.md`）+ 同步 `backend-branch-contract.md`
+  （如 `vrm-backend-contract.md` / `nimi2d-backend-contract.md`）+ 同步 `backend-branch-contract.md`
   `BackendKind` union
 - 新增 BackendProjection method：minor bump
 - 改 BackendProjection method 语义 / 改 ontology naming：major bump

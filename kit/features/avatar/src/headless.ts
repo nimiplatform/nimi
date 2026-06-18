@@ -105,6 +105,7 @@ export type {
   Live2DAvatarModelManifest,
   Live2DLocalModelManifest,
   LocalAvatarAssetReference,
+  Nimi2DAvatarModelManifest,
   TauriAvatarModelManifest,
   VrmAvatarModelManifest,
 } from './avatar-model-manifest.js';

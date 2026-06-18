@@ -138,7 +138,10 @@ but it must not introduce APML ids or runtime activity ids as owner truth.
 The schema target is
 `tables/backend-capability-profile.schema.yaml`. VRM is the first backend
 implementation target; the envelope is backend-agnostic so Live2D and future
-carriers can add backend sections without moving authority.
+carriers can add backend sections without moving authority. Nimi2D live-action
+lane support is governed by `nimi2d-backend-contract.md` and
+`tables/nimi2d-backend-capability-profile.schema.yaml`; it must not be counted
+as VRM deterministic `THREE.AnimationClip` provider support.
 
 ## 6. Mapping Confidence
 

@@ -100,24 +100,39 @@ input to support multi-backend visual evidence. Signature:
 
 ```ts
 recordCarrierVisualProof(input: {
-  modelKind: 'live2d' | 'vrm';
+  modelKind: 'live2d' | 'vrm' | 'nimi2d';
   // ... existing fields (canvas ref / sample grid / frame index / ...)
 }): CarrierVisualProof;
 ```
 
 Per-backend evidence rules:
 
-| Aspect | Live2D | VRM |
-| --- | --- | --- |
-| `framesToWait` budget | up to 12 attempts (Cubism animation idle takes longer to stabilize) | 6 attempts (R3F renders deterministic in 1–2 frames) |
-| Sample grid | 24 × 24 = 576 cells | 24 × 24 = 576 cells |
-| Visible-pixel threshold | alpha > 0.5 in sample cell | alpha > 0.5 in sample cell |
-| Evidence event detail | includes `model_kind: 'live2d'` | includes `model_kind: 'vrm'` |
-| Failure recovery | up to 1 webglcontextlost retry within 1500ms | up to 1 webglcontextlost retry within 1500ms (per `vrm-backend-contract.md` §2.3) |
+| Aspect | Live2D | VRM | Nimi2D |
+| --- | --- | --- | --- |
+| `framesToWait` budget | up to 12 attempts (Cubism animation idle takes longer to stabilize) | 6 attempts (R3F renders deterministic in 1–2 frames) | deterministic offscreen layer composition over the admitted Nimi2D render plan |
+| Sample grid | 24 × 24 = 576 cells | 24 × 24 = 576 cells | 24 × 24 = 576 cells when admitted |
+| Visible-pixel threshold | alpha > 0.5 in sample cell | alpha > 0.5 in sample cell | default outfit alpha > 0.5; base-body-only pixels are forbidden success |
+| Evidence event detail | includes `model_kind: 'live2d'` | includes `model_kind: 'vrm'` | includes `model_kind: 'nimi2d'` and package capability refs |
+| Failure recovery | up to 1 webglcontextlost retry within 1500ms | up to 1 webglcontextlost retry within 1500ms (per `vrm-backend-contract.md` §2.3) | up to 1 renderer context retry within 1500ms after renderer admission |
 
-Both backends must produce the same evidence shape (`visiblePixels`,
+All render-admitted backends must produce the same evidence shape (`visiblePixels`,
 `modelKind`, sampling result) so audit harnesses can run the same assertion
 across backends.
+
+Nimi2D is admitted as a backend branch with PixiJS renderer foundation proof,
+deterministic offscreen pixel proof over the same render plan/layer assets, and
+a bounded mounted Pixi canvas capture foundation. The admitted Nimi2D pixel
+proof composes the package's ordered RGBA layers using package `render_layers`
+placement/bounds geometry into an Avatar-owned offscreen sampler and verifies
+visible default outfit pixels. Mounted Pixi canvas capture may write a
+human-visible artifact only when the mounted canvas is readable and has
+non-zero visible pixels. Capture failure or blank frames must record visual
+error evidence and cannot count as success.
+It must not count a base-body-only frame as valid. The mounted capture
+foundation is still not release-grade mounted-surface acceptance.
+
+This deterministic proof does not replace real launch recording evidence,
+human-visible release artifacts, or Nimi2D Generation Bench go/no-go.
 
 `avatar.carrier.visual` evidence event detail is extended to carry
 `model_kind`; existing fields remain stable.
@@ -129,7 +144,8 @@ This contract does not admit:
 - voice output or lipsync behavior (owned by voice/lipsync authority and tracked separately)
 - shared `PresentationTimeline`
 - broad platform or SDK Event API behavior
-- 3D / Lottie / robot backend visual proof beyond Live2D + VRM
+- 3D / Lottie / robot backend visual proof beyond Live2D + VRM + admitted
+  Nimi2D Pixi renderer foundation branch
 
 Those branches require separate active authority before they can be used as
 acceptance conditions.

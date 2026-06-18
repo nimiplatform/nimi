@@ -4,7 +4,7 @@ export type AgentCenterLocalAvatarAssetReference = {
   runtimeSourceRef: string;
   localAgentRef: string;
   localAvatarAssetRef: string;
-  backendKind: 'live2d' | 'vrm';
+  backendKind: 'live2d' | 'vrm' | 'nimi2d';
   backendCapabilityProfileRef: string;
   materializationRef: string;
 };
@@ -50,7 +50,20 @@ export type VrmAvatarModelManifest = {
   };
 };
 
-export type AvatarModelManifest = Live2DAvatarModelManifest | VrmAvatarModelManifest;
+export type Nimi2DAvatarModelManifest = {
+  kind: 'nimi2d';
+  modelId: string;
+  runtimeDir: string;
+  nimiDir: string | null;
+  posterPath: string | null;
+  nimi2d: {
+    packageManifestPath: string;
+    packageDigestSha256: string | null;
+    capabilityProfileRef: string | null;
+  };
+};
+
+export type AvatarModelManifest = Live2DAvatarModelManifest | VrmAvatarModelManifest | Nimi2DAvatarModelManifest;
 
 export type TauriAvatarModelManifest = {
   kind?: string;
@@ -62,6 +75,9 @@ export type TauriAvatarModelManifest = {
   motion_presets_dir?: string | null;
   adapter_manifest_path?: string | null;
   live2d_calibration_ref?: string | null;
+  nimi2d_package_manifest_path?: string | null;
+  nimi2d_package_digest_sha256?: string | null;
+  nimi2d_capability_profile_ref?: string | null;
 };
 
 function readRequiredString(value: unknown, field: string): string {
@@ -124,6 +140,9 @@ export function fromTauriAvatarModelManifest(raw: TauriAvatarModelManifest): Ava
     if (readOptionalString(raw.live2d_calibration_ref)) {
       throw new Error('avatar model manifest live2d_calibration_ref requires live2d kind');
     }
+    if (readOptionalString(raw.nimi2d_package_manifest_path)) {
+      throw new Error('avatar model manifest nimi2d_package_manifest_path requires nimi2d kind');
+    }
     return {
       kind: 'vrm',
       modelId,
@@ -133,6 +152,26 @@ export function fromTauriAvatarModelManifest(raw: TauriAvatarModelManifest): Ava
       vrm: {
         vrmFile: readRequiredString(raw.vrm_file_path, 'vrm_file_path'),
         motionPresetsDir: readOptionalString(raw.motion_presets_dir),
+      },
+    };
+  }
+  if (kind === 'nimi2d') {
+    if (readOptionalString(raw.live2d_calibration_ref)) {
+      throw new Error('avatar model manifest live2d_calibration_ref requires live2d kind');
+    }
+    if (readOptionalString(raw.vrm_file_path)) {
+      throw new Error('avatar model manifest vrm_file_path requires vrm kind');
+    }
+    return {
+      kind: 'nimi2d',
+      modelId,
+      runtimeDir,
+      nimiDir,
+      posterPath: null,
+      nimi2d: {
+        packageManifestPath: readRequiredString(raw.nimi2d_package_manifest_path, 'nimi2d_package_manifest_path'),
+        packageDigestSha256: readOptionalString(raw.nimi2d_package_digest_sha256),
+        capabilityProfileRef: readOptionalString(raw.nimi2d_capability_profile_ref),
       },
     };
   }

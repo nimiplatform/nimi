@@ -28,7 +28,7 @@ The active Avatar event surface covers the multi-backend BackendBranch carrier a
   `avatar.motion.preset.*`, `avatar.emote.applied`, `avatar.hit_region.*`,
   `avatar.carrier.lifecycle.*` are admitted as new event families.
 - `avatar.model.load` schema migrates from `compatibility_tier` / `adapter_id`
-  (Live2D-specific) to `model_kind` (`'live2d' | 'vrm'`) + `backend_meta`
+  (Live2D-specific) to `model_kind` (`'live2d' | 'vrm' | 'nimi2d'`) + `backend_meta`
   (open object).
 - `lipsync_frame_batch` consume references are removed (avatar-side hard-cut;
   platform-side emit deprecation requires separate admitted authority). Synthetic-audio mime
@@ -311,7 +311,7 @@ avatar.shell.appearance.opened:
     agent_id: string?
     conversation_anchor_id: string?
     model_id: string?
-    backend_kind: enum(live2d|vrm|unknown)
+    backend_kind: enum(live2d|vrm|nimi2d|unknown)
     source_authority: enum(runtime|fixture|unknown)
     scale: number
     opened_at: string                              # ISO 8601
@@ -447,7 +447,7 @@ avatar.shell.window-bounds-changed:
 avatar.model.load:
   detail:
     model_id: string
-    model_kind: enum(live2d|vrm)            # replaces compatibility_tier / adapter_id
+    model_kind: enum(live2d|vrm|nimi2d)     # replaces compatibility_tier / adapter_id
     backend_meta: object                    # backend-specific opaque descriptor (BackendBranch.metadata())
     nas_handler_count: int
     loaded_at: string                       # ISO 8601
@@ -534,7 +534,7 @@ avatar.lipsync.frame_drop:
 
 avatar.motion.preset.played:
   detail:
-    model_kind: enum(live2d|vrm)
+    model_kind: enum(live2d|vrm|nimi2d)
     preset_id: string                       # e.g. nod_yes (vrm) | Activity_Happy (live2d)
     fade_sec: float
     loop: bool
@@ -542,21 +542,21 @@ avatar.motion.preset.played:
 
 avatar.motion.preset.fail_close:
   detail:
-    model_kind: enum(live2d|vrm)
+    model_kind: enum(live2d|vrm|nimi2d)
     preset_id: string
     reason_code: string                     # e.g. generated_provider_missing | route_not_admitted | capability_missing | unsafe_pose | low_confidence | interchange_asset_drift
     recorded_at: string
 
 avatar.emote.applied:
   detail:
-    model_kind: enum(live2d|vrm)
+    model_kind: enum(live2d|vrm|nimi2d)
     emote: string                           # admitted ontology emotion id only; extension requires runtime/APML authority
     skipped_count: int                      # expressions skipped because preset missing on loaded model
     applied_at: string
 
 avatar.hit_region.snapshot:
   detail:
-    model_kind: enum(live2d|vrm)
+    model_kind: enum(live2d|vrm|nimi2d)
     body: { left: float, top: float, right: float, bottom: float }    # 0..1 viewport-normalized
     drag: { left: float, top: float, right: float, bottom: float }
     has_alpha_mask: bool
@@ -564,26 +564,26 @@ avatar.hit_region.snapshot:
 
 avatar.hit_region.degraded:
   detail:
-    model_kind: enum(live2d|vrm)
+    model_kind: enum(live2d|vrm|nimi2d)
     reason_code: string                     # e.g. render_target_unavailable | device_tier_c
     recorded_at: string
 
 avatar.carrier.lifecycle.context_lost:
   detail:
-    model_kind: enum(live2d|vrm)
+    model_kind: enum(live2d|vrm|nimi2d)
     context_kind: enum(webgl|webgl2|audio)
     lost_at: string
 
 avatar.carrier.lifecycle.context_restored:
   detail:
-    model_kind: enum(live2d|vrm)
+    model_kind: enum(live2d|vrm|nimi2d)
     context_kind: enum(webgl|webgl2|audio)
     restore_duration_ms: int
     restored_at: string
 
 avatar.carrier.lifecycle.failed_closed:
   detail:
-    model_kind: enum(live2d|vrm)
+    model_kind: enum(live2d|vrm|nimi2d)
     reason_code: string                     # e.g. context_lost_twice | load_failed | wlipsync_init_failed
     closed_at: string
 ```

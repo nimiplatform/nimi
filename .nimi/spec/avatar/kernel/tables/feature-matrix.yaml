@@ -16,6 +16,10 @@ entries:
   - live2d_branch_audio_pipeline
   - vrm_lifecycle
   - generated_motion_emote
+  - nimi2d_backend_contract
+  - nimi2d_renderer_composer_proof
+  - nimi2d_carrier_visual_pixel_proof
+  - nimi2d_live_action_bench
   - multi_backend_hit_region
   - representative_smoke_evidence
 description: >
@@ -191,10 +195,11 @@ capabilities: &avatar_capability_matrix_entries
       - shell_surface_authority
       - voice_lipsync
     scope:
-      - "BackendKind is the closed union live2d | vrm"
+      - "BackendKind is the closed union live2d | vrm | nimi2d"
       - "BackendBranch is the public carrier abstraction consumed by Avatar shell and NAS"
       - "Runtime artifact bytes retrieval is the only admitted audio/artifact byte path"
       - "VRM and Live2D branches must produce the same carrier evidence shape"
+      - "Nimi2D branch is admitted only for valid package/profile input and remains bounded by the Nimi2D backend contract"
     verification_commands:
       - "pnpm --filter @nimiplatform/avatar check:spec-consistency"
       - "pnpm --filter @nimiplatform/avatar typecheck"
@@ -255,6 +260,94 @@ capabilities: &avatar_capability_matrix_entries
       - "Emote and lipsync preset writes coordinate without dual ownership of viseme state"
     verification_commands:
       - "pnpm --filter @nimiplatform/avatar test"
+      - "pnpm --filter @nimiplatform/avatar check:spec-consistency"
+
+  nimi2d_backend_contract:
+    title: "Nimi2D backend contract"
+    authority_refs:
+      - nimi2d-backend-contract.md
+      - backend-branch-contract.md
+      - tables/nimi2d-backend-capability-profile.schema.yaml
+      - tables/nimi2d-live-action-routes.yaml
+      - .nimi/spec/nimi2d/kernel/package-manifest-contract.md
+      - .nimi/spec/nimi2d/kernel/generation-bench-contract.md
+    requires:
+      - multi_backend_carrier
+      - generated_motion_emote
+    scope:
+      - "Avatar recognizes kind: nimi2d as an admitted backend branch for admitted Nimi2D packages"
+      - "Invalid, digest-mismatched, evidence-missing, or incomplete Nimi2D package/profile input fails closed"
+      - "Avatar runtime verifies package manifest digest and admission/content evidence refs without duplicating the offline Nimi2D validator"
+      - "Nimi2D backend consumes package proven_tier and validator evidence, never requested_tier"
+      - "Live Action runtime proof cannot replace Nimi2D Generation Bench go/no-go"
+      - "Tier-1 speech mouth is jaw/amplitude only; true viseme remains tier-2+"
+    verification_commands:
+      - "pnpm --filter @nimiplatform/avatar check:spec-consistency"
+      - "pnpm --filter @nimiplatform/avatar typecheck"
+      - "pnpm --filter @nimiplatform/avatar test"
+
+  nimi2d_renderer_composer_proof:
+    title: "Nimi2D renderer and composer proof"
+    authority_refs:
+      - nimi2d-backend-contract.md
+      - carrier-visual-acceptance-contract.md
+      - tables/nimi2d-backend-capability-profile.schema.yaml
+    requires:
+      - nimi2d_backend_contract
+    scope:
+      - "Valid Nimi2D package/profile input creates a real Avatar BackendBranch with a PixiJS renderer foundation"
+      - "PixiJS renderer consumes package canvas, render_layers placement/bounds geometry, rectangular texture_bounds cropping, and optional package alpha_mask_asset bindings"
+      - "PixiJS renderer consumes profile-declared motion_routes bindings for route-specific sprite translate/scale/opacity transforms without hardcoded route ids"
+      - "Base body visual layers are rendered only with the selected default outfit; base-body-only display remains unreachable"
+      - "BackendProjection updates local scheduler/composer state for activity, expression, and motion"
+      - "Composer scheduler advances frame time, expression fade, motion fade/recovery, queued motion handoff, interrupt counters, and idle-life clock without LLM numeric frame control"
+      - "BackendAudioConsumer feeds tier-1 amplitude mouth state; true viseme remains tier-2+ and unsupported"
+      - "This proof does not close mounted-surface release visual acceptance or Nimi2D Generation Bench"
+    verification_commands:
+      - "pnpm --filter @nimiplatform/avatar typecheck"
+      - "pnpm --filter @nimiplatform/avatar test -- create-backend-branch.test.ts nimi2d-backend-branch.test.tsx"
+      - "pnpm --filter @nimiplatform/avatar check:spec-consistency"
+
+  nimi2d_carrier_visual_pixel_proof:
+    title: "Nimi2D carrier visual pixel proof"
+    authority_refs:
+      - carrier-visual-acceptance-contract.md
+      - nimi2d-backend-contract.md
+      - tables/nimi2d-backend-capability-profile.schema.yaml
+    requires:
+      - nimi2d_renderer_composer_proof
+    scope:
+      - "Nimi2D Pixi renderer foundation uses Avatar-owned deterministic offscreen layer composition with package render_layers geometry and optional package alpha_mask_asset bindings for pixel sampling"
+      - "Pixel proof samples the same package render plan, layer geometry, texture bounds, layer assets, and alpha mask assets consumed by the Avatar Nimi2D surface"
+      - "BackendHitRegion alpha query samples composited Nimi2D layer alpha and package alpha mask assets from the same package render plan and fails closed to null when the probe is unavailable or the default outfit layer is absent"
+      - "BackendHitRegion body/drag bbox is derived from package visible render-layer geometry and is consumed by the existing EmbodimentStage click-through path"
+      - "Mounted Pixi canvas capture writes human-visible artifact evidence only when readable mounted pixels are present; blank or unreadable frames record visual error evidence"
+      - "Default outfit visible pixels are required"
+      - "Base-body-only frames fail closed and cannot count as visual success"
+      - "This proof does not close release-grade OS/window-shape acceptance, Nimi2D Generation Bench, or release-grade launch recording acceptance"
+    verification_commands:
+      - "pnpm --filter @nimiplatform/avatar typecheck"
+      - "pnpm --filter @nimiplatform/avatar test -- nimi2d-carrier-visual-proof.test.ts nimi2d-backend-branch.test.tsx embodiment-stage.test.tsx"
+      - "pnpm --filter @nimiplatform/avatar check:spec-consistency"
+
+  nimi2d_live_action_bench:
+    title: "Nimi2D Live Action Bench"
+    authority_refs:
+      - nimi2d-live-action-bench-contract.md
+      - nimi2d-backend-contract.md
+      - tables/nimi2d-live-action-routes.yaml
+      - tables/nimi2d-backend-capability-profile.schema.yaml
+    requires:
+      - nimi2d_carrier_visual_pixel_proof
+    scope:
+      - "Bench exercises a real Avatar kind: nimi2d backend surface, not fixture-only scoring"
+      - "Bench measures default outfit visibility, projection latency, state legibility, scheduler/blend stability, tier-1 jaw alignment, and interrupt recovery"
+      - "Gaze is explicitly unsupported_v1 and cannot be counted as success"
+      - "Bench does not admit release-grade gesture queue policy, gaze, or route-specific motion transform quality beyond profile-declared sprite transforms"
+      - "Bench result cannot close Nimi2D Generation Bench or mounted-surface release visual acceptance"
+    verification_commands:
+      - "pnpm --filter @nimiplatform/avatar typecheck"
+      - "pnpm --filter @nimiplatform/avatar test -- nimi2d-live-action-bench.test.tsx"
       - "pnpm --filter @nimiplatform/avatar check:spec-consistency"
 
   multi_backend_hit_region:
