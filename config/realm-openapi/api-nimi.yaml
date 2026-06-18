@@ -4985,7 +4985,7 @@ info:
   description: |-
     The Nimi Social Platform API
 
-    Last updated: 2026-06-17T19:55:16.219Z
+    Last updated: 2026-06-18T03:10:19.298Z
   title: Nimi Realm SDK API
   version: '1.0'
 openapi: 3.0.0
@@ -9171,6 +9171,8 @@ paths:
             enum:
               - personal
               - friends
+              - persona_activity
+              - world_character_activity
             type: string
         - in: path
           name: worldId
@@ -9230,6 +9232,8 @@ paths:
             enum:
               - personal
               - friends
+              - persona_activity
+              - world_character_activity
             type: string
       responses:
         '200':

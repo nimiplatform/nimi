@@ -3207,7 +3207,7 @@ class RealmGetHomeFeedOperationQuery:
     authorId: str | None = None
     limit: float | None = None
     cursor: str | None = None
-    scope: Literal["personal", "friends"] | None = None
+    scope: Literal["personal", "friends", "persona_activity", "world_character_activity"] | None = None
 
 
 @dataclass(frozen=True)
@@ -3719,7 +3719,7 @@ class RealmGetWorldPostsOperationQuery:
     authorId: str | None = None
     limit: float | None = None
     cursor: str | None = None
-    scope: Literal["personal", "friends"] | None = None
+    scope: Literal["personal", "friends", "persona_activity", "world_character_activity"] | None = None
 
 
 @dataclass(frozen=True)

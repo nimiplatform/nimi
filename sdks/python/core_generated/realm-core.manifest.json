@@ -3184,7 +3184,9 @@
             "kind": "enum",
             "values": [
               "personal",
-              "friends"
+              "friends",
+              "persona_activity",
+              "world_character_activity"
             ]
           }
         }
@@ -3252,7 +3254,9 @@
             "kind": "enum",
             "values": [
               "personal",
-              "friends"
+              "friends",
+              "persona_activity",
+              "world_character_activity"
             ]
           }
         }
@@ -4666,7 +4670,9 @@
             "kind": "enum",
             "values": [
               "personal",
-              "friends"
+              "friends",
+              "persona_activity",
+              "world_character_activity"
             ]
           }
         },
@@ -4745,7 +4751,9 @@
             "kind": "enum",
             "values": [
               "personal",
-              "friends"
+              "friends",
+              "persona_activity",
+              "world_character_activity"
             ]
           }
         }
