@@ -31,6 +31,7 @@ type UiSlice = Pick<AppStoreState,
   | 'lastSelectedThreadByMode'
   | 'nimiConversationSelection'
   | 'agentConversationSelection'
+  | 'agentConversationTargetByLocalRef'
   | 'chatSetupState'
   | 'selectedChatId'
   | 'selectedProfileId'
@@ -56,6 +57,7 @@ type UiSlice = Pick<AppStoreState,
   | 'setLastSelectedThreadForMode'
   | 'setNimiConversationSelection'
   | 'setAgentConversationSelection'
+  | 'setAgentConversationTargetSnapshot'
   | 'setChatSetupState'
   | 'setSelectedChatId'
   | 'setSelectedProfileId'
@@ -88,6 +90,7 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
     lastSelectedThreadByMode: { ...DEFAULT_LAST_SELECTED_THREAD_BY_MODE },
     nimiConversationSelection: { ...EMPTY_NIMI_CONVERSATION_SELECTION },
     agentConversationSelection: { ...EMPTY_AGENT_CONVERSATION_SELECTION },
+    agentConversationTargetByLocalRef: {},
     chatSetupState: { ...DEFAULT_CHAT_SETUP_STATE },
     selectedChatId: null,
     selectedProfileId: null,
@@ -165,6 +168,13 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
         lastSelectedThreadByMode: {
           ...state.lastSelectedThreadByMode,
           agent: null,
+        },
+      })),
+    setAgentConversationTargetSnapshot: (target) =>
+      set((state) => ({
+        agentConversationTargetByLocalRef: {
+          ...state.agentConversationTargetByLocalRef,
+          [target.localAgentRef]: target,
         },
       })),
     setChatSetupState: (mode, setupState) =>

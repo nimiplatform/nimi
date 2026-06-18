@@ -25,6 +25,7 @@ import type {
   ConversationCapabilityProjection,
 } from '@renderer/features/chat/conversation-capability';
 import type { NimiAIConfig } from '@nimiplatform/sdk/ai';
+import type { AgentLocalTargetSnapshot } from '@renderer/bridge/runtime-bridge/types';
 
 export type AuthStatus = 'bootstrapping' | 'anonymous' | 'authenticated';
 export type AppTab =
@@ -88,6 +89,7 @@ export type AppStoreState = {
   lastSelectedThreadByMode: LastSelectedThreadByMode;
   nimiConversationSelection: NimiConversationSelection;
   agentConversationSelection: AgentConversationSelection;
+  agentConversationTargetByLocalRef: Record<string, AgentLocalTargetSnapshot>;
   chatSetupState: ChatSetupStateByMode;
   selectedChatId: string | null;
   selectedProfileId: string | null;
@@ -128,6 +130,7 @@ export type AppStoreState = {
   setLastSelectedThreadForMode: (mode: ConversationMode, threadId: string | null) => void;
   setNimiConversationSelection: (selection: NimiConversationSelection) => void;
   setAgentConversationSelection: (selection: AgentConversationSelection) => void;
+  setAgentConversationTargetSnapshot: (target: AgentLocalTargetSnapshot) => void;
   setChatSetupState: (mode: ConversationMode, setupState: ConversationSetupState | null) => void;
   setSelectedChatId: (chatId: string | null) => void;
   setSelectedProfileId: (profileId: string | null) => void;

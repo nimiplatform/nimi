@@ -1,4 +1,5 @@
 export type SemanticSourceThemeInput = {
+  archetype?: string | null;
   category?: string | null;
   origin?: string | null;
   worldName?: string | null;
@@ -67,6 +68,7 @@ const SOURCE_THEME_PALETTES: Array<{ keywords: string[]; palette: SemanticSource
 
 function normalizeSourceThemeText(input: SemanticSourceThemeInput): string {
   return [
+    input.archetype,
     input.category,
     input.origin,
     input.worldName,

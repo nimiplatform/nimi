@@ -33,6 +33,7 @@ function makePost(input: {
       displayName: 'Human Author',
       createdAt: '2026-03-10T00:00:00.000Z',
     },
+    authorKind: 'human',
     attachments: [],
     visibility: 'PUBLIC',
     createdAt: input.createdAt,

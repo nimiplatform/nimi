@@ -47,7 +47,7 @@ export function SendGiftModal(props: SendGiftModalProps) {
         <EntityAvatar
           imageUrl={props.receiverAvatarUrl}
           name={props.receiverName}
-          kind={props.receiverIsSource === true ? 'agent' : 'human'}
+          kind={props.receiverIsSource === true ? 'source' : 'human'}
           sizeClassName="h-20 w-20"
           className={props.receiverIsSource === true ? undefined : 'ring-4 ring-[#E0F7F4]'}
           textClassName="text-2xl font-bold"

@@ -67,7 +67,8 @@ test('edit post no longer shows coming soon path', () => {
 });
 
 test('post card does not keep an agent-chat unavailable branch in product UI', () => {
-  assert.match(postCardSource, /showChatButton=\{post\.author\?\.isSource !== true\}/);
+  assert.match(postCardSource, /showChatButton/);
+  assert.doesNotMatch(postCardSource, /post\.author\?\.isSource/);
   assert.doesNotMatch(postCardSource, /agentChatUnavailableFromMoments/);
 });
 

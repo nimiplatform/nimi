@@ -10,7 +10,10 @@ const postCardSource = fs.readFileSync(
 
 test('home PostCard treats missing author projection as renderable data', () => {
   assert.doesNotMatch(postCardSource, /post\.author\.(avatarUrl|displayName|handle|id)/);
-  assert.match(postCardSource, /post\.author\?\.avatarUrl/);
-  assert.match(postCardSource, /post\.author\?\.displayName/);
-  assert.match(postCardSource, /post\.author\?\.handle/);
+  assert.doesNotMatch(postCardSource, /post\.author\?\.(avatarUrl|displayName|handle)/);
+  assert.match(postCardSource, /buildPostCardAuthorProjection/);
+  assert.match(postCardSource, /displayAuthor\?\.avatarUrl/);
+  assert.match(postCardSource, /displayAuthor\?\.displayName/);
+  assert.match(postCardSource, /displayAuthor\?\.handle/);
+  assert.match(postCardSource, /canUseHumanAuthorActions/);
 });

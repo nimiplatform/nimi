@@ -92,13 +92,13 @@ export function ProfileDetailViewContent(input: {
   const originLabel = profile.sourceOrigin || t('Profile.unknownOrigin', { defaultValue: 'Unknown origin' });
   const joinedLabel = formatProfileDate(profile.createdAt) || t('Profile.unknownJoinedDate', { defaultValue: 'Unknown joined date' });
   const worldLabel = profile.worldName || t('Profile.unknownWorld', { defaultValue: 'Unknown world' });
-  const worldNavigationId = profile.sourceOwnerWorldId || profile.sourceWorldId || '';
+  const worldNavigationId = profile.sourceWorldId || '';
   const canVisitWorld = Boolean(worldNavigationId);
   const isRestrictedProfile = (input.isRestrictedProfile === true || profile.accessState === 'restricted') && !input.isOwnProfile;
   const headline = isRestrictedProfile
     ? t('Profile.privateProfileDescription', { defaultValue: 'This profile is private. Only basic contact information is available.' })
     : profile.bio || (profile.isSource
-    ? t('Profile.agentNoSummary', { defaultValue: 'This contact has no public profile summary yet.' })
+    ? t('Profile.sourceNoSummary', { defaultValue: 'This source has no public profile summary yet.' })
     : t('Profile.noDescription', { defaultValue: 'No profile summary has been added yet.' }));
   const contentRestricted = (input.isBlockedProfile === true || isRestrictedProfile) && !input.isOwnProfile;
   const showGiftButton = !input.isOwnProfile && !contentRestricted;
@@ -196,7 +196,7 @@ export function ProfileDetailViewContent(input: {
                               <EntityAvatar
                                 imageUrl={isEditing ? draft.avatarUrl || null : profile.avatarUrl}
                                 name={isEditing ? draft.displayName || profile.displayName : profile.displayName}
-                                kind={profile.isSource ? 'agent' : 'human'}
+                                kind={profile.isSource ? 'source' : 'human'}
                                 sizeClassName="h-24 w-24"
                                 textClassName="text-3xl font-bold"
                                 fallbackClassName={profile.isSource ? undefined : 'bg-gradient-to-br from-[#4ECCA3]/20 to-[#4ECCA3]/5 text-[#1f8f69]'}
@@ -351,6 +351,7 @@ export function ProfileDetailViewContent(input: {
                                     onMessage={input.onMessage}
                                     onAddFriend={input.onAddFriend}
                                     showAddFriendButton={showAddFriendButton}
+                                    addFriendLabel={input.addFriendLabel}
                                     canAddFriend={input.canAddFriend}
                                     addFriendHint={input.addFriendHint}
                                     onSendGift={input.onSendGift}
@@ -463,6 +464,7 @@ export function ProfileDetailViewContent(input: {
                               onMessage={input.onMessage}
                               onAddFriend={input.onAddFriend}
                               showAddFriendButton={showAddFriendButton}
+                              addFriendLabel={input.addFriendLabel}
                               canAddFriend={input.canAddFriend}
                               addFriendHint={input.addFriendHint}
                               onSendGift={input.onSendGift}

@@ -23,7 +23,7 @@ export function BlockUserConfirmModal({
         name: authorName,
       })}
       confirmLabel={i18n.t('Home.block', { defaultValue: 'Block' })}
-      cancelLabel={i18n.t('World.createAgent.cancel', { defaultValue: 'Cancel' })}
+      cancelLabel={i18n.t('Common.cancel', { defaultValue: 'Cancel' })}
       confirmTone="danger"
       pending={pending}
       pendingLabel={i18n.t('Home.blocking', { defaultValue: 'Blocking...' })}
@@ -52,7 +52,7 @@ export function DeletePostConfirmModal({
         defaultValue: 'Are you sure you want to delete this post? This action cannot be undone.',
       })}
       confirmLabel={i18n.t('Home.delete', { defaultValue: 'Delete' })}
-      cancelLabel={i18n.t('World.createAgent.cancel', { defaultValue: 'Cancel' })}
+      cancelLabel={i18n.t('Common.cancel', { defaultValue: 'Cancel' })}
       confirmTone="danger"
       pending={pending}
       pendingLabel={i18n.t('Home.deleting', { defaultValue: 'Deleting...' })}

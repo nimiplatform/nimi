@@ -11,6 +11,15 @@ import {
 } from './utils';
 
 type PostDto = RealmModel<'PostDto'>;
+type PostSourceAuthorDto = NonNullable<PostDto['sourceAuthor']>;
+
+export type PostCardDisplayAuthor = {
+  id: string;
+  displayName: string;
+  handle: string;
+  avatarUrl?: string | null;
+  isSource: boolean;
+};
 
 function extractPostAttachmentId(attachment: unknown): string {
   if (!attachment || typeof attachment !== 'object') {
@@ -71,22 +80,45 @@ export function buildPostCardAuthorProjection(input: {
   post: PostDto;
 }): {
   authorProfileSeed: ProfileDetailSeed | null;
+  displayAuthor: PostCardDisplayAuthor | null;
+  isSourceAuthored: boolean;
 } {
   const { authorId, post } = input;
   const author = post.author ?? null;
+  const sourceAuthor = post.sourceAuthor ?? null;
+  const isSourceAuthored = post.authorKind !== 'human' && Boolean(sourceAuthor);
+
+  if (isSourceAuthored && sourceAuthor) {
+    const sourceAuthorSeed = buildSourceAuthorProfileSeed(sourceAuthor);
+    return {
+      authorProfileSeed: sourceAuthorSeed,
+      displayAuthor: {
+        id: sourceAuthor.id,
+        displayName: sourceAuthor.displayName || i18n.t('Common.unknown', { defaultValue: 'Unknown' }),
+        handle: sourceAuthor.handle || '',
+        avatarUrl: sourceAuthor.avatarUrl ?? null,
+        isSource: true,
+      },
+      isSourceAuthored: true,
+    };
+  }
 
   if (!authorId) {
     return {
       authorProfileSeed: null,
+      displayAuthor: null,
+      isSourceAuthored: false,
     };
   }
+
+  const displayName = author?.displayName || i18n.t('Common.unknown', { defaultValue: 'Unknown' });
+  const handle = author?.handle || '';
 
   return {
     authorProfileSeed: {
       id: authorId,
-      displayName:
-        author?.displayName || i18n.t('Common.unknown', { defaultValue: 'Unknown' }),
-      handle: author?.handle || '',
+      displayName,
+      handle,
       avatarUrl: author?.avatarUrl ?? null,
       bio: author?.bio ?? null,
       isSource: false,
@@ -94,13 +126,46 @@ export function buildPostCardAuthorProjection(input: {
       createdAt: author?.createdAt ?? '',
       friendsCount: author?.friendCount,
       sourceState: null,
-      sourceCategory: null,
+      sourceArchetype: null,
       sourceOrigin: null,
       sourceTier: null,
-      sourceWakeStrategy: null,
+      sourcePacing: null,
       sourceOwnershipType: null,
       sourceWorldId: null,
-      sourceOwnerWorldId: null,
     },
+    displayAuthor: {
+      id: authorId,
+      displayName,
+      handle,
+      avatarUrl: author?.avatarUrl ?? null,
+      isSource: false,
+    },
+    isSourceAuthored: false,
+  };
+}
+
+function buildSourceAuthorProfileSeed(sourceAuthor: PostSourceAuthorDto): ProfileDetailSeed {
+  return {
+    id: sourceAuthor.id,
+    displayName: sourceAuthor.displayName || i18n.t('Common.unknown', { defaultValue: 'Unknown' }),
+    handle: sourceAuthor.handle || '',
+    avatarUrl: sourceAuthor.avatarUrl ?? null,
+    bio: null,
+    isSource: true,
+    isOnline: false,
+    createdAt: '',
+    friendsCount: undefined,
+    sourceState: null,
+    sourceArchetype: null,
+    sourceOrigin: null,
+    sourceTier: null,
+    sourcePacing: null,
+    sourceOwnershipType: null,
+    sourceWorldId: sourceAuthor.worldId,
+    sourceKind: sourceAuthor.sourceRef.kind,
+    sourceId: sourceAuthor.sourceRef.sourceId,
+    sourceContentHash: sourceAuthor.sourceRef.sourceContentHash,
+    runtimeSourceRef: sourceAuthor.runtimeSourceRef,
+    sourceRef: sourceAuthor.sourceRef,
   };
 }

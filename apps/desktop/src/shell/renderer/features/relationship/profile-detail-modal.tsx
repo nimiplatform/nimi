@@ -20,8 +20,16 @@ import {
   toRestrictedContactProfileData,
 } from './profile-private-state.js';
 import { launchAgentConversationFromDisplay } from '@renderer/features/chat/agent-conversation-launcher.js';
-import { toSourceContactLaunchTargetFromProfile } from './source-contact-launch-target.js';
+import { materializeSourceContactLaunchTarget } from './source-contact-launch-target.js';
 import { startChatWithTarget } from '@renderer/features/chat/data/realm-human-chat-data';
+import type { NimiRealmCoreSourceRef } from '@nimiplatform/sdk/realm';
+import {
+  connectRealmPersonaSource,
+  loadRealmPersonaSourceAdmissionProjection,
+  realmPersonaSourceAdmissionQueryKey,
+  realmPersonaSourceConnectionMessage,
+  resolveRealmPersonaSourceState,
+} from '@renderer/features/explore/realm-persona-source-admission';
 
 export type ProfileDetailSeed = {
   id: string;
@@ -43,13 +51,17 @@ export type ProfileDetailSeed = {
   likesCount?: number;
   giftStats?: Record<string, number>;
   sourceState?: string | null;
-  sourceCategory?: string | null;
+  sourceArchetype?: string | null;
   sourceOrigin?: string | null;
   sourceTier?: string | null;
-  sourceWakeStrategy?: string | null;
+  sourcePacing?: string | null;
   sourceOwnershipType?: string | null;
   sourceWorldId?: string | null;
-  sourceOwnerWorldId?: string | null;
+  sourceKind?: NimiRealmCoreSourceRef['kind'];
+  sourceId?: string;
+  sourceContentHash?: string;
+  runtimeSourceRef?: string;
+  sourceRef?: NimiRealmCoreSourceRef;
 };
 
 type ProfileDetailModalProps = {
@@ -69,6 +81,7 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
   const setSelectedChatId = useAppStore((state) => state.setSelectedChatId);
   const setSelectedTargetForSource = useAppStore((state) => state.setSelectedTargetForSource);
   const setAgentConversationSelection = useAppStore((state) => state.setAgentConversationSelection);
+  const setAgentConversationTargetSnapshot = useAppStore((state) => state.setAgentConversationTargetSnapshot);
   const setProfileDetailOverlayOpen = useAppStore((state) => state.setProfileDetailOverlayOpen);
   const setRuntimeFields = useAppStore((state) => state.setRuntimeFields);
   const ownerUserId = String(useAppStore((state) => state.auth.user?.id || '')).trim();
@@ -121,6 +134,46 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
 
   const profile: ProfileData | null = profileQuery.data ?? null;
   const isBlockedProfile = Boolean(profile && realmSocialData.isBlockedUser(profile.id));
+  const sourceConnectionQuery = useQuery({
+    queryKey: realmPersonaSourceAdmissionQueryKey,
+    queryFn: async () => loadRealmPersonaSourceAdmissionProjection(),
+    enabled: props.open && profile?.isSource === true,
+    staleTime: 15_000,
+  });
+  const sourceConnectionState = profile?.isSource
+    ? resolveRealmPersonaSourceState(profile, sourceConnectionQuery.data ?? null)
+    : null;
+  const sourceConnected = sourceConnectionState === 'source_connected';
+  const sourceConnectionUnavailable = sourceConnectionState === 'source_connection_unavailable';
+  const sourceConnectHint = sourceConnectionUnavailable
+    ? realmPersonaSourceConnectionMessage()
+    : sourceConnectionQuery.isPending
+      ? t('Relationship.sourceConnectionLoading', { defaultValue: 'Checking source connection...' })
+      : null;
+
+  const handleConnectSource = useCallback(async () => {
+    if (!profile?.isSource || sourceConnected) {
+      return;
+    }
+    try {
+      await connectRealmPersonaSource(profile);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: realmPersonaSourceAdmissionQueryKey }),
+        sourceConnectionQuery.refetch(),
+      ]);
+      setFeedback({
+        kind: 'success',
+        message: t('Explore.realmPersonaSourceConnectedFeedback', {
+          defaultValue: 'Source connected.',
+        }),
+      });
+    } catch (error) {
+      setFeedback({
+        kind: 'error',
+        message: error instanceof Error ? error.message : realmPersonaSourceConnectionMessage(),
+      });
+    }
+  }, [profile, queryClient, sourceConnected, sourceConnectionQuery, t]);
 
   const handleMessage = useCallback(async () => {
     if (!profile) {
@@ -132,15 +185,17 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
 
     try {
       if (profile.isSource) {
-        if (!profile.isFriend) {
-          throw new Error(t('Relationship.sourceHandoffRequiredForChat', { defaultValue: 'This source requires RuntimeSourceSnapshot handoff before local chat.' }));
+        if (!sourceConnected) {
+          throw new Error(t('Relationship.sourceConnectionRequiredForChat', { defaultValue: 'Connect this source before opening localAgent chat.' }));
         }
+        const target = await materializeSourceContactLaunchTarget(profile, ownerUserId);
         await launchAgentConversationFromDisplay({
-          target: toSourceContactLaunchTargetFromProfile(profile, ownerUserId),
+          target,
           setActiveTab,
           setChatMode,
           setSelectedTargetForSource,
           setAgentConversationSelection,
+          setAgentConversationTargetSnapshot,
         });
         props.onClose();
         return;
@@ -176,10 +231,12 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
     queryClient,
     setActiveTab,
     setAgentConversationSelection,
+    setAgentConversationTargetSnapshot,
     setChatMode,
     setRuntimeFields,
     setSelectedChatId,
     setSelectedTargetForSource,
+    sourceConnected,
     toChatErrorMessage,
     t,
   ]);
@@ -287,6 +344,16 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
               onMessage={profile.accessState === 'restricted' ? () => {} : () => {
                 void handleMessage();
               }}
+              onAddFriend={profile.isSource && !sourceConnected ? () => {
+                void handleConnectSource();
+              } : undefined}
+              addFriendLabel={profile.isSource
+                ? t('Relationship.connectSource', { defaultValue: 'Connect source' })
+                : undefined}
+              canAddFriend={profile.isSource
+                ? !sourceConnectionUnavailable && !sourceConnectionQuery.isPending
+                : undefined}
+              addFriendHint={profile.isSource ? sourceConnectHint : null}
               onSendGift={profile.accessState === 'restricted' ? () => {} : () => setGiftModalOpen(true)}
               onBlock={!isBlockedProfile ? () => {
                 void handleBlock();
@@ -295,7 +362,7 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
               showMessageButton={
                 !isBlockedProfile
                 && profile.accessState !== 'restricted'
-                && (!profile.isSource || profile.isFriend)
+                && (!profile.isSource || sourceConnected)
               }
             />
           ) : profileQuery.isError ? (

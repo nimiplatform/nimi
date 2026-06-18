@@ -40,8 +40,8 @@ test('wallet checkout return does not claim local success before Realm evidence'
   assert.doesNotMatch(walletPageSource, /checkoutStatus === 'success'\s*\?\s*t\('Wallet\.rechargeCheckoutSuccess'/);
 });
 
-test('explore recommendation card does not promote local friendship state without mutation evidence', () => {
+test('explore recommendation card delegates Realm source primary action without local friendship state', () => {
   assert.doesNotMatch(exploreRecommendationSource, /setFriendship\('pending'\)/);
   assert.doesNotMatch(exploreRecommendationSource, /setFriendship\('friend'\)/);
-  assert.match(exploreRecommendationSource, /void onAddFriend\?\.\(\)/);
+  assert.match(exploreRecommendationSource, /void onPrimaryAction\?\.\(\)/);
 });

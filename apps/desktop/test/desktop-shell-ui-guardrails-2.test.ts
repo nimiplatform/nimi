@@ -61,7 +61,8 @@ test('explore panel keeps agent queries declarative without imperative refetch l
 test('add friend modal forwards the typed greeting message to the add-friend action', () => {
   assert.match(addFriendModalSource, /onAddFriend: \(message\?: string\) => Promise<void>/);
   assert.match(addFriendModalSource, /await onAddFriend\(message\.trim\(\) \|\| undefined\)/);
-  assert.match(postCardSource, /actionAdapter\.requestOrAcceptFriend\(authorId, message\)/);
+  assert.match(postCardSource, /actionAdapter\.requestOrAcceptFriend\(humanActionAuthorId, message\)/);
+  assert.match(postCardSource, /canUseHumanAuthorActions/);
   assert.match(postCardActionAdapterSource, /realmSocialData\.requestOrAcceptFriend\(authorId, message\)/);
 });
 

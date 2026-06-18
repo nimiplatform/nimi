@@ -40,6 +40,7 @@ function createPost(id: string, authorId: string): PostDto {
     id,
     authorId,
     author: { id: authorId },
+    authorKind: 'human',
     createdAt: '2026-03-31T00:00:00.000Z',
     visibility: 'PUBLIC',
     attachments: [],

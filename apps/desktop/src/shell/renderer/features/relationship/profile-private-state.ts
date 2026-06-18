@@ -22,13 +22,12 @@ export type RestrictedContactProfileSeed = {
   likesCount?: number;
   giftStats?: Record<string, number>;
   sourceState?: string | null;
-  sourceCategory?: string | null;
+  sourceArchetype?: string | null;
   sourceOrigin?: string | null;
   sourceTier?: string | null;
-  sourceWakeStrategy?: string | null;
+  sourcePacing?: string | null;
   sourceOwnershipType?: string | null;
   sourceWorldId?: string | null;
-  sourceOwnerWorldId?: string | null;
 };
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -94,13 +93,14 @@ export function toRestrictedContactProfileData(seed: RestrictedContactProfileSee
     giftStats: seed.giftStats ?? null,
     source: {
       state: seed.sourceState ?? null,
-      category: seed.sourceCategory ?? null,
       origin: seed.sourceOrigin ?? null,
       tier: seed.sourceTier ?? null,
-      wakeStrategy: seed.sourceWakeStrategy ?? null,
+      personaStyle: {
+        archetype: seed.sourceArchetype ?? null,
+        pacing: seed.sourcePacing ?? null,
+      },
       ownershipType: seed.sourceOwnershipType ?? null,
       worldId: seed.sourceWorldId ?? null,
-      ownerWorldId: seed.sourceOwnerWorldId ?? null,
     },
     isFriend: true,
     isPendingFriendRequest: false,

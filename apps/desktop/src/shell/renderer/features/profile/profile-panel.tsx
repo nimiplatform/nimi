@@ -16,7 +16,14 @@ import {
   ProfileDetailLoadingState,
 } from '@renderer/features/relationship/profile-detail-view-content-shell.js';
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';
-import { realmPersonaSourceHandoffMessage } from '@renderer/features/explore/realm-persona-source-admission';
+import {
+  connectRealmPersonaSource,
+  describeRealmPersonaPrimaryAction,
+  loadRealmPersonaSourceAdmissionProjection,
+  realmPersonaSourceAdmissionQueryKey,
+  realmPersonaSourceConnectionMessage,
+  resolveRealmPersonaSourceState,
+} from '@renderer/features/explore/realm-persona-source-admission';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { toProfileData, type ProfileSource } from './profile-model.js';
 import { toFriendContact, type ContactRecord } from '@renderer/features/relationship/relationship-model';
@@ -118,12 +125,29 @@ export function ProfilePanel() {
     }
     return null;
   }, [isOwnProfile, currentUser, profileQuery.data]);
+  const sourceAdmissionQuery = useQuery({
+    queryKey: realmPersonaSourceAdmissionQueryKey,
+    queryFn: async () => loadRealmPersonaSourceAdmissionProjection(),
+    enabled: authStatus === 'authenticated' && Boolean(profile?.isSource),
+    staleTime: 15_000,
+  });
+  const sourceAction = useMemo(() => {
+    if (!profile?.isSource) {
+      return null;
+    }
+    return describeRealmPersonaPrimaryAction(resolveRealmPersonaSourceState(profile, sourceAdmissionQuery.data ?? null));
+  }, [profile, sourceAdmissionQuery.data]);
 
   const loading = !isOwnProfile && profileQuery.isPending;
   const error = !isOwnProfile && profileQuery.isError;
   const isBlockedProfile = Boolean(!isOwnProfile && profile && realmSocialData.isBlockedUser(profile.id));
-  const addFriendBlocked = Boolean(profile?.isSource);
-  const addFriendHint = profile?.isSource ? realmPersonaSourceHandoffMessage() : null;
+  const addFriendBlocked = Boolean(profile?.isSource && sourceAction?.disabled);
+  const addFriendHint = profile?.isSource && sourceAction?.disabled
+    ? sourceAction.label
+    : null;
+  const addFriendLabel = profile?.isSource
+    ? sourceAction?.label || i18n.t('Explore.realmPersonaSourceConnect', { defaultValue: 'Connect' })
+    : undefined;
 
   const onMessage = async () => {
     if (!profile) {
@@ -153,10 +177,29 @@ export function ProfilePanel() {
   };
 
   const onAddFriend = async () => {
-    if (!selectedProfileId) return;
+    if (!profile) return;
     try {
-      if (profile?.isSource && addFriendBlocked) {
-        throw new Error(addFriendHint || realmPersonaSourceHandoffMessage());
+      if (profile.isSource) {
+        if (addFriendBlocked) {
+          throw new Error(addFriendHint || realmPersonaSourceConnectionMessage());
+        }
+        await connectRealmPersonaSource(profile);
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: realmPersonaSourceAdmissionQueryKey }),
+          queryClient.invalidateQueries({ queryKey: ['source-display-detail'], exact: false }),
+          queryClient.invalidateQueries({ queryKey: ['user-profile'], exact: false }),
+          queryClient.invalidateQueries({ queryKey: ['contact-profile'], exact: false }),
+        ]);
+        setFeedback({
+          kind: 'success',
+          message: i18n.t('Explore.realmPersonaSourceConnectedFeedback', {
+            defaultValue: 'Source connected.',
+          }),
+        });
+        return;
+      }
+      if (!selectedProfileId) {
+        return;
       }
       await realmSocialData.requestOrAcceptFriend(selectedProfileId);
       await Promise.all([
@@ -351,6 +394,7 @@ export function ProfilePanel() {
           onAddFriend={!isOwnProfile && !isBlockedProfile && !profile.isFriend && !profile.isPendingFriendRequest ? () => {
             void onAddFriend();
           } : undefined}
+          addFriendLabel={addFriendLabel}
           canAddFriend={!addFriendBlocked}
           addFriendHint={addFriendHint}
           onSendGift={() => setGiftModalOpen(true)}

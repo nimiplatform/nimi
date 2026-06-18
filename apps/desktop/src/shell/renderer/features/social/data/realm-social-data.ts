@@ -1,8 +1,4 @@
 import type { JsonObject } from '@nimiplatform/sdk/types';
-import {
-  runLocalAgentProvisionCourierPass,
-  runLocalAgentTerminationCourierPass,
-} from '@renderer/infra/local-agent-courier';
 import { callRealmApi, emitRealmDataError } from '@renderer/infra/realm/realm-api';
 import {
   getCachedContacts,
@@ -67,18 +63,12 @@ export const realmSocialData = {
       userId,
       message,
       reloadContacts: reloadSocialSnapshot,
-    }).then((result) => {
-      void runLocalAgentProvisionCourierPass().catch(() => {});
-      return result;
     }),
   removeFriend: (userId: string) =>
     removeFriend({
       callApi: callRealmApi,
       userId,
       reloadContacts: reloadSocialSnapshot,
-    }).then((result) => {
-      void runLocalAgentTerminationCourierPass().catch(() => {});
-      return result;
     }),
   rejectOrRemoveFriend: (userId: string) =>
     rejectOrRemoveFriend({

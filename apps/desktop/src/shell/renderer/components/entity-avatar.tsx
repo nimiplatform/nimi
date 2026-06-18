@@ -13,7 +13,7 @@ type EntityAvatarProps = {
   textClassName?: string;
 };
 
-const AGENT_BORDER_STYLE = {
+const SYNTHETIC_ENTITY_BORDER_STYLE = {
   background: 'linear-gradient(135deg, #c084fc 0%, #a855f7 45%, #7c3aed 100%)',
   boxShadow:
     '0 0 0 1px rgba(192,132,252,0.55), 0 0 10px rgba(168,85,247,0.35), 0 0 18px rgba(124,58,237,0.22)',
@@ -31,7 +31,7 @@ export function EntityAvatar(props: EntityAvatarProps) {
     return (
       <div
         className={`${sizeClassName} ${radiusClassName} overflow-hidden p-[2px] ${props.className || ''}`.trim()}
-        style={AGENT_BORDER_STYLE}
+        style={SYNTHETIC_ENTITY_BORDER_STYLE}
       >
         <Avatar
           src={props.imageUrl}

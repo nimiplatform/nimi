@@ -108,8 +108,8 @@ export function PostCard(input: PostCardProps) {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
 
-  const authorId = String(post.authorId || post.author?.id || '').trim();
-  const isOwnPost = Boolean(currentUserId && post.author?.id === currentUserId);
+  const ownerAuthorId = String(post.authorId || post.author?.id || '').trim();
+  const isOwnPost = Boolean(currentUserId && ownerAuthorId === currentUserId);
   const [isLikePending, setIsLikePending] = useState(false);
   const [isVisibilityPending, setIsVisibilityPending] = useState(false);
   const [postVisibility, setPostVisibility] = useState<'PUBLIC' | 'FRIENDS' | 'PRIVATE'>(
@@ -117,12 +117,6 @@ export function PostCard(input: PostCardProps) {
       ? post.visibility
       : 'PUBLIC',
   );
-
-  const ui = usePostCardUi({
-    authorId,
-    initialLiked: post.likedByCurrentUser || false,
-    setFeedback,
-  });
 
   const {
     canEditPostAttachment,
@@ -135,11 +129,23 @@ export function PostCard(input: PostCardProps) {
     () => buildPostCardMediaProjection({ post, postVisibility, realmBaseUrl }),
     [post, postVisibility, realmBaseUrl],
   );
-  const { authorProfileSeed } = useMemo(
-    () => buildPostCardAuthorProjection({ authorId, post }),
-    [authorId, post],
+  const { authorProfileSeed, displayAuthor, isSourceAuthored } = useMemo(
+    () => buildPostCardAuthorProjection({ authorId: ownerAuthorId, post }),
+    [ownerAuthorId, post],
   );
-  const isAuthorFriend = actionAdapter.isFriend(authorId);
+  const humanActionAuthorId = isSourceAuthored ? '' : ownerAuthorId;
+  const displayProfileId = displayAuthor?.id ?? ownerAuthorId;
+  const canUseHumanAuthorActions = Boolean(humanActionAuthorId);
+
+  const ui = usePostCardUi({
+    authorId: humanActionAuthorId,
+    initialLiked: post.likedByCurrentUser || false,
+    setFeedback,
+  });
+
+  const isAuthorFriend = canUseHumanAuthorActions
+    ? actionAdapter.isFriend(humanActionAuthorId)
+    : false;
 
   useEffect(() => {
     ui.setIsFriend(isAuthorFriend);
@@ -156,16 +162,16 @@ export function PostCard(input: PostCardProps) {
   }, [post.visibility]);
 
   const handleBlockUser = useCallback(async () => {
-    if (!authorId) {
+    if (!humanActionAuthorId) {
       return;
     }
     ui.setIsBlocking(true);
     try {
       await actionAdapter.blockUser({
-        id: authorId,
-        displayName: post.author?.displayName || '',
-        handle: post.author?.handle || '',
-        avatarUrl: post.author?.avatarUrl,
+        id: humanActionAuthorId,
+        displayName: displayAuthor?.displayName || '',
+        handle: displayAuthor?.handle || '',
+        avatarUrl: displayAuthor?.avatarUrl,
       });
       setFeedback(null);
       onBlock?.();
@@ -183,11 +189,11 @@ export function PostCard(input: PostCardProps) {
     }
   }, [
     actionAdapter,
-    authorId,
+    displayAuthor?.avatarUrl,
+    displayAuthor?.displayName,
+    displayAuthor?.handle,
+    humanActionAuthorId,
     onBlock,
-    post.author?.avatarUrl,
-    post.author?.displayName,
-    post.author?.handle,
     ui,
   ]);
 
@@ -330,23 +336,23 @@ export function PostCard(input: PostCardProps) {
 
   const handleAddFriend = useCallback(
     async (message?: string) => {
-      if (!authorId) {
+      if (!humanActionAuthorId) {
         throw new Error(
           i18n.t('Home.missingAuthorForFriendRequest', {
             defaultValue: 'Cannot add friend: user ID not found',
           }),
         );
       }
-      await actionAdapter.requestOrAcceptFriend(authorId, message);
+      await actionAdapter.requestOrAcceptFriend(humanActionAuthorId, message);
       ui.setIsFriend(true);
       setFeedback(null);
       await actionAdapter.invalidateContacts?.();
     },
-    [actionAdapter, authorId, ui],
+    [actionAdapter, humanActionAuthorId, ui],
   );
 
   const handleChat = useCallback(async () => {
-    const userId = authorId;
+    const userId = humanActionAuthorId;
     if (!userId) {
       setFeedback({
         kind: 'error',
@@ -368,20 +374,20 @@ export function PostCard(input: PostCardProps) {
         ),
       });
     }
-  }, [actionAdapter, authorId, authStatus]);
+  }, [actionAdapter, humanActionAuthorId, authStatus]);
 
   const openAuthorProfile = useCallback(() => {
-    if (!authorId || !authorProfileSeed) {
+    if (!displayProfileId || !authorProfileSeed) {
       return;
     }
     if (onOpenAuthorProfile) {
       onOpenAuthorProfile({
-        profileId: authorId,
+        profileId: displayProfileId,
         profileSeed: authorProfileSeed,
       });
       return;
     }
-  }, [authorId, authorProfileSeed, onOpenAuthorProfile]);
+  }, [authorProfileSeed, displayProfileId, onOpenAuthorProfile]);
 
   return (
     <>
@@ -390,10 +396,16 @@ export function PostCard(input: PostCardProps) {
       ) : null}
       <PostCardArticle
         post={post}
-        authorId={authorId}
+        authorId={displayProfileId}
+        authorName={displayAuthor?.displayName ?? ''}
+        authorHandle={displayAuthor?.handle ?? ''}
+        authorAvatarUrl={displayAuthor?.avatarUrl}
+        authorIsSource={isSourceAuthored}
+        canUseHumanAuthorActions={canUseHumanAuthorActions}
         isFriend={ui.isFriend}
         isOwnPost={isOwnPost}
         canEditPost={canEditPostAttachment}
+        canEditVisibility={!isSourceAuthored}
         showAddFriendBadge={showAddFriendBadge}
         isLiked={ui.isLiked}
         isLikePending={isLikePending}
@@ -425,13 +437,13 @@ export function PostCard(input: PostCardProps) {
       />
 
       {actionAdapter.renderGiftSurface?.({
-        open: ui.isSendGiftOpen && Boolean(authorId),
-        authorId,
+        open: ui.isSendGiftOpen && canUseHumanAuthorActions,
+        authorId: humanActionAuthorId,
         authorName:
-          post.author?.displayName || i18n.t('Common.unknown', { defaultValue: 'Unknown' }),
-        authorHandle: post.author?.handle || '',
-        authorIsSource: false,
-        authorAvatarUrl: post.author?.avatarUrl,
+          displayAuthor?.displayName || i18n.t('Common.unknown', { defaultValue: 'Unknown' }),
+        authorHandle: displayAuthor?.handle || '',
+        authorIsSource: isSourceAuthored,
+        authorAvatarUrl: displayAuthor?.avatarUrl,
         onClose: () => ui.setIsSendGiftOpen(false),
         onSent: () => {
           setFeedback(null);
@@ -440,12 +452,12 @@ export function PostCard(input: PostCardProps) {
       })}
 
       {actionAdapter.renderFriendRequestSurface?.({
-        open: ui.showAddFriendModal,
+        open: ui.showAddFriendModal && canUseHumanAuthorActions,
         author: {
-          name: post.author?.displayName || i18n.t('Common.unknown', { defaultValue: 'Unknown' }),
-          handle: post.author?.handle || '',
-          avatarUrl: post.author?.avatarUrl,
-          isSource: false,
+          name: displayAuthor?.displayName || i18n.t('Common.unknown', { defaultValue: 'Unknown' }),
+          handle: displayAuthor?.handle || '',
+          avatarUrl: displayAuthor?.avatarUrl,
+          isSource: isSourceAuthored,
         },
         onClose: () => ui.setShowAddFriendModal(false),
         onAddFriend: handleAddFriend,
@@ -454,8 +466,8 @@ export function PostCard(input: PostCardProps) {
       <BlockUserConfirmModal
         isOpen={ui.showBlockConfirm}
         authorName={
-          post.author?.displayName ||
-          post.author?.handle ||
+          displayAuthor?.displayName ||
+          displayAuthor?.handle ||
           i18n.t('Common.unknown', { defaultValue: 'Unknown' })
         }
         pending={ui.isBlocking}

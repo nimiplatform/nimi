@@ -54,6 +54,7 @@ export function createAuthSlice(set: AppStoreSet): AuthSlice {
           agent: null,
         },
         agentConversationSelection: { ...EMPTY_AGENT_CONVERSATION_SELECTION },
+        agentConversationTargetByLocalRef: {},
         chatSetupState: {
           ...state.chatSetupState,
           human: null,

@@ -19,8 +19,9 @@ test('feed profile modal ownership: PostCard exposes parent-owned author profile
   );
   assert.match(
     postCardSource,
-    /if\s*\(onOpenAuthorProfile\)\s*\{\s*onOpenAuthorProfile\(\{\s*profileId:\s*authorId,\s*profileSeed:\s*authorProfileSeed,\s*\}\);\s*return;\s*\}/s,
+    /if\s*\(onOpenAuthorProfile\)\s*\{\s*onOpenAuthorProfile\(\{\s*profileId:\s*displayProfileId,\s*profileSeed:\s*authorProfileSeed,\s*\}\);\s*return;\s*\}/s,
   );
+  assert.doesNotMatch(postCardSource, /useState<.*PostCardAuthorProfileTarget/s);
 });
 
 test('feed profile modal ownership: HomeView keeps feed profile state locally', () => {

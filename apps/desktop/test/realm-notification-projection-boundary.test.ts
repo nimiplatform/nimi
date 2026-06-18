@@ -18,11 +18,11 @@ const notificationActionButtonsSource = readFileSync(
 );
 const notificationModelPath = resolve(rendererRoot, 'features/notification/notification-model.ts');
 
-test('Desktop notification surface consumes SDK Realm notification projections', () => {
+test('Desktop notification surface consumes SDK Realm notification views', () => {
   const notificationSurfaceSource = `${notificationPanelSource}\n${notificationPanelItemCardSource}`;
   assert.match(notificationPanelSource, /from '@nimiplatform\/sdk\/realm'/);
   assert.match(notificationSurfaceSource, /from '@nimiplatform\/kit\/core\/notifications'/);
-  assert.match(notificationPanelSource, /toNimiRealmNotificationListProjection/);
+  assert.match(notificationPanelSource, /toNimiRealmNotificationListView/);
   assert.match(notificationPanelSource, /getNimiNotificationCategory/);
   assert.match(notificationPanelSource, /getNimiNotificationServerFilter/);
   assert.match(notificationSurfaceSource, /getNimiNotificationBadgeKey/);

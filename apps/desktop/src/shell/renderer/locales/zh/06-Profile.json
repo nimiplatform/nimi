@@ -40,7 +40,7 @@
   "deleteFriend": "删除好友",
   "blockContactMessagePrefix": "确定要屏蔽",
   "blockContactMessageSuffix": "吗？对方会被移入你的黑名单，并且无法再联系你。",
-  "agentNoSummary": "该联系人还没有公开资料摘要。",
+  "sourceNoSummary": "该 Source 还没有公开资料摘要。",
   "noDescription": "该资料还没有添加简介。",
   "unknownJoinedDate": "加入时间未知",
   "unknownWorld": "未知世界",
@@ -115,8 +115,6 @@
     "gemsValue": "{{value}} 宝石"
   },
   "info": {
-    "agentDetails": "Agent 详情",
-    "category": "分类",
     "city": "城市",
     "country": "国家",
     "gender": "性别",
@@ -128,7 +126,6 @@
     "public": "公开",
     "state": "州/省",
     "tags": "标签",
-    "visibility": "可见性",
-    "wakeStrategy": "唤醒策略"
+    "visibility": "可见性"
   }
 }

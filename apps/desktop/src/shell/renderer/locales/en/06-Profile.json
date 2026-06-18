@@ -40,7 +40,7 @@
   "deleteFriend": "Delete Friend",
   "blockContactMessagePrefix": "Are you sure you want to block",
   "blockContactMessageSuffix": "They will be moved to your Blocked list and won't be able to contact you.",
-  "agentNoSummary": "This contact has no public profile summary yet.",
+  "sourceNoSummary": "This source has no public profile summary yet.",
   "noDescription": "No profile description has been added yet.",
   "unknownJoinedDate": "Unknown joined date",
   "unknownWorld": "Unknown world",
@@ -115,8 +115,6 @@
     "gemsValue": "{{value}} Gems"
   },
   "info": {
-    "agentDetails": "Source Details",
-    "category": "Category",
     "city": "City",
     "country": "Country",
     "gender": "Gender",
@@ -128,7 +126,6 @@
     "public": "Public",
     "state": "State",
     "tags": "Tags",
-    "visibility": "Visibility",
-    "wakeStrategy": "Wake Strategy"
+    "visibility": "Visibility"
   }
 }

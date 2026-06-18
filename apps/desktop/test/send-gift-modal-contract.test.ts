@@ -27,7 +27,7 @@ test('send gift modal loads dynamic gift catalog and sends selected gift ids', (
 
 test('send gift modal uses explicit receiverIsSource instead of handle-prefix inference', () => {
   assert.match(modalSource, /receiverIsSource\?: boolean;/);
-  assert.match(modalSource, /kind=\{props\.receiverIsSource === true \? 'agent' : 'human'\}/);
+  assert.match(modalSource, /kind=\{props\.receiverIsSource === true \? 'source' : 'human'\}/);
   assert.doesNotMatch(modalSource, /startsWith\('~'\)/);
 });
 

@@ -1,4 +1,5 @@
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
+import type { NimiRealmCoreSourceRef } from '@nimiplatform/sdk/realm';
 
 export type ProfileTab = 'Posts' | 'Collections' | 'Likes' | 'Gifts';
 
@@ -33,14 +34,18 @@ export type ProfileData = {
   stats: { friendsCount: number; postsCount: number; likesCount: number } | null;
   giftStats: Record<string, number>;
   sourceState: string | null;
-  sourceCategory: string | null;
+  sourceArchetype: string | null;
   sourceOrigin: string | null;
   sourceTier: string | null;
-  sourceAccountVisibility: string | null;
-  sourceWakeStrategy: string | null;
+  sourceVisibility: string | null;
+  sourcePacing: string | null;
   sourceOwnershipType: string | null;
   sourceWorldId: string | null;
-  sourceOwnerWorldId: string | null;
+  sourceKind: NimiRealmCoreSourceRef['kind'] | null;
+  sourceId: string | null;
+  sourceContentHash: string | null;
+  runtimeSourceRef: string | null;
+  sourceRef: NimiRealmCoreSourceRef | null;
   worldName: string | null;
   worldBannerUrl: string | null;
 };
@@ -51,32 +56,16 @@ type ProfileStatsLike = NonNullable<UserProfileDto['stats']> & {
   likeCount?: number;
 };
 type ProfileSourceRecordLike = {
-  activeWorldId?: string | null;
-  accountVisibility?: string | null;
-  category?: string | null;
   importance?: string | null;
   origin?: string | null;
-  ownerWorldId?: string | null;
   ownershipType?: string | null;
+  personaStyle?: {
+    archetype?: string | null;
+    pacing?: string | null;
+  } | null;
   state?: string | null;
   tier?: string | null;
-  wakeStrategy?: string | null;
-  worldId?: string | null;
-};
-type ProfileSourceProfileLike = {
-  activeWorldId?: string | null;
-  accountVisibility?: string | null;
-  category?: string | null;
-  dna?: object | null;
-  dnaConfirmedAt?: string | null;
-  importance?: string | null;
-  origin?: string | null;
-  ownerWorldId?: string | null;
-  ownershipType?: string | null;
-  state?: string | null;
-  stats?: object | null;
-  tier?: string | null;
-  wakeStrategy?: string | null;
+  visibility?: string | null;
   worldId?: string | null;
   worldName?: string | null;
   worldBannerUrl?: string | null;
@@ -109,9 +98,11 @@ export type ProfileSource = ProfileSourceGeneratedBase & {
   gender?: string | null;
   id?: string;
   isSource?: boolean;
-  sourceRef?: string | null;
+  sourceRef?: unknown;
+  sourceContentHash?: string | null;
   runtimeSourceRef?: string | null;
   sourceKind?: string | null;
+  sourceId?: string | null;
   originKind?: string | null;
   isCreator?: boolean;
   isVerified?: boolean;
@@ -136,25 +127,97 @@ export type ProfileSource = ProfileSourceGeneratedBase & {
   stats?: ProfileStatsLike | null;
   giftStats?: Record<string, unknown> | null;
   source?: ProfileSourceRecordLike | null;
-  sourceProfile?: ProfileSourceProfileLike | null;
   world?: ProfileWorldLike | null;
 };
 
 function hasRealmSourceIdentity(raw: ProfileSource): boolean {
   if (raw.isSource === true) return true;
   if (typeof raw.sourceRef === 'string' && raw.sourceRef.trim()) return true;
+  if (raw.sourceRef && typeof raw.sourceRef === 'object' && !Array.isArray(raw.sourceRef)) return true;
   if (typeof raw.runtimeSourceRef === 'string' && raw.runtimeSourceRef.trim()) return true;
   if (typeof raw.sourceKind === 'string' && raw.sourceKind.trim()) return true;
   if (typeof raw.originKind === 'string' && raw.originKind.trim()) return true;
-  return Boolean(raw.source) || Boolean(raw.sourceProfile);
+  return Boolean(raw.source);
+}
+
+function normalizeSourceKind(value: unknown): NimiRealmCoreSourceRef['kind'] | null {
+  const normalized = typeof value === 'string' ? value.trim() : '';
+  if (normalized === 'worldCharacter' || normalized === 'WORLD_CHARACTER') {
+    return 'worldCharacter';
+  }
+  if (normalized === 'realmPersona' || normalized === 'REALM_PERSONA') {
+    return 'realmPersona';
+  }
+  return null;
+}
+
+function readObjectRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null;
+}
+
+function readOptionalStringRecord(value: unknown, key: string): string | null {
+  const record = readObjectRecord(value);
+  if (!record) {
+    return null;
+  }
+  const entry = record[key];
+  return typeof entry === 'string' && entry.trim() ? entry.trim() : null;
+}
+
+function readSourceRef(value: unknown): NimiRealmCoreSourceRef | null {
+  const record = readObjectRecord(value);
+  if (!record) {
+    return null;
+  }
+  const kind = normalizeSourceKind(record.kind);
+  const worldId = readOptionalStringRecord(record, 'worldId');
+  const sourceId = readOptionalStringRecord(record, 'sourceId');
+  const sourceContentHash = readOptionalStringRecord(record, 'sourceContentHash');
+  if (!kind || !worldId || !sourceId || !sourceContentHash) {
+    return null;
+  }
+  return { kind, worldId, sourceId, sourceContentHash };
 }
 
 export function toProfileData(raw: ProfileSource): ProfileData {
   const sourceRecord = raw.source ?? undefined;
   const stats = raw.stats;
   const giftStats = raw.giftStats;
-  const sourceProfile = raw.sourceProfile ?? undefined;
   const world = raw.world;
+  const sourceRefFromPayload = readSourceRef(raw.sourceRef);
+  const sourceKind = sourceRefFromPayload?.kind
+    ?? normalizeSourceKind(raw.sourceKind)
+    ?? normalizeSourceKind(readOptionalStringRecord(sourceRecord, 'sourceKind'));
+  const sourceWorldId = (
+    sourceRefFromPayload?.worldId
+    || readOptionalStringRecord(sourceRecord, 'worldId')
+    || (typeof raw.sourceWorldId === 'string' ? raw.sourceWorldId.trim() || null : null)
+  );
+  const personaStyle = sourceRecord?.personaStyle && typeof sourceRecord.personaStyle === 'object' && !Array.isArray(sourceRecord.personaStyle)
+    ? sourceRecord.personaStyle
+    : null;
+  const sourceId = (
+    sourceRefFromPayload?.sourceId
+    || (typeof raw.sourceId === 'string' ? raw.sourceId.trim() : '')
+    || raw.id
+    || null
+  );
+  const sourceContentHash = (
+    sourceRefFromPayload?.sourceContentHash
+    || (typeof raw.sourceContentHash === 'string' ? raw.sourceContentHash.trim() : '')
+    || readOptionalStringRecord(sourceRecord, 'sourceContentHash')
+    || readOptionalStringRecord(sourceRecord, 'contentHash')
+  );
+  const sourceRef = sourceRefFromPayload ?? (sourceKind && sourceWorldId && sourceId && sourceContentHash
+    ? {
+        kind: sourceKind,
+        worldId: sourceWorldId,
+        sourceId,
+        sourceContentHash,
+      }
+    : null);
 
   const parsedGiftStats: Record<string, number> = {};
   if (giftStats) {
@@ -195,34 +258,31 @@ export function toProfileData(raw: ProfileSource): ProfileData {
       : null,
     giftStats: parsedGiftStats,
     sourceState: sourceRecord && typeof sourceRecord.state === 'string' ? sourceRecord.state : null,
-    sourceCategory: sourceRecord && typeof sourceRecord.category === 'string' ? sourceRecord.category : null,
+    sourceArchetype: personaStyle && typeof personaStyle.archetype === 'string' ? personaStyle.archetype : null,
     sourceOrigin: sourceRecord && typeof sourceRecord.origin === 'string' ? sourceRecord.origin : null,
     sourceTier: sourceRecord && typeof sourceRecord.tier === 'string' ? sourceRecord.tier : null,
-    sourceAccountVisibility: (
-      (sourceRecord && typeof sourceRecord.accountVisibility === 'string' ? sourceRecord.accountVisibility : null)
-      || (typeof sourceProfile?.accountVisibility === 'string' ? sourceProfile.accountVisibility : null)
+    sourceVisibility: (
+      (sourceRecord && typeof sourceRecord.visibility === 'string' ? sourceRecord.visibility : null)
     ),
-    sourceWakeStrategy: sourceRecord && typeof sourceRecord.wakeStrategy === 'string' ? sourceRecord.wakeStrategy : null,
+    sourcePacing: personaStyle && typeof personaStyle.pacing === 'string' ? personaStyle.pacing : null,
     sourceOwnershipType: (
       (sourceRecord && typeof sourceRecord.ownershipType === 'string' ? sourceRecord.ownershipType : null)
-      || (typeof sourceProfile?.ownershipType === 'string' ? sourceProfile.ownershipType : null)
     ),
-    sourceWorldId: (
-      (sourceRecord && typeof sourceRecord.worldId === 'string' ? sourceRecord.worldId : null)
-      || (typeof sourceProfile?.worldId === 'string' ? sourceProfile.worldId : null)
+    sourceWorldId,
+    sourceKind,
+    sourceId,
+    sourceContentHash,
+    runtimeSourceRef: (
+      (typeof raw.runtimeSourceRef === 'string' ? raw.runtimeSourceRef.trim() : '')
+      || null
     ),
-    sourceOwnerWorldId: (
-      (sourceRecord && typeof sourceRecord.ownerWorldId === 'string' ? sourceRecord.ownerWorldId : null)
-      || (typeof sourceProfile?.ownerWorldId === 'string' ? sourceProfile.ownerWorldId : null)
-    ),
+    sourceRef,
     worldName: (
       (typeof raw.worldName === 'string' ? raw.worldName : null)
-      || (typeof sourceProfile?.worldName === 'string' ? sourceProfile.worldName : null)
       || (typeof world?.name === 'string' ? world.name : null)
     ),
     worldBannerUrl: (
       (typeof raw.worldBannerUrl === 'string' ? raw.worldBannerUrl : null)
-      || (typeof sourceProfile?.worldBannerUrl === 'string' ? sourceProfile.worldBannerUrl : null)
       || (typeof world?.bannerUrl === 'string' ? world.bannerUrl : null)
     ),
     isFriend: raw.isFriend === true,

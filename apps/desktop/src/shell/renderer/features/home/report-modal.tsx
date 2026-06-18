@@ -128,7 +128,7 @@ export function ReportModal({
             onClick={onClose}
             className="flex-1 rounded-xl bg-gray-100 px-4 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-200"
           >
-            {t('World.createAgent.cancel', { defaultValue: 'Cancel' })}
+            {t('Common.cancel', { defaultValue: 'Cancel' })}
           </button>
           <button
             type="button"

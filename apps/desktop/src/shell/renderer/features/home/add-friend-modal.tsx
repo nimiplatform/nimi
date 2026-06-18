@@ -81,7 +81,7 @@ export function AddFriendModal({
       footer={(
         <div className="flex items-center gap-3">
           <Button tone="secondary" fullWidth onClick={handleClose} disabled={loading}>
-            {t('World.createAgent.cancel', { defaultValue: 'Cancel' })}
+            {t('Common.cancel', { defaultValue: 'Cancel' })}
           </Button>
           <Button
             tone="primary"
@@ -100,7 +100,7 @@ export function AddFriendModal({
         <EntityAvatar
           imageUrl={author.avatarUrl}
           name={author.name}
-          kind={author.isSource ? 'agent' : 'human'}
+          kind={author.isSource ? 'source' : 'human'}
           sizeClassName="h-16 w-16"
           className={author.isSource ? undefined : 'ring-4 ring-mint-100'}
           textClassName="text-xl font-bold"
@@ -110,7 +110,7 @@ export function AddFriendModal({
         <p className="text-sm text-gray-500">@{author.handle.replace(/^@/, '')}</p>
         {author.isSource ? (
           <span className="mt-2 inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-600">
-            {t('Relationship.agentBadge', { defaultValue: 'Agent' })}
+            {t('Relationship.sourceBadge', { defaultValue: 'Source' })}
           </span>
         ) : null}
       </div>

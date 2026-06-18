@@ -147,6 +147,7 @@ export function ProfileDetailActionButtons(input: {
   onMessage: () => void;
   onAddFriend?: () => void;
   showAddFriendButton?: boolean;
+  addFriendLabel?: string;
   canAddFriend?: boolean;
   addFriendHint?: string | null;
   onSendGift: () => void;
@@ -160,6 +161,7 @@ export function ProfileDetailActionButtons(input: {
   onBlock?: () => void;
   onRemove?: () => void;
 }) {
+  const addFriendLabel = input.addFriendLabel || i18n.t('ProfileView.addFriend', { defaultValue: 'Add Friend' });
   return (
     <>
       {input.showMessageButton ? (
@@ -171,13 +173,13 @@ export function ProfileDetailActionButtons(input: {
         <Tooltip
           content={input.canAddFriend === false && input.addFriendHint
             ? input.addFriendHint
-            : i18n.t('ProfileView.addFriend', { defaultValue: 'Add Friend' })}
+            : addFriendLabel}
           placement="bottom"
           contentClassName={`${TOPBAR_TOOLTIP_CLASS}${input.canAddFriend === false && input.addFriendHint ? ' whitespace-pre-wrap max-w-xs' : ''}`}
         >
           <IconButton
             icon={<UserPlusIcon className="h-4 w-4" />}
-            label={i18n.t('ProfileView.addFriend', { defaultValue: 'Add Friend' })}
+            label={addFriendLabel}
             onClick={input.onAddFriend}
             disabled={input.canAddFriend === false}
           />
@@ -279,6 +281,7 @@ export function ProfileDetailStatsActionsBlock(input: {
   onMessage: () => void;
   onAddFriend?: () => void;
   showAddFriendButton?: boolean;
+  addFriendLabel?: string;
   canAddFriend?: boolean;
   addFriendHint?: string | null;
   onSendGift: () => void;
@@ -336,6 +339,7 @@ export function ProfileDetailDesktopStatsActions(input: {
   onMessage: () => void;
   onAddFriend?: () => void;
   showAddFriendButton?: boolean;
+  addFriendLabel?: string;
   canAddFriend?: boolean;
   addFriendHint?: string | null;
   onSendGift: () => void;

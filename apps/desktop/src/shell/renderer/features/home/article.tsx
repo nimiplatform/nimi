@@ -13,9 +13,15 @@ type PostDto = RealmModel<'PostDto'>;
 export type PostCardArticleProps = {
   post: PostDto;
   authorId: string;
+  authorName: string;
+  authorHandle: string;
+  authorAvatarUrl?: string | null;
+  authorIsSource: boolean;
+  canUseHumanAuthorActions: boolean;
   isFriend: boolean;
   isOwnPost: boolean;
   canEditPost?: boolean;
+  canEditVisibility?: boolean;
   showAddFriendBadge?: boolean;
   isLiked: boolean;
   isLikePending?: boolean;
@@ -41,8 +47,8 @@ export type PostCardArticleProps = {
 };
 
 export function PostCardArticle(props: PostCardArticleProps) {
-  const authorName = props.post.author?.displayName || i18n.t('Common.unknown', { defaultValue: 'Unknown' });
-  const authorHandle = props.post.author?.handle || '';
+  const authorName = props.authorName || i18n.t('Common.unknown', { defaultValue: 'Unknown' });
+  const authorHandle = props.authorHandle || '';
   const SHOW_AVATAR_STATUS_INDICATOR = false;
   const isRecent = new Date().getTime() - new Date(props.post.createdAt).getTime() < 3600000; // 1 hour
   return (
@@ -67,9 +73,9 @@ export function PostCardArticle(props: PostCardArticleProps) {
               className="m-0 cursor-pointer border-0 bg-transparent p-0 disabled:cursor-default relative"
             >
               <EntityAvatar
-                imageUrl={props.post.author?.avatarUrl}
+                imageUrl={props.authorAvatarUrl}
                 name={authorName}
-                kind="human"
+                kind={props.authorIsSource ? 'source' : 'human'}
                 sizeClassName="h-11 w-11"
                 className="shrink-0 ring-1 ring-black/5 transition-transform duration-500 group-hover:scale-105"
                 fallbackClassName="bg-slate-100 text-slate-600 ring-1 ring-black/5"
@@ -84,7 +90,7 @@ export function PostCardArticle(props: PostCardArticleProps) {
                 </span>
               )}
             </button>
-            {props.showAddFriendBadge !== false && !props.isFriend && !props.isOwnPost ? (
+            {props.canUseHumanAuthorActions && props.showAddFriendBadge !== false && !props.isFriend && !props.isOwnPost ? (
               <button
                 type="button"
                 onClick={(event) => {
@@ -147,13 +153,17 @@ export function PostCardArticle(props: PostCardArticleProps) {
                     {props.canEditPost !== false ? (
                       <MenuAction label={i18n.t('Home.edit', { defaultValue: 'Edit' })} icon={<EditIcon className="h-4 w-4" />} onClick={props.onOpenEditPost} />
                     ) : null}
-                    <MenuAction label={i18n.t('Home.modifyVisibility', { defaultValue: 'Modify visibility' })} icon={<EyeIcon className="h-4 w-4" />} onClick={props.onOpenEditVisibility} />
+                    {props.canEditVisibility !== false ? (
+                      <MenuAction label={i18n.t('Home.modifyVisibility', { defaultValue: 'Modify visibility' })} icon={<EyeIcon className="h-4 w-4" />} onClick={props.onOpenEditVisibility} />
+                    ) : null}
                     <MenuAction label={i18n.t('Home.delete', { defaultValue: 'Delete' })} icon={<TrashIcon className="h-4 w-4" />} onClick={props.onOpenDeleteConfirm} tone="danger" />
                   </>
                 ) : (
                   <>
                     <MenuAction label={i18n.t('Home.copyLink', { defaultValue: 'Copy link' })} icon={<LinkIcon className="h-4 w-4" />} onClick={props.onCopyLink} />
-                    <MenuAction label={i18n.t('Home.block', { defaultValue: 'Block' })} icon={<BlockIcon className="h-4 w-4" />} onClick={props.onOpenBlockConfirm} tone="danger" />
+                    {props.canUseHumanAuthorActions ? (
+                      <MenuAction label={i18n.t('Home.block', { defaultValue: 'Block' })} icon={<BlockIcon className="h-4 w-4" />} onClick={props.onOpenBlockConfirm} tone="danger" />
+                    ) : null}
                     <MenuAction label={i18n.t('Home.report', { defaultValue: 'Report' })} icon={<ReportIcon className="h-4 w-4" />} onClick={props.onOpenReportModal} tone="danger" />
                   </>
                 )}
@@ -222,7 +232,7 @@ export function PostCardArticle(props: PostCardArticleProps) {
 
           {!props.isOwnPost ? (
             <div className="flex items-center gap-3">
-              {props.showChatButton !== false ? (
+              {props.canUseHumanAuthorActions && props.showChatButton !== false ? (
                 <button
                   type="button"
                   onClick={(event) => {
@@ -235,17 +245,19 @@ export function PostCardArticle(props: PostCardArticleProps) {
                   <ChatIcon size={18} />
                 </button>
               ) : null}
-              <button
-                type="button"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  props.onOpenGift();
-                }}
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-[#4ECCA3]/10 text-[#229E7B] shadow-sm transition-all hover:bg-[#4ECCA3] hover:text-white hover:shadow-md active:scale-95"
-                aria-label={i18n.t('Home.sendGift', { defaultValue: 'Send gift' })}
-              >
-                <GiftIcon size={18} />
-              </button>
+              {props.canUseHumanAuthorActions ? (
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    props.onOpenGift();
+                  }}
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-[#4ECCA3]/10 text-[#229E7B] shadow-sm transition-all hover:bg-[#4ECCA3] hover:text-white hover:shadow-md active:scale-95"
+                  aria-label={i18n.t('Home.sendGift', { defaultValue: 'Send gift' })}
+                >
+                  <GiftIcon size={18} />
+                </button>
+              ) : null}
             </div>
           ) : null}
         </div>
