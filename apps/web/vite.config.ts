@@ -353,6 +353,18 @@ export default defineConfig(({ mode }) => {
             if (normalizedId.includes('/kit/core/src/model-config/')) {
               return 'vendor-kit-model-config-core';
             }
+            if (normalizedId.includes('/kit/auth/src/')) {
+              return 'vendor-kit-auth';
+            }
+            if (normalizedId.includes('/kit/shell/renderer/src/bridge/')) {
+              return 'vendor-kit-shell-bridge';
+            }
+            if (normalizedId.includes('/kit/telemetry/src/')) {
+              return 'vendor-kit-telemetry';
+            }
+            if (normalizedId.includes('/kit/core/src/')) {
+              return 'vendor-kit-core';
+            }
             if (normalizedId.includes('/apps/desktop/src/shell/renderer/features/chat/')) {
               if (
                 normalizedId.includes('/chat-agent-runtime')
