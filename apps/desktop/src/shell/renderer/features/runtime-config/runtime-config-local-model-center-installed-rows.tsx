@@ -9,7 +9,6 @@ import {
   isNimiRuntimeLocalEnvironmentDependencyJobFailedState,
   isNimiRuntimeLocalEnvironmentDependencyJobRetryableState,
   isNimiRuntimeLocalEnvironmentDependencyNeedsConfirmationState,
-  isNimiRuntimeLocalEnvironmentDependencyReadyState,
   isNimiRuntimeLocalEnvironmentDependencyRepairRequiredState,
   isNimiRuntimeLocalEnvironmentDependencyUnsupportedState,
 } from '@nimiplatform/sdk/runtime';
@@ -27,12 +26,18 @@ import {
   runtimeDependencyShortStatusLabel,
   runtimeDependencyStatusDetail,
 } from './runtime-config-local-model-center-runtime-dependency-banner';
+import {
+  runtimeDependencyCurrentState,
+  runtimeDependencyJobShouldSurface,
+  runtimeDependencyRequiresAttention,
+} from './runtime-config-local-model-center-runtime-dependency-state';
 
 export {
   RuntimeDependencyAttentionBanner,
   runtimeDependencyBannerTitle,
   runtimeDependencyStatusDetail,
 } from './runtime-config-local-model-center-runtime-dependency-banner';
+export { runtimeDependencyRequiresAttention } from './runtime-config-local-model-center-runtime-dependency-state';
 
 export function assetNeedsAttachedEndpointRepair(asset: NimiRuntimeLocalAssetRecord): boolean {
   if (asset.engineRuntimeMode !== 'attached-endpoint') {
@@ -71,24 +76,6 @@ export function runtimeDependencyJobMatchesDependency(
   );
 }
 
-function runtimeDependencyCurrentState(
-  dependency?: NimiRuntimeLocalEnvironmentPlanDependency,
-  job?: NimiRuntimeLocalEnvironmentDependencyJob,
-): string {
-  return String(job?.state || dependency?.state || '').trim();
-}
-
-export function runtimeDependencyRequiresAttention(
-  dependency?: NimiRuntimeLocalEnvironmentPlanDependency,
-  job?: NimiRuntimeLocalEnvironmentDependencyJob,
-): boolean {
-  if (!dependency) {
-    return false;
-  }
-  const state = runtimeDependencyCurrentState(dependency, job);
-  return !isNimiRuntimeLocalEnvironmentDependencyReadyState(state);
-}
-
 export function runtimeDependencySetupAllowed(
   dependency?: NimiRuntimeLocalEnvironmentPlanDependency,
   job?: NimiRuntimeLocalEnvironmentDependencyJob,
@@ -109,12 +96,13 @@ export function runtimeDependencyRepairAllowed(
   dependency?: NimiRuntimeLocalEnvironmentPlanDependency,
   job?: NimiRuntimeLocalEnvironmentDependencyJob,
 ): boolean {
-  if (!(dependency?.selectedSourceRecordId || job?.selectedSourceRecordId)) {
+  const displayJob = runtimeDependencyJobShouldSurface(dependency, job) ? job : undefined;
+  if (!(dependency?.selectedSourceRecordId || displayJob?.selectedSourceRecordId)) {
     return false;
   }
   return Boolean(
     (dependency && isNimiRuntimeLocalEnvironmentDependencyRepairRequiredState(dependency.state))
-    || (job && isNimiRuntimeLocalEnvironmentDependencyRepairRequiredState(job.state)),
+    || (displayJob && isNimiRuntimeLocalEnvironmentDependencyRepairRequiredState(displayJob.state)),
   );
 }
 

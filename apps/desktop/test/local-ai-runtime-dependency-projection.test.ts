@@ -23,7 +23,10 @@ const installedRowsSource = readWorkspaceFile(
 const runtimeDependencyBannerSource = readWorkspaceFile(
   'src/shell/renderer/features/runtime-config/runtime-config-local-model-center-runtime-dependency-banner.tsx',
 );
-const installedSectionProjectionSource = `${installedSectionSource}\n${installedRowsSource}\n${runtimeDependencyBannerSource}`;
+const runtimeDependencyStateSource = readWorkspaceFile(
+  'src/shell/renderer/features/runtime-config/runtime-config-local-model-center-runtime-dependency-state.ts',
+);
+const installedSectionProjectionSource = `${installedSectionSource}\n${installedRowsSource}\n${runtimeDependencyBannerSource}\n${runtimeDependencyStateSource}`;
 const runtimeViewSource = readWorkspaceFile(
   'src/shell/renderer/features/runtime-config/runtime-config-local-model-center-runtime-view.tsx',
 );
@@ -139,6 +142,17 @@ test('local image installed rows project runtime readiness instead of installed 
   assert.match(installedSectionSource, /const canStartAssetRuntimeDependencySetup = runtimeDependencySetupAllowed\(runtimeDependency, runtimeDependencyJob\)/);
   assert.match(installedSectionSource, /canStartRuntimeDependencySetup=\{canStartAssetRuntimeDependencySetup\}/);
   assert.match(installedSectionSource, /onSetupRuntimeDependency=\{props\.onSetupRuntimeDependency\}/);
+});
+
+test('local image runtime readiness ignores stale ready jobs when current dependency blocks activation', () => {
+  assert.match(installedSectionProjectionSource, /runtimeDependencyJobShouldSurface/);
+  assert.match(installedSectionProjectionSource, /runtimeDependencyCurrentState/);
+  assert.match(installedSectionProjectionSource, /isNimiRuntimeLocalEnvironmentDependencyJobActiveState/);
+  assert.match(installedSectionProjectionSource, /isNimiRuntimeLocalEnvironmentDependencyJobRetryableState/);
+  assert.match(installedSectionProjectionSource, /isNimiRuntimeLocalEnvironmentDependencyReadyState/);
+  assert.match(installedRowsSource, /runtimeDependencyJobShouldSurface\(dependency, job\)/);
+  assert.match(runtimeDependencyBannerSource, /const displayJob = runtimeDependencyJobForDisplay\(props\.dependency, props\.job\)/);
+  assert.doesNotMatch(installedSectionProjectionSource, /job\?\.state \|\| dependency\?\.state/);
 });
 
 test('local image runtime setup surfaces job phase progress and stale evidence', () => {

@@ -16,15 +16,12 @@ import {
   formatEta,
   formatSpeed,
 } from './runtime-config-model-center-utils';
+import {
+  runtimeDependencyCurrentState,
+  runtimeDependencyJobForDisplay,
+} from './runtime-config-local-model-center-runtime-dependency-state';
 
 const RUNTIME_DEPENDENCY_STALE_MS = 5 * 60 * 1000;
-
-function runtimeDependencyCurrentState(
-  dependency?: NimiRuntimeLocalEnvironmentPlanDependency,
-  job?: NimiRuntimeLocalEnvironmentDependencyJob,
-): string {
-  return String(job?.state || dependency?.state || '').trim();
-}
 
 function parseRuntimeDependencyTimestampMs(value: string | undefined): number {
   const ms = Date.parse(String(value || ''));
@@ -227,15 +224,16 @@ export function runtimeDependencyStatusDetail(
   dependency?: NimiRuntimeLocalEnvironmentPlanDependency,
   job?: NimiRuntimeLocalEnvironmentDependencyJob,
 ): string {
-  if (job && isNimiRuntimeLocalEnvironmentDependencyJobActiveState(job.state)) {
-    return runtimeDependencyActiveDetail(job);
+  const displayJob = runtimeDependencyJobForDisplay(dependency, job);
+  if (displayJob && isNimiRuntimeLocalEnvironmentDependencyJobActiveState(displayJob.state)) {
+    return runtimeDependencyActiveDetail(displayJob);
   }
-  if (job && isNimiRuntimeLocalEnvironmentDependencyJobFailedState(job.state)) {
+  if (displayJob && isNimiRuntimeLocalEnvironmentDependencyJobFailedState(displayJob.state)) {
     return i18n.t('runtimeConfig.localModelCenter.runtimeSetupFailedDetail', {
       defaultValue: 'Runtime stopped before the local image environment became ready. Technical reason is available in details.',
     });
   }
-  if (job && isNimiRuntimeLocalEnvironmentDependencyJobCancelledState(job.state)) {
+  if (displayJob && isNimiRuntimeLocalEnvironmentDependencyJobCancelledState(displayJob.state)) {
     return i18n.t('runtimeConfig.localModelCenter.runtimeSetupCancelledDetail', {
       defaultValue: 'Runtime setup was cancelled before the local image environment became ready.',
     });
@@ -253,6 +251,7 @@ function runtimeDependencyTechnicalDetails(
   dependency?: NimiRuntimeLocalEnvironmentPlanDependency,
   job?: NimiRuntimeLocalEnvironmentDependencyJob,
 ): Array<[string, string]> {
+  const displayJob = runtimeDependencyJobForDisplay(dependency, job);
   const rows: Array<[string, string]> = [];
   const add = (label: string, value: unknown) => {
     const text = String(value || '').trim();
@@ -260,11 +259,11 @@ function runtimeDependencyTechnicalDetails(
       rows.push([label, text]);
     }
   };
-  add(i18n.t('runtimeConfig.localModelCenter.runtimeDependencyDetailState', { defaultValue: 'State' }), job?.state || dependency?.state);
-  add(i18n.t('runtimeConfig.localModelCenter.runtimeDependencyDetailJob', { defaultValue: 'Job' }), job?.jobId);
-  add(i18n.t('runtimeConfig.localModelCenter.runtimeDependencyDetailDependency', { defaultValue: 'Dependency' }), dependency ? `${dependency.dependencyFamily}/${dependency.dependencyId}` : job ? `${job.dependencyFamily}/${job.dependencyId}` : '');
-  add(i18n.t('runtimeConfig.localModelCenter.runtimeDependencyDetailScope', { defaultValue: 'Scope' }), job?.consumerScope || dependency?.consumerScope);
-  add(i18n.t('runtimeConfig.localModelCenter.runtimeDependencyDetailReason', { defaultValue: 'Reason' }), job?.failureDetail || job?.reasonCode || dependency?.reasonCode);
+  add(i18n.t('runtimeConfig.localModelCenter.runtimeDependencyDetailState', { defaultValue: 'State' }), runtimeDependencyCurrentState(dependency, displayJob));
+  add(i18n.t('runtimeConfig.localModelCenter.runtimeDependencyDetailJob', { defaultValue: 'Job' }), displayJob?.jobId);
+  add(i18n.t('runtimeConfig.localModelCenter.runtimeDependencyDetailDependency', { defaultValue: 'Dependency' }), dependency ? `${dependency.dependencyFamily}/${dependency.dependencyId}` : displayJob ? `${displayJob.dependencyFamily}/${displayJob.dependencyId}` : '');
+  add(i18n.t('runtimeConfig.localModelCenter.runtimeDependencyDetailScope', { defaultValue: 'Scope' }), displayJob?.consumerScope || dependency?.consumerScope);
+  add(i18n.t('runtimeConfig.localModelCenter.runtimeDependencyDetailReason', { defaultValue: 'Reason' }), displayJob?.failureDetail || displayJob?.reasonCode || dependency?.reasonCode);
   return rows;
 }
 
@@ -286,28 +285,29 @@ type RuntimeDependencyAttentionBannerProps = {
 };
 
 export function RuntimeDependencyAttentionBanner(props: RuntimeDependencyAttentionBannerProps) {
-  const progressPercent = runtimeDependencyProgressPercent(props.job);
-  const progressSummary = runtimeDependencyProgressSummary(props.job);
+  const displayJob = runtimeDependencyJobForDisplay(props.dependency, props.job);
+  const progressPercent = runtimeDependencyProgressPercent(displayJob);
+  const progressSummary = runtimeDependencyProgressSummary(displayJob);
   const hasDeterminateProgress = Boolean(
-    props.job
-    && isNimiRuntimeLocalEnvironmentDependencyJobTransferringState(props.job.state)
-    && Number(props.job.bytesTotal) > 0,
+    displayJob
+    && isNimiRuntimeLocalEnvironmentDependencyJobTransferringState(displayJob.state)
+    && Number(displayJob.bytesTotal) > 0,
   );
-  const timingSummary = runtimeDependencyJobTimingSummary(props.job);
-  const stale = runtimeDependencyJobIsStale(props.job);
-  const technicalDetails = runtimeDependencyTechnicalDetails(props.dependency, props.job);
+  const timingSummary = runtimeDependencyJobTimingSummary(displayJob);
+  const stale = runtimeDependencyJobIsStale(displayJob);
+  const technicalDetails = runtimeDependencyTechnicalDetails(props.dependency, displayJob);
 
   return (
     <div className="border-b border-[color-mix(in_srgb,var(--nimi-status-warning)_24%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_8%,transparent)] px-5 py-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-[var(--nimi-status-warning)]">
-            {runtimeDependencyBannerTitle(props.dependency, props.job)}
+            {runtimeDependencyBannerTitle(props.dependency, displayJob)}
           </p>
           <p className="mt-1 text-xs leading-5 text-[color-mix(in_srgb,var(--nimi-status-warning)_82%,var(--nimi-text-secondary))]">
-            {runtimeDependencyStatusDetail(props.dependency, props.job)}
+            {runtimeDependencyStatusDetail(props.dependency, displayJob)}
           </p>
-          {props.job ? (
+          {displayJob ? (
             <>
               {hasDeterminateProgress ? (
                 <div className="mt-3 max-w-xl">
@@ -323,7 +323,7 @@ export function RuntimeDependencyAttentionBanner(props: RuntimeDependencyAttenti
                     </p>
                   ) : null}
                 </div>
-              ) : isNimiRuntimeLocalEnvironmentDependencyJobActiveState(props.job.state) ? (
+              ) : isNimiRuntimeLocalEnvironmentDependencyJobActiveState(displayJob.state) ? (
                 <div className="mt-3 max-w-xl">
                   <div className="h-1.5 overflow-hidden rounded-full bg-[color-mix(in_srgb,var(--nimi-status-warning)_16%,white)]">
                     <div className="h-full w-1/3 animate-pulse rounded-full bg-[var(--nimi-status-warning)]" />
@@ -366,20 +366,20 @@ export function RuntimeDependencyAttentionBanner(props: RuntimeDependencyAttenti
           ) : null}
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          {props.canCancelRuntimeDependencyJob && props.job ? (
+          {props.canCancelRuntimeDependencyJob && displayJob ? (
             <button
               type="button"
-              onClick={() => props.onCancelJob(props.job!.jobId)}
+              onClick={() => props.onCancelJob(displayJob.jobId)}
               disabled={props.assetBusy}
               className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--nimi-status-warning)] hover:bg-[color-mix(in_srgb,var(--nimi-status-warning)_10%,transparent)] disabled:opacity-50"
             >
               {i18n.t('Common.cancel', { defaultValue: 'Cancel' })}
             </button>
           ) : null}
-          {props.canRetryRuntimeDependencyJob && props.job ? (
+          {props.canRetryRuntimeDependencyJob && displayJob ? (
             <button
               type="button"
-              onClick={() => props.onRetryJob(props.job!.jobId)}
+              onClick={() => props.onRetryJob(displayJob.jobId)}
               disabled={props.assetBusy}
               className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--nimi-status-warning)] hover:bg-[color-mix(in_srgb,var(--nimi-status-warning)_10%,transparent)] disabled:opacity-50"
             >
