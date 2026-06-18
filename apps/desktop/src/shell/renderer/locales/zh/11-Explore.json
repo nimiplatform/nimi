@@ -34,8 +34,13 @@
   "chatsLabel": "帖子",
   "friendshipAdd": "加为好友",
   "friendshipPending": "申请中",
+  "realmPersonaSourceConnect": "连接",
+  "realmPersonaSourceConnected": "已连接",
+  "realmPersonaSourceConnectedFeedback": "Source 已连接。",
+  "realmPersonaSourceConnectionUnavailable": "此 Source 需要当前有效且包含哈希的 sourceRef 后才能连接。",
   "realmPersonaSourceAdmissionHandoffRequired": "RealmPersona source admission 需要 RuntimeSourceSnapshot materialization 支持。",
   "realmPersonaSourceAdmissionPending": "Source admission 待接入",
+  "realmPersonaSourceUnavailable": "不可用",
   "friendshipRequested": "已申请",
   "friendshipFriends": "已是好友",
   "worldOwned": "世界归属"

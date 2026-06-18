@@ -1,4 +1,5 @@
 import type { RealmPersonaSourceState } from './realm-persona-source-admission';
+import type { NimiRealmCoreSourceRef } from '@nimiplatform/sdk/realm';
 export { PersonaSourceCard } from './explore-persona-source-card';
 export { toSafeBackgroundImage } from './explore-background-image';
 export type ExplorePersonaSourceCardData = {
@@ -9,18 +10,23 @@ export type ExplorePersonaSourceCardData = {
   avatarUrl: string | null;
   bio: string | null;
   isSource: boolean;
+  sourceKind?: NimiRealmCoreSourceRef['kind'];
+  sourceId?: string;
+  sourceContentHash?: string;
+  runtimeSourceRef?: string;
+  sourceRef?: NimiRealmCoreSourceRef;
   // World info
   worldId: string | null;
   worldName: string | null;
   worldBannerUrl: string | null;
   // RealmPersona source fields
-  category?: string;
+  archetype?: string;
   origin?: string;
   tier?: string;
   state?: string;
   ownershipType?: string;
-  wakeStrategy?: string;
-  accountVisibility?: string | null;
+  pacing?: string;
+  visibility?: 'private' | 'unlisted' | 'public' | 'system' | string | null;
   isOnline?: boolean;
   // Social/Stats
   tags: string[];

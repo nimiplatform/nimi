@@ -2,6 +2,10 @@ import type { AgentLocalTargetSnapshot } from '@renderer/bridge/runtime-bridge/t
 import type { ProfileData } from '@renderer/features/profile/profile-model';
 import type { ContactRecord } from './relationship-model';
 import { buildRuntimeLocalAgentRef } from '@nimiplatform/sdk/runtime';
+import {
+  createRealmRuntimeSourceSnapshot,
+  resolveRealmCoreSourceRef,
+} from '@renderer/features/explore/realm-persona-source-admission';
 
 type SourceContactLaunchSource = {
   id: string;
@@ -13,6 +17,11 @@ type SourceContactLaunchSource = {
   worldId?: string | null;
   worldName?: string | null;
   sourceWorldId?: string | null;
+  sourceKind?: string | null;
+  sourceId?: string | null;
+  sourceContentHash?: string | null;
+  runtimeSourceRef?: string | null;
+  sourceRef?: object | null;
   sourceOwnershipType?: string | null;
 };
 
@@ -40,7 +49,14 @@ export function toSourceContactLaunchTarget(
     throw new Error('source conversation launch requires a Realm source contact');
   }
   const ownerUserId = normalizeRequiredText(ownerUserIdInput, 'ownerUserId');
-  const runtimeSourceRef = normalizeRequiredText(source.id, 'runtimeSourceRef');
+  const sourceRef = resolveRealmCoreSourceRef(source);
+  if (!sourceRef) {
+    throw new Error('source conversation launch requires hash-bearing sourceRef');
+  }
+  const runtimeSourceRef = normalizeRequiredText(
+    source.runtimeSourceRef,
+    'runtimeSourceRef',
+  );
   return {
     ownerUserId,
     runtimeSourceRef,
@@ -59,6 +75,17 @@ export function toSourceContactLaunchTarget(
     greeting: null,
     builtinDocsContext: null,
   };
+}
+
+export async function materializeSourceContactLaunchTarget(
+  source: SourceContactLaunchSource,
+  ownerUserIdInput: string | null | undefined,
+): Promise<AgentLocalTargetSnapshot> {
+  const snapshot = await createRealmRuntimeSourceSnapshot(source);
+  return toSourceContactLaunchTarget({
+    ...source,
+    runtimeSourceRef: snapshot.runtimeSourceRef,
+  }, ownerUserIdInput);
 }
 
 export function toSourceContactLaunchTargetFromContact(

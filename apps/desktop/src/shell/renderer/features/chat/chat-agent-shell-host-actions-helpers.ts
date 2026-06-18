@@ -110,8 +110,8 @@ export function buildAgentConversationAnchorMetadata(target: AgentLocalTargetSna
     }
   }
   if (target.ownershipType === 'WORLD_OWNED' && normalizeText(target.worldId).startsWith('cbdb-')) {
-    realmProfileContext.ownerScope = 'forge-imported-system';
-    realmProfileContext.sourceProfile = 'cbdb-historical';
+    realmProfileContext.ownerScope = 'cbdb-curated-system';
+    realmProfileContext.sourceProfileId = 'cbdb-historical';
   }
   const ownerSettingsProjection = target.ownerSettingsProjection ?? null;
   if (ownerSettingsProjection) {

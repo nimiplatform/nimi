@@ -367,7 +367,10 @@ test('agent shell stays a Runtime Agent projection consumer with local UI state'
   assert.match(adapterSessionSnapshotSource, /lastRuntimeSessionSnapshotRequestKeyRef/);
   assert.match(adapterSessionSnapshotSource, /pendingRuntimeSessionSnapshotRequestKeyRef/);
   assert.match(adapterSessionSnapshotSource, /desktop_runtime_agent_session_snapshot_request_deduped_total/);
-  assert.match(adapterStateSource, /realmSocialData\.loadSocialSnapshot\(\)/);
+  assert.match(adapterStateSource, /agentConversationTargetByLocalRef/);
+  assert.match(adapterStateSource, /Object\.values\(storedTargetsByLocalRef\)/);
+  assert.match(adapterStateSource, /listRuntimeAgentConversationSummaries\(targets\)/);
+  assert.doesNotMatch(adapterStateSource, /realmSocialData\.loadSocialSnapshot\(\)/);
   assert.match(adapterStateSource, /loadDesktopRouteOptions\('text\.generate'\)/);
   assert.match(adapterStateSource, /findNimiRuntimeRouteModelProfile/);
   assert.match(sessionHydrationSource, /snapshot\.transcript/);

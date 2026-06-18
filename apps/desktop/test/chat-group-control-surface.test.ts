@@ -57,7 +57,7 @@ test('group adapter feeds committed runtime source slots into split candidate ha
   assert.match(groupAdapterSource, /realmGroupChatData\.sendGroupMessage\(chatId, content\)/);
   assert.match(groupAdapterSource, /resolveInvokableGroupSourceMention/);
   assert.match(groupAdapterSource, /normalizeText\(participant\.sourceOwnerId\) === userId/);
-  assert.match(groupAdapterSource, /realmGroupChatData\.commitRealmGroupMessageCandidate/);
+  assert.match(groupAdapterSource, /realmGroupChatData\.commitRealmGroupSourceMessageCandidate/);
   assert.doesNotMatch(groupAdapterSource, /sendGroupSourceMessage|sendGroupSourceChatMessage/);
   assert.doesNotMatch(groupAdapterSource, /candidate output|runtime\.orchestration|GROUP_LIMITED/);
 });

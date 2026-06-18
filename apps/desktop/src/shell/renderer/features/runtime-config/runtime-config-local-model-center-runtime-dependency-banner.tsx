@@ -117,7 +117,7 @@ export function RuntimeDependencyAttentionBanner(props: RuntimeDependencyAttenti
               disabled={props.assetBusy}
               className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--nimi-status-warning)] hover:bg-[color-mix(in_srgb,var(--nimi-status-warning)_10%,transparent)] disabled:opacity-50"
             >
-              {i18n.t('World.createAgent.cancel', { defaultValue: 'Cancel' })}
+              {i18n.t('Common.cancel', { defaultValue: 'Cancel' })}
             </button>
           ) : null}
           {props.canRetryRuntimeDependencyJob && props.job ? (
@@ -155,7 +155,7 @@ export function RuntimeDependencyAttentionBanner(props: RuntimeDependencyAttenti
                 onClick={props.onCancelSetupConfirm}
                 className="rounded-lg border border-[var(--nimi-border-subtle)] px-3 py-1.5 text-xs font-medium text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))]"
               >
-                {i18n.t('World.createAgent.cancel', { defaultValue: 'Cancel' })}
+                {i18n.t('Common.cancel', { defaultValue: 'Cancel' })}
               </button>
             </>
           ) : props.canStartRuntimeDependencySetup ? (

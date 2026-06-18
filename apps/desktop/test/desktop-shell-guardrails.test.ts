@@ -228,8 +228,6 @@ test('desktop shell source guardrails keep auth helpers centralized', () => {
   for (const sourcePath of [
     'infra/offline/cache-manager.ts',
     'infra/offline/types.ts',
-    'infra/local-agent-courier/provision-courier.ts',
-    'infra/local-agent-courier/termination-courier.ts',
     'infra/realm/realm-api.ts',
     'features/chat/data/realm-human-chat-data.ts',
     'features/chat/data/realm-group-chat-data.ts',
@@ -241,5 +239,14 @@ test('desktop shell source guardrails keep auth helpers centralized', () => {
     const source = fs.readFileSync(path.join(desktopRendererRoot, sourcePath), 'utf8');
     assert.doesNotMatch(source, /@runtime\/net\/json/);
     assert.match(source, /@nimiplatform\/sdk\/types/);
+  }
+  for (const sourcePath of [
+    'infra/bootstrap/auth-state-watcher.ts',
+    'infra/bootstrap/exit-handler.ts',
+    'features/social/data/realm-social-data.ts',
+  ]) {
+    const source = fs.readFileSync(path.join(desktopRendererRoot, sourcePath), 'utf8');
+    assert.doesNotMatch(source, /local-agent-courier/);
+    assert.doesNotMatch(source, /LocalAgent(Provision|Termination)Courier/);
   }
 });

@@ -353,7 +353,7 @@ export function RunnableInstalledAssetRow(props: RunnableInstalledAssetRowProps)
               onClick={props.onCancelRepair}
               className="rounded-lg border border-[var(--nimi-border-subtle)] px-3 py-1.5 text-xs font-medium text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))]"
             >
-              {i18n.t('World.createAgent.cancel', { defaultValue: 'Cancel' })}
+              {i18n.t('Common.cancel', { defaultValue: 'Cancel' })}
             </button>
           </div>
         </div>
@@ -379,7 +379,7 @@ export function RunnableInstalledAssetRow(props: RunnableInstalledAssetRowProps)
             onClick={props.onCancelRemove}
             className="rounded-lg border border-[var(--nimi-border-subtle)] px-3 py-1.5 text-xs font-medium text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))]"
           >
-            {i18n.t('World.createAgent.cancel', { defaultValue: 'Cancel' })}
+            {i18n.t('Common.cancel', { defaultValue: 'Cancel' })}
           </button>
         </div>
       ) : null}
@@ -464,7 +464,7 @@ export function DependencyInstalledAssetRow(props: DependencyInstalledAssetRowPr
             onClick={props.onCancelRemove}
             className="rounded-lg border border-[var(--nimi-border-subtle)] px-3 py-1.5 text-xs font-medium text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))]"
           >
-            {i18n.t('World.createAgent.cancel', { defaultValue: 'Cancel' })}
+            {i18n.t('Common.cancel', { defaultValue: 'Cancel' })}
           </button>
         </div>
       ) : null}

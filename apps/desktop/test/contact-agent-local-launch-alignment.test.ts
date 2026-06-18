@@ -10,29 +10,31 @@ function readRepo(relativePath: string): string {
   return fs.readFileSync(path.join(repoRoot, relativePath), 'utf8');
 }
 
-test('profile detail modal only exposes character chat after ordinary friendship evidence', () => {
+test('profile detail modal exposes source chat only after source connection evidence', () => {
   const source = readRepo('apps/desktop/src/shell/renderer/features/relationship/profile-detail-modal.tsx');
 
-  assert.match(source, /launchCharacterConversationFromDisplay/);
-  assert.match(source, /toSourceContactLaunchTargetFromProfile\(profile,\s*ownerUserId\)/);
-  assert.match(source, /!profile\.isFriend/);
-  assert.match(source, /profile\.isFriend/);
+  assert.match(source, /launchAgentConversationFromDisplay/);
+  assert.match(source, /materializeSourceContactLaunchTarget\(profile,\s*ownerUserId\)/);
+  assert.match(source, /sourceConnectionState/);
+  assert.match(source, /sourceConnected/);
+  assert.match(source, /if \(!sourceConnected\)/);
+  assert.match(source, /sourceConnectionRequiredForChat/);
+  assert.doesNotMatch(source, /!profile\.isFriend/);
   assert.doesNotMatch(source, /profile\.isSource\s*\|\|\s*isBlockedProfile/);
 });
 
-test('shared profile detail modal keeps admitted source message actions fail-closed', () => {
+test('shared profile detail modal keeps source message actions fail-closed on source connection', () => {
   const source = readRepo('apps/desktop/src/shell/renderer/features/relationship/profile-detail-modal.tsx');
 
   assert.match(source, /isBlockedProfile/);
   assert.match(source, /profile\.isSource/);
-  assert.match(source, /!profile\.isFriend/);
-  assert.match(source, /!isBlockedProfile\s*&& profile\.accessState !== 'restricted'\s*&& \(!profile\.isSource \|\| profile\.isFriend\)/);
+  assert.match(source, /!isBlockedProfile\s*&& profile\.accessState !== 'restricted'\s*&& \(!profile\.isSource \|\| sourceConnected\)/);
   assert.doesNotMatch(source, /showMessageButton=\{!profile\?\.isSource &&/);
 });
 
 test('World detail offers View profile only for a Realm source — no direct chat/voice path', () => {
   // T5-2 (`9d558335d`) removed the world-detail source direct-chat drift:
-  // `handleChatCharacter` / `handleVoiceCharacter` synthesized a `localCharacterRef` from a
+  // `handleChatCharacter` / `handleVoiceCharacter` synthesized runtime identity from a
   // non-materialized source and launched a session directly. A Realm source in
   // a World is NOT chat-reachable from World detail; chat requires
   // RuntimeSourceSnapshot materialization. World detail's affordance is now
@@ -49,7 +51,7 @@ test('World detail offers View profile only for a Realm source — no direct cha
   assert.doesNotMatch(source, /launchCharacterVoiceFromDisplay/);
 
   // The sole source affordance is View profile, routed to source-detail where
-  // source admission remains fail-closed until RuntimeSourceSnapshot handoff.
+  // source admission remains fail-closed until a hash-bearing sourceRef exists.
   assert.match(source, /const handleViewCharacter = \(character: WorldCharacter\) => \{/);
   assert.match(source, /navigateToProfile\(character\.id, 'source-detail'\)/);
   assert.match(source, /onViewCharacter=\{handleViewCharacter\}/);
@@ -62,7 +64,7 @@ test('World detail offers View profile only for a Realm source — no direct cha
   assert.doesNotMatch(templateSource, /onVoiceCharacter\?: \(/);
 });
 
-test('character contact launch target fails closed and builds owner-scoped LocalCharacter identity', () => {
+test('source contact launch target fails closed and builds owner-scoped localAgent identity', () => {
   assert.deepEqual(toSourceContactLaunchTarget({
     id: 'character-1',
     displayName: 'Archivist',
@@ -71,12 +73,16 @@ test('character contact launch target fails closed and builds owner-scoped Local
     bio: 'ordinary source contact',
     isSource: true,
     worldId: 'oasis',
+    sourceKind: 'worldCharacter',
+    sourceId: 'character-1',
+    sourceContentHash: 'hash-1',
+    runtimeSourceRef: 'runtime-source:worldCharacter:oasis:character-1:hash-1',
     worldName: 'OASIS',
     sourceOwnershipType: 'MASTER_OWNED',
   }, 'user-1'), {
     ownerUserId: 'user-1',
-    runtimeSourceRef: 'character-1',
-    localCharacterRef: 'local-character:user-1:character-1',
+    runtimeSourceRef: 'runtime-source:worldCharacter:oasis:character-1:hash-1',
+    localAgentRef: 'local-agent:user-1:runtime-source:worldCharacter:oasis:character-1:hash-1',
     displayName: 'Archivist',
     handle: 'archivist',
     avatarUrl: null,
@@ -120,6 +126,21 @@ test('character contact launch target fails closed and builds owner-scoped Local
       avatarUrl: null,
       bio: null,
       isSource: true,
+    }, 'user-1');
+  }, /requires hash-bearing sourceRef/);
+
+  assert.throws(() => {
+    toSourceContactLaunchTarget({
+      id: 'character-1',
+      displayName: 'Character',
+      handle: 'character',
+      avatarUrl: null,
+      bio: null,
+      isSource: true,
+      worldId: 'oasis',
+      sourceKind: 'worldCharacter',
+      sourceId: 'character-1',
+      sourceContentHash: 'hash-1',
     }, 'user-1');
   }, /requires runtimeSourceRef/);
 });

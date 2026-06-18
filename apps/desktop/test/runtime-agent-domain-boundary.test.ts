@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 
@@ -13,8 +13,6 @@ test('Runtime Agent domain stays on SDK and Kit shared surfaces', () => {
   const inspectAdapter = read('apps/desktop/src/shell/renderer/infra/runtime-agent-inspect.ts');
   const memoryAdapter = read('apps/desktop/src/shell/renderer/infra/runtime-agent-memory.ts');
   const presentationAdapter = read('apps/desktop/src/shell/renderer/infra/runtime-agent-presentation-profile.ts');
-  const provisionCourier = read('apps/desktop/src/shell/renderer/infra/local-agent-courier/provision-courier.ts');
-  const terminationCourier = read('apps/desktop/src/shell/renderer/infra/local-agent-courier/termination-courier.ts');
   const streamAdapter = read('apps/desktop/src/shell/renderer/features/chat/chat-agent-runtime-agent.ts');
   const avatarLiveInstanceBinding = read(
     'apps/desktop/src/shell/renderer/features/chat/chat-agent-avatar-live-instance-runtime-binding.ts',
@@ -28,14 +26,11 @@ test('Runtime Agent domain stays on SDK and Kit shared surfaces', () => {
   assert.match(inspectAdapter, /createNimiHostRuntimeAgentInspectSurface/);
   assert.match(memoryAdapter, /createNimiHostRuntimeAgentMemorySurface/);
   assert.match(presentationAdapter, /createNimiHostRuntimeAgentPresentationProfileSurface/);
-  assert.match(provisionCourier, /createNimiHostRuntimeAgentLifecycleSurface/);
-  assert.match(terminationCourier, /createNimiHostRuntimeAgentLifecycleSurface/);
-  assert.match(provisionCourier, /listNimiRealmLocalAgentProvisionIntents/);
-  assert.match(provisionCourier, /ackNimiRealmLocalAgentProvisionIntent/);
-  assert.match(terminationCourier, /listNimiRealmLocalAgentTerminationIntents/);
-  assert.match(terminationCourier, /ackNimiRealmLocalAgentTerminationIntent/);
-  assert.doesNotMatch(provisionCourier, /realm\.services\.MeService\.(listMyLocalAgentProvisionIntents|ackMyLocalAgentProvisionIntent)/);
-  assert.doesNotMatch(terminationCourier, /realm\.services\.MeService\.(listMyLocalAgentTerminationIntents|ackMyLocalAgentTerminationIntent)/);
+  assert.equal(
+    existsSync(path.join(repoRoot, 'apps/desktop/src/shell/renderer/infra/local-agent-courier')),
+    false,
+    'Realm source admission must not create or delete LocalAgent through a Desktop courier',
+  );
   assert.match(inspectContent, /CanonicalRuntimeInspectSidebar/);
   assert.match(inspectContent, /@nimiplatform\/kit\/features\/chat\/components\/canonical-runtime-inspect-sidebar/);
   assert.match(runtimeStreamUi, /@nimiplatform\/kit\/features\/avatar\/runtime/);
@@ -44,8 +39,6 @@ test('Runtime Agent domain stays on SDK and Kit shared surfaces', () => {
     inspectAdapter,
     memoryAdapter,
     presentationAdapter,
-    provisionCourier,
-    terminationCourier,
   ].forEach((source) => {
     assert.match(source, /from '@nimiplatform\/sdk\/runtime'/);
     assert.doesNotMatch(source, /RuntimeMethodIds\.agent/);

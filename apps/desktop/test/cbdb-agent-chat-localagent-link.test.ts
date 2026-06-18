@@ -29,9 +29,19 @@ test('CBDB legacy friend local chat path is removed from active Desktop sources'
   assert.doesNotMatch(threadModel, new RegExp(['parse', 'Agent', 'Friend', 'Target'].join('')));
 });
 
-test('CBDB RealmPersona source admission is blocked on RuntimeSourceSnapshot handoff', () => {
+test('CBDB RealmPersona source admission uses sourceRef connection', () => {
   const admission = readDesktopSource('features/explore/realm-persona-source-admission.ts');
-  assert.match(admission, /source_core_handoff_required/);
-  assert.match(admission, /RuntimeSourceSnapshot materialization support/);
+  assert.match(admission, /connectNimiRealmSource/);
+  assert.match(admission, /listNimiRealmSourceConnections/);
+  assert.match(admission, /sourceContentHash/);
+  assert.doesNotMatch(admission, /source_core_handoff_required/);
   assert.doesNotMatch(admission, new RegExp(['Agent', 'Friend'].join('')));
+});
+
+test('CBDB runtime anchor metadata uses source-core owner scope, not Forge import scope', () => {
+  const hostActions = readDesktopSource('features/chat/chat-agent-shell-host-actions-helpers.ts');
+
+  assert.match(hostActions, /ownerScope = 'cbdb-curated-system'/);
+  assert.match(hostActions, /sourceProfileId = 'cbdb-historical'/);
+  assert.doesNotMatch(hostActions, /forge-imported-system/);
 });

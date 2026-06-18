@@ -49,7 +49,7 @@ type ExploreViewProps = {
   onPostDelete?: () => void;
   loading: boolean;
   onToggleCategory: (category: string) => void;
-  onPersonaSourceManage: () => void;
+  onPersonaSourceManage: (source: ExplorePersonaSourceCardData) => void;
   onPersonaSourceSendGift?: (sourceId: string) => void;
   onPersonaSourceOpen?: (sourceId: string) => void;
   onPostAuthorOpen?: (target: PostCardAuthorProfileTarget) => void;
@@ -298,7 +298,7 @@ function ExplorePersonaSourcesSection({
   onPersonaSourceOpen,
 }: {
   personaSources: ExplorePersonaSourceCardData[];
-  onPersonaSourceManage: () => void;
+  onPersonaSourceManage: (source: ExplorePersonaSourceCardData) => void;
   onPersonaSourceOpen?: (sourceId: string) => void;
 }) {
   const { t } = useTranslation();
@@ -327,8 +327,8 @@ function ExplorePersonaSourcesSection({
       {personaSources.map((personaSource) => (
         <PersonaSourceCard
           key={personaSource.id}
- source={personaSource}
-          onManageFriends={onPersonaSourceManage}
+          source={personaSource}
+          onPrimaryAction={() => onPersonaSourceManage(personaSource)}
           onOpen={() => onPersonaSourceOpen?.(personaSource.id)}
         />
       ))}

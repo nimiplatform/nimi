@@ -208,11 +208,14 @@ test('T3-3 proof: agent-conversation-launcher hard-requires localAgentRef and th
         worldName: 'World',
         bio: null,
         ownershipType: null,
+        greeting: null,
+        builtinDocsContext: null,
       },
       setActiveTab: () => {},
       setChatMode: () => { setChatModeCalls += 1; },
       setSelectedTargetForSource: () => {},
       setAgentConversationSelection: () => {},
+      setAgentConversationTargetSnapshot: () => {},
     }),
     /Agent conversation launch requires localAgentRef/,
   );
@@ -231,6 +234,7 @@ test('T3-3 proof: Agent Chat always means LocalAgent Chat — no bare-source dir
   // Launch selection is keyed by localAgentRef, not runtimeSourceRef, and does not
   // pre-author a Desktop-local thread.
   assert.doesNotMatch(launcherSource, /threadId:/);
+  assert.match(launcherSource, /setAgentConversationTargetSnapshot\(input\.target\)/);
   assert.match(launcherSource, /localAgentRef,\s*\n\s*targetId: localAgentRef/);
   assert.doesNotMatch(launcherSource, /chatAgentStoreClient/);
   assert.doesNotMatch(launcherSource, /createAgentThread|createThread\(/);

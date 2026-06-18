@@ -1,0 +1,74 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import test from 'node:test';
+
+const repoRoot = path.join(import.meta.dirname, '../../..');
+const rendererRoot = path.join(repoRoot, 'apps/desktop/src/shell/renderer');
+
+function read(relativePath: string): string {
+  return fs.readFileSync(path.join(repoRoot, relativePath), 'utf8');
+}
+
+function readRenderer(relativePath: string): string {
+  return fs.readFileSync(path.join(rendererRoot, relativePath), 'utf8');
+}
+
+test('Desktop has no Realm source to LocalAgent courier', () => {
+  assert.equal(
+    fs.existsSync(path.join(rendererRoot, 'infra/local-agent-courier')),
+    false,
+    'Desktop must not provision or terminate LocalAgent from Realm source/social events',
+  );
+
+  for (const source of [
+    readRenderer('infra/bootstrap/auth-state-watcher.ts'),
+    readRenderer('infra/bootstrap/exit-handler.ts'),
+    readRenderer('features/social/data/realm-social-data.ts'),
+  ]) {
+    assert.doesNotMatch(source, /local-agent-courier/);
+    assert.doesNotMatch(source, /runLocalAgent(Provision|Termination)CourierPass/);
+    assert.doesNotMatch(source, /startLocalAgent(Provision|Termination)Courier/);
+    assert.doesNotMatch(source, /stopLocalAgentCouriers/);
+  }
+});
+
+test('source chat launch materializes RuntimeSourceSnapshot before LocalAgent identity', () => {
+  const launchTarget = readRenderer('features/relationship/source-contact-launch-target.ts');
+  const admission = readRenderer('features/explore/realm-persona-source-admission.ts');
+  const launcher = readRenderer('features/chat/agent-conversation-launcher.ts');
+  const adapterState = readRenderer('features/chat/chat-agent-shell-adapter-state.ts');
+  const alignmentTest = read('apps/desktop/test/contact-agent-local-launch-alignment.test.ts');
+
+  assert.match(launchTarget, /createRealmRuntimeSourceSnapshot/);
+  assert.match(launchTarget, /normalizeRequiredText\(\s*source\.runtimeSourceRef,\s*'runtimeSourceRef'/);
+  assert.match(launchTarget, /buildRuntimeLocalAgentRef\(\{ ownerUserId, runtimeSourceRef \}\)/);
+  assert.doesNotMatch(launchTarget, /runtime-source:\$\{/);
+  assert.doesNotMatch(launchTarget, /source\.id\s+as\s+runtimeSourceRef/);
+
+  assert.match(admission, /worldCoreControllerCreateRuntimeSourceSnapshot/);
+  assert.match(admission, /RuntimeSourceSnapshot/);
+  assert.match(admission, /activeSourceConnections/);
+  assert.match(admission, /runtimeSourceRef/);
+  assert.doesNotMatch(admission, /runtimeSourceRef:\s*source\.id/);
+
+  assert.match(launcher, /setAgentConversationTargetSnapshot\(input\.target\)/);
+  assert.match(launcher, /buildRuntimeLocalAgentRef\(\{ ownerUserId, runtimeSourceRef \}\)/);
+  assert.match(adapterState, /agentConversationTargetByLocalRef/);
+  assert.match(adapterState, /Object\.values\(storedTargetsByLocalRef\)/);
+  assert.doesNotMatch(adapterState, /\(\): AgentLocalTargetSnapshot\[\] => \[\]/);
+
+  assert.match(alignmentTest, /materializeSourceContactLaunchTarget/);
+  assert.match(alignmentTest, /requires runtimeSourceRef/);
+});
+
+test('group source picker reads RealmSourceConnection, not human friends', () => {
+  const source = readRenderer('features/chat/chat-group-participant-panel.tsx');
+
+  assert.match(source, /loadRealmPersonaSourceAdmissionProjection/);
+  assert.match(source, /activeSourceConnections/);
+  assert.match(source, /loadRealmSourceDetailsBySourceRef/);
+  assert.doesNotMatch(source, /realmSocialData/);
+  assert.doesNotMatch(source, /loadSocialSnapshot/);
+  assert.doesNotMatch(source, /snapshot\.friends/);
+});

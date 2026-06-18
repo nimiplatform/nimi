@@ -1,6 +1,5 @@
 import { hasTauriRuntime, listenTauri } from '@nimiplatform/kit/shell/renderer/bridge';
 import { completeMenuBarQuit, stopRuntimeBridge } from '@renderer/bridge';
-import { stopLocalAgentCouriers } from '@renderer/infra/local-agent-courier';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { stopAuthStateWatcher } from './auth-state-watcher';
 
@@ -29,7 +28,6 @@ export function registerExitHandler(options: { managed: boolean }) {
     });
 
     try {
-      stopLocalAgentCouriers();
       stopAuthStateWatcher();
 
       if (options.managed) {

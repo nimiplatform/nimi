@@ -23,8 +23,10 @@ test('core chat flow filters agent threads out of product chat data', () => {
   assert.match(source, /@nimiplatform\/kit\/features\/chat\/realm/);
   assert.doesNotMatch(source, /function isHumanChatThread/);
   assert.match(kitHumanProjectionSource, /export function isRealmDirectHumanChat/);
-  assert.match(kitHumanProjectionSource, /isSource\?: unknown/);
-  assert.match(kitHumanProjectionSource, /\.isSource === false/);
+  assert.match(kitHumanProjectionSource, /sourceRef\?: unknown/);
+  assert.match(kitHumanProjectionSource, /runtimeSourceRef\?: unknown/);
+  assert.match(kitHumanProjectionSource, /sourceLike\.sourceRef !== null && sourceLike\.sourceRef !== undefined/);
+  assert.match(kitHumanProjectionSource, /sourceLike\.runtimeSourceRef !== null && sourceLike\.runtimeSourceRef !== undefined/);
   assert.match(kitHumanProjectionSource, /export function filterRealmDirectHumanChats/);
 });
 

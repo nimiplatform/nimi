@@ -59,7 +59,7 @@ test('Source Detail module map resolves to live Realm source feature-data eviden
   );
 });
 
-test('Source Detail blocks RealmPersona source chat until RuntimeSourceSnapshot handoff', () => {
+test('Source Detail connects Realm source through sourceRef admission', () => {
   const panelSource = readRepo('apps/desktop/src/shell/renderer/features/source-detail/source-detail-panel.tsx');
   const viewSource = readRepo('apps/desktop/src/shell/renderer/features/source-detail/source-detail-view.tsx');
 
@@ -68,7 +68,9 @@ test('Source Detail blocks RealmPersona source chat until RuntimeSourceSnapshot 
   const legacyOpenPattern = new RegExp(`open${['Realm', 'Agent'].join('')}LocalChat`);
   assert.doesNotMatch(panelSource, legacyLaunchPattern);
   assert.doesNotMatch(panelSource, legacyOpenPattern);
-  assert.match(panelSource, /realmPersonaSourceHandoffMessage/);
+  assert.match(panelSource, /connectRealmPersonaSource/);
+  assert.match(panelSource, /realmPersonaSourceAdmissionQueryKey/);
+  assert.doesNotMatch(panelSource, /realmPersonaSourceHandoffMessage/);
 
   assert.doesNotMatch(viewSource, /onOpenChat/);
   assert.match(viewSource, /describeRealmPersonaPrimaryAction/);

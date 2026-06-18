@@ -1,37 +1,68 @@
-import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
 import { useEffect, useState } from 'react';
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 import { useTranslation } from 'react-i18next';
 import { ScrollArea } from '@nimiplatform/kit/ui';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
-import { realmGroupChatData } from './data/realm-group-chat-data';
+import { realmGroupChatData, type GroupSourceParticipantInput } from './data/realm-group-chat-data';
+import {
+  loadRealmPersonaSourceAdmissionProjection,
+  type RealmSourceConnectionProjection,
+} from '@renderer/features/explore/realm-persona-source-admission';
+import { realmSourceDetailData } from '@renderer/features/source-detail/data/realm-source-detail-data';
 
 type GroupParticipantDto = RealmModel<'GroupParticipantDto'>;
+type GroupSourceRef = GroupSourceParticipantInput['sourceRef'];
 
 type SourceFromSnapshot = {
-  sourceAccountId: string;
+  sourceKey: string;
+  ownerUserId: string;
+  input: GroupSourceParticipantInput;
   displayName: string;
   handle: string;
   avatarUrl: string | null;
 };
 
-function toSourceListFromSocialSnapshot(
-  snapshot: { friends?: readonly unknown[] } | null | undefined,
-): SourceFromSnapshot[] {
-  const friends = Array.isArray(snapshot?.friends) ? snapshot.friends : [];
-  return friends
-    .filter((item): item is Record<string, unknown> =>
-      typeof item === 'object' && item !== null && (item as Record<string, unknown>).isSource === true,
-    )
-    .map((item) => ({
-      sourceAccountId: String(item.accountId || item.id || ''),
-      displayName: String(item.displayName || item.name || '').trim(),
-      handle: String(item.handle || '').trim(),
-      avatarUrl: typeof item.avatarUrl === 'string' ? item.avatarUrl : null,
-    }))
-    .filter((a) => a.sourceAccountId)
-    .sort((a, b) => a.displayName.localeCompare(b.displayName));
+function normalizeText(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+async function toSourceFromConnection(connection: RealmSourceConnectionProjection): Promise<SourceFromSnapshot> {
+  const profile = await realmSourceDetailData.loadRealmSourceDetailsBySourceRef(
+    connection.sourceRef,
+    { runtimeSourceRef: connection.runtimeSourceRef },
+  );
+  const ownerUserId = normalizeText(connection.ownerUserId);
+  const displayName = normalizeText(profile.displayName || profile.name);
+  const handle = normalizeText(profile.handle);
+  const avatarUrl = typeof profile.avatarUrl === 'string' ? profile.avatarUrl : null;
+  if (!ownerUserId || !displayName) {
+    throw new Error('RealmSourceConnection candidate requires owner and display identity');
+  }
+  const sourceRef: GroupSourceRef = connection.sourceRef;
+  const input: GroupSourceParticipantInput = {
+    sourceRef,
+    runtimeSourceRef: connection.runtimeSourceRef,
+    displayName,
+    ...(handle ? { handle } : {}),
+    ...(avatarUrl ? { avatarUrl } : {}),
+  };
+  return {
+    sourceKey: connection.runtimeSourceRef,
+    ownerUserId,
+    input,
+    displayName,
+    handle,
+    avatarUrl,
+  };
+}
+
+async function loadConnectedRealmSources(): Promise<SourceFromSnapshot[]> {
+  const projection = await loadRealmPersonaSourceAdmissionProjection();
+  const sources = await Promise.all(
+    projection.activeSourceConnections.map((connection) => toSourceFromConnection(connection)),
+  );
+  return sources.sort((a, b) => a.displayName.localeCompare(b.displayName));
 }
 
 function toPanelErrorMessage(error: unknown, fallback: string): string {
@@ -70,7 +101,11 @@ export function ChatGroupParticipantPanel(props: {
 
   const humans = participants.filter((p) => p.type === 'human');
   const sources = participants.filter((p) => p.type === 'source');
-  const existingSourceIds = new Set(sources.map((a) => String(a.accountId || '')));
+  const existingSourceKeys = new Set(
+    sources
+      .map((a) => normalizeText(a.runtimeSourceRef) || normalizeText(a.runtimeParticipantSlot))
+      .filter(Boolean),
+  );
   const canManageSourceSlots = Boolean(
     currentUserId
     && humans.some((p) => p.accountId === currentUserId && p.role === 'admin'),
@@ -78,8 +113,8 @@ export function ChatGroupParticipantPanel(props: {
   const showAddSourcePicker = addSourceOpen && canManageSourceSlots;
 
   const socialQuery = useQuery({
-    queryKey: ['social-snapshot-for-group-sources'],
-    queryFn: async () => realmSocialData.loadSocialSnapshot(),
+    queryKey: ['realm-source-connections-for-group-sources'],
+    queryFn: async () => loadConnectedRealmSources(),
     enabled: showAddSourcePicker,
     staleTime: 30_000,
   });
@@ -90,20 +125,21 @@ export function ChatGroupParticipantPanel(props: {
     }
   }, [addSourceOpen, canManageSourceSlots]);
 
-  const availableSources = toSourceListFromSocialSnapshot(
-    socialQuery.data ?? null,
-  ).filter((a) => !existingSourceIds.has(a.sourceAccountId));
+  const availableSources = (socialQuery.data ?? []).filter((a) =>
+    a.ownerUserId === currentUserId
+    && !existingSourceKeys.has(a.sourceKey),
+  );
 
-  const handleAddSource = async (sourceAccountId: string) => {
+  const handleAddSource = async (source: SourceFromSnapshot) => {
     if (!chatId || pendingAction) return;
     if (!canManageSourceSlots) {
       setPanelError(t('Chat.groupSourceSlotManagementDenied', { defaultValue: 'Only group admins can manage sources.' }));
       return;
     }
-    setPendingAction(sourceAccountId);
+    setPendingAction(source.sourceKey);
     setPanelError(null);
     try {
-      await realmGroupChatData.addGroupSource(chatId, sourceAccountId);
+      await realmGroupChatData.addGroupSource(chatId, source.input);
       void queryClient.invalidateQueries({ queryKey: ['group-chats'] });
       onSourceSlotChanged?.();
       setAddSourceOpen(false);
@@ -116,23 +152,27 @@ export function ChatGroupParticipantPanel(props: {
         level: 'warn',
         area: 'runtime-participant-slot',
         message: `add-error: ${error instanceof Error ? error.message : String(error)}`,
-        details: { chatId, sourceAccountId },
+        details: {
+          chatId,
+          runtimeSourceRef: source.input.runtimeSourceRef,
+          sourceId: source.input.sourceRef.sourceId,
+        },
       });
     } finally {
       setPendingAction(null);
     }
   };
 
-  const handleRemoveSource = async (sourceAccountId: string) => {
+  const handleRemoveSource = async (runtimeParticipantSlot: string) => {
     if (!chatId || pendingAction) return;
     if (!canManageSourceSlots) {
       setPanelError(t('Chat.groupSourceSlotManagementDenied', { defaultValue: 'Only group admins can manage sources.' }));
       return;
     }
-    setPendingAction(sourceAccountId);
+    setPendingAction(runtimeParticipantSlot);
     setPanelError(null);
     try {
-      await realmGroupChatData.removeGroupSource(chatId, sourceAccountId);
+      await realmGroupChatData.removeGroupSource(chatId, runtimeParticipantSlot);
       void queryClient.invalidateQueries({ queryKey: ['group-chats'] });
       onSourceSlotChanged?.();
     } catch (error) {
@@ -144,7 +184,7 @@ export function ChatGroupParticipantPanel(props: {
         level: 'warn',
         area: 'runtime-participant-slot',
         message: `remove-error: ${error instanceof Error ? error.message : String(error)}`,
-        details: { chatId, sourceAccountId },
+        details: { chatId, runtimeParticipantSlot },
       });
     } finally {
       setPendingAction(null);
@@ -214,9 +254,9 @@ export function ChatGroupParticipantPanel(props: {
               key={p.accountId}
               participant={p}
               isCurrentUser={false}
-              canRemove={canManageSourceSlots}
-              onRemove={() => handleRemoveSource(String(p.accountId || ''))}
-              isPending={pendingAction === p.accountId}
+              canRemove={canManageSourceSlots && Boolean(normalizeText(p.runtimeParticipantSlot))}
+              onRemove={() => handleRemoveSource(normalizeText(p.runtimeParticipantSlot))}
+              isPending={pendingAction === p.runtimeParticipantSlot}
             />
           ))}
           {sources.length === 0 && !addSourceOpen && (
@@ -229,9 +269,9 @@ export function ChatGroupParticipantPanel(props: {
               {availableSources.length > 0 ? (
                 availableSources.map((source) => (
                   <button
-                    key={source.sourceAccountId}
+                    key={source.sourceKey}
                     type="button"
-                    onClick={() => handleAddSource(source.sourceAccountId)}
+                    onClick={() => handleAddSource(source)}
                     disabled={pendingAction !== null}
                     className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-violet-100/60 disabled:opacity-50"
                   >

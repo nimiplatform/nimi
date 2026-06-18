@@ -270,7 +270,7 @@ export function ChatRelationshipRail({
           </>
         ) : null}
 
-        {/* Agent friends */}
+        {/* Source-backed localAgent targets */}
         {agentTargets.length > 0 ? (
           <>
             <SidebarSeparator />

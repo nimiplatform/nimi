@@ -14,6 +14,8 @@ const oldSourceDomainName = ['ag', 'ent'].join('');
 const oldGroupSourcePascal = ['Group', 'Ag', 'ent'].join('');
 const oldGroupSourceMessagePath = ['/', oldSourceDomainName, '-messages'].join('');
 const oldRuntimeSourceTurnRequest = ['runtime', oldSourceDomainName, 'turn', 'request'].join('.');
+const oldRealmCommitSlotField = ['expectedRuntimeParticipant', 'Slot'].join('');
+const oldRuntimeLocalSourceField = ['expectedLocal', 'AgentRef'].join('');
 
 function escapedPattern(value: string): RegExp {
   return new RegExp(value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
@@ -56,14 +58,21 @@ describe('Realm group source participation Desktop hardcut', () => {
     assert.doesNotMatch(flowSource, /runtime\.agent\.get_realm_group_message_candidate_evidence/);
     assert.doesNotMatch(flowSource, /GroupChatsService\.publishRealmGroupMessageCandidateEvidence/);
     assert.doesNotMatch(flowSource, /GroupChatsService\./);
-    assert.match(flowSource, /commitRealmGroupMessageCandidate/);
+    assert.match(flowSource, /commitNimiRealmGroupSourceMessageCandidate/);
+    assert.match(flowSource, /addNimiRealmGroupSourceParticipant/);
+    assert.match(flowSource, /removeNimiRealmGroupSourceParticipant/);
+    assert.match(flowSource, /commitRealmGroupSourceMessageCandidate/);
     assert.match(flowSource, /createCommitPayload/);
+    assert.doesNotMatch(flowSource, /not implemented in current Realm SDK surface/);
+    assert.doesNotMatch(flowSource, /addNimiRealmGroupParticipant/);
+    assert.doesNotMatch(flowSource, /removeNimiRealmGroupParticipant/);
+    assert.doesNotMatch(flowSource, /sourceAccountId/);
     assert.doesNotMatch(flowSource, /candidateEvidenceRef: candidate\.candidateEvidenceRef/);
     assert.doesNotMatch(flowSource, /outputCandidateRef: evidence\.outputCandidateRef/);
     assert.doesNotMatch(flowSource, /assertCandidateHandleMatchesExpectedSlot/);
     assert.doesNotMatch(flowSource, /assertCandidateEvidenceMatchesHandle/);
-    assert.doesNotMatch(flowSource, /expectedRuntimeParticipantSlot: slot\.runtimeParticipantSlot/);
-    assert.doesNotMatch(flowSource, /expectedLocalAgentRef: slot\.localAgentRef/);
+    assert.doesNotMatch(flowSource, escapedPattern(`${oldRealmCommitSlotField}: slot.runtimeParticipantSlot`));
+    assert.doesNotMatch(flowSource, escapedPattern(`${oldRuntimeLocalSourceField}: slot.localAgentRef`));
     assert.doesNotMatch(flowSource, /unsafeRaw|fetch\(|message_committed/);
     assert.doesNotMatch(flowSource, escapedPattern(oldGroupSourceMessagePath));
     assert.doesNotMatch(flowSource, escapedPattern(oldRuntimeSourceTurnRequest));

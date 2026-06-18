@@ -48,7 +48,21 @@ function MiniSparkline({ seed, width = 52, height = 18 }: { seed: string; width?
     </svg>
   );
 }
-function sourcePillStyle(_state: RealmPersonaSourceState): CSSProperties {
+function sourcePillStyle(state: RealmPersonaSourceState): CSSProperties {
+  if (state === 'source_connectable') {
+    return {
+      background: 'var(--nimi-accent-soft)',
+      color: 'var(--nimi-accent)',
+      borderColor: 'var(--nimi-accent)',
+    };
+  }
+  if (state === 'source_connected') {
+    return {
+      background: 'rgba(16, 185, 129, 0.10)',
+      color: '#047857',
+      borderColor: 'rgba(16, 185, 129, 0.35)',
+    };
+  }
   return {
     background: 'transparent',
     color: 'var(--nimi-fg-3)',
@@ -71,38 +85,38 @@ function PrimaryActionIcon({ action: _action }: { action: RealmPersonaPrimaryAct
 type RealmPersonaPrimaryActionGlyph = ReturnType<typeof describeRealmPersonaPrimaryAction>['action'];
 // Compact Persona Source Card for horizontal scrolling recommendation section.
 // Layout: rank kicker + Public pill · aurora blob · glyph tile + name/role ·
-// Origin meta row · footer (sparkline + count + stateful friend pill). Every
+// Origin meta row · footer (sparkline + count + source action). Every
 // color uses fg-*/accent-*/border-* tokens, every font uses the three font
 // tokens. The sparkline is decorative — see deterministicPulse comment.
 export function PersonaSourceCard({
   source,
-  onManageFriends,
+  onPrimaryAction,
   onOpen,
 }: {
   source: ExplorePersonaSourceCardData;
-  onManageFriends?: () => Promise<void> | void;
+  onPrimaryAction?: () => Promise<void> | void;
   onOpen?: () => void;
 }) {
   const palette = getSemanticSourcePalette({
-    category: source.category,
+    archetype: source.archetype,
     origin: source.origin,
-    description: source.bio || null,
+    description: source.bio || source.archetype || null,
     worldName: source.worldName,
     tags: source.tags,
   });
   const roleText = source.bio
-    || source.category
+    || source.archetype
     || source.tags[0]
     || i18n.t('Explore.defaultRole', { defaultValue: 'Companion' });
-  const originText = source.origin || source.worldName || source.category || i18n.t('Profile.unknownWorld', { defaultValue: 'Unknown world' });
+  const originText = source.origin || source.worldName || source.archetype || i18n.t('Profile.unknownWorld', { defaultValue: 'Unknown world' });
   const postsCount = typeof source.postsCount === 'number' ? source.postsCount : 0;
-  const isPublic = source.accountVisibility === 'PUBLIC';
+  const isPublic = source.visibility === 'public';
   const glyph = source.name ? source.name.trim().charAt(0).toUpperCase() : '·';
-  const sourceState: RealmPersonaSourceState = source.sourceState ?? 'source_core_handoff_required';
+  const sourceState: RealmPersonaSourceState = source.sourceState ?? 'source_connection_unavailable';
   const primaryAction = describeRealmPersonaPrimaryAction(sourceState);
-  const handleFriendClick = (event: MouseEvent<HTMLButtonElement>) => {
+  const handlePrimaryActionClick = (event: MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
-    void onManageFriends?.();
+    void onPrimaryAction?.();
   };
   const pillLabel = primaryAction.label;
   return (
@@ -234,7 +248,7 @@ export function PersonaSourceCard({
           {originText}
         </span>
       </div>
-      {/* Footer: sparkline + count + friend pill */}
+      {/* Footer: sparkline + count + source action */}
       <div
         className="relative mt-auto flex items-center justify-between border-t pt-3"
         style={{ borderColor: 'var(--nimi-border-subtle)' }}
@@ -268,7 +282,7 @@ export function PersonaSourceCard({
         </div>
         <button
           type="button"
-          onClick={handleFriendClick}
+          onClick={handlePrimaryActionClick}
           disabled={primaryAction.disabled}
           data-testid={E2E_IDS.explorePersonaSourcePrimaryAction(source.id)}
           data-source-state={sourceState}

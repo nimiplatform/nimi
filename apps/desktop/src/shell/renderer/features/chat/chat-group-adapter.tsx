@@ -185,7 +185,7 @@ export function useGroupConversationModeHost(
       chatId: string;
       participant: GroupParticipantDto;
       triggerMessage: GroupMessageViewDto;
-    }) => realmGroupChatData.commitRealmGroupMessageCandidate(chatId, participant, triggerMessage),
+    }) => realmGroupChatData.commitRealmGroupSourceMessageCandidate(chatId, participant, triggerMessage),
     onSettled: (_result, _error, variables) => {
       const sentChatId = String(variables.chatId || '');
       if (sentChatId) {

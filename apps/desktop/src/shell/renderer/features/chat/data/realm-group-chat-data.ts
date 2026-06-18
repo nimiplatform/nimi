@@ -1,15 +1,17 @@
 import {
-  addNimiRealmGroupParticipant,
+  addNimiRealmGroupSourceParticipant,
+  commitNimiRealmGroupSourceMessageCandidate,
   createNimiRealmGroupChat,
   createNimiRealmGroupTextMessageInput,
   listNimiRealmGroupChats,
   loadNimiRealmGroupChat,
   loadNimiRealmGroupMessages,
   markNimiRealmGroupRead,
-  removeNimiRealmGroupParticipant,
+  removeNimiRealmGroupSourceParticipant,
   sendNimiRealmGroupMessage,
   syncNimiRealmGroupEvents,
   type Realm,
+  type NimiRealmGroupSourceParticipantInput,
 } from '@nimiplatform/sdk/realm';
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 import { callRealmApi, emitRealmDataError } from '@renderer/infra/realm/realm-api';
@@ -30,9 +32,10 @@ type GroupMessageViewDto = RealmModel<'GroupMessageViewDto'>;
 type GroupParticipantDto = RealmModel<'GroupParticipantDto'>;
 type ListGroupChatsResultDto = RealmModel<'ListGroupChatsResultDto'>;
 type ListGroupMessagesResultDto = RealmModel<'ListGroupMessagesResultDto'>;
-type RealmGroupMessageCandidateCommitResultDto = never;
+type RealmGroupMessageCandidateCommitResultDto = RealmModel<'RealmGroupMessageCandidateCommitResultDto'>;
 
 export type { GroupChatViewDto, GroupMessageViewDto };
+export type GroupSourceParticipantInput = NimiRealmGroupSourceParticipantInput;
 
 type RealmGroupChatApiCaller = <T>(task: (realm: Realm) => Promise<T>, fallbackMessage?: string) => Promise<T>;
 type RealmGroupChatErrorEmitter = (
@@ -53,7 +56,7 @@ function createStableClientId(prefix: string): string {
 function requireCurrentUserId(getCurrentUser: CurrentUserReader): string {
   const id = normalizeText(getCurrentUser()?.id);
   if (!id) {
-    throw new Error('group agent candidate handoff requires authenticated current user id');
+    throw new Error('group source candidate handoff requires authenticated current user id');
   }
   return id;
 }
@@ -152,7 +155,7 @@ export async function sendGroupChatMessage(
   }
 }
 
-export async function commitRealmGroupMessageCandidateHandoff(
+export async function commitRealmGroupSourceMessageCandidateHandoff(
   callApi: RealmGroupChatApiCaller,
   emitRealmGroupChatError: RealmGroupChatErrorEmitter,
   getCurrentUser: CurrentUserReader,
@@ -189,8 +192,14 @@ export async function commitRealmGroupMessageCandidateHandoff(
       triggerMessageId,
       idempotencyKey,
     });
-    void candidateCommit;
-    throw new Error('Realm group source message candidate commit is not implemented in current Realm SDK surface');
+    return await callApi(
+      (realm) => commitNimiRealmGroupSourceMessageCandidate(
+        realm,
+        chatId,
+        candidateCommit.realmCommitPayload,
+      ),
+      '提交群组 Source 消息失败',
+    );
   } catch (error) {
     emitRealmGroupChatError('commit-realm-group-message-candidate', error, {
       chatId,
@@ -245,16 +254,20 @@ export async function addGroupChatSource(
   callApi: RealmGroupChatApiCaller,
   emitRealmGroupChatError: RealmGroupChatErrorEmitter,
   chatId: string,
-  sourceAccountId: string,
+  input: GroupSourceParticipantInput,
 ) {
   try {
     const result = await callApi(
-      (realm) => addNimiRealmGroupParticipant(realm, chatId, sourceAccountId),
+      (realm) => addNimiRealmGroupSourceParticipant(realm, chatId, input),
       '添加群组 Source 失败',
     );
     return result;
   } catch (error) {
-    emitRealmGroupChatError('add-group-source', error, { chatId, sourceAccountId });
+    emitRealmGroupChatError('add-group-source', error, {
+      chatId,
+      runtimeSourceRef: normalizeText(input.runtimeSourceRef),
+      sourceId: normalizeText(input.sourceRef?.sourceId),
+    });
     throw error;
   }
 }
@@ -263,15 +276,15 @@ export async function removeGroupChatSource(
   callApi: RealmGroupChatApiCaller,
   emitRealmGroupChatError: RealmGroupChatErrorEmitter,
   chatId: string,
-  sourceAccountId: string,
+  runtimeParticipantSlot: string,
 ) {
   try {
     await callApi(
-      (realm) => removeNimiRealmGroupParticipant(realm, chatId, sourceAccountId),
+      (realm) => removeNimiRealmGroupSourceParticipant(realm, chatId, runtimeParticipantSlot),
       '移除群组 Source 失败',
     );
   } catch (error) {
-    emitRealmGroupChatError('remove-group-source', error, { chatId, sourceAccountId });
+    emitRealmGroupChatError('remove-group-source', error, { chatId, runtimeParticipantSlot });
     throw error;
   }
 }
@@ -310,12 +323,12 @@ export const realmGroupChatData = {
     loadGroupChatMessages(callRealmApi, emitRealmDataError, chatId, Math.min(limit, 100)),
   sendGroupMessage: (chatId: string, content: string) =>
     sendGroupChatMessage(callRealmApi, emitRealmDataError, chatId, content),
-  commitRealmGroupMessageCandidate: (
+  commitRealmGroupSourceMessageCandidate: (
     chatId: string,
     participant: GroupParticipantDto,
     triggerMessage: GroupMessageViewDto,
   ) =>
-    commitRealmGroupMessageCandidateHandoff(
+    commitRealmGroupSourceMessageCandidateHandoff(
       callRealmApi,
       emitRealmDataError,
       getCurrentUser,
@@ -329,8 +342,8 @@ export const realmGroupChatData = {
     createGroupChat(callRealmApi, emitRealmDataError, title, participantIds, initialMessage),
   syncGroupEvents: (chatId: string, afterSeq: number, limit = 100) =>
     syncGroupChatEvents(callRealmApi, emitRealmDataError, chatId, afterSeq, Math.min(limit, 100)),
-  addGroupSource: (chatId: string, sourceAccountId: string) =>
-    addGroupChatSource(callRealmApi, emitRealmDataError, chatId, sourceAccountId),
-  removeGroupSource: (chatId: string, sourceAccountId: string) =>
-    removeGroupChatSource(callRealmApi, emitRealmDataError, chatId, sourceAccountId),
+  addGroupSource: (chatId: string, input: GroupSourceParticipantInput) =>
+    addGroupChatSource(callRealmApi, emitRealmDataError, chatId, input),
+  removeGroupSource: (chatId: string, runtimeParticipantSlot: string) =>
+    removeGroupChatSource(callRealmApi, emitRealmDataError, chatId, runtimeParticipantSlot),
 };

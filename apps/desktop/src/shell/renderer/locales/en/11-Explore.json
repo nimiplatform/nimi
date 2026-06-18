@@ -34,8 +34,13 @@
   "chatsLabel": "Posts",
   "friendshipAdd": "Add friend",
   "friendshipPending": "Pending",
+  "realmPersonaSourceConnect": "Connect",
+  "realmPersonaSourceConnected": "Connected",
+  "realmPersonaSourceConnectedFeedback": "Source connected.",
+  "realmPersonaSourceConnectionUnavailable": "This source requires a current hash-bearing sourceRef before it can be connected.",
   "realmPersonaSourceAdmissionHandoffRequired": "RealmPersona source admission requires RuntimeSourceSnapshot materialization support.",
   "realmPersonaSourceAdmissionPending": "Source admission pending",
+  "realmPersonaSourceUnavailable": "Unavailable",
   "friendshipRequested": "Requested",
   "friendshipFriends": "Friends",
   "worldOwned": "World owned"

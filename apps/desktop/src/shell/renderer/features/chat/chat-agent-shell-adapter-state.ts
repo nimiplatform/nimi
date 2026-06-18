@@ -127,9 +127,10 @@ export function useAgentConversationShellState(
     return {};
   }, []);
 
+  const storedTargetsByLocalRef = useAppStore((state) => state.agentConversationTargetByLocalRef);
   const targets = useMemo(
-    (): AgentLocalTargetSnapshot[] => [],
-    [],
+    (): AgentLocalTargetSnapshot[] => Object.values(storedTargetsByLocalRef),
+    [storedTargetsByLocalRef],
   );
   const targetByLocalAgentRef = useMemo(
     () => new Map(targets.map((target) => [target.localAgentRef, target])),

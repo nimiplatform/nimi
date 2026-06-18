@@ -456,7 +456,7 @@ export function AgentCenterPanel(props: AgentCenterPanelProps) {
     <div>
       <Group>
         <GroupHead
-          title={t('Chat.agentCenterSourceDetails', { defaultValue: 'Agent details' })}
+          title={t('Chat.agentCenterSourceDetails', { defaultValue: 'Source details' })}
           right={<StatusPill tone={props.runtimeInspectLoading ? 'checking' : (props.runtimeInspect ? 'ready' : 'muted')} label={cognitionStatus} />}
         />
         <Card className="px-1 py-1">

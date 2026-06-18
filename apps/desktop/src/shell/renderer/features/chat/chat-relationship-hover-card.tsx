@@ -22,7 +22,7 @@ function getSourceLabel(source: ConversationTargetSummary['source'], t: TFunctio
     case 'ai':
       return t('Chat.hoverCardAi', { defaultValue: 'AI' });
     case 'agent':
-      return t('Chat.hoverCardAgent', { defaultValue: 'Agent' });
+      return t('Chat.hoverCardLocalAgent', { defaultValue: 'localAgent' });
     case 'group':
       return t('Chat.hoverCardGroup', { defaultValue: 'Group' });
     case 'human':
@@ -103,7 +103,7 @@ export function buildRelationshipProfileSeed(target: ConversationTargetSummary):
   };
 }
 
-function AgentSparkleIcon({ className = '' }: { className?: string }) {
+function LocalAgentGlyphIcon({ className = '' }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M12 3.5l1.45 4.05L17.5 9l-4.05 1.45L12 14.5l-1.45-4.05L6.5 9l4.05-1.45L12 3.5z" />
@@ -134,13 +134,13 @@ export function RelationshipHoverCard({
   const identity = getIdentityLabel(target, sourceLabel);
   const preview = target.previewText || target.bio || t('Chat.hoverCardNoPreview', { defaultValue: 'No recent message' });
   const isSource = target.source === 'agent';
-  const agentPillLabel = t('Chat.hoverCardAgent', { defaultValue: 'Agent' });
+  const sourcePillLabel = t('Chat.hoverCardLocalAgent', { defaultValue: 'localAgent' });
 
   const avatarVisual = isSource ? (
     <EntityAvatar
       imageUrl={target.avatarUrl || null}
       name={target.avatarFallback || target.title || '?'}
-      kind="agent"
+      kind="source"
       sizeClassName="h-[74px] w-[74px]"
       textClassName="text-xl font-semibold"
     />
@@ -206,11 +206,11 @@ export function RelationshipHoverCard({
             {isSource ? (
               <span
                 className="inline-flex shrink-0 items-center gap-1 rounded-full bg-violet-100 px-1.5 py-0.5 text-[10px] font-medium leading-4 text-violet-700"
-                aria-label={agentPillLabel}
-                title={agentPillLabel}
+                aria-label={sourcePillLabel}
+                title={sourcePillLabel}
               >
-                <AgentSparkleIcon className="h-3 w-3" />
-                {agentPillLabel}
+                <LocalAgentGlyphIcon className="h-3 w-3" />
+                {sourcePillLabel}
               </span>
             ) : null}
           </div>

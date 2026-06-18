@@ -1,9 +1,10 @@
 import { useCallback, useMemo, useState } from 'react';
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { realmExploreData } from './data/realm-explore-data';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
+import { i18n } from '@renderer/i18n';
 import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 import { ProfileDetailModal } from '@renderer/features/relationship/profile-detail-modal.js';
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';
@@ -22,7 +23,9 @@ import { prefetchWorldDetailPanel } from '../world/world-detail-route-state';
 import {
   loadRealmPersonaSourceAdmissionProjection,
   realmPersonaSourceAdmissionQueryKey,
-  realmPersonaSourceHandoffMessage,
+  connectRealmPersonaSource,
+  realmPersonaSourceConnectionMessage,
+  resolveRealmSourceConnection,
   resolveRealmPersonaSourceState,
 } from './realm-persona-source-admission';
 
@@ -42,6 +45,7 @@ type ExplorePanelProps = {
 
 export function ExplorePanel(props: ExplorePanelProps) {
   const authStatus = useAppStore((state) => state.auth.status);
+  const queryClient = useQueryClient();
   const navigateToWorld = useAppStore((state) => state.navigateToWorld);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedProfileTarget, setSelectedProfileTarget] = useState<PostCardAuthorProfileTarget | null>(null);
@@ -103,10 +107,14 @@ export function ExplorePanel(props: ExplorePanelProps) {
     () => {
       const mapped = parsePersonaSources(personaSourcesQuery.data, worldsMap);
       const projection = sourceAdmissionQuery.data ?? null;
-      return mapped.map((personaSource) => ({
-        ...personaSource,
-        sourceState: resolveRealmPersonaSourceState(personaSource.id, projection),
-      }));
+      return mapped.map((personaSource) => {
+        const connection = resolveRealmSourceConnection(personaSource, projection);
+        return {
+          ...personaSource,
+          runtimeSourceRef: connection?.runtimeSourceRef ?? personaSource.runtimeSourceRef,
+          sourceState: resolveRealmPersonaSourceState(personaSource, projection),
+        };
+      });
     },
     [personaSourcesQuery.data, worldsMap, sourceAdmissionQuery.data],
   );
@@ -150,17 +158,28 @@ export function ExplorePanel(props: ExplorePanelProps) {
   const [giftModalOpen, setGiftModalOpen] = useState(false);
   const [selectedSourceForGift, setSelectedSourceForGift] = useState<ExplorePersonaSourceCardData | null>(null);
 
-  const onPersonaSourceManage = useCallback(() => {
-    setFeedback({
-      kind: 'warning',
-      message: realmPersonaSourceHandoffMessage(),
-    });
-    logRendererEvent({
-      level: 'info',
-      area: 'explore',
-      message: 'action:realm-persona-source-admission:handoff-required',
-    });
-  }, []);
+  const onPersonaSourceManage = useCallback(async (source: ExplorePersonaSourceCardData) => {
+    try {
+      await connectRealmPersonaSource(source);
+      await queryClient.invalidateQueries({ queryKey: realmPersonaSourceAdmissionQueryKey });
+      setFeedback({
+        kind: 'success',
+        message: i18n.t('Explore.realmPersonaSourceConnectedFeedback', {
+          defaultValue: 'Source connected.',
+        }),
+      });
+      logRendererEvent({
+        level: 'info',
+        area: 'explore',
+        message: 'action:realm-source-connection:connected',
+      });
+    } catch (error) {
+      setFeedback({
+        kind: 'error',
+        message: error instanceof Error ? error.message : realmPersonaSourceConnectionMessage(),
+      });
+    }
+  }, [queryClient]);
 
   const onPersonaSourceSendGift = useCallback(
     (sourceId: string) => {

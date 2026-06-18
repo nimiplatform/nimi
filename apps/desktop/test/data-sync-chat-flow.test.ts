@@ -177,22 +177,36 @@ describe('desktop human chat scaffold source scanning', () => {
 });
 
 describe('desktop human chat filtering', () => {
-  test('loadChatList fails closed for missing, malformed, or agent otherUser rows', async () => {
+  test('loadChatList fails closed for missing, malformed, or source chat rows', async () => {
     const result = await loadChatList({
       listChats: async () => ({
         items: [
           { id: 'human-1', otherUser: { id: 'user-1', isSource: false } },
           { id: 'missing-other-user' },
           { id: 'malformed-other-user', otherUser: 'user-2' },
-          { id: 'agent-1', otherUser: { id: 'agent-1', isSource: true } },
-          { id: 'missing-discriminator', otherUser: { id: 'user-3' } },
+          {
+            id: 'source-ref-chat',
+            sourceRef: {
+              kind: 'realmPersona',
+              worldId: 'oasis',
+              sourceId: 'persona-1',
+              sourceContentHash: 'hash-1',
+            },
+            otherUser: { id: 'persona-1' },
+          },
+          {
+            id: 'runtime-source-chat',
+            runtimeSourceRef: 'runtime-source:realmPersona:oasis:persona-2:hash-2',
+            otherUser: { id: 'persona-2' },
+          },
+          { id: 'human-2', otherUser: { id: 'user-3' } },
         ],
       }),
     } as never);
 
     assert.deepEqual(
       (result.items as Array<{ id: string }>).map((item) => item.id),
-      ['human-1'],
+      ['human-1', 'human-2'],
     );
   });
 });
