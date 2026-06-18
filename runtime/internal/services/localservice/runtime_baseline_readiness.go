@@ -480,10 +480,112 @@ func runtimeBaselineBindingMismatch(stored runtimeBaselineReadinessRecord, outco
 	if !stringSetsEqual(stored.RequiredDependencyFamilies, outcome.RequiredDependencyFamilies) {
 		return "stored required_dependency_families no longer match resolved activation set"
 	}
+	if !stringSetsEqual(stored.SelectedSourceRecordIDs, runtimeBaselineSelectedSourceRecordIDsFromResponses(stored.ActivationReadyResponses)) {
+		return "stored selected_source_record_ids no longer match stored activation responses"
+	}
 	if !stringSetsEqual(stored.SelectedSourceRecordIDs, outcome.SelectedSourceRecordIDs) {
+		if runtimeBaselineActivationEvidenceEquivalent(stored.ActivationReadyResponses, outcome.ActivationResponses) {
+			return ""
+		}
 		return "stored selected_source_record_ids no longer match resolved activation set"
 	}
 	return ""
+}
+
+func runtimeBaselineSelectedSourceRecordIDsFromResponses(responses []runtimeBaselineActivationConsumerEvidence) []string {
+	set := make(map[string]struct{})
+	for _, response := range responses {
+		for _, dep := range response.Dependencies {
+			if id := strings.TrimSpace(dep.SelectedSourceRecordID); id != "" {
+				set[id] = struct{}{}
+			}
+		}
+	}
+	return mapKeysSorted(set)
+}
+
+func runtimeBaselineActivationEvidenceEquivalent(stored []runtimeBaselineActivationConsumerEvidence, outcome []runtimeBaselineActivationConsumerEvidence) bool {
+	if len(stored) != len(outcome) {
+		return false
+	}
+	outcomeByConsumer := make(map[string]runtimeBaselineActivationConsumerEvidence, len(outcome))
+	for _, response := range outcome {
+		consumerID := strings.TrimSpace(response.ConsumerID)
+		if consumerID == "" {
+			return false
+		}
+		if _, exists := outcomeByConsumer[consumerID]; exists {
+			return false
+		}
+		outcomeByConsumer[consumerID] = response
+	}
+	for _, storedResponse := range stored {
+		consumerID := strings.TrimSpace(storedResponse.ConsumerID)
+		outcomeResponse, ok := outcomeByConsumer[consumerID]
+		if !ok {
+			return false
+		}
+		if strings.TrimSpace(storedResponse.PackID) != strings.TrimSpace(outcomeResponse.PackID) ||
+			strings.TrimSpace(storedResponse.ActivationState) != strings.TrimSpace(outcomeResponse.ActivationState) ||
+			strings.TrimSpace(storedResponse.BoundAssetID) != strings.TrimSpace(outcomeResponse.BoundAssetID) {
+			return false
+		}
+		if !runtimeBaselineActivationDependenciesEquivalent(storedResponse.Dependencies, outcomeResponse.Dependencies) {
+			return false
+		}
+	}
+	return true
+}
+
+func runtimeBaselineActivationDependenciesEquivalent(stored []runtimeBaselineActivationDependencyEvidence, outcome []runtimeBaselineActivationDependencyEvidence) bool {
+	if len(stored) != len(outcome) {
+		return false
+	}
+	outcomeSet := make(map[string]struct{}, len(outcome))
+	for _, dep := range outcome {
+		key := runtimeBaselineActivationDependencySemanticKey(dep)
+		if key == "" {
+			return false
+		}
+		if _, exists := outcomeSet[key]; exists {
+			return false
+		}
+		outcomeSet[key] = struct{}{}
+	}
+	for _, dep := range stored {
+		key := runtimeBaselineActivationDependencySemanticKey(dep)
+		if key == "" {
+			return false
+		}
+		if _, ok := outcomeSet[key]; !ok {
+			return false
+		}
+	}
+	return true
+}
+
+func runtimeBaselineActivationDependencySemanticKey(dep runtimeBaselineActivationDependencyEvidence) string {
+	dependencyID := strings.TrimSpace(dep.DependencyID)
+	if strings.TrimSpace(dep.DependencyFamily) == localEnvironmentFamilyModelAsset {
+		// Model asset dependency ids are semantic asset_id values. A fresh
+		// activation may still rebind source record ids or host-profile-derived
+		// environment keys, so the stable artifact identity for this comparison
+		// is the verified canonical root plus the surrounding BoundAssetID.
+		dependencyID = localEnvironmentFamilyModelAsset
+	}
+	parts := []string{
+		strings.TrimSpace(dep.DependencyFamily),
+		dependencyID,
+		strings.TrimSpace(dep.SourceKind),
+		strings.TrimSpace(dep.DependencyState),
+		strings.TrimSpace(dep.CanonicalRoot),
+	}
+	for _, part := range parts {
+		if part == "" {
+			return ""
+		}
+	}
+	return strings.Join(parts, "\x1f")
 }
 
 // runtimeBaselineConsumerBindingsFromEvidence reconstructs the consumer set and

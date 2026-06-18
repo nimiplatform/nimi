@@ -380,8 +380,8 @@ func assertProfileRuntimePlanCompanionsReady(t *testing.T, svc *Service) {
 	for _, dep := range companionDeps {
 		depIDs[dep.DependencyID] = true
 	}
-	if !depIDs["asset-id:z_image_ae|parent-asset-id:z_image_turbo"] ||
-		!depIDs["asset-id:qwen3_4b_companion|parent-asset-id:z_image_turbo"] {
+	if !depIDs["asset_id=z_image_ae|parent_asset_id=z_image_turbo"] ||
+		!depIDs["asset_id=qwen3_4b_companion|parent_asset_id=z_image_turbo"] {
 		t.Fatalf("missing concrete companion dependencies: %+v", companionDeps)
 	}
 }
@@ -609,8 +609,8 @@ func TestServicePrepareProfileRuntimeDescriptorCachesDescriptorBackedImageMateri
 	for _, dep := range companionDeps {
 		depIDs[dep.DependencyID] = true
 	}
-	if !depIDs["asset-id:z_image_ae|parent-asset-id:z_image_turbo"] ||
-		!depIDs["asset-id:qwen3_4b_companion|parent-asset-id:z_image_turbo"] {
+	if !depIDs["asset_id=z_image_ae|parent_asset_id=z_image_turbo"] ||
+		!depIDs["asset_id=qwen3_4b_companion|parent_asset_id=z_image_turbo"] {
 		t.Fatalf("missing concrete companion dependencies: %+v", companionDeps)
 	}
 }
@@ -738,9 +738,9 @@ func TestProfileRuntimeDescriptorMaterializationHealsFromReadySelectedSourcesOnP
 	seedProfileRuntimeLocalAssetForService(t, svc, "local-z-image", "z_image_turbo", runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE)
 	seedProfileRuntimeLocalAssetForService(t, svc, "local-z-image-ae", "z_image_ae", runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED)
 	seedProfileRuntimeLocalAssetForService(t, svc, "local-qwen3-4b", "qwen3_4b_companion", runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED)
-	seedProfileRuntimeImageSelectedSourceForService(t, svc, localEnvironmentFamilyModelAsset, "asset:local-z-image")
-	seedProfileRuntimeImageSelectedSourceForService(t, svc, localEnvironmentFamilyModelCompanion, "asset-id:z_image_ae|parent-asset-id:z_image_turbo")
-	seedProfileRuntimeImageSelectedSourceForService(t, svc, localEnvironmentFamilyModelCompanion, "asset-id:qwen3_4b_companion|parent-asset-id:z_image_turbo")
+	seedProfileRuntimeImageSelectedSourceForService(t, svc, localEnvironmentFamilyModelAsset, "z_image_turbo")
+	seedProfileRuntimeImageSelectedSourceForService(t, svc, localEnvironmentFamilyModelCompanion, "asset_id=z_image_ae|parent_asset_id=z_image_turbo")
+	seedProfileRuntimeImageSelectedSourceForService(t, svc, localEnvironmentFamilyModelCompanion, "asset_id=qwen3_4b_companion|parent_asset_id=z_image_turbo")
 
 	if cached, ok := svc.cachedManagedMediaImageProfile("local-z-image"); ok && cached.MaterializationResolved {
 		t.Fatalf("test must start without a materialization cache, got %+v", cached)
@@ -758,9 +758,9 @@ func TestProfileRuntimeDescriptorMaterializationHealsFromReadySelectedSourcesAcr
 	seedProfileRuntimeLocalAssetForService(t, svc, "local-z-image", "z_image_turbo", runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE)
 	seedProfileRuntimeLocalAssetForService(t, svc, "local-z-image-ae", "z_image_ae", runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED)
 	seedProfileRuntimeLocalAssetForService(t, svc, "local-qwen3-4b", "qwen3_4b_companion", runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED)
-	seedProfileRuntimeImageSelectedSourceForService(t, svc, localEnvironmentFamilyModelAsset, "asset:local-z-image")
-	seedProfileRuntimeImageSelectedSourceForService(t, svc, localEnvironmentFamilyModelCompanion, "asset-id:z_image_ae|parent-asset-id:z_image_turbo")
-	seedProfileRuntimeImageSelectedSourceForService(t, svc, localEnvironmentFamilyModelCompanion, "asset-id:qwen3_4b_companion|parent-asset-id:z_image_turbo")
+	seedProfileRuntimeImageSelectedSourceForService(t, svc, localEnvironmentFamilyModelAsset, "z_image_turbo")
+	seedProfileRuntimeImageSelectedSourceForService(t, svc, localEnvironmentFamilyModelCompanion, "asset_id=z_image_ae|parent_asset_id=z_image_turbo")
+	seedProfileRuntimeImageSelectedSourceForService(t, svc, localEnvironmentFamilyModelCompanion, "asset_id=qwen3_4b_companion|parent_asset_id=z_image_turbo")
 
 	snapshot, err := loadLocalStateSnapshot(svc.stateStorePath)
 	if err != nil {

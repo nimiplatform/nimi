@@ -478,6 +478,82 @@ func TestRuntimeBaselineReadinessResolveFailsClosedForMismatchedInstallLevel(t *
 	}
 }
 
+func TestRuntimeBaselineReadinessResolveRefreshesEquivalentHostProfileSourceRebind(t *testing.T) {
+	svc, runtimeDataRoot := newRuntimeBaselineTestService(t)
+	defer func() { svc.Close() }()
+
+	originalProfile := runtimeBaselineCPUProfile()
+	markRuntimeBaselineMinimalReady(t, svc, runtimeDataRoot, originalProfile)
+	req := runtimeBaselineMintRequest(runtimeDataRoot)
+	req.HostProfile = originalProfile
+	record, state, reason, detail := svc.mintRuntimeBaselineReadiness(req)
+	if state != runtimeBaselineStateReady {
+		t.Fatalf("mint state = %q reason=%q detail=%q, want ready", state, reason, detail)
+	}
+	originalSourceIDs := append([]string(nil), record.SelectedSourceRecordIDs...)
+
+	rebindingProfile := runtimeBaselineCPUProfile()
+	rebindingProfile.Python.Version = "Python 3.14.2"
+	if localEnvironmentHostProfileFromDeviceProfile(originalProfile).HostProfileID == localEnvironmentHostProfileFromDeviceProfile(rebindingProfile).HostProfileID {
+		t.Fatal("test requires distinct host profile ids")
+	}
+	markRuntimeBaselineMinimalReady(t, svc, runtimeDataRoot, rebindingProfile)
+
+	resolved, rState, rReason, rDetail := svc.resolveRuntimeBaselineReadiness(record.RuntimeBaselineRef, rebindingProfile)
+	if rState != runtimeBaselineStateReady {
+		t.Fatalf("resolve state = %q reason=%q detail=%q, want ready", rState, rReason, rDetail)
+	}
+	if stringSetsEqual(originalSourceIDs, resolved.SelectedSourceRecordIDs) {
+		t.Fatalf("resolve did not refresh selected source ids: %v", resolved.SelectedSourceRecordIDs)
+	}
+	if !runtimeBaselineActivationEvidenceEquivalent(record.ActivationReadyResponses, resolved.ActivationReadyResponses) {
+		t.Fatal("refreshed activation evidence should remain semantically equivalent")
+	}
+}
+
+func TestRuntimeBaselineActivationEvidenceEquivalentAllowsModelAssetSourceRecordRebind(t *testing.T) {
+	stored := []runtimeBaselineActivationConsumerEvidence{{
+		ConsumerID:      "llama.cpp.cpu",
+		PackID:          "local-text",
+		ActivationState: "ready",
+		BoundAssetID:    "local.chat.gemma-4-e2b-it.q8-0",
+		Dependencies: []runtimeBaselineActivationDependencyEvidence{{
+			DependencyFamily:       localEnvironmentFamilyModelAsset,
+			DependencyID:           "local.chat.gemma-4-e2b-it.q8-0",
+			SourceKind:             localEnvironmentSourceImported,
+			DependencyState:        localEnvironmentStateReadyManaged,
+			CanonicalRoot:          "/runtime/models/gemma.gguf",
+			SelectedSourceRecordID: "src_old",
+			EnvironmentKey:         "old-host",
+			VerificationEvidence:   "old-evidence",
+		}},
+	}}
+	outcome := []runtimeBaselineActivationConsumerEvidence{{
+		ConsumerID:      "llama.cpp.cpu",
+		PackID:          "local-text",
+		ActivationState: "ready",
+		BoundAssetID:    "local.chat.gemma-4-e2b-it.q8-0",
+		Dependencies: []runtimeBaselineActivationDependencyEvidence{{
+			DependencyFamily:       localEnvironmentFamilyModelAsset,
+			DependencyID:           "local.chat.gemma-4-e2b-it.q8-0",
+			SourceKind:             localEnvironmentSourceImported,
+			DependencyState:        localEnvironmentStateReadyManaged,
+			CanonicalRoot:          "/runtime/models/gemma.gguf",
+			SelectedSourceRecordID: "src_new",
+			EnvironmentKey:         "new-host",
+			VerificationEvidence:   "new-evidence",
+		}},
+	}}
+	if !runtimeBaselineActivationEvidenceEquivalent(stored, outcome) {
+		t.Fatal("model.asset selected source record rebind should preserve baseline evidence equivalence")
+	}
+
+	outcome[0].Dependencies[0].CanonicalRoot = "/runtime/models/different.gguf"
+	if runtimeBaselineActivationEvidenceEquivalent(stored, outcome) {
+		t.Fatal("model.asset rebind with different canonical root must fail closed")
+	}
+}
+
 func TestRuntimeBaselineReadinessRejectsInvalidInstallLevel(t *testing.T) {
 	svc, runtimeDataRoot := newRuntimeBaselineTestService(t)
 	defer func() { svc.Close() }()

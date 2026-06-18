@@ -3,7 +3,6 @@ package localservice
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"sort"
 	"strings"
 	"time"
 
@@ -210,16 +209,13 @@ func localEnvironmentPlanDependencyContractKey(environmentKey string, dependency
 }
 
 func localEnvironmentSelectedSourceRecordKey(record localEnvironmentSelectedSourceRecordState) string {
-	consumers := normalizeStringSlice(record.SelectedConsumers)
-	if len(consumers) == 0 {
+	key := strings.TrimSpace(record.EnvironmentKey)
+	family := strings.TrimSpace(record.DependencyFamily)
+	id := strings.TrimSpace(record.DependencyID)
+	if key == "" || family == "" || id == "" {
 		return ""
 	}
-	sort.Strings(consumers)
-	key := localEnvironmentConsumerAwareIdentityKey(record.EnvironmentKey, record.DependencyFamily, record.DependencyID, strings.Join(consumers, "|"))
-	if key == "" {
-		return ""
-	}
-	return key
+	return strings.Join([]string{key, family, id}, "\x1f")
 }
 
 func (s *Service) upsertLocalEnvironmentSelectedSourceRecord(record localEnvironmentSelectedSourceRecordState) localEnvironmentSelectedSourceRecordState {
@@ -247,9 +243,6 @@ func (s *Service) upsertLocalEnvironmentSelectedSourceRecordLocked(record localE
 	if record.RepairState == "" {
 		record.RepairState = localEnvironmentRepairNone
 	}
-	if record.RecordID == "" {
-		record.RecordID = "src_" + shortHash(record.EnvironmentKey+"|"+record.DependencyFamily+"|"+record.DependencyID+"|"+strings.Join(record.SelectedConsumers, "|")+"|"+record.SourceKind+"|"+record.CanonicalRoot)
-	}
 	if record.SelectedAt == "" {
 		record.SelectedAt = time.Now().UTC().Format(time.RFC3339Nano)
 	}
@@ -263,6 +256,18 @@ func (s *Service) upsertLocalEnvironmentSelectedSourceRecordLocked(record localE
 	key := localEnvironmentSelectedSourceRecordKey(record)
 	if key == "" {
 		key = strings.TrimSpace(record.EnvironmentKey)
+	}
+	if existing, ok := s.localEnvironmentSelectedSources[key]; ok {
+		if record.RecordID == "" {
+			record.RecordID = strings.TrimSpace(existing.RecordID)
+		}
+		if strings.TrimSpace(existing.SelectedAt) != "" {
+			record.SelectedAt = existing.SelectedAt
+		}
+		record.SelectedConsumers = normalizeStringSlice(append(append([]string(nil), existing.SelectedConsumers...), record.SelectedConsumers...))
+	}
+	if record.RecordID == "" {
+		record.RecordID = "src_" + shortHash(record.EnvironmentKey+"|"+record.DependencyFamily+"|"+record.DependencyID+"|"+record.SourceKind+"|"+record.CanonicalRoot)
 	}
 	s.localEnvironmentSelectedSources[key] = record
 	s.persistStateLocked()

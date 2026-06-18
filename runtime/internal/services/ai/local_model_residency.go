@@ -102,76 +102,63 @@ func (s *Service) acquireSelectedLocalModelLeaseWithPlan(
 		if localAssetID == "" {
 			return func() {}, nil
 		}
+		selected := plan.selected
 		acquireStartedAt := time.Now()
 		s.observeCounter("runtime_ai_local_lease_plan_reuse_total", 1,
-			"requested_model_id", requestedModelID,
-			"resolved_model_id", resolvedModelID,
-			"local_asset_id", localAssetID,
-			"modal", modal.String(),
-			"lease_reason", strings.TrimSpace(leaseReason),
-			"readiness_source", strings.TrimSpace(plan.readinessSource),
+			localModelTelemetryAttrs(requestedModelID, resolvedModelID, modal, selected,
+				"lease_reason", strings.TrimSpace(leaseReason),
+				"readiness_source", strings.TrimSpace(plan.readinessSource),
+			)...,
 		)
 		s.observeCounter("runtime_ai_local_lease_acquire_total", 1,
-			"requested_model_id", requestedModelID,
-			"resolved_model_id", resolvedModelID,
-			"local_asset_id", localAssetID,
-			"modal", modal.String(),
-			"lease_reason", strings.TrimSpace(leaseReason),
+			localModelTelemetryAttrs(requestedModelID, resolvedModelID, modal, selected,
+				"lease_reason", strings.TrimSpace(leaseReason),
+			)...,
 		)
 		if err := s.localModel.AcquireLocalAssetLease(ctx, localAssetID, leaseReason); err != nil {
 			return nil, err
 		}
 		s.observeLatency("runtime.ai.local.lease_total_ms", totalStartedAt,
-			"requested_model_id", requestedModelID,
-			"resolved_model_id", resolvedModelID,
-			"local_asset_id", localAssetID,
-			"modal", modal.String(),
-			"lease_reason", strings.TrimSpace(leaseReason),
-			"plan_reused", true,
-			"readiness_source", strings.TrimSpace(plan.readinessSource),
+			localModelTelemetryAttrs(requestedModelID, resolvedModelID, modal, selected,
+				"lease_reason", strings.TrimSpace(leaseReason),
+				"plan_reused", true,
+				"readiness_source", strings.TrimSpace(plan.readinessSource),
+			)...,
 		)
 		s.observeLatency("runtime.ai.local.lease_acquire_ms", acquireStartedAt,
-			"requested_model_id", requestedModelID,
-			"resolved_model_id", resolvedModelID,
-			"local_asset_id", localAssetID,
-			"modal", modal.String(),
-			"lease_reason", strings.TrimSpace(leaseReason),
-			"plan_reused", true,
+			localModelTelemetryAttrs(requestedModelID, resolvedModelID, modal, selected,
+				"lease_reason", strings.TrimSpace(leaseReason),
+				"plan_reused", true,
+			)...,
 		)
 		return func() {
 			releaseStartedAt := time.Now()
 			_ = s.localModel.ReleaseLocalAssetLease(context.Background(), localAssetID, leaseReason+"_cleanup")
 			s.observeCounter("runtime_ai_local_lease_release_total", 1,
-				"requested_model_id", requestedModelID,
-				"resolved_model_id", resolvedModelID,
-				"local_asset_id", localAssetID,
-				"modal", modal.String(),
-				"lease_reason", strings.TrimSpace(leaseReason),
+				localModelTelemetryAttrs(requestedModelID, resolvedModelID, modal, selected,
+					"lease_reason", strings.TrimSpace(leaseReason),
+				)...,
 			)
 			s.observeLatency("runtime.ai.local.lease_release_ms", releaseStartedAt,
-				"requested_model_id", requestedModelID,
-				"resolved_model_id", resolvedModelID,
-				"local_asset_id", localAssetID,
-				"modal", modal.String(),
-				"lease_reason", strings.TrimSpace(leaseReason),
-				"plan_reused", true,
+				localModelTelemetryAttrs(requestedModelID, resolvedModelID, modal, selected,
+					"lease_reason", strings.TrimSpace(leaseReason),
+					"plan_reused", true,
+				)...,
 			)
 		}, nil
 	}
 	listStartedAt := time.Now()
 	localModels, err := s.listAllLocalModels(ctx, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNSPECIFIED)
 	s.observeLatency("runtime.ai.local.lease_list_ms", listStartedAt,
-		"requested_model_id", requestedModelID,
-		"resolved_model_id", resolvedModelID,
-		"modal", modal.String(),
-		"lease_reason", strings.TrimSpace(leaseReason),
-		"model_count", len(localModels),
+		localModelTelemetryAttrs(requestedModelID, resolvedModelID, modal, nil,
+			"lease_reason", strings.TrimSpace(leaseReason),
+			"model_count", len(localModels),
+		)...,
 	)
 	s.observeCounter("runtime_ai_local_lease_list_total", 1,
-		"requested_model_id", requestedModelID,
-		"resolved_model_id", resolvedModelID,
-		"modal", modal.String(),
-		"lease_reason", strings.TrimSpace(leaseReason),
+		localModelTelemetryAttrs(requestedModelID, resolvedModelID, modal, nil,
+			"lease_reason", strings.TrimSpace(leaseReason),
+		)...,
 	)
 	if err != nil {
 		return nil, err
@@ -189,45 +176,35 @@ func (s *Service) acquireSelectedLocalModelLeaseWithPlan(
 	localAssetID := strings.TrimSpace(selected.GetLocalAssetId())
 	acquireStartedAt := time.Now()
 	s.observeCounter("runtime_ai_local_lease_acquire_total", 1,
-		"requested_model_id", requestedModelID,
-		"resolved_model_id", resolvedModelID,
-		"local_asset_id", localAssetID,
-		"modal", modal.String(),
-		"lease_reason", strings.TrimSpace(leaseReason),
+		localModelTelemetryAttrs(requestedModelID, resolvedModelID, modal, selected,
+			"lease_reason", strings.TrimSpace(leaseReason),
+		)...,
 	)
 	if err := s.localModel.AcquireLocalAssetLease(ctx, localAssetID, leaseReason); err != nil {
 		return nil, err
 	}
 	s.observeLatency("runtime.ai.local.lease_total_ms", totalStartedAt,
-		"requested_model_id", requestedModelID,
-		"resolved_model_id", resolvedModelID,
-		"local_asset_id", localAssetID,
-		"modal", modal.String(),
-		"lease_reason", strings.TrimSpace(leaseReason),
+		localModelTelemetryAttrs(requestedModelID, resolvedModelID, modal, selected,
+			"lease_reason", strings.TrimSpace(leaseReason),
+		)...,
 	)
 	s.observeLatency("runtime.ai.local.lease_acquire_ms", acquireStartedAt,
-		"requested_model_id", requestedModelID,
-		"resolved_model_id", resolvedModelID,
-		"local_asset_id", localAssetID,
-		"modal", modal.String(),
-		"lease_reason", strings.TrimSpace(leaseReason),
+		localModelTelemetryAttrs(requestedModelID, resolvedModelID, modal, selected,
+			"lease_reason", strings.TrimSpace(leaseReason),
+		)...,
 	)
 	return func() {
 		releaseStartedAt := time.Now()
 		_ = s.localModel.ReleaseLocalAssetLease(context.Background(), localAssetID, leaseReason+"_cleanup")
 		s.observeCounter("runtime_ai_local_lease_release_total", 1,
-			"requested_model_id", requestedModelID,
-			"resolved_model_id", resolvedModelID,
-			"local_asset_id", localAssetID,
-			"modal", modal.String(),
-			"lease_reason", strings.TrimSpace(leaseReason),
+			localModelTelemetryAttrs(requestedModelID, resolvedModelID, modal, selected,
+				"lease_reason", strings.TrimSpace(leaseReason),
+			)...,
 		)
 		s.observeLatency("runtime.ai.local.lease_release_ms", releaseStartedAt,
-			"requested_model_id", requestedModelID,
-			"resolved_model_id", resolvedModelID,
-			"local_asset_id", localAssetID,
-			"modal", modal.String(),
-			"lease_reason", strings.TrimSpace(leaseReason),
+			localModelTelemetryAttrs(requestedModelID, resolvedModelID, modal, selected,
+				"lease_reason", strings.TrimSpace(leaseReason),
+			)...,
 		)
 	}, nil
 }

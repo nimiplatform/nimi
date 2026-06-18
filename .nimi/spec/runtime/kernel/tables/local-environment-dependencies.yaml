@@ -311,6 +311,12 @@ dependency_families:
       - model_family
       - runtime_data_root
     environment_key_semantics:
+      asset_id: >-
+        Semantic installable asset identity. For verified catalog assets this is
+        the K-MCAT local-plane variant_id; for explicit imports this is the
+        asset.manifest.json asset_id. Runtime must resolve local_asset_id,
+        route-local handles, UI row ids, and model route ids to this semantic
+        asset_id before writing dependency identity.
       model_family: >-
         Runtime model-lineage key component consumed by dependency identity.
         It may be validated against descriptor-authored `model.family`, but it
@@ -346,6 +352,13 @@ dependency_families:
       - parent_asset_id
       - companion_kind
       - runtime_data_root
+    environment_key_semantics:
+      asset_id: >-
+        Semantic companion installable asset identity. It must not be a
+        local_asset_id or selected source record id.
+      parent_asset_id: >-
+        Semantic parent model asset identity. It must match the parent
+        model.asset dependency's asset_id and must not be a local_asset_id.
     source_policy: verified-asset-catalog-or-explicit-import
     source_candidates:
       - source_kind: managed
@@ -377,6 +390,8 @@ graph_rules:
   - imported model and companion assets may produce model-family selected source records only; they must not become Python, uv, CUDA, DLL, package-manager, or native engine package roots
   - missing uv, Python runtime, venv, package set, Torch wheel, native package, model asset, or companion asset readiness projects Runtime local environment setup or repair state, not ordinary-user package-manager or PATH prerequisites
   - companion asset dependency identity includes parent asset binding so companion records cannot collide across parent model assets
+  - model.asset dependency identity is the semantic asset_id; local_asset_id is lifecycle and lookup projection only
+  - model.companion-asset dependency identity is semantic asset_id plus semantic parent_asset_id; local_asset_id and selected_source_record_id must not replace either field
   - startup, route resolution, Desktop page load, SDK reads, passive import review, health probes, and background maintenance must not trigger first heavy or network materialization
   - no dependency family may mutate user PATH, machine PATH, shell profiles, or system CUDA
   - missing, incompatible, corrupt, cancelled, or unconfirmed dependencies fail closed

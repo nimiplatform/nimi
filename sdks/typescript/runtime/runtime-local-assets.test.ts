@@ -140,6 +140,21 @@ test('Runtime local asset projection fails closed on invalid Runtime records', (
   );
 });
 
+test('Runtime local asset projection does not synthesize assetId from localAssetId', () => {
+  const projected = projectNimiRuntimeLocalAssetEntry(localAssetRecord({
+    localAssetId: 'local-record-1',
+    assetId: '',
+  }));
+
+  assert.deepEqual(projected, {
+    localAssetId: 'local-record-1',
+    assetId: '',
+    kind: 'chat',
+    engine: 'llama',
+    status: 'active',
+  });
+});
+
 function localAssetRecord(input: Partial<LocalAssetRecord> = {}): LocalAssetRecord {
   return {
     localAssetId: 'local-asset',

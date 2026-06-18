@@ -837,9 +837,9 @@ func TestStartModelAssetDependencyJobPromotesVerifiedSelectedSource(t *testing.T
 	writeLocalEnvironmentAssetEntryForTest(t, svc, model, "verified-model-asset")
 
 	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
-		EnvironmentKey:   "model.asset|asset:" + model.GetLocalAssetId() + "|host|windows/amd64|root|media.diffusers.cpu",
+		EnvironmentKey:   "model.asset|" + model.GetAssetId() + "|host|windows/amd64|root|media.diffusers.cpu",
 		DependencyFamily: localEnvironmentFamilyModelAsset,
-		DependencyId:     "asset:" + model.GetLocalAssetId(),
+		DependencyId:     model.GetAssetId(),
 		Confirmed:        true,
 	})
 	if err != nil {
@@ -887,9 +887,9 @@ func TestStartModelAssetDependencyJobPromotesInstalledImportedAssetID(t *testing
 	}
 
 	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
-		EnvironmentKey:   "model.asset|asset-id:" + model.GetAssetId() + "|host|windows/amd64|root|stable-diffusion.cpp.cuda",
+		EnvironmentKey:   "model.asset|" + model.GetAssetId() + "|host|windows/amd64|root|stable-diffusion.cpp.cuda",
 		DependencyFamily: localEnvironmentFamilyModelAsset,
-		DependencyId:     "asset-id:" + model.GetAssetId(),
+		DependencyId:     model.GetAssetId(),
 		Confirmed:        true,
 	})
 	if err != nil {
@@ -925,10 +925,11 @@ func TestStartModelCompanionDependencyJobRequiresParentModelAssetRecord(t *testi
 	})
 	writeLocalEnvironmentAssetEntryForTest(t, svc, companion, "verified-companion")
 
+	dependencyID := localEnvironmentCompanionAssetDependencyID(companion.GetAssetId(), "image/missing-parent")
 	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
-		EnvironmentKey:   "model.companion-asset|asset:" + companion.GetLocalAssetId() + "|host|windows/amd64|root|media.diffusers.cpu",
+		EnvironmentKey:   "model.companion-asset|" + dependencyID + "|host|windows/amd64|root|media.diffusers.cpu",
 		DependencyFamily: localEnvironmentFamilyModelCompanion,
-		DependencyId:     "asset:" + companion.GetLocalAssetId(),
+		DependencyId:     dependencyID,
 		Confirmed:        true,
 	})
 	if err != nil {
@@ -958,8 +959,8 @@ func TestStartModelCompanionDependencyJobPromotesVerifiedSelectedSource(t *testi
 	writeLocalEnvironmentAssetEntryForTest(t, svc, companion, "verified-companion")
 	parentRecord := svc.upsertLocalEnvironmentSelectedSourceRecord(verifiedSelectedSourceRecordForTest(localEnvironmentSelectedSourceRecordState{
 		DependencyFamily:  localEnvironmentFamilyModelAsset,
-		DependencyID:      "asset:" + parent.GetLocalAssetId(),
-		EnvironmentKey:    "model.asset|asset:" + parent.GetLocalAssetId() + "|host|windows/amd64|root",
+		DependencyID:      parent.GetAssetId(),
+		EnvironmentKey:    "model.asset|" + parent.GetAssetId() + "|host|windows/amd64|root",
 		SourceKind:        localEnvironmentSourceManaged,
 		CanonicalRoot:     parentEntryPath,
 		VerifiedArtifacts: []string{parentEntryPath},
@@ -970,10 +971,11 @@ func TestStartModelCompanionDependencyJobPromotesVerifiedSelectedSource(t *testi
 		SelectedConsumers: []string{"media.diffusers.cpu"},
 	}))
 
+	dependencyID := localEnvironmentCompanionAssetDependencyID(companion.GetAssetId(), parent.GetAssetId())
 	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
-		EnvironmentKey:   "model.companion-asset|asset-id:" + companion.GetAssetId() + "|parent-asset-id:" + parent.GetAssetId() + "|host|windows/amd64|root",
+		EnvironmentKey:   "model.companion-asset|" + dependencyID + "|host|windows/amd64|root",
 		DependencyFamily: localEnvironmentFamilyModelCompanion,
-		DependencyId:     "asset-id:" + companion.GetAssetId() + "|parent-asset-id:" + parent.GetAssetId(),
+		DependencyId:     dependencyID,
 		Confirmed:        true,
 	})
 	if err != nil {

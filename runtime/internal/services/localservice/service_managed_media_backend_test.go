@@ -204,10 +204,10 @@ func TestResolveManagedMediaImageProfileInjectsDynamicSlots(t *testing.T) {
 	for _, dep := range companionDeps {
 		depIDs[dep.DependencyID] = true
 	}
-	if !depIDs["asset-id:z_image_ae|parent-asset-id:z_image_turbo"] {
+	if !depIDs["asset_id=z_image_ae|parent_asset_id=z_image_turbo"] {
 		t.Fatalf("missing vae companion dependency: %+v", companionDeps)
 	}
-	if !depIDs["asset-id:qwen3_4b_companion|parent-asset-id:z_image_turbo"] {
+	if !depIDs["asset_id=qwen3_4b_companion|parent_asset_id=z_image_turbo"] {
 		t.Fatalf("missing llm companion dependency: %+v", companionDeps)
 	}
 }

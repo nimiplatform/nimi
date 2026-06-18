@@ -639,8 +639,11 @@ func TestResolveLocalImageNativePlanInfersConsumerForExplicitInstalledAsset(t *t
 		}
 	}
 	modelDep := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyModelAsset)
-	if modelDep.DependencyID != "asset:"+model.GetLocalAssetId() {
-		t.Fatalf("explicit installed image model dependency id = %q, want local asset identity %q", modelDep.DependencyID, "asset:"+model.GetLocalAssetId())
+	if modelDep.DependencyID != model.GetAssetId() {
+		t.Fatalf("explicit installed image model dependency id = %q, want semantic asset id %q", modelDep.DependencyID, model.GetAssetId())
+	}
+	if strings.Contains(modelDep.DependencyID, model.GetLocalAssetId()) {
+		t.Fatalf("model.asset dependency id must not contain local_asset_id %q: %q", model.GetLocalAssetId(), modelDep.DependencyID)
 	}
 	nativeDep := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyNativeSDCPP)
 	if nativeDep.State != localEnvironmentStateNeedsConfirmation {
@@ -675,8 +678,8 @@ func TestResolveLocalImageNativePlanAcceptsAssetIDLocalAssetIdentity(t *testing.
 		t.Fatalf("plan consumer scope = %q, want %q", plan.ConsumerScope, stableDiffusionCUDAConsumerID)
 	}
 	modelDep := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyModelAsset)
-	if modelDep.DependencyID != "asset:"+model.GetLocalAssetId() {
-		t.Fatalf("explicit local identity dependency id = %q, want %q", modelDep.DependencyID, "asset:"+model.GetLocalAssetId())
+	if modelDep.DependencyID != model.GetAssetId() {
+		t.Fatalf("explicit local identity dependency id = %q, want semantic asset id %q", modelDep.DependencyID, model.GetAssetId())
 	}
 }
 

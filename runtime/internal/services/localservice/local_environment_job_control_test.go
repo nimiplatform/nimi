@@ -422,8 +422,8 @@ func TestRepairLocalEnvironmentDependencyReverifiesSelectedSource(t *testing.T) 
 	if repairTerminal.GetState() != localEnvironmentStateReadyManaged {
 		t.Fatalf("repair job state = %q, want ready_managed", repairTerminal.GetState())
 	}
-	if repairTerminal.GetSelectedSourceRecordId() == "" || repairTerminal.GetSelectedSourceRecordId() == record.RecordID {
-		t.Fatalf("repair job selected source = %q, previous = %q", repairTerminal.GetSelectedSourceRecordId(), record.RecordID)
+	if repairTerminal.GetSelectedSourceRecordId() == "" || repairTerminal.GetSelectedSourceRecordId() != record.RecordID {
+		t.Fatalf("repair job selected source = %q, want existing source %q", repairTerminal.GetSelectedSourceRecordId(), record.RecordID)
 	}
 	repaired, ok := svc.localEnvironmentSelectedSourceRecord(environmentKey)
 	if !ok {
@@ -940,12 +940,11 @@ func TestEnsureLocalEnvironmentModelAssetInstalledSkipsInstalledAsset(t *testing
 		hashes:       map[string]string{"model.safetensors": "sha256:b899bf805912441a8767d3e01859281ab3a1cd7b18edea93f5e54c18b648b54c"},
 	})
 
-	if err := svc.ensureLocalEnvironmentModelAssetInstalled(context.Background(), "asset-id:"+model.GetAssetId()); err != nil {
+	if err := svc.ensureLocalEnvironmentModelAssetInstalled(context.Background(), ""+model.GetAssetId()); err != nil {
 		t.Fatalf("ensureLocalEnvironmentModelAssetInstalled for an installed asset: %v", err)
 	}
-	// The user-install dependency id form must also be a no-op.
-	if err := svc.ensureLocalEnvironmentModelAssetInstalled(context.Background(), "asset:"+model.GetLocalAssetId()); err != nil {
-		t.Fatalf("ensureLocalEnvironmentModelAssetInstalled for a user-install id: %v", err)
+	if err := svc.ensureLocalEnvironmentModelAssetInstalled(context.Background(), model.GetLocalAssetId()); err == nil {
+		t.Fatal("local_asset_id must not be accepted as a model.asset dependency id")
 	}
 }
 
@@ -956,7 +955,7 @@ func TestEnsureLocalEnvironmentModelAssetInstalledSkipsInstalledAsset(t *testing
 func TestEnsureLocalEnvironmentModelAssetInstalledFailsClosedOnCatalogMiss(t *testing.T) {
 	svc := newTestService(t)
 
-	err := svc.ensureLocalEnvironmentModelAssetInstalled(context.Background(), "asset-id:local.chat.no-such-asset")
+	err := svc.ensureLocalEnvironmentModelAssetInstalled(context.Background(), "local.chat.no-such-asset")
 	if err == nil {
 		t.Fatal("expected ensureLocalEnvironmentModelAssetInstalled to fail closed on a catalog miss")
 	}
@@ -987,9 +986,9 @@ func TestStartModelAssetDependencyJobFailsClosedWhenResolvedAssetUninstallable(t
 	svc := newTestService(t)
 
 	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
-		EnvironmentKey:   "model.asset|asset-id:local.chat.no-such-asset|host|darwin/arm64|root|llama.cpp.cpu",
+		EnvironmentKey:   "model.asset|local.chat.no-such-asset|host|darwin/arm64|root|llama.cpp.cpu",
 		DependencyFamily: localEnvironmentFamilyModelAsset,
-		DependencyId:     "asset-id:local.chat.no-such-asset",
+		DependencyId:     "local.chat.no-such-asset",
 		Confirmed:        true,
 	})
 	if err != nil {
@@ -1046,7 +1045,7 @@ func TestStartModelAssetDependencyJobDownloadsVerifiesAndReachesReadyManaged(t *
 	// key; the runtime no longer reads it back per-request — it stages under the
 	// config-sourced models root.
 	dataRoot := t.TempDir()
-	dependencyID := "asset-id:local/embed-data-root"
+	dependencyID := "local/embed-data-root"
 	environmentKey := localEnvironmentKey(
 		localEnvironmentFamilyModelAsset,
 		dependencyID,
@@ -1195,7 +1194,7 @@ func TestEnsureLocalEnvironmentModelAssetInstalledAdoptsExistingBundle(t *testin
 		t.Fatal("precondition: asset must not be in the in-memory registry")
 	}
 
-	if err := svc.ensureLocalEnvironmentModelAssetInstalled(context.Background(), "asset-id:"+assetID); err != nil {
+	if err := svc.ensureLocalEnvironmentModelAssetInstalled(context.Background(), ""+assetID); err != nil {
 		t.Fatalf("ensureLocalEnvironmentModelAssetInstalled: %v", err)
 	}
 
@@ -1210,7 +1209,7 @@ func TestEnsureLocalEnvironmentModelAssetInstalledAdoptsExistingBundle(t *testin
 
 	// The adopted record must pass the materializer verify step and yield a
 	// resolved entry — the job would then reach ready_managed.
-	model, entryPath, entryHash, _, err := svc.verifyLocalEnvironmentModelAsset(context.Background(), "asset-id:"+assetID)
+	model, entryPath, entryHash, _, err := svc.verifyLocalEnvironmentModelAsset(context.Background(), ""+assetID)
 	if err != nil {
 		t.Fatalf("verifyLocalEnvironmentModelAsset on the adopted record: %v", err)
 	}
@@ -1239,7 +1238,7 @@ func TestStartModelAssetDependencyJobAdoptsExistingBundleReachesReadyManaged(t *
 	}
 	writeResolvedModelBundleForTest(t, modelsRoot, logicalModelID, assetID, entry, payload)
 
-	dependencyID := "asset-id:" + assetID
+	dependencyID := "" + assetID
 	environmentKey := localEnvironmentKey(
 		localEnvironmentFamilyModelAsset, dependencyID, "host_adopt_test", "darwin/arm64", t.TempDir(),
 	)
@@ -1287,7 +1286,7 @@ func TestEnsureLocalEnvironmentModelAssetInstalledDoesNotAdoptCorruptBundle(t *t
 
 	// No HF base URL configured — the download path fails closed, proving the
 	// corrupt bundle was NOT adopted (an adoption would have returned nil).
-	err := svc.ensureLocalEnvironmentModelAssetInstalled(context.Background(), "asset-id:"+assetID)
+	err := svc.ensureLocalEnvironmentModelAssetInstalled(context.Background(), ""+assetID)
 	if err == nil {
 		t.Fatal("expected the materializer to fall through to download (not adopt a hash-mismatched bundle)")
 	}
@@ -1317,7 +1316,7 @@ func TestEnsureLocalEnvironmentModelAssetInstalledDoesNotAdoptIncompleteBundle(t
 		t.Fatalf("remove bundle artifact: %v", err)
 	}
 
-	err := svc.ensureLocalEnvironmentModelAssetInstalled(context.Background(), "asset-id:"+assetID)
+	err := svc.ensureLocalEnvironmentModelAssetInstalled(context.Background(), ""+assetID)
 	if err == nil {
 		t.Fatal("expected the materializer to fall through to download for an incomplete bundle")
 	}

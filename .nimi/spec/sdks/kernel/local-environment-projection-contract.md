@@ -30,6 +30,11 @@ Dependency job-control projection is dependency-first:
   asset-specific identity fields. SDK must not replace concrete
   `asset_id`, `local_asset_id`, `companion_asset_id`, or `parent_asset_id`
   truth with pack-level placeholders.
+- SDK and app helpers must not synthesize `asset_id` from `local_asset_id`.
+  When both are projected, `asset_id` remains the semantic installable asset
+  identity and `local_asset_id` remains the lifecycle handle. Lookup or dedupe
+  helpers that need a fallback key must keep the two namespaces typed rather
+  than normalizing both through one asset-id canonicalizer.
 - `cancelLocalEnvironmentDependencyJob` targets only Runtime job ids.
 - `retryLocalEnvironmentDependencyJob` targets terminal retryable Runtime job
   ids and must preserve Runtime structured failure when retry is refused.

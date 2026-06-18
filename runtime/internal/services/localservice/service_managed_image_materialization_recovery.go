@@ -152,14 +152,16 @@ func (s *Service) managedImageProfileMaterializationBindingsFromSelectedSourcesL
 }
 
 func (s *Service) readySelectedModelAssetSourceLocked(localAssetID string, assetID string) (localEnvironmentSelectedSourceRecordState, bool) {
-	localDependencyID := "asset:" + strings.TrimSpace(localAssetID)
-	assetDependencyID := "asset-id:" + strings.TrimSpace(assetID)
+	semanticAssetID := strings.TrimSpace(assetID)
+	if semanticAssetID == "" || strings.TrimSpace(localAssetID) == "" {
+		return localEnvironmentSelectedSourceRecordState{}, false
+	}
 	for _, record := range s.localEnvironmentSelectedSources {
 		if strings.TrimSpace(record.DependencyFamily) != localEnvironmentFamilyModelAsset {
 			continue
 		}
 		dependencyID := strings.TrimSpace(record.DependencyID)
-		if dependencyID != localDependencyID && dependencyID != assetDependencyID {
+		if dependencyID != semanticAssetID {
 			continue
 		}
 		if !localEnvironmentSelectedSourceRecordAdmitsStableDiffusionConsumer(record) {
@@ -206,8 +208,8 @@ func parseLocalEnvironmentCompanionDependencyID(dependencyID string) (string, st
 	if len(parts) != 2 {
 		return "", "", false
 	}
-	companionAssetID := strings.TrimPrefix(strings.TrimSpace(parts[0]), "asset-id:")
-	parentAssetID := strings.TrimPrefix(strings.TrimSpace(parts[1]), "parent-asset-id:")
+	companionAssetID := strings.TrimPrefix(strings.TrimSpace(parts[0]), "asset_id=")
+	parentAssetID := strings.TrimPrefix(strings.TrimSpace(parts[1]), "parent_asset_id=")
 	if companionAssetID == strings.TrimSpace(parts[0]) || parentAssetID == strings.TrimSpace(parts[1]) {
 		return "", "", false
 	}

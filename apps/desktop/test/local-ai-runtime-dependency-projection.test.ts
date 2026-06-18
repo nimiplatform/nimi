@@ -46,7 +46,7 @@ test('local model center resolves shared runtime dependency readiness before any
   assert.match(runtimeProjectionSources, /consumerScope:\s*'desktop\.local-model-center'/);
   assert.match(runtimeProjectionSources, /resolveNimiRuntimeLocalImageNativeEnvironmentPlan/);
   assert.match(runtimeProjectionSources, /sharedRuntimeEnvironmentPlan/);
-  assert.match(runtimeProjectionSources, /runtimeEnvironmentPlanByAssetId/);
+  assert.match(runtimeProjectionSources, /runtimeEnvironmentPlanByLocalAssetId/);
   assert.match(runtimeProjectionSources, /firstPlanWithBlockingDependency/);
   assert.match(runtimeProjectionSources, /sharedRuntimeDependency/);
   assert.match(runtimeProjectionSources, /sharedRuntimeDependencyJobs/);
@@ -71,8 +71,10 @@ test('local model center resolves shared runtime dependency readiness before any
   assert.match(prepareBody, /!dependency\.confirmationRequired/);
   assert.match(prepareBody, /confirmed:\s*false/);
   assert.doesNotMatch(prepareBody, /confirmed:\s*true/);
-  assert.match(runtimeProjectionSources, /runtimeDependencyByAssetId/);
-  assert.match(runtimeReadinessSource, /const assetDependency = firstBlockingDependency\(runtimeEnvironmentPlanByAssetId\[asset\.localAssetId\]\)/);
+  assert.match(runtimeProjectionSources, /runtimeDependencyByLocalAssetId/);
+  assert.match(runtimeReadinessSource, /const assetDependency = firstBlockingDependency\(runtimeEnvironmentPlanByLocalAssetId\[asset\.localAssetId\]\)/);
+  assert.doesNotMatch(runtimeProjectionSources, /runtimeEnvironmentPlanByAssetId/);
+  assert.doesNotMatch(runtimeProjectionSources, /runtimeDependencyByAssetId/);
   assert.doesNotMatch(runtimeReadinessSource, /function firstImageAsset/);
   assert.doesNotMatch(runtimeReadinessSource, /next\[asset\.localAssetId\] = sharedRuntimeDependency/);
 });

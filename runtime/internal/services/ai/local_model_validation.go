@@ -58,6 +58,22 @@ type localModelExecutionPlan struct {
 
 var localModelValidationGOOS = runtime.GOOS
 
+func localModelTelemetryAttrs(requestedModelRef string, resolvedModelRef string, modal runtimev1.Modal, selected *runtimev1.LocalAssetRecord, extra ...any) []any {
+	attrs := []any{
+		"requested_model_ref", strings.TrimSpace(requestedModelRef),
+		"resolved_model_ref", strings.TrimSpace(resolvedModelRef),
+		"modal", modal.String(),
+	}
+	if selected != nil {
+		attrs = append(attrs,
+			"selected_local_asset_id", strings.TrimSpace(selected.GetLocalAssetId()),
+			"selected_asset_id", strings.TrimSpace(selected.GetAssetId()),
+			"selected_logical_model_id", strings.TrimSpace(selected.GetLogicalModelId()),
+		)
+	}
+	return append(attrs, extra...)
+}
+
 func (s *Service) validateLocalModelRequest(ctx context.Context, requestedModelID string, remoteTarget *nimillm.RemoteTarget, modal runtimev1.Modal) error {
 	return s.validateLocalModelRequestWithExtensions(ctx, requestedModelID, remoteTarget, modal, nil)
 }
@@ -86,23 +102,16 @@ func (s *Service) prepareLocalModelExecutionPlan(ctx context.Context, requestedM
 		return nil, nil
 	}
 	s.observeCounter("runtime_ai_local_validation_total", 1,
-		"requested_model_id", requestedModelID,
-		"resolved_model_id", resolvedModelID,
-		"modal", modal.String(),
+		localModelTelemetryAttrs(requestedModelID, resolvedModelID, modal, nil)...,
 	)
 
 	listStartedAt := time.Now()
 	localModels, err := s.listAllLocalModels(ctx, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNSPECIFIED)
 	s.observeLatency("runtime.ai.local.validation_list_ms", listStartedAt,
-		"requested_model_id", requestedModelID,
-		"resolved_model_id", resolvedModelID,
-		"modal", modal.String(),
-		"model_count", len(localModels),
+		localModelTelemetryAttrs(requestedModelID, resolvedModelID, modal, nil, "model_count", len(localModels))...,
 	)
 	s.observeCounter("runtime_ai_local_validation_list_total", 1,
-		"requested_model_id", requestedModelID,
-		"resolved_model_id", resolvedModelID,
-		"modal", modal.String(),
+		localModelTelemetryAttrs(requestedModelID, resolvedModelID, modal, nil)...,
 	)
 	if err != nil {
 		return nil, normalizeLocalModelRPCError(err)
@@ -111,16 +120,8 @@ func (s *Service) prepareLocalModelExecutionPlan(ctx context.Context, requestedM
 	selector := parseLocalModelSelector(resolvedModelID, modal)
 	selectStartedAt := time.Now()
 	selected, reason, unavailableDetail := selectRunnableLocalModel(localModels, selector)
-	selectedLocalAssetID := ""
-	if selected != nil {
-		selectedLocalAssetID = strings.TrimSpace(selected.GetLocalAssetId())
-	}
 	s.observeLatency("runtime.ai.local.validation_select_ms", selectStartedAt,
-		"requested_model_id", requestedModelID,
-		"resolved_model_id", resolvedModelID,
-		"modal", modal.String(),
-		"local_asset_id", selectedLocalAssetID,
-		"reason_code", reason.String(),
+		localModelTelemetryAttrs(requestedModelID, resolvedModelID, modal, selected, "reason_code", reason.String())...,
 	)
 	if reason != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
 		if reason == runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED {
@@ -139,20 +140,13 @@ func (s *Service) prepareLocalModelExecutionPlan(ctx context.Context, requestedM
 	if selected.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED && shouldWarmInstalledLocalModel(selected, modal) {
 		warmStartedAt := time.Now()
 		s.observeCounter("runtime_ai_local_validation_warm_total", 1,
-			"requested_model_id", requestedModelID,
-			"resolved_model_id", resolvedModelID,
-			"local_asset_id", selectedLocalAssetID,
-			"modal", modal.String(),
+			localModelTelemetryAttrs(requestedModelID, resolvedModelID, modal, selected)...,
 		)
 		warmed, err := s.localModel.WarmLocalAsset(ctx, &runtimev1.WarmLocalAssetRequest{
 			LocalAssetId: selected.GetLocalAssetId(),
 		})
 		s.observeLatency("runtime.ai.local.validation_warm_or_start_ms", warmStartedAt,
-			"operation", "warm",
-			"requested_model_id", requestedModelID,
-			"resolved_model_id", resolvedModelID,
-			"local_asset_id", selectedLocalAssetID,
-			"modal", modal.String(),
+			localModelTelemetryAttrs(requestedModelID, resolvedModelID, modal, selected, "operation", "warm")...,
 		)
 		if err != nil {
 			return nil, normalizeLocalModelRPCError(err)
@@ -167,10 +161,7 @@ func (s *Service) prepareLocalModelExecutionPlan(ctx context.Context, requestedM
 		(selected.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY && shouldRetryUnhealthyLocalModelStart(selected, modal)) {
 		startStartedAt := time.Now()
 		s.observeCounter("runtime_ai_local_validation_start_total", 1,
-			"requested_model_id", requestedModelID,
-			"resolved_model_id", resolvedModelID,
-			"local_asset_id", selectedLocalAssetID,
-			"modal", modal.String(),
+			localModelTelemetryAttrs(requestedModelID, resolvedModelID, modal, selected)...,
 		)
 		if err := s.primeInstalledLocalModelRequest(ctx, selected, requestedModelID, modal, scenarioExtensions); err != nil {
 			return nil, err
@@ -182,15 +173,10 @@ func (s *Service) prepareLocalModelExecutionPlan(ctx context.Context, requestedM
 			return nil, normalizeLocalModelRPCError(err)
 		}
 		s.observeLatency("runtime.ai.local.validation_warm_or_start_ms", startStartedAt,
-			"operation", "start",
-			"requested_model_id", requestedModelID,
-			"resolved_model_id", resolvedModelID,
-			"local_asset_id", selectedLocalAssetID,
-			"modal", modal.String(),
+			localModelTelemetryAttrs(requestedModelID, resolvedModelID, modal, selected, "operation", "start")...,
 		)
 		if started != nil && started.GetAsset() != nil {
 			selected = started.GetAsset()
-			selectedLocalAssetID = strings.TrimSpace(selected.GetLocalAssetId())
 		}
 		if selected.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
 			return nil, localModelUnavailableErrorFromRecord(selected)
@@ -201,16 +187,14 @@ func (s *Service) prepareLocalModelExecutionPlan(ctx context.Context, requestedM
 	if modelRequiresInvokeProfile(selected) {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_PROFILE_MISSING)
 	}
+	providerModelID := s.resolveSelectedLocalProviderModelID(selected, resolvedModelID, modal)
 	s.observeLatency("runtime.ai.local.validation_total_ms", totalStartedAt,
-		"requested_model_id", requestedModelID,
-		"resolved_model_id", resolvedModelID,
-		"local_asset_id", selectedLocalAssetID,
-		"modal", modal.String(),
+		localModelTelemetryAttrs(requestedModelID, resolvedModelID, modal, selected, "provider_model_id", providerModelID)...,
 	)
 	return &localModelExecutionPlan{
 		requestedModelID: requestedModelID,
 		resolvedModelID:  resolvedModelID,
-		providerModelID:  s.resolveSelectedLocalProviderModelID(selected, resolvedModelID, modal),
+		providerModelID:  providerModelID,
 		modal:            modal,
 		selected:         selected,
 		warmEndpoint:     warmEndpoint,

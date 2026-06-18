@@ -81,9 +81,7 @@ function targetRefCandidateTexts(targetRef: NimiAIConfig['capabilities']['target
 
 function localAssetMatchesCandidate(asset: LocalAssetEntry, candidate: string): boolean {
   return normalizeText(asset.localAssetId) === candidate
-    || normalizeText(asset.assetId) === candidate
-    || normalizeText(asset.assetId).endsWith(`/${candidate}`)
-    || normalizeText(candidate).endsWith(`/${asset.assetId}`);
+    || normalizeText(asset.assetId) === candidate;
 }
 
 function findAssetForLocalTarget(

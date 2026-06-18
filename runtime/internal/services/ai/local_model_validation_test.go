@@ -1,6 +1,7 @@
 package ai
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"io"
@@ -594,6 +595,50 @@ func TestValidateLocalModelRequest(t *testing.T) {
 	reason, ok = grpcerr.ExtractReasonCode(err)
 	if !ok || reason != runtimev1.ReasonCode_AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED {
 		t.Fatalf("expected unhealthy speech projection reason to be preserved, got=%v ok=%v err=%v", reason, ok, err)
+	}
+}
+
+func TestLocalModelValidationLogsUseIdentityRefs(t *testing.T) {
+	var logs bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&logs, nil))
+	svc := newTestService(logger)
+	svc.localModel = &fakeLocalModelLister{
+		responses: []*runtimev1.ListLocalAssetsResponse{{
+			Assets: []*runtimev1.LocalAssetRecord{{
+				LocalAssetId:         "01KTEX08DS2GR9HJ1X3R459P1B",
+				AssetId:              "local-import/gemma-4-26B-A4B-it-Q8_0",
+				LogicalModelId:       "nimi/gemma-4-26b-it",
+				Engine:               "llama",
+				Status:               runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+				LocalInvokeProfileId: "invoke",
+				Capabilities:         []string{"text.generate"},
+			}},
+		}},
+		managedNames: map[string]string{
+			"local-import/gemma-4-26B-A4B-it-Q8_0": "local-import/gemma-4-26B-A4B-it-Q8_0",
+		},
+	}
+
+	if _, err := svc.prepareLocalModelExecutionPlan(context.Background(), "local-import/gemma-4-26B-A4B-it-Q8_0", nil, runtimev1.Modal_MODAL_TEXT, nil); err != nil {
+		t.Fatalf("prepareLocalModelExecutionPlan: %v", err)
+	}
+
+	output := logs.String()
+	for _, want := range []string{
+		"requested_model_ref=local-import/gemma-4-26B-A4B-it-Q8_0",
+		"resolved_model_ref=local-import/gemma-4-26B-A4B-it-Q8_0",
+		"selected_asset_id=local-import/gemma-4-26B-A4B-it-Q8_0",
+		"selected_local_asset_id=01KTEX08DS2GR9HJ1X3R459P1B",
+		"selected_logical_model_id=nimi/gemma-4-26b-it",
+	} {
+		if !strings.Contains(output, want) {
+			t.Fatalf("expected validation logs to contain %q, got:\n%s", want, output)
+		}
+	}
+	for _, forbidden := range []string{"requested_model_id=", "resolved_model_id=", " local_asset_id="} {
+		if strings.Contains(output, forbidden) {
+			t.Fatalf("validation logs must not use ambiguous identity label %q, got:\n%s", forbidden, output)
+		}
 	}
 }
 

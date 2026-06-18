@@ -31,6 +31,9 @@ surfaces:
     selected source ownership
   - consumer membership is projected through selected_consumers and activation
     gates, not by splitting selected source record truth per consumer
+  - record_id and storage identity must not include selected_consumers;
+    repeated selection of the same dependency environment for another consumer
+    updates selected_consumers on the same record
   - UI rows, model asset rows, transfer ids, consumer ids, and engine-private
     paths must not replace dependency environment keys
   - selected source promotion requires source_manifest_ref and
@@ -97,5 +100,6 @@ rules:
   - environment_key is composed from dependency_family plus the family-specific key fields in local-environment-dependencies.yaml
   - consumer_scope is not default environment key material; it is projection and activation-gate data unless a family explicitly admits consumer-scoped selected source ownership
   - consumer membership is projected through selected_consumers and activation gates, not by splitting selected source record truth per consumer
+  - record_id and storage identity must not include selected_consumers; repeated selection of the same dependency environment for another consumer updates selected_consumers on the same record
   - UI rows, model asset rows, transfer ids, consumer ids, and engine-private paths must not replace dependency environment keys
   - selected source promotion requires source_manifest_ref and verification_evidence_ref matching the dependency family materializer registry

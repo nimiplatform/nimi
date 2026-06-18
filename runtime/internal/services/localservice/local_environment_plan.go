@@ -606,20 +606,19 @@ func (s *Service) localEnvironmentDependencyID(packID string, family string, req
 }
 
 func (s *Service) localEnvironmentModelAssetDependencyID(localAssetID string, assetID string) string {
-	if trimmed := strings.TrimSpace(localAssetID); trimmed != "" {
-		if s.modelByID(trimmed) != nil {
-			return "asset:" + trimmed
-		}
-	}
 	if trimmed := strings.TrimSpace(assetID); trimmed != "" {
 		if model := s.localAssetRecordForIdentity(trimmed); model != nil {
-			return "asset:" + strings.TrimSpace(model.GetLocalAssetId())
+			if semanticAssetID := strings.TrimSpace(model.GetAssetId()); semanticAssetID != "" {
+				return semanticAssetID
+			}
 		}
-		return "asset-id:" + trimmed
+		return trimmed
 	}
-	if model := s.modelByID(strings.TrimSpace(localAssetID)); model != nil {
-		if trimmed := strings.TrimSpace(model.GetAssetId()); trimmed != "" {
-			return "asset-id:" + trimmed
+	if trimmed := strings.TrimSpace(localAssetID); trimmed != "" {
+		if model := s.localAssetRecordForIdentity(trimmed); model != nil {
+			if semanticAssetID := strings.TrimSpace(model.GetAssetId()); semanticAssetID != "" {
+				return semanticAssetID
+			}
 		}
 	}
 	return ""
@@ -636,7 +635,16 @@ func (s *Service) localEnvironmentCompanionAssetDependencyID(companionAssetID st
 	if companion == "" || parent == "" {
 		return ""
 	}
-	return "asset-id:" + companion + "|parent-asset-id:" + parent
+	return localEnvironmentCompanionAssetDependencyID(companion, parent)
+}
+
+func localEnvironmentCompanionAssetDependencyID(companionAssetID string, parentAssetID string) string {
+	companion := strings.TrimSpace(companionAssetID)
+	parent := strings.TrimSpace(parentAssetID)
+	if companion == "" || parent == "" {
+		return ""
+	}
+	return "asset_id=" + companion + "|parent_asset_id=" + parent
 }
 
 func localEnvironmentHostSupportsCUDA(host localEnvironmentHostProfileState) bool {

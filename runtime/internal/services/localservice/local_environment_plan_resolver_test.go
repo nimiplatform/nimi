@@ -94,8 +94,8 @@ func TestResolveLocalEnvironmentPlanInstallLevelResolvesTextModelAsset(t *testin
 	if strings.TrimSpace(dep.DependencyID) == "" {
 		t.Fatalf("install-level resolution produced an empty model.asset DependencyID: %+v", dep)
 	}
-	if !strings.HasPrefix(dep.DependencyID, "asset-id:") {
-		t.Fatalf("model.asset DependencyID = %q, want a resolver-filled asset-id", dep.DependencyID)
+	if strings.HasPrefix(dep.DependencyID, "asset-id:") || strings.HasPrefix(dep.DependencyID, "asset:") {
+		t.Fatalf("model.asset DependencyID = %q, want canonical semantic asset_id without namespace prefix", dep.DependencyID)
 	}
 	if dep.State == localEnvironmentStateUnsupported {
 		t.Fatalf("capable host model.asset must not be unsupported: %+v", dep)
@@ -283,7 +283,7 @@ func TestResolveLocalEnvironmentPlanExplicitAssetIDWinsOverInstallLevel(t *testi
 	if len(modelDeps) != 1 {
 		t.Fatalf("explicit AssetID keeps exactly-1 model.asset dependency, got %d", len(modelDeps))
 	}
-	if modelDeps[0].DependencyID != "asset-id:explicit/caller-asset" {
+	if modelDeps[0].DependencyID != "explicit/caller-asset" {
 		t.Fatalf("explicit AssetID DependencyID = %q, want the caller-supplied identity", modelDeps[0].DependencyID)
 	}
 }

@@ -34,7 +34,7 @@ type InstalledAssetsSectionProps = {
   filteredInstalledDependencyAssets: NimiRuntimeLocalAssetRecord[];
   sharedRuntimeDependency?: NimiRuntimeLocalEnvironmentPlanDependency;
   sharedRuntimeDependencyJobs: NimiRuntimeLocalEnvironmentDependencyJob[];
-  runtimeDependencyByAssetId: Record<string, NimiRuntimeLocalEnvironmentPlanDependency | undefined>;
+  runtimeDependencyByLocalAssetId: Record<string, NimiRuntimeLocalEnvironmentPlanDependency | undefined>;
   loadingInstalledAssets: boolean;
   loadingVerifiedAssets: boolean;
   assetKindFilter: 'all' | NimiRuntimeLocalAssetKind;
@@ -154,7 +154,7 @@ export function LocalModelCenterInstalledAssetsSection(props: InstalledAssetsSec
         {runnableCount > 0 ? (
           <div className="divide-y divide-gray-200/80">
             {props.filteredInstalledRunnableAssets.map((asset) => {
-              const runtimeDependency = props.runtimeDependencyByAssetId[asset.localAssetId];
+              const runtimeDependency = props.runtimeDependencyByLocalAssetId[asset.localAssetId];
               const runtimeDependencyJob = latestRuntimeDependencyJob(props.sharedRuntimeDependencyJobs.filter((job) => (
                 runtimeDependencyJobMatchesDependency(job, runtimeDependency)
               )));

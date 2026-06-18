@@ -83,6 +83,14 @@ function findLocalAssetById(
   return assets.find((asset) => assetMatchesId(asset, id)) ?? null;
 }
 
+function requiredSemanticAssetId(asset: NimiRuntimeLocalAssetEntry, context: string): string {
+  const assetId = optionalText(asset.assetId);
+  if (!assetId) {
+    throw new Error(`${context} Runtime local asset ${asset.localAssetId} is missing semantic assetId; reload Runtime projection and re-import the asset.`);
+  }
+  return assetId;
+}
+
 export async function resolveLocalRunnableAssetBinding(input: {
   readonly client: TesterRuntimeInvocationClient;
   readonly resolved: ResolvedLLMBinding;
@@ -103,7 +111,7 @@ export async function resolveLocalRunnableAssetBinding(input: {
   if (asset.kind !== input.assetKind) {
     throw new Error(`${input.capabilityId} active model ${input.resolved.model} resolves to local asset kind ${asset.kind}; expected ${input.assetKind}.`);
   }
-  const model = asset.assetId || input.resolved.model;
+  const model = requiredSemanticAssetId(asset, input.capabilityId);
   return {
     ...input.resolved,
     model,
@@ -162,7 +170,7 @@ function imageProfileEntryForAsset(input: {
     kind: 'asset',
     title: input.title,
     capability: input.capability,
-    asset_id: input.asset.assetId || input.asset.localAssetId,
+    asset_id: requiredSemanticAssetId(input.asset, input.title),
     asset_kind: input.asset.kind,
     engine: input.asset.engine,
     ...(input.engineSlot ? { engine_slot: input.engineSlot } : {}),
@@ -255,10 +263,10 @@ export async function resolveImageRuntimeBinding(
   return {
     resolved: {
       ...resolved,
-      model: mainAsset.assetId || resolved.model,
+      model: requiredSemanticAssetId(mainAsset, 'image.generate'),
       metadata: {
         ...resolved.metadata,
-        aiConfigRuntimeModelAssetId: mainAsset.assetId || resolved.model,
+        aiConfigRuntimeModelAssetId: requiredSemanticAssetId(mainAsset, 'image.generate'),
         aiConfigRuntimeModelLocalAssetId: mainAsset.localAssetId,
       },
     },

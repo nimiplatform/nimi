@@ -149,13 +149,12 @@ func (s *Service) executeModelCompanionEnvironmentDependencyJob(ctx context.Cont
 
 // ensureLocalEnvironmentModelAssetInstalled is the first-run materializer
 // install seam for the model.asset / model.companion-asset families. The
-// install-level resolver fills each dependency with a concrete catalog asset id
-// (DependencyID `asset-id:<variant-id>`, or `asset-id:<id>|parent-asset-id:<p>`
-// for a companion). When that asset is not yet installed on this host, this
-// downloads + installs it from the verified catalog descriptor via the shared
+// install-level resolver fills each dependency with a concrete semantic asset
+// id (DependencyID `<asset_id>`, or `asset_id=<id>|parent_asset_id=<p>` for a
+// companion). When that asset is not yet installed on this host, this downloads
+// + installs it from the verified catalog descriptor via the shared
 // installVerifiedAssetByTemplateID path; an already-installed asset is left for
-// the verify step. A user-install dependency (DependencyID `asset:<localId>`)
-// references an existing local asset and is never re-fetched here.
+// the verify step.
 //
 // A non-asset-specific DependencyID (e.g. a resolver fail-close pack-placeholder
 // id) is left untouched: nothing is downloaded and the verify step projects the
@@ -171,48 +170,35 @@ func (s *Service) executeModelCompanionEnvironmentDependencyJob(ctx context.Cont
 // starts; an unresolved root fails closed downstream rather than staging a
 // relative `resolved/` directory into the runtime process CWD.
 func (s *Service) ensureLocalEnvironmentModelAssetInstalled(ctx context.Context, dependencyID string) error {
-	trimmed := strings.TrimSpace(dependencyID)
-	switch {
-	case strings.HasPrefix(trimmed, "asset:"):
-		// User-install path: the dependency points at an existing local asset
-		// id. Nothing to download — verification handles it.
-		return nil
-	case strings.HasPrefix(trimmed, "asset-id:"):
-		assetID := strings.TrimSpace(strings.TrimPrefix(trimmed, "asset-id:"))
-		if index := strings.Index(assetID, "|"); index >= 0 {
-			assetID = strings.TrimSpace(assetID[:index])
-		}
-		if assetID == "" {
-			return errors.New("model asset dependency carries an empty asset id")
-		}
-		if s.installedAssetRecordForAssetID(assetID) != nil {
-			// Already installed (or installed by a sibling job in this plan);
-			// leave the bundle for the verify step.
-			return nil
-		}
-		// Idempotent materialization: the in-memory asset registry is rehydrated
-		// only from `~/.nimi`, but the model bundles live under the user data
-		// root (`<dataRoot>/models/resolved/<logicalModelID>/`). When `~/.nimi`
-		// is cleared but the data-root bundle is intact, the registry is empty
-		// yet the multi-GB asset is already on disk. Reconcile disk → registry:
-		// when a valid bundle (manifest + artifacts + catalog-admitted hashes) is
-		// present, adopt it and skip the download. A present-but-invalid bundle
-		// is never adopted — it falls through to the download path.
-		if adopted, err := s.adoptExistingResolvedModelBundle(ctx, assetID); err != nil {
-			return fmt.Errorf("adopt resolved model bundle %q: %w", assetID, err)
-		} else if adopted {
-			return nil
-		}
-		if _, err := s.installVerifiedAssetByTemplateID(ctx, assetID, ""); err != nil {
-			return fmt.Errorf("install resolved model asset %q: %w", assetID, err)
-		}
-		return nil
-	default:
-		// Non-asset-specific dependency id (resolver fail-close placeholder, or
-		// a malformed id). No concrete asset to download — the verify step
-		// produces the typed repair_required projection.
+	if localEnvironmentModelAssetDependencyIDIsPlaceholder(dependencyID) {
 		return nil
 	}
+	assetID := localEnvironmentModelAssetIDFromDependencyID(dependencyID)
+	if assetID == "" {
+		return nil
+	}
+	if s.installedAssetRecordForAssetID(assetID) != nil {
+		// Already installed (or installed by a sibling job in this plan);
+		// leave the bundle for the verify step.
+		return nil
+	}
+	// Idempotent materialization: the in-memory asset registry is rehydrated
+	// only from `~/.nimi`, but the model bundles live under the user data
+	// root (`<dataRoot>/models/resolved/<logicalModelID>/`). When `~/.nimi`
+	// is cleared but the data-root bundle is intact, the registry is empty
+	// yet the multi-GB asset is already on disk. Reconcile disk → registry:
+	// when a valid bundle (manifest + artifacts + catalog-admitted hashes) is
+	// present, adopt it and skip the download. A present-but-invalid bundle
+	// is never adopted — it falls through to the download path.
+	if adopted, err := s.adoptExistingResolvedModelBundle(ctx, assetID); err != nil {
+		return fmt.Errorf("adopt resolved model bundle %q: %w", assetID, err)
+	} else if adopted {
+		return nil
+	}
+	if _, err := s.installVerifiedAssetByTemplateID(ctx, assetID, ""); err != nil {
+		return fmt.Errorf("install resolved model asset %q: %w", assetID, err)
+	}
+	return nil
 }
 
 // installedAssetRecordForAssetID returns the first non-removed installed asset
@@ -382,48 +368,50 @@ func (s *Service) verifyLocalEnvironmentModelAsset(ctx context.Context, dependen
 }
 
 func (s *Service) localEnvironmentAssetByDependencyID(dependencyID string) (*runtimev1.LocalAssetRecord, error) {
-	trimmed := strings.TrimSpace(dependencyID)
-	switch {
-	case strings.HasPrefix(trimmed, "asset:"):
-		localAssetID := strings.TrimSpace(strings.TrimPrefix(trimmed, "asset:"))
-		if localAssetID == "" {
-			return nil, errors.New("model asset local asset id is required")
-		}
-		model := s.modelByID(localAssetID)
-		if model == nil {
-			return nil, errors.New("model asset record not found")
-		}
-		return model, nil
-	case strings.HasPrefix(trimmed, "asset-id:"):
-		assetID := strings.TrimSpace(strings.TrimPrefix(trimmed, "asset-id:"))
-		if index := strings.Index(assetID, "|"); index >= 0 {
-			assetID = strings.TrimSpace(assetID[:index])
-		}
-		if assetID == "" {
-			return nil, errors.New("model asset id is required")
-		}
-		s.mu.RLock()
-		defer s.mu.RUnlock()
-		var matched *runtimev1.LocalAssetRecord
-		for _, candidate := range s.assets {
-			if candidate == nil || candidate.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED {
-				continue
-			}
-			if strings.TrimSpace(candidate.GetAssetId()) != assetID {
-				continue
-			}
-			if matched != nil {
-				return nil, errors.New("model asset id is ambiguous; use local asset id")
-			}
-			matched = cloneLocalAsset(candidate)
-		}
-		if matched == nil {
-			return nil, errors.New("model asset record not found")
-		}
-		return matched, nil
-	default:
+	assetID := localEnvironmentModelAssetIDFromDependencyID(dependencyID)
+	if assetID == "" || localEnvironmentModelAssetDependencyIDIsPlaceholder(dependencyID) {
 		return nil, errors.New("model asset dependency id must be asset-specific")
 	}
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	var matched *runtimev1.LocalAssetRecord
+	for _, candidate := range s.assets {
+		if candidate == nil || candidate.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED {
+			continue
+		}
+		if strings.TrimSpace(candidate.GetAssetId()) != assetID {
+			continue
+		}
+		if matched != nil {
+			return nil, errors.New("model asset id is ambiguous")
+		}
+		matched = cloneLocalAsset(candidate)
+	}
+	if matched == nil {
+		return nil, errors.New("model asset record not found")
+	}
+	return matched, nil
+}
+
+func localEnvironmentModelAssetDependencyIDIsPlaceholder(dependencyID string) bool {
+	trimmed := strings.TrimSpace(dependencyID)
+	return trimmed == "" ||
+		strings.HasSuffix(trimmed, ".model-asset") ||
+		strings.HasSuffix(trimmed, ".companion-asset")
+}
+
+func localEnvironmentModelAssetIDFromDependencyID(dependencyID string) string {
+	trimmed := strings.TrimSpace(dependencyID)
+	if trimmed == "" || localEnvironmentModelAssetDependencyIDIsPlaceholder(trimmed) {
+		return ""
+	}
+	if index := strings.Index(trimmed, "|"); index >= 0 {
+		trimmed = strings.TrimSpace(trimmed[:index])
+	}
+	if strings.HasPrefix(trimmed, "asset_id=") {
+		trimmed = strings.TrimSpace(strings.TrimPrefix(trimmed, "asset_id="))
+	}
+	return trimmed
 }
 
 func localEnvironmentSourceKindForAsset(model *runtimev1.LocalAssetRecord) string {
@@ -465,8 +453,8 @@ func modelAssetSelectedConsumers(job localEnvironmentDependencyJobState) []strin
 func companionParentAssetIDFromDependencyID(dependencyID string) string {
 	parts := strings.Split(strings.TrimSpace(dependencyID), "|")
 	for _, part := range parts {
-		if strings.HasPrefix(strings.TrimSpace(part), "parent-asset-id:") {
-			return strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(part), "parent-asset-id:"))
+		if strings.HasPrefix(strings.TrimSpace(part), "parent_asset_id=") {
+			return strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(part), "parent_asset_id="))
 		}
 	}
 	return ""
@@ -566,7 +554,7 @@ func selectedModelAssetSourceRecordMatchesAssetID(record localEnvironmentSelecte
 	if trimmedAssetID == "" {
 		return false
 	}
-	if strings.TrimSpace(record.DependencyID) == "asset-id:"+trimmedAssetID {
+	if strings.TrimSpace(record.DependencyID) == trimmedAssetID {
 		return true
 	}
 	return strings.TrimSpace(record.Hashes["asset_id"]) == trimmedAssetID

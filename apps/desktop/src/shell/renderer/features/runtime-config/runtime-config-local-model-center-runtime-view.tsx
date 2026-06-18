@@ -47,7 +47,7 @@ type LocalModelCenterRuntimeViewProps = {
   filteredInstalledRunnableAssets: NimiRuntimeLocalAssetRecord[];
   sharedRuntimeDependency?: NimiRuntimeLocalEnvironmentPlanDependency;
   sharedRuntimeDependencyJobs: NimiRuntimeLocalEnvironmentDependencyJob[];
-  runtimeDependencyByAssetId: Record<string, NimiRuntimeLocalEnvironmentPlanDependency | undefined>;
+  runtimeDependencyByLocalAssetId: Record<string, NimiRuntimeLocalEnvironmentPlanDependency | undefined>;
   runtimeDependencyError: string;
   runtimeInventoryError: string;
   hasSearchQuery: boolean;
@@ -210,7 +210,7 @@ export function LocalModelCenterRuntimeView(props: LocalModelCenterRuntimeViewPr
         filteredInstalledDependencyAssets={props.filteredInstalledDependencyAssets}
         sharedRuntimeDependency={props.sharedRuntimeDependency}
         sharedRuntimeDependencyJobs={props.sharedRuntimeDependencyJobs}
-        runtimeDependencyByAssetId={props.runtimeDependencyByAssetId}
+        runtimeDependencyByLocalAssetId={props.runtimeDependencyByLocalAssetId}
           loadingInstalledAssets={props.loadingInstalledAssets}
           loadingVerifiedAssets={props.loadingVerifiedAssets}
           assetKindFilter={props.assetKindFilter}

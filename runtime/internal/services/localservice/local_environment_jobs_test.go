@@ -96,6 +96,47 @@ func TestLocalEnvironmentDependencyJobSuccessPromotesSelectedSource(t *testing.T
 	}
 }
 
+func TestLocalEnvironmentSelectedSourceRecordIdentityIgnoresConsumerExpansion(t *testing.T) {
+	svc := newLocalEnvironmentJobTestService(t)
+	defer func() { svc.Close() }()
+	environmentKey := localEnvironmentKey(
+		localEnvironmentFamilyModelAsset,
+		"image/test-semantic-asset",
+		"host_test",
+		"darwin/arm64",
+		t.TempDir(),
+	)
+	first := svc.upsertLocalEnvironmentSelectedSourceRecord(verifiedSelectedSourceRecordForTest(localEnvironmentSelectedSourceRecordState{
+		DependencyFamily:  localEnvironmentFamilyModelAsset,
+		DependencyID:      "image/test-semantic-asset",
+		EnvironmentKey:    environmentKey,
+		CanonicalRoot:     filepath.Join(t.TempDir(), "model.safetensors"),
+		SelectedConsumers: []string{"stable-diffusion.cpp.metal"},
+		Hashes:            map[string]string{"asset_id": "image/test-semantic-asset"},
+	}))
+	second := svc.upsertLocalEnvironmentSelectedSourceRecord(verifiedSelectedSourceRecordForTest(localEnvironmentSelectedSourceRecordState{
+		DependencyFamily:  localEnvironmentFamilyModelAsset,
+		DependencyID:      "image/test-semantic-asset",
+		EnvironmentKey:    environmentKey,
+		CanonicalRoot:     first.CanonicalRoot,
+		SelectedConsumers: []string{"stable-diffusion.cpp.cuda"},
+		Hashes:            map[string]string{"asset_id": "image/test-semantic-asset"},
+	}))
+
+	if second.RecordID != first.RecordID {
+		t.Fatalf("selected source record id changed after consumer expansion: first=%q second=%q", first.RecordID, second.RecordID)
+	}
+	if _, ok := svc.localEnvironmentSelectedSourceRecordForDependency(environmentKey, localEnvironmentFamilyModelAsset, "image/test-semantic-asset", "stable-diffusion.cpp.metal"); !ok {
+		t.Fatal("expanded selected source lost original metal consumer")
+	}
+	if _, ok := svc.localEnvironmentSelectedSourceRecordForDependency(environmentKey, localEnvironmentFamilyModelAsset, "image/test-semantic-asset", "stable-diffusion.cpp.cuda"); !ok {
+		t.Fatal("expanded selected source did not admit new cuda consumer")
+	}
+	if got := len(svc.localEnvironmentSelectedSources); got != 1 {
+		t.Fatalf("selected source expansion created parallel source truth records, got %d", got)
+	}
+}
+
 func TestLocalEnvironmentDependencyJobCancelDoesNotPromote(t *testing.T) {
 	svc := newLocalEnvironmentJobTestService(t)
 	defer func() { svc.Close() }()

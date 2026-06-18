@@ -50,6 +50,21 @@ An activation request contains:
 and route-local handles are projection only. They must not replace dependency
 environment key material.
 
+Identity vocabulary:
+
+- `asset_id` is the semantic installable asset identity. For verified catalog
+  assets it is the K-MCAT local-plane `variants[].variant_id`; for explicit
+  imports it is the `asset.manifest.json` `asset_id`.
+- `local_asset_id` is the Runtime local installed-asset record handle. It may
+  be used by lifecycle RPCs and as a request-side lookup hint, but Runtime must
+  resolve it to `asset_id` before dependency identity or selected-source truth
+  is written.
+- `model_id` is a catalog/route model selector. It must not replace
+  `asset_id` in `model.asset` or `model.companion-asset` dependency identity.
+- `selected_source_record_id` is a Runtime-private proof pointer for a
+  dependency environment. It may be projected for diagnostics and audit, but it
+  is not reusable model binding identity.
+
 ## K-LENV-ACT-003 Environment Key Derivation
 
 Runtime derives one dependency environment key per required dependency family
@@ -77,6 +92,12 @@ Dependency environment identity is canonical. Consumer membership is projected
 through the activation gate and selected source record `selected_consumers`.
 `consumer_scope` is not key material unless a dependency family explicitly
 admits consumer-scoped selected source ownership.
+
+`model.asset` dependency identity stores the semantic `asset_id` directly.
+`model.companion-asset` dependency identity stores the semantic companion
+`asset_id` plus semantic `parent_asset_id`; neither family may persist
+`local_asset_id`, route-local handles, or string namespaces such as local record
+aliases as dependency identity.
 
 ## K-LENV-ACT-004 Response Contract
 

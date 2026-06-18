@@ -13,10 +13,11 @@ function dependency(
   state: string,
   overrides: Partial<NimiRuntimeLocalEnvironmentPlanDependency> = {},
 ): NimiRuntimeLocalEnvironmentPlanDependency {
+  const dependencyId = 'asset_id=local-import/ae|parent_asset_id=local-import/z_image_turbo-Q4_K';
   return {
-    environmentKey: 'model.companion-asset|asset-id:local-import/ae|parent-asset-id:local-import/z_image_turbo-Q4_K',
+    environmentKey: `model.companion-asset|${dependencyId}`,
     dependencyFamily: 'model.companion-asset',
-    dependencyId: 'asset-id:local-import/ae|parent-asset-id:local-import/z_image_turbo-Q4_K',
+    dependencyId,
     consumerScope: 'stable-diffusion.cpp.cuda',
     state,
     required: true,
@@ -29,11 +30,12 @@ function job(
   state: string,
   overrides: Partial<NimiRuntimeLocalEnvironmentDependencyJob> = {},
 ): NimiRuntimeLocalEnvironmentDependencyJob {
+  const dependencyId = 'asset_id=local-import/ae|parent_asset_id=local-import/z_image_turbo-Q4_K';
   return {
     jobId: 'localenv_job_interrupted',
-    environmentKey: 'model.companion-asset|asset-id:local-import/ae|parent-asset-id:local-import/z_image_turbo-Q4_K',
+    environmentKey: `model.companion-asset|${dependencyId}`,
     dependencyFamily: 'model.companion-asset',
-    dependencyId: 'asset-id:local-import/ae|parent-asset-id:local-import/z_image_turbo-Q4_K',
+    dependencyId,
     consumerScope: 'stable-diffusion.cpp.cuda',
     state,
     retryable: state === 'failed',
@@ -52,7 +54,7 @@ test('local model center retries interrupted companion jobs while dependency is 
   assert.deepEqual(jobs, [interrupted]);
   assert.equal(
     runtimeDependencyAutoRetryKey(interrupted),
-    'model.companion-asset|asset-id:local-import/ae|parent-asset-id:local-import/z_image_turbo-Q4_K|stable-diffusion.cpp.cuda|LOCAL_ENVIRONMENT_DEPENDENCY_JOB_INTERRUPTED',
+    'model.companion-asset|asset_id=local-import/ae|parent_asset_id=local-import/z_image_turbo-Q4_K|stable-diffusion.cpp.cuda|LOCAL_ENVIRONMENT_DEPENDENCY_JOB_INTERRUPTED',
   );
 });
 

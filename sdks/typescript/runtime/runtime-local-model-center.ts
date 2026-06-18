@@ -128,7 +128,7 @@ export function createNimiRuntimeLocalModelCenterClient(
           break;
         }
       }
-      return dedupeBy(assets, (asset) => toCanonicalNimiRuntimeLocalAssetLookupKey(asset.assetId || asset.localAssetId));
+      return dedupeBy(assets, localAssetRecordDedupeKey);
     },
     async listVerifiedAssets(input = {}) {
       const local = resolveLocal();
@@ -577,4 +577,12 @@ export function createNimiRuntimeLocalModelCenterClient(
       );
     },
   };
+}
+
+function localAssetRecordDedupeKey(asset: NimiRuntimeLocalAssetRecord): string {
+  const semanticAssetKey = toCanonicalNimiRuntimeLocalAssetLookupKey(asset.assetId);
+  if (semanticAssetKey) {
+    return `asset:${semanticAssetKey}`;
+  }
+  return `local-asset:${normalizeText(asset.localAssetId).toLowerCase()}`;
 }
