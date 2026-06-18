@@ -248,7 +248,6 @@ function buildImageCopy(t: AppModelConfigSurface['i18n']['t']) {
   return {
     companionModelsLabel: t('ModelConfig.editor.image.companionModelsLabel'),
     parametersLabel: t('ModelConfig.editor.image.parametersLabel'),
-    previewBadgeLabel: t('ModelConfig.editor.common.previewBadgeLabel'),
     sizeLabel: t('ModelConfig.editor.image.sizeLabel'),
     responseFormatLabel: t('ModelConfig.editor.image.responseFormatLabel'),
     seedLabel: t('ModelConfig.editor.common.seedLabel'),
@@ -264,6 +263,9 @@ function buildImageCopy(t: AppModelConfigSurface['i18n']['t']) {
     randomPlaceholder: t('ModelConfig.editor.common.randomPlaceholder'),
     oneOptionPerLinePlaceholder: t('ModelConfig.editor.image.oneOptionPerLinePlaceholder'),
     noneLabel: t('ModelConfig.editor.common.noneLabel'),
+    requiredLabel: translateWithDefault(t, 'ModelConfig.editor.common.requiredLabel', 'Required'),
+    requiredSetupPlaceholder: translateWithDefault(t, 'ModelConfig.editor.common.requiredSetupPlaceholder', 'Required setup'),
+    setupPendingLabel: translateWithDefault(t, 'ModelConfig.editor.common.setupPendingLabel', 'setup pending'),
   };
 }
 
@@ -335,6 +337,8 @@ export function ModelConfigCapabilityDetail({
     activeModelHint: activeModelHint === null
       ? undefined
       : (activeModelHint ?? translateWithDefault(t, 'ModelConfig.hub.activeModelHint', 'Click to change model')),
+    activeModelConfiguredLabel: translateWithDefault(t, 'ModelConfig.hub.activeModelConfiguredLabel', 'configured'),
+    activeModelSetupPendingLabel: translateWithDefault(t, 'ModelConfig.hub.activeModelSetupPendingLabel', 'setup pending'),
     targetRef,
     provider,
     onTargetRefChange: handleTargetRefChange,

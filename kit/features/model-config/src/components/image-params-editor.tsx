@@ -6,7 +6,6 @@ import { FieldInput, FieldRow, FieldSelect, FieldTextarea, SubSectionLabel } fro
 export type ImageParamsEditorCopy = {
   companionModelsLabel: string;
   parametersLabel: string;
-  previewBadgeLabel?: string;
   sizeLabel: string;
   responseFormatLabel: string;
   seedLabel: string;
@@ -22,6 +21,9 @@ export type ImageParamsEditorCopy = {
   randomPlaceholder?: string;
   oneOptionPerLinePlaceholder?: string;
   noneLabel?: string;
+  requiredLabel?: string;
+  requiredSetupPlaceholder?: string;
+  setupPendingLabel?: string;
 };
 
 export type ImageParamsEditorProps = {
@@ -47,7 +49,7 @@ export function ImageParamsEditor(props: ImageParamsEditorProps) {
 
   return (
     <div className="space-y-3">
-      <SubSectionLabel label={copy.companionModelsLabel} previewLabel={copy.previewBadgeLabel} />
+      <SubSectionLabel label={copy.companionModelsLabel} />
 
       <div className="grid grid-cols-2 gap-3">
         {COMPANION_SLOTS.map((slot) => (
@@ -59,11 +61,15 @@ export function ImageParamsEditor(props: ImageParamsEditorProps) {
             assets={assets}
             loading={props.assetsLoading}
             noneLabel={copy.noneLabel}
+            required={slot.required}
+            requiredLabel={copy.requiredLabel}
+            requiredSetupPlaceholder={copy.requiredSetupPlaceholder}
+            setupPendingLabel={copy.setupPendingLabel}
           />
         ))}
       </div>
 
-      <SubSectionLabel label={copy.parametersLabel} previewLabel={copy.previewBadgeLabel} />
+      <SubSectionLabel label={copy.parametersLabel} />
 
       <div className="grid grid-cols-2 gap-3">
         <FieldRow label={copy.sizeLabel}>

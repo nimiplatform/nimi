@@ -26,6 +26,8 @@ export type ModelConfigCapabilityItem = {
   activeModelLabel?: string;
   /** Optional hint rendered directly under `activeModelLabel` to expose the selector affordance. */
   activeModelHint?: string;
+  activeModelConfiguredLabel?: string;
+  activeModelSetupPendingLabel?: string;
   targetRef: ModelConfigTargetRef | null;
   provider?: RouteModelPickerDataProvider | null;
   onTargetRefChange: (targetRef: ModelConfigTargetRef | null) => void;
@@ -213,6 +215,7 @@ export type CompanionSlotDef = {
   slot: string;
   label: string;
   kind: string;
+  required?: boolean;
 };
 
 export type LocalAssetEntry = {

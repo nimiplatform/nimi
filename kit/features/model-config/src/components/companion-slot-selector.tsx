@@ -13,6 +13,10 @@ export function CompanionSlotSelector(props: {
   assets: LocalAssetEntry[];
   loading?: boolean;
   noneLabel?: string;
+  required?: boolean;
+  requiredLabel?: string;
+  requiredSetupPlaceholder?: string;
+  setupPendingLabel?: string;
 }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -25,6 +29,16 @@ export function CompanionSlotSelector(props: {
   const selectedAsset = useMemo(
     () => filtered.find((asset) => asset.localAssetId === props.value || asset.assetId === props.value) ?? null,
     [filtered, props.value],
+  );
+  const hasSelectedValue = props.value.trim().length > 0;
+  const isRequiredMissing = Boolean(props.required && !hasSelectedValue);
+  const selectedStatus = selectedAsset?.status.trim().toLowerCase() ?? '';
+  const selectedNeedsSetup = Boolean(
+    selectedAsset
+    && props.required
+    && selectedStatus
+    && selectedStatus !== 'active'
+    && selectedStatus !== 'installed',
   );
 
   const filteredForSearch = useMemo(() => {
@@ -173,12 +187,14 @@ export function CompanionSlotSelector(props: {
   ) : null;
 
   return (
-    <FieldRow label={props.slot.label}>
+    <FieldRow label={props.slot.label} requirementLabel={isRequiredMissing ? (props.requiredLabel || 'Required') : undefined}>
       <ModelSelectorTrigger
         source={selectedAsset ? 'local' : null}
         modelLabel={selectedAsset ? (selectedAsset.assetId || selectedAsset.localAssetId) : null}
         detail={selectedAsset ? [selectedAsset.engine, selectedAsset.status].filter(Boolean).join(' / ') : null}
-        placeholder={props.noneLabel || 'None'}
+        detailStatus={selectedNeedsSetup ? (props.setupPendingLabel || 'setup pending') : null}
+        detailTone={selectedNeedsSetup ? 'warning' : 'neutral'}
+        placeholder={isRequiredMissing ? (props.requiredSetupPlaceholder || 'Required setup') : (props.noneLabel || 'None')}
         onClick={() => setModalOpen(true)}
       />
       {modal ? (typeof document === 'undefined' ? modal : createPortal(modal, document.body)) : null}

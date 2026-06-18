@@ -129,7 +129,14 @@ export function CapabilityModelCard({ item }: CapabilityModelCardProps) {
       ?? null)
     : null;
   const activeModelDetail = item.activeModelLabel ? localDetail : null;
-  const activeModelDetailStatus = activeModelDetail && item.status?.supported ? 'configured' : null;
+  const activeModelSetupPending = Boolean(activeModelDetail && item.status && !item.status.supported);
+  const activeModelDetailStatus = activeModelDetail
+    ? (item.status?.supported
+      ? (item.activeModelConfiguredLabel || 'configured')
+      : activeModelSetupPending
+        ? (item.activeModelSetupPendingLabel || 'setup pending')
+        : null)
+    : null;
   const connectorDetail = hydratedTargetSummary?.detail
     ?? (unresolvedLocalTarget
       ? null
@@ -227,7 +234,10 @@ export function CapabilityModelCard({ item }: CapabilityModelCardProps) {
         modelLabel={item.targetRef ? triggerLabel : null}
         detail={visibleDetail}
         detailStatus={item.activeModelLabel ? activeModelDetailStatus : null}
-        detailTone={item.activeModelLabel && activeModelDetailStatus ? 'success' : 'neutral'}
+        detailTone={item.activeModelLabel && activeModelDetailStatus
+          ? (activeModelSetupPending ? 'warning' : 'success')
+          : 'neutral'}
+        hoverBorderTone={item.activeModelLabel ? 'success' : 'neutral'}
         placeholder={item.provider
           ? (item.placeholder || 'Setup required')
           : (item.runtimeNotReadyLabel || item.placeholder || 'Setup required')}

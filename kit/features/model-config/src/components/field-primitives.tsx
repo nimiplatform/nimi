@@ -10,22 +10,27 @@ import {
 
 const FIELD_HEIGHT = 'min-h-[var(--nimi-sizing-field-md-height)]';
 
-export function FieldLabel(props: { label: string; tooltip?: string }) {
+export function FieldLabel(props: { label: string; tooltip?: string; requirementLabel?: string }) {
   return (
     <span
-      className="text-xs font-semibold text-[var(--nimi-text-secondary)]"
+      className="inline-flex min-w-0 items-center gap-1.5 text-xs font-semibold text-[var(--nimi-text-secondary)]"
       title={props.tooltip}
       aria-label={props.tooltip ? `${props.label}: ${props.tooltip}` : props.label}
     >
-      {props.label}
+      <span className="truncate">{props.label}</span>
+      {props.requirementLabel ? (
+        <StatusBadge tone="warning" className="px-1.5 py-0.5 text-[9px] uppercase">
+          {props.requirementLabel}
+        </StatusBadge>
+      ) : null}
     </span>
   );
 }
 
-export function FieldRow(props: { label: string; tooltip?: string; children: ReactNode }) {
+export function FieldRow(props: { label: string; tooltip?: string; requirementLabel?: string; children: ReactNode }) {
   return (
     <div className="space-y-1.5">
-      <FieldLabel label={props.label} tooltip={props.tooltip} />
+      <FieldLabel label={props.label} tooltip={props.tooltip} requirementLabel={props.requirementLabel} />
       {props.children}
     </div>
   );

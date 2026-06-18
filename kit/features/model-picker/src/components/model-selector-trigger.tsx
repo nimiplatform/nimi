@@ -5,7 +5,8 @@ export type ModelSelectorTriggerProps = {
   modelLabel: string | null;
   detail?: string | null;
   detailStatus?: string | null;
-  detailTone?: 'success' | 'neutral';
+  detailTone?: 'success' | 'warning' | 'neutral';
+  hoverBorderTone?: 'neutral' | 'success';
   placeholder?: string;
   onClick: () => void;
   disabled?: boolean;
@@ -37,6 +38,7 @@ export function ModelSelectorTrigger({
   detail,
   detailStatus,
   detailTone = 'neutral',
+  hoverBorderTone = 'neutral',
   placeholder = 'Select a model',
   onClick,
   disabled,
@@ -53,7 +55,10 @@ export function ModelSelectorTrigger({
       className={cn(
         'flex w-full items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left transition-colors',
         hasModel
-          ? 'border-slate-200 bg-white hover:border-slate-300'
+          ? cn(
+            'border-slate-200 bg-white',
+            hoverBorderTone === 'success' ? 'hover:border-emerald-400' : 'hover:border-slate-300',
+          )
           : 'border-dashed border-slate-200 bg-slate-50/50 hover:border-emerald-400',
         disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer',
         className,
@@ -72,7 +77,11 @@ export function ModelSelectorTrigger({
               <p
                 className={cn(
                   'truncate text-[11px]',
-                  detailTone === 'success' ? 'font-medium text-emerald-600' : 'text-slate-400',
+                  detailTone === 'success'
+                    ? 'font-medium text-emerald-600'
+                    : detailTone === 'warning'
+                      ? 'font-medium text-amber-600'
+                      : 'text-slate-400',
                 )}
               >
                 {detail ? <span>{detail}</span> : null}

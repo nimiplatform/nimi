@@ -13,8 +13,8 @@ import type {
 // ---------------------------------------------------------------------------
 
 export const COMPANION_SLOTS: CompanionSlotDef[] = [
-  { slot: 'vae_path', label: 'VAE', kind: 'vae' },
-  { slot: 'llm_path', label: 'LLM', kind: 'chat' },
+  { slot: 'vae_path', label: 'VAE', kind: 'vae', required: true },
+  { slot: 'llm_path', label: 'LLM', kind: 'chat', required: true },
   { slot: 'clip_l_path', label: 'CLIP-L', kind: 'clip' },
   { slot: 'clip_g_path', label: 'CLIP-G', kind: 'clip' },
   { slot: 'controlnet_path', label: 'ControlNet', kind: 'controlnet' },

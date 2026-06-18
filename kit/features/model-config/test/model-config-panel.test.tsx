@@ -1,4 +1,4 @@
-import { act, type ReactNode } from 'react';
+import { act, useState, type ReactNode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
@@ -268,50 +268,61 @@ describe('ModelConfigPanel', () => {
   it('selects image companion slots through the shared picker interaction', async () => {
     let nextCompanionSlots: Record<string, string> = {};
 
+    function ImageEditorHarness() {
+      const [companionSlots, setCompanionSlots] = useState<Record<string, string>>({});
+      return (
+        <ImageParamsEditor
+          copy={{
+            companionModelsLabel: 'Companion Models',
+            parametersLabel: 'Parameters',
+            sizeLabel: 'Size',
+            responseFormatLabel: 'Response format',
+            seedLabel: 'Seed',
+            timeoutLabel: 'Timeout',
+            stepsLabel: 'Steps',
+            cfgScaleLabel: 'CFG Scale',
+            samplerLabel: 'Sampler',
+            schedulerLabel: 'Scheduler',
+            customOptionsLabel: 'Custom options',
+            noneLabel: 'None',
+          }}
+          params={{
+            size: '512x512',
+            responseFormat: 'auto',
+            seed: '',
+            timeoutMs: '600000',
+            steps: '25',
+            cfgScale: '',
+            sampler: '',
+            scheduler: '',
+            optionsText: '',
+          }}
+          companionSlots={companionSlots}
+          assets={[{
+            localAssetId: 'local-vae',
+            assetId: 'Z Image AE',
+            kind: 'vae',
+            engine: 'media',
+            status: 'installed',
+          }]}
+          onParamsChange={() => undefined}
+          onCompanionSlotsChange={(next) => {
+            nextCompanionSlots = next;
+            setCompanionSlots(next);
+          }}
+        />
+      );
+    }
+
     await render(
-      <ImageParamsEditor
-        copy={{
-          companionModelsLabel: 'Companion Models',
-          parametersLabel: 'Parameters',
-          sizeLabel: 'Size',
-          responseFormatLabel: 'Response format',
-          seedLabel: 'Seed',
-          timeoutLabel: 'Timeout',
-          stepsLabel: 'Steps',
-          cfgScaleLabel: 'CFG Scale',
-          samplerLabel: 'Sampler',
-          schedulerLabel: 'Scheduler',
-          customOptionsLabel: 'Custom options',
-          noneLabel: 'None',
-        }}
-        params={{
-          size: '512x512',
-          responseFormat: 'auto',
-          seed: '',
-          timeoutMs: '600000',
-          steps: '25',
-          cfgScale: '',
-          sampler: '',
-          scheduler: '',
-          optionsText: '',
-        }}
-        companionSlots={{}}
-        assets={[{
-          localAssetId: 'local-vae',
-          assetId: 'Z Image AE',
-          kind: 'vae',
-          engine: 'media',
-          status: 'installed',
-        }]}
-        onParamsChange={() => undefined}
-        onCompanionSlotsChange={(next) => {
-          nextCompanionSlots = next;
-        }}
-      />,
+      <ImageEditorHarness />,
     );
 
+    expect(container?.textContent).toContain('Required');
+    expect(container?.textContent).toContain('Required setup');
+
     const vaeTrigger = Array.from(container?.querySelectorAll('button') || [])
-      .find((button) => button.textContent?.includes('None'));
+      .find((button) => button.textContent?.includes('Required setup'));
     expect(vaeTrigger).toBeTruthy();
 
     await act(async () => {
@@ -329,5 +340,8 @@ describe('ModelConfigPanel', () => {
     });
 
     expect(nextCompanionSlots).toEqual({ vae_path: 'local-vae' });
+    const selectedVaeTrigger = Array.from(container?.querySelectorAll('button') || [])
+      .find((button) => button.textContent?.includes('Z Image AE'));
+    expect(selectedVaeTrigger?.textContent).not.toContain('Required setup');
   });
 });

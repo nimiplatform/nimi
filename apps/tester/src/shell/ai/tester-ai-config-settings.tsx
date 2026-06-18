@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState, type ChangeEvent } from 'react';
 import { Button, IconButton, ScrollArea, StatusBadge, Surface, TextareaField } from '@nimiplatform/kit/ui';
 import {
+  COMPANION_SLOTS,
   ModelConfigAiModelHub,
   defaultModelConfigProfileCopy,
   useModelConfigProfileController,
   type AppModelConfigSurface,
+  type LocalAssetEntry,
   type ModelConfigProjectionStatus,
   type SharedAIConfigService,
 } from '@nimiplatform/kit/features/model-config';
@@ -60,11 +62,133 @@ function makeTranslator(copy: Record<string, string>) {
   };
 }
 
+function normalizeText(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function targetRefCandidateTexts(targetRef: NimiAIConfig['capabilities']['targetRefs'][string] | null): string[] {
+  if (!targetRef || targetRef.kind !== 'local-runtime') {
+    return [];
+  }
+  const candidates = [
+    normalizeText(targetRef.targetId),
+    normalizeText(targetRef.profileId),
+    normalizeText(targetRef.readinessRef),
+    ...normalizeText(targetRef.readinessRef).split(':').map((part) => part.trim()),
+  ].filter(Boolean);
+  return [...new Set(candidates)];
+}
+
+function localAssetMatchesCandidate(asset: LocalAssetEntry, candidate: string): boolean {
+  return normalizeText(asset.localAssetId) === candidate
+    || normalizeText(asset.assetId) === candidate
+    || normalizeText(asset.assetId).endsWith(`/${candidate}`)
+    || normalizeText(candidate).endsWith(`/${asset.assetId}`);
+}
+
+function findAssetForLocalTarget(
+  assets: readonly LocalAssetEntry[],
+  targetRef: NimiAIConfig['capabilities']['targetRefs'][string] | null,
+): LocalAssetEntry | null {
+  const candidates = targetRefCandidateTexts(targetRef);
+  if (candidates.length === 0) {
+    return null;
+  }
+  return assets.find((asset) => candidates.some((candidate) => localAssetMatchesCandidate(asset, candidate))) ?? null;
+}
+
+function selectedParamsRecord(config: NimiAIConfig, capabilityId: string): Record<string, unknown> {
+  const raw = config.capabilities.selectedParams?.[capabilityId];
+  return raw && typeof raw === 'object' && !Array.isArray(raw)
+    ? raw as Record<string, unknown>
+    : {};
+}
+
+function selectedCompanionSlots(config: NimiAIConfig): Record<string, string> {
+  const raw = selectedParamsRecord(config, 'image.generate').companionSlots;
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return {};
+  }
+  const out: Record<string, string> = {};
+  for (const [slot, value] of Object.entries(raw as Record<string, unknown>)) {
+    const normalized = normalizeText(value);
+    if (normalized) {
+      out[slot] = normalized;
+    }
+  }
+  return out;
+}
+
+function isLocalAssetRunnableStatus(status: string): boolean {
+  const normalized = status.trim().toLowerCase();
+  return normalized === 'active' || normalized === 'installed';
+}
+
+function assetLabel(asset: LocalAssetEntry): string {
+  return asset.assetId || asset.localAssetId;
+}
+
+const REQUIRED_IMAGE_COMPANION_SLOT_IDS = new Set(['vae_path', 'llm_path']);
+
+function imageLocalSetupStatus(
+  config: NimiAIConfig,
+  targetRef: NimiAIConfig['capabilities']['targetRefs'][string] | null,
+  localAssetSource?: AppModelConfigSurface['localAssetSource'],
+): ModelConfigProjectionStatus | null {
+  if (targetRef?.kind !== 'local-runtime' || !localAssetSource || localAssetSource.loading) {
+    return null;
+  }
+
+  const assets = localAssetSource.list();
+  const mainAsset = findAssetForLocalTarget(assets, targetRef);
+  if (mainAsset && !isLocalAssetRunnableStatus(mainAsset.status)) {
+    return {
+      supported: false,
+      tone: 'attention',
+      badgeLabel: 'Needs setup',
+      title: 'Local model setup required',
+      detail: `${assetLabel(mainAsset)} is ${mainAsset.status}; confirm or activate it before running Image Generate.`,
+    };
+  }
+
+  const companionSlots = selectedCompanionSlots(config);
+  const missingRequired = COMPANION_SLOTS
+    .filter((slot) => REQUIRED_IMAGE_COMPANION_SLOT_IDS.has(slot.slot) && !normalizeText(companionSlots[slot.slot]))
+    .map((slot) => slot.label);
+  if (missingRequired.length > 0) {
+    return {
+      supported: false,
+      tone: 'attention',
+      badgeLabel: 'Needs setup',
+      title: 'Required companion models missing',
+      detail: `Set ${missingRequired.join(', ')} before running Image Generate with this local model.`,
+    };
+  }
+
+  for (const slot of COMPANION_SLOTS.filter((item) => REQUIRED_IMAGE_COMPANION_SLOT_IDS.has(item.slot))) {
+    const selected = normalizeText(companionSlots[slot.slot]);
+    if (!selected) continue;
+    const asset = assets.find((entry) => localAssetMatchesCandidate(entry, selected));
+    if (asset && !isLocalAssetRunnableStatus(asset.status)) {
+      return {
+        supported: false,
+        tone: 'attention',
+        badgeLabel: 'Needs setup',
+        title: 'Required companion setup pending',
+        detail: `${slot.label} ${assetLabel(asset)} is ${asset.status}; confirm or activate it before running Image Generate.`,
+      };
+    }
+  }
+
+  return null;
+}
+
 function bindingStatus(
   config: NimiAIConfig,
   capabilityId: string,
   runtimeReady: boolean,
   runtimeDetail: string | null,
+  localAssetSource?: AppModelConfigSurface['localAssetSource'],
 ): ModelConfigProjectionStatus {
   if (!runtimeReady) {
     return {
@@ -84,6 +208,12 @@ function bindingStatus(
       title: 'Target required',
       detail: 'Runs fail closed until this capability has an NimiAIConfig targetRef.',
     };
+  }
+  const imageSetup = capabilityId === 'image.generate'
+    ? imageLocalSetupStatus(config, targetRef, localAssetSource)
+    : null;
+  if (imageSetup) {
+    return imageSetup;
   }
   return {
     supported: true,
@@ -148,7 +278,7 @@ export function TesterAiConfigSettings({
     aiConfigService: service,
     requirementDeclaration,
     providerResolver: (capabilityId: string) => (runtimeReady ? providerResolver(capabilityId) : null),
-    projectionResolver: (capabilityId: string) => bindingStatus(config, capabilityId, runtimeReady, runtimeDetail),
+    projectionResolver: (capabilityId: string) => bindingStatus(config, capabilityId, runtimeReady, runtimeDetail, localAssetSource),
     localAssetSource,
     runtimeNotReadyLabel: runtimeDetail || 'Runtime unavailable',
     i18n: { t },
@@ -221,7 +351,7 @@ export function TesterAiConfigSettings({
       className="flex h-full min-h-0 flex-col overflow-hidden rounded-none border-0 bg-white/95 shadow-none"
     >
       {!drawer ? (
-        <header className="flex min-h-14 shrink-0 items-center gap-3 border-b border-[var(--nimi-border-subtle)] px-4">
+        <header className="flex min-h-14 shrink-0 items-center gap-3 border-b border-[var(--nimi-border-subtle)] px-6">
           <div className="min-w-0 flex-1">
             <strong className="block truncate text-[15px] font-semibold text-[var(--nimi-text-primary)]">
               {t('Tester.settings.title')}
@@ -245,7 +375,7 @@ export function TesterAiConfigSettings({
         </header>
       ) : null}
       <ScrollArea className="min-h-0 flex-1">
-        <div className={drawer ? 'min-w-0 px-4 py-4' : 'px-4 py-4'}>
+        <div className={drawer ? 'min-w-0 px-6 py-4' : 'px-6 py-4'}>
           <ModelConfigAiModelHub
             surface={surface}
             profile={profileController}

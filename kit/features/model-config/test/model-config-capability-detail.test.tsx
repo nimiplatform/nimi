@@ -225,11 +225,57 @@ describe('ModelConfigCapabilityDetail editorKind routing', () => {
     expect(trigger).toBeTruthy();
     expect(trigger?.textContent).toContain('gemma-4-26B-A4B-it-Q8_0');
     expect(trigger?.textContent).not.toContain('local-import/gemma-4-26B-A4B-it-Q8_0');
+    expect(trigger?.className).toContain('hover:border-emerald-400');
 
     const detail = Array.from(trigger?.querySelectorAll('p') || [])
       .find((node) => node.textContent?.includes('local-import'));
     expect(detail?.textContent).toBe('local-import · configured');
     expect(detail?.className).toContain('text-emerald-600');
+  });
+
+  it('marks selected active models as setup pending when the injected projection is blocked', async () => {
+    const localConfig: NimiAIConfig = {
+      ...baseConfig,
+      capabilities: {
+        targetRefs: {
+          'image.generate': {
+            kind: 'local-runtime',
+            targetId: 'image',
+            profileId: 'local-import/z_image_turbo-Q4_K',
+            readinessRef: 'runtime-route:local:image:local-import/z_image_turbo-Q4_K',
+          },
+        },
+        selectedParams: {},
+      },
+    };
+    const surface: AppModelConfigSurface = {
+      ...makeSurface('image.generate'),
+      projectionResolver: () => ({
+        supported: false,
+        tone: 'attention',
+        badgeLabel: 'Needs setup',
+        title: 'Required setup missing',
+        detail: 'Confirm local assets before running.',
+      }),
+    };
+    await render(
+      wrap(
+        <ModelConfigCapabilityDetail
+          capabilityId="image.generate"
+          surface={surface}
+          config={localConfig}
+        />,
+      ),
+    );
+
+    const trigger = Array.from(container?.querySelectorAll('button') || [])
+      .find((button) => button.textContent?.includes('z_image_turbo-Q4_K'));
+    expect(trigger).toBeTruthy();
+    expect(trigger?.textContent).toContain('setup pending');
+    const detail = Array.from(trigger?.querySelectorAll('p') || [])
+      .find((node) => node.textContent?.includes('setup pending'));
+    expect(detail?.className).toContain('text-amber-600');
+    expect(container?.textContent).toContain('Required setup missing');
   });
 
   it('does not expose opaque local runtime ids while provider hydration is unavailable', async () => {
@@ -382,6 +428,7 @@ describe('ModelConfigCapabilityDetail editorKind routing', () => {
     );
 
     expect(container?.textContent).toContain('VAE Asset');
+    expect(container?.textContent).not.toContain('ModelConfig.editor.common.previewBadgeLabel');
     const seedInput = Array.from(container?.querySelectorAll('input') || [])
       .find((input) => input.value === 'seed-old');
     expect(seedInput).toBeTruthy();
