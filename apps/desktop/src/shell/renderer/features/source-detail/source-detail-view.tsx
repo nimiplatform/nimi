@@ -14,7 +14,7 @@ type SourceDetailViewProps = {
   error: boolean;
   onBack: () => void;
   onOpenWorld: () => void;
-  onManageFriends: () => void;
+  onPrimaryAction: () => void;
   onSendGift: () => void;
 };
 
@@ -133,14 +133,14 @@ export function SourceDetailView(props: SourceDetailViewProps) {
 
   const { source } = props;
   const palette = getSemanticSourcePalette({
-    category: source.category,
+    archetype: source.archetype,
     origin: source.origin,
-    description: source.bio || source.category,
+    description: source.bio || source.archetype,
     tags: source.tags,
   });
   const primaryAction = describeRealmPersonaPrimaryAction(source.sourceState);
   const handlePrimaryAction = () => {
-    props.onManageFriends();
+    props.onPrimaryAction();
   };
 
   return (
@@ -191,7 +191,7 @@ export function SourceDetailView(props: SourceDetailViewProps) {
               )}
             </div>
 
-            {/* Friend-state primary action — Top Right (D-EXPL-006) */}
+            {/* Source connection primary action — Top Right (D-EXPL-006) */}
             <button
               type="button"
               onClick={handlePrimaryAction}
@@ -224,14 +224,14 @@ export function SourceDetailView(props: SourceDetailViewProps) {
                 <h2 className="text-xl font-bold text-gray-900">
                   {source.displayName}
                 </h2>
-                <SourceStateBadge state={source.state} />
-                <TierBadge tier={source.tier} />
+                {source.state ? <SourceStateBadge state={source.state} /> : null}
+                {source.tier ? <TierBadge tier={source.tier} /> : null}
               </div>
               
               {/* Handle with ownership badge */}
               <div className="flex items-center gap-2 mt-1">
                 <p className="text-sm text-gray-500 font-mono">{source.handle}</p>
-                <OwnershipBadge ownershipType={source.ownershipType} />
+                <OwnershipBadge ownershipType={source.ownershipType ?? undefined} />
               </div>
 
               {/* Bio */}
@@ -242,9 +242,9 @@ export function SourceDetailView(props: SourceDetailViewProps) {
               ) : null}
 
               {/* Category & Origin */}
-              {(source.category || source.origin) && (
+              {(source.archetype || source.origin) && (
                 <p className="mt-2 text-xs" style={{ color: palette.accent }}>
-                  {source.category}{source.category && source.origin ? ' • ' : ''}{source.origin ? `Origin: ${source.origin}` : ''}
+                  {source.archetype}{source.archetype && source.origin ? ' • ' : ''}{source.origin ? `Origin: ${source.origin}` : ''}
                 </p>
               )}
 

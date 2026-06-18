@@ -15,7 +15,7 @@
   "totalPlayers": "总玩家数",
   "averageSession": "平均会话时长",
   "worldStability": "世界稳定度",
-  "totalAgent": "Agent 总数",
+  "totalAgent": "角色总数",
   "time": "时间",
   "worldScoring": "世界评分",
   "syncTicker": "世界同步",
@@ -68,123 +68,5 @@
     "enter": "进入世界",
     "featured": "精选世界",
     "noMatch": "没有匹配的世界。"
-  },
-  "createAgent": {
-    "title": "创建新 Agent",
-    "subtitle": "在 {{worldName}} 中塑造一个新角色",
-    "close": "关闭创建 Agent 抽屉",
-    "uploadAvatar": "上传头像",
-    "changeAvatar": "更换头像",
-    "avatarPreview": "Agent 头像预览",
-    "avatarImageRequired": "请选择图片文件。",
-    "avatarTooLarge": "头像图片必须不超过 5MB。",
-    "avatarReadFailed": "读取头像图片失败。",
-    "notAdmitted": "当前入口未 admission 创建 Agent。",
-    "sections": {
-      "identity": "身份",
-      "character": "角色",
-      "personality": "人格 DNA",
-      "wakeStrategy": "唤醒策略",
-      "visibility": "可见性"
-    },
-    "handle": "Handle",
-    "handlePlaceholder": "agent_unique_id",
-    "displayName": "显示名称",
-    "displayNamePlaceholder": "对外展示的身份名称",
-    "concept": "核心概念",
-    "conceptPlaceholder": "角色的核心本质",
-    "description": "描述",
-    "descriptionPlaceholder": "面向公众的介绍",
-    "scenario": "场景",
-    "scenarioPlaceholder": "所处世界背景",
-    "greeting": "开场白",
-    "greetingPlaceholder": "Ta 会如何介绍自己",
-    "primaryTrait": "主特质",
-    "secondaryTraitsLabel": "次级特质",
-    "wakeStrategyPassiveTitle": "被动",
-    "wakeStrategyPassiveDescription": "等待明确触发后再行动。",
-    "wakeStrategyProactiveTitle": "主动",
-    "wakeStrategyProactiveDescription": "当世界发生变化时可主动发起反应。",
-    "primaryTraits": {
-      "CARING": "体贴",
-      "PLAYFUL": "活泼",
-      "INTELLECTUAL": "理性",
-      "CONFIDENT": "自信",
-      "MYSTERIOUS": "神秘",
-      "ROMANTIC": "浪漫"
-    },
-    "secondaryTraits": {
-      "HUMOROUS": "幽默",
-      "SARCASTIC": "讽刺",
-      "GENTLE": "温柔",
-      "DIRECT": "直接",
-      "OPTIMISTIC": "乐观",
-      "REALISTIC": "现实",
-      "DRAMATIC": "戏剧化",
-      "PASSIONATE": "热烈",
-      "REBELLIOUS": "叛逆",
-      "INNOCENT": "纯真",
-      "WISE": "睿智",
-      "ECCENTRIC": "古怪"
-    },
-    "cancel": "取消",
-    "creating": "创建中...",
-    "submit": "创建 RealmPersona",
-    "avatar": "头像",
-    "avatarUploadFailed": "头像上传失败，请重试。",
-    "failed": "创建 RealmPersona 失败，请重试。",
-    "back": "返回",
-    "toReview": "查看草稿",
-    "confirmCreate": "确认并创建 RealmPersona",
-    "step": {
-      "modeSelect": "创建新 RealmPersona",
-      "draftEditor": "编辑草稿",
-      "review": "审阅并创建"
-    },
-    "modes": {
-      "prompt": "选择创建该 RealmPersona 的方式。",
-      "manualTitle": "手动快速创建",
-      "manualDesc": "自行填写 RealmPersona 字段。",
-      "importTitle": "导入 source package",
-      "importDesc": "导入已准入的 RealmPersona source package。",
-      "aiTitle": "AI 辅助生成",
-      "aiDesc": "描述概念；Nimi 生成候选草稿。"
-    },
-    "recover": {
-      "title": "恢复未完成的草稿",
-      "description": "此 World 此前有一份未完成的创建草稿，可继续编辑。"
-    },
-    "import": {
-      "prompt": "选择一个已准入的 RealmPersona source package。Nimi 在本地校验并映射为可审阅的草稿。",
-      "choose": "选择 source package",
-      "parsing": "正在校验 package...",
-      "failed": "无法导入此 package"
-    },
-    "ai": {
-      "prompt": "描述你想要的 RealmPersona，Nimi 会生成候选草稿供你审阅和编辑。",
-      "placeholder": "例如：一位漫游的制图师，收集被遗忘的星图，说话总带着谜语。",
-      "generate": "生成草稿",
-      "generating": "正在生成草稿..."
-    },
-    "review": {
-      "gateTitle": "创建前审阅",
-      "gateDescription": "目前还没有写入 {{worldName}}。只有在你确认后才会创建该 RealmPersona。",
-      "source": "草稿来源：{{source}}",
-      "willWrite": "将成为 WorldCore 数据",
-      "draftOnly": "保留在草稿中（当前创建契约不写入）",
-      "warningsTitle": "{{count}} 条警告",
-      "notSet": "未设置",
-      "avatarSelected": "已选择图片"
-    },
-    "rejection": {
-      "title": "创建未能完成",
-      "recoverable": "你的草稿已保留——可调整后重试。"
-    },
-    "visibility": {
-      "publishedTitle": "已发布",
-      "publishedDesc": "作为公开 RealmPersona 在整个 World 中可被发现。",
-      "unlistedTitle": "不公开",
-      "unlistedDesc": "已创建，但暂不进入公开发现。"
-    }
   }
 }

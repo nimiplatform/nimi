@@ -73,7 +73,7 @@ test('explore world banner click prefetches world detail and history before navi
 
 test('source detail open world prefetches world detail and history before navigation', () => {
   assert.match(agentDetailPanelSource, /prefetchWorldDetailPanel\(\)/);
-  assert.match(agentDetailPanelSource, /prefetchWorldDetailAndHistory\(agent\.worldId\)/);
+  assert.match(agentDetailPanelSource, /prefetchWorldDetailAndHistory\(source\.worldId\)/);
 });
 
 test('world navigation uses a transition to avoid clearing revealed content during detail boot', () => {

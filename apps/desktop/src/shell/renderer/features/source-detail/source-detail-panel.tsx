@@ -1,11 +1,15 @@
 import { useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { i18n } from '@renderer/i18n';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';
 import { prefetchWorldDetailAndHistory } from '@renderer/features/world/world-detail-queries.js';
 import { prefetchWorldDetailPanel } from '@renderer/features/world/world-detail-route-state';
-import { realmPersonaSourceHandoffMessage } from '@renderer/features/explore/realm-persona-source-admission';
+import {
+  connectRealmPersonaSource,
+  realmPersonaSourceAdmissionQueryKey,
+  realmPersonaSourceConnectionMessage,
+} from '@renderer/features/explore/realm-persona-source-admission';
 import {
   sourceDisplayDetailQueryKey,
   fetchSourceDisplayDetail,
@@ -18,6 +22,7 @@ export function SourceDetailPanel() {
   const selectedProfileId = useAppStore((state) => state.selectedProfileId);
   const navigateBack = useAppStore((state) => state.navigateBack);
   const navigateToWorld = useAppStore((state) => state.navigateToWorld);
+  const queryClient = useQueryClient();
   const [giftModalOpen, setGiftModalOpen] = useState(false);
   const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
 
@@ -28,14 +33,6 @@ export function SourceDetailPanel() {
     queryFn: async () => fetchSourceDisplayDetail(sourceIdentifier),
     enabled: authStatus === 'authenticated' && !!sourceIdentifier,
   });
-  const resolvedSourceId = useMemo(() => {
-    const profileId = String(profileQuery.data?.source.id || '').trim();
-    if (profileId) {
-      return profileId;
-    }
-    return '';
-  }, [profileQuery.data]);
-
   const source = useMemo(() => {
     if (!profileQuery.data) return null;
     return profileQuery.data.source;
@@ -51,12 +48,26 @@ export function SourceDetailPanel() {
     return profileQuery.data.worldScore;
   }, [profileQuery.data]);
 
-  const handleManageFriends = () => {
-    if (!resolvedSourceId) return;
-    setFeedback({
-      kind: 'warning',
-      message: realmPersonaSourceHandoffMessage(),
-    });
+  const handlePrimaryAction = async () => {
+    if (!source || source.sourceState === 'source_connected') return;
+    try {
+      await connectRealmPersonaSource(source);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: realmPersonaSourceAdmissionQueryKey }),
+        queryClient.invalidateQueries({ queryKey: sourceDisplayDetailQueryKey(sourceIdentifier) }),
+      ]);
+      setFeedback({
+        kind: 'success',
+        message: i18n.t('Explore.realmPersonaSourceConnectedFeedback', {
+          defaultValue: 'Source connected.',
+        }),
+      });
+    } catch (error) {
+      setFeedback({
+        kind: 'error',
+        message: error instanceof Error ? error.message : realmPersonaSourceConnectionMessage(),
+      });
+    }
   };
 
   if (!sourceIdentifier) {
@@ -97,13 +108,15 @@ export function SourceDetailPanel() {
           prefetchWorldDetailAndHistory(source.worldId);
           navigateToWorld(source.worldId);
         }}
-        onManageFriends={handleManageFriends}
+        onPrimaryAction={() => {
+          void handlePrimaryAction();
+        }}
         onSendGift={() => setGiftModalOpen(true)}
       />
       <SendGiftModal
         open={giftModalOpen}
         receiverId={source?.id || ''}
-        receiverName={source?.displayName || source?.handle || 'Persona'}
+        receiverName={source?.displayName || ''}
         receiverHandle={source?.handle}
         receiverIsSource
         receiverAvatarUrl={source?.avatarUrl}

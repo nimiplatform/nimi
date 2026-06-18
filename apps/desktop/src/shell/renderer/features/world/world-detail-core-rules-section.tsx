@@ -220,7 +220,7 @@ function WorldLanguagesCard({
   );
 }
 
-function WorldRulesSnapshot({
+function WorldSemanticsSnapshot({
   semantic,
   cultivationData,
 }: {
@@ -314,7 +314,7 @@ export function WorldCoreRulesSection({
       dataTestId="world-detail-core-rules"
     >
       <div className="grid gap-5">
-        <WorldRulesSnapshot semantic={semantic} cultivationData={cultivationData} />
+        <WorldSemanticsSnapshot semantic={semantic} cultivationData={cultivationData} />
 
         {hasOperation ? <WorldOperationCard semantic={semantic} /> : null}
 

@@ -2,6 +2,7 @@ import { realmSourceDetailData } from './data/realm-source-detail-data';
 import { parseOptionalJsonObject, type JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
 import {
   loadRealmPersonaSourceAdmissionProjection,
+  resolveRealmSourceConnection,
   resolveRealmPersonaSourceState,
 } from '@renderer/features/explore/realm-persona-source-admission';
 import type { SourceDetailData } from './source-detail-model.js';
@@ -53,11 +54,17 @@ export async function fetchSourceDisplayDetail(sourceIdentifier: string): Promis
     realmSourceDetailData.loadRealmSourceDetailsForDisplay(normalizedIdentifier),
     loadRealmPersonaSourceAdmissionProjection(),
   ]);
-  const sourceId = String(result.id || '').trim();
-  const sourceState = resolveRealmPersonaSourceState(sourceId, socialProjection);
+  const sourceState = resolveRealmPersonaSourceState(result, socialProjection);
+  const connection = resolveRealmSourceConnection(result, socialProjection);
+  const sourceResult = connection
+    ? {
+        ...result,
+        runtimeSourceRef: connection.runtimeSourceRef,
+      }
+    : result;
   return {
-    source: toSourceDetailData(result, sourceState),
-    stats: normalizeSourceStats(result),
-    worldScore: normalizeWorldScore(result),
+    source: toSourceDetailData(sourceResult, sourceState),
+    stats: normalizeSourceStats(sourceResult),
+    worldScore: normalizeWorldScore(sourceResult),
   };
 }

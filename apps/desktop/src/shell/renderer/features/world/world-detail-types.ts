@@ -1,3 +1,5 @@
+import type { NimiRealmCoreSourceRef } from '@nimiplatform/sdk/realm';
+
 export type WorldRecommendedCharacterDisplay = {
   readonly role?: string | null;
   readonly faction?: string | null;
@@ -11,6 +13,7 @@ export type WorldRecommendedCharacter = {
   readonly name: string;
   readonly handle?: string | null;
   readonly avatarUrl?: string | null;
+  readonly sourceRef?: NimiRealmCoreSourceRef | null;
   readonly importance?: 'PRIMARY' | 'SECONDARY' | 'BACKGROUND' | null;
   readonly display?: WorldRecommendedCharacterDisplay | null;
 };
@@ -68,6 +71,7 @@ export type WorldCharacter = {
   readonly name: string;
   readonly handle: string;
   readonly bio: string;
+  readonly sourceRef: NimiRealmCoreSourceRef;
   readonly role?: string | null;
   readonly faction?: string | null;
   readonly rank?: string | null;
@@ -213,15 +217,6 @@ export type WorldAuditItem = {
   readonly freezeReason?: string | null;
 };
 
-export type WorldLorebookItem = {
-  readonly id: string;
-  readonly key: string;
-  readonly name?: string | null;
-  readonly content: string;
-  readonly keywords: readonly string[];
-  readonly priority?: number | null;
-};
-
 export type WorldSceneItem = {
   readonly id: string;
   readonly name: string;
@@ -229,28 +224,28 @@ export type WorldSceneItem = {
   readonly activeEntities: readonly string[];
 };
 
-export type WorldBindingItem = {
-  readonly id: string;
-  readonly objectType: string;
-  readonly objectId: string;
-  readonly hostType: string;
-  readonly hostId: string;
-  readonly bindingKind: string;
-  readonly bindingPoint?: string | null;
-  readonly priority: number;
-  readonly tags: readonly string[];
-  readonly resource: {
-    readonly id: string;
-    readonly url: string;
-    readonly resourceType: string;
-    readonly label?: string | null;
-  };
+export type WorldAssetResourceRef = {
+  readonly refId: string;
+  readonly kind: string;
+  readonly purpose?: string | null;
+  readonly label?: string | null;
+};
+
+export type WorldAssetExternalRef = WorldAssetResourceRef & {
+  readonly uri: string;
+};
+
+export type WorldAssetIntent = {
+  readonly intentId: string;
+  readonly kind: string;
+  readonly summary?: string | null;
 };
 
 export type WorldPublicAssetsData = {
-  readonly lorebooks: readonly WorldLorebookItem[];
+  readonly resourceRefs: readonly WorldAssetResourceRef[];
+  readonly externalRefs: readonly WorldAssetExternalRef[];
+  readonly intents: readonly WorldAssetIntent[];
   readonly scenes: readonly WorldSceneItem[];
-  readonly bindings: readonly WorldBindingItem[];
 };
 
 export type WorldDetailLayoutCard<Key extends string = string> = {

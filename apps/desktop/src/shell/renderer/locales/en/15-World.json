@@ -15,7 +15,7 @@
   "totalPlayers": "Total Players",
   "averageSession": "Average Session",
   "worldStability": "World Stability",
-  "totalAgent": "Total Agent",
+  "totalAgent": "Total Characters",
   "time": "Time",
   "worldScoring": "World Scoring",
   "syncTicker": "World Sync",
@@ -68,123 +68,5 @@
     "enter": "Enter world",
     "featured": "Featured world",
     "noMatch": "No worlds match that filter."
-  },
-  "createAgent": {
-    "title": "Create New Agent",
-    "subtitle": "Bring a new character to life in {{worldName}}",
-    "close": "Close create agent drawer",
-    "uploadAvatar": "Upload avatar",
-    "changeAvatar": "Change avatar",
-    "avatarPreview": "Agent avatar preview",
-    "avatarImageRequired": "Please choose an image file.",
-    "avatarTooLarge": "Avatar image must be 5MB or smaller.",
-    "avatarReadFailed": "Failed to read avatar image.",
-    "notAdmitted": "Create Agent is not admitted in this surface.",
-    "sections": {
-      "identity": "Identity",
-      "character": "Character",
-      "personality": "Personality DNA",
-      "wakeStrategy": "Wake Strategy",
-      "visibility": "Visibility"
-    },
-    "handle": "Handle",
-    "handlePlaceholder": "agent_unique_id",
-    "displayName": "Display Name",
-    "displayNamePlaceholder": "Public identity name",
-    "concept": "Concept",
-    "conceptPlaceholder": "The core essence",
-    "description": "Description",
-    "descriptionPlaceholder": "Public-facing",
-    "scenario": "Scenario",
-    "scenarioPlaceholder": "The world context",
-    "greeting": "Greeting",
-    "greetingPlaceholder": "How they introduce themselves",
-    "primaryTrait": "Primary Trait",
-    "secondaryTraitsLabel": "Secondary Traits",
-    "wakeStrategyPassiveTitle": "Passive",
-    "wakeStrategyPassiveDescription": "Waits for a direct trigger before acting.",
-    "wakeStrategyProactiveTitle": "Proactive",
-    "wakeStrategyProactiveDescription": "Can initiate reactions when the world shifts.",
-    "primaryTraits": {
-      "CARING": "Caring",
-      "PLAYFUL": "Playful",
-      "INTELLECTUAL": "Intellectual",
-      "CONFIDENT": "Confident",
-      "MYSTERIOUS": "Mysterious",
-      "ROMANTIC": "Romantic"
-    },
-    "secondaryTraits": {
-      "HUMOROUS": "Humorous",
-      "SARCASTIC": "Sarcastic",
-      "GENTLE": "Gentle",
-      "DIRECT": "Direct",
-      "OPTIMISTIC": "Optimistic",
-      "REALISTIC": "Realistic",
-      "DRAMATIC": "Dramatic",
-      "PASSIONATE": "Passionate",
-      "REBELLIOUS": "Rebellious",
-      "INNOCENT": "Innocent",
-      "WISE": "Wise",
-      "ECCENTRIC": "Eccentric"
-    },
-    "cancel": "Cancel",
-    "creating": "Creating...",
-    "submit": "Create RealmPersona",
-    "avatar": "Avatar",
-    "avatarUploadFailed": "Avatar upload failed, please retry.",
-    "failed": "Could not create the RealmPersona, please retry.",
-    "back": "Back",
-    "toReview": "Review draft",
-    "confirmCreate": "Confirm & create RealmPersona",
-    "step": {
-      "modeSelect": "Create New RealmPersona",
-      "draftEditor": "Edit draft",
-      "review": "Review & create"
-    },
-    "modes": {
-      "prompt": "Choose how to start this RealmPersona.",
-      "manualTitle": "Manual quick create",
-      "manualDesc": "Fill the RealmPersona fields yourself.",
-      "importTitle": "Source package import",
-      "importDesc": "Import an admitted RealmPersona source package.",
-      "aiTitle": "AI-assisted generation",
-      "aiDesc": "Describe the concept; Nimi generates a candidate draft."
-    },
-    "recover": {
-      "title": "Recover unfinished draft",
-      "description": "A previous creation draft for this World was not finished. Resume it."
-    },
-    "import": {
-      "prompt": "Select an admitted RealmPersona source package. Nimi validates it locally and maps it to a draft you can review.",
-      "choose": "Choose source package",
-      "parsing": "Validating package...",
-      "failed": "Could not import this package"
-    },
-    "ai": {
-      "prompt": "Describe the RealmPersona you want. Nimi generates a candidate draft for you to review and edit.",
-      "placeholder": "e.g. A wandering cartographer who collects forgotten star maps and speaks in riddles.",
-      "generate": "Generate draft",
-      "generating": "Generating draft..."
-    },
-    "review": {
-      "gateTitle": "Review before creating",
-      "gateDescription": "Nothing has been written to {{worldName}} yet. The RealmPersona is created only when you confirm below.",
-      "source": "Draft source: {{source}}",
-      "willWrite": "Becomes WorldCore data",
-      "draftOnly": "Kept in draft (not written by current creation contract)",
-      "warningsTitle": "{{count}} warning(s)",
-      "notSet": "Not set",
-      "avatarSelected": "Image selected"
-    },
-    "rejection": {
-      "title": "Creation could not be completed",
-      "recoverable": "Your draft is kept — adjust it and try again."
-    },
-    "visibility": {
-      "publishedTitle": "Published",
-      "publishedDesc": "Discoverable across the World as a public RealmPersona.",
-      "unlistedTitle": "Unlisted",
-      "unlistedDesc": "Created but kept out of public discovery for now."
-    }
   }
 }

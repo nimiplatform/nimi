@@ -39,6 +39,20 @@ function asRecord(value: unknown): Record<string, unknown> {
     : {};
 }
 
+function readExternalAssetUri(core: Record<string, unknown>, kinds: readonly string[]): string | undefined {
+  const assets = asRecord(core.assets);
+  const refs = Array.isArray(assets.externalRefs) ? assets.externalRefs : [];
+  for (const ref of refs) {
+    const record = asRecord(ref);
+    const kind = normalizeText(record.kind);
+    if (kind && kinds.includes(kind)) {
+      const uri = normalizeText(record.uri);
+      if (uri) return uri;
+    }
+  }
+  return undefined;
+}
+
 function failRealmPersonaContract(reasonCode: string, message: string): never {
   const error = new Error(message) as Error & { reasonCode?: string };
   error.reasonCode = reasonCode;
@@ -76,7 +90,7 @@ export async function loadExplorePersonas(
       void emitRealmExploreError;
       const rows = await realm.worldCore.worldCoreControllerListRealmPersonas({
         path: {},
-        query: { limit },
+        query: { take: limit, visibility: 'public' },
       });
       if (!Array.isArray(rows)) {
         failRealmPersonaContract(
@@ -95,44 +109,49 @@ export async function loadExplorePersonas(
         const contentProfile = asRecord(core.contentProfile);
         const personaStyle = asRecord(core.personaStyle);
         const origin = asRecord(persona.origin);
-        const displayName = normalizeText(identity.name)
-          ?? normalizeText(presentation.displayName)
-          ?? normalizeText(presentation.name)
-          ?? normalizeText(core.displayName)
-          ?? normalizeText(core.name)
+        const homeWorldId = normalizeText(persona.homeWorldId)
+          ?? normalizeText(interactionProfile.homeWorldId);
+        const contentHash = normalizeText(persona.contentHash);
+        const sourceRef = homeWorldId && contentHash
+          ? {
+              kind: 'realmPersona' as const,
+              worldId: homeWorldId,
+              sourceId: String(persona.id),
+              sourceContentHash: contentHash,
+            }
+          : null;
+        const displayName = normalizeText(presentation.displayName)
+          ?? normalizeText(identity.name)
           ?? String(persona.id);
         const handle = normalizeText(identity.handle)
-          ?? normalizeText(presentation.handle)
-          ?? normalizeText(core.handle)
           ?? displayName;
         const tags = Array.isArray(contentProfile.topics)
           ? contentProfile.topics.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
-          : Array.isArray(core.tags)
-            ? core.tags.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
-            : [];
+          : [];
         return {
-          ...core,
           id: persona.id,
           displayName,
           name: displayName,
           handle,
-          avatarUrl: normalizeText(presentation.avatarUrl)
-            ?? normalizeText(presentation.portraitUrl)
-            ?? normalizeText(core.avatarUrl)
+          avatarUrl: normalizeText(presentation.avatarResourceRef)
+            ?? readExternalAssetUri(core, ['avatar', 'referenceImage'])
             ?? null,
           bio: normalizeText(identity.summary)
             ?? normalizeText(presentation.profileLine)
             ?? normalizeText(presentation.shortBio)
-            ?? normalizeText(core.bio)
-            ?? normalizeText(core.description)
             ?? null,
           tags,
-          sourceProfile: core,
+          source: core,
           sourceKind: 'realmPersona',
-          category: normalizeText(personaStyle.voice) ?? normalizeText(core.category),
-          origin: normalizeText(origin.kind) ?? normalizeText(core.origin),
-          wakeStrategy: normalizeText(personaStyle.pacing) ?? normalizeText(core.wakeStrategy),
-          worldId: normalizeText(persona.homeWorldId) ?? normalizeText(interactionProfile.homeWorldId),
+          sourceId: persona.id,
+          sourceContentHash: contentHash ?? null,
+          sourceRef,
+          runtimeSourceRef: null,
+          visibility: normalizeText(persona.visibility) ?? null,
+          archetype: normalizeText(personaStyle.archetype) ?? normalizeText(personaStyle.voice),
+          origin: normalizeText(origin.kind),
+          pacing: normalizeText(personaStyle.pacing),
+          worldId: homeWorldId,
           createdAt: persona.createdAt,
           updatedAt: persona.updatedAt,
         };

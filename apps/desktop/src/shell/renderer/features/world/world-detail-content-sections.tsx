@@ -233,33 +233,45 @@ function WorldEvolutionSection({ semantic }: { semantic: WorldSemanticData }) {
   );
 }
 
-function WorldKnowledgeCard({ lorebooks }: { lorebooks: WorldPublicAssetsData['lorebooks'] }) {
+function WorldAssetsCard({ publicAssets }: { publicAssets: WorldPublicAssetsData }) {
   const { t } = useTranslation();
-  if (!lorebooks.length) {
+  const items = [
+    ...publicAssets.externalRefs.map((ref) => ({
+      id: ref.refId,
+      title: ref.label || ref.refId,
+      description: ref.purpose || ref.kind,
+      meta: ref.uri,
+    })),
+    ...publicAssets.resourceRefs.map((ref) => ({
+      id: ref.refId,
+      title: ref.label || ref.refId,
+      description: ref.purpose || ref.kind,
+      meta: ref.kind,
+    })),
+    ...publicAssets.intents.map((intent) => ({
+      id: intent.intentId,
+      title: intent.kind,
+      description: intent.summary || intent.kind,
+      meta: intent.intentId,
+    })),
+  ];
+  if (!items.length) {
     return null;
   }
 
   return (
     <SectionShell
-      title={t('WorldDetail.xianxia.v2.extended.knowledgeTitle')}
-      subtitle={t('WorldDetail.xianxia.v2.extended.knowledgeSubtitle')}
+      title={t('WorldDetail.xianxia.v2.extended.assetsTitle')}
+      subtitle={t('WorldDetail.xianxia.v2.extended.assetsSubtitle')}
       className="h-full"
-      dataTestId="world-detail-knowledge-card"
+      dataTestId="world-detail-assets-card"
     >
       <div className="grid gap-3 md:grid-cols-2">
-        {lorebooks.slice(0, 8).map((lorebook) => (
-          <div key={lorebook.id} className="rounded-2xl border border-[#4ECCA3]/10 bg-[#0a0f0c]/56 p-4">
-            <div className="text-base font-semibold text-[#effff8]">{lorebook.name || lorebook.key}</div>
-            <div className="mt-2 line-clamp-4 text-sm leading-relaxed text-[#d8efe4]/66">{lorebook.content}</div>
-            {lorebook.keywords.length ? (
-              <div className="mt-3 flex flex-wrap gap-2">
-                {lorebook.keywords.slice(0, 4).map((keyword) => (
-                  <span key={`${lorebook.id}-${keyword}`} className="rounded-full border border-[#4ECCA3]/16 bg-[#4ECCA3]/10 px-2.5 py-1 text-[11px] text-[#86f0ca]">
-                    {keyword}
-                  </span>
-                ))}
-              </div>
-            ) : null}
+        {items.slice(0, 8).map((item) => (
+          <div key={item.id} className="rounded-2xl border border-[#4ECCA3]/10 bg-[#0a0f0c]/56 p-4">
+            <div className="text-base font-semibold text-[#effff8]">{item.title}</div>
+            <div className="mt-2 line-clamp-4 text-sm leading-relaxed text-[#d8efe4]/66">{item.description}</div>
+            <div className="mt-3 text-[11px] text-[#86f0ca]/74">{item.meta}</div>
           </div>
         ))}
       </div>
@@ -269,17 +281,17 @@ function WorldKnowledgeCard({ lorebooks }: { lorebooks: WorldPublicAssetsData['l
 
 function WorldRuntimeSummaryCard({
   world,
-  lorebookCount,
+  assetCount,
   sceneCount,
 }: {
   world: WorldDetailData;
-  lorebookCount: number;
+  assetCount: number;
   sceneCount: number;
 }) {
   const { t } = useTranslation();
   const facts = [
     { label: t('WorldDetail.xianxia.v2.runtimeFacts.characterCount'), value: `${world.characterCount}` },
-    { label: t('WorldDetail.xianxia.v2.runtimeFacts.lorebookCount'), value: `${lorebookCount}` },
+    { label: t('WorldDetail.xianxia.v2.runtimeFacts.assetCount'), value: `${assetCount}` },
     { label: t('WorldDetail.xianxia.v2.runtimeFacts.sceneCount'), value: `${sceneCount}` },
     {
       label: t('WorldDetail.xianxia.v2.runtimeFacts.creationState'),
@@ -372,24 +384,25 @@ export function WorldExtendedSection({
   publicAssets: WorldPublicAssetsData;
   auditsLoading?: boolean;
 }) {
-  const hasKnowledge = publicAssets.lorebooks.length > 0;
+  const assetCount = publicAssets.resourceRefs.length + publicAssets.externalRefs.length + publicAssets.intents.length;
+  const hasAssets = assetCount > 0;
   const hasGovernance = audits.length > 0 || Boolean(auditsLoading);
-  const hasRuntimeOrGovernance = hasGovernance || world.characterCount > 0 || publicAssets.lorebooks.length > 0 || publicAssets.scenes.length > 0;
+  const hasRuntimeOrGovernance = hasGovernance || world.characterCount > 0 || assetCount > 0 || publicAssets.scenes.length > 0;
 
-  if (!hasKnowledge && !hasRuntimeOrGovernance && !semantic.worldviewEvents.length && !semantic.worldviewSnapshots.length) {
+  if (!hasAssets && !hasRuntimeOrGovernance && !semantic.worldviewEvents.length && !semantic.worldviewSnapshots.length) {
     return null;
   }
 
   return (
     <div className="grid gap-5" data-testid="world-detail-extended">
       <WorldEvolutionSection semantic={semantic} />
-      {hasKnowledge ? <WorldKnowledgeCard lorebooks={publicAssets.lorebooks} /> : null}
+      {hasAssets ? <WorldAssetsCard publicAssets={publicAssets} /> : null}
       {hasRuntimeOrGovernance ? (
         <div className="grid gap-5 xl:grid-cols-12">
           <div className={hasGovernance ? 'xl:col-span-5' : 'xl:col-span-12'}>
             <WorldRuntimeSummaryCard
               world={world}
-              lorebookCount={publicAssets.lorebooks.length}
+              assetCount={assetCount}
               sceneCount={publicAssets.scenes.length}
             />
           </div>

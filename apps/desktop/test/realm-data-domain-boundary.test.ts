@@ -33,7 +33,7 @@ function readTree(relativePath: string): string {
   return chunks.join('\n');
 }
 
-test('Realm Data domain surfaces consume SDK or Kit projections instead of app-owned service facades', () => {
+test('Realm Data domain surfaces consume SDK or Kit views instead of app-owned service facades', () => {
   const groupDataSource = readRenderer('features/chat/data/realm-group-chat-data.ts');
   const notificationPanelSource = readRenderer('features/notification/notification-panel.tsx');
   const humanComposerSource = readRenderer('features/chat/chat-human-canonical-composer-profile.tsx');
@@ -45,12 +45,12 @@ test('Realm Data domain surfaces consume SDK or Kit projections instead of app-o
   const privacySource = readRenderer('features/settings/settings-privacy-page.tsx');
 
   assert.match(groupDataSource, /listNimiRealmGroupChats/);
-  assert.match(groupDataSource, /commitNimiRealmGroupMessageCandidate/);
+  assert.match(groupDataSource, /commitNimiRealmGroupSourceMessageCandidate/);
   assert.doesNotMatch(groupDataSource, /listRealmGroupChats/);
   assert.doesNotMatch(groupDataSource, /getPlatformClient/);
   assert.doesNotMatch(groupDataSource, /GroupChatsService\./);
 
-  assert.match(notificationPanelSource, /toNimiRealmNotificationListProjection/);
+  assert.match(notificationPanelSource, /toNimiRealmNotificationListView/);
   assert.match(notificationPanelSource, /@nimiplatform\/kit\/core\/notifications/);
   assert.match(notificationPanelSource, /getNimiNotificationCategory/);
   assert.doesNotMatch(notificationPanelSource, /getRealmNotificationCategory/);

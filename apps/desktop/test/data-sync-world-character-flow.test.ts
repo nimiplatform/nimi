@@ -37,21 +37,20 @@ describe('D-DSYNC-005: world flow source scanning', () => {
     );
   });
 
-  test('D-DSYNC-005: public world asset loaders use the public WorldsService endpoints', () => {
+  test('D-DSYNC-005: public world asset loader uses canonical WorldCore assets', () => {
     assert.ok(
-      worldFlowSource.includes('export async function loadWorldLorebooks'),
-      'loadWorldLorebooks must be exported from world-flow',
+      worldFlowSource.includes('export async function loadWorldAssets'),
+      'loadWorldAssets must be exported from world-flow',
     );
-    assert.ok(
-      worldFlowSource.includes('export async function loadWorldBindings'),
-      'loadWorldBindings must be exported from world-flow',
-    );
+    assert.doesNotMatch(worldFlowSource, /export async function loadWorldLorebooks/);
+    assert.doesNotMatch(worldFlowSource, /export async function loadWorldBindings/);
   });
 
   test('D-DSYNC-005: public world data reads WorldCore and WorldCharacterCore surfaces', () => {
     assert.match(worldFlowSource, /worldCoreControllerGetWorldCore/);
     assert.match(worldFlowSource, /worldCoreControllerListWorldCharacters/);
     assert.match(worldFlowSource, /from '@nimiplatform\/sdk\/realm'/);
+    assert.doesNotMatch(worldFlowSource, /readNumber\(payload, 'characterCount'\)/);
     assert.doesNotMatch(worldFlowSource, /@nimiplatform\/sdk\/world/);
     assert.doesNotMatch(worldFlowSource, /@nimiplatform\/sdk\/runtimeSource/);
   });

@@ -1,3 +1,4 @@
+import type { NimiRealmCoreSourceRef } from '@nimiplatform/sdk/realm';
 import { isMainWorldType } from './shared';
 
 type LooseObject = { [key: string]: unknown };
@@ -10,6 +11,7 @@ type WorldCharacterSummaryDto = {
   bio?: string | null;
   avatarUrl?: string | null;
   createdAt?: string;
+  sourceRef?: NimiRealmCoreSourceRef | null;
 };
 
 export type WorldCharacterItem = {
@@ -19,6 +21,7 @@ export type WorldCharacterItem = {
   bio?: string;
   avatarUrl?: string | null;
   createdAt?: string;
+  sourceRef?: NimiRealmCoreSourceRef | null;
 };
 
 export type WorldComputedTime = {
@@ -261,12 +264,34 @@ function resolveCreatorId(raw: WorldDetailDto): string | null {
   );
 }
 
+function requireWorldDisplayRecord(raw: WorldDetailDto): LooseObject {
+  const core = readRecord(raw.core);
+  if (!core) {
+    throw new Error('World list item requires validated WorldCoreV1 display projection');
+  }
+  for (const field of ['id', 'name', 'createdAt']) {
+    if (!readString(raw[field])) {
+      throw new Error(`World list item requires ${field}`);
+    }
+  }
+  if (!readString(raw.contentHash) || readNumber(raw.contentRevision) == null || !readString(raw.schemaVersion)) {
+    throw new Error('World list item requires WorldCoreV1 hash, revision, and schemaVersion');
+  }
+  if (!readRecord(raw.origin) || !readString(readRecord(raw.origin)?.kind)) {
+    throw new Error('World list item requires WorldCoreV1 origin');
+  }
+  if (!readString(raw.visibility)) {
+    throw new Error('World list item requires WorldCoreV1 visibility');
+  }
+  return core;
+}
+
 export function isMainWorld(item: Pick<WorldListItem, 'type' | 'creatorId'>): boolean {
   return isMainWorldType(item.type) || !item.creatorId;
 }
 
 export function toWorldListItem(raw: WorldDetailDto | WorldDetailWithCharactersDto): WorldListItem {
-  const core = readRecord(raw.core) ?? raw;
+  const core = requireWorldDisplayRecord(raw);
   const identity = readRecord(core.identity);
   const presentation = readRecord(core.presentation);
   const timeModel = readRecord(core.timeModel);
@@ -280,6 +305,7 @@ export function toWorldListItem(raw: WorldDetailDto | WorldDetailWithCharactersD
         bio: character.bio ?? undefined,
         avatarUrl: character.avatarUrl ?? null,
         createdAt: character.createdAt,
+        sourceRef: character.sourceRef ?? null,
       };
     });
   }
@@ -295,7 +321,9 @@ export function toWorldListItem(raw: WorldDetailDto | WorldDetailWithCharactersD
     name: readString(raw.name)
       ?? readNamedString(identity, 'name', 'title', 'displayName')
       ?? readNamedString(presentation, 'title', 'displayName', 'name')
-      ?? 'Unknown World',
+      ?? (() => {
+        throw new Error('World list item requires display name');
+      })(),
     description: readString(raw.description)
       ?? readNamedString(identity, 'summary', 'description')
       ?? readNamedString(presentation, 'summary', 'description', 'tagline'),

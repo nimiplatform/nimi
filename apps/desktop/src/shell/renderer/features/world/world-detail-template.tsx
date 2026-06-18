@@ -43,7 +43,7 @@ export type WorldDetailPageProps = {
   onEnterEdit?: () => void;
   onCreateSubWorld?: () => void;
   // No onChatCharacter / onVoiceCharacter: a WorldCharacter offers View profile only.
-  // Chat is materialized only after RuntimeSourceSnapshot handoff.
+  // Chat is materialized only from a hash-bearing runtime source target.
   onViewCharacter?: (character: WorldCharacter) => void;
 };
 

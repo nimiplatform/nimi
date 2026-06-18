@@ -37,7 +37,8 @@ test('world semantic bundle no longer fetches world detail before worldview', ()
   const semanticEnd = worldFlowSource.indexOf('\nexport const realmWorldData', semanticStart);
   const semanticBundleSection = worldFlowSource.slice(semanticStart, semanticEnd);
   assert.match(semanticBundleSection, /getWorldCore\(realm, worldId\)/);
-  assert.match(semanticBundleSection, /semanticBundle/);
+  assert.match(semanticBundleSection, /asRecord\(world\?\.core\)/);
+  assert.doesNotMatch(semanticBundleSection, /semanticBundle\s*\?\?/);
   assert.doesNotMatch(semanticBundleSection, /loadWorldDetailById/);
   assert.doesNotMatch(semanticBundleSection, /catch\s*\{\s*return null;\s*\}/);
 });
@@ -96,7 +97,7 @@ test('explore shares the world list cache key and does not refetch characters wh
   assert.match(explorePanelSource, /fetchWorldListItems\(\)/);
   assert.match(explorePanelSource, /queryKey: worldListQueryKey\(\)/);
   assert.match(explorePanelSource, /queryKey: \['explore-personas', authStatus, selectedCategory, props\.searchText\]/);
-  assert.match(explorePanelSource, /const characters = useMemo\(/);
+  assert.match(explorePanelSource, /const personaSources = useMemo\(/);
   assert.doesNotMatch(explorePanelSource, /dataSync\.loadWorlds\(/);
   assert.doesNotMatch(explorePanelSource, /worldsDataVersion/);
 });

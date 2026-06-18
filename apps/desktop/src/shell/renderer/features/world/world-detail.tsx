@@ -66,9 +66,10 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
   };
   const safeAudits = display?.audits ?? [];
   const safePublicAssets = display?.publicAssets ?? {
-    lorebooks: [],
+    resourceRefs: [],
+    externalRefs: [],
+    intents: [],
     scenes: [],
-    bindings: [],
   };
 
   useEffect(() => {
@@ -150,8 +151,8 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
     });
   }, [display, world.id]);
 
-  // World characters are not chat-reachable from World detail. Chat materializes
-  // only after a RuntimeSourceSnapshot creates a LocalCharacter by value.
+  // World characters are not chat-reachable from World detail. Chat opens only
+  // after a connected source is materialized into a runtime localAgent by value.
   const handleViewCharacter = (character: WorldCharacter) => {
     navigateToProfile(character.id, 'source-detail');
   };

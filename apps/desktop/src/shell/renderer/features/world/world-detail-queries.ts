@@ -3,14 +3,15 @@ import { queryClient } from '@renderer/infra/query-client/query-client';
 import type {
   WorldCharacter,
   WorldCharacterStats,
+  WorldAssetExternalRef,
+  WorldAssetIntent,
+  WorldAssetResourceRef,
   WorldAuditItem,
-  WorldBindingItem,
   WorldDetailData,
   WorldHistoryBundle,
   WorldHistoryEvidenceRef,
   WorldHistoryItem,
   WorldHistorySummary,
-  WorldLorebookItem,
   WorldPublicAssetsData,
   WorldSceneItem,
   WorldSemanticData,
@@ -69,9 +70,10 @@ const EMPTY_WORLD_SEMANTIC: WorldSemanticData = {
 };
 
 const EMPTY_WORLD_PUBLIC_ASSETS: WorldPublicAssetsData = {
-  lorebooks: [],
+  resourceRefs: [],
+  externalRefs: [],
+  intents: [],
   scenes: [],
-  bindings: [],
 };
 
 function normalizeWorldId(worldId: string): string {
@@ -232,10 +234,6 @@ export function worldHistoryQueryKey(worldId: string) {
 
 export function worldSemanticBundleQueryKey(worldId: string) {
   return ['world-semantic-bundle', normalizeWorldId(worldId)] as const;
-}
-
-export function worldLevelAuditsQueryKey(worldId: string) {
-  return ['world-level-audits', normalizeWorldId(worldId)] as const;
 }
 
 export function worldPublicAssetsQueryKey(worldId: string) {
@@ -457,110 +455,64 @@ export async function fetchWorldSemanticBundle(worldId: string): Promise<WorldSe
   return toWorldDisplaySemanticBundle(payload);
 }
 
-function toWorldDisplayAuditItem(rawValue: unknown, index: number): WorldAuditItem {
+function toWorldDisplayResourceRef(rawValue: unknown, index: number): WorldAssetResourceRef {
   const raw = asRecord(rawValue);
+  const refId = readString(raw, 'refId') || `resource-ref-${index + 1}`;
   return {
-    id: readString(raw, 'id') || `audit-${index + 1}`,
-    label: readString(raw, 'label', 'eventType') || 'World audit',
-    eventType: readString(raw, 'eventType') || null,
-    occurredAt: readString(raw, 'occurredAt', 'createdAt') || new Date(0).toISOString(),
-    prevLevel: readNumber(raw.prevLevel) ?? null,
-    nextLevel: readNumber(raw.nextLevel) ?? null,
-    ewmaScore: readNumber(raw.ewmaScore) ?? null,
-    freezeReason: readString(raw, 'freezeReason') || null,
+    refId,
+    kind: readString(raw, 'kind') || 'resource',
+    purpose: readString(raw, 'purpose') || null,
+    label: readString(raw, 'label') || null,
   };
 }
 
-export async function fetchWorldLevelAudits(worldId: string): Promise<WorldAuditItem[]> {
-  const payload = await realmWorldData.loadWorldLevelAudits(normalizeWorldId(worldId), 20);
-  return payload.map(toWorldDisplayAuditItem);
+function toWorldDisplayExternalRef(rawValue: unknown, index: number): WorldAssetExternalRef | null {
+  const raw = asRecord(rawValue);
+  const uri = readString(raw, 'uri');
+  if (!uri) {
+    return null;
+  }
+  return {
+    ...toWorldDisplayResourceRef(raw, index),
+    uri,
+  };
 }
 
-function toWorldDisplayLorebookItem(rawValue: unknown, index: number): WorldLorebookItem {
+function toWorldDisplayAssetIntent(rawValue: unknown, index: number): WorldAssetIntent {
   const raw = asRecord(rawValue);
-  const id = readString(raw, 'id') || `lorebook-${index + 1}`;
+  const intentId = readString(raw, 'intentId') || `asset-intent-${index + 1}`;
   return {
-    id,
-    key: readString(raw, 'key') || id,
-    name: readString(raw, 'name') || null,
-    content: readString(raw, 'content', 'summary'),
-    keywords: readStringArray(raw.keywords),
-    priority: readNumber(raw.priority) ?? null,
+    intentId,
+    kind: readString(raw, 'kind') || 'asset',
+    summary: readString(raw, 'summary') || null,
   };
 }
 
 function toWorldDisplaySceneItem(rawValue: unknown, index: number): WorldSceneItem {
   const raw = asRecord(rawValue);
   return {
-    id: readString(raw, 'id') || `scene-${index + 1}`,
+    id: readString(raw, 'sceneId', 'id') || `scene-${index + 1}`,
     name: readString(raw, 'name', 'title') || 'Unnamed scene',
-    description: readString(raw, 'description', 'summary'),
-    activeEntities: readStringArray(raw.activeEntities).length
-      ? readStringArray(raw.activeEntities)
-      : readStringArray(raw.entityRefs).length
-        ? readStringArray(raw.entityRefs)
-        : readStringArray(raw.sourceRefs),
-  };
-}
-
-function failWorldPublicAsset(reasonCode: string, message: string): never {
-  const error = new Error(message) as Error & { reasonCode?: string };
-  error.reasonCode = reasonCode;
-  throw error;
-}
-
-function requireWorldAssetString(
-  record: JsonRecord,
-  field: string,
-  reasonCode: string,
-  message: string,
-): string {
-  const value = readString(record, field);
-  if (!value) {
-    failWorldPublicAsset(reasonCode, message);
-  }
-  return value;
-}
-
-function toWorldDisplayBindingItem(rawValue: unknown, index: number): WorldBindingItem {
-  const raw = asRecord(rawValue);
-  const resource = asRecord(raw.resource);
-  const id = readString(raw, 'id') || `binding-${index + 1}`;
-  return {
-    id,
-    objectType: readString(raw, 'objectType') || 'UNKNOWN',
-    objectId: readString(raw, 'objectId') || '',
-    hostType: readString(raw, 'hostType') || 'WORLD',
-    hostId: readString(raw, 'hostId') || '',
-    bindingKind: readString(raw, 'bindingKind') || 'RESOURCE',
-    bindingPoint: readString(raw, 'bindingPoint') || null,
-    priority: readNumber(raw.priority) ?? 0,
-    tags: readStringArray(raw.tags),
-    resource: {
-      id: readString(resource, 'id') || `${id}-resource`,
-      url: requireWorldAssetString(
-        resource,
-        'url',
-        'SDK_REALM_WORLD_DISPLAY_BINDING_RESOURCE_URL_INVALID',
-        `World display binding ${id} is missing resource.url`,
-      ),
-      resourceType: readString(resource, 'resourceType') || 'UNKNOWN',
-      label: readString(resource, 'label') || null,
-    },
+    description: readString(raw, 'summary', 'description'),
+    activeEntities: readStringArray(raw.entityRefs).length
+      ? readStringArray(raw.entityRefs)
+      : readStringArray(raw.assetRefs),
   };
 }
 
 export async function fetchWorldPublicAssets(worldId: string): Promise<WorldPublicAssetsData> {
   const normalizedWorldId = normalizeWorldId(worldId);
-  const [lorebooksPayload, bindingsPayload, scenesPayload] = await Promise.all([
-    realmWorldData.loadWorldLorebooks(normalizedWorldId),
-    realmWorldData.loadWorldBindings(normalizedWorldId),
+  const [assetsPayload, scenesPayload] = await Promise.all([
+    realmWorldData.loadWorldAssets(normalizedWorldId),
     realmWorldData.loadWorldScenes(normalizedWorldId),
   ]);
   return {
-    lorebooks: lorebooksPayload.items.map(toWorldDisplayLorebookItem),
+    resourceRefs: assetsPayload.resourceRefs.map(toWorldDisplayResourceRef),
+    externalRefs: assetsPayload.externalRefs
+      .map(toWorldDisplayExternalRef)
+      .filter((item): item is WorldAssetExternalRef => item !== null),
+    intents: assetsPayload.intents.map(toWorldDisplayAssetIntent),
     scenes: scenesPayload.items.map(toWorldDisplaySceneItem),
-    bindings: bindingsPayload.items.map(toWorldDisplayBindingItem),
   };
 }
 
@@ -569,11 +521,30 @@ function toWorldDisplayCharacter(characterValue: unknown, worldCreatedAt: string
   const display = asRecord(character.display);
   const stats = asRecord(character.stats);
   const importance = readStringValue(character.importance);
+  const sourceRef = asRecord(character.sourceRef);
+  const sourceKind = readString(sourceRef, 'kind');
+  const sourceWorldId = readString(sourceRef, 'worldId');
+  const sourceId = readString(sourceRef, 'sourceId');
+  const sourceContentHash = readString(sourceRef, 'sourceContentHash');
+  if (
+    sourceKind !== 'worldCharacter'
+    || !sourceWorldId
+    || !sourceId
+    || !sourceContentHash
+  ) {
+    throw new Error('WorldCharacter display requires hash-bearing worldCharacter sourceRef');
+  }
   return {
     id: readString(character, 'id'),
     name: readString(character, 'name', 'displayName') || 'Unknown',
     handle: readString(character, 'handle'),
     bio: readString(character, 'bio', 'description'),
+    sourceRef: {
+      kind: sourceKind,
+      worldId: sourceWorldId,
+      sourceId,
+      sourceContentHash,
+    },
     role: readString(display, 'role') || null,
     faction: readString(display, 'faction') || null,
     rank: readString(display, 'rank') || null,
@@ -591,10 +562,9 @@ export async function fetchWorldDisplayDetail(worldId: string): Promise<WorldDis
   const world = toWorldDisplayData(primary);
   const characterRecords = Array.isArray(primary.characters) ? primary.characters : [];
   const characters = characterRecords.map((character) => toWorldDisplayCharacter(character, world.createdAt));
-  const [historyResult, semanticResult, auditsResult, publicAssetsResult] = await Promise.allSettled([
+  const [historyResult, semanticResult, publicAssetsResult] = await Promise.allSettled([
     fetchWorldHistory(worldId),
     fetchWorldSemanticBundle(worldId),
-    fetchWorldLevelAudits(worldId),
     fetchWorldPublicAssets(worldId),
   ]);
   return {
@@ -603,12 +573,12 @@ export async function fetchWorldDisplayDetail(worldId: string): Promise<WorldDis
     characters,
     history: historyResult.status === 'fulfilled' ? historyResult.value : EMPTY_WORLD_HISTORY,
     semantic: semanticResult.status === 'fulfilled' ? semanticResult.value : EMPTY_WORLD_SEMANTIC,
-    audits: auditsResult.status === 'fulfilled' ? auditsResult.value : [],
+    audits: [],
     publicAssets: publicAssetsResult.status === 'fulfilled' ? publicAssetsResult.value : EMPTY_WORLD_PUBLIC_ASSETS,
     sections: {
       history: historyResult.status === 'fulfilled' ? 'success' : 'error',
       semantic: semanticResult.status === 'fulfilled' ? 'success' : 'error',
-      audits: auditsResult.status === 'fulfilled' ? 'success' : 'error',
+      audits: 'success',
       publicAssets: publicAssetsResult.status === 'fulfilled' ? 'success' : 'error',
     },
   };

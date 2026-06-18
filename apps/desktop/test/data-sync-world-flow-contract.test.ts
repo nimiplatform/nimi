@@ -10,8 +10,8 @@ import {
   loadMainWorld,
   loadWorldCharacters,
   loadWorldDetailWithCharacters,
+  loadWorldAssets,
   loadWorldHistory,
-  loadWorldLorebooks,
   loadWorldSemanticBundle,
 } from '../src/shell/renderer/features/world/data/realm-world-data.js';
 import { getOfflineCacheManager } from '../src/shell/renderer/infra/offline/cache-manager.js';
@@ -34,6 +34,9 @@ function worldCorePayload(overrides: Record<string, unknown> = {}) {
   return {
     id: 'world-1',
     visibility: 'public',
+    contentHash: 'hash-world-1',
+    contentRevision: 1,
+    schemaVersion: 'WorldCoreV1',
     origin: { kind: 'manual', sourceId: 'seed:world-1' },
     creatorId: 'creator-1',
     core: {
@@ -46,7 +49,12 @@ function worldCorePayload(overrides: Record<string, unknown> = {}) {
         title: 'Song Continuum',
         tagline: 'Late Song divergence',
       },
+      ontology: {
+        entityKinds: ['worldCharacter'],
+        relationshipTypes: ['allied'],
+      },
       timeModel: {
+        mode: 'scaled',
         flowRatio: 0.125,
         isPaused: false,
         eraLabel: 'Late Song',
@@ -68,7 +76,7 @@ function worldCorePayload(overrides: Record<string, unknown> = {}) {
       ],
       systems: [],
       relationships: [],
-      assets: {},
+      assets: { resourceRefs: [], intents: [] },
       authoring: { source: 'test' },
     },
     createdAt: '2026-06-18T00:00:00.000Z',
@@ -82,6 +90,10 @@ function worldCharacterPayload(overrides: Record<string, unknown> = {}) {
     id: 'character-1',
     worldId: 'world-1',
     entityId: 'song-steward',
+    contentHash: 'hash-character-1',
+    contentRevision: 1,
+    schemaVersion: 'WorldCharacterCoreV1',
+    origin: { kind: 'manual', sourceId: 'seed:character-1' },
     core: {
       identity: {
         name: 'Song Steward',
@@ -94,7 +106,31 @@ function worldCharacterPayload(overrides: Record<string, unknown> = {}) {
       placement: {
         worldId: 'world-1',
         entityId: 'song-steward',
+        sceneRefs: [],
       },
+      biography: {
+        milestones: [],
+        sourceNotes: [],
+      },
+      psychology: {
+        drives: [],
+        boundaries: [],
+      },
+      knowledge: {
+        topics: [],
+        constraints: [],
+      },
+      relationships: [],
+      capabilities: {
+        interactionModes: ['chat'],
+        tools: [],
+      },
+      interactionProfile: {
+        tone: 'calm',
+        cadence: 'measured',
+      },
+      assets: { resourceRefs: [], intents: [] },
+      authoring: { source: 'test' },
     },
     createdAt: '2026-06-18T00:00:00.000Z',
     updatedAt: '2026-06-18T00:00:00.000Z',
@@ -200,7 +236,13 @@ test('loadWorldCharacters projects nested WorldCharacterCore rows', async () => 
 
   assert.equal(result[0]?.id, 'character-1');
   assert.equal(result[0]?.name, 'Song Steward');
-  assert.equal(result[0]?.bio, 'A WorldCharacterCore seed.');
+  assert.equal(result[0]?.bio, 'Keeps the archive coherent.');
+  assert.deepEqual(result[0]?.sourceRef, {
+    kind: 'worldCharacter',
+    worldId: 'world-1',
+    sourceId: 'character-1',
+    sourceContentHash: 'hash-character-1',
+  });
   assert.equal(errors.length, 0);
 });
 
@@ -272,21 +314,27 @@ test('loadWorldHistory reads WorldCore.timeline.events', async () => {
   assert.equal(errors.length, 0);
 });
 
-test('loadWorldLorebooks reads WorldCore.core.lorebooks without synthetic fallback', async () => {
+test('loadWorldAssets reads WorldCore.assets without synthetic fallback', async () => {
   const errors: RealmWorldDataError[] = [];
 
-  const result = await loadWorldLorebooks(
+  const result = await loadWorldAssets(
     createWorldCallApi(worldCorePayload({
       core: {
         ...(worldCorePayload().core as Record<string, unknown>),
-        lorebooks: [{ id: 'lore-1', key: 'chronicle', content: 'Primary entry' }],
+        assets: {
+          resourceRefs: [{ refId: 'resource-1', kind: 'image', purpose: 'banner' }],
+          externalRefs: [{ refId: 'external-1', kind: 'image', uri: 'https://example.com/cover.png' }],
+          intents: [{ intentId: 'intent-1', kind: 'reference-image', summary: 'Cover image' }],
+        },
       },
     })),
     createEmitter(errors),
     'world-1',
   );
 
-  assert.equal(result.items[0]?.id, 'lore-1');
+  assert.equal(result.resourceRefs[0]?.refId, 'resource-1');
+  assert.equal(result.externalRefs[0]?.uri, 'https://example.com/cover.png');
+  assert.equal(result.intents[0]?.intentId, 'intent-1');
   assert.equal(errors.length, 0);
 });
 

@@ -1,4 +1,5 @@
 import { parseOptionalJsonObject, type JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
+import type { NimiRealmCoreSourceRef } from '@nimiplatform/sdk/realm';
 import type { ProfileDetailSeed } from '@renderer/features/relationship/profile-detail-modal.js';
 import type { PostCardAuthorProfileTarget } from '../home/post-card';
 import type { ExplorePersonaSourceCardData } from './explore-cards';
@@ -47,6 +48,32 @@ function toNumberMap(value: unknown): Record<string, number> | undefined {
   return output;
 }
 
+function toSourceKind(value: unknown): NimiRealmCoreSourceRef['kind'] | undefined {
+  const normalized = asString(value).trim();
+  if (normalized === 'worldCharacter' || normalized === 'WORLD_CHARACTER') {
+    return 'worldCharacter';
+  }
+  if (normalized === 'realmPersona' || normalized === 'REALM_PERSONA') {
+    return 'realmPersona';
+  }
+  return undefined;
+}
+
+function toRealmCoreSourceRef(value: unknown): NimiRealmCoreSourceRef | undefined {
+  const record = toRecord(value);
+  if (!record) {
+    return undefined;
+  }
+  const kind = toSourceKind(record.kind);
+  const worldId = asString(record.worldId).trim();
+  const sourceId = asString(record.sourceId).trim();
+  const sourceContentHash = asString(record.sourceContentHash).trim();
+  if (!kind || !worldId || !sourceId || !sourceContentHash) {
+    return undefined;
+  }
+  return { kind, worldId, sourceId, sourceContentHash };
+}
+
 function mapPersonaSource(raw: unknown, worldsMap: SourceWorldProjectionMap): ExplorePersonaSourceCardData | null {
   const source = toRecord(raw);
   if (!source) {
@@ -58,54 +85,53 @@ function mapPersonaSource(raw: unknown, worldsMap: SourceWorldProjectionMap): Ex
   }
 
   const sourceRecord = toRecord(source.source);
-  const sourceProfile = toRecord(source.sourceProfile);
   const stats = toRecord(source.stats);
 
   const displayName = asString(source.displayName).trim()
     || asString(source.name).trim()
-    || asString(sourceProfile?.displayName).trim()
     || asString(source.handle).trim()
-    || asString(sourceProfile?.handle).trim()
     || 'Unknown Persona';
   const handle = asString(source.handle).trim()
-    || asString(sourceProfile?.handle).trim()
     || displayName;
   const avatarUrl = asString(source.avatarUrl).trim()
-    || asString(sourceProfile?.avatarUrl).trim()
     || null;
   const bio = asString(source.bio).trim()
-    || asString(sourceProfile?.bio).trim()
     || null;
-  const isSource = source.isSource === true || Boolean(sourceRecord) || Boolean(sourceProfile);
+  const isSource = source.isSource === true || Boolean(sourceRecord);
   const isOnline = source.isOnline === true;
+  const sourceRef = toRealmCoreSourceRef(source.sourceRef);
+  const sourceKind = toSourceKind(source.sourceKind) ?? sourceRef?.kind;
+  const sourceId = asString(source.sourceId).trim() || sourceRef?.sourceId || id;
+  const sourceContentHash = asString(source.sourceContentHash).trim()
+    || asString(source.contentHash).trim()
+    || sourceRef?.sourceContentHash
+    || '';
 
-  const category = asString(sourceRecord?.category).trim()
-    || asString(sourceProfile?.category).trim()
-    || asString(source.category).trim();
+  const personaStyle = toRecord(sourceRecord?.personaStyle);
+  const archetype = asString(source.archetype).trim()
+    || asString(personaStyle?.archetype).trim();
   const origin = asString(sourceRecord?.origin).trim()
-    || asString(sourceProfile?.origin).trim()
     || asString(source.origin).trim();
   const tier = asString(sourceRecord?.tier).trim()
-    || asString(sourceProfile?.tier).trim()
     || asString(source.tier).trim();
   const state = asString(sourceRecord?.state).trim()
-    || asString(sourceProfile?.state).trim()
     || asString(source.state).trim();
-  const wakeStrategy = asString(sourceRecord?.wakeStrategy).trim()
-    || asString(sourceProfile?.wakeStrategy).trim();
-  const ownershipType = asString(sourceRecord?.ownershipType || sourceProfile?.ownershipType).trim();
-  const accountVisibility = asString(source.accountVisibility).trim()
-    || asString(sourceRecord?.accountVisibility).trim()
-    || asString(sourceProfile?.accountVisibility).trim()
+  const pacing = asString(source.pacing).trim()
+    || asString(personaStyle?.pacing).trim();
+  const ownershipType = asString(sourceRecord?.ownershipType).trim();
+  const visibility = asString(source.visibility).trim()
+    || asString(sourceRecord?.visibility).trim()
     || null;
 
   const customTags = Array.isArray(source.tags)
     ? source.tags.map(String).filter(Boolean)
     : [];
-  const tags = [category, origin, wakeStrategy].filter(Boolean).concat(customTags);
+  const tags = [archetype, origin, pacing].filter(Boolean).concat(customTags);
 
   const worldId = asString(sourceRecord?.worldId).trim()
-    || asString(sourceProfile?.worldId).trim()
+    || asString(source.worldId).trim()
+    || asString(source.homeWorldId).trim()
+    || sourceRef?.worldId
     || null;
   const worldData = worldId ? worldsMap.get(worldId) : null;
   const worldBannerUrl = worldData?.bannerUrl ?? null;
@@ -130,16 +156,21 @@ function mapPersonaSource(raw: unknown, worldsMap: SourceWorldProjectionMap): Ex
     avatarUrl,
     bio,
     isSource,
+    sourceKind,
+    sourceId,
+    sourceContentHash,
+    runtimeSourceRef: asString(source.runtimeSourceRef).trim() || undefined,
+    ...(sourceRef ? { sourceRef } : {}),
     worldId,
     worldName,
     worldBannerUrl,
-    category,
+    archetype,
     origin,
     tier,
     state,
     ownershipType,
-    wakeStrategy,
-    accountVisibility,
+    pacing,
+    visibility,
     isOnline,
     tags,
     friendsCount,
@@ -175,12 +206,17 @@ export function toProfileTargetFromPersonaSource(source: ExplorePersonaSourceCar
     likesCount: source.likesCount,
     giftStats: source.giftStats,
     sourceState: source.state,
-    sourceCategory: source.category,
+    sourceArchetype: source.archetype,
     sourceOrigin: source.origin,
     sourceTier: source.tier,
-    sourceWakeStrategy: source.wakeStrategy,
+    sourcePacing: source.pacing,
     sourceOwnershipType: source.ownershipType,
     sourceWorldId: source.worldId,
+    sourceKind: source.sourceKind,
+    sourceId: source.sourceId,
+    sourceContentHash: source.sourceContentHash,
+    runtimeSourceRef: source.runtimeSourceRef,
+    sourceRef: source.sourceRef,
   };
   return {
     profileId: source.id,

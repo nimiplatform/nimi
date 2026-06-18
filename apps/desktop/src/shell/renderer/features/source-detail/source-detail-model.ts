@@ -1,5 +1,6 @@
 import { parseOptionalJsonObject, type JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { RealmPersonaSourceState } from '@renderer/features/explore/realm-persona-source-admission';
+import type { NimiRealmCoreSourceRef } from '@nimiplatform/sdk/realm';
 
 export type SourceDetailData = {
   id: string;
@@ -10,21 +11,25 @@ export type SourceDetailData = {
   createdAt: string;
   tags: string[];
   isOnline: boolean;
-  state: string;
-  category: string;
-  origin: string;
-  tier: string;
-  wakeStrategy: string;
-  accountVisibility: string | null;
-  ownershipType: string;
+  state: string | null;
+  archetype: string | null;
+  origin: string | null;
+  tier: string | null;
+  pacing: string | null;
+  visibility: string | null;
+  ownershipType: string | null;
   worldId: string | null;
-  ownerWorldId: string | null;
+  sourceKind: NimiRealmCoreSourceRef['kind'] | null;
+  sourceId: string | null;
+  sourceContentHash: string | null;
+  runtimeSourceRef: string | null;
+  sourceRef: NimiRealmCoreSourceRef | null;
   isFriend: boolean;
   sourceState: RealmPersonaSourceState;
   worldBannerUrl: string | null;
 };
 
-function readOptionalString(record: JsonObject | undefined, key: string): string | null {
+function readOptionalString(record: JsonObject | null | undefined, key: string): string | null {
   const value = record?.[key];
   return typeof value === 'string' ? value : null;
 }
@@ -34,45 +39,78 @@ export function toSourceDetailData(
   sourceState: RealmPersonaSourceState,
 ): SourceDetailData {
   const sourceRecord = parseOptionalJsonObject(raw.source);
-  const sourceProfile = parseOptionalJsonObject(raw.sourceProfile);
   const world = parseOptionalJsonObject(raw.world);
+  const personaStyle = parseOptionalJsonObject(sourceRecord?.personaStyle);
+  const sourceKindRaw = String(raw.sourceKind || '').trim();
+  const sourceKind: NimiRealmCoreSourceRef['kind'] | null = sourceKindRaw === 'worldCharacter' || sourceKindRaw === 'realmPersona'
+    ? sourceKindRaw
+    : null;
+  const worldId = (
+    (sourceRecord && typeof sourceRecord.worldId === 'string' ? sourceRecord.worldId : null)
+    || (typeof raw.homeWorldId === 'string' ? raw.homeWorldId : null)
+    || (typeof raw.worldId === 'string' ? raw.worldId : null)
+  );
+  const sourceId = typeof raw.sourceId === 'string' && raw.sourceId.trim()
+    ? raw.sourceId.trim()
+    : String(raw.id || '').trim() || null;
+  const sourceContentHash = (
+    (typeof raw.sourceContentHash === 'string' ? raw.sourceContentHash.trim() : '')
+    || (typeof raw.contentHash === 'string' ? raw.contentHash.trim() : '')
+    || readOptionalString(sourceRecord, 'sourceContentHash')
+    || readOptionalString(sourceRecord, 'contentHash')
+  );
+  const sourceRef: NimiRealmCoreSourceRef | null = sourceKind && worldId && sourceId && sourceContentHash
+    ? {
+        kind: sourceKind,
+        worldId,
+        sourceId,
+        sourceContentHash,
+      }
+    : null;
+  const displayName = typeof raw.displayName === 'string' ? raw.displayName.trim() : '';
+  if (!displayName) {
+    throw new Error('Source detail projection requires displayName from Realm Core');
+  }
 
   return {
     id: String(raw.id || ''),
-    displayName: String(raw.displayName || raw.handle || 'Unknown'),
+    displayName,
     handle: String(raw.handle || ''),
     avatarUrl: typeof raw.avatarUrl === 'string' ? raw.avatarUrl : null,
     bio: typeof raw.bio === 'string' ? raw.bio : null,
     createdAt: typeof raw.createdAt === 'string' ? raw.createdAt : '',
     tags: Array.isArray(raw.tags) ? raw.tags.map(String) : [],
     isOnline: raw.isOnline === true,
-    state: (sourceRecord && typeof sourceRecord.state === 'string' ? sourceRecord.state : 'UNKNOWN'),
-    category: (sourceRecord && typeof sourceRecord.category === 'string' ? sourceRecord.category : 'GENERAL'),
-    origin: (sourceRecord && typeof sourceRecord.origin === 'string' ? sourceRecord.origin : 'COMMUNITY'),
-    tier: (sourceRecord && typeof sourceRecord.tier === 'string' ? sourceRecord.tier : 'COMMUNITY'),
-    wakeStrategy: (sourceRecord && typeof sourceRecord.wakeStrategy === 'string' ? sourceRecord.wakeStrategy : 'PASSIVE'),
-    accountVisibility: (
-      (sourceRecord && typeof sourceRecord.accountVisibility === 'string' ? sourceRecord.accountVisibility : null)
-      || readOptionalString(sourceProfile, 'accountVisibility')
+    state: readOptionalString(sourceRecord, 'state'),
+    archetype: (
+      (typeof raw.archetype === 'string' ? raw.archetype : null)
+      || readOptionalString(personaStyle, 'archetype')
     ),
-    ownershipType: (
-      (sourceRecord && typeof sourceRecord.ownershipType === 'string' ? sourceRecord.ownershipType : '')
-      || readOptionalString(sourceProfile, 'ownershipType')
-      || 'MASTER_OWNED'
+    origin: readOptionalString(sourceRecord, 'origin'),
+    tier: readOptionalString(sourceRecord, 'tier'),
+    pacing: (
+      (typeof raw.pacing === 'string' ? raw.pacing : null)
+      || readOptionalString(personaStyle, 'pacing')
     ),
-    worldId: (
-      (sourceRecord && typeof sourceRecord.worldId === 'string' ? sourceRecord.worldId : null)
-      || readOptionalString(sourceProfile, 'worldId')
+    visibility: (
+      (typeof raw.visibility === 'string' ? raw.visibility : null)
+      || (sourceRecord && typeof sourceRecord.visibility === 'string' ? sourceRecord.visibility : null)
     ),
-    ownerWorldId: (
-      (sourceRecord && typeof sourceRecord.ownerWorldId === 'string' ? sourceRecord.ownerWorldId : null)
-      || readOptionalString(sourceProfile, 'ownerWorldId')
+    ownershipType: readOptionalString(sourceRecord, 'ownershipType'),
+    worldId,
+    sourceKind,
+    sourceId,
+    sourceContentHash,
+    runtimeSourceRef: (
+      (typeof raw.runtimeSourceRef === 'string' ? raw.runtimeSourceRef.trim() : '')
+      || null
     ),
+    sourceRef,
     isFriend: raw.isFriend === true,
     sourceState,
     worldBannerUrl: (
       (typeof raw.worldBannerUrl === 'string' ? raw.worldBannerUrl : null)
-      || readOptionalString(sourceProfile, 'worldBannerUrl')
+      || readOptionalString(sourceRecord, 'worldBannerUrl')
       || readOptionalString(world, 'bannerUrl')
     ),
   };
