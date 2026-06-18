@@ -10,6 +10,10 @@ import {
   type NimiRuntimeLocalEnvironmentPlanDependency,
 } from '@nimiplatform/sdk/runtime';
 import { runtimeConfigLocalModelCenterClient } from './runtime-config-local-model-center-sdk-service';
+import {
+  retryableInterruptedRuntimeDependencyJobs,
+  runtimeDependencyAutoRetryKey,
+} from './runtime-config-local-model-center-runtime-dependency-recovery';
 
 type RuntimeDependencyInput = {
   assets: NimiRuntimeLocalAssetRecord[];
@@ -137,17 +141,25 @@ export function useLocalModelCenterRuntimeDependencies({
   setAssetBusy,
 }: RuntimeDependencyInput) {
   const mountedRef = useRef(true);
+  const autoRetryAttemptedKeysRef = useRef<Set<string>>(new Set());
   const [sharedRuntimeEnvironmentPlan, setSharedRuntimeEnvironmentPlan] = useState<NimiRuntimeLocalEnvironmentPlan | undefined>(undefined);
   const [runtimeEnvironmentPlanByAssetId, setRuntimeEnvironmentPlanByAssetId] = useState<Record<string, NimiRuntimeLocalEnvironmentPlan | undefined>>({});
   const [sharedRuntimeDependencyJobs, setSharedRuntimeDependencyJobs] = useState<NimiRuntimeLocalEnvironmentDependencyJob[]>([]);
   const [runtimeDependencyError, setRuntimeDependencyError] = useState('');
   const [dependencyResolutionNonce, setDependencyResolutionNonce] = useState(0);
+  const imageAssetSignature = useMemo(() => (
+    imageAssets(assets).map((asset) => asset.localAssetId).sort().join('|')
+  ), [assets]);
 
   useEffect(() => {
     return () => {
       mountedRef.current = false;
     };
   }, []);
+
+  useEffect(() => {
+    autoRetryAttemptedKeysRef.current.clear();
+  }, [imageAssetSignature]);
 
   useEffect(() => {
     let cancelled = false;
@@ -258,6 +270,59 @@ export function useLocalModelCenterRuntimeDependencies({
   const refreshRuntimeDependencies = useCallback(() => {
     setDependencyResolutionNonce((prev) => prev + 1);
   }, []);
+
+  const autoRetryRuntimeDependencyJobs = useMemo(() => (
+    retryableInterruptedRuntimeDependencyJobs(allRuntimeDependencies, sharedRuntimeDependencyJobs)
+  ), [allRuntimeDependencies, sharedRuntimeDependencyJobs]);
+
+  useEffect(() => {
+    const jobsToRetry = autoRetryRuntimeDependencyJobs.filter((job) => {
+      const key = runtimeDependencyAutoRetryKey(job);
+      if (autoRetryAttemptedKeysRef.current.has(key)) {
+        return false;
+      }
+      autoRetryAttemptedKeysRef.current.add(key);
+      return true;
+    });
+    if (jobsToRetry.length === 0) {
+      return undefined;
+    }
+    let cancelled = false;
+    const retryJobs = async () => {
+      setAssetBusy(true);
+      try {
+        const retryJobs = await Promise.all(jobsToRetry.map((job) =>
+          runtimeConfigLocalModelCenterClient.retryEnvironmentDependencyJob({
+            jobId: job.jobId,
+            confirmed: true,
+          }, { caller: 'core' })));
+        if (!cancelled && mountedRef.current) {
+          setSharedRuntimeDependencyJobs((prev) => dedupeRuntimeDependencyJobs([...retryJobs, ...prev]));
+          setRuntimeDependencyError('');
+        }
+        refreshRuntimeDependencies();
+        await refreshRuntimeDependencyJobs(allRuntimeDependencies);
+      } catch (error) {
+        if (!cancelled && mountedRef.current) {
+          setRuntimeDependencyError(runtimeDependencyErrorMessage(error, 'Runtime environment dependency retry failed.'));
+        }
+      } finally {
+        if (!cancelled && mountedRef.current) {
+          setAssetBusy(false);
+        }
+      }
+    };
+    void retryJobs();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    allRuntimeDependencies,
+    autoRetryRuntimeDependencyJobs,
+    refreshRuntimeDependencies,
+    refreshRuntimeDependencyJobs,
+    setAssetBusy,
+  ]);
 
   useEffect(() => {
     if (!hasActiveRuntimeDependencyJob || allRuntimeDependencies.length === 0) {
