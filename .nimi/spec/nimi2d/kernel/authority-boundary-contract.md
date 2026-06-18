@@ -21,6 +21,8 @@ or PixiJS.
 
 Nimi2D owns the contracts for generated Nimi2D asset packages:
 
+- Codex Image2 image resource provider requests, artifacts, and workflow
+  evidence
 - layer input admission
 - typed layer reject reasons
 - base body topology
@@ -30,19 +32,21 @@ Nimi2D owns the contracts for generated Nimi2D asset packages:
 - package admission validation
 - Generation Bench corpus, replay, metrics, and gates
 
-### N2D-AUTH-002 - Nimi2D Starts From Layer Input
+### N2D-AUTH-002 - Nimi2D Package Generation Starts From Layer Input
 
-Nimi2D starts from a future layer input contract. It must not accept a raw source
-avatar image as its package generation input.
+Nimi2D package generation starts from a layer input contract. It must not accept
+a raw source avatar image as its package generation input.
 
-Upstream systems may produce layer input through manual cutting, segmentation,
-occlusion inpainting, identity preservation, or future models. Nimi2D treats
-those outputs as external source evidence only.
+The Nimi2D Codex Image2 provider may produce upstream image resources and
+evidence for later layer or atlas workflows. Segmentation, occlusion
+inpainting, identity preservation, and content admission may still be performed
+by upstream systems. Nimi2D treats those outputs as source evidence until a
+contract-conformant layer input or package manifest passes its own gates.
 
 ### N2D-AUTH-003 - Avatar Owns Runtime Embodiment
 
-Runtime embodiment execution for Nimi2D packages belongs under Avatar backend
-authority, not under `.nimi/spec/nimi2d/**`.
+Production runtime embodiment execution for Nimi2D packages belongs under
+Avatar backend authority, not under `.nimi/spec/nimi2d/**`.
 
 Avatar owns:
 
@@ -56,8 +60,44 @@ Avatar owns:
 - renderer/carrier integration
 - visual acceptance evidence
 
-Nimi2D may define asset channels and package capability claims, but it must not
-define the runtime composer or performance stream that executes those channels.
+Nimi2D may define asset channels, package capability claims, and bounded
+reference-player helpers for package proof. It must not define the production
+runtime composer, backend route mapping, or performance stream that executes
+those channels in Avatar.
+
+### N2D-AUTH-011 - Nimi2D Owns Reference Package Player And Proof Helpers
+
+Nimi2D may own a reference package player and deterministic proof helpers when
+they are used to validate the package format itself.
+
+Admitted Nimi2D-owned reference helper scope:
+
+- parse a Nimi2D package manifest
+- build a renderer-independent render plan from package manifest geometry
+- render through a first-party reference renderer
+- advance deterministic proof frames for fixture, bench, or inspector replay
+- apply bounded semantic action fixtures against package-declared asset
+  channels
+- drive a reference jaw/amplitude mouth helper for tier-1 package proof
+- expose snapshots used by visual proof, alpha hit probe, Runtime Proof Matrix,
+  and standalone package inspection
+
+These helpers are package proof infrastructure. They do not own:
+
+- Runtime presentation projection truth
+- PresentationTimeline identity
+- Runtime stream identity or interrupt semantics
+- Avatar backend route mapping
+- production scheduler, smoothing, latency, or blend policy
+- production audio consumer or lipsync driver
+- Desktop stream lifecycle
+- carrier/window integration
+- Avatar visual acceptance authority
+
+If Avatar consumes a Nimi2D reference helper, Avatar authority owns the mapping
+from Runtime projection into that helper and owns the production execution
+evidence. Nimi2D reference-player success is package readiness evidence, not
+Avatar runtime readiness.
 
 ### N2D-AUTH-004 - Runtime Owns Projection Truth
 
@@ -77,16 +117,19 @@ execution, or prompt semantics.
 ### N2D-AUTH-006 - Package Authority Is Not Inferred
 
 The planned `@nimiplatform/nimi2d` package may implement validators and
-generation scripts. It may also expose shared implementation helpers (for
-example a renderer-agnostic render plan, composer state machine, or bounded
-bench scorer) only when those helpers are admitted and governed by Avatar
-authority. Package membership does not make package-local spec truth
-authoritative.
+generation scripts. It may also expose reference package-player helpers,
+renderer-agnostic render plans, and bounded bench scorers when those helpers
+stay inside the N2D-AUTH-011 proof boundary. Package membership does not make
+package-local spec truth authoritative.
 
-Code location is not semantic ownership. A helper under
-`@nimiplatform/nimi2d/runtime` remains Avatar-owned runtime behavior when it is
-consumed through `.nimi/spec/avatar/**` contracts. It must not create a second
-runtime ontology, public APML syntax, or package-local backend authority.
+Code location is not semantic ownership. The release-facing package proof API is
+`@nimiplatform/nimi2d/reference-player`; lower-level helper code may still live
+under `@nimiplatform/nimi2d/runtime` while it is being thinned. Both are
+Nimi2D-owned only for reference package proof. When Avatar consumes a helper for
+production embodiment, the Avatar contract owns projection mapping, backend
+route semantics, carrier behavior, and runtime evidence. The helper must not
+create a second Runtime ontology, public APML syntax, or package-local Avatar
+backend authority.
 
 Any future package-local spec root must be admitted through
 `.nimi/spec/platform/kernel/package-authority-admission-contract.md` and
@@ -96,11 +139,11 @@ Any future package-local spec root must be admitted through
 
 Nimi2D does not own:
 
-- raw image selection, canonical skin generation, segmentation, occlusion
-  inpainting, identity preservation, or content classification from pixels
+- segmentation, occlusion inpainting, identity preservation, or content
+  classification from pixels outside the Codex Image2 provider evidence surface
 - Realm Persona Studio product workflow or editor UX
-- Avatar runtime backend execution
-- PixiJS renderer API design
+- production Avatar runtime backend execution
+- production Avatar carrier/PixiJS integration API design
 - Live2D/VRM compatibility shims
 - external creator-tool interchange compatibility
 - raw APML syntax or prompt formatting
@@ -146,10 +189,14 @@ The default Nimi2D posture is compliant SFW content.
 
 Nimi2D work must stop and return to authority alignment if any proposed change:
 
-- defines a runtime live action stream, composer, scheduler, or blend tree under
-  `.nimi/spec/nimi2d/**`
+- defines production Avatar runtime live action, scheduler, route mapping, or
+  blend-tree truth under `.nimi/spec/nimi2d/**`
+- treats Nimi2D reference-player replay as Runtime projection truth or Avatar
+  runtime readiness
 - consumes raw APML or defines public APML syntax
 - accepts a raw image as Nimi2D package input
+- treats a Codex Image2 provider artifact as formal Nimi2D admission without
+  layer-input, package, and bench gates
 - guesses, repairs, or silently downgrades invalid layer input instead of typed
   rejection
 - creates a base-body-only render, preview, thumbnail, export, error fallback,
@@ -157,8 +204,10 @@ Nimi2D work must stop and return to authority alignment if any proposed change:
 - treats adult outfit support as implemented or distributed in v1
 - claims tier-1 true viseme support
 - infers package authority from `@nimiplatform/nimi2d` package membership
-- treats `@nimiplatform/nimi2d/runtime` helper code as Nimi2D package authority
-  instead of Avatar-owned runtime implementation
+- treats `@nimiplatform/nimi2d/reference-player` or
+  `@nimiplatform/nimi2d/runtime` helper code as production Avatar runtime
+  authority instead of bounded Nimi2D reference package-player proof
+  infrastructure
 - lets Realm Persona Studio or another product surface become Nimi2D package
   truth
 
@@ -176,8 +225,9 @@ different authority decision:
 5. Generation Bench contract and corpus protocol.
 6. Package skeleton and CLI validators.
 7. Generation Bench implementation.
-8. Avatar Nimi2D backend contract under `.nimi/spec/avatar/**`.
-9. Live Action Bench through Avatar acceptance.
+8. Reference package player, renderer, proof, and standalone inspector helpers.
+9. Avatar Nimi2D backend contract under `.nimi/spec/avatar/**`.
+10. Production Live Action Bench through Avatar acceptance.
 
 ## 6. Wave 0 Verification Floor
 
@@ -186,6 +236,9 @@ Wave 0 is valid only if:
 - `.nimi/spec/INDEX.md` lists `nimi2d` as an active domain.
 - `.nimi/spec/nimi2d/index.md` imports the Nimi2D kernel.
 - `.nimi/spec/nimi2d/kernel/index.md` references this contract.
-- No `.nimi/spec/nimi2d/**` file defines Avatar runtime backend execution.
+- `.nimi/spec/nimi2d/kernel/index.md` references the Codex Image2 provider
+  contract when Image2 is used for Nimi2D image resources.
+- No `.nimi/spec/nimi2d/**` file defines production Avatar runtime backend
+  execution or Runtime projection truth.
 - No `.nimi/spec/nimi2d/**` file defines raw image intake.
 - No `.nimi/spec/nimi2d/**` file defines raw APML syntax.

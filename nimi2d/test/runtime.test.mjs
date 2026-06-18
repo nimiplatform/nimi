@@ -3,8 +3,10 @@ import test from 'node:test';
 import {
   createNimi2DComposer,
   createNimi2DRenderPlan,
-  runNimi2DLiveActionBench,
 } from '../src/runtime/index.mjs';
+import {
+  runNimi2DReferenceActionBench,
+} from '../src/reference-player/index.mjs';
 
 const PACKAGE_YAML = `
 manifest_kind: nimi.nimi2d.package
@@ -245,11 +247,11 @@ test('runtime composer arbitrates queued and interrupted motion lanes', () => {
   assert.equal(composer.snapshot().motionQueueLength, 0);
 });
 
-test('runtime live action bench is generic and does not require host app types', async () => {
+test('reference action bench is generic and does not require host app types', async () => {
   const composer = createNimi2DComposer();
   let now = 0;
   let amplitude = 0;
-  const result = await runNimi2DLiveActionBench({
+  const result = await runNimi2DReferenceActionBench({
     backendKind: 'nimi2d',
     defaultOutfitLayerRefs: ['layer_outfit'],
     projection: composer,

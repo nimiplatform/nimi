@@ -11,6 +11,7 @@ product rules.
 
 - `.nimi/spec/nimi2d/kernel/index.md`
 - `.nimi/spec/nimi2d/kernel/authority-boundary-contract.md`
+- `.nimi/spec/nimi2d/kernel/codex-image2-provider-contract.md`
 - `.nimi/spec/nimi2d/kernel/layer-input-contract.md`
 - `.nimi/spec/nimi2d/kernel/renderability-governance-contract.md`
 - `.nimi/spec/nimi2d/kernel/base-body-contract.md`

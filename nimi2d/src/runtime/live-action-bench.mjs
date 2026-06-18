@@ -24,7 +24,7 @@ function blendStabilityScore(frames) {
   return stable ? 1 : 0;
 }
 
-async function runNimi2DLiveActionBench(input) {
+async function runNimi2DReferenceActionBench(input) {
   const failures = [];
   const observations = [];
   const latencies = [];
@@ -120,4 +120,7 @@ async function runNimi2DLiveActionBench(input) {
   };
 }
 
-export { runNimi2DLiveActionBench };
+export {
+  runNimi2DReferenceActionBench,
+  runNimi2DReferenceActionBench as runNimi2DLiveActionBench,
+};

@@ -4,6 +4,17 @@ export { parseNimi2DBackendCapabilityProfile, optionalCapabilityProfileRef } fro
 export { createNimi2DRenderPlan } from './render-plan.mjs';
 export { createNimi2DComposer } from './composer.mjs';
 export { calculateNimi2DRmsVolume, createNimi2DAmplitudeMouthLane } from './mouth-lane.mjs';
-export { createNimi2DLiveActionStream, Nimi2DLiveActionStreamEventError } from './live-action-stream.mjs';
-export { runNimi2DLiveActionBench } from './live-action-bench.mjs';
-export { runNimi2DLiveActionStress } from './live-action-stress.mjs';
+export {
+  createNimi2DReferenceActionStream,
+  Nimi2DReferenceActionStreamEventError,
+  createNimi2DLiveActionStream,
+  Nimi2DLiveActionStreamEventError,
+} from './live-action-stream.mjs';
+export {
+  runNimi2DReferenceActionBench,
+  runNimi2DLiveActionBench,
+} from './live-action-bench.mjs';
+export {
+  runNimi2DReferenceActionStress,
+  runNimi2DLiveActionStress,
+} from './live-action-stress.mjs';

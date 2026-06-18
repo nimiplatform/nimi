@@ -13,10 +13,10 @@ const eventFields = {
 
 const eventTypes = new Set(Object.keys(eventFields));
 
-export class Nimi2DLiveActionStreamEventError extends Error {
+export class Nimi2DReferenceActionStreamEventError extends Error {
   constructor(code, path, message) {
     super(message);
-    this.name = 'Nimi2DLiveActionStreamEventError';
+    this.name = 'Nimi2DReferenceActionStreamEventError';
     this.code = code;
     this.path = path;
   }
@@ -24,18 +24,18 @@ export class Nimi2DLiveActionStreamEventError extends Error {
 
 function assertRecord(value, path) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    throw new Nimi2DLiveActionStreamEventError('NIMI2D_LIVE_EVENT_INVALID', path, 'Live action event must be an object.');
+    throw new Nimi2DReferenceActionStreamEventError('NIMI2D_REFERENCE_EVENT_INVALID', path, 'Reference action event must be an object.');
   }
 }
 
 function assertKnownFields(event) {
   const allowed = eventFields[event.type];
   if (!allowed) {
-    throw new Nimi2DLiveActionStreamEventError('NIMI2D_LIVE_EVENT_TYPE_UNKNOWN', '$.type', `Unknown live action event type ${String(event.type)}.`);
+    throw new Nimi2DReferenceActionStreamEventError('NIMI2D_REFERENCE_EVENT_TYPE_UNKNOWN', '$.type', `Unknown reference action event type ${String(event.type)}.`);
   }
   for (const field of Object.keys(event)) {
     if (!allowed.has(field)) {
-      throw new Nimi2DLiveActionStreamEventError('NIMI2D_LIVE_EVENT_FIELD_FORBIDDEN', `$.${field}`, `Field ${field} is not admitted for ${event.type}.`);
+      throw new Nimi2DReferenceActionStreamEventError('NIMI2D_REFERENCE_EVENT_FIELD_FORBIDDEN', `$.${field}`, `Field ${field} is not admitted for ${event.type}.`);
     }
   }
 }
@@ -48,7 +48,7 @@ function optionalNumber(value, path) {
   if (value === undefined || value === null) return undefined;
   const number = Number(value);
   if (!Number.isFinite(number)) {
-    throw new Nimi2DLiveActionStreamEventError('NIMI2D_LIVE_EVENT_VALUE_INVALID', path, 'Expected finite number.');
+    throw new Nimi2DReferenceActionStreamEventError('NIMI2D_REFERENCE_EVENT_VALUE_INVALID', path, 'Expected finite number.');
   }
   return number;
 }
@@ -60,12 +60,12 @@ function boolValue(value) {
 function validateEvent(event) {
   assertRecord(event, '$');
   if (!eventTypes.has(event.type)) {
-    throw new Nimi2DLiveActionStreamEventError('NIMI2D_LIVE_EVENT_TYPE_UNKNOWN', '$.type', `Unknown live action event type ${String(event.type)}.`);
+    throw new Nimi2DReferenceActionStreamEventError('NIMI2D_REFERENCE_EVENT_TYPE_UNKNOWN', '$.type', `Unknown reference action event type ${String(event.type)}.`);
   }
   assertKnownFields(event);
 }
 
-export function createNimi2DLiveActionStream(input = {}) {
+export function createNimi2DReferenceActionStream(input = {}) {
   const composer = input.composer ?? createNimi2DComposer();
   const mouthLane = input.mouthLane ?? createNimi2DAmplitudeMouthLane({ composer });
 
@@ -113,7 +113,7 @@ export function createNimi2DLiveActionStream(input = {}) {
     applyEvent,
     applyEvents(events) {
       if (!Array.isArray(events)) {
-        throw new Nimi2DLiveActionStreamEventError('NIMI2D_LIVE_EVENT_BATCH_INVALID', '$', 'Live action event batch must be an array.');
+        throw new Nimi2DReferenceActionStreamEventError('NIMI2D_REFERENCE_EVENT_BATCH_INVALID', '$', 'Reference action event batch must be an array.');
       }
       let snapshot = composer.snapshot();
       for (const event of events) {
@@ -135,3 +135,8 @@ export function createNimi2DLiveActionStream(input = {}) {
     },
   };
 }
+
+export {
+  createNimi2DReferenceActionStream as createNimi2DLiveActionStream,
+  Nimi2DReferenceActionStreamEventError as Nimi2DLiveActionStreamEventError,
+};

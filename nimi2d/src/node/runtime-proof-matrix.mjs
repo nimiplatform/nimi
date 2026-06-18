@@ -6,9 +6,11 @@ import {
   createNimi2DAmplitudeMouthLane,
   createNimi2DComposer,
   createNimi2DRenderPlan,
-  runNimi2DLiveActionBench,
-  runNimi2DLiveActionStress,
 } from '../runtime/index.mjs';
+import {
+  runNimi2DReferenceActionBench,
+  runNimi2DReferenceActionStress,
+} from '../reference-player/index.mjs';
 import { validateBenchCorpus } from './generation-bench.mjs';
 import { decodePngRgba } from './png-rgba.mjs';
 import { solvePackageFromLayerInput } from './package-manifest.mjs';
@@ -24,11 +26,11 @@ function defaultOutfitLayerRefs(renderPlan) {
   return defaultOutfit?.layer_refs ?? [];
 }
 
-async function runLiveActionBenchForPlan(renderPlan) {
+async function runReferenceActionBenchForPlan(renderPlan) {
   const composer = createNimi2DComposer();
   const mouthLane = createNimi2DAmplitudeMouthLane({ composer });
   let now = 0;
-  return await runNimi2DLiveActionBench({
+  return await runNimi2DReferenceActionBench({
     backendKind: 'nimi2d',
     defaultOutfitLayerRefs: defaultOutfitLayerRefs(renderPlan),
     projection: composer,
@@ -88,7 +90,7 @@ async function runMatrixCase(item, corpusDir, options) {
       proven_tier: 'none',
       render_layer_refs: [],
       visual_stats: null,
-      live_action_verdict: null,
+      reference_action_verdict: null,
       failures: solved.codes,
     };
   }
@@ -106,7 +108,7 @@ async function runMatrixCase(item, corpusDir, options) {
       proven_tier: solved.manifest.capability.proven_tier,
       render_layer_refs: [],
       visual_stats: null,
-      live_action_verdict: null,
+      reference_action_verdict: null,
       failures: [error instanceof Error ? error.message : String(error)],
     };
   }
@@ -130,17 +132,17 @@ async function runMatrixCase(item, corpusDir, options) {
     failures.push(error instanceof Error ? error.message : String(error));
   }
 
-  const liveActionResult = await runLiveActionBenchForPlan(renderPlan);
-  if (liveActionResult.verdict === 'fail') {
-    failures.push(...liveActionResult.failures);
+  const referenceActionResult = await runReferenceActionBenchForPlan(renderPlan);
+  if (referenceActionResult.verdict === 'fail') {
+    failures.push(...referenceActionResult.failures);
   }
-  const liveActionStressResult = await runNimi2DLiveActionStress({
+  const referenceActionStressResult = await runNimi2DReferenceActionStress({
     backendKind: 'nimi2d',
     layerRefs: renderPlan.renderLayers.map((layer) => layer.layerRef),
     defaultOutfitLayerRefs: defaultOutfitLayerRefs(renderPlan),
   });
-  if (liveActionStressResult.verdict === 'fail') {
-    failures.push(...liveActionStressResult.failures);
+  if (referenceActionStressResult.verdict === 'fail') {
+    failures.push(...referenceActionStressResult.failures);
   }
 
   return {
@@ -151,8 +153,8 @@ async function runMatrixCase(item, corpusDir, options) {
     render_layer_refs: renderPlan.renderLayers.map((layer) => layer.layerRef),
     expected_default_renderable_layer_refs: [...expectedRefs],
     visual_stats: visualStats,
-    live_action_verdict: liveActionResult.verdict,
-    live_action_stress_verdict: liveActionStressResult.verdict,
+    reference_action_verdict: referenceActionResult.verdict,
+    reference_action_stress_verdict: referenceActionStressResult.verdict,
     failures,
   };
 }
@@ -177,8 +179,8 @@ export async function runRuntimeProofMatrix(corpusPath, options = {}) {
     render_plan_built: passFail(caseResults.every((item) => item.render_layer_refs.length > 0)),
     default_renderable_layers_covered: passFail(caseResults.every((item) => item.failures.includes('default_renderable_layers_missing') === false)),
     visual_proof_passed: passFail(caseResults.every((item) => item.visual_stats?.defaultOutfitVisiblePixels > 0)),
-    live_action_bench_passed: passFail(caseResults.every((item) => item.live_action_verdict === 'pass_minimal_tier1')),
-    live_action_stress_passed: passFail(caseResults.every((item) => item.live_action_stress_verdict === 'pass_stream_stress_tier1')),
+    reference_action_bench_passed: passFail(caseResults.every((item) => item.reference_action_verdict === 'pass_minimal_tier1')),
+    reference_action_stress_passed: passFail(caseResults.every((item) => item.reference_action_stress_verdict === 'pass_stream_stress_tier1')),
   };
   const resultValue = {
     run_id: `n2d_runtime_proof_matrix_${corpus.corpus_id.replace(/^n2d_generation_corpus_/, '')}`,

@@ -1,6 +1,5 @@
 # AGENTS.md
-- Think before acting. Read before editing. Prefer edits over rewrites.
-- Be concise. Test your code. User instructions override this file.
+- Think before acting. Read before editing. Prefer edits over rewrites. Be concise. Test your code. User instructions override this file.
 ## Scope
 - Applies repo-wide. Nearest `AGENTS.md` wins.
 ## Hard Boundaries
@@ -11,6 +10,7 @@
 - Fail closed on contract violations. No legacy shims, no pseudo-success, no app-level REST bypass, no provider/model hardcoding.
 - Boundary enforcement: Desktop/Web must not import `runtime/internal/**`; SDK must not cross `realm`/`runtime` private boundaries; Runtime must not import `sdks/**` or `apps/**`; no file collisions or forwarding shells outside `index.ts`.
 - Ralph/topic runner: do not emulate the loop by generating long `topic run-ledger record` primitive command chains. Use packaged `pnpm exec nimicoding topic-runner run|step ...` when available; otherwise use `topic run-next-step --json` and stop on every non-`continue` stop class.
+- Nimi2D Image2: use standard provider scripts `image2-provider-plan`, `image2-provider-run`, `image2-register-output`, and `image2-layer-workflow`; never treat provider artifacts as formal admission before atlas, layer-input, Generation Bench, and runtime proof gates pass.
 ## Retrieval Defaults
 - Start: `runtime/internal`, `runtime/cmd/nimi`, `sdks/typescript`, `apps/**/src`, `apps/**/src-tauri/src`, `.nimi/spec/*/kernel`, `scripts`, `.local/**`, `.nimi/**`, `config/**`.
 - Skip: `_external/**`, `.iterate/**`, `.cache/**`, `archive/**`, `docs/**`, `**/generated/**`, `**/gen/**`, lockfiles, large assets.

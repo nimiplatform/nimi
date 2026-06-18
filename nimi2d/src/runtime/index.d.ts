@@ -237,6 +237,13 @@ export type Nimi2DLiveActionEvent =
   | { type: 'silence' }
   | { type: 'reset' };
 
+export type Nimi2DReferenceActionEvent = Nimi2DLiveActionEvent;
+
+export class Nimi2DReferenceActionStreamEventError extends Error {
+  readonly code: string;
+  readonly path: string;
+}
+
 export class Nimi2DLiveActionStreamEventError extends Error {
   readonly code: string;
   readonly path: string;
@@ -252,11 +259,17 @@ export type Nimi2DLiveActionStream = {
   reset(): Nimi2DComposerSnapshot;
 };
 
+export type Nimi2DReferenceActionStream = Nimi2DLiveActionStream;
+
 export function calculateNimi2DRmsVolume(samples: Uint8Array | number[]): number;
 export function createNimi2DAmplitudeMouthLane(input?: {
   composer?: Pick<Nimi2DComposer, 'setMouthOpen'>;
   fftSize?: number;
 }): Nimi2DAmplitudeMouthLane;
+export function createNimi2DReferenceActionStream(input?: {
+  composer?: Nimi2DComposer;
+  mouthLane?: Nimi2DAmplitudeMouthLane;
+}): Nimi2DReferenceActionStream;
 export function createNimi2DLiveActionStream(input?: {
   composer?: Nimi2DComposer;
   mouthLane?: Nimi2DAmplitudeMouthLane;
@@ -271,6 +284,8 @@ export type Nimi2DLiveActionBenchFrame = {
   mouthOpen: number;
 };
 
+export type Nimi2DReferenceActionBenchFrame = Nimi2DLiveActionBenchFrame;
+
 export type Nimi2DLiveActionBenchInput = {
   backendKind: string;
   defaultOutfitLayerRefs: string[];
@@ -284,6 +299,8 @@ export type Nimi2DLiveActionBenchInput = {
     silent(): void;
   };
 };
+
+export type Nimi2DReferenceActionBenchInput = Nimi2DLiveActionBenchInput;
 
 export type Nimi2DLiveActionBenchResult = {
   verdict: 'pass_minimal_tier1' | 'fail';
@@ -302,6 +319,8 @@ export type Nimi2DLiveActionBenchResult = {
   failures: string[];
 };
 
+export type Nimi2DReferenceActionBenchResult = Nimi2DLiveActionBenchResult;
+
 export type Nimi2DLiveActionStressInput = {
   backendKind: string;
   layerRefs: string[];
@@ -309,6 +328,8 @@ export type Nimi2DLiveActionStressInput = {
   stream?: Nimi2DLiveActionStream;
   frameDeltaMs?: number;
 };
+
+export type Nimi2DReferenceActionStressInput = Nimi2DLiveActionStressInput;
 
 export type Nimi2DLiveActionStressFrame = Nimi2DLiveActionBenchFrame & {
   motionQueueLength: number;
@@ -318,6 +339,8 @@ export type Nimi2DLiveActionStressFrame = Nimi2DLiveActionBenchFrame & {
   motionWeight: number;
   sequence: number;
 };
+
+export type Nimi2DReferenceActionStressFrame = Nimi2DLiveActionStressFrame;
 
 export type Nimi2DLiveActionStressResult = {
   verdict: 'pass_stream_stress_tier1' | 'fail';
@@ -342,6 +365,8 @@ export type Nimi2DLiveActionStressResult = {
   failures: string[];
 };
 
+export type Nimi2DReferenceActionStressResult = Nimi2DLiveActionStressResult;
+
 export const NIMI2D_RUNTIME_SCOPE: 'pixi_renderer_foundation';
 
 export function parseNimi2DPackageManifest(raw: string): Nimi2DPackageManifest;
@@ -352,6 +377,8 @@ export function createNimi2DRenderPlan(input: {
   packageManifestRef?: string | null;
 }): Nimi2DRenderPlan;
 export function createNimi2DComposer(): Nimi2DComposer;
+export function runNimi2DReferenceActionBench(input: Nimi2DReferenceActionBenchInput): Promise<Nimi2DReferenceActionBenchResult>;
+export function runNimi2DReferenceActionStress(input: Nimi2DReferenceActionStressInput): Promise<Nimi2DReferenceActionStressResult>;
 export function runNimi2DLiveActionBench(input: Nimi2DLiveActionBenchInput): Promise<Nimi2DLiveActionBenchResult>;
 export function runNimi2DLiveActionStress(input: Nimi2DLiveActionStressInput): Promise<Nimi2DLiveActionStressResult>;
 export function optionalCapabilityProfileRef(value: string | null | undefined): string | null;

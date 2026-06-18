@@ -215,10 +215,13 @@ package truth.
 
 Nimi2D renderability invariants define which package states can be admitted.
 They do not define Avatar runtime rendering, runtime live action composition,
-PixiJS behavior, backend scheduling, hit testing, or lipsync execution.
+production PixiJS carrier behavior, backend scheduling, hit testing, or lipsync
+execution.
 
 Avatar backend contracts must consume these package invariants before any
-Nimi2D runtime backend can display a package.
+Avatar Nimi2D runtime backend can display a package. Nimi2D reference renderers
+and proof helpers may exercise admitted package states for package readiness
+only.
 
 ## 6. Validation Floor
 

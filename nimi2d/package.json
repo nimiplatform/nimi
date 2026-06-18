@@ -8,6 +8,10 @@
       "types": "./src/runtime/index.d.ts",
       "import": "./src/runtime/index.mjs"
     },
+    "./reference-player": {
+      "types": "./src/reference-player/index.d.ts",
+      "import": "./src/reference-player/index.mjs"
+    },
     "./renderer-pixi": {
       "types": "./src/renderer/pixi/index.d.ts",
       "import": "./src/renderer/pixi/index.mjs"
@@ -22,6 +26,18 @@
   },
   "scripts": {
     "cli": "node bin/nimi2d.mjs",
+    "codex-orchestrated-atlas": "node experiments/image-to-layer-input/workflows/codex-orchestrated-atlas.mjs",
+    "image2-register-output": "node bin/nimi2d.mjs image2-register-output",
+    "image2-compare-pixels": "node bin/nimi2d.mjs image2-compare-pixels",
+    "image2-postprocess": "node bin/nimi2d.mjs image2-postprocess",
+    "image2-distribution-report": "node bin/nimi2d.mjs image2-distribution-report",
+    "image2-demo-suite": "node bin/nimi2d.mjs image2-demo-suite",
+    "image2-layer-workflow": "node bin/nimi2d.mjs image2-layer-workflow",
+    "image2-provider-plan": "node bin/nimi2d.mjs image2-provider-plan",
+    "image2-provider-run": "node bin/nimi2d.mjs image2-provider-run",
+    "certify-corpus": "node bin/nimi2d.mjs certify-corpus",
+    "run-reference-action-bench": "node bin/nimi2d.mjs run-reference-action-bench",
+    "run-reference-action-stress": "node bin/nimi2d.mjs run-reference-action-stress",
     "test": "node --test test/*.test.mjs"
   },
   "dependencies": {

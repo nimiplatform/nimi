@@ -30,13 +30,14 @@ against `tables/layer-input.schema.yaml`.
 
 ### N2D-INPUT-002 - Upstream Layer Generation Is External Evidence
 
-Layer creation methods are outside Nimi2D. Manual cutting, segmentation models,
-occlusion inpainting, identity preservation, and content admission may produce
-evidence refs, but those methods are not Nimi2D-owned.
+Layer creation methods are outside layer-input admission. Codex Image2 provider
+workflows may be Nimi2D-owned upstream image resource production, while manual
+cutting, segmentation models, occlusion inpainting, identity preservation, and
+content admission may produce evidence refs from other upstream systems.
 
 Nimi2D must record source evidence refs and validate their required presence.
 It must not reinterpret those refs as proof that Nimi2D performed upstream
-segmentation or safety classification.
+segmentation, occlusion inpainting, or safety classification.
 
 ### N2D-INPUT-003 - Fail Closed, No Guessing
 

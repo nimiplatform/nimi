@@ -89,3 +89,5 @@ ENV/
 .playwright-cli/
 .codex-temp/
 outputs/
+output/
+tmp/

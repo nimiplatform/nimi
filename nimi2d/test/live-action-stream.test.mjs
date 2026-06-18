@@ -5,10 +5,10 @@ import {
   calculateNimi2DRmsVolume,
   createNimi2DAmplitudeMouthLane,
   createNimi2DComposer,
-  createNimi2DLiveActionStream,
-  Nimi2DLiveActionStreamEventError,
-  runNimi2DLiveActionStress,
-} from '../src/runtime/index.mjs';
+  createNimi2DReferenceActionStream,
+  Nimi2DReferenceActionStreamEventError,
+  runNimi2DReferenceActionStress,
+} from '../src/reference-player/index.mjs';
 
 test('amplitude mouth lane computes RMS volume and updates composer mouth state', async () => {
   assert.equal(calculateNimi2DRmsVolume(new Uint8Array([128, 128, 128, 128])), 0);
@@ -70,8 +70,8 @@ test('amplitude mouth lane returns typed silent result when audio source connect
   assert.equal(mouthLane.snapshot(), null);
 });
 
-test('live action stream consumes semantic intent events and leaves frame control to runtime', () => {
-  const stream = createNimi2DLiveActionStream();
+test('reference action stream consumes semantic intent events and leaves frame control to runtime', () => {
+  const stream = createNimi2DReferenceActionStream();
   const snapshot = stream.applyEvents([
     { type: 'activity', name: 'listen', intensity: 0.8 },
     { type: 'emotion', current: 'curious' },
@@ -95,8 +95,8 @@ test('live action stream consumes semantic intent events and leaves frame contro
   assert.equal(recovered.motionWeight, 0);
 });
 
-test('live action stream supports queue and interrupt without blocking expression or mouth lanes', () => {
-  const stream = createNimi2DLiveActionStream();
+test('reference action stream supports queue and interrupt without blocking expression or mouth lanes', () => {
+  const stream = createNimi2DReferenceActionStream();
   stream.applyEvent({ type: 'expression', name: 'focused', weight: 0.7, fade: 0 });
   stream.applyEvent({ type: 'motion', routeId: 'wave', durationMs: 100, fade: 0.01 });
   stream.applyEvent({ type: 'motion', routeId: 'nod', durationMs: 100, fade: 0.01, queue: true });
@@ -119,31 +119,31 @@ test('live action stream supports queue and interrupt without blocking expressio
   assert.equal(stream.snapshot().motionQueueLength, 0);
 });
 
-test('live action stream rejects unknown events and low-level continuous motion fields', () => {
-  const stream = createNimi2DLiveActionStream();
+test('reference action stream rejects unknown events and low-level continuous motion fields', () => {
+  const stream = createNimi2DReferenceActionStream();
 
   assert.throws(
     () => stream.applyEvent({ type: 'head_translate', x: 0.3 }),
-    (error) => error instanceof Nimi2DLiveActionStreamEventError
-      && error.code === 'NIMI2D_LIVE_EVENT_TYPE_UNKNOWN',
+    (error) => error instanceof Nimi2DReferenceActionStreamEventError
+      && error.code === 'NIMI2D_REFERENCE_EVENT_TYPE_UNKNOWN',
   );
 
   assert.throws(
     () => stream.applyEvent({ type: 'motion', routeId: 'lean_in', x: 0.3 }),
-    (error) => error instanceof Nimi2DLiveActionStreamEventError
-      && error.code === 'NIMI2D_LIVE_EVENT_FIELD_FORBIDDEN'
+    (error) => error instanceof Nimi2DReferenceActionStreamEventError
+      && error.code === 'NIMI2D_REFERENCE_EVENT_FIELD_FORBIDDEN'
       && error.path === '$.x',
   );
 
   assert.throws(
     () => stream.applyEvents({ type: 'activity', name: 'listen' }),
-    (error) => error instanceof Nimi2DLiveActionStreamEventError
-      && error.code === 'NIMI2D_LIVE_EVENT_BATCH_INVALID',
+    (error) => error instanceof Nimi2DReferenceActionStreamEventError
+      && error.code === 'NIMI2D_REFERENCE_EVENT_BATCH_INVALID',
   );
 });
 
-test('live action stress exercises queue, interrupt, mouth, reset, and fail-closed event validation', async () => {
-  const result = await runNimi2DLiveActionStress({
+test('reference action stress exercises queue, interrupt, mouth, reset, and fail-closed event validation', async () => {
+  const result = await runNimi2DReferenceActionStress({
     backendKind: 'nimi2d',
     layerRefs: ['layer_body', 'layer_head', 'layer_mouth', 'layer_outfit'],
     defaultOutfitLayerRefs: ['layer_outfit'],

@@ -25,7 +25,7 @@ Tiers must not be used as:
 
 - Live2D parity claims
 - Avatar backend readiness claims
-- Runtime live action stream claims
+- production Runtime live action stream claims
 - PixiJS renderer feature claims
 - product UI readiness claims
 - external creator-format compatibility claims
@@ -169,13 +169,19 @@ If the manifest claims a tier or channel that validation cannot prove, package
 admission fails closed or records the lower proven tier. It must not count a
 partial or unverified channel as success.
 
-### N2D-TIER-022 - Runtime Channels Are Out Of Scope
+### N2D-TIER-022 - Production Runtime Channels Are Out Of Scope
 
-Runtime stream composition, blend trees, Avatar backend scheduling, hit testing,
-audio consumers, and renderer-specific APIs are out of Nimi2D tier scope.
+Production Runtime stream composition, blend trees, Avatar backend scheduling,
+hit testing, audio consumers, and renderer-specific APIs are out of Nimi2D tier
+scope.
 
 Nimi2D tiers may name asset channels that a future Avatar backend can consume,
 but they do not define runtime behavior.
+
+Nimi2D reference package-player helpers may exercise tier channels for package
+proof, deterministic replay, and inspection. That proof can show that the
+package has usable channel evidence; it must not be reported as production
+Avatar runtime readiness.
 
 ## 4. Validation Floor
 
@@ -183,7 +189,8 @@ Tier validation is valid only if:
 
 - tier-1 does not claim AEIOU true viseme
 - no tier claims Live2D parity
-- runtime live action/composer behavior is out of scope
+- production runtime live action/composer behavior is out of scope
+- reference package-player replay is package proof only
 - channel evidence is checked against the closed matrix
 - requested tier and proven tier are distinct
 - overclaimed channels fail closed

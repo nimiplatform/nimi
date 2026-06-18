@@ -1,5 +1,5 @@
 import { clamp01, NIMI2D_RUNTIME_SCOPE } from './common.mjs';
-import { createNimi2DLiveActionStream, Nimi2DLiveActionStreamEventError } from './live-action-stream.mjs';
+import { createNimi2DReferenceActionStream, Nimi2DReferenceActionStreamEventError } from './live-action-stream.mjs';
 
 function frameFromStream(stream, layerRefs) {
   const snapshot = stream.snapshot();
@@ -73,7 +73,7 @@ function assertInvalidEventRejected(stream, counters, failures) {
     stream.applyEvent({ type: 'motion', routeId: 'lean_in', x: 0.25 });
     failures.push('low_level_event_not_rejected');
   } catch (error) {
-    if (error instanceof Nimi2DLiveActionStreamEventError && error.code === 'NIMI2D_LIVE_EVENT_FIELD_FORBIDDEN') {
+    if (error instanceof Nimi2DReferenceActionStreamEventError && error.code === 'NIMI2D_REFERENCE_EVENT_FIELD_FORBIDDEN') {
       counters.rejectedInvalidEventCount += 1;
     } else {
       failures.push('unexpected_invalid_event_error');
@@ -85,10 +85,10 @@ function assertInvalidEventRejected(stream, counters, failures) {
   }
 }
 
-async function runNimi2DLiveActionStress(input = {}) {
+async function runNimi2DReferenceActionStress(input = {}) {
   const failures = [];
   const observations = [];
-  const stream = input.stream ?? createNimi2DLiveActionStream();
+  const stream = input.stream ?? createNimi2DReferenceActionStream();
   const layerRefs = input.layerRefs ?? [];
   const defaultOutfitLayerRefs = input.defaultOutfitLayerRefs ?? [];
   const frameDeltaMs = Math.max(1, Number(input.frameDeltaMs ?? 16));
@@ -202,4 +202,7 @@ async function runNimi2DLiveActionStress(input = {}) {
   };
 }
 
-export { runNimi2DLiveActionStress };
+export {
+  runNimi2DReferenceActionStress,
+  runNimi2DReferenceActionStress as runNimi2DLiveActionStress,
+};

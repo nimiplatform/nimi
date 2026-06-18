@@ -23,6 +23,7 @@ async function runCli(args) {
 test('CLI runs standalone fixture validate, solve, render-plan, proof, and benches', async () => {
   const tempDir = await mkdtemp(path.join(tmpdir(), 'nimi2d-cli-'));
   const packagePath = path.join(tempDir, 'package.yaml');
+  const inspectionPath = path.join(tempDir, 'package-inspection.yaml');
   const benchResultPath = path.join(tempDir, 'generation-bench-result.yaml');
   await copyFile(path.join(fixtureDir, 'pixel.png'), path.join(tempDir, 'pixel.png'));
 
@@ -51,16 +52,30 @@ test('CLI runs standalone fixture validate, solve, render-plan, proof, and bench
   assert.equal(visualProof.stats.visiblePixels, 4);
   assert.equal(visualProof.stats.defaultOutfitVisiblePixels, 4);
 
-  const liveBench = await runCli(['run-live-action-bench', packagePath]);
-  assert.equal(liveBench.status, 'ok');
-  assert.equal(liveBench.result.verdict, 'pass_minimal_tier1');
-  assert.equal(liveBench.result.closesGenerationBench, false);
-  assert.equal(liveBench.result.closesMountedVisualProof, false);
+  const inspection = await runCli(['inspect-package', packagePath, '--grid-size', '2', '--out', inspectionPath]);
+  assert.equal(inspection.status, 'ok');
+  assert.equal(inspection.decision.verdict, 'pass');
+  assert.equal(inspection.report.validation.status, 'ok');
+  assert.equal(inspection.report.render_plan.status, 'pass');
+  assert.equal(inspection.report.visual_proof.status, 'pass');
+  assert.equal(inspection.report.reference_action.status, 'pass');
+  assert.equal(inspection.report.reference_action.closes_production_avatar_readiness, false);
+  assert.equal(inspection.report.gates.tier1_proven, 'pass');
+  const writtenInspection = await readFile(inspectionPath, 'utf8');
+  assert.equal(writtenInspection.includes('manifest_kind: nimi.nimi2d.package-inspection-report'), true);
 
-  const liveStress = await runCli(['run-live-action-stress', packagePath]);
-  assert.equal(liveStress.status, 'ok');
-  assert.equal(liveStress.result.verdict, 'pass_stream_stress_tier1');
-  assert.equal(liveStress.result.metrics.rejectedInvalidEventCount, 1);
+  const referenceBench = await runCli(['run-reference-action-bench', packagePath]);
+  assert.equal(referenceBench.status, 'ok');
+  assert.equal(referenceBench.kind, 'reference_action_bench_run');
+  assert.equal(referenceBench.result.verdict, 'pass_minimal_tier1');
+  assert.equal(referenceBench.result.closesGenerationBench, false);
+  assert.equal(referenceBench.result.closesMountedVisualProof, false);
+
+  const referenceStress = await runCli(['run-reference-action-stress', packagePath]);
+  assert.equal(referenceStress.status, 'ok');
+  assert.equal(referenceStress.kind, 'reference_action_stress_run');
+  assert.equal(referenceStress.result.verdict, 'pass_stream_stress_tier1');
+  assert.equal(referenceStress.result.metrics.rejectedInvalidEventCount, 1);
 
   const benchCorpus = await runCli(['validate-bench-corpus', corpusPath]);
   assert.equal(benchCorpus.status, 'ok');
@@ -83,8 +98,8 @@ test('CLI runs standalone fixture validate, solve, render-plan, proof, and bench
   assert.equal(runtimeMatrix.result.case_results.every((item) => item.status === 'passed'), true);
   assert.equal(runtimeMatrix.result.hard_gate_results.default_renderable_layers_covered, 'pass');
   assert.equal(runtimeMatrix.result.hard_gate_results.visual_proof_passed, 'pass');
-  assert.equal(runtimeMatrix.result.hard_gate_results.live_action_bench_passed, 'pass');
-  assert.equal(runtimeMatrix.result.hard_gate_results.live_action_stress_passed, 'pass');
+  assert.equal(runtimeMatrix.result.hard_gate_results.reference_action_bench_passed, 'pass');
+  assert.equal(runtimeMatrix.result.hard_gate_results.reference_action_stress_passed, 'pass');
 });
 
 test('CLI generates representative demo layer-input corpus and admits it through package gates', async () => {
@@ -121,7 +136,7 @@ test('CLI generates representative demo layer-input corpus and admits it through
   assert.equal(runtimeMatrix.result.selected_cases.length, 8);
   assert.equal(runtimeMatrix.result.case_results.every((item) => item.status === 'passed'), true);
   assert.equal(runtimeMatrix.result.hard_gate_results.visual_proof_passed, 'pass');
-  assert.equal(runtimeMatrix.result.hard_gate_results.live_action_stress_passed, 'pass');
+  assert.equal(runtimeMatrix.result.hard_gate_results.reference_action_stress_passed, 'pass');
 });
 
 test('CLI cuts image-input atlas into layer input and runs workflow bench', async () => {

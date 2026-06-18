@@ -35,22 +35,28 @@ or single unlayered avatar images.
 
 ### N2D-BENCH-002 - Upstream Layer Generation Is Out Of Scope
 
-Generation Bench does not measure segmentation, occlusion inpainting, source
-image choice, identity preservation model quality, or content classification
-quality.
+Generation Bench does not measure Codex Image2 provider quality, segmentation,
+occlusion inpainting, source image choice, identity preservation model quality,
+or content classification quality.
 
 Those may be measured by upstream product benches. Nimi2D Generation Bench only
 records their evidence refs and failure attribution when input evidence is
 missing or invalid.
 
-### N2D-BENCH-003 - Live Action Bench Is Separate
+### N2D-BENCH-003 - Production Live Action Bench Is Separate
 
-Live Action Bench validates Avatar backend value ceiling for runtime
-multi-stream composition. It is not a Generation Bench gate and cannot prove the
-default generated Nimi2D asset thesis.
+Production Live Action Bench validates Avatar backend value ceiling for runtime
+multi-stream composition. It is not a Generation Bench gate and cannot prove
+the default generated Nimi2D asset thesis.
 
 Generation Bench may record Live Action references as non-gating related
 evidence only after Avatar authority admits that bench.
+
+Nimi2D may run a reference package-player proof matrix or deterministic
+live-action stress harness to validate package readability, renderability, and
+basic channel exercise. That evidence is Nimi2D package proof evidence only; it
+does not replace Avatar-owned production Live Action Bench or Runtime
+projection evidence.
 
 ## 2. Decision Semantics
 
@@ -152,6 +158,25 @@ A bench run must fail audit if it:
 - changes expected outcomes without corpus version bump
 - uses unrecorded manual corrections
 - changes generator settings without recording configuration
+
+### N2D-BENCH-034 - Certified Corpus Certification
+
+`validate-bench-corpus` only proves that a corpus manifest is structurally
+usable by the bench runner. Release-gate use requires an additional certified
+corpus report.
+
+The certified corpus report must fail closed unless the corpus has:
+
+- enough certified-good tier-1 cases for the release gate
+- enough invalid contract cases to preserve fail-closed coverage
+- unique content hashes across certified-good tier-1 cases
+- certified-good source evidence refs that are not fixture, demo, generated, or
+  synthetic refs
+- certified-good distribution tags covering representative RealmPersona shape,
+  expression stress, wardrobe stress, and anchor stress
+
+Certification does not replace Generation Bench execution. It only decides
+whether a corpus is eligible to be used as release-gate input.
 
 ## 5. Result Protocol
 

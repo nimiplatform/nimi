@@ -4,12 +4,14 @@ import path from 'node:path';
 
 import {
   generateDemoCorpus,
+  certifyBenchCorpus,
   generateDemoAtlas,
   cutLayerAtlas,
   runAtlasQualityGate,
   runGenerationBench,
   runImageInputWorkflowBench,
   runRuntimeProofMatrix,
+  inspectPackage,
   solvePackageFromLayerInput,
   validateAtlasSpec,
   validateBenchCorpus,
@@ -22,11 +24,21 @@ import {
   createNimi2DAmplitudeMouthLane,
   createNimi2DComposer,
   createNimi2DRenderPlan,
-  runNimi2DLiveActionBench,
-  runNimi2DLiveActionStress,
 } from '../src/runtime/index.mjs';
+import {
+  runNimi2DReferenceActionBench,
+  runNimi2DReferenceActionStress,
+} from '../src/reference-player/index.mjs';
 import { probeNimi2DVisualFrame } from '../src/proof/index.mjs';
 import { decodePngRgba } from '../src/node/png-rgba.mjs';
+import { runCodexImage2AdapterCli } from '../src/node/image2-provider/artifact.mjs';
+import {
+  runCodexImage2Provider,
+  writeCodexImage2Plan,
+} from '../src/node/image2-provider/provider-workflow.mjs';
+import { runCodexImage2LayerWorkflow } from '../src/node/image2-provider/layer-workflow.mjs';
+import { runCodexImage2DistributionReportCli } from '../src/node/image2-provider/distribution-report.mjs';
+import { runCodexImage2DemoSuite } from '../src/node/image2-provider/demo-suite.mjs';
 
 function usage() {
   return [
@@ -36,20 +48,30 @@ function usage() {
     '  nimi2d solve-package <layer-input-manifest> --out <package-manifest>',
     '  nimi2d validate-package <manifest>',
     '  nimi2d admit-package <manifest>',
-    '  nimi2d render-plan <package-manifest> [--capability-profile <profile>]',
-    '  nimi2d prove-visual-frame <package-manifest> [--capability-profile <profile>] [--grid-size <n>]',
-    '  nimi2d validate-bench-corpus <manifest>',
+  '  nimi2d render-plan <package-manifest> [--capability-profile <profile>]',
+  '  nimi2d prove-visual-frame <package-manifest> [--capability-profile <profile>] [--grid-size <n>]',
+  '  nimi2d inspect-package <package-manifest> [--capability-profile <profile>] [--grid-size <n>] [--out <report.yaml>]',
+  '  nimi2d validate-bench-corpus <manifest>',
+  '  nimi2d certify-corpus <corpus-manifest> [--out <report.yaml>] [--min-certified <n>] [--min-invalid <n>]',
     '  nimi2d validate-bench-result <manifest>',
     '  nimi2d run-generation-bench <corpus-manifest> --out <result>',
     '  nimi2d run-runtime-proof-matrix <corpus-manifest> [--grid-size <n>]',
-    '  nimi2d run-live-action-bench <package-manifest> [--capability-profile <profile>]',
-    '  nimi2d run-live-action-stress <package-manifest> [--capability-profile <profile>]',
+    '  nimi2d run-reference-action-bench <package-manifest> [--capability-profile <profile>]',
+    '  nimi2d run-reference-action-stress <package-manifest> [--capability-profile <profile>]',
     '  nimi2d generate-demo-corpus <output-dir>',
     '  nimi2d validate-atlas-spec <atlas-spec>',
     '  nimi2d generate-demo-atlas <output-dir>',
     '  nimi2d cut-layer-atlas <atlas-spec> --out <output-dir>',
     '  nimi2d run-atlas-quality-gate <atlas-spec> [--out <quality-report>]',
     '  nimi2d run-image-input-workflow-bench <atlas-spec> --out <output-dir> [--grid-size <n>]',
+    '  nimi2d image2-provider-plan --workflow <workflow> --out-dir <dir> [--description <text>] [--description-file <file>] [--image <png>]',
+    '  nimi2d image2-provider-run --request <provider-request.yaml> [--dry-run|--execute|--response-file <json>] [--codex-bin <cmd>] [--model <model>]',
+    '  nimi2d image2-register-output --image <png> --out <manifest.yaml> --surface codex_cli [--request <provider-request.yaml>] [--evidence-image <png>] [--model <model>] [--model-hint <hint>]',
+    '  nimi2d image2-compare-pixels --left <png> --right <png> --out <report.yaml>',
+    '  nimi2d image2-postprocess --input <png> --out <png> --report <report.yaml> [--transparent-background none|corner|color]',
+    '  nimi2d image2-layer-workflow (--image <atlas.png>|--producer-manifest <artifact.yaml>) --out-dir <dir>',
+    '  nimi2d image2-distribution-report --runs-dir <dir> --out <report.yaml> [--min-samples <n>] [--source-surface <surface>]',
+    '  nimi2d image2-demo-suite --out-dir <dir> [--sample-count <n>] [--grid-size <n>]',
   ].join('\n');
 }
 
@@ -96,12 +118,12 @@ async function proveVisualFrame(packageManifestPath, args) {
   return { status: 'ok', kind: 'visual_frame_proof', stats };
 }
 
-async function runLiveActionBench(packageManifestPath, args) {
+async function runReferenceActionBench(packageManifestPath, args) {
   const renderPlan = await createRenderPlanFromCli(packageManifestPath, args);
   const composer = createNimi2DComposer();
   const mouthLane = createNimi2DAmplitudeMouthLane({ composer });
   let now = 0;
-  const result = await runNimi2DLiveActionBench({
+  const result = await runNimi2DReferenceActionBench({
     backendKind: 'nimi2d',
     defaultOutfitLayerRefs: defaultOutfitLayerRefs(renderPlan),
     projection: composer,
@@ -133,7 +155,7 @@ async function runLiveActionBench(packageManifestPath, args) {
   });
   return {
     status: result.verdict === 'fail' ? 'reject' : 'ok',
-    kind: 'live_action_bench_run',
+    kind: 'reference_action_bench_run',
     result,
     codes: result.failures,
     issues: result.failures.map((failure) => ({
@@ -144,16 +166,16 @@ async function runLiveActionBench(packageManifestPath, args) {
   };
 }
 
-async function runLiveActionStress(packageManifestPath, args) {
+async function runReferenceActionStress(packageManifestPath, args) {
   const renderPlan = await createRenderPlanFromCli(packageManifestPath, args);
-  const result = await runNimi2DLiveActionStress({
+  const result = await runNimi2DReferenceActionStress({
     backendKind: 'nimi2d',
     layerRefs: renderPlan.renderLayers.map((layer) => layer.layerRef),
     defaultOutfitLayerRefs: defaultOutfitLayerRefs(renderPlan),
   });
   return {
     status: result.verdict === 'fail' ? 'reject' : 'ok',
-    kind: 'live_action_stress_run',
+    kind: 'reference_action_stress_run',
     result,
     codes: result.failures,
     issues: result.failures.map((failure) => ({
@@ -172,6 +194,47 @@ async function main() {
     process.stdout.write(`${usage()}\n`);
     return;
   }
+
+  if (command === 'image2-register-output') {
+    await runCodexImage2AdapterCli(['register', manifestPath, ...rest].filter(Boolean));
+    return;
+  }
+  if (command === 'image2-compare-pixels') {
+    await runCodexImage2AdapterCli(['compare-pixels', manifestPath, ...rest].filter(Boolean));
+    return;
+  }
+  if (command === 'image2-postprocess') {
+    await runCodexImage2AdapterCli(['postprocess', manifestPath, ...rest].filter(Boolean));
+    return;
+  }
+  if (command === 'image2-provider-plan') {
+    const output = await writeCodexImage2Plan([manifestPath, ...rest].filter(Boolean));
+    printJson(output);
+    return;
+  }
+  if (command === 'image2-provider-run') {
+    const output = await runCodexImage2Provider([manifestPath, ...rest].filter(Boolean));
+    printJson(output);
+    if (output.status !== 'ok') process.exitCode = 1;
+    return;
+  }
+  if (command === 'image2-layer-workflow') {
+    const output = await runCodexImage2LayerWorkflow([manifestPath, ...rest].filter(Boolean));
+    printJson(output);
+    if (output.status !== 'ok' || output.verdict !== 'pass') process.exitCode = 1;
+    return;
+  }
+  if (command === 'image2-distribution-report') {
+    await runCodexImage2DistributionReportCli([manifestPath, ...rest].filter(Boolean));
+    return;
+  }
+  if (command === 'image2-demo-suite') {
+    const output = await runCodexImage2DemoSuite([manifestPath, ...rest].filter(Boolean));
+    printJson(output);
+    if (output.status !== 'ok') process.exitCode = 1;
+    return;
+  }
+
   if (!manifestPath) {
     process.stderr.write(`${usage()}\n`);
     process.exitCode = 2;
@@ -200,8 +263,24 @@ async function main() {
     };
   } else if (command === 'prove-visual-frame') {
     output = await proveVisualFrame(manifestPath, rest);
+  } else if (command === 'inspect-package') {
+    const gridSizeFlag = getFlag(rest, '--grid-size');
+    const gridSize = gridSizeFlag ? Number(gridSizeFlag) : undefined;
+    output = await inspectPackage(manifestPath, {
+      capabilityProfilePath: getFlag(rest, '--capability-profile') ?? undefined,
+      gridSize,
+      outPath: getFlag(rest, '--out') ?? undefined,
+    });
   } else if (command === 'validate-bench-corpus') {
     output = await validateBenchCorpus(manifestPath);
+  } else if (command === 'certify-corpus') {
+    const minCertifiedFlag = getFlag(rest, '--min-certified');
+    const minInvalidFlag = getFlag(rest, '--min-invalid');
+    output = await certifyBenchCorpus(manifestPath, {
+      minCertifiedCases: minCertifiedFlag ? Number(minCertifiedFlag) : undefined,
+      minInvalidCases: minInvalidFlag ? Number(minInvalidFlag) : undefined,
+      outPath: getFlag(rest, '--out') ?? undefined,
+    });
   } else if (command === 'validate-bench-result') {
     output = await validateBenchResult(manifestPath);
   } else if (command === 'run-generation-bench') {
@@ -211,10 +290,10 @@ async function main() {
     const gridSizeFlag = getFlag(rest, '--grid-size');
     const gridSize = gridSizeFlag ? Number(gridSizeFlag) : undefined;
     output = await runRuntimeProofMatrix(manifestPath, { gridSize });
-  } else if (command === 'run-live-action-bench') {
-    output = await runLiveActionBench(manifestPath, rest);
-  } else if (command === 'run-live-action-stress') {
-    output = await runLiveActionStress(manifestPath, rest);
+  } else if (command === 'run-reference-action-bench') {
+    output = await runReferenceActionBench(manifestPath, rest);
+  } else if (command === 'run-reference-action-stress') {
+    output = await runReferenceActionStress(manifestPath, rest);
   } else if (command === 'generate-demo-corpus') {
     output = await generateDemoCorpus(manifestPath);
   } else if (command === 'validate-atlas-spec') {

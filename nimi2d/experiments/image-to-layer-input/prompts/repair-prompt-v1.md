@@ -13,13 +13,16 @@ Do not add runtime animation instructions.
 
 Given:
 - atlas spec
+- upstream producer manifest
 - workflow report
+- upstream image quality report
 - layer validation result
 - generation bench result
 - runtime matrix result
 
 Produce:
 - the smallest prompt change that addresses the observed failure
+- one complete next image-generation prompt when the failure belongs to upstream image quality
 - whether the atlas spec also needs a deterministic change
 - whether the cutter needs a deterministic code change
 - one next-run command sequence
@@ -35,5 +38,7 @@ prompt_patch:
   replace: []
 spec_patch_summary: []
 cutter_patch_summary: []
+next_image_prompt: |
+  string
 next_commands: []
 ```
