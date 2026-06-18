@@ -114,7 +114,7 @@ export const SelectField = forwardRef<HTMLButtonElement, SelectFieldProps>(funct
         aria-labelledby={ariaLabelledBy}
         data-testid={dataTestId}
         className={cn(
-          'flex min-h-[var(--nimi-sizing-field-md-height)] w-full items-center justify-between gap-2 rounded-[var(--nimi-radius-field)] border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] px-3 text-left text-[var(--nimi-field-text)] transition-colors duration-[var(--nimi-motion-fast)] outline-none focus:border-[var(--nimi-field-focus)] focus:ring-[length:var(--nimi-focus-ring-width)] focus:ring-[var(--nimi-focus-ring-color)] disabled:cursor-not-allowed disabled:opacity-[var(--nimi-opacity-disabled)]',
+          'flex min-h-[var(--nimi-sizing-field-md-height)] w-full items-center justify-between gap-2 rounded-[var(--nimi-radius-field)] border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] px-3 text-left text-[var(--nimi-field-text)] transition-colors duration-[var(--nimi-motion-fast)] outline-none enabled:hover:border-[var(--nimi-field-focus)] focus:border-[var(--nimi-field-focus)] focus:ring-[length:var(--nimi-focus-ring-width)] focus:ring-[var(--nimi-focus-ring-color)] disabled:cursor-not-allowed disabled:opacity-[var(--nimi-opacity-disabled)]',
           fieldToneClassName(tone),
           className,
           selectClassName,

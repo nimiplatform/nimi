@@ -54,12 +54,19 @@ import {
   Slider,
   BackLink,
   AppCardSurface,
+  Breadcrumb,
   PageDetailLayout,
   CompactAction,
+  DataList,
+  DataTable,
   FieldTrigger,
   IconToggleAction,
+  Pagination,
   ScrollShell,
   STATE_TONE_CLASS,
+  Statistic,
+  StatisticGroup,
+  Steps,
   Timeline,
   TimelineDivider,
   TimelineGroup,
@@ -608,16 +615,20 @@ test('overlay shell composes size and sidebar together', async () => {
 });
 
 test('select field ignores empty option values reserved by Radix', () => {
-  expect(() => renderToStaticMarkup(
-    <SelectField
-      value=""
-      placeholder="Select a connector"
-      options={[
-        { value: '', label: 'Invalid empty option' },
-        { value: 'connector.openai', label: 'OpenAI' },
-      ]}
-    />,
-  )).not.toThrow();
+  let html = '';
+  expect(() => {
+    html = renderToStaticMarkup(
+      <SelectField
+        value=""
+        placeholder="Select a connector"
+        options={[
+          { value: '', label: 'Invalid empty option' },
+          { value: 'connector.openai', label: 'OpenAI' },
+        ]}
+      />,
+    );
+  }).not.toThrow();
+  expect(html).toContain('enabled:hover:border-[var(--nimi-field-focus)]');
 });
 
 test('toggle primitive renders canonical switch slots and states', () => {
@@ -818,4 +829,75 @@ test('timeline ring dot variant emits dual-layer ring + core nodes', () => {
   );
   expect(hasClass(html, 'nimi-timeline-group__dot--ring')).toBe(true);
   expect(hasClass(html, 'nimi-timeline-group__dot-core')).toBe(true);
+});
+
+test('data display and navigation primitives render Ant Design class coverage', () => {
+  const html = renderToStaticMarkup(
+    <div>
+      <StatisticGroup>
+        <Statistic label="Routes" value="18" suffix="ready" trend="up" tone="success" helper="Runtime coverage" />
+        <Statistic label="Blocked" value="2" trend="down" tone="warning" />
+      </StatisticGroup>
+      <DataList
+        ariaLabel="Capability lanes"
+        items={[
+          { id: 'text', title: 'text.generate', description: 'Streaming text lane', meta: 'SDK route', trailing: <StatusBadge tone="success">ready</StatusBadge> },
+        ]}
+      />
+      <DataTable
+        ariaLabel="Route matrix"
+        rows={[
+          { id: 'text', capability: 'text.generate', status: 'ready' },
+          { id: 'image', capability: 'image.generate', status: 'blocked' },
+        ]}
+        rowKey={(row) => row.id}
+        columns={[
+          { key: 'capability', title: 'Capability', render: (row) => row.capability },
+          { key: 'status', title: 'Status', render: (row) => row.status, align: 'right' },
+        ]}
+      />
+      <Pagination page={2} pageCount={5} onPageChange={() => {}} />
+      <Breadcrumb
+        items={[
+          { id: 'kit', label: 'Kit', href: '/kit' },
+          { id: 'ui', label: 'UI' },
+        ]}
+      />
+      <Steps
+        ariaLabel="Admission steps"
+        items={[
+          { id: 'spec', title: 'Spec aligned', status: 'complete' },
+          { id: 'build', title: 'Build', status: 'current' },
+          { id: 'verify', title: 'Verify', status: 'pending' },
+        ]}
+      />
+    </div>,
+  );
+
+  for (const className of [
+    'nimi-statistic',
+    'nimi-statistic-group',
+    'nimi-statistic__label',
+    'nimi-statistic__value',
+    'nimi-data-list',
+    'nimi-data-list__item',
+    'nimi-data-table',
+    'nimi-data-table__head',
+    'nimi-data-table__row',
+    'nimi-pagination',
+    'nimi-pagination__page',
+    'nimi-pagination__page--active',
+    'nimi-breadcrumb',
+    'nimi-breadcrumb__item',
+    'nimi-breadcrumb__separator',
+    'nimi-steps',
+    'nimi-steps__item',
+    'nimi-steps__dot',
+    'nimi-steps__connector',
+  ]) {
+    expect(hasClass(html, className)).toBe(true);
+  }
+  expect(html).toMatch(/aria-current="page"/);
+  expect(html).toMatch(/text\.generate/);
+  expect(html).toMatch(/Admission steps/);
 });

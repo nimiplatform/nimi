@@ -10,6 +10,7 @@ import {
   NimiTabs,
   NumberStepper,
   OverlayShell,
+  Pagination,
   PillTabs,
   Popover,
   PopoverContent,
@@ -73,6 +74,10 @@ export function PillTabsDemo() {
       ariaLabel="Preview mode"
     />
   );
+}
+export function PaginationDemo() {
+  const [page, setPage] = useState(2);
+  return <Pagination page={page} pageCount={7} onPageChange={setPage} ariaLabel="Capability result pages" />;
 }
 export function DialogDemo() {
   const [open, setOpen] = useState(false);

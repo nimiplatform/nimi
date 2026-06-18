@@ -30,6 +30,12 @@ surfaces:
   - primitive.field_shell
   - primitive.confirm_dialog
   - primitive.settings_shell
+  - primitive.statistic
+  - primitive.data_list
+  - primitive.data_table
+  - primitive.pagination
+  - primitive.breadcrumb
+  - primitive.steps
 primitives:
   - id: primitive.surface
     family: surface
@@ -1153,3 +1159,81 @@ primitives:
       - { id: card, class_name: nimi-surface }
     class_groups: {}
     source_rule: P-DESIGN-010
+  - id: primitive.statistic
+    family: data_display
+    component: Statistic
+    slots:
+      - { id: root, class_name: nimi-statistic }
+      - { id: label, class_name: nimi-statistic__label }
+      - { id: value, class_name: nimi-statistic__value }
+      - { id: trend, class_name: nimi-statistic__trend }
+      - { id: prefix, class_name: nimi-statistic__prefix }
+      - { id: suffix, class_name: nimi-statistic__suffix }
+      - { id: helper, class_name: nimi-statistic__helper }
+      - { id: group, class_name: nimi-statistic-group }
+    class_groups: {}
+    source_rule: P-DESIGN-010
+  - id: primitive.data_list
+    family: data_display
+    component: DataList
+    slots:
+      - { id: root, class_name: nimi-data-list }
+      - { id: item, class_name: nimi-data-list__item }
+      - { id: leading, class_name: nimi-data-list__leading }
+      - { id: body, class_name: nimi-data-list__body }
+      - { id: title, class_name: nimi-data-list__title }
+      - { id: description, class_name: nimi-data-list__description }
+      - { id: meta, class_name: nimi-data-list__meta }
+      - { id: aside, class_name: nimi-data-list__aside }
+    class_groups:
+      state:
+        - { id: empty, class_name: nimi-data-list--empty }
+    source_rule: P-DESIGN-010
+  - id: primitive.data_table
+    family: data_display
+    component: DataTable
+    slots:
+      - { id: root, class_name: nimi-data-table }
+      - { id: head, class_name: nimi-data-table__head }
+      - { id: th, class_name: nimi-data-table__th }
+      - { id: body, class_name: nimi-data-table__body }
+      - { id: row, class_name: nimi-data-table__row }
+      - { id: td, class_name: nimi-data-table__td }
+      - { id: empty, class_name: nimi-data-table__empty }
+    class_groups: {}
+    source_rule: P-DESIGN-010
+  - id: primitive.pagination
+    family: navigation
+    component: Pagination
+    slots:
+      - { id: root, class_name: nimi-pagination }
+      - { id: page, class_name: nimi-pagination__page }
+      - { id: ellipsis, class_name: nimi-pagination__ellipsis }
+    class_groups:
+      state:
+        - { id: active, class_name: nimi-pagination__page--active }
+    source_rule: P-DESIGN-014
+  - id: primitive.breadcrumb
+    family: navigation
+    component: Breadcrumb
+    slots:
+      - { id: root, class_name: nimi-breadcrumb }
+      - { id: item, class_name: nimi-breadcrumb__item }
+      - { id: link, class_name: nimi-breadcrumb__link }
+      - { id: current, class_name: nimi-breadcrumb__current }
+      - { id: separator, class_name: nimi-breadcrumb__separator }
+    class_groups: {}
+    source_rule: P-DESIGN-014
+  - id: primitive.steps
+    family: navigation
+    component: Steps
+    slots:
+      - { id: root, class_name: nimi-steps }
+      - { id: item, class_name: nimi-steps__item }
+      - { id: dot, class_name: nimi-steps__dot }
+      - { id: connector, class_name: nimi-steps__connector }
+      - { id: body, class_name: nimi-steps__body }
+      - { id: title, class_name: nimi-steps__title }
+      - { id: description, class_name: nimi-steps__description }
+    class_groups: {}
+    source_rule: P-DESIGN-014

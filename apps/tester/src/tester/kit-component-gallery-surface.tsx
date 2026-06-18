@@ -25,44 +25,73 @@ function badgeTone(tone: Recipe['badge']['tone']): 'success' | 'info' | 'warning
 
 export function FoundationsCanvas() {
   return (
-    <div className="kit-foundations grid grid-cols-2 gap-3 max-[980px]:grid-cols-1">
-      <Surface className="kit-found-card grid content-start gap-3 p-3" material="glass-thin" tone="panel" elevation="base">
+    <div className="kit-foundations grid grid-cols-2 gap-4 max-[980px]:grid-cols-1">
+      {/* Color roles — Semantic color tokens that remap between light and dark. */}
+      <Surface className="kit-found-card grid content-start gap-4 p-5" material="glass-thin" tone="panel" elevation="base">
         <div className="kit-found-head flex items-start justify-between gap-3">
-          <div>
-            <strong>Semantic color tokens</strong>
-            <span className="mt-1 block text-xs text-[var(--nimi-text-muted)]">Use CSS variables directly when composing app-owned surfaces.</span>
+          <div className="grid min-w-0 gap-1">
+            <strong className="text-base">Color roles</strong>
+            <span className="block text-xs leading-5 text-[var(--nimi-text-muted)]">
+              Semantic color tokens — reference these variables instead of hard-coded hex and they remap between light and dark.
+            </span>
           </div>
-          <StatusBadge tone="success" shape="soft">theme aware</StatusBadge>
+          <StatusBadge tone="success" shape="soft">Theme-aware</StatusBadge>
         </div>
-        <div className="kit-token-grid grid grid-cols-2 gap-2">
+        <div className="kit-token-grid grid grid-cols-3 gap-3 max-[520px]:grid-cols-2">
           {COLOR_TOKENS.map((entry) => (
-            <div key={entry.token} className="kit-token overflow-hidden rounded-lg border border-[var(--nimi-border-subtle)]">
-              <span className="kit-token__chip block h-6" style={{ background: `var(${entry.token})` }} aria-hidden="true" />
-              <b className="block px-2 pt-1 text-xs">{entry.label}</b>
-              <code className="block truncate px-2 pb-2 text-[10px] text-[var(--nimi-text-muted)]">{entry.token}</code>
+            <div key={entry.token} className="kit-token grid min-w-0 gap-1.5">
+              <span
+                className="kit-token__chip block h-14 rounded-xl border border-[color-mix(in_srgb,var(--nimi-text-primary)_8%,transparent)]"
+                style={{ background: `var(${entry.token})` }}
+                aria-hidden="true"
+              />
+              <b className="block truncate text-xs">{entry.label}</b>
+              <code className="block truncate text-[10px] text-[var(--nimi-text-muted)]">{entry.token}</code>
             </div>
           ))}
         </div>
       </Surface>
-      <Surface className="kit-found-card grid content-start gap-3 p-3" material="glass-thin" tone="panel" elevation="base">
+
+      {/* Text roles — NimiText roles carry their own size, weight, and spacing. */}
+      <Surface className="kit-found-card grid content-start gap-4 p-5" material="glass-thin" tone="panel" elevation="base">
         <div className="kit-found-head flex items-start justify-between gap-3">
-          <div>
-            <strong>NimiText roles</strong>
-            <span className="mt-1 block text-xs text-[var(--nimi-text-muted)]">Typography specimens map to role names.</span>
+          <div className="grid min-w-0 gap-1">
+            <strong className="text-base">Text roles</strong>
+            <span className="block text-xs leading-5 text-[var(--nimi-text-muted)]">
+              NimiText roles — set a role and the size, weight, and spacing come with it, no manual values.
+            </span>
           </div>
           <StatusBadge tone="info" shape="soft">NimiText</StatusBadge>
         </div>
-        <div className="kit-type-stack grid gap-2">
+        <div className="kit-type-stack grid gap-3">
           {TYPE_ROLES.map((entry) => (
-            <div key={entry.role} className="kit-type-row flex items-baseline justify-between gap-3 border-b border-[color-mix(in_srgb,var(--nimi-text-primary)_7%,transparent)] pb-1">
-              <span className={entry.className}>{entry.sample}</span>
+            <div key={entry.role} className="kit-type-row flex items-baseline justify-between gap-3 border-b border-[color-mix(in_srgb,var(--nimi-text-primary)_7%,transparent)] pb-2 last:border-b-0 last:pb-0">
+              <span className={`min-w-0 truncate ${entry.className}`}>{entry.sample}</span>
               <code className="shrink-0 text-[10px] text-[var(--nimi-text-muted)]">role=&quot;{entry.role}&quot;</code>
             </div>
           ))}
         </div>
-        <div className="kit-scale-row flex flex-wrap gap-2">
+      </Surface>
+
+      {/* Corner radius — soft, slightly-squared corners as composable tokens. */}
+      <Surface className="kit-found-card col-span-2 grid content-start gap-4 p-5 max-[980px]:col-span-1" material="glass-thin" tone="panel" elevation="base">
+        <div className="kit-found-head grid gap-1">
+          <strong className="text-base">Corner radius</strong>
+          <span className="block text-xs leading-5 text-[var(--nimi-text-muted)]">
+            Soft, slightly-squared corners — compose these radius tokens instead of fixed pixel values.
+          </span>
+        </div>
+        <div className="kit-scale-row flex flex-wrap items-end gap-5">
           {SCALE_TOKENS.map((entry) => (
-            <span key={entry.token} className="kit-scale-chip border border-[var(--nimi-border-strong)] px-3 py-1 text-xs text-[var(--nimi-text-secondary)]" style={{ borderRadius: `var(${entry.token})` }}>{entry.label}</span>
+            <div key={entry.token} className="grid justify-items-center gap-2">
+              <span
+                className="kit-scale-chip grid h-16 w-16 place-items-center border border-[var(--nimi-border-strong)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,transparent)]"
+                style={{ borderRadius: `var(${entry.token})` }}
+                aria-hidden="true"
+              />
+              <b className="text-xs">{entry.label}</b>
+              <code className="text-[10px] text-[var(--nimi-text-muted)]">{entry.token}</code>
+            </div>
           ))}
         </div>
       </Surface>
@@ -72,7 +101,11 @@ export function FoundationsCanvas() {
 
 function RecipeModeContent({ recipe, mode }: { recipe: Recipe; mode: RecipeMode }) {
   if (mode === 'live') {
-    return <span className="kit-card__stage grid min-h-32 place-items-center rounded-lg border border-[var(--nimi-border-subtle)] p-3">{recipe.stage}</span>;
+    return (
+      <span className="kit-card__stage grid min-h-32 place-items-center gap-3 rounded-xl border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-canvas)_55%,transparent)] p-4">
+        {recipe.stage}
+      </span>
+    );
   }
 
   if (mode === 'code') {
@@ -152,7 +185,7 @@ function RecipeCard({ recipe }: { recipe: Recipe }) {
       as="article"
       key={recipe.id}
       kind={recipe.wide ? 'promoted-glass' : 'operational-solid'}
-      className={recipe.wide ? 'kit-card kit-card--wide grid gap-3 p-3' : 'kit-card grid gap-3 p-3'}
+      className={`kit-card grid content-start gap-3 p-4${recipe.wide ? ' kit-card--wide col-span-2 max-[980px]:col-span-1' : ''}`}
     >
       <div className="kit-card__head flex items-start justify-between gap-3">
         <div className="kit-card__title grid min-w-0 gap-1">
@@ -191,7 +224,7 @@ function RecipeCard({ recipe }: { recipe: Recipe }) {
 
 export function RecipeCards({ recipes }: { recipes: Recipe[] }) {
   return (
-    <div className="kit-cards grid gap-3">
+    <div className="kit-cards grid grid-cols-2 items-start gap-4 max-[980px]:grid-cols-1">
       {recipes.map((recipe) => (
         <RecipeCard key={recipe.id} recipe={recipe} />
       ))}

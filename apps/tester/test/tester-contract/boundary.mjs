@@ -129,6 +129,13 @@ test('tester kit gallery showcases real kit components for third-party apps', ()
     'EmptyState',
     'LoadingSkeleton',
     'NimiText',
+    'DataTable',
+    'DataList',
+    'Pagination',
+    'Breadcrumb',
+    'Steps',
+    'Statistic',
+    'StatisticGroup',
   ]) {
     assert.match(gallery, new RegExp(`\\b${required}\\b`));
   }
@@ -149,6 +156,16 @@ test('tester UI Recipes is an industrial two-pane kit component workbench', () =
   // Glass material tiers are demonstrated.
   for (const tier of ['glass-thin', 'glass-regular', 'glass-thick', 'glass-chrome']) {
     assert.match(gallery, new RegExp(tier));
+  }
+  // Ant Design reference coverage: enterprise data display and navigation
+  // primitives are first-class Kit recipes, not app-local widgets.
+  for (const recipe of [
+    'Breadcrumb, Steps, Pagination',
+    'Statistic summary',
+    'DataList',
+    'DataTable',
+  ]) {
+    assert.match(gallery, new RegExp(recipe));
   }
   // Two-pane structure: taxonomy library + recipe cards. Live/code/props/a11y/tokens
   // are per-recipe controls, not one page-level switch that cuts the whole list.
@@ -212,6 +229,7 @@ test('tester app-owned Tauri commands are registered in standalone shell', () =>
   const main = read('src-tauri/src/main.rs');
   assert.match(main, /tester_run_history_load/);
   assert.match(main, /tester_image_history_save/);
+  assert.match(main, /tester_artifact_save/);
   assert.match(main, /tester_export_save/);
   assert.match(main, /open_world_tour_window/);
   assert.match(main, /claim_world_tour_viewer_launch/);

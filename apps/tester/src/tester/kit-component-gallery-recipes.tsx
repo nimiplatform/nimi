@@ -4,6 +4,9 @@ import {
   AppCardSurface,
   Button,
   CompactAction,
+  Breadcrumb,
+  DataList,
+  DataTable,
   EmptyState,
   FieldShell,
   FieldTrigger,
@@ -11,11 +14,15 @@ import {
   IconToggleAction,
   InlineAlert,
   LoadingSkeleton,
+  Pagination,
   ProgressIndicator,
   ScrollArea,
   ScrollShell,
   SelectField,
+  Statistic,
+  StatisticGroup,
   StatusBadge,
+  Steps,
   Surface,
   TextareaField,
   TextField,
@@ -29,6 +36,7 @@ import {
   DialogDemo,
   NumberStepperDemo,
   OverlayShellDemo,
+  PaginationDemo,
   PillTabsDemo,
   PopoverDemo,
   SegmentedDemo,
@@ -548,6 +556,65 @@ export const RECIPES: Recipe[] = [
     ],
   },
   {
+    id: 'navigation-primitives',
+    category: 'layouts',
+    name: 'Breadcrumb, Steps, Pagination',
+    exportsLabel: 'Breadcrumb, Steps, Pagination',
+    importNames: ['Breadcrumb', 'Steps', 'Pagination'],
+    badge: { label: 'navigation', tone: 'info' },
+    wide: true,
+    stage: (
+      <div className="kit-stack" style={{ width: '100%' }}>
+        <Breadcrumb
+          items={[
+            { id: 'kit', label: 'Kit', href: '#kit' },
+            { id: 'ui', label: 'UI primitives', href: '#ui' },
+            { id: 'data', label: 'Data display' },
+          ]}
+        />
+        <Steps
+          ariaLabel="Kit admission path"
+          items={[
+            { id: 'authority', title: 'Spec aligned', description: 'Primitive slots declared', status: 'complete' },
+            { id: 'build', title: 'Build surface', description: 'React primitive exported', status: 'current' },
+            { id: 'consume', title: 'Adopt in app', description: 'Tester gallery proves usage', status: 'pending' },
+          ]}
+        />
+        <PaginationDemo />
+      </div>
+    ),
+    extraImports: ["import { useState } from 'react';"],
+    snippet: `function NavigationRecipe() {
+  const [page, setPage] = useState(2);
+
+  return (
+    <div className="kit-stack">
+      <Breadcrumb
+        items={[
+          { id: 'kit', label: 'Kit', href: '#kit' },
+          { id: 'ui', label: 'UI primitives', href: '#ui' },
+          { id: 'data', label: 'Data display' },
+        ]}
+      />
+      <Steps
+        ariaLabel="Kit admission path"
+        items={[
+          { id: 'authority', title: 'Spec aligned', status: 'complete' },
+          { id: 'build', title: 'Build surface', status: 'current' },
+          { id: 'consume', title: 'Adopt in app', status: 'pending' },
+        ]}
+      />
+      <Pagination page={page} pageCount={7} onPageChange={setPage} />
+    </div>
+  );
+}`,
+    props: [
+      { name: 'items', desc: 'BreadcrumbItem[] or StepItem[] with stable ids' },
+      { name: 'page / pageCount', desc: 'controlled pagination cursor' },
+      { name: 'onPageChange', desc: 'consumer-owned route or state update' },
+    ],
+  },
+  {
     id: 'scrollarea',
     category: 'layouts',
     name: 'ScrollArea',
@@ -612,6 +679,107 @@ export const RECIPES: Recipe[] = [
     ],
   },
   // Data & Status
+  {
+    id: 'statistic',
+    category: 'data',
+    name: 'Statistic summary',
+    exportsLabel: 'Statistic, StatisticGroup',
+    importNames: ['Statistic', 'StatisticGroup'],
+    badge: { label: 'metrics', tone: 'success' },
+    wide: true,
+    stage: (
+      <StatisticGroup className="w-full">
+        <Statistic label="Routes ready" value="18" suffix="/ 24" trend="up" tone="success" helper="Runtime capability matrix" />
+        <Statistic label="Blocked lanes" value="2" trend="down" tone="warning" helper="Needs model binding" />
+        <Statistic label="Coverage" value="92" suffix="%" tone="brand" helper="Kit-first UI usage" />
+      </StatisticGroup>
+    ),
+    snippet: `<StatisticGroup>
+  <Statistic label="Routes ready" value="18" suffix="/ 24" trend="up" tone="success" />
+  <Statistic label="Blocked lanes" value="2" trend="down" tone="warning" />
+  <Statistic label="Coverage" value="92" suffix="%" tone="brand" />
+</StatisticGroup>`,
+    props: [
+      { name: 'label / value', desc: 'metric identity and value content' },
+      { name: 'prefix / suffix', desc: 'optional value chrome' },
+      { name: 'trend / tone', desc: 'semantic metric direction and status color' },
+    ],
+  },
+  {
+    id: 'data-list',
+    category: 'data',
+    name: 'DataList',
+    exportsLabel: 'DataList',
+    importNames: ['DataList'],
+    badge: { label: 'records', tone: 'info' },
+    wide: true,
+    stage: (
+      <DataList
+        ariaLabel="Capability lane records"
+        items={[
+          { id: 'text', title: 'text.generate', description: 'Streaming and sync text generation', meta: 'SDK runtime route', trailing: <StatusBadge tone="success">ready</StatusBadge> },
+          { id: 'image', title: 'image.generate', description: 'Media scenario runner', meta: 'Runtime admission required', trailing: <StatusBadge tone="warning">review</StatusBadge> },
+        ]}
+      />
+    ),
+    snippet: `<DataList
+  ariaLabel="Capability lane records"
+  items={[
+    {
+      id: 'text',
+      title: 'text.generate',
+      description: 'Streaming and sync text generation',
+      meta: 'SDK runtime route',
+      trailing: <StatusBadge tone="success">ready</StatusBadge>,
+    },
+  ]}
+/>`,
+    props: [
+      { name: 'items', desc: 'record list with title, description, meta, leading, trailing, actions' },
+      { name: 'ariaLabel', desc: 'required list label for assistive tech' },
+      { name: 'empty', desc: 'consumer-owned empty state node' },
+    ],
+  },
+  {
+    id: 'data-table',
+    category: 'data',
+    name: 'DataTable',
+    exportsLabel: 'DataTable',
+    importNames: ['DataTable'],
+    badge: { label: 'matrix', tone: 'info' },
+    wide: true,
+    stage: (
+      <DataTable
+        ariaLabel="Kit route matrix"
+        rows={[
+          { id: 'chat', capability: 'chat.stream', owner: 'runtime', status: 'ready' },
+          { id: 'embed', capability: 'text.embed', owner: 'runtime', status: 'ready' },
+          { id: 'commerce', capability: 'gift.send', owner: 'realm', status: 'guarded' },
+        ]}
+        rowKey={(row) => row.id}
+        columns={[
+          { key: 'capability', title: 'Capability', render: (row) => <code>{row.capability}</code> },
+          { key: 'owner', title: 'Owner', render: (row) => row.owner },
+          { key: 'status', title: 'Status', align: 'right', render: (row) => <StatusBadge tone={row.status === 'ready' ? 'success' : 'warning'}>{row.status}</StatusBadge> },
+        ]}
+      />
+    ),
+    snippet: `<DataTable
+  ariaLabel="Kit route matrix"
+  rows={[{ id: 'chat', capability: 'chat.stream', owner: 'runtime', status: 'ready' }]}
+  rowKey={(row) => row.id}
+  columns={[
+    { key: 'capability', title: 'Capability', render: (row) => <code>{row.capability}</code> },
+    { key: 'owner', title: 'Owner', render: (row) => row.owner },
+    { key: 'status', title: 'Status', align: 'right', render: (row) => row.status },
+  ]}
+/>`,
+    props: [
+      { name: 'rows / columns', desc: 'typed rows and render callbacks' },
+      { name: 'rowKey', desc: 'stable key resolver' },
+      { name: 'empty', desc: 'table body empty row content' },
+    ],
+  },
   {
     id: 'status',
     category: 'data',

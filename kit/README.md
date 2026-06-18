@@ -77,7 +77,7 @@ The complete npm subpath inventory is the `exports` object in
 ### UI primitives
 
 ```ts
-import { Button, IconButton, cn } from '@nimiplatform/kit/ui';
+import { Button, DataTable, Pagination, Statistic, IconButton, cn } from '@nimiplatform/kit/ui';
 import { GlassSurface, glassMaterial } from '@nimiplatform/kit/ui/glass';
 import { usePrefersReducedMotion, MOTION_TIMING } from '@nimiplatform/kit/ui/motion';
 import { FOCUS_RING_CLASS_NAME, VisuallyHidden } from '@nimiplatform/kit/ui/a11y';
