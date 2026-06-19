@@ -1,35 +1,23 @@
 import type { ReactNode } from 'react';
 import {
-  Avatar,
   AppCardSurface,
   Button,
   CompactAction,
   Breadcrumb,
-  DataList,
-  DataTable,
-  EmptyState,
   FieldShell,
   FieldTrigger,
   IconButton,
   IconToggleAction,
-  InlineAlert,
-  LoadingSkeleton,
   Pagination,
-  ProgressIndicator,
   ScrollArea,
-  ScrollShell,
   SelectField,
-  Statistic,
-  StatisticGroup,
-  StatusBadge,
   Steps,
   Surface,
   TextareaField,
   TextField,
-  Timeline,
-  TimelineGroup,
+  type TypographyRole,
 } from '@nimiplatform/kit/ui';
-import { Boxes, Check, RefreshCw, Search, Sparkles } from 'lucide-react';
+import { Check, RefreshCw, Search, Sparkles } from 'lucide-react';
 import {
   CheckboxDemo,
   ConfirmDemo,
@@ -45,11 +33,12 @@ import {
   ToggleDemo,
   TooltipDemo,
 } from './kit-component-gallery-demos.js';
+import { DATA_RECIPES } from './kit-component-gallery-data-recipes.js';
 
-// UI Recipes — an industrial Nimi Kit component library for third-party Nimi App
+// UI Recipes - an industrial Nimi Kit component library for third-party Nimi App
 // developers. Two panes: an ontology/coverage taxonomy (left) and a live
 // workbench canvas with inline recipe evidence (right). It performs NO runtime
-// work — this is component documentation, rendered from the canonical kit surface.
+// work - this is component documentation, rendered from the canonical kit surface.
 
 export type CategoryId =
   | 'foundations'
@@ -60,16 +49,16 @@ export type CategoryId =
   | 'layouts'
   | 'data';
 
-export type Category = { id: CategoryId; symbol: string; label: string; desc: string };
+export type Category = { id: CategoryId; symbol: string; label: string };
 
 export const CATEGORIES: Category[] = [
-  { id: 'foundations', symbol: 'F', label: 'Foundations', desc: 'Color, type, radius, elevation' },
-  { id: 'actions', symbol: 'A', label: 'Actions', desc: 'Button, IconButton, menus' },
-  { id: 'inputs', symbol: 'I', label: 'Inputs', desc: 'Text, search, textarea, select' },
-  { id: 'selection', symbol: 'S', label: 'Selection', desc: 'Toggle, checkbox, segmented, slider' },
-  { id: 'overlays', symbol: 'O', label: 'Overlays', desc: 'Dialog, popover, tooltip, confirm' },
-  { id: 'layouts', symbol: 'L', label: 'Layouts', desc: 'Tabs, scroll, surface materials' },
-  { id: 'data', symbol: 'D', label: 'Data & Status', desc: 'Badge, alert, timeline, avatar' },
+  { id: 'foundations', symbol: 'F', label: 'Foundations' },
+  { id: 'actions', symbol: 'A', label: 'Actions' },
+  { id: 'inputs', symbol: 'I', label: 'Inputs' },
+  { id: 'selection', symbol: 'S', label: 'Selection' },
+  { id: 'overlays', symbol: 'O', label: 'Overlays' },
+  { id: 'layouts', symbol: 'L', label: 'Layouts' },
+  { id: 'data', symbol: 'D', label: 'Data & Status' },
 ];
 
 // ---- Foundations data ----
@@ -85,13 +74,13 @@ export const COLOR_TOKENS: Array<{ token: string; label: string; onDark?: boolea
   { token: '--nimi-status-danger-soft-bg', label: 'Status danger' },
 ];
 
-export const TYPE_ROLES: Array<{ role: string; sample: string; className: string }> = [
-  { role: 'page-title', sample: 'Page title', className: 'text-2xl font-bold text-[var(--nimi-text-primary)]' },
-  { role: 'section-title', sample: 'Section title', className: 'text-xl font-bold text-[var(--nimi-text-primary)]' },
-  { role: 'card-title', sample: 'Card title', className: 'text-sm font-bold text-[var(--nimi-text-primary)]' },
-  { role: 'body', sample: 'Body copy for product surfaces and settings flows.', className: 'text-sm text-[var(--nimi-text-secondary)]' },
-  { role: 'helper', sample: 'Helper text under form controls.', className: 'text-xs text-[var(--nimi-text-muted)]' },
-  { role: 'label', sample: 'Field label', className: 'text-xs font-bold uppercase text-[var(--nimi-text-secondary)]' },
+export const TYPE_ROLES: Array<{ role: TypographyRole; sample: string }> = [
+  { role: 'page-title', sample: 'Page title' },
+  { role: 'section-title', sample: 'Section title' },
+  { role: 'card-title', sample: 'Card title' },
+  { role: 'body', sample: 'Body copy for product surfaces and settings flows.' },
+  { role: 'helper', sample: 'Helper text under form controls.' },
+  { role: 'label', sample: 'Field label' },
 ];
 
 export const SCALE_TOKENS: Array<{ token: string; label: string }> = [
@@ -115,16 +104,18 @@ export type Recipe = {
   stage: ReactNode;
   snippet: string;
   props: Array<{ name: string; desc: string }>;
+  accessChecks?: string[];
+  tokenFootprint?: Array<{ token: string; role: string; source: string }>;
 };
 
-export type RecipeMode = 'live' | 'code' | 'props' | 'a11y' | 'tokens';
+export type RecipeMode = 'preview' | 'use' | 'key-props' | 'access' | 'design-tokens';
 
 export const RECIPE_MODES: Array<{ id: RecipeMode; label: string }> = [
-  { id: 'live', label: 'Live' },
-  { id: 'code', label: 'Code' },
-  { id: 'props', label: 'Props' },
-  { id: 'a11y', label: 'A11y' },
-  { id: 'tokens', label: 'Tokens' },
+  { id: 'preview', label: 'Preview' },
+  { id: 'use', label: 'Use' },
+  { id: 'key-props', label: 'Key props' },
+  { id: 'access', label: 'Access' },
+  { id: 'design-tokens', label: 'Design tokens' },
 ];
 
 export const RECIPES: Recipe[] = [
@@ -132,11 +123,11 @@ export const RECIPES: Recipe[] = [
   {
     id: 'button',
     category: 'actions',
-    name: 'Button · IconButton',
+    name: 'Button / IconButton',
     exportsLabel: 'Button, IconButton',
     importNames: ['Button', 'IconButton'],
     extraImports: ["import { RefreshCw, Sparkles } from 'lucide-react';"],
-    badge: { label: 'live', tone: 'success' },
+    badge: { label: 'preview', tone: 'success' },
     stage: (
       <>
         <Button tone="primary" leadingIcon={<Sparkles size={14} />}>Primary</Button>
@@ -159,13 +150,23 @@ export const RECIPES: Recipe[] = [
       { name: 'loading', desc: 'disables the action and shows a spinner' },
       { name: 'leadingIcon', desc: 'ReactNode rendered before the label' },
     ],
+    accessChecks: [
+      'Visible text buttons keep their accessible name from children.',
+      'aria-label is required for icon-only actions.',
+      'loading sets aria-busy and disables the action while preserving focus treatment.',
+    ],
+    tokenFootprint: [
+      { token: '--nimi-action-primary-bg', role: 'primary action fill', source: 'tables/nimi-ui-tokens.yaml' },
+      { token: '--nimi-action-primary-text', role: 'primary action foreground', source: 'tables/nimi-ui-tokens.yaml' },
+      { token: '--nimi-focus-ring', role: 'keyboard-visible focus ring', source: 'tables/nimi-ui-tokens.yaml' },
+    ],
   },
   {
     id: 'app-actions',
     category: 'actions',
     name: 'App surface actions',
-    exportsLabel: 'AppCardSurface, CompactAction, IconToggleAction, FieldTrigger, ScrollShell',
-    importNames: ['AppCardSurface', 'CompactAction', 'IconToggleAction', 'FieldTrigger', 'ScrollShell'],
+    exportsLabel: 'AppCardSurface, CompactAction, IconToggleAction, FieldTrigger',
+    importNames: ['AppCardSurface', 'CompactAction', 'IconToggleAction', 'FieldTrigger'],
     extraImports: ["import { Check } from 'lucide-react';"],
     badge: { label: 'app shell', tone: 'success' },
     wide: true,
@@ -176,10 +177,7 @@ export const RECIPES: Recipe[] = [
           <CompactAction tone="danger">Reset</CompactAction>
           <IconToggleAction aria-label="Pin panel" icon={<Check size={14} />} active />
         </div>
-        <FieldTrigger className="mt-3">Runtime route · text.generate</FieldTrigger>
-        <ScrollShell className="mt-3 max-h-16 text-xs text-[var(--nimi-text-secondary)]">
-          Shared app surfaces stay in Kit so Desktop, Tester, and future apps consume the same primitive.
-        </ScrollShell>
+        <FieldTrigger className="mt-3">Runtime route - text.generate</FieldTrigger>
       </AppCardSurface>
     ),
     snippet: `<AppCardSurface kind="promoted-glass" className="kit-surface-sample">
@@ -188,15 +186,22 @@ export const RECIPES: Recipe[] = [
     <CompactAction tone="danger">Reset</CompactAction>
     <IconToggleAction aria-label="Pin panel" icon={<Check size={14} />} active />
   </div>
-  <FieldTrigger className="mt-3">Runtime route · text.generate</FieldTrigger>
-  <ScrollShell className="mt-3 max-h-16 text-xs text-[var(--nimi-text-secondary)]">
-    Shared app surfaces stay in Kit so Desktop, Tester, and future apps consume the same primitive.
-  </ScrollShell>
+  <FieldTrigger className="mt-3">Runtime route - text.generate</FieldTrigger>
 </AppCardSurface>`,
     props: [
       { name: 'kind', desc: 'promoted-glass | operational-solid app surface recipe' },
       { name: 'tone', desc: 'neutral | primary | danger compact action tone' },
       { name: 'activeTone', desc: 'primary | danger icon toggle active state' },
+    ],
+    accessChecks: [
+      'CompactAction follows Button keyboard and focus semantics.',
+      'IconToggleAction needs aria-label because the icon is decorative.',
+      'FieldTrigger text must identify the consumer-owned field or route.',
+    ],
+    tokenFootprint: [
+      { token: '--nimi-material-glass-thin-bg', role: 'promoted app surface material', source: 'tables/nimi-ui-themes.yaml' },
+      { token: '--nimi-action-primary-bg', role: 'primary compact action fill', source: 'tables/nimi-ui-tokens.yaml' },
+      { token: '--nimi-border-subtle', role: 'field trigger and surface boundary', source: 'tables/nimi-ui-tokens.yaml' },
     ],
   },
   // Inputs
@@ -268,7 +273,7 @@ export const RECIPES: Recipe[] = [
   {
     id: 'numeric',
     category: 'inputs',
-    name: 'Slider · NumberStepper',
+    name: 'Slider / NumberStepper',
     exportsLabel: 'Slider, NumberStepper',
     importNames: ['Slider', 'NumberStepper'],
     extraImports: ["import { useState } from 'react';"],
@@ -445,7 +450,7 @@ export const RECIPES: Recipe[] = [
   <PopoverContent>
     <div className="kit-pop">
       <strong>Route detail</strong>
-      <span>Local runtime · text.generate</span>
+      <span>Local runtime - text.generate</span>
     </div>
   </PopoverContent>
 </Popover>`,
@@ -486,7 +491,7 @@ export const RECIPES: Recipe[] = [
 
   return (
     <>
-      <Button tone="danger" size="sm" onClick={() => setOpen(true)}>Delete draft…</Button>
+      <Button tone="danger" size="sm" onClick={() => setOpen(true)}>Delete draft</Button>
       <ConfirmDialog
         open={open}
         title="Delete prompt draft?"
@@ -508,7 +513,7 @@ export const RECIPES: Recipe[] = [
   {
     id: 'tabs',
     category: 'layouts',
-    name: 'NimiTabs · PillTabs',
+    name: 'NimiTabs / PillTabs',
     exportsLabel: 'NimiTabs, PillTabs',
     importNames: ['NimiTabs', 'PillTabs'],
     badge: { label: 'navigation', tone: 'info' },
@@ -522,15 +527,15 @@ export const RECIPES: Recipe[] = [
     extraImports: ["import { useState } from 'react';"],
     snippet: `function TabsRecipe() {
   const [tabsValue, setTabsValue] = useState('overview');
-  const [pillValue, setPillValue] = useState('live');
+  const [pillValue, setPillValue] = useState('preview');
 
   return (
     <>
       <NimiTabs
         items={[
           { value: 'overview', label: 'Overview' },
-          { value: 'props', label: 'Props' },
-          { value: 'tokens', label: 'Tokens' },
+          { value: 'key-props', label: 'Key props' },
+          { value: 'design-tokens', label: 'Design tokens' },
         ]}
         value={tabsValue}
         onValueChange={setTabsValue}
@@ -538,9 +543,9 @@ export const RECIPES: Recipe[] = [
       />
       <PillTabs
         items={[
-          { value: 'live', label: 'Live' },
-          { value: 'code', label: 'Code' },
-          { value: 'a11y', label: 'A11y' },
+          { value: 'preview', label: 'Preview' },
+          { value: 'use', label: 'Use' },
+          { value: 'access', label: 'Access' },
         ]}
         value={pillValue}
         onValueChange={setPillValue}
@@ -575,9 +580,9 @@ export const RECIPES: Recipe[] = [
         <Steps
           ariaLabel="Kit admission path"
           items={[
-            { id: 'authority', title: 'Spec aligned', description: 'Primitive slots declared', status: 'complete' },
-            { id: 'build', title: 'Build surface', description: 'React primitive exported', status: 'current' },
-            { id: 'consume', title: 'Adopt in app', description: 'Tester gallery proves usage', status: 'pending' },
+            { id: 'authority', title: 'Spec aligned', status: 'complete' },
+            { id: 'build', title: 'Build surface', status: 'current' },
+            { id: 'consume', title: 'Adopt in app', status: 'pending' },
           ]}
         />
         <PaginationDemo />
@@ -651,7 +656,7 @@ export const RECIPES: Recipe[] = [
   {
     id: 'surface',
     category: 'layouts',
-    name: 'Surface · glass materials',
+    name: 'Surface / glass materials',
     exportsLabel: 'Surface material="glass-*"',
     importNames: ['Surface'],
     badge: { label: 'material', tone: 'success' },
@@ -678,280 +683,5 @@ export const RECIPES: Recipe[] = [
       { name: 'elevation', desc: 'base | raised | floating | modal' },
     ],
   },
-  // Data & Status
-  {
-    id: 'statistic',
-    category: 'data',
-    name: 'Statistic summary',
-    exportsLabel: 'Statistic, StatisticGroup',
-    importNames: ['Statistic', 'StatisticGroup'],
-    badge: { label: 'metrics', tone: 'success' },
-    wide: true,
-    stage: (
-      <StatisticGroup className="w-full">
-        <Statistic label="Routes ready" value="18" suffix="/ 24" trend="up" tone="success" helper="Runtime capability matrix" />
-        <Statistic label="Blocked lanes" value="2" trend="down" tone="warning" helper="Needs model binding" />
-        <Statistic label="Coverage" value="92" suffix="%" tone="brand" helper="Kit-first UI usage" />
-      </StatisticGroup>
-    ),
-    snippet: `<StatisticGroup>
-  <Statistic label="Routes ready" value="18" suffix="/ 24" trend="up" tone="success" />
-  <Statistic label="Blocked lanes" value="2" trend="down" tone="warning" />
-  <Statistic label="Coverage" value="92" suffix="%" tone="brand" />
-</StatisticGroup>`,
-    props: [
-      { name: 'label / value', desc: 'metric identity and value content' },
-      { name: 'prefix / suffix', desc: 'optional value chrome' },
-      { name: 'trend / tone', desc: 'semantic metric direction and status color' },
-    ],
-  },
-  {
-    id: 'data-list',
-    category: 'data',
-    name: 'DataList',
-    exportsLabel: 'DataList',
-    importNames: ['DataList'],
-    badge: { label: 'records', tone: 'info' },
-    wide: true,
-    stage: (
-      <DataList
-        ariaLabel="Capability lane records"
-        items={[
-          { id: 'text', title: 'text.generate', description: 'Streaming and sync text generation', meta: 'SDK runtime route', trailing: <StatusBadge tone="success">ready</StatusBadge> },
-          { id: 'image', title: 'image.generate', description: 'Media scenario runner', meta: 'Runtime admission required', trailing: <StatusBadge tone="warning">review</StatusBadge> },
-        ]}
-      />
-    ),
-    snippet: `<DataList
-  ariaLabel="Capability lane records"
-  items={[
-    {
-      id: 'text',
-      title: 'text.generate',
-      description: 'Streaming and sync text generation',
-      meta: 'SDK runtime route',
-      trailing: <StatusBadge tone="success">ready</StatusBadge>,
-    },
-  ]}
-/>`,
-    props: [
-      { name: 'items', desc: 'record list with title, description, meta, leading, trailing, actions' },
-      { name: 'ariaLabel', desc: 'required list label for assistive tech' },
-      { name: 'empty', desc: 'consumer-owned empty state node' },
-    ],
-  },
-  {
-    id: 'data-table',
-    category: 'data',
-    name: 'DataTable',
-    exportsLabel: 'DataTable',
-    importNames: ['DataTable'],
-    badge: { label: 'matrix', tone: 'info' },
-    wide: true,
-    stage: (
-      <DataTable
-        ariaLabel="Kit route matrix"
-        rows={[
-          { id: 'chat', capability: 'chat.stream', owner: 'runtime', status: 'ready' },
-          { id: 'embed', capability: 'text.embed', owner: 'runtime', status: 'ready' },
-          { id: 'commerce', capability: 'gift.send', owner: 'realm', status: 'guarded' },
-        ]}
-        rowKey={(row) => row.id}
-        columns={[
-          { key: 'capability', title: 'Capability', render: (row) => <code>{row.capability}</code> },
-          { key: 'owner', title: 'Owner', render: (row) => row.owner },
-          { key: 'status', title: 'Status', align: 'right', render: (row) => <StatusBadge tone={row.status === 'ready' ? 'success' : 'warning'}>{row.status}</StatusBadge> },
-        ]}
-      />
-    ),
-    snippet: `<DataTable
-  ariaLabel="Kit route matrix"
-  rows={[{ id: 'chat', capability: 'chat.stream', owner: 'runtime', status: 'ready' }]}
-  rowKey={(row) => row.id}
-  columns={[
-    { key: 'capability', title: 'Capability', render: (row) => <code>{row.capability}</code> },
-    { key: 'owner', title: 'Owner', render: (row) => row.owner },
-    { key: 'status', title: 'Status', align: 'right', render: (row) => row.status },
-  ]}
-/>`,
-    props: [
-      { name: 'rows / columns', desc: 'typed rows and render callbacks' },
-      { name: 'rowKey', desc: 'stable key resolver' },
-      { name: 'empty', desc: 'table body empty row content' },
-    ],
-  },
-  {
-    id: 'status',
-    category: 'data',
-    name: 'StatusBadge',
-    exportsLabel: 'StatusBadge',
-    importNames: ['StatusBadge'],
-    badge: { label: 'signals', tone: 'success' },
-    stage: (
-      <>
-        <StatusBadge tone="success" shape="dot">ready</StatusBadge>
-        <StatusBadge tone="warning" shape="dot">attention</StatusBadge>
-        <StatusBadge tone="danger" shape="dot">blocked</StatusBadge>
-        <StatusBadge tone="info" shape="soft">info</StatusBadge>
-        <StatusBadge tone="neutral" shape="outline">neutral</StatusBadge>
-      </>
-    ),
-    snippet: `<>
-  <StatusBadge tone="success" shape="dot">ready</StatusBadge>
-  <StatusBadge tone="warning" shape="dot">attention</StatusBadge>
-  <StatusBadge tone="danger" shape="dot">blocked</StatusBadge>
-  <StatusBadge tone="info" shape="soft">info</StatusBadge>
-  <StatusBadge tone="neutral" shape="outline">neutral</StatusBadge>
-</>`,
-    props: [
-      { name: 'tone', desc: 'neutral | success | warning | danger | info' },
-      { name: 'shape', desc: 'soft | outline | dot' },
-    ],
-  },
-  {
-    id: 'alert',
-    category: 'data',
-    name: 'InlineAlert',
-    exportsLabel: 'InlineAlert',
-    importNames: ['InlineAlert'],
-    badge: { label: 'signals', tone: 'warning' },
-    wide: true,
-    stage: (
-      <div className="kit-stack">
-        <InlineAlert tone="info">Runtime session is ready for this capability.</InlineAlert>
-        <InlineAlert tone="warning">Bind a model before running this lane.</InlineAlert>
-      </div>
-    ),
-    snippet: `<div className="kit-stack">
-  <InlineAlert tone="info">Runtime session is ready for this capability.</InlineAlert>
-  <InlineAlert tone="warning">Bind a model before running this lane.</InlineAlert>
-</div>`,
-    props: [
-      { name: 'tone', desc: 'neutral | success | warning | danger | info' },
-      { name: 'icon', desc: 'optional leading icon node' },
-    ],
-  },
-  {
-    id: 'progress',
-    category: 'data',
-    name: 'Progress · Skeleton',
-    exportsLabel: 'ProgressIndicator, LoadingSkeleton',
-    importNames: ['ProgressIndicator', 'LoadingSkeleton'],
-    badge: { label: 'loading', tone: 'info' },
-    stage: (
-      <div className="kit-stack" style={{ width: '100%' }}>
-        <ProgressIndicator value={72} showValue />
-        <LoadingSkeleton lines={3} />
-      </div>
-    ),
-    snippet: `<div className="kit-stack" style={{ width: '100%' }}>
-  <ProgressIndicator value={72} showValue />
-  <LoadingSkeleton lines={3} />
-</div>`,
-    props: [
-      { name: 'value', desc: '0–100 progress percentage' },
-      { name: 'lines', desc: 'LoadingSkeleton row count' },
-    ],
-  },
-  {
-    id: 'avatar',
-    category: 'data',
-    name: 'Avatar',
-    exportsLabel: 'Avatar',
-    importNames: ['Avatar'],
-    badge: { label: 'identity', tone: 'neutral' },
-    stage: (
-      <>
-        <Avatar alt="Nimi" fallback="N" />
-        <Avatar alt="Tester" fallback="T" shape="rounded" tone="accent" />
-        <Avatar alt="Agent" fallback="A" size="lg" />
-      </>
-    ),
-    snippet: `<>
-  <Avatar alt="Nimi" fallback="N" />
-  <Avatar alt="Tester" fallback="T" shape="rounded" tone="accent" />
-  <Avatar alt="Agent" fallback="A" size="lg" />
-</>`,
-    props: [
-      { name: 'src / alt', desc: 'image + accessible name' },
-      { name: 'shape', desc: 'circle | rounded | square' },
-      { name: 'size', desc: 'sm | md | lg' },
-    ],
-  },
-  {
-    id: 'empty',
-    category: 'data',
-    name: 'EmptyState',
-    exportsLabel: 'EmptyState',
-    importNames: ['EmptyState', 'Button'],
-    badge: { label: 'empty', tone: 'neutral' },
-    wide: true,
-    stage: (
-      <EmptyState
-        icon={<Boxes size={18} />}
-        title="No captured artifacts"
-        description="Run a real capability or resolve a typed blocker before this list fills."
-        action={<Button size="sm" tone="secondary" leadingIcon={<RefreshCw size={13} />}>Refresh</Button>}
-      />
-    ),
-    extraImports: ["import { Boxes, RefreshCw } from 'lucide-react';"],
-    snippet: `<EmptyState
-  icon={<Boxes size={18} />}
-  title="No captured artifacts"
-  description="Run a real capability or resolve a typed blocker before this list fills."
-  action={
-    <Button size="sm" tone="secondary" leadingIcon={<RefreshCw size={13} />}>
-      Refresh
-    </Button>
-  }
-/>`,
-    props: [
-      { name: 'title / description', desc: 'empty-state copy' },
-      { name: 'action', desc: 'the action that populates the surface' },
-    ],
-  },
-  {
-    id: 'timeline',
-    category: 'data',
-    name: 'Timeline',
-    exportsLabel: 'Timeline, TimelineGroup',
-    importNames: ['Timeline', 'TimelineGroup'],
-    badge: { label: 'evidence', tone: 'info' },
-    wide: true,
-    stage: (
-      <Timeline>
-        <TimelineGroup date="Today" secondaryLabel="21:51">
-          <div className="kit-tl-item"><strong>Runtime session ready</strong><span>SDK admission surface available</span></div>
-        </TimelineGroup>
-        <TimelineGroup date="Earlier" secondaryLabel="21:40" isLast>
-          <div className="kit-tl-item"><strong>Capability blocked</strong><span>NimiAIConfig binding required</span></div>
-        </TimelineGroup>
-      </Timeline>
-    ),
-    snippet: `<Timeline>
-  <TimelineGroup date="Today" secondaryLabel="21:51">
-    <div className="kit-tl-item">
-      <strong>Runtime session ready</strong>
-      <span>SDK admission surface available</span>
-    </div>
-  </TimelineGroup>
-  <TimelineGroup date="Earlier" secondaryLabel="21:40" isLast>
-    <div className="kit-tl-item">
-      <strong>Capability blocked</strong>
-      <span>NimiAIConfig binding required</span>
-    </div>
-  </TimelineGroup>
-</Timeline>`,
-    props: [
-      { name: 'date', desc: 'TimelineGroup heading' },
-      { name: 'secondaryLabel', desc: 'right-aligned meta' },
-      { name: 'isLast', desc: 'omit the trailing connector' },
-    ],
-  },
-];
-
-export const CHECKLIST = [
-  'Use Nimi Kit primitives before app-local controls.',
-  'Show live preview, import path, and props per recipe.',
-  'Keep runtime calls out of UI Recipes — this is component documentation.',
+  ...DATA_RECIPES,
 ];

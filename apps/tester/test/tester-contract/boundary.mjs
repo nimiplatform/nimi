@@ -149,10 +149,11 @@ test('tester UI Recipes is an industrial two-pane kit component workbench', () =
   for (const category of ['Foundations', 'Actions', 'Inputs', 'Selection', 'Overlays', 'Layouts', 'Data & Status']) {
     assert.match(gallery, new RegExp(category));
   }
-  // Foundations show real color tokens + NimiText roles.
-  assert.match(gallery, /Semantic color tokens/);
+  // Foundations show real color tokens + text roles without locking explanatory subtitles.
+  assert.match(gallery, /Color roles/);
   assert.match(gallery, /--nimi-action-primary-bg/);
-  assert.match(gallery, /NimiText roles/);
+  assert.match(gallery, /Text roles/);
+  assert.match(gallery, /NimiText/);
   // Glass material tiers are demonstrated.
   for (const tier of ['glass-thin', 'glass-regular', 'glass-thick', 'glass-chrome']) {
     assert.match(gallery, new RegExp(tier));
@@ -167,7 +168,7 @@ test('tester UI Recipes is an industrial two-pane kit component workbench', () =
   ]) {
     assert.match(gallery, new RegExp(recipe));
   }
-  // Two-pane structure: taxonomy library + recipe cards. Live/code/props/a11y/tokens
+  // Two-pane structure: taxonomy library + recipe cards. Preview/use/key-props/access/design-tokens
   // are per-recipe controls, not one page-level switch that cuts the whole list.
   assert.match(gallery, /kit-doc__library/);
   assert.match(gallery, /kit-doc__main/);
@@ -175,13 +176,58 @@ test('tester UI Recipes is an industrial two-pane kit component workbench', () =
   assert.match(gallery, /kit-card__tabs/);
   assert.match(gallery, /RecipeModeContent/);
   assert.match(gallery, /Import and usage/);
-  assert.match(gallery, /Props contract/);
+  assert.match(gallery, /Key props/);
+  assert.match(gallery, /Access checks/);
+  assert.match(gallery, /Design token footprint/);
+  for (const modeLabel of ['Preview', 'Use', 'Key props', 'Access', 'Design tokens']) {
+    assert.match(gallery, new RegExp(`label: '${modeLabel}'`));
+  }
+  assert.doesNotMatch(gallery, /label: 'Live'|label: 'Code'|label: 'Props'|label: 'A11y'|label: 'Tokens'/);
   assert.doesNotMatch(gallery, /options=\{lanes\}|onChange=\{\.\.\.\}|value=\{n\}|\{rows\}|<Button \/>|title message confirmLabel/);
   assert.doesNotMatch(gallery, /kit-doc__modebar|kit-doc__modetabs|kit-doc__import|kit-doc__inspector|kit-doc__evidence|Selected recipe|Coverage map/);
-  // It is pure component documentation — no runtime work.
+  // It is pure component documentation - no runtime work.
   assert.match(gallery, /component documentation/);
   // The scenario-first composer was replaced by a component-first doc.
   assert.doesNotMatch(gallery, /Surface Scenario Rail|surfaceScenarios|Recipe Composer/);
+});
+
+test('tester UI Recipes deep links and per-recipe evidence use product language', () => {
+  const devPreview = read('src/dev-preview.tsx');
+  const gallery = readTesterKitComponentGallerySurface(root);
+  const recipes = read('src/tester/kit-component-gallery-recipes.tsx');
+  const foundationsSurface = read('src/tester/kit-component-gallery-surface.tsx');
+
+  assert.match(devPreview, /'ui-recipes': 'UI Recipes'/);
+  assert.doesNotMatch(devPreview, /'ui-recipes': 'Nimi Kit'/);
+  assert.match(gallery, /accessChecks/);
+  assert.match(gallery, /tokenFootprint/);
+  assert.doesNotMatch(gallery, /CHECKLIST\.map/);
+  assert.doesNotMatch(recipes, /export const CHECKLIST/);
+  assert.match(recipes, /export type RecipeMode = 'preview' \| 'use' \| 'key-props' \| 'access' \| 'design-tokens'/);
+  assert.doesNotMatch(recipes, /RecipeMode = 'live' \| 'code' \| 'props' \| 'a11y' \| 'tokens'/);
+  assert.match(recipes, /aria-label is required for icon-only actions/);
+  assert.match(recipes, /--nimi-action-primary-bg/);
+  assert.match(recipes, /tables\/nimi-ui-tokens\.yaml/);
+  assert.match(foundationsSurface, /<NimiText role=\{entry\.role\}/);
+});
+
+test('tester UI Recipes foundations keep raw token evidence out of the startup canvas', () => {
+  const galleryEntry = read('src/tester/kit-component-gallery.tsx');
+  const foundationsSurface = read('src/tester/kit-component-gallery-surface.tsx');
+
+  assert.match(galleryEntry, /Copy CSS setup/);
+  assert.doesNotMatch(galleryEntry, /entries/);
+  assert.doesNotMatch(galleryEntry, /ProgressIndicator/);
+  assert.doesNotMatch(galleryEntry, /Copy tokens/);
+  assert.doesNotMatch(galleryEntry, /Nimi UI Kit.{0,8}Reference/);
+  assert.doesNotMatch(galleryEntry, /Preview overlay shell/);
+  assert.doesNotMatch(galleryEntry, /Maximize2/);
+  assert.doesNotMatch(galleryEntry, /kit-doc__hero/);
+  assert.match(galleryEntry, /foundationCode/);
+  assert.match(foundationsSurface, /kit-found-card grid min-w-0 overflow-hidden/);
+  assert.match(foundationsSurface, /kit-type-row flex min-w-0 overflow-hidden/);
+  assert.doesNotMatch(foundationsSurface, /<code[^>]*>\{entry\.token\}<\/code>/);
+  assert.doesNotMatch(foundationsSurface, /role=&quot;\{entry\.role\}&quot;/);
 });
 
 test('tester capability runs consume Kit renderer telemetry', () => {

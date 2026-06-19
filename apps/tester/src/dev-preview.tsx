@@ -39,7 +39,7 @@ function DevPreview() {
       'audio.transcribe': 'Speech Transcribe',
       'speech-bundle': 'Speech Bundle',
       world: 'World Tour',
-      'ui-recipes': 'Nimi Kit',
+      'ui-recipes': 'UI Recipes',
     };
     const label = map[section];
     if (!label) return;

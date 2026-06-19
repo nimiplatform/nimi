@@ -48,7 +48,9 @@ export function TextStudioComposer({
   onSubmit: () => void;
 }) {
   const profile = getCapabilityStudioProfile(capability.id);
-  const requiresPrompt = profile.inputKind !== 'none';
+  const isReadOnlyComposer = profile.inputKind === 'none';
+  const requiresPrompt = !isReadOnlyComposer;
+  const composerInputValue = isReadOnlyComposer ? (profile.inputNote ?? '') : prompt;
   const contextAttached = Boolean(context.trim());
   const [contextOpen, setContextOpen] = useState(false);
   const promptReady = !requiresPrompt || Boolean(prompt.trim());
@@ -62,15 +64,17 @@ export function TextStudioComposer({
   const composerBar = (
     <div className="studio-composer__bar">
       <div className="studio-composer__controls">
-        <button
-          type="button"
-          className={contextAttached ? 'studio-context-chip studio-context-chip--attached' : 'studio-context-chip'}
-          onClick={() => setContextOpen((current) => !current)}
-          aria-expanded={contextOpen}
-        >
-          <Plus size={18} aria-hidden="true" />
-          {contextAttached ? 'Context attached' : 'Context'}
-        </button>
+        {requiresPrompt ? (
+          <button
+            type="button"
+            className={contextAttached ? 'studio-context-chip studio-context-chip--attached' : 'studio-context-chip'}
+            onClick={() => setContextOpen((current) => !current)}
+            aria-expanded={contextOpen}
+          >
+            <Plus size={18} aria-hidden="true" />
+            {contextAttached ? 'Context attached' : 'Context'}
+          </button>
+        ) : null}
       </div>
       <div className="studio-composer__actions">
         <ModelSummaryChip
@@ -130,40 +134,41 @@ export function TextStudioComposer({
   );
   return (
     <div className={compact ? 'studio-composer studio-composer--compact' : 'studio-composer'}>
-      {requiresPrompt ? (
-        <div className="studio-input">
-          <TextareaField
-            className="studio-input__box"
-            textareaClassName="studio-input__textarea"
-            rows={2}
-            wrap="soft"
-            maxLength={2000}
-            aria-label={`${capability.label} request`}
-            placeholder={capability.id === 'text.generate' ? 'Ask Nimi to draft, rewrite, summarize, or structure something...' : profile.inputPlaceholder}
-            value={prompt}
-            onChange={(event: ChangeEvent<HTMLTextAreaElement>) => onPromptChange(event.currentTarget.value)}
-          />
-          <span className="studio-input__count">{prompt.length} / 2000</span>
-          <Maximize2 size={13} aria-hidden="true" className="studio-input__expand" />
-          <div className={contextOpen ? 'studio-context studio-context--open' : 'studio-context'}>
-            <TextareaField
-              className="studio-context__box"
-              textareaClassName="studio-context__draft"
-              rows={compact ? 2 : 3}
-              wrap="soft"
-              maxLength={1600}
-              aria-label="Context"
-              placeholder="Optional context, audience, source notes, or constraints"
-              value={context}
-              onChange={(event: ChangeEvent<HTMLTextAreaElement>) => onContextChange(event.currentTarget.value)}
-            />
-          </div>
-          {composerBar}
-        </div>
-      ) : (
-        <p className="studio-note">{profile.inputNote}</p>
-      )}
-      {requiresPrompt ? null : composerBar}
+      <div className={isReadOnlyComposer ? 'studio-input studio-input--readonly' : 'studio-input'}>
+        <TextareaField
+          className="studio-input__box"
+          textareaClassName="studio-input__textarea"
+          rows={2}
+          wrap="soft"
+          maxLength={isReadOnlyComposer ? undefined : 2000}
+          aria-label={`${capability.label} request`}
+          aria-readonly={isReadOnlyComposer ? true : undefined}
+          placeholder={isReadOnlyComposer ? '' : capability.id === 'text.generate' ? 'Ask Nimi to draft, rewrite, summarize, or structure something...' : profile.inputPlaceholder}
+          readOnly={isReadOnlyComposer}
+          value={composerInputValue}
+          onChange={isReadOnlyComposer ? undefined : (event: ChangeEvent<HTMLTextAreaElement>) => onPromptChange(event.currentTarget.value)}
+        />
+        {requiresPrompt ? (
+          <>
+            <span className="studio-input__count">{prompt.length} / 2000</span>
+            <Maximize2 size={13} aria-hidden="true" className="studio-input__expand" />
+            <div className={contextOpen ? 'studio-context studio-context--open' : 'studio-context'}>
+              <TextareaField
+                className="studio-context__box"
+                textareaClassName="studio-context__draft"
+                rows={compact ? 2 : 3}
+                wrap="soft"
+                maxLength={1600}
+                aria-label="Context"
+                placeholder="Optional context, audience, source notes, or constraints"
+                value={context}
+                onChange={(event: ChangeEvent<HTMLTextAreaElement>) => onContextChange(event.currentTarget.value)}
+              />
+            </div>
+          </>
+        ) : null}
+        {composerBar}
+      </div>
     </div>
   );
 }

@@ -57,7 +57,11 @@ export function TabsDemo() {
   const [value, setValue] = useState('overview');
   return (
     <NimiTabs
-      items={[{ value: 'overview', label: 'Overview' }, { value: 'props', label: 'Props' }, { value: 'tokens', label: 'Tokens' }]}
+      items={[
+        { value: 'overview', label: 'Overview' },
+        { value: 'key-props', label: 'Key props' },
+        { value: 'design-tokens', label: 'Design tokens' },
+      ]}
       value={value}
       onValueChange={setValue}
       ariaLabel="Recipe view"
@@ -65,10 +69,14 @@ export function TabsDemo() {
   );
 }
 export function PillTabsDemo() {
-  const [value, setValue] = useState('live');
+  const [value, setValue] = useState('preview');
   return (
     <PillTabs
-      items={[{ value: 'live', label: 'Live' }, { value: 'code', label: 'Code' }, { value: 'a11y', label: 'A11y' }]}
+      items={[
+        { value: 'preview', label: 'Preview' },
+        { value: 'use', label: 'Use' },
+        { value: 'access', label: 'Access' },
+      ]}
       value={value}
       onValueChange={setValue}
       ariaLabel="Preview mode"

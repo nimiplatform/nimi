@@ -1,9 +1,8 @@
 import { useMemo, useState } from 'react';
-import { AppCardSurface, CompactAction, IconToggleAction, ScrollShell, StatusBadge, Surface } from '@nimiplatform/kit/ui';
+import { AppCardSurface, CompactAction, IconToggleAction, NimiText, ScrollShell, StatusBadge, Surface } from '@nimiplatform/kit/ui';
 import { Check, Code2, ListChecks, Palette } from 'lucide-react';
 import {
   CATEGORIES,
-  CHECKLIST,
   COLOR_TOKENS,
   RECIPE_MODES,
   RECIPES,
@@ -23,17 +22,28 @@ function badgeTone(tone: Recipe['badge']['tone']): 'success' | 'info' | 'warning
   return tone;
 }
 
+const fallbackAccessChecks = [
+  'Use the exported Kit primitive instead of app-local visual copies.',
+  'Preserve caller-owned labels, names, and state instead of hiding them behind local wrappers.',
+  'Do not treat this recipe as Runtime or Realm readiness evidence.',
+];
+
+function fallbackTokenFootprint(recipe: Recipe): NonNullable<Recipe['tokenFootprint']> {
+  return [
+    { token: '--nimi-text-primary', role: `${recipe.exportsLabel} text color`, source: 'tables/nimi-ui-tokens.yaml' },
+    { token: '--nimi-border-subtle', role: `${recipe.exportsLabel} boundary treatment`, source: 'tables/nimi-ui-tokens.yaml' },
+    { token: '--nimi-surface-card', role: `${recipe.exportsLabel} host surface`, source: 'tables/nimi-ui-themes.yaml' },
+  ];
+}
+
 export function FoundationsCanvas() {
   return (
-    <div className="kit-foundations grid grid-cols-2 gap-4 max-[980px]:grid-cols-1">
-      {/* Color roles — Semantic color tokens that remap between light and dark. */}
-      <Surface className="kit-found-card grid content-start gap-4 p-5" material="glass-thin" tone="panel" elevation="base">
-        <div className="kit-found-head flex items-start justify-between gap-3">
+    <div className="kit-foundations grid min-w-0 grid-cols-2 gap-4 overflow-hidden max-[980px]:grid-cols-1">
+      {/* Color roles */}
+      <Surface className="kit-found-card grid min-w-0 overflow-hidden content-start gap-4 p-5" material="glass-thin" tone="panel" elevation="base">
+        <div className="kit-found-head flex min-w-0 items-start justify-between gap-3">
           <div className="grid min-w-0 gap-1">
             <strong className="text-base">Color roles</strong>
-            <span className="block text-xs leading-5 text-[var(--nimi-text-muted)]">
-              Semantic color tokens — reference these variables instead of hard-coded hex and they remap between light and dark.
-            </span>
           </div>
           <StatusBadge tone="success" shape="soft">Theme-aware</StatusBadge>
         </div>
@@ -46,40 +56,32 @@ export function FoundationsCanvas() {
                 aria-hidden="true"
               />
               <b className="block truncate text-xs">{entry.label}</b>
-              <code className="block truncate text-[10px] text-[var(--nimi-text-muted)]">{entry.token}</code>
             </div>
           ))}
         </div>
       </Surface>
 
-      {/* Text roles — NimiText roles carry their own size, weight, and spacing. */}
-      <Surface className="kit-found-card grid content-start gap-4 p-5" material="glass-thin" tone="panel" elevation="base">
-        <div className="kit-found-head flex items-start justify-between gap-3">
+      {/* Text roles */}
+      <Surface className="kit-found-card grid min-w-0 overflow-hidden content-start gap-4 p-5" material="glass-thin" tone="panel" elevation="base">
+        <div className="kit-found-head flex min-w-0 items-start justify-between gap-3">
           <div className="grid min-w-0 gap-1">
             <strong className="text-base">Text roles</strong>
-            <span className="block text-xs leading-5 text-[var(--nimi-text-muted)]">
-              NimiText roles — set a role and the size, weight, and spacing come with it, no manual values.
-            </span>
           </div>
           <StatusBadge tone="info" shape="soft">NimiText</StatusBadge>
         </div>
         <div className="kit-type-stack grid gap-3">
           {TYPE_ROLES.map((entry) => (
-            <div key={entry.role} className="kit-type-row flex items-baseline justify-between gap-3 border-b border-[color-mix(in_srgb,var(--nimi-text-primary)_7%,transparent)] pb-2 last:border-b-0 last:pb-0">
-              <span className={`min-w-0 truncate ${entry.className}`}>{entry.sample}</span>
-              <code className="shrink-0 text-[10px] text-[var(--nimi-text-muted)]">role=&quot;{entry.role}&quot;</code>
+            <div key={entry.role} className="kit-type-row flex min-w-0 overflow-hidden border-b border-[color-mix(in_srgb,var(--nimi-text-primary)_7%,transparent)] pb-2 last:border-b-0 last:pb-0">
+              <NimiText role={entry.role} className="min-w-0 break-words">{entry.sample}</NimiText>
             </div>
           ))}
         </div>
       </Surface>
 
-      {/* Corner radius — soft, slightly-squared corners as composable tokens. */}
-      <Surface className="kit-found-card col-span-2 grid content-start gap-4 p-5 max-[980px]:col-span-1" material="glass-thin" tone="panel" elevation="base">
+      {/* Corner radius */}
+      <Surface className="kit-found-card col-span-2 grid min-w-0 overflow-hidden content-start gap-4 p-5 max-[980px]:col-span-1" material="glass-thin" tone="panel" elevation="base">
         <div className="kit-found-head grid gap-1">
           <strong className="text-base">Corner radius</strong>
-          <span className="block text-xs leading-5 text-[var(--nimi-text-muted)]">
-            Soft, slightly-squared corners — compose these radius tokens instead of fixed pixel values.
-          </span>
         </div>
         <div className="kit-scale-row flex flex-wrap items-end gap-5">
           {SCALE_TOKENS.map((entry) => (
@@ -90,7 +92,6 @@ export function FoundationsCanvas() {
                 aria-hidden="true"
               />
               <b className="text-xs">{entry.label}</b>
-              <code className="text-[10px] text-[var(--nimi-text-muted)]">{entry.token}</code>
             </div>
           ))}
         </div>
@@ -100,7 +101,7 @@ export function FoundationsCanvas() {
 }
 
 function RecipeModeContent({ recipe, mode }: { recipe: Recipe; mode: RecipeMode }) {
-  if (mode === 'live') {
+  if (mode === 'preview') {
     return (
       <span className="kit-card__stage grid min-h-32 place-items-center gap-3 rounded-xl border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-canvas)_55%,transparent)] p-4">
         {recipe.stage}
@@ -108,7 +109,7 @@ function RecipeModeContent({ recipe, mode }: { recipe: Recipe; mode: RecipeMode 
     );
   }
 
-  if (mode === 'code') {
+  if (mode === 'use') {
     const importBlock = [
       `import {\n  ${recipe.importNames.join(',\n  ')}\n} from '@nimiplatform/kit/ui';`,
       ...(recipe.extraImports ?? []),
@@ -126,13 +127,14 @@ function RecipeModeContent({ recipe, mode }: { recipe: Recipe; mode: RecipeMode 
     );
   }
 
-  if (mode === 'props') {
+  if (mode === 'key-props') {
     return (
       <div className="kit-card__mode grid gap-2">
         <div className="kit-mode-panel__head flex items-center gap-2">
           <ListChecks size={15} aria-hidden="true" />
-          <strong>Props contract</strong>
+          <strong>Key props</strong>
         </div>
+        <span className="text-xs text-[var(--nimi-text-muted)]">Selected consumer props. Full API remains the TypeScript source contract.</span>
         <div className="kit-props overflow-hidden rounded-lg border border-[var(--nimi-border-subtle)]">
           {recipe.props.map((row) => (
             <div key={row.name} className="kit-prop grid grid-cols-[112px_minmax(0,1fr)] border-b border-[color-mix(in_srgb,var(--nimi-text-primary)_7%,transparent)] last:border-b-0">
@@ -145,15 +147,16 @@ function RecipeModeContent({ recipe, mode }: { recipe: Recipe; mode: RecipeMode 
     );
   }
 
-  if (mode === 'a11y') {
+  if (mode === 'access') {
+    const checks = recipe.accessChecks ?? fallbackAccessChecks;
     return (
       <div className="kit-card__mode grid gap-2">
         <div className="kit-mode-panel__head flex items-center gap-2">
           <Check size={15} aria-hidden="true" />
-          <strong>Acceptance checks</strong>
+          <strong>Access checks</strong>
         </div>
         <div className="kit-checklist kit-checklist--grid grid grid-cols-3 gap-2 max-[980px]:grid-cols-1">
-          {CHECKLIST.map((rule) => (
+          {checks.map((rule) => (
             <div key={rule} className="kit-check grid grid-cols-[18px_minmax(0,1fr)] items-start gap-2 text-xs text-[var(--nimi-text-secondary)]">
               <span className="kit-check__dot grid h-4 w-4 place-items-center rounded-full bg-[var(--nimi-status-success-soft-bg)] text-[var(--nimi-status-success)]"><Check size={11} /></span>
               <span>{rule}</span>
@@ -164,22 +167,28 @@ function RecipeModeContent({ recipe, mode }: { recipe: Recipe; mode: RecipeMode 
     );
   }
 
+  const tokenFootprint = recipe.tokenFootprint ?? fallbackTokenFootprint(recipe);
   return (
     <div className="kit-card__mode grid gap-2">
       <div className="kit-mode-panel__head flex items-center gap-2">
         <Palette size={15} aria-hidden="true" />
-        <strong>Recipe token footprint</strong>
+        <strong>Design token footprint</strong>
       </div>
-      <div className="kit-token-note grid gap-1 rounded-lg border border-[var(--nimi-border-subtle)] p-3">
-        <strong>{recipe.exportsLabel}</strong>
-        <span className="text-sm text-[var(--nimi-text-secondary)]">Uses shared Kit action, surface, text, focus, and status tokens through the imported primitive.</span>
+      <div className="kit-props overflow-hidden rounded-lg border border-[var(--nimi-border-subtle)]">
+        {tokenFootprint.map((row) => (
+          <div key={`${row.token}-${row.role}`} className="kit-prop grid grid-cols-[minmax(128px,0.9fr)_minmax(0,1.2fr)_minmax(120px,0.9fr)] border-b border-[color-mix(in_srgb,var(--nimi-text-primary)_7%,transparent)] last:border-b-0 max-[720px]:grid-cols-1">
+            <code className="bg-[color-mix(in_srgb,var(--nimi-surface-card)_70%,transparent)] p-2 text-xs">{row.token}</code>
+            <span className="p-2 text-xs text-[var(--nimi-text-secondary)]">{row.role}</span>
+            <span className="p-2 text-xs text-[var(--nimi-text-muted)]">{row.source}</span>
+          </div>
+        ))}
       </div>
     </div>
   );
 }
 
 function RecipeCard({ recipe }: { recipe: Recipe }) {
-  const [mode, setMode] = useState<RecipeMode>('live');
+  const [mode, setMode] = useState<RecipeMode>('preview');
   return (
     <AppCardSurface
       as="article"
@@ -188,17 +197,16 @@ function RecipeCard({ recipe }: { recipe: Recipe }) {
       className={`kit-card grid content-start gap-3 p-4${recipe.wide ? ' kit-card--wide col-span-2 max-[980px]:col-span-1' : ''}`}
     >
       <div className="kit-card__head flex items-start justify-between gap-3">
-        <div className="kit-card__title grid min-w-0 gap-1">
+        <div className="kit-card__title min-w-0">
           <strong className="truncate">{recipe.name}</strong>
-          <code className="truncate text-xs text-[var(--nimi-text-muted)]">{recipe.exportsLabel}</code>
         </div>
         <div className="kit-card__head-actions flex shrink-0 items-center gap-2">
           <StatusBadge tone={badgeTone(recipe.badge.tone)} shape="soft">{recipe.badge.label}</StatusBadge>
           <IconToggleAction
-            aria-label={`${recipe.name} live preview`}
+            aria-label={`${recipe.name} preview`}
             icon={<Check size={13} />}
-            active={mode === 'live'}
-            onClick={() => setMode('live')}
+            active={mode === 'preview'}
+            onClick={() => setMode('preview')}
           />
         </div>
       </div>
