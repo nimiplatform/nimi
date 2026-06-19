@@ -78,6 +78,8 @@ export type CompanionSurfaceProps = {
   settingsOpen: boolean;
 };
 
+const GLASS_REGULAR_SURFACE_CLASS = 'nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]';
+
 type CompanionSurfaceStyle = CSSProperties & {
   '--avatar-voice-level'?: string;
 };
@@ -388,7 +390,12 @@ export function CompanionSurface(props: CompanionSurfaceProps) {
       style={rootStyle}
     >
       {showCue ? (
-        <div className="avatar-companion-surface__assistant-cue" data-testid="avatar-companion-bubble">
+        <div
+          className={cn('avatar-companion-surface__assistant-cue', GLASS_REGULAR_SURFACE_CLASS)}
+          data-nimi-material="glass-regular"
+          data-nimi-tone="overlay"
+          data-testid="avatar-companion-bubble"
+        >
           <p className="avatar-companion-surface__assistant-cue-text">{cueText}</p>
           <IconButton
             className="avatar-companion-surface__cue-close"
@@ -403,7 +410,15 @@ export function CompanionSurface(props: CompanionSurfaceProps) {
       ) : null}
 
       {showCaptions && voice.userCaption ? (
-        <p className="avatar-companion-surface__caption avatar-companion-surface__caption--user">
+        <p
+          className={cn(
+            'avatar-companion-surface__caption',
+            'avatar-companion-surface__caption--user',
+            GLASS_REGULAR_SURFACE_CLASS,
+          )}
+          data-nimi-material="glass-regular"
+          data-nimi-tone="overlay"
+        >
           {voice.userCaption.text}
         </p>
       ) : null}
@@ -413,7 +428,10 @@ export function CompanionSurface(props: CompanionSurfaceProps) {
             'avatar-companion-surface__caption',
             'avatar-companion-surface__caption--assistant',
             voice.assistantCaption.live && 'avatar-companion-surface__caption--live',
+            GLASS_REGULAR_SURFACE_CLASS,
           )}
+          data-nimi-material="glass-regular"
+          data-nimi-tone="overlay"
         >
           {voice.assistantCaption.text}
         </p>
@@ -430,7 +448,9 @@ export function CompanionSurface(props: CompanionSurfaceProps) {
       {composerExpanded ? (
         <form
           id="avatar-companion-composer"
-          className="avatar-companion-surface__composer-tray"
+          className={cn('avatar-companion-surface__composer-tray', GLASS_REGULAR_SURFACE_CLASS)}
+          data-nimi-material="glass-regular"
+          data-nimi-tone="overlay"
           onSubmit={submitText}
           data-testid="avatar-companion-composer"
         >
@@ -463,7 +483,9 @@ export function CompanionSurface(props: CompanionSurfaceProps) {
       ) : null}
 
       <div
-        className="avatar-companion-surface__presence-capsule"
+        className={cn('avatar-companion-surface__presence-capsule', GLASS_REGULAR_SURFACE_CLASS)}
+        data-nimi-material="glass-regular"
+        data-nimi-tone="overlay"
         role="toolbar"
         aria-label={t('Avatar.status.toolbar_aria')}
         data-testid="avatar-companion-presence-capsule"

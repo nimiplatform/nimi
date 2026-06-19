@@ -130,7 +130,6 @@ button {
   line-height: var(--nimi-type-body-sm-line-height);
   color: var(--nimi-text-primary);
   pointer-events: auto;
-  backdrop-filter: blur(var(--nimi-backdrop-blur-regular));
 }
 
 .avatar-companion-surface__assistant-cue-text {
@@ -179,7 +178,6 @@ button {
   border: 1px solid var(--nimi-material-glass-regular-border);
   box-shadow: var(--nimi-elevation-floating);
   pointer-events: auto;
-  backdrop-filter: blur(var(--nimi-backdrop-blur-regular));
 }
 
 .avatar-companion-surface__mic {
@@ -423,7 +421,6 @@ button {
   background: var(--nimi-material-glass-regular-bg);
   border: 1px solid var(--nimi-material-glass-regular-border);
   pointer-events: auto;
-  backdrop-filter: blur(var(--nimi-backdrop-blur-regular));
 }
 
 .avatar-companion-surface__caption--user {
@@ -463,7 +460,6 @@ button {
   border: 1px solid var(--nimi-material-glass-regular-border);
   box-shadow: var(--nimi-elevation-floating);
   pointer-events: auto;
-  backdrop-filter: blur(var(--nimi-backdrop-blur-regular));
   transition: border-color var(--nimi-motion-fast) cubic-bezier(0.2, 0, 0, 1),
     background var(--nimi-motion-fast) cubic-bezier(0.2, 0, 0, 1);
 }
