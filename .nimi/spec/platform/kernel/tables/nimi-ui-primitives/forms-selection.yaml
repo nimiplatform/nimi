@@ -1,0 +1,248 @@
+primitives:
+  - id: primitive.field
+    family: field
+    component: TextField
+    slots:
+      - id: root
+        class_name: nimi-field
+        styles:
+          display: flex
+          min-height: var(--nimi-sizing-field-md-height)
+          align-items: center
+          gap: var(--nimi-space-4)
+          border-style: solid
+          border-width: var(--nimi-border-width-default)
+          border-color: var(--nimi-field-border)
+          border-radius: var(--nimi-radius-field)
+          background: var(--nimi-field-bg)
+          color: var(--nimi-field-text)
+          padding-inline: var(--nimi-space-4)
+          transition: border-color var(--nimi-motion-fast) ease, box-shadow var(--nimi-motion-fast) ease, background-color var(--nimi-motion-fast) ease
+      - id: input
+        class_name: nimi-field__input
+        styles:
+          width: 100%
+          border: "0"
+          outline: none
+          background: transparent
+          color: inherit
+      - id: textarea
+        class_name: nimi-field__textarea
+        styles:
+          width: 100%
+          min-height: var(--nimi-sizing-textarea-min-height)
+          border: "0"
+          outline: none
+          background: transparent
+          color: inherit
+          resize: vertical
+    class_groups:
+      tone:
+        - id: default
+          class_name: nimi-field--default
+          styles: {}
+        - id: search
+          class_name: nimi-field--search
+          styles:
+            border-radius: var(--nimi-radius-full)
+        - id: quiet
+          class_name: nimi-field--quiet
+          styles:
+            background: transparent
+            border-color: transparent
+        - id: danger
+          class_name: nimi-field--danger
+          styles:
+            border-color: var(--nimi-status-danger)
+      modifier:
+        - id: textarea
+          class_name: nimi-field--textarea
+          styles:
+            padding-top: var(--nimi-space-4)
+            padding-bottom: var(--nimi-space-4)
+      state:
+        - id: focus
+          selector: .nimi-field:focus-within
+          styles:
+            border-color: var(--nimi-field-focus)
+            box-shadow: 0 0 0 var(--nimi-focus-ring-width) var(--nimi-focus-ring-color)
+        - id: focus_danger
+          selector: .nimi-field--danger:focus-within
+          styles:
+            border-color: var(--nimi-status-danger)
+            box-shadow: 0 0 0 var(--nimi-focus-ring-width) var(--nimi-status-danger)
+        - id: placeholder_input
+          selector: .nimi-field__input::placeholder
+          styles:
+            color: var(--nimi-field-placeholder)
+        - id: placeholder_textarea
+          selector: .nimi-field__textarea::placeholder
+          styles:
+            color: var(--nimi-field-placeholder)
+    source_rule: P-DESIGN-015
+  - id: primitive.textarea
+    family: field
+    component: TextareaField
+    slots: []
+    class_groups: {}
+    source_rule: P-DESIGN-015
+  - id: primitive.toggle
+    family: toggle
+    component: Toggle
+    slots:
+      - id: root
+        class_name: nimi-toggle
+        styles:
+          position: relative
+          display: inline-flex
+          align-items: center
+          width: 44px
+          height: 24px
+          border-radius: var(--nimi-radius-full)
+          border: 2px solid transparent
+          cursor: pointer
+          transition: background-color var(--nimi-motion-fast) ease
+      - id: thumb
+        class_name: nimi-toggle__thumb
+        styles:
+          display: inline-block
+          width: 20px
+          height: 20px
+          border-radius: var(--nimi-radius-full)
+          background: white
+          box-shadow: var(--nimi-elevation-base)
+          pointer-events: none
+          transition: transform var(--nimi-motion-fast) ease
+    class_groups:
+      state:
+        - id: off
+          class_name: nimi-toggle--off
+          styles:
+            background: var(--nimi-toggle-off-bg)
+        - id: on
+          class_name: nimi-toggle--on
+          styles:
+            background: var(--nimi-action-primary-bg)
+        - id: disabled
+          selector: .nimi-toggle[aria-disabled="true"]
+          styles:
+            cursor: not-allowed
+            opacity: var(--nimi-opacity-disabled)
+      compound:
+        - id: on_thumb
+          selector: .nimi-toggle--on .nimi-toggle__thumb
+          styles:
+            transform: translateX(20px)
+    source_rule: P-DESIGN-010
+  - id: primitive.select_field
+    family: field
+    component: SelectField
+    slots:
+      - id: root
+        class_name: nimi-field nimi-field--select
+        styles:
+          cursor: pointer
+      - id: select
+        class_name: nimi-field__select
+        styles:
+          width: 100%
+          border: "0"
+          outline: none
+          background: transparent
+          color: inherit
+          cursor: pointer
+          appearance: none
+      - id: chevron
+        class_name: nimi-field__chevron
+        styles:
+          display: inline-flex
+          flex-shrink: "0"
+          align-items: center
+          justify-content: center
+          color: var(--nimi-text-muted)
+          pointer-events: none
+    class_groups: {}
+    source_rule: P-DESIGN-015
+  - id: primitive.segmented_control
+    family: action
+    component: SegmentedControl
+    slots:
+      - id: root
+        class_name: nimi-segmented-control
+      - id: item
+        class_name: nimi-segmented-control__item
+      - id: icon
+        class_name: nimi-segmented-control__icon
+    class_groups:
+      size:
+        - id: sm
+          class_name: nimi-segmented-control--size-sm
+        - id: md
+          class_name: nimi-segmented-control--size-md
+      state:
+        - id: selected
+          class_name: nimi-segmented-control__item--selected
+    source_rule: P-DESIGN-012
+  - id: primitive.tabs
+    family: navigation
+    component: NimiTabs
+    slots:
+      - id: root
+        class_name: nimi-tabs
+      - id: tab
+        class_name: nimi-tabs__tab
+    class_groups:
+      state:
+        - id: active
+          class_name: nimi-tabs__tab--active
+    source_rule: P-DESIGN-014
+  - id: primitive.checkbox
+    family: field
+    component: Checkbox
+    slots:
+      - id: root
+        class_name: nimi-checkbox
+      - id: box
+        class_name: nimi-checkbox__box
+      - id: indicator
+        class_name: nimi-checkbox__indicator
+    class_groups: {}
+    source_rule: P-DESIGN-015
+  - id: primitive.slider
+    family: field
+    component: Slider
+    slots:
+      - id: root
+        class_name: nimi-slider
+      - id: input
+        class_name: nimi-slider__input
+      - id: value
+        class_name: nimi-slider__value
+    class_groups: {}
+    source_rule: P-DESIGN-015
+  - id: primitive.number_stepper
+    family: field
+    component: NumberStepper
+    slots:
+      - id: root
+        class_name: nimi-number-stepper
+      - id: button
+        class_name: nimi-number-stepper__button
+      - id: value
+        class_name: nimi-number-stepper__value
+    class_groups: {}
+    source_rule: P-DESIGN-015
+  - id: primitive.field_shell
+    family: field
+    component: FieldShell
+    slots:
+      - id: root
+        class_name: nimi-field-shell
+      - id: label
+        class_name: nimi-field-shell__label
+      - id: description
+        class_name: nimi-field-shell__description
+      - id: message
+        class_name: nimi-field-shell__message
+    class_groups: {}
+    source_rule: P-DESIGN-015

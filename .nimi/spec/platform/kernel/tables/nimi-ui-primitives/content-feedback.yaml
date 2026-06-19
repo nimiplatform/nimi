@@ -1,0 +1,299 @@
+primitives:
+  - id: primitive.status
+    family: status
+    component: StatusBadge
+    slots:
+      - id: root
+        class_name: nimi-status-badge
+        styles:
+          display: inline-flex
+          align-items: center
+          justify-content: center
+          border-radius: var(--nimi-radius-full)
+          padding: var(--nimi-space-1) var(--nimi-space-3)
+          font-size: var(--nimi-type-caption-size)
+          line-height: 1
+          font-weight: var(--nimi-type-label-weight)
+    class_groups:
+      tone:
+        - id: neutral
+          class_name: nimi-status-badge--neutral
+          styles:
+            background: var(--nimi-status-neutral-soft-bg)
+            color: var(--nimi-status-neutral-soft-text)
+        - id: success
+          class_name: nimi-status-badge--success
+          styles:
+            background: var(--nimi-status-success-soft-bg)
+            color: var(--nimi-status-success-soft-text)
+        - id: warning
+          class_name: nimi-status-badge--warning
+          styles:
+            background: var(--nimi-status-warning-soft-bg)
+            color: var(--nimi-status-warning-soft-text)
+        - id: danger
+          class_name: nimi-status-badge--danger
+          styles:
+            background: var(--nimi-status-danger-soft-bg)
+            color: var(--nimi-status-danger-soft-text)
+        - id: info
+          class_name: nimi-status-badge--info
+          styles:
+            background: var(--nimi-status-info-soft-bg)
+            color: var(--nimi-status-info-soft-text)
+      shape:
+        - id: soft
+          class_name: nimi-status-badge--soft
+          styles: {}
+        - id: outline
+          class_name: nimi-status-badge--outline
+          styles:
+            border-color: currentColor
+            background: transparent
+        - id: dot
+          class_name: nimi-status-badge--dot
+          styles: {}
+    source_rule: P-DESIGN-010
+  - id: primitive.scroll_area
+    family: scroll_area
+    component: ScrollArea
+    slots:
+      - id: root
+        class_name: nimi-scroll-area
+        styles:
+          position: relative
+          min-height: "0"
+      - id: viewport
+        class_name: nimi-scroll-area__viewport
+        styles:
+          height: 100%
+          overflow-y: auto
+          scrollbar-width: none
+      - id: rail
+        class_name: nimi-scroll-area__rail
+        styles:
+          position: absolute
+          right: var(--nimi-space-1)
+          width: var(--nimi-scrollbar-size)
+          pointer-events: none
+          z-index: "10"
+      - id: thumb
+        class_name: nimi-scroll-area__thumb
+        styles:
+          position: absolute
+          width: 6px
+          border-radius: var(--nimi-scrollbar-radius)
+          background: var(--nimi-scrollbar-thumb)
+          transition: background-color var(--nimi-motion-fast) ease
+    class_groups:
+      state:
+        - id: thumb_hover
+          selector: .nimi-scroll-area:hover .nimi-scroll-area__thumb
+          styles:
+            background: var(--nimi-scrollbar-thumb-hover)
+    source_rule: P-DESIGN-010
+  - id: primitive.avatar
+    family: avatar
+    component: Avatar
+    slots:
+      - id: root
+        class_name: nimi-avatar
+        styles:
+          display: inline-flex
+          align-items: center
+          justify-content: center
+          overflow: hidden
+          flex-shrink: "0"
+      - id: image
+        class_name: nimi-avatar__image
+        styles:
+          width: 100%
+          height: 100%
+          object-fit: cover
+      - id: fallback
+        class_name: nimi-avatar__fallback
+        styles:
+          display: flex
+          width: 100%
+          height: 100%
+          align-items: center
+          justify-content: center
+          font-weight: var(--nimi-type-label-weight)
+          color: var(--nimi-text-secondary)
+    class_groups:
+      size:
+        - id: sm
+          class_name: nimi-avatar--size-sm
+          styles:
+            width: var(--nimi-sizing-avatar-sm)
+            height: var(--nimi-sizing-avatar-sm)
+            font-size: var(--nimi-type-caption-size)
+        - id: md
+          class_name: nimi-avatar--size-md
+          styles:
+            width: var(--nimi-sizing-avatar-md)
+            height: var(--nimi-sizing-avatar-md)
+            font-size: var(--nimi-type-body-sm-size)
+        - id: lg
+          class_name: nimi-avatar--size-lg
+          styles:
+            width: var(--nimi-sizing-avatar-lg)
+            height: var(--nimi-sizing-avatar-lg)
+            font-size: var(--nimi-type-body-size)
+      shape:
+        - id: circle
+          class_name: nimi-avatar--circle
+          styles:
+            border-radius: var(--nimi-radius-full)
+        - id: rounded
+          class_name: nimi-avatar--rounded
+          styles:
+            border-radius: var(--nimi-radius-lg)
+      tone:
+        - id: neutral
+          class_name: nimi-avatar--neutral
+          styles:
+            background: color-mix(in srgb, var(--nimi-text-muted) var(--nimi-opacity-subtle-fill), transparent)
+        - id: accent
+          class_name: nimi-avatar--accent
+          styles:
+            background: color-mix(in srgb, var(--nimi-action-primary-bg) var(--nimi-opacity-subtle-fill), transparent)
+    source_rule: P-DESIGN-010
+  - id: primitive.ambient_background
+    family: surface
+    component: AmbientBackground
+    slots:
+      - id: root
+        class_name: nimi-ambient-root
+        styles:
+          position: relative
+          isolation: isolate
+      - id: mesh_layer
+        class_name: nimi-ambient-mesh
+        styles:
+          position: absolute
+          inset: 0
+          pointer-events: none
+          z-index: 0
+          background: radial-gradient(ellipse at 0% 0%, var(--nimi-ambient-mesh-color-1) 0%, transparent 50%), radial-gradient(ellipse at 100% 0%, var(--nimi-ambient-mesh-color-2) 0%, transparent 50%), radial-gradient(ellipse at 100% 100%, var(--nimi-ambient-mesh-color-3) 0%, transparent 50%), radial-gradient(ellipse at 0% 100%, var(--nimi-ambient-mesh-color-4) 0%, transparent 50%), linear-gradient(135deg, var(--nimi-ambient-mesh-base-start) 0%, var(--nimi-ambient-mesh-base-end) 100%)
+      - id: minimal_layer
+        class_name: nimi-ambient-minimal
+        styles:
+          position: absolute
+          inset: 0
+          pointer-events: none
+          z-index: 0
+          background: linear-gradient(135deg, var(--nimi-ambient-mesh-base-start) 0%, var(--nimi-ambient-mesh-base-end) 100%)
+      - id: halo
+        class_name: nimi-ambient-halo
+        styles:
+          position: absolute
+          border-radius: 50%
+          filter: blur(120px)
+          opacity: "0.5"
+          pointer-events: none
+          z-index: 0
+    class_groups:
+      variant:
+        - id: mesh
+          class_name: nimi-ambient-variant-mesh
+          styles: {}
+        - id: minimal
+          class_name: nimi-ambient-variant-minimal
+          styles: {}
+        - id: none
+          class_name: nimi-ambient-variant-none
+          styles: {}
+    source_rule: P-DESIGN-023
+  - id: primitive.typography
+    family: typography
+    component: NimiText
+    slots:
+      - id: root
+        class_name: nimi-text
+    class_groups:
+      role:
+        - id: page_title
+          class_name: nimi-text--page-title
+        - id: section_title
+          class_name: nimi-text--section-title
+        - id: card_title
+          class_name: nimi-text--card-title
+        - id: body
+          class_name: nimi-text--body
+        - id: helper
+          class_name: nimi-text--helper
+        - id: label
+          class_name: nimi-text--label
+        - id: caption
+          class_name: nimi-text--caption
+    source_rule: P-DESIGN-016
+  - id: primitive.progress
+    family: feedback
+    component: ProgressIndicator
+    slots:
+      - id: root
+        class_name: nimi-progress
+      - id: track
+        class_name: nimi-progress__track
+      - id: bar
+        class_name: nimi-progress__bar
+      - id: value
+        class_name: nimi-progress__value
+    class_groups: {}
+    source_rule: P-DESIGN-010
+  - id: primitive.inline_alert
+    family: feedback
+    component: InlineAlert
+    slots:
+      - id: root
+        class_name: nimi-inline-alert
+      - id: icon
+        class_name: nimi-inline-alert__icon
+      - id: body
+        class_name: nimi-inline-alert__body
+      - id: action
+        class_name: nimi-inline-alert__action
+    class_groups:
+      tone:
+        - id: neutral
+          class_name: nimi-inline-alert--neutral
+        - id: success
+          class_name: nimi-inline-alert--success
+        - id: warning
+          class_name: nimi-inline-alert--warning
+        - id: danger
+          class_name: nimi-inline-alert--danger
+        - id: info
+          class_name: nimi-inline-alert--info
+    source_rule: P-DESIGN-010
+  - id: primitive.empty_state
+    family: feedback
+    component: EmptyState
+    slots:
+      - id: root
+        class_name: nimi-empty-state
+      - id: icon
+        class_name: nimi-empty-state__icon
+      - id: title
+        class_name: nimi-empty-state__title
+      - id: description
+        class_name: nimi-empty-state__description
+      - id: action
+        class_name: nimi-empty-state__action
+    class_groups: {}
+    source_rule: P-DESIGN-010
+  - id: primitive.loading_skeleton
+    family: feedback
+    component: LoadingSkeleton
+    slots:
+      - id: root
+        class_name: nimi-skeleton
+      - id: media
+        class_name: nimi-skeleton__media
+      - id: body
+        class_name: nimi-skeleton__body
+      - id: line
+        class_name: nimi-skeleton__line
+    class_groups: {}
+    source_rule: P-DESIGN-010
