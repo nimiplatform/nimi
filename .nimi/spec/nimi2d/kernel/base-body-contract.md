@@ -1,7 +1,7 @@
 # Nimi2D Base Body Contract
 
 > **Authority**: `.nimi/spec/nimi2d`
-> **Status**: Active Nimi2D Wave 3 base body authority
+> **Status**: Active Nimi2D base body authority
 > **Owner**: Nimi2D generated asset/package contract surface
 > **Parents**:
 > - [Authority boundary contract](authority-boundary-contract.md)
@@ -67,7 +67,7 @@ Every base body must declare:
 - `skeleton_id`
 - `morphology_profile_id`
 
-Wave 3 admits the initial topology family:
+Current v1 admits the topology family:
 
 - `topology_id: "nimi.nimi2d.base-body.topology"`
 - `topology_version: 1`

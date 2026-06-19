@@ -1,7 +1,7 @@
 # Nimi2D Renderability Governance Contract
 
 > **Authority**: `.nimi/spec/nimi2d`
-> **Status**: Active Nimi2D Wave 2 renderability/governance authority
+> **Status**: Active Nimi2D renderability/governance authority
 > **Owner**: Nimi2D generated asset/package contract surface
 > **Parent**: [Authority boundary contract](authority-boundary-contract.md)
 > **Input dependency**: [Layer input contract](layer-input-contract.md)

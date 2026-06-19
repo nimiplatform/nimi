@@ -1,15 +1,16 @@
 # Nimi2D Authority Boundary Contract
 
 > **Authority**: `.nimi/spec/nimi2d`
-> **Status**: Active Nimi2D Wave 0 authority boundary
+> **Status**: Active Nimi2D authority boundary
 > **Owner**: Nimi2D generated asset/package contract surface
 > **Sibling authority**: `.nimi/spec/avatar/**`, `.nimi/spec/runtime/**`,
 > `.nimi/spec/desktop/**`, `.nimi/spec/platform/**`
 
 ## 0. Purpose
 
-This contract admits the Nimi2D authority boundary before detailed package,
-input, wardrobe, governance, capability, and bench contracts are added.
+This contract defines the active Nimi2D authority boundary across package,
+input, wardrobe, governance, capability, provider, reference-player, and
+Generation Bench contracts.
 
 Nimi2D exists to make AI-generated 2D avatar packages reliable enough for Nimi
 agents. It is not a general creator-format replacement for Live2D, VRM, Rive,
@@ -116,11 +117,11 @@ execution, or prompt semantics.
 
 ### N2D-AUTH-006 - Package Authority Is Not Inferred
 
-The planned `@nimiplatform/nimi2d` package may implement validators and
-generation scripts. It may also expose reference package-player helpers,
-renderer-agnostic render plans, and bounded bench scorers when those helpers
-stay inside the N2D-AUTH-011 proof boundary. Package membership does not make
-package-local spec truth authoritative.
+The `@nimiplatform/nimi2d` package implements validators, generation scripts,
+provider tooling, and reference package-player proof helpers. It may also
+expose renderer-agnostic render plans and bounded bench scorers when those
+helpers stay inside the N2D-AUTH-011 proof boundary. Package membership does
+not make package-local spec truth authoritative.
 
 Code location is not semantic ownership. The release-facing package proof API is
 `@nimiplatform/nimi2d/reference-player`; lower-level helper code may still live
@@ -150,24 +151,26 @@ Nimi2D does not own:
 - Adult-content distribution in v1
 
 Nimi2D may remain open source as part of Nimi. External compatibility is not a
-Wave 0 design constraint.
+v1 authority constraint.
 
-## 3. Initial Decisions
+## 3. Current Decisions
 
 ### N2D-AUTH-007 - First-Party Package Direction
 
-The implementation direction is an independent package,
-`@nimiplatform/nimi2d`, primarily serving Nimi first-party flows.
+The active implementation surface is the independent
+`@nimiplatform/nimi2d` package, primarily serving Nimi first-party flows.
 
-Package creation is not admitted by this contract. It is blocked until the
-asset authority contracts and Generation Bench contract are admitted.
+Package code is admitted as implementation surface only. Semantic authority
+continues to live under `.nimi/spec/nimi2d/**` and admitted sibling Avatar,
+Runtime, Desktop, and Platform contracts.
 
 ### N2D-AUTH-008 - Default Asset Target
 
-The initial acceptable generated asset target is tier-1, to be defined by a
-future capability-tier contract.
+The default acceptable generated asset target is `tier-1_agent_basic`, as
+defined by `capability-tier-contract.md`.
 
-Wave 0 only records this direction. It does not admit tier semantics.
+Tier semantics are owned by the capability-tier contract and its closed matrix,
+not by package-local claims or runtime playback success.
 
 ### N2D-AUTH-009 - Tier-1 Speech Boundary
 
@@ -211,27 +214,26 @@ Nimi2D work must stop and return to authority alignment if any proposed change:
 - lets Realm Persona Studio or another product surface become Nimi2D package
   truth
 
-## 5. Admission Order
+## 5. Active Contract Set
 
-Wave 0 admits only this authority boundary.
-
-Later waves must admit contracts in this order unless a new preflight records a
-different authority decision:
+The active Nimi2D authority surface includes:
 
 1. Layer input contract and reject taxonomy.
 2. Renderability and content-governance invariants.
 3. Base body, wardrobe, and slot topology.
 4. Asset capability tiers and package manifest.
-5. Generation Bench contract and corpus protocol.
-6. Package skeleton and CLI validators.
-7. Generation Bench implementation.
-8. Reference package player, renderer, proof, and standalone inspector helpers.
-9. Avatar Nimi2D backend contract under `.nimi/spec/avatar/**`.
-10. Production Live Action Bench through Avatar acceptance.
+5. Codex Image2 provider contract.
+6. Generation Bench contract, corpus protocol, gates, and result schema.
+7. Bounded reference package-player and proof helpers.
+8. Avatar-owned Nimi2D backend and Live Action Bench contracts under
+   `.nimi/spec/avatar/**`.
 
-## 6. Wave 0 Verification Floor
+This list records current authority surfaces. Historical admission order lives
+in Git history and must not be used as active truth.
 
-Wave 0 is valid only if:
+## 6. Boundary Verification Floor
+
+The Nimi2D boundary is valid only if:
 
 - `.nimi/spec/INDEX.md` lists `nimi2d` as an active domain.
 - `.nimi/spec/nimi2d/index.md` imports the Nimi2D kernel.

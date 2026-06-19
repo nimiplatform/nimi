@@ -107,7 +107,7 @@ tracking_metrics:
   live_action_latency_stability:
     gate: false
     owner: avatar
-    note: "Wave 9 Avatar Live Action Bench only; not Generation Bench closure."
+    note: "Avatar Live Action Bench only; not Generation Bench closure."
 
 invariants:
   - "Generation Bench gates test Nimi2D from valid layer input forward."

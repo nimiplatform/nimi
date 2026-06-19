@@ -1,7 +1,7 @@
 # Nimi2D Package Manifest Contract
 
 > **Authority**: `.nimi/spec/nimi2d`
-> **Status**: Active Nimi2D Wave 4 package manifest authority
+> **Status**: Active Nimi2D package manifest authority
 > **Owner**: Nimi2D generated asset/package contract surface
 > **Parents**:
 > - [Capability tier contract](capability-tier-contract.md)
@@ -46,7 +46,7 @@ Unknown top-level fields are invalid.
 
 ### N2D-PKG-002 - Package Kinds
 
-Wave 4 admits:
+Current v1 admits:
 
 - `character_package`
 - `wardrobe_asset_package`
@@ -240,8 +240,9 @@ The manifest may record Nimi2D package-generation evidence:
 - capability validation evidence
 - package validator evidence
 
-Generation Bench evidence is admitted by a later contract. It must not be
-required or claimed by Wave 4 package manifest authority.
+Generation Bench evidence is separate release-gate evidence governed by
+`generation-bench-contract.md`. It is not required for package manifest
+validity and must not be claimed as package-manifest authority.
 
 ## 4. Capability Claims
 

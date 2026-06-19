@@ -225,4 +225,4 @@ Nimi2D consumes, but does not redefine:
 
 ## Derived Views
 
-Nimi2D derived views are not admitted in Wave 0.
+No Nimi2D derived view is currently admitted as independent authority.

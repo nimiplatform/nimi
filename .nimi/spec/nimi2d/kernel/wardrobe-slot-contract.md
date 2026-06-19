@@ -1,7 +1,7 @@
 # Nimi2D Wardrobe And Slot Contract
 
 > **Authority**: `.nimi/spec/nimi2d`
-> **Status**: Active Nimi2D Wave 3 wardrobe/slot authority
+> **Status**: Active Nimi2D wardrobe/slot authority
 > **Owner**: Nimi2D generated asset/package contract surface
 > **Parents**:
 > - [Base body contract](base-body-contract.md)
@@ -105,7 +105,7 @@ Coverage does not grant permission to hide governance violations.
 
 ### N2D-WARD-020 - Admitted Wardrobe Kinds
 
-Wave 3 admits these wardrobe asset kinds:
+Current v1 admits these wardrobe asset kinds:
 
 - `default_outfit`
 - `outfit`
@@ -155,9 +155,9 @@ allow multiple active bindings if draw order and coverage are explicit.
 
 ### N2D-WARD-041 - Draw Order Remains Explicit
 
-Wardrobe draw order must be explicit in package manifest authority admitted by a
-future wave. No renderer or product surface may infer wardrobe draw order from
-file names, timestamps, or slot names.
+Wardrobe draw order must be explicit in package manifest authority. No renderer
+or product surface may infer wardrobe draw order from file names, timestamps,
+or slot names.
 
 ### N2D-WARD-042 - Outfit Cannot Hide Invalid Base Body
 

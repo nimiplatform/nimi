@@ -1,7 +1,7 @@
 # Nimi2D Layer Input Contract
 
 > **Authority**: `.nimi/spec/nimi2d`
-> **Status**: Active Nimi2D Wave 1 layer input authority
+> **Status**: Active Nimi2D layer input authority
 > **Owner**: Nimi2D generated asset/package contract surface
 > **Parent**: [Authority boundary contract](authority-boundary-contract.md)
 > **Tables**:
@@ -24,7 +24,7 @@ contract. Invalid input is rejected with a typed code.
 Nimi2D package generation must not accept a single raw avatar image, prompt,
 URL, model output blob, PSD, SVG, or editor document as its direct input.
 
-The only Wave 1 admitted input is a manifest with
+The active v1 admitted input is a manifest with
 `manifest_kind: "nimi.nimi2d.layer-input"` and `schema_version: 1`, validated
 against `tables/layer-input.schema.yaml`.
 
@@ -79,7 +79,8 @@ Unknown top-level fields are invalid.
 ### N2D-INPUT-011 - Input Kinds
 
 `input_kind` is an admission intent only. Detailed base-body and wardrobe
-topology are admitted by later contracts.
+topology are owned by the base-body, wardrobe/slot, and package-manifest
+contracts.
 
 Allowed values:
 
@@ -91,8 +92,8 @@ Allowed values:
 
 `character_skin` is the default path for generating a complete Nimi2D character
 asset with base body and default outfit downstream. `wardrobe_item` and
-`accessory_item` are additional asset-generation inputs for an existing topology
-once wardrobe contracts are admitted.
+`accessory_item` are additional asset-generation inputs for an existing
+admitted topology.
 
 ## 3. Coordinate And Asset Rules
 
@@ -106,8 +107,9 @@ All coordinates are canvas pixel coordinates:
 - values: integer pixels
 - canvas bounds: `[0, 0, width, height]`
 
-Layer placement and anchor/slot hints must be within the canvas unless a future
-contract explicitly admits overflow. Wave 1 admits no overflow.
+Layer placement and anchor/slot hints must be within the canvas unless a
+separate admitted contract explicitly admits overflow. Current v1 layer input
+admits no overflow.
 
 ### N2D-INPUT-021 - Asset Refs
 
@@ -173,8 +175,9 @@ Allowed labels:
 - `shadow`
 - `effect`
 
-Unknown labels are invalid. More detailed topology names belong to later
-contracts and must not be smuggled into arbitrary strings.
+Unknown labels are invalid. More detailed topology names belong to base-body,
+wardrobe/slot, and package-manifest authority and must not be smuggled into
+arbitrary strings.
 
 ### N2D-INPUT-031 - Minimum Semantic Coverage
 
@@ -245,7 +248,7 @@ anchors and do not own Avatar runtime channel semantics.
 
 Layer input must carry slot hints that identify intended attachment regions.
 
-Wave 1 admits only provisional slot hint kinds:
+Current v1 admits these slot hint kinds:
 
 - `head`
 - `face`
@@ -271,7 +274,7 @@ Wave 1 admits only provisional slot hint kinds:
 - `scene_back`
 - `scene_front`
 
-The future wardrobe/slot contract owns final slot topology. Wave 1 slot hints
+The wardrobe/slot contract owns final slot topology. Layer input slot hints
 only define admissible input vocabulary.
 
 ## 7. Occlusion And Evidence
@@ -307,7 +310,7 @@ non-applicability evidence record; absence is still invalid.
 
 ## 8. Fixture Families
 
-Wave 1 admits fixture families only as validation targets, not as package
+Current v1 admits fixture families only as validation targets, not as package
 success proof:
 
 - valid minimal `character_skin`

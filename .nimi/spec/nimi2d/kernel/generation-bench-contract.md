@@ -1,7 +1,7 @@
 # Nimi2D Generation Bench Contract
 
 > **Authority**: `.nimi/spec/nimi2d`
-> **Status**: Active Nimi2D Wave 5 Generation Bench authority
+> **Status**: Active Nimi2D Generation Bench authority
 > **Owner**: Nimi2D generated asset/package contract surface
 > **Parents**:
 > - [Layer input contract](layer-input-contract.md)
@@ -100,7 +100,7 @@ Generation Bench has three gate classes:
 
 Hard gates are binary and block success. Quality gates are numeric thresholds
 for the certified-good tier-1 corpus. Tracking metrics are recorded but do not
-decide go/no-go unless a later contract promotes them.
+decide go/no-go unless a separate admitted contract promotes them.
 
 ### N2D-BENCH-021 - Gate Table Is Closed
 

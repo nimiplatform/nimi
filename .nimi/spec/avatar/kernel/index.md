@@ -32,9 +32,9 @@ Nimi2D backend branch admission boundary:
 - keeps default generated tier-1 viability gated by Nimi2D Generation Bench
 - requires package `proven_tier`, validator evidence, default outfit, and
   fail-closed live-action lanes
-- current implementation admits a PixiJS renderer foundation/composer proof and
-  deterministic offscreen pixel proof for valid package/profile input while
-  mounted-surface release visual acceptance remains open
+- keeps implementation evidence in Avatar evidence records, Live Action Bench
+  results, release review packets, or local reports rather than kernel
+  authority
 
 ### [`nimi2d-live-action-bench-contract.md`](nimi2d-live-action-bench-contract.md)
 

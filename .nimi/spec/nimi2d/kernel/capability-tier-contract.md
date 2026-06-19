@@ -1,7 +1,7 @@
 # Nimi2D Capability Tier Contract
 
 > **Authority**: `.nimi/spec/nimi2d`
-> **Status**: Active Nimi2D Wave 4 capability tier authority
+> **Status**: Active Nimi2D capability tier authority
 > **Owner**: Nimi2D generated asset/package contract surface
 > **Parents**:
 > - [Base body contract](base-body-contract.md)
@@ -32,7 +32,7 @@ Tiers must not be used as:
 
 ### N2D-TIER-002 - Admitted Tiers
 
-Wave 4 admits:
+Current v1 admits:
 
 - `tier-0_static_layered`
 - `tier-1_agent_basic`
