@@ -24,6 +24,12 @@ export function readTesterRuntimeInvokersSurface(root) {
     'src/tester/tester-runtime-invokers.ts',
     'src/tester/tester-runtime-invokers-core.ts',
     'src/tester/tester-runtime-invokers-media.ts',
+    'src/tester/tester-runtime-invokers-media-artifacts.ts',
+    'src/tester/tester-runtime-invokers-media-environment.ts',
+    'src/tester/tester-runtime-invokers-media-image-video.ts',
+    'src/tester/tester-runtime-invokers-media-params.ts',
+    'src/tester/tester-runtime-invokers-media-runtime.ts',
+    'src/tester/tester-runtime-invokers-media-speech.ts',
   ]);
 }
 
@@ -34,6 +40,10 @@ export function readTesterAiTestingSurface(root) {
     'src/tester/workbench/section-ai-testing-result.tsx',
     'src/tester/workbench/section-ai-testing-run.ts',
     'src/tester/workbench/section-ai-testing-surface.tsx',
+    'src/tester/workbench/section-ai-testing-history.tsx',
+    'src/tester/workbench/section-ai-testing-model-config.tsx',
+    'src/tester/workbench/section-ai-testing-output.tsx',
+    'src/tester/workbench/section-ai-testing-studio-result.tsx',
     'src/tester/tester-export.ts',
   ]);
 }

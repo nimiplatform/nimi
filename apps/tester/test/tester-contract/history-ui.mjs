@@ -28,7 +28,7 @@ test.after(cleanupBehaviorModules);
 
 test('tester run history is a global runtime test timeline (no standalone Evidence module)', () => {
   const capabilities = readTesterAiTestingSurface(root);
-  const surface = read('src/tester/workbench/section-ai-testing-surface.tsx');
+  const surface = readTesterAiTestingSurface(root);
   const historyStore = read('src/tester/tester-history.ts');
   const appStorage = read('src/tester/tester-app-storage.ts');
   const workbench = read('src/tester/tester-workbench.tsx');
@@ -109,7 +109,7 @@ test('tester run history rows prioritize prompt title, timeline filters, and run
   const capabilities = readTesterAiTestingSurface(root);
   const historyStore = read('src/tester/tester-history.ts');
   const workbench = read('src/tester/workbench/section-ai-testing.tsx');
-  const surface = read('src/tester/workbench/section-ai-testing-surface.tsx');
+  const surface = readTesterAiTestingSurface(root);
   const styles = read('src/tester/tester-workbench.css');
 
   assert.match(historyStore, /function formatTesterTokenUsage/);
@@ -206,10 +206,10 @@ test('tester run history rows prioritize prompt title, timeline filters, and run
   assert.doesNotMatch(surface, /disabled=\{!hasActiveHistoryFilters\}/);
   assert.match(surface, /onClick=\{clearHistoryFilters\}/);
   assert.match(surface, /Clear all filters/);
-  assert.match(surface, /className="studio-history-filter__submenu"/);
+  assert.match(surface, /className="studio-history-filter__submenu nimi-material-glass-regular backdrop-blur-\[var\(--nimi-backdrop-blur-regular\)\]"/);
   assert.match(surface, /useState<HistoryFilterMenuId \| null>\(null\)/);
   assert.match(surface, /if \(!activeMenu\) \{\s*return null;\s*\}/s);
-  assert.match(surface, /\{activeMenu \? \(\s*<div className="studio-history-filter__submenu">/s);
+  assert.match(surface, /\{activeMenu \? \(\s*<div\s+className="studio-history-filter__submenu nimi-material-glass-regular backdrop-blur-\[var\(--nimi-backdrop-blur-regular\)\]"/s);
   assert.match(surface, /filterButtonRef/);
   assert.match(surface, /filterPanelRef/);
   assert.match(surface, /document\.addEventListener\('pointerdown', handleOutsidePointerDown, true\)/);
