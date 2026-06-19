@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import type {
   RealmSourceConnectionDto,
+  RelationshipPublicSourceLocatorDto,
   RelationshipSourceRefDto,
 } from '../core-generated/realm-typed-client';
 import {
@@ -11,6 +12,7 @@ import {
   blockNimiRealmUser,
   buildEmptyNimiRealmPostFeedResponse,
   connectNimiRealmSource,
+  connectNimiRealmPublicSource,
   createNimiRealmPost,
   createNimiRealmReport,
   deleteNimiRealmPost,
@@ -39,6 +41,12 @@ const realmPersonaSourceRef: RelationshipSourceRefDto = {
   worldId: 'world-1',
   sourceId: 'persona-1',
   sourceContentHash: 'sha256:persona',
+};
+
+const realmPersonaPublicSource: RelationshipPublicSourceLocatorDto = {
+  kind: 'realmPersona',
+  worldId: 'world-1',
+  sourceId: 'persona-1',
 };
 
 function createRealmSourceConnection(sourceRef: RelationshipSourceRefDto): RealmSourceConnectionDto {
@@ -174,6 +182,14 @@ function createSocialRealmStub() {
           calls.push(`connectSource:${sourceRef.kind}:${sourceRef.sourceId}`);
           return createRealmSourceConnection(sourceRef);
         },
+        async sourceConnectionControllerConnectPublicSource(request: { body: { source: RelationshipPublicSourceLocatorDto } }) {
+          const { source } = request.body;
+          calls.push(`connectPublicSource:${source.kind}:${source.sourceId}:${'sourceContentHash' in source ? 'hash' : 'nohash'}`);
+          return createRealmSourceConnection({
+            ...source,
+            sourceContentHash: 'resolved-server-hash',
+          });
+        },
         async sourceConnectionControllerList(request: { query: { status?: string } }) {
           calls.push(`listSources:${request.query.status ?? ''}`);
           return [createRealmSourceConnection(realmPersonaSourceRef)];
@@ -282,6 +298,59 @@ test('Realm source connection helpers require hash-bearing source refs and map g
     'connectSource:realmPersona:persona-1',
     'listSources:active',
   ]);
+});
+
+test('Realm public source connection helper sends locator without client-side hashes', async () => {
+  const { realm, calls } = createSocialRealmStub();
+  const errors: string[] = [];
+
+  const connection = await connectNimiRealmPublicSource(
+    realm,
+    (action) => errors.push(action),
+    realmPersonaPublicSource,
+  );
+
+  assert.equal(connection.sourceRef.sourceContentHash, 'resolved-server-hash');
+  assert.deepEqual(errors, []);
+  assert.deepEqual(calls.filter((call) => call.startsWith('connectPublicSource:')), [
+    'connectPublicSource:realmPersona:persona-1:nohash',
+  ]);
+});
+
+test('Realm public source connection helper fails closed on incomplete locators', async () => {
+  const { realm } = createSocialRealmStub();
+  const errors: string[] = [];
+
+  await assert.rejects(
+    () => connectNimiRealmPublicSource(realm, (action) => errors.push(action), null),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_REALM_PUBLIC_SOURCE_LOCATOR_REQUIRED',
+  );
+  await assert.rejects(
+    () => connectNimiRealmPublicSource(realm, (action) => errors.push(action), {}),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_REALM_SOURCE_KIND_REQUIRED',
+  );
+  await assert.rejects(
+    () => connectNimiRealmPublicSource(realm, (action) => errors.push(action), {
+      ...realmPersonaPublicSource,
+      kind: 'profile',
+    }),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_REALM_SOURCE_KIND_UNSUPPORTED',
+  );
+  await assert.rejects(
+    () => connectNimiRealmPublicSource(realm, (action) => errors.push(action), {
+      ...realmPersonaPublicSource,
+      worldId: ' ',
+    }),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_REALM_SOURCE_WORLD_ID_REQUIRED',
+  );
+  await assert.rejects(
+    () => connectNimiRealmPublicSource(realm, (action) => errors.push(action), {
+      ...realmPersonaPublicSource,
+      sourceId: '',
+    }),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_REALM_SOURCE_ID_REQUIRED',
+  );
+  assert.deepEqual(errors, []);
 });
 
 test('Realm source connection helpers fail closed on incomplete source refs', async () => {

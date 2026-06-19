@@ -37987,10 +37987,6 @@ pub struct AddGroupParticipantInputDto {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct AddGroupSourceParticipantInputDto {
-    pub avatar_url: String,
-    pub display_name: String,
-    pub handle: String,
-    pub runtime_source_ref: String,
     pub source_ref: Box<GroupSourceRefDto>,
 }
 
@@ -38466,9 +38462,13 @@ pub struct CreatePostAttachmentDto {
 pub struct CreatePostDto {
     pub attachments: Vec<CreatePostAttachmentDto>,
     pub caption: String,
-    pub runtime_source_ref: String,
     pub source_ref: Box<PostSourceRefDto>,
     pub tags: Vec<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CreatePublicRealmSourceConnectionDto {
+    pub source: Box<RelationshipPublicSourceLocatorDto>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -39279,6 +39279,13 @@ pub struct RejectGiftDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct RelationshipPublicSourceLocatorDto {
+    pub kind: String,
+    pub source_id: String,
+    pub world_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RelationshipResponseDto {
     pub context: String,
     pub created_at: String,
@@ -40054,6 +40061,123 @@ pub struct WorldCoreDto {
     pub schema_version: String,
     pub updated_at: String,
     pub visibility: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldPublicDetailDto {
+    pub created_at: String,
+    pub id: String,
+    pub media: Box<WorldPublicMediaDto>,
+    pub name: String,
+    pub rules: Vec<String>,
+    pub scenes: Vec<String>,
+    pub stats: Box<WorldPublicStatsDto>,
+    pub summary: String,
+    pub systems: Vec<String>,
+    pub tagline: String,
+    pub tags: Vec<String>,
+    pub time: Box<WorldPublicTimeSnapshotDto>,
+    pub timeline: Vec<String>,
+    pub r#type: String,
+    pub updated_at: String,
+    pub visibility: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldPublicDetailWithCharactersDto {
+    pub sources: Box<WorldPublicSourceSectionsDto>,
+    pub world: Box<WorldPublicDetailDto>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldPublicItemDto {
+    pub created_at: String,
+    pub id: String,
+    pub media: Box<WorldPublicMediaDto>,
+    pub name: String,
+    pub stats: Box<WorldPublicStatsDto>,
+    pub summary: String,
+    pub tagline: String,
+    pub tags: Vec<String>,
+    pub time: Box<WorldPublicTimeSnapshotDto>,
+    pub r#type: String,
+    pub updated_at: String,
+    pub visibility: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldPublicMediaDto {
+    pub banner_url: String,
+    pub hero_url: String,
+    pub highlight_urls: Vec<String>,
+    pub icon_url: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldPublicSourceCardDto {
+    pub display_name: String,
+    pub handle: String,
+    pub id: String,
+    pub media: Box<WorldPublicSourceMediaDto>,
+    pub ownership: String,
+    pub relation: Box<WorldPublicViewerRelationDto>,
+    pub role: String,
+    pub source_kind: String,
+    pub source_ref: Box<WorldPublicSourceRefDto>,
+    pub summary: String,
+    pub tags: Vec<String>,
+    pub updated_at: String,
+    pub world_id: String,
+    pub world_name: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldPublicSourceMediaDto {
+    pub avatar_url: String,
+    pub profile_cover_url: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldPublicSourceRefDto {
+    pub kind: String,
+    pub source_id: String,
+    pub world_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldPublicSourceSectionsDto {
+    pub characters: Vec<WorldPublicSourceCardDto>,
+    pub personas: Vec<WorldPublicSourceCardDto>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldPublicStatsDto {
+    pub character_count: f64,
+    pub persona_count: f64,
+    pub scene_count: f64,
+    pub system_count: f64,
+    pub timeline_event_count: f64,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldPublicTimeSnapshotDto {
+    pub anchor_real_started_at: String,
+    pub anchor_world_started_at: String,
+    pub anchor_world_started_at_display: String,
+    pub calendar: String,
+    pub computed_at: String,
+    pub current_world_time: String,
+    pub current_world_time_display: String,
+    pub display_format: String,
+    pub flow_ratio: f64,
+    pub is_paused: bool,
+    pub mode: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldPublicViewerRelationDto {
+    pub connection_id: String,
+    pub state: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -43496,6 +43620,29 @@ pub struct RealmSourceConnectionControllerConnectOperationRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmSourceConnectionControllerConnectPublicSourceOperationPath {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmSourceConnectionControllerConnectPublicSourceOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmSourceConnectionControllerConnectPublicSourceOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmSourceConnectionControllerConnectPublicSourceOperationRequest {
+    pub path: RealmSourceConnectionControllerConnectPublicSourceOperationPath,
+    pub query: RealmSourceConnectionControllerConnectPublicSourceOperationQuery,
+    pub headers: RealmSourceConnectionControllerConnectPublicSourceOperationHeaders,
+    pub body: CreatePublicRealmSourceConnectionDto,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmSourceConnectionControllerGetOperationPath {
     pub id: String,
 }
@@ -44630,6 +44777,98 @@ pub struct RealmWorldCoreControllerReplaceWorldCoreOperationRequest {
     pub body: ReplaceWorldCoreDto,
 }
 
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldPublicControllerGetWorldOperationPath {
+    pub world_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldPublicControllerGetWorldOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldPublicControllerGetWorldOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldPublicControllerGetWorldOperationRequest {
+    pub path: RealmWorldPublicControllerGetWorldOperationPath,
+    pub query: RealmWorldPublicControllerGetWorldOperationQuery,
+    pub headers: RealmWorldPublicControllerGetWorldOperationHeaders,
+    pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldPublicControllerGetWorldDetailWithCharactersOperationPath {
+    pub world_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldPublicControllerGetWorldDetailWithCharactersOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldPublicControllerGetWorldDetailWithCharactersOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldPublicControllerGetWorldDetailWithCharactersOperationRequest {
+    pub path: RealmWorldPublicControllerGetWorldDetailWithCharactersOperationPath,
+    pub query: RealmWorldPublicControllerGetWorldDetailWithCharactersOperationQuery,
+    pub headers: RealmWorldPublicControllerGetWorldDetailWithCharactersOperationHeaders,
+    pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldPublicControllerListWorldCharactersOperationPath {
+    pub world_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldPublicControllerListWorldCharactersOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldPublicControllerListWorldCharactersOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldPublicControllerListWorldCharactersOperationRequest {
+    pub path: RealmWorldPublicControllerListWorldCharactersOperationPath,
+    pub query: RealmWorldPublicControllerListWorldCharactersOperationQuery,
+    pub headers: RealmWorldPublicControllerListWorldCharactersOperationHeaders,
+    pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldPublicControllerListWorldsOperationPath {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldPublicControllerListWorldsOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldPublicControllerListWorldsOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldPublicControllerListWorldsOperationRequest {
+    pub path: RealmWorldPublicControllerListWorldsOperationPath,
+    pub query: RealmWorldPublicControllerListWorldsOperationQuery,
+    pub headers: RealmWorldPublicControllerListWorldsOperationHeaders,
+    pub body: (),
+}
+
 pub struct RealmTypedClient<T, A>
 where
     T: CoreTransport,
@@ -45231,6 +45470,10 @@ where
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for SourceConnectionController_connect");
     }
 
+    pub fn source_connection_controller_connect_public_source(&self, _request: RealmSourceConnectionControllerConnectPublicSourceOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<RealmSourceConnectionDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for SourceConnectionController_connectPublicSource");
+    }
+
     pub fn source_connection_controller_get(&self, _request: RealmSourceConnectionControllerGetOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<RealmSourceConnectionDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for SourceConnectionController_get");
     }
@@ -45425,5 +45668,21 @@ where
 
     pub fn world_core_controller_replace_world_core(&self, _request: RealmWorldCoreControllerReplaceWorldCoreOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldCoreDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldCoreController_replaceWorldCore");
+    }
+
+    pub fn world_public_controller_get_world(&self, _request: RealmWorldPublicControllerGetWorldOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldPublicDetailDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldPublicController_getWorld");
+    }
+
+    pub fn world_public_controller_get_world_detail_with_characters(&self, _request: RealmWorldPublicControllerGetWorldDetailWithCharactersOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldPublicDetailWithCharactersDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldPublicController_getWorldDetailWithCharacters");
+    }
+
+    pub fn world_public_controller_list_world_characters(&self, _request: RealmWorldPublicControllerListWorldCharactersOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<Vec<WorldPublicSourceCardDto>, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldPublicController_listWorldCharacters");
+    }
+
+    pub fn world_public_controller_list_worlds(&self, _request: RealmWorldPublicControllerListWorldsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<Vec<WorldPublicItemDto>, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldPublicController_listWorlds");
     }
 }

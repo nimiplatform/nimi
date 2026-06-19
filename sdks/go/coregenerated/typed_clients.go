@@ -9930,10 +9930,6 @@ type AddGroupParticipantInputDto struct {
 }
 
 type AddGroupSourceParticipantInputDto struct {
-	AvatarUrl string `json:"avatarUrl,omitempty"`
-	DisplayName string `json:"displayName,omitempty"`
-	Handle string `json:"handle,omitempty"`
-	RuntimeSourceRef string `json:"runtimeSourceRef,omitempty"`
 	SourceRef *GroupSourceRefDto `json:"sourceRef,omitempty"`
 }
 
@@ -10360,9 +10356,12 @@ type CreatePostAttachmentDto struct {
 type CreatePostDto struct {
 	Attachments []CreatePostAttachmentDto `json:"attachments,omitempty"`
 	Caption string `json:"caption,omitempty"`
-	RuntimeSourceRef string `json:"runtimeSourceRef,omitempty"`
 	SourceRef *PostSourceRefDto `json:"sourceRef,omitempty"`
 	Tags []string `json:"tags,omitempty"`
+}
+
+type CreatePublicRealmSourceConnectionDto struct {
+	Source *RelationshipPublicSourceLocatorDto `json:"source,omitempty"`
 }
 
 type CreateRealmPersonaDto struct {
@@ -11087,6 +11086,12 @@ type RejectGiftDto struct {
 	Reason string `json:"reason,omitempty"`
 }
 
+type RelationshipPublicSourceLocatorDto struct {
+	Kind string `json:"kind,omitempty"`
+	SourceId string `json:"sourceId,omitempty"`
+	WorldId string `json:"worldId,omitempty"`
+}
+
 type RelationshipResponseDto struct {
 	Context string `json:"context,omitempty"`
 	CreatedAt string `json:"createdAt,omitempty"`
@@ -11787,6 +11792,112 @@ type WorldCoreDto struct {
 	SchemaVersion string `json:"schemaVersion,omitempty"`
 	UpdatedAt string `json:"updatedAt,omitempty"`
 	Visibility string `json:"visibility,omitempty"`
+}
+
+type WorldPublicDetailDto struct {
+	CreatedAt string `json:"createdAt,omitempty"`
+	Id string `json:"id,omitempty"`
+	Media *WorldPublicMediaDto `json:"media,omitempty"`
+	Name string `json:"name,omitempty"`
+	Rules []string `json:"rules,omitempty"`
+	Scenes []string `json:"scenes,omitempty"`
+	Stats *WorldPublicStatsDto `json:"stats,omitempty"`
+	Summary string `json:"summary,omitempty"`
+	Systems []string `json:"systems,omitempty"`
+	Tagline string `json:"tagline,omitempty"`
+	Tags []string `json:"tags,omitempty"`
+	Time *WorldPublicTimeSnapshotDto `json:"time,omitempty"`
+	Timeline []string `json:"timeline,omitempty"`
+	Type string `json:"type,omitempty"`
+	UpdatedAt string `json:"updatedAt,omitempty"`
+	Visibility string `json:"visibility,omitempty"`
+}
+
+type WorldPublicDetailWithCharactersDto struct {
+	Sources *WorldPublicSourceSectionsDto `json:"sources,omitempty"`
+	World *WorldPublicDetailDto `json:"world,omitempty"`
+}
+
+type WorldPublicItemDto struct {
+	CreatedAt string `json:"createdAt,omitempty"`
+	Id string `json:"id,omitempty"`
+	Media *WorldPublicMediaDto `json:"media,omitempty"`
+	Name string `json:"name,omitempty"`
+	Stats *WorldPublicStatsDto `json:"stats,omitempty"`
+	Summary string `json:"summary,omitempty"`
+	Tagline string `json:"tagline,omitempty"`
+	Tags []string `json:"tags,omitempty"`
+	Time *WorldPublicTimeSnapshotDto `json:"time,omitempty"`
+	Type string `json:"type,omitempty"`
+	UpdatedAt string `json:"updatedAt,omitempty"`
+	Visibility string `json:"visibility,omitempty"`
+}
+
+type WorldPublicMediaDto struct {
+	BannerUrl string `json:"bannerUrl,omitempty"`
+	HeroUrl string `json:"heroUrl,omitempty"`
+	HighlightUrls []string `json:"highlightUrls,omitempty"`
+	IconUrl string `json:"iconUrl,omitempty"`
+}
+
+type WorldPublicSourceCardDto struct {
+	DisplayName string `json:"displayName,omitempty"`
+	Handle string `json:"handle,omitempty"`
+	Id string `json:"id,omitempty"`
+	Media *WorldPublicSourceMediaDto `json:"media,omitempty"`
+	Ownership string `json:"ownership,omitempty"`
+	Relation *WorldPublicViewerRelationDto `json:"relation,omitempty"`
+	Role string `json:"role,omitempty"`
+	SourceKind string `json:"sourceKind,omitempty"`
+	SourceRef *WorldPublicSourceRefDto `json:"sourceRef,omitempty"`
+	Summary string `json:"summary,omitempty"`
+	Tags []string `json:"tags,omitempty"`
+	UpdatedAt string `json:"updatedAt,omitempty"`
+	WorldId string `json:"worldId,omitempty"`
+	WorldName string `json:"worldName,omitempty"`
+}
+
+type WorldPublicSourceMediaDto struct {
+	AvatarUrl string `json:"avatarUrl,omitempty"`
+	ProfileCoverUrl string `json:"profileCoverUrl,omitempty"`
+}
+
+type WorldPublicSourceRefDto struct {
+	Kind string `json:"kind,omitempty"`
+	SourceId string `json:"sourceId,omitempty"`
+	WorldId string `json:"worldId,omitempty"`
+}
+
+type WorldPublicSourceSectionsDto struct {
+	Characters []WorldPublicSourceCardDto `json:"characters,omitempty"`
+	Personas []WorldPublicSourceCardDto `json:"personas,omitempty"`
+}
+
+type WorldPublicStatsDto struct {
+	CharacterCount float64 `json:"characterCount,omitempty"`
+	PersonaCount float64 `json:"personaCount,omitempty"`
+	SceneCount float64 `json:"sceneCount,omitempty"`
+	SystemCount float64 `json:"systemCount,omitempty"`
+	TimelineEventCount float64 `json:"timelineEventCount,omitempty"`
+}
+
+type WorldPublicTimeSnapshotDto struct {
+	AnchorRealStartedAt string `json:"anchorRealStartedAt,omitempty"`
+	AnchorWorldStartedAt string `json:"anchorWorldStartedAt,omitempty"`
+	AnchorWorldStartedAtDisplay string `json:"anchorWorldStartedAtDisplay,omitempty"`
+	Calendar string `json:"calendar,omitempty"`
+	ComputedAt string `json:"computedAt,omitempty"`
+	CurrentWorldTime string `json:"currentWorldTime,omitempty"`
+	CurrentWorldTimeDisplay string `json:"currentWorldTimeDisplay,omitempty"`
+	DisplayFormat string `json:"displayFormat,omitempty"`
+	FlowRatio float64 `json:"flowRatio,omitempty"`
+	IsPaused bool `json:"isPaused,omitempty"`
+	Mode string `json:"mode,omitempty"`
+}
+
+type WorldPublicViewerRelationDto struct {
+	ConnectionId string `json:"connectionId,omitempty"`
+	State string `json:"state,omitempty"`
 }
 
 type RealmAddFriendOperationPath struct {
@@ -14644,6 +14755,25 @@ type RealmSourceConnectionControllerConnectOperationRequest struct {
 	Body    CreateRealmSourceConnectionDto `json:"body,omitempty"`
 }
 
+type RealmSourceConnectionControllerConnectPublicSourceOperationPath struct {
+
+}
+
+type RealmSourceConnectionControllerConnectPublicSourceOperationQuery struct {
+
+}
+
+type RealmSourceConnectionControllerConnectPublicSourceOperationHeaders struct {
+
+}
+
+type RealmSourceConnectionControllerConnectPublicSourceOperationRequest struct {
+	Path    RealmSourceConnectionControllerConnectPublicSourceOperationPath `json:"path,omitempty"`
+	Query   RealmSourceConnectionControllerConnectPublicSourceOperationQuery `json:"query,omitempty"`
+	Headers RealmSourceConnectionControllerConnectPublicSourceOperationHeaders `json:"headers,omitempty"`
+	Body    CreatePublicRealmSourceConnectionDto `json:"body,omitempty"`
+}
+
 type RealmSourceConnectionControllerGetOperationPath struct {
 	Id string `json:"id,omitempty"`
 }
@@ -15581,6 +15711,82 @@ type RealmWorldCoreControllerReplaceWorldCoreOperationRequest struct {
 	Query   RealmWorldCoreControllerReplaceWorldCoreOperationQuery `json:"query,omitempty"`
 	Headers RealmWorldCoreControllerReplaceWorldCoreOperationHeaders `json:"headers,omitempty"`
 	Body    ReplaceWorldCoreDto `json:"body,omitempty"`
+}
+
+type RealmWorldPublicControllerGetWorldOperationPath struct {
+	WorldId string `json:"worldId,omitempty"`
+}
+
+type RealmWorldPublicControllerGetWorldOperationQuery struct {
+
+}
+
+type RealmWorldPublicControllerGetWorldOperationHeaders struct {
+
+}
+
+type RealmWorldPublicControllerGetWorldOperationRequest struct {
+	Path    RealmWorldPublicControllerGetWorldOperationPath `json:"path,omitempty"`
+	Query   RealmWorldPublicControllerGetWorldOperationQuery `json:"query,omitempty"`
+	Headers RealmWorldPublicControllerGetWorldOperationHeaders `json:"headers,omitempty"`
+	Body    struct{} `json:"body,omitempty"`
+}
+
+type RealmWorldPublicControllerGetWorldDetailWithCharactersOperationPath struct {
+	WorldId string `json:"worldId,omitempty"`
+}
+
+type RealmWorldPublicControllerGetWorldDetailWithCharactersOperationQuery struct {
+
+}
+
+type RealmWorldPublicControllerGetWorldDetailWithCharactersOperationHeaders struct {
+
+}
+
+type RealmWorldPublicControllerGetWorldDetailWithCharactersOperationRequest struct {
+	Path    RealmWorldPublicControllerGetWorldDetailWithCharactersOperationPath `json:"path,omitempty"`
+	Query   RealmWorldPublicControllerGetWorldDetailWithCharactersOperationQuery `json:"query,omitempty"`
+	Headers RealmWorldPublicControllerGetWorldDetailWithCharactersOperationHeaders `json:"headers,omitempty"`
+	Body    struct{} `json:"body,omitempty"`
+}
+
+type RealmWorldPublicControllerListWorldCharactersOperationPath struct {
+	WorldId string `json:"worldId,omitempty"`
+}
+
+type RealmWorldPublicControllerListWorldCharactersOperationQuery struct {
+
+}
+
+type RealmWorldPublicControllerListWorldCharactersOperationHeaders struct {
+
+}
+
+type RealmWorldPublicControllerListWorldCharactersOperationRequest struct {
+	Path    RealmWorldPublicControllerListWorldCharactersOperationPath `json:"path,omitempty"`
+	Query   RealmWorldPublicControllerListWorldCharactersOperationQuery `json:"query,omitempty"`
+	Headers RealmWorldPublicControllerListWorldCharactersOperationHeaders `json:"headers,omitempty"`
+	Body    struct{} `json:"body,omitempty"`
+}
+
+type RealmWorldPublicControllerListWorldsOperationPath struct {
+
+}
+
+type RealmWorldPublicControllerListWorldsOperationQuery struct {
+
+}
+
+type RealmWorldPublicControllerListWorldsOperationHeaders struct {
+
+}
+
+type RealmWorldPublicControllerListWorldsOperationRequest struct {
+	Path    RealmWorldPublicControllerListWorldsOperationPath `json:"path,omitempty"`
+	Query   RealmWorldPublicControllerListWorldsOperationQuery `json:"query,omitempty"`
+	Headers RealmWorldPublicControllerListWorldsOperationHeaders `json:"headers,omitempty"`
+	Body    struct{} `json:"body,omitempty"`
 }
 
 type RealmTypedClient struct {
@@ -16767,6 +16973,14 @@ func (c RealmTypedClient) SourceConnectionControllerConnect(ctx context.Context,
 	return decodeTypedResponse[RealmSourceConnectionDto](raw)
 }
 
+func (c RealmTypedClient) SourceConnectionControllerConnectPublicSource(ctx context.Context, request RealmSourceConnectionControllerConnectPublicSourceOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RealmSourceConnectionDto, error) {
+	raw, err := c.operationTyped(ctx, "SourceConnectionController_connectPublicSource", request, metadata, timeoutMS)
+	if err != nil {
+		return RealmSourceConnectionDto{}, err
+	}
+	return decodeTypedResponse[RealmSourceConnectionDto](raw)
+}
+
 func (c RealmTypedClient) SourceConnectionControllerGet(ctx context.Context, request RealmSourceConnectionControllerGetOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RealmSourceConnectionDto, error) {
 	raw, err := c.operationTyped(ctx, "SourceConnectionController_get", request, metadata, timeoutMS)
 	if err != nil {
@@ -17157,4 +17371,36 @@ func (c RealmTypedClient) WorldCoreControllerReplaceWorldCore(ctx context.Contex
 		return WorldCoreDto{}, err
 	}
 	return decodeTypedResponse[WorldCoreDto](raw)
+}
+
+func (c RealmTypedClient) WorldPublicControllerGetWorld(ctx context.Context, request RealmWorldPublicControllerGetWorldOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WorldPublicDetailDto, error) {
+	raw, err := c.operationTyped(ctx, "WorldPublicController_getWorld", request, metadata, timeoutMS)
+	if err != nil {
+		return WorldPublicDetailDto{}, err
+	}
+	return decodeTypedResponse[WorldPublicDetailDto](raw)
+}
+
+func (c RealmTypedClient) WorldPublicControllerGetWorldDetailWithCharacters(ctx context.Context, request RealmWorldPublicControllerGetWorldDetailWithCharactersOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WorldPublicDetailWithCharactersDto, error) {
+	raw, err := c.operationTyped(ctx, "WorldPublicController_getWorldDetailWithCharacters", request, metadata, timeoutMS)
+	if err != nil {
+		return WorldPublicDetailWithCharactersDto{}, err
+	}
+	return decodeTypedResponse[WorldPublicDetailWithCharactersDto](raw)
+}
+
+func (c RealmTypedClient) WorldPublicControllerListWorldCharacters(ctx context.Context, request RealmWorldPublicControllerListWorldCharactersOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) ([]WorldPublicSourceCardDto, error) {
+	raw, err := c.operationTyped(ctx, "WorldPublicController_listWorldCharacters", request, metadata, timeoutMS)
+	if err != nil {
+		return []WorldPublicSourceCardDto{}, err
+	}
+	return decodeTypedResponse[[]WorldPublicSourceCardDto](raw)
+}
+
+func (c RealmTypedClient) WorldPublicControllerListWorlds(ctx context.Context, request RealmWorldPublicControllerListWorldsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) ([]WorldPublicItemDto, error) {
+	raw, err := c.operationTyped(ctx, "WorldPublicController_listWorlds", request, metadata, timeoutMS)
+	if err != nil {
+		return []WorldPublicItemDto{}, err
+	}
+	return decodeTypedResponse[[]WorldPublicItemDto](raw)
 }

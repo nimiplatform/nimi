@@ -884,6 +884,12 @@ REALM_OPERATIONS = [
     "path": "/api/human/source-connections"
   },
   {
+    "operation_id": "SourceConnectionController_connectPublicSource",
+    "service": "Source Connections",
+    "method": "POST",
+    "path": "/api/human/source-connections/public-source"
+  },
+  {
     "operation_id": "SourceConnectionController_get",
     "service": "Source Connections",
     "method": "GET",
@@ -1176,6 +1182,30 @@ REALM_OPERATIONS = [
     "service": "Realm Core",
     "method": "PUT",
     "path": "/api/realm/core/worlds/{worldId}"
+  },
+  {
+    "operation_id": "WorldPublicController_getWorld",
+    "service": "World",
+    "method": "GET",
+    "path": "/api/world/by-id/{worldId}"
+  },
+  {
+    "operation_id": "WorldPublicController_getWorldDetailWithCharacters",
+    "service": "World",
+    "method": "GET",
+    "path": "/api/world/by-id/{worldId}/detail-with-characters"
+  },
+  {
+    "operation_id": "WorldPublicController_listWorldCharacters",
+    "service": "World",
+    "method": "GET",
+    "path": "/api/world/by-id/{worldId}/characters"
+  },
+  {
+    "operation_id": "WorldPublicController_listWorlds",
+    "service": "World",
+    "method": "GET",
+    "path": "/api/world"
   }
 ]
 REALM_OPERATION_BY_ID = {operation["operation_id"]: operation for operation in REALM_OPERATIONS}

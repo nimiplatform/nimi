@@ -172,6 +172,13 @@ export const REALM_WORLD_CORE_METHODS = [
   'worldCoreControllerReplaceWorldCore',
 ] as const satisfies readonly RealmTypedMethodName[];
 
+export const REALM_WORLD_PUBLIC_METHODS = [
+  'worldPublicControllerGetWorld',
+  'worldPublicControllerGetWorldDetailWithCharacters',
+  'worldPublicControllerListWorldCharacters',
+  'worldPublicControllerListWorlds',
+] as const satisfies readonly RealmTypedMethodName[];
+
 export const REALM_TRANSIT_METHODS = [
   'transitControllerAbandon',
   'transitControllerComplete',
@@ -189,6 +196,7 @@ export type RealmHumanChatModule = RealmMethodModule<typeof REALM_HUMAN_CHAT_MET
 export type RealmResourceModule = RealmMethodModule<typeof REALM_RESOURCE_METHODS>;
 export type RealmNotificationModule = RealmMethodModule<typeof REALM_NOTIFICATION_METHODS>;
 export type RealmWorldCoreModule = RealmMethodModule<typeof REALM_WORLD_CORE_METHODS>;
+export type RealmWorldPublicModule = RealmMethodModule<typeof REALM_WORLD_PUBLIC_METHODS>;
 export type RealmTransitModule = RealmMethodModule<typeof REALM_TRANSIT_METHODS>;
 
 export interface RealmOptions extends CoreClientOptions {}
@@ -229,6 +237,7 @@ export class Realm {
   readonly resources: RealmResourceModule;
   readonly notifications: RealmNotificationModule;
   readonly worldCore: RealmWorldCoreModule;
+  readonly worldPublic: RealmWorldPublicModule;
   readonly transit: RealmTransitModule;
 
   constructor(options: RealmOptions | CoreClient | RealmTypedClient) {
@@ -246,6 +255,7 @@ export class Realm {
     this.resources = bindRealmModule(generated, REALM_RESOURCE_METHODS);
     this.notifications = bindRealmModule(generated, REALM_NOTIFICATION_METHODS);
     this.worldCore = bindRealmModule(generated, REALM_WORLD_CORE_METHODS);
+    this.worldPublic = bindRealmModule(generated, REALM_WORLD_PUBLIC_METHODS);
     this.transit = bindRealmModule(generated, REALM_TRANSIT_METHODS);
   }
 

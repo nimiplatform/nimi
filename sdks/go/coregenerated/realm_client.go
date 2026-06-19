@@ -164,6 +164,7 @@ var RealmOperations = []RealmOperationDescriptor{
 	{OperationID: "sendGroupMessage", Service: "Group Chats", Method: "POST", Path: "/api/human/group-chats/{chatId}/messages"},
 	{OperationID: "sendMessage", Service: "Human Chats", Method: "POST", Path: "/api/human/chats/{chatId}/messages"},
 	{OperationID: "SourceConnectionController_connect", Service: "Source Connections", Method: "POST", Path: "/api/human/source-connections"},
+	{OperationID: "SourceConnectionController_connectPublicSource", Service: "Source Connections", Method: "POST", Path: "/api/human/source-connections/public-source"},
 	{OperationID: "SourceConnectionController_get", Service: "Source Connections", Method: "GET", Path: "/api/human/source-connections/{id}"},
 	{OperationID: "SourceConnectionController_list", Service: "Source Connections", Method: "GET", Path: "/api/human/source-connections"},
 	{OperationID: "SourceConnectionController_remove", Service: "Source Connections", Method: "DELETE", Path: "/api/human/source-connections/{id}"},
@@ -213,6 +214,10 @@ var RealmOperations = []RealmOperationDescriptor{
 	{OperationID: "WorldCoreController_replaceRealmPersona", Service: "Realm Core", Method: "PUT", Path: "/api/realm/core/personas/{personaId}"},
 	{OperationID: "WorldCoreController_replaceWorldCharacter", Service: "Realm Core", Method: "PUT", Path: "/api/realm/core/world-characters/{characterId}"},
 	{OperationID: "WorldCoreController_replaceWorldCore", Service: "Realm Core", Method: "PUT", Path: "/api/realm/core/worlds/{worldId}"},
+	{OperationID: "WorldPublicController_getWorld", Service: "World", Method: "GET", Path: "/api/world/by-id/{worldId}"},
+	{OperationID: "WorldPublicController_getWorldDetailWithCharacters", Service: "World", Method: "GET", Path: "/api/world/by-id/{worldId}/detail-with-characters"},
+	{OperationID: "WorldPublicController_listWorldCharacters", Service: "World", Method: "GET", Path: "/api/world/by-id/{worldId}/characters"},
+	{OperationID: "WorldPublicController_listWorlds", Service: "World", Method: "GET", Path: "/api/world"},
 }
 
 var RealmOperationByID = func() map[string]RealmOperationDescriptor {

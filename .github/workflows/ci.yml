@@ -220,8 +220,8 @@ jobs:
       - name: Enforce SDK root entry contract
         run: pnpm check:sdk-root-entry-contract
 
-      - name: Enforce SDK agent export authority posture
-        run: pnpm check:sdk-agent-export-posture && node --test scripts/check-sdk-agent-export-posture.test.mjs
+      - name: Enforce SDK AI runner export authority posture
+        run: pnpm check:sdk-ai-runner-export-posture && node --test scripts/check-sdk-ai-runner-export-posture.test.mjs
 
       - name: SDK doctor framework-api map and assessment suite
         run: pnpm check:sdk-doctor

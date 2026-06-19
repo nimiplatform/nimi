@@ -25,6 +25,9 @@ class FakeRealmTransport implements CoreTransport {
     if (request.methodId === 'WorldCoreController_getOasisWorld') {
       return { id: 'world-oasis', title: 'OASIS' } as Response;
     }
+    if (request.methodId === 'WorldPublicController_listWorlds') {
+      return [] as Response;
+    }
     return { ok: true, methodId: request.methodId } as Response;
   }
 
@@ -50,6 +53,8 @@ test('Realm facade exposes generated operation modules over CoreClient', async (
   assert.equal(typeof realm.notifications.getUnreadCount, 'function');
   assert.equal(typeof realm.groupChat.listGroups, 'function');
   assert.equal(typeof realm.worldCore.worldCoreControllerGetOasisWorld, 'function');
+  assert.equal(typeof realm.worldPublic.worldPublicControllerListWorlds, 'function');
+  assert.equal(typeof realm.worldPublic.worldPublicControllerGetWorldDetailWithCharacters, 'function');
   assert.equal(typeof realm.generated.worldCoreControllerGetOasisWorld, 'function');
 
   await realm.auth.checkEmail({ path: {}, body: { email: 'test@example.com' } });
@@ -65,6 +70,9 @@ test('Realm facade exposes generated operation modules over CoreClient', async (
 
   await realm.worldCore.worldCoreControllerGetOasisWorld({ path: {} });
   assert.equal(transport.unaryCalls[3]?.methodId, 'WorldCoreController_getOasisWorld');
+
+  await realm.worldPublic.worldPublicControllerListWorlds({ path: {} });
+  assert.equal(transport.unaryCalls[4]?.methodId, 'WorldPublicController_listWorlds');
 });
 
 test('Realm facade keeps generated core explicit and blocks generated permission bypass', async () => {

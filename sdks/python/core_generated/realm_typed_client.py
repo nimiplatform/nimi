@@ -68,10 +68,6 @@ class AddGroupParticipantInputDto:
 
 @dataclass(frozen=True)
 class AddGroupSourceParticipantInputDto:
-    avatarUrl: str | None = None
-    displayName: str | None = None
-    handle: str | None = None
-    runtimeSourceRef: str | None = None
     sourceRef: GroupSourceRefDto | None = None
 
 @dataclass(frozen=True)
@@ -498,9 +494,12 @@ class CreatePostAttachmentDto:
 class CreatePostDto:
     attachments: tuple[CreatePostAttachmentDto, ...] = field(default_factory=tuple)
     caption: str | None = None
-    runtimeSourceRef: str | None = None
     sourceRef: PostSourceRefDto | None = None
     tags: tuple[str, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class CreatePublicRealmSourceConnectionDto:
+    source: RelationshipPublicSourceLocatorDto | None = None
 
 @dataclass(frozen=True)
 class CreateRealmPersonaDto:
@@ -1225,6 +1224,12 @@ class RejectGiftDto:
     reason: str | None = None
 
 @dataclass(frozen=True)
+class RelationshipPublicSourceLocatorDto:
+    kind: Literal["worldCharacter", "realmPersona"] | None = None
+    sourceId: str | None = None
+    worldId: str | None = None
+
+@dataclass(frozen=True)
 class RelationshipResponseDto:
     context: str | None = None
     createdAt: str | None = None
@@ -1925,6 +1930,112 @@ class WorldCoreDto:
     schemaVersion: str | None = None
     updatedAt: str | None = None
     visibility: Literal["private", "unlisted", "public", "system"] | None = None
+
+@dataclass(frozen=True)
+class WorldPublicDetailDto:
+    createdAt: str | None = None
+    id: str | None = None
+    media: WorldPublicMediaDto | None = None
+    name: str | None = None
+    rules: tuple[str, ...] = field(default_factory=tuple)
+    scenes: tuple[str, ...] = field(default_factory=tuple)
+    stats: WorldPublicStatsDto | None = None
+    summary: str | None = None
+    systems: tuple[str, ...] = field(default_factory=tuple)
+    tagline: str | None = None
+    tags: tuple[str, ...] = field(default_factory=tuple)
+    time: WorldPublicTimeSnapshotDto | None = None
+    timeline: tuple[str, ...] = field(default_factory=tuple)
+    type: Literal["OASIS", "CREATOR"] | None = None
+    updatedAt: str | None = None
+    visibility: Literal["public", "system"] | None = None
+
+@dataclass(frozen=True)
+class WorldPublicDetailWithCharactersDto:
+    sources: WorldPublicSourceSectionsDto | None = None
+    world: WorldPublicDetailDto | None = None
+
+@dataclass(frozen=True)
+class WorldPublicItemDto:
+    createdAt: str | None = None
+    id: str | None = None
+    media: WorldPublicMediaDto | None = None
+    name: str | None = None
+    stats: WorldPublicStatsDto | None = None
+    summary: str | None = None
+    tagline: str | None = None
+    tags: tuple[str, ...] = field(default_factory=tuple)
+    time: WorldPublicTimeSnapshotDto | None = None
+    type: Literal["OASIS", "CREATOR"] | None = None
+    updatedAt: str | None = None
+    visibility: Literal["public", "system"] | None = None
+
+@dataclass(frozen=True)
+class WorldPublicMediaDto:
+    bannerUrl: str | None = None
+    heroUrl: str | None = None
+    highlightUrls: tuple[str, ...] = field(default_factory=tuple)
+    iconUrl: str | None = None
+
+@dataclass(frozen=True)
+class WorldPublicSourceCardDto:
+    displayName: str | None = None
+    handle: str | None = None
+    id: str | None = None
+    media: WorldPublicSourceMediaDto | None = None
+    ownership: Literal["worldOwned", "userOwned"] | None = None
+    relation: WorldPublicViewerRelationDto | None = None
+    role: str | None = None
+    sourceKind: Literal["worldCharacter", "realmPersona"] | None = None
+    sourceRef: WorldPublicSourceRefDto | None = None
+    summary: str | None = None
+    tags: tuple[str, ...] = field(default_factory=tuple)
+    updatedAt: str | None = None
+    worldId: str | None = None
+    worldName: str | None = None
+
+@dataclass(frozen=True)
+class WorldPublicSourceMediaDto:
+    avatarUrl: str | None = None
+    profileCoverUrl: str | None = None
+
+@dataclass(frozen=True)
+class WorldPublicSourceRefDto:
+    kind: Literal["worldCharacter", "realmPersona"] | None = None
+    sourceId: str | None = None
+    worldId: str | None = None
+
+@dataclass(frozen=True)
+class WorldPublicSourceSectionsDto:
+    characters: tuple[WorldPublicSourceCardDto, ...] = field(default_factory=tuple)
+    personas: tuple[WorldPublicSourceCardDto, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class WorldPublicStatsDto:
+    characterCount: float | None = None
+    personaCount: float | None = None
+    sceneCount: float | None = None
+    systemCount: float | None = None
+    timelineEventCount: float | None = None
+
+@dataclass(frozen=True)
+class WorldPublicTimeSnapshotDto:
+    anchorRealStartedAt: str | None = None
+    anchorWorldStartedAt: str | None = None
+    anchorWorldStartedAtDisplay: str | None = None
+    calendar: str | None = None
+    computedAt: str | None = None
+    currentWorldTime: str | None = None
+    currentWorldTimeDisplay: str | None = None
+    displayFormat: str | None = None
+    flowRatio: float | None = None
+    isPaused: bool | None = None
+    mode: Literal["wallClockAnchored", "static"] | None = None
+
+@dataclass(frozen=True)
+class WorldPublicViewerRelationDto:
+    connectionId: str | None = None
+    state: Literal["connectable", "connected", "unavailable"] | None = None
 
 @dataclass(frozen=True)
 class RealmAddFriendOperationPath:
@@ -5220,6 +5331,28 @@ class RealmSourceConnectionControllerConnectOperationRequest:
     body: CreateRealmSourceConnectionDto | None = None
 
 @dataclass(frozen=True)
+class RealmSourceConnectionControllerConnectPublicSourceOperationPath:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmSourceConnectionControllerConnectPublicSourceOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmSourceConnectionControllerConnectPublicSourceOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmSourceConnectionControllerConnectPublicSourceOperationRequest:
+    path: RealmSourceConnectionControllerConnectPublicSourceOperationPath
+    query: RealmSourceConnectionControllerConnectPublicSourceOperationQuery | None = None
+    headers: RealmSourceConnectionControllerConnectPublicSourceOperationHeaders | None = None
+    body: CreatePublicRealmSourceConnectionDto | None = None
+
+@dataclass(frozen=True)
 class RealmSourceConnectionControllerGetOperationPath:
     id: str
 
@@ -6304,6 +6437,94 @@ class RealmWorldCoreControllerReplaceWorldCoreOperationRequest:
     query: RealmWorldCoreControllerReplaceWorldCoreOperationQuery | None = None
     headers: RealmWorldCoreControllerReplaceWorldCoreOperationHeaders | None = None
     body: ReplaceWorldCoreDto | None = None
+
+@dataclass(frozen=True)
+class RealmWorldPublicControllerGetWorldOperationPath:
+    worldId: str
+
+
+@dataclass(frozen=True)
+class RealmWorldPublicControllerGetWorldOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldPublicControllerGetWorldOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldPublicControllerGetWorldOperationRequest:
+    path: RealmWorldPublicControllerGetWorldOperationPath
+    query: RealmWorldPublicControllerGetWorldOperationQuery | None = None
+    headers: RealmWorldPublicControllerGetWorldOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
+class RealmWorldPublicControllerGetWorldDetailWithCharactersOperationPath:
+    worldId: str
+
+
+@dataclass(frozen=True)
+class RealmWorldPublicControllerGetWorldDetailWithCharactersOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldPublicControllerGetWorldDetailWithCharactersOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldPublicControllerGetWorldDetailWithCharactersOperationRequest:
+    path: RealmWorldPublicControllerGetWorldDetailWithCharactersOperationPath
+    query: RealmWorldPublicControllerGetWorldDetailWithCharactersOperationQuery | None = None
+    headers: RealmWorldPublicControllerGetWorldDetailWithCharactersOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
+class RealmWorldPublicControllerListWorldCharactersOperationPath:
+    worldId: str
+
+
+@dataclass(frozen=True)
+class RealmWorldPublicControllerListWorldCharactersOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldPublicControllerListWorldCharactersOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldPublicControllerListWorldCharactersOperationRequest:
+    path: RealmWorldPublicControllerListWorldCharactersOperationPath
+    query: RealmWorldPublicControllerListWorldCharactersOperationQuery | None = None
+    headers: RealmWorldPublicControllerListWorldCharactersOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
+class RealmWorldPublicControllerListWorldsOperationPath:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldPublicControllerListWorldsOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldPublicControllerListWorldsOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldPublicControllerListWorldsOperationRequest:
+    path: RealmWorldPublicControllerListWorldsOperationPath
+    query: RealmWorldPublicControllerListWorldsOperationQuery | None = None
+    headers: RealmWorldPublicControllerListWorldsOperationHeaders | None = None
+    body: None | None = None
 
 
 class RealmTypedClient:
@@ -7770,6 +7991,16 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="SourceConnectionController_connect", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(RealmSourceConnectionDto, raw)
 
+    async def source_connection_controller_connect_public_source(self, request: RealmSourceConnectionControllerConnectPublicSourceOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmSourceConnectionControllerConnectPublicSourceOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="SourceConnectionController_connectPublicSource", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(RealmSourceConnectionDto, raw)
+
     async def source_connection_controller_get(self, request: RealmSourceConnectionControllerGetOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmSourceConnectionControllerGetOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
@@ -8259,3 +8490,43 @@ class RealmTypedClient:
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_replaceWorldCore", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(WorldCoreDto, raw)
+
+    async def world_public_controller_get_world(self, request: RealmWorldPublicControllerGetWorldOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldPublicControllerGetWorldOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldPublicController_getWorld", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(WorldPublicDetailDto, raw)
+
+    async def world_public_controller_get_world_detail_with_characters(self, request: RealmWorldPublicControllerGetWorldDetailWithCharactersOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldPublicControllerGetWorldDetailWithCharactersOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldPublicController_getWorldDetailWithCharacters", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(WorldPublicDetailWithCharactersDto, raw)
+
+    async def world_public_controller_list_world_characters(self, request: RealmWorldPublicControllerListWorldCharactersOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldPublicControllerListWorldCharactersOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldPublicController_listWorldCharacters", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(tuple[WorldPublicSourceCardDto, ...], raw)
+
+    async def world_public_controller_list_worlds(self, request: RealmWorldPublicControllerListWorldsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldPublicControllerListWorldsOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldPublicController_listWorlds", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(tuple[WorldPublicItemDto, ...], raw)

@@ -1,4 +1,5 @@
 import type {
+  CreatePublicRealmSourceConnectionDto,
   CreateRealmSourceConnectionDto,
   RealmTypedClient,
   RealmSourceConnectionDto,
@@ -35,6 +36,7 @@ export interface NimiRealmPendingFriendRequestListDto {
 
 export type NimiRealmSocialProfileView = JsonObject & Partial<UserProfileDto>;
 export type NimiRealmCoreSourceRef = CreateRealmSourceConnectionDto['sourceRef'];
+export type NimiRealmPublicSourceLocator = CreatePublicRealmSourceConnectionDto['source'];
 export type NimiRealmSourceConnectionView = RealmSourceConnectionDto;
 
 export interface NimiRealmSocialApi {
@@ -55,6 +57,7 @@ export interface NimiRealmSocialApi {
     | 'listMyFriendsWithDetails'
     | 'reportControllerCreateReport'
     | 'sourceConnectionControllerConnect'
+    | 'sourceConnectionControllerConnectPublicSource'
     | 'sourceConnectionControllerGet'
     | 'sourceConnectionControllerList'
     | 'sourceConnectionControllerRemove'

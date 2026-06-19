@@ -890,6 +890,12 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         path: Some("/api/human/source-connections"),
     },
     RealmOperationDescriptor {
+        operation_id: "SourceConnectionController_connectPublicSource",
+        service: "Source Connections",
+        method: "POST",
+        path: Some("/api/human/source-connections/public-source"),
+    },
+    RealmOperationDescriptor {
         operation_id: "SourceConnectionController_get",
         service: "Source Connections",
         method: "GET",
@@ -1182,6 +1188,30 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         service: "Realm Core",
         method: "PUT",
         path: Some("/api/realm/core/worlds/{worldId}"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "WorldPublicController_getWorld",
+        service: "World",
+        method: "GET",
+        path: Some("/api/world/by-id/{worldId}"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "WorldPublicController_getWorldDetailWithCharacters",
+        service: "World",
+        method: "GET",
+        path: Some("/api/world/by-id/{worldId}/detail-with-characters"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "WorldPublicController_listWorldCharacters",
+        service: "World",
+        method: "GET",
+        path: Some("/api/world/by-id/{worldId}/characters"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "WorldPublicController_listWorlds",
+        service: "World",
+        method: "GET",
+        path: Some("/api/world"),
     },
 ];
 

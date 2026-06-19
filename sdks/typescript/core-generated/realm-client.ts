@@ -889,6 +889,12 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/human/source-connections"
   },
   {
+    "operationId": "SourceConnectionController_connectPublicSource",
+    "service": "Source Connections",
+    "method": "POST",
+    "path": "/api/human/source-connections/public-source"
+  },
+  {
     "operationId": "SourceConnectionController_get",
     "service": "Source Connections",
     "method": "GET",
@@ -1181,6 +1187,30 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "service": "Realm Core",
     "method": "PUT",
     "path": "/api/realm/core/worlds/{worldId}"
+  },
+  {
+    "operationId": "WorldPublicController_getWorld",
+    "service": "World",
+    "method": "GET",
+    "path": "/api/world/by-id/{worldId}"
+  },
+  {
+    "operationId": "WorldPublicController_getWorldDetailWithCharacters",
+    "service": "World",
+    "method": "GET",
+    "path": "/api/world/by-id/{worldId}/detail-with-characters"
+  },
+  {
+    "operationId": "WorldPublicController_listWorldCharacters",
+    "service": "World",
+    "method": "GET",
+    "path": "/api/world/by-id/{worldId}/characters"
+  },
+  {
+    "operationId": "WorldPublicController_listWorlds",
+    "service": "World",
+    "method": "GET",
+    "path": "/api/world"
   }
 ] as const;
 

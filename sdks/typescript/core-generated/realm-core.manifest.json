@@ -8510,6 +8510,42 @@
       ]
     },
     {
+      "operation_id": "SourceConnectionController_connectPublicSource",
+      "method": "POST",
+      "path": "/api/human/source-connections/public-source",
+      "service": "Source Connections",
+      "tags": [
+        "Source Connections"
+      ],
+      "parameters": [],
+      "path_parameters": [],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "ref",
+        "ref": "#/components/schemas/CreatePublicRealmSourceConnectionDto",
+        "ref_name": "CreatePublicRealmSourceConnectionDto"
+      },
+      "request_schema_ref": "#/components/schemas/CreatePublicRealmSourceConnectionDto",
+      "response_schemas": [
+        {
+          "status": "201",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/RealmSourceConnectionDto",
+            "ref_name": "RealmSourceConnectionDto"
+          },
+          "schema_ref": "#/components/schemas/RealmSourceConnectionDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "201",
+          "schema_ref": "#/components/schemas/RealmSourceConnectionDto"
+        }
+      ]
+    },
+    {
       "operation_id": "SourceConnectionController_get",
       "method": "GET",
       "path": "/api/human/source-connections/{id}",
@@ -11053,6 +11089,204 @@
           "schema_ref": "#/components/schemas/WorldCoreDto"
         }
       ]
+    },
+    {
+      "operation_id": "WorldPublicController_getWorld",
+      "method": "GET",
+      "path": "/api/world/by-id/{worldId}",
+      "service": "World",
+      "tags": [
+        "World"
+      ],
+      "parameters": [
+        {
+          "name": "worldId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "path_parameters": [
+        {
+          "name": "worldId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/WorldPublicDetailDto",
+            "ref_name": "WorldPublicDetailDto"
+          },
+          "schema_ref": "#/components/schemas/WorldPublicDetailDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/WorldPublicDetailDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "WorldPublicController_getWorldDetailWithCharacters",
+      "method": "GET",
+      "path": "/api/world/by-id/{worldId}/detail-with-characters",
+      "service": "World",
+      "tags": [
+        "World"
+      ],
+      "parameters": [
+        {
+          "name": "worldId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "path_parameters": [
+        {
+          "name": "worldId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/WorldPublicDetailWithCharactersDto",
+            "ref_name": "WorldPublicDetailWithCharactersDto"
+          },
+          "schema_ref": "#/components/schemas/WorldPublicDetailWithCharactersDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/WorldPublicDetailWithCharactersDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "WorldPublicController_listWorldCharacters",
+      "method": "GET",
+      "path": "/api/world/by-id/{worldId}/characters",
+      "service": "World",
+      "tags": [
+        "World"
+      ],
+      "parameters": [
+        {
+          "name": "worldId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "path_parameters": [
+        {
+          "name": "worldId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "array",
+            "items": {
+              "kind": "ref",
+              "ref": "#/components/schemas/WorldPublicSourceCardDto",
+              "ref_name": "WorldPublicSourceCardDto"
+            }
+          },
+          "schema_ref": null
+        }
+      ],
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "WorldPublicController_listWorlds",
+      "method": "GET",
+      "path": "/api/world",
+      "service": "World",
+      "tags": [
+        "World"
+      ],
+      "parameters": [],
+      "path_parameters": [],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "array",
+            "items": {
+              "kind": "ref",
+              "ref": "#/components/schemas/WorldPublicItemDto",
+              "ref_name": "WorldPublicItemDto"
+            }
+          },
+          "schema_ref": null
+        }
+      ],
+      "response_schema_refs": []
     }
   ],
   "operation_maps": [
@@ -11933,6 +12167,12 @@
       "path": "/api/human/source-connections"
     },
     {
+      "operation_id": "SourceConnectionController_connectPublicSource",
+      "service": "Source Connections",
+      "method": "POST",
+      "path": "/api/human/source-connections/public-source"
+    },
+    {
       "operation_id": "SourceConnectionController_get",
       "service": "Source Connections",
       "method": "GET",
@@ -12225,6 +12465,30 @@
       "service": "Realm Core",
       "method": "PUT",
       "path": "/api/realm/core/worlds/{worldId}"
+    },
+    {
+      "operation_id": "WorldPublicController_getWorld",
+      "service": "World",
+      "method": "GET",
+      "path": "/api/world/by-id/{worldId}"
+    },
+    {
+      "operation_id": "WorldPublicController_getWorldDetailWithCharacters",
+      "service": "World",
+      "method": "GET",
+      "path": "/api/world/by-id/{worldId}/detail-with-characters"
+    },
+    {
+      "operation_id": "WorldPublicController_listWorldCharacters",
+      "service": "World",
+      "method": "GET",
+      "path": "/api/world/by-id/{worldId}/characters"
+    },
+    {
+      "operation_id": "WorldPublicController_listWorlds",
+      "service": "World",
+      "method": "GET",
+      "path": "/api/world"
     }
   ],
   "service_registry": [
@@ -12515,6 +12779,7 @@
       "name": "Source Connections",
       "operation_ids": [
         "SourceConnectionController_connect",
+        "SourceConnectionController_connectPublicSource",
         "SourceConnectionController_get",
         "SourceConnectionController_list",
         "SourceConnectionController_remove"
@@ -12550,6 +12815,15 @@
         "listOnlineUsers",
         "removeFriend",
         "searchHumanUsers"
+      ]
+    },
+    {
+      "name": "World",
+      "operation_ids": [
+        "WorldPublicController_getWorld",
+        "WorldPublicController_getWorldDetailWithCharacters",
+        "WorldPublicController_listWorldCharacters",
+        "WorldPublicController_listWorlds"
       ]
     },
     {
@@ -12748,6 +13022,9 @@
     },
     {
       "name": "CreatePostDto"
+    },
+    {
+      "name": "CreatePublicRealmSourceConnectionDto"
     },
     {
       "name": "CreateRealmPersonaDto"
@@ -13026,6 +13303,9 @@
       "name": "RejectGiftDto"
     },
     {
+      "name": "RelationshipPublicSourceLocatorDto"
+    },
+    {
       "name": "RelationshipResponseDto"
     },
     {
@@ -13270,6 +13550,39 @@
     },
     {
       "name": "WorldCoreDto"
+    },
+    {
+      "name": "WorldPublicDetailDto"
+    },
+    {
+      "name": "WorldPublicDetailWithCharactersDto"
+    },
+    {
+      "name": "WorldPublicItemDto"
+    },
+    {
+      "name": "WorldPublicMediaDto"
+    },
+    {
+      "name": "WorldPublicSourceCardDto"
+    },
+    {
+      "name": "WorldPublicSourceMediaDto"
+    },
+    {
+      "name": "WorldPublicSourceRefDto"
+    },
+    {
+      "name": "WorldPublicSourceSectionsDto"
+    },
+    {
+      "name": "WorldPublicStatsDto"
+    },
+    {
+      "name": "WorldPublicTimeSnapshotDto"
+    },
+    {
+      "name": "WorldPublicViewerRelationDto"
     }
   ],
   "model_schemas": [
@@ -13492,42 +13805,6 @@
       "schema": {
         "kind": "object",
         "properties": [
-          {
-            "name": "avatarUrl",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null
-            }
-          },
-          {
-            "name": "displayName",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null
-            }
-          },
-          {
-            "name": "handle",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null
-            }
-          },
-          {
-            "name": "runtimeSourceRef",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null
-            }
-          },
           {
             "name": "sourceRef",
             "required": true,
@@ -16643,15 +16920,6 @@
             }
           },
           {
-            "name": "runtimeSourceRef",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null
-            }
-          },
-          {
             "name": "sourceRef",
             "required": false,
             "schema": {
@@ -16670,6 +16938,24 @@
                 "type": "string",
                 "format": null
               }
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "CreatePublicRealmSourceConnectionDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "source",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/RelationshipPublicSourceLocatorDto",
+              "ref_name": "RelationshipPublicSourceLocatorDto"
             }
           }
         ],
@@ -19302,21 +19588,60 @@
                     "kind": "object",
                     "properties": [
                       {
-                        "name": "calendar",
-                        "required": false,
+                        "name": "anchor",
+                        "required": true,
                         "schema": {
-                          "kind": "scalar",
-                          "type": "string",
-                          "format": null
+                          "kind": "object",
+                          "properties": [
+                            {
+                              "name": "realStartedAt",
+                              "required": true,
+                              "schema": {
+                                "kind": "scalar",
+                                "type": "string",
+                                "format": null
+                              }
+                            },
+                            {
+                              "name": "worldStartedAt",
+                              "required": true,
+                              "schema": {
+                                "kind": "scalar",
+                                "type": "string",
+                                "format": null
+                              }
+                            },
+                            {
+                              "name": "worldStartedAtDisplay",
+                              "required": true,
+                              "schema": {
+                                "kind": "scalar",
+                                "type": "string",
+                                "format": null
+                              }
+                            }
+                          ],
+                          "additional_properties": null
                         }
                       },
                       {
-                        "name": "epoch",
-                        "required": false,
+                        "name": "calendar",
+                        "required": true,
                         "schema": {
                           "kind": "scalar",
                           "type": "string",
-                          "format": null
+                          "format": null,
+                          "nullable": true
+                        }
+                      },
+                      {
+                        "name": "displayFormat",
+                        "required": true,
+                        "schema": {
+                          "kind": "scalar",
+                          "type": "string",
+                          "format": null,
+                          "nullable": true
                         }
                       },
                       {
@@ -19341,9 +19666,21 @@
                         "name": "mode",
                         "required": true,
                         "schema": {
+                          "kind": "enum",
+                          "values": [
+                            "wallClockAnchored",
+                            "static"
+                          ]
+                        }
+                      },
+                      {
+                        "name": "pausedWorldTime",
+                        "required": true,
+                        "schema": {
                           "kind": "scalar",
                           "type": "string",
-                          "format": null
+                          "format": null,
+                          "nullable": true
                         }
                       }
                     ],
@@ -24719,6 +25056,44 @@
       }
     },
     {
+      "name": "RelationshipPublicSourceLocatorDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "worldCharacter",
+                "realmPersona"
+              ]
+            }
+          },
+          {
+            "name": "sourceId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "worldId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
       "name": "RelationshipResponseDto",
       "schema": {
         "kind": "object",
@@ -26956,21 +27331,60 @@
                     "kind": "object",
                     "properties": [
                       {
-                        "name": "calendar",
-                        "required": false,
+                        "name": "anchor",
+                        "required": true,
                         "schema": {
-                          "kind": "scalar",
-                          "type": "string",
-                          "format": null
+                          "kind": "object",
+                          "properties": [
+                            {
+                              "name": "realStartedAt",
+                              "required": true,
+                              "schema": {
+                                "kind": "scalar",
+                                "type": "string",
+                                "format": null
+                              }
+                            },
+                            {
+                              "name": "worldStartedAt",
+                              "required": true,
+                              "schema": {
+                                "kind": "scalar",
+                                "type": "string",
+                                "format": null
+                              }
+                            },
+                            {
+                              "name": "worldStartedAtDisplay",
+                              "required": true,
+                              "schema": {
+                                "kind": "scalar",
+                                "type": "string",
+                                "format": null
+                              }
+                            }
+                          ],
+                          "additional_properties": null
                         }
                       },
                       {
-                        "name": "epoch",
-                        "required": false,
+                        "name": "calendar",
+                        "required": true,
                         "schema": {
                           "kind": "scalar",
                           "type": "string",
-                          "format": null
+                          "format": null,
+                          "nullable": true
+                        }
+                      },
+                      {
+                        "name": "displayFormat",
+                        "required": true,
+                        "schema": {
+                          "kind": "scalar",
+                          "type": "string",
+                          "format": null,
+                          "nullable": true
                         }
                       },
                       {
@@ -26995,9 +27409,21 @@
                         "name": "mode",
                         "required": true,
                         "schema": {
+                          "kind": "enum",
+                          "values": [
+                            "wallClockAnchored",
+                            "static"
+                          ]
+                        }
+                      },
+                      {
+                        "name": "pausedWorldTime",
+                        "required": true,
+                        "schema": {
                           "kind": "scalar",
                           "type": "string",
-                          "format": null
+                          "format": null,
+                          "nullable": true
                         }
                       }
                     ],
@@ -33449,21 +33875,60 @@
                     "kind": "object",
                     "properties": [
                       {
-                        "name": "calendar",
-                        "required": false,
+                        "name": "anchor",
+                        "required": true,
                         "schema": {
-                          "kind": "scalar",
-                          "type": "string",
-                          "format": null
+                          "kind": "object",
+                          "properties": [
+                            {
+                              "name": "realStartedAt",
+                              "required": true,
+                              "schema": {
+                                "kind": "scalar",
+                                "type": "string",
+                                "format": null
+                              }
+                            },
+                            {
+                              "name": "worldStartedAt",
+                              "required": true,
+                              "schema": {
+                                "kind": "scalar",
+                                "type": "string",
+                                "format": null
+                              }
+                            },
+                            {
+                              "name": "worldStartedAtDisplay",
+                              "required": true,
+                              "schema": {
+                                "kind": "scalar",
+                                "type": "string",
+                                "format": null
+                              }
+                            }
+                          ],
+                          "additional_properties": null
                         }
                       },
                       {
-                        "name": "epoch",
-                        "required": false,
+                        "name": "calendar",
+                        "required": true,
                         "schema": {
                           "kind": "scalar",
                           "type": "string",
-                          "format": null
+                          "format": null,
+                          "nullable": true
+                        }
+                      },
+                      {
+                        "name": "displayFormat",
+                        "required": true,
+                        "schema": {
+                          "kind": "scalar",
+                          "type": "string",
+                          "format": null,
+                          "nullable": true
                         }
                       },
                       {
@@ -33488,9 +33953,21 @@
                         "name": "mode",
                         "required": true,
                         "schema": {
+                          "kind": "enum",
+                          "values": [
+                            "wallClockAnchored",
+                            "static"
+                          ]
+                        }
+                      },
+                      {
+                        "name": "pausedWorldTime",
+                        "required": true,
+                        "schema": {
                           "kind": "scalar",
                           "type": "string",
-                          "format": null
+                          "format": null,
+                          "nullable": true
                         }
                       }
                     ],
@@ -33661,6 +34138,823 @@
                 "unlisted",
                 "public",
                 "system"
+              ]
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "WorldPublicDetailDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "createdAt",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "media",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/WorldPublicMediaDto",
+              "ref_name": "WorldPublicMediaDto"
+            }
+          },
+          {
+            "name": "name",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "rules",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "scalar",
+                "type": "string",
+                "format": null
+              }
+            }
+          },
+          {
+            "name": "scenes",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "scalar",
+                "type": "string",
+                "format": null
+              }
+            }
+          },
+          {
+            "name": "stats",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/WorldPublicStatsDto",
+              "ref_name": "WorldPublicStatsDto"
+            }
+          },
+          {
+            "name": "summary",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "systems",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "scalar",
+                "type": "string",
+                "format": null
+              }
+            }
+          },
+          {
+            "name": "tagline",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "tags",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "scalar",
+                "type": "string",
+                "format": null
+              }
+            }
+          },
+          {
+            "name": "time",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/WorldPublicTimeSnapshotDto",
+              "ref_name": "WorldPublicTimeSnapshotDto"
+            }
+          },
+          {
+            "name": "timeline",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "scalar",
+                "type": "string",
+                "format": null
+              }
+            }
+          },
+          {
+            "name": "type",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "OASIS",
+                "CREATOR"
+              ]
+            }
+          },
+          {
+            "name": "updatedAt",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "visibility",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "public",
+                "system"
+              ]
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "WorldPublicDetailWithCharactersDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "sources",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/WorldPublicSourceSectionsDto",
+              "ref_name": "WorldPublicSourceSectionsDto"
+            }
+          },
+          {
+            "name": "world",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/WorldPublicDetailDto",
+              "ref_name": "WorldPublicDetailDto"
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "WorldPublicItemDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "createdAt",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "media",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/WorldPublicMediaDto",
+              "ref_name": "WorldPublicMediaDto"
+            }
+          },
+          {
+            "name": "name",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "stats",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/WorldPublicStatsDto",
+              "ref_name": "WorldPublicStatsDto"
+            }
+          },
+          {
+            "name": "summary",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "tagline",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "tags",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "scalar",
+                "type": "string",
+                "format": null
+              }
+            }
+          },
+          {
+            "name": "time",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/WorldPublicTimeSnapshotDto",
+              "ref_name": "WorldPublicTimeSnapshotDto"
+            }
+          },
+          {
+            "name": "type",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "OASIS",
+                "CREATOR"
+              ]
+            }
+          },
+          {
+            "name": "updatedAt",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "visibility",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "public",
+                "system"
+              ]
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "WorldPublicMediaDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "bannerUrl",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "heroUrl",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "highlightUrls",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "scalar",
+                "type": "string",
+                "format": null
+              }
+            }
+          },
+          {
+            "name": "iconUrl",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "nullable": true
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "WorldPublicSourceCardDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "displayName",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "handle",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "media",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/WorldPublicSourceMediaDto",
+              "ref_name": "WorldPublicSourceMediaDto"
+            }
+          },
+          {
+            "name": "ownership",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "worldOwned",
+                "userOwned"
+              ]
+            }
+          },
+          {
+            "name": "relation",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/WorldPublicViewerRelationDto",
+              "ref_name": "WorldPublicViewerRelationDto"
+            }
+          },
+          {
+            "name": "role",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "sourceKind",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "worldCharacter",
+                "realmPersona"
+              ]
+            }
+          },
+          {
+            "name": "sourceRef",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/WorldPublicSourceRefDto",
+              "ref_name": "WorldPublicSourceRefDto"
+            }
+          },
+          {
+            "name": "summary",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "tags",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "scalar",
+                "type": "string",
+                "format": null
+              }
+            }
+          },
+          {
+            "name": "updatedAt",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "worldId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "worldName",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "WorldPublicSourceMediaDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "avatarUrl",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "profileCoverUrl",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "nullable": true
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "WorldPublicSourceRefDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "worldCharacter",
+                "realmPersona"
+              ]
+            }
+          },
+          {
+            "name": "sourceId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "worldId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "WorldPublicSourceSectionsDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "characters",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "ref",
+                "ref": "#/components/schemas/WorldPublicSourceCardDto",
+                "ref_name": "WorldPublicSourceCardDto"
+              }
+            }
+          },
+          {
+            "name": "personas",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "ref",
+                "ref": "#/components/schemas/WorldPublicSourceCardDto",
+                "ref_name": "WorldPublicSourceCardDto"
+              }
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "WorldPublicStatsDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "characterCount",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "personaCount",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "sceneCount",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "systemCount",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "timelineEventCount",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "WorldPublicTimeSnapshotDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "anchorRealStartedAt",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "anchorWorldStartedAt",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "anchorWorldStartedAtDisplay",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "calendar",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "computedAt",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "currentWorldTime",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "currentWorldTimeDisplay",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "displayFormat",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "flowRatio",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "isPaused",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "boolean",
+              "format": null
+            }
+          },
+          {
+            "name": "mode",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "wallClockAnchored",
+                "static"
+              ]
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "WorldPublicViewerRelationDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "connectionId",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "state",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "connectable",
+                "connected",
+                "unavailable"
               ]
             }
           }

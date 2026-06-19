@@ -92,19 +92,10 @@ components:
       type: object
     AddGroupSourceParticipantInputDto:
       properties:
-        avatarUrl:
-          type: string
-        displayName:
-          type: string
-        handle:
-          type: string
-        runtimeSourceRef:
-          type: string
         sourceRef:
           $ref: '#/components/schemas/GroupSourceRefDto'
       required:
         - sourceRef
-        - runtimeSourceRef
       type: object
     AppPermissionGrantDecisionDto:
       properties:
@@ -1286,8 +1277,6 @@ components:
           type: array
         caption:
           type: string
-        runtimeSourceRef:
-          type: string
         sourceRef:
           $ref: '#/components/schemas/PostSourceRefDto'
         tags:
@@ -1296,6 +1285,13 @@ components:
           type: array
       required:
         - attachments
+      type: object
+    CreatePublicRealmSourceConnectionDto:
+      properties:
+        source:
+          $ref: '#/components/schemas/RelationshipPublicSourceLocatorDto'
+      required:
+        - source
       type: object
     CreateRealmPersonaDto:
       properties:
@@ -2353,21 +2349,49 @@ components:
             timeModel:
               additionalProperties: false
               properties:
+                anchor:
+                  additionalProperties: false
+                  properties:
+                    realStartedAt:
+                      minLength: 1
+                      type: string
+                    worldStartedAt:
+                      minLength: 1
+                      type: string
+                    worldStartedAtDisplay:
+                      minLength: 1
+                      type: string
+                  required:
+                    - realStartedAt
+                    - worldStartedAt
+                    - worldStartedAtDisplay
+                  type: object
                 calendar:
+                  nullable: true
                   type: string
-                epoch:
+                displayFormat:
+                  nullable: true
                   type: string
                 flowRatio:
                   type: number
                 isPaused:
                   type: boolean
                 mode:
-                  minLength: 1
+                  enum:
+                    - wallClockAnchored
+                    - static
+                  type: string
+                pausedWorldTime:
+                  nullable: true
                   type: string
               required:
                 - mode
                 - flowRatio
                 - isPaused
+                - anchor
+                - pausedWorldTime
+                - calendar
+                - displayFormat
               type: object
             timeline:
               additionalProperties: false
@@ -4453,6 +4477,22 @@ components:
           maxLength: 500
           type: string
       type: object
+    RelationshipPublicSourceLocatorDto:
+      properties:
+        kind:
+          enum:
+            - worldCharacter
+            - realmPersona
+          type: string
+        sourceId:
+          type: string
+        worldId:
+          type: string
+      required:
+        - kind
+        - worldId
+        - sourceId
+      type: object
     RelationshipResponseDto:
       properties:
         context:
@@ -5368,21 +5408,49 @@ components:
             timeModel:
               additionalProperties: false
               properties:
+                anchor:
+                  additionalProperties: false
+                  properties:
+                    realStartedAt:
+                      minLength: 1
+                      type: string
+                    worldStartedAt:
+                      minLength: 1
+                      type: string
+                    worldStartedAtDisplay:
+                      minLength: 1
+                      type: string
+                  required:
+                    - realStartedAt
+                    - worldStartedAt
+                    - worldStartedAtDisplay
+                  type: object
                 calendar:
+                  nullable: true
                   type: string
-                epoch:
+                displayFormat:
+                  nullable: true
                   type: string
                 flowRatio:
                   type: number
                 isPaused:
                   type: boolean
                 mode:
-                  minLength: 1
+                  enum:
+                    - wallClockAnchored
+                    - static
+                  type: string
+                pausedWorldTime:
+                  nullable: true
                   type: string
               required:
                 - mode
                 - flowRatio
                 - isPaused
+                - anchor
+                - pausedWorldTime
+                - calendar
+                - displayFormat
               type: object
             timeline:
               additionalProperties: false
@@ -7822,21 +7890,49 @@ components:
             timeModel:
               additionalProperties: false
               properties:
+                anchor:
+                  additionalProperties: false
+                  properties:
+                    realStartedAt:
+                      minLength: 1
+                      type: string
+                    worldStartedAt:
+                      minLength: 1
+                      type: string
+                    worldStartedAtDisplay:
+                      minLength: 1
+                      type: string
+                  required:
+                    - realStartedAt
+                    - worldStartedAt
+                    - worldStartedAtDisplay
+                  type: object
                 calendar:
+                  nullable: true
                   type: string
-                epoch:
+                displayFormat:
+                  nullable: true
                   type: string
                 flowRatio:
                   type: number
                 isPaused:
                   type: boolean
                 mode:
-                  minLength: 1
+                  enum:
+                    - wallClockAnchored
+                    - static
+                  type: string
+                pausedWorldTime:
+                  nullable: true
                   type: string
               required:
                 - mode
                 - flowRatio
                 - isPaused
+                - anchor
+                - pausedWorldTime
+                - calendar
+                - displayFormat
               type: object
             timeline:
               additionalProperties: false
@@ -7905,6 +8001,316 @@ components:
         - createdAt
         - updatedAt
       type: object
+    WorldPublicDetailDto:
+      properties:
+        createdAt:
+          type: string
+        id:
+          type: string
+        media:
+          $ref: '#/components/schemas/WorldPublicMediaDto'
+        name:
+          type: string
+        rules:
+          items:
+            type: string
+          type: array
+        scenes:
+          items:
+            type: string
+          type: array
+        stats:
+          $ref: '#/components/schemas/WorldPublicStatsDto'
+        summary:
+          type: string
+        systems:
+          items:
+            type: string
+          type: array
+        tagline:
+          nullable: true
+          type: string
+        tags:
+          items:
+            type: string
+          type: array
+        time:
+          $ref: '#/components/schemas/WorldPublicTimeSnapshotDto'
+        timeline:
+          items:
+            type: string
+          type: array
+        type:
+          enum:
+            - OASIS
+            - CREATOR
+          type: string
+        updatedAt:
+          type: string
+        visibility:
+          enum:
+            - public
+            - system
+          type: string
+      required:
+        - id
+        - name
+        - summary
+        - type
+        - visibility
+        - tags
+        - media
+        - time
+        - stats
+        - createdAt
+        - updatedAt
+        - rules
+        - systems
+        - scenes
+        - timeline
+      type: object
+    WorldPublicDetailWithCharactersDto:
+      properties:
+        sources:
+          $ref: '#/components/schemas/WorldPublicSourceSectionsDto'
+        world:
+          $ref: '#/components/schemas/WorldPublicDetailDto'
+      required:
+        - world
+        - sources
+      type: object
+    WorldPublicItemDto:
+      properties:
+        createdAt:
+          type: string
+        id:
+          type: string
+        media:
+          $ref: '#/components/schemas/WorldPublicMediaDto'
+        name:
+          type: string
+        stats:
+          $ref: '#/components/schemas/WorldPublicStatsDto'
+        summary:
+          type: string
+        tagline:
+          nullable: true
+          type: string
+        tags:
+          items:
+            type: string
+          type: array
+        time:
+          $ref: '#/components/schemas/WorldPublicTimeSnapshotDto'
+        type:
+          enum:
+            - OASIS
+            - CREATOR
+          type: string
+        updatedAt:
+          type: string
+        visibility:
+          enum:
+            - public
+            - system
+          type: string
+      required:
+        - id
+        - name
+        - summary
+        - type
+        - visibility
+        - tags
+        - media
+        - time
+        - stats
+        - createdAt
+        - updatedAt
+      type: object
+    WorldPublicMediaDto:
+      properties:
+        bannerUrl:
+          nullable: true
+          type: string
+        heroUrl:
+          nullable: true
+          type: string
+        highlightUrls:
+          items:
+            type: string
+          type: array
+        iconUrl:
+          nullable: true
+          type: string
+      required:
+        - highlightUrls
+      type: object
+    WorldPublicSourceCardDto:
+      properties:
+        displayName:
+          type: string
+        handle:
+          nullable: true
+          type: string
+        id:
+          type: string
+        media:
+          $ref: '#/components/schemas/WorldPublicSourceMediaDto'
+        ownership:
+          enum:
+            - worldOwned
+            - userOwned
+          type: string
+        relation:
+          $ref: '#/components/schemas/WorldPublicViewerRelationDto'
+        role:
+          nullable: true
+          type: string
+        sourceKind:
+          enum:
+            - worldCharacter
+            - realmPersona
+          type: string
+        sourceRef:
+          $ref: '#/components/schemas/WorldPublicSourceRefDto'
+        summary:
+          type: string
+        tags:
+          items:
+            type: string
+          type: array
+        updatedAt:
+          type: string
+        worldId:
+          type: string
+        worldName:
+          type: string
+      required:
+        - id
+        - sourceKind
+        - ownership
+        - sourceRef
+        - displayName
+        - summary
+        - worldId
+        - worldName
+        - tags
+        - media
+        - relation
+        - updatedAt
+      type: object
+    WorldPublicSourceMediaDto:
+      properties:
+        avatarUrl:
+          nullable: true
+          type: string
+        profileCoverUrl:
+          nullable: true
+          type: string
+      type: object
+    WorldPublicSourceRefDto:
+      properties:
+        kind:
+          enum:
+            - worldCharacter
+            - realmPersona
+          type: string
+        sourceId:
+          type: string
+        worldId:
+          type: string
+      required:
+        - kind
+        - worldId
+        - sourceId
+      type: object
+    WorldPublicSourceSectionsDto:
+      properties:
+        characters:
+          items:
+            $ref: '#/components/schemas/WorldPublicSourceCardDto'
+          type: array
+        personas:
+          items:
+            $ref: '#/components/schemas/WorldPublicSourceCardDto'
+          type: array
+      required:
+        - characters
+        - personas
+      type: object
+    WorldPublicStatsDto:
+      properties:
+        characterCount:
+          type: number
+        personaCount:
+          type: number
+        sceneCount:
+          type: number
+        systemCount:
+          type: number
+        timelineEventCount:
+          type: number
+      required:
+        - characterCount
+        - personaCount
+        - sceneCount
+        - systemCount
+        - timelineEventCount
+      type: object
+    WorldPublicTimeSnapshotDto:
+      properties:
+        anchorRealStartedAt:
+          type: string
+        anchorWorldStartedAt:
+          type: string
+        anchorWorldStartedAtDisplay:
+          type: string
+        calendar:
+          nullable: true
+          type: string
+        computedAt:
+          type: string
+        currentWorldTime:
+          type: string
+        currentWorldTimeDisplay:
+          type: string
+        displayFormat:
+          nullable: true
+          type: string
+        flowRatio:
+          type: number
+        isPaused:
+          type: boolean
+        mode:
+          enum:
+            - wallClockAnchored
+            - static
+          type: string
+      required:
+        - mode
+        - flowRatio
+        - isPaused
+        - anchorRealStartedAt
+        - anchorWorldStartedAt
+        - anchorWorldStartedAtDisplay
+        - currentWorldTime
+        - currentWorldTimeDisplay
+        - computedAt
+      type: object
+    WorldPublicViewerRelationDto:
+      properties:
+        connectionId:
+          nullable: true
+          type: string
+        state:
+          enum:
+            - connectable
+            - connected
+            - unavailable
+          type: string
+      required:
+        - state
+      type: object
   securitySchemes:
     bearer:
       bearerFormat: JWT
@@ -7915,7 +8321,7 @@ info:
   description: |-
     The Nimi Social Platform API
 
-    Last updated: 2026-06-18T11:20:51.449Z
+    Last updated: 2026-06-18T17:29:19.395Z
   title: Nimi Realm SDK API
   version: '1.0'
 openapi: 3.0.0
@@ -11354,6 +11760,28 @@ paths:
       summary: Connect the current user to a Realm core sourceRef
       tags:
         - Source Connections
+  /api/human/source-connections/public-source:
+    post:
+      operationId: SourceConnectionController_connectPublicSource
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePublicRealmSourceConnectionDto'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RealmSourceConnectionDto'
+          description: ''
+      security:
+        - bearer: []
+      summary: Connect the current user to a public Realm source locator
+      tags:
+        - Source Connections
   /api/human/source-connections/{id}:
     delete:
       operationId: SourceConnectionController_remove
@@ -12229,6 +12657,81 @@ paths:
       summary: Translate text
       tags:
         - Translation
+  /api/world:
+    get:
+      operationId: WorldPublicController_listWorlds
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/WorldPublicItemDto'
+                type: array
+          description: ''
+      summary: List public worlds
+      tags:
+        - World
+  /api/world/by-id/{worldId}:
+    get:
+      operationId: WorldPublicController_getWorld
+      parameters:
+        - in: path
+          name: worldId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorldPublicDetailDto'
+          description: ''
+      summary: Get a public world
+      tags:
+        - World
+  /api/world/by-id/{worldId}/characters:
+    get:
+      operationId: WorldPublicController_listWorldCharacters
+      parameters:
+        - in: path
+          name: worldId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/WorldPublicSourceCardDto'
+                type: array
+          description: ''
+      summary: List public world character source cards
+      tags:
+        - World
+  /api/world/by-id/{worldId}/detail-with-characters:
+    get:
+      operationId: WorldPublicController_getWorldDetailWithCharacters
+      parameters:
+        - in: path
+          name: worldId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorldPublicDetailWithCharactersDto'
+          description: ''
+      summary: Get a public world detail projection with source cards
+      tags:
+        - World
   /api/world/by-id/{worldId}/posts:
     get:
       operationId: getWorldPosts
