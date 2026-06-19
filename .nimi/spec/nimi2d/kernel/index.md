@@ -148,6 +148,16 @@ Nimi2D Generation Bench authority:
 - bench input is contract-conformant layer input, not raw images
 - upstream segmentation/occlusion quality is outside Nimi2D bench authority
 - Generation Bench is the go/no-go gate for default generated Nimi2D assets
+- release-candidate audit may aggregate provider distribution, certified
+  corpus, Generation Bench, Runtime Proof Matrix, visual proof, and reference
+  action proof without becoming product release approval
+- manual correction and product review reports are explicit product-readiness
+  evidence and must not be inferred from technical pass results
+- product-readiness evidence may be validated independently before aggregation
+- release review packets are local evidence collection aids and do not count as
+  product approval by themselves
+- release review packets may be independently validated for self-contained
+  assets and pending templates
 - hard gates, quality gates, and tracking metrics are separated
 - corpus and result schemas require content hashes, deterministic replay,
   complete case reporting, failure attribution, and anti-cherry-pick rules

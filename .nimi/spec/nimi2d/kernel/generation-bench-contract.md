@@ -178,6 +178,89 @@ The certified corpus report must fail closed unless the corpus has:
 Certification does not replace Generation Bench execution. It only decides
 whether a corpus is eligible to be used as release-gate input.
 
+### N2D-BENCH-035 - Release Candidate Audit Aggregates Evidence
+
+A release-candidate audit may aggregate:
+
+- Codex Image2/provider distribution report
+- certified corpus report
+- Generation Bench result
+- Runtime Proof Matrix result
+- manual correction report when one exists
+- product review report when one exists
+
+The audit must keep T1-T4 technical gates separate:
+
+- T1 provider/source-to-layer distribution
+- T2 corpus certification
+- T3 Generation Bench
+- T4 package visual proof plus reference action response proof
+
+The audit must fail closed when any T1-T4 technical gate fails. If T1-T4 pass
+but manual correction metrics, provider reliability metrics, or product review
+evidence are not recorded, the audit may return a candidate-pass/product-blocked
+decision. That decision is not public product release approval and does not
+close production Avatar embodiment readiness.
+
+### N2D-BENCH-036 - Product Readiness Evidence Is Explicit
+
+Manual correction and product review evidence must be explicit reports. Nimi2D
+may validate and aggregate those reports, but it must not infer or fabricate
+them from technical pass results.
+
+Manual correction reports must record:
+
+- release-candidate measurement scope
+- per-case correction minutes
+- measured case count
+- p50, p90, and max correction minutes
+- whether prompt repair was required per case when known
+
+Manual correction remains tracking evidence unless a later authority promotes a
+threshold into a gate.
+
+Product review reports must record:
+
+- release-candidate review scope
+- reviewer id and role
+- review timestamp
+- identity preservation result
+- layer alignment result
+- expression readability result
+- wardrobe readiness result
+- product fit result
+- final pass/fail decision
+
+Missing, malformed, or failing product readiness evidence must keep the
+release-candidate audit in product-blocked state even when T1-T4 technical gates
+pass.
+
+Product-readiness evidence may be validated independently before it is supplied
+to a release-candidate audit. Independent validation must use the same
+manual-correction and product-review semantics as the aggregate audit.
+
+### N2D-BENCH-037 - Review Packets Are Evidence Collection Aids
+
+Nimi2D may generate local release review packets that copy certified-good layer
+assets, render a static review surface, optionally copy source-reference
+thumbnails from a release-review sidecar, and provide pending manual correction
+and product review templates.
+
+A review packet does not close manual correction, product review, public
+release, or production Avatar readiness. It only packages the candidate evidence
+so humans can record the explicit reports required by
+`N2D-BENCH-036`.
+
+Review packets may be validated independently. Packet validation must check that
+the packet manifest, static HTML surface, pending templates, and referenced
+layer assets are present and self-contained. If a packet includes
+source-reference thumbnails, those copied refs must also be present and
+self-contained. Source-reference sidecars are review-packet operational
+evidence only and must not add raw image refs to certified corpus or layer-input
+admission contracts. Packet validation must not treat filled product evidence
+reports as part of packet validation; those reports are validated by the
+product-readiness evidence gate.
+
 ## 5. Result Protocol
 
 ### N2D-BENCH-040 - Deterministic Result Schema

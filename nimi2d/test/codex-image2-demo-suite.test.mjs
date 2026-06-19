@@ -46,7 +46,9 @@ test('Codex Image2 demo suite exercises all workflow families and unique atlas s
   assert.equal(suiteReport.workflows.image_prompt_to_image.verdict, 'admit');
   assert.equal(suiteReport.workflows.companion_asset.verdict, 'admit');
   assert.equal(suiteReport.workflows.image_to_layer_atlas.repaired_workflow_passing_count, 2);
-  assert.equal(suiteReport.workflows.image_to_layer_atlas.formal_admission_passing_count, 0);
+  assert.equal(suiteReport.workflows.image_to_layer_atlas.source_to_layer_pipeline_passing_count, 2);
+  assert.equal(suiteReport.workflows.image_to_layer_atlas.formal_admission_passing_count, 2);
+  assert.match(suiteReport.note, /must not be represented as live Codex Image2 generation/);
 
   const promptArtifact = await readYaml(suiteReport.workflows.prompt_to_image.artifact_manifest_path);
   assert.equal(promptArtifact.producer.surface, 'demo_fixture');
@@ -54,9 +56,10 @@ test('Codex Image2 demo suite exercises all workflow families and unique atlas s
 
   const distribution = await readYaml(result.distributionReportPath);
   assert.equal(distribution.manifest_kind, 'nimi.nimi2d.codex-image2.distribution-report');
-  assert.equal(distribution.gate_mode, 'repaired_workflow');
+  assert.equal(distribution.gate_mode, 'source_to_layer_pipeline');
   assert.equal(distribution.summary.run_count, 2);
   assert.equal(distribution.summary.unique_source_sample_count, 2);
   assert.equal(distribution.summary.passing_run_count, 2);
   assert.equal(distribution.summary.duplicate_source_groups.length, 0);
+  assert.equal(distribution.cases.every((item) => item.source_surface === 'demo_fixture'), true);
 });

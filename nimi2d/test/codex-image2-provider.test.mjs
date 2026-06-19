@@ -76,6 +76,11 @@ test('Codex Image2 provider plans prompt-to-image and registers a consumed respo
   const prompt = await readFile(planned.promptPath, 'utf8');
   assert.match(prompt, /Use Codex Image2 \/ Image Gen/);
   assert.match(prompt, /Required output image path:/);
+  const outputSchema = JSON.parse(await readFile(planned.schemaPath, 'utf8'));
+  assert.deepEqual(
+    [...Object.keys(outputSchema.properties)].sort(),
+    [...outputSchema.required].sort(),
+  );
 
   await writeFixturePng(planned.expectedImagePath);
   const responsePath = path.join(outDir, 'codex-response.json');
@@ -157,6 +162,9 @@ test('Codex Image2 provider dry-run exposes codex exec image attachment for atla
   assert.equal(request.inputs.source_image_ref, 'inputs/source.png');
   assert.equal(typeof request.inputs.source_image_sha256, 'string');
   assert.match(request.inputs.source_image_sha256, /^[0-9a-f]{64}$/);
+  const runScript = await readFile(planned.scriptPath, 'utf8');
+  assert.equal(runScript.includes('--ask-for-approval'), false);
+  assert.equal(runScript.includes('--dangerously-bypass-approvals-and-sandbox'), true);
   const dryRun = await runCli([
     'image2-provider-run',
     '--request', planned.requestPath,
@@ -166,6 +174,8 @@ test('Codex Image2 provider dry-run exposes codex exec image attachment for atla
   assert.equal(dryRun.mode, 'dry_run');
   assert.equal(dryRun.args.includes('exec'), true);
   assert.equal(dryRun.args.includes('--output-schema'), true);
+  assert.equal(dryRun.args.includes('--ask-for-approval'), false);
+  assert.equal(dryRun.args.includes('--dangerously-bypass-approvals-and-sandbox'), true);
   assert.equal(dryRun.args.includes('-i'), true);
   assert.equal(dryRun.args[dryRun.args.indexOf('-i') + 1], path.join(outDir, 'inputs', 'source.png'));
 });

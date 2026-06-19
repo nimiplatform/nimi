@@ -10,7 +10,12 @@ import {
   runAtlasQualityGate,
   runGenerationBench,
   runImageInputWorkflowBench,
+  auditReleaseCandidate,
+  buildReleaseReviewPacket,
+  validateReleaseReviewPacket,
+  validateReleaseProductEvidence,
   runRuntimeProofMatrix,
+  inspectLayerInput,
   inspectPackage,
   solvePackageFromLayerInput,
   validateAtlasSpec,
@@ -51,6 +56,11 @@ function usage() {
   '  nimi2d render-plan <package-manifest> [--capability-profile <profile>]',
   '  nimi2d prove-visual-frame <package-manifest> [--capability-profile <profile>] [--grid-size <n>]',
   '  nimi2d inspect-package <package-manifest> [--capability-profile <profile>] [--grid-size <n>] [--out <report.yaml>]',
+  '  nimi2d inspect-layer-input <layer-input-manifest> --out-dir <dir> [--capability-profile <profile>] [--grid-size <n>] [--package-id <id>]',
+  '  nimi2d audit-release-candidate --distribution-report <report.yaml> --certified-corpus-report <report.yaml> --generation-bench-result <result.yaml> --runtime-proof-matrix <result.json|yaml> [--manual-correction-report <report.yaml>] [--product-review-report <report.yaml>] [--out <report.yaml>]',
+  '  nimi2d validate-release-product-evidence --manual-correction-report <report.yaml> --product-review-report <report.yaml> [--generation-bench-result <result.yaml>] [--out <report.yaml>]',
+  '  nimi2d build-release-review-packet --corpus <corpus.yaml> --release-candidate-audit <audit.yaml> --out-dir <dir> [--source-references <refs.yaml>]',
+  '  nimi2d validate-release-review-packet --packet-dir <dir> [--out <report.yaml>]',
   '  nimi2d validate-bench-corpus <manifest>',
   '  nimi2d certify-corpus <corpus-manifest> [--out <report.yaml>] [--min-certified <n>] [--min-invalid <n>]',
     '  nimi2d validate-bench-result <manifest>',
@@ -70,7 +80,7 @@ function usage() {
     '  nimi2d image2-compare-pixels --left <png> --right <png> --out <report.yaml>',
     '  nimi2d image2-postprocess --input <png> --out <png> --report <report.yaml> [--transparent-background none|corner|color]',
     '  nimi2d image2-layer-workflow (--image <atlas.png>|--producer-manifest <artifact.yaml>) --out-dir <dir>',
-    '  nimi2d image2-distribution-report --runs-dir <dir> --out <report.yaml> [--min-samples <n>] [--source-surface <surface>]',
+    '  nimi2d image2-distribution-report --runs-dir <dir> --out <report.yaml> [--min-samples <n>] [--min-underlying-sources <n>] [--require-layer-input-full-chain] [--source-surface <surface>] [--gate-mode source_to_layer_pipeline|repaired_workflow|raw_provider_atlas|formal_admission]',
     '  nimi2d image2-demo-suite --out-dir <dir> [--sample-count <n>] [--grid-size <n>]',
   ].join('\n');
 }
@@ -234,6 +244,55 @@ async function main() {
     if (output.status !== 'ok') process.exitCode = 1;
     return;
   }
+  if (command === 'audit-release-candidate') {
+    const auditArgs = [manifestPath, ...rest].filter(Boolean);
+    const output = await auditReleaseCandidate({
+      distributionReportPath: getFlag(auditArgs, '--distribution-report'),
+      corpusCertificationReportPath: getFlag(auditArgs, '--certified-corpus-report'),
+      generationBenchResultPath: getFlag(auditArgs, '--generation-bench-result'),
+      runtimeProofMatrixPath: getFlag(auditArgs, '--runtime-proof-matrix'),
+      manualCorrectionReportPath: getFlag(auditArgs, '--manual-correction-report') ?? undefined,
+      productReviewReportPath: getFlag(auditArgs, '--product-review-report') ?? undefined,
+      outPath: getFlag(auditArgs, '--out') ?? undefined,
+    });
+    printJson(output);
+    if (output.status !== 'ok') process.exitCode = 1;
+    return;
+  }
+  if (command === 'validate-release-product-evidence') {
+    const evidenceArgs = [manifestPath, ...rest].filter(Boolean);
+    const output = await validateReleaseProductEvidence({
+      manualCorrectionReportPath: getFlag(evidenceArgs, '--manual-correction-report'),
+      productReviewReportPath: getFlag(evidenceArgs, '--product-review-report'),
+      generationBenchResultPath: getFlag(evidenceArgs, '--generation-bench-result') ?? undefined,
+      outPath: getFlag(evidenceArgs, '--out') ?? undefined,
+    });
+    printJson(output);
+    if (output.status !== 'ok') process.exitCode = 1;
+    return;
+  }
+  if (command === 'build-release-review-packet') {
+    const packetArgs = [manifestPath, ...rest].filter(Boolean);
+    const output = await buildReleaseReviewPacket({
+      corpusPath: getFlag(packetArgs, '--corpus'),
+      releaseCandidateAuditPath: getFlag(packetArgs, '--release-candidate-audit'),
+      outputDir: getFlag(packetArgs, '--out-dir'),
+      sourceReferencesPath: getFlag(packetArgs, '--source-references') ?? undefined,
+    });
+    printJson(output);
+    if (output.status !== 'ok') process.exitCode = 1;
+    return;
+  }
+  if (command === 'validate-release-review-packet') {
+    const packetArgs = [manifestPath, ...rest].filter(Boolean);
+    const output = await validateReleaseReviewPacket({
+      packetDir: getFlag(packetArgs, '--packet-dir'),
+      outPath: getFlag(packetArgs, '--out') ?? undefined,
+    });
+    printJson(output);
+    if (output.status !== 'ok') process.exitCode = 1;
+    return;
+  }
 
   if (!manifestPath) {
     process.stderr.write(`${usage()}\n`);
@@ -270,6 +329,21 @@ async function main() {
       capabilityProfilePath: getFlag(rest, '--capability-profile') ?? undefined,
       gridSize,
       outPath: getFlag(rest, '--out') ?? undefined,
+    });
+  } else if (command === 'inspect-layer-input') {
+    const outDir = getFlag(rest, '--out-dir');
+    if (!outDir) {
+      process.stderr.write(`${usage()}\n`);
+      process.exitCode = 2;
+      return;
+    }
+    const gridSizeFlag = getFlag(rest, '--grid-size');
+    const gridSize = gridSizeFlag ? Number(gridSizeFlag) : undefined;
+    output = await inspectLayerInput(manifestPath, {
+      outputDir: outDir,
+      capabilityProfilePath: getFlag(rest, '--capability-profile') ?? undefined,
+      gridSize,
+      packageId: getFlag(rest, '--package-id') ?? undefined,
     });
   } else if (command === 'validate-bench-corpus') {
     output = await validateBenchCorpus(manifestPath);

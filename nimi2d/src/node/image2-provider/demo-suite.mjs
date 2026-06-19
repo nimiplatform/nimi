@@ -275,13 +275,15 @@ async function runCodexImage2DemoSuite(args) {
       run_dir: runDir,
       verdict: layerRun.verdict,
       repaired_workflow: layerRun.repairedWorkflowVerdict,
+      source_to_layer_pipeline: layerRun.sourceToLayerPipelineVerdict,
+      raw_provider_atlas_admission: layerRun.rawProviderAtlasAdmissionVerdict,
       formal_nimi2d_admission: layerRun.formalAdmissionVerdict,
     });
   }
 
   const distribution = await summarizeRuns(runsDir, {
     minSamples: sampleCount,
-    gateMode: 'repaired_workflow',
+    gateMode: 'source_to_layer_pipeline',
   });
   const distributionPath = path.join(outDir, 'distribution-report.yaml');
   await writeFile(distributionPath, YAML.stringify(distribution), 'utf8');
@@ -304,15 +306,17 @@ async function runCodexImage2DemoSuite(args) {
       },
       image_to_layer_atlas: {
         sample_count: sampleCount,
-        passing_count: atlasRuns.filter((item) => item.repaired_workflow === 'pass').length,
+        passing_count: atlasRuns.filter((item) => item.source_to_layer_pipeline === 'pass').length,
         repaired_workflow_passing_count: atlasRuns.filter((item) => item.repaired_workflow === 'pass').length,
+        source_to_layer_pipeline_passing_count: atlasRuns.filter((item) => item.source_to_layer_pipeline === 'pass').length,
+        raw_provider_atlas_admission_passing_count: atlasRuns.filter((item) => item.raw_provider_atlas_admission === 'pass').length,
         formal_admission_passing_count: atlasRuns.filter((item) => item.formal_nimi2d_admission === 'pass').length,
         runs_dir: runsDir,
       },
     },
     distribution_report_path: distributionPath,
     distribution_decision: distribution.decision,
-    note: 'Demo fixture artifacts are local deterministic repaired-workflow evidence and must not be represented as live Codex Image2 generation or formal admission evidence.',
+    note: 'Demo fixture artifacts are local deterministic source-to-layer regression evidence and must not be represented as live Codex Image2 generation or live distribution evidence.',
   };
   const suiteReportPath = path.join(outDir, 'demo-suite-report.yaml');
   await writeFile(suiteReportPath, YAML.stringify(suiteReport), 'utf8');

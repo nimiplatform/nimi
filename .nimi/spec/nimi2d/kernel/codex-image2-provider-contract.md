@@ -120,12 +120,18 @@ The admitted default atlas contract is:
 The atlas must still pass:
 
 - atlas spec validation
-- upstream raw atlas quality recording
+- upstream raw atlas quality recording as diagnostic and failure-attribution
+  evidence
 - deterministic normalization
 - transparent atlas conversion
 - atlas quality gate
 - layer-input validation
 - image-input workflow bench
+
+Raw atlas quality is not the release-facing source-to-layer gate by itself.
+Codex/Image Gen output is expected to need deterministic repair and
+normalization. The repair path is admitted when provenance, repair artifacts,
+and downstream gates are recorded instead of hidden.
 
 ### N2D-IMG2-013 - Companion Asset Image
 
@@ -220,38 +226,70 @@ return failure instead of a guessed path.
 
 ## 4. Admission Boundary
 
-### N2D-IMG2-030 - No Raw Image Admission Shortcut
+### N2D-IMG2-030 - Raw Plus Repaired Source-To-Layer Admission
 
-Successful provider output does not imply Nimi2D formal admission.
+Successful provider output does not imply Nimi2D package admission.
 
-Formal admission remains:
+Codex Image2 source-to-layer admission may be reported only under the
+`raw_plus_repaired_evidence` model. That model requires:
 
-- admitted producer evidence with decoded pixel identity
-- upstream raw Image2 atlas quality pass
+- admitted producer evidence with decoded pixel identity for the raw provider
+  artifact
+- immutable raw artifact refs and content hashes
+- deterministic repair/normalization artifacts with input and output hashes
+- upstream raw Image2 atlas quality recorded as diagnostic evidence
 - deterministic normalization pass
 - transparent atlas conversion pass
-- layer input contract for `manifest_kind: "nimi.nimi2d.layer-input"`
-- atlas quality gate pass
-- package manifest contract for packages
-- Generation Bench for generated package readiness
-- runtime proof only after package/layer gates pass
+- atlas quality gate pass on the repaired layer source
+- image-input workflow bench pass, including layer input validation for
+  `manifest_kind: "nimi.nimi2d.layer-input"`
 
-Repaired workflow success and formal admission are separate. A workflow may
-produce repaired downstream artifacts after an upstream atlas quality failure,
-but that repaired result must not be reported as formal Image2 admission.
+The raw provider artifact must never be treated as a raw package input.
+Package manifest validation, Generation Bench, reference-player proof, and any
+Avatar runtime proof remain separate downstream gates.
+
+`raw_provider_atlas_admission` may be reported as a strict diagnostic gate for
+raw-only prompt quality. It is not the default live provider distribution gate,
+because AI image generation is not expected to produce contract-ready atlas
+pixels without repair in every case.
+
+`repaired_workflow` success alone is not sufficient for source-to-layer
+admission. It must be paired with admitted producer evidence and the downstream
+quality/workflow gates listed above. Artifacts without pixel identity remain
+recorded-only evidence and must not satisfy source-to-layer admission.
+
 Missing formal admission fields in older local manifests must not be inferred
 from a generic workflow verdict.
 
 ### N2D-IMG2-031 - Distribution Evidence
 
 Provider stability is measured by distribution reports over unique source image
-hashes. Duplicate source samples do not count as distribution coverage.
+hashes. The report must keep atlas/source artifact uniqueness separate from
+underlying source character/image uniqueness. Duplicate source samples do not
+count as distribution coverage.
+
+When provider request evidence records `inputs.source_image_sha256`, release
+audits may require a minimum count of unique underlying source images. Multiple
+unique atlas outputs derived from the same underlying source image must remain
+visible as duplicate underlying-source coverage, not silently counted as full
+source diversity.
 
 Live Codex Image2 distribution reports must filter to `source_surface:
 "codex_cli"` or an explicitly admitted live provider surface. Runs marked
 `demo_fixture` must not count toward live distribution coverage.
 
-Distribution pass does not replace case-level layer-input or package gates.
+The release-facing provider distribution gate is `source_to_layer_pipeline`.
+It counts unique live provider samples that pass admitted producer evidence,
+deterministic repair, atlas quality, and layer-input workflow gates. Diagnostic
+reports may still request `raw_provider_atlas` to measure raw prompt quality.
+
+Distribution reports may additionally require layer-input full-chain package
+proof for release audits. That stricter gate is separate from source-to-layer
+admission: package validation, visual proof, reference-player proof, and Avatar
+runtime readiness must not be silently folded into provider admission semantics.
+
+Distribution pass does not replace case-level package, Generation Bench,
+reference-player proof, or Avatar-owned runtime gates.
 
 ## 5. Validation Floor
 
@@ -267,3 +305,7 @@ Provider closure is valid only if:
   of manual session prompts
 - the local demo suite can exercise all four workflow families and fail closed
   on insufficient unique source hashes
+- distribution reports can fail closed on insufficient unique underlying source
+  image hashes when that strict release-audit gate is requested
+- distribution reports can fail closed when layer-input full-chain package proof
+  is missing or failing and that strict release-audit gate is requested

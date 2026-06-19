@@ -24,6 +24,7 @@ test('CLI runs standalone fixture validate, solve, render-plan, proof, and bench
   const tempDir = await mkdtemp(path.join(tmpdir(), 'nimi2d-cli-'));
   const packagePath = path.join(tempDir, 'package.yaml');
   const inspectionPath = path.join(tempDir, 'package-inspection.yaml');
+  const layerInspectionDir = path.join(tempDir, 'layer-inspection');
   const benchResultPath = path.join(tempDir, 'generation-bench-result.yaml');
   await copyFile(path.join(fixtureDir, 'pixel.png'), path.join(tempDir, 'pixel.png'));
 
@@ -63,6 +64,27 @@ test('CLI runs standalone fixture validate, solve, render-plan, proof, and bench
   assert.equal(inspection.report.gates.tier1_proven, 'pass');
   const writtenInspection = await readFile(inspectionPath, 'utf8');
   assert.equal(writtenInspection.includes('manifest_kind: nimi.nimi2d.package-inspection-report'), true);
+
+  const layerInspection = await runCli([
+    'inspect-layer-input',
+    layerInputPath,
+    '--out-dir', layerInspectionDir,
+    '--grid-size', '2',
+  ]);
+  assert.equal(layerInspection.status, 'ok');
+  assert.equal(layerInspection.kind, 'layer_input_full_chain_inspection');
+  assert.equal(layerInspection.decision.verdict, 'pass');
+  assert.equal(layerInspection.outPath, path.join(layerInspectionDir, 'layer-input-full-chain-report.yaml'));
+  assert.equal(layerInspection.report.gates.layer_input_valid, 'pass');
+  assert.equal(layerInspection.report.gates.package_solved, 'pass');
+  assert.equal(layerInspection.report.gates.package_valid, 'pass');
+  assert.equal(layerInspection.report.gates.visual_proof_passed, 'pass');
+  assert.equal(layerInspection.report.gates.reference_action_passed, 'pass');
+  assert.equal(layerInspection.report.boundary.closes_production_avatar_readiness, false);
+  assert.equal(layerInspection.report.outputs.package_manifest_path, 'package.yaml');
+  assert.equal(layerInspection.report.outputs.package_inspection_report_path, 'package-inspection.yaml');
+  const writtenLayerInspection = await readFile(layerInspection.outPath, 'utf8');
+  assert.equal(writtenLayerInspection.includes('manifest_kind: nimi.nimi2d.layer-input-full-chain-report'), true);
 
   const referenceBench = await runCli(['run-reference-action-bench', packagePath]);
   assert.equal(referenceBench.status, 'ok');
