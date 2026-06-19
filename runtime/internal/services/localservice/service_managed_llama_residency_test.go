@@ -1,9 +1,11 @@
 package localservice
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -410,5 +412,24 @@ func TestManagedEngineIdleSweepStopsBootstrapTouchedEngineWithoutAsset(t *testin
 
 	if !containsString(engineMgr.stopEngines, "media") {
 		t.Fatalf("expected bootstrap-touched media engine to idle-stop, got %#v", engineMgr.stopEngines)
+	}
+}
+
+func TestManagedEngineIdleSweepTreatsMissingLlamaSupervisorAsIdle(t *testing.T) {
+	var logs bytes.Buffer
+	svc := newTestService(t)
+	svc.logger = slog.New(slog.NewTextHandler(&logs, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	svc.localModelKeepAlive = 0
+	engineMgr := &mockEngineManager{stopErr: fmt.Errorf("engine llama not found")}
+	svc.SetEngineManager(engineMgr)
+
+	svc.MarkManagedEngineUsed("llama", "runtime_startup")
+	svc.runResidencySweep(context.Background())
+
+	if !containsString(engineMgr.stopEngines, "llama") {
+		t.Fatalf("expected idle sweep to attempt llama stop, got %#v", engineMgr.stopEngines)
+	}
+	if output := logs.String(); strings.Contains(output, "idle engine stop failed") {
+		t.Fatalf("missing llama supervisor should be treated as already idle, got logs:\n%s", output)
 	}
 }

@@ -199,7 +199,8 @@ func TestResolveLocalEnvironmentPlanSplitsSpeechPythonEnvironmentByConsumer(t *t
 	}
 	for _, want := range []string{
 		"uv",
-		"python.runtime",
+		"local-speech-qwen3-asr.python-runtime",
+		"local-speech-qwen3-tts.python-runtime",
 		"local-speech-qwen3-asr.venv",
 		"local-speech-qwen3-tts.venv",
 		"local-speech-qwen3-asr.package-set",
@@ -213,6 +214,16 @@ func TestResolveLocalEnvironmentPlanSplitsSpeechPythonEnvironmentByConsumer(t *t
 		if !consumerScopes[want] {
 			t.Fatalf("speech python deps missing consumer_scope %s in %v", want, consumerScopes)
 		}
+	}
+	runtimeKeys := map[string]string{}
+	for _, dep := range runtimeDeps {
+		if strings.TrimSpace(dep.EnvironmentKey) == "" {
+			t.Fatalf("speech python.runtime dependency has empty environment key: %+v", dep)
+		}
+		if previous, dup := runtimeKeys[dep.EnvironmentKey]; dup {
+			t.Fatalf("speech python.runtime deps collide on environment key %q for %s and %s", dep.EnvironmentKey, previous, dep.ConsumerScope)
+		}
+		runtimeKeys[dep.EnvironmentKey] = dep.ConsumerScope
 	}
 
 	asrPlan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{

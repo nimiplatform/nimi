@@ -313,7 +313,21 @@ func (s *Service) stopManagedEngineIfIdle(engineName string) error {
 	if mgr == nil {
 		return nil
 	}
-	return mgr.StopEngine(normalizeManagedEngineName(engineName))
+	if err := mgr.StopEngine(normalizeManagedEngineName(engineName)); err != nil {
+		if isManagedEngineNotFoundError(err) {
+			return nil
+		}
+		return err
+	}
+	return nil
+}
+
+func isManagedEngineNotFoundError(err error) bool {
+	if err == nil {
+		return false
+	}
+	lower := strings.ToLower(strings.TrimSpace(err.Error()))
+	return strings.Contains(lower, "engine ") && strings.Contains(lower, " not found")
 }
 
 func (s *Service) markAssetsIdleForEngine(engineName string) {

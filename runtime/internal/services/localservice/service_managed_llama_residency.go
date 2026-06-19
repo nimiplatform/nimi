@@ -305,8 +305,7 @@ func stopManagedLlamaEngineIfRunning(mgr EngineManager) error {
 		return nil
 	}
 	if err := mgr.StopEngine("llama"); err != nil {
-		lower := strings.ToLower(strings.TrimSpace(err.Error()))
-		if strings.Contains(lower, "not found") {
+		if isManagedEngineNotFoundError(err) {
 			return nil
 		}
 		return err

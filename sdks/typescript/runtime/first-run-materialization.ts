@@ -316,6 +316,14 @@ function dependencyNeedsConfirmation(dependency: NimiRuntimeLocalEnvironmentPlan
     && dependency.confirmationRequired === true;
 }
 
+function dependencyAwaitingStart(
+  dependency: NimiRuntimeLocalEnvironmentPlanDependency,
+  job: NimiRuntimeLocalEnvironmentDependencyJob | null,
+): boolean {
+  if (dependencyReady(dependency) || !dependencyNeedsConfirmation(dependency)) return false;
+  return job === null || isNimiRuntimeLocalEnvironmentDependencyReadyState(job.state);
+}
+
 function startNimiFirstRunMaterializationDependencies(
   input: NimiFirstRunMaterializationInput,
   dependencies: readonly NimiFirstRunMaterializationDependencyProjection[],
@@ -345,8 +353,8 @@ function dependencyStartable(
   dependency: NimiRuntimeLocalEnvironmentPlanDependency,
   job: NimiRuntimeLocalEnvironmentDependencyJob | null,
 ): boolean {
-  if (dependencyReady(dependency) || !dependencyNeedsConfirmation(dependency) || jobActive(job)) return false;
-  return !job;
+  if (jobActive(job)) return false;
+  return dependencyAwaitingStart(dependency, job);
 }
 
 function dependencyInNimiFirstRunMaterializationScope(
@@ -392,7 +400,7 @@ function statusForNimiFirstRunMaterialization(
     !dependencyReady(dependency) && isNimiRuntimeLocalEnvironmentDependencyJobCancelledState(job?.state),
   )) return 'cancelled';
   if (dependencies.some(({ dependency, job }) =>
-    !dependencyReady(dependency) && dependencyNeedsConfirmation(dependency) && !job,
+    dependencyAwaitingStart(dependency, job),
   )) return 'needs_confirmation';
   if (dependencies.some(({ job }) => jobActive(job))) return 'in_progress';
   if (dependencies.every(({ dependency }) => dependencyReady(dependency))) return 'local_ai_ready';

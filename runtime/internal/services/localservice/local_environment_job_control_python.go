@@ -49,7 +49,7 @@ func (s *Service) executePythonUVEnvironmentDependencyJob(ctx context.Context, j
 }
 
 func (s *Service) executePythonRuntimeEnvironmentDependencyJob(ctx context.Context, job localEnvironmentDependencyJobState, report localEnvironmentDependencyJobProgressReporter) (localEnvironmentDependencyJobResult, error) {
-	if strings.TrimSpace(job.DependencyID) != "python.runtime" {
+	if !pythonRuntimeDependencyIDSupported(job.DependencyID) {
 		return localEnvironmentDependencyJobResult{
 			State:           localEnvironmentStateUnsupported,
 			SourceKind:      localEnvironmentSourceUnavailable,
@@ -101,6 +101,11 @@ func (s *Service) executePythonRuntimeEnvironmentDependencyJob(ctx context.Conte
 		SelectedConsumers:     pythonSelectedConsumersForJob(job),
 		AuditReasonCode:       "LOCAL_ENVIRONMENT_DEPENDENCY_READY_MANAGED",
 	}, nil
+}
+
+func pythonRuntimeDependencyIDSupported(dependencyID string) bool {
+	trimmed := strings.TrimSpace(dependencyID)
+	return trimmed == "python.runtime" || strings.HasSuffix(trimmed, ".python-runtime")
 }
 
 func (s *Service) executePythonVenvEnvironmentDependencyJob(ctx context.Context, job localEnvironmentDependencyJobState, report localEnvironmentDependencyJobProgressReporter) (localEnvironmentDependencyJobResult, error) {

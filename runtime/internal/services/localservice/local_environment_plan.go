@@ -587,8 +587,10 @@ func localSpeechPythonDependencyID(family string, consumer string) string {
 
 func localSpeechPythonDependencyIDForFamily(family string, consumer string) string {
 	switch family {
-	case localEnvironmentFamilyPythonUV, localEnvironmentFamilyPythonRuntime:
+	case localEnvironmentFamilyPythonUV:
 		return defaultLocalEnvironmentDependencyID("local-speech", family)
+	case localEnvironmentFamilyPythonRuntime:
+		return localSpeechPythonDependencyID(family, consumer)
 	default:
 		return localSpeechPythonDependencyID(family, consumer)
 	}

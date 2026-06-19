@@ -1080,9 +1080,9 @@ func TestPythonRuntimeWaitIgnoresFailedPrerequisiteFromDifferentConsumer(t *test
 	})
 
 	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
-		EnvironmentKey:   "python.runtime|python.runtime|host|windows/amd64|root|speech.qwen3-asr.python",
+		EnvironmentKey:   "python.runtime|local-speech-qwen3-asr.python-runtime|host|windows/amd64|root|speech.qwen3-asr.python",
 		DependencyFamily: localEnvironmentFamilyPythonRuntime,
-		DependencyId:     "python.runtime",
+		DependencyId:     "local-speech-qwen3-asr.python-runtime",
 		ConsumerScope:    "speech.qwen3-asr.python",
 		Confirmed:        true,
 	})
@@ -1120,16 +1120,16 @@ func TestPythonVenvWaitIgnoresOlderFailedPrerequisiteWhenNewerJobInFlight(t *tes
 		SelectedConsumers: []string{"speech.qwen3-asr.python"},
 	})
 	startFailedLocalEnvironmentDependencyJobForTest(t, svc, localEnvironmentDependencyJobRequest{
-		EnvironmentKey:   "python.runtime|python.runtime|host|windows/amd64|old-root|speech.qwen3-asr.python",
+		EnvironmentKey:   "python.runtime|local-speech-qwen3-asr.python-runtime|host|windows/amd64|old-root|speech.qwen3-asr.python",
 		DependencyFamily: localEnvironmentFamilyPythonRuntime,
-		DependencyID:     "python.runtime",
+		DependencyID:     "local-speech-qwen3-asr.python-runtime",
 		ConsumerScope:    "speech.qwen3-asr.python",
 		SourceKind:       localEnvironmentSourceManaged,
 	}, "old speech runtime job failed")
 	if _, err := svc.startLocalEnvironmentDependencyJob(context.Background(), localEnvironmentDependencyJobRequest{
-		EnvironmentKey:   "python.runtime|python.runtime|host|windows/amd64|root|speech.qwen3-asr.python",
+		EnvironmentKey:   "python.runtime|local-speech-qwen3-asr.python-runtime|host|windows/amd64|root|speech.qwen3-asr.python",
 		DependencyFamily: localEnvironmentFamilyPythonRuntime,
-		DependencyID:     "python.runtime",
+		DependencyID:     "local-speech-qwen3-asr.python-runtime",
 		ConsumerScope:    "speech.qwen3-asr.python",
 		SourceKind:       localEnvironmentSourceManaged,
 	}, nil); err != nil {
@@ -1158,8 +1158,8 @@ func TestPythonVenvWaitIgnoresOlderFailedPrerequisiteWhenNewerJobInFlight(t *tes
 	}
 	runtimeRecord := verifiedSelectedSourceRecordForTest(localEnvironmentSelectedSourceRecordState{
 		DependencyFamily:  localEnvironmentFamilyPythonRuntime,
-		DependencyID:      "python.runtime",
-		EnvironmentKey:    "python.runtime|python.runtime|host|windows/amd64|root|speech.qwen3-asr.python",
+		DependencyID:      "local-speech-qwen3-asr.python-runtime",
+		EnvironmentKey:    "python.runtime|local-speech-qwen3-asr.python-runtime|host|windows/amd64|root|speech.qwen3-asr.python",
 		SourceKind:        localEnvironmentSourceManaged,
 		CanonicalRoot:     filepath.Join(t.TempDir(), "python"),
 		SelectedConsumers: []string{"speech.qwen3-asr.python"},

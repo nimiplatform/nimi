@@ -511,6 +511,62 @@ func TestRuntimeBaselineReadinessResolveRefreshesEquivalentHostProfileSourceRebi
 	}
 }
 
+func TestRuntimeBaselineReadinessResolveRefreshesSpeechRuntimeIdentityRebind(t *testing.T) {
+	svc, runtimeDataRoot := newRuntimeBaselineTestService(t)
+	defer func() { svc.Close() }()
+
+	markRuntimeBaselineMinimalReady(t, svc, runtimeDataRoot, runtimeBaselineCPUProfile())
+	record, state, reason, detail := svc.mintRuntimeBaselineReadiness(runtimeBaselineMintRequest(runtimeDataRoot))
+	if state != runtimeBaselineStateReady {
+		t.Fatalf("mint state = %q reason=%q detail=%q, want ready", state, reason, detail)
+	}
+
+	stored := record
+	rebound := false
+	for responseIndex := range stored.ActivationReadyResponses {
+		response := &stored.ActivationReadyResponses[responseIndex]
+		if !strings.HasPrefix(strings.TrimSpace(response.ConsumerID), "speech.") {
+			continue
+		}
+		for depIndex := range response.Dependencies {
+			dep := &response.Dependencies[depIndex]
+			if dep.DependencyFamily != localEnvironmentFamilyPythonRuntime {
+				continue
+			}
+			dep.DependencyID = "python.runtime"
+			dep.EnvironmentKey = strings.Replace(dep.EnvironmentKey, "local-speech-qwen3-asr.python-runtime", "python.runtime", 1)
+			dep.EnvironmentKey = strings.Replace(dep.EnvironmentKey, "local-speech-qwen3-tts.python-runtime", "python.runtime", 1)
+			dep.SelectedSourceRecordID = "src_pre_hardcut_" + shortHash(response.ConsumerID+"|"+dep.CanonicalRoot)
+			dep.VerificationEvidence = "pre-hardcut-python-runtime-evidence#" + shortHash(response.ConsumerID+"|"+dep.CanonicalRoot)
+			rebound = true
+		}
+	}
+	if !rebound {
+		t.Fatal("test did not rewrite any speech python.runtime dependency")
+	}
+	stored.SelectedSourceRecordIDs = runtimeBaselineSelectedSourceRecordIDsFromResponses(stored.ActivationReadyResponses)
+	stored.MaterializationOrSystemSourceVerificationEvidence = []string{"pre-hardcut-python-runtime-evidence"}
+	svc.upsertRuntimeBaselineReadinessRecord(stored)
+
+	resolved, rState, rReason, rDetail := svc.resolveRuntimeBaselineReadiness(record.RuntimeBaselineRef, runtimeBaselineCPUProfile())
+	if rState != runtimeBaselineStateReady {
+		t.Fatalf("resolve state = %q reason=%q detail=%q, want ready refresh", rState, rReason, rDetail)
+	}
+	if stringSetsEqual(stored.SelectedSourceRecordIDs, resolved.SelectedSourceRecordIDs) {
+		t.Fatalf("resolve did not refresh selected source ids from canonical activation set: %v", resolved.SelectedSourceRecordIDs)
+	}
+	for _, response := range resolved.ActivationReadyResponses {
+		if !strings.HasPrefix(strings.TrimSpace(response.ConsumerID), "speech.") {
+			continue
+		}
+		for _, dep := range response.Dependencies {
+			if dep.DependencyFamily == localEnvironmentFamilyPythonRuntime && dep.DependencyID == "python.runtime" {
+				t.Fatalf("resolve kept shared speech python.runtime dependency id: %+v", dep)
+			}
+		}
+	}
+}
+
 func TestRuntimeBaselineActivationEvidenceEquivalentAllowsModelAssetSourceRecordRebind(t *testing.T) {
 	stored := []runtimeBaselineActivationConsumerEvidence{{
 		ConsumerID:      "llama.cpp.cpu",

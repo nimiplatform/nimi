@@ -566,12 +566,20 @@ func runtimeBaselineActivationDependenciesEquivalent(stored []runtimeBaselineAct
 
 func runtimeBaselineActivationDependencySemanticKey(dep runtimeBaselineActivationDependencyEvidence) string {
 	dependencyID := strings.TrimSpace(dep.DependencyID)
-	if strings.TrimSpace(dep.DependencyFamily) == localEnvironmentFamilyModelAsset {
+	switch strings.TrimSpace(dep.DependencyFamily) {
+	case localEnvironmentFamilyModelAsset:
 		// Model asset dependency ids are semantic asset_id values. A fresh
 		// activation may still rebind source record ids or host-profile-derived
 		// environment keys, so the stable artifact identity for this comparison
 		// is the verified canonical root plus the surrounding BoundAssetID.
 		dependencyID = localEnvironmentFamilyModelAsset
+	case localEnvironmentFamilyPythonRuntime:
+		// Python runtime plan ids can hard-cut from a shared runtime identity
+		// to a consumer-specific runtime identity. Within a fixed consumer
+		// response, canonical root + source kind + ready state are the durable
+		// runtime evidence boundary; selected-source ids and plan ids may
+		// refresh when the activation set is re-resolved.
+		dependencyID = localEnvironmentFamilyPythonRuntime
 	}
 	parts := []string{
 		strings.TrimSpace(dep.DependencyFamily),

@@ -104,6 +104,73 @@ test('First-run materialization starts startable dependencies through core Runti
   assert.equal(projection.productState, 'local_ai_profile_selected_assets_missing');
 });
 
+test('First-run materialization restarts stale ready jobs whose selected source no longer proves readiness', async () => {
+  const startCalls: unknown[] = [];
+  const runtime = materializationRuntime({
+    dependencies: [
+      dependency({
+        dependencyFamily: 'python.runtime',
+        dependencyId: 'local-speech-qwen3-asr.python-runtime',
+        consumerScope: 'speech.qwen3-asr.python',
+        state: 'needs_confirmation',
+        confirmationRequired: true,
+        environmentKey: 'python.runtime|local-speech-qwen3-asr.python-runtime|host|windows/amd64|root|speech.qwen3-asr.python',
+      }),
+    ],
+    jobsForEnvironment() {
+      return startCalls.length === 0
+        ? [
+          job({
+            jobId: 'old-ready-runtime',
+            environmentKey: 'python.runtime|local-speech-qwen3-asr.python-runtime|host|windows/amd64|root|speech.qwen3-asr.python',
+            dependencyFamily: 'python.runtime',
+            dependencyId: 'local-speech-qwen3-asr.python-runtime',
+            consumerScope: 'speech.qwen3-asr.python',
+            state: 'ready_managed',
+            selectedSourceRecordId: 'src_old_missing',
+          }),
+        ]
+        : [
+          job({
+            jobId: 'new-runtime',
+            environmentKey: 'python.runtime|local-speech-qwen3-asr.python-runtime|host|windows/amd64|root|speech.qwen3-asr.python',
+            dependencyFamily: 'python.runtime',
+            dependencyId: 'local-speech-qwen3-asr.python-runtime',
+            consumerScope: 'speech.qwen3-asr.python',
+            state: 'queued',
+            updatedAt: '2026-06-05T00:02:00.000Z',
+          }),
+        ];
+    },
+    onStart(input, options) {
+      startCalls.push({ input, options });
+    },
+  });
+
+  const projection = await startNimiFirstRunMaterialization({
+    profile: {
+      localComputePackRefs: ['local-speech'],
+      dependencyFamilyRefs: ['python.runtime'],
+      materializationConfirmationRequired: true,
+    },
+    runtime,
+    confirmed: true,
+  });
+
+  assert.deepEqual(startCalls, [{
+    input: {
+      environmentKey: 'python.runtime|local-speech-qwen3-asr.python-runtime|host|windows/amd64|root|speech.qwen3-asr.python',
+      dependencyFamily: 'python.runtime',
+      dependencyId: 'local-speech-qwen3-asr.python-runtime',
+      sourceKind: 'managed',
+      confirmed: true,
+      consumerScope: 'speech.qwen3-asr.python',
+    },
+    options: { caller: 'core' },
+  }]);
+  assert.equal(projection.status, 'in_progress');
+});
+
 test('First-run materialization repairs dependencies with the first-run consumer scope', async () => {
   const repairCalls: unknown[] = [];
   const targetDependency = dependency({
