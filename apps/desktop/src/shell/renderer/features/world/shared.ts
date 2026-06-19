@@ -1,14 +1,10 @@
 export function getStatusBadgeStyle(status: string): { bg: string; text: string } {
   switch (status) {
-    case 'ACTIVE':
+    case 'DISCOVERABLE':
       return { bg: 'bg-green-100', text: 'text-green-700' };
-    case 'DRAFT':
-      return { bg: 'bg-yellow-100', text: 'text-yellow-700' };
-    case 'PENDING_REVIEW':
+    case 'PUBLIC':
       return { bg: 'bg-blue-100', text: 'text-blue-700' };
-    case 'SUSPENDED':
-      return { bg: 'bg-red-100', text: 'text-red-700' };
-    case 'ARCHIVED':
+    case 'SYSTEM':
       return { bg: 'bg-gray-100', text: 'text-gray-600' };
     default:
       return { bg: 'bg-gray-100', text: 'text-gray-600' };
@@ -34,15 +30,11 @@ export function isMainWorldType(type: string | null | undefined): boolean {
 
 export function getStatusDotColor(status: string): string {
   switch (status) {
-    case 'ACTIVE':
+    case 'DISCOVERABLE':
       return 'bg-green-500';
-    case 'DRAFT':
-      return 'bg-yellow-500';
-    case 'PENDING_REVIEW':
+    case 'PUBLIC':
       return 'bg-blue-500';
-    case 'SUSPENDED':
-      return 'bg-red-500';
-    case 'ARCHIVED':
+    case 'SYSTEM':
       return 'bg-gray-500';
     default:
       return 'bg-gray-500';

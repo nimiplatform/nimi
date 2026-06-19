@@ -76,6 +76,13 @@ const EMPTY_WORLD_PUBLIC_ASSETS: WorldPublicAssetsData = {
   scenes: [],
 };
 
+export function worldPublicHighlightImages(publicAssets: WorldPublicAssetsData): string[] {
+  return publicAssets.externalRefs
+    .filter((ref) => ref.kind === 'highlight' || ref.kind.startsWith('highlight-'))
+    .map((ref) => readStringValue(ref.uri))
+    .filter(Boolean);
+}
+
 function normalizeWorldId(worldId: string): string {
   return String(worldId || '').trim();
 }
@@ -135,17 +142,11 @@ function normalizeDisplayType(value: unknown): 'OASIS' | 'CREATOR' {
 
 function normalizeDisplayStatus(value: unknown): WorldDetailData['status'] {
   const normalized = readStringValue(value);
-  return normalized === 'DRAFT'
-    || normalized === 'PENDING_REVIEW'
-    || normalized === 'ACTIVE'
-    || normalized === 'SUSPENDED'
-    || normalized === 'ARCHIVED'
+  return normalized === 'PUBLIC'
+    || normalized === 'SYSTEM'
+    || normalized === 'DISCOVERABLE'
     ? normalized
-    : 'DRAFT';
-}
-
-function normalizeDisplayNativeCreationState(value: unknown): WorldDetailData['nativeCreationState'] {
-  return readStringValue(value) === 'NATIVE_CREATION_FROZEN' ? 'NATIVE_CREATION_FROZEN' : 'OPEN';
+    : 'DISCOVERABLE';
 }
 
 function normalizeDisplayFreezeReason(value: unknown): WorldDetailData['freezeReason'] {
@@ -177,7 +178,6 @@ function toWorldDisplayData(detailValue: unknown): WorldDetailData {
     freezeReason: normalizeDisplayFreezeReason(listItem.freezeReason),
     lorebookEntryLimit: listItem.lorebookEntryLimit,
     nativeCharacterLimit: listItem.nativeCharacterLimit,
-    nativeCreationState: normalizeDisplayNativeCreationState(listItem.nativeCreationState),
     scoreA: listItem.scoreA,
     scoreC: listItem.scoreC,
     scoreE: listItem.scoreE,
@@ -185,7 +185,6 @@ function toWorldDisplayData(detailValue: unknown): WorldDetailData {
     scoreQ: listItem.scoreQ,
     flowRatio: listItem.computed.time.flowRatio,
     isPaused: listItem.computed.time.isPaused,
-    transitInLimit: listItem.transitInLimit,
     genre: listItem.genre,
     era: listItem.era,
     themes: listItem.themes,
@@ -525,15 +524,16 @@ function toWorldDisplayCharacter(characterValue: unknown, worldCreatedAt: string
   const sourceKind = readString(sourceRef, 'kind');
   const sourceWorldId = readString(sourceRef, 'worldId');
   const sourceId = readString(sourceRef, 'sourceId');
-  const sourceContentHash = readString(sourceRef, 'sourceContentHash');
   if (
-    sourceKind !== 'worldCharacter'
+    (sourceKind !== 'worldCharacter' && sourceKind !== 'realmPersona')
     || !sourceWorldId
     || !sourceId
-    || !sourceContentHash
   ) {
-    throw new Error('WorldCharacter display requires hash-bearing worldCharacter sourceRef');
+    throw new Error('World source display requires a public source locator');
   }
+  const relation = asRecord(character.relation);
+  const relationState = readString(relation, 'state');
+  const ownership = readString(character, 'ownership');
   return {
     id: readString(character, 'id'),
     name: readString(character, 'name', 'displayName') || 'Unknown',
@@ -543,7 +543,16 @@ function toWorldDisplayCharacter(characterValue: unknown, worldCreatedAt: string
       kind: sourceKind,
       worldId: sourceWorldId,
       sourceId,
-      sourceContentHash,
+    },
+    sourceKind,
+    ownership: ownership === 'userOwned' ? 'userOwned' : 'worldOwned',
+    relation: {
+      state: relationState === 'connected'
+        ? 'connected'
+        : relationState === 'unavailable'
+          ? 'unavailable'
+          : 'connectable',
+      connectionId: readString(relation, 'connectionId') || null,
     },
     role: readString(display, 'role') || null,
     faction: readString(display, 'faction') || null,
@@ -552,6 +561,7 @@ function toWorldDisplayCharacter(characterValue: unknown, worldCreatedAt: string
     location: readString(display, 'location') || null,
     createdAt: readString(character, 'createdAt') || worldCreatedAt,
     avatarUrl: readString(character, 'avatarUrl') || null,
+    profileCoverUrl: readString(character, 'profileCoverUrl') || null,
     importance: importance === 'SECONDARY' || importance === 'BACKGROUND' ? importance : 'PRIMARY',
     stats: Object.keys(stats).length > 0 ? stats as WorldCharacterStats : null,
   };

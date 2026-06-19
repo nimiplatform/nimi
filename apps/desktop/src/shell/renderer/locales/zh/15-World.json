@@ -1,14 +1,14 @@
 {
   "title": "世界",
-  "subtitle": "探索和管理你的世界",
-  "searchPlaceholder": "搜索世界...",
+  "subtitle": "浏览世界设定，并发现可连接的 Source",
+  "searchPlaceholder": "搜索世界、主题、Persona...",
   "searchByNameOrDescription": "按名称或描述搜索世界...",
   "loading": "正在加载世界...",
   "loadError": "加载世界失败",
   "mainWorld": "主世界",
-  "subWorlds": "子世界",
+  "subWorlds": "创作者世界",
   "searchResults": "搜索结果",
-  "noWorlds": "暂无子世界",
+  "noWorlds": "暂无公开世界",
   "noSearchResults": "未找到世界",
   "syncedFromDesktop": "已从桌面同步",
   "primaryInstance": "主实例",
@@ -18,55 +18,90 @@
   "totalAgent": "角色总数",
   "time": "时间",
   "worldScoring": "世界评分",
-  "syncTicker": "世界同步",
+  "syncTicker": "世界时间",
   "chronoFlow": "时间流速：{{value}}X",
   "header": {
-    "kicker": "空间 · 你的世界",
-    "description": "可进入、塑造、分享的持续模拟。每个世界都有自己的时钟与规则。"
+    "kicker": "World Atlas",
+    "description": "公开世界背景、规则与 Source 目录，用来选择感兴趣的 Character 或 Persona。"
+  },
+  "atlas": {
+    "countSummary": "{{value}} 个世界 / 公开设定索引",
+    "worldCount": "{{value}} 个世界",
+    "sourceDiscovery": "Source 发现",
+    "publicWorld": "公开世界",
+    "emptySources": "当这个世界暴露公开 Source 时，Character 和 Persona 会显示在这里。",
+    "recentHighlights": "近期亮点",
+    "categories": "世界分类",
+    "more": "更多",
+    "category": {
+      "all": "全部世界",
+      "trending": "趋势",
+      "new": "最新",
+      "fantasy": "奇幻",
+      "sci-fi": "科幻",
+      "nature": "自然",
+      "steampunk": "蒸汽朋克",
+      "mystery": "悬疑",
+      "anime": "动画"
+    },
+    "sort": {
+      "active": "最近活跃",
+      "recent": "最近更新",
+      "sources": "Source 最多",
+      "alpha": "A-Z"
+    },
+    "actions": {
+      "shareWorld": "分享世界",
+      "moreWorldActions": "更多世界操作",
+      "bookmarkWorld": "收藏世界",
+      "details": "详情"
+    }
   },
   "toolbar": {
-    "heading": "你的世界",
+    "heading": "World Atlas",
     "filterPlaceholder": "按名称或标签筛选…",
     "gridView": "网格视图",
     "listView": "列表视图",
     "sort": {
-      "active": "最活跃",
+      "active": "Source 最丰富",
       "recent": "最近更新",
       "alpha": "名称 A–Z",
-      "inhabitants": "居民数"
+      "inhabitants": "Source 数"
     }
   },
   "sidebar": {
-    "create": "创建世界",
+    "create": "探索 Source",
     "library": "库",
     "collections": "合集",
-    "pulse": "你的动态",
-    "activeWorlds": "活跃世界",
+    "pulse": "Source 索引",
+    "activeWorlds": "公开世界",
     "activeWorldsSub": "共 {{total}} 个",
-    "inhabitants": "居民总数",
-    "inhabitantsSub": "跨所有世界",
-    "weeklyVisits": "本周访问",
+    "inhabitants": "可发现 Source",
+    "inhabitantsSub": "包含 Character 与 Persona",
+    "weeklyVisits": "世界设定",
     "filters": {
       "all": "全部世界",
-      "main": "主世界",
-      "sub": "子世界",
+      "main": "Home World",
+      "sub": "创作者世界",
       "archived": "已归档"
     },
     "noCollections": "暂无合集"
   },
   "status": {
-    "active": "活跃",
+    "active": "可发现",
     "idle": "静默"
   },
   "stats": {
-    "inhabitants": "居民",
-    "online": "在线",
-    "day": "天数",
-    "flow": "流速"
+    "inhabitants": "Source",
+    "sources": "Source",
+    "personas": "Persona",
+    "day": "世界时间",
+    "flow": "时间流速",
+    "timeflow": "时间流速"
   },
   "card": {
-    "enter": "进入世界",
-    "featured": "精选世界",
+    "view": "查看世界",
+    "featured": "精选设定",
     "noMatch": "没有匹配的世界。"
   }
 }

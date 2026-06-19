@@ -1,73 +1,34 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollArea } from '@nimiplatform/kit/ui';
-import { FeaturedWorldCard, WorldCard, WorldListRow } from './world-list-cards';
-import { isMainWorld, type WorldListItem } from './world-list-model';
-import { Kicker } from './world-list-atoms';
-import {
-  isArchivedWorld,
-  WorldCatalogSidebar,
-  WorldCatalogToolbar,
-  type FilterId,
-  type SortId,
-  type ViewMode,
-} from './world-list-controls';
-function sortWorlds(list: WorldListItem[], sort: SortId): WorldListItem[] {
-  const arr = [...list];
-  if (sort === 'active') {
-    arr.sort((a, b) => (b.scoreEwma ?? 0) - (a.scoreEwma ?? 0));
-  } else if (sort === 'recent') {
-    arr.sort((a, b) => {
-      const ta = a.updatedAt ? Date.parse(a.updatedAt) : 0;
-      const tb = b.updatedAt ? Date.parse(b.updatedAt) : 0;
-      return tb - ta;
-    });
-  } else if (sort === 'alpha') {
-    arr.sort((a, b) => a.name.localeCompare(b.name));
-  } else if (sort === 'inhabitants') {
-    arr.sort((a, b) => b.characterCount - a.characterCount);
-  }
-  return arr;
-}
-function matchesQuery(world: WorldListItem, q: string): boolean {
-  if (!q) return true;
-  const haystack = [
-    world.name,
-    world.description ?? '',
-    world.tagline ?? '',
-    world.genre ?? '',
-    world.era ?? '',
-    ...world.themes,
-  ]
-    .join(' ')
-    .toLowerCase();
-  return haystack.includes(q.toLowerCase());
-}
-function applyFilter(list: WorldListItem[], filter: FilterId): WorldListItem[] {
-  if (filter === 'main') return list.filter((w) => isMainWorld(w));
-  if (filter === 'sub') return list.filter((w) => !isMainWorld(w));
-  if (filter === 'archived') return list.filter((w) => isArchivedWorld(w));
-  return list;
-}
+import { formatNum } from './world-list-atoms';
+import { categoryMatches, GLASS_CARD_CLASS, GLASS_CARD_STYLE, matchesQuery, selectFeaturedWorlds, selectInitialWorld, sortWorlds, type CategoryId, type SortId, type ViewMode } from './world-list-catalog-model';
+import { AtlasCategoryTabs, AtlasSearch, ViewToggle } from './world-list-catalog-controls';
+import { CompactWorldCard } from './world-list-compact-card';
+import { FeaturedStrip } from './world-list-featured-strip';
+import { SelectedWorldPanel } from './world-list-selected-panel';
+import type { WorldListItem } from './world-list-model';
+
 export function WorldsLoadingSkeleton({ embedded = false }: { embedded?: boolean }) {
   const content = (
-    <div className="mx-auto max-w-[1240px] space-y-6">
-      <div className="space-y-2">
-        <div className="h-3 w-32 animate-pulse rounded bg-white/60" />
-        <div className="h-7 w-40 animate-pulse rounded-lg bg-white/70" />
-        <div className="h-4 w-80 animate-pulse rounded bg-white/50" />
-      </div>
-      <div className="h-48 animate-pulse rounded-3xl bg-white/60" />
-      <div className="h-11 animate-pulse rounded-2xl bg-white/60" />
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {Array.from({ length: 6 }).map((_, index) => (
-          <div key={index} className="h-60 animate-pulse rounded-2xl bg-white/60" />
-        ))}
+    <div className="mx-auto w-full max-w-[1540px] space-y-5">
+      <div className="h-12 w-56 animate-pulse rounded-2xl bg-white/55" />
+      <div className="h-14 animate-pulse rounded-2xl bg-white/55" />
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="space-y-5">
+          <div className="h-60 animate-pulse rounded-[22px] bg-white/55" />
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 2xl:grid-cols-3">
+            {Array.from({ length: 9 }).map((_, index) => (
+              <div key={index} className="h-[88px] animate-pulse rounded-2xl bg-white/55" />
+            ))}
+          </div>
+        </div>
+        <div className="h-[660px] animate-pulse rounded-[22px] bg-white/55" />
       </div>
     </div>
   );
   if (embedded) {
-    return <div className="py-6">{content}</div>;
+    return <div className="py-3">{content}</div>;
   }
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -91,113 +52,175 @@ export function WorldCatalogContent({
   worlds,
   onOpenWorld,
   embedded = false,
+  searchQuery,
+  onSearchQueryChange,
 }: {
   worlds: WorldListItem[];
   onOpenWorld: (worldId: string) => void;
   embedded?: boolean;
+  searchQuery?: string;
+  onSearchQueryChange?: (value: string) => void;
 }) {
   const { t } = useTranslation();
-  const [query, setQuery] = useState('');
-  const [filter, setFilter] = useState<FilterId>('all');
+  const [localQuery, setLocalQuery] = useState('');
+  const [category, setCategory] = useState<CategoryId>('all');
   const [sort, setSort] = useState<SortId>('active');
   const [view, setView] = useState<ViewMode>('grid');
-  const mainWorld = worlds.find((world) => isMainWorld(world));
-  const counts: Record<FilterId, number> = {
-    all: worlds.length,
-    main: worlds.filter((world) => isMainWorld(world)).length,
-    sub: worlds.filter((world) => !isMainWorld(world)).length,
-    archived: worlds.filter((world) => isArchivedWorld(world)).length,
-  };
-  const showFeaturedHero = !embedded && filter === 'all' && !query && Boolean(mainWorld);
-  const filteredBase = embedded ? worlds : applyFilter(worlds, filter);
-  const withoutHero = showFeaturedHero && mainWorld
-    ? filteredBase.filter((world) => world.id !== mainWorld.id)
-    : filteredBase;
-  const searched = embedded ? withoutHero : withoutHero.filter((world) => matchesQuery(world, query));
-  const sorted = sortWorlds(searched, embedded ? 'active' : sort);
+  const [selectedWorldId, setSelectedWorldId] = useState<string | null>(() => selectInitialWorld(worlds));
+  const query = searchQuery ?? localQuery;
+  const setQuery = onSearchQueryChange ?? setLocalQuery;
+
+  const filteredWorlds = useMemo(() => {
+    const searched = worlds
+      .filter((world) => matchesQuery(world, query))
+      .filter((world) => categoryMatches(world, category));
+    const sorted = sortWorlds(searched, category === 'new' ? 'recent' : sort);
+    if (category === 'trending') {
+      return sorted.slice(0, Math.max(1, Math.min(sorted.length, 18)));
+    }
+    return sorted;
+  }, [category, query, sort, worlds]);
+
+  const featuredWorlds = useMemo(() => selectFeaturedWorlds(worlds), [worlds]);
+
+  const selectedWorld = useMemo(() => {
+    return (
+      filteredWorlds.find((world) => world.id === selectedWorldId)
+      ?? filteredWorlds[0]
+      ?? worlds[0]
+      ?? null
+    );
+  }, [filteredWorlds, selectedWorldId, worlds]);
+
   const content = (
     <div
-      className="mx-auto grid w-full max-w-[1240px] gap-6"
-      style={{ gridTemplateColumns: embedded ? 'minmax(0, 1fr)' : 'minmax(0, 1fr) 260px' }}
-      data-testid="explore-worlds-catalog"
+      data-testid="world-atlas-glass-layout"
+      style={{
+        width: '100%',
+        maxWidth: 1540,
+        margin: '0 auto',
+        display: 'grid',
+        gap: 18,
+      }}
     >
-      <div className="flex min-w-0 flex-col gap-6">
-        {!embedded ? (
-          <div className="px-0.5">
-            <Kicker style={{ marginBottom: 4 }}>
-              {t('World.header.kicker')}
-            </Kicker>
-            <h2
-              style={{
-                margin: 0,
-                fontFamily: 'var(--nimi-font-display)',
-                fontSize: 28,
-                fontWeight: 700,
-                letterSpacing: '-0.02em',
-                color: 'var(--nimi-text-primary)',
-              }}
-            >
-              {t('World.title')}
-            </h2>
-          </div>
-        ) : null}
-        {showFeaturedHero && mainWorld ? (
-          <FeaturedWorldCard world={mainWorld} onOpen={() => onOpenWorld(mainWorld.id)} />
-        ) : null}
-        {!embedded ? (
-          <WorldCatalogToolbar
-            view={view}
-            setView={setView}
-            sort={sort}
-            setSort={setSort}
-            query={query}
-            setQuery={setQuery}
-            count={sorted.length}
+      <header
+        style={{
+          display: 'flex',
+          alignItems: 'end',
+          justifyContent: 'space-between',
+          gap: 18,
+          flexWrap: 'wrap',
+        }}
+      >
+        <div style={{ minWidth: 220 }}>
+          <h1 style={{ margin: 0, color: '#111827', fontSize: 28, lineHeight: 1.05, fontWeight: 950, letterSpacing: 0 }}>
+            {t('World.toolbar.heading')}
+          </h1>
+          <p style={{ margin: '6px 0 0', color: '#7a8799', fontSize: 13, fontWeight: 800 }}>
+            {t('World.atlas.countSummary', { value: formatNum(worlds.length) })}
+          </p>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: '1 1 520px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+          <AtlasSearch value={query} onChange={setQuery} />
+          <ViewToggle view={view} onChange={setView} />
+          <select
+            value={sort}
+            onChange={(event) => setSort(event.target.value as SortId)}
+            style={{
+              height: 40,
+              borderRadius: 14,
+              border: '1px solid rgba(129,145,169,0.14)',
+              background: 'rgba(255,255,255,0.58)',
+              color: '#41516a',
+              padding: '0 13px',
+              fontSize: 12,
+              fontWeight: 850,
+              fontFamily: 'var(--nimi-font-sans)',
+              outline: 'none',
+              cursor: 'pointer',
+            }}
+          >
+            <option value="active">{t('World.atlas.sort.active')}</option>
+            <option value="recent">{t('World.atlas.sort.recent')}</option>
+            <option value="sources">{t('World.atlas.sort.sources')}</option>
+            <option value="alpha">{t('World.atlas.sort.alpha')}</option>
+          </select>
+        </div>
+      </header>
+
+      <AtlasCategoryTabs active={category} onChange={setCategory} />
+
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'minmax(0,1fr) minmax(300px, 352px)',
+          gap: 22,
+          alignItems: 'start',
+        }}
+      >
+        <main style={{ minWidth: 0, display: 'grid', gap: 24 }}>
+          <FeaturedStrip
+            worlds={featuredWorlds}
+            selectedWorldId={selectedWorld?.id ?? null}
+            onSelectWorld={setSelectedWorldId}
+            onOpenWorld={onOpenWorld}
           />
+          <section style={{ display: 'grid', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
+                <h2 style={{ margin: 0, color: '#111827', fontSize: 20, lineHeight: 1, fontWeight: 950, letterSpacing: 0 }}>{t('World.sidebar.filters.all')}</h2>
+                <span style={{ color: '#8a95a8', fontSize: 12, fontWeight: 850 }}>{t('World.atlas.worldCount', { value: formatNum(filteredWorlds.length) })}</span>
+              </div>
+              <div style={{ color: '#64748b', fontSize: 12, fontWeight: 800 }}>
+                {t('World.atlas.sourceDiscovery')}
+              </div>
+            </div>
+            {filteredWorlds.length === 0 ? (
+              <div
+                className={GLASS_CARD_CLASS}
+                data-nimi-material="glass-regular"
+                data-nimi-tone="card"
+                style={{
+                  ...GLASS_CARD_STYLE,
+                  borderRadius: 18,
+                  padding: 46,
+                  textAlign: 'center',
+                  color: '#64748b',
+                  fontSize: 13,
+                  fontWeight: 700,
+                }}
+              >
+                {query ? t('World.noSearchResults') : t('World.card.noMatch')}
+              </div>
+            ) : (
+              <div
+                data-testid="world-atlas-world-grid"
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: view === 'grid'
+                    ? 'repeat(auto-fill, minmax(230px, 1fr))'
+                    : 'minmax(0, 1fr)',
+                  gap: 12,
+                }}
+              >
+                {filteredWorlds.map((world) => (
+                  <CompactWorldCard
+                    key={world.id}
+                    world={world}
+                    selected={world.id === selectedWorld?.id}
+                    view={view}
+                    onSelect={() => setSelectedWorldId(world.id)}
+                    onOpen={() => onOpenWorld(world.id)}
+                  />
+                ))}
+              </div>
+            )}
+          </section>
+        </main>
+        {selectedWorld ? (
+          <SelectedWorldPanel world={selectedWorld} onOpen={() => onOpenWorld(selectedWorld.id)} />
         ) : null}
-        {sorted.length === 0 ? (
-          <div
-            className="nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]"
-            style={{
-              padding: 48,
-              textAlign: 'center',
-              color: 'var(--nimi-text-muted)',
-              fontSize: 13,
-              background: 'var(--nimi-material-glass-regular-bg)',
-              border: '1px solid var(--nimi-material-glass-regular-border)',
-              borderRadius: 'var(--nimi-radius-lg)',
-            }}
-          >
-            {query ? t('World.noSearchResults') : t('World.card.noMatch')}
-          </div>
-        ) : embedded || view === 'grid' ? (
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-              gap: 16,
-            }}
-          >
-            {sorted.map((world) => (
-              <WorldCard key={world.id} world={world} onOpen={() => onOpenWorld(world.id)} />
-            ))}
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {sorted.map((world) => (
-              <WorldListRow key={world.id} world={world} onOpen={() => onOpenWorld(world.id)} />
-            ))}
-          </div>
-        )}
       </div>
-      {!embedded ? (
-        <WorldCatalogSidebar
-          worlds={worlds}
-          filter={filter}
-          setFilter={setFilter}
-          counts={counts}
-        />
-      ) : null}
     </div>
   );
 

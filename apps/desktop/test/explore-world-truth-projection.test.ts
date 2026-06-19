@@ -19,13 +19,22 @@ test('ExplorePanel does not carry a hard-coded featured world catalog', () => {
   assert.doesNotMatch(explorePanelSource, /featuredWorlds=/);
 });
 
-test('ExploreView takes featured world data only from World truth banners', () => {
+test('ExploreView renders worlds only through the Atlas catalog surface', () => {
   assert.doesNotMatch(exploreViewSource, /featuredWorlds/);
+  assert.doesNotMatch(exploreViewSource, /worldBanners/);
+  assert.doesNotMatch(exploreViewSource, /FeaturedWorldHero/);
+  assert.doesNotMatch(exploreViewSource, /featuredWorldLive/);
+  assert.doesNotMatch(exploreViewSource, /Enter world/);
   assert.doesNotMatch(exploreCardsSource, /FeaturedWorldCard/);
   assert.doesNotMatch(exploreCardsSource, /FeaturedWorldCardData/);
   assert.doesNotMatch(`${explorePanelSource}\n${exploreViewSource}\n${exploreCardsSource}`, /world-tour|World Tour/i);
-  assert.match(exploreViewSource, /worldsWithBanners = props\.worldBanners\.filter/);
-  // Featured-world hero lives inside the Worlds section and opens the World it
-  // projects via onWorldOpen.
-  assert.match(exploreViewSource, /onWorldOpen\?\.\(currentBanner\.id\)/);
+  assert.match(exploreViewSource, /<WorldCatalogContent/);
+  assert.match(exploreViewSource, /worlds=\{props\.worldCatalogItems\}/);
+  assert.match(exploreViewSource, /searchQuery=\{props\.worldSearchText\}/);
+  assert.match(exploreViewSource, /onSearchQueryChange=\{props\.onWorldSearchTextChange\}/);
+});
+
+test('ExplorePanel passes topbar search state into the Worlds Atlas', () => {
+  assert.match(explorePanelSource, /worldSearchText=\{props\.searchText\}/);
+  assert.match(explorePanelSource, /onWorldSearchTextChange=\{props\.onSearchTextChange\}/);
 });

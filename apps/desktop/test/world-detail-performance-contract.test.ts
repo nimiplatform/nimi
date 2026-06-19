@@ -32,12 +32,12 @@ const authStateWatcherSource = fs.readFileSync(
   'utf8',
 );
 
-test('world semantic bundle no longer fetches world detail before worldview', () => {
+test('world semantic bundle projects public world detail without raw core fallback', () => {
   const semanticStart = worldFlowSource.indexOf('export async function loadWorldSemanticBundle');
   const semanticEnd = worldFlowSource.indexOf('\nexport const realmWorldData', semanticStart);
   const semanticBundleSection = worldFlowSource.slice(semanticStart, semanticEnd);
   assert.match(semanticBundleSection, /getWorldCore\(realm, worldId\)/);
-  assert.match(semanticBundleSection, /asRecord\(world\?\.core\)/);
+  assert.match(semanticBundleSection, /buildWorldPublicSemanticBundle\(asRecord\(world\)\)/);
   assert.doesNotMatch(semanticBundleSection, /semanticBundle\s*\?\?/);
   assert.doesNotMatch(semanticBundleSection, /loadWorldDetailById/);
   assert.doesNotMatch(semanticBundleSection, /catch\s*\{\s*return null;\s*\}/);
@@ -57,7 +57,7 @@ test('world detail prefetch is limited to first-screen queries', () => {
   assert.doesNotMatch(prefetchSection, /worldPublicAssetsQueryKey/);
 });
 
-test('world detail primary query adopts SDK WorldCore through a bounded adapter', () => {
+test('world detail primary query adopts SDK public world DTO through a bounded adapter', () => {
   const oldRootSingletonPattern = new RegExp('get' + 'PlatformClient');
   assert.match(worldDetailQueriesSource, /toWorldListItem\(asRecord\(detailValue\)\)/);
   assert.doesNotMatch(worldDetailQueriesSource, oldRootSingletonPattern);

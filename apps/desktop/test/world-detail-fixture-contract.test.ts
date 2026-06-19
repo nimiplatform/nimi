@@ -17,12 +17,16 @@ const authenticatedBaseProfile = JSON.parse(
   realmFixture?: {
     worlds?: Array<{
       id?: string;
-      characters?: Array<Record<string, unknown>>;
-      characterRuleSummary?: {
-        totalCharacterRuleCount?: number;
-        byLayer?: Record<string, unknown>;
-        worldLinkedRuleCount?: number;
-      };
+      media?: Record<string, unknown>;
+      time?: Record<string, unknown>;
+      stats?: Record<string, unknown>;
+      characters?: Array<{
+        sourceKind?: string;
+        summary?: string;
+        sourceRef?: Record<string, unknown>;
+        relation?: Record<string, unknown>;
+      }>;
+      personas?: Array<Record<string, unknown>>;
     }>;
   };
 };
@@ -30,28 +34,29 @@ const authenticatedBaseProfile = JSON.parse(
 test('detail-with-characters fixture route stays wired to the canonical endpoint', () => {
   assert.match(fixtureServerSource, /worldDetailWithCharactersMatch/);
   assert.match(fixtureServerSource, /detail-with-characters/);
-  assert.match(fixtureServerSource, /\.\.\.world/);
+  assert.match(fixtureServerSource, /world:\s*projectPublicWorld/);
+  assert.match(fixtureServerSource, /sources:\s*\{/);
 });
 
-test('authenticated base fixture includes character rule aggregate fields', () => {
+test('authenticated base fixture includes public source discovery fields', () => {
   const world = authenticatedBaseProfile.realmFixture?.worlds?.find(
     (entry) => entry.id === 'world-e2e-1',
   );
 
   assert.ok(world, 'world-e2e-1 fixture must exist');
-  assert.ok(Array.isArray(world.characters), 'detail-with-characters fixture must expose characters[]');
-  assert.ok(world.characterRuleSummary, 'detail-with-characters fixture must expose characterRuleSummary');
-  assert.equal(world.characterRuleSummary?.totalCharacterRuleCount, 3);
-  assert.equal(world.characterRuleSummary?.worldLinkedRuleCount, 0);
-  assert.deepEqual(world.characterRuleSummary?.byLayer, {
-    DNA: 1,
-    BEHAVIORAL: 1,
-    RELATIONAL: 0,
-    CONTEXTUAL: 1,
-  });
+  assert.ok(world.media, 'public world fixture must expose media');
+  assert.ok(world.time, 'public world fixture must expose deterministic time');
+  assert.ok(world.stats, 'public world fixture must expose stats');
+  assert.ok(Array.isArray(world.characters), 'detail-with-characters fixture must expose character sources');
+  assert.ok(Array.isArray(world.personas), 'detail-with-characters fixture must expose persona sources');
 
   const firstCharacter = world.characters?.[0];
   assert.ok(firstCharacter, 'fixture must include at least one character');
-  assert.equal(firstCharacter?.activeRuleCount, 3);
-  assert.equal(firstCharacter?.bio, 'Fixture character profile used for desktop contract coverage.');
+  assert.equal(firstCharacter?.sourceKind, 'worldCharacter');
+  assert.equal(firstCharacter?.sourceRef?.kind, 'worldCharacter');
+  assert.equal(firstCharacter?.sourceRef?.worldId, 'world-e2e-1');
+  assert.equal(firstCharacter?.sourceRef?.sourceId, 'character-e2e-alpha');
+  assert.ok(!('sourceContentHash' in (firstCharacter?.sourceRef ?? {})));
+  assert.ok(!('runtimeSourceRef' in (firstCharacter?.relation ?? {})));
+  assert.equal(firstCharacter?.summary, 'Fixture character profile used for desktop contract coverage.');
 });

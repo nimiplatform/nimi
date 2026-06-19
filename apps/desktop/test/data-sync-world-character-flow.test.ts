@@ -47,8 +47,9 @@ describe('D-DSYNC-005: world flow source scanning', () => {
   });
 
   test('D-DSYNC-005: public world data reads WorldCore and WorldCharacterCore surfaces', () => {
-    assert.match(worldFlowSource, /worldCoreControllerGetWorldCore/);
-    assert.match(worldFlowSource, /worldCoreControllerListWorldCharacters/);
+    assert.match(worldFlowSource, /worldPublicControllerGetWorld/);
+    assert.match(worldFlowSource, /worldPublicControllerListWorldCharacters/);
+    assert.match(worldFlowSource, /worldPublicControllerGetWorldDetailWithCharacters/);
     assert.match(worldFlowSource, /from '@nimiplatform\/sdk\/realm'/);
     assert.doesNotMatch(worldFlowSource, /readNumber\(payload, 'characterCount'\)/);
     assert.doesNotMatch(worldFlowSource, /@nimiplatform\/sdk\/world/);

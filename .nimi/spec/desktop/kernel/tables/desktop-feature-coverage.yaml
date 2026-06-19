@@ -199,7 +199,7 @@ features:
     scenarios:
       - scenario_id: world.surface-layout
         source_rule: D-GATE-040
-        spec_path: apps/desktop/test/world-detail-bento-layout.test.ts
+        spec_path: apps/desktop/test/world-detail-glass-layout.test.ts
   - feature: runtime-config
     risk_tier: P1
     required_layers:

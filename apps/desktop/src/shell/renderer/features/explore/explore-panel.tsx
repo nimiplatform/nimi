@@ -41,6 +41,7 @@ function toRecord(value: unknown): JsonObject | null {
 type ExplorePanelProps = {
   activeSection: ExploreSectionId;
   searchText: string;
+  onSearchTextChange: (value: string) => void;
 };
 
 export function ExplorePanel(props: ExplorePanelProps) {
@@ -57,27 +58,6 @@ export function ExplorePanel(props: ExplorePanelProps) {
     queryFn: async () => fetchWorldListItems(),
     staleTime: 30_000,
   });
-
-  const worldBanners = useMemo(() => {
-    const worlds = worldsQuery.data ?? [];
-    // Sort: OASIS world first, then by name for consistent ordering
-    const sortedWorlds = [...worlds].sort((a, b) => {
-      if (a.type === 'OASIS' && b.type !== 'OASIS') return -1;
-      if (a.type !== 'OASIS' && b.type === 'OASIS') return 1;
-      return a.name.localeCompare(b.name);
-    });
-    return sortedWorlds.map((world) => ({
-      id: world.id,
-      name: world.name,
-      bannerUrl: world.bannerUrl,
-      type: world.type,
-      tagline: world.tagline ?? null,
-      eraLabel: world.computed?.time?.eraLabel ?? null,
-      currentLabel: world.computed?.time?.currentLabel ?? world.computed?.time?.currentWorldTime ?? null,
-      flowRatio: typeof world.computed?.time?.flowRatio === 'number' ? world.computed.time.flowRatio : null,
-      characterCount: typeof world.characterCount === 'number' ? world.characterCount : null,
-    }));
-  }, [worldsQuery.data]);
 
   // Create worlds map for personaSource mapping
   const worldsMap = useMemo(() => {
@@ -234,8 +214,8 @@ export function ExplorePanel(props: ExplorePanelProps) {
         selectedCategory={selectedCategory}
         categories={categories}
         personaSources={personaSources}
-        worldBanners={worldBanners}
         worldCatalogItems={worldsQuery.data ?? []}
+        worldSearchText={props.searchText}
         worldsLoading={worldsQuery.isPending}
         worldsError={worldsQuery.isError}
         activeSection={props.activeSection}
@@ -249,6 +229,7 @@ export function ExplorePanel(props: ExplorePanelProps) {
         onPersonaSourceOpen={onPersonaSourceOpen}
         onPostAuthorOpen={setSelectedProfileTarget}
         onWorldOpen={onWorldOpen}
+        onWorldSearchTextChange={props.onSearchTextChange}
       />
       <SendGiftModal
         open={giftModalOpen}

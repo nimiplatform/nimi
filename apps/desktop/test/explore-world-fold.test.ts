@@ -20,17 +20,36 @@ const exploreViewSource = readRendererFile('features/explore/explore-view.tsx');
 const exploreSectionNavSource = readRendererFile('features/explore/explore-section-nav.tsx');
 const mainLayoutViewSource = readRendererFile('app-shell/layouts/main-layout-view.tsx');
 const mainLayoutTitlebarContentSource = readRendererFile('app-shell/layouts/main-layout-titlebar-content.tsx');
-const worldListSource = readRendererFile('features/world/world-list.tsx');
+const worldListSource = [
+  'features/world/world-list.tsx',
+  'features/world/world-list-catalog-controls.tsx',
+  'features/world/world-list-featured-strip.tsx',
+  'features/world/world-list-compact-card.tsx',
+  'features/world/world-list-selected-panel.tsx',
+].map(readRendererFile).join('\n');
+const worldDataSource = readRendererFile('features/world/data/realm-world-data.ts');
+const worldListCardsSource = readRendererFile('features/world/world-list-cards.tsx');
 const worldDetailSource = readRendererFile('features/world/world-detail.tsx');
-const worldDetailTemplateSource = readRendererFile('features/world/world-detail-template.tsx');
+const worldDetailTemplateSource = [
+  'features/world/world-detail-template.tsx',
+  'features/world/world-detail-glass-sections.tsx',
+  'features/world/world-detail-glass-primitives.tsx',
+  'features/world/world-detail-template-model.ts',
+].map(readRendererFile).join('\n');
 const personaSourceCardSource = readRendererFile('features/explore/explore-persona-source-card.tsx');
 const e2eRegistrySource = readDesktopFile('e2e/helpers/registry.mjs');
+const worldLocaleEnSource = readRendererFile('locales/en/15-World.json');
+const worldLocaleZhSource = readRendererFile('locales/zh/15-World.json');
+const worldDetailLocaleEnSource = readRendererFile('locales/en/41-WorldDetail.json');
+const worldDetailLocaleZhSource = readRendererFile('locales/zh/41-WorldDetail.json');
 
 test('Explore fold mounts complete Worlds catalog under Explore', () => {
   assert.match(worldListSource, /export function WorldCatalogContent/);
   assert.match(exploreViewSource, /WorldCatalogContent/);
   assert.match(exploreViewSource, /data-testid="explore-worlds-section"/);
-  assert.match(worldListSource, /data-testid="explore-worlds-catalog"/);
+  assert.match(worldListSource, /data-testid="world-atlas-glass-layout"/);
+  assert.match(worldListSource, /data-testid="world-atlas-world-grid"/);
+  assert.match(worldListSource, /data-testid="world-atlas-selected-panel"/);
   assert.match(explorePanelSource, /worldCatalogItems=\{worldsQuery\.data \?\? \[\]\}/);
   assert.match(explorePanelSource, /worldsLoading=\{worldsQuery\.isPending\}/);
   assert.match(explorePanelSource, /worldsError=\{worldsQuery\.isError\}/);
@@ -82,6 +101,50 @@ test('World Detail exposes no Desktop Realm source creation entry point after co
     fs.existsSync(path.join(import.meta.dirname, '../src/shell/renderer/features/world', `create-${'agent'}-drawer.tsx`)),
     false,
   );
+});
+
+test('Worlds and World Detail use source discovery semantics instead of runtime entry or authoring', () => {
+  const worldSurfaceSources = [
+    worldListSource,
+    worldListCardsSource,
+    worldDetailSource,
+    worldDetailTemplateSource,
+    worldLocaleEnSource,
+    worldLocaleZhSource,
+    worldDetailLocaleEnSource,
+    worldDetailLocaleZhSource,
+  ].join('\n');
+
+  assert.doesNotMatch(worldListCardsSource, /World\.card\.enter/);
+  assert.doesNotMatch(worldListCardsSource, /World\.status\.active/);
+  assert.doesNotMatch(worldDetailSource, /onEnterEdit|onCreateSubWorld|handleEnterEdit|handleCreateSubWorld/);
+  assert.doesNotMatch(worldDetailTemplateSource, /onEnterEdit|onCreateSubWorld/);
+  assert.doesNotMatch(worldSurfaceSources, /Enter world|进入世界|Enter Editor|进入编辑台|Create Sub World|创建子世界/);
+  assert.doesNotMatch(worldSurfaceSources, /Active Now|在线场景数|Online Scenes|World Flow|Transit In|转入限制|Sub World|子世界/);
+  assert.match(worldSurfaceSources, /Explore Sources|探索 Source|View World|查看世界|Connect Source|连接 Source/);
+});
+
+test('World Detail connects sources through the existing source-connection path only', () => {
+  assert.match(worldDetailSource, /connectRealmPublicSource/);
+  assert.doesNotMatch(worldDetailSource, /connectRealmPersonaSource/);
+  assert.match(worldDetailTemplateSource, /onConnectSource/);
+  assert.doesNotMatch(worldDetailSource, /createRealmRuntimeSourceSnapshot|worldCoreControllerCreateRuntimeSourceSnapshot|transitController/);
+  assert.doesNotMatch(worldDetailTemplateSource, /createRealmRuntimeSourceSnapshot|worldCoreControllerCreateRuntimeSourceSnapshot|transitController/);
+});
+
+test('World product data adapters do not keep raw WorldCore or transit-era fallback paths', () => {
+  const productDataSources = [
+    worldDataSource,
+    worldListSource,
+    worldDetailSource,
+    worldDetailTemplateSource,
+    worldDetailLocaleEnSource,
+    worldDetailLocaleZhSource,
+  ].join('\n');
+
+  assert.doesNotMatch(productDataSources, /requireWorldCoreDto|requireWorldCharacterCoreDto|projectWorldCore|projectWorldCharacter/);
+  assert.doesNotMatch(productDataSources, /WorldCore payload|WorldCharacterCore payload|WorldCoreV1 hash|WorldCoreV1 origin/);
+  assert.doesNotMatch(productDataSources, /\btransitInLimit\b/);
 });
 
 test('World Tour is not a registered ordinary E2E journey', () => {

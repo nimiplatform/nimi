@@ -35,6 +35,9 @@ export function MainLayoutTitlebarContent(props: MainLayoutTitlebarContentProps)
   }
 
   if (props.activeTab === 'explore') {
+    const searchPlaceholder = props.exploreActiveSection === 'worlds'
+      ? t('World.searchPlaceholder', { defaultValue: 'Search worlds, themes, personas...' })
+      : t('Explore.searchPlaceholder', { defaultValue: 'Search personas by name/handle...' });
     return (
       <div className="flex h-full min-w-0 items-center">
         <ExploreSectionNav
@@ -47,7 +50,7 @@ export function MainLayoutTitlebarContent(props: MainLayoutTitlebarContentProps)
             <ExploreSearchField
               value={props.exploreSearchText}
               onChange={props.onExploreSearchTextChange}
-              placeholder={t('Explore.searchPlaceholder', { defaultValue: 'Search personas by name/handle...' })}
+              placeholder={searchPlaceholder}
             />
           </div>
         </div>

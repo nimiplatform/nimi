@@ -132,6 +132,7 @@ export function SourceDetailView(props: SourceDetailViewProps) {
   }
 
   const { source } = props;
+  const bannerUrl = source.profileCoverUrl ?? source.worldBannerUrl;
   const palette = getSemanticSourcePalette({
     archetype: source.archetype,
     origin: source.origin,
@@ -154,9 +155,9 @@ export function SourceDetailView(props: SourceDetailViewProps) {
           <div className="relative rounded-[24px] bg-white shadow-lg overflow-hidden">
             {/* Banner Background */}
             <div className="relative h-32 w-full overflow-hidden">
-              {source.worldBannerUrl ? (
+              {bannerUrl ? (
                 <img
-                  src={source.worldBannerUrl}
+                  src={bannerUrl}
                   alt="World Banner"
                   className="w-full h-full object-cover"
                 />

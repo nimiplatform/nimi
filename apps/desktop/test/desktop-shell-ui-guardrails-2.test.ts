@@ -28,6 +28,12 @@ const sendGiftModalSource = readSource('../src/shell/renderer/features/economy/s
 const designSurfacesTable = readSource('../../../.nimi/spec/desktop/kernel/tables/renderer-design-surfaces.yaml');
 const designOverlaysTable = readSource('../../../.nimi/spec/desktop/kernel/tables/renderer-design-overlays.yaml');
 
+function collectDesignTableModules(tableSource: string): string[] {
+  return [...tableSource.matchAll(/^\s+module:\s+(.+?)\s*$/gmu)]
+    .map((match) => match[1]?.trim() ?? '')
+    .filter(Boolean);
+}
+
 test('top agent cards sanitize banner URLs before interpolating them into background images', () => {
   const previousWindow = globalThis.window;
   Object.defineProperty(globalThis, 'window', {
@@ -101,6 +107,22 @@ test('design governance tables register secondary profile and overlay consumers 
   assert.match(designOverlaysTable, /id: profile\.create_post/);
   assert.match(designOverlaysTable, /id: profile\.create_post_popovers/);
   assert.match(designOverlaysTable, /id: profile\.top_supporters/);
+});
+
+test('design governance tables register only active renderer modules after hard cuts', () => {
+  const rendererRoot = path.join(import.meta.dirname, '../src/shell/renderer');
+  const modules = new Set([
+    ...collectDesignTableModules(designSurfacesTable),
+    ...collectDesignTableModules(designOverlaysTable),
+  ]);
+  for (const module of modules) {
+    assert.ok(
+      fs.existsSync(path.join(rendererRoot, module)),
+      `governed renderer module must exist: ${module}`,
+    );
+  }
+  assert.doesNotMatch(designSurfacesTable, /explore\.quick_add_friend/);
+  assert.doesNotMatch(designOverlaysTable, /explore\.quick_add_friend/);
 });
 
 test('governed secondary overlays import shared nimi-kit overlay surfaces directly', () => {

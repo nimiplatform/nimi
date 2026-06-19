@@ -3,32 +3,20 @@ import test from 'node:test';
 
 import { getStatusBadgeStyle, getWorldInitial } from '../src/shell/renderer/features/world/shared';
 
-test('getStatusBadgeStyle returns green for ACTIVE', () => {
-  const style = getStatusBadgeStyle('ACTIVE');
+test('getStatusBadgeStyle returns green for DISCOVERABLE', () => {
+  const style = getStatusBadgeStyle('DISCOVERABLE');
   assert.equal(style.bg, 'bg-green-100');
   assert.equal(style.text, 'text-green-700');
 });
 
-test('getStatusBadgeStyle returns yellow for DRAFT', () => {
-  const style = getStatusBadgeStyle('DRAFT');
-  assert.equal(style.bg, 'bg-yellow-100');
-  assert.equal(style.text, 'text-yellow-700');
-});
-
-test('getStatusBadgeStyle returns blue for PENDING_REVIEW', () => {
-  const style = getStatusBadgeStyle('PENDING_REVIEW');
+test('getStatusBadgeStyle returns blue for PUBLIC', () => {
+  const style = getStatusBadgeStyle('PUBLIC');
   assert.equal(style.bg, 'bg-blue-100');
   assert.equal(style.text, 'text-blue-700');
 });
 
-test('getStatusBadgeStyle returns red for SUSPENDED', () => {
-  const style = getStatusBadgeStyle('SUSPENDED');
-  assert.equal(style.bg, 'bg-red-100');
-  assert.equal(style.text, 'text-red-700');
-});
-
-test('getStatusBadgeStyle returns gray for ARCHIVED', () => {
-  const style = getStatusBadgeStyle('ARCHIVED');
+test('getStatusBadgeStyle returns gray for SYSTEM', () => {
+  const style = getStatusBadgeStyle('SYSTEM');
   assert.equal(style.bg, 'bg-gray-100');
   assert.equal(style.text, 'text-gray-600');
 });

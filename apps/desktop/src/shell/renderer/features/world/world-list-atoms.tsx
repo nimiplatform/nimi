@@ -45,6 +45,10 @@ export function formatNum(n: number): string {
   return String(Math.round(n));
 }
 
+export function worldInitial(name: string): string {
+  return name.trim().charAt(0).toUpperCase() || 'W';
+}
+
 type SealProps = {
   letter: string;
   gradient?: string;

@@ -1,4 +1,4 @@
-import type { NimiRealmCoreSourceRef } from '@nimiplatform/sdk/realm';
+import type { NimiRealmPublicSourceLocator } from '@nimiplatform/sdk/realm';
 import { isMainWorldType } from './shared';
 
 type LooseObject = { [key: string]: unknown };
@@ -10,8 +10,9 @@ type WorldCharacterSummaryDto = {
   handle?: string | null;
   bio?: string | null;
   avatarUrl?: string | null;
+  profileCoverUrl?: string | null;
   createdAt?: string;
-  sourceRef?: NimiRealmCoreSourceRef | null;
+  sourceRef?: NimiRealmPublicSourceLocator | null;
 };
 
 export type WorldCharacterItem = {
@@ -20,8 +21,9 @@ export type WorldCharacterItem = {
   handle?: string;
   bio?: string;
   avatarUrl?: string | null;
+  profileCoverUrl?: string | null;
   createdAt?: string;
-  sourceRef?: NimiRealmCoreSourceRef | null;
+  sourceRef?: NimiRealmPublicSourceLocator | null;
 };
 
 export type WorldComputedTime = {
@@ -69,24 +71,28 @@ export type WorldListItem = {
   era: string | null;
   iconUrl: string | null;
   bannerUrl: string | null;
+  highlightUrls: string[];
   type: string;
   status: string;
+  visibility: string | null;
   level: number;
   levelUpdatedAt: string | null;
   characterCount: number;
+  personaCount: number;
+  sceneCount: number;
+  systemCount: number;
+  timelineEventCount: number;
   createdAt: string;
   updatedAt: string | null;
   creatorId: string | null;
   freezeReason: string | null;
   lorebookEntryLimit: number;
   nativeCharacterLimit: number;
-  nativeCreationState: string;
   scoreA: number;
   scoreC: number;
   scoreE: number;
   scoreEwma: number;
   scoreQ: number;
-  transitInLimit: number;
   computed: WorldComputed;
   characters?: WorldCharacterItem[];
 };
@@ -152,12 +158,6 @@ function readStringArray(value: unknown): string[] {
     : [];
 }
 
-function normalizeCoreEnum(value: unknown): string | null {
-  return typeof value === 'string' && value.trim()
-    ? value.trim().replace(/[-\s]+/g, '_').toUpperCase()
-    : null;
-}
-
 function toComputedCharacter(raw: unknown): WorldComputedEntryCharacter | null {
   const record = readRecord(raw);
   if (!record) {
@@ -175,39 +175,24 @@ function toComputedCharacter(raw: unknown): WorldComputedEntryCharacter | null {
   };
 }
 
-function countWorldCharacterEntities(core: LooseObject | null): number {
-  const entities = Array.isArray(core?.entities) ? core.entities : [];
-  return entities.filter((entry) => {
-    const record = readRecord(entry);
-    const kind = readNamedString(record, 'kind', 'entityKind', 'type');
-    return kind === 'worldCharacter' || normalizeCoreEnum(kind) === 'WORLD_CHARACTER';
-  }).length;
-}
-
-function toWorldComputed(raw: unknown, coreInput?: unknown, fallbackCharacterCount = 0): WorldComputed {
+function toWorldComputed(raw: unknown, fallbackCharacterCount = 0): WorldComputed {
   const record = readRecord(raw);
-  const core = readRecord(coreInput);
   const time = readRecord(record?.time);
-  const timeModel = readRecord(core?.timeModel);
   const languages = readRecord(record?.languages);
-  const coreLanguages = readRecord(core?.languages);
   const entry = readRecord(record?.entry);
   const score = readRecord(record?.score);
-  const coreScore = readRecord(core?.score);
 
   return {
     time: {
-      currentWorldTime: readNamedString(time, 'currentWorldTime') ?? readNamedString(timeModel, 'currentWorldTime', 'currentTime'),
-      currentLabel: readNamedString(time, 'currentLabel') ?? readNamedString(timeModel, 'currentLabel', 'currentTimeLabel'),
-      eraLabel: readNamedString(time, 'eraLabel') ?? readNamedString(timeModel, 'eraLabel', 'era'),
-      flowRatio: Math.max(0.0001, readNamedNumber(time, 'flowRatio') ?? readNamedNumber(timeModel, 'flowRatio') ?? 1),
-      isPaused: readNamedBoolean(time, 'isPaused') ?? readNamedBoolean(timeModel, 'isPaused') ?? false,
+      currentWorldTime: readNamedString(time, 'currentWorldTime'),
+      currentLabel: readNamedString(time, 'currentLabel', 'currentWorldTimeDisplay'),
+      eraLabel: readNamedString(time, 'eraLabel', 'anchorWorldStartedAtDisplay'),
+      flowRatio: Math.max(0.0001, readNamedNumber(time, 'flowRatio') ?? 1),
+      isPaused: readNamedBoolean(time, 'isPaused') ?? false,
     },
     languages: {
-      primary: readNamedString(languages, 'primary') ?? readNamedString(coreLanguages, 'primary'),
-      common: readStringArray(languages?.common).length
-        ? readStringArray(languages?.common)
-        : readStringArray(coreLanguages?.common),
+      primary: readNamedString(languages, 'primary'),
+      common: readStringArray(languages?.common),
     },
     entry: {
       recommendedCharacters: Array.isArray(entry?.recommendedCharacters)
@@ -215,46 +200,18 @@ function toWorldComputed(raw: unknown, coreInput?: unknown, fallbackCharacterCou
         : [],
     },
     score: {
-      scoreEwma: readNamedNumber(score, 'scoreEwma') ?? readNamedNumber(coreScore, 'scoreEwma') ?? 0,
+      scoreEwma: readNamedNumber(score, 'scoreEwma') ?? 0,
     },
     featuredCharacterCount: readNumber(record?.featuredCharacterCount) ?? fallbackCharacterCount,
   };
 }
 
 function resolveWorldType(raw: WorldDetailDto): string {
-  const core = readRecord(raw.core);
-  const identity = readRecord(core?.identity);
-  const origin = readRecord(raw.origin);
-  const candidates = [
-    raw.id,
-    raw.visibility,
-    origin?.kind,
-    raw.type,
-    readNamedString(identity, 'worldType', 'type'),
-  ].map(normalizeCoreEnum);
-  if (candidates.some((candidate) => candidate === 'OASIS' || candidate === 'SYSTEM' || candidate === 'SYSTEM_DEFAULT')) {
+  const type = readString(raw.type);
+  if (type === 'OASIS') {
     return 'OASIS';
   }
-  return (
-    readString(raw.type) ??
-    'CREATOR'
-  );
-}
-
-function resolveWorldStatus(raw: WorldDetailDto): string {
-  const core = readRecord(raw.core);
-  const lifecycle = readRecord(core?.lifecycle);
-  const explicit = normalizeCoreEnum(readNamedString(lifecycle, 'status') ?? readString(raw.status));
-  if (
-    explicit === 'ACTIVE'
-    || explicit === 'SUSPENDED'
-    || explicit === 'ARCHIVED'
-    || explicit === 'DRAFT'
-    || explicit === 'PENDING_REVIEW'
-  ) {
-    return explicit;
-  }
-  return 'ACTIVE';
+  return type ?? 'CREATOR';
 }
 
 function resolveCreatorId(raw: WorldDetailDto): string | null {
@@ -264,37 +221,33 @@ function resolveCreatorId(raw: WorldDetailDto): string | null {
   );
 }
 
-function requireWorldDisplayRecord(raw: WorldDetailDto): LooseObject {
-  const core = readRecord(raw.core);
-  if (!core) {
-    throw new Error('World list item requires validated WorldCoreV1 display projection');
+function isPublicWorldDisplayRecord(raw: WorldDetailDto): boolean {
+  return Boolean(
+    readString(raw.id)
+      && readString(raw.name)
+      && readString(raw.summary)
+      && readRecord(raw.media)
+      && readRecord(raw.stats)
+      && readRecord(raw.time),
+  );
+}
+
+function requireWorldDisplayRecord(raw: WorldDetailDto): LooseObject | null {
+  if (isPublicWorldDisplayRecord(raw)) {
+    return null;
   }
-  for (const field of ['id', 'name', 'createdAt']) {
-    if (!readString(raw[field])) {
-      throw new Error(`World list item requires ${field}`);
-    }
-  }
-  if (!readString(raw.contentHash) || readNumber(raw.contentRevision) == null || !readString(raw.schemaVersion)) {
-    throw new Error('World list item requires WorldCoreV1 hash, revision, and schemaVersion');
-  }
-  if (!readRecord(raw.origin) || !readString(readRecord(raw.origin)?.kind)) {
-    throw new Error('World list item requires WorldCoreV1 origin');
-  }
-  if (!readString(raw.visibility)) {
-    throw new Error('World list item requires WorldCoreV1 visibility');
-  }
-  return core;
+  throw new Error('World list item requires public world product projection');
 }
 
 export function isMainWorld(item: Pick<WorldListItem, 'type' | 'creatorId'>): boolean {
-  return isMainWorldType(item.type) || !item.creatorId;
+  return isMainWorldType(item.type);
 }
 
 export function toWorldListItem(raw: WorldDetailDto | WorldDetailWithCharactersDto): WorldListItem {
-  const core = requireWorldDisplayRecord(raw);
-  const identity = readRecord(core.identity);
-  const presentation = readRecord(core.presentation);
-  const timeModel = readRecord(core.timeModel);
+  requireWorldDisplayRecord(raw);
+  const media = readRecord(raw.media);
+  const stats = readRecord(raw.stats);
+  const time = readRecord(raw.time);
   let parsedCharacters: WorldCharacterItem[] | undefined;
   if ('characters' in raw && Array.isArray(raw.characters)) {
     parsedCharacters = raw.characters.map((character: WorldCharacterSummaryDto) => {
@@ -304,60 +257,80 @@ export function toWorldListItem(raw: WorldDetailDto | WorldDetailWithCharactersD
         handle: character.handle ?? undefined,
         bio: character.bio ?? undefined,
         avatarUrl: character.avatarUrl ?? null,
+        profileCoverUrl: character.profileCoverUrl ?? null,
         createdAt: character.createdAt,
         sourceRef: character.sourceRef ?? null,
       };
     });
   }
-  const entityCharacterCount = countWorldCharacterEntities(core);
   const characterCount = typeof raw.characterCount === 'number'
     ? raw.characterCount
+    : readNumber(stats?.characterCount) != null
+      ? readNumber(stats?.characterCount) ?? 0
     : parsedCharacters?.length
       ? parsedCharacters.length
-      : entityCharacterCount;
+      : 0;
+  const personaCount = typeof raw.personaCount === 'number'
+    ? raw.personaCount
+    : readNumber(stats?.personaCount) ?? 0;
+  const sceneCount = typeof raw.sceneCount === 'number'
+    ? raw.sceneCount
+    : readNumber(stats?.sceneCount) ?? 0;
+  const systemCount = typeof raw.systemCount === 'number'
+    ? raw.systemCount
+    : readNumber(stats?.systemCount) ?? 0;
+  const timelineEventCount = typeof raw.timelineEventCount === 'number'
+    ? raw.timelineEventCount
+    : readNumber(stats?.timelineEventCount) ?? 0;
 
   return {
     id: String(raw.id || ''),
     name: readString(raw.name)
-      ?? readNamedString(identity, 'name', 'title', 'displayName')
-      ?? readNamedString(presentation, 'title', 'displayName', 'name')
       ?? (() => {
         throw new Error('World list item requires display name');
       })(),
     description: readString(raw.description)
-      ?? readNamedString(identity, 'summary', 'description')
-      ?? readNamedString(presentation, 'summary', 'description', 'tagline'),
-    tagline: readString(raw.tagline) ?? readNamedString(presentation, 'tagline', 'profileLine'),
+      ?? readString(raw.summary)
+      ?? null,
+    tagline: readString(raw.tagline),
     motto: typeof raw.motto === 'string' ? raw.motto : null,
     overview: typeof raw.overview === 'string' ? raw.overview : null,
     contentRating: typeof raw.contentRating === 'string' ? raw.contentRating : null,
-    genre: typeof raw.genre === 'string' ? raw.genre : null,
+    genre: typeof raw.genre === 'string' ? raw.genre : Array.isArray(raw.tags) && typeof raw.tags[0] === 'string' ? raw.tags[0] : null,
     themes: Array.isArray(raw.themes)
       ? raw.themes.filter((t): t is string => typeof t === 'string')
+      : Array.isArray(raw.tags)
+        ? raw.tags.filter((t): t is string => typeof t === 'string')
       : [],
-    era: readString(raw.era) ?? readNamedString(timeModel, 'era', 'eraLabel'),
-    iconUrl: readString(raw.iconUrl) ?? readNamedString(presentation, 'iconUrl', 'icon_url'),
-    bannerUrl: readString(raw.bannerUrl) ?? readNamedString(presentation, 'bannerUrl', 'banner_url'),
+    era: readString(raw.era),
+    iconUrl: readString(raw.iconUrl) ?? readNamedString(media, 'iconUrl'),
+    bannerUrl: readString(raw.bannerUrl)
+      ?? readNamedString(media, 'bannerUrl', 'heroUrl'),
+    highlightUrls: readStringArray(raw.highlightUrls).length > 0
+      ? readStringArray(raw.highlightUrls)
+      : readStringArray(media?.highlightUrls),
     type: resolveWorldType(raw),
-    status: resolveWorldStatus(raw),
+    status: readString(raw.status) ?? 'DISCOVERABLE',
+    visibility: readString(raw.visibility),
     level: typeof raw.level === 'number' ? raw.level : 1,
     levelUpdatedAt: typeof raw.levelUpdatedAt === 'string' ? raw.levelUpdatedAt : null,
     characterCount,
+    personaCount,
+    sceneCount,
+    systemCount,
+    timelineEventCount,
     createdAt: typeof raw.createdAt === 'string' ? raw.createdAt : '',
     updatedAt: typeof raw.updatedAt === 'string' ? raw.updatedAt : null,
     creatorId: resolveCreatorId(raw),
     freezeReason: typeof raw.freezeReason === 'string' ? raw.freezeReason : null,
     lorebookEntryLimit: typeof raw.lorebookEntryLimit === 'number' ? raw.lorebookEntryLimit : 0,
     nativeCharacterLimit: typeof raw.nativeCharacterLimit === 'number' ? raw.nativeCharacterLimit : 0,
-    nativeCreationState:
-      typeof raw.nativeCreationState === 'string' ? raw.nativeCreationState : 'OPEN',
     scoreA: typeof raw.scoreA === 'number' ? raw.scoreA : 0,
     scoreC: typeof raw.scoreC === 'number' ? raw.scoreC : 0,
     scoreE: typeof raw.scoreE === 'number' ? raw.scoreE : 0,
     scoreEwma: typeof raw.scoreEwma === 'number' ? raw.scoreEwma : 0,
     scoreQ: typeof raw.scoreQ === 'number' ? raw.scoreQ : 0,
-    transitInLimit: typeof raw.transitInLimit === 'number' ? raw.transitInLimit : 0,
-    computed: toWorldComputed(raw.computed, core, characterCount),
+    computed: toWorldComputed(raw.computed ?? { time }, characterCount),
     characters: parsedCharacters,
   };
 }

@@ -101,6 +101,110 @@ function lookupCharacter(manifest, characterId) {
   return characters.find((item) => String(item?.id || '') === String(characterId || '')) || null;
 }
 
+function asArray(value) {
+  return Array.isArray(value) ? value : [];
+}
+
+function text(value, fallback = '') {
+  const normalized = String(value || '').trim();
+  return normalized || fallback;
+}
+
+function projectPublicWorld(world) {
+  const tags = asArray(world?.tags).length ? asArray(world.tags) : asArray(world?.themes);
+  const computedTime = world?.computed?.time || {};
+  const media = world?.media || {
+    iconUrl: world?.iconUrl ?? null,
+    bannerUrl: world?.bannerUrl ?? null,
+    heroUrl: world?.heroUrl ?? world?.bannerUrl ?? null,
+    highlightUrls: asArray(world?.highlightUrls),
+  };
+  const characters = asArray(world?.characters);
+  const personas = asArray(world?.personas);
+  const scenes = asArray(world?.scenes).map((item) => typeof item === 'string' ? item : text(item?.name || item?.title || item?.summary, 'Scene'));
+  const systems = asArray(world?.systems).map((item) => typeof item === 'string' ? item : text(item?.name || item?.title || item?.summary, 'System'));
+  const timeline = asArray(world?.timeline).length
+    ? asArray(world.timeline)
+    : asArray(world?.events).map((item) => text(item?.title || item?.summary, 'World event'));
+  return {
+    id: text(world?.id, 'world-e2e-1'),
+    name: text(world?.name, 'Fixture World'),
+    summary: text(world?.summary || world?.description, 'Seeded world for desktop E2E'),
+    tagline: world?.tagline ?? null,
+    type: world?.type === 'OASIS' ? 'OASIS' : 'CREATOR',
+    visibility: world?.visibility === 'system' ? 'system' : 'public',
+    tags,
+    media,
+    time: world?.time || {
+      mode: 'wallClockAnchored',
+      flowRatio: Number(computedTime.flowRatio || 1),
+      isPaused: computedTime.isPaused === true,
+      calendar: null,
+      displayFormat: null,
+      anchorRealStartedAt: text(world?.createdAt, '2026-03-15T00:00:00.000Z'),
+      anchorWorldStartedAt: text(world?.createdAt, '2026-03-15T00:00:00.000Z'),
+      anchorWorldStartedAtDisplay: text(computedTime.eraLabel, 'Fixture Era'),
+      currentWorldTime: text(computedTime.currentWorldTime, '2026-03-15T00:00:00.000Z'),
+      currentWorldTimeDisplay: text(computedTime.currentLabel, 'Fixture Time'),
+      computedAt: text(world?.updatedAt, '2026-03-15T00:00:00.000Z'),
+    },
+    stats: world?.stats || {
+      characterCount: characters.length,
+      personaCount: personas.length,
+      sceneCount: scenes.length,
+      systemCount: systems.length,
+      timelineEventCount: timeline.length,
+    },
+    rules: asArray(world?.rules),
+    systems,
+    scenes,
+    timeline,
+    createdAt: text(world?.createdAt, '2026-03-15T00:00:00.000Z'),
+    updatedAt: text(world?.updatedAt, '2026-03-15T00:00:00.000Z'),
+  };
+}
+
+function projectPublicSource(world, source, sourceKind) {
+  const worldId = text(world?.id, 'world-e2e-1');
+  const id = text(source?.id, `${sourceKind}-fixture`);
+  const sourceRef = source?.sourceRef || {
+    kind: sourceKind,
+    worldId,
+    sourceId: id,
+  };
+  return {
+    id,
+    sourceKind,
+    ownership: sourceKind === 'worldCharacter' ? 'worldOwned' : 'userOwned',
+    sourceRef,
+    displayName: text(source?.displayName || source?.name, id),
+    handle: source?.handle ?? null,
+    summary: text(source?.summary || source?.bio, 'Fixture source profile used for desktop contract coverage.'),
+    role: source?.role ?? source?.archetype ?? null,
+    worldId,
+    worldName: text(world?.name, 'Fixture World'),
+    tags: asArray(source?.tags),
+    media: source?.media || {
+      avatarUrl: source?.avatarUrl ?? null,
+      profileCoverUrl: source?.profileCoverUrl ?? null,
+    },
+    relation: source?.relation || {
+      state: 'connectable',
+      connectionId: null,
+    },
+    updatedAt: text(source?.updatedAt || source?.createdAt || world?.updatedAt, '2026-03-15T00:00:00.000Z'),
+  };
+}
+
+function resolveFixtureSourceHash(manifest, source) {
+  const worldId = text(source?.worldId, 'world-e2e-1');
+  const sourceId = text(source?.sourceId, `${source?.kind || 'source'}-fixture`);
+  const world = lookupWorld(manifest, worldId);
+  const collection = source?.kind === 'realmPersona' ? world?.personas : world?.characters;
+  const row = asArray(collection).find((item) => String(item?.id || '') === sourceId);
+  return text(row?.contentHash || row?.sourceContentHash, `hash-${sourceId}`);
+}
+
 function positiveInt(value, fallback) {
   const parsed = Number.parseInt(String(value || ''), 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
@@ -201,7 +305,7 @@ async function handleControl(request, response, manifestPath) {
   notFound(response, pathname);
 }
 
-function handleApi(request, response, manifestPath) {
+async function handleApi(request, response, manifestPath) {
   const manifest = readJsonFile(manifestPath);
   const fixture = manifest.realmFixture || {};
   const requestUrl = new URL(request.url, 'http://127.0.0.1');
@@ -340,6 +444,37 @@ function handleApi(request, response, manifestPath) {
     return undefined;
   }
 
+  if (request.method === 'POST' && pathname === '/api/human/source-connections/public-source') {
+    const body = await parseBody(request);
+    const source = body?.source || {};
+    const kind = text(source.kind, '');
+    const worldId = text(source.worldId, '');
+    const sourceId = text(source.sourceId, '');
+    if (!['worldCharacter', 'realmPersona'].includes(kind) || !worldId || !sourceId) {
+      json(response, 400, { message: 'source must include kind, worldId, and sourceId' });
+      return undefined;
+    }
+    const sourceRef = {
+      kind,
+      worldId,
+      sourceId,
+      sourceContentHash: resolveFixtureSourceHash(manifest, source),
+    };
+    const now = new Date().toISOString();
+    json(response, 201, {
+      id: `source-connection-${kind}-${sourceId}`,
+      ownerUserId: String(fixture.currentUser?.id || 'user-e2e-primary'),
+      sourceRef,
+      runtimeSourceRef: `runtime-source:${sourceRef.kind}:${sourceRef.worldId}:${sourceRef.sourceId}:${sourceRef.sourceContentHash}`,
+      status: 'active',
+      connectedAt: now,
+      removedAt: null,
+      createdAt: now,
+      updatedAt: now,
+    });
+    return undefined;
+  }
+
   if (request.method === 'GET' && pathname === '/api/human/me/friends/pending') {
     json(response, 200, fixture.pendingFriends || { received: [], sent: [] });
     return undefined;
@@ -367,7 +502,7 @@ function handleApi(request, response, manifestPath) {
   }
 
   if (request.method === 'GET' && pathname === '/api/world') {
-    json(response, 200, Array.isArray(fixture.worlds) ? fixture.worlds : []);
+    json(response, 200, Array.isArray(fixture.worlds) ? fixture.worlds.map(projectPublicWorld) : []);
     return undefined;
   }
 
@@ -378,14 +513,14 @@ function handleApi(request, response, manifestPath) {
       notFound(response, pathname);
       return undefined;
     }
-    json(response, 200, world);
+    json(response, 200, projectPublicWorld(world));
     return undefined;
   }
 
   const worldCharactersMatch = pathname.match(/^\/api\/world\/by-id\/([^/]+)\/characters$/u);
   if (request.method === 'GET' && worldCharactersMatch) {
     const world = lookupWorld(manifest, decodeURIComponent(worldCharactersMatch[1]));
-    json(response, 200, Array.isArray(world?.characters) ? world.characters : []);
+    json(response, 200, asArray(world?.characters).map((source) => projectPublicSource(world, source, 'worldCharacter')));
     return undefined;
   }
 
@@ -397,8 +532,11 @@ function handleApi(request, response, manifestPath) {
       return undefined;
     }
     json(response, 200, {
-      ...world,
-      characters: Array.isArray(world.characters) ? world.characters : [],
+      world: projectPublicWorld(world),
+      sources: {
+        characters: asArray(world.characters).map((source) => projectPublicSource(world, source, 'worldCharacter')),
+        personas: asArray(world.personas).map((source) => projectPublicSource(world, source, 'realmPersona')),
+      },
     });
     return undefined;
   }

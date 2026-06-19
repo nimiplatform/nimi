@@ -73,13 +73,6 @@ surfaces:
     exception_policy: allowlisted_arbitrary
     testid_required: true
     source_rule: D-SHELL-019
-  - id: explore.quick_add_friend.dialog
-    module: features/explore/quick-add-friend-modal.tsx
-    role: quick_add_friend_dialog
-    surface_profile: baseline
-    exception_policy: none
-    testid_required: true
-    source_rule: D-SHELL-022
   - id: home.view.root
     module: features/home/home-view.tsx
     role: home_root

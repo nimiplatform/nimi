@@ -1,4 +1,4 @@
-import type { NimiRealmCoreSourceRef } from '@nimiplatform/sdk/realm';
+import type { NimiRealmPublicSourceLocator } from '@nimiplatform/sdk/realm';
 
 export type WorldRecommendedCharacterDisplay = {
   readonly role?: string | null;
@@ -13,7 +13,7 @@ export type WorldRecommendedCharacter = {
   readonly name: string;
   readonly handle?: string | null;
   readonly avatarUrl?: string | null;
-  readonly sourceRef?: NimiRealmCoreSourceRef | null;
+  readonly sourceRef?: NimiRealmPublicSourceLocator | null;
   readonly importance?: 'PRIMARY' | 'SECONDARY' | 'BACKGROUND' | null;
   readonly display?: WorldRecommendedCharacterDisplay | null;
 };
@@ -29,7 +29,7 @@ export type WorldDetailData = {
   readonly iconUrl: string | null;
   readonly bannerUrl: string | null;
   readonly type: 'OASIS' | 'CREATOR';
-  readonly status: 'DRAFT' | 'PENDING_REVIEW' | 'ACTIVE' | 'SUSPENDED' | 'ARCHIVED';
+  readonly status: 'DISCOVERABLE' | 'PUBLIC' | 'SYSTEM';
   readonly level: number;
   readonly levelUpdatedAt: string | null;
   readonly characterCount: number;
@@ -38,7 +38,6 @@ export type WorldDetailData = {
   readonly freezeReason: 'QUOTA_OVERFLOW' | 'WORLD_INACTIVE' | 'GOVERNANCE_LOCK' | null;
   readonly lorebookEntryLimit: number;
   readonly nativeCharacterLimit: number;
-  readonly nativeCreationState: 'OPEN' | 'NATIVE_CREATION_FROZEN';
   readonly scoreA: number;
   readonly scoreC: number;
   readonly scoreE: number;
@@ -46,7 +45,6 @@ export type WorldDetailData = {
   readonly scoreQ: number;
   readonly flowRatio: number;
   readonly isPaused?: boolean;
-  readonly transitInLimit: number;
   readonly genre?: string | null;
   readonly era?: string | null;
   readonly themes?: readonly string[] | null;
@@ -71,7 +69,13 @@ export type WorldCharacter = {
   readonly name: string;
   readonly handle: string;
   readonly bio: string;
-  readonly sourceRef: NimiRealmCoreSourceRef;
+  readonly sourceRef: NimiRealmPublicSourceLocator;
+  readonly sourceKind?: 'worldCharacter' | 'realmPersona';
+  readonly ownership?: 'worldOwned' | 'userOwned';
+  readonly relation?: {
+    readonly state: 'connectable' | 'connected' | 'unavailable';
+    readonly connectionId?: string | null;
+  };
   readonly role?: string | null;
   readonly faction?: string | null;
   readonly rank?: string | null;
@@ -79,6 +83,7 @@ export type WorldCharacter = {
   readonly location?: string | null;
   readonly createdAt: string;
   readonly avatarUrl?: string | null;
+  readonly profileCoverUrl?: string | null;
   readonly importance: 'PRIMARY' | 'SECONDARY' | 'BACKGROUND';
   readonly stats?: WorldCharacterStats | null;
 };

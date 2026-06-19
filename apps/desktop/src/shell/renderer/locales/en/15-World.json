@@ -1,14 +1,14 @@
 {
   "title": "Worlds",
-  "subtitle": "Explore and manage your worlds",
-  "searchPlaceholder": "Search worlds...",
+  "subtitle": "Browse world settings and discover sources",
+  "searchPlaceholder": "Search worlds, themes, personas...",
   "searchByNameOrDescription": "Search worlds by name or description...",
   "loading": "Loading worlds...",
   "loadError": "Failed to load worlds",
   "mainWorld": "Main World",
-  "subWorlds": "Sub Worlds",
+  "subWorlds": "Creator Worlds",
   "searchResults": "Search Results",
-  "noWorlds": "No sub worlds",
+  "noWorlds": "No public worlds",
   "noSearchResults": "No worlds found",
   "syncedFromDesktop": "Synced from Desktop",
   "primaryInstance": "Primary Instance",
@@ -18,55 +18,90 @@
   "totalAgent": "Total Characters",
   "time": "Time",
   "worldScoring": "World Scoring",
-  "syncTicker": "World Sync",
-  "chronoFlow": "Chrono Flow: {{value}}X",
+  "syncTicker": "World Time",
+  "chronoFlow": "Time Flow: {{value}}X",
   "header": {
-    "kicker": "Space · your worlds",
-    "description": "Persistent simulations you can enter, shape, and share. Each world runs on its own clock and rules."
+    "kicker": "World Atlas",
+    "description": "Public world backgrounds, rules, and source directories for choosing characters or personas."
+  },
+  "atlas": {
+    "countSummary": "{{value}} worlds / public setting index",
+    "worldCount": "{{value}} worlds",
+    "sourceDiscovery": "Source Discovery",
+    "publicWorld": "Public world",
+    "emptySources": "Characters and personas appear here when this world exposes public sources.",
+    "recentHighlights": "Recent Highlights",
+    "categories": "World categories",
+    "more": "More",
+    "category": {
+      "all": "All Worlds",
+      "trending": "Trending",
+      "new": "New",
+      "fantasy": "Fantasy",
+      "sci-fi": "Sci-Fi",
+      "nature": "Nature",
+      "steampunk": "Steampunk",
+      "mystery": "Mystery",
+      "anime": "Anime"
+    },
+    "sort": {
+      "active": "Recently Active",
+      "recent": "Recently Updated",
+      "sources": "Most Sources",
+      "alpha": "A-Z"
+    },
+    "actions": {
+      "shareWorld": "Share world",
+      "moreWorldActions": "More world actions",
+      "bookmarkWorld": "Bookmark world",
+      "details": "Details"
+    }
   },
   "toolbar": {
-    "heading": "Your worlds",
+    "heading": "World Atlas",
     "filterPlaceholder": "Filter by name or tag…",
     "gridView": "Grid view",
     "listView": "List view",
     "sort": {
-      "active": "Most active",
+      "active": "Source rich",
       "recent": "Recently updated",
       "alpha": "Name A–Z",
-      "inhabitants": "Inhabitants"
+      "inhabitants": "Sources"
     }
   },
   "sidebar": {
-    "create": "Create world",
+    "create": "Explore Sources",
     "library": "Library",
     "collections": "Collections",
-    "pulse": "Your pulse",
-    "activeWorlds": "Active worlds",
+    "pulse": "Source index",
+    "activeWorlds": "Public worlds",
     "activeWorldsSub": "of {{total}} total",
-    "inhabitants": "Total inhabitants",
-    "inhabitantsSub": "across all worlds",
-    "weeklyVisits": "Weekly visits",
+    "inhabitants": "Discoverable sources",
+    "inhabitantsSub": "characters and personas",
+    "weeklyVisits": "World settings",
     "filters": {
       "all": "All worlds",
-      "main": "Main world",
-      "sub": "Sub worlds",
+      "main": "Home world",
+      "sub": "Creator worlds",
       "archived": "Archived"
     },
     "noCollections": "No collections yet"
   },
   "status": {
-    "active": "Active",
+    "active": "Discoverable",
     "idle": "Idle"
   },
   "stats": {
-    "inhabitants": "Inhabitants",
-    "online": "Online",
-    "day": "Day",
-    "flow": "Flow"
+    "inhabitants": "Sources",
+    "sources": "Sources",
+    "personas": "Personas",
+    "day": "World Time",
+    "flow": "Timeflow",
+    "timeflow": "Timeflow"
   },
   "card": {
-    "enter": "Enter world",
-    "featured": "Featured world",
+    "view": "View World",
+    "featured": "Featured setting",
     "noMatch": "No worlds match that filter."
   }
 }

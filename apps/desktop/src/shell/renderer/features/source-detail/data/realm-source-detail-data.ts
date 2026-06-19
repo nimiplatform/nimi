@@ -70,7 +70,15 @@ function requireProjectedText(value: string | null, message: string): string {
   return value;
 }
 
-function projectRealmPersonaCore(core: JsonObject): Pick<JsonObject, 'displayName' | 'handle' | 'avatarUrl' | 'bio' | 'archetype' | 'pacing'> {
+function readWorldStudioVoiceDesign(core: JsonObject): JsonObject | null {
+  const authoring = asRecord(core.authoring);
+  const extensions = asRecord(authoring.extensions);
+  const worldStudioSettings = asRecord(extensions.worldStudioSettings);
+  const voice = asRecord(worldStudioSettings.voice);
+  return Object.keys(voice).length > 0 ? voice : null;
+}
+
+function projectRealmPersonaCore(core: JsonObject): Pick<JsonObject, 'displayName' | 'handle' | 'avatarUrl' | 'profileCoverUrl' | 'referenceImageUrl' | 'voiceDesign' | 'bio' | 'archetype' | 'pacing'> {
   const identity = asRecord(core.identity);
   const presentation = asRecord(core.presentation);
   const personaStyle = asRecord(core.personaStyle);
@@ -87,6 +95,10 @@ function projectRealmPersonaCore(core: JsonObject): Pick<JsonObject, 'displayNam
     handle: toNonEmptyString(identity.handle),
     avatarUrl: toNonEmptyString(presentation.avatarResourceRef)
       || readExternalAssetUri(core, ['avatar', 'referenceImage']),
+    profileCoverUrl: toNonEmptyString(presentation.profileCoverResourceRef)
+      || readExternalAssetUri(core, ['profileCover', 'cover']),
+    referenceImageUrl: readExternalAssetUri(core, ['referenceImage']),
+    voiceDesign: readWorldStudioVoiceDesign(core),
     archetype: toNonEmptyString(personaStyle.archetype) || null,
     pacing: toNonEmptyString(personaStyle.pacing) || null,
     bio: requireProjectedText(
@@ -96,7 +108,7 @@ function projectRealmPersonaCore(core: JsonObject): Pick<JsonObject, 'displayNam
   };
 }
 
-function projectWorldCharacterCore(core: JsonObject): Pick<JsonObject, 'displayName' | 'handle' | 'avatarUrl' | 'bio'> {
+function projectWorldCharacterCore(core: JsonObject): Pick<JsonObject, 'displayName' | 'handle' | 'avatarUrl' | 'profileCoverUrl' | 'referenceImageUrl' | 'voiceDesign' | 'bio'> {
   const identity = asRecord(core.identity);
   const presentation = asRecord(core.presentation);
   const displayName = toNonEmptyString(presentation.displayName)
@@ -112,6 +124,10 @@ function projectWorldCharacterCore(core: JsonObject): Pick<JsonObject, 'displayN
     handle: toNonEmptyString(identity.handle),
     avatarUrl: toNonEmptyString(presentation.avatarResourceRef)
       || readExternalAssetUri(core, ['avatar', 'referenceImage']),
+    profileCoverUrl: toNonEmptyString(presentation.profileCoverResourceRef)
+      || readExternalAssetUri(core, ['profileCover', 'cover']),
+    referenceImageUrl: readExternalAssetUri(core, ['referenceImage']),
+    voiceDesign: readWorldStudioVoiceDesign(core),
     bio: requireProjectedText(
       bio,
       'WorldCharacterCore source detail requires identity.summary or presentation profile copy',

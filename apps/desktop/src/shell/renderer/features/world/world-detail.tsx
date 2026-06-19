@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { ScrollArea } from '@nimiplatform/kit/ui';
 import { createRendererFlowId, logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
+import { connectRealmPublicSource } from '@renderer/features/explore/realm-persona-source-admission';
 import {
   NarrativeWorldDetailPage,
   OasisWorldDetailPage,
@@ -24,6 +25,7 @@ type WorldDetailProps = {
 export function WorldDetail({ world, onBack }: WorldDetailProps) {
   const authStatus = useAppStore((state) => state.auth.status);
   const navigateToProfile = useAppStore((state) => state.navigateToProfile);
+  const queryClient = useQueryClient();
   const isReady = authStatus === 'authenticated' && !!world.id;
   const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
   const flowIdRef = useRef('');
@@ -157,26 +159,18 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
     navigateToProfile(character.id, 'source-detail');
   };
 
-  const handleEnterEdit = () => {
-    logRendererEvent({
-      level: 'info',
-      area: 'world-detail',
-      message: 'action:enter-edit:clicked',
-      details: {
-        worldId: world.id,
-      },
-    });
-  };
-
-  const handleCreateSubWorld = () => {
-    logRendererEvent({
-      level: 'info',
-      area: 'world-detail',
-      message: 'action:create-sub-world:clicked',
-      details: {
-        worldId: world.id,
-      },
-    });
+  const handleConnectSource = async (character: WorldCharacter) => {
+    try {
+      await connectRealmPublicSource(character);
+      setFeedback({
+        kind: 'success',
+        message: `${character.name} connected as a source.`,
+      });
+      await queryClient.invalidateQueries({ queryKey: worldDisplayDetailQueryKey(world.id) });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to connect source.';
+      setFeedback({ kind: 'error', message });
+    }
   };
 
   return (
@@ -202,9 +196,8 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
           auditsLoading={worldCompositeQuery.isPending}
           publicAssetsLoading={worldCompositeQuery.isPending}
           onBack={onBack}
-          onEnterEdit={handleEnterEdit}
-          onCreateSubWorld={handleCreateSubWorld}
           onViewCharacter={handleViewCharacter}
+          onConnectSource={handleConnectSource}
         />
       ) : (
         <NarrativeWorldDetailPage
@@ -222,9 +215,8 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
           auditsLoading={worldCompositeQuery.isPending}
           publicAssetsLoading={worldCompositeQuery.isPending}
           onBack={onBack}
-          onEnterEdit={handleEnterEdit}
-          onCreateSubWorld={handleCreateSubWorld}
           onViewCharacter={handleViewCharacter}
+          onConnectSource={handleConnectSource}
         />
       )}
     </ScrollArea>

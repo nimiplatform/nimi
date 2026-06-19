@@ -1,11 +1,10 @@
-import { useMemo, type CSSProperties } from 'react';
+import type { CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
 import { prefetchWorldDetailAndHistory } from './world-detail-queries';
 import { prefetchWorldDetailPanel } from './world-detail-route-state';
 import type { WorldListItem } from './world-list-model';
 import { WorldChronoPanel } from './world-list-chrono-panel';
-import { Chip, Pulse, Seal, Stat, formatNum, pulseFromId, sealGradientFor } from './world-list-atoms';
-const FROZEN_STATUS = 'FROZEN';
+import { Chip, Seal, Stat, formatNum, sealGradientFor } from './world-list-atoms';
 function initialLetter(name: string): string {
   const letter = name.trim().charAt(0).toUpperCase();
   return letter || 'W';
@@ -122,14 +121,6 @@ export function FeaturedWorldCard({ world, onOpen }: { world: WorldListItem; onO
                   >
                     {world.name}
                   </h1>
-                  {world.status !== FROZEN_STATUS && (
-                    <span
-                      className="desktop-world-pulse-dot"
-                      aria-label={t('World.status.active')}
-                      title={t('World.status.active')}
-                      style={{ marginTop: 10 }}
-                    />
-                  )}
                 </div>
                 {/* D-EXPL-003 `lineage`: conditional, shrinks when absent. */}
                 {worldLineageLabel(world) ? <Chip>{worldLineageLabel(world)}</Chip> : null}
@@ -174,7 +165,7 @@ export function FeaturedWorldCard({ world, onOpen }: { world: WorldListItem; onO
                     <path d="M5 12h14" />
                     <path d="M13 6l6 6-6 6" />
                   </svg>
-                  {t('World.card.enter')}
+                  {t('World.card.view')}
                 </button>
               </div>
             </div>
@@ -195,9 +186,9 @@ export function WorldCard({ world, onOpen }: { world: WorldListItem; onOpen: () 
   const { t } = useTranslation();
   const tags = worldTags(world).slice(0, 3);
   const extraTagCount = Math.max(0, worldTags(world).length - tags.length);
-  const pulse = useMemo(() => pulseFromId(world.id), [world.id]);
   const tagline = worldTagline(world);
   const hasCover = Boolean(world.bannerUrl);
+  const sourceCount = world.characterCount + world.personaCount;
   return (
     <article
       className="nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]"
@@ -303,14 +294,6 @@ export function WorldCard({ world, onOpen }: { world: WorldListItem; onOpen: () 
               >
                 {world.name}
               </h3>
-              {world.status !== FROZEN_STATUS && (
-                <span
-                  className="desktop-world-pulse-dot"
-                  aria-label={t('World.status.active')}
-                  title={t('World.status.active')}
-                  style={{ marginTop: 6 }}
-                />
-              )}
             </div>
             {/* D-EXPL-003 `lineage`: conditional, shrinks when absent. */}
             {worldLineageLabel(world) ? (
@@ -366,15 +349,14 @@ export function WorldCard({ world, onOpen }: { world: WorldListItem; onOpen: () 
           }}
         >
           <div style={{ display: 'flex', gap: 16 }}>
-            <Stat label={t('World.stats.online')} value={formatNum(world.characterCount)} valueSize={13} />
-            <Stat label={t('World.stats.day')} value={String(world.level)} valueSize={13} />
+            <Stat label={t('World.stats.sources')} value={formatNum(sourceCount)} valueSize={13} />
+            <Stat label={t('World.stats.personas')} value={formatNum(world.personaCount)} valueSize={13} />
             <Stat
-              label={t('World.stats.flow')}
+              label={t('World.stats.timeflow')}
               value={`${world.computed.time.flowRatio.toFixed(2)}×`}
               valueSize={13}
             />
           </div>
-          <Pulse data={pulse} width={84} height={24} gradientId={`pulse-${world.id}`} />
         </div>
         </div>
       </div>
@@ -384,7 +366,7 @@ export function WorldCard({ world, onOpen }: { world: WorldListItem; onOpen: () 
 export function WorldListRow({ world, onOpen }: { world: WorldListItem; onOpen: () => void }) {
   const { t } = useTranslation();
   const tags = worldTags(world).slice(0, 2);
-  const pulse = useMemo(() => pulseFromId(world.id), [world.id]);
+  const sourceCount = world.characterCount + world.personaCount;
   return (
     <article
       className="nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]"
@@ -401,7 +383,7 @@ export function WorldListRow({ world, onOpen }: { world: WorldListItem; onOpen: 
         padding: '14px 18px',
         cursor: 'pointer',
         display: 'grid',
-        gridTemplateColumns: '44px 1.4fr 1fr 0.8fr 0.8fr 0.8fr 100px 24px',
+        gridTemplateColumns: '44px 1.4fr 1fr 0.8fr 0.8fr 0.8fr 24px',
         gap: 18,
         alignItems: 'center',
         transition: 'box-shadow 160ms',
@@ -452,14 +434,13 @@ export function WorldListRow({ world, onOpen }: { world: WorldListItem; onOpen: 
           <Chip key={tag}>{tag}</Chip>
         ))}
       </div>
-      <Stat label={t('World.stats.online')} value={formatNum(world.characterCount)} valueSize={13} />
-      <Stat label={t('World.stats.day')} value={String(world.level)} valueSize={13} />
+      <Stat label={t('World.stats.sources')} value={formatNum(sourceCount)} valueSize={13} />
+      <Stat label={t('World.stats.personas')} value={formatNum(world.personaCount)} valueSize={13} />
       <Stat
-        label={t('World.stats.flow')}
+        label={t('World.stats.timeflow')}
         value={`${world.computed.time.flowRatio.toFixed(2)}×`}
         valueSize={13}
       />
-      <Pulse data={pulse} width={92} height={26} gradientId={`pulse-row-${world.id}`} />
       <svg
         width={16}
         height={16}

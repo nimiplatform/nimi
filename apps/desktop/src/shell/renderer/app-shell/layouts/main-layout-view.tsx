@@ -414,6 +414,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
             developerModeEnabled={developerModeEnabled}
             exploreActiveSection={exploreActiveSection}
             exploreSearchText={exploreSearchText}
+            onExploreSearchTextChange={setExploreSearchText}
             homeCreatePostRequestKey={homeCreatePostRequestKey}
             homeFeedScope={homeFeedScope}
             runtimeActive={runtimeActive}

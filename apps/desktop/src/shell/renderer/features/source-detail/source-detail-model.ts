@@ -7,6 +7,9 @@ export type SourceDetailData = {
   displayName: string;
   handle: string;
   avatarUrl: string | null;
+  profileCoverUrl: string | null;
+  referenceImageUrl: string | null;
+  voiceDesign: SourceDetailVoiceDesign | null;
   bio: string | null;
   createdAt: string;
   tags: string[];
@@ -29,9 +32,65 @@ export type SourceDetailData = {
   worldBannerUrl: string | null;
 };
 
+export type SourceDetailVoiceDesign = {
+  voiceId: string;
+  sampleUri: string;
+  provider: string;
+  workflow: string;
+  model: string;
+  prompt: string;
+  transcript: string;
+  previewText: string;
+};
+
 function readOptionalString(record: JsonObject | null | undefined, key: string): string | null {
   const value = record?.[key];
-  return typeof value === 'string' ? value : null;
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+function readExternalAssetUri(core: JsonObject | null | undefined, kinds: readonly string[]): string | null {
+  const assets = parseOptionalJsonObject(core?.assets);
+  const refs = Array.isArray(assets?.externalRefs) ? assets.externalRefs : [];
+  for (const ref of refs) {
+    const record = parseOptionalJsonObject(ref);
+    const kind = readOptionalString(record, 'kind');
+    if (kind && kinds.includes(kind)) {
+      const uri = readOptionalString(record, 'uri');
+      if (uri) return uri;
+    }
+  }
+  return null;
+}
+
+function readVoiceDesign(record: JsonObject | null | undefined): SourceDetailVoiceDesign | null {
+  const voiceId = readOptionalString(record, 'voiceId');
+  const sampleUri = readOptionalString(record, 'sampleUri');
+  const provider = readOptionalString(record, 'provider');
+  const workflow = readOptionalString(record, 'workflow');
+  const model = readOptionalString(record, 'model');
+  const prompt = readOptionalString(record, 'prompt');
+  const transcript = readOptionalString(record, 'transcript');
+  const previewText = readOptionalString(record, 'previewText');
+  if (!voiceId || !sampleUri || !provider || !workflow || !model || !prompt || !transcript || !previewText) {
+    return null;
+  }
+  return {
+    voiceId,
+    sampleUri,
+    provider,
+    workflow,
+    model,
+    prompt,
+    transcript,
+    previewText,
+  };
+}
+
+function readWorldStudioVoiceDesign(core: JsonObject | null | undefined): SourceDetailVoiceDesign | null {
+  const authoring = parseOptionalJsonObject(core?.authoring);
+  const extensions = parseOptionalJsonObject(authoring?.extensions);
+  const worldStudioSettings = parseOptionalJsonObject(extensions?.worldStudioSettings);
+  return readVoiceDesign(parseOptionalJsonObject(worldStudioSettings?.voice));
 }
 
 export function toSourceDetailData(
@@ -77,6 +136,16 @@ export function toSourceDetailData(
     displayName,
     handle: String(raw.handle || ''),
     avatarUrl: typeof raw.avatarUrl === 'string' ? raw.avatarUrl : null,
+    profileCoverUrl: (
+      (typeof raw.profileCoverUrl === 'string' && raw.profileCoverUrl.trim() ? raw.profileCoverUrl.trim() : null)
+      || readExternalAssetUri(sourceRecord, ['profileCover', 'cover'])
+    ),
+    referenceImageUrl: (
+      (typeof raw.referenceImageUrl === 'string' && raw.referenceImageUrl.trim() ? raw.referenceImageUrl.trim() : null)
+      || readExternalAssetUri(sourceRecord, ['referenceImage'])
+    ),
+    voiceDesign: readVoiceDesign(parseOptionalJsonObject(raw.voiceDesign))
+      ?? readWorldStudioVoiceDesign(sourceRecord),
     bio: typeof raw.bio === 'string' ? raw.bio : null,
     createdAt: typeof raw.createdAt === 'string' ? raw.createdAt : '',
     tags: Array.isArray(raw.tags) ? raw.tags.map(String) : [],

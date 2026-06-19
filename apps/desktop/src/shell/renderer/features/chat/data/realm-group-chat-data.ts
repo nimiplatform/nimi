@@ -265,7 +265,7 @@ export async function addGroupChatSource(
   } catch (error) {
     emitRealmGroupChatError('add-group-source', error, {
       chatId,
-      runtimeSourceRef: normalizeText(input.runtimeSourceRef),
+      sourceRef: normalizeText(input.sourceRef?.sourceContentHash),
       sourceId: normalizeText(input.sourceRef?.sourceId),
     });
     throw error;

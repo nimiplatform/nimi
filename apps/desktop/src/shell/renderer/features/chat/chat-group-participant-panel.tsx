@@ -42,10 +42,6 @@ async function toSourceFromConnection(connection: RealmSourceConnectionProjectio
   const sourceRef: GroupSourceRef = connection.sourceRef;
   const input: GroupSourceParticipantInput = {
     sourceRef,
-    runtimeSourceRef: connection.runtimeSourceRef,
-    displayName,
-    ...(handle ? { handle } : {}),
-    ...(avatarUrl ? { avatarUrl } : {}),
   };
   return {
     sourceKey: connection.runtimeSourceRef,
@@ -154,7 +150,7 @@ export function ChatGroupParticipantPanel(props: {
         message: `add-error: ${error instanceof Error ? error.message : String(error)}`,
         details: {
           chatId,
-          runtimeSourceRef: source.input.runtimeSourceRef,
+          runtimeSourceRef: source.sourceKey,
           sourceId: source.input.sourceRef.sourceId,
         },
       });

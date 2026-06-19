@@ -109,8 +109,52 @@
       {
         "id": "world-e2e-1",
         "name": "Fixture World",
+        "summary": "Seeded world for desktop E2E",
         "description": "Seeded world for desktop E2E",
         "tagline": "E2E fixture world",
+        "visibility": "system",
+        "tags": [
+          "Research",
+          "Testing"
+        ],
+        "media": {
+          "iconUrl": null,
+          "bannerUrl": null,
+          "heroUrl": null,
+          "highlightUrls": []
+        },
+        "time": {
+          "mode": "wallClockAnchored",
+          "flowRatio": 1,
+          "isPaused": false,
+          "calendar": null,
+          "displayFormat": null,
+          "anchorRealStartedAt": "2026-03-15T00:00:00.000Z",
+          "anchorWorldStartedAt": "2026-03-15T00:00:00.000Z",
+          "anchorWorldStartedAtDisplay": "Fixture Era",
+          "currentWorldTime": "2026-03-15T00:00:00.000Z",
+          "currentWorldTimeDisplay": "Fixture Time",
+          "computedAt": "2026-03-15T00:00:00.000Z"
+        },
+        "stats": {
+          "characterCount": 1,
+          "personaCount": 1,
+          "sceneCount": 1,
+          "systemCount": 1,
+          "timelineEventCount": 1
+        },
+        "rules": [
+          "Desktop E2E fixtures should match the public world source discovery contract."
+        ],
+        "systems": [
+          "Fixture World System"
+        ],
+        "scenes": [
+          "Fixture Plaza"
+        ],
+        "timeline": [
+          "Fixture World founded"
+        ],
         "genre": "Research",
         "themes": [
           "Testing"
@@ -118,7 +162,7 @@
         "bannerUrl": null,
         "iconUrl": null,
         "type": "OASIS",
-        "status": "ACTIVE",
+        "status": "DISCOVERABLE",
         "level": 1,
         "characterCount": 1,
         "createdAt": "2026-03-15T00:00:00.000Z",
@@ -127,13 +171,11 @@
         "freezeReason": null,
         "lorebookEntryLimit": 0,
         "nativeCharacterLimit": 0,
-        "nativeCreationState": "OPEN",
         "scoreA": 0,
         "scoreC": 0,
         "scoreE": 0,
         "scoreEwma": 87,
         "scoreQ": 0,
-        "transitInLimit": 0,
         "computed": {
           "time": {
             "currentWorldTime": "2026-03-15T00:00:00.000Z",
@@ -166,23 +208,63 @@
         "characters": [
           {
             "id": "character-e2e-alpha",
-            "name": "Fixture Character",
+            "sourceKind": "worldCharacter",
+            "ownership": "worldOwned",
+            "worldId": "world-e2e-1",
+            "worldName": "Fixture World",
+            "sourceRef": {
+              "kind": "worldCharacter",
+              "worldId": "world-e2e-1",
+              "sourceId": "character-e2e-alpha"
+            },
+            "displayName": "Fixture Character",
             "handle": "~fixture-character",
-            "avatarUrl": null,
-            "bio": "Fixture character profile used for desktop contract coverage.",
-            "activeRuleCount": 3
+            "summary": "Fixture character profile used for desktop contract coverage.",
+            "role": "Fixture Character",
+            "tags": [
+              "Fixture"
+            ],
+            "media": {
+              "avatarUrl": null,
+              "profileCoverUrl": null
+            },
+            "relation": {
+              "state": "connectable",
+              "connectionId": null
+            },
+            "updatedAt": "2026-03-15T00:00:00.000Z"
           }
         ],
-        "characterRuleSummary": {
-          "totalCharacterRuleCount": 3,
-          "byLayer": {
-            "DNA": 1,
-            "BEHAVIORAL": 1,
-            "RELATIONAL": 0,
-            "CONTEXTUAL": 1
-          },
-          "worldLinkedRuleCount": 0
-        },
+        "personas": [
+          {
+            "id": "persona-e2e-beta",
+            "sourceKind": "realmPersona",
+            "ownership": "userOwned",
+            "worldId": "world-e2e-1",
+            "worldName": "Fixture World",
+            "sourceRef": {
+              "kind": "realmPersona",
+              "worldId": "world-e2e-1",
+              "sourceId": "persona-e2e-beta"
+            },
+            "displayName": "Fixture Persona",
+            "handle": "~fixture-persona",
+            "summary": "Fixture persona source used for world detail coverage.",
+            "role": "Fixture Persona",
+            "tags": [
+              "Fixture"
+            ],
+            "media": {
+              "avatarUrl": null,
+              "profileCoverUrl": null
+            },
+            "relation": {
+              "state": "connectable",
+              "connectionId": null
+            },
+            "updatedAt": "2026-03-15T00:00:00.000Z"
+          }
+        ],
         "events": [],
         "levelAudits": [],
         "worldview": {

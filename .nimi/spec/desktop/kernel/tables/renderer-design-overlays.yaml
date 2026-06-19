@@ -3,7 +3,6 @@ table_family: product_catalog
 owner: desktop
 catalog_id: desktop_renderer_design_overlays
 entries:
-  - explore.quick_add_friend
   - notification.reject_gift
   - relationship.profile_detail_modal
   - economy.send_gift
@@ -11,15 +10,6 @@ entries:
   - profile.create_post_popovers
   - profile.top_supporters
 overlays:
-  - id: explore.quick_add_friend
-    module: features/explore/quick-add-friend-modal.tsx
-    kind: dialog
-    surface_tone: overlay
-    elevation: modal
-    z_token: --nimi-z-dialog
-    testid_required: true
-    reduced_motion: true
-    source_rule: D-SHELL-018
   - id: notification.reject_gift
     module: features/notification/notification-reject-gift-dialog.tsx
     kind: dialog

@@ -33,52 +33,42 @@ type RealmWorldCallApi = Parameters<typeof loadMainWorld>[0];
 function worldCorePayload(overrides: Record<string, unknown> = {}) {
   return {
     id: 'world-1',
+    name: 'Song Continuum',
+    summary: 'A slow-time alternate Song dynasty world.',
+    tagline: 'Late Song divergence',
+    type: 'CREATOR',
     visibility: 'public',
-    contentHash: 'hash-world-1',
-    contentRevision: 1,
-    schemaVersion: 'WorldCoreV1',
-    origin: { kind: 'manual', sourceId: 'seed:world-1' },
-    creatorId: 'creator-1',
-    core: {
-      identity: {
-        name: 'Song Continuum',
-        summary: 'A slow-time alternate Song dynasty world.',
-        worldType: 'historical-alternate',
-      },
-      presentation: {
-        title: 'Song Continuum',
-        tagline: 'Late Song divergence',
-      },
-      ontology: {
-        entityKinds: ['worldCharacter'],
-        relationshipTypes: ['allied'],
-      },
-      timeModel: {
-        mode: 'scaled',
-        flowRatio: 0.125,
-        isPaused: false,
-        eraLabel: 'Late Song',
-      },
-      timeline: {
-        events: [{
-          eventId: 'song-foundation',
-          sequence: 1,
-          timestamp: '2026-06-18T00:00:00.000Z',
-          title: 'Foundation',
-          summary: 'WorldCore admitted.',
-        }],
-      },
-      entities: [
-        { entityId: 'song-steward', kind: 'worldCharacter', name: 'Song Steward' },
-      ],
-      scenes: [
-        { sceneId: 'song-arrival', name: 'Arrival Point', summary: 'Initial exploration scene.' },
-      ],
-      systems: [],
-      relationships: [],
-      assets: { resourceRefs: [], intents: [] },
-      authoring: { source: 'test' },
+    tags: ['Historical', 'Alternate'],
+    media: {
+      iconUrl: 'https://cdn.example.com/song-icon.png',
+      bannerUrl: 'https://cdn.example.com/song-banner.png',
+      heroUrl: 'https://cdn.example.com/song-hero.png',
+      highlightUrls: ['https://cdn.example.com/song-highlight.png'],
     },
+    time: {
+      mode: 'wallClockAnchored',
+      flowRatio: 0.125,
+      isPaused: false,
+      calendar: null,
+      displayFormat: null,
+      anchorRealStartedAt: '2026-06-18T00:00:00.000Z',
+      anchorWorldStartedAt: '2026-06-18T00:00:00.000Z',
+      anchorWorldStartedAtDisplay: 'Late Song',
+      currentWorldTime: '2026-06-18T03:00:00.000Z',
+      currentWorldTimeDisplay: 'Late Song · Day 1',
+      computedAt: '2026-06-19T00:00:00.000Z',
+    },
+    stats: {
+      characterCount: 1,
+      personaCount: 0,
+      sceneCount: 1,
+      systemCount: 1,
+      timelineEventCount: 1,
+    },
+    rules: ['WorldCore admitted as public setting background.'],
+    systems: ['Archive stewardship'],
+    scenes: ['Arrival Point'],
+    timeline: ['Foundation'],
     createdAt: '2026-06-18T00:00:00.000Z',
     updatedAt: '2026-06-18T00:00:00.000Z',
     ...overrides,
@@ -88,51 +78,28 @@ function worldCorePayload(overrides: Record<string, unknown> = {}) {
 function worldCharacterPayload(overrides: Record<string, unknown> = {}) {
   return {
     id: 'character-1',
+    sourceKind: 'worldCharacter',
+    ownership: 'worldOwned',
     worldId: 'world-1',
-    entityId: 'song-steward',
-    contentHash: 'hash-character-1',
-    contentRevision: 1,
-    schemaVersion: 'WorldCharacterCoreV1',
-    origin: { kind: 'manual', sourceId: 'seed:character-1' },
-    core: {
-      identity: {
-        name: 'Song Steward',
-        summary: 'A WorldCharacterCore seed.',
-      },
-      presentation: {
-        displayName: 'Song Steward',
-        shortBio: 'Keeps the archive coherent.',
-      },
-      placement: {
-        worldId: 'world-1',
-        entityId: 'song-steward',
-        sceneRefs: [],
-      },
-      biography: {
-        milestones: [],
-        sourceNotes: [],
-      },
-      psychology: {
-        drives: [],
-        boundaries: [],
-      },
-      knowledge: {
-        topics: [],
-        constraints: [],
-      },
-      relationships: [],
-      capabilities: {
-        interactionModes: ['chat'],
-        tools: [],
-      },
-      interactionProfile: {
-        tone: 'calm',
-        cadence: 'measured',
-      },
-      assets: { resourceRefs: [], intents: [] },
-      authoring: { source: 'test' },
+    worldName: 'Song Continuum',
+    sourceRef: {
+      kind: 'worldCharacter',
+      worldId: 'world-1',
+      sourceId: 'character-1',
     },
-    createdAt: '2026-06-18T00:00:00.000Z',
+    displayName: 'Song Steward',
+    handle: null,
+    summary: 'Keeps the archive coherent.',
+    role: 'Steward',
+    tags: ['Archive'],
+    media: {
+      avatarUrl: 'https://cdn.example.com/song-steward.png',
+      profileCoverUrl: null,
+    },
+    relation: {
+      state: 'connectable',
+      connectionId: null,
+    },
     updatedAt: '2026-06-18T00:00:00.000Z',
     ...overrides,
   };
@@ -140,14 +107,25 @@ function worldCharacterPayload(overrides: Record<string, unknown> = {}) {
 
 function createWorldCallApi(worldCore: Record<string, unknown>, characters: unknown[] = []): RealmWorldCallApi {
   return async (task) => task({
-    worldCore: {
-      worldCoreControllerGetOasisWorld: async () => ({ ...worldCore, id: 'OASIS', visibility: 'system', creatorId: null }),
-      worldCoreControllerGetWorldCore: async ({ path }: { path: { worldId: string } }) => ({
+    worldPublic: {
+      worldPublicControllerGetWorld: async ({ path }: { path: { worldId: string } }) => ({
         ...worldCore,
         id: path.worldId,
+        type: path.worldId === 'OASIS' ? 'OASIS' : worldCore.type,
+        visibility: path.worldId === 'OASIS' ? 'system' : worldCore.visibility,
       }),
-      worldCoreControllerListWorldCharacters: async () => characters,
-      worldCoreControllerListWorldCores: async () => [worldCore],
+      worldPublicControllerListWorldCharacters: async () => characters,
+      worldPublicControllerListWorlds: async () => [worldCore],
+      worldPublicControllerGetWorldDetailWithCharacters: async ({ path }: { path: { worldId: string } }) => ({
+        world: {
+          ...worldCore,
+          id: path.worldId,
+        },
+        sources: {
+          characters,
+          personas: [],
+        },
+      }),
     },
   } as never);
 }
@@ -165,7 +143,7 @@ async function assertRejectsWithReasonCode(
   );
 }
 
-test('loadMainWorld projects nested WorldCore identity and active display state', async () => {
+test('loadMainWorld projects public OASIS identity and discoverable display state', async () => {
   const errors: RealmWorldDataError[] = [];
 
   const result = await loadMainWorld(
@@ -177,24 +155,24 @@ test('loadMainWorld projects nested WorldCore identity and active display state'
   assert.equal(result.name, 'Song Continuum');
   assert.equal(result.description, 'A slow-time alternate Song dynasty world.');
   assert.equal(result.type, 'OASIS');
-  assert.equal(result.status, 'ACTIVE');
+  assert.equal(result.status, 'DISCOVERABLE');
   assert.equal(result.characterCount, 1);
   assert.equal(errors.length, 0);
 });
 
-test('loadMainWorld fails close on non-object WorldCore payloads', async () => {
+test('loadMainWorld fails close on non-object public world payloads', async () => {
   const errors: RealmWorldDataError[] = [];
 
   await assertRejectsWithReasonCode(
     () => loadMainWorld(
       async (task) => task({
-        worldCore: {
-          worldCoreControllerGetOasisWorld: async () => 'not-an-object',
+        worldPublic: {
+          worldPublicControllerGetWorld: async () => 'not-an-object',
         },
       } as never),
       createEmitter(errors),
     ),
-    'SDK_REALM_WORLD_CORE_CONTRACT_INVALID',
+    'SDK_REALM_WORLD_PUBLIC_CONTRACT_INVALID',
   );
 
   assert.equal(errors.length, 1);
@@ -225,7 +203,7 @@ test('loadMainWorld still falls back to cached world metadata for offline errors
   assert.equal(result.id, 'cached-world');
 });
 
-test('loadWorldCharacters projects nested WorldCharacterCore rows', async () => {
+test('loadWorldCharacters projects public source cards', async () => {
   const errors: RealmWorldDataError[] = [];
 
   const result = await loadWorldCharacters(
@@ -237,16 +215,16 @@ test('loadWorldCharacters projects nested WorldCharacterCore rows', async () => 
   assert.equal(result[0]?.id, 'character-1');
   assert.equal(result[0]?.name, 'Song Steward');
   assert.equal(result[0]?.bio, 'Keeps the archive coherent.');
+  assert.equal(result[0]?.sourceKind, 'worldCharacter');
   assert.deepEqual(result[0]?.sourceRef, {
     kind: 'worldCharacter',
     worldId: 'world-1',
     sourceId: 'character-1',
-    sourceContentHash: 'hash-character-1',
   });
   assert.equal(errors.length, 0);
 });
 
-test('loadWorldCharacters fails close on invalid WorldCharacterCore rows', async () => {
+test('loadWorldCharacters fails close on invalid public source rows', async () => {
   const errors: RealmWorldDataError[] = [];
 
   await assertRejectsWithReasonCode(
@@ -255,14 +233,14 @@ test('loadWorldCharacters fails close on invalid WorldCharacterCore rows', async
       createEmitter(errors),
       'world-1',
     ),
-    'SDK_REALM_WORLD_CHARACTER_CORE_CONTRACT_INVALID',
+    'SDK_REALM_WORLD_PUBLIC_SOURCE_CONTRACT_INVALID',
   );
 
   assert.equal(errors.length, 1);
   assert.equal(errors[0]!.action, 'load-world-characters');
 });
 
-test('loadWorldDetailWithCharacters projects detail and preserves full character count before display slicing', async () => {
+test('loadWorldDetailWithCharacters projects detail and preserves full source count', async () => {
   const errors: RealmWorldDataError[] = [];
 
   const result = await loadWorldDetailWithCharacters(
@@ -277,31 +255,31 @@ test('loadWorldDetailWithCharacters projects detail and preserves full character
 
   assert.equal(result?.id, 'world-1');
   assert.equal(result?.characterCount, 2);
-  assert.equal(result?.characters.length, 1);
+  assert.equal(result?.characters.length, 2);
   assert.equal(errors.length, 0);
 });
 
-test('loadWorldDetailById fails close when the WorldCore id does not match the request', async () => {
+test('loadWorldDetailById fails close when the public world id does not match the request', async () => {
   const errors: RealmWorldDataError[] = [];
 
   await assertRejectsWithReasonCode(
     () => loadWorldDetailById(
       async (task) => task({
-        worldCore: {
-          worldCoreControllerGetWorldCore: async () => worldCorePayload({ id: 'world-2' }),
+        worldPublic: {
+          worldPublicControllerGetWorld: async () => worldCorePayload({ id: 'world-2' }),
         },
       } as never),
       createEmitter(errors),
       'world-1',
     ),
-    'SDK_REALM_WORLD_CORE_ID_MISMATCH',
+    'SDK_REALM_WORLD_PUBLIC_ID_MISMATCH',
   );
 
   assert.equal(errors.length, 1);
   assert.equal(errors[0]!.action, 'load-world-detail');
 });
 
-test('loadWorldHistory reads WorldCore.timeline.events', async () => {
+test('loadWorldHistory reads public world timeline summaries', async () => {
   const errors: RealmWorldDataError[] = [];
 
   const result = await loadWorldHistory(
@@ -310,35 +288,26 @@ test('loadWorldHistory reads WorldCore.timeline.events', async () => {
     'world-1',
   );
 
-  assert.equal(result.items[0]?.eventId, 'song-foundation');
+  assert.equal(result.items[0]?.title, 'Foundation');
   assert.equal(errors.length, 0);
 });
 
-test('loadWorldAssets reads WorldCore.assets without synthetic fallback', async () => {
+test('loadWorldAssets projects URL-ready public world media without synthetic fallback', async () => {
   const errors: RealmWorldDataError[] = [];
 
   const result = await loadWorldAssets(
-    createWorldCallApi(worldCorePayload({
-      core: {
-        ...(worldCorePayload().core as Record<string, unknown>),
-        assets: {
-          resourceRefs: [{ refId: 'resource-1', kind: 'image', purpose: 'banner' }],
-          externalRefs: [{ refId: 'external-1', kind: 'image', uri: 'https://example.com/cover.png' }],
-          intents: [{ intentId: 'intent-1', kind: 'reference-image', summary: 'Cover image' }],
-        },
-      },
-    })),
+    createWorldCallApi(worldCorePayload()),
     createEmitter(errors),
     'world-1',
   );
 
-  assert.equal(result.resourceRefs[0]?.refId, 'resource-1');
-  assert.equal(result.externalRefs[0]?.uri, 'https://example.com/cover.png');
-  assert.equal(result.intents[0]?.intentId, 'intent-1');
+  assert.equal(result.resourceRefs.length, 0);
+  assert.equal(result.externalRefs[0]?.uri, 'https://cdn.example.com/song-icon.png');
+  assert.equal(result.intents.length, 0);
   assert.equal(errors.length, 0);
 });
 
-test('loadWorldSemanticBundle projects WorldCore.core as the semantic source', async () => {
+test('loadWorldSemanticBundle projects public world setting as the semantic source', async () => {
   const errors: RealmWorldDataError[] = [];
 
   const result = await loadWorldSemanticBundle(
@@ -347,8 +316,8 @@ test('loadWorldSemanticBundle projects WorldCore.core as the semantic source', a
     'world-1',
   );
 
-  const record = result as { identity?: { name?: unknown }; timeModel?: { flowRatio?: unknown } };
-  assert.equal(record.identity?.name, 'Song Continuum');
+  const record = result as { operation?: { title?: unknown }; timeModel?: { flowRatio?: unknown } };
+  assert.equal(record.operation?.title, 'Song Continuum');
   assert.equal(record.timeModel?.flowRatio, 0.125);
   assert.equal(errors.length, 0);
 });

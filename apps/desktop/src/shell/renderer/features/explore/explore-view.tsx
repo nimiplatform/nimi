@@ -23,24 +23,12 @@ import {
 
 type PostDto = RealmModel<'PostDto'>;
 
-type WorldBanner = {
-  id: string;
-  name: string;
-  bannerUrl: string | null;
-  type: string;
-  tagline: string | null;
-  eraLabel: string | null;
-  currentLabel: string | null;
-  flowRatio: number | null;
-  characterCount: number | null;
-};
-
 type ExploreViewProps = {
   selectedCategory: string | null;
   categories: string[];
   personaSources: ExplorePersonaSourceCardData[];
-  worldBanners: WorldBanner[];
   worldCatalogItems: WorldListItem[];
+  worldSearchText: string;
   worldsLoading: boolean;
   worldsError: boolean;
   activeSection: ExploreSectionId;
@@ -54,241 +42,11 @@ type ExploreViewProps = {
   onPersonaSourceOpen?: (sourceId: string) => void;
   onPostAuthorOpen?: (target: PostCardAuthorProfileTarget) => void;
   onWorldOpen?: (worldId: string) => void;
+  onWorldSearchTextChange: (value: string) => void;
 };
 
 function ExploreSkeletonBlock({ className }: { className: string }) {
   return <div className={`animate-pulse rounded-3xl bg-[color-mix(in_srgb,var(--nimi-surface-card)_86%,white)] ${className}`} />;
-}
-
-function formatCount(value: number): string {
-  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
-  if (value >= 1_000) return `${(value / 1_000).toFixed(1).replace(/\.0$/, '')}k`;
-  return String(value);
-}
-
-function StatCell({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex min-w-[88px] flex-col gap-1 px-3 text-center">
-      <span
-        style={{
-          fontFamily: 'var(--nimi-font-mono)',
-          fontSize: 9,
-          fontWeight: 600,
-          letterSpacing: '0.14em',
-          textTransform: 'uppercase',
-          color: 'color-mix(in srgb, var(--nimi-fg-inverse) 68%, transparent)',
-        }}
-      >
-        {label}
-      </span>
-      <span
-        className="truncate"
-        style={{
-          fontFamily: 'var(--nimi-font-mono)',
-          fontSize: 18,
-          fontWeight: 600,
-          letterSpacing: '-0.01em',
-          color: 'var(--nimi-fg-inverse)',
-          fontVariantNumeric: 'tabular-nums',
-        }}
-      >
-        {value}
-      </span>
-    </div>
-  );
-}
-
-function StatDivider() {
-  return (
-    <div
-      aria-hidden
-      className="self-stretch"
-      style={{
-        width: 1,
-        background: 'color-mix(in srgb, var(--nimi-fg-inverse) 22%, transparent)',
-      }}
-    />
-  );
-}
-
-// Featured-world hero. Lives inside the Worlds section per D-EXPL-002: it is a
-// World discovery affordance, not a standalone surface.
-function FeaturedWorldHero({
-  currentBanner,
-  onWorldOpen,
-}: {
-  currentBanner: WorldBanner;
-  onWorldOpen?: (worldId: string) => void;
-}) {
-  const { t } = useTranslation();
-  return (
-    <section className="relative mb-8" data-testid="explore-featured-world">
-      <div
-        role="button"
-        tabIndex={0}
-        onClick={() => onWorldOpen?.(currentBanner.id)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            onWorldOpen?.(currentBanner.id);
-          }
-        }}
-        className="relative h-[360px] cursor-pointer overflow-hidden rounded-3xl"
-        style={{
-          boxShadow: 'var(--nimi-elevation-floating)',
-          border: '1px solid var(--nimi-border-subtle)',
-        }}
-      >
-        <div className="absolute inset-0">
-          {currentBanner.bannerUrl ? (
-            <img
-              src={currentBanner.bannerUrl}
-              alt={currentBanner.name}
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <div className="h-full w-full" style={{ background: 'var(--nimi-surface-hero)' }} />
-          )}
-        </div>
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0"
-          style={{
-            background: 'linear-gradient(100deg, rgba(8,6,28,0.75) 0%, rgba(8,6,28,0.45) 38%, rgba(8,6,28,0.15) 70%, transparent 100%)',
-          }}
-        />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0"
-          style={{
-            background: 'linear-gradient(180deg, transparent 55%, rgba(8,6,28,0.55) 100%)',
-          }}
-        />
-        <div
-          className="absolute left-5 top-5 inline-flex items-center gap-2 rounded-full px-3 py-1.5 nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]"
-          style={{
-            background: 'color-mix(in srgb, var(--nimi-fg-inverse) 14%, transparent)',
-            border: '1px solid color-mix(in srgb, var(--nimi-fg-inverse) 28%, transparent)',
-          }}
-        >
-          <span className="desktop-world-pulse-dot" />
-          <span
-            style={{
-              fontFamily: 'var(--nimi-font-mono)',
-              fontSize: 10,
-              fontWeight: 600,
-              letterSpacing: '0.14em',
-              textTransform: 'uppercase',
-              color: 'var(--nimi-fg-inverse)',
-            }}
-          >
-            {t('Explore.featuredWorldLive', { defaultValue: 'Featured world · Live' })}
-          </span>
-        </div>
-        {currentBanner.currentLabel && (
-          <div
-            className="absolute right-5 top-5 inline-flex items-center rounded-full px-3 py-1.5 nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]"
-            style={{
-              background: 'color-mix(in srgb, var(--nimi-fg-inverse) 14%, transparent)',
-              border: '1px solid color-mix(in srgb, var(--nimi-fg-inverse) 28%, transparent)',
-              fontFamily: 'var(--nimi-font-mono)',
-              fontSize: 11,
-              fontWeight: 500,
-              letterSpacing: '0.02em',
-              color: 'var(--nimi-fg-inverse)',
-            }}
-          >
-            {currentBanner.currentLabel}
-          </div>
-        )}
-        <div className="absolute left-20 top-[110px] z-[1] max-w-[58%]">
-          {currentBanner.eraLabel && (
-            <div
-              className="mb-3"
-              style={{
-                fontFamily: 'var(--nimi-font-mono)',
-                fontSize: 10,
-                fontWeight: 600,
-                letterSpacing: '0.18em',
-                textTransform: 'uppercase',
-                color: 'color-mix(in srgb, var(--nimi-fg-inverse) 72%, transparent)',
-              }}
-            >
-              {currentBanner.eraLabel}
-            </div>
-          )}
-          <h3
-            className="m-0"
-            style={{
-              fontFamily: 'var(--nimi-font-display)',
-              fontSize: 68,
-              fontWeight: 700,
-              letterSpacing: '-0.035em',
-              lineHeight: 1,
-              color: 'var(--nimi-fg-inverse)',
-            }}
-          >
-            {currentBanner.name}
-          </h3>
-        </div>
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onWorldOpen?.(currentBanner.id);
-          }}
-          className="absolute bottom-5 right-5 z-[1] inline-flex items-center gap-2 rounded-full px-4 py-2 transition-colors"
-          style={{
-            fontFamily: 'var(--nimi-font-sans)',
-            fontSize: 13,
-            fontWeight: 600,
-            background: 'var(--nimi-accent)',
-            color: 'var(--nimi-accent-onAccent)',
-            border: '1px solid color-mix(in srgb, var(--nimi-accent) 80%, transparent)',
-            boxShadow: 'var(--nimi-elevation-base)',
-          }}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M5 12h14" />
-            <polyline points="12 5 19 12 12 19" />
-          </svg>
-          {t('Explore.enterWorld', { defaultValue: 'Enter world' })}
-        </button>
-        {(currentBanner.characterCount !== null || currentBanner.flowRatio !== null || currentBanner.eraLabel) && (
-          <div
-            className="absolute bottom-5 left-5 flex items-stretch gap-0 rounded-2xl px-4 py-3 nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]"
-            style={{
-              background: 'color-mix(in srgb, var(--nimi-fg-inverse) 12%, transparent)',
-              border: '1px solid color-mix(in srgb, var(--nimi-fg-inverse) 22%, transparent)',
-            }}
-          >
-            {currentBanner.characterCount !== null && (
-              <StatCell
-                label={t('World.totalPlayers', { defaultValue: 'Inhabitants' })}
-                value={formatCount(currentBanner.characterCount)}
-              />
-            )}
-            {currentBanner.characterCount !== null && (currentBanner.flowRatio !== null || currentBanner.eraLabel) && (
-              <StatDivider />
-            )}
-            {currentBanner.flowRatio !== null && (
-              <StatCell
-                label={t('Explore.statChrono', { defaultValue: 'Chrono' })}
-                value={`${currentBanner.flowRatio.toFixed(currentBanner.flowRatio < 10 ? 1 : 0)}×`}
-              />
-            )}
-            {currentBanner.flowRatio !== null && currentBanner.eraLabel && <StatDivider />}
-            {currentBanner.eraLabel && (
-              <StatCell
-                label={t('Explore.statEra', { defaultValue: 'Era' })}
-                value={currentBanner.eraLabel}
-              />
-            )}
-          </div>
-        )}
-      </div>
-    </section>
-  );
 }
 
 // RealmPersona section: a full browsable discovery grid across Worlds.
@@ -359,9 +117,6 @@ export function ExploreView(props: ExploreViewProps) {
     return () => media.removeEventListener?.('change', updateColumns);
   }, []);
 
-  // Worlds with banners power the featured-world hero inside the Worlds section.
-  const worldsWithBanners = props.worldBanners.filter((w) => w.bannerUrl);
-
   useEffect(() => {
     scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'auto' });
   }, [props.activeSection]);
@@ -407,17 +162,13 @@ export function ExploreView(props: ExploreViewProps) {
         ref={scrollContainerRef}
         className="min-h-0 flex-1"
         viewportClassName="bg-transparent"
-        contentClassName="mx-auto w-full max-w-6xl px-1 py-5"
+        contentClassName={props.activeSection === 'worlds'
+          ? 'w-full px-1 py-5'
+          : 'mx-auto w-full max-w-6xl px-1 py-5'}
         viewportRef={feedScrollRef}
       >
         {props.activeSection === 'worlds' && (
           <section data-testid="explore-worlds-section">
-            {worldsWithBanners[0] && (
-              <FeaturedWorldHero
-                currentBanner={worldsWithBanners[0]}
-                onWorldOpen={props.onWorldOpen}
-              />
-            )}
             {props.worldsLoading ? (
               <WorldsLoadingSkeleton embedded />
             ) : props.worldsError ? (
@@ -426,6 +177,8 @@ export function ExploreView(props: ExploreViewProps) {
               <WorldCatalogContent
                 worlds={props.worldCatalogItems}
                 onOpenWorld={(worldId) => props.onWorldOpen?.(worldId)}
+                searchQuery={props.worldSearchText}
+                onSearchQueryChange={props.onWorldSearchTextChange}
                 embedded
               />
             )}

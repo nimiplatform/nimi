@@ -71,6 +71,7 @@ type MainLayoutPanelStackProps = {
   developerModeEnabled: boolean;
   exploreActiveSection: ExploreSectionId;
   exploreSearchText: string;
+  onExploreSearchTextChange: (value: string) => void;
   homeCreatePostRequestKey: number;
   homeFeedScope: NimiRealmFeedScope;
   runtimeActive: boolean;
@@ -82,6 +83,7 @@ export function MainLayoutPanelStack({
   developerModeEnabled,
   exploreActiveSection,
   exploreSearchText,
+  onExploreSearchTextChange,
   homeCreatePostRequestKey,
   homeFeedScope,
   runtimeActive,
@@ -121,6 +123,7 @@ export function MainLayoutPanelStack({
             <ExplorePanel
               activeSection={exploreActiveSection}
               searchText={exploreSearchText}
+              onSearchTextChange={onExploreSearchTextChange}
             />
           </div>
         ) : null}

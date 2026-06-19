@@ -1,8 +1,10 @@
 import { i18n } from '@renderer/i18n';
 import {
+  connectNimiRealmPublicSource,
   connectNimiRealmSource,
   listNimiRealmSourceConnections,
   type NimiRealmCoreSourceRef,
+  type NimiRealmPublicSourceLocator,
   type NimiRealmSourceConnectionView,
 } from '@nimiplatform/sdk/realm';
 import type { RuntimeSourceSnapshotDto } from '@nimiplatform/sdk/realm/generated';
@@ -95,6 +97,34 @@ export function resolveRealmCoreSourceRef(input: unknown): NimiRealmCoreSourceRe
   return { kind, worldId, sourceId, sourceContentHash };
 }
 
+export function resolveRealmPublicSourceLocator(input: unknown): NimiRealmPublicSourceLocator | null {
+  const record = asRecord(input);
+  if (!record) {
+    return null;
+  }
+
+  const nestedSourceRef = asRecord(record.sourceRef);
+  if (nestedSourceRef) {
+    const kind = normalizeSourceKind(nestedSourceRef.kind);
+    const worldId = normalizeText(nestedSourceRef.worldId);
+    const sourceId = normalizeText(nestedSourceRef.sourceId);
+    if (kind && worldId && sourceId) {
+      return { kind, worldId, sourceId };
+    }
+  }
+
+  const kind = normalizeSourceKind(record.sourceKind ?? record.kind);
+  const sourceId = normalizeText(record.sourceId) || normalizeText(record.id);
+  const worldId = normalizeText(record.sourceWorldId)
+    || normalizeText(record.worldId)
+    || normalizeText(record.homeWorldId);
+
+  if (!kind || !sourceId || !worldId) {
+    return null;
+  }
+  return { kind, worldId, sourceId };
+}
+
 export function realmPersonaSourceConnectionMessage(): string {
   return i18n.t('Explore.realmPersonaSourceConnectionUnavailable', {
     defaultValue: 'This source requires a current hash-bearing sourceRef before it can be connected.',
@@ -130,6 +160,19 @@ export async function connectRealmPersonaSource(input: unknown): Promise<NimiRea
   return callRealmApi(
     (realm) => connectNimiRealmSource(realm, emitRealmDataError, sourceRef),
     'Failed to connect Realm source',
+  );
+}
+
+export async function connectRealmPublicSource(input: unknown): Promise<NimiRealmSourceConnectionView> {
+  const source = resolveRealmPublicSourceLocator(input);
+  if (!source) {
+    throw new Error(i18n.t('Explore.realmPersonaSourceConnectionUnavailable', {
+      defaultValue: 'This source requires a public source locator before it can be connected.',
+    }));
+  }
+  return callRealmApi(
+    (realm) => connectNimiRealmPublicSource(realm, emitRealmDataError, source),
+    'Failed to connect Realm public source',
   );
 }
 

@@ -1,4 +1,4 @@
-import type { Realm, NimiRealmCoreSourceRef } from '@nimiplatform/sdk/realm';
+import type { Realm, NimiRealmPublicSourceLocator } from '@nimiplatform/sdk/realm';
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 import {
   isRealmOfflineErrorLike as isRealmOfflineError,
@@ -8,11 +8,13 @@ import { callRealmApi, emitRealmDataError } from '@renderer/infra/realm/realm-ap
 import { getOfflineCacheManager } from '@renderer/infra/offline/cache-manager';
 import { getOfflineCoordinator } from '@renderer/infra/offline/coordinator';
 
-type WorldCoreDto = RealmModel<'WorldCoreDto'>;
-type WorldCharacterCoreDto = RealmModel<'WorldCharacterCoreDto'>;
+type WorldPublicItemDto = RealmModel<'WorldPublicItemDto'>;
+type WorldPublicDetailDto = RealmModel<'WorldPublicDetailDto'>;
+type WorldPublicDetailWithCharactersDto = RealmModel<'WorldPublicDetailWithCharactersDto'>;
+type WorldPublicSourceCardDto = RealmModel<'WorldPublicSourceCardDto'>;
 
 type CoreRecord = Record<string, unknown>;
-type WorldDetailDto = WorldCoreDto & CoreRecord;
+type WorldDetailDto = CoreRecord;
 type WorldLevelAuditEventDto = CoreRecord;
 type WorldDetailWithCharactersDto = WorldDetailDto & { characters: WorldCharacterSummaryDto[] };
 type WorldCharacterSummaryDto = {
@@ -21,8 +23,15 @@ type WorldCharacterSummaryDto = {
   handle?: string | null;
   bio?: string | null;
   avatarUrl?: string | null;
+  profileCoverUrl?: string | null;
   createdAt?: string;
-  sourceRef: NimiRealmCoreSourceRef;
+  sourceRef: NimiRealmPublicSourceLocator;
+  sourceKind?: 'worldCharacter' | 'realmPersona';
+  ownership?: 'worldOwned' | 'userOwned';
+  relation?: {
+    state: 'connectable' | 'connected' | 'unavailable';
+    connectionId?: string | null;
+  };
   display?: CoreRecord | null;
   stats?: CoreRecord | null;
   importance?: string | null;
@@ -35,7 +44,7 @@ type RealmWorldErrorEmitter = (
   details?: JsonObject,
 ) => void;
 
-export type NimiRealmWorldStatus = WorldCoreDto['visibility'];
+export type NimiRealmWorldStatus = WorldPublicItemDto['visibility'];
 export type WorldSemanticBundle = CoreRecord;
 export type WorldHistoryPayload = { items: WorldLevelAuditEventDto[]; [key: string]: unknown };
 export type WorldSceneListPayload = { items: CoreRecord[]; [key: string]: unknown };
@@ -73,224 +82,12 @@ function requireStringField(record: CoreRecord, field: string, reasonCode: strin
   return value.trim();
 }
 
-function requireNumberField(record: CoreRecord, field: string, reasonCode: string, message: string): number {
-  const value = record[field];
-  if (typeof value !== 'number' || !Number.isFinite(value)) {
-    failRealmWorldContract(reasonCode, message);
-  }
-  return value;
-}
-
-function requireBooleanField(record: CoreRecord, field: string, reasonCode: string, message: string): boolean {
-  const value = record[field];
-  if (typeof value !== 'boolean') {
-    failRealmWorldContract(reasonCode, message);
-  }
-  return value;
-}
-
 function requireArrayField(record: CoreRecord, field: string, reasonCode: string, message: string): unknown[] {
   const value = record[field];
   if (!Array.isArray(value)) {
     failRealmWorldContract(reasonCode, message);
   }
   return value;
-}
-
-function requireCoreSection(core: CoreRecord, section: string, reasonCode: string, family: string): CoreRecord {
-  return requireRecord(
-    core[section],
-    reasonCode,
-    `${family} core is missing ${section} section`,
-  );
-}
-
-function requireWorldCoreDto(value: unknown, expectedWorldId?: string): WorldCoreDto {
-  const record = requireRecord(
-    value,
-    'SDK_REALM_WORLD_CORE_CONTRACT_INVALID',
-    'WorldCore payload must be an object',
-  );
-  const id = requireStringField(
-    record,
-    'id',
-    'SDK_REALM_WORLD_CORE_CONTRACT_INVALID',
-    'WorldCore payload is missing id',
-  );
-  if (expectedWorldId && id !== expectedWorldId) {
-    failRealmWorldContract(
-      'SDK_REALM_WORLD_CORE_ID_MISMATCH',
-      `WorldCore payload id ${id} does not match requested world ${expectedWorldId}`,
-    );
-  }
-  requireStringField(
-    record,
-    'contentHash',
-    'SDK_REALM_WORLD_CORE_CONTRACT_INVALID',
-    'WorldCore payload is missing contentHash',
-  );
-  requireNumberField(
-    record,
-    'contentRevision',
-    'SDK_REALM_WORLD_CORE_CONTRACT_INVALID',
-    'WorldCore payload is missing numeric contentRevision',
-  );
-  requireStringField(
-    record,
-    'schemaVersion',
-    'SDK_REALM_WORLD_CORE_CONTRACT_INVALID',
-    'WorldCore payload is missing schemaVersion',
-  );
-  requireStringField(
-    record,
-    'createdAt',
-    'SDK_REALM_WORLD_CORE_CONTRACT_INVALID',
-    'WorldCore payload is missing createdAt',
-  );
-  requireStringField(
-    record,
-    'updatedAt',
-    'SDK_REALM_WORLD_CORE_CONTRACT_INVALID',
-    'WorldCore payload is missing updatedAt',
-  );
-  const visibility = requireStringField(
-    record,
-    'visibility',
-    'SDK_REALM_WORLD_CORE_CONTRACT_INVALID',
-    'WorldCore payload is missing visibility',
-  );
-  if (!['private', 'unlisted', 'public', 'system'].includes(visibility)) {
-    failRealmWorldContract(
-      'SDK_REALM_WORLD_CORE_CONTRACT_INVALID',
-      `WorldCore payload has invalid visibility ${visibility}`,
-    );
-  }
-  const origin = requireRecord(
-    record.origin,
-    'SDK_REALM_WORLD_CORE_CONTRACT_INVALID',
-    'WorldCore payload is missing origin object',
-  );
-  requireStringField(
-    origin,
-    'kind',
-    'SDK_REALM_WORLD_CORE_CONTRACT_INVALID',
-    'WorldCore origin is missing kind',
-  );
-  const core = requireRecord(
-    record.core,
-    'SDK_REALM_WORLD_CORE_CONTRACT_INVALID',
-    'WorldCore payload is missing core object',
-  );
-  const identity = requireCoreSection(core, 'identity', 'SDK_REALM_WORLD_CORE_CONTRACT_INVALID', 'WorldCore');
-  requireStringField(identity, 'name', 'SDK_REALM_WORLD_CORE_CONTRACT_INVALID', 'WorldCore identity is missing name');
-  requireStringField(identity, 'summary', 'SDK_REALM_WORLD_CORE_CONTRACT_INVALID', 'WorldCore identity is missing summary');
-  requireCoreSection(core, 'presentation', 'SDK_REALM_WORLD_CORE_CONTRACT_INVALID', 'WorldCore');
-  const ontology = requireCoreSection(core, 'ontology', 'SDK_REALM_WORLD_CORE_CONTRACT_INVALID', 'WorldCore');
-  requireArrayField(ontology, 'entityKinds', 'SDK_REALM_WORLD_CORE_CONTRACT_INVALID', 'WorldCore ontology is missing entityKinds');
-  const timeModel = requireCoreSection(core, 'timeModel', 'SDK_REALM_WORLD_CORE_CONTRACT_INVALID', 'WorldCore');
-  requireStringField(timeModel, 'mode', 'SDK_REALM_WORLD_CORE_CONTRACT_INVALID', 'WorldCore timeModel is missing mode');
-  requireNumberField(timeModel, 'flowRatio', 'SDK_REALM_WORLD_CORE_CONTRACT_INVALID', 'WorldCore timeModel is missing flowRatio');
-  requireBooleanField(timeModel, 'isPaused', 'SDK_REALM_WORLD_CORE_CONTRACT_INVALID', 'WorldCore timeModel is missing isPaused');
-  const timeline = requireCoreSection(core, 'timeline', 'SDK_REALM_WORLD_CORE_CONTRACT_INVALID', 'WorldCore');
-  requireArrayField(timeline, 'events', 'SDK_REALM_WORLD_CORE_CONTRACT_INVALID', 'WorldCore timeline is missing events');
-  for (const section of ['entities', 'relationships', 'systems', 'scenes']) {
-    requireArrayField(core, section, 'SDK_REALM_WORLD_CORE_CONTRACT_INVALID', `WorldCore core is missing ${section} array`);
-  }
-  requireCoreSection(core, 'assets', 'SDK_REALM_WORLD_CORE_CONTRACT_INVALID', 'WorldCore');
-  requireCoreSection(core, 'authoring', 'SDK_REALM_WORLD_CORE_CONTRACT_INVALID', 'WorldCore');
-  return value as WorldCoreDto;
-}
-
-function requireWorldCharacterCoreDto(value: unknown, expectedWorldId?: string): WorldCharacterCoreDto {
-  const record = requireRecord(
-    value,
-    'SDK_REALM_WORLD_CHARACTER_CORE_CONTRACT_INVALID',
-    'WorldCharacterCore payload must be an object',
-  );
-  const id = requireStringField(
-    record,
-    'id',
-    'SDK_REALM_WORLD_CHARACTER_CORE_CONTRACT_INVALID',
-    'WorldCharacterCore payload is missing id',
-  );
-  const worldId = requireStringField(
-    record,
-    'worldId',
-    'SDK_REALM_WORLD_CHARACTER_CORE_CONTRACT_INVALID',
-    `WorldCharacterCore ${id} payload is missing worldId`,
-  );
-  if (expectedWorldId && worldId !== expectedWorldId) {
-    failRealmWorldContract(
-      'SDK_REALM_WORLD_CHARACTER_CORE_WORLD_MISMATCH',
-      `WorldCharacterCore ${id} worldId ${worldId} does not match requested world ${expectedWorldId}`,
-    );
-  }
-  requireStringField(
-    record,
-    'contentHash',
-    'SDK_REALM_WORLD_CHARACTER_CORE_CONTRACT_INVALID',
-    `WorldCharacterCore ${id} payload is missing contentHash`,
-  );
-  requireNumberField(
-    record,
-    'contentRevision',
-    'SDK_REALM_WORLD_CHARACTER_CORE_CONTRACT_INVALID',
-    `WorldCharacterCore ${id} payload is missing numeric contentRevision`,
-  );
-  requireStringField(
-    record,
-    'schemaVersion',
-    'SDK_REALM_WORLD_CHARACTER_CORE_CONTRACT_INVALID',
-    `WorldCharacterCore ${id} payload is missing schemaVersion`,
-  );
-  requireStringField(
-    record,
-    'createdAt',
-    'SDK_REALM_WORLD_CHARACTER_CORE_CONTRACT_INVALID',
-    `WorldCharacterCore ${id} payload is missing createdAt`,
-  );
-  requireStringField(
-    record,
-    'updatedAt',
-    'SDK_REALM_WORLD_CHARACTER_CORE_CONTRACT_INVALID',
-    `WorldCharacterCore ${id} payload is missing updatedAt`,
-  );
-  const origin = requireRecord(
-    record.origin,
-    'SDK_REALM_WORLD_CHARACTER_CORE_CONTRACT_INVALID',
-    `WorldCharacterCore ${id} payload is missing origin object`,
-  );
-  requireStringField(
-    origin,
-    'kind',
-    'SDK_REALM_WORLD_CHARACTER_CORE_CONTRACT_INVALID',
-    `WorldCharacterCore ${id} origin is missing kind`,
-  );
-  const core = requireRecord(
-    record.core,
-    'SDK_REALM_WORLD_CHARACTER_CORE_CONTRACT_INVALID',
-    'WorldCharacterCore payload is missing core object',
-  );
-  const identity = requireCoreSection(core, 'identity', 'SDK_REALM_WORLD_CHARACTER_CORE_CONTRACT_INVALID', `WorldCharacterCore ${id}`);
-  requireStringField(identity, 'name', 'SDK_REALM_WORLD_CHARACTER_CORE_CONTRACT_INVALID', `WorldCharacterCore ${id} identity is missing name`);
-  requireStringField(identity, 'summary', 'SDK_REALM_WORLD_CHARACTER_CORE_CONTRACT_INVALID', `WorldCharacterCore ${id} identity is missing summary`);
-  const presentation = requireCoreSection(core, 'presentation', 'SDK_REALM_WORLD_CHARACTER_CORE_CONTRACT_INVALID', `WorldCharacterCore ${id}`);
-  requireStringField(presentation, 'displayName', 'SDK_REALM_WORLD_CHARACTER_CORE_CONTRACT_INVALID', `WorldCharacterCore ${id} presentation is missing displayName`);
-  requireStringField(presentation, 'shortBio', 'SDK_REALM_WORLD_CHARACTER_CORE_CONTRACT_INVALID', `WorldCharacterCore ${id} presentation is missing shortBio`);
-  const placement = requireCoreSection(core, 'placement', 'SDK_REALM_WORLD_CHARACTER_CORE_CONTRACT_INVALID', `WorldCharacterCore ${id}`);
-  const placementWorldId = requireStringField(placement, 'worldId', 'SDK_REALM_WORLD_CHARACTER_CORE_CONTRACT_INVALID', `WorldCharacterCore ${id} placement is missing worldId`);
-  if (placementWorldId !== worldId) {
-    failRealmWorldContract(
-      'SDK_REALM_WORLD_CHARACTER_CORE_WORLD_MISMATCH',
-      `WorldCharacterCore ${id} placement.worldId ${placementWorldId} does not match payload worldId ${worldId}`,
-    );
-  }
-  requireArrayField(placement, 'sceneRefs', 'SDK_REALM_WORLD_CHARACTER_CORE_CONTRACT_INVALID', `WorldCharacterCore ${id} placement is missing sceneRefs`);
-  for (const section of ['biography', 'psychology', 'knowledge', 'capabilities', 'interactionProfile', 'assets', 'authoring']) {
-    requireCoreSection(core, section, 'SDK_REALM_WORLD_CHARACTER_CORE_CONTRACT_INVALID', `WorldCharacterCore ${id}`);
-  }
-  requireArrayField(core, 'relationships', 'SDK_REALM_WORLD_CHARACTER_CORE_CONTRACT_INVALID', `WorldCharacterCore ${id} core is missing relationships array`);
-  return value as WorldCharacterCoreDto;
 }
 
 function readString(record: CoreRecord, ...keys: string[]): string | null {
@@ -318,10 +115,6 @@ function readArray<T = unknown>(record: CoreRecord, key: string): T[] {
   return Array.isArray(value) ? [...value] as T[] : [];
 }
 
-function readNestedArray<T = unknown>(record: CoreRecord, key: string, nestedKey: string): T[] {
-  return readArray<T>(asRecord(record[key]), nestedKey);
-}
-
 function readBoolean(record: CoreRecord, ...keys: string[]): boolean | null {
   for (const key of keys) {
     const value = record[key];
@@ -332,197 +125,405 @@ function readBoolean(record: CoreRecord, ...keys: string[]): boolean | null {
   return null;
 }
 
-function normalizeCoreEnum(value: unknown): string | null {
-  return typeof value === 'string' && value.trim()
-    ? value.trim().replace(/[-\s]+/g, '_').toUpperCase()
-    : null;
-}
-
-function readExternalAssetUri(payload: CoreRecord, ...kinds: string[]): string | null {
-  const assets = asRecord(payload.assets);
-  const refs = readArray<CoreRecord>(assets, 'externalRefs');
-  for (const ref of refs) {
-    const kind = readString(asRecord(ref), 'kind');
-    if (kind && kinds.includes(kind)) {
-      const uri = readString(asRecord(ref), 'uri');
-      if (uri) return uri;
-    }
+function requireWorldPublicItemDto(value: unknown, expectedWorldId?: string): WorldPublicItemDto {
+  const record = requireRecord(
+    value,
+    'SDK_REALM_WORLD_PUBLIC_CONTRACT_INVALID',
+    'World public payload must be an object',
+  );
+  const id = requireStringField(
+    record,
+    'id',
+    'SDK_REALM_WORLD_PUBLIC_CONTRACT_INVALID',
+    'World public payload is missing id',
+  );
+  if (expectedWorldId && id !== expectedWorldId) {
+    failRealmWorldContract(
+      'SDK_REALM_WORLD_PUBLIC_ID_MISMATCH',
+      `World public payload id ${id} does not match requested world ${expectedWorldId}`,
+    );
   }
-  return null;
+  requireStringField(
+    record,
+    'name',
+    'SDK_REALM_WORLD_PUBLIC_CONTRACT_INVALID',
+    `World public payload ${id} is missing name`,
+  );
+  requireStringField(
+    record,
+    'summary',
+    'SDK_REALM_WORLD_PUBLIC_CONTRACT_INVALID',
+    `World public payload ${id} is missing summary`,
+  );
+  const type = requireStringField(
+    record,
+    'type',
+    'SDK_REALM_WORLD_PUBLIC_CONTRACT_INVALID',
+    `World public payload ${id} is missing type`,
+  );
+  if (!['OASIS', 'CREATOR'].includes(type)) {
+    failRealmWorldContract(
+      'SDK_REALM_WORLD_PUBLIC_CONTRACT_INVALID',
+      `World public payload ${id} has invalid type ${type}`,
+    );
+  }
+  const visibility = requireStringField(
+    record,
+    'visibility',
+    'SDK_REALM_WORLD_PUBLIC_CONTRACT_INVALID',
+    `World public payload ${id} is missing visibility`,
+  );
+  if (!['public', 'system'].includes(visibility)) {
+    failRealmWorldContract(
+      'SDK_REALM_WORLD_PUBLIC_CONTRACT_INVALID',
+      `World public payload ${id} has invalid visibility ${visibility}`,
+    );
+  }
+  requireRecord(
+    record.media,
+    'SDK_REALM_WORLD_PUBLIC_CONTRACT_INVALID',
+    `World public payload ${id} is missing media`,
+  );
+  requireRecord(
+    record.stats,
+    'SDK_REALM_WORLD_PUBLIC_CONTRACT_INVALID',
+    `World public payload ${id} is missing stats`,
+  );
+  requireRecord(
+    record.time,
+    'SDK_REALM_WORLD_PUBLIC_CONTRACT_INVALID',
+    `World public payload ${id} is missing time`,
+  );
+  requireStringField(
+    record,
+    'createdAt',
+    'SDK_REALM_WORLD_PUBLIC_CONTRACT_INVALID',
+    `World public payload ${id} is missing createdAt`,
+  );
+  requireStringField(
+    record,
+    'updatedAt',
+    'SDK_REALM_WORLD_PUBLIC_CONTRACT_INVALID',
+    `World public payload ${id} is missing updatedAt`,
+  );
+  return value as WorldPublicItemDto;
 }
 
-function resolveWorldType(core: WorldCoreDto, payload: CoreRecord): 'OASIS' | 'CREATOR' {
-  const identity = asRecord(payload.identity);
-  const origin = asRecord(core.origin);
-  const candidates = [
-    core.id,
-    core.visibility,
-    origin.kind,
-    readString(identity, 'worldType', 'type'),
-    readString(payload, 'worldType', 'type'),
-  ].map(normalizeCoreEnum);
-  return candidates.some((candidate) => candidate === 'OASIS' || candidate === 'SYSTEM' || candidate === 'SYSTEM_DEFAULT')
-    ? 'OASIS'
-    : 'CREATOR';
+function requireWorldPublicDetailDto(value: unknown, expectedWorldId?: string): WorldPublicDetailDto {
+  requireWorldPublicItemDto(value, expectedWorldId);
+  const record = value as CoreRecord;
+  for (const field of ['rules', 'systems', 'scenes', 'timeline']) {
+    requireArrayField(
+      record,
+      field,
+      'SDK_REALM_WORLD_PUBLIC_CONTRACT_INVALID',
+      `World public detail is missing ${field}`,
+    );
+  }
+  return value as WorldPublicDetailDto;
 }
 
-function resolveWorldStatus(_core: WorldCoreDto, _payload: CoreRecord): 'ACTIVE' {
-  // WorldCore.visibility is an access scope, not an authoring lifecycle state.
-  // Lifecycle/readiness belongs to source read models, not canonical WorldCoreV1.
-  return 'ACTIVE';
-}
-
-function countWorldCharacterEntities(payload: CoreRecord): number {
-  return readArray<CoreRecord>(payload, 'entities').filter((entry) => {
-    const kind = readString(asRecord(entry), 'kind', 'entityKind', 'type');
-    return kind === 'worldCharacter' || normalizeCoreEnum(kind) === 'WORLD_CHARACTER';
-  }).length;
-}
-
-function buildWorldComputed(payload: CoreRecord, characterCount: number): CoreRecord {
-  const timeModel = asRecord(payload.timeModel);
-
-  return {
-    time: {
-      currentWorldTime: readString(timeModel, 'currentWorldTime', 'currentTime') ?? null,
-      currentLabel: readString(timeModel, 'currentLabel', 'currentTimeLabel') ?? null,
-      eraLabel: readString(timeModel, 'eraLabel', 'era') ?? null,
-      flowRatio: readNumber(timeModel, 'flowRatio') ?? 1,
-      isPaused: readBoolean(timeModel, 'isPaused') ?? false,
-    },
-    languages: {
-      primary: null,
-      common: [],
-    },
-    entry: {
-      recommendedCharacters: [],
-    },
-    score: {
-      scoreEwma: 0,
-    },
-    featuredCharacterCount: characterCount,
-  };
-}
-
-function projectWorldCore(core: WorldCoreDto): WorldDetailDto {
-  const payload = asRecord(core.core);
-  const identity = asRecord(payload.identity);
-  const presentation = asRecord(payload.presentation);
-  const timeModel = asRecord(payload.timeModel);
-  const characterCount = countWorldCharacterEntities(payload);
-  const worldType = resolveWorldType(core, payload);
-  return {
-    ...core,
-    id: core.id,
-    name: readString(presentation, 'displayName', 'title')
-      ?? requireStringField(identity, 'name', 'SDK_REALM_WORLD_CORE_CONTRACT_INVALID', `WorldCore ${core.id} identity is missing name`),
-    description: readString(identity, 'summary')
-      ?? requireStringField(identity, 'summary', 'SDK_REALM_WORLD_CORE_CONTRACT_INVALID', `WorldCore ${core.id} identity is missing summary`),
-    tagline: readString(presentation, 'tagline')
-      ?? readString(identity, 'tagline')
-      ?? null,
-    motto: null,
-    overview: null,
-    contentRating: null,
-    genre: readString(identity, 'genre'),
-    themes: readArray<string>(identity, 'themes').filter((item) => typeof item === 'string'),
-    era: readString(identity, 'era') ?? readString(timeModel, 'era', 'eraLabel') ?? null,
-    iconUrl: readString(presentation, 'iconResourceRef') ?? readExternalAssetUri(payload, 'icon') ?? null,
-    bannerUrl: readString(presentation, 'bannerResourceRef') ?? readExternalAssetUri(payload, 'banner') ?? null,
-    type: worldType,
-    status: resolveWorldStatus(core, payload),
-    level: 1,
-    levelUpdatedAt: null,
-    characterCount,
-    createdAt: core.createdAt,
-    updatedAt: core.updatedAt,
-    creatorId: core.creatorId ?? null,
-    freezeReason: null,
-    lorebookEntryLimit: 0,
-    nativeCharacterLimit: 0,
-    nativeCreationState: 'OPEN',
-    scoreA: 0,
-    scoreC: 0,
-    scoreE: 0,
-    scoreEwma: 0,
-    scoreQ: 0,
-    transitInLimit: 0,
-    computed: buildWorldComputed(payload, characterCount),
-    core: payload,
-  };
-}
-
-function projectWorldCharacter(character: WorldCharacterCoreDto): WorldCharacterSummaryDto {
-  const payload = asRecord(character.core);
-  const identity = asRecord(payload.identity);
-  const presentation = asRecord(payload.presentation);
-  const placement = asRecord(payload.placement);
-  const stats = asRecord(payload.stats);
-  const sourceRef: NimiRealmCoreSourceRef = {
-    kind: 'worldCharacter',
-    worldId: character.worldId,
-    sourceId: character.id,
-    sourceContentHash: character.contentHash,
-  };
-  return {
-    id: character.id,
-    name: readString(presentation, 'displayName')
-      ?? readString(identity, 'name')
-      ?? character.id,
-    handle: null,
-    bio: readString(presentation, 'shortBio')
-      ?? readString(identity, 'summary')
-      ?? null,
-    avatarUrl: readString(presentation, 'avatarResourceRef')
-      ?? readExternalAssetUri(payload, 'avatar', 'referenceImage'),
-    createdAt: character.createdAt,
+function requireWorldPublicSourceCardDto(value: unknown, expectedWorldId: string): WorldPublicSourceCardDto {
+  const record = requireRecord(
+    value,
+    'SDK_REALM_WORLD_PUBLIC_SOURCE_CONTRACT_INVALID',
+    'World public source card must be an object',
+  );
+  const id = requireStringField(
+    record,
+    'id',
+    'SDK_REALM_WORLD_PUBLIC_SOURCE_CONTRACT_INVALID',
+    'World public source card is missing id',
+  );
+  const worldId = requireStringField(
+    record,
+    'worldId',
+    'SDK_REALM_WORLD_PUBLIC_SOURCE_CONTRACT_INVALID',
+    `World public source ${id} is missing worldId`,
+  );
+  if (worldId !== expectedWorldId) {
+    failRealmWorldContract(
+      'SDK_REALM_WORLD_PUBLIC_SOURCE_WORLD_MISMATCH',
+      `World public source ${id} worldId ${worldId} does not match requested world ${expectedWorldId}`,
+    );
+  }
+  requireStringField(
+    record,
+    'displayName',
+    'SDK_REALM_WORLD_PUBLIC_SOURCE_CONTRACT_INVALID',
+    `World public source ${id} is missing displayName`,
+  );
+  requireStringField(
+    record,
+    'summary',
+    'SDK_REALM_WORLD_PUBLIC_SOURCE_CONTRACT_INVALID',
+    `World public source ${id} is missing summary`,
+  );
+  const sourceKind = requireStringField(
+    record,
+    'sourceKind',
+    'SDK_REALM_WORLD_PUBLIC_SOURCE_CONTRACT_INVALID',
+    `World public source ${id} is missing sourceKind`,
+  );
+  if (!['worldCharacter', 'realmPersona'].includes(sourceKind)) {
+    failRealmWorldContract(
+      'SDK_REALM_WORLD_PUBLIC_SOURCE_CONTRACT_INVALID',
+      `World public source ${id} has invalid sourceKind ${sourceKind}`,
+    );
+  }
+  requireRecord(
+    record.sourceRef,
+    'SDK_REALM_WORLD_PUBLIC_SOURCE_CONTRACT_INVALID',
+    `World public source ${id} is missing sourceRef`,
+  );
+  const sourceRef = asRecord(record.sourceRef);
+  requireStringField(
     sourceRef,
-    display: {
-      role: readString(presentation, 'role') ?? null,
-      faction: readString(presentation, 'faction') ?? null,
-      rank: readString(presentation, 'rank') ?? null,
-      sceneName: readString(placement, 'sceneName') ?? null,
-      location: readString(placement, 'location') ?? null,
+    'kind',
+    'SDK_REALM_WORLD_PUBLIC_SOURCE_CONTRACT_INVALID',
+    `World public source ${id} is missing sourceRef.kind`,
+  );
+  requireStringField(
+    sourceRef,
+    'worldId',
+    'SDK_REALM_WORLD_PUBLIC_SOURCE_CONTRACT_INVALID',
+    `World public source ${id} is missing sourceRef.worldId`,
+  );
+  requireStringField(
+    sourceRef,
+    'sourceId',
+    'SDK_REALM_WORLD_PUBLIC_SOURCE_CONTRACT_INVALID',
+    `World public source ${id} is missing sourceRef.sourceId`,
+  );
+  requireRecord(
+    record.media,
+    'SDK_REALM_WORLD_PUBLIC_SOURCE_CONTRACT_INVALID',
+    `World public source ${id} is missing media`,
+  );
+  requireRecord(
+    record.relation,
+    'SDK_REALM_WORLD_PUBLIC_SOURCE_CONTRACT_INVALID',
+    `World public source ${id} is missing relation`,
+  );
+  return value as WorldPublicSourceCardDto;
+}
+
+function projectWorldPublicItem(world: WorldPublicItemDto): WorldDetailDto {
+  const media = asRecord(world.media);
+  const stats = asRecord(world.stats);
+  const time = asRecord(world.time);
+  const tags = Array.isArray(world.tags)
+    ? world.tags.filter((item): item is string => typeof item === 'string')
+    : [];
+  return {
+    id: world.id,
+    name: world.name,
+    summary: world.summary,
+    description: world.summary,
+    tagline: world.tagline ?? null,
+    type: world.type,
+    visibility: world.visibility,
+    tags,
+    themes: tags,
+    genre: tags[0] ?? null,
+    iconUrl: readString(media, 'iconUrl'),
+    bannerUrl: readString(media, 'bannerUrl') ?? readString(media, 'heroUrl'),
+    heroUrl: readString(media, 'heroUrl'),
+    highlightUrls: readArray<string>(media, 'highlightUrls').filter((item) => typeof item === 'string'),
+    status: 'DISCOVERABLE',
+    characterCount: readNumber(stats, 'characterCount') ?? 0,
+    personaCount: readNumber(stats, 'personaCount') ?? 0,
+    sceneCount: readNumber(stats, 'sceneCount') ?? 0,
+    systemCount: readNumber(stats, 'systemCount') ?? 0,
+    timelineEventCount: readNumber(stats, 'timelineEventCount') ?? 0,
+    media: world.media,
+    stats: world.stats,
+    time: world.time,
+    computed: {
+      time: {
+        currentWorldTime: readString(time, 'currentWorldTime'),
+        currentLabel: readString(time, 'currentWorldTimeDisplay'),
+        eraLabel: readString(time, 'anchorWorldStartedAtDisplay'),
+        flowRatio: readNumber(time, 'flowRatio') ?? 1,
+        isPaused: readBoolean(time, 'isPaused') ?? false,
+      },
+      languages: {
+        primary: null,
+        common: [],
+      },
+      entry: {
+        recommendedCharacters: [],
+      },
+      score: {
+        scoreEwma: 0,
+      },
+      featuredCharacterCount: readNumber(stats, 'characterCount') ?? 0,
     },
-    stats: Object.keys(stats).length > 0 ? stats : null,
-    importance: readString(presentation, 'importance') ?? null,
+    createdAt: world.createdAt,
+    updatedAt: world.updatedAt,
+    creatorId: null,
+  };
+}
+
+function projectWorldPublicDetail(world: WorldPublicDetailDto): WorldDetailDto {
+  return {
+    ...projectWorldPublicItem(world),
+    rules: readArray<string>(world as unknown as CoreRecord, 'rules').filter((item) => typeof item === 'string'),
+    systems: readArray<string>(world as unknown as CoreRecord, 'systems').filter((item) => typeof item === 'string'),
+    scenes: readArray<string>(world as unknown as CoreRecord, 'scenes').filter((item) => typeof item === 'string'),
+    timeline: readArray<string>(world as unknown as CoreRecord, 'timeline').filter((item) => typeof item === 'string'),
+  };
+}
+
+function projectWorldPublicSourceCard(source: WorldPublicSourceCardDto): WorldCharacterSummaryDto {
+  const media = asRecord(source.media);
+  const relation = asRecord(source.relation);
+  const sourceRef = source.sourceRef as unknown as NimiRealmPublicSourceLocator;
+  return {
+    id: source.id,
+    name: source.displayName,
+    handle: source.handle ?? null,
+    bio: source.summary,
+    avatarUrl: readString(media, 'avatarUrl'),
+    profileCoverUrl: readString(media, 'profileCoverUrl'),
+    createdAt: source.updatedAt,
+    sourceRef,
+    sourceKind: source.sourceKind,
+    ownership: source.ownership,
+    relation: {
+      state: readString(relation, 'state') === 'connected'
+        ? 'connected'
+        : readString(relation, 'state') === 'unavailable'
+          ? 'unavailable'
+          : 'connectable',
+      connectionId: readString(relation, 'connectionId'),
+    },
+    display: {
+      role: source.role ?? null,
+      tags: Array.isArray(source.tags)
+        ? source.tags.filter((item): item is string => typeof item === 'string')
+        : [],
+      ownership: source.ownership,
+      sourceKind: source.sourceKind,
+      worldName: source.worldName,
+    },
+    stats: null,
+    importance: source.sourceKind === 'worldCharacter' ? 'PRIMARY' : 'SECONDARY',
+  };
+}
+
+function buildWorldPublicHistoryItems(world: CoreRecord): WorldHistoryPayload {
+  return {
+    items: readArray<string>(world, 'timeline').map((item, index) => ({
+      id: `world-timeline-${index + 1}`,
+      eventId: `world-timeline-${index + 1}`,
+      sequence: index + 1,
+      title: item,
+      summary: item,
+      time: readString(asRecord(world.time), 'currentWorldTime') ?? world.updatedAt,
+      eventType: 'worldSetting',
+    })),
+  };
+}
+
+function buildWorldPublicSemanticBundle(world: CoreRecord): WorldSemanticBundle {
+  return {
+    title: readString(world, 'name'),
+    description: readString(world, 'summary', 'description'),
+    operation: {
+      title: readString(world, 'name'),
+      description: readString(world, 'summary', 'description'),
+      rules: readArray<string>(world, 'rules').map((rule, index) => ({
+        key: `rule-${index + 1}`,
+        title: rule,
+        value: rule,
+      })),
+    },
+    coreSystem: {
+      powerSystems: readArray<string>(world, 'systems').map((system, index) => ({
+        name: system,
+        description: system,
+        levels: [],
+        rules: [],
+        id: `system-${index + 1}`,
+      })),
+      levels: [],
+      taboos: [],
+    },
+    worldviewEvents: readArray<string>(world, 'timeline').map((event, index) => ({
+      id: `worldview-event-${index + 1}`,
+      title: event,
+      summary: event,
+      eventType: 'worldSetting',
+      createdAt: readString(world, 'updatedAt'),
+    })),
+    worldviewSnapshots: [],
+    timeModel: world.time,
+  };
+}
+
+function buildWorldPublicAssets(world: CoreRecord): WorldAssetListPayload {
+  const media = asRecord(world.media);
+  const externalRefs = [
+    ['icon', readString(media, 'iconUrl')],
+    ['banner', readString(media, 'bannerUrl')],
+    ['hero', readString(media, 'heroUrl')],
+    ...readArray<string>(media, 'highlightUrls').map((url, index) => [`highlight-${index + 1}`, url] as const),
+  ].flatMap(([kind, uri]) => uri ? [{ refId: `world-media-${kind}`, kind, uri }] : []);
+  return {
+    resourceRefs: [],
+    externalRefs,
+    intents: [],
+  };
+}
+
+function buildWorldPublicScenes(world: CoreRecord): WorldSceneListPayload {
+  return {
+    items: readArray<string>(world, 'scenes').map((scene, index) => ({
+      sceneId: `world-scene-${index + 1}`,
+      name: scene,
+      summary: scene,
+      entityRefs: [],
+    })),
   };
 }
 
 async function listWorldCores(realm: Realm, status?: NimiRealmWorldStatus): Promise<WorldDetailDto[]> {
-  const worlds = await realm.worldCore.worldCoreControllerListWorldCores({
+  const worlds = await realm.worldPublic.worldPublicControllerListWorlds({
     path: {},
-    query: status ? { visibility: status } : {},
+    query: {},
   });
   if (!Array.isArray(worlds)) {
     failRealmWorldContract(
-      'SDK_REALM_WORLD_CORE_LIST_CONTRACT_INVALID',
-      'WorldCore list payload must be an array',
+      'SDK_REALM_WORLD_PUBLIC_LIST_CONTRACT_INVALID',
+      'World public list payload must be an array',
     );
   }
-  return worlds.map((world) => projectWorldCore(requireWorldCoreDto(world)));
+  return worlds
+    .map((world) => projectWorldPublicItem(requireWorldPublicItemDto(world)))
+    .filter((world) => !status || world.visibility === status);
 }
 
 async function getWorldCore(realm: Realm, worldId: string): Promise<WorldDetailDto | null> {
   if (!worldId) return null;
-  const world = await realm.worldCore.worldCoreControllerGetWorldCore({
+  const world = await realm.worldPublic.worldPublicControllerGetWorld({
     path: { worldId },
   });
-  return projectWorldCore(requireWorldCoreDto(world, worldId));
+  return projectWorldPublicDetail(requireWorldPublicDetailDto(world, worldId));
 }
 
 async function listWorldCharacters(realm: Realm, worldId: string): Promise<WorldCharacterSummaryDto[]> {
-  const rows = await realm.worldCore.worldCoreControllerListWorldCharacters({
+  const rows = await realm.worldPublic.worldPublicControllerListWorldCharacters({
     path: { worldId },
     query: {},
   });
   if (!Array.isArray(rows)) {
     failRealmWorldContract(
-      'SDK_REALM_WORLD_CHARACTER_CORE_LIST_CONTRACT_INVALID',
-      'WorldCharacterCore list payload must be an array',
+      'SDK_REALM_WORLD_PUBLIC_SOURCE_LIST_CONTRACT_INVALID',
+      'World public source list payload must be an array',
     );
   }
-  return rows.map((row) => projectWorldCharacter(requireWorldCharacterCoreDto(row, worldId)));
+  return rows.map((row) => projectWorldPublicSourceCard(requireWorldPublicSourceCardDto(row, worldId)));
 }
 
 function worldDetailWithCharactersCacheKey(worldId: string, recommendedCharacterLimit?: number): string {
@@ -557,8 +558,8 @@ export async function loadMainWorld(
 ): Promise<WorldDetailDto> {
   try {
     const world = await callApi(
-      (realm) => realm.worldCore.worldCoreControllerGetOasisWorld({ path: {} }).then((row) =>
-        projectWorldCore(requireWorldCoreDto(row, 'OASIS')),
+      (realm) => realm.worldPublic.worldPublicControllerGetWorld({ path: { worldId: 'OASIS' } }).then((row) =>
+        projectWorldPublicDetail(requireWorldPublicDetailDto(row, 'OASIS')),
       ),
       'Failed to load main world',
     );
@@ -615,9 +616,7 @@ export async function loadWorldHistory(
 ): Promise<WorldHistoryPayload> {
   try {
     return await callApi(
-      (realm) => getWorldCore(realm, worldId).then((world) => ({
-        items: readNestedArray<WorldLevelAuditEventDto>(asRecord(world?.core), 'timeline', 'events'),
-      })),
+      (realm) => getWorldCore(realm, worldId).then((world) => buildWorldPublicHistoryItems(asRecord(world))),
       'Failed to load world history',
     );
   } catch (error) {
@@ -633,14 +632,7 @@ export async function loadWorldAssets(
 ): Promise<WorldAssetListPayload> {
   try {
     return await callApi(
-      (realm) => getWorldCore(realm, worldId).then((world) => {
-        const assets = asRecord(asRecord(world?.core).assets);
-        return {
-          resourceRefs: readArray<CoreRecord>(assets, 'resourceRefs'),
-          externalRefs: readArray<CoreRecord>(assets, 'externalRefs'),
-          intents: readArray<CoreRecord>(assets, 'intents'),
-        };
-      }),
+      (realm) => getWorldCore(realm, worldId).then((world) => buildWorldPublicAssets(asRecord(world))),
       'Failed to load world assets',
     );
   } catch (error) {
@@ -656,9 +648,7 @@ export async function loadWorldScenes(
 ): Promise<WorldSceneListPayload> {
   try {
     return await callApi(
-      (realm) => getWorldCore(realm, worldId).then((world) => ({
-        items: readArray<CoreRecord>(asRecord(world?.core), 'scenes'),
-      })),
+      (realm) => getWorldCore(realm, worldId).then((world) => buildWorldPublicScenes(asRecord(world))),
       'Failed to load world scenes',
     );
   } catch (error) {
@@ -694,9 +684,21 @@ export async function loadWorldDetailWithCharacters(
   try {
     const detail = await callApi(
       async (realm) => {
-        const world = await getWorldCore(realm, normalizedWorldId);
-        if (!world) return null;
-        const characters = await listWorldCharacters(realm, normalizedWorldId);
+        const response = await realm.worldPublic.worldPublicControllerGetWorldDetailWithCharacters({
+          path: { worldId: normalizedWorldId },
+          query: {},
+        }) as unknown as WorldPublicDetailWithCharactersDto;
+        const world = projectWorldPublicDetail(
+          requireWorldPublicDetailDto(response.world, normalizedWorldId),
+        );
+        const sourceSections = asRecord(response.sources);
+        const characterSources = readArray<unknown>(sourceSections, 'characters').map((row) =>
+          projectWorldPublicSourceCard(requireWorldPublicSourceCardDto(row, normalizedWorldId)),
+        );
+        const personaSources = readArray<unknown>(sourceSections, 'personas').map((row) =>
+          projectWorldPublicSourceCard(requireWorldPublicSourceCardDto(row, normalizedWorldId)),
+        );
+        const characters = [...characterSources, ...personaSources];
         const fullCharacterCount = Math.max(
           readNumber(asRecord(world), 'characterCount') ?? 0,
           characters.length,
@@ -704,9 +706,8 @@ export async function loadWorldDetailWithCharacters(
         return {
           ...world,
           characterCount: fullCharacterCount,
-          characters: typeof recommendedCharacterLimit === 'number'
-            ? characters.slice(0, Math.max(0, Math.floor(recommendedCharacterLimit)))
-            : characters,
+          personaCount: personaSources.length,
+          characters,
         };
       },
       'Failed to load world detail with characters',
@@ -735,7 +736,7 @@ export async function loadWorldSemanticBundle(
 ): Promise<WorldSemanticBundle> {
   try {
     return await callApi(
-      (realm) => getWorldCore(realm, worldId).then((world) => asRecord(world?.core)),
+      (realm) => getWorldCore(realm, worldId).then((world) => buildWorldPublicSemanticBundle(asRecord(world))),
       'Failed to load world core semantic bundle',
     );
   } catch (error) {
