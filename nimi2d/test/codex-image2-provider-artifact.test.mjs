@@ -11,11 +11,11 @@ import { encodePngRgba } from '../src/node/png-rgba-encode.mjs';
 
 const execFileAsync = promisify(execFile);
 const packageRoot = path.resolve(import.meta.dirname, '..');
-const adapterPath = path.join(packageRoot, 'experiments/image-to-layer-input/workflows/codex-image2-adapter.mjs');
+const cliPath = path.join(packageRoot, 'bin/nimi2d.mjs');
 const promptPath = path.join(packageRoot, 'experiments/image-to-layer-input/prompts/codex-image2-layer-source-v1.md');
 
-async function runAdapter(args) {
-  const { stdout } = await execFileAsync(process.execPath, [adapterPath, ...args], {
+async function runNimi2D(args) {
+  const { stdout } = await execFileAsync(process.execPath, [cliPath, ...args], {
     cwd: packageRoot,
   });
   return JSON.parse(stdout);
@@ -47,8 +47,8 @@ async function writeFixturePng(filePath) {
   await writeFile(filePath, encodePngRgba({ width, height, rgba }));
 }
 
-test('Codex Image2 adapter registers pixel-identical output and postprocesses transparent crop', async () => {
-  const tempDir = await mkdtemp(path.join(tmpdir(), 'nimi2d-image2-adapter-'));
+test('Codex Image2 provider artifact commands register pixel-identical output and postprocess transparent crop', async () => {
+  const tempDir = await mkdtemp(path.join(tmpdir(), 'nimi2d-image2-artifact-'));
   const generatedPath = path.join(tempDir, 'generated.png');
   const evidencePath = path.join(tempDir, 'evidence.png');
   const comparePath = path.join(tempDir, 'pixel-identity.yaml');
@@ -58,8 +58,8 @@ test('Codex Image2 adapter registers pixel-identical output and postprocesses tr
   await writeFixturePng(generatedPath);
   await writeFixturePng(evidencePath);
 
-  const compared = await runAdapter([
-    'compare-pixels',
+  const compared = await runNimi2D([
+    'image2-compare-pixels',
     '--left', generatedPath,
     '--right', evidencePath,
     '--out', comparePath,
@@ -70,8 +70,8 @@ test('Codex Image2 adapter registers pixel-identical output and postprocesses tr
   assert.equal(compareReport.comparison.diff_pixels, 0);
   assert.equal(compareReport.left.decoded_pixel_sha256, compareReport.right.decoded_pixel_sha256);
 
-  const registered = await runAdapter([
-    'register',
+  const registered = await runNimi2D([
+    'image2-register-output',
     '--image', generatedPath,
     '--evidence-image', evidencePath,
     '--prompt-file', promptPath,
@@ -92,8 +92,8 @@ test('Codex Image2 adapter registers pixel-identical output and postprocesses tr
   assert.equal(manifest.evidence.pixel_identity.status, 'pass');
   assert.equal(manifest.policy.rejected_persistence.includes('blank-canvas semantic redraw'), true);
 
-  const postprocessed = await runAdapter([
-    'postprocess',
+  const postprocessed = await runNimi2D([
+    'image2-postprocess',
     '--input', generatedPath,
     '--transparent-background', 'corner',
     '--tolerance', '0',

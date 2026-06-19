@@ -413,7 +413,7 @@ async function commandPostprocess(args) {
   process.stdout.write('\n');
 }
 
-async function runCodexImage2AdapterCli(argv = process.argv.slice(2)) {
+async function runCodexImage2ArtifactCli(argv = process.argv.slice(2)) {
   const [command, ...args] = argv;
   if (!command || command === '--help' || command === '-h') {
     process.stderr.write(`${usage()}\n`);
@@ -436,5 +436,5 @@ export {
   commandRegister,
   commandPostprocess,
   registerCodexImage2Artifact,
-  runCodexImage2AdapterCli,
+  runCodexImage2ArtifactCli,
 };

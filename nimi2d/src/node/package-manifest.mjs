@@ -188,7 +188,7 @@ export async function solvePackageFromLayerInput(layerInputPath, options = {}) {
   }
   const input = layerResult.value;
   if (input.input_kind !== 'character_skin') {
-    const issues = [issue('NIMI2D_SOLVE_UNSUPPORTED_INPUT_KIND', '$.input_kind', 'Wave 6 deterministic solver only admits character_skin input.')];
+    const issues = [issue('NIMI2D_SOLVE_UNSUPPORTED_INPUT_KIND', '$.input_kind', 'The deterministic package solver currently admits only character_skin input.')];
     return { status: 'reject', kind: 'package_solve', issues, codes: ['NIMI2D_SOLVE_UNSUPPORTED_INPUT_KIND'] };
   }
   const manifest = buildPackageManifest(input, layerInputPath, options);

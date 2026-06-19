@@ -36,7 +36,7 @@ import {
 } from '../src/reference-player/index.mjs';
 import { probeNimi2DVisualFrame } from '../src/proof/index.mjs';
 import { decodePngRgba } from '../src/node/png-rgba.mjs';
-import { runCodexImage2AdapterCli } from '../src/node/image2-provider/artifact.mjs';
+import { runCodexImage2ArtifactCli } from '../src/node/image2-provider/artifact.mjs';
 import {
   runCodexImage2Provider,
   writeCodexImage2Plan,
@@ -206,15 +206,15 @@ async function main() {
   }
 
   if (command === 'image2-register-output') {
-    await runCodexImage2AdapterCli(['register', manifestPath, ...rest].filter(Boolean));
+    await runCodexImage2ArtifactCli(['register', manifestPath, ...rest].filter(Boolean));
     return;
   }
   if (command === 'image2-compare-pixels') {
-    await runCodexImage2AdapterCli(['compare-pixels', manifestPath, ...rest].filter(Boolean));
+    await runCodexImage2ArtifactCli(['compare-pixels', manifestPath, ...rest].filter(Boolean));
     return;
   }
   if (command === 'image2-postprocess') {
-    await runCodexImage2AdapterCli(['postprocess', manifestPath, ...rest].filter(Boolean));
+    await runCodexImage2ArtifactCli(['postprocess', manifestPath, ...rest].filter(Boolean));
     return;
   }
   if (command === 'image2-provider-plan') {

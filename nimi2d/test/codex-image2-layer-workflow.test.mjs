@@ -12,8 +12,8 @@ import { encodePngRgba } from '../src/node/png-rgba-encode.mjs';
 
 const execFileAsync = promisify(execFile);
 const packageRoot = path.resolve(import.meta.dirname, '..');
+const cliPath = path.join(packageRoot, 'bin/nimi2d.mjs');
 const workflowPath = path.join(packageRoot, 'experiments/image-to-layer-input/workflows/codex-image2-layer-workflow.mjs');
-const adapterPath = path.join(packageRoot, 'experiments/image-to-layer-input/workflows/codex-image2-adapter.mjs');
 
 function setPixel(rgba, width, x, y, color) {
   const offset = ((y * width) + x) * 4;
@@ -109,6 +109,11 @@ async function runWorkflowCli(args) {
   }
 }
 
+async function runNimi2D(args) {
+  const { stdout } = await execFileAsync(process.execPath, [cliPath, ...args], { cwd: packageRoot });
+  return JSON.parse(stdout);
+}
+
 test('Codex Image2 layer workflow normalizes generated atlas and runs image-input gates', async () => {
   const tempDir = await mkdtemp(path.join(tmpdir(), 'nimi2d-image2-layer-workflow-'));
   const imagePath = path.join(tempDir, 'generated-atlas.png');
@@ -178,17 +183,15 @@ test('Codex Image2 layer workflow admits source-to-layer pipeline from raw plus 
   const outDir = path.join(tempDir, 'run');
   await writeGeneratedLikeAtlas(imagePath);
 
-  const { stdout: adapterStdout } = await execFileAsync(process.execPath, [
-    adapterPath,
-    'register',
+  const producerResult = await runNimi2D([
+    'image2-register-output',
     '--image', imagePath,
     '--evidence-image', imagePath,
     '--surface', 'codex_cli',
     '--source-note', 'unit test pixel-identical atlas producer',
     '--out', producerManifestPath,
-  ], { cwd: packageRoot });
-  const adapterResult = JSON.parse(adapterStdout);
-  assert.equal(adapterResult.verdict, 'admit');
+  ]);
+  assert.equal(producerResult.verdict, 'admit');
 
   const { exitStatus, result } = await runWorkflowCli([
     '--producer-manifest', producerManifestPath,
@@ -240,17 +243,15 @@ test('Codex Image2 layer workflow treats provider artifacts without pixel identi
   const outDir = path.join(tempDir, 'run');
   await writeGeneratedLikeAtlas(imagePath);
 
-  const { stdout: adapterStdout } = await execFileAsync(process.execPath, [
-    adapterPath,
-    'register',
+  const producerResult = await runNimi2D([
+    'image2-register-output',
     '--image', imagePath,
     '--surface', 'codex_cli',
     '--source-note', 'unit test artifact without pixel identity evidence',
     '--out', producerManifestPath,
-  ], { cwd: packageRoot });
-  const adapterResult = JSON.parse(adapterStdout);
-  assert.equal(adapterResult.status, 'ok');
-  assert.equal(adapterResult.verdict, 'recorded_only');
+  ]);
+  assert.equal(producerResult.status, 'ok');
+  assert.equal(producerResult.verdict, 'recorded_only');
 
   const { exitStatus, result } = await runWorkflowCli([
     '--producer-manifest', producerManifestPath,
@@ -303,16 +304,15 @@ test('Codex Image2 layer workflow rejects producer manifests missing decoded pix
   const outDir = path.join(tempDir, 'run');
   await writeGeneratedLikeAtlas(imagePath);
 
-  const { stdout: adapterStdout } = await execFileAsync(process.execPath, [
-    adapterPath,
-    'register',
+  const producerResult = await runNimi2D([
+    'image2-register-output',
     '--image', imagePath,
     '--evidence-image', imagePath,
     '--surface', 'codex_cli',
     '--source-note', 'unit test missing decoded pixel hash',
     '--out', producerManifestPath,
-  ], { cwd: packageRoot });
-  assert.equal(JSON.parse(adapterStdout).verdict, 'admit');
+  ]);
+  assert.equal(producerResult.verdict, 'admit');
   const manifest = await readYaml(producerManifestPath);
   delete manifest.artifact.decoded_pixel_sha256;
   await writeFile(producerManifestPath, YAML.stringify(manifest), 'utf8');
@@ -335,16 +335,15 @@ test('Codex Image2 layer workflow recomputes producer decoded pixel hash', async
   const outDir = path.join(tempDir, 'run');
   await writeGeneratedLikeAtlas(imagePath);
 
-  const { stdout: adapterStdout } = await execFileAsync(process.execPath, [
-    adapterPath,
-    'register',
+  const producerResult = await runNimi2D([
+    'image2-register-output',
     '--image', imagePath,
     '--evidence-image', imagePath,
     '--surface', 'codex_cli',
     '--source-note', 'unit test mismatched decoded pixel hash',
     '--out', producerManifestPath,
-  ], { cwd: packageRoot });
-  assert.equal(JSON.parse(adapterStdout).verdict, 'admit');
+  ]);
+  assert.equal(producerResult.verdict, 'admit');
   const manifest = await readYaml(producerManifestPath);
   manifest.artifact.decoded_pixel_sha256 = '0'.repeat(64);
   await writeFile(producerManifestPath, YAML.stringify(manifest), 'utf8');
