@@ -60,15 +60,39 @@
     "cancel": "Cancel",
     "retry": "Retry",
     "repair": "Repair",
+    "recheck": "Re-check setup",
+    "elapsed": "Elapsed",
+    "lastChecked": "Last checked",
+    "lastChange": "Last change",
+    "justNow": "just now",
+    "ago": "{{duration}} ago",
     "progressOf": "{{received}} of {{total}}",
     "progressReceived": "{{received}} downloaded",
     "progressRate": "{{rate}}/s",
     "progressEta": "{{eta}} left",
+    "notices": {
+      "actionRequired": "A setup step needs attention. Use Retry or Repair on the failed row.",
+      "stillChecking": "Still checking Runtime setup. Last progress changed {{duration}} ago.",
+      "maybeStalled": "This may be stalled. Re-check setup to refresh the local record."
+    },
+    "details": {
+      "title": "Setup details",
+      "activeStep": "Active step",
+      "productState": "Product state",
+      "materialization": "Materialization",
+      "installLevel": "Install level",
+      "dataRoot": "Data root",
+      "reason": "Reason",
+      "notObserved": "Not observed yet",
+      "unset": "Not set",
+      "none": "None"
+    },
     "steps": {
       "download": "Downloading local models",
       "verify": "Verifying files",
       "environment": "Preparing local environment",
-      "finalize": "Finalizing your AI profile"
+      "finalize": "Finalizing your AI profile",
+      "unknown": "Waiting for Runtime setup"
     }
   },
   "repair": {

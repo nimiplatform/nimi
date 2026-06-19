@@ -544,6 +544,52 @@ test('the Setup phase renders the checklist for the four progress states', () =>
   }
 });
 
+test('the Setup phase exposes accountable status, details, and manual re-check', () => {
+  const checklist = projectSetupChecklist(
+    'local_ai_profile_selected_environment_not_ready',
+    materializationFixture('in_progress', {
+      productState: 'local_ai_profile_selected_environment_not_ready',
+      reason: 'runtime_materialization_jobs_in_progress',
+    }),
+  );
+  const markup = renderToStaticMarkup(
+    React.createElement(PhaseSetup, {
+      checklist,
+      busy: false,
+      error: null,
+      statusDetails: {
+        elapsedLabel: '2m 10s',
+        lastCheckedLabel: 'just now',
+        lastStateChangeLabel: '1m ago',
+        productState: 'local_ai_profile_selected_environment_not_ready',
+        productStateLabel: 'Nimi is preparing its managed local environment.',
+        installLevel: 'minimal',
+        dataRootPath: '/tmp/nimi-data-explicit',
+        activeStepLabel: 'Preparing local environment',
+        materializationStatus: 'in_progress',
+        reason: 'runtime_materialization_jobs_in_progress',
+        notice: {
+          tone: 'warning',
+          message: 'This may be stalled. Re-check setup to refresh the local record.',
+        },
+      },
+      onRecheckSetup: () => {},
+      actions: { onRetry: () => {}, onRepair: () => {}, onCancel: () => {} },
+    }),
+  );
+
+  assert.match(markup, /data-testid="first-run-setup-recheck"/);
+  assert.match(markup, /data-testid="first-run-setup-details"/);
+  assert.match(markup, /data-testid="first-run-setup-notice"/);
+  assert.match(markup, /2m 10s/);
+  assert.match(markup, /just now/);
+  assert.match(markup, /1m ago/);
+  assert.match(markup, /data-product-state="local_ai_profile_selected_environment_not_ready"/);
+  assert.match(markup, /Nimi is preparing its managed local environment/);
+  assert.match(markup, /runtime_materialization_jobs_in_progress/);
+  assert.match(markup, /\/tmp\/nimi-data-explicit/);
+});
+
 // --- Device summary -------------------------------------------------------
 
 test('the device summary projects real evidence and fails closed when absent', () => {

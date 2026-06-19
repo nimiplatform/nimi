@@ -21,10 +21,11 @@ import {
 import { syncFirstRunRuntimeDataRootConfig } from './first-run-runtime-storage-sync.js';
 import { useFirstRunMaterializationObserver } from './use-first-run-materialization-observer.js';
 import { projectInstallLevelCard } from './first-run-install-level-cards.js';
-import { projectSetupChecklist } from './first-run-setup-checklist.js';
+import { projectSetupChecklist, type FirstRunSetupStepId } from './first-run-setup-checklist.js';
 import { useFirstRunDeviceScan } from './use-first-run-device-scan.js';
 import { FirstRunWizardChrome } from './first-run-wizard-chrome.js';
 import { ProductControlWorkflowScreen } from './product-control-workflow-screen.js';
+import type { FirstRunSetupStatusDetails } from './phase-setup.js';
 
 /**
  * Desktop first-run onboarding wizard.
@@ -46,6 +47,27 @@ type ProductControlWorkflowProps = {
   readonly projection: NimiProductControlRecordProjection | null;
   readonly onProjectionChange: (projection: NimiProductControlRecordProjection) => void;
 };
+
+const SETUP_TICK_MS = 1_000;
+const SETUP_INFO_NOTICE_MS = 45_000;
+const SETUP_STALL_NOTICE_MS = 60_000;
+
+const SETUP_STEP_LABEL_DEFAULTS: Record<FirstRunSetupStepId, string> = {
+  download: 'Downloading local models',
+  verify: 'Verifying files',
+  environment: 'Preparing local environment',
+  finalize: 'Finalizing your AI profile',
+};
+
+function formatSetupDuration(ms: number): string {
+  const totalSeconds = Math.max(0, Math.floor(ms / 1_000));
+  const hours = Math.floor(totalSeconds / 3_600);
+  const minutes = Math.floor((totalSeconds % 3_600) / 60);
+  const seconds = totalSeconds % 60;
+  if (hours > 0) return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+  if (minutes > 0) return seconds > 0 ? `${minutes}m ${seconds}s` : `${minutes}m`;
+  return `${seconds}s`;
+}
 
 export function ProductControlWorkflow(props: ProductControlWorkflowProps): ReactElement {
   const { t } = useTranslation();
@@ -84,6 +106,38 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
   const selectedDataRoot = projection?.record?.dataRoot?.path ?? null;
 
   const screen = projectNimiProductControlFirstRunScreen(state);
+  const setupVisible = screen.kind === 'phase' && screen.phase === 'setup';
+  const [setupEnteredAtMs, setSetupEnteredAtMs] = useState(() => Date.now());
+  const [setupNowMs, setSetupNowMs] = useState(() => Date.now());
+  const [lastSetupCheckedAtMs, setLastSetupCheckedAtMs] = useState(() => Date.now());
+  const [lastSetupProgressChangedAtMs, setLastSetupProgressChangedAtMs] = useState(() => Date.now());
+  const setupVisibleRef = useRef(false);
+  const markSetupChecked = useCallback((): void => {
+    const now = Date.now();
+    setSetupNowMs(now);
+    setLastSetupCheckedAtMs(now);
+  }, []);
+
+  useEffect(() => {
+    const now = Date.now();
+    if (setupVisible && !setupVisibleRef.current) {
+      setSetupEnteredAtMs(now);
+      setSetupNowMs(now);
+      setLastSetupCheckedAtMs(now);
+      setLastSetupProgressChangedAtMs(now);
+    }
+    setupVisibleRef.current = setupVisible;
+  }, [setupVisible]);
+
+  useEffect(() => {
+    if (!setupVisible) return;
+    const intervalId = window.setInterval(() => {
+      setSetupNowMs(Date.now());
+    }, SETUP_TICK_MS);
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [setupVisible]);
 
   // Sync the picked path to the recorded data root whenever the projection
   // changes. A projection without a recorded data root (the Storage phase)
@@ -162,6 +216,7 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
       // product-control ready-read verification errors from a recoverable
       // Setup downgrade. Bridge/observer failures still set `error` in their
       // catch paths.
+      markSetupChecked();
       setError(null);
       setMaterialization(next);
       if (
@@ -173,7 +228,7 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
         );
       }
     },
-    [notifyProjectionChange],
+    [markSetupChecked, notifyProjectionChange],
   );
 
   useFirstRunMaterializationObserver({
@@ -506,10 +561,22 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
   const reevaluateProductControl = useCallback(async (): Promise<void> => {
     if (reevaluatingRef.current) return;
     reevaluatingRef.current = true;
+    markSetupChecked();
     setPendingAction('reevaluate');
     setError(null);
     try {
-      notifyProjectionChange(await desktopBridge.getProductControlRecord());
+      const next = await desktopBridge.getProductControlRecord();
+      const nextScreen = projectNimiProductControlFirstRunScreen(next.state);
+      if (
+        setupVisible
+        && next.state !== 'ready_for_use'
+        && nextScreen.kind === 'phase'
+        && nextScreen.phase === 'setup'
+      ) {
+        notifyProjectionChange(await desktopBridge.reconcileProductFirstRunSetupState());
+      } else {
+        notifyProjectionChange(next);
+      }
     } catch (nextError) {
       setError(
         nextError instanceof Error
@@ -522,7 +589,7 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
       reevaluatingRef.current = false;
       setPendingAction(null);
     }
-  }, [notifyProjectionChange, t]);
+  }, [markSetupChecked, notifyProjectionChange, setupVisible, t]);
 
   // --- Render -------------------------------------------------------------
 
@@ -530,6 +597,121 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
     () => projectSetupChecklist(state, materialization),
     [state, materialization],
   );
+  const setupProgressSignature = useMemo(
+    () => [
+      state,
+      materialization?.status ?? 'no-materialization',
+      materialization?.productState ?? 'no-product-state',
+      materialization?.reason ?? 'no-reason',
+      setupChecklist.progressPercent,
+      setupChecklist.steps.map((step) => [
+        step.id,
+        step.status,
+        step.downloadProgress?.bytesReceived ?? 'no-bytes',
+        step.downloadProgress?.percent ?? 'no-percent',
+      ].join('/')).join('|'),
+    ].join('::'),
+    [materialization, setupChecklist, state],
+  );
+  const setupProgressSignatureRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!setupVisible) {
+      setupProgressSignatureRef.current = setupProgressSignature;
+      return;
+    }
+    if (setupProgressSignatureRef.current === null) {
+      setupProgressSignatureRef.current = setupProgressSignature;
+      return;
+    }
+    if (setupProgressSignatureRef.current !== setupProgressSignature) {
+      setupProgressSignatureRef.current = setupProgressSignature;
+      const now = Date.now();
+      setSetupNowMs(now);
+      setLastSetupCheckedAtMs(now);
+      setLastSetupProgressChangedAtMs(now);
+    }
+  }, [setupProgressSignature, setupVisible]);
+
+  const setupStatusDetails = useMemo<FirstRunSetupStatusDetails>(() => {
+    const activeStep = (
+      setupChecklist.steps.find((step) => step.status === 'failed')
+      ?? setupChecklist.steps.find((step) => step.status === 'active')
+      ?? setupChecklist.steps[0]
+      ?? null
+    );
+    const activeStepLabel = activeStep
+      ? t(`FirstRun.setup.steps.${activeStep.id}`, {
+          defaultValue: SETUP_STEP_LABEL_DEFAULTS[activeStep.id],
+        })
+      : t('FirstRun.setup.steps.unknown', { defaultValue: 'Waiting for Runtime setup' });
+    const checkedAgeMs = Math.max(0, setupNowMs - lastSetupCheckedAtMs);
+    const progressAgeMs = Math.max(0, setupNowMs - lastSetupProgressChangedAtMs);
+    const relativeAge = (ageMs: number): string => {
+      if (ageMs < 5_000) {
+        return t('FirstRun.setup.justNow', { defaultValue: 'just now' });
+      }
+      return t('FirstRun.setup.ago', {
+        defaultValue: '{{duration}} ago',
+        duration: formatSetupDuration(ageMs),
+      });
+    };
+    const notice = (() => {
+      if (error) return null;
+      if (setupChecklist.hasFailure) {
+        return {
+          tone: 'warning' as const,
+          message: t('FirstRun.setup.notices.actionRequired', {
+            defaultValue: 'A setup step needs attention. Use Retry or Repair on the failed row.',
+          }),
+        };
+      }
+      if (progressAgeMs >= SETUP_STALL_NOTICE_MS) {
+        return {
+          tone: 'warning' as const,
+          message: t('FirstRun.setup.notices.maybeStalled', {
+            defaultValue: 'This may be stalled. Re-check setup to refresh the local record.',
+          }),
+        };
+      }
+      if (progressAgeMs >= SETUP_INFO_NOTICE_MS) {
+        return {
+          tone: 'info' as const,
+          message: t('FirstRun.setup.notices.stillChecking', {
+            defaultValue: 'Still checking Runtime setup. Last progress changed {{duration}} ago.',
+            duration: formatSetupDuration(progressAgeMs),
+          }),
+        };
+      }
+      return null;
+    })();
+
+    return {
+      elapsedLabel: formatSetupDuration(Math.max(0, setupNowMs - setupEnteredAtMs)),
+      lastCheckedLabel: relativeAge(checkedAgeMs),
+      lastStateChangeLabel: relativeAge(progressAgeMs),
+      productState: state,
+      productStateLabel: t(`FirstRun.states.${state}.title`, { defaultValue: activeStepLabel }),
+      installLevel: selectedInstallLevel,
+      dataRootPath: selectedDataRoot,
+      activeStepLabel,
+      materializationStatus: materialization?.status ?? null,
+      reason: materialization?.reason ?? projection?.error ?? null,
+      notice,
+    };
+  }, [
+    error,
+    lastSetupCheckedAtMs,
+    lastSetupProgressChangedAtMs,
+    materialization,
+    projection?.error,
+    selectedDataRoot,
+    selectedInstallLevel,
+    setupChecklist,
+    setupEnteredAtMs,
+    setupNowMs,
+    state,
+    t,
+  ]);
   const materializationReadyForFinalization = materialization?.productState === 'local_ai_ready';
 
   return (
@@ -574,6 +756,7 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
           screen={screen}
           selectedDataRoot={selectedDataRoot}
           setupChecklist={setupChecklist}
+          setupStatusDetails={setupStatusDetails}
           state={state}
           storageTransient={isNimiProductControlPhaseTransient(state)}
         />

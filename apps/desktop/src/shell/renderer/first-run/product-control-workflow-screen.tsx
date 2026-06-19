@@ -8,7 +8,7 @@ import type { FirstRunSetupChecklist } from './first-run-setup-checklist.js';
 import { FirstRunReconcilingScreen } from './first-run-reconciling-screen.js';
 import { PhaseDeviceScan } from './phase-device-scan.js';
 import { PhaseLocalAi } from './phase-local-ai.js';
-import { PhaseSetup } from './phase-setup.js';
+import { PhaseSetup, type FirstRunSetupStatusDetails } from './phase-setup.js';
 import { PhaseStorage } from './phase-storage.js';
 import type { NimiFirstRunMaterializationDependencyProjection } from './runtime-materialization.js';
 import { ScreenBlocked, ScreenReady, ScreenRepair } from './screen-terminal.js';
@@ -43,6 +43,7 @@ type ProductControlWorkflowScreenProps = {
   screen: FirstRunScreenProjection;
   selectedDataRoot: string | null;
   setupChecklist: FirstRunSetupChecklist;
+  setupStatusDetails: FirstRunSetupStatusDetails;
   state: NimiProductControlState;
   storageTransient: boolean;
 };
@@ -115,6 +116,8 @@ export function ProductControlWorkflowScreen(props: ProductControlWorkflowScreen
         checklist={props.setupChecklist}
         busy={props.busy}
         error={props.error}
+        statusDetails={props.setupStatusDetails}
+        onRecheckSetup={props.onReevaluateProductControl}
         actions={{
           onRetry: props.onRetrySetupStep,
           onRepair: props.onRepairSetupStep,

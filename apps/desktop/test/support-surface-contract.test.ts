@@ -267,6 +267,21 @@ test('D-SUP-008: the degraded first-run gate mounts the Support degraded entry',
   assert.match(terminalScreens, /support\/support-degraded-entry/);
 });
 
+test('D-SUP-008: the first-run gate refreshes product-control while Setup is mounted', () => {
+  const gatePanel = readDesktop(
+    'src/shell/renderer/features/nimi-home/first-run-gate-panel.tsx',
+  );
+
+  // Setup is a projection over the product-control record. If Runtime has
+  // already admitted `ready_for_use`, the gate must not wait forever on a
+  // stale initial read: it refreshes on a bounded interval and on window focus.
+  assert.match(gatePanel, /FIRST_RUN_PRODUCT_CONTROL_REFRESH_MS/);
+  assert.match(gatePanel, /window\.setInterval/);
+  assert.match(gatePanel, /window\.addEventListener\('focus'/);
+  assert.match(gatePanel, /desktopBridge\.getProductControlRecord/);
+  assert.match(gatePanel, /ready_for_use/);
+});
+
 test('D-SUP-008: the degraded entry only exposes repair and recovery', () => {
   const entry = readDesktop('src/shell/renderer/features/support/support-degraded-entry.tsx');
   assert.match(entry, /SUPPORT_DEGRADED_REACHABLE_SECTIONS/);

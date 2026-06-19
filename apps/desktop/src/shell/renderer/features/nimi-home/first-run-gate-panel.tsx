@@ -7,11 +7,12 @@ import { ProductControlWorkflow } from '../../first-run/product-control-workflow
  *
  * The gate hosts the redesigned first-run onboarding wizard
  * (`ProductControlWorkflow`). The wizard is a full-window takeover that owns
- * its own chrome — wordmark, Support entry, step indicator, and centered card
- * — so the gate panel only sources the product-control projection and mounts
- * the wizard. Per the first-run gate contract this gate renders ONLY the
- * product-control setup surface; no ordinary Home-adjacent surfaces.
+ * its own chrome, so the gate panel only sources the product-control projection
+ * and mounts the wizard. Per the first-run gate contract this gate renders ONLY
+ * the product-control setup surface; no ordinary Home-adjacent surfaces.
  */
+
+const FIRST_RUN_PRODUCT_CONTROL_REFRESH_MS = 3_000;
 
 function useProductControlRecord(): {
   projection: NimiProductControlRecordProjection | null;
@@ -21,26 +22,43 @@ function useProductControlRecord(): {
 
   useEffect(() => {
     let cancelled = false;
-    void desktopBridge
-      .getProductControlRecord()
-      .then((next) => {
-        if (!cancelled) setProjection(next);
-      })
-      .catch((error) => {
-        if (!cancelled) {
-          // A failed product-control read fails closed onto `repair_required`
-          // — the wizard presents the calm repair terminal screen.
-          setProjection({
-            path: '',
-            exists: false,
-            state: 'repair_required',
-            record: null,
-            error: error instanceof Error ? error.message : 'product control record unavailable',
-          });
-        }
+    const projectReadFailure = (error: unknown): void => {
+      const message = error instanceof Error ? error.message : 'product control record unavailable';
+      setProjection((current) => {
+        if (current) return { ...current, error: message };
+        return {
+          path: '',
+          exists: false,
+          state: 'repair_required',
+          record: null,
+          error: message,
+        };
       });
+    };
+    const refreshProductControlRecord = async (): Promise<void> => {
+      try {
+        const next = await desktopBridge.getProductControlRecord();
+        if (!cancelled) setProjection(next);
+      } catch (error) {
+        if (!cancelled) {
+          // A failed initial read fails closed onto `repair_required`. Later
+          // refresh failures preserve the last projection and surface the error
+          // on it, so a transient read failure does not mint a fake ready state.
+          projectReadFailure(error);
+        }
+      }
+    };
+
+    void refreshProductControlRecord();
+    const intervalId = window.setInterval(
+      () => void refreshProductControlRecord(),
+      FIRST_RUN_PRODUCT_CONTROL_REFRESH_MS,
+    );
+    window.addEventListener('focus', refreshProductControlRecord);
     return () => {
       cancelled = true;
+      window.clearInterval(intervalId);
+      window.removeEventListener('focus', refreshProductControlRecord);
     };
   }, []);
 

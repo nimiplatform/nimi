@@ -72,6 +72,23 @@ type SetupActionHandlers = {
   readonly onCancel: (dependency: NimiFirstRunMaterializationDependencyProjection) => void;
 };
 
+export type FirstRunSetupStatusDetails = {
+  readonly elapsedLabel: string;
+  readonly lastCheckedLabel: string;
+  readonly lastStateChangeLabel: string;
+  readonly productState: string;
+  readonly productStateLabel: string;
+  readonly installLevel: string | null;
+  readonly dataRootPath: string | null;
+  readonly activeStepLabel: string;
+  readonly materializationStatus: string | null;
+  readonly reason: string | null;
+  readonly notice: {
+    readonly tone: 'info' | 'warning';
+    readonly message: string;
+  } | null;
+};
+
 type PhaseSetupProps = {
   readonly checklist: FirstRunSetupChecklist;
   /** A bridge action is in flight; disables the failing-row action buttons. */
@@ -79,7 +96,138 @@ type PhaseSetupProps = {
   readonly actions: SetupActionHandlers;
   /** Optional last typed error string surfaced above the checklist. */
   readonly error: string | null;
+  /** Accountable runtime/product-control projection details for long setup work. */
+  readonly statusDetails?: FirstRunSetupStatusDetails | null;
+  /** Manual product-control refresh for users who suspect the Setup view is stale. */
+  readonly onRecheckSetup?: () => void;
 };
+
+function SetupStatusDetails(props: {
+  readonly details: FirstRunSetupStatusDetails;
+  readonly busy: boolean;
+  readonly onRecheckSetup?: () => void;
+  readonly t: TFunction;
+}): ReactElement {
+  const { details, t } = props;
+
+  const rows: Array<{
+    readonly label: string;
+    readonly value: string;
+    readonly dataProductState?: string;
+  }> = [
+    {
+      label: t('FirstRun.setup.details.activeStep', { defaultValue: 'Active step' }),
+      value: details.activeStepLabel,
+    },
+    {
+      label: t('FirstRun.setup.details.productState', { defaultValue: 'Product state' }),
+      value: details.productStateLabel,
+      dataProductState: details.productState,
+    },
+    {
+      label: t('FirstRun.setup.details.materialization', { defaultValue: 'Materialization' }),
+      value: details.materializationStatus ?? t('FirstRun.setup.details.notObserved', { defaultValue: 'Not observed yet' }),
+    },
+    {
+      label: t('FirstRun.setup.details.installLevel', { defaultValue: 'Install level' }),
+      value: details.installLevel ?? t('FirstRun.setup.details.unset', { defaultValue: 'Not set' }),
+    },
+    {
+      label: t('FirstRun.setup.details.dataRoot', { defaultValue: 'Data root' }),
+      value: details.dataRootPath ?? t('FirstRun.setup.details.unset', { defaultValue: 'Not set' }),
+    },
+    {
+      label: t('FirstRun.setup.details.reason', { defaultValue: 'Reason' }),
+      value: details.reason ?? t('FirstRun.setup.details.none', { defaultValue: 'None' }),
+    },
+  ];
+
+  return (
+    <section
+      data-testid="first-run-setup-status"
+      className="flex flex-col gap-3 rounded-md border border-[color-mix(in_srgb,var(--nimi-border-subtle)_72%,transparent)] bg-[color-mix(in_srgb,var(--nimi-surface-raised)_88%,transparent)] p-3 text-left"
+    >
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <dl className="grid min-w-0 flex-1 grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="min-w-0">
+            <dt className="text-[11px] font-medium uppercase tracking-normal text-[var(--nimi-text-muted)]">
+              {t('FirstRun.setup.elapsed', { defaultValue: 'Elapsed' })}
+            </dt>
+            <dd className="truncate text-sm tabular-nums text-[var(--nimi-text-primary)]">
+              {details.elapsedLabel}
+            </dd>
+          </div>
+          <div className="min-w-0">
+            <dt className="text-[11px] font-medium uppercase tracking-normal text-[var(--nimi-text-muted)]">
+              {t('FirstRun.setup.lastChecked', { defaultValue: 'Last checked' })}
+            </dt>
+            <dd className="truncate text-sm tabular-nums text-[var(--nimi-text-primary)]">
+              {details.lastCheckedLabel}
+            </dd>
+          </div>
+          <div className="min-w-0">
+            <dt className="text-[11px] font-medium uppercase tracking-normal text-[var(--nimi-text-muted)]">
+              {t('FirstRun.setup.lastChange', { defaultValue: 'Last change' })}
+            </dt>
+            <dd className="truncate text-sm tabular-nums text-[var(--nimi-text-primary)]">
+              {details.lastStateChangeLabel}
+            </dd>
+          </div>
+        </dl>
+        {props.onRecheckSetup ? (
+          <Button
+            type="button"
+            tone="secondary"
+            size="sm"
+            data-testid="first-run-setup-recheck"
+            disabled={props.busy}
+            onClick={props.onRecheckSetup}
+          >
+            {t('FirstRun.setup.recheck', { defaultValue: 'Re-check setup' })}
+          </Button>
+        ) : null}
+      </div>
+
+      {details.notice ? (
+        <p
+          data-testid="first-run-setup-notice"
+          data-tone={details.notice.tone}
+          role="status"
+          aria-live="polite"
+          className={
+            details.notice.tone === 'warning'
+              ? 'rounded-md border border-[color-mix(in_srgb,var(--nimi-status-warning)_30%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_12%,white)] px-3 py-2 text-sm text-[var(--nimi-text-primary)]'
+              : 'rounded-md border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_26%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,white)] px-3 py-2 text-sm text-[var(--nimi-text-primary)]'
+          }
+        >
+          {details.notice.message}
+        </p>
+      ) : null}
+
+      <details
+        data-testid="first-run-setup-details"
+        className="group rounded-md border border-[color-mix(in_srgb,var(--nimi-border-subtle)_70%,transparent)] px-3 py-2"
+      >
+        <summary className="cursor-pointer text-sm font-medium text-[var(--nimi-text-primary)]">
+          {t('FirstRun.setup.details.title', { defaultValue: 'Setup details' })}
+        </summary>
+        <dl className="mt-3 grid gap-2 text-xs">
+          {rows.map((row) => (
+            <div key={row.label} className="grid min-w-0 grid-cols-[7rem_minmax(0,1fr)] gap-3">
+              <dt className="text-[var(--nimi-text-muted)]">{row.label}</dt>
+              <dd
+                data-product-state={row.dataProductState}
+                className="min-w-0 break-words font-mono text-[var(--nimi-text-primary)]"
+              >
+                {row.value}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </details>
+    </section>
+  );
+}
 
 function StepRow(props: {
   readonly step: FirstRunSetupStep;
@@ -248,6 +396,15 @@ export function PhaseSetup(props: PhaseSetupProps): ReactElement {
         data-testid="first-run-setup-progress"
         value={props.checklist.progressPercent}
       />
+
+      {props.statusDetails ? (
+        <SetupStatusDetails
+          details={props.statusDetails}
+          busy={props.busy}
+          onRecheckSetup={props.onRecheckSetup}
+          t={t}
+        />
+      ) : null}
 
       {props.error ? (
         <p

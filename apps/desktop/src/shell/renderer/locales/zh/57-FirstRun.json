@@ -60,15 +60,39 @@
     "cancel": "取消",
     "retry": "重试",
     "repair": "修复",
+    "recheck": "重新检查设置",
+    "elapsed": "已用时间",
+    "lastChecked": "上次检查",
+    "lastChange": "上次进展",
+    "justNow": "刚刚",
+    "ago": "{{duration}} 前",
     "progressOf": "{{received}} / {{total}}",
     "progressReceived": "已下载 {{received}}",
     "progressRate": "{{rate}}/s",
     "progressEta": "剩余 {{eta}}",
+    "notices": {
+      "actionRequired": "某个设置步骤需要处理。请在失败行使用重试或修复。",
+      "stillChecking": "仍在检查运行时设置。上次进展是 {{duration}} 前。",
+      "maybeStalled": "这可能已停滞。请重新检查设置以刷新本地记录。"
+    },
+    "details": {
+      "title": "设置详情",
+      "activeStep": "当前步骤",
+      "productState": "产品状态",
+      "materialization": "物化状态",
+      "installLevel": "安装级别",
+      "dataRoot": "数据根目录",
+      "reason": "原因",
+      "notObserved": "尚未观测",
+      "unset": "未设置",
+      "none": "无"
+    },
     "steps": {
       "download": "正在下载本地模型",
       "verify": "正在校验文件",
       "environment": "正在准备本地环境",
-      "finalize": "正在完成你的 AI Profile"
+      "finalize": "正在完成你的 AI Profile",
+      "unknown": "正在等待运行时设置"
     }
   },
   "repair": {
