@@ -1,6 +1,9 @@
 use std::path::{Path, PathBuf};
 
 fn main() {
+    println!("cargo:rerun-if-changed=icons/icon.png");
+    println!("cargo:rerun-if-changed=icons/icon.ico");
+    println!("cargo:rerun-if-changed=icons/icon.icns");
     validate_release_resource_versions();
     tauri_build::build();
     println!("cargo:rerun-if-changed=resources/desktop-release-manifest.json");
