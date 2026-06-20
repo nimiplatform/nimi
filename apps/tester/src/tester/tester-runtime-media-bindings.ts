@@ -33,7 +33,7 @@ export type SpeechSynthesisRuntimeParams = {
   readonly timeoutMs?: number;
 };
 
-type ImageRuntimeBinding = {
+export type ImageRuntimeBinding = {
   readonly resolved: ResolvedLLMBinding;
   readonly profileEntries: readonly ImageProfileEntry[];
   readonly entryOverrides?: readonly ImageEntryOverride[];

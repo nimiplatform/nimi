@@ -12,6 +12,7 @@ export type TesterUnavailableReason =
   | 'principal-unauthorized'
   | 'sdk-method-unavailable'
   | 'local-environment-preparing'
+  | 'local-environment-blocked'
   | 'runtime-call-failed'
   | 'tauri-command-failed';
 
@@ -40,6 +41,8 @@ export function unavailableReasonTitle(reason: TesterUnavailableReason): string 
       return 'SDK method unavailable';
     case 'local-environment-preparing':
       return 'Local environment preparing';
+    case 'local-environment-blocked':
+      return 'Local environment blocked';
     case 'runtime-call-failed':
       return 'Runtime call failed';
     case 'tauri-command-failed':
@@ -63,6 +66,8 @@ export function unavailableReasonUserMessage(reason: string): string {
       return 'This capability is not available in the current app build.';
     case 'local-environment-preparing':
       return 'Runtime is preparing the selected local image environment.';
+    case 'local-environment-blocked':
+      return 'The selected local image environment is missing required setup.';
     case 'runtime-call-failed':
       return 'The selected Runtime or model could not complete this generation.';
     case 'tauri-command-failed':
@@ -87,6 +92,8 @@ export function unavailableReasonUserAction(reason: string): string {
       return 'Update the app or switch to a supported capability.';
     case 'local-environment-preparing':
       return 'Wait for local setup to finish, then run the image request again.';
+    case 'local-environment-blocked':
+      return 'Set the required companion models, then run the image request again.';
     case 'runtime-call-failed':
       return 'Check Runtime status and the selected model, then retry.';
     case 'tauri-command-failed':
@@ -110,6 +117,8 @@ function actionHintForReason(reason: TesterUnavailableReason): string {
       return 'Supply a valid request body for this capability, then retry.';
     case 'local-environment-preparing':
       return 'Tester started the Runtime-owned local image dependency jobs. Keep Runtime running and retry after setup reaches ready.';
+    case 'local-environment-blocked':
+      return 'Select the required image companion models (VAE and LLM/text encoder) in the model setup before retrying.';
     case 'runtime-call-failed':
       return 'Runtime returned a typed contract failure. Inspect the verbatim Runtime error above — this is a real Runtime/contract failure, not a missing SDK method.';
     case 'runtime-not-ready':

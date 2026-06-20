@@ -29,7 +29,7 @@ export async function invokeImageGenerate(client: TesterRuntimeInvocationClient,
   const subjectUserId = requireRuntimeSubjectUserId('image.generate', client);
   try {
     const imageBinding = await resolveImageRuntimeBinding(client, resolved);
-    const localEnvironmentUnavailable = await ensureLocalImageEnvironmentReady(client, imageBinding.resolved);
+    const localEnvironmentUnavailable = await ensureLocalImageEnvironmentReady(client, imageBinding);
     if (localEnvironmentUnavailable) return localEnvironmentUnavailable;
     const route = runtimeRoutePayload(imageBinding.resolved);
     const extensions = imageProfileExtensions(imageBinding);
