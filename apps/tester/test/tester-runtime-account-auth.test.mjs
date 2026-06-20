@@ -178,13 +178,24 @@ test('Tester auth flow consumes RuntimeAccountService without app-owned token cu
     /must not persist access or refresh tokens/,
   );
 
+  await adapter.clearPersistedSession();
+  await logoutRuntimeAccount(client);
+  const logoutCalls = calls.filter((entry) => entry.method === 'logout');
+  assert.equal(logoutCalls.length, 2);
+  for (const call of logoutCalls) {
+    assert.deepEqual(call.input, {
+      caller: runtimeAccountCaller,
+      reason: 'nimi_lab_logout',
+    });
+  }
+
+  const rejected = createFakePlatformClient();
+  rejected.client.runtime.account.logout = async (input) => {
+    rejected.calls.push({ method: 'logout', input });
+    return { accepted: false, accountReasonCode: 'ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED' };
+  };
   await assert.rejects(
-    () => adapter.clearPersistedSession(),
-    /cannot own Runtime account logout/,
+    () => logoutRuntimeAccount(rejected.client),
+    /Runtime account logout rejected: ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED/,
   );
-  await assert.rejects(
-    () => logoutRuntimeAccount(client),
-    /cannot own Runtime account logout/,
-  );
-  assert.equal(calls.some((entry) => entry.method === 'logout'), false);
 });

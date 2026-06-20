@@ -29,7 +29,13 @@ type RuntimeAccountClient = RuntimeAccountBrowserBrokerClient & Pick<NimiClient,
           displayName?: string | null;
         } | null;
       }>;
-      logout(input: { caller: NimiRuntimeAccountCaller; reason: string }): Promise<unknown>;
+      logout(input: { caller: NimiRuntimeAccountCaller; reason: string }): Promise<{
+        accepted: boolean;
+        state?: AccountSessionState;
+        reasonCode?: unknown;
+        accountReasonCode?: unknown;
+        productionInert?: boolean;
+      }>;
     };
   };
 };
@@ -60,9 +66,16 @@ export async function loadRuntimeAccountUser(client: RuntimeAccountClient | Nimi
 }
 
 export async function logoutRuntimeAccount(client: RuntimeAccountClient) {
-  void client;
   requireRuntimeAccountLogin();
-  throw new Error('Generated Nimi App shell cannot own Runtime account logout. Sign out from the first-party Desktop account surface.');
+  const response = await client.runtime.account.logout({
+    caller: getRuntimeAccountCaller(),
+    reason: 'nimi_lab_logout',
+  });
+  if (!response.accepted) {
+    throw new Error(
+      `Runtime account logout rejected: ${String(response.accountReasonCode || response.reasonCode || 'unknown')}`,
+    );
+  }
 }
 
 export function createNimiAppRuntimeAccountBroker(

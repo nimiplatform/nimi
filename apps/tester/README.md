@@ -1,4 +1,4 @@
-# Nimi Tester
+# Nimi Lab
 
 Profile: `standalone`
 

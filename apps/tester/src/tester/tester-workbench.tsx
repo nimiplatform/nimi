@@ -4,7 +4,8 @@ import { Tooltip } from '@nimiplatform/kit/ui';
 import { createRendererFlowId, emitRuntimeLog, logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { createNimiClientId } from '@nimiplatform/sdk';
 import { requestWithRetry } from '@nimiplatform/sdk/types';
-import { Camera } from 'lucide-react';
+import { NimiLabAccountMenu } from '../shell/account/account-panel.js';
+import { SettingsRoute } from '../shell/routes/settings.js';
 import { getTesterCapability, testerCapabilities, type TesterCapabilityId } from './tester-capabilities.js';
 import { saveTesterArtifact } from './tester-artifact-storage.js';
 import { shouldPersistTesterArtifactRecord } from './tester-artifact-persistence.js';
@@ -21,10 +22,7 @@ import { loadTesterAIConfigSummary, type TesterAIConfigSummary } from './tester-
 import type { TesterCapabilityRunResult } from './tester-runtime.js';
 import {
   loadTesterPreferences,
-  resetTesterPreferences,
-  saveTesterPreferences,
   type TesterPreferences,
-  type TesterPreferenceStoreStatus,
 } from './tester-preferences.js';
 import { testerTestIds } from './tester-test-ids.js';
 import { WorkbenchSideNav } from './workbench/workbench-side-nav.js';
@@ -139,10 +137,7 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [lastResult, setLastResult] = useState<TesterCapabilityRunResult | null>(null);
   const [historySelectionRequest, setHistorySelectionRequest] = useState<TesterHistorySelectionRequest | null>(null);
-  const [preferenceState, setPreferenceState] = useState<{
-    preferences: TesterPreferences;
-    status: TesterPreferenceStoreStatus;
-  }>(() => loadTesterPreferences());
+  const [preferences] = useState<TesterPreferences>(() => loadTesterPreferences().preferences);
 
   const capability = useMemo(() => getTesterCapability(activeCapabilityId), [activeCapabilityId]);
   const runtimeState = useMemo(() => runtimeBadge(summary), [summary]);
@@ -196,22 +191,6 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
     void refreshSummary();
     void refreshHistory();
   }, [refreshSummary, refreshHistory]);
-
-  const handleCaptureEvidence = useCallback(() => {
-    if (typeof window === 'undefined') return;
-    void window.print();
-  }, []);
-
-  const handlePreferenceChange = useCallback((patch: Partial<Omit<TesterPreferences, 'schemaVersion'>>) => {
-    setPreferenceState((current) => saveTesterPreferences({
-      ...current.preferences,
-      ...patch,
-    }));
-  }, []);
-
-  const handleResetPreferences = useCallback(() => {
-    setPreferenceState(resetTesterPreferences());
-  }, []);
 
   const handleSelectHistoryRun = useCallback((record: TesterRunHistoryRecord) => {
     const capabilityId = record.capabilityId as TesterCapabilityId;
@@ -315,12 +294,9 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
         });
         setHistoryError(error instanceof Error ? error.message : String(error || 'History persistence failed.'));
       }
-      if (preferenceState.preferences.evidenceCaptureMode === 'after-run') {
-        handleCaptureEvidence();
-      }
       return record;
     },
-    [handleCaptureEvidence, preferenceState.preferences.evidenceCaptureMode],
+    [],
   );
 
   return (
@@ -330,10 +306,15 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
           view={view}
           onSelectCapability={(id) => setView({ kind: 'capability', capabilityId: id })}
           onSelectRecipes={() => setView({ kind: 'ui-recipes' })}
+          accountSlot={(
+            <NimiLabAccountMenu onOpenSettings={() => setView({ kind: 'settings' })} />
+          )}
         />
         <div className="workbench__main">
           <div className="workbench__content">
-            {view.kind === 'ui-recipes' ? (
+            {view.kind === 'settings' ? (
+              <SettingsRoute />
+            ) : view.kind === 'ui-recipes' ? (
               <KitComponentGallery
                 onOpenSection={(target) => {
                   const capabilityId = testerCapabilities.find((item) => item.id === target)?.id ?? initialCapabilityId;
@@ -349,41 +330,18 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
                 lastResult={lastResult}
                 historySelectionRequest={historySelectionRequest}
                 onSelectHistoryRun={handleSelectHistoryRun}
-                verboseConsole={preferenceState.preferences.verboseConsole}
-                draftPersistence={preferenceState.preferences.draftPersistence}
+                verboseConsole={preferences.verboseConsole}
+                draftPersistence={preferences.draftPersistence}
                 headerActions={(
-                  <>
-                    <Tooltip
-                      content={<TopbarStatusTooltip title="Runtime" rows={runtimeTooltipRows} />}
-                      placement="bottom"
-                    >
-                      <span className={`workbench-topbar__attachment workbench-topbar__attachment--${runtimeState.tone}`}>
-                        <span className="workbench-topbar__dot" aria-hidden="true" />
-                        <span>Runtime</span>
-                      </span>
-                    </Tooltip>
-                    <Tooltip
-                      content={(
-                        <TopbarStatusTooltip
-                          title="Evidence"
-                          rows={[
-                            { label: 'Action', value: 'Capture the current App Lab evidence snapshot.' },
-                            { label: 'Mode', value: preferenceState.preferences.evidenceCaptureMode },
-                          ]}
-                        />
-                      )}
-                      placement="bottom"
-                    >
-                      <button
-                        type="button"
-                        className="workbench-topbar__attachment workbench-topbar__attachment--icon"
-                        aria-label="Capture evidence"
-                        onClick={handleCaptureEvidence}
-                      >
-                        <Camera size={16} aria-hidden="true" />
-                      </button>
-                    </Tooltip>
-                  </>
+                  <Tooltip
+                    content={<TopbarStatusTooltip title="Runtime" rows={runtimeTooltipRows} />}
+                    placement="bottom"
+                  >
+                    <span className={`workbench-topbar__attachment workbench-topbar__attachment--${runtimeState.tone}`}>
+                      <span className="workbench-topbar__dot" aria-hidden="true" />
+                      <span>Runtime</span>
+                    </span>
+                  </Tooltip>
                 )}
               />
             )}

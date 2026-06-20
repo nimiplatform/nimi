@@ -35,6 +35,53 @@ body {
   position: relative;
 }
 
+.runtime-login-screen--panel {
+  width: min(520px, calc(100vw - 32px));
+  height: min(600px, calc(100vh - 96px));
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--nimi-material-glass-thick-border);
+  border-radius: var(--nimi-radius-xl);
+  background: var(--nimi-surface-card);
+  box-shadow: var(--nimi-elevation-floating);
+}
+
+.runtime-login-screen--panel .runtime-login-alert {
+  right: 16px;
+  bottom: 16px;
+  max-width: calc(100% - 32px);
+}
+
+.lab-account-login-popover {
+  position: fixed;
+  left: 84px;
+  right: auto;
+  bottom: 18px;
+  z-index: 60;
+}
+
+.lab-account-login-popover__close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 20;
+  display: inline-flex;
+  width: 34px;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--nimi-border-subtle);
+  border-radius: var(--nimi-radius-full);
+  background: color-mix(in srgb, var(--nimi-surface-card) 86%, transparent);
+  color: var(--nimi-text-secondary);
+  box-shadow: var(--nimi-elevation-base);
+}
+
+.lab-account-login-popover__close:hover {
+  color: var(--nimi-text-primary);
+  background: var(--nimi-surface-card);
+}
+
 .runtime-check-screen,
 .runtime-unavailable-screen {
   display: grid;

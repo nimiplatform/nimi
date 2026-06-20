@@ -7,16 +7,17 @@ import type { RuntimePlatformReadyProjection } from './runtime-platform.js';
 type RuntimeLoginPageProps = {
   client: RuntimePlatformReadyProjection['client'];
   errorMessage?: string;
+  layout?: 'screen' | 'panel';
   onReady: () => void;
 };
 
-export function RuntimeLoginPage({ client, errorMessage, onReady }: RuntimeLoginPageProps) {
+export function RuntimeLoginPage({ client, errorMessage, layout = 'screen', onReady }: RuntimeLoginPageProps) {
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const adapter = useMemo(() => createNimiAppDesktopBrowserAuthAdapter(onReady, client), [client, onReady]);
   const runtimeAccountBroker = useMemo(() => createNimiAppRuntimeAccountBroker(client), [client]);
 
   return (
-    <div className="runtime-login-screen">
+    <div className={`runtime-login-screen runtime-login-screen--${layout}`}>
       <DesktopShellAuthPage
         adapter={adapter}
         session={{

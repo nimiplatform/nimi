@@ -64,7 +64,7 @@ function DevPreview() {
       className="app-shell"
       data-testid="nimi-tester-dev-preview-shell"
     >
-      <TesterWorkbench title="Nimi App Lab" />
+      <TesterWorkbench title="Nimi Lab" />
     </AmbientBackground>
   );
 }

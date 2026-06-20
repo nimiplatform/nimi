@@ -1,4 +1,4 @@
-# Nimi Tester Nimi Listing Request
+# Nimi Lab Nimi Listing Request
 
 This document is a developer-submitted listing request. It is not an approval, release descriptor, permission grant, or install truth.
 

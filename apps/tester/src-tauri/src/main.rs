@@ -39,7 +39,7 @@ fn main() {
             world_tour::open_world_tour_window,
         ])
         .run(tauri::generate_context!())
-        .expect("failed to run Nimi Tester shell");
+        .expect("failed to run Nimi Lab shell");
 }
 
 #[cfg(test)]

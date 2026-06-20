@@ -1,5 +1,5 @@
 {
-  "productName": "Nimi Tester",
+  "productName": "Nimi Lab",
   "version": "0.1.0",
   "identifier": "ai.nimi.apps.nimi.tester",
   "build": {
@@ -11,7 +11,7 @@
   "app": {
     "windows": [
       {
-        "title": "Nimi Tester",
+        "title": "Nimi Lab",
         "width": 1120,
         "height": 760
       }
@@ -19,7 +19,8 @@
   },
   "bundle": {
     "icon": [
-      "icons/icon.png"
+      "icons/icon.png",
+      "icons/icon.ico"
     ]
   }
 }
