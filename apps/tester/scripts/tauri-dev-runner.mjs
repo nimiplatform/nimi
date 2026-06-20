@@ -219,6 +219,14 @@ if (process.platform !== 'win32' || rawArgs[0] !== 'run') {
 }
 
 const { cargoArgs, appArgs } = splitRunArgs(rawArgs.slice(1));
+const binaryPath = resolveAppBinary(cargoArgs);
+try {
+  stopExistingWindowsDevBinary(binaryPath);
+} catch (error) {
+  process.stderr.write(`[tauri-dev-runner] failed to stop stale Windows dev binary: ${String(error?.message ?? error)}\n`);
+  process.exit(1);
+}
+
 const buildArgs = ['build', '--quiet', ...cargoArgs];
 const buildResult = spawnSync('cargo', buildArgs, {
   cwd: process.cwd(),
@@ -233,9 +241,7 @@ if (buildResult.status !== 0) {
   process.exit(buildResult.status ?? 1);
 }
 
-const binaryPath = resolveAppBinary(cargoArgs);
 try {
-  stopExistingWindowsDevBinary(binaryPath);
   signWindowsDevBinary(binaryPath);
 } catch (error) {
   process.stderr.write(`[tauri-dev-runner] failed to sign Windows dev binary: ${String(error?.message ?? error)}\n`);

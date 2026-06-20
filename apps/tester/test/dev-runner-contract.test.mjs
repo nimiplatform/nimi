@@ -10,6 +10,10 @@ const runTauriDevSource = fs.readFileSync(
   path.join(root, 'scripts/run-tauri-dev.mjs'),
   'utf8',
 );
+const tauriDevRunnerSource = fs.readFileSync(
+  path.join(root, 'scripts/tauri-dev-runner.mjs'),
+  'utf8',
+);
 
 test('tester renderer dev command only owns the Vite long-running process', () => {
   assert.equal(
@@ -33,4 +37,22 @@ test('tester Tauri dev command does not self-signal when the Tauri child exits',
   assert.match(runTauriDevSource, /function terminateProcessTree\(child\)/);
   assert.match(runTauriDevSource, /process\.on\(signal, \(\) => exitFromSignal\(signal\)\)/);
   assert.doesNotMatch(runTauriDevSource, /process\.kill\(process\.pid, signal\)/);
+});
+
+test('tester Windows Tauri dev runner stops stale shell binary before Cargo rebuilds it', () => {
+  const splitIndex = tauriDevRunnerSource.indexOf('const { cargoArgs, appArgs } = splitRunArgs(rawArgs.slice(1));');
+  const resolveIndex = tauriDevRunnerSource.indexOf('const binaryPath = resolveAppBinary(cargoArgs);');
+  const stopIndex = tauriDevRunnerSource.indexOf('stopExistingWindowsDevBinary(binaryPath);');
+  const buildIndex = tauriDevRunnerSource.indexOf("const buildArgs = ['build', '--quiet', ...cargoArgs];");
+  const signIndex = tauriDevRunnerSource.indexOf('signWindowsDevBinary(binaryPath);');
+  const spawnIndex = tauriDevRunnerSource.indexOf('spawnAppBinary(binaryPath, appArgs);');
+
+  assert.ok(splitIndex > -1, 'runner must split Cargo args before resolving the app binary path');
+  assert.ok(resolveIndex > splitIndex, 'runner must resolve the tester shell binary path before cleanup');
+  assert.ok(stopIndex > resolveIndex, 'runner must stop the resolved tester shell binary');
+  assert.ok(buildIndex > stopIndex, 'stale shell cleanup must run before cargo build');
+  assert.ok(signIndex > buildIndex, 'runner must sign the rebuilt tester shell binary');
+  assert.ok(spawnIndex > signIndex, 'runner must launch only after rebuild and signing');
+  assert.match(tauriDevRunnerSource, /Get-CimInstance Win32_Process -Filter "Name = '\$BinaryName'"/);
+  assert.match(tauriDevRunnerSource, /ExecutablePath[\s\S]*GetFullPath\(\$_.ExecutablePath\)[\s\S]*-ieq \$BinaryPath/);
 });
