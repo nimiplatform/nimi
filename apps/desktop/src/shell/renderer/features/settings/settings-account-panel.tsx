@@ -313,10 +313,11 @@ export function ProfilePage() {
       {feedback ? (
         <FormFeedback feedback={feedback} onDismiss={() => setFeedback(null)} className="mb-6" />
       ) : null}
-      <section className="sticky top-0 z-10 -mx-6 bg-white px-6 pb-4 pt-2">
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-mint-400 to-mint-600 p-6 text-white shadow-lg">
-          <div className="absolute top-0 right-0 -mt-4 -mr-4 h-24 w-24 rounded-full bg-white/10 blur-2xl" />
-          <div className="absolute bottom-0 left-0 -mb-4 -ml-4 h-20 w-20 rounded-full bg-white/10 blur-xl" />
+      <section
+        data-testid="settings-profile-summary"
+        className="sticky top-0 z-10 -mx-5 bg-[color-mix(in_srgb,var(--nimi-surface-canvas)_82%,transparent)] px-5 pb-4 pt-1 backdrop-blur-[var(--nimi-backdrop-blur-regular)]"
+      >
+        <div className="relative overflow-hidden rounded-2xl border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,transparent)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_94%,white)] p-6 shadow-[0_18px_44px_rgba(15,23,42,0.08)]">
           <div className="relative flex items-start gap-5">
             <div className="relative">
               <input
@@ -333,15 +334,15 @@ export function ProfilePage() {
                 name={name.trim() || displayName}
                 kind="human"
                 sizeClassName="h-24 w-24"
-                className="ring-4 ring-white/20"
+                className="ring-4 ring-[color-mix(in_srgb,var(--nimi-action-primary-bg)_14%,white)]"
                 textClassName="text-3xl font-bold"
-                fallbackClassName="bg-white/20 text-white"
+                fallbackClassName="bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_14%,white)] text-[var(--nimi-action-primary-bg)]"
               />
               <button
                 type="button"
                 onClick={() => avatarInputRef.current?.click()}
                 disabled={uploadingAvatar}
-                className="absolute -bottom-2 -right-2 flex h-9 w-9 items-center justify-center rounded-xl bg-white text-mint-600 shadow-lg transition-transform hover:scale-110 disabled:cursor-not-allowed disabled:opacity-60"
+                className="absolute -bottom-2 -right-2 flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-fg)] shadow-lg transition-transform hover:scale-110 hover:bg-[var(--nimi-action-primary-bg-hover)] disabled:cursor-not-allowed disabled:opacity-60"
                 title={uploadingAvatar ? t('Profile.avatarUploading') : t('Profile.changePhoto')}
               >
                 {ICON_CAMERA}
@@ -349,9 +350,9 @@ export function ProfilePage() {
             </div>
             <div className="flex min-w-0 flex-1 items-start justify-between gap-4">
               <div className="min-w-0">
-                <h3 className="text-xl font-bold">{name.trim() || displayName}</h3>
-                <p className="text-sm text-white/80">@{userHandle.replace(/^@/, '')}</p>
-                {uploadingAvatar ? <p className="mt-2 text-xs text-white/75">{t('Profile.avatarUploading')}</p> : null}
+                <h3 className="text-xl font-bold text-[var(--nimi-text-primary)]">{name.trim() || displayName}</h3>
+                <p className="text-sm text-[var(--nimi-text-secondary)]">@{userHandle.replace(/^@/, '')}</p>
+                {uploadingAvatar ? <p className="mt-2 text-xs text-[var(--nimi-text-secondary)]">{t('Profile.avatarUploading')}</p> : null}
               </div>
             </div>
           </div>

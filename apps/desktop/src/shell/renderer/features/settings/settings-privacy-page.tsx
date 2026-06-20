@@ -309,7 +309,7 @@ export function PrivacyPage() {
                   onClick={() => handleModeChange(option.value as VisibilityMode)}
                   className={`flex-1 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${
                     currentMode === option.value
-                      ? 'bg-mint-500 text-white shadow-sm'
+                      ? 'bg-white text-gray-900 shadow-sm'
                       : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                   }`}
                 >
@@ -404,7 +404,7 @@ export function PrivacyPage() {
 
       {/* Defaults Info Card */}
       <section className="mt-8">
-        <div className="rounded-2xl border border-mint-100 bg-mint-50/50 p-5">
+        <div className="rounded-2xl border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_6%,var(--nimi-surface-card))] p-5 shadow-[0_10px_28px_rgba(15,23,42,0.045)]">
           <div className="flex gap-4">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-mint-100 text-mint-600">
               <InfoIcon className="h-5 w-5" />

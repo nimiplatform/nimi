@@ -61,6 +61,7 @@ export function ProfileDetailViewContent(input: {
     tabIndicator,
     tabListRef,
     toggleEditing,
+    usesExternalScrollContainer,
     visitedTabs,
   } = input.controller;
   const { profile } = input;
@@ -115,16 +116,8 @@ export function ProfileDetailViewContent(input: {
     return () => window.removeEventListener('resize', syncLayoutMode);
   }, []);
 
-  return (
-    <div
-      data-testid={E2E_IDS.profileDetailSurface}
-      className="flex h-full min-h-0 flex-1 flex-col"
-    >
-      <ScrollArea
-        ref={scrollContainerRef}
-        className="flex-1"
-        contentClassName={input.fullBleed ? 'flex min-h-full w-full flex-col' : 'flex min-h-full w-full flex-col pb-6'}
-      >
+  const contentClassName = input.fullBleed ? 'flex min-h-full w-full flex-col' : 'flex min-h-full w-full flex-col pb-6';
+  const profileDetailBody = (
           <section className="relative">
             <div className="relative h-[168px] overflow-hidden px-8 py-5 [mask-image:linear-gradient(180deg,#000_0%,#000_58%,rgba(0,0,0,0.45)_78%,transparent_96%)] [-webkit-mask-image:linear-gradient(180deg,#000_0%,#000_58%,rgba(0,0,0,0.45)_78%,transparent_96%)]" style={headerStyle}>
               {canVisitWorld ? (
@@ -510,7 +503,24 @@ export function ProfileDetailViewContent(input: {
               </div>
             </div>
           </section>
-      </ScrollArea>
+  );
+
+  return (
+    <div
+      data-testid={E2E_IDS.profileDetailSurface}
+      className={usesExternalScrollContainer ? 'flex min-h-full flex-1 flex-col' : 'flex h-full min-h-0 flex-1 flex-col'}
+    >
+      {usesExternalScrollContainer ? (
+        <div className={contentClassName}>{profileDetailBody}</div>
+      ) : (
+        <ScrollArea
+          className="flex-1"
+          contentClassName={contentClassName}
+          viewportRef={scrollContainerRef}
+        >
+          {profileDetailBody}
+        </ScrollArea>
+      )}
       {input.isOwnProfile && showScrollTop ? (
         <button
           type="button"

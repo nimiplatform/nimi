@@ -1,8 +1,8 @@
 import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useQueryClient } from '@tanstack/react-query';
-import { Surface } from '@nimiplatform/kit/ui';
+import { ScrollArea, Surface } from '@nimiplatform/kit/ui';
 import {
   getCachedContacts,
   isPendingSentRequestInContacts,
@@ -56,6 +56,7 @@ export function ProfilePanel() {
   const queryClient = useQueryClient();
   const [giftModalOpen, setGiftModalOpen] = useState(false);
   const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
+  const profileScrollContainerRef = useRef<HTMLDivElement>(null);
 
   const isOwnProfile = !selectedProfileId;
 
@@ -368,46 +369,54 @@ export function ProfilePanel() {
   }
 
   return (
-    <div data-testid={E2E_IDS.panel('profile')} className="flex min-h-0 flex-1 flex-col px-5 pb-5 pt-4">
-      {feedback ? (
-        <div className="px-6 pt-4">
-          <InlineFeedback feedback={feedback} onDismiss={() => setFeedback(null)} />
-        </div>
-      ) : null}
-      <Surface
-        tone="panel"
-        material="glass-regular"
-        padding="none"
-        className="min-h-0 flex-1 overflow-hidden rounded-[2rem] border-white/60 shadow-[0_22px_52px_rgba(15,23,42,0.08)]"
+    <div data-testid={E2E_IDS.panel('profile')} className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <ScrollArea
+        className="min-h-0 flex-1"
+        viewportClassName="bg-transparent px-5 pb-5 pt-4"
+        contentClassName="flex min-h-full w-full flex-col"
+        viewportRef={profileScrollContainerRef}
       >
-        <ProfileDetailView
-          profile={profile}
-          isOwnProfile={isOwnProfile}
-          isBlockedProfile={isBlockedProfile}
-          loading={loading}
-          error={error}
-          hideBackButton
-          onClose={navigateBack}
-          onMessage={() => {
-            void onMessage();
-          }}
-          onAddFriend={!isOwnProfile && !isBlockedProfile && !profile.isFriend && !profile.isPendingFriendRequest ? () => {
-            void onAddFriend();
-          } : undefined}
-          addFriendLabel={addFriendLabel}
-          canAddFriend={!addFriendBlocked}
-          addFriendHint={addFriendHint}
-          onSendGift={() => setGiftModalOpen(true)}
-          onBlock={!isOwnProfile && !isBlockedProfile ? () => {
-            void onBlockProfile();
-          } : undefined}
-          onRemove={!isOwnProfile && !isBlockedProfile && profile.isFriend ? () => {
-            void onRemoveProfile();
-          } : undefined}
-          showMessageButton={!isOwnProfile && !profile.isSource && !isBlockedProfile}
-          onSaveProfile={isOwnProfile ? onSaveOwnProfile : undefined}
-        />
-      </Surface>
+        {feedback ? (
+          <div className="px-6 pt-4">
+            <InlineFeedback feedback={feedback} onDismiss={() => setFeedback(null)} />
+          </div>
+        ) : null}
+        <Surface
+          tone="panel"
+          material="glass-regular"
+          padding="none"
+          className="min-h-full overflow-hidden rounded-[2rem] border-white/60 shadow-[0_22px_52px_rgba(15,23,42,0.08)]"
+        >
+          <ProfileDetailView
+            profile={profile}
+            isOwnProfile={isOwnProfile}
+            isBlockedProfile={isBlockedProfile}
+            loading={loading}
+            error={error}
+            hideBackButton
+            externalScrollContainerRef={profileScrollContainerRef}
+            onClose={navigateBack}
+            onMessage={() => {
+              void onMessage();
+            }}
+            onAddFriend={!isOwnProfile && !isBlockedProfile && !profile.isFriend && !profile.isPendingFriendRequest ? () => {
+              void onAddFriend();
+            } : undefined}
+            addFriendLabel={addFriendLabel}
+            canAddFriend={!addFriendBlocked}
+            addFriendHint={addFriendHint}
+            onSendGift={() => setGiftModalOpen(true)}
+            onBlock={!isOwnProfile && !isBlockedProfile ? () => {
+              void onBlockProfile();
+            } : undefined}
+            onRemove={!isOwnProfile && !isBlockedProfile && profile.isFriend ? () => {
+              void onRemoveProfile();
+            } : undefined}
+            showMessageButton={!isOwnProfile && !profile.isSource && !isBlockedProfile}
+            onSaveProfile={isOwnProfile ? onSaveOwnProfile : undefined}
+          />
+        </Surface>
+      </ScrollArea>
       <SendGiftModal
         open={giftModalOpen && !isOwnProfile && !isBlockedProfile}
         receiverId={profile?.id || ''}

@@ -1,4 +1,4 @@
-import { type ChangeEvent, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { type ChangeEvent, type RefObject, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { uploadNimiRealmResourceFile } from '@nimiplatform/sdk/realm';
 import { i18n } from '@renderer/i18n';
 import { getDesktopRealm } from '@renderer/infra/sdk/desktop-nimi-client-session';
@@ -26,6 +26,7 @@ export type ProfileDetailViewProps = {
   // When true, suppress the floating back-arrow overlaid on the hero banner.
   // Used by embedded profile contexts where the parent already provides navigation.
   hideBackButton?: boolean;
+  externalScrollContainerRef?: RefObject<HTMLDivElement | null>;
   onSaveProfile?: (draft: EditableProfileDraft) => Promise<void>;
 };
 
@@ -54,7 +55,9 @@ export function useProfileDetailViewController(props: ProfileDetailViewProps, re
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const tabListRef = useRef<HTMLDivElement>(null);
   const tabButtonRefs = useRef<Partial<Record<ProfileTab, HTMLButtonElement | null>>>({});
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const internalScrollContainerRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = props.externalScrollContainerRef ?? internalScrollContainerRef;
+  const usesExternalScrollContainer = Boolean(props.externalScrollContainerRef);
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -122,7 +125,7 @@ export function useProfileDetailViewController(props: ProfileDetailViewProps, re
     handleScroll();
     container.addEventListener('scroll', handleScroll, { passive: true });
     return () => container.removeEventListener('scroll', handleScroll);
-  }, [props.isOwnProfile]);
+  }, [props.isOwnProfile, scrollContainerRef]);
 
   const cancelEditing = () => {
     setDraft(buildEditableDraft(props.profile));
@@ -225,6 +228,7 @@ export function useProfileDetailViewController(props: ProfileDetailViewProps, re
     tabIndicator,
     tabListRef,
     toggleEditing,
+    usesExternalScrollContainer,
     visitedTabs,
   };
 }
