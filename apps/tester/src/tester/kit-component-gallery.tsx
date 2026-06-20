@@ -1,12 +1,26 @@
 import { useMemo, useState } from 'react';
-import { Button, Surface } from '@nimiplatform/kit/ui';
-import { Clipboard, Search } from 'lucide-react';
+import { IconButton, Surface } from '@nimiplatform/kit/ui';
+import {
+  CheckSquare,
+  Copy,
+  Database,
+  FormInput,
+  Layers,
+  PanelsTopLeft,
+  Search,
+  Zap,
+  type LucideIcon,
+} from 'lucide-react';
 import {
   CATEGORIES,
   RECIPES,
   type CategoryId,
 } from './kit-component-gallery-recipes.js';
-import { FoundationsCanvas, RecipeCards, countFor } from './kit-component-gallery-surface.js';
+import {
+  FoundationsCanvas,
+  RecipeWorkspace,
+  countFor,
+} from './kit-component-gallery-surface.js';
 
 const foundationCode = `@import "@nimiplatform/kit/ui/styles.css";
 @import "@nimiplatform/kit/ui/themes/light.css";
@@ -17,6 +31,16 @@ const foundationCode = `@import "@nimiplatform/kit/ui/styles.css";
   background: var(--nimi-material-glass-thin-bg);
   border: 1px solid var(--nimi-material-glass-thin-border);
 }`;
+
+const categoryIcons: Record<CategoryId, LucideIcon> = {
+  foundations: Layers,
+  actions: Zap,
+  inputs: FormInput,
+  selection: CheckSquare,
+  overlays: Layers,
+  layouts: PanelsTopLeft,
+  data: Database,
+};
 
 export function KitComponentGallery(_props: { onOpenSection?: (target: string) => void }) {
   const [category, setCategory] = useState<CategoryId>('foundations');
@@ -40,9 +64,9 @@ export function KitComponentGallery(_props: { onOpenSection?: (target: string) =
   }
 
   return (
-    <div className="kit-doc grid h-full min-h-0 min-w-0 grid-cols-[300px_minmax(0,1fr)] items-start gap-4 overflow-x-hidden overflow-y-auto p-4 max-[880px]:grid-cols-1" data-testid="nimi-tester-ui-recipes">
+    <div className="kit-doc grid h-full min-h-0 min-w-0 grid-cols-[260px_minmax(0,1fr)] items-stretch gap-4 overflow-x-hidden overflow-y-auto p-4 max-[880px]:grid-cols-1" data-testid="nimi-tester-ui-recipes">
       {/* Left — library nav. Sticky while the canvas to its right scrolls. */}
-      <Surface as="aside" material="glass-regular" padding="none" elevation="raised" className="kit-doc__library sticky top-0 flex max-h-[calc(100vh-2rem)] flex-col gap-4 self-start overflow-hidden p-4 max-[880px]:static max-[880px]:max-h-none max-[880px]:overflow-visible" aria-label="Kit library navigation">
+      <Surface as="aside" material="glass-regular" padding="none" elevation="raised" className="kit-doc__library sticky top-0 flex h-[calc(100vh-2rem)] min-h-0 max-h-none flex-col gap-4 self-stretch overflow-hidden p-4 max-[880px]:static max-[880px]:h-auto max-[880px]:overflow-visible" aria-label="Kit library navigation">
         <div className="kit-doc__intro min-w-0">
           <p className="eyebrow">Nimi UI Kit</p>
           <h1 className="m-0 text-2xl font-bold tracking-tight">UI Recipes</h1>
@@ -61,15 +85,20 @@ export function KitComponentGallery(_props: { onOpenSection?: (target: string) =
                 <button
                   key={entry.id}
                   type="button"
-                  className={`kit-tax grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-xl border p-2 text-left transition-all ${isActive ? 'kit-tax--active border-transparent bg-[var(--nimi-surface-card)] shadow-[0_8px_24px_rgba(36,54,82,0.10)]' : 'border-transparent bg-transparent hover:bg-[var(--nimi-action-ghost-hover)]'}`}
+                  className={`kit-tax grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-2xl border p-2 text-left transition-all ${isActive ? 'kit-tax--active border-transparent bg-[var(--nimi-sidebar-item-active)] text-[var(--nimi-text-primary)] shadow-[var(--nimi-elevation-base)]' : 'border-transparent bg-transparent text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-sidebar-item-hover)] hover:text-[var(--nimi-text-primary)]'}`}
                   onClick={() => selectCategory(entry.id)}
                   aria-current={isActive ? 'page' : undefined}
                 >
-                  <span className={`kit-tax__symbol grid h-9 w-9 place-items-center rounded-lg text-sm font-bold transition-colors ${isActive ? 'bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)]' : 'bg-[var(--nimi-surface-active)] text-[var(--nimi-text-secondary)]'}`}>{entry.symbol}</span>
+                  <span className={`kit-tax__symbol grid h-10 w-10 place-items-center rounded-xl border text-sm font-bold transition-colors ${isActive ? 'border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_34%,transparent)] bg-[var(--nimi-surface-active)] text-[var(--nimi-action-primary-bg)]' : 'border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-text-muted)_14%,transparent)] text-[var(--nimi-text-secondary)]'}`}>
+                    {(() => {
+                      const Icon = categoryIcons[entry.id];
+                      return <Icon size={18} strokeWidth={1.8} aria-hidden="true" />;
+                    })()}
+                  </span>
                   <span className="kit-tax__copy min-w-0">
                     <strong className="truncate text-sm">{entry.label}</strong>
                   </span>
-                  <span className="kit-tax__count rounded-full bg-[var(--nimi-surface-active)] px-2 py-0.5 text-xs font-bold text-[var(--nimi-text-secondary)]">{countFor(entry.id)}</span>
+                  <span className={`kit-tax__count rounded-full px-2 py-0.5 text-xs font-bold ${isActive ? 'bg-[var(--nimi-surface-active)] text-[var(--nimi-action-primary-bg)]' : 'bg-[color-mix(in_srgb,var(--nimi-text-muted)_14%,transparent)] text-[var(--nimi-text-secondary)]'}`}>{countFor(entry.id)}</span>
                 </button>
               );
             })}
@@ -80,16 +109,27 @@ export function KitComponentGallery(_props: { onOpenSection?: (target: string) =
       {/* Main — hero + canvas. Flows in natural height so the whole column scrolls. */}
       <section className="kit-doc__main grid min-w-0 content-start gap-4">
         <div className="kit-doc__header flex min-w-0 items-center justify-between gap-4 px-1 py-1 max-[720px]:flex-col max-[720px]:items-stretch">
-          <div className="min-w-0">
-            <h2 className="m-0 text-2xl font-bold tracking-tight">{activeCategory.label}</h2>
+          <div className="grid min-w-0 gap-2">
+            <h2 className="m-0 truncate text-3xl font-bold tracking-tight">{activeCategory.label}</h2>
           </div>
           <div className="kit-doc__header-actions flex min-w-0 shrink-0 flex-wrap items-center gap-2">
-            <Button tone="secondary" size="sm" leadingIcon={<Clipboard size={13} />} onClick={copyImport}>{category === 'foundations' ? 'Copy CSS setup' : 'Copy imports'}</Button>
+            <IconButton
+              tone="ghost"
+              size="sm"
+              aria-label={category === 'foundations' ? 'Copy CSS setup' : 'Copy imports'}
+              className="kit-doc__copy-action bg-[color-mix(in_srgb,var(--nimi-surface-card)_32%,transparent)] border-[color-mix(in_srgb,var(--nimi-border-subtle)_45%,transparent)] shadow-none hover:bg-[var(--nimi-action-primary-bg)] hover:border-[var(--nimi-action-primary-bg)] hover:text-[var(--nimi-action-primary-text)] hover:shadow-none"
+              icon={<Copy size={14} aria-hidden="true" />}
+              onClick={copyImport}
+            />
           </div>
         </div>
 
         <div className="kit-doc__canvas min-w-0">
-          {category === 'foundations' ? <FoundationsCanvas /> : <RecipeCards recipes={recipesInCategory} />}
+          {category === 'foundations' ? (
+            <FoundationsCanvas />
+          ) : (
+            <RecipeWorkspace recipes={recipesInCategory} />
+          )}
         </div>
       </section>
     </div>

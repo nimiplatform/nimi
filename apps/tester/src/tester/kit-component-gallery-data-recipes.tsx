@@ -154,12 +154,12 @@ export const DATA_RECIPES: Recipe[] = [
     badge: { label: 'signals', tone: 'warning' },
     wide: true,
     stage: (
-      <div className="kit-stack">
+      <div className="kit-inline-alert-recipe grid w-full min-w-0 gap-6">
         <InlineAlert tone="info">Runtime session is ready for this capability.</InlineAlert>
         <InlineAlert tone="warning">Bind a model before running this lane.</InlineAlert>
       </div>
     ),
-    snippet: `<div className="kit-stack">
+    snippet: `<div className="kit-inline-alert-recipe grid w-full min-w-0 gap-6">
   <InlineAlert tone="info">Runtime session is ready for this capability.</InlineAlert>
   <InlineAlert tone="warning">Bind a model before running this lane.</InlineAlert>
 </div>`,

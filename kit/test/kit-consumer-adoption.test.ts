@@ -39,6 +39,9 @@ function readTesterKitGallerySurface(): string {
   return [
     'apps/tester/src/tester/kit-component-gallery.tsx',
     'apps/tester/src/tester/kit-component-gallery-surface.tsx',
+    'apps/tester/src/tester/kit-component-gallery-recipes.tsx',
+    'apps/tester/src/tester/kit-component-gallery-data-recipes.tsx',
+    'apps/tester/src/tester/kit-component-gallery-demos.tsx',
   ].map(read).join('\n');
 }
 

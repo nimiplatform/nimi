@@ -108,16 +108,6 @@ export type Recipe = {
   tokenFootprint?: Array<{ token: string; role: string; source: string }>;
 };
 
-export type RecipeMode = 'preview' | 'use' | 'key-props' | 'access' | 'design-tokens';
-
-export const RECIPE_MODES: Array<{ id: RecipeMode; label: string }> = [
-  { id: 'preview', label: 'Preview' },
-  { id: 'use', label: 'Use' },
-  { id: 'key-props', label: 'Key props' },
-  { id: 'access', label: 'Access' },
-  { id: 'design-tokens', label: 'Design tokens' },
-];
-
 export const RECIPES: Recipe[] = [
   // Actions
   {
@@ -215,8 +205,10 @@ export const RECIPES: Recipe[] = [
     badge: { label: 'forms', tone: 'info' },
     wide: true,
     stage: (
-      <>
-        <FieldShell label="App identity"><TextField defaultValue="nimi.tester" leading={<Search size={14} />} /></FieldShell>
+      <div className="kit-fields-recipe grid w-full min-w-0 max-w-sm gap-3">
+        <FieldShell label="App identity">
+          <TextField defaultValue="nimi.tester" leading={<Search size={14} />} />
+        </FieldShell>
         <FieldShell label="Capability route">
           <SelectField
             defaultValue="text.generate"
@@ -228,9 +220,9 @@ export const RECIPES: Recipe[] = [
             aria-label="Capability route"
           />
         </FieldShell>
-      </>
+      </div>
     ),
-    snippet: `<>
+    snippet: `<div className="kit-fields-recipe grid w-full min-w-0 max-w-sm gap-3">
   <FieldShell label="App identity">
     <TextField defaultValue="nimi.tester" leading={<Search size={14} />} />
   </FieldShell>
@@ -245,7 +237,7 @@ export const RECIPES: Recipe[] = [
       aria-label="Capability route"
     />
   </FieldShell>
-</>`,
+</div>`,
     props: [
       { name: 'label', desc: 'FieldShell heading + association' },
       { name: 'options', desc: 'closed set of { value, label } for SelectField' },
@@ -325,11 +317,11 @@ export const RECIPES: Recipe[] = [
     badge: { label: 'state', tone: 'info' },
     wide: true,
     stage: (
-      <>
+      <div className="kit-selection-recipe grid w-full min-w-0 max-w-md gap-3 justify-items-start">
         <ToggleDemo />
         <CheckboxDemo />
         <SegmentedDemo />
-      </>
+      </div>
     ),
     snippet: `function SelectionControls() {
   const [toggleOn, setToggleOn] = useState(true);
@@ -337,7 +329,7 @@ export const RECIPES: Recipe[] = [
   const [mode, setMode] = useState('single');
 
   return (
-    <>
+    <div className="kit-selection-recipe grid w-full min-w-0 max-w-md gap-3 justify-items-start">
       <Toggle checked={toggleOn} onChange={setToggleOn} />
       <Checkbox
         checked={checked}
@@ -355,7 +347,7 @@ export const RECIPES: Recipe[] = [
         ariaLabel="Run mode"
         size="sm"
       />
-    </>
+    </div>
   );
 }`,
     props: [
@@ -519,10 +511,10 @@ export const RECIPES: Recipe[] = [
     badge: { label: 'navigation', tone: 'info' },
     wide: true,
     stage: (
-      <>
+      <div className="kit-layout-tabs-recipe grid w-full min-w-0 max-w-2xl gap-6 justify-items-start">
         <TabsDemo />
         <PillTabsDemo />
-      </>
+      </div>
     ),
     extraImports: ["import { useState } from 'react';"],
     snippet: `function TabsRecipe() {
@@ -530,7 +522,7 @@ export const RECIPES: Recipe[] = [
   const [pillValue, setPillValue] = useState('preview');
 
   return (
-    <>
+    <div className="kit-layout-tabs-recipe grid w-full min-w-0 max-w-2xl gap-6 justify-items-start">
       <NimiTabs
         items={[
           { value: 'overview', label: 'Overview' },
@@ -551,7 +543,7 @@ export const RECIPES: Recipe[] = [
         onValueChange={setPillValue}
         ariaLabel="Preview mode"
       />
-    </>
+    </div>
   );
 }`,
     props: [
@@ -569,7 +561,7 @@ export const RECIPES: Recipe[] = [
     badge: { label: 'navigation', tone: 'info' },
     wide: true,
     stage: (
-      <div className="kit-stack" style={{ width: '100%' }}>
+      <div className="kit-layout-navigation-recipe grid w-full min-w-0 max-w-2xl gap-6 justify-items-start">
         <Breadcrumb
           items={[
             { id: 'kit', label: 'Kit', href: '#kit' },
@@ -593,7 +585,7 @@ export const RECIPES: Recipe[] = [
   const [page, setPage] = useState(2);
 
   return (
-    <div className="kit-stack">
+    <div className="kit-layout-navigation-recipe grid w-full min-w-0 max-w-2xl gap-6 justify-items-start">
       <Breadcrumb
         items={[
           { id: 'kit', label: 'Kit', href: '#kit' },
