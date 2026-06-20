@@ -24,10 +24,8 @@ const GENERATED_GITIGNORE = [
   '.DS_Store',
   '',
 ].join('\n');
-const MINIMAL_TAURI_ICON_PNG = Buffer.from(
-  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR4nGNgAAIAAAUAAXpeqz8AAAAASUVORK5CYII=',
-  'base64',
-);
+const MINIMAL_TAURI_ICON_PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR4nGNgAAIAAAUAAXpeqz8AAAAASUVORK5CYII=', 'base64');
+const MINIMAL_TAURI_ICON_ICO = Buffer.from('AAABAAEAAQEAAAEAIABEAAAAFgAAAIlQTkcNChoKAAAADUlIRFIAAAABAAAAAQgGAAAAHxXEiQAAAAtJREFUeJxjYAACAAAFAAF6Xqs/AAAAAElFTkSuQmCC', 'base64');
 const CANONICAL_PERMISSION_SCOPES = new Set('account.read account.session.read data.scope.read data.scope.write agent.identity.project agent.identity.bind ai.spend.meter ai.spend.delegate memory.read.bounded memory.write.admitted knowledge.read.bounded knowledge.write.admitted notification.send notification.subscribe file.read.scoped file.write.scoped device.use.scoped audit.read.scoped ai_profile.selection.consume'.split(' '));
 const DEFAULT_PERMISSION_DECLARATIONS = Object.freeze([
   Object.freeze({
@@ -441,6 +439,11 @@ function buildStructuredFiles(identity, profile, versions) {
     {
       path: 'src-tauri/icons/icon.png',
       content: MINIMAL_TAURI_ICON_PNG,
+      mutationClass: 'scaffold-managed glue',
+    },
+    {
+      path: 'src-tauri/icons/icon.ico',
+      content: MINIMAL_TAURI_ICON_ICO,
       mutationClass: 'scaffold-managed glue',
     },
   ];

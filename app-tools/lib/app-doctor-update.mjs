@@ -385,13 +385,22 @@ function assertRequiredSupportFiles(targetDir, snapshot) {
 
   const tauriConfig = JSON.parse(readFileSync(path.join(targetDir, 'src-tauri/tauri.conf.json'), 'utf8'));
   const icons = tauriConfig?.bundle?.icon;
-  if (!Array.isArray(icons) || icons.join(',') !== 'icons/icon.png') {
-    throw new Error('Tauri icon support drift: bundle.icon must be ["icons/icon.png"]');
+  if (!Array.isArray(icons) || icons.join(',') !== 'icons/icon.png,icons/icon.ico') {
+    throw new Error('Tauri icon support drift: bundle.icon must be ["icons/icon.png","icons/icon.ico"]');
   }
   const icon = readFileSync(path.join(targetDir, 'src-tauri/icons/icon.png'));
   const pngSignature = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
   if (icon.length !== 68 || pngSignature.some((value, index) => icon[index] !== value)) {
     throw new Error('Tauri icon support drift: src-tauri/icons/icon.png is not the scaffold PNG');
+  }
+  const ico = readFileSync(path.join(targetDir, 'src-tauri/icons/icon.ico'));
+  const icoHeader = [0x00, 0x00, 0x01, 0x00, 0x01, 0x00];
+  if (
+    ico.length !== 90
+    || icoHeader.some((value, index) => ico[index] !== value)
+    || pngSignature.some((value, index) => ico[index + 22] !== value)
+  ) {
+    throw new Error('Tauri icon support drift: src-tauri/icons/icon.ico is not the scaffold ICO');
   }
 }
 

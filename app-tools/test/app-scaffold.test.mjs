@@ -161,10 +161,14 @@ function cliScaffold(profile, extraArgs = []) {
 
 function assertTauriIconSupport(generated) {
   const tauriConfig = JSON.parse(generated.read('src-tauri/tauri.conf.json'));
-  assert.deepEqual(tauriConfig.bundle?.icon, ['icons/icon.png']);
+  assert.deepEqual(tauriConfig.bundle?.icon, ['icons/icon.png', 'icons/icon.ico']);
   const icon = generated.readBytes('src-tauri/icons/icon.png');
   assert.equal(icon.length, 68);
   assert.deepEqual([...icon.subarray(0, 8)], [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  const ico = generated.readBytes('src-tauri/icons/icon.ico');
+  assert.equal(ico.length, 90);
+  assert.deepEqual([...ico.subarray(0, 6)], [0x00, 0x00, 0x01, 0x00, 0x01, 0x00]);
+  assert.deepEqual([...ico.subarray(22, 30)], [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 }
 
 function devPortFromScript(script) {
@@ -849,6 +853,7 @@ test('app source resolves from the live reference app and is packaged via prepac
   const { baseDir, manifest } = resolveAppSource();
   assert.match(baseDir, /apps[/\\]tester$/);
   assert.equal(manifest.sourceApp, 'apps/tester');
+  assert.equal(manifest.sourceIdentity.appTitle, 'Nimi Lab');
   assert.equal(manifest.files.some((entry) => entry.path === '.gitignore'), false);
   assert.ok(manifest.files.some((entry) => entry.path === 'src/shell/auth/runtime-platform.ts' && entry.class === 'scaffold-managed glue'));
   assert.ok(manifest.files.some((entry) => entry.path === 'src/tester/tester-workbench.tsx' && entry.class === 'app-owned product code'));

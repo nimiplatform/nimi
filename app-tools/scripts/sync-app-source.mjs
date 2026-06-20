@@ -63,7 +63,7 @@ const SOURCE_IDENTITY = {
   packageName: '@nimiplatform/tester',
   cargoPackageName: 'nimiapp-tester-shell',
   appId: 'nimi.tester',
-  appTitle: 'Nimi Tester',
+  appTitle: 'Nimi Lab',
   appSlug: 'nimi-tester',
   rendererEntryId: 'tester-app',
   accentPack: 'nimi-accent',
