@@ -75,14 +75,13 @@ test('tester preferences use a versioned localStorage schema and fail closed', (
     schemaVersion: 1,
     draftPersistence: false,
     verboseConsole: true,
-    evidenceCaptureMode: 'after-run',
   }, storage);
   assert.equal(saved.status.state, 'ready');
 
   const loaded = loadTesterPreferences(storage);
   assert.equal(loaded.preferences.draftPersistence, false);
   assert.equal(loaded.preferences.verboseConsole, true);
-  assert.equal(loaded.preferences.evidenceCaptureMode, 'after-run');
+  assert.equal(Object.hasOwn(loaded.preferences, 'evidenceCaptureMode'), false);
 
   storage.setItem(TESTER_PREFERENCES_STORAGE_KEY, '{bad json');
   const corrupt = loadTesterPreferences(storage);
@@ -191,17 +190,16 @@ test('tester preference plumbing stays wired and fail-closed', () => {
   const aiTesting = readTesterAiTestingSurface(root);
   const preferences = read('src/tester/tester-preferences.ts');
 
-  // Evidence-capture mode + prompt-draft preferences remain wired from the
-  // app-owned localStorage store into the workbench and capability test panel,
-  // even though the standalone Settings control-plane page was removed (model
-  // config is now the gear slide-over; evidence is per-capability history).
-  assert.match(workbench, /evidenceCaptureMode === 'after-run'/);
-  assert.match(workbench, /handleCaptureEvidence\(\)/);
-  assert.match(workbench, /draftPersistence=\{preferenceState\.preferences\.draftPersistence\}/);
+  // Prompt-draft preferences remain wired from the app-owned localStorage store
+  // into the workbench and capability test panel. Manual evidence capture is no
+  // longer a Lab function; evidence stays folded into per-capability history.
+  assert.doesNotMatch(workbench, /Capture evidence|handleCaptureEvidence|window\.print|Camera/);
+  assert.match(workbench, /draftPersistence=\{preferences\.draftPersistence\}/);
   assert.match(aiTesting, /loadTesterPromptDraft/);
   assert.match(aiTesting, /saveTesterPromptDraft/);
   assert.match(aiTesting, /surfaceId: 'ai-capabilities'/);
   assert.match(preferences, /@nimiplatform\/kit\/core\/storage-json/);
+  assert.doesNotMatch(preferences, /TesterEvidenceCaptureMode|evidenceCaptureMode/);
   assert.doesNotMatch(preferences, /JSON\.parse\(raw\)/);
   assert.doesNotMatch(preferences, /JSON\.stringify\(normalized\)/);
 });

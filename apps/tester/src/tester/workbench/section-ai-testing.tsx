@@ -1,9 +1,8 @@
 import { Suspense, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { StatusBadge } from '@nimiplatform/kit/ui';
-import type { CanonicalCapabilitySectionId } from '@nimiplatform/kit/core/runtime-capabilities';
+import { StatusBadge, Tooltip } from '@nimiplatform/kit/ui';
+import { PanelRight } from 'lucide-react';
 import { createBrowserDataUrlAttachmentAdapter, useChatComposer, type BrowserDataUrlAttachment } from '@nimiplatform/kit/features/chat/headless';
 import { type TesterCapability, type TesterCapabilityId } from '../tester-capabilities.js';
-import { CAPABILITY_TO_SECTION } from '../tester-capability-sections.js';
 import { getTesterRunModelLabel, type TesterRunConfigSnapshot, type TesterRunHistory, type TesterRunHistoryRecord } from '../tester-history.js';
 import { runTesterCapability, type TesterCapabilityRunResult, type TesterRuntimeInspection } from '../tester-runtime.js';
 import { loadTesterPromptDraft, saveTesterPromptDraft, type TesterPromptDraftStoreStatus } from '../tester-preferences.js';
@@ -11,8 +10,9 @@ import { openWorldTourWindow, resolveWorldTourFixture } from '../world-tour/worl
 import { getCapabilityStudioProfile } from './capability-studio-profiles.js';
 import { CapabilityRunHistory, DrawerErrorBoundary, STATUS_PILL_LABEL, TesterAiConfigSettingsPanel, artifactExtension, downloadArtifactUrl, downloadTextFile, presetFor, resultPlainText, statusForCapability, type SectionAITestingProps } from './section-ai-testing-surface.js';
 import { TextStudioComposer, TextStudioStartState } from './section-ai-testing-composer.js';
+import { resolveSectionAITestingConfigSection } from './section-ai-testing-config-section.js';
 import { TextStudioResultState } from './section-ai-testing-result.js';
-import { canConfigureRunTarget, createRunConfigSnapshot, effectiveTextStudioPromptStyle, textStudioDirectiveForTarget, textStudioModelSummary, textStudioRuntimePrompt, useTesterRunTargetSummary, type TextStudioActiveRun } from './section-ai-testing-run.js';
+import { canConfigureRunTarget, createRunConfigSnapshot, effectiveTextStudioPromptStyle, textStudioDirectiveForTarget, textStudioRunTargetModelSummary, textStudioRuntimePrompt, useTesterRunTargetSummary, type TextStudioActiveRun } from './section-ai-testing-run.js';
 
 function TextStudioShell({
   capability,
@@ -33,7 +33,7 @@ function TextStudioShell({
   onResult: (result: TesterCapabilityRunResult, prompt: string, runConfig?: TesterRunConfigSnapshot) => TesterRunHistoryRecord | null | Promise<TesterRunHistoryRecord | null>;
   verboseConsole: boolean;
   draftPersistence: boolean;
-  onOpenConfig: (section: CanonicalCapabilitySectionId) => void;
+  onOpenConfig: () => void;
   history: TesterRunHistory | null;
   historySelectionRequest: { requestId: number; record: TesterRunHistoryRecord } | null;
   onSelectHistoryRun: (record: TesterRunHistoryRecord) => void;
@@ -54,6 +54,8 @@ function TextStudioShell({
   const [streamingText, setStreamingText] = useState<string | null>(null);
   const [activeRun, setActiveRun] = useState<TextStudioActiveRun | null>(null);
   const [sessionRuns, setSessionRuns] = useState<Record<string, TextStudioActiveRun>>({});
+  const [historyCollapsed, setHistoryCollapsed] = useState(true);
+  const [historyFilterResetNonce, setHistoryFilterResetNonce] = useState(0);
   const attachmentAdapter = useMemo(
     () => createBrowserDataUrlAttachmentAdapter({ idPrefix: 'tester-attachment' }),
     [],
@@ -230,7 +232,7 @@ function TextStudioShell({
       capability={capability}
       prompt={prompt}
       context={context}
-      modelLabel={textStudioModelSummary(headerResult, runTarget, activeRun?.record ?? null)}
+      modelLabel={textStudioRunTargetModelSummary(runTarget)}
       running={running}
       attachments={composerState.attachments}
       onOpenAttachmentPicker={composerState.openAttachmentPicker}
@@ -240,11 +242,18 @@ function TextStudioShell({
       compact={Boolean(activeRun)}
       onPromptChange={updatePrompt}
       onContextChange={setContext}
-      onOpenModelConfig={() => onOpenConfig(CAPABILITY_TO_SECTION[capability.id])}
+      onOpenModelConfig={onOpenConfig}
       onSubmit={() => void run()}
     />
   );
   const showAdmissionBadge = admission.label !== 'ready';
+
+  function handleHistoryCollapseToggle() {
+    if (!historyCollapsed) {
+      setHistoryFilterResetNonce((value) => value + 1);
+    }
+    setHistoryCollapsed((value) => !value);
+  }
 
   return (
     <div className={hasActiveRun ? 'studio studio--has-run' : 'studio studio--landing'}>
@@ -257,7 +266,23 @@ function TextStudioShell({
                 <StatusBadge tone={admission.tone} shape="dot">{STATUS_PILL_LABEL[admission.label]}</StatusBadge>
               ) : null}
             </div>
-            {headerActions ? <div className="studio__head-actions">{headerActions}</div> : null}
+            <div className="studio__head-actions">
+              {headerActions}
+              <Tooltip
+                content={historyCollapsed ? 'Show history' : 'Hide history'}
+                placement="bottom"
+              >
+                <button
+                  type="button"
+                  className={historyCollapsed ? 'studio-history-toggle' : 'studio-history-toggle studio-history-toggle--expanded'}
+                  aria-label={historyCollapsed ? 'Show history' : 'Hide history'}
+                  aria-expanded={!historyCollapsed}
+                  onClick={handleHistoryCollapseToggle}
+                >
+                  <PanelRight size={17} strokeWidth={1.8} aria-hidden="true" />
+                </button>
+              </Tooltip>
+            </div>
           </header>
           <main className="studio__stage">
             {hasActiveRun && activeRun ? (
@@ -286,6 +311,8 @@ function TextStudioShell({
           history={history}
           activeRunId={activeRun?.id ?? null}
           onSelectRun={onSelectHistoryRun}
+          collapsed={historyCollapsed}
+          filterResetNonce={historyFilterResetNonce}
         />
       </div>
     </div>
@@ -305,7 +332,11 @@ export function SectionAITesting({
   headerActions,
 }: SectionAITestingProps) {
   const runtime = summary?.runtime ?? null;
-  const [configSection, setConfigSection] = useState<CanonicalCapabilitySectionId | null>(null);
+  const [configOpen, setConfigOpen] = useState(false);
+  const configSection = resolveSectionAITestingConfigSection({
+    open: configOpen,
+    capabilityId: capability.id,
+  });
 
   return (
     <div
@@ -321,7 +352,7 @@ export function SectionAITesting({
           onResult={onResult}
           verboseConsole={verboseConsole}
           draftPersistence={draftPersistence}
-          onOpenConfig={setConfigSection}
+          onOpenConfig={() => setConfigOpen(true)}
           history={history}
           historySelectionRequest={historySelectionRequest}
           onSelectHistoryRun={onSelectHistoryRun}
@@ -335,15 +366,15 @@ export function SectionAITesting({
             type="button"
             className="section-ai-testing__drawer-backdrop"
             aria-label="Close model configuration"
-            onClick={() => setConfigSection(null)}
+            onClick={() => setConfigOpen(false)}
           />
           <aside className="section-ai-testing__drawer" aria-label="Configure model">
-            <DrawerErrorBoundary onClose={() => setConfigSection(null)}>
+            <DrawerErrorBoundary onClose={() => setConfigOpen(false)}>
               <Suspense fallback={<div className="section-ai-testing__drawer-loading">Loading model config...</div>}>
                 <TesterAiConfigSettingsPanel
                   runtime={runtime}
                   initialSection={configSection}
-                  onClose={() => setConfigSection(null)}
+                  onClose={() => setConfigOpen(false)}
                 />
               </Suspense>
             </DrawerErrorBoundary>

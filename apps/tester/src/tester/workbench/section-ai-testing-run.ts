@@ -45,6 +45,10 @@ export function textStudioModelSummary(
   return `Model: ${resolved && !isOpaqueRuntimeModelId(resolved) ? compactStudioModelLabel(resolved) : runTarget.modelLabel}`;
 }
 
+export function textStudioRunTargetModelSummary(runTarget: TesterRunTargetSummary): string {
+  return `Model: ${runTarget.modelLabel}`;
+}
+
 export function canConfigureRunTarget(runTarget: TesterRunTargetSummary): boolean {
   return (
     !runTarget.canDispatch

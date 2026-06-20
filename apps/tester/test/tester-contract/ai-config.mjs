@@ -257,6 +257,9 @@ test('tester AI config is the Kit model-config surface in Settings with real SDK
   ]) {
     assert.match(panel, new RegExp(required.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }
+  assert.match(surface, /<ScrollArea\s+className="min-h-0 min-w-0 max-w-full flex-1"/);
+  assert.match(surface, /viewportClassName=\{drawer \? 'section-ai-testing__drawer-viewport' : undefined\}/);
+  assert.match(surface, /'w-full min-w-0 max-w-full overflow-x-hidden px-6 py-4'/);
 
   // The AI config lives in Settings; the AI Capabilities settings gear deep-links
   // into the configured capability's section. App Lab no longer owns a bespoke
@@ -264,7 +267,7 @@ test('tester AI config is the Kit model-config surface in Settings with real SDK
   // gear (full adoption of the canonical kit model-config surface). App Lab's
   // bespoke AIConfig panel was removed entirely.
   assert.match(capabilities, /TesterAiConfigSettingsPanel/);
-  assert.match(capabilities, /CAPABILITY_TO_SECTION/);
+  assert.match(capabilities, /resolveSectionAITestingConfigSection/);
   assert.match(capabilities, /createRendererEntryModuleLoader/);
   assert.match(capabilities, /DEFAULT_DEV_RENDERER_ENTRY_IMPORT_RETRY_DELAYS_MS/);
   assert.match(capabilities, /testerModelConfigPanelLoader/);
@@ -305,10 +308,29 @@ test('tester AI config is the Kit model-config surface in Settings with real SDK
   assert.doesNotMatch(styles, /\.studio-run-target/);
   assert.doesNotMatch(styles, /\.studio-run-target__params/);
   assert.match(styles, /\.studio-generate-action--configure\s*\{[^}]*background:\s*#35c99d/s);
+  assert.match(styles, /\.workbench\s*\{[^}]*--studio-side-panel-width:\s*min\(360px,\s*calc\(100vw - 48px\)\)/s);
   assert.match(styles, /\.section-ai-testing__drawer\s*\{[^}]*position:\s*absolute/s);
+  assert.match(styles, /\.section-ai-testing__drawer\s*\{[^}]*box-sizing:\s*border-box/s);
+  assert.match(styles, /\.section-ai-testing__drawer\s*\{[^}]*width:\s*var\(--studio-side-panel-width\)/s);
+  assert.match(styles, /\.section-ai-testing__drawer\s*\{[^}]*max-width:\s*100%/s);
+  assert.match(styles, /\.section-ai-testing__drawer-viewport\s*>\s*div\s*\{[^}]*display:\s*block\s*!important/s);
+  assert.match(styles, /\.section-ai-testing__drawer-viewport\s*>\s*div\s*\{[^}]*width:\s*100%\s*!important/s);
   assert.match(styles, /\.section-ai-testing__drawer\s*\{[^}]*animation:\s*section-ai-testing-drawer-slide-in/s);
   assert.match(styles, /@keyframes section-ai-testing-drawer-slide-in[\s\S]*translate3d\(100%,\s*0,\s*0\)/);
   assert.match(styles, /@media \(max-width:\s*720px\)[\s\S]*\.section-ai-testing__drawer[\s\S]*width:\s*100%/);
+});
+
+test('tester capability model config drawer section follows the active left rail capability while open', async () => {
+  const { resolveSectionAITestingConfigSection } = await importBehaviorModule('tester/workbench/section-ai-testing-config-section.js');
+  const capabilities = readTesterAiTestingSurface(root);
+
+  assert.equal(resolveSectionAITestingConfigSection({ open: false, capabilityId: 'image.generate' }), null);
+  assert.equal(resolveSectionAITestingConfigSection({ open: true, capabilityId: 'image.generate' }), 'image');
+  assert.equal(resolveSectionAITestingConfigSection({ open: true, capabilityId: 'video.generate' }), 'video');
+  assert.equal(resolveSectionAITestingConfigSection({ open: true, capabilityId: 'audio.transcribe' }), 'stt');
+  assert.match(capabilities, /resolveSectionAITestingConfigSection/);
+  assert.match(capabilities, /configOpen/);
+  assert.doesNotMatch(capabilities, /useState<CanonicalCapabilitySectionId \| null>/);
 });
 
 test('tester LLM binding resolver fails closed for missing and malformed bindings', async () => {

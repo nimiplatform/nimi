@@ -372,8 +372,11 @@ export function TesterAiConfigSettings({
           ) : null}
         </header>
       ) : null}
-      <ScrollArea className="min-h-0 flex-1">
-        <div className={drawer ? 'min-w-0 px-6 py-4' : 'px-6 py-4'}>
+      <ScrollArea
+        className="min-h-0 min-w-0 max-w-full flex-1"
+        viewportClassName={drawer ? 'section-ai-testing__drawer-viewport' : undefined}
+      >
+        <div className={drawer ? 'w-full min-w-0 max-w-full overflow-x-hidden px-6 py-4' : 'px-6 py-4'}>
           <ModelConfigAiModelHub
             surface={surface}
             profile={profileController}

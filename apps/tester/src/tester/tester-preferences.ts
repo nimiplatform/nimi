@@ -10,14 +10,12 @@ export const TESTER_PREFERENCES_SCHEMA_VERSION = 1;
 export const TESTER_PROMPT_DRAFTS_STORAGE_KEY = 'nimiapp-tester:prompt-drafts:v1';
 export const TESTER_PROMPT_DRAFTS_SCHEMA_VERSION = 1;
 
-export type TesterEvidenceCaptureMode = 'manual' | 'after-run';
 export type TesterPromptDraftSurfaceId = 'app-lab' | 'ai-capabilities';
 
 export type TesterPreferences = {
   schemaVersion: typeof TESTER_PREFERENCES_SCHEMA_VERSION;
   draftPersistence: boolean;
   verboseConsole: boolean;
-  evidenceCaptureMode: TesterEvidenceCaptureMode;
 };
 
 export type TesterPreferenceStoreState =
@@ -102,7 +100,6 @@ export function defaultTesterPreferences(): TesterPreferences {
     schemaVersion: TESTER_PREFERENCES_SCHEMA_VERSION,
     draftPersistence: true,
     verboseConsole: false,
-    evidenceCaptureMode: 'manual',
   };
 }
 
@@ -132,17 +129,12 @@ function getLocalPreferenceStorage(): Storage | null {
   return resolveBrowserStorage('local');
 }
 
-function isEvidenceCaptureMode(value: unknown): value is TesterEvidenceCaptureMode {
-  return value === 'manual' || value === 'after-run';
-}
-
 function parseTesterPreferences(value: unknown): TesterPreferences {
   const parsed = value as Partial<TesterPreferences>;
   if (
     parsed.schemaVersion !== TESTER_PREFERENCES_SCHEMA_VERSION
     || typeof parsed.draftPersistence !== 'boolean'
     || typeof parsed.verboseConsole !== 'boolean'
-    || !isEvidenceCaptureMode(parsed.evidenceCaptureMode)
   ) {
     throw new Error('Stored preference schema is invalid.');
   }
@@ -150,7 +142,6 @@ function parseTesterPreferences(value: unknown): TesterPreferences {
     schemaVersion: TESTER_PREFERENCES_SCHEMA_VERSION,
     draftPersistence: parsed.draftPersistence,
     verboseConsole: parsed.verboseConsole,
-    evidenceCaptureMode: parsed.evidenceCaptureMode,
   };
 }
 
@@ -246,9 +237,6 @@ export function saveTesterPreferences(
     schemaVersion: TESTER_PREFERENCES_SCHEMA_VERSION,
     draftPersistence: Boolean(preferences.draftPersistence),
     verboseConsole: Boolean(preferences.verboseConsole),
-    evidenceCaptureMode: isEvidenceCaptureMode(preferences.evidenceCaptureMode)
-      ? preferences.evidenceCaptureMode
-      : 'manual',
   };
 
   try {

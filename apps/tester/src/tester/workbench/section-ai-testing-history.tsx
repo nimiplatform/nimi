@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Tooltip } from '@nimiplatform/kit/ui';
-import { Check, ChevronRight, RefreshCw, SlidersHorizontal, Sparkles } from 'lucide-react';
+import { Check, ChevronRight, Funnel, RefreshCw, Sparkles } from 'lucide-react';
 import { testerCapabilities, type TesterCapabilityId } from '../tester-capabilities.js';
 import {
   flattenTesterRunHistory,
@@ -201,10 +201,14 @@ export function CapabilityRunHistory({
   history,
   activeRunId,
   onSelectRun,
+  collapsed,
+  filterResetNonce,
 }: {
   history: TesterRunHistory | null;
   activeRunId: string | null;
   onSelectRun: (record: TesterRunHistoryRecord) => void;
+  collapsed: boolean;
+  filterResetNonce: number;
 }) {
   const filterButtonRef = useRef<HTMLButtonElement | null>(null);
   const filterPanelRef = useRef<HTMLDivElement | null>(null);
@@ -257,6 +261,11 @@ export function CapabilityRunHistory({
     document.addEventListener('pointerdown', handleOutsidePointerDown, true);
     return () => document.removeEventListener('pointerdown', handleOutsidePointerDown, true);
   }, [filterOpen]);
+
+  useEffect(() => {
+    setFilterOpen(false);
+    setActiveMenu(null);
+  }, [filterResetNonce]);
 
   function renderSubmenu() {
     if (!activeMenu) {
@@ -315,120 +324,124 @@ export function CapabilityRunHistory({
   }
 
   return (
-    <aside className="studio-history" aria-label="Runtime test History">
-      <div className="studio-recent__head">
-        <div className="studio-history__title">
-          <strong>History</strong>
-        </div>
-        <button
-          ref={filterButtonRef}
-          type="button"
-          className={filterOpen ? 'studio-history__filter-trigger studio-history__filter-trigger--active' : 'studio-history__filter-trigger'}
-          aria-label="Filter history"
-          aria-expanded={filterOpen}
-          onClick={handleFilterToggle}
-        >
-          <SlidersHorizontal size={18} strokeWidth={1.9} aria-hidden="true" />
-        </button>
-      </div>
-      {filterOpen ? (
-        <div ref={filterPanelRef} className="studio-history-filter" role="dialog" aria-label="History filters">
-          <div
-            className="studio-history-filter__menu nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]"
-            data-nimi-material="glass-regular"
-            data-nimi-tone="overlay"
-          >
-            {([
-              ['status', 'Status'],
-              ['capability', 'Capability'],
-              ['environment', 'Environment'],
-              ['activity', 'Last activity'],
-              ['group', 'Group by'],
-              ['sort', 'Sort by'],
-            ] as const).map(([id, label], index) => (
-              <button
-                key={id}
-                type="button"
-                className={activeMenu === id ? 'studio-history-filter__row studio-history-filter__row--active' : 'studio-history-filter__row'}
-                aria-expanded={activeMenu === id}
-                data-divider={index === 4 ? '' : undefined}
-                onClick={() => setActiveMenu((value) => value === id ? null : id)}
-              >
-                <span>{label}</span>
-                <strong>{activeMenuLabel[id]}</strong>
-                <ChevronRight size={17} strokeWidth={1.9} aria-hidden="true" />
-              </button>
-            ))}
-            {hasActiveHistoryFilters ? (
-              <button
-                type="button"
-                className="studio-history-filter__clear"
-                onClick={clearHistoryFilters}
-              >
-                <RefreshCw size={14} strokeWidth={1.9} aria-hidden="true" />
-                <span>Clear all filters</span>
-              </button>
-            ) : null}
+    <div className={collapsed ? 'studio-history-shell studio-history-shell--collapsed' : 'studio-history-shell'}>
+      <aside className={collapsed ? 'studio-history studio-history--collapsed' : 'studio-history'} aria-label="Runtime test History">
+        <div className="studio-recent__head">
+          <div className="studio-history__title">
+            <strong>History</strong>
           </div>
-          {activeMenu ? (
+          <div className="studio-history__actions">
+            <button
+              ref={filterButtonRef}
+              type="button"
+              className={filterOpen ? 'studio-history__filter-trigger studio-history__filter-trigger--active' : 'studio-history__filter-trigger'}
+              aria-label="Filter history"
+              aria-expanded={filterOpen}
+              onClick={handleFilterToggle}
+            >
+              <Funnel size={18} strokeWidth={1.9} aria-hidden="true" />
+            </button>
+          </div>
+        </div>
+        {!collapsed && filterOpen ? (
+          <div ref={filterPanelRef} className="studio-history-filter" role="dialog" aria-label="History filters">
             <div
-              className="studio-history-filter__submenu nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]"
+              className="studio-history-filter__menu nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]"
               data-nimi-material="glass-regular"
               data-nimi-tone="overlay"
             >
-              {renderSubmenu()}
+              {([
+                ['status', 'Status'],
+                ['capability', 'Capability'],
+                ['environment', 'Environment'],
+                ['activity', 'Last activity'],
+                ['group', 'Group by'],
+                ['sort', 'Sort by'],
+              ] as const).map(([id, label], index) => (
+                <button
+                  key={id}
+                  type="button"
+                  className={activeMenu === id ? 'studio-history-filter__row studio-history-filter__row--active' : 'studio-history-filter__row'}
+                  aria-expanded={activeMenu === id}
+                  data-divider={index === 4 ? '' : undefined}
+                  onClick={() => setActiveMenu((value) => value === id ? null : id)}
+                >
+                  <span>{label}</span>
+                  <strong>{activeMenuLabel[id]}</strong>
+                  <ChevronRight size={17} strokeWidth={1.9} aria-hidden="true" />
+                </button>
+              ))}
+              {hasActiveHistoryFilters ? (
+                <button
+                  type="button"
+                  className="studio-history-filter__clear"
+                  onClick={clearHistoryFilters}
+                >
+                  <RefreshCw size={14} strokeWidth={1.9} aria-hidden="true" />
+                  <span>Clear all filters</span>
+                </button>
+              ) : null}
             </div>
-          ) : null}
-        </div>
-      ) : null}
-      <div className="studio-history__runs">
-        {hasRecords ? (
-          groups.map((group) => (
-            <section key={group.id} className="studio-history__group" aria-label={group.label ? `${group.label} runs` : 'Recent runs'}>
-              {group.label ? <h2 className="studio-history__group-title">{group.label}</h2> : null}
-              <ul className="studio-recent__rows">
-                {group.records.map((record) => {
-                  const capability = runtimeHistoryCapabilities.find((item) => item.id === record.capabilityId);
-                  const Icon = capability ? capabilityIcons[capability.id] : Sparkles;
-                  return (
-                    <li key={record.id}>
-                      <button
-                        type="button"
-                        className={record.id === activeRunId ? 'studio-recent__row studio-recent__row--active' : 'studio-recent__row'}
-                        onClick={() => onSelectRun(record)}
-                        aria-current={record.id === activeRunId ? 'true' : undefined}
-                        aria-label={historyLabelForRun(record)}
-                      >
-                        <span className={`studio-recent__dot studio-recent__dot--${historyToneForRun(record)}`} aria-hidden="true" />
-                        <span className="studio-recent__icon" aria-hidden="true">
-                          <Icon size={16} strokeWidth={1.9} />
-                        </span>
-                        <span className="studio-recent__copy">
-                          <span className="studio-recent__summary">
-                            <span className="studio-recent__title">
-                              <Tooltip content={historyModelTitleForRun(record)} placement="top" className="studio-recent__model-tooltip">
-                                <span className="studio-recent__model-name">{historyModelTitleForRun(record)}</span>
-                              </Tooltip>
-                              <time dateTime={record.createdAt}>{formatTesterRunHistoryTimestamp(record.createdAt)}</time>
-                            </span>
+            {activeMenu ? (
+              <div
+                className="studio-history-filter__submenu nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]"
+                data-nimi-material="glass-regular"
+                data-nimi-tone="overlay"
+              >
+                {renderSubmenu()}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+        <div className="studio-history__runs">
+          {hasRecords ? (
+            groups.map((group) => (
+              <section key={group.id} className="studio-history__group" aria-label={group.label ? `${group.label} runs` : 'Recent runs'}>
+                {group.label ? <h2 className="studio-history__group-title">{group.label}</h2> : null}
+                <ul className="studio-recent__rows">
+                  {group.records.map((record) => {
+                    const capability = runtimeHistoryCapabilities.find((item) => item.id === record.capabilityId);
+                    const Icon = capability ? capabilityIcons[capability.id] : Sparkles;
+                    return (
+                      <li key={record.id}>
+                        <button
+                          type="button"
+                          className={record.id === activeRunId ? 'studio-recent__row studio-recent__row--active' : 'studio-recent__row'}
+                          onClick={() => onSelectRun(record)}
+                          aria-current={record.id === activeRunId ? 'true' : undefined}
+                          aria-label={historyLabelForRun(record)}
+                        >
+                          <span className={`studio-recent__dot studio-recent__dot--${historyToneForRun(record)}`} aria-hidden="true" />
+                          <span className="studio-recent__icon" aria-hidden="true">
+                            <Icon size={16} strokeWidth={1.9} />
                           </span>
-                          <Tooltip content={historySubtitleForRun(record)} placement="top" className="studio-recent__detail-tooltip">
-                            <span className={record.status === 'failed' || record.status === 'unavailable' ? 'studio-recent__detail studio-recent__detail--failed' : 'studio-recent__detail'}>
-                              {historySubtitleForRun(record)}
+                          <span className="studio-recent__copy">
+                            <span className="studio-recent__summary">
+                              <span className="studio-recent__title">
+                                <Tooltip content={historyModelTitleForRun(record)} placement="top" className="studio-recent__model-tooltip">
+                                  <span className="studio-recent__model-name">{historyModelTitleForRun(record)}</span>
+                                </Tooltip>
+                                <time dateTime={record.createdAt}>{formatTesterRunHistoryTimestamp(record.createdAt)}</time>
+                              </span>
                             </span>
-                          </Tooltip>
-                        </span>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            </section>
-          ))
-        ) : (
-          <p className="studio-history__empty">{history ? 'No runs match these filters' : 'No runs yet'}</p>
-        )}
-      </div>
-    </aside>
+                            <Tooltip content={historySubtitleForRun(record)} placement="top" className="studio-recent__detail-tooltip">
+                              <span className={record.status === 'failed' || record.status === 'unavailable' ? 'studio-recent__detail studio-recent__detail--failed' : 'studio-recent__detail'}>
+                                {historySubtitleForRun(record)}
+                              </span>
+                            </Tooltip>
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            ))
+          ) : (
+            <p className="studio-history__empty">{history ? 'No runs match these filters' : 'No runs yet'}</p>
+          )}
+        </div>
+      </aside>
+    </div>
   );
 }

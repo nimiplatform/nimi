@@ -34,7 +34,7 @@ test('tester run history is a global runtime test timeline (no standalone Eviden
   const workbench = read('src/tester/tester-workbench.tsx');
 
   // Evidence is folded into each capability's test panel as recent local runs,
-  // rendered from the app-owned history store â€?not a separate Evidence route.
+  // rendered from the app-owned history store - not a separate Evidence route.
   assert.match(surface, /function CapabilityRunHistory/);
   assert.match(surface, /Runtime test History/);
   assert.match(surface, /flattenTesterRunHistory\(history\)/);
@@ -105,10 +105,82 @@ test('right-side history timeline renders a visible timestamp slot', () => {
   assert.match(styles, /\.studio-recent__title time\s*\{[^}]*overflow:\s*visible/s);
 });
 
+test('runtime history panel toggle lives beside Runtime and reflects collapsed state', () => {
+  const historyPanel = read('src/tester/workbench/section-ai-testing-history.tsx');
+  const workbench = read('src/tester/workbench/section-ai-testing.tsx');
+  const styles = read('src/tester/tester-workbench.css');
+
+  assert.doesNotMatch(historyPanel, /ChevronLeft/);
+  assert.match(historyPanel, /ChevronRight/);
+  assert.doesNotMatch(historyPanel, /PanelRight/);
+  assert.match(workbench, /PanelRight/);
+  assert.doesNotMatch(historyPanel, /ArrowLeft/);
+  assert.doesNotMatch(historyPanel, /ArrowRight/);
+  assert.doesNotMatch(historyPanel, /History as HistoryIcon/);
+  assert.match(workbench, /const \[historyCollapsed, setHistoryCollapsed\] = useState\(true\);/);
+  assert.match(workbench, /function handleHistoryCollapseToggle\(\)/);
+  assert.match(workbench, /if \(!historyCollapsed\) \{\s*setHistoryFilterResetNonce\(\(value\) => value \+ 1\);\s*\}/s);
+  assert.doesNotMatch(workbench, /studio__history-toggle/);
+  assert.match(workbench, /<div className="studio__head-actions">\s*\{headerActions\}\s*<Tooltip\s+content=\{historyCollapsed \? 'Show history' : 'Hide history'\}\s+placement="bottom"/s);
+  assert.match(workbench, /className=\{historyCollapsed \? 'studio-history-toggle' : 'studio-history-toggle studio-history-toggle--expanded'\}/);
+  assert.match(workbench, /aria-label=\{historyCollapsed \? 'Show history' : 'Hide history'\}/);
+  assert.match(workbench, /aria-expanded=\{!historyCollapsed\}/);
+  assert.match(workbench, /onClick=\{handleHistoryCollapseToggle\}/);
+  assert.match(workbench, /<PanelRight size=\{17\} strokeWidth=\{1\.8\} aria-hidden="true" \/>/);
+  assert.match(workbench, /<CapabilityRunHistory[\s\S]*collapsed=\{historyCollapsed\}[\s\S]*filterResetNonce=\{historyFilterResetNonce\}/);
+  assert.doesNotMatch(workbench, /<CapabilityRunHistory[\s\S]*onToggleCollapsed=\{handleHistoryCollapseToggle\}/);
+  assert.match(historyPanel, /collapsed,/);
+  assert.match(historyPanel, /filterResetNonce,/);
+  assert.doesNotMatch(historyPanel, /onToggleCollapsed,/);
+  assert.match(historyPanel, /className=\{collapsed \? 'studio-history-shell studio-history-shell--collapsed' : 'studio-history-shell'\}/);
+  assert.match(historyPanel, /className=\{collapsed \? 'studio-history studio-history--collapsed' : 'studio-history'\}/);
+  assert.doesNotMatch(historyPanel, /studio-history__rail/);
+  assert.doesNotMatch(historyPanel, /studio-history__edge-zone/);
+  assert.doesNotMatch(historyPanel, /studio-history__edge-tab/);
+  assert.doesNotMatch(historyPanel, /studio-history__collapse-tooltip/);
+  assert.doesNotMatch(historyPanel, /<HistoryIcon/);
+  assert.doesNotMatch(historyPanel, /setHistoryCollapsed/);
+  assert.doesNotMatch(historyPanel, /function handleHistoryCollapseToggle/);
+  assert.match(historyPanel, /studio-history__filter-trigger/);
+  assert.doesNotMatch(historyPanel, /studio-history__dock-glyph/);
+  assert.match(historyPanel, /useEffect\(\(\) => \{\s*setFilterOpen\(false\);\s*setActiveMenu\(null\);\s*\}, \[filterResetNonce\]\);/s);
+  assert.doesNotMatch(historyPanel, /historyCollapsed \? <ChevronLeft size=\{17\}/);
+  assert.doesNotMatch(historyPanel, /className="studio-history__actions"[\s\S]*studio-history__edge-tab/);
+  assert.doesNotMatch(historyPanel, /className="studio-history__collapse-handle"/);
+  assert.match(styles, /\.studio__head\s*\{[^}]*min-height:\s*104px[^}]*padding:\s*26px\s+26px\s+16px\s+18px/s);
+  assert.match(styles, /\.studio__head-actions\s*\{[^}]*gap:\s*10px/s);
+  assert.doesNotMatch(styles, /\.studio__history-toggle/);
+  assert.match(styles, /\.studio-history-toggle\s*\{[^}]*width:\s*40px[^}]*height:\s*38px[^}]*border:\s*0[^}]*background:\s*transparent[^}]*box-shadow:\s*none[^}]*color:\s*color-mix\(in srgb,\s*var\(--nimi-text-muted\) 88%,\s*#64748b\)/s);
+  assert.match(styles, /\.studio-history-toggle--expanded\s*\{[^}]*color:\s*color-mix\(in srgb,\s*var\(--nimi-text-secondary\) 72%,\s*#111827\)/s);
+  assert.match(styles, /\.studio-history-toggle\s+svg\s*\{[^}]*width:\s*17px[^}]*height:\s*17px/s);
+  assert.match(styles, /\.studio__workspace--with-history\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+auto/s);
+  assert.match(styles, /\.workbench\s*\{[^}]*--studio-side-panel-width:\s*min\(360px,\s*calc\(100vw - 48px\)\)/s);
+  assert.match(styles, /\.section-ai-testing__drawer\s*\{[^}]*box-sizing:\s*border-box/s);
+  assert.match(styles, /\.section-ai-testing__drawer\s*\{[^}]*width:\s*var\(--studio-side-panel-width\)/s);
+  assert.match(styles, /\.section-ai-testing__drawer\s*\{[^}]*max-width:\s*100%/s);
+  assert.match(styles, /\.studio-history-shell\s*\{[^}]*position:\s*relative[^}]*width:\s*var\(--studio-side-panel-width\)[^}]*transition:\s*width\s+260ms\s+cubic-bezier\(0\.22,\s*1,\s*0\.36,\s*1\)/s);
+  assert.match(styles, /\.studio-history-shell::before\s*\{[^}]*left:\s*0[^}]*width:\s*1px[^}]*background:\s*rgba\(148,\s*163,\s*184,\s*0\.13\)/s);
+  assert.match(styles, /\.studio-history\s*\{[^}]*border-left:\s*1px\s+solid\s+rgba\(226,\s*231,\s*241,\s*0\.24\)[^}]*padding:\s*36px\s+14px\s+28px/s);
+  assert.match(styles, /\.studio-recent__head\s*\{[^}]*min-height:\s*41px/s);
+  assert.match(styles, /\.studio-history-shell--collapsed::before\s*\{[^}]*display:\s*none/s);
+  assert.match(styles, /\.studio-history--collapsed\s*\{[^}]*overflow:\s*hidden[^}]*border-left:\s*0[^}]*padding:\s*0/s);
+  assert.match(styles, /\.studio-history-shell--collapsed\s*\{[^}]*width:\s*0/s);
+  assert.doesNotMatch(styles, /\.studio-history__rail/);
+  assert.doesNotMatch(styles, /\.studio-history__edge-zone/);
+  assert.doesNotMatch(styles, /\.studio-history__edge-tab/);
+  assert.doesNotMatch(styles, /\.studio-history__dock-glyph/);
+  assert.match(styles, /\.studio-history-filter\s*\{[^}]*top:\s*80px/s);
+  assert.match(styles, /\.studio-history--collapsed\s+\.studio-recent__head\s*\{[^}]*display:\s*flex/s);
+  assert.match(styles, /\.studio-history--collapsed\s+\.studio-history__actions\s*\{[^}]*justify-content:\s*center/s);
+  assert.match(styles, /\.studio-history--collapsed\s+\.studio-history__runs\s*\{[^}]*display:\s*none/s);
+  assert.match(styles, /\.studio-history--collapsed\s+\.studio-history__filter-trigger\s*\{[^}]*display:\s*none/s);
+});
+
 test('tester run history rows prioritize prompt title, timeline filters, and run metrics', () => {
   const capabilities = readTesterAiTestingSurface(root);
   const historyStore = read('src/tester/tester-history.ts');
   const workbench = read('src/tester/workbench/section-ai-testing.tsx');
+  const historyPanel = read('src/tester/workbench/section-ai-testing-history.tsx');
   const surface = readTesterAiTestingSurface(root);
   const styles = read('src/tester/tester-workbench.css');
 
@@ -181,7 +253,8 @@ test('tester run history rows prioritize prompt title, timeline filters, and run
   assert.match(surface, /\{ id: 'all', label: 'All' \}/);
   assert.doesNotMatch(surface, /All environments/);
   assert.match(surface, /Remote Control/);
-  assert.match(surface, /SlidersHorizontal/);
+  assert.match(historyPanel, /Funnel/);
+  assert.doesNotMatch(historyPanel, /ListFilter|SlidersHorizontal/);
   assert.match(surface, /ChevronRight/);
   assert.match(surface, /getTesterRunModelSource\(record\)/);
   assert.match(surface, /getTesterRunModelLabel\(record\)/);
@@ -305,7 +378,8 @@ test('tester run history rows prioritize prompt title, timeline filters, and run
   assert.match(surface, /const preferred = preferredLabel\?\.trim\(\)/);
   assert.match(surface, /const displayModelLabel = studioResultModelLabel\(result, capability, modelLabel\)/);
   assert.match(capabilities, /modelLabel=\{activeRun\.record \? getTesterRunModelLabel\(activeRun\.record\) : runTarget\.modelLabel\}/);
-  assert.match(capabilities, /modelLabel=\{textStudioModelSummary\(headerResult, runTarget, activeRun\?\.record \?\? null\)\}/);
+  assert.match(capabilities, /modelLabel=\{textStudioRunTargetModelSummary\(runTarget\)\}/);
+  assert.doesNotMatch(capabilities, /modelLabel=\{textStudioModelSummary\(headerResult, runTarget, activeRun\?\.record \?\? null\)\}/);
   assert.match(surface, /<Tooltip content=\{displayModelLabel\} placement="top" className="min-w-0">/);
   assert.match(surface, /className="studio-recent__title"/);
   assert.match(surface, /className="studio-recent__model-tooltip"/);
@@ -321,6 +395,8 @@ test('tester run history rows prioritize prompt title, timeline filters, and run
   assert.match(styles, /\.studio-diag\s*\{[^}]*position:\s*relative/s);
   assert.match(styles, /\.studio-diag__actions\s*\{[^}]*position:\s*absolute/s);
   assert.match(styles, /\.studio-diag__actions\s*\{[^}]*right:\s*16px/s);
+  assert.match(styles, /\.studio-diag__actions\s+\.studio-result__action\s*\{[^}]*width:\s*24px/s);
+  assert.match(styles, /\.studio-diag__actions\s+\.studio-result__action\s+svg\s*\{[^}]*width:\s*13px/s);
   assert.doesNotMatch(capabilities, /function summarizeParamRows/);
   assert.doesNotMatch(capabilities, /studio-history-settings__summary/);
   assert.match(capabilities, /Model settings/);
@@ -351,7 +427,7 @@ test('tester run history rows prioritize prompt title, timeline filters, and run
   assert.match(styles, /\.studio__workspace\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)/s);
   assert.match(
     styles,
-    /\.studio__workspace--with-history\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s*minmax\(320px,\s*360px\)/s,
+    /\.studio__workspace--with-history\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+auto/s,
   );
   assert.match(styles, /\.studio__title\s*\{[^}]*overflow:\s*visible/s);
   assert.match(styles, /\.studio__title\s+h1\s*\{[^}]*overflow:\s*visible/s);
@@ -385,7 +461,7 @@ test('tester run history rows prioritize prompt title, timeline filters, and run
   assert.match(styles, /\.studio-history-filter/);
   assert.match(styles, /\.studio-history-filter\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)/s);
   assert.match(styles, /\.studio-history-filter\s*\{[^}]*position:\s*absolute/s);
-  assert.match(styles, /\.studio-history-filter\s*\{[^}]*top:\s*93px/s);
+  assert.match(styles, /\.studio-history-filter\s*\{[^}]*top:\s*80px/s);
   assert.match(styles, /\.studio-history-filter\s*\{[^}]*right:\s*22px/s);
   assert.match(styles, /\.studio-history-filter\s*\{[^}]*width:\s*min\(236px,\s*calc\(100% - 44px\)\)/s);
   assert.match(styles, /\.studio-history-filter__menu/);
@@ -495,7 +571,7 @@ test('tester artifact history persistence is real and fail-closed', () => {
   assert.match(testerStorage, /scoped_storage_child\(&payload\.storage_root, "tester data root", "artifacts"\)/);
   assert.doesNotMatch(imageHistory, /kind: record\.kind \|\| 'runtime-media'/);
 
-  // Real runtime artifacts are previewed from their typed url/mimeType only â€?  // no fabricated placeholder media.
+  // Real runtime artifacts are previewed from their typed url/mimeType only - no fabricated placeholder media.
   assert.match(capabilities, /function ArtifactPreview/);
   assert.match(capabilities, /function ArtifactMediaPreview/);
   assert.match(capabilities, /mimeType\.startsWith\('image\/'\)/);
