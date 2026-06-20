@@ -31,7 +31,7 @@ export function WorldTourViewerRoute() {
     <section className="product-area" data-testid={testerTestIds.worldTourViewerRoot}>
       <Surface className="product-hero world-tour-viewer-hero" material="glass-thick" tone="hero" elevation="floating">
         <div>
-          <p className="eyebrow">Nimi Tester</p>
+          <p className="eyebrow">Nimi Lab</p>
           <h1>World Tour Viewer</h1>
           <p className="product-copy">Standalone app-owned viewer surface for local fixture inspection and render acceptance evidence.</p>
         </div>
