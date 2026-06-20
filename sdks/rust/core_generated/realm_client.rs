@@ -1136,6 +1136,12 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         path: Some("/api/realm/core/worlds/{worldId}/entities"),
     },
     RealmOperationDescriptor {
+        operation_id: "WorldCoreController_createWorldRelationship",
+        service: "Realm Core",
+        method: "POST",
+        path: Some("/api/realm/core/worlds/{worldId}/relationships"),
+    },
+    RealmOperationDescriptor {
         operation_id: "WorldCoreController_getOasisWorld",
         service: "Realm Core",
         method: "GET",
@@ -1166,6 +1172,12 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         path: Some("/api/realm/core/world-entities/{entityId}"),
     },
     RealmOperationDescriptor {
+        operation_id: "WorldCoreController_getWorldRelationship",
+        service: "Realm Core",
+        method: "GET",
+        path: Some("/api/realm/core/world-relationships/{relationshipId}"),
+    },
+    RealmOperationDescriptor {
         operation_id: "WorldCoreController_listRealmPersonas",
         service: "Realm Core",
         method: "GET",
@@ -1190,6 +1202,12 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         path: Some("/api/realm/core/worlds/{worldId}/entities"),
     },
     RealmOperationDescriptor {
+        operation_id: "WorldCoreController_listWorldRelationships",
+        service: "Realm Core",
+        method: "GET",
+        path: Some("/api/realm/core/worlds/{worldId}/relationships"),
+    },
+    RealmOperationDescriptor {
         operation_id: "WorldCoreController_replaceRealmPersona",
         service: "Realm Core",
         method: "PUT",
@@ -1212,6 +1230,12 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         service: "Realm Core",
         method: "PUT",
         path: Some("/api/realm/core/world-entities/{entityId}"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "WorldCoreController_replaceWorldRelationship",
+        service: "Realm Core",
+        method: "PUT",
+        path: Some("/api/realm/core/world-relationships/{relationshipId}"),
     },
     RealmOperationDescriptor {
         operation_id: "WorldPublicController_getWorld",

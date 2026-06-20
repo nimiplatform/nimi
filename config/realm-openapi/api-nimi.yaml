@@ -2676,6 +2676,110 @@ components:
         - origin
         - core
       type: object
+    CreateWorldRelationshipCoreDto:
+      properties:
+        core:
+          additionalProperties: false
+          properties:
+            attributes:
+              additionalProperties: true
+              type: object
+            authoring:
+              additionalProperties: false
+              properties:
+                extensions:
+                  additionalProperties: true
+                  type: object
+                maintainers:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                notes:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                review:
+                  additionalProperties: false
+                  properties:
+                    reviewedAt:
+                      type: string
+                    reviewedBy:
+                      type: string
+                    status:
+                      minLength: 1
+                      type: string
+                  required:
+                    - status
+                  type: object
+                source:
+                  minLength: 1
+                  type: string
+              required:
+                - source
+              type: object
+            endpoints:
+              additionalProperties: false
+              properties:
+                sourceEntityId:
+                  minLength: 1
+                  type: string
+                targetEntityId:
+                  minLength: 1
+                  type: string
+                type:
+                  minLength: 1
+                  type: string
+              required:
+                - sourceEntityId
+                - targetEntityId
+                - type
+              type: object
+            evidence:
+              additionalProperties: false
+              properties:
+                confidence:
+                  enum:
+                    - recorded
+                    - normalized
+                    - inferred
+                    - editorial
+                    - rejected
+                  type: string
+                sourceRefs:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+              required:
+                - sourceRefs
+                - confidence
+              type: object
+            presentation:
+              additionalProperties: false
+              properties:
+                summary:
+                  type: string
+              type: object
+          type: object
+        id:
+          type: string
+        origin:
+          $ref: '#/components/schemas/RealmCoreOriginDto'
+        sourceEntityId:
+          type: string
+        targetEntityId:
+          type: string
+        type:
+          type: string
+      required:
+        - sourceEntityId
+        - targetEntityId
+        - type
+        - origin
+        - core
+      type: object
     CreatorEligibilityResponseDto:
       properties:
         canCreateRealmPersona:
@@ -5972,6 +6076,113 @@ components:
         - core
         - baseContentHash
       type: object
+    ReplaceWorldRelationshipCoreDto:
+      properties:
+        baseContentHash:
+          type: string
+        core:
+          additionalProperties: false
+          properties:
+            attributes:
+              additionalProperties: true
+              type: object
+            authoring:
+              additionalProperties: false
+              properties:
+                extensions:
+                  additionalProperties: true
+                  type: object
+                maintainers:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                notes:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                review:
+                  additionalProperties: false
+                  properties:
+                    reviewedAt:
+                      type: string
+                    reviewedBy:
+                      type: string
+                    status:
+                      minLength: 1
+                      type: string
+                  required:
+                    - status
+                  type: object
+                source:
+                  minLength: 1
+                  type: string
+              required:
+                - source
+              type: object
+            endpoints:
+              additionalProperties: false
+              properties:
+                sourceEntityId:
+                  minLength: 1
+                  type: string
+                targetEntityId:
+                  minLength: 1
+                  type: string
+                type:
+                  minLength: 1
+                  type: string
+              required:
+                - sourceEntityId
+                - targetEntityId
+                - type
+              type: object
+            evidence:
+              additionalProperties: false
+              properties:
+                confidence:
+                  enum:
+                    - recorded
+                    - normalized
+                    - inferred
+                    - editorial
+                    - rejected
+                  type: string
+                sourceRefs:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+              required:
+                - sourceRefs
+                - confidence
+              type: object
+            presentation:
+              additionalProperties: false
+              properties:
+                summary:
+                  type: string
+              type: object
+          type: object
+        id:
+          type: string
+        origin:
+          $ref: '#/components/schemas/RealmCoreOriginDto'
+        sourceEntityId:
+          type: string
+        targetEntityId:
+          type: string
+        type:
+          type: string
+      required:
+        - sourceEntityId
+        - targetEntityId
+        - type
+        - origin
+        - core
+        - baseContentHash
+      type: object
     ReportReason:
       description: Reason for the report
       enum:
@@ -9039,6 +9250,131 @@ components:
       required:
         - state
       type: object
+    WorldRelationshipCoreDto:
+      properties:
+        contentHash:
+          type: string
+        contentRevision:
+          type: number
+        core:
+          additionalProperties: false
+          properties:
+            attributes:
+              additionalProperties: true
+              type: object
+            authoring:
+              additionalProperties: false
+              properties:
+                extensions:
+                  additionalProperties: true
+                  type: object
+                maintainers:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                notes:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                review:
+                  additionalProperties: false
+                  properties:
+                    reviewedAt:
+                      type: string
+                    reviewedBy:
+                      type: string
+                    status:
+                      minLength: 1
+                      type: string
+                  required:
+                    - status
+                  type: object
+                source:
+                  minLength: 1
+                  type: string
+              required:
+                - source
+              type: object
+            endpoints:
+              additionalProperties: false
+              properties:
+                sourceEntityId:
+                  minLength: 1
+                  type: string
+                targetEntityId:
+                  minLength: 1
+                  type: string
+                type:
+                  minLength: 1
+                  type: string
+              required:
+                - sourceEntityId
+                - targetEntityId
+                - type
+              type: object
+            evidence:
+              additionalProperties: false
+              properties:
+                confidence:
+                  enum:
+                    - recorded
+                    - normalized
+                    - inferred
+                    - editorial
+                    - rejected
+                  type: string
+                sourceRefs:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+              required:
+                - sourceRefs
+                - confidence
+              type: object
+            presentation:
+              additionalProperties: false
+              properties:
+                summary:
+                  type: string
+              type: object
+          type: object
+        createdAt:
+          format: date-time
+          type: string
+        id:
+          type: string
+        origin:
+          $ref: '#/components/schemas/RealmCoreOriginDto'
+        schemaVersion:
+          type: string
+        sourceEntityId:
+          type: string
+        targetEntityId:
+          type: string
+        type:
+          type: string
+        updatedAt:
+          format: date-time
+          type: string
+        worldId:
+          type: string
+      required:
+        - id
+        - schemaVersion
+        - contentRevision
+        - contentHash
+        - origin
+        - worldId
+        - sourceEntityId
+        - targetEntityId
+        - type
+        - core
+        - createdAt
+        - updatedAt
+      type: object
   securitySchemes:
     bearer:
       bearerFormat: JWT
@@ -9049,7 +9385,7 @@ info:
   description: |-
     The Nimi Social Platform API
 
-    Last updated: 2026-06-19T14:45:47.012Z
+    Last updated: 2026-06-20T19:55:46.825Z
   title: Nimi Realm SDK API
   version: '1.0'
 openapi: 3.0.0
@@ -12861,6 +13197,53 @@ paths:
       summary: Replace a WorldEntityCore with baseContentHash protection
       tags:
         - Realm Core
+  /api/realm/core/world-relationships/{relationshipId}:
+    get:
+      operationId: WorldCoreController_getWorldRelationship
+      parameters:
+        - in: path
+          name: relationshipId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorldRelationshipCoreDto'
+          description: ''
+      security:
+        - bearer: []
+      summary: Get a WorldRelationshipCore by id
+      tags:
+        - Realm Core
+    put:
+      operationId: WorldCoreController_replaceWorldRelationship
+      parameters:
+        - in: path
+          name: relationshipId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReplaceWorldRelationshipCoreDto'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorldRelationshipCoreDto'
+          description: ''
+      security:
+        - bearer: []
+      summary: Replace a WorldRelationshipCore with baseContentHash protection
+      tags:
+        - Realm Core
   /api/realm/core/worlds:
     get:
       operationId: WorldCoreController_listWorldCores
@@ -13058,6 +13441,75 @@ paths:
       security:
         - bearer: []
       summary: Create a world-owned WorldEntityCore
+      tags:
+        - Realm Core
+  /api/realm/core/worlds/{worldId}/relationships:
+    get:
+      operationId: WorldCoreController_listWorldRelationships
+      parameters:
+        - in: query
+          name: take
+          required: false
+          schema:
+            type: number
+        - in: query
+          name: type
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: targetEntityId
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: sourceEntityId
+          required: false
+          schema:
+            type: string
+        - in: path
+          name: worldId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/WorldRelationshipCoreDto'
+                type: array
+          description: ''
+      security:
+        - bearer: []
+      summary: List WorldRelationshipCore records for a WorldCore
+      tags:
+        - Realm Core
+    post:
+      operationId: WorldCoreController_createWorldRelationship
+      parameters:
+        - in: path
+          name: worldId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateWorldRelationshipCoreDto'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorldRelationshipCoreDto'
+          description: ''
+      security:
+        - bearer: []
+      summary: Create a world-owned WorldRelationshipCore
       tags:
         - Realm Core
   /api/reports:

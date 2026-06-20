@@ -10555,6 +10555,64 @@
       ]
     },
     {
+      "operation_id": "WorldCoreController_createWorldRelationship",
+      "method": "POST",
+      "path": "/api/realm/core/worlds/{worldId}/relationships",
+      "service": "Realm Core",
+      "tags": [
+        "Realm Core"
+      ],
+      "parameters": [
+        {
+          "name": "worldId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "path_parameters": [
+        {
+          "name": "worldId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "ref",
+        "ref": "#/components/schemas/CreateWorldRelationshipCoreDto",
+        "ref_name": "CreateWorldRelationshipCoreDto"
+      },
+      "request_schema_ref": "#/components/schemas/CreateWorldRelationshipCoreDto",
+      "response_schemas": [
+        {
+          "status": "201",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/WorldRelationshipCoreDto",
+            "ref_name": "WorldRelationshipCoreDto"
+          },
+          "schema_ref": "#/components/schemas/WorldRelationshipCoreDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "201",
+          "schema_ref": "#/components/schemas/WorldRelationshipCoreDto"
+        }
+      ]
+    },
+    {
       "operation_id": "WorldCoreController_getOasisWorld",
       "method": "GET",
       "path": "/api/realm/core/oasis",
@@ -10809,6 +10867,62 @@
         {
           "status": "200",
           "schema_ref": "#/components/schemas/WorldEntityCoreDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "WorldCoreController_getWorldRelationship",
+      "method": "GET",
+      "path": "/api/realm/core/world-relationships/{relationshipId}",
+      "service": "Realm Core",
+      "tags": [
+        "Realm Core"
+      ],
+      "parameters": [
+        {
+          "name": "relationshipId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "path_parameters": [
+        {
+          "name": "relationshipId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/WorldRelationshipCoreDto",
+            "ref_name": "WorldRelationshipCoreDto"
+          },
+          "schema_ref": "#/components/schemas/WorldRelationshipCoreDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/WorldRelationshipCoreDto"
         }
       ]
     },
@@ -11085,6 +11199,141 @@
       "response_schema_refs": []
     },
     {
+      "operation_id": "WorldCoreController_listWorldRelationships",
+      "method": "GET",
+      "path": "/api/realm/core/worlds/{worldId}/relationships",
+      "service": "Realm Core",
+      "tags": [
+        "Realm Core"
+      ],
+      "parameters": [
+        {
+          "name": "take",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null
+          }
+        },
+        {
+          "name": "type",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        },
+        {
+          "name": "targetEntityId",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        },
+        {
+          "name": "sourceEntityId",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        },
+        {
+          "name": "worldId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "path_parameters": [
+        {
+          "name": "worldId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "query_parameters": [
+        {
+          "name": "take",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null
+          }
+        },
+        {
+          "name": "type",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        },
+        {
+          "name": "targetEntityId",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        },
+        {
+          "name": "sourceEntityId",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "array",
+            "items": {
+              "kind": "ref",
+              "ref": "#/components/schemas/WorldRelationshipCoreDto",
+              "ref_name": "WorldRelationshipCoreDto"
+            }
+          },
+          "schema_ref": null
+        }
+      ],
+      "response_schema_refs": []
+    },
+    {
       "operation_id": "WorldCoreController_replaceRealmPersona",
       "method": "PUT",
       "path": "/api/realm/core/personas/{personaId}",
@@ -11313,6 +11562,64 @@
         {
           "status": "200",
           "schema_ref": "#/components/schemas/WorldEntityCoreDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "WorldCoreController_replaceWorldRelationship",
+      "method": "PUT",
+      "path": "/api/realm/core/world-relationships/{relationshipId}",
+      "service": "Realm Core",
+      "tags": [
+        "Realm Core"
+      ],
+      "parameters": [
+        {
+          "name": "relationshipId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "path_parameters": [
+        {
+          "name": "relationshipId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "ref",
+        "ref": "#/components/schemas/ReplaceWorldRelationshipCoreDto",
+        "ref_name": "ReplaceWorldRelationshipCoreDto"
+      },
+      "request_schema_ref": "#/components/schemas/ReplaceWorldRelationshipCoreDto",
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/WorldRelationshipCoreDto",
+            "ref_name": "WorldRelationshipCoreDto"
+          },
+          "schema_ref": "#/components/schemas/WorldRelationshipCoreDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/WorldRelationshipCoreDto"
         }
       ]
     },
@@ -12639,6 +12946,12 @@
       "path": "/api/realm/core/worlds/{worldId}/entities"
     },
     {
+      "operation_id": "WorldCoreController_createWorldRelationship",
+      "service": "Realm Core",
+      "method": "POST",
+      "path": "/api/realm/core/worlds/{worldId}/relationships"
+    },
+    {
       "operation_id": "WorldCoreController_getOasisWorld",
       "service": "Realm Core",
       "method": "GET",
@@ -12669,6 +12982,12 @@
       "path": "/api/realm/core/world-entities/{entityId}"
     },
     {
+      "operation_id": "WorldCoreController_getWorldRelationship",
+      "service": "Realm Core",
+      "method": "GET",
+      "path": "/api/realm/core/world-relationships/{relationshipId}"
+    },
+    {
       "operation_id": "WorldCoreController_listRealmPersonas",
       "service": "Realm Core",
       "method": "GET",
@@ -12693,6 +13012,12 @@
       "path": "/api/realm/core/worlds/{worldId}/entities"
     },
     {
+      "operation_id": "WorldCoreController_listWorldRelationships",
+      "service": "Realm Core",
+      "method": "GET",
+      "path": "/api/realm/core/worlds/{worldId}/relationships"
+    },
+    {
       "operation_id": "WorldCoreController_replaceRealmPersona",
       "service": "Realm Core",
       "method": "PUT",
@@ -12715,6 +13040,12 @@
       "service": "Realm Core",
       "method": "PUT",
       "path": "/api/realm/core/world-entities/{entityId}"
+    },
+    {
+      "operation_id": "WorldCoreController_replaceWorldRelationship",
+      "service": "Realm Core",
+      "method": "PUT",
+      "path": "/api/realm/core/world-relationships/{relationshipId}"
     },
     {
       "operation_id": "WorldPublicController_getWorld",
@@ -12971,19 +13302,23 @@
         "WorldCoreController_createWorldCharacter",
         "WorldCoreController_createWorldCore",
         "WorldCoreController_createWorldEntity",
+        "WorldCoreController_createWorldRelationship",
         "WorldCoreController_getOasisWorld",
         "WorldCoreController_getRealmPersona",
         "WorldCoreController_getWorldCharacter",
         "WorldCoreController_getWorldCore",
         "WorldCoreController_getWorldEntity",
+        "WorldCoreController_getWorldRelationship",
         "WorldCoreController_listRealmPersonas",
         "WorldCoreController_listWorldCharacters",
         "WorldCoreController_listWorldCores",
         "WorldCoreController_listWorldEntities",
+        "WorldCoreController_listWorldRelationships",
         "WorldCoreController_replaceRealmPersona",
         "WorldCoreController_replaceWorldCharacter",
         "WorldCoreController_replaceWorldCore",
-        "WorldCoreController_replaceWorldEntity"
+        "WorldCoreController_replaceWorldEntity",
+        "WorldCoreController_replaceWorldRelationship"
       ]
     },
     {
@@ -13323,6 +13658,9 @@
       "name": "CreateWorldEntityCoreDto"
     },
     {
+      "name": "CreateWorldRelationshipCoreDto"
+    },
+    {
       "name": "CreatorEligibilityResponseDto"
     },
     {
@@ -13579,6 +13917,9 @@
     },
     {
       "name": "ReplaceWorldEntityCoreDto"
+    },
+    {
+      "name": "ReplaceWorldRelationshipCoreDto"
     },
     {
       "name": "ReportReason"
@@ -13846,6 +14187,9 @@
     },
     {
       "name": "WorldPublicViewerRelationDto"
+    },
+    {
+      "name": "WorldRelationshipCoreDto"
     }
   ],
   "model_schemas": [
@@ -20646,6 +20990,264 @@
               "kind": "ref",
               "ref": "#/components/schemas/RealmCoreOriginDto",
               "ref_name": "RealmCoreOriginDto"
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "CreateWorldRelationshipCoreDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "core",
+            "required": true,
+            "schema": {
+              "kind": "object",
+              "properties": [
+                {
+                  "name": "attributes",
+                  "required": false,
+                  "schema": {
+                    "kind": "object",
+                    "properties": [],
+                    "additional_properties": {
+                      "kind": "unknown"
+                    }
+                  }
+                },
+                {
+                  "name": "authoring",
+                  "required": false,
+                  "schema": {
+                    "kind": "object",
+                    "properties": [
+                      {
+                        "name": "extensions",
+                        "required": false,
+                        "schema": {
+                          "kind": "object",
+                          "properties": [],
+                          "additional_properties": {
+                            "kind": "unknown"
+                          }
+                        }
+                      },
+                      {
+                        "name": "maintainers",
+                        "required": false,
+                        "schema": {
+                          "kind": "array",
+                          "items": {
+                            "kind": "scalar",
+                            "type": "string",
+                            "format": null
+                          }
+                        }
+                      },
+                      {
+                        "name": "notes",
+                        "required": false,
+                        "schema": {
+                          "kind": "array",
+                          "items": {
+                            "kind": "scalar",
+                            "type": "string",
+                            "format": null
+                          }
+                        }
+                      },
+                      {
+                        "name": "review",
+                        "required": false,
+                        "schema": {
+                          "kind": "object",
+                          "properties": [
+                            {
+                              "name": "reviewedAt",
+                              "required": false,
+                              "schema": {
+                                "kind": "scalar",
+                                "type": "string",
+                                "format": null
+                              }
+                            },
+                            {
+                              "name": "reviewedBy",
+                              "required": false,
+                              "schema": {
+                                "kind": "scalar",
+                                "type": "string",
+                                "format": null
+                              }
+                            },
+                            {
+                              "name": "status",
+                              "required": true,
+                              "schema": {
+                                "kind": "scalar",
+                                "type": "string",
+                                "format": null
+                              }
+                            }
+                          ],
+                          "additional_properties": null
+                        }
+                      },
+                      {
+                        "name": "source",
+                        "required": true,
+                        "schema": {
+                          "kind": "scalar",
+                          "type": "string",
+                          "format": null
+                        }
+                      }
+                    ],
+                    "additional_properties": null
+                  }
+                },
+                {
+                  "name": "endpoints",
+                  "required": false,
+                  "schema": {
+                    "kind": "object",
+                    "properties": [
+                      {
+                        "name": "sourceEntityId",
+                        "required": true,
+                        "schema": {
+                          "kind": "scalar",
+                          "type": "string",
+                          "format": null
+                        }
+                      },
+                      {
+                        "name": "targetEntityId",
+                        "required": true,
+                        "schema": {
+                          "kind": "scalar",
+                          "type": "string",
+                          "format": null
+                        }
+                      },
+                      {
+                        "name": "type",
+                        "required": true,
+                        "schema": {
+                          "kind": "scalar",
+                          "type": "string",
+                          "format": null
+                        }
+                      }
+                    ],
+                    "additional_properties": null
+                  }
+                },
+                {
+                  "name": "evidence",
+                  "required": false,
+                  "schema": {
+                    "kind": "object",
+                    "properties": [
+                      {
+                        "name": "confidence",
+                        "required": true,
+                        "schema": {
+                          "kind": "enum",
+                          "values": [
+                            "recorded",
+                            "normalized",
+                            "inferred",
+                            "editorial",
+                            "rejected"
+                          ]
+                        }
+                      },
+                      {
+                        "name": "sourceRefs",
+                        "required": true,
+                        "schema": {
+                          "kind": "array",
+                          "items": {
+                            "kind": "scalar",
+                            "type": "string",
+                            "format": null
+                          }
+                        }
+                      }
+                    ],
+                    "additional_properties": null
+                  }
+                },
+                {
+                  "name": "presentation",
+                  "required": false,
+                  "schema": {
+                    "kind": "object",
+                    "properties": [
+                      {
+                        "name": "summary",
+                        "required": false,
+                        "schema": {
+                          "kind": "scalar",
+                          "type": "string",
+                          "format": null
+                        }
+                      }
+                    ],
+                    "additional_properties": null
+                  }
+                }
+              ],
+              "additional_properties": null
+            }
+          },
+          {
+            "name": "id",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "origin",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/RealmCoreOriginDto",
+              "ref_name": "RealmCoreOriginDto"
+            }
+          },
+          {
+            "name": "sourceEntityId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "targetEntityId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "type",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
             }
           }
         ],
@@ -28973,6 +29575,273 @@
       }
     },
     {
+      "name": "ReplaceWorldRelationshipCoreDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "baseContentHash",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "core",
+            "required": true,
+            "schema": {
+              "kind": "object",
+              "properties": [
+                {
+                  "name": "attributes",
+                  "required": false,
+                  "schema": {
+                    "kind": "object",
+                    "properties": [],
+                    "additional_properties": {
+                      "kind": "unknown"
+                    }
+                  }
+                },
+                {
+                  "name": "authoring",
+                  "required": false,
+                  "schema": {
+                    "kind": "object",
+                    "properties": [
+                      {
+                        "name": "extensions",
+                        "required": false,
+                        "schema": {
+                          "kind": "object",
+                          "properties": [],
+                          "additional_properties": {
+                            "kind": "unknown"
+                          }
+                        }
+                      },
+                      {
+                        "name": "maintainers",
+                        "required": false,
+                        "schema": {
+                          "kind": "array",
+                          "items": {
+                            "kind": "scalar",
+                            "type": "string",
+                            "format": null
+                          }
+                        }
+                      },
+                      {
+                        "name": "notes",
+                        "required": false,
+                        "schema": {
+                          "kind": "array",
+                          "items": {
+                            "kind": "scalar",
+                            "type": "string",
+                            "format": null
+                          }
+                        }
+                      },
+                      {
+                        "name": "review",
+                        "required": false,
+                        "schema": {
+                          "kind": "object",
+                          "properties": [
+                            {
+                              "name": "reviewedAt",
+                              "required": false,
+                              "schema": {
+                                "kind": "scalar",
+                                "type": "string",
+                                "format": null
+                              }
+                            },
+                            {
+                              "name": "reviewedBy",
+                              "required": false,
+                              "schema": {
+                                "kind": "scalar",
+                                "type": "string",
+                                "format": null
+                              }
+                            },
+                            {
+                              "name": "status",
+                              "required": true,
+                              "schema": {
+                                "kind": "scalar",
+                                "type": "string",
+                                "format": null
+                              }
+                            }
+                          ],
+                          "additional_properties": null
+                        }
+                      },
+                      {
+                        "name": "source",
+                        "required": true,
+                        "schema": {
+                          "kind": "scalar",
+                          "type": "string",
+                          "format": null
+                        }
+                      }
+                    ],
+                    "additional_properties": null
+                  }
+                },
+                {
+                  "name": "endpoints",
+                  "required": false,
+                  "schema": {
+                    "kind": "object",
+                    "properties": [
+                      {
+                        "name": "sourceEntityId",
+                        "required": true,
+                        "schema": {
+                          "kind": "scalar",
+                          "type": "string",
+                          "format": null
+                        }
+                      },
+                      {
+                        "name": "targetEntityId",
+                        "required": true,
+                        "schema": {
+                          "kind": "scalar",
+                          "type": "string",
+                          "format": null
+                        }
+                      },
+                      {
+                        "name": "type",
+                        "required": true,
+                        "schema": {
+                          "kind": "scalar",
+                          "type": "string",
+                          "format": null
+                        }
+                      }
+                    ],
+                    "additional_properties": null
+                  }
+                },
+                {
+                  "name": "evidence",
+                  "required": false,
+                  "schema": {
+                    "kind": "object",
+                    "properties": [
+                      {
+                        "name": "confidence",
+                        "required": true,
+                        "schema": {
+                          "kind": "enum",
+                          "values": [
+                            "recorded",
+                            "normalized",
+                            "inferred",
+                            "editorial",
+                            "rejected"
+                          ]
+                        }
+                      },
+                      {
+                        "name": "sourceRefs",
+                        "required": true,
+                        "schema": {
+                          "kind": "array",
+                          "items": {
+                            "kind": "scalar",
+                            "type": "string",
+                            "format": null
+                          }
+                        }
+                      }
+                    ],
+                    "additional_properties": null
+                  }
+                },
+                {
+                  "name": "presentation",
+                  "required": false,
+                  "schema": {
+                    "kind": "object",
+                    "properties": [
+                      {
+                        "name": "summary",
+                        "required": false,
+                        "schema": {
+                          "kind": "scalar",
+                          "type": "string",
+                          "format": null
+                        }
+                      }
+                    ],
+                    "additional_properties": null
+                  }
+                }
+              ],
+              "additional_properties": null
+            }
+          },
+          {
+            "name": "id",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "origin",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/RealmCoreOriginDto",
+              "ref_name": "RealmCoreOriginDto"
+            }
+          },
+          {
+            "name": "sourceEntityId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "targetEntityId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "type",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
       "name": "ReportReason",
       "schema": {
         "kind": "enum",
@@ -37004,6 +37873,318 @@
                 "connected",
                 "unavailable"
               ]
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "WorldRelationshipCoreDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "contentHash",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "contentRevision",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "core",
+            "required": true,
+            "schema": {
+              "kind": "object",
+              "properties": [
+                {
+                  "name": "attributes",
+                  "required": false,
+                  "schema": {
+                    "kind": "object",
+                    "properties": [],
+                    "additional_properties": {
+                      "kind": "unknown"
+                    }
+                  }
+                },
+                {
+                  "name": "authoring",
+                  "required": false,
+                  "schema": {
+                    "kind": "object",
+                    "properties": [
+                      {
+                        "name": "extensions",
+                        "required": false,
+                        "schema": {
+                          "kind": "object",
+                          "properties": [],
+                          "additional_properties": {
+                            "kind": "unknown"
+                          }
+                        }
+                      },
+                      {
+                        "name": "maintainers",
+                        "required": false,
+                        "schema": {
+                          "kind": "array",
+                          "items": {
+                            "kind": "scalar",
+                            "type": "string",
+                            "format": null
+                          }
+                        }
+                      },
+                      {
+                        "name": "notes",
+                        "required": false,
+                        "schema": {
+                          "kind": "array",
+                          "items": {
+                            "kind": "scalar",
+                            "type": "string",
+                            "format": null
+                          }
+                        }
+                      },
+                      {
+                        "name": "review",
+                        "required": false,
+                        "schema": {
+                          "kind": "object",
+                          "properties": [
+                            {
+                              "name": "reviewedAt",
+                              "required": false,
+                              "schema": {
+                                "kind": "scalar",
+                                "type": "string",
+                                "format": null
+                              }
+                            },
+                            {
+                              "name": "reviewedBy",
+                              "required": false,
+                              "schema": {
+                                "kind": "scalar",
+                                "type": "string",
+                                "format": null
+                              }
+                            },
+                            {
+                              "name": "status",
+                              "required": true,
+                              "schema": {
+                                "kind": "scalar",
+                                "type": "string",
+                                "format": null
+                              }
+                            }
+                          ],
+                          "additional_properties": null
+                        }
+                      },
+                      {
+                        "name": "source",
+                        "required": true,
+                        "schema": {
+                          "kind": "scalar",
+                          "type": "string",
+                          "format": null
+                        }
+                      }
+                    ],
+                    "additional_properties": null
+                  }
+                },
+                {
+                  "name": "endpoints",
+                  "required": false,
+                  "schema": {
+                    "kind": "object",
+                    "properties": [
+                      {
+                        "name": "sourceEntityId",
+                        "required": true,
+                        "schema": {
+                          "kind": "scalar",
+                          "type": "string",
+                          "format": null
+                        }
+                      },
+                      {
+                        "name": "targetEntityId",
+                        "required": true,
+                        "schema": {
+                          "kind": "scalar",
+                          "type": "string",
+                          "format": null
+                        }
+                      },
+                      {
+                        "name": "type",
+                        "required": true,
+                        "schema": {
+                          "kind": "scalar",
+                          "type": "string",
+                          "format": null
+                        }
+                      }
+                    ],
+                    "additional_properties": null
+                  }
+                },
+                {
+                  "name": "evidence",
+                  "required": false,
+                  "schema": {
+                    "kind": "object",
+                    "properties": [
+                      {
+                        "name": "confidence",
+                        "required": true,
+                        "schema": {
+                          "kind": "enum",
+                          "values": [
+                            "recorded",
+                            "normalized",
+                            "inferred",
+                            "editorial",
+                            "rejected"
+                          ]
+                        }
+                      },
+                      {
+                        "name": "sourceRefs",
+                        "required": true,
+                        "schema": {
+                          "kind": "array",
+                          "items": {
+                            "kind": "scalar",
+                            "type": "string",
+                            "format": null
+                          }
+                        }
+                      }
+                    ],
+                    "additional_properties": null
+                  }
+                },
+                {
+                  "name": "presentation",
+                  "required": false,
+                  "schema": {
+                    "kind": "object",
+                    "properties": [
+                      {
+                        "name": "summary",
+                        "required": false,
+                        "schema": {
+                          "kind": "scalar",
+                          "type": "string",
+                          "format": null
+                        }
+                      }
+                    ],
+                    "additional_properties": null
+                  }
+                }
+              ],
+              "additional_properties": null
+            }
+          },
+          {
+            "name": "createdAt",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "origin",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/RealmCoreOriginDto",
+              "ref_name": "RealmCoreOriginDto"
+            }
+          },
+          {
+            "name": "schemaVersion",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "sourceEntityId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "targetEntityId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "type",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "updatedAt",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "worldId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
             }
           }
         ],

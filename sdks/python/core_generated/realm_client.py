@@ -1130,6 +1130,12 @@ REALM_OPERATIONS = [
     "path": "/api/realm/core/worlds/{worldId}/entities"
   },
   {
+    "operation_id": "WorldCoreController_createWorldRelationship",
+    "service": "Realm Core",
+    "method": "POST",
+    "path": "/api/realm/core/worlds/{worldId}/relationships"
+  },
+  {
     "operation_id": "WorldCoreController_getOasisWorld",
     "service": "Realm Core",
     "method": "GET",
@@ -1160,6 +1166,12 @@ REALM_OPERATIONS = [
     "path": "/api/realm/core/world-entities/{entityId}"
   },
   {
+    "operation_id": "WorldCoreController_getWorldRelationship",
+    "service": "Realm Core",
+    "method": "GET",
+    "path": "/api/realm/core/world-relationships/{relationshipId}"
+  },
+  {
     "operation_id": "WorldCoreController_listRealmPersonas",
     "service": "Realm Core",
     "method": "GET",
@@ -1184,6 +1196,12 @@ REALM_OPERATIONS = [
     "path": "/api/realm/core/worlds/{worldId}/entities"
   },
   {
+    "operation_id": "WorldCoreController_listWorldRelationships",
+    "service": "Realm Core",
+    "method": "GET",
+    "path": "/api/realm/core/worlds/{worldId}/relationships"
+  },
+  {
     "operation_id": "WorldCoreController_replaceRealmPersona",
     "service": "Realm Core",
     "method": "PUT",
@@ -1206,6 +1224,12 @@ REALM_OPERATIONS = [
     "service": "Realm Core",
     "method": "PUT",
     "path": "/api/realm/core/world-entities/{entityId}"
+  },
+  {
+    "operation_id": "WorldCoreController_replaceWorldRelationship",
+    "service": "Realm Core",
+    "method": "PUT",
+    "path": "/api/realm/core/world-relationships/{relationshipId}"
   },
   {
     "operation_id": "WorldPublicController_getWorld",

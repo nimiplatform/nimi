@@ -38593,6 +38593,16 @@ pub struct CreateWorldEntityCoreDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct CreateWorldRelationshipCoreDto {
+    pub core: BTreeMap<String, String>,
+    pub id: String,
+    pub origin: Box<RealmCoreOriginDto>,
+    pub source_entity_id: String,
+    pub target_entity_id: String,
+    pub r#type: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct CreatorEligibilityResponseDto {
     pub can_create_realm_persona: bool,
     pub can_create_world: bool,
@@ -39347,6 +39357,17 @@ pub struct ReplaceWorldEntityCoreDto {
     pub id: String,
     pub kind: String,
     pub origin: Box<RealmCoreOriginDto>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ReplaceWorldRelationshipCoreDto {
+    pub base_content_hash: String,
+    pub core: BTreeMap<String, String>,
+    pub id: String,
+    pub origin: Box<RealmCoreOriginDto>,
+    pub source_entity_id: String,
+    pub target_entity_id: String,
+    pub r#type: String,
 }
 
 pub type ReportReason = String;
@@ -40211,6 +40232,22 @@ pub struct WorldPublicViewerRelationDto {
     pub connection_id: String,
     pub runtime_source_ref: String,
     pub state: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldRelationshipCoreDto {
+    pub content_hash: String,
+    pub content_revision: f64,
+    pub core: BTreeMap<String, String>,
+    pub created_at: String,
+    pub id: String,
+    pub origin: Box<RealmCoreOriginDto>,
+    pub schema_version: String,
+    pub source_entity_id: String,
+    pub target_entity_id: String,
+    pub r#type: String,
+    pub updated_at: String,
+    pub world_id: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -44602,6 +44639,29 @@ pub struct RealmWorldCoreControllerCreateWorldEntityOperationRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerCreateWorldRelationshipOperationPath {
+    pub world_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerCreateWorldRelationshipOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerCreateWorldRelationshipOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerCreateWorldRelationshipOperationRequest {
+    pub path: RealmWorldCoreControllerCreateWorldRelationshipOperationPath,
+    pub query: RealmWorldCoreControllerCreateWorldRelationshipOperationQuery,
+    pub headers: RealmWorldCoreControllerCreateWorldRelationshipOperationHeaders,
+    pub body: CreateWorldRelationshipCoreDto,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmWorldCoreControllerGetOasisWorldOperationPath {
 
 }
@@ -44717,6 +44777,29 @@ pub struct RealmWorldCoreControllerGetWorldEntityOperationRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerGetWorldRelationshipOperationPath {
+    pub relationship_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerGetWorldRelationshipOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerGetWorldRelationshipOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerGetWorldRelationshipOperationRequest {
+    pub path: RealmWorldCoreControllerGetWorldRelationshipOperationPath,
+    pub query: RealmWorldCoreControllerGetWorldRelationshipOperationQuery,
+    pub headers: RealmWorldCoreControllerGetWorldRelationshipOperationHeaders,
+    pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmWorldCoreControllerListRealmPersonasOperationPath {
 
 }
@@ -44811,6 +44894,32 @@ pub struct RealmWorldCoreControllerListWorldEntitiesOperationRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerListWorldRelationshipsOperationPath {
+    pub world_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerListWorldRelationshipsOperationQuery {
+    pub take: Option<f64>,
+    pub r#type: Option<String>,
+    pub target_entity_id: Option<String>,
+    pub source_entity_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerListWorldRelationshipsOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerListWorldRelationshipsOperationRequest {
+    pub path: RealmWorldCoreControllerListWorldRelationshipsOperationPath,
+    pub query: RealmWorldCoreControllerListWorldRelationshipsOperationQuery,
+    pub headers: RealmWorldCoreControllerListWorldRelationshipsOperationHeaders,
+    pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmWorldCoreControllerReplaceRealmPersonaOperationPath {
     pub persona_id: String,
 }
@@ -44900,6 +45009,29 @@ pub struct RealmWorldCoreControllerReplaceWorldEntityOperationRequest {
     pub query: RealmWorldCoreControllerReplaceWorldEntityOperationQuery,
     pub headers: RealmWorldCoreControllerReplaceWorldEntityOperationHeaders,
     pub body: ReplaceWorldEntityCoreDto,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerReplaceWorldRelationshipOperationPath {
+    pub relationship_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerReplaceWorldRelationshipOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerReplaceWorldRelationshipOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerReplaceWorldRelationshipOperationRequest {
+    pub path: RealmWorldCoreControllerReplaceWorldRelationshipOperationPath,
+    pub query: RealmWorldCoreControllerReplaceWorldRelationshipOperationQuery,
+    pub headers: RealmWorldCoreControllerReplaceWorldRelationshipOperationHeaders,
+    pub body: ReplaceWorldRelationshipCoreDto,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -45759,6 +45891,10 @@ where
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldCoreController_createWorldEntity");
     }
 
+    pub fn world_core_controller_create_world_relationship(&self, _request: RealmWorldCoreControllerCreateWorldRelationshipOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldRelationshipCoreDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldCoreController_createWorldRelationship");
+    }
+
     pub fn world_core_controller_get_oasis_world(&self, _request: RealmWorldCoreControllerGetOasisWorldOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldCoreDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldCoreController_getOasisWorld");
     }
@@ -45779,6 +45915,10 @@ where
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldCoreController_getWorldEntity");
     }
 
+    pub fn world_core_controller_get_world_relationship(&self, _request: RealmWorldCoreControllerGetWorldRelationshipOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldRelationshipCoreDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldCoreController_getWorldRelationship");
+    }
+
     pub fn world_core_controller_list_realm_personas(&self, _request: RealmWorldCoreControllerListRealmPersonasOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<Vec<RealmPersonaDto>, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldCoreController_listRealmPersonas");
     }
@@ -45795,6 +45935,10 @@ where
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldCoreController_listWorldEntities");
     }
 
+    pub fn world_core_controller_list_world_relationships(&self, _request: RealmWorldCoreControllerListWorldRelationshipsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<Vec<WorldRelationshipCoreDto>, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldCoreController_listWorldRelationships");
+    }
+
     pub fn world_core_controller_replace_realm_persona(&self, _request: RealmWorldCoreControllerReplaceRealmPersonaOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<RealmPersonaDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldCoreController_replaceRealmPersona");
     }
@@ -45809,6 +45953,10 @@ where
 
     pub fn world_core_controller_replace_world_entity(&self, _request: RealmWorldCoreControllerReplaceWorldEntityOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldEntityCoreDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldCoreController_replaceWorldEntity");
+    }
+
+    pub fn world_core_controller_replace_world_relationship(&self, _request: RealmWorldCoreControllerReplaceWorldRelationshipOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldRelationshipCoreDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldCoreController_replaceWorldRelationship");
     }
 
     pub fn world_public_controller_get_world(&self, _request: RealmWorldPublicControllerGetWorldOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldPublicDetailDto, T::Error> {

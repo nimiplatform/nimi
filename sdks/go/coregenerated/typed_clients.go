@@ -10471,6 +10471,15 @@ type CreateWorldEntityCoreDto struct {
 	Origin *RealmCoreOriginDto `json:"origin,omitempty"`
 }
 
+type CreateWorldRelationshipCoreDto struct {
+	Core map[string]any `json:"core,omitempty"`
+	Id string `json:"id,omitempty"`
+	Origin *RealmCoreOriginDto `json:"origin,omitempty"`
+	SourceEntityId string `json:"sourceEntityId,omitempty"`
+	TargetEntityId string `json:"targetEntityId,omitempty"`
+	Type string `json:"type,omitempty"`
+}
+
 type CreatorEligibilityResponseDto struct {
 	CanCreateRealmPersona bool `json:"canCreateRealmPersona,omitempty"`
 	CanCreateWorld bool `json:"canCreateWorld,omitempty"`
@@ -11147,6 +11156,16 @@ type ReplaceWorldEntityCoreDto struct {
 	Id string `json:"id,omitempty"`
 	Kind string `json:"kind,omitempty"`
 	Origin *RealmCoreOriginDto `json:"origin,omitempty"`
+}
+
+type ReplaceWorldRelationshipCoreDto struct {
+	BaseContentHash string `json:"baseContentHash,omitempty"`
+	Core map[string]any `json:"core,omitempty"`
+	Id string `json:"id,omitempty"`
+	Origin *RealmCoreOriginDto `json:"origin,omitempty"`
+	SourceEntityId string `json:"sourceEntityId,omitempty"`
+	TargetEntityId string `json:"targetEntityId,omitempty"`
+	Type string `json:"type,omitempty"`
 }
 
 type ReportReason string
@@ -11928,6 +11947,21 @@ type WorldPublicViewerRelationDto struct {
 	ConnectionId string `json:"connectionId,omitempty"`
 	RuntimeSourceRef string `json:"runtimeSourceRef,omitempty"`
 	State string `json:"state,omitempty"`
+}
+
+type WorldRelationshipCoreDto struct {
+	ContentHash string `json:"contentHash,omitempty"`
+	ContentRevision float64 `json:"contentRevision,omitempty"`
+	Core map[string]any `json:"core,omitempty"`
+	CreatedAt string `json:"createdAt,omitempty"`
+	Id string `json:"id,omitempty"`
+	Origin *RealmCoreOriginDto `json:"origin,omitempty"`
+	SchemaVersion string `json:"schemaVersion,omitempty"`
+	SourceEntityId string `json:"sourceEntityId,omitempty"`
+	TargetEntityId string `json:"targetEntityId,omitempty"`
+	Type string `json:"type,omitempty"`
+	UpdatedAt string `json:"updatedAt,omitempty"`
+	WorldId string `json:"worldId,omitempty"`
 }
 
 type RealmAddFriendOperationPath struct {
@@ -15570,6 +15604,25 @@ type RealmWorldCoreControllerCreateWorldEntityOperationRequest struct {
 	Body    CreateWorldEntityCoreDto `json:"body,omitempty"`
 }
 
+type RealmWorldCoreControllerCreateWorldRelationshipOperationPath struct {
+	WorldId string `json:"worldId,omitempty"`
+}
+
+type RealmWorldCoreControllerCreateWorldRelationshipOperationQuery struct {
+
+}
+
+type RealmWorldCoreControllerCreateWorldRelationshipOperationHeaders struct {
+
+}
+
+type RealmWorldCoreControllerCreateWorldRelationshipOperationRequest struct {
+	Path    RealmWorldCoreControllerCreateWorldRelationshipOperationPath `json:"path,omitempty"`
+	Query   RealmWorldCoreControllerCreateWorldRelationshipOperationQuery `json:"query,omitempty"`
+	Headers RealmWorldCoreControllerCreateWorldRelationshipOperationHeaders `json:"headers,omitempty"`
+	Body    CreateWorldRelationshipCoreDto `json:"body,omitempty"`
+}
+
 type RealmWorldCoreControllerGetOasisWorldOperationPath struct {
 
 }
@@ -15665,6 +15718,25 @@ type RealmWorldCoreControllerGetWorldEntityOperationRequest struct {
 	Body    struct{} `json:"body,omitempty"`
 }
 
+type RealmWorldCoreControllerGetWorldRelationshipOperationPath struct {
+	RelationshipId string `json:"relationshipId,omitempty"`
+}
+
+type RealmWorldCoreControllerGetWorldRelationshipOperationQuery struct {
+
+}
+
+type RealmWorldCoreControllerGetWorldRelationshipOperationHeaders struct {
+
+}
+
+type RealmWorldCoreControllerGetWorldRelationshipOperationRequest struct {
+	Path    RealmWorldCoreControllerGetWorldRelationshipOperationPath `json:"path,omitempty"`
+	Query   RealmWorldCoreControllerGetWorldRelationshipOperationQuery `json:"query,omitempty"`
+	Headers RealmWorldCoreControllerGetWorldRelationshipOperationHeaders `json:"headers,omitempty"`
+	Body    struct{} `json:"body,omitempty"`
+}
+
 type RealmWorldCoreControllerListRealmPersonasOperationPath struct {
 
 }
@@ -15743,6 +15815,28 @@ type RealmWorldCoreControllerListWorldEntitiesOperationRequest struct {
 	Body    struct{} `json:"body,omitempty"`
 }
 
+type RealmWorldCoreControllerListWorldRelationshipsOperationPath struct {
+	WorldId string `json:"worldId,omitempty"`
+}
+
+type RealmWorldCoreControllerListWorldRelationshipsOperationQuery struct {
+	Take float64 `json:"take,omitempty"`
+	Type string `json:"type,omitempty"`
+	TargetEntityId string `json:"targetEntityId,omitempty"`
+	SourceEntityId string `json:"sourceEntityId,omitempty"`
+}
+
+type RealmWorldCoreControllerListWorldRelationshipsOperationHeaders struct {
+
+}
+
+type RealmWorldCoreControllerListWorldRelationshipsOperationRequest struct {
+	Path    RealmWorldCoreControllerListWorldRelationshipsOperationPath `json:"path,omitempty"`
+	Query   RealmWorldCoreControllerListWorldRelationshipsOperationQuery `json:"query,omitempty"`
+	Headers RealmWorldCoreControllerListWorldRelationshipsOperationHeaders `json:"headers,omitempty"`
+	Body    struct{} `json:"body,omitempty"`
+}
+
 type RealmWorldCoreControllerReplaceRealmPersonaOperationPath struct {
 	PersonaId string `json:"personaId,omitempty"`
 }
@@ -15817,6 +15911,25 @@ type RealmWorldCoreControllerReplaceWorldEntityOperationRequest struct {
 	Query   RealmWorldCoreControllerReplaceWorldEntityOperationQuery `json:"query,omitempty"`
 	Headers RealmWorldCoreControllerReplaceWorldEntityOperationHeaders `json:"headers,omitempty"`
 	Body    ReplaceWorldEntityCoreDto `json:"body,omitempty"`
+}
+
+type RealmWorldCoreControllerReplaceWorldRelationshipOperationPath struct {
+	RelationshipId string `json:"relationshipId,omitempty"`
+}
+
+type RealmWorldCoreControllerReplaceWorldRelationshipOperationQuery struct {
+
+}
+
+type RealmWorldCoreControllerReplaceWorldRelationshipOperationHeaders struct {
+
+}
+
+type RealmWorldCoreControllerReplaceWorldRelationshipOperationRequest struct {
+	Path    RealmWorldCoreControllerReplaceWorldRelationshipOperationPath `json:"path,omitempty"`
+	Query   RealmWorldCoreControllerReplaceWorldRelationshipOperationQuery `json:"query,omitempty"`
+	Headers RealmWorldCoreControllerReplaceWorldRelationshipOperationHeaders `json:"headers,omitempty"`
+	Body    ReplaceWorldRelationshipCoreDto `json:"body,omitempty"`
 }
 
 type RealmWorldPublicControllerGetWorldOperationPath struct {
@@ -17407,6 +17520,14 @@ func (c RealmTypedClient) WorldCoreControllerCreateWorldEntity(ctx context.Conte
 	return decodeTypedResponse[WorldEntityCoreDto](raw)
 }
 
+func (c RealmTypedClient) WorldCoreControllerCreateWorldRelationship(ctx context.Context, request RealmWorldCoreControllerCreateWorldRelationshipOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WorldRelationshipCoreDto, error) {
+	raw, err := c.operationTyped(ctx, "WorldCoreController_createWorldRelationship", request, metadata, timeoutMS)
+	if err != nil {
+		return WorldRelationshipCoreDto{}, err
+	}
+	return decodeTypedResponse[WorldRelationshipCoreDto](raw)
+}
+
 func (c RealmTypedClient) WorldCoreControllerGetOasisWorld(ctx context.Context, request RealmWorldCoreControllerGetOasisWorldOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WorldCoreDto, error) {
 	raw, err := c.operationTyped(ctx, "WorldCoreController_getOasisWorld", request, metadata, timeoutMS)
 	if err != nil {
@@ -17447,6 +17568,14 @@ func (c RealmTypedClient) WorldCoreControllerGetWorldEntity(ctx context.Context,
 	return decodeTypedResponse[WorldEntityCoreDto](raw)
 }
 
+func (c RealmTypedClient) WorldCoreControllerGetWorldRelationship(ctx context.Context, request RealmWorldCoreControllerGetWorldRelationshipOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WorldRelationshipCoreDto, error) {
+	raw, err := c.operationTyped(ctx, "WorldCoreController_getWorldRelationship", request, metadata, timeoutMS)
+	if err != nil {
+		return WorldRelationshipCoreDto{}, err
+	}
+	return decodeTypedResponse[WorldRelationshipCoreDto](raw)
+}
+
 func (c RealmTypedClient) WorldCoreControllerListRealmPersonas(ctx context.Context, request RealmWorldCoreControllerListRealmPersonasOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) ([]RealmPersonaDto, error) {
 	raw, err := c.operationTyped(ctx, "WorldCoreController_listRealmPersonas", request, metadata, timeoutMS)
 	if err != nil {
@@ -17479,6 +17608,14 @@ func (c RealmTypedClient) WorldCoreControllerListWorldEntities(ctx context.Conte
 	return decodeTypedResponse[[]WorldEntityCoreDto](raw)
 }
 
+func (c RealmTypedClient) WorldCoreControllerListWorldRelationships(ctx context.Context, request RealmWorldCoreControllerListWorldRelationshipsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) ([]WorldRelationshipCoreDto, error) {
+	raw, err := c.operationTyped(ctx, "WorldCoreController_listWorldRelationships", request, metadata, timeoutMS)
+	if err != nil {
+		return []WorldRelationshipCoreDto{}, err
+	}
+	return decodeTypedResponse[[]WorldRelationshipCoreDto](raw)
+}
+
 func (c RealmTypedClient) WorldCoreControllerReplaceRealmPersona(ctx context.Context, request RealmWorldCoreControllerReplaceRealmPersonaOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RealmPersonaDto, error) {
 	raw, err := c.operationTyped(ctx, "WorldCoreController_replaceRealmPersona", request, metadata, timeoutMS)
 	if err != nil {
@@ -17509,6 +17646,14 @@ func (c RealmTypedClient) WorldCoreControllerReplaceWorldEntity(ctx context.Cont
 		return WorldEntityCoreDto{}, err
 	}
 	return decodeTypedResponse[WorldEntityCoreDto](raw)
+}
+
+func (c RealmTypedClient) WorldCoreControllerReplaceWorldRelationship(ctx context.Context, request RealmWorldCoreControllerReplaceWorldRelationshipOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WorldRelationshipCoreDto, error) {
+	raw, err := c.operationTyped(ctx, "WorldCoreController_replaceWorldRelationship", request, metadata, timeoutMS)
+	if err != nil {
+		return WorldRelationshipCoreDto{}, err
+	}
+	return decodeTypedResponse[WorldRelationshipCoreDto](raw)
 }
 
 func (c RealmTypedClient) WorldPublicControllerGetWorld(ctx context.Context, request RealmWorldPublicControllerGetWorldOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WorldPublicDetailDto, error) {

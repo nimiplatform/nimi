@@ -161,19 +161,23 @@ export const REALM_WORLD_CORE_METHODS = [
   'worldCoreControllerCreateWorldCharacter',
   'worldCoreControllerCreateWorldCore',
   'worldCoreControllerCreateWorldEntity',
+  'worldCoreControllerCreateWorldRelationship',
   'worldCoreControllerGetOasisWorld',
   'worldCoreControllerGetRealmPersona',
   'worldCoreControllerGetWorldCharacter',
   'worldCoreControllerGetWorldCore',
   'worldCoreControllerGetWorldEntity',
+  'worldCoreControllerGetWorldRelationship',
   'worldCoreControllerListRealmPersonas',
   'worldCoreControllerListWorldCharacters',
   'worldCoreControllerListWorldCores',
   'worldCoreControllerListWorldEntities',
+  'worldCoreControllerListWorldRelationships',
   'worldCoreControllerReplaceRealmPersona',
   'worldCoreControllerReplaceWorldCharacter',
   'worldCoreControllerReplaceWorldCore',
   'worldCoreControllerReplaceWorldEntity',
+  'worldCoreControllerReplaceWorldRelationship',
 ] as const satisfies readonly RealmTypedMethodName[];
 
 export const REALM_WORLD_PUBLIC_METHODS = [
