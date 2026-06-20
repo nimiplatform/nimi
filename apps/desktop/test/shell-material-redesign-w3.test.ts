@@ -25,7 +25,8 @@ const profilePanelSource = readWorkspaceFile('src/shell/renderer/features/profil
 
 test('W3 route redesign: home and explore adopt route-shell material hosts', () => {
   assert.doesNotMatch(homeViewSource, /Home\.pageTitle/);
-  assert.match(homeViewSource, /max-w-\[760px\]/);
+  assert.match(homeViewSource, /max-w-\[560px\]/);
+  assert.doesNotMatch(homeViewSource, /max-w-\[760px\]/);
   assert.match(mainLayoutTitlebarContentSource, /<HomeFeedScopeNav[\s\S]*active=\{props\.homeFeedScope\}/);
   assert.match(homeFeedControlsSource, /data-testid="home-create-post-header-button"/);
   assert.doesNotMatch(homeViewSource, /viewportClassName="bg-gray-50"/);

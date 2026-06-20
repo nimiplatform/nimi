@@ -81,11 +81,46 @@ function Toast({ message, type, onClose }: { message: string; type: 'success' | 
 }
 
 const PAGE_SIZE = 15;
+const HOME_FEED_WIDE_MEDIA_QUERY = '(min-width: 1280px)';
+
+type HomeFeedColumns = 1 | 2;
 
 type HomeViewProps = {
   createPostRequestKey?: number;
   feedScope: NimiRealmFeedScope;
 };
+
+function resolveHomeFeedColumns(isWide: boolean): HomeFeedColumns {
+  return isWide ? 2 : 1;
+}
+
+function readHomeFeedColumns(): HomeFeedColumns {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+    return 1;
+  }
+  return resolveHomeFeedColumns(window.matchMedia(HOME_FEED_WIDE_MEDIA_QUERY).matches);
+}
+
+function useHomeFeedColumns(): HomeFeedColumns {
+  const [columns, setColumns] = useState<HomeFeedColumns>(readHomeFeedColumns);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+      return undefined;
+    }
+
+    const mediaQuery = window.matchMedia(HOME_FEED_WIDE_MEDIA_QUERY);
+    const handleChange = (event: MediaQueryListEvent) => {
+      setColumns(resolveHomeFeedColumns(event.matches));
+    };
+
+    setColumns(resolveHomeFeedColumns(mediaQuery.matches));
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, []);
+
+  return columns;
+}
 
 export function HomeView(props: HomeViewProps) {
   const { t } = useTranslation();
@@ -101,6 +136,7 @@ export function HomeView(props: HomeViewProps) {
   // cross-scope Post state.
   const postFeedKey = `moments-${props.feedScope}-${refreshKey}`;
   const postCardActionAdapter = usePostCardActionAdapter();
+  const homeFeedColumns = useHomeFeedColumns();
 
   const fetchPage = useCallback(
     async (cursorArg: string | null) => {
@@ -148,7 +184,7 @@ export function HomeView(props: HomeViewProps) {
         contentClassName="w-full px-1 py-4"
         viewportRef={feedScrollRef}
       >
-        <div className="mx-auto w-full max-w-[760px]">
+        <div className={homeFeedColumns === 2 ? 'mx-auto w-full max-w-[1144px]' : 'mx-auto w-full max-w-[560px]'}>
           <main className="min-w-0">
             {/* Publishing placeholder - shown at top of feed */}
             {isPublishing && (
@@ -163,6 +199,7 @@ export function HomeView(props: HomeViewProps) {
                 key={postFeedKey}
                 fetchPage={fetchPage}
                 scrollRef={feedScrollRef}
+                columns={homeFeedColumns}
                 emptyText={t(`Home.feedScopeEmpty.${props.feedScope}`)}
                 renderItem={(post) => (
                   <PostCard

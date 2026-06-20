@@ -71,5 +71,18 @@ test('Home presents feed scope controls in the shell header', () => {
   assert.match(mainLayoutTitlebarContentSource, /props\.activeTab === 'home'/);
   assert.match(mainLayoutTitlebarContentSource, /<HomeFeedScopeNav[\s\S]*active=\{props\.homeFeedScope\}/);
   assert.match(mainLayoutTopBarSource, /<HomeCreatePostButton/);
-  assert.match(homeViewSource, /max-w-\[760px\]/);
+  assert.match(homeViewSource, /HOME_FEED_WIDE_MEDIA_QUERY\s*=\s*'\(min-width: 1280px\)'/);
+  assert.match(homeViewSource, /max-w-\[560px\]/);
+  assert.match(homeViewSource, /max-w-\[1144px\]/);
+  assert.doesNotMatch(homeViewSource, /max-w-\[760px\]/);
+  assert.match(homeViewSource, /const homeFeedColumns = useHomeFeedColumns\(\)/);
+  assert.match(homeViewSource, /columns=\{homeFeedColumns\}/);
+});
+
+test('Home shell header uses title typography for feed scopes and post action', () => {
+  const displayFontUses = homeFeedControlsSource.match(/fontFamily:\s*'var\(--nimi-font-display\)'/g) ?? [];
+  assert.equal(displayFontUses.length, 2);
+  assert.match(homeFeedControlsSource, /text-\[16px\][\s\S]*font-semibold/);
+  assert.match(homeFeedControlsSource, /text-\[14px\][\s\S]*font-semibold/);
+  assert.doesNotMatch(homeFeedControlsSource, /fontFamily:\s*'var\(--nimi-font-sans\)'/);
 });

@@ -42,9 +42,9 @@ export function HomeFeedScopeNav({
             data-testid={`home-feed-scope-tab-${scope}`}
             data-titlebar-interactive="true"
             onClick={() => onSelect(scope)}
-            className={`inline-flex h-10 items-center text-[15px] transition-colors duration-200 ease-out hover:text-[color:var(--nimi-fg-1)] ${selected ? 'font-semibold text-[color:var(--nimi-accent)]' : 'font-medium text-[color:var(--nimi-fg-2)]'}`}
+            className={`inline-flex h-10 items-center text-[16px] font-semibold leading-none transition-colors duration-200 ease-out hover:text-[color:var(--nimi-fg-1)] ${selected ? 'text-[color:var(--nimi-accent)]' : 'text-[color:var(--nimi-fg-2)]'}`}
             style={{
-              fontFamily: 'var(--nimi-font-sans)',
+              fontFamily: 'var(--nimi-font-display)',
               background: 'transparent',
               border: 'none',
               boxShadow: undefined,
@@ -67,9 +67,9 @@ export function HomeCreatePostButton({ onClick }: { onClick: () => void }) {
         data-testid="home-create-post-header-button"
         data-titlebar-interactive="true"
         onClick={onClick}
-        className="inline-flex h-9 items-center gap-1 rounded-full bg-transparent px-3 text-[13px] font-medium text-[color:var(--nimi-fg-2)] transition-colors duration-200 ease-out hover:text-[color:var(--nimi-accent)]"
+        className="inline-flex h-9 items-center gap-1 rounded-full bg-transparent px-3 text-[14px] font-semibold leading-none text-[color:var(--nimi-fg-2)] transition-colors duration-200 ease-out hover:text-[color:var(--nimi-accent)]"
         aria-label={t('Home.createPost', { defaultValue: 'Create Post' })}
-        style={{ fontFamily: 'var(--nimi-font-sans)' }}
+        style={{ fontFamily: 'var(--nimi-font-display)' }}
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
           <line x1="12" y1="5" x2="12" y2="19" />
