@@ -1129,6 +1129,12 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/realm/core/worlds"
   },
   {
+    "operationId": "WorldCoreController_createWorldEntity",
+    "service": "Realm Core",
+    "method": "POST",
+    "path": "/api/realm/core/worlds/{worldId}/entities"
+  },
+  {
     "operationId": "WorldCoreController_getOasisWorld",
     "service": "Realm Core",
     "method": "GET",
@@ -1153,6 +1159,12 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/realm/core/worlds/{worldId}"
   },
   {
+    "operationId": "WorldCoreController_getWorldEntity",
+    "service": "Realm Core",
+    "method": "GET",
+    "path": "/api/realm/core/world-entities/{entityId}"
+  },
+  {
     "operationId": "WorldCoreController_listRealmPersonas",
     "service": "Realm Core",
     "method": "GET",
@@ -1171,6 +1183,12 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/realm/core/worlds"
   },
   {
+    "operationId": "WorldCoreController_listWorldEntities",
+    "service": "Realm Core",
+    "method": "GET",
+    "path": "/api/realm/core/worlds/{worldId}/entities"
+  },
+  {
     "operationId": "WorldCoreController_replaceRealmPersona",
     "service": "Realm Core",
     "method": "PUT",
@@ -1187,6 +1205,12 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "service": "Realm Core",
     "method": "PUT",
     "path": "/api/realm/core/worlds/{worldId}"
+  },
+  {
+    "operationId": "WorldCoreController_replaceWorldEntity",
+    "service": "Realm Core",
+    "method": "PUT",
+    "path": "/api/realm/core/world-entities/{entityId}"
   },
   {
     "operationId": "WorldPublicController_getWorld",

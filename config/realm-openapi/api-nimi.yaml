@@ -1973,6 +1973,13 @@ components:
               additionalProperties: false
               properties:
                 entityId:
+                  minLength: 1
+                  type: string
+                faction:
+                  type: string
+                rank:
+                  type: string
+                role:
                   type: string
                 sceneRefs:
                   items:
@@ -1984,6 +1991,7 @@ components:
                   type: string
               required:
                 - worldId
+                - entityId
                 - sceneRefs
               type: object
             presentation:
@@ -2045,6 +2053,7 @@ components:
         origin:
           $ref: '#/components/schemas/RealmCoreOriginDto'
       required:
+        - entityId
         - origin
         - core
       type: object
@@ -2158,24 +2167,19 @@ components:
               items:
                 additionalProperties: false
                 properties:
-                  attributes:
-                    additionalProperties: true
-                    type: object
                   entityId:
                     minLength: 1
                     type: string
                   kind:
                     minLength: 1
                     type: string
-                  name:
-                    minLength: 1
+                  label:
                     type: string
                   summary:
                     type: string
                 required:
                   - entityId
                   - kind
-                  - name
                 type: object
               type: array
             identity:
@@ -2440,6 +2444,235 @@ components:
             - system
           type: string
       required:
+        - origin
+        - core
+      type: object
+    CreateWorldEntityCoreDto:
+      properties:
+        core:
+          additionalProperties: false
+          properties:
+            assets:
+              additionalProperties: false
+              properties:
+                externalRefs:
+                  items:
+                    additionalProperties: false
+                    properties:
+                      kind:
+                        minLength: 1
+                        type: string
+                      label:
+                        type: string
+                      purpose:
+                        type: string
+                      refId:
+                        minLength: 1
+                        type: string
+                      uri:
+                        minLength: 1
+                        type: string
+                    required:
+                      - refId
+                      - kind
+                      - uri
+                    type: object
+                  type: array
+                intents:
+                  items:
+                    additionalProperties: false
+                    properties:
+                      intentId:
+                        minLength: 1
+                        type: string
+                      kind:
+                        minLength: 1
+                        type: string
+                      summary:
+                        type: string
+                    required:
+                      - intentId
+                      - kind
+                    type: object
+                  type: array
+                resourceRefs:
+                  items:
+                    additionalProperties: false
+                    properties:
+                      kind:
+                        minLength: 1
+                        type: string
+                      label:
+                        type: string
+                      purpose:
+                        type: string
+                      refId:
+                        minLength: 1
+                        type: string
+                    required:
+                      - refId
+                      - kind
+                    type: object
+                  type: array
+              required:
+                - resourceRefs
+                - intents
+              type: object
+            authoring:
+              additionalProperties: false
+              properties:
+                extensions:
+                  additionalProperties: true
+                  type: object
+                maintainers:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                notes:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                review:
+                  additionalProperties: false
+                  properties:
+                    reviewedAt:
+                      type: string
+                    reviewedBy:
+                      type: string
+                    status:
+                      minLength: 1
+                      type: string
+                  required:
+                    - status
+                  type: object
+                source:
+                  minLength: 1
+                  type: string
+              required:
+                - source
+              type: object
+            classification:
+              additionalProperties: false
+              properties:
+                sourceCategories:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                tags:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+              required:
+                - tags
+              type: object
+            evidence:
+              additionalProperties: false
+              properties:
+                completeness:
+                  enum:
+                    - stub
+                    - partial
+                    - substantial
+                    - complete
+                  type: string
+                sourceRefs:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+              required:
+                - sourceRefs
+                - completeness
+              type: object
+            facts:
+              items:
+                additionalProperties: false
+                properties:
+                  attributes:
+                    additionalProperties: true
+                    type: object
+                  confidence:
+                    enum:
+                      - recorded
+                      - normalized
+                      - inferred
+                      - editorial
+                      - rejected
+                    type: string
+                  factId:
+                    minLength: 1
+                    type: string
+                  label:
+                    minLength: 1
+                    type: string
+                  sourceRefs:
+                    items:
+                      minLength: 1
+                      type: string
+                    type: array
+                  type:
+                    minLength: 1
+                    type: string
+                  value:
+                    nullable: true
+                    oneOf:
+                      - type: string
+                      - type: number
+                      - type: boolean
+                      - additionalProperties: true
+                        type: object
+                      - items:
+                          nullable: true
+                          oneOf:
+                            - type: string
+                            - type: number
+                            - type: boolean
+                            - additionalProperties: true
+                              type: object
+                        type: array
+                required:
+                  - factId
+                  - type
+                  - label
+                  - value
+                  - confidence
+                type: object
+              type: array
+            identity:
+              additionalProperties: false
+              properties:
+                aliases:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                kind:
+                  minLength: 1
+                  type: string
+                name:
+                  minLength: 1
+                  type: string
+                summary:
+                  minLength: 1
+                  type: string
+              required:
+                - name
+                - summary
+                - kind
+              type: object
+          type: object
+        id:
+          type: string
+        kind:
+          type: string
+        origin:
+          $ref: '#/components/schemas/RealmCoreOriginDto'
+      required:
+        - kind
         - origin
         - core
       type: object
@@ -5029,6 +5262,13 @@ components:
               additionalProperties: false
               properties:
                 entityId:
+                  minLength: 1
+                  type: string
+                faction:
+                  type: string
+                rank:
+                  type: string
+                role:
                   type: string
                 sceneRefs:
                   items:
@@ -5040,6 +5280,7 @@ components:
                   type: string
               required:
                 - worldId
+                - entityId
                 - sceneRefs
               type: object
             presentation:
@@ -5101,6 +5342,7 @@ components:
         origin:
           $ref: '#/components/schemas/RealmCoreOriginDto'
       required:
+        - entityId
         - origin
         - core
         - baseContentHash
@@ -5217,24 +5459,19 @@ components:
               items:
                 additionalProperties: false
                 properties:
-                  attributes:
-                    additionalProperties: true
-                    type: object
                   entityId:
                     minLength: 1
                     type: string
                   kind:
                     minLength: 1
                     type: string
-                  name:
-                    minLength: 1
+                  label:
                     type: string
                   summary:
                     type: string
                 required:
                   - entityId
                   - kind
-                  - name
                 type: object
               type: array
             identity:
@@ -5499,6 +5736,238 @@ components:
             - system
           type: string
       required:
+        - origin
+        - core
+        - baseContentHash
+      type: object
+    ReplaceWorldEntityCoreDto:
+      properties:
+        baseContentHash:
+          type: string
+        core:
+          additionalProperties: false
+          properties:
+            assets:
+              additionalProperties: false
+              properties:
+                externalRefs:
+                  items:
+                    additionalProperties: false
+                    properties:
+                      kind:
+                        minLength: 1
+                        type: string
+                      label:
+                        type: string
+                      purpose:
+                        type: string
+                      refId:
+                        minLength: 1
+                        type: string
+                      uri:
+                        minLength: 1
+                        type: string
+                    required:
+                      - refId
+                      - kind
+                      - uri
+                    type: object
+                  type: array
+                intents:
+                  items:
+                    additionalProperties: false
+                    properties:
+                      intentId:
+                        minLength: 1
+                        type: string
+                      kind:
+                        minLength: 1
+                        type: string
+                      summary:
+                        type: string
+                    required:
+                      - intentId
+                      - kind
+                    type: object
+                  type: array
+                resourceRefs:
+                  items:
+                    additionalProperties: false
+                    properties:
+                      kind:
+                        minLength: 1
+                        type: string
+                      label:
+                        type: string
+                      purpose:
+                        type: string
+                      refId:
+                        minLength: 1
+                        type: string
+                    required:
+                      - refId
+                      - kind
+                    type: object
+                  type: array
+              required:
+                - resourceRefs
+                - intents
+              type: object
+            authoring:
+              additionalProperties: false
+              properties:
+                extensions:
+                  additionalProperties: true
+                  type: object
+                maintainers:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                notes:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                review:
+                  additionalProperties: false
+                  properties:
+                    reviewedAt:
+                      type: string
+                    reviewedBy:
+                      type: string
+                    status:
+                      minLength: 1
+                      type: string
+                  required:
+                    - status
+                  type: object
+                source:
+                  minLength: 1
+                  type: string
+              required:
+                - source
+              type: object
+            classification:
+              additionalProperties: false
+              properties:
+                sourceCategories:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                tags:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+              required:
+                - tags
+              type: object
+            evidence:
+              additionalProperties: false
+              properties:
+                completeness:
+                  enum:
+                    - stub
+                    - partial
+                    - substantial
+                    - complete
+                  type: string
+                sourceRefs:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+              required:
+                - sourceRefs
+                - completeness
+              type: object
+            facts:
+              items:
+                additionalProperties: false
+                properties:
+                  attributes:
+                    additionalProperties: true
+                    type: object
+                  confidence:
+                    enum:
+                      - recorded
+                      - normalized
+                      - inferred
+                      - editorial
+                      - rejected
+                    type: string
+                  factId:
+                    minLength: 1
+                    type: string
+                  label:
+                    minLength: 1
+                    type: string
+                  sourceRefs:
+                    items:
+                      minLength: 1
+                      type: string
+                    type: array
+                  type:
+                    minLength: 1
+                    type: string
+                  value:
+                    nullable: true
+                    oneOf:
+                      - type: string
+                      - type: number
+                      - type: boolean
+                      - additionalProperties: true
+                        type: object
+                      - items:
+                          nullable: true
+                          oneOf:
+                            - type: string
+                            - type: number
+                            - type: boolean
+                            - additionalProperties: true
+                              type: object
+                        type: array
+                required:
+                  - factId
+                  - type
+                  - label
+                  - value
+                  - confidence
+                type: object
+              type: array
+            identity:
+              additionalProperties: false
+              properties:
+                aliases:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                kind:
+                  minLength: 1
+                  type: string
+                name:
+                  minLength: 1
+                  type: string
+                summary:
+                  minLength: 1
+                  type: string
+              required:
+                - name
+                - summary
+                - kind
+              type: object
+          type: object
+        id:
+          type: string
+        kind:
+          type: string
+        origin:
+          $ref: '#/components/schemas/RealmCoreOriginDto'
+      required:
+        - kind
         - origin
         - core
         - baseContentHash
@@ -7492,6 +7961,13 @@ components:
               additionalProperties: false
               properties:
                 entityId:
+                  minLength: 1
+                  type: string
+                faction:
+                  type: string
+                rank:
+                  type: string
+                role:
                   type: string
                 sceneRefs:
                   items:
@@ -7503,6 +7979,7 @@ components:
                   type: string
               required:
                 - worldId
+                - entityId
                 - sceneRefs
               type: object
             presentation:
@@ -7561,7 +8038,6 @@ components:
           format: date-time
           type: string
         entityId:
-          nullable: true
           type: string
         id:
           type: string
@@ -7581,6 +8057,7 @@ components:
         - contentHash
         - origin
         - worldId
+        - entityId
         - core
         - createdAt
         - updatedAt
@@ -7699,24 +8176,19 @@ components:
               items:
                 additionalProperties: false
                 properties:
-                  attributes:
-                    additionalProperties: true
-                    type: object
                   entityId:
                     minLength: 1
                     type: string
                   kind:
                     minLength: 1
                     type: string
-                  name:
-                    minLength: 1
+                  label:
                     type: string
                   summary:
                     type: string
                 required:
                   - entityId
                   - kind
-                  - name
                 type: object
               type: array
             identity:
@@ -8001,6 +8473,256 @@ components:
         - createdAt
         - updatedAt
       type: object
+    WorldEntityCoreDto:
+      properties:
+        contentHash:
+          type: string
+        contentRevision:
+          type: number
+        core:
+          additionalProperties: false
+          properties:
+            assets:
+              additionalProperties: false
+              properties:
+                externalRefs:
+                  items:
+                    additionalProperties: false
+                    properties:
+                      kind:
+                        minLength: 1
+                        type: string
+                      label:
+                        type: string
+                      purpose:
+                        type: string
+                      refId:
+                        minLength: 1
+                        type: string
+                      uri:
+                        minLength: 1
+                        type: string
+                    required:
+                      - refId
+                      - kind
+                      - uri
+                    type: object
+                  type: array
+                intents:
+                  items:
+                    additionalProperties: false
+                    properties:
+                      intentId:
+                        minLength: 1
+                        type: string
+                      kind:
+                        minLength: 1
+                        type: string
+                      summary:
+                        type: string
+                    required:
+                      - intentId
+                      - kind
+                    type: object
+                  type: array
+                resourceRefs:
+                  items:
+                    additionalProperties: false
+                    properties:
+                      kind:
+                        minLength: 1
+                        type: string
+                      label:
+                        type: string
+                      purpose:
+                        type: string
+                      refId:
+                        minLength: 1
+                        type: string
+                    required:
+                      - refId
+                      - kind
+                    type: object
+                  type: array
+              required:
+                - resourceRefs
+                - intents
+              type: object
+            authoring:
+              additionalProperties: false
+              properties:
+                extensions:
+                  additionalProperties: true
+                  type: object
+                maintainers:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                notes:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                review:
+                  additionalProperties: false
+                  properties:
+                    reviewedAt:
+                      type: string
+                    reviewedBy:
+                      type: string
+                    status:
+                      minLength: 1
+                      type: string
+                  required:
+                    - status
+                  type: object
+                source:
+                  minLength: 1
+                  type: string
+              required:
+                - source
+              type: object
+            classification:
+              additionalProperties: false
+              properties:
+                sourceCategories:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                tags:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+              required:
+                - tags
+              type: object
+            evidence:
+              additionalProperties: false
+              properties:
+                completeness:
+                  enum:
+                    - stub
+                    - partial
+                    - substantial
+                    - complete
+                  type: string
+                sourceRefs:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+              required:
+                - sourceRefs
+                - completeness
+              type: object
+            facts:
+              items:
+                additionalProperties: false
+                properties:
+                  attributes:
+                    additionalProperties: true
+                    type: object
+                  confidence:
+                    enum:
+                      - recorded
+                      - normalized
+                      - inferred
+                      - editorial
+                      - rejected
+                    type: string
+                  factId:
+                    minLength: 1
+                    type: string
+                  label:
+                    minLength: 1
+                    type: string
+                  sourceRefs:
+                    items:
+                      minLength: 1
+                      type: string
+                    type: array
+                  type:
+                    minLength: 1
+                    type: string
+                  value:
+                    nullable: true
+                    oneOf:
+                      - type: string
+                      - type: number
+                      - type: boolean
+                      - additionalProperties: true
+                        type: object
+                      - items:
+                          nullable: true
+                          oneOf:
+                            - type: string
+                            - type: number
+                            - type: boolean
+                            - additionalProperties: true
+                              type: object
+                        type: array
+                required:
+                  - factId
+                  - type
+                  - label
+                  - value
+                  - confidence
+                type: object
+              type: array
+            identity:
+              additionalProperties: false
+              properties:
+                aliases:
+                  items:
+                    minLength: 1
+                    type: string
+                  type: array
+                kind:
+                  minLength: 1
+                  type: string
+                name:
+                  minLength: 1
+                  type: string
+                summary:
+                  minLength: 1
+                  type: string
+              required:
+                - name
+                - summary
+                - kind
+              type: object
+          type: object
+        createdAt:
+          format: date-time
+          type: string
+        id:
+          type: string
+        kind:
+          type: string
+        origin:
+          $ref: '#/components/schemas/RealmCoreOriginDto'
+        schemaVersion:
+          type: string
+        updatedAt:
+          format: date-time
+          type: string
+        worldId:
+          type: string
+      required:
+        - id
+        - schemaVersion
+        - contentRevision
+        - contentHash
+        - origin
+        - worldId
+        - kind
+        - core
+        - createdAt
+        - updatedAt
+      type: object
     WorldPublicDetailDto:
       properties:
         createdAt:
@@ -8215,6 +8937,8 @@ components:
             - worldCharacter
             - realmPersona
           type: string
+        sourceContentHash:
+          type: string
         sourceId:
           type: string
         worldId:
@@ -8223,6 +8947,7 @@ components:
         - kind
         - worldId
         - sourceId
+        - sourceContentHash
       type: object
     WorldPublicSourceSectionsDto:
       properties:
@@ -8302,6 +9027,9 @@ components:
         connectionId:
           nullable: true
           type: string
+        runtimeSourceRef:
+          nullable: true
+          type: string
         state:
           enum:
             - connectable
@@ -8321,7 +9049,7 @@ info:
   description: |-
     The Nimi Social Platform API
 
-    Last updated: 2026-06-18T17:29:19.395Z
+    Last updated: 2026-06-19T14:45:47.012Z
   title: Nimi Realm SDK API
   version: '1.0'
 openapi: 3.0.0
@@ -12086,6 +12814,53 @@ paths:
       summary: Replace a WorldCharacterCore with baseContentHash protection
       tags:
         - Realm Core
+  /api/realm/core/world-entities/{entityId}:
+    get:
+      operationId: WorldCoreController_getWorldEntity
+      parameters:
+        - in: path
+          name: entityId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorldEntityCoreDto'
+          description: ''
+      security:
+        - bearer: []
+      summary: Get a WorldEntityCore by id
+      tags:
+        - Realm Core
+    put:
+      operationId: WorldCoreController_replaceWorldEntity
+      parameters:
+        - in: path
+          name: entityId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReplaceWorldEntityCoreDto'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorldEntityCoreDto'
+          description: ''
+      security:
+        - bearer: []
+      summary: Replace a WorldEntityCore with baseContentHash protection
+      tags:
+        - Realm Core
   /api/realm/core/worlds:
     get:
       operationId: WorldCoreController_listWorldCores
@@ -12234,6 +13009,55 @@ paths:
       security:
         - bearer: []
       summary: Create a world-owned WorldCharacterCore
+      tags:
+        - Realm Core
+  /api/realm/core/worlds/{worldId}/entities:
+    get:
+      operationId: WorldCoreController_listWorldEntities
+      parameters:
+        - in: path
+          name: worldId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/WorldEntityCoreDto'
+                type: array
+          description: ''
+      security:
+        - bearer: []
+      summary: List WorldEntityCore records for a WorldCore
+      tags:
+        - Realm Core
+    post:
+      operationId: WorldCoreController_createWorldEntity
+      parameters:
+        - in: path
+          name: worldId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateWorldEntityCoreDto'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorldEntityCoreDto'
+          description: ''
+      security:
+        - bearer: []
+      summary: Create a world-owned WorldEntityCore
       tags:
         - Realm Core
   /api/reports:

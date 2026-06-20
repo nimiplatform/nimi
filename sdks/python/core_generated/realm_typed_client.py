@@ -602,6 +602,13 @@ class CreateWorldCoreDto:
     visibility: Literal["private", "unlisted", "public", "system"] | None = None
 
 @dataclass(frozen=True)
+class CreateWorldEntityCoreDto:
+    core: Mapping[str, object] = field(default_factory=dict)
+    id: str | None = None
+    kind: str | None = None
+    origin: RealmCoreOriginDto | None = None
+
+@dataclass(frozen=True)
 class CreatorEligibilityResponseDto:
     canCreateRealmPersona: bool | None = None
     canCreateWorld: bool | None = None
@@ -1271,6 +1278,14 @@ class ReplaceWorldCoreDto:
     origin: RealmCoreOriginDto | None = None
     visibility: Literal["private", "unlisted", "public", "system"] | None = None
 
+@dataclass(frozen=True)
+class ReplaceWorldEntityCoreDto:
+    baseContentHash: str | None = None
+    core: Mapping[str, object] = field(default_factory=dict)
+    id: str | None = None
+    kind: str | None = None
+    origin: RealmCoreOriginDto | None = None
+
 ReportReason = Literal["SPAM", "NSFW", "HATE_SPEECH", "SCAM", "OTHER"]
 
 @dataclass(frozen=True)
@@ -1932,6 +1947,19 @@ class WorldCoreDto:
     visibility: Literal["private", "unlisted", "public", "system"] | None = None
 
 @dataclass(frozen=True)
+class WorldEntityCoreDto:
+    contentHash: str | None = None
+    contentRevision: float | None = None
+    core: Mapping[str, object] = field(default_factory=dict)
+    createdAt: str | None = None
+    id: str | None = None
+    kind: str | None = None
+    origin: RealmCoreOriginDto | None = None
+    schemaVersion: str | None = None
+    updatedAt: str | None = None
+    worldId: str | None = None
+
+@dataclass(frozen=True)
 class WorldPublicDetailDto:
     createdAt: str | None = None
     id: str | None = None
@@ -2002,6 +2030,7 @@ class WorldPublicSourceMediaDto:
 @dataclass(frozen=True)
 class WorldPublicSourceRefDto:
     kind: Literal["worldCharacter", "realmPersona"] | None = None
+    sourceContentHash: str | None = None
     sourceId: str | None = None
     worldId: str | None = None
 
@@ -2035,6 +2064,7 @@ class WorldPublicTimeSnapshotDto:
 @dataclass(frozen=True)
 class WorldPublicViewerRelationDto:
     connectionId: str | None = None
+    runtimeSourceRef: str | None = None
     state: Literal["connectable", "connected", "unavailable"] | None = None
 
 @dataclass(frozen=True)
@@ -6217,6 +6247,28 @@ class RealmWorldCoreControllerCreateWorldCoreOperationRequest:
     body: CreateWorldCoreDto | None = None
 
 @dataclass(frozen=True)
+class RealmWorldCoreControllerCreateWorldEntityOperationPath:
+    worldId: str
+
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerCreateWorldEntityOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerCreateWorldEntityOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerCreateWorldEntityOperationRequest:
+    path: RealmWorldCoreControllerCreateWorldEntityOperationPath
+    query: RealmWorldCoreControllerCreateWorldEntityOperationQuery | None = None
+    headers: RealmWorldCoreControllerCreateWorldEntityOperationHeaders | None = None
+    body: CreateWorldEntityCoreDto | None = None
+
+@dataclass(frozen=True)
 class RealmWorldCoreControllerGetOasisWorldOperationPath:
     pass
 
@@ -6305,6 +6357,28 @@ class RealmWorldCoreControllerGetWorldCoreOperationRequest:
     body: None | None = None
 
 @dataclass(frozen=True)
+class RealmWorldCoreControllerGetWorldEntityOperationPath:
+    entityId: str
+
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerGetWorldEntityOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerGetWorldEntityOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerGetWorldEntityOperationRequest:
+    path: RealmWorldCoreControllerGetWorldEntityOperationPath
+    query: RealmWorldCoreControllerGetWorldEntityOperationQuery | None = None
+    headers: RealmWorldCoreControllerGetWorldEntityOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
 class RealmWorldCoreControllerListRealmPersonasOperationPath:
     pass
 
@@ -6373,6 +6447,28 @@ class RealmWorldCoreControllerListWorldCoresOperationRequest:
     body: None | None = None
 
 @dataclass(frozen=True)
+class RealmWorldCoreControllerListWorldEntitiesOperationPath:
+    worldId: str
+
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerListWorldEntitiesOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerListWorldEntitiesOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerListWorldEntitiesOperationRequest:
+    path: RealmWorldCoreControllerListWorldEntitiesOperationPath
+    query: RealmWorldCoreControllerListWorldEntitiesOperationQuery | None = None
+    headers: RealmWorldCoreControllerListWorldEntitiesOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
 class RealmWorldCoreControllerReplaceRealmPersonaOperationPath:
     personaId: str
 
@@ -6437,6 +6533,28 @@ class RealmWorldCoreControllerReplaceWorldCoreOperationRequest:
     query: RealmWorldCoreControllerReplaceWorldCoreOperationQuery | None = None
     headers: RealmWorldCoreControllerReplaceWorldCoreOperationHeaders | None = None
     body: ReplaceWorldCoreDto | None = None
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerReplaceWorldEntityOperationPath:
+    entityId: str
+
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerReplaceWorldEntityOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerReplaceWorldEntityOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerReplaceWorldEntityOperationRequest:
+    path: RealmWorldCoreControllerReplaceWorldEntityOperationPath
+    query: RealmWorldCoreControllerReplaceWorldEntityOperationQuery | None = None
+    headers: RealmWorldCoreControllerReplaceWorldEntityOperationHeaders | None = None
+    body: ReplaceWorldEntityCoreDto | None = None
 
 @dataclass(frozen=True)
 class RealmWorldPublicControllerGetWorldOperationPath:
@@ -8391,6 +8509,16 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_createWorldCore", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(WorldCoreDto, raw)
 
+    async def world_core_controller_create_world_entity(self, request: RealmWorldCoreControllerCreateWorldEntityOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerCreateWorldEntityOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_createWorldEntity", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(WorldEntityCoreDto, raw)
+
     async def world_core_controller_get_oasis_world(self, request: RealmWorldCoreControllerGetOasisWorldOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerGetOasisWorldOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
@@ -8431,6 +8559,16 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_getWorldCore", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(WorldCoreDto, raw)
 
+    async def world_core_controller_get_world_entity(self, request: RealmWorldCoreControllerGetWorldEntityOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerGetWorldEntityOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_getWorldEntity", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(WorldEntityCoreDto, raw)
+
     async def world_core_controller_list_realm_personas(self, request: RealmWorldCoreControllerListRealmPersonasOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerListRealmPersonasOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
@@ -8461,6 +8599,16 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_listWorldCores", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(tuple[WorldCoreDto, ...], raw)
 
+    async def world_core_controller_list_world_entities(self, request: RealmWorldCoreControllerListWorldEntitiesOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerListWorldEntitiesOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_listWorldEntities", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(tuple[WorldEntityCoreDto, ...], raw)
+
     async def world_core_controller_replace_realm_persona(self, request: RealmWorldCoreControllerReplaceRealmPersonaOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerReplaceRealmPersonaOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
@@ -8490,6 +8638,16 @@ class RealmTypedClient:
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_replaceWorldCore", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(WorldCoreDto, raw)
+
+    async def world_core_controller_replace_world_entity(self, request: RealmWorldCoreControllerReplaceWorldEntityOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerReplaceWorldEntityOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_replaceWorldEntity", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(WorldEntityCoreDto, raw)
 
     async def world_public_controller_get_world(self, request: RealmWorldPublicControllerGetWorldOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldPublicControllerGetWorldOperationResponse:
         envelope: dict[str, object] = {

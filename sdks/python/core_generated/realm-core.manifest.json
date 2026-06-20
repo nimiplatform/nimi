@@ -10497,6 +10497,64 @@
       ]
     },
     {
+      "operation_id": "WorldCoreController_createWorldEntity",
+      "method": "POST",
+      "path": "/api/realm/core/worlds/{worldId}/entities",
+      "service": "Realm Core",
+      "tags": [
+        "Realm Core"
+      ],
+      "parameters": [
+        {
+          "name": "worldId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "path_parameters": [
+        {
+          "name": "worldId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "ref",
+        "ref": "#/components/schemas/CreateWorldEntityCoreDto",
+        "ref_name": "CreateWorldEntityCoreDto"
+      },
+      "request_schema_ref": "#/components/schemas/CreateWorldEntityCoreDto",
+      "response_schemas": [
+        {
+          "status": "201",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/WorldEntityCoreDto",
+            "ref_name": "WorldEntityCoreDto"
+          },
+          "schema_ref": "#/components/schemas/WorldEntityCoreDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "201",
+          "schema_ref": "#/components/schemas/WorldEntityCoreDto"
+        }
+      ]
+    },
+    {
       "operation_id": "WorldCoreController_getOasisWorld",
       "method": "GET",
       "path": "/api/realm/core/oasis",
@@ -10695,6 +10753,62 @@
         {
           "status": "200",
           "schema_ref": "#/components/schemas/WorldCoreDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "WorldCoreController_getWorldEntity",
+      "method": "GET",
+      "path": "/api/realm/core/world-entities/{entityId}",
+      "service": "Realm Core",
+      "tags": [
+        "Realm Core"
+      ],
+      "parameters": [
+        {
+          "name": "entityId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "path_parameters": [
+        {
+          "name": "entityId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/WorldEntityCoreDto",
+            "ref_name": "WorldEntityCoreDto"
+          },
+          "schema_ref": "#/components/schemas/WorldEntityCoreDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/WorldEntityCoreDto"
         }
       ]
     },
@@ -10917,6 +11031,60 @@
       "response_schema_refs": []
     },
     {
+      "operation_id": "WorldCoreController_listWorldEntities",
+      "method": "GET",
+      "path": "/api/realm/core/worlds/{worldId}/entities",
+      "service": "Realm Core",
+      "tags": [
+        "Realm Core"
+      ],
+      "parameters": [
+        {
+          "name": "worldId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "path_parameters": [
+        {
+          "name": "worldId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "array",
+            "items": {
+              "kind": "ref",
+              "ref": "#/components/schemas/WorldEntityCoreDto",
+              "ref_name": "WorldEntityCoreDto"
+            }
+          },
+          "schema_ref": null
+        }
+      ],
+      "response_schema_refs": []
+    },
+    {
       "operation_id": "WorldCoreController_replaceRealmPersona",
       "method": "PUT",
       "path": "/api/realm/core/personas/{personaId}",
@@ -11087,6 +11255,64 @@
         {
           "status": "200",
           "schema_ref": "#/components/schemas/WorldCoreDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "WorldCoreController_replaceWorldEntity",
+      "method": "PUT",
+      "path": "/api/realm/core/world-entities/{entityId}",
+      "service": "Realm Core",
+      "tags": [
+        "Realm Core"
+      ],
+      "parameters": [
+        {
+          "name": "entityId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "path_parameters": [
+        {
+          "name": "entityId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "ref",
+        "ref": "#/components/schemas/ReplaceWorldEntityCoreDto",
+        "ref_name": "ReplaceWorldEntityCoreDto"
+      },
+      "request_schema_ref": "#/components/schemas/ReplaceWorldEntityCoreDto",
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/WorldEntityCoreDto",
+            "ref_name": "WorldEntityCoreDto"
+          },
+          "schema_ref": "#/components/schemas/WorldEntityCoreDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/WorldEntityCoreDto"
         }
       ]
     },
@@ -12407,6 +12633,12 @@
       "path": "/api/realm/core/worlds"
     },
     {
+      "operation_id": "WorldCoreController_createWorldEntity",
+      "service": "Realm Core",
+      "method": "POST",
+      "path": "/api/realm/core/worlds/{worldId}/entities"
+    },
+    {
       "operation_id": "WorldCoreController_getOasisWorld",
       "service": "Realm Core",
       "method": "GET",
@@ -12431,6 +12663,12 @@
       "path": "/api/realm/core/worlds/{worldId}"
     },
     {
+      "operation_id": "WorldCoreController_getWorldEntity",
+      "service": "Realm Core",
+      "method": "GET",
+      "path": "/api/realm/core/world-entities/{entityId}"
+    },
+    {
       "operation_id": "WorldCoreController_listRealmPersonas",
       "service": "Realm Core",
       "method": "GET",
@@ -12449,6 +12687,12 @@
       "path": "/api/realm/core/worlds"
     },
     {
+      "operation_id": "WorldCoreController_listWorldEntities",
+      "service": "Realm Core",
+      "method": "GET",
+      "path": "/api/realm/core/worlds/{worldId}/entities"
+    },
+    {
       "operation_id": "WorldCoreController_replaceRealmPersona",
       "service": "Realm Core",
       "method": "PUT",
@@ -12465,6 +12709,12 @@
       "service": "Realm Core",
       "method": "PUT",
       "path": "/api/realm/core/worlds/{worldId}"
+    },
+    {
+      "operation_id": "WorldCoreController_replaceWorldEntity",
+      "service": "Realm Core",
+      "method": "PUT",
+      "path": "/api/realm/core/world-entities/{entityId}"
     },
     {
       "operation_id": "WorldPublicController_getWorld",
@@ -12720,16 +12970,20 @@
         "WorldCoreController_createRuntimeSourceSnapshot",
         "WorldCoreController_createWorldCharacter",
         "WorldCoreController_createWorldCore",
+        "WorldCoreController_createWorldEntity",
         "WorldCoreController_getOasisWorld",
         "WorldCoreController_getRealmPersona",
         "WorldCoreController_getWorldCharacter",
         "WorldCoreController_getWorldCore",
+        "WorldCoreController_getWorldEntity",
         "WorldCoreController_listRealmPersonas",
         "WorldCoreController_listWorldCharacters",
         "WorldCoreController_listWorldCores",
+        "WorldCoreController_listWorldEntities",
         "WorldCoreController_replaceRealmPersona",
         "WorldCoreController_replaceWorldCharacter",
-        "WorldCoreController_replaceWorldCore"
+        "WorldCoreController_replaceWorldCore",
+        "WorldCoreController_replaceWorldEntity"
       ]
     },
     {
@@ -13066,6 +13320,9 @@
       "name": "CreateWorldCoreDto"
     },
     {
+      "name": "CreateWorldEntityCoreDto"
+    },
+    {
       "name": "CreatorEligibilityResponseDto"
     },
     {
@@ -13321,6 +13578,9 @@
       "name": "ReplaceWorldCoreDto"
     },
     {
+      "name": "ReplaceWorldEntityCoreDto"
+    },
+    {
       "name": "ReportReason"
     },
     {
@@ -13550,6 +13810,9 @@
     },
     {
       "name": "WorldCoreDto"
+    },
+    {
+      "name": "WorldEntityCoreDto"
     },
     {
       "name": "WorldPublicDetailDto"
@@ -18650,6 +18913,33 @@
                     "properties": [
                       {
                         "name": "entityId",
+                        "required": true,
+                        "schema": {
+                          "kind": "scalar",
+                          "type": "string",
+                          "format": null
+                        }
+                      },
+                      {
+                        "name": "faction",
+                        "required": false,
+                        "schema": {
+                          "kind": "scalar",
+                          "type": "string",
+                          "format": null
+                        }
+                      },
+                      {
+                        "name": "rank",
+                        "required": false,
+                        "schema": {
+                          "kind": "scalar",
+                          "type": "string",
+                          "format": null
+                        }
+                      },
+                      {
+                        "name": "role",
                         "required": false,
                         "schema": {
                           "kind": "scalar",
@@ -18808,7 +19098,7 @@
           },
           {
             "name": "entityId",
-            "required": false,
+            "required": true,
             "schema": {
               "kind": "scalar",
               "type": "string",
@@ -19105,17 +19395,6 @@
                       "kind": "object",
                       "properties": [
                         {
-                          "name": "attributes",
-                          "required": false,
-                          "schema": {
-                            "kind": "object",
-                            "properties": [],
-                            "additional_properties": {
-                              "kind": "unknown"
-                            }
-                          }
-                        },
-                        {
                           "name": "entityId",
                           "required": true,
                           "schema": {
@@ -19134,8 +19413,8 @@
                           }
                         },
                         {
-                          "name": "name",
-                          "required": true,
+                          "name": "label",
+                          "required": false,
                           "schema": {
                             "kind": "scalar",
                             "type": "string",
@@ -19815,6 +20094,558 @@
                 "public",
                 "system"
               ]
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "CreateWorldEntityCoreDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "core",
+            "required": true,
+            "schema": {
+              "kind": "object",
+              "properties": [
+                {
+                  "name": "assets",
+                  "required": false,
+                  "schema": {
+                    "kind": "object",
+                    "properties": [
+                      {
+                        "name": "externalRefs",
+                        "required": false,
+                        "schema": {
+                          "kind": "array",
+                          "items": {
+                            "kind": "object",
+                            "properties": [
+                              {
+                                "name": "kind",
+                                "required": true,
+                                "schema": {
+                                  "kind": "scalar",
+                                  "type": "string",
+                                  "format": null
+                                }
+                              },
+                              {
+                                "name": "label",
+                                "required": false,
+                                "schema": {
+                                  "kind": "scalar",
+                                  "type": "string",
+                                  "format": null
+                                }
+                              },
+                              {
+                                "name": "purpose",
+                                "required": false,
+                                "schema": {
+                                  "kind": "scalar",
+                                  "type": "string",
+                                  "format": null
+                                }
+                              },
+                              {
+                                "name": "refId",
+                                "required": true,
+                                "schema": {
+                                  "kind": "scalar",
+                                  "type": "string",
+                                  "format": null
+                                }
+                              },
+                              {
+                                "name": "uri",
+                                "required": true,
+                                "schema": {
+                                  "kind": "scalar",
+                                  "type": "string",
+                                  "format": null
+                                }
+                              }
+                            ],
+                            "additional_properties": null
+                          }
+                        }
+                      },
+                      {
+                        "name": "intents",
+                        "required": true,
+                        "schema": {
+                          "kind": "array",
+                          "items": {
+                            "kind": "object",
+                            "properties": [
+                              {
+                                "name": "intentId",
+                                "required": true,
+                                "schema": {
+                                  "kind": "scalar",
+                                  "type": "string",
+                                  "format": null
+                                }
+                              },
+                              {
+                                "name": "kind",
+                                "required": true,
+                                "schema": {
+                                  "kind": "scalar",
+                                  "type": "string",
+                                  "format": null
+                                }
+                              },
+                              {
+                                "name": "summary",
+                                "required": false,
+                                "schema": {
+                                  "kind": "scalar",
+                                  "type": "string",
+                                  "format": null
+                                }
+                              }
+                            ],
+                            "additional_properties": null
+                          }
+                        }
+                      },
+                      {
+                        "name": "resourceRefs",
+                        "required": true,
+                        "schema": {
+                          "kind": "array",
+                          "items": {
+                            "kind": "object",
+                            "properties": [
+                              {
+                                "name": "kind",
+                                "required": true,
+                                "schema": {
+                                  "kind": "scalar",
+                                  "type": "string",
+                                  "format": null
+                                }
+                              },
+                              {
+                                "name": "label",
+                                "required": false,
+                                "schema": {
+                                  "kind": "scalar",
+                                  "type": "string",
+                                  "format": null
+                                }
+                              },
+                              {
+                                "name": "purpose",
+                                "required": false,
+                                "schema": {
+                                  "kind": "scalar",
+                                  "type": "string",
+                                  "format": null
+                                }
+                              },
+                              {
+                                "name": "refId",
+                                "required": true,
+                                "schema": {
+                                  "kind": "scalar",
+                                  "type": "string",
+                                  "format": null
+                                }
+                              }
+                            ],
+                            "additional_properties": null
+                          }
+                        }
+                      }
+                    ],
+                    "additional_properties": null
+                  }
+                },
+                {
+                  "name": "authoring",
+                  "required": false,
+                  "schema": {
+                    "kind": "object",
+                    "properties": [
+                      {
+                        "name": "extensions",
+                        "required": false,
+                        "schema": {
+                          "kind": "object",
+                          "properties": [],
+                          "additional_properties": {
+                            "kind": "unknown"
+                          }
+                        }
+                      },
+                      {
+                        "name": "maintainers",
+                        "required": false,
+                        "schema": {
+                          "kind": "array",
+                          "items": {
+                            "kind": "scalar",
+                            "type": "string",
+                            "format": null
+                          }
+                        }
+                      },
+                      {
+                        "name": "notes",
+                        "required": false,
+                        "schema": {
+                          "kind": "array",
+                          "items": {
+                            "kind": "scalar",
+                            "type": "string",
+                            "format": null
+                          }
+                        }
+                      },
+                      {
+                        "name": "review",
+                        "required": false,
+                        "schema": {
+                          "kind": "object",
+                          "properties": [
+                            {
+                              "name": "reviewedAt",
+                              "required": false,
+                              "schema": {
+                                "kind": "scalar",
+                                "type": "string",
+                                "format": null
+                              }
+                            },
+                            {
+                              "name": "reviewedBy",
+                              "required": false,
+                              "schema": {
+                                "kind": "scalar",
+                                "type": "string",
+                                "format": null
+                              }
+                            },
+                            {
+                              "name": "status",
+                              "required": true,
+                              "schema": {
+                                "kind": "scalar",
+                                "type": "string",
+                                "format": null
+                              }
+                            }
+                          ],
+                          "additional_properties": null
+                        }
+                      },
+                      {
+                        "name": "source",
+                        "required": true,
+                        "schema": {
+                          "kind": "scalar",
+                          "type": "string",
+                          "format": null
+                        }
+                      }
+                    ],
+                    "additional_properties": null
+                  }
+                },
+                {
+                  "name": "classification",
+                  "required": false,
+                  "schema": {
+                    "kind": "object",
+                    "properties": [
+                      {
+                        "name": "sourceCategories",
+                        "required": false,
+                        "schema": {
+                          "kind": "array",
+                          "items": {
+                            "kind": "scalar",
+                            "type": "string",
+                            "format": null
+                          }
+                        }
+                      },
+                      {
+                        "name": "tags",
+                        "required": true,
+                        "schema": {
+                          "kind": "array",
+                          "items": {
+                            "kind": "scalar",
+                            "type": "string",
+                            "format": null
+                          }
+                        }
+                      }
+                    ],
+                    "additional_properties": null
+                  }
+                },
+                {
+                  "name": "evidence",
+                  "required": false,
+                  "schema": {
+                    "kind": "object",
+                    "properties": [
+                      {
+                        "name": "completeness",
+                        "required": true,
+                        "schema": {
+                          "kind": "enum",
+                          "values": [
+                            "stub",
+                            "partial",
+                            "substantial",
+                            "complete"
+                          ]
+                        }
+                      },
+                      {
+                        "name": "sourceRefs",
+                        "required": true,
+                        "schema": {
+                          "kind": "array",
+                          "items": {
+                            "kind": "scalar",
+                            "type": "string",
+                            "format": null
+                          }
+                        }
+                      }
+                    ],
+                    "additional_properties": null
+                  }
+                },
+                {
+                  "name": "facts",
+                  "required": false,
+                  "schema": {
+                    "kind": "array",
+                    "items": {
+                      "kind": "object",
+                      "properties": [
+                        {
+                          "name": "attributes",
+                          "required": false,
+                          "schema": {
+                            "kind": "object",
+                            "properties": [],
+                            "additional_properties": {
+                              "kind": "unknown"
+                            }
+                          }
+                        },
+                        {
+                          "name": "confidence",
+                          "required": true,
+                          "schema": {
+                            "kind": "enum",
+                            "values": [
+                              "recorded",
+                              "normalized",
+                              "inferred",
+                              "editorial",
+                              "rejected"
+                            ]
+                          }
+                        },
+                        {
+                          "name": "factId",
+                          "required": true,
+                          "schema": {
+                            "kind": "scalar",
+                            "type": "string",
+                            "format": null
+                          }
+                        },
+                        {
+                          "name": "label",
+                          "required": true,
+                          "schema": {
+                            "kind": "scalar",
+                            "type": "string",
+                            "format": null
+                          }
+                        },
+                        {
+                          "name": "sourceRefs",
+                          "required": false,
+                          "schema": {
+                            "kind": "array",
+                            "items": {
+                              "kind": "scalar",
+                              "type": "string",
+                              "format": null
+                            }
+                          }
+                        },
+                        {
+                          "name": "type",
+                          "required": true,
+                          "schema": {
+                            "kind": "scalar",
+                            "type": "string",
+                            "format": null
+                          }
+                        },
+                        {
+                          "name": "value",
+                          "required": true,
+                          "schema": {
+                            "kind": "union",
+                            "variants": [
+                              {
+                                "kind": "scalar",
+                                "type": "string",
+                                "format": null
+                              },
+                              {
+                                "kind": "scalar",
+                                "type": "number",
+                                "format": null
+                              },
+                              {
+                                "kind": "scalar",
+                                "type": "boolean",
+                                "format": null
+                              },
+                              {
+                                "kind": "object",
+                                "properties": [],
+                                "additional_properties": {
+                                  "kind": "unknown"
+                                }
+                              },
+                              {
+                                "kind": "array",
+                                "items": {
+                                  "kind": "union",
+                                  "variants": [
+                                    {
+                                      "kind": "scalar",
+                                      "type": "string",
+                                      "format": null
+                                    },
+                                    {
+                                      "kind": "scalar",
+                                      "type": "number",
+                                      "format": null
+                                    },
+                                    {
+                                      "kind": "scalar",
+                                      "type": "boolean",
+                                      "format": null
+                                    },
+                                    {
+                                      "kind": "object",
+                                      "properties": [],
+                                      "additional_properties": {
+                                        "kind": "unknown"
+                                      }
+                                    }
+                                  ],
+                                  "nullable": true
+                                }
+                              }
+                            ],
+                            "nullable": true
+                          }
+                        }
+                      ],
+                      "additional_properties": null
+                    }
+                  }
+                },
+                {
+                  "name": "identity",
+                  "required": false,
+                  "schema": {
+                    "kind": "object",
+                    "properties": [
+                      {
+                        "name": "aliases",
+                        "required": false,
+                        "schema": {
+                          "kind": "array",
+                          "items": {
+                            "kind": "scalar",
+                            "type": "string",
+                            "format": null
+                          }
+                        }
+                      },
+                      {
+                        "name": "kind",
+                        "required": true,
+                        "schema": {
+                          "kind": "scalar",
+                          "type": "string",
+                          "format": null
+                        }
+                      },
+                      {
+                        "name": "name",
+                        "required": true,
+                        "schema": {
+                          "kind": "scalar",
+                          "type": "string",
+                          "format": null
+                        }
+                      },
+                      {
+                        "name": "summary",
+                        "required": true,
+                        "schema": {
+                          "kind": "scalar",
+                          "type": "string",
+                          "format": null
+                        }
+                      }
+                    ],
+                    "additional_properties": null
+                  }
+                }
+              ],
+              "additional_properties": null
+            }
+          },
+          {
+            "name": "id",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "origin",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/RealmCoreOriginDto",
+              "ref_name": "RealmCoreOriginDto"
             }
           }
         ],
@@ -26384,6 +27215,33 @@
                     "properties": [
                       {
                         "name": "entityId",
+                        "required": true,
+                        "schema": {
+                          "kind": "scalar",
+                          "type": "string",
+                          "format": null
+                        }
+                      },
+                      {
+                        "name": "faction",
+                        "required": false,
+                        "schema": {
+                          "kind": "scalar",
+                          "type": "string",
+                          "format": null
+                        }
+                      },
+                      {
+                        "name": "rank",
+                        "required": false,
+                        "schema": {
+                          "kind": "scalar",
+                          "type": "string",
+                          "format": null
+                        }
+                      },
+                      {
+                        "name": "role",
                         "required": false,
                         "schema": {
                           "kind": "scalar",
@@ -26542,7 +27400,7 @@
           },
           {
             "name": "entityId",
-            "required": false,
+            "required": true,
             "schema": {
               "kind": "scalar",
               "type": "string",
@@ -26848,17 +27706,6 @@
                       "kind": "object",
                       "properties": [
                         {
-                          "name": "attributes",
-                          "required": false,
-                          "schema": {
-                            "kind": "object",
-                            "properties": [],
-                            "additional_properties": {
-                              "kind": "unknown"
-                            }
-                          }
-                        },
-                        {
                           "name": "entityId",
                           "required": true,
                           "schema": {
@@ -26877,8 +27724,8 @@
                           }
                         },
                         {
-                          "name": "name",
-                          "required": true,
+                          "name": "label",
+                          "required": false,
                           "schema": {
                             "kind": "scalar",
                             "type": "string",
@@ -27558,6 +28405,567 @@
                 "public",
                 "system"
               ]
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "ReplaceWorldEntityCoreDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "baseContentHash",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "core",
+            "required": true,
+            "schema": {
+              "kind": "object",
+              "properties": [
+                {
+                  "name": "assets",
+                  "required": false,
+                  "schema": {
+                    "kind": "object",
+                    "properties": [
+                      {
+                        "name": "externalRefs",
+                        "required": false,
+                        "schema": {
+                          "kind": "array",
+                          "items": {
+                            "kind": "object",
+                            "properties": [
+                              {
+                                "name": "kind",
+                                "required": true,
+                                "schema": {
+                                  "kind": "scalar",
+                                  "type": "string",
+                                  "format": null
+                                }
+                              },
+                              {
+                                "name": "label",
+                                "required": false,
+                                "schema": {
+                                  "kind": "scalar",
+                                  "type": "string",
+                                  "format": null
+                                }
+                              },
+                              {
+                                "name": "purpose",
+                                "required": false,
+                                "schema": {
+                                  "kind": "scalar",
+                                  "type": "string",
+                                  "format": null
+                                }
+                              },
+                              {
+                                "name": "refId",
+                                "required": true,
+                                "schema": {
+                                  "kind": "scalar",
+                                  "type": "string",
+                                  "format": null
+                                }
+                              },
+                              {
+                                "name": "uri",
+                                "required": true,
+                                "schema": {
+                                  "kind": "scalar",
+                                  "type": "string",
+                                  "format": null
+                                }
+                              }
+                            ],
+                            "additional_properties": null
+                          }
+                        }
+                      },
+                      {
+                        "name": "intents",
+                        "required": true,
+                        "schema": {
+                          "kind": "array",
+                          "items": {
+                            "kind": "object",
+                            "properties": [
+                              {
+                                "name": "intentId",
+                                "required": true,
+                                "schema": {
+                                  "kind": "scalar",
+                                  "type": "string",
+                                  "format": null
+                                }
+                              },
+                              {
+                                "name": "kind",
+                                "required": true,
+                                "schema": {
+                                  "kind": "scalar",
+                                  "type": "string",
+                                  "format": null
+                                }
+                              },
+                              {
+                                "name": "summary",
+                                "required": false,
+                                "schema": {
+                                  "kind": "scalar",
+                                  "type": "string",
+                                  "format": null
+                                }
+                              }
+                            ],
+                            "additional_properties": null
+                          }
+                        }
+                      },
+                      {
+                        "name": "resourceRefs",
+                        "required": true,
+                        "schema": {
+                          "kind": "array",
+                          "items": {
+                            "kind": "object",
+                            "properties": [
+                              {
+                                "name": "kind",
+                                "required": true,
+                                "schema": {
+                                  "kind": "scalar",
+                                  "type": "string",
+                                  "format": null
+                                }
+                              },
+                              {
+                                "name": "label",
+                                "required": false,
+                                "schema": {
+                                  "kind": "scalar",
+                                  "type": "string",
+                                  "format": null
+                                }
+                              },
+                              {
+                                "name": "purpose",
+                                "required": false,
+                                "schema": {
+                                  "kind": "scalar",
+                                  "type": "string",
+                                  "format": null
+                                }
+                              },
+                              {
+                                "name": "refId",
+                                "required": true,
+                                "schema": {
+                                  "kind": "scalar",
+                                  "type": "string",
+                                  "format": null
+                                }
+                              }
+                            ],
+                            "additional_properties": null
+                          }
+                        }
+                      }
+                    ],
+                    "additional_properties": null
+                  }
+                },
+                {
+                  "name": "authoring",
+                  "required": false,
+                  "schema": {
+                    "kind": "object",
+                    "properties": [
+                      {
+                        "name": "extensions",
+                        "required": false,
+                        "schema": {
+                          "kind": "object",
+                          "properties": [],
+                          "additional_properties": {
+                            "kind": "unknown"
+                          }
+                        }
+                      },
+                      {
+                        "name": "maintainers",
+                        "required": false,
+                        "schema": {
+                          "kind": "array",
+                          "items": {
+                            "kind": "scalar",
+                            "type": "string",
+                            "format": null
+                          }
+                        }
+                      },
+                      {
+                        "name": "notes",
+                        "required": false,
+                        "schema": {
+                          "kind": "array",
+                          "items": {
+                            "kind": "scalar",
+                            "type": "string",
+                            "format": null
+                          }
+                        }
+                      },
+                      {
+                        "name": "review",
+                        "required": false,
+                        "schema": {
+                          "kind": "object",
+                          "properties": [
+                            {
+                              "name": "reviewedAt",
+                              "required": false,
+                              "schema": {
+                                "kind": "scalar",
+                                "type": "string",
+                                "format": null
+                              }
+                            },
+                            {
+                              "name": "reviewedBy",
+                              "required": false,
+                              "schema": {
+                                "kind": "scalar",
+                                "type": "string",
+                                "format": null
+                              }
+                            },
+                            {
+                              "name": "status",
+                              "required": true,
+                              "schema": {
+                                "kind": "scalar",
+                                "type": "string",
+                                "format": null
+                              }
+                            }
+                          ],
+                          "additional_properties": null
+                        }
+                      },
+                      {
+                        "name": "source",
+                        "required": true,
+                        "schema": {
+                          "kind": "scalar",
+                          "type": "string",
+                          "format": null
+                        }
+                      }
+                    ],
+                    "additional_properties": null
+                  }
+                },
+                {
+                  "name": "classification",
+                  "required": false,
+                  "schema": {
+                    "kind": "object",
+                    "properties": [
+                      {
+                        "name": "sourceCategories",
+                        "required": false,
+                        "schema": {
+                          "kind": "array",
+                          "items": {
+                            "kind": "scalar",
+                            "type": "string",
+                            "format": null
+                          }
+                        }
+                      },
+                      {
+                        "name": "tags",
+                        "required": true,
+                        "schema": {
+                          "kind": "array",
+                          "items": {
+                            "kind": "scalar",
+                            "type": "string",
+                            "format": null
+                          }
+                        }
+                      }
+                    ],
+                    "additional_properties": null
+                  }
+                },
+                {
+                  "name": "evidence",
+                  "required": false,
+                  "schema": {
+                    "kind": "object",
+                    "properties": [
+                      {
+                        "name": "completeness",
+                        "required": true,
+                        "schema": {
+                          "kind": "enum",
+                          "values": [
+                            "stub",
+                            "partial",
+                            "substantial",
+                            "complete"
+                          ]
+                        }
+                      },
+                      {
+                        "name": "sourceRefs",
+                        "required": true,
+                        "schema": {
+                          "kind": "array",
+                          "items": {
+                            "kind": "scalar",
+                            "type": "string",
+                            "format": null
+                          }
+                        }
+                      }
+                    ],
+                    "additional_properties": null
+                  }
+                },
+                {
+                  "name": "facts",
+                  "required": false,
+                  "schema": {
+                    "kind": "array",
+                    "items": {
+                      "kind": "object",
+                      "properties": [
+                        {
+                          "name": "attributes",
+                          "required": false,
+                          "schema": {
+                            "kind": "object",
+                            "properties": [],
+                            "additional_properties": {
+                              "kind": "unknown"
+                            }
+                          }
+                        },
+                        {
+                          "name": "confidence",
+                          "required": true,
+                          "schema": {
+                            "kind": "enum",
+                            "values": [
+                              "recorded",
+                              "normalized",
+                              "inferred",
+                              "editorial",
+                              "rejected"
+                            ]
+                          }
+                        },
+                        {
+                          "name": "factId",
+                          "required": true,
+                          "schema": {
+                            "kind": "scalar",
+                            "type": "string",
+                            "format": null
+                          }
+                        },
+                        {
+                          "name": "label",
+                          "required": true,
+                          "schema": {
+                            "kind": "scalar",
+                            "type": "string",
+                            "format": null
+                          }
+                        },
+                        {
+                          "name": "sourceRefs",
+                          "required": false,
+                          "schema": {
+                            "kind": "array",
+                            "items": {
+                              "kind": "scalar",
+                              "type": "string",
+                              "format": null
+                            }
+                          }
+                        },
+                        {
+                          "name": "type",
+                          "required": true,
+                          "schema": {
+                            "kind": "scalar",
+                            "type": "string",
+                            "format": null
+                          }
+                        },
+                        {
+                          "name": "value",
+                          "required": true,
+                          "schema": {
+                            "kind": "union",
+                            "variants": [
+                              {
+                                "kind": "scalar",
+                                "type": "string",
+                                "format": null
+                              },
+                              {
+                                "kind": "scalar",
+                                "type": "number",
+                                "format": null
+                              },
+                              {
+                                "kind": "scalar",
+                                "type": "boolean",
+                                "format": null
+                              },
+                              {
+                                "kind": "object",
+                                "properties": [],
+                                "additional_properties": {
+                                  "kind": "unknown"
+                                }
+                              },
+                              {
+                                "kind": "array",
+                                "items": {
+                                  "kind": "union",
+                                  "variants": [
+                                    {
+                                      "kind": "scalar",
+                                      "type": "string",
+                                      "format": null
+                                    },
+                                    {
+                                      "kind": "scalar",
+                                      "type": "number",
+                                      "format": null
+                                    },
+                                    {
+                                      "kind": "scalar",
+                                      "type": "boolean",
+                                      "format": null
+                                    },
+                                    {
+                                      "kind": "object",
+                                      "properties": [],
+                                      "additional_properties": {
+                                        "kind": "unknown"
+                                      }
+                                    }
+                                  ],
+                                  "nullable": true
+                                }
+                              }
+                            ],
+                            "nullable": true
+                          }
+                        }
+                      ],
+                      "additional_properties": null
+                    }
+                  }
+                },
+                {
+                  "name": "identity",
+                  "required": false,
+                  "schema": {
+                    "kind": "object",
+                    "properties": [
+                      {
+                        "name": "aliases",
+                        "required": false,
+                        "schema": {
+                          "kind": "array",
+                          "items": {
+                            "kind": "scalar",
+                            "type": "string",
+                            "format": null
+                          }
+                        }
+                      },
+                      {
+                        "name": "kind",
+                        "required": true,
+                        "schema": {
+                          "kind": "scalar",
+                          "type": "string",
+                          "format": null
+                        }
+                      },
+                      {
+                        "name": "name",
+                        "required": true,
+                        "schema": {
+                          "kind": "scalar",
+                          "type": "string",
+                          "format": null
+                        }
+                      },
+                      {
+                        "name": "summary",
+                        "required": true,
+                        "schema": {
+                          "kind": "scalar",
+                          "type": "string",
+                          "format": null
+                        }
+                      }
+                    ],
+                    "additional_properties": null
+                  }
+                }
+              ],
+              "additional_properties": null
+            }
+          },
+          {
+            "name": "id",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "origin",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/RealmCoreOriginDto",
+              "ref_name": "RealmCoreOriginDto"
             }
           }
         ],
@@ -32882,6 +34290,33 @@
                     "properties": [
                       {
                         "name": "entityId",
+                        "required": true,
+                        "schema": {
+                          "kind": "scalar",
+                          "type": "string",
+                          "format": null
+                        }
+                      },
+                      {
+                        "name": "faction",
+                        "required": false,
+                        "schema": {
+                          "kind": "scalar",
+                          "type": "string",
+                          "format": null
+                        }
+                      },
+                      {
+                        "name": "rank",
+                        "required": false,
+                        "schema": {
+                          "kind": "scalar",
+                          "type": "string",
+                          "format": null
+                        }
+                      },
+                      {
+                        "name": "role",
                         "required": false,
                         "schema": {
                           "kind": "scalar",
@@ -33049,12 +34484,11 @@
           },
           {
             "name": "entityId",
-            "required": false,
+            "required": true,
             "schema": {
               "kind": "scalar",
               "type": "string",
-              "format": null,
-              "nullable": true
+              "format": null
             }
           },
           {
@@ -33392,17 +34826,6 @@
                       "kind": "object",
                       "properties": [
                         {
-                          "name": "attributes",
-                          "required": false,
-                          "schema": {
-                            "kind": "object",
-                            "properties": [],
-                            "additional_properties": {
-                              "kind": "unknown"
-                            }
-                          }
-                        },
-                        {
                           "name": "entityId",
                           "required": true,
                           "schema": {
@@ -33421,8 +34844,8 @@
                           }
                         },
                         {
-                          "name": "name",
-                          "required": true,
+                          "name": "label",
+                          "required": false,
                           "schema": {
                             "kind": "scalar",
                             "type": "string",
@@ -34146,6 +35569,612 @@
       }
     },
     {
+      "name": "WorldEntityCoreDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "contentHash",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "contentRevision",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "core",
+            "required": true,
+            "schema": {
+              "kind": "object",
+              "properties": [
+                {
+                  "name": "assets",
+                  "required": false,
+                  "schema": {
+                    "kind": "object",
+                    "properties": [
+                      {
+                        "name": "externalRefs",
+                        "required": false,
+                        "schema": {
+                          "kind": "array",
+                          "items": {
+                            "kind": "object",
+                            "properties": [
+                              {
+                                "name": "kind",
+                                "required": true,
+                                "schema": {
+                                  "kind": "scalar",
+                                  "type": "string",
+                                  "format": null
+                                }
+                              },
+                              {
+                                "name": "label",
+                                "required": false,
+                                "schema": {
+                                  "kind": "scalar",
+                                  "type": "string",
+                                  "format": null
+                                }
+                              },
+                              {
+                                "name": "purpose",
+                                "required": false,
+                                "schema": {
+                                  "kind": "scalar",
+                                  "type": "string",
+                                  "format": null
+                                }
+                              },
+                              {
+                                "name": "refId",
+                                "required": true,
+                                "schema": {
+                                  "kind": "scalar",
+                                  "type": "string",
+                                  "format": null
+                                }
+                              },
+                              {
+                                "name": "uri",
+                                "required": true,
+                                "schema": {
+                                  "kind": "scalar",
+                                  "type": "string",
+                                  "format": null
+                                }
+                              }
+                            ],
+                            "additional_properties": null
+                          }
+                        }
+                      },
+                      {
+                        "name": "intents",
+                        "required": true,
+                        "schema": {
+                          "kind": "array",
+                          "items": {
+                            "kind": "object",
+                            "properties": [
+                              {
+                                "name": "intentId",
+                                "required": true,
+                                "schema": {
+                                  "kind": "scalar",
+                                  "type": "string",
+                                  "format": null
+                                }
+                              },
+                              {
+                                "name": "kind",
+                                "required": true,
+                                "schema": {
+                                  "kind": "scalar",
+                                  "type": "string",
+                                  "format": null
+                                }
+                              },
+                              {
+                                "name": "summary",
+                                "required": false,
+                                "schema": {
+                                  "kind": "scalar",
+                                  "type": "string",
+                                  "format": null
+                                }
+                              }
+                            ],
+                            "additional_properties": null
+                          }
+                        }
+                      },
+                      {
+                        "name": "resourceRefs",
+                        "required": true,
+                        "schema": {
+                          "kind": "array",
+                          "items": {
+                            "kind": "object",
+                            "properties": [
+                              {
+                                "name": "kind",
+                                "required": true,
+                                "schema": {
+                                  "kind": "scalar",
+                                  "type": "string",
+                                  "format": null
+                                }
+                              },
+                              {
+                                "name": "label",
+                                "required": false,
+                                "schema": {
+                                  "kind": "scalar",
+                                  "type": "string",
+                                  "format": null
+                                }
+                              },
+                              {
+                                "name": "purpose",
+                                "required": false,
+                                "schema": {
+                                  "kind": "scalar",
+                                  "type": "string",
+                                  "format": null
+                                }
+                              },
+                              {
+                                "name": "refId",
+                                "required": true,
+                                "schema": {
+                                  "kind": "scalar",
+                                  "type": "string",
+                                  "format": null
+                                }
+                              }
+                            ],
+                            "additional_properties": null
+                          }
+                        }
+                      }
+                    ],
+                    "additional_properties": null
+                  }
+                },
+                {
+                  "name": "authoring",
+                  "required": false,
+                  "schema": {
+                    "kind": "object",
+                    "properties": [
+                      {
+                        "name": "extensions",
+                        "required": false,
+                        "schema": {
+                          "kind": "object",
+                          "properties": [],
+                          "additional_properties": {
+                            "kind": "unknown"
+                          }
+                        }
+                      },
+                      {
+                        "name": "maintainers",
+                        "required": false,
+                        "schema": {
+                          "kind": "array",
+                          "items": {
+                            "kind": "scalar",
+                            "type": "string",
+                            "format": null
+                          }
+                        }
+                      },
+                      {
+                        "name": "notes",
+                        "required": false,
+                        "schema": {
+                          "kind": "array",
+                          "items": {
+                            "kind": "scalar",
+                            "type": "string",
+                            "format": null
+                          }
+                        }
+                      },
+                      {
+                        "name": "review",
+                        "required": false,
+                        "schema": {
+                          "kind": "object",
+                          "properties": [
+                            {
+                              "name": "reviewedAt",
+                              "required": false,
+                              "schema": {
+                                "kind": "scalar",
+                                "type": "string",
+                                "format": null
+                              }
+                            },
+                            {
+                              "name": "reviewedBy",
+                              "required": false,
+                              "schema": {
+                                "kind": "scalar",
+                                "type": "string",
+                                "format": null
+                              }
+                            },
+                            {
+                              "name": "status",
+                              "required": true,
+                              "schema": {
+                                "kind": "scalar",
+                                "type": "string",
+                                "format": null
+                              }
+                            }
+                          ],
+                          "additional_properties": null
+                        }
+                      },
+                      {
+                        "name": "source",
+                        "required": true,
+                        "schema": {
+                          "kind": "scalar",
+                          "type": "string",
+                          "format": null
+                        }
+                      }
+                    ],
+                    "additional_properties": null
+                  }
+                },
+                {
+                  "name": "classification",
+                  "required": false,
+                  "schema": {
+                    "kind": "object",
+                    "properties": [
+                      {
+                        "name": "sourceCategories",
+                        "required": false,
+                        "schema": {
+                          "kind": "array",
+                          "items": {
+                            "kind": "scalar",
+                            "type": "string",
+                            "format": null
+                          }
+                        }
+                      },
+                      {
+                        "name": "tags",
+                        "required": true,
+                        "schema": {
+                          "kind": "array",
+                          "items": {
+                            "kind": "scalar",
+                            "type": "string",
+                            "format": null
+                          }
+                        }
+                      }
+                    ],
+                    "additional_properties": null
+                  }
+                },
+                {
+                  "name": "evidence",
+                  "required": false,
+                  "schema": {
+                    "kind": "object",
+                    "properties": [
+                      {
+                        "name": "completeness",
+                        "required": true,
+                        "schema": {
+                          "kind": "enum",
+                          "values": [
+                            "stub",
+                            "partial",
+                            "substantial",
+                            "complete"
+                          ]
+                        }
+                      },
+                      {
+                        "name": "sourceRefs",
+                        "required": true,
+                        "schema": {
+                          "kind": "array",
+                          "items": {
+                            "kind": "scalar",
+                            "type": "string",
+                            "format": null
+                          }
+                        }
+                      }
+                    ],
+                    "additional_properties": null
+                  }
+                },
+                {
+                  "name": "facts",
+                  "required": false,
+                  "schema": {
+                    "kind": "array",
+                    "items": {
+                      "kind": "object",
+                      "properties": [
+                        {
+                          "name": "attributes",
+                          "required": false,
+                          "schema": {
+                            "kind": "object",
+                            "properties": [],
+                            "additional_properties": {
+                              "kind": "unknown"
+                            }
+                          }
+                        },
+                        {
+                          "name": "confidence",
+                          "required": true,
+                          "schema": {
+                            "kind": "enum",
+                            "values": [
+                              "recorded",
+                              "normalized",
+                              "inferred",
+                              "editorial",
+                              "rejected"
+                            ]
+                          }
+                        },
+                        {
+                          "name": "factId",
+                          "required": true,
+                          "schema": {
+                            "kind": "scalar",
+                            "type": "string",
+                            "format": null
+                          }
+                        },
+                        {
+                          "name": "label",
+                          "required": true,
+                          "schema": {
+                            "kind": "scalar",
+                            "type": "string",
+                            "format": null
+                          }
+                        },
+                        {
+                          "name": "sourceRefs",
+                          "required": false,
+                          "schema": {
+                            "kind": "array",
+                            "items": {
+                              "kind": "scalar",
+                              "type": "string",
+                              "format": null
+                            }
+                          }
+                        },
+                        {
+                          "name": "type",
+                          "required": true,
+                          "schema": {
+                            "kind": "scalar",
+                            "type": "string",
+                            "format": null
+                          }
+                        },
+                        {
+                          "name": "value",
+                          "required": true,
+                          "schema": {
+                            "kind": "union",
+                            "variants": [
+                              {
+                                "kind": "scalar",
+                                "type": "string",
+                                "format": null
+                              },
+                              {
+                                "kind": "scalar",
+                                "type": "number",
+                                "format": null
+                              },
+                              {
+                                "kind": "scalar",
+                                "type": "boolean",
+                                "format": null
+                              },
+                              {
+                                "kind": "object",
+                                "properties": [],
+                                "additional_properties": {
+                                  "kind": "unknown"
+                                }
+                              },
+                              {
+                                "kind": "array",
+                                "items": {
+                                  "kind": "union",
+                                  "variants": [
+                                    {
+                                      "kind": "scalar",
+                                      "type": "string",
+                                      "format": null
+                                    },
+                                    {
+                                      "kind": "scalar",
+                                      "type": "number",
+                                      "format": null
+                                    },
+                                    {
+                                      "kind": "scalar",
+                                      "type": "boolean",
+                                      "format": null
+                                    },
+                                    {
+                                      "kind": "object",
+                                      "properties": [],
+                                      "additional_properties": {
+                                        "kind": "unknown"
+                                      }
+                                    }
+                                  ],
+                                  "nullable": true
+                                }
+                              }
+                            ],
+                            "nullable": true
+                          }
+                        }
+                      ],
+                      "additional_properties": null
+                    }
+                  }
+                },
+                {
+                  "name": "identity",
+                  "required": false,
+                  "schema": {
+                    "kind": "object",
+                    "properties": [
+                      {
+                        "name": "aliases",
+                        "required": false,
+                        "schema": {
+                          "kind": "array",
+                          "items": {
+                            "kind": "scalar",
+                            "type": "string",
+                            "format": null
+                          }
+                        }
+                      },
+                      {
+                        "name": "kind",
+                        "required": true,
+                        "schema": {
+                          "kind": "scalar",
+                          "type": "string",
+                          "format": null
+                        }
+                      },
+                      {
+                        "name": "name",
+                        "required": true,
+                        "schema": {
+                          "kind": "scalar",
+                          "type": "string",
+                          "format": null
+                        }
+                      },
+                      {
+                        "name": "summary",
+                        "required": true,
+                        "schema": {
+                          "kind": "scalar",
+                          "type": "string",
+                          "format": null
+                        }
+                      }
+                    ],
+                    "additional_properties": null
+                  }
+                }
+              ],
+              "additional_properties": null
+            }
+          },
+          {
+            "name": "createdAt",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "origin",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/RealmCoreOriginDto",
+              "ref_name": "RealmCoreOriginDto"
+            }
+          },
+          {
+            "name": "schemaVersion",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "updatedAt",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "worldId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
       "name": "WorldPublicDetailDto",
       "schema": {
         "kind": "object",
@@ -34711,6 +36740,15 @@
             }
           },
           {
+            "name": "sourceContentHash",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
             "name": "sourceId",
             "required": true,
             "schema": {
@@ -34938,6 +36976,16 @@
         "properties": [
           {
             "name": "connectionId",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "runtimeSourceRef",
             "required": false,
             "schema": {
               "kind": "scalar",

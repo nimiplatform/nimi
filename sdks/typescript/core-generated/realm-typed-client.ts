@@ -491,7 +491,7 @@ export interface CreateWithdrawalDto {
 }
 export interface CreateWorldCharacterCoreDto {
   readonly core: Record<string, unknown>;
-  readonly entityId?: string;
+  readonly entityId: string;
   readonly id?: string;
   readonly origin: RealmCoreOriginDto;
 }
@@ -500,6 +500,12 @@ export interface CreateWorldCoreDto {
   readonly id?: string;
   readonly origin: RealmCoreOriginDto;
   readonly visibility?: "private" | "unlisted" | "public" | "system";
+}
+export interface CreateWorldEntityCoreDto {
+  readonly core: Record<string, unknown>;
+  readonly id?: string;
+  readonly kind: string;
+  readonly origin: RealmCoreOriginDto;
 }
 export interface CreatorEligibilityResponseDto {
   readonly canCreateRealmPersona: boolean;
@@ -1075,7 +1081,7 @@ export interface ReplaceRealmPersonaDto {
 export interface ReplaceWorldCharacterCoreDto {
   readonly baseContentHash: string;
   readonly core: Record<string, unknown>;
-  readonly entityId?: string;
+  readonly entityId: string;
   readonly id?: string;
   readonly origin: RealmCoreOriginDto;
 }
@@ -1085,6 +1091,13 @@ export interface ReplaceWorldCoreDto {
   readonly id?: string;
   readonly origin: RealmCoreOriginDto;
   readonly visibility?: "private" | "unlisted" | "public" | "system";
+}
+export interface ReplaceWorldEntityCoreDto {
+  readonly baseContentHash: string;
+  readonly core: Record<string, unknown>;
+  readonly id?: string;
+  readonly kind: string;
+  readonly origin: RealmCoreOriginDto;
 }
 export type ReportReason = "SPAM" | "NSFW" | "HATE_SPEECH" | "SCAM" | "OTHER";
 export interface ReportResponseDto {
@@ -1650,7 +1663,7 @@ export interface WorldCharacterCoreDto {
   readonly contentRevision: number;
   readonly core: Record<string, unknown>;
   readonly createdAt: string;
-  readonly entityId?: string | null;
+  readonly entityId: string;
   readonly id: string;
   readonly origin: RealmCoreOriginDto;
   readonly schemaVersion: string;
@@ -1668,6 +1681,18 @@ export interface WorldCoreDto {
   readonly schemaVersion: string;
   readonly updatedAt: string;
   readonly visibility: "private" | "unlisted" | "public" | "system";
+}
+export interface WorldEntityCoreDto {
+  readonly contentHash: string;
+  readonly contentRevision: number;
+  readonly core: Record<string, unknown>;
+  readonly createdAt: string;
+  readonly id: string;
+  readonly kind: string;
+  readonly origin: RealmCoreOriginDto;
+  readonly schemaVersion: string;
+  readonly updatedAt: string;
+  readonly worldId: string;
 }
 export interface WorldPublicDetailDto {
   readonly createdAt: string;
@@ -1733,6 +1758,7 @@ export interface WorldPublicSourceMediaDto {
 }
 export interface WorldPublicSourceRefDto {
   readonly kind: "worldCharacter" | "realmPersona";
+  readonly sourceContentHash: string;
   readonly sourceId: string;
   readonly worldId: string;
 }
@@ -1762,6 +1788,7 @@ export interface WorldPublicTimeSnapshotDto {
 }
 export interface WorldPublicViewerRelationDto {
   readonly connectionId?: string | null;
+  readonly runtimeSourceRef?: string | null;
   readonly state: "connectable" | "connected" | "unavailable";
 }
 
@@ -2209,6 +2236,7 @@ export interface RealmTypedModelMap {
   readonly "CreateWithdrawalDto": CreateWithdrawalDto;
   readonly "CreateWorldCharacterCoreDto": CreateWorldCharacterCoreDto;
   readonly "CreateWorldCoreDto": CreateWorldCoreDto;
+  readonly "CreateWorldEntityCoreDto": CreateWorldEntityCoreDto;
   readonly "CreatorEligibilityResponseDto": CreatorEligibilityResponseDto;
   readonly "CurrencyBalancesDto": CurrencyBalancesDto;
   readonly "CurrencyTransactionDto": CurrencyTransactionDto;
@@ -2294,6 +2322,7 @@ export interface RealmTypedModelMap {
   readonly "ReplaceRealmPersonaDto": ReplaceRealmPersonaDto;
   readonly "ReplaceWorldCharacterCoreDto": ReplaceWorldCharacterCoreDto;
   readonly "ReplaceWorldCoreDto": ReplaceWorldCoreDto;
+  readonly "ReplaceWorldEntityCoreDto": ReplaceWorldEntityCoreDto;
   readonly "ReportReason": ReportReason;
   readonly "ReportResponseDto": ReportResponseDto;
   readonly "RequestAccountDeletionDto": RequestAccountDeletionDto;
@@ -2371,6 +2400,7 @@ export interface RealmTypedModelMap {
   readonly "WithdrawalSummaryDto": WithdrawalSummaryDto;
   readonly "WorldCharacterCoreDto": WorldCharacterCoreDto;
   readonly "WorldCoreDto": WorldCoreDto;
+  readonly "WorldEntityCoreDto": WorldEntityCoreDto;
   readonly "WorldPublicDetailDto": WorldPublicDetailDto;
   readonly "WorldPublicDetailWithCharactersDto": WorldPublicDetailWithCharactersDto;
   readonly "WorldPublicItemDto": WorldPublicItemDto;
@@ -4892,6 +4922,19 @@ export interface RealmWorldCoreControllerCreateWorldCoreOperationRequest {
   readonly body: CreateWorldCoreDto;
 }
 export type RealmWorldCoreControllerCreateWorldCoreOperationResponse = WorldCoreDto;
+export interface RealmWorldCoreControllerCreateWorldEntityOperationRequest {
+  readonly path: {
+    readonly worldId: string;
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body: CreateWorldEntityCoreDto;
+}
+export type RealmWorldCoreControllerCreateWorldEntityOperationResponse = WorldEntityCoreDto;
 export interface RealmWorldCoreControllerGetOasisWorldOperationRequest {
   readonly path: {
 
@@ -4944,6 +4987,19 @@ export interface RealmWorldCoreControllerGetWorldCoreOperationRequest {
   readonly body?: Record<string, never>;
 }
 export type RealmWorldCoreControllerGetWorldCoreOperationResponse = WorldCoreDto;
+export interface RealmWorldCoreControllerGetWorldEntityOperationRequest {
+  readonly path: {
+    readonly entityId: string;
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body?: Record<string, never>;
+}
+export type RealmWorldCoreControllerGetWorldEntityOperationResponse = WorldEntityCoreDto;
 export interface RealmWorldCoreControllerListRealmPersonasOperationRequest {
   readonly path: {
 
@@ -4985,6 +5041,19 @@ export interface RealmWorldCoreControllerListWorldCoresOperationRequest {
   readonly body?: Record<string, never>;
 }
 export type RealmWorldCoreControllerListWorldCoresOperationResponse = readonly (WorldCoreDto)[];
+export interface RealmWorldCoreControllerListWorldEntitiesOperationRequest {
+  readonly path: {
+    readonly worldId: string;
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body?: Record<string, never>;
+}
+export type RealmWorldCoreControllerListWorldEntitiesOperationResponse = readonly (WorldEntityCoreDto)[];
 export interface RealmWorldCoreControllerReplaceRealmPersonaOperationRequest {
   readonly path: {
     readonly personaId: string;
@@ -5024,6 +5093,19 @@ export interface RealmWorldCoreControllerReplaceWorldCoreOperationRequest {
   readonly body: ReplaceWorldCoreDto;
 }
 export type RealmWorldCoreControllerReplaceWorldCoreOperationResponse = WorldCoreDto;
+export interface RealmWorldCoreControllerReplaceWorldEntityOperationRequest {
+  readonly path: {
+    readonly entityId: string;
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body: ReplaceWorldEntityCoreDto;
+}
+export type RealmWorldCoreControllerReplaceWorldEntityOperationResponse = WorldEntityCoreDto;
 export interface RealmWorldPublicControllerGetWorldOperationRequest {
   readonly path: {
     readonly worldId: string;
@@ -7126,6 +7208,17 @@ export class RealmTypedClient {
     });
   }
 
+  async worldCoreControllerCreateWorldEntity(request: RealmWorldCoreControllerCreateWorldEntityOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerCreateWorldEntityOperationResponse> {
+    return this.core.unary<RealmWorldCoreControllerCreateWorldEntityOperationResponse, RealmWorldCoreControllerCreateWorldEntityOperationRequest>({
+      methodId: "WorldCoreController_createWorldEntity",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
   async worldCoreControllerGetOasisWorld(request: RealmWorldCoreControllerGetOasisWorldOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerGetOasisWorldOperationResponse> {
     return this.core.unary<RealmWorldCoreControllerGetOasisWorldOperationResponse, RealmWorldCoreControllerGetOasisWorldOperationRequest>({
       methodId: "WorldCoreController_getOasisWorld",
@@ -7170,6 +7263,17 @@ export class RealmTypedClient {
     });
   }
 
+  async worldCoreControllerGetWorldEntity(request: RealmWorldCoreControllerGetWorldEntityOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerGetWorldEntityOperationResponse> {
+    return this.core.unary<RealmWorldCoreControllerGetWorldEntityOperationResponse, RealmWorldCoreControllerGetWorldEntityOperationRequest>({
+      methodId: "WorldCoreController_getWorldEntity",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
   async worldCoreControllerListRealmPersonas(request: RealmWorldCoreControllerListRealmPersonasOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerListRealmPersonasOperationResponse> {
     return this.core.unary<RealmWorldCoreControllerListRealmPersonasOperationResponse, RealmWorldCoreControllerListRealmPersonasOperationRequest>({
       methodId: "WorldCoreController_listRealmPersonas",
@@ -7203,6 +7307,17 @@ export class RealmTypedClient {
     });
   }
 
+  async worldCoreControllerListWorldEntities(request: RealmWorldCoreControllerListWorldEntitiesOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerListWorldEntitiesOperationResponse> {
+    return this.core.unary<RealmWorldCoreControllerListWorldEntitiesOperationResponse, RealmWorldCoreControllerListWorldEntitiesOperationRequest>({
+      methodId: "WorldCoreController_listWorldEntities",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
   async worldCoreControllerReplaceRealmPersona(request: RealmWorldCoreControllerReplaceRealmPersonaOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerReplaceRealmPersonaOperationResponse> {
     return this.core.unary<RealmWorldCoreControllerReplaceRealmPersonaOperationResponse, RealmWorldCoreControllerReplaceRealmPersonaOperationRequest>({
       methodId: "WorldCoreController_replaceRealmPersona",
@@ -7228,6 +7343,17 @@ export class RealmTypedClient {
   async worldCoreControllerReplaceWorldCore(request: RealmWorldCoreControllerReplaceWorldCoreOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerReplaceWorldCoreOperationResponse> {
     return this.core.unary<RealmWorldCoreControllerReplaceWorldCoreOperationResponse, RealmWorldCoreControllerReplaceWorldCoreOperationRequest>({
       methodId: "WorldCoreController_replaceWorldCore",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async worldCoreControllerReplaceWorldEntity(request: RealmWorldCoreControllerReplaceWorldEntityOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerReplaceWorldEntityOperationResponse> {
+    return this.core.unary<RealmWorldCoreControllerReplaceWorldEntityOperationResponse, RealmWorldCoreControllerReplaceWorldEntityOperationRequest>({
+      methodId: "WorldCoreController_replaceWorldEntity",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
