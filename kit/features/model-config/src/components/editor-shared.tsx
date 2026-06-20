@@ -10,7 +10,7 @@ import { useState, type ReactNode } from 'react';
 
 export function EditorSectionTitle(props: { label: string }) {
   return (
-    <div className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-[var(--nimi-text-muted,#94a3b8)]">
+    <div className="min-w-0 truncate text-[10.5px] font-semibold uppercase tracking-[0.14em] text-[var(--nimi-text-muted,#94a3b8)]">
       {props.label}
     </div>
   );
@@ -47,16 +47,16 @@ export function SliderRow(props: {
   const placeholder = formatNumeric(props.defaultValue, props.step);
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between gap-3">
-        <span className="text-[13px] font-medium text-[var(--nimi-text-primary,#0f172a)]">{props.label}</span>
+    <div className="min-w-0 max-w-full space-y-2">
+      <div className="flex min-w-0 items-center justify-between gap-3">
+        <span className="min-w-0 truncate text-[13px] font-medium text-[var(--nimi-text-primary,#0f172a)]">{props.label}</span>
         <input
           type="text"
           inputMode={props.inputMode ?? 'decimal'}
           value={props.value}
           onChange={(event) => props.onChange(event.target.value)}
           placeholder={placeholder}
-          className="h-7 w-16 rounded-md border border-transparent bg-[color-mix(in_srgb,var(--nimi-action-primary-bg,#10b981)_10%,transparent)] px-2 text-right text-[12px] font-semibold tabular-nums text-[var(--nimi-text-primary,#0f172a)] outline-none transition placeholder:text-[var(--nimi-text-muted,#94a3b8)] focus:border-[var(--nimi-action-primary-bg,#10b981)] focus:bg-white focus:ring-2 focus:ring-emerald-100"
+          className="h-7 min-w-0 max-w-full w-16 rounded-md border border-transparent bg-[color-mix(in_srgb,var(--nimi-action-primary-bg,#10b981)_10%,transparent)] px-2 text-right text-[12px] font-semibold tabular-nums text-[var(--nimi-text-primary,#0f172a)] outline-none transition placeholder:text-[var(--nimi-text-muted,#94a3b8)] focus:border-[var(--nimi-action-primary-bg,#10b981)] focus:bg-white focus:ring-2 focus:ring-emerald-100"
         />
       </div>
       <input
@@ -66,7 +66,7 @@ export function SliderRow(props: {
         step={props.step}
         value={sliderNumeric}
         onChange={(event) => props.onChange(formatNumeric(Number(event.target.value), props.step))}
-        className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-slate-200 accent-emerald-500 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-emerald-500 [&::-webkit-slider-thumb]:shadow-sm"
+        className="h-1.5 min-w-0 max-w-full w-full cursor-pointer appearance-none rounded-full bg-slate-200 accent-emerald-500 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-emerald-500 [&::-webkit-slider-thumb]:shadow-sm"
       />
       {props.children}
     </div>
@@ -74,7 +74,7 @@ export function SliderRow(props: {
 }
 
 const PLAIN_NUMBER_INPUT_CLASS =
-  'h-9 w-full rounded-lg border border-[color-mix(in_srgb,var(--nimi-border-subtle,#e2e8f0)_90%,transparent)] bg-white px-2.5 text-[13px] tabular-nums text-[var(--nimi-text-primary,#0f172a)] outline-none transition focus:border-[var(--nimi-action-primary-bg,#10b981)] focus:ring-2 focus:ring-emerald-100 placeholder:text-[var(--nimi-text-muted,#94a3b8)]';
+  'h-9 min-w-0 max-w-full w-full rounded-lg border border-[color-mix(in_srgb,var(--nimi-border-subtle,#e2e8f0)_90%,transparent)] bg-white px-2.5 text-[13px] tabular-nums text-[var(--nimi-text-primary,#0f172a)] outline-none transition focus:border-[var(--nimi-action-primary-bg,#10b981)] focus:ring-2 focus:ring-emerald-100 placeholder:text-[var(--nimi-text-muted,#94a3b8)]';
 
 export function PlainNumberInput(props: {
   value: string;
@@ -95,7 +95,7 @@ export function PlainNumberInput(props: {
 }
 
 const PLAIN_TEXT_INPUT_CLASS =
-  'h-9 w-full rounded-lg border border-[color-mix(in_srgb,var(--nimi-border-subtle,#e2e8f0)_90%,transparent)] bg-white px-2.5 text-[13px] text-[var(--nimi-text-primary,#0f172a)] outline-none transition focus:border-[var(--nimi-action-primary-bg,#10b981)] focus:ring-2 focus:ring-emerald-100 placeholder:text-[var(--nimi-text-muted,#94a3b8)]';
+  'h-9 min-w-0 max-w-full w-full rounded-lg border border-[color-mix(in_srgb,var(--nimi-border-subtle,#e2e8f0)_90%,transparent)] bg-white px-2.5 text-[13px] text-[var(--nimi-text-primary,#0f172a)] outline-none transition focus:border-[var(--nimi-action-primary-bg,#10b981)] focus:ring-2 focus:ring-emerald-100 placeholder:text-[var(--nimi-text-muted,#94a3b8)]';
 
 export function PlainTextInput(props: {
   value: string;
@@ -114,7 +114,7 @@ export function PlainTextInput(props: {
 }
 
 const PLAIN_SELECT_CLASS =
-  'h-9 w-full rounded-lg border border-[color-mix(in_srgb,var(--nimi-border-subtle,#e2e8f0)_90%,transparent)] bg-white px-2.5 text-[13px] text-[var(--nimi-text-primary,#0f172a)] outline-none transition focus:border-[var(--nimi-action-primary-bg,#10b981)] focus:ring-2 focus:ring-emerald-100';
+  'h-9 min-w-0 max-w-full w-full rounded-lg border border-[color-mix(in_srgb,var(--nimi-border-subtle,#e2e8f0)_90%,transparent)] bg-white px-2.5 text-[13px] text-[var(--nimi-text-primary,#0f172a)] outline-none transition focus:border-[var(--nimi-action-primary-bg,#10b981)] focus:ring-2 focus:ring-emerald-100';
 
 export function PlainSelect(props: {
   value: string;
@@ -146,9 +146,9 @@ export function InlineFieldRow(props: {
   children: ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3">
-      <span className="text-[13px] font-medium text-[var(--nimi-text-primary,#0f172a)]">{props.label}</span>
-      <div className={`shrink-0 ${props.controlWidthClass ?? 'w-32'}`}>{props.children}</div>
+    <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
+      <span className="min-w-0 truncate text-[13px] font-medium text-[var(--nimi-text-primary,#0f172a)]">{props.label}</span>
+      <div className={`min-w-0 max-w-full shrink-0 ${props.controlWidthClass ?? 'w-32'}`}>{props.children}</div>
     </div>
   );
 }
@@ -159,13 +159,13 @@ export function InlineFieldRow(props: {
  */
 export function StackedFieldRow(props: { label: string; hint?: string; children: ReactNode }) {
   return (
-    <div className="space-y-1.5">
-      <div className="text-[12px] font-medium text-[var(--nimi-text-secondary,#475569)]">
+    <div className="min-w-0 max-w-full space-y-1.5">
+      <div className="min-w-0 truncate text-[12px] font-medium text-[var(--nimi-text-secondary,#475569)]">
         {props.label}
       </div>
       {props.children}
       {props.hint ? (
-        <div className="text-[11px] text-[var(--nimi-text-muted,#94a3b8)]">{props.hint}</div>
+        <div className="min-w-0 break-words text-[11px] text-[var(--nimi-text-muted,#94a3b8)]">{props.hint}</div>
       ) : null}
     </div>
   );

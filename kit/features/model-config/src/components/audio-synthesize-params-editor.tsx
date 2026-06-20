@@ -139,10 +139,10 @@ export function AudioSynthesizeParamsEditor(props: AudioSynthesizeParamsEditorPr
   const outputSectionLabel = copy.outputSectionLabel ?? copy.parametersLabel;
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 max-w-full space-y-6">
       {/* VOICE — provider voice identifier and language hint live together at the
           top so users can pin the speaker before tuning prosody. */}
-      <section className="space-y-3.5">
+      <section className="min-w-0 max-w-full space-y-3.5">
         <EditorSectionTitle label={voiceSectionLabel} />
         <StackedFieldRow label={copy.voiceRefLabel} hint={copy.voiceRefHint}>
           <PlainSelect
@@ -172,7 +172,7 @@ export function AudioSynthesizeParamsEditor(props: AudioSynthesizeParamsEditorPr
 
       {/* AUDIO TUNING — sliders for the three prosody knobs so users can drag-to-set
           (mirrors Temperature / MaxTokens treatment in the chat editor). */}
-      <section className="space-y-3.5">
+      <section className="min-w-0 max-w-full space-y-3.5">
         <EditorSectionTitle label={audioTuningSectionLabel} />
         <SliderRow
           label={copy.speakingRateLabel}
@@ -206,7 +206,7 @@ export function AudioSynthesizeParamsEditor(props: AudioSynthesizeParamsEditorPr
 
       {/* OUTPUT — encode format + timeout, both single-line scalars rendered
           inline (matches the chat editor's Timeout row). */}
-      <section className="space-y-3.5">
+      <section className="min-w-0 max-w-full space-y-3.5">
         <EditorSectionTitle label={outputSectionLabel} />
         <InlineFieldRow label={copy.responseFormatLabel} controlWidthClass="w-40">
           <PlainSelect

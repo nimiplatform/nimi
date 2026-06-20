@@ -320,8 +320,8 @@ export function ModelConfigAiModelHub(props: ModelConfigAiModelHubProps) {
       defaultValue: `${sectionTitle} Configuration`,
     });
     return (
-      <div className={className || 'space-y-5'}>
-        <div className="flex items-center gap-3">
+      <div className={className ? `min-w-0 ${className}` : 'min-w-0 space-y-5'}>
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
           {!detailOnly ? (
             <button
               type="button"
@@ -338,7 +338,7 @@ export function ModelConfigAiModelHub(props: ModelConfigAiModelHubProps) {
             {detailTitle}
           </h2>
           {showDetailStatusPill ? (
-            <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-[0.12em] ${detailPillClass}`}>
+            <span className={`inline-flex max-w-full shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-[0.12em] ${detailPillClass}`}>
               <span className={`h-1.5 w-1.5 rounded-full ${detailPillDotClass}`} />
               {detailStatusLabel}
             </span>
@@ -346,7 +346,7 @@ export function ModelConfigAiModelHub(props: ModelConfigAiModelHubProps) {
           {detailHeaderAction}
         </div>
 
-        <div className="space-y-4">
+        <div className="min-w-0 space-y-4">
           {detailDescriptors.map((descriptor) => (
             <ModelConfigCapabilityDetail
               key={descriptor.capabilityId}

@@ -486,6 +486,57 @@ describe('ModelConfigCapabilityDetail editorKind routing', () => {
     expect(container?.textContent).toContain('ModelConfig.hub.activeModelLabel');
   });
 
+  it('keeps long selected TTS model labels inside the capability card trigger', async () => {
+    const localConfig: NimiAIConfig = {
+      ...baseConfig,
+      capabilities: {
+        targetRefs: {
+          'audio.synthesize': {
+            kind: 'local-runtime',
+            targetId: 'speech',
+            profileId: 'local.tts.qwen3-tts-customvoice-0.6b.safetensors',
+            readinessRef: 'runtime-route:local:speech:local.tts.qwen3-tts-customvoice-0.6b.safetensors',
+          },
+        },
+        selectedParams: {},
+      },
+    };
+    const surface: AppModelConfigSurface = {
+      ...makeSurface('audio.synthesize'),
+      projectionResolver: () => ({
+        supported: false,
+        tone: 'attention',
+        badgeLabel: 'Needs setup',
+        title: 'Local speech setup required',
+        detail: 'Confirm local speech runtime assets before running.',
+      }),
+    };
+    await render(
+      wrap(
+        <ModelConfigCapabilityDetail
+          capabilityId="audio.synthesize"
+          surface={surface}
+          config={localConfig}
+          activeModelHint={null}
+        />,
+      ),
+    );
+
+    const card = container?.firstElementChild as HTMLElement | null;
+    expect(card?.className).toContain('min-w-0');
+    expect(card?.className).toContain('max-w-full');
+    expect(card?.className).toContain('overflow-hidden');
+
+    const trigger = Array.from(container?.querySelectorAll('button') || [])
+      .find((button) => button.textContent?.includes('qwen3-tts-customvoice'));
+    expect(trigger).toBeTruthy();
+    expect(trigger?.className).toContain('min-w-0');
+    expect(trigger?.className).toContain('max-w-full');
+    expect(trigger?.className).toContain('overflow-hidden');
+    const label = trigger?.querySelector('p');
+    expect(label?.className).toContain('truncate');
+  });
+
   it('routes voice_workflow.voice_clone to VoiceWorkflowParamsEditor (editorKind=voice-workflow)', async () => {
     const surface = makeSurface('voice_workflow.voice_clone');
     await render(

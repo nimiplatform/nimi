@@ -290,6 +290,44 @@ describe('ModelConfigAiModelHub', () => {
     expect(backButton).toBeUndefined();
   });
 
+  it('keeps capability drawer detail chrome shrink-safe for narrow host panels', async () => {
+    const service = stubService();
+    const surface: AppModelConfigSurface = {
+      ...makeSurface(service),
+      requirementDeclaration: requirementDeclaration(['audio.synthesize']),
+      projectionResolver: () => ({
+        supported: false,
+        tone: 'attention',
+        badgeLabel: 'Needs setup',
+        title: 'Local speech setup required',
+        detail: 'Confirm local speech runtime assets before running.',
+      }),
+    };
+    await render(
+      wrap(
+        <ModelConfigAiModelHub
+          surface={surface}
+          profile={emptyProfileController}
+          initialSection="tts"
+          detailOnly
+          detailHeaderAction={<button type="button">Close drawer</button>}
+        />,
+      ),
+    );
+
+    const heading = container?.querySelector('h2');
+    expect(heading?.textContent).toContain('ModelConfig.hub.detailTitleFormat');
+    expect(container?.firstElementChild?.className).toContain('min-w-0');
+    expect(heading?.parentElement?.className).toContain('min-w-0');
+    expect(heading?.parentElement?.className).toContain('flex-wrap');
+    expect(heading?.className).toContain('min-w-0');
+
+    const statusPill = Array.from(container?.querySelectorAll('span') || [])
+      .find((node) => node.textContent?.includes('ModelConfig.hub.detailStatusAttention'));
+    expect(statusPill?.className).toContain('max-w-full');
+    expect(statusPill?.className).toContain('whitespace-nowrap');
+  });
+
   it('labels multiple capability cards in one section by capability instead of a generic active model label', async () => {
     const service = stubService();
     const surface: AppModelConfigSurface = {

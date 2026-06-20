@@ -53,7 +53,7 @@ export function ModelSelectorTrigger({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        'flex w-full items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left transition-colors',
+        'flex min-w-0 max-w-full w-full items-center gap-2.5 overflow-hidden rounded-xl border px-3 py-2.5 text-left transition-colors',
         hasModel
           ? cn(
             'border-slate-200 bg-white',
@@ -91,7 +91,7 @@ export function ModelSelectorTrigger({
             ) : null}
           </>
         ) : (
-          <p className="text-[13px] text-slate-400">{placeholder}</p>
+          <p className="truncate text-[13px] text-slate-400">{placeholder}</p>
         )}
       </div>
       <span className="shrink-0 text-slate-300">{CHEVRON_RIGHT}</span>

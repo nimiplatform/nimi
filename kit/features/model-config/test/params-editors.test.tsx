@@ -286,6 +286,58 @@ describe('AudioSynthesizeParamsEditor', () => {
     });
     expect(next.voiceRef).toEqual(null);
   });
+
+  it('renders TTS fields with shrink-safe controls for narrow capability drawers', async () => {
+    let next: AudioSynthesizeParamsState = {
+      ...DEFAULT_AUDIO_SYNTHESIZE_PARAMS,
+      voiceRef: { kind: 'provider_voice_ref', providerVoiceRef: 'local.tts.qwen3-tts-customvoice-0.6b.safetensors' },
+    };
+    await render(
+      <AudioSynthesizeParamsEditor
+        copy={{
+          parametersLabel: 'Parameters',
+          voiceSectionLabel: 'Voice',
+          audioTuningSectionLabel: 'Audio tuning',
+          outputSectionLabel: 'Output',
+          voiceRefLabel: 'Voice reference',
+          voiceRefHint: 'Preset voice, custom voice asset, or provider voice reference.',
+          providerVoiceRefLabel: 'Provider voice ref',
+          providerVoiceRefHint: 'Explicit provider voice reference for local or remote TTS drivers.',
+          providerVoiceRefPlaceholder: 'provider_voice_ref',
+          speakingRateLabel: 'Speaking rate',
+          volumeLabel: 'Volume',
+          pitchSemitonesLabel: 'Pitch',
+          languageHintLabel: 'Language',
+          languageHintHint: 'BCP-47 tag, e.g. en-US.',
+          responseFormatLabel: 'Response format',
+          timeoutLabel: 'Timeout',
+          defaultPlaceholder: 'Default',
+        }}
+        params={next}
+        onParamsChange={(value) => { next = value; }}
+      />,
+    );
+
+    expect(container?.firstElementChild?.className).toContain('min-w-0');
+    for (const section of Array.from(container?.querySelectorAll('section') || [])) {
+      expect(section.className).toContain('min-w-0');
+    }
+    for (const input of Array.from(container?.querySelectorAll('input') || [])) {
+      expect(input.className).toContain('min-w-0');
+      expect(input.className).toContain('max-w-full');
+    }
+    for (const select of Array.from(container?.querySelectorAll('select') || [])) {
+      expect(select.className).toContain('min-w-0');
+      expect(select.className).toContain('max-w-full');
+    }
+
+    const sliderInputs = Array.from(container?.querySelectorAll('input[type="range"]') || []);
+    expect(sliderInputs.length).toBe(3);
+    for (const slider of sliderInputs) {
+      expect(slider.className).toContain('min-w-0');
+      expect(slider.className).toContain('max-w-full');
+    }
+  });
 });
 
 describe('AudioTranscribeParamsEditor', () => {

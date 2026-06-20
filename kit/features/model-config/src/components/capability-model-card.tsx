@@ -195,27 +195,27 @@ export function CapabilityModelCard({ item }: CapabilityModelCardProps) {
 
   const headerLabel = item.activeModelLabel;
   const labelNode = headerLabel ? (
-    <span className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-[var(--nimi-text-muted,#94a3b8)]">
+    <span className="min-w-0 truncate text-[10.5px] font-semibold uppercase tracking-[0.14em] text-[var(--nimi-text-muted,#94a3b8)]">
       {headerLabel}
     </span>
   ) : item.detail ? (
     <span
-      className="text-xs font-semibold text-[var(--nimi-text-secondary,#475569)]"
+      className="min-w-0 truncate text-xs font-semibold text-[var(--nimi-text-secondary,#475569)]"
       title={item.detail}
       aria-label={`${item.label}: ${item.detail}`}
     >
       {item.label}
     </span>
   ) : (
-    <span className="text-xs font-semibold text-[var(--nimi-text-secondary,#475569)]">{item.label}</span>
+    <span className="min-w-0 truncate text-xs font-semibold text-[var(--nimi-text-secondary,#475569)]">{item.label}</span>
   );
 
   return (
-    <div className="space-y-2">
-      <div className={headerLabel ? 'grid gap-0.5' : 'flex items-center gap-2'}>
+    <div className="min-w-0 max-w-full space-y-2 overflow-hidden">
+      <div className={headerLabel ? 'grid min-w-0 gap-0.5' : 'flex min-w-0 items-center gap-2'}>
         {labelNode}
         {headerLabel && item.activeModelHint ? (
-          <span className="text-[11px] font-medium text-[var(--nimi-text-muted,#94a3b8)]">
+          <span className="min-w-0 truncate text-[11px] font-medium text-[var(--nimi-text-muted,#94a3b8)]">
             {item.activeModelHint}
           </span>
         ) : null}
@@ -241,6 +241,7 @@ export function CapabilityModelCard({ item }: CapabilityModelCardProps) {
         placeholder={item.provider
           ? (item.placeholder || 'Setup required')
           : (item.runtimeNotReadyLabel || item.placeholder || 'Setup required')}
+        className="min-w-0 max-w-full overflow-hidden"
         onClick={() => {
           if (item.provider) {
             setModalOpen(true);
@@ -264,14 +265,14 @@ export function CapabilityModelCard({ item }: CapabilityModelCardProps) {
       ) : null}
 
       {item.status?.title || item.status?.detail ? (
-        <div className="space-y-0.5">
+        <div className="min-w-0 space-y-0.5">
           {item.status?.title ? (
-            <div className={`text-[11px] font-medium ${statusClasses.title}`}>
+            <div className={`min-w-0 break-words text-[11px] font-medium ${statusClasses.title}`}>
               {item.status.title}
             </div>
           ) : null}
           {item.status?.detail ? (
-            <div className="text-[11px] text-[var(--nimi-text-muted,#94a3b8)]">
+            <div className="min-w-0 break-words text-[11px] text-[var(--nimi-text-muted,#94a3b8)]">
               {item.status.detail}
             </div>
           ) : null}
