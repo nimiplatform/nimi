@@ -12,15 +12,40 @@ export const SETTINGS_SELECTED_TARGET_ID_STORAGE_KEY = 'nimi.settings.targetId';
 export const SETTINGS_PERFORMANCE_PREFERENCES_STORAGE_KEY = 'nimi.settings.performance.preferences.v1';
 export const SETTINGS_PERFORMANCE_PREFERENCES_EVENT = 'nimi:settings:performance-preferences-changed';
 
+const VISIBLE_SETTINGS_SELECTED_IDS = new Set([
+  'profile',
+  'language',
+  'appearance',
+  'privacy',
+  'security',
+  'notifications',
+  'downloads',
+  'performance',
+  'data',
+  'about-legal',
+]);
+
+function normalizeSettingsSelectedId(id: string, fallback: string): string {
+  const candidate = String(id || '').trim();
+  if (VISIBLE_SETTINGS_SELECTED_IDS.has(candidate)) {
+    return candidate;
+  }
+  const fallbackCandidate = String(fallback || '').trim();
+  if (VISIBLE_SETTINGS_SELECTED_IDS.has(fallbackCandidate)) {
+    return fallbackCandidate;
+  }
+  return 'profile';
+}
+
 export function loadStoredSettingsSelected(fallback: string): string {
   const result = readStorageTextFrom(resolveBrowserStorage('local'), SETTINGS_SELECTED_STORAGE_KEY);
   return result.state === 'ready'
-    ? String(result.value || '').trim() || fallback
-    : fallback;
+    ? normalizeSettingsSelectedId(String(result.value || ''), fallback)
+    : normalizeSettingsSelectedId(fallback, 'profile');
 }
 
 export function persistStoredSettingsSelected(id: string): void {
-  writeStorageTextTo(resolveBrowserStorage('local'), SETTINGS_SELECTED_STORAGE_KEY, String(id || '').trim());
+  writeStorageTextTo(resolveBrowserStorage('local'), SETTINGS_SELECTED_STORAGE_KEY, normalizeSettingsSelectedId(id, 'profile'));
 }
 
 export function loadStoredSettingsTargetId(): string {

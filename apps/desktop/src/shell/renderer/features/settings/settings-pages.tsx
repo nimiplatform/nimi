@@ -8,6 +8,7 @@ import { PerformancePage } from './settings-performance-page.js';
 import { PrivacyPage } from './settings-privacy-page.js';
 import { SecurityPage } from './settings-security-page.js';
 import { DataManagementPage } from './settings-data-management-page.js';
+import { AboutLegalPage } from './settings-about-legal-page.js';
 
 export {
   ProfilePage,
@@ -20,6 +21,7 @@ export {
   PerformancePage,
   WalletPage,
   DataManagementPage,
+  AboutLegalPage,
 };
 
 export function renderSettingsPage(selectedId: string) {
@@ -33,7 +35,7 @@ export function renderSettingsPage(selectedId: string) {
     case 'downloads': return <DownloadsPage />;
     case 'performance': return <PerformancePage />;
     case 'data': return <DataManagementPage />;
-    case 'wallet': return <WalletPage />;
+    case 'about-legal': return <AboutLegalPage />;
     default: return <ProfilePage />;
   }
 }

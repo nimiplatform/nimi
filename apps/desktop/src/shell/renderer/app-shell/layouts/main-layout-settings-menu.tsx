@@ -7,12 +7,9 @@ import { renderShellNavIcon } from './navigation-config';
 
 export type SettingsSubmenuItemId =
   | 'profile'
-  | 'wallet'
   | 'settings'
   | 'support'
   | 'developer-tools'
-  | 'terms-of-service'
-  | 'privacy-policy'
   | 'logout';
 
 export type SettingsMenuAnchorPosition = {
@@ -22,23 +19,17 @@ export type SettingsMenuAnchorPosition = {
 
 const SETTINGS_SUBMENU_ITEMS: Array<{ id: SettingsSubmenuItemId; label: string; icon: string }> = [
   { id: 'profile', label: 'Profile', icon: 'profile' },
-  { id: 'wallet', label: 'Wallet', icon: 'wallet' },
   { id: 'settings', label: 'Settings', icon: 'settings' },
   { id: 'support', label: 'Support', icon: 'support' },
   { id: 'developer-tools', label: 'Developer Tools', icon: 'developer-tools' },
-  { id: 'terms-of-service', label: 'Terms of Service', icon: 'terms-of-service' },
-  { id: 'privacy-policy', label: 'Privacy Policy', icon: 'privacy-policy' },
   { id: 'logout', label: 'Logout', icon: 'logout' },
 ];
 
 const SETTINGS_SUBMENU_I18N_KEYS: Record<SettingsSubmenuItemId, string> = {
   profile: 'Menu.profile',
-  wallet: 'Menu.wallet',
   settings: 'Menu.settings',
   support: 'Menu.support',
   'developer-tools': 'DeveloperTools.navLabel',
-  'terms-of-service': 'Menu.termsOfService',
-  'privacy-policy': 'Menu.privacyPolicy',
   logout: 'Menu.logout',
 };
 

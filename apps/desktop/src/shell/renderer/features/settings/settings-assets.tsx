@@ -208,9 +208,9 @@ const BASE_MENU_SECTIONS: SettingsMenuSection[] = [
     ],
   },
   {
-    label: 'Advanced',
+    label: 'About & Legal',
     items: [
-      { id: 'wallet', icon: ICON_WALLET, title: 'Wallet' },
+      { id: 'about-legal', icon: ICON_INFO, title: 'About & Legal' },
     ],
   },
 ];

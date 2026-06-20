@@ -48,6 +48,7 @@ export type GiftInboxDetailProps = {
   withdrawTitle?: string;
   withdrawDescription?: string;
   openWalletLabel?: string;
+  walletActionVisible?: boolean;
   senderReadonlyLabel?: string;
 };
 
@@ -129,6 +130,7 @@ export function GiftInboxDetail({
   withdrawTitle = 'Accepted gifts are now in your wallet',
   withdrawDescription = 'Use Wallet to review your Gem balance and withdraw when eligible.',
   openWalletLabel = 'Open Wallet',
+  walletActionVisible = true,
   senderReadonlyLabel = 'You are viewing this gift as the sender. Status changes happen on the receiver side.',
 }: GiftInboxDetailProps) {
   return (
@@ -234,7 +236,7 @@ export function GiftInboxDetail({
         </Surface>
       ) : null}
 
-      {status === 'ACCEPTED' && isReceiver ? (
+      {status === 'ACCEPTED' && isReceiver && walletActionVisible ? (
         <Surface className="mt-6 rounded-2xl border-[color-mix(in_srgb,var(--nimi-status-success)_30%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-success)_10%,var(--nimi-surface-card))] p-4">
           <div className="text-sm font-semibold text-[var(--nimi-text-primary)]">{withdrawTitle}</div>
           <p className="mt-1 text-sm text-[var(--nimi-text-secondary)]">{withdrawDescription}</p>

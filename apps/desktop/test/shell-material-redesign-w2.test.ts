@@ -32,7 +32,7 @@ test('W2 shell redesign: main layout owns ambient root and glass shell hosts', (
 test('W2 shell redesign: shell chrome tooltips and topbar use shared material language', () => {
   assert.match(mainLayoutTopbarSource, /import \{ Tooltip \} from '@nimiplatform\/kit\/ui';/);
   assert.match(mainLayoutTopbarSource, /SHELL_CHROME_ACTION_CELL_CLASS/);
-  assert.match(mainLayoutTopbarSource, /SHELL_TOPBAR_ASSET_CELL_CLASS/);
+  assert.match(mainLayoutTopbarSource, /SHELL_TOPBAR_GHOST_ICON_CLASS/);
   assert.match(navConfigSource, /import \{ Tooltip \} from '@nimiplatform\/kit\/ui';/);
   assert.match(navConfigSource, /<Tooltip[\s\S]*placement="right"[\s\S]*contentClassName=\{SHELL_CHROME_TOOLTIP_CLASS\}/);
   assert.match(mainLayoutViewSource, /import \{ AmbientBackground, ScrollArea, Tooltip \} from '@nimiplatform\/kit\/ui';/);

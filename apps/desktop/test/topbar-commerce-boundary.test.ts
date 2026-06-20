@@ -8,12 +8,13 @@ function readWorkspaceFile(relativePath: string): string {
 }
 
 const mainLayoutViewSource = readWorkspaceFile('src/shell/renderer/app-shell/layouts/main-layout-view.tsx');
+const mainLayoutTopbarSource = readWorkspaceFile('src/shell/renderer/app-shell/layouts/main-layout-topbar.tsx');
 
-test('topbar currency balances consume Kit commerce realm projection, not Desktop dataSync', () => {
-  assert.match(mainLayoutViewSource, /loadRealmCurrencyBalances/);
-  assert.match(mainLayoutViewSource, /from '@nimiplatform\/kit\/features\/commerce\/realm'/);
-  assert.match(mainLayoutViewSource, /getDesktopRealmCommerceGiftService/);
-  assert.match(mainLayoutViewSource, /queryFn:\s*async \(\) => loadRealmCurrencyBalances\(\{\s*service: getDesktopRealmCommerceGiftService\(\),\s*\}\)/);
+test('topbar keeps wallet balances hidden and does not poll commerce balances', () => {
+  assert.doesNotMatch(mainLayoutViewSource, /loadRealmCurrencyBalances/);
+  assert.doesNotMatch(mainLayoutViewSource, /getDesktopRealmCommerceGiftService/);
+  assert.doesNotMatch(mainLayoutViewSource, /topbar-currency-balances/);
+  assert.doesNotMatch(mainLayoutTopbarSource, /Common\.openWallet|onOpenWallet|SHELL_TOPBAR_ASSET_CELL_CLASS/);
   assert.doesNotMatch(mainLayoutViewSource, /dataSync\.loadCurrencyBalances/);
   assert.doesNotMatch(mainLayoutViewSource, /parseBalanceValue/);
 });

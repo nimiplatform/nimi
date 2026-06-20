@@ -6,7 +6,6 @@ import { loadNimiRealmNotificationUnreadCount } from '@nimiplatform/sdk/realm';
 import { useAppStore, type AppTab } from '@renderer/app-shell/providers/app-store';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { AmbientBackground, ScrollArea, Tooltip } from '@nimiplatform/kit/ui';
-import { loadRealmCurrencyBalances } from '@nimiplatform/kit/features/commerce/realm';
 import { StatusBanner } from '@renderer/ui/feedback/status-banner';
 import {
   notificationQueryKeys,
@@ -16,7 +15,6 @@ import type { NimiRealmFeedScope } from '@nimiplatform/sdk/realm';
 import { DEFAULT_HOME_FEED_SCOPE } from '@renderer/features/home/home-feed-controls';
 import type { ExploreSectionId } from '@renderer/features/explore/explore-section-nav';
 import {
-  loadStoredSettingsSelected,
   persistStoredSettingsSelected,
 } from '@renderer/features/settings/settings-storage';
 import {
@@ -45,7 +43,6 @@ import {
 } from './navigation-config';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { getDesktopRealm } from '@renderer/infra/sdk/desktop-nimi-client-session';
-import { getDesktopRealmCommerceGiftService } from '@renderer/infra/realm/realm-commerce-service';
 
 /** Track window focus so polling queries can pause when the app is not focused. */
 function useWindowFocused(): boolean {
@@ -129,15 +126,6 @@ export function MainLayoutView(props: MainLayoutViewProps) {
     || (props.activeTab === 'profile' && Boolean(selectedProfileId))
     || profileDetailOverlayOpen;
   const windowFocused = useWindowFocused();
-  const balancesQuery = useQuery({
-    queryKey: ['topbar-currency-balances'],
-    queryFn: async () => loadRealmCurrencyBalances({
-      service: getDesktopRealmCommerceGiftService(),
-    }),
-    enabled: props.authStatus === 'authenticated',
-    staleTime: 30_000,
-    refetchInterval: windowFocused ? 60_000 : false,
-  });
   const unreadCountQuery = useQuery({
     queryKey: notificationQueryKeys.topbarUnreadCount(notificationQueryIdentityRef),
     queryFn: async () => loadNimiRealmNotificationUnreadCount(getDesktopRealm()),
@@ -146,8 +134,6 @@ export function MainLayoutView(props: MainLayoutViewProps) {
     refetchInterval: windowFocused ? 30_000 : false,
   });
 
-  const sparkBalance = balancesQuery.data?.sparkBalance ?? 0;
-  const gemBalance = balancesQuery.data?.gemBalance ?? 0;
   const unreadCount = unreadCountQuery.data?.total ?? 0;
 
   const updateSettingsMenuPosition = useCallback(() => {
@@ -227,22 +213,15 @@ export function MainLayoutView(props: MainLayoutViewProps) {
     <img
       src={logoImage}
       alt="Nimi"
-      className="h-9 w-9 shrink-0 object-cover mix-blend-multiply"
+      className="h-9 w-9 shrink-0 object-contain mix-blend-multiply"
     />
   );
-  const currentSettingsSelection = props.activeTab === 'settings'
-    ? loadStoredSettingsSelected('profile')
-    : '';
-
   const isSettingsMenuItemActive = (itemId: SettingsSubmenuItemId): boolean => {
     if (itemId === 'profile') {
       return props.activeTab === 'profile';
     }
-    if (itemId === 'wallet') {
-      return props.activeTab === 'settings' && currentSettingsSelection === 'wallet';
-    }
     if (itemId === 'settings') {
-      return props.activeTab === 'settings' && currentSettingsSelection !== 'wallet';
+      return props.activeTab === 'settings';
     }
     return false;
   };
@@ -250,12 +229,6 @@ export function MainLayoutView(props: MainLayoutViewProps) {
   const openSettingsSubmenuItem = (itemId: SettingsSubmenuItemId) => {
     if (itemId === 'profile') {
       props.onNav('profile');
-      setSettingsMenuOpen(false);
-      return;
-    }
-    if (itemId === 'wallet') {
-      persistStoredSettingsSelected('wallet');
-      props.onNav('settings');
       setSettingsMenuOpen(false);
       return;
     }
@@ -280,25 +253,10 @@ export function MainLayoutView(props: MainLayoutViewProps) {
       setSettingsMenuOpen(false);
       return;
     }
-    if (itemId === 'terms-of-service') {
-      props.onNav('terms-of-service');
-      setSettingsMenuOpen(false);
-      return;
-    }
-    if (itemId === 'privacy-policy') {
-      props.onNav('privacy-policy');
-      setSettingsMenuOpen(false);
-      return;
-    }
     if (itemId === 'logout') {
       props.onLogout();
       setSettingsMenuOpen(false);
     }
-  };
-
-  const openWalletFromTitlebar = () => {
-    persistStoredSettingsSelected('wallet');
-    props.onNav('settings');
   };
 
   const openNotificationsFromTitlebar = () => {
@@ -333,14 +291,10 @@ export function MainLayoutView(props: MainLayoutViewProps) {
             onExploreSearchTextChange={setExploreSearchText}
           />
         )}
-        sparkBalance={sparkBalance}
-        gemBalance={gemBalance}
-        balancesPending={balancesQuery.isPending}
         unreadCount={unreadCount}
         avatarNode={avatarNode}
         settingsMenuOpen={settingsMenuOpen}
         settingsTriggerRef={settingsTriggerRef}
-        onOpenWallet={openWalletFromTitlebar}
         onOpenNotifications={openNotificationsFromTitlebar}
         onToggleSettingsMenu={toggleSettingsMenuFromTitlebar}
         activeTab={props.activeTab}

@@ -23,6 +23,7 @@ const SETTINGS_SECTION_KEY_BY_LABEL: Record<string, string> = {
   Preferences: 'Settings.sectionPreferences',
   Data: 'Settings.sectionData',
   Advanced: 'Settings.sectionAdvanced',
+  'About & Legal': 'Settings.sectionAboutLegal',
 };
 
 const SETTINGS_ITEM_KEY_BY_ID: Record<string, string> = {
@@ -35,7 +36,7 @@ const SETTINGS_ITEM_KEY_BY_ID: Record<string, string> = {
   downloads: 'Settings.menuDownloads',
   performance: 'Settings.menuPerformance',
   data: 'Settings.menuData',
-  wallet: 'Settings.menuWallet',
+  'about-legal': 'Settings.menuAboutLegal',
 };
 
 export function SettingsPanelBody() {

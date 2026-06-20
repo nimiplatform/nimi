@@ -7,9 +7,6 @@ import {
   SHELL_CHROME_ACTION_CELL_CLASS,
 } from './shell-chrome-classes';
 
-const SHELL_TOPBAR_ASSET_CELL_CLASS =
-  'flex items-center gap-1.5 rounded-md px-1 text-sm font-semibold text-[color:var(--nimi-fg-1)] transition-colors hover:text-[color:var(--nimi-accent)]';
-
 const SHELL_TOPBAR_GHOST_ICON_CLASS =
   'relative flex h-9 w-9 items-center justify-center rounded-full text-[color:var(--nimi-fg-2)] transition-colors hover:text-[color:var(--nimi-fg-1)]';
 
@@ -17,14 +14,10 @@ type MainLayoutTopBarProps = {
   authStatus: 'bootstrapping' | 'anonymous' | 'authenticated';
   titlebarLeftInsetClass: string;
   titlebarContent?: ReactNode;
-  sparkBalance: number;
-  gemBalance: number;
-  balancesPending: boolean;
   unreadCount: number;
   avatarNode: ReactNode;
   settingsMenuOpen: boolean;
   settingsTriggerRef: RefObject<HTMLDivElement | null>;
-  onOpenWallet: () => void;
   onOpenNotifications: () => void;
   onToggleSettingsMenu: () => void;
   activeTab: string;
@@ -34,22 +27,6 @@ type MainLayoutTopBarProps = {
   onCreatePostRequest: () => void;
   onMouseDown: (event: MouseEvent<HTMLDivElement>) => void;
 };
-
-function formatMetricValue(value: number): string {
-  if (!Number.isFinite(value) || value <= 0) {
-    return '0';
-  }
-  if (value >= 1000000) {
-    return `${(value / 1000000).toFixed(1).replace(/\.0$/, '')}M`;
-  }
-  if (value >= 1000) {
-    return `${(value / 1000).toFixed(1).replace(/\.0$/, '')}K`;
-  }
-  if (Number.isInteger(value)) {
-    return String(value);
-  }
-  return value.toFixed(2).replace(/\.?0+$/, '');
-}
 
 export function MainLayoutTopBar(props: MainLayoutTopBarProps) {
   const { t } = useTranslation();
@@ -126,48 +103,6 @@ export function MainLayoutTopBar(props: MainLayoutTopBarProps) {
               {props.activeTab === 'home' ? (
                 <HomeCreatePostButton onClick={props.onCreatePostRequest} />
               ) : null}
-              <Tooltip content="Spark" className="h-9">
-                <button
-                  type="button"
-                  data-titlebar-interactive="true"
-                  onClick={props.onOpenWallet}
-                  className={SHELL_TOPBAR_ASSET_CELL_CLASS}
-                  aria-label={t('Common.openWalletSpark')}
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="url(#sparkGradient)" className="drop-shadow-sm">
-                    <defs>
-                      <linearGradient id="sparkGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="#fbbf24" />
-                        <stop offset="50%" stopColor="#f59e0b" />
-                        <stop offset="100%" stopColor="#d97706" />
-                      </linearGradient>
-                    </defs>
-                    <path d="M13 2L3 14h9l-1 8 10-12h-7z" />
-                  </svg>
-                  <span>{props.balancesPending ? '--' : formatMetricValue(props.sparkBalance)}</span>
-                </button>
-              </Tooltip>
-              <Tooltip content="Gem" className="h-9">
-                <button
-                  type="button"
-                  data-titlebar-interactive="true"
-                  onClick={props.onOpenWallet}
-                  className={SHELL_TOPBAR_ASSET_CELL_CLASS}
-                  aria-label={t('Common.openWalletGem')}
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="url(#gemGradient)" className="drop-shadow-sm">
-                    <defs>
-                      <linearGradient id="gemGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="#a78bfa" />
-                        <stop offset="50%" stopColor="#8b5cf6" />
-                        <stop offset="100%" stopColor="#7c3aed" />
-                      </linearGradient>
-                    </defs>
-                    <path d="M6 3h12l4 6-10 13L2 9z" />
-                  </svg>
-                  <span>{props.balancesPending ? '--' : formatMetricValue(props.gemBalance)}</span>
-                </button>
-              </Tooltip>
               <Tooltip content={t('Navigation.notifications')} className="h-9">
                 <button
                   type="button"

@@ -18,6 +18,8 @@ test('shell chrome retune: rail and topbar shells stay transparent chrome withou
   assert.doesNotMatch(mainLayoutViewSource, /<Surface[\s\S]*data-testid=\{E2E_IDS\.shellSidebarRail\}[\s\S]*material="glass-regular"/u);
   assert.doesNotMatch(mainLayoutViewSource, /data-testid=\{E2E_IDS\.shellSidebarRail\}[\s\S]*border-r/u);
   assert.match(mainLayoutTopbarSource, /<div className="flex h-full w-full items-center border-b border-\[color-mix\(in_srgb,var\(--nimi-border-subtle\)_78%,white\)\] px-1">/);
+  assert.doesNotMatch(mainLayoutTopbarSource, /import logoImage from '\.\.\/\.\.\/assets\/logo\.svg';/u);
+  assert.doesNotMatch(mainLayoutTopbarSource, /<img\s+src=\{logoImage\}\s+alt="Nimi"[\s\S]*\/>/u);
   assert.doesNotMatch(mainLayoutTopbarSource, /<Surface[\s\S]*material="glass-thick"/u);
 });
 
@@ -36,7 +38,6 @@ test('shell chrome retune: nav, home launcher, account menu, and tooltips consum
   assert.match(mainLayoutViewSource, /avatarNode[\s\S]*sizeClassName="h-9 w-9"/u);
   assert.match(mainLayoutSettingsMenuSource, /SHELL_CHROME_MENU_ITEM_BASE_CLASS/);
   assert.match(mainLayoutTopbarSource, /SHELL_CHROME_ACTION_CELL_CLASS/);
-  assert.match(mainLayoutTopbarSource, /SHELL_TOPBAR_ASSET_CELL_CLASS/);
   assert.match(mainLayoutTopbarSource, /SHELL_TOPBAR_GHOST_ICON_CLASS/);
   assert.doesNotMatch(mainLayoutTopbarSource, /openAccountMenu[\s\S]*SHELL_CHROME_ACTION_CELL_CLASS/u);
   assert.match(mainLayoutTopbarSource, /openAccountMenu[\s\S]*className="flex h-9 items-center"/u);

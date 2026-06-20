@@ -5,6 +5,7 @@
   "sectionData": "数据",
   "sectionExtensions": "集成",
   "sectionAdvanced": "高级设置",
+  "sectionAboutLegal": "关于与法务",
   "resizeSidebarAriaLabel": "调整设置侧边栏宽度",
   "menuProfile": "个人资料",
   "menuLanguage": "语言与地区",
@@ -15,6 +16,12 @@
   "menuNotifications": "通知",
   "menuDownloads": "下载",
   "menuPerformance": "性能",
+  "menuAboutLegal": "关于与法务",
   "menuWallet": "钱包",
-  "menuDeveloper": "开发者工具"
+  "menuDeveloper": "开发者工具",
+  "aboutLegalTitle": "关于与法务",
+  "aboutLegalDescription": "产品法务文档和应用信息放在这里，与个人账户操作分开。",
+  "aboutLegalTermsDescription": "使用 Nimi 产品、服务、世界、代理和相关体验的规则。",
+  "aboutLegalPrivacyDescription": "Nimi 如何处理信息、为什么处理以及用户可用的选择。",
+  "aboutLegalOpenDocument": "打开"
 }

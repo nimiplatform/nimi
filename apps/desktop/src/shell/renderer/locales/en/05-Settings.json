@@ -5,6 +5,7 @@
   "sectionData": "Data",
   "sectionExtensions": "Integrations",
   "sectionAdvanced": "Advanced",
+  "sectionAboutLegal": "About & Legal",
   "resizeSidebarAriaLabel": "Resize settings sidebar",
   "menuProfile": "Profile",
   "menuLanguage": "Language & Region",
@@ -15,6 +16,12 @@
   "menuNotifications": "Notifications",
   "menuDownloads": "Downloads",
   "menuPerformance": "Performance",
+  "menuAboutLegal": "About & Legal",
   "menuWallet": "Wallet",
-  "menuDeveloper": "Developer Tools"
+  "menuDeveloper": "Developer Tools",
+  "aboutLegalTitle": "About & Legal",
+  "aboutLegalDescription": "Product legal documents and app information live here, separate from your account actions.",
+  "aboutLegalTermsDescription": "Rules for using Nimi products, services, worlds, agents, and related experiences.",
+  "aboutLegalPrivacyDescription": "How Nimi processes information, why it is processed, and what choices are available.",
+  "aboutLegalOpenDocument": "Open"
 }

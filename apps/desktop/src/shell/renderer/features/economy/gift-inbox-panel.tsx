@@ -12,7 +12,6 @@ import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { ScrollArea } from '@nimiplatform/kit/ui';
 import { formatLocaleDate } from '@renderer/i18n';
 import { invalidateNotificationQueries } from '@renderer/features/notification/notification-query.js';
-import { persistStoredSettingsSelected } from '@renderer/features/settings/settings-storage';
 import { useTranslation } from 'react-i18next';
 import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 import { getDesktopRealmCommerceGiftService } from '@renderer/infra/realm/realm-commerce-service';
@@ -77,7 +76,6 @@ export function GiftInboxPanel() {
   const authStatus = useAppStore((state) => state.auth.status);
   const currentUser = useAppStore((state) => state.auth.user);
   const navigateBack = useAppStore((state) => state.navigateBack);
-  const setActiveTab = useAppStore((state) => state.setActiveTab);
   const selectedGiftTransactionId = useAppStore((state) => state.selectedGiftTransactionId);
   const setSelectedGiftTransactionId = useAppStore((state) => state.setSelectedGiftTransactionId);
   const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
@@ -110,7 +108,7 @@ export function GiftInboxPanel() {
       setFeedback({
         kind: 'success',
         message: kind === 'accept'
-          ? t('GiftInbox.acceptedSuccess', { defaultValue: 'Gift accepted and credited to your wallet.' })
+          ? t('GiftInbox.acceptedSuccess', { defaultValue: 'Gift accepted and recorded.' })
           : t('GiftInbox.rejectedSuccess', { defaultValue: 'Gift rejected.' }),
       });
     },
@@ -129,12 +127,6 @@ export function GiftInboxPanel() {
       }
     },
   });
-
-  const openWallet = () => {
-    persistStoredSettingsSelected('wallet');
-    setSelectedGiftTransactionId(null);
-    setActiveTab('settings');
-  };
 
   if (authStatus !== 'authenticated') {
     return (
@@ -235,7 +227,8 @@ export function GiftInboxPanel() {
             onReject={() => {
               void handleReject();
             }}
-            onOpenWallet={openWallet}
+            onOpenWallet={() => undefined}
+            walletActionVisible={false}
             renderPartyAvatar={(party) => (
               <EntityAvatar
                 imageUrl={party?.avatarUrl || null}
@@ -268,7 +261,7 @@ export function GiftInboxPanel() {
             rejectedAtLabel={t('GiftInbox.rejectedAt', { defaultValue: 'Rejected' })}
             pendingTitle={t('GiftInbox.pendingTitle', { defaultValue: 'Respond to this gift' })}
             pendingDescription={t('GiftInbox.pendingDescription', {
-              defaultValue: 'Accepting credits Gem to your internal wallet. Withdrawal stays in Wallet.',
+              defaultValue: 'Accepting records the gift transaction and updates the receiver benefit after Realm confirmation.',
             })}
             rejectReasonOptionalLabel={t('GiftInbox.rejectReasonOptional', { defaultValue: 'Reject reason (optional)' })}
             rejectReasonPlaceholder={t('GiftInbox.rejectReasonPlaceholder', {
@@ -278,11 +271,10 @@ export function GiftInboxPanel() {
             acceptingLabel={t('GiftInbox.accepting', { defaultValue: 'Accepting...' })}
             rejectLabel={t('GiftInbox.reject', { defaultValue: 'Reject' })}
             rejectingLabel={t('GiftInbox.rejecting', { defaultValue: 'Rejecting...' })}
-            withdrawTitle={t('GiftInbox.withdrawTitle', { defaultValue: 'Accepted gifts are now in your wallet' })}
+            withdrawTitle={t('GiftInbox.withdrawTitle', { defaultValue: 'Accepted gift recorded' })}
             withdrawDescription={t('GiftInbox.withdrawDescription', {
-              defaultValue: 'Use Wallet to review your Gem balance and withdraw when eligible.',
+              defaultValue: 'Realm has confirmed this accepted gift. Wallet controls are hidden in this desktop build.',
             })}
-            openWalletLabel={t('GiftInbox.openWallet', { defaultValue: 'Open Wallet' })}
             senderReadonlyLabel={t('GiftInbox.senderReadonly', {
               defaultValue: 'You are viewing this gift as the sender. Status changes happen on the receiver side.',
             })}

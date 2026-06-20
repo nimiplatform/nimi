@@ -99,4 +99,50 @@ describe('GiftInboxDetail', () => {
     expect(onAccept).toHaveBeenCalled();
     expect(onReject).toHaveBeenCalled();
   });
+
+  it('can hide accepted-gift wallet action for hosts without visible wallet surface', async () => {
+    const onOpenWallet = vi.fn();
+
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    await act(async () => {
+      root?.render(
+        <GiftInboxDetail
+          gift={{
+            id: 'gift-accepted',
+            sparkCost: 20,
+            gemToReceiver: 5,
+            status: 'ACCEPTED',
+            createdAt: '2026-03-24T10:00:00.000Z',
+            message: null,
+            gift: { name: 'Rose', emoji: '馃尮' },
+            sender: { displayName: 'Alex' },
+            receiver: { displayName: 'Taylor' },
+          }}
+          status="ACCEPTED"
+          isReceiver
+          rejectReason=""
+          pendingAction={null}
+          onRejectReasonChange={() => {}}
+          onAccept={() => {}}
+          onReject={() => {}}
+          onOpenWallet={onOpenWallet}
+          walletActionVisible={false}
+          formatDate={(value) => String(value || '--')}
+          getPartyDisplayName={(party) => String(party?.displayName || 'Unknown')}
+          getStatusLabel={(status) => status}
+          sparkAmountLabel={(amount) => `${amount} Spark`}
+          gemAmountLabel={(amount) => `${amount} Gem`}
+        />,
+      );
+      await flush();
+    });
+
+    expect(document.body.textContent).toContain('ACCEPTED');
+    expect(document.body.textContent).not.toContain('Open Wallet');
+    const buttons = Array.from(document.body.querySelectorAll('button'));
+    expect(buttons.some((button) => button.textContent?.includes('Open Wallet'))).toBe(false);
+  });
 });

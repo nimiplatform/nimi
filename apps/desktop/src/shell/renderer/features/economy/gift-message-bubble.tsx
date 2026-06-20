@@ -7,8 +7,6 @@ import {
   rejectRealmGift,
 } from '@nimiplatform/kit/features/commerce/realm';
 import { useTranslation } from 'react-i18next';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { persistStoredSettingsSelected } from '@renderer/features/settings/settings-storage';
 import { getDesktopRealmCommerceGiftService } from '@renderer/infra/realm/realm-commerce-service';
 import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 
@@ -30,7 +28,6 @@ interface GiftMessageBubbleProps {
 
 export function GiftMessageBubble({ payload, isMe, currentUserId }: GiftMessageBubbleProps) {
   const { t } = useTranslation();
-  const setActiveTab = useAppStore((state) => state.setActiveTab);
   const queryClient = useQueryClient();
   const [actionLoading, setActionLoading] = useState<'accept' | 'reject' | null>(null);
   const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
@@ -70,11 +67,6 @@ export function GiftMessageBubble({ payload, isMe, currentUserId }: GiftMessageB
     } finally {
       setActionLoading(null);
     }
-  };
-
-  const openWallet = () => {
-    persistStoredSettingsSelected('wallet');
-    setActiveTab('settings');
   };
 
   const handleReject = async () => {
@@ -166,15 +158,6 @@ export function GiftMessageBubble({ payload, isMe, currentUserId }: GiftMessageB
       ) : (
         <div className="flex items-center gap-2">
           {statusBadge}
-          {status === 'ACCEPTED' && isReceiver ? (
-            <button
-              type="button"
-              onClick={openWallet}
-              className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[12px] font-medium text-emerald-700 transition-colors hover:bg-emerald-100"
-            >
-              {t('GiftBubble.openWallet', '前往钱包')}
-            </button>
-          ) : null}
         </div>
       )}
       {feedback ? (
