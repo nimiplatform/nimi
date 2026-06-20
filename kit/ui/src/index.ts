@@ -29,6 +29,7 @@ export * from './components/alert.js';
 export * from './components/empty-state.js';
 export * from './components/skeleton.js';
 export * from './components/menu.js';
+export * from './components/account-panel.js';
 export * from './components/field-shell.js';
 export * from './components/dashed-add-button.js';
 export * from './components/page-detail-layout.js';

@@ -51,6 +51,7 @@ import {
   Tooltip,
   TooltipProvider,
   ActionMenu,
+  AccountPanel,
   Slider,
   BackLink,
   AppCardSurface,
@@ -319,6 +320,36 @@ test('shared control and feedback primitives render canonical slots', () => {
   expect(hasClass(html, 'nimi-action-menu__item--danger')).toBe(true);
   expect(hasClass(html, 'nimi-field-shell')).toBe(true);
   expect(html).toMatch(/aria-describedby/);
+});
+
+test('account panel renders cross-app account menu surface', () => {
+  const html = renderToStaticMarkup(
+    <AccountPanel
+      user={{ displayName: 'Halliday', email: 'halliday@nimi.test' }}
+      items={[
+        { id: 'profile', label: 'Profile', icon: <span data-testid="profile-icon" />, active: true },
+        { id: 'wallet', label: 'Wallet', icon: <span data-testid="wallet-icon" /> },
+        { id: 'settings', label: 'Settings', icon: <span data-testid="settings-icon" /> },
+      ]}
+      footerItems={[
+        { id: 'logout', label: 'Log out', icon: <span data-testid="logout-icon" />, tone: 'danger' },
+      ]}
+      actionLabel="Edit profile"
+      statusMessage="Runtime account logout is owned by Desktop."
+    />,
+  );
+
+  expect(html).toMatch(/Halliday/);
+  expect(html).toMatch(/halliday@nimi\.test/);
+  expect(html).toMatch(/Profile/);
+  expect(html).toMatch(/Wallet/);
+  expect(html).toMatch(/Settings/);
+  expect(html).toMatch(/Log out/);
+  expect(html).toMatch(/Runtime account logout is owned by Desktop/);
+  expect(html).toMatch(/aria-label="Edit profile"/);
+  expect(hasClass(html, 'nimi-account-panel')).toBe(true);
+  expect(hasClass(html, 'nimi-account-panel__item--active')).toBe(true);
+  expect(hasClass(html, 'nimi-account-panel__item--danger')).toBe(true);
 });
 
 test('pill tabs render sliding-indicator slots, radiogroup roles, and active state', () => {
