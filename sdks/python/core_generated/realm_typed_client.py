@@ -6557,6 +6557,7 @@ class RealmWorldCoreControllerListWorldRelationshipsOperationQuery:
     type: str | None = None
     targetEntityId: str | None = None
     sourceEntityId: str | None = None
+    entityId: str | None = None
 
 
 @dataclass(frozen=True)

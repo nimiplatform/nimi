@@ -5123,6 +5123,7 @@ export interface RealmWorldCoreControllerListWorldRelationshipsOperationRequest 
     readonly type?: string;
     readonly targetEntityId?: string;
     readonly sourceEntityId?: string;
+    readonly entityId?: string;
   };
   readonly headers?: {
 

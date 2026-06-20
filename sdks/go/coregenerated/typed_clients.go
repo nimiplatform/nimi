@@ -15824,6 +15824,7 @@ type RealmWorldCoreControllerListWorldRelationshipsOperationQuery struct {
 	Type string `json:"type,omitempty"`
 	TargetEntityId string `json:"targetEntityId,omitempty"`
 	SourceEntityId string `json:"sourceEntityId,omitempty"`
+	EntityId string `json:"entityId,omitempty"`
 }
 
 type RealmWorldCoreControllerListWorldRelationshipsOperationHeaders struct {

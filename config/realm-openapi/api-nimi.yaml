@@ -9385,7 +9385,7 @@ info:
   description: |-
     The Nimi Social Platform API
 
-    Last updated: 2026-06-20T19:55:46.825Z
+    Last updated: 2026-06-20T20:15:19.948Z
   title: Nimi Realm SDK API
   version: '1.0'
 openapi: 3.0.0
@@ -13464,6 +13464,11 @@ paths:
             type: string
         - in: query
           name: sourceEntityId
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: entityId
           required: false
           schema:
             type: string

@@ -44904,6 +44904,7 @@ pub struct RealmWorldCoreControllerListWorldRelationshipsOperationQuery {
     pub r#type: Option<String>,
     pub target_entity_id: Option<String>,
     pub source_entity_id: Option<String>,
+    pub entity_id: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

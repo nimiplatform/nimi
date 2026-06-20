@@ -75,8 +75,22 @@ test('Realm facade exposes generated operation modules over CoreClient', async (
   await realm.worldCore.worldCoreControllerGetOasisWorld({ path: {} });
   assert.equal(transport.unaryCalls[3]?.methodId, 'WorldCoreController_getOasisWorld');
 
+  await realm.worldCore.worldCoreControllerListWorldRelationships({
+    path: { worldId: 'world-1' },
+    query: { entityId: 'entity-1', type: 'knows', take: 25 },
+  });
+  assert.equal(
+    transport.unaryCalls[4]?.methodId,
+    'WorldCoreController_listWorldRelationships',
+  );
+  assert.deepEqual((transport.unaryCalls[4]?.body as { query?: unknown } | undefined)?.query, {
+    entityId: 'entity-1',
+    type: 'knows',
+    take: 25,
+  });
+
   await realm.worldPublic.worldPublicControllerListWorlds({ path: {} });
-  assert.equal(transport.unaryCalls[4]?.methodId, 'WorldPublicController_listWorlds');
+  assert.equal(transport.unaryCalls[5]?.methodId, 'WorldPublicController_listWorlds');
 });
 
 test('Realm facade keeps generated core explicit and blocks generated permission bypass', async () => {

@@ -11248,6 +11248,16 @@
           }
         },
         {
+          "name": "entityId",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        },
+        {
           "name": "worldId",
           "in": "path",
           "required": true,
@@ -11303,6 +11313,16 @@
         },
         {
           "name": "sourceEntityId",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        },
+        {
+          "name": "entityId",
           "in": "query",
           "required": false,
           "schema": {
