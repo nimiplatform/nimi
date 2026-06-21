@@ -56,6 +56,14 @@ test('runtime config cloud connector actions stay on their owning surfaces', () 
   assert.match(cloudPageSource, /removeConnectorFromState\(prev, connectorId\)/);
 });
 
+test('runtime config cloud connector selection stays quiet like the runtime sidebar', () => {
+  assert.match(
+    cloudConnectorListSource,
+    /active\s*\?\s*'border-transparent bg-\[var\(--nimi-sidebar-item-active\)\] text-\[var\(--nimi-text-primary\)\]'/,
+  );
+  assert.doesNotMatch(cloudConnectorListSource, /ring-1|ring-mint|border-\[color-mix\(in_srgb,var\(--nimi-action-primary-bg\)_32%/);
+});
+
 test('runtime config cloud scope contract: vendor options are derived from runtime provider catalog', () => {
   assert.match(cloudPageSource, /sdkListProviderCatalog\(\)/);
   assert.match(cloudPageSource, /const vendorOptions = useMemo\(\(\) => \{/);

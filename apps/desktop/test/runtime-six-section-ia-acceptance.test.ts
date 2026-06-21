@@ -245,7 +245,7 @@ test('ordinary task 2: see the account Default Profile for new scopes (Profiles)
 
 test('ordinary task 3: import / edit / export portable profiles (Profiles)', () => {
   assert.match(profilesLibraryPanelSource, /runtime-profiles-account-library/);
-  assert.match(profilesLibraryPanelSource, /runtime-profiles-create/);
+  assert.match(profilesPageSource, /runtime-profiles-create/);
   assert.match(profilesManagementSectionsSource, /runtime-profiles-import/);
   assert.match(profilesManagementSectionsSource, /runtime-profiles-export/);
   assert.match(profilesPageSource, /deleteAccountProfileLibraryEntry/);

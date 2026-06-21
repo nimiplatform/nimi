@@ -68,7 +68,7 @@ function CloudConnectorListItem(props: {
     <div
       className={`w-full rounded-xl border px-4 py-3 text-left text-xs transition-all ${
         active
-          ? 'border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_32%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] ring-1 ring-mint-200'
+          ? 'border-transparent bg-[var(--nimi-sidebar-item-active)] text-[var(--nimi-text-primary)]'
           : 'border-[var(--nimi-border-subtle)] bg-white/90 hover:border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_24%,transparent)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)]/30'
       }`}
     >

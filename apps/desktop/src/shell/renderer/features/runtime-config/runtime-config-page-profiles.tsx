@@ -146,6 +146,34 @@ export function ProfileCatalogPage() {
     });
   }, []);
 
+  const openCreateProfileFromBase = useCallback((sourceProfile: NimiAIProfile) => {
+    const base: NimiAIProfile = {
+      ...sourceProfile,
+      profileId: createEmptyLibraryProfile().profileId,
+      title: sourceProfile.title
+        ? t('runtimeConfig.profiles.defaultCopyTitle', {
+          defaultValue: '{{title}} custom',
+          title: sourceProfile.title,
+        })
+        : t('runtimeConfig.profiles.accountDefaultTitle', { defaultValue: 'Default Profile' }),
+      description: sourceProfile.description ?? '',
+      tags: sourceProfile.tags ?? [],
+    };
+    setEditorDraft({
+      mode: 'create',
+      profile: base,
+      title: base.title,
+      description: base.description ?? '',
+      tagsText: (base.tags ?? []).join(', '),
+      profileJsonText: profileBodyJson(base),
+    });
+  }, [t]);
+
+  const openCreateProfileFromDefault = useCallback(() => {
+    if (!accountDefaultProfile) return;
+    openCreateProfileFromBase(accountDefaultProfile);
+  }, [accountDefaultProfile, openCreateProfileFromBase]);
+
   const openEditProfile = useCallback((entry: LibraryProfile) => {
     setEditorDraft({
       mode: 'edit',
@@ -205,18 +233,40 @@ export function ProfileCatalogPage() {
     })();
   }, [reloadProfileLibrary, t]);
 
+  const exportableProfileCount = libraryProjection?.profiles.filter((entry) => entry.removable).length ?? 0;
+
   return (
-    <RuntimePageShell>
-      <ProfileLibraryActions
-        exportCount={libraryProjection?.profiles.length ?? 0}
-        onLibraryChanged={reloadProfileLibrary}
-      />
+    <RuntimePageShell maxWidth="full" className="max-w-[78rem] px-6 py-6">
+      <header
+        className="flex flex-wrap items-start justify-between gap-4"
+        data-testid="runtime-profiles-header"
+      >
+        <div
+          className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-2"
+          data-testid="runtime-profiles-header-actions"
+        >
+          <button
+            type="button"
+            data-testid="runtime-profiles-create"
+            onClick={openCreateProfile}
+            className="inline-flex h-10 items-center justify-center rounded-lg bg-[var(--nimi-action-primary-bg)] px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[var(--nimi-action-primary-bg-hover)]"
+          >
+            {t('runtimeConfig.profiles.create', { defaultValue: 'New Profile' })}
+          </button>
+          <ProfileLibraryActions
+            exportCount={exportableProfileCount}
+            onLibraryChanged={reloadProfileLibrary}
+          />
+        </div>
+      </header>
+
       <AccountProfileLibraryPanel
         projection={libraryProjection}
         accountDefaultProfile={accountDefaultProfile}
         loading={libraryLoading}
         onRefresh={() => { void reloadProfileLibrary(); }}
-        onCreate={openCreateProfile}
+        onCreateFromDefault={openCreateProfileFromDefault}
+        onUseAsBase={openCreateProfileFromBase}
         onEdit={openEditProfile}
         onDelete={deleteProfile}
       />

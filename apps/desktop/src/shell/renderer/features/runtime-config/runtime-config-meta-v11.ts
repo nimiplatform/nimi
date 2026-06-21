@@ -7,7 +7,7 @@ export const RUNTIME_PAGE_META: Record<RuntimePageIdV11, { name: string; descrip
   },
   profiles: {
     name: 'Profiles',
-    description: 'Account default profile: import, edit, export, and explicit factory restore.',
+    description: 'Account profile templates: review default, edit custom library, and move portable files.',
   },
   models: {
     name: 'Models',
