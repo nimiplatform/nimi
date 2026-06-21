@@ -75,6 +75,23 @@ The provider must fail closed when:
 The provider must not fabricate image paths, semantic success, policy
 admission, or downstream Nimi2D admission.
 
+### N2D-IMG2-004 - LLM Prompt Optimization Boundary
+
+LLM/chat prompt optimization may be used only as external planning evidence or
+local research input before a standard provider request is authored. It is not
+an admitted Nimi2D provider command surface, provider evidence, image evidence,
+or Nimi2D admission evidence.
+
+The only admitted live generation surface for optimized prompts is the existing
+provider run surface:
+
+```text
+image2-provider-plan -> image2-provider-run --adapter codex_cli -> image2-register-output
+```
+
+Live image generation must not depend on an OpenAI API key, direct image API
+invocation, or any non-Codex CLI adapter.
+
 ## 2. Workflow Families
 
 ### N2D-IMG2-010 - Prompt To Source Image
@@ -105,10 +122,12 @@ Output is an image resource artifact only.
 
 ### N2D-IMG2-012 - Image To Layer Atlas
 
-`image_to_layer_atlas` uses a high-quality generated source image to produce a
-Nimi2D machine-cut layer atlas.
+`image_to_layer_atlas` is a diagnostic/research provider workflow that attempts
+to produce a Nimi2D machine-cut layer atlas from a high-quality generated source
+image. It is not the release-facing production strategy for layer generation
+until separately admitted by distribution evidence.
 
-The admitted default atlas contract is:
+The diagnostic atlas contract is:
 
 - `1536 x 1024` PNG
 - `3 columns x 2 rows`
@@ -117,7 +136,7 @@ The admitted default atlas contract is:
 - cells: registration body, head/face, hair, eyes/brows, mouth, default outfit
 - identical registration and scale in every cell
 
-The atlas must still pass:
+The diagnostic atlas workflow must still pass:
 
 - atlas spec validation
 - upstream raw atlas quality recording as diagnostic and failure-attribution
@@ -128,10 +147,11 @@ The atlas must still pass:
 - layer-input validation
 - image-input workflow bench
 
-Raw atlas quality is not the release-facing source-to-layer gate by itself.
-Codex/Image Gen output is expected to need deterministic repair and
-normalization. The repair path is admitted when provenance, repair artifacts,
-and downstream gates are recorded instead of hidden.
+Raw atlas quality is a false-positive control for this workflow, not proof that
+single-shot atlas generation is the product generation strategy. Codex/Image Gen
+output is expected to need deterministic repair and normalization. The repair
+path may be used for diagnostic evidence when provenance, repair artifacts, and
+downstream gates are recorded instead of hidden.
 
 ### N2D-IMG2-013 - Companion Asset Image
 
@@ -230,8 +250,8 @@ return failure instead of a guessed path.
 
 Successful provider output does not imply Nimi2D package admission.
 
-Codex Image2 source-to-layer admission may be reported only under the
-`raw_plus_repaired_evidence` model. That model requires:
+Codex Image2 source-to-layer results may be reported only as diagnostic
+evidence under the `raw_plus_repaired_evidence` model. That model requires:
 
 - admitted producer evidence with decoded pixel identity for the raw provider
   artifact
@@ -239,6 +259,10 @@ Codex Image2 source-to-layer admission may be reported only under the
 - deterministic repair/normalization artifacts with input and output hashes
 - upstream raw Image2 atlas quality recorded as diagnostic evidence
 - deterministic normalization pass
+- shared avatar registration pass: deterministic repair must reject atlas cells
+  that were independently centered or scaled instead of sharing one avatar
+  registration frame, and must reject oversized facial feature cells that carry
+  non-feature regions instead of isolated eyes/brows or mouth geometry
 - transparent atlas conversion pass
 - atlas quality gate pass on the repaired layer source
 - image-input workflow bench pass, including layer input validation for
@@ -249,9 +273,9 @@ Package manifest validation, Generation Bench, reference-player proof, and any
 Avatar runtime proof remain separate downstream gates.
 
 `raw_provider_atlas_admission` may be reported as a strict diagnostic gate for
-raw-only prompt quality. It is not the default live provider distribution gate,
-because AI image generation is not expected to produce contract-ready atlas
-pixels without repair in every case.
+raw-only prompt quality. It is not a live provider distribution gate, because AI
+image generation is not expected to produce contract-ready atlas pixels without
+repair in every case.
 
 `repaired_workflow` success alone is not sufficient for source-to-layer
 admission. It must be paired with admitted producer evidence and the downstream
@@ -278,10 +302,11 @@ Live Codex Image2 distribution reports must filter to `source_surface:
 "codex_cli"` or an explicitly admitted live provider surface. Runs marked
 `demo_fixture` must not count toward live distribution coverage.
 
-The release-facing provider distribution gate is `source_to_layer_pipeline`.
-It counts unique live provider samples that pass admitted producer evidence,
-deterministic repair, atlas quality, and layer-input workflow gates. Diagnostic
-reports may still request `raw_provider_atlas` to measure raw prompt quality.
+The diagnostic provider distribution gate for this research path is
+`source_to_layer_pipeline`. It counts unique live provider samples that pass
+admitted producer evidence, deterministic repair, atlas quality, and layer-input
+workflow gates. Diagnostic reports may still request `raw_provider_atlas` to
+measure raw prompt quality.
 
 Distribution reports may additionally require layer-input full-chain package
 proof for release audits. That stricter gate is separate from source-to-layer
@@ -295,16 +320,21 @@ reference-player proof, or Avatar-owned runtime gates.
 
 Provider closure is valid only if:
 
-- all four workflow families can produce provider request plans
+- product-facing workflow families and the diagnostic atlas workflow can produce
+  provider request plans
 - provider run automation exposes the exact Codex CLI command and fails closed
   without a response or image file
 - provider artifact registration inspects real PNG bytes
 - pixel comparison works on decoded RGBA pixels
-- atlas workflow still reaches layer-input and bench gates before success
+- diagnostic atlas workflow still reaches layer-input and bench gates before
+  success
 - documentation and AGENTS.md tell AI agents to use provider commands instead
   of manual session prompts
-- the local demo suite can exercise all four workflow families and fail closed
-  on insufficient unique source hashes
+- live provider invariant checks reject Nimi2D Image2 authority or
+  implementation paths that bind live generation to direct image API keys or
+  non-Codex CLI adapters
+- the local demo suite can exercise product-facing workflows and the diagnostic
+  atlas workflow, and fail closed on insufficient unique source hashes
 - distribution reports can fail closed on insufficient unique underlying source
   image hashes when that strict release-audit gate is requested
 - distribution reports can fail closed when layer-input full-chain package proof

@@ -55,10 +55,10 @@ async function writeGeneratedLikeAtlas(filePath) {
       ]);
     }
   }
-  for (const x of [31, 32, 63, 64]) {
+  for (const x of [127, 128, 255, 256]) {
     fillRect(rgba, width, { x, y: 0, width: 1, height }, [248, 252, 248, 255]);
   }
-  for (const y of [31, 32]) {
+  for (const y of [127, 128]) {
     fillRect(rgba, width, { x: 0, y, width, height: 1 }, [248, 252, 248, 255]);
   }
 
@@ -69,6 +69,70 @@ async function writeGeneratedLikeAtlas(filePath) {
     { column: 0, row: 1, rect: { x: 42, y: 45, width: 44, height: 12 }, color: [30, 80, 140, 255] },
     { column: 1, row: 1, rect: { x: 54, y: 70, width: 20, height: 10 }, color: [180, 60, 80, 255] },
     { column: 2, row: 1, rect: { x: 34, y: 6, width: 60, height: 112 }, color: [40, 80, 150, 255] },
+  ];
+  for (const shape of shapes) {
+    fillRect(rgba, width, {
+      x: (shape.column * cellWidth) + shape.rect.x,
+      y: (shape.row * cellHeight) + shape.rect.y,
+      width: shape.rect.width,
+      height: shape.rect.height,
+    }, shape.color);
+  }
+  await writeFile(filePath, encodePngRgba({ width, height, rgba }));
+}
+
+async function writeIndependentlyCenteredAtlas(filePath) {
+  const cellWidth = 128;
+  const cellHeight = 128;
+  const width = cellWidth * 3;
+  const height = cellHeight * 2;
+  const rgba = new Uint8ClampedArray(width * height * 4);
+  for (let offset = 0; offset < rgba.length; offset += 4) {
+    rgba[offset] = 0;
+    rgba[offset + 1] = 255;
+    rgba[offset + 2] = 0;
+    rgba[offset + 3] = 255;
+  }
+
+  const shapes = [
+    { column: 0, row: 0, rect: { x: 52, y: 8, width: 24, height: 112 }, color: [140, 140, 140, 255] },
+    { column: 1, row: 0, rect: { x: 28, y: 44, width: 72, height: 72 }, color: [236, 188, 150, 255] },
+    { column: 2, row: 0, rect: { x: 24, y: 24, width: 80, height: 104 }, color: [176, 176, 198, 255] },
+    { column: 0, row: 1, rect: { x: 30, y: 60, width: 68, height: 16 }, color: [30, 80, 140, 255] },
+    { column: 1, row: 1, rect: { x: 44, y: 82, width: 40, height: 14 }, color: [180, 60, 80, 255] },
+    { column: 2, row: 1, rect: { x: 34, y: 8, width: 60, height: 112 }, color: [40, 80, 150, 255] },
+  ];
+  for (const shape of shapes) {
+    fillRect(rgba, width, {
+      x: (shape.column * cellWidth) + shape.rect.x,
+      y: (shape.row * cellHeight) + shape.rect.y,
+      width: shape.rect.width,
+      height: shape.rect.height,
+    }, shape.color);
+  }
+  await writeFile(filePath, encodePngRgba({ width, height, rgba }));
+}
+
+async function writeOversizedFeatureAtlas(filePath) {
+  const cellWidth = 128;
+  const cellHeight = 128;
+  const width = cellWidth * 3;
+  const height = cellHeight * 2;
+  const rgba = new Uint8ClampedArray(width * height * 4);
+  for (let offset = 0; offset < rgba.length; offset += 4) {
+    rgba[offset] = 0;
+    rgba[offset + 1] = 255;
+    rgba[offset + 2] = 0;
+    rgba[offset + 3] = 255;
+  }
+
+  const shapes = [
+    { column: 0, row: 0, rect: { x: 36, y: 3, width: 56, height: 124 }, color: [140, 140, 140, 255] },
+    { column: 1, row: 0, rect: { x: 32, y: 16, width: 64, height: 78 }, color: [236, 188, 150, 255] },
+    { column: 2, row: 0, rect: { x: 26, y: 18, width: 76, height: 106 }, color: [176, 176, 198, 255] },
+    { column: 0, row: 1, rect: { x: 36, y: 0, width: 56, height: 80 }, color: [30, 80, 140, 255] },
+    { column: 1, row: 1, rect: { x: 52, y: 70, width: 24, height: 8 }, color: [180, 60, 80, 255] },
+    { column: 2, row: 1, rect: { x: 34, y: 0, width: 60, height: 126 }, color: [40, 80, 150, 255] },
   ];
   for (const shape of shapes) {
     fillRect(rgba, width, {
@@ -234,6 +298,79 @@ test('Codex Image2 layer workflow admits source-to-layer pipeline from raw plus 
   assert.equal(fullChain.gates.package_solved, 'pass');
   assert.equal(fullChain.gates.visual_proof_passed, 'pass');
   assert.equal(fullChain.gates.reference_action_passed, 'pass');
+});
+
+test('Codex Image2 layer workflow rejects atlas cells with independent semantic centering', async () => {
+  const tempDir = await mkdtemp(path.join(tmpdir(), 'nimi2d-image2-layer-workflow-misregistered-'));
+  const imagePath = path.join(tempDir, 'independent-centering-atlas.png');
+  const producerManifestPath = path.join(tempDir, 'codex-image2.artifact.yaml');
+  const outDir = path.join(tempDir, 'run');
+  await writeIndependentlyCenteredAtlas(imagePath);
+
+  const producerResult = await runNimi2D([
+    'image2-register-output',
+    '--image', imagePath,
+    '--evidence-image', imagePath,
+    '--surface', 'codex_cli',
+    '--source-note', 'unit test admitted provider atlas with independently centered semantic cells',
+    '--out', producerManifestPath,
+  ]);
+  assert.equal(producerResult.verdict, 'admit');
+
+  const { exitStatus, result } = await runWorkflowCli([
+    '--producer-manifest', producerManifestPath,
+    '--out-dir', outDir,
+    '--grid-size', '4',
+  ]);
+  assert.equal(exitStatus, 'error');
+  assert.equal(result.status, 'ok');
+  assert.equal(result.verdict, 'fail');
+  assert.equal(result.producerVerdict, 'admit');
+  assert.equal(result.normalizedQualityVerdict, 'fail');
+  assert.equal(result.repairedWorkflowVerdict, 'fail');
+  assert.equal(result.sourceToLayerPipelineVerdict, 'fail');
+  assert.equal(result.formalAdmissionVerdict, 'fail');
+
+  const manifest = await readYaml(result.manifestPath);
+  assert.equal(manifest.normalized_quality.gates.shared_avatar_registration.status, 'fail');
+  assert.equal(manifest.normalized_quality.gates.shared_avatar_registration.metrics.head_center_body_y_ratio > 0.55, true);
+  assert.equal(manifest.quality_summary.source_to_layer_pipeline, 'fail');
+});
+
+test('Codex Image2 layer workflow rejects oversized facial feature layers', async () => {
+  const tempDir = await mkdtemp(path.join(tmpdir(), 'nimi2d-image2-layer-workflow-oversized-feature-'));
+  const imagePath = path.join(tempDir, 'oversized-feature-atlas.png');
+  const producerManifestPath = path.join(tempDir, 'codex-image2.artifact.yaml');
+  const outDir = path.join(tempDir, 'run');
+  await writeOversizedFeatureAtlas(imagePath);
+
+  const producerResult = await runNimi2D([
+    'image2-register-output',
+    '--image', imagePath,
+    '--evidence-image', imagePath,
+    '--surface', 'codex_cli',
+    '--source-note', 'unit test admitted provider atlas with oversized eyes layer',
+    '--out', producerManifestPath,
+  ]);
+  assert.equal(producerResult.verdict, 'admit');
+
+  const { exitStatus, result } = await runWorkflowCli([
+    '--producer-manifest', producerManifestPath,
+    '--out-dir', outDir,
+    '--grid-size', '4',
+  ]);
+  assert.equal(exitStatus, 'error');
+  assert.equal(result.status, 'ok');
+  assert.equal(result.verdict, 'fail');
+  assert.equal(result.normalizedQualityVerdict, 'fail');
+  assert.equal(result.repairedWorkflowVerdict, 'fail');
+  assert.equal(result.formalAdmissionVerdict, 'fail');
+
+  const manifest = await readYaml(result.manifestPath);
+  const registration = manifest.normalized_quality.gates.shared_avatar_registration;
+  assert.equal(registration.status, 'fail');
+  assert.equal(registration.metrics.failures.includes('eye_feature_layer_too_tall'), true);
+  assert.equal(registration.metrics.eye_height_head_ratio > 0.75, true);
 });
 
 test('Codex Image2 layer workflow treats provider artifacts without pixel identity as recorded-only evidence', async () => {

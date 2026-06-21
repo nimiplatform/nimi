@@ -15,7 +15,8 @@ lifecycle, Realm Agent Studio product workflow, or upstream image segmentation
 and occlusion inpainting. Nimi2D does own bounded reference package-player,
 renderer, and proof helpers when they are used to validate Nimi2D package
 readiness. Nimi2D also owns the standard Codex Image2 image resource provider
-workflow that produces upstream evidence for later layer and atlas gates.
+workflow that produces upstream evidence for later source-image gates and
+diagnostic atlas gates.
 
 ## Rule ID Format
 
@@ -60,8 +61,9 @@ Nimi2D Codex Image2 provider authority:
 
 - Codex Image2 is the standard first-party Nimi2D image resource provider
 - provider output is upstream evidence, not formal package input
-- four workflow families are admitted: prompt to source image, image plus prompt
-  to improved source image, image to layer atlas, and companion asset image
+- product-facing workflow families are prompt to source image, image plus
+  prompt to improved source image, and companion asset image; image to layer
+  atlas remains diagnostic/research until separately admitted
 - provider requests and artifacts use closed Nimi2D manifest kinds
 - automation must route through provider commands and Codex CLI response
   contracts instead of manual session-only prompts

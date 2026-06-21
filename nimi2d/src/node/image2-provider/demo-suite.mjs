@@ -171,8 +171,9 @@ async function writeDemoAtlas(filePath, variant) {
   return writePng(filePath, { width, height, rgba });
 }
 
-async function writeProviderResponse(responsePath, imagePath, summary) {
+async function writeProviderResponse(responsePath, imagePath, summary, requestId) {
   await writeFile(responsePath, `${JSON.stringify({
+    request_id: requestId,
     status: 'ok',
     image_path: imagePath,
     evidence_image_path: imagePath,
@@ -208,7 +209,7 @@ async function createDemoProviderArtifact({
     await writeDemoSourceImage(plan.expectedImagePath, variant, imageMode);
   }
   const responsePath = path.join(outDir, 'codex-response.json');
-  await writeProviderResponse(responsePath, plan.expectedImagePath, `demo fixture for ${workflow}`);
+  await writeProviderResponse(responsePath, plan.expectedImagePath, `demo fixture for ${workflow}`, plan.requestId);
   const run = await runCodexImage2Provider([
     '--request', plan.requestPath,
     '--response-file', responsePath,

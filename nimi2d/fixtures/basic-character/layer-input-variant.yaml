@@ -19,7 +19,7 @@ layers:
   - layer_id: layer_body
     asset: &pixel_asset
       ref: pixel.png
-      sha256: d5a51b6aed15684ec8c123e30fe5703155359d6543b6d7b47cb5766ef44939de
+      sha256: d5a51b6aed15684ec8c123e30fe5703155359d6543b6d7b47cb5766ef44939de # pragma: allowlist secret
       format: png
       width_px: 1
       height_px: 1

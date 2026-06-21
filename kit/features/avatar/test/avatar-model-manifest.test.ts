@@ -100,7 +100,7 @@ describe('avatar model manifest projection', () => {
       model_id: 'agent-skin',
       nimi_dir: '/runtime/nimi',
       nimi2d_package_manifest_path: '/runtime/nimi2d/package.yaml',
-      nimi2d_package_digest_sha256: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+      nimi2d_package_digest_sha256: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef', // pragma: allowlist secret
       nimi2d_capability_profile_ref: 'avatar.nimi2d.capability-profile:agent-skin',
     })).toEqual({
       kind: 'nimi2d',
@@ -110,7 +110,7 @@ describe('avatar model manifest projection', () => {
       posterPath: null,
       nimi2d: {
         packageManifestPath: '/runtime/nimi2d/package.yaml',
-        packageDigestSha256: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+        packageDigestSha256: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef', // pragma: allowlist secret
         capabilityProfileRef: 'avatar.nimi2d.capability-profile:agent-skin',
       },
     });
@@ -138,7 +138,7 @@ describe('avatar model manifest projection', () => {
       runtime_dir: '/runtime',
       model_id: 'ren',
       model3_json_path: '/runtime/ren.model3.json',
-      live2d_calibration_ref: 'live2d_calibration_ABCDEF123456',
+      live2d_calibration_ref: 'live2d_calibration_ABCDEF123456', // pragma: allowlist secret
     })).toThrow('avatar model manifest live2d_calibration_ref is invalid');
   });
 

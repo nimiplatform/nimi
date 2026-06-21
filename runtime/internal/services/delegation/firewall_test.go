@@ -85,14 +85,14 @@ func TestFirewallClassifiesRealCredentialFormatsAsSensitive(t *testing.T) {
 	// colon/keyword forms must all classify as sensitive (not NONE) so the
 	// approval gate engages.
 	credentialOutputs := []string{
-		"AKIAIOSFODNN7EXAMPLE",
-		"wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
-		"ghp_16C7e42F292c6912E7710c838347Ae178B4a",
-		"sk-abcdef0123456789ABCDEF0123",
-		"xoxb-1234567890-abcdefABCDEF",
-		"eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N",
+		"AKIAIOSFODNN7EXAMPLE",                                                    // pragma: allowlist secret
+		"wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",                                // pragma: allowlist secret
+		"ghp_16C7e42F292c6912E7710c838347Ae178B4a",                                 // pragma: allowlist secret
+		"sk-abcdef0123456789ABCDEF0123",                                            // pragma: allowlist secret
+		"xoxb-1234567890-abcdefABCDEF",                                             // pragma: allowlist secret
+		"eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N", // pragma: allowlist secret
 		"password: hunter2value",
-		"token=abcdef0123456789ABCD",
+		"token=abcdef0123456789ABCD", // pragma: allowlist secret
 	}
 	firewall := newTestFirewall(t)
 	for _, output := range credentialOutputs {

@@ -1,11 +1,22 @@
 import { access, copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
-import { spawn } from 'node:child_process';
 import path from 'node:path';
 import YAML from 'yaml';
 
 import { sha256 } from '../common-utils.mjs';
 import { layerInputKinds, slotKinds, wardrobeKinds } from '../common-constants.mjs';
 import { registerCodexImage2Artifact } from './artifact.mjs';
+import { buildRunScript } from './provider-run-script.mjs';
+import {
+  attemptPlanPaths,
+  attemptRequestId,
+  attemptRunId,
+  cloneJson,
+  executionAttemptRecord,
+  materializeProviderAttempt,
+  originalProviderAttempt,
+  providerRunReject,
+  runProcess,
+} from './provider-run-attempts.mjs';
 
 const CODEX_IMAGE2_REQUEST_KIND = 'nimi.nimi2d.codex-image2.request';
 const CODEX_IMAGE2_RUN_KIND = 'nimi.nimi2d.codex-image2.run';
@@ -46,6 +57,15 @@ function requireFlag(args, name) {
   return value;
 }
 
+function getPositiveIntegerFlag(args, name) {
+  const value = getFlag(args, name);
+  if (value === null) return null;
+  if (!/^[1-9][0-9]*$/.test(value)) {
+    throw new Error(`NIMI2D_CODEX_IMAGE2_ARGUMENT_INVALID: ${name} must be a positive integer.`);
+  }
+  return Number(value);
+}
+
 function hasFlag(args, name) {
   return args.includes(name);
 }
@@ -66,13 +86,17 @@ async function readDescription(args) {
   return '';
 }
 
-function outputSchema() {
+function outputSchema(requestId = null) {
+  const requestIdSchema = requestId
+    ? { type: 'string', const: requestId }
+    : { type: 'string' };
   return {
     $schema: 'https://json-schema.org/draft/2020-12/schema',
     type: 'object',
     additionalProperties: false,
-    required: ['status', 'image_path', 'evidence_image_path', 'summary', 'failure_reason'],
+    required: ['request_id', 'status', 'image_path', 'evidence_image_path', 'summary', 'failure_reason'],
     properties: {
+      request_id: requestIdSchema,
       status: { enum: ['ok', 'fail'] },
       image_path: { type: ['string', 'null'] },
       evidence_image_path: { type: ['string', 'null'] },
@@ -85,6 +109,7 @@ function outputSchema() {
 function workflowRequirements(input) {
   const common = [
     'Use Codex Image2 / Image Gen, not a hand-drawn SVG, CSS render, screenshot crop, or semantic redraw from local code.',
+    'Do not run shell commands, inspect the local repository, invoke package managers or project CLIs, or route generation through local scripts/tools; the only local filesystem operations allowed are saving the generated PNG and writing the schema response JSON.',
     'Persist the generated PNG to the exact requested image path.',
     'Return only the JSON object required by the output schema.',
     'If image generation, persistence, or policy admission fails, return status "fail" and do not invent an image path.',
@@ -135,6 +160,7 @@ function buildPrompt(input) {
   const lines = [
     '# Nimi2D Codex Image2 Provider Request',
     '',
+    `Request id: ${input.requestId}`,
     `Workflow: ${workflowLabels[input.workflow]}`,
     `Target input kind: ${input.targetKind}`,
     `Companion kind: ${input.companionKind ?? 'not_applicable'}`,
@@ -152,6 +178,7 @@ function buildPrompt(input) {
     '## Output Contract',
     '',
     'Return JSON with:',
+    `- request_id: exactly "${input.requestId}"`,
     '- status: "ok" only after a PNG exists at the required path',
     '- image_path: absolute path to the requested generated PNG, or null on failure',
     '- evidence_image_path: optional absolute path to an official output/evidence PNG if separate',
@@ -166,7 +193,7 @@ function buildRequest(input) {
   return {
     manifest_kind: CODEX_IMAGE2_REQUEST_KIND,
     schema_version: 1,
-    request_id: `codex_image2_${input.workflow}_${input.requestToken}`,
+    request_id: input.requestId,
     provider: {
       family: 'codex_image2',
       required_surface: 'codex_cli',
@@ -201,32 +228,6 @@ function buildRequest(input) {
       raw_image_direct_package_input: 'forbidden',
     },
   };
-}
-
-function buildRunScript() {
-  return [
-    'param(',
-    '  [string]$CodexBin = "codex",',
-    '  [string]$Model = ""',
-    ')',
-    '$ErrorActionPreference = "Stop"',
-    '$Root = Split-Path -Parent $PSCommandPath',
-    '$Request = Join-Path $Root "provider-request.yaml"',
-    '$Prompt = Join-Path $Root "prompt.md"',
-    '$Schema = Join-Path $Root "codex-image2-output.schema.json"',
-    '$Response = Join-Path $Root "codex-response.json"',
-    '$RequestYaml = Get-Content -Raw (Join-Path $Root "provider-request.yaml")',
-    '$Cwd = if ($RequestYaml -match "cwd: (.+)") { $Matches[1].Trim() } else { (Get-Location).Path }',
-    '$SourceImageRef = if ($RequestYaml -match "source_image_ref: (.+)") { $Matches[1].Trim() } else { "" }',
-    '$Args = @("exec", "--cd", $Cwd, "--dangerously-bypass-approvals-and-sandbox", "--output-schema", $Schema, "-o", $Response)',
-    'if ($Model.Length -gt 0) { $Args = @("exec", "-m", $Model, "--cd", $Cwd, "--dangerously-bypass-approvals-and-sandbox", "--output-schema", $Schema, "-o", $Response) }',
-    'if ($SourceImageRef.Length -gt 0 -and $SourceImageRef -ne "null") { $Args += @("-i", (Join-Path $Root $SourceImageRef)) }',
-    '$Args += "-"',
-    'Get-Content -Raw $Prompt | & $CodexBin @Args',
-    'if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }',
-    'Write-Output "Codex Image2 response written to $Response for request $Request"',
-    '',
-  ].join('\n');
 }
 
 function assertAdmittedProviderTarget(input) {
@@ -267,6 +268,7 @@ async function writeCodexImage2Plan(args) {
     slotKind: getFlag(args, '--slot-kind', workflow === 'companion_asset' ? 'accessory_head' : null),
     requestToken: sha256(`${workflow}\n${description}\n${sourceImagePath ?? ''}`).slice(0, 12),
   };
+  input.requestId = `codex_image2_${input.workflow}_${input.requestToken}`;
   assertAdmittedProviderTarget(input);
   await mkdir(path.join(outDir, 'generated'), { recursive: true });
   if (sourceImageAbsolutePath) {
@@ -281,13 +283,14 @@ async function writeCodexImage2Plan(args) {
   const scriptPath = path.join(outDir, 'run-codex-image2.ps1');
   await writeFile(promptPath, prompt, 'utf8');
   await writeFile(requestPath, YAML.stringify(request), 'utf8');
-  await writeFile(schemaPath, `${JSON.stringify(outputSchema(), null, 2)}\n`, 'utf8');
+  await writeFile(schemaPath, `${JSON.stringify(outputSchema(request.request_id), null, 2)}\n`, 'utf8');
   await writeFile(scriptPath, buildRunScript(), 'utf8');
   return {
     status: 'ok',
     kind: 'codex_image2_provider_plan',
     workflow,
     outDir,
+    requestId: request.request_id,
     requestPath,
     promptPath,
     schemaPath,
@@ -341,6 +344,7 @@ function validateCodexImage2Request(request) {
   if (request.manifest_kind !== CODEX_IMAGE2_REQUEST_KIND || request.schema_version !== 1) {
     throw new Error('NIMI2D_CODEX_IMAGE2_REQUEST_INVALID: request manifest kind/schema mismatch.');
   }
+  requireNonEmptyString(request.request_id, '$.request_id');
   if (!isObject(request.workflow)) {
     throw new Error('NIMI2D_CODEX_IMAGE2_REQUEST_INVALID: workflow must be an object.');
   }
@@ -400,9 +404,15 @@ function parseCodexResponse(raw) {
   }
 }
 
-function validateCodexResponse(response) {
+function validateCodexResponse(response, { requestId = null } = {}) {
   if (!isObject(response)) {
     throw new Error('NIMI2D_CODEX_IMAGE2_RESPONSE_INVALID: response must be an object.');
+  }
+  if (typeof response.request_id !== 'string' || response.request_id.length === 0) {
+    throw new Error('NIMI2D_CODEX_IMAGE2_RESPONSE_INVALID: response.request_id must be a non-empty string.');
+  }
+  if (requestId && response.request_id !== requestId) {
+    throw new Error(`NIMI2D_CODEX_IMAGE2_RESPONSE_REQUEST_MISMATCH: expected ${requestId}, got ${response.request_id}.`);
   }
   if (!['ok', 'fail'].includes(response.status)) {
     throw new Error('NIMI2D_CODEX_IMAGE2_RESPONSE_INVALID: response.status must be "ok" or "fail".');
@@ -452,27 +462,6 @@ function codexExecArgs({ request, requestPath, model }) {
   return args;
 }
 
-async function runProcess(command, args, stdin) {
-  return await new Promise((resolve) => {
-    const child = spawn(command, args, {
-      stdio: ['pipe', 'pipe', 'pipe'],
-      shell: process.platform === 'win32',
-    });
-    let stdout = '';
-    let stderr = '';
-    child.stdout.on('data', (chunk) => { stdout += chunk.toString(); });
-    child.stderr.on('data', (chunk) => { stderr += chunk.toString(); });
-    child.on('error', (error) => {
-      resolve({ status: 'error', exitCode: null, stdout, stderr, error });
-    });
-    child.on('close', (code) => {
-      resolve({ status: code === 0 ? 'ok' : 'error', exitCode: code, stdout, stderr });
-    });
-    child.stdin.write(stdin);
-    child.stdin.end();
-  });
-}
-
 async function consumeProviderResponse({
   requestPath,
   request,
@@ -481,7 +470,9 @@ async function consumeProviderResponse({
   selectedModel = null,
   selectedModelSource = 'not_recorded',
 }) {
-  const response = validateCodexResponse(parseCodexResponse(await readFile(responsePath, 'utf8')));
+  const response = validateCodexResponse(parseCodexResponse(await readFile(responsePath, 'utf8')), {
+    requestId: request.request_id,
+  });
   if (response.status !== 'ok') {
     throw new Error(`NIMI2D_CODEX_IMAGE2_FAILED: ${response.failure_reason ?? response.summary ?? 'unknown failure'}`);
   }
@@ -517,6 +508,10 @@ async function consumeProviderResponse({
 async function runCodexImage2Provider(args) {
   const requestPath = path.resolve(requireFlag(args, '--request'));
   const request = validateCodexImage2Request(await readYaml(requestPath));
+  const adapter = getFlag(args, '--adapter', 'codex_cli');
+  if (adapter !== 'codex_cli') {
+    throw new Error(`NIMI2D_CODEX_IMAGE2_ADAPTER_INVALID: image2-provider-run only admits --adapter codex_cli, got ${adapter}.`);
+  }
   const promptPath = resolveRequestArtifactRef(requestPath, request.artifacts.prompt_ref, '$.artifacts.prompt_ref');
   const responsePath = getFlag(args, '--response-file')
     ? path.resolve(getFlag(args, '--response-file'))
@@ -524,60 +519,245 @@ async function runCodexImage2Provider(args) {
   const prompt = await readFile(promptPath, 'utf8');
   const codexBin = getFlag(args, '--codex-bin', 'codex');
   const model = getFlag(args, '--model');
+  const timeoutMs = getPositiveIntegerFlag(args, '--timeout-ms');
+  const attemptCount = getPositiveIntegerFlag(args, '--attempts') ?? 1;
+  if (attemptCount > 1 && timeoutMs === null) {
+    throw new Error('NIMI2D_CODEX_IMAGE2_ARGUMENT_INVALID: --attempts greater than 1 requires --timeout-ms so failed attempts can be bounded.');
+  }
+  const originalAttempt = originalProviderAttempt({ requestPath, request, resolveRequestArtifactRef });
   const execArgs = codexExecArgs({ request, requestPath, model });
   if (hasFlag(args, '--dry-run')) {
+    const runId = attemptRunId();
+    const executionAttempts = Array.from({ length: attemptCount }, (_, index) => {
+      const attempt = index + 1;
+      const plan = attemptCount === 1
+        ? originalAttempt
+        : attemptPlanPaths({ requestPath, runId, attemptIndex: attempt });
+      const attemptRequest = attemptCount === 1 ? request : {
+        ...cloneJson(request),
+        request_id: attemptRequestId(request.request_id, plan.label),
+        artifacts: {
+          prompt_ref: 'prompt.md',
+          output_schema_ref: 'codex-image2-output.schema.json',
+          expected_image_ref: 'generated/codex-image2.png',
+          response_ref: 'codex-response.json',
+          artifact_manifest_ref: 'codex-image2.artifact.yaml',
+        },
+      };
+      return executionAttemptRecord({ ...plan, request: attemptRequest }, {
+        status: 'planned',
+        args: codexExecArgs({ request: attemptRequest, requestPath: plan.requestPath, model }),
+      });
+    });
     return {
       status: 'ok',
       kind: 'codex_image2_provider_run',
       mode: 'dry_run',
+      adapter,
       command: codexBin,
       args: execArgs,
       promptPath,
       responsePath,
+      timeoutMs,
+      attempts: attemptCount,
+      executionAttempts,
     };
   }
   let execution = null;
+  let executionAttempts = [];
+  let selectedAttempt = originalAttempt;
+  let registered = null;
   if (hasFlag(args, '--execute')) {
-    execution = await runProcess(codexBin, execArgs, prompt);
-    if (execution.status !== 'ok') {
-      return {
-        status: 'reject',
-        kind: 'codex_image2_provider_run',
-        mode: 'execute',
-        codes: ['NIMI2D_CODEX_IMAGE2_CLI_FAILED'],
-        issues: [{
-          code: 'NIMI2D_CODEX_IMAGE2_CLI_FAILED',
-          path: '$.execution',
+    const runId = attemptRunId();
+    for (let attemptIndex = 1; attemptIndex <= attemptCount; attemptIndex += 1) {
+      const plan = attemptCount === 1
+        ? originalAttempt
+        : await materializeProviderAttempt({
+          requestPath,
+          request,
+          prompt,
+          runId,
+          attemptIndex,
+          resolveRequestArtifactRef,
+          outputSchema,
+        });
+      const attemptExecArgs = codexExecArgs({ request: plan.request, requestPath: plan.requestPath, model });
+      const attemptPrompt = attemptCount === 1 ? prompt : await readFile(plan.promptPath, 'utf8');
+      execution = await runProcess(codexBin, attemptExecArgs, attemptPrompt, { timeoutMs });
+      if (execution.timedOut) {
+        const code = 'NIMI2D_CODEX_IMAGE2_CLI_TIMEOUT';
+        const record = executionAttemptRecord(plan, {
+          status: 'reject',
+          code,
+          exitCode: execution.exitCode,
+          timedOut: execution.timedOut,
+          timeoutMs,
+        });
+        executionAttempts.push(record);
+        if (attemptIndex < attemptCount) continue;
+        return providerRunReject({
+          code,
+          issuePath: '$.execution.timeout_ms',
+          message: `Codex CLI timed out after ${timeoutMs}ms.`,
+          executionAttempts,
+        });
+      }
+      if (execution.status !== 'ok') {
+        const code = 'NIMI2D_CODEX_IMAGE2_CLI_FAILED';
+        const record = executionAttemptRecord(plan, {
+          status: 'reject',
+          code,
+          exitCode: execution.exitCode,
+          stdout: execution.stdout,
+          stderr: execution.stderr,
+          timedOut: execution.timedOut,
+          timeoutMs,
+        });
+        executionAttempts.push(record);
+        if (attemptIndex < attemptCount) continue;
+        return providerRunReject({
+          code,
+          issuePath: '$.execution',
           message: execution.stderr || execution.stdout || `Codex CLI exited with ${execution.exitCode}`,
-        }],
-      };
+          executionAttempts,
+        });
+      }
+      if (!(await fileExists(plan.responsePath))) {
+        const code = 'NIMI2D_CODEX_IMAGE2_RESPONSE_MISSING';
+        const record = executionAttemptRecord(plan, {
+          status: 'reject',
+          code,
+          exitCode: execution.exitCode,
+          timedOut: execution.timedOut,
+          timeoutMs,
+        });
+        executionAttempts.push(record);
+        if (attemptIndex < attemptCount) continue;
+        return providerRunReject({
+          code,
+          issuePath: '$.artifacts.response_ref',
+          message: `Codex CLI exited successfully but did not write provider response ${plan.responsePath}.`,
+          executionAttempts,
+        });
+      }
+      let providerResponse;
+      try {
+        providerResponse = validateCodexResponse(parseCodexResponse(await readFile(plan.responsePath, 'utf8')), {
+          requestId: plan.request.request_id,
+        });
+      } catch (error) {
+        const code = 'NIMI2D_CODEX_IMAGE2_RESPONSE_INVALID';
+        const message = error instanceof Error ? error.message : String(error);
+        const record = executionAttemptRecord(plan, {
+          status: 'reject',
+          code,
+          message,
+          exitCode: execution.exitCode,
+          timedOut: execution.timedOut,
+          timeoutMs,
+        });
+        executionAttempts.push(record);
+        if (attemptIndex < attemptCount) continue;
+        return providerRunReject({
+          code,
+          issuePath: '$.artifacts.response_ref',
+          message,
+          executionAttempts,
+        });
+      }
+      if (providerResponse.status !== 'ok') {
+        const code = 'NIMI2D_CODEX_IMAGE2_FAILED';
+        const message = providerResponse.failure_reason ?? providerResponse.summary ?? 'unknown provider failure';
+        const record = executionAttemptRecord(plan, {
+          status: 'reject',
+          code,
+          message,
+          exitCode: execution.exitCode,
+          timedOut: execution.timedOut,
+          timeoutMs,
+        });
+        executionAttempts.push(record);
+        if (attemptIndex < attemptCount) continue;
+        return providerRunReject({
+          code,
+          issuePath: '$.provider_response.status',
+          message,
+          executionAttempts,
+        });
+      }
+      selectedAttempt = plan;
+      try {
+        registered = await consumeProviderResponse({
+          requestPath: plan.requestPath,
+          request: plan.request,
+          responsePath: plan.responsePath,
+          surface: hasFlag(args, '--demo-fixture') ? 'demo_fixture' : 'codex_cli',
+          selectedModel: model ?? null,
+          selectedModelSource: model ? 'cli_argument' : 'not_recorded',
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        const code = message.match(/^(NIMI2D_[A-Z0-9_]+):/)?.[1] ?? 'NIMI2D_CODEX_IMAGE2_RESPONSE_CONSUME_FAILED';
+        const record = executionAttemptRecord(plan, {
+          status: 'reject',
+          code,
+          message,
+          exitCode: execution.exitCode,
+          timedOut: execution.timedOut,
+          timeoutMs,
+        });
+        executionAttempts.push(record);
+        if (attemptIndex < attemptCount) continue;
+        return providerRunReject({
+          code,
+          issuePath: '$.provider_response',
+          message,
+          executionAttempts,
+        });
+      }
+      executionAttempts.push(executionAttemptRecord(plan, {
+        status: 'ok',
+        exitCode: execution.exitCode,
+        stdout: execution.stdout,
+        stderr: execution.stderr,
+        timedOut: execution.timedOut,
+        timeoutMs,
+      }));
+      break;
     }
   } else if (!(await fileExists(responsePath))) {
     throw new Error('Missing --execute or --response-file; no provider response is available to consume.');
   }
-  const registered = await consumeProviderResponse({
-    requestPath,
-    request,
-    responsePath,
-    surface: hasFlag(args, '--demo-fixture') ? 'demo_fixture' : 'codex_cli',
-    selectedModel: model ?? null,
-    selectedModelSource: model ? 'cli_argument' : 'not_recorded',
-  });
+  if (!registered) {
+    registered = await consumeProviderResponse({
+      requestPath,
+      request,
+      responsePath,
+      surface: hasFlag(args, '--demo-fixture') ? 'demo_fixture' : 'codex_cli',
+      selectedModel: model ?? null,
+      selectedModelSource: model ? 'cli_argument' : 'not_recorded',
+    });
+  }
   return {
     status: registered.verdict === 'reject' ? 'reject' : 'ok',
     kind: 'codex_image2_provider_run',
     manifest_kind: CODEX_IMAGE2_RUN_KIND,
     schema_version: 1,
     mode: execution ? 'execute' : 'consume_response',
-    requestPath,
-    responsePath,
+    requestPath: execution ? selectedAttempt.requestPath : requestPath,
+    responsePath: execution ? selectedAttempt.responsePath : responsePath,
+    adapter,
     artifactManifestPath: registered.outPath,
     artifactVerdict: registered.verdict,
     execution: execution ? {
       exitCode: execution.exitCode,
       stdout: execution.stdout,
       stderr: execution.stderr,
+      timedOut: execution.timedOut,
+      timeoutMs,
     } : null,
+    attempts: attemptCount,
+    executionAttempts,
     codes: registered.verdict === 'reject' ? ['NIMI2D_CODEX_IMAGE2_ARTIFACT_REJECTED'] : [],
     issues: [],
   };

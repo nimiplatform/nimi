@@ -45,7 +45,7 @@ entries:
     install_dir_name: metal-stablediffusion-ggml-official-sdcpp
     image_ref: ""
     archive_url: https://github.com/leejet/stable-diffusion.cpp/releases/download/master-552-87ecb95/sd-master-87ecb95-bin-Darwin-macOS-15.7.4-arm64.zip
-    archive_sha256: f57c43020b172ae9e5095d7aea3c3c1c470717fbbd6b65118545c702053076b1
+    archive_sha256: f57c43020b172ae9e5095d7aea3c3c1c470717fbbd6b65118545c702053076b1 # pragma: allowlist secret
     executable_candidates: [sd-cli]
     launch_mode: runtime_wrapper
     wrapper_driver: stable-diffusion.cpp
@@ -69,7 +69,7 @@ entries:
     install_dir_name: sd-win-cuda12-x64-stablediffusion-ggml
     image_ref: ""
     archive_url: https://github.com/leejet/stable-diffusion.cpp/releases/download/master-552-87ecb95/sd-master-87ecb95-bin-win-cuda12-x64.zip
-    archive_sha256: 011643ec700d6097b9537f0f75ffb26856cc56a5ce765ffe9a32f2b47844e080
+    archive_sha256: 011643ec700d6097b9537f0f75ffb26856cc56a5ce765ffe9a32f2b47844e080 # pragma: allowlist secret
     dependency_requirements:
       - dependency_id: nvidia-cuda-user-space-runtime
         consumer_id: stable-diffusion.cpp.cuda

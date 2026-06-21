@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { inflateSync } from 'node:zlib';
 
-const pngSignature = '89504e470d0a1a0a';
+const pngSignature = '89504e470d0a1a0a'; // pragma: allowlist secret
 
 function paeth(left, up, upLeft) {
   const estimate = left + up - upLeft;

@@ -12,7 +12,7 @@ import {
 } from './common-utils.mjs';
 
 function parsePngInfo(buffer) {
-  const signature = '89504e470d0a1a0a';
+  const signature = '89504e470d0a1a0a'; // pragma: allowlist secret
   if (buffer.length < 33 || buffer.subarray(0, 8).toString('hex') !== signature) {
     return null;
   }

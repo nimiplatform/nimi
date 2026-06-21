@@ -75,7 +75,7 @@ function usage() {
     '  nimi2d run-atlas-quality-gate <atlas-spec> [--out <quality-report>]',
     '  nimi2d run-image-input-workflow-bench <atlas-spec> --out <output-dir> [--grid-size <n>]',
     '  nimi2d image2-provider-plan --workflow <workflow> --out-dir <dir> [--description <text>] [--description-file <file>] [--image <png>]',
-    '  nimi2d image2-provider-run --request <provider-request.yaml> [--dry-run|--execute|--response-file <json>] [--codex-bin <cmd>] [--model <model>]',
+    '  nimi2d image2-provider-run --request <provider-request.yaml> [--adapter codex_cli] [--dry-run|--execute|--response-file <json>] [--codex-bin <cmd>] [--model <model>] [--timeout-ms <ms>] [--attempts <n>]',
     '  nimi2d image2-register-output --image <png> --out <manifest.yaml> --surface codex_cli [--request <provider-request.yaml>] [--evidence-image <png>] [--model <model>] [--model-hint <hint>]',
     '  nimi2d image2-compare-pixels --left <png> --right <png> --out <report.yaml>',
     '  nimi2d image2-postprocess --input <png> --out <png> --report <report.yaml> [--transparent-background none|corner|color]',

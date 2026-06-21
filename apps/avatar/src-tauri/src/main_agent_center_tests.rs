@@ -408,7 +408,7 @@ async fn resolve_local_avatar_asset_rejects_invalid_live2d_calibration_ref() {
         &local_agent_ref,
         "live2d",
         "live2d_ab12cd34ef56",
-        Some("live2d_calibration_ABCDEF123456"),
+        Some("live2d_calibration_ABCDEF123456"), // pragma: allowlist secret
     );
 
     let error = nimi_avatar_resolve_local_avatar_asset(LocalAvatarAssetResolvePayload {

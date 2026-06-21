@@ -3,6 +3,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
+import { fileURLToPath } from 'node:url';
 import {
   CAPABILITY_INTERFACE_ORDER,
   loadSourceProviderCapabilityMatrix,
@@ -30,6 +31,11 @@ const workflowLiveConfigPaths = [
 ].map((workflowPath) => path.join(repoRoot, workflowPath));
 const liveEnvTemplatePath = path.join(repoRoot, 'config/live/live-test.env.example');
 const defaultBaselinePath = path.join(repoRoot, 'config/live/live-gate-baseline.yaml');
+const nimi2dImage2ForbiddenLiveRouteTokens = [
+  'openai_api_key',
+  'NIMI2D_IMAGE2_OPENAI_API_KEY',
+  'openai_image_api',
+];
 
 function parseArgs() {
   const args = process.argv.slice(2);
@@ -153,6 +159,83 @@ function collectWorkflowLocalLiveFallbacks(workflowPaths) {
     }
   }
   return fallbackRefs;
+}
+
+function listFilesUnder(rootDir) {
+  if (!fs.existsSync(rootDir)) {
+    return [];
+  }
+  const files = [];
+  const stack = [rootDir];
+  while (stack.length > 0) {
+    const current = stack.pop();
+    for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+      const absolutePath = path.join(current, entry.name);
+      if (entry.isDirectory()) {
+        stack.push(absolutePath);
+        continue;
+      }
+      if (entry.isFile()) {
+        files.push(absolutePath);
+      }
+    }
+  }
+  return files.sort((a, b) => a.localeCompare(b));
+}
+
+function shouldScanNimi2DImage2LiveRoutePath(relPath) {
+  if (relPath.startsWith('.nimi/spec/nimi2d/')) {
+    return true;
+  }
+  if (relPath.startsWith('nimi2d/src/node/image2-provider/')) {
+    return true;
+  }
+  if (relPath.startsWith('nimi2d/test/')) {
+    return true;
+  }
+  return false;
+}
+
+function isIsolatedOpenAIImageApiAdapterPath(relPath) {
+  if (relPath.startsWith('.nimi/spec/nimi2d/')) {
+    return false;
+  }
+  return /(^|\/)(provider-openai-image-api|[^/]*openai-image-api[^/]*)/.test(relPath);
+}
+
+function collectNimi2DImage2LiveRouteDriftRefs(scanRoot = repoRoot) {
+  const roots = [
+    '.nimi/spec/nimi2d',
+    'nimi2d/src/node/image2-provider',
+    'nimi2d/test',
+  ];
+  const driftRefs = [];
+  for (const root of roots) {
+    for (const absolutePath of listFilesUnder(path.join(scanRoot, root))) {
+      const relPath = path.relative(scanRoot, absolutePath).split(path.sep).join('/');
+      if (!shouldScanNimi2DImage2LiveRoutePath(relPath)) {
+        continue;
+      }
+      const content = fs.readFileSync(absolutePath, 'utf8');
+      const lines = content.split(/\r?\n/);
+      for (const [index, line] of lines.entries()) {
+        for (const token of nimi2dImage2ForbiddenLiveRouteTokens) {
+          if (!line.includes(token)) {
+            continue;
+          }
+          if (token === 'openai_image_api' && isIsolatedOpenAIImageApiAdapterPath(relPath)) {
+            continue;
+          }
+          driftRefs.push({
+            path: relPath,
+            line: index + 1,
+            token,
+          });
+        }
+      }
+    }
+  }
+  return driftRefs;
 }
 
 function runtimeSourceCapabilityRequired(provider, capability, runtimeProviderCapabilityPairs) {
@@ -316,6 +399,15 @@ function main() {
     failures.push(`workflow-local live provider defaults are forbidden: ${workflowLocalLiveFallbacks.join(', ')}`);
   }
 
+  const nimi2dImage2LiveRouteDriftRefs = collectNimi2DImage2LiveRouteDriftRefs(repoRoot);
+  if (nimi2dImage2LiveRouteDriftRefs.length > 0) {
+    failures.push(
+      `nimi2d Image2 direct API/key live route drift is forbidden: ${nimi2dImage2LiveRouteDriftRefs
+        .map((ref) => `${ref.path}:${ref.line}:${ref.token}`)
+        .join(', ')}`,
+    );
+  }
+
   const capabilityEnvSuffixes = {
     generate: ['MODEL_ID'],
     embed: ['EMBED_MODEL_ID', 'MODEL_ID'],
@@ -401,10 +493,16 @@ function main() {
   process.stdout.write('[check-live-provider-invariants] provider invariants passed\n');
 }
 
-try {
-  main();
-} catch (error) {
-  const message = error instanceof Error ? error.message : String(error || '');
-  process.stderr.write(`[check-live-provider-invariants] fatal: ${message}\n`);
-  process.exit(1);
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  try {
+    main();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error || '');
+    process.stderr.write(`[check-live-provider-invariants] fatal: ${message}\n`);
+    process.exit(1);
+  }
 }
+
+export {
+  collectNimi2DImage2LiveRouteDriftRefs,
+};

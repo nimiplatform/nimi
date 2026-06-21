@@ -1,4 +1,5 @@
 import { ATLAS_SPEC_KIND } from '../image-input/atlas-spec.mjs';
+import { evaluateSharedAvatarRegistration } from './layer-workflow-registration.mjs';
 
 const key = [0, 255, 0, 255];
 const defaultColumns = 3;
@@ -480,6 +481,11 @@ function analyzeNormalizedAtlasQuality(normalized) {
       hasForegroundInEveryCell ? 'pass' : 'fail',
       'Normalization must preserve foreground content in every semantic cell.',
       Object.fromEntries(normalized.quality.cellStats.map((item) => [item.cell, item.foregroundPct])),
+    ),
+    shared_avatar_registration: evaluateSharedAvatarRegistration(
+      normalized.quality.cellStats,
+      normalized.cellWidth,
+      normalized.cellHeight,
     ),
   };
   return {

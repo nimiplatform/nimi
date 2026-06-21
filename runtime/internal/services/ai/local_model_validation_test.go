@@ -625,10 +625,10 @@ func TestLocalModelValidationLogsUseIdentityRefs(t *testing.T) {
 
 	output := logs.String()
 	for _, want := range []string{
-		"requested_model_ref=local-import/gemma-4-26B-A4B-it-Q8_0",
-		"resolved_model_ref=local-import/gemma-4-26B-A4B-it-Q8_0",
+		"requested_model_ref=local-import/gemma-4-26B-A4B-it-Q8_0", // pragma: allowlist secret
+		"resolved_model_ref=local-import/gemma-4-26B-A4B-it-Q8_0",  // pragma: allowlist secret
 		"selected_asset_id=local-import/gemma-4-26B-A4B-it-Q8_0",
-		"selected_local_asset_id=01KTEX08DS2GR9HJ1X3R459P1B",
+		"selected_local_asset_id=01KTEX08DS2GR9HJ1X3R459P1B", // pragma: allowlist secret
 		"selected_logical_model_id=nimi/gemma-4-26b-it",
 	} {
 		if !strings.Contains(output, want) {
