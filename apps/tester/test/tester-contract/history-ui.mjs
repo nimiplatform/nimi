@@ -150,8 +150,10 @@ test('runtime history panel toggle lives beside Runtime and reflects collapsed s
   assert.match(styles, /\.studio__head\s*\{[^}]*min-height:\s*104px[^}]*padding:\s*26px\s+26px\s+16px\s+18px/s);
   assert.match(styles, /\.studio__head-actions\s*\{[^}]*gap:\s*10px/s);
   assert.doesNotMatch(styles, /\.studio__history-toggle/);
-  assert.match(styles, /\.studio-history-toggle\s*\{[^}]*width:\s*40px[^}]*height:\s*38px[^}]*border:\s*0[^}]*background:\s*transparent[^}]*box-shadow:\s*none[^}]*color:\s*color-mix\(in srgb,\s*var\(--nimi-text-muted\) 88%,\s*#64748b\)/s);
-  assert.match(styles, /\.studio-history-toggle--expanded\s*\{[^}]*color:\s*color-mix\(in srgb,\s*var\(--nimi-text-secondary\) 72%,\s*#111827\)/s);
+  assert.match(styles, /\.studio-history-toggle\s*\{[^}]*width:\s*40px[^}]*height:\s*38px[^}]*border:\s*0[^}]*background:\s*transparent[^}]*box-shadow:\s*none[^}]*color:\s*color-mix\(in srgb,\s*var\(--nimi-text-muted\) 64%,\s*transparent\)/s);
+  assert.match(styles, /\.studio-history-toggle:hover\s*\{[^}]*background:\s*rgba\(255,\s*255,\s*255,\s*0\.22\)[^}]*color:\s*color-mix\(in srgb,\s*var\(--nimi-text-secondary\) 62%,\s*transparent\)/s);
+  assert.match(styles, /\.studio-history-toggle--expanded\s*\{[^}]*color:\s*color-mix\(in srgb,\s*var\(--nimi-text-primary\) 90%,\s*transparent\)/s);
+  assert.match(styles, /\.studio-history-toggle--expanded:hover\s*\{[^}]*background:\s*rgba\(255,\s*255,\s*255,\s*0\.24\)[^}]*color:\s*color-mix\(in srgb,\s*var\(--nimi-text-primary\) 90%,\s*transparent\)/s);
   assert.match(styles, /\.studio-history-toggle\s+svg\s*\{[^}]*width:\s*17px[^}]*height:\s*17px/s);
   assert.match(styles, /\.studio__workspace--with-history\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+auto/s);
   assert.match(styles, /\.workbench\s*\{[^}]*--studio-side-panel-width:\s*min\(360px,\s*calc\(100vw - 48px\)\)/s);
@@ -162,6 +164,8 @@ test('runtime history panel toggle lives beside Runtime and reflects collapsed s
   assert.match(styles, /\.studio-history-shell::before\s*\{[^}]*left:\s*0[^}]*width:\s*1px[^}]*background:\s*rgba\(148,\s*163,\s*184,\s*0\.13\)/s);
   assert.match(styles, /\.studio-history\s*\{[^}]*border-left:\s*1px\s+solid\s+rgba\(226,\s*231,\s*241,\s*0\.24\)[^}]*padding:\s*36px\s+14px\s+28px/s);
   assert.match(styles, /\.studio-recent__head\s*\{[^}]*min-height:\s*41px/s);
+  assert.match(styles, /\.studio-history__filter-trigger\s*\{[^}]*color:\s*color-mix\(in srgb,\s*var\(--nimi-text-muted\) 86%,\s*transparent\)/s);
+  assert.match(styles, /\.studio-history__filter-trigger:hover,\s*\n\.studio-history__filter-trigger--active\s*\{[^}]*background:\s*rgba\(255,\s*255,\s*255,\s*0\.36\)[^}]*color:\s*color-mix\(in srgb,\s*var\(--nimi-text-muted\) 96%,\s*transparent\)/s);
   assert.match(styles, /\.studio-history-shell--collapsed::before\s*\{[^}]*display:\s*none/s);
   assert.match(styles, /\.studio-history--collapsed\s*\{[^}]*overflow:\s*hidden[^}]*border-left:\s*0[^}]*padding:\s*0/s);
   assert.match(styles, /\.studio-history-shell--collapsed\s*\{[^}]*width:\s*0/s);
