@@ -5,6 +5,8 @@ import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { type ProfileDetailSeed } from '@renderer/features/relationship/profile-detail-modal.js';
+import type { NimiRealmCoreSourceRef } from '@nimiplatform/sdk/realm';
+import { resolveRealmCoreSourceRef } from '@renderer/features/realm-source/realm-source-identity.js';
 
 export type RelationshipHoverCardPosition = {
   top: number;
@@ -57,6 +59,10 @@ function getMetadataText(target: ConversationTargetSummary, key: string): string
   return typeof value === 'string' ? value.trim() : '';
 }
 
+function getMetadataValue(target: ConversationTargetSummary, key: string): unknown {
+  return target.metadata?.[key];
+}
+
 function parseRuntimeSourceRefFromLocalRef(localAgentRef: string): string {
   try {
     return parseRuntimeLocalAgentIdentity(localAgentRef).runtimeSourceRef;
@@ -69,17 +75,28 @@ function resolveProfileTargetId(target: ConversationTargetSummary): string {
   if (target.source === 'human') {
     return getMetadataText(target, 'otherUserId') || target.id;
   }
+  return resolveProfileSourceRef(target)?.sourceId ?? '';
+}
+
+function resolveProfileSourceRef(target: ConversationTargetSummary): NimiRealmCoreSourceRef | null {
   if (target.source !== 'agent') {
-    return '';
+    return null;
   }
-  return getMetadataText(target, 'runtimeSourceRef')
-    || parseRuntimeSourceRefFromLocalRef(target.id)
-    || target.handle?.replace(/^@/, '').trim()
-    || '';
+  return resolveRealmCoreSourceRef({
+    sourceRef: getMetadataValue(target, 'sourceRef'),
+    sourceKind: getMetadataText(target, 'sourceKind'),
+    sourceWorldId: getMetadataText(target, 'sourceWorldId') || getMetadataText(target, 'worldId'),
+    sourceId: getMetadataText(target, 'sourceId'),
+    sourceContentHash: getMetadataText(target, 'sourceContentHash'),
+  });
 }
 
 export function buildRelationshipProfileSeed(target: ConversationTargetSummary): { profileId: string; seed: ProfileDetailSeed } | null {
   if (target.source !== 'human' && target.source !== 'agent') {
+    return null;
+  }
+  const sourceRef = resolveProfileSourceRef(target);
+  if (target.source === 'agent' && !sourceRef) {
     return null;
   }
   const profileId = resolveProfileTargetId(target).trim();
@@ -87,6 +104,9 @@ export function buildRelationshipProfileSeed(target: ConversationTargetSummary):
     return null;
   }
   const ownershipType = getMetadataText(target, 'ownershipType');
+  const runtimeSourceRef = target.source === 'agent'
+    ? getMetadataText(target, 'runtimeSourceRef') || parseRuntimeSourceRefFromLocalRef(target.id)
+    : '';
   return {
     profileId,
     seed: {
@@ -98,6 +118,12 @@ export function buildRelationshipProfileSeed(target: ConversationTargetSummary):
       isSource: target.source === 'agent',
       isOnline: target.isOnline ?? undefined,
       worldName: getMetadataText(target, 'worldName') || null,
+      sourceWorldId: sourceRef?.worldId ?? null,
+      sourceKind: sourceRef?.kind,
+      sourceId: sourceRef?.sourceId,
+      sourceContentHash: sourceRef?.sourceContentHash,
+      runtimeSourceRef: runtimeSourceRef || undefined,
+      ...(sourceRef ? { sourceRef } : {}),
       sourceOwnershipType: ownershipType || null,
     },
   };

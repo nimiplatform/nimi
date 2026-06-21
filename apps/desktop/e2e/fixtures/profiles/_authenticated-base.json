@@ -169,8 +169,6 @@
         "updatedAt": "2026-03-15T00:00:00.000Z",
         "creatorId": "user-e2e-primary",
         "freezeReason": null,
-        "lorebookEntryLimit": 0,
-        "nativeCharacterLimit": 0,
         "scoreA": 0,
         "scoreC": 0,
         "scoreE": 0,
@@ -215,7 +213,8 @@
             "sourceRef": {
               "kind": "worldCharacter",
               "worldId": "world-e2e-1",
-              "sourceId": "character-e2e-alpha"
+              "sourceId": "character-e2e-alpha",
+              "sourceContentHash": "character-e2e-alpha-hash"
             },
             "displayName": "Fixture Character",
             "handle": "~fixture-character",
@@ -245,7 +244,8 @@
             "sourceRef": {
               "kind": "realmPersona",
               "worldId": "world-e2e-1",
-              "sourceId": "persona-e2e-beta"
+              "sourceId": "persona-e2e-beta",
+              "sourceContentHash": "persona-e2e-beta-hash"
             },
             "displayName": "Fixture Persona",
             "handle": "~fixture-persona",

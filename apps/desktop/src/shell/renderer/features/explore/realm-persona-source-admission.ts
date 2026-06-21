@@ -4,11 +4,21 @@ import {
   connectNimiRealmSource,
   listNimiRealmSourceConnections,
   type NimiRealmCoreSourceRef,
-  type NimiRealmPublicSourceLocator,
   type NimiRealmSourceConnectionView,
 } from '@nimiplatform/sdk/realm';
 import type { RuntimeSourceSnapshotDto } from '@nimiplatform/sdk/realm/generated';
 import { callRealmApi, emitRealmDataError } from '@renderer/infra/realm/realm-api';
+import {
+  realmSourceRefKey,
+  resolveRealmCoreSourceRef,
+  resolveRealmPublicSourceLocator,
+} from '@renderer/features/realm-source/realm-source-identity.js';
+
+export {
+  realmSourceRefKey,
+  resolveRealmCoreSourceRef,
+  resolveRealmPublicSourceLocator,
+};
 
 export type RealmPersonaSourceState =
   | 'source_connectable'
@@ -41,88 +51,8 @@ export type RealmSourceConnectionProjection = {
 
 export const realmPersonaSourceAdmissionQueryKey = ['realm-source-connections', 'active'] as const;
 
-function asRecord(value: unknown): Record<string, unknown> | null {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? value as Record<string, unknown>
-    : null;
-}
-
 function normalizeText(value: unknown): string {
   return String(value || '').trim();
-}
-
-function normalizeSourceKind(value: unknown): NimiRealmCoreSourceRef['kind'] | null {
-  const normalized = normalizeText(value);
-  if (normalized === 'worldCharacter' || normalized === 'WORLD_CHARACTER') {
-    return 'worldCharacter';
-  }
-  if (normalized === 'realmPersona' || normalized === 'REALM_PERSONA') {
-    return 'realmPersona';
-  }
-  return null;
-}
-
-export function realmSourceRefKey(sourceRef: NimiRealmCoreSourceRef): string {
-  return `${sourceRef.kind}:${sourceRef.worldId}:${sourceRef.sourceId}:${sourceRef.sourceContentHash}`;
-}
-
-export function resolveRealmCoreSourceRef(input: unknown): NimiRealmCoreSourceRef | null {
-  const record = asRecord(input);
-  if (!record) {
-    return null;
-  }
-
-  const nestedSourceRef = asRecord(record.sourceRef);
-  if (nestedSourceRef) {
-    const kind = normalizeSourceKind(nestedSourceRef.kind);
-    const worldId = normalizeText(nestedSourceRef.worldId);
-    const sourceId = normalizeText(nestedSourceRef.sourceId);
-    const sourceContentHash = normalizeText(nestedSourceRef.sourceContentHash);
-    if (kind && worldId && sourceId && sourceContentHash) {
-      return { kind, worldId, sourceId, sourceContentHash };
-    }
-  }
-
-  const kind = normalizeSourceKind(record.sourceKind ?? record.kind);
-  const sourceId = normalizeText(record.sourceId) || normalizeText(record.id);
-  const worldId = normalizeText(record.sourceWorldId)
-    || normalizeText(record.worldId)
-    || normalizeText(record.homeWorldId);
-  const sourceContentHash = normalizeText(record.sourceContentHash)
-    || normalizeText(record.contentHash);
-
-  if (!kind || !sourceId || !worldId || !sourceContentHash) {
-    return null;
-  }
-  return { kind, worldId, sourceId, sourceContentHash };
-}
-
-export function resolveRealmPublicSourceLocator(input: unknown): NimiRealmPublicSourceLocator | null {
-  const record = asRecord(input);
-  if (!record) {
-    return null;
-  }
-
-  const nestedSourceRef = asRecord(record.sourceRef);
-  if (nestedSourceRef) {
-    const kind = normalizeSourceKind(nestedSourceRef.kind);
-    const worldId = normalizeText(nestedSourceRef.worldId);
-    const sourceId = normalizeText(nestedSourceRef.sourceId);
-    if (kind && worldId && sourceId) {
-      return { kind, worldId, sourceId };
-    }
-  }
-
-  const kind = normalizeSourceKind(record.sourceKind ?? record.kind);
-  const sourceId = normalizeText(record.sourceId) || normalizeText(record.id);
-  const worldId = normalizeText(record.sourceWorldId)
-    || normalizeText(record.worldId)
-    || normalizeText(record.homeWorldId);
-
-  if (!kind || !sourceId || !worldId) {
-    return null;
-  }
-  return { kind, worldId, sourceId };
 }
 
 export function realmPersonaSourceConnectionMessage(): string {

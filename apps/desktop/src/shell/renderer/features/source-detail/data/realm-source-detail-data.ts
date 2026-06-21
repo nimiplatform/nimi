@@ -1,4 +1,4 @@
-import { type NimiRealmCoreSourceRef } from '@nimiplatform/sdk/realm';
+import { type NimiRealmCoreSourceRef, type Realm } from '@nimiplatform/sdk/realm';
 import {
   isRealmOfflineErrorLike as isRealmOfflineError,
   type JsonObject,
@@ -76,6 +76,67 @@ function readWorldStudioVoiceDesign(core: JsonObject): JsonObject | null {
   const worldStudioSettings = asRecord(extensions.worldStudioSettings);
   const voice = asRecord(worldStudioSettings.voice);
   return Object.keys(voice).length > 0 ? voice : null;
+}
+
+function readStringArray(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.map((item) => toNonEmptyString(item)).filter(Boolean)
+    : [];
+}
+
+function readEntityFacts(core: JsonObject): JsonObject[] {
+  const facts = Array.isArray(core.facts) ? core.facts : [];
+  return facts
+    .map(asRecord)
+    .filter((fact) => Object.keys(fact).length > 0);
+}
+
+function projectWorldEntityCore(entity: {
+  id: string;
+  kind: string;
+  contentHash: string;
+  core: Record<string, unknown>;
+}): JsonObject {
+  const core = asRecord(entity.core);
+  const identity = asRecord(core.identity);
+  const classification = asRecord(core.classification);
+  const name = toNonEmptyString(identity.name);
+  const kind = toNonEmptyString(entity.kind) || toNonEmptyString(identity.kind);
+  const contentHash = toNonEmptyString(entity.contentHash);
+  if (!name || !kind || !contentHash) {
+    throw new Error('WorldEntityCore source detail requires identity.name, kind, and contentHash');
+  }
+  return {
+    id: entity.id,
+    kind,
+    name,
+    summary: toNonEmptyString(identity.summary) || null,
+    contentHash,
+    tags: readStringArray(classification.tags),
+    facts: readEntityFacts(core),
+  };
+}
+
+async function loadBoundWorldEntityProjection(
+  realm: Realm,
+  character: {
+    entityId?: string;
+    worldId?: string;
+  },
+  worldId: string,
+): Promise<JsonObject> {
+  const entityId = toNonEmptyString(character.entityId);
+  if (!entityId) {
+    throw new Error('WorldCharacterCore source detail requires entityId');
+  }
+  const entity = await realm.worldCore.worldCoreControllerGetWorldEntity({
+    path: { entityId },
+  });
+  const entityWorldId = toNonEmptyString(entity.worldId);
+  if (entityWorldId !== worldId) {
+    throw new Error('WorldCharacterCore entity world mismatch');
+  }
+  return projectWorldEntityCore(entity);
 }
 
 function projectRealmPersonaCore(core: JsonObject): Pick<JsonObject, 'displayName' | 'handle' | 'avatarUrl' | 'profileCoverUrl' | 'referenceImageUrl' | 'voiceDesign' | 'bio' | 'archetype' | 'pacing'> {
@@ -199,10 +260,14 @@ async function loadRealmSourceDetailsBySourceRef(
     throw new Error('WorldCharacterCore sourceRef is stale or mismatched');
   }
   const core = asRecord(character.core);
+  const entity = await loadBoundWorldEntityProjection(realm, character, worldId);
   return {
     id: character.id,
     ...projectWorldCharacterCore(core),
     source: core,
+    entityId: toNonEmptyString(character.entityId),
+    entityContentHash: toNonEmptyString(entity.contentHash),
+    entity,
     createdAt: character.createdAt,
     updatedAt: character.updatedAt,
     worldId,
@@ -262,10 +327,14 @@ async function loadRealmSourceDetails(identifier: string): Promise<JsonObject> {
     const projectedCore = projectWorldCharacterCore(core);
     const worldId = toNonEmptyString(character.worldId);
     const contentHash = toNonEmptyString(character.contentHash);
+    const entity = await loadBoundWorldEntityProjection(realm, character, worldId);
     return {
       id: character.id,
       ...projectedCore,
       source: core,
+      entityId: toNonEmptyString(character.entityId),
+      entityContentHash: toNonEmptyString(entity.contentHash),
+      entity,
       createdAt: character.createdAt,
       updatedAt: character.updatedAt,
       worldId,

@@ -82,6 +82,7 @@ function publicSource(overrides: PublicSource = {}) {
       kind: 'worldCharacter',
       worldId: 'world-1',
       sourceId: 'source-1',
+      sourceContentHash: 'source-hash-1',
     },
     displayName: 'Archivist Liora',
     handle: 'liora',
@@ -219,6 +220,7 @@ test('World detail consumes public source sections for characters and personas',
       kind: 'realmPersona',
       worldId: 'world-1',
       sourceId: 'persona-1',
+      sourceContentHash: 'persona-hash-1',
     },
     displayName: 'Mira Vale',
     handle: 'mira',
@@ -238,7 +240,8 @@ test('World detail consumes public source sections for characters and personas',
 
   assert.equal(calls.includes('worldPublicControllerGetWorldDetailWithCharacters'), true);
   assert.equal(result?.id, 'world-1');
-  assert.equal(result?.characterCount, 2);
+  assert.equal(result?.characterCount, 1);
+  assert.equal(result?.personaCount, 1);
   assert.equal(result?.characters.length, 2);
   assert.equal(result?.characters[0]?.sourceKind, 'worldCharacter');
   assert.equal(result?.characters[1]?.sourceKind, 'realmPersona');
@@ -246,6 +249,7 @@ test('World detail consumes public source sections for characters and personas',
     kind: 'realmPersona',
     worldId: 'world-1',
     sourceId: 'persona-1',
+    sourceContentHash: 'persona-hash-1',
   });
   assert.equal(errors.length, 0);
 });

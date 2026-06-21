@@ -16,6 +16,21 @@ test('source detail preserves forged world character media and Mimo voice metada
     sourceKind: 'worldCharacter',
     sourceId: 'char-song-scholar',
     sourceContentHash: 'a'.repeat(64),
+    entity: {
+      id: 'entity-song-scholar',
+      kind: 'person',
+      name: 'Song Scholar Entity',
+      summary: 'Canonical semantic person bound to the source character.',
+      contentHash: 'e'.repeat(64),
+      tags: ['scholar', 'song-dynasty'],
+      facts: [
+        {
+          factId: 'fact-1',
+          key: 'office',
+          value: 'Hanlin scholar',
+        },
+      ],
+    },
     source: {
       authoring: {
         extensions: {
@@ -47,5 +62,20 @@ test('source detail preserves forged world character media and Mimo voice metada
     prompt: 'A measured Song dynasty scholar voice.',
     transcript: '天地有常，人事有源。',
     previewText: '天地有常，人事有源。',
+  });
+  assert.deepEqual(detail.entity, {
+    id: 'entity-song-scholar',
+    kind: 'person',
+    name: 'Song Scholar Entity',
+    summary: 'Canonical semantic person bound to the source character.',
+    contentHash: 'e'.repeat(64),
+    tags: ['scholar', 'song-dynasty'],
+    facts: [
+      {
+        factId: 'fact-1',
+        key: 'office',
+        value: 'Hanlin scholar',
+      },
+    ],
   });
 });

@@ -28,6 +28,7 @@ import {
   loadRealmPersonaSourceAdmissionProjection,
   realmPersonaSourceAdmissionQueryKey,
   realmPersonaSourceConnectionMessage,
+  realmSourceRefKey,
   resolveRealmPersonaSourceState,
 } from '@renderer/features/explore/realm-persona-source-admission';
 
@@ -89,6 +90,8 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
   const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
   const [removeConfirmOpen, setRemoveConfirmOpen] = useState(false);
   const [removeMutationPending, setRemoveMutationPending] = useState(false);
+  const sourceRef = props.profileSeed?.isSource ? props.profileSeed.sourceRef ?? null : null;
+  const sourceRefKey = sourceRef ? realmSourceRefKey(sourceRef) : 'missing-source-ref';
 
   useEffect(() => {
     if (!props.open) {
@@ -111,15 +114,29 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
   }, [t]);
 
   const profileQuery = useQuery({
-    queryKey: ['profile-detail-modal', props.profileId, props.profileSeed?.handle, props.profileSeed?.isSource, 'restricted-state-v1'],
+    queryKey: [
+      'profile-detail-modal',
+      props.profileSeed?.isSource ? sourceRefKey : props.profileId,
+      props.profileSeed?.handle,
+      props.profileSeed?.isSource,
+      'restricted-state-v1',
+    ],
     queryFn: async () => {
-      if (!props.profileId) {
+      if (!props.profileSeed?.isSource && !props.profileId) {
         return null;
       }
       try {
-        const result = props.profileSeed?.isSource
-          ? await realmSourceDetailData.loadRealmSourceDetailsForDisplay(props.profileId)
-          : await realmSocialData.loadUserProfile(props.profileId);
+        let result: unknown;
+        if (props.profileSeed?.isSource) {
+          if (!sourceRef) {
+            throw new Error(realmPersonaSourceConnectionMessage());
+          }
+          result = await realmSourceDetailData.loadRealmSourceDetailsBySourceRef(sourceRef, {
+            runtimeSourceRef: props.profileSeed.runtimeSourceRef,
+          });
+        } else {
+          result = await realmSocialData.loadUserProfile(props.profileId);
+        }
         return toProfileData(result as ProfileSource);
       } catch (error) {
         if (props.profileSeed && !props.profileSeed.isSource && isPrivateProfileAccessError(error)) {
@@ -128,7 +145,7 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
         throw error;
       }
     },
-    enabled: props.open && Boolean(props.profileId),
+    enabled: props.open && (props.profileSeed?.isSource === true || Boolean(props.profileId)),
     retry: (failureCount, error) => !isPrivateProfileAccessError(error) && failureCount < 1,
   });
 

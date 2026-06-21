@@ -2,7 +2,10 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { realmWorldData } from '../src/shell/renderer/features/world/data/realm-world-data.js';
-import { fetchWorldDisplayDetail } from '../src/shell/renderer/features/world/world-detail-queries.js';
+import {
+  fetchWorldDisplayDetail,
+  overlayWorldDisplaySourceConnections,
+} from '../src/shell/renderer/features/world/world-detail-queries.js';
 
 const world = {
   id: 'world-1',
@@ -65,6 +68,7 @@ function source(kind: 'worldCharacter' | 'realmPersona', id: string) {
   const ownership: 'worldOwned' | 'userOwned' = kind === 'worldCharacter' ? 'worldOwned' : 'userOwned';
   const importance: 'PRIMARY' | 'SECONDARY' = kind === 'worldCharacter' ? 'PRIMARY' : 'SECONDARY';
   const relationState = 'connectable' as const;
+  const sourceContentHash = `${kind}-hash-${id}`;
   return {
     id,
     name: kind === 'worldCharacter' ? 'Archivist Liora' : 'Mira Vale',
@@ -77,6 +81,7 @@ function source(kind: 'worldCharacter' | 'realmPersona', id: string) {
       kind,
       worldId: 'world-1',
       sourceId: id,
+      sourceContentHash,
     },
     relation: {
       state: relationState,
@@ -122,6 +127,10 @@ test('World detail display keeps world characters and public personas as source 
     assert.equal(sources[0]?.sourceKind, 'worldCharacter');
     assert.equal(sources[1]?.sourceKind, 'realmPersona');
     assert.equal(sources[1]?.ownership, 'userOwned');
+    assert.equal(
+      (detail.characters[0]?.sourceRef as { sourceContentHash?: string } | undefined)?.sourceContentHash,
+      'worldCharacter-hash-character-1',
+    );
   } finally {
     realmWorldData.loadWorldDetailWithCharacters = originals.loadWorldDetailWithCharacters;
     realmWorldData.loadWorldHistory = originals.loadWorldHistory;
@@ -129,4 +138,30 @@ test('World detail display keeps world characters and public personas as source 
     realmWorldData.loadWorldAssets = originals.loadWorldAssets;
     realmWorldData.loadWorldScenes = originals.loadWorldScenes;
   }
+});
+
+test('World detail source connection overlay marks matching hash-bearing source cards connected', () => {
+  const characters = [
+    source('worldCharacter', 'character-1'),
+    source('realmPersona', 'persona-1'),
+  ];
+
+  const result = overlayWorldDisplaySourceConnections(characters, {
+    activeSourceRefKeys: ['worldCharacter:world-1:character-1:worldCharacter-hash-character-1'],
+    activeSourceConnections: [{
+      connectionId: 'connection-1',
+      ownerUserId: 'viewer-1',
+      sourceRef: {
+        kind: 'worldCharacter',
+        worldId: 'world-1',
+        sourceId: 'character-1',
+        sourceContentHash: 'worldCharacter-hash-character-1',
+      },
+      runtimeSourceRef: 'runtime-source:worldCharacter:world-1:character-1:worldCharacter-hash-character-1',
+    }],
+  });
+
+  assert.equal(result[0]?.relation?.state, 'connected');
+  assert.equal(result[0]?.relation?.connectionId, 'connection-1');
+  assert.equal(result[1]?.relation?.state, 'connectable');
 });

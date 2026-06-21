@@ -27,9 +27,20 @@ export type SourceDetailData = {
   sourceContentHash: string | null;
   runtimeSourceRef: string | null;
   sourceRef: NimiRealmCoreSourceRef | null;
+  entity: SourceDetailEntity | null;
   isFriend: boolean;
   sourceState: RealmPersonaSourceState;
   worldBannerUrl: string | null;
+};
+
+export type SourceDetailEntity = {
+  id: string;
+  kind: string;
+  name: string;
+  summary: string | null;
+  contentHash: string;
+  tags: string[];
+  facts: JsonObject[];
 };
 
 export type SourceDetailVoiceDesign = {
@@ -91,6 +102,41 @@ function readWorldStudioVoiceDesign(core: JsonObject | null | undefined): Source
   const extensions = parseOptionalJsonObject(authoring?.extensions);
   const worldStudioSettings = parseOptionalJsonObject(extensions?.worldStudioSettings);
   return readVoiceDesign(parseOptionalJsonObject(worldStudioSettings?.voice));
+}
+
+function readStringArray(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.map((item) => String(item || '').trim()).filter(Boolean)
+    : [];
+}
+
+function readEntityFacts(value: unknown): JsonObject[] {
+  return Array.isArray(value)
+    ? value.map(parseOptionalJsonObject).filter((item): item is JsonObject => Boolean(item))
+    : [];
+}
+
+function readSourceDetailEntity(value: unknown): SourceDetailEntity | null {
+  const entity = parseOptionalJsonObject(value);
+  if (!entity) {
+    return null;
+  }
+  const id = readOptionalString(entity, 'id');
+  const kind = readOptionalString(entity, 'kind');
+  const name = readOptionalString(entity, 'name');
+  const contentHash = readOptionalString(entity, 'contentHash');
+  if (!id || !kind || !name || !contentHash) {
+    return null;
+  }
+  return {
+    id,
+    kind,
+    name,
+    summary: readOptionalString(entity, 'summary'),
+    contentHash,
+    tags: readStringArray(entity.tags),
+    facts: readEntityFacts(entity.facts),
+  };
 }
 
 export function toSourceDetailData(
@@ -175,6 +221,7 @@ export function toSourceDetailData(
       || null
     ),
     sourceRef,
+    entity: readSourceDetailEntity(raw.entity),
     isFriend: raw.isFriend === true,
     sourceState,
     worldBannerUrl: (

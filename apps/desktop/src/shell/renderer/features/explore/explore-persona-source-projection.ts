@@ -3,6 +3,11 @@ import type { NimiRealmCoreSourceRef } from '@nimiplatform/sdk/realm';
 import type { ProfileDetailSeed } from '@renderer/features/relationship/profile-detail-modal.js';
 import type { PostCardAuthorProfileTarget } from '../home/post-card';
 import type { ExplorePersonaSourceCardData } from './explore-cards';
+import {
+  assertRealmCoreSourceRefMatchesOuterIdentity,
+  normalizeRealmSourceKind,
+  readRealmCoreSourceRef,
+} from '@renderer/features/realm-source/realm-source-identity.js';
 
 type SourceWorldProjection = {
   bannerUrl: string | null;
@@ -49,29 +54,11 @@ function toNumberMap(value: unknown): Record<string, number> | undefined {
 }
 
 function toSourceKind(value: unknown): NimiRealmCoreSourceRef['kind'] | undefined {
-  const normalized = asString(value).trim();
-  if (normalized === 'worldCharacter' || normalized === 'WORLD_CHARACTER') {
-    return 'worldCharacter';
-  }
-  if (normalized === 'realmPersona' || normalized === 'REALM_PERSONA') {
-    return 'realmPersona';
-  }
-  return undefined;
+  return normalizeRealmSourceKind(value) ?? undefined;
 }
 
 function toRealmCoreSourceRef(value: unknown): NimiRealmCoreSourceRef | undefined {
-  const record = toRecord(value);
-  if (!record) {
-    return undefined;
-  }
-  const kind = toSourceKind(record.kind);
-  const worldId = asString(record.worldId).trim();
-  const sourceId = asString(record.sourceId).trim();
-  const sourceContentHash = asString(record.sourceContentHash).trim();
-  if (!kind || !worldId || !sourceId || !sourceContentHash) {
-    return undefined;
-  }
-  return { kind, worldId, sourceId, sourceContentHash };
+  return readRealmCoreSourceRef(value) ?? undefined;
 }
 
 function mapPersonaSource(raw: unknown, worldsMap: SourceWorldProjectionMap): ExplorePersonaSourceCardData | null {
@@ -100,6 +87,15 @@ function mapPersonaSource(raw: unknown, worldsMap: SourceWorldProjectionMap): Ex
   const isSource = source.isSource === true || Boolean(sourceRecord);
   const isOnline = source.isOnline === true;
   const sourceRef = toRealmCoreSourceRef(source.sourceRef);
+  if (sourceRef) {
+    assertRealmCoreSourceRefMatchesOuterIdentity({
+      ...source,
+      sourceKind: source.sourceKind ?? sourceRecord?.sourceKind,
+      sourceWorldId: source.worldId ?? source.homeWorldId ?? sourceRecord?.worldId,
+      sourceId: source.sourceId ?? source.id,
+      sourceContentHash: source.sourceContentHash ?? source.contentHash,
+    }, sourceRef, 'Explore persona source');
+  }
   const sourceKind = toSourceKind(source.sourceKind) ?? sourceRef?.kind;
   const sourceId = asString(source.sourceId).trim() || sourceRef?.sourceId || id;
   const sourceContentHash = asString(source.sourceContentHash).trim()

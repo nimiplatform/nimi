@@ -1,5 +1,10 @@
 import { parseOptionalJsonObject, type JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { NimiRealmCoreSourceRef } from '@nimiplatform/sdk/realm';
+import {
+  assertRealmCoreSourceRefMatchesOuterIdentity,
+  normalizeRealmSourceKind,
+  readRealmCoreSourceRef,
+} from '@renderer/features/realm-source/realm-source-identity.js';
 
 export type ContactRecord = {
   id: string;
@@ -40,33 +45,7 @@ function hasRealmSourceIdentity(item: ContactPayload, sourceRecord: JsonObject |
 }
 
 function normalizeSourceKind(value: unknown): NimiRealmCoreSourceRef['kind'] | undefined {
-  const normalized = typeof value === 'string' ? value.trim() : '';
-  if (normalized === 'worldCharacter' || normalized === 'WORLD_CHARACTER') {
-    return 'worldCharacter';
-  }
-  if (normalized === 'realmPersona' || normalized === 'REALM_PERSONA') {
-    return 'realmPersona';
-  }
-  return undefined;
-}
-
-function readStringField(value: unknown, key: string): string | undefined {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return undefined;
-  }
-  const entry = (value as Record<string, unknown>)[key];
-  return typeof entry === 'string' && entry.trim() ? entry.trim() : undefined;
-}
-
-function readSourceRef(value: unknown): NimiRealmCoreSourceRef | undefined {
-  const kind = normalizeSourceKind(readStringField(value, 'kind'));
-  const worldId = readStringField(value, 'worldId');
-  const sourceId = readStringField(value, 'sourceId');
-  const sourceContentHash = readStringField(value, 'sourceContentHash');
-  if (!kind || !worldId || !sourceId || !sourceContentHash) {
-    return undefined;
-  }
-  return { kind, worldId, sourceId, sourceContentHash };
+  return normalizeRealmSourceKind(value) ?? undefined;
 }
 
 export function toFriendContact(item: ContactPayload): ContactRecord {
@@ -74,7 +53,7 @@ export function toFriendContact(item: ContactPayload): ContactRecord {
   
   const sourceRecord = parseOptionalJsonObject(item.source) ?? null;
   const isSource = hasRealmSourceIdentity(item, sourceRecord);
-  const sourceRefFromPayload = readSourceRef(item.sourceRef);
+  const sourceRefFromPayload = readRealmCoreSourceRef(item.sourceRef) ?? undefined;
   const sourceKind = sourceRefFromPayload?.kind ?? normalizeSourceKind(item.sourceKind || sourceRecord?.sourceKind);
   const ownershipRaw = String(item.ownershipType || sourceRecord?.ownershipType || '').trim();
   const sourceOwnershipType = ownershipRaw === 'MASTER_OWNED' || ownershipRaw === 'WORLD_OWNED'
@@ -115,14 +94,25 @@ export function toFriendContact(item: ContactPayload): ContactRecord {
   const worldId = sourceRefFromPayload?.worldId ?? payloadWorldId;
   const worldName = typeof item.worldName === 'string' ? item.worldName : 
     typeof worldData?.name === 'string' ? worldData.name : null;
-  const sourceId = sourceRefFromPayload?.sourceId ?? (String(item.sourceId || item.id || '').trim() || undefined);
-  const sourceContentHash = sourceRefFromPayload?.sourceContentHash ?? (String(
+  const outerSourceId = String(item.sourceId || item.id || '').trim() || undefined;
+  const outerSourceContentHash = String(
     item.sourceContentHash
       || item.contentHash
       || sourceRecord?.sourceContentHash
       || sourceRecord?.contentHash
       || '',
-  ).trim() || undefined);
+  ).trim() || undefined;
+  if (sourceRefFromPayload) {
+    assertRealmCoreSourceRefMatchesOuterIdentity({
+      ...item,
+      sourceKind: item.sourceKind || sourceRecord?.sourceKind,
+      sourceWorldId: payloadWorldId ?? sourceRecord?.worldId,
+      sourceId: outerSourceId,
+      sourceContentHash: outerSourceContentHash,
+    }, sourceRefFromPayload, 'Relationship contact source');
+  }
+  const sourceId = sourceRefFromPayload?.sourceId ?? outerSourceId;
+  const sourceContentHash = sourceRefFromPayload?.sourceContentHash ?? outerSourceContentHash;
   const sourceRef: NimiRealmCoreSourceRef | undefined = sourceRefFromPayload ?? (sourceKind && worldId && sourceId && sourceContentHash
     ? {
         kind: sourceKind,

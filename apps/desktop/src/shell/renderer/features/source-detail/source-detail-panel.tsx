@@ -20,6 +20,7 @@ import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/
 export function SourceDetailPanel() {
   const authStatus = useAppStore((state) => state.auth.status);
   const selectedProfileId = useAppStore((state) => state.selectedProfileId);
+  const selectedSourceRef = useAppStore((state) => state.selectedSourceRef);
   const navigateBack = useAppStore((state) => state.navigateBack);
   const navigateToWorld = useAppStore((state) => state.navigateToWorld);
   const queryClient = useQueryClient();
@@ -27,11 +28,12 @@ export function SourceDetailPanel() {
   const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
 
   const sourceIdentifier = String(selectedProfileId || '').trim();
+  const sourceSelection = selectedSourceRef ?? sourceIdentifier;
 
   const profileQuery = useQuery({
-    queryKey: sourceDisplayDetailQueryKey(sourceIdentifier),
-    queryFn: async () => fetchSourceDisplayDetail(sourceIdentifier),
-    enabled: authStatus === 'authenticated' && !!sourceIdentifier,
+    queryKey: sourceDisplayDetailQueryKey(sourceSelection),
+    queryFn: async () => fetchSourceDisplayDetail(selectedSourceRef ?? sourceIdentifier),
+    enabled: authStatus === 'authenticated' && Boolean(selectedSourceRef || sourceIdentifier),
   });
   const source = useMemo(() => {
     if (!profileQuery.data) return null;
@@ -54,7 +56,7 @@ export function SourceDetailPanel() {
       await connectRealmPersonaSource(source);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: realmPersonaSourceAdmissionQueryKey }),
-        queryClient.invalidateQueries({ queryKey: sourceDisplayDetailQueryKey(sourceIdentifier) }),
+        queryClient.invalidateQueries({ queryKey: sourceDisplayDetailQueryKey(sourceSelection) }),
       ]);
       setFeedback({
         kind: 'success',
@@ -70,7 +72,7 @@ export function SourceDetailPanel() {
     }
   };
 
-  if (!sourceIdentifier) {
+  if (!selectedSourceRef && !sourceIdentifier) {
     return (
       <div className="flex flex-1 items-center justify-center text-sm text-gray-500">
         {i18n.t('SourceDetail.noSourceSelected', { defaultValue: 'No source selected' })}

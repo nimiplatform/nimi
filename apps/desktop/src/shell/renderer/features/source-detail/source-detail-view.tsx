@@ -249,6 +249,27 @@ export function SourceDetailView(props: SourceDetailViewProps) {
                 </p>
               )}
 
+              {source.entity ? (
+                <div className="mt-3 w-full px-4 text-center text-xs text-gray-500">
+                  <p className="font-medium text-gray-700">{source.entity.name}</p>
+                  {source.entity.summary ? (
+                    <p className="mt-1 leading-relaxed">{source.entity.summary}</p>
+                  ) : null}
+                  {source.entity.tags.length > 0 ? (
+                    <p className="mt-1">{source.entity.tags.slice(0, 4).join(' / ')}</p>
+                  ) : null}
+                  {source.entity.facts.length > 0 ? (
+                    <p className="mt-1">
+                      {source.entity.facts.slice(0, 2).map((fact) => {
+                        const key = typeof fact.key === 'string' ? fact.key : typeof fact.name === 'string' ? fact.name : '';
+                        const value = typeof fact.value === 'string' ? fact.value : typeof fact.summary === 'string' ? fact.summary : '';
+                        return [key, value].filter(Boolean).join(': ');
+                      }).filter(Boolean).join(' · ')}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+
               {/* Score Progress Bar */}
               <div className="mt-5 w-full px-4">
                 <div className="flex items-center gap-3">

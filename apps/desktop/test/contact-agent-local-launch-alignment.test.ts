@@ -53,7 +53,8 @@ test('World detail offers View profile only for a Realm source — no direct cha
   // The sole source affordance is View profile, routed to source-detail where
   // source admission remains fail-closed until a hash-bearing sourceRef exists.
   assert.match(source, /const handleViewCharacter = \(character: WorldCharacter\) => \{/);
-  assert.match(source, /navigateToProfile\(character\.id, 'source-detail'\)/);
+  assert.match(source, /navigateToSourceDetail\(character\.sourceRef\)/);
+  assert.doesNotMatch(source, /navigateToProfile\(character\.id, 'source-detail'\)/);
   assert.match(source, /onViewCharacter=\{handleViewCharacter\}/);
 
   // The template exposes only an onViewCharacter affordance — no chat/voice props.

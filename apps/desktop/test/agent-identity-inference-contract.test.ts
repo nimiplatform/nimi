@@ -104,6 +104,8 @@ test('Realm source detail loading rejects legacy @ and ~ prefixes', async () => 
 
   assert.match(sourceRuntimeFlowSource, /worldCoreControllerGetRealmPersona/);
   assert.match(sourceRuntimeFlowSource, /worldCoreControllerGetWorldCharacter/);
+  assert.match(sourceRuntimeFlowSource, /worldCoreControllerGetWorldEntity/);
+  assert.match(sourceRuntimeFlowSource, /WorldCharacterCore entity world mismatch/);
   assert.doesNotMatch(sourceRuntimeFlowSource, /AgentsService\.getAgent/);
   assert.doesNotMatch(sourceRuntimeFlowSource, /AgentsService\.getAgentByHandle/);
   assert.doesNotMatch(sourceRuntimeFlowSource, /fallbackId/);

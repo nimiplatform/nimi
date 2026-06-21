@@ -36,6 +36,7 @@ type UiSlice = Pick<AppStoreState,
   | 'selectedChatId'
   | 'selectedProfileId'
   | 'selectedProfileIsSource'
+  | 'selectedSourceRef'
   | 'selectedWorldId'
   | 'selectedGiftTransactionId'
   | 'profileDetailOverlayOpen'
@@ -62,11 +63,13 @@ type UiSlice = Pick<AppStoreState,
   | 'setSelectedChatId'
   | 'setSelectedProfileId'
   | 'setSelectedProfileIsSource'
+  | 'setSelectedSourceRef'
   | 'setSelectedWorldId'
   | 'setSelectedGiftTransactionId'
   | 'setProfileDetailOverlayOpen'
   | 'setChatProfilePanelTarget'
   | 'navigateToProfile'
+  | 'navigateToSourceDetail'
   | 'navigateToWorld'
   | 'navigateToGiftInbox'
   | 'navigateBack'
@@ -95,6 +98,7 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
     selectedChatId: null,
     selectedProfileId: null,
     selectedProfileIsSource: null,
+    selectedSourceRef: null,
     selectedWorldId: null,
     selectedGiftTransactionId: null,
     profileDetailOverlayOpen: false,
@@ -194,6 +198,7 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
       })),
     setSelectedProfileId: (profileId) => set({ selectedProfileId: profileId }),
     setSelectedProfileIsSource: (isSource) => set({ selectedProfileIsSource: isSource }),
+    setSelectedSourceRef: (sourceRef) => set({ selectedSourceRef: sourceRef }),
     setSelectedWorldId: (worldId) => set({ selectedWorldId: worldId }),
     setSelectedGiftTransactionId: (giftTransactionId) => set({ selectedGiftTransactionId: giftTransactionId }),
     setProfileDetailOverlayOpen: (open) => set({ profileDetailOverlayOpen: open }),
@@ -203,8 +208,18 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
         previousTab: state.activeTab,
         selectedProfileId: profileId,
         selectedProfileIsSource: tab === 'source-detail',
+        selectedSourceRef: null,
         selectedGiftTransactionId: null,
         activeTab: tab,
+      })),
+    navigateToSourceDetail: (sourceRef) =>
+      set((state) => ({
+        previousTab: state.activeTab,
+        selectedProfileId: sourceRef.sourceId,
+        selectedProfileIsSource: true,
+        selectedSourceRef: sourceRef,
+        selectedGiftTransactionId: null,
+        activeTab: 'source-detail',
       })),
     navigateToWorld: (worldId) => {
       const normalizedWorldId = String(worldId || '').trim();
@@ -214,6 +229,7 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
       startTransition(() => {
         set((state) => ({
           previousTab: state.activeTab,
+          selectedSourceRef: null,
           selectedWorldId: normalizedWorldId,
           selectedGiftTransactionId: null,
           runtimeFields: {
@@ -232,6 +248,7 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
             ? state.previousTab
             : state.activeTab,
           selectedGiftTransactionId: normalizedGiftTransactionId,
+          selectedSourceRef: null,
           activeTab: 'gift-inbox',
         }));
       });
@@ -251,6 +268,7 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
           previousTab: null,
           selectedProfileId: keepProfile ? state.selectedProfileId : null,
           selectedProfileIsSource: keepProfile ? state.selectedProfileIsSource : null,
+          selectedSourceRef: keepProfile ? state.selectedSourceRef : null,
           selectedWorldId: target === 'world-detail' ? state.selectedWorldId : null,
           selectedGiftTransactionId: null,
         };

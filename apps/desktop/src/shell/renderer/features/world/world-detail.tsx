@@ -4,7 +4,10 @@ import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { ScrollArea } from '@nimiplatform/kit/ui';
 import { createRendererFlowId, logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
-import { connectRealmPublicSource } from '@renderer/features/explore/realm-persona-source-admission';
+import {
+  connectRealmPublicSource,
+  realmPersonaSourceAdmissionQueryKey,
+} from '@renderer/features/explore/realm-persona-source-admission';
 import {
   NarrativeWorldDetailPage,
   OasisWorldDetailPage,
@@ -24,7 +27,7 @@ type WorldDetailProps = {
 
 export function WorldDetail({ world, onBack }: WorldDetailProps) {
   const authStatus = useAppStore((state) => state.auth.status);
-  const navigateToProfile = useAppStore((state) => state.navigateToProfile);
+  const navigateToSourceDetail = useAppStore((state) => state.navigateToSourceDetail);
   const queryClient = useQueryClient();
   const isReady = authStatus === 'authenticated' && !!world.id;
   const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
@@ -156,7 +159,7 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
   // World characters are not chat-reachable from World detail. Chat opens only
   // after a connected source is materialized into a runtime localAgent by value.
   const handleViewCharacter = (character: WorldCharacter) => {
-    navigateToProfile(character.id, 'source-detail');
+    navigateToSourceDetail(character.sourceRef);
   };
 
   const handleConnectSource = async (character: WorldCharacter) => {
@@ -166,7 +169,10 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
         kind: 'success',
         message: `${character.name} connected as a source.`,
       });
-      await queryClient.invalidateQueries({ queryKey: worldDisplayDetailQueryKey(world.id) });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: worldDisplayDetailQueryKey(world.id) }),
+        queryClient.invalidateQueries({ queryKey: realmPersonaSourceAdmissionQueryKey }),
+      ]);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to connect source.';
       setFeedback({ kind: 'error', message });

@@ -86,6 +86,7 @@ function worldCharacterPayload(overrides: Record<string, unknown> = {}) {
       kind: 'worldCharacter',
       worldId: 'world-1',
       sourceId: 'character-1',
+      sourceContentHash: 'character-hash-1',
     },
     displayName: 'Song Steward',
     handle: null,
@@ -105,7 +106,30 @@ function worldCharacterPayload(overrides: Record<string, unknown> = {}) {
   };
 }
 
-function createWorldCallApi(worldCore: Record<string, unknown>, characters: unknown[] = []): RealmWorldCallApi {
+function worldPersonaPayload(overrides: Record<string, unknown> = {}) {
+  return worldCharacterPayload({
+    id: 'persona-1',
+    sourceKind: 'realmPersona',
+    ownership: 'userOwned',
+    sourceRef: {
+      kind: 'realmPersona',
+      worldId: 'world-1',
+      sourceId: 'persona-1',
+      sourceContentHash: 'persona-hash-1',
+    },
+    displayName: 'Mira Vale',
+    handle: 'mira',
+    summary: 'A public realm persona visiting the world.',
+    role: 'Traveler',
+    ...overrides,
+  });
+}
+
+function createWorldCallApi(
+  worldCore: Record<string, unknown>,
+  characters: unknown[] = [],
+  personas: unknown[] = [],
+): RealmWorldCallApi {
   return async (task) => task({
     worldPublic: {
       worldPublicControllerGetWorld: async ({ path }: { path: { worldId: string } }) => ({
@@ -123,7 +147,7 @@ function createWorldCallApi(worldCore: Record<string, unknown>, characters: unkn
         },
         sources: {
           characters,
-          personas: [],
+          personas,
         },
       }),
     },
@@ -220,8 +244,58 @@ test('loadWorldCharacters projects public source cards', async () => {
     kind: 'worldCharacter',
     worldId: 'world-1',
     sourceId: 'character-1',
+    sourceContentHash: 'character-hash-1',
   });
   assert.equal(errors.length, 0);
+});
+
+test('loadWorldCharacters fails close when public sourceRef is missing sourceContentHash', async () => {
+  const errors: RealmWorldDataError[] = [];
+
+  await assertRejectsWithReasonCode(
+    () => loadWorldCharacters(
+      createWorldCallApi(worldCorePayload(), [
+        worldCharacterPayload({
+          sourceRef: {
+            kind: 'worldCharacter',
+            worldId: 'world-1',
+            sourceId: 'character-1',
+          },
+        }),
+      ]),
+      createEmitter(errors),
+      'world-1',
+    ),
+    'SDK_REALM_WORLD_PUBLIC_SOURCE_CONTRACT_INVALID',
+  );
+
+  assert.equal(errors.length, 1);
+  assert.equal(errors[0]!.action, 'load-world-characters');
+});
+
+test('loadWorldCharacters fails close when public sourceRef points at a different source', async () => {
+  const errors: RealmWorldDataError[] = [];
+
+  await assertRejectsWithReasonCode(
+    () => loadWorldCharacters(
+      createWorldCallApi(worldCorePayload(), [
+        worldCharacterPayload({
+          sourceRef: {
+            kind: 'worldCharacter',
+            worldId: 'world-1',
+            sourceId: 'character-2',
+            sourceContentHash: 'character-hash-1',
+          },
+        }),
+      ]),
+      createEmitter(errors),
+      'world-1',
+    ),
+    'SDK_REALM_WORLD_PUBLIC_SOURCE_REF_MISMATCH',
+  );
+
+  assert.equal(errors.length, 1);
+  assert.equal(errors[0]!.action, 'load-world-characters');
 });
 
 test('loadWorldCharacters fails close on invalid public source rows', async () => {
@@ -240,13 +314,22 @@ test('loadWorldCharacters fails close on invalid public source rows', async () =
   assert.equal(errors[0]!.action, 'load-world-characters');
 });
 
-test('loadWorldDetailWithCharacters projects detail and preserves full source count', async () => {
+test('loadWorldDetailWithCharacters keeps character count, persona count, and source card count separate', async () => {
   const errors: RealmWorldDataError[] = [];
 
   const result = await loadWorldDetailWithCharacters(
-    createWorldCallApi(worldCorePayload(), [
+    createWorldCallApi(worldCorePayload({
+      stats: {
+        characterCount: 1,
+        personaCount: 1,
+        sceneCount: 1,
+        systemCount: 1,
+        timelineEventCount: 1,
+      },
+    }), [
       worldCharacterPayload({ id: 'character-1' }),
-      worldCharacterPayload({ id: 'character-2' }),
+    ], [
+      worldPersonaPayload(),
     ]),
     createEmitter(errors),
     'world-1',
@@ -254,7 +337,8 @@ test('loadWorldDetailWithCharacters projects detail and preserves full source co
   );
 
   assert.equal(result?.id, 'world-1');
-  assert.equal(result?.characterCount, 2);
+  assert.equal(result?.characterCount, 1);
+  assert.equal(result?.personaCount, 1);
   assert.equal(result?.characters.length, 2);
   assert.equal(errors.length, 0);
 });

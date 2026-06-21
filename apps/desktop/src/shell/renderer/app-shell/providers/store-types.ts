@@ -25,6 +25,7 @@ import type {
   ConversationCapabilityProjection,
 } from '@renderer/features/chat/conversation-capability';
 import type { NimiAIConfig } from '@nimiplatform/sdk/ai';
+import type { NimiRealmCoreSourceRef } from '@nimiplatform/sdk/realm';
 import type { AgentLocalTargetSnapshot } from '@renderer/bridge/runtime-bridge/types';
 
 export type AuthStatus = 'bootstrapping' | 'anonymous' | 'authenticated';
@@ -94,6 +95,7 @@ export type AppStoreState = {
   selectedChatId: string | null;
   selectedProfileId: string | null;
   selectedProfileIsSource: boolean | null;
+  selectedSourceRef: NimiRealmCoreSourceRef | null;
   selectedWorldId: string | null;
   selectedGiftTransactionId: string | null;
   profileDetailOverlayOpen: boolean;
@@ -135,11 +137,13 @@ export type AppStoreState = {
   setSelectedChatId: (chatId: string | null) => void;
   setSelectedProfileId: (profileId: string | null) => void;
   setSelectedProfileIsSource: (isSource: boolean | null) => void;
+  setSelectedSourceRef: (sourceRef: NimiRealmCoreSourceRef | null) => void;
   setSelectedWorldId: (worldId: string | null) => void;
   setSelectedGiftTransactionId: (giftTransactionId: string | null) => void;
   setProfileDetailOverlayOpen: (open: boolean) => void;
   setChatProfilePanelTarget: (target: 'self' | 'other' | null) => void;
   navigateToProfile: (profileId: string | null, tab: 'profile' | 'source-detail') => void;
+  navigateToSourceDetail: (sourceRef: NimiRealmCoreSourceRef) => void;
   navigateToWorld: (worldId: string) => void;
   navigateToGiftInbox: (giftTransactionId?: string | null) => void;
   navigateBack: () => void;

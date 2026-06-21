@@ -31,11 +31,14 @@ test('CBDB legacy friend local chat path is removed from active Desktop sources'
 
 test('CBDB RealmPersona source admission uses sourceRef connection', () => {
   const admission = readDesktopSource('features/explore/realm-persona-source-admission.ts');
+  const sourceIdentity = readDesktopSource('features/realm-source/realm-source-identity.ts');
+  const admissionSurface = `${admission}\n${sourceIdentity}`;
   assert.match(admission, /connectNimiRealmSource/);
   assert.match(admission, /listNimiRealmSourceConnections/);
-  assert.match(admission, /sourceContentHash/);
-  assert.doesNotMatch(admission, /source_core_handoff_required/);
-  assert.doesNotMatch(admission, new RegExp(['Agent', 'Friend'].join('')));
+  assert.match(admission, /resolveRealmCoreSourceRef/);
+  assert.match(admissionSurface, /sourceContentHash/);
+  assert.doesNotMatch(admissionSurface, /source_core_handoff_required/);
+  assert.doesNotMatch(admissionSurface, new RegExp(['Agent', 'Friend'].join('')));
 });
 
 test('CBDB runtime anchor metadata uses source-core owner scope, not Forge import scope', () => {

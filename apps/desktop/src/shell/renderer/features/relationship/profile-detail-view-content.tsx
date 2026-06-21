@@ -31,6 +31,20 @@ import { ProfileDetailTabs } from './profile-detail-view-tabs.js';
 const SHOW_AVATAR_ONLINE_INDICATOR = false;
 const TOPBAR_TOOLTIP_CLASS = 'rounded-full bg-[#0f172a] px-3 py-1.5 text-xs font-semibold text-white shadow-[0_4px_20px_rgba(0,0,0,0.25)]';
 
+function formatEntityFact(fact: Record<string, unknown>): string {
+  const key = typeof fact.key === 'string'
+    ? fact.key
+    : typeof fact.name === 'string'
+      ? fact.name
+      : '';
+  const value = typeof fact.value === 'string'
+    ? fact.value
+    : typeof fact.summary === 'string'
+      ? fact.summary
+      : '';
+  return [key, value].filter(Boolean).join(': ');
+}
+
 export function ProfileDetailViewContent(input: {
   controller: ProfileDetailViewController;
   onVisitWorld: (worldId: string) => void;
@@ -332,6 +346,24 @@ export function ProfileDetailViewContent(input: {
                                             {tag}
                                           </span>
                                         ))}
+                                      </div>
+                                    ) : null}
+                                    {profile.entity ? (
+                                      <div className="mt-4 max-w-[460px] rounded-2xl border border-slate-200/80 bg-white/68 px-4 py-3 text-[12px] text-slate-600">
+                                        <p className="text-[13px] font-semibold text-slate-800">{profile.entity.name}</p>
+                                        {profile.entity.summary ? (
+                                          <p className="mt-1 leading-relaxed">{profile.entity.summary}</p>
+                                        ) : null}
+                                        {profile.entity.tags.length > 0 ? (
+                                          <p className="mt-2 text-[11px] font-medium text-[#1f8f69]">
+                                            {profile.entity.tags.slice(0, 4).join(' / ')}
+                                          </p>
+                                        ) : null}
+                                        {profile.entity.facts.length > 0 ? (
+                                          <p className="mt-2 leading-relaxed text-slate-500">
+                                            {profile.entity.facts.slice(0, 2).map(formatEntityFact).filter(Boolean).join(' · ')}
+                                          </p>
+                                        ) : null}
                                       </div>
                                     ) : null}
                                   </div>

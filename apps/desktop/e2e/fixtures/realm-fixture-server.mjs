@@ -167,10 +167,15 @@ function projectPublicWorld(world) {
 function projectPublicSource(world, source, sourceKind) {
   const worldId = text(world?.id, 'world-e2e-1');
   const id = text(source?.id, `${sourceKind}-fixture`);
-  const sourceRef = source?.sourceRef || {
+  const sourceContentHash = text(
+    source?.sourceRef?.sourceContentHash || source?.sourceContentHash || source?.contentHash,
+    `hash-${id}`,
+  );
+  const sourceRef = {
     kind: sourceKind,
     worldId,
     sourceId: id,
+    sourceContentHash,
   };
   return {
     id,
@@ -202,7 +207,7 @@ function resolveFixtureSourceHash(manifest, source) {
   const world = lookupWorld(manifest, worldId);
   const collection = source?.kind === 'realmPersona' ? world?.personas : world?.characters;
   const row = asArray(collection).find((item) => String(item?.id || '') === sourceId);
-  return text(row?.contentHash || row?.sourceContentHash, `hash-${sourceId}`);
+  return text(row?.sourceRef?.sourceContentHash || row?.contentHash || row?.sourceContentHash, `hash-${sourceId}`);
 }
 
 function positiveInt(value, fallback) {

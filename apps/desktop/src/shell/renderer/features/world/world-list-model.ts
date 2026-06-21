@@ -1,4 +1,4 @@
-import type { NimiRealmPublicSourceLocator } from '@nimiplatform/sdk/realm';
+import type { NimiRealmCoreSourceRef } from '@nimiplatform/sdk/realm';
 import { isMainWorldType } from './shared';
 
 type LooseObject = { [key: string]: unknown };
@@ -12,7 +12,7 @@ type WorldCharacterSummaryDto = {
   avatarUrl?: string | null;
   profileCoverUrl?: string | null;
   createdAt?: string;
-  sourceRef?: NimiRealmPublicSourceLocator | null;
+  sourceRef?: NimiRealmCoreSourceRef | null;
 };
 
 export type WorldCharacterItem = {
@@ -23,7 +23,7 @@ export type WorldCharacterItem = {
   avatarUrl?: string | null;
   profileCoverUrl?: string | null;
   createdAt?: string;
-  sourceRef?: NimiRealmPublicSourceLocator | null;
+  sourceRef?: NimiRealmCoreSourceRef | null;
 };
 
 export type WorldComputedTime = {
@@ -86,8 +86,6 @@ export type WorldListItem = {
   updatedAt: string | null;
   creatorId: string | null;
   freezeReason: string | null;
-  lorebookEntryLimit: number;
-  nativeCharacterLimit: number;
   scoreA: number;
   scoreC: number;
   scoreE: number;
@@ -323,8 +321,6 @@ export function toWorldListItem(raw: WorldDetailDto | WorldDetailWithCharactersD
     updatedAt: typeof raw.updatedAt === 'string' ? raw.updatedAt : null,
     creatorId: resolveCreatorId(raw),
     freezeReason: typeof raw.freezeReason === 'string' ? raw.freezeReason : null,
-    lorebookEntryLimit: typeof raw.lorebookEntryLimit === 'number' ? raw.lorebookEntryLimit : 0,
-    nativeCharacterLimit: typeof raw.nativeCharacterLimit === 'number' ? raw.nativeCharacterLimit : 0,
     scoreA: typeof raw.scoreA === 'number' ? raw.scoreA : 0,
     scoreC: typeof raw.scoreC === 'number' ? raw.scoreC : 0,
     scoreE: typeof raw.scoreE === 'number' ? raw.scoreE : 0,

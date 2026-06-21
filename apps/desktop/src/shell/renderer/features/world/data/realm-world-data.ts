@@ -1,4 +1,4 @@
-import type { Realm, NimiRealmPublicSourceLocator } from '@nimiplatform/sdk/realm';
+import type { Realm, NimiRealmCoreSourceRef } from '@nimiplatform/sdk/realm';
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 import {
   isRealmOfflineErrorLike as isRealmOfflineError,
@@ -25,12 +25,13 @@ type WorldCharacterSummaryDto = {
   avatarUrl?: string | null;
   profileCoverUrl?: string | null;
   createdAt?: string;
-  sourceRef: NimiRealmPublicSourceLocator;
+  sourceRef: NimiRealmCoreSourceRef;
   sourceKind?: 'worldCharacter' | 'realmPersona';
   ownership?: 'worldOwned' | 'userOwned';
   relation?: {
     state: 'connectable' | 'connected' | 'unavailable';
     connectionId?: string | null;
+    runtimeSourceRef?: string | null;
   };
   display?: CoreRecord | null;
   stats?: CoreRecord | null;
@@ -277,24 +278,36 @@ function requireWorldPublicSourceCardDto(value: unknown, expectedWorldId: string
     `World public source ${id} is missing sourceRef`,
   );
   const sourceRef = asRecord(record.sourceRef);
-  requireStringField(
+  const sourceRefKind = requireStringField(
     sourceRef,
     'kind',
     'SDK_REALM_WORLD_PUBLIC_SOURCE_CONTRACT_INVALID',
     `World public source ${id} is missing sourceRef.kind`,
   );
-  requireStringField(
+  const sourceRefWorldId = requireStringField(
     sourceRef,
     'worldId',
     'SDK_REALM_WORLD_PUBLIC_SOURCE_CONTRACT_INVALID',
     `World public source ${id} is missing sourceRef.worldId`,
   );
-  requireStringField(
+  const sourceRefSourceId = requireStringField(
     sourceRef,
     'sourceId',
     'SDK_REALM_WORLD_PUBLIC_SOURCE_CONTRACT_INVALID',
     `World public source ${id} is missing sourceRef.sourceId`,
   );
+  requireStringField(
+    sourceRef,
+    'sourceContentHash',
+    'SDK_REALM_WORLD_PUBLIC_SOURCE_CONTRACT_INVALID',
+    `World public source ${id} is missing sourceRef.sourceContentHash`,
+  );
+  if (sourceRefKind !== sourceKind || sourceRefWorldId !== worldId || sourceRefSourceId !== id) {
+    failRealmWorldContract(
+      'SDK_REALM_WORLD_PUBLIC_SOURCE_REF_MISMATCH',
+      `World public source ${id} sourceRef must match sourceKind, worldId, and id`,
+    );
+  }
   requireRecord(
     record.media,
     'SDK_REALM_WORLD_PUBLIC_SOURCE_CONTRACT_INVALID',
@@ -378,7 +391,7 @@ function projectWorldPublicDetail(world: WorldPublicDetailDto): WorldDetailDto {
 function projectWorldPublicSourceCard(source: WorldPublicSourceCardDto): WorldCharacterSummaryDto {
   const media = asRecord(source.media);
   const relation = asRecord(source.relation);
-  const sourceRef = source.sourceRef as unknown as NimiRealmPublicSourceLocator;
+  const sourceRef = source.sourceRef as unknown as NimiRealmCoreSourceRef;
   return {
     id: source.id,
     name: source.displayName,
@@ -397,6 +410,7 @@ function projectWorldPublicSourceCard(source: WorldPublicSourceCardDto): WorldCh
           ? 'unavailable'
           : 'connectable',
       connectionId: readString(relation, 'connectionId'),
+      runtimeSourceRef: readString(relation, 'runtimeSourceRef'),
     },
     display: {
       role: source.role ?? null,
@@ -699,14 +713,12 @@ export async function loadWorldDetailWithCharacters(
           projectWorldPublicSourceCard(requireWorldPublicSourceCardDto(row, normalizedWorldId)),
         );
         const characters = [...characterSources, ...personaSources];
-        const fullCharacterCount = Math.max(
-          readNumber(asRecord(world), 'characterCount') ?? 0,
-          characters.length,
-        );
+        const characterCount = readNumber(asRecord(world), 'characterCount') ?? characterSources.length;
+        const personaCount = readNumber(asRecord(world), 'personaCount') ?? personaSources.length;
         return {
           ...world,
-          characterCount: fullCharacterCount,
-          personaCount: personaSources.length,
+          characterCount,
+          personaCount,
           characters,
         };
       },

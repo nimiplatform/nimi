@@ -56,7 +56,8 @@ test('authenticated base fixture includes public source discovery fields', () =>
   assert.equal(firstCharacter?.sourceRef?.kind, 'worldCharacter');
   assert.equal(firstCharacter?.sourceRef?.worldId, 'world-e2e-1');
   assert.equal(firstCharacter?.sourceRef?.sourceId, 'character-e2e-alpha');
-  assert.ok(!('sourceContentHash' in (firstCharacter?.sourceRef ?? {})));
+  assert.equal(typeof firstCharacter?.sourceRef?.sourceContentHash, 'string');
+  assert.ok(firstCharacter?.sourceRef?.sourceContentHash);
   assert.ok(!('runtimeSourceRef' in (firstCharacter?.relation ?? {})));
   assert.equal(firstCharacter?.summary, 'Fixture character profile used for desktop contract coverage.');
 });

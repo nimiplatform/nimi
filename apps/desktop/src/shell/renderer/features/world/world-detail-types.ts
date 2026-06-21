@@ -1,4 +1,4 @@
-import type { NimiRealmPublicSourceLocator } from '@nimiplatform/sdk/realm';
+import type { NimiRealmCoreSourceRef } from '@nimiplatform/sdk/realm';
 
 export type WorldRecommendedCharacterDisplay = {
   readonly role?: string | null;
@@ -13,7 +13,7 @@ export type WorldRecommendedCharacter = {
   readonly name: string;
   readonly handle?: string | null;
   readonly avatarUrl?: string | null;
-  readonly sourceRef?: NimiRealmPublicSourceLocator | null;
+  readonly sourceRef?: NimiRealmCoreSourceRef | null;
   readonly importance?: 'PRIMARY' | 'SECONDARY' | 'BACKGROUND' | null;
   readonly display?: WorldRecommendedCharacterDisplay | null;
 };
@@ -36,8 +36,6 @@ export type WorldDetailData = {
   readonly createdAt: string;
   readonly creatorId: string | null;
   readonly freezeReason: 'QUOTA_OVERFLOW' | 'WORLD_INACTIVE' | 'GOVERNANCE_LOCK' | null;
-  readonly lorebookEntryLimit: number;
-  readonly nativeCharacterLimit: number;
   readonly scoreA: number;
   readonly scoreC: number;
   readonly scoreE: number;
@@ -69,12 +67,13 @@ export type WorldCharacter = {
   readonly name: string;
   readonly handle: string;
   readonly bio: string;
-  readonly sourceRef: NimiRealmPublicSourceLocator;
+  readonly sourceRef: NimiRealmCoreSourceRef;
   readonly sourceKind?: 'worldCharacter' | 'realmPersona';
   readonly ownership?: 'worldOwned' | 'userOwned';
   readonly relation?: {
     readonly state: 'connectable' | 'connected' | 'unavailable';
     readonly connectionId?: string | null;
+    readonly runtimeSourceRef?: string | null;
   };
   readonly role?: string | null;
   readonly faction?: string | null;

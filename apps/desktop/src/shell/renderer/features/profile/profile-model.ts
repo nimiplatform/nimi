@@ -1,5 +1,12 @@
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 import type { NimiRealmCoreSourceRef } from '@nimiplatform/sdk/realm';
+import { parseOptionalJsonObject, type JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
+import type { SourceDetailEntity } from '@renderer/features/source-detail/source-detail-model.js';
+import {
+  assertRealmCoreSourceRefMatchesOuterIdentity,
+  normalizeRealmSourceKind,
+  readRealmCoreSourceRef,
+} from '@renderer/features/realm-source/realm-source-identity.js';
 
 export type ProfileTab = 'Posts' | 'Collections' | 'Likes' | 'Gifts';
 
@@ -46,6 +53,9 @@ export type ProfileData = {
   sourceContentHash: string | null;
   runtimeSourceRef: string | null;
   sourceRef: NimiRealmCoreSourceRef | null;
+  entityId: string | null;
+  entityContentHash: string | null;
+  entity: SourceDetailEntity | null;
   worldName: string | null;
   worldBannerUrl: string | null;
 };
@@ -119,6 +129,9 @@ export type ProfileSource = ProfileSourceGeneratedBase & {
   isPendingFriendRequest?: boolean;
   worldId?: string | null;
   sourceWorldId?: string | null;
+  entityId?: string | null;
+  entityContentHash?: string | null;
+  entity?: unknown;
   sourceConfig?: object | null;
   worldName?: string | null;
   worldBannerUrl?: string | null;
@@ -141,14 +154,7 @@ function hasRealmSourceIdentity(raw: ProfileSource): boolean {
 }
 
 function normalizeSourceKind(value: unknown): NimiRealmCoreSourceRef['kind'] | null {
-  const normalized = typeof value === 'string' ? value.trim() : '';
-  if (normalized === 'worldCharacter' || normalized === 'WORLD_CHARACTER') {
-    return 'worldCharacter';
-  }
-  if (normalized === 'realmPersona' || normalized === 'REALM_PERSONA') {
-    return 'realmPersona';
-  }
-  return null;
+  return normalizeRealmSourceKind(value);
 }
 
 function readObjectRecord(value: unknown): Record<string, unknown> | null {
@@ -167,18 +173,42 @@ function readOptionalStringRecord(value: unknown, key: string): string | null {
 }
 
 function readSourceRef(value: unknown): NimiRealmCoreSourceRef | null {
-  const record = readObjectRecord(value);
-  if (!record) {
+  return readRealmCoreSourceRef(value);
+}
+
+function readStringArray(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.map((item) => String(item || '').trim()).filter(Boolean)
+    : [];
+}
+
+function readEntityFacts(value: unknown): JsonObject[] {
+  return Array.isArray(value)
+    ? value.map(parseOptionalJsonObject).filter((item): item is JsonObject => Boolean(item))
+    : [];
+}
+
+function readProfileEntity(value: unknown): SourceDetailEntity | null {
+  const entity = readObjectRecord(value);
+  if (!entity) {
     return null;
   }
-  const kind = normalizeSourceKind(record.kind);
-  const worldId = readOptionalStringRecord(record, 'worldId');
-  const sourceId = readOptionalStringRecord(record, 'sourceId');
-  const sourceContentHash = readOptionalStringRecord(record, 'sourceContentHash');
-  if (!kind || !worldId || !sourceId || !sourceContentHash) {
+  const id = readOptionalStringRecord(entity, 'id');
+  const kind = readOptionalStringRecord(entity, 'kind');
+  const name = readOptionalStringRecord(entity, 'name');
+  const contentHash = readOptionalStringRecord(entity, 'contentHash');
+  if (!id || !kind || !name || !contentHash) {
     return null;
   }
-  return { kind, worldId, sourceId, sourceContentHash };
+  return {
+    id,
+    kind,
+    name,
+    summary: readOptionalStringRecord(entity, 'summary'),
+    contentHash,
+    tags: readStringArray(entity.tags),
+    facts: readEntityFacts(entity.facts),
+  };
 }
 
 export function toProfileData(raw: ProfileSource): ProfileData {
@@ -187,6 +217,24 @@ export function toProfileData(raw: ProfileSource): ProfileData {
   const giftStats = raw.giftStats;
   const world = raw.world;
   const sourceRefFromPayload = readSourceRef(raw.sourceRef);
+  const outerSourceId = typeof raw.sourceId === 'string' ? raw.sourceId.trim() : '';
+  const outerSourceContentHash = (
+    (typeof raw.sourceContentHash === 'string' ? raw.sourceContentHash.trim() : '')
+    || readOptionalStringRecord(sourceRecord, 'sourceContentHash')
+    || readOptionalStringRecord(sourceRecord, 'contentHash')
+  );
+  if (sourceRefFromPayload) {
+    assertRealmCoreSourceRefMatchesOuterIdentity({
+      ...raw,
+      sourceKind: raw.sourceKind ?? readOptionalStringRecord(sourceRecord, 'sourceKind'),
+      sourceWorldId: (
+        readOptionalStringRecord(sourceRecord, 'worldId')
+        || (typeof raw.sourceWorldId === 'string' ? raw.sourceWorldId.trim() : '')
+      ),
+      sourceId: outerSourceId || raw.id,
+      sourceContentHash: outerSourceContentHash,
+    }, sourceRefFromPayload, 'Profile source');
+  }
   const sourceKind = sourceRefFromPayload?.kind
     ?? normalizeSourceKind(raw.sourceKind)
     ?? normalizeSourceKind(readOptionalStringRecord(sourceRecord, 'sourceKind'));
@@ -200,15 +248,13 @@ export function toProfileData(raw: ProfileSource): ProfileData {
     : null;
   const sourceId = (
     sourceRefFromPayload?.sourceId
-    || (typeof raw.sourceId === 'string' ? raw.sourceId.trim() : '')
+    || outerSourceId
     || raw.id
     || null
   );
   const sourceContentHash = (
     sourceRefFromPayload?.sourceContentHash
-    || (typeof raw.sourceContentHash === 'string' ? raw.sourceContentHash.trim() : '')
-    || readOptionalStringRecord(sourceRecord, 'sourceContentHash')
-    || readOptionalStringRecord(sourceRecord, 'contentHash')
+    || outerSourceContentHash
   );
   const sourceRef = sourceRefFromPayload ?? (sourceKind && sourceWorldId && sourceId && sourceContentHash
     ? {
@@ -225,6 +271,12 @@ export function toProfileData(raw: ProfileSource): ProfileData {
       if (typeof val === 'number') parsedGiftStats[key] = val;
     }
   }
+  const entity = readProfileEntity(raw.entity);
+  const entityContentHash = (
+    (typeof raw.entityContentHash === 'string' ? raw.entityContentHash.trim() : '')
+    || entity?.contentHash
+    || null
+  );
 
   return {
     accessState: 'full',
@@ -277,6 +329,13 @@ export function toProfileData(raw: ProfileSource): ProfileData {
       || null
     ),
     sourceRef,
+    entityId: (
+      (typeof raw.entityId === 'string' ? raw.entityId.trim() : '')
+      || entity?.id
+      || null
+    ),
+    entityContentHash,
+    entity,
     worldName: (
       (typeof raw.worldName === 'string' ? raw.worldName : null)
       || (typeof world?.name === 'string' ? world.name : null)
