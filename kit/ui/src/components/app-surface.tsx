@@ -43,7 +43,7 @@ export function AppCardSurface(props: AppCardSurfaceProps) {
       interactive={interactive}
       active={active}
       data-nimi-app-card-surface={kind}
-      className={cn(APP_CARD_SURFACE_CLASS[kind], className)}
+      className={cn(APP_CARD_SURFACE_CLASS[kind], active && 'border-[var(--nimi-action-primary-bg)]', className)}
       style={style}
     >
       {children}

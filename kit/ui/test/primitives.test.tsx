@@ -228,6 +228,17 @@ test('app surface primitives render canonical shared classes', () => {
   expect(STATE_TONE_CLASS.danger).toMatch(/nimi-status-danger/);
 });
 
+test('active framed surfaces render the primary green border by default', () => {
+  const surfaceHtml = renderToStaticMarkup(<Surface active>card</Surface>);
+  const appSurfaceHtml = renderToStaticMarkup(<AppCardSurface active>app-card</AppCardSurface>);
+
+  for (const html of [surfaceHtml, appSurfaceHtml]) {
+    const className = html.match(/class="([^"]*)"/u)?.[1] ?? '';
+    expect(className).toContain('nimi-surface--active');
+    expect(className).toContain('border-[var(--nimi-action-primary-bg)]');
+  }
+});
+
 test('app surface source keeps promoted and operational card kinds plus action entry points', () => {
   const source = readFileSync(path.join(process.cwd(), 'ui/src/components/app-surface.tsx'), 'utf8');
 

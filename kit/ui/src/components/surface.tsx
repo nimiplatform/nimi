@@ -97,7 +97,7 @@ export function Surface<T extends ElementType = 'div'>(props: SurfaceProps<T>) {
       className: cn(
         surfaceVariants({ tone, elevation, padding, material: resolvedMaterial, transparency }),
         interactive && 'nimi-surface--interactive cursor-pointer hover:border-[var(--nimi-border-strong)] hover:shadow-[var(--nimi-elevation-raised)]',
-        active && 'nimi-surface--active bg-[var(--nimi-surface-active)]',
+        active && 'nimi-surface--active border-[var(--nimi-action-primary-bg)] bg-[var(--nimi-surface-active)]',
         className,
       ),
     },
