@@ -165,7 +165,6 @@ func localEnvironmentHostProfileID(state localEnvironmentHostProfileState) strin
 		state.GPUVendor,
 		state.GPUModel,
 		boolString(state.PythonAvailable),
-		state.PythonVersion,
 	}
 	return "host_" + shortHash(strings.Join(parts, "|"))
 }

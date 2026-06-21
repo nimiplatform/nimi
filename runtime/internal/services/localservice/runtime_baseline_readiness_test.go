@@ -41,6 +41,18 @@ func runtimeBaselineCPUProfile() *runtimev1.LocalDeviceProfile {
 	}
 }
 
+func TestLocalEnvironmentHostProfileIDIgnoresVolatileSystemPythonVersion(t *testing.T) {
+	originalProfile := runtimeBaselineCPUProfile()
+	driftedProfile := runtimeBaselineCPUProfile()
+	driftedProfile.Python.Version = "Python 3.14.2"
+
+	originalID := localEnvironmentHostProfileFromDeviceProfile(originalProfile).HostProfileID
+	driftedID := localEnvironmentHostProfileFromDeviceProfile(driftedProfile).HostProfileID
+	if originalID != driftedID {
+		t.Fatalf("host profile id changed for system python version drift: original=%q drifted=%q", originalID, driftedID)
+	}
+}
+
 // markRuntimeBaselineConsumerReady resolves the activation plan for one
 // consumer and upserts a verified selected source record for every required
 // dependency, so the activation gate projects ready.
@@ -493,7 +505,11 @@ func TestRuntimeBaselineReadinessResolveRefreshesEquivalentHostProfileSourceRebi
 	originalSourceIDs := append([]string(nil), record.SelectedSourceRecordIDs...)
 
 	rebindingProfile := runtimeBaselineCPUProfile()
-	rebindingProfile.Python.Version = "Python 3.14.2"
+	rebindingProfile.Gpu = &runtimev1.LocalGpuProfile{
+		Available: true,
+		Vendor:    "nvidia",
+		Model:     "RTX 6000 Ada",
+	}
 	if localEnvironmentHostProfileFromDeviceProfile(originalProfile).HostProfileID == localEnvironmentHostProfileFromDeviceProfile(rebindingProfile).HostProfileID {
 		t.Fatal("test requires distinct host profile ids")
 	}
