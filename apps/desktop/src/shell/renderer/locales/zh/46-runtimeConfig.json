@@ -552,6 +552,8 @@
     "descriptionLabel": "描述",
     "descriptionPlaceholder": "描述此配置文件...",
     "dismiss": "关闭",
+    "editorJsonCharacters": "{{count}} 个字符",
+    "editorJsonLines": "{{count}} 行",
     "duplicate": "复制",
     "edit": "编辑",
     "editProfile": "编辑配置文件",

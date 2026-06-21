@@ -552,6 +552,8 @@
     "descriptionLabel": "Description",
     "descriptionPlaceholder": "Describe this profile...",
     "dismiss": "Dismiss",
+    "editorJsonCharacters": "{{count}} chars",
+    "editorJsonLines": "{{count}} lines",
     "duplicate": "Duplicate",
     "edit": "Edit",
     "editProfile": "Edit Profile",
