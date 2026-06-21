@@ -54,6 +54,41 @@ describe('DesktopShellAuthPage', () => {
     expect(props.appearance?.shellClassName).not.toContain('pointer-events-none');
   });
 
+  it('lets host shells provide the current Nimi logo asset', () => {
+    shellAuthPageSpy.mockClear();
+
+    renderToStaticMarkup(
+      <DesktopShellAuthPage
+        adapter={{
+          checkEmail: vi.fn(),
+          passwordLogin: vi.fn(),
+          requestEmailOtp: vi.fn(),
+          verifyEmailOtp: vi.fn(),
+          verifyTwoFactor: vi.fn(),
+          walletChallenge: vi.fn(),
+          walletLogin: vi.fn(),
+          oauthLogin: vi.fn(),
+          updatePassword: vi.fn(),
+          loadCurrentUser: vi.fn(),
+          applyToken: vi.fn(),
+        }}
+        logo="/current-nimi-logo.png"
+        logoAltText="Current Nimi logo"
+        session={{
+          mode: 'embedded',
+          authStatus: 'unauthenticated',
+        }}
+      />,
+    );
+
+    const props = shellAuthPageSpy.mock.calls[0]?.[0] as {
+      branding?: { logo?: unknown; logoAltText?: string };
+    };
+
+    expect(props.branding?.logo).toBe('/current-nimi-logo.png');
+    expect(props.branding?.logoAltText).toBe('Current Nimi logo');
+  });
+
   it('keeps scoped theme routing enabled', () => {
     const shellAuthPageSource = readFileSync(
       path.join(process.cwd(), 'auth/src/components/shell-auth-page.tsx'),

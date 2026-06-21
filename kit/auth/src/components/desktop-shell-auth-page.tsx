@@ -41,6 +41,8 @@ function DesktopAuthLogoMark() {
 export type DesktopShellAuthPageProps = {
   adapter: AuthPlatformAdapter;
   session: ShellAuthSession;
+  logo?: ReactNode | string;
+  logoAltText?: string;
   footer?: ReactNode;
   desktopBrowserAuth?: ShellAuthDesktopBrowserAuth;
   testIds?: ShellAuthTestIds;
@@ -57,8 +59,8 @@ export function DesktopShellAuthPage(props: DesktopShellAuthPageProps) {
       session={session}
       branding={{
         networkLabel: t('Auth.nimiNetwork'),
-        logo: <DesktopAuthLogoMark />,
-        logoAltText: 'Nimi Logo',
+        logo: props.logo ?? <DesktopAuthLogoMark />,
+        logoAltText: props.logoAltText ?? 'Nimi Logo',
       }}
       appearance={{
         theme: 'desktop',
