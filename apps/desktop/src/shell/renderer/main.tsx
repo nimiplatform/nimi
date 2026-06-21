@@ -7,7 +7,7 @@ import {
   describeRendererEntryFailureReason,
 } from '@nimiplatform/kit/shell/renderer/bootstrap';
 import bootstrapEntryCopy from '@renderer/locales/en/26-Bootstrap.json';
-import entryLogoImage from './assets/logo.svg';
+import entryLogoImage from './assets/logo.png';
 import '@renderer/styles.css';
 
 const entryModuleLoader = createRendererEntryModuleLoader({

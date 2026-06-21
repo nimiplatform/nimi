@@ -57,3 +57,17 @@ test('shell chrome retune: account menu is anchored to the titlebar avatar trigg
   assert.match(mainLayoutSettingsMenuSource, /style=\{anchorStyle\}/u);
   assert.doesNotMatch(mainLayoutSettingsMenuSource, /bottom-4|left-\[72px\]/u);
 });
+
+test('shell chrome retune: account menu Support uses a help glyph, not the old lifebuoy glyph', () => {
+  const supportIconBlock = navConfigSource.slice(
+    navConfigSource.indexOf('const ICON_SUPPORT'),
+    navConfigSource.indexOf('const ICON_DEVELOPER_TOOLS'),
+  );
+
+  assert.match(mainLayoutSettingsMenuSource, /id:\s*'support',\s*label:\s*'Support',\s*icon:\s*'support'/u);
+  assert.match(supportIconBlock, /M9\.09 9a3 3 0 0 1 5\.83 1c0 2-3 3-3 3/u);
+  assert.match(supportIconBlock, /M12 17h\.01/u);
+  assert.doesNotMatch(supportIconBlock, /<circle cx="12" cy="12" r="4"/u);
+  assert.doesNotMatch(supportIconBlock, /x1="4\.93" y1="4\.93" x2="9\.17" y2="9\.17"/u);
+  assert.doesNotMatch(navConfigSource, /normalized === 'support' \|\| normalized === 'lifebuoy'/u);
+});

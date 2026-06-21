@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
-import logoImage from '../../assets/logo.svg';
+import logoImage from '../../assets/logo.png';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { loadNimiRealmNotificationUnreadCount } from '@nimiplatform/sdk/realm';

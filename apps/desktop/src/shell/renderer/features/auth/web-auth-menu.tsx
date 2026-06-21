@@ -3,6 +3,7 @@ import {
   useState,
   type MouseEvent,
 } from 'react';
+import authLogoImage from '../../assets/logo.png';
 import { desktopBridge } from '@renderer/bridge';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import type { WebAuthMenuMode } from '@nimiplatform/kit/auth';
@@ -73,6 +74,8 @@ export function WebAuthMenu(props: { mode?: WebAuthMenuMode }) {
   return (
     <DesktopShellAuthPage
       adapter={adapter}
+      logo={authLogoImage}
+      logoAltText="Nimi Logo"
       session={{
         mode,
         authStatus,

@@ -9,7 +9,7 @@ import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { desktopBridge } from '@renderer/bridge';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { logoutAndClearSession } from '@renderer/features/auth/logout';
-import bootstrapLogoImage from '../../assets/logo.svg';
+import bootstrapLogoImage from '../../assets/logo.png';
 
 const LoginPage = lazy(async () => {
   const mod = await import('@renderer/features/auth/login-page');
