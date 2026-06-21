@@ -5079,7 +5079,8 @@ export interface RealmWorldCoreControllerListWorldCharactersOperationRequest {
     readonly worldId: string;
   };
   readonly query?: {
-
+    readonly take?: number;
+    readonly afterId?: string;
   };
   readonly headers?: {
 
@@ -5106,7 +5107,9 @@ export interface RealmWorldCoreControllerListWorldEntitiesOperationRequest {
     readonly worldId: string;
   };
   readonly query?: {
-
+    readonly take?: number;
+    readonly afterId?: string;
+    readonly kind?: string;
   };
   readonly headers?: {
 
@@ -5120,6 +5123,7 @@ export interface RealmWorldCoreControllerListWorldRelationshipsOperationRequest 
   };
   readonly query?: {
     readonly take?: number;
+    readonly afterId?: string;
     readonly type?: string;
     readonly targetEntityId?: string;
     readonly sourceEntityId?: string;

@@ -15762,7 +15762,8 @@ type RealmWorldCoreControllerListWorldCharactersOperationPath struct {
 }
 
 type RealmWorldCoreControllerListWorldCharactersOperationQuery struct {
-
+	Take float64 `json:"take,omitempty"`
+	AfterId string `json:"afterId,omitempty"`
 }
 
 type RealmWorldCoreControllerListWorldCharactersOperationHeaders struct {
@@ -15801,7 +15802,9 @@ type RealmWorldCoreControllerListWorldEntitiesOperationPath struct {
 }
 
 type RealmWorldCoreControllerListWorldEntitiesOperationQuery struct {
-
+	Take float64 `json:"take,omitempty"`
+	AfterId string `json:"afterId,omitempty"`
+	Kind string `json:"kind,omitempty"`
 }
 
 type RealmWorldCoreControllerListWorldEntitiesOperationHeaders struct {
@@ -15821,6 +15824,7 @@ type RealmWorldCoreControllerListWorldRelationshipsOperationPath struct {
 
 type RealmWorldCoreControllerListWorldRelationshipsOperationQuery struct {
 	Take float64 `json:"take,omitempty"`
+	AfterId string `json:"afterId,omitempty"`
 	Type string `json:"type,omitempty"`
 	TargetEntityId string `json:"targetEntityId,omitempty"`
 	SourceEntityId string `json:"sourceEntityId,omitempty"`

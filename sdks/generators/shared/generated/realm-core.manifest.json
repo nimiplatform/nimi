@@ -11018,6 +11018,26 @@
       ],
       "parameters": [
         {
+          "name": "take",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null
+          }
+        },
+        {
+          "name": "afterId",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        },
+        {
           "name": "worldId",
           "in": "path",
           "required": true,
@@ -11040,7 +11060,28 @@
           }
         }
       ],
-      "query_parameters": [],
+      "query_parameters": [
+        {
+          "name": "take",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null
+          }
+        },
+        {
+          "name": "afterId",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
       "header_parameters": [],
       "request_schema": {
         "kind": "unknown"
@@ -11154,6 +11195,36 @@
       ],
       "parameters": [
         {
+          "name": "take",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null
+          }
+        },
+        {
+          "name": "afterId",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        },
+        {
+          "name": "kind",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        },
+        {
           "name": "worldId",
           "in": "path",
           "required": true,
@@ -11176,7 +11247,38 @@
           }
         }
       ],
-      "query_parameters": [],
+      "query_parameters": [
+        {
+          "name": "take",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null
+          }
+        },
+        {
+          "name": "afterId",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        },
+        {
+          "name": "kind",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
       "header_parameters": [],
       "request_schema": {
         "kind": "unknown"
@@ -11214,6 +11316,16 @@
           "schema": {
             "kind": "scalar",
             "type": "number",
+            "format": null
+          }
+        },
+        {
+          "name": "afterId",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
             "format": null
           }
         },
@@ -11288,6 +11400,16 @@
           "schema": {
             "kind": "scalar",
             "type": "number",
+            "format": null
+          }
+        },
+        {
+          "name": "afterId",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
             "format": null
           }
         },

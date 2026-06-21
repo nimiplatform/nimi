@@ -6486,7 +6486,8 @@ class RealmWorldCoreControllerListWorldCharactersOperationPath:
 
 @dataclass(frozen=True)
 class RealmWorldCoreControllerListWorldCharactersOperationQuery:
-    pass
+    take: float | None = None
+    afterId: str | None = None
 
 
 @dataclass(frozen=True)
@@ -6531,7 +6532,9 @@ class RealmWorldCoreControllerListWorldEntitiesOperationPath:
 
 @dataclass(frozen=True)
 class RealmWorldCoreControllerListWorldEntitiesOperationQuery:
-    pass
+    take: float | None = None
+    afterId: str | None = None
+    kind: str | None = None
 
 
 @dataclass(frozen=True)
@@ -6554,6 +6557,7 @@ class RealmWorldCoreControllerListWorldRelationshipsOperationPath:
 @dataclass(frozen=True)
 class RealmWorldCoreControllerListWorldRelationshipsOperationQuery:
     take: float | None = None
+    afterId: str | None = None
     type: str | None = None
     targetEntityId: str | None = None
     sourceEntityId: str | None = None

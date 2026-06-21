@@ -9385,7 +9385,7 @@ info:
   description: |-
     The Nimi Social Platform API
 
-    Last updated: 2026-06-20T20:15:19.948Z
+    Last updated: 2026-06-21T17:01:42.630Z
   title: Nimi Realm SDK API
   version: '1.0'
 openapi: 3.0.0
@@ -13349,6 +13349,16 @@ paths:
     get:
       operationId: WorldCoreController_listWorldCharacters
       parameters:
+        - in: query
+          name: take
+          required: false
+          schema:
+            type: number
+        - in: query
+          name: afterId
+          required: false
+          schema:
+            type: string
         - in: path
           name: worldId
           required: true
@@ -13398,6 +13408,21 @@ paths:
     get:
       operationId: WorldCoreController_listWorldEntities
       parameters:
+        - in: query
+          name: take
+          required: false
+          schema:
+            type: number
+        - in: query
+          name: afterId
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: kind
+          required: false
+          schema:
+            type: string
         - in: path
           name: worldId
           required: true
@@ -13452,6 +13477,11 @@ paths:
           required: false
           schema:
             type: number
+        - in: query
+          name: afterId
+          required: false
+          schema:
+            type: string
         - in: query
           name: type
           required: false

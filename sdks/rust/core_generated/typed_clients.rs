@@ -44830,7 +44830,8 @@ pub struct RealmWorldCoreControllerListWorldCharactersOperationPath {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmWorldCoreControllerListWorldCharactersOperationQuery {
-
+    pub take: Option<f64>,
+    pub after_id: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -44877,7 +44878,9 @@ pub struct RealmWorldCoreControllerListWorldEntitiesOperationPath {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmWorldCoreControllerListWorldEntitiesOperationQuery {
-
+    pub take: Option<f64>,
+    pub after_id: Option<String>,
+    pub kind: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -44901,6 +44904,7 @@ pub struct RealmWorldCoreControllerListWorldRelationshipsOperationPath {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmWorldCoreControllerListWorldRelationshipsOperationQuery {
     pub take: Option<f64>,
+    pub after_id: Option<String>,
     pub r#type: Option<String>,
     pub target_entity_id: Option<String>,
     pub source_entity_id: Option<String>,
