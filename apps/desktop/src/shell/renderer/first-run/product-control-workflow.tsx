@@ -19,6 +19,7 @@ import {
   type NimiFirstRunMaterializationProjection,
 } from './runtime-materialization.js';
 import { syncFirstRunRuntimeDataRootConfig } from './first-run-runtime-storage-sync.js';
+import { FirstRunReconcilingScreen } from './first-run-reconciling-screen.js';
 import { useFirstRunMaterializationObserver } from './use-first-run-materialization-observer.js';
 import { projectInstallLevelCard } from './first-run-install-level-cards.js';
 import { projectSetupChecklist, type FirstRunSetupStepId } from './first-run-setup-checklist.js';
@@ -107,6 +108,10 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
 
   const screen = projectNimiProductControlFirstRunScreen(state);
   const setupVisible = screen.kind === 'phase' && screen.phase === 'setup';
+  const returnRunReadyRecordReconciling =
+    projection?.record?.state === 'ready_for_use'
+    && state !== 'ready_for_use'
+    && setupVisible;
   const [setupEnteredAtMs, setSetupEnteredAtMs] = useState(() => Date.now());
   const [setupNowMs, setSetupNowMs] = useState(() => Date.now());
   const [lastSetupCheckedAtMs, setLastSetupCheckedAtMs] = useState(() => Date.now());
@@ -713,6 +718,18 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
     t,
   ]);
   const materializationReadyForFinalization = materialization?.productState === 'local_ai_ready';
+
+  if (returnRunReadyRecordReconciling) {
+    return (
+      <section
+        data-testid="product-first-run-workflow"
+        data-product-state={state}
+        className="flex min-h-full flex-1 items-center justify-center px-6 py-10"
+      >
+        <FirstRunReconcilingScreen productState={state} mode="ready-record" />
+      </section>
+    );
+  }
 
   return (
     <section

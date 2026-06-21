@@ -268,6 +268,72 @@ test('renderer evidence: the Setup phase folds the four progress states into one
   }
 });
 
+test('renderer evidence: ready_for_use return-run verification downgrade does not render first-run setup', () => {
+  const markup = renderWorkflow('local_ai_profile_selected_environment_not_ready', {
+    state: 'ready_for_use',
+    dataRoot: {
+      path: '/tmp/nimi-data-explicit',
+      status: 'ready',
+      selectedAt: '2026-05-20T00:00:00.000Z',
+      verifiedAt: '2026-05-20T00:00:00.000Z',
+      selectedAtUnixMs: 1,
+      verifiedAtUnixMs: 1,
+    },
+    firstRun: {
+      installLevel: 'minimal',
+      aiProfileAlias: 'local-speech-ready',
+      completed: true,
+      completedAt: '2026-05-20T00:00:00.000Z',
+      initializationPlanId: 'first-run-plan:runtime-baseline:execution-evidence',
+      baselineProfileRef: 'default',
+      baselineCommitId: 'sha256:ready',
+      accountDefaultProfileRef: 'account-default-profile:v1:ready',
+      builtInAiConfigRefs: ['built-in-ai-config:v1:nimi', 'built-in-ai-config:v1:agent'],
+      runtimeBaselineRef: 'runtime_baseline_ready',
+      executionEvidenceRef: 'execution_evidence_ready',
+    },
+  });
+  assert.match(markup, /data-product-state="local_ai_profile_selected_environment_not_ready"/);
+  assert.match(markup, /data-testid="first-run-screen-reconciling"/);
+  assert.doesNotMatch(markup, /data-testid="first-run-phase-setup"/);
+  assert.doesNotMatch(markup, /data-testid="first-run-setup-checklist"/);
+});
+
+test('renderer evidence: ready_for_use return-run repair downgrade keeps repair surface reachable', () => {
+  const markup = renderWorkflow('repair_required', {
+    state: 'ready_for_use',
+    dataRoot: {
+      path: '/tmp/nimi-data-explicit',
+      status: 'ready',
+      selectedAt: '2026-05-20T00:00:00.000Z',
+      verifiedAt: '2026-05-20T00:00:00.000Z',
+      selectedAtUnixMs: 1,
+      verifiedAtUnixMs: 1,
+    },
+    firstRun: {
+      installLevel: 'minimal',
+      aiProfileAlias: 'local-speech-ready',
+      completed: true,
+      completedAt: '2026-05-20T00:00:00.000Z',
+      initializationPlanId: 'first-run-plan:runtime-baseline:execution-evidence',
+      baselineProfileRef: 'default',
+      baselineCommitId: 'sha256:ready',
+      accountDefaultProfileRef: 'account-default-profile:v1:ready',
+      builtInAiConfigRefs: ['built-in-ai-config:v1:nimi', 'built-in-ai-config:v1:agent'],
+      runtimeBaselineRef: 'runtime_baseline_ready',
+      executionEvidenceRef: 'execution_evidence_ready',
+    },
+    repair: {
+      required: true,
+      reason: 'runtime baseline repair required',
+    },
+  });
+  assert.match(markup, /data-product-state="repair_required"/);
+  assert.match(markup, /data-testid="first-run-screen-repair"/);
+  assert.match(markup, /first-run-repair-retry/);
+  assert.doesNotMatch(markup, /data-testid="first-run-screen-reconciling"/);
+});
+
 test('renderer evidence: repair and blocked states are explicit terminal failure surfaces', () => {
   const repair = renderWorkflow('repair_required');
   assert.match(repair, /data-testid="first-run-screen-repair"/);

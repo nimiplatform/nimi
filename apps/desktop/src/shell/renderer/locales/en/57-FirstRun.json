@@ -111,6 +111,7 @@
   "finalizationTitle": "Finalizing",
   "finalizationRetry": "Retry finalization",
   "reconcilingAuth": "Reconciling sign-in state…",
+  "reconcilingReadyRecord": "Reconciling local readiness…",
   "states": {
     "not_logged_in": {
       "title": "Sign in to use Nimi.",
