@@ -40118,9 +40118,11 @@ pub struct WorldEntityCoreDto {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct WorldPublicDetailDto {
     pub created_at: String,
+    pub entity_kinds: Vec<String>,
     pub id: String,
     pub media: Box<WorldPublicMediaDto>,
     pub name: String,
+    pub relationship_types: Vec<String>,
     pub rules: Vec<String>,
     pub scenes: Vec<String>,
     pub stats: Box<WorldPublicStatsDto>,
@@ -40144,9 +40146,11 @@ pub struct WorldPublicDetailWithCharactersDto {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct WorldPublicItemDto {
     pub created_at: String,
+    pub entity_kinds: Vec<String>,
     pub id: String,
     pub media: Box<WorldPublicMediaDto>,
     pub name: String,
+    pub relationship_types: Vec<String>,
     pub stats: Box<WorldPublicStatsDto>,
     pub summary: String,
     pub tagline: String,
@@ -40206,7 +40210,9 @@ pub struct WorldPublicSourceSectionsDto {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct WorldPublicStatsDto {
     pub character_count: f64,
+    pub entity_count: f64,
     pub persona_count: f64,
+    pub relationship_count: f64,
     pub scene_count: f64,
     pub system_count: f64,
     pub timeline_event_count: f64,

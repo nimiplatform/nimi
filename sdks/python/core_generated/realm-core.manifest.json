@@ -37200,6 +37200,18 @@
             }
           },
           {
+            "name": "entityKinds",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "scalar",
+                "type": "string",
+                "format": null
+              }
+            }
+          },
+          {
             "name": "id",
             "required": true,
             "schema": {
@@ -37224,6 +37236,18 @@
               "kind": "scalar",
               "type": "string",
               "format": null
+            }
+          },
+          {
+            "name": "relationshipTypes",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "scalar",
+                "type": "string",
+                "format": null
+              }
             }
           },
           {
@@ -37400,6 +37424,18 @@
             }
           },
           {
+            "name": "entityKinds",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "scalar",
+                "type": "string",
+                "format": null
+              }
+            }
+          },
+          {
             "name": "id",
             "required": true,
             "schema": {
@@ -37424,6 +37460,18 @@
               "kind": "scalar",
               "type": "string",
               "format": null
+            }
+          },
+          {
+            "name": "relationshipTypes",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "scalar",
+                "type": "string",
+                "format": null
+              }
             }
           },
           {
@@ -37829,7 +37877,25 @@
             }
           },
           {
+            "name": "entityCount",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
             "name": "personaCount",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "relationshipCount",
             "required": true,
             "schema": {
               "kind": "scalar",

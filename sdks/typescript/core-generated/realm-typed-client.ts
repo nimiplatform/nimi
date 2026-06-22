@@ -1713,9 +1713,11 @@ export interface WorldEntityCoreDto {
 }
 export interface WorldPublicDetailDto {
   readonly createdAt: string;
+  readonly entityKinds: readonly (string)[];
   readonly id: string;
   readonly media: WorldPublicMediaDto;
   readonly name: string;
+  readonly relationshipTypes: readonly (string)[];
   readonly rules: readonly (string)[];
   readonly scenes: readonly (string)[];
   readonly stats: WorldPublicStatsDto;
@@ -1735,9 +1737,11 @@ export interface WorldPublicDetailWithCharactersDto {
 }
 export interface WorldPublicItemDto {
   readonly createdAt: string;
+  readonly entityKinds: readonly (string)[];
   readonly id: string;
   readonly media: WorldPublicMediaDto;
   readonly name: string;
+  readonly relationshipTypes: readonly (string)[];
   readonly stats: WorldPublicStatsDto;
   readonly summary: string;
   readonly tagline?: string | null;
@@ -1785,7 +1789,9 @@ export interface WorldPublicSourceSectionsDto {
 }
 export interface WorldPublicStatsDto {
   readonly characterCount: number;
+  readonly entityCount: number;
   readonly personaCount: number;
+  readonly relationshipCount: number;
   readonly sceneCount: number;
   readonly systemCount: number;
   readonly timelineEventCount: number;

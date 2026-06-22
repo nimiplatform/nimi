@@ -8938,12 +8938,20 @@ components:
       properties:
         createdAt:
           type: string
+        entityKinds:
+          items:
+            type: string
+          type: array
         id:
           type: string
         media:
           $ref: '#/components/schemas/WorldPublicMediaDto'
         name:
           type: string
+        relationshipTypes:
+          items:
+            type: string
+          type: array
         rules:
           items:
             type: string
@@ -8992,6 +9000,8 @@ components:
         - type
         - visibility
         - tags
+        - entityKinds
+        - relationshipTypes
         - media
         - time
         - stats
@@ -9016,12 +9026,20 @@ components:
       properties:
         createdAt:
           type: string
+        entityKinds:
+          items:
+            type: string
+          type: array
         id:
           type: string
         media:
           $ref: '#/components/schemas/WorldPublicMediaDto'
         name:
           type: string
+        relationshipTypes:
+          items:
+            type: string
+          type: array
         stats:
           $ref: '#/components/schemas/WorldPublicStatsDto'
         summary:
@@ -9054,6 +9072,8 @@ components:
         - type
         - visibility
         - tags
+        - entityKinds
+        - relationshipTypes
         - media
         - time
         - stats
@@ -9178,7 +9198,11 @@ components:
       properties:
         characterCount:
           type: number
+        entityCount:
+          type: number
         personaCount:
+          type: number
+        relationshipCount:
           type: number
         sceneCount:
           type: number
@@ -9187,6 +9211,8 @@ components:
         timelineEventCount:
           type: number
       required:
+        - entityCount
+        - relationshipCount
         - characterCount
         - personaCount
         - sceneCount
@@ -9385,7 +9411,7 @@ info:
   description: |-
     The Nimi Social Platform API
 
-    Last updated: 2026-06-21T17:01:42.630Z
+    Last updated: 2026-06-22T02:56:47.988Z
   title: Nimi Realm SDK API
   version: '1.0'
 openapi: 3.0.0

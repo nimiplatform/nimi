@@ -1981,9 +1981,11 @@ class WorldEntityCoreDto:
 @dataclass(frozen=True)
 class WorldPublicDetailDto:
     createdAt: str | None = None
+    entityKinds: tuple[str, ...] = field(default_factory=tuple)
     id: str | None = None
     media: WorldPublicMediaDto | None = None
     name: str | None = None
+    relationshipTypes: tuple[str, ...] = field(default_factory=tuple)
     rules: tuple[str, ...] = field(default_factory=tuple)
     scenes: tuple[str, ...] = field(default_factory=tuple)
     stats: WorldPublicStatsDto | None = None
@@ -2005,9 +2007,11 @@ class WorldPublicDetailWithCharactersDto:
 @dataclass(frozen=True)
 class WorldPublicItemDto:
     createdAt: str | None = None
+    entityKinds: tuple[str, ...] = field(default_factory=tuple)
     id: str | None = None
     media: WorldPublicMediaDto | None = None
     name: str | None = None
+    relationshipTypes: tuple[str, ...] = field(default_factory=tuple)
     stats: WorldPublicStatsDto | None = None
     summary: str | None = None
     tagline: str | None = None
@@ -2061,7 +2065,9 @@ class WorldPublicSourceSectionsDto:
 @dataclass(frozen=True)
 class WorldPublicStatsDto:
     characterCount: float | None = None
+    entityCount: float | None = None
     personaCount: float | None = None
+    relationshipCount: float | None = None
     sceneCount: float | None = None
     systemCount: float | None = None
     timelineEventCount: float | None = None

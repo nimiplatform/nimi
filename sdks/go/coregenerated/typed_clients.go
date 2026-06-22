@@ -11843,9 +11843,11 @@ type WorldEntityCoreDto struct {
 
 type WorldPublicDetailDto struct {
 	CreatedAt string `json:"createdAt,omitempty"`
+	EntityKinds []string `json:"entityKinds,omitempty"`
 	Id string `json:"id,omitempty"`
 	Media *WorldPublicMediaDto `json:"media,omitempty"`
 	Name string `json:"name,omitempty"`
+	RelationshipTypes []string `json:"relationshipTypes,omitempty"`
 	Rules []string `json:"rules,omitempty"`
 	Scenes []string `json:"scenes,omitempty"`
 	Stats *WorldPublicStatsDto `json:"stats,omitempty"`
@@ -11867,9 +11869,11 @@ type WorldPublicDetailWithCharactersDto struct {
 
 type WorldPublicItemDto struct {
 	CreatedAt string `json:"createdAt,omitempty"`
+	EntityKinds []string `json:"entityKinds,omitempty"`
 	Id string `json:"id,omitempty"`
 	Media *WorldPublicMediaDto `json:"media,omitempty"`
 	Name string `json:"name,omitempty"`
+	RelationshipTypes []string `json:"relationshipTypes,omitempty"`
 	Stats *WorldPublicStatsDto `json:"stats,omitempty"`
 	Summary string `json:"summary,omitempty"`
 	Tagline string `json:"tagline,omitempty"`
@@ -11923,7 +11927,9 @@ type WorldPublicSourceSectionsDto struct {
 
 type WorldPublicStatsDto struct {
 	CharacterCount float64 `json:"characterCount,omitempty"`
+	EntityCount float64 `json:"entityCount,omitempty"`
 	PersonaCount float64 `json:"personaCount,omitempty"`
+	RelationshipCount float64 `json:"relationshipCount,omitempty"`
 	SceneCount float64 `json:"sceneCount,omitempty"`
 	SystemCount float64 `json:"systemCount,omitempty"`
 	TimelineEventCount float64 `json:"timelineEventCount,omitempty"`
