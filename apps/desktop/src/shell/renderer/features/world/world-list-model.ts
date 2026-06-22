@@ -13,6 +13,9 @@ type WorldCharacterSummaryDto = {
   profileCoverUrl?: string | null;
   createdAt?: string;
   sourceRef?: NimiRealmCoreSourceRef | null;
+  sourceKind?: 'worldCharacter' | 'realmPersona';
+  ownership?: 'worldOwned' | 'userOwned';
+  display?: LooseObject | null;
 };
 
 export type WorldCharacterItem = {
@@ -24,6 +27,10 @@ export type WorldCharacterItem = {
   profileCoverUrl?: string | null;
   createdAt?: string;
   sourceRef?: NimiRealmCoreSourceRef | null;
+  sourceKind?: 'worldCharacter' | 'realmPersona';
+  ownership?: 'worldOwned' | 'userOwned';
+  role?: string | null;
+  tags?: string[];
 };
 
 export type WorldComputedTime = {
@@ -75,8 +82,12 @@ export type WorldListItem = {
   type: string;
   status: string;
   visibility: string | null;
+  entityKinds: string[];
+  relationshipTypes: string[];
   level: number;
   levelUpdatedAt: string | null;
+  entityCount: number;
+  relationshipCount: number;
   characterCount: number;
   personaCount: number;
   sceneCount: number;
@@ -249,6 +260,7 @@ export function toWorldListItem(raw: WorldDetailDto | WorldDetailWithCharactersD
   let parsedCharacters: WorldCharacterItem[] | undefined;
   if ('characters' in raw && Array.isArray(raw.characters)) {
     parsedCharacters = raw.characters.map((character: WorldCharacterSummaryDto) => {
+      const display = readRecord(character.display);
       return {
         id: character.id,
         name: character.name || 'Unknown',
@@ -258,9 +270,21 @@ export function toWorldListItem(raw: WorldDetailDto | WorldDetailWithCharactersD
         profileCoverUrl: character.profileCoverUrl ?? null,
         createdAt: character.createdAt,
         sourceRef: character.sourceRef ?? null,
+        sourceKind: character.sourceKind,
+        ownership: character.ownership,
+        role: readString(display?.role),
+        tags: readStringArray(display?.tags),
       };
     });
   }
+  const entityKinds = readStringArray(raw.entityKinds);
+  const relationshipTypes = readStringArray(raw.relationshipTypes);
+  const entityCount = typeof raw.entityCount === 'number'
+    ? raw.entityCount
+    : readNumber(stats?.entityCount) ?? 0;
+  const relationshipCount = typeof raw.relationshipCount === 'number'
+    ? raw.relationshipCount
+    : readNumber(stats?.relationshipCount) ?? 0;
   const characterCount = typeof raw.characterCount === 'number'
     ? raw.characterCount
     : readNumber(stats?.characterCount) != null
@@ -310,8 +334,12 @@ export function toWorldListItem(raw: WorldDetailDto | WorldDetailWithCharactersD
     type: resolveWorldType(raw),
     status: readString(raw.status) ?? 'DISCOVERABLE',
     visibility: readString(raw.visibility),
+    entityKinds,
+    relationshipTypes,
     level: typeof raw.level === 'number' ? raw.level : 1,
     levelUpdatedAt: typeof raw.levelUpdatedAt === 'string' ? raw.levelUpdatedAt : null,
+    entityCount,
+    relationshipCount,
     characterCount,
     personaCount,
     sceneCount,

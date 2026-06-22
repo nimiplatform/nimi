@@ -190,6 +190,18 @@ function requireWorldPublicItemDto(value: unknown, expectedWorldId?: string): Wo
     'SDK_REALM_WORLD_PUBLIC_CONTRACT_INVALID',
     `World public payload ${id} is missing stats`,
   );
+  requireArrayField(
+    record,
+    'entityKinds',
+    'SDK_REALM_WORLD_PUBLIC_CONTRACT_INVALID',
+    `World public payload ${id} is missing entityKinds`,
+  );
+  requireArrayField(
+    record,
+    'relationshipTypes',
+    'SDK_REALM_WORLD_PUBLIC_CONTRACT_INVALID',
+    `World public payload ${id} is missing relationshipTypes`,
+  );
   requireRecord(
     record.time,
     'SDK_REALM_WORLD_PUBLIC_CONTRACT_INVALID',
@@ -322,6 +334,7 @@ function requireWorldPublicSourceCardDto(value: unknown, expectedWorldId: string
 }
 
 function projectWorldPublicItem(world: WorldPublicItemDto): WorldDetailDto {
+  const record = world as unknown as CoreRecord;
   const media = asRecord(world.media);
   const stats = asRecord(world.stats);
   const time = asRecord(world.time);
@@ -339,11 +352,15 @@ function projectWorldPublicItem(world: WorldPublicItemDto): WorldDetailDto {
     tags,
     themes: tags,
     genre: tags[0] ?? null,
+    entityKinds: readArray<string>(record, 'entityKinds').filter((item) => typeof item === 'string'),
+    relationshipTypes: readArray<string>(record, 'relationshipTypes').filter((item) => typeof item === 'string'),
     iconUrl: readString(media, 'iconUrl'),
     bannerUrl: readString(media, 'bannerUrl') ?? readString(media, 'heroUrl'),
     heroUrl: readString(media, 'heroUrl'),
     highlightUrls: readArray<string>(media, 'highlightUrls').filter((item) => typeof item === 'string'),
     status: 'DISCOVERABLE',
+    entityCount: readNumber(stats, 'entityCount') ?? 0,
+    relationshipCount: readNumber(stats, 'relationshipCount') ?? 0,
     characterCount: readNumber(stats, 'characterCount') ?? 0,
     personaCount: readNumber(stats, 'personaCount') ?? 0,
     sceneCount: readNumber(stats, 'sceneCount') ?? 0,

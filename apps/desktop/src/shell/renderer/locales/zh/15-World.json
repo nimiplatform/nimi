@@ -30,6 +30,22 @@
     "sourceDiscovery": "Source 发现",
     "publicWorld": "公开世界",
     "emptySources": "当这个世界暴露公开 Source 时，Character 和 Persona 会显示在这里。",
+    "schemaTabs": {
+      "overview": "概览",
+      "entities": "实体",
+      "characters": "角色"
+    },
+    "entityKinds": "实体类型",
+    "relationshipGraph": "关系图谱",
+    "worldCharacters": "WorldCharacter",
+    "sourceBoundaryNote": "{{characters}} 个世界角色绑定到 WorldEntityCore；{{personas}} 个 Persona 保持用户拥有的 Source。",
+    "noEntityKinds": "暂无公开实体类型。",
+    "noRelationshipTypes": "暂无公开关系类型。",
+    "totalSources": "总计",
+    "sourceKinds": {
+      "worldCharacter": "WorldCharacter",
+      "persona": "Persona"
+    },
     "recentHighlights": "近期亮点",
     "categories": "世界分类",
     "more": "更多",
@@ -95,6 +111,12 @@
     "inhabitants": "Source",
     "sources": "Source",
     "personas": "Persona",
+    "entities": "实体",
+    "characters": "角色",
+    "relationships": "关系",
+    "scenes": "场景",
+    "systems": "系统",
+    "timelineEvents": "时间线事件",
     "day": "世界时间",
     "flow": "时间流速",
     "timeflow": "时间流速"

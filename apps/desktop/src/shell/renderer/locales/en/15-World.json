@@ -30,6 +30,22 @@
     "sourceDiscovery": "Source Discovery",
     "publicWorld": "Public world",
     "emptySources": "Characters and personas appear here when this world exposes public sources.",
+    "schemaTabs": {
+      "overview": "Overview",
+      "entities": "Entities",
+      "characters": "Characters"
+    },
+    "entityKinds": "Entity Kinds",
+    "relationshipGraph": "Relationship Graph",
+    "worldCharacters": "WorldCharacters",
+    "sourceBoundaryNote": "{{characters}} world-owned characters bind to WorldEntityCore; {{personas}} personas remain user-owned sources.",
+    "noEntityKinds": "No public entity kinds.",
+    "noRelationshipTypes": "No public relationship types.",
+    "totalSources": "total",
+    "sourceKinds": {
+      "worldCharacter": "WorldCharacter",
+      "persona": "Persona"
+    },
     "recentHighlights": "Recent Highlights",
     "categories": "World categories",
     "more": "More",
@@ -95,6 +111,12 @@
     "inhabitants": "Sources",
     "sources": "Sources",
     "personas": "Personas",
+    "entities": "Entities",
+    "characters": "Characters",
+    "relationships": "Relationships",
+    "scenes": "Scenes",
+    "systems": "Systems",
+    "timelineEvents": "Timeline Events",
     "day": "World Time",
     "flow": "Timeflow",
     "timeflow": "Timeflow"

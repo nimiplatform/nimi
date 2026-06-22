@@ -55,39 +55,75 @@ function FeaturedCard({
           color: '#ffffff',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <h3 style={{ margin: 0, fontSize: 17, fontWeight: 900, letterSpacing: 0 }}>{world.name}</h3>
-          <button
-            type="button"
-            aria-label={`Open ${world.name}`}
-            onClick={(event) => {
-              event.stopPropagation();
-              onOpen();
-            }}
+        <div style={{ minWidth: 0, paddingRight: 50 }}>
+          <h3
+            title={world.name}
             style={{
-              width: 38,
-              height: 38,
-              borderRadius: 999,
-              border: '1px solid rgba(255,255,255,0.30)',
-              background: 'rgba(255,255,255,0.72)',
-              color: '#25334a',
-              display: 'grid',
-              placeItems: 'center',
-              cursor: 'pointer',
+              margin: 0,
+              minWidth: 0,
+              maxWidth: '100%',
+              fontSize: 17,
+              fontWeight: 900,
+              letterSpacing: 0,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
             }}
           >
-            <IconArrow />
-          </button>
+            {world.name}
+          </h3>
         </div>
+        <button
+          type="button"
+          aria-label={`Open ${world.name}`}
+          data-testid="world-atlas-featured-card-action"
+          onClick={(event) => {
+            event.stopPropagation();
+            onOpen();
+          }}
+          style={{
+            position: 'absolute',
+            right: 0,
+            top: 0,
+            width: 38,
+            height: 38,
+            borderRadius: 999,
+            border: '1px solid rgba(255,255,255,0.30)',
+            background: 'rgba(255,255,255,0.72)',
+            color: '#25334a',
+            display: 'grid',
+            placeItems: 'center',
+            cursor: 'pointer',
+          }}
+        >
+          <IconArrow />
+        </button>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, fontWeight: 700 }}>
           <span style={{ width: 7, height: 7, borderRadius: 999, background: '#45d0aa' }} />
           <span>{statusLabel(world)}</span>
           <span>{formatNum(sourceCount(world))} sources</span>
         </div>
         {tags.length > 0 ? (
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {tags.map((tag) => (
-              <span key={tag} style={{ borderRadius: 999, padding: '4px 9px', background: 'rgba(255,255,255,0.28)', color: '#ffffff', fontSize: 11, fontWeight: 800 }}>
+          <div style={{ display: 'flex', gap: 6, minWidth: 0, overflow: 'hidden' }}>
+            {tags.map((tag, index) => (
+              <span
+                key={tag}
+                title={tag}
+                style={{
+                  minWidth: 0,
+                  maxWidth: index === 0 ? 'none' : '100%',
+                  flex: index === 0 ? '0 0 auto' : '1 1 auto',
+                  borderRadius: 999,
+                  padding: '4px 9px',
+                  background: 'rgba(255,255,255,0.28)',
+                  color: '#ffffff',
+                  fontSize: 11,
+                  fontWeight: 800,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
                 {tag}
               </span>
             ))}

@@ -71,6 +71,8 @@ export function matchesQuery(world: WorldListItem, q: string): boolean {
     world.genre ?? '',
     world.era ?? '',
     ...world.themes,
+    ...world.entityKinds,
+    ...world.relationshipTypes,
     ...(world.characters?.map((character) => character.name) ?? []),
   ]
     .join(' ')

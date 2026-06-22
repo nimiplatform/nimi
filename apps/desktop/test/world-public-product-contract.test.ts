@@ -57,12 +57,16 @@ function publicWorld(overrides: PublicWorld = {}) {
     },
     time: publicTime(),
     stats: {
+      entityCount: 8,
+      relationshipCount: 12,
       characterCount: 1,
       personaCount: 1,
       sceneCount: 2,
       systemCount: 1,
       timelineEventCount: 2,
     },
+    entityKinds: ['person', 'place', 'office', 'text'],
+    relationshipTypes: ['serves', 'authored', 'locatedIn'],
     rules: ['Magic has an observable cost.'],
     systems: ['High Magic'],
     scenes: ['Sky Citadel', 'Lower Market'],
@@ -171,8 +175,12 @@ test('World Atlas list consumes public product DTOs without raw WorldCore requir
   assert.equal(result[0]?.description, 'A kingdom-scale fantasy setting for source discovery.');
   assert.equal(result[0]?.tagline, 'High Magic Frontier');
   assert.equal(result[0]?.bannerUrl, 'https://cdn.example.com/world-banner.png');
+  assert.equal(result[0]?.entityCount, 8);
+  assert.equal(result[0]?.relationshipCount, 12);
   assert.equal(result[0]?.characterCount, 1);
   assert.equal(result[0]?.personaCount, 1);
+  assert.deepEqual(result[0]?.entityKinds, ['person', 'place', 'office', 'text']);
+  assert.deepEqual(result[0]?.relationshipTypes, ['serves', 'authored', 'locatedIn']);
   assert.equal(firstWorld?.computed?.time?.currentWorldTime, '2026-06-19T00:00:00.000Z');
   assert.equal(errors.length, 0);
 });
@@ -204,10 +212,14 @@ test('World list model accepts allowlisted public DTOs and rejects reliance on r
   );
   assert.equal(item.type, 'CREATOR');
   assert.equal(item.status, 'DISCOVERABLE');
+  assert.equal(item.entityCount, 8);
+  assert.equal(item.relationshipCount, 12);
   assert.equal(item.characterCount, 1);
   assert.equal(item.personaCount, 1);
   assert.equal(item.sceneCount, 2);
   assert.equal(item.timelineEventCount, 2);
+  assert.deepEqual(item.entityKinds, ['person', 'place', 'office', 'text']);
+  assert.deepEqual(item.relationshipTypes, ['serves', 'authored', 'locatedIn']);
 });
 
 test('World detail consumes public source sections for characters and personas', async () => {
