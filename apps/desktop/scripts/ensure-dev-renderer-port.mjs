@@ -1,13 +1,29 @@
 #!/usr/bin/env node
-/* global console, process */
+/* global AbortSignal, console, fetch, process, setInterval, setTimeout */
 
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import {
+  planRendererCommand,
+  planRendererPortResolution,
+} from './dev-renderer-port-policy.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const desktopRoot = path.resolve(__dirname, '..');
 const rendererPort = 1420;
+const rendererProbeTimeoutMs = 1200;
+const shutdownGraceMs = 5000;
+const SIGNAL_EXIT_CODES = new Map([
+  ['SIGINT', 130],
+  ['SIGTERM', 143],
+  ['SIGHUP', 129],
+]);
+
+let activeRendererChild = null;
+let shutdownSignal = null;
+let forcedExitTimer = null;
 
 function runCommand(command, args) {
   try {
@@ -52,43 +68,6 @@ function listListeningPidsPosix(port) {
   }
 }
 
-function parseCsvLine(line) {
-  const values = [];
-  let current = '';
-  let inQuotes = false;
-  for (let index = 0; index < line.length; index += 1) {
-    const char = line[index];
-    if (char === '"') {
-      const nextChar = line[index + 1];
-      if (inQuotes && nextChar === '"') {
-        current += '"';
-        index += 1;
-        continue;
-      }
-      inQuotes = !inQuotes;
-      continue;
-    }
-    if (char === ',' && !inQuotes) {
-      values.push(current);
-      current = '';
-      continue;
-    }
-    current += char;
-  }
-  values.push(current);
-  return values;
-}
-
-function readProcessImageWindows(pid) {
-  const output = runCommand('tasklist', ['/FI', `PID eq ${pid}`, '/FO', 'CSV', '/NH']);
-  const normalized = output.trim();
-  if (!normalized || normalized.startsWith('INFO:')) {
-    return '';
-  }
-  const values = parseCsvLine(normalized.split(/\r?\n/)[0] || '');
-  return values[0] || '';
-}
-
 function readProcessCommandLinePosix(pid) {
   try {
     return runCommand('ps', ['-p', String(pid), '-o', 'command=']);
@@ -97,16 +76,23 @@ function readProcessCommandLinePosix(pid) {
   }
 }
 
-function normalizeForMatch(value) {
-  return String(value || '').replaceAll('\\', '/').toLowerCase();
-}
-
-function isDesktopRendererProcess(commandLine) {
-  const normalized = normalizeForMatch(commandLine);
-  const normalizedDesktopRoot = normalizeForMatch(desktopRoot);
-  return normalized.includes(normalizedDesktopRoot)
-    && normalized.includes('vite')
-    && normalized.includes('--port 1420');
+function readProcessCommandLineWindows(pid) {
+  const script = [
+    '$ErrorActionPreference = "Stop"',
+    `$ProcessInfo = Get-CimInstance Win32_Process -Filter "ProcessId = ${pid}"`,
+    'if ($null -ne $ProcessInfo) { [Console]::Out.Write($ProcessInfo.CommandLine) }',
+  ].join('; ');
+  try {
+    return runCommand('powershell.exe', [
+      '-NoProfile',
+      '-ExecutionPolicy',
+      'Bypass',
+      '-Command',
+      script,
+    ]);
+  } catch {
+    return '';
+  }
 }
 
 function getListeningPids(port) {
@@ -117,52 +103,182 @@ function getListeningPids(port) {
 }
 
 function readProcessCommandLine(pid) {
+  if (process.platform === 'win32') {
+    return readProcessCommandLineWindows(pid);
+  }
   return readProcessCommandLinePosix(pid);
 }
 
-function canStopWindowsProcess(pid) {
-  const imageName = String(readProcessImageWindows(pid) || '').trim().toLowerCase();
-  return imageName === 'node.exe';
+function getRendererPortProcesses() {
+  return getListeningPids(rendererPort).map((pid) => ({
+    pid,
+    commandLine: readProcessCommandLine(pid),
+  }));
 }
 
-function ensureRendererPortAvailable() {
-  const pids = getListeningPids(rendererPort);
-  if (pids.length === 0) {
-    console.log(`[dev-renderer-port] Port ${rendererPort} is available.`);
+async function isRendererReachable() {
+  try {
+    const response = await fetch(`http://127.0.0.1:${rendererPort}/`, {
+      signal: AbortSignal.timeout(rendererProbeTimeoutMs),
+    });
+    return response.status >= 200 && response.status < 600;
+  } catch {
+    return false;
+  }
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+async function waitForRendererPortRelease() {
+  const deadline = Date.now() + shutdownGraceMs;
+  while (Date.now() < deadline) {
+    if (getListeningPids(rendererPort).length === 0) {
+      return true;
+    }
+    await sleep(100);
+  }
+  return getListeningPids(rendererPort).length === 0;
+}
+
+async function stopRendererProcesses(pids) {
+  for (const pid of pids) {
+    console.log(`[dev-renderer-port] Stopping stale desktop renderer on port ${rendererPort} (PID ${pid}).`);
+    try {
+      process.kill(pid, 'SIGTERM');
+    } catch (error) {
+      if (error?.code !== 'ESRCH') {
+        throw error;
+      }
+    }
+  }
+
+  if (pids.length > 0 && !(await waitForRendererPortRelease())) {
+    throw new Error(`Port ${rendererPort} is still in use after stopping desktop renderer process(es): ${pids.join(', ')}`);
+  }
+}
+
+function exitCodeForShutdownSignal(signal) {
+  if (signal === 'SIGTERM') {
+    return 0;
+  }
+  return SIGNAL_EXIT_CODES.get(signal) ?? 1;
+}
+
+function terminateActiveRendererChild() {
+  if (!activeRendererChild?.pid || activeRendererChild.exitCode !== null || activeRendererChild.signalCode !== null) {
+    return;
+  }
+  activeRendererChild.kill('SIGTERM');
+  forcedExitTimer = setTimeout(() => {
+    activeRendererChild?.kill('SIGKILL');
+  }, shutdownGraceMs);
+}
+
+function exitFromSignal(signal) {
+  if (shutdownSignal) {
+    return;
+  }
+  shutdownSignal = signal;
+  terminateActiveRendererChild();
+  if (!activeRendererChild) {
+    process.exit(exitCodeForShutdownSignal(signal));
+  }
+}
+
+function runIdleRendererReuseProcess() {
+  setInterval(() => undefined, 2147483647);
+}
+
+function spawnRenderer(command, args) {
+  const spawnPlan = planRendererCommand(command, args, {
+    platform: process.platform,
+  });
+  const child = spawn(spawnPlan.command, spawnPlan.args, {
+    cwd: desktopRoot,
+    env: process.env,
+    stdio: 'inherit',
+  });
+  activeRendererChild = child;
+
+  child.on('error', (error) => {
+    activeRendererChild = null;
+    process.stderr.write(`[dev-renderer-port] failed to start renderer command: ${error.message}\n`);
+    process.exit(1);
+  });
+
+  child.on('exit', (code, signal) => {
+    activeRendererChild = null;
+    if (forcedExitTimer) {
+      clearTimeout(forcedExitTimer);
+      forcedExitTimer = null;
+    }
+    if (shutdownSignal) {
+      process.exit(exitCodeForShutdownSignal(shutdownSignal));
+      return;
+    }
+    if (signal) {
+      process.exit(SIGNAL_EXIT_CODES.get(signal) ?? 1);
+      return;
+    }
+    process.exit(code ?? 0);
+  });
+}
+
+async function resolveRendererPort() {
+  const processes = getRendererPortProcesses();
+  const plan = planRendererPortResolution({
+    desktopRoot,
+    rendererPort,
+    processes,
+    isRendererReachable: await isRendererReachable(),
+    forceRestart: process.env.NIMI_DESKTOP_DEV_RENDERER_RESTART === '1',
+  });
+
+  if (plan.action === 'fail') {
+    throw new Error(plan.message);
+  }
+
+  if (plan.action === 'reuse') {
+    console.log(`[dev-renderer-port] ${plan.message}`);
+    return plan;
+  }
+
+  if (plan.action === 'start') {
+    console.log(`[dev-renderer-port] ${plan.message}`);
+    return plan;
+  }
+
+  await stopRendererProcesses(plan.pidsToStop);
+  return plan;
+}
+
+async function main() {
+  const separatorIndex = process.argv.indexOf('--');
+  const childArgs = separatorIndex === -1 ? [] : process.argv.slice(separatorIndex + 1);
+  const plan = await resolveRendererPort();
+
+  if (childArgs.length === 0 || plan.action === 'reuse') {
+    if (childArgs.length === 0) {
+      return;
+    }
+    runIdleRendererReuseProcess();
     return;
   }
 
-  for (const pid of pids) {
-    if (process.platform === 'win32') {
-      if (!canStopWindowsProcess(pid)) {
-        throw new Error(
-          `Port ${rendererPort} is already in use by PID ${pid}. ` +
-          'It is not a recognized Node-based renderer process, so cleanup was skipped.',
-        );
-      }
-
-      console.log(`[dev-renderer-port] Stopping stale desktop renderer on port ${rendererPort} (PID ${pid}).`);
-      process.kill(pid);
-      continue;
-    }
-
-    const commandLine = readProcessCommandLine(pid);
-    if (!isDesktopRendererProcess(commandLine)) {
-      throw new Error(
-        `Port ${rendererPort} is already in use by PID ${pid}. ` +
-        'It is not a recognized desktop renderer process, so cleanup was skipped.',
-      );
-    }
-
-    console.log(`[dev-renderer-port] Stopping stale desktop renderer on port ${rendererPort} (PID ${pid}).`);
-    process.kill(pid);
-  }
+  const [command, ...args] = childArgs;
+  spawnRenderer(command, args);
 }
 
-try {
-  ensureRendererPortAvailable();
-} catch (error) {
+for (const signal of SIGNAL_EXIT_CODES.keys()) {
+  process.on(signal, () => exitFromSignal(signal));
+}
+
+main().catch((error) => {
   const message = error instanceof Error ? error.message : String(error);
   console.error(`[dev-renderer-port] ${message}`);
   process.exit(1);
-}
+});

@@ -7,7 +7,7 @@
     "postinstall": "node scripts/ensure-rust.mjs",
     "tauri": "tauri",
     "dev": "pnpm run dev:shell",
-    "dev:renderer": "node scripts/ensure-dev-renderer-port.mjs && vite --host 127.0.0.1 --port 1420 --strictPort",
+    "dev:renderer": "node scripts/ensure-dev-renderer-port.mjs -- vite --host 127.0.0.1 --port 1420 --strictPort",
     "dev:shell": "node scripts/run-tauri-dev.mjs",
     "dev:shell:clean": "pnpm run clean:src-js && pnpm run dev:shell",
     "clean:src-js": "find src -type f -name '*.js' -delete",
