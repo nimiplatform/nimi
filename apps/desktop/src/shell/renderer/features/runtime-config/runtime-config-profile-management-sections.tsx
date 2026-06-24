@@ -30,10 +30,6 @@ export function ProfileEditorModal(props: {
   const { t } = useTranslation();
   const { draft } = props;
   const canSave = !props.saving && draft.title.trim().length > 0 && draft.profileJsonText.trim().length > 0;
-  const profileBodyLineCount = draft.profileJsonText.length > 0
-    ? draft.profileJsonText.split(/\r?\n/).length
-    : 0;
-  const profileBodyCharacterCount = draft.profileJsonText.trim().length;
   const modeLabel = draft.mode === 'create'
     ? t('runtimeConfig.profiles.createProfile', { defaultValue: 'Create Profile' })
     : t('runtimeConfig.profiles.editProfile', { defaultValue: 'Edit Profile' });
@@ -130,20 +126,6 @@ export function ProfileEditorModal(props: {
                 <p className="text-sm font-semibold text-[var(--nimi-text-primary)]">
                   {t('runtimeConfig.profiles.profileBodyLabel', { defaultValue: 'Portable profile body JSON' })}
                 </p>
-              </div>
-              <div className="flex shrink-0 flex-wrap gap-2 text-[11px] text-[var(--nimi-text-muted)]">
-                <span className="rounded-full bg-[var(--nimi-surface-panel)] px-2 py-1 ring-1 ring-[var(--nimi-border-subtle)]">
-                  {t('runtimeConfig.profiles.editorJsonLines', {
-                    defaultValue: '{{count}} lines',
-                    count: profileBodyLineCount,
-                  })}
-                </span>
-                <span className="rounded-full bg-[var(--nimi-surface-panel)] px-2 py-1 ring-1 ring-[var(--nimi-border-subtle)]">
-                  {t('runtimeConfig.profiles.editorJsonCharacters', {
-                    defaultValue: '{{count}} chars',
-                    count: profileBodyCharacterCount,
-                  })}
-                </span>
               </div>
             </div>
             <textarea

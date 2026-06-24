@@ -34,6 +34,10 @@ test('Create Profile editor removes explanatory chrome and keeps real editing co
   assert.doesNotMatch(profileManagementSource, /runtimeConfig\.profiles\.editorBoundary/);
   assert.doesNotMatch(profileManagementSource, /runtimeConfig\.profiles\.editorReserved/);
   assert.doesNotMatch(profileManagementSource, /runtimeConfig\.profiles\.editorTagCount/);
+  assert.doesNotMatch(profileManagementSource, /runtimeConfig\.profiles\.editorJsonLines/);
+  assert.doesNotMatch(profileManagementSource, /runtimeConfig\.profiles\.editorJsonCharacters/);
+  assert.doesNotMatch(profileManagementSource, /profileBodyLineCount/);
+  assert.doesNotMatch(profileManagementSource, /profileBodyCharacterCount/);
   assert.doesNotMatch(profileManagementSource, /runtimeConfig\.profiles\.editorReadyToSave/);
   assert.doesNotMatch(profileManagementSource, /runtimeConfig\.profiles\.editorNeedsRequiredFields/);
   assert.doesNotMatch(profileManagementSource, /<footer\b/);
