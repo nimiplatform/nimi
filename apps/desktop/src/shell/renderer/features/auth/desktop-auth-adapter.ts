@@ -48,6 +48,10 @@ import {
   getDesktopAccountRuntime,
 } from '@renderer/infra/sdk/desktop-nimi-client-session';
 import { i18n } from '@renderer/i18n';
+import {
+  loginFreshOauthPasswordWithBrowserSession,
+  shouldUseFreshOauthBrowserSessionLogin,
+} from './fresh-oauth-browser-session-login.js';
 
 export const desktopOAuthBridge: TauriOAuthBridge = {
   hasTauriInvoke: () => desktopBridge.hasTauriInvoke(),
@@ -159,7 +163,7 @@ export async function ensureAuthApiReady(): Promise<void> {
   }
 }
 
-async function configureWebAuthRealmSession(accessToken: string, refreshToken?: string): Promise<void> {
+async function resolveWebRealmBaseUrl(): Promise<string> {
   const defaults = useAppStore.getState().runtimeDefaults;
   if (!defaults?.realm?.realmBaseUrl) {
     await bootstrapRuntime();
@@ -169,6 +173,18 @@ async function configureWebAuthRealmSession(accessToken: string, refreshToken?: 
   if (!realmBaseUrl) {
     throw new Error('API not initialized');
   }
+  return realmBaseUrl;
+}
+
+function readWindowLocationSearch(): string {
+  if (typeof window === 'undefined') {
+    return '';
+  }
+  return window.location?.search || '';
+}
+
+async function configureWebAuthRealmSession(accessToken: string, refreshToken?: string): Promise<void> {
+  const realmBaseUrl = await resolveWebRealmBaseUrl();
   await configureWebRealmPlatformClient({
     appId: 'nimi.web',
     realmBaseUrl,
@@ -204,6 +220,13 @@ export function createDesktopAuthAdapter(): AuthPlatformAdapter {
         return localFirstPartyBlocked('passwordLogin');
       }
       await ensureAuthApiReady();
+      if (shouldUseFreshOauthBrowserSessionLogin(readWindowLocationSearch())) {
+        return loginFreshOauthPasswordWithBrowserSession({
+          realmBaseUrl: await resolveWebRealmBaseUrl(),
+          identifier,
+          password,
+        });
+      }
       return callRealmApi(
         (realm) => loginNimiRealmAuthPassword(realm, identifier, password),
         i18n.t('Auth.passwordLoginFailed', { defaultValue: 'Email sign-in failed' }),

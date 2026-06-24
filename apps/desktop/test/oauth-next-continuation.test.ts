@@ -30,6 +30,7 @@ process.env['VITE_NIMI_REALM_BASE_URL'] = 'https://api.example.test';
 
 const {
   readValidatedOauthNext,
+  readFreshOauthLoginState,
   continueOauthNextIfPresent,
 } = await import('../src/shell/renderer/features/auth/oauth-next-continuation.js');
 
@@ -71,6 +72,19 @@ test('readValidatedOauthNext returns null when oauth_next is absent', () => {
 test('readValidatedOauthNext does NOT honour generic `next` param (only `oauth_next`)', () => {
   const search = '?next=' + encodeURIComponent('https://api.example.test/api/auth/oauth/authorize');
   assert.equal(readValidatedOauthNext(search), null);
+});
+
+test('readFreshOauthLoginState detects prompt=login OAuth continuation only when fresh_oauth is explicit', () => {
+  const oauthNext = 'https://api.example.test/api/auth/oauth/authorize?client_id=nimi-desktop&prompt=login&state=state-123';
+  const search = '?fresh_oauth=1&oauth_next=' + encodeURIComponent(oauthNext);
+  assert.equal(readFreshOauthLoginState(search), 'state-123');
+  assert.equal(readFreshOauthLoginState('?oauth_next=' + encodeURIComponent(oauthNext)), null);
+  assert.equal(
+    readFreshOauthLoginState('?fresh_oauth=1&oauth_next=' + encodeURIComponent(
+      'https://api.example.test/api/auth/oauth/authorize?client_id=nimi-desktop&state=state-123',
+    )),
+    null,
+  );
 });
 
 // ---------------------------------------------------------------------------

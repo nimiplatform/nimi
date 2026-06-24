@@ -89,6 +89,36 @@ export function readValidatedOauthNext(search: string): string | null {
   return parsed.toString();
 }
 
+export function readFreshOauthLoginState(search: string): string | null {
+  let params: URLSearchParams;
+  try {
+    params = new URLSearchParams(search);
+  } catch {
+    return null;
+  }
+  if (params.get('fresh_oauth') !== '1') {
+    return null;
+  }
+  const next = readValidatedOauthNext(search);
+  if (!next) {
+    return null;
+  }
+  let parsed: URL;
+  try {
+    parsed = new URL(next);
+  } catch {
+    return null;
+  }
+  if (parsed.searchParams.get('prompt') !== 'login') {
+    return null;
+  }
+  return parsed.searchParams.get('state') || parsed.toString();
+}
+
+export function freshOauthLoginGateStorageKey(state: string): string {
+  return `nimi:fresh-oauth-login:${state}`;
+}
+
 /**
  * Navigate the user agent back to the realm API authorize endpoint using
  * `window.location.assign`. R-OAUTH-011 split UI/API topology: the web shell

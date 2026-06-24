@@ -1,7 +1,7 @@
 import { NimiClient, createNimiClient } from '@nimiplatform/sdk';
 import { Runtime, createNimiDesktopShellRuntimeAccountCaller, createNimiRuntimeAppSessionMetadataProvider, createNimiRuntimeFullAppRegistration, toNimiRuntimeTimestamp, withNimiRuntimeIdempotencyMetadata, type NimiHostRuntimeAgentDelegatedCapabilityClient, type NimiHostRuntimeAgentLifecycleClient, type NimiHostRuntimeAgentPresentationProfileClient, type NimiRuntimeAccountCaller, type NimiRuntimeAgentScopeRunner, type NimiRuntimeAgentTurnsRuntime } from '@nimiplatform/sdk/runtime';
 import { AccountSessionState, AuthorizationPreset, ExternalPrincipalType, PolicyMode, type AuthorizeExternalPrincipalResponse, type RuntimeTypedCallOptions } from '@nimiplatform/sdk/runtime/generated';
-import { Realm, createRealmFetchTransport } from '@nimiplatform/sdk/realm';
+import { Realm, createRealmFetchTransport, loginNimiRealmAuthPassword, type NimiRealmOAuthLoginResult } from '@nimiplatform/sdk/realm';
 import { createNimiClientId, createNimiError, ReasonCode, type CoreMetadata } from '@nimiplatform/sdk/types';
 
 export type DesktopNimiRealmFetch = typeof fetch;
@@ -399,6 +399,22 @@ export async function configureDesktopRealmOnlySession(
   };
   currentSession = session;
   return session;
+}
+
+export async function loginDesktopRealmPasswordWithBrowserSession(input: {
+  readonly realmBaseUrl: string;
+  readonly identifier: string;
+  readonly password: string;
+  readonly fetchImpl?: DesktopNimiRealmFetch;
+}): Promise<NimiRealmOAuthLoginResult> {
+  const realm = new Realm({
+    transport: createRealmFetchTransport({
+      baseUrl: input.realmBaseUrl,
+      fetch: input.fetchImpl,
+      credentials: 'include',
+    }),
+  });
+  return loginNimiRealmAuthPassword(realm, input.identifier, input.password);
 }
 
 export function clearDesktopNimiClientSession(): void {

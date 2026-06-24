@@ -1,7 +1,11 @@
 import { Suspense, lazy } from 'react';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';
-import { continueOauthNextIfPresent } from './oauth-next-continuation';
+import {
+  continueOauthNextIfPresent,
+  freshOauthLoginGateStorageKey,
+  readFreshOauthLoginState,
+} from './oauth-next-continuation';
 
 const WebAuthMenu = lazy(async () => {
   const mod = await import('./web-auth-menu');
@@ -11,6 +15,7 @@ const WebAuthMenu = lazy(async () => {
 export function LoginPage() {
   const flags = getShellFeatureFlags();
   const authStatus = useAppStore((state) => state.auth.status);
+  const clearAuthSession = useAppStore((state) => state.clearAuthSession);
 
   // R-OAUTH-011 split UI/API topology. When the apps/web shell is hit at
   // /login?oauth_next=<absolute-API-authorize-URL> by the realm API
@@ -21,8 +26,27 @@ export function LoginPage() {
   // exchanges a token. The continuation only fires in `web` shell mode;
   // desktop shells route through the loopback redirect_uri directly and
   // MUST NOT see `oauth_next`.
+  const freshOauthState = flags.mode === 'web' && typeof window !== 'undefined'
+    ? readFreshOauthLoginState(window.location.search)
+    : null;
+  if (freshOauthState && authStatus === 'anonymous') {
+    const key = freshOauthLoginGateStorageKey(freshOauthState);
+    if (!window.sessionStorage.getItem(key)) {
+      window.sessionStorage.setItem(key, 'started');
+    }
+  }
+
   if (authStatus === 'authenticated') {
     if (flags.mode === 'web' && typeof window !== 'undefined') {
+      if (freshOauthState) {
+        const key = freshOauthLoginGateStorageKey(freshOauthState);
+        const marker = window.sessionStorage.getItem(key);
+        if (!marker) {
+          window.sessionStorage.setItem(key, 'cleared');
+          clearAuthSession();
+          return null;
+        }
+      }
       const continued = continueOauthNextIfPresent(window.location.search);
       if (continued) {
         // window.location.assign issued — render nothing while the browser
