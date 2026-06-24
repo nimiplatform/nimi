@@ -9411,7 +9411,7 @@ info:
   description: |-
     The Nimi Social Platform API
 
-    Last updated: 2026-06-22T02:56:47.988Z
+    Last updated: 2026-06-24T09:51:57.279Z
   title: Nimi Realm SDK API
   version: '1.0'
 openapi: 3.0.0
@@ -9823,6 +9823,38 @@ paths:
     get:
       operationId: oauthAuthorize
       parameters:
+        - in: query
+          name: fresh_oauth_account_hint
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: fresh_oauth_proof
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: fresh_oauth_started_at
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: presence_nonce
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: presence_purpose
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: prompt
+          required: false
+          schema:
+            enum:
+              - login
+            type: string
         - in: query
           name: response_type
           required: false

@@ -107,6 +107,7 @@ export const RUNTIME_ACCOUNT_METHODS = [
   'subscribeAccountSessionEvents',
   'beginLogin',
   'completeLogin',
+  'requestPresenceVerification',
   'getAccessToken',
   'invokeRealmUnary',
   'refreshAccountSession',

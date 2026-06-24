@@ -1554,6 +1554,36 @@ pub struct CompleteLoginResponse {
     pub production_inert: bool,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RequestPresenceVerificationRequest {
+    #[prost(message, optional, tag = "1")]
+    pub caller: ::core::option::Option<AccountCaller>,
+    #[prost(string, tag = "2")]
+    pub purpose: ::prost::alloc::string::String,
+    #[prost(int32, tag = "3")]
+    pub ttl_seconds: i32,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct RequestPresenceVerificationResponse {
+    #[prost(bool, tag = "1")]
+    pub accepted: bool,
+    #[prost(enumeration = "PresenceVerificationState", tag = "2")]
+    pub state: i32,
+    #[prost(enumeration = "PresenceVerificationMethod", tag = "3")]
+    pub method: i32,
+    #[prost(message, optional, tag = "4")]
+    pub verified_until: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "5")]
+    pub account_projection: ::core::option::Option<AccountProjection>,
+    #[prost(string, tag = "6")]
+    pub purpose: ::prost::alloc::string::String,
+    #[prost(enumeration = "ReasonCode", tag = "7")]
+    pub reason_code: i32,
+    #[prost(enumeration = "AccountReasonCode", tag = "8")]
+    pub account_reason_code: i32,
+    #[prost(bool, tag = "9")]
+    pub production_inert: bool,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetAccessTokenRequest {
     #[prost(message, optional, tag = "1")]
     pub caller: ::core::option::Option<AccountCaller>,
@@ -1922,6 +1952,7 @@ pub enum AccountReasonCode {
     BindingStale = 14,
     BindingReplay = 15,
     LoginExchangeUnavailable = 16,
+    PresenceVerificationUnavailable = 17,
 }
 impl AccountReasonCode {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -1948,6 +1979,9 @@ impl AccountReasonCode {
             Self::LoginExchangeUnavailable => {
                 "ACCOUNT_REASON_CODE_LOGIN_EXCHANGE_UNAVAILABLE"
             }
+            Self::PresenceVerificationUnavailable => {
+                "ACCOUNT_REASON_CODE_PRESENCE_VERIFICATION_UNAVAILABLE"
+            }
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -1973,6 +2007,73 @@ impl AccountReasonCode {
             "ACCOUNT_REASON_CODE_LOGIN_EXCHANGE_UNAVAILABLE" => {
                 Some(Self::LoginExchangeUnavailable)
             }
+            "ACCOUNT_REASON_CODE_PRESENCE_VERIFICATION_UNAVAILABLE" => {
+                Some(Self::PresenceVerificationUnavailable)
+            }
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum PresenceVerificationState {
+    Unspecified = 0,
+    Rejected = 1,
+    Verified = 2,
+    Unavailable = 3,
+}
+impl PresenceVerificationState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "PRESENCE_VERIFICATION_STATE_UNSPECIFIED",
+            Self::Rejected => "PRESENCE_VERIFICATION_STATE_REJECTED",
+            Self::Verified => "PRESENCE_VERIFICATION_STATE_VERIFIED",
+            Self::Unavailable => "PRESENCE_VERIFICATION_STATE_UNAVAILABLE",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "PRESENCE_VERIFICATION_STATE_UNSPECIFIED" => Some(Self::Unspecified),
+            "PRESENCE_VERIFICATION_STATE_REJECTED" => Some(Self::Rejected),
+            "PRESENCE_VERIFICATION_STATE_VERIFIED" => Some(Self::Verified),
+            "PRESENCE_VERIFICATION_STATE_UNAVAILABLE" => Some(Self::Unavailable),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum PresenceVerificationMethod {
+    Unspecified = 0,
+    OsCredential = 1,
+    NimiReauth = 2,
+    TestHarness = 3,
+}
+impl PresenceVerificationMethod {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "PRESENCE_VERIFICATION_METHOD_UNSPECIFIED",
+            Self::OsCredential => "PRESENCE_VERIFICATION_METHOD_OS_CREDENTIAL",
+            Self::NimiReauth => "PRESENCE_VERIFICATION_METHOD_NIMI_REAUTH",
+            Self::TestHarness => "PRESENCE_VERIFICATION_METHOD_TEST_HARNESS",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "PRESENCE_VERIFICATION_METHOD_UNSPECIFIED" => Some(Self::Unspecified),
+            "PRESENCE_VERIFICATION_METHOD_OS_CREDENTIAL" => Some(Self::OsCredential),
+            "PRESENCE_VERIFICATION_METHOD_NIMI_REAUTH" => Some(Self::NimiReauth),
+            "PRESENCE_VERIFICATION_METHOD_TEST_HARNESS" => Some(Self::TestHarness),
             _ => None,
         }
     }
@@ -2395,6 +2496,35 @@ pub mod runtime_account_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAccountService",
                         "CompleteLogin",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn request_presence_verification(
+            &mut self,
+            request: impl tonic::IntoRequest<super::RequestPresenceVerificationRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::RequestPresenceVerificationResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAccountService/RequestPresenceVerification",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAccountService",
+                        "RequestPresenceVerification",
                     ),
                 );
             self.inner.unary(req, path, codec).await

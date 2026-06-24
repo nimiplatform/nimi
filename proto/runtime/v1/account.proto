@@ -64,6 +64,21 @@ enum AccountReasonCode {
   ACCOUNT_REASON_CODE_BINDING_STALE = 14;
   ACCOUNT_REASON_CODE_BINDING_REPLAY = 15;
   ACCOUNT_REASON_CODE_LOGIN_EXCHANGE_UNAVAILABLE = 16;
+  ACCOUNT_REASON_CODE_PRESENCE_VERIFICATION_UNAVAILABLE = 17;
+}
+
+enum PresenceVerificationState {
+  PRESENCE_VERIFICATION_STATE_UNSPECIFIED = 0;
+  PRESENCE_VERIFICATION_STATE_REJECTED = 1;
+  PRESENCE_VERIFICATION_STATE_VERIFIED = 2;
+  PRESENCE_VERIFICATION_STATE_UNAVAILABLE = 3;
+}
+
+enum PresenceVerificationMethod {
+  PRESENCE_VERIFICATION_METHOD_UNSPECIFIED = 0;
+  PRESENCE_VERIFICATION_METHOD_OS_CREDENTIAL = 1;
+  PRESENCE_VERIFICATION_METHOD_NIMI_REAUTH = 2;
+  PRESENCE_VERIFICATION_METHOD_TEST_HARNESS = 3;
 }
 
 enum AccountCallerMode {
@@ -246,6 +261,24 @@ message CompleteLoginResponse {
   bool production_inert = 6;
 }
 
+message RequestPresenceVerificationRequest {
+  AccountCaller caller = 1;
+  string purpose = 2;
+  int32 ttl_seconds = 3;
+}
+
+message RequestPresenceVerificationResponse {
+  bool accepted = 1;
+  PresenceVerificationState state = 2;
+  PresenceVerificationMethod method = 3;
+  google.protobuf.Timestamp verified_until = 4;
+  AccountProjection account_projection = 5;
+  string purpose = 6;
+  ReasonCode reason_code = 7;
+  AccountReasonCode account_reason_code = 8;
+  bool production_inert = 9;
+}
+
 message GetAccessTokenRequest {
   AccountCaller caller = 1;
   repeated string requested_scopes = 2;
@@ -384,6 +417,7 @@ service RuntimeAccountService {
   rpc SubscribeAccountSessionEvents(SubscribeAccountSessionEventsRequest) returns (stream AccountSessionEvent);
   rpc BeginLogin(BeginLoginRequest) returns (BeginLoginResponse);
   rpc CompleteLogin(CompleteLoginRequest) returns (CompleteLoginResponse);
+  rpc RequestPresenceVerification(RequestPresenceVerificationRequest) returns (RequestPresenceVerificationResponse);
   rpc GetAccessToken(GetAccessTokenRequest) returns (GetAccessTokenResponse);
   rpc InvokeRealmUnary(InvokeRealmUnaryRequest) returns (InvokeRealmUnaryResponse);
   rpc RefreshAccountSession(RefreshAccountSessionRequest) returns (RefreshAccountSessionResponse);

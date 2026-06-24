@@ -13,10 +13,11 @@ import (
 )
 
 var (
-	ErrCustodyUnavailable   = errors.New("account custody unavailable")
-	ErrNoStoredAccount      = errors.New("account custody has no stored account")
-	ErrInertNotActivated    = errors.New("runtime account substrate is inert")
-	ErrLoginExchangeFailure = errors.New("account login exchange unavailable")
+	ErrCustodyUnavailable              = errors.New("account custody unavailable")
+	ErrNoStoredAccount                 = errors.New("account custody has no stored account")
+	ErrInertNotActivated               = errors.New("runtime account substrate is inert")
+	ErrLoginExchangeFailure            = errors.New("account login exchange unavailable")
+	ErrPresenceVerificationUnavailable = errors.New("account presence verification unavailable")
 )
 
 type AccountMaterial struct {
@@ -55,6 +56,31 @@ type Refresher interface {
 	Refresh(ctx context.Context, material AccountMaterial) (AccountMaterial, error)
 }
 
+type PresenceVerificationRequest struct {
+	Caller       *runtimev1.AccountCaller
+	Account      PresenceVerificationAccountContext
+	Purpose      string
+	RequestedTTL time.Duration
+	Now          time.Time
+}
+
+type PresenceVerificationAccountContext struct {
+	AccountID            string
+	DisplayName          string
+	RealmEnvironmentID   string
+	WorkspaceMemberships []*runtimev1.WorkspaceMembershipProjection
+}
+
+type PresenceVerification struct {
+	State         runtimev1.PresenceVerificationState
+	Method        runtimev1.PresenceVerificationMethod
+	VerifiedUntil time.Time
+}
+
+type PresenceVerifier interface {
+	RequestPresenceVerification(ctx context.Context, request PresenceVerificationRequest) (PresenceVerification, error)
+}
+
 type LoginAuthorizationURLProvider interface {
 	AuthorizationURL(attempt LoginAttempt) string
 }
@@ -87,6 +113,12 @@ func (inertRefresher) Refresh(context.Context, AccountMaterial) (AccountMaterial
 	return AccountMaterial{}, ErrInertNotActivated
 }
 
+type inertPresenceVerifier struct{}
+
+func (inertPresenceVerifier) RequestPresenceVerification(context.Context, PresenceVerificationRequest) (PresenceVerification, error) {
+	return PresenceVerification{}, ErrPresenceVerificationUnavailable
+}
+
 type loginAttemptRecord struct {
 	attempt  LoginAttempt
 	consumed bool
@@ -113,12 +145,13 @@ type Service struct {
 	logger *slog.Logger
 	now    func() time.Time
 
-	custody      Custody
-	exchanger    LoginExchanger
-	refresher    Refresher
-	registry     *appregistry.Registry
-	realmHTTP    *http.Client
-	realmBaseURL string
+	custody          Custody
+	exchanger        LoginExchanger
+	refresher        Refresher
+	registry         *appregistry.Registry
+	realmHTTP        *http.Client
+	realmBaseURL     string
+	presenceVerifier PresenceVerifier
 
 	partition                string
 	productionActivated      bool

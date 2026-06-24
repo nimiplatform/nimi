@@ -97,9 +97,22 @@ func NewProduction(logger *slog.Logger, cfg ProductionConfig) *Service {
 		WithCustodyPartition(resolved.CustodyPartition),
 		WithLoginExchanger(newRealmOAuthExchanger(resolved)),
 		WithRefresher(newRealmTokenRefresher(resolved)),
+		WithPresenceVerifier(newProductionPresenceVerifier(resolved)),
 		WithRealmHTTPClient(resolved.HTTPClient),
 		WithRealmBaseURL(resolved.RealmBaseURL),
 		WithAppRegistry(resolved.AppRegistry),
+	)
+}
+
+func newProductionPresenceVerifier(cfg ProductionConfig) PresenceVerifier {
+	return newHostPresenceVerifier(
+		newPlatformHostPresenceProvider(),
+		newRealmOAuthPresenceProvider(realmOAuthPresenceProviderConfig{
+			AuthorizationURL: cfg.AuthorizationURL,
+			TokenURL:         cfg.TokenURL,
+			ClientID:         cfg.ClientID,
+			HTTPClient:       cfg.HTTPClient,
+		}),
 	)
 }
 

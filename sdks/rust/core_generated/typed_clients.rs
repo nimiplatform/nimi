@@ -140,6 +140,7 @@ pub enum AccountReasonCode {
     ACCOUNTREASONCODEBINDINGSTALE,
     ACCOUNTREASONCODEBINDINGREPLAY,
     ACCOUNTREASONCODELOGINEXCHANGEUNAVAILABLE,
+    ACCOUNTREASONCODEPRESENCEVERIFICATIONUNAVAILABLE,
 }
 
 impl Default for AccountReasonCode {
@@ -1765,6 +1766,34 @@ pub enum PolicyMode {
 impl Default for PolicyMode {
     fn default() -> Self {
         Self::POLICYMODEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum PresenceVerificationMethod {
+    PRESENCEVERIFICATIONMETHODUNSPECIFIED,
+    PRESENCEVERIFICATIONMETHODOSCREDENTIAL,
+    PRESENCEVERIFICATIONMETHODNIMIREAUTH,
+    PRESENCEVERIFICATIONMETHODTESTHARNESS,
+}
+
+impl Default for PresenceVerificationMethod {
+    fn default() -> Self {
+        Self::PRESENCEVERIFICATIONMETHODUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum PresenceVerificationState {
+    PRESENCEVERIFICATIONSTATEUNSPECIFIED,
+    PRESENCEVERIFICATIONSTATEREJECTED,
+    PRESENCEVERIFICATIONSTATEVERIFIED,
+    PRESENCEVERIFICATIONSTATEUNAVAILABLE,
+}
+
+impl Default for PresenceVerificationState {
+    fn default() -> Self {
+        Self::PRESENCEVERIFICATIONSTATEUNSPECIFIED
     }
 }
 
@@ -23479,6 +23508,82 @@ impl RequestMemoryEmbeddingRuntimeCutoverResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct RequestPresenceVerificationRequest {
+    pub caller: Option<Box<AccountCaller>>,
+    pub purpose: Option<String>,
+    pub ttl_seconds: Option<i32>,
+}
+
+impl RequestPresenceVerificationRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if self.caller.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode caller"); }
+        if let Some(value) = &self.purpose { pairs.push(format!("purpose={}", value)); }
+        if let Some(value) = &self.ttl_seconds { pairs.push(format!("ttl_seconds={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["caller"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.purpose = pairs.get("purpose").cloned();
+        out.ttl_seconds = pairs.get("ttl_seconds").and_then(|value| value.parse().ok());
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RequestPresenceVerificationResponse {
+    pub accepted: Option<bool>,
+    pub state: Option<PresenceVerificationState>,
+    pub method: Option<PresenceVerificationMethod>,
+    pub verified_until: Option<String>,
+    pub account_projection: Option<Box<AccountProjection>>,
+    pub purpose: Option<String>,
+    pub reason_code: Option<ReasonCode>,
+    pub account_reason_code: Option<AccountReasonCode>,
+    pub production_inert: Option<bool>,
+}
+
+impl RequestPresenceVerificationResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.accepted { pairs.push(format!("accepted={}", value)); }
+        if let Some(value) = &self.state { pairs.push(format!("state={:?}", value)); }
+        if let Some(value) = &self.method { pairs.push(format!("method={:?}", value)); }
+        if let Some(value) = &self.verified_until { pairs.push(format!("verified_until={}", value)); }
+        if self.account_projection.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode account_projection"); }
+        if let Some(value) = &self.purpose { pairs.push(format!("purpose={}", value)); }
+        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
+        if let Some(value) = &self.account_reason_code { pairs.push(format!("account_reason_code={:?}", value)); }
+        if let Some(value) = &self.production_inert { pairs.push(format!("production_inert={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["state", "method", "account_projection", "reason_code", "account_reason_code"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.accepted = pairs.get("accepted").and_then(|value| value.parse().ok());
+        out.verified_until = pairs.get("verified_until").cloned();
+        out.purpose = pairs.get("purpose").cloned();
+        out.production_inert = pairs.get("production_inert").and_then(|value| value.parse().ok());
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RescanLocalAssetBundleRequest {
     pub local_asset_id: Option<String>,
 }
@@ -34151,6 +34256,18 @@ impl From<Vec<u8>> for RequestMemoryEmbeddingRuntimeCutoverResponse {
     }
 }
 
+impl From<Vec<u8>> for RequestPresenceVerificationRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for RequestPresenceVerificationResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for RescanLocalAssetBundleRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -35552,6 +35669,16 @@ where
             timeout,
         })?;
         Ok(RefreshAccountSessionResponse::from_transport(&raw))
+    }
+
+    pub fn request_presence_verification(&self, request: RequestPresenceVerificationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RequestPresenceVerificationResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAccountService/RequestPresenceVerification".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(RequestPresenceVerificationResponse::from_transport(&raw))
     }
 
     pub fn revoke_scoped_app_binding(&self, request: RevokeScopedAppBindingRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RevokeScopedAppBindingResponse, T::Error> {
@@ -42922,6 +43049,12 @@ pub struct RealmOauthAuthorizeOperationPath {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmOauthAuthorizeOperationQuery {
+    pub fresh_oauth_account_hint: Option<String>,
+    pub fresh_oauth_proof: Option<String>,
+    pub fresh_oauth_started_at: Option<String>,
+    pub presence_nonce: Option<String>,
+    pub presence_purpose: Option<String>,
+    pub prompt: Option<String>,
     pub response_type: Option<String>,
     pub scope: Option<String>,
     pub state: Option<String>,

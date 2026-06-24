@@ -486,4 +486,12 @@ mod tests {
         assert!(!is_stream_method(baseline));
         assert!(!is_stream_method(execution));
     }
+
+    #[test]
+    fn account_presence_verification_method_is_allowlisted() {
+        let method = "/nimi.runtime.v1.RuntimeAccountService/RequestPresenceVerification";
+
+        assert!(is_allowlisted_method(method));
+        assert!(!is_stream_method(method));
+    }
 }

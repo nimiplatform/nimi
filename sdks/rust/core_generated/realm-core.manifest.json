@@ -6259,6 +6259,67 @@
       ],
       "parameters": [
         {
+          "name": "fresh_oauth_account_hint",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        },
+        {
+          "name": "fresh_oauth_proof",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        },
+        {
+          "name": "fresh_oauth_started_at",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        },
+        {
+          "name": "presence_nonce",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        },
+        {
+          "name": "presence_purpose",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        },
+        {
+          "name": "prompt",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "enum",
+            "values": [
+              "login"
+            ]
+          }
+        },
+        {
           "name": "response_type",
           "in": "query",
           "required": false,
@@ -6333,6 +6394,67 @@
       ],
       "path_parameters": [],
       "query_parameters": [
+        {
+          "name": "fresh_oauth_account_hint",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        },
+        {
+          "name": "fresh_oauth_proof",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        },
+        {
+          "name": "fresh_oauth_started_at",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        },
+        {
+          "name": "presence_nonce",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        },
+        {
+          "name": "presence_purpose",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        },
+        {
+          "name": "prompt",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "enum",
+            "values": [
+              "login"
+            ]
+          }
+        },
         {
           "name": "response_type",
           "in": "query",

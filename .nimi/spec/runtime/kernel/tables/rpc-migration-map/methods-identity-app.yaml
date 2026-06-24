@@ -19,7 +19,7 @@ services:
   - RuntimeExternalAgentService
   - RuntimeAccountService
   - RuntimeAppService
-method_count: 45
+method_count: 46
 method_mappings:
   - design_service: RuntimeAuthService
     design_method: RegisterApp
@@ -120,6 +120,11 @@ method_mappings:
     design_method: CompleteLogin
     proto_service: RuntimeAccountService
     proto_method: CompleteLogin
+    mapping_posture: aligned
+  - design_service: RuntimeAccountService
+    design_method: RequestPresenceVerification
+    proto_service: RuntimeAccountService
+    proto_method: RequestPresenceVerification
     mapping_posture: aligned
   - design_service: RuntimeAccountService
     design_method: GetAccessToken

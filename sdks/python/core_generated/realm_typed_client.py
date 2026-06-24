@@ -4659,6 +4659,12 @@ class RealmOauthAuthorizeOperationPath:
 
 @dataclass(frozen=True)
 class RealmOauthAuthorizeOperationQuery:
+    fresh_oauth_account_hint: str | None = None
+    fresh_oauth_proof: str | None = None
+    fresh_oauth_started_at: str | None = None
+    presence_nonce: str | None = None
+    presence_purpose: str | None = None
+    prompt: Literal["login"] | None = None
     response_type: Literal["code"] | None = None
     scope: str | None = None
     state: str | None = None

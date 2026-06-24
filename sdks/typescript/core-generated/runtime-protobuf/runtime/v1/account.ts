@@ -450,6 +450,64 @@ export interface CompleteLoginResponse {
     productionInert: boolean;
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.RequestPresenceVerificationRequest
+ */
+export interface RequestPresenceVerificationRequest {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AccountCaller caller = 1
+     */
+    caller?: AccountCaller;
+    /**
+     * @generated from protobuf field: string purpose = 2
+     */
+    purpose: string;
+    /**
+     * @generated from protobuf field: int32 ttl_seconds = 3
+     */
+    ttlSeconds: number;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.RequestPresenceVerificationResponse
+ */
+export interface RequestPresenceVerificationResponse {
+    /**
+     * @generated from protobuf field: bool accepted = 1
+     */
+    accepted: boolean;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.PresenceVerificationState state = 2
+     */
+    state: PresenceVerificationState;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.PresenceVerificationMethod method = 3
+     */
+    method: PresenceVerificationMethod;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp verified_until = 4
+     */
+    verifiedUntil?: Timestamp;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AccountProjection account_projection = 5
+     */
+    accountProjection?: AccountProjection;
+    /**
+     * @generated from protobuf field: string purpose = 6
+     */
+    purpose: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 7
+     */
+    reasonCode: ReasonCode;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AccountReasonCode account_reason_code = 8
+     */
+    accountReasonCode: AccountReasonCode;
+    /**
+     * @generated from protobuf field: bool production_inert = 9
+     */
+    productionInert: boolean;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.GetAccessTokenRequest
  */
 export interface GetAccessTokenRequest {
@@ -1060,7 +1118,53 @@ export enum AccountReasonCode {
     /**
      * @generated from protobuf enum value: ACCOUNT_REASON_CODE_LOGIN_EXCHANGE_UNAVAILABLE = 16;
      */
-    LOGIN_EXCHANGE_UNAVAILABLE = 16
+    LOGIN_EXCHANGE_UNAVAILABLE = 16,
+    /**
+     * @generated from protobuf enum value: ACCOUNT_REASON_CODE_PRESENCE_VERIFICATION_UNAVAILABLE = 17;
+     */
+    PRESENCE_VERIFICATION_UNAVAILABLE = 17
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.PresenceVerificationState
+ */
+export enum PresenceVerificationState {
+    /**
+     * @generated from protobuf enum value: PRESENCE_VERIFICATION_STATE_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: PRESENCE_VERIFICATION_STATE_REJECTED = 1;
+     */
+    REJECTED = 1,
+    /**
+     * @generated from protobuf enum value: PRESENCE_VERIFICATION_STATE_VERIFIED = 2;
+     */
+    VERIFIED = 2,
+    /**
+     * @generated from protobuf enum value: PRESENCE_VERIFICATION_STATE_UNAVAILABLE = 3;
+     */
+    UNAVAILABLE = 3
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.PresenceVerificationMethod
+ */
+export enum PresenceVerificationMethod {
+    /**
+     * @generated from protobuf enum value: PRESENCE_VERIFICATION_METHOD_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: PRESENCE_VERIFICATION_METHOD_OS_CREDENTIAL = 1;
+     */
+    OS_CREDENTIAL = 1,
+    /**
+     * @generated from protobuf enum value: PRESENCE_VERIFICATION_METHOD_NIMI_REAUTH = 2;
+     */
+    NIMI_REAUTH = 2,
+    /**
+     * @generated from protobuf enum value: PRESENCE_VERIFICATION_METHOD_TEST_HARNESS = 3;
+     */
+    TEST_HARNESS = 3
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.AccountCallerMode
@@ -2452,6 +2556,177 @@ class CompleteLoginResponse$Type extends MessageType<CompleteLoginResponse> {
  * @generated MessageType for protobuf message nimi.runtime.v1.CompleteLoginResponse
  */
 export const CompleteLoginResponse = new CompleteLoginResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class RequestPresenceVerificationRequest$Type extends MessageType<RequestPresenceVerificationRequest> {
+    constructor() {
+        super("nimi.runtime.v1.RequestPresenceVerificationRequest", [
+            { no: 1, name: "caller", kind: "message", T: () => AccountCaller },
+            { no: 2, name: "purpose", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "ttl_seconds", kind: "scalar", T: 5 /*ScalarType.INT32*/ }
+        ]);
+    }
+    create(value?: PartialMessage<RequestPresenceVerificationRequest>): RequestPresenceVerificationRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.purpose = "";
+        message.ttlSeconds = 0;
+        if (value !== undefined)
+            reflectionMergePartial<RequestPresenceVerificationRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RequestPresenceVerificationRequest): RequestPresenceVerificationRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AccountCaller caller */ 1:
+                    message.caller = AccountCaller.internalBinaryRead(reader, reader.uint32(), options, message.caller);
+                    break;
+                case /* string purpose */ 2:
+                    message.purpose = reader.string();
+                    break;
+                case /* int32 ttl_seconds */ 3:
+                    message.ttlSeconds = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RequestPresenceVerificationRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AccountCaller caller = 1; */
+        if (message.caller)
+            AccountCaller.internalBinaryWrite(message.caller, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string purpose = 2; */
+        if (message.purpose !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.purpose);
+        /* int32 ttl_seconds = 3; */
+        if (message.ttlSeconds !== 0)
+            writer.tag(3, WireType.Varint).int32(message.ttlSeconds);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.RequestPresenceVerificationRequest
+ */
+export const RequestPresenceVerificationRequest = new RequestPresenceVerificationRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class RequestPresenceVerificationResponse$Type extends MessageType<RequestPresenceVerificationResponse> {
+    constructor() {
+        super("nimi.runtime.v1.RequestPresenceVerificationResponse", [
+            { no: 1, name: "accepted", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 2, name: "state", kind: "enum", T: () => ["nimi.runtime.v1.PresenceVerificationState", PresenceVerificationState, "PRESENCE_VERIFICATION_STATE_"] },
+            { no: 3, name: "method", kind: "enum", T: () => ["nimi.runtime.v1.PresenceVerificationMethod", PresenceVerificationMethod, "PRESENCE_VERIFICATION_METHOD_"] },
+            { no: 4, name: "verified_until", kind: "message", T: () => Timestamp },
+            { no: 5, name: "account_projection", kind: "message", T: () => AccountProjection },
+            { no: 6, name: "purpose", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
+            { no: 8, name: "account_reason_code", kind: "enum", T: () => ["nimi.runtime.v1.AccountReasonCode", AccountReasonCode, "ACCOUNT_REASON_CODE_"] },
+            { no: 9, name: "production_inert", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+        ]);
+    }
+    create(value?: PartialMessage<RequestPresenceVerificationResponse>): RequestPresenceVerificationResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.accepted = false;
+        message.state = 0;
+        message.method = 0;
+        message.purpose = "";
+        message.reasonCode = 0;
+        message.accountReasonCode = 0;
+        message.productionInert = false;
+        if (value !== undefined)
+            reflectionMergePartial<RequestPresenceVerificationResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RequestPresenceVerificationResponse): RequestPresenceVerificationResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* bool accepted */ 1:
+                    message.accepted = reader.bool();
+                    break;
+                case /* nimi.runtime.v1.PresenceVerificationState state */ 2:
+                    message.state = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.PresenceVerificationMethod method */ 3:
+                    message.method = reader.int32();
+                    break;
+                case /* google.protobuf.Timestamp verified_until */ 4:
+                    message.verifiedUntil = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.verifiedUntil);
+                    break;
+                case /* nimi.runtime.v1.AccountProjection account_projection */ 5:
+                    message.accountProjection = AccountProjection.internalBinaryRead(reader, reader.uint32(), options, message.accountProjection);
+                    break;
+                case /* string purpose */ 6:
+                    message.purpose = reader.string();
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 7:
+                    message.reasonCode = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.AccountReasonCode account_reason_code */ 8:
+                    message.accountReasonCode = reader.int32();
+                    break;
+                case /* bool production_inert */ 9:
+                    message.productionInert = reader.bool();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RequestPresenceVerificationResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* bool accepted = 1; */
+        if (message.accepted !== false)
+            writer.tag(1, WireType.Varint).bool(message.accepted);
+        /* nimi.runtime.v1.PresenceVerificationState state = 2; */
+        if (message.state !== 0)
+            writer.tag(2, WireType.Varint).int32(message.state);
+        /* nimi.runtime.v1.PresenceVerificationMethod method = 3; */
+        if (message.method !== 0)
+            writer.tag(3, WireType.Varint).int32(message.method);
+        /* google.protobuf.Timestamp verified_until = 4; */
+        if (message.verifiedUntil)
+            Timestamp.internalBinaryWrite(message.verifiedUntil, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AccountProjection account_projection = 5; */
+        if (message.accountProjection)
+            AccountProjection.internalBinaryWrite(message.accountProjection, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
+        /* string purpose = 6; */
+        if (message.purpose !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.purpose);
+        /* nimi.runtime.v1.ReasonCode reason_code = 7; */
+        if (message.reasonCode !== 0)
+            writer.tag(7, WireType.Varint).int32(message.reasonCode);
+        /* nimi.runtime.v1.AccountReasonCode account_reason_code = 8; */
+        if (message.accountReasonCode !== 0)
+            writer.tag(8, WireType.Varint).int32(message.accountReasonCode);
+        /* bool production_inert = 9; */
+        if (message.productionInert !== false)
+            writer.tag(9, WireType.Varint).bool(message.productionInert);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.RequestPresenceVerificationResponse
+ */
+export const RequestPresenceVerificationResponse = new RequestPresenceVerificationResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class GetAccessTokenRequest$Type extends MessageType<GetAccessTokenRequest> {
     constructor() {

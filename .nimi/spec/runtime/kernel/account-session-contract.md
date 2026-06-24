@@ -18,19 +18,22 @@
 2. `SubscribeAccountSessionEvents`
 3. `BeginLogin`
 4. `CompleteLogin`
-5. `GetAccessToken`
-6. `RefreshAccountSession`
-7. `Logout`
-8. `SwitchAccount`
-9. `IssueScopedAppBinding`
-10. `RevokeScopedAppBinding`
-11. `IssueWorkspaceBinding`
-12. `RevokeWorkspaceBinding`
+5. `RequestPresenceVerification`
+6. `GetAccessToken`
+7. `RefreshAccountSession`
+8. `Logout`
+9. `SwitchAccount`
+10. `IssueScopedAppBinding`
+11. `RevokeScopedAppBinding`
+12. `IssueWorkspaceBinding`
+13. `RevokeWorkspaceBinding`
 
 Admitted 方法集合为冻结集合。`IssueWorkspaceBinding` /
 `RevokeWorkspaceBinding` are admitted only for workspace-specific attachment
-mint/revoke under `K-ACCSVC-019` and `K-BIND-018`. Any further method must
-undergo a new rule admission before proto / RPC table projection.
+mint/revoke under `K-ACCSVC-019` and `K-BIND-018`.
+`RequestPresenceVerification` is admitted only for fresh local user-presence
+checks under `K-ACCSVC-021`. Any further method must undergo a new rule
+admission before proto / RPC table projection.
 
 ## K-ACCSVC-003 Account Session 状态机
 
@@ -88,7 +91,17 @@ undergo a new rule admission before proto / RPC table projection.
 - `IssueScopedAppBinding`: 见 `scoped-app-binding-contract.md`。account subject 内部派生。
 - `RevokeScopedAppBinding`: 见 `scoped-app-binding-contract.md`。
 
-Public local account status / lifecycle RPCs require Runtime app registry admitted caller registration before status projection, refresh, logout, or switch execution. Developer-registered local app callers may use `GetAccountSessionStatus`, `SubscribeAccountSessionEvents`, `BeginLogin`, `CompleteLogin`, `RefreshAccountSession`, and scoped binding issuance after the developer-registration double gate admits the instance, but must be rejected for `GetAccessToken`, `Logout`, and `SwitchAccount`. Unauthenticated / anonymous status may be returned to the Desktop login UI only when the caller is an explicitly admitted Desktop shell, local first-party app instance, or developer-registered local app instance; shape-only caller identity is not sufficient.
+`RequestPresenceVerification` invokes a Runtime-owned presence verifier chain
+for a caller-stated purpose and bounded TTL. It must not treat an existing
+account session, access token, refresh token, Realm server session,
+app-local password prompt, or caller assertion as fresh presence. Runtime may
+use a formal local OS verifier first, then a Runtime-owned fresh Nimi reauth
+provider (`NIMI_REAUTH`) that forces a new Realm login interaction with
+`prompt=login`, Runtime-generated state / nonce, and subject match. Missing or
+unavailable presence capability returns `presence_verification_unavailable` and
+fail-closes.
+
+Public local account status / lifecycle RPCs require Runtime app registry admitted caller registration before status projection, refresh, logout, or switch execution. Developer-registered local app callers may use `GetAccountSessionStatus`, `SubscribeAccountSessionEvents`, `BeginLogin`, `CompleteLogin`, `RequestPresenceVerification`, `RefreshAccountSession`, and scoped binding issuance after the developer-registration double gate admits the instance, but must be rejected for `GetAccessToken`, `Logout`, and `SwitchAccount`. Unauthenticated / anonymous status may be returned to the Desktop login UI only when the caller is an explicitly admitted Desktop shell, local first-party app instance, or developer-registered local app instance; shape-only caller identity is not sufficient.
 
 任何方法都不允许接受 raw Realm token、refresh token、raw JWT、或 caller 提供的 `subject_user_id` 作为 account truth。
 
@@ -359,7 +372,49 @@ Fixed rules:
 - account state other than `authenticated`, refresh/custody uncertainty, or
   stale workspace membership projection fails closed
 
+## K-ACCSVC-021 Fresh Local Presence Verification
+
+`RequestPresenceVerification` is a Runtime-owned user-presence check for
+app surfaces that need a second confirmation before revealing sensitive local
+data. The method confirms that the currently present operator passed a local
+interaction owned by Runtime within a bounded TTL; it is not durable identity
+proof. Realm may participate only through a Runtime-owned fresh Nimi reauth
+provider; ordinary Realm session state remains insufficient.
+
+Fixed rules:
+
+- Runtime selects and executes the concrete provider chain: OS credential /
+  Windows Hello/PIN / macOS LocalAuthentication first, Nimi reauth fallback, or
+  another admitted local interaction.
+  Apps and SDKs must not select providers by passing passwords, tokens, secrets,
+  or raw challenge material.
+- A current authenticated account session is necessary for account projection
+  but is never sufficient for positive presence verification.
+- Realm login, access-token refresh, `GetAccessToken`, `InvokeRealmUnary`,
+  server-side `/me`, or app-owned session checks do not satisfy this method.
+- Runtime-owned `NIMI_REAUTH` may satisfy this method only when Runtime forces a
+  fresh Realm OAuth login prompt, owns the loopback callback, validates
+  state/code-verifier exchange, verifies the returned account subject matches
+  the current Runtime account, and discards any token material instead of
+  turning it into app-owned session truth.
+- The request must carry a non-empty `purpose` and a bounded TTL. Runtime may
+  clamp TTL downward. A positive response must include a `verified_until`
+  timestamp no later than the accepted TTL window.
+- If Runtime has neither a formal local presence verifier nor a formal fresh
+  Nimi reauth fallback for the host / Realm configuration, the method returns
+  `accepted=false`, state `unavailable`, account reason
+  `presence_verification_unavailable`, and no sensitive app data may be shown.
+- Provider result, method, state, and expiry may be projected to the caller, but
+  provider secrets, password material, bearer tokens, and OS challenge details
+  must never be returned or logged.
+
 ## K-ACCSVC-020 Fail-Close Doctrine
+
+Fresh presence verification also follows this doctrine: a missing, unavailable,
+cancelled, expired, or non-verified provider must fail closed and must not be
+replaced by ordinary login state, access-token state, Realm server state, or
+app-owned prompts. The only Realm-backed exception is the Runtime-owned
+`NIMI_REAUTH` flow defined in `K-ACCSVC-021`.
 
 以下情况必须 fail-close，禁止伪造成功：
 

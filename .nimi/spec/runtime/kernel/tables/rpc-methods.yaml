@@ -281,6 +281,8 @@ services:
         type: unary
       - name: CompleteLogin
         type: unary
+      - name: RequestPresenceVerification
+        type: unary
       - name: GetAccessToken
         type: unary
       - name: RefreshAccountSession

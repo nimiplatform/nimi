@@ -3981,6 +3981,12 @@ export interface RealmOauthAuthorizeOperationRequest {
 
   };
   readonly query?: {
+    readonly fresh_oauth_account_hint?: string;
+    readonly fresh_oauth_proof?: string;
+    readonly fresh_oauth_started_at?: string;
+    readonly presence_nonce?: string;
+    readonly presence_purpose?: string;
+    readonly prompt?: "login";
     readonly response_type?: "code";
     readonly scope?: string;
     readonly state: string;

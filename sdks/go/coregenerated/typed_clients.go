@@ -90,6 +90,7 @@ const (
 	ACCOUNTREASONCODEBINDINGSTALE AccountReasonCode = "ACCOUNT_REASON_CODE_BINDING_STALE"
 	ACCOUNTREASONCODEBINDINGREPLAY AccountReasonCode = "ACCOUNT_REASON_CODE_BINDING_REPLAY"
 	ACCOUNTREASONCODELOGINEXCHANGEUNAVAILABLE AccountReasonCode = "ACCOUNT_REASON_CODE_LOGIN_EXCHANGE_UNAVAILABLE"
+	ACCOUNTREASONCODEPRESENCEVERIFICATIONUNAVAILABLE AccountReasonCode = "ACCOUNT_REASON_CODE_PRESENCE_VERIFICATION_UNAVAILABLE"
 )
 
 type AccountSessionState string
@@ -1165,6 +1166,24 @@ const (
 	POLICYMODEUNSPECIFIED PolicyMode = "POLICY_MODE_UNSPECIFIED"
 	POLICYMODEPRESET PolicyMode = "POLICY_MODE_PRESET"
 	POLICYMODECUSTOM PolicyMode = "POLICY_MODE_CUSTOM"
+)
+
+type PresenceVerificationMethod string
+
+const (
+	PRESENCEVERIFICATIONMETHODUNSPECIFIED PresenceVerificationMethod = "PRESENCE_VERIFICATION_METHOD_UNSPECIFIED"
+	PRESENCEVERIFICATIONMETHODOSCREDENTIAL PresenceVerificationMethod = "PRESENCE_VERIFICATION_METHOD_OS_CREDENTIAL"
+	PRESENCEVERIFICATIONMETHODNIMIREAUTH PresenceVerificationMethod = "PRESENCE_VERIFICATION_METHOD_NIMI_REAUTH"
+	PRESENCEVERIFICATIONMETHODTESTHARNESS PresenceVerificationMethod = "PRESENCE_VERIFICATION_METHOD_TEST_HARNESS"
+)
+
+type PresenceVerificationState string
+
+const (
+	PRESENCEVERIFICATIONSTATEUNSPECIFIED PresenceVerificationState = "PRESENCE_VERIFICATION_STATE_UNSPECIFIED"
+	PRESENCEVERIFICATIONSTATEREJECTED PresenceVerificationState = "PRESENCE_VERIFICATION_STATE_REJECTED"
+	PRESENCEVERIFICATIONSTATEVERIFIED PresenceVerificationState = "PRESENCE_VERIFICATION_STATE_VERIFIED"
+	PRESENCEVERIFICATIONSTATEUNAVAILABLE PresenceVerificationState = "PRESENCE_VERIFICATION_STATE_UNAVAILABLE"
 )
 
 type RealmGroupMessageCandidateCommitDisposition string
@@ -6345,6 +6364,24 @@ type RequestMemoryEmbeddingRuntimeCutoverResponse struct {
 	CanonicalBankStatusAfter string `json:"canonical_bank_status_after,omitempty"`
 }
 
+type RequestPresenceVerificationRequest struct {
+	Caller *AccountCaller `json:"caller,omitempty"`
+	Purpose string `json:"purpose,omitempty"`
+	TtlSeconds int32 `json:"ttl_seconds,omitempty"`
+}
+
+type RequestPresenceVerificationResponse struct {
+	Accepted bool `json:"accepted,omitempty"`
+	State PresenceVerificationState `json:"state,omitempty"`
+	Method PresenceVerificationMethod `json:"method,omitempty"`
+	VerifiedUntil string `json:"verified_until,omitempty"`
+	AccountProjection *AccountProjection `json:"account_projection,omitempty"`
+	Purpose string `json:"purpose,omitempty"`
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
+	AccountReasonCode AccountReasonCode `json:"account_reason_code,omitempty"`
+	ProductionInert bool `json:"production_inert,omitempty"`
+}
+
 type RescanLocalAssetBundleRequest struct {
 	LocalAssetId string `json:"local_asset_id,omitempty"`
 }
@@ -8010,6 +8047,14 @@ func (c RuntimeTypedClient) RefreshAccountSession(ctx context.Context, request R
 		return RefreshAccountSessionResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[RefreshAccountSessionResponse](raw, "RefreshAccountSessionResponse")
+}
+
+func (c RuntimeTypedClient) RequestPresenceVerification(ctx context.Context, request RequestPresenceVerificationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RequestPresenceVerificationResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAccountService/RequestPresenceVerification", request, metadata, timeoutMS)
+	if err != nil {
+		return RequestPresenceVerificationResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[RequestPresenceVerificationResponse](raw, "RequestPresenceVerificationResponse")
 }
 
 func (c RuntimeTypedClient) RevokeScopedAppBinding(ctx context.Context, request RevokeScopedAppBindingRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RevokeScopedAppBindingResponse, error) {
@@ -14178,6 +14223,12 @@ type RealmOauthAuthorizeOperationPath struct {
 }
 
 type RealmOauthAuthorizeOperationQuery struct {
+	FreshOauthAccountHint string `json:"fresh_oauth_account_hint,omitempty"`
+	FreshOauthProof string `json:"fresh_oauth_proof,omitempty"`
+	FreshOauthStartedAt string `json:"fresh_oauth_started_at,omitempty"`
+	PresenceNonce string `json:"presence_nonce,omitempty"`
+	PresencePurpose string `json:"presence_purpose,omitempty"`
+	Prompt string `json:"prompt,omitempty"`
 	ResponseType string `json:"response_type,omitempty"`
 	Scope string `json:"scope,omitempty"`
 	State string `json:"state,omitempty"`

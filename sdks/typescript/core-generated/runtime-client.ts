@@ -87,6 +87,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "RefreshAccountSessionResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAccountService/RequestPresenceVerification",
+    "service": "RuntimeAccountService",
+    "method": "RequestPresenceVerification",
+    "kind": "unary",
+    "requestType": "RequestPresenceVerificationRequest",
+    "responseType": "RequestPresenceVerificationResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAccountService/RevokeScopedAppBinding",
     "service": "RuntimeAccountService",
     "method": "RevokeScopedAppBinding",

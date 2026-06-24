@@ -11,6 +11,7 @@ pub const RUNTIME_BRIDGE_ALLOWLISTED_METHODS: &[&str] = &[
     "/nimi.runtime.v1.RuntimeAccountService/IssueWorkspaceBinding",
     "/nimi.runtime.v1.RuntimeAccountService/Logout",
     "/nimi.runtime.v1.RuntimeAccountService/RefreshAccountSession",
+    "/nimi.runtime.v1.RuntimeAccountService/RequestPresenceVerification",
     "/nimi.runtime.v1.RuntimeAccountService/RevokeScopedAppBinding",
     "/nimi.runtime.v1.RuntimeAccountService/RevokeWorkspaceBinding",
     "/nimi.runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents",

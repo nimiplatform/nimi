@@ -25,6 +25,7 @@ func New(logger *slog.Logger, opts ...Option) *Service {
 		registry:          appregistry.New(),
 		realmHTTP:         &http.Client{Timeout: 30 * time.Second},
 		realmBaseURL:      "",
+		presenceVerifier:  inertPresenceVerifier{},
 		partition:         "runtime-account:default-device",
 		eventRetention:    128,
 		state:             runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE,
@@ -70,6 +71,14 @@ func WithRefresher(refresher Refresher) Option {
 	return func(s *Service) {
 		if refresher != nil {
 			s.refresher = refresher
+		}
+	}
+}
+
+func WithPresenceVerifier(verifier PresenceVerifier) Option {
+	return func(s *Service) {
+		if verifier != nil {
+			s.presenceVerifier = verifier
 		}
 	}
 }

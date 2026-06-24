@@ -461,7 +461,7 @@ setting a mode string, app id, app instance id, or workspace profile flag.
 
 Cross-references: `P-SCAF-002` (A2/A4 accepted mode split and fail-closed
 dev-standalone requirement), `P-SCAF-008` (generated app authoring command
-family), `K-ACCSVC-001..K-ACCSVC-020` (Runtime account/session and short-lived
+family), `K-ACCSVC-001..K-ACCSVC-021` (Runtime account/session and short-lived
 access-token authority), `K-BIND-001..K-BIND-015` (scoped app binding
 authority), `K-APP-017` (launch authority), `P-NAPP-013` / `P-NAPP-018`
 (public admission and descriptor authority; not redefined).

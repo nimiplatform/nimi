@@ -88,6 +88,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "RefreshAccountSessionResponse",
     },
     RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeAccountService/RequestPresenceVerification",
+        service: "RuntimeAccountService",
+        method: "RequestPresenceVerification",
+        kind: "unary",
+        request_type: "RequestPresenceVerificationRequest",
+        response_type: "RequestPresenceVerificationResponse",
+    },
+    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAccountService/RevokeScopedAppBinding",
         service: "RuntimeAccountService",
         method: "RevokeScopedAppBinding",

@@ -82,6 +82,15 @@
           "response_stream": false
         },
         {
+          "name": "RequestPresenceVerification",
+          "method_id": "/nimi.runtime.v1.RuntimeAccountService/RequestPresenceVerification",
+          "kind": "unary",
+          "request_type": "RequestPresenceVerificationRequest",
+          "response_type": "RequestPresenceVerificationResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
           "name": "GetAccessToken",
           "method_id": "/nimi.runtime.v1.RuntimeAccountService/GetAccessToken",
           "kind": "unary",
@@ -2347,6 +2356,7 @@
     "/nimi.runtime.v1.RuntimeAccountService/IssueWorkspaceBinding",
     "/nimi.runtime.v1.RuntimeAccountService/Logout",
     "/nimi.runtime.v1.RuntimeAccountService/RefreshAccountSession",
+    "/nimi.runtime.v1.RuntimeAccountService/RequestPresenceVerification",
     "/nimi.runtime.v1.RuntimeAccountService/RevokeScopedAppBinding",
     "/nimi.runtime.v1.RuntimeAccountService/RevokeWorkspaceBinding",
     "/nimi.runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents",
@@ -2656,6 +2666,14 @@
       "kind": "unary",
       "request_type": "RefreshAccountSessionRequest",
       "response_type": "RefreshAccountSessionResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAccountService/RequestPresenceVerification",
+      "service": "RuntimeAccountService",
+      "method": "RequestPresenceVerification",
+      "kind": "unary",
+      "request_type": "RequestPresenceVerificationRequest",
+      "response_type": "RequestPresenceVerificationResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAccountService/RevokeScopedAppBinding",
@@ -4618,6 +4636,14 @@
       "kind": "unary",
       "request_type": "RefreshAccountSessionRequest",
       "response_type": "RefreshAccountSessionResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAccountService/RequestPresenceVerification",
+      "service": "RuntimeAccountService",
+      "method": "RequestPresenceVerification",
+      "kind": "unary",
+      "request_type": "RequestPresenceVerificationRequest",
+      "response_type": "RequestPresenceVerificationResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAccountService/RevokeScopedAppBinding",
@@ -7110,6 +7136,8 @@
       "RequestMemoryEmbeddingRuntimeBindResponse",
       "RequestMemoryEmbeddingRuntimeCutoverRequest",
       "RequestMemoryEmbeddingRuntimeCutoverResponse",
+      "RequestPresenceVerificationRequest",
+      "RequestPresenceVerificationResponse",
       "RescanLocalAssetBundleRequest",
       "RescanLocalAssetBundleResponse",
       "ResolveAvatarLiveInstanceBindingRequest",
@@ -7442,6 +7470,8 @@
       "ParticipationTranscriptOwner",
       "ParticipationVerdictDecision",
       "PolicyMode",
+      "PresenceVerificationMethod",
+      "PresenceVerificationState",
       "RealmGroupMessageCandidateCommitDisposition",
       "RealtimeEventType",
       "ReasonCode",
@@ -30533,6 +30563,102 @@
         "source_file": "proto/runtime/v1/memory.proto"
       },
       {
+        "name": "RequestPresenceVerificationRequest",
+        "fields": [
+          {
+            "name": "caller",
+            "type": "AccountCaller",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "purpose",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "ttl_seconds",
+            "type": "int32",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/account.proto"
+      },
+      {
+        "name": "RequestPresenceVerificationResponse",
+        "fields": [
+          {
+            "name": "accepted",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "state",
+            "type": "PresenceVerificationState",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "method",
+            "type": "PresenceVerificationMethod",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "verified_until",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "account_projection",
+            "type": "AccountProjection",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "purpose",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "account_reason_code",
+            "type": "AccountReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 8
+          },
+          {
+            "name": "production_inert",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 9
+          }
+        ],
+        "source_file": "proto/runtime/v1/account.proto"
+      },
+      {
         "name": "RescanLocalAssetBundleRequest",
         "fields": [
           {
@@ -37759,7 +37885,8 @@
           "ACCOUNT_REASON_CODE_BINDING_NOT_FOUND",
           "ACCOUNT_REASON_CODE_BINDING_STALE",
           "ACCOUNT_REASON_CODE_BINDING_REPLAY",
-          "ACCOUNT_REASON_CODE_LOGIN_EXCHANGE_UNAVAILABLE"
+          "ACCOUNT_REASON_CODE_LOGIN_EXCHANGE_UNAVAILABLE",
+          "ACCOUNT_REASON_CODE_PRESENCE_VERIFICATION_UNAVAILABLE"
         ],
         "source_file": "proto/runtime/v1/account.proto"
       },
@@ -38946,6 +39073,26 @@
           "POLICY_MODE_CUSTOM"
         ],
         "source_file": "proto/runtime/v1/grant.proto"
+      },
+      {
+        "name": "PresenceVerificationMethod",
+        "values": [
+          "PRESENCE_VERIFICATION_METHOD_UNSPECIFIED",
+          "PRESENCE_VERIFICATION_METHOD_OS_CREDENTIAL",
+          "PRESENCE_VERIFICATION_METHOD_NIMI_REAUTH",
+          "PRESENCE_VERIFICATION_METHOD_TEST_HARNESS"
+        ],
+        "source_file": "proto/runtime/v1/account.proto"
+      },
+      {
+        "name": "PresenceVerificationState",
+        "values": [
+          "PRESENCE_VERIFICATION_STATE_UNSPECIFIED",
+          "PRESENCE_VERIFICATION_STATE_REJECTED",
+          "PRESENCE_VERIFICATION_STATE_VERIFIED",
+          "PRESENCE_VERIFICATION_STATE_UNAVAILABLE"
+        ],
+        "source_file": "proto/runtime/v1/account.proto"
       },
       {
         "name": "RealmGroupMessageCandidateCommitDisposition",

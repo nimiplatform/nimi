@@ -465,6 +465,16 @@ because Desktop launched it.
 
 Web/cloud adapter 与 external-principal mode 仍可保留 app-provided token / subject provider 输入，但这些 mode 必须在公共 surface 上显式 fenced，且不得对 local first-party 消费可达。
 
+SDK must expose `runtime.account.requestPresenceVerification(...)` only as a
+typed thin projection of
+`RuntimeAccountService.RequestPresenceVerification`. SDK must not implement the
+second factor itself, accept passwords or secrets from the app, convert current
+login/access-token state into verified presence, or call Realm server APIs as
+the acceptance path. Only Runtime may orchestrate a Realm-backed fresh
+`NIMI_REAUTH` fallback behind this method, and SDK/app consumers only receive
+the Runtime response state/method/expiry. Non-verified, unavailable, cancelled,
+or expired Runtime responses remain fail-closed.
+
 ## S-RUNTIME-110 Login Adapter Surface
 
 local first-party 与 developer-registered local app login UX 由 kit / Desktop 提供 UX，登录结果通过 Runtime `BeginLogin` / `CompleteLogin`（`K-ACCSVC-005`）回流。SDK 在该 mode 仅扮演投影：

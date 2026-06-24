@@ -225,6 +225,7 @@ groups:
       - SubscribeAccountSessionEvents
       - BeginLogin
       - CompleteLogin
+      - RequestPresenceVerification
       - GetAccessToken
       - InvokeRealmUnary
       - RefreshAccountSession

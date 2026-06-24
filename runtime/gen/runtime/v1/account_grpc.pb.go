@@ -23,6 +23,7 @@ const (
 	RuntimeAccountService_SubscribeAccountSessionEvents_FullMethodName = "/nimi.runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents"
 	RuntimeAccountService_BeginLogin_FullMethodName                    = "/nimi.runtime.v1.RuntimeAccountService/BeginLogin"
 	RuntimeAccountService_CompleteLogin_FullMethodName                 = "/nimi.runtime.v1.RuntimeAccountService/CompleteLogin"
+	RuntimeAccountService_RequestPresenceVerification_FullMethodName   = "/nimi.runtime.v1.RuntimeAccountService/RequestPresenceVerification"
 	RuntimeAccountService_GetAccessToken_FullMethodName                = "/nimi.runtime.v1.RuntimeAccountService/GetAccessToken"
 	RuntimeAccountService_InvokeRealmUnary_FullMethodName              = "/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary"
 	RuntimeAccountService_RefreshAccountSession_FullMethodName         = "/nimi.runtime.v1.RuntimeAccountService/RefreshAccountSession"
@@ -42,6 +43,7 @@ type RuntimeAccountServiceClient interface {
 	SubscribeAccountSessionEvents(ctx context.Context, in *SubscribeAccountSessionEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AccountSessionEvent], error)
 	BeginLogin(ctx context.Context, in *BeginLoginRequest, opts ...grpc.CallOption) (*BeginLoginResponse, error)
 	CompleteLogin(ctx context.Context, in *CompleteLoginRequest, opts ...grpc.CallOption) (*CompleteLoginResponse, error)
+	RequestPresenceVerification(ctx context.Context, in *RequestPresenceVerificationRequest, opts ...grpc.CallOption) (*RequestPresenceVerificationResponse, error)
 	GetAccessToken(ctx context.Context, in *GetAccessTokenRequest, opts ...grpc.CallOption) (*GetAccessTokenResponse, error)
 	InvokeRealmUnary(ctx context.Context, in *InvokeRealmUnaryRequest, opts ...grpc.CallOption) (*InvokeRealmUnaryResponse, error)
 	RefreshAccountSession(ctx context.Context, in *RefreshAccountSessionRequest, opts ...grpc.CallOption) (*RefreshAccountSessionResponse, error)
@@ -104,6 +106,16 @@ func (c *runtimeAccountServiceClient) CompleteLogin(ctx context.Context, in *Com
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(CompleteLoginResponse)
 	err := c.cc.Invoke(ctx, RuntimeAccountService_CompleteLogin_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAccountServiceClient) RequestPresenceVerification(ctx context.Context, in *RequestPresenceVerificationRequest, opts ...grpc.CallOption) (*RequestPresenceVerificationResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RequestPresenceVerificationResponse)
+	err := c.cc.Invoke(ctx, RuntimeAccountService_RequestPresenceVerification_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -208,6 +220,7 @@ type RuntimeAccountServiceServer interface {
 	SubscribeAccountSessionEvents(*SubscribeAccountSessionEventsRequest, grpc.ServerStreamingServer[AccountSessionEvent]) error
 	BeginLogin(context.Context, *BeginLoginRequest) (*BeginLoginResponse, error)
 	CompleteLogin(context.Context, *CompleteLoginRequest) (*CompleteLoginResponse, error)
+	RequestPresenceVerification(context.Context, *RequestPresenceVerificationRequest) (*RequestPresenceVerificationResponse, error)
 	GetAccessToken(context.Context, *GetAccessTokenRequest) (*GetAccessTokenResponse, error)
 	InvokeRealmUnary(context.Context, *InvokeRealmUnaryRequest) (*InvokeRealmUnaryResponse, error)
 	RefreshAccountSession(context.Context, *RefreshAccountSessionRequest) (*RefreshAccountSessionResponse, error)
@@ -237,6 +250,9 @@ func (UnimplementedRuntimeAccountServiceServer) BeginLogin(context.Context, *Beg
 }
 func (UnimplementedRuntimeAccountServiceServer) CompleteLogin(context.Context, *CompleteLoginRequest) (*CompleteLoginResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CompleteLogin not implemented")
+}
+func (UnimplementedRuntimeAccountServiceServer) RequestPresenceVerification(context.Context, *RequestPresenceVerificationRequest) (*RequestPresenceVerificationResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RequestPresenceVerification not implemented")
 }
 func (UnimplementedRuntimeAccountServiceServer) GetAccessToken(context.Context, *GetAccessTokenRequest) (*GetAccessTokenResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetAccessToken not implemented")
@@ -346,6 +362,24 @@ func _RuntimeAccountService_CompleteLogin_Handler(srv interface{}, ctx context.C
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RuntimeAccountServiceServer).CompleteLogin(ctx, req.(*CompleteLoginRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAccountService_RequestPresenceVerification_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RequestPresenceVerificationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAccountServiceServer).RequestPresenceVerification(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAccountService_RequestPresenceVerification_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAccountServiceServer).RequestPresenceVerification(ctx, req.(*RequestPresenceVerificationRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -530,6 +564,10 @@ var RuntimeAccountService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CompleteLogin",
 			Handler:    _RuntimeAccountService_CompleteLogin_Handler,
+		},
+		{
+			MethodName: "RequestPresenceVerification",
+			Handler:    _RuntimeAccountService_RequestPresenceVerification_Handler,
 		},
 		{
 			MethodName: "GetAccessToken",
