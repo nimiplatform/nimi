@@ -2,6 +2,7 @@ import type { AudioSynthesizeParamsState } from '../types.js';
 import type { NimiRuntimeSpeechVoiceReference } from '@nimiplatform/kit/core/sdk-contract';
 import { AUDIO_SYNTHESIZE_RESPONSE_FORMAT_OPTIONS } from '../constants.js';
 import {
+  AdvancedRow,
   EditorSectionTitle,
   InlineFieldRow,
   PlainNumberInput,
@@ -17,6 +18,7 @@ export type AudioSynthesizeParamsEditorCopy = {
   voiceSectionLabel?: string;
   audioTuningSectionLabel?: string;
   outputSectionLabel?: string;
+  advancedLabel?: string;
   voiceRefLabel: string;
   voiceRefHint?: string;
   providerVoiceRefLabel?: string;
@@ -77,6 +79,7 @@ export function createAudioSynthesizeEditorCopy(
       defaultValue: 'Audio Tuning',
     }),
     outputSectionLabel: t('ModelConfig.editor.audioSynthesize.outputSectionLabel', { defaultValue: 'Output' }),
+    advancedLabel: t('ModelConfig.editor.audioSynthesize.advancedLabel', { defaultValue: 'Advanced Settings' }),
     voiceRefLabel: t('ModelConfig.editor.audioSynthesize.voiceRefLabel', { defaultValue: 'Voice reference' }),
     voiceRefHint: t('ModelConfig.editor.audioSynthesize.voiceRefHint', {
       defaultValue: 'Preset voice, custom voice asset, or provider voice reference.',
@@ -137,6 +140,7 @@ export function AudioSynthesizeParamsEditor(props: AudioSynthesizeParamsEditorPr
   const voiceSectionLabel = copy.voiceSectionLabel ?? copy.parametersLabel;
   const audioTuningSectionLabel = copy.audioTuningSectionLabel ?? copy.parametersLabel;
   const outputSectionLabel = copy.outputSectionLabel ?? copy.parametersLabel;
+  const advancedLabel = copy.advancedLabel ?? 'Advanced Settings';
 
   return (
     <div className="min-w-0 max-w-full space-y-6">
@@ -206,24 +210,26 @@ export function AudioSynthesizeParamsEditor(props: AudioSynthesizeParamsEditorPr
 
       {/* OUTPUT — encode format + timeout, both single-line scalars rendered
           inline (matches the chat editor's Timeout row). */}
-      <section className="min-w-0 max-w-full space-y-3.5">
-        <EditorSectionTitle label={outputSectionLabel} />
-        <InlineFieldRow label={copy.responseFormatLabel} controlWidthClass="w-40">
-          <PlainSelect
-            value={params.responseFormat}
-            onChange={(value) => updateParam('responseFormat', value)}
-            options={AUDIO_SYNTHESIZE_RESPONSE_FORMAT_OPTIONS.map((item) => ({ value: item, label: item }))}
-          />
-        </InlineFieldRow>
-        <InlineFieldRow label={copy.timeoutLabel}>
-          <PlainNumberInput
-            value={params.timeoutMs}
-            onChange={(value) => updateParam('timeoutMs', value)}
-            placeholder="120000"
-            inputMode="numeric"
-          />
-        </InlineFieldRow>
-      </section>
+      <AdvancedRow title={advancedLabel}>
+        <section className="min-w-0 max-w-full space-y-3.5">
+          <EditorSectionTitle label={outputSectionLabel} />
+          <InlineFieldRow label={copy.responseFormatLabel} controlWidthClass="w-40">
+            <PlainSelect
+              value={params.responseFormat}
+              onChange={(value) => updateParam('responseFormat', value)}
+              options={AUDIO_SYNTHESIZE_RESPONSE_FORMAT_OPTIONS.map((item) => ({ value: item, label: item }))}
+            />
+          </InlineFieldRow>
+          <InlineFieldRow label={copy.timeoutLabel}>
+            <PlainNumberInput
+              value={params.timeoutMs}
+              onChange={(value) => updateParam('timeoutMs', value)}
+              placeholder="120000"
+              inputMode="numeric"
+            />
+          </InlineFieldRow>
+        </section>
+      </AdvancedRow>
     </div>
   );
 }

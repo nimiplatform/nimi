@@ -384,4 +384,39 @@ describe('ModelConfigAiModelHub', () => {
     expect(container?.textContent).toContain('ModelConfig.capability.imageEdit.title');
     expect(container?.textContent).not.toContain('Click to change model');
   });
+
+  it('keeps secondary TTS workflows collapsed inside capability drawer detail mode', async () => {
+    const service = stubService();
+    const surface: AppModelConfigSurface = {
+      ...makeSurface(service),
+      requirementDeclaration: requirementDeclaration(['audio.synthesize', 'voice_workflow.voice_clone']),
+    };
+    await render(
+      wrap(
+        <ModelConfigAiModelHub
+          surface={surface}
+          profile={emptyProfileController}
+          initialSection="tts"
+          detailOnly
+          detailActiveModelHint={null}
+        />,
+      ),
+    );
+
+    expect(container?.textContent).toContain('ModelConfig.editor.audioSynthesize.voiceRefLabel');
+    expect(container?.textContent).toContain('ModelConfig.capability.voiceWorkflowVoiceClone.title');
+    expect(container?.textContent).not.toContain('ModelConfig.editor.voiceWorkflow.referenceTextLabel');
+
+    const voiceCloneToggle = Array.from(container?.querySelectorAll('button') || [])
+      .find((button) => button.textContent?.includes('ModelConfig.capability.voiceWorkflowVoiceClone.title'));
+    expect(voiceCloneToggle).toBeTruthy();
+
+    await act(async () => {
+      click(voiceCloneToggle as HTMLButtonElement);
+      await flush();
+      await flush();
+    });
+
+    expect(container?.textContent).toContain('ModelConfig.editor.voiceWorkflow.referenceTextLabel');
+  });
 });

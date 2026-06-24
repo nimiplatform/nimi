@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
+import { ChevronRight } from 'lucide-react';
 import type { NimiAIConfig } from '@nimiplatform/kit/core/sdk-contract';
 import {
   CANONICAL_CAPABILITY_CATALOG_BY_ID,
@@ -14,7 +15,7 @@ import {
   type CapabilityEvaluation,
   type ModelConfigStatusTone,
 } from '@nimiplatform/kit/core/model-config';
-import type { ModelConfigProfileController } from '../types.js';
+import type { ModelConfigCapabilityStatus, ModelConfigProfileController } from '../types.js';
 import { ProfileConfigSection } from './profile-config-section.js';
 import { ModelConfigCapabilityDetail } from './model-config-capability-detail.js';
 
@@ -118,6 +119,62 @@ function CapIcon(props: { section: CanonicalCapabilitySectionId; tone: ModelConf
         <path d={sectionIconPath(props.section)} />
       </svg>
     </span>
+  );
+}
+
+function capabilityStatusTone(status: ModelConfigCapabilityStatus | null | undefined): ModelConfigStatusTone {
+  if (status?.supported) return 'ready';
+  return status?.tone ?? 'neutral';
+}
+
+function DetailCapabilityDisclosure(props: {
+  title: string;
+  subtitle: string;
+  status?: ModelConfigCapabilityStatus | null;
+  children: ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  const tone = capabilityStatusTone(props.status);
+  const borderToneClass = tone === 'attention'
+    ? 'border-amber-200/80 bg-amber-50/35'
+    : tone === 'ready'
+      ? 'border-emerald-200/70 bg-emerald-50/25'
+      : 'border-[var(--nimi-border-subtle,#e2e8f0)] bg-white';
+  const subtitleToneClass = tone === 'attention'
+    ? 'text-amber-700'
+    : tone === 'ready'
+      ? 'text-emerald-700'
+      : 'text-[var(--nimi-text-muted,#64748b)]';
+
+  return (
+    <div className={`min-w-0 overflow-hidden rounded-xl border ${borderToneClass}`}>
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen((prev) => !prev)}
+        className="flex w-full min-w-0 items-center gap-3 px-3.5 py-3 text-left transition-colors hover:bg-white/65"
+      >
+        <span className={`h-2 w-2 shrink-0 rounded-full ${statusToneDotClass(tone)}`} />
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-[13px] font-semibold text-[var(--nimi-text-primary,#0f172a)]">
+            {props.title}
+          </span>
+          <span className={`mt-0.5 block truncate text-[11.5px] ${subtitleToneClass}`}>
+            {props.subtitle}
+          </span>
+        </span>
+        <ChevronRight
+          aria-hidden="true"
+          size={15}
+          className={`shrink-0 text-[var(--nimi-text-muted,#94a3b8)] transition-transform ${open ? 'rotate-90' : ''}`}
+        />
+      </button>
+      {open ? (
+        <div className="border-t border-[var(--nimi-border-subtle,#e2e8f0)] bg-white px-3.5 py-3.5">
+          {props.children}
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -319,6 +376,40 @@ export function ModelConfigAiModelHub(props: ModelConfigAiModelHubProps) {
       section: sectionTitle,
       defaultValue: `${sectionTitle} Configuration`,
     });
+    const renderDetailDescriptor = (descriptor: CanonicalCapabilityDescriptor, index: number) => {
+      const card = (
+        <ModelConfigCapabilityDetail
+          capabilityId={descriptor.capabilityId}
+          surface={surface}
+          config={config}
+          activeModelLabel={detailDescriptors.length > 1 && index === 0 ? t(descriptor.i18nKeys.title) : detailDescriptors.length > 1 ? null : undefined}
+          activeModelHint={index === 0 ? detailActiveModelHint : null}
+        />
+      );
+
+      if (detailDescriptors.length <= 1 || index === 0) {
+        return (
+          <div key={descriptor.capabilityId}>
+            {card}
+          </div>
+        );
+      }
+
+      const evaluation = evaluations.find((entry) => entry.capabilityId === descriptor.capabilityId);
+      const status = evaluation?.status ?? surface.projectionResolver(descriptor.capabilityId);
+      const subtitle = status?.title || t(descriptor.i18nKeys.subtitle);
+
+      return (
+        <DetailCapabilityDisclosure
+          key={descriptor.capabilityId}
+          title={t(descriptor.i18nKeys.title)}
+          subtitle={subtitle}
+          status={status}
+        >
+          {card}
+        </DetailCapabilityDisclosure>
+      );
+    };
     return (
       <div className={className ? `min-w-0 ${className}` : 'min-w-0 space-y-5'}>
         <div className="flex min-w-0 flex-wrap items-center gap-2">
@@ -347,16 +438,7 @@ export function ModelConfigAiModelHub(props: ModelConfigAiModelHubProps) {
         </div>
 
         <div className="min-w-0 space-y-4">
-          {detailDescriptors.map((descriptor) => (
-            <ModelConfigCapabilityDetail
-              key={descriptor.capabilityId}
-              capabilityId={descriptor.capabilityId}
-              surface={surface}
-              config={config}
-              activeModelLabel={detailDescriptors.length > 1 ? t(descriptor.i18nKeys.title) : undefined}
-              activeModelHint={detailActiveModelHint}
-            />
-          ))}
+          {detailDescriptors.map((descriptor, index) => renderDetailDescriptor(descriptor, index))}
         </div>
 
         {footer}

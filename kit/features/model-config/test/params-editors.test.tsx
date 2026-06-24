@@ -338,6 +338,48 @@ describe('AudioSynthesizeParamsEditor', () => {
       expect(slider.className).toContain('max-w-full');
     }
   });
+
+  it('keeps transport output controls behind advanced disclosure in compact TTS tuning', async () => {
+    let next: AudioSynthesizeParamsState = { ...DEFAULT_AUDIO_SYNTHESIZE_PARAMS };
+    await render(
+      <AudioSynthesizeParamsEditor
+        copy={{
+          parametersLabel: 'Parameters',
+          voiceSectionLabel: 'Voice',
+          audioTuningSectionLabel: 'Audio tuning',
+          outputSectionLabel: 'Output',
+          voiceRefLabel: 'Voice reference',
+          providerVoiceRefLabel: 'Provider voice ref',
+          speakingRateLabel: 'Speaking rate',
+          volumeLabel: 'Volume',
+          pitchSemitonesLabel: 'Pitch',
+          languageHintLabel: 'Language',
+          responseFormatLabel: 'Response format',
+          timeoutLabel: 'Timeout',
+          defaultPlaceholder: 'Default',
+        }}
+        params={next}
+        onParamsChange={(value) => { next = value; }}
+      />,
+    );
+
+    expect(container?.textContent).toContain('Voice reference');
+    expect(container?.textContent).toContain('Speaking rate');
+    expect(container?.textContent).not.toContain('Response format');
+    expect(container?.textContent).not.toContain('Timeout');
+
+    const advancedButton = Array.from(container?.querySelectorAll('button') || [])
+      .find((button) => button.textContent?.includes('Advanced Settings'));
+    expect(advancedButton).toBeTruthy();
+
+    await act(async () => {
+      advancedButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await flush();
+    });
+
+    expect(container?.textContent).toContain('Response format');
+    expect(container?.textContent).toContain('Timeout');
+  });
 });
 
 describe('AudioTranscribeParamsEditor', () => {
