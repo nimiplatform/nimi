@@ -14,9 +14,15 @@ const shellTemplate = fs.readFileSync(
   path.join(import.meta.dirname, '../../shell/tauri/src/native-oauth-result-page.template.html'),
   'utf8',
 );
-const currentLogoDataUri = `data:image/png;base64,${fs.readFileSync(
-  path.join(import.meta.dirname, '../../../apps/desktop/src/shell/renderer/assets/logo.png'),
-).toString('base64')}`;
+
+function maxLineBytes(value: string): number {
+  return Math.max(...value.split(/\r?\n/).map((line) => Buffer.byteLength(line, 'utf8')));
+}
+
+function averageLineBytes(value: string): number {
+  const lines = value.split(/\r?\n/);
+  return Buffer.byteLength(value, 'utf8') / lines.length;
+}
 
 test('desktop OAuth result page escapes interpolated text fields', () => {
   expect(source).toMatch(/function escapeHtml\(value: string\): string/);
@@ -31,10 +37,12 @@ test('desktop OAuth result page normalizes auto-close timer before script inject
   expect(source).toMatch(/setTimeout\(function\(\)\{window\.close\(\);\}, \$\{autoCloseMs\}\);/);
 });
 
-test('desktop OAuth result page uses the current PNG Nimi logo in both templates', () => {
+test('desktop OAuth result page keeps both templates compact and self-contained', () => {
   expect(template).toBe(shellTemplate);
-  expect(template.includes(`<img class="logo" src="${currentLogoDataUri}" alt="Nimi" />`)).toBe(true);
-  expect(template).not.toContain('<svg class="logo" viewBox="184 313 380 380"');
-  expect(template).not.toContain('fill="#1E377A"');
-  expect(template).not.toContain('fill="#1F9BAB"');
+  expect(template).not.toContain('data:image/png;base64');
+  expect(template).toContain('<svg class="logo"');
+  expect(template).toContain('aria-label="Nimi"');
+  expect(Buffer.byteLength(template, 'utf8')).toBeLessThan(60 * 1024);
+  expect(maxLineBytes(template)).toBeLessThan(12_000);
+  expect(averageLineBytes(template)).toBeLessThan(900);
 });
