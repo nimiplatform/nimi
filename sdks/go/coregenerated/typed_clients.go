@@ -11886,6 +11886,25 @@ type WorldEntityCoreDto struct {
 	WorldId string `json:"worldId,omitempty"`
 }
 
+type WorldPublicAssetDto struct {
+	Height float64 `json:"height,omitempty"`
+	Id string `json:"id,omitempty"`
+	Kind string `json:"kind,omitempty"`
+	MimeType string `json:"mimeType,omitempty"`
+	Provenance *WorldPublicAssetProvenanceDto `json:"provenance,omitempty"`
+	Provider string `json:"provider,omitempty"`
+	Sha256 string `json:"sha256,omitempty"`
+	Url string `json:"url,omitempty"`
+	Width float64 `json:"width,omitempty"`
+}
+
+type WorldPublicAssetProvenanceDto struct {
+	LedgerRecordId string `json:"ledgerRecordId,omitempty"`
+	PublicationId string `json:"publicationId,omitempty"`
+	PublicationRecordId string `json:"publicationRecordId,omitempty"`
+	StorageRef string `json:"storageRef,omitempty"`
+}
+
 type WorldPublicDetailDto struct {
 	CreatedAt string `json:"createdAt,omitempty"`
 	EntityKinds []string `json:"entityKinds,omitempty"`
@@ -11929,7 +11948,15 @@ type WorldPublicItemDto struct {
 	Visibility string `json:"visibility,omitempty"`
 }
 
+type WorldPublicMediaAssetsDto struct {
+	Banner *WorldPublicAssetDto `json:"banner,omitempty"`
+	Hero *WorldPublicAssetDto `json:"hero,omitempty"`
+	Highlights []WorldPublicAssetDto `json:"highlights,omitempty"`
+	Icon *WorldPublicAssetDto `json:"icon,omitempty"`
+}
+
 type WorldPublicMediaDto struct {
+	Assets *WorldPublicMediaAssetsDto `json:"assets,omitempty"`
 	BannerUrl string `json:"bannerUrl,omitempty"`
 	HeroUrl string `json:"heroUrl,omitempty"`
 	HighlightUrls []string `json:"highlightUrls,omitempty"`
@@ -11953,7 +11980,13 @@ type WorldPublicSourceCardDto struct {
 	WorldName string `json:"worldName,omitempty"`
 }
 
+type WorldPublicSourceMediaAssetsDto struct {
+	Avatar *WorldPublicAssetDto `json:"avatar,omitempty"`
+	ProfileCover *WorldPublicAssetDto `json:"profileCover,omitempty"`
+}
+
 type WorldPublicSourceMediaDto struct {
+	Assets *WorldPublicSourceMediaAssetsDto `json:"assets,omitempty"`
 	AvatarUrl string `json:"avatarUrl,omitempty"`
 	ProfileCoverUrl string `json:"profileCoverUrl,omitempty"`
 }

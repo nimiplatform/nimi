@@ -14420,6 +14420,12 @@
       "name": "WorldEntityCoreDto"
     },
     {
+      "name": "WorldPublicAssetDto"
+    },
+    {
+      "name": "WorldPublicAssetProvenanceDto"
+    },
+    {
       "name": "WorldPublicDetailDto"
     },
     {
@@ -14429,10 +14435,16 @@
       "name": "WorldPublicItemDto"
     },
     {
+      "name": "WorldPublicMediaAssetsDto"
+    },
+    {
       "name": "WorldPublicMediaDto"
     },
     {
       "name": "WorldPublicSourceCardDto"
+    },
+    {
+      "name": "WorldPublicSourceMediaAssetsDto"
     },
     {
       "name": "WorldPublicSourceMediaDto"
@@ -37308,6 +37320,157 @@
       }
     },
     {
+      "name": "WorldPublicAssetDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "height",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "icon",
+                "banner",
+                "hero",
+                "highlight",
+                "avatar",
+                "referenceImage",
+                "profileCover",
+                "cover"
+              ]
+            }
+          },
+          {
+            "name": "mimeType",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "provenance",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/WorldPublicAssetProvenanceDto",
+              "ref_name": "WorldPublicAssetProvenanceDto"
+            }
+          },
+          {
+            "name": "provider",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "sha256",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "url",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "width",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null,
+              "nullable": true
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "WorldPublicAssetProvenanceDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "ledgerRecordId",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "publicationId",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "publicationRecordId",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "storageRef",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "nullable": true
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
       "name": "WorldPublicDetailDto",
       "schema": {
         "kind": "object",
@@ -37681,10 +37844,70 @@
       }
     },
     {
+      "name": "WorldPublicMediaAssetsDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "banner",
+            "required": false,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/WorldPublicAssetDto",
+              "ref_name": "WorldPublicAssetDto",
+              "nullable": true
+            }
+          },
+          {
+            "name": "hero",
+            "required": false,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/WorldPublicAssetDto",
+              "ref_name": "WorldPublicAssetDto",
+              "nullable": true
+            }
+          },
+          {
+            "name": "highlights",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "ref",
+                "ref": "#/components/schemas/WorldPublicAssetDto",
+                "ref_name": "WorldPublicAssetDto"
+              }
+            }
+          },
+          {
+            "name": "icon",
+            "required": false,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/WorldPublicAssetDto",
+              "ref_name": "WorldPublicAssetDto",
+              "nullable": true
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
       "name": "WorldPublicMediaDto",
       "schema": {
         "kind": "object",
         "properties": [
+          {
+            "name": "assets",
+            "required": false,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/WorldPublicMediaAssetsDto",
+              "ref_name": "WorldPublicMediaAssetsDto"
+            }
+          },
           {
             "name": "bannerUrl",
             "required": false,
@@ -37876,10 +38099,48 @@
       }
     },
     {
+      "name": "WorldPublicSourceMediaAssetsDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "avatar",
+            "required": false,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/WorldPublicAssetDto",
+              "ref_name": "WorldPublicAssetDto",
+              "nullable": true
+            }
+          },
+          {
+            "name": "profileCover",
+            "required": false,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/WorldPublicAssetDto",
+              "ref_name": "WorldPublicAssetDto",
+              "nullable": true
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
       "name": "WorldPublicSourceMediaDto",
       "schema": {
         "kind": "object",
         "properties": [
+          {
+            "name": "assets",
+            "required": false,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/WorldPublicSourceMediaAssetsDto",
+              "ref_name": "WorldPublicSourceMediaAssetsDto"
+            }
+          },
           {
             "name": "avatarUrl",
             "required": false,

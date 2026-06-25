@@ -8934,6 +8934,61 @@ components:
         - createdAt
         - updatedAt
       type: object
+    WorldPublicAssetDto:
+      properties:
+        height:
+          nullable: true
+          type: number
+        id:
+          type: string
+        kind:
+          enum:
+            - icon
+            - banner
+            - hero
+            - highlight
+            - avatar
+            - referenceImage
+            - profileCover
+            - cover
+          type: string
+        mimeType:
+          nullable: true
+          type: string
+        provenance:
+          $ref: '#/components/schemas/WorldPublicAssetProvenanceDto'
+        provider:
+          type: string
+        sha256:
+          nullable: true
+          type: string
+        url:
+          type: string
+        width:
+          nullable: true
+          type: number
+      required:
+        - id
+        - kind
+        - url
+        - provider
+        - provenance
+      type: object
+    WorldPublicAssetProvenanceDto:
+      properties:
+        ledgerRecordId:
+          nullable: true
+          type: string
+        publicationId:
+          nullable: true
+          type: string
+        publicationRecordId:
+          nullable: true
+          type: string
+        storageRef:
+          nullable: true
+          type: string
+      type: object
     WorldPublicDetailDto:
       properties:
         createdAt:
@@ -9080,8 +9135,34 @@ components:
         - createdAt
         - updatedAt
       type: object
+    WorldPublicMediaAssetsDto:
+      properties:
+        banner:
+          allOf:
+            - $ref: '#/components/schemas/WorldPublicAssetDto'
+          nullable: true
+          type: object
+        hero:
+          allOf:
+            - $ref: '#/components/schemas/WorldPublicAssetDto'
+          nullable: true
+          type: object
+        highlights:
+          items:
+            $ref: '#/components/schemas/WorldPublicAssetDto'
+          type: array
+        icon:
+          allOf:
+            - $ref: '#/components/schemas/WorldPublicAssetDto'
+          nullable: true
+          type: object
+      required:
+        - highlights
+      type: object
     WorldPublicMediaDto:
       properties:
+        assets:
+          $ref: '#/components/schemas/WorldPublicMediaAssetsDto'
         bannerUrl:
           nullable: true
           type: string
@@ -9152,8 +9233,23 @@ components:
         - relation
         - updatedAt
       type: object
+    WorldPublicSourceMediaAssetsDto:
+      properties:
+        avatar:
+          allOf:
+            - $ref: '#/components/schemas/WorldPublicAssetDto'
+          nullable: true
+          type: object
+        profileCover:
+          allOf:
+            - $ref: '#/components/schemas/WorldPublicAssetDto'
+          nullable: true
+          type: object
+      type: object
     WorldPublicSourceMediaDto:
       properties:
+        assets:
+          $ref: '#/components/schemas/WorldPublicSourceMediaAssetsDto'
         avatarUrl:
           nullable: true
           type: string
@@ -9411,7 +9507,7 @@ info:
   description: |-
     The Nimi Social Platform API
 
-    Last updated: 2026-06-24T09:51:57.279Z
+    Last updated: 2026-06-25T10:42:41.180Z
   title: Nimi Realm SDK API
   version: '1.0'
 openapi: 3.0.0

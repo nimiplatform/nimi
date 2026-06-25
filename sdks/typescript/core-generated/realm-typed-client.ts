@@ -1711,6 +1711,23 @@ export interface WorldEntityCoreDto {
   readonly updatedAt: string;
   readonly worldId: string;
 }
+export interface WorldPublicAssetDto {
+  readonly height?: number | null;
+  readonly id: string;
+  readonly kind: "icon" | "banner" | "hero" | "highlight" | "avatar" | "referenceImage" | "profileCover" | "cover";
+  readonly mimeType?: string | null;
+  readonly provenance: WorldPublicAssetProvenanceDto;
+  readonly provider: string;
+  readonly sha256?: string | null;
+  readonly url: string;
+  readonly width?: number | null;
+}
+export interface WorldPublicAssetProvenanceDto {
+  readonly ledgerRecordId?: string | null;
+  readonly publicationId?: string | null;
+  readonly publicationRecordId?: string | null;
+  readonly storageRef?: string | null;
+}
 export interface WorldPublicDetailDto {
   readonly createdAt: string;
   readonly entityKinds: readonly (string)[];
@@ -1751,7 +1768,14 @@ export interface WorldPublicItemDto {
   readonly updatedAt: string;
   readonly visibility: "public" | "system";
 }
+export interface WorldPublicMediaAssetsDto {
+  readonly banner?: WorldPublicAssetDto | null;
+  readonly hero?: WorldPublicAssetDto | null;
+  readonly highlights: readonly (WorldPublicAssetDto)[];
+  readonly icon?: WorldPublicAssetDto | null;
+}
 export interface WorldPublicMediaDto {
+  readonly assets?: WorldPublicMediaAssetsDto;
   readonly bannerUrl?: string | null;
   readonly heroUrl?: string | null;
   readonly highlightUrls: readonly (string)[];
@@ -1773,7 +1797,12 @@ export interface WorldPublicSourceCardDto {
   readonly worldId: string;
   readonly worldName: string;
 }
+export interface WorldPublicSourceMediaAssetsDto {
+  readonly avatar?: WorldPublicAssetDto | null;
+  readonly profileCover?: WorldPublicAssetDto | null;
+}
 export interface WorldPublicSourceMediaDto {
+  readonly assets?: WorldPublicSourceMediaAssetsDto;
   readonly avatarUrl?: string | null;
   readonly profileCoverUrl?: string | null;
 }
@@ -2440,11 +2469,15 @@ export interface RealmTypedModelMap {
   readonly "WorldCharacterCoreDto": WorldCharacterCoreDto;
   readonly "WorldCoreDto": WorldCoreDto;
   readonly "WorldEntityCoreDto": WorldEntityCoreDto;
+  readonly "WorldPublicAssetDto": WorldPublicAssetDto;
+  readonly "WorldPublicAssetProvenanceDto": WorldPublicAssetProvenanceDto;
   readonly "WorldPublicDetailDto": WorldPublicDetailDto;
   readonly "WorldPublicDetailWithCharactersDto": WorldPublicDetailWithCharactersDto;
   readonly "WorldPublicItemDto": WorldPublicItemDto;
+  readonly "WorldPublicMediaAssetsDto": WorldPublicMediaAssetsDto;
   readonly "WorldPublicMediaDto": WorldPublicMediaDto;
   readonly "WorldPublicSourceCardDto": WorldPublicSourceCardDto;
+  readonly "WorldPublicSourceMediaAssetsDto": WorldPublicSourceMediaAssetsDto;
   readonly "WorldPublicSourceMediaDto": WorldPublicSourceMediaDto;
   readonly "WorldPublicSourceRefDto": WorldPublicSourceRefDto;
   readonly "WorldPublicSourceSectionsDto": WorldPublicSourceSectionsDto;

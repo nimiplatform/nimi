@@ -82,6 +82,12 @@ export async function loadTesterRealmPersonaCoreProjection(): Promise<TesterReal
       throw new Error('Tester persona core projection does not create WorldCharacterCore.');
     },
     worldCoreControllerCreateWorldCore: async () => testerWorldCore,
+    worldCoreControllerCreateWorldEntity: async () => {
+      throw new Error('Tester persona core projection does not create WorldEntityCore.');
+    },
+    worldCoreControllerCreateWorldRelationship: async () => {
+      throw new Error('Tester persona core projection does not create WorldRelationshipCore.');
+    },
     worldCoreControllerGetOasisWorld: async () => testerWorldCore,
     worldCoreControllerGetRealmPersona: async (request: { path: { personaId: string } }) => ({
       ...testerPersonaCore,
@@ -94,14 +100,28 @@ export async function loadTesterRealmPersonaCoreProjection(): Promise<TesterReal
       ...testerWorldCore,
       id: request.path.worldId,
     }),
+    worldCoreControllerGetWorldEntity: async () => {
+      throw new Error('Tester persona core projection does not read WorldEntityCore.');
+    },
+    worldCoreControllerGetWorldRelationship: async () => {
+      throw new Error('Tester persona core projection does not read WorldRelationshipCore.');
+    },
     worldCoreControllerListRealmPersonas: async () => [testerPersonaCore],
     worldCoreControllerListWorldCharacters: async () => [],
     worldCoreControllerListWorldCores: async () => [testerWorldCore],
+    worldCoreControllerListWorldEntities: async () => [],
+    worldCoreControllerListWorldRelationships: async () => [],
     worldCoreControllerReplaceRealmPersona: async () => testerPersonaCore,
     worldCoreControllerReplaceWorldCharacter: async () => {
       throw new Error('Tester persona core projection does not replace WorldCharacterCore.');
     },
     worldCoreControllerReplaceWorldCore: async () => testerWorldCore,
+    worldCoreControllerReplaceWorldEntity: async () => {
+      throw new Error('Tester persona core projection does not replace WorldEntityCore.');
+    },
+    worldCoreControllerReplaceWorldRelationship: async () => {
+      throw new Error('Tester persona core projection does not replace WorldRelationshipCore.');
+    },
   } as RealmWorldCoreModule;
 
   const [worlds, persona, snapshot] = await Promise.all([

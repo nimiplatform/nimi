@@ -40243,6 +40243,27 @@ pub struct WorldEntityCoreDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldPublicAssetDto {
+    pub height: f64,
+    pub id: String,
+    pub kind: String,
+    pub mime_type: String,
+    pub provenance: Box<WorldPublicAssetProvenanceDto>,
+    pub provider: String,
+    pub sha256: String,
+    pub url: String,
+    pub width: f64,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldPublicAssetProvenanceDto {
+    pub ledger_record_id: String,
+    pub publication_id: String,
+    pub publication_record_id: String,
+    pub storage_ref: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct WorldPublicDetailDto {
     pub created_at: String,
     pub entity_kinds: Vec<String>,
@@ -40289,7 +40310,16 @@ pub struct WorldPublicItemDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldPublicMediaAssetsDto {
+    pub banner: Box<WorldPublicAssetDto>,
+    pub hero: Box<WorldPublicAssetDto>,
+    pub highlights: Vec<WorldPublicAssetDto>,
+    pub icon: Box<WorldPublicAssetDto>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct WorldPublicMediaDto {
+    pub assets: Box<WorldPublicMediaAssetsDto>,
     pub banner_url: String,
     pub hero_url: String,
     pub highlight_urls: Vec<String>,
@@ -40315,7 +40345,14 @@ pub struct WorldPublicSourceCardDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldPublicSourceMediaAssetsDto {
+    pub avatar: Box<WorldPublicAssetDto>,
+    pub profile_cover: Box<WorldPublicAssetDto>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct WorldPublicSourceMediaDto {
+    pub assets: Box<WorldPublicSourceMediaAssetsDto>,
     pub avatar_url: String,
     pub profile_cover_url: String,
 }

@@ -39,6 +39,8 @@ function worldCorePayload(overrides: Record<string, unknown> = {}) {
     type: 'CREATOR',
     visibility: 'public',
     tags: ['Historical', 'Alternate'],
+    entityKinds: ['person', 'place', 'office', 'text'],
+    relationshipTypes: ['serves', 'locatedIn'],
     media: {
       iconUrl: 'https://cdn.example.com/song-icon.png',
       bannerUrl: 'https://cdn.example.com/song-banner.png',
@@ -59,6 +61,8 @@ function worldCorePayload(overrides: Record<string, unknown> = {}) {
       computedAt: '2026-06-19T00:00:00.000Z',
     },
     stats: {
+      entityCount: 2,
+      relationshipCount: 1,
       characterCount: 1,
       personaCount: 0,
       sceneCount: 1,
@@ -320,6 +324,8 @@ test('loadWorldDetailWithCharacters keeps character count, persona count, and so
   const result = await loadWorldDetailWithCharacters(
     createWorldCallApi(worldCorePayload({
       stats: {
+        entityCount: 2,
+        relationshipCount: 1,
         characterCount: 1,
         personaCount: 1,
         sceneCount: 1,

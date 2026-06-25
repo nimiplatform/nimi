@@ -237,6 +237,10 @@ test('World detail consumes public source sections for characters and personas',
     displayName: 'Mira Vale',
     handle: 'mira',
     role: 'Traveler',
+    media: {
+      avatarUrl: 'https://cdn.example.com/mira-avatar.png',
+      profileCoverUrl: 'https://cdn.example.com/mira-cover.png',
+    },
   });
   const { callApi, calls } = createWorldPublicCallApi({
     detail: publicWorld(),
@@ -257,6 +261,8 @@ test('World detail consumes public source sections for characters and personas',
   assert.equal(result?.characters.length, 2);
   assert.equal(result?.characters[0]?.sourceKind, 'worldCharacter');
   assert.equal(result?.characters[1]?.sourceKind, 'realmPersona');
+  assert.equal(result?.characters[1]?.avatarUrl, 'https://cdn.example.com/mira-avatar.png');
+  assert.equal(result?.characters[1]?.profileCoverUrl, 'https://cdn.example.com/mira-cover.png');
   assert.deepEqual(result?.characters[1]?.sourceRef, {
     kind: 'realmPersona',
     worldId: 'world-1',

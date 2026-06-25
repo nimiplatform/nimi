@@ -1979,6 +1979,25 @@ class WorldEntityCoreDto:
     worldId: str | None = None
 
 @dataclass(frozen=True)
+class WorldPublicAssetDto:
+    height: float | None = None
+    id: str | None = None
+    kind: Literal["icon", "banner", "hero", "highlight", "avatar", "referenceImage", "profileCover", "cover"] | None = None
+    mimeType: str | None = None
+    provenance: WorldPublicAssetProvenanceDto | None = None
+    provider: str | None = None
+    sha256: str | None = None
+    url: str | None = None
+    width: float | None = None
+
+@dataclass(frozen=True)
+class WorldPublicAssetProvenanceDto:
+    ledgerRecordId: str | None = None
+    publicationId: str | None = None
+    publicationRecordId: str | None = None
+    storageRef: str | None = None
+
+@dataclass(frozen=True)
 class WorldPublicDetailDto:
     createdAt: str | None = None
     entityKinds: tuple[str, ...] = field(default_factory=tuple)
@@ -2022,7 +2041,15 @@ class WorldPublicItemDto:
     visibility: Literal["public", "system"] | None = None
 
 @dataclass(frozen=True)
+class WorldPublicMediaAssetsDto:
+    banner: WorldPublicAssetDto | None = None
+    hero: WorldPublicAssetDto | None = None
+    highlights: tuple[WorldPublicAssetDto, ...] = field(default_factory=tuple)
+    icon: WorldPublicAssetDto | None = None
+
+@dataclass(frozen=True)
 class WorldPublicMediaDto:
+    assets: WorldPublicMediaAssetsDto | None = None
     bannerUrl: str | None = None
     heroUrl: str | None = None
     highlightUrls: tuple[str, ...] = field(default_factory=tuple)
@@ -2046,7 +2073,13 @@ class WorldPublicSourceCardDto:
     worldName: str | None = None
 
 @dataclass(frozen=True)
+class WorldPublicSourceMediaAssetsDto:
+    avatar: WorldPublicAssetDto | None = None
+    profileCover: WorldPublicAssetDto | None = None
+
+@dataclass(frozen=True)
 class WorldPublicSourceMediaDto:
+    assets: WorldPublicSourceMediaAssetsDto | None = None
     avatarUrl: str | None = None
     profileCoverUrl: str | None = None
 
