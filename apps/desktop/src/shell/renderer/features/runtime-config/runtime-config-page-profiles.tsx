@@ -11,7 +11,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { NimiAIProfile } from '@nimiplatform/sdk/ai';
 import { validateNimiAIProfile } from '@nimiplatform/sdk/ai';
-import { getAccountDefaultProfileForScopeInit } from '@renderer/bridge/runtime-bridge/product-control.js';
+import {
+  ensureProductAccountDefaultProfile,
+  getAccountDefaultProfileForScopeInit,
+} from '@renderer/bridge/runtime-bridge/product-control.js';
 import { RuntimePageShell } from './runtime-config-page-shell.js';
 import { AccountProfileLibraryPanel } from './runtime-config-profile-library-panel.js';
 import {
@@ -101,6 +104,7 @@ export function ProfileCatalogPage() {
   const refreshProfileLibrary = useCallback(async () => {
     setLibraryLoading(true);
     try {
+      await ensureProductAccountDefaultProfile();
       const [projection, defaultProfile] = await Promise.all([
         loadAccountProfileLibrary(),
         getAccountDefaultProfileForScopeInit(),

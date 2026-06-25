@@ -66,6 +66,22 @@ test('profile section exposes file-backed library actions without factory restor
   assert.doesNotMatch(source, /profile\.onApply\(accountDefault\.profileId\)/);
 });
 
+test('profile section repairs missing Account Default Profile through the product-control owner before reading it', () => {
+  const source = readFileSync(sourcePath, 'utf8');
+  const ensureIndex = source.indexOf('await ensureProductAccountDefaultProfile();');
+  const libraryReadIndex = source.indexOf('loadAccountProfileLibrary()', ensureIndex);
+  const defaultReadIndex = source.indexOf('getAccountDefaultProfileForScopeInit()', ensureIndex);
+  assert.notEqual(ensureIndex, -1, 'Profiles refresh must call the Account Default Profile owner ensure path');
+  assert.ok(
+    libraryReadIndex > ensureIndex,
+    'Profiles refresh must read the account library only after owner ensure has run',
+  );
+  assert.ok(
+    defaultReadIndex > ensureIndex,
+    'Profiles refresh must read Account Default Profile payload only after owner ensure has run',
+  );
+});
+
 test('profile section restores account profile CRUD and portable body editing', () => {
   const source = readFileSync(sourcePath, 'utf8');
   const libraryPanelSource = readFileSync(libraryPanelPath, 'utf8');
