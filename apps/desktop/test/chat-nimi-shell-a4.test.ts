@@ -17,7 +17,7 @@ import {
   createDefaultConversationCapabilitySelectionStore,
   createNimiConversationAISnapshot,
   type ConversationCapabilityRouteRuntime,
-  updateConversationCapabilityBinding,
+  updateConversationCapabilityTargetRef,
 } from '../src/shell/renderer/features/chat/conversation-capability.js';
 import {
   streamChatAiRuntime,
@@ -25,7 +25,6 @@ import {
 import {
   resolveChatAiConversationRuntimeRequest,
 } from '../src/shell/renderer/features/chat/chat-nimi-shell-runtime-adapter.js';
-import type { NimiRuntimeRouteBinding } from '@nimiplatform/sdk/runtime';
 import {
   clearDesktopTestNimiClientSession,
   createEmptyNimiAIConfig,
@@ -72,7 +71,7 @@ test('chat ai a4: active thread restore prefers explicit selection before last s
 test('chat ai a4: adapter does not persist text.generate route selections into AIConfig truth', () => {
   const adapterSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-nimi-shell-adapter.tsx');
   const presentationSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-nimi-shell-presentation.tsx');
-  assert.match(adapterSource, /selectedBinding:\s*null/);
+  assert.match(adapterSource, /selectedTargetRef:\s*textCapabilityProjection\?\.selectedTargetRef \|\| null/);
   assert.match(adapterSource, /resolveRuntimeRequest:\s*\(\)\s*=>\s*resolveChatAiConversationRuntimeRequest/);
   assert.match(presentationSource, /disableRpContent:\s*true/);
   assert.doesNotMatch(adapterSource, /aiConfig\.capabilities\.selectedBindings\['text\.generate'\]/);
@@ -122,46 +121,45 @@ test('chat ai a4: composer submit is fire-and-forget and host actions project th
 });
 
 test('chat ai a4: switching thread route truth updates selection-store projection and thinking support', async () => {
-  const cloudBinding: NimiRuntimeRouteBinding = {
-    source: 'cloud' as const,
+  const cloudTargetRef = {
+    kind: 'cloud-connector' as const,
+    version: 'v2' as const,
     connectorId: 'connector-ollama',
     provider: 'ollama',
-    model: 'qwen3-cloud',
-    modelId: 'qwen3-cloud',
+    remoteModelCatalogId: 'remote-catalog:connector-ollama:qwen3-cloud',
+    providerModelId: 'qwen3-cloud',
   };
-  const localBinding: NimiRuntimeRouteBinding = {
-    source: 'local' as const,
-    connectorId: '',
-    model: 'qwen3-local',
-    modelId: 'qwen3-local',
-    localModelId: 'local-model-2',
-    engine: 'llama',
-    provider: 'llama',
-    endpoint: 'http://127.0.0.1:22434',
+  const localTargetRef = {
+    kind: 'local-runtime' as const,
+    version: 'v2' as const,
+    profileBindingId: 'local-runtime:local-model-2',
   };
 
   const routeRuntime: ConversationCapabilityRouteRuntime = {
-    resolve: async ({ binding }) => {
-      const source = String(binding?.source || '').trim();
-      if (source === 'cloud') {
+    resolve: async ({ targetRef }) => {
+      if (targetRef?.kind === 'cloud-connector') {
         return {
           capability: 'text.generate' as const,
           resolvedBindingRef: 'binding-cloud-thread-a',
-          source: 'cloud' as const,
+          source: 'cloud-connector' as const,
+          targetRef,
           provider: 'ollama',
-          model: 'qwen3-cloud',
-          modelId: 'qwen3-cloud',
-          connectorId: 'connector-ollama',
+          model: targetRef.providerModelId,
+          modelId: targetRef.providerModelId,
+          providerModelId: targetRef.providerModelId,
+          remoteModelCatalogId: targetRef.remoteModelCatalogId,
+          connectorId: targetRef.connectorId,
         };
       }
       return {
         capability: 'text.generate' as const,
         resolvedBindingRef: 'binding-local-thread-b',
-        source: 'local' as const,
+        source: 'local-runtime' as const,
+        targetRef: localTargetRef,
         provider: 'llama',
         model: 'qwen3-local',
         modelId: 'qwen3-local',
-        localModelId: 'local-model-2',
+        localAssetId: 'local-model-2',
         connectorId: '',
         endpoint: 'http://127.0.0.1:22434',
       };
@@ -198,33 +196,33 @@ test('chat ai a4: switching thread route truth updates selection-store projectio
     }),
   };
 
-  const threadAStore = updateConversationCapabilityBinding(
+  const threadAStore = updateConversationCapabilityTargetRef(
     createDefaultConversationCapabilitySelectionStore(),
     'text.generate',
-    cloudBinding,
+    cloudTargetRef,
   );
   const projectionA = await buildConversationCapabilityProjection({
     capability: 'text.generate',
     selectionStore: threadAStore,
     routeRuntime,
   });
-  assert.equal(threadAStore.selectedBindings['text.generate']?.source, 'cloud');
+  assert.deepEqual(threadAStore.targetRefs['text.generate'], cloudTargetRef);
   assert.deepEqual(
     resolveAiThinkingSupportFromProjection(projectionA),
     { supported: true, reason: null },
   );
 
-  const threadBStore = updateConversationCapabilityBinding(
+  const threadBStore = updateConversationCapabilityTargetRef(
     threadAStore,
     'text.generate',
-    localBinding,
+    localTargetRef,
   );
   const projectionB = await buildConversationCapabilityProjection({
     capability: 'text.generate',
     selectionStore: threadBStore,
     routeRuntime,
   });
-  assert.equal(threadBStore.selectedBindings['text.generate']?.source, 'local');
+  assert.deepEqual(threadBStore.targetRefs['text.generate'], localTargetRef);
   assert.deepEqual(
     resolveAiThinkingSupportFromProjection(projectionB),
     { supported: false, reason: 'thinking_unsupported' },
@@ -305,16 +303,20 @@ test('chat ai a4: local runtime stream keeps explicit model id when resolved rou
       capability: 'text.generate',
       projection: {
         capability: 'text.generate',
-        selectedBinding: null,
+        selectedTargetRef: null,
         resolvedBinding: {
           capability: 'text.generate',
-          source: 'local',
+          source: 'local-runtime',
+          targetRef: {
+            kind: 'local-runtime',
+            version: 'v2',
+            profileBindingId: 'local-runtime:asset-local-chat',
+          },
           connectorId: '',
           provider: 'llama',
           engine: 'llama',
           model: '',
-          localModelId: 'asset-local-chat',
-          goRuntimeLocalModelId: 'asset-local-chat',
+          localAssetId: 'asset-local-chat',
           endpoint: 'http://127.0.0.1:11434/v1',
           localProviderEndpoint: 'http://127.0.0.1:11434/v1',
           resolvedBindingRef: 'local:text.generate:llama:asset-local-chat',
@@ -366,16 +368,20 @@ test('chat ai a4: simple-ai provider runtime request resolves explicit local ass
   assert.deepEqual(
     resolveChatAiConversationRuntimeRequest({
       capability: 'text.generate',
-      selectedBinding: null,
+      selectedTargetRef: null,
       resolvedBinding: {
         capability: 'text.generate',
-        source: 'local',
+        source: 'local-runtime',
+        targetRef: {
+          kind: 'local-runtime',
+          version: 'v2',
+          profileBindingId: 'local-runtime:01KV2PAC69SRGAB30PCZ9ZH8MN',
+        },
         connectorId: '',
         provider: 'llama',
         engine: 'llama',
         model: '',
-        localModelId: '01KV2PAC69SRGAB30PCZ9ZH8MN',
-        goRuntimeLocalModelId: '01KV2PAC69SRGAB30PCZ9ZH8MN',
+        localAssetId: '01KV2PAC69SRGAB30PCZ9ZH8MN',
         resolvedBindingRef: 'local:text.generate:llama:01KV2PAC69SRGAB30PCZ9ZH8MN',
       },
       health: {
@@ -425,32 +431,44 @@ test('chat ai a4: projection thinking fails close when text metadata is missing'
   assert.deepEqual(
     resolveAiThinkingSupportFromProjection({
       capability: 'text.generate',
-      selectedBinding: {
-        source: 'cloud',
+      selectedTargetRef: {
+        kind: 'cloud-connector',
+        version: 'v2',
         connectorId: 'connector-ollama',
         provider: 'ollama',
+        remoteModelCatalogId: 'remote-catalog:connector-ollama:qwen3:4b',
+        providerModelId: 'qwen3:4b',
+      },
+      resolvedBinding: {
+        capability: 'text.generate',
+        source: 'cloud-connector',
+        targetRef: {
+          kind: 'cloud-connector',
+          version: 'v2',
+          connectorId: 'connector-ollama',
+          remoteModelCatalogId: 'remote-catalog:connector-ollama:qwen3:4b',
+          providerModelId: 'qwen3:4b',
+          provider: 'ollama',
+        },
+        resolvedBindingRef: 'cloud:text.generate:connector-ollama:qwen3:4b',
+        provider: 'ollama',
+        connectorId: 'connector-ollama',
+        remoteModelCatalogId: 'remote-catalog:connector-ollama:qwen3:4b',
+        providerModelId: 'qwen3:4b',
         model: 'qwen3:4b',
         modelId: 'qwen3:4b',
       },
-    resolvedBinding: {
-      capability: 'text.generate',
-      source: 'cloud',
-      provider: 'ollama',
-      connectorId: 'connector-ollama',
-      model: 'qwen3:4b',
-      modelId: 'qwen3:4b',
-    },
-    health: {
-      healthy: true,
-      status: 'healthy',
-      provider: 'ollama',
-      detail: 'ready',
-      actionHint: 'none',
-    },
-    metadata: null,
-    supported: false,
-    reasonCode: null,
-  }),
+      health: {
+        healthy: true,
+        status: 'healthy',
+        provider: 'ollama',
+        detail: 'ready',
+        actionHint: 'none',
+      },
+      metadata: null,
+      supported: false,
+      reasonCode: null,
+    }),
     {
       supported: false,
       reason: 'metadata_missing',

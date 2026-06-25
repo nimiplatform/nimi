@@ -21,10 +21,10 @@ function resolvedBindingModelId(
   binding: NonNullable<ConversationCapabilityProjection['resolvedBinding']>,
 ): string {
   return normalizeText(
-    binding.modelId
+    binding.providerModelId
+    || binding.modelId
     || binding.model
-    || binding.goRuntimeLocalModelId
-    || binding.localModelId,
+    || binding.localAssetId,
   );
 }
 
@@ -42,7 +42,11 @@ export function resolveChatAiConversationRuntimeRequest(
   }
   return {
     model,
-    route: binding.source === 'local' || binding.source === 'cloud' ? binding.source : undefined,
+    route: binding.source === 'local-runtime'
+      ? 'local'
+      : binding.source === 'cloud-connector'
+        ? 'cloud'
+        : undefined,
     connectorId: normalizeText(binding.connectorId) || undefined,
   };
 }

@@ -2,8 +2,7 @@
 use super::{config_get, config_set};
 use super::{
     grpc_addr, runtime_cli_command_spec, runtime_config_path, source_dev_app_registry_path, start,
-    status, stop,
-    DEFAULT_GRPC_ADDR,
+    status, stop, DEFAULT_GRPC_ADDR,
 };
 use crate::test_support::{test_guard, with_env};
 use std::fs;
@@ -84,9 +83,15 @@ fn source_dev_app_registry_path_resolves_from_runtime_current_dir() {
             Some(registry.clone())
         );
     });
-    with_env(&[("NIMI_RUNTIME_APP_REGISTRY_PATH", Some("explicit.yaml"))], || {
-        assert_eq!(source_dev_app_registry_path(Some(runtime_dir.as_path())), None);
-    });
+    with_env(
+        &[("NIMI_RUNTIME_APP_REGISTRY_PATH", Some("explicit.yaml"))],
+        || {
+            assert_eq!(
+                source_dev_app_registry_path(Some(runtime_dir.as_path())),
+                None
+            );
+        },
+    );
 
     let _ = fs::remove_dir_all(repo);
 }

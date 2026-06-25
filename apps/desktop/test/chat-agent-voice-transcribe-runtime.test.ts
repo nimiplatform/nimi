@@ -14,20 +14,15 @@ const testScopeRef = createNimiBuiltInChatAIScopeRef('agent');
 function createTranscribeProjection(): ConversationCapabilityProjection {
   return {
     capability: 'audio.transcribe',
-    selectedBinding: {
-      source: 'local',
-      connectorId: '',
-      model: 'whisper-1',
-      localModelId: 'whisper-1',
-    },
+    selectedTargetRef: { kind: 'local-runtime', version: 'v2', profileBindingId: 'local-runtime:whisper-1' },
     resolvedBinding: {
       capability: 'audio.transcribe',
-      source: 'local',
-      provider: 'local',
+      resolvedBindingRef: 'local:audio.transcribe:whisper-1',
+      source: 'local-runtime', targetRef: { kind: 'local-runtime' as const, version: 'v2' as const, profileBindingId: 'local-runtime:test-local' }, provider: 'local',
       connectorId: '',
       model: 'whisper-1',
       modelId: 'whisper-1',
-      localModelId: 'whisper-1',
+      localAssetId: 'whisper-1',
     },
     health: {
       healthy: true,

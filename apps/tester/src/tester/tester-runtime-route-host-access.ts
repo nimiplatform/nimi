@@ -35,13 +35,13 @@ export async function loadTesterRuntimeRouteHostAccessProjection(): Promise<Test
   });
   const [metadata, options, health] = await Promise.all([
     surface.buildRequestMetadata({
-      source: 'cloud',
+      source: 'cloud-connector',
       connectorId: 'tester-cloud',
     }),
     surface.buildCallOptions({
       targetId: 'tester.settings.runtime-route-host-access',
       timeoutMs: 5000,
-      source: 'cloud',
+      source: 'cloud-connector',
       connectorId: 'tester-cloud',
     }),
     surface.checkLocalHealth({

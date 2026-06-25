@@ -46,8 +46,8 @@ function testerExecutionEvidence(): NimiFirstRunExecutionEvidenceForAIConfig {
 
 export function createTesterFirstRunAIConfigProjection(): Record<string, string> {
   const projected = projectNimiFirstRunExecutionEvidenceToAIConfigTargets(testerExecutionEvidence());
-  return Object.fromEntries(projected.map((item) => [
-    item.capability,
-    item.targetRef.readinessRef,
-  ]));
+  return Object.fromEntries(projected.flatMap((item) => {
+    const readinessRef = item.targetRef.readinessRef;
+    return readinessRef ? [[item.capability, readinessRef] as const] : [];
+  }));
 }

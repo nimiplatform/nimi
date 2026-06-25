@@ -151,8 +151,8 @@ test('image.generate materializes local model and companion slots into Runtime p
       targetRefs: {
         'image.generate': {
           kind: 'local-runtime',
-          targetId: 'media',
-          profileId: 'local-main-image',
+          version: 'v2',
+          profileBindingId: 'local-main-image',
         },
       },
       selectedParams: {
@@ -304,8 +304,8 @@ test('image.generate materializes Ideogram4 uncond companion from selected model
       targetRefs: {
         'image.generate': {
           kind: 'local-runtime',
-          targetId: 'media',
-          profileId: 'local-ideogram4',
+          version: 'v2',
+          profileBindingId: 'local-ideogram4',
         },
       },
       selectedParams: {
@@ -432,8 +432,8 @@ test('image.generate derives Ideogram4 companion requirements from Runtime local
       targetRefs: {
         'image.generate': {
           kind: 'local-runtime',
-          targetId: 'media',
-          profileId: 'local-ideogram4',
+          version: 'v2',
+          profileBindingId: 'local-ideogram4',
         },
       },
       selectedParams: {
@@ -541,8 +541,8 @@ test('image.generate fails closed when Ideogram4 required uncond companion is mi
       targetRefs: {
         'image.generate': {
           kind: 'local-runtime',
-          targetId: 'media',
-          profileId: 'local-ideogram4',
+          version: 'v2',
+          profileBindingId: 'local-ideogram4',
         },
       },
       selectedParams: {
@@ -632,8 +632,8 @@ test('image.generate validates configured Ideogram4 profile entries before Runti
       targetRefs: {
         'image.generate': {
           kind: 'local-runtime',
-          targetId: 'media',
-          profileId: 'local-ideogram4',
+          version: 'v2',
+          profileBindingId: 'local-ideogram4',
         },
       },
       selectedParams: {
@@ -720,8 +720,8 @@ test('image.generate starts local image environment dependencies before submitti
       targetRefs: {
         'image.generate': {
           kind: 'local-runtime',
-          targetId: 'media',
-          profileId: 'local-main-image',
+          version: 'v2',
+          profileBindingId: 'local-main-image',
         },
       },
       selectedParams: {},
@@ -851,8 +851,8 @@ test('image.generate starts concrete companion dependencies instead of waiting o
       targetRefs: {
         'image.generate': {
           kind: 'local-runtime',
-          targetId: 'media',
-          profileId: 'local-main-image',
+          version: 'v2',
+          profileBindingId: 'local-main-image',
         },
       },
       selectedParams: {
@@ -1047,8 +1047,8 @@ test('image.generate reports profile binding blocker as missing companion setup 
       targetRefs: {
         'image.generate': {
           kind: 'local-runtime',
-          targetId: 'media',
-          profileId: 'local-main-image',
+          version: 'v2',
+          profileBindingId: 'local-main-image',
         },
       },
       selectedParams: {},

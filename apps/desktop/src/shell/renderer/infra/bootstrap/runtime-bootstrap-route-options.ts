@@ -4,7 +4,7 @@ import {
   createNimiError,
   ReasonCode,
 } from '@nimiplatform/sdk/types';
-import { createNimiRuntimeRouteOptionsHostDeps, listNimiRuntimeRouteOptionsWithHost, nimiRuntimeRouteLocalKindForCapability, type NimiRuntimeCanonicalCapability, type NimiRuntimeRouteBinding, type NimiRuntimeRouteHostLocalMetadata, type NimiRuntimeRouteHostOptionsDeps, type NimiRuntimeRouteLocalAssetProjectionInput, type NimiRuntimeRouteOptionsHostRuntime, type NimiRuntimeRouteOptionsSnapshot } from '@nimiplatform/sdk/runtime';
+import { createNimiRuntimeRouteOptionsHostDeps, listNimiRuntimeRouteOptionsWithHost, nimiRuntimeRouteLocalKindForCapability, type NimiRuntimeCanonicalCapability, type NimiRuntimeRouteHostLocalMetadata, type NimiRuntimeRouteHostOptionsDeps, type NimiRuntimeRouteLocalAssetProjectionInput, type NimiRuntimeRouteOptionsHostRuntime, type NimiRuntimeRouteOptionsSnapshot, type NimiRuntimeRouteTargetRef } from '@nimiplatform/sdk/runtime';
 import { LocalAssetKind, LocalAssetStatus, type RuntimeTypedCallOptions } from '@nimiplatform/sdk/runtime/generated';
 import { getDesktopRuntime } from '@renderer/infra/sdk/desktop-nimi-client-session';
 
@@ -262,14 +262,14 @@ function buildLocalRouteMetadataFallback(
 export async function loadRuntimeRouteOptions(input: {
   readonly capability: NimiRuntimeCanonicalCapability;
   readonly targetId?: string;
-  readonly selectedBinding?: NimiRuntimeRouteBinding | null;
+  readonly selectedTargetRef?: NimiRuntimeRouteTargetRef | null;
 }, deps?: Partial<LoadRuntimeRouteOptionsDeps>): Promise<NimiRuntimeRouteOptionsSnapshot> {
   const localRouteMetadataLoader = deps?.loadLocalRouteMetadata ?? loadLocalRouteMetadata;
   const runtime = deps?.runtime ?? getDesktopRuntime();
   return listNimiRuntimeRouteOptionsWithHost({
     capability: input.capability,
     targetId: input.targetId,
-    selectedBinding: input.selectedBinding,
+    selectedTargetRef: input.selectedTargetRef,
   }, createNimiRuntimeRouteOptionsHostDeps(runtime, {
     scope: deps?.scope || deps || DEFAULT_RUNTIME_ROUTE_OPTIONS_DEPS_SCOPE,
     callOptions: deps?.callOptions,

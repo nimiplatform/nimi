@@ -68,6 +68,7 @@ const RECOMMENDED_PROFILE: NimiAIProfile = {
     'text.generate': {
       targetRef: {
         kind: 'local-runtime',
+        version: 'v2',
         readinessRef: 'readiness:app-recommended:text',
       },
     },
@@ -83,6 +84,7 @@ const ACCOUNT_DEFAULT_PROFILE: NimiAIProfile = {
     'text.generate': {
       targetRef: {
         kind: 'local-runtime',
+        version: 'v2',
         readinessRef: 'readiness:account-default:text',
       },
     },

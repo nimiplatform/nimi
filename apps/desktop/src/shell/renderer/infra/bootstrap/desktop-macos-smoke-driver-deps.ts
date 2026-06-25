@@ -175,9 +175,8 @@ export function createDomDriverDeps(options: DesktopMacosSmokeDriverDepsOptions 
             ...current.capabilities.targetRefs,
             'text.generate': {
               kind: 'local-runtime',
-              targetId: 'core:runtime',
-              profileId: 'e2e-live2d-text-route',
-              readinessRef: 'readiness:e2e-live2d-text-route',
+              version: 'v2',
+              profileBindingId: 'e2e-live2d-text-route',
             },
           },
         },

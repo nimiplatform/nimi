@@ -102,19 +102,17 @@ pub fn project_first_run_execution_evidence_to_ai_config_bindings(
         out.push(RuntimeAiConfigCapabilityBinding {
             capability: capability.to_string(),
             binding: json!({
-                "source": "local",
-                "connectorId": "",
-                "model": bound_asset_id,
-                "modelId": bound_asset_id,
-                "localModelId": bound_asset_id,
-                "provider": local_route_target,
-                "engine": bound_consumer_id,
-                "goRuntimeLocalModelId": if model_resolved.is_empty() { bound_asset_id.clone() } else { model_resolved },
-                "runtimeBaselineRef": runtime_baseline_ref,
-                "runtimeConsumerId": bound_consumer_id,
-                "runtimeExecutionEvidenceRef": execution_evidence_ref,
-                "runtimeLocalRouteTarget": local_route_target,
-                "runtimeExecutionTraceId": trim(&proof.trace_id),
+                "kind": "local-runtime",
+                "version": "v2",
+                "readinessRef": execution_evidence_ref,
+                "runtime": {
+                    "runtimeBaselineRef": runtime_baseline_ref,
+                    "runtimeConsumerId": bound_consumer_id,
+                    "boundAssetId": bound_asset_id,
+                    "runtimeLocalRouteTarget": local_route_target,
+                    "modelResolved": if model_resolved.is_empty() { bound_asset_id.clone() } else { model_resolved },
+                    "runtimeExecutionTraceId": trim(&proof.trace_id),
+                },
             }),
         });
     }
@@ -209,12 +207,14 @@ mod tests {
             .iter()
             .find(|item| item.capability == "text.generate")
             .expect("text binding");
-        assert_eq!(text.binding["engine"], "llama.cpp.cpu");
-        assert_eq!(text.binding["model"], "asset:text");
+        assert_eq!(text.binding["kind"], "local-runtime");
+        assert_eq!(text.binding["version"], "v2");
+        assert_eq!(text.binding["readinessRef"], "execution_evidence_test");
         assert_eq!(
-            text.binding["runtimeExecutionEvidenceRef"],
-            "execution_evidence_test"
+            text.binding["runtime"]["runtimeConsumerId"],
+            "llama.cpp.cpu"
         );
+        assert_eq!(text.binding["runtime"]["boundAssetId"], "asset:text");
     }
 
     #[test]

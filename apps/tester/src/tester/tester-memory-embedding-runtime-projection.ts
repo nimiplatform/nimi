@@ -25,7 +25,9 @@ const testerMemoryEmbeddingConfig = {
   bindingRef: {
     kind: 'cloud' as const,
     connectorId: 'tester-cloud',
-    modelId: 'tester-embedding',
+    remoteModelCatalogId: 'remote-catalog:tester-cloud:tester-embedding',
+    providerModelId: 'tester-embedding',
+    provider: 'tester',
   },
 };
 

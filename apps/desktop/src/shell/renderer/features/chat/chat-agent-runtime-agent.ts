@@ -44,6 +44,26 @@ const IMAGE_COMPANION_SLOT_KIND: Record<string, string> = {
   aux_path: 'auxiliary',
 };
 
+function resolvedExecutionRoute(
+  resolved: ConversationExecutionSnapshot['resolvedBinding'] | AgentRuntimeResolvedBinding,
+): 'local' | 'cloud' | '' {
+  const source = normalizeText(resolved?.source).toLowerCase();
+  if (source === 'local-runtime') return 'local';
+  if (source === 'cloud-connector') return 'cloud';
+  return '';
+}
+
+function resolvedExecutionModelId(
+  resolved: ConversationExecutionSnapshot['resolvedBinding'] | AgentRuntimeResolvedBinding,
+): string {
+  return normalizeText(
+    resolved?.providerModelId
+      || resolved?.modelId
+      || resolved?.model
+      || resolved?.localAssetId,
+  );
+}
+
 function resolveRuntimeAgentTextExecutionBinding(
   request: AgentRuntimeChatTurnRequest,
 ): NimiRuntimeAgentExecutionBinding {
@@ -57,21 +77,16 @@ function resolveRuntimeAgentTextExecutionBinding(
       source: 'runtime',
     });
   }
-  const route = normalizeText(resolved.source).toLowerCase();
-  if (route !== 'local' && route !== 'cloud') {
+  const route = resolvedExecutionRoute(resolved);
+  if (!route) {
     throw createNimiError({
-      message: `Runtime Agent text turn route is unsupported: ${route || 'missing'}.`,
+      message: `Runtime Agent text turn route is unsupported: ${normalizeText(resolved.source) || 'missing'}.`,
       reasonCode: ReasonCode.AI_INPUT_INVALID,
       actionHint: 'select_runtime_route_binding',
       source: 'runtime',
     });
   }
-  const modelId = normalizeText(
-    resolved.modelId
-      || resolved.model
-      || resolved.goRuntimeLocalModelId
-      || resolved.localModelId,
-  );
+  const modelId = resolvedExecutionModelId(resolved);
   if (!modelId) {
     throw createNimiError({
       message: 'Runtime Agent text turn requires resolved model id.',
@@ -111,21 +126,16 @@ function bindingFromResolvedTarget(
       source: 'runtime',
     });
   }
-  const route = normalizeText(resolved.source).toLowerCase();
-  if (route !== 'local' && route !== 'cloud') {
+  const route = resolvedExecutionRoute(resolved);
+  if (!route) {
     throw createNimiError({
-      message: `Runtime Agent route is unsupported: ${route || 'missing'}.`,
+      message: `Runtime Agent route is unsupported: ${normalizeText(resolved.source) || 'missing'}.`,
       reasonCode: ReasonCode.AI_INPUT_INVALID,
       actionHint,
       source: 'runtime',
     });
   }
-  const modelId = normalizeText(
-    resolved.modelId
-      || resolved.model
-      || resolved.goRuntimeLocalModelId
-      || resolved.localModelId,
-  );
+  const modelId = resolvedExecutionModelId(resolved);
   if (!modelId) {
     throw createNimiError({
       message: 'Runtime Agent execution binding requires resolved model id.',
@@ -193,7 +203,7 @@ function buildImageProfileEntries(
     entryId: 'main',
     kind: 'asset',
     capability: 'image',
-    assetId: normalizeText(resolved.goRuntimeLocalModelId || resolved.localModelId || resolved.modelId || resolved.model),
+    assetId: resolvedExecutionModelId(resolved),
     assetKind: 'image',
     ...(normalizeText(resolved.engine || resolved.provider) ? { engine: normalizeText(resolved.engine || resolved.provider) } : {}),
   }];
@@ -224,7 +234,7 @@ function buildImageEntryOverrides(
   rawParams: Record<string, unknown>,
 ): JsonObject[] {
   const overrides: JsonObject[] = [];
-  const mainLocalAssetId = normalizeText(resolved.goRuntimeLocalModelId || resolved.localModelId);
+  const mainLocalAssetId = normalizeText(resolved.localAssetId);
   if (mainLocalAssetId) {
     overrides.push({ entryId: 'main', localAssetId: mainLocalAssetId });
   }

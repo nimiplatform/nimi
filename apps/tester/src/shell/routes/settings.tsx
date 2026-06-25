@@ -4,7 +4,7 @@ import {
   createDefaultNimiRuntimeRouteCapabilitySelectionStore,
   getNimiRuntimeRouteCapabilityProjectionIssueKind,
   isNimiRuntimeRouteCapabilityProjectionReady,
-  updateNimiRuntimeRouteCapabilityBinding,
+  updateNimiRuntimeRouteCapabilityTargetRef,
 } from '@nimiplatform/sdk/runtime';
 import type { Realm } from '@nimiplatform/sdk/realm';
 import {
@@ -188,10 +188,17 @@ export function SettingsRoute() {
 
   useEffect(() => {
     let cancelled = false;
-    const selectionStore = updateNimiRuntimeRouteCapabilityBinding(
+    const selectionStore = updateNimiRuntimeRouteCapabilityTargetRef(
       createDefaultNimiRuntimeRouteCapabilitySelectionStore(),
       'audio.synthesize',
-      { source: 'cloud', connectorId: 'tester-cloud', provider: 'tester', model: 'tester-tts' },
+      {
+        kind: 'cloud-connector',
+        version: 'v2',
+        connectorId: 'tester-cloud',
+        remoteModelCatalogId: 'remote-catalog:tester-cloud:tester-tts',
+        providerModelId: 'tester-tts',
+        provider: 'tester',
+      },
     );
     void buildNimiRuntimeRouteCapabilityProjection({
       capability: 'audio.synthesize',
@@ -222,12 +229,13 @@ export function SettingsRoute() {
     let cancelled = false;
     void testerRouteCapabilityRuntime.checkHealth({
       capability: 'text.generate',
-      binding: {
-        source: 'cloud',
+      targetRef: {
+        kind: 'cloud-connector',
+        version: 'v2',
         connectorId: 'tester-cloud',
+        remoteModelCatalogId: 'remote-catalog:tester-cloud:tester-health-model',
+        providerModelId: 'tester-health-model',
         provider: 'tester',
-        model: 'tester-health-model',
-        modelId: 'tester-health-model',
       },
     }).then((health) => {
       if (!cancelled) setRuntimeProviderHealthProjection({ status: 'ready', health, error: null });

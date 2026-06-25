@@ -39,7 +39,7 @@ export function SettingsRuntimeRows(props: SettingsRouteViewProps) {
       memoryEmbeddingRuntimeProjection,
       runtimeRouteModelProfileProjection,
       localRouteOptionProjection,
-      runtimeRouteBindingMatchProjection,
+      runtimeRouteTargetRefMatchProjection,
       localRuntimeImageNativeEnvironmentPlanPayload,
       runtimeCapabilityCoverageProjection,
       runtimeRouteReasoningProjection,
@@ -291,22 +291,22 @@ export function SettingsRuntimeRows(props: SettingsRouteViewProps) {
         </StatusBadge>
       </div>
       <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 text-sm text-[var(--nimi-text-secondary)]">
-        <span>Local route option projection</span>
+        <span>Runtime target inventory projection</span>
         <StatusBadge tone={localRouteOptionProjection.selectable ? 'success' : 'warning'}>
-          {localRouteOptionProjection.binding.source}: {localRouteOptionProjection.binding.localModelId}
+          {localRouteOptionProjection.targetRef.kind}: {localRouteOptionProjection.label}
         </StatusBadge>
       </div>
       <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 text-sm text-[var(--nimi-text-secondary)]">
-        <span>Runtime route binding match projection</span>
-        <StatusBadge tone={runtimeRouteBindingMatchProjection ? 'success' : 'warning'}>
-          {runtimeRouteBindingMatchProjection ? 'matched' : 'not matched'}
+        <span>Runtime route target-ref match projection</span>
+        <StatusBadge tone={runtimeRouteTargetRefMatchProjection ? 'success' : 'warning'}>
+          {runtimeRouteTargetRefMatchProjection ? 'matched' : 'not matched'}
         </StatusBadge>
       </div>
       <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 text-sm text-[var(--nimi-text-secondary)]">
         <span>Runtime route model profile projection</span>
         <StatusBadge tone={runtimeRouteModelProfileProjection ? 'success' : 'warning'}>
           {runtimeRouteModelProfileProjection
-            ? `${runtimeRouteModelProfileProjection.model}: ${runtimeRouteModelProfileProjection.maxOutputTokens ?? 'unknown'}`
+            ? `${runtimeRouteModelProfileProjection.providerModelId}: ${runtimeRouteModelProfileProjection.contextSource ?? 'unknown'}`
             : 'unavailable'}
         </StatusBadge>
       </div>

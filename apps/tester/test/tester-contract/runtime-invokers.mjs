@@ -150,12 +150,13 @@ test('tester LLM invoker dispatches configured AIConfig route payload', async ()
         'text.generate': {
           kind: 'cloud-connector',
           connectorId: 'runtime-connector',
+          remoteModelCatalogId: 'remote-catalog:runtime-connector:runtime-model',
           providerModelId: 'runtime-model',
         },
         'text.embed': {
           kind: 'local-runtime',
-          targetId: 'core:runtime',
-          profileId: 'embedding-model',
+          version: 'v2',
+          profileBindingId: 'embedding-model',
         },
       },
       selectedParams: {},
@@ -240,7 +241,7 @@ test('tester LLM invoker dispatches configured AIConfig route payload', async ()
   assert.equal(captured[3].input.head.routePolicy, RUNTIME_ROUTE_POLICY_CLOUD);
   assert.equal(captured[3].options.metadata.aiConfigBindingCapabilityId, 'text.generate');
   assert.equal(captured[4].input.targets[0].capability, 'text.embed');
-  assert.equal(captured[4].input.targets[0].targetId, 'core:runtime');
+  assert.equal(captured[4].input.targets[0].targetId, 'embedding-model');
   assert.equal(captured[4].input.targets[0].profileId, 'embedding-model');
   assert.equal(captured[5].input.scenarioType, RUNTIME_SCENARIO_TYPE_TEXT_EMBED);
   assert.equal(captured[5].input.executionMode, RUNTIME_EXECUTION_MODE_SYNC);
@@ -264,6 +265,7 @@ test('tester LLM invokers forward selectedParams and timeout to Runtime payloads
         'text.generate': {
           kind: 'cloud-connector',
           connectorId: 'runtime-connector',
+          remoteModelCatalogId: 'remote-catalog:runtime-connector:runtime-model',
           providerModelId: 'runtime-model',
         },
       },
@@ -358,6 +360,7 @@ test('tester LLM selectedParams validation fails closed before dispatch', async 
         'text.generate': {
           kind: 'cloud-connector',
           connectorId: 'runtime-connector',
+          remoteModelCatalogId: 'remote-catalog:runtime-connector:runtime-model',
           providerModelId: 'runtime-model',
         },
       },
@@ -409,6 +412,7 @@ test('tester LLM selectedParams validation fails closed before dispatch', async 
         'text.generate': {
           kind: 'cloud-connector',
           connectorId: 'runtime-connector',
+          remoteModelCatalogId: 'remote-catalog:runtime-connector:runtime-model',
           providerModelId: 'runtime-model',
         },
       },
@@ -443,6 +447,7 @@ test('tester video invoker forwards selected media params to Runtime media lane'
         'video.generate': {
           kind: 'cloud-connector',
           connectorId: 'runtime-video-connector',
+          remoteModelCatalogId: 'remote-catalog:runtime-video-connector:runtime-video-model',
           providerModelId: 'runtime-video-model',
         },
       },
@@ -542,8 +547,8 @@ test('tester local text.generate binding omits runtime connectorId payload', asy
       targetRefs: {
         'text.generate': {
           kind: 'local-runtime',
-          targetId: 'core:runtime',
-          profileId: runtimeLocalModelId,
+          version: 'v2',
+          profileBindingId: runtimeLocalModelId,
         },
       },
       selectedParams: {},
@@ -587,7 +592,7 @@ test('tester local text.generate binding omits runtime connectorId payload', asy
   assert.equal(capturedInput.head.connectorId, '');
   assert.deepEqual(capturedSchedulingInput.targets, [{
     capability: 'text.generate',
-    targetId: 'core:runtime',
+    targetId: runtimeLocalModelId,
     profileId: runtimeLocalModelId,
     resourceHint: undefined,
   }]);
@@ -603,8 +608,8 @@ test('tester Runtime failures surface provider metadata details', async () => {
       targetRefs: {
         'text.generate': {
           kind: 'local-runtime',
-          targetId: 'core:runtime',
-          profileId: 'local/local-import/gemma-4-26B-A4B-it-Q8_0',
+          version: 'v2',
+          profileBindingId: 'local/local-import/gemma-4-26B-A4B-it-Q8_0',
         },
       },
       selectedParams: {},
@@ -662,8 +667,8 @@ test('tester local LLM scheduling denial fails closed before Runtime execution',
       targetRefs: {
         'text.generate': {
           kind: 'local-runtime',
-          targetId: 'core:runtime',
-          profileId: 'local.chat.blocked',
+          version: 'v2',
+          profileBindingId: 'local.chat.blocked',
         },
       },
       selectedParams: {},

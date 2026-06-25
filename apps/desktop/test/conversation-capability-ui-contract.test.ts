@@ -118,7 +118,7 @@ test('conversation capability UI contract: Nimi active model selector uses Kit r
   assert.match(settingsSource, /providerResolver: \(routeCapability: string\) => getDesktopRouteModelPickerProvider\(routeCapability\)/);
   assert.match(settingsSource, /Model selection required/);
   assert.match(settingsSource, /A route is selected, but runtime describe metadata is not available yet/);
-  assert.match(settingsSource, /supported: Boolean\(projection\.selectedBinding && projection\.resolvedBinding\)/);
+  assert.match(settingsSource, /supported: Boolean\(projection\.selectedTargetRef && projection\.resolvedBinding\)/);
   assert.doesNotMatch(settingsSource, /This capability cannot execute until runtime describe metadata is available/);
   assert.doesNotMatch(settingsSource, /function TextRouteModelSelector/);
   assert.doesNotMatch(settingsSource, /<select[\s\S]*settingsActiveModelSelect/);

@@ -158,7 +158,7 @@ function toProjectionStatus(
   if (!projection) {
     return null;
   }
-  const hasBinding = Boolean(projection.selectedBinding);
+  const hasBinding = Boolean(projection.selectedTargetRef);
   if (isNimiRuntimeRouteCapabilityProjectionReady(projection)) {
     return {
       supported: true,
@@ -211,8 +211,8 @@ function toProjectionStatus(
       };
     case 'metadata_missing':
       return {
-        supported: Boolean(projection.selectedBinding && projection.resolvedBinding),
-        tone: projection.selectedBinding && projection.resolvedBinding ? 'neutral' : 'attention',
+        supported: Boolean(projection.selectedTargetRef && projection.resolvedBinding),
+        tone: projection.selectedTargetRef && projection.resolvedBinding ? 'neutral' : 'attention',
         badgeLabel: t('Chat.settingsCapabilityAttention', { defaultValue: 'Attention' }),
         title: t('Chat.settingsRouteMetadataUnavailable', { defaultValue: 'Route metadata unavailable' }),
         detail: t('Chat.settingsRouteMetadataUnavailableHint', {

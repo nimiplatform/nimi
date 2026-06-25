@@ -54,8 +54,8 @@ function createLocalTextSubmitConfig(): NimiAIConfig {
         ...config.capabilities.targetRefs,
         'text.generate': {
           kind: 'local-runtime',
-          targetId: 'core:runtime',
-          profileId: 'text-local',
+          version: 'v2',
+          profileBindingId: 'text-local',
         },
       },
     },

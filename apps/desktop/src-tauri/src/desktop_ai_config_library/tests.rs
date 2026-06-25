@@ -12,55 +12,49 @@ const LEVEL: &str = "minimal";
 
 fn text_binding() -> serde_json::Value {
     serde_json::json!({
-        "source": "local",
-        "connectorId": "",
-        "model": "asset-id:gemma-test",
-        "modelId": "asset-id:gemma-test",
-        "localModelId": "asset-id:gemma-test",
-        "provider": "local",
-        "engine": "llama.cpp.cpu",
-        "goRuntimeLocalModelId": "asset-id:gemma-test",
-        "runtimeBaselineRef": "runtime-baseline:test",
-        "runtimeConsumerId": "llama.cpp.cpu",
-        "runtimeExecutionEvidenceRef": "execution_evidence_test",
-        "runtimeLocalRouteTarget": "local",
-        "runtimeExecutionTraceId": "trace:llama.cpp.cpu",
+        "kind": "local-runtime",
+        "version": "v2",
+        "readinessRef": "execution_evidence_test",
+        "runtime": {
+            "runtimeBaselineRef": "runtime-baseline:test",
+            "runtimeConsumerId": "llama.cpp.cpu",
+            "boundAssetId": "asset-id:gemma-test",
+            "runtimeLocalRouteTarget": "local",
+            "modelResolved": "asset-id:gemma-test",
+            "runtimeExecutionTraceId": "trace:llama.cpp.cpu",
+        },
     })
 }
 
 fn stt_binding() -> serde_json::Value {
     serde_json::json!({
-        "source": "local",
-        "connectorId": "",
-        "model": "asset-id:asr-test",
-        "modelId": "asset-id:asr-test",
-        "localModelId": "asset-id:asr-test",
-        "provider": "speech",
-        "engine": "speech.qwen3-asr.python",
-        "goRuntimeLocalModelId": "asset-id:asr-test",
-        "runtimeBaselineRef": "runtime-baseline:test",
-        "runtimeConsumerId": "speech.qwen3-asr.python",
-        "runtimeExecutionEvidenceRef": "execution_evidence_test",
-        "runtimeLocalRouteTarget": "speech",
-        "runtimeExecutionTraceId": "trace:speech.qwen3-asr.python",
+        "kind": "local-runtime",
+        "version": "v2",
+        "readinessRef": "execution_evidence_test",
+        "runtime": {
+            "runtimeBaselineRef": "runtime-baseline:test",
+            "runtimeConsumerId": "speech.qwen3-asr.python",
+            "boundAssetId": "asset-id:asr-test",
+            "runtimeLocalRouteTarget": "speech",
+            "modelResolved": "asset-id:asr-test",
+            "runtimeExecutionTraceId": "trace:speech.qwen3-asr.python",
+        },
     })
 }
 
 fn tts_binding() -> serde_json::Value {
     serde_json::json!({
-        "source": "local",
-        "connectorId": "",
-        "model": "asset-id:tts-test",
-        "modelId": "asset-id:tts-test",
-        "localModelId": "asset-id:tts-test",
-        "provider": "speech",
-        "engine": "speech.qwen3-tts.python",
-        "goRuntimeLocalModelId": "asset-id:tts-test",
-        "runtimeBaselineRef": "runtime-baseline:test",
-        "runtimeConsumerId": "speech.qwen3-tts.python",
-        "runtimeExecutionEvidenceRef": "execution_evidence_test",
-        "runtimeLocalRouteTarget": "speech",
-        "runtimeExecutionTraceId": "trace:speech.qwen3-tts.python",
+        "kind": "local-runtime",
+        "version": "v2",
+        "readinessRef": "execution_evidence_test",
+        "runtime": {
+            "runtimeBaselineRef": "runtime-baseline:test",
+            "runtimeConsumerId": "speech.qwen3-tts.python",
+            "boundAssetId": "asset-id:tts-test",
+            "runtimeLocalRouteTarget": "speech",
+            "modelResolved": "asset-id:tts-test",
+            "runtimeExecutionTraceId": "trace:speech.qwen3-tts.python",
+        },
     })
 }
 

@@ -39,9 +39,9 @@ import {
 } from '@nimiplatform/sdk/ai';
 import type {
   NimiRuntimeResolvedBinding,
-  NimiRuntimeRouteBinding,
   NimiRuntimeRouteDescribeResult,
   NimiRuntimeRouteHealthResult,
+  NimiRuntimeRouteTargetRef,
 } from '@nimiplatform/sdk/runtime';
 import {
   NIMI_RUNTIME_ROUTE_APP_CAPABILITIES,
@@ -49,7 +49,7 @@ import {
   buildNimiRuntimeRouteCapabilityProjectionMap,
   createDefaultNimiRuntimeRouteCapabilitySelectionStore,
   toNimiRuntimeRouteCanonicalCapability,
-  updateNimiRuntimeRouteCapabilityBinding,
+  updateNimiRuntimeRouteCapabilityTargetRef,
   type NimiRuntimeRouteAppCapability,
   type NimiRuntimeRouteCapabilityProjection,
   type NimiRuntimeRouteCapabilityProjectionInput,
@@ -103,7 +103,6 @@ export type ConversationExecutionSnapshot = {
   executionId: string;
   createdAt: string;
   capability: ConversationCapability;
-  selectedBinding: NimiRuntimeRouteBinding | null;
   selectedTargetRef: NimiAIConfigTargetRef | null;
   resolvedBinding: NimiRuntimeResolvedBinding | null;
   health: NimiRuntimeRouteHealthResult | null;
@@ -126,14 +125,14 @@ export function createDefaultConversationCapabilitySelectionStore(): Conversatio
   return createDefaultNimiRuntimeRouteCapabilitySelectionStore();
 }
 
-export function updateConversationCapabilityBinding(
+export function updateConversationCapabilityTargetRef(
   state: ConversationCapabilitySelectionStore,
   capability: ConversationCapability,
-  binding: NimiRuntimeRouteBinding | null | undefined,
+  targetRef: NimiAIConfigTargetRef | null | undefined,
   ): ConversationCapabilitySelectionStore {
-  return updateNimiRuntimeRouteCapabilityBinding(state,
+  return updateNimiRuntimeRouteCapabilityTargetRef(state,
   capability,
-  binding);
+  routeTargetRefFromAIConfigTargetRef(targetRef));
 }
 
 export function setConversationCapabilityRouteRuntime(runtime: ConversationCapabilityRouteRuntime | null): void {
@@ -253,7 +252,6 @@ export function createConversationExecutionSnapshot(input: {
     executionId: createNimiAISnapshotExecutionId(),
   createdAt: new Date().toISOString(),
   capability: input.capability,
-  selectedBinding: input.projection.selectedBinding,
   selectedTargetRef: input.selectedTargetRef || null,
   resolvedBinding: input.projection.resolvedBinding,
   health: input.projection.health,
@@ -272,11 +270,11 @@ export function aiConfigFromSelectionStore(
   scopeRef: NimiAIScopeRef,
   ): NimiAIConfig {
   const targetRefs: Record<string, NimiAIConfigTargetRef> = {};
-  for (const [capability, binding] of Object.entries(store.selectedBindings)) {
-    if (binding === null || binding === undefined) {
+  for (const [capability, routeTargetRef] of Object.entries(store.targetRefs)) {
+    if (routeTargetRef === null || routeTargetRef === undefined) {
       continue;
     }
-    const targetRef = targetRefFromRuntimeRouteBinding(binding);
+    const targetRef = aiConfigTargetRefFromRouteTargetRef(routeTargetRef);
     if (targetRef) {
       targetRefs[capability] = targetRef;
     }
@@ -291,93 +289,71 @@ export function aiConfigFromSelectionStore(
 }
 
 export function selectionStoreFromAIConfig(config: NimiAIConfig): ConversationCapabilitySelectionStore {
-  const selectedBindings: ConversationCapabilitySelectionStore['selectedBindings'] = {};
+  const targetRefs: ConversationCapabilitySelectionStore['targetRefs'] = {};
   for (const capability of CONVERSATION_CAPABILITIES) {
     if (!Object.prototype.hasOwnProperty.call(config.capabilities.targetRefs, capability)) {
       continue;
     }
     const targetRef = config.capabilities.targetRefs[capability];
     if (!targetRef) {
-      selectedBindings[capability] = null;
+      targetRefs[capability] = null;
       continue;
     }
-    const binding = runtimeRouteBindingFromTargetRef(targetRef);
-    selectedBindings[capability] = binding;
+    targetRefs[capability] = routeTargetRefFromAIConfigTargetRef(targetRef);
   }
   return {
     version: createDefaultConversationCapabilitySelectionStore().version,
-    selectedBindings,
+    targetRefs,
   };
 }
 
-export function targetRefFromRuntimeRouteBinding(binding: NimiRuntimeRouteBinding): NimiAIConfigTargetRef | null {
-  const source = String(binding.source || '').trim();
-  const connectorId = String(binding.connectorId || '').trim();
-  const model = String(binding.model || binding.modelId || binding.localModelId || '').trim();
-  if (source === 'cloud') {
-    if (!connectorId || !model) {
-      return null;
-    }
-    const targetRef: NimiAIConfigTargetRef = {
-      kind: 'cloud-connector',
-      connectorId,
-      providerModelId: model,
-      ...(binding.provider ? { provider: binding.provider } : {}),
-    };
-    return validateNimiAIConfigTargetRef(targetRef, 'targetRef').length === 0 ? targetRef : null;
-  }
-
-  if (source === 'local') {
-    const targetId = connectorId || binding.localModelId || binding.goRuntimeLocalModelId || binding.engine || '';
-    const profileId = binding.localModelId || binding.goRuntimeLocalModelId || binding.modelId || model;
-    const readinessRef = [
-      'runtime-route',
-      source,
-      targetId || 'local-runtime',
-      profileId || model,
-    ].filter(Boolean).join(':');
-    const targetRef: NimiAIConfigTargetRef = {
-      kind: 'local-runtime',
-      ...(targetId ? { targetId } : {}),
-      ...(profileId ? { profileId } : {}),
-      readinessRef,
-    };
-    return validateNimiAIConfigTargetRef(targetRef, 'targetRef').length === 0 ? targetRef : null;
-  }
-
-  return null;
-}
-
-function runtimeRouteBindingFromTargetRef(targetRef: NimiAIConfigTargetRef): NimiRuntimeRouteBinding | null {
-  if (validateNimiAIConfigTargetRef(targetRef, 'targetRef').length > 0) {
+export function routeTargetRefFromAIConfigTargetRef(targetRef: NimiAIConfigTargetRef | null | undefined): NimiRuntimeRouteTargetRef | null {
+  if (!targetRef || validateNimiAIConfigTargetRef(targetRef, 'targetRef').length > 0) {
     return null;
   }
   if (targetRef.kind === 'cloud-connector') {
+    if (!targetRef.connectorId || !targetRef.remoteModelCatalogId || !targetRef.providerModelId) {
+      return null;
+    }
     return {
-      source: 'cloud',
+      kind: 'cloud-connector',
+      version: 'v2',
       connectorId: targetRef.connectorId,
-      model: targetRef.providerModelId,
+      remoteModelCatalogId: targetRef.remoteModelCatalogId,
+      providerModelId: targetRef.providerModelId,
       provider: targetRef.provider,
     };
   }
   if (targetRef.kind === 'local-runtime') {
-    const targetId = targetRef.targetId || targetRef.readinessRef || 'local-runtime';
-    const profileId = targetRef.profileId || targetRef.readinessRef || targetId;
-    const engine = targetId
-      && targetId !== profileId
-      && targetId !== 'local-runtime'
-      && !targetId.startsWith('runtime-route:')
-      ? targetId
-      : '';
-    return {
-      source: 'local',
-      connectorId: '',
-      model: profileId,
-      localModelId: targetRef.profileId,
-      ...(engine ? { engine, provider: engine } : {}),
-    };
+    const profileBindingId = targetRef.profileBindingId;
+    const readinessRef = targetRef.readinessRef;
+    return profileBindingId
+      ? { kind: 'local-runtime', version: 'v2', profileBindingId }
+      : readinessRef
+        ? { kind: 'local-runtime', version: 'v2', readinessRef }
+        : null;
   }
   return null;
+}
+
+export function aiConfigTargetRefFromRouteTargetRef(targetRef: NimiRuntimeRouteTargetRef | null | undefined): NimiAIConfigTargetRef | null {
+  if (!targetRef) {
+    return null;
+  }
+  const aiTargetRef: NimiAIConfigTargetRef | null = targetRef.kind === 'cloud-connector'
+    ? {
+        kind: 'cloud-connector',
+        connectorId: targetRef.connectorId,
+        remoteModelCatalogId: targetRef.remoteModelCatalogId,
+        providerModelId: targetRef.providerModelId,
+        ...(targetRef.provider ? { provider: targetRef.provider } : {}),
+      }
+    : targetRef.profileBindingId
+      ? { kind: 'local-runtime', version: 'v2', profileBindingId: targetRef.profileBindingId }
+      : targetRef.readinessRef
+        ? { kind: 'local-runtime', version: 'v2', readinessRef: targetRef.readinessRef }
+        : null;
+  return aiTargetRef && validateNimiAIConfigTargetRef(aiTargetRef, 'targetRef').length === 0 ? aiTargetRef : null;
 }
 
 // ---------------------------------------------------------------------------

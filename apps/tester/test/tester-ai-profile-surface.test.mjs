@@ -84,8 +84,8 @@ test('Tester consumes the SDK host AIProfile surface for preview and apply', asy
         'text.generate': {
           targetRef: {
             kind: 'local-runtime',
-            targetId: 'runtime-local-chat',
-            profileId: 'local-chat',
+            version: 'v2',
+            profileBindingId: 'local-chat',
           },
         },
         'image.generate': {
@@ -113,7 +113,7 @@ test('Tester consumes the SDK host AIProfile surface for preview and apply', asy
     assert.equal(preview.before, null);
     assert.equal(preview.outcome, 'ready_to_apply');
     assert.equal(preview.after.scopeRef.ownerId, scopeRef.ownerId);
-    assert.equal(preview.after.capabilities.targetRefs['text.generate'].profileId, 'local-chat');
+    assert.equal(preview.after.capabilities.targetRefs['text.generate'].profileBindingId, 'local-chat');
     assert.deepEqual(preview.probeWarnings, []);
 
     const apply = await service.aiProfile.apply(scopeRef, profile.profileId, {
@@ -169,8 +169,8 @@ test('Tester AIConfig service sees AIProfiles imported after service creation', 
         'text.generate': {
           targetRef: {
             kind: 'local-runtime',
-            targetId: 'runtime-local-chat',
-            profileId: 'local-chat',
+            version: 'v2',
+            profileBindingId: 'local-chat',
           },
         },
       },
@@ -195,7 +195,7 @@ test('Tester AIConfig service sees AIProfiles imported after service creation', 
       requirementDeclarations,
     });
     assert.equal(preview.outcome, 'ready_to_apply');
-    assert.equal(preview.after.capabilities.targetRefs['text.generate'].profileId, 'local-chat');
+    assert.equal(preview.after.capabilities.targetRefs['text.generate'].profileBindingId, 'local-chat');
 
     const apply = await service.aiProfile.apply(scopeRef, profile.profileId, {
       expectedBaseVersion: preview.baseVersion,
@@ -212,7 +212,7 @@ test('Tester AIConfig service sees AIProfiles imported after service creation', 
   }
 });
 
-test('Tester AIConfig store migrates legacy App Lab config into scoped storage', async () => {
+test('Tester AIConfig store quarantines retired App Lab config instead of reviving old target refs', async () => {
   const previousWindow = globalThis.window;
   const store = await importStore();
   const scopeRef = store.createTesterAppLabAIScopeRef();
@@ -237,9 +237,10 @@ test('Tester AIConfig store migrates legacy App Lab config into scoped storage',
   try {
     const loaded = store.loadTesterAIConfig(scopeRef);
     const scopedKey = store.testerAIConfigStorageKeyForScopeKey(encodeScopeRef(scopeRef));
-    assert.equal(loaded.capabilities.targetRefs['text.generate'].profileId, 'local-chat');
+    assert.deepEqual(loaded.capabilities.targetRefs, {});
     assert.equal(storage.getItem(store.TESTER_AI_CONFIG_LEGACY_STORAGE_KEY), null);
-    assert.equal(JSON.parse(storage.getItem(scopedKey)).scopeRef.surfaceId, 'app-lab');
+    assert.equal(storage.getItem(scopedKey), null);
+    assert.equal(JSON.parse(storage.getItem(`${store.TESTER_AI_CONFIG_LEGACY_STORAGE_KEY}:invalid`)).scopeRef.surfaceId, 'app-lab');
   } finally {
     if (previousWindow === undefined) {
       delete globalThis.window;
@@ -263,8 +264,8 @@ test('Tester AIConfig service quarantines legacy scope mismatch before profile p
       targetRefs: {
         'text.generate': {
           kind: 'local-runtime',
-          targetId: 'old-runtime-local-chat',
-          profileId: 'old-local-chat',
+          version: 'v2',
+          profileBindingId: 'old-local-chat',
         },
       },
       selectedParams: {},
@@ -285,8 +286,8 @@ test('Tester AIConfig service quarantines legacy scope mismatch before profile p
         'text.generate': {
           targetRef: {
             kind: 'local-runtime',
-            targetId: 'runtime-local-chat',
-            profileId: 'local-chat',
+            version: 'v2',
+            profileBindingId: 'local-chat',
           },
         },
       },

@@ -151,18 +151,18 @@ test('tester media lanes dispatch through Runtime Scenario jobs when vNext media
       targetRefs: {
         'image.generate': {
           kind: 'local-runtime',
-          targetId: 'core:runtime',
-          profileId: 'local.image.scenario',
+          version: 'v2',
+          profileBindingId: 'local.image.scenario',
         },
         'audio.synthesize': {
           kind: 'local-runtime',
-          targetId: 'core:runtime',
-          profileId: 'local.tts.scenario',
+          version: 'v2',
+          profileBindingId: 'local.tts.scenario',
         },
         'audio.transcribe': {
           kind: 'local-runtime',
-          targetId: 'core:runtime',
-          profileId: 'local.stt.scenario',
+          version: 'v2',
+          profileBindingId: 'local.stt.scenario',
         },
       },
       selectedParams: {
@@ -385,8 +385,8 @@ test('audio.synthesize resolves Default local voice to admitted Runtime voice as
       targetRefs: {
         'audio.synthesize': {
           kind: 'local-runtime',
-          targetId: 'core:runtime',
-          profileId: 'local.tts.qwen3',
+          version: 'v2',
+          profileBindingId: 'local.tts.qwen3',
         },
       },
       selectedParams: {
@@ -520,8 +520,8 @@ test('audio.synthesize fails closed when Runtime media TTS does not complete bef
       targetRefs: {
         'audio.synthesize': {
           kind: 'local-runtime',
-          targetId: 'media',
-          profileId: 'local-tts-timeout',
+          version: 'v2',
+          profileBindingId: 'local-tts-timeout',
         },
       },
       selectedParams: {
@@ -598,13 +598,13 @@ test('tester surfaces inline runtime media artifact bytes as a previewable data 
       targetRefs: {
         'image.generate': {
           kind: 'local-runtime',
-          targetId: 'core:runtime',
-          profileId: 'local.image.test',
+          version: 'v2',
+          profileBindingId: 'local.image.test',
         },
         'audio.synthesize': {
           kind: 'local-runtime',
-          targetId: 'core:runtime',
-          profileId: 'local.tts.test',
+          version: 'v2',
+          profileBindingId: 'local.tts.test',
         },
       },
       selectedParams: {
@@ -719,6 +719,7 @@ test('tester prefers a hosted artifact uri over inline bytes', async (t) => {
         'image.generate': {
           kind: 'cloud-connector',
           connectorId: 'runtime-image-connector',
+          remoteModelCatalogId: 'remote-catalog:runtime-image-connector:cloud.image.test',
           providerModelId: 'cloud.image.test',
         },
       },
@@ -780,6 +781,7 @@ test('tester reads compact runtime artifact bytes by id for image preview', asyn
         'image.generate': {
           kind: 'cloud-connector',
           connectorId: 'runtime-image-connector',
+          remoteModelCatalogId: 'remote-catalog:runtime-image-connector:cloud.image.test',
           providerModelId: 'cloud.image.test',
         },
       },

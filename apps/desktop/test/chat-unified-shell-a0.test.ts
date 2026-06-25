@@ -49,7 +49,7 @@ function createUiSliceHarness(): { getState: () => AppStoreState } {
 function createProjection(overrides: Partial<ConversationCapabilityProjection>): ConversationCapabilityProjection {
   return {
     capability: 'text.generate',
-    selectedBinding: null,
+    selectedTargetRef: null,
     resolvedBinding: null,
     health: null,
     metadata: null,
@@ -136,31 +136,39 @@ test('A0 AI setup maps explicit cleared selection to setup-required without inve
   assert.equal(result.issues[0]?.detail, 'Select an AI route before sending a message.');
 });
 
-test('A0 AI route options derive from runtime.route.listOptions snapshot, not runtime-config readiness', () => {
+test('A0 AI route options derive from runtime.route.listOptions inventory', () => {
   const snapshot: NimiRuntimeRouteOptionsSnapshot = {
     capability: 'text.generate',
-    selected: null,
-    local: {
-      defaultEndpoint: 'http://127.0.0.1:11434/v1',
-      models: [{
-        localModelId: 'local-qwen',
-        model: 'qwen3',
-        modelId: 'qwen3',
-        engine: 'llama',
-        provider: 'llama',
-        capabilities: ['chat'],
-        status: 'active',
+    selectedTargetRef: null,
+    inventory: {
+      capability: 'text.generate',
+      targets: [{
+        targetRef: { kind: 'local-runtime', version: 'v2', profileBindingId: 'local-runtime:local-qwen' },
+        display: { label: 'Local runtime', provider: 'llama', model: 'qwen3', engine: 'llama' },
+        readiness: { status: 'ready' },
+        compatibility: { capabilities: ['chat'] },
+        evidence: { source: 'local-runtime', localAssetId: 'local-qwen', resolvedModelId: 'qwen3', engine: 'llama' },
+      }, {
+        targetRef: {
+          kind: 'cloud-connector',
+          version: 'v2',
+          connectorId: 'connector-openai',
+          remoteModelCatalogId: 'remote-catalog:connector-openai:gpt-4.1',
+          providerModelId: 'gpt-4.1',
+          provider: 'openai',
+        },
+        display: { label: 'openai', provider: 'openai', model: 'gpt-4.1' },
+        readiness: { status: 'ready' },
+        compatibility: { capabilities: ['chat'] },
+        evidence: {
+          source: 'cloud-connector',
+          connectorId: 'connector-openai',
+          remoteModelCatalogId: 'remote-catalog:connector-openai:gpt-4.1',
+          providerModelId: 'gpt-4.1',
+          provider: 'openai',
+        },
       }],
     },
-    connectors: [{
-      id: 'connector-openai',
-      label: 'OpenAI',
-      provider: 'openai',
-      models: ['gpt-4.1'],
-      modelCapabilities: {
-        'gpt-4.1': ['chat'],
-      },
-    }],
   };
 
   const result = buildAiConversationRouteOptions(snapshot);
@@ -168,75 +176,71 @@ test('A0 AI route options derive from runtime.route.listOptions snapshot, not ru
   assert.deepEqual(result.map((item) => ({
     label: item.label,
     detail: item.detail,
-    source: item.binding.source,
-    connectorId: item.binding.connectorId,
-    model: item.binding.model,
-    localModelId: item.binding.localModelId || null,
+    source: item.targetRef.kind,
+    key: item.key,
   })), [
     {
       label: 'Local runtime',
-      detail: 'llama · qwen3',
-      source: 'local',
-      connectorId: '',
-      model: 'qwen3',
-      localModelId: 'local-qwen',
+      detail: 'llama / qwen3 / llama',
+      source: 'local-runtime',
+      key: 'local-runtime|v2|local-runtime:local-qwen|',
     },
     {
       label: 'openai',
-      detail: 'gpt-4.1',
-      source: 'cloud',
-      connectorId: 'connector-openai',
-      model: 'gpt-4.1',
-      localModelId: null,
+      detail: 'openai / gpt-4.1',
+      source: 'cloud-connector',
+      key: 'cloud-connector|v2|connector-openai|remote-catalog:connector-openai:gpt-4.1|gpt-4.1',
     },
   ]);
 });
 
-test('A0 AI route options consume SDK local route option projections', () => {
-  assert.match(chatNimiRouteViewSource, /isNimiRuntimeRouteLocalOptionSelectable/);
-  assert.match(chatNimiRouteViewSource, /nimiRuntimeRouteLocalOptionToBinding/);
-  assert.match(chatNimiRouteViewSource, /nimiRuntimeRouteBindingsMatch/);
-  assert.doesNotMatch(chatNimiRouteViewSource, /isRuntimeRouteLocalOptionSelectable/);
-  assert.doesNotMatch(chatNimiRouteViewSource, /runtimeRouteLocalOptionToBinding/);
-  assert.doesNotMatch(chatNimiRouteViewSource, /runtimeRouteBindingsMatch/);
+test('A0 AI route options consume SDK target inventory projections', () => {
+  assert.match(chatNimiRouteViewSource, /isNimiRuntimeTargetInventoryItemSelectable/);
+  assert.match(chatNimiRouteViewSource, /nimiRuntimeRouteTargetRefsMatch/);
+  assert.doesNotMatch(chatNimiRouteViewSource, /nimiRuntimeRouteLocalOptionToBinding/);
+  assert.doesNotMatch(chatNimiRouteViewSource, /nimiRuntimeRouteBindingsMatch/);
   assert.match(chatNimiRouteViewSource, /from '@nimiplatform\/sdk\/runtime'/);
-  assert.doesNotMatch(chatNimiRouteViewSource, /normalizeText\(model\.status\)\.toLowerCase\(\) !== 'removed'/);
   assert.doesNotMatch(chatNimiRouteViewSource, /source:\s*'local',\s*connectorId:\s*''/);
 });
 
-test('A0 AI route summary prefers projection resolvedBinding over selectedBinding', () => {
+test('A0 AI route summary prefers projection resolvedBinding over selectedTargetRef', () => {
   const summary = buildAiConversationRouteSummary({
     projection: createProjection({
       supported: true,
-      selectedBinding: {
-        source: 'cloud',
+      selectedTargetRef: {
+        kind: 'cloud-connector',
+        version: 'v2',
         connectorId: 'connector-openai',
+        remoteModelCatalogId: 'remote-catalog:connector-openai:gpt-4.1',
+        providerModelId: 'gpt-4.1',
         provider: 'openai',
-        model: 'gpt-4.1',
       },
       resolvedBinding: {
         capability: 'text.generate',
-        source: 'local',
+        source: 'local-runtime',
+        targetRef: { kind: 'local-runtime', version: 'v2', profileBindingId: 'local-runtime:local-qwen' },
         connectorId: '',
         provider: 'llama',
         model: 'qwen3',
         modelId: 'qwen3',
-        localModelId: 'local-qwen',
+        localAssetId: 'local-qwen',
         engine: 'llama',
         resolvedBindingRef: 'resolved-local-qwen',
       },
     }),
-    selectedBinding: {
-      source: 'cloud',
+    selectedTargetRef: {
+      kind: 'cloud-connector',
+      version: 'v2',
       connectorId: 'connector-openai',
+      remoteModelCatalogId: 'remote-catalog:connector-openai:gpt-4.1',
+      providerModelId: 'gpt-4.1',
       provider: 'openai',
-      model: 'gpt-4.1',
     },
     routeOptions: [],
   });
 
   assert.deepEqual(summary, {
     label: 'Local runtime',
-    detail: 'llama · qwen3',
+    detail: 'llama / qwen3',
   });
 });

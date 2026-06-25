@@ -372,14 +372,12 @@ function createRuntimeTurnTimeline(input: {
 function createLocalTextProjection() {
   return {
     capability: 'text.generate' as const,
-    selectedBinding: {
-      source: 'local' as const,
-      connectorId: '',
-      model: 'llama3',
-    },
+    selectedTargetRef: { kind: 'local-runtime' as const, version: 'v2' as const, profileBindingId: 'local-runtime:llama3' },
     resolvedBinding: {
       capability: 'text.generate' as const,
-      source: 'local' as const,
+      resolvedBindingRef: 'test:resolved',
+      source: 'local-runtime' as const,
+      targetRef: { kind: 'local-runtime' as const, version: 'v2' as const, profileBindingId: 'local-runtime:test-local' },
       provider: 'llama',
       model: 'llama3',
       modelId: 'llama3',
@@ -417,14 +415,12 @@ function createLocalTextProjection() {
 function createCloudTextProjection() {
   return {
     capability: 'text.generate' as const,
-    selectedBinding: {
-      source: 'cloud' as const,
-      connectorId: 'connector-openai',
-      model: 'gpt-5.4-mini',
-    },
+    selectedTargetRef: { kind: 'cloud-connector' as const, version: 'v2' as const, connectorId: 'connector-openai', remoteModelCatalogId: 'remote-catalog:connector-openai:gpt-5.4-mini', providerModelId: 'gpt-5.4-mini' },
     resolvedBinding: {
       capability: 'text.generate' as const,
-      source: 'cloud' as const,
+      resolvedBindingRef: 'test:resolved',
+      source: 'cloud-connector' as const,
+      targetRef: { kind: 'cloud-connector' as const, version: 'v2' as const, connectorId: 'connector-test', remoteModelCatalogId: 'remote-catalog:connector-test:test-model', providerModelId: 'test-model' },
       provider: 'openai',
       model: 'gpt-5.4-mini',
       modelId: 'gpt-5.4-mini',

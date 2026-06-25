@@ -33,6 +33,18 @@ function payloadRaw(event: RuntimeConfigAuditEvent, key: string): unknown {
   return payload[key];
 }
 
+function normalizeAuditSourceValue(value: unknown): string {
+  const normalized = String(value || '').trim();
+  switch (normalized) {
+    case 'local-runtime':
+      return 'local';
+    case 'cloud-connector':
+      return 'cloud';
+    default:
+      return normalized;
+  }
+}
+
 function toIsoTimestampMs(value: string): number | null {
   const normalized = String(value || '').trim();
   if (!normalized) return null;
@@ -56,7 +68,7 @@ function translateAuditText(
 }
 
 export function resolveAuditSource(event: RuntimeConfigAuditEvent): string {
-  return String(event.source || payloadValue(event, 'source')).trim() || '-';
+  return normalizeAuditSourceValue(event.source || payloadValue(event, 'source')) || '-';
 }
 
 export function resolveAuditModality(event: RuntimeConfigAuditEvent): string {
@@ -113,7 +125,8 @@ export function filterAuditEvents(input: {
   };
 }): RuntimeConfigAuditEvent[] {
   const eventType = String(input.eventType || '').trim();
-  const source = String(input.source || '').trim();
+  const sourceInput = String(input.source || '').trim();
+  const source = sourceInput === 'all' ? 'all' : normalizeAuditSourceValue(sourceInput);
   const modality = String(input.modality || '').trim();
   const reasonCodeQuery = String(input.reasonCodeQuery || '').trim().toLowerCase();
   const fromMs = toIsoTimestampMs(String(input.timeRange?.from || '').trim());

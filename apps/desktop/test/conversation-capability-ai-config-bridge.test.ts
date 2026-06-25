@@ -6,18 +6,17 @@ import {
   aiConfigFromSelectionStore,
   createDefaultConversationCapabilitySelectionStore,
   selectionStoreFromAIConfig,
-  updateConversationCapabilityBinding,
+  updateConversationCapabilityTargetRef,
 } from '../src/shell/renderer/features/chat/conversation-capability.js';
 
-test('conversation capability bridge preserves local runtime selections in AIConfig targetRefs', () => {
-  const store = updateConversationCapabilityBinding(
+test('conversation capability bridge preserves local runtime targetRefs in AIConfig', () => {
+  const store = updateConversationCapabilityTargetRef(
     createDefaultConversationCapabilitySelectionStore(),
     'text.generate',
     {
-      source: 'local',
-      connectorId: 'runtime-local',
-      model: 'llama-3.1',
-      localModelId: 'local-llama',
+      kind: 'local-runtime',
+      version: 'v2',
+      profileBindingId: 'local-runtime:local-llama',
     },
   );
 
@@ -25,13 +24,12 @@ test('conversation capability bridge preserves local runtime selections in AICon
 
   assert.deepEqual(config.capabilities.targetRefs['text.generate'], {
     kind: 'local-runtime',
-    targetId: 'runtime-local',
-    profileId: 'local-llama',
-    readinessRef: 'runtime-route:local:runtime-local:local-llama',
+    version: 'v2',
+    profileBindingId: 'local-runtime:local-llama',
   });
 });
 
-test('conversation capability bridge hydrates cloud connector targetRefs into selected bindings', () => {
+test('conversation capability bridge hydrates cloud connector targetRefs into route targetRefs', () => {
   const store = selectionStoreFromAIConfig({
     scopeRef: createNimiBuiltInChatAIScopeRef('agent'),
     capabilities: {
@@ -39,6 +37,7 @@ test('conversation capability bridge hydrates cloud connector targetRefs into se
         'text.generate': {
           kind: 'cloud-connector',
           connectorId: 'openrouter',
+          remoteModelCatalogId: 'remote-catalog:openrouter:anthropic/claude-sonnet',
           providerModelId: 'anthropic/claude-sonnet',
           provider: 'openrouter',
         },
@@ -48,24 +47,25 @@ test('conversation capability bridge hydrates cloud connector targetRefs into se
     profileOrigin: null,
   });
 
-  assert.deepEqual(store.selectedBindings['text.generate'], {
-    source: 'cloud',
+  assert.deepEqual(store.targetRefs['text.generate'], {
+    kind: 'cloud-connector',
+    version: 'v2',
     connectorId: 'openrouter',
-    model: 'anthropic/claude-sonnet',
+    remoteModelCatalogId: 'remote-catalog:openrouter:anthropic/claude-sonnet',
+    providerModelId: 'anthropic/claude-sonnet',
     provider: 'openrouter',
   });
 });
 
-test('conversation capability bridge hydrates local runtime targetRefs with engine identity for metadata resolution', () => {
+test('conversation capability bridge hydrates local runtime readiness refs', () => {
   const store = selectionStoreFromAIConfig({
     scopeRef: createNimiBuiltInChatAIScopeRef('agent'),
     capabilities: {
       targetRefs: {
         'text.generate': {
           kind: 'local-runtime',
-          targetId: 'llama',
-          profileId: '01KTEX08DS2GR9HJ1X3R459P1B',
-          readinessRef: 'runtime-route:local:llama:01KTEX08DS2GR9HJ1X3R459P1B',
+          version: 'v2',
+          readinessRef: 'readiness:llama:01KTEX08DS2GR9HJ1X3R459P1B',
         },
       },
       selectedParams: {},
@@ -73,12 +73,9 @@ test('conversation capability bridge hydrates local runtime targetRefs with engi
     profileOrigin: null,
   });
 
-  assert.deepEqual(store.selectedBindings['text.generate'], {
-    source: 'local',
-    connectorId: '',
-    model: '01KTEX08DS2GR9HJ1X3R459P1B',
-    localModelId: '01KTEX08DS2GR9HJ1X3R459P1B',
-    engine: 'llama',
-    provider: 'llama',
+  assert.deepEqual(store.targetRefs['text.generate'], {
+    kind: 'local-runtime',
+    version: 'v2',
+    readinessRef: 'readiness:llama:01KTEX08DS2GR9HJ1X3R459P1B',
   });
 });

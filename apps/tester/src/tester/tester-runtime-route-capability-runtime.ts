@@ -1,6 +1,6 @@
 import {
   createNimiRuntimeRouteCapabilityRuntimeWithHost,
-  type NimiRuntimeRouteBinding,
+  type NimiRuntimeRouteTargetRef,
   type NimiRuntimeRouteOptionsSnapshot,
 } from '@nimiplatform/sdk/runtime';
 
@@ -8,29 +8,44 @@ function encodeRouteDescribePayload(payload: unknown): string {
   return Buffer.from(JSON.stringify(payload), 'utf8').toString('base64');
 }
 
-const testerBinding: NimiRuntimeRouteBinding = {
-  source: 'cloud',
+const testerTargetRef: NimiRuntimeRouteTargetRef = {
+  kind: 'cloud-connector',
+  version: 'v2',
   connectorId: 'tester-cloud',
+  remoteModelCatalogId: 'remote-catalog:tester-cloud:tester-model',
+  providerModelId: 'tester-model',
   provider: 'tester',
-  model: 'tester-model',
 };
 
 function createTesterSnapshot(): NimiRuntimeRouteOptionsSnapshot {
   return {
     capability: 'text.generate',
-    selected: testerBinding,
-    local: {
-      models: [],
-    },
-    connectors: [{
-      id: 'tester-cloud',
-      label: 'Tester Cloud',
-      provider: 'tester',
-      models: ['tester-model'],
-      modelCapabilities: {
-        'tester-model': ['text.generate'],
+    selectedTargetRef: testerTargetRef,
+    inventory: {
+      capability: 'text.generate',
+      targets: [{
+        targetRef: testerTargetRef,
+        display: {
+          label: 'tester-model',
+          provider: 'tester',
+          model: 'tester-model',
+        },
+        readiness: {
+          status: 'ready',
+        },
+        compatibility: {
+          capabilities: ['text.generate'],
+        },
+        evidence: {
+          source: 'cloud-connector',
+          connectorId: 'tester-cloud',
+          remoteModelCatalogId: 'remote-catalog:tester-cloud:tester-model',
+          providerModelId: 'tester-model',
+          provider: 'tester',
+        },
       },
-    }],
+      ],
+    },
   };
 }
 
@@ -67,7 +82,7 @@ export async function createTesterRuntimeRouteCapabilityRuntimeProjection(): Pro
           'x-nimi-route-describe-result': encodeRouteDescribePayload({
             capability: 'text.generate',
             metadataVersion: 'v1',
-            resolvedBindingRef: 'cloud:text.generate:tester-cloud:tester-model',
+            resolvedBindingRef: 'cloud:text.generate:tester-cloud:remote-catalog%3Atester-cloud%3Atester-model:tester-model',
             metadataKind: 'text.generate',
             metadata: {
               supportsThinking: true,
@@ -86,11 +101,11 @@ export async function createTesterRuntimeRouteCapabilityRuntimeProjection(): Pro
 
   const resolved = await routeRuntime.resolve({
     capability: 'text.generate',
-    binding: testerBinding,
+    targetRef: testerTargetRef,
   });
   const health = await routeRuntime.checkHealth({
     capability: 'text.generate',
-    binding: testerBinding,
+    targetRef: testerTargetRef,
   });
   const resolvedBindingRef = resolved.resolvedBindingRef;
   if (!resolvedBindingRef) {

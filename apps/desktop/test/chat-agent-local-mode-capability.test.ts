@@ -23,8 +23,8 @@ function healthyRoute(provider: string) {
 test('agent submit fail-closes when AgentEffectiveCapabilityResolution.ready is false', () => {
   const supportedProjection = {
     capability: 'text.generate' as const,
-    selectedBinding: { source: 'local' as const, connectorId: '', model: 'qwen3' },
-    resolvedBinding: { capability: 'text.generate' as const, resolvedBindingRef: 'local:llama:qwen3', source: 'local' as const, provider: 'llama', model: 'qwen3', modelId: 'qwen3', connectorId: '' },
+    selectedTargetRef: { kind: 'local-runtime' as const, version: 'v2' as const, profileBindingId: 'local-runtime:qwen3' },
+    resolvedBinding: { capability: 'text.generate' as const, resolvedBindingRef: 'local:llama:qwen3', source: 'local-runtime' as const, targetRef: { kind: 'local-runtime' as const, version: 'v2' as const, profileBindingId: 'local-runtime:test-local' }, provider: 'llama', model: 'qwen3', modelId: 'qwen3', connectorId: '' },
     health: healthyRoute('llama'),
     metadata: { capability: 'text.generate' as const, metadataVersion: 'v1' as const, resolvedBindingRef: 'local:llama:qwen3', metadataKind: 'text.generate' as const, metadata: { supportsThinking: false, traceModeSupport: 'none' as const, supportsImageInput: false, supportsAudioInput: false, supportsVideoInput: false, supportsArtifactRefInput: false } },
     supported: true,
@@ -57,11 +57,12 @@ test('agent submit fail-closes when AgentEffectiveCapabilityResolution.ready is 
 test('agent capability resolution keeps image and voice optional while exposing readiness truth', () => {
   const textProjection = {
     capability: 'text.generate' as const,
-    selectedBinding: { source: 'local' as const, connectorId: '', model: 'qwen3' },
+    selectedTargetRef: { kind: 'local-runtime' as const, version: 'v2' as const, profileBindingId: 'local-runtime:qwen3' },
     resolvedBinding: {
       capability: 'text.generate' as const,
       resolvedBindingRef: 'local:text:qwen3',
-      source: 'local' as const,
+      source: 'local-runtime' as const,
+      targetRef: { kind: 'local-runtime' as const, version: 'v2' as const, profileBindingId: 'local-runtime:test-local' },
       provider: 'llama',
       model: 'qwen3',
       modelId: 'qwen3',
@@ -87,11 +88,12 @@ test('agent capability resolution keeps image and voice optional while exposing 
   };
   const readyImageProjection = {
     capability: 'image.generate' as const,
-    selectedBinding: { source: 'local' as const, connectorId: '', model: 'flux' },
+    selectedTargetRef: { kind: 'local-runtime' as const, version: 'v2' as const, profileBindingId: 'local-runtime:flux' },
     resolvedBinding: {
       capability: 'image.generate' as const,
       resolvedBindingRef: 'local:image:flux',
-      source: 'local' as const,
+      source: 'local-runtime' as const,
+      targetRef: { kind: 'local-runtime' as const, version: 'v2' as const, profileBindingId: 'local-runtime:test-local' },
       provider: 'local-image',
       model: 'flux',
       modelId: 'flux',
@@ -105,11 +107,12 @@ test('agent capability resolution keeps image and voice optional while exposing 
   };
   const readyVoiceProjection = {
     capability: 'audio.synthesize' as const,
-    selectedBinding: { source: 'cloud' as const, connectorId: 'connector-voice', model: 'gpt-4o-mini-tts' },
+    selectedTargetRef: { kind: 'cloud-connector' as const, version: 'v2' as const, connectorId: 'connector-voice', remoteModelCatalogId: 'remote-catalog:connector-voice:gpt-4o-mini-tts', providerModelId: 'gpt-4o-mini-tts' },
     resolvedBinding: {
       capability: 'audio.synthesize' as const,
       resolvedBindingRef: 'cloud:audio:connector-voice:gpt-4o-mini-tts',
-      source: 'cloud' as const,
+      source: 'cloud-connector' as const,
+      targetRef: { kind: 'cloud-connector' as const, version: 'v2' as const, connectorId: 'connector-test', remoteModelCatalogId: 'remote-catalog:connector-test:test-model', providerModelId: 'test-model' },
       provider: 'openai',
       model: 'gpt-4o-mini-tts',
       modelId: 'gpt-4o-mini-tts',
@@ -136,11 +139,12 @@ test('agent capability resolution keeps image and voice optional while exposing 
 
   const readyVoiceWorkflowCloneProjection = {
     capability: 'voice_workflow.voice_clone' as const,
-    selectedBinding: { source: 'cloud' as const, connectorId: 'connector-voice-clone', model: 'qwen3-tts-vc' },
+    selectedTargetRef: { kind: 'cloud-connector' as const, version: 'v2' as const, connectorId: 'connector-voice-clone', remoteModelCatalogId: 'remote-catalog:connector-voice-clone:qwen3-tts-vc', providerModelId: 'qwen3-tts-vc' },
     resolvedBinding: {
       capability: 'voice_workflow.voice_clone' as const,
       resolvedBindingRef: 'cloud:voice_workflow.voice_clone:connector-voice-clone:qwen3-tts-vc',
-      source: 'cloud' as const,
+      source: 'cloud-connector' as const,
+      targetRef: { kind: 'cloud-connector' as const, version: 'v2' as const, connectorId: 'connector-test', remoteModelCatalogId: 'remote-catalog:connector-test:test-model', providerModelId: 'test-model' },
       provider: 'dashscope',
       model: 'qwen3-tts-vc',
       modelId: 'qwen3-tts-vc',
@@ -168,11 +172,12 @@ test('agent capability resolution keeps image and voice optional while exposing 
   };
   const readyVoiceWorkflowDesignProjection = {
     capability: 'voice_workflow.voice_design' as const,
-    selectedBinding: { source: 'cloud' as const, connectorId: 'connector-voice-design', model: 'qwen3-tts-vd' },
+    selectedTargetRef: { kind: 'cloud-connector' as const, version: 'v2' as const, connectorId: 'connector-voice-design', remoteModelCatalogId: 'remote-catalog:connector-voice-design:qwen3-tts-vd', providerModelId: 'qwen3-tts-vd' },
     resolvedBinding: {
       capability: 'voice_workflow.voice_design' as const,
       resolvedBindingRef: 'cloud:voice_workflow.voice_design:connector-voice-design:qwen3-tts-vd',
-      source: 'cloud' as const,
+      source: 'cloud-connector' as const,
+      targetRef: { kind: 'cloud-connector' as const, version: 'v2' as const, connectorId: 'connector-test', remoteModelCatalogId: 'remote-catalog:connector-test:test-model', providerModelId: 'test-model' },
       provider: 'dashscope',
       model: 'qwen3-tts-vd',
       modelId: 'qwen3-tts-vd',
@@ -241,15 +246,16 @@ test('agent capability resolution keeps image and voice optional while exposing 
 test('agent local mode creates image execution snapshot for runtime-authoritative local image routes with endpoint', () => {
   const textProjection = {
     capability: 'text.generate' as const,
-    selectedBinding: { source: 'local' as const, connectorId: '', model: 'llama3' },
+    selectedTargetRef: { kind: 'local-runtime' as const, version: 'v2' as const, profileBindingId: 'local-runtime:llama3' },
     resolvedBinding: {
       capability: 'text.generate' as const,
       resolvedBindingRef: 'local:text:llama3',
-      source: 'local' as const,
+      source: 'local-runtime' as const,
+      targetRef: { kind: 'local-runtime' as const, version: 'v2' as const, profileBindingId: 'local-runtime:test-local' },
       provider: 'llama',
       model: 'llama3',
       modelId: 'llama3',
-      localModelId: 'local-model-1',
+      localAssetId: 'local-model-1',
       connectorId: '',
       endpoint: 'http://127.0.0.1:11434/v1',
       localProviderEndpoint: 'http://127.0.0.1:11434/v1',
@@ -274,21 +280,21 @@ test('agent local mode creates image execution snapshot for runtime-authoritativ
   };
   const imageProjection = {
     capability: 'image.generate' as const,
-    selectedBinding: { source: 'local' as const, connectorId: '', model: 'z_image_turbo' },
+    selectedTargetRef: { kind: 'local-runtime' as const, version: 'v2' as const, profileBindingId: 'local-runtime:z_image_turbo' },
     resolvedBinding: {
       capability: 'image.generate' as const,
       resolvedBindingRef: 'local:image:z_image_turbo',
-      source: 'local' as const,
+      source: 'local-runtime' as const,
+      targetRef: { kind: 'local-runtime' as const, version: 'v2' as const, profileBindingId: 'local-runtime:test-local' },
       provider: 'media',
       model: 'media/z_image_turbo',
       modelId: 'z_image_turbo',
-      localModelId: '01JIMAGE',
+      localAssetId: '01JIMAGE',
       connectorId: '',
       engine: 'media',
       endpoint: 'http://127.0.0.1:8321/v1',
       localProviderEndpoint: 'http://127.0.0.1:8321/v1',
-      goRuntimeLocalModelId: 'go-z-image',
-      goRuntimeStatus: 'active',
+      localRuntimeStatus: 'active',
     },
     health: healthyRoute('media'),
     metadata: null,
@@ -308,16 +314,16 @@ test('agent local mode creates image execution snapshot for runtime-authoritativ
   });
   const resolvedBinding = imageExecutionSnapshot.conversationCapabilitySlice?.resolvedTarget as {
     endpoint?: string;
-    goRuntimeLocalModelId?: string;
-    goRuntimeStatus?: string;
+    localAssetId?: string;
+    localRuntimeStatus?: string;
   } | undefined;
 
   assert.equal(agentResolution.ready, true);
   assert.equal(agentResolution.imageReady, true);
   assert.equal(imageExecutionSnapshot.conversationCapabilitySlice?.capability, 'image.generate');
   assert.equal(resolvedBinding?.endpoint, 'http://127.0.0.1:8321/v1');
-  assert.equal(resolvedBinding?.goRuntimeLocalModelId, 'go-z-image');
-  assert.equal(resolvedBinding?.goRuntimeStatus, 'active');
+  assert.equal(resolvedBinding?.localAssetId, '01JIMAGE');
+  assert.equal(resolvedBinding?.localRuntimeStatus, 'active');
 });
 
 test('agent local mode keeps thinking unsupported and forces effective off config', () => {

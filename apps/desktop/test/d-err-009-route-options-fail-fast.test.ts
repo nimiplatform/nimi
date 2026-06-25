@@ -10,7 +10,11 @@ import {
   loadLocalRouteMetadata,
   loadRuntimeRouteOptions,
 } from '../src/shell/renderer/infra/bootstrap/runtime-bootstrap-route-options';
-import type { NimiRuntimeRouteOptionsHostRuntime } from '@nimiplatform/sdk/runtime';
+import type {
+  NimiRuntimeRouteOptionsHostRuntime,
+  NimiRuntimeRouteOptionsSnapshot,
+  NimiRuntimeRouteTargetRef,
+} from '@nimiplatform/sdk/runtime';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const initialRuntimeFields = { ...useAppStore.getState().runtimeFields };
@@ -32,6 +36,21 @@ function withRouteOptionsRuntime<T extends object>(
     runtime: routeOptionsRuntimeStub,
     ...deps,
   };
+}
+
+function localTargetRefFor(localAssetId: string): NimiRuntimeRouteTargetRef {
+  return {
+    kind: 'local-runtime',
+    version: 'v2',
+    profileBindingId: `local-runtime:${localAssetId}`,
+  };
+}
+
+function targetsBySource(
+  options: NimiRuntimeRouteOptionsSnapshot,
+  source: 'local-runtime' | 'cloud-connector',
+) {
+  return options.inventory.targets.filter((target) => target.evidence.source === source);
 }
 
 test.afterEach(() => {
@@ -152,15 +171,7 @@ test('D-ERR-009: loadRuntimeRouteOptions degrades gracefully when local metadata
   const options = await loadRuntimeRouteOptions({
     capability: 'text.generate',
     targetId: 'world.nimi.test-ai',
-    selectedBinding: {
-      source: 'local',
-      connectorId: '',
-      model: 'local-model',
-      modelId: 'local-model',
-      localModelId: 'local-model',
-      engine: 'llama',
-      provider: 'llama',
-    },
+    selectedTargetRef: localTargetRefFor('local-model'),
   }, withRouteOptionsRuntime({
     listConnectors: async () => ([
       {
@@ -181,6 +192,10 @@ test('D-ERR-009: loadRuntimeRouteOptions degrades gracefully when local metadata
     listConnectorModelDescriptors: async () => ([
       {
         modelId: 'gpt-4.1-mini',
+        remoteModelCatalogId: 'remote-catalog:connector-openai:gpt-4.1-mini',
+        providerModelId: 'gpt-4.1-mini',
+        provider: 'openai',
+        available: true,
         capabilities: ['text.generate'],
       },
     ]),
@@ -189,12 +204,11 @@ test('D-ERR-009: loadRuntimeRouteOptions degrades gracefully when local metadata
     },
   }));
 
-  assert.equal(options.local.models.length, 0);
-  assert.equal(options.connectors.length, 1);
-  assert.equal(options.connectors[0]?.id, 'connector-openai');
-  assert.equal(options.selected, null);
+  assert.equal(targetsBySource(options, 'local-runtime').length, 0);
+  assert.equal(targetsBySource(options, 'cloud-connector').length, 1);
+  assert.equal(options.inventory.targets[0]?.targetRef.kind, 'cloud-connector');
+  assert.equal(options.selectedTargetRef, null);
   assert.equal('resolvedDefault' in options, false);
-  assert.equal(options.local.defaultEndpoint, undefined);
 
   const degradedLog = logs.find((entry) => entry.message === 'action:load-local-route-metadata:degraded');
   assert.ok(degradedLog, 'local metadata timeout should emit a degrade log instead of rejecting the dialog');
@@ -219,15 +233,7 @@ test('loadRuntimeRouteOptions does not treat desktop snapshot-only local models 
   const options = await loadRuntimeRouteOptions({
     capability: 'text.generate',
     targetId: 'world.nimi.test-ai',
-    selectedBinding: {
-      source: 'local',
-      connectorId: '',
-      model: 'local-import/Qwen3-4B-Q4_K_M',
-      modelId: 'local-import/Qwen3-4B-Q4_K_M',
-      localModelId: 'desktop-local-1',
-      engine: 'llama',
-      provider: 'llama',
-    },
+    selectedTargetRef: localTargetRefFor('desktop-local-1'),
   }, withRouteOptionsRuntime({
     listConnectors: async () => ([]),
     listConnectorModelDescriptors: async () => ([]),
@@ -265,12 +271,8 @@ test('loadRuntimeRouteOptions does not treat desktop snapshot-only local models 
     }),
   }));
 
-  assert.equal(options.local.models.length, 0);
-  assert.ok(options.selected);
-  assert.equal(options.selected.source, 'local');
-  assert.equal(options.selected.modelId, 'local-import/Qwen3-4B-Q4_K_M');
-  assert.equal(options.selected.goRuntimeStatus, 'unavailable');
-  assert.equal(options.local.defaultEndpoint, undefined);
+  assert.equal(options.inventory.targets.length, 0);
+  assert.deepEqual(options.selectedTargetRef, localTargetRefFor('desktop-local-1'));
 });
 
 test('runtime route options bootstrap does not own projection heuristics or endpoint fallback', () => {
@@ -314,6 +316,10 @@ test('loadRuntimeRouteOptions fetches connector descriptors in parallel', async 
         descriptorResolvers.set(connectorId, () => resolve([
           {
             modelId: `${connectorId}-model`,
+            remoteModelCatalogId: `remote-catalog:${connectorId}:${connectorId}-model`,
+            providerModelId: `${connectorId}-model`,
+            provider: connectorId.replace(/^connector-/u, ''),
+            available: true,
             capabilities: ['text.generate'],
           },
         ]));
@@ -342,7 +348,7 @@ test('loadRuntimeRouteOptions fetches connector descriptors in parallel', async 
   descriptorResolvers.get('connector-anthropic')?.();
 
   const options = await optionsPromise;
-  assert.equal(options.connectors.length, 2);
+  assert.equal(targetsBySource(options, 'cloud-connector').length, 2);
 });
 
 test('loadRuntimeRouteOptions dedupes concurrent capability reads within the same deps scope', async () => {
@@ -366,6 +372,10 @@ test('loadRuntimeRouteOptions dedupes concurrent capability reads within the sam
       return ([
         {
           modelId: 'gpt-4.1-mini',
+          remoteModelCatalogId: 'remote-catalog:connector-openai:gpt-4.1-mini',
+          providerModelId: 'gpt-4.1-mini',
+          provider: 'openai',
+          available: true,
           capabilities: ['text.generate'],
         },
       ] as never[]);
@@ -392,8 +402,8 @@ test('loadRuntimeRouteOptions dedupes concurrent capability reads within the sam
   assert.equal(connectorListCalls, 1);
   assert.equal(descriptorCalls, 1);
   assert.equal(localMetadataCalls, 1);
-  assert.equal(left.connectors.length, 1);
-  assert.equal(right.connectors.length, 1);
+  assert.equal(targetsBySource(left, 'cloud-connector').length, 1);
+  assert.equal(targetsBySource(right, 'cloud-connector').length, 1);
 });
 
 test('loadRuntimeRouteOptions preserves local models when connector listing fails', async () => {
@@ -445,9 +455,13 @@ test('loadRuntimeRouteOptions preserves local models when connector listing fail
     }),
   }));
 
-  assert.equal(options.local.models.length, 1);
-  assert.equal(options.local.models[0]?.localModelId, '01KLOCALCHAT');
-  assert.equal(options.connectors.length, 0);
+  const localTargets = targetsBySource(options, 'local-runtime');
+  assert.equal(localTargets.length, 1);
+  assert.equal(localTargets[0]?.evidence.source, 'local-runtime');
+  if (localTargets[0]?.evidence.source === 'local-runtime') {
+    assert.equal(localTargets[0].evidence.localAssetId, '01KLOCALCHAT');
+  }
+  assert.equal(targetsBySource(options, 'cloud-connector').length, 0);
 
   const degradedLog = logs.find((entry) => entry.message === 'action:list-connectors:degraded');
   assert.ok(degradedLog, 'connector list failure should emit a degrade log');
@@ -509,8 +523,8 @@ test('loadRuntimeRouteOptions preserves local models when connector model discov
     }),
   }));
 
-  assert.equal(options.local.models.length, 1);
-  assert.equal(options.connectors.length, 0);
+  assert.equal(targetsBySource(options, 'local-runtime').length, 1);
+  assert.equal(targetsBySource(options, 'cloud-connector').length, 0);
 
   const degradedLog = logs.find((entry) => entry.message === 'action:list-connector-model-descriptors:degraded');
   assert.ok(degradedLog, 'connector model discovery failure should emit a degrade log');

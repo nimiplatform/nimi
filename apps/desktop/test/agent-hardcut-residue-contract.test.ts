@@ -212,7 +212,7 @@ test('phase 3: runtime agent submit does not replay Desktop-local message histor
 
 // --- AI route truth residual hard-cut tests ---
 
-test('phase 3: AI adapter does not sync routeSnapshot to setConversationCapabilityBinding', () => {
+test('phase 3: AI adapter derives route summary from v2 targetRef projection', () => {
   const adapterSource = fs.readFileSync(
     path.join(srcDir, 'shell/renderer/features/chat/chat-nimi-shell-adapter.tsx'),
     'utf8',
@@ -232,7 +232,7 @@ test('phase 3: AI adapter does not sync routeSnapshot to setConversationCapabili
   // Route summary/setup must use the vNext capability projection, not routeSnapshot.
   assert.ok(
     /projection:\s*textCapabilityProjection/.test(adapterSource)
-      && /selectedBinding:\s*null/.test(adapterSource),
+      && /selectedTargetRef:\s*textCapabilityProjection\?\.selectedTargetRef \|\| null/.test(adapterSource),
     'AI adapter must derive setup/summary from the vNext text capability projection',
   );
 });

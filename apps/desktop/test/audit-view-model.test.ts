@@ -39,11 +39,11 @@ function makeEvent(overrides: Partial<AuditEvent> = {}): AuditEvent {
 
 describe('resolveAuditSource', () => {
   test('returns event.source when present', () => {
-    assert.equal(resolveAuditSource(makeEvent({ source: 'local' })), 'local');
+    assert.equal(resolveAuditSource(makeEvent({ source: 'local-runtime' })), 'local');
   });
 
   test('falls back to payload.source', () => {
-    assert.equal(resolveAuditSource(makeEvent({ payload: { source: 'cloud' } })), 'cloud');
+    assert.equal(resolveAuditSource(makeEvent({ payload: { source: 'cloud-connector' } })), 'cloud');
   });
 
   test('returns "-" when neither present', () => {
@@ -142,7 +142,7 @@ describe('resolveAuditPolicyGate', () => {
 describe('resolveAuditLabel', () => {
   test('combines all fields with dot separator', () => {
     const label = resolveAuditLabel(makeEvent({
-      source: 'local',
+      source: 'local-runtime',
       modality: 'chat',
       modelId: 'gpt-4',
     }));
@@ -164,9 +164,9 @@ describe('resolveAuditLabel', () => {
 
 describe('filterAuditEvents', () => {
   const events: AuditEvent[] = [
-    makeEvent({ id: '1', eventType: 'inference_invoked', source: 'local', modality: 'chat', reasonCode: TEST_REASON_OK }),
-    makeEvent({ id: '2', eventType: 'inference_failed', source: 'cloud', modality: 'image', reasonCode: TEST_REASON_TIMEOUT }),
-    makeEvent({ id: '3', eventType: 'engine_started', source: 'local' }),
+    makeEvent({ id: '1', eventType: 'inference_invoked', source: 'local-runtime', modality: 'chat', reasonCode: TEST_REASON_OK }),
+    makeEvent({ id: '2', eventType: 'inference_failed', source: 'cloud-connector', modality: 'image', reasonCode: TEST_REASON_TIMEOUT }),
+    makeEvent({ id: '3', eventType: 'engine_started', source: 'local-runtime' }),
   ];
 
   test('no filters → returns all', () => {
@@ -181,7 +181,7 @@ describe('filterAuditEvents', () => {
   });
 
   test('filter by source', () => {
-    const result = filterAuditEvents({ audits: events, eventType: 'all', source: 'cloud', modality: 'all', reasonCodeQuery: '' });
+    const result = filterAuditEvents({ audits: events, eventType: 'all', source: 'cloud-connector', modality: 'all', reasonCodeQuery: '' });
     assert.equal(result.length, 1);
     assert.equal(result[0]!.id, '2');
   });
@@ -220,7 +220,7 @@ describe('filterAuditEvents', () => {
     const result = filterAuditEvents({
       audits: events,
       eventType: 'inference_invoked',
-      source: 'local',
+      source: 'local-runtime',
       modality: 'chat',
       reasonCodeQuery: 'ok',
     });
@@ -265,9 +265,9 @@ describe('summarizeAuditEventTypes', () => {
 describe('summarizeAuditSources', () => {
   test('counts sources correctly', () => {
     const events: AuditEvent[] = [
-      makeEvent({ source: 'local' }),
-      makeEvent({ source: 'local' }),
-      makeEvent({ source: 'cloud' }),
+      makeEvent({ source: 'local-runtime' }),
+      makeEvent({ source: 'local-runtime' }),
+      makeEvent({ source: 'cloud-connector' }),
     ];
     const result = summarizeAuditSources(events);
     assert.equal(result.length, 2);
@@ -340,7 +340,7 @@ describe('buildAuditDiagnosticsText', () => {
 
   test('produces pipe-separated lines', () => {
     const events: AuditEvent[] = [
-      makeEvent({ source: 'local', modality: 'chat', modelId: 'gpt-4' }),
+      makeEvent({ source: 'local-runtime', modality: 'chat', modelId: 'gpt-4' }),
     ];
     const text = buildAuditDiagnosticsText(events);
     assert.ok(text.includes(' | '));

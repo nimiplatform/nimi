@@ -71,8 +71,7 @@ function targetRefCandidateTexts(targetRef: NimiAIConfig['capabilities']['target
     return [];
   }
   const candidates = [
-    normalizeText(targetRef.targetId),
-    normalizeText(targetRef.profileId),
+    normalizeText(targetRef.profileBindingId),
     normalizeText(targetRef.readinessRef),
     ...normalizeText(targetRef.readinessRef).split(':').map((part) => part.trim()),
   ].filter(Boolean);
@@ -345,7 +344,7 @@ export function TesterAiConfigSettings({
         rows={4}
         wrap="soft"
         aria-label="AIProfile JSON"
-        placeholder='{"profileId":"tester-runtime","title":"Tester Runtime Profile","capabilities":{"text.generate":{"targetRef":{"kind":"cloud-connector","connectorId":"runtime-connector-id","providerModelId":"runtime-model-id"}}}}'
+        placeholder='{"profileId":"tester-runtime","title":"Tester Runtime Profile","capabilities":{"text.generate":{"targetRef":{"kind":"cloud-connector","connectorId":"runtime-connector-id","remoteModelCatalogId":"remote-catalog:runtime-connector-id:runtime-model-id","providerModelId":"runtime-model-id"}}}}'
         value={profileJson}
         onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setProfileJson(event.currentTarget.value)}
       />

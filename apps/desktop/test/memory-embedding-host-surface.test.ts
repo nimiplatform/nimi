@@ -114,7 +114,7 @@ test('desktop memory embedding service composes Runtime-owned intent through SDK
     sourceKind: 'local',
     bindingRef: {
       kind: 'local',
-      targetId: 'nomic-embed-local',
+      profileBindingId: 'nomic-embed-local',
     },
   });
   const config = await service.memoryEmbeddingConfig.get(request);
@@ -127,7 +127,7 @@ test('desktop memory embedding service composes Runtime-owned intent through SDK
   assert.equal(committed.sourceKind, 'local');
   assert.deepEqual(config.bindingRef, {
     kind: 'local',
-    targetId: 'nomic-embed-local',
+    profileBindingId: 'nomic-embed-local',
   });
   assert.equal(inspect.bindingIntentPresent, true);
   assert.equal(inspect.bindingSourceKind, 'local');

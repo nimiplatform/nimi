@@ -291,10 +291,10 @@ export async function submitAgentConversationTurn(input: {
 
     let effectiveAgentResolution = refreshedAgentResolution;
     const staleCapabilities: Array<'image.generate' | 'audio.synthesize'> = [];
-    if (effectiveAgentResolution.imageProjection?.selectedBinding && !effectiveAgentResolution.imageReady) {
+    if (effectiveAgentResolution.imageProjection?.selectedTargetRef && !effectiveAgentResolution.imageReady) {
       staleCapabilities.push('image.generate');
     }
-    if (effectiveAgentResolution.voiceProjection?.selectedBinding && !effectiveAgentResolution.voiceReady) {
+    if (effectiveAgentResolution.voiceProjection?.selectedTargetRef && !effectiveAgentResolution.voiceReady) {
       staleCapabilities.push('audio.synthesize');
     }
     if (staleCapabilities.length > 0) {

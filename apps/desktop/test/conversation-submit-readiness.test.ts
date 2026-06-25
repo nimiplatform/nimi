@@ -15,7 +15,7 @@ function createTextProjection(
 ): ConversationCapabilityProjection {
   return {
     capability: 'text.generate',
-    selectedBinding: null,
+    selectedTargetRef: null,
     resolvedBinding: null,
     health: null,
     metadata: null,
@@ -65,8 +65,7 @@ test('conversation submit readiness: AI submit refreshes text projection before 
           supported: true,
           resolvedBinding: {
             capability: 'text.generate',
-            source: 'cloud',
-            provider: 'openai',
+            source: 'cloud-connector', targetRef: { kind: 'cloud-connector' as const, version: 'v2' as const, connectorId: 'connector-test', remoteModelCatalogId: 'remote-catalog:connector-test:test-model', providerModelId: 'test-model' }, provider: 'openai',
             connectorId: 'connector-openai',
             model: 'gpt-4.1',
             modelId: 'gpt-4.1',
@@ -121,12 +120,11 @@ test('conversation submit readiness: agent submit refreshes text projection into
               supported: true,
               resolvedBinding: {
                 capability: 'text.generate',
-                source: 'local',
-                provider: 'ollama',
+                source: 'local-runtime', targetRef: { kind: 'local-runtime' as const, version: 'v2' as const, profileBindingId: 'local-runtime:test-local' }, provider: 'ollama',
                 connectorId: '',
                 model: 'qwen3',
                 modelId: 'qwen3',
-                localModelId: 'local-qwen3',
+                localAssetId: 'local-qwen3',
                 resolvedBindingRef: 'binding:agent:text',
               },
               reasonCode: null,
@@ -148,12 +146,11 @@ test('conversation submit readiness: agent submit rebuilds from fresh text proje
     supported: true,
     resolvedBinding: {
       capability: 'text.generate',
-      source: 'local',
-      provider: 'llama',
+      source: 'local-runtime', targetRef: { kind: 'local-runtime' as const, version: 'v2' as const, profileBindingId: 'local-runtime:test-local' }, provider: 'llama',
       connectorId: '',
       model: 'gemma',
       modelId: 'gemma',
-      localModelId: 'local-gemma',
+      localAssetId: 'local-gemma',
       resolvedBindingRef: 'binding:fresh-agent:text',
     },
     reasonCode: null,

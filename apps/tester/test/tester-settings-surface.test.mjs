@@ -447,7 +447,7 @@ test('tester settings consumes SDK Runtime route capability projection builder',
   assert.doesNotMatch(settings, /findRuntimeRouteModelProfile/);
   assert.match(settings, /getNimiRuntimeRouteCapabilityProjectionIssueKind/);
   assert.match(settings, /isNimiRuntimeRouteCapabilityProjectionReady/);
-  assert.match(settings, /updateNimiRuntimeRouteCapabilityBinding/);
+  assert.match(settings, /updateNimiRuntimeRouteCapabilityTargetRef/);
   assert.match(settings, /from '@nimiplatform\/sdk\/runtime'/);
   assert.match(settings, /resolveConversationRuntimeRouteSetupStateFromProjection/);
   assert.match(settings, /from '@nimiplatform\/kit\/features\/chat\/headless'/);
@@ -558,17 +558,17 @@ test('tester settings consumes SDK Runtime struct codec projection', () => {
   assert.doesNotMatch(settings, /function decodeProtoDynamic/);
 });
 
-test('tester settings consumes SDK local route option binding projection', () => {
+test('tester settings consumes SDK runtime target inventory projection', () => {
   const settings = readSettingsSurface();
-  assert.match(settings, /isNimiRuntimeRouteLocalOptionSelectable/);
-  assert.doesNotMatch(settings, /isRuntimeRouteLocalOptionSelectable/);
-  assert.match(settings, /nimiRuntimeRouteLocalOptionToBinding/);
-  assert.match(settings, /nimiRuntimeRouteBindingsMatch/);
-  assert.doesNotMatch(settings, /runtimeRouteLocalOptionToBinding/);
-  assert.doesNotMatch(settings, /runtimeRouteBindingsMatch/);
+  assert.match(settings, /isNimiRuntimeTargetInventoryItemSelectable/);
+  assert.match(settings, /nimiRuntimeRouteTargetRefsMatch/);
+  assert.doesNotMatch(settings, /isRuntimeTargetInventoryItemSelectable/);
+  assert.doesNotMatch(settings, /RuntimeRouteBinding/);
+  assert.doesNotMatch(settings, /nimiRuntimeRouteLocalOptionToBinding/);
+  assert.doesNotMatch(settings, /nimiRuntimeRouteBindingsMatch/);
   assert.match(settings, /from '@nimiplatform\/sdk\/runtime'/);
-  assert.match(settings, /Local route option projection/);
-  assert.match(settings, /Runtime route binding match projection/);
+  assert.match(settings, /Runtime target inventory projection/);
+  assert.match(settings, /Runtime route target-ref match projection/);
   assert.doesNotMatch(settings, /source:\s*'local',\s*connectorId:\s*''/);
 });
 

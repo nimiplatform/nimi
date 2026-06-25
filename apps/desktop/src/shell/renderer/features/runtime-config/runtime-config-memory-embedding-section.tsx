@@ -7,6 +7,7 @@ import {
   projectNimiMemoryEmbeddingRouteAvailability,
   type NimiMemoryEmbeddingConfig,
   type NimiRuntimeRouteOptionsSnapshot,
+  type NimiRuntimeRouteTargetRef,
 } from '@nimiplatform/sdk/runtime';
 import { Surface, cn } from '@nimiplatform/kit/ui';
 import { createDesktopMemoryEmbeddingScopeRef } from '@renderer/app-shell/providers/desktop-memory-embedding-scope';
@@ -50,7 +51,9 @@ type MemoryEmbeddingRouteCandidate = {
 function buildCloudCandidateConfig(
   base: NimiMemoryEmbeddingConfig,
   connectorId: string,
-  modelId: string,
+  remoteModelCatalogId: string,
+  providerModelId: string,
+  provider: string,
 ): NimiMemoryEmbeddingConfig {
   return {
     ...base,
@@ -58,18 +61,36 @@ function buildCloudCandidateConfig(
     bindingRef: {
       kind: 'cloud',
       connectorId,
-      modelId,
+      remoteModelCatalogId,
+      providerModelId,
+      provider,
     },
   };
 }
 
-function buildLocalCandidateConfig(base: NimiMemoryEmbeddingConfig, targetId: string): NimiMemoryEmbeddingConfig {
+function buildLocalCandidateConfig(base: NimiMemoryEmbeddingConfig, targetRef: NimiRuntimeRouteTargetRef): NimiMemoryEmbeddingConfig {
+  if (targetRef.kind !== 'local-runtime') {
+    throw new Error('memory embedding local candidate requires a local-runtime targetRef');
+  }
+  if (targetRef.profileBindingId) {
+    return {
+      ...base,
+      sourceKind: 'local',
+      bindingRef: {
+        kind: 'local',
+        profileBindingId: targetRef.profileBindingId,
+      },
+    };
+  }
+  if (!targetRef.readinessRef) {
+    throw new Error('memory embedding local candidate requires a profileBindingId or readinessRef');
+  }
   return {
     ...base,
     sourceKind: 'local',
     bindingRef: {
       kind: 'local',
-      targetId,
+      readinessRef: targetRef.readinessRef,
     },
   };
 }
@@ -91,33 +112,43 @@ function buildCandidates(
   if (!routeOptions) {
     return [];
   }
-  const cloud = routeOptions.connectors.flatMap((connector) => (
-    connector.models.map((modelId) => {
-      const projection = projectNimiMemoryEmbeddingRouteAvailability({
-        config: buildCloudCandidateConfig(scopeConfig, connector.id, modelId),
-        routeOptions,
-      });
-      return {
-        id: `cloud:${connector.id}:${modelId}`,
-        label: connector.label || connector.id,
-        detail: modelId,
-        tone: candidateTone(projection.state),
-        state: projection.state,
-      };
-    })
-  ));
-  const local = routeOptions.local.models.map((model) => {
+  const cloud = routeOptions.inventory.targets.flatMap((item): MemoryEmbeddingRouteCandidate[] => {
+    if (item.targetRef.kind !== 'cloud-connector' || item.evidence.source !== 'cloud-connector') {
+      return [];
+    }
     const projection = projectNimiMemoryEmbeddingRouteAvailability({
-      config: buildLocalCandidateConfig(scopeConfig, model.model),
+      config: buildCloudCandidateConfig(
+        scopeConfig,
+        item.targetRef.connectorId,
+        item.targetRef.remoteModelCatalogId,
+        item.targetRef.providerModelId,
+        item.targetRef.provider || item.evidence.provider || '',
+      ),
       routeOptions,
     });
-    return {
-      id: `local:${model.model}`,
-      label: model.label || model.model,
-      detail: model.status || 'local',
+    return [{
+        id: `cloud:${item.targetRef.connectorId}:${item.targetRef.remoteModelCatalogId}`,
+        label: item.display.provider || item.targetRef.provider || item.targetRef.connectorId,
+        detail: item.display.modelLabel || item.targetRef.providerModelId,
+        tone: candidateTone(projection.state),
+        state: String(projection.state),
+      }];
+    });
+  const local = routeOptions.inventory.targets.flatMap((item): MemoryEmbeddingRouteCandidate[] => {
+    if (item.targetRef.kind !== 'local-runtime' || item.evidence.source !== 'local-runtime') {
+      return [];
+    }
+    const projection = projectNimiMemoryEmbeddingRouteAvailability({
+      config: buildLocalCandidateConfig(scopeConfig, item.targetRef),
+      routeOptions,
+    });
+    return [{
+      id: `local:${item.evidence.localAssetId || item.targetRef.profileBindingId || item.targetRef.readinessRef}`,
+      label: item.display.label || item.display.model || 'Local embedding',
+      detail: item.readiness.status || 'local',
       tone: candidateTone(projection.state),
-      state: projection.state,
-    };
+      state: String(projection.state),
+    }];
   });
   return [...cloud, ...local];
 }
@@ -129,29 +160,41 @@ export function RuntimeConfigMemoryEmbeddingSection(props: RuntimeConfigMemoryEm
   const routeOptions = useMemo<NimiRuntimeRouteOptionsSnapshot>(() => {
     return {
       capability: 'text.embed',
-      selected: null,
-      local: {
-        models: props.state.local.models.map((model) => ({
-          localModelId: model.localModelId || model.model,
-          label: model.model,
-          engine: model.engine,
-          model: model.model,
-          modelId: model.model,
-          endpoint: model.endpoint,
-          status: model.status,
-          capabilities: model.capabilities,
-        })),
+      selectedTargetRef: null,
+      inventory: {
+        capability: 'text.embed',
+        targets: props.state.local.models.map((model) => {
+          const localAssetId = model.localModelId || model.model;
+          const targetRef: NimiRuntimeRouteTargetRef = {
+            kind: 'local-runtime',
+            version: 'v2',
+            profileBindingId: `local-runtime:${localAssetId}`,
+          };
+          return {
+            targetRef,
+            display: {
+              label: model.model,
+              model: model.model,
+              engine: model.engine,
+            },
+            readiness: {
+              status: model.status,
+            },
+            compatibility: {
+              capabilities: model.capabilities,
+            },
+            evidence: {
+              source: 'local-runtime' as const,
+              localAssetId,
+              resolvedModelId: model.model,
+              engine: model.engine,
+              endpoint: model.endpoint,
+            },
+          };
+        }),
       },
-      connectors: props.state.connectors.map((connector) => ({
-        id: connector.id,
-        label: connector.label,
-        vendor: connector.vendor,
-        provider: connector.provider,
-        models: connector.models,
-        modelCapabilities: connector.modelCapabilities,
-      })),
     };
-  }, [props.state.connectors, props.state.local.models]);
+  }, [props.state.local.models]);
 
   const candidates = useMemo(
     () => buildCandidates(scopeConfig, routeOptions),

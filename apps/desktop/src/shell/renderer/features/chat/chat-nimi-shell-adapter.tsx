@@ -251,7 +251,7 @@ export function useAiConversationModeHost(
   const routeSummary = useMemo(
     () => buildAiConversationRouteSummary({
       projection: textCapabilityProjection,
-      selectedBinding: null,
+      selectedTargetRef: textCapabilityProjection?.selectedTargetRef || null,
       routeOptions: [],
     }),
     [textCapabilityProjection],

@@ -183,6 +183,12 @@ function migrateLegacyTesterAIConfigIfNeeded(scopeRef: NimiAIScopeRef): void {
       localStorageRemove(storage, TESTER_AI_CONFIG_LEGACY_STORAGE_KEY);
       return;
     }
+    const validation = validateNimiAIConfig(parsed);
+    if (!validation.valid) {
+      storage.setItem(`${TESTER_AI_CONFIG_LEGACY_STORAGE_KEY}:invalid`, legacyRaw);
+      localStorageRemove(storage, TESTER_AI_CONFIG_LEGACY_STORAGE_KEY);
+      return;
+    }
     storage.setItem(scopedKey, legacyRaw);
     localStorageRemove(storage, TESTER_AI_CONFIG_LEGACY_STORAGE_KEY);
   } catch {

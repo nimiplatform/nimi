@@ -83,8 +83,7 @@ test('tester run target summary hydrates local runtime model labels without expo
       targetRefs: {
         'image.generate': {
           kind: 'local-runtime',
-          targetId: 'media',
-          profileId: '01KTEX0CSNAR9Q0B8KXNCF4WPW',
+          version: 'v2',
           readinessRef: 'runtime-route:local:media:01KTEX0CSNAR9Q0B8KXNCF4WPW',
         },
       },
@@ -188,6 +187,7 @@ test('tester text run target omits unconfigured model drawer placeholders from h
         'text.generate': {
           kind: 'cloud-connector',
           connectorId: 'runtime-connector',
+          remoteModelCatalogId: 'remote-catalog:runtime-connector:gemini-2.5-pro',
           providerModelId: 'gemini-2.5-pro',
         },
       },
@@ -411,6 +411,7 @@ test('tester LLM binding resolver fails closed for missing and malformed binding
   assert.equal(malformedProfile.ok, false);
   assert.match(malformedProfile.message, /AIProfile validation failed/i);
   assert.match(malformedProfile.errors.join('\n'), /targetRef.*connectorId.*required/i);
+  assert.match(malformedProfile.errors.join('\n'), /targetRef.*remoteModelCatalogId.*required/i);
   assert.match(malformedProfile.errors.join('\n'), /targetRef.*providerModelId.*required/i);
 
   const legacyBindingProfile = store.importTesterAIProfileJson(JSON.stringify({
@@ -457,7 +458,7 @@ test('tester LLM binding resolver fails closed for missing and malformed binding
       selectedParams: {},
     },
     profileOrigin: null,
-  }), /AIConfig validation failed: .*readinessRef or targetId\/profileId/i);
+  }), /AIConfig validation failed: .*profileBindingId or readinessRef/i);
 
   const previousWindow = globalThis.window;
   const invalidStoredConfig = {
@@ -475,9 +476,12 @@ test('tester LLM binding resolver fails closed for missing and malformed binding
     profileOrigin: null,
   };
   try {
+    const scopedKey = store.testerAIConfigStorageKeyForScopeKey(
+      [scopeRef.kind, scopeRef.ownerId, scopeRef.surfaceId ?? ''].map(encodeURIComponent).join(':'),
+    );
     globalThis.window = {
       localStorage: createMemoryStorage({
-        [store.TESTER_AI_CONFIG_STORAGE_KEY]: JSON.stringify(invalidStoredConfig),
+        [scopedKey]: JSON.stringify(invalidStoredConfig),
       }),
     };
     assert.throws(() => store.loadTesterAIConfig(scopeRef), /Stored AIConfig is invalid: .*providerModelId is required/i);
@@ -497,6 +501,7 @@ test('Tester consumes SDK scoped AISnapshot store as App Lab execution evidence 
   const targetRef = {
     kind: 'cloud-connector',
     connectorId: 'runtime-connector',
+    remoteModelCatalogId: 'remote-catalog:runtime-connector:runtime-model',
     providerModelId: 'runtime-model',
   };
   const config = store.saveTesterAIConfig({
@@ -538,32 +543,64 @@ test('tester model picker consumes SDK route projection for runtime local assets
       calls.push({ surface: 'listRuntimeRouteOptions', input });
       return {
         capability: input.capability,
-        selected: null,
-        local: {
-          models: [
+        selectedTargetRef: null,
+        inventory: {
+          capability: input.capability,
+          targets: [
             {
-              localModelId: runtimeLocalModelId,
-              model: runtimeLocalModelId,
-              modelId: runtimeLocalModelId,
-              label: runtimeLocalModelId,
-              engine: 'llama',
-              status: 'active',
-              capabilities: ['text.generate'],
+              targetRef: {
+                kind: 'local-runtime',
+                version: 'v2',
+                profileBindingId: `profile:${runtimeLocalModelId}`,
+              },
+              display: {
+                label: runtimeLocalModelId,
+                model: runtimeLocalModelId,
+                engine: 'llama',
+              },
+              readiness: {
+                status: 'active',
+              },
+              compatibility: {
+                capabilities: ['text.generate'],
+              },
+              evidence: {
+                source: 'local-runtime',
+                localAssetId: runtimeLocalModelId,
+                resolvedModelId: runtimeLocalModelId,
+                engine: 'llama',
+              },
+            },
+            {
+              targetRef: {
+                kind: 'cloud-connector',
+                version: 'v2',
+                connectorId: remoteConnectorId,
+                remoteModelCatalogId: `remote-catalog:${remoteConnectorId}:remote.chat.model`,
+                providerModelId: 'remote.chat.model',
+                provider: 'cloud-provider',
+              },
+              display: {
+                label: 'remote.chat.model',
+                modelLabel: 'remote.chat.model',
+                provider: 'cloud-provider',
+              },
+              readiness: {
+                status: 'active',
+              },
+              compatibility: {
+                capabilities: ['text.generate'],
+              },
+              evidence: {
+                source: 'cloud-connector',
+                connectorId: remoteConnectorId,
+                remoteModelCatalogId: `remote-catalog:${remoteConnectorId}:remote.chat.model`,
+                providerModelId: 'remote.chat.model',
+                provider: 'cloud-provider',
+              },
             },
           ],
-          defaultEndpoint: 'http://127.0.0.1:11434/v1',
         },
-        connectors: [
-          {
-            id: remoteConnectorId,
-            provider: 'cloud-provider',
-            label: 'Cloud Provider',
-            models: ['remote.chat.model'],
-            modelCapabilities: {
-              'remote.chat.model': ['text.generate'],
-            },
-          },
-        ],
       };
     },
   }, 'text.generate');
@@ -576,6 +613,8 @@ test('tester model picker consumes SDK route projection for runtime local assets
     {
       localModelId: runtimeLocalModelId,
       goRuntimeLocalModelId: runtimeLocalModelId,
+      profileBindingId: `profile:${runtimeLocalModelId}`,
+      readinessRef: undefined,
       modelId: runtimeLocalModelId,
       label: runtimeLocalModelId,
       engine: 'llama',
@@ -587,6 +626,9 @@ test('tester model picker consumes SDK route projection for runtime local assets
   assert.deepEqual(connectorModels, [
     {
       modelId: 'remote.chat.model',
+      remoteModelCatalogId: `remote-catalog:${remoteConnectorId}:remote.chat.model`,
+      providerModelId: 'remote.chat.model',
+      provider: 'cloud-provider',
       modelLabel: 'remote.chat.model',
       available: true,
       capabilities: ['text.generate'],
@@ -598,7 +640,7 @@ test('tester model picker consumes SDK route projection for runtime local assets
       input: {
         capability: 'text.generate',
         targetId: undefined,
-        selectedBinding: undefined,
+        selectedTargetRef: undefined,
       },
     },
   ]);
@@ -636,6 +678,9 @@ test('tester model picker adapts the runtime host client to SDK route options', 
           return {
             models: [{
               modelId: 'remote.chat.model',
+              remoteModelCatalogId: 'remote-catalog:cloud-managed:remote.chat.model',
+              providerModelId: 'remote.chat.model',
+              provider: 'cloud-provider',
               displayName: 'Remote Chat Model',
               capabilities: ['text.generate'],
               available: true,

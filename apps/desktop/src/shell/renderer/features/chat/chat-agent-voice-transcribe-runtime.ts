@@ -46,7 +46,7 @@ export async function transcribeChatAgentVoiceRuntime(
   const slice = resolveExecutionSlice(input.transcribeExecutionSnapshot, 'audio.transcribe');
   const resolved = slice.resolvedTarget as AgentRuntimeResolvedBinding;
   const model = requireValue(
-    resolved.modelId || resolved.model || resolved.localModelId,
+    resolved.providerModelId || resolved.modelId || resolved.model || resolved.localAssetId,
     ReasonCode.AI_INPUT_INVALID,
     'select_runtime_route_binding',
     'agent voice transcribe route model is missing',
@@ -99,8 +99,8 @@ function normalizePositiveTimeoutMs(value: unknown): number {
 }
 
 function toGenerationRoutePolicy(source: string): NimiRuntimeGenerationRoutePolicy {
-  if (source === 'local') return 'local';
-  if (source === 'cloud') return 'cloud';
+  if (source === 'local-runtime') return 'local';
+  if (source === 'cloud-connector') return 'cloud';
   return 'unspecified';
 }
 

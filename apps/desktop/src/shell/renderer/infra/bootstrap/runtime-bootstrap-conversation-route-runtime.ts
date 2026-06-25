@@ -38,7 +38,7 @@ export function createDesktopConversationCapabilityRouteRuntime(
     loadRuntimeRouteOptions: async (input) => deps.loadRuntimeRouteOptions({
       capability: input.capability,
       targetId: input.targetId,
-      selectedBinding: input.selectedBinding,
+      selectedTargetRef: input.selectedTargetRef,
     }),
     checkHealth: deps.checkRuntimeRouteHealth,
     describeTargetId: 'core.chat.agent',

@@ -89,18 +89,17 @@ function resolveRuntimeTextMessages(input: ChatAiRuntimeTextInput): readonly Nim
 }
 
 function toNimiRuntimeAIRoutePolicy(source: string): NimiRuntimeAIRoutePolicy {
-  if (source === 'local' || source === 'cloud') {
-    return source;
-  }
+  if (source === 'local-runtime') return 'local';
+  if (source === 'cloud-connector') return 'cloud';
   return 'unspecified';
 }
 
 function resolvedBindingModelId(resolved: NimiRuntimeResolvedBinding): string {
   return normalizeText(
-    resolved.modelId
+    resolved.providerModelId
+    || resolved.modelId
     || resolved.model
-    || resolved.goRuntimeLocalModelId
-    || resolved.localModelId,
+    || resolved.localAssetId,
   );
 }
 

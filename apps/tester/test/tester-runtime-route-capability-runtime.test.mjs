@@ -48,7 +48,7 @@ test('tester consumes SDK runtime route capability host runtime as second app pr
   const moduleUrl = pathToFileURL(path.join(buildModule(), 'tester/tester-runtime-route-capability-runtime.js')).href;
   const { createTesterRuntimeRouteCapabilityRuntimeProjection } = await import(moduleUrl);
   assert.deepEqual(await createTesterRuntimeRouteCapabilityRuntimeProjection(), {
-    resolvedRef: 'cloud:text.generate:tester-cloud:tester-model',
+    resolvedRef: 'cloud:text.generate:tester-cloud:remote-catalog%3Atester-cloud%3Atester-model:tester-model',
     healthStatus: 'healthy',
     describeTargetId: 'tester.capability.route',
     supportsThinking: true,

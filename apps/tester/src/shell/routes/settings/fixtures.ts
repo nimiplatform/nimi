@@ -27,6 +27,9 @@ export async function resolveTesterLocalRuntimeFacadeProjection(): Promise<strin
   const asset: LocalAssetRecord = {
     localAssetId: 'tester-local-asset',
     assetId: 'tester/local-facade-asset',
+    displayName: 'Tester Local Facade Asset',
+    sourceFileName: 'model.gguf',
+    importInstanceId: 'import-instance:tester-local-asset',
     kind: LocalAssetKind.CHAT,
     engine: 'runtime-engine',
     entry: 'model.gguf',
@@ -240,6 +243,12 @@ const testerRuntimeConnectorClient = {
         modelLabel: 'Tester Model',
         available: true,
         capabilities: ['text.generate'],
+        remoteModelCatalogId: 'remote-catalog:tester-cloud:tester-model',
+        providerModelId: 'tester-model',
+        provider: 'tester',
+        connectorSnapshotId: 'connector-snapshot:tester-cloud',
+        endpointProfileId: 'endpoint-profile:tester-cloud',
+        inventorySnapshotId: 'inventory-snapshot:tester-cloud',
       }],
       nextPageToken: '',
     };
@@ -355,19 +364,34 @@ export const runtimeModelCatalogProjection = createNimiRuntimeModelCatalogClient
 });
 
 export const testerRouteCapabilityRuntime: NimiRuntimeRouteCapabilityRuntime = {
-  async resolve({ capability, binding }) {
+  async resolve({ capability, targetRef }) {
     const canonicalCapability = normalizeNimiRuntimeRouteCapabilityToken(capability);
     if (!canonicalCapability) {
       throw new Error(`Tester settings route capability is unsupported: ${String(capability)}`);
     }
+    if (!targetRef) {
+      throw new Error('Tester settings route capability requires a targetRef.');
+    }
     return {
       capability: canonicalCapability,
       resolvedBindingRef: `tester:${capability}:resolved`,
-      source: binding?.source || 'cloud',
-      connectorId: binding?.connectorId || 'tester-cloud',
-      provider: binding?.provider || 'tester',
-      model: binding?.model || 'tester-model',
-      modelId: binding?.modelId || binding?.model || 'tester-model',
+      routeMetadataRef: `tester:${capability}:metadata`,
+      source: targetRef.kind,
+      targetRef,
+      ...(targetRef.kind === 'cloud-connector'
+        ? {
+            connectorId: targetRef.connectorId,
+            remoteModelCatalogId: targetRef.remoteModelCatalogId,
+            providerModelId: targetRef.providerModelId,
+            provider: targetRef.provider || 'tester',
+            model: targetRef.providerModelId,
+            modelId: targetRef.providerModelId,
+          }
+        : {
+            localAssetId: targetRef.profileBindingId || targetRef.readinessRef,
+            model: targetRef.profileBindingId || targetRef.readinessRef,
+            modelId: targetRef.profileBindingId || targetRef.readinessRef,
+          }),
     };
   },
   async checkHealth() {

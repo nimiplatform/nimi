@@ -4,7 +4,7 @@ import {
   parseNimiAppBridgeProjection,
   selectNimiAppFactoryAIProfileForFirstRun,
 } from '@nimiplatform/sdk/app';
-import { aggregateNimiFirstRunMaterializationDownloadProgress, buildNimiRuntimeLocalImageNativeEnvironmentPlanInput, buildNimiRuntimeRouteRequestMetadata, buildNimiRuntimeRouteTargetCallOptions, bridgeNimiRuntimeLocalProfile, createEmptyNimiMemoryEmbeddingConfig, extractNimiRuntimeReasonCodeFromError, findNimiRuntimeRouteModelProfile, fromNimiRuntimeProtoStruct, getNimiRuntimeReasonCodeDefaultMessage, isNimiRuntimeLocalEnvironmentDependencyJobActiveState, isNimiRuntimeLocalEnvironmentDependencyJobRetryableState, isNimiRuntimeLocalEnvironmentDependencyJobTransferringState, isNimiRuntimeLocalEnvironmentDependencyRepairRequiredState, isNimiRuntimeLocalEnvironmentDependencyStartableState, isNimiRuntimeRouteLocalOptionSelectable, nimiRuntimeLocalRecommendationTierToRunGrade, parseNimiRuntimeLocalRecommendationFeedCacheStateId, normalizeNimiRuntimeLocalProfilesDeclaration, normalizeNimiRuntimeReasonCode, parseNimiRuntimeLocalRecommendationFeedSourceId, projectNimiRuntimeLocalEnvironmentDependencyJob, projectNimiRuntimeLocalEnvironmentPlan, projectNimiRuntimeLocalRecommendationFeed, productStateForNimiFirstRunMaterializationStatus, projectNimiMemoryEmbeddingRouteAvailability, projectNimiRuntimeAgentCanonicalMemoryBankStatus, projectNimiRuntimeAuditCallerKindName, projectNimiRuntimeHealthStatusName, projectNimiRuntimeHealthSummary, projectNimiRuntimeRouteCapabilityCoverage, projectNimiRuntimeUsageWindowName, repairableNimiFirstRunMaterializationDependencies, retryableInterruptedNimiFirstRunMaterializationJobs, nimiRuntimeRouteBindingsMatch, nimiRuntimeRouteLocalOptionToBinding, summarizeNimiRuntimeLocalRecommendationFeedCacheState, toCanonicalNimiRuntimeLocalAssetId, toCanonicalNimiRuntimeLocalAssetLookupKey, toNimiRuntimeIsoFromTimestamp, toNimiRuntimeProtoStruct, toNimiRuntimeUserFacingError, type NimiRuntimeLocalExecutionPlan, type NimiRuntimeResolvedBinding, type NimiRuntimeRouteDescribeResult } from '@nimiplatform/sdk/runtime';
+import { aggregateNimiFirstRunMaterializationDownloadProgress, buildNimiRuntimeLocalImageNativeEnvironmentPlanInput, buildNimiRuntimeRouteRequestMetadata, buildNimiRuntimeRouteTargetCallOptions, bridgeNimiRuntimeLocalProfile, createEmptyNimiMemoryEmbeddingConfig, extractNimiRuntimeReasonCodeFromError, findNimiRuntimeRouteModelProfile, fromNimiRuntimeProtoStruct, getNimiRuntimeReasonCodeDefaultMessage, isNimiRuntimeLocalEnvironmentDependencyJobActiveState, isNimiRuntimeLocalEnvironmentDependencyJobRetryableState, isNimiRuntimeLocalEnvironmentDependencyJobTransferringState, isNimiRuntimeLocalEnvironmentDependencyRepairRequiredState, isNimiRuntimeLocalEnvironmentDependencyStartableState, isNimiRuntimeTargetInventoryItemSelectable, nimiRuntimeLocalRecommendationTierToRunGrade, parseNimiRuntimeLocalRecommendationFeedCacheStateId, normalizeNimiRuntimeLocalProfilesDeclaration, normalizeNimiRuntimeReasonCode, parseNimiRuntimeLocalRecommendationFeedSourceId, projectNimiRuntimeLocalEnvironmentDependencyJob, projectNimiRuntimeLocalEnvironmentPlan, projectNimiRuntimeLocalRecommendationFeed, productStateForNimiFirstRunMaterializationStatus, projectNimiMemoryEmbeddingRouteAvailability, projectNimiRuntimeAgentCanonicalMemoryBankStatus, projectNimiRuntimeAuditCallerKindName, projectNimiRuntimeHealthStatusName, projectNimiRuntimeHealthSummary, projectNimiRuntimeRouteCapabilityCoverage, projectNimiRuntimeUsageWindowName, repairableNimiFirstRunMaterializationDependencies, retryableInterruptedNimiFirstRunMaterializationJobs, nimiRuntimeRouteTargetRefsMatch, summarizeNimiRuntimeLocalRecommendationFeedCacheState, toCanonicalNimiRuntimeLocalAssetId, toCanonicalNimiRuntimeLocalAssetLookupKey, toNimiRuntimeIsoFromTimestamp, toNimiRuntimeProtoStruct, toNimiRuntimeUserFacingError, type NimiRuntimeLocalExecutionPlan, type NimiRuntimeResolvedBinding, type NimiRuntimeRouteDescribeResult } from '@nimiplatform/sdk/runtime';
 import { AgentCanonicalMemoryBankMode, CallerKind, RuntimeHealthStatus, ReasonCode as RuntimeReasonCode, UsageWindow } from '@nimiplatform/sdk/runtime/generated';
 import { classifyOfflineError, classifyOfflineReasonCode, createOfflineNimiError, extractNimiErrorFields, ReasonCode } from '@nimiplatform/sdk/types';
 import { summarizeTargetRef } from '@nimiplatform/kit/features/model-config/headless';
@@ -198,6 +198,14 @@ export function createTesterSettingsRuntimeProjections() {
     traceIdPrefix: 'tester-metadata',
   });
   const runtimeLocalAiReasonProjection = normalizeNimiRuntimeReasonCode(ReasonCode.AI_STREAM_BROKEN) || 'unknown';
+  const memoryEmbeddingTargetRef = {
+    kind: 'cloud-connector' as const,
+    version: 'v2' as const,
+    connectorId: 'tester-cloud',
+    remoteModelCatalogId: 'remote-catalog:tester-cloud:tester-embedding',
+    providerModelId: 'tester-embedding',
+    provider: 'tester',
+  };
   const memoryEmbeddingConfig = {
     ...createEmptyNimiMemoryEmbeddingConfig({
       kind: 'feature',
@@ -208,21 +216,36 @@ export function createTesterSettingsRuntimeProjections() {
     bindingRef: {
       kind: 'cloud' as const,
       connectorId: 'tester-cloud',
-      modelId: 'tester-embedding',
+      remoteModelCatalogId: 'remote-catalog:tester-cloud:tester-embedding',
+      providerModelId: 'tester-embedding',
+      provider: 'tester',
     },
   };
   const memoryEmbeddingRouteProjection = projectNimiMemoryEmbeddingRouteAvailability({
     config: memoryEmbeddingConfig,
     routeOptions: {
       capability: 'text.embed',
-      selected: null,
-      local: { models: [] },
-      connectors: [{
-        id: 'tester-cloud',
-        label: 'Tester Cloud',
-        provider: 'tester',
-        models: ['tester-embedding'],
-      }],
+      selectedTargetRef: memoryEmbeddingTargetRef,
+      inventory: {
+        capability: 'text.embed',
+        targets: [{
+          targetRef: memoryEmbeddingTargetRef,
+          display: {
+            label: 'tester-embedding',
+            provider: 'tester',
+            model: 'tester-embedding',
+          },
+          readiness: { status: 'ready' },
+          compatibility: { capabilities: ['text.embed'] },
+          evidence: {
+            source: 'cloud-connector',
+            connectorId: 'tester-cloud',
+            remoteModelCatalogId: 'remote-catalog:tester-cloud:tester-embedding',
+            providerModelId: 'tester-embedding',
+            provider: 'tester',
+          },
+        }],
+      },
     },
   });
   const runtimeAgentMemoryProjection = projectNimiRuntimeAgentCanonicalMemoryBankStatus({
@@ -247,48 +270,75 @@ export function createTesterSettingsRuntimeProjections() {
   const runtimeAgentInspectProjection = createTesterRuntimeAgentInspectProjection();
   const runtimeAgentPresentationProfileProjection = createTesterRuntimeAgentPresentationProfileProjection();
   const externalAgentProjection = createTesterExternalAgentProjection();
+  const runtimeRouteModelProfileTargetRef = {
+    kind: 'cloud-connector' as const,
+    version: 'v2' as const,
+    connectorId: 'tester-cloud',
+    remoteModelCatalogId: 'remote-catalog:tester-cloud:tester-text',
+    providerModelId: 'tester-text',
+    provider: 'tester',
+  };
   const runtimeRouteModelProfileProjection = findNimiRuntimeRouteModelProfile({
     capability: 'text.generate',
-    selected: null,
-    local: { models: [] },
-    connectors: [{
-      id: 'tester-cloud',
-      label: 'Tester Cloud',
-      provider: 'tester',
-      models: ['tester-text'],
-      modelProfiles: [{
-        model: 'tester-text',
-        maxContextTokens: 32000,
-        maxOutputTokens: 2048,
-        contextSource: 'provider-api',
+    selectedTargetRef: null,
+    inventory: {
+      capability: 'text.generate',
+      targets: [{
+        targetRef: runtimeRouteModelProfileTargetRef,
+        display: {
+          label: 'tester-text',
+          provider: 'tester',
+          model: 'tester-text',
+        },
+        readiness: { status: 'ready' },
+        compatibility: { capabilities: ['text.generate'] },
+        evidence: {
+          source: 'cloud-connector',
+          connectorId: 'tester-cloud',
+          remoteModelCatalogId: 'remote-catalog:tester-cloud:tester-text',
+          providerModelId: 'tester-text',
+          provider: 'tester',
+        },
       }],
-    }],
-  }, {
-    source: 'cloud',
-    connectorId: 'tester-cloud',
-    model: 'tester-text',
-  });
+    },
+  }, runtimeRouteModelProfileTargetRef);
   const localRouteOptionProjection = (() => {
-    const option = {
-      localModelId: 'tester-local-embedding',
-      model: 'local/tester-embedding',
-      modelId: 'local/tester-embedding',
-      engine: 'sidecar',
-      provider: 'sidecar',
-      status: 'active',
-      capabilities: ['text.embed'],
+    const targetRef = {
+      kind: 'local-runtime' as const,
+      version: 'v2' as const,
+      profileBindingId: 'profile-binding:tester-local-embedding',
+    };
+    const inventoryItem = {
+      targetRef,
+      display: {
+        label: 'tester-local-embedding',
+        provider: 'sidecar',
+        engine: 'sidecar',
+        model: 'local/tester-embedding',
+      },
+      readiness: {
+        status: 'active',
+        endpoint: 'http://127.0.0.1:19000/v1',
+      },
+      compatibility: { capabilities: ['text.embed'] },
+      evidence: {
+        source: 'local-runtime' as const,
+        localAssetId: 'tester-local-embedding',
+        resolvedModelId: 'local/tester-embedding',
+        engine: 'sidecar',
+        endpoint: 'http://127.0.0.1:19000/v1',
+      },
     };
     return {
-      selectable: isNimiRuntimeRouteLocalOptionSelectable(option),
-      binding: nimiRuntimeRouteLocalOptionToBinding(option, {
-        defaultEndpoint: 'http://127.0.0.1:19000/v1',
-      }),
+      selectable: isNimiRuntimeTargetInventoryItemSelectable(inventoryItem),
+      targetRef,
+      label: inventoryItem.display.label,
     };
   })();
-  const runtimeRouteBindingMatchProjection = nimiRuntimeRouteBindingsMatch(localRouteOptionProjection.binding, {
-    ...localRouteOptionProjection.binding,
-    model: 'local/tester-embedding',
-    localModelId: 'tester-local-embedding',
+  const runtimeRouteTargetRefMatchProjection = nimiRuntimeRouteTargetRefsMatch(localRouteOptionProjection.targetRef, {
+    kind: 'local-runtime',
+    version: 'v2',
+    profileBindingId: 'profile-binding:tester-local-embedding',
   });
   const localRuntimeImageNativeEnvironmentPlanPayload = buildNimiRuntimeLocalImageNativeEnvironmentPlanInput({
     assetId: 'tester-image-asset',
@@ -320,6 +370,7 @@ export function createTesterSettingsRuntimeProjections() {
   const modelConfigBindingSummaryProjection = summarizeTargetRef({
     kind: 'cloud-connector',
     connectorId: modelConfigBindingProjection.connectorId,
+    remoteModelCatalogId: 'remote-catalog:tester-cloud:tester-config-model',
     providerModelId: modelConfigBindingProjection.model,
     provider: modelConfigBindingProjection.provider,
   });
@@ -521,7 +572,7 @@ export function createTesterSettingsRuntimeProjections() {
     externalAgentProjection,
     runtimeRouteModelProfileProjection,
     localRouteOptionProjection,
-    runtimeRouteBindingMatchProjection,
+    runtimeRouteTargetRefMatchProjection,
     localRuntimeImageNativeEnvironmentPlanPayload,
     runtimeCapabilityCoverageProjection,
     runtimeRouteReasoningProjection,

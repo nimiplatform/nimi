@@ -15,12 +15,30 @@ import {
   CONVERSATION_CAPABILITIES,
   createDefaultConversationCapabilitySelectionStore,
   toRuntimeCanonicalCapability,
-  updateConversationCapabilityBinding,
+  updateConversationCapabilityTargetRef,
   type ConversationCapabilityRouteRuntime,
 } from '../src/shell/renderer/features/chat/conversation-capability.js';
 
 function readSource(relativePath: string): string {
   return fs.readFileSync(path.join(import.meta.dirname, '..', relativePath), 'utf8');
+}
+
+function localTargetRef(model: string) {
+  return {
+    kind: 'local-runtime' as const,
+    version: 'v2' as const,
+    profileBindingId: `local-runtime:${model}`,
+  };
+}
+
+function cloudTargetRef(connectorId: string, model: string) {
+  return {
+    kind: 'cloud-connector' as const,
+    version: 'v2' as const,
+    connectorId,
+    remoteModelCatalogId: `remote-catalog:${connectorId}:${model}`,
+    providerModelId: model,
+  };
 }
 
 function createLocalResolvedBinding(
@@ -29,11 +47,10 @@ function createLocalResolvedBinding(
 ): NimiRuntimeResolvedBinding {
   return {
     capability,
-    source: 'local',
-    provider: 'test-engine',
+    source: 'local-runtime', targetRef: { kind: 'local-runtime' as const, version: 'v2' as const, profileBindingId: 'local-runtime:test-local' }, provider: 'test-engine',
     model,
     modelId: model,
-    localModelId: `local-${model}`,
+    localAssetId: `local-${model}`,
     engine: 'test-engine',
     connectorId: '',
     resolvedBindingRef: `ref-${capability}-${model}`,
@@ -46,8 +63,7 @@ function createCloudResolvedBinding(
 ): NimiRuntimeResolvedBinding {
   return {
     capability,
-    source: 'cloud',
-    provider: 'test-cloud',
+    source: 'cloud-connector', targetRef: { kind: 'cloud-connector' as const, version: 'v2' as const, connectorId: 'connector-test', remoteModelCatalogId: 'remote-catalog:connector-test:test-model', providerModelId: 'test-model' }, provider: 'test-cloud',
     model,
     modelId: model,
     connectorId: 'connector-1',
@@ -187,10 +203,10 @@ function createMockRouteRuntime(overrides?: {
 // --- image.generate projection tests ---
 
 test('image.generate projection fails closed without typed route describe metadata', async () => {
-  const store = updateConversationCapabilityBinding(
+  const store = updateConversationCapabilityTargetRef(
     createDefaultConversationCapabilitySelectionStore(),
     'image.generate',
-    { source: 'local', connectorId: '', model: 'sd-xl' },
+    localTargetRef('sd-xl'),
   );
   let describeCalls = 0;
   const routeRuntime = createMockRouteRuntime({
@@ -230,7 +246,7 @@ test('image.generate projection fails closed when selection missing', async () =
 });
 
 test('image.generate projection fails closed when selection explicitly cleared', async () => {
-  const store = updateConversationCapabilityBinding(
+  const store = updateConversationCapabilityTargetRef(
     createDefaultConversationCapabilitySelectionStore(),
     'image.generate',
     null,
@@ -246,10 +262,10 @@ test('image.generate projection fails closed when selection explicitly cleared',
 });
 
 test('image.generate projection fails closed when resolve fails', async () => {
-  const store = updateConversationCapabilityBinding(
+  const store = updateConversationCapabilityTargetRef(
     createDefaultConversationCapabilitySelectionStore(),
     'image.generate',
-    { source: 'local', connectorId: '', model: 'sd-xl' },
+    localTargetRef('sd-xl'),
   );
   const routeRuntime = createMockRouteRuntime({
     resolveError: new Error('CAPABILITY_MISSING'),
@@ -264,10 +280,10 @@ test('image.generate projection fails closed when resolve fails', async () => {
 });
 
 test('image.generate projection fails closed when health is unhealthy', async () => {
-  const store = updateConversationCapabilityBinding(
+  const store = updateConversationCapabilityTargetRef(
     createDefaultConversationCapabilitySelectionStore(),
     'image.generate',
-    { source: 'local', connectorId: '', model: 'sd-xl' },
+    localTargetRef('sd-xl'),
   );
   const routeRuntime = createMockRouteRuntime({
     resolveResult: createLocalResolvedBinding('image.generate', 'sd-xl'),
@@ -283,10 +299,10 @@ test('image.generate projection fails closed when health is unhealthy', async ()
 });
 
 test('image.generate projection requires typed route metadata instead of retired profile refs', async () => {
-  const store = updateConversationCapabilityBinding(
+  const store = updateConversationCapabilityTargetRef(
     createDefaultConversationCapabilitySelectionStore(),
     'image.generate',
-    { source: 'local', connectorId: '', model: 'sd-xl' },
+    localTargetRef('sd-xl'),
   );
   const routeRuntime = createMockRouteRuntime({
     resolveResult: createLocalResolvedBinding('image.generate', 'sd-xl'),
@@ -305,10 +321,10 @@ test('image.generate projection requires typed route metadata instead of retired
 // --- audio.synthesize projection tests ---
 
 test('audio.synthesize projection supported when selection + resolve + health pass', async () => {
-  const store = updateConversationCapabilityBinding(
+  const store = updateConversationCapabilityTargetRef(
     createDefaultConversationCapabilitySelectionStore(),
     'audio.synthesize',
-    { source: 'cloud', connectorId: 'connector-1', model: 'tts-1' },
+    cloudTargetRef('connector-1', 'tts-1'),
   );
   const routeRuntime = createMockRouteRuntime({
     resolveResult: createCloudResolvedBinding('audio.synthesize', 'tts-1'),
@@ -338,10 +354,10 @@ test('audio.synthesize projection fails closed when selection missing', async ()
 // --- voice_workflow projection tests (with describe required) ---
 
 test('voice_workflow.voice_clone projection fails closed when describe metadata missing', async () => {
-  const store = updateConversationCapabilityBinding(
+  const store = updateConversationCapabilityTargetRef(
     createDefaultConversationCapabilitySelectionStore(),
     'voice_workflow.voice_clone',
-    { source: 'cloud', connectorId: 'connector-1', model: 'voice-clone' },
+    cloudTargetRef('connector-1', 'voice-clone'),
   );
   const routeRuntime = createMockRouteRuntime({
     resolveResult: createCloudResolvedBinding('voice_workflow.voice_clone', 'voice-clone'),
@@ -358,11 +374,11 @@ test('voice_workflow.voice_clone projection fails closed when describe metadata 
 });
 
 test('voice_workflow.voice_design treated as independent capability, not audio.synthesize alias', async () => {
-  const store = updateConversationCapabilityBinding(
-    updateConversationCapabilityBinding(
+  const store = updateConversationCapabilityTargetRef(
+    updateConversationCapabilityTargetRef(
       createDefaultConversationCapabilitySelectionStore(),
       'audio.synthesize',
-      { source: 'cloud', connectorId: 'connector-1', model: 'tts-1' },
+      cloudTargetRef('connector-1', 'tts-1'),
     ),
     'voice_workflow.voice_design',
     null,
@@ -397,22 +413,22 @@ test('buildConversationCapabilityProjectionMap refreshes all capabilities includ
       createDescribeResult(capability as NimiRuntimeCanonicalCapability, resolvedBindingRef)
     ),
   };
-  const store = updateConversationCapabilityBinding(
-    updateConversationCapabilityBinding(
-      updateConversationCapabilityBinding(
-        updateConversationCapabilityBinding(
+  const store = updateConversationCapabilityTargetRef(
+    updateConversationCapabilityTargetRef(
+      updateConversationCapabilityTargetRef(
+        updateConversationCapabilityTargetRef(
           createDefaultConversationCapabilitySelectionStore(),
           'text.generate',
-          { source: 'local', connectorId: '', model: 'chat-model' },
+          localTargetRef('chat-model'),
         ),
         'image.generate',
-        { source: 'local', connectorId: '', model: 'sd-xl' },
+        localTargetRef('sd-xl'),
       ),
       'audio.synthesize',
-      { source: 'local', connectorId: '', model: 'tts-1' },
+      localTargetRef('tts-1'),
     ),
     'voice_workflow.voice_clone',
-    { source: 'local', connectorId: '', model: 'voice-clone' },
+    localTargetRef('voice-clone'),
   );
   const projections = await buildConversationCapabilityProjectionMap({
     selectionStore: store,
@@ -432,10 +448,10 @@ test('buildConversationCapabilityProjectionMap refreshes all capabilities includ
 });
 
 test('buildConversationCapabilityProjectionMap fails image.generate closed without typed route metadata', async () => {
-  const store = updateConversationCapabilityBinding(
+  const store = updateConversationCapabilityTargetRef(
     createDefaultConversationCapabilitySelectionStore(),
     'image.generate',
-    { source: 'local', connectorId: '', model: 'sd-xl' },
+    localTargetRef('sd-xl'),
   );
   const routeRuntime = createMockRouteRuntime({
     resolveResult: createLocalResolvedBinding('image.generate', 'sd-xl'),
@@ -454,10 +470,10 @@ test('buildConversationCapabilityProjectionMap fails image.generate closed witho
 // --- host_denied fail-close ---
 
 test('multimodal projection fails closed when host denies capability', async () => {
-  const store = updateConversationCapabilityBinding(
+  const store = updateConversationCapabilityTargetRef(
     createDefaultConversationCapabilitySelectionStore(),
     'image.generate',
-    { source: 'local', connectorId: '', model: 'sd-xl' },
+    localTargetRef('sd-xl'),
   );
   const routeRuntime = createMockRouteRuntime();
   const projection = await buildConversationCapabilityProjection({
@@ -473,10 +489,10 @@ test('multimodal projection fails closed when host denies capability', async () 
 // --- text.generate still requires describe metadata ---
 
 test('text.generate projection fails closed without describe metadata', async () => {
-  const store = updateConversationCapabilityBinding(
+  const store = updateConversationCapabilityTargetRef(
     createDefaultConversationCapabilitySelectionStore(),
     'text.generate',
-    { source: 'local', connectorId: '', model: 'chat-model' },
+    localTargetRef('chat-model'),
   );
   const routeRuntime = createMockRouteRuntime({
     resolveResult: createLocalResolvedBinding('text.generate', 'chat-model'),
@@ -510,10 +526,10 @@ test('image.edit projection fails closed without image.edit route metadata', asy
     resolveResult: createLocalResolvedBinding('image.generate', 'sd-xl'),
     healthResult: createHealthyResult(),
   });
-  const store = updateConversationCapabilityBinding(
+  const store = updateConversationCapabilityTargetRef(
     createDefaultConversationCapabilitySelectionStore(),
     'image.edit',
-    { source: 'local', connectorId: '', model: 'sd-xl' },
+    localTargetRef('sd-xl'),
   );
   const projection = await buildConversationCapabilityProjection({
     capability: 'image.edit',
@@ -552,10 +568,10 @@ test('image.edit projection fails closed when selection missing', async () => {
 });
 
 test('image.edit projection requires typed route metadata instead of retired profile refs', async () => {
-  const store = updateConversationCapabilityBinding(
+  const store = updateConversationCapabilityTargetRef(
     createDefaultConversationCapabilitySelectionStore(),
     'image.edit',
-    { source: 'local', connectorId: '', model: 'sd-xl' },
+    localTargetRef('sd-xl'),
   );
   const projection = await buildConversationCapabilityProjection({
     capability: 'image.edit',
@@ -571,11 +587,11 @@ test('image.edit projection requires typed route metadata instead of retired pro
 });
 
 test('image.edit and image.generate have independent selection bindings', async () => {
-  const store = updateConversationCapabilityBinding(
-    updateConversationCapabilityBinding(
+  const store = updateConversationCapabilityTargetRef(
+    updateConversationCapabilityTargetRef(
       createDefaultConversationCapabilitySelectionStore(),
       'image.generate',
-      { source: 'local', connectorId: '', model: 'sd-xl' },
+      localTargetRef('sd-xl'),
     ),
     'image.edit',
     null,
@@ -607,10 +623,10 @@ test('buildConversationCapabilityProjectionMap includes image.edit in full refre
     resolveResult: createLocalResolvedBinding('image.generate', 'sd-xl'),
     healthResult: createHealthyResult(),
   });
-  const store = updateConversationCapabilityBinding(
+  const store = updateConversationCapabilityTargetRef(
     createDefaultConversationCapabilitySelectionStore(),
     'image.edit',
-    { source: 'local', connectorId: '', model: 'sd-xl' },
+    localTargetRef('sd-xl'),
   );
   const projections = await buildConversationCapabilityProjectionMap({
     selectionStore: store,
