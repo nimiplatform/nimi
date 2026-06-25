@@ -12,6 +12,7 @@ import {
   NIMI_RUNTIME_LOCAL_ASSET_ENTRY_DEFAULT_PAGE_SIZE,
   listNimiRuntimeLocalAssetEntries,
   projectNimiRuntimeLocalAssetEntry,
+  toNimiRuntimeProtoStruct,
 } from './index';
 
 test('Runtime local asset list projects generated records to UI-readable ids and pages through Runtime', async () => {
@@ -152,6 +153,33 @@ test('Runtime local asset projection does not synthesize assetId from localAsset
     kind: 'chat',
     engine: 'llama',
     status: 'active',
+  });
+});
+
+test('Runtime local asset projection preserves model family and metadata', () => {
+  const projected = projectNimiRuntimeLocalAssetEntry(localAssetRecord({
+    localAssetId: 'local-image',
+    assetId: 'local-import/ideogram4-Q4_0',
+    kind: LocalAssetKind.IMAGE,
+    family: ' ideogram4 ',
+    metadata: toNimiRuntimeProtoStruct({
+      modelFamily: 'ideogram4',
+      source: 'selected-source',
+    }),
+  }));
+
+  assert.deepEqual(projected, {
+    localAssetId: 'local-image',
+    assetId: 'local-import/ideogram4-Q4_0',
+    kind: 'image',
+    engine: 'llama',
+    status: 'active',
+    family: 'ideogram4',
+    modelFamily: 'ideogram4',
+    metadata: {
+      modelFamily: 'ideogram4',
+      source: 'selected-source',
+    },
   });
 });
 

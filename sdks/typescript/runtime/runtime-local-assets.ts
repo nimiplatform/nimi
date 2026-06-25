@@ -13,6 +13,7 @@ import {
   type NimiRuntimeLocalAssetKindId,
   type NimiRuntimeLocalAssetStatusId,
 } from './local-asset-vocabulary';
+import { fromNimiRuntimeProtoStruct } from './runtime-agent-values';
 
 export const NIMI_RUNTIME_LOCAL_ASSET_ENTRY_DEFAULT_PAGE_SIZE = 200;
 
@@ -22,6 +23,9 @@ export interface NimiRuntimeLocalAssetEntry {
   readonly kind: NimiRuntimeLocalAssetKindId;
   readonly engine: string;
   readonly status: NimiRuntimeLocalAssetStatusId;
+  readonly family?: string;
+  readonly modelFamily?: string;
+  readonly metadata?: Readonly<Record<string, unknown>>;
 }
 
 export interface NimiRuntimeLocalAssetListClient {
@@ -65,12 +69,16 @@ export function projectNimiRuntimeLocalAssetEntry(
       'check_runtime_local_asset_status',
     );
   }
+  const family = normalizeText(input.family);
+  const metadata = nonEmptyRecord(fromNimiRuntimeProtoStruct(input.metadata));
   return {
     localAssetId,
     assetId: normalizeText(input.assetId),
     kind,
     engine: normalizeText(input.engine),
     status,
+    ...(family ? { family, modelFamily: family } : {}),
+    ...(metadata ? { metadata } : {}),
   };
 }
 
@@ -105,6 +113,11 @@ function normalizePageSize(value: unknown): number {
 
 function normalizeText(value: unknown): string {
   return String(value ?? '').trim();
+}
+
+function nonEmptyRecord(value: Readonly<Record<string, unknown>> | undefined): Readonly<Record<string, unknown>> | undefined {
+  if (!value || Object.keys(value).length === 0) return undefined;
+  return value;
 }
 
 function localAssetProjectionError(message: string, actionHint: string): Error {

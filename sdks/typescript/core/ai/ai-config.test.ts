@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 import { SchedulingState } from '../../core-generated/runtime-typed-client';
@@ -37,6 +38,7 @@ import {
   parseNimiAIScopeRefKey,
   previewNimiAIProfileApply,
   projectNimiAIProfileApply,
+  resolveNimiRuntimeImageCompanionSlots,
   resolveNimiAIConfigRuntimeBinding,
   serializeNimiRuntimeProfileDescriptor,
   toNimiRuntimeProfileDescriptorWire,
@@ -91,6 +93,96 @@ const READY_PROFILE: NimiAIProfile = {
     },
   },
 };
+
+test('image model family companion contract distinguishes Ideogram4 and Z-Image requirements', () => {
+  assert.deepEqual(
+    resolveNimiRuntimeImageCompanionSlots('ideogram4').map((slot) => [slot.engineSlot, slot.required]),
+    [
+      ['uncond_diffusion_model', true],
+      ['llm_path', true],
+      ['vae_path', true],
+    ],
+  );
+  assert.deepEqual(
+    resolveNimiRuntimeImageCompanionSlots('z-image').map((slot) => [slot.engineSlot, slot.required]),
+    [
+      ['llm_path', true],
+      ['vae_path', true],
+    ],
+  );
+  assert.deepEqual(
+    resolveNimiRuntimeImageCompanionSlots('z-image-turbo').map((slot) => [slot.engineSlot, slot.required]),
+    [
+      ['llm_path', true],
+      ['vae_path', true],
+    ],
+  );
+  assert.deepEqual(
+    resolveNimiRuntimeImageCompanionSlots('z_image_turbo').map((slot) => slot.engineSlot),
+    ['llm_path', 'vae_path'],
+  );
+  assert.deepEqual(
+    resolveNimiRuntimeImageCompanionSlots('z-image-base').map((slot) => slot.engineSlot),
+    ['llm_path', 'vae_path'],
+  );
+  assert.equal(
+    resolveNimiRuntimeImageCompanionSlots('sdxl').some((slot) => slot.engineSlot === 'uncond_diffusion_model'),
+    false,
+  );
+});
+
+test('image model family companion contract follows runtime spec table', () => {
+  const spec = readImageFamilyCompanionSpec();
+  for (const [family, slots] of Object.entries(spec)) {
+    assert.deepEqual(
+      resolveNimiRuntimeImageCompanionSlots(family).map((slot) => ({
+        role: slot.role,
+        engine_slot: slot.engineSlot,
+        label: slot.label,
+        component_kind: slot.componentKind,
+        asset_kind: slot.assetKind,
+      })),
+      slots,
+      family,
+    );
+  }
+});
+
+function readImageFamilyCompanionSpec(): Record<string, Array<Record<string, string>>> {
+  const raw = readFileSync(new URL('../../../../.nimi/spec/runtime/kernel/tables/profile-image-family-companion-slots.yaml', import.meta.url), 'utf8');
+  const families: Record<string, Array<Record<string, string>>> = {};
+  let family = '';
+  let current: Record<string, string> | null = null;
+  let inRequiredSlots = false;
+  for (const line of raw.split(/\r?\n/u)) {
+    const familyMatch = /^  ([a-z0-9_-]+):$/u.exec(line);
+    if (familyMatch) {
+      family = familyMatch[1] ?? '';
+      families[family] = [];
+      inRequiredSlots = false;
+      current = null;
+      continue;
+    }
+    if (line === '    required_companion_slots:') {
+      inRequiredSlots = true;
+      continue;
+    }
+    if (!family || !inRequiredSlots) {
+      continue;
+    }
+    const roleMatch = /^      - role: (.+)$/u.exec(line);
+    if (roleMatch) {
+      current = { role: roleMatch[1] ?? '' };
+      families[family]?.push(current);
+      continue;
+    }
+    const fieldMatch = /^        (engine_slot|label|component_kind|asset_kind): (.+)$/u.exec(line);
+    if (fieldMatch && current) {
+      current[fieldMatch[1] ?? ''] = fieldMatch[2] ?? '';
+    }
+  }
+  return families;
+}
 
 function requirementDeclaration(
   capabilities: readonly string[] = ['text.generate'],
