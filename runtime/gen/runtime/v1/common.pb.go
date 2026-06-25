@@ -80,6 +80,7 @@ const (
 	ReasonCode_AI_CONNECTOR_IMMUTABLE          ReasonCode = 314
 	ReasonCode_AI_CONNECTOR_LIMIT_EXCEEDED     ReasonCode = 315
 	ReasonCode_AI_CONNECTOR_ID_REQUIRED        ReasonCode = 316
+	ReasonCode_AI_LOCAL_CONNECTOR_RETIRED      ReasonCode = 317
 	// REQUEST_CREDENTIAL family (330)
 	ReasonCode_AI_REQUEST_CREDENTIAL_CONFLICT ReasonCode = 330
 	// APP family (340+)
@@ -108,12 +109,16 @@ const (
 	ReasonCode_AI_LOCAL_ASSET_SLOT_MISSING         ReasonCode = 368
 	ReasonCode_AI_LOCAL_ASSET_SLOT_FORBIDDEN       ReasonCode = 369
 	// FINISH family (370+)
-	ReasonCode_AI_FINISH_LENGTH                    ReasonCode = 370
-	ReasonCode_AI_FINISH_CONTENT_FILTER            ReasonCode = 371
-	ReasonCode_AI_LOCAL_PROFILE_SLOT_CONFLICT      ReasonCode = 376
-	ReasonCode_AI_LOCAL_PROFILE_OVERRIDE_FORBIDDEN ReasonCode = 377
+	ReasonCode_AI_FINISH_LENGTH                         ReasonCode = 370
+	ReasonCode_AI_FINISH_CONTENT_FILTER                 ReasonCode = 371
+	ReasonCode_AI_LOCAL_PROFILE_SLOT_CONFLICT           ReasonCode = 376
+	ReasonCode_AI_LOCAL_PROFILE_OVERRIDE_FORBIDDEN      ReasonCode = 377
+	ReasonCode_AI_LOCAL_COMPONENT_COMPATIBILITY_UNKNOWN ReasonCode = 378
+	ReasonCode_AI_LOCAL_COMPONENT_INCOMPATIBLE          ReasonCode = 379
 	// MODEL_ROUTE family (380+)
-	ReasonCode_AI_MODEL_PROVIDER_MISMATCH ReasonCode = 380
+	ReasonCode_AI_MODEL_PROVIDER_MISMATCH          ReasonCode = 380
+	ReasonCode_AI_REMOTE_MODEL_CATALOG_ID_REQUIRED ReasonCode = 381
+	ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE       ReasonCode = 382
 	// PROVIDER family (390+)
 	ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN ReasonCode = 390
 	ReasonCode_AI_PROVIDER_AUTH_FAILED        ReasonCode = 391
@@ -142,10 +147,11 @@ const (
 	// MODULE family (430+)
 	ReasonCode_AI_MODULE_CONFIG_INVALID ReasonCode = 430
 	// WORKFLOW family (440+)
-	ReasonCode_WF_DAG_INVALID          ReasonCode = 440
-	ReasonCode_WF_NODE_CONFIG_MISMATCH ReasonCode = 441
-	ReasonCode_WF_TIMEOUT              ReasonCode = 442
-	ReasonCode_WF_TASK_NOT_FOUND       ReasonCode = 443
+	ReasonCode_WF_DAG_INVALID                         ReasonCode = 440
+	ReasonCode_WF_NODE_CONFIG_MISMATCH                ReasonCode = 441
+	ReasonCode_WF_TIMEOUT                             ReasonCode = 442
+	ReasonCode_WF_TASK_NOT_FOUND                      ReasonCode = 443
+	ReasonCode_AI_MEMORY_EMBEDDING_TARGET_REF_INVALID ReasonCode = 444
 	// APP_AUTH family (500+)
 	ReasonCode_APP_MODE_DOMAIN_FORBIDDEN     ReasonCode = 500
 	ReasonCode_APP_MODE_SCOPE_FORBIDDEN      ReasonCode = 501
@@ -287,6 +293,7 @@ var (
 		314: "AI_CONNECTOR_IMMUTABLE",
 		315: "AI_CONNECTOR_LIMIT_EXCEEDED",
 		316: "AI_CONNECTOR_ID_REQUIRED",
+		317: "AI_LOCAL_CONNECTOR_RETIRED",
 		330: "AI_REQUEST_CREDENTIAL_CONFLICT",
 		340: "AI_APP_ID_REQUIRED",
 		341: "AI_APP_ID_CONFLICT",
@@ -314,7 +321,11 @@ var (
 		371: "AI_FINISH_CONTENT_FILTER",
 		376: "AI_LOCAL_PROFILE_SLOT_CONFLICT",
 		377: "AI_LOCAL_PROFILE_OVERRIDE_FORBIDDEN",
+		378: "AI_LOCAL_COMPONENT_COMPATIBILITY_UNKNOWN",
+		379: "AI_LOCAL_COMPONENT_INCOMPATIBLE",
 		380: "AI_MODEL_PROVIDER_MISMATCH",
+		381: "AI_REMOTE_MODEL_CATALOG_ID_REQUIRED",
+		382: "AI_REMOTE_MODEL_CATALOG_STALE",
 		390: "AI_PROVIDER_ENDPOINT_FORBIDDEN",
 		391: "AI_PROVIDER_AUTH_FAILED",
 		392: "AI_PROVIDER_INTERNAL",
@@ -342,6 +353,7 @@ var (
 		441: "WF_NODE_CONFIG_MISMATCH",
 		442: "WF_TIMEOUT",
 		443: "WF_TASK_NOT_FOUND",
+		444: "AI_MEMORY_EMBEDDING_TARGET_REF_INVALID",
 		500: "APP_MODE_DOMAIN_FORBIDDEN",
 		501: "APP_MODE_SCOPE_FORBIDDEN",
 		502: "APP_MODE_MANIFEST_INVALID",
@@ -464,6 +476,7 @@ var (
 		"AI_CONNECTOR_IMMUTABLE":                         314,
 		"AI_CONNECTOR_LIMIT_EXCEEDED":                    315,
 		"AI_CONNECTOR_ID_REQUIRED":                       316,
+		"AI_LOCAL_CONNECTOR_RETIRED":                     317,
 		"AI_REQUEST_CREDENTIAL_CONFLICT":                 330,
 		"AI_APP_ID_REQUIRED":                             340,
 		"AI_APP_ID_CONFLICT":                             341,
@@ -491,7 +504,11 @@ var (
 		"AI_FINISH_CONTENT_FILTER":                       371,
 		"AI_LOCAL_PROFILE_SLOT_CONFLICT":                 376,
 		"AI_LOCAL_PROFILE_OVERRIDE_FORBIDDEN":            377,
+		"AI_LOCAL_COMPONENT_COMPATIBILITY_UNKNOWN":       378,
+		"AI_LOCAL_COMPONENT_INCOMPATIBLE":                379,
 		"AI_MODEL_PROVIDER_MISMATCH":                     380,
+		"AI_REMOTE_MODEL_CATALOG_ID_REQUIRED":            381,
+		"AI_REMOTE_MODEL_CATALOG_STALE":                  382,
 		"AI_PROVIDER_ENDPOINT_FORBIDDEN":                 390,
 		"AI_PROVIDER_AUTH_FAILED":                        391,
 		"AI_PROVIDER_INTERNAL":                           392,
@@ -519,6 +536,7 @@ var (
 		"WF_NODE_CONFIG_MISMATCH":                        441,
 		"WF_TIMEOUT":                                     442,
 		"WF_TASK_NOT_FOUND":                              443,
+		"AI_MEMORY_EMBEDDING_TARGET_REF_INVALID":         444,
 		"APP_MODE_DOMAIN_FORBIDDEN":                      500,
 		"APP_MODE_SCOPE_FORBIDDEN":                       501,
 		"APP_MODE_MANIFEST_INVALID":                      502,
@@ -1301,7 +1319,7 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\vreason_code\x18\x02 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
 	"reasonCode\x12\x1f\n" +
 	"\vaction_hint\x18\x03 \x01(\tR\n" +
-	"actionHint*\xbb-\n" +
+	"actionHint*\xac/\n" +
 	"\n" +
 	"ReasonCode\x12\x1b\n" +
 	"\x17REASON_CODE_UNSPECIFIED\x10\x00\x12\x13\n" +
@@ -1350,7 +1368,8 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\x14AI_CONNECTOR_INVALID\x10\xb9\x02\x12\x1b\n" +
 	"\x16AI_CONNECTOR_IMMUTABLE\x10\xba\x02\x12 \n" +
 	"\x1bAI_CONNECTOR_LIMIT_EXCEEDED\x10\xbb\x02\x12\x1d\n" +
-	"\x18AI_CONNECTOR_ID_REQUIRED\x10\xbc\x02\x12#\n" +
+	"\x18AI_CONNECTOR_ID_REQUIRED\x10\xbc\x02\x12\x1f\n" +
+	"\x1aAI_LOCAL_CONNECTOR_RETIRED\x10\xbd\x02\x12#\n" +
 	"\x1eAI_REQUEST_CREDENTIAL_CONFLICT\x10\xca\x02\x12\x17\n" +
 	"\x12AI_APP_ID_REQUIRED\x10\xd4\x02\x12\x17\n" +
 	"\x12AI_APP_ID_CONFLICT\x10\xd5\x02\x12\x19\n" +
@@ -1377,8 +1396,12 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\x10AI_FINISH_LENGTH\x10\xf2\x02\x12\x1d\n" +
 	"\x18AI_FINISH_CONTENT_FILTER\x10\xf3\x02\x12#\n" +
 	"\x1eAI_LOCAL_PROFILE_SLOT_CONFLICT\x10\xf8\x02\x12(\n" +
-	"#AI_LOCAL_PROFILE_OVERRIDE_FORBIDDEN\x10\xf9\x02\x12\x1f\n" +
-	"\x1aAI_MODEL_PROVIDER_MISMATCH\x10\xfc\x02\x12#\n" +
+	"#AI_LOCAL_PROFILE_OVERRIDE_FORBIDDEN\x10\xf9\x02\x12-\n" +
+	"(AI_LOCAL_COMPONENT_COMPATIBILITY_UNKNOWN\x10\xfa\x02\x12$\n" +
+	"\x1fAI_LOCAL_COMPONENT_INCOMPATIBLE\x10\xfb\x02\x12\x1f\n" +
+	"\x1aAI_MODEL_PROVIDER_MISMATCH\x10\xfc\x02\x12(\n" +
+	"#AI_REMOTE_MODEL_CATALOG_ID_REQUIRED\x10\xfd\x02\x12\"\n" +
+	"\x1dAI_REMOTE_MODEL_CATALOG_STALE\x10\xfe\x02\x12#\n" +
 	"\x1eAI_PROVIDER_ENDPOINT_FORBIDDEN\x10\x86\x03\x12\x1c\n" +
 	"\x17AI_PROVIDER_AUTH_FAILED\x10\x87\x03\x12\x19\n" +
 	"\x14AI_PROVIDER_INTERNAL\x10\x88\x03\x12\x1d\n" +
@@ -1406,7 +1429,8 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\x17WF_NODE_CONFIG_MISMATCH\x10\xb9\x03\x12\x0f\n" +
 	"\n" +
 	"WF_TIMEOUT\x10\xba\x03\x12\x16\n" +
-	"\x11WF_TASK_NOT_FOUND\x10\xbb\x03\x12\x1e\n" +
+	"\x11WF_TASK_NOT_FOUND\x10\xbb\x03\x12+\n" +
+	"&AI_MEMORY_EMBEDDING_TARGET_REF_INVALID\x10\xbc\x03\x12\x1e\n" +
 	"\x19APP_MODE_DOMAIN_FORBIDDEN\x10\xf4\x03\x12\x1d\n" +
 	"\x18APP_MODE_SCOPE_FORBIDDEN\x10\xf5\x03\x12\x1e\n" +
 	"\x19APP_MODE_MANIFEST_INVALID\x10\xf6\x03\x12\x18\n" +

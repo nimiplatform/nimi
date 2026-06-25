@@ -626,9 +626,14 @@ type LocalAssetRecord struct {
 	Endpoint             string                 `protobuf:"bytes,31,opt,name=endpoint,proto3" json:"endpoint,omitempty"`
 	ReasonCode           ReasonCode             `protobuf:"varint,32,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
 	// Passive-only fields
-	Metadata      *structpb.Struct `protobuf:"bytes,40,opt,name=metadata,proto3" json:"metadata,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Metadata *structpb.Struct `protobuf:"bytes,40,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	// Installed instance display/import facts. local_asset_id remains the
+	// installed instance identity; display_name is user-editable and non-identity.
+	DisplayName      string `protobuf:"bytes,41,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
+	SourceFileName   string `protobuf:"bytes,42,opt,name=source_file_name,json=sourceFileName,proto3" json:"source_file_name,omitempty"`
+	ImportInstanceId string `protobuf:"bytes,43,opt,name=import_instance_id,json=importInstanceId,proto3" json:"import_instance_id,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *LocalAssetRecord) Reset() {
@@ -848,6 +853,27 @@ func (x *LocalAssetRecord) GetMetadata() *structpb.Struct {
 		return x.Metadata
 	}
 	return nil
+}
+
+func (x *LocalAssetRecord) GetDisplayName() string {
+	if x != nil {
+		return x.DisplayName
+	}
+	return ""
+}
+
+func (x *LocalAssetRecord) GetSourceFileName() string {
+	if x != nil {
+		return x.SourceFileName
+	}
+	return ""
+}
+
+func (x *LocalAssetRecord) GetImportInstanceId() string {
+	if x != nil {
+		return x.ImportInstanceId
+	}
+	return ""
 }
 
 type LocalAssetHealth struct {
@@ -2003,8 +2029,7 @@ const file_runtime_v1_local_runtime_asset_catalog_proto_rawDesc = "" +
 	"\fgpu_required\x18\x01 \x01(\bR\vgpuRequired\x126\n" +
 	"\x17python_runtime_required\x18\x02 \x01(\bR\x15pythonRuntimeRequired\x12/\n" +
 	"\x13supported_platforms\x18\x03 \x03(\tR\x12supportedPlatforms\x12+\n" +
-	"\x11required_backends\x18\x04 \x03(\tR\x10requiredBackends\"\x87\n" +
-	"\n" +
+	"\x11required_backends\x18\x04 \x03(\tR\x10requiredBackends\"\x82\v\n" +
 	"\x10LocalAssetRecord\x12$\n" +
 	"\x0elocal_asset_id\x18\x01 \x01(\tR\flocalAssetId\x12\x19\n" +
 	"\basset_id\x18\x02 \x01(\tR\aassetId\x123\n" +
@@ -2036,7 +2061,10 @@ const file_runtime_v1_local_runtime_asset_catalog_proto_rawDesc = "" +
 	"\bendpoint\x18\x1f \x01(\tR\bendpoint\x12<\n" +
 	"\vreason_code\x18  \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
 	"reasonCode\x123\n" +
-	"\bmetadata\x18( \x01(\v2\x17.google.protobuf.StructR\bmetadata\x1a9\n" +
+	"\bmetadata\x18( \x01(\v2\x17.google.protobuf.StructR\bmetadata\x12!\n" +
+	"\fdisplay_name\x18) \x01(\tR\vdisplayName\x12(\n" +
+	"\x10source_file_name\x18* \x01(\tR\x0esourceFileName\x12,\n" +
+	"\x12import_instance_id\x18+ \x01(\tR\x10importInstanceId\x1a9\n" +
 	"\vHashesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xe5\x01\n" +

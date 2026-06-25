@@ -33,6 +33,7 @@ lint:
       - runtime/v1/local_runtime_engine.proto
       - runtime/v1/memory.proto
       - runtime/v1/model.proto
+      - runtime/v1/runtime_target_identity.proto
       - runtime/v1/voice.proto
       - runtime/v1/workflow.proto
     ENUM_VALUE_PREFIX:

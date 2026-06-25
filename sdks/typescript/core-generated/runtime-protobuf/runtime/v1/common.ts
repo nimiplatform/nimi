@@ -391,6 +391,10 @@ export enum ReasonCode {
      */
     AI_CONNECTOR_ID_REQUIRED = 316,
     /**
+     * @generated from protobuf enum value: AI_LOCAL_CONNECTOR_RETIRED = 317;
+     */
+    AI_LOCAL_CONNECTOR_RETIRED = 317,
+    /**
      * REQUEST_CREDENTIAL family (330)
      *
      * @generated from protobuf enum value: AI_REQUEST_CREDENTIAL_CONFLICT = 330;
@@ -509,11 +513,27 @@ export enum ReasonCode {
      */
     AI_LOCAL_PROFILE_OVERRIDE_FORBIDDEN = 377,
     /**
+     * @generated from protobuf enum value: AI_LOCAL_COMPONENT_COMPATIBILITY_UNKNOWN = 378;
+     */
+    AI_LOCAL_COMPONENT_COMPATIBILITY_UNKNOWN = 378,
+    /**
+     * @generated from protobuf enum value: AI_LOCAL_COMPONENT_INCOMPATIBLE = 379;
+     */
+    AI_LOCAL_COMPONENT_INCOMPATIBLE = 379,
+    /**
      * MODEL_ROUTE family (380+)
      *
      * @generated from protobuf enum value: AI_MODEL_PROVIDER_MISMATCH = 380;
      */
     AI_MODEL_PROVIDER_MISMATCH = 380,
+    /**
+     * @generated from protobuf enum value: AI_REMOTE_MODEL_CATALOG_ID_REQUIRED = 381;
+     */
+    AI_REMOTE_MODEL_CATALOG_ID_REQUIRED = 381,
+    /**
+     * @generated from protobuf enum value: AI_REMOTE_MODEL_CATALOG_STALE = 382;
+     */
+    AI_REMOTE_MODEL_CATALOG_STALE = 382,
     /**
      * PROVIDER family (390+)
      *
@@ -632,6 +652,10 @@ export enum ReasonCode {
      * @generated from protobuf enum value: WF_TASK_NOT_FOUND = 443;
      */
     WF_TASK_NOT_FOUND = 443,
+    /**
+     * @generated from protobuf enum value: AI_MEMORY_EMBEDDING_TARGET_REF_INVALID = 444;
+     */
+    AI_MEMORY_EMBEDDING_TARGET_REF_INVALID = 444,
     /**
      * APP_AUTH family (500+)
      *

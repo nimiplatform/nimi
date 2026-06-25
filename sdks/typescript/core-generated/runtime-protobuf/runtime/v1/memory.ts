@@ -232,18 +232,40 @@ export interface MemoryEmbeddingCloudBindingRef {
      */
     connectorId: string;
     /**
-     * @generated from protobuf field: string model_id = 2
+     * @generated from protobuf field: string remote_model_catalog_id = 3
      */
-    modelId: string;
+    remoteModelCatalogId: string;
+    /**
+     * @generated from protobuf field: string provider_model_id = 4
+     */
+    providerModelId: string;
+    /**
+     * @generated from protobuf field: string provider = 5
+     */
+    provider: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.MemoryEmbeddingLocalBindingRef
  */
 export interface MemoryEmbeddingLocalBindingRef {
     /**
-     * @generated from protobuf field: string target_id = 1
+     * @generated from protobuf oneof: ref
      */
-    targetId: string;
+    ref: {
+        oneofKind: "profileBindingId";
+        /**
+         * @generated from protobuf field: string profile_binding_id = 2
+         */
+        profileBindingId: string;
+    } | {
+        oneofKind: "readinessRef";
+        /**
+         * @generated from protobuf field: string readiness_ref = 3
+         */
+        readinessRef: string;
+    } | {
+        oneofKind: undefined;
+    };
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.MemoryEmbeddingBindingIntentSnapshot
@@ -2128,13 +2150,17 @@ class MemoryEmbeddingCloudBindingRef$Type extends MessageType<MemoryEmbeddingClo
     constructor() {
         super("nimi.runtime.v1.MemoryEmbeddingCloudBindingRef", [
             { no: 1, name: "connector_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "model_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 3, name: "remote_model_catalog_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "provider_model_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "provider", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<MemoryEmbeddingCloudBindingRef>): MemoryEmbeddingCloudBindingRef {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.connectorId = "";
-        message.modelId = "";
+        message.remoteModelCatalogId = "";
+        message.providerModelId = "";
+        message.provider = "";
         if (value !== undefined)
             reflectionMergePartial<MemoryEmbeddingCloudBindingRef>(this, message, value);
         return message;
@@ -2147,8 +2173,14 @@ class MemoryEmbeddingCloudBindingRef$Type extends MessageType<MemoryEmbeddingClo
                 case /* string connector_id */ 1:
                     message.connectorId = reader.string();
                     break;
-                case /* string model_id */ 2:
-                    message.modelId = reader.string();
+                case /* string remote_model_catalog_id */ 3:
+                    message.remoteModelCatalogId = reader.string();
+                    break;
+                case /* string provider_model_id */ 4:
+                    message.providerModelId = reader.string();
+                    break;
+                case /* string provider */ 5:
+                    message.provider = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2165,9 +2197,15 @@ class MemoryEmbeddingCloudBindingRef$Type extends MessageType<MemoryEmbeddingClo
         /* string connector_id = 1; */
         if (message.connectorId !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.connectorId);
-        /* string model_id = 2; */
-        if (message.modelId !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.modelId);
+        /* string remote_model_catalog_id = 3; */
+        if (message.remoteModelCatalogId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.remoteModelCatalogId);
+        /* string provider_model_id = 4; */
+        if (message.providerModelId !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.providerModelId);
+        /* string provider = 5; */
+        if (message.provider !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.provider);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -2182,12 +2220,13 @@ export const MemoryEmbeddingCloudBindingRef = new MemoryEmbeddingCloudBindingRef
 class MemoryEmbeddingLocalBindingRef$Type extends MessageType<MemoryEmbeddingLocalBindingRef> {
     constructor() {
         super("nimi.runtime.v1.MemoryEmbeddingLocalBindingRef", [
-            { no: 1, name: "target_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 2, name: "profile_binding_id", kind: "scalar", oneof: "ref", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "readiness_ref", kind: "scalar", oneof: "ref", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<MemoryEmbeddingLocalBindingRef>): MemoryEmbeddingLocalBindingRef {
         const message = globalThis.Object.create((this.messagePrototype!));
-        message.targetId = "";
+        message.ref = { oneofKind: undefined };
         if (value !== undefined)
             reflectionMergePartial<MemoryEmbeddingLocalBindingRef>(this, message, value);
         return message;
@@ -2197,8 +2236,17 @@ class MemoryEmbeddingLocalBindingRef$Type extends MessageType<MemoryEmbeddingLoc
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* string target_id */ 1:
-                    message.targetId = reader.string();
+                case /* string profile_binding_id */ 2:
+                    message.ref = {
+                        oneofKind: "profileBindingId",
+                        profileBindingId: reader.string()
+                    };
+                    break;
+                case /* string readiness_ref */ 3:
+                    message.ref = {
+                        oneofKind: "readinessRef",
+                        readinessRef: reader.string()
+                    };
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2212,9 +2260,12 @@ class MemoryEmbeddingLocalBindingRef$Type extends MessageType<MemoryEmbeddingLoc
         return message;
     }
     internalBinaryWrite(message: MemoryEmbeddingLocalBindingRef, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string target_id = 1; */
-        if (message.targetId !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.targetId);
+        /* string profile_binding_id = 2; */
+        if (message.ref.oneofKind === "profileBindingId")
+            writer.tag(2, WireType.LengthDelimited).string(message.ref.profileBindingId);
+        /* string readiness_ref = 3; */
+        if (message.ref.oneofKind === "readinessRef")
+            writer.tag(3, WireType.LengthDelimited).string(message.ref.readinessRef);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

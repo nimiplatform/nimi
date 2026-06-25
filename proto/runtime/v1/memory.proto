@@ -131,11 +131,20 @@ message MemoryEmbeddingProfile {
 
 message MemoryEmbeddingCloudBindingRef {
   string connector_id = 1;
-  string model_id = 2;
+  reserved 2;
+  reserved "model_id";
+  string remote_model_catalog_id = 3;
+  string provider_model_id = 4;
+  string provider = 5;
 }
 
 message MemoryEmbeddingLocalBindingRef {
-  string target_id = 1;
+  reserved 1;
+  reserved "target_id";
+  oneof ref {
+    string profile_binding_id = 2;
+    string readiness_ref = 3;
+  }
 }
 
 message MemoryEmbeddingBindingIntentSnapshot {

@@ -171,6 +171,21 @@ export interface LocalAssetRecord {
      * @generated from protobuf field: google.protobuf.Struct metadata = 40
      */
     metadata?: Struct;
+    /**
+     * Installed instance display/import facts. local_asset_id remains the
+     * installed instance identity; display_name is user-editable and non-identity.
+     *
+     * @generated from protobuf field: string display_name = 41
+     */
+    displayName: string;
+    /**
+     * @generated from protobuf field: string source_file_name = 42
+     */
+    sourceFileName: string;
+    /**
+     * @generated from protobuf field: string import_instance_id = 43
+     */
+    importInstanceId: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.LocalAssetHealth
@@ -1019,7 +1034,10 @@ class LocalAssetRecord$Type extends MessageType<LocalAssetRecord> {
             { no: 30, name: "engine_config", kind: "message", T: () => Struct },
             { no: 31, name: "endpoint", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 32, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
-            { no: 40, name: "metadata", kind: "message", T: () => Struct }
+            { no: 40, name: "metadata", kind: "message", T: () => Struct },
+            { no: 41, name: "display_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 42, name: "source_file_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 43, name: "import_instance_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<LocalAssetRecord>): LocalAssetRecord {
@@ -1047,6 +1065,9 @@ class LocalAssetRecord$Type extends MessageType<LocalAssetRecord> {
         message.localInvokeProfileId = "";
         message.endpoint = "";
         message.reasonCode = 0;
+        message.displayName = "";
+        message.sourceFileName = "";
+        message.importInstanceId = "";
         if (value !== undefined)
             reflectionMergePartial<LocalAssetRecord>(this, message, value);
         return message;
@@ -1136,6 +1157,15 @@ class LocalAssetRecord$Type extends MessageType<LocalAssetRecord> {
                     break;
                 case /* google.protobuf.Struct metadata */ 40:
                     message.metadata = Struct.internalBinaryRead(reader, reader.uint32(), options, message.metadata);
+                    break;
+                case /* string display_name */ 41:
+                    message.displayName = reader.string();
+                    break;
+                case /* string source_file_name */ 42:
+                    message.sourceFileName = reader.string();
+                    break;
+                case /* string import_instance_id */ 43:
+                    message.importInstanceId = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1246,6 +1276,15 @@ class LocalAssetRecord$Type extends MessageType<LocalAssetRecord> {
         /* google.protobuf.Struct metadata = 40; */
         if (message.metadata)
             Struct.internalBinaryWrite(message.metadata, writer.tag(40, WireType.LengthDelimited).fork(), options).join();
+        /* string display_name = 41; */
+        if (message.displayName !== "")
+            writer.tag(41, WireType.LengthDelimited).string(message.displayName);
+        /* string source_file_name = 42; */
+        if (message.sourceFileName !== "")
+            writer.tag(42, WireType.LengthDelimited).string(message.sourceFileName);
+        /* string import_instance_id = 43; */
+        if (message.importInstanceId !== "")
+            writer.tag(43, WireType.LengthDelimited).string(message.importInstanceId);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

@@ -8,6 +8,7 @@ import "google/protobuf/struct.proto";
 import "google/protobuf/timestamp.proto";
 import "runtime/v1/ai_scheduling.proto";
 import "runtime/v1/common.proto";
+import "runtime/v1/runtime_target_identity.proto";
 import "runtime/v1/voice.proto";
 
 enum Modal {
@@ -283,6 +284,7 @@ message ScenarioRequestHead {
   FallbackPolicy fallback = 5;
   int32 timeout_ms = 6;
   string connector_id = 7;
+  RuntimeDurableTargetRef target_ref = 8;
 }
 
 message ScenarioExtension {
@@ -528,6 +530,7 @@ message ExecuteScenarioResponse {
   string model_resolved = 5;
   string trace_id = 6;
   repeated IgnoredScenarioExtension ignored_extensions = 7;
+  RuntimeResolvedExecutionBinding resolved_execution_binding = 8;
 }
 
 message StreamScenarioRequest {
@@ -541,6 +544,7 @@ message StreamScenarioRequest {
 message ScenarioStreamStarted {
   string model_resolved = 1;
   RoutePolicy route_decision = 2;
+  RuntimeResolvedExecutionBinding resolved_execution_binding = 3;
 }
 
 message TextStreamDelta {

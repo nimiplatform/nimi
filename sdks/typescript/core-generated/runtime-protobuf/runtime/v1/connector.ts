@@ -52,10 +52,6 @@ export interface Connector {
      */
     status: ConnectorStatus;
     /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalConnectorCategory local_category = 9
-     */
-    localCategory: LocalConnectorCategory;
-    /**
      * @generated from protobuf field: bool has_credential = 10
      */
     hasCredential: boolean;
@@ -265,7 +261,11 @@ export interface TestConnectorResponse {
  */
 export interface ConnectorModelDescriptor {
     /**
-     * @generated from protobuf field: string model_id = 1
+     * Deprecated compatibility display/provider id. Must not be used as durable
+     * target identity; use remote_model_catalog_id + provider_model_id instead.
+     *
+     * @deprecated
+     * @generated from protobuf field: string model_id = 1 [deprecated = true]
      */
     modelId: string;
     /**
@@ -280,6 +280,30 @@ export interface ConnectorModelDescriptor {
      * @generated from protobuf field: repeated string capabilities = 4
      */
     capabilities: string[];
+    /**
+     * @generated from protobuf field: string remote_model_catalog_id = 5
+     */
+    remoteModelCatalogId: string;
+    /**
+     * @generated from protobuf field: string provider_model_id = 6
+     */
+    providerModelId: string;
+    /**
+     * @generated from protobuf field: string provider = 7
+     */
+    provider: string;
+    /**
+     * @generated from protobuf field: string connector_snapshot_id = 8
+     */
+    connectorSnapshotId: string;
+    /**
+     * @generated from protobuf field: string endpoint_profile_id = 9
+     */
+    endpointProfileId: string;
+    /**
+     * @generated from protobuf field: string inventory_snapshot_id = 10
+     */
+    inventorySnapshotId: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ListConnectorModelsRequest
@@ -1014,10 +1038,6 @@ export enum ConnectorKind {
      */
     UNSPECIFIED = 0,
     /**
-     * @generated from protobuf enum value: CONNECTOR_KIND_LOCAL_MODEL = 1;
-     */
-    LOCAL_MODEL = 1,
-    /**
      * @generated from protobuf enum value: CONNECTOR_KIND_REMOTE_MANAGED = 2;
      */
     REMOTE_MANAGED = 2
@@ -1072,39 +1092,6 @@ export enum ConnectorAuthKind {
      * @generated from protobuf enum value: CONNECTOR_AUTH_KIND_OAUTH_MANAGED = 2;
      */
     OAUTH_MANAGED = 2
-}
-/**
- * @generated from protobuf enum nimi.runtime.v1.LocalConnectorCategory
- */
-export enum LocalConnectorCategory {
-    /**
-     * @generated from protobuf enum value: LOCAL_CONNECTOR_CATEGORY_UNSPECIFIED = 0;
-     */
-    UNSPECIFIED = 0,
-    /**
-     * @generated from protobuf enum value: LOCAL_CONNECTOR_CATEGORY_LLM = 1;
-     */
-    LLM = 1,
-    /**
-     * @generated from protobuf enum value: LOCAL_CONNECTOR_CATEGORY_VISION = 2;
-     */
-    VISION = 2,
-    /**
-     * @generated from protobuf enum value: LOCAL_CONNECTOR_CATEGORY_IMAGE = 3;
-     */
-    IMAGE = 3,
-    /**
-     * @generated from protobuf enum value: LOCAL_CONNECTOR_CATEGORY_TTS = 4;
-     */
-    TTS = 4,
-    /**
-     * @generated from protobuf enum value: LOCAL_CONNECTOR_CATEGORY_STT = 5;
-     */
-    STT = 5,
-    /**
-     * @generated from protobuf enum value: LOCAL_CONNECTOR_CATEGORY_CUSTOM = 6;
-     */
-    CUSTOM = 6
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ModelCatalogProviderSource
@@ -1164,7 +1151,6 @@ class Connector$Type extends MessageType<Connector> {
             { no: 6, name: "endpoint", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 7, name: "label", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 8, name: "status", kind: "enum", T: () => ["nimi.runtime.v1.ConnectorStatus", ConnectorStatus, "CONNECTOR_STATUS_"] },
-            { no: 9, name: "local_category", kind: "enum", T: () => ["nimi.runtime.v1.LocalConnectorCategory", LocalConnectorCategory, "LOCAL_CONNECTOR_CATEGORY_"] },
             { no: 10, name: "has_credential", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 11, name: "created_at", kind: "message", T: () => Timestamp },
             { no: 12, name: "updated_at", kind: "message", T: () => Timestamp },
@@ -1182,7 +1168,6 @@ class Connector$Type extends MessageType<Connector> {
         message.endpoint = "";
         message.label = "";
         message.status = 0;
-        message.localCategory = 0;
         message.hasCredential = false;
         message.authKind = 0;
         message.providerAuthProfile = "";
@@ -1218,9 +1203,6 @@ class Connector$Type extends MessageType<Connector> {
                     break;
                 case /* nimi.runtime.v1.ConnectorStatus status */ 8:
                     message.status = reader.int32();
-                    break;
-                case /* nimi.runtime.v1.LocalConnectorCategory local_category */ 9:
-                    message.localCategory = reader.int32();
                     break;
                 case /* bool has_credential */ 10:
                     message.hasCredential = reader.bool();
@@ -1273,9 +1255,6 @@ class Connector$Type extends MessageType<Connector> {
         /* nimi.runtime.v1.ConnectorStatus status = 8; */
         if (message.status !== 0)
             writer.tag(8, WireType.Varint).int32(message.status);
-        /* nimi.runtime.v1.LocalConnectorCategory local_category = 9; */
-        if (message.localCategory !== 0)
-            writer.tag(9, WireType.Varint).int32(message.localCategory);
         /* bool has_credential = 10; */
         if (message.hasCredential !== false)
             writer.tag(10, WireType.Varint).bool(message.hasCredential);
@@ -2012,7 +1991,13 @@ class ConnectorModelDescriptor$Type extends MessageType<ConnectorModelDescriptor
             { no: 1, name: "model_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "model_label", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "available", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 4, name: "capabilities", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
+            { no: 4, name: "capabilities", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "remote_model_catalog_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "provider_model_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "provider", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "connector_snapshot_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 9, name: "endpoint_profile_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 10, name: "inventory_snapshot_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<ConnectorModelDescriptor>): ConnectorModelDescriptor {
@@ -2021,6 +2006,12 @@ class ConnectorModelDescriptor$Type extends MessageType<ConnectorModelDescriptor
         message.modelLabel = "";
         message.available = false;
         message.capabilities = [];
+        message.remoteModelCatalogId = "";
+        message.providerModelId = "";
+        message.provider = "";
+        message.connectorSnapshotId = "";
+        message.endpointProfileId = "";
+        message.inventorySnapshotId = "";
         if (value !== undefined)
             reflectionMergePartial<ConnectorModelDescriptor>(this, message, value);
         return message;
@@ -2030,7 +2021,7 @@ class ConnectorModelDescriptor$Type extends MessageType<ConnectorModelDescriptor
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* string model_id */ 1:
+                case /* string model_id = 1 [deprecated = true] */ 1:
                     message.modelId = reader.string();
                     break;
                 case /* string model_label */ 2:
@@ -2041,6 +2032,24 @@ class ConnectorModelDescriptor$Type extends MessageType<ConnectorModelDescriptor
                     break;
                 case /* repeated string capabilities */ 4:
                     message.capabilities.push(reader.string());
+                    break;
+                case /* string remote_model_catalog_id */ 5:
+                    message.remoteModelCatalogId = reader.string();
+                    break;
+                case /* string provider_model_id */ 6:
+                    message.providerModelId = reader.string();
+                    break;
+                case /* string provider */ 7:
+                    message.provider = reader.string();
+                    break;
+                case /* string connector_snapshot_id */ 8:
+                    message.connectorSnapshotId = reader.string();
+                    break;
+                case /* string endpoint_profile_id */ 9:
+                    message.endpointProfileId = reader.string();
+                    break;
+                case /* string inventory_snapshot_id */ 10:
+                    message.inventorySnapshotId = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2054,7 +2063,7 @@ class ConnectorModelDescriptor$Type extends MessageType<ConnectorModelDescriptor
         return message;
     }
     internalBinaryWrite(message: ConnectorModelDescriptor, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string model_id = 1; */
+        /* string model_id = 1 [deprecated = true]; */
         if (message.modelId !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.modelId);
         /* string model_label = 2; */
@@ -2066,6 +2075,24 @@ class ConnectorModelDescriptor$Type extends MessageType<ConnectorModelDescriptor
         /* repeated string capabilities = 4; */
         for (let i = 0; i < message.capabilities.length; i++)
             writer.tag(4, WireType.LengthDelimited).string(message.capabilities[i]);
+        /* string remote_model_catalog_id = 5; */
+        if (message.remoteModelCatalogId !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.remoteModelCatalogId);
+        /* string provider_model_id = 6; */
+        if (message.providerModelId !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.providerModelId);
+        /* string provider = 7; */
+        if (message.provider !== "")
+            writer.tag(7, WireType.LengthDelimited).string(message.provider);
+        /* string connector_snapshot_id = 8; */
+        if (message.connectorSnapshotId !== "")
+            writer.tag(8, WireType.LengthDelimited).string(message.connectorSnapshotId);
+        /* string endpoint_profile_id = 9; */
+        if (message.endpointProfileId !== "")
+            writer.tag(9, WireType.LengthDelimited).string(message.endpointProfileId);
+        /* string inventory_snapshot_id = 10; */
+        if (message.inventorySnapshotId !== "")
+            writer.tag(10, WireType.LengthDelimited).string(message.inventorySnapshotId);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

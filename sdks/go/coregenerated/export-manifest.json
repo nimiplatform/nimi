@@ -30,6 +30,7 @@
     "proto/runtime/v1/local_runtime_recommendation.proto",
     "proto/runtime/v1/memory.proto",
     "proto/runtime/v1/model.proto",
+    "proto/runtime/v1/runtime_target_identity.proto",
     "proto/runtime/v1/voice.proto",
     "proto/runtime/v1/workflow.proto",
     "config/realm-openapi-source.json",

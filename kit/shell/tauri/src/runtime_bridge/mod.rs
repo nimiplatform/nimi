@@ -81,8 +81,7 @@ pub const RUNTIME_APP_LIST_LOCAL_APP_ADOPTIONS_METHOD_ID: &str =
     "/nimi.runtime.v1.RuntimeAppService/ListLocalAppAdoptions";
 pub const RUNTIME_APP_LIST_APP_INSTALL_JOBS_METHOD_ID: &str =
     "/nimi.runtime.v1.RuntimeAppService/ListAppInstallJobs";
-pub const RUNTIME_AGENT_GET_AGENT_METHOD_ID: &str =
-    "/nimi.runtime.v1.RuntimeAgentService/GetAgent";
+pub const RUNTIME_AGENT_GET_AGENT_METHOD_ID: &str = "/nimi.runtime.v1.RuntimeAgentService/GetAgent";
 pub const RUNTIME_AGENT_INITIALIZE_AGENT_METHOD_ID: &str =
     "/nimi.runtime.v1.RuntimeAgentService/InitializeAgent";
 pub const RUNTIME_AGENT_SET_AGENT_PRESENTATION_PROFILE_METHOD_ID: &str =

@@ -135,6 +135,12 @@ message LocalAssetRecord {
 
   // Passive-only fields
   google.protobuf.Struct metadata = 40;
+
+  // Installed instance display/import facts. local_asset_id remains the
+  // installed instance identity; display_name is user-editable and non-identity.
+  string display_name = 41;
+  string source_file_name = 42;
+  string import_instance_id = 43;
 }
 
 message LocalAssetHealth {

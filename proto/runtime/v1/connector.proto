@@ -11,7 +11,8 @@ import "google/protobuf/timestamp.proto";
 
 enum ConnectorKind {
   CONNECTOR_KIND_UNSPECIFIED = 0;
-  CONNECTOR_KIND_LOCAL_MODEL = 1;
+  reserved 1;
+  reserved "CONNECTOR_KIND_LOCAL_MODEL";
   CONNECTOR_KIND_REMOTE_MANAGED = 2;
 }
 
@@ -33,16 +34,6 @@ enum ConnectorAuthKind {
   CONNECTOR_AUTH_KIND_OAUTH_MANAGED = 2;
 }
 
-enum LocalConnectorCategory {
-  LOCAL_CONNECTOR_CATEGORY_UNSPECIFIED = 0;
-  LOCAL_CONNECTOR_CATEGORY_LLM = 1;
-  LOCAL_CONNECTOR_CATEGORY_VISION = 2;
-  LOCAL_CONNECTOR_CATEGORY_IMAGE = 3;
-  LOCAL_CONNECTOR_CATEGORY_TTS = 4;
-  LOCAL_CONNECTOR_CATEGORY_STT = 5;
-  LOCAL_CONNECTOR_CATEGORY_CUSTOM = 6;
-}
-
 message Connector {
   string connector_id = 1;
   ConnectorKind kind = 2;
@@ -52,7 +43,8 @@ message Connector {
   string endpoint = 6;
   string label = 7;
   ConnectorStatus status = 8;
-  LocalConnectorCategory local_category = 9;
+  reserved 9;
+  reserved "local_category";
   bool has_credential = 10;
   google.protobuf.Timestamp created_at = 11;
   google.protobuf.Timestamp updated_at = 12;
@@ -140,10 +132,18 @@ message TestConnectorResponse {
 }
 
 message ConnectorModelDescriptor {
-  string model_id = 1;
+  // Deprecated compatibility display/provider id. Must not be used as durable
+  // target identity; use remote_model_catalog_id + provider_model_id instead.
+  string model_id = 1 [deprecated = true];
   string model_label = 2;
   bool available = 3;
   repeated string capabilities = 4;
+  string remote_model_catalog_id = 5;
+  string provider_model_id = 6;
+  string provider = 7;
+  string connector_snapshot_id = 8;
+  string endpoint_profile_id = 9;
+  string inventory_snapshot_id = 10;
 }
 
 message ListConnectorModelsRequest {

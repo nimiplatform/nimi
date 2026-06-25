@@ -24,10 +24,12 @@ import { MessageType } from "@protobuf-ts/runtime";
 import { VoiceAsset } from "./voice";
 import { Timestamp } from "../../google/protobuf/timestamp";
 import { ReasonCode } from "./common";
+import { RuntimeResolvedExecutionBinding } from "./runtime_target_identity";
 import { UsageStats } from "./common";
 import { VoiceT2VInput } from "./voice";
 import { VoiceV2VInput } from "./voice";
 import { VoiceReference } from "./voice";
+import { RuntimeDurableTargetRef } from "./runtime_target_identity";
 import { Value } from "../../google/protobuf/struct";
 import { Struct } from "../../google/protobuf/struct";
 /**
@@ -384,6 +386,10 @@ export interface ScenarioRequestHead {
      * @generated from protobuf field: string connector_id = 7
      */
     connectorId: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.RuntimeDurableTargetRef target_ref = 8
+     */
+    targetRef?: RuntimeDurableTargetRef;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ScenarioExtension
@@ -1180,6 +1186,10 @@ export interface ExecuteScenarioResponse {
      * @generated from protobuf field: repeated nimi.runtime.v1.IgnoredScenarioExtension ignored_extensions = 7
      */
     ignoredExtensions: IgnoredScenarioExtension[];
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.RuntimeResolvedExecutionBinding resolved_execution_binding = 8
+     */
+    resolvedExecutionBinding?: RuntimeResolvedExecutionBinding;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.StreamScenarioRequest
@@ -1218,6 +1228,10 @@ export interface ScenarioStreamStarted {
      * @generated from protobuf field: nimi.runtime.v1.RoutePolicy route_decision = 2
      */
     routeDecision: RoutePolicy;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.RuntimeResolvedExecutionBinding resolved_execution_binding = 3
+     */
+    resolvedExecutionBinding?: RuntimeResolvedExecutionBinding;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.TextStreamDelta
@@ -3602,7 +3616,8 @@ class ScenarioRequestHead$Type extends MessageType<ScenarioRequestHead> {
             { no: 4, name: "route_policy", kind: "enum", T: () => ["nimi.runtime.v1.RoutePolicy", RoutePolicy, "ROUTE_POLICY_"] },
             { no: 5, name: "fallback", kind: "enum", T: () => ["nimi.runtime.v1.FallbackPolicy", FallbackPolicy, "FALLBACK_POLICY_"] },
             { no: 6, name: "timeout_ms", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
-            { no: 7, name: "connector_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 7, name: "connector_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "target_ref", kind: "message", T: () => RuntimeDurableTargetRef }
         ]);
     }
     create(value?: PartialMessage<ScenarioRequestHead>): ScenarioRequestHead {
@@ -3644,6 +3659,9 @@ class ScenarioRequestHead$Type extends MessageType<ScenarioRequestHead> {
                 case /* string connector_id */ 7:
                     message.connectorId = reader.string();
                     break;
+                case /* nimi.runtime.v1.RuntimeDurableTargetRef target_ref */ 8:
+                    message.targetRef = RuntimeDurableTargetRef.internalBinaryRead(reader, reader.uint32(), options, message.targetRef);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -3677,6 +3695,9 @@ class ScenarioRequestHead$Type extends MessageType<ScenarioRequestHead> {
         /* string connector_id = 7; */
         if (message.connectorId !== "")
             writer.tag(7, WireType.LengthDelimited).string(message.connectorId);
+        /* nimi.runtime.v1.RuntimeDurableTargetRef target_ref = 8; */
+        if (message.targetRef)
+            RuntimeDurableTargetRef.internalBinaryWrite(message.targetRef, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -6037,7 +6058,8 @@ class ExecuteScenarioResponse$Type extends MessageType<ExecuteScenarioResponse> 
             { no: 4, name: "route_decision", kind: "enum", T: () => ["nimi.runtime.v1.RoutePolicy", RoutePolicy, "ROUTE_POLICY_"] },
             { no: 5, name: "model_resolved", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 6, name: "trace_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 7, name: "ignored_extensions", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => IgnoredScenarioExtension }
+            { no: 7, name: "ignored_extensions", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => IgnoredScenarioExtension },
+            { no: 8, name: "resolved_execution_binding", kind: "message", T: () => RuntimeResolvedExecutionBinding }
         ]);
     }
     create(value?: PartialMessage<ExecuteScenarioResponse>): ExecuteScenarioResponse {
@@ -6077,6 +6099,9 @@ class ExecuteScenarioResponse$Type extends MessageType<ExecuteScenarioResponse> 
                 case /* repeated nimi.runtime.v1.IgnoredScenarioExtension ignored_extensions */ 7:
                     message.ignoredExtensions.push(IgnoredScenarioExtension.internalBinaryRead(reader, reader.uint32(), options));
                     break;
+                case /* nimi.runtime.v1.RuntimeResolvedExecutionBinding resolved_execution_binding */ 8:
+                    message.resolvedExecutionBinding = RuntimeResolvedExecutionBinding.internalBinaryRead(reader, reader.uint32(), options, message.resolvedExecutionBinding);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -6110,6 +6135,9 @@ class ExecuteScenarioResponse$Type extends MessageType<ExecuteScenarioResponse> 
         /* repeated nimi.runtime.v1.IgnoredScenarioExtension ignored_extensions = 7; */
         for (let i = 0; i < message.ignoredExtensions.length; i++)
             IgnoredScenarioExtension.internalBinaryWrite(message.ignoredExtensions[i], writer.tag(7, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.RuntimeResolvedExecutionBinding resolved_execution_binding = 8; */
+        if (message.resolvedExecutionBinding)
+            RuntimeResolvedExecutionBinding.internalBinaryWrite(message.resolvedExecutionBinding, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -6202,7 +6230,8 @@ class ScenarioStreamStarted$Type extends MessageType<ScenarioStreamStarted> {
     constructor() {
         super("nimi.runtime.v1.ScenarioStreamStarted", [
             { no: 1, name: "model_resolved", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "route_decision", kind: "enum", T: () => ["nimi.runtime.v1.RoutePolicy", RoutePolicy, "ROUTE_POLICY_"] }
+            { no: 2, name: "route_decision", kind: "enum", T: () => ["nimi.runtime.v1.RoutePolicy", RoutePolicy, "ROUTE_POLICY_"] },
+            { no: 3, name: "resolved_execution_binding", kind: "message", T: () => RuntimeResolvedExecutionBinding }
         ]);
     }
     create(value?: PartialMessage<ScenarioStreamStarted>): ScenarioStreamStarted {
@@ -6224,6 +6253,9 @@ class ScenarioStreamStarted$Type extends MessageType<ScenarioStreamStarted> {
                 case /* nimi.runtime.v1.RoutePolicy route_decision */ 2:
                     message.routeDecision = reader.int32();
                     break;
+                case /* nimi.runtime.v1.RuntimeResolvedExecutionBinding resolved_execution_binding */ 3:
+                    message.resolvedExecutionBinding = RuntimeResolvedExecutionBinding.internalBinaryRead(reader, reader.uint32(), options, message.resolvedExecutionBinding);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -6242,6 +6274,9 @@ class ScenarioStreamStarted$Type extends MessageType<ScenarioStreamStarted> {
         /* nimi.runtime.v1.RoutePolicy route_decision = 2; */
         if (message.routeDecision !== 0)
             writer.tag(2, WireType.Varint).int32(message.routeDecision);
+        /* nimi.runtime.v1.RuntimeResolvedExecutionBinding resolved_execution_binding = 3; */
+        if (message.resolvedExecutionBinding)
+            RuntimeResolvedExecutionBinding.internalBinaryWrite(message.resolvedExecutionBinding, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

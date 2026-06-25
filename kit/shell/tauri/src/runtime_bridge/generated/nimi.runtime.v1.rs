@@ -148,6 +148,7 @@ pub enum ReasonCode {
     AiConnectorImmutable = 314,
     AiConnectorLimitExceeded = 315,
     AiConnectorIdRequired = 316,
+    AiLocalConnectorRetired = 317,
     /// REQUEST_CREDENTIAL family (330)
     AiRequestCredentialConflict = 330,
     /// APP family (340+)
@@ -180,8 +181,12 @@ pub enum ReasonCode {
     AiFinishContentFilter = 371,
     AiLocalProfileSlotConflict = 376,
     AiLocalProfileOverrideForbidden = 377,
+    AiLocalComponentCompatibilityUnknown = 378,
+    AiLocalComponentIncompatible = 379,
     /// MODEL_ROUTE family (380+)
     AiModelProviderMismatch = 380,
+    AiRemoteModelCatalogIdRequired = 381,
+    AiRemoteModelCatalogStale = 382,
     /// PROVIDER family (390+)
     AiProviderEndpointForbidden = 390,
     AiProviderAuthFailed = 391,
@@ -214,6 +219,7 @@ pub enum ReasonCode {
     WfNodeConfigMismatch = 441,
     WfTimeout = 442,
     WfTaskNotFound = 443,
+    AiMemoryEmbeddingTargetRefInvalid = 444,
     /// APP_AUTH family (500+)
     AppModeDomainForbidden = 500,
     AppModeScopeForbidden = 501,
@@ -360,6 +366,7 @@ impl ReasonCode {
             Self::AiConnectorImmutable => "AI_CONNECTOR_IMMUTABLE",
             Self::AiConnectorLimitExceeded => "AI_CONNECTOR_LIMIT_EXCEEDED",
             Self::AiConnectorIdRequired => "AI_CONNECTOR_ID_REQUIRED",
+            Self::AiLocalConnectorRetired => "AI_LOCAL_CONNECTOR_RETIRED",
             Self::AiRequestCredentialConflict => "AI_REQUEST_CREDENTIAL_CONFLICT",
             Self::AiAppIdRequired => "AI_APP_ID_REQUIRED",
             Self::AiAppIdConflict => "AI_APP_ID_CONFLICT",
@@ -391,7 +398,13 @@ impl ReasonCode {
             Self::AiLocalProfileOverrideForbidden => {
                 "AI_LOCAL_PROFILE_OVERRIDE_FORBIDDEN"
             }
+            Self::AiLocalComponentCompatibilityUnknown => {
+                "AI_LOCAL_COMPONENT_COMPATIBILITY_UNKNOWN"
+            }
+            Self::AiLocalComponentIncompatible => "AI_LOCAL_COMPONENT_INCOMPATIBLE",
             Self::AiModelProviderMismatch => "AI_MODEL_PROVIDER_MISMATCH",
+            Self::AiRemoteModelCatalogIdRequired => "AI_REMOTE_MODEL_CATALOG_ID_REQUIRED",
+            Self::AiRemoteModelCatalogStale => "AI_REMOTE_MODEL_CATALOG_STALE",
             Self::AiProviderEndpointForbidden => "AI_PROVIDER_ENDPOINT_FORBIDDEN",
             Self::AiProviderAuthFailed => "AI_PROVIDER_AUTH_FAILED",
             Self::AiProviderInternal => "AI_PROVIDER_INTERNAL",
@@ -419,6 +432,9 @@ impl ReasonCode {
             Self::WfNodeConfigMismatch => "WF_NODE_CONFIG_MISMATCH",
             Self::WfTimeout => "WF_TIMEOUT",
             Self::WfTaskNotFound => "WF_TASK_NOT_FOUND",
+            Self::AiMemoryEmbeddingTargetRefInvalid => {
+                "AI_MEMORY_EMBEDDING_TARGET_REF_INVALID"
+            }
             Self::AppModeDomainForbidden => "APP_MODE_DOMAIN_FORBIDDEN",
             Self::AppModeScopeForbidden => "APP_MODE_SCOPE_FORBIDDEN",
             Self::AppModeManifestInvalid => "APP_MODE_MANIFEST_INVALID",
@@ -572,6 +588,7 @@ impl ReasonCode {
             "AI_CONNECTOR_IMMUTABLE" => Some(Self::AiConnectorImmutable),
             "AI_CONNECTOR_LIMIT_EXCEEDED" => Some(Self::AiConnectorLimitExceeded),
             "AI_CONNECTOR_ID_REQUIRED" => Some(Self::AiConnectorIdRequired),
+            "AI_LOCAL_CONNECTOR_RETIRED" => Some(Self::AiLocalConnectorRetired),
             "AI_REQUEST_CREDENTIAL_CONFLICT" => Some(Self::AiRequestCredentialConflict),
             "AI_APP_ID_REQUIRED" => Some(Self::AiAppIdRequired),
             "AI_APP_ID_CONFLICT" => Some(Self::AiAppIdConflict),
@@ -613,7 +630,15 @@ impl ReasonCode {
             "AI_LOCAL_PROFILE_OVERRIDE_FORBIDDEN" => {
                 Some(Self::AiLocalProfileOverrideForbidden)
             }
+            "AI_LOCAL_COMPONENT_COMPATIBILITY_UNKNOWN" => {
+                Some(Self::AiLocalComponentCompatibilityUnknown)
+            }
+            "AI_LOCAL_COMPONENT_INCOMPATIBLE" => Some(Self::AiLocalComponentIncompatible),
             "AI_MODEL_PROVIDER_MISMATCH" => Some(Self::AiModelProviderMismatch),
+            "AI_REMOTE_MODEL_CATALOG_ID_REQUIRED" => {
+                Some(Self::AiRemoteModelCatalogIdRequired)
+            }
+            "AI_REMOTE_MODEL_CATALOG_STALE" => Some(Self::AiRemoteModelCatalogStale),
             "AI_PROVIDER_ENDPOINT_FORBIDDEN" => Some(Self::AiProviderEndpointForbidden),
             "AI_PROVIDER_AUTH_FAILED" => Some(Self::AiProviderAuthFailed),
             "AI_PROVIDER_INTERNAL" => Some(Self::AiProviderInternal),
@@ -641,6 +666,9 @@ impl ReasonCode {
             "WF_NODE_CONFIG_MISMATCH" => Some(Self::WfNodeConfigMismatch),
             "WF_TIMEOUT" => Some(Self::WfTimeout),
             "WF_TASK_NOT_FOUND" => Some(Self::WfTaskNotFound),
+            "AI_MEMORY_EMBEDDING_TARGET_REF_INVALID" => {
+                Some(Self::AiMemoryEmbeddingTargetRefInvalid)
+            }
             "APP_MODE_DOMAIN_FORBIDDEN" => Some(Self::AppModeDomainForbidden),
             "APP_MODE_SCOPE_FORBIDDEN" => Some(Self::AppModeScopeForbidden),
             "APP_MODE_MANIFEST_INVALID" => Some(Self::AppModeManifestInvalid),
@@ -3374,6 +3402,104 @@ impl SchedulingState {
     }
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RuntimeDurableLocalTargetRef {
+    #[prost(string, tag = "1")]
+    pub version: ::prost::alloc::string::String,
+    #[prost(oneof = "runtime_durable_local_target_ref::Ref", tags = "2, 3")]
+    pub r#ref: ::core::option::Option<runtime_durable_local_target_ref::Ref>,
+}
+/// Nested message and enum types in `RuntimeDurableLocalTargetRef`.
+pub mod runtime_durable_local_target_ref {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Ref {
+        #[prost(string, tag = "2")]
+        ProfileBindingId(::prost::alloc::string::String),
+        #[prost(string, tag = "3")]
+        ReadinessRef(::prost::alloc::string::String),
+    }
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RuntimeDurableCloudTargetRef {
+    #[prost(string, tag = "1")]
+    pub version: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub connector_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub remote_model_catalog_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub provider_model_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub provider: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RuntimeDurableTargetRef {
+    #[prost(oneof = "runtime_durable_target_ref::Target", tags = "1, 2")]
+    pub target: ::core::option::Option<runtime_durable_target_ref::Target>,
+}
+/// Nested message and enum types in `RuntimeDurableTargetRef`.
+pub mod runtime_durable_target_ref {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Target {
+        #[prost(message, tag = "1")]
+        LocalRuntime(super::RuntimeDurableLocalTargetRef),
+        #[prost(message, tag = "2")]
+        Cloud(super::RuntimeDurableCloudTargetRef),
+    }
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RuntimeResolvedLocalExecutionBinding {
+    #[prost(string, tag = "1")]
+    pub profile_binding_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub readiness_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub local_asset_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub execution_profile_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub resolved_model_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RuntimeResolvedCloudExecutionBinding {
+    #[prost(string, tag = "1")]
+    pub connector_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub remote_model_catalog_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub provider_model_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub provider: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub endpoint_profile_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub connector_snapshot_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RuntimeResolvedExecutionBinding {
+    #[prost(string, tag = "1")]
+    pub binding_version: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub capability: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub resolved_binding_ref: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "4")]
+    pub source_target_ref: ::core::option::Option<RuntimeDurableTargetRef>,
+    #[prost(string, tag = "5")]
+    pub route_metadata_ref: ::prost::alloc::string::String,
+    #[prost(oneof = "runtime_resolved_execution_binding::Binding", tags = "10, 11")]
+    pub binding: ::core::option::Option<runtime_resolved_execution_binding::Binding>,
+}
+/// Nested message and enum types in `RuntimeResolvedExecutionBinding`.
+pub mod runtime_resolved_execution_binding {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Binding {
+        #[prost(message, tag = "10")]
+        LocalRuntime(super::RuntimeResolvedLocalExecutionBinding),
+        #[prost(message, tag = "11")]
+        Cloud(super::RuntimeResolvedCloudExecutionBinding),
+    }
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct VoiceReference {
     #[prost(enumeration = "VoiceReferenceKind", tag = "1")]
     pub kind: i32,
@@ -3849,6 +3975,8 @@ pub struct ScenarioRequestHead {
     pub timeout_ms: i32,
     #[prost(string, tag = "7")]
     pub connector_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "8")]
+    pub target_ref: ::core::option::Option<RuntimeDurableTargetRef>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ScenarioExtension {
@@ -4262,6 +4390,10 @@ pub struct ExecuteScenarioResponse {
     pub trace_id: ::prost::alloc::string::String,
     #[prost(message, repeated, tag = "7")]
     pub ignored_extensions: ::prost::alloc::vec::Vec<IgnoredScenarioExtension>,
+    #[prost(message, optional, tag = "8")]
+    pub resolved_execution_binding: ::core::option::Option<
+        RuntimeResolvedExecutionBinding,
+    >,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct StreamScenarioRequest {
@@ -4282,6 +4414,10 @@ pub struct ScenarioStreamStarted {
     pub model_resolved: ::prost::alloc::string::String,
     #[prost(enumeration = "RoutePolicy", tag = "2")]
     pub route_decision: i32,
+    #[prost(message, optional, tag = "3")]
+    pub resolved_execution_binding: ::core::option::Option<
+        RuntimeResolvedExecutionBinding,
+    >,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct TextStreamDelta {
@@ -6092,6 +6228,14 @@ pub struct LocalAssetRecord {
     /// Passive-only fields
     #[prost(message, optional, tag = "40")]
     pub metadata: ::core::option::Option<::prost_types::Struct>,
+    /// Installed instance display/import facts. local_asset_id remains the
+    /// installed instance identity; display_name is user-editable and non-identity.
+    #[prost(string, tag = "41")]
+    pub display_name: ::prost::alloc::string::String,
+    #[prost(string, tag = "42")]
+    pub source_file_name: ::prost::alloc::string::String,
+    #[prost(string, tag = "43")]
+    pub import_instance_id: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LocalAssetHealth {
@@ -15552,13 +15696,27 @@ pub struct MemoryEmbeddingProfile {
 pub struct MemoryEmbeddingCloudBindingRef {
     #[prost(string, tag = "1")]
     pub connector_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub model_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub remote_model_catalog_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub provider_model_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub provider: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct MemoryEmbeddingLocalBindingRef {
-    #[prost(string, tag = "1")]
-    pub target_id: ::prost::alloc::string::String,
+    #[prost(oneof = "memory_embedding_local_binding_ref::Ref", tags = "2, 3")]
+    pub r#ref: ::core::option::Option<memory_embedding_local_binding_ref::Ref>,
+}
+/// Nested message and enum types in `MemoryEmbeddingLocalBindingRef`.
+pub mod memory_embedding_local_binding_ref {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Ref {
+        #[prost(string, tag = "2")]
+        ProfileBindingId(::prost::alloc::string::String),
+        #[prost(string, tag = "3")]
+        ReadinessRef(::prost::alloc::string::String),
+    }
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct MemoryEmbeddingBindingIntentSnapshot {

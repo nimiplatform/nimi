@@ -1133,11 +1133,13 @@ func (x *MemoryEmbeddingProfile) GetMigrationPolicy() MemoryMigrationPolicy {
 }
 
 type MemoryEmbeddingCloudBindingRef struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ConnectorId   string                 `protobuf:"bytes,1,opt,name=connector_id,json=connectorId,proto3" json:"connector_id,omitempty"`
-	ModelId       string                 `protobuf:"bytes,2,opt,name=model_id,json=modelId,proto3" json:"model_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                protoimpl.MessageState `protogen:"open.v1"`
+	ConnectorId          string                 `protobuf:"bytes,1,opt,name=connector_id,json=connectorId,proto3" json:"connector_id,omitempty"`
+	RemoteModelCatalogId string                 `protobuf:"bytes,3,opt,name=remote_model_catalog_id,json=remoteModelCatalogId,proto3" json:"remote_model_catalog_id,omitempty"`
+	ProviderModelId      string                 `protobuf:"bytes,4,opt,name=provider_model_id,json=providerModelId,proto3" json:"provider_model_id,omitempty"`
+	Provider             string                 `protobuf:"bytes,5,opt,name=provider,proto3" json:"provider,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *MemoryEmbeddingCloudBindingRef) Reset() {
@@ -1177,16 +1179,34 @@ func (x *MemoryEmbeddingCloudBindingRef) GetConnectorId() string {
 	return ""
 }
 
-func (x *MemoryEmbeddingCloudBindingRef) GetModelId() string {
+func (x *MemoryEmbeddingCloudBindingRef) GetRemoteModelCatalogId() string {
 	if x != nil {
-		return x.ModelId
+		return x.RemoteModelCatalogId
+	}
+	return ""
+}
+
+func (x *MemoryEmbeddingCloudBindingRef) GetProviderModelId() string {
+	if x != nil {
+		return x.ProviderModelId
+	}
+	return ""
+}
+
+func (x *MemoryEmbeddingCloudBindingRef) GetProvider() string {
+	if x != nil {
+		return x.Provider
 	}
 	return ""
 }
 
 type MemoryEmbeddingLocalBindingRef struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TargetId      string                 `protobuf:"bytes,1,opt,name=target_id,json=targetId,proto3" json:"target_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to Ref:
+	//
+	//	*MemoryEmbeddingLocalBindingRef_ProfileBindingId
+	//	*MemoryEmbeddingLocalBindingRef_ReadinessRef
+	Ref           isMemoryEmbeddingLocalBindingRef_Ref `protobuf_oneof:"ref"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1221,12 +1241,46 @@ func (*MemoryEmbeddingLocalBindingRef) Descriptor() ([]byte, []int) {
 	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{11}
 }
 
-func (x *MemoryEmbeddingLocalBindingRef) GetTargetId() string {
+func (x *MemoryEmbeddingLocalBindingRef) GetRef() isMemoryEmbeddingLocalBindingRef_Ref {
 	if x != nil {
-		return x.TargetId
+		return x.Ref
+	}
+	return nil
+}
+
+func (x *MemoryEmbeddingLocalBindingRef) GetProfileBindingId() string {
+	if x != nil {
+		if x, ok := x.Ref.(*MemoryEmbeddingLocalBindingRef_ProfileBindingId); ok {
+			return x.ProfileBindingId
+		}
 	}
 	return ""
 }
+
+func (x *MemoryEmbeddingLocalBindingRef) GetReadinessRef() string {
+	if x != nil {
+		if x, ok := x.Ref.(*MemoryEmbeddingLocalBindingRef_ReadinessRef); ok {
+			return x.ReadinessRef
+		}
+	}
+	return ""
+}
+
+type isMemoryEmbeddingLocalBindingRef_Ref interface {
+	isMemoryEmbeddingLocalBindingRef_Ref()
+}
+
+type MemoryEmbeddingLocalBindingRef_ProfileBindingId struct {
+	ProfileBindingId string `protobuf:"bytes,2,opt,name=profile_binding_id,json=profileBindingId,proto3,oneof"`
+}
+
+type MemoryEmbeddingLocalBindingRef_ReadinessRef struct {
+	ReadinessRef string `protobuf:"bytes,3,opt,name=readiness_ref,json=readinessRef,proto3,oneof"`
+}
+
+func (*MemoryEmbeddingLocalBindingRef_ProfileBindingId) isMemoryEmbeddingLocalBindingRef_Ref() {}
+
+func (*MemoryEmbeddingLocalBindingRef_ReadinessRef) isMemoryEmbeddingLocalBindingRef_Ref() {}
 
 type MemoryEmbeddingBindingIntentSnapshot struct {
 	state         protoimpl.MessageState          `protogen:"open.v1"`
@@ -4771,12 +4825,16 @@ const file_runtime_v1_memory_proto_rawDesc = "" +
 	"\tdimension\x18\x03 \x01(\x05R\tdimension\x12N\n" +
 	"\x0fdistance_metric\x18\x04 \x01(\x0e2%.nimi.runtime.v1.MemoryDistanceMetricR\x0edistanceMetric\x12\x18\n" +
 	"\aversion\x18\x05 \x01(\tR\aversion\x12Q\n" +
-	"\x10migration_policy\x18\x06 \x01(\x0e2&.nimi.runtime.v1.MemoryMigrationPolicyR\x0fmigrationPolicy\"^\n" +
+	"\x10migration_policy\x18\x06 \x01(\x0e2&.nimi.runtime.v1.MemoryMigrationPolicyR\x0fmigrationPolicy\"\xd2\x01\n" +
 	"\x1eMemoryEmbeddingCloudBindingRef\x12!\n" +
-	"\fconnector_id\x18\x01 \x01(\tR\vconnectorId\x12\x19\n" +
-	"\bmodel_id\x18\x02 \x01(\tR\amodelId\"=\n" +
-	"\x1eMemoryEmbeddingLocalBindingRef\x12\x1b\n" +
-	"\ttarget_id\x18\x01 \x01(\tR\btargetId\"\x9a\x02\n" +
+	"\fconnector_id\x18\x01 \x01(\tR\vconnectorId\x125\n" +
+	"\x17remote_model_catalog_id\x18\x03 \x01(\tR\x14remoteModelCatalogId\x12*\n" +
+	"\x11provider_model_id\x18\x04 \x01(\tR\x0fproviderModelId\x12\x1a\n" +
+	"\bprovider\x18\x05 \x01(\tR\bproviderJ\x04\b\x02\x10\x03R\bmodel_id\"\x8f\x01\n" +
+	"\x1eMemoryEmbeddingLocalBindingRef\x12.\n" +
+	"\x12profile_binding_id\x18\x02 \x01(\tH\x00R\x10profileBindingId\x12%\n" +
+	"\rreadiness_ref\x18\x03 \x01(\tH\x00R\freadinessRefB\x05\n" +
+	"\x03refJ\x04\b\x01\x10\x02R\ttarget_id\"\x9a\x02\n" +
 	"$MemoryEmbeddingBindingIntentSnapshot\x12\x1f\n" +
 	"\vsource_kind\x18\x01 \x01(\tR\n" +
 	"sourceKind\x12T\n" +
@@ -5343,6 +5401,10 @@ func file_runtime_v1_memory_proto_init() {
 		(*MemoryBankOwnerFilter_WorldShared)(nil),
 		(*MemoryBankOwnerFilter_AppPrivate)(nil),
 		(*MemoryBankOwnerFilter_WorkspacePrivate)(nil),
+	}
+	file_runtime_v1_memory_proto_msgTypes[11].OneofWrappers = []any{
+		(*MemoryEmbeddingLocalBindingRef_ProfileBindingId)(nil),
+		(*MemoryEmbeddingLocalBindingRef_ReadinessRef)(nil),
 	}
 	file_runtime_v1_memory_proto_msgTypes[19].OneofWrappers = []any{
 		(*MemoryRecordInput_Episodic)(nil),

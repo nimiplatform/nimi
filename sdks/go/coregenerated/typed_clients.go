@@ -442,7 +442,6 @@ type ConnectorKind string
 
 const (
 	CONNECTORKINDUNSPECIFIED ConnectorKind = "CONNECTOR_KIND_UNSPECIFIED"
-	CONNECTORKINDLOCALMODEL ConnectorKind = "CONNECTOR_KIND_LOCAL_MODEL"
 	CONNECTORKINDREMOTEMANAGED ConnectorKind = "CONNECTOR_KIND_REMOTE_MANAGED"
 )
 
@@ -728,18 +727,6 @@ const (
 	LOCALBUNDLESTATEDEGRADED LocalBundleState = "LOCAL_BUNDLE_STATE_DEGRADED"
 	LOCALBUNDLESTATEINVALID LocalBundleState = "LOCAL_BUNDLE_STATE_INVALID"
 	LOCALBUNDLESTATEREMOVED LocalBundleState = "LOCAL_BUNDLE_STATE_REMOVED"
-)
-
-type LocalConnectorCategory string
-
-const (
-	LOCALCONNECTORCATEGORYUNSPECIFIED LocalConnectorCategory = "LOCAL_CONNECTOR_CATEGORY_UNSPECIFIED"
-	LOCALCONNECTORCATEGORYLLM LocalConnectorCategory = "LOCAL_CONNECTOR_CATEGORY_LLM"
-	LOCALCONNECTORCATEGORYVISION LocalConnectorCategory = "LOCAL_CONNECTOR_CATEGORY_VISION"
-	LOCALCONNECTORCATEGORYIMAGE LocalConnectorCategory = "LOCAL_CONNECTOR_CATEGORY_IMAGE"
-	LOCALCONNECTORCATEGORYTTS LocalConnectorCategory = "LOCAL_CONNECTOR_CATEGORY_TTS"
-	LOCALCONNECTORCATEGORYSTT LocalConnectorCategory = "LOCAL_CONNECTOR_CATEGORY_STT"
-	LOCALCONNECTORCATEGORYCUSTOM LocalConnectorCategory = "LOCAL_CONNECTOR_CATEGORY_CUSTOM"
 )
 
 type LocalEngineRuntimeMode string
@@ -1255,6 +1242,7 @@ const (
 	AICONNECTORIMMUTABLE ReasonCode = "AI_CONNECTOR_IMMUTABLE"
 	AICONNECTORLIMITEXCEEDED ReasonCode = "AI_CONNECTOR_LIMIT_EXCEEDED"
 	AICONNECTORIDREQUIRED ReasonCode = "AI_CONNECTOR_ID_REQUIRED"
+	AILOCALCONNECTORRETIRED ReasonCode = "AI_LOCAL_CONNECTOR_RETIRED"
 	AIREQUESTCREDENTIALCONFLICT ReasonCode = "AI_REQUEST_CREDENTIAL_CONFLICT"
 	AIAPPIDREQUIRED ReasonCode = "AI_APP_ID_REQUIRED"
 	AIAPPIDCONFLICT ReasonCode = "AI_APP_ID_CONFLICT"
@@ -1282,7 +1270,11 @@ const (
 	AIFINISHCONTENTFILTER ReasonCode = "AI_FINISH_CONTENT_FILTER"
 	AILOCALPROFILESLOTCONFLICT ReasonCode = "AI_LOCAL_PROFILE_SLOT_CONFLICT"
 	AILOCALPROFILEOVERRIDEFORBIDDEN ReasonCode = "AI_LOCAL_PROFILE_OVERRIDE_FORBIDDEN"
+	AILOCALCOMPONENTCOMPATIBILITYUNKNOWN ReasonCode = "AI_LOCAL_COMPONENT_COMPATIBILITY_UNKNOWN"
+	AILOCALCOMPONENTINCOMPATIBLE ReasonCode = "AI_LOCAL_COMPONENT_INCOMPATIBLE"
 	AIMODELPROVIDERMISMATCH ReasonCode = "AI_MODEL_PROVIDER_MISMATCH"
+	AIREMOTEMODELCATALOGIDREQUIRED ReasonCode = "AI_REMOTE_MODEL_CATALOG_ID_REQUIRED"
+	AIREMOTEMODELCATALOGSTALE ReasonCode = "AI_REMOTE_MODEL_CATALOG_STALE"
 	AIPROVIDERENDPOINTFORBIDDEN ReasonCode = "AI_PROVIDER_ENDPOINT_FORBIDDEN"
 	AIPROVIDERAUTHFAILED ReasonCode = "AI_PROVIDER_AUTH_FAILED"
 	AIPROVIDERINTERNAL ReasonCode = "AI_PROVIDER_INTERNAL"
@@ -1310,6 +1302,7 @@ const (
 	WFNODECONFIGMISMATCH ReasonCode = "WF_NODE_CONFIG_MISMATCH"
 	WFTIMEOUT ReasonCode = "WF_TIMEOUT"
 	WFTASKNOTFOUND ReasonCode = "WF_TASK_NOT_FOUND"
+	AIMEMORYEMBEDDINGTARGETREFINVALID ReasonCode = "AI_MEMORY_EMBEDDING_TARGET_REF_INVALID"
 	APPMODEDOMAINFORBIDDEN ReasonCode = "APP_MODE_DOMAIN_FORBIDDEN"
 	APPMODESCOPEFORBIDDEN ReasonCode = "APP_MODE_SCOPE_FORBIDDEN"
 	APPMODEMANIFESTINVALID ReasonCode = "APP_MODE_MANIFEST_INVALID"
@@ -2879,7 +2872,6 @@ type Connector struct {
 	Endpoint string `json:"endpoint,omitempty"`
 	Label string `json:"label,omitempty"`
 	Status ConnectorStatus `json:"status,omitempty"`
-	LocalCategory LocalConnectorCategory `json:"local_category,omitempty"`
 	HasCredential bool `json:"has_credential,omitempty"`
 	CreatedAt string `json:"created_at,omitempty"`
 	UpdatedAt string `json:"updated_at,omitempty"`
@@ -2892,6 +2884,12 @@ type ConnectorModelDescriptor struct {
 	ModelLabel string `json:"model_label,omitempty"`
 	Available bool `json:"available,omitempty"`
 	Capabilities []string `json:"capabilities,omitempty"`
+	RemoteModelCatalogId string `json:"remote_model_catalog_id,omitempty"`
+	ProviderModelId string `json:"provider_model_id,omitempty"`
+	Provider string `json:"provider,omitempty"`
+	ConnectorSnapshotId string `json:"connector_snapshot_id,omitempty"`
+	EndpointProfileId string `json:"endpoint_profile_id,omitempty"`
+	InventorySnapshotId string `json:"inventory_snapshot_id,omitempty"`
 }
 
 type ConsentRef struct {
@@ -3289,6 +3287,7 @@ type ExecuteScenarioResponse struct {
 	ModelResolved string `json:"model_resolved,omitempty"`
 	TraceId string `json:"trace_id,omitempty"`
 	IgnoredExtensions []IgnoredScenarioExtension `json:"ignored_extensions,omitempty"`
+	ResolvedExecutionBinding *RuntimeResolvedExecutionBinding `json:"resolved_execution_binding,omitempty"`
 }
 
 type ExecutionBaselineCapabilityProof struct {
@@ -4668,6 +4667,9 @@ type LocalAssetRecord struct {
 	Endpoint string `json:"endpoint,omitempty"`
 	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 	Metadata map[string]any `json:"metadata,omitempty"`
+	DisplayName string `json:"display_name,omitempty"`
+	SourceFileName string `json:"source_file_name,omitempty"`
+	ImportInstanceId string `json:"import_instance_id,omitempty"`
 }
 
 type LocalAssetSource struct {
@@ -5376,11 +5378,14 @@ type MemoryEmbeddingBindingIntentSnapshot struct {
 
 type MemoryEmbeddingCloudBindingRef struct {
 	ConnectorId string `json:"connector_id,omitempty"`
-	ModelId string `json:"model_id,omitempty"`
+	RemoteModelCatalogId string `json:"remote_model_catalog_id,omitempty"`
+	ProviderModelId string `json:"provider_model_id,omitempty"`
+	Provider string `json:"provider,omitempty"`
 }
 
 type MemoryEmbeddingLocalBindingRef struct {
-	TargetId string `json:"target_id,omitempty"`
+	ProfileBindingId string `json:"profile_binding_id,omitempty"`
+	ReadinessRef string `json:"readiness_ref,omitempty"`
 }
 
 type MemoryEmbeddingOperationReadiness struct {
@@ -6639,6 +6644,25 @@ type RuntimeConversationAnchorRefBlock struct {
 	ConversationAnchorId string `json:"conversation_anchor_id,omitempty"`
 }
 
+type RuntimeDurableCloudTargetRef struct {
+	Version string `json:"version,omitempty"`
+	ConnectorId string `json:"connector_id,omitempty"`
+	RemoteModelCatalogId string `json:"remote_model_catalog_id,omitempty"`
+	ProviderModelId string `json:"provider_model_id,omitempty"`
+	Provider string `json:"provider,omitempty"`
+}
+
+type RuntimeDurableLocalTargetRef struct {
+	Version string `json:"version,omitempty"`
+	ProfileBindingId string `json:"profile_binding_id,omitempty"`
+	ReadinessRef string `json:"readiness_ref,omitempty"`
+}
+
+type RuntimeDurableTargetRef struct {
+	LocalRuntime *RuntimeDurableLocalTargetRef `json:"local_runtime,omitempty"`
+	Cloud *RuntimeDurableCloudTargetRef `json:"cloud,omitempty"`
+}
+
 type RuntimeHealthEvent struct {
 	Sequence uint64 `json:"sequence,omitempty"`
 	Status RuntimeHealthStatus `json:"status,omitempty"`
@@ -6650,6 +6674,33 @@ type RuntimeHealthEvent struct {
 	MemoryBytes int64 `json:"memory_bytes,omitempty"`
 	VramBytes int64 `json:"vram_bytes,omitempty"`
 	SampledAt string `json:"sampled_at,omitempty"`
+}
+
+type RuntimeResolvedCloudExecutionBinding struct {
+	ConnectorId string `json:"connector_id,omitempty"`
+	RemoteModelCatalogId string `json:"remote_model_catalog_id,omitempty"`
+	ProviderModelId string `json:"provider_model_id,omitempty"`
+	Provider string `json:"provider,omitempty"`
+	EndpointProfileId string `json:"endpoint_profile_id,omitempty"`
+	ConnectorSnapshotId string `json:"connector_snapshot_id,omitempty"`
+}
+
+type RuntimeResolvedExecutionBinding struct {
+	BindingVersion string `json:"binding_version,omitempty"`
+	Capability string `json:"capability,omitempty"`
+	ResolvedBindingRef string `json:"resolved_binding_ref,omitempty"`
+	SourceTargetRef *RuntimeDurableTargetRef `json:"source_target_ref,omitempty"`
+	RouteMetadataRef string `json:"route_metadata_ref,omitempty"`
+	LocalRuntime *RuntimeResolvedLocalExecutionBinding `json:"local_runtime,omitempty"`
+	Cloud *RuntimeResolvedCloudExecutionBinding `json:"cloud,omitempty"`
+}
+
+type RuntimeResolvedLocalExecutionBinding struct {
+	ProfileBindingId string `json:"profile_binding_id,omitempty"`
+	ReadinessRef string `json:"readiness_ref,omitempty"`
+	LocalAssetId string `json:"local_asset_id,omitempty"`
+	ExecutionProfileId string `json:"execution_profile_id,omitempty"`
+	ResolvedModelId string `json:"resolved_model_id,omitempty"`
 }
 
 type ScaffoldOrphanAssetRequest struct {
@@ -6760,6 +6811,7 @@ type ScenarioRequestHead struct {
 	Fallback FallbackPolicy `json:"fallback,omitempty"`
 	TimeoutMs int32 `json:"timeout_ms,omitempty"`
 	ConnectorId string `json:"connector_id,omitempty"`
+	TargetRef *RuntimeDurableTargetRef `json:"target_ref,omitempty"`
 }
 
 type ScenarioRunRefBlock struct {
@@ -6801,6 +6853,7 @@ type ScenarioStreamFailed struct {
 type ScenarioStreamStarted struct {
 	ModelResolved string `json:"model_resolved,omitempty"`
 	RouteDecision RoutePolicy `json:"route_decision,omitempty"`
+	ResolvedExecutionBinding *RuntimeResolvedExecutionBinding `json:"resolved_execution_binding,omitempty"`
 }
 
 type SchedulingEvaluationTarget struct {
