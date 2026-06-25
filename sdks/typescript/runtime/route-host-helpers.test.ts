@@ -56,16 +56,14 @@ function localAssetRecord(overrides: Partial<{
 }
 
 test('Runtime host route options project generated Runtime enums to SDK route strings', async () => {
-  const selectedBinding = {
-    source: 'local' as const,
-    connectorId: '',
-    model: 'llama/tester',
-    localModelId: 'asset-local-1',
-    engine: 'llama',
+  const selectedTargetRef = {
+    kind: 'local-runtime' as const,
+    version: 'v2' as const,
+    profileBindingId: 'local-runtime:asset-local-1',
   };
   const snapshot = await listNimiRuntimeRouteOptionsWithHost({
     capability: 'text.generate',
-    selectedBinding,
+    selectedTargetRef,
   }, {
     listConnectors: async () => [{
       id: 'cloud-1',
@@ -74,6 +72,10 @@ test('Runtime host route options project generated Runtime enums to SDK route st
     }],
     listConnectorModelDescriptors: async () => [{
       modelId: 'cloud-model',
+      modelLabel: 'Cloud Model',
+      remoteModelCatalogId: 'remote-catalog:cloud-model',
+      providerModelId: 'cloud-model',
+      provider: 'tester',
       capabilities: ['text.generate'],
     }],
     loadLocalRouteMetadata: async () => ({
@@ -95,11 +97,13 @@ test('Runtime host route options project generated Runtime enums to SDK route st
     }),
   });
 
-  assert.equal(snapshot.selected?.source, 'local');
-  assert.equal(snapshot.selected?.goRuntimeStatus, 'active');
-  assert.equal(snapshot.local.models[0]?.status, 'active');
-  assert.equal(snapshot.local.models[0]?.capabilities[0], 'text.generate');
-  assert.deepEqual(snapshot.connectors[0]?.models, ['cloud-model']);
+  assert.deepEqual(snapshot.selectedTargetRef, selectedTargetRef);
+  const localTarget = snapshot.inventory.targets.find((item) => item.evidence.source === 'local-runtime');
+  const cloudTarget = snapshot.inventory.targets.find((item) => item.evidence.source === 'cloud-connector');
+  assert.equal(localTarget?.readiness.status, 'active');
+  assert.equal(localTarget?.compatibility.capabilities[0], 'text.generate');
+  assert.equal(cloudTarget?.targetRef.kind, 'cloud-connector');
+  assert.equal(cloudTarget?.targetRef.kind === 'cloud-connector' ? cloudTarget.targetRef.remoteModelCatalogId : '', 'remote-catalog:cloud-model');
 });
 
 test('Runtime host route options default deps page through generated Runtime modules', async () => {
@@ -134,6 +138,9 @@ test('Runtime host route options default deps page through generated Runtime mod
             modelLabel: 'Cloud Model',
             available: true,
             capabilities: ['text.generate'],
+            remoteModelCatalogId: 'remote-catalog:cloud-model',
+            providerModelId: 'cloud-model',
+            provider: 'tester',
           }],
           nextPageToken: '',
         };
@@ -152,21 +159,25 @@ test('Runtime host route options default deps page through generated Runtime mod
 
   const snapshot = await listNimiRuntimeRouteOptionsWithHost({ capability: 'chat' }, deps);
   assert.equal(snapshot.capability, 'text.generate');
-  assert.equal(snapshot.local.models[0]?.goRuntimeStatus, 'active');
+  assert.equal(snapshot.inventory.targets.find((item) => item.evidence.source === 'local-runtime')?.readiness.status, 'active');
   assert.deepEqual(calls, ['connectors:2:1', 'local:0:0', 'models:cloud-1']);
 });
 
 test('Runtime host route access builds call options and checks Runtime health sources', async () => {
   const resolved: NimiRuntimeResolvedBinding = {
     capability: 'text.generate',
-    source: 'local',
-    connectorId: '',
+    source: 'local-runtime',
+    targetRef: {
+      kind: 'local-runtime',
+      version: 'v2',
+      profileBindingId: 'local-runtime:asset-local-1',
+    },
+    resolvedBindingRef: 'local:text.generate:local-runtime%3Aasset-local-1',
     model: 'llama/tester',
     modelId: 'llama/tester',
     provider: 'llama',
     engine: 'llama',
-    localModelId: 'asset-local-1',
-    goRuntimeLocalModelId: 'asset-local-1',
+    localAssetId: 'asset-local-1',
   };
   const surface = createNimiHostRuntimeRouteAccessSurface({
     appId: 'nimi.test',
@@ -206,12 +217,12 @@ test('Runtime host route access builds call options and checks Runtime health so
   const health = await surface.checkLocalHealth({
     provider: 'llama',
     capability: 'text.generate',
-    localModelId: 'asset-local-1',
+    localAssetId: 'asset-local-1',
   });
   assert.equal(health.status, 'healthy');
 
   const options = await surface.buildCallOptions({
-    source: 'local',
+    source: 'local-runtime',
     targetId: 'core.chat.agent',
     timeoutMs: 120000,
   });
@@ -228,13 +239,10 @@ test('Runtime host route options fail closed instead of promoting degraded local
   const calls: string[] = [];
   const mismatches: unknown[] = [];
   const scope = {};
-  const selectedBinding = {
-    source: 'local' as const,
-    connectorId: '',
-    model: 'llama/tester',
-    modelId: 'llama/tester',
-    localModelId: 'missing-local',
-    engine: 'llama',
+  const selectedTargetRef = {
+    kind: 'local-runtime' as const,
+    version: 'v2' as const,
+    profileBindingId: 'local-runtime:missing-local',
   };
   const deps = {
     scope,
@@ -248,8 +256,20 @@ test('Runtime host route options fail closed instead of promoting degraded local
     async listConnectorModelDescriptors(connectorId: string) {
       calls.push(`models:${connectorId}`);
       return [
-        { modelId: 'cloud-text', capabilities: ['text.generate'] },
-        { modelId: 'cloud-image', capabilities: ['image.generate'] },
+        {
+          modelId: 'cloud-text',
+          remoteModelCatalogId: 'remote-catalog:cloud-text',
+          providerModelId: 'cloud-text',
+          provider: 'tester',
+          capabilities: ['text.generate'],
+        },
+        {
+          modelId: 'cloud-image',
+          remoteModelCatalogId: 'remote-catalog:cloud-image',
+          providerModelId: 'cloud-image',
+          provider: 'tester',
+          capabilities: ['image.generate'],
+        },
       ];
     },
     async loadLocalRouteMetadata() {
@@ -289,36 +309,50 @@ test('Runtime host route options fail closed instead of promoting degraded local
     listNimiRuntimeRouteOptionsWithHost({
       capability: 'chat',
       targetId: 'route-options',
-      selectedBinding,
+      selectedTargetRef,
     }, deps),
     listNimiRuntimeRouteOptionsWithHost({
       capability: 'chat',
       targetId: 'route-options',
-      selectedBinding,
+      selectedTargetRef,
     }, deps),
   ]);
 
   assert.deepEqual(first, second);
   assert.deepEqual(calls.sort(), ['connectors', 'local', 'models:cloud-1'].sort());
   assert.equal(first.capability, 'text.generate');
-  assert.equal(first.selected, null);
-  assert.equal(first.local.models.length, 0);
-  assert.equal(first.local.defaultEndpoint, undefined);
-  assert.deepEqual(first.connectors[0]?.models, ['cloud-text']);
+  assert.equal(first.selectedTargetRef, null);
+  assert.equal(first.inventory.targets.some((item) => item.evidence.source === 'local-runtime'), false);
+  assert.deepEqual(first.inventory.targets.map((item) => item.targetRef.kind === 'cloud-connector' ? item.targetRef.providerModelId : '').filter(Boolean), ['cloud-text']);
   assert.equal(mismatches.length, 0);
 
   const directProjection = buildNimiRuntimeRouteOptionsProjection({
     capability: 'image.generate',
-    selectedBinding: {
-      source: 'cloud',
+    selectedTargetRef: {
+      kind: 'cloud-connector',
+      version: 'v2',
       connectorId: 'cloud-1',
-      model: 'cloud-image',
+      remoteModelCatalogId: 'remote-catalog:cloud-image',
+      providerModelId: 'cloud-image',
+      provider: 'tester',
     },
     connectors: [{
       descriptor: { id: 'cloud-1', label: 'Cloud', vendor: 'Nimi', provider: 'tester' },
       modelDescriptors: [
-        { modelId: 'cloud-text', capabilities: ['text.generate'] },
-        { modelId: 'cloud-image', capabilities: ['image.generate'] },
+        {
+          modelId: 'cloud-text',
+          remoteModelCatalogId: 'remote-catalog:cloud-text',
+          providerModelId: 'cloud-text',
+          provider: 'tester',
+          capabilities: ['text.generate'],
+        },
+        {
+          modelId: 'cloud-image',
+          remoteModelCatalogId: 'remote-catalog:cloud-image',
+          providerModelId: 'cloud-image',
+          provider: 'tester',
+          capabilities: ['image.generate'],
+        },
       ],
     }],
     runtimeLocalModels: [{
@@ -330,11 +364,11 @@ test('Runtime host route options fail closed instead of promoting degraded local
       capabilities: ['image.generate'],
     }],
   });
-  assert.equal(directProjection.selected?.provider, 'tester');
-  assert.equal(directProjection.local.models.length, 0);
-  assert.deepEqual(directProjection.connectors[0]?.modelCapabilities, {
-    'cloud-image': ['image.generate'],
-  });
+  assert.equal(directProjection.selectedTargetRef?.kind, 'cloud-connector');
+  assert.equal(directProjection.inventory.targets.some((item) => item.evidence.source === 'local-runtime'), false);
+  assert.deepEqual(directProjection.inventory.targets.map((item) => item.compatibility.capabilities), [
+    ['image.generate'],
+  ]);
 });
 
 test('Runtime route host access fails closed and caches local warmups', async () => {
@@ -476,21 +510,25 @@ test('Runtime route host access fails closed and caches local warmups', async ()
     provider: 'llama',
     capability: 'text.generate',
     localProviderModel: 'llama/tester',
-    localModelId: 'throws-local',
+    localAssetId: 'throws-local',
   });
   assert.equal(unreachableLocal.status, 'unreachable');
   assert.equal(unreachableLocal.detail, 'local health failed');
 
   const resolved: NimiRuntimeResolvedBinding = {
     capability: 'text.generate',
-    source: 'local',
-    connectorId: '',
+    source: 'local-runtime',
+    targetRef: {
+      kind: 'local-runtime',
+      version: 'v2',
+      profileBindingId: 'local-runtime:asset-local-1',
+    },
+    resolvedBindingRef: 'local:text.generate:local-runtime%3Aasset-local-1',
     model: 'llama/tester',
     modelId: 'llama/tester',
     provider: 'llama',
     engine: 'llama',
-    localModelId: 'asset-local-1',
-    goRuntimeLocalModelId: 'asset-local-1',
+    localAssetId: 'asset-local-1',
   };
   await surface.ensureLocalModelWarm({
     targetId: 'core.chat.agent',
@@ -553,10 +591,19 @@ test('Runtime route host access fails closed and caches local warmups', async ()
     targetId: 'core.chat.agent',
     resolvedBinding: {
       ...resolved,
-      source: 'cloud',
+      source: 'cloud-connector',
+      targetRef: {
+        kind: 'cloud-connector',
+        version: 'v2',
+        connectorId: 'cloud-1',
+        remoteModelCatalogId: 'remote-catalog:cloud-1',
+        providerModelId: 'cloud-model',
+        provider: 'tester',
+      },
       connectorId: 'cloud-1',
-      localModelId: undefined,
-      goRuntimeLocalModelId: undefined,
+      remoteModelCatalogId: 'remote-catalog:cloud-1',
+      providerModelId: 'cloud-model',
+      localAssetId: undefined,
     },
   });
 });

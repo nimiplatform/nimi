@@ -1,10 +1,13 @@
 import { createNimiError } from '../types';
 import {
+  findNimiRuntimeTargetInventoryItem,
   normalizeNimiRuntimeRouteCapabilityToken,
+  normalizeNimiRuntimeRouteTargetRef,
   runtimeNimiRouteCapabilitiesMatch,
   type NimiRuntimeCanonicalCapability,
-  type NimiRuntimeRouteBinding,
   type NimiRuntimeRouteOptionsSnapshot,
+  type NimiRuntimeRouteTargetRef,
+  type NimiRuntimeTargetInventoryItem,
 } from './route-options';
 import type {
   NimiRuntimeResolvedBinding,
@@ -48,249 +51,138 @@ export function normalizeNimiRuntimeRouteEngineEvidence(value: unknown): string 
   return normalized.toLowerCase().replace(/[^a-z0-9_.-]+/g, '-').replace(/^-+|-+$/g, '');
 }
 
-function sameNimiRuntimeLocalBindingRoute(
-  left: NimiRuntimeRouteBinding,
-  right: NimiRuntimeRouteBinding,
-): boolean {
-  if (left.source !== 'local' || right.source !== 'local') {
-    return false;
+function routeMetadataRefFor(capability: NimiRuntimeCanonicalCapability, targetRef: NimiRuntimeRouteTargetRef): string {
+  if (targetRef.kind === 'cloud-connector') {
+    return [
+      'route-metadata',
+      'cloud',
+      capability,
+      encodeURIComponent(targetRef.connectorId),
+      encodeURIComponent(targetRef.remoteModelCatalogId),
+    ].join(':');
   }
-  const leftLocalModelId = normalizeText(left.localModelId || left.goRuntimeLocalModelId);
-  const rightLocalModelId = normalizeText(right.localModelId || right.goRuntimeLocalModelId);
-  if (leftLocalModelId && rightLocalModelId) {
-    return leftLocalModelId === rightLocalModelId;
-  }
-  const leftModel = normalizeNimiRuntimeRouteModelRoot(left.modelId || left.model);
-  const rightModel = normalizeNimiRuntimeRouteModelRoot(right.modelId || right.model);
-  if (!leftModel || !rightModel || leftModel !== rightModel) {
-    return false;
-  }
-  const leftEngine = normalizeNimiRuntimeRouteEngineEvidence(left.engine || left.provider);
-  const rightEngine = normalizeNimiRuntimeRouteEngineEvidence(right.engine || right.provider);
-  return Boolean(leftEngine && rightEngine && leftEngine === rightEngine);
-}
-
-function sameNimiRuntimeCloudBindingRoute(
-  left: NimiRuntimeRouteBinding,
-  right: NimiRuntimeRouteBinding,
-): boolean {
-  if (left.source !== 'cloud' || right.source !== 'cloud') {
-    return false;
-  }
-  const leftConnectorId = normalizeText(left.connectorId);
-  const rightConnectorId = normalizeText(right.connectorId);
-  const leftModel = normalizeText(left.modelId || left.model);
-  const rightModel = normalizeText(right.modelId || right.model);
-  return Boolean(
-    leftConnectorId
-    && rightConnectorId
-    && leftConnectorId === rightConnectorId
-    && leftModel
-    && rightModel
-    && leftModel === rightModel,
-  );
-}
-
-function sameNimiRuntimeBindingRoute(left: NimiRuntimeRouteBinding, right: NimiRuntimeRouteBinding): boolean {
-  return sameNimiRuntimeLocalBindingRoute(left, right) || sameNimiRuntimeCloudBindingRoute(left, right);
-}
-
-function localOptionToNimiRuntimeBinding(
-  option: NimiRuntimeRouteOptionsSnapshot['local']['models'][number],
-): NimiRuntimeRouteBinding {
-  const modelId = normalizeText(option.modelId || option.model);
-  return {
-    source: 'local',
-    connectorId: '',
-    model: modelId,
-    modelId: modelId || undefined,
-    provider: normalizeText(option.provider || option.engine) || undefined,
-    localModelId: normalizeText(option.localModelId) || undefined,
-    engine: normalizeText(option.engine) || undefined,
-    endpoint: normalizeText(option.endpoint) || undefined,
-    goRuntimeLocalModelId: normalizeText(option.goRuntimeLocalModelId) || undefined,
-    goRuntimeStatus: normalizeText(option.goRuntimeStatus) || undefined,
-  };
-}
-
-function findNimiRuntimeLocalEvidenceByRuntimeAssetId(
-  localModels: readonly NimiRuntimeRouteOptionsSnapshot['local']['models'][number][],
-  localModelId: string,
-): NimiRuntimeRouteOptionsSnapshot['local']['models'][number] | null {
-  const normalized = normalizeText(localModelId);
-  if (!normalized) return null;
-  return localModels.find((item) => (
-    normalizeText(item.localModelId || item.goRuntimeLocalModelId) === normalized
-  )) || null;
-}
-
-function findNimiRuntimeLocalEvidenceByModelToken(input: {
-  readonly capability: NimiRuntimeCanonicalCapability;
-  readonly modelToken: string;
-  readonly engineToken: string;
-  readonly localModels: readonly NimiRuntimeRouteOptionsSnapshot['local']['models'][number][];
-}): NimiRuntimeRouteOptionsSnapshot['local']['models'][number] | null {
-  const modelRoot = normalizeNimiRuntimeRouteModelRoot(input.modelToken);
-  if (!modelRoot) return null;
-  const candidates = input.localModels.filter((item) => (
-    normalizeNimiRuntimeRouteModelRoot(item.modelId || item.model) === modelRoot
-    && (!input.engineToken || normalizeNimiRuntimeRouteEngineEvidence(item.engine || item.provider) === input.engineToken)
-    && runtimeNimiRouteCapabilitiesMatch(item.capabilities, input.capability)
-  ));
-  return candidates.length === 1 ? candidates[0]! : null;
-}
-
-function findNimiRuntimeLocalEvidence(
-  capability: NimiRuntimeCanonicalCapability,
-  binding: NimiRuntimeRouteBinding,
-  localModels: readonly NimiRuntimeRouteOptionsSnapshot['local']['models'][number][],
-): NimiRuntimeRouteBinding | null {
-  const bindingLocalModelId = normalizeText(binding.localModelId || binding.goRuntimeLocalModelId);
-  if (bindingLocalModelId) {
-    const byLocalModelId = findNimiRuntimeLocalEvidenceByRuntimeAssetId(localModels, bindingLocalModelId);
-    if (byLocalModelId) {
-      if (!runtimeNimiRouteCapabilitiesMatch(byLocalModelId.capabilities, capability)) {
-        return null;
-      }
-      return localOptionToNimiRuntimeBinding(byLocalModelId);
-    }
-  }
-
-  const bindingEngine = normalizeNimiRuntimeRouteEngineEvidence(binding.engine || binding.provider);
-  const byModelToken = findNimiRuntimeLocalEvidenceByModelToken({
+  return [
+    'route-metadata',
+    'local',
     capability,
-    modelToken: binding.modelId || binding.model || bindingLocalModelId,
-    engineToken: bindingEngine,
-    localModels,
-  });
-  if (!byModelToken) {
-    return null;
-  }
-  return localOptionToNimiRuntimeBinding(byModelToken);
+    encodeURIComponent(targetRef.profileBindingId || targetRef.readinessRef || ''),
+  ].join(':');
 }
 
-function findNimiRuntimeCloudEvidence(
-  capability: NimiRuntimeCanonicalCapability,
-  binding: NimiRuntimeRouteBinding,
-  connectors: readonly NimiRuntimeRouteOptionsSnapshot['connectors'][number][],
-): NimiRuntimeRouteBinding | null {
-  const connectorId = normalizeText(binding.connectorId);
-  const model = normalizeText(binding.modelId || binding.model);
-  if (!connectorId || !model) return null;
-  const connector = connectors.find((item) => normalizeText(item.id) === connectorId) || null;
-  if (!connector || !connector.models.includes(model)) return null;
-  const modelCapabilities = connector.modelCapabilities?.[model];
-  if (!runtimeNimiRouteCapabilitiesMatch(modelCapabilities, capability)) {
-    return null;
-  }
-  return {
-    ...binding,
-    source: 'cloud',
-    connectorId,
-    model,
-    modelId: model,
-    provider: normalizeText(binding.provider || connector.provider) || undefined,
-  };
-}
-
-function nimiRuntimeResolvedBindingRefFor(
-  capability: NimiRuntimeCanonicalCapability,
-  binding: NimiRuntimeRouteBinding,
-): string {
-  if (binding.source === 'cloud') {
+function resolvedBindingRefFor(capability: NimiRuntimeCanonicalCapability, targetRef: NimiRuntimeRouteTargetRef): string {
+  if (targetRef.kind === 'cloud-connector') {
     return [
       'cloud',
       capability,
-      encodeURIComponent(normalizeText(binding.connectorId)),
-      encodeURIComponent(normalizeText(binding.modelId || binding.model)),
+      encodeURIComponent(targetRef.connectorId),
+      encodeURIComponent(targetRef.remoteModelCatalogId),
+      encodeURIComponent(targetRef.providerModelId),
     ].join(':');
   }
   return [
     'local',
     capability,
-    encodeURIComponent(normalizeNimiRuntimeRouteEngineEvidence(binding.engine || binding.provider)),
-    encodeURIComponent(
-      normalizeText(binding.localModelId || binding.goRuntimeLocalModelId || binding.modelId || binding.model),
-    ),
+    encodeURIComponent(targetRef.profileBindingId || targetRef.readinessRef || ''),
   ].join(':');
 }
 
-function resolveNimiRuntimeCloudBinding(
+function resolveCloudTarget(
   capability: NimiRuntimeCanonicalCapability,
-  binding: NimiRuntimeRouteBinding,
+  targetRef: NimiRuntimeRouteTargetRef,
+  item: NimiRuntimeTargetInventoryItem,
 ): NimiRuntimeResolvedBinding {
-  const connectorId = normalizeText(binding.connectorId);
-  const provider = normalizeText(binding.provider);
-  const modelId = normalizeText(binding.modelId || binding.model);
+  if (targetRef.kind !== 'cloud-connector' || item.evidence.source !== 'cloud-connector') {
+    throw new Error('NIMI_RUNTIME_ROUTE_CLOUD_EVIDENCE_REQUIRED');
+  }
+  const connectorId = normalizeText(item.evidence.connectorId || targetRef.connectorId);
+  const remoteModelCatalogId = normalizeText(item.evidence.remoteModelCatalogId || targetRef.remoteModelCatalogId);
+  const providerModelId = normalizeText(item.evidence.providerModelId || targetRef.providerModelId);
+  const provider = normalizeText(item.evidence.provider || targetRef.provider || item.display.provider);
   if (!connectorId) throw new Error('NIMI_RUNTIME_ROUTE_BINDING_CONNECTOR_REQUIRED');
+  if (!remoteModelCatalogId) throw new Error('NIMI_RUNTIME_ROUTE_REMOTE_MODEL_CATALOG_REQUIRED');
+  if (!providerModelId) throw new Error('NIMI_RUNTIME_ROUTE_PROVIDER_MODEL_REQUIRED');
   if (!provider) throw new Error('NIMI_RUNTIME_ROUTE_BINDING_PROVIDER_REQUIRED');
-  if (!modelId) throw new Error('NIMI_RUNTIME_ROUTE_BINDING_MODEL_REQUIRED');
   return {
-    ...binding,
     capability,
-    source: 'cloud',
+    source: 'cloud-connector',
+    targetRef: {
+      kind: 'cloud-connector',
+      version: 'v2',
+      connectorId,
+      remoteModelCatalogId,
+      providerModelId,
+      provider,
+    },
+    resolvedBindingRef: resolvedBindingRefFor(capability, targetRef),
+    routeMetadataRef: routeMetadataRefFor(capability, targetRef),
     connectorId,
+    remoteModelCatalogId,
+    providerModelId,
     provider,
-    model: modelId,
-    modelId,
-    endpoint: normalizeText(binding.endpoint) || undefined,
-    resolvedBindingRef: nimiRuntimeResolvedBindingRefFor(capability, binding),
+    model: providerModelId,
+    modelId: providerModelId,
+    endpoint: normalizeText(item.evidence.endpoint) || undefined,
+    endpointProfileId: normalizeText(item.evidence.endpointProfileId) || undefined,
+    connectorSnapshotId: normalizeText(item.evidence.connectorSnapshotId) || undefined,
   };
 }
 
-function resolveNimiRuntimeLocalBinding(
+function resolveLocalTarget(
   capability: NimiRuntimeCanonicalCapability,
-  binding: NimiRuntimeRouteBinding,
+  targetRef: NimiRuntimeRouteTargetRef,
+  item: NimiRuntimeTargetInventoryItem,
 ): NimiRuntimeResolvedBinding {
-  const modelId = normalizeNimiRuntimeRouteModelRoot(binding.modelId || binding.model || binding.localModelId);
-  const engine = normalizeNimiRuntimeRouteEngineEvidence(binding.engine || binding.provider);
-  const localModelId = normalizeText(binding.localModelId || binding.goRuntimeLocalModelId);
+  if (targetRef.kind !== 'local-runtime' || item.evidence.source !== 'local-runtime') {
+    throw new Error('NIMI_RUNTIME_ROUTE_LOCAL_EVIDENCE_REQUIRED');
+  }
+  const localAssetId = normalizeText(item.evidence.localAssetId);
+  const modelId = normalizeNimiRuntimeRouteModelRoot(item.evidence.resolvedModelId || item.display.model);
+  const engine = normalizeNimiRuntimeRouteEngineEvidence(item.evidence.engine || item.display.engine || item.display.provider);
+  if (!localAssetId) throw new Error('NIMI_RUNTIME_ROUTE_BINDING_LOCAL_ASSET_REQUIRED');
   if (!modelId) throw new Error('NIMI_RUNTIME_ROUTE_BINDING_MODEL_REQUIRED');
   if (!engine) throw new Error('NIMI_RUNTIME_ROUTE_BINDING_ENGINE_REQUIRED');
-  if (!localModelId) throw new Error('NIMI_RUNTIME_ROUTE_BINDING_LOCAL_MODEL_REQUIRED');
+  const endpoint = normalizeText(item.evidence.endpoint || item.readiness.endpoint) || undefined;
   return {
-    ...binding,
     capability,
-    source: 'local',
-    connectorId: '',
-    provider: normalizeText(binding.provider) || engine,
+    source: 'local-runtime',
+    targetRef,
+    resolvedBindingRef: resolvedBindingRefFor(capability, targetRef),
+    routeMetadataRef: routeMetadataRefFor(capability, targetRef),
+    provider: engine,
     engine,
     model: modelId,
     modelId,
-    localModelId,
-    endpoint: normalizeText(binding.endpoint || binding.localProviderEndpoint || binding.localOpenAiEndpoint) || undefined,
-    localProviderEndpoint: normalizeText(binding.localProviderEndpoint || binding.endpoint) || undefined,
-    localOpenAiEndpoint: normalizeText(binding.localOpenAiEndpoint || binding.endpoint) || undefined,
-    goRuntimeLocalModelId: normalizeText(binding.goRuntimeLocalModelId || binding.localModelId) || undefined,
-    goRuntimeStatus: normalizeText(binding.goRuntimeStatus) || undefined,
-    resolvedBindingRef: nimiRuntimeResolvedBindingRefFor(capability, binding),
+    localAssetId,
+    endpoint,
+    localProviderEndpoint: endpoint,
+    localOpenAiEndpoint: endpoint,
+    localRuntimeStatus: normalizeText(item.evidence.runtimeStatus || item.readiness.status) || undefined,
   };
 }
 
-export function resolveNimiRuntimeRouteBindingFromSnapshot(input: {
+export function resolveNimiRuntimeRouteTargetRefFromSnapshot(input: {
   readonly capability: NimiRuntimeCanonicalCapability;
-  readonly binding: NimiRuntimeRouteBinding | null | undefined;
+  readonly targetRef: NimiRuntimeRouteTargetRef | null | undefined;
   readonly snapshot: NimiRuntimeRouteOptionsSnapshot;
 }): NimiRuntimeResolvedBinding {
-  const binding = input.binding;
-  if (!binding) {
-    throw new Error('NIMI_RUNTIME_ROUTE_BINDING_REQUIRED');
+  if (!input.targetRef) {
+    throw new Error('NIMI_RUNTIME_ROUTE_TARGET_REF_REQUIRED');
   }
-  const selected = input.snapshot.selected && sameNimiRuntimeBindingRoute(binding, input.snapshot.selected)
-    ? input.snapshot.selected
-    : null;
-  const candidate = selected || binding;
-  const evidence = candidate.source === 'cloud'
-    ? findNimiRuntimeCloudEvidence(input.capability, candidate, input.snapshot.connectors)
-    : findNimiRuntimeLocalEvidence(input.capability, candidate, input.snapshot.local.models);
-  if (!evidence) {
-    throw new Error(candidate.source === 'cloud'
+  const targetRef = normalizeNimiRuntimeRouteTargetRef(input.targetRef);
+  const item = findNimiRuntimeTargetInventoryItem(input.snapshot.inventory, targetRef);
+  if (!item) {
+    throw new Error(targetRef.kind === 'cloud-connector'
       ? 'NIMI_RUNTIME_ROUTE_CLOUD_EVIDENCE_REQUIRED'
       : 'NIMI_RUNTIME_ROUTE_LOCAL_EVIDENCE_REQUIRED');
   }
-  return evidence.source === 'cloud'
-    ? resolveNimiRuntimeCloudBinding(input.capability, evidence)
-    : resolveNimiRuntimeLocalBinding(input.capability, evidence);
+  if (!runtimeNimiRouteCapabilitiesMatch(item.compatibility.capabilities, input.capability)) {
+    throw new Error(targetRef.kind === 'cloud-connector'
+      ? 'NIMI_RUNTIME_ROUTE_CLOUD_EVIDENCE_REQUIRED'
+      : 'NIMI_RUNTIME_ROUTE_LOCAL_EVIDENCE_REQUIRED');
+  }
+  return targetRef.kind === 'cloud-connector'
+    ? resolveCloudTarget(input.capability, targetRef, item)
+    : resolveLocalTarget(input.capability, targetRef, item);
 }
 
 export function nimiRuntimeRouteHealthInputFromResolvedBinding(
@@ -300,10 +192,9 @@ export function nimiRuntimeRouteHealthInputFromResolvedBinding(
     provider: normalizeText(resolved.provider || resolved.engine),
     capability: resolved.capability,
     localProviderEndpoint: normalizeText(resolved.localProviderEndpoint || resolved.endpoint) || undefined,
-    localProviderModel: normalizeText(resolved.modelId || resolved.model || resolved.localModelId) || undefined,
+    localProviderModel: normalizeText(resolved.modelId || resolved.model || resolved.providerModelId) || undefined,
     localOpenAiEndpoint: normalizeText(resolved.localOpenAiEndpoint || resolved.endpoint) || undefined,
-    localModelId: normalizeText(resolved.localModelId) || undefined,
-    goRuntimeLocalModelId: normalizeText(resolved.goRuntimeLocalModelId || resolved.localModelId) || undefined,
+    localAssetId: normalizeText(resolved.localAssetId) || undefined,
     connectorId: normalizeText(resolved.connectorId) || undefined,
   };
 }
@@ -316,7 +207,7 @@ export function nimiRuntimeRouteHealthResultFromProviderHealth(input: {
   const actionHint = available
     ? (normalizeText(input.health.actionHint) || 'none')
     : (normalizeText(input.health.actionHint)
-      || (input.resolved.source === 'cloud' ? 'verify-connector' : 'install-local-model'));
+      || (input.resolved.source === 'cloud-connector' ? 'verify-connector' : 'install-local-model'));
   return {
     healthy: available,
     status: available ? normalizeText(input.health.status) : 'unavailable',

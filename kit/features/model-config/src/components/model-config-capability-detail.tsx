@@ -85,8 +85,7 @@ function targetRefCandidateTexts(targetRef: ModelConfigTargetRef | null): string
     return [];
   }
   return [
-    normalizeText(targetRef.targetId),
-    normalizeText(targetRef.profileId),
+    normalizeText(targetRef.profileBindingId),
     normalizeText(targetRef.readinessRef),
     ...normalizeText(targetRef.readinessRef).split(':').map((part) => part.trim()),
   ].filter(Boolean);

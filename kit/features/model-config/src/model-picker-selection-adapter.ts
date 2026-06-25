@@ -18,23 +18,20 @@ export function targetRefToPickerSelection(
       connectorId: normalizeText(targetRef.connectorId),
       model,
       provider: normalizeText(targetRef.provider) || undefined,
+      remoteModelCatalogId: normalizeText(targetRef.remoteModelCatalogId) || undefined,
+      providerModelId: model || undefined,
       modelLabel: model || undefined,
     };
   }
   if (targetRef.kind === 'local-runtime') {
-    const localModelId = normalizeText(targetRef.profileId)
-      || normalizeText(targetRef.readinessRef)
-      || normalizeText(targetRef.targetId);
-    const targetId = normalizeText(targetRef.targetId);
-    const engine = targetId && targetId !== localModelId && targetId !== 'local-runtime'
-      ? targetId
-      : undefined;
+    const localModelId = normalizeText(targetRef.profileBindingId) || normalizeText(targetRef.readinessRef);
     return {
       source: 'local',
       connectorId: '',
       model: localModelId,
       localModelId: localModelId || undefined,
-      engine,
+      profileBindingId: normalizeText(targetRef.profileBindingId) || undefined,
+      readinessRef: normalizeText(targetRef.readinessRef) || undefined,
     };
   }
   return {};
@@ -45,30 +42,26 @@ export function pickerSelectionToTargetRef(
 ): ModelConfigTargetRef | null {
   if (selection.source === 'cloud') {
     const connectorId = normalizeText(selection.connectorId);
-    const providerModelId = normalizeText(selection.model);
-    if (!connectorId || !providerModelId) {
+    const remoteModelCatalogId = normalizeText(selection.remoteModelCatalogId);
+    const providerModelId = normalizeText(selection.providerModelId) || normalizeText(selection.model);
+    if (!connectorId || !remoteModelCatalogId || !providerModelId) {
       return null;
     }
     return {
       kind: 'cloud-connector',
       connectorId,
+      remoteModelCatalogId,
       providerModelId,
       ...(normalizeText(selection.provider) ? { provider: normalizeText(selection.provider) } : {}),
     };
   }
 
-  const localModelId = normalizeText(selection.goRuntimeLocalModelId)
+  const profileBindingId = normalizeText(selection.profileBindingId)
     || normalizeText(selection.localModelId)
-    || normalizeText(selection.model)
-    || normalizeText(selection.modelId);
-  if (!localModelId) {
-    return null;
+    || normalizeText(selection.model);
+  const readinessRef = normalizeText(selection.readinessRef);
+  if (profileBindingId) {
+    return { kind: 'local-runtime', version: 'v2', profileBindingId };
   }
-  const targetId = normalizeText(selection.engine) || 'local-runtime';
-  return {
-    kind: 'local-runtime',
-    targetId,
-    profileId: localModelId,
-    readinessRef: ['runtime-route', 'local', targetId, localModelId].join(':'),
-  };
+  return readinessRef ? { kind: 'local-runtime', version: 'v2', readinessRef } : null;
 }

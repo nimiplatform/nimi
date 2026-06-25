@@ -29,6 +29,7 @@ describe('model config compact target-ref helpers', () => {
     const targetRef: NimiAIConfigTargetRef = {
       kind: 'cloud-connector',
       connectorId: 'connector-dashscope',
+      remoteModelCatalogId: 'remote-catalog:dashscope:qwen3-tts-vc',
       provider: 'dashscope',
       providerModelId: 'qwen3-tts-vc',
     };
@@ -78,6 +79,7 @@ describe('model config compact target-ref helpers', () => {
     expect(targetRefToPickerSelection({
       kind: 'cloud-connector',
       connectorId: 'connector-dashscope',
+      remoteModelCatalogId: 'remote-catalog:dashscope:qwen3-max',
       provider: 'dashscope',
       providerModelId: 'qwen3-max',
     })).toEqual({
@@ -85,20 +87,22 @@ describe('model config compact target-ref helpers', () => {
       connectorId: 'connector-dashscope',
       model: 'qwen3-max',
       provider: 'dashscope',
+      remoteModelCatalogId: 'remote-catalog:dashscope:qwen3-max',
+      providerModelId: 'qwen3-max',
       modelLabel: 'qwen3-max',
     });
 
     expect(targetRefToPickerSelection({
       kind: 'local-runtime',
-      targetId: 'llama',
-      profileId: 'local.chat.qwen3',
-      readinessRef: 'local.chat.qwen3',
+      version: 'v2',
+      profileBindingId: 'local.chat.qwen3',
     })).toEqual({
       source: 'local',
       connectorId: '',
       model: 'local.chat.qwen3',
       localModelId: 'local.chat.qwen3',
-      engine: 'llama',
+      profileBindingId: 'local.chat.qwen3',
+      readinessRef: undefined,
     });
   });
 
@@ -108,9 +112,12 @@ describe('model config compact target-ref helpers', () => {
       connectorId: 'connector-openai',
       model: 'gpt-5-mini',
       provider: 'openai',
+      remoteModelCatalogId: 'remote-catalog:openai:gpt-5-mini',
+      providerModelId: 'gpt-5-mini',
     })).toEqual({
       kind: 'cloud-connector',
       connectorId: 'connector-openai',
+      remoteModelCatalogId: 'remote-catalog:openai:gpt-5-mini',
       providerModelId: 'gpt-5-mini',
       provider: 'openai',
     });
@@ -125,9 +132,8 @@ describe('model config compact target-ref helpers', () => {
       engine: 'llama',
     })).toEqual({
       kind: 'local-runtime',
-      targetId: 'llama',
-      profileId: '01KLOCALGEMMA',
-      readinessRef: 'runtime-route:local:llama:01KLOCALGEMMA',
+      version: 'v2',
+      profileBindingId: 'local-import/gemma-4-26B-A4B-it-Q8_0',
     });
   });
 });
@@ -136,9 +142,8 @@ describe('model config runtime target summary', () => {
   it('hydrates local runtime labels and hides opaque ids before hydration', () => {
     const targetRef: NimiAIConfigTargetRef = {
       kind: 'local-runtime',
-      targetId: 'media',
-      profileId: '01KTEX0CSNAR9Q0B8KXNCF4WPW',
-      readinessRef: 'runtime-route:local:media:01KTEX0CSNAR9Q0B8KXNCF4WPW',
+      version: 'v2',
+      profileBindingId: '01KTEX0CSNAR9Q0B8KXNCF4WPW',
     };
     const config = configWithTargetRef(targetRef);
 
@@ -167,17 +172,19 @@ describe('model config runtime target summary', () => {
       ...configWithTargetRef({
         kind: 'cloud-connector',
         connectorId: 'connector-dashscope',
+        remoteModelCatalogId: 'remote-catalog:dashscope:qwen3-max',
         provider: 'dashscope',
         providerModelId: 'qwen3-max',
       }),
       capabilities: {
         targetRefs: {
           'text.generate': {
-            kind: 'cloud-connector' as const,
-            connectorId: 'connector-dashscope',
-            provider: 'dashscope',
-            providerModelId: 'qwen3-max',
-          },
+          kind: 'cloud-connector' as const,
+          connectorId: 'connector-dashscope',
+          remoteModelCatalogId: 'remote-catalog:dashscope:qwen3-max',
+          provider: 'dashscope',
+          providerModelId: 'qwen3-max',
+        },
         },
         selectedParams: {
           'text.generate': { temperature: '0.7', maxTokens: 1024 },

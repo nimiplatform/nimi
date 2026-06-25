@@ -228,14 +228,15 @@ function toRuntimeSchedulingTarget(input: NimiAISchedulingTargetInput): Scheduli
     );
   }
   if (targetRef.kind === 'local-runtime') {
+    const durableLocalTargetId = normalizeText(targetRef.profileBindingId) || normalizeText(targetRef.readinessRef);
     return {
       capability,
       targetId: requireText(
-        input.targetId ?? targetRef.targetId ?? targetRef.readinessRef,
-        `AIConfig capability ${capability} local-runtime target is missing targetId/readinessRef`,
+        input.targetId ?? durableLocalTargetId,
+        `AIConfig capability ${capability} local-runtime target is missing profileBindingId/readinessRef`,
         'provide_local_runtime_target_id',
       ),
-      profileId: normalizeText(input.profileId ?? targetRef.profileId),
+      profileId: normalizeText(input.profileId ?? durableLocalTargetId),
       resourceHint: toRuntimeResourceHint(input.resourceHint),
     };
   }

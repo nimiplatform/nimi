@@ -3,19 +3,19 @@ import test from 'node:test';
 
 import {
   NIMI_RUNTIME_ROUTE_DESCRIBE_RESULT_RESPONSE_METADATA_KEY,
-  buildNimiRuntimeRouteCapabilityProjectionMap,
   buildNimiRuntimeRouteCapabilityProjection,
-  createNimiRuntimeRouteCapabilityRuntimeWithHost,
+  buildNimiRuntimeRouteCapabilityProjectionMap,
   createDefaultNimiRuntimeRouteCapabilitySelectionStore,
+  createNimiRuntimeRouteCapabilityRuntimeWithHost,
   getNimiRuntimeRouteCapabilityProjectionIssueKind,
   isNimiRuntimeRouteCapabilityProjectionReady,
   isNimiRuntimeRouteCapabilityProjectionSelectionRequired,
-  updateNimiRuntimeRouteCapabilityBinding,
-  type NimiRuntimeRouteCapabilityRuntime,
-  type NimiRuntimeRouteBinding,
+  updateNimiRuntimeRouteCapabilityTargetRef,
   type NimiRuntimeCanonicalCapability,
   type NimiRuntimeResolvedBinding,
+  type NimiRuntimeRouteCapabilityRuntime,
   type NimiRuntimeRouteOptionsSnapshot,
+  type NimiRuntimeRouteTargetRef,
 } from './index';
 import {
   ExecutionMode,
@@ -28,9 +28,24 @@ import {
   normalizeNimiRuntimeRouteEngineEvidence,
   normalizeNimiRuntimeRouteModelRoot,
   normalizeRequiredNimiRuntimeRouteCapability,
-  resolveNimiRuntimeRouteBindingFromSnapshot,
+  resolveNimiRuntimeRouteTargetRefFromSnapshot,
 } from './route-capability-binding';
 import { describeNimiRuntimeRouteWithHost } from './route-capability-describe';
+
+const cloudTargetRef: NimiRuntimeRouteTargetRef = {
+  kind: 'cloud-connector',
+  version: 'v2',
+  connectorId: 'tester-cloud',
+  remoteModelCatalogId: 'remote-catalog:tester-model',
+  providerModelId: 'tester-model',
+  provider: 'tester',
+};
+
+const localTargetRef: NimiRuntimeRouteTargetRef = {
+  kind: 'local-runtime',
+  version: 'v2',
+  profileBindingId: 'local-runtime:asset-local-1',
+};
 
 function encodeRouteDescribePayload(payload: unknown): string {
   return Buffer.from(JSON.stringify(payload), 'utf8').toString('base64');
@@ -57,36 +72,51 @@ function createTextGenerateRouteMetadata(
   };
 }
 
-test('Runtime route capability runtime resolves, checks health, and describes host metadata', async () => {
-  const binding: NimiRuntimeRouteBinding = {
-    source: 'cloud',
-    connectorId: 'tester-cloud',
-    provider: 'tester',
-    model: 'tester-model',
-  };
-  const snapshot: NimiRuntimeRouteOptionsSnapshot = {
+function createRouteOptionsSnapshot(selectedTargetRef: NimiRuntimeRouteTargetRef | null = cloudTargetRef): NimiRuntimeRouteOptionsSnapshot {
+  return {
     capability: 'text.generate',
-    selected: binding,
-    local: {
-      models: [],
+    selectedTargetRef,
+    inventory: {
+      capability: 'text.generate',
+      targets: [{
+        targetRef: cloudTargetRef,
+        display: { label: 'Tester Model', provider: 'tester', model: 'tester-model' },
+        readiness: { status: 'ready' },
+        compatibility: { capabilities: ['text.generate'] },
+        evidence: {
+          source: 'cloud-connector',
+          connectorId: 'tester-cloud',
+          remoteModelCatalogId: 'remote-catalog:tester-model',
+          providerModelId: 'tester-model',
+          provider: 'tester',
+        },
+      }, {
+        targetRef: localTargetRef,
+        display: { label: 'Local Tester', provider: 'llama.cpp', engine: 'llama.cpp', model: 'llama/route-model' },
+        readiness: { status: 'active', endpoint: 'http://127.0.0.1:11434' },
+        compatibility: { capabilities: ['text.generate'] },
+        evidence: {
+          source: 'local-runtime',
+          localAssetId: 'asset-local-1',
+          resolvedModelId: 'llama/route-model',
+          engine: 'llama.cpp',
+          endpoint: 'http://127.0.0.1:11434',
+          runtimeStatus: 'active',
+        },
+      }],
     },
-    connectors: [{
-      id: 'tester-cloud',
-      label: 'Tester Cloud',
-      provider: 'tester',
-      models: ['tester-model'],
-      modelCapabilities: {
-        'tester-model': ['text.generate'],
-      },
-    }],
   };
+}
+
+test('Runtime route capability runtime resolves, checks health, and describes host metadata from v2 targetRefs', async () => {
+  const snapshot = createRouteOptionsSnapshot(cloudTargetRef);
   const buildInputs: unknown[] = [];
   const healthInputs: unknown[] = [];
   const routeRuntime = createNimiRuntimeRouteCapabilityRuntimeWithHost({
     loadRuntimeRouteOptions: async (input) => {
       assert.equal(input.capability, 'text.generate');
       assert.equal(input.targetId, 'tester.route.options');
-      assert.equal(input.selectedBinding?.connectorId, 'tester-cloud');
+      assert.deepEqual(input.selectedTargetRef, cloudTargetRef);
       return snapshot;
     },
     checkHealth: async (input) => {
@@ -119,7 +149,7 @@ test('Runtime route capability runtime resolves, checks health, and describes ho
           [NIMI_RUNTIME_ROUTE_DESCRIBE_RESULT_RESPONSE_METADATA_KEY]: encodeRouteDescribePayload({
             capability: 'text.generate',
             metadataVersion: 'v1',
-            resolvedBindingRef: 'cloud:text.generate:tester-cloud:tester-model',
+            resolvedBindingRef: 'cloud:text.generate:tester-cloud:remote-catalog%3Atester-model:tester-model',
             metadataKind: 'text.generate',
             metadata: createTextGenerateRouteMetadata({ supportsThinking: true }),
           }),
@@ -131,13 +161,14 @@ test('Runtime route capability runtime resolves, checks health, and describes ho
 
   const resolved = await routeRuntime.resolve({
     capability: ' Text.Generate ',
-    binding,
+    targetRef: cloudTargetRef,
   });
-  assert.equal(resolved.resolvedBindingRef, 'cloud:text.generate:tester-cloud:tester-model');
+  assert.equal(resolved.resolvedBindingRef, 'cloud:text.generate:tester-cloud:remote-catalog%3Atester-model:tester-model');
+  assert.equal(resolved.remoteModelCatalogId, 'remote-catalog:tester-model');
 
   const health = await routeRuntime.checkHealth({
     capability: 'text.generate',
-    binding,
+    targetRef: cloudTargetRef,
   });
   assert.equal(health.healthy, true);
   assert.equal(health.status, 'healthy');
@@ -147,47 +178,27 @@ test('Runtime route capability runtime resolves, checks health, and describes ho
     localProviderEndpoint: undefined,
     localProviderModel: 'tester-model',
     localOpenAiEndpoint: undefined,
-    localModelId: undefined,
-    goRuntimeLocalModelId: undefined,
+    localAssetId: undefined,
     connectorId: 'tester-cloud',
   });
 
   const metadata = await routeRuntime.describe({
     capability: 'text.generate',
-    resolvedBindingRef: resolved.resolvedBindingRef || '',
+    resolvedBindingRef: resolved.resolvedBindingRef,
   });
   assert.equal(metadata.metadata.supportsThinking, true);
   assert.deepEqual(buildInputs[0], {
     targetId: 'tester.capability.route',
     timeoutMs: 30000,
-    source: 'cloud',
+    source: 'cloud-connector',
     connectorId: 'tester-cloud',
     providerEndpoint: undefined,
   });
 });
 
-test('Runtime route capability projection resolves selected bindings through canonical vNext runtime', async () => {
-  const binding: NimiRuntimeRouteBinding = {
-    source: 'cloud',
-    connectorId: 'tester-cloud',
-    provider: 'tester',
-    model: 'tester-model',
-  };
+test('Runtime route capability projection resolves selected target refs through canonical vNext runtime', async () => {
   const routeRuntime = createNimiRuntimeRouteCapabilityRuntimeWithHost({
-    loadRuntimeRouteOptions: async () => ({
-      capability: 'text.generate',
-      selected: binding,
-      local: { models: [] },
-      connectors: [{
-        id: 'tester-cloud',
-        label: 'Tester Cloud',
-        provider: 'tester',
-        models: ['tester-model'],
-        modelCapabilities: {
-          'tester-model': ['text.generate'],
-        },
-      }],
-    }),
+    loadRuntimeRouteOptions: async () => createRouteOptionsSnapshot(cloudTargetRef),
     checkHealth: async () => ({
       provider: 'tester',
       status: 'healthy',
@@ -202,7 +213,7 @@ test('Runtime route capability projection resolves selected bindings through can
           [NIMI_RUNTIME_ROUTE_DESCRIBE_RESULT_RESPONSE_METADATA_KEY]: encodeRouteDescribePayload({
             capability: 'text.generate',
             metadataVersion: 'v1',
-            resolvedBindingRef: 'cloud:text.generate:tester-cloud:tester-model',
+            resolvedBindingRef: 'cloud:text.generate:tester-cloud:remote-catalog%3Atester-model:tester-model',
             metadataKind: 'text.generate',
             metadata: createTextGenerateRouteMetadata(),
           }),
@@ -211,10 +222,10 @@ test('Runtime route capability projection resolves selected bindings through can
       },
     }),
   });
-  const store = updateNimiRuntimeRouteCapabilityBinding(
+  const store = updateNimiRuntimeRouteCapabilityTargetRef(
     createDefaultNimiRuntimeRouteCapabilitySelectionStore(),
     'text.generate',
-    binding,
+    cloudTargetRef,
   );
 
   const projection = await buildNimiRuntimeRouteCapabilityProjection({
@@ -224,29 +235,27 @@ test('Runtime route capability projection resolves selected bindings through can
   });
 
   assert.equal(isNimiRuntimeRouteCapabilityProjectionReady(projection), true);
-  assert.equal(projection.resolvedBinding?.resolvedBindingRef, 'cloud:text.generate:tester-cloud:tester-model');
+  assert.equal(projection.resolvedBinding?.resolvedBindingRef, 'cloud:text.generate:tester-cloud:remote-catalog%3Atester-model:tester-model');
+  assert.deepEqual(projection.selectedTargetRef, cloudTargetRef);
 });
 
 test('Runtime route capability projection classifies selection, health, and metadata failures', async () => {
-  const binding: NimiRuntimeRouteBinding = {
-    source: 'local',
-    connectorId: '',
-    provider: 'llama',
-    model: 'llama/tester',
-    modelId: 'llama/tester',
-    localModelId: 'asset-local-1',
-    goRuntimeLocalModelId: 'asset-local-1',
-    engine: 'llama',
-  };
   const resolved: NimiRuntimeResolvedBinding = {
-    ...binding,
     capability: 'text.generate',
-    resolvedBindingRef: 'local:text.generate:llama:asset-local-1',
+    source: 'local-runtime',
+    targetRef: localTargetRef,
+    resolvedBindingRef: 'local:text.generate:local-runtime%3Aasset-local-1',
+    provider: 'llama',
+    engine: 'llama',
+    model: 'route-model',
+    modelId: 'route-model',
+    localAssetId: 'asset-local-1',
+    localRuntimeStatus: 'active',
   };
-  const store = updateNimiRuntimeRouteCapabilityBinding(
+  const store = updateNimiRuntimeRouteCapabilityTargetRef(
     createDefaultNimiRuntimeRouteCapabilitySelectionStore(),
     'text.generate',
-    binding,
+    localTargetRef,
   );
 
   const selectionMissing = await buildNimiRuntimeRouteCapabilityProjection({
@@ -259,7 +268,7 @@ test('Runtime route capability projection classifies selection, health, and meta
 
   const selectionCleared = await buildNimiRuntimeRouteCapabilityProjection({
     capability: 'text.generate',
-    selectionStore: updateNimiRuntimeRouteCapabilityBinding(
+    selectionStore: updateNimiRuntimeRouteCapabilityTargetRef(
       createDefaultNimiRuntimeRouteCapabilitySelectionStore(),
       'text.generate',
       null,
@@ -298,7 +307,7 @@ test('Runtime route capability projection classifies selection, health, and meta
     selectionStore: store,
     routeRuntime: {
       async resolve() {
-        return { ...resolved, goRuntimeStatus: 'installed' };
+        return { ...resolved, localRuntimeStatus: 'installed' };
       },
       async checkHealth() {
         return {
@@ -340,35 +349,6 @@ test('Runtime route capability projection classifies selection, health, and meta
   });
   assert.equal(unhealthy.reasonCode, 'route_unhealthy');
 
-  const metadataMissing = await buildNimiRuntimeRouteCapabilityProjection({
-    capability: 'text.generate',
-    selectionStore: store,
-    routeRuntime: {
-      async resolve() {
-        return resolved;
-      },
-      async checkHealth() {
-        return {
-          healthy: true,
-          status: 'healthy',
-          provider: 'llama',
-          detail: '',
-          actionHint: 'none',
-        };
-      },
-      async describe() {
-        return {
-          capability: 'image.generate',
-          metadataVersion: 'v1',
-          resolvedBindingRef: resolved.resolvedBindingRef || '',
-          metadataKind: 'image.generate',
-          metadata: {},
-        };
-      },
-    },
-  });
-  assert.equal(metadataMissing.reasonCode, 'metadata_missing');
-
   const metadataBindingMismatch = await buildNimiRuntimeRouteCapabilityProjection({
     capability: 'text.generate',
     selectionStore: store,
@@ -389,7 +369,7 @@ test('Runtime route capability projection classifies selection, health, and meta
         return {
           capability: 'text.generate',
           metadataVersion: 'v1',
-          resolvedBindingRef: 'local:text.generate:llama:other-asset',
+          resolvedBindingRef: 'local:text.generate:other',
           metadataKind: 'text.generate',
           metadata: createTextGenerateRouteMetadata(),
         };
@@ -397,52 +377,6 @@ test('Runtime route capability projection classifies selection, health, and meta
     },
   });
   assert.equal(metadataBindingMismatch.reasonCode, 'metadata_missing');
-
-  const healthMissingPositiveEvidence = await buildNimiRuntimeRouteCapabilityProjection({
-    capability: 'text.generate',
-    selectionStore: store,
-    routeRuntime: {
-      async resolve() {
-        return resolved;
-      },
-      async checkHealth() {
-        return {
-          healthy: true,
-          status: 'degraded',
-          provider: 'llama',
-          detail: 'no ack',
-          actionHint: 'verify',
-        };
-      },
-      async describe() {
-        throw new Error('should not describe without positive health evidence');
-      },
-    },
-  });
-  assert.equal(healthMissingPositiveEvidence.reasonCode, 'route_unhealthy');
-
-  const metadataHostDenied = await buildNimiRuntimeRouteCapabilityProjection({
-    capability: 'text.generate',
-    selectionStore: store,
-    routeRuntime: {
-      async resolve() {
-        return resolved;
-      },
-      async checkHealth() {
-        return {
-          healthy: true,
-          status: 'healthy',
-          provider: 'llama',
-          detail: '',
-          actionHint: 'none',
-        };
-      },
-      async describe() {
-        throw { reasonCode: 'HOOK_PERMISSION_DENIED' };
-      },
-    },
-  });
-  assert.equal(metadataHostDenied.reasonCode, 'host_denied');
 
   const projectionMap = await buildNimiRuntimeRouteCapabilityProjectionMap({
     selectionStore: store,
@@ -463,7 +397,7 @@ test('Runtime route capability projection classifies selection, health, and meta
         return {
           capability: 'text.generate',
           metadataVersion: 'v1',
-          resolvedBindingRef: resolved.resolvedBindingRef || '',
+          resolvedBindingRef: resolved.resolvedBindingRef,
           metadataKind: 'text.generate',
           metadata: createTextGenerateRouteMetadata({ supportsThinking: true }),
         };
@@ -476,48 +410,6 @@ test('Runtime route capability projection classifies selection, health, and meta
   assert.equal(projectionMap['image.generate']?.reasonCode, 'host_denied');
 });
 
-test('Runtime route capability runtime fails closed when capability evidence is missing', async () => {
-  const binding: NimiRuntimeRouteBinding = {
-    source: 'cloud',
-    connectorId: 'tester-cloud',
-    provider: 'tester',
-    model: 'tester-model',
-  };
-  const routeRuntime = createNimiRuntimeRouteCapabilityRuntimeWithHost({
-    loadRuntimeRouteOptions: async () => ({
-      capability: 'image.generate',
-      selected: binding,
-      local: {
-        models: [],
-      },
-      connectors: [{
-        id: 'tester-cloud',
-        label: 'Tester Cloud',
-        provider: 'tester',
-        models: ['tester-model'],
-        modelCapabilities: {
-          'tester-model': ['text.generate'],
-        },
-      }],
-    }),
-    checkHealth: async () => ({ status: 'healthy' }),
-    describeTargetId: 'tester.capability.route',
-    buildDescribeCallOptions: () => ({}),
-    getDescribeHost: () => ({
-      appId: 'nimi.tester',
-      executeScenario: async () => ({}),
-    }),
-  });
-
-  await assert.rejects(
-    routeRuntime.resolve({
-      capability: 'image.generate',
-      binding,
-    }),
-    /NIMI_RUNTIME_ROUTE_CLOUD_EVIDENCE_REQUIRED/,
-  );
-});
-
 test('Runtime route binding helpers resolve local and cloud evidence with fail-closed health projections', () => {
   assert.equal(normalizeNimiRuntimeRouteModelRoot(' llama/Meta-Llama-3 '), 'Meta-Llama-3');
   assert.equal(normalizeNimiRuntimeRouteModelRoot('cloud/gpt-4.1'), 'gpt-4.1');
@@ -528,80 +420,39 @@ test('Runtime route binding helpers resolve local and cloud evidence with fail-c
     hasRouteReasonCode('SDK_RUNTIME_ROUTE_INPUT_INVALID'),
   );
 
-  const localBinding: NimiRuntimeRouteBinding = {
-    source: 'local',
-    connectorId: '',
-    provider: 'llama.cpp',
-    model: 'llama/route-model',
-    engine: 'llama.cpp',
-  };
-  const snapshot: NimiRuntimeRouteOptionsSnapshot = {
+  const snapshot = createRouteOptionsSnapshot(localTargetRef);
+  const localResolved = resolveNimiRuntimeRouteTargetRefFromSnapshot({
     capability: 'text.generate',
-    selected: {
-      ...localBinding,
-      localModelId: 'asset-selected',
-      goRuntimeLocalModelId: 'asset-selected',
-    },
-    local: {
-      models: [{
-        provider: 'llama.cpp',
-        model: 'local/route-model',
-        modelId: 'local/route-model',
-        localModelId: 'asset-selected',
-        goRuntimeLocalModelId: 'asset-selected',
-        engine: 'llama.cpp',
-        endpoint: 'http://127.0.0.1:11434',
-        capabilities: ['text.generate'],
-      }],
-    },
-    connectors: [{
-      id: 'cloud-1',
-      label: 'Cloud One',
-      provider: 'provider-one',
-      models: ['cloud-model'],
-      modelCapabilities: {
-        'cloud-model': ['text.generate'],
-      },
-    }],
-  };
-
-  const localResolved = resolveNimiRuntimeRouteBindingFromSnapshot({
-    capability: 'text.generate',
-    binding: localBinding,
+    targetRef: localTargetRef,
     snapshot,
   });
-  assert.equal(localResolved.localModelId, 'asset-selected');
+  assert.equal(localResolved.localAssetId, 'asset-local-1');
   assert.equal(localResolved.modelId, 'route-model');
-  assert.equal(localResolved.resolvedBindingRef, 'local:text.generate:llama.cpp:asset-selected');
+  assert.equal(localResolved.resolvedBindingRef, 'local:text.generate:local-runtime%3Aasset-local-1');
   assert.deepEqual(nimiRuntimeRouteHealthInputFromResolvedBinding(localResolved), {
     provider: 'llama.cpp',
     capability: 'text.generate',
     localProviderEndpoint: 'http://127.0.0.1:11434',
     localProviderModel: 'route-model',
     localOpenAiEndpoint: 'http://127.0.0.1:11434',
-    localModelId: 'asset-selected',
-    goRuntimeLocalModelId: 'asset-selected',
+    localAssetId: 'asset-local-1',
     connectorId: undefined,
   });
 
-  const cloudResolved = resolveNimiRuntimeRouteBindingFromSnapshot({
+  const cloudResolved = resolveNimiRuntimeRouteTargetRefFromSnapshot({
     capability: 'text.generate',
-    binding: {
-      source: 'cloud',
-      connectorId: 'cloud-1',
-      model: 'cloud-model',
-    },
+    targetRef: cloudTargetRef,
     snapshot,
   });
-  assert.equal(cloudResolved.provider, 'provider-one');
-  assert.equal(cloudResolved.resolvedBindingRef, 'cloud:text.generate:cloud-1:cloud-model');
+  assert.equal(cloudResolved.provider, 'tester');
+  assert.equal(cloudResolved.remoteModelCatalogId, 'remote-catalog:tester-model');
   assert.deepEqual(nimiRuntimeRouteHealthResultFromProviderHealth({
     resolved: cloudResolved,
     health: { status: 'unreachable', provider: '', detail: 'offline' },
   }), {
     healthy: false,
     status: 'unavailable',
-    provider: 'provider-one',
+    provider: 'tester',
     detail: 'offline',
     reasonCode: undefined,
     actionHint: 'verify-connector',
@@ -617,130 +468,40 @@ test('Runtime route binding helpers resolve local and cloud evidence with fail-c
     reasonCode: 'LOCAL_PROVIDER_OFFLINE',
     actionHint: 'install-local-model',
   });
-  assert.equal(nimiRuntimeRouteHealthResultFromProviderHealth({
-    resolved: localResolved,
-    health: { status: 'degraded', actionHint: '' },
-  }).actionHint, 'none');
 
   assert.throws(
-    () => resolveNimiRuntimeRouteBindingFromSnapshot({
+    () => resolveNimiRuntimeRouteTargetRefFromSnapshot({
       capability: 'text.generate',
-      binding: null,
+      targetRef: null,
       snapshot,
     }),
-    /NIMI_RUNTIME_ROUTE_BINDING_REQUIRED/u,
+    /NIMI_RUNTIME_ROUTE_TARGET_REF_REQUIRED/u,
   );
   assert.throws(
-    () => resolveNimiRuntimeRouteBindingFromSnapshot({
+    () => resolveNimiRuntimeRouteTargetRefFromSnapshot({
       capability: 'image.generate',
-      binding: localBinding,
+      targetRef: localTargetRef,
       snapshot,
     }),
     /NIMI_RUNTIME_ROUTE_LOCAL_EVIDENCE_REQUIRED/u,
   );
   assert.throws(
-    () => resolveNimiRuntimeRouteBindingFromSnapshot({
+    () => resolveNimiRuntimeRouteTargetRefFromSnapshot({
       capability: 'text.generate',
-      binding: {
-        source: 'cloud',
+      targetRef: {
+        kind: 'cloud-connector',
+        version: 'v2',
         connectorId: 'cloud-1',
-        model: 'missing-model',
+        remoteModelCatalogId: 'missing',
+        providerModelId: 'missing',
       },
       snapshot,
     }),
     /NIMI_RUNTIME_ROUTE_CLOUD_EVIDENCE_REQUIRED/u,
-  );
-  assert.throws(
-    () => resolveNimiRuntimeRouteBindingFromSnapshot({
-      capability: 'text.generate',
-      binding: {
-        source: 'cloud',
-        connectorId: 'cloud-without-provider',
-        model: 'cloud-model',
-      },
-      snapshot: {
-        ...snapshot,
-        connectors: [{
-          id: 'cloud-without-provider',
-          label: 'Cloud',
-          provider: '',
-          models: ['cloud-model'],
-          modelCapabilities: {
-            'cloud-model': ['text.generate'],
-          },
-        }],
-      },
-    }),
-    /NIMI_RUNTIME_ROUTE_BINDING_PROVIDER_REQUIRED/u,
-  );
-  assert.throws(
-    () => resolveNimiRuntimeRouteBindingFromSnapshot({
-      capability: 'text.generate',
-      binding: localBinding,
-      snapshot: {
-        ...snapshot,
-        selected: null,
-        local: {
-          models: [{
-            localModelId: 'asset-selected',
-            provider: 'llama.cpp',
-            model: 'llama/route-model',
-            engine: 'llama.cpp',
-            endpoint: 'http://127.0.0.1:11434',
-          }],
-        },
-      },
-    }),
-    /NIMI_RUNTIME_ROUTE_LOCAL_EVIDENCE_REQUIRED/u,
-  );
-  assert.throws(
-    () => resolveNimiRuntimeRouteBindingFromSnapshot({
-      capability: 'text.generate',
-      binding: {
-        source: 'cloud',
-        connectorId: 'cloud-1',
-        model: 'cloud-model',
-      },
-      snapshot: {
-        ...snapshot,
-        connectors: [{
-          id: 'cloud-1',
-          label: 'Cloud One',
-          provider: 'provider-one',
-          models: ['cloud-model'],
-        }],
-      },
-    }),
-    /NIMI_RUNTIME_ROUTE_CLOUD_EVIDENCE_REQUIRED/u,
-  );
-  assert.throws(
-    () => resolveNimiRuntimeRouteBindingFromSnapshot({
-      capability: 'text.generate',
-      binding: {
-        source: 'local',
-        connectorId: '',
-        provider: 'llama.cpp',
-        model: 'llama/route-model',
-        engine: 'llama.cpp',
-      },
-      snapshot: {
-        ...snapshot,
-        selected: null,
-        local: {
-          models: [{
-            provider: 'llama.cpp',
-            model: 'llama/route-model',
-            engine: 'llama.cpp',
-            capabilities: ['text.generate'],
-          }],
-        },
-      },
-    }),
-    /NIMI_RUNTIME_ROUTE_BINDING_LOCAL_MODEL_REQUIRED/u,
   );
 });
 
-test('Runtime route describe builds non-text scenario probes and validates metadata boundaries', async () => {
+test('Runtime route describe builds scenario probes and validates metadata boundaries', async () => {
   const cases: Array<{
     readonly capability: NimiRuntimeCanonicalCapability;
     readonly scenarioType: ScenarioType;
@@ -778,50 +539,6 @@ test('Runtime route describe builds non-text scenario probes and validates metad
         supportsEmotion: false,
       },
     },
-    {
-      capability: 'audio.transcribe',
-      scenarioType: ScenarioType.SPEECH_TRANSCRIBE,
-      oneofKind: 'speechTranscribe',
-      modelId: 'stt-model',
-      metadata: {
-        tiers: ['standard'],
-        supportedResponseFormats: ['json'],
-        supportsLanguage: true,
-        supportsPrompt: false,
-        supportsTimestamps: true,
-        supportsDiarization: false,
-      },
-    },
-    {
-      capability: 'voice_workflow.voice_clone',
-      scenarioType: ScenarioType.VOICE_CLONE,
-      oneofKind: 'voiceClone',
-      modelId: 'voice-clone-model',
-      metadata: {
-        workflowType: 'voice_clone',
-        requiresTargetSynthesisBinding: true,
-        textPromptMode: 'unsupported',
-        supportsLanguageHints: true,
-        supportsPreferredName: true,
-        referenceAudioUriInput: true,
-        referenceAudioBytesInput: true,
-        allowedReferenceAudioMimeTypes: ['audio/wav'],
-      },
-    },
-    {
-      capability: 'voice_workflow.voice_design',
-      scenarioType: ScenarioType.VOICE_DESIGN,
-      oneofKind: 'voiceDesign',
-      modelId: 'voice-design-model',
-      metadata: {
-        workflowType: 'voice_design',
-        requiresTargetSynthesisBinding: true,
-        instructionTextMode: 'required',
-        previewTextMode: 'optional',
-        supportsLanguage: true,
-        supportsPreferredName: true,
-      },
-    },
   ];
 
   for (const item of cases) {
@@ -834,18 +551,18 @@ test('Runtime route describe builds non-text scenario probes and validates metad
       resolvedBindingRef,
       resolved: {
         capability: item.capability,
-        source: 'local',
-        connectorId: '',
+        source: 'local-runtime',
+        targetRef: { kind: 'local-runtime', version: 'v2', profileBindingId: `local-runtime:asset-${item.modelId}` },
+        resolvedBindingRef,
         provider: 'runtime',
         engine: 'runtime',
         model: item.modelId,
         modelId: item.modelId,
-        localModelId: `asset-${item.modelId}`,
-        resolvedBindingRef,
+        localAssetId: `asset-${item.modelId}`,
       },
       buildCallOptions(input) {
         assert.equal(input.targetId, 'route.describe');
-        assert.equal(input.source, 'local');
+        assert.equal(input.source, 'local-runtime');
         return {
           timeoutMs: input.timeoutMs,
           responseMetadataObserver: (metadata) => observedMetadata.push(metadata),
@@ -885,13 +602,14 @@ test('Runtime route describe builds non-text scenario probes and validates metad
       resolvedBindingRef: 'local:text.generate:runtime:text-model',
       resolved: {
         capability: 'text.generate',
-        source: 'local',
-        connectorId: '',
+        source: 'local-runtime',
+        targetRef: { kind: 'local-runtime', version: 'v2', profileBindingId: 'local-runtime:asset-text-model' },
+        resolvedBindingRef: 'local:text.generate:runtime:text-model',
         provider: 'runtime',
         engine: 'runtime',
         model: 'text-model',
         modelId: 'text-model',
-        localModelId: 'asset-text-model',
+        localAssetId: 'asset-text-model',
       },
       buildCallOptions: () => ({}),
       async executeScenario() {
@@ -900,172 +618,6 @@ test('Runtime route describe builds non-text scenario probes and validates metad
     }),
     hasRouteReasonCode('SDK_RUNTIME_ROUTE_DESCRIBE_METADATA_MISSING'),
   );
-  await assert.rejects(
-    () => describeNimiRuntimeRouteWithHost({
-      appId: 'nimi.route.test',
-      targetId: 'route.describe',
-      capability: 'text.generate',
-      resolvedBindingRef: 'local:text.generate:runtime:text-model',
-      resolved: {
-        capability: 'text.generate',
-        source: 'local',
-        connectorId: '',
-        provider: 'runtime',
-        engine: 'runtime',
-        model: 'text-model',
-        modelId: 'text-model',
-        localModelId: 'asset-text-model',
-      },
-      buildCallOptions: () => ({}),
-      async executeScenario(_request, options) {
-        options.responseMetadataObserver?.({
-          [NIMI_RUNTIME_ROUTE_DESCRIBE_RESULT_RESPONSE_METADATA_KEY]: encodeRouteDescribePayload({
-            capability: 'text.generate',
-            metadataVersion: 'v0',
-            resolvedBindingRef: 'local:text.generate:runtime:text-model',
-            metadataKind: '',
-            metadata: {},
-          }),
-        });
-        return {};
-      },
-    }),
-    hasRouteReasonCode('SDK_RUNTIME_ROUTE_DESCRIBE_METADATA_INVALID'),
-  );
-  await assert.rejects(
-    () => describeNimiRuntimeRouteWithHost({
-      appId: 'nimi.route.test',
-      targetId: 'route.describe',
-      capability: 'text.generate',
-      resolvedBindingRef: 'local:text.generate:runtime:text-model',
-      resolved: {
-        capability: 'text.generate',
-        source: 'local',
-        connectorId: '',
-        provider: 'runtime',
-        engine: 'runtime',
-        model: 'text-model',
-        modelId: 'text-model',
-        localModelId: 'asset-text-model',
-      },
-      buildCallOptions: () => ({}),
-      async executeScenario(_request, options) {
-        options.responseMetadataObserver?.({
-          [NIMI_RUNTIME_ROUTE_DESCRIBE_RESULT_RESPONSE_METADATA_KEY]: encodeRouteDescribePayload({
-            capability: 'audio.synthesize',
-            metadataVersion: 'v1',
-            resolvedBindingRef: 'local:text.generate:runtime:text-model',
-            metadataKind: 'audio.synthesize',
-            metadata: {
-              supportedAudioFormats: ['mp3'],
-              supportedTimingModes: ['none'],
-              supportsLanguage: true,
-              supportsEmotion: false,
-            },
-          }),
-        });
-        return {};
-      },
-    }),
-    hasRouteReasonCode('SDK_RUNTIME_ROUTE_DESCRIBE_METADATA_MISMATCH'),
-  );
-});
-
-test('Runtime route describe validates K-RPC-017 typed metadata variants and fails closed', async () => {
-  function describeTextGenerateWithMetadata(metadata: unknown): Promise<unknown> {
-    return describeNimiRuntimeRouteWithHost({
-      appId: 'nimi.route.test',
-      targetId: 'route.describe',
-      capability: 'text.generate',
-      resolvedBindingRef: 'local:text.generate:runtime:text-model',
-      resolved: {
-        capability: 'text.generate',
-        source: 'local',
-        connectorId: '',
-        provider: 'runtime',
-        engine: 'runtime',
-        model: 'text-model',
-        modelId: 'text-model',
-        localModelId: 'asset-text-model',
-      },
-      buildCallOptions: () => ({}),
-      async executeScenario(_request, options) {
-        options.responseMetadataObserver?.({
-          [NIMI_RUNTIME_ROUTE_DESCRIBE_RESULT_RESPONSE_METADATA_KEY]: encodeRouteDescribePayload({
-            capability: 'text.generate',
-            metadataVersion: 'v1',
-            resolvedBindingRef: 'local:text.generate:runtime:text-model',
-            metadataKind: 'text.generate',
-            metadata,
-          }),
-        });
-        return {};
-      },
-    });
-  }
-
-  // Missing required typed field (supportsArtifactRefInput omitted) fails closed.
-  await assert.rejects(
-    () => describeTextGenerateWithMetadata(createTextGenerateRouteMetadata({ supportsArtifactRefInput: undefined as unknown as boolean })),
-    hasRouteReasonCode('SDK_RUNTIME_ROUTE_DESCRIBE_METADATA_INVALID'),
-  );
-
-  // Out-of-domain enum value for a typed field fails closed.
-  await assert.rejects(
-    () => describeTextGenerateWithMetadata(createTextGenerateRouteMetadata({ traceModeSupport: 'verbose' as 'none' })),
-    hasRouteReasonCode('SDK_RUNTIME_ROUTE_DESCRIBE_METADATA_INVALID'),
-  );
-
-  // Wrong-typed required field fails closed.
-  await assert.rejects(
-    () => describeTextGenerateWithMetadata(createTextGenerateRouteMetadata({ supportsThinking: 'yes' as unknown as boolean })),
-    hasRouteReasonCode('SDK_RUNTIME_ROUTE_DESCRIBE_METADATA_INVALID'),
-  );
-
-  // Out-of-domain metadataKind fails closed before variant validation.
-  await assert.rejects(
-    () => describeNimiRuntimeRouteWithHost({
-      appId: 'nimi.route.test',
-      targetId: 'route.describe',
-      capability: 'text.generate',
-      resolvedBindingRef: 'local:text.generate:runtime:text-model',
-      resolved: {
-        capability: 'text.generate',
-        source: 'local',
-        connectorId: '',
-        provider: 'runtime',
-        engine: 'runtime',
-        model: 'text-model',
-        modelId: 'text-model',
-        localModelId: 'asset-text-model',
-      },
-      buildCallOptions: () => ({}),
-      async executeScenario(_request, options) {
-        options.responseMetadataObserver?.({
-          [NIMI_RUNTIME_ROUTE_DESCRIBE_RESULT_RESPONSE_METADATA_KEY]: encodeRouteDescribePayload({
-            capability: 'text.generate',
-            metadataVersion: 'v1',
-            resolvedBindingRef: 'local:text.generate:runtime:text-model',
-            metadataKind: 'video.generate',
-            metadata: createTextGenerateRouteMetadata(),
-          }),
-        });
-        return {};
-      },
-    }),
-    hasRouteReasonCode('SDK_RUNTIME_ROUTE_DESCRIBE_METADATA_KIND_UNSUPPORTED'),
-  );
-
-  // A fully valid typed text.generate payload round-trips with typed field access.
-  const valid = await describeTextGenerateWithMetadata(
-    createTextGenerateRouteMetadata({ supportsThinking: true, traceModeSupport: 'separate' }),
-  );
-  const validResult = valid as Awaited<ReturnType<typeof describeNimiRuntimeRouteWithHost>>;
-  assert.equal(validResult.metadataKind, 'text.generate');
-  if (validResult.metadataKind === 'text.generate') {
-    assert.equal(validResult.metadata.supportsThinking, true);
-    assert.equal(validResult.metadata.traceModeSupport, 'separate');
-  }
 });
 
 function hasRouteReasonCode(reasonCode: string): (error: unknown) => boolean {

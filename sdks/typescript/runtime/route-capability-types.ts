@@ -2,9 +2,9 @@ import type { ExecuteScenarioRequest } from '../core-generated/runtime-typed-cli
 import type { CoreMetadata, CoreResponseMetadataObserver, JsonObject } from '../types';
 import type {
   NimiRuntimeCanonicalCapability,
-  NimiRuntimeRouteBinding,
   NimiRuntimeRouteOptionsSnapshot,
   NimiRuntimeRouteSource,
+  NimiRuntimeRouteTargetRef,
 } from './route-options';
 
 export const NIMI_RUNTIME_ROUTE_DESCRIBE_RESULT_RESPONSE_METADATA_KEY = 'x-nimi-route-describe-result';
@@ -13,9 +13,26 @@ export const NIMI_RUNTIME_ROUTE_DESCRIBE_TIMEOUT_MS = 30_000;
 export type NimiRuntimeRouteResolvedBindingRef = string;
 export type NimiRuntimeRouteMetadataVersion = 'v1';
 
-export interface NimiRuntimeResolvedBinding extends NimiRuntimeRouteBinding {
+export interface NimiRuntimeResolvedBinding {
   readonly capability: NimiRuntimeCanonicalCapability;
-  readonly resolvedBindingRef?: NimiRuntimeRouteResolvedBindingRef;
+  readonly source: NimiRuntimeRouteSource;
+  readonly targetRef: NimiRuntimeRouteTargetRef;
+  readonly resolvedBindingRef: NimiRuntimeRouteResolvedBindingRef;
+  readonly routeMetadataRef?: string;
+  readonly provider?: string;
+  readonly model?: string;
+  readonly modelId?: string;
+  readonly endpoint?: string;
+  readonly engine?: string;
+  readonly localAssetId?: string;
+  readonly localProviderEndpoint?: string;
+  readonly localOpenAiEndpoint?: string;
+  readonly localRuntimeStatus?: string;
+  readonly connectorId?: string;
+  readonly remoteModelCatalogId?: string;
+  readonly providerModelId?: string;
+  readonly endpointProfileId?: string;
+  readonly connectorSnapshotId?: string;
 }
 
 export interface NimiRuntimeRouteHealthInput {
@@ -24,8 +41,7 @@ export interface NimiRuntimeRouteHealthInput {
   readonly localProviderEndpoint?: string;
   readonly localProviderModel?: string;
   readonly localOpenAiEndpoint?: string;
-  readonly localModelId?: string;
-  readonly goRuntimeLocalModelId?: string;
+  readonly localAssetId?: string;
   readonly connectorId?: string;
 }
 
@@ -191,7 +207,7 @@ export type NimiRuntimeRouteExecuteScenario = (
 export type NimiRuntimeRouteCapabilityOptionsLoader = (input: {
   readonly capability: NimiRuntimeCanonicalCapability;
   readonly targetId?: string;
-  readonly selectedBinding?: NimiRuntimeRouteBinding | null;
+  readonly selectedTargetRef?: NimiRuntimeRouteTargetRef | null;
 }) => Promise<NimiRuntimeRouteOptionsSnapshot> | NimiRuntimeRouteOptionsSnapshot;
 
 export interface NimiRuntimeRouteCapabilityDescribeHost {
@@ -214,11 +230,11 @@ export interface NimiRuntimeRouteCapabilityHostRuntimeDeps {
 export interface NimiRuntimeRouteCapabilityRuntime {
   resolve(input: {
     readonly capability: NimiRuntimeCanonicalCapability;
-    readonly binding?: NimiRuntimeRouteBinding;
+    readonly targetRef?: NimiRuntimeRouteTargetRef;
   }): Promise<NimiRuntimeResolvedBinding>;
   checkHealth(input: {
     readonly capability: NimiRuntimeCanonicalCapability;
-    readonly binding?: NimiRuntimeRouteBinding;
+    readonly targetRef?: NimiRuntimeRouteTargetRef;
   }): Promise<NimiRuntimeRouteHealthResult>;
   describe(input: {
     readonly capability: NimiRuntimeCanonicalCapability;

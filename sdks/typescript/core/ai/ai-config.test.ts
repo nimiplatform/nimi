@@ -81,8 +81,8 @@ const READY_PROFILE: NimiAIProfile = {
     'text.generate': {
       targetRef: {
         kind: 'local-runtime',
-        targetId: 'runtime-target-chat',
-        profileId: 'runtime-profile-chat',
+        version: 'v2',
+        profileBindingId: 'runtime-profile-binding-chat',
       },
       params: { temperature: 0.2 },
       runtimeDescriptor: {
@@ -222,6 +222,7 @@ test('AIConfig runtime binding resolver projects live targets and metadata', () 
         'text.generate': {
           kind: 'cloud-connector' as const,
           connectorId: 'openrouter',
+          remoteModelCatalogId: 'remote-catalog-openrouter-gemini',
           providerModelId: 'google/gemini-2.5-pro',
           provider: 'OpenRouter',
         },
@@ -386,11 +387,18 @@ test('Nimi AI scope and target validation fail closed across admitted families',
   }, 'target').join('\n'), /sourceProfileId is required/u);
   assert.match(validateNimiAIConfigTargetRef({
     kind: 'local-runtime',
-  }, 'target').join('\n'), /requires readinessRef or targetId\/profileId/u);
+  }, 'target').join('\n'), /requires profileBindingId or readinessRef/u);
+  assert.match(validateNimiAIConfigTargetRef({
+    kind: 'local-runtime',
+    version: 'v2',
+    targetId: 'legacy-target',
+    profileId: 'legacy-profile',
+  }, 'target').join('\n'), /targetId is retired/u);
   assert.match(validateNimiAIConfigTargetRef({
     kind: 'cloud-connector',
     connectorId: 'connector-1',
-  }, 'target').join('\n'), /providerModelId is required/u);
+    providerModelId: 'model-1',
+  }, 'target').join('\n'), /remoteModelCatalogId is required/u);
   assert.match(validateNimiAIConfigTargetRef({
     kind: 'unsupported',
   }, 'target').join('\n'), /not an admitted AIConfig compact ref/u);
@@ -410,6 +418,7 @@ test('Nimi AI scope and target validation fail closed across admitted families',
         'text.generate': {
           kind: 'cloud-connector',
           connectorId: 'connector-1',
+          remoteModelCatalogId: 'remote-catalog-1',
           providerModelId: 'model-1',
           secret: 'forbidden',
         },
@@ -501,6 +510,7 @@ test('Nimi AI profile parsing and runtime descriptor projection cover failure bo
         targetRef: {
           kind: 'cloud-connector',
           connectorId: 'connector-1',
+          remoteModelCatalogId: 'remote-catalog-1',
           provider: 'openai-compatible',
           providerModelId: 'model-1',
         },
@@ -749,11 +759,11 @@ test('Nimi AI profile apply is scoped to declared ready requirement slices', () 
     title: 'Scoped profile',
     capabilities: {
       'text.generate': {
-        targetRef: {
-          kind: 'local-runtime',
-          targetId: 'runtime-text',
-          profileId: 'runtime-profile-text',
-        },
+      targetRef: {
+        kind: 'local-runtime',
+        version: 'v2',
+        profileBindingId: 'runtime-profile-binding-text',
+      },
         params: { temperature: 0.1 },
       },
       'image.generate': {
@@ -1340,8 +1350,8 @@ test('Nimi AI scheduling projection calls Runtime peekScheduling without embeddi
 
   const projection = await scheduling.peek();
 
-  assert.equal(requests[0]?.targets[0]?.targetId, 'runtime-target-chat');
-  assert.equal(requests[0]?.targets[0]?.profileId, 'runtime-profile-chat');
+  assert.equal(requests[0]?.targets[0]?.targetId, 'runtime-profile-binding-chat');
+  assert.equal(requests[0]?.targets[0]?.profileId, 'runtime-profile-binding-chat');
   assert.equal(projection.aggregateJudgement?.state, 'runnable');
   assert.equal(projection.targetJudgements[0]?.target.capability, 'text.generate');
 

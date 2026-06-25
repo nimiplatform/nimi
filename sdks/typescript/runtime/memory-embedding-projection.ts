@@ -98,17 +98,20 @@ export function buildNimiMemoryEmbeddingBindingIntentSnapshot(
       sourceKind: 'cloud',
       cloudBinding: {
         connectorId: config.bindingRef.connectorId,
-        modelId: config.bindingRef.modelId,
+        remoteModelCatalogId: config.bindingRef.remoteModelCatalogId,
+        providerModelId: config.bindingRef.providerModelId,
+        provider: config.bindingRef.provider,
       },
       revisionToken: config.revisionToken,
     };
   }
   if (config.sourceKind === 'local' && config.bindingRef.kind === 'local') {
+    const ref = normalizeText(config.bindingRef.profileBindingId)
+      ? { oneofKind: 'profileBindingId' as const, profileBindingId: normalizeText(config.bindingRef.profileBindingId) }
+      : { oneofKind: 'readinessRef' as const, readinessRef: normalizeText(config.bindingRef.readinessRef) };
     return {
       sourceKind: 'local',
-      localBinding: {
-        targetId: config.bindingRef.targetId,
-      },
+      localBinding: { ref },
       revisionToken: config.revisionToken,
     };
   }
@@ -223,17 +226,23 @@ export function projectNimiMemoryEmbeddingConfigFromRuntimeIntent(
       bindingRef: {
         kind: 'cloud',
         connectorId: normalizeText(intent.cloudBinding.connectorId),
-        modelId: normalizeText(intent.cloudBinding.modelId),
+        remoteModelCatalogId: normalizeText(intent.cloudBinding.remoteModelCatalogId),
+        providerModelId: normalizeText(intent.cloudBinding.providerModelId),
+        provider: normalizeText(intent.cloudBinding.provider),
       },
       revisionToken: normalizeText(intent.revisionToken) || now,
       updatedAt: now,
     };
   }
   if (sourceKind === 'local' && intent.localBinding) {
+    const ref = intent.localBinding.ref;
+    const bindingRef = ref.oneofKind === 'profileBindingId'
+      ? { kind: 'local' as const, profileBindingId: normalizeText(ref.profileBindingId) }
+      : { kind: 'local' as const, readinessRef: normalizeText(ref.oneofKind === 'readinessRef' ? ref.readinessRef : '') };
     return {
       scopeRef: input.scopeRef,
       sourceKind,
-      bindingRef: { kind: 'local', targetId: normalizeText(intent.localBinding.targetId) },
+      bindingRef,
       revisionToken: normalizeText(intent.revisionToken) || now,
       updatedAt: now,
     };
@@ -299,8 +308,8 @@ export function projectUnavailableNimiMemoryEmbeddingRuntimeState(
   };
 }
 
-function memoryEmbeddingTargetMatches(candidate: unknown, targetId: string): boolean {
-  return normalizeText(candidate) === targetId;
+function memoryEmbeddingLocalBindingRefValue(bindingRef: Extract<NimiMemoryEmbeddingBindingRef, { kind: 'local' }>): string {
+  return normalizeText(bindingRef.profileBindingId) || normalizeText(bindingRef.readinessRef);
 }
 
 export function projectNimiMemoryEmbeddingRouteAvailability(input: {
@@ -323,8 +332,12 @@ export function projectNimiMemoryEmbeddingRouteAvailability(input: {
     return { state: 'unavailable', reason: 'route_options_capability_mismatch', sourceKind, bindingRef };
   }
   if (bindingRef.kind === 'cloud') {
-    const connector = routeOptions.connectors.find((item) => item.id === bindingRef.connectorId);
-    const available = Boolean(connector?.models.includes(bindingRef.modelId));
+    const available = routeOptions.inventory.targets.some((item) => (
+      item.targetRef.kind === 'cloud-connector'
+      && item.targetRef.connectorId === bindingRef.connectorId
+      && item.targetRef.remoteModelCatalogId === bindingRef.remoteModelCatalogId
+      && item.targetRef.providerModelId === bindingRef.providerModelId
+    ));
     return {
       state: available ? 'ready' : 'unavailable',
       reason: available ? 'cloud_model_available' : 'cloud_model_unavailable',
@@ -332,13 +345,16 @@ export function projectNimiMemoryEmbeddingRouteAvailability(input: {
       bindingRef,
     };
   }
-  const targetId = normalizeText(bindingRef.targetId);
-  const model = routeOptions.local.models.find((item) => (
-    memoryEmbeddingTargetMatches(item.model, targetId)
-    || memoryEmbeddingTargetMatches(item.modelId, targetId)
-    || memoryEmbeddingTargetMatches(item.localModelId, targetId)
+  const targetRef = memoryEmbeddingLocalBindingRefValue(bindingRef);
+  const model = routeOptions.inventory.targets.find((item) => (
+    item.targetRef.kind === 'local-runtime'
+    && (
+      normalizeText(item.targetRef.profileBindingId) === targetRef
+      || normalizeText(item.targetRef.readinessRef) === targetRef
+      || (item.evidence.source === 'local-runtime' && normalizeText(item.evidence.localAssetId) === targetRef)
+    )
   ));
-  const active = normalizeText(model?.status).toLowerCase() === 'active';
+  const active = normalizeText(model?.readiness.status).toLowerCase() === 'active';
   return {
     state: active ? 'ready' : 'unavailable',
     reason: active ? 'local_model_active' : 'local_model_unavailable',

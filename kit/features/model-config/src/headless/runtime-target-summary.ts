@@ -57,8 +57,7 @@ function containsOpaqueRuntimeId(value: string): boolean {
 function localTargetCandidates(targetRef: NimiAIConfigTargetRef): string[] {
   if (targetRef.kind !== 'local-runtime') return [];
   const candidates = [
-    normalizeText(targetRef.profileId),
-    normalizeText(targetRef.targetId),
+    normalizeText(targetRef.profileBindingId),
     normalizeText(targetRef.readinessRef),
     ...normalizeText(targetRef.readinessRef).split(':'),
   ].filter(Boolean);
@@ -81,9 +80,8 @@ function localModelMatchesTarget(
 
 function localRuntimeFallbackLabel(targetRef: NimiAIConfigTargetRef): string {
   if (targetRef.kind !== 'local-runtime') return 'Local runtime model';
-  const raw = normalizeText(targetRef.profileId)
-    || normalizeText(targetRef.readinessRef)
-    || normalizeText(targetRef.targetId);
+  const raw = normalizeText(targetRef.profileBindingId)
+    || normalizeText(targetRef.readinessRef);
   if (!raw || containsOpaqueRuntimeId(raw)) return 'Local runtime model';
   return compactModelLabel(raw);
 }

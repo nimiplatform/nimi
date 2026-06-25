@@ -1,6 +1,6 @@
 import { createNimiError } from '../types';
 
-export type NimiRuntimeRouteSource = 'local' | 'cloud';
+export type NimiRuntimeRouteSource = 'local-runtime' | 'cloud-connector';
 export type NimiRuntimeCanonicalCapability = string;
 export type NimiRuntimeRouteModelProfileContextSource =
   | 'provider-api'
@@ -8,22 +8,84 @@ export type NimiRuntimeRouteModelProfileContextSource =
   | 'runtime-metadata'
   | string;
 
-export interface NimiRuntimeRouteBinding {
-  readonly source: NimiRuntimeRouteSource;
+export type NimiRuntimeRouteTargetRef =
+  | NimiRuntimeRouteLocalTargetRef
+  | NimiRuntimeRouteCloudTargetRef;
+
+export type NimiRuntimeRouteLocalTargetRef =
+  | {
+    readonly kind: 'local-runtime';
+    readonly version: 'v2';
+    readonly profileBindingId: string;
+    readonly readinessRef?: never;
+  }
+  | {
+    readonly kind: 'local-runtime';
+    readonly version: 'v2';
+    readonly readinessRef: string;
+    readonly profileBindingId?: never;
+  };
+
+export interface NimiRuntimeRouteCloudTargetRef {
+  readonly kind: 'cloud-connector';
+  readonly version: 'v2';
   readonly connectorId: string;
-  readonly model: string;
-  readonly modelLabel?: string;
-  readonly modelId?: string;
+  readonly remoteModelCatalogId: string;
+  readonly providerModelId: string;
   readonly provider?: string;
-  readonly localModelId?: string;
+}
+
+export interface NimiRuntimeTargetInventoryDisplay {
+  readonly label: string;
+  readonly modelLabel?: string;
+  readonly provider?: string;
   readonly engine?: string;
+  readonly model?: string;
+}
+
+export interface NimiRuntimeTargetInventoryReadiness {
+  readonly status: 'ready' | 'installed' | 'unhealthy' | 'removed' | 'unknown' | string;
+  readonly reasonCode?: string;
+  readonly actionHint?: string;
   readonly endpoint?: string;
-  readonly localProviderEndpoint?: string;
-  readonly localOpenAiEndpoint?: string;
-  readonly goRuntimeLocalModelId?: string;
-  readonly goRuntimeStatus?: 'installed' | 'active' | 'unhealthy' | 'removed' | string;
-  readonly maxContextTokens?: number;
-  readonly maxOutputTokens?: number;
+}
+
+export interface NimiRuntimeTargetInventoryCompatibility {
+  readonly capabilities: readonly string[];
+}
+
+export type NimiRuntimeTargetInventoryEvidence =
+  | {
+    readonly source: 'local-runtime';
+    readonly localAssetId: string;
+    readonly resolvedModelId: string;
+    readonly engine?: string;
+    readonly endpoint?: string;
+    readonly runtimeStatus?: string;
+  }
+  | {
+    readonly source: 'cloud-connector';
+    readonly connectorId: string;
+    readonly remoteModelCatalogId: string;
+    readonly providerModelId: string;
+    readonly provider?: string;
+    readonly endpoint?: string;
+    readonly endpointProfileId?: string;
+    readonly connectorSnapshotId?: string;
+    readonly inventorySnapshotId?: string;
+  };
+
+export interface NimiRuntimeTargetInventoryItem {
+  readonly targetRef: NimiRuntimeRouteTargetRef;
+  readonly display: NimiRuntimeTargetInventoryDisplay;
+  readonly readiness: NimiRuntimeTargetInventoryReadiness;
+  readonly compatibility: NimiRuntimeTargetInventoryCompatibility;
+  readonly evidence: NimiRuntimeTargetInventoryEvidence;
+}
+
+export interface RuntimeTargetInventoryProjection {
+  readonly capability: NimiRuntimeCanonicalCapability;
+  readonly targets: readonly NimiRuntimeTargetInventoryItem[];
 }
 
 export interface NimiRuntimeRouteConnectorOption {
@@ -31,46 +93,27 @@ export interface NimiRuntimeRouteConnectorOption {
   readonly label: string;
   readonly vendor?: string;
   readonly provider?: string;
-  readonly models: readonly string[];
-  readonly modelCapabilities?: Record<string, readonly string[]>;
+  readonly targets: readonly NimiRuntimeTargetInventoryItem[];
   readonly modelProfiles?: readonly NimiRuntimeRouteModelProfile[];
 }
 
 export interface NimiRuntimeRouteModelProfile {
-  readonly model: string;
+  readonly providerModelId: string;
   readonly maxContextTokens?: number;
   readonly maxOutputTokens?: number;
   readonly contextSource?: NimiRuntimeRouteModelProfileContextSource;
 }
 
-export interface NimiRuntimeRouteLocalOption {
-  readonly localModelId: string;
-  readonly label?: string;
-  readonly engine?: string;
-  readonly model: string;
-  readonly modelId?: string;
-  readonly provider?: string;
-  readonly endpoint?: string;
-  readonly status?: 'installed' | 'active' | 'unhealthy' | 'removed' | string;
-  readonly goRuntimeLocalModelId?: string;
-  readonly goRuntimeStatus?: 'installed' | 'active' | 'unhealthy' | 'removed' | string;
-  readonly capabilities?: readonly string[];
-}
-
 export interface NimiRuntimeRouteOptionsSnapshot {
   readonly capability?: NimiRuntimeCanonicalCapability;
-  readonly selected: NimiRuntimeRouteBinding | null;
-  readonly local: {
-    readonly models: readonly NimiRuntimeRouteLocalOption[];
-    readonly defaultEndpoint?: string;
-  };
-  readonly connectors: readonly NimiRuntimeRouteConnectorOption[];
+  readonly selectedTargetRef: NimiRuntimeRouteTargetRef | null;
+  readonly inventory: RuntimeTargetInventoryProjection;
 }
 
 export interface NimiListRuntimeRouteOptionsInput {
   readonly capability: NimiRuntimeCanonicalCapability;
   readonly targetId?: string;
-  readonly selectedBinding?: NimiRuntimeRouteBinding | null;
+  readonly selectedTargetRef?: NimiRuntimeRouteTargetRef | null;
 }
 
 export interface NimiRuntimeRouteOptionsClient {
@@ -116,139 +159,187 @@ export async function listNimiRuntimeRouteOptions(
       source: 'sdk',
     });
   }
-  return client.listRuntimeRouteOptions({
+  assertNoLegacyRouteSelection(input);
+  const snapshot = await client.listRuntimeRouteOptions({
     ...input,
     capability,
+    selectedTargetRef: input.selectedTargetRef ? normalizeNimiRuntimeRouteTargetRef(input.selectedTargetRef) : input.selectedTargetRef,
   });
+  return normalizeNimiRuntimeRouteOptionsSnapshot(snapshot, capability);
 }
 
 function normalizeNimiRuntimeRouteText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-function normalizeNimiRuntimeRouteModelRoot(value: unknown): string {
-  const normalized = normalizeNimiRuntimeRouteText(value);
-  if (!normalized) return '';
-  const lower = normalized.toLowerCase();
-  for (const prefix of ['llama/', 'media/', 'speech/', 'sidecar/', 'local/', 'cloud/', 'token/']) {
-    if (lower.startsWith(prefix)) {
-      return normalized.slice(prefix.length);
-    }
+function assertNoLegacyRouteSelection(input: object): void {
+  const record = input as Record<string, unknown>;
+  if ('selectedBinding' in record) {
+    throw createNimiError({
+      message: 'Runtime route listOptions no longer accepts selectedBinding; use selectedTargetRef.',
+      reasonCode: 'SDK_RUNTIME_ROUTE_INPUT_INVALID',
+      actionHint: 'provide_runtime_route_target_ref',
+      source: 'sdk',
+    });
   }
-  return normalized;
 }
 
-export function isNimiRuntimeRouteLocalOptionSelectable(option: NimiRuntimeRouteLocalOption): boolean {
-  return Boolean(normalizeNimiRuntimeRouteText(option.localModelId))
-    && normalizeNimiRuntimeRouteText(option.status).toLowerCase() !== 'removed';
+function failInvalidTargetRef(message: string): never {
+  throw createNimiError({
+    message,
+    reasonCode: 'SDK_RUNTIME_ROUTE_INPUT_INVALID',
+    actionHint: 'provide_runtime_route_target_ref',
+    source: 'sdk',
+  });
 }
 
-export function nimiRuntimeRouteLocalOptionToBinding(
-  option: NimiRuntimeRouteLocalOption,
-  input?: {
-    readonly defaultEndpoint?: string;
-  },
-): NimiRuntimeRouteBinding {
-  const modelId = normalizeNimiRuntimeRouteText(option.modelId || option.model);
+export function normalizeNimiRuntimeRouteTargetRef(value: unknown): NimiRuntimeRouteTargetRef {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    failInvalidTargetRef('Runtime route targetRef must be an object.');
+  }
+  const record = value as Record<string, unknown>;
+  if ('source' in record || 'model' in record || 'modelId' in record || 'localModelId' in record || 'goRuntimeLocalModelId' in record) {
+    failInvalidTargetRef('Runtime route targetRef must not contain legacy route binding evidence.');
+  }
+  const kind = normalizeNimiRuntimeRouteText(record.kind);
+  if (kind === 'local-runtime') {
+    if (record.version !== 'v2') {
+      failInvalidTargetRef('Runtime local targetRef version must be v2.');
+    }
+    const profileBindingId = normalizeNimiRuntimeRouteText(record.profileBindingId);
+    const readinessRef = normalizeNimiRuntimeRouteText(record.readinessRef);
+    if (Boolean(profileBindingId) === Boolean(readinessRef)) {
+      failInvalidTargetRef('Runtime local targetRef requires exactly one of profileBindingId or readinessRef.');
+    }
+    return profileBindingId
+      ? { kind: 'local-runtime', version: 'v2', profileBindingId }
+      : { kind: 'local-runtime', version: 'v2', readinessRef };
+  }
+  if (kind === 'cloud-connector') {
+    const connectorId = normalizeNimiRuntimeRouteText(record.connectorId);
+    const remoteModelCatalogId = normalizeNimiRuntimeRouteText(record.remoteModelCatalogId);
+    const providerModelId = normalizeNimiRuntimeRouteText(record.providerModelId);
+    const provider = normalizeNimiRuntimeRouteText(record.provider);
+    if (!connectorId || !remoteModelCatalogId || !providerModelId) {
+      failInvalidTargetRef('Runtime cloud targetRef requires connectorId, remoteModelCatalogId, and providerModelId.');
+    }
+    return {
+      kind: 'cloud-connector',
+      version: 'v2',
+      connectorId,
+      remoteModelCatalogId,
+      providerModelId,
+      ...(provider ? { provider } : {}),
+    };
+  }
+  failInvalidTargetRef(`Runtime route targetRef kind "${kind}" is not supported.`);
+}
+
+export function nimiRuntimeRouteTargetRefKey(targetRef: NimiRuntimeRouteTargetRef | null | undefined): string {
+  if (!targetRef) return '';
+  if (targetRef.kind === 'local-runtime') {
+    return [
+      'local-runtime',
+      targetRef.version,
+      normalizeNimiRuntimeRouteText(targetRef.profileBindingId),
+      normalizeNimiRuntimeRouteText(targetRef.readinessRef),
+    ].join('|');
+  }
+  return [
+    'cloud-connector',
+    targetRef.version,
+    normalizeNimiRuntimeRouteText(targetRef.connectorId),
+    normalizeNimiRuntimeRouteText(targetRef.remoteModelCatalogId),
+    normalizeNimiRuntimeRouteText(targetRef.providerModelId),
+  ].join('|');
+}
+
+export function nimiRuntimeRouteTargetRefsMatch(
+  left: NimiRuntimeRouteTargetRef | null | undefined,
+  right: NimiRuntimeRouteTargetRef | null | undefined,
+): boolean {
+  return Boolean(left && right && nimiRuntimeRouteTargetRefKey(left) === nimiRuntimeRouteTargetRefKey(right));
+}
+
+export function isNimiRuntimeTargetInventoryItemSelectable(item: NimiRuntimeTargetInventoryItem): boolean {
+  return Boolean(nimiRuntimeRouteTargetRefKey(item.targetRef))
+    && normalizeNimiRuntimeRouteText(item.readiness.status).toLowerCase() !== 'removed';
+}
+
+export function findNimiRuntimeTargetInventoryItem(
+  projection: RuntimeTargetInventoryProjection | null | undefined,
+  targetRef: NimiRuntimeRouteTargetRef | null | undefined,
+): NimiRuntimeTargetInventoryItem | null {
+  if (!projection || !targetRef) return null;
+  const normalized = normalizeNimiRuntimeRouteTargetRef(targetRef);
+  return projection.targets.find((item) => nimiRuntimeRouteTargetRefsMatch(item.targetRef, normalized)) || null;
+}
+
+function normalizeInventoryItem(item: NimiRuntimeTargetInventoryItem): NimiRuntimeTargetInventoryItem {
   return {
-    source: 'local',
-    connectorId: '',
-    model: modelId,
-    modelId: modelId || undefined,
-    provider: normalizeNimiRuntimeRouteText(option.provider || option.engine) || undefined,
-    localModelId: normalizeNimiRuntimeRouteText(option.localModelId) || undefined,
-    engine: normalizeNimiRuntimeRouteText(option.engine) || undefined,
-    endpoint: normalizeNimiRuntimeRouteText(option.endpoint || input?.defaultEndpoint) || undefined,
-    goRuntimeLocalModelId: normalizeNimiRuntimeRouteText(option.goRuntimeLocalModelId) || undefined,
-    goRuntimeStatus: normalizeNimiRuntimeRouteText(option.goRuntimeStatus) || undefined,
+    ...item,
+    targetRef: normalizeNimiRuntimeRouteTargetRef(item.targetRef),
+    display: {
+      label: normalizeNimiRuntimeRouteText(item.display.label),
+      modelLabel: normalizeNimiRuntimeRouteText(item.display.modelLabel) || undefined,
+      provider: normalizeNimiRuntimeRouteText(item.display.provider) || undefined,
+      engine: normalizeNimiRuntimeRouteText(item.display.engine) || undefined,
+      model: normalizeNimiRuntimeRouteText(item.display.model) || undefined,
+    },
+    readiness: {
+      status: normalizeNimiRuntimeRouteText(item.readiness.status) || 'unknown',
+      reasonCode: normalizeNimiRuntimeRouteText(item.readiness.reasonCode) || undefined,
+      actionHint: normalizeNimiRuntimeRouteText(item.readiness.actionHint) || undefined,
+      endpoint: normalizeNimiRuntimeRouteText(item.readiness.endpoint) || undefined,
+    },
+    compatibility: {
+      capabilities: [...new Set((item.compatibility.capabilities || [])
+        .map((capability) => normalizeNimiRuntimeRouteCapabilityToken(capability))
+        .filter((capability): capability is string => Boolean(capability)))],
+    },
+    evidence: item.evidence,
   };
 }
 
-function nimiRuntimeRouteBindingModelToken(binding: NimiRuntimeRouteBinding): string {
-  return normalizeNimiRuntimeRouteText(binding.modelId) || normalizeNimiRuntimeRouteText(binding.model);
-}
-
-function nimiRuntimeRouteEngineToken(binding: NimiRuntimeRouteBinding): string {
-  return normalizeNimiRuntimeRouteText(binding.engine || binding.provider)
-    .toLowerCase()
-    .replace(/[^a-z0-9_.-]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-}
-
-export function nimiRuntimeRouteBindingsMatch(
-  left: NimiRuntimeRouteBinding | null | undefined,
-  right: NimiRuntimeRouteBinding | null | undefined,
-): boolean {
-  if (!left || !right || left.source !== right.source) {
-    return false;
+export function normalizeNimiRuntimeRouteOptionsSnapshot(
+  snapshot: NimiRuntimeRouteOptionsSnapshot,
+  fallbackCapability?: NimiRuntimeCanonicalCapability,
+): NimiRuntimeRouteOptionsSnapshot {
+  const capability = normalizeNimiRuntimeRouteCapabilityToken(snapshot.capability || snapshot.inventory?.capability || fallbackCapability);
+  if (!capability) {
+    throw createNimiError({
+      message: 'Runtime route options snapshot capability is required.',
+      reasonCode: 'SDK_RUNTIME_ROUTE_INPUT_INVALID',
+      actionHint: 'provide_runtime_route_capability',
+      source: 'sdk',
+    });
   }
-  if (left.source === 'local') {
-    const leftLocalModelId = normalizeNimiRuntimeRouteText(left.localModelId || left.goRuntimeLocalModelId);
-    const rightLocalModelId = normalizeNimiRuntimeRouteText(right.localModelId || right.goRuntimeLocalModelId);
-    if (leftLocalModelId && rightLocalModelId) {
-      return leftLocalModelId === rightLocalModelId;
-    }
-    const leftModel = normalizeNimiRuntimeRouteModelRoot(nimiRuntimeRouteBindingModelToken(left));
-    const rightModel = normalizeNimiRuntimeRouteModelRoot(nimiRuntimeRouteBindingModelToken(right));
-    if (!leftModel || !rightModel || leftModel !== rightModel) {
-      return false;
-    }
-    const leftEngine = nimiRuntimeRouteEngineToken(left);
-    const rightEngine = nimiRuntimeRouteEngineToken(right);
-    if (!leftEngine || !rightEngine) {
-      return true;
-    }
-    return leftEngine === rightEngine;
-  }
-  const leftConnectorId = normalizeNimiRuntimeRouteText(left.connectorId);
-  const rightConnectorId = normalizeNimiRuntimeRouteText(right.connectorId);
-  const leftModel = normalizeNimiRuntimeRouteText(left.modelId || left.model);
-  const rightModel = normalizeNimiRuntimeRouteText(right.modelId || right.model);
-  return Boolean(
-    leftConnectorId
-    && rightConnectorId
-    && leftConnectorId === rightConnectorId
-    && leftModel
-    && rightModel
-    && leftModel === rightModel,
-  );
+  const targets = (snapshot.inventory?.targets || []).map(normalizeInventoryItem);
+  const selectedTargetRef = snapshot.selectedTargetRef
+    ? normalizeNimiRuntimeRouteTargetRef(snapshot.selectedTargetRef)
+    : null;
+  return {
+    capability,
+    selectedTargetRef,
+    inventory: {
+      capability,
+      targets,
+    },
+  };
 }
 
 export function findNimiRuntimeRouteModelProfile(
   snapshot: NimiRuntimeRouteOptionsSnapshot | null | undefined,
-  binding: NimiRuntimeRouteBinding | null | undefined,
+  targetRef: NimiRuntimeRouteTargetRef | null | undefined,
 ): NimiRuntimeRouteModelProfile | null {
-  if (!snapshot || !binding) {
+  if (!snapshot || !targetRef || targetRef.kind !== 'cloud-connector') {
     return null;
   }
-  if (
-    Number.isFinite(Number(binding.maxContextTokens))
-    || Number.isFinite(Number(binding.maxOutputTokens))
-  ) {
-    return {
-      model: normalizeNimiRuntimeRouteText(binding.modelId) || normalizeNimiRuntimeRouteText(binding.model),
-      ...(Number.isFinite(Number(binding.maxContextTokens)) && Number(binding.maxContextTokens) > 0
-        ? { maxContextTokens: Math.floor(Number(binding.maxContextTokens)) }
-        : {}),
-      ...(Number.isFinite(Number(binding.maxOutputTokens)) && Number(binding.maxOutputTokens) > 0
-        ? { maxOutputTokens: Math.floor(Number(binding.maxOutputTokens)) }
-        : {}),
-    };
-  }
-  if (binding.source !== 'cloud') {
+  const item = findNimiRuntimeTargetInventoryItem(snapshot.inventory, targetRef);
+  if (!item || item.targetRef.kind !== 'cloud-connector') {
     return null;
   }
-  const connector = snapshot.connectors.find((item) => (
-    normalizeNimiRuntimeRouteText(item.id) === normalizeNimiRuntimeRouteText(binding.connectorId)
-  )) || null;
-  if (!connector) {
-    return null;
-  }
-  const targetModel = normalizeNimiRuntimeRouteText(binding.modelId) || normalizeNimiRuntimeRouteText(binding.model);
-  if (!targetModel) {
-    return null;
-  }
-  return connector.modelProfiles?.find((profile) => (
-    normalizeNimiRuntimeRouteText(profile.model) === targetModel
-  )) || null;
+  return {
+    providerModelId: item.targetRef.providerModelId,
+  };
 }

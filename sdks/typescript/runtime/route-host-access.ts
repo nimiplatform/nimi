@@ -196,7 +196,7 @@ function providerHealthFromConnectorResult(
   return {
     provider: normalizeText(input.provider),
     endpoint: normalizeText(input.localProviderEndpoint || input.localOpenAiEndpoint) || null,
-    model: normalizeText(input.localProviderModel || input.goRuntimeLocalModelId || input.localModelId),
+    model: normalizeText(input.localProviderModel || input.localAssetId),
     status: ok ? 'healthy' : 'degraded',
     detail: ok ? '' : normalizeText(result.ack?.actionHint || 'connector health acknowledgement missing'),
     reasonCode: reasonCodeName(result.ack?.reasonCode) || undefined,
@@ -208,14 +208,14 @@ function providerHealthFromLocalAsset(
   input: NimiRuntimeRouteHealthInput,
   response: CheckLocalAssetHealthResponse,
 ): NimiRuntimeRouteHostProviderHealth {
-  const localAssetId = normalizeText(input.goRuntimeLocalModelId || input.localModelId);
+  const localAssetId = normalizeText(input.localAssetId);
   const health = response.assets.find((asset) => normalizeText(asset.localAssetId) === localAssetId)
     || response.assets[0];
   if (!health) {
     return {
       provider: normalizeText(input.provider),
       endpoint: normalizeText(input.localProviderEndpoint || input.localOpenAiEndpoint) || null,
-      model: normalizeText(input.localProviderModel || input.goRuntimeLocalModelId || input.localModelId),
+      model: normalizeText(input.localProviderModel || input.localAssetId),
       status: 'unavailable',
       detail: 'local asset health evidence missing',
       actionHint: 'inspect_local_runtime_model_health',
@@ -225,7 +225,7 @@ function providerHealthFromLocalAsset(
   return {
     provider: normalizeText(input.provider),
     endpoint: normalizeText(health.endpoint || input.localProviderEndpoint || input.localOpenAiEndpoint) || null,
-    model: normalizeText(input.localProviderModel || input.goRuntimeLocalModelId || input.localModelId),
+    model: normalizeText(input.localProviderModel || input.localAssetId),
     status: status === 'active' || status === 'installed' ? 'healthy' : 'unreachable',
     detail: normalizeText(health.detail),
     reasonCode: reasonCodeName(health.reasonCode) || undefined,
@@ -248,14 +248,14 @@ async function checkRouteHealth(
       return {
         provider: normalizeText(input.provider),
         endpoint: normalizeText(input.localProviderEndpoint || input.localOpenAiEndpoint) || null,
-        model: normalizeText(input.localProviderModel || input.goRuntimeLocalModelId || input.localModelId),
+        model: normalizeText(input.localProviderModel || input.localAssetId),
         status: 'unreachable',
         detail: error instanceof Error ? error.message : String(error || ''),
       };
     }
   }
 
-  const localAssetId = normalizeText(input.goRuntimeLocalModelId || input.localModelId);
+  const localAssetId = normalizeText(input.localAssetId);
   if (!localAssetId) {
     return {
       provider: normalizeText(input.provider),
@@ -275,7 +275,7 @@ async function checkRouteHealth(
     return {
       provider: normalizeText(input.provider),
       endpoint: normalizeText(input.localProviderEndpoint || input.localOpenAiEndpoint) || null,
-      model: normalizeText(input.localProviderModel || input.goRuntimeLocalModelId || input.localModelId),
+      model: normalizeText(input.localProviderModel || input.localAssetId),
       status: 'unreachable',
       detail: error instanceof Error ? error.message : String(error || ''),
     };
@@ -325,12 +325,12 @@ function selectLocalWarmCandidate(input: {
   readonly resolved: NimiRuntimeResolvedBinding;
   readonly assets: readonly NimiRuntimeRouteLocalWarmCandidate[];
 }): NimiRuntimeRouteLocalWarmCandidate | null {
-  const targetLocalModelId = normalizeText(input.resolved.goRuntimeLocalModelId || input.resolved.localModelId);
+  const targetLocalAssetId = normalizeText(input.resolved.localAssetId);
   const targetModelRoot = routeModelRoot(input.resolved.modelId || input.resolved.model);
   const targetEndpoint = normalizeText(input.resolved.localProviderEndpoint || input.resolved.localOpenAiEndpoint || input.resolved.endpoint);
   const targetEngine = normalizeLower(input.resolved.engine || input.resolved.provider);
-  if (targetLocalModelId) {
-    const direct = input.assets.find((asset) => normalizeText(asset.localAssetId) === targetLocalModelId);
+  if (targetLocalAssetId) {
+    const direct = input.assets.find((asset) => normalizeText(asset.localAssetId) === targetLocalAssetId);
     if (direct) return direct;
   }
   return input.assets
@@ -354,7 +354,7 @@ async function ensureLocalModelWarm(
     readonly emitMetric?: (metric: NimiRuntimeRouteLocalWarmMetric) => void;
   },
 ): Promise<void> {
-  if (input.resolvedBinding.source !== 'local') return;
+  if (input.resolvedBinding.source !== 'local-runtime') return;
   const startedAt = nowMs();
   const candidate = selectLocalWarmCandidate({
     resolved: input.resolvedBinding,
@@ -388,7 +388,7 @@ async function ensureLocalModelWarm(
       await options.buildCallOptions({
         targetId: input.targetId,
         timeoutMs,
-        source: 'local',
+        source: 'local-runtime',
         providerEndpoint: candidate.endpoint,
       }),
     );

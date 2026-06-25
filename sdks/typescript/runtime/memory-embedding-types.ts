@@ -29,13 +29,22 @@ export interface NimiMemoryEmbeddingScopeRef {
 export interface NimiMemoryEmbeddingCloudConfigBindingRef {
   readonly kind: 'cloud';
   readonly connectorId: string;
-  readonly modelId: string;
+  readonly remoteModelCatalogId: string;
+  readonly providerModelId: string;
+  readonly provider: string;
 }
 
-export interface NimiMemoryEmbeddingLocalConfigBindingRef {
+export type NimiMemoryEmbeddingLocalConfigBindingRef =
+  | {
   readonly kind: 'local';
-  readonly targetId: string;
-}
+      readonly profileBindingId: string;
+      readonly readinessRef?: never;
+    }
+  | {
+      readonly kind: 'local';
+      readonly readinessRef: string;
+      readonly profileBindingId?: never;
+    };
 
 export type NimiMemoryEmbeddingBindingRef =
   | NimiMemoryEmbeddingCloudConfigBindingRef

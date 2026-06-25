@@ -242,7 +242,7 @@ function buildNimiRuntimeRouteDescribeExecuteScenarioRequest(input: {
   readonly timeoutMs?: number;
 }): ExecuteScenarioRequest {
   const modelId = normalizeNimiRuntimeRouteModelRoot(
-    input.resolved.modelId || input.resolved.model || input.resolved.localModelId,
+    input.resolved.modelId || input.resolved.model || input.resolved.providerModelId,
   );
   if (!modelId) {
     throw new Error('NIMI_RUNTIME_ROUTE_BINDING_MODEL_REQUIRED');
@@ -252,11 +252,11 @@ function buildNimiRuntimeRouteDescribeExecuteScenarioRequest(input: {
     modelId,
   });
   return {
-    head: {
+      head: {
       appId: input.appId,
       subjectUserId: '',
       modelId,
-      routePolicy: input.resolved.source === 'local' ? RoutePolicy.LOCAL : RoutePolicy.CLOUD,
+      routePolicy: input.resolved.source === 'local-runtime' ? RoutePolicy.LOCAL : RoutePolicy.CLOUD,
       fallback: FallbackPolicy.DENY,
       timeoutMs: input.timeoutMs ?? NIMI_RUNTIME_ROUTE_DESCRIBE_TIMEOUT_MS,
       connectorId: normalizeText(input.resolved.connectorId),
@@ -269,8 +269,10 @@ function buildNimiRuntimeRouteDescribeExecuteScenarioRequest(input: {
       payload: toNimiRuntimeProtoStruct({
         version: 'v1',
         resolvedBindingRef: input.resolvedBindingRef,
-        localModelId: normalizeText(input.resolved.localModelId) || undefined,
-        goRuntimeLocalModelId: normalizeText(input.resolved.goRuntimeLocalModelId) || undefined,
+        routeMetadataRef: normalizeText(input.resolved.routeMetadataRef) || undefined,
+        localAssetId: normalizeText(input.resolved.localAssetId) || undefined,
+        remoteModelCatalogId: normalizeText(input.resolved.remoteModelCatalogId) || undefined,
+        providerModelId: normalizeText(input.resolved.providerModelId) || undefined,
         engine: normalizeText(input.resolved.engine || input.resolved.provider) || undefined,
         modelId,
       }),

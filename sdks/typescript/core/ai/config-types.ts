@@ -85,13 +85,20 @@ export type NimiAIConfigTargetRef =
   }
   | {
     readonly kind: 'local-runtime';
-    readonly targetId?: string;
-    readonly profileId?: string;
-    readonly readinessRef?: string;
+    readonly version: 'v2';
+    readonly profileBindingId: string;
+    readonly readinessRef?: never;
+  }
+  | {
+    readonly kind: 'local-runtime';
+    readonly version: 'v2';
+    readonly readinessRef: string;
+    readonly profileBindingId?: never;
   }
   | {
     readonly kind: 'cloud-connector';
     readonly connectorId: string;
+    readonly remoteModelCatalogId: string;
     readonly providerModelId: string;
     readonly provider?: string;
   };

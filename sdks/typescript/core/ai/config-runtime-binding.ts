@@ -78,7 +78,7 @@ function targetRefModel(targetRef: NimiAIConfigTargetRef): string {
     return normalizeText(targetRef.providerModelId);
   }
   if (targetRef.kind === 'local-runtime') {
-    return normalizeText(targetRef.profileId) || normalizeText(targetRef.targetId) || normalizeText(targetRef.readinessRef);
+    return normalizeText(targetRef.profileBindingId) || normalizeText(targetRef.readinessRef);
   }
   return '';
 }
@@ -155,6 +155,7 @@ export function resolveNimiAIConfigRuntimeBinding(
         aiConfigBindingCapabilityId: bindingCapabilityId,
         aiConfigBindingSource: routePolicy,
         aiConfigBindingConnectorId: connectorId,
+        aiConfigBindingRemoteModelCatalogId: targetRef.kind === 'cloud-connector' ? targetRef.remoteModelCatalogId : '',
         aiConfigBindingModel: model,
         aiConfigTargetRefKind: targetRef.kind,
         aiConfigHash: versionNimiAIConfig(input.config),

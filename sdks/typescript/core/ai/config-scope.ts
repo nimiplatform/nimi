@@ -142,13 +142,24 @@ export function validateNimiAIConfigTargetRef(value: unknown, path: string): rea
     if (!isNonEmptyString(value.sourceProfileId)) errors.push(`${path}.sourceProfileId is required`);
     if (!isNonEmptyString(value.sliceId)) errors.push(`${path}.sliceId is required`);
   } else if (value.kind === 'local-runtime') {
-    if (!isNonEmptyString(value.readinessRef)
-      && !isNonEmptyString(value.targetId)
-      && !isNonEmptyString(value.profileId)) {
-      errors.push(`${path} requires readinessRef or targetId/profileId`);
+    if (value.version !== 'v2') errors.push(`${path}.version must be v2`);
+    const hasProfileBinding = isNonEmptyString(value.profileBindingId);
+    const hasReadinessRef = isNonEmptyString(value.readinessRef);
+    if (!hasProfileBinding && !hasReadinessRef) {
+      errors.push(`${path} requires profileBindingId or readinessRef`);
+    }
+    if (hasProfileBinding && hasReadinessRef) {
+      errors.push(`${path} must not contain both profileBindingId and readinessRef`);
+    }
+    if (isNonEmptyString(value.targetId)) {
+      errors.push(`${path}.targetId is retired; use profileBindingId or readinessRef`);
+    }
+    if (isNonEmptyString(value.profileId)) {
+      errors.push(`${path}.profileId is retired; use profileBindingId or readinessRef`);
     }
   } else if (value.kind === 'cloud-connector') {
     if (!isNonEmptyString(value.connectorId)) errors.push(`${path}.connectorId is required`);
+    if (!isNonEmptyString(value.remoteModelCatalogId)) errors.push(`${path}.remoteModelCatalogId is required`);
     if (!isNonEmptyString(value.providerModelId)) errors.push(`${path}.providerModelId is required`);
   } else {
     errors.push(`${path}.kind is not an admitted AIConfig compact ref family`);

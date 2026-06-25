@@ -19,31 +19,64 @@ function makeRouteOptionsLoader() {
       calls += 1;
       return {
         capability: input.capability,
-        selected: null,
-        local: {
-          models: [
+        selectedTargetRef: null,
+        inventory: {
+          capability: input.capability,
+          targets: [
             {
-              localModelId: 'local-chat',
-              model: 'local/chat',
-              modelId: 'local/chat',
-              engine: 'llama',
-              status: 'active',
-              capabilities: [input.capability],
+              targetRef: {
+                kind: 'local-runtime',
+                version: 'v2',
+                profileBindingId: 'runtime-profile:local-chat',
+              },
+              display: {
+                label: 'local/chat',
+                model: 'local/chat',
+                engine: 'llama',
+              },
+              readiness: {
+                status: 'active',
+              },
+              compatibility: {
+                capabilities: [input.capability],
+              },
+              evidence: {
+                source: 'local-runtime',
+                localAssetId: 'local-chat',
+                resolvedModelId: 'local/chat',
+                engine: 'llama',
+              },
+            },
+            {
+              targetRef: {
+                kind: 'cloud-connector',
+                version: 'v2',
+                connectorId: 'cloud-1',
+                remoteModelCatalogId: 'remote-catalog:cloud-1:cloud-model',
+                providerModelId: 'cloud-model',
+                provider: 'cloud',
+              },
+              display: {
+                label: 'cloud-model',
+                modelLabel: 'cloud-model',
+                provider: 'cloud',
+              },
+              readiness: {
+                status: 'active',
+              },
+              compatibility: {
+                capabilities: [input.capability],
+              },
+              evidence: {
+                source: 'cloud-connector',
+                connectorId: 'cloud-1',
+                remoteModelCatalogId: 'remote-catalog:cloud-1:cloud-model',
+                providerModelId: 'cloud-model',
+                provider: 'cloud',
+              },
             },
           ],
-          defaultEndpoint: 'http://127.0.0.1:11434/v1',
         },
-        connectors: [
-          {
-            id: 'cloud-1',
-            label: 'Cloud',
-            provider: 'cloud',
-            models: ['cloud-model'],
-            modelCapabilities: {
-              'cloud-model': [input.capability],
-            },
-          },
-        ],
       };
     },
   };

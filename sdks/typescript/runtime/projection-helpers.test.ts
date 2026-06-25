@@ -7,11 +7,11 @@ import {
   formatNimiRuntimeErrorDetail,
   getNimiRuntimeReasonCodeMessage,
   getNimiRuntimeReasonCodeDefaultMessage,
-  isNimiRuntimeRouteLocalOptionSelectable,
   listNimiRuntimeRouteOptions,
-  nimiRuntimeRouteBindingsMatch,
-  nimiRuntimeRouteLocalOptionToBinding,
+  findNimiRuntimeTargetInventoryItem,
+  nimiRuntimeRouteTargetRefsMatch,
   normalizeNimiRuntimeReasonCode,
+  normalizeNimiRuntimeRouteTargetRef,
   projectNimiRuntimeAuditCallerKindName,
   projectNimiRuntimeUsageWindowName,
   runNimiRuntimeScenarioJob,
@@ -98,76 +98,48 @@ test('Runtime audit and route helper projections cover local/cloud edge matching
   assert.equal(projectNimiRuntimeUsageWindowName(UsageWindow.DAY), 'DAY');
   assert.equal(projectNimiRuntimeUsageWindowName('bad'), undefined);
 
-  assert.equal(isNimiRuntimeRouteLocalOptionSelectable({
-    localModelId: 'local-1',
-    model: 'local/llama/tester',
-    status: 'removed',
-  }), false);
-  const localBinding = nimiRuntimeRouteLocalOptionToBinding({
-    localModelId: 'local-1',
-    model: 'local/llama/tester',
-    engine: 'llama.cpp',
-    status: 'active',
-  }, { defaultEndpoint: 'http://127.0.0.1:11434' });
-  assert.deepEqual(localBinding, {
-    source: 'local',
-    connectorId: '',
-    model: 'local/llama/tester',
-    modelId: 'local/llama/tester',
-    provider: 'llama.cpp',
-    localModelId: 'local-1',
-    engine: 'llama.cpp',
-    endpoint: 'http://127.0.0.1:11434',
-    goRuntimeLocalModelId: undefined,
-    goRuntimeStatus: undefined,
+  const localTargetRef = normalizeNimiRuntimeRouteTargetRef({
+    kind: 'local-runtime',
+    version: 'v2',
+    profileBindingId: 'local-runtime:local-1',
   });
-  assert.equal(nimiRuntimeRouteBindingsMatch(localBinding, {
-    source: 'local',
-    connectorId: '',
-    model: 'llama/tester',
-    localModelId: 'local-1',
-    provider: 'llama.cpp',
+  const cloudTargetRef = normalizeNimiRuntimeRouteTargetRef({
+    kind: 'cloud-connector',
+    connectorId: 'connector-1',
+    remoteModelCatalogId: 'remote-catalog:gpt-5',
+    providerModelId: 'gpt-5',
+    provider: 'openai',
+  });
+  assert.equal(nimiRuntimeRouteTargetRefsMatch(localTargetRef, {
+    kind: 'local-runtime',
+    version: 'v2',
+    profileBindingId: 'local-runtime:local-1',
   }), true);
-  assert.equal(nimiRuntimeRouteBindingsMatch({
-    source: 'cloud',
-    connectorId: 'connector-1',
-    model: 'gpt-5',
-  }, {
-    source: 'cloud',
-    connectorId: 'connector-1',
-    modelId: 'gpt-5',
-    model: '',
-  }), true);
-  assert.deepEqual(findNimiRuntimeRouteModelProfile({
-    selected: null,
-    local: { models: [] },
-    connectors: [{
-      id: 'connector-1',
-      label: 'Connector',
-      models: ['gpt-5'],
-      modelProfiles: [{ model: 'gpt-5', maxContextTokens: 128000, contextSource: 'provider-api' }],
-    }],
-  }, {
-    source: 'cloud',
-    connectorId: 'connector-1',
-    model: 'gpt-5',
-  }), {
-    model: 'gpt-5',
-    maxContextTokens: 128000,
-    contextSource: 'provider-api',
+  const routeOptions = {
+    capability: 'text.generate',
+    selectedTargetRef: cloudTargetRef,
+    inventory: {
+      capability: 'text.generate',
+      targets: [{
+        targetRef: cloudTargetRef,
+        display: { label: 'GPT-5', model: 'gpt-5', provider: 'openai' },
+        readiness: { status: 'ready' },
+        compatibility: { capabilities: ['text.generate'] },
+        evidence: {
+          source: 'cloud-connector' as const,
+          connectorId: 'connector-1',
+          remoteModelCatalogId: 'remote-catalog:gpt-5',
+          providerModelId: 'gpt-5',
+          provider: 'openai',
+        },
+      }],
+    },
+  };
+  assert.equal(findNimiRuntimeTargetInventoryItem(routeOptions.inventory, cloudTargetRef)?.display.label, 'GPT-5');
+  assert.deepEqual(findNimiRuntimeRouteModelProfile(routeOptions, cloudTargetRef), {
+    providerModelId: 'gpt-5',
   });
-  assert.deepEqual(findNimiRuntimeRouteModelProfile(null, localBinding), null);
-  assert.deepEqual(findNimiRuntimeRouteModelProfile({ selected: null, local: { models: [] }, connectors: [] }, {
-    source: 'local',
-    connectorId: '',
-    model: 'local/llama/tester',
-    maxContextTokens: 4096,
-    maxOutputTokens: 512.7,
-  }), {
-    model: 'local/llama/tester',
-    maxContextTokens: 4096,
-    maxOutputTokens: 512,
-  });
+  assert.deepEqual(findNimiRuntimeRouteModelProfile(null, localTargetRef), null);
 });
 
 test('Runtime route options projection requires explicit route client and normalized capability', async () => {
@@ -190,15 +162,14 @@ test('Runtime route options projection requires explicit route client and normal
       calls.push(input);
       return {
         capability: input.capability,
-        selected: null,
-        local: { models: [] },
-        connectors: [],
+        selectedTargetRef: null,
+        inventory: { capability: input.capability, targets: [] },
       };
     },
   }, { capability: ' Text.Generate ', targetId: 'chat' });
 
   assert.equal(result.capability, 'text.generate');
-  assert.deepEqual(calls, [{ capability: 'text.generate', targetId: 'chat' }]);
+  assert.deepEqual(calls, [{ capability: 'text.generate', targetId: 'chat', selectedTargetRef: undefined }]);
 });
 
 test('Runtime speech voice projection maps SDK-friendly discriminants to generated oneof refs', () => {

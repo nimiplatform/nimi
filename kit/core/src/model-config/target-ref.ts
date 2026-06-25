@@ -1,8 +1,8 @@
 // Pure-logic compact target-ref helpers for Kit model-config.
 //
 // Kit consumes SDK NimiAIConfig compact refs and requirement declarations only. It
-// does not serialize NimiRuntimeRouteBinding, selected bindings, provider health,
-// route availability, local paths, or materialization evidence.
+// does not serialize route inventory selections, provider health, route
+// availability, local paths, or materialization evidence.
 
 import type { NimiAIConfig } from '@nimiplatform/kit/core/sdk-contract';
 import type {
@@ -77,8 +77,7 @@ export function summarizeTargetRef(
   if (targetRef.kind === 'local-runtime') {
     const detail = [
       normalizeText(targetRef.readinessRef),
-      normalizeText(targetRef.profileId),
-      normalizeText(targetRef.targetId),
+      normalizeText(targetRef.profileBindingId),
     ].filter(Boolean).join(' · ');
     return { label: 'Local runtime target', detail: detail || null };
   }

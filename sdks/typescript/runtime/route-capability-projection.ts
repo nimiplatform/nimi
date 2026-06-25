@@ -11,7 +11,7 @@ import {
 import {
   normalizeNimiRuntimeRouteCapabilityToken,
   type NimiRuntimeCanonicalCapability,
-  type NimiRuntimeRouteBinding,
+  type NimiRuntimeRouteTargetRef,
 } from './route-options';
 
 export const NIMI_RUNTIME_ROUTE_APP_CAPABILITIES = [
@@ -30,7 +30,7 @@ export type NimiRuntimeRouteAppCapability = (typeof NIMI_RUNTIME_ROUTE_APP_CAPAB
 
 export interface NimiRuntimeRouteCapabilitySelectionStore {
   readonly version: number;
-  readonly selectedBindings: Partial<Record<NimiRuntimeRouteAppCapability, NimiRuntimeRouteBinding | null>>;
+  readonly targetRefs: Partial<Record<NimiRuntimeRouteAppCapability, NimiRuntimeRouteTargetRef | null>>;
 }
 
 export type NimiRuntimeRouteCapabilityProjectionReasonCode =
@@ -55,7 +55,7 @@ export type NimiRuntimeRouteCapabilityProjectionIssueKind =
 
 export interface NimiRuntimeRouteCapabilityProjection {
   readonly capability: NimiRuntimeRouteAppCapability;
-  readonly selectedBinding: NimiRuntimeRouteBinding | null;
+  readonly selectedTargetRef: NimiRuntimeRouteTargetRef | null;
   readonly resolvedBinding: NimiRuntimeResolvedBinding | null;
   readonly health: NimiRuntimeRouteHealthResult | null;
   readonly metadata: NimiRuntimeRouteDescribeResult | null;
@@ -92,7 +92,7 @@ function createNimiRuntimeRouteCapabilityProjection(
 ): NimiRuntimeRouteCapabilityProjection {
   return {
     capability,
-    selectedBinding: null,
+    selectedTargetRef: null,
     resolvedBinding: null,
     health: null,
     metadata: null,
@@ -146,7 +146,7 @@ function isNimiRuntimeRouteCapabilityHealthNotReady(
   const reasonCode = normalizeText(health?.reasonCode).toUpperCase();
   const actionHint = normalizeText(health?.actionHint).toLowerCase();
   const detail = normalizeText(health?.detail).toLowerCase();
-  const runtimeStatus = normalizeText(resolvedBinding?.goRuntimeStatus).toLowerCase();
+  const runtimeStatus = normalizeText(resolvedBinding?.localRuntimeStatus).toLowerCase();
   if (reasonCode === ReasonCode.AI_MODEL_NOT_READY) {
     return true;
   }
@@ -183,24 +183,24 @@ export function toNimiRuntimeRouteCanonicalCapability(
 export function createDefaultNimiRuntimeRouteCapabilitySelectionStore(): NimiRuntimeRouteCapabilitySelectionStore {
   return {
     version: NIMI_RUNTIME_ROUTE_CAPABILITY_SELECTION_STORE_VERSION,
-    selectedBindings: {},
+    targetRefs: {},
   };
 }
 
-export function updateNimiRuntimeRouteCapabilityBinding(
+export function updateNimiRuntimeRouteCapabilityTargetRef(
   state: NimiRuntimeRouteCapabilitySelectionStore,
   capability: NimiRuntimeRouteAppCapability,
-  binding: NimiRuntimeRouteBinding | null | undefined,
+  targetRef: NimiRuntimeRouteTargetRef | null | undefined,
 ): NimiRuntimeRouteCapabilitySelectionStore {
-  const nextSelectedBindings = { ...state.selectedBindings };
-  if (binding === undefined) {
-    delete nextSelectedBindings[capability];
+  const nextTargetRefs = { ...state.targetRefs };
+  if (targetRef === undefined) {
+    delete nextTargetRefs[capability];
   } else {
-    nextSelectedBindings[capability] = binding;
+    nextTargetRefs[capability] = targetRef;
   }
   return {
     version: NIMI_RUNTIME_ROUTE_CAPABILITY_SELECTION_STORE_VERSION,
-    selectedBindings: nextSelectedBindings,
+    targetRefs: nextTargetRefs,
   };
 }
 
@@ -252,27 +252,27 @@ export async function buildNimiRuntimeRouteCapabilityProjection(
     return createNimiRuntimeRouteCapabilityProjection(input.capability, { reasonCode: 'host_denied' });
   }
 
-  const selectedBindings = input.selectionStore.selectedBindings;
-  const hasSelection = hasOwn(selectedBindings, input.capability);
+  const targetRefs = input.selectionStore.targetRefs;
+  const hasSelection = hasOwn(targetRefs, input.capability);
   if (!hasSelection) {
     return createNimiRuntimeRouteCapabilityProjection(input.capability, { reasonCode: 'selection_missing' });
   }
 
-  const selectedBinding = selectedBindings[input.capability];
-  if (selectedBinding === null) {
+  const selectedTargetRef = targetRefs[input.capability];
+  if (selectedTargetRef === null) {
     return createNimiRuntimeRouteCapabilityProjection(input.capability, {
-      selectedBinding: null,
+      selectedTargetRef: null,
       reasonCode: 'selection_cleared',
     });
   }
 
-  if (!selectedBinding) {
+  if (!selectedTargetRef) {
     return createNimiRuntimeRouteCapabilityProjection(input.capability, { reasonCode: 'binding_unresolved' });
   }
 
   if (!routeRuntime) {
     return createNimiRuntimeRouteCapabilityProjection(input.capability, {
-      selectedBinding,
+      selectedTargetRef,
       reasonCode: 'binding_unresolved',
     });
   }
@@ -281,18 +281,18 @@ export async function buildNimiRuntimeRouteCapabilityProjection(
   try {
     resolvedBinding = await routeRuntime.resolve({
       capability: input.capability,
-      binding: selectedBinding,
+      targetRef: selectedTargetRef,
     });
   } catch (error) {
     const mappedReasonCode = nimiRuntimeRouteCapabilityReasonCodeFromError(error);
     return createNimiRuntimeRouteCapabilityProjection(input.capability, {
-      selectedBinding,
+      selectedTargetRef,
       reasonCode: mappedReasonCode || 'binding_unresolved',
     });
   }
   if (!resolvedBinding?.resolvedBindingRef) {
     return createNimiRuntimeRouteCapabilityProjection(input.capability, {
-      selectedBinding,
+      selectedTargetRef,
       resolvedBinding,
       reasonCode: 'binding_unresolved',
     });
@@ -302,19 +302,19 @@ export async function buildNimiRuntimeRouteCapabilityProjection(
   try {
     health = await routeRuntime.checkHealth({
       capability: input.capability,
-      binding: selectedBinding,
+      targetRef: selectedTargetRef,
     });
   } catch (error) {
     const mappedReasonCode = nimiRuntimeRouteCapabilityReasonCodeFromError(error);
     return createNimiRuntimeRouteCapabilityProjection(input.capability, {
-      selectedBinding,
+      selectedTargetRef,
       resolvedBinding,
       reasonCode: mappedReasonCode || 'route_unhealthy',
     });
   }
   if (!isNimiRuntimeRouteCapabilityHealthHealthy(health)) {
     return createNimiRuntimeRouteCapabilityProjection(input.capability, {
-      selectedBinding,
+      selectedTargetRef,
       resolvedBinding,
       health,
       reasonCode: isNimiRuntimeRouteCapabilityHealthNotReady(health, resolvedBinding)
@@ -333,7 +333,7 @@ export async function buildNimiRuntimeRouteCapabilityProjection(
   } catch (error) {
     const mappedReasonCode = nimiRuntimeRouteCapabilityReasonCodeFromError(error);
     return createNimiRuntimeRouteCapabilityProjection(input.capability, {
-      selectedBinding,
+      selectedTargetRef,
       resolvedBinding,
       health,
       reasonCode: mappedReasonCode === 'host_denied' ? 'host_denied' : 'metadata_missing',
@@ -347,7 +347,7 @@ export async function buildNimiRuntimeRouteCapabilityProjection(
     || metadata.resolvedBindingRef !== resolvedBinding.resolvedBindingRef
   ) {
     return createNimiRuntimeRouteCapabilityProjection(input.capability, {
-      selectedBinding,
+      selectedTargetRef,
       resolvedBinding,
       health,
       reasonCode: 'metadata_missing',
@@ -355,7 +355,7 @@ export async function buildNimiRuntimeRouteCapabilityProjection(
   }
 
   return createNimiRuntimeRouteCapabilityProjection(input.capability, {
-    selectedBinding,
+    selectedTargetRef,
     resolvedBinding,
     health,
     metadata,

@@ -228,20 +228,17 @@ test('First-run execution evidence projects to vNext AIConfig local-runtime targ
   ])), {
     'audio.synthesize': {
       kind: 'local-runtime',
-      targetId: 'tester-local-route',
-      profileId: 'runtime-baseline',
+      version: 'v2',
       readinessRef: 'execution-evidence',
     },
     'audio.transcribe': {
       kind: 'local-runtime',
-      targetId: 'tester-local-route',
-      profileId: 'runtime-baseline',
+      version: 'v2',
       readinessRef: 'execution-evidence',
     },
     'text.generate': {
       kind: 'local-runtime',
-      targetId: 'tester-local-route',
-      profileId: 'runtime-baseline',
+      version: 'v2',
       readinessRef: 'execution-evidence',
     },
   });

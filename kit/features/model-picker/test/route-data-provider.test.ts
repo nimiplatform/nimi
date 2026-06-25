@@ -18,16 +18,97 @@ import {
 // createSnapshotRouteDataProvider
 // ---------------------------------------------------------------------------
 
-function makeSnapshot(overrides?: Partial<RouteOptionsSnapshot>): RouteOptionsSnapshot {
+type RouteInventoryTarget = RouteOptionsSnapshot['inventory']['targets'][number];
+
+type LocalTargetInput = {
+  localModelId: string;
+  profileBindingId?: string;
+  model?: string;
+  modelId?: string;
+  engine?: string;
+  status?: string;
+  capabilities?: readonly string[];
+};
+
+type CloudTargetInput = {
+  connectorId: string;
+  provider: string;
+  modelId: string;
+  remoteModelCatalogId?: string;
+  modelLabel?: string;
+  capabilities?: readonly string[];
+};
+
+function localTarget(input: LocalTargetInput): RouteInventoryTarget {
   return {
-    capability: 'text.generate',
-    selected: null,
-    local: {
-      models: [],
-      defaultEndpoint: 'http://127.0.0.1:11434/v1',
+    targetRef: {
+      kind: 'local-runtime',
+      version: 'v2',
+      profileBindingId: input.profileBindingId || `runtime-profile:${input.localModelId}`,
     },
-    connectors: [],
-    ...overrides,
+    display: {
+      label: input.model || input.modelId || input.localModelId,
+      model: input.model || input.modelId || input.localModelId,
+      engine: input.engine || 'llama',
+    },
+    readiness: {
+      status: input.status || 'active',
+    },
+    compatibility: {
+      capabilities: input.capabilities || ['text.generate'],
+    },
+    evidence: {
+      source: 'local-runtime',
+      localAssetId: input.localModelId,
+      resolvedModelId: input.modelId || input.model || input.localModelId,
+      engine: input.engine || 'llama',
+    },
+  };
+}
+
+function cloudTarget(input: CloudTargetInput): RouteInventoryTarget {
+  return {
+    targetRef: {
+      kind: 'cloud-connector',
+      version: 'v2',
+      connectorId: input.connectorId,
+      remoteModelCatalogId: input.remoteModelCatalogId || `remote-catalog:${input.connectorId}:${input.modelId}`,
+      providerModelId: input.modelId,
+      provider: input.provider,
+    },
+    display: {
+      label: input.modelLabel || input.modelId,
+      modelLabel: input.modelLabel || input.modelId,
+      provider: input.provider,
+    },
+    readiness: {
+      status: 'active',
+    },
+    compatibility: {
+      capabilities: input.capabilities || ['text.generate'],
+    },
+    evidence: {
+      source: 'cloud-connector',
+      connectorId: input.connectorId,
+      remoteModelCatalogId: input.remoteModelCatalogId || `remote-catalog:${input.connectorId}:${input.modelId}`,
+      providerModelId: input.modelId,
+      provider: input.provider,
+    },
+  };
+}
+
+function makeSnapshot(
+  overrides?: Partial<RouteOptionsSnapshot> & { targets?: readonly RouteInventoryTarget[] },
+): RouteOptionsSnapshot {
+  const capability = overrides?.capability || 'text.generate';
+  const targets = overrides?.targets || overrides?.inventory?.targets || [];
+  return {
+    capability,
+    selectedTargetRef: overrides?.selectedTargetRef ?? null,
+    inventory: {
+      capability,
+      targets,
+    },
   };
 }
 
@@ -55,29 +136,25 @@ afterEach(async () => {
 describe('createSnapshotRouteDataProvider', () => {
   it('maps snapshot local models to RouteLocalModel list', async () => {
     const snapshot = makeSnapshot({
-      local: {
-        models: [
-          {
-            localModelId: 'local-qwen',
-            goRuntimeLocalModelId: '01KLOCALQWEN',
-            model: 'qwen3',
-            modelId: 'qwen3',
-            engine: 'llama',
-            provider: 'llama',
-            status: 'active',
-            capabilities: ['chat'],
-          },
-          {
-            localModelId: 'local-flux',
-            model: 'flux',
-            modelId: 'flux',
-            engine: 'media',
-            provider: 'media',
-            status: 'installed',
-            capabilities: ['image'],
-          },
-        ],
-      },
+      targets: [
+        localTarget({
+          localModelId: 'local-qwen',
+          profileBindingId: '01KLOCALQWEN',
+          model: 'qwen3',
+          modelId: 'qwen3',
+          engine: 'llama',
+          status: 'active',
+          capabilities: ['chat'],
+        }),
+        localTarget({
+          localModelId: 'local-flux',
+          model: 'flux',
+          modelId: 'flux',
+          engine: 'media',
+          status: 'installed',
+          capabilities: ['image'],
+        }),
+      ],
     });
 
     const provider = createSnapshotRouteDataProvider(async () => snapshot);
@@ -86,7 +163,8 @@ describe('createSnapshotRouteDataProvider', () => {
     expect(models).toHaveLength(2);
     // active sorts before installed
     expect(models[0]!.localModelId).toBe('local-qwen');
-    expect(models[0]!.goRuntimeLocalModelId).toBe('01KLOCALQWEN');
+    expect(models[0]!.goRuntimeLocalModelId).toBe('local-qwen');
+    expect(models[0]!.profileBindingId).toBe('01KLOCALQWEN');
     expect(models[0]!.status).toBe('active');
     expect(models[1]!.localModelId).toBe('local-flux');
     expect(models[1]!.status).toBe('installed');
@@ -94,23 +172,24 @@ describe('createSnapshotRouteDataProvider', () => {
 
   it('maps snapshot connectors to RouteConnector list (cloud only)', async () => {
     const snapshot = makeSnapshot({
-      connectors: [
-        {
-          id: 'connector-openai',
-          label: 'OpenAI',
+      targets: [
+        cloudTarget({
+          connectorId: 'connector-openai',
           provider: 'openai',
-          models: ['gpt-4.1', 'gpt-4.1-mini'],
-          modelCapabilities: {
-            'gpt-4.1': ['chat'],
-            'gpt-4.1-mini': ['chat'],
-          },
-        },
-        {
-          id: 'connector-anthropic',
-          label: 'Anthropic',
+          modelId: 'gpt-4.1',
+          capabilities: ['chat'],
+        }),
+        cloudTarget({
+          connectorId: 'connector-openai',
+          provider: 'openai',
+          modelId: 'gpt-4.1-mini',
+          capabilities: ['chat'],
+        }),
+        cloudTarget({
+          connectorId: 'connector-anthropic',
           provider: 'anthropic',
-          models: ['claude-sonnet-4-6'],
-        },
+          modelId: 'claude-sonnet-4-6',
+        }),
       ],
     });
 
@@ -126,17 +205,19 @@ describe('createSnapshotRouteDataProvider', () => {
 
   it('returns connector models from inline snapshot data', async () => {
     const snapshot = makeSnapshot({
-      connectors: [
-        {
-          id: 'connector-openai',
-          label: 'OpenAI',
+      targets: [
+        cloudTarget({
+          connectorId: 'connector-openai',
           provider: 'openai',
-          models: ['gpt-4.1', 'gpt-4.1-mini'],
-          modelCapabilities: {
-            'gpt-4.1': ['chat'],
-            'gpt-4.1-mini': ['chat'],
-          },
-        },
+          modelId: 'gpt-4.1',
+          capabilities: ['chat'],
+        }),
+        cloudTarget({
+          connectorId: 'connector-openai',
+          provider: 'openai',
+          modelId: 'gpt-4.1-mini',
+          capabilities: ['chat'],
+        }),
       ],
     });
 
@@ -152,13 +233,13 @@ describe('createSnapshotRouteDataProvider', () => {
   it('uses the snapshot capability for connector models without per-model capabilities', async () => {
     const snapshot = makeSnapshot({
       capability: 'voice_workflow.voice_clone',
-      connectors: [
-        {
-          id: 'connector-dashscope',
-          label: 'DashScope',
+      targets: [
+        cloudTarget({
+          connectorId: 'connector-dashscope',
           provider: 'dashscope',
-          models: ['qwen3-tts-vc'],
-        },
+          modelId: 'qwen3-tts-vc',
+          capabilities: ['voice_workflow.voice_clone'],
+        }),
       ],
     });
 
@@ -172,8 +253,12 @@ describe('createSnapshotRouteDataProvider', () => {
 
   it('returns empty list for unknown connector id', async () => {
     const snapshot = makeSnapshot({
-      connectors: [
-        { id: 'connector-openai', label: 'OpenAI', provider: 'openai', models: ['gpt-4.1'] },
+      targets: [
+        cloudTarget({
+          connectorId: 'connector-openai',
+          provider: 'openai',
+          modelId: 'gpt-4.1',
+        }),
       ],
     });
 
@@ -185,9 +270,12 @@ describe('createSnapshotRouteDataProvider', () => {
 
   it('excludes connectors with zero models', async () => {
     const snapshot = makeSnapshot({
-      connectors: [
-        { id: 'empty-connector', label: 'Empty', provider: 'empty', models: [] },
-        { id: 'real-connector', label: 'Real', provider: 'real', models: ['model-1'] },
+      targets: [
+        cloudTarget({
+          connectorId: 'real-connector',
+          provider: 'real',
+          modelId: 'model-1',
+        }),
       ],
     });
 
@@ -201,8 +289,10 @@ describe('createSnapshotRouteDataProvider', () => {
   it('fetches snapshot only once per cycle (caches across concurrent calls)', async () => {
     let fetchCount = 0;
     const snapshot = makeSnapshot({
-      local: { models: [{ localModelId: 'a', model: 'a', status: 'active' }] },
-      connectors: [{ id: 'c', label: 'C', provider: 'p', models: ['m'] }],
+      targets: [
+        localTarget({ localModelId: 'a', model: 'a', status: 'active' }),
+        cloudTarget({ connectorId: 'c', provider: 'p', modelId: 'm' }),
+      ],
     });
 
     const provider = createSnapshotRouteDataProvider(async () => {
@@ -228,7 +318,7 @@ describe('createSnapshotRouteDataProvider', () => {
     const provider = createSnapshotRouteDataProvider(async () => {
       fetchCount += 1;
       return makeSnapshot({
-        connectors: [{ id: 'c', label: 'C', provider: 'p', models: ['m'] }],
+        targets: [cloudTarget({ connectorId: 'c', provider: 'p', modelId: 'm' })],
       });
     });
 
@@ -252,7 +342,7 @@ describe('createSnapshotRouteDataProvider', () => {
         throw new Error('temporary route failure');
       }
       return makeSnapshot({
-        connectors: [{ id: 'c', label: 'C', provider: 'p', models: ['m'] }],
+        targets: [cloudTarget({ connectorId: 'c', provider: 'p', modelId: 'm' })],
       });
     });
 
@@ -267,19 +357,16 @@ describe('createSnapshotRouteDataProvider', () => {
 describe('useRouteModelPickerData', () => {
   it('previews the first available model without committing route selection truth', async () => {
     const provider = createSnapshotRouteDataProvider(async () => makeSnapshot({
-      local: {
-        models: [
-          {
-            localModelId: 'local-qwen',
-            model: 'qwen3',
-            modelId: 'qwen3',
-            engine: 'llama',
-            provider: 'llama',
-            status: 'active',
-            capabilities: ['text.generate'],
-          },
-        ],
-      },
+      targets: [
+        localTarget({
+          localModelId: 'local-qwen',
+          model: 'qwen3',
+          modelId: 'qwen3',
+          engine: 'llama',
+          status: 'active',
+          capabilities: ['text.generate'],
+        }),
+      ],
     }));
     const onSelectionChange = vi.fn();
     const latestState: { current: UseRouteModelPickerDataResult | null } = { current: null };
@@ -326,16 +413,13 @@ describe('useRouteModelPickerData', () => {
   it('selects the first cloud connector before loading capability-scoped models', async () => {
     const provider = createSnapshotRouteDataProvider(async () => makeSnapshot({
       capability: 'audio.synthesize',
-      connectors: [
-        {
-          id: 'connector-dashscope',
-          label: 'DashScope',
+      targets: [
+        cloudTarget({
+          connectorId: 'connector-dashscope',
           provider: 'dashscope',
-          models: ['qwen3-tts-flash'],
-          modelCapabilities: {
-            'qwen3-tts-flash': ['audio.synthesize'],
-          },
-        },
+          modelId: 'qwen3-tts-flash',
+          capabilities: ['audio.synthesize'],
+        }),
       ],
     }));
     const onSelectionChange = vi.fn();
@@ -381,16 +465,13 @@ describe('useRouteModelPickerData', () => {
   it('hydrates an initial cloud source with the first connector when no connector id is stored', async () => {
     const provider = createSnapshotRouteDataProvider(async () => makeSnapshot({
       capability: 'audio.synthesize',
-      connectors: [
-        {
-          id: 'connector-dashscope',
-          label: 'DashScope',
+      targets: [
+        cloudTarget({
+          connectorId: 'connector-dashscope',
           provider: 'dashscope',
-          models: ['cosyvoice-v3.5-flash'],
-          modelCapabilities: {
-            'cosyvoice-v3.5-flash': ['audio.synthesize'],
-          },
-        },
+          modelId: 'cosyvoice-v3.5-flash',
+          capabilities: ['audio.synthesize'],
+        }),
       ],
     }));
     const latestState: { current: UseRouteModelPickerDataResult | null } = { current: null };
@@ -423,16 +504,13 @@ describe('useRouteModelPickerData', () => {
   it('replaces a stale cloud connector id with the first live connector', async () => {
     const provider = createSnapshotRouteDataProvider(async () => makeSnapshot({
       capability: 'audio.synthesize',
-      connectors: [
-        {
-          id: 'connector-dashscope',
-          label: 'DashScope',
+      targets: [
+        cloudTarget({
+          connectorId: 'connector-dashscope',
           provider: 'dashscope',
-          models: ['qwen3-tts-flash'],
-          modelCapabilities: {
-            'qwen3-tts-flash': ['audio.synthesize'],
-          },
-        },
+          modelId: 'qwen3-tts-flash',
+          capabilities: ['audio.synthesize'],
+        }),
       ],
     }));
     const latestState: { current: UseRouteModelPickerDataResult | null } = { current: null };

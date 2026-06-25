@@ -51,8 +51,8 @@ export async function runAIProfileRequirementFlowProof(): Promise<NimiMigrationP
       'text.generate': {
         targetRef: {
           kind: 'local-runtime',
-          profileId: 'runtime-prepared-text',
-          readinessRef: 'runtime.readiness.text.generate',
+          version: 'v2',
+          profileBindingId: 'runtime-prepared-text',
         },
         params: { temperature: 0.2 },
         readinessPolicy: 'required',

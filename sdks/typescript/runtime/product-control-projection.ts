@@ -46,11 +46,7 @@ export type NimiFirstRunAIConfigCapability =
 
 export interface NimiFirstRunExecutionAIConfigCapabilityTarget {
   readonly capability: NimiFirstRunAIConfigCapability;
-  readonly targetRef: Extract<NimiAIConfigTargetRef, { readonly kind: 'local-runtime' }> & {
-    readonly targetId: string;
-    readonly profileId: string;
-    readonly readinessRef: string;
-  };
+  readonly targetRef: Extract<NimiAIConfigTargetRef, { readonly kind: 'local-runtime' }>;
   readonly runtime: {
     readonly executionEvidenceRef: string;
     readonly runtimeBaselineRef: string;
@@ -477,8 +473,7 @@ export function projectNimiFirstRunExecutionEvidenceToAIConfigTargets(
       capability,
       targetRef: {
         kind: 'local-runtime',
-        targetId: localRouteTarget,
-        profileId: runtimeBaselineRef,
+        version: 'v2',
         readinessRef: executionEvidenceRef,
       },
       runtime: {

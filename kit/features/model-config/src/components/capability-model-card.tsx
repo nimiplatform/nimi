@@ -41,6 +41,10 @@ function isOpaqueRuntimeId(value: string | null | undefined): boolean {
   return /^[0-9A-HJKMNP-TV-Z]{20,32}$/u.test(normalized);
 }
 
+function containsOpaqueRuntimeId(value: string | null | undefined): boolean {
+  return normalizeText(value).split(/[:/\s]+/u).some((part) => isOpaqueRuntimeId(part));
+}
+
 function splitModelPath(value: string | null | undefined): string[] {
   return normalizeText(value).split('/').map((part) => part.trim()).filter(Boolean);
 }
@@ -67,8 +71,7 @@ function localSourceLabel(value: string | null | undefined): string | null {
 
 function localTargetSourceLabel(targetRef: ModelConfigTargetRef | null | undefined): string | null {
   if (!targetRef || targetRef.kind !== 'local-runtime') return null;
-  return localSourceLabel(targetRef.profileId)
-    ?? localSourceLabel(targetRef.targetId)
+  return localSourceLabel(targetRef.profileBindingId)
     ?? localSourceLabel(targetRef.readinessRef);
 }
 
@@ -77,8 +80,7 @@ function localTargetCandidates(targetRef: ModelConfigTargetRef | null | undefine
     return [];
   }
   const candidates = [
-    normalizeText(targetRef.profileId),
-    normalizeText(targetRef.targetId),
+    normalizeText(targetRef.profileBindingId),
     normalizeText(targetRef.readinessRef),
     ...normalizeText(targetRef.readinessRef).split(':'),
   ].filter(Boolean);
@@ -121,7 +123,7 @@ export function CapabilityModelCard({ item }: CapabilityModelCardProps) {
     || null;
   const source = selection.source || null;
   const unresolvedLocalTarget = item.targetRef?.kind === 'local-runtime' && !hydratedTargetSummary;
-  const unresolvedOpaqueLocalTarget = unresolvedLocalTarget && isOpaqueRuntimeId(displayLabel);
+  const unresolvedOpaqueLocalTarget = unresolvedLocalTarget && containsOpaqueRuntimeId(displayLabel);
   const localDetail = source === 'local'
     ? (hydratedTargetSummary?.sourceLabel
       ?? localSourceLabel(displayLabel)
@@ -189,7 +191,7 @@ export function CapabilityModelCard({ item }: CapabilityModelCardProps) {
     };
   }, [item.provider, item.targetRef]);
 
-  const triggerLabel = item.targetRef && (unresolvedOpaqueLocalTarget || isOpaqueRuntimeId(displayLabel))
+  const triggerLabel = item.targetRef && (unresolvedOpaqueLocalTarget || containsOpaqueRuntimeId(displayLabel))
     ? 'Local runtime model'
     : (source === 'local' ? compactLocalModelLabel(displayLabel) ?? displayLabel : displayLabel);
 

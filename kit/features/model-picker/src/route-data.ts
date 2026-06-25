@@ -31,6 +31,8 @@ import type { RouteModelPickerPanelProps, RouteModelPickerSource } from './compo
 export type RouteLocalModel = {
   localModelId: string;
   goRuntimeLocalModelId?: string;
+  profileBindingId?: string;
+  readinessRef?: string;
   modelId: string;
   label: string;
   engine: string;
@@ -47,6 +49,9 @@ export type RouteConnector = {
 
 export type RouteConnectorModel = {
   modelId: string;
+  remoteModelCatalogId: string;
+  providerModelId: string;
+  provider?: string;
   modelLabel: string;
   available: boolean;
   capabilities: string[];
@@ -108,40 +113,54 @@ function mapLocalStatus(raw: number): RouteLocalModel['status'] {
  */
 export type RouteOptionsSnapshot = {
   capability?: string;
-  selected?: {
-    source: string;
-    connectorId: string;
-    model: string;
-    modelId?: string;
-    provider?: string;
-    localModelId?: string;
-    goRuntimeLocalModelId?: string;
-    engine?: string;
-  } | null;
-  local: {
-    models: ReadonlyArray<{
-      localModelId: string;
-      label?: string;
-      engine?: string;
-      model: string;
-      modelId?: string;
-      provider?: string;
-      endpoint?: string;
-      status?: string;
-      goRuntimeLocalModelId?: string;
-      goRuntimeStatus?: string;
-      capabilities?: readonly string[];
-    }>;
-    defaultEndpoint?: string;
+  selectedTargetRef?: RouteTargetRef | null;
+  inventory: {
+    capability?: string;
+    targets: ReadonlyArray<RouteInventoryTarget>;
   };
-  connectors: ReadonlyArray<{
-    id: string;
-    label: string;
-    vendor?: string;
+};
+
+type RouteTargetRef =
+  | {
+    kind: 'local-runtime';
+    version: 'v2';
+    profileBindingId?: string;
+    readinessRef?: string;
+  }
+  | {
+    kind: 'cloud-connector';
+    version: 'v2';
+    connectorId: string;
+    remoteModelCatalogId: string;
+    providerModelId: string;
     provider?: string;
-    models: readonly string[];
-    modelCapabilities?: Record<string, readonly string[]>;
-  }>;
+  };
+
+type RouteInventoryTarget = {
+  targetRef: RouteTargetRef;
+  display: {
+    label?: string;
+    modelLabel?: string;
+    provider?: string;
+    engine?: string;
+    model?: string;
+  };
+  readiness: {
+    status?: string;
+  };
+  compatibility: {
+    capabilities?: readonly string[];
+  };
+  evidence: {
+    source: 'local-runtime' | 'cloud-connector' | string;
+    localAssetId?: string;
+    resolvedModelId?: string;
+    engine?: string;
+    connectorId?: string;
+    remoteModelCatalogId?: string;
+    providerModelId?: string;
+    provider?: string;
+  };
 };
 
 /**
@@ -209,22 +228,35 @@ export function createSnapshotRouteDataProvider(
   return {
     async listLocalModels() {
       const snapshot = await getSnapshot();
-      return (snapshot.local.models || [])
-        .map((m) => ({
-          localModelId: String(m.localModelId || ''),
-          goRuntimeLocalModelId: String(m.goRuntimeLocalModelId || m.localModelId || '') || undefined,
-          modelId: String(m.modelId || m.model || ''),
-          label: String(m.label || m.model || m.modelId || m.localModelId || ''),
-          engine: String(m.engine || ''),
-          status: mapLocalStatus(
-            m.status === 'active' ? 2
-              : m.status === 'installed' ? 1
-                : m.status === 'unhealthy' ? 3
-                  : m.status === 'removed' ? 4
-                    : 0,
-          ),
-          capabilities: [...(m.capabilities || [])] as string[],
-        }))
+      return (snapshot.inventory.targets || [])
+        .flatMap((target): RouteLocalModel[] => {
+          if (target.evidence.source !== 'local-runtime' || target.targetRef.kind !== 'local-runtime') {
+            return [];
+          }
+          const localAssetId = String(target.evidence.localAssetId || '').trim();
+          return [{
+            localModelId: String(
+              localAssetId
+                || target.targetRef.profileBindingId
+                || target.targetRef.readinessRef
+                || '',
+            ),
+            goRuntimeLocalModelId: localAssetId || undefined,
+            profileBindingId: target.targetRef.profileBindingId,
+            readinessRef: target.targetRef.readinessRef,
+            modelId: String(target.evidence.resolvedModelId || target.display.model || ''),
+            label: String(target.display.label || target.display.model || localAssetId || ''),
+            engine: String(target.evidence.engine || target.display.engine || ''),
+            status: mapLocalStatus(
+              target.readiness.status === 'active' ? 2
+                : target.readiness.status === 'installed' || target.readiness.status === 'ready' ? 1
+                  : target.readiness.status === 'unhealthy' ? 3
+                    : target.readiness.status === 'removed' ? 4
+                      : 0,
+            ),
+            capabilities: [...(target.compatibility.capabilities || [])] as string[],
+          }];
+        })
         .sort((a: RouteLocalModel, b: RouteLocalModel) => {
           const rankDiff = STATUS_RANK[a.status] - STATUS_RANK[b.status];
           if (rankDiff !== 0) return rankDiff;
@@ -233,33 +265,42 @@ export function createSnapshotRouteDataProvider(
     },
     async listConnectors() {
       const snapshot = await getSnapshot();
-      return (snapshot.connectors || [])
-        .filter((c) => c.id && c.models.length > 0)
-        .map((c) => ({
-          connectorId: String(c.id),
-          provider: String(c.provider || ''),
-          label: String(c.label || c.provider || ''),
+      const connectors = new Map<string, RouteConnector>();
+      for (const target of snapshot.inventory.targets || []) {
+        if (target.evidence.source !== 'cloud-connector' || target.targetRef.kind !== 'cloud-connector') continue;
+        const connectorId = String(target.targetRef.connectorId || target.evidence.connectorId || '').trim();
+        if (!connectorId || connectors.has(connectorId)) continue;
+        const provider = String(target.targetRef.provider || target.evidence.provider || target.display.provider || '').trim();
+        connectors.set(connectorId, {
+          connectorId,
+          provider,
+          label: provider || connectorId,
           status: 'active',
-        }));
+        });
+      }
+      return [...connectors.values()];
     },
     async listConnectorModels(connectorId: string) {
       const snapshot = await getSnapshot();
-      const connector = (snapshot.connectors || []).find((c) => c.id === connectorId);
-      if (!connector) return [];
-      const snapshotCapability = String(snapshot.capability || '').trim();
-      return connector.models
-        .filter((modelId) => String(modelId || '').trim())
-        .map((modelId) => {
-          const capabilities = connector.modelCapabilities?.[modelId] || [];
-          return {
-            modelId: String(modelId),
-            modelLabel: String(modelId),
+      return (snapshot.inventory.targets || [])
+        .flatMap((target): RouteConnectorModel[] => {
+          if (target.evidence.source !== 'cloud-connector' || target.targetRef.kind !== 'cloud-connector') {
+            return [];
+          }
+          if (target.targetRef.connectorId !== connectorId) {
+            return [];
+          }
+          return [{
+            modelId: String(target.targetRef.providerModelId || target.evidence.providerModelId || ''),
+            remoteModelCatalogId: String(target.targetRef.remoteModelCatalogId || target.evidence.remoteModelCatalogId || ''),
+            providerModelId: String(target.targetRef.providerModelId || target.evidence.providerModelId || ''),
+            provider: target.targetRef.provider || target.evidence.provider || target.display.provider || undefined,
+            modelLabel: String(target.display.modelLabel || target.display.label || target.targetRef.providerModelId || ''),
             available: true,
-            capabilities: capabilities.length > 0
-              ? [...capabilities]
-              : (snapshotCapability ? [snapshotCapability] : []),
-          };
-        });
+            capabilities: [...(target.compatibility.capabilities || [])] as string[],
+          }];
+        })
+        .filter((model) => model.modelId && model.remoteModelCatalogId && model.providerModelId);
     },
     invalidate,
   };
@@ -285,11 +326,15 @@ export type RouteModelPickerSelection = {
   model: string;
   /** Cloud provider resolved from the selected connector when source === 'cloud'. */
   provider?: string;
+  remoteModelCatalogId?: string;
+  providerModelId?: string;
   /** Human-readable model display name resolved at selection time. */
   modelLabel?: string;
   /** Local model metadata — populated when source === 'local'. */
   localModelId?: string;
   goRuntimeLocalModelId?: string;
+  profileBindingId?: string;
+  readinessRef?: string;
   engine?: string;
   modelId?: string;
 };
@@ -517,8 +562,23 @@ export function useRouteModelPickerData({
           modelLabel: modelLabel || localModel.label || localModel.modelId,
           localModelId: localModel.localModelId,
           goRuntimeLocalModelId: localModel.goRuntimeLocalModelId,
+          profileBindingId: localModel.profileBindingId,
+          readinessRef: localModel.readinessRef,
           engine: localModel.engine,
           modelId: localModel.modelId,
+        };
+      }
+    }
+    if (sel.source === 'cloud' && sel.model) {
+      const connectorModel = (connectorModelsMap[sel.connectorId] || [])
+        .find((candidate) => candidate.modelId === sel.model);
+      if (connectorModel) {
+        return {
+          ...sel,
+          provider: connectorModel.provider || selectedConnectorProvider || undefined,
+          remoteModelCatalogId: connectorModel.remoteModelCatalogId,
+          providerModelId: connectorModel.providerModelId,
+          modelLabel: modelLabel || connectorModel.modelLabel || connectorModel.providerModelId,
         };
       }
     }
@@ -527,7 +587,7 @@ export function useRouteModelPickerData({
       provider: sel.source === 'cloud' ? selectedConnectorProvider || undefined : undefined,
       modelLabel,
     };
-  }, [localModels, availableModels, selectedConnectorProvider]);
+  }, [localModels, availableModels, selectedConnectorProvider, connectorModelsMap]);
 
   const handleSelectModel = useCallback((id: string) => {
     if (id && id !== model) {

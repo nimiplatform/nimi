@@ -18,6 +18,7 @@ import {
   type NimiRuntimeModelCatalogProvider,
   type NimiRuntimeModelCatalogProviderSource,
   type NimiRuntimeCanonicalCapability,
+  type NimiRuntimeRouteTargetRef,
   type NimiRuntimeRouteOptionsSnapshot,
   type NimiRuntimeRouteOptionsClient,
   type NimiListRuntimeRouteOptionsInput,
@@ -64,7 +65,7 @@ export type RuntimeRouteModelPickerProviderOptions = {
     input: NimiListRuntimeRouteOptionsInput,
   ) => NimiRuntimeRouteOptionsSnapshot | Promise<NimiRuntimeRouteOptionsSnapshot>;
   targetId?: string;
-  selectedBinding?: Parameters<typeof listNimiRuntimeRouteOptions>[1]['selectedBinding'];
+  selectedTargetRef?: NimiRuntimeRouteTargetRef | null;
   unavailableMessage?: string;
 };
 
@@ -105,7 +106,7 @@ export function createRuntimeRouteModelPickerProvider(
     const optionsInput = {
       capability,
       targetId: input.targetId,
-      selectedBinding: input.selectedBinding,
+      selectedTargetRef: input.selectedTargetRef,
     };
     if (input.loadOptions) {
       return input.loadOptions(optionsInput);

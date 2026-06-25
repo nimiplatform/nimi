@@ -143,9 +143,8 @@ describe('ModelConfigCapabilityDetail editorKind routing', () => {
         targetRefs: {
           'text.generate': {
             kind: 'local-runtime',
-            targetId: 'llama',
-            profileId: '01KTEX08DS2GR9HJ1X3R459P1B',
-            readinessRef: 'runtime-route:local:llama:01KTEX08DS2GR9HJ1X3R459P1B',
+            version: 'v2',
+            profileBindingId: '01KTEX08DS2GR9HJ1X3R459P1B',
           },
         },
         selectedParams: {},
@@ -192,9 +191,8 @@ describe('ModelConfigCapabilityDetail editorKind routing', () => {
         targetRefs: {
           'text.generate': {
             kind: 'local-runtime',
-            targetId: 'llama',
-            profileId: 'local-import/gemma-4-26B-A4B-it-Q8_0',
-            readinessRef: 'runtime-route:local:llama:local-import/gemma-4-26B-A4B-it-Q8_0',
+            version: 'v2',
+            profileBindingId: 'local-import/gemma-4-26B-A4B-it-Q8_0',
           },
         },
         selectedParams: {},
@@ -240,9 +238,8 @@ describe('ModelConfigCapabilityDetail editorKind routing', () => {
         targetRefs: {
           'image.generate': {
             kind: 'local-runtime',
-            targetId: 'image',
-            profileId: 'local-import/z_image_turbo-Q4_K',
-            readinessRef: 'runtime-route:local:image:local-import/z_image_turbo-Q4_K',
+            version: 'v2',
+            profileBindingId: 'local-import/z_image_turbo-Q4_K',
           },
         },
         selectedParams: {},
@@ -285,9 +282,8 @@ describe('ModelConfigCapabilityDetail editorKind routing', () => {
         targetRefs: {
           'text.generate': {
             kind: 'local-runtime',
-            targetId: 'llama',
-            profileId: '01KTEX08DS2GR9HJ1X3R459P1B',
-            readinessRef: 'runtime-route:local:llama:01KTEX08DS2GR9HJ1X3R459P1B',
+            version: 'v2',
+            profileBindingId: '01KTEX08DS2GR9HJ1X3R459P1B',
           },
         },
         selectedParams: {},
@@ -328,6 +324,7 @@ describe('ModelConfigCapabilityDetail editorKind routing', () => {
           'image.generate': {
             kind: 'cloud-connector',
             connectorId: '01KV2PF5ZWB6KS2SP17B2E8JTB',
+            remoteModelCatalogId: 'remote-catalog:gemini:image-preview',
             providerModelId: 'gemini-3.1-flash-image-preview',
           },
         },
@@ -493,9 +490,8 @@ describe('ModelConfigCapabilityDetail editorKind routing', () => {
         targetRefs: {
           'audio.synthesize': {
             kind: 'local-runtime',
-            targetId: 'speech',
-            profileId: 'local.tts.qwen3-tts-customvoice-0.6b.safetensors',
-            readinessRef: 'runtime-route:local:speech:local.tts.qwen3-tts-customvoice-0.6b.safetensors',
+            version: 'v2',
+            profileBindingId: 'local.tts.qwen3-tts-customvoice-0.6b.safetensors',
           },
         },
         selectedParams: {},

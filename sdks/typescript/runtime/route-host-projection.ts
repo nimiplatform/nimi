@@ -1,10 +1,15 @@
-import type { JsonObject } from '../types';
 import type {
   NimiRuntimeCanonicalCapability,
-  NimiRuntimeRouteBinding,
-  NimiRuntimeRouteConnectorOption,
-  NimiRuntimeRouteLocalOption,
+  NimiRuntimeRouteCloudTargetRef,
   NimiRuntimeRouteOptionsSnapshot,
+  NimiRuntimeRouteTargetRef,
+  NimiRuntimeTargetInventoryItem,
+} from './route-options';
+import {
+  normalizeNimiRuntimeRouteCapabilityToken,
+  nimiRuntimeRouteTargetRefKey,
+  nimiRuntimeRouteTargetRefsMatch,
+  runtimeNimiRouteCapabilitiesMatch,
 } from './route-options';
 import { parseNimiRuntimeLocalAssetStatusId } from './local-asset-vocabulary';
 import {
@@ -23,16 +28,18 @@ export interface NimiRuntimeRouteLocalAssetProjectionInput {
   readonly endpoint?: unknown;
   readonly status?: unknown;
   readonly capabilities?: readonly unknown[];
+  readonly displayName?: unknown;
+  readonly sourceFileName?: unknown;
 }
 
 export interface NimiRuntimeRouteNodeCatalogProjectionInput {
   readonly provider?: unknown;
-  readonly providerHints?: JsonObject;
+  readonly providerHints?: Record<string, unknown>;
 }
 
 export interface NimiRuntimeRouteLocalStatusMismatch {
   readonly capability: NimiRuntimeCanonicalCapability;
-  readonly localModelId?: string;
+  readonly localAssetId?: string;
   readonly modelId?: string;
   readonly engine?: string;
   readonly runtimeStatus?: string;
@@ -48,7 +55,15 @@ export interface NimiRuntimeRouteConnectorDescriptorProjectionInput {
 
 export interface NimiRuntimeRouteConnectorModelDescriptorProjectionInput {
   readonly modelId?: unknown;
+  readonly modelLabel?: unknown;
+  readonly available?: unknown;
   readonly capabilities?: readonly unknown[];
+  readonly remoteModelCatalogId?: unknown;
+  readonly providerModelId?: unknown;
+  readonly provider?: unknown;
+  readonly connectorSnapshotId?: unknown;
+  readonly endpointProfileId?: unknown;
+  readonly inventorySnapshotId?: unknown;
 }
 
 export interface NimiRuntimeRouteConnectorProjectionInput {
@@ -64,7 +79,7 @@ export interface NimiRuntimeRouteHostLocalMetadata {
 
 export interface NimiRuntimeRouteOptionsProjectionInput {
   readonly capability: NimiRuntimeCanonicalCapability;
-  readonly selectedBinding?: NimiRuntimeRouteBinding | null;
+  readonly selectedTargetRef?: NimiRuntimeRouteTargetRef | null;
   readonly connectors?: readonly NimiRuntimeRouteConnectorProjectionInput[];
   readonly snapshotAssets?: readonly NimiRuntimeRouteLocalAssetProjectionInput[];
   readonly nodeCatalog?: readonly NimiRuntimeRouteNodeCatalogProjectionInput[];
@@ -91,11 +106,13 @@ function normalizedCapabilitiesForLocalAsset(
   return capabilities.length > 0 ? [...new Set(capabilities)] : [capability];
 }
 
-function displayNameForAssetId(assetId: string): string {
-  return assetId
-    .replace(/^local\/local-import\//u, '')
-    .replace(/^local\//u, '')
-    .replace(/^media\//u, '')
+function displayNameForAsset(asset: NimiRuntimeRouteLocalAssetProjectionInput, assetId: string): string {
+  return normalizeText(asset.displayName)
+    || normalizeText(asset.sourceFileName)
+    || assetId
+      .replace(/^local\/local-import\//u, '')
+      .replace(/^local\//u, '')
+      .replace(/^media\//u, '')
     || assetId;
 }
 
@@ -120,7 +137,15 @@ function statusRank(value: unknown): number {
   }
 }
 
-function projectLocalModels(input: NimiRuntimeRouteOptionsProjectionInput): readonly NimiRuntimeRouteLocalOption[] {
+function localTargetRefForAsset(localAssetId: string): NimiRuntimeRouteTargetRef {
+  return {
+    kind: 'local-runtime',
+    version: 'v2',
+    profileBindingId: `local-runtime:${localAssetId}`,
+  };
+}
+
+function projectLocalTargetItems(input: NimiRuntimeRouteOptionsProjectionInput): readonly NimiRuntimeTargetInventoryItem[] {
   if (input.localMetadataDegraded) return [];
   const snapshotByLocalId = new Map(
     (input.snapshotAssets || []).map((asset) => [normalizeText(asset.localAssetId), asset] as const),
@@ -133,17 +158,18 @@ function projectLocalModels(input: NimiRuntimeRouteOptionsProjectionInput): read
   return (input.runtimeLocalModels || [])
     .filter((asset) => parseNimiRuntimeLocalAssetStatusId(asset.status) !== 'removed')
     .filter((asset) => localAssetSupportsCapability(asset, input.capability))
-    .map((asset): NimiRuntimeRouteLocalOption => {
+    .map((asset): NimiRuntimeTargetInventoryItem | null => {
       const localAssetId = normalizeText(asset.localAssetId);
       const assetId = normalizeText(asset.assetId);
       const engine = normalizeLower(asset.engine);
+      if (!localAssetId || !assetId) return null;
       const snapshot = snapshotByLocalId.get(localAssetId) || snapshotByLookup.get(localAssetLookupKey(assetId, engine));
-      const runtimeStatus = parseNimiRuntimeLocalAssetStatusId(asset.status) || normalizeText(asset.status);
+      const runtimeStatus = parseNimiRuntimeLocalAssetStatusId(asset.status) || normalizeText(asset.status) || 'unknown';
       const snapshotStatus = parseNimiRuntimeLocalAssetStatusId(snapshot?.status) || normalizeText(snapshot?.status);
       if (snapshot && normalizeLower(snapshotStatus) !== normalizeLower(runtimeStatus)) {
         input.onLocalStatusMismatch?.({
           capability: input.capability,
-          localModelId: localAssetId || undefined,
+          localAssetId,
           modelId: assetId || undefined,
           engine: engine || undefined,
           runtimeStatus: runtimeStatus || undefined,
@@ -151,146 +177,142 @@ function projectLocalModels(input: NimiRuntimeRouteOptionsProjectionInput): read
         });
       }
       return {
-        localModelId: localAssetId,
-        label: displayNameForAssetId(assetId),
-        engine: engine || undefined,
-        model: assetId,
-        modelId: assetId || undefined,
-        provider: engine || undefined,
-        endpoint: normalizeText(asset.endpoint || snapshot?.endpoint) || undefined,
-        status: runtimeStatus || undefined,
-        goRuntimeLocalModelId: localAssetId || undefined,
-        goRuntimeStatus: runtimeStatus || undefined,
-        capabilities: normalizedCapabilitiesForLocalAsset(asset, input.capability),
+        targetRef: localTargetRefForAsset(localAssetId),
+        display: {
+          label: displayNameForAsset(asset, assetId),
+          model: assetId,
+          provider: engine || undefined,
+          engine: engine || undefined,
+        },
+        readiness: {
+          status: runtimeStatus,
+          endpoint: normalizeText(asset.endpoint || snapshot?.endpoint) || undefined,
+        },
+        compatibility: {
+          capabilities: normalizedCapabilitiesForLocalAsset(asset, input.capability),
+        },
+        evidence: {
+          source: 'local-runtime',
+          localAssetId,
+          resolvedModelId: assetId,
+          engine: engine || undefined,
+          endpoint: normalizeText(asset.endpoint || snapshot?.endpoint) || undefined,
+          runtimeStatus,
+        },
       };
     })
+    .filter((item): item is NimiRuntimeTargetInventoryItem => item !== null)
     .sort((left, right) => {
-      const statusDelta = statusRank(left.status) - statusRank(right.status);
+      const statusDelta = statusRank(left.readiness.status) - statusRank(right.readiness.status);
       return statusDelta !== 0
         ? statusDelta
-        : normalizeText(left.localModelId).localeCompare(normalizeText(right.localModelId));
+        : nimiRuntimeRouteTargetRefKey(left.targetRef).localeCompare(nimiRuntimeRouteTargetRefKey(right.targetRef));
     });
 }
 
-function projectConnectors(
+function cloudTargetRefForModel(input: {
+  readonly connectorId: string;
+  readonly provider: string;
+  readonly model: NimiRuntimeRouteConnectorModelDescriptorProjectionInput;
+}): NimiRuntimeRouteCloudTargetRef | null {
+  const remoteModelCatalogId = normalizeText(input.model.remoteModelCatalogId);
+  const providerModelId = normalizeText(input.model.providerModelId);
+  const provider = normalizeText(input.model.provider || input.provider);
+  if (!input.connectorId || !remoteModelCatalogId || !providerModelId) {
+    return null;
+  }
+  return {
+    kind: 'cloud-connector',
+    version: 'v2',
+    connectorId: input.connectorId,
+    remoteModelCatalogId,
+    providerModelId,
+    ...(provider ? { provider } : {}),
+  };
+}
+
+function projectCloudTargetItems(
   connectors: readonly NimiRuntimeRouteConnectorProjectionInput[] | undefined,
   capability: NimiRuntimeCanonicalCapability,
-): readonly NimiRuntimeRouteConnectorOption[] {
+): readonly NimiRuntimeTargetInventoryItem[] {
   return (connectors || [])
-    .map((connector): NimiRuntimeRouteConnectorOption | null => {
+    .flatMap((connector): NimiRuntimeTargetInventoryItem[] => {
       const descriptor = connector.descriptor || {};
-      const id = normalizeText(descriptor.id);
-      if (!id) return null;
-      const matchingModels = connector.modelDescriptors
-        .filter((model) => nimiRuntimeRouteCapabilitiesMatch(model.capabilities, capability))
-        .map((model) => normalizeText(model.modelId))
-        .filter(Boolean);
-      if (matchingModels.length === 0) return null;
-      const modelCapabilities = connector.modelDescriptors.reduce<Record<string, readonly string[]>>((accumulator, model) => {
-        const modelId = normalizeText(model.modelId);
-        if (modelId && matchingModels.includes(modelId)) {
-          accumulator[modelId] = (model.capabilities || []).map(normalizeText).filter(Boolean);
-        }
-        return accumulator;
-      }, {});
-      return {
-        id,
-        label: normalizeText(descriptor.label),
-        vendor: normalizeText(descriptor.vendor) || undefined,
-        provider: normalizeText(descriptor.provider) || undefined,
-        models: matchingModels,
-        modelCapabilities,
-      };
-    })
-    .filter((connector): connector is NimiRuntimeRouteConnectorOption => connector !== null);
+      const connectorId = normalizeText(descriptor.id);
+      if (!connectorId) return [];
+      const provider = normalizeText(descriptor.provider);
+      return connector.modelDescriptors
+        .filter((model) => model.available !== false)
+        .filter((model) => runtimeNimiRouteCapabilitiesMatch(
+          (model.capabilities || []).map((item) => normalizeNimiRuntimeRouteCapabilityToken(item)).filter((item): item is string => Boolean(item)),
+          capability,
+        ))
+        .map((model): NimiRuntimeTargetInventoryItem | null => {
+          const targetRef = cloudTargetRefForModel({ connectorId, provider, model });
+          if (!targetRef) return null;
+          const capabilities = (model.capabilities || [])
+            .map(normalizeNimiRuntimeHostRouteCapability)
+            .filter((item): item is string => Boolean(item));
+          return {
+            targetRef,
+            display: {
+              label: normalizeText(model.modelLabel) || targetRef.providerModelId,
+              modelLabel: normalizeText(model.modelLabel) || undefined,
+              provider: targetRef.provider || provider || undefined,
+              model: targetRef.providerModelId,
+            },
+            readiness: {
+              status: 'ready',
+            },
+            compatibility: {
+              capabilities: [...new Set(capabilities)],
+            },
+            evidence: {
+              source: 'cloud-connector',
+              connectorId,
+              remoteModelCatalogId: targetRef.remoteModelCatalogId,
+              providerModelId: targetRef.providerModelId,
+              provider: targetRef.provider || provider || undefined,
+              connectorSnapshotId: normalizeText(model.connectorSnapshotId) || undefined,
+              endpointProfileId: normalizeText(model.endpointProfileId) || undefined,
+              inventorySnapshotId: normalizeText(model.inventorySnapshotId) || undefined,
+            },
+          };
+        })
+        .filter((item): item is NimiRuntimeTargetInventoryItem => item !== null);
+    });
 }
 
-function localOptionToBinding(option: NimiRuntimeRouteLocalOption): NimiRuntimeRouteBinding {
-  const modelId = normalizeText(option.modelId || option.model);
-  return {
-    source: 'local',
-    connectorId: '',
-    model: modelId,
-    modelId: modelId || undefined,
-    provider: normalizeText(option.provider || option.engine) || undefined,
-    localModelId: normalizeText(option.localModelId) || undefined,
-    engine: normalizeText(option.engine) || undefined,
-    endpoint: normalizeText(option.endpoint) || undefined,
-    goRuntimeLocalModelId: normalizeText(option.goRuntimeLocalModelId) || undefined,
-    goRuntimeStatus: normalizeText(option.goRuntimeStatus) || undefined,
-  };
-}
-
-function bindingKey(binding: NimiRuntimeRouteBinding | null | undefined): string {
-  if (!binding) return '';
-  return [
-    normalizeText(binding.source),
-    normalizeText(binding.connectorId),
-    normalizeText(binding.modelId || binding.model),
-    normalizeText(binding.localModelId || binding.goRuntimeLocalModelId),
-    normalizeText(binding.engine || binding.provider),
-  ].join('|');
-}
-
-function buildSelectedBinding(input: {
-  readonly selectedBinding?: NimiRuntimeRouteBinding | null;
-  readonly localModels: readonly NimiRuntimeRouteLocalOption[];
-  readonly connectors: readonly NimiRuntimeRouteConnectorOption[];
+function selectedTargetRefFromInventory(input: {
+  readonly selectedTargetRef?: NimiRuntimeRouteTargetRef | null;
+  readonly targets: readonly NimiRuntimeTargetInventoryItem[];
   readonly localMetadataDegraded?: boolean;
-}): NimiRuntimeRouteBinding | null {
-  const selected = input.selectedBinding;
+}): NimiRuntimeRouteTargetRef | null {
+  const selected = input.selectedTargetRef || null;
   if (!selected) return null;
-  if (selected.source === 'local') {
-    const localModelId = normalizeText(selected.localModelId || selected.goRuntimeLocalModelId);
-    const matched = localModelId
-      ? input.localModels.find((model) => normalizeText(model.localModelId || model.goRuntimeLocalModelId) === localModelId)
-      : input.localModels.find((model) => normalizeText(model.modelId || model.model) === normalizeText(selected.modelId || selected.model));
-    if (matched) return localOptionToBinding(matched);
-    if (input.localMetadataDegraded) return null;
-    return {
-      ...selected,
-      model: normalizeText(selected.modelId || selected.model),
-      goRuntimeStatus: normalizeText(selected.goRuntimeStatus) || 'unavailable',
-    };
-  }
-  const exactCloud = input.connectors
-    .flatMap((connector) => connector.models.map((model) => ({
-      source: 'cloud' as const,
-      connectorId: connector.id,
-      model,
-      modelId: model,
-      provider: normalizeText(connector.provider) || undefined,
-    })))
-    .find((binding) => bindingKey(binding) === bindingKey(selected));
-  if (exactCloud) return exactCloud;
-  const connector = input.connectors.find((item) => normalizeText(item.id) === normalizeText(selected.connectorId));
-  return {
-    ...selected,
-    connectorId: normalizeText(selected.connectorId),
-    model: normalizeText(selected.modelId || selected.model),
-    provider: normalizeText(selected.provider || connector?.provider) || undefined,
-  };
+  const matched = input.targets.find((item) => nimiRuntimeRouteTargetRefsMatch(item.targetRef, selected)) || null;
+  if (matched) return matched.targetRef;
+  if (selected.kind === 'local-runtime' && input.localMetadataDegraded) return null;
+  return selected;
 }
 
 export function buildNimiRuntimeRouteOptionsProjection(
   input: NimiRuntimeRouteOptionsProjectionInput,
 ): NimiRuntimeRouteOptionsSnapshot {
   const capability = normalizeNimiRuntimeHostRouteCapability(input.capability) || input.capability;
-  const localModels = projectLocalModels({ ...input, capability });
-  const connectors = projectConnectors(input.connectors, capability);
-  const selected = buildSelectedBinding({
-    selectedBinding: input.selectedBinding,
-    localModels,
-    connectors,
-    localMetadataDegraded: input.localMetadataDegraded,
-  });
+  const localTargets = projectLocalTargetItems({ ...input, capability });
+  const cloudTargets = projectCloudTargetItems(input.connectors, capability);
+  const targets = [...localTargets, ...cloudTargets];
   return {
     capability,
-    selected,
-    local: {
-      models: localModels,
-      defaultEndpoint: localModels.find((model) => normalizeText(model.endpoint))?.endpoint,
+    selectedTargetRef: selectedTargetRefFromInventory({
+      selectedTargetRef: input.selectedTargetRef,
+      targets,
+      localMetadataDegraded: input.localMetadataDegraded,
+    }),
+    inventory: {
+      capability,
+      targets,
     },
-    connectors,
   };
 }

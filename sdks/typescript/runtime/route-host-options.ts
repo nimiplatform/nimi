@@ -8,7 +8,7 @@ import {
 } from '../core-generated/runtime-typed-client';
 import type {
   NimiRuntimeCanonicalCapability,
-  NimiRuntimeRouteBinding,
+  NimiRuntimeRouteTargetRef,
   NimiRuntimeRouteOptionsSnapshot,
 } from './route-options';
 import {
@@ -148,7 +148,7 @@ async function listHostDataSingleFlight(
 export async function listNimiRuntimeRouteOptionsWithHost(input: {
   readonly capability: NimiRuntimeCanonicalCapability;
   readonly targetId?: string;
-  readonly selectedBinding?: NimiRuntimeRouteBinding | null;
+  readonly selectedTargetRef?: NimiRuntimeRouteTargetRef | null;
 }, deps: NimiRuntimeRouteHostOptionsDeps): Promise<NimiRuntimeRouteOptionsSnapshot> {
   const capability = normalizeNimiRuntimeHostRouteCapability(input.capability);
   if (!capability) throw new Error('NIMI_RUNTIME_ROUTE_CAPABILITY_REQUIRED');
@@ -159,7 +159,7 @@ export async function listNimiRuntimeRouteOptionsWithHost(input: {
   const data = await listHostDataSingleFlight(context, deps);
   return buildNimiRuntimeRouteOptionsProjection({
     capability,
-    selectedBinding: input.selectedBinding,
+    selectedTargetRef: input.selectedTargetRef,
     connectors: data.connectors,
     snapshotAssets: data.localMetadata.snapshotAssets,
     nodeCatalog: data.localMetadata.nodeCatalog,
@@ -221,7 +221,15 @@ async function defaultListConnectorModelDescriptors(
       if (!model.available) continue;
       descriptors.push({
         modelId: model.modelId,
+        modelLabel: model.modelLabel,
+        available: model.available,
         capabilities: model.capabilities,
+        remoteModelCatalogId: model.remoteModelCatalogId,
+        providerModelId: model.providerModelId,
+        provider: model.provider,
+        connectorSnapshotId: model.connectorSnapshotId,
+        endpointProfileId: model.endpointProfileId,
+        inventorySnapshotId: model.inventorySnapshotId,
       });
     }
     pageToken = normalizeText(response.nextPageToken);

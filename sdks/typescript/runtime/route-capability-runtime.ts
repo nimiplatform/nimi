@@ -21,13 +21,13 @@ export type {
   NimiRuntimeRouteResolvedBindingRef,
 } from './route-capability-types';
 
-import { listNimiRuntimeRouteOptions, type NimiRuntimeRouteBinding } from './route-options';
+import { listNimiRuntimeRouteOptions, type NimiRuntimeRouteTargetRef } from './route-options';
 import {
   nimiRuntimeRouteHealthInputFromResolvedBinding,
   nimiRuntimeRouteHealthResultFromProviderHealth,
   normalizeRequiredNimiRuntimeRouteCapability,
   normalizeText,
-  resolveNimiRuntimeRouteBindingFromSnapshot,
+  resolveNimiRuntimeRouteTargetRefFromSnapshot,
 } from './route-capability-binding';
 import { describeNimiRuntimeRouteWithHost } from './route-capability-describe';
 import type {
@@ -43,10 +43,10 @@ export function createNimiRuntimeRouteCapabilityRuntimeWithHost(
 
   async function resolve(input: {
     readonly capability: string;
-    readonly binding?: NimiRuntimeRouteBinding;
+    readonly targetRef?: NimiRuntimeRouteTargetRef;
   }): Promise<NimiRuntimeResolvedBinding> {
-    if (!input.binding) {
-      throw new Error('NIMI_RUNTIME_ROUTE_BINDING_REQUIRED');
+    if (!input.targetRef) {
+      throw new Error('NIMI_RUNTIME_ROUTE_TARGET_REF_REQUIRED');
     }
     const capability = normalizeRequiredNimiRuntimeRouteCapability(input.capability);
     const snapshot = await listNimiRuntimeRouteOptions({
@@ -54,22 +54,20 @@ export function createNimiRuntimeRouteCapabilityRuntimeWithHost(
         return deps.loadRuntimeRouteOptions({
           capability: routeInput.capability,
           targetId: routeInput.targetId,
-          selectedBinding: routeInput.selectedBinding,
+          selectedTargetRef: routeInput.selectedTargetRef,
         });
       },
     }, {
       capability,
       targetId: deps.routeOptionsTargetId,
-      selectedBinding: input.binding,
+      selectedTargetRef: input.targetRef,
     });
-    const resolved = resolveNimiRuntimeRouteBindingFromSnapshot({
+    const resolved = resolveNimiRuntimeRouteTargetRefFromSnapshot({
       capability,
-      binding: input.binding,
+      targetRef: input.targetRef,
       snapshot,
     });
-    if (resolved.resolvedBindingRef) {
-      resolvedByRef.set(resolved.resolvedBindingRef, resolved);
-    }
+    resolvedByRef.set(resolved.resolvedBindingRef, resolved);
     return resolved;
   }
 
