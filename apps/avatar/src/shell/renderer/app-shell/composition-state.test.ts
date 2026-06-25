@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 import { deriveCompositionState, type CompositionInput } from './composition-state.js';
 
 function input(overrides: Partial<CompositionInput> = {}): CompositionInput {
@@ -64,7 +65,7 @@ describe('deriveCompositionState', () => {
       runtimeBinding: {
         status: 'unavailable',
         reason: 'runtime_not_required_for_fixture',
-        reasonCode: 'RUNTIME_UNAVAILABLE',
+        reasonCode: ReasonCode.RUNTIME_UNAVAILABLE,
         accountReasonCode: null,
         actionHint: null,
         stage: 'binding',
@@ -150,7 +151,7 @@ describe('deriveCompositionState', () => {
       runtimeBinding: {
         status: 'unavailable',
         reason: 'runtime_not_required_for_fixture',
-        reasonCode: 'RUNTIME_UNAVAILABLE',
+        reasonCode: ReasonCode.RUNTIME_UNAVAILABLE,
         accountReasonCode: null,
         actionHint: null,
         stage: 'binding',

@@ -112,7 +112,7 @@ export function getRuntimeNimiClient(): NimiClient {
   if (!runtimeReadyProjection) {
     throw createNimiError({
       message: 'Nimi Runtime client is not initialized. Wait for Runtime platform projection to become ready.',
-      reasonCode: 'SDK_PLATFORM_CLIENT_NOT_READY',
+      reasonCode: ReasonCode.SDK_PLATFORM_CLIENT_NOT_READY,
       actionHint: 'wait_for_runtime_platform_projection',
       source: 'sdk',
     });
@@ -335,7 +335,7 @@ async function issueRuntimeProtectedAccessMetadata(
   if (!tokenId || !secret) {
     throw createNimiError({
       message: 'Runtime protected access token response is missing credentials.',
-      reasonCode: 'PRINCIPAL_UNAUTHORIZED',
+      reasonCode: ReasonCode.PRINCIPAL_UNAUTHORIZED,
       actionHint: 'authorize_runtime_protected_access',
       source: 'runtime',
     });
@@ -352,10 +352,10 @@ async function issueRuntimeProtectedAccessMetadata(
 
 function unavailableFromError(mode: RuntimeAuthMode, error: unknown): RuntimePlatformUnavailableProjection {
   const reasonCode = typeof error === 'object' && error !== null && 'reasonCode' in error
-    ? normalizeText((error as { reasonCode?: unknown }).reasonCode) || 'RUNTIME_UNAVAILABLE'
+    ? normalizeText((error as { reasonCode?: unknown }).reasonCode) || ReasonCode.RUNTIME_UNAVAILABLE
     : typeof error === 'object' && error !== null && 'code' in error
-      ? normalizeText((error as { code?: unknown }).code) || 'RUNTIME_UNAVAILABLE'
-      : 'RUNTIME_UNAVAILABLE';
+      ? normalizeText((error as { code?: unknown }).code) || ReasonCode.RUNTIME_UNAVAILABLE
+      : ReasonCode.RUNTIME_UNAVAILABLE;
   return {
     status: 'action-required',
     mode,
