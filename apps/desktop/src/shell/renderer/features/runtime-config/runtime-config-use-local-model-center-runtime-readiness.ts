@@ -22,7 +22,15 @@ type RuntimeDependencyInput = {
 };
 
 function imageAssets(assets: NimiRuntimeLocalAssetRecord[]): NimiRuntimeLocalAssetRecord[] {
-  return assets.filter((asset) => asset.kind === 'image');
+  return assets.filter(isImageRuntimeMainAsset);
+}
+
+function isImageRuntimeMainAsset(asset: NimiRuntimeLocalAssetRecord): boolean {
+  if (asset.kind !== 'image') {
+    return false;
+  }
+  const artifactRoles = new Set((asset.artifactRoles || []).map((role) => String(role || '').trim().toLowerCase()));
+  return !artifactRoles.has('uncond_diffusion_model');
 }
 
 function dependencyBlocksSetup(dependency: NimiRuntimeLocalEnvironmentPlanDependency): boolean {
@@ -355,7 +363,7 @@ export function useLocalModelCenterRuntimeDependencies({
   const runtimeDependencyByLocalAssetId = useMemo(() => {
     const next: Record<string, NimiRuntimeLocalEnvironmentPlanDependency> = {};
     for (const asset of assets) {
-      if (asset.kind !== 'image') {
+      if (!isImageRuntimeMainAsset(asset)) {
         continue;
       }
       const assetDependency = firstBlockingDependency(runtimeEnvironmentPlanByLocalAssetId[asset.localAssetId]);
@@ -400,7 +408,7 @@ export function useLocalModelCenterRuntimeDependencies({
   ]);
 
   const prepareAssetRuntimeDependencies = useCallback(async (asset: NimiRuntimeLocalAssetRecord) => {
-    if (asset.kind !== 'image') {
+    if (!isImageRuntimeMainAsset(asset)) {
       return;
     }
     setAssetBusy(true);

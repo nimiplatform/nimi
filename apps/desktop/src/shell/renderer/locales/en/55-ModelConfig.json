@@ -181,6 +181,7 @@
       "referenceAssetPlaceholder": "Select a voice asset"
     },
     "image": {
+      "modelFamilyLabel": "Model type",
       "companionModelsLabel": "Companion models",
       "parametersLabel": "Parameters",
       "sizeLabel": "Size",

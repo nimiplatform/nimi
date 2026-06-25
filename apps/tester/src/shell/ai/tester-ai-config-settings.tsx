@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState, type ChangeEvent } from 'react';
 import { Button, IconButton, ScrollArea, StatusBadge, Surface, TextareaField } from '@nimiplatform/kit/ui';
 import {
-  COMPANION_SLOTS,
   ModelConfigAiModelHub,
   defaultModelConfigProfileCopy,
+  resolveImageCompanionSlotsForModelFamily,
   useModelConfigProfileController,
   type AppModelConfigSurface,
   type LocalAssetEntry,
@@ -126,7 +126,30 @@ function assetLabel(asset: LocalAssetEntry): string {
   return asset.assetId || asset.localAssetId;
 }
 
-const REQUIRED_IMAGE_COMPANION_SLOT_IDS = new Set(['vae_path', 'llm_path']);
+function localAssetFamily(asset: LocalAssetEntry | null): string {
+  if (!asset) return '';
+  return normalizeText(
+    asset.modelFamily
+    ?? asset.family
+    ?? asset.metadata?.modelFamily
+    ?? asset.metadata?.model_family
+    ?? asset.metadata?.family,
+  );
+}
+
+function imageModelFamilyForSetup(
+  config: NimiAIConfig,
+  targetRef: NimiAIConfig['capabilities']['targetRefs'][string] | null,
+  mainAsset: LocalAssetEntry | null,
+): string {
+  const params = selectedParamsRecord(config, 'image.generate');
+  return normalizeText(
+    params.modelFamily
+    ?? params.model_family
+    ?? params.runtimeModelFamily
+    ?? params.runtime_model_family,
+  ) || localAssetFamily(mainAsset);
+}
 
 function imageLocalSetupStatus(
   config: NimiAIConfig,
@@ -150,8 +173,11 @@ function imageLocalSetupStatus(
   }
 
   const companionSlots = selectedCompanionSlots(config);
-  const missingRequired = COMPANION_SLOTS
-    .filter((slot) => REQUIRED_IMAGE_COMPANION_SLOT_IDS.has(slot.slot) && !normalizeText(companionSlots[slot.slot]))
+  const requiredCompanionSlots = resolveImageCompanionSlotsForModelFamily(
+    imageModelFamilyForSetup(config, targetRef, mainAsset),
+  ).filter((slot) => slot.required);
+  const missingRequired = requiredCompanionSlots
+    .filter((slot) => !normalizeText(companionSlots[slot.slot]))
     .map((slot) => slot.label);
   if (missingRequired.length > 0) {
     return {
@@ -163,7 +189,7 @@ function imageLocalSetupStatus(
     };
   }
 
-  for (const slot of COMPANION_SLOTS.filter((item) => REQUIRED_IMAGE_COMPANION_SLOT_IDS.has(item.slot))) {
+  for (const slot of requiredCompanionSlots) {
     const selected = normalizeText(companionSlots[slot.slot]);
     if (!selected) continue;
     const asset = assets.find((entry) => localAssetMatchesCandidate(entry, selected));

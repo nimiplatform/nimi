@@ -5,7 +5,10 @@ import {
   type NimiRuntimeAgentExecutionBinding,
 } from '@nimiplatform/sdk/runtime';
 import { createNimiError, ReasonCode, type JsonObject } from '@nimiplatform/sdk/types';
-import { parseImageParams } from '@nimiplatform/kit/features/model-config/headless';
+import {
+  parseImageParams,
+  resolveImageCompanionSlotsForModelFamily,
+} from '@nimiplatform/kit/features/model-config/headless';
 import {
   getDesktopRuntimeAgentTurnsRuntime,
   withDesktopRuntimeProtectedScopes,
@@ -31,6 +34,7 @@ import {
 } from './chat-agent-runtime-agent-utils';
 
 const IMAGE_COMPANION_SLOT_KIND: Record<string, string> = {
+  uncond_diffusion_model: 'image',
   vae_path: 'vae',
   llm_path: 'chat',
   clip_l_path: 'clip',
@@ -194,6 +198,11 @@ function buildImageProfileEntries(
     ...(normalizeText(resolved.engine || resolved.provider) ? { engine: normalizeText(resolved.engine || resolved.provider) } : {}),
   }];
   const companionSlots = asRecord(rawParams.companionSlots);
+  const imageParams = parseImageParams(rawParams);
+  const contractSlotKinds = new Map(
+    resolveImageCompanionSlotsForModelFamily(imageParams.modelFamily)
+      .map((slot) => [slot.slot, slot.kind]),
+  );
   for (const [slot, localAssetId] of Object.entries(companionSlots || {})) {
     const normalizedSlot = normalizeText(slot);
     const normalizedLocalAssetId = normalizeText(localAssetId);
@@ -203,7 +212,7 @@ function buildImageProfileEntries(
       kind: 'asset',
       capability: 'image.generate',
       assetId: normalizedLocalAssetId,
-      assetKind: IMAGE_COMPANION_SLOT_KIND[normalizedSlot] || 'auxiliary',
+      assetKind: contractSlotKinds.get(normalizedSlot) || IMAGE_COMPANION_SLOT_KIND[normalizedSlot] || 'auxiliary',
       engineSlot: normalizedSlot,
     });
   }

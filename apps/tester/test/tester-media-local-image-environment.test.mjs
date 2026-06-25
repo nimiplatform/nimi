@@ -293,6 +293,422 @@ test('image.generate materializes local model and companion slots into Runtime p
   ]);
 });
 
+test('image.generate materializes Ideogram4 uncond companion from selected model family', async (t) => {
+  installMemoryStorageHarness(t);
+  const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');
+  const store = await importBehaviorModule('tester/tester-ai-config-store.js');
+  const scopeRef = store.createTesterAppLabAIScopeRef();
+  store.saveTesterAIConfig({
+    scopeRef,
+    capabilities: {
+      targetRefs: {
+        'image.generate': {
+          kind: 'local-runtime',
+          targetId: 'media',
+          profileId: 'local-ideogram4',
+        },
+      },
+      selectedParams: {
+        'image.generate': {
+          modelFamily: 'ideogram4',
+          companionSlots: {
+            uncond_diffusion_model: 'local-ideogram4-uncond',
+            llm_path: 'local-llm',
+            vae_path: 'local-vae',
+          },
+        },
+      },
+    },
+    profileOrigin: null,
+  });
+
+  const calls = [];
+  const readyEnvironment = readyLocalImageEnvironmentMethods();
+  const client = {
+    runtimeSubjectUserId: 'subject-user-1',
+    runtime: {
+      local: {
+        ...readyEnvironment,
+        async listLocalAssets() {
+          return {
+            nextPageToken: '',
+            assets: [
+              {
+                localAssetId: 'local-ideogram4',
+                assetId: 'local-import/ideogram4-Q4_0',
+                kind: 'image',
+                engine: 'media',
+                status: 'active',
+              },
+              {
+                localAssetId: 'local-ideogram4-uncond',
+                assetId: 'local-import/ideogram4_uncond-Q4_0',
+                kind: 'image',
+                engine: 'media',
+                status: 'active',
+              },
+              {
+                localAssetId: 'local-llm',
+                assetId: 'local-import/ideogram4-llm',
+                kind: 'chat',
+                engine: 'llama',
+                status: 'active',
+              },
+              {
+                localAssetId: 'local-vae',
+                assetId: 'local-import/ideogram4-vae',
+                kind: 'vae',
+                engine: 'llama',
+                status: 'installed',
+              },
+            ],
+          };
+        },
+      },
+      scheduling: {
+        async peekScheduling() {
+          return runnableSchedulingResponse();
+        },
+      },
+      media: {
+        image: {
+          async generate(request) {
+            calls.push(request);
+            return {
+              job: { jobId: 'job-ideogram4', status: RUNTIME_SCENARIO_JOB_STATUS_COMPLETED },
+              artifacts: [],
+              trace: { modelResolved: request.model, routeDecision: request.route },
+            };
+          },
+        },
+      },
+      ai: {},
+    },
+  };
+
+  const result = await invokers.invokeTesterCapability(client, 'image.generate', {
+    prompt: 'a poster with readable title',
+    scenarioId: 'scenario-local-ideogram4',
+    subjectUserId: 'subject-user-1',
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].model, 'local-import/ideogram4-Q4_0');
+  const payload = calls[0].extensions[0]?.payload;
+  const fields = payload?.fields ?? {};
+  const profileEntries = protoListValues(fields.profile_entries);
+  assert.equal(profileEntries.length, 4);
+  const entryObjects = profileEntries.map(protoStructFields);
+  assert.deepEqual(entryObjects.map((entry) => protoString(entry.asset_id)), [
+    'local-import/ideogram4-Q4_0',
+    'local-import/ideogram4_uncond-Q4_0',
+    'local-import/ideogram4-llm',
+    'local-import/ideogram4-vae',
+  ]);
+  assert.deepEqual(entryObjects.map((entry) => protoString(entry.engine_slot)), [
+    '',
+    'uncond_diffusion_model',
+    'llm_path',
+    'vae_path',
+  ]);
+  const entryOverrides = protoListValues(fields.entry_overrides);
+  assert.deepEqual(entryOverrides.map((entry) => protoString(protoStructFields(entry).local_asset_id)), [
+    'local-ideogram4',
+    'local-ideogram4-uncond',
+    'local-llm',
+    'local-vae',
+  ]);
+});
+
+test('image.generate derives Ideogram4 companion requirements from Runtime local asset family', async (t) => {
+  installMemoryStorageHarness(t);
+  const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');
+  const store = await importBehaviorModule('tester/tester-ai-config-store.js');
+  const scopeRef = store.createTesterAppLabAIScopeRef();
+  store.saveTesterAIConfig({
+    scopeRef,
+    capabilities: {
+      targetRefs: {
+        'image.generate': {
+          kind: 'local-runtime',
+          targetId: 'media',
+          profileId: 'local-ideogram4',
+        },
+      },
+      selectedParams: {
+        'image.generate': {
+          companionSlots: {
+            uncond_diffusion_model: 'local-ideogram4-uncond',
+            llm_path: 'local-llm',
+            vae_path: 'local-vae',
+          },
+        },
+      },
+    },
+    profileOrigin: null,
+  });
+
+  const calls = [];
+  const client = {
+    runtimeSubjectUserId: 'subject-user-1',
+    runtime: {
+      local: {
+        ...readyLocalImageEnvironmentMethods(),
+        async listLocalAssets() {
+          return {
+            nextPageToken: '',
+            assets: [
+              {
+                localAssetId: 'local-ideogram4',
+                assetId: 'local-import/ideogram4-Q4_0',
+                kind: 'image',
+                engine: 'media',
+                status: 'active',
+                family: 'ideogram4',
+              },
+              {
+                localAssetId: 'local-ideogram4-uncond',
+                assetId: 'local-import/ideogram4_uncond-Q4_0',
+                kind: 'image',
+                engine: 'media',
+                status: 'active',
+              },
+              {
+                localAssetId: 'local-llm',
+                assetId: 'local-import/ideogram4-llm',
+                kind: 'chat',
+                engine: 'llama',
+                status: 'active',
+              },
+              {
+                localAssetId: 'local-vae',
+                assetId: 'local-import/ideogram4-vae',
+                kind: 'vae',
+                engine: 'llama',
+                status: 'installed',
+              },
+            ],
+          };
+        },
+      },
+      scheduling: {
+        async peekScheduling() {
+          return runnableSchedulingResponse();
+        },
+      },
+      media: {
+        image: {
+          async generate(request) {
+            calls.push(request);
+            return {
+              job: { jobId: 'job-ideogram4-family', status: RUNTIME_SCENARIO_JOB_STATUS_COMPLETED },
+              artifacts: [],
+              trace: { modelResolved: request.model, routeDecision: request.route },
+            };
+          },
+        },
+      },
+      ai: {},
+    },
+  };
+
+  const result = await invokers.invokeTesterCapability(client, 'image.generate', {
+    prompt: 'a poster with readable title',
+    scenarioId: 'scenario-local-ideogram4-family',
+    subjectUserId: 'subject-user-1',
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(calls.length, 1);
+  const profileEntries = protoListValues(calls[0].extensions[0]?.payload?.fields?.profile_entries);
+  assert.deepEqual(profileEntries.map((entry) => protoString(protoStructFields(entry).engine_slot)), [
+    '',
+    'uncond_diffusion_model',
+    'llm_path',
+    'vae_path',
+  ]);
+});
+
+test('image.generate fails closed when Ideogram4 required uncond companion is missing', async (t) => {
+  installMemoryStorageHarness(t);
+  const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');
+  const store = await importBehaviorModule('tester/tester-ai-config-store.js');
+  const scopeRef = store.createTesterAppLabAIScopeRef();
+  store.saveTesterAIConfig({
+    scopeRef,
+    capabilities: {
+      targetRefs: {
+        'image.generate': {
+          kind: 'local-runtime',
+          targetId: 'media',
+          profileId: 'local-ideogram4',
+        },
+      },
+      selectedParams: {
+        'image.generate': {
+          modelFamily: 'ideogram4',
+          companionSlots: {
+            llm_path: 'local-llm',
+            vae_path: 'local-vae',
+          },
+        },
+      },
+    },
+    profileOrigin: null,
+  });
+
+  let generateCalled = false;
+  const client = {
+    runtimeSubjectUserId: 'subject-user-1',
+    runtime: {
+      local: {
+        ...readyLocalImageEnvironmentMethods(),
+        async listLocalAssets() {
+          return {
+            nextPageToken: '',
+            assets: [
+              {
+                localAssetId: 'local-ideogram4',
+                assetId: 'local-import/ideogram4-Q4_0',
+                kind: 'image',
+                engine: 'media',
+                status: 'active',
+              },
+              {
+                localAssetId: 'local-llm',
+                assetId: 'local-import/ideogram4-llm',
+                kind: 'chat',
+                engine: 'llama',
+                status: 'active',
+              },
+              {
+                localAssetId: 'local-vae',
+                assetId: 'local-import/ideogram4-vae',
+                kind: 'vae',
+                engine: 'llama',
+                status: 'installed',
+              },
+            ],
+          };
+        },
+      },
+      scheduling: {
+        async peekScheduling() {
+          return runnableSchedulingResponse();
+        },
+      },
+      media: {
+        image: {
+          async generate() {
+            generateCalled = true;
+            throw new Error('image.generate must not run without required Ideogram4 companions');
+          },
+        },
+      },
+      ai: {},
+    },
+  };
+
+  const result = await invokers.invokeTesterCapability(client, 'image.generate', {
+    prompt: 'a poster with readable title',
+    scenarioId: 'scenario-local-ideogram4-missing-uncond',
+    subjectUserId: 'subject-user-1',
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(generateCalled, false);
+  assert.match(result.message, /requires companion slot uncond_diffusion_model/);
+});
+
+test('image.generate validates configured Ideogram4 profile entries before Runtime dispatch', async (t) => {
+  installMemoryStorageHarness(t);
+  const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');
+  const store = await importBehaviorModule('tester/tester-ai-config-store.js');
+  const scopeRef = store.createTesterAppLabAIScopeRef();
+  store.saveTesterAIConfig({
+    scopeRef,
+    capabilities: {
+      targetRefs: {
+        'image.generate': {
+          kind: 'local-runtime',
+          targetId: 'media',
+          profileId: 'local-ideogram4',
+        },
+      },
+      selectedParams: {
+        'image.generate': {
+          modelFamily: 'ideogram4',
+          profile_entries: [
+            {
+              entry_id: 'main-image',
+              kind: 'asset',
+              title: 'Main image model',
+              capability: 'image.generate',
+              asset_id: 'local-import/ideogram4-Q4_0',
+              asset_kind: 'image',
+              engine: 'media',
+              required: true,
+            },
+            {
+              entry_id: 'companion-llm',
+              kind: 'asset',
+              title: 'LLM companion',
+              capability: 'image.generate',
+              asset_id: 'local-import/ideogram4-llm',
+              asset_kind: 'chat',
+              engine: 'llama',
+              engine_slot: 'llm_path',
+            },
+            {
+              entry_id: 'companion-vae',
+              kind: 'asset',
+              title: 'VAE companion',
+              capability: 'image.generate',
+              asset_id: 'local-import/ideogram4-vae',
+              asset_kind: 'vae',
+              engine: 'llama',
+              engine_slot: 'vae_path',
+            },
+          ],
+        },
+      },
+    },
+    profileOrigin: null,
+  });
+
+  let generateCalled = false;
+  const client = {
+    runtimeSubjectUserId: 'subject-user-1',
+    runtime: {
+      scheduling: {
+        async peekScheduling() {
+          return runnableSchedulingResponse();
+        },
+      },
+      media: {
+        image: {
+          async generate() {
+            generateCalled = true;
+            throw new Error('image.generate must not run with incomplete configured profile entries');
+          },
+        },
+      },
+      ai: {},
+    },
+  };
+
+  const result = await invokers.invokeTesterCapability(client, 'image.generate', {
+    prompt: 'a poster with readable title',
+    scenarioId: 'scenario-local-ideogram4-configured-missing-uncond',
+    subjectUserId: 'subject-user-1',
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(generateCalled, false);
+  assert.match(result.message, /requires companion slot uncond_diffusion_model/);
+});
+
 test('image.generate starts local image environment dependencies before submitting generation', async (t) => {
   installMemoryStorageHarness(t);
   const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');

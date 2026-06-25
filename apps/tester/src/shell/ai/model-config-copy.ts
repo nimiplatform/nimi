@@ -132,6 +132,7 @@ export const testerModelConfigCopy: Record<string, string> = {
   "ModelConfig.editor.voiceWorkflow.languagePlaceholder": "Language (optional)",
   "ModelConfig.editor.voiceWorkflow.preferredNamePlaceholder": "Preferred voice asset name",
   "ModelConfig.editor.voiceWorkflow.referenceAssetPlaceholder": "Select a voice asset",
+  "ModelConfig.editor.image.modelFamilyLabel": "Model type",
   "ModelConfig.editor.image.companionModelsLabel": "Companion models",
   "ModelConfig.editor.image.parametersLabel": "Parameters",
   "ModelConfig.editor.image.sizeLabel": "Size",

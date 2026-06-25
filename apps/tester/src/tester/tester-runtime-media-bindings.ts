@@ -1,4 +1,7 @@
-import { COMPANION_SLOTS } from '@nimiplatform/kit/features/model-config/headless';
+import {
+  hasImageCompanionSlotContractForModelFamily,
+  resolveImageCompanionSlotsForModelFamily,
+} from '@nimiplatform/kit/features/model-config/headless';
 import {
   listNimiRuntimeLocalAssetEntries,
   toNimiRuntimeProtoStruct,
@@ -66,6 +69,33 @@ function selectedCompanionSlots(params: Record<string, unknown>): Record<string,
     }
   }
   return out;
+}
+
+function localAssetFamily(asset: NimiRuntimeLocalAssetEntry | null): string {
+  if (!asset) return '';
+  const extensible = asset as NimiRuntimeLocalAssetEntry & {
+    readonly family?: unknown;
+    readonly modelFamily?: unknown;
+    readonly model_family?: unknown;
+    readonly metadata?: Readonly<Record<string, unknown>>;
+  };
+  return optionalText(
+    extensible.modelFamily
+    ?? extensible.model_family
+    ?? extensible.family
+    ?? extensible.metadata?.modelFamily
+    ?? extensible.metadata?.model_family
+    ?? extensible.metadata?.family,
+  );
+}
+
+function selectedImageModelFamily(params: Record<string, unknown>, mainAsset: NimiRuntimeLocalAssetEntry | null): string {
+  return optionalText(
+    params.modelFamily
+    ?? params.model_family
+    ?? params.runtimeModelFamily
+    ?? params.runtime_model_family,
+  ) || localAssetFamily(mainAsset);
 }
 
 function assetMatchesId(asset: NimiRuntimeLocalAssetEntry, id: string): boolean {
@@ -157,6 +187,26 @@ function imageModelAssetIdFromConfiguredEntries(entries: readonly unknown[]): st
   return '';
 }
 
+function assertRequiredConfiguredImageCompanions(modelFamily: string, entries: readonly ImageProfileEntry[]) {
+  if (!hasImageCompanionSlotContractForModelFamily(modelFamily)) return;
+  const bySlot = new Map<string, ImageProfileEntry>();
+  for (const entry of entries) {
+    const slot = optionalText(entry.engine_slot ?? entry.engineSlot);
+    if (slot) bySlot.set(slot, entry);
+  }
+  for (const slot of resolveImageCompanionSlotsForModelFamily(modelFamily)) {
+    if (!slot.required) continue;
+    const entry = bySlot.get(slot.slot);
+    if (!entry) {
+      throw new Error(`image.generate model family ${modelFamily} requires companion slot ${slot.slot}; configure the companion model before running.`);
+    }
+    const assetKind = optionalText(entry.asset_kind ?? entry.assetKind);
+    if (assetKind && assetKind !== slot.kind) {
+      throw new Error(`image.generate companion slot ${slot.slot} requires a ${slot.kind} asset; reselect the companion model.`);
+    }
+  }
+}
+
 function imageProfileEntryForAsset(input: {
   readonly entryId: string;
   readonly title: string;
@@ -185,6 +235,12 @@ export async function resolveImageRuntimeBinding(
   const params = selectedParamRecord(resolved);
   const configuredEntries = configuredImageProfileEntries(params);
   if (configuredEntries) {
+    assertRequiredConfiguredImageCompanions(optionalText(
+      params.modelFamily
+      ?? params.model_family
+      ?? params.runtimeModelFamily
+      ?? params.runtime_model_family,
+    ), configuredEntries);
     const configuredModel = imageModelAssetIdFromConfiguredEntries(configuredEntries);
     return {
       resolved: configuredModel ? {
@@ -225,6 +281,9 @@ export async function resolveImageRuntimeBinding(
   }
 
   const companionSlots = selectedCompanionSlots(params);
+  const imageModelFamily = selectedImageModelFamily(params, mainAsset);
+  const enforceCompanionContract = hasImageCompanionSlotContractForModelFamily(imageModelFamily);
+  const companionSlotDefs = resolveImageCompanionSlotsForModelFamily(imageModelFamily);
   const profileEntries: ImageProfileEntry[] = [
     imageProfileEntryForAsset({
       entryId: 'main-image',
@@ -239,9 +298,14 @@ export async function resolveImageRuntimeBinding(
     local_asset_id: mainAsset.localAssetId,
   }];
 
-  for (const slot of COMPANION_SLOTS) {
+  for (const slot of companionSlotDefs) {
     const selected = companionSlots[slot.slot];
-    if (!selected) continue;
+    if (!selected) {
+      if (enforceCompanionContract && slot.required) {
+        throw new Error(`image.generate model family ${imageModelFamily} requires companion slot ${slot.slot}; configure the companion model before running.`);
+      }
+      continue;
+    }
     const asset = findLocalAssetById(assets, selected);
     if (!asset) {
       throw new Error(`image.generate companion slot ${slot.slot} references missing Runtime local asset ${selected}; reselect the companion model.`);

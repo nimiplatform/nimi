@@ -146,6 +146,15 @@ test('local image installed rows project runtime readiness instead of installed 
   assert.match(installedSectionSource, /onSetupRuntimeDependency=\{props\.onSetupRuntimeDependency\}/);
 });
 
+test('local image runtime readiness excludes companion-only image artifacts', () => {
+  assert.match(runtimeReadinessSource, /function isImageRuntimeMainAsset/);
+  assert.match(runtimeReadinessSource, /asset\.artifactRoles/);
+  assert.match(runtimeReadinessSource, /uncond_diffusion_model/);
+  assert.match(runtimeReadinessSource, /return assets\.filter\(isImageRuntimeMainAsset\)/);
+  assert.match(runtimeReadinessSource, /if \(!isImageRuntimeMainAsset\(asset\)\)/);
+  assert.doesNotMatch(runtimeReadinessSource, /assets\.filter\(\(asset\) => asset\.kind === 'image'\)/);
+});
+
 test('local image runtime readiness ignores stale ready jobs when current dependency blocks activation', () => {
   assert.match(installedSectionProjectionSource, /runtimeDependencyJobShouldSurface/);
   assert.match(installedSectionProjectionSource, /runtimeDependencyCurrentState/);

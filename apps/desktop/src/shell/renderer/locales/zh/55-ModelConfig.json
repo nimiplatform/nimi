@@ -181,6 +181,7 @@
       "referenceAssetPlaceholder": "选择语音资产"
     },
     "image": {
+      "modelFamilyLabel": "模型类型",
       "companionModelsLabel": "伴随模型",
       "parametersLabel": "参数",
       "sizeLabel": "尺寸",
