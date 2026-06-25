@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type ReactElement } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactElement } from 'react';
 import { desktopBridge, type NimiProductControlRecordProjection } from '@renderer/bridge';
 import { ProductControlWorkflow } from '../../first-run/product-control-workflow.js';
 
@@ -19,6 +19,7 @@ function useProductControlRecord(): {
   setProjection: (projection: NimiProductControlRecordProjection) => void;
 } {
   const [projection, setProjection] = useState<NimiProductControlRecordProjection | null>(null);
+  const refreshInFlightRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -36,6 +37,8 @@ function useProductControlRecord(): {
       });
     };
     const refreshProductControlRecord = async (): Promise<void> => {
+      if (refreshInFlightRef.current) return;
+      refreshInFlightRef.current = true;
       try {
         const next = await desktopBridge.getProductControlRecord();
         if (!cancelled) setProjection(next);
@@ -46,6 +49,8 @@ function useProductControlRecord(): {
           // on it, so a transient read failure does not mint a fake ready state.
           projectReadFailure(error);
         }
+      } finally {
+        refreshInFlightRef.current = false;
       }
     };
 

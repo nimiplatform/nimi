@@ -180,6 +180,14 @@ test('Wave 7: first-run finalization requests admission and routes on the projec
   assert.doesNotMatch(finalizationSource, /selectProductDataRoot|setProductFirstRunInstallLevel/);
 });
 
+test('Wave 7: first-run finalization deduplicates backend requests across remounts', () => {
+  assert.match(finalizationSource, /let firstRunFinalizationRequestInFlight/);
+  assert.match(finalizationSource, /firstRunFinalizationRequestInFlight !== null/);
+  assert.match(finalizationSource, /firstRunFinalizationRequestInFlight = runFirstRunFinalizationRequest\(\)\.finally/);
+  assert.match(finalizationSource, /finally\(\(\) => \{\s*firstRunFinalizationRequestInFlight = null;/);
+  assert.doesNotMatch(finalizationSource, /const inFlightRef = useRef\(false\)/);
+});
+
 test('Wave 7: workflow mounts the finalization branch only after local AI evidence is ready', () => {
   // The redesigned 4-phase wizard folds the four progress states into the
   // Setup phase. The backend-admission FirstRunFinalization surface is still

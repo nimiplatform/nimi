@@ -279,6 +279,7 @@ test('D-SUP-008: the first-run gate refreshes product-control while Setup is mou
   assert.match(gatePanel, /window\.setInterval/);
   assert.match(gatePanel, /window\.addEventListener\('focus'/);
   assert.match(gatePanel, /desktopBridge\.getProductControlRecord/);
+  assert.match(gatePanel, /refreshInFlightRef/);
   assert.match(gatePanel, /ready_for_use/);
 });
 

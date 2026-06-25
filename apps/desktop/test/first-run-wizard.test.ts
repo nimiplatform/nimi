@@ -94,6 +94,15 @@ function render(state: NimiProductControlState, override: Partial<NimiProductCon
   );
 }
 
+function renderProjection(projection: NimiProductControlRecordProjection): string {
+  return renderToStaticMarkup(
+    React.createElement(ProductControlWorkflow, {
+      projection,
+      onProjectionChange: () => {},
+    }),
+  );
+}
+
 // --- Phase projection -----------------------------------------------------
 
 test('phase projection maps the 12 product-control states onto 4 phases + 3 terminal screens', () => {
@@ -542,6 +551,27 @@ test('the Setup phase renders the checklist for the four progress states', () =>
     assert.match(markup, /data-testid="first-run-phase-setup"/);
     assert.match(markup, /data-testid="first-run-setup-checklist"/);
   }
+});
+
+test('ready-record reconciliation surfaces runtime read failures in setup instead of a blank wait screen', () => {
+  const projection = projectionFor('local_ai_profile_selected_environment_not_ready', {
+    state: 'ready_for_use',
+    firstRun: {
+      installLevel: 'minimal',
+      aiProfileAlias: 'local-speech-ready',
+      completed: true,
+      builtInAiConfigRefs: ['aiconfig:chat'],
+    },
+  });
+  const markup = renderProjection({
+    ...projection,
+    error: 'RUNTIME_GRPC_UNAVAILABLE: h2 protocol error',
+  });
+
+  assert.match(markup, /data-testid="first-run-phase-setup"/);
+  assert.match(markup, /data-testid="first-run-setup-error"/);
+  assert.match(markup, /RUNTIME_GRPC_UNAVAILABLE: h2 protocol error/);
+  assert.doesNotMatch(markup, /data-testid="first-run-screen-reconciling"/);
 });
 
 test('the Setup phase exposes accountable status, details, and manual re-check', () => {

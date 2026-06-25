@@ -519,6 +519,20 @@ fn first_run_factory_profile_ref(install_level: &str) -> String {
     )
 }
 
+fn should_remint_runtime_baseline_ref(state: &str, reason_code: &str) -> bool {
+    state.trim() != "ready"
+        && reason_code.trim() == "RUNTIME_BASELINE_READINESS_REF_BINDING_MISMATCH"
+}
+
+fn should_remint_execution_evidence_ref(state: &str, reason_code: &str) -> bool {
+    state.trim() != "local_ai_ready"
+        && matches!(
+            reason_code.trim(),
+            "FIRST_RUN_EXECUTION_EVIDENCE_REF_BINDING_MISMATCH"
+                | "FIRST_RUN_EXECUTION_EVIDENCE_BASELINE_NOT_READY"
+        )
+}
+
 pub async fn prepare_first_run_local_ai_ready_for_product_control(
 ) -> Result<ProductControlRecordProjection, String> {
     ensure_account_default_profile_for_product_control().await?;
@@ -575,7 +589,7 @@ pub async fn prepare_first_run_local_ai_ready_for_product_control(
         .map(str::trim)
         .filter(|value| !value.is_empty())
         .map(str::to_string);
-    let baseline_ref = if let Some(existing_ref) = existing_runtime_baseline_ref {
+    let resolved_baseline_ref = if let Some(existing_ref) = existing_runtime_baseline_ref {
         let response: crate::runtime_bridge::generated::ResolveRuntimeBaselineReadinessResponse =
             crate::runtime_bridge::invoke_unary_typed_with_metadata(
                 nimi_shell_tauri::runtime_bridge::RUNTIME_LOCAL_RESOLVE_RUNTIME_BASELINE_READINESS_METHOD_ID,
@@ -588,16 +602,25 @@ pub async fn prepare_first_run_local_ai_ready_for_product_control(
             )
             .await?;
         if response.state.trim() != "ready" {
-            return Err(format!(
-                "runtimeBaselineRef resolve failed (state={}, reason={}): {}",
-                response.state.trim(),
-                response.reason_code.trim(),
-                response.detail.trim()
-            ));
+            if !should_remint_runtime_baseline_ref(&response.state, &response.reason_code) {
+                return Err(format!(
+                    "runtimeBaselineRef resolve failed (state={}, reason={}): {}",
+                    response.state.trim(),
+                    response.reason_code.trim(),
+                    response.detail.trim()
+                ));
+            }
+            None
+        } else {
+            Some(response.r#ref.ok_or_else(|| {
+                "Runtime baseline readiness response did not include runtimeBaselineRef".to_string()
+            })?)
         }
-        response.r#ref.ok_or_else(|| {
-            "Runtime baseline readiness response did not include runtimeBaselineRef".to_string()
-        })?
+    } else {
+        None
+    };
+    let baseline_ref = if let Some(resolved_ref) = resolved_baseline_ref {
+        resolved_ref
     } else {
         let response: crate::runtime_bridge::generated::MintRuntimeBaselineReadinessResponse =
             crate::runtime_bridge::invoke_unary_typed_with_metadata(
@@ -641,9 +664,7 @@ pub async fn prepare_first_run_local_ai_ready_for_product_control(
         .map(str::trim)
         .filter(|value| !value.is_empty())
         .map(str::to_string);
-    let (execution_evidence_ref, execution_evidence) = if let Some(existing_ref) =
-        existing_execution_evidence_ref
-    {
+    let resolved_execution_evidence = if let Some(existing_ref) = existing_execution_evidence_ref {
         let response: crate::runtime_bridge::generated::ResolveFirstRunExecutionEvidenceResponse =
             crate::runtime_bridge::invoke_unary_typed_with_metadata(
                 nimi_shell_tauri::runtime_bridge::RUNTIME_LOCAL_RESOLVE_FIRST_RUN_EXECUTION_EVIDENCE_METHOD_ID,
@@ -659,23 +680,25 @@ pub async fn prepare_first_run_local_ai_ready_for_product_control(
             )
             .await?;
         if response.state.trim() != expected_execution_state.as_str() {
-            return Err(format!(
-                "executionEvidenceRef resolve failed (state={}, reason={}): {}",
-                response.state.trim(),
-                response.reason_code.trim(),
-                response.detail.trim()
-            ));
+            if !should_remint_execution_evidence_ref(&response.state, &response.reason_code) {
+                return Err(format!(
+                    "executionEvidenceRef resolve failed (state={}, reason={}): {}",
+                    response.state.trim(),
+                    response.reason_code.trim(),
+                    response.detail.trim()
+                ));
+            }
+            None
+        } else {
+            Some(response.r#ref.ok_or_else(|| {
+                "Runtime execution evidence response did not include ref".to_string()
+            })?)
         }
-        let evidence = response
-            .r#ref
-            .ok_or_else(|| "Runtime execution evidence response did not include ref".to_string())?;
-        let evidence_ref = Some(evidence.execution_evidence_ref.trim().to_string())
-            .filter(|value| !value.is_empty())
-            .ok_or_else(|| {
-                "Runtime execution evidence response did not include executionEvidenceRef"
-                    .to_string()
-            })?;
-        (evidence_ref, evidence)
+    } else {
+        None
+    };
+    let execution_evidence = if let Some(evidence) = resolved_execution_evidence {
+        evidence
     } else {
         let response: crate::runtime_bridge::generated::MintFirstRunExecutionEvidenceResponse =
             crate::runtime_bridge::invoke_unary_typed_with_metadata(
@@ -701,17 +724,15 @@ pub async fn prepare_first_run_local_ai_ready_for_product_control(
                 response.detail.trim()
             ));
         }
-        let evidence = response
+        response
             .r#ref
-            .ok_or_else(|| "Runtime execution evidence response did not include ref".to_string())?;
-        let evidence_ref = Some(evidence.execution_evidence_ref.trim().to_string())
-            .filter(|value| !value.is_empty())
-            .ok_or_else(|| {
-                "Runtime execution evidence response did not include executionEvidenceRef"
-                    .to_string()
-            })?;
-        (evidence_ref, evidence)
+            .ok_or_else(|| "Runtime execution evidence response did not include ref".to_string())?
     };
+    let execution_evidence_ref = Some(execution_evidence.execution_evidence_ref.trim().to_string())
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| {
+            "Runtime execution evidence response did not include executionEvidenceRef".to_string()
+        })?;
     let baseline_bindings =
         crate::desktop_ai_config_library::runtime_capability_bindings_from_execution_evidence_ref(
             &execution_evidence,
@@ -872,5 +893,37 @@ mod tests {
         };
 
         assert!(super::runtime_account_status_rejection_error(&response, &caller).is_none());
+    }
+
+    #[test]
+    fn stale_first_run_evidence_refs_are_reminted_during_prepare() {
+        assert!(super::should_remint_runtime_baseline_ref(
+            "local_ai_profile_selected_environment_not_ready",
+            "RUNTIME_BASELINE_READINESS_REF_BINDING_MISMATCH",
+        ));
+        assert!(super::should_remint_execution_evidence_ref(
+            "blocked",
+            "FIRST_RUN_EXECUTION_EVIDENCE_REF_BINDING_MISMATCH",
+        ));
+        assert!(super::should_remint_execution_evidence_ref(
+            "blocked",
+            "FIRST_RUN_EXECUTION_EVIDENCE_BASELINE_NOT_READY",
+        ));
+    }
+
+    #[test]
+    fn non_stale_first_run_evidence_failures_still_fail_closed() {
+        assert!(!super::should_remint_runtime_baseline_ref(
+            "repair_required",
+            "RUNTIME_BASELINE_READINESS_REPAIR_REQUIRED",
+        ));
+        assert!(!super::should_remint_execution_evidence_ref(
+            "blocked",
+            "FIRST_RUN_EXECUTION_EVIDENCE_EXECUTION_FAILED",
+        ));
+        assert!(!super::should_remint_runtime_baseline_ref(
+            "ready",
+            "RUNTIME_BASELINE_READINESS_READY",
+        ));
     }
 }

@@ -17,33 +17,54 @@ import { desktopBridge, type NimiProductControlRecordProjection } from '@rendere
 
 type FinalizationStatus = 'requesting' | 'failed';
 
+type FirstRunFinalizationRequestResult = {
+  readonly prepared: NimiProductControlRecordProjection;
+  readonly final: NimiProductControlRecordProjection;
+};
+
 type FirstRunFinalizationProps = {
   readonly projection: NimiProductControlRecordProjection;
   readonly onProjectionChange: (projection: NimiProductControlRecordProjection) => void;
 };
+
+let firstRunFinalizationRequestInFlight: Promise<FirstRunFinalizationRequestResult> | null = null;
+
+async function requestAdmissionOnce(): Promise<FirstRunFinalizationRequestResult> {
+  if (firstRunFinalizationRequestInFlight !== null) return firstRunFinalizationRequestInFlight;
+  firstRunFinalizationRequestInFlight = runFirstRunFinalizationRequest().finally(() => {
+    firstRunFinalizationRequestInFlight = null;
+  });
+  return firstRunFinalizationRequestInFlight;
+}
+
+async function runFirstRunFinalizationRequest(): Promise<FirstRunFinalizationRequestResult> {
+  const prepared = await desktopBridge.prepareProductFirstRunLocalAiReady();
+  if (prepared.state !== 'local_ai_ready' && prepared.state !== 'ready_for_use') {
+    return { prepared, final: prepared };
+  }
+  const next = await desktopBridge.admitProductReadyForUse();
+  return { prepared, final: next };
+}
 
 export function FirstRunFinalization(props: FirstRunFinalizationProps): ReactElement {
   const { t } = useTranslation();
   const notifyProjectionChange = props.onProjectionChange;
   const [status, setStatus] = useState<FinalizationStatus>('requesting');
   const [error, setError] = useState<string | null>(props.projection.error ?? null);
-  const inFlightRef = useRef(false);
   const autoRequestedRef = useRef(false);
 
   const requestAdmission = useCallback(async (): Promise<void> => {
-    if (inFlightRef.current) return;
-    inFlightRef.current = true;
     setStatus('requesting');
     setError(null);
     try {
-      const prepared = await desktopBridge.prepareProductFirstRunLocalAiReady();
+      const { prepared, final } = await requestAdmissionOnce();
       notifyProjectionChange(prepared);
       if (prepared.state !== 'local_ai_ready' && prepared.state !== 'ready_for_use') {
         setStatus('failed');
         setError(prepared.error);
         return;
       }
-      const next = await desktopBridge.admitProductReadyForUse();
+      const next = final;
       notifyProjectionChange(next);
       if (next.state !== 'ready_for_use') {
         setStatus('failed');
@@ -58,8 +79,6 @@ export function FirstRunFinalization(props: FirstRunFinalizationProps): ReactEle
               defaultValue: 'Failed to request first-run finalization.',
             }),
       );
-    } finally {
-      inFlightRef.current = false;
     }
   }, [notifyProjectionChange, t]);
 

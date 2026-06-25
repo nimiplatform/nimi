@@ -152,8 +152,8 @@ test('runtime history panel toggle lives beside Runtime and reflects collapsed s
   assert.doesNotMatch(styles, /\.studio__history-toggle/);
   assert.match(styles, /\.studio-history-toggle\s*\{[^}]*width:\s*40px[^}]*height:\s*38px[^}]*border:\s*0[^}]*background:\s*transparent[^}]*box-shadow:\s*none[^}]*color:\s*color-mix\(in srgb,\s*var\(--nimi-text-muted\) 64%,\s*transparent\)/s);
   assert.match(styles, /\.studio-history-toggle:hover\s*\{[^}]*background:\s*rgba\(255,\s*255,\s*255,\s*0\.22\)[^}]*color:\s*color-mix\(in srgb,\s*var\(--nimi-text-secondary\) 62%,\s*transparent\)/s);
-  assert.match(styles, /\.studio-history-toggle--expanded\s*\{[^}]*color:\s*color-mix\(in srgb,\s*var\(--nimi-text-primary\) 90%,\s*transparent\)/s);
-  assert.match(styles, /\.studio-history-toggle--expanded:hover\s*\{[^}]*background:\s*rgba\(255,\s*255,\s*255,\s*0\.24\)[^}]*color:\s*color-mix\(in srgb,\s*var\(--nimi-text-primary\) 90%,\s*transparent\)/s);
+  assert.match(styles, /\.studio-history-toggle--expanded\s*\{[^}]*background:\s*rgba\(226,\s*232,\s*240,\s*0\.46\)[^}]*color:\s*color-mix\(in srgb,\s*var\(--nimi-text-primary\) 90%,\s*transparent\)/s);
+  assert.match(styles, /\.studio-history-toggle--expanded:hover\s*\{[^}]*background:\s*rgba\(226,\s*232,\s*240,\s*0\.56\)[^}]*color:\s*color-mix\(in srgb,\s*var\(--nimi-text-primary\) 90%,\s*transparent\)/s);
   assert.match(styles, /\.studio-history-toggle\s+svg\s*\{[^}]*width:\s*17px[^}]*height:\s*17px/s);
   assert.match(styles, /\.studio__workspace--with-history\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+auto/s);
   assert.match(styles, /\.workbench\s*\{[^}]*--studio-side-panel-width:\s*min\(360px,\s*calc\(100vw - 48px\)\)/s);

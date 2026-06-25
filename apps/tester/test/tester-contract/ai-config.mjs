@@ -37,6 +37,35 @@ test('tester renderer resolves kit model-config from source instead of stale pre
   assert.match(viteConfig, /'@nimiplatform\/kit\/features\/model-config\/headless'/);
 });
 
+test('tester renderer resolves every consumed kit subpath from source instead of stale dist', () => {
+  const viteConfig = read('vite.config.ts');
+  const requiredAliases = [
+    ['@nimiplatform/kit/auth', 'kit/auth/src'],
+    ['@nimiplatform/kit/shell/renderer/bridge', 'kit/shell/renderer/src/bridge'],
+    ['@nimiplatform/kit/shell/renderer/bootstrap', 'kit/shell/renderer/src/bootstrap'],
+    ['@nimiplatform/kit/telemetry', 'kit/telemetry/src/telemetry'],
+    ['@nimiplatform/kit/features/avatar', 'kit/features/avatar/src'],
+    ['@nimiplatform/kit/features/chat', 'kit/features/chat/src'],
+    ['@nimiplatform/kit/features/commerce', 'kit/features/commerce/src'],
+    ['@nimiplatform/kit/features/generation', 'kit/features/generation/src'],
+    ['@nimiplatform/kit/features/model-picker', 'kit/features/model-picker/src'],
+    ['@nimiplatform/kit/features/model-config', 'kit/features/model-config/src'],
+  ];
+
+  for (const [subpath, sourcePath] of requiredAliases) {
+    assert.match(viteConfig, new RegExp(subpath.replaceAll('/', '\\/')));
+    assert.match(viteConfig, new RegExp(sourcePath.replaceAll('/', '\\/')));
+  }
+
+  assert.match(viteConfig, /'@nimiplatform\/kit\/auth'/);
+  assert.match(viteConfig, /'@nimiplatform\/kit\/shell\/renderer\/bridge'/);
+  assert.match(viteConfig, /'@nimiplatform\/kit\/shell\/renderer\/bootstrap'/);
+  assert.match(viteConfig, /'@nimiplatform\/kit\/telemetry'/);
+  assert.match(viteConfig, /'@nimiplatform\/kit\/features\/avatar'/);
+  assert.match(viteConfig, /'@nimiplatform\/kit\/features\/commerce'/);
+  assert.match(viteConfig, /'@nimiplatform\/kit\/features\/generation'/);
+});
+
 test('tester run target summary hydrates local runtime model labels without exposing opaque ids', async () => {
   const { createTesterRunTargetSummary } = await importBehaviorModule('tester/tester-run-target.js');
   const capability = {

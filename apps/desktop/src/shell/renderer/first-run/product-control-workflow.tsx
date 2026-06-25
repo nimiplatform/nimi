@@ -111,7 +111,8 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
   const returnRunReadyRecordReconciling =
     projection?.record?.state === 'ready_for_use'
     && state !== 'ready_for_use'
-    && setupVisible;
+    && setupVisible
+    && !error;
   const [setupEnteredAtMs, setSetupEnteredAtMs] = useState(() => Date.now());
   const [setupNowMs, setSetupNowMs] = useState(() => Date.now());
   const [lastSetupCheckedAtMs, setLastSetupCheckedAtMs] = useState(() => Date.now());
