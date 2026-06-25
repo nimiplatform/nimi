@@ -15,7 +15,7 @@ import (
 func newBackendDriver(cfg ServerConfig) (backendDriver, error) {
 	switch strings.ToLower(strings.TrimSpace(cfg.Driver)) {
 	case "stable-diffusion.cpp":
-		return newStableDiffusionCPPDriver(cfg.BackendExecutable, cfg.WorkingDir)
+		return newStableDiffusionCPPDriver(cfg.BackendExecutable, cfg.WorkingDir, cfg.CUDARuntimeDir)
 	default:
 		return nil, fmt.Errorf("unsupported managed image backend driver %q", cfg.Driver)
 	}
@@ -25,6 +25,7 @@ type stableDiffusionCPPDriver struct {
 	executablePath       string
 	serverExecutablePath string
 	workingDir           string
+	cudaRuntimeDir       string
 	httpClient           *http.Client
 	commandFactory       managedImageCommandFactory
 	readinessProbe       managedImageReadinessProbe
@@ -35,7 +36,7 @@ type stableDiffusionCPPDriver struct {
 	resident   *stableDiffusionCPPResident
 }
 
-func newStableDiffusionCPPDriver(executablePath string, workingDir string) (backendDriver, error) {
+func newStableDiffusionCPPDriver(executablePath string, workingDir string, cudaRuntimeDir string) (backendDriver, error) {
 	trimmedExecutable := strings.TrimSpace(executablePath)
 	if trimmedExecutable == "" {
 		return nil, fmt.Errorf("managed image backend executable is required")
@@ -55,6 +56,7 @@ func newStableDiffusionCPPDriver(executablePath string, workingDir string) (back
 		executablePath:       trimmedExecutable,
 		serverExecutablePath: serverExecutablePath,
 		workingDir:           resolvedWorkingDir,
+		cudaRuntimeDir:       strings.TrimSpace(cudaRuntimeDir),
 		httpClient:           &http.Client{},
 		commandFactory:       defaultManagedImageCommandFactory,
 		readinessProbe:       defaultStableDiffusionCPPReadinessProbe,
@@ -69,7 +71,10 @@ func (d *stableDiffusionCPPDriver) LoadModel(state loadModelState) (*LoadModelDi
 	if err := validateManagedImageLoadState(state); err != nil {
 		return nil, err
 	}
-	config := stableDiffusionCPPResidentConfigFromLoad(state)
+	config, err := stableDiffusionCPPResidentConfigFromLoad(state)
+	if err != nil {
+		return nil, err
+	}
 	fingerprint, err := stableDiffusionCPPResidentFingerprint(config)
 	if err != nil {
 		return nil, err
@@ -239,4 +244,13 @@ func (d *stableDiffusionCPPDriver) Free(_ loadModelState) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	return d.stopResidentLocked("explicit_free")
+}
+
+func (d *stableDiffusionCPPDriver) Shutdown() error {
+	if d == nil {
+		return nil
+	}
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	return d.stopResidentLocked("server_shutdown")
 }

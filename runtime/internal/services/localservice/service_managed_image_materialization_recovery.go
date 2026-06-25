@@ -120,23 +120,43 @@ func (s *Service) managedImageProfileMaterializationBindingsFromSelectedSourcesL
 		AssetID:      assetID,
 		LocalAssetID: localAssetID,
 	}}
-	companionRecords := s.readySelectedCompanionSourcesForParentLocked(assetID)
-	if len(companionRecords) == 0 {
+	usedSlots := map[string]struct{}{}
+	companionBindings, found, ok := s.managedImageCompanionBindingsFromSelectedCompanionSourcesLocked(assetID, localAssetID, usedSlots)
+	if found && !ok {
 		return nil, false
 	}
-	usedSlots := map[string]struct{}{}
+	if !found {
+		companionBindings, found, ok = s.managedImageCompanionBindingsFromSelectedModelAssetSourcesLocked(asset, usedSlots)
+		if !found || !ok {
+			return nil, false
+		}
+	}
+	bindings = append(bindings, companionBindings...)
+	return bindings, true
+}
+
+func (s *Service) managedImageCompanionBindingsFromSelectedCompanionSourcesLocked(
+	assetID string,
+	localAssetID string,
+	usedSlots map[string]struct{},
+) ([]managedMediaProfileMaterializationBinding, bool, bool) {
+	companionRecords := s.readySelectedCompanionSourcesForParentLocked(assetID)
+	if len(companionRecords) == 0 {
+		return nil, false, true
+	}
+	bindings := make([]managedMediaProfileMaterializationBinding, 0, len(companionRecords))
 	for _, record := range companionRecords {
 		companionAssetID, parentAssetID, ok := parseLocalEnvironmentCompanionDependencyID(record.DependencyID)
 		if !ok || parentAssetID != assetID {
-			return nil, false
+			return nil, true, false
 		}
 		companionAsset := s.localStateAssetByAssetIDLocked(companionAssetID)
 		companionKind, engineSlot, ok := managedImageCompanionKindAndEngineSlot(companionAsset)
 		if !ok {
-			return nil, false
+			return nil, true, false
 		}
 		if _, exists := usedSlots[engineSlot]; exists {
-			return nil, false
+			return nil, true, false
 		}
 		usedSlots[engineSlot] = struct{}{}
 		bindings = append(bindings, managedMediaProfileMaterializationBinding{
@@ -148,7 +168,71 @@ func (s *Service) managedImageProfileMaterializationBindingsFromSelectedSourcesL
 			ParentAssetID:    assetID,
 		})
 	}
-	return bindings, true
+	return bindings, true, true
+}
+
+func (s *Service) managedImageCompanionBindingsFromSelectedModelAssetSourcesLocked(
+	parent *runtimev1.LocalAssetRecord,
+	usedSlots map[string]struct{},
+) ([]managedMediaProfileMaterializationBinding, bool, bool) {
+	parentAssetID := strings.TrimSpace(parent.GetAssetId())
+	parentLocalAssetID := strings.TrimSpace(parent.GetLocalAssetId())
+	if parentAssetID == "" || parentLocalAssetID == "" {
+		return nil, false, false
+	}
+	type candidate struct {
+		record        localEnvironmentSelectedSourceRecordState
+		companionKind string
+		engineSlot    string
+	}
+	candidates := make([]candidate, 0)
+	for _, record := range s.localEnvironmentSelectedSources {
+		if strings.TrimSpace(record.DependencyFamily) != localEnvironmentFamilyModelAsset {
+			continue
+		}
+		companionAssetID := strings.TrimSpace(record.DependencyID)
+		if companionAssetID == "" || companionAssetID == parentAssetID {
+			continue
+		}
+		if !localEnvironmentSelectedSourceRecordAdmitsStableDiffusionConsumer(record) {
+			continue
+		}
+		if !localEnvironmentSelectedSourceRecordReady(record) {
+			continue
+		}
+		companionAsset := s.localStateAssetByAssetIDLocked(companionAssetID)
+		companionKind, engineSlot, ok := managedImageImportedModelAssetCompanionKindAndEngineSlot(parent, companionAsset)
+		if !ok {
+			continue
+		}
+		candidates = append(candidates, candidate{
+			record:        record,
+			companionKind: companionKind,
+			engineSlot:    engineSlot,
+		})
+	}
+	if len(candidates) == 0 {
+		return nil, false, true
+	}
+	sort.SliceStable(candidates, func(i, j int) bool {
+		return strings.TrimSpace(candidates[i].record.DependencyID) < strings.TrimSpace(candidates[j].record.DependencyID)
+	})
+	bindings := make([]managedMediaProfileMaterializationBinding, 0, len(candidates))
+	for _, item := range candidates {
+		if _, exists := usedSlots[item.engineSlot]; exists {
+			return nil, true, false
+		}
+		usedSlots[item.engineSlot] = struct{}{}
+		bindings = append(bindings, managedMediaProfileMaterializationBinding{
+			AssetID:          parentAssetID,
+			LocalAssetID:     parentLocalAssetID,
+			CompanionKind:    item.companionKind,
+			EngineSlot:       item.engineSlot,
+			CompanionAssetID: strings.TrimSpace(item.record.DependencyID),
+			ParentAssetID:    parentAssetID,
+		})
+	}
+	return bindings, true, true
 }
 
 func (s *Service) readySelectedModelAssetSourceLocked(localAssetID string, assetID string) (localEnvironmentSelectedSourceRecordState, bool) {
@@ -264,6 +348,8 @@ func managedImageCompanionKindAndEngineSlot(asset *runtimev1.LocalAssetRecord) (
 		return "", "", false
 	}
 	switch kind {
+	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE:
+		return companionKind, "uncond_diffusion_model", true
 	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE:
 		return companionKind, "vae_path", true
 	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT,
@@ -273,6 +359,40 @@ func managedImageCompanionKindAndEngineSlot(asset *runtimev1.LocalAssetRecord) (
 	default:
 		return "", "", false
 	}
+}
+
+func managedImageImportedModelAssetCompanionKindAndEngineSlot(parent *runtimev1.LocalAssetRecord, asset *runtimev1.LocalAssetRecord) (string, string, bool) {
+	if !localStateAssetAdmitted(parent) || !localStateAssetAdmitted(asset) {
+		return "", "", false
+	}
+	if strings.TrimSpace(parent.GetAssetId()) == strings.TrimSpace(asset.GetAssetId()) ||
+		strings.TrimSpace(parent.GetLocalAssetId()) == strings.TrimSpace(asset.GetLocalAssetId()) {
+		return "", "", false
+	}
+	kind := effectiveAssetKind(asset.GetKind(), asset.GetCapabilities())
+	if kind != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE {
+		return "", "", false
+	}
+	if !localAssetHasArtifactRole(asset, "uncond_diffusion_model") {
+		return "", "", false
+	}
+	if !managedImageImportedCompanionFamilyMatchesParent(parent, asset) {
+		return "", "", false
+	}
+	companionKind, err := localAssetKindToken(kind)
+	if err != nil {
+		return "", "", false
+	}
+	return companionKind, "uncond_diffusion_model", true
+}
+
+func managedImageImportedCompanionFamilyMatchesParent(parent *runtimev1.LocalAssetRecord, asset *runtimev1.LocalAssetRecord) bool {
+	parentFamily := strings.ToLower(strings.TrimSpace(parent.GetFamily()))
+	companionFamily := strings.ToLower(strings.TrimSpace(asset.GetFamily()))
+	if parentFamily == "" || companionFamily == "" {
+		return false
+	}
+	return parentFamily == companionFamily
 }
 
 func managedImageMaterializationBindingDigest(bindings []managedMediaProfileMaterializationBinding) string {

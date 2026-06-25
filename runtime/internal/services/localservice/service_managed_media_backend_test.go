@@ -76,8 +76,12 @@ func TestResolveManagedMediaImageProfileInjectsDynamicSlots(t *testing.T) {
 		Kind:         runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE,
 		Engine:       "media",
 		Entry:        "vae/diffusion_pytorch_model.safetensors",
-		Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
-		Source:       &runtimev1.LocalAssetSource{},
+		Family:       "flux1-vae",
+		ArtifactRoles: []string{
+			"vae",
+		},
+		Status: runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
+		Source: &runtimev1.LocalAssetSource{},
 	}
 	svc.assets[vaeRecord.GetLocalAssetId()] = vaeRecord
 	writeManagedAssetEntryFixture(t, modelsRoot, vaeRecord, "vae")
@@ -94,6 +98,18 @@ func TestResolveManagedMediaImageProfileInjectsDynamicSlots(t *testing.T) {
 	}
 	svc.assets[llmRecord.GetLocalAssetId()] = llmRecord
 	writeManagedAssetEntryFixture(t, modelsRoot, llmRecord, "llm")
+
+	uncondRecord := &runtimev1.LocalAssetRecord{
+		LocalAssetId: "artifact_" + ulid.Make().String(),
+		AssetId:      "ideogram4_uncond",
+		Kind:         runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE,
+		Engine:       "media",
+		Entry:        "ideogram4_uncond-Q4_0.gguf",
+		Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
+		Source:       &runtimev1.LocalAssetSource{},
+	}
+	svc.assets[uncondRecord.GetLocalAssetId()] = uncondRecord
+	writeManagedAssetEntryFixture(t, modelsRoot, uncondRecord, "uncond")
 
 	alias, profile, forwarded, err := svc.ResolveManagedMediaImageProfile(context.Background(), "media/z_image_turbo", map[string]any{
 		"profile_entries": []*runtimev1.LocalProfileEntryDescriptor{
@@ -121,6 +137,15 @@ func TestResolveManagedMediaImageProfileInjectsDynamicSlots(t *testing.T) {
 				AssetKind:  runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT,
 				Engine:     "llama",
 				EngineSlot: "llm_path",
+			},
+			{
+				EntryId:    "uncond-slot",
+				Kind:       runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_ASSET,
+				Capability: "image.generate",
+				AssetId:    "ideogram4_uncond",
+				AssetKind:  runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE,
+				Engine:     "media",
+				EngineSlot: "uncond_diffusion_model",
 			},
 		},
 		"profile_overrides": map[string]any{
@@ -151,6 +176,9 @@ func TestResolveManagedMediaImageProfileInjectsDynamicSlots(t *testing.T) {
 	if !containsString(options, "vae_path:resolved/local_z_image_ae/vae/diffusion_pytorch_model.safetensors") {
 		t.Fatalf("expected vae_path option, got=%v", options)
 	}
+	if !containsString(options, "uncond_diffusion_model:resolved/local_ideogram4_uncond/ideogram4_uncond-Q4_0.gguf") {
+		t.Fatalf("expected uncond_diffusion_model option, got=%v", options)
+	}
 	if containsString(options, "vae_path:old.safetensors") {
 		t.Fatalf("expected previous vae_path override to be replaced, got=%v", options)
 	}
@@ -170,8 +198,8 @@ func TestResolveManagedMediaImageProfileInjectsDynamicSlots(t *testing.T) {
 	if !ok || !cached.MaterializationResolved {
 		t.Fatalf("expected image profile materialization bindings to be cached, got ok=%v state=%+v", ok, cached)
 	}
-	if len(cached.MaterializationBindings) != 3 {
-		t.Fatalf("expected main + two companion materialization bindings, got %+v", cached.MaterializationBindings)
+	if len(cached.MaterializationBindings) != 4 {
+		t.Fatalf("expected main + three companion materialization bindings, got %+v", cached.MaterializationBindings)
 	}
 	companionIDs := map[string]string{}
 	for _, binding := range cached.MaterializationBindings {
@@ -185,6 +213,9 @@ func TestResolveManagedMediaImageProfileInjectsDynamicSlots(t *testing.T) {
 	if got := companionIDs["llm_path"]; got != "qwen3_4b_companion|z_image_turbo" {
 		t.Fatalf("unexpected llm materialization binding: %+v", cached.MaterializationBindings)
 	}
+	if got := companionIDs["uncond_diffusion_model"]; got != "ideogram4_uncond|z_image_turbo" {
+		t.Fatalf("unexpected uncond materialization binding: %+v", cached.MaterializationBindings)
+	}
 	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
 		PackID:        "local-image-native",
 		ConsumerScope: "stable-diffusion.cpp.metal",
@@ -197,7 +228,7 @@ func TestResolveManagedMediaImageProfileInjectsDynamicSlots(t *testing.T) {
 			companionDeps = append(companionDeps, dep)
 		}
 	}
-	if len(companionDeps) != 2 {
+	if len(companionDeps) != 3 {
 		t.Fatalf("expected cached profile to expand two companion dependencies, got %+v", companionDeps)
 	}
 	depIDs := map[string]bool{}
@@ -209,6 +240,9 @@ func TestResolveManagedMediaImageProfileInjectsDynamicSlots(t *testing.T) {
 	}
 	if !depIDs["asset_id=qwen3_4b_companion|parent_asset_id=z_image_turbo"] {
 		t.Fatalf("missing llm companion dependency: %+v", companionDeps)
+	}
+	if !depIDs["asset_id=ideogram4_uncond|parent_asset_id=z_image_turbo"] {
+		t.Fatalf("missing uncond companion dependency: %+v", companionDeps)
 	}
 }
 

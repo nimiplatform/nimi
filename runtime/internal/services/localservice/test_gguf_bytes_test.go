@@ -48,6 +48,19 @@ func validImageTestGGUFWithoutSDVersion() []byte {
 	return buildImageTestGGUF(nil, []string{"cap_embedder.0.weight"})
 }
 
+func validIdeogram4ImageTestGGUFWithoutMetadata() []byte {
+	return buildImageTestGGUF(nil, []string{
+		"embed_image_indicator.weight",
+		"llm_cond_proj.weight",
+		"final_layer.adaln_modulation.weight",
+	})
+}
+
+func validIdeogram4ImageTestGGUFWithoutMetadataHash() string {
+	sum := sha256.Sum256(validIdeogram4ImageTestGGUFWithoutMetadata())
+	return hex.EncodeToString(sum[:])
+}
+
 func invalidImageTestGGUFWithoutKnownDiffusionSignature() []byte {
 	return buildImageTestGGUF(nil, []string{"tok_embeddings.weight"})
 }

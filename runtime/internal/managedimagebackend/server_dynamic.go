@@ -55,6 +55,7 @@ func decodeGenerateImageState(message *dynamicpb.Message) (imageGenerateState, e
 
 func parseManagedImageOptions(modelsRoot string, options []string) (managedImageOptions, error) {
 	var parsed managedImageOptions
+	seenComponentSlots := map[string]struct{}{}
 	for _, option := range options {
 		trimmed := strings.TrimSpace(option)
 		if trimmed == "" {
@@ -103,32 +104,23 @@ func parseManagedImageOptions(modelsRoot string, options []string) (managedImage
 				return managedImageOptions{}, fmt.Errorf("managed image option scheduler requires a value")
 			}
 			parsed.Scheduler = strings.TrimSpace(value)
-		case "vae_path":
-			path, err := resolveManagedImageOptionPath(modelsRoot, value)
-			if err != nil {
-				return managedImageOptions{}, err
-			}
-			parsed.VAEPath = path
-		case "llm_path":
-			path, err := resolveManagedImageOptionPath(modelsRoot, value)
-			if err != nil {
-				return managedImageOptions{}, err
-			}
-			parsed.LLMPath = path
-		case "clip_l_path":
-			path, err := resolveManagedImageOptionPath(modelsRoot, value)
-			if err != nil {
-				return managedImageOptions{}, err
-			}
-			parsed.ClipLPath = path
-		case "t5xxl_path":
-			path, err := resolveManagedImageOptionPath(modelsRoot, value)
-			if err != nil {
-				return managedImageOptions{}, err
-			}
-			parsed.T5XXLPath = path
 		default:
-			return managedImageOptions{}, fmt.Errorf("unsupported managed image option %q", normalizedKey)
+			binding, ok := stableDiffusionCPPSlotBindings[normalizedKey]
+			if !ok {
+				return managedImageOptions{}, fmt.Errorf("unsupported managed image option %q", normalizedKey)
+			}
+			if _, exists := seenComponentSlots[binding.EngineSlot]; exists {
+				return managedImageOptions{}, fmt.Errorf("duplicate managed image component slot %q", binding.EngineSlot)
+			}
+			path, err := resolveManagedImageOptionPath(modelsRoot, value)
+			if err != nil {
+				return managedImageOptions{}, err
+			}
+			seenComponentSlots[binding.EngineSlot] = struct{}{}
+			parsed.Components = append(parsed.Components, managedImageComponent{
+				EngineSlot: binding.EngineSlot,
+				Path:       path,
+			})
 		}
 	}
 	return parsed, nil

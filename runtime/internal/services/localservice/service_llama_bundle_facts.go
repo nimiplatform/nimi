@@ -92,9 +92,6 @@ func normalizeManagedLlamaBundleEngineConfig(
 }
 
 func applyManagedGGUFArchitectureFacts(entryPath string, engineName string, projectionOverride *modelregistry.NativeProjection) (*modelregistry.NativeProjection, error) {
-	if !strings.EqualFold(strings.TrimSpace(engineName), "llama") {
-		return projectionOverride, nil
-	}
 	if strings.ToLower(filepath.Ext(strings.TrimSpace(entryPath))) != ".gguf" {
 		return projectionOverride, nil
 	}
@@ -102,13 +99,88 @@ func applyManagedGGUFArchitectureFacts(entryPath string, engineName string, proj
 	if err != nil {
 		return projectionOverride, nil
 	}
-	if !strings.EqualFold(ggufmeta.LLMDetectedArchitecture(summary), "gemma4") {
-		return projectionOverride, nil
+	next := projectionOverride
+	if strings.EqualFold(strings.TrimSpace(engineName), "llama") &&
+		strings.EqualFold(ggufmeta.LLMDetectedArchitecture(summary), "gemma4") {
+		next = cloneNativeProjectionOverride(next)
+		next.Family = "gemma"
 	}
-
-	next := cloneNativeProjectionOverride(projectionOverride)
-	next.Family = "gemma"
+	if strings.EqualFold(strings.TrimSpace(engineName), "media") {
+		family := stableDiffusionProjectionFamily(summary, entryPath)
+		if family != "" {
+			next = cloneNativeProjectionOverride(next)
+			next.Family = family
+		}
+		if managedImageProjectionIsIdeogram4Uncond(entryPath, next) {
+			next = cloneNativeProjectionOverride(next)
+			next.Family = "ideogram4"
+			next.ArtifactRoles = []string{"uncond_diffusion_model"}
+		}
+	}
 	return next, nil
+}
+
+func stableDiffusionProjectionFamily(summary ggufmeta.Summary, entryPath string) string {
+	for _, raw := range []string{
+		ggufmeta.StableDiffusionDetectedFamily(summary),
+		stableDiffusionSummaryString(summary, "general.name"),
+		stableDiffusionSummaryString(summary, "general.architecture"),
+		entryPath,
+	} {
+		if family := normalizeManagedImageProjectionFamily(raw); family != "" {
+			return family
+		}
+	}
+	return ""
+}
+
+func stableDiffusionSummaryString(summary ggufmeta.Summary, key string) string {
+	value, ok := summary.StringValue(key)
+	if !ok {
+		return ""
+	}
+	return value
+}
+
+func normalizeManagedImageProjectionFamily(value string) string {
+	lower := strings.ToLower(strings.TrimSpace(value))
+	lower = strings.ReplaceAll(lower, "_", "-")
+	switch {
+	case strings.Contains(lower, "ideogram4") || strings.Contains(lower, "ideogram-4"):
+		return "ideogram4"
+	case strings.Contains(lower, "z-image-turbo"):
+		return "z-image-turbo"
+	case strings.Contains(lower, "z-image-base"):
+		return "z-image"
+	case strings.Contains(lower, "z-image"):
+		return "z-image"
+	case strings.Contains(lower, "qwen-image"):
+		return "qwen-image"
+	case strings.Contains(lower, "ovis-image"):
+		return "ovis-image"
+	case strings.Contains(lower, "chroma"):
+		return "chroma"
+	case strings.Contains(lower, "flux"):
+		return "flux"
+	default:
+		return ""
+	}
+}
+
+func managedImageProjectionIsIdeogram4Uncond(entryPath string, projection *modelregistry.NativeProjection) bool {
+	if projection == nil {
+		return false
+	}
+	if normalizeProfileRuntimeImageModelFamily(projection.Family) != "ideogram4" {
+		return false
+	}
+	for _, role := range projection.ArtifactRoles {
+		if strings.EqualFold(strings.TrimSpace(role), "uncond_diffusion_model") {
+			return true
+		}
+	}
+	normalizedPath := strings.ToLower(strings.ReplaceAll(strings.TrimSpace(entryPath), "_", "-"))
+	return strings.Contains(normalizedPath, "uncond")
 }
 
 func resolveManagedBundleRootAbsolutePath(modelsPath string, model *runtimev1.LocalAssetRecord) (string, error) {
@@ -365,6 +437,52 @@ func healMissingMmprojEngineConfig(modelsRoot string, record *runtimev1.LocalAss
 	}
 	if llamaEngineConfigNeedsPersistence(record.GetEngineConfig(), mustExtractManagedLlamaEngineConfig(nextConfig)) {
 		record.EngineConfig = cloneStruct(nextConfig)
+		healed = true
+	}
+	return healed
+}
+
+func healManagedImageNativeProjection(modelsRoot string, record *runtimev1.LocalAssetRecord, logger *slog.Logger) bool {
+	if record == nil {
+		return false
+	}
+	if !isCanonicalSupervisedImageAsset(record.GetEngine(), record.GetCapabilities(), record.GetKind()) {
+		return false
+	}
+	entryPath, err := resolveManagedModelEntryAbsolutePath(modelsRoot, record)
+	if err != nil {
+		if logger != nil {
+			logger.Warn("skip managed image projection self-heal: resolve entry failed",
+				"local_asset_id", record.GetLocalAssetId(),
+				"error", err,
+			)
+		}
+		return false
+	}
+	projection, err := applyManagedGGUFArchitectureFacts(entryPath, record.GetEngine(), &modelregistry.NativeProjection{
+		Family:           record.GetFamily(),
+		ArtifactRoles:    append([]string(nil), record.GetArtifactRoles()...),
+		PreferredEngine:  record.GetPreferredEngine(),
+		FallbackEngines:  append([]string(nil), record.GetFallbackEngines()...),
+		HostRequirements: cloneHostRequirements(record.GetHostRequirements()),
+	})
+	if err != nil || projection == nil {
+		if err != nil && logger != nil {
+			logger.Warn("skip managed image projection self-heal: inspect entry failed",
+				"local_asset_id", record.GetLocalAssetId(),
+				"entry_path", entryPath,
+				"error", err,
+			)
+		}
+		return false
+	}
+	healed := false
+	if family := strings.TrimSpace(projection.Family); family != "" && family != strings.TrimSpace(record.GetFamily()) {
+		record.Family = family
+		healed = true
+	}
+	if len(projection.ArtifactRoles) > 0 && !stringSlicesEqual(record.GetArtifactRoles(), projection.ArtifactRoles) {
+		record.ArtifactRoles = normalizeStringSlice(projection.ArtifactRoles)
 		healed = true
 	}
 	return healed

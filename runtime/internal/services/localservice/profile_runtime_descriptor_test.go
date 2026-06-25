@@ -114,7 +114,7 @@ func testProfileRuntimeImageCompanionDescriptor() profileRuntimeDescriptor {
 					BackendClass:  "native_binary",
 					BackendFamily: "stablediffusion-ggml",
 				},
-				Model:        profileRuntimeDescriptorModel{Family: "flux"},
+				Model:        profileRuntimeDescriptorModel{Family: "z-image"},
 				AssetRefs:    []string{"main"},
 				ParamsDigest: "params-digest",
 				OrderedCompanionOccurrences: []profileRuntimeDescriptorCompanionOccurrence{
@@ -212,6 +212,7 @@ func testProfileRuntimeReadyFacts(descriptor profileRuntimeDescriptor) profileRu
 				SelectedSourceRecordID: "src_e5dee81bca395e3c",
 				CanonicalRoot:          "runtime-managed/stablediffusion-ggml",
 				VerifiedArtifacts:      []string{"run.sh"},
+				SupportedModelFamilies: testProfileRuntimeNativeBackendSupportedModelFamilies(),
 			},
 		},
 	}
@@ -232,6 +233,10 @@ func testProfileRuntimeReadyFacts(descriptor profileRuntimeDescriptor) profileRu
 		})
 	}
 	return facts
+}
+
+func testProfileRuntimeNativeBackendSupportedModelFamilies() []string {
+	return []string{"flux", "ideogram4", "sdxl", "z-image", "z-image-turbo"}
 }
 
 func seedProfileRuntimeReadyFactsForService(t *testing.T, svc *Service, descriptor profileRuntimeDescriptor) {
@@ -272,6 +277,7 @@ func seedProfileRuntimeNativeImageBackendForService(t *testing.T, svc *Service) 
 			"package_source=canonical_localai_derived",
 			"package_format=oci_payload",
 			"launch_mode=package_entrypoint",
+			"supported_model_families=" + strings.Join(testProfileRuntimeNativeBackendSupportedModelFamilies(), ","),
 		},
 		VerifiedArtifacts: []string{"run.sh"},
 		SelectedConsumers: []string{"stable-diffusion.cpp.metal"},
@@ -321,14 +327,25 @@ func profileRuntimeNativeImageBackendEnvironmentKeyForTest(svc *Service) string 
 
 func seedProfileRuntimeLocalAssetForService(t *testing.T, svc *Service, localAssetID string, assetID string, kind runtimev1.LocalAssetKind, status runtimev1.LocalAssetStatus) {
 	t.Helper()
+	family := ""
+	artifactRoles := []string(nil)
+	switch kind {
+	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE:
+		family = normalizeManagedImageProjectionFamily(assetID)
+	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE:
+		family = "flux1-vae"
+		artifactRoles = []string{"vae"}
+	}
 	svc.mu.Lock()
 	defer svc.mu.Unlock()
 	svc.assets[localAssetID] = &runtimev1.LocalAssetRecord{
-		LocalAssetId: strings.TrimSpace(localAssetID),
-		AssetId:      strings.TrimSpace(assetID),
-		Kind:         kind,
-		Status:       status,
-		Source:       &runtimev1.LocalAssetSource{},
+		LocalAssetId:  strings.TrimSpace(localAssetID),
+		AssetId:       strings.TrimSpace(assetID),
+		Kind:          kind,
+		Family:        family,
+		ArtifactRoles: artifactRoles,
+		Status:        status,
+		Source:        &runtimev1.LocalAssetSource{},
 	}
 }
 
@@ -670,6 +687,7 @@ func TestServicePrepareProfileRuntimeDescriptorRPCUsesDataRootSelectedSourceWhen
 			"package_source=canonical_localai_derived",
 			"package_format=oci_payload",
 			"launch_mode=package_entrypoint",
+			"supported_model_families=" + strings.Join(testProfileRuntimeNativeBackendSupportedModelFamilies(), ","),
 		},
 		VerifiedArtifacts: []string{"run.sh"},
 		SelectedConsumers: []string{"stable-diffusion.cpp.metal"},

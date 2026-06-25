@@ -109,6 +109,7 @@ type profileRuntimeNativeBackendPackageFact struct {
 	SelectedSourceRecordID string
 	CanonicalRoot          string
 	VerifiedArtifacts      []string
+	SupportedModelFamilies []string
 }
 
 type profileRuntimePreparedAssetFact struct {

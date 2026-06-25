@@ -31,6 +31,7 @@ func (s *Service) profileRuntimePrepareFactsForDescriptor(descriptor *profileRun
 			continue
 		}
 		packageSource, packageFormat, launchMode := profileRuntimeNativeBackendPackageSourceFormatAndLaunchMode(record)
+		supportedModelFamilies := profileRuntimeNativeBackendPackageSupportedModelFamilies(record)
 		state := localEnvironmentStateReadyManaged
 		if err := validateLocalEnvironmentSelectedSourceRecord(record); err != nil {
 			state = localEnvironmentStateRepairRequired
@@ -50,6 +51,7 @@ func (s *Service) profileRuntimePrepareFactsForDescriptor(descriptor *profileRun
 			SelectedSourceRecordID: record.RecordID,
 			CanonicalRoot:          record.CanonicalRoot,
 			VerifiedArtifacts:      normalizeStringSlice(record.VerifiedArtifacts),
+			SupportedModelFamilies: supportedModelFamilies,
 		})
 	}
 	bindingsByPreparedID := map[string]profileRuntimeDescriptorAssetBinding{}
@@ -125,6 +127,17 @@ func profileRuntimeNativeBackendPackageSourceFormatAndLaunchMode(record localEnv
 		}
 	}
 	return packageSource, packageFormat, launchMode
+}
+
+func profileRuntimeNativeBackendPackageSupportedModelFamilies(record localEnvironmentSelectedSourceRecordState) []string {
+	for _, item := range record.CompatibilityEvidence {
+		trimmed := strings.TrimSpace(item)
+		if !strings.HasPrefix(trimmed, "supported_model_families=") {
+			continue
+		}
+		return normalizeStringSlice(strings.Split(strings.TrimSpace(strings.TrimPrefix(trimmed, "supported_model_families=")), ","))
+	}
+	return nil
 }
 
 func profileRuntimeMaterializationCacheKey(

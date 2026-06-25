@@ -310,10 +310,15 @@ func probeDiskFreeBytes() int64 {
 }
 
 func portAvailable(port int) bool {
-	// K-DEV-006: bind all interfaces (":<port>"), not just loopback, so a server
-	// bound to 0.0.0.0 is correctly observed as occupied (fail-closed).
-	addr := fmt.Sprintf(":%d", port)
-	ln, err := net.Listen("tcp", addr)
+	return portAvailableWithListener(port, net.Listen)
+}
+
+func portAvailableWithListener(port int, listen func(network string, address string) (net.Listener, error)) bool {
+	// K-DEV-006: Runtime managed engines expose loopback endpoints. Probe the
+	// same loopback bind surface instead of all interfaces so device profiling
+	// does not request LAN/public inbound access on Windows test binaries.
+	addr := fmt.Sprintf("127.0.0.1:%d", port)
+	ln, err := listen("tcp", addr)
 	if err != nil {
 		return false
 	}

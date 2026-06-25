@@ -7,19 +7,17 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 )
 
 type stableDiffusionCPPResidentConfig struct {
-	ModelPath          string `json:"model_path"`
-	VAEPath            string `json:"vae_path,omitempty"`
-	LLMPath            string `json:"llm_path,omitempty"`
-	ClipLPath          string `json:"clip_l_path,omitempty"`
-	T5XXLPath          string `json:"t5xxl_path,omitempty"`
-	DiffusionFA        bool   `json:"diffusion_fa,omitempty"`
-	OffloadParamsToCPU bool   `json:"offload_params_to_cpu,omitempty"`
-	Threads            int32  `json:"threads,omitempty"`
+	ModelPath          string                  `json:"model_path"`
+	Components         []managedImageComponent `json:"components,omitempty"`
+	DiffusionFA        bool                    `json:"diffusion_fa,omitempty"`
+	OffloadParamsToCPU bool                    `json:"offload_params_to_cpu,omitempty"`
+	Threads            int32                   `json:"threads,omitempty"`
 }
 
 func validateManagedImageLoadState(state loadModelState) error {
@@ -29,37 +27,41 @@ func validateManagedImageLoadState(state loadModelState) error {
 	if _, err := os.Stat(strings.TrimSpace(state.ModelPath)); err != nil {
 		return fmt.Errorf("managed image model path unavailable: %w", err)
 	}
-	for _, path := range []string{
-		state.Options.VAEPath,
-		state.Options.LLMPath,
-		state.Options.ClipLPath,
-		state.Options.T5XXLPath,
-	} {
-		if strings.TrimSpace(path) == "" {
-			continue
-		}
-		if _, err := os.Stat(strings.TrimSpace(path)); err != nil {
+	components, err := normalizeStableDiffusionCPPComponents(state.Options.Components)
+	if err != nil {
+		return err
+	}
+	for _, component := range components {
+		if _, err := os.Stat(strings.TrimSpace(component.Path)); err != nil {
 			return fmt.Errorf("managed image option path unavailable: %w", err)
 		}
 	}
 	return nil
 }
 
-func stableDiffusionCPPResidentConfigFromLoad(state loadModelState) stableDiffusionCPPResidentConfig {
+func stableDiffusionCPPResidentConfigFromLoad(state loadModelState) (stableDiffusionCPPResidentConfig, error) {
+	components, err := normalizeStableDiffusionCPPComponents(state.Options.Components)
+	if err != nil {
+		return stableDiffusionCPPResidentConfig{}, err
+	}
 	return stableDiffusionCPPResidentConfig{
 		ModelPath:          strings.TrimSpace(state.ModelPath),
-		VAEPath:            strings.TrimSpace(state.Options.VAEPath),
-		LLMPath:            strings.TrimSpace(state.Options.LLMPath),
-		ClipLPath:          strings.TrimSpace(state.Options.ClipLPath),
-		T5XXLPath:          strings.TrimSpace(state.Options.T5XXLPath),
+		Components:         components,
 		DiffusionFA:        state.Options.DiffusionFA != nil && *state.Options.DiffusionFA,
 		OffloadParamsToCPU: state.Options.OffloadParamsToCPU != nil && *state.Options.OffloadParamsToCPU,
 		Threads:            state.Threads,
-	}
+	}, nil
 }
 
 func stableDiffusionCPPResidentFingerprint(config stableDiffusionCPPResidentConfig) (string, error) {
-	raw, err := json.Marshal(config)
+	components, err := normalizeStableDiffusionCPPComponents(config.Components)
+	if err != nil {
+		return "", err
+	}
+	normalized := config
+	normalized.ModelPath = strings.TrimSpace(config.ModelPath)
+	normalized.Components = components
+	raw, err := json.Marshal(normalized)
 	if err != nil {
 		return "", fmt.Errorf("marshal managed image resident config: %w", err)
 	}
@@ -67,11 +69,19 @@ func stableDiffusionCPPResidentFingerprint(config stableDiffusionCPPResidentConf
 	return hex.EncodeToString(sum[:]), nil
 }
 
-func stableDiffusionCPPResidentStartupArgs(config stableDiffusionCPPResidentConfig, port int) []string {
+func stableDiffusionCPPResidentStartupArgs(config stableDiffusionCPPResidentConfig, port int) ([]string, error) {
+	modelPath := strings.TrimSpace(config.ModelPath)
+	if modelPath == "" {
+		return nil, fmt.Errorf("managed image model path is required")
+	}
+	components, err := normalizeStableDiffusionCPPComponents(config.Components)
+	if err != nil {
+		return nil, err
+	}
 	args := []string{
 		"--listen-ip", "127.0.0.1",
 		"--listen-port", strconv.Itoa(port),
-		"--diffusion-model", config.ModelPath,
+		"--diffusion-model", modelPath,
 	}
 	if config.Threads != 0 {
 		args = append(args, "--threads", strconv.Itoa(int(config.Threads)))
@@ -82,31 +92,69 @@ func stableDiffusionCPPResidentStartupArgs(config stableDiffusionCPPResidentConf
 	if config.OffloadParamsToCPU {
 		args = append(args, "--offload-to-cpu")
 	}
-	if config.VAEPath != "" {
-		args = append(args, "--vae", config.VAEPath)
+	for _, component := range components {
+		binding, ok := stableDiffusionCPPSlotBindings[strings.TrimSpace(component.EngineSlot)]
+		if !ok {
+			return nil, fmt.Errorf("unsupported managed image component slot %q", component.EngineSlot)
+		}
+		args = append(args, binding.Argument, strings.TrimSpace(component.Path))
 	}
-	if config.LLMPath != "" {
-		args = append(args, "--llm", config.LLMPath)
-	}
-	if config.ClipLPath != "" {
-		args = append(args, "--clip_l", config.ClipLPath)
-	}
-	if config.T5XXLPath != "" {
-		args = append(args, "--t5xxl", config.T5XXLPath)
-	}
-	return args
+	return args, nil
 }
 
 func stableDiffusionCPPResidentStartupSummary(config stableDiffusionCPPResidentConfig) string {
-	return fmt.Sprintf("threads=%d diffusion_fa=%t offload_to_cpu=%t has_vae=%t has_llm=%t has_clip_l=%t has_t5xxl=%t",
+	componentSlots := make([]string, 0, len(config.Components))
+	components, err := normalizeStableDiffusionCPPComponents(config.Components)
+	if err != nil {
+		componentSlots = append(componentSlots, "invalid")
+	}
+	for _, component := range components {
+		if slot := strings.TrimSpace(component.EngineSlot); slot != "" {
+			componentSlots = append(componentSlots, slot)
+		}
+	}
+	if len(componentSlots) == 0 {
+		componentSlots = append(componentSlots, "-")
+	}
+	return fmt.Sprintf("threads=%d diffusion_fa=%t offload_to_cpu=%t components=%s",
 		config.Threads,
 		config.DiffusionFA,
 		config.OffloadParamsToCPU,
-		config.VAEPath != "",
-		config.LLMPath != "",
-		config.ClipLPath != "",
-		config.T5XXLPath != "",
+		strings.Join(componentSlots, ","),
 	)
+}
+
+func normalizeStableDiffusionCPPComponents(components []managedImageComponent) ([]managedImageComponent, error) {
+	normalized := make([]managedImageComponent, 0, len(components))
+	seenSlots := map[string]struct{}{}
+	for _, component := range components {
+		slot := strings.ToLower(strings.TrimSpace(component.EngineSlot))
+		path := strings.TrimSpace(component.Path)
+		if slot == "" {
+			return nil, fmt.Errorf("managed image component slot is required")
+		}
+		if _, ok := stableDiffusionCPPSlotBindings[slot]; !ok {
+			return nil, fmt.Errorf("unsupported managed image component slot %q", slot)
+		}
+		if _, exists := seenSlots[slot]; exists {
+			return nil, fmt.Errorf("duplicate managed image component slot %q", slot)
+		}
+		if path == "" {
+			return nil, fmt.Errorf("managed image component path is required for slot %q", slot)
+		}
+		seenSlots[slot] = struct{}{}
+		normalized = append(normalized, managedImageComponent{
+			EngineSlot: slot,
+			Path:       path,
+		})
+	}
+	sort.Slice(normalized, func(left, right int) bool {
+		if normalized[left].EngineSlot == normalized[right].EngineSlot {
+			return normalized[left].Path < normalized[right].Path
+		}
+		return normalized[left].EngineSlot < normalized[right].EngineSlot
+	})
+	return normalized, nil
 }
 
 func resolveStableDiffusionCPPServerExecutable(executablePath string) (string, error) {

@@ -50,9 +50,27 @@ func TestResolveManagedMediaImageProfileRejectsPathOverrides(t *testing.T) {
 			},
 		},
 		{
+			name: "option uncond diffusion model",
+			overrides: map[string]any{
+				"options": []any{"uncond_diffusion_model:/tmp/ideogram4_uncond.gguf"},
+			},
+		},
+		{
+			name: "option diffusion model value",
+			overrides: map[string]any{
+				"options": []any{"diffusion_model:/tmp/main.gguf"},
+			},
+		},
+		{
 			name: "top-level path",
 			overrides: map[string]any{
 				"vae_path": "/tmp/outside.safetensors",
+			},
+		},
+		{
+			name: "top-level uncond diffusion model",
+			overrides: map[string]any{
+				"uncond_diffusion_model": "/tmp/ideogram4_uncond.gguf",
 			},
 		},
 		{
@@ -444,6 +462,93 @@ func TestResolveManagedMediaImageProfileRejectsDuplicateEngineSlotBindings(t *te
 		t.Fatalf("expected duplicate engineSlot binding to fail-close")
 	}
 	assertGRPCReasonCode(t, err, "duplicate engineSlot binding", runtimev1.ReasonCode_AI_LOCAL_PROFILE_SLOT_CONFLICT)
+}
+
+func TestResolveManagedMediaImageProfileRejectsIncompatibleVAEFamily(t *testing.T) {
+	svc := newTestService(t)
+	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
+	modelsRoot := filepath.Join(t.TempDir(), "models")
+	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
+
+	engineConfig, err := structpb.NewStruct(map[string]any{"backend": "stablediffusion-ggml"})
+	if err != nil {
+		t.Fatalf("build engine config: %v", err)
+	}
+	modelResp := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "z_image_turbo",
+		capabilities: []string{"image"},
+		engine:       "media",
+		entry:        "z_image_turbo-Q4_K_M.gguf",
+		engineConfig: engineConfig,
+	})
+	svc.mu.Lock()
+	svc.assets[modelResp.GetLocalAssetId()].Status = runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE
+	svc.assets[modelResp.GetLocalAssetId()].Family = "z-image-turbo"
+	svc.mu.Unlock()
+	writeManagedAssetEntryFixture(t, modelsRoot, modelResp, "main-model")
+
+	vaeRecord := &runtimev1.LocalAssetRecord{
+		LocalAssetId:  "artifact_" + ulid.Make().String(),
+		AssetId:       "local-import/ae",
+		Kind:          runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE,
+		Engine:        "media",
+		Entry:         "ae.safetensors",
+		Family:        "flux2-vae",
+		ArtifactRoles: []string{"vae"},
+		Status:        runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
+		Source:        &runtimev1.LocalAssetSource{},
+	}
+	svc.assets[vaeRecord.GetLocalAssetId()] = vaeRecord
+	writeManagedAssetEntryFixture(t, modelsRoot, vaeRecord, "vae")
+
+	llmRecord := &runtimev1.LocalAssetRecord{
+		LocalAssetId: "artifact_" + ulid.Make().String(),
+		AssetId:      "qwen3_4b_companion",
+		Kind:         runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT,
+		Engine:       "llama",
+		Entry:        "Qwen3-4B-Q4_K_M.gguf",
+		Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
+		Source:       &runtimev1.LocalAssetSource{},
+	}
+	svc.assets[llmRecord.GetLocalAssetId()] = llmRecord
+	writeManagedAssetEntryFixture(t, modelsRoot, llmRecord, "llm")
+
+	_, _, _, err = svc.ResolveManagedMediaImageProfile(context.Background(), "media/z_image_turbo", map[string]any{
+		"profile_entries": []*runtimev1.LocalProfileEntryDescriptor{
+			{
+				EntryId:   "main-image",
+				Kind:      runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_ASSET,
+				AssetId:   "z_image_turbo",
+				AssetKind: runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE,
+				Engine:    "media",
+			},
+			{
+				EntryId:    "vae-slot",
+				Kind:       runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_ASSET,
+				Capability: "image.generate",
+				AssetId:    "local-import/ae",
+				AssetKind:  runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE,
+				Engine:     "media",
+				EngineSlot: "vae_path",
+			},
+			{
+				EntryId:    "llm-slot",
+				Kind:       runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_ASSET,
+				Capability: "image.generate",
+				AssetId:    "qwen3_4b_companion",
+				AssetKind:  runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT,
+				Engine:     "llama",
+				EngineSlot: "llm_path",
+			},
+		},
+	})
+	if err == nil {
+		t.Fatal("expected incompatible z-image vae family to fail closed")
+	}
+	assertGRPCReasonCode(t, err, "incompatible vae family", runtimev1.ReasonCode_AI_LOCAL_ASSET_SLOT_MISSING)
+	if !strings.Contains(err.Error(), "flux2-vae") || !strings.Contains(err.Error(), "z-image-turbo") {
+		t.Fatalf("expected incompatible family detail, got %v", err)
+	}
 }
 
 func TestResolveManagedAssetPathRejectsSymlinkedBaseDirOutsideModelsRoot(t *testing.T) {

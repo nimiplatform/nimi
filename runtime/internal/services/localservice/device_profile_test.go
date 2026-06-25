@@ -2,6 +2,7 @@ package localservice
 
 import (
 	"context"
+	"net"
 	"os/exec"
 	"runtime"
 	"strconv"
@@ -11,6 +12,59 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
+
+type testPortProbeListener struct {
+	addr net.Addr
+}
+
+func (l *testPortProbeListener) Accept() (net.Conn, error) {
+	return nil, net.ErrClosed
+}
+
+func (l *testPortProbeListener) Close() error {
+	return nil
+}
+
+func (l *testPortProbeListener) Addr() net.Addr {
+	return l.addr
+}
+
+func TestPortAvailableProbesRuntimeLoopbackOnly(t *testing.T) {
+	var gotNetwork string
+	var gotAddr string
+	available := portAvailableWithListener(1234, func(network string, addr string) (net.Listener, error) {
+		gotNetwork = network
+		gotAddr = addr
+		return &testPortProbeListener{
+			addr: &net.TCPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 1234},
+		}, nil
+	})
+
+	if !available {
+		t.Fatal("successful loopback probe should report port available")
+	}
+	if gotNetwork != "tcp" {
+		t.Fatalf("port probe network = %q, want tcp", gotNetwork)
+	}
+	if gotAddr != "127.0.0.1:1234" {
+		t.Fatalf("port probe address = %q, want 127.0.0.1:1234", gotAddr)
+	}
+}
+
+func TestPortAvailableFailsClosedWhenRuntimeLoopbackPortIsOccupied(t *testing.T) {
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Skipf("loopback test listener unavailable: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = ln.Close()
+	})
+	port := ln.Addr().(*net.TCPAddr).Port
+
+	if portAvailable(port) {
+		t.Fatalf("occupied loopback port %d should be unavailable", port)
+	}
+}
 
 func TestProbePythonProfileSkipsWindowsStoreAlias(t *testing.T) {
 	originalGOOS := localRuntimeGOOS

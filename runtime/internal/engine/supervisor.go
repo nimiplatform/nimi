@@ -7,6 +7,7 @@ import (
 	"math/rand/v2"
 	"os"
 	"os/exec"
+	"sort"
 	"strings"
 	"sync"
 	"syscall"
@@ -242,15 +243,7 @@ func (s *Supervisor) spawn(ctx context.Context, epoch uint64) error {
 	}
 	setSupervisorProcessGroup(cmd)
 	if len(s.cfg.CommandEnv) > 0 {
-		env := os.Environ()
-		for key, value := range s.cfg.CommandEnv {
-			trimmedKey := strings.TrimSpace(key)
-			if trimmedKey == "" {
-				continue
-			}
-			env = append(env, trimmedKey+"="+value)
-		}
-		cmd.Env = env
+		cmd.Env = mergeSupervisorCommandEnv(os.Environ(), s.cfg.CommandEnv)
 	}
 
 	stdoutPipe, err := cmd.StdoutPipe()
@@ -392,6 +385,45 @@ func (s *Supervisor) spawn(ctx context.Context, epoch uint64) error {
 	go s.monitor(runCtx, epoch)
 
 	return nil
+}
+
+func mergeSupervisorCommandEnv(base []string, overrides map[string]string) []string {
+	env := append([]string(nil), base...)
+	if len(overrides) == 0 {
+		return env
+	}
+	keys := make([]string, 0, len(overrides))
+	for key := range overrides {
+		trimmedKey := strings.TrimSpace(key)
+		if trimmedKey != "" {
+			keys = append(keys, trimmedKey)
+		}
+	}
+	sort.Strings(keys)
+	for _, key := range keys {
+		env = upsertSupervisorCommandEnvValue(env, key, overrides[key])
+	}
+	return env
+}
+
+func upsertSupervisorCommandEnvValue(env []string, key string, value string) []string {
+	prefix := strings.TrimSpace(key) + "="
+	for index, entry := range env {
+		name, _, ok := strings.Cut(entry, "=")
+		if !ok || !supervisorEnvKeyEqual(name, key) {
+			continue
+		}
+		env[index] = prefix + value
+		return env
+	}
+	return append(env, prefix+value)
+}
+
+func supervisorEnvKeyEqual(left string, right string) bool {
+	if currentGOOS() == "windows" {
+		return strings.EqualFold(strings.TrimSpace(left), strings.TrimSpace(right))
+	}
+	return strings.TrimSpace(left) == strings.TrimSpace(right)
 }
 
 func restartJitterCap(delay time.Duration) time.Duration {

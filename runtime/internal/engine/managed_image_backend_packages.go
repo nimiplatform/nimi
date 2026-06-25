@@ -44,22 +44,23 @@ const (
 )
 
 type managedImageBackendPackageSpec struct {
-	BackendName          string
-	PackageSource        managedImageBackendPackageSource
-	OS                   string
-	Arch                 string
-	GPUVendor            string
-	InstallDirName       string
-	PackageFormat        managedImageBackendPackageFormat
-	ImageRef             string
-	OCILayerDigest       string
-	ArchiveURL           string
-	ArchiveSHA256        string
-	ExecutableCandidates []string
-	LaunchMode           managedImageBackendLaunchMode
-	WrapperDriver        string
-	Supported            bool
-	Detail               string
+	BackendName            string
+	PackageSource          managedImageBackendPackageSource
+	OS                     string
+	Arch                   string
+	GPUVendor              string
+	InstallDirName         string
+	PackageFormat          managedImageBackendPackageFormat
+	ImageRef               string
+	OCILayerDigest         string
+	ArchiveURL             string
+	ArchiveSHA256          string
+	ExecutableCandidates   []string
+	SupportedModelFamilies []string
+	LaunchMode             managedImageBackendLaunchMode
+	WrapperDriver          string
+	Supported              bool
+	Detail                 string
 }
 
 type managedImageBackendPackagesDocument struct {
@@ -72,19 +73,20 @@ type managedImageBackendPackageEntry struct {
 		Arch      string `yaml:"arch"`
 		GPUVendor string `yaml:"gpu_vendor"`
 	} `yaml:"host_match"`
-	BackendFamily        string   `yaml:"backend_family"`
-	PackageSource        string   `yaml:"package_source"`
-	PackageFormat        string   `yaml:"package_format"`
-	InstallDirName       string   `yaml:"install_dir_name"`
-	ImageRef             string   `yaml:"image_ref"`
-	OCILayerDigest       string   `yaml:"oci_layer_digest"`
-	ArchiveURL           string   `yaml:"archive_url"`
-	ArchiveSHA256        string   `yaml:"archive_sha256"`
-	ExecutableCandidates []string `yaml:"executable_candidates"`
-	LaunchMode           string   `yaml:"launch_mode"`
-	WrapperDriver        string   `yaml:"wrapper_driver"`
-	ProductState         string   `yaml:"product_state"`
-	Detail               string   `yaml:"detail"`
+	BackendFamily          string   `yaml:"backend_family"`
+	PackageSource          string   `yaml:"package_source"`
+	PackageFormat          string   `yaml:"package_format"`
+	InstallDirName         string   `yaml:"install_dir_name"`
+	ImageRef               string   `yaml:"image_ref"`
+	OCILayerDigest         string   `yaml:"oci_layer_digest"`
+	ArchiveURL             string   `yaml:"archive_url"`
+	ArchiveSHA256          string   `yaml:"archive_sha256"`
+	ExecutableCandidates   []string `yaml:"executable_candidates"`
+	SupportedModelFamilies []string `yaml:"supported_model_families"`
+	LaunchMode             string   `yaml:"launch_mode"`
+	WrapperDriver          string   `yaml:"wrapper_driver"`
+	ProductState           string   `yaml:"product_state"`
+	Detail                 string   `yaml:"detail"`
 }
 
 func resolveManagedImageBackendPackageSpecForCurrentHost(backendName string) (managedImageBackendPackageSpec, bool) {
@@ -176,22 +178,23 @@ func loadManagedImageBackendPackageSpecsFromAuthority() ([]managedImageBackendPa
 	specs := make([]managedImageBackendPackageSpec, 0, len(doc.Entries))
 	for _, entry := range doc.Entries {
 		spec := managedImageBackendPackageSpec{
-			BackendName:          strings.TrimSpace(entry.BackendFamily),
-			PackageSource:        normalizeManagedImageBackendPackageSource(entry.PackageSource),
-			OS:                   strings.ToLower(strings.TrimSpace(entry.HostMatch.OS)),
-			Arch:                 strings.ToLower(strings.TrimSpace(entry.HostMatch.Arch)),
-			GPUVendor:            strings.ToLower(strings.TrimSpace(entry.HostMatch.GPUVendor)),
-			InstallDirName:       strings.TrimSpace(entry.InstallDirName),
-			PackageFormat:        managedImageBackendPackageFormat(strings.TrimSpace(entry.PackageFormat)),
-			ImageRef:             strings.TrimSpace(entry.ImageRef),
-			OCILayerDigest:       strings.TrimSpace(entry.OCILayerDigest),
-			ArchiveURL:           strings.TrimSpace(entry.ArchiveURL),
-			ArchiveSHA256:        strings.TrimSpace(entry.ArchiveSHA256),
-			ExecutableCandidates: append([]string(nil), entry.ExecutableCandidates...),
-			LaunchMode:           managedImageBackendLaunchMode(strings.TrimSpace(entry.LaunchMode)),
-			WrapperDriver:        strings.TrimSpace(entry.WrapperDriver),
-			Supported:            strings.TrimSpace(entry.ProductState) == "supported",
-			Detail:               strings.TrimSpace(entry.Detail),
+			BackendName:            strings.TrimSpace(entry.BackendFamily),
+			PackageSource:          normalizeManagedImageBackendPackageSource(entry.PackageSource),
+			OS:                     strings.ToLower(strings.TrimSpace(entry.HostMatch.OS)),
+			Arch:                   strings.ToLower(strings.TrimSpace(entry.HostMatch.Arch)),
+			GPUVendor:              strings.ToLower(strings.TrimSpace(entry.HostMatch.GPUVendor)),
+			InstallDirName:         strings.TrimSpace(entry.InstallDirName),
+			PackageFormat:          managedImageBackendPackageFormat(strings.TrimSpace(entry.PackageFormat)),
+			ImageRef:               strings.TrimSpace(entry.ImageRef),
+			OCILayerDigest:         strings.TrimSpace(entry.OCILayerDigest),
+			ArchiveURL:             strings.TrimSpace(entry.ArchiveURL),
+			ArchiveSHA256:          strings.TrimSpace(entry.ArchiveSHA256),
+			ExecutableCandidates:   append([]string(nil), entry.ExecutableCandidates...),
+			SupportedModelFamilies: normalizeManagedImageBackendModelFamilies(entry.SupportedModelFamilies),
+			LaunchMode:             managedImageBackendLaunchMode(strings.TrimSpace(entry.LaunchMode)),
+			WrapperDriver:          strings.TrimSpace(entry.WrapperDriver),
+			Supported:              strings.TrimSpace(entry.ProductState) == "supported",
+			Detail:                 strings.TrimSpace(entry.Detail),
 		}
 		if err := validateManagedImageBackendPackageSpec(spec); err != nil {
 			return nil, err
@@ -227,6 +230,26 @@ func validateManagedImageBackendPackageSpec(spec managedImageBackendPackageSpec)
 		return fmt.Errorf("supported managed image backend package %q has unsupported package format %q", spec.BackendName, spec.PackageFormat)
 	}
 	return nil
+}
+
+func normalizeManagedImageBackendModelFamilies(values []string) []string {
+	if len(values) == 0 {
+		return nil
+	}
+	seen := map[string]struct{}{}
+	out := make([]string, 0, len(values))
+	for _, value := range values {
+		normalized := strings.ToLower(strings.TrimSpace(value))
+		if normalized == "" {
+			continue
+		}
+		if _, ok := seen[normalized]; ok {
+			continue
+		}
+		seen[normalized] = struct{}{}
+		out = append(out, normalized)
+	}
+	return out
 }
 
 func normalizeManagedImageBackendPackageSource(raw string) managedImageBackendPackageSource {

@@ -474,6 +474,46 @@ func TestSupervisorHealthFailuresDoNotConsumeCrashRestartCounter(t *testing.T) {
 	<-done
 }
 
+func TestMergeSupervisorCommandEnvUpsertsPathCaseInsensitivelyOnWindows(t *testing.T) {
+	if currentGOOS() != "windows" {
+		t.Skip("Windows PATH key matching is case-insensitive")
+	}
+
+	env := mergeSupervisorCommandEnv([]string{
+		"Path=C:\\Windows\\System32",
+		"FOO=bar",
+	}, map[string]string{
+		"PATH": "D:\\DataNimi\\dependencies\\accelerator-dependencies\\nvidia-cuda-user-space-runtime;C:\\Windows\\System32",
+	})
+
+	pathEntries := 0
+	for _, entry := range env {
+		name, _, ok := strings.Cut(entry, "=")
+		if ok && strings.EqualFold(name, "PATH") {
+			pathEntries++
+		}
+	}
+	if pathEntries != 1 {
+		t.Fatalf("expected one PATH entry after merge, got %d in %#v", pathEntries, env)
+	}
+	if got := supervisorEnvValue(env, "PATH"); !strings.HasPrefix(got, "D:\\DataNimi\\dependencies\\accelerator-dependencies\\nvidia-cuda-user-space-runtime") {
+		t.Fatalf("unexpected merged PATH: %q", got)
+	}
+}
+
+func supervisorEnvValue(env []string, key string) string {
+	for _, entry := range env {
+		name, value, ok := strings.Cut(entry, "=")
+		if !ok {
+			continue
+		}
+		if strings.EqualFold(name, key) {
+			return value
+		}
+	}
+	return ""
+}
+
 func TestSupervisorStreamsProcessOutputToLogger(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("supervisor process tests require unix shell scripts")

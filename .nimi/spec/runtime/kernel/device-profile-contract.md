@@ -79,7 +79,8 @@ Python 检测按以下顺序尝试：
 
 ## K-DEV-006 端口可用性探测
 
-端口空闲判定使用 `net.Listen("tcp", ":<port>")` 尝试绑定：
+端口空闲判定使用 Runtime managed engines 的本机 loopback 暴露面尝试绑定：
+`net.Listen("tcp", "127.0.0.1:<port>")`。
 
 - 绑定成功（立即释放）→ `available=true`
 - 绑定失败（`EADDRINUSE` 或其他）→ `available=false`

@@ -12,6 +12,8 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/managedimagebackend"
 )
 
+var managedImageBackendRunServer = managedimagebackend.RunServer
+
 func runManagedImageBackend(args []string) error {
 	if len(args) == 0 {
 		return fmt.Errorf("managed-image-backend subcommand is required")
@@ -30,6 +32,7 @@ func runManagedImageBackendServe(args []string) error {
 	listen := fs.String("listen", "", "managed image backend listen address")
 	driver := fs.String("driver", "", "managed image backend driver")
 	backendExecutable := fs.String("backend-executable", "", "managed image backend executable path")
+	cudaRuntimeDir := fs.String("cuda-runtime-dir", "", "managed image backend CUDA runtime directory")
 	workingDir := fs.String("working-dir", "", "managed image backend working directory")
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -49,10 +52,11 @@ func runManagedImageBackendServe(args []string) error {
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
-	err := managedimagebackend.RunServer(ctx, managedimagebackend.ServerConfig{
+	err := managedImageBackendRunServer(ctx, managedimagebackend.ServerConfig{
 		ListenAddress:     strings.TrimSpace(*listen),
 		Driver:            strings.TrimSpace(*driver),
 		BackendExecutable: strings.TrimSpace(*backendExecutable),
+		CUDARuntimeDir:    strings.TrimSpace(*cudaRuntimeDir),
 		WorkingDir:        strings.TrimSpace(*workingDir),
 	})
 	if err == nil || err == context.Canceled {

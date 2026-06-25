@@ -10,6 +10,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/oklog/ulid/v2"
+	"gopkg.in/yaml.v3"
 )
 
 func TestProfileRuntimeDescriptorRejectsForbiddenRuntimeEvidence(t *testing.T) {
@@ -86,6 +87,263 @@ func TestProfileRuntimeDescriptorFailsClosedOnBackendAndFamilyMismatch(t *testin
 	}
 	if !strings.Contains(err.Error(), "profile_model_family_mismatch") {
 		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestProfileRuntimeDescriptorAllowsIdeogram4NativeStableDiffusionFamily(t *testing.T) {
+	descriptor := testProfileRuntimeIdeogram4CompanionDescriptor()
+
+	if _, err := validateProfileRuntimeDescriptor(marshalProfileRuntimeDescriptor(t, descriptor)); err != nil {
+		t.Fatalf("expected native stable-diffusion.cpp descriptor to admit ideogram4 family: %v", err)
+	}
+
+	descriptor.CapabilitySlices[0].Execution.Backend = "diffusers"
+	_, err := validateProfileRuntimeDescriptor(marshalProfileRuntimeDescriptor(t, descriptor))
+	if err == nil {
+		t.Fatal("expected diffusers descriptor to reject ideogram4 family")
+	}
+	if !strings.Contains(err.Error(), "profile_model_family_mismatch") {
+		t.Fatalf("unexpected diffusers family error: %v", err)
+	}
+}
+
+func TestProfileRuntimeDescriptorRequiresFamilyCompanions(t *testing.T) {
+	zImage := testProfileRuntimeImageCompanionDescriptor()
+	zImage.CapabilitySlices[0].Model.Family = "z-image"
+	if _, err := validateProfileRuntimeDescriptor(marshalProfileRuntimeDescriptor(t, zImage)); err != nil {
+		t.Fatalf("expected z-image descriptor with llm and vae companions to validate: %v", err)
+	}
+
+	ideogram := zImage
+	ideogram.CapabilitySlices[0].Model.Family = "ideogram4"
+	if _, err := validateProfileRuntimeDescriptor(marshalProfileRuntimeDescriptor(t, ideogram)); err == nil ||
+		!strings.Contains(err.Error(), "descriptor.required_companion_slot_missing") {
+		t.Fatalf("expected ideogram4 without uncond companion to fail closed, got %v", err)
+	}
+
+	ideogram.AssetBindings = append(ideogram.AssetBindings, profileRuntimeDescriptorAssetBinding{
+		BindingID:        "uncond",
+		AssetRole:        "companion",
+		ComponentKind:    "image",
+		Source:           "huggingface",
+		ExpectedIdentity: "ideogram4_uncond",
+		ReadinessPolicy:  "required",
+		PreparedAssetID:  "local-ideogram4-uncond",
+		HuggingFace: &profileRuntimeDescriptorHFSource{
+			RepoID:       "ideogram-ai/ideogram-4-fp8",
+			Revision:     "main",
+			Entries:      []string{"unconditional_transformer/diffusion_pytorch_model.safetensors"},
+			AccessPolicy: "public",
+		},
+	})
+	ideogram.CapabilitySlices[0].OrderedCompanionOccurrences = append(
+		[]profileRuntimeDescriptorCompanionOccurrence{{
+			OccurrenceID:    "ideogram4-uncond",
+			Order:           0,
+			Role:            "uncond_diffusion_model",
+			EngineSlot:      "uncond_diffusion_model",
+			AssetBindingRef: "uncond",
+			Required:        true,
+		}},
+		ideogram.CapabilitySlices[0].OrderedCompanionOccurrences...,
+	)
+	for index := range ideogram.CapabilitySlices[0].OrderedCompanionOccurrences {
+		ideogram.CapabilitySlices[0].OrderedCompanionOccurrences[index].Order = index
+	}
+	if _, err := validateProfileRuntimeDescriptor(marshalProfileRuntimeDescriptor(t, ideogram)); err != nil {
+		t.Fatalf("expected ideogram4 descriptor with uncond, llm, and vae companions to validate: %v", err)
+	}
+}
+
+func TestProfileRuntimeImageFamilyCompanionContractFollowsSpec(t *testing.T) {
+	raw, err := os.ReadFile(filepath.Join("..", "..", "..", "..", ".nimi", "spec", "runtime", "kernel", "tables", "profile-image-family-companion-slots.yaml"))
+	if err != nil {
+		t.Fatalf("read image family companion spec: %v", err)
+	}
+	var spec struct {
+		Families map[string]struct {
+			RequiredCompanionSlots []struct {
+				Role          string `yaml:"role"`
+				EngineSlot    string `yaml:"engine_slot"`
+				ComponentKind string `yaml:"component_kind"`
+			} `yaml:"required_companion_slots"`
+		} `yaml:"families"`
+	}
+	if err := yaml.Unmarshal(raw, &spec); err != nil {
+		t.Fatalf("parse image family companion spec: %v", err)
+	}
+	if len(spec.Families) == 0 {
+		t.Fatal("image family companion spec must declare at least one family")
+	}
+	for family, contract := range spec.Families {
+		got := profileRuntimeRequiredImageCompanionSlots(family)
+		if len(got) != len(contract.RequiredCompanionSlots) {
+			t.Fatalf("%s required companion slot count mismatch: got=%+v want=%+v", family, got, contract.RequiredCompanionSlots)
+		}
+		for index, want := range contract.RequiredCompanionSlots {
+			if got[index].Role != want.Role ||
+				got[index].EngineSlot != want.EngineSlot ||
+				got[index].ComponentKind != want.ComponentKind ||
+				!got[index].Required {
+				t.Fatalf("%s companion slot %d mismatch: got=%+v want=%+v", family, index, got[index], want)
+			}
+		}
+	}
+}
+
+func TestProfileRuntimeDescriptorRejectsFamilyCompanionContractMismatch(t *testing.T) {
+	cases := []struct {
+		name   string
+		mutate func(*profileRuntimeDescriptor)
+	}{
+		{
+			name: "wrong role",
+			mutate: func(descriptor *profileRuntimeDescriptor) {
+				descriptor.CapabilitySlices[0].OrderedCompanionOccurrences[0].Role = "text_encoder"
+			},
+		},
+		{
+			name: "wrong component kind",
+			mutate: func(descriptor *profileRuntimeDescriptor) {
+				for index := range descriptor.AssetBindings {
+					if descriptor.AssetBindings[index].BindingID == "uncond" {
+						descriptor.AssetBindings[index].ComponentKind = "chat"
+					}
+				}
+			},
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			descriptor := testProfileRuntimeIdeogram4CompanionDescriptor()
+			tc.mutate(&descriptor)
+			_, err := validateProfileRuntimeDescriptor(marshalProfileRuntimeDescriptor(t, descriptor))
+			if err == nil || !strings.Contains(err.Error(), "descriptor.required_companion_slot_mismatch") {
+				t.Fatalf("expected family companion contract mismatch to fail closed, got %v", err)
+			}
+		})
+	}
+}
+
+func testProfileRuntimeIdeogram4CompanionDescriptor() profileRuntimeDescriptor {
+	descriptor := testProfileRuntimeImageCompanionDescriptor()
+	descriptor.DescriptorID = "descriptor:ideogram4-companions"
+	descriptor.ProfileRef = profileRuntimeDescriptorProfileRef{ProfileID: "profile:ideogram4", Version: "1"}
+	descriptor.SourceProfileDigest = "sha256:ideogram4"
+	descriptor.CapabilitySlices[0].Model.Family = "ideogram4"
+	descriptor.AssetBindings = append(descriptor.AssetBindings, profileRuntimeDescriptorAssetBinding{
+		BindingID:        "uncond",
+		AssetRole:        "companion",
+		ComponentKind:    "image",
+		Source:           "huggingface",
+		ExpectedIdentity: "ideogram4_uncond",
+		ReadinessPolicy:  "required",
+		PreparedAssetID:  "local-ideogram4-uncond",
+		HuggingFace: &profileRuntimeDescriptorHFSource{
+			RepoID:       "ideogram-ai/ideogram-4-fp8",
+			Revision:     "main",
+			Entries:      []string{"unconditional_transformer/diffusion_pytorch_model.safetensors"},
+			AccessPolicy: "public",
+		},
+	})
+	descriptor.CapabilitySlices[0].OrderedCompanionOccurrences = append(
+		[]profileRuntimeDescriptorCompanionOccurrence{{
+			OccurrenceID:    "ideogram4-uncond",
+			Order:           0,
+			Role:            "uncond_diffusion_model",
+			EngineSlot:      "uncond_diffusion_model",
+			AssetBindingRef: "uncond",
+			Required:        true,
+		}},
+		descriptor.CapabilitySlices[0].OrderedCompanionOccurrences...,
+	)
+	for index := range descriptor.CapabilitySlices[0].OrderedCompanionOccurrences {
+		descriptor.CapabilitySlices[0].OrderedCompanionOccurrences[index].Order = index
+	}
+	return descriptor
+}
+
+func TestProfileRuntimePrepareRequiresIdeogram4CapableNativePackageEvidence(t *testing.T) {
+	descriptor := testProfileRuntimeIdeogram4CompanionDescriptor()
+	descriptor.CapabilitySlices[0].RuntimeConsumerID = "stable-diffusion.cpp.cuda"
+	facts := testProfileRuntimeReadyFacts(descriptor)
+	facts.NativeBackendPackages[0].SelectedConsumers = []string{"stable-diffusion.cpp.cuda"}
+	facts.NativeBackendPackages[0].PackageSource = "canonical_runtime_wrapper"
+	facts.NativeBackendPackages[0].PackageFormat = "direct_archive"
+	facts.NativeBackendPackages[0].LaunchMode = "runtime_wrapper"
+	facts.NativeBackendPackages[0].SelectedSourceRecordID = "src_windows_runtime_wrapper"
+	facts.NativeBackendPackages[0].SupportedModelFamilies = nil
+
+	validated, err := validateProfileRuntimeDescriptor(marshalProfileRuntimeDescriptor(t, descriptor))
+	if err != nil {
+		t.Fatalf("validate descriptor: %v", err)
+	}
+	results, err := prepareProfileRuntimeDescriptorWithFacts(validated, facts)
+	if err != nil {
+		t.Fatalf("prepare descriptor: %v", err)
+	}
+	if results[0].Outcome != profileRuntimePrepareSetupRequiredNoLiveConfig ||
+		!profileRuntimeStringSliceContains(results[0].ReasonCodes, "native_backend_package_model_family_unsupported") {
+		t.Fatalf("ideogram4 without backend package feature evidence must fail closed, got %+v", results[0])
+	}
+
+	facts.NativeBackendPackages[0].SupportedModelFamilies = []string{"flux", "ideogram4", "sdxl"}
+	results, err = prepareProfileRuntimeDescriptorWithFacts(validated, facts)
+	if err != nil {
+		t.Fatalf("prepare descriptor with ideogram4-capable package: %v", err)
+	}
+	if results[0].Outcome != profileRuntimePrepareReady || results[0].MaterializationKey == "" {
+		t.Fatalf("ideogram4-capable native package facts must satisfy descriptor, got %+v", results[0])
+	}
+}
+
+func TestProfileRuntimePrepareNormalizesZImageFamilyAliasesForNativePackageSupport(t *testing.T) {
+	descriptor := testProfileRuntimeImageCompanionDescriptor()
+	descriptor.CapabilitySlices[0].Model.Family = "z_image_turbo"
+	facts := testProfileRuntimeReadyFacts(descriptor)
+	facts.NativeBackendPackages[0].SupportedModelFamilies = []string{"z-image-turbo"}
+
+	validated, err := validateProfileRuntimeDescriptor(marshalProfileRuntimeDescriptor(t, descriptor))
+	if err != nil {
+		t.Fatalf("validate z-image alias descriptor: %v", err)
+	}
+	results, err := prepareProfileRuntimeDescriptorWithFacts(validated, facts)
+	if err != nil {
+		t.Fatalf("prepare z-image alias descriptor: %v", err)
+	}
+	if len(results) != 1 || results[0].Outcome != profileRuntimePrepareReady {
+		t.Fatalf("z-image alias should match native package support, got %+v", results)
+	}
+	if profileRuntimeStringSliceContains(results[0].ReasonCodes, "native_backend_package_model_family_unsupported") {
+		t.Fatalf("z-image alias must not report unsupported package family: %+v", results[0])
+	}
+}
+
+func TestProfileRuntimePrepareRequiresZImageCapableNativePackageEvidence(t *testing.T) {
+	descriptor := testProfileRuntimeImageCompanionDescriptor()
+	facts := testProfileRuntimeReadyFacts(descriptor)
+	facts.NativeBackendPackages[0].SupportedModelFamilies = nil
+
+	validated, err := validateProfileRuntimeDescriptor(marshalProfileRuntimeDescriptor(t, descriptor))
+	if err != nil {
+		t.Fatalf("validate z-image descriptor: %v", err)
+	}
+	results, err := prepareProfileRuntimeDescriptorWithFacts(validated, facts)
+	if err != nil {
+		t.Fatalf("prepare z-image descriptor: %v", err)
+	}
+	if results[0].Outcome != profileRuntimePrepareSetupRequiredNoLiveConfig ||
+		!profileRuntimeStringSliceContains(results[0].ReasonCodes, "native_backend_package_model_family_unsupported") {
+		t.Fatalf("z-image without backend package family evidence must fail closed, got %+v", results[0])
+	}
+
+	facts.NativeBackendPackages[0].SupportedModelFamilies = []string{"z-image"}
+	results, err = prepareProfileRuntimeDescriptorWithFacts(validated, facts)
+	if err != nil {
+		t.Fatalf("prepare z-image descriptor with family evidence: %v", err)
+	}
+	if results[0].Outcome != profileRuntimePrepareReady || results[0].MaterializationKey == "" {
+		t.Fatalf("z-image-capable native package facts must satisfy descriptor, got %+v", results[0])
 	}
 }
 
@@ -410,8 +668,16 @@ func TestProfileRuntimeDescriptorKeepsSameMainAssetDistinctAcrossCompanionWorkfl
 	second.CapabilitySlices[0].SliceID = "slice:image-native-alt-companions"
 	second.CapabilitySlices[0].OrderedCompanionOccurrences = []profileRuntimeDescriptorCompanionOccurrence{
 		{
-			OccurrenceID:    "z-image-ae-alt",
+			OccurrenceID:    "qwen-text-encoder",
 			Order:           0,
+			Role:            "text_encoder",
+			EngineSlot:      "llm_path",
+			AssetBindingRef: "qwen",
+			Required:        true,
+		},
+		{
+			OccurrenceID:    "z-image-ae-alt",
+			Order:           1,
 			Role:            "vae",
 			EngineSlot:      "vae_path",
 			AssetBindingRef: "ae-alt",
@@ -420,6 +686,7 @@ func TestProfileRuntimeDescriptorKeepsSameMainAssetDistinctAcrossCompanionWorkfl
 	}
 	second.AssetBindings = []profileRuntimeDescriptorAssetBinding{
 		second.AssetBindings[0],
+		second.AssetBindings[2],
 		{
 			BindingID:        "ae-alt",
 			AssetRole:        "companion",

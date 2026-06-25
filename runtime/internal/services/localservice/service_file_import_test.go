@@ -2,6 +2,7 @@ package localservice
 
 import (
 	"context"
+	"encoding/binary"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -259,6 +260,213 @@ func TestImportLocalImageModelFileAcceptsZImageTensorSignatureWithoutSDVersionMe
 	if err != nil {
 		t.Fatalf("expected official-like z-image gguf import to succeed, got %v", err)
 	}
+}
+
+func TestImportLocalImageModelFileAcceptsIdeogram4TensorSignatureWithoutMetadata(t *testing.T) {
+	svc := newTestService(t)
+	setLocalRuntimePlatformForTest(t, "windows", "amd64")
+	setNvidiaGPUProbeForTest(t, true)
+
+	sourceDir := t.TempDir()
+	sourcePath := filepath.Join(sourceDir, "ideogram4-Q4_0.gguf")
+	if err := os.WriteFile(sourcePath, validIdeogram4ImageTestGGUFWithoutMetadata(), 0o644); err != nil {
+		t.Fatalf("write source model: %v", err)
+	}
+
+	resp, err := svc.ImportLocalAssetFile(context.Background(), &runtimev1.ImportLocalAssetFileRequest{
+		FilePath: sourcePath,
+		Kind:     runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE,
+		Engine:   "media",
+	})
+	if err != nil {
+		t.Fatalf("expected ideogram4 gguf image import to succeed, got %v", err)
+	}
+	if resp.GetAsset().GetKind() != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE {
+		t.Fatalf("kind mismatch: got=%s", resp.GetAsset().GetKind())
+	}
+	if got := resp.GetAsset().GetFamily(); got != "ideogram4" {
+		t.Fatalf("family mismatch: got=%q want=ideogram4", got)
+	}
+	if stringSliceContains(resp.GetAsset().GetArtifactRoles(), "uncond_diffusion_model") {
+		t.Fatalf("main ideogram4 model must not project as uncond companion: %#v", resp.GetAsset().GetArtifactRoles())
+	}
+}
+
+func TestImportLocalImageModelFileProjectsIdeogram4UncondCompanionRole(t *testing.T) {
+	svc := newTestService(t)
+	setLocalRuntimePlatformForTest(t, "windows", "amd64")
+	setNvidiaGPUProbeForTest(t, true)
+
+	sourceDir := t.TempDir()
+	sourcePath := filepath.Join(sourceDir, "ideogram4_uncond-Q4_0.gguf")
+	if err := os.WriteFile(sourcePath, validIdeogram4ImageTestGGUFWithoutMetadata(), 0o644); err != nil {
+		t.Fatalf("write source model: %v", err)
+	}
+
+	resp, err := svc.ImportLocalAssetFile(context.Background(), &runtimev1.ImportLocalAssetFileRequest{
+		FilePath: sourcePath,
+		Kind:     runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE,
+		Engine:   "media",
+	})
+	if err != nil {
+		t.Fatalf("expected ideogram4 uncond gguf import to succeed, got %v", err)
+	}
+	if got := resp.GetAsset().GetFamily(); got != "ideogram4" {
+		t.Fatalf("family mismatch: got=%q want=ideogram4", got)
+	}
+	if got := resp.GetAsset().GetArtifactRoles(); !stringSliceContains(got, "uncond_diffusion_model") {
+		t.Fatalf("uncond companion role missing: %#v", got)
+	}
+	if stringSliceContains(resp.GetAsset().GetArtifactRoles(), "text_encoder") ||
+		stringSliceContains(resp.GetAsset().GetArtifactRoles(), "vae") {
+		t.Fatalf("uncond companion must not project required main-model slots as artifact roles: %#v", resp.GetAsset().GetArtifactRoles())
+	}
+}
+
+func TestImportLocalPassiveVAEFileProjectsFlux2VAEFamilyFromTensorShape(t *testing.T) {
+	svc := newTestService(t)
+
+	sourceDir := t.TempDir()
+	sourcePath := filepath.Join(sourceDir, "ae.safetensors")
+	if err := os.WriteFile(sourcePath, safetensorsFixtureWithDecoderConvInChannels(32), 0o644); err != nil {
+		t.Fatalf("write source vae: %v", err)
+	}
+
+	resp, err := svc.ImportLocalAssetFile(context.Background(), &runtimev1.ImportLocalAssetFileRequest{
+		FilePath: sourcePath,
+		Kind:     runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE,
+		Engine:   "media",
+	})
+	if err != nil {
+		t.Fatalf("expected vae import to succeed, got %v", err)
+	}
+	if got := resp.GetAsset().GetFamily(); got != "flux2-vae" {
+		t.Fatalf("family mismatch: got=%q want=flux2-vae", got)
+	}
+	if got := resp.GetAsset().GetArtifactRoles(); !stringSliceContains(got, "vae") {
+		t.Fatalf("expected vae artifact role, got %#v", got)
+	}
+}
+
+func TestRestoreStateHealsImportedIdeogram4UncondProjection(t *testing.T) {
+	statePath := filepath.Join(t.TempDir(), "local-state.json")
+	modelsRoot := t.TempDir()
+	logicalModelID := "nimi/local-import-ideogram4-uncond-q4-0"
+	modelDir := runtimeManagedResolvedModelDir(modelsRoot, logicalModelID)
+	if err := os.MkdirAll(modelDir, 0o755); err != nil {
+		t.Fatalf("mkdir model dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(modelDir, "ideogram4_uncond-Q4_0.gguf"), validIdeogram4ImageTestGGUFWithoutMetadata(), 0o644); err != nil {
+		t.Fatalf("write ideogram4 uncond file: %v", err)
+	}
+	snapshot := localStateSnapshot{
+		SchemaVersion: localStateSchemaVersion,
+		Assets: []localStateAssetState{{
+			LocalAssetID:    "local-ideogram4-uncond",
+			AssetID:         "local-import/ideogram4_uncond-Q4_0",
+			Kind:            int32(runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE),
+			Engine:          "media",
+			Entry:           "ideogram4_uncond-Q4_0.gguf",
+			Files:           []string{"ideogram4_uncond-Q4_0.gguf"},
+			License:         "unknown",
+			SourceRepo:      "file://" + filepath.ToSlash(filepath.Join(modelDir, "asset.manifest.json")),
+			SourceRev:       "local",
+			Hashes:          map[string]string{"ideogram4_uncond-Q4_0.gguf": "sha256:" + validIdeogram4ImageTestGGUFWithoutMetadataHash()},
+			Status:          int32(runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED),
+			Capabilities:    []string{"image.generate"},
+			LogicalModelID:  logicalModelID,
+			Family:          "generic",
+			ArtifactRoles:   []string{"diffusion_transformer", "text_encoder", "vae"},
+			PreferredEngine: "media",
+		}},
+	}
+	if err := saveLocalStateSnapshot(statePath, snapshot); err != nil {
+		t.Fatalf("save state: %v", err)
+	}
+
+	restored, err := New(nil, nil, statePath, 0, modelsRoot)
+	if err != nil {
+		t.Fatalf("restore service: %v", err)
+	}
+	defer restored.Close()
+	asset := restored.assets["local-ideogram4-uncond"]
+	if asset == nil {
+		t.Fatal("restored asset missing")
+	}
+	if got := asset.GetFamily(); got != "ideogram4" {
+		t.Fatalf("family mismatch after restore: got=%q want=ideogram4", got)
+	}
+	if got := asset.GetArtifactRoles(); !stringSliceContains(got, "uncond_diffusion_model") {
+		t.Fatalf("uncond role missing after restore: %#v", got)
+	}
+	if got := asset.GetArtifactRoles(); stringSliceContains(got, "text_encoder") || stringSliceContains(got, "vae") {
+		t.Fatalf("restore must replace stale main-model slot roles on uncond companion: %#v", got)
+	}
+}
+
+func TestRestoreStateHealsImportedVAEProjectionFromTensorShape(t *testing.T) {
+	statePath := filepath.Join(t.TempDir(), "local-state.json")
+	modelsRoot := t.TempDir()
+	assetDir := runtimeManagedPassiveAssetDir(modelsRoot, "local-import/ae")
+	if err := os.MkdirAll(assetDir, 0o755); err != nil {
+		t.Fatalf("mkdir vae dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(assetDir, "ae.safetensors"), safetensorsFixtureWithDecoderConvInChannels(32), 0o644); err != nil {
+		t.Fatalf("write vae fixture: %v", err)
+	}
+	snapshot := localStateSnapshot{
+		SchemaVersion: localStateSchemaVersion,
+		Assets: []localStateAssetState{{
+			LocalAssetID:  "local-ae",
+			AssetID:       "local-import/ae",
+			Kind:          int32(runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE),
+			Engine:        "media",
+			Entry:         "ae.safetensors",
+			License:       "unknown",
+			SourceRepo:    "file://" + filepath.ToSlash(filepath.Join(assetDir, "asset.manifest.json")),
+			SourceRev:     "local",
+			Status:        int32(runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED),
+			Family:        "generic",
+			ArtifactRoles: nil,
+		}},
+	}
+	if err := saveLocalStateSnapshot(statePath, snapshot); err != nil {
+		t.Fatalf("save state: %v", err)
+	}
+
+	restored, err := New(nil, nil, statePath, 0, modelsRoot)
+	if err != nil {
+		t.Fatalf("restore service: %v", err)
+	}
+	defer restored.Close()
+	asset := restored.assets["local-ae"]
+	if asset == nil {
+		t.Fatal("restored vae missing")
+	}
+	if got := asset.GetFamily(); got != "flux2-vae" {
+		t.Fatalf("family mismatch after restore: got=%q want=flux2-vae", got)
+	}
+	if got := asset.GetArtifactRoles(); !stringSliceContains(got, "vae") {
+		t.Fatalf("expected restored vae role, got %#v", got)
+	}
+}
+
+func safetensorsFixtureWithDecoderConvInChannels(channels int) []byte {
+	header := map[string]any{
+		"first_stage_model.decoder.conv_in.weight": map[string]any{
+			"dtype":        "F32",
+			"shape":        []int{512, channels, 3, 3},
+			"data_offsets": []int{0, 0},
+		},
+	}
+	raw, err := json.Marshal(header)
+	if err != nil {
+		panic(err)
+	}
+	out := make([]byte, 8+len(raw))
+	binary.LittleEndian.PutUint64(out[:8], uint64(len(raw)))
+	copy(out[8:], raw)
+	return out
 }
 
 func TestImportLocalImageModelFileRejectsMissingRuntimeSupportedDiffusionIdentity(t *testing.T) {
@@ -610,5 +818,38 @@ func TestScanUnregisteredAssetsSuggestsEmbeddingKindForEmbeddingFilename(t *test
 	}
 	if got := item.GetDeclaration().GetEngine(); got != "llama" {
 		t.Fatalf("declaration engine mismatch: got=%q want=llama", got)
+	}
+}
+
+func TestScanUnregisteredAssetsSuggestsImageKindForIdeogram4GGUFSignature(t *testing.T) {
+	homeDir := t.TempDir()
+	t.Setenv("HOME", homeDir)
+	legacyModelsDir := filepath.Join(homeDir, ".nimi", "data", "models")
+	if err := os.MkdirAll(legacyModelsDir, 0o755); err != nil {
+		t.Fatalf("create legacy models dir: %v", err)
+	}
+	assetPath := filepath.Join(legacyModelsDir, "ideogram4_uncond-Q4_0.gguf")
+	if err := os.WriteFile(assetPath, validIdeogram4ImageTestGGUFWithoutMetadata(), 0o644); err != nil {
+		t.Fatalf("write legacy image asset: %v", err)
+	}
+
+	svc := newTestService(t)
+	svc.localModelsPath = legacyModelsDir
+	resp, err := svc.ScanUnregisteredAssets(context.Background(), &runtimev1.ScanUnregisteredAssetsRequest{})
+	if err != nil {
+		t.Fatalf("ScanUnregisteredAssets: %v", err)
+	}
+	if len(resp.GetItems()) != 1 {
+		t.Fatalf("expected one unregistered asset, got %d", len(resp.GetItems()))
+	}
+	item := resp.GetItems()[0]
+	if item.GetDeclaration() == nil {
+		t.Fatal("expected unregistered asset declaration")
+	}
+	if got := item.GetDeclaration().GetAssetKind(); got != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE {
+		t.Fatalf("declaration kind mismatch: got=%s want=%s", got, runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE)
+	}
+	if got := item.GetDeclaration().GetEngine(); got != "media" {
+		t.Fatalf("declaration engine mismatch: got=%q want=media", got)
 	}
 }

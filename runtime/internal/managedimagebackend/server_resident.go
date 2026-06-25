@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"regexp"
 	"runtime"
 	"strings"
@@ -20,6 +21,12 @@ import (
 
 var managedImageBackendGOOS = runtime.GOOS
 var stableDiffusionProgressPattern = regexp.MustCompile(`^\s*(\d+)\s*/\s*(\d+)\b.*s/it`)
+
+var stableDiffusionCPPCUDARequiredArtifacts = []string{
+	"cudart64_12.dll",
+	"cublas64_12.dll",
+	"cublasLt64_12.dll",
+}
 
 type managedImageCommand interface {
 	Start() error
@@ -128,18 +135,29 @@ func splitManagedImageLogToken(data []byte, atEOF bool) (advance int, token []by
 	return 0, nil, nil
 }
 
-func stableDiffusionCPPEnvironment(executablePath string, base []string) []string {
-	if managedImageBackendGOOS != "darwin" {
-		return nil
-	}
-	executableDir := strings.TrimSpace(path.Dir(strings.TrimSpace(executablePath)))
-	if executableDir == "" || executableDir == "." {
-		return nil
-	}
+func stableDiffusionCPPEnvironment(executablePath string, base []string, cudaRuntimeDir string) ([]string, error) {
 	env := append([]string(nil), base...)
-	env = upsertPathListEnv(env, "DYLD_LIBRARY_PATH", executableDir, ":")
-	env = upsertPathListEnv(env, "DYLD_FALLBACK_LIBRARY_PATH", executableDir, ":")
-	return env
+	mutated := false
+	if managedImageBackendGOOS == "darwin" {
+		executableDir := strings.TrimSpace(path.Dir(strings.TrimSpace(executablePath)))
+		if executableDir != "" && executableDir != "." {
+			env = upsertPathListEnv(env, "DYLD_LIBRARY_PATH", executableDir, ":")
+			env = upsertPathListEnv(env, "DYLD_FALLBACK_LIBRARY_PATH", executableDir, ":")
+			mutated = true
+		}
+	}
+	if managedImageBackendGOOS == "windows" && strings.TrimSpace(cudaRuntimeDir) != "" {
+		canonicalDir, err := validateStableDiffusionCPPCUDARuntimeDir(cudaRuntimeDir)
+		if err != nil {
+			return nil, err
+		}
+		env = upsertPathListEnv(env, "PATH", canonicalDir, string(os.PathListSeparator))
+		mutated = true
+	}
+	if !mutated {
+		return nil, nil
+	}
+	return env, nil
 }
 
 func upsertPathListEnv(env []string, key string, value string, separator string) []string {
@@ -150,10 +168,10 @@ func upsertPathListEnv(env []string, key string, value string, separator string)
 	}
 	prefix := trimmedKey + "="
 	for index, entry := range env {
-		if !strings.HasPrefix(entry, prefix) {
+		name, current, ok := strings.Cut(entry, "=")
+		if !ok || !managedImageEnvKeyEqual(name, trimmedKey) {
 			continue
 		}
-		current := strings.TrimSpace(strings.TrimPrefix(entry, prefix))
 		env[index] = prefix + prependPathListValue(current, trimmedValue, separator)
 		return env
 	}
@@ -173,11 +191,60 @@ func prependPathListValue(current string, prepend string, separator string) stri
 		separator = string(os.PathListSeparator)
 	}
 	for _, candidate := range strings.Split(trimmedCurrent, separator) {
-		if strings.TrimSpace(candidate) == trimmedPrepend {
+		if managedImagePathValueEqual(strings.TrimSpace(candidate), trimmedPrepend) {
 			return trimmedCurrent
 		}
 	}
 	return trimmedPrepend + separator + trimmedCurrent
+}
+
+func managedImageEnvKeyEqual(left string, right string) bool {
+	if managedImageBackendGOOS == "windows" {
+		return strings.EqualFold(strings.TrimSpace(left), strings.TrimSpace(right))
+	}
+	return strings.TrimSpace(left) == strings.TrimSpace(right)
+}
+
+func managedImagePathValueEqual(left string, right string) bool {
+	if managedImageBackendGOOS == "windows" {
+		return strings.EqualFold(strings.TrimSpace(left), strings.TrimSpace(right))
+	}
+	return strings.TrimSpace(left) == strings.TrimSpace(right)
+}
+
+func validateStableDiffusionCPPCUDARuntimeDir(rawDir string) (string, error) {
+	trimmed := strings.TrimSpace(rawDir)
+	if trimmed == "" {
+		return "", fmt.Errorf("managed image CUDA runtime dir is required")
+	}
+	canonicalDir, err := filepath.Abs(filepath.Clean(trimmed))
+	if err != nil {
+		return "", fmt.Errorf("canonicalize shared CUDA dependency path: %w", err)
+	}
+	for _, artifact := range stableDiffusionCPPCUDARequiredArtifacts {
+		if ok, err := stableDiffusionCPPArtifactExistsCaseInsensitive(canonicalDir, artifact); err != nil {
+			return "", fmt.Errorf("read shared CUDA dependency path: %w", err)
+		} else if !ok {
+			return "", fmt.Errorf("shared CUDA dependency DLL set is incomplete: missing %s", artifact)
+		}
+	}
+	return canonicalDir, nil
+}
+
+func stableDiffusionCPPArtifactExistsCaseInsensitive(root string, artifactName string) (bool, error) {
+	entries, err := os.ReadDir(root)
+	if err != nil {
+		return false, err
+	}
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		if strings.EqualFold(strings.TrimSpace(entry.Name()), strings.TrimSpace(artifactName)) {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 func (c *managedImageLogCapture) Append(line string) {
@@ -317,9 +384,15 @@ func (d *stableDiffusionCPPDriver) startResidentLocked(config stableDiffusionCPP
 		return nil, err
 	}
 	endpoint := fmt.Sprintf("http://127.0.0.1:%d", port)
-	startupArgs := stableDiffusionCPPResidentStartupArgs(config, port)
+	startupArgs, err := stableDiffusionCPPResidentStartupArgs(config, port)
+	if err != nil {
+		return nil, err
+	}
 	startupSummary := stableDiffusionCPPResidentStartupSummary(config)
-	env := stableDiffusionCPPEnvironment(d.serverExecutablePath, os.Environ())
+	env, err := stableDiffusionCPPEnvironment(d.serverExecutablePath, os.Environ(), d.cudaRuntimeDir)
+	if err != nil {
+		return nil, err
+	}
 	processCtx, cancel := context.WithCancel(context.Background())
 	command, stdoutPipe, stderrPipe, err := d.commandFactory(processCtx, d.serverExecutablePath, startupArgs, d.workingDir, env)
 	if err != nil {

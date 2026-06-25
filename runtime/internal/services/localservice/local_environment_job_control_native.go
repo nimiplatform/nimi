@@ -122,6 +122,7 @@ func (s *Service) executeNativeSDCPPEnvironmentDependencyJob(ctx context.Context
 			"package_source=" + strings.TrimSpace(status.PackageSource),
 			"package_format=" + strings.TrimSpace(status.PackageFormat),
 			"launch_mode=" + strings.TrimSpace(status.LaunchMode),
+			"supported_model_families=" + strings.Join(normalizeStringSlice(status.SupportedModelFamilies), ","),
 		},
 		VerifiedArtifacts: normalizeStringSlice(status.VerifiedArtifacts),
 		SelectedConsumers: []string{contract.Consumer},

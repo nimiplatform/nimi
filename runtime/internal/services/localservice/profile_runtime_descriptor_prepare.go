@@ -138,9 +138,30 @@ func profileRuntimeNativeImageBackendReadinessReasons(slice profileRuntimeDescri
 			fallback = []string{"native_backend_package_materialization_evidence_missing"}
 			continue
 		}
+		if !profileRuntimeNativeBackendPackageSupportsModelFamily(pkg, slice.Model.Family) {
+			fallback = []string{"native_backend_package_model_family_unsupported"}
+			continue
+		}
 		return nil
 	}
 	return fallback
+}
+
+func profileRuntimeNativeBackendPackageSupportsModelFamily(pkg profileRuntimeNativeBackendPackageFact, family string) bool {
+	normalizedFamily := normalizeProfileRuntimeImageModelFamily(family)
+	if normalizedFamily == "" {
+		return false
+	}
+	supportedFamilies := normalizeStringSlice(pkg.SupportedModelFamilies)
+	if len(supportedFamilies) == 0 {
+		return false
+	}
+	for _, supported := range supportedFamilies {
+		if normalizeProfileRuntimeImageModelFamily(supported) == normalizedFamily {
+			return true
+		}
+	}
+	return false
 }
 
 func profileRuntimeAssetBindingReadinessReasons(binding profileRuntimeDescriptorAssetBinding, facts profileRuntimePrepareFacts) []string {

@@ -26,6 +26,7 @@ values:
   - expected_integrity_mismatch
   - profile_backend_mismatch
   - profile_model_family_mismatch
+  - native_backend_package_model_family_unsupported
   - workflow_required_component_missing
   - workflow_backend_unsupported
   - unsupported
@@ -191,6 +192,12 @@ reason_codes:
     owner_ref: K-AIEXEC-008
     activation_state: unsupported
     audit_shape: descriptor_validation_blocking
+
+  - reason_code: native_backend_package_model_family_unsupported
+    owner_kind: dependency_family
+    owner_ref: native-engine-package.stablediffusion-ggml
+    activation_state: setup_required
+    audit_shape: dependency_blocking
 
   - reason_code: workflow_required_component_missing
     owner_kind: workflow_readiness

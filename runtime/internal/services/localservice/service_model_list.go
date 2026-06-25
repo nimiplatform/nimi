@@ -29,7 +29,7 @@ func (s *Service) ListLocalAssets(_ context.Context, req *runtimev1.ListLocalAss
 	models := make([]*runtimev1.LocalAssetRecord, 0, len(modelRows))
 	for _, model := range modelRows {
 		projected := cloneLocalAsset(model)
-		projected.Kind = effectiveAssetKind(projected.GetKind(), projected.GetCapabilities())
+		projected.Kind = listLocalAssetProjectedKind(projected)
 		if statusFilter != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNSPECIFIED && model.GetStatus() != statusFilter {
 			continue
 		}
@@ -76,6 +76,27 @@ func (s *Service) ListLocalAssets(_ context.Context, req *runtimev1.ListLocalAss
 		"has_next_page", strings.TrimSpace(next) != "",
 	)
 	return resp, nil
+}
+
+func listLocalAssetProjectedKind(asset *runtimev1.LocalAssetRecord) runtimev1.LocalAssetKind {
+	kind := effectiveAssetKind(asset.GetKind(), asset.GetCapabilities())
+	if kind == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE && localAssetHasArtifactRole(asset, "uncond_diffusion_model") {
+		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_AUXILIARY
+	}
+	return kind
+}
+
+func localAssetHasArtifactRole(asset *runtimev1.LocalAssetRecord, role string) bool {
+	target := strings.ToLower(strings.TrimSpace(role))
+	if target == "" {
+		return false
+	}
+	for _, candidate := range asset.GetArtifactRoles() {
+		if strings.ToLower(strings.TrimSpace(candidate)) == target {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *Service) ListVerifiedAssets(_ context.Context, req *runtimev1.ListVerifiedAssetsRequest) (*runtimev1.ListVerifiedAssetsResponse, error) {

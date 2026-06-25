@@ -103,6 +103,37 @@ func TestStableDiffusionMetadataIssueAcceptsZImageTensorSignatureWithoutVersionK
 	}
 }
 
+func TestStableDiffusionMetadataIssueAcceptsIdeogram4TensorSignatureWithoutMetadata(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "ideogram4.gguf")
+	payload := buildTestGGUF(t,
+		[]string{
+			"embed_image_indicator.weight",
+			"llm_cond_proj.weight",
+			"final_layer.adaln_modulation.weight",
+		},
+	)
+	if err := os.WriteFile(path, payload, 0o600); err != nil {
+		t.Fatalf("write gguf fixture: %v", err)
+	}
+
+	summary, err := InspectPath(path)
+	if err != nil {
+		t.Fatalf("InspectPath: %v", err)
+	}
+	if summary.KVCount != 0 {
+		t.Fatalf("kv_count = %d", summary.KVCount)
+	}
+	if got := StableDiffusionMetadataIssue(summary); got != "" {
+		t.Fatalf("unexpected stable diffusion metadata issue: %q", got)
+	}
+	if got, want := StableDiffusionTensorSignaturesPresent(summary), []string{"ideogram4:llm_cond_proj.weight"}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("tensor signatures = %#v want %#v", got, want)
+	}
+	if got := StableDiffusionDetectedFamily(summary); got != "ideogram4" {
+		t.Fatalf("detected family = %q", got)
+	}
+}
+
 func TestStableDiffusionDetectedFamilyFlux(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "flux.gguf")
 	payload := buildTestGGUF(t,

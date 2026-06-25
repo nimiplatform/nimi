@@ -17,12 +17,17 @@ type ServerConfig struct {
 	Driver            string
 	BackendExecutable string
 	WorkingDir        string
+	CUDARuntimeDir    string
 }
 
 type backendDriver interface {
 	LoadModel(loadModelState) (*LoadModelDiagnostics, error)
 	GenerateImage(context.Context, loadModelState, imageGenerateState, func(imageGenerateProgress) error) (*ImageGenerateDiagnostics, error)
 	Free(loadModelState) error
+}
+
+type backendShutdownDriver interface {
+	Shutdown() error
 }
 
 type loadModelState struct {
@@ -55,12 +60,27 @@ type imageGenerateProgress struct {
 type managedImageOptions struct {
 	Sampler            string
 	Scheduler          string
-	VAEPath            string
-	LLMPath            string
-	ClipLPath          string
-	T5XXLPath          string
+	Components         []managedImageComponent
 	DiffusionFA        *bool
 	OffloadParamsToCPU *bool
+}
+
+type managedImageComponent struct {
+	EngineSlot string `json:"engine_slot"`
+	Path       string `json:"path"`
+}
+
+func (options managedImageOptions) ComponentsBySlot() map[string]string {
+	components := make(map[string]string, len(options.Components))
+	for _, component := range options.Components {
+		slot := strings.TrimSpace(component.EngineSlot)
+		path := strings.TrimSpace(component.Path)
+		if slot == "" || path == "" {
+			continue
+		}
+		components[slot] = path
+	}
+	return components
 }
 
 type Server struct {
@@ -79,10 +99,15 @@ func RunServer(ctx context.Context, cfg ServerConfig) error {
 	return server.Serve(ctx, strings.TrimSpace(cfg.ListenAddress))
 }
 
-func (s *Server) Serve(ctx context.Context, listenAddress string) error {
+func (s *Server) Serve(ctx context.Context, listenAddress string) (returnErr error) {
 	if s == nil || s.driver == nil {
 		return fmt.Errorf("managed image backend driver is required")
 	}
+	defer func() {
+		if err := shutdownBackendDriver(s.driver); err != nil && returnErr == nil {
+			returnErr = fmt.Errorf("shutdown managed image backend driver: %w", err)
+		}
+	}()
 	if strings.TrimSpace(listenAddress) == "" {
 		return fmt.Errorf("managed image backend listen address is required")
 	}
@@ -116,6 +141,14 @@ func (s *Server) Serve(ctx context.Context, listenAddress string) error {
 	}
 }
 
+func shutdownBackendDriver(driver backendDriver) error {
+	shutdownDriver, ok := driver.(backendShutdownDriver)
+	if !ok {
+		return nil
+	}
+	return shutdownDriver.Shutdown()
+}
+
 func (s *Server) handleUnknownMethod(_ any, stream grpc.ServerStream) error {
 	method, _ := grpc.MethodFromServerStream(stream)
 	switch method {
@@ -141,13 +174,10 @@ func (s *Server) handleLoadModel(stream grpc.ServerStream) error {
 	}
 	log.Printf("managed image backend load request model_path=%s options=%s threads=%d cfg_scale=%g",
 		strings.TrimSpace(state.ModelPath),
-		fmt.Sprintf("sampler=%s scheduler=%s has_vae=%t has_llm=%t has_clip_l=%t has_t5xxl=%t diffusion_fa=%t offload_to_cpu=%t",
+		fmt.Sprintf("sampler=%s scheduler=%s components=%d diffusion_fa=%t offload_to_cpu=%t",
 			strings.TrimSpace(state.Options.Sampler),
 			strings.TrimSpace(state.Options.Scheduler),
-			strings.TrimSpace(state.Options.VAEPath) != "",
-			strings.TrimSpace(state.Options.LLMPath) != "",
-			strings.TrimSpace(state.Options.ClipLPath) != "",
-			strings.TrimSpace(state.Options.T5XXLPath) != "",
+			len(state.Options.ComponentsBySlot()),
 			state.Options.DiffusionFA != nil && *state.Options.DiffusionFA,
 			state.Options.OffloadParamsToCPU != nil && *state.Options.OffloadParamsToCPU,
 		),

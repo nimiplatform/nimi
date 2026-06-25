@@ -83,7 +83,7 @@ func (m *Manager) EnsureManagedImageBackendDependency(ctx context.Context, cfg *
 		}
 	}
 	materializedStartedAt := time.Now()
-	resolved, err := ensureManagedImageBackendMaterialized(ctx, backendsPath, sharedDependenciesPath, normalized)
+	resolved, err := ensureManagedImageBackendMaterializedBeforeInstall(ctx, backendsPath, sharedDependenciesPath, normalized, m.stopManagedImageBackend)
 	if err != nil {
 		return ManagedImageBackendDependencyStatus{}, err
 	}

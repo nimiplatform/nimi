@@ -45,6 +45,42 @@ func (f *fakeBackendDriver) Free(state loadModelState) error {
 	return nil
 }
 
+type shutdownTrackingBackendDriver struct {
+	fakeBackendDriver
+	shutdownCalled chan struct{}
+}
+
+func (f *shutdownTrackingBackendDriver) Shutdown() error {
+	close(f.shutdownCalled)
+	return nil
+}
+
+func TestServerServeShutsDownBackendDriverOnContextCancel(t *testing.T) {
+	driver := &shutdownTrackingBackendDriver{shutdownCalled: make(chan struct{})}
+	server := &Server{driver: driver}
+	ctx, cancel := context.WithCancel(context.Background())
+	errCh := make(chan error, 1)
+
+	go func() {
+		errCh <- server.Serve(ctx, "127.0.0.1:0")
+	}()
+	cancel()
+
+	select {
+	case err := <-errCh:
+		if err == nil || err != context.Canceled {
+			t.Fatalf("Serve error = %v, want context.Canceled", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("Serve did not return after context cancellation")
+	}
+	select {
+	case <-driver.shutdownCalled:
+	case <-time.After(2 * time.Second):
+		t.Fatal("expected backend driver shutdown on server exit")
+	}
+}
+
 func TestServerLoadGenerateAndFree(t *testing.T) {
 	if err := ensureDescriptors(); err != nil {
 		t.Fatalf("ensureDescriptors: %v", err)
@@ -116,7 +152,7 @@ func TestServerLoadGenerateAndFree(t *testing.T) {
 	if len(driver.loads) != 1 {
 		t.Fatalf("expected one load, got %d", len(driver.loads))
 	}
-	if got := driver.loads[0].Options.VAEPath; got != vaePath {
+	if got := driver.loads[0].Options.ComponentsBySlot()["vae_path"]; got != vaePath {
 		t.Fatalf("unexpected resolved VAE path: %q", got)
 	}
 	if len(driver.generates) != 1 {
@@ -147,11 +183,14 @@ func TestStableDiffusionCPPEnvironmentAddsExecutableDirOnDarwin(t *testing.T) {
 		managedImageBackendGOOS = originalGOOS
 	})
 
-	env := stableDiffusionCPPEnvironment("/tmp/managed-image/sd-cli", []string{
+	env, err := stableDiffusionCPPEnvironment("/tmp/managed-image/sd-cli", []string{
 		"FOO=bar",
 		"DYLD_LIBRARY_PATH=/opt/lib",
 		"DYLD_FALLBACK_LIBRARY_PATH=/usr/local/lib",
-	})
+	}, "")
+	if err != nil {
+		t.Fatalf("stableDiffusionCPPEnvironment: %v", err)
+	}
 
 	if got := envValue(env, "DYLD_LIBRARY_PATH"); got != "/tmp/managed-image:/opt/lib" {
 		t.Fatalf("unexpected DYLD_LIBRARY_PATH: %q", got)
@@ -168,9 +207,12 @@ func TestStableDiffusionCPPEnvironmentAvoidsDuplicateExecutableDir(t *testing.T)
 		managedImageBackendGOOS = originalGOOS
 	})
 
-	env := stableDiffusionCPPEnvironment("/tmp/managed-image/sd-cli", []string{
+	env, err := stableDiffusionCPPEnvironment("/tmp/managed-image/sd-cli", []string{
 		"DYLD_LIBRARY_PATH=/tmp/managed-image:/opt/lib",
-	})
+	}, "")
+	if err != nil {
+		t.Fatalf("stableDiffusionCPPEnvironment: %v", err)
+	}
 
 	if got := envValue(env, "DYLD_LIBRARY_PATH"); got != "/tmp/managed-image:/opt/lib" {
 		t.Fatalf("unexpected deduplicated DYLD_LIBRARY_PATH: %q", got)
@@ -184,8 +226,60 @@ func TestStableDiffusionCPPEnvironmentSkipsNonDarwin(t *testing.T) {
 		managedImageBackendGOOS = originalGOOS
 	})
 
-	if env := stableDiffusionCPPEnvironment("/tmp/managed-image/sd-cli", []string{"FOO=bar"}); env != nil {
+	env, err := stableDiffusionCPPEnvironment("/tmp/managed-image/sd-cli", []string{"FOO=bar"}, "")
+	if err != nil {
+		t.Fatalf("stableDiffusionCPPEnvironment: %v", err)
+	}
+	if env != nil {
 		t.Fatalf("expected nil environment override on non-darwin host, got %#v", env)
+	}
+}
+
+func TestStableDiffusionCPPEnvironmentAddsManagedCUDAPathOnWindows(t *testing.T) {
+	originalGOOS := managedImageBackendGOOS
+	managedImageBackendGOOS = "windows"
+	t.Cleanup(func() {
+		managedImageBackendGOOS = originalGOOS
+	})
+
+	cudaRuntimeDir := writeManagedImageCUDARuntimeFixtures(t)
+	env, err := stableDiffusionCPPEnvironment(`C:\managed-image\sd-server.exe`, []string{
+		"Path=C:\\Windows\\System32",
+	}, cudaRuntimeDir)
+	if err != nil {
+		t.Fatalf("stableDiffusionCPPEnvironment: %v", err)
+	}
+
+	if got := envValue(env, "PATH"); !strings.HasPrefix(got, cudaRuntimeDir+string(os.PathListSeparator)) {
+		t.Fatalf("expected PATH to prepend CUDA runtime dir, got %q", got)
+	}
+	if strings.Count(envValue(env, "PATH"), cudaRuntimeDir) != 1 {
+		t.Fatalf("expected CUDA runtime dir once in PATH, got %q", envValue(env, "PATH"))
+	}
+}
+
+func TestStableDiffusionCPPEnvironmentRejectsIncompleteManagedCUDAPathOnWindows(t *testing.T) {
+	originalGOOS := managedImageBackendGOOS
+	managedImageBackendGOOS = "windows"
+	t.Cleanup(func() {
+		managedImageBackendGOOS = originalGOOS
+	})
+
+	cudaRuntimeDir := t.TempDir()
+	for _, artifact := range stableDiffusionCPPCUDARequiredArtifacts[:len(stableDiffusionCPPCUDARequiredArtifacts)-1] {
+		if err := os.WriteFile(filepath.Join(cudaRuntimeDir, artifact), []byte("dll"), 0o755); err != nil {
+			t.Fatalf("write %s: %v", artifact, err)
+		}
+	}
+
+	_, err := stableDiffusionCPPEnvironment(`C:\managed-image\sd-server.exe`, []string{
+		"PATH=C:\\Windows\\System32",
+	}, cudaRuntimeDir)
+	if err == nil {
+		t.Fatal("expected incomplete CUDA runtime dir to fail")
+	}
+	if !strings.Contains(err.Error(), "shared CUDA dependency DLL set is incomplete") {
+		t.Fatalf("unexpected CUDA runtime dir error: %v", err)
 	}
 }
 
@@ -214,11 +308,282 @@ func TestParseManagedImageOptionsSupportsBooleanAccelerationFlags(t *testing.T) 
 	}
 }
 
+func TestParseManagedImageOptionsSupportsIdeogram4Components(t *testing.T) {
+	modelsRoot := t.TempDir()
+	mainUncond := filepath.Join(modelsRoot, "ideogram4-uncond.gguf")
+	vae := filepath.Join(modelsRoot, "ae.safetensors")
+	llm := filepath.Join(modelsRoot, "Qwen3-VL-8B-Instruct-Q8_0.gguf")
+	for _, path := range []string{mainUncond, vae, llm} {
+		if err := os.WriteFile(path, []byte("model"), 0o600); err != nil {
+			t.Fatalf("write component fixture %s: %v", path, err)
+		}
+	}
+
+	options, err := parseManagedImageOptions(modelsRoot, []string{
+		"diffusion_model",
+		"uncond_diffusion_model:ideogram4-uncond.gguf",
+		"vae_path:ae.safetensors",
+		"llm_path:Qwen3-VL-8B-Instruct-Q8_0.gguf",
+		"sampler:euler",
+		"scheduler:discrete",
+	})
+	if err != nil {
+		t.Fatalf("parseManagedImageOptions: %v", err)
+	}
+
+	components := options.ComponentsBySlot()
+	if got := components["uncond_diffusion_model"]; got != mainUncond {
+		t.Fatalf("unexpected uncond_diffusion_model path: %q", got)
+	}
+	if got := components["vae_path"]; got != vae {
+		t.Fatalf("unexpected vae_path: %q", got)
+	}
+	if got := components["llm_path"]; got != llm {
+		t.Fatalf("unexpected llm_path: %q", got)
+	}
+}
+
+func TestParseManagedImageOptionsRejectsUnsupportedStableDiffusionSlot(t *testing.T) {
+	_, err := parseManagedImageOptions(t.TempDir(), []string{"unsupported_tensor_path:model.gguf"})
+	if err == nil {
+		t.Fatal("expected unsupported stable-diffusion slot to fail-close")
+	}
+	if !strings.Contains(err.Error(), `unsupported managed image option "unsupported_tensor_path"`) {
+		t.Fatalf("unexpected parse error: %v", err)
+	}
+}
+
+func TestParseManagedImageOptionsRejectsDuplicateComponentSlot(t *testing.T) {
+	modelsRoot := t.TempDir()
+	vaePath := filepath.Join(modelsRoot, "ae.safetensors")
+	if err := os.WriteFile(vaePath, []byte("vae"), 0o600); err != nil {
+		t.Fatalf("write vae fixture: %v", err)
+	}
+
+	_, err := parseManagedImageOptions(modelsRoot, []string{
+		"vae_path:ae.safetensors",
+		"vae_path:ae.safetensors",
+	})
+	if err == nil {
+		t.Fatal("expected duplicate component slot to fail-close")
+	}
+	if !strings.Contains(err.Error(), `duplicate managed image component slot "vae_path"`) {
+		t.Fatalf("unexpected duplicate slot error: %v", err)
+	}
+}
+
+func TestStableDiffusionCPPResidentStartupArgsIncludeUncondDiffusionModel(t *testing.T) {
+	modelPath, _ := writeManagedImageModelFixtures(t)
+	uncondPath := filepath.Join(t.TempDir(), "ideogram4-uncond.gguf")
+	if err := os.WriteFile(uncondPath, []byte("uncond"), 0o600); err != nil {
+		t.Fatalf("write uncond fixture: %v", err)
+	}
+
+	args, err := stableDiffusionCPPResidentStartupArgs(stableDiffusionCPPResidentConfig{
+		ModelPath: modelPath,
+		Components: []managedImageComponent{
+			{EngineSlot: "uncond_diffusion_model", Path: uncondPath},
+		},
+	}, 8188)
+	if err != nil {
+		t.Fatalf("startup args: %v", err)
+	}
+
+	if got := strings.Join(args, " "); !strings.Contains(got, "--uncond-diffusion-model "+uncondPath) {
+		t.Fatalf("expected uncond diffusion model arg, got %q", got)
+	}
+}
+
+func TestStableDiffusionCPPResidentStartupArgsRejectsInvalidComponents(t *testing.T) {
+	modelPath, _ := writeManagedImageModelFixtures(t)
+	cases := []struct {
+		name      string
+		component managedImageComponent
+		want      string
+	}{
+		{
+			name:      "unknown slot",
+			component: managedImageComponent{EngineSlot: "other_model", Path: "other.gguf"},
+			want:      `unsupported managed image component slot "other_model"`,
+		},
+		{
+			name:      "empty slot",
+			component: managedImageComponent{Path: "other.gguf"},
+			want:      "managed image component slot is required",
+		},
+		{
+			name:      "empty path",
+			component: managedImageComponent{EngineSlot: "vae_path"},
+			want:      `managed image component path is required for slot "vae_path"`,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := stableDiffusionCPPResidentStartupArgs(stableDiffusionCPPResidentConfig{
+				ModelPath:  modelPath,
+				Components: []managedImageComponent{tc.component},
+			}, 8188)
+			if err == nil {
+				t.Fatal("expected invalid component to fail startup args")
+			}
+			if !strings.Contains(err.Error(), tc.want) {
+				t.Fatalf("unexpected startup args error: %v", err)
+			}
+		})
+	}
+}
+
+func TestStableDiffusionCPPResidentStartupArgsIgnoresComponentOptionOrder(t *testing.T) {
+	modelPath, vaePath := writeManagedImageModelFixtures(t)
+	llmPath := filepath.Join(t.TempDir(), "Qwen3-VL-8B-Instruct-Q8_0.gguf")
+	if err := os.WriteFile(llmPath, []byte("llm"), 0o600); err != nil {
+		t.Fatalf("write llm fixture: %v", err)
+	}
+
+	first, err := stableDiffusionCPPResidentStartupArgs(stableDiffusionCPPResidentConfig{
+		ModelPath: modelPath,
+		Components: []managedImageComponent{
+			{EngineSlot: "llm_path", Path: llmPath},
+			{EngineSlot: "vae_path", Path: vaePath},
+		},
+	}, 8188)
+	if err != nil {
+		t.Fatalf("startup args first: %v", err)
+	}
+	second, err := stableDiffusionCPPResidentStartupArgs(stableDiffusionCPPResidentConfig{
+		ModelPath: modelPath,
+		Components: []managedImageComponent{
+			{EngineSlot: "vae_path", Path: vaePath},
+			{EngineSlot: "llm_path", Path: llmPath},
+		},
+	}, 8188)
+	if err != nil {
+		t.Fatalf("startup args second: %v", err)
+	}
+	if strings.Join(first, "\x00") != strings.Join(second, "\x00") {
+		t.Fatalf("expected deterministic startup args, got first=%v second=%v", first, second)
+	}
+}
+
+func TestStableDiffusionCPPResidentFingerprintIgnoresComponentOptionOrder(t *testing.T) {
+	modelPath, vaePath := writeManagedImageModelFixtures(t)
+	llmPath := filepath.Join(t.TempDir(), "Qwen3-VL-8B-Instruct-Q8_0.gguf")
+	if err := os.WriteFile(llmPath, []byte("llm"), 0o600); err != nil {
+		t.Fatalf("write llm fixture: %v", err)
+	}
+
+	first, err := stableDiffusionCPPResidentConfigFromLoad(loadModelState{
+		ModelPath: modelPath,
+		Options: managedImageOptions{
+			Components: []managedImageComponent{
+				{EngineSlot: "llm_path", Path: llmPath},
+				{EngineSlot: "vae_path", Path: vaePath},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("config first: %v", err)
+	}
+	second, err := stableDiffusionCPPResidentConfigFromLoad(loadModelState{
+		ModelPath: modelPath,
+		Options: managedImageOptions{
+			Components: []managedImageComponent{
+				{EngineSlot: "vae_path", Path: vaePath},
+				{EngineSlot: "llm_path", Path: llmPath},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("config second: %v", err)
+	}
+
+	if fmt.Sprintf("%#v", first.Components) != fmt.Sprintf("%#v", second.Components) {
+		t.Fatalf("expected canonical component ordering, got first=%#v second=%#v", first.Components, second.Components)
+	}
+	firstFingerprint, err := stableDiffusionCPPResidentFingerprint(first)
+	if err != nil {
+		t.Fatalf("fingerprint first: %v", err)
+	}
+	secondFingerprint, err := stableDiffusionCPPResidentFingerprint(second)
+	if err != nil {
+		t.Fatalf("fingerprint second: %v", err)
+	}
+	if firstFingerprint != secondFingerprint {
+		t.Fatalf("expected identical fingerprints for same component set, got %q and %q", firstFingerprint, secondFingerprint)
+	}
+}
+
+func TestStableDiffusionCPPResidentRejectsDuplicateComponentSlot(t *testing.T) {
+	modelPath, vaePath := writeManagedImageModelFixtures(t)
+	_, vaePath2 := writeManagedImageModelFixtures(t)
+
+	err := validateManagedImageLoadState(loadModelState{
+		ModelPath: modelPath,
+		Options: managedImageOptions{
+			Components: []managedImageComponent{
+				{EngineSlot: "vae_path", Path: vaePath},
+				{EngineSlot: "vae_path", Path: vaePath2},
+			},
+		},
+	})
+	if err == nil {
+		t.Fatal("expected duplicate component slot to fail-close")
+	}
+	if !strings.Contains(err.Error(), `duplicate managed image component slot "vae_path"`) {
+		t.Fatalf("unexpected duplicate slot error: %v", err)
+	}
+}
+
+func TestValidateManagedImageLoadStateRejectsInvalidComponentStates(t *testing.T) {
+	modelPath, vaePath := writeManagedImageModelFixtures(t)
+	missingPath := filepath.Join(t.TempDir(), "missing.safetensors")
+	cases := []struct {
+		name       string
+		components []managedImageComponent
+		want       string
+	}{
+		{
+			name:       "unknown slot",
+			components: []managedImageComponent{{EngineSlot: "other_model", Path: vaePath}},
+			want:       `unsupported managed image component slot "other_model"`,
+		},
+		{
+			name:       "empty slot",
+			components: []managedImageComponent{{Path: vaePath}},
+			want:       "managed image component slot is required",
+		},
+		{
+			name:       "empty path",
+			components: []managedImageComponent{{EngineSlot: "vae_path"}},
+			want:       `managed image component path is required for slot "vae_path"`,
+		},
+		{
+			name:       "missing file",
+			components: []managedImageComponent{{EngineSlot: "vae_path", Path: missingPath}},
+			want:       "managed image option path unavailable",
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := validateManagedImageLoadState(loadModelState{
+				ModelPath: modelPath,
+				Options:   managedImageOptions{Components: tc.components},
+			})
+			if err == nil {
+				t.Fatal("expected invalid component state to fail")
+			}
+			if !strings.Contains(err.Error(), tc.want) {
+				t.Fatalf("unexpected validation error: %v", err)
+			}
+		})
+	}
+}
+
 func TestStableDiffusionCPPDriverUsesResidentServerAndWritesArtifact(t *testing.T) {
 	cliPath, serverPath := writeManagedImageExecutableFixtures(t)
 	modelPath, vaePath := writeManagedImageModelFixtures(t)
 
-	driverAny, err := newStableDiffusionCPPDriver(cliPath, filepath.Dir(cliPath))
+	driverAny, err := newStableDiffusionCPPDriver(cliPath, filepath.Dir(cliPath), "")
 	if err != nil {
 		t.Fatalf("newStableDiffusionCPPDriver: %v", err)
 	}
@@ -248,7 +613,9 @@ func TestStableDiffusionCPPDriverUsesResidentServerAndWritesArtifact(t *testing.
 		Threads:   4,
 		CFGScale:  1,
 		Options: managedImageOptions{
-			VAEPath:     vaePath,
+			Components: []managedImageComponent{
+				{EngineSlot: "vae_path", Path: vaePath},
+			},
 			Sampler:     "euler",
 			Scheduler:   "discrete",
 			DiffusionFA: testBoolPtr(true),
@@ -290,11 +657,49 @@ func TestStableDiffusionCPPDriverUsesResidentServerAndWritesArtifact(t *testing.
 	}
 }
 
+func TestStableDiffusionCPPDriverPassesManagedCUDAPathToResidentCommand(t *testing.T) {
+	originalGOOS := managedImageBackendGOOS
+	managedImageBackendGOOS = "windows"
+	t.Cleanup(func() {
+		managedImageBackendGOOS = originalGOOS
+	})
+
+	cliPath, _ := writeManagedImageExecutableFixtures(t)
+	modelPath, _ := writeManagedImageModelFixtures(t)
+	cudaRuntimeDir := writeManagedImageCUDARuntimeFixtures(t)
+
+	driverAny, err := newBackendDriver(ServerConfig{
+		Driver:            "stable-diffusion.cpp",
+		BackendExecutable: cliPath,
+		WorkingDir:        filepath.Dir(cliPath),
+		CUDARuntimeDir:    cudaRuntimeDir,
+	})
+	if err != nil {
+		t.Fatalf("newBackendDriver: %v", err)
+	}
+	driver := driverAny.(*stableDiffusionCPPDriver)
+
+	commandState := &fakeManagedImageCommandFactoryState{}
+	driver.commandFactory = commandState.factory
+	driver.readinessProbe = func(context.Context, *http.Client, string) error { return nil }
+
+	if _, err := driver.LoadModel(loadModelState{ModelPath: modelPath}); err != nil {
+		t.Fatalf("LoadModel: %v", err)
+	}
+
+	if len(commandState.envs) != 1 {
+		t.Fatalf("expected one resident env capture, got %d", len(commandState.envs))
+	}
+	if got := envValue(commandState.envs[0], "PATH"); !strings.HasPrefix(got, cudaRuntimeDir+string(os.PathListSeparator)) {
+		t.Fatalf("expected resident PATH to prepend CUDA runtime dir, got %q", got)
+	}
+}
+
 func TestStableDiffusionCPPDriverCacheHitSkipsRestartForCFGAndSamplerChanges(t *testing.T) {
 	cliPath, _ := writeManagedImageExecutableFixtures(t)
 	modelPath, _ := writeManagedImageModelFixtures(t)
 
-	driverAny, err := newStableDiffusionCPPDriver(cliPath, filepath.Dir(cliPath))
+	driverAny, err := newStableDiffusionCPPDriver(cliPath, filepath.Dir(cliPath), "")
 	if err != nil {
 		t.Fatalf("newStableDiffusionCPPDriver: %v", err)
 	}
@@ -383,7 +788,7 @@ func TestStableDiffusionCPPDriverConfigChangeRestartsResident(t *testing.T) {
 	modelPath, vaePath := writeManagedImageModelFixtures(t)
 	_, vaePath2 := writeManagedImageModelFixtures(t)
 
-	driverAny, err := newStableDiffusionCPPDriver(cliPath, filepath.Dir(cliPath))
+	driverAny, err := newStableDiffusionCPPDriver(cliPath, filepath.Dir(cliPath), "")
 	if err != nil {
 		t.Fatalf("newStableDiffusionCPPDriver: %v", err)
 	}
@@ -398,14 +803,22 @@ func TestStableDiffusionCPPDriverConfigChangeRestartsResident(t *testing.T) {
 
 	if _, err := driver.LoadModel(loadModelState{
 		ModelPath: modelPath,
-		Options:   managedImageOptions{VAEPath: vaePath},
+		Options: managedImageOptions{
+			Components: []managedImageComponent{
+				{EngineSlot: "vae_path", Path: vaePath},
+			},
+		},
 	}); err != nil {
 		t.Fatalf("LoadModel(first): %v", err)
 	}
 	firstCommand := commandState.commands[0]
 	if _, err := driver.LoadModel(loadModelState{
 		ModelPath: modelPath,
-		Options:   managedImageOptions{VAEPath: vaePath2},
+		Options: managedImageOptions{
+			Components: []managedImageComponent{
+				{EngineSlot: "vae_path", Path: vaePath2},
+			},
+		},
 	}); err != nil {
 		t.Fatalf("LoadModel(second): %v", err)
 	}
@@ -422,7 +835,7 @@ func TestStableDiffusionCPPDriverFreeStopsResident(t *testing.T) {
 	cliPath, _ := writeManagedImageExecutableFixtures(t)
 	modelPath, _ := writeManagedImageModelFixtures(t)
 
-	driverAny, err := newStableDiffusionCPPDriver(cliPath, filepath.Dir(cliPath))
+	driverAny, err := newStableDiffusionCPPDriver(cliPath, filepath.Dir(cliPath), "")
 	if err != nil {
 		t.Fatalf("newStableDiffusionCPPDriver: %v", err)
 	}
@@ -444,6 +857,35 @@ func TestStableDiffusionCPPDriverFreeStopsResident(t *testing.T) {
 	}
 	if len(commandState.commands) != 1 || !commandState.commands[0].interrupted() {
 		t.Fatal("expected free to stop the resident command")
+	}
+}
+
+func TestStableDiffusionCPPDriverShutdownStopsResident(t *testing.T) {
+	cliPath, _ := writeManagedImageExecutableFixtures(t)
+	modelPath, _ := writeManagedImageModelFixtures(t)
+
+	driverAny, err := newStableDiffusionCPPDriver(cliPath, filepath.Dir(cliPath), "")
+	if err != nil {
+		t.Fatalf("newStableDiffusionCPPDriver: %v", err)
+	}
+	driver := driverAny.(*stableDiffusionCPPDriver)
+
+	commandState := &fakeManagedImageCommandFactoryState{}
+	driver.commandFactory = commandState.factory
+	driver.readinessProbe = func(context.Context, *http.Client, string) error { return nil }
+
+	if _, err := driver.LoadModel(loadModelState{ModelPath: modelPath}); err != nil {
+		t.Fatalf("LoadModel: %v", err)
+	}
+	shutdownDriver, ok := any(driver).(interface{ Shutdown() error })
+	if !ok {
+		t.Fatal("expected stableDiffusionCPPDriver to expose shutdown")
+	}
+	if err := shutdownDriver.Shutdown(); err != nil {
+		t.Fatalf("Shutdown: %v", err)
+	}
+	if len(commandState.commands) != 1 || !commandState.commands[0].interrupted() {
+		t.Fatal("expected shutdown to stop the resident command")
 	}
 }
 
@@ -484,6 +926,17 @@ func writeManagedImageModelFixtures(t *testing.T) (string, string) {
 	return modelPath, vaePath
 }
 
+func writeManagedImageCUDARuntimeFixtures(t *testing.T) string {
+	t.Helper()
+	dir := t.TempDir()
+	for _, artifact := range stableDiffusionCPPCUDARequiredArtifacts {
+		if err := os.WriteFile(filepath.Join(dir, artifact), []byte("dll"), 0o755); err != nil {
+			t.Fatalf("write CUDA fixture %s: %v", artifact, err)
+		}
+	}
+	return dir
+}
+
 func testBoolPtr(value bool) *bool {
 	return &value
 }
@@ -493,16 +946,18 @@ type fakeManagedImageCommandFactoryState struct {
 	startCount  int
 	executables []string
 	args        [][]string
+	envs        [][]string
 	commands    []*fakeManagedImageCommand
 }
 
-func (s *fakeManagedImageCommandFactoryState) factory(_ context.Context, executablePath string, args []string, _ string, _ []string) (managedImageCommand, io.ReadCloser, io.ReadCloser, error) {
+func (s *fakeManagedImageCommandFactoryState) factory(_ context.Context, executablePath string, args []string, _ string, env []string) (managedImageCommand, io.ReadCloser, io.ReadCloser, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	command := newFakeManagedImageCommand()
 	s.startCount++
 	s.executables = append(s.executables, executablePath)
 	s.args = append(s.args, append([]string(nil), args...))
+	s.envs = append(s.envs, append([]string(nil), env...))
 	s.commands = append(s.commands, command)
 	return command, io.NopCloser(strings.NewReader("")), io.NopCloser(strings.NewReader("")), nil
 }
@@ -548,10 +1003,13 @@ func (c *fakeManagedImageCommand) interrupted() bool {
 }
 
 func envValue(env []string, key string) string {
-	prefix := key + "="
 	for _, entry := range env {
-		if strings.HasPrefix(entry, prefix) {
-			return strings.TrimPrefix(entry, prefix)
+		name, value, ok := strings.Cut(entry, "=")
+		if !ok {
+			continue
+		}
+		if strings.EqualFold(name, key) {
+			return value
 		}
 	}
 	return ""

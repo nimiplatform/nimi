@@ -86,6 +86,12 @@ func validateProfileRuntimeDescriptor(raw []byte) (*profileRuntimeDescriptor, er
 		}
 		seenAssetBindingIDs[bindingID] = struct{}{}
 	}
+	assetBindingsByID := profileRuntimeAssetBindingsByID(descriptor.AssetBindings)
+	for index := range descriptor.CapabilitySlices {
+		if err := validateProfileRuntimeRequiredCompanionSlots(&descriptor.CapabilitySlices[index], assetBindingsByID); err != nil {
+			return nil, err
+		}
+	}
 	return &descriptor, nil
 }
 
@@ -132,21 +138,21 @@ func validateProfileRuntimeWorkflowContract(slice *profileRuntimeDescriptorCapab
 		if capability != "image.generate" {
 			return profileRuntimeDescriptorError("descriptor.capability_backend_mismatch", capability)
 		}
-		if family != "flux" && family != "sdxl" {
+		if !profileRuntimeWorkflowFamilyAllowed(family, "flux", "ideogram4", "sdxl", "z-image", "z-image-turbo") {
 			return profileRuntimeDescriptorError("profile_model_family_mismatch", family)
 		}
 	case "diffusers":
 		if capability != "image.generate" {
 			return profileRuntimeDescriptorError("descriptor.capability_backend_mismatch", capability)
 		}
-		if family != "flux" && family != "sdxl" {
+		if !profileRuntimeWorkflowFamilyAllowed(family, "flux", "sdxl") {
 			return profileRuntimeDescriptorError("profile_model_family_mismatch", family)
 		}
 	case "video.pipeline":
 		if capability != "video.generate" {
 			return profileRuntimeDescriptorError("workflow.video_backend_unavailable", capability)
 		}
-		if family != "video-diffusion" && family != "wan" {
+		if !profileRuntimeWorkflowFamilyAllowed(family, "video-diffusion", "wan") {
 			return profileRuntimeDescriptorError("profile_model_family_mismatch", family)
 		}
 	case "llama.cpp":
@@ -155,6 +161,69 @@ func validateProfileRuntimeWorkflowContract(slice *profileRuntimeDescriptorCapab
 		}
 	default:
 		return profileRuntimeDescriptorError("profile_backend_mismatch", backend)
+	}
+	return nil
+}
+
+func profileRuntimeWorkflowFamilyAllowed(family string, allowed ...string) bool {
+	normalized := normalizeProfileRuntimeImageModelFamily(family)
+	for _, candidate := range allowed {
+		if normalized == normalizeProfileRuntimeImageModelFamily(candidate) {
+			return true
+		}
+	}
+	return false
+}
+
+func validateProfileRuntimeRequiredCompanionSlots(
+	slice *profileRuntimeDescriptorCapability,
+	assetBindings map[string]profileRuntimeDescriptorAssetBinding,
+) error {
+	if strings.TrimSpace(slice.Execution.Backend) != "stablediffusion-ggml" ||
+		strings.TrimSpace(slice.Capability) != "image.generate" {
+		return nil
+	}
+	requiredSlots := profileRuntimeRequiredImageCompanionSlots(slice.Model.Family)
+	if len(requiredSlots) == 0 {
+		return nil
+	}
+	declaredRequiredSlots := map[string]profileRuntimeDescriptorCompanionOccurrence{}
+	for _, occurrence := range slice.OrderedCompanionOccurrences {
+		if !occurrence.Required {
+			continue
+		}
+		slot := strings.TrimSpace(occurrence.EngineSlot)
+		if slot != "" {
+			declaredRequiredSlots[slot] = occurrence
+		}
+	}
+	for _, required := range requiredSlots {
+		occurrence, ok := declaredRequiredSlots[required.EngineSlot]
+		if !ok {
+			return profileRuntimeDescriptorError(
+				"descriptor.required_companion_slot_missing",
+				normalizeProfileRuntimeImageModelFamily(slice.Model.Family)+":"+required.EngineSlot,
+			)
+		}
+		if !strings.EqualFold(strings.TrimSpace(occurrence.Role), required.Role) {
+			return profileRuntimeDescriptorError(
+				"descriptor.required_companion_slot_mismatch",
+				normalizeProfileRuntimeImageModelFamily(slice.Model.Family)+":"+required.EngineSlot+":role",
+			)
+		}
+		binding, ok := assetBindings[strings.TrimSpace(occurrence.AssetBindingRef)]
+		if !ok {
+			return profileRuntimeDescriptorError(
+				"descriptor.required_companion_binding_missing",
+				normalizeProfileRuntimeImageModelFamily(slice.Model.Family)+":"+required.EngineSlot,
+			)
+		}
+		if !strings.EqualFold(strings.TrimSpace(binding.ComponentKind), required.ComponentKind) {
+			return profileRuntimeDescriptorError(
+				"descriptor.required_companion_slot_mismatch",
+				normalizeProfileRuntimeImageModelFamily(slice.Model.Family)+":"+required.EngineSlot+":component_kind",
+			)
+		}
 	}
 	return nil
 }

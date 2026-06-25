@@ -282,6 +282,7 @@ type stableDiffusionTensorSignature struct {
 }
 
 var stableDiffusionTensorSignatures = []stableDiffusionTensorSignature{
+	{Family: "ideogram4", Suffix: "llm_cond_proj.weight"},
 	{Family: "z-image", Suffix: "cap_embedder.0.weight"},
 	{Family: "qwen-image", Suffix: "transformer_blocks.0.img_mod.1.weight"},
 	{Family: "ovis-image", Suffix: "double_blocks.0.img_mlp.gate_proj.weight"},

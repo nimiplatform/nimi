@@ -21,6 +21,14 @@ const (
 	managedMediaWorkflowProfileOverridesKey = "profile_overrides"
 )
 
+var managedMediaRuntimeResolvedComponentOptionKeys = map[string]struct{}{
+	"clip_l_path":            {},
+	"llm_path":               {},
+	"t5xxl_path":             {},
+	"uncond_diffusion_model": {},
+	"vae_path":               {},
+}
+
 type managedMediaProfileSlotAsset struct {
 	EngineSlot string
 	Asset      *runtimev1.LocalAssetRecord
@@ -139,7 +147,9 @@ func (s *Service) resolveProfileSlots(
 
 		// Slot-bound dependency: any non-main asset may bind an engineSlot,
 		// including chat assets used as text encoders (for example llm_path).
-		if assetKindMatchesCapability(entryKind, capability) {
+		// Some backends also require runnable-kind companion weights, such as
+		// Ideogram4's unconditional diffusion model.
+		if assetKindMatchesCapability(entryKind, capability) && !managedMediaSlotAllowsRunnableKind(slot, entryKind, capability) {
 			return managedMediaProfileSlotResolution{}, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_ASSET_SLOT_FORBIDDEN, grpcerr.ReasonOptions{
 				Message:    fmt.Sprintf("main asset entry %q kind %s cannot declare engineSlot %q", entryID, entryKind.String(), slot),
 				ActionHint: "remove_profile_slot",
@@ -184,7 +194,37 @@ func (s *Service) resolveProfileSlots(
 		})
 	}
 
+	if err := validateManagedMediaProfileSlotCompatibility(resolution); err != nil {
+		return managedMediaProfileSlotResolution{}, err
+	}
 	return resolution, nil
+}
+
+func validateManagedMediaProfileSlotCompatibility(resolution managedMediaProfileSlotResolution) error {
+	if resolution.MainAsset == nil {
+		return nil
+	}
+	mainFamily := strings.TrimSpace(resolution.MainAsset.GetFamily())
+	if mainFamily == "" {
+		return nil
+	}
+	for _, slotAsset := range resolution.SlotAssets {
+		if slotAsset.Asset == nil {
+			continue
+		}
+		slot := strings.TrimSpace(slotAsset.EngineSlot)
+		switch slot {
+		case "vae_path":
+			assetFamily := strings.TrimSpace(slotAsset.Asset.GetFamily())
+			if !managedImageVAEFamilyCompatibleWithImageFamily(mainFamily, assetFamily) {
+				return grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_ASSET_SLOT_MISSING, grpcerr.ReasonOptions{
+					Message:    fmt.Sprintf("slot %q asset family %q is not compatible with main image family %q", slot, assetFamily, mainFamily),
+					ActionHint: "select_compatible_profile_slot_asset",
+				})
+			}
+		}
+	}
+	return nil
 }
 
 func profileEntryInstalledAssetUsable(asset *runtimev1.LocalAssetRecord) bool {
@@ -212,6 +252,18 @@ func profileEntryInstalledMainAssetUsable(asset *runtimev1.LocalAssetRecord, all
 	}
 	return strings.TrimSpace(asset.GetLocalAssetId()) != "" &&
 		strings.TrimSpace(asset.GetLocalAssetId()) == strings.TrimSpace(allowUnhealthyMainLocalAssetID)
+}
+
+func managedMediaSlotAllowsRunnableKind(slot string, kind runtimev1.LocalAssetKind, capability string) bool {
+	if !assetKindMatchesCapability(kind, capability) {
+		return false
+	}
+	switch strings.ToLower(strings.TrimSpace(slot)) {
+	case "uncond_diffusion_model":
+		return kind == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE && normalizeLocalCapabilityToken(capability) == "image.generate"
+	default:
+		return false
+	}
 }
 
 // managedMediaProfileEntries extracts profile entries from the scenario
@@ -643,11 +695,25 @@ func validateManagedMediaProfileOverrides(overrides map[string]any) error {
 	}
 	for _, option := range valueAsStringSlice(overrides["options"]) {
 		key, _, hasKV := strings.Cut(option, ":")
-		if hasKV && strings.HasSuffix(strings.TrimSpace(key), "_path") {
+		if hasKV && managedMediaProfileOverrideOptionKeyForbidden(key) {
 			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
 	}
 	return nil
+}
+
+func managedMediaProfileOverrideOptionKeyForbidden(key string) bool {
+	normalizedKey := strings.ToLower(strings.TrimSpace(key))
+	if normalizedKey == "" {
+		return false
+	}
+	if normalizedKey == "diffusion_model" {
+		return true
+	}
+	if _, ok := managedMediaRuntimeResolvedComponentOptionKeys[normalizedKey]; ok {
+		return true
+	}
+	return strings.HasSuffix(normalizedKey, "_path")
 }
 
 func managedMediaProfileOverrideContainsForbiddenKey(value any) bool {
@@ -655,7 +721,7 @@ func managedMediaProfileOverrideContainsForbiddenKey(value any) bool {
 	case map[string]any:
 		for key, child := range typed {
 			normalizedKey := strings.ToLower(strings.TrimSpace(key))
-			if normalizedKey == "download_files" || normalizedKey == "model" || strings.HasSuffix(normalizedKey, "_path") {
+			if normalizedKey == "download_files" || normalizedKey == "model" || managedMediaProfileOverrideOptionKeyForbidden(normalizedKey) {
 				return true
 			}
 			if managedMediaProfileOverrideContainsForbiddenKey(child) {

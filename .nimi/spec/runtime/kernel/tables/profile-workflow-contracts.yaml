@@ -22,13 +22,20 @@ workflows:
     model:
       family_examples:
         - flux
+        - ideogram4
         - sdxl
+        - z-image
+        - z-image-turbo
     asset_topology:
       main: required
       components: []
       companions:
         - role: lora
           occurrence_policy: repeatable_ordered
+        - role: text_encoder
+          occurrence_policy: single
+        - role: uncond_diffusion_model
+          occurrence_policy: single
         - role: vae
           occurrence_policy: single
     source_shapes:
@@ -47,12 +54,14 @@ workflows:
     runtime_support_source:
       - local-image-supervised-backend-matrix.yaml
       - managed-image-backend-packages.yaml
+      - profile-image-family-companion-slots.yaml
     no_live_config_when:
       - required_asset_missing
       - required_companion_missing
       - backend_package_missing
       - profile_backend_mismatch
       - profile_model_family_mismatch
+      - native_backend_package_model_family_unsupported
 
   - workflow_id: diffusers-image-python-pipeline
     capability: image.generate

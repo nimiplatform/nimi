@@ -134,6 +134,10 @@ func ensureManagedImageBackendInstalled(_ context.Context, backendsPath string, 
 }
 
 func ensureManagedImageBackendMaterialized(ctx context.Context, backendsPath string, sharedDependenciesPath string, cfg *ManagedImageBackendConfig) (*ManagedImageBackendConfig, error) {
+	return ensureManagedImageBackendMaterializedBeforeInstall(ctx, backendsPath, sharedDependenciesPath, cfg, nil)
+}
+
+func ensureManagedImageBackendMaterializedBeforeInstall(ctx context.Context, backendsPath string, sharedDependenciesPath string, cfg *ManagedImageBackendConfig, beforeInstall func() error) (*ManagedImageBackendConfig, error) {
 	normalized := normalizeManagedImageBackendConfig(cfg)
 	if !normalized.Enabled() {
 		return normalized, nil
@@ -172,6 +176,11 @@ func ensureManagedImageBackendMaterialized(ctx context.Context, backendsPath str
 
 	launchCfg, err := discoverInstalledManagedImageBackendLaunchConfig(backendsPath, sharedDependenciesPath, normalized.BackendName, packageSpec, normalized.Address)
 	if err != nil {
+		if beforeInstall != nil {
+			if stopErr := beforeInstall(); stopErr != nil {
+				return nil, fmt.Errorf("stop managed image backend before package install: %w", stopErr)
+			}
+		}
 		if installErr := installManagedImageBackendPackage(ctx, backendsPath, normalized.BackendName, packageSpec, normalized.DownloadProgress); installErr != nil {
 			return nil, installErr
 		}
@@ -233,11 +242,12 @@ func resolveInstalledManagedImageBackendConfig(backendsPath string, sharedDepend
 
 func managedImageBackendDependencyStatusFromConfig(cfg *ManagedImageBackendConfig, spec managedImageBackendPackageSpec) ManagedImageBackendDependencyStatus {
 	status := ManagedImageBackendDependencyStatus{
-		BackendName:       strings.TrimSpace(cfg.BackendName),
-		PackageSource:     strings.TrimSpace(string(spec.PackageSource)),
-		PackageFormat:     strings.TrimSpace(string(spec.PackageFormat)),
-		LaunchMode:        strings.TrimSpace(string(spec.LaunchMode)),
-		VerifiedArtifacts: normalizeManagedImageBackendVerifiedArtifacts(cfg, spec),
+		BackendName:            strings.TrimSpace(cfg.BackendName),
+		PackageSource:          strings.TrimSpace(string(spec.PackageSource)),
+		PackageFormat:          strings.TrimSpace(string(spec.PackageFormat)),
+		LaunchMode:             strings.TrimSpace(string(spec.LaunchMode)),
+		VerifiedArtifacts:      normalizeManagedImageBackendVerifiedArtifacts(cfg, spec),
+		SupportedModelFamilies: append([]string(nil), spec.SupportedModelFamilies...),
 	}
 	if root := strings.TrimSpace(cfg.WorkingDir); root != "" {
 		status.CanonicalRoot = root
@@ -524,21 +534,25 @@ func discoverInstalledManagedImageBackendLaunchConfig(backendsPath string, share
 		if err != nil {
 			return managedImageBackendLaunchConfig{}, err
 		}
-		env, err := managedImageBackendRuntimeWrapperEnv(sharedDependenciesPath, spec)
+		cudaRuntimeDir, err := managedImageBackendRuntimeWrapperCUDARuntimeDir(sharedDependenciesPath, spec)
 		if err != nil {
 			return managedImageBackendLaunchConfig{}, err
 		}
+		args := []string{
+			"managed-image-backend",
+			"serve",
+			"--listen", strings.TrimSpace(address),
+			"--driver", strings.TrimSpace(spec.WrapperDriver),
+			"--backend-executable", backendExecutablePath,
+		}
+		if cudaRuntimeDir != "" {
+			args = append(args, "--cuda-runtime-dir", cudaRuntimeDir)
+		}
 		return managedImageBackendLaunchConfig{
-			Command: currentExecutable,
-			Args: []string{
-				"managed-image-backend",
-				"serve",
-				"--listen", strings.TrimSpace(address),
-				"--driver", strings.TrimSpace(spec.WrapperDriver),
-				"--backend-executable", backendExecutablePath,
-			},
+			Command:    currentExecutable,
+			Args:       args,
 			WorkingDir: workingDir,
-			Env:        env,
+			Env:        managedImageBackendRuntimeWrapperEnvFromCUDARuntimeDir(cudaRuntimeDir),
 		}, nil
 	default:
 		return managedImageBackendLaunchConfig{}, fmt.Errorf("unsupported managed image backend launch mode %q", spec.LaunchMode)
@@ -546,31 +560,46 @@ func discoverInstalledManagedImageBackendLaunchConfig(backendsPath string, share
 }
 
 func managedImageBackendRuntimeWrapperEnv(sharedDependenciesPath string, spec managedImageBackendPackageSpec) (map[string]string, error) {
+	cudaRuntimeDir, err := managedImageBackendRuntimeWrapperCUDARuntimeDir(sharedDependenciesPath, spec)
+	if err != nil {
+		return nil, err
+	}
+	return managedImageBackendRuntimeWrapperEnvFromCUDARuntimeDir(cudaRuntimeDir), nil
+}
+
+func managedImageBackendRuntimeWrapperEnvFromCUDARuntimeDir(cudaRuntimeDir string) map[string]string {
+	if strings.TrimSpace(cudaRuntimeDir) == "" {
+		return nil
+	}
+	return map[string]string{
+		"PATH": strings.TrimSpace(cudaRuntimeDir) + string(os.PathListSeparator) + os.Getenv("PATH"),
+	}
+}
+
+func managedImageBackendRuntimeWrapperCUDARuntimeDir(sharedDependenciesPath string, spec managedImageBackendPackageSpec) (string, error) {
 	if currentGOOS() != "windows" || spec.PackageSource != managedImageBackendPackageSourceCanonicalRuntimeWrapper {
-		return nil, nil
+		return "", nil
 	}
 	canonicalRoot, err := filepath.Abs(filepath.Clean(strings.TrimSpace(sharedDependenciesPath)))
 	if err != nil {
-		return nil, fmt.Errorf("canonicalize shared accelerator dependency root: %w", err)
+		return "", fmt.Errorf("canonicalize shared accelerator dependency root: %w", err)
 	}
 	canonicalDependencyDir, err := filepath.Abs(filepath.Clean(filepath.Join(canonicalRoot, NVIDIACUDAUserSpaceRuntimeDependencyID)))
 	if err != nil {
-		return nil, fmt.Errorf("canonicalize shared CUDA dependency path: %w", err)
+		return "", fmt.Errorf("canonicalize shared CUDA dependency path: %w", err)
 	}
 	rel, err := filepath.Rel(canonicalRoot, canonicalDependencyDir)
 	if err != nil || rel == "." || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
-		return nil, fmt.Errorf("shared CUDA dependency path must stay under shared accelerator dependency root")
+		return "", fmt.Errorf("shared CUDA dependency path must stay under shared accelerator dependency root")
 	}
 	for _, artifact := range nvidiaCUDAUserSpaceRuntimeRequiredArtifacts {
 		if ok, err := artifactExistsCaseInsensitive(canonicalDependencyDir, artifact); err != nil {
-			return nil, fmt.Errorf("read shared CUDA dependency path: %w", err)
+			return "", fmt.Errorf("read shared CUDA dependency path: %w", err)
 		} else if !ok {
-			return nil, fmt.Errorf("shared CUDA dependency DLL set is incomplete: missing %s", artifact)
+			return "", fmt.Errorf("shared CUDA dependency DLL set is incomplete: missing %s", artifact)
 		}
 	}
-	return map[string]string{
-		"PATH": canonicalDependencyDir + string(os.PathListSeparator) + os.Getenv("PATH"),
-	}, nil
+	return canonicalDependencyDir, nil
 }
 
 func discoverInstalledManagedImageBackendExecutablePath(backendsPath string, backendName string, spec managedImageBackendPackageSpec) (string, string, error) {
@@ -597,17 +626,24 @@ func discoverInstalledManagedImageBackendExecutablePath(backendsPath string, bac
 			return "", "", metadataErr
 		}
 		var score int
-		switch {
-		case trimmedInstallDir != "" && strings.EqualFold(dir, trimmedInstallDir):
-			score = 0
-		case metadata != nil && strings.EqualFold(strings.TrimSpace(metadata.Alias), trimmedBackend):
-			score = 1
-		case metadata != nil && strings.EqualFold(strings.TrimSpace(metadata.Name), trimmedInstallDir):
-			score = 2
-		case metadata != nil && strings.EqualFold(strings.TrimSpace(metadata.Name), trimmedBackend):
-			score = 3
-		default:
-			continue
+		if trimmedInstallDir != "" {
+			switch {
+			case strings.EqualFold(dir, trimmedInstallDir):
+				score = 0
+			case metadata != nil && strings.EqualFold(strings.TrimSpace(metadata.Name), trimmedInstallDir):
+				score = 1
+			default:
+				continue
+			}
+		} else {
+			switch {
+			case metadata != nil && strings.EqualFold(strings.TrimSpace(metadata.Alias), trimmedBackend):
+				score = 1
+			case metadata != nil && strings.EqualFold(strings.TrimSpace(metadata.Name), trimmedBackend):
+				score = 2
+			default:
+				continue
+			}
 		}
 		executablePath, _, execErr := discoverManagedImageBackendExecutablePathInDir(dirPath, spec.ExecutableCandidates)
 		if execErr != nil {

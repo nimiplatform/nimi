@@ -11,7 +11,9 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
+	"time"
 )
 
 func TestParseOCIImageReference(t *testing.T) {
@@ -336,14 +338,15 @@ func TestManagedImageBackendDependencyStatusUsesResolvedWrapperExecutableOnly(t 
 		},
 		WorkingDir: backendDir,
 	}, managedImageBackendPackageSpec{
-		BackendName:          "stablediffusion-ggml",
-		InstallDirName:       "sd-win-cuda12-x64-stablediffusion-ggml",
-		PackageSource:        managedImageBackendPackageSourceCanonicalRuntimeWrapper,
-		PackageFormat:        managedImageBackendPackageFormatDirectArchive,
-		LaunchMode:           managedImageBackendLaunchModeRuntimeWrapper,
-		WrapperDriver:        "stable-diffusion.cpp",
-		ExecutableCandidates: []string{"sd.exe", "sd-cli.exe"},
-		Supported:            true,
+		BackendName:            "stablediffusion-ggml",
+		InstallDirName:         "sd-win-cuda12-x64-stablediffusion-ggml",
+		PackageSource:          managedImageBackendPackageSourceCanonicalRuntimeWrapper,
+		PackageFormat:          managedImageBackendPackageFormatDirectArchive,
+		LaunchMode:             managedImageBackendLaunchModeRuntimeWrapper,
+		WrapperDriver:          "stable-diffusion.cpp",
+		ExecutableCandidates:   []string{"sd.exe", "sd-cli.exe"},
+		SupportedModelFamilies: []string{"flux", "ideogram4", "sdxl", "z-image", "z-image-turbo"},
+		Supported:              true,
 	})
 
 	if got := status.CanonicalRoot; got != backendDir {
@@ -357,11 +360,54 @@ func TestManagedImageBackendDependencyStatusUsesResolvedWrapperExecutableOnly(t 
 			t.Fatalf("verified artifacts must not include unresolved executable candidate sd.exe: %v", status.VerifiedArtifacts)
 		}
 	}
+	if !managedImageBackendStringSliceContains(status.SupportedModelFamilies, "ideogram4") {
+		t.Fatalf("dependency status must carry supported model families, got %v", status.SupportedModelFamilies)
+	}
+	if !managedImageBackendStringSliceContains(status.SupportedModelFamilies, "z-image-turbo") {
+		t.Fatalf("dependency status must carry z-image series support, got %v", status.SupportedModelFamilies)
+	}
+}
+
+func TestDiscoverInstalledManagedImageBackendRejectsAliasOnlyStaleRuntimeWrapperPackage(t *testing.T) {
+	backendsPath := t.TempDir()
+	staleBackendDir := filepath.Join(backendsPath, "sd-win-cuda12-x64-stablediffusion-ggml")
+	if err := os.MkdirAll(staleBackendDir, 0o755); err != nil {
+		t.Fatalf("mkdir stale backend dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(staleBackendDir, "sd.exe"), []byte("fake-stale-backend"), 0o755); err != nil {
+		t.Fatalf("write stale sd.exe: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(staleBackendDir, "metadata.json"), []byte(`{"name":"sd-win-cuda12-x64-stablediffusion-ggml","alias":"stablediffusion-ggml"}`), 0o644); err != nil {
+		t.Fatalf("write stale metadata.json: %v", err)
+	}
+
+	_, _, err := discoverInstalledManagedImageBackendExecutablePath(backendsPath, "stablediffusion-ggml", managedImageBackendPackageSpec{
+		BackendName:          "stablediffusion-ggml",
+		InstallDirName:       "sd-win-cuda12-x64-stablediffusion-ggml-8caa3f9",
+		LaunchMode:           managedImageBackendLaunchModeRuntimeWrapper,
+		WrapperDriver:        "stable-diffusion.cpp",
+		ExecutableCandidates: []string{"sd.exe"},
+	})
+	if err == nil {
+		t.Fatal("expected stale alias-only runtime wrapper package to be rejected")
+	}
+	if !strings.Contains(err.Error(), `managed image backend "stablediffusion-ggml" not installed`) {
+		t.Fatalf("unexpected stale package error: %v", err)
+	}
 }
 
 func managedImageBackendArtifactListContains(artifacts []string, want string) bool {
 	for _, artifact := range artifacts {
 		if artifact == want {
+			return true
+		}
+	}
+	return false
+}
+
+func managedImageBackendStringSliceContains(values []string, target string) bool {
+	for _, value := range values {
+		if value == target {
 			return true
 		}
 	}
@@ -419,6 +465,9 @@ func TestDiscoverInstalledManagedImageBackendLaunchConfigInjectsManagedCUDAPathP
 	if got := launchCfg.Env["PATH"]; !strings.HasPrefix(got, dependencyDir+string(os.PathListSeparator)) {
 		t.Fatalf("expected process PATH to prepend managed CUDA dependency dir, got %q", got)
 	}
+	if got := strings.Join(launchCfg.Args, " "); !strings.Contains(got, "--cuda-runtime-dir "+dependencyDir) {
+		t.Fatalf("expected wrapper args to carry CUDA runtime dir, got %q", got)
+	}
 	if got := os.Getenv("PATH"); got != `C:\Windows\System32` {
 		t.Fatalf("host PATH must not be mutated, got %q", got)
 	}
@@ -475,6 +524,82 @@ func TestEnsureManagedImageBackendRequiresMaterializerWithoutInstalling(t *testi
 	}
 }
 
+func TestEnsureManagedImageBackendDependencyStopsRunningBackendBeforeInstall(t *testing.T) {
+	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "test")
+	archive := makeFakeArchiveAsset(t, "payload.zip", "sd.exe", []byte("fake-windows-backend"))
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/sd.zip":
+			w.Header().Set("Content-Length", strconv.Itoa(len(archive)))
+			_, _ = w.Write(archive)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer func() { server.Close() }()
+
+	originalAuthorityYAML := managedImageBackendPackagesAuthorityYAML
+	originalAuthority := managedImageBackendPackageAuthority
+	managedImageBackendPackagesAuthorityYAML = []byte(fmt.Sprintf(`
+entries:
+  - host_match:
+      os: %s
+      arch: %s
+      gpu_vendor: ""
+    backend_family: stablediffusion-ggml
+    package_source: canonical_runtime_wrapper
+    package_format: direct_archive
+    install_dir_name: sd-test-runtime-wrapper
+    archive_url: %s
+    archive_sha256: %x
+    executable_candidates: [sd.exe]
+    supported_model_families: [ideogram4]
+    launch_mode: runtime_wrapper
+    wrapper_driver: stable-diffusion.cpp
+    product_state: supported
+`, currentGOOS(), currentGOARCH(), server.URL+"/sd.zip", sha256.Sum256(archive)))
+	managedImageBackendPackageAuthority = sync.OnceValues(loadManagedImageBackendPackageSpecsFromAuthority)
+	t.Cleanup(func() {
+		managedImageBackendPackagesAuthorityYAML = originalAuthorityYAML
+		managedImageBackendPackageAuthority = originalAuthority
+	})
+
+	mgr, err := NewManager(nil, testManagedRoots(t), nil)
+	if err != nil {
+		t.Fatalf("NewManager: %v", err)
+	}
+	mgr.managedImageBackendsPath = filepath.Join(t.TempDir(), "managed-image-backends")
+	mgr.sharedAcceleratorDependenciesPath = t.TempDir()
+	cudaRuntimeDir := filepath.Join(mgr.sharedAcceleratorDependenciesPath, NVIDIACUDAUserSpaceRuntimeDependencyID)
+	if err := os.MkdirAll(cudaRuntimeDir, 0o755); err != nil {
+		t.Fatalf("create fake CUDA runtime dir: %v", err)
+	}
+	for _, artifact := range nvidiaCUDAUserSpaceRuntimeRequiredArtifacts {
+		if err := os.WriteFile(filepath.Join(cudaRuntimeDir, artifact), []byte("dll"), 0o600); err != nil {
+			t.Fatalf("write fake CUDA artifact %s: %v", artifact, err)
+		}
+	}
+	running := NewSupervisor(EngineConfig{Kind: engineManagedImageBackend, ShutdownTimeout: 10}, nil, nil)
+	running.SetStateForTesting(StatusHealthy, time.Now())
+	mgr.SetSupervisorForTesting(engineManagedImageBackend, running)
+
+	status, err := mgr.EnsureManagedImageBackendDependency(context.Background(), &ManagedImageBackendConfig{
+		Mode:          ManagedImageBackendOfficial,
+		BackendName:   "stablediffusion-ggml",
+		PackageSource: string(managedImageBackendPackageSourceCanonicalRuntimeWrapper),
+		Address:       "127.0.0.1:50052",
+	})
+	if err != nil {
+		t.Fatalf("EnsureManagedImageBackendDependency: %v", err)
+	}
+	if status.CanonicalRoot == "" {
+		t.Fatalf("expected materialized backend status, got %#v", status)
+	}
+	if _, ok := mgr.supervisors[engineManagedImageBackend]; ok {
+		t.Fatal("expected managed image backend supervisor to be stopped before package install")
+	}
+}
+
 func TestResolveManagedImageBackendPackageSpecForHostWindowsNvidiaCUDA(t *testing.T) {
 	spec, ok := resolveManagedImageBackendPackageSpecForHost(
 		"stablediffusion-ggml",
@@ -500,6 +625,16 @@ func TestResolveManagedImageBackendPackageSpecForHostWindowsNvidiaCUDA(t *testin
 	}
 	if got := strings.TrimSpace(spec.ArchiveURL); got == "" {
 		t.Fatal("expected archive URL for Windows managed image backend package")
+	}
+	if !managedImageBackendStringSliceContains(spec.SupportedModelFamilies, "ideogram4") {
+		t.Fatalf("expected Windows managed image backend package to declare ideogram4 support, got %v", spec.SupportedModelFamilies)
+	}
+	if !managedImageBackendStringSliceContains(spec.SupportedModelFamilies, "z-image") ||
+		!managedImageBackendStringSliceContains(spec.SupportedModelFamilies, "z-image-turbo") {
+		t.Fatalf("expected Windows managed image backend package to declare z-image series support, got %v", spec.SupportedModelFamilies)
+	}
+	if !strings.Contains(spec.InstallDirName, "8caa3f9") {
+		t.Fatalf("expected release-qualified Windows install dir, got %q", spec.InstallDirName)
 	}
 }
 

@@ -69,13 +69,14 @@ type ManagedImageBackendConfig struct {
 }
 
 type ManagedImageBackendDependencyStatus struct {
-	BackendName       string
-	PackageSource     string
-	PackageFormat     string
-	LaunchMode        string
-	CanonicalRoot     string
-	VerifiedArtifacts []string
-	Detail            string
+	BackendName            string
+	PackageSource          string
+	PackageFormat          string
+	LaunchMode             string
+	CanonicalRoot          string
+	VerifiedArtifacts      []string
+	SupportedModelFamilies []string
+	Detail                 string
 }
 
 type EngineBinaryDependencyStatus struct {

@@ -58,7 +58,7 @@ func InferNativeProjection(modelID string, capabilities []string, files []string
 	projection := NativeProjection{
 		LogicalModelID:   normalizedModelID,
 		Family:           inferModelFamily(normalizedModelID),
-		ArtifactRoles:    inferArtifactRoles(normalizedCaps, normalizedFiles),
+		ArtifactRoles:    inferArtifactRoles(normalizedModelID, normalizedCaps, normalizedFiles),
 		PreferredEngine:  inferPreferredEngine(normalizedCaps),
 		FallbackEngines:  inferFallbackEngines(normalizedCaps),
 		BundleState:      bundleStateForModelStatus(status),
@@ -398,7 +398,16 @@ func normalizeStrings(values []string) []string {
 
 func inferModelFamily(modelID string) string {
 	lower := strings.ToLower(strings.TrimSpace(modelID))
+	normalized := strings.ReplaceAll(lower, "_", "-")
 	switch {
+	case strings.Contains(normalized, "ideogram4") || strings.Contains(normalized, "ideogram-4"):
+		return "ideogram4"
+	case strings.Contains(normalized, "z-image-turbo"):
+		return "z-image-turbo"
+	case strings.Contains(normalized, "z-image-base"):
+		return "z-image"
+	case strings.Contains(normalized, "z-image"):
+		return "z-image"
 	case strings.Contains(lower, "wan"):
 		return "wan"
 	case strings.Contains(lower, "flux"):
@@ -422,7 +431,10 @@ func inferModelFamily(modelID string) string {
 	}
 }
 
-func inferArtifactRoles(capabilities []string, files []string) []string {
+func inferArtifactRoles(modelID string, capabilities []string, files []string) []string {
+	if inferIdeogram4UncondArtifact(modelID, files) {
+		return []string{"uncond_diffusion_model"}
+	}
 	roles := make([]string, 0, 6)
 	seen := make(map[string]struct{}, 6)
 	add := func(role string) {
@@ -467,6 +479,22 @@ func inferArtifactRoles(capabilities []string, files []string) []string {
 
 	sort.Strings(roles)
 	return roles
+}
+
+func inferIdeogram4UncondArtifact(modelID string, files []string) bool {
+	candidates := append([]string{modelID}, files...)
+	hasIdeogram4 := false
+	hasUncond := false
+	for _, candidate := range candidates {
+		normalized := strings.ToLower(strings.ReplaceAll(strings.TrimSpace(candidate), "_", "-"))
+		if strings.Contains(normalized, "ideogram4") || strings.Contains(normalized, "ideogram-4") {
+			hasIdeogram4 = true
+		}
+		if strings.Contains(normalized, "uncond") {
+			hasUncond = true
+		}
+	}
+	return hasIdeogram4 && hasUncond
 }
 
 func inferPreferredEngine(capabilities []string) string {

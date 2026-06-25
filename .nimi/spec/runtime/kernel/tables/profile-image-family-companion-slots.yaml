@@ -1,0 +1,62 @@
+version: 1
+table_family: owner_matrix
+owner: runtime
+matrix_id: runtime_profile_image_family_companion_slots
+rows:
+  - family required companion slots are profile workflow contract inputs
+  - Ideogram4 requires an unconditional diffusion companion in addition to LLM and VAE
+  - Z-Image Base and Z-Image Turbo require LLM and FLUX.1 VAE only
+  - Ideogram4 requires the FLUX.2/Ideogram VAE companion
+  - runtime adapters translate engine_slot values into backend-specific flags
+families:
+  ideogram4:
+    aliases: []
+    required_companion_slots:
+      - role: uncond_diffusion_model
+        engine_slot: uncond_diffusion_model
+        label: Uncond diffusion
+        component_kind: image
+        asset_kind: image
+      - role: text_encoder
+        engine_slot: llm_path
+        label: LLM
+        component_kind: chat
+        asset_kind: chat
+      - role: vae
+        engine_slot: vae_path
+        label: VAE
+        component_kind: vae
+        asset_kind: vae
+        compatible_families: [flux2-vae]
+  z-image:
+    aliases:
+      - z-image-base
+      - z_image
+      - z_image_base
+    required_companion_slots:
+      - role: text_encoder
+        engine_slot: llm_path
+        label: LLM
+        component_kind: chat
+        asset_kind: chat
+      - role: vae
+        engine_slot: vae_path
+        label: VAE
+        component_kind: vae
+        asset_kind: vae
+        compatible_families: [flux1-vae]
+  z-image-turbo:
+    aliases:
+      - z_image_turbo
+    required_companion_slots:
+      - role: text_encoder
+        engine_slot: llm_path
+        label: LLM
+        component_kind: chat
+        asset_kind: chat
+      - role: vae
+        engine_slot: vae_path
+        label: VAE
+        component_kind: vae
+        asset_kind: vae
+        compatible_families: [flux1-vae]

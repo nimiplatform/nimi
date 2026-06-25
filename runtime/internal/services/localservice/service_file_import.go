@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/ggufmeta"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
 )
@@ -153,6 +154,9 @@ func copyDirRecursive(src, dst string) error {
 func normalizeAssetKindForPath(path string) runtimev1.LocalAssetKind {
 	lowerPath := strings.ToLower(strings.TrimSpace(path))
 	extension := strings.ToLower(filepath.Ext(strings.TrimSpace(path)))
+	if extension == ".gguf" && hasRuntimeSupportedDiffusionGGUFIdentity(path) {
+		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE
+	}
 	if strings.Contains(lowerPath, "embedding") || strings.Contains(lowerPath, "embed") {
 		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_EMBEDDING
 	}
@@ -162,6 +166,14 @@ func normalizeAssetKindForPath(path string) runtimev1.LocalAssetKind {
 	default:
 		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT
 	}
+}
+
+func hasRuntimeSupportedDiffusionGGUFIdentity(path string) bool {
+	summary, err := ggufmeta.InspectPath(path)
+	if err != nil {
+		return false
+	}
+	return ggufmeta.StableDiffusionMetadataIssue(summary) == ""
 }
 
 func defaultEngineForAssetKind(kind runtimev1.LocalAssetKind) string {
@@ -496,6 +508,14 @@ func (s *Service) importLocalPassiveAssetFile(
 		},
 		"integrity_mode": "local_unverified",
 		"hashes":         map[string]string{destFileName: "sha256:" + destFileHash},
+	}
+	if projection, ok := managedImagePassiveProjectionForAsset(kind, destFilePath); ok {
+		if strings.TrimSpace(projection.Family) != "" {
+			manifest["family"] = projection.Family
+		}
+		if len(projection.ArtifactRoles) > 0 {
+			manifest["artifact_roles"] = append([]string(nil), projection.ArtifactRoles...)
+		}
 	}
 	if engine != "" {
 		manifest["preferred_engine"] = engine

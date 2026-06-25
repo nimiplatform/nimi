@@ -220,6 +220,12 @@ func (s *Service) restoreState() error {
 		if healed := healMissingMmprojEngineConfig(modelsRoot, record, s.logger); healed {
 			healedSnapshot = true
 		}
+		if healed := healManagedImageNativeProjection(modelsRoot, record, s.logger); healed {
+			healedSnapshot = true
+		}
+		if healed := healManagedImageVAEProjection(modelsRoot, record, s.logger); healed {
+			healedSnapshot = true
+		}
 	}
 
 	for _, item := range snapshot.Services {

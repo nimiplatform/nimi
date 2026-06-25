@@ -29,6 +29,7 @@ entries:
     image_ref: quay.io/go-skynet/local-ai-backends:latest-metal-darwin-arm64-stablediffusion-ggml
     oci_layer_digest: sha256:89cdb483a81a98a4cd46d178d23c3540d15e7a27e53ff940984d848e16767b5e
     executable_candidates: [run.sh]
+    supported_model_families: [flux, sdxl]
     launch_mode: package_entrypoint
     wrapper_driver: localai-package-entrypoint
     product_state: supported
@@ -47,6 +48,7 @@ entries:
     archive_url: https://github.com/leejet/stable-diffusion.cpp/releases/download/master-552-87ecb95/sd-master-87ecb95-bin-Darwin-macOS-15.7.4-arm64.zip
     archive_sha256: f57c43020b172ae9e5095d7aea3c3c1c470717fbbd6b65118545c702053076b1 # pragma: allowlist secret
     executable_candidates: [sd-cli]
+    supported_model_families: [flux, sdxl]
     launch_mode: runtime_wrapper
     wrapper_driver: stable-diffusion.cpp
     product_state: proposed
@@ -66,10 +68,10 @@ entries:
     dependency_family: native-engine-package.stablediffusion-ggml
     package_source: canonical_runtime_wrapper
     package_format: direct_archive
-    install_dir_name: sd-win-cuda12-x64-stablediffusion-ggml
+    install_dir_name: sd-win-cuda12-x64-stablediffusion-ggml-8caa3f9
     image_ref: ""
-    archive_url: https://github.com/leejet/stable-diffusion.cpp/releases/download/master-552-87ecb95/sd-master-87ecb95-bin-win-cuda12-x64.zip
-    archive_sha256: 011643ec700d6097b9537f0f75ffb26856cc56a5ce765ffe9a32f2b47844e080 # pragma: allowlist secret
+    archive_url: https://github.com/leejet/stable-diffusion.cpp/releases/download/master-721-8caa3f9/sd-master-8caa3f9-bin-win-cuda12-x64.zip
+    archive_sha256: acf90a4ff0632c519c540ed4566c969b01b3c236b2359b4ba32ee086f40d7aa4 # pragma: allowlist secret
     dependency_requirements:
       - dependency_id: nvidia-cuda-user-space-runtime
         consumer_id: stable-diffusion.cpp.cuda
@@ -78,6 +80,7 @@ entries:
         accelerator_projection_table: shared-accelerator-dependencies.yaml
         first_network_materialization_requires_confirmation: true
     executable_candidates: [sd.exe, sd-cli.exe]
+    supported_model_families: [flux, ideogram4, sdxl, z-image, z-image-turbo]
     launch_mode: runtime_wrapper
     wrapper_driver: stable-diffusion.cpp
     product_state: supported
