@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -415,17 +416,17 @@ func validateLocalAppURIEntryRef(parsed *url.URL, appID string) error {
 }
 
 func validateLocalAppRelativeEntryRef(root string, entryRef string) error {
-	if filepath.IsAbs(entryRef) {
+	if path.IsAbs(entryRef) || filepath.IsAbs(entryRef) {
 		return errors.New("local app adoption relative entryRef must not be absolute")
 	}
-	clean := filepath.Clean(entryRef)
+	clean := path.Clean(entryRef)
 	if clean == "." || clean == "" || clean != entryRef {
 		return errors.New("local app adoption relative entryRef must be a clean non-empty path")
 	}
-	if strings.HasPrefix(clean, "..") || strings.Contains(clean, string(filepath.Separator)+".."+string(filepath.Separator)) {
+	if strings.HasPrefix(clean, "../") || clean == ".." || strings.Contains(clean, "/../") {
 		return errors.New("local app adoption relative entryRef must stay inside local app root")
 	}
-	resolved := filepath.Join(root, clean)
+	resolved := filepath.Join(root, filepath.FromSlash(clean))
 	rel, err := filepath.Rel(root, resolved)
 	if err != nil || rel == "." || strings.HasPrefix(rel, "..") || filepath.IsAbs(rel) {
 		return errors.New("local app adoption relative entryRef must stay inside local app root")
