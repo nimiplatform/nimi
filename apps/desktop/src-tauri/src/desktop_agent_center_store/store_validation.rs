@@ -381,10 +381,7 @@ pub(crate) fn scope_from_payload(
     ))
 }
 
-fn project_missing_pre_cutover_modules(
-    value: &mut serde_json::Value,
-    scope: &LocalAgentScope,
-) {
+fn project_missing_pre_cutover_modules(value: &mut serde_json::Value, scope: &LocalAgentScope) {
     let Some(object) = value.as_object_mut() else {
         return;
     };
@@ -400,14 +397,18 @@ fn project_missing_pre_cutover_modules(
         "local_agent_ref".to_string(),
         serde_json::Value::String(scope.local_agent_ref.clone()),
     );
-    let Some(modules) = object.get_mut("modules").and_then(serde_json::Value::as_object_mut)
+    let Some(modules) = object
+        .get_mut("modules")
+        .and_then(serde_json::Value::as_object_mut)
     else {
         return;
     };
-    modules.entry("voice".to_string()).or_insert_with(|| serde_json::json!({
-        "schema_version": AGENT_CENTER_CONFIG_SCHEMA_VERSION,
-        "avatar_autoplay": false,
-    }));
+    modules.entry("voice".to_string()).or_insert_with(|| {
+        serde_json::json!({
+            "schema_version": AGENT_CENTER_CONFIG_SCHEMA_VERSION,
+            "avatar_autoplay": false,
+        })
+    });
     if let Some(avatar_asset) = modules
         .get_mut("avatar_asset")
         .and_then(serde_json::Value::as_object_mut)
