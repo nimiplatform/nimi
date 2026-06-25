@@ -83,9 +83,7 @@ func TestMaterializeRejectsSymlinkTraversal(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(dataRoot, "apps"), 0o755); err != nil {
 		t.Fatalf("mkdir apps: %v", err)
 	}
-	if err := os.Symlink(outside, filepath.Join(dataRoot, "apps", "community.clock")); err != nil {
-		t.Fatalf("symlink: %v", err)
-	}
+	requireSymlinkForTest(t, outside, filepath.Join(dataRoot, "apps", "community.clock"))
 	plan, err := Resolve(dataRoot, "community.clock", "1.2.3", "nimi-data-app-roots")
 	if err != nil {
 		t.Fatalf("Resolve: %v", err)
@@ -152,9 +150,7 @@ func TestWriteInstallEvidenceRejectsSymlinkAfterUnpack(t *testing.T) {
 		t.Fatalf("Materialize: %v", err)
 	}
 	outside := t.TempDir()
-	if err := os.Symlink(outside, filepath.Join(plan.ReleaseRoot, ".nimi")); err != nil {
-		t.Fatalf("symlink evidence dir: %v", err)
-	}
+	requireSymlinkForTest(t, outside, filepath.Join(plan.ReleaseRoot, ".nimi"))
 	err = WriteInstallEvidence(plan, InstallEvidence{
 		AppID:                plan.AppID,
 		ReleaseDescriptorRef: "community.clock.v1",
@@ -187,9 +183,7 @@ func TestWriteInstallEvidenceRejectsSymlinkEvidenceFile(t *testing.T) {
 		t.Fatalf("mkdir evidence dir: %v", err)
 	}
 	outside := filepath.Join(t.TempDir(), "outside.json")
-	if err := os.Symlink(outside, EvidencePath(plan)); err != nil {
-		t.Fatalf("symlink evidence file: %v", err)
-	}
+	requireSymlinkForTest(t, outside, EvidencePath(plan))
 	err = WriteInstallEvidence(plan, InstallEvidence{
 		AppID:                plan.AppID,
 		ReleaseDescriptorRef: "community.clock.v1",
@@ -207,5 +201,12 @@ func TestWriteInstallEvidenceRejectsSymlinkEvidenceFile(t *testing.T) {
 	}
 	if _, err := os.Stat(outside); !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("outside evidence target should not be written, stat=%v", err)
+	}
+}
+
+func requireSymlinkForTest(t *testing.T, oldname string, newname string) {
+	t.Helper()
+	if err := os.Symlink(oldname, newname); err != nil {
+		t.Skipf("symlink unavailable in this test environment: %v", err)
 	}
 }

@@ -24,3 +24,22 @@ func TestLimitedBufferTruncatesOutput(t *testing.T) {
 		t.Fatalf("expected preserved prefix, got %q", got)
 	}
 }
+
+func TestGoTestCollectionArgsRunsPackagesSerially(t *testing.T) {
+	args := goTestCollectionArgs()
+	if !containsArg(args, "-p=1") {
+		t.Fatalf("expected runtime-compliance test collection to run packages serially, got %v", args)
+	}
+	if !containsArg(args, "-parallel=1") {
+		t.Fatalf("expected runtime-compliance test collection to run parallel tests serially, got %v", args)
+	}
+}
+
+func containsArg(args []string, target string) bool {
+	for _, arg := range args {
+		if arg == target {
+			return true
+		}
+	}
+	return false
+}

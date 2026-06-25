@@ -678,13 +678,28 @@ func TestRuntimeAgentLifeTrackLoopRejectsDueHookWithoutExecutor(t *testing.T) {
 		t.Fatalf("expected one rejected hook, got %d", len(rejectedResp.GetHooks()))
 	}
 
-	stateResp, err := svc.GetAgentState(ctx, &runtimev1.GetAgentStateRequest{
-		Context: testRuntimeAgentIdentityContext("agent-loop-reject"), AgentId: "agent-loop-reject"})
-	if err != nil {
-		t.Fatalf("GetAgentState: %v", err)
+	var lastState runtimev1.AgentExecutionState
+	var lastStateErr error
+	stateDeadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(stateDeadline) {
+		stateResp, err := svc.GetAgentState(ctx, &runtimev1.GetAgentStateRequest{
+			Context: testRuntimeAgentIdentityContext("agent-loop-reject"), AgentId: "agent-loop-reject"})
+		if err != nil {
+			lastStateErr = err
+			time.Sleep(20 * time.Millisecond)
+			continue
+		}
+		lastState = stateResp.GetState().GetExecutionState()
+		if lastState == runtimev1.AgentExecutionState_AGENT_EXECUTION_STATE_LIFE_PENDING {
+			return
+		}
+		time.Sleep(20 * time.Millisecond)
 	}
-	if stateResp.GetState().GetExecutionState() != runtimev1.AgentExecutionState_AGENT_EXECUTION_STATE_LIFE_PENDING {
-		t.Fatalf("expected LIFE_PENDING after rejection because cadence tick is re-admitted, got %s", stateResp.GetState().GetExecutionState())
+	if lastStateErr != nil {
+		t.Fatalf("GetAgentState: %v", lastStateErr)
+	}
+	if lastState != runtimev1.AgentExecutionState_AGENT_EXECUTION_STATE_LIFE_PENDING {
+		t.Fatalf("expected LIFE_PENDING after rejection because cadence tick is re-admitted, got %s", lastState)
 	}
 }
 

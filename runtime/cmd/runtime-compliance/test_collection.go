@@ -77,7 +77,7 @@ func collectPassingTestsOnce() (map[string]bool, int, error) {
 }
 
 func goTestCollectionArgs() []string {
-	args := []string{"test", "./...", "-json", "-count=1"}
+	args := []string{"test", "-p=1", "-parallel=1", "./...", "-json", "-count=1"}
 	if goruntime.GOOS != "windows" {
 		return args
 	}
@@ -85,7 +85,7 @@ func goTestCollectionArgs() []string {
 	if execPath == "" {
 		return args
 	}
-	return []string{"test", "-exec", execPath, "./...", "-json", "-count=1"}
+	return []string{"test", "-exec", execPath, "-p=1", "-parallel=1", "./...", "-json", "-count=1"}
 }
 
 func windowsGoTestExecSignerPath() string {
