@@ -1,9 +1,15 @@
-import type { ImageParamsState, LocalAssetEntry } from '../types.js';
-import { COMPANION_SLOTS, IMAGE_RESPONSE_FORMAT_OPTIONS, IMAGE_SIZE_PRESETS } from '../constants.js';
+import type { CompanionSlotDef, ImageParamsState, LocalAssetEntry } from '../types.js';
+import {
+  IMAGE_MODEL_FAMILY_OPTIONS,
+  IMAGE_RESPONSE_FORMAT_OPTIONS,
+  IMAGE_SIZE_PRESETS,
+  resolveImageCompanionSlotsForModelFamily,
+} from '../constants.js';
 import { CompanionSlotSelector } from './companion-slot-selector.js';
 import { FieldInput, FieldRow, FieldSelect, FieldTextarea, SubSectionLabel } from './field-primitives.js';
 
 export type ImageParamsEditorCopy = {
+  modelFamilyLabel?: string;
   companionModelsLabel: string;
   parametersLabel: string;
   sizeLabel: string;
@@ -29,6 +35,7 @@ export type ImageParamsEditorCopy = {
 export type ImageParamsEditorProps = {
   params: ImageParamsState;
   companionSlots: Record<string, string>;
+  companionSlotDefs?: ReadonlyArray<CompanionSlotDef>;
   onParamsChange: (next: ImageParamsState) => void;
   onCompanionSlotsChange: (next: Record<string, string>) => void;
   assets: LocalAssetEntry[];
@@ -38,6 +45,7 @@ export type ImageParamsEditorProps = {
 
 export function ImageParamsEditor(props: ImageParamsEditorProps) {
   const { assets, companionSlots, copy, params } = props;
+  const companionSlotDefs = props.companionSlotDefs ?? resolveImageCompanionSlotsForModelFamily(params.modelFamily);
 
   const updateSlot = (slot: string, value: string) => {
     props.onCompanionSlotsChange({ ...companionSlots, [slot]: value });
@@ -49,10 +57,18 @@ export function ImageParamsEditor(props: ImageParamsEditorProps) {
 
   return (
     <div className="space-y-3">
+      <FieldRow label={copy.modelFamilyLabel ?? 'Model type'}>
+        <FieldSelect
+          value={params.modelFamily ?? ''}
+          onChange={(value) => updateParam('modelFamily', value)}
+          options={IMAGE_MODEL_FAMILY_OPTIONS}
+        />
+      </FieldRow>
+
       <SubSectionLabel label={copy.companionModelsLabel} />
 
       <div className="grid grid-cols-2 gap-3">
-        {COMPANION_SLOTS.map((slot) => (
+        {companionSlotDefs.map((slot) => (
           <CompanionSlotSelector
             key={slot.slot}
             slot={slot}

@@ -7,6 +7,12 @@ import type {
   VideoParamsState,
   VoiceWorkflowParamsState,
 } from './types.js';
+import type { NimiRuntimeImageCompanionSlotContract } from '@nimiplatform/kit/core/sdk-contract';
+import {
+  NIMI_RUNTIME_IMAGE_MODEL_FAMILY_OPTIONS,
+  normalizeNimiRuntimeImageModelFamily,
+  resolveNimiRuntimeImageCompanionSlots,
+} from '@nimiplatform/kit/core/sdk-contract';
 
 // ---------------------------------------------------------------------------
 // Companion slot definitions
@@ -25,11 +31,29 @@ export const COMPANION_SLOTS: CompanionSlotDef[] = [
 export const ASSET_KIND_MAP: Record<string, readonly string[]> = {
   vae: ['vae'],
   chat: ['chat'],
+  image: ['image'],
   clip: ['clip'],
   controlnet: ['controlnet'],
   lora: ['lora'],
   auxiliary: ['auxiliary'],
 };
+
+export function resolveImageCompanionSlotsForModelFamily(modelFamily: unknown): CompanionSlotDef[] {
+  const slots: readonly NimiRuntimeImageCompanionSlotContract[] = resolveNimiRuntimeImageCompanionSlots(modelFamily);
+  if (slots.length === 0) {
+    return COMPANION_SLOTS.map((slot) => ({ ...slot }));
+  }
+  return slots.map((slot) => ({
+    slot: slot.engineSlot,
+    label: slot.label,
+    kind: slot.assetKind,
+    required: slot.required,
+  }));
+}
+
+export function hasImageCompanionSlotContractForModelFamily(modelFamily: unknown): boolean {
+  return resolveNimiRuntimeImageCompanionSlots(modelFamily).length > 0;
+}
 
 // ---------------------------------------------------------------------------
 // Image constants
@@ -37,8 +61,18 @@ export const ASSET_KIND_MAP: Record<string, readonly string[]> = {
 
 export const IMAGE_SIZE_PRESETS = ['512x512', '768x768', '1024x1024', '1024x576', '576x1024'];
 export const IMAGE_RESPONSE_FORMAT_OPTIONS = ['auto', 'base64', 'url'];
+export const IMAGE_MODEL_FAMILY_OPTIONS = [
+  { value: '', label: 'Standard / auto' },
+  ...NIMI_RUNTIME_IMAGE_MODEL_FAMILY_OPTIONS,
+];
+
+function normalizeImageModelFamilyState(value: unknown): string {
+  const normalized = normalizeNimiRuntimeImageModelFamily(value);
+  return IMAGE_MODEL_FAMILY_OPTIONS.some((option) => option.value === normalized) ? normalized : '';
+}
 
 export const DEFAULT_IMAGE_PARAMS: ImageParamsState = {
+  modelFamily: '',
   size: '512x512',
   responseFormat: 'auto',
   seed: '',
@@ -95,6 +129,12 @@ export function filterAssetsByKind<Asset extends FilterableLocalAsset>(
 
 export function parseImageParams(stored: Readonly<Record<string, unknown>>): ImageParamsState {
   return {
+    modelFamily: normalizeImageModelFamilyState(
+      stored.modelFamily
+      ?? stored.model_family
+      ?? stored.runtimeModelFamily
+      ?? stored.runtime_model_family,
+    ),
     size: typeof stored.size === 'string' ? stored.size : DEFAULT_IMAGE_PARAMS.size,
     responseFormat: typeof stored.responseFormat === 'string' ? stored.responseFormat : DEFAULT_IMAGE_PARAMS.responseFormat,
     seed: typeof stored.seed === 'string' ? stored.seed : DEFAULT_IMAGE_PARAMS.seed,

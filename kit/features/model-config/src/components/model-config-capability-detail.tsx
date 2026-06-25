@@ -27,11 +27,13 @@ import {
   parseTextGenerateParams,
   parseVideoParams,
   parseVoiceWorkflowParams,
+  resolveImageCompanionSlotsForModelFamily,
 } from '../constants.js';
 import type {
   AudioSynthesizeParamsState,
   AudioTranscribeParamsState,
   ImageParamsState,
+  LocalAssetEntry,
   ModelConfigCapabilityItem,
   ModelConfigTargetRef,
   TextGenerateParamsState,
@@ -72,6 +74,72 @@ function readParams(config: NimiAIConfig, capabilityId: string): Readonly<Record
   return (raw && typeof raw === 'object' && !Array.isArray(raw))
     ? raw as Readonly<Record<string, unknown>>
     : {};
+}
+
+function normalizeText(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function targetRefCandidateTexts(targetRef: ModelConfigTargetRef | null): string[] {
+  if (!targetRef || targetRef.kind !== 'local-runtime') {
+    return [];
+  }
+  return [
+    normalizeText(targetRef.targetId),
+    normalizeText(targetRef.profileId),
+    normalizeText(targetRef.readinessRef),
+    ...normalizeText(targetRef.readinessRef).split(':').map((part) => part.trim()),
+  ].filter(Boolean);
+}
+
+function localAssetMatchesCandidate(asset: LocalAssetEntry, candidate: string): boolean {
+  return normalizeText(asset.localAssetId) === candidate || normalizeText(asset.assetId) === candidate;
+}
+
+function findAssetForLocalTarget(
+  assets: readonly LocalAssetEntry[],
+  targetRef: ModelConfigTargetRef | null,
+): LocalAssetEntry | null {
+  const candidates = targetRefCandidateTexts(targetRef);
+  if (candidates.length === 0) {
+    return null;
+  }
+  return assets.find((asset) => candidates.some((candidate) => localAssetMatchesCandidate(asset, candidate))) ?? null;
+}
+
+function localAssetFamily(asset: LocalAssetEntry | null): string {
+  if (!asset) return '';
+  const extensible = asset as LocalAssetEntry & {
+    readonly family?: unknown;
+    readonly modelFamily?: unknown;
+    readonly model_family?: unknown;
+    readonly metadata?: Readonly<Record<string, unknown>>;
+  };
+  return normalizeText(
+    extensible.modelFamily
+    ?? extensible.model_family
+    ?? extensible.family
+    ?? extensible.metadata?.modelFamily
+    ?? extensible.metadata?.model_family
+    ?? extensible.metadata?.family,
+  );
+}
+
+function imageModelFamilyFromState(input: {
+  readonly storedParams: Readonly<Record<string, unknown>>;
+  readonly targetRef: ModelConfigTargetRef | null;
+  readonly assets: readonly LocalAssetEntry[];
+}): string {
+  const paramsFamily = normalizeText(
+    input.storedParams.modelFamily
+    ?? input.storedParams.model_family
+    ?? input.storedParams.runtimeModelFamily
+    ?? input.storedParams.runtime_model_family,
+  );
+  if (paramsFamily) {
+    return paramsFamily;
+  }
+  return localAssetFamily(findAssetForLocalTarget(input.assets, input.targetRef));
 }
 
 function writeCapabilityPatch(
@@ -206,6 +274,12 @@ function renderEditor(
       const params: ImageParamsState = parseImageParams(storedParams);
       const companionSlots = (storedParams.companionSlots || {}) as Record<string, string>;
       const imageAssets = surface.localAssetSource?.list() ?? [];
+      const targetRef = readModelConfigTargetRef(config, descriptor.capabilityId);
+      const companionSlotDefs = resolveImageCompanionSlotsForModelFamily(imageModelFamilyFromState({
+        storedParams: { ...storedParams, modelFamily: params.modelFamily },
+        targetRef,
+        assets: imageAssets,
+      }));
       return {
         showEditorWhen,
         editor: (
@@ -213,6 +287,7 @@ function renderEditor(
             copy={buildImageCopy(t)}
             params={params}
             companionSlots={companionSlots}
+            companionSlotDefs={companionSlotDefs}
             assets={[...imageAssets]}
             assetsLoading={surface.localAssetSource?.loading}
             onParamsChange={(next) => writeCapabilityPatch(service, scopeRef, descriptor.capabilityId, {
@@ -246,6 +321,7 @@ function renderEditor(
 
 function buildImageCopy(t: AppModelConfigSurface['i18n']['t']) {
   return {
+    modelFamilyLabel: t('ModelConfig.editor.image.modelFamilyLabel'),
     companionModelsLabel: t('ModelConfig.editor.image.companionModelsLabel'),
     parametersLabel: t('ModelConfig.editor.image.parametersLabel'),
     sizeLabel: t('ModelConfig.editor.image.sizeLabel'),

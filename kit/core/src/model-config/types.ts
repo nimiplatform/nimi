@@ -113,6 +113,9 @@ export interface ModelConfigLocalAssetDescriptor {
   readonly kind: string;
   readonly engine: string;
   readonly status: string;
+  readonly family?: string;
+  readonly modelFamily?: string;
+  readonly metadata?: Readonly<Record<string, unknown>>;
 }
 
 export interface ModelConfigLocalAssetSource {

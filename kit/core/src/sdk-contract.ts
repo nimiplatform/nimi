@@ -137,6 +137,9 @@ export type {
 
 // --- Nimi AI developer-experience primitives --------------------------------
 export {
+  NIMI_RUNTIME_IMAGE_MODEL_FAMILY_OPTIONS,
+  normalizeNimiRuntimeImageModelFamily,
+  resolveNimiRuntimeImageCompanionSlots,
   createNimiRuntimeAIModel,
   runNimiTextGenerate,
   runNimiTextTurn,
@@ -146,6 +149,7 @@ export type {
   NimiAiModel,
   NimiGenerateTextRequest,
   NimiGenerateTextResult,
+  NimiRuntimeImageCompanionSlotContract,
   NimiRuntimeAIModelOptions,
   NimiRuntimeAIRoutePolicy,
   NimiRuntimeAIReasoningOptions,

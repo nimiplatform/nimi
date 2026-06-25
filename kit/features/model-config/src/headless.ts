@@ -66,6 +66,8 @@ export {
   DEFAULT_AUDIO_TRANSCRIBE_PARAMS,
   DEFAULT_VOICE_WORKFLOW_PARAMS,
   filterAssetsByKind,
+  hasImageCompanionSlotContractForModelFamily,
+  resolveImageCompanionSlotsForModelFamily,
   parseImageParams,
   parseVideoParams,
   parseTextGenerateParams,

@@ -265,6 +265,63 @@ describe('ModelConfigPanel', () => {
     expect(nextVideoMode).toBe('i2v-reference');
   });
 
+  it('propagates image model family changes', async () => {
+    let nextImageFamily = '';
+
+    await render(
+      <ImageParamsEditor
+        copy={{
+          modelFamilyLabel: 'Model type',
+          companionModelsLabel: 'Companion Models',
+          parametersLabel: 'Parameters',
+          sizeLabel: 'Size',
+          responseFormatLabel: 'Response format',
+          seedLabel: 'Seed',
+          timeoutLabel: 'Timeout',
+          stepsLabel: 'Steps',
+          cfgScaleLabel: 'CFG Scale',
+          samplerLabel: 'Sampler',
+          schedulerLabel: 'Scheduler',
+          customOptionsLabel: 'Custom options',
+          noneLabel: 'None',
+        }}
+        params={{
+          modelFamily: '',
+          size: '512x512',
+          responseFormat: 'auto',
+          seed: '',
+          timeoutMs: '600000',
+          steps: '25',
+          cfgScale: '',
+          sampler: '',
+          scheduler: '',
+          optionsText: '',
+        }}
+        companionSlots={{}}
+        assets={[]}
+        onParamsChange={(next) => {
+          nextImageFamily = next.modelFamily ?? '';
+        }}
+        onCompanionSlotsChange={() => undefined}
+      />,
+    );
+
+    const imageFamilySelect = Array.from(document.querySelectorAll('select'))
+      .find((select) => Array.from(select.options)
+        .some((option) => option.textContent?.includes('Ideogram4')));
+    expect(imageFamilySelect).toBeTruthy();
+
+    await act(async () => {
+      if (imageFamilySelect instanceof HTMLSelectElement) {
+        imageFamilySelect.value = 'ideogram4';
+        imageFamilySelect.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      await flush();
+    });
+
+    expect(nextImageFamily).toBe('ideogram4');
+  });
+
   it('selects image companion slots through the shared picker interaction', async () => {
     let nextCompanionSlots: Record<string, string> = {};
 
@@ -343,5 +400,96 @@ describe('ModelConfigPanel', () => {
     const selectedVaeTrigger = Array.from(container?.querySelectorAll('button') || [])
       .find((button) => button.textContent?.includes('Z Image AE'));
     expect(selectedVaeTrigger?.textContent).not.toContain('Required setup');
+  });
+
+  it('renders only dynamic family companion slots when supplied', async () => {
+    await render(
+      <ImageParamsEditor
+        copy={{
+          companionModelsLabel: 'Companion Models',
+          parametersLabel: 'Parameters',
+          sizeLabel: 'Size',
+          responseFormatLabel: 'Response format',
+          seedLabel: 'Seed',
+          timeoutLabel: 'Timeout',
+          stepsLabel: 'Steps',
+          cfgScaleLabel: 'CFG Scale',
+          samplerLabel: 'Sampler',
+          schedulerLabel: 'Scheduler',
+          customOptionsLabel: 'Custom options',
+          noneLabel: 'None',
+          requiredLabel: 'Required',
+          requiredSetupPlaceholder: 'Required setup',
+        }}
+        params={{
+          size: '512x512',
+          responseFormat: 'auto',
+          seed: '',
+          timeoutMs: '600000',
+          steps: '25',
+          cfgScale: '',
+          sampler: '',
+          scheduler: '',
+          optionsText: '',
+        }}
+        companionSlots={{}}
+        companionSlotDefs={[
+          { slot: 'llm_path', label: 'LLM', kind: 'chat', required: true },
+          { slot: 'vae_path', label: 'VAE', kind: 'vae', required: true },
+        ]}
+        assets={[]}
+        onParamsChange={() => undefined}
+        onCompanionSlotsChange={() => undefined}
+      />,
+    );
+
+    expect(container?.textContent).toContain('LLM');
+    expect(container?.textContent).toContain('VAE');
+    expect(container?.textContent).not.toContain('CLIP-L');
+    expect(container?.textContent).not.toContain('ControlNet');
+  });
+
+  it('renders image family companion slots from params', async () => {
+    await render(
+      <ImageParamsEditor
+        copy={{
+          companionModelsLabel: 'Companion Models',
+          parametersLabel: 'Parameters',
+          sizeLabel: 'Size',
+          responseFormatLabel: 'Response format',
+          seedLabel: 'Seed',
+          timeoutLabel: 'Timeout',
+          stepsLabel: 'Steps',
+          cfgScaleLabel: 'CFG Scale',
+          samplerLabel: 'Sampler',
+          schedulerLabel: 'Scheduler',
+          customOptionsLabel: 'Custom options',
+          noneLabel: 'None',
+          requiredLabel: 'Required',
+          requiredSetupPlaceholder: 'Required setup',
+        }}
+        params={{
+          modelFamily: 'ideogram4',
+          size: '512x512',
+          responseFormat: 'auto',
+          seed: '',
+          timeoutMs: '600000',
+          steps: '25',
+          cfgScale: '',
+          sampler: '',
+          scheduler: '',
+          optionsText: '',
+        }}
+        companionSlots={{}}
+        assets={[]}
+        onParamsChange={() => undefined}
+        onCompanionSlotsChange={() => undefined}
+      />,
+    );
+
+    expect(container?.textContent).toContain('Uncond diffusion');
+    expect(container?.textContent).toContain('LLM');
+    expect(container?.textContent).toContain('VAE');
+    expect(container?.textContent).not.toContain('CLIP-L');
   });
 });

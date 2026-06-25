@@ -187,6 +187,7 @@ export type VoiceWorkflowParamsState = {
 };
 
 export type ImageParamsState = {
+  modelFamily?: string;
   size: string;
   responseFormat: string;
   seed: string;
@@ -224,6 +225,9 @@ export type LocalAssetEntry = {
   kind: string;
   engine: string;
   status: string;
+  family?: string;
+  modelFamily?: string;
+  metadata?: Readonly<Record<string, unknown>>;
 };
 
 export type CapabilityModelCardProps = {
