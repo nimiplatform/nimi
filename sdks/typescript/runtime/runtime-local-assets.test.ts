@@ -183,6 +183,26 @@ test('Runtime local asset projection preserves model family and metadata', () =>
   });
 });
 
+test('Runtime local asset projection preserves artifact roles for companion dependency pickers', () => {
+  const projected = projectNimiRuntimeLocalAssetEntry(localAssetRecord({
+    localAssetId: 'local-uncond',
+    assetId: 'local-import/ideogram4_uncond-Q4_0',
+    kind: LocalAssetKind.IMAGE,
+    engine: ' media ',
+    status: LocalAssetStatus.INSTALLED,
+    artifactRoles: [' uncond_diffusion_model ', '', ' auxiliary '],
+  }));
+
+  assert.deepEqual(projected, {
+    localAssetId: 'local-uncond',
+    assetId: 'local-import/ideogram4_uncond-Q4_0',
+    kind: 'image',
+    engine: 'media',
+    status: 'installed',
+    artifactRoles: ['uncond_diffusion_model', 'auxiliary'],
+  });
+});
+
 function localAssetRecord(input: Partial<LocalAssetRecord> = {}): LocalAssetRecord {
   return {
     localAssetId: 'local-asset',

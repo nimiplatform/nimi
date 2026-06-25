@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { SearchField, cn } from '@nimiplatform/kit/ui';
 import type { CompanionSlotDef, LocalAssetEntry } from '../types.js';
-import { filterAssetsByKind } from '../constants.js';
+import { filterAssetsForCompanionSlot } from '../constants.js';
 import { FieldRow } from './field-primitives.js';
 import { ModelSelectorTrigger } from '@nimiplatform/kit/features/model-picker/ui';
 
@@ -22,8 +22,8 @@ export function CompanionSlotSelector(props: {
   const [search, setSearch] = useState('');
   const searchRef = useRef<HTMLInputElement>(null);
   const filtered = useMemo(
-    () => filterAssetsByKind(props.assets, props.slot.kind) as LocalAssetEntry[],
-    [props.assets, props.slot.kind],
+    () => filterAssetsForCompanionSlot(props.assets, props.slot) as LocalAssetEntry[],
+    [props.assets, props.slot],
   );
 
   const selectedAsset = useMemo(
@@ -31,7 +31,8 @@ export function CompanionSlotSelector(props: {
     [filtered, props.value],
   );
   const hasSelectedValue = props.value.trim().length > 0;
-  const isRequiredMissing = Boolean(props.required && !hasSelectedValue);
+  const selectedValueUnresolved = Boolean(hasSelectedValue && !selectedAsset && !props.loading);
+  const isRequiredMissing = Boolean(props.required && (!hasSelectedValue || selectedValueUnresolved));
   const selectedStatus = selectedAsset?.status.trim().toLowerCase() ?? '';
   const selectedNeedsSetup = Boolean(
     selectedAsset

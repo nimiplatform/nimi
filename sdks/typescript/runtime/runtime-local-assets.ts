@@ -25,6 +25,7 @@ export interface NimiRuntimeLocalAssetEntry {
   readonly status: NimiRuntimeLocalAssetStatusId;
   readonly family?: string;
   readonly modelFamily?: string;
+  readonly artifactRoles?: readonly string[];
   readonly metadata?: Readonly<Record<string, unknown>>;
 }
 
@@ -70,6 +71,7 @@ export function projectNimiRuntimeLocalAssetEntry(
     );
   }
   const family = normalizeText(input.family);
+  const artifactRoles = textListOrUndefined(input.artifactRoles);
   const metadata = nonEmptyRecord(fromNimiRuntimeProtoStruct(input.metadata));
   return {
     localAssetId,
@@ -78,6 +80,7 @@ export function projectNimiRuntimeLocalAssetEntry(
     engine: normalizeText(input.engine),
     status,
     ...(family ? { family, modelFamily: family } : {}),
+    ...(artifactRoles ? { artifactRoles } : {}),
     ...(metadata ? { metadata } : {}),
   };
 }
@@ -118,6 +121,14 @@ function normalizeText(value: unknown): string {
 function nonEmptyRecord(value: Readonly<Record<string, unknown>> | undefined): Readonly<Record<string, unknown>> | undefined {
   if (!value || Object.keys(value).length === 0) return undefined;
   return value;
+}
+
+function textListOrUndefined(value: unknown): readonly string[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const out = value
+    .map((item) => normalizeText(item))
+    .filter(Boolean);
+  return out.length > 0 ? out : undefined;
 }
 
 function localAssetProjectionError(message: string, actionHint: string): Error {

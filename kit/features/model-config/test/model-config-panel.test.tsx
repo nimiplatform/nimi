@@ -402,6 +402,159 @@ describe('ModelConfigPanel', () => {
     expect(selectedVaeTrigger?.textContent).not.toContain('Required setup');
   });
 
+  it('selects Ideogram4 uncond dependency assets by artifact role', async () => {
+    let nextCompanionSlots: Record<string, string> = {};
+
+    function ImageEditorHarness() {
+      const [companionSlots, setCompanionSlots] = useState<Record<string, string>>({});
+      return (
+        <ImageParamsEditor
+          copy={{
+            modelFamilyLabel: 'Model type',
+            companionModelsLabel: 'Companion Models',
+            parametersLabel: 'Parameters',
+            sizeLabel: 'Size',
+            responseFormatLabel: 'Response format',
+            seedLabel: 'Seed',
+            timeoutLabel: 'Timeout',
+            stepsLabel: 'Steps',
+            cfgScaleLabel: 'CFG Scale',
+            samplerLabel: 'Sampler',
+            schedulerLabel: 'Scheduler',
+            customOptionsLabel: 'Custom options',
+            noneLabel: 'None',
+            requiredLabel: 'Required',
+            requiredSetupPlaceholder: 'Required setup',
+          }}
+          params={{
+            modelFamily: 'ideogram4',
+            size: '512x512',
+            responseFormat: 'auto',
+            seed: '',
+            timeoutMs: '600000',
+            steps: '25',
+            cfgScale: '',
+            sampler: '',
+            scheduler: '',
+            optionsText: '',
+          }}
+          companionSlots={companionSlots}
+          assets={[
+            {
+              localAssetId: 'local-main-image',
+              assetId: 'local-import/ideogram4-Q4_0',
+              kind: 'image',
+              engine: 'media',
+              status: 'active',
+              artifactRoles: ['diffusion_model'],
+            },
+            {
+              localAssetId: 'local-uncond',
+              assetId: 'local-import/ideogram4_uncond-Q4_0',
+              kind: 'image',
+              engine: 'media',
+              status: 'installed',
+              artifactRoles: ['uncond_diffusion_model'],
+            },
+          ]}
+          onParamsChange={() => undefined}
+          onCompanionSlotsChange={(next) => {
+            nextCompanionSlots = next;
+            setCompanionSlots(next);
+          }}
+        />
+      );
+    }
+
+    await render(<ImageEditorHarness />);
+
+    const uncondLabel = Array.from(container?.querySelectorAll('span[aria-label]') || [])
+      .find((node) => node.getAttribute('aria-label') === 'Uncond diffusion');
+    const uncondTrigger = uncondLabel?.parentElement?.querySelector('button');
+    expect(uncondTrigger).toBeTruthy();
+    expect(uncondTrigger?.textContent).toContain('Required setup');
+    expect(uncondTrigger?.textContent).not.toContain('local-import/ideogram4-Q4_0');
+
+    await act(async () => {
+      uncondTrigger?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await flush();
+    });
+
+    const modalButtons = Array.from(document.querySelectorAll('button'));
+    expect(modalButtons.some((button) => button.textContent?.includes('local-import/ideogram4_uncond-Q4_0'))).toBe(true);
+    expect(modalButtons.some((button) => button.textContent?.includes('local-import/ideogram4-Q4_0'))).toBe(false);
+
+    const uncondOption = modalButtons.find((button) => button.textContent?.includes('local-import/ideogram4_uncond-Q4_0'));
+    await act(async () => {
+      uncondOption?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await flush();
+    });
+
+    expect(nextCompanionSlots).toEqual({ uncond_diffusion_model: 'local-uncond' });
+  });
+
+  it('does not treat the main Ideogram4 image model as the uncond dependency', async () => {
+    await render(
+      <ImageParamsEditor
+        copy={{
+          modelFamilyLabel: 'Model type',
+          companionModelsLabel: 'Companion Models',
+          parametersLabel: 'Parameters',
+          sizeLabel: 'Size',
+          responseFormatLabel: 'Response format',
+          seedLabel: 'Seed',
+          timeoutLabel: 'Timeout',
+          stepsLabel: 'Steps',
+          cfgScaleLabel: 'CFG Scale',
+          samplerLabel: 'Sampler',
+          schedulerLabel: 'Scheduler',
+          customOptionsLabel: 'Custom options',
+          noneLabel: 'None',
+          requiredLabel: 'Required',
+          requiredSetupPlaceholder: 'Required setup',
+        }}
+        params={{
+          modelFamily: 'ideogram4',
+          size: '512x512',
+          responseFormat: 'auto',
+          seed: '',
+          timeoutMs: '600000',
+          steps: '25',
+          cfgScale: '',
+          sampler: '',
+          scheduler: '',
+          optionsText: '',
+        }}
+        companionSlots={{ uncond_diffusion_model: 'local-main-image' }}
+        assets={[{
+          localAssetId: 'local-main-image',
+          assetId: 'local-import/ideogram4-Q4_0',
+          kind: 'image',
+          engine: 'media',
+          status: 'installed',
+        }]}
+        onParamsChange={() => undefined}
+        onCompanionSlotsChange={() => undefined}
+      />,
+    );
+
+    expect(container?.textContent).toContain('Required setup');
+    expect(container?.textContent).not.toContain('local-import/ideogram4-Q4_0');
+
+    const uncondLabel = Array.from(container?.querySelectorAll('span[aria-label]') || [])
+      .find((node) => node.getAttribute('aria-label') === 'Uncond diffusion');
+    const uncondTrigger = uncondLabel?.parentElement?.querySelector('button');
+    expect(uncondTrigger).toBeTruthy();
+
+    await act(async () => {
+      uncondTrigger?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await flush();
+    });
+
+    const modalButtons = Array.from(document.querySelectorAll('button'));
+    expect(modalButtons.some((button) => button.textContent?.includes('local-import/ideogram4-Q4_0'))).toBe(false);
+  });
+
   it('renders only dynamic family companion slots when supplied', async () => {
     await render(
       <ImageParamsEditor

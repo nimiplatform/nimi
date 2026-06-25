@@ -47,6 +47,7 @@ export function resolveImageCompanionSlotsForModelFamily(modelFamily: unknown): 
     slot: slot.engineSlot,
     label: slot.label,
     kind: slot.assetKind,
+    role: slot.role,
     required: slot.required,
   }));
 }
@@ -112,7 +113,15 @@ export const DEFAULT_VIDEO_PARAMS: VideoParamsState = {
 // Asset filtering
 // ---------------------------------------------------------------------------
 
-type FilterableLocalAsset = { kind: string; status: string };
+type FilterableLocalAsset = {
+  kind: string;
+  status: string;
+  artifactRoles?: readonly unknown[];
+};
+
+const STRICT_ARTIFACT_ROLE_SLOTS = new Set([
+  'uncond_diffusion_model',
+]);
 
 export function filterAssetsByKind<Asset extends FilterableLocalAsset>(
   assets: readonly Asset[],
@@ -121,6 +130,32 @@ export function filterAssetsByKind<Asset extends FilterableLocalAsset>(
   const kindValues = ASSET_KIND_MAP[kind];
   if (!kindValues) return [...assets];
   return assets.filter((a) => kindValues.includes(a.kind) && a.status !== 'removed');
+}
+
+export function filterAssetsForCompanionSlot<Asset extends FilterableLocalAsset>(
+  assets: readonly Asset[],
+  slot: Pick<CompanionSlotDef, 'kind' | 'role'>,
+): Asset[] {
+  const availableAssets = assets.filter((asset) => asset.status !== 'removed');
+  const role = normalizeAssetRole(slot.role);
+  if (role) {
+    const roleMatches = availableAssets.filter((asset) => assetHasArtifactRole(asset, role));
+    if (roleMatches.length > 0) {
+      return roleMatches;
+    }
+    if (STRICT_ARTIFACT_ROLE_SLOTS.has(role)) {
+      return [];
+    }
+  }
+  return filterAssetsByKind(availableAssets, slot.kind);
+}
+
+function assetHasArtifactRole(asset: FilterableLocalAsset, role: string): boolean {
+  return (asset.artifactRoles || []).some((item) => normalizeAssetRole(item) === role);
+}
+
+function normalizeAssetRole(value: unknown): string {
+  return String(value ?? '').trim().toLowerCase();
 }
 
 // ---------------------------------------------------------------------------

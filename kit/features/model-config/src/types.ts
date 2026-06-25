@@ -216,6 +216,7 @@ export type CompanionSlotDef = {
   slot: string;
   label: string;
   kind: string;
+  role?: string;
   required?: boolean;
 };
 
@@ -227,6 +228,7 @@ export type LocalAssetEntry = {
   status: string;
   family?: string;
   modelFamily?: string;
+  artifactRoles?: readonly string[];
   metadata?: Readonly<Record<string, unknown>>;
 };
 
