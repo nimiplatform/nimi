@@ -40,7 +40,7 @@ type ConnectorRecord struct {
 	Endpoint            string                           `json:"endpoint"`
 	Label               string                           `json:"label"`
 	Status              runtimev1.ConnectorStatus        `json:"status"`
-	LocalCategory       runtimev1.LocalConnectorCategory `json:"local_category"`
+	RetiredLocalCategory int32                           `json:"local_category,omitempty"`
 	HasCredential       bool                             `json:"has_credential"`
 	AuthKind            runtimev1.ConnectorAuthKind      `json:"auth_kind,omitempty"`
 	ProviderAuthProfile string                           `json:"provider_auth_profile,omitempty"`

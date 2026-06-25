@@ -38,26 +38,10 @@ func (s *Service) TestConnector(ctx context.Context, req *runtimev1.TestConnecto
 		}, nil
 	}
 
-	if rec.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_LOCAL_MODEL {
-		if s.localModelLister() == nil {
-			s.emitAudit(ctx, "connector.test", runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, auditPayload)
-			return &runtimev1.TestConnectorResponse{
-				Ack: &runtimev1.Ack{Ok: false, ReasonCode: runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE},
-			}, nil
-		}
-		localModels, listErr := s.listAllActiveLocalModels(ctx)
-		if listErr != nil {
-			return nil, s.internalProviderError("test_connector.list_local_models", listErr)
-		}
-		if !hasActiveLocalModelForCategory(localModels, rec.LocalCategory) {
-			s.emitAudit(ctx, "connector.test", runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, auditPayload)
-			return &runtimev1.TestConnectorResponse{
-				Ack: &runtimev1.Ack{Ok: false, ReasonCode: runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE},
-			}, nil
-		}
-		s.emitAudit(ctx, "connector.test", runtimev1.ReasonCode_ACTION_EXECUTED, auditPayload)
+	if IsRetiredLocalConnectorKind(rec.Kind) {
+		s.emitAudit(ctx, "connector.test", runtimev1.ReasonCode_AI_LOCAL_CONNECTOR_RETIRED, auditPayload)
 		return &runtimev1.TestConnectorResponse{
-			Ack: &runtimev1.Ack{Ok: true},
+			Ack: &runtimev1.Ack{Ok: false, ReasonCode: runtimev1.ReasonCode_AI_LOCAL_CONNECTOR_RETIRED},
 		}, nil
 	}
 
@@ -124,6 +108,9 @@ func (s *Service) ListConnectorModels(ctx context.Context, req *runtimev1.ListCo
 	if rec.Status == runtimev1.ConnectorStatus_CONNECTOR_STATUS_DISABLED {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_DISABLED)
 	}
+	if IsRetiredLocalConnectorKind(rec.Kind) {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CONNECTOR_RETIRED)
+	}
 
 	filterDigest := pagination.FilterDigest(connectorID)
 	cursor, err := pagination.ValidatePageToken(req.GetPageToken(), filterDigest)
@@ -131,22 +118,9 @@ func (s *Service) ListConnectorModels(ctx context.Context, req *runtimev1.ListCo
 		return nil, err
 	}
 
-	var models []*runtimev1.ConnectorModelDescriptor
-	if rec.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_LOCAL_MODEL {
-		if s.localModelLister() == nil {
-			models = []*runtimev1.ConnectorModelDescriptor{}
-		} else {
-			localModels, listErr := s.listAllActiveLocalModels(ctx)
-			if listErr != nil {
-				return nil, s.internalProviderError("list_connector_models.list_local_models", listErr)
-			}
-			models = buildLocalConnectorModelDescriptors(localModels, rec.LocalCategory)
-		}
-	} else {
-		models, err = s.listCatalogConnectorModels(ownerID, rec.Provider)
-		if err != nil {
-			return nil, err
-		}
+	models, err := s.listCatalogConnectorModels(ownerID, rec)
+	if err != nil {
+		return nil, err
 	}
 
 	sort.Slice(models, func(i, j int) bool {

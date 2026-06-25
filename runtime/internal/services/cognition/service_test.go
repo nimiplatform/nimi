@@ -432,7 +432,7 @@ func testRuntimeLocalEmbeddingIntent(modelID string) *runtimev1.MemoryEmbeddingB
 	return &runtimev1.MemoryEmbeddingBindingIntentSnapshot{
 		SourceKind: "local",
 		LocalBinding: &runtimev1.MemoryEmbeddingLocalBindingRef{
-			TargetId: modelID,
+			Ref: &runtimev1.MemoryEmbeddingLocalBindingRef_ProfileBindingId{ProfileBindingId: modelID},
 		},
 		RevisionToken: "test-revision",
 	}

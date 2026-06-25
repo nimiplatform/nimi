@@ -1,8 +1,10 @@
 package connector
 
 import (
-	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
+	"fmt"
 	"strings"
 
 	"google.golang.org/grpc/codes"
@@ -62,57 +64,7 @@ func modelCatalogProviderEntryFromRecord(record aicatalog.CatalogProviderRecord)
 	}
 }
 
-func (s *Service) listAllActiveLocalModels(ctx context.Context) ([]*runtimev1.LocalAssetRecord, error) {
-	localModel := s.localModelLister()
-	if localModel == nil {
-		return nil, nil
-	}
-	pageToken := ""
-	collected := make([]*runtimev1.LocalAssetRecord, 0, 16)
-	for i := 0; i < 20; i++ {
-		resp, err := localModel.ListLocalAssets(ctx, &runtimev1.ListLocalAssetsRequest{
-			StatusFilter: runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
-			PageSize:     100,
-			PageToken:    pageToken,
-		})
-		if err != nil {
-			return nil, err
-		}
-		collected = append(collected, resp.GetAssets()...)
-		pageToken = strings.TrimSpace(resp.GetNextPageToken())
-		if pageToken == "" {
-			break
-		}
-	}
-	return collected, nil
-}
-
-func hasActiveLocalModelForCategory(models []*runtimev1.LocalAssetRecord, category runtimev1.LocalConnectorCategory) bool {
-	for _, model := range models {
-		if modelMatchesCategory(model, category) {
-			return true
-		}
-	}
-	return false
-}
-
-func buildLocalConnectorModelDescriptors(models []*runtimev1.LocalAssetRecord, category runtimev1.LocalConnectorCategory) []*runtimev1.ConnectorModelDescriptor {
-	descriptors := make([]*runtimev1.ConnectorModelDescriptor, 0, len(models))
-	for _, model := range models {
-		if !modelMatchesCategory(model, category) {
-			continue
-		}
-		descriptors = append(descriptors, &runtimev1.ConnectorModelDescriptor{
-			ModelId:      model.GetAssetId(),
-			ModelLabel:   model.GetAssetId(),
-			Available:    model.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
-			Capabilities: append([]string(nil), model.GetCapabilities()...),
-		})
-	}
-	return descriptors
-}
-
-func (s *Service) listCatalogConnectorModels(subjectUserID string, provider string) ([]*runtimev1.ConnectorModelDescriptor, error) {
+func (s *Service) listCatalogConnectorModels(subjectUserID string, rec ConnectorRecord) ([]*runtimev1.ConnectorModelDescriptor, error) {
 	modelCatalog := s.modelCatalogResolver()
 	if modelCatalog == nil {
 		return nil, grpcerr.WithReasonCodeOptions(codes.Unavailable, runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID, grpcerr.ReasonOptions{
@@ -120,6 +72,7 @@ func (s *Service) listCatalogConnectorModels(subjectUserID string, provider stri
 		})
 	}
 
+	provider := strings.TrimSpace(rec.Provider)
 	models, _, err := modelCatalog.ListModelsForProviderForSubject(subjectUserID, provider)
 	if err != nil {
 		if errors.Is(err, aicatalog.ErrProviderUnsupported) {
@@ -127,17 +80,175 @@ func (s *Service) listCatalogConnectorModels(subjectUserID string, provider stri
 		}
 		return nil, s.internalProviderError("list_connector_models.catalog_models", err)
 	}
+	providerRecord := catalogProviderRecordForSubject(modelCatalog, subjectUserID, provider)
 
 	descriptors := make([]*runtimev1.ConnectorModelDescriptor, 0, len(models))
 	for _, model := range models {
+		identity := remoteModelCatalogIdentityForConnector(rec, providerRecord, model)
 		descriptors = append(descriptors, &runtimev1.ConnectorModelDescriptor{
-			ModelId:      model.Model.ModelID,
-			ModelLabel:   model.Model.ModelID,
-			Available:    true,
-			Capabilities: catalogConnectorModelCapabilities(modelCatalog, subjectUserID, provider, model.Model.ModelID, model.Model.Capabilities),
+			ModelId:              model.Model.ModelID,
+			ModelLabel:           model.Model.ModelID,
+			Available:            true,
+			Capabilities:         catalogConnectorModelCapabilities(modelCatalog, subjectUserID, provider, model.Model.ModelID, model.Model.Capabilities),
+			RemoteModelCatalogId: identity.remoteModelCatalogID,
+			ProviderModelId:      model.Model.ModelID,
+			Provider:             provider,
+			ConnectorSnapshotId:  identity.connectorSnapshotID,
+			EndpointProfileId:    identity.endpointProfileID,
+			InventorySnapshotId:  identity.inventorySnapshotID,
 		})
 	}
 	return descriptors, nil
+}
+
+type remoteModelCatalogIdentity struct {
+	remoteModelCatalogID string
+	connectorSnapshotID  string
+	endpointProfileID    string
+	inventorySnapshotID  string
+}
+
+type RemoteModelCatalogRef struct {
+	ConnectorID          string
+	RemoteModelCatalogID string
+	ProviderModelID      string
+	Provider             string
+}
+
+type RemoteModelCatalogBinding struct {
+	ConnectorID          string
+	RemoteModelCatalogID string
+	ProviderModelID      string
+	Provider             string
+	EndpointProfileID    string
+	ConnectorSnapshotID  string
+	InventorySnapshotID  string
+}
+
+func ResolveRemoteModelCatalogRef(modelCatalog *aicatalog.Resolver, subjectUserID string, rec ConnectorRecord, ref RemoteModelCatalogRef) (string, error) {
+	binding, err := ResolveRemoteModelCatalogBinding(modelCatalog, subjectUserID, rec, ref)
+	if err != nil {
+		return "", err
+	}
+	return binding.ProviderModelID, nil
+}
+
+func ResolveRemoteModelCatalogBinding(modelCatalog *aicatalog.Resolver, subjectUserID string, rec ConnectorRecord, ref RemoteModelCatalogRef) (RemoteModelCatalogBinding, error) {
+	remoteModelCatalogID := strings.TrimSpace(ref.RemoteModelCatalogID)
+	if remoteModelCatalogID == "" {
+		return RemoteModelCatalogBinding{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_ID_REQUIRED)
+	}
+	provider := strings.TrimSpace(ref.Provider)
+	if provider == "" {
+		provider = strings.TrimSpace(rec.Provider)
+	}
+	if !strings.EqualFold(provider, strings.TrimSpace(rec.Provider)) {
+		return RemoteModelCatalogBinding{}, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE)
+	}
+	if connectorID := strings.TrimSpace(ref.ConnectorID); connectorID != "" && connectorID != strings.TrimSpace(rec.ConnectorID) {
+		return RemoteModelCatalogBinding{}, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE)
+	}
+	providerModelID := strings.TrimSpace(ref.ProviderModelID)
+	if providerModelID == "" {
+		return RemoteModelCatalogBinding{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MODEL_ID_REQUIRED)
+	}
+	if modelCatalog == nil {
+		return RemoteModelCatalogBinding{}, grpcerr.WithReasonCodeOptions(codes.Unavailable, runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID, grpcerr.ReasonOptions{
+			ActionHint: "configure_runtime_model_catalog_custom_dir",
+		})
+	}
+	models, _, err := modelCatalog.ListModelsForProviderForSubject(subjectUserID, provider)
+	if err != nil {
+		if errors.Is(err, aicatalog.ErrProviderUnsupported) {
+			return RemoteModelCatalogBinding{}, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE)
+		}
+		return RemoteModelCatalogBinding{}, err
+	}
+	providerRecord := catalogProviderRecordForSubject(modelCatalog, subjectUserID, provider)
+	for _, model := range models {
+		if strings.TrimSpace(model.Model.ModelID) != providerModelID {
+			continue
+		}
+		identity := remoteModelCatalogIdentityForConnector(rec, providerRecord, model)
+		if identity.remoteModelCatalogID != remoteModelCatalogID {
+			return RemoteModelCatalogBinding{}, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE)
+		}
+		return RemoteModelCatalogBinding{
+			ConnectorID:          strings.TrimSpace(rec.ConnectorID),
+			RemoteModelCatalogID: identity.remoteModelCatalogID,
+			ProviderModelID:      providerModelID,
+			Provider:             provider,
+			EndpointProfileID:    identity.endpointProfileID,
+			ConnectorSnapshotID:  identity.connectorSnapshotID,
+			InventorySnapshotID:  identity.inventorySnapshotID,
+		}, nil
+	}
+	return RemoteModelCatalogBinding{}, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE)
+}
+
+func catalogProviderRecordForSubject(modelCatalog *aicatalog.Resolver, subjectUserID string, provider string) aicatalog.CatalogProviderRecord {
+	if modelCatalog == nil {
+		return aicatalog.CatalogProviderRecord{Provider: strings.TrimSpace(provider)}
+	}
+	for _, record := range modelCatalog.ListProvidersForSubject(subjectUserID) {
+		if strings.EqualFold(strings.TrimSpace(record.Provider), strings.TrimSpace(provider)) {
+			return record
+		}
+	}
+	return aicatalog.CatalogProviderRecord{Provider: strings.TrimSpace(provider)}
+}
+
+func remoteModelCatalogIdentityForConnector(rec ConnectorRecord, providerRecord aicatalog.CatalogProviderRecord, model aicatalog.CatalogModelRecord) remoteModelCatalogIdentity {
+	provider := strings.TrimSpace(rec.Provider)
+	providerModelID := strings.TrimSpace(model.Model.ModelID)
+	connectorSnapshotID := stableID("connector-snapshot",
+		strings.TrimSpace(rec.ConnectorID),
+		provider,
+		strings.TrimSpace(rec.Endpoint),
+		rec.AuthKind.String(),
+		strings.TrimSpace(rec.ProviderAuthProfile),
+		strings.TrimSpace(rec.CredentialEnv),
+		fmt.Sprintf("%t", rec.HasCredential),
+	)
+	endpointProfileID := stableID("endpoint-profile",
+		provider,
+		strings.TrimSpace(rec.Endpoint),
+		rec.AuthKind.String(),
+		strings.TrimSpace(rec.ProviderAuthProfile),
+	)
+	inventorySnapshotID := stableID("remote-inventory",
+		provider,
+		fmt.Sprintf("%d", providerRecord.Version),
+		strings.TrimSpace(providerRecord.CatalogVersion),
+		fmt.Sprintf("%s", providerRecord.Source),
+		fmt.Sprintf("%s", model.Source),
+		fmt.Sprintf("%t", model.UserScoped),
+		strings.TrimSpace(providerRecord.OverlayUpdatedAt),
+	)
+	return remoteModelCatalogIdentity{
+		remoteModelCatalogID: stableID("remote-model-catalog",
+			strings.TrimSpace(rec.ConnectorID),
+			provider,
+			providerModelID,
+			connectorSnapshotID,
+			endpointProfileID,
+			inventorySnapshotID,
+		),
+		connectorSnapshotID: connectorSnapshotID,
+		endpointProfileID:   endpointProfileID,
+		inventorySnapshotID: inventorySnapshotID,
+	}
+}
+
+func stableID(namespace string, values ...string) string {
+	h := sha256.New()
+	_, _ = h.Write([]byte(strings.TrimSpace(namespace)))
+	for _, value := range values {
+		_, _ = h.Write([]byte{0})
+		_, _ = h.Write([]byte(strings.TrimSpace(value)))
+	}
+	sum := hex.EncodeToString(h.Sum(nil))
+	return strings.TrimSpace(namespace) + "_" + sum[:32]
 }
 
 func catalogConnectorModelCapabilities(
@@ -169,39 +280,4 @@ func catalogConnectorModelCapabilities(
 	appendIfSupported(runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE, aicapabilities.VoiceWorkflowVoiceClone)
 	appendIfSupported(runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN, aicapabilities.VoiceWorkflowVoiceDesign)
 	return capabilities
-}
-
-func modelMatchesCategory(model *runtimev1.LocalAssetRecord, category runtimev1.LocalConnectorCategory) bool {
-	caps := make(map[string]bool, len(model.GetCapabilities()))
-	for _, capability := range model.GetCapabilities() {
-		capLower := strings.ToLower(strings.TrimSpace(capability))
-		if capLower != "" {
-			caps[capLower] = true
-		}
-	}
-	hasAny := func(keys ...string) bool {
-		for _, key := range keys {
-			if caps[strings.ToLower(strings.TrimSpace(key))] {
-				return true
-			}
-		}
-		return false
-	}
-
-	switch category {
-	case runtimev1.LocalConnectorCategory_LOCAL_CONNECTOR_CATEGORY_LLM:
-		return hasAny("chat", "llm", "text", "text.generate")
-	case runtimev1.LocalConnectorCategory_LOCAL_CONNECTOR_CATEGORY_VISION:
-		return hasAny("vision", "vl", "multimodal", "image.understand", "audio_chat", "video_chat", "text.generate.vision", "text.generate.audio", "text.generate.video")
-	case runtimev1.LocalConnectorCategory_LOCAL_CONNECTOR_CATEGORY_IMAGE:
-		return hasAny("image", "image.generate")
-	case runtimev1.LocalConnectorCategory_LOCAL_CONNECTOR_CATEGORY_TTS:
-		return hasAny("tts", "audio.synthesize")
-	case runtimev1.LocalConnectorCategory_LOCAL_CONNECTOR_CATEGORY_STT:
-		return hasAny("stt", "speech.transcribe", "audio.transcribe")
-	case runtimev1.LocalConnectorCategory_LOCAL_CONNECTOR_CATEGORY_CUSTOM:
-		return strings.TrimSpace(model.GetLocalInvokeProfileId()) != "" || hasAny("custom")
-	default:
-		return true
-	}
 }

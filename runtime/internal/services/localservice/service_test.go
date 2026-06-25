@@ -305,7 +305,7 @@ func mustInstallUnsupportedSafetensorsNativeImageForTest(t *testing.T, svc *Serv
 		nil,
 		"runtime_model_ready_after_install",
 		"model installed",
-		false,
+		localAssetExistingPolicyFail,
 	)
 	if err != nil {
 		t.Fatalf("install unsupported safetensors native image: %v", err)
@@ -388,7 +388,7 @@ func TestLocalImportVideoModelRejectsManagedLoopbackEndpointOnAttachedOnlyHost(t
 	}
 }
 
-func TestLocalImportManifestRebindsExistingAssetEndpoint(t *testing.T) {
+func TestLocalImportManifestDuplicateCreatesDistinctAssetEndpoint(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
 	tmpDir := t.TempDir()
@@ -429,7 +429,7 @@ func TestLocalImportManifestRebindsExistingAssetEndpoint(t *testing.T) {
 		nil,
 		"runtime_model_imported",
 		manifestPath,
-		false,
+		localAssetExistingPolicyFail,
 	)
 	if err != nil {
 		t.Fatalf("seed existing asset: %v", err)
@@ -439,24 +439,34 @@ func TestLocalImportManifestRebindsExistingAssetEndpoint(t *testing.T) {
 		t.Fatalf("seed unhealthy status: %v", err)
 	}
 
-	rebound, err := svc.ImportLocalAsset(context.Background(), &runtimev1.ImportLocalAssetRequest{
+	imported, err := svc.ImportLocalAsset(context.Background(), &runtimev1.ImportLocalAssetRequest{
 		ManifestPath: manifestPath,
 		Endpoint:     "http://127.0.0.1:9321/v1",
 	})
 	if err != nil {
-		t.Fatalf("rebind import: %v", err)
+		t.Fatalf("duplicate manifest import: %v", err)
 	}
-	if rebound.GetAsset().GetLocalAssetId() != existing.GetLocalAssetId() {
-		t.Fatalf("rebind must preserve local_asset_id: got=%q want=%q", rebound.GetAsset().GetLocalAssetId(), existing.GetLocalAssetId())
+	if imported.GetAsset().GetLocalAssetId() == existing.GetLocalAssetId() {
+		t.Fatalf("duplicate import must mint a distinct local_asset_id: %q", imported.GetAsset().GetLocalAssetId())
 	}
-	if rebound.GetAsset().GetEndpoint() != "http://127.0.0.1:9321/v1" {
-		t.Fatalf("rebind endpoint mismatch: %q", rebound.GetAsset().GetEndpoint())
+	if imported.GetAsset().GetEndpoint() != "http://127.0.0.1:9321/v1" {
+		t.Fatalf("imported endpoint mismatch: %q", imported.GetAsset().GetEndpoint())
 	}
-	if rebound.GetAsset().GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED {
-		t.Fatalf("rebind should reset asset to installed, got %s", rebound.GetAsset().GetStatus())
+	if imported.GetAsset().GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED {
+		t.Fatalf("imported asset should be installed, got %s", imported.GetAsset().GetStatus())
 	}
-	if strings.TrimSpace(rebound.GetAsset().GetHealthDetail()) != "" {
-		t.Fatalf("rebind should clear stale health detail, got %q", rebound.GetAsset().GetHealthDetail())
+	if strings.TrimSpace(imported.GetAsset().GetHealthDetail()) != "" {
+		t.Fatalf("imported asset should not inherit stale health detail, got %q", imported.GetAsset().GetHealthDetail())
+	}
+	storedExisting := svc.modelByID(existing.GetLocalAssetId())
+	if storedExisting == nil {
+		t.Fatalf("expected existing asset to remain stored")
+	}
+	if storedExisting.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
+		t.Fatalf("existing asset status should remain unhealthy, got %s", storedExisting.GetStatus())
+	}
+	if storedExisting.GetEndpoint() == "http://127.0.0.1:9321/v1" {
+		t.Fatalf("duplicate import must not rewrite existing endpoint")
 	}
 }
 
@@ -490,7 +500,7 @@ func TestStartLocalModelAttachedLoopbackConfigFailsBeforeProbe(t *testing.T) {
 		nil,
 		"runtime_model_imported",
 		"seed bad media loopback asset",
-		false,
+		localAssetExistingPolicyFail,
 	)
 	if err != nil {
 		t.Fatalf("seed loopback asset: %v", err)
@@ -550,7 +560,7 @@ func TestCheckLocalAssetHealthAttachedLoopbackConfigFailsBeforeProbe(t *testing.
 		nil,
 		"runtime_model_imported",
 		"seed bad media loopback asset",
-		false,
+		localAssetExistingPolicyFail,
 	)
 	if err != nil {
 		t.Fatalf("seed loopback asset: %v", err)

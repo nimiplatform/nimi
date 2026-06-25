@@ -194,39 +194,17 @@ func TestConnectorCheckOrderOwnerBeforeStatusBeforeCredential(t *testing.T) {
 	}
 }
 
-func TestEnsureLocalConnectorsCreatesExactly6Categories(t *testing.T) {
-	// K-LOCAL-001: 6 fixed categories in Phase 1.
+func TestEnsureLocalConnectorsDoesNotCreateRetiredCategories(t *testing.T) {
+	// K-RTARGET-006: local connector categories are retired; startup no longer
+	// creates local ConnectorService records.
 	store := newTestStore(t)
 	if err := EnsureLocalConnectors(store); err != nil {
 		t.Fatalf("EnsureLocalConnectors: %v", err)
 	}
 
 	records, _ := store.Load()
-	if len(records) != 6 {
-		t.Fatalf("expected exactly 6 local connectors, got %d", len(records))
-	}
-
-	expectedCategories := map[runtimev1.LocalConnectorCategory]bool{
-		runtimev1.LocalConnectorCategory_LOCAL_CONNECTOR_CATEGORY_LLM:    false,
-		runtimev1.LocalConnectorCategory_LOCAL_CONNECTOR_CATEGORY_VISION: false,
-		runtimev1.LocalConnectorCategory_LOCAL_CONNECTOR_CATEGORY_IMAGE:  false,
-		runtimev1.LocalConnectorCategory_LOCAL_CONNECTOR_CATEGORY_TTS:    false,
-		runtimev1.LocalConnectorCategory_LOCAL_CONNECTOR_CATEGORY_STT:    false,
-		runtimev1.LocalConnectorCategory_LOCAL_CONNECTOR_CATEGORY_CUSTOM: false,
-	}
-
-	for _, record := range records {
-		cat := record.LocalCategory
-		if _, ok := expectedCategories[cat]; !ok {
-			t.Errorf("unexpected local connector category: %v", cat)
-		}
-		expectedCategories[cat] = true
-	}
-
-	for cat, found := range expectedCategories {
-		if !found {
-			t.Errorf("missing local connector category: %v", cat)
-		}
+	if len(records) != 0 {
+		t.Fatalf("expected no local connectors after hard cut, got %d", len(records))
 	}
 }
 

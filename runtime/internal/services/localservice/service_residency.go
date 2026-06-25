@@ -106,6 +106,25 @@ func (s *Service) AcquireLocalAssetLease(ctx context.Context, localAssetID strin
 	} else if readyModel != nil {
 		model = readyModel
 	}
+	if isManagedSupervisedImageModel(model, s.modelRuntimeMode(localAssetID)) {
+		health, err := s.checkManagedSupervisedImageHealthWithReason(ctx, model, defaultString(strings.TrimSpace(reason), "acquire_local_asset_lease"))
+		if err != nil {
+			return err
+		}
+		if health != nil && health.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
+			reasonCode := health.GetReasonCode()
+			if reasonCode == runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
+				reasonCode = runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE
+			}
+			return grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, reasonCode, grpcerr.ReasonOptions{
+				Message:    strings.TrimSpace(health.GetDetail()),
+				ActionHint: "inspect_local_runtime_model_health",
+			})
+		}
+		if refreshed := s.modelByID(localAssetID); refreshed != nil {
+			model = refreshed
+		}
+	}
 	s.recordLocalAssetUsage(model, strings.TrimSpace(reason), true)
 	s.observeLatency("runtime.local_assets.lease_acquire_ms", startedAt,
 		"local_asset_id", strings.TrimSpace(localAssetID),

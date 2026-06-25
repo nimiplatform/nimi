@@ -75,7 +75,7 @@ func testLocalBindingSnapshot(modelID string) *MemoryEmbeddingBindingIntentSnaps
 	return &MemoryEmbeddingBindingIntentSnapshot{
 		SourceKind: MemoryEmbeddingBindingSourceKindLocal,
 		LocalBinding: &MemoryEmbeddingLocalBindingRef{
-			LocalModelID: modelID,
+			ProfileBindingID: modelID,
 		},
 		RevisionToken: "rev-1",
 	}
@@ -85,8 +85,10 @@ func testCloudBindingSnapshot(connectorID string, modelID string) *MemoryEmbeddi
 	return &MemoryEmbeddingBindingIntentSnapshot{
 		SourceKind: MemoryEmbeddingBindingSourceKindCloud,
 		CloudBinding: &MemoryEmbeddingCloudBindingRef{
-			ConnectorID: connectorID,
-			ModelID:     modelID,
+			ConnectorID:          connectorID,
+			RemoteModelCatalogID: "remote-catalog:" + connectorID + ":" + modelID,
+			ProviderModelID:      modelID,
+			Provider:             "google",
 		},
 		RevisionToken: "rev-cloud-1",
 	}
@@ -242,7 +244,7 @@ func TestRequestCanonicalMemoryEmbeddingBindUsesRuntimeResolverProfile(t *testin
 	svc := newMemoryEmbeddingRuntimePrivateService(t)
 	locator := testMemoryEmbeddingLocator("agent-cloud-bind")
 	svc.SetRuntimeEmbeddingProfileResolver(func(_ context.Context, snapshot *MemoryEmbeddingBindingIntentSnapshot) MemoryEmbeddingResolvedProfile {
-		if snapshot == nil || snapshot.CloudBinding == nil || snapshot.CloudBinding.ModelID != "gemini-embedding-001" {
+		if snapshot == nil || snapshot.CloudBinding == nil || snapshot.CloudBinding.ProviderModelID != "gemini-embedding-001" {
 			return MemoryEmbeddingResolvedProfile{
 				ResolutionState:   memoryEmbeddingResolutionStateUnresolved,
 				BlockedReasonCode: runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE,

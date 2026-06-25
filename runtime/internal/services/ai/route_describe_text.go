@@ -45,6 +45,8 @@ type runtimeRouteDescribeResultPayload struct {
 	Capability         string                                   `json:"capability"`
 	MetadataVersion    string                                   `json:"metadataVersion"`
 	ResolvedBindingRef string                                   `json:"resolvedBindingRef"`
+	RouteMetadataRef   string                                   `json:"routeMetadataRef"`
+	SourceTargetRef    map[string]any                           `json:"sourceTargetRef,omitempty"`
 	MetadataKind       string                                   `json:"metadataKind"`
 	Metadata           textGenerateRouteDescribeMetadataPayload `json:"metadata"`
 }
@@ -76,6 +78,7 @@ func textGenerateRouteDescribeProbeFromExtensions(
 
 func (s *Service) writeTextGenerateRouteDescribeHeader(
 	ctx context.Context,
+	head *runtimev1.ScenarioRequestHead,
 	probe *textGenerateRouteDescribeProbe,
 	modelResolved string,
 	remoteTarget *nimillm.RemoteTarget,
@@ -85,7 +88,7 @@ func (s *Service) writeTextGenerateRouteDescribeHeader(
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 
-	metadataPayload, err := s.describeTextGenerateRouteMetadata(ctx, modelResolved, remoteTarget, selected, probe)
+	metadataPayload, err := s.describeTextGenerateRouteMetadata(ctx, head, modelResolved, remoteTarget, selected, probe)
 	if err != nil {
 		return err
 	}
@@ -105,6 +108,7 @@ func (s *Service) writeTextGenerateRouteDescribeHeader(
 
 func (s *Service) describeTextGenerateRouteMetadata(
 	ctx context.Context,
+	head *runtimev1.ScenarioRequestHead,
 	modelResolved string,
 	remoteTarget *nimillm.RemoteTarget,
 	selected provider,
@@ -166,6 +170,8 @@ func (s *Service) describeTextGenerateRouteMetadata(
 		Capability:         aicapabilities.TextGenerate,
 		MetadataVersion:    "v1",
 		ResolvedBindingRef: probe.resolvedBindingRef,
+		RouteMetadataRef:   routeMetadataRefForResolvedBinding(aicapabilities.TextGenerate, probe.resolvedBindingRef),
+		SourceTargetRef:    runtimeDurableTargetRefJSON(head.GetTargetRef()),
 		MetadataKind:       aicapabilities.TextGenerate,
 		Metadata: textGenerateRouteDescribeMetadataPayload{
 			SupportsThinking:         reasoningCapability.SupportsModeToggle,

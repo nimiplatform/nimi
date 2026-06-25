@@ -217,7 +217,7 @@ func validateManagedMediaProfileSlotCompatibility(resolution managedMediaProfile
 		case "vae_path":
 			assetFamily := strings.TrimSpace(slotAsset.Asset.GetFamily())
 			if !managedImageVAEFamilyCompatibleWithImageFamily(mainFamily, assetFamily) {
-				return grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_ASSET_SLOT_MISSING, grpcerr.ReasonOptions{
+				return grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_COMPONENT_INCOMPATIBLE, grpcerr.ReasonOptions{
 					Message:    fmt.Sprintf("slot %q asset family %q is not compatible with main image family %q", slot, assetFamily, mainFamily),
 					ActionHint: "select_compatible_profile_slot_asset",
 				})

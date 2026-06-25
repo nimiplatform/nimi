@@ -75,8 +75,10 @@ func TestResolveCloudRuntimeMemoryEmbeddingProfileFailsClosedWithoutCatalog(t *t
 	snapshot := &memoryservice.MemoryEmbeddingBindingIntentSnapshot{
 		SourceKind: memoryservice.MemoryEmbeddingBindingSourceKindCloud,
 		CloudBinding: &memoryservice.MemoryEmbeddingCloudBindingRef{
-			ConnectorID: "conn-1",
-			ModelID:     "text-embedding-3-large",
+			ConnectorID:          "conn-1",
+			RemoteModelCatalogID: "remote-catalog:conn-1:text-embedding-3-large",
+			ProviderModelID:      "text-embedding-3-large",
+			Provider:             "openai",
 		},
 	}
 	// connStore and modelCatalog nil -> unavailable fail-close, never a
@@ -96,7 +98,7 @@ func TestResolveLocalRuntimeMemoryEmbeddingProfileFailsClosedWithoutCatalog(t *t
 	snapshot := &memoryservice.MemoryEmbeddingBindingIntentSnapshot{
 		SourceKind: memoryservice.MemoryEmbeddingBindingSourceKindLocal,
 		LocalBinding: &memoryservice.MemoryEmbeddingLocalBindingRef{
-			LocalModelID: "nomic-embed-text-local",
+			ProfileBindingID: "nomic-embed-text-local",
 		},
 	}
 	// localSvc nil already fails closed; assert that a nil catalog also yields a

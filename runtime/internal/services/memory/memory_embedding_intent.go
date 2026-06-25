@@ -60,9 +60,17 @@ func normalizeMemoryEmbeddingBindingIntentForPersist(input *MemoryEmbeddingBindi
 		if normalized.CloudBinding == nil || normalized.LocalBinding != nil {
 			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 		}
+		if strings.TrimSpace(normalized.CloudBinding.ConnectorID) == "" ||
+			strings.TrimSpace(normalized.CloudBinding.RemoteModelCatalogID) == "" ||
+			strings.TrimSpace(normalized.CloudBinding.ProviderModelID) == "" {
+			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEMORY_EMBEDDING_TARGET_REF_INVALID)
+		}
 	case MemoryEmbeddingBindingSourceKindLocal:
 		if normalized.LocalBinding == nil || normalized.CloudBinding != nil {
 			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		}
+		if (strings.TrimSpace(normalized.LocalBinding.ProfileBindingID) == "") == (strings.TrimSpace(normalized.LocalBinding.ReadinessRef) == "") {
+			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEMORY_EMBEDDING_TARGET_REF_INVALID)
 		}
 	default:
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
@@ -80,14 +88,20 @@ func memoryEmbeddingIntentToProto(input *MemoryEmbeddingBindingIntentSnapshot) *
 	}
 	if input.CloudBinding != nil {
 		out.CloudBinding = &runtimev1.MemoryEmbeddingCloudBindingRef{
-			ConnectorId: strings.TrimSpace(input.CloudBinding.ConnectorID),
-			ModelId:     strings.TrimSpace(input.CloudBinding.ModelID),
+			ConnectorId:          strings.TrimSpace(input.CloudBinding.ConnectorID),
+			RemoteModelCatalogId: strings.TrimSpace(input.CloudBinding.RemoteModelCatalogID),
+			ProviderModelId:      strings.TrimSpace(input.CloudBinding.ProviderModelID),
+			Provider:             strings.TrimSpace(input.CloudBinding.Provider),
 		}
 	}
 	if input.LocalBinding != nil {
-		out.LocalBinding = &runtimev1.MemoryEmbeddingLocalBindingRef{
-			TargetId: strings.TrimSpace(input.LocalBinding.LocalModelID),
+		localBinding := &runtimev1.MemoryEmbeddingLocalBindingRef{}
+		if profileBindingID := strings.TrimSpace(input.LocalBinding.ProfileBindingID); profileBindingID != "" {
+			localBinding.Ref = &runtimev1.MemoryEmbeddingLocalBindingRef_ProfileBindingId{ProfileBindingId: profileBindingID}
+		} else if readinessRef := strings.TrimSpace(input.LocalBinding.ReadinessRef); readinessRef != "" {
+			localBinding.Ref = &runtimev1.MemoryEmbeddingLocalBindingRef_ReadinessRef{ReadinessRef: readinessRef}
 		}
+		out.LocalBinding = localBinding
 	}
 	return out
 }
@@ -103,8 +117,10 @@ func memoryEmbeddingIntentFromProto(input *runtimev1.MemoryEmbeddingBindingInten
 				return nil
 			}
 			return &MemoryEmbeddingCloudBindingRef{
-				ConnectorID: strings.TrimSpace(input.GetCloudBinding().GetConnectorId()),
-				ModelID:     strings.TrimSpace(input.GetCloudBinding().GetModelId()),
+				ConnectorID:          strings.TrimSpace(input.GetCloudBinding().GetConnectorId()),
+				RemoteModelCatalogID: strings.TrimSpace(input.GetCloudBinding().GetRemoteModelCatalogId()),
+				ProviderModelID:      strings.TrimSpace(input.GetCloudBinding().GetProviderModelId()),
+				Provider:             strings.TrimSpace(input.GetCloudBinding().GetProvider()),
 			}
 		}(),
 		LocalBinding: func() *MemoryEmbeddingLocalBindingRef {
@@ -112,7 +128,8 @@ func memoryEmbeddingIntentFromProto(input *runtimev1.MemoryEmbeddingBindingInten
 				return nil
 			}
 			return &MemoryEmbeddingLocalBindingRef{
-				LocalModelID: strings.TrimSpace(input.GetLocalBinding().GetTargetId()),
+				ProfileBindingID: strings.TrimSpace(input.GetLocalBinding().GetProfileBindingId()),
+				ReadinessRef:     strings.TrimSpace(input.GetLocalBinding().GetReadinessRef()),
 			}
 		}(),
 		RevisionToken: strings.TrimSpace(input.GetRevisionToken()),

@@ -19,12 +19,15 @@ const (
 )
 
 type MemoryEmbeddingCloudBindingRef struct {
-	ConnectorID string
-	ModelID     string
+	ConnectorID          string
+	RemoteModelCatalogID string
+	ProviderModelID      string
+	Provider             string
 }
 
 type MemoryEmbeddingLocalBindingRef struct {
-	LocalModelID string
+	ProfileBindingID string
+	ReadinessRef     string
 }
 
 type MemoryEmbeddingBindingIntentSnapshot struct {
@@ -127,13 +130,17 @@ func normalizeMemoryEmbeddingCloudBinding(input *MemoryEmbeddingCloudBindingRef)
 		return nil
 	}
 	connectorID := strings.TrimSpace(input.ConnectorID)
-	modelID := strings.TrimSpace(input.ModelID)
-	if connectorID == "" && modelID == "" {
+	remoteModelCatalogID := strings.TrimSpace(input.RemoteModelCatalogID)
+	providerModelID := strings.TrimSpace(input.ProviderModelID)
+	provider := strings.TrimSpace(input.Provider)
+	if connectorID == "" && remoteModelCatalogID == "" && providerModelID == "" && provider == "" {
 		return nil
 	}
 	return &MemoryEmbeddingCloudBindingRef{
-		ConnectorID: connectorID,
-		ModelID:     modelID,
+		ConnectorID:          connectorID,
+		RemoteModelCatalogID: remoteModelCatalogID,
+		ProviderModelID:      providerModelID,
+		Provider:             provider,
 	}
 }
 
@@ -141,11 +148,15 @@ func normalizeMemoryEmbeddingLocalBinding(input *MemoryEmbeddingLocalBindingRef)
 	if input == nil {
 		return nil
 	}
-	localModelID := strings.TrimSpace(input.LocalModelID)
-	if localModelID == "" {
+	profileBindingID := strings.TrimSpace(input.ProfileBindingID)
+	readinessRef := strings.TrimSpace(input.ReadinessRef)
+	if profileBindingID == "" && readinessRef == "" {
 		return nil
 	}
-	return &MemoryEmbeddingLocalBindingRef{LocalModelID: localModelID}
+	return &MemoryEmbeddingLocalBindingRef{
+		ProfileBindingID: profileBindingID,
+		ReadinessRef:     readinessRef,
+	}
 }
 
 func normalizeMemoryEmbeddingIntentSnapshot(input *MemoryEmbeddingBindingIntentSnapshot) *MemoryEmbeddingBindingIntentSnapshot {
@@ -158,6 +169,16 @@ func normalizeMemoryEmbeddingIntentSnapshot(input *MemoryEmbeddingBindingIntentS
 		LocalBinding:  normalizeMemoryEmbeddingLocalBinding(input.LocalBinding),
 		RevisionToken: strings.TrimSpace(input.RevisionToken),
 	}
+}
+
+func memoryEmbeddingLocalBindingToken(input *MemoryEmbeddingLocalBindingRef) string {
+	if input == nil {
+		return ""
+	}
+	if value := strings.TrimSpace(input.ProfileBindingID); value != "" {
+		return value
+	}
+	return strings.TrimSpace(input.ReadinessRef)
 }
 
 func memoryEmbeddingBlockedReasonForResolutionState(state string, sourceKind MemoryEmbeddingBindingSourceKind) runtimev1.ReasonCode {
@@ -188,8 +209,10 @@ func cloneMemoryEmbeddingIntentSnapshot(input *MemoryEmbeddingBindingIntentSnaps
 				return nil
 			}
 			return &MemoryEmbeddingCloudBindingRef{
-				ConnectorID: input.CloudBinding.ConnectorID,
-				ModelID:     input.CloudBinding.ModelID,
+				ConnectorID:          input.CloudBinding.ConnectorID,
+				RemoteModelCatalogID: input.CloudBinding.RemoteModelCatalogID,
+				ProviderModelID:      input.CloudBinding.ProviderModelID,
+				Provider:             input.CloudBinding.Provider,
 			}
 		}(),
 		LocalBinding: func() *MemoryEmbeddingLocalBindingRef {
@@ -197,7 +220,8 @@ func cloneMemoryEmbeddingIntentSnapshot(input *MemoryEmbeddingBindingIntentSnaps
 				return nil
 			}
 			return &MemoryEmbeddingLocalBindingRef{
-				LocalModelID: input.LocalBinding.LocalModelID,
+				ProfileBindingID: input.LocalBinding.ProfileBindingID,
+				ReadinessRef:     input.LocalBinding.ReadinessRef,
 			}
 		}(),
 		RevisionToken: input.RevisionToken,
@@ -245,7 +269,7 @@ func (s *Service) resolveMemoryEmbeddingProfile(ctx context.Context, snapshot *M
 		if strings.TrimSpace(managed.GetProvider()) != "local" {
 			return nil, memoryEmbeddingResolutionStateUnresolved, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE
 		}
-		if strings.TrimSpace(managed.GetModelId()) != strings.TrimSpace(normalized.LocalBinding.LocalModelID) {
+		if strings.TrimSpace(managed.GetModelId()) != memoryEmbeddingLocalBindingToken(normalized.LocalBinding) {
 			return nil, memoryEmbeddingResolutionStateUnresolved, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE
 		}
 		return managed, memoryEmbeddingResolutionStateResolved, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED
@@ -256,7 +280,7 @@ func (s *Service) resolveMemoryEmbeddingProfile(ctx context.Context, snapshot *M
 		if strings.TrimSpace(managed.GetProvider()) == "local" {
 			return nil, memoryEmbeddingResolutionStateUnresolved, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE
 		}
-		if strings.TrimSpace(managed.GetModelId()) != strings.TrimSpace(normalized.CloudBinding.ModelID) {
+		if strings.TrimSpace(managed.GetModelId()) != strings.TrimSpace(normalized.CloudBinding.ProviderModelID) {
 			return nil, memoryEmbeddingResolutionStateUnresolved, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE
 		}
 		return managed, memoryEmbeddingResolutionStateResolved, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED

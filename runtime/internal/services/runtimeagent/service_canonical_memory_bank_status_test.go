@@ -73,7 +73,7 @@ func TestRuntimeAgentOwnsCanonicalMemoryBankStatusAndBind(t *testing.T) {
 		BindingIntent: &memoryservice.MemoryEmbeddingBindingIntentSnapshot{
 			SourceKind: memoryservice.MemoryEmbeddingBindingSourceKindLocal,
 			LocalBinding: &memoryservice.MemoryEmbeddingLocalBindingRef{
-				LocalModelID: "nimi-embed",
+				ProfileBindingID: "nimi-embed",
 			},
 			RevisionToken: "rev-memory-bank",
 		},

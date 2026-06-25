@@ -226,6 +226,14 @@ func isSupervisedSpeechInstallPlan(engine string, mode runtimev1.LocalEngineRunt
 		normalizeRuntimeMode(mode) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED
 }
 
+type localAssetExistingPolicy int
+
+const (
+	localAssetExistingPolicyFail localAssetExistingPolicy = iota
+	localAssetExistingPolicyDuplicate
+	localAssetExistingPolicyRebind
+)
+
 func (s *Service) installLocalAssetRecord(
 	modelID string,
 	kind runtimev1.LocalAssetKind,
@@ -243,7 +251,7 @@ func (s *Service) installLocalAssetRecord(
 	projectionOverride *modelregistry.NativeProjection,
 	auditEventType string,
 	auditDetail string,
-	allowExistingRebind bool,
+	existingPolicy localAssetExistingPolicy,
 ) (*runtimev1.LocalAssetRecord, error) {
 	capabilities = normalizeAssetCapabilities(capabilities)
 	if kind == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED {
@@ -340,65 +348,62 @@ func (s *Service) installLocalAssetRecord(
 			continue
 		}
 		if localAssetIdentityKey(existing.GetAssetId(), effectiveAssetKind(existing.GetKind(), existing.GetCapabilities()), existing.GetEngine()) == assetKey {
-			if !allowExistingRebind {
+			switch existingPolicy {
+			case localAssetExistingPolicyDuplicate:
+				continue
+			case localAssetExistingPolicyRebind:
+				cloned := cloneLocalAsset(existing)
+				cloned.AssetId = record.GetAssetId()
+				cloned.Kind = record.GetKind()
+				cloned.Capabilities = append([]string(nil), record.GetCapabilities()...)
+				cloned.Engine = record.GetEngine()
+				cloned.Entry = record.GetEntry()
+				cloned.License = record.GetLicense()
+				if record.GetSource() != nil {
+					cloned.Source = &runtimev1.LocalAssetSource{
+						Repo:     record.GetSource().GetRepo(),
+						Revision: record.GetSource().GetRevision(),
+					}
+				} else {
+					cloned.Source = nil
+				}
+				cloned.Hashes = cloneStringMap(record.GetHashes())
+				cloned.Status = runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED
+				cloned.UpdatedAt = now
+				cloned.HealthDetail = ""
+				cloned.LocalInvokeProfileId = record.GetLocalInvokeProfileId()
+				cloned.EngineConfig = cloneStruct(record.GetEngineConfig())
+				cloned.LogicalModelId = record.GetLogicalModelId()
+				cloned.Family = record.GetFamily()
+				cloned.ArtifactRoles = append([]string(nil), record.GetArtifactRoles()...)
+				cloned.PreferredEngine = record.GetPreferredEngine()
+				cloned.FallbackEngines = append([]string(nil), record.GetFallbackEngines()...)
+				cloned.BundleState = record.GetBundleState()
+				cloned.WarmState = record.GetWarmState()
+				cloned.HostRequirements = cloneHostRequirements(record.GetHostRequirements())
+				cloned.Endpoint = record.GetEndpoint()
+				s.assets[cloned.GetLocalAssetId()] = cloneLocalAsset(cloned)
+				s.setModelRuntimeModeLocked(cloned.GetLocalAssetId(), mode)
+				delete(s.assetProbeState, cloned.GetLocalAssetId())
+				s.appendRuntimeAuditLocked(&runtimev1.LocalAuditEvent{
+					Id:           "audit_" + ulid.Make().String(),
+					EventType:    auditEventType,
+					OccurredAt:   now,
+					Source:       "local",
+					Modality:     firstCapability(cloned.GetCapabilities()),
+					ModelId:      cloned.GetAssetId(),
+					LocalModelId: cloned.GetLocalAssetId(),
+					Detail:       auditDetail,
+				})
+				s.mu.Unlock()
+				if syncErr := s.SyncManagedLlamaAssets(context.Background()); syncErr != nil {
+					s.logger.Warn("sync llama assets after model mutation failed", "model_id", cloned.GetAssetId(), "error", syncErr)
+				}
+				return cloned, nil
+			default:
 				s.mu.Unlock()
 				return nil, grpcerr.WithReasonCode(codes.AlreadyExists, runtimev1.ReasonCode_AI_LOCAL_ASSET_ALREADY_INSTALLED)
 			}
-			cloned := cloneLocalAsset(existing)
-			cloned.AssetId = modelID
-			cloned.Kind = kind
-			cloned.Capabilities = append([]string(nil), capabilities...)
-			cloned.Engine = engine
-			cloned.Entry = entry
-			cloned.License = license
-			cloned.Source = &runtimev1.LocalAssetSource{
-				Repo:     repo,
-				Revision: revision,
-			}
-			cloned.Hashes = cloneStringMap(hashes)
-			cloned.Status = runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED
-			cloned.UpdatedAt = now
-			cloned.HealthDetail = ""
-			cloned.LocalInvokeProfileId = strings.TrimSpace(localInvokeProfileID)
-			cloned.EngineConfig = cloneStruct(engineConfig)
-			cloned.LogicalModelId = projection.LogicalModelID
-			cloned.Family = projection.Family
-			cloned.ArtifactRoles = append([]string(nil), projection.ArtifactRoles...)
-			cloned.PreferredEngine = projection.PreferredEngine
-			cloned.FallbackEngines = append([]string(nil), projection.FallbackEngines...)
-			cloned.BundleState = projection.BundleState
-			cloned.WarmState = projection.WarmState
-			cloned.HostRequirements = cloneHostRequirements(projection.HostRequirements)
-			cloned.Endpoint = storedEndpointForAssetRuntimeMode(
-				engine,
-				capabilities,
-				kind,
-				mode,
-				endpoint,
-				s.managedEndpointForAssetLocked(engine, capabilities, kind),
-			)
-			if normalizeRuntimeMode(mode) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED &&
-				isCanonicalSupervisedImageAsset(engine, capabilities, kind) {
-				cloned.HealthDetail = managedLocalImagePendingValidationDetail("")
-			}
-			s.assets[cloned.GetLocalAssetId()] = cloneLocalAsset(cloned)
-			s.setModelRuntimeModeLocked(cloned.GetLocalAssetId(), mode)
-			delete(s.assetProbeState, cloned.GetLocalAssetId())
-			s.appendRuntimeAuditLocked(&runtimev1.LocalAuditEvent{
-				Id:           "audit_" + ulid.Make().String(),
-				EventType:    auditEventType,
-				OccurredAt:   now,
-				Source:       "local",
-				Modality:     firstCapability(cloned.GetCapabilities()),
-				ModelId:      cloned.GetAssetId(),
-				LocalModelId: cloned.GetLocalAssetId(),
-				Detail:       auditDetail,
-			})
-			s.mu.Unlock()
-			if syncErr := s.SyncManagedLlamaAssets(context.Background()); syncErr != nil {
-				s.logger.Warn("sync llama assets after model mutation failed", "model_id", cloned.GetAssetId(), "error", syncErr)
-			}
-			return cloned, nil
 		}
 	}
 	s.assets[record.GetLocalAssetId()] = cloneLocalAsset(record)
@@ -534,7 +539,7 @@ func (s *Service) installLocalAsset(ctx context.Context, params installLocalAsse
 		nil,
 		"runtime_model_ready_after_install",
 		"model installed",
-		false,
+		localAssetExistingPolicyFail,
 	)
 	if err != nil {
 		return nil, err
@@ -711,7 +716,7 @@ func (s *Service) installVerifiedAssetByTemplateID(ctx context.Context, template
 		},
 		"runtime_model_ready_after_install",
 		"model installed",
-		false,
+		localAssetExistingPolicyFail,
 	)
 	if err != nil {
 		return nil, err

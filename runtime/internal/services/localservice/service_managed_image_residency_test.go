@@ -2,6 +2,7 @@ package localservice
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -118,6 +119,100 @@ func TestManagedImageStartLocalAssetPreloadReusesCanonicalAliasForGenerate(t *te
 	if loadCalls != 1 {
 		t.Fatalf("expected generate_request to reuse preloaded resident load, got %d loads", loadCalls)
 	}
+}
+
+func TestEnsureManagedMediaImageLoadedClassifiesBackendShapeValidationAsComponentIncompatible(t *testing.T) {
+	svc := newTestService(t)
+	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
+	setManagedImageHostForTest(t, "Apple M4 Max")
+	svc.SetManagedImageBackendConfig(true, "127.0.0.1:50052")
+	svc.SetManagedImageBackendHealth(true, "image backend active")
+
+	svc.managedImageLoadModel = func(_ context.Context, _ managedimagebackend.LoadModelRequest) (*managedimagebackend.LoadModelDiagnostics, error) {
+		return nil, errors.New(`VAE tensor "first_stage_model.decoder.conv_in.weight" has wrong shape in model metadata: got [3,3,32,512], expected [3,3,16,512]; model metadata validation failed`)
+	}
+
+	asset := mustImportManagedImageAssetForTest(t, svc, "nimi/image-load-incompatible-vae")
+	profile := cacheManagedImageProfileForTest(t, svc, asset.GetLocalAssetId())
+	_, err := svc.EnsureManagedMediaImageLoaded(context.Background(), "media/"+asset.GetAssetId(), "", profile, nil, "generate_request")
+	if err == nil {
+		t.Fatal("expected managed image load validation failure")
+	}
+	assertGRPCReasonCode(t, err, "EnsureManagedMediaImageLoaded(incompatible backend validation)", runtimev1.ReasonCode_AI_LOCAL_COMPONENT_INCOMPATIBLE)
+}
+
+func TestStartLocalAssetProjectsBackendShapeValidationAsComponentIncompatible(t *testing.T) {
+	svc := newTestService(t)
+	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
+	setManagedImageHostForTest(t, "Apple M4 Max")
+	svc.SetManagedImageBackendConfig(true, "127.0.0.1:50052")
+	svc.SetManagedImageBackendHealth(true, "image backend active")
+
+	svc.managedImageLoadModel = func(_ context.Context, _ managedimagebackend.LoadModelRequest) (*managedimagebackend.LoadModelDiagnostics, error) {
+		return nil, errors.New(`VAE tensor "first_stage_model.encoder.conv_out.weight" has wrong shape in model metadata: got [3,3,512,64], expected [3,3,512,32]; model metadata validation failed`)
+	}
+
+	asset := mustImportManagedImageAssetForTest(t, svc, "nimi/image-start-incompatible-vae")
+	cacheManagedImageProfileForTest(t, svc, asset.GetLocalAssetId())
+	started, err := svc.StartLocalAsset(context.Background(), &runtimev1.StartLocalAssetRequest{
+		LocalAssetId: asset.GetLocalAssetId(),
+	})
+	if err != nil {
+		t.Fatalf("StartLocalAsset should return unhealthy asset state, got transport error: %v", err)
+	}
+	if started.GetAsset().GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
+		t.Fatalf("asset status = %s, want unhealthy", started.GetAsset().GetStatus())
+	}
+	if started.GetAsset().GetReasonCode() != runtimev1.ReasonCode_AI_LOCAL_COMPONENT_INCOMPATIBLE {
+		t.Fatalf("asset reason = %s, want %s", started.GetAsset().GetReasonCode(), runtimev1.ReasonCode_AI_LOCAL_COMPONENT_INCOMPATIBLE)
+	}
+}
+
+func TestCheckLocalAssetHealthProjectsBackendShapeValidationAsComponentIncompatible(t *testing.T) {
+	svc := newTestService(t)
+	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
+	setManagedImageHostForTest(t, "Apple M4 Max")
+	svc.SetManagedImageBackendConfig(true, "127.0.0.1:50052")
+	svc.SetManagedImageBackendHealth(true, "image backend active")
+
+	svc.managedImageLoadModel = func(_ context.Context, _ managedimagebackend.LoadModelRequest) (*managedimagebackend.LoadModelDiagnostics, error) {
+		return nil, errors.New(`VAE tensor "first_stage_model.decoder.conv_in.weight" has wrong shape in model metadata; model metadata validation failed`)
+	}
+
+	asset := mustImportManagedImageAssetForTest(t, svc, "nimi/image-health-incompatible-vae")
+	cacheManagedImageProfileForTest(t, svc, asset.GetLocalAssetId())
+	health, err := svc.CheckLocalAssetHealth(context.Background(), &runtimev1.CheckLocalAssetHealthRequest{
+		LocalAssetId: asset.GetLocalAssetId(),
+	})
+	if err != nil {
+		t.Fatalf("CheckLocalAssetHealth should return unhealthy asset state, got transport error: %v", err)
+	}
+	if len(health.GetAssets()) != 1 {
+		t.Fatalf("health assets = %d, want 1", len(health.GetAssets()))
+	}
+	if health.GetAssets()[0].GetReasonCode() != runtimev1.ReasonCode_AI_LOCAL_COMPONENT_INCOMPATIBLE {
+		t.Fatalf("health reason = %s, want %s", health.GetAssets()[0].GetReasonCode(), runtimev1.ReasonCode_AI_LOCAL_COMPONENT_INCOMPATIBLE)
+	}
+}
+
+func TestAcquireLocalAssetLeaseRejectsBackendShapeValidationAsComponentIncompatible(t *testing.T) {
+	svc := newTestService(t)
+	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
+	setManagedImageHostForTest(t, "Apple M4 Max")
+	svc.SetManagedImageBackendConfig(true, "127.0.0.1:50052")
+	svc.SetManagedImageBackendHealth(true, "image backend active")
+
+	svc.managedImageLoadModel = func(_ context.Context, _ managedimagebackend.LoadModelRequest) (*managedimagebackend.LoadModelDiagnostics, error) {
+		return nil, errors.New(`VAE tensor "first_stage_model.encoder.conv_out.weight" has wrong shape in model metadata; model metadata validation failed`)
+	}
+
+	asset := mustImportManagedImageAssetForTest(t, svc, "nimi/image-lease-incompatible-vae")
+	cacheManagedImageProfileForTest(t, svc, asset.GetLocalAssetId())
+	err := svc.AcquireLocalAssetLease(context.Background(), asset.GetLocalAssetId(), "scenario_media_request")
+	if err == nil {
+		t.Fatal("expected AcquireLocalAssetLease to reject incompatible managed image component")
+	}
+	assertGRPCReasonCode(t, err, "AcquireLocalAssetLease(incompatible backend validation)", runtimev1.ReasonCode_AI_LOCAL_COMPONENT_INCOMPATIBLE)
 }
 
 func TestEnsureManagedMediaImageLoadedUsesBoundedLoadTimeout(t *testing.T) {

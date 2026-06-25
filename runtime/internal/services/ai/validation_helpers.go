@@ -122,6 +122,9 @@ func (s *Service) prepareScenarioRequestWithExtensionsAndLocalPlan(ctx context.C
 	if head == nil {
 		return nil, nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
+	if err := s.normalizeScenarioRuntimeTargetRef(ctx, head); err != nil {
+		return nil, nil, err
+	}
 
 	parsed := parseKeySource(ctx, head.GetConnectorId())
 	if err := validateKeySource(parsed, head.GetAppId()); err != nil {

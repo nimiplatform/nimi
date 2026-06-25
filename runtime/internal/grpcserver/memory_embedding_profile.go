@@ -8,6 +8,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	catalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	connectorservice "github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	localservice "github.com/nimiplatform/nimi/runtime/internal/services/localservice"
 	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
@@ -50,18 +51,21 @@ func normalizeMemoryEmbeddingBindingIntentSnapshot(input *memoryservice.MemoryEm
 	}
 	if input.CloudBinding != nil {
 		out.CloudBinding = &memoryservice.MemoryEmbeddingCloudBindingRef{
-			ConnectorID: strings.TrimSpace(input.CloudBinding.ConnectorID),
-			ModelID:     strings.TrimSpace(input.CloudBinding.ModelID),
+			ConnectorID:          strings.TrimSpace(input.CloudBinding.ConnectorID),
+			RemoteModelCatalogID: strings.TrimSpace(input.CloudBinding.RemoteModelCatalogID),
+			ProviderModelID:      strings.TrimSpace(input.CloudBinding.ProviderModelID),
+			Provider:             strings.TrimSpace(input.CloudBinding.Provider),
 		}
-		if out.CloudBinding.ConnectorID == "" && out.CloudBinding.ModelID == "" {
+		if out.CloudBinding.ConnectorID == "" && out.CloudBinding.RemoteModelCatalogID == "" && out.CloudBinding.ProviderModelID == "" && out.CloudBinding.Provider == "" {
 			out.CloudBinding = nil
 		}
 	}
 	if input.LocalBinding != nil {
 		out.LocalBinding = &memoryservice.MemoryEmbeddingLocalBindingRef{
-			LocalModelID: strings.TrimSpace(input.LocalBinding.LocalModelID),
+			ProfileBindingID: strings.TrimSpace(input.LocalBinding.ProfileBindingID),
+			ReadinessRef:     strings.TrimSpace(input.LocalBinding.ReadinessRef),
 		}
-		if out.LocalBinding.LocalModelID == "" {
+		if out.LocalBinding.ProfileBindingID == "" && out.LocalBinding.ReadinessRef == "" {
 			out.LocalBinding = nil
 		}
 	}
@@ -119,7 +123,10 @@ func resolveLocalRuntimeMemoryEmbeddingProfile(
 			BlockedReasonCode: runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE,
 		}
 	}
-	targetID := strings.TrimSpace(snapshot.LocalBinding.LocalModelID)
+	targetID := strings.TrimSpace(snapshot.LocalBinding.ProfileBindingID)
+	if targetID == "" {
+		targetID = strings.TrimSpace(snapshot.LocalBinding.ReadinessRef)
+	}
 	for _, asset := range resp.GetAssets() {
 		if asset == nil {
 			continue
@@ -188,7 +195,8 @@ func resolveCloudRuntimeMemoryEmbeddingProfile(
 		}
 	}
 	connectorID := strings.TrimSpace(snapshot.CloudBinding.ConnectorID)
-	modelID := strings.TrimSpace(snapshot.CloudBinding.ModelID)
+	remoteModelCatalogID := strings.TrimSpace(snapshot.CloudBinding.RemoteModelCatalogID)
+	providerModelID := strings.TrimSpace(snapshot.CloudBinding.ProviderModelID)
 	record, found, err := connStore.Get(connectorID)
 	if err != nil {
 		return memoryservice.MemoryEmbeddingResolvedProfile{
@@ -207,13 +215,27 @@ func resolveCloudRuntimeMemoryEmbeddingProfile(
 		}
 	}
 	providerID := strings.TrimSpace(record.Provider)
-	if providerID == "" || modelID == "" {
+	if providerID == "" || providerModelID == "" || remoteModelCatalogID == "" {
 		return memoryservice.MemoryEmbeddingResolvedProfile{
 			ResolutionState:   "unresolved",
-			BlockedReasonCode: runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE,
+			BlockedReasonCode: runtimev1.ReasonCode_AI_MEMORY_EMBEDDING_TARGET_REF_INVALID,
 		}
 	}
-	supported, supportErr := modelCatalog.SupportsCapabilityForSubject("", providerID, modelID, "text.embed")
+	subjectUserID := memoryEmbeddingSubjectUserID(ctx)
+	binding, bindingErr := connectorservice.ResolveRemoteModelCatalogBinding(modelCatalog, subjectUserID, record, connectorservice.RemoteModelCatalogRef{
+		ConnectorID:          connectorID,
+		RemoteModelCatalogID: remoteModelCatalogID,
+		ProviderModelID:      providerModelID,
+		Provider:             strings.TrimSpace(snapshot.CloudBinding.Provider),
+	})
+	if bindingErr != nil {
+		return memoryservice.MemoryEmbeddingResolvedProfile{
+			ResolutionState:   "unresolved",
+			BlockedReasonCode: memoryEmbeddingReasonCodeFromError(bindingErr, runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE),
+		}
+	}
+	modelID := strings.TrimSpace(binding.ProviderModelID)
+	supported, supportErr := modelCatalog.SupportsCapabilityForSubject(subjectUserID, providerID, modelID, "text.embed")
 	if supportErr != nil && !errors.Is(supportErr, catalog.ErrModelNotFound) {
 		return memoryservice.MemoryEmbeddingResolvedProfile{
 			ResolutionState:   "unavailable",
@@ -269,6 +291,23 @@ func memoryEmbeddingConnectorVisibleToCaller(ctx context.Context, record connect
 		return false
 	}
 	return strings.TrimSpace(identity.SubjectUserID) != "" && strings.TrimSpace(identity.SubjectUserID) == strings.TrimSpace(record.OwnerID)
+}
+
+func memoryEmbeddingReasonCodeFromError(err error, fallback runtimev1.ReasonCode) runtimev1.ReasonCode {
+	if reason, ok := grpcerr.ExtractReasonCode(err); ok {
+		return reason
+	}
+	if fallback != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
+		return fallback
+	}
+	return runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE
+}
+
+func memoryEmbeddingSubjectUserID(ctx context.Context) string {
+	if identity := authn.IdentityFromContext(ctx); identity != nil {
+		return strings.TrimSpace(identity.SubjectUserID)
+	}
+	return ""
 }
 
 // resolveCatalogEmbeddingDimension returns the catalog-authoritative output

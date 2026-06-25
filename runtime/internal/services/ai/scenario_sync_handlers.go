@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/aicapabilities"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/oklog/ulid/v2"
@@ -59,7 +60,11 @@ func executeTextGenerateScenario(ctx context.Context, s *Service, req *runtimev1
 		return nil, err
 	}
 	if hasDescribeProbe {
-		if err := s.writeTextGenerateRouteDescribeHeader(ctx, describeProbe, modelResolved, remoteTarget, selectedProvider); err != nil {
+		if err := s.writeTextGenerateRouteDescribeHeader(ctx, req.GetHead(), describeProbe, modelResolved, remoteTarget, selectedProvider); err != nil {
+			return nil, err
+		}
+		resolvedBinding, err := s.buildResolvedExecutionBinding(ctx, req.GetHead(), aicapabilities.TextGenerate, describeProbe.resolvedBindingRef)
+		if err != nil {
 			return nil, err
 		}
 		return &runtimev1.ExecuteScenarioResponse{
@@ -70,11 +75,12 @@ func executeTextGenerateScenario(ctx context.Context, s *Service, req *runtimev1
 					},
 				},
 			},
-			FinishReason:      runtimev1.FinishReason_FINISH_REASON_STOP,
-			RouteDecision:     routeDecision,
-			ModelResolved:     modelResolved,
-			TraceId:           ulid.Make().String(),
-			IgnoredExtensions: ignored,
+			FinishReason:             runtimev1.FinishReason_FINISH_REASON_STOP,
+			RouteDecision:            routeDecision,
+			ModelResolved:            modelResolved,
+			TraceId:                  ulid.Make().String(),
+			IgnoredExtensions:        ignored,
+			ResolvedExecutionBinding: resolvedBinding,
 		}, nil
 	}
 	if err := validateReasoningRequest(spec, modelResolved, remoteTarget, selectedProvider, runtimev1.ExecutionMode_EXECUTION_MODE_SYNC); err != nil {
@@ -126,6 +132,10 @@ func executeTextGenerateScenario(ctx context.Context, s *Service, req *runtimev1
 	if err != nil {
 		return nil, err
 	}
+	resolvedBinding, err := s.buildResolvedExecutionBinding(ctx, req.GetHead(), aicapabilities.TextGenerate, "")
+	if err != nil {
+		return nil, err
+	}
 	return &runtimev1.ExecuteScenarioResponse{
 		Output: &runtimev1.ScenarioOutput{
 			Output: &runtimev1.ScenarioOutput_TextGenerate{
@@ -135,12 +145,13 @@ func executeTextGenerateScenario(ctx context.Context, s *Service, req *runtimev1
 				},
 			},
 		},
-		FinishReason:      finishReason,
-		Usage:             usage,
-		RouteDecision:     routeDecision,
-		ModelResolved:     modelResolved,
-		TraceId:           traceID,
-		IgnoredExtensions: ignored,
+		FinishReason:             finishReason,
+		Usage:                    usage,
+		RouteDecision:            routeDecision,
+		ModelResolved:            modelResolved,
+		TraceId:                  traceID,
+		IgnoredExtensions:        ignored,
+		ResolvedExecutionBinding: resolvedBinding,
 	}, nil
 }
 
@@ -242,6 +253,10 @@ func executeTextEmbedScenario(ctx context.Context, s *Service, req *runtimev1.Ex
 			Values: values,
 		})
 	}
+	resolvedBinding, err := s.buildResolvedExecutionBinding(ctx, req.GetHead(), aicapabilities.TextEmbed, "")
+	if err != nil {
+		return nil, err
+	}
 	return &runtimev1.ExecuteScenarioResponse{
 		Output: &runtimev1.ScenarioOutput{
 			Output: &runtimev1.ScenarioOutput_TextEmbed{
@@ -250,11 +265,12 @@ func executeTextEmbedScenario(ctx context.Context, s *Service, req *runtimev1.Ex
 				},
 			},
 		},
-		FinishReason:      runtimev1.FinishReason_FINISH_REASON_STOP,
-		Usage:             usage,
-		RouteDecision:     routeDecision,
-		ModelResolved:     modelResolved,
-		TraceId:           ulid.Make().String(),
-		IgnoredExtensions: ignored,
+		FinishReason:             runtimev1.FinishReason_FINISH_REASON_STOP,
+		Usage:                    usage,
+		RouteDecision:            routeDecision,
+		ModelResolved:            modelResolved,
+		TraceId:                  ulid.Make().String(),
+		IgnoredExtensions:        ignored,
+		ResolvedExecutionBinding: resolvedBinding,
 	}, nil
 }

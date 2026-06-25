@@ -545,7 +545,7 @@ func TestResolveManagedMediaImageProfileRejectsIncompatibleVAEFamily(t *testing.
 	if err == nil {
 		t.Fatal("expected incompatible z-image vae family to fail closed")
 	}
-	assertGRPCReasonCode(t, err, "incompatible vae family", runtimev1.ReasonCode_AI_LOCAL_ASSET_SLOT_MISSING)
+	assertGRPCReasonCode(t, err, "incompatible vae family", runtimev1.ReasonCode_AI_LOCAL_COMPONENT_INCOMPATIBLE)
 	if !strings.Contains(err.Error(), "flux2-vae") || !strings.Contains(err.Error(), "z-image-turbo") {
 		t.Fatalf("expected incompatible family detail, got %v", err)
 	}

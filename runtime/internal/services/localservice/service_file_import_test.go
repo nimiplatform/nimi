@@ -81,6 +81,49 @@ func TestImportLocalModelFileRegistersManagedSupervisedLlama(t *testing.T) {
 	}
 }
 
+func TestImportLocalModelFileDuplicateNameCreatesDistinctInstances(t *testing.T) {
+	svc := newTestService(t)
+	var imported []*runtimev1.LocalAssetRecord
+	for i := 0; i < 2; i++ {
+		sourceDir := t.TempDir()
+		sourcePath := filepath.Join(sourceDir, "Qwen3-4B-Q4_K_M.gguf")
+		if err := os.WriteFile(sourcePath, validTestGGUF(), 0o644); err != nil {
+			t.Fatalf("write source model %d: %v", i, err)
+		}
+		resp, err := svc.ImportLocalAssetFile(context.Background(), &runtimev1.ImportLocalAssetFileRequest{
+			FilePath:     sourcePath,
+			Capabilities: []string{"chat"},
+			Engine:       "llama",
+		})
+		if err != nil {
+			t.Fatalf("ImportLocalAssetFile duplicate model %d: %v", i, err)
+		}
+		imported = append(imported, resp.GetAsset())
+	}
+	first, second := imported[0], imported[1]
+	if first.GetLocalAssetId() == "" || first.GetLocalAssetId() == second.GetLocalAssetId() {
+		t.Fatalf("expected distinct local_asset_id values, got %q and %q", first.GetLocalAssetId(), second.GetLocalAssetId())
+	}
+	if first.GetAssetId() == "" || first.GetAssetId() == second.GetAssetId() {
+		t.Fatalf("expected distinct asset_id values, got %q and %q", first.GetAssetId(), second.GetAssetId())
+	}
+	if first.GetImportInstanceId() == "" || first.GetImportInstanceId() == second.GetImportInstanceId() {
+		t.Fatalf("expected distinct import_instance_id values, got %q and %q", first.GetImportInstanceId(), second.GetImportInstanceId())
+	}
+	if first.GetDisplayName() != "Qwen3-4B-Q4_K_M" || second.GetDisplayName() != "Qwen3-4B-Q4_K_M" {
+		t.Fatalf("expected stable display names, got %q and %q", first.GetDisplayName(), second.GetDisplayName())
+	}
+	if first.GetSourceFileName() != "Qwen3-4B-Q4_K_M.gguf" || second.GetSourceFileName() != "Qwen3-4B-Q4_K_M.gguf" {
+		t.Fatalf("expected stable source file names, got %q and %q", first.GetSourceFileName(), second.GetSourceFileName())
+	}
+	if first.GetLogicalModelId() == "" || first.GetLogicalModelId() == second.GetLogicalModelId() {
+		t.Fatalf("expected distinct logical_model_id values, got %q and %q", first.GetLogicalModelId(), second.GetLogicalModelId())
+	}
+	if len(svc.assets) != 2 {
+		t.Fatalf("expected two stored assets, got %d", len(svc.assets))
+	}
+}
+
 func TestImportLocalPassiveAssetFileKeepsManifestKind(t *testing.T) {
 	svc := newTestService(t)
 	sourceDir := t.TempDir()
@@ -169,6 +212,46 @@ func TestImportLocalPassiveAssetFileKeepsManifestKind(t *testing.T) {
 	}
 }
 
+func TestImportLocalPassiveAssetFileDuplicateNameCreatesDistinctInstances(t *testing.T) {
+	svc := newTestService(t)
+	var imported []*runtimev1.LocalAssetRecord
+	for i := 0; i < 2; i++ {
+		sourceDir := t.TempDir()
+		sourcePath := filepath.Join(sourceDir, "ae.safetensors")
+		if err := os.WriteFile(sourcePath, []byte("same-vae-payload"), 0o644); err != nil {
+			t.Fatalf("write source passive asset %d: %v", i, err)
+		}
+		resp, err := svc.ImportLocalAssetFile(context.Background(), &runtimev1.ImportLocalAssetFileRequest{
+			FilePath: sourcePath,
+			Kind:     runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE,
+			Engine:   "media",
+		})
+		if err != nil {
+			t.Fatalf("ImportLocalAssetFile duplicate passive asset %d: %v", i, err)
+		}
+		imported = append(imported, resp.GetAsset())
+	}
+	first, second := imported[0], imported[1]
+	if first.GetLocalAssetId() == "" || first.GetLocalAssetId() == second.GetLocalAssetId() {
+		t.Fatalf("expected distinct local_asset_id values, got %q and %q", first.GetLocalAssetId(), second.GetLocalAssetId())
+	}
+	if first.GetAssetId() == "" || first.GetAssetId() == second.GetAssetId() {
+		t.Fatalf("expected distinct asset_id values, got %q and %q", first.GetAssetId(), second.GetAssetId())
+	}
+	if first.GetImportInstanceId() == "" || first.GetImportInstanceId() == second.GetImportInstanceId() {
+		t.Fatalf("expected distinct import_instance_id values, got %q and %q", first.GetImportInstanceId(), second.GetImportInstanceId())
+	}
+	if first.GetDisplayName() != "ae" || second.GetDisplayName() != "ae" {
+		t.Fatalf("expected stable display names, got %q and %q", first.GetDisplayName(), second.GetDisplayName())
+	}
+	if first.GetSourceFileName() != "ae.safetensors" || second.GetSourceFileName() != "ae.safetensors" {
+		t.Fatalf("expected stable source file names, got %q and %q", first.GetSourceFileName(), second.GetSourceFileName())
+	}
+	if len(svc.assets) != 2 {
+		t.Fatalf("expected two stored assets, got %d", len(svc.assets))
+	}
+}
+
 func TestImportLocalImageModelFileRegistersManagedSupervisedMediaWithoutEndpoint(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "windows", "amd64")
@@ -193,8 +276,7 @@ func TestImportLocalImageModelFileRegistersManagedSupervisedMediaWithoutEndpoint
 		t.Fatalf("runtime mode mismatch: got=%s", got)
 	}
 
-	logicalModelID := filepath.ToSlash(filepath.Join("nimi", slugifyLocalModelID("local-import/z_image_turbo-Q4_K_M")))
-	manifestPath := runtimeManagedAssetManifestPath(resolveLocalModelsPath(svc.localModelsPath), logicalModelID)
+	manifestPath := runtimeManagedAssetManifestPath(resolveLocalModelsPath(svc.localModelsPath), resp.GetAsset().GetLogicalModelId())
 	if _, statErr := os.Stat(manifestPath); statErr != nil {
 		t.Fatalf("managed manifest should be materialized after successful import, stat err=%v", statErr)
 	}
@@ -680,7 +762,7 @@ func TestScaffoldOrphanImageModelUnsupportedHostRegistersUnhealthyAsset(t *testi
 	}
 }
 
-func TestScaffoldOrphanModelRebindsExistingAssetWithoutQuarantine(t *testing.T) {
+func TestScaffoldOrphanModelDuplicateCreatesDistinctAssetWithoutQuarantine(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
 	svc := newTestService(t)
@@ -705,22 +787,27 @@ func TestScaffoldOrphanModelRebindsExistingAssetWithoutQuarantine(t *testing.T) 
 		Engine:       "llama",
 	})
 	if err != nil {
-		t.Fatalf("expected scaffold orphan duplicate to rebind existing asset, got %v", err)
+		t.Fatalf("expected scaffold orphan duplicate to create distinct asset, got %v", err)
 	}
 	if resp.GetAsset() == nil {
-		t.Fatal("expected rebound asset")
+		t.Fatal("expected imported asset")
 	}
-	if resp.GetAsset().GetLocalAssetId() != existing.GetLocalAssetId() {
-		t.Fatalf("rebind must preserve local asset id: got=%q want=%q", resp.GetAsset().GetLocalAssetId(), existing.GetLocalAssetId())
+	if resp.GetAsset().GetLocalAssetId() == existing.GetLocalAssetId() {
+		t.Fatalf("duplicate import must mint a distinct local asset id: %q", resp.GetAsset().GetLocalAssetId())
+	}
+	if resp.GetAsset().GetAssetId() == existing.GetAssetId() {
+		t.Fatalf("duplicate import must mint a distinct asset id: %q", resp.GetAsset().GetAssetId())
+	}
+	if resp.GetAsset().GetImportInstanceId() == "" {
+		t.Fatalf("duplicate import must record import_instance_id")
 	}
 	if _, statErr := os.Stat(sourcePath); !os.IsNotExist(statErr) {
-		t.Fatalf("source file should be moved into runtime-managed storage after successful rebind, stat err=%v", statErr)
+		t.Fatalf("source file should be moved into runtime-managed storage after successful import, stat err=%v", statErr)
 	}
 
-	logicalModelID := filepath.ToSlash(filepath.Join("nimi", slugifyLocalModelID("local-import/orphan")))
-	runtimeDir := runtimeManagedResolvedModelDir(resolveLocalModelsPath(svc.localModelsPath), logicalModelID)
+	runtimeDir := runtimeManagedResolvedModelDir(resolveLocalModelsPath(svc.localModelsPath), resp.GetAsset().GetLogicalModelId())
 	if _, statErr := os.Stat(runtimeDir); statErr != nil {
-		t.Fatalf("runtime dir should contain rebound bundle, stat err=%v", statErr)
+		t.Fatalf("runtime dir should contain imported bundle, stat err=%v", statErr)
 	}
 
 	quarantineDirs := managedModelQuarantineDirsForTest(t, svc)

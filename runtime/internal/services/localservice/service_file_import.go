@@ -15,6 +15,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/ggufmeta"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
 )
 
@@ -25,6 +26,26 @@ var knownModelExtensions = map[string]struct{}{
 	".pt":          {},
 	".onnx":        {},
 	".pth":         {},
+}
+
+func newLocalImportInstanceID() string {
+	return strings.ToLower(ulid.Make().String())
+}
+
+func localImportAssetID(displayName string, importInstanceID string) string {
+	name := strings.TrimSpace(displayName)
+	if name == "" {
+		name = "asset"
+	}
+	name = strings.TrimSpace(strings.NewReplacer("/", "-", "\\", "-").Replace(name))
+	if name == "" {
+		name = "asset"
+	}
+	instanceID := strings.TrimSpace(importInstanceID)
+	if instanceID == "" {
+		instanceID = newLocalImportInstanceID()
+	}
+	return filepath.ToSlash(filepath.Join("local-import", name, instanceID))
 }
 
 func prepareImportSourcePath(rawPath string) (string, fs.FileInfo, error) {
@@ -253,7 +274,8 @@ func (s *Service) importLocalModelFile(
 	if modelName == "" {
 		modelName = strings.TrimSuffix(filepath.Base(sourcePath), filepath.Ext(sourcePath))
 	}
-	modelID := "local-import/" + modelName
+	importInstanceID := newLocalImportInstanceID()
+	modelID := localImportAssetID(modelName, importInstanceID)
 	transferPhase := "copy"
 	if removeSource {
 		transferPhase = "move"
@@ -326,15 +348,18 @@ func (s *Service) importLocalModelFile(
 		})
 	}
 	manifest := map[string]any{
-		"schema_version":   "1.0.0",
-		"asset_id":         modelID,
-		"kind":             kindToken,
-		"logical_model_id": logicalModelID,
-		"capabilities":     capabilities,
-		"engine":           engine,
-		"entry":            destFileName,
-		"files":            []string{destFileName},
-		"license":          "unknown",
+		"schema_version":     "1.0.0",
+		"asset_id":           modelID,
+		"display_name":       modelName,
+		"source_file_name":   destFileName,
+		"import_instance_id": importInstanceID,
+		"kind":               kindToken,
+		"logical_model_id":   logicalModelID,
+		"capabilities":       capabilities,
+		"engine":             engine,
+		"entry":              destFileName,
+		"files":              []string{destFileName},
+		"license":            "unknown",
 		"source": map[string]any{
 			"repo":     "file://" + filepath.ToSlash(manifestPath),
 			"revision": "local",
@@ -448,7 +473,8 @@ func (s *Service) importLocalPassiveAssetFile(
 		engine = defaultLocalEngine("", nil)
 	}
 	artifactName := strings.TrimSuffix(filepath.Base(sourcePath), filepath.Ext(sourcePath))
-	artifactID := "local-import/" + artifactName
+	importInstanceID := newLocalImportInstanceID()
+	artifactID := localImportAssetID(artifactName, importInstanceID)
 	transferPhase := "copy"
 	if removeSource {
 		transferPhase = "move"
@@ -495,13 +521,16 @@ func (s *Service) importLocalPassiveAssetFile(
 		})
 	}
 	manifest := map[string]any{
-		"schema_version": "1.0.0",
-		"asset_id":       artifactID,
-		"kind":           kindToken,
-		"engine":         engine,
-		"entry":          destFileName,
-		"files":          []string{destFileName},
-		"license":        "unknown",
+		"schema_version":     "1.0.0",
+		"asset_id":           artifactID,
+		"display_name":       artifactName,
+		"source_file_name":   destFileName,
+		"import_instance_id": importInstanceID,
+		"kind":               kindToken,
+		"engine":             engine,
+		"entry":              destFileName,
+		"files":              []string{destFileName},
+		"license":            "unknown",
 		"source": map[string]any{
 			"repo":     "file://" + filepath.ToSlash(manifestPath),
 			"revision": "local",

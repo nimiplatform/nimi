@@ -501,7 +501,7 @@ func (s *Service) rescanLocalAssetBundleSync(ctx context.Context, transferID str
 	var imported *runtimev1.ImportLocalAssetResponse
 	err = replaceBundleManifestWithRollback(manifestPath, manifest, func() error {
 		var importErr error
-		imported, importErr = s.ImportLocalAsset(ctx, &runtimev1.ImportLocalAssetRequest{ManifestPath: manifestPath, Endpoint: asset.GetEndpoint()})
+		imported, importErr = s.importLocalAsset(ctx, &runtimev1.ImportLocalAssetRequest{ManifestPath: manifestPath, Endpoint: asset.GetEndpoint()}, localAssetExistingPolicyRebind)
 		return importErr
 	})
 	if err != nil {

@@ -390,6 +390,8 @@ func (s *Service) runManagedImageLoadSingleflight(
 				Message:    "managed image backend load timed out while waiting for resident readiness",
 				ActionHint: "inspect_local_runtime_model_health",
 			})
+		} else {
+			loadErr = managedImageLoadErrorWithReason(loadErr)
 		}
 		if loadErr != nil {
 			s.logger.Warn("managed image load failed",

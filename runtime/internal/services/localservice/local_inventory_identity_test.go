@@ -48,7 +48,7 @@ func TestListLocalAssetsProjectsLegacyEmbeddingChatRecord(t *testing.T) {
 		nil,
 		"runtime_model_ready_after_install",
 		"legacy embedding model installed",
-		false,
+		localAssetExistingPolicyFail,
 	)
 	if err != nil {
 		t.Fatalf("install legacy embed record: %v", err)
@@ -107,7 +107,7 @@ func TestListLocalAssetsProjectsImageCompanionAsAuxiliary(t *testing.T) {
 		},
 		"runtime_model_ready_after_install",
 		"ideogram4 uncond companion installed",
-		false,
+		localAssetExistingPolicyFail,
 	)
 	if err != nil {
 		t.Fatalf("install image companion record: %v", err)

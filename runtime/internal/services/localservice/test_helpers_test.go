@@ -58,7 +58,7 @@ func mustInstallSupervisedLocalModel(t *testing.T, svc *Service, req installLoca
 		nil,
 		"runtime_model_ready_after_install",
 		"model installed",
-		false,
+		localAssetExistingPolicyFail,
 	)
 	if err != nil {
 		t.Fatalf("install supervised local model: %v", err)

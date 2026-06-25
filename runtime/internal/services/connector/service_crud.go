@@ -136,6 +136,9 @@ func (s *Service) GetConnector(ctx context.Context, req *runtimev1.GetConnectorR
 	if !found || !connectorVisibleToCaller(rec, ownerID, hasOwner) {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)
 	}
+	if IsRetiredLocalConnectorKind(rec.Kind) {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CONNECTOR_RETIRED)
+	}
 
 	return &runtimev1.GetConnectorResponse{
 		Connector: recordToProto(rec),
@@ -156,6 +159,9 @@ func (s *Service) ListConnectors(ctx context.Context, req *runtimev1.ListConnect
 	kindFilter := req.GetKindFilter()
 	statusFilter := req.GetStatusFilter()
 	providerFilter := strings.TrimSpace(req.GetProviderFilter())
+	if IsRetiredLocalConnectorKind(kindFilter) {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CONNECTOR_RETIRED)
+	}
 
 	filterDigest := pagination.FilterDigest(ownerID, kindFilter.String(), statusFilter.String(), providerFilter)
 	cursor, err := pagination.ValidatePageToken(req.GetPageToken(), filterDigest)
@@ -165,6 +171,9 @@ func (s *Service) ListConnectors(ctx context.Context, req *runtimev1.ListConnect
 
 	filtered := make([]ConnectorRecord, 0, len(records))
 	for _, r := range records {
+		if IsRetiredLocalConnectorKind(r.Kind) {
+			continue
+		}
 		if connectorViolatesOAuthManagedUserBoundary(r) {
 			continue
 		}
@@ -187,15 +196,6 @@ func (s *Service) ListConnectors(ctx context.Context, req *runtimev1.ListConnect
 
 	sort.Slice(filtered, func(i, j int) bool {
 		ri, rj := filtered[i], filtered[j]
-		if ri.Kind != rj.Kind {
-			return ri.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_LOCAL_MODEL
-		}
-		if ri.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_LOCAL_MODEL {
-			if ri.LocalCategory != rj.LocalCategory {
-				return ri.LocalCategory < rj.LocalCategory
-			}
-			return ri.ConnectorID < rj.ConnectorID
-		}
 		if ri.CreatedAt != rj.CreatedAt {
 			return ri.CreatedAt > rj.CreatedAt
 		}
@@ -256,6 +256,9 @@ func (s *Service) UpdateConnector(ctx context.Context, req *runtimev1.UpdateConn
 	if connectorViolatesOAuthManagedUserBoundary(rec) {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)
 	}
+	if IsRetiredLocalConnectorKind(rec.Kind) {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CONNECTOR_RETIRED)
+	}
 	if rec.OwnerType == runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_SYSTEM &&
 		rec.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED &&
 		rec.OwnerID == "system" {
@@ -312,10 +315,6 @@ func (s *Service) UpdateConnector(ctx context.Context, req *runtimev1.UpdateConn
 			continue
 		}
 		seenPaths[path] = true
-
-		if rec.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_LOCAL_MODEL && path != "status" {
-			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_IMMUTABLE)
-		}
 
 		switch path {
 		case "label":
@@ -458,9 +457,11 @@ func (s *Service) DeleteConnector(ctx context.Context, req *runtimev1.DeleteConn
 	if connectorViolatesOAuthManagedUserBoundary(rec) {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)
 	}
+	if IsRetiredLocalConnectorKind(rec.Kind) {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CONNECTOR_RETIRED)
+	}
 
-	if rec.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_LOCAL_MODEL ||
-		(rec.OwnerType == runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_SYSTEM && rec.OwnerID == "system") {
+	if rec.OwnerType == runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_SYSTEM && rec.OwnerID == "system" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_IMMUTABLE)
 	}
 	if !(rec.OwnerType == runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_SYSTEM &&

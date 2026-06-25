@@ -8,6 +8,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/aicapabilities"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/rpcctx"
@@ -208,12 +209,17 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 		})
 	}
 
+	resolvedBinding, err := s.buildResolvedExecutionBinding(stream.Context(), req.GetHead(), aicapabilities.TextGenerate, "")
+	if err != nil {
+		return err
+	}
 	if err := send(&runtimev1.StreamScenarioEvent{
 		EventType: runtimev1.StreamEventType_STREAM_EVENT_STARTED,
 		Payload: &runtimev1.StreamScenarioEvent_Started{
 			Started: &runtimev1.ScenarioStreamStarted{
-				ModelResolved: modelResolved,
-				RouteDecision: routeDecision,
+				ModelResolved:            modelResolved,
+				RouteDecision:            routeDecision,
+				ResolvedExecutionBinding: resolvedBinding,
 			},
 		},
 	}); err != nil {

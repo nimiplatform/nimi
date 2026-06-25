@@ -7,6 +7,18 @@ import (
 )
 
 func projectionReasonCodeForEngine(engine string, detail string) runtimev1.ReasonCode {
+	lower := strings.ToLower(strings.TrimSpace(detail))
+	if strings.Contains(lower, "not compatible with main image family") ||
+		strings.Contains(lower, "wrong shape in model metadata") ||
+		strings.Contains(lower, "model metadata validation failed") ||
+		strings.Contains(lower, "vae tensor") ||
+		strings.Contains(lower, "component compatibility") {
+		return runtimev1.ReasonCode_AI_LOCAL_COMPONENT_INCOMPATIBLE
+	}
+	if strings.Contains(lower, "compatibility unknown") ||
+		strings.Contains(lower, "could not determine component compatibility") {
+		return runtimev1.ReasonCode_AI_LOCAL_COMPONENT_COMPATIBILITY_UNKNOWN
+	}
 	if !strings.EqualFold(strings.TrimSpace(engine), "speech") {
 		return runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED
 	}

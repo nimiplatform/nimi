@@ -13,6 +13,8 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func TestListConnectorModelsRemoteUsesCatalogWithoutOutbound(t *testing.T) {
@@ -67,6 +69,106 @@ func TestListConnectorModelsRemoteUsesCatalogWithoutOutbound(t *testing.T) {
 		t.Fatalf("expected zero upstream calls for YAML-only model listing, got %d", got)
 	}
 }
+
+func TestListConnectorModelsProjectsRemoteCatalogIdentity(t *testing.T) {
+	svc := newTestService(t)
+	ctx := userContext("user-1")
+	created, err := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
+		Provider: "openai",
+		ApiKey:   "managed-key",
+	})
+	if err != nil {
+		t.Fatalf("CreateConnector: %v", err)
+	}
+	resp, err := svc.ListConnectorModels(ctx, &runtimev1.ListConnectorModelsRequest{
+		ConnectorId: created.GetConnector().GetConnectorId(),
+		PageSize:    200,
+	})
+	if err != nil {
+		t.Fatalf("ListConnectorModels: %v", err)
+	}
+	var found *runtimev1.ConnectorModelDescriptor
+	for _, model := range resp.GetModels() {
+		if model.GetModelId() == "gpt-audio" {
+			found = model
+			break
+		}
+	}
+	if found == nil {
+		t.Fatal("expected gpt-audio model")
+	}
+	if found.GetRemoteModelCatalogId() == "" {
+		t.Fatalf("remote_model_catalog_id missing: %#v", found)
+	}
+	if found.GetProviderModelId() != found.GetModelId() {
+		t.Fatalf("provider_model_id = %q want model_id %q", found.GetProviderModelId(), found.GetModelId())
+	}
+	if found.GetProvider() != "openai" {
+		t.Fatalf("provider = %q", found.GetProvider())
+	}
+	if found.GetConnectorSnapshotId() == "" || found.GetEndpointProfileId() == "" || found.GetInventorySnapshotId() == "" {
+		t.Fatalf("snapshot fields missing: %#v", found)
+	}
+}
+
+func TestListConnectorModelsEndpointChangeInvalidatesRemoteCatalogID(t *testing.T) {
+	svc := newTestService(t)
+	ctx := userContext("user-1")
+	firstEndpoint := "https://first.example.test/v1"
+	secondEndpoint := "https://second.example.test/v1"
+	created, err := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
+		Provider: "openai",
+		Endpoint: firstEndpoint,
+		ApiKey:   "managed-key",
+	})
+	if err != nil {
+		t.Fatalf("CreateConnector: %v", err)
+	}
+	connectorID := created.GetConnector().GetConnectorId()
+	first := connectorModelDescriptorByID(t, svc, ctx, connectorID, "gpt-audio")
+	if first.GetRemoteModelCatalogId() == "" {
+		t.Fatal("first remote_model_catalog_id missing")
+	}
+	_, err = svc.UpdateConnector(ctx, &runtimev1.UpdateConnectorRequest{
+		ConnectorId: connectorID,
+		Endpoint:    &secondEndpoint,
+	})
+	if err != nil {
+		t.Fatalf("UpdateConnector endpoint: %v", err)
+	}
+	second := connectorModelDescriptorByID(t, svc, ctx, connectorID, "gpt-audio")
+	if first.GetRemoteModelCatalogId() == second.GetRemoteModelCatalogId() {
+		t.Fatalf("remote_model_catalog_id should change after endpoint update: %q", first.GetRemoteModelCatalogId())
+	}
+	if first.GetEndpointProfileId() == second.GetEndpointProfileId() {
+		t.Fatalf("endpoint_profile_id should change after endpoint update: %q", first.GetEndpointProfileId())
+	}
+	if first.GetConnectorSnapshotId() == second.GetConnectorSnapshotId() {
+		t.Fatalf("connector_snapshot_id should change after endpoint update: %q", first.GetConnectorSnapshotId())
+	}
+	if first.GetInventorySnapshotId() != second.GetInventorySnapshotId() {
+		t.Fatalf("inventory_snapshot_id should not change for endpoint-only update: got %q want %q", second.GetInventorySnapshotId(), first.GetInventorySnapshotId())
+	}
+}
+
+func connectorModelDescriptorByID(t *testing.T, svc *Service, ctx context.Context, connectorID string, modelID string) *runtimev1.ConnectorModelDescriptor {
+	t.Helper()
+	resp, err := svc.ListConnectorModels(ctx, &runtimev1.ListConnectorModelsRequest{
+		ConnectorId: connectorID,
+		PageSize:    200,
+	})
+	if err != nil {
+		t.Fatalf("ListConnectorModels: %v", err)
+	}
+	for _, model := range resp.GetModels() {
+		if model.GetModelId() == modelID {
+			return model
+		}
+	}
+	t.Fatalf("model %q not found", modelID)
+	return nil
+}
+
 func TestListConnectorModelsDashScopeIncludesRepresentativeImageModels(t *testing.T) {
 	svc := newTestService(t)
 	ctx := userContext("user-1")
@@ -493,115 +595,72 @@ func TestEnsureLocalConnectors(t *testing.T) {
 		t.Fatalf("EnsureLocalConnectors: %v", err)
 	}
 	records, _ := store.Load()
-	if len(records) != 6 {
-		t.Fatalf("expected 6 local connectors, got %d", len(records))
+	if len(records) != 0 {
+		t.Fatalf("expected no local connectors after hard cut, got %d", len(records))
 	}
 	// Running again should be idempotent
 	if err := EnsureLocalConnectors(store); err != nil {
 		t.Fatalf("EnsureLocalConnectors second run: %v", err)
 	}
 	records2, _ := store.Load()
-	if len(records2) != 6 {
-		t.Fatalf("expected still 6 connectors, got %d", len(records2))
+	if len(records2) != 0 {
+		t.Fatalf("expected still no local connectors, got %d", len(records2))
 	}
 }
-func TestTestConnectorLocalUsesRuntimeAvailability(t *testing.T) {
+func TestTestConnectorRetiredLocalFailsClosed(t *testing.T) {
 	svc := newTestService(t)
 	ctx := userContext("user-1")
-	if err := EnsureLocalConnectors(svc.store); err != nil {
-		t.Fatalf("EnsureLocalConnectors: %v", err)
-	}
-	localList, err := svc.ListConnectors(ctx, &runtimev1.ListConnectorsRequest{KindFilter: runtimev1.ConnectorKind_CONNECTOR_KIND_LOCAL_MODEL})
+	_, err := svc.store.Create(ConnectorRecord{
+		ConnectorID:          "old-local",
+		Kind:                 runtimev1.ConnectorKind(1),
+		OwnerType:            runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_SYSTEM,
+		OwnerID:              "system",
+		Provider:             "local",
+		Status:               runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
+		RetiredLocalCategory: 1,
+	}, "")
 	if err != nil {
-		t.Fatalf("ListConnectors: %v", err)
+		t.Fatalf("seed retired local connector: %v", err)
 	}
-	llmConnectorID := ""
-	for _, connectorItem := range localList.GetConnectors() {
-		if connectorItem.GetLocalCategory() == runtimev1.LocalConnectorCategory_LOCAL_CONNECTOR_CATEGORY_LLM {
-			llmConnectorID = connectorItem.GetConnectorId()
-			break
-		}
-	}
-	if llmConnectorID == "" {
-		t.Fatalf("expected LLM local connector")
-	}
-	nilListerResp, err := svc.TestConnector(ctx, &runtimev1.TestConnectorRequest{ConnectorId: llmConnectorID})
+	resp, err := svc.TestConnector(ctx, &runtimev1.TestConnectorRequest{ConnectorId: "old-local"})
 	if err != nil {
-		t.Fatalf("TestConnector nil local lister: %v", err)
+		t.Fatalf("TestConnector retired local: %v", err)
 	}
-	if nilListerResp.GetAck().GetOk() {
-		t.Fatalf("expected local connector unavailable when local model lister is absent")
+	if resp.GetAck().GetOk() {
+		t.Fatalf("expected retired local connector to fail closed")
 	}
-	if nilListerResp.GetAck().GetReasonCode() != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE {
-		t.Fatalf("expected AI_LOCAL_MODEL_UNAVAILABLE, got %v", nilListerResp.GetAck().GetReasonCode())
-	}
-	svc.SetLocalModelLister(&fakeLocalModelLister{
-		models: []*runtimev1.LocalAssetRecord{
-			{AssetId: "image-only", Capabilities: []string{"image.generate"}, Status: runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE},
-		},
-	})
-	emptyResp, err := svc.TestConnector(ctx, &runtimev1.TestConnectorRequest{ConnectorId: llmConnectorID})
-	if err != nil {
-		t.Fatalf("TestConnector empty local availability: %v", err)
-	}
-	if emptyResp.GetAck().GetOk() {
-		t.Fatalf("expected local connector unavailable without matching ACTIVE models")
-	}
-	if emptyResp.GetAck().GetReasonCode() != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE {
-		t.Fatalf("expected AI_LOCAL_MODEL_UNAVAILABLE, got %v", emptyResp.GetAck().GetReasonCode())
-	}
-	svc.SetLocalModelLister(&fakeLocalModelLister{
-		models: []*runtimev1.LocalAssetRecord{
-			{AssetId: "chat-model", Capabilities: []string{"chat"}, Status: runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE},
-		},
-	})
-	okResp, err := svc.TestConnector(ctx, &runtimev1.TestConnectorRequest{ConnectorId: llmConnectorID})
-	if err != nil {
-		t.Fatalf("TestConnector local available: %v", err)
-	}
-	if !okResp.GetAck().GetOk() {
-		t.Fatalf("expected local connector to be available")
+	if resp.GetAck().GetReasonCode() != runtimev1.ReasonCode_AI_LOCAL_CONNECTOR_RETIRED {
+		t.Fatalf("expected AI_LOCAL_CONNECTOR_RETIRED, got %v", resp.GetAck().GetReasonCode())
 	}
 }
-func TestListConnectorModelsLocalUsesRuntimeModels(t *testing.T) {
+func TestListConnectorModelsRetiredLocalFailsClosed(t *testing.T) {
 	svc := newTestService(t)
 	ctx := userContext("user-1")
-	if err := EnsureLocalConnectors(svc.store); err != nil {
-		t.Fatalf("EnsureLocalConnectors: %v", err)
-	}
-	localList, err := svc.ListConnectors(ctx, &runtimev1.ListConnectorsRequest{KindFilter: runtimev1.ConnectorKind_CONNECTOR_KIND_LOCAL_MODEL})
+	_, err := svc.store.Create(ConnectorRecord{
+		ConnectorID:          "old-local",
+		Kind:                 runtimev1.ConnectorKind(1),
+		OwnerType:            runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_SYSTEM,
+		OwnerID:              "system",
+		Provider:             "local",
+		Status:               runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
+		RetiredLocalCategory: 1,
+	}, "")
 	if err != nil {
-		t.Fatalf("ListConnectors: %v", err)
+		t.Fatalf("seed retired local connector: %v", err)
 	}
-	llmConnectorID := ""
-	for _, connectorItem := range localList.GetConnectors() {
-		if connectorItem.GetLocalCategory() == runtimev1.LocalConnectorCategory_LOCAL_CONNECTOR_CATEGORY_LLM {
-			llmConnectorID = connectorItem.GetConnectorId()
-			break
-		}
-	}
-	if llmConnectorID == "" {
-		t.Fatalf("expected LLM local connector")
-	}
-	svc.SetLocalModelLister(&fakeLocalModelLister{
-		models: []*runtimev1.LocalAssetRecord{
-			{AssetId: "chat-model", Capabilities: []string{"chat"}, Status: runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE},
-			{AssetId: "image-model", Capabilities: []string{"image.generate"}, Status: runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE},
-			{AssetId: "chat-installed", Capabilities: []string{"chat"}, Status: runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED},
-		},
-	})
-	resp, err := svc.ListConnectorModels(ctx, &runtimev1.ListConnectorModelsRequest{
-		ConnectorId: llmConnectorID,
+	_, err = svc.ListConnectorModels(ctx, &runtimev1.ListConnectorModelsRequest{
+		ConnectorId: "old-local",
 		PageSize:    20,
 	})
-	if err != nil {
-		t.Fatalf("ListConnectorModels local: %v", err)
+	if err == nil {
+		t.Fatalf("expected retired local connector model listing to fail closed")
 	}
-	if len(resp.GetModels()) != 1 {
-		t.Fatalf("expected 1 active LLM model, got %d", len(resp.GetModels()))
+	st, _ := status.FromError(err)
+	if st.Code() != codes.FailedPrecondition {
+		t.Fatalf("expected FailedPrecondition, got %v", st.Code())
 	}
-	if resp.GetModels()[0].GetModelId() != "chat-model" {
-		t.Fatalf("unexpected local model id: %s", resp.GetModels()[0].GetModelId())
+	if st.Message() != runtimev1.ReasonCode_AI_LOCAL_CONNECTOR_RETIRED.String() {
+		t.Fatalf("expected AI_LOCAL_CONNECTOR_RETIRED, got %s", st.Message())
 	}
 }
 func TestListConnectorModelsSystemOwnedRemoteVisibleWithoutCaller(t *testing.T) {

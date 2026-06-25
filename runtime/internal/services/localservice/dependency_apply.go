@@ -208,7 +208,7 @@ func (s *Service) applyExecutionPlanStrict(ctx context.Context, plan *runtimev1.
 				nil,
 				"runtime_model_ready_after_install",
 				"model installed",
-				false,
+				localAssetExistingPolicyFail,
 			)
 			if err != nil || modelRecord == nil {
 				detail := defaultString(fmt.Sprintf("%v", err), "model install returned empty response")

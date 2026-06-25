@@ -239,7 +239,7 @@ func (s *Service) installManagedDownloadedModel(
 		projectionOverride,
 		"runtime_model_ready_after_install",
 		"model installed",
-		false,
+		localAssetExistingPolicyFail,
 	)
 	if err != nil {
 		if quarantinePath, rollbackErr := activation.Rollback(

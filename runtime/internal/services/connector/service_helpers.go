@@ -15,6 +15,12 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
 )
 
+const retiredLocalConnectorKindNumber int32 = 1
+
+func IsRetiredLocalConnectorKind(kind runtimev1.ConnectorKind) bool {
+	return int32(kind) == retiredLocalConnectorKindNumber
+}
+
 func (s *Service) internalProviderError(operation string, err error) error {
 	if err != nil {
 		s.logger.Error("connector service internal error", "operation", operation, "error", err)
@@ -85,7 +91,6 @@ func recordToProto(r ConnectorRecord) *runtimev1.Connector {
 		Endpoint:            r.Endpoint,
 		Label:               r.Label,
 		Status:              r.Status,
-		LocalCategory:       r.LocalCategory,
 		HasCredential:       r.HasCredential,
 		AuthKind:            normalizeAuthKind(r.AuthKind),
 		ProviderAuthProfile: r.ProviderAuthProfile,

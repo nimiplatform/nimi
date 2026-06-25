@@ -217,8 +217,9 @@ func TestGetConnectorOwnerMismatch(t *testing.T) {
 		t.Errorf("expected NotFound, got %v", st.Code())
 	}
 }
-func TestListConnectorsAnonymousOnlySeesLocal(t *testing.T) {
-	// K-AUTH-001: anonymous callers may only see LOCAL_MODEL connectors.
+func TestListConnectorsAnonymousDoesNotSeeUserRemoteOrRetiredLocal(t *testing.T) {
+	// K-RTARGET-006: local connectors are retired; anonymous callers must not
+	// receive user-owned remote connectors or legacy local connector facades.
 	svc := newTestService(t)
 	if err := EnsureLocalConnectors(svc.store); err != nil {
 		t.Fatalf("EnsureLocalConnectors: %v", err)
@@ -233,17 +234,31 @@ func TestListConnectorsAnonymousOnlySeesLocal(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListConnectors: %v", err)
 	}
-	if len(resp.GetConnectors()) != 6 {
-		t.Fatalf("expected 6 local connectors, got %d", len(resp.GetConnectors()))
-	}
-	for _, connector := range resp.GetConnectors() {
-		if connector.GetKind() != runtimev1.ConnectorKind_CONNECTOR_KIND_LOCAL_MODEL {
-			t.Fatalf("anonymous caller must not see remote connector: %+v", connector)
-		}
+	if len(resp.GetConnectors()) != 0 {
+		t.Fatalf("expected no connectors for anonymous caller, got %d", len(resp.GetConnectors()))
 	}
 }
+
+func TestListConnectorsRetiredLocalKindFilterFailsClosed(t *testing.T) {
+	svc := newTestService(t)
+	_, err := svc.ListConnectors(userContext("user-1"), &runtimev1.ListConnectorsRequest{
+		KindFilter: runtimev1.ConnectorKind(1),
+	})
+	if err == nil {
+		t.Fatal("expected retired local kind filter to fail closed")
+	}
+	st, _ := status.FromError(err)
+	if st.Code() != codes.FailedPrecondition {
+		t.Fatalf("expected FailedPrecondition, got %v", st.Code())
+	}
+	if st.Message() != runtimev1.ReasonCode_AI_LOCAL_CONNECTOR_RETIRED.String() {
+		t.Fatalf("expected AI_LOCAL_CONNECTOR_RETIRED, got %s", st.Message())
+	}
+}
+
 func TestConnectorOwnerTypeMapping(t *testing.T) {
-	// K-AUTH-003: authenticated REMOTE_MANAGED maps to REALM_USER, anonymous machine-global API-key connectors and LOCAL_MODEL map to SYSTEM.
+	// K-AUTH-003/K-RTARGET-006: authenticated REMOTE_MANAGED maps to REALM_USER;
+	// anonymous machine-global API-key connectors map to SYSTEM and local connectors are retired.
 	svc := newTestService(t)
 	created, err := svc.CreateConnector(userContext("user-1"), &runtimev1.CreateConnectorRequest{
 		Provider: "openai",
@@ -271,29 +286,11 @@ func TestConnectorOwnerTypeMapping(t *testing.T) {
 	if anonymousCreated.GetConnector().GetOwnerId() != "machine" {
 		t.Fatalf("expected anonymous remote connector owner_id=machine, got %q", anonymousCreated.GetConnector().GetOwnerId())
 	}
-	if err := EnsureLocalConnectors(svc.store); err != nil {
-		t.Fatalf("EnsureLocalConnectors: %v", err)
-	}
-	localResp, err := svc.ListConnectors(context.Background(), &runtimev1.ListConnectorsRequest{
-		KindFilter: runtimev1.ConnectorKind_CONNECTOR_KIND_LOCAL_MODEL,
-	})
-	if err != nil {
-		t.Fatalf("ListConnectors local: %v", err)
-	}
-	if len(localResp.GetConnectors()) == 0 {
-		t.Fatal("expected local connectors")
-	}
-	for _, connector := range localResp.GetConnectors() {
-		if connector.GetOwnerType() != runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_SYSTEM {
-			t.Fatalf("expected local connector owner type SYSTEM, got %v", connector.GetOwnerType())
-		}
-	}
 }
 func TestListConnectorsFiltering(t *testing.T) {
 	svc := newTestService(t)
 	user1Ctx := userContext("user-1")
 	user2Ctx := userContext("user-2")
-	// Ensure local connectors exist
 	if err := EnsureLocalConnectors(svc.store); err != nil {
 		t.Fatalf("EnsureLocalConnectors: %v", err)
 	}
@@ -310,22 +307,17 @@ func TestListConnectorsFiltering(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("CreateConnector user-2: %v", err)
 	}
-	// List for user-1: should see 6 local + 1 remote
+	// List for user-1: should see only their remote connector; retired local
+	// connector facades are not active ConnectorService records.
 	resp, err := svc.ListConnectors(user1Ctx, &runtimev1.ListConnectorsRequest{})
 	if err != nil {
 		t.Fatalf("ListConnectors: %v", err)
 	}
-	localCount := 0
 	remoteCount := 0
 	for _, c := range resp.Connectors {
-		if c.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_LOCAL_MODEL {
-			localCount++
-		} else {
+		if c.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED {
 			remoteCount++
 		}
-	}
-	if localCount != 6 {
-		t.Errorf("expected 6 local connectors, got %d", localCount)
 	}
 	if remoteCount != 1 {
 		t.Errorf("expected 1 remote connector for user-1, got %d", remoteCount)
@@ -619,31 +611,35 @@ func TestUpdateConnectorRejectsMaskPathWithoutOptionalValue(t *testing.T) {
 		t.Fatalf("expected InvalidArgument, got %v", st.Code())
 	}
 }
-func TestUpdateLocalConnectorImmutable(t *testing.T) {
+func TestUpdateRetiredLocalConnectorFailsClosed(t *testing.T) {
 	svc := newTestService(t)
 	ctx := userContext("user-1")
-	if err := EnsureLocalConnectors(svc.store); err != nil {
-		t.Fatalf("EnsureLocalConnectors: %v", err)
+	_, err := svc.store.Create(ConnectorRecord{
+		ConnectorID:          "old-local",
+		Kind:                 runtimev1.ConnectorKind(1),
+		OwnerType:            runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_SYSTEM,
+		OwnerID:              "system",
+		Provider:             "local",
+		Status:               runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
+		RetiredLocalCategory: 1,
+	}, "")
+	if err != nil {
+		t.Fatalf("seed retired local connector: %v", err)
 	}
-	list, _ := svc.ListConnectors(ctx, &runtimev1.ListConnectorsRequest{})
-	var localID string
-	for _, c := range list.Connectors {
-		if c.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_LOCAL_MODEL {
-			localID = c.ConnectorId
-			break
-		}
-	}
-	_, err := svc.UpdateConnector(ctx, &runtimev1.UpdateConnectorRequest{
-		ConnectorId: localID,
+	_, err = svc.UpdateConnector(ctx, &runtimev1.UpdateConnectorRequest{
+		ConnectorId: "old-local",
 		Label:       proto.String("Hacked"),
 		UpdateMask:  &fieldmaskpb.FieldMask{Paths: []string{"label"}},
 	})
 	if err == nil {
-		t.Fatal("expected immutable error for local connector")
+		t.Fatal("expected retired error for local connector")
 	}
 	st, _ := status.FromError(err)
-	if st.Code() != codes.InvalidArgument {
-		t.Errorf("expected InvalidArgument, got %v", st.Code())
+	if st.Code() != codes.FailedPrecondition {
+		t.Errorf("expected FailedPrecondition, got %v", st.Code())
+	}
+	if st.Message() != runtimev1.ReasonCode_AI_LOCAL_CONNECTOR_RETIRED.String() {
+		t.Fatalf("expected AI_LOCAL_CONNECTOR_RETIRED, got %s", st.Message())
 	}
 }
 func TestDeleteConnector(t *testing.T) {
@@ -696,25 +692,33 @@ func TestListConnectorsPageSizeClampTo200(t *testing.T) {
 		t.Fatalf("expected no next page token when all items fit in clamped page")
 	}
 }
-func TestDeleteLocalConnectorForbidden(t *testing.T) {
+func TestDeleteRetiredLocalConnectorFailsClosed(t *testing.T) {
 	svc := newTestService(t)
 	ctx := userContext("user-1")
-	if err := EnsureLocalConnectors(svc.store); err != nil {
-		t.Fatalf("EnsureLocalConnectors: %v", err)
+	_, err := svc.store.Create(ConnectorRecord{
+		ConnectorID:          "old-local",
+		Kind:                 runtimev1.ConnectorKind(1),
+		OwnerType:            runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_SYSTEM,
+		OwnerID:              "system",
+		Provider:             "local",
+		Status:               runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
+		RetiredLocalCategory: 1,
+	}, "")
+	if err != nil {
+		t.Fatalf("seed retired local connector: %v", err)
 	}
-	list, _ := svc.ListConnectors(ctx, &runtimev1.ListConnectorsRequest{})
-	var localID string
-	for _, c := range list.Connectors {
-		if c.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_LOCAL_MODEL {
-			localID = c.ConnectorId
-			break
-		}
-	}
-	_, err := svc.DeleteConnector(ctx, &runtimev1.DeleteConnectorRequest{
-		ConnectorId: localID,
+	_, err = svc.DeleteConnector(ctx, &runtimev1.DeleteConnectorRequest{
+		ConnectorId: "old-local",
 	})
 	if err == nil {
-		t.Fatal("expected error deleting local connector")
+		t.Fatal("expected error deleting retired local connector")
+	}
+	st, _ := status.FromError(err)
+	if st.Code() != codes.FailedPrecondition {
+		t.Fatalf("expected FailedPrecondition, got %v", st.Code())
+	}
+	if st.Message() != runtimev1.ReasonCode_AI_LOCAL_CONNECTOR_RETIRED.String() {
+		t.Fatalf("expected AI_LOCAL_CONNECTOR_RETIRED, got %s", st.Message())
 	}
 }
 func TestDeleteConnectorMissingReturnsNotFound(t *testing.T) {

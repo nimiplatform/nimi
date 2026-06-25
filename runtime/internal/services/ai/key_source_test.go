@@ -364,16 +364,16 @@ func TestResolveKeySourceManagedNotFound(t *testing.T) {
 	}
 }
 
-func TestResolveKeySourceManagedLocalConnectorInvalid(t *testing.T) {
+func TestResolveKeySourceManagedRetiredLocalConnectorFailsClosed(t *testing.T) {
 	store := connector.NewConnectorStoreWithMemorySecrets(t.TempDir())
 	rec := connector.ConnectorRecord{
-		ConnectorID:   "conn-local",
-		Kind:          runtimev1.ConnectorKind_CONNECTOR_KIND_LOCAL_MODEL,
-		OwnerType:     runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_SYSTEM,
-		OwnerID:       "system",
-		Provider:      "local",
-		Status:        runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
-		LocalCategory: runtimev1.LocalConnectorCategory_LOCAL_CONNECTOR_CATEGORY_LLM,
+		ConnectorID:          "conn-local",
+		Kind:                 runtimev1.ConnectorKind(1),
+		OwnerType:            runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_SYSTEM,
+		OwnerID:              "system",
+		Provider:             "local",
+		Status:               runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
+		RetiredLocalCategory: 1,
 	}
 	if _, err := store.Create(rec, ""); err != nil {
 		t.Fatal(err)
@@ -387,8 +387,8 @@ func TestResolveKeySourceManagedLocalConnectorInvalid(t *testing.T) {
 		t.Fatal("expected local connector managed path to be rejected")
 	}
 	st, _ := status.FromError(err)
-	if !containsReason(st.Message(), runtimev1.ReasonCode_AI_CONNECTOR_INVALID) {
-		t.Fatalf("expected AI_CONNECTOR_INVALID, got %s", st.Message())
+	if !containsReason(st.Message(), runtimev1.ReasonCode_AI_LOCAL_CONNECTOR_RETIRED) {
+		t.Fatalf("expected AI_LOCAL_CONNECTOR_RETIRED, got %s", st.Message())
 	}
 }
 

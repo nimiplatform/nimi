@@ -14,7 +14,80 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
-func (s *Service) ImportLocalAsset(_ context.Context, req *runtimev1.ImportLocalAssetRequest) (*runtimev1.ImportLocalAssetResponse, error) {
+type localAssetImportFacts struct {
+	displayName      string
+	sourceFileName   string
+	importInstanceID string
+}
+
+func localAssetImportFactsFromManifest(manifest map[string]any, assetID string, entry string) localAssetImportFacts {
+	importInstanceID := manifestStringDefault(manifest, "import_instance_id", "importInstanceId")
+	displayName := manifestStringDefault(manifest, "display_name", "displayName")
+	sourceFileName := manifestStringDefault(manifest, "source_file_name", "sourceFileName")
+	if strings.TrimSpace(importInstanceID) == "" && strings.HasPrefix(strings.TrimSpace(assetID), "local-import/") {
+		importInstanceID = newLocalImportInstanceID()
+	}
+	if strings.TrimSpace(displayName) == "" {
+		displayName = defaultLocalImportDisplayName(assetID, importInstanceID)
+	}
+	if strings.TrimSpace(sourceFileName) == "" {
+		sourceFileName = filepath.Base(strings.TrimSpace(entry))
+		if sourceFileName == "." {
+			sourceFileName = ""
+		}
+	}
+	return localAssetImportFacts{
+		displayName:      strings.TrimSpace(displayName),
+		sourceFileName:   strings.TrimSpace(sourceFileName),
+		importInstanceID: strings.TrimSpace(importInstanceID),
+	}
+}
+
+func defaultLocalImportDisplayName(assetID string, importInstanceID string) string {
+	value := strings.Trim(strings.TrimPrefix(strings.TrimSpace(assetID), "local-import/"), "/")
+	instanceID := strings.TrimSpace(importInstanceID)
+	if instanceID != "" {
+		value = strings.TrimSuffix(value, "/"+instanceID)
+	}
+	if value == "" {
+		value = strings.TrimSpace(assetID)
+	}
+	if strings.Contains(value, "/") {
+		value = filepath.Base(filepath.FromSlash(value))
+	}
+	return strings.TrimSpace(value)
+}
+
+func (s *Service) applyLocalAssetImportFacts(record *runtimev1.LocalAssetRecord, facts localAssetImportFacts) *runtimev1.LocalAssetRecord {
+	if record == nil {
+		return nil
+	}
+	if facts.displayName == "" && facts.sourceFileName == "" && facts.importInstanceID == "" {
+		return record
+	}
+	cloned := cloneLocalAsset(record)
+	if facts.displayName != "" {
+		cloned.DisplayName = facts.displayName
+	}
+	if facts.sourceFileName != "" {
+		cloned.SourceFileName = facts.sourceFileName
+	}
+	if facts.importInstanceID != "" {
+		cloned.ImportInstanceId = facts.importInstanceID
+	}
+	s.mu.Lock()
+	if _, ok := s.assets[cloned.GetLocalAssetId()]; ok {
+		s.assets[cloned.GetLocalAssetId()] = cloneLocalAsset(cloned)
+	}
+	s.mu.Unlock()
+	return cloned
+}
+
+func (s *Service) ImportLocalAsset(ctx context.Context, req *runtimev1.ImportLocalAssetRequest) (*runtimev1.ImportLocalAssetResponse, error) {
+	return s.importLocalAsset(ctx, req, localAssetExistingPolicyDuplicate)
+}
+
+func (s *Service) importLocalAsset(_ context.Context, req *runtimev1.ImportLocalAssetRequest, existingPolicy localAssetExistingPolicy) (*runtimev1.ImportLocalAssetResponse, error) {
 	manifestPath := strings.TrimSpace(req.GetManifestPath())
 	if manifestPath == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID)
@@ -74,6 +147,7 @@ func (s *Service) ImportLocalAsset(_ context.Context, req *runtimev1.ImportLocal
 		preferredEngine = engine
 	}
 	entry := defaultString(manifestStringDefault(manifest, "entry"), "./dist/index.js")
+	importFacts := localAssetImportFactsFromManifest(manifest, assetID, entry)
 	license := defaultString(manifestStringDefault(manifest, "license"), "unknown")
 	endpoint := strings.TrimSpace(req.GetEndpoint())
 	if endpoint == "" {
@@ -221,11 +295,12 @@ func (s *Service) ImportLocalAsset(_ context.Context, req *runtimev1.ImportLocal
 			projectionOverride,
 			"runtime_model_imported",
 			manifestPath,
-			true,
+			existingPolicy,
 		)
 		if err != nil {
 			return nil, err
 		}
+		record = s.applyLocalAssetImportFacts(record, importFacts)
 		record, err = s.finalizeImportedCanonicalImageRecord(record, importCompatibilityDetail)
 		if err != nil {
 			return nil, err
@@ -255,11 +330,12 @@ func (s *Service) ImportLocalAsset(_ context.Context, req *runtimev1.ImportLocal
 		},
 		"runtime_model_imported",
 		manifestPath,
-		true,
+		existingPolicy,
 	)
 	if err != nil {
 		return nil, err
 	}
+	record = s.applyLocalAssetImportFacts(record, importFacts)
 	record, err = s.finalizeImportedCanonicalImageRecord(record, importCompatibilityDetail)
 	if err != nil {
 		return nil, err
