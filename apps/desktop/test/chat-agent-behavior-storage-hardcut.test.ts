@@ -11,7 +11,6 @@ const chatSettingsStorageSource = readSource('../src/shell/renderer/features/cha
 const chatAgentShellAdapterSource = readSource('../src/shell/renderer/features/chat/chat-agent-shell-adapter.tsx');
 const hardcutTestSource = readSource('chat-agent-behavior-storage-hardcut.test.ts');
 const highRiskAdmissionContractSource = readSource('../../../.nimi/contracts/high-risk-admission.schema.yaml');
-const localHighRiskAdmissionsSource = readSource('../../../.nimi/local/high-risk-admissions.yaml');
 
 test('agent chat behavior settings no longer have a durable renderer storage key', () => {
   assert.doesNotMatch(chatSettingsStorageSource, /AGENT_CHAT_BEHAVIOR_SETTINGS_STORAGE_KEY/);
@@ -40,9 +39,10 @@ test('agent behavior storage hardcut does not use lifecycle packets or retired s
     /local_high_risk_admission_evidence/,
   );
   assert.match(
-    localHighRiskAdmissionsSource,
+    highRiskAdmissionContractSource,
     /local_admission_records_must_not_be_used_as_product_authority/,
   );
+  assert.doesNotMatch(hardcutTestSource, /\.nimi\\?\/local\\?\/high-risk-admissions\.yaml/);
   assert.doesNotMatch(hardcutTestSource, closedTopicOraclePattern);
   assert.doesNotMatch(hardcutTestSource, retiredSpecAdmissionPattern);
 });

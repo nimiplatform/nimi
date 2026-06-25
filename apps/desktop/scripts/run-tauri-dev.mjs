@@ -12,8 +12,13 @@ const SIGNAL_EXIT_CODES = new Map([
   ['SIGTERM', 143],
   ['SIGHUP', 129],
 ]);
+const SIGNAL_FORCE_KILL_GRACE_MS = 1500;
+const SIGNAL_HARD_EXIT_MS = 5000;
 let activeTauriChild = null;
 let shuttingDown = false;
+let shutdownExitCode = null;
+let signalForceKillTimer = null;
+let signalHardExitTimer = null;
 
 if (process.platform === 'win32') {
   args.push('--config', 'src-tauri/tauri.dev.windows.conf.json');
@@ -63,17 +68,63 @@ function buildSdkDistForDesktopDev() {
   }
 }
 
-function terminateProcessTree(child) {
-  if (!child?.pid || child.exitCode !== null || child.signalCode !== null) {
+function isChildRunning(child) {
+  return Boolean(child?.pid && child.exitCode === null && child.signalCode === null);
+}
+
+function forceKillProcessTree(child) {
+  if (!isChildRunning(child)) {
     return;
   }
   if (process.platform === 'win32') {
-    spawnSync('taskkill.exe', ['/pid', String(child.pid), '/t', '/f'], {
+    const taskkill = spawn('taskkill.exe', ['/pid', String(child.pid), '/t', '/f'], {
       stdio: 'ignore',
+      windowsHide: true,
     });
+    taskkill.on('error', () => {});
+    taskkill.unref();
     return;
   }
-  child.kill('SIGTERM');
+  try {
+    child.kill('SIGKILL');
+  } catch {
+    // The child may have exited between the running check and forced cleanup.
+  }
+}
+
+function requestProcessTreeShutdown(child, signal) {
+  if (!isChildRunning(child)) {
+    return false;
+  }
+  try {
+    if (process.platform === 'win32') {
+      if (signal !== 'SIGINT') {
+        child.kill('SIGTERM');
+      }
+    } else {
+      child.kill(signal === 'SIGINT' ? 'SIGINT' : 'SIGTERM');
+    }
+  } catch {
+    return false;
+  }
+  signalForceKillTimer = setTimeout(() => {
+    forceKillProcessTree(child);
+  }, SIGNAL_FORCE_KILL_GRACE_MS);
+  signalHardExitTimer = setTimeout(() => {
+    process.exit(shutdownExitCode ?? SIGNAL_EXIT_CODES.get(signal) ?? 1);
+  }, SIGNAL_HARD_EXIT_MS);
+  return true;
+}
+
+function clearSignalShutdownTimers() {
+  if (signalForceKillTimer) {
+    clearTimeout(signalForceKillTimer);
+    signalForceKillTimer = null;
+  }
+  if (signalHardExitTimer) {
+    clearTimeout(signalHardExitTimer);
+    signalHardExitTimer = null;
+  }
 }
 
 function exitFromSignal(signal) {
@@ -81,8 +132,10 @@ function exitFromSignal(signal) {
     return;
   }
   shuttingDown = true;
-  terminateProcessTree(activeTauriChild);
-  process.exit(SIGNAL_EXIT_CODES.get(signal) ?? 1);
+  shutdownExitCode = SIGNAL_EXIT_CODES.get(signal) ?? 1;
+  if (!requestProcessTreeShutdown(activeTauriChild, signal)) {
+    process.exit(shutdownExitCode);
+  }
 }
 
 buildSdkDistForDesktopDev();
@@ -100,12 +153,21 @@ activeTauriChild = child;
 
 child.on('error', (error) => {
   activeTauriChild = null;
+  clearSignalShutdownTimers();
+  if (shuttingDown) {
+    process.exit(shutdownExitCode ?? 1);
+  }
   process.stderr.write(`[run-tauri-dev] failed to start ${tauriBin}: ${error.message}\n`);
   process.exit(1);
 });
 
 child.on('exit', (code, signal) => {
   activeTauriChild = null;
+  clearSignalShutdownTimers();
+  if (shuttingDown) {
+    process.exit(shutdownExitCode ?? SIGNAL_EXIT_CODES.get(signal) ?? code ?? 0);
+    return;
+  }
   if (signal) {
     process.exit(SIGNAL_EXIT_CODES.get(signal) ?? 1);
     return;

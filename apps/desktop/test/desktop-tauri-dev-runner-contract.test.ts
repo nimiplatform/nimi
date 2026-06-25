@@ -58,12 +58,16 @@ test('Windows Tauri dev runner treats replacement kills as successful handoff', 
   assert.match(runnerSource, /wasReplacedByNewRunner\(child\.pid, options\.replacementMarkerPath\)[\s\S]*process\.exit\(0\)/);
 });
 
-test('Windows Tauri dev runner tears down launched desktop child processes on runner shutdown', () => {
-  assert.match(runnerSource, /function terminateProcessTree\(child\)/);
+test('Windows Tauri dev runner lets Ctrl-C reach the desktop child before forced cleanup', () => {
+  assert.match(runnerSource, /function requestProcessTreeShutdown\(child, signal\)/);
+  assert.match(runnerSource, /const SIGNAL_FORCE_KILL_GRACE_MS = 1500/);
+  assert.doesNotMatch(runnerSource, /spawnSync\('taskkill\.exe'/);
+  assert.match(runnerSource, /function forceKillProcessTree\(child\)/);
   assert.match(runnerSource, /taskkill\.exe/);
   assert.match(runnerSource, /\['\/pid', String\(child\.pid\), '\/t', '\/f'\]/);
   assert.match(runnerSource, /process\.on\(signal, \(\) => exitFromSignal\(signal\)\)/);
-  assert.match(runnerSource, /terminateProcessTree\(activeDesktopChild\)/);
+  assert.match(runnerSource, /requestProcessTreeShutdown\(activeDesktopChild, signal\)/);
+  assert.match(runnerSource, /if \(signal !== 'SIGINT'\)/);
 });
 
 test('Desktop Tauri dev command rebuilds SDK dist before renderer loads dist aliases', () => {
@@ -78,11 +82,15 @@ test('Desktop Tauri dev command rebuilds SDK dist before renderer loads dist ali
   assert.doesNotMatch(runTauriDevSource, /spawnSync\(pnpmBin, \['--dir'/);
 });
 
-test('Desktop Tauri dev command tears down the Tauri process tree on Ctrl-C', () => {
-  assert.match(runTauriDevSource, /function terminateProcessTree\(child\)/);
+test('Desktop Tauri dev command lets Ctrl-C reach Tauri before forced cleanup', () => {
+  assert.match(runTauriDevSource, /function requestProcessTreeShutdown\(child, signal\)/);
+  assert.match(runTauriDevSource, /const SIGNAL_FORCE_KILL_GRACE_MS = 1500/);
+  assert.doesNotMatch(runTauriDevSource, /spawnSync\('taskkill\.exe'/);
+  assert.match(runTauriDevSource, /function forceKillProcessTree\(child\)/);
   assert.match(runTauriDevSource, /taskkill\.exe/);
   assert.match(runTauriDevSource, /let activeTauriChild = null/);
   assert.match(runTauriDevSource, /process\.on\(signal, \(\) => exitFromSignal\(signal\)\)/);
-  assert.match(runTauriDevSource, /terminateProcessTree\(activeTauriChild\)/);
+  assert.match(runTauriDevSource, /requestProcessTreeShutdown\(activeTauriChild, signal\)/);
+  assert.match(runTauriDevSource, /if \(signal !== 'SIGINT'\)/);
   assert.doesNotMatch(runTauriDevSource, /process\.kill\(process\.pid, signal\)/);
 });

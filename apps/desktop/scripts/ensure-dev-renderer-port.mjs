@@ -15,6 +15,8 @@ const desktopRoot = path.resolve(__dirname, '..');
 const rendererPort = 1420;
 const rendererProbeTimeoutMs = 1200;
 const shutdownGraceMs = 5000;
+const signalForceKillGraceMs = 1500;
+const signalHardExitMs = 5000;
 const SIGNAL_EXIT_CODES = new Map([
   ['SIGINT', 130],
   ['SIGTERM', 143],
@@ -23,7 +25,8 @@ const SIGNAL_EXIT_CODES = new Map([
 
 let activeRendererChild = null;
 let shutdownSignal = null;
-let forcedExitTimer = null;
+let signalForceKillTimer = null;
+let signalHardExitTimer = null;
 
 function runCommand(command, args) {
   try {
@@ -168,14 +171,63 @@ function exitCodeForShutdownSignal(signal) {
   return SIGNAL_EXIT_CODES.get(signal) ?? 1;
 }
 
-function terminateActiveRendererChild() {
-  if (!activeRendererChild?.pid || activeRendererChild.exitCode !== null || activeRendererChild.signalCode !== null) {
+function isRendererChildRunning(child) {
+  return Boolean(child?.pid && child.exitCode === null && child.signalCode === null);
+}
+
+function forceKillRendererProcessTree(child) {
+  if (!isRendererChildRunning(child)) {
     return;
   }
-  activeRendererChild.kill('SIGTERM');
-  forcedExitTimer = setTimeout(() => {
-    activeRendererChild?.kill('SIGKILL');
-  }, shutdownGraceMs);
+  if (process.platform === 'win32') {
+    const taskkill = spawn('taskkill.exe', ['/pid', String(child.pid), '/t', '/f'], {
+      stdio: 'ignore',
+      windowsHide: true,
+    });
+    taskkill.on('error', () => {});
+    taskkill.unref();
+    return;
+  }
+  try {
+    child.kill('SIGKILL');
+  } catch {
+    // The child may have exited between the running check and forced cleanup.
+  }
+}
+
+function requestRendererShutdown(child, signal) {
+  if (!isRendererChildRunning(child)) {
+    return false;
+  }
+  try {
+    if (process.platform === 'win32') {
+      if (signal !== 'SIGINT') {
+        child.kill('SIGTERM');
+      }
+    } else {
+      child.kill(signal === 'SIGINT' ? 'SIGINT' : 'SIGTERM');
+    }
+  } catch {
+    return false;
+  }
+  signalForceKillTimer = setTimeout(() => {
+    forceKillRendererProcessTree(child);
+  }, signalForceKillGraceMs);
+  signalHardExitTimer = setTimeout(() => {
+    process.exit(exitCodeForShutdownSignal(signal));
+  }, signalHardExitMs);
+  return true;
+}
+
+function clearSignalShutdownTimers() {
+  if (signalForceKillTimer) {
+    clearTimeout(signalForceKillTimer);
+    signalForceKillTimer = null;
+  }
+  if (signalHardExitTimer) {
+    clearTimeout(signalHardExitTimer);
+    signalHardExitTimer = null;
+  }
 }
 
 function exitFromSignal(signal) {
@@ -183,8 +235,7 @@ function exitFromSignal(signal) {
     return;
   }
   shutdownSignal = signal;
-  terminateActiveRendererChild();
-  if (!activeRendererChild) {
+  if (!requestRendererShutdown(activeRendererChild, signal)) {
     process.exit(exitCodeForShutdownSignal(signal));
   }
 }
@@ -206,16 +257,17 @@ function spawnRenderer(command, args) {
 
   child.on('error', (error) => {
     activeRendererChild = null;
+    clearSignalShutdownTimers();
+    if (shutdownSignal) {
+      process.exit(exitCodeForShutdownSignal(shutdownSignal));
+    }
     process.stderr.write(`[dev-renderer-port] failed to start renderer command: ${error.message}\n`);
     process.exit(1);
   });
 
   child.on('exit', (code, signal) => {
     activeRendererChild = null;
-    if (forcedExitTimer) {
-      clearTimeout(forcedExitTimer);
-      forcedExitTimer = null;
-    }
+    clearSignalShutdownTimers();
     if (shutdownSignal) {
       process.exit(exitCodeForShutdownSignal(shutdownSignal));
       return;

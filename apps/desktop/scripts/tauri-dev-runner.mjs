@@ -18,12 +18,17 @@ const SIGNAL_EXIT_CODES = new Map([
   ['SIGTERM', 143],
   ['SIGHUP', 129],
 ]);
+const SIGNAL_FORCE_KILL_GRACE_MS = 1500;
+const SIGNAL_HARD_EXIT_MS = 5000;
 const childEnv = {
   ...process.env,
   CARGO_TERM_PROGRESS_WHEN: process.env.CARGO_TERM_PROGRESS_WHEN || 'never',
 };
 let activeDesktopChild = null;
 let shuttingDown = false;
+let shutdownExitCode = null;
+let signalForceKillTimer = null;
+let signalHardExitTimer = null;
 
 function runCargo(args) {
   const result = spawnSync('cargo', args, {
@@ -95,17 +100,63 @@ function isRetryableDesktopSpawnError(error) {
   return code === 'UNKNOWN' || code === 'EBUSY' || code === 'EACCES' || code === 'EPERM';
 }
 
-function terminateProcessTree(child) {
-  if (!child?.pid || child.exitCode !== null || child.signalCode !== null) {
+function isChildRunning(child) {
+  return Boolean(child?.pid && child.exitCode === null && child.signalCode === null);
+}
+
+function forceKillProcessTree(child) {
+  if (!isChildRunning(child)) {
     return;
   }
   if (process.platform === 'win32') {
-    spawnSync('taskkill.exe', ['/pid', String(child.pid), '/t', '/f'], {
+    const taskkill = spawn('taskkill.exe', ['/pid', String(child.pid), '/t', '/f'], {
       stdio: 'ignore',
+      windowsHide: true,
     });
+    taskkill.on('error', () => {});
+    taskkill.unref();
     return;
   }
-  child.kill('SIGTERM');
+  try {
+    child.kill('SIGKILL');
+  } catch {
+    // The child may have exited between the running check and forced cleanup.
+  }
+}
+
+function requestProcessTreeShutdown(child, signal) {
+  if (!isChildRunning(child)) {
+    return false;
+  }
+  try {
+    if (process.platform === 'win32') {
+      if (signal !== 'SIGINT') {
+        child.kill('SIGTERM');
+      }
+    } else {
+      child.kill(signal === 'SIGINT' ? 'SIGINT' : 'SIGTERM');
+    }
+  } catch {
+    return false;
+  }
+  signalForceKillTimer = setTimeout(() => {
+    forceKillProcessTree(child);
+  }, SIGNAL_FORCE_KILL_GRACE_MS);
+  signalHardExitTimer = setTimeout(() => {
+    process.exit(shutdownExitCode ?? SIGNAL_EXIT_CODES.get(signal) ?? 1);
+  }, SIGNAL_HARD_EXIT_MS);
+  return true;
+}
+
+function clearSignalShutdownTimers() {
+  if (signalForceKillTimer) {
+    clearTimeout(signalForceKillTimer);
+    signalForceKillTimer = null;
+  }
+  if (signalHardExitTimer) {
+    clearTimeout(signalHardExitTimer);
+    signalHardExitTimer = null;
+  }
 }
 
 function exitFromSignal(signal) {
@@ -113,8 +164,10 @@ function exitFromSignal(signal) {
     return;
   }
   shuttingDown = true;
-  terminateProcessTree(activeDesktopChild);
-  process.exit(SIGNAL_EXIT_CODES.get(signal) ?? 1);
+  shutdownExitCode = SIGNAL_EXIT_CODES.get(signal) ?? 1;
+  if (!requestProcessTreeShutdown(activeDesktopChild, signal)) {
+    process.exit(shutdownExitCode);
+  }
 }
 
 function wasReplacedByNewRunner(childPid, replacementMarkerPath) {
@@ -142,6 +195,10 @@ function spawnDesktopBinary(binaryPath, appArgs, options = {}, attempt = 1) {
   activeDesktopChild = child;
   child.on('error', (error) => {
     activeDesktopChild = null;
+    clearSignalShutdownTimers();
+    if (shuttingDown) {
+      process.exit(shutdownExitCode ?? 1);
+    }
     if (attempt < DESKTOP_SPAWN_MAX_ATTEMPTS && isRetryableDesktopSpawnError(error)) {
       const delayMs = attempt * 250;
       process.stderr.write(
@@ -157,8 +214,13 @@ function spawnDesktopBinary(binaryPath, appArgs, options = {}, attempt = 1) {
   });
   child.on('exit', (code, signal) => {
     activeDesktopChild = null;
+    clearSignalShutdownTimers();
     if (process.platform === 'win32' && wasReplacedByNewRunner(child.pid, options.replacementMarkerPath)) {
       process.exit(0);
+    }
+    if (shuttingDown) {
+      process.exit(shutdownExitCode ?? SIGNAL_EXIT_CODES.get(signal) ?? code ?? 0);
+      return;
     }
     if (signal) {
       process.exit(SIGNAL_EXIT_CODES.get(signal) ?? 1);

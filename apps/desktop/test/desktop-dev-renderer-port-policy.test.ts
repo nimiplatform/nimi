@@ -21,6 +21,10 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const packageJson = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8')) as {
   scripts?: Record<string, string>;
 };
+const rendererRunnerSource = fs.readFileSync(
+  path.join(root, 'scripts/ensure-dev-renderer-port.mjs'),
+  'utf8',
+);
 
 function processFixture(overrides: Partial<RendererPortProcess> = {}): RendererPortProcess {
   return {
@@ -97,7 +101,20 @@ test('dev renderer runner keeps delegated commands direct on POSIX', () => {
   });
 });
 
-test('dev renderer runner treats SIGTERM as a successful Tauri handoff shutdown', async () => {
+test('dev renderer runner lets Ctrl-C reach the delegated renderer before forced cleanup', () => {
+  assert.match(rendererRunnerSource, /function requestRendererShutdown\(child, signal\)/);
+  assert.match(rendererRunnerSource, /const signalForceKillGraceMs = 1500/);
+  assert.match(rendererRunnerSource, /function forceKillRendererProcessTree\(child\)/);
+  assert.match(rendererRunnerSource, /taskkill\.exe/);
+  assert.match(rendererRunnerSource, /requestRendererShutdown\(activeRendererChild, signal\)/);
+  assert.match(rendererRunnerSource, /if \(signal !== 'SIGINT'\)/);
+});
+
+test('dev renderer runner treats SIGTERM as a successful Tauri handoff shutdown', {
+  skip: process.platform === 'win32'
+    ? 'Node child.kill(SIGTERM) terminates Windows child processes instead of delivering a JS signal handler.'
+    : false,
+}, async () => {
   const runner = spawn(process.execPath, [
     path.join(root, 'scripts/ensure-dev-renderer-port.mjs'),
     '--',
