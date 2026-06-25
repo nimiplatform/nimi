@@ -2,9 +2,19 @@
 
 > Owner Domain: `K-LOCAL-*`
 
+## K-LOCAL-000 Runtime Target Identity v2 Hard Cut
+
+Local connector identity is retired by `K-RTARGET-006`. Local authorization and
+execution target identity are owned by local asset/profile readiness and v2
+local durable refs. Any older local connector category enum or raw local
+`model_id` execution routing text in this file is retired as durable target
+identity.
+
 ## K-LOCAL-001 固定 category（Phase 1）
 
-`LocalConnectorCategory` 固定 6 个：
+Retired local connector capability families are historical vocabulary only.
+They may describe imported local assets, but they are not connector kinds,
+connector records, or durable execution target identity:
 
 1. `LLM`
 2. `VISION`
@@ -125,7 +135,11 @@ ordinary-user desktop local speech 可以投影为 canonical product object `Loc
 - 初始状态为 `INSTALLED`（`K-LOCAL-005` 状态机锚点）。
 - runtime 既是注册真源，也是本地资产获取、导入、orphan scaffold/adopt、transfer/progress 与生命周期的唯一执行面；desktop 仅负责 shell-native/helper 能力。
 - ordinary-user speech bundle flow 若调用这些安装/注册 primitive，也只能作为 runtime-owned bundle projection 的底层执行步骤；desktop 不得把 primitive 调用面直接投影成第二套 speech install owner。
-- 重复安装同一 `asset_id` + `engine` + `kind` 组合时返回 `ALREADY_EXISTS` + `AI_LOCAL_ASSET_ALREADY_INSTALLED`。
+- User file imports always mint a new installed `local_asset_id`, even when
+  filename, digest, `asset_id`, `engine`, and `kind` match an existing record.
+  Verified catalog/template install may still fail closed on exact catalog
+  duplicate only when the requested operation is explicitly catalog install,
+  not user file import.
 
 ## K-LOCAL-010 Verified 资产目录结构
 
@@ -350,7 +364,15 @@ fallback 补充：
 
 未知前缀（如 `ollama/`）视为无前缀，按 `model_id` 全文精确匹配（不剥除前缀）。
 
-## K-LOCAL-020a Chat/Text 本地模型可选性
+## K-LOCAL-020a Runtime Target Identity v2 Supersession
+
+K-RTARGET-002 supersedes K-LOCAL-020 for durable local execution identity. Raw
+`model_id` prefix routing may be read only as retired migration input or
+catalog/display metadata. Runtime execution, health, warm, generate, lease, and
+resident load must resolve a v2 local durable ref (`profile_binding_id` or
+`readiness_ref`) before selecting engine/provider facts.
+
+## K-LOCAL-020b Chat/Text 本地模型可选性
 
 本地 chat/text 模型的选择与预热语义固定为：
 

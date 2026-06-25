@@ -2,6 +2,15 @@
 
 > Owner Domain: `K-KEYSRC-*`
 
+## K-KEYSRC-000 Runtime Target Identity v2 Hard Cut
+
+`K-RTARGET-*` is the active target-identity authority. `connector_id` remains a
+managed credential custody input only. It is not a cloud model target identity.
+Remote cloud execution must resolve through `remote_model_catalog_id`. Local
+execution must resolve through v2 local durable refs. Any older `model_id`
+validation chain or `connector_id + model_id` cloud target shape in this file
+is retired as durable target identity.
+
 ## K-KEYSRC-001 路径模型
 
 AI consume 的显式 key-source 只允许二选一路径：
@@ -58,7 +67,7 @@ Desktop 端（D-SEC-009）始终使用 managed connector 路径，renderer 不�
 6. owner/status/credential 校验（credential 由 ConnectorService 在本步骤解密并注入执行上下文；下游执行模块如 nimiLLM 通过执行上下文获取凭据，不直接访问存储）。"执行上下文" 为请求作用域的参数结构（如 `nimillm.RemoteTarget`），承载 `provider_type`/`endpoint`/`credential` 三元组。接口定义由实现层决定，spec 仅约束：下游模块不直接访问 CredentialStore
 7. remote endpoint 安全校验
 8. inline endpoint 安全校验
-9. `model_id` 校验链路
+9. runtime target ref / remote catalog validation
 10. 路由执行 + 审计
 
 对于 `OAUTH_MANAGED` connector，step 6 与 step 10 的附加固定语义是：
@@ -116,7 +125,8 @@ Desktop 端（D-SEC-009）始终使用 managed connector 路径，renderer 不�
 **managed 路径**（`connector_id` 存在）：
 
 1. 从 `connector_id` 加载 connector 记录。
-2. 若 connector 的 `kind=LOCAL_MODEL`，必须拒绝：`INVALID_ARGUMENT` + `AI_CONNECTOR_INVALID`。local connector 仅作为 category / probe facade，不得进入 AI consume 执行链路（见 `K-LOCAL-004`）。
+2. 若 connector 的 raw kind 为 retired local connector value `1`，必须拒绝：
+   `FAILED_PRECONDITION` + `AI_LOCAL_CONNECTOR_RETIRED`。local connector 不得进入 AI consume 执行链路。
 3. 查 `tables/provider-capabilities.yaml`，按 connector 的 `provider` 确定 `runtime_plane` 与 `execution_module`。
 4. managed connector 仅允许 `runtime_plane=remote`；执行模块固定分发到 `nimillm`。
 
@@ -128,20 +138,27 @@ Desktop 端（D-SEC-009）始终使用 managed connector 路径，renderer 不�
 
 路由判定不可回退：一旦确定执行路径，不允许在执行失败后自动切换到另一条路径。
 
-## K-KEYSRC-010 model_id 校验链路（Step 9）
+## K-KEYSRC-010 Runtime Target Ref Validation（Step 9）
 
-K-KEYSRC-004 step 9 的 `model_id` 校验按路径分行为：
+K-KEYSRC-004 step 9 follows K-RTARGET durable target identity:
 
-**Remote 路径**（managed remote / inline）：
-- `model_id` 为透传字段，Runtime 不校验其是否存在于 provider 模型目录。
-- 无效 `model_id` 由 provider 上游返回错误，映射为 `AI_MODEL_NOT_FOUND`（K-ERR-004）。
+**Remote managed path**:
+- Cloud execution requires `connector_id`, `remote_model_catalog_id`,
+  `provider_model_id`, and `provider`.
+- Missing `remote_model_catalog_id` returns `INVALID_ARGUMENT` +
+  `AI_REMOTE_MODEL_CATALOG_ID_REQUIRED`.
+- Stale or snapshot-mismatched `remote_model_catalog_id` returns
+  `FAILED_PRECONDITION` + `AI_REMOTE_MODEL_CATALOG_STALE`.
 
-**Local 路径**（`connector_id` 为空，且不存在 inline remote 凭据 metadata）：
-- `model_id` 按 K-LOCAL-020 前缀路由规则解析。
-- 前缀不匹配已安装模型的引擎时，返回 `AI_MODEL_PROVIDER_MISMATCH`。
-- 匹配后模型不可用（非 `ACTIVE` 状态）时，返回 `AI_LOCAL_MODEL_UNAVAILABLE`。
+**Local path**:
+- Local execution requires the v2 local discriminant from K-RTARGET-002.
+- Raw local asset ids, provider model ids, or retired compact
+  `targetId/profileId` pairs are rejected as durable execution identity.
+- Missing, incompatible, or unknown local component bindings fail with the
+  K-RTARGET-008 reason-code taxonomy.
 
-`model_id` 为空或缺失时，必须返回 `INVALID_ARGUMENT` + `AI_MODEL_ID_REQUIRED`。
+Provider-native model ids remain provider facts only. They must not be used to
+mint durable runtime target identity.
 
 ## K-KEYSRC-011 Memory Embedding Cloud Binding Resolution Boundary
 
@@ -150,7 +167,8 @@ binding resolution 必须复用 managed connector 路径语义，而不是发明
 
 固定规则：
 
-- admitted cloud binding shape 必须至少包含 `connector_id + model_id`
+- admitted cloud binding shape 必须至少包含 `connector_id`,
+  `remote_model_catalog_id`, `provider_model_id`, and `provider`
 - host 持久化的 memory embedding config 不得使用 inline credential metadata、
   inline endpoint、或任何 escape-hatch secret shape
 - runtime 在解析 cloud memory embedding binding 时，必须沿用 managed connector
@@ -168,7 +186,9 @@ For AIProfile cloud connector slices (`K-CONN-019`), the live AIConfig target re
 may carry only non-secret connector routing identity:
 
 - `connector_id`
-- `model_id`
+- `remote_model_catalog_id`
+- `provider_model_id`
+- `provider`
 - provider/capability discriminator when needed for validation
 - profile slice / requirement ref needed for traceability
 
@@ -180,3 +200,16 @@ app-local connector stores as substitutes for the managed connector path.
 This rule does not own provider model catalog truth, readiness, quota, health,
 or execution result. Those remain Runtime connector/provider execution evidence
 outside AIProfile/AIConfig.
+
+## K-KEYSRC-013 Runtime Target Identity v2 Supersession
+
+K-RTARGET-002 and K-RTARGET-003 supersede K-KEYSRC-010 through K-KEYSRC-012 for
+durable target identity. Remote managed cloud refs must include `connector_id`,
+`remote_model_catalog_id`, `provider_model_id`, and `provider`. Missing
+`remote_model_catalog_id` fails with `AI_REMOTE_MODEL_CATALOG_ID_REQUIRED`;
+stale ids fail with `AI_REMOTE_MODEL_CATALOG_STALE`.
+
+Local refs must use the v2 local discriminant from K-RTARGET-002. Raw
+`model_id`, `target_model_id`, `localModelId`, `goRuntimeLocalModelId`,
+`targetId/profileId`, and `connector_id + model_id` are not admitted durable
+target identity. `connector_id` remains credential custody only.

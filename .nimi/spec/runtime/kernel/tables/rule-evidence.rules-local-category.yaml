@@ -24,6 +24,7 @@ forbidden_state_fields:
   - run_id
   - ledger_ref
 entries:
+  - K-LOCAL-000
   - K-LOCAL-001
   - K-LOCAL-002
   - K-LOCAL-003
@@ -47,6 +48,7 @@ entries:
   - K-LOCAL-019
   - K-LOCAL-020
   - K-LOCAL-020a
+  - K-LOCAL-020b
   - K-LOCAL-021
   - K-LOCAL-022
   - K-LOCAL-023
@@ -58,6 +60,12 @@ entries:
   - K-LOCAL-029
   - K-LOCAL-030
 rules:
+  - rule_id: K-LOCAL-000
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    note: Runtime Target Identity v2 hard-cuts user import identity and local connector retirement boundaries.
+    evidence_requirement: required
   - rule_id: K-LOCAL-001
     evidence_refs:
       - runtime_kernel_consistency
@@ -169,6 +177,11 @@ rules:
       - runtime_go_test
     evidence_requirement: required
   - rule_id: K-LOCAL-020a
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-LOCAL-020b
     evidence_refs:
       - runtime_kernel_consistency
       - runtime_go_test

@@ -2,6 +2,14 @@
 
 > Owner Domain: `K-CONN-*`
 
+## K-CONN-000 Runtime Target Identity v2 Hard Cut
+
+`K-RTARGET-*` is the active target-identity authority. ConnectorService owns
+remote credential custody only. Any older text in this file that admits local
+connector identity, `LOCAL_MODEL`, or durable cloud target identity based on
+`connector_id + model_id` is retired by K-RTARGET-002, K-RTARGET-003, and
+K-RTARGET-006.
+
 ## K-CONN-001 Custodian Not Distributor
 
 AI provider 凭据的唯一托管者是 Runtime ConnectorService。调用方通过 `connector_id` 引用凭据，不直接分发原始密钥。
@@ -138,12 +146,14 @@ legal binding reference 必须继续服从 connector custody 规则。
 - cloud memory embedding binding 必须引用 remote managed connector；host 持久化
   config 不得携带 raw provider secret、inline endpoint、或 provider-native
   credential fields
-- admitted cloud binding shape 至少包含 `connector_id + model_id` 或其等价 typed
-  reference；仅 `connector_id` 不构成完整 binding
+- admitted cloud binding shape 必须包含
+  `connector_id + remote_model_catalog_id + provider_model_id + provider` 或其
+  等价 typed reference；仅 `connector_id` 或 `connector_id + model_id` 不构成
+  完整 binding
 - 被引用 connector 的 provider 必须属于 canonical provider domain，且继续受
   owner/status/credential 校验约束
-- `kind=LOCAL_MODEL` 的 connector 不得被 memory embedding cloud binding 当作
-  legal remote reference
+- retired numeric local connector records 不得被 memory embedding cloud binding
+  当作 legal remote reference
 - connector custody 只拥有 credential 托管与 remote binding legality；resolved
   embedding profile、bank bind、以及 migration / cutover truth 仍由 runtime
   memory authority 拥有
@@ -195,7 +205,8 @@ Allowed portable/profile fields:
 - params and editable-field schema refs.
 
 Runtime readiness output may select a concrete non-secret connector target
-(`connector_id + model_id` or equivalent typed ref) for live AIConfig, but the
+(`connector_id + remote_model_catalog_id + provider_model_id + provider` or
+equivalent typed ref) for live AIConfig, but the
 connector's credential payload remains Runtime-custodied.
 
 `MUST NOT`:

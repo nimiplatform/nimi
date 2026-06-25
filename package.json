@@ -118,6 +118,7 @@
     "check:no-first-party-sdk-client-construction": "node scripts/check-no-first-party-sdk-client-construction.mjs",
     "check:typed-surface-hardcut": "node scripts/check-typed-surface-hardcut.mjs",
     "check:runtime-stable-ai-output-typing": "node scripts/check-runtime-stable-ai-output-typing.mjs",
+    "check:runtime-target-identity-v2": "node scripts/check-runtime-target-identity-v2.mjs",
     "check:reason-code-constants": "node scripts/check-reason-code-constants.mjs",
     "check:desktop-cloud-runtime-only": "node scripts/check-desktop-cloud-runtime-only.mjs",
     "check:desktop-chat-authority-anti-patterns": "node scripts/check-desktop-chat-authority-anti-patterns.mjs",

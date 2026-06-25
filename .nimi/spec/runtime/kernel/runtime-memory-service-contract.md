@@ -2,6 +2,13 @@
 
 > Owner Domain: `K-MEM-*`
 
+## K-MEM-000 Runtime Target Identity v2 Hard Cut
+
+Memory embedding durable binding intent uses v2 target refs from
+`K-RTARGET-*`. Provider/model facts may appear only after resolution as bank
+profile facts. Any older `provider + model_id` durable memory identity in this
+file is retired.
+
 ## K-MEM-001 RuntimeCognitionService Authority Home And Retained Memory Depth
 
 `RuntimeCognitionService` is the sole admitted runtime-facing cognition owner

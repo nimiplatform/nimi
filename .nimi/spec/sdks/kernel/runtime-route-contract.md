@@ -2,6 +2,13 @@
 
 > Owner Domain: `S-RUNTIME-*`
 
+## S-RUNTIME-000 Runtime Target Identity v2 Hard Cut
+
+Runtime route APIs consume v2 durable target refs, return inventory projection
+for options, and expose resolved execution binding for execution/describe
+truth. Legacy route bindings, `localModelId`, and raw provider/model ids must
+not be used as durable target identity.
+
 ## Scope
 
 定义 app-facing `runtime.route.*` typed surface，覆盖 host typed surface 以及 `runtime.route.describe(...)` 的 SDK projection 边界。

@@ -2,6 +2,13 @@
 
 > Authority: Desktop Kernel
 
+## D-AIPC-000 Runtime Target Identity v2 Hard Cut
+
+Desktop AIProfile/AIConfig consumption uses v2 durable target refs only. Local
+`targetId/profileId/localModelId` and cloud `connector_id + provider model_id`
+are retired as durable target identity. Desktop may carry `connector_id` only
+as remote credential custody after v2 target resolution.
+
 ## Scope
 
 定义 Desktop 如何消费 `AIProfile`、`AIConfig`、`AISnapshot` 三段式 AI

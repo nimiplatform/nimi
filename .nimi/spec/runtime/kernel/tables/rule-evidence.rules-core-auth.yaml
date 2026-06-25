@@ -24,6 +24,7 @@ forbidden_state_fields:
   - run_id
   - ledger_ref
 entries:
+  - K-AUTH-000
   - K-AUTH-001
   - K-AUTH-002
   - K-AUTH-003
@@ -94,6 +95,12 @@ entries:
   - K-SEC-004
   - K-SEC-005
 rules:
+  - rule_id: K-AUTH-000
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    note: Runtime Target Identity v2 local connector retirement changes the ownership boundary; executable coverage is owned by connector/local asset hard-cut tests.
+    evidence_requirement: required
   - rule_id: K-AUTH-001
     evidence_refs:
       - runtime_kernel_consistency

@@ -92,25 +92,24 @@ Connector（连接器）是 Nimi Runtime 中最核心的抽象之一。它代表
 
 连接器本身是**薄描述**——它只记录"去哪里"和"用什么凭据"，不承载用户路由策略。
 
-### 3.2 两种连接器
+### 3.2 远程凭据连接器
 
-连接器分为两种：
+ConnectorService 的 active 记录只承载远程凭据托管。历史上的本地模型 connector 词汇已经退役，不能再作为模型安装、路由、展示或 AIConfig target identity 的事实源。
 
-- **LOCAL_MODEL**：本地模型，由系统预设。固定 6 个（对应 6 种能力类别），不能通过 CRUD 新建或删除
 - **REMOTE_MANAGED**：远程托管，由用户创建。用户提供 API Key 和 endpoint，Runtime 托管凭据
+- **Retired local connector vocabulary**：旧的 LOCAL_MODEL / local_category 只能作为迁移隔离或历史说明，不得在 active API、SDK projection、workflow 或 AIConfig 中重新 mint target identity
 
 \`\`\`protobuf
 message Connector {
   string connector_id = 1;                // ULID
-  ConnectorKind kind = 2;                 // LOCAL_MODEL | REMOTE_MANAGED
+  ConnectorKind kind = 2;                 // REMOTE_MANAGED
   ConnectorOwnerType owner_type = 3;      // SYSTEM | REALM_USER
   string owner_id = 4;                    // SYSTEM 常量或 JWT sub
-  string provider = 5;                    // local | gemini | openai | ...
-  string endpoint = 6;                    // local 固定空串；remote 非空
+  string provider = 5;                    // gemini | openai | ...
+  string endpoint = 6;                    // remote 非空
   string label = 7;
   ConnectorStatus status = 8;             // ACTIVE | DISABLED
   bool has_credential = 11;              // 展示用，非门禁
-  LocalConnectorCategory local_category = 12;
 }
 \`\`\`
 
@@ -120,14 +119,14 @@ message Connector {
   d.blank();
   d.rule('K-AUTH-003');
 
-  d.text(`### 3.3 本地模型类别
+  d.text(`### 3.3 本地模型实例
 
-本地连接器对应 6 种固定的能力类别，每种类别映射到不同的 AI 能力：`);
+本地模型不是连接器类别。本地模型安装、重复导入、组件兼容、profile binding 与 readiness ref 由 LocalRuntimeAssetCatalog、RuntimeTargetIdentity 和 AIProfile profile/component 层承载：`);
   d.blank();
   d.rule('K-LOCAL-001');
   d.rule('K-LOCAL-002');
 
-  d.text(`其中 CUSTOM 类型的模型需要提供 \`local_invoke_profile_id\`，缺失则标记为不可用：`);
+  d.text(`用户导入的本地文件每次都 mint 独立 installed instance id；显示名称可以重复并可编辑，但 durable identity 不得从文件名、asset_id 或旧 local connector category 推导：`);
   d.blank();
   d.rule('K-LOCAL-003');
 

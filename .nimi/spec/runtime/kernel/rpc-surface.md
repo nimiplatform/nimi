@@ -2,6 +2,13 @@
 
 > Owner Domain: `K-RPC-*`
 
+## K-RPC-000 Runtime Target Identity v2 Hard Cut
+
+AI RPC request surfaces consume v2 durable target refs or resolved binding
+inputs. Raw `model_id`, `target_model_id`, and `connector_id + model_id` are
+not admitted durable target identity. Catalog RPCs may retain provider/catalog
+model ids as non-identity facts.
+
 ## K-RPC-001 服务范围
 
 Runtime kernel 的 RPC 覆盖范围为 admitted proto 服务与已定义的 design-first service surface：
@@ -444,9 +451,9 @@ When used by desktop catalog UX, these RPCs MUST target provider overlay fragmen
 |---|---|---|---|
 | `app_id` | string | 是 | 应用标识 |
 | `subject_user_id` | string | 是 | 鉴权主体用户 ID |
-| `model_id` | string | 是 | 待查询模型（例如 `local/qwen3-tts-local`） |
-| `target_model_id` | string | 否 | 目标声音资产绑定模型（克隆/设计场景可选） |
-| `connector_id` | string | 否 | key-source 托管 connector（`managed` 路径） |
+| `target_ref` | RuntimeDurableTargetRef | 是 | v2 durable target ref or resolved binding input |
+| `voice_asset_target_ref` | RuntimeDurableTargetRef | 否 | 目标声音资产兼容绑定（克隆/设计场景可选） |
+| `connector_id` | string | 否 | post-resolve credential custody fact only; not durable model identity |
 
 **响应字段**：
 

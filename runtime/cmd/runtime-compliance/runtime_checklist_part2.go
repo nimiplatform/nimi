@@ -95,8 +95,11 @@ func runtimeChecklistPart2(
 		},
 		{
 			ID:          "RS-11-37",
-			Requirement: "6 local connector categories (K-LOCAL-001)",
-			Tests:       []testRef{{Package: pkgConnector, Name: "TestEnsureLocalConnectorsCreatesExactly6Categories"}},
+			Requirement: "local connector categories retired; startup does not mint local ConnectorService records (K-RTARGET-006)",
+			Tests: []testRef{
+				{Package: pkgConnector, Name: "TestEnsureLocalConnectorsDoesNotCreateRetiredCategories"},
+				{Package: pkgConnector, Name: "TestTestConnectorRetiredLocalFailsClosed"},
+			},
 		},
 		{
 			ID:          "RS-11-38",

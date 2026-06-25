@@ -50,6 +50,7 @@ entries:
   - K-APP-023
   - K-APP-024
   - K-APP-025
+  - K-CONN-000
   - K-CONN-001
   - K-CONN-002
   - K-CONN-003
@@ -95,6 +96,7 @@ entries:
   - K-PROTO-010
   - K-PROTO-011
   - K-PROTO-012
+  - K-RPC-000
   - K-RPC-001
   - K-RPC-002
   - K-RPC-003
@@ -118,6 +120,18 @@ entries:
   - K-RPC-021
   - K-RPC-022
   - K-RPC-023
+  - K-RTARGET-001
+  - K-RTARGET-002
+  - K-RTARGET-003
+  - K-RTARGET-004
+  - K-RTARGET-005
+  - K-RTARGET-006
+  - K-RTARGET-007
+  - K-RTARGET-008
+  - K-RTARGET-009
+  - K-RTARGET-010
+  - K-RTARGET-011
+  - K-WF-000
   - K-WF-001
   - K-WF-002
   - K-WF-003
@@ -281,6 +295,13 @@ rules:
       - sdk_runtime_test
       - desktop_boundary_test
     note: Local app adoption is Runtime-owned explicit adoption truth; tests cover manifest/path/permission/storage validation, typed SDK accessors, and Desktop consumption without local source scanning.
+    evidence_requirement: required
+  - rule_id: K-CONN-000
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_proto_linkage
+    note: Runtime Target Identity v2 retires local connector vocabulary and keeps ConnectorService as remote credential custody only.
     evidence_requirement: required
   - rule_id: K-CONN-001
     evidence_refs:
@@ -510,6 +531,13 @@ rules:
     note: Runtime Agent Participation proto surface boundary admitted as contract truth;
       implementation-facing proto contracts require separate admitted implementation evidence.
     evidence_requirement: deferred
+  - rule_id: K-RPC-000
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_proto_linkage
+    note: Runtime Target Identity v2 changes admitted AI RPC target inputs to durable target refs or resolved bindings.
+    evidence_requirement: required
   - rule_id: K-RPC-001
     evidence_refs:
       - runtime_kernel_consistency
@@ -631,6 +659,95 @@ rules:
     evidence_refs:
       - runtime_kernel_consistency
       - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-RTARGET-001
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - sdk_runtime_test
+      - desktop_boundary_test
+      - runtime_proto_linkage
+    note: Runtime Target Identity v2 scope must be enforced across Runtime, SDK, and Desktop AIConfig/route consumers.
+    evidence_requirement: required
+  - rule_id: K-RTARGET-002
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - sdk_runtime_test
+      - desktop_boundary_test
+    note: Durable target ref grammar is validated at Runtime resolver and SDK/Desktop AIConfig boundaries.
+    evidence_requirement: required
+  - rule_id: K-RTARGET-003
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_proto_linkage
+    note: Remote model catalog identity and stale resolution are Runtime-owned connector/model resolver facts.
+    evidence_requirement: required
+  - rule_id: K-RTARGET-004
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - sdk_runtime_test
+      - desktop_boundary_test
+      - runtime_proto_linkage
+    note: Durable refs, inventory projection, and resolved execution binding must stay typed and separate.
+    evidence_requirement: required
+  - rule_id: K-RTARGET-005
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    note: User file import identity must mint separate installed local asset instances.
+    evidence_requirement: required
+  - rule_id: K-RTARGET-006
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_proto_linkage
+    note: Local connector retirement requires proto, store, RPC, and projection hard-cut coverage.
+    evidence_requirement: required
+  - rule_id: K-RTARGET-007
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - sdk_runtime_test
+      - runtime_proto_linkage
+    note: Memory embedding target refs must use the same v2 durable identity grammar.
+    evidence_requirement: required
+  - rule_id: K-RTARGET-008
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - sdk_runtime_test
+      - desktop_boundary_test
+      - runtime_proto_linkage
+    note: Workflow, voice, and AI RPC target inputs must not mint durable identity from raw model or connector fields.
+    evidence_requirement: required
+  - rule_id: K-RTARGET-009
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    note: Component compatibility is a shared fail-closed gate before warm, health, generate, start, lease, and resident load.
+    evidence_requirement: required
+  - rule_id: K-RTARGET-010
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_proto_linkage
+    note: New Runtime reason codes must be admitted in reason-code tables, proto, generated clients, and error mappings before use.
+    evidence_requirement: required
+  - rule_id: K-RTARGET-011
+    evidence_refs:
+      - runtime_kernel_consistency
+      - sdk_runtime_test
+      - desktop_boundary_test
+    note: Whole-spec scan classification is the active stale-authority gate for Runtime Target Identity v2.
+    evidence_requirement: required
+  - rule_id: K-WF-000
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_proto_linkage
+    note: Runtime Target Identity v2 changes workflow AI node target inputs to durable refs or resolved bindings.
     evidence_requirement: required
   - rule_id: K-WF-001
     evidence_refs:

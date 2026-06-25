@@ -2,6 +2,12 @@
 
 > Owner Domain: `S-AICONF-*`
 
+## S-AICONF-000 Runtime Target Identity v2 Hard Cut
+
+SDK AIConfig durable refs use the v2 target grammar from `K-RTARGET-*`.
+`targetId/profileId`, `localModelId`, `goRuntime*`, and cloud refs without
+`remoteModelCatalogId` are retired as durable target identity.
+
 ## Scope
 
 定义 SDK 对 `AIProfile / AIConfig / AISnapshot` 的 typed surface，使 app consumer 无需直接操作底层 capability fragments 作为主真相。本契约依赖 desktop canonical model（D-AIPC-001~014）和 platform scope identity（P-AISC-001~005）。

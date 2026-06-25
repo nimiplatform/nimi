@@ -99,8 +99,10 @@ local_manifest_tokens:
   - embedding
   - music
 
-# LocalConnectorCategory (K-LOCAL-001 Phase 1 fixed categories)
-local_categories:
+# Retired local connector categories. K-RTARGET-006 forbids using these values
+# as active ConnectorService identity. They may be read only as historical
+# import/display metadata.
+retired_local_connector_categories:
   - LLM
   - VISION
   - IMAGE
@@ -114,55 +116,55 @@ local_categories:
 local_to_canonical:
   - local_token: chat
     canonical_token: text.generate
-    local_category: LLM
+    local_capability_family: LLM
     source_rule: K-LOCAL-002
 
   - local_token: vision
     canonical_token: text.generate.vision
-    local_category: VISION
+    local_capability_family: VISION
     source_rule: K-LOCAL-002
 
   - local_token: audio_chat
     canonical_token: text.generate.audio
-    local_category: VISION
+    local_capability_family: VISION
     note: Phase 1 local categories are fixed; multimodal chat with audio input is currently normalized under VISION rather than introducing a separate AUDIO_CHAT category.
     source_rule: K-LOCAL-002
 
   - local_token: video_chat
     canonical_token: text.generate.video
-    local_category: VISION
+    local_capability_family: VISION
     note: Phase 1 local categories are fixed; multimodal chat with video input is currently normalized under VISION rather than introducing a separate VIDEO_CHAT category.
     source_rule: K-LOCAL-002
 
   - local_token: embedding
     canonical_token: text.embed
-    local_category: LLM
+    local_capability_family: LLM
     source_rule: K-LOCAL-002
 
   - local_token: image
     canonical_token: image.generate
-    local_category: IMAGE
+    local_capability_family: IMAGE
     source_rule: K-LOCAL-002
 
   - local_token: video
     canonical_token: video.generate
-    local_category: null
-    note: No dedicated Phase 1 local category; video models use CUSTOM
+    local_capability_family: CUSTOM
+    note: No dedicated local capability family; video models use CUSTOM metadata
     source_rule: K-LOCAL-002
 
   - local_token: tts
     canonical_token: audio.synthesize
-    local_category: TTS
+    local_capability_family: TTS
     source_rule: K-LOCAL-002
 
   - local_token: stt
     canonical_token: audio.transcribe
-    local_category: STT
+    local_capability_family: STT
     source_rule: K-LOCAL-002
 
   - local_token: music
     canonical_token: music.generate
-    local_category: CUSTOM
+    local_capability_family: CUSTOM
     note: Sidecar music routing uses the local `music` token while public semantic surfaces use canonical `music.generate`.
     source_rule: K-LOCAL-002
 

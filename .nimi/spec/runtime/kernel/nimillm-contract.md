@@ -2,6 +2,13 @@
 
 > Owner Domain: `K-NIMI-*`
 
+## K-NIMI-000 Runtime Target Identity v2 Hard Cut
+
+Outbound nimiLLM execution consumes resolved v2 execution binding and
+post-resolve provider facts. Raw durable `model_id` input is not an admitted
+execution target and must not be used for prefix/provider validation before
+target resolution.
+
 ## K-NIMI-001 Module Boundary
 
 nimiLLM 负责 remote 执行适配，不承担 connector 持久化职责。

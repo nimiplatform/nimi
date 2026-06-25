@@ -21,7 +21,7 @@
   - `LOCAL` `LENG` `DEV` `SEC` `STREAM` `ERR` `PAGE` `AUDIT`
   - `DAEMON` `PROV` `WF` `MODEL` `KNOW` `APP` `CLI`
   - `CFG` `CONN` `NIMI` `MCAT` `MMPROV` `VOICE` `GATE` `PROTO`
-  - `AIEXEC` `SCHED` `WEV` `MEM` `MEMSUB` `AGCORE`
+  - `AIEXEC` `RTARGET` `SCHED` `WEV` `MEM` `MEMSUB` `AGCORE`
   - `DELEG`
 - `NNN` 三位递增编号，不复用。
 - `NNNa`/`NNNb` 后缀允许用于后插入的细化规则（如 `K-KEYSRC-005a`），保留原有规则编号稳定性。
@@ -79,6 +79,7 @@
 | `cli-onboarding-contract.md` | `K-CLI-*` | CLI 首次使用、provider-first cloud setup 与 author tooling 边界 |
 | `config-contract.md` | `K-CFG-*` | Runtime config path `~/.nimi/runtime/config.json`, source priority, secret policy, atomic writes, schema migration, and selected `nimi_data` dataRootRef boundary |
 | `connector-contract.md` | `K-CONN-*` | connector 托管、字段约束、补偿与并发安全 |
+| `runtime-target-identity-contract.md` | `K-RTARGET-*` | Runtime Target Identity v2 durable refs, inventory projection, resolved execution binding, and scan classification authority |
 | `nimillm-contract.md` | `K-NIMI-*` | remote 执行边界、流式与审计对齐 |
 | `model-catalog-contract.md` | `K-MCAT-*` | 模型/voice catalog SSOT、远程覆写与 fail-close 语义 |
 | `multimodal-provider-contract.md` | `K-MMPROV-*` | canonical 输入、artifact、adapter 与路由约束（含 `MUSIC_GENERATE` iteration 扩展） |

@@ -2,6 +2,12 @@
 
 > Owner Domain: `K-VOICE-*`
 
+## K-VOICE-000 Runtime Target Identity v2 Hard Cut
+
+Voice execution consumes v2 target refs or resolved binding inputs. Raw
+`model_id` and `target_model_id` may remain only as post-resolve provider or
+voice asset compatibility facts and must not mint durable target refs.
+
 ## K-VOICE-001 Scope
 
 Voice 是 Runtime 一等能力，负责 Voice 创建场景与 voice 资产生命周期：
@@ -41,8 +47,8 @@ Voice 工作流类型以 `tables/voice-enums.yaml` `workflow_types` 为唯一事
 - `subject_user_id`
 - `workflow_type`
 - `provider`
-- `model_id`
-- `target_model_id`
+- `target_ref`
+- `voice_asset_target_ref`
 - `provider_voice_ref`
 - `persistence`
 - `status`
@@ -63,9 +69,9 @@ VoiceAsset 默认 user-scoped。跨 `app_id` 或跨 `subject_user_id` 访问必�
 
 ## K-VOICE-007 Target Model Binding
 
-VoiceAsset 在创建时必须绑定 `target_model_id`。
+VoiceAsset 在创建时必须绑定 `voice_asset_target_ref`。
 
-`tts_synthesize` 阶段若请求模型与已绑定 `target_model_id` 不一致，必须返回 `AI_VOICE_TARGET_MODEL_MISMATCH`。
+`tts_synthesize` 阶段若请求 target ref 与已绑定 `voice_asset_target_ref` 不一致，必须返回 `AI_VOICE_TARGET_MODEL_MISMATCH`。
 
 ## K-VOICE-008 AIService Voice Surface
 

@@ -2,10 +2,16 @@
 
 > Owner Domain: `K-AUTH-*`
 
+## K-AUTH-000 Runtime Target Identity v2 Hard Cut
+
+`LOCAL_MODEL` is not an active connector kind or ownership path. Local model
+authorization must be derived from Runtime local asset/profile ownership.
+Connector ownership applies to remote credential custody only.
+
 ## K-AUTH-001 身份模型
 
-- 有效 Realm JWT：可访问 `LOCAL_MODEL` 与 owner=`sub` 的 `REMOTE_MANAGED`。
-- 无 JWT：可访问 `LOCAL_MODEL`、system-owned remote connector，以及 inline 路径；其中 anonymous 创建的 machine-global connector 仅限 `auth_kind=API_KEY`，并以 `owner_type=SYSTEM`、`owner_id="machine"` 持久化。
+- 有效 Realm JWT：可访问 caller-owned local asset/profile target refs 与 owner=`sub` 的 `REMOTE_MANAGED` credential connector。
+- 无 JWT：可访问 machine-local asset/profile target refs、system-owned remote credential connector，以及 inline 路径；其中 anonymous 创建的 machine-global connector 仅限 `auth_kind=API_KEY`，并以 `owner_type=SYSTEM`、`owner_id="machine"` 持久化。
 - 携带 `Authorization` 但 JWT 无效：必须 `UNAUTHENTICATED`，不降级匿名。
 
 `JWT` 的有效性判定由 `K-AUTHN-002`（必校验 claims）、`K-AUTHN-003`（算法约束）、`K-AUTHN-004`（JWKS）与 `K-AUTHN-005`（时钟偏差）定义。
@@ -23,7 +29,7 @@
 - authenticated `REMOTE_MANAGED -> CONNECTOR_OWNER_TYPE_REALM_USER`
 - anonymous machine-global `REMOTE_MANAGED -> CONNECTOR_OWNER_TYPE_SYSTEM` 且 `owner_id="machine"`，但仅适用于 `auth_kind=API_KEY`
 - `auth_kind=OAUTH_MANAGED` 的 `REMOTE_MANAGED` 必须固定为 `CONNECTOR_OWNER_TYPE_REALM_USER`
-- `LOCAL_MODEL -> CONNECTOR_OWNER_TYPE_SYSTEM`
+- local asset/profile target refs -> RuntimeLocalService ownership, not ConnectorService ownership
 
 ## K-AUTH-004 管理 RPC 身份门禁
 

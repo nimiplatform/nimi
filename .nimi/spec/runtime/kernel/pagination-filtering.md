@@ -2,6 +2,13 @@
 
 > Owner Domain: `K-PAGE-*`
 
+## K-PAGE-000 Runtime Target Identity v2 Hard Cut
+
+Connector pagination must not expose local connector ordering as active truth.
+The retired raw local connector kind and connector-local category ordering are
+retired by `K-RTARGET-006`. Remaining model ids in list/audit/model-service
+pagination are non-identity list facts and must not mint durable target refs.
+
 ## K-PAGE-001 page_size
 
 `ListConnectors` / `ListConnectorModels` 的分页默认值：
@@ -24,9 +31,9 @@
 
 `ListConnectors` 固定排序：
 
-1. kind：`LOCAL_MODEL` 在前，`REMOTE_MANAGED` 在后
-2. local：`local_category` 升序，同 category 按 `connector_id ASC`
-3. remote：`created_at DESC`，同值 `connector_id ASC`
+1. connector kind：active connectors are remote credential connectors only
+2. remote：`created_at DESC`，同值 `connector_id ASC`
+3. local assets/profiles：handled by RuntimeLocalService pagination, not ConnectorService local connector ordering
 
 `ListConnectorModels`：`model_id ASC`
 
@@ -55,9 +62,9 @@
 
 | RPC | Service | 分页 | 排序 | 过滤 | 规格来源 |
 |---|---|---|---|---|---|
-| `ListConnectors` | ConnectorService | 是（K-PAGE-001） | kind → local_category → connector_id / created_at（K-PAGE-003） | kind_filter, status_filter, provider_filter（K-PAGE-004） | K-PAGE-001/003/004 |
+| `ListConnectors` | ConnectorService | 是（K-PAGE-001） | kind → created_at DESC → connector_id ASC（K-PAGE-003） | kind_filter, status_filter, provider_filter（K-PAGE-004） | K-PAGE-001/003/004 |
 | `ListConnectorModels` | ConnectorService | 是（K-PAGE-001） | model_id ASC（K-PAGE-003） | — | K-PAGE-001/003 |
-| `ListLocalAssets` | RuntimeLocalService | 是（K-PAGE-005） | local_category ASC, asset_id ASC | status_filter, kind_filter, engine_filter, category_filter | K-LOCAL-030 |
+| `ListLocalAssets` | RuntimeLocalService | 是（K-PAGE-005） | kind ASC, asset_id ASC | status_filter, kind_filter, engine_filter, category_filter | K-LOCAL-030 |
 | `ListVerifiedAssets` | RuntimeLocalService | 是（K-PAGE-005） | kind ASC, asset_id ASC | kind_filter, engine_filter, category_filter | K-LOCAL-030 |
 | `ListLocalServices` | RuntimeLocalService | 是（K-PAGE-005） | service_id ASC | status_filter | K-LOCAL-030 |
 | `ListNodeCatalog` | RuntimeLocalService | 是（K-PAGE-005） | node_type ASC, node_id ASC | type_filter | K-LOCAL-030 |

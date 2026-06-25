@@ -35,6 +35,7 @@ entries:
   - K-LOCAL-031
   - K-LOCAL-032
   - K-LOCAL-033
+  - K-AIEXEC-000
   - K-AIEXEC-001
   - K-AIEXEC-002
   - K-AIEXEC-003
@@ -105,6 +106,14 @@ rules:
     evidence_refs:
       - runtime_kernel_consistency
       - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-AIEXEC-000
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - sdk_runtime_test
+      - desktop_boundary_test
+    note: Runtime Target Identity v2 replaces AIProfile execution durable target identity with v2 refs and resolved bindings.
     evidence_requirement: required
   - rule_id: K-AIEXEC-001
     evidence_refs: []

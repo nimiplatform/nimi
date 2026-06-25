@@ -123,8 +123,8 @@ export function createRuntimeSpecTraceabilityChecks({
         .map((value) => String(value || '').trim())
         .filter(Boolean),
     );
-    const localCategories = new Set(
-      (Array.isArray(doc?.local_categories) ? doc.local_categories : [])
+    const retiredLocalConnectorCategories = new Set(
+      (Array.isArray(doc?.retired_local_connector_categories) ? doc.retired_local_connector_categories : [])
         .map((value) => String(value || '').trim())
         .filter(Boolean),
     );
@@ -139,7 +139,7 @@ export function createRuntimeSpecTraceabilityChecks({
     for (const entry of mappings) {
       const localToken = String(entry?.local_token || '').trim();
       const canonicalToken = String(entry?.canonical_token || '').trim();
-      const localCategory = String(entry?.local_category || '').trim();
+      const localCapabilityFamily = String(entry?.local_capability_family || '').trim();
       const sourceRule = String(entry?.source_rule || '').trim();
       if (!localToken || !localTokens.has(localToken)) {
         fail(`${rel} mapping references unknown local_token: ${localToken || '<empty>'}`);
@@ -147,8 +147,8 @@ export function createRuntimeSpecTraceabilityChecks({
       if (!canonicalToken || !canonicalTokens.has(canonicalToken)) {
         fail(`${rel} mapping references unknown canonical_token: ${canonicalToken || '<empty>'}`);
       }
-      if (localCategory && !localCategories.has(localCategory)) {
-        fail(`${rel} mapping ${localToken} uses unknown local_category: ${localCategory}`);
+      if (localCapabilityFamily && !retiredLocalConnectorCategories.has(localCapabilityFamily)) {
+        fail(`${rel} mapping ${localToken} uses unknown local_capability_family: ${localCapabilityFamily}`);
       }
       if (!/^K-[A-Z]+-\d{3}[a-z]?$/u.test(sourceRule) || !kernelRuleSet.has(sourceRule)) {
         fail(`${rel} mapping ${localToken} has invalid source_rule: ${sourceRule || '<empty>'}`);

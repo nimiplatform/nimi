@@ -10,11 +10,11 @@ export function renderVoiceEnums(doc, sourceName) {
   for (const item of workflowTypes) {
     const workflowType = String(item?.workflow_type || '').trim();
     if (!workflowType) continue;
-    const enumName = String(item?.enum_name || '').trim() || '—';
+    const enumName = String(item?.enum_name || '').trim() || '-';
     const enumValue = Number(item?.enum_value);
-    const description = String(item?.description || '').trim() || '—';
-    const source = String(item?.source_rule || '').trim() || '—';
-    out += `| \`${workflowType}\` | \`${enumName}\` | ${Number.isNaN(enumValue) ? '—' : enumValue} | ${description} | \`${source}\` |\n`;
+    const description = String(item?.description || '').trim() || '-';
+    const source = String(item?.source_rule || '').trim() || '-';
+    out += `| \`${workflowType}\` | \`${enumName}\` | ${Number.isNaN(enumValue) ? '-' : enumValue} | ${description} | \`${source}\` |\n`;
   }
   out += '\n';
 
@@ -25,11 +25,11 @@ export function renderVoiceEnums(doc, sourceName) {
   for (const item of referenceKinds) {
     const kind = String(item?.kind || '').trim();
     if (!kind) continue;
-    const enumName = String(item?.enum_name || '').trim() || '—';
+    const enumName = String(item?.enum_name || '').trim() || '-';
     const enumValue = Number(item?.enum_value);
-    const description = String(item?.description || '').trim() || '—';
-    const source = String(item?.source_rule || '').trim() || '—';
-    out += `| \`${kind}\` | \`${enumName}\` | ${Number.isNaN(enumValue) ? '—' : enumValue} | ${description} | \`${source}\` |\n`;
+    const description = String(item?.description || '').trim() || '-';
+    const source = String(item?.source_rule || '').trim() || '-';
+    out += `| \`${kind}\` | \`${enumName}\` | ${Number.isNaN(enumValue) ? '-' : enumValue} | ${description} | \`${source}\` |\n`;
   }
   out += '\n';
 
@@ -40,11 +40,11 @@ export function renderVoiceEnums(doc, sourceName) {
   for (const item of persistenceTypes) {
     const persistence = String(item?.persistence || '').trim();
     if (!persistence) continue;
-    const enumName = String(item?.enum_name || '').trim() || '—';
+    const enumName = String(item?.enum_name || '').trim() || '-';
     const enumValue = Number(item?.enum_value);
-    const description = String(item?.description || '').trim() || '—';
-    const source = String(item?.source_rule || '').trim() || '—';
-    out += `| \`${persistence}\` | \`${enumName}\` | ${Number.isNaN(enumValue) ? '—' : enumValue} | ${description} | \`${source}\` |\n`;
+    const description = String(item?.description || '').trim() || '-';
+    const source = String(item?.source_rule || '').trim() || '-';
+    out += `| \`${persistence}\` | \`${enumName}\` | ${Number.isNaN(enumValue) ? '-' : enumValue} | ${description} | \`${source}\` |\n`;
   }
   out += '\n';
 
@@ -55,11 +55,11 @@ export function renderVoiceEnums(doc, sourceName) {
   for (const item of handleScopes) {
     const scope = String(item?.scope || '').trim();
     if (!scope) continue;
-    const enumName = String(item?.enum_name || '').trim() || '—';
+    const enumName = String(item?.enum_name || '').trim() || '-';
     const enumValue = Number(item?.enum_value);
-    const description = String(item?.description || '').trim() || '—';
-    const source = String(item?.source_rule || '').trim() || '—';
-    out += `| \`${scope}\` | \`${enumName}\` | ${Number.isNaN(enumValue) ? '—' : enumValue} | ${description} | \`${source}\` |\n`;
+    const description = String(item?.description || '').trim() || '-';
+    const source = String(item?.source_rule || '').trim() || '-';
+    out += `| \`${scope}\` | \`${enumName}\` | ${Number.isNaN(enumValue) ? '-' : enumValue} | ${description} | \`${source}\` |\n`;
   }
   out += '\n';
 
@@ -70,11 +70,11 @@ export function renderVoiceEnums(doc, sourceName) {
   for (const item of deleteSemantics) {
     const semantics = String(item?.delete_semantics || '').trim();
     if (!semantics) continue;
-    const enumName = String(item?.enum_name || '').trim() || '—';
+    const enumName = String(item?.enum_name || '').trim() || '-';
     const enumValue = Number(item?.enum_value);
-    const description = String(item?.description || '').trim() || '—';
-    const source = String(item?.source_rule || '').trim() || '—';
-    out += `| \`${semantics}\` | \`${enumName}\` | ${Number.isNaN(enumValue) ? '—' : enumValue} | ${description} | \`${source}\` |\n`;
+    const description = String(item?.description || '').trim() || '-';
+    const source = String(item?.source_rule || '').trim() || '-';
+    out += `| \`${semantics}\` | \`${enumName}\` | ${Number.isNaN(enumValue) ? '-' : enumValue} | ${description} | \`${source}\` |\n`;
   }
   out += '\n';
 
@@ -85,11 +85,11 @@ export function renderVoiceEnums(doc, sourceName) {
   for (const item of assetStatuses) {
     const status = String(item?.status || '').trim();
     if (!status) continue;
-    const enumName = String(item?.enum_name || '').trim() || '—';
+    const enumName = String(item?.enum_name || '').trim() || '-';
     const enumValue = Number(item?.enum_value);
-    const description = String(item?.description || '').trim() || '—';
-    const source = String(item?.source_rule || '').trim() || '—';
-    out += `| \`${status}\` | \`${enumName}\` | ${Number.isNaN(enumValue) ? '—' : enumValue} | ${description} | \`${source}\` |\n`;
+    const description = String(item?.description || '').trim() || '-';
+    const source = String(item?.source_rule || '').trim() || '-';
+    out += `| \`${status}\` | \`${enumName}\` | ${Number.isNaN(enumValue) ? '-' : enumValue} | ${description} | \`${source}\` |\n`;
   }
   out += '\n';
 
@@ -105,14 +105,14 @@ export function renderTtsProviderCapabilityMatrix(doc, sourceName) {
   for (const item of entries) {
     const providerID = String(item?.provider_id || '').trim();
     if (!providerID) continue;
-    const runtimePlane = String(item?.runtime_plane || '').trim() || '—';
+    const runtimePlane = String(item?.runtime_plane || '').trim() || '-';
     const supportsSynthesize = mdBool(Boolean(item?.supports_tts_synthesize));
     const supportsClone = mdBool(Boolean(item?.supports_voice_clone));
     const supportsDesign = mdBool(Boolean(item?.supports_voice_design));
     const supportsTimingAlignment = mdBool(Boolean(item?.supports_timing_alignment));
-    const discoveryMode = String(item?.voice_discovery_mode || '').trim() || '—';
-    const activationState = String(item?.activation_state || '').trim() || '—';
-    const sourceRule = String(item?.source_rule || '').trim() || '—';
+    const discoveryMode = String(item?.voice_discovery_mode || '').trim() || '-';
+    const activationState = String(item?.activation_state || '').trim() || '-';
+    const sourceRule = String(item?.source_rule || '').trim() || '-';
     out += `| \`${providerID}\` | \`${runtimePlane}\` | \`${supportsSynthesize}\` | \`${supportsClone}\` | \`${supportsDesign}\` | \`${supportsTimingAlignment}\` | \`${discoveryMode}\` | \`${activationState}\` | \`${sourceRule}\` |\n`;
   }
   out += '\n';
@@ -131,8 +131,8 @@ export function renderMultimodalCanonicalFields(doc, sourceName) {
     const field = String(item?.field || '').trim();
     if (!modality || !field) continue;
     const required = mdBool(Boolean(item?.required));
-    const description = String(item?.description || '').trim() || '—';
-    const sourceRule = String(item?.source_rule || '').trim() || '—';
+    const description = String(item?.description || '').trim() || '-';
+    const sourceRule = String(item?.source_rule || '').trim() || '-';
     out += `| \`${modality}\` | \`${field}\` | \`${required}\` | ${description} | \`${sourceRule}\` |\n`;
   }
   out += '\n';
@@ -150,8 +150,8 @@ export function renderMultimodalArtifactFields(doc, sourceName) {
     const field = String(item?.field || '').trim();
     if (!field) continue;
     const required = mdBool(Boolean(item?.required));
-    const description = String(item?.description || '').trim() || '—';
-    const sourceRule = String(item?.source_rule || '').trim() || '—';
+    const description = String(item?.description || '').trim() || '-';
+    const sourceRule = String(item?.source_rule || '').trim() || '-';
     out += `| \`${field}\` | \`${required}\` | ${description} | \`${sourceRule}\` |\n`;
   }
   out += '\n';
@@ -168,8 +168,8 @@ export function renderScenarioTypes(doc, sourceName) {
   for (const item of entries) {
     const scenarioType = String(item?.scenario_type || '').trim();
     if (!scenarioType) continue;
-    const description = String(item?.description || '').trim() || '—';
-    const sourceRule = String(item?.source_rule || '').trim() || '—';
+    const description = String(item?.description || '').trim() || '-';
+    const sourceRule = String(item?.source_rule || '').trim() || '-';
     out += `| \`${scenarioType}\` | ${description} | \`${sourceRule}\` |\n`;
   }
   out += '\n';
@@ -186,12 +186,12 @@ export function renderScenarioExecutionMatrix(doc, sourceName) {
   for (const item of entries) {
     const scenarioType = String(item?.scenario_type || '').trim();
     if (!scenarioType) continue;
-    const canonicalModality = String(item?.canonical_modality || '').trim() || '—';
+    const canonicalModality = String(item?.canonical_modality || '').trim() || '-';
     const modes = Array.isArray(item?.supported_execution_modes)
       ? item.supported_execution_modes.map((mode) => `\`${String(mode || '').trim()}\``).filter(Boolean).join(', ')
-      : '—';
-    const sourceRule = String(item?.source_rule || '').trim() || '—';
-    out += `| \`${scenarioType}\` | \`${canonicalModality}\` | ${modes || '—'} | \`${sourceRule}\` |\n`;
+      : '-';
+    const sourceRule = String(item?.source_rule || '').trim() || '-';
+    out += `| \`${scenarioType}\` | \`${canonicalModality}\` | ${modes || '-'} | \`${sourceRule}\` |\n`;
   }
   out += '\n';
 
@@ -208,10 +208,10 @@ export function renderProviderExtensionRegistry(doc, sourceName) {
     const providerID = String(item?.provider_id || '').trim();
     const scenarioType = String(item?.scenario_type || '').trim();
     if (!providerID || !scenarioType) continue;
-    const direction = String(item?.direction || '').trim() || '—';
-    const namespace = String(item?.namespace || '').trim() || '—';
-    const strategy = String(item?.strategy || '').trim() || '—';
-    const sourceRule = String(item?.source_rule || '').trim() || '—';
+    const direction = String(item?.direction || '').trim() || '-';
+    const namespace = String(item?.namespace || '').trim() || '-';
+    const strategy = String(item?.strategy || '').trim() || '-';
+    const sourceRule = String(item?.source_rule || '').trim() || '-';
     out += `| \`${providerID}\` | \`${scenarioType}\` | \`${direction}\` | \`${namespace}\` | \`${strategy}\` | \`${sourceRule}\` |\n`;
   }
   out += '\n';
@@ -313,8 +313,8 @@ export function renderScenarioProfileFields(doc, sourceName) {
     const field = String(item?.field || '').trim();
     if (!field) continue;
     const required = mdBool(Boolean(item?.required));
-    const description = String(item?.description || '').trim() || '—';
-    const sourceRule = String(item?.source_rule || '').trim() || '—';
+    const description = String(item?.description || '').trim() || '-';
+    const sourceRule = String(item?.source_rule || '').trim() || '-';
     out += `| \`${field}\` | \`${required}\` | ${description} | \`${sourceRule}\` |\n`;
   }
   out += '\n';
@@ -331,12 +331,12 @@ export function renderRuntimeDeliveryGates(doc, sourceName) {
   for (const item of gates) {
     const gate = String(item?.gate || '').trim();
     if (!gate) continue;
-    const name = String(item?.name || '').trim() || '—';
-    const objective = String(item?.objective || '').trim() || '—';
-    const command = String(item?.command || '').trim() || '—';
-    const blocking = String(item?.blocking || '').trim() || '—';
-    const evidenceRoute = String(item?.evidence_route || '').trim() || '—';
-    const sourceRule = String(item?.source_rule || '').trim() || '—';
+    const name = String(item?.name || '').trim() || '-';
+    const objective = String(item?.objective || '').trim() || '-';
+    const command = String(item?.command || '').trim() || '-';
+    const blocking = String(item?.blocking || '').trim() || '-';
+    const evidenceRoute = String(item?.evidence_route || '').trim() || '-';
+    const sourceRule = String(item?.source_rule || '').trim() || '-';
     out += `| \`${gate}\` | \`${name}\` | ${objective} | \`${command}\` | \`${blocking}\` | \`${evidenceRoute}\` | \`${sourceRule}\` |\n`;
   }
   out += '\n';
@@ -353,8 +353,8 @@ export function renderRuntimeProtoGovernanceGates(doc, sourceName) {
   for (const item of gates) {
     const gate = String(item?.gate || '').trim();
     if (!gate) continue;
-    const command = String(item?.command || '').trim() || '—';
-    const sourceRule = String(item?.source_rule || '').trim() || '—';
+    const command = String(item?.command || '').trim() || '-';
+    const sourceRule = String(item?.source_rule || '').trim() || '-';
     out += `| \`${gate}\` | \`${command}\` | \`${sourceRule}\` |\n`;
   }
   out += '\n';
@@ -365,7 +365,7 @@ export function renderRuntimeProtoGovernanceGates(doc, sourceName) {
 export function renderCapabilityVocabularyMapping(doc, sourceName) {
   const canonicalTokens = Array.isArray(doc?.canonical_tokens) ? doc.canonical_tokens : [];
   const localManifestTokens = Array.isArray(doc?.local_manifest_tokens) ? doc.local_manifest_tokens : [];
-  const localCategories = Array.isArray(doc?.local_categories) ? doc.local_categories : [];
+  const localCategories = Array.isArray(doc?.retired_local_connector_categories) ? doc.retired_local_connector_categories : [];
   const localToCanonical = Array.isArray(doc?.local_to_canonical) ? doc.local_to_canonical : [];
   const canonicalOnly = Array.isArray(doc?.canonical_only) ? doc.canonical_only : [];
   const huggingfaceInference = Array.isArray(doc?.huggingface_inference) ? doc.huggingface_inference : [];
@@ -380,27 +380,27 @@ export function renderCapabilityVocabularyMapping(doc, sourceName) {
   for (const token of localManifestTokens) {
     out += `- \`${String(token)}\`\n`;
   }
-  out += '\n## Local Categories\n\n';
+  out += '\n## Retired Local Connector Categories\n\n';
   for (const category of localCategories) {
     out += `- \`${String(category)}\`\n`;
   }
-  out += '\n## Local → Canonical Mapping\n\n';
-  out += '| Local Token | Canonical Token | Local Category | Source Rule |\n';
+  out += '\n## Local toCanonical Mapping\n\n';
+  out += '| Local Token | Canonical Token | Local Capability Family | Source Rule |\n';
   out += '|---|---|---|---|\n';
   for (const item of localToCanonical) {
-    out += `| \`${String(item?.local_token || '')}\` | \`${String(item?.canonical_token || '')}\` | \`${String(item?.local_category || '') || '—'}\` | \`${String(item?.source_rule || '') || '—'}\` |\n`;
+    out += `| \`${String(item?.local_token || '')}\` | \`${String(item?.canonical_token || '')}\` | \`${String(item?.local_capability_family || '') || '-'}\` | \`${String(item?.source_rule || '') || '-'}\` |\n`;
   }
   out += '\n## Canonical-Only Tokens\n\n';
   out += '| Canonical Token | Note |\n';
   out += '|---|---|\n';
   for (const item of canonicalOnly) {
-    out += `| \`${String(item?.canonical_token || '')}\` | ${String(item?.note || '') || '—'} |\n`;
+    out += `| \`${String(item?.canonical_token || '')}\` | ${String(item?.note || '') || '-'} |\n`;
   }
   out += '\n## HuggingFace Inference Mapping\n\n';
   out += '| Pipeline Tag | Local Token | Note |\n';
   out += '|---|---|---|\n';
   for (const item of huggingfaceInference) {
-    out += `| \`${String(item?.pipeline_tag || '')}\` | \`${String(item?.local_token || '')}\` | ${String(item?.note || '') || '—'} |\n`;
+    out += `| \`${String(item?.pipeline_tag || '')}\` | \`${String(item?.local_token || '')}\` | ${String(item?.note || '') || '-'} |\n`;
   }
   out += '\n';
 
@@ -416,11 +416,11 @@ export function renderConfigSchema(doc, sourceName) {
   for (const item of fields) {
     const key = String(item?.key || '').trim();
     if (!key) continue;
-    const type = String(item?.type || '').trim() || '—';
-    const def = String(item?.default || '').trim() || '—';
-    const reload = String(item?.reload || '').trim() || '—';
-    const description = String(item?.description || '').trim() || '—';
-    const source = String(item?.source_rule || '').trim() || '—';
+    const type = String(item?.type || '').trim() || '-';
+    const def = String(item?.default || '').trim() || '-';
+    const reload = String(item?.reload || '').trim() || '-';
+    const description = String(item?.description || '').trim() || '-';
+    const source = String(item?.source_rule || '').trim() || '-';
     out += `| \`${key}\` | \`${type}\` | \`${def}\` | \`${reload}\` | ${description} | \`${source}\` |\n`;
   }
   out += '\n';
@@ -442,17 +442,17 @@ export function renderRuleEvidence(doc, sourceName) {
   out += '## Rule Registry\n\n';
   out += '| Declared K Rules | Resolved Rule Rows | Evidence Catalog Entries |\n';
   out += '|---:|---:|---:|\n';
-  out += `| ${Number.isInteger(declaredTotal) ? declaredTotal : '—'} | ${uniqueRuleCount} | ${Object.keys(catalog).length} |\n\n`;
+  out += `| ${Number.isInteger(declaredTotal) ? declaredTotal : '-'} | ${uniqueRuleCount} | ${Object.keys(catalog).length} |\n\n`;
 
   out += '## Evidence Catalog\n\n';
   out += '| Evidence Ref | Type | Command | Path | Description |\n';
   out += '|---|---|---|---|---|\n';
   for (const [ref, value] of Object.entries(catalog)) {
     const item = value && typeof value === 'object' ? value : {};
-    const type = String(item.type || '').trim() || '—';
-    const command = String(item.command || '').trim() || '—';
-    const evidencePath = String(item.path || '').trim() || '—';
-    const description = String(item.description || '').trim() || '—';
+    const type = String(item.type || '').trim() || '-';
+    const command = String(item.command || '').trim() || '-';
+    const evidencePath = String(item.path || '').trim() || '-';
+    const description = String(item.description || '').trim() || '-';
     out += `| \`${ref}\` | \`${type}\` | \`${command}\` | \`${evidencePath}\` | ${description} |\n`;
   }
   out += '\n';
@@ -463,11 +463,11 @@ export function renderRuleEvidence(doc, sourceName) {
   for (const item of rules) {
     const ruleId = String(item?.rule_id || '').trim();
     if (!ruleId) continue;
-    const requirement = String(item?.evidence_requirement || '').trim() || '—';
+    const requirement = String(item?.evidence_requirement || '').trim() || '-';
     const refs = Array.isArray(item?.evidence_refs) ? item.evidence_refs : [];
     const refsText = refs.length > 0
       ? refs.map((ref) => `\`${String(ref)}\``).join(', ')
-      : '—';
+      : '-';
     out += `| \`${ruleId}\` | \`${requirement}\` | ${refsText} |\n`;
   }
   out += '\n';

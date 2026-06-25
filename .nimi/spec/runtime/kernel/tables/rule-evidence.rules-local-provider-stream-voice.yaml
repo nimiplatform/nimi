@@ -44,6 +44,7 @@ entries:
   - K-STREAM-011
   - K-STREAM-012
   - K-STREAM-013
+  - K-VOICE-000
   - K-VOICE-001
   - K-VOICE-002
   - K-VOICE-003
@@ -171,6 +172,13 @@ rules:
     evidence_refs:
       - runtime_kernel_consistency
       - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-VOICE-000
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_proto_linkage
+    note: Runtime Target Identity v2 changes voice execution target fields to durable target refs and guarded voice asset facts.
     evidence_requirement: required
   - rule_id: K-VOICE-001
     evidence_refs:

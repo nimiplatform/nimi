@@ -2,6 +2,14 @@
 
 > Owner Domain: `K-AIEXEC-*`
 
+## K-AIEXEC-000 Runtime Target Identity v2 Hard Cut
+
+`K-RTARGET-*` is the active target-identity authority. AIProfile execution
+persists v2 durable target refs only. Any older text in this file that admits
+`localModelId`, `goRuntime*`, selected binding evidence, raw `model_id`, or
+`connector_id + model_id` as durable execution or memory binding identity is
+retired.
+
 ## Scope
 
 定义 runtime 侧对 `AIProfile`（D-AIPC-002）的 probe、materialization、execution snapshot 与 resource scheduling 的 canonical rules。本契约桥接 desktop portable `AIProfile` 与现有 `ResolveProfile`/`ApplyProfile` 本地执行管道（K-LOCAL-013~015, K-LOCAL-014a）。
@@ -151,7 +159,8 @@ memory embedding 的 editable binding intent 可以由 Desktop host 持有，但
 - runtime 必须把 host 提供的 memory embedding binding intent 解析成
   runtime-owned resolved embedding profile 或 fail-close result
 - `cloud` binding 的 legality 继续消费 connector / key-source authority：
-  admitted shape 至少为 `connector_id + model_id`
+  admitted shape 必须是 v2 cloud target ref，至少包含
+  `connector_id + remote_model_catalog_id + provider_model_id`
 - `local` binding 的 legality 继续消费 runtime local/model authority：
   admitted shape 必须是可由 runtime authoritative local inventory 解析的 typed
   local embedding target reference

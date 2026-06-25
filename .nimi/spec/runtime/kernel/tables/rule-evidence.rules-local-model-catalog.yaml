@@ -24,6 +24,7 @@ forbidden_state_fields:
   - run_id
   - ledger_ref
 entries:
+  - K-MCAT-000
   - K-MCAT-001
   - K-MCAT-002
   - K-MCAT-003
@@ -63,6 +64,13 @@ entries:
   - K-MCAT-036
   - K-MCAT-037
 rules:
+  - rule_id: K-MCAT-000
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    note: Runtime Target Identity v2 keeps provider model ids as catalog facts and requires Runtime-minted remote catalog target ids for durable refs.
+    evidence_requirement: required
   - rule_id: K-MCAT-001
     evidence_refs:
       - runtime_kernel_consistency

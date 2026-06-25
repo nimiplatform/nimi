@@ -42,6 +42,7 @@ rows:
   - AI_CONNECTOR_INVALID
   - AI_CONNECTOR_IMMUTABLE
   - AI_CONNECTOR_LIMIT_EXCEEDED
+  - AI_LOCAL_CONNECTOR_RETIRED
   - AI_REQUEST_CREDENTIAL_CONFLICT
   - AI_REQUEST_CREDENTIAL_MISSING
   - AI_REQUEST_CREDENTIAL_INVALID
@@ -80,6 +81,8 @@ rows:
   - AI_FINISH_LENGTH
   - AI_FINISH_CONTENT_FILTER
   - AI_MODEL_PROVIDER_MISMATCH
+  - AI_REMOTE_MODEL_CATALOG_ID_REQUIRED
+  - AI_REMOTE_MODEL_CATALOG_STALE
   - AI_LOCAL_MODEL_PROFILE_MISSING
   - AI_LOCAL_MODEL_UNAVAILABLE
   - AI_LOCAL_ASSET_ALREADY_INSTALLED
@@ -100,12 +103,15 @@ rows:
   - AI_LOCAL_ASSET_SLOT_FORBIDDEN
   - AI_LOCAL_PROFILE_SLOT_CONFLICT
   - AI_LOCAL_PROFILE_OVERRIDE_FORBIDDEN
+  - AI_LOCAL_COMPONENT_COMPATIBILITY_UNKNOWN
+  - AI_LOCAL_COMPONENT_INCOMPATIBLE
   - AI_LOCAL_DOWNLOAD_FAILED
   - AI_LOCAL_DOWNLOAD_HASH_MISMATCH
   - AI_LOCAL_HF_REPO_INVALID
   - AI_LOCAL_HF_SEARCH_FAILED
   - AI_LOCAL_MANIFEST_SCHEMA_INVALID
   - AI_MODULE_CONFIG_INVALID
+  - AI_MEMORY_EMBEDDING_TARGET_REF_INVALID
   - APP_MODE_DOMAIN_FORBIDDEN
   - APP_MODE_SCOPE_FORBIDDEN
   - APP_MODE_MANIFEST_INVALID
@@ -385,6 +391,11 @@ mappings:
     surface: create_connector_limit_guard
     exit_shape: grpc_status
     source_rule: K-ERR-006
+  - reason_code: AI_LOCAL_CONNECTOR_RETIRED
+    grpc_code: FAILED_PRECONDITION
+    surface: connector_local_retired
+    exit_shape: grpc_status
+    source_rule: K-RTARGET-006
   - reason_code: AI_CONNECTOR_CREDENTIAL_MISSING
     grpc_code: OK
     surface: test_connector
@@ -581,6 +592,16 @@ mappings:
     surface: model_prefix_provider_mismatch
     exit_shape: grpc_status
     source_rule: K-ERR-006
+  - reason_code: AI_REMOTE_MODEL_CATALOG_ID_REQUIRED
+    grpc_code: INVALID_ARGUMENT
+    surface: cloud_target_ref_validation
+    exit_shape: grpc_status
+    source_rule: K-RTARGET-003
+  - reason_code: AI_REMOTE_MODEL_CATALOG_STALE
+    grpc_code: FAILED_PRECONDITION
+    surface: cloud_target_resolve
+    exit_shape: grpc_status
+    source_rule: K-RTARGET-003
   - reason_code: AI_LOCAL_MODEL_PROFILE_MISSING
     grpc_code: FAILED_PRECONDITION
     surface: local_consume_or_probe
@@ -687,6 +708,16 @@ mappings:
     surface: local_profile_entry_override
     exit_shape: grpc_status
     source_rule: K-LOCAL-032
+  - reason_code: AI_LOCAL_COMPONENT_COMPATIBILITY_UNKNOWN
+    grpc_code: FAILED_PRECONDITION
+    surface: local_component_compatibility
+    exit_shape: grpc_status
+    source_rule: K-RTARGET-009
+  - reason_code: AI_LOCAL_COMPONENT_INCOMPATIBLE
+    grpc_code: FAILED_PRECONDITION
+    surface: local_component_compatibility
+    exit_shape: grpc_status
+    source_rule: K-RTARGET-009
   - reason_code: AI_LOCAL_DOWNLOAD_FAILED
     grpc_code: INTERNAL
     surface: local_model_download
@@ -717,6 +748,11 @@ mappings:
     surface: runtime_module_boot_or_reload
     exit_shape: grpc_status
     source_rule: K-ERR-006
+  - reason_code: AI_MEMORY_EMBEDDING_TARGET_REF_INVALID
+    grpc_code: INVALID_ARGUMENT
+    surface: memory_embedding_target_ref_validation
+    exit_shape: grpc_status
+    source_rule: K-RTARGET-007
   - reason_code: APP_MODE_DOMAIN_FORBIDDEN
     grpc_code: PERMISSION_DENIED
     surface: app_mode_gate

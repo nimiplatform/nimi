@@ -111,6 +111,7 @@ entries:
   - K-JOB-006
   - K-JOB-007
   - K-JOB-008
+  - K-NIMI-000
   - K-NIMI-001
   - K-NIMI-002
   - K-NIMI-003
@@ -567,6 +568,12 @@ rules:
     evidence_refs:
       - runtime_kernel_consistency
       - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-NIMI-000
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    note: Runtime Target Identity v2 requires nimiLLM outbound validation to consume resolved binding/provider facts, not raw durable model ids.
     evidence_requirement: required
   - rule_id: K-NIMI-001
     evidence_refs:

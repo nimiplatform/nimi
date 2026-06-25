@@ -4,7 +4,7 @@ owner: runtime
 protocol_id: runtime_multimodal_canonical_fields
 surfaces:
   - app_id
-  - model_id
+  - target_ref
   - prompt
   - negative_prompt
   - reference_images
@@ -30,7 +30,7 @@ surfaces:
   - options.execution_expires_after_sec
   - options.return_last_frame
   - voice_ref
-  - target_model_id
+  - voice_asset_target_ref
   - timing_mode
   - voice_render_hints.stability
   - voice_render_hints.similarity_boost
@@ -53,10 +53,10 @@ fields:
     description: caller application identity
     source_rule: K-MMPROV-001
   - modality: common
-    field: model_id
+    field: target_ref
     required: true
-    description: model selector
-    source_rule: K-MMPROV-001
+    description: v2 Runtime durable target ref or resolved binding input
+    source_rule: K-RTARGET-008
   - modality: image
     field: prompt
     required: true
@@ -183,10 +183,10 @@ fields:
     description: strongly-typed synthesis voice reference
     source_rule: K-MMPROV-018
   - modality: tts
-    field: target_model_id
+    field: voice_asset_target_ref
     required: false
-    description: explicit target model binding for voice asset synthesis
-    source_rule: K-MMPROV-019
+    description: v2 voice asset compatibility target ref; not durable model identity
+    source_rule: K-RTARGET-008
   - modality: tts
     field: timing_mode
     required: false
@@ -223,10 +223,10 @@ fields:
     description: voice workflow selector (voice_clone or voice_design)
     source_rule: K-VOICE-002
   - modality: voice
-    field: target_model_id
+    field: voice_asset_target_ref
     required: true
-    description: synthesis target model to bind created voice asset
-    source_rule: K-VOICE-007
+    description: v2 voice asset compatibility target ref; not durable model identity
+    source_rule: K-RTARGET-008
   - modality: voice
     field: voice_clone.reference_audio_uri
     required: false

@@ -23,6 +23,7 @@ values:
   - AI_CONNECTOR_IMMUTABLE
   - AI_CONNECTOR_LIMIT_EXCEEDED
   - AI_CONNECTOR_ID_REQUIRED
+  - AI_LOCAL_CONNECTOR_RETIRED
   - AI_REQUEST_CREDENTIAL_CONFLICT
   - AI_REQUEST_CREDENTIAL_MISSING
   - AI_REQUEST_CREDENTIAL_INVALID
@@ -50,9 +51,13 @@ values:
   - AI_LOCAL_ASSET_SLOT_FORBIDDEN
   - AI_LOCAL_PROFILE_SLOT_CONFLICT
   - AI_LOCAL_PROFILE_OVERRIDE_FORBIDDEN
+  - AI_LOCAL_COMPONENT_COMPATIBILITY_UNKNOWN
+  - AI_LOCAL_COMPONENT_INCOMPATIBLE
   - AI_MODEL_NOT_READY
   - AI_ROUTE_UNSUPPORTED
   - AI_ROUTE_FALLBACK_DENIED
+  - AI_REMOTE_MODEL_CATALOG_ID_REQUIRED
+  - AI_REMOTE_MODEL_CATALOG_STALE
   - AI_CONTENT_FILTER_BLOCKED
   - AI_REQUEST_CREDENTIAL_REQUIRED
   - AI_REQUEST_CREDENTIAL_SCOPE_FORBIDDEN
@@ -86,6 +91,7 @@ values:
   - AI_VOICE_JOB_NOT_FOUND
   - AI_VOICE_JOB_NOT_CANCELLABLE
   - AI_MODULE_CONFIG_INVALID
+  - AI_MEMORY_EMBEDDING_TARGET_REF_INVALID
   - WF_DAG_INVALID
   - WF_NODE_CONFIG_MISMATCH
   - WF_TIMEOUT
@@ -272,6 +278,10 @@ codes:
     value: 316
     family: CONNECTOR
     source_rule: K-KEYSRC-007
+  - name: AI_LOCAL_CONNECTOR_RETIRED
+    value: 317
+    family: CONNECTOR
+    source_rule: K-RTARGET-006
   - name: AI_REQUEST_CREDENTIAL_CONFLICT
     value: 330
     family: REQUEST_CREDENTIAL
@@ -380,6 +390,14 @@ codes:
     value: 377
     family: MODEL
     source_rule: K-LOCAL-032
+  - name: AI_LOCAL_COMPONENT_COMPATIBILITY_UNKNOWN
+    value: 378
+    family: MODEL
+    source_rule: K-RTARGET-009
+  - name: AI_LOCAL_COMPONENT_INCOMPATIBLE
+    value: 379
+    family: MODEL
+    source_rule: K-RTARGET-009
   # AI legacy frozen codes (201-213): stable wire values, see numbering_note
   - name: AI_MODEL_NOT_READY
     value: 201
@@ -418,6 +436,14 @@ codes:
     value: 380
     family: MODEL_ROUTE
     source_rule: K-ERR-006
+  - name: AI_REMOTE_MODEL_CATALOG_ID_REQUIRED
+    value: 381
+    family: MODEL_ROUTE
+    source_rule: K-RTARGET-003
+  - name: AI_REMOTE_MODEL_CATALOG_STALE
+    value: 382
+    family: MODEL_ROUTE
+    source_rule: K-RTARGET-003
   - name: AI_PROVIDER_ENDPOINT_FORBIDDEN
     value: 390
     family: PROVIDER
@@ -542,6 +568,10 @@ codes:
     value: 443
     family: WORKFLOW
     source_rule: K-WF-003
+  - name: AI_MEMORY_EMBEDDING_TARGET_REF_INVALID
+    value: 444
+    family: MEMORY_EMBEDDING
+    source_rule: K-RTARGET-007
   # App authorization codes (100-117): stable legacy range, frozen wire values
   - name: APP_AUTHORIZATION_DENIED
     value: 100

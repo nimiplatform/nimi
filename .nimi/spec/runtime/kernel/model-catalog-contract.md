@@ -2,6 +2,13 @@
 
 > Owner Domain: `K-MCAT-*`
 
+## K-MCAT-000 Runtime Target Identity v2 Hard Cut
+
+`K-RTARGET-*` defines durable target identity. Provider/catalog `model_id`
+fields in this document are catalog/provider facts only. Runtime cloud target
+identity is `remote_model_catalog_id`; provider model ids cannot mint durable
+target refs without Runtime-owned catalog snapshot resolution.
+
 ## K-MCAT-001 SSOT Location
 
 Runtime model/voice schema and behavior rules are defined in this contract (`K-MCAT-*`).

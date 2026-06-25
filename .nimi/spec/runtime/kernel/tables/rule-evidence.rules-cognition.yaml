@@ -42,6 +42,7 @@ entries:
   - K-CFG-016
   - K-CFG-017
   - K-CFG-018
+  - K-KEYSRC-000
   - K-KEYSRC-001
   - K-KEYSRC-002
   - K-KEYSRC-003
@@ -55,6 +56,7 @@ entries:
   - K-KEYSRC-010
   - K-KEYSRC-011
   - K-KEYSRC-012
+  - K-KEYSRC-013
   - K-KNOW-001
   - K-KNOW-001a
   - K-KNOW-002
@@ -69,12 +71,14 @@ entries:
   - K-KNOW-007
   - K-KNOW-008
   - K-KNOW-009
+  - K-PAGE-000
   - K-PAGE-001
   - K-PAGE-002
   - K-PAGE-003
   - K-PAGE-004
   - K-PAGE-005
   - K-PAGE-006
+  - K-MEM-000
   - K-MEM-001
   - K-MEM-002
   - K-MEM-003
@@ -192,6 +196,13 @@ rules:
       - runtime_go_test
     note: dataRootRef and managed root owner split admitted as Runtime config boundary; product-local first-run/data-root consumer validation is required.
     evidence_requirement: required
+  - rule_id: K-KEYSRC-000
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - sdk_runtime_test
+    note: Runtime Target Identity v2 separates managed credential routing from durable cloud target identity.
+    evidence_requirement: required
   - rule_id: K-KEYSRC-001
     evidence_refs:
       - runtime_kernel_consistency
@@ -255,6 +266,13 @@ rules:
       - runtime_kernel_consistency
       - runtime_go_test
     note: Cloud connector target references carry connector/key-source identity only; secret custody remains with Runtime-owned key-source resolution.
+    evidence_requirement: required
+  - rule_id: K-KEYSRC-013
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - sdk_runtime_test
+    note: Runtime Target Identity v2 supersedes legacy key-source target identity fields with remote catalog target refs.
     evidence_requirement: required
   - rule_id: K-KNOW-001
     evidence_refs:
@@ -321,6 +339,12 @@ rules:
   - rule_id: K-KNOW-009
     evidence_refs: []
     evidence_requirement: deferred
+  - rule_id: K-PAGE-000
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    note: Runtime Target Identity v2 removes local connector ordering from active ConnectorService pagination.
+    evidence_requirement: required
   - rule_id: K-PAGE-001
     evidence_refs:
       - runtime_kernel_consistency
@@ -350,6 +374,14 @@ rules:
     evidence_refs:
       - runtime_kernel_consistency
       - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-MEM-000
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - sdk_runtime_test
+      - runtime_proto_linkage
+    note: Runtime Target Identity v2 migrates memory embedding durable bindings to v2 target refs.
     evidence_requirement: required
   - rule_id: K-MEM-001
     evidence_refs: []

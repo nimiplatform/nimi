@@ -2,6 +2,13 @@
 
 > Owner Domain: `K-WF-*`
 
+## K-WF-000 Runtime Target Identity v2 Hard Cut
+
+AI workflow node configs consume v2 durable target refs or resolved binding
+inputs. Raw `model_id`, `target_model_id`, and `connector_id + model_id` are
+not durable workflow target identity. Any retained provider/model fields are
+post-resolve non-identity facts.
+
 ## K-WF-001 WorkflowDefinition 结构
 
 工作流定义为有向无环图（DAG）：
@@ -22,15 +29,15 @@
 
 | 类型 | 枚举值 | Config | 关键字段 |
 |---|---|---|---|
-| `AI_GENERATE` | 1 | `AiGenerateNodeConfig` | model_id, modal, system_prompt, tools, temperature, top_p, max_tokens, route_policy, fallback, timeout_ms, prompt |
+| `AI_GENERATE` | 1 | `AiGenerateNodeConfig` | target_ref, modal, system_prompt, tools, temperature, top_p, max_tokens, route_policy, fallback, timeout_ms, prompt |
 | `AI_STREAM` | 2 | `AiStreamNodeConfig` | 同 AI_GENERATE |
-| `AI_EMBED` | 3 | `AiEmbedNodeConfig` | model_id, route_policy, fallback, timeout_ms, inputs |
-| `AI_IMAGE` | 4 | `AiImageNodeConfig` | model_id, route_policy, fallback, timeout_ms, prompt |
-| `AI_VIDEO` | 5 | `AiVideoNodeConfig` | model_id, route_policy, fallback, timeout_ms, prompt |
-| `AI_TTS` | 6 | `AiTtsNodeConfig` | model_id, route_policy, fallback, timeout_ms, text |
-| `AI_STT` | 7 | `AiSttNodeConfig` | model_id, mime_type, route_policy, fallback, timeout_ms, audio_bytes |
-| `AI_TTS_CREATE_VOICE` | 8 | `AiTtsCreateVoiceNodeConfig` | model_id, target_model_id, workflow_type, connector_id, timeout_ms, input(source text/audio) |
-| `AI_TTS_SYNTHESIZE` | 9 | `AiTtsSynthesizeNodeConfig` | model_id, target_model_id, text, voice_ref, connector_id, timeout_ms, audio options |
+| `AI_EMBED` | 3 | `AiEmbedNodeConfig` | target_ref, route_policy, fallback, timeout_ms, inputs |
+| `AI_IMAGE` | 4 | `AiImageNodeConfig` | target_ref, route_policy, fallback, timeout_ms, prompt |
+| `AI_VIDEO` | 5 | `AiVideoNodeConfig` | target_ref, route_policy, fallback, timeout_ms, prompt |
+| `AI_TTS` | 6 | `AiTtsNodeConfig` | target_ref, route_policy, fallback, timeout_ms, text |
+| `AI_STT` | 7 | `AiSttNodeConfig` | target_ref, mime_type, route_policy, fallback, timeout_ms, audio_bytes |
+| `AI_TTS_CREATE_VOICE` | 8 | `AiTtsCreateVoiceNodeConfig` | target_ref, voice_asset_target_ref, workflow_type, timeout_ms, input(source text/audio) |
+| `AI_TTS_SYNTHESIZE` | 9 | `AiTtsSynthesizeNodeConfig` | target_ref, voice_asset_target_ref, text, voice_ref, timeout_ms, audio options |
 
 **Transform 节点（数据变换）：**
 

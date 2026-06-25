@@ -65,11 +65,13 @@ capability_slice_schema:
   cloud_connector_required_fields:
     - provider
     - provider_capability
-    - model_id
+    - remote_model_catalog_id
+    - provider_model_id
     - credential_policy
   cloud_connector_optional_fields:
     - connector_selector
     - params_schema_ref
+    - provider_model_alias
 asset_binding_schema:
   source_rule: K-LOCAL-023
   required_fields:
