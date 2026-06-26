@@ -1,12 +1,13 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import YAML from 'yaml';
 
 const ENV_PATTERN = /\$\{([A-Z0-9_]+)\}/g;
 const LEGACY_KEYS = new Set(['connectorId', 'connector_id']);
 const LEGACY_CAPABILITIES = new Set(['speech.synthesize', 'tts.synthesize', 'voice.clone', 'voice.design']);
-const REPO_ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..', '..');
+const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 
 export const GOLD_FIXTURE_DIR = path.join(REPO_ROOT, 'config', 'live', 'fixtures', 'ai-gold-path');
 export const GOLD_REPORT_PATH = path.join(REPO_ROOT, '.local', 'report', 'ai-gold-path-report.yaml');

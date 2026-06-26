@@ -17,7 +17,9 @@ import { withNimiRuntimeIdempotencyMetadata } from '../../sdks/typescript/runtim
 import {
   createNimiRuntimeAIModel,
   createNimiRuntimeEmbeddingClient,
+  type NimiAIConfigTargetRef,
 } from '../../sdks/typescript/core/ai';
+import type { RuntimeDurableTargetRef } from '../../sdks/typescript/core-generated/runtime-protobuf/runtime/v1/runtime_target_identity';
 import {
   createNimiImageGenerationScenario,
   createNimiRuntimeGenerationClient,
@@ -30,6 +32,11 @@ import {
 } from './fixtures.mjs';
 
 type GoldFixture = ReturnType<typeof loadGoldFixture>;
+interface GoldRuntimeTarget {
+  readonly aiConfig: NimiAIConfigTargetRef;
+  readonly runtime: RuntimeDurableTargetRef;
+  readonly connectorId: string;
+}
 
 const APP_ID = 'nimi.gold-path';
 const DEFAULT_SUBJECT_USER_ID = 'user-gold-path-sdk-vnext';
@@ -75,6 +82,109 @@ function runtimeRoutePolicy(provider: string): RoutePolicy {
   return provider === 'local' ? RoutePolicy.LOCAL : RoutePolicy.CLOUD;
 }
 
+function envToken(value: string): string {
+  return String(value || '').trim().toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+}
+
+function goldTargetEnvNames(provider: string, capability: string, key: string): readonly string[] {
+  const providerToken = envToken(provider);
+  const capabilityToken = envToken(capability);
+  return [
+    `NIMI_LIVE_GOLD_${providerToken}_${capabilityToken}_${key}`,
+    `NIMI_LIVE_GOLD_${providerToken}_${key}`,
+    `NIMI_LIVE_${providerToken}_${capabilityToken}_${key}`,
+    `NIMI_LIVE_${providerToken}_${key}`,
+    `NIMI_LIVE_GOLD_${key}`,
+  ];
+}
+
+function readFirstEnv(names: readonly string[]): string {
+  for (const name of names) {
+    const value = String(process.env[name] || '').trim();
+    if (value) {
+      return value;
+    }
+  }
+  return '';
+}
+
+function requireGoldTargetEnv(provider: string, capability: string, key: string): string {
+  const names = goldTargetEnvNames(provider, capability, key);
+  const value = readFirstEnv(names);
+  if (!value) {
+    throw new Error(`sdk-vnext gold path ${provider}/${capability} requires ${names.join(' or ')} for v2 cloud targetRef`);
+  }
+  return value;
+}
+
+function localRuntimeTarget(readinessRef: string): GoldRuntimeTarget {
+  return {
+    connectorId: '',
+    aiConfig: {
+      kind: 'local-runtime',
+      version: 'v2',
+      readinessRef,
+    },
+    runtime: {
+      target: {
+        oneofKind: 'localRuntime',
+        localRuntime: {
+          version: 'v2',
+          ref: { oneofKind: 'readinessRef', readinessRef },
+        },
+      },
+    },
+  };
+}
+
+function cloudRuntimeTarget(input: {
+  readonly provider: string;
+  readonly capability: string;
+  readonly providerModelId: string;
+}): GoldRuntimeTarget {
+  const connectorId = requireGoldTargetEnv(input.provider, input.capability, 'CONNECTOR_ID');
+  const remoteModelCatalogId = requireGoldTargetEnv(input.provider, input.capability, 'REMOTE_MODEL_CATALOG_ID');
+  return {
+    connectorId,
+    aiConfig: {
+      kind: 'cloud-connector',
+      connectorId,
+      remoteModelCatalogId,
+      providerModelId: input.providerModelId,
+      provider: input.provider,
+    },
+    runtime: {
+      target: {
+        oneofKind: 'cloud',
+        cloud: {
+          version: 'v2',
+          connectorId,
+          remoteModelCatalogId,
+          providerModelId: input.providerModelId,
+          provider: input.provider,
+        },
+      },
+    },
+  };
+}
+
+function runtimeTargetForFixture(fixture: GoldFixture): GoldRuntimeTarget {
+  const provider = String(fixture.provider || '').trim();
+  const capability = String(fixture.capability || '').trim();
+  const modelId = String(fixture.model_id || '').trim();
+  if (!provider || !capability || !modelId) {
+    throw new Error('sdk-vnext gold path requires provider, capability, and model_id before targetRef materialization');
+  }
+  if (provider === 'local') {
+    return localRuntimeTarget(routedModelId(provider, modelId));
+  }
+  return cloudRuntimeTarget({
+    provider,
+    capability,
+    providerModelId: modelId,
+  });
+}
+
 function createRuntimeModule(endpoint: string): Runtime {
   const accessTokenId = String(process.env.NIMI_LIVE_GOLD_ACCESS_TOKEN_ID || '').trim();
   const accessTokenSecret = String(process.env.NIMI_LIVE_GOLD_ACCESS_TOKEN_SECRET || '').trim();
@@ -91,7 +201,7 @@ function createRuntimeModule(endpoint: string): Runtime {
   });
 }
 
-function scenarioHead(provider: string, modelId: string) {
+function scenarioHead(provider: string, modelId: string, target: GoldRuntimeTarget) {
   return {
     appId: APP_ID,
     subjectUserId: subjectUserId(),
@@ -99,7 +209,8 @@ function scenarioHead(provider: string, modelId: string) {
     routePolicy: runtimeRoutePolicy(provider),
     fallback: FallbackPolicy.DENY,
     timeoutMs: DEFAULT_TIMEOUT_MS,
-    connectorId: '',
+    connectorId: target.connectorId,
+    targetRef: target.runtime,
   };
 }
 
@@ -239,13 +350,15 @@ async function waitForRuntimeJobDone(runtime: Runtime, jobId: string) {
 }
 
 async function runTextGenerate(runtime: Runtime, fixture: GoldFixture) {
+  const target = runtimeTargetForFixture(fixture);
   const model = createNimiRuntimeAIModel({
     runtime,
     model: providerModelRef(fixture),
     appId: APP_ID,
     subjectUserId: subjectUserId(),
     routePolicy: sdkRoutePolicy(fixture.provider),
-    connectorId: '',
+    connectorId: target.connectorId,
+    targetRef: target.aiConfig,
     timeoutMs: 60_000,
   });
   const result = await model.generateText({
@@ -264,13 +377,15 @@ async function runTextGenerate(runtime: Runtime, fixture: GoldFixture) {
 }
 
 async function runTextEmbed(runtime: Runtime, fixture: GoldFixture) {
+  const target = runtimeTargetForFixture(fixture);
   const embedding = createNimiRuntimeEmbeddingClient({
     runtime,
     model: providerModelRef(fixture),
     appId: APP_ID,
     subjectUserId: subjectUserId(),
     routePolicy: sdkRoutePolicy(fixture.provider),
-    connectorId: '',
+    connectorId: target.connectorId,
+    targetRef: target.aiConfig,
     timeoutMs: 60_000,
   });
   const result = await embedding.embedText({ values: fixture.request.inputs });
@@ -282,6 +397,7 @@ async function runTextEmbed(runtime: Runtime, fixture: GoldFixture) {
 }
 
 async function runMediaScenario(runtime: Runtime, fixture: GoldFixture) {
+  const target = runtimeTargetForFixture(fixture);
   const generation = createNimiRuntimeGenerationClient({
     runtime,
     head: {
@@ -289,7 +405,8 @@ async function runMediaScenario(runtime: Runtime, fixture: GoldFixture) {
       subjectUserId: subjectUserId(),
       modelId: routedModelId(fixture.provider, fixture.model_id),
       routePolicy: sdkRoutePolicy(fixture.provider),
-      connectorId: '',
+      connectorId: target.connectorId,
+      targetRef: target.runtime,
       timeoutMs: DEFAULT_TIMEOUT_MS,
     },
   });
@@ -343,10 +460,10 @@ async function runMediaScenario(runtime: Runtime, fixture: GoldFixture) {
   };
 }
 
-async function submitVoiceWorkflow(runtime: Runtime, fixture: GoldFixture, scenarioType: ScenarioType, spec: ScenarioSpec) {
+async function submitVoiceWorkflow(runtime: Runtime, fixture: GoldFixture, scenarioType: ScenarioType, spec: ScenarioSpec, target: GoldRuntimeTarget) {
   const idempotencyKey = randomUUID();
   return runtime.ai.submitScenarioJob({
-    head: scenarioHead(fixture.provider, fixture.model_id),
+    head: scenarioHead(fixture.provider, fixture.model_id, target),
     scenarioType,
     executionMode: ExecutionMode.ASYNC_JOB,
     spec,
@@ -363,6 +480,7 @@ async function runVoiceWorkflow(runtime: Runtime, fixture: GoldFixture) {
   if (!targetModelId) {
     throw new Error(`${capability} requires target_model_id`);
   }
+  const target = runtimeTargetForFixture(fixture);
   const spec: ScenarioSpec = capability === 'voice_workflow.voice_clone'
     ? {
       spec: {
@@ -406,6 +524,7 @@ async function runVoiceWorkflow(runtime: Runtime, fixture: GoldFixture) {
     fixture,
     capability === 'voice_workflow.voice_clone' ? ScenarioType.VOICE_CLONE : ScenarioType.VOICE_DESIGN,
     spec,
+    target,
   );
   const jobId = String(response.job?.jobId || '').trim();
   assert.ok(jobId, `${capability} job id should not be empty`);

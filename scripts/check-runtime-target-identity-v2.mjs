@@ -14,6 +14,14 @@ const VALID_CLASSIFICATIONS = new Set([
   'retired_history',
   'unrelated_domain',
 ]);
+const RETIRED_LOCAL_DURABLE_ADMISSION_PATTERN =
+  /(?:validated\s+`?targetId\/profileId`?|kind=local_prepared|targetId\/profileId.{0,120}(?:compact logical ref|portable non-evidence|validator|may enter|can enter|allowed|admitted|must satisfy|可进入|满足)|localProfileRef.{0,120}targetId\/profileId.{0,120}(?:validator|must satisfy|满足))/iu;
+const RETIRED_CLOUD_DURABLE_BINDING_PATTERN =
+  /(?:`?connector_id`?\s*\+\s*(?:provider\s+)?`?model_id`?|connectorId\s+plus\s+provider\s+model\s+id|runtime connector id plus provider\s+model id)/iu;
+const RETIRED_DURABLE_ADMISSION_CONTEXT =
+  /(?:admitted|admission|admit|allowed|allow|valid|validated|required|requires?|must|carry|ready target ref|equivalent typed target|compact logical ref|validator|可进入|必须|至少|包含|等价|满足)/iu;
+const RETIRED_DURABLE_RETIREMENT_CONTEXT =
+  /(?:any older|retired|forbidden|reject|rejects|not admitted|must not|must be replaced|not\s+(?:a\s+)?complete|does\s+not\s+constitute|without\s+remote[_A-Za-z]*catalog[_A-Za-z]*\s+is\s+not|drop|delete|replaced|禁止|不得|不再|不是|不构成|仅|必须被替换|未携带|without)/iu;
 const TEXT_EXTENSIONS = new Set([
   '.go',
   '.js',
@@ -173,6 +181,41 @@ async function checkClassificationInventory() {
   }
 }
 
+async function checkMustMigrateBodiesDoNotAdmitRetiredDurableIdentity() {
+  const contractRel = '.nimi/spec/runtime/kernel/runtime-target-identity-contract.md';
+  const contract = await read(contractRel);
+  const inventory = parseClassificationInventory(contract);
+
+  for (const row of inventory.values()) {
+    if (row.classification !== 'must_migrate') continue;
+    let source;
+    try {
+      source = await read(row.surface);
+    } catch {
+      fail(`${row.surface}: must_migrate classification surface could not be read`);
+      continue;
+    }
+    const lines = source.split(/\r?\n/u);
+    for (let index = 0; index < lines.length; index += 1) {
+      const windowText = [lines[index], lines[index + 1] ?? '', lines[index + 2] ?? '']
+        .join(' ')
+        .trim()
+        .replace(/\s+/gu, ' ');
+      if (!windowText) continue;
+      if (RETIRED_DURABLE_RETIREMENT_CONTEXT.test(windowText)) continue;
+      if (RETIRED_LOCAL_DURABLE_ADMISSION_PATTERN.test(windowText)) {
+        fail(`${row.surface}:${index + 1}: must_migrate authority body still admits retired local targetId/profileId durable binding`);
+      }
+      if (
+        RETIRED_CLOUD_DURABLE_BINDING_PATTERN.test(windowText)
+        && RETIRED_DURABLE_ADMISSION_CONTEXT.test(windowText)
+      ) {
+        fail(`${row.surface}:${index + 1}: must_migrate authority body still admits retired connector_id + provider model_id cloud binding`);
+      }
+    }
+  }
+}
+
 async function checkSpecDoesNotAdmitRetiredCloudBinding() {
   const files = await collectFiles('.nimi/spec');
   const admissionPattern = /(?:\b(?:admitted|admission|required|requires?|must)\b|至少|必须).*connector_id\s*\+\s*model_id/iu;
@@ -181,6 +224,15 @@ async function checkSpecDoesNotAdmitRetiredCloudBinding() {
     const rel = toRepoRel(file);
     const lines = (await fs.readFile(file, 'utf8')).split(/\r?\n/u);
     lines.forEach((line, index) => {
+      const windowText = [line, lines[index + 1] ?? '', lines[index + 2] ?? ''].join(' ').trim().replace(/\s+/gu, ' ');
+      if (
+        windowText
+        && RETIRED_CLOUD_DURABLE_BINDING_PATTERN.test(windowText)
+        && RETIRED_DURABLE_ADMISSION_CONTEXT.test(windowText)
+        && !RETIRED_DURABLE_RETIREMENT_CONTEXT.test(windowText)
+      ) {
+        fail(`${rel}:${index + 1}: active spec text appears to admit retired connector_id + provider model_id cloud binding`);
+      }
       const normalized = line.trim().replace(/\s+/gu, ' ');
       if (!normalized) return;
       if (!admissionPattern.test(normalized)) return;
@@ -343,11 +395,100 @@ async function checkSourceHardCuts() {
   }
 }
 
+async function checkScenarioExecutionRequiresTargetRef() {
+  const resolver = await read('runtime/internal/services/ai/runtime_target_resolve.go');
+  if (!/head\s*==\s*nil\s*\|\|\s*head\.GetTargetRef\(\)\s*==\s*nil/u.test(resolver)
+    || !/provide_runtime_target_ref/u.test(resolver)) {
+    fail('runtime_target_resolve.go must fail closed before scenario prepare when RuntimeDurableTargetRef is missing');
+  }
+
+  const runtimeModel = await read('sdks/typescript/core/ai/runtime-model.ts');
+  if (!/readonly\s+targetRef\?:\s*NimiAIConfigTargetRef/u.test(runtimeModel)
+    || !/targetRef:\s*toRuntimeDurableTargetRef\(input\.options\.targetRef\)/u.test(runtimeModel)) {
+    fail('Runtime-backed SDK text model must require and serialize v2 targetRef into ScenarioRequestHead');
+  }
+
+  const embedding = await read('sdks/typescript/core/ai/embeddings.ts');
+  if (!/readonly\s+targetRef\?:\s*NimiAIConfigTargetRef/u.test(embedding)
+    || !/targetRef:\s*toRuntimeDurableTargetRef\(input\.options\.targetRef\)/u.test(embedding)) {
+    fail('Runtime-backed SDK embedding client must require and serialize v2 targetRef into ScenarioRequestHead');
+  }
+
+  const sdkGoldRunner = await read('scripts/ai-gold-path/sdk-vnext-runner.ts');
+  if (!/function\s+runtimeTargetForFixture/u.test(sdkGoldRunner)
+    || !/\bREMOTE_MODEL_CATALOG_ID\b/u.test(sdkGoldRunner)
+    || !/\bCONNECTOR_ID\b/u.test(sdkGoldRunner)
+    || !/targetRef:\s*target\.aiConfig/u.test(sdkGoldRunner)
+    || !/targetRef:\s*target\.runtime/u.test(sdkGoldRunner)) {
+    fail('SDK vNext gold runner must materialize explicit v2 runtime targetRef for SDK and ScenarioRequestHead calls');
+  }
+
+  const sdkRunnerSmoke = await read('scripts/check-sdk-vnext-ai-runner-consumer-smoke.mjs');
+  if (!/localRuntimeTargetRef/u.test(sdkRunnerSmoke)
+    || !/targetRef:\s*localRuntimeTargetRef/u.test(sdkRunnerSmoke)
+    || !/targetRef:\s*typedLocalRuntimeTargetRef/u.test(sdkRunnerSmoke)) {
+    fail('SDK vNext AI runner consumer smoke must show generation ScenarioRequestHead with explicit v2 targetRef');
+  }
+
+  const desktopChat = await read('apps/desktop/src/shell/renderer/features/chat/chat-nimi-runtime.ts');
+  if (!/aiConfigTargetRefFromRouteTargetRef\(resolved\.targetRef\)/u.test(desktopChat)
+    || !/\btargetRef,\s*\n\s*reasoning:/u.test(desktopChat)) {
+    fail('Desktop chat Runtime producer must carry resolved v2 targetRef into createNimiRuntimeAIModel');
+  }
+
+  const routeDescribe = await read('sdks/typescript/runtime/route-capability-describe.ts');
+  if (!/targetRef:\s*runtimeDurableTargetRefFromRouteTargetRef\(input\.resolved\.targetRef\)/u.test(routeDescribe)) {
+    fail('SDK route describe producer must serialize resolved v2 targetRef into ScenarioRequestHead');
+  }
+  const describePayload = routeDescribe.match(/payload:\s*toNimiRuntimeProtoStruct\(\{([\s\S]*?)\}\),\s*\}\]/u)?.[1] ?? '';
+  if (/\bmodelId\b|\bengine\b|\blocalModelId\b|\bgoRuntimeLocalModelId\b/u.test(describePayload)) {
+    fail('SDK route describe extension payload must not carry legacy local/model identity selectors');
+  }
+
+  const textDescribe = await read('runtime/internal/services/ai/route_describe_text.go');
+  for (const forbidden of [
+    'localModelID',
+    'goRuntimeLocalModelID',
+    'probe.modelID',
+    'probe.engine',
+    'selectLocalTextGenerateDescribeModelFromProbe',
+  ]) {
+    if (textDescribe.includes(forbidden)) {
+      fail(`Runtime text route describe must not keep legacy selector path: ${forbidden}`);
+    }
+  }
+  if (!/textGenerateRouteDescribePayloadHasLegacySelector/u.test(textDescribe)
+    || !/"localModelId",\s*"goRuntimeLocalModelId",\s*"modelId",\s*"engine"/u.test(textDescribe)
+    || !/selectLocalTextGenerateDescribeModelFromTargetRef/u.test(textDescribe)) {
+    fail('Runtime text route describe must reject legacy selectors and select local metadata from targetRef');
+  }
+}
+
+async function checkAIConfigDoesNotPersistRuntimeProof() {
+  const forbidden = await read('sdks/typescript/core/ai/config-internal.ts');
+  for (const key of ['runtimeBaselineRef', 'boundAssetId', 'runtimeLocalRouteTarget', 'runtimeExecutionTraceId']) {
+    if (!new RegExp(`['"]${key}['"]`, 'u').test(forbidden)) {
+      fail(`SDK AIConfig forbidden-field guard must reject ${key}`);
+    }
+  }
+
+  const rustProjection = await read('kit/shell/tauri/src/runtime_ai_config_projection.rs');
+  if (/"runtime"\s*:/u.test(rustProjection) || /"boundAssetId"\s*:/u.test(rustProjection) || /"modelResolved"\s*:/u.test(rustProjection)) {
+    fail('Rust first-run AIConfig projection must not persist runtime proof fields inside durable binding JSON');
+  }
+  if (!/binding\.get\("runtime"\)\.is_none\(\)/u.test(rustProjection)) {
+    fail('Rust first-run AIConfig projection test must assert runtime proof object is absent');
+  }
+}
+
 async function main() {
   await checkClassificationInventory();
+  await checkMustMigrateBodiesDoNotAdmitRetiredDurableIdentity();
   await checkSpecDoesNotAdmitRetiredCloudBinding();
   await checkProtoHardCuts();
   await checkSourceHardCuts();
+  await checkScenarioExecutionRequiresTargetRef();
+  await checkAIConfigDoesNotPersistRuntimeProof();
 
   if (violations.length > 0) {
     process.stderr.write('Runtime target identity v2 violations found:\n');

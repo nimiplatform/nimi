@@ -83,7 +83,7 @@ const profile = {
   title: 'Consumer profile',
   capabilities: {
     'text.generate': {
-      targetRef: { kind: 'local-runtime', targetId: 'target-chat', profileId: 'runtime-profile-chat' },
+      targetRef: { kind: 'local-runtime', version: 'v2', readinessRef: 'target-chat' },
       runtimeDescriptor: {
         executionMode: 'local',
         execution: { backend: 'llama.cpp' },
@@ -130,6 +130,7 @@ const runtimeCalls = [];
 const runtimeModel = createNimiRuntimeAIModel({
   appId: 'consumer-app',
   model: { modelId: 'runtime-model' },
+  targetRef: { kind: 'local-runtime', version: 'v2', readinessRef: 'runtime-model' },
   runtime: {
     async executeScenario(request) {
       runtimeCalls.push(request);
@@ -168,6 +169,7 @@ const embeddingCalls = [];
 const embedding = createNimiRuntimeEmbeddingClient({
   appId: 'consumer-app',
   model: { providerId: 'runtime', modelId: 'embedder' },
+  targetRef: { kind: 'local-runtime', version: 'v2', readinessRef: 'embedder' },
   runtime: {
     async executeScenario(request) {
       embeddingCalls.push(request);
@@ -305,7 +307,7 @@ const profile: NimiAIProfile = {
   title: 'Typed profile',
   capabilities: {
     'text.generate': {
-      targetRef: { kind: 'local-runtime', profileId: 'runtime-profile' },
+      targetRef: { kind: 'local-runtime', version: 'v2', readinessRef: 'runtime-profile' },
     },
   },
 };
@@ -322,10 +324,16 @@ const runtime: NimiRuntimeAIScenarioClient = {
     throw new Error('typed only');
   },
 };
-const model = createNimiRuntimeAIModel({ appId: 'typed-app', model: { modelId: 'runtime-model' }, runtime });
+const model = createNimiRuntimeAIModel({
+  appId: 'typed-app',
+  model: { modelId: 'runtime-model' },
+  targetRef: { kind: 'local-runtime', version: 'v2', readinessRef: 'runtime-model' },
+  runtime,
+});
 const embedding: NimiRuntimeEmbeddingSurface = createNimiRuntimeEmbeddingClient({
   appId: 'typed-app',
   model: { modelId: 'embedding-model' },
+  targetRef: { kind: 'local-runtime', version: 'v2', readinessRef: 'embedding-model' },
   runtime: {
     async executeScenario() {
       throw new Error('typed only');

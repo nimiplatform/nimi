@@ -173,6 +173,11 @@ const model = createNimiRuntimeAIModel({
   appId: 'app.nimi.sdk-smoke',
   model: { provider: 'local', modelId: 'local/smoke-model' },
   routePolicy: 'local',
+  targetRef: {
+    kind: 'local-runtime',
+    version: 'v2',
+    readinessRef: 'local-runtime:local/smoke-model',
+  },
 });
 assert.equal(typeof model.generateText, 'function');
 
