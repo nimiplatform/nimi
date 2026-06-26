@@ -334,11 +334,13 @@ export function resolveTesterLLMBinding(
 export function runtimeRoutePayload(resolved: ResolvedLLMBinding): {
   model: string;
   connectorId?: string;
+  targetRef: ResolvedLLMBinding['targetRef'];
   route: 'local' | 'cloud';
 } {
   return {
     model: resolved.model,
     route: resolved.routePolicy,
+    targetRef: resolved.targetRef,
     ...(resolved.connectorId ? { connectorId: resolved.connectorId } : {}),
   };
 }
@@ -445,6 +447,7 @@ function createTesterTextModel(client: TesterRuntimeInvocationClient, resolved: 
     connectorId: resolved.connectorId,
     subjectUserId: requireRuntimeSubjectUserId('text.generate', client),
     timeoutMs,
+    targetRef: resolved.targetRef,
   });
 }
 
@@ -639,6 +642,7 @@ export async function invokeEmbedding(client: TesterRuntimeInvocationClient, inp
       routePolicy: resolved.routePolicy,
       connectorId: resolved.connectorId,
       subjectUserId: requireRuntimeSubjectUserId('text.embed', client),
+      targetRef: resolved.targetRef,
     });
     const output = await embedding.embedText({
       values: [prompt],

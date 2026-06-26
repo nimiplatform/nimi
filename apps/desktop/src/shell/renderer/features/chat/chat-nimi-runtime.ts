@@ -19,7 +19,10 @@ import {
   type ChatThinkingPreference,
 } from './chat-shared-thinking';
 import { toChatUserFacingRuntimeError } from './chat-runtime-error-message';
-import type { NimiAISnapshot } from './conversation-capability';
+import {
+  aiConfigTargetRefFromRouteTargetRef,
+  type NimiAISnapshot,
+} from './conversation-capability';
 
 export type ChatAiRuntimeTextInput = {
   prompt: string;
@@ -159,6 +162,15 @@ export async function streamChatAiRuntime(
     providerEndpoint: resolved.endpoint,
   });
   const metadata = callOptions.metadata ?? {};
+  const targetRef = aiConfigTargetRefFromRouteTargetRef(resolved.targetRef);
+  if (!targetRef) {
+    throw createNimiError({
+      message: 'text.generate execution snapshot targetRef is missing or invalid',
+      reasonCode: ReasonCode.AI_INPUT_INVALID,
+      actionHint: 'select_runtime_route_binding',
+      source: 'runtime',
+    });
+  }
   const model = createNimiRuntimeAIModel({
     runtime: getDesktopRuntime(),
     appId: getDesktopAppId(),
@@ -170,6 +182,7 @@ export async function streamChatAiRuntime(
     connectorId: normalizeText(resolved.connectorId) || undefined,
     timeoutMs: callOptions.timeoutMs,
     metadata,
+    targetRef,
     reasoning: resolveChatThinkingConfig(
       input.reasoningPreference,
       resolveTextExecutionSnapshotThinkingSupport(input.executionSnapshot?.conversationCapabilitySlice as Parameters<typeof resolveTextExecutionSnapshotThinkingSupport>[0]),
