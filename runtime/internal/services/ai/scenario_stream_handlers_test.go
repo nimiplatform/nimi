@@ -24,6 +24,9 @@ import (
 func TestStreamScenarioSpeechSynthesizeSuccess(t *testing.T) {
 	payload := []byte("speech-audio-payload")
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if writeOpenAITTSModelsIfRequested(w, r) {
+			return
+		}
 		if r.URL.Path != "/v1/audio/speech" {
 			http.NotFound(w, r)
 			return
@@ -33,16 +36,16 @@ func TestStreamScenarioSpeechSynthesizeSuccess(t *testing.T) {
 	}))
 	defer func() { server.Close() }()
 
-	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudProviders:        map[string]nimillm.ProviderCredentials{"openai": {BaseURL: server.URL}},
-		AllowLoopbackEndpoint: true,
-	})
+	fixture := newManagedCloudScenarioTestFixture(t, "openai", "tts-1", server.URL, Config{AllowLoopbackEndpoint: true})
+	svc := fixture.service
 	stream := &mockScenarioEventStream{ctx: context.Background()}
 	req := &runtimev1.StreamScenarioRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
-			ModelId:       "openai/tts-1",
+			ModelId:       "openai/" + fixture.descriptor.GetProviderModelId(),
+			ConnectorId:   fixture.connectorID,
+			TargetRef:     fixture.targetRef,
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     30_000,
@@ -104,6 +107,9 @@ func TestStreamScenarioSpeechSynthesizeSuccess(t *testing.T) {
 func TestStreamScenarioSpeechSynthesizeLocalRouteUsesAssetLease(t *testing.T) {
 	payload := []byte("speech-audio-payload")
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if writeOpenAITTSModelsIfRequested(w, r) {
+			return
+		}
 		if r.URL.Path != "/v1/audio/speech" {
 			http.NotFound(w, r)
 			return
@@ -131,6 +137,7 @@ func TestStreamScenarioSpeechSynthesizeLocalRouteUsesAssetLease(t *testing.T) {
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
 			ModelId:       "speech/qwen3tts",
+			TargetRef:     localScenarioTargetRefForModel("speech/qwen3tts"),
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     30_000,
@@ -174,6 +181,7 @@ func TestStreamScenarioSpeechSynthesizeValidation(t *testing.T) {
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
 			ModelId:       "local/tts",
+			TargetRef:     localScenarioTargetRefForModel("local/tts"),
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		},
@@ -196,15 +204,16 @@ func TestStreamScenarioSpeechSynthesizeValidation(t *testing.T) {
 }
 
 func TestStreamScenarioSpeechSynthesizeCapabilityGuardFailsClosed(t *testing.T) {
-	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudProviders: map[string]nimillm.ProviderCredentials{"anthropic": {BaseURL: "https://example.com"}},
-	})
+	fixture := newManagedCloudScenarioTestFixture(t, "anthropic", "claude-sonnet-4-6", "https://example.com", Config{})
+	svc := fixture.service
 	stream := &mockScenarioEventStream{ctx: context.Background()}
 	req := &runtimev1.StreamScenarioRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
-			ModelId:       "anthropic/claude-sonnet-4-6",
+			ModelId:       "anthropic/" + fixture.descriptor.GetProviderModelId(),
+			ConnectorId:   fixture.connectorID,
+			TargetRef:     fixture.targetRef,
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     30_000,
@@ -235,21 +244,25 @@ func TestStreamScenarioSpeechSynthesizeCapabilityGuardFailsClosed(t *testing.T) 
 func TestStreamScenarioSpeechSynthesizeProviderErrorSendsFailedEvent(t *testing.T) {
 	// K-STREAM-004: failed speech terminal event must carry a reason code.
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if writeOpenAITTSModelsIfRequested(w, r) {
+			return
+		}
 		http.Error(w, "provider failure", http.StatusInternalServerError)
 	}))
 	defer func() { server.Close() }()
 
 	var logs bytes.Buffer
-	svc := newTestService(slog.New(slog.NewTextHandler(&logs, nil)), Config{
-		CloudProviders:        map[string]nimillm.ProviderCredentials{"openai": {BaseURL: server.URL}},
-		AllowLoopbackEndpoint: true,
-	})
+	fixture := newManagedCloudScenarioTestFixture(t, "openai", "tts-1", server.URL, Config{AllowLoopbackEndpoint: true})
+	svc := fixture.service
+	svc.logger = slog.New(slog.NewTextHandler(&logs, nil))
 	stream := &mockScenarioEventStream{ctx: context.Background()}
 	req := &runtimev1.StreamScenarioRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
-			ModelId:       "openai/tts-1",
+			ModelId:       "openai/" + fixture.descriptor.GetProviderModelId(),
+			ConnectorId:   fixture.connectorID,
+			TargetRef:     fixture.targetRef,
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     30_000,
@@ -290,6 +303,9 @@ func TestStreamSpeechDoneFrameConstraints(t *testing.T) {
 	// K-STREAM-004: success terminal event closes the stream; audio chunks are only sent on DELTA events.
 	payload := []byte("speech-audio-payload")
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if writeOpenAITTSModelsIfRequested(w, r) {
+			return
+		}
 		if r.URL.Path != "/v1/audio/speech" {
 			http.NotFound(w, r)
 			return
@@ -299,16 +315,16 @@ func TestStreamSpeechDoneFrameConstraints(t *testing.T) {
 	}))
 	defer func() { server.Close() }()
 
-	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudProviders:        map[string]nimillm.ProviderCredentials{"openai": {BaseURL: server.URL}},
-		AllowLoopbackEndpoint: true,
-	})
+	fixture := newManagedCloudScenarioTestFixture(t, "openai", "tts-1", server.URL, Config{AllowLoopbackEndpoint: true})
+	svc := fixture.service
 	stream := &mockScenarioEventStream{ctx: context.Background()}
 	req := &runtimev1.StreamScenarioRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
-			ModelId:       "openai/tts-1",
+			ModelId:       "openai/" + fixture.descriptor.GetProviderModelId(),
+			ConnectorId:   fixture.connectorID,
+			TargetRef:     fixture.targetRef,
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     30_000,
@@ -345,6 +361,9 @@ func TestStreamSpeechDoneFrameConstraints(t *testing.T) {
 func TestStreamFirstPacketTimeout(t *testing.T) {
 	// K-STREAM-007: speech stream first-packet timeout is independent and returns AI_PROVIDER_TIMEOUT.
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if writeOpenAITTSModelsIfRequested(w, r) {
+			return
+		}
 		time.Sleep(100 * time.Millisecond)
 		if r.Context().Err() != nil {
 			return
@@ -354,10 +373,8 @@ func TestStreamFirstPacketTimeout(t *testing.T) {
 	}))
 	defer func() { server.Close() }()
 
-	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudProviders:        map[string]nimillm.ProviderCredentials{"openai": {BaseURL: server.URL}},
-		AllowLoopbackEndpoint: true,
-	})
+	fixture := newManagedCloudScenarioTestFixture(t, "openai", "tts-1", server.URL, Config{AllowLoopbackEndpoint: true})
+	svc := fixture.service
 	svc.streamFirstPacketTimeout = 20 * time.Millisecond
 
 	stream := &mockScenarioEventStream{ctx: context.Background()}
@@ -365,7 +382,9 @@ func TestStreamFirstPacketTimeout(t *testing.T) {
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
-			ModelId:       "openai/tts-1",
+			ModelId:       "openai/" + fixture.descriptor.GetProviderModelId(),
+			ConnectorId:   fixture.connectorID,
+			TargetRef:     fixture.targetRef,
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     500,
@@ -405,6 +424,9 @@ func TestStreamScenarioSpeechSynthesizeLargePayloadChunking(t *testing.T) {
 		largePayload[i] = byte(i % 256)
 	}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if writeOpenAITTSModelsIfRequested(w, r) {
+			return
+		}
 		if r.URL.Path != "/v1/audio/speech" {
 			http.NotFound(w, r)
 			return
@@ -414,16 +436,16 @@ func TestStreamScenarioSpeechSynthesizeLargePayloadChunking(t *testing.T) {
 	}))
 	defer func() { server.Close() }()
 
-	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudProviders:        map[string]nimillm.ProviderCredentials{"openai": {BaseURL: server.URL}},
-		AllowLoopbackEndpoint: true,
-	})
+	fixture := newManagedCloudScenarioTestFixture(t, "openai", "tts-1", server.URL, Config{AllowLoopbackEndpoint: true})
+	svc := fixture.service
 	stream := &mockScenarioEventStream{ctx: context.Background()}
 	req := &runtimev1.StreamScenarioRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
-			ModelId:       "openai/tts-1",
+			ModelId:       "openai/" + fixture.descriptor.GetProviderModelId(),
+			ConnectorId:   fixture.connectorID,
+			TargetRef:     fixture.targetRef,
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     30_000,
@@ -465,6 +487,9 @@ func TestStreamScenarioSpeechSynthesizeForwardsScenarioExtensions(t *testing.T) 
 	var capturedExtensions map[string]any
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if writeOpenAITTSModelsIfRequested(w, r) {
+			return
+		}
 		if r.URL.Path != "/v1/audio/speech" {
 			http.NotFound(w, r)
 			return
@@ -486,16 +511,16 @@ func TestStreamScenarioSpeechSynthesizeForwardsScenarioExtensions(t *testing.T) 
 	}))
 	defer func() { server.Close() }()
 
-	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudProviders:        map[string]nimillm.ProviderCredentials{"openai": {BaseURL: server.URL}},
-		AllowLoopbackEndpoint: true,
-	})
+	fixture := newManagedCloudScenarioTestFixture(t, "openai", "tts-1", server.URL, Config{AllowLoopbackEndpoint: true})
+	svc := fixture.service
 	stream := &mockScenarioEventStream{ctx: context.Background()}
 	req := &runtimev1.StreamScenarioRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
-			ModelId:       "openai/tts-1",
+			ModelId:       "openai/" + fixture.descriptor.GetProviderModelId(),
+			ConnectorId:   fixture.connectorID,
+			TargetRef:     fixture.targetRef,
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     30_000,
@@ -558,6 +583,7 @@ func TestStreamCloseModeDoneTrueCarriesUsage(t *testing.T) {
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
 			ModelId:       "local/qwen",
+			TargetRef:     localScenarioTargetRefForModel("local/qwen"),
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     30_000,
@@ -708,6 +734,7 @@ func TestStreamCloseModeTerminalEventOnError(t *testing.T) {
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
 			ModelId:       "local/qwen",
+			TargetRef:     localScenarioTargetRefForModel("local/qwen"),
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     30_000,
@@ -776,6 +803,7 @@ func TestStreamTextFirstPacketTimeoutStartsAfterStreamEstablished(t *testing.T) 
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
 			ModelId:       "local/qwen",
+			TargetRef:     localScenarioTargetRefForModel("local/qwen"),
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     500,
@@ -836,6 +864,7 @@ func TestStreamTextFirstPacketTimeoutTreatsToolCallChunksAsActivity(t *testing.T
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
 			ModelId:       "local/qwen2.5",
+			TargetRef:     localScenarioTargetRefForModel("local/qwen2.5"),
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     500,

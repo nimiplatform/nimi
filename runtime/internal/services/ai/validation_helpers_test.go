@@ -202,12 +202,38 @@ func TestPrepareScenarioRequestAllowsAnonymousLocal(t *testing.T) {
 		AppId:       "nimi.desktop",
 		ModelId:     "local/qwen",
 		RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+		TargetRef: &runtimev1.RuntimeDurableTargetRef{
+			Target: &runtimev1.RuntimeDurableTargetRef_LocalRuntime{
+				LocalRuntime: &runtimev1.RuntimeDurableLocalTargetRef{
+					Version: "v2",
+					Ref:     &runtimev1.RuntimeDurableLocalTargetRef_ProfileBindingId{ProfileBindingId: "local-runtime:lm-1"},
+				},
+			},
+		},
 	}, runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE)
 	if err != nil {
 		t.Fatalf("expected anonymous local request to succeed, got %v", err)
 	}
 	if remoteTarget != nil {
 		t.Fatalf("expected local request to keep remote target nil, got %#v", remoteTarget)
+	}
+}
+
+func TestPrepareScenarioRequestRequiresRuntimeTargetRef(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+
+	_, err := svc.prepareScenarioRequest(context.Background(), &runtimev1.ScenarioRequestHead{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		ModelId:       "local/qwen",
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+	}, runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE)
+	if err == nil {
+		t.Fatalf("expected missing runtime target_ref to fail closed")
+	}
+	reason, ok := grpcerr.ExtractReasonCode(err)
+	if !ok || reason != runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID {
+		t.Fatalf("unexpected reason mismatch: got=%v ok=%v want=%v", reason, ok, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 }
 
@@ -218,6 +244,17 @@ func TestPrepareScenarioRequestRequiresSubjectForTokenAPI(t *testing.T) {
 		AppId:       "nimi.desktop",
 		ModelId:     "openai/gpt-4o-mini",
 		RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+		TargetRef: &runtimev1.RuntimeDurableTargetRef{
+			Target: &runtimev1.RuntimeDurableTargetRef_Cloud{
+				Cloud: &runtimev1.RuntimeDurableCloudTargetRef{
+					Version:              "v2",
+					ConnectorId:          "conn-openai",
+					RemoteModelCatalogId: "remote-catalog:conn-openai:gpt-4o-mini",
+					ProviderModelId:      "gpt-4o-mini",
+					Provider:             "openai",
+				},
+			},
+		},
 	}, runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE)
 	if err == nil {
 		t.Fatalf("expected cloud request without subject user id to fail")

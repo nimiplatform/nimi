@@ -15,7 +15,6 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
-	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 )
 
 func TestScenarioJobStoreCoreValidationAndLookup(t *testing.T) {
@@ -131,19 +130,17 @@ func TestScenarioJobStoreCancelPreservesCanceledStateForDetachedVideoJob(t *test
 	}))
 	defer func() { server.Close() }()
 
-	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudProviders: map[string]nimillm.ProviderCredentials{
-			"volcengine": {BaseURL: server.URL, APIKey: "test-key"},
-		},
-		AllowLoopbackEndpoint: true,
-	})
+	fixture := newManagedCloudScenarioTestFixture(t, "volcengine", "doubao-seedance-2-0-260128", server.URL, Config{AllowLoopbackEndpoint: true})
+	svc := fixture.service
 	ctx := scenarioJobContext("nimi.desktop")
 
 	submitResp, err := svc.SubmitScenarioJob(ctx, &runtimev1.SubmitScenarioJobRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
-			ModelId:       "volcengine/doubao-seedance-2-0-260128",
+			ModelId:       fixture.descriptor.GetProviderModelId(),
+			ConnectorId:   fixture.connectorID,
+			TargetRef:     fixture.targetRef,
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		},
@@ -225,19 +222,17 @@ func TestScenarioJobStoreDetachedVideoJobPublishesPollingMetadataAndRemainsQuery
 	}))
 	defer func() { server.Close() }()
 
-	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudProviders: map[string]nimillm.ProviderCredentials{
-			"volcengine": {BaseURL: server.URL, APIKey: "test-key"},
-		},
-		AllowLoopbackEndpoint: true,
-	})
+	fixture := newManagedCloudScenarioTestFixture(t, "volcengine", "doubao-seedance-2-0-260128", server.URL, Config{AllowLoopbackEndpoint: true})
+	svc := fixture.service
 	ctx := scenarioJobContext("nimi.desktop")
 
 	submitResp, err := svc.SubmitScenarioJob(ctx, &runtimev1.SubmitScenarioJobRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
-			ModelId:       "volcengine/doubao-seedance-2-0-260128",
+			ModelId:       fixture.descriptor.GetProviderModelId(),
+			ConnectorId:   fixture.connectorID,
+			TargetRef:     fixture.targetRef,
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		},
@@ -329,19 +324,17 @@ func TestScenarioJobStoreDetachedVideoJobIgnoresShortRequestTimeout(t *testing.T
 	}))
 	defer func() { server.Close() }()
 
-	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudProviders: map[string]nimillm.ProviderCredentials{
-			"volcengine": {BaseURL: server.URL, APIKey: "test-key"},
-		},
-		AllowLoopbackEndpoint: true,
-	})
+	fixture := newManagedCloudScenarioTestFixture(t, "volcengine", "doubao-seedance-2-0-260128", server.URL, Config{AllowLoopbackEndpoint: true})
+	svc := fixture.service
 	ctx := scenarioJobContext("nimi.desktop")
 
 	submitResp, err := svc.SubmitScenarioJob(ctx, &runtimev1.SubmitScenarioJobRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
-			ModelId:       "volcengine/doubao-seedance-2-0-260128",
+			ModelId:       fixture.descriptor.GetProviderModelId(),
+			ConnectorId:   fixture.connectorID,
+			TargetRef:     fixture.targetRef,
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     100, // Short timeout MUST be ignored for detached polling.
@@ -368,7 +361,7 @@ func TestScenarioJobStoreDetachedVideoJobIgnoresShortRequestTimeout(t *testing.T
 	}
 
 	// Wait well past the 100ms request timeout. The job must NOT have
-	// transitioned to terminal TIMEOUT 鈥?it should remain non-terminal
+	// transitioned to terminal TIMEOUT; it should remain non-terminal.
 	// because detached polling uses a cancel-only context with no deadline.
 	// Job terminal state comes only from provider terminal or user cancel.
 	time.Sleep(500 * time.Millisecond)
@@ -404,7 +397,7 @@ func TestScenarioJobStoreDetachedVideoJobCompletesAfterLongPoll(t *testing.T) {
 			current := atomic.AddInt32(&pollCount, 1)
 			// Simulate a provider task that stays non-terminal for several poll
 			// cycles before succeeding. In real life this corresponds to a
-			// Seedance task running for 5鈥?0 minutes.
+			// Seedance task running for 5-10 minutes.
 			if current < 4 {
 				_ = json.NewEncoder(w).Encode(map[string]any{
 					"id": "task-long-1", "status": "running",
@@ -423,19 +416,17 @@ func TestScenarioJobStoreDetachedVideoJobCompletesAfterLongPoll(t *testing.T) {
 	}))
 	defer func() { server.Close() }()
 
-	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudProviders: map[string]nimillm.ProviderCredentials{
-			"volcengine": {BaseURL: server.URL, APIKey: "test-key"},
-		},
-		AllowLoopbackEndpoint: true,
-	})
+	fixture := newManagedCloudScenarioTestFixture(t, "volcengine", "doubao-seedance-2-0-260128", server.URL, Config{AllowLoopbackEndpoint: true})
+	svc := fixture.service
 	ctx := scenarioJobContext("nimi.desktop")
 
 	submitResp, err := svc.SubmitScenarioJob(ctx, &runtimev1.SubmitScenarioJobRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
-			ModelId:       "volcengine/doubao-seedance-2-0-260128",
+			ModelId:       fixture.descriptor.GetProviderModelId(),
+			ConnectorId:   fixture.connectorID,
+			TargetRef:     fixture.targetRef,
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		},
@@ -519,19 +510,17 @@ func TestScenarioJobStoreDetachedVideoJobFailsFromProviderFailure(t *testing.T) 
 	}))
 	defer func() { server.Close() }()
 
-	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudProviders: map[string]nimillm.ProviderCredentials{
-			"volcengine": {BaseURL: server.URL, APIKey: "test-key"},
-		},
-		AllowLoopbackEndpoint: true,
-	})
+	fixture := newManagedCloudScenarioTestFixture(t, "volcengine", "doubao-seedance-2-0-260128", server.URL, Config{AllowLoopbackEndpoint: true})
+	svc := fixture.service
 	ctx := scenarioJobContext("nimi.desktop")
 
 	submitResp, err := svc.SubmitScenarioJob(ctx, &runtimev1.SubmitScenarioJobRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
-			ModelId:       "volcengine/doubao-seedance-2-0-260128",
+			ModelId:       fixture.descriptor.GetProviderModelId(),
+			ConnectorId:   fixture.connectorID,
+			TargetRef:     fixture.targetRef,
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		},
@@ -604,19 +593,17 @@ func TestScenarioJobStoreDetachedVideoJobExpiredFromProvider(t *testing.T) {
 	}))
 	defer func() { server.Close() }()
 
-	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudProviders: map[string]nimillm.ProviderCredentials{
-			"volcengine": {BaseURL: server.URL, APIKey: "test-key"},
-		},
-		AllowLoopbackEndpoint: true,
-	})
+	fixture := newManagedCloudScenarioTestFixture(t, "volcengine", "doubao-seedance-2-0-260128", server.URL, Config{AllowLoopbackEndpoint: true})
+	svc := fixture.service
 	ctx := scenarioJobContext("nimi.desktop")
 
 	submitResp, err := svc.SubmitScenarioJob(ctx, &runtimev1.SubmitScenarioJobRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
-			ModelId:       "volcengine/doubao-seedance-2-0-260128",
+			ModelId:       fixture.descriptor.GetProviderModelId(),
+			ConnectorId:   fixture.connectorID,
+			TargetRef:     fixture.targetRef,
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		},
@@ -642,7 +629,7 @@ func TestScenarioJobStoreDetachedVideoJobExpiredFromProvider(t *testing.T) {
 	for {
 		job, ok := svc.scenarioJobs.get(jobID)
 		if ok && isTerminalScenarioJobStatus(job.GetStatus()) {
-			// Provider "expired" maps to DeadlineExceeded 鈫?AI_PROVIDER_TIMEOUT
+			// Provider "expired" maps to DeadlineExceeded / AI_PROVIDER_TIMEOUT.
 			// in PollProviderTaskForArtifact, which becomes TIMEOUT status.
 			// This is acceptable because it is the PROVIDER declaring expiry,
 			// not the runtime's own deadline. The key invariant is that we
@@ -698,19 +685,17 @@ func TestScenarioJobStoreDetachedVideoJobSurvivesTransientPollFailure(t *testing
 	}))
 	defer func() { server.Close() }()
 
-	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudProviders: map[string]nimillm.ProviderCredentials{
-			"volcengine": {BaseURL: server.URL, APIKey: "test-key"},
-		},
-		AllowLoopbackEndpoint: true,
-	})
+	fixture := newManagedCloudScenarioTestFixture(t, "volcengine", "doubao-seedance-2-0-260128", server.URL, Config{AllowLoopbackEndpoint: true})
+	svc := fixture.service
 	ctx := scenarioJobContext("nimi.desktop")
 
 	submitResp, err := svc.SubmitScenarioJob(ctx, &runtimev1.SubmitScenarioJobRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
-			ModelId:       "volcengine/doubao-seedance-2-0-260128",
+			ModelId:       fixture.descriptor.GetProviderModelId(),
+			ConnectorId:   fixture.connectorID,
+			TargetRef:     fixture.targetRef,
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		},

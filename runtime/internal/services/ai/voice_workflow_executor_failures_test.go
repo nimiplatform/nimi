@@ -307,6 +307,7 @@ func TestSubmitScenarioJobLocalQwenWorkflowReturnsAssetWithHandlePolicyMetadata(
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
 			ModelId:       "speech/qwen3tts-base",
+			TargetRef:     localScenarioTargetRefForModel("speech/qwen3tts-base"),
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		},

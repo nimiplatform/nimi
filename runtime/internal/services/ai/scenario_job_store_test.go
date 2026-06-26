@@ -66,6 +66,9 @@ func TestInheritAsyncJobContextPreservesMetadata(t *testing.T) {
 func TestSubmitScenarioJobSpeechSynthesizeCompletes(t *testing.T) {
 	speechBytes := []byte("scenario-job-speech")
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if writeOpenAITTSModelsIfRequested(w, r) {
+			return
+		}
 		if r.URL.Path != "/v1/audio/speech" {
 			http.NotFound(w, r)
 			return
@@ -75,15 +78,15 @@ func TestSubmitScenarioJobSpeechSynthesizeCompletes(t *testing.T) {
 	}))
 	defer func() { server.Close() }()
 
-	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudProviders:        map[string]nimillm.ProviderCredentials{"openai": {BaseURL: server.URL}},
-		AllowLoopbackEndpoint: true,
-	})
+	fixture := newManagedCloudScenarioTestFixture(t, "openai", "tts-1", server.URL, Config{AllowLoopbackEndpoint: true})
+	svc := fixture.service
 	req := &runtimev1.SubmitScenarioJobRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
-			ModelId:       "openai/tts-1",
+			ModelId:       "openai/" + fixture.descriptor.GetProviderModelId(),
+			ConnectorId:   fixture.connectorID,
+			TargetRef:     fixture.targetRef,
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     30_000,
@@ -167,15 +170,18 @@ func TestSubmitScenarioJobWorldGenerateCompletes(t *testing.T) {
 	}))
 	defer func() { server.Close() }()
 
-	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+	fixture := newManagedCloudScenarioTestFixture(t, "worldlabs", "marble-1.1", server.URL, Config{
 		CloudProviders:        map[string]nimillm.ProviderCredentials{"worldlabs": {BaseURL: server.URL, APIKey: "world-api-key"}},
 		AllowLoopbackEndpoint: true,
 	})
+	svc := fixture.service
 	req := &runtimev1.SubmitScenarioJobRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
-			ModelId:       "worldlabs/marble-1.1",
+			ModelId:       "worldlabs/" + fixture.descriptor.GetProviderModelId(),
+			ConnectorId:   fixture.connectorID,
+			TargetRef:     fixture.targetRef,
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     30_000,
@@ -254,6 +260,9 @@ func TestSubmitScenarioJobWorldGenerateCompletes(t *testing.T) {
 func TestSubmitScenarioJobStoresScenarioNativeState(t *testing.T) {
 	speechBytes := []byte("scenario-native-store")
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if writeOpenAITTSModelsIfRequested(w, r) {
+			return
+		}
 		if r.URL.Path != "/v1/audio/speech" {
 			http.NotFound(w, r)
 			return
@@ -263,15 +272,15 @@ func TestSubmitScenarioJobStoresScenarioNativeState(t *testing.T) {
 	}))
 	defer func() { server.Close() }()
 
-	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudProviders:        map[string]nimillm.ProviderCredentials{"openai": {BaseURL: server.URL}},
-		AllowLoopbackEndpoint: true,
-	})
+	fixture := newManagedCloudScenarioTestFixture(t, "openai", "tts-1", server.URL, Config{AllowLoopbackEndpoint: true})
+	svc := fixture.service
 	submitResp, err := svc.SubmitScenarioJob(context.Background(), &runtimev1.SubmitScenarioJobRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
-			ModelId:       "openai/tts-1",
+			ModelId:       "openai/" + fixture.descriptor.GetProviderModelId(),
+			ConnectorId:   fixture.connectorID,
+			TargetRef:     fixture.targetRef,
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     30_000,
@@ -327,6 +336,7 @@ func TestSubmitScenarioJobLocalImageStartFailureFailsBeforeAsyncJobCreation(t *t
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
 			ModelId:       "local/flux.1-schnell",
+			TargetRef:     localScenarioTargetRefForModel("local/flux.1-schnell"),
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     120_000,
@@ -431,6 +441,7 @@ func TestSubmitScenarioJobInstalledImagePrimesManagedProfileExtensionsBeforeStar
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
 			ModelId:       "local/flux.1-schnell",
+			TargetRef:     localScenarioTargetRefForModel("local/flux.1-schnell"),
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     120_000,
@@ -472,6 +483,9 @@ func TestSubmitScenarioJobInstalledImagePrimesManagedProfileExtensionsBeforeStar
 func TestSubscribeScenarioJobEventsForMediaScenario(t *testing.T) {
 	speechBytes := []byte("scenario-events-speech")
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if writeOpenAITTSModelsIfRequested(w, r) {
+			return
+		}
 		if r.URL.Path != "/v1/audio/speech" {
 			http.NotFound(w, r)
 			return
@@ -481,15 +495,15 @@ func TestSubscribeScenarioJobEventsForMediaScenario(t *testing.T) {
 	}))
 	defer func() { server.Close() }()
 
-	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudProviders:        map[string]nimillm.ProviderCredentials{"openai": {BaseURL: server.URL}},
-		AllowLoopbackEndpoint: true,
-	})
+	fixture := newManagedCloudScenarioTestFixture(t, "openai", "tts-1", server.URL, Config{AllowLoopbackEndpoint: true})
+	svc := fixture.service
 	submitResp, err := svc.SubmitScenarioJob(context.Background(), &runtimev1.SubmitScenarioJobRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
-			ModelId:       "openai/tts-1",
+			ModelId:       "openai/" + fixture.descriptor.GetProviderModelId(),
+			ConnectorId:   fixture.connectorID,
+			TargetRef:     fixture.targetRef,
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     30_000,
@@ -550,15 +564,15 @@ func TestSubmitScenarioJobFailurePersistsStructuredReasonMetadata(t *testing.T) 
 	serverURL := server.URL
 	server.Close()
 
-	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudProviders:        map[string]nimillm.ProviderCredentials{"openai": {BaseURL: serverURL}},
-		AllowLoopbackEndpoint: true,
-	})
+	fixture := newManagedCloudScenarioTestFixture(t, "openai", "tts-1", serverURL, Config{AllowLoopbackEndpoint: true})
+	svc := fixture.service
 	submitResp, err := svc.SubmitScenarioJob(context.Background(), &runtimev1.SubmitScenarioJobRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
-			ModelId:       "openai/tts-1",
+			ModelId:       "openai/" + fixture.descriptor.GetProviderModelId(),
+			ConnectorId:   fixture.connectorID,
+			TargetRef:     fixture.targetRef,
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     30_000,
@@ -753,7 +767,7 @@ drained:
 			t.Fatalf("channel should be closed after unsubscribe")
 		}
 	default:
-		// Channel already closed — acceptable.
+		// Channel already closed; acceptable.
 	}
 	_ = ctx // keep linter happy
 

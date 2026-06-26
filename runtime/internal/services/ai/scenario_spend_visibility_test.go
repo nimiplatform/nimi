@@ -64,6 +64,7 @@ func TestReportScenarioSpendDisclosureProjectsLocalZeroCost(t *testing.T) {
 	err := svc.reportScenarioSpendDisclosure(context.Background(), &runtimev1.ScenarioRequestHead{
 		AppId:       "nimi.desktop",
 		ModelId:     "local/qwen",
+		TargetRef:   localScenarioTargetRefForModel("local/qwen"),
 		RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 	}, runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE)
 	if err != nil {

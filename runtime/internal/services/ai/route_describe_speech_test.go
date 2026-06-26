@@ -13,22 +13,20 @@ import (
 )
 
 func TestExecuteScenarioSpeechSynthesizeRouteDescribeProbeWritesHeaderForManagedCloudRoute(t *testing.T) {
-	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudProviders: map[string]nimillm.ProviderCredentials{
-			"openai": {BaseURL: "https://example.com", APIKey: "test-key"},
-		},
-	})
+	fixture := newManagedCloudScenarioTestFixture(t, "openai", "gpt-audio", "https://example.com", Config{})
 
 	transport := &routeDescribeTransportStream{}
-	ctx := grpc.NewContextWithServerTransportStream(context.Background(), transport)
-	resp, err := svc.ExecuteScenario(ctx, &runtimev1.ExecuteScenarioRequest{
+	ctx := grpc.NewContextWithServerTransportStream(fixture.context, transport)
+	resp, err := fixture.service.ExecuteScenario(ctx, &runtimev1.ExecuteScenarioRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
-			ModelId:       "openai/gpt-audio",
+			ModelId:       fixture.descriptor.GetProviderModelId(),
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     30_000,
+			ConnectorId:   fixture.connectorID,
+			TargetRef:     fixture.targetRef,
 		},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,
@@ -70,22 +68,20 @@ func TestExecuteScenarioSpeechSynthesizeRouteDescribeProbeWritesHeaderForManaged
 }
 
 func TestExecuteScenarioSpeechTranscribeRouteDescribeProbeWritesHeaderForManagedCloudRoute(t *testing.T) {
-	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudProviders: map[string]nimillm.ProviderCredentials{
-			"gemini": {BaseURL: "https://example.com", APIKey: "test-key"},
-		},
-	})
+	fixture := newManagedCloudScenarioTestFixture(t, "gemini", "gemini-2.5-flash", "https://example.com", Config{})
 
 	transport := &routeDescribeTransportStream{}
-	ctx := grpc.NewContextWithServerTransportStream(context.Background(), transport)
-	resp, err := svc.ExecuteScenario(ctx, &runtimev1.ExecuteScenarioRequest{
+	ctx := grpc.NewContextWithServerTransportStream(fixture.context, transport)
+	resp, err := fixture.service.ExecuteScenario(ctx, &runtimev1.ExecuteScenarioRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
-			ModelId:       "gemini/gemini-2.5-flash",
+			ModelId:       fixture.descriptor.GetProviderModelId(),
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     30_000,
+			ConnectorId:   fixture.connectorID,
+			TargetRef:     fixture.targetRef,
 		},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,

@@ -10,27 +10,24 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
-	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"google.golang.org/grpc"
 )
 
 func TestExecuteScenarioVoiceCloneRouteDescribeProbeWritesHeaderForManagedCloudRoute(t *testing.T) {
-	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudProviders: map[string]nimillm.ProviderCredentials{
-			"dashscope": {BaseURL: "https://example.com", APIKey: "test-key"},
-		},
-	})
+	fixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen3-tts-vc", "https://example.com", Config{})
 
 	transport := &routeDescribeTransportStream{}
-	ctx := grpc.NewContextWithServerTransportStream(context.Background(), transport)
-	resp, err := svc.ExecuteScenario(ctx, &runtimev1.ExecuteScenarioRequest{
+	ctx := grpc.NewContextWithServerTransportStream(fixture.context, transport)
+	resp, err := fixture.service.ExecuteScenario(ctx, &runtimev1.ExecuteScenarioRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
-			ModelId:       "dashscope/qwen3-tts-vc",
+			ModelId:       fixture.descriptor.GetProviderModelId(),
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     30_000,
+			ConnectorId:   fixture.connectorID,
+			TargetRef:     fixture.targetRef,
 		},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,
@@ -121,6 +118,7 @@ func TestExecuteScenarioVoiceCloneRouteDescribeProbeWritesHeaderForLocalQwenRout
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
 			ModelId:       "speech/qwen3tts-base",
+			TargetRef:     localScenarioTargetRefForModel("speech/qwen3tts-base"),
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     30_000,

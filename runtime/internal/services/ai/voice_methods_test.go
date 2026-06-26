@@ -90,18 +90,17 @@ func TestPresetVoiceCatalogProviderTypeNormalizesLocalSpeechProviderType(t *test
 }
 
 func TestVoiceAssetMethodsLifecycle(t *testing.T) {
-	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudProviders: map[string]nimillm.ProviderCredentials{
-			"dashscope": {BaseURL: "https://example.com", APIKey: "test-key"},
-		},
-	})
+	fixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen3-tts-vc", "https://example.com", Config{})
+	svc := fixture.service
 
 	ctx := scenarioJobUserContext("nimi.desktop", "user-001")
 	submitResp, err := svc.SubmitScenarioJob(ctx, &runtimev1.SubmitScenarioJobRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
-			ModelId:       "dashscope/qwen3-tts-vc",
+			ModelId:       "dashscope/" + fixture.descriptor.GetProviderModelId(),
+			ConnectorId:   fixture.connectorID,
+			TargetRef:     fixture.targetRef,
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		},

@@ -14,7 +14,9 @@ import (
 
 func (s *Service) normalizeScenarioRuntimeTargetRef(ctx context.Context, head *runtimev1.ScenarioRequestHead) error {
 	if head == nil || head.GetTargetRef() == nil {
-		return nil
+		return grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, grpcerr.ReasonOptions{
+			ActionHint: "provide_runtime_target_ref",
+		})
 	}
 	switch target := head.GetTargetRef().GetTarget().(type) {
 	case *runtimev1.RuntimeDurableTargetRef_Cloud:
@@ -69,6 +71,10 @@ func (s *Service) normalizeScenarioCloudTargetRef(ctx context.Context, head *run
 	if strings.TrimSpace(head.GetModelId()) == "" {
 		head.ModelId = providerModelID
 	}
+	subjectUserID := scenarioTargetSubjectUserID(ctx, head)
+	if subjectUserID == "" {
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
 	if s == nil || s.connStore == nil {
 		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)
 	}
@@ -81,7 +87,6 @@ func (s *Service) normalizeScenarioCloudTargetRef(ctx context.Context, head *run
 	if !found {
 		return grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)
 	}
-	subjectUserID := scenarioTargetSubjectUserID(ctx, head)
 	_, err = connector.ResolveRemoteModelCatalogRef(s.speechCatalog, subjectUserID, rec, connector.RemoteModelCatalogRef{
 		ConnectorID:          connectorID,
 		RemoteModelCatalogID: strings.TrimSpace(ref.GetRemoteModelCatalogId()),

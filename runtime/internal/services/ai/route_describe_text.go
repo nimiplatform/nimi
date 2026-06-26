@@ -24,12 +24,8 @@ const (
 )
 
 type textGenerateRouteDescribeProbe struct {
-	version               string
-	resolvedBindingRef    string
-	localModelID          string
-	goRuntimeLocalModelID string
-	engine                string
-	modelID               string
+	version            string
+	resolvedBindingRef string
 }
 
 type textGenerateRouteDescribeMetadataPayload struct {
@@ -64,16 +60,24 @@ func textGenerateRouteDescribeProbeFromExtensions(
 		if version != "v1" || resolvedBindingRef == "" {
 			return nil, true, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 		}
+		if textGenerateRouteDescribePayloadHasLegacySelector(payload) {
+			return nil, true, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		}
 		return &textGenerateRouteDescribeProbe{
-			version:               version,
-			resolvedBindingRef:    resolvedBindingRef,
-			localModelID:          strings.TrimSpace(stringValue(payload["localModelId"])),
-			goRuntimeLocalModelID: strings.TrimSpace(stringValue(payload["goRuntimeLocalModelId"])),
-			engine:                strings.TrimSpace(stringValue(payload["engine"])),
-			modelID:               strings.TrimSpace(stringValue(payload["modelId"])),
+			version:            version,
+			resolvedBindingRef: resolvedBindingRef,
 		}, true, nil
 	}
 	return nil, false, nil
+}
+
+func textGenerateRouteDescribePayloadHasLegacySelector(payload map[string]any) bool {
+	for _, key := range []string{"localModelId", "goRuntimeLocalModelId", "modelId", "engine"} {
+		if _, ok := payload[key]; ok {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *Service) writeTextGenerateRouteDescribeHeader(
@@ -124,7 +128,7 @@ func (s *Service) describeTextGenerateRouteMetadata(
 	supportsVideoInput := false
 
 	if selected != nil && selected.Route() == runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL && remoteTarget == nil {
-		selectedModel, err := s.selectLocalTextGenerateDescribeModel(ctx, modelResolved, probe)
+		selectedModel, err := s.selectLocalTextGenerateDescribeModel(ctx, head)
 		if err != nil {
 			return nil, err
 		}
@@ -208,8 +212,7 @@ func traceModeSupportForReasoningCapability(capability nimillm.ReasoningCapabili
 
 func (s *Service) selectLocalTextGenerateDescribeModel(
 	ctx context.Context,
-	modelResolved string,
-	probe *textGenerateRouteDescribeProbe,
+	head *runtimev1.ScenarioRequestHead,
 ) (*runtimev1.LocalAssetRecord, error) {
 	if s == nil || s.localModel == nil {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
@@ -219,7 +222,7 @@ func (s *Service) selectLocalTextGenerateDescribeModel(
 		return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 	}
 
-	selectedModel, usedSelector, reason, detail := selectLocalTextGenerateDescribeModelFromProbe(models, modelResolved, probe)
+	selectedModel, reason, detail := selectLocalTextGenerateDescribeModelFromTargetRef(models, head.GetTargetRef())
 	if reason != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
 		if detail != "" {
 			return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, reason, grpcerr.ReasonOptions{
@@ -230,13 +233,10 @@ func (s *Service) selectLocalTextGenerateDescribeModel(
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, reason)
 	}
 	if selectedModel == nil {
-		if usedSelector {
-			return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
-				ActionHint: "inspect_local_runtime_model_health",
-				Message:    "text.generate route describe selector did not match a local asset",
-			})
-		}
-		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+		return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
+			ActionHint: "inspect_local_runtime_model_health",
+			Message:    "text.generate route describe targetRef did not match a local asset",
+		})
 	}
 	return selectedModel, nil
 }
@@ -274,53 +274,39 @@ func stringValue(value any) string {
 	}
 }
 
-func selectLocalTextGenerateDescribeModelFromProbe(
+func selectLocalTextGenerateDescribeModelFromTargetRef(
 	models []*runtimev1.LocalAssetRecord,
-	modelResolved string,
-	probe *textGenerateRouteDescribeProbe,
-) (*runtimev1.LocalAssetRecord, bool, runtimev1.ReasonCode, string) {
-	if probe != nil {
-		if candidate := findLocalTextGenerateDescribeModelByAssetID(models, probe.goRuntimeLocalModelID); candidate != nil {
-			return candidate, true, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, ""
-		}
-		if probe.goRuntimeLocalModelID != "" {
-			return nil, true, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, "text.generate route describe goRuntimeLocalModelId did not match a local asset"
-		}
-		if candidate := findLocalTextGenerateDescribeModelByAssetID(models, probe.localModelID); candidate != nil {
-			return candidate, true, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, ""
-		}
-		if probe.localModelID != "" {
-			return nil, true, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, "text.generate route describe localModelId did not match a local asset"
-		}
-
-		probeModelID := normalizeComparableModelID(probe.modelID)
-		probeEngine := strings.TrimSpace(probe.engine)
-		if probeModelID != "" || probeEngine != "" {
-			candidates := make([]*runtimev1.LocalAssetRecord, 0, len(models))
-			for _, model := range models {
-				if model == nil || model.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED {
-					continue
-				}
-				if probeModelID != "" && normalizeComparableModelID(model.GetAssetId()) != probeModelID {
-					continue
-				}
-				if probeEngine != "" && !strings.EqualFold(strings.TrimSpace(model.GetEngine()), probeEngine) {
-					continue
-				}
-				candidates = append(candidates, model)
-			}
-			if selected := firstRunnableLocalModel(candidates, runtimev1.Modal_MODAL_UNSPECIFIED); selected != nil {
-				return selected, true, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, ""
-			}
-			if len(candidates) > 0 {
-				return nil, true, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, unavailableLocalModelDetail(candidates)
-			}
-			return nil, true, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, "text.generate route describe engine/model selector did not match a local asset"
-		}
+	targetRef *runtimev1.RuntimeDurableTargetRef,
+) (*runtimev1.LocalAssetRecord, runtimev1.ReasonCode, string) {
+	localAssetID := localTextGenerateDescribeTargetRefLocalAssetID(targetRef)
+	if localAssetID == "" {
+		return nil, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, "text.generate route describe requires a local-runtime targetRef"
 	}
+	if candidate := findLocalTextGenerateDescribeModelByAssetID(models, localAssetID); candidate != nil {
+		return candidate, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, ""
+	}
+	return nil, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, "text.generate route describe targetRef did not match a local asset"
+}
 
-	selectedModel, reason, detail := selectRunnableLocalModel(models, parseLocalModelSelector(modelResolved, runtimev1.Modal_MODAL_UNSPECIFIED))
-	return selectedModel, false, reason, detail
+func localTextGenerateDescribeTargetRefLocalAssetID(targetRef *runtimev1.RuntimeDurableTargetRef) string {
+	if targetRef == nil {
+		return ""
+	}
+	local := targetRef.GetLocalRuntime()
+	if local == nil {
+		return ""
+	}
+	var ref string
+	switch local.GetRef().(type) {
+	case *runtimev1.RuntimeDurableLocalTargetRef_ProfileBindingId:
+		ref = local.GetProfileBindingId()
+	case *runtimev1.RuntimeDurableLocalTargetRef_ReadinessRef:
+		ref = local.GetReadinessRef()
+	default:
+		return ""
+	}
+	ref = strings.TrimSpace(ref)
+	return strings.TrimPrefix(ref, "local-runtime:")
 }
 
 func findLocalTextGenerateDescribeModelByAssetID(

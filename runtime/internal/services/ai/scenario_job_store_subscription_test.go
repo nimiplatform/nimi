@@ -39,19 +39,17 @@ func TestScenarioJobStoreDetachedVideoJobRemainsQueryableDuringLongPoll(t *testi
 	}))
 	defer func() { server.Close() }()
 
-	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudProviders: map[string]nimillm.ProviderCredentials{
-			"volcengine": {BaseURL: server.URL, APIKey: "test-key"},
-		},
-		AllowLoopbackEndpoint: true,
-	})
+	fixture := newManagedCloudScenarioTestFixture(t, "volcengine", "doubao-seedance-2-0-260128", server.URL, Config{AllowLoopbackEndpoint: true})
+	svc := fixture.service
 	ctx := scenarioJobContext("nimi.desktop")
 
 	submitResp, err := svc.SubmitScenarioJob(ctx, &runtimev1.SubmitScenarioJobRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
-			ModelId:       "volcengine/doubao-seedance-2-0-260128",
+			ModelId:       fixture.descriptor.GetProviderModelId(),
+			ConnectorId:   fixture.connectorID,
+			TargetRef:     fixture.targetRef,
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		},
@@ -112,18 +110,17 @@ func TestScenarioJobStoreDetachedVideoJobRemainsQueryableDuringLongPoll(t *testi
 }
 
 func TestScenarioJobStoreVoiceFallbackPaths(t *testing.T) {
-	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudProviders: map[string]nimillm.ProviderCredentials{
-			"dashscope": {BaseURL: "https://example.com", APIKey: "test-key"},
-		},
-	})
+	fixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen3-tts-vd", "https://example.com", Config{})
+	svc := fixture.service
 	ctx := scenarioJobContext("nimi.desktop")
 
 	submitResp, err := svc.SubmitScenarioJob(ctx, &runtimev1.SubmitScenarioJobRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
-			ModelId:       "dashscope/qwen3-tts-vd",
+			ModelId:       fixture.descriptor.GetProviderModelId(),
+			ConnectorId:   fixture.connectorID,
+			TargetRef:     fixture.targetRef,
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		},
@@ -194,19 +191,17 @@ func TestSubmitScenarioJobDashScopeVoiceDesignUsesAPIModelTarget(t *testing.T) {
 	}))
 	defer func() { server.Close() }()
 
-	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudProviders: map[string]nimillm.ProviderCredentials{
-			"dashscope": {BaseURL: server.URL + "/compatible-mode/v1", APIKey: "test-key"},
-		},
-		AllowLoopbackEndpoint: true,
-	})
+	fixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen3-tts-vd", server.URL+"/compatible-mode/v1", Config{AllowLoopbackEndpoint: true})
+	svc := fixture.service
 	ctx := scenarioJobContext("nimi.desktop")
 
 	submitResp, err := svc.SubmitScenarioJob(ctx, &runtimev1.SubmitScenarioJobRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
-			ModelId:       "dashscope/qwen3-tts-vd",
+			ModelId:       fixture.descriptor.GetProviderModelId(),
+			ConnectorId:   fixture.connectorID,
+			TargetRef:     fixture.targetRef,
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     10_000,
@@ -261,6 +256,7 @@ func TestScenarioJobStoreVoiceCancelAndMissingArtifactsPaths(t *testing.T) {
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
 			ModelId:       "local/qwen3-tts",
+			TargetRef:     localScenarioTargetRefForModel("local/qwen3-tts"),
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		},
@@ -315,6 +311,7 @@ func TestScenarioJobStoreVoiceCancelAndMissingArtifactsPaths(t *testing.T) {
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
 			ModelId:       "local/qwen3-tts",
+			TargetRef:     localScenarioTargetRefForModel("local/qwen3-tts"),
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		},
@@ -363,6 +360,7 @@ func TestScenarioJobStoreSubmitModeAndUnsupportedType(t *testing.T) {
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-1",
 			ModelId:       "local/qwen",
+			TargetRef:     localScenarioTargetRefForModel("local/qwen"),
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		},
@@ -381,6 +379,7 @@ func TestScenarioJobStoreSubmitModeAndUnsupportedType(t *testing.T) {
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-1",
 			ModelId:       "local/qwen",
+			TargetRef:     localScenarioTargetRefForModel("local/qwen"),
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		},
@@ -401,6 +400,7 @@ func TestScenarioJobStoreSubmitUnsupportedExtension(t *testing.T) {
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-1",
 			ModelId:       "local/qwen",
+			TargetRef:     localScenarioTargetRefForModel("local/qwen"),
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		},
@@ -521,6 +521,7 @@ func TestNormalizeSubmitScenarioJobOwnerUsesAuthnSubject(t *testing.T) {
 			AppId:         "app",
 			SubjectUserId: "request-body-user",
 			ModelId:       "local/qwen",
+			TargetRef:     localScenarioTargetRefForModel("local/qwen"),
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 		},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
@@ -556,6 +557,7 @@ func TestAuthorizeScenarioJobRejectsAnonymousAccessToUserOwnedJob(t *testing.T) 
 			AppId:         "app",
 			SubjectUserId: "user-a",
 			ModelId:       "local/qwen",
+			TargetRef:     localScenarioTargetRefForModel("local/qwen"),
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 		},
 	}
@@ -570,6 +572,7 @@ func TestAuthorizeScenarioJobRejectsAnonymousAccessToUserOwnedJob(t *testing.T) 
 			AppId:         "app",
 			SubjectUserId: anonymousScenarioJobOwner,
 			ModelId:       "local/qwen",
+			TargetRef:     localScenarioTargetRefForModel("local/qwen"),
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 		},
 	}
@@ -609,6 +612,7 @@ func TestScenarioJobStoreSubscribeScenarioContextCancelBranch(t *testing.T) {
 			AppId:         "app",
 			SubjectUserId: "user",
 			ModelId:       "local/sd3",
+			TargetRef:     localScenarioTargetRefForModel("local/sd3"),
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 		},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
@@ -653,6 +657,7 @@ func TestScenarioJobStoreSubscribeScenarioBacklogSendError(t *testing.T) {
 			AppId:         "app",
 			SubjectUserId: "user",
 			ModelId:       "local/sd3",
+			TargetRef:     localScenarioTargetRefForModel("local/sd3"),
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 		},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
@@ -691,6 +696,7 @@ func TestScenarioJobStoreSubscribeScenarioTerminalBacklogReturns(t *testing.T) {
 			AppId:         "app",
 			SubjectUserId: "user",
 			ModelId:       "local/sd3",
+			TargetRef:     localScenarioTargetRefForModel("local/sd3"),
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 		},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,

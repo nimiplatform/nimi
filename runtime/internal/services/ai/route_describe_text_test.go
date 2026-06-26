@@ -113,6 +113,7 @@ func TestExecuteScenarioTextGenerateRouteDescribeProbeWritesHeaderForLocalRoute(
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
 			ModelId:       "local/qwen3-4b-q4_k_m",
+			TargetRef:     localScenarioTargetRef("local-runtime:local-qwen3-4b-q4_k_m"),
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     30_000,
@@ -181,7 +182,7 @@ func TestExecuteScenarioTextGenerateRouteDescribeProbeWritesHeaderForLocalRoute(
 	}
 }
 
-func TestExecuteScenarioTextGenerateRouteDescribeProbeUsesResolvedLocalAssetIdentity(t *testing.T) {
+func TestExecuteScenarioTextGenerateRouteDescribeProbeUsesTargetRefLocalAssetIdentity(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	svc.localModel = &fakeLocalModelLister{
 		responses: []*runtimev1.ListLocalAssetsResponse{{
@@ -244,6 +245,7 @@ func TestExecuteScenarioTextGenerateRouteDescribeProbeUsesResolvedLocalAssetIden
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
 			ModelId:       "local/qwen3-chat",
+			TargetRef:     localScenarioTargetRef("local-runtime:runtime-local-asset-b"),
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     30_000,
@@ -253,12 +255,8 @@ func TestExecuteScenarioTextGenerateRouteDescribeProbeUsesResolvedLocalAssetIden
 		Extensions: []*runtimev1.ScenarioExtension{{
 			Namespace: textGenerateRouteDescribeExtensionNamespace,
 			Payload: testProbePayload(t, map[string]any{
-				"version":               "v1",
-				"resolvedBindingRef":    "binding-local-asset-b",
-				"goRuntimeLocalModelId": "runtime-local-asset-b",
-				"localModelId":          "desktop-local-asset-b",
-				"engine":                "llama",
-				"modelId":               "qwen3-chat",
+				"version":            "v1",
+				"resolvedBindingRef": "binding-local-asset-b",
 			}),
 		}},
 		Spec: &runtimev1.ScenarioSpec{
@@ -292,7 +290,7 @@ func TestExecuteScenarioTextGenerateRouteDescribeProbeUsesResolvedLocalAssetIden
 	}
 }
 
-func TestExecuteScenarioTextGenerateRouteDescribeProbeFailsCloseWhenResolvedLocalAssetIdentityIsMissing(t *testing.T) {
+func TestExecuteScenarioTextGenerateRouteDescribeProbeFailsCloseWhenLegacyLocalSelectorsAreProvided(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	svc.localModel = &fakeLocalModelLister{
 		responses: []*runtimev1.ListLocalAssetsResponse{{
@@ -325,6 +323,7 @@ func TestExecuteScenarioTextGenerateRouteDescribeProbeFailsCloseWhenResolvedLoca
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
 			ModelId:       "local/qwen3-chat",
+			TargetRef:     localScenarioTargetRef("local-runtime:runtime-local-asset-a"),
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     30_000,
@@ -335,8 +334,9 @@ func TestExecuteScenarioTextGenerateRouteDescribeProbeFailsCloseWhenResolvedLoca
 			Namespace: textGenerateRouteDescribeExtensionNamespace,
 			Payload: testProbePayload(t, map[string]any{
 				"version":               "v1",
-				"resolvedBindingRef":    "binding-local-missing",
-				"goRuntimeLocalModelId": "missing-local-asset",
+				"resolvedBindingRef":    "binding-legacy-selector",
+				"localModelId":          "runtime-local-asset-a",
+				"goRuntimeLocalModelId": "runtime-local-asset-a",
 				"engine":                "llama",
 				"modelId":               "qwen3-chat",
 			}),
@@ -356,55 +356,29 @@ func TestExecuteScenarioTextGenerateRouteDescribeProbeFailsCloseWhenResolvedLoca
 	if !ok {
 		t.Fatalf("expected grpc status error, got=%v", err)
 	}
-	if st.Code() != codes.FailedPrecondition {
-		t.Fatalf("status code mismatch: got=%v want=%v", st.Code(), codes.FailedPrecondition)
+	if st.Code() != codes.InvalidArgument {
+		t.Fatalf("status code mismatch: got=%v want=%v", st.Code(), codes.InvalidArgument)
 	}
-	if !strings.Contains(st.Message(), runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE.String()) {
-		t.Fatalf("reason code mismatch: got=%q want message containing=%q", st.Message(), runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE.String())
+	if !strings.Contains(st.Message(), runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID.String()) {
+		t.Fatalf("reason code mismatch: got=%q want message containing=%q", st.Message(), runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID.String())
 	}
 }
 
 func TestExecuteScenarioTextGenerateRouteDescribeProbeWritesHeaderForManagedCloudRoute(t *testing.T) {
-	store := connector.NewConnectorStoreWithMemorySecrets(t.TempDir())
-	if _, err := store.Create(connector.ConnectorRecord{
-		ConnectorID: "connector-openai-managed",
-		Kind:        runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED,
-		OwnerType:   runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_SYSTEM,
-		OwnerID:     "machine",
-		Provider:    "openai",
-		Endpoint:    "https://api.openai.com/v1",
-		Label:       "OpenAI Managed",
-		Status:      runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
-	}, "sk-test-managed"); err != nil {
-		t.Fatalf("create connector: %v", err)
-	}
-
-	svc, err := newFromProviderConfig(
-		slog.New(slog.NewTextHandler(io.Discard, nil)),
-		nil,
-		nil,
-		nil,
-		store,
-		Config{},
-		8,
-		2,
-	)
-	if err != nil {
-		t.Fatalf("new service: %v", err)
-	}
+	fixture := newManagedCloudScenarioTestFixture(t, "openai", "gpt-4o-mini", "https://api.openai.com/v1", Config{})
 
 	transport := &routeDescribeTransportStream{}
-	ctx := grpc.NewContextWithServerTransportStream(context.Background(), transport)
-	ctx = metadata.NewIncomingContext(ctx, metadata.Pairs("x-nimi-key-source", "managed"))
-	resp, err := svc.ExecuteScenario(ctx, &runtimev1.ExecuteScenarioRequest{
+	ctx := grpc.NewContextWithServerTransportStream(fixture.context, transport)
+	resp, err := fixture.service.ExecuteScenario(ctx, &runtimev1.ExecuteScenarioRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
-			ModelId:       "gpt-4o-mini",
+			ModelId:       fixture.descriptor.GetProviderModelId(),
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     30_000,
-			ConnectorId:   "connector-openai-managed",
+			ConnectorId:   fixture.connectorID,
+			TargetRef:     fixture.targetRef,
 		},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,
@@ -736,6 +710,7 @@ func TestExecuteScenarioTextGenerateRouteDescribeProbeRejectsMissingResolvedBind
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
 			ModelId:       "local/qwen3-4b-q4_k_m",
+			TargetRef:     localScenarioTargetRef("local-runtime:local-qwen3-4b-q4_k_m"),
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     30_000,

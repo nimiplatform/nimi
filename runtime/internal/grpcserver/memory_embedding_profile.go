@@ -355,5 +355,9 @@ func memoryEmbeddingLocalTargetMatches(asset *runtimev1.LocalAssetRecord, target
 	if normalized == "" {
 		return false
 	}
-	return normalized == strings.TrimSpace(asset.GetAssetId()) || normalized == strings.TrimSpace(asset.GetLocalAssetId())
+	localAssetID := strings.TrimSpace(asset.GetLocalAssetId())
+	if strings.HasPrefix(normalized, "local-runtime:") {
+		return strings.TrimPrefix(normalized, "local-runtime:") == localAssetID
+	}
+	return normalized == strings.TrimSpace(asset.GetAssetId()) || normalized == localAssetID
 }

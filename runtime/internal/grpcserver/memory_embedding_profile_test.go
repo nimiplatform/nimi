@@ -130,3 +130,19 @@ func TestMemoryEmbeddingLocalCatalogModelRefPrefersLogicalID(t *testing.T) {
 		t.Fatalf("expected empty ref for nil asset, got %q", got)
 	}
 }
+
+func TestMemoryEmbeddingLocalTargetMatchesPrefixedRuntimeRef(t *testing.T) {
+	asset := &runtimev1.LocalAssetRecord{
+		LocalAssetId: "01KLOCALNOMIC",
+		AssetId:      "local.embed.nomic.gguf",
+	}
+	if !memoryEmbeddingLocalTargetMatches(asset, "local-runtime:01KLOCALNOMIC") {
+		t.Fatalf("expected prefixed local-runtime profile binding id to match local asset id")
+	}
+	if !memoryEmbeddingLocalTargetMatches(asset, "01KLOCALNOMIC") {
+		t.Fatalf("expected bare local asset id to remain accepted inside resolver")
+	}
+	if memoryEmbeddingLocalTargetMatches(asset, "local-runtime:local.embed.nomic.gguf") {
+		t.Fatalf("prefixed runtime ref must resolve to local asset id only, not catalog asset id")
+	}
+}

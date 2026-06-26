@@ -22,6 +22,7 @@ func baseScenarioJobRequest() *runtimev1.SubmitScenarioJobRequest {
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-1",
 			ModelId:       "local/qwen",
+			TargetRef:     localScenarioTargetRefForModel("local/qwen"),
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		},
