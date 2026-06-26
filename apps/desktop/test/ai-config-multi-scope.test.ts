@@ -3,7 +3,7 @@ import test from 'node:test';
 import fs from 'node:fs';
 import path from 'node:path';
 
-import type { NimiAIScopeRef } from '@nimiplatform/sdk/ai';
+import type { NimiAIHostStorage, NimiAIScopeRef } from '@nimiplatform/sdk/ai';
 
 /**
  * Phase 5: Multi-scope contract tests.
@@ -30,6 +30,35 @@ const snapshotStoreSource = readSource('src/shell/renderer/app-shell/providers/d
 const runtimeSliceSource = readSource('src/shell/renderer/app-shell/providers/runtime-slice.ts');
 const activeScopeSource = readSource('src/shell/renderer/features/chat/chat-shared-active-ai-config-scope.ts');
 const oldDefaultScopeFactoryPattern = new RegExp('createDefaultAI' + 'ScopeRef');
+const AI_CONFIG_SCOPE_INDEX_KEY = 'nimi.ai-config.scope-index.v2';
+const AI_CONFIG_SCOPE_PREFIX = 'nimi.ai-config.scope.';
+const AI_CONFIG_SCOPE_SUFFIX = '.v2';
+
+class MemoryHostStorage implements NimiAIHostStorage {
+  readonly values = new Map<string, string>();
+
+  constructor(entries: readonly (readonly [string, string])[] = []) {
+    for (const [key, value] of entries) {
+      this.values.set(key, value);
+    }
+  }
+
+  getItem(key: string): string | null {
+    return this.values.get(key) ?? null;
+  }
+
+  setItem(key: string, value: string): void {
+    this.values.set(key, value);
+  }
+
+  removeItem(key: string): void {
+    this.values.delete(key);
+  }
+}
+
+function desktopAIConfigStorageKey(scopeKey: string): string {
+  return `${AI_CONFIG_SCOPE_PREFIX}${scopeKey}${AI_CONFIG_SCOPE_SUFFIX}`;
+}
 
 test('multi-scope: persistence layer uses scope-keyed storage keys', () => {
   // Scope index key
@@ -42,6 +71,7 @@ test('multi-scope: persistence layer uses scope-keyed storage keys', () => {
   assert.match(storageSource, /function listPersistedScopeKeys\(/);
   assert.match(storageSource, /function parseScopeKey\(/);
   assert.match(storageSource, /function scopeKeyFromRef\(/);
+  assert.match(storageSource, /function repairDesktopAIConfigStorage\(/);
 });
 
 test('multi-scope: persistence layer has no legacy migration or compat shim (hard cut)', () => {
@@ -169,6 +199,163 @@ test('multi-scope: parseScopeKey rejects invalid keys', async () => {
   assert.equal(parseScopeKey(''), null);
   assert.equal(parseScopeKey('single'), null);
   assert.equal(parseScopeKey('app:broken%ZZ:launcher'), null);
+});
+
+test('multi-scope: storage repair leaves valid v2 AIConfig active', async () => {
+  const { repairDesktopAIConfigStorage } = await import(
+    '../src/shell/renderer/app-shell/providers/desktop-ai-config-storage.js'
+  );
+  const scopeRef: NimiAIScopeRef = {
+    kind: 'feature',
+    ownerId: 'desktop.chat',
+    surfaceId: 'nimi',
+  };
+  const scopeKey = 'feature:desktop.chat:nimi';
+  const configKey = desktopAIConfigStorageKey(scopeKey);
+  const validConfig = {
+    scopeRef,
+    capabilities: {
+      targetRefs: {
+        'text.generate': {
+          kind: 'local-runtime',
+          version: 'v2',
+          readinessRef: 'local-runtime:profile-binding:chat-text',
+        },
+      },
+      selectedParams: {},
+    },
+    profileOrigin: null,
+  };
+  const storage = new MemoryHostStorage([
+    [AI_CONFIG_SCOPE_INDEX_KEY, JSON.stringify([scopeKey])],
+    [configKey, JSON.stringify(validConfig)],
+  ]);
+
+  const result = repairDesktopAIConfigStorage(storage, {
+    now: () => '2026-06-26T00:00:00.000Z',
+  });
+
+  assert.equal(result.scanned, 1);
+  assert.equal(result.quarantined, 0);
+  assert.equal(storage.getItem(configKey), JSON.stringify(validConfig));
+  assert.deepEqual(JSON.parse(storage.getItem(AI_CONFIG_SCOPE_INDEX_KEY) ?? '[]'), [scopeKey]);
+});
+
+test('multi-scope: storage repair quarantines retired persisted target refs and clears active index', async () => {
+  const { repairDesktopAIConfigStorage } = await import(
+    '../src/shell/renderer/app-shell/providers/desktop-ai-config-storage.js'
+  );
+  const scopeRef: NimiAIScopeRef = {
+    kind: 'feature',
+    ownerId: 'desktop.chat',
+    surfaceId: 'nimi',
+  };
+  const scopeKey = 'feature:desktop.chat:nimi';
+  const configKey = desktopAIConfigStorageKey(scopeKey);
+  const retiredConfig = {
+    scopeRef,
+    capabilities: {
+      targetRefs: {
+        'text.generate': {
+          kind: 'local-runtime',
+          targetId: 'local-import-qwen3-4b-q4-k-m',
+          profileId: 'builtin-qwen3-text',
+        },
+        'image.generate': {
+          kind: 'local-runtime',
+          targetId: 'local-import-z-image-turbo-q4-k',
+          profileId: 'builtin-z-image-turbo',
+        },
+      },
+      selectedParams: {},
+    },
+    profileOrigin: null,
+  };
+  const storage = new MemoryHostStorage([
+    [AI_CONFIG_SCOPE_INDEX_KEY, JSON.stringify([scopeKey])],
+    [configKey, JSON.stringify(retiredConfig)],
+  ]);
+
+  const result = repairDesktopAIConfigStorage(storage, {
+    now: () => '2026-06-26T00:00:00.000Z',
+  });
+
+  assert.equal(result.scanned, 1);
+  assert.equal(result.quarantined, 1);
+  assert.equal(storage.getItem(configKey), null);
+  assert.deepEqual(JSON.parse(storage.getItem(AI_CONFIG_SCOPE_INDEX_KEY) ?? '[]'), []);
+
+  const quarantineEntries = [...storage.values.entries()]
+    .filter(([key]) => key.startsWith('nimi.ai-config.quarantine.'));
+  assert.equal(quarantineEntries.length, 1);
+  const rawQuarantine = quarantineEntries[0]?.[1];
+  assert.ok(rawQuarantine);
+  const quarantine = JSON.parse(rawQuarantine) as {
+    scopeKey: string;
+    originalKey: string;
+    quarantinedAt: string;
+    reasonCode: string;
+    raw: string;
+  };
+  assert.equal(quarantine.scopeKey, scopeKey);
+  assert.equal(quarantine.originalKey, configKey);
+  assert.equal(quarantine.quarantinedAt, '2026-06-26T00:00:00.000Z');
+  assert.equal(quarantine.reasonCode, 'DESKTOP_AI_CONFIG_STORE_INVALID');
+  assert.equal(quarantine.raw, JSON.stringify(retiredConfig));
+});
+
+test('multi-scope: loadAIConfigForScope repairs retired stored config before SDK validation', async () => {
+  const scopeRef: NimiAIScopeRef = {
+    kind: 'feature',
+    ownerId: 'desktop.chat',
+    surfaceId: 'agent',
+  };
+  const scopeKey = 'feature:desktop.chat:agent';
+  const configKey = desktopAIConfigStorageKey(scopeKey);
+  const storage = new MemoryHostStorage([
+    [AI_CONFIG_SCOPE_INDEX_KEY, JSON.stringify([scopeKey])],
+    [configKey, JSON.stringify({
+      scopeRef,
+      capabilities: {
+        targetRefs: {
+          'text.generate': {
+            kind: 'local-runtime',
+            targetId: 'local-import-qwen3-4b-q4-k-m',
+            profileId: 'builtin-qwen3-text',
+          },
+        },
+        selectedParams: {},
+      },
+      profileOrigin: null,
+    })],
+  ]);
+  const originalLocalStorageDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+  Object.defineProperty(globalThis, 'localStorage', {
+    configurable: true,
+    value: storage,
+  });
+  try {
+    const { loadAIConfigForScope } = await import(
+      '../src/shell/renderer/app-shell/providers/desktop-ai-config-storage.js'
+    );
+    const loaded = loadAIConfigForScope(scopeRef);
+    assert.deepEqual(loaded, {
+      scopeRef,
+      capabilities: {
+        targetRefs: {},
+        selectedParams: {},
+      },
+      profileOrigin: null,
+    });
+    assert.equal(storage.getItem(configKey), null);
+    assert.deepEqual(JSON.parse(storage.getItem(AI_CONFIG_SCOPE_INDEX_KEY) ?? '[]'), []);
+  } finally {
+    if (originalLocalStorageDescriptor) {
+      Object.defineProperty(globalThis, 'localStorage', originalLocalStorageDescriptor);
+    } else {
+      Reflect.deleteProperty(globalThis, 'localStorage');
+    }
+  }
 });
 
 // ---------------------------------------------------------------------------
