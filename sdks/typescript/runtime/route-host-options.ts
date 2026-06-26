@@ -260,6 +260,7 @@ async function defaultLoadLocalRouteMetadata(
         endpoint: asset.endpoint,
         status: asset.status,
         capabilities: asset.capabilities,
+        artifactRoles: asset.artifactRoles,
       });
     }
     pageToken = normalizeText(response.nextPageToken);

@@ -27,6 +27,7 @@ function localAssetRecord(overrides: Partial<{
   endpoint: string;
   status: LocalAssetStatus;
   capabilities: string[];
+  artifactRoles: string[];
 }> = {}) {
   return {
     localAssetId: overrides.localAssetId ?? 'asset-local-1',
@@ -44,7 +45,7 @@ function localAssetRecord(overrides: Partial<{
     capabilities: overrides.capabilities ?? ['text.generate'],
     logicalModelId: '',
     family: '',
-    artifactRoles: [],
+    artifactRoles: overrides.artifactRoles ?? [],
     preferredEngine: '',
     fallbackEngines: [],
     bundleState: 0,
@@ -369,6 +370,39 @@ test('Runtime host route options fail closed instead of promoting degraded local
   assert.deepEqual(directProjection.inventory.targets.map((item) => item.compatibility.capabilities), [
     ['image.generate'],
   ]);
+});
+
+test('Runtime host route options do not promote companion-only image assets as primary targets', async () => {
+  const deps = createNimiRuntimeRouteOptionsHostDeps({
+    connectors: {
+      async listConnectors() {
+        return { connectors: [], nextPageToken: '' };
+      },
+      async listConnectorModels() {
+        return { models: [], nextPageToken: '' };
+      },
+    },
+    local: {
+      async listLocalAssets() {
+        return {
+          assets: [localAssetRecord({
+            localAssetId: 'local-ideogram4-uncond',
+            assetId: 'local-import/ideogram4_uncond-Q4_0',
+            kind: LocalAssetKind.IMAGE,
+            engine: 'media',
+            status: LocalAssetStatus.INSTALLED,
+            capabilities: ['image.generate'],
+            artifactRoles: ['uncond_diffusion_model'],
+          })],
+          nextPageToken: '',
+        };
+      },
+    },
+  });
+
+  const snapshot = await listNimiRuntimeRouteOptionsWithHost({ capability: 'image.generate' }, deps);
+
+  assert.equal(snapshot.inventory.targets.some((item) => item.evidence.source === 'local-runtime'), false);
 });
 
 test('Runtime route host access fails closed and caches local warmups', async () => {

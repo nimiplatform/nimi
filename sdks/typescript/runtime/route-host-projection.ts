@@ -28,6 +28,7 @@ export interface NimiRuntimeRouteLocalAssetProjectionInput {
   readonly endpoint?: unknown;
   readonly status?: unknown;
   readonly capabilities?: readonly unknown[];
+  readonly artifactRoles?: readonly unknown[];
   readonly displayName?: unknown;
   readonly sourceFileName?: unknown;
 }
@@ -96,6 +97,18 @@ function localAssetSupportsCapability(
     || nimiRuntimeRouteLocalKindSupportsCapability(asset.kind, capability);
 }
 
+function localAssetHasArtifactRole(
+  asset: NimiRuntimeRouteLocalAssetProjectionInput,
+  role: string,
+): boolean {
+  const target = normalizeLower(role);
+  return Boolean(target && (asset.artifactRoles || []).some((item) => normalizeLower(item) === target));
+}
+
+function localAssetIsCompanionOnly(asset: NimiRuntimeRouteLocalAssetProjectionInput): boolean {
+  return localAssetHasArtifactRole(asset, 'uncond_diffusion_model');
+}
+
 function normalizedCapabilitiesForLocalAsset(
   asset: NimiRuntimeRouteLocalAssetProjectionInput,
   capability: NimiRuntimeCanonicalCapability,
@@ -157,6 +170,7 @@ function projectLocalTargetItems(input: NimiRuntimeRouteOptionsProjectionInput):
   );
   return (input.runtimeLocalModels || [])
     .filter((asset) => parseNimiRuntimeLocalAssetStatusId(asset.status) !== 'removed')
+    .filter((asset) => !localAssetIsCompanionOnly(asset))
     .filter((asset) => localAssetSupportsCapability(asset, input.capability))
     .map((asset): NimiRuntimeTargetInventoryItem | null => {
       const localAssetId = normalizeText(asset.localAssetId);
