@@ -37,6 +37,24 @@ function runCommand(command, args, cwd) {
   }
 }
 
+function runPnpm(args, cwd) {
+  runCommand('corepack', ['pnpm', ...args], cwd);
+}
+
+function toPnpmFileSpec(filePath) {
+  return `file:${filePath.replaceAll('\\', '/')}`;
+}
+
+async function readRootPackageManager() {
+  const packageJsonPath = path.join(repoRoot, 'package.json');
+  const payload = JSON.parse(await fs.readFile(packageJsonPath, 'utf8'));
+  const packageManager = String(payload.packageManager || '').trim();
+  if (!/^pnpm@\d+\.\d+\.\d+$/u.test(packageManager)) {
+    throw new Error(`Root package.json must pin packageManager to pnpm x.y.z for consumer smoke: ${packageManager || '<missing>'}`);
+  }
+  return packageManager;
+}
+
 async function readPackageVersion(relativeDir) {
   const packageJsonPath = path.join(repoRoot, relativeDir, 'package.json');
   const payload = JSON.parse(await fs.readFile(packageJsonPath, 'utf8'));
@@ -60,7 +78,7 @@ function tarballFileName(packageName, version) {
 
 async function packPackage(packDir, pkg) {
   const version = await readPackageVersion(pkg.dir);
-  runCommand('pnpm', ['--filter', pkg.name, 'pack', '--pack-destination', packDir], repoRoot);
+  runPnpm(['--filter', pkg.name, 'pack', '--pack-destination', packDir], repoRoot);
   const tarball = path.join(packDir, tarballFileName(pkg.name, version));
   try {
     await fs.access(tarball);
@@ -70,11 +88,12 @@ async function packPackage(packDir, pkg) {
   return tarball;
 }
 
-async function writeConsumerPackageJson(appDir, sdkTarballPath) {
+async function writeConsumerPackageJson(appDir, sdkTarballPath, packageManager) {
   const payload = {
     name: 'nimi-sdk-consumer-smoke',
     version: '0.0.0',
     private: true,
+    packageManager,
     type: 'module',
     dependencies: {
       react: '19.2.3',
@@ -309,11 +328,12 @@ console.log('sdk vnext consumer smoke ok');
   await fs.writeFile(path.join(appDir, 'index.mjs'), source);
 }
 
-async function writeAuthorToolsPackageJson(appDir, appToolsTarballPath, nimicodingDependencySpec) {
+async function writeAuthorToolsPackageJson(appDir, appToolsTarballPath, nimicodingDependencySpec, packageManager) {
   const payload = {
     name: 'nimi-author-tools-smoke',
     version: '0.0.0',
     private: true,
+    packageManager,
     type: 'module',
     devDependencies: {
       '@nimiplatform/app-tools': `file:${appToolsTarballPath}`,
@@ -324,18 +344,11 @@ async function writeAuthorToolsPackageJson(appDir, appToolsTarballPath, nimicodi
   await fs.writeFile(path.join(appDir, 'package.json'), `${JSON.stringify(payload, null, 2)}\n`);
 }
 
-async function rewriteGeneratedPackageJson(relativeDir, replacements) {
+async function rewriteGeneratedPackageJson(relativeDir, replacements, packageManager) {
   const packageJsonPath = path.join(relativeDir, 'package.json');
   const payload = JSON.parse(await fs.readFile(packageJsonPath, 'utf8'));
+  payload.packageManager = packageManager;
   for (const [section, entries] of Object.entries(replacements)) {
-    if (section === 'pnpmOverrides') {
-      payload.pnpm = payload.pnpm || {};
-      payload.pnpm.overrides = {
-        ...(payload.pnpm.overrides || {}),
-        ...entries,
-      };
-      continue;
-    }
     if (!payload[section]) continue;
     for (const [name, version] of Object.entries(entries)) {
       if (payload[section][name] != null) {
@@ -344,6 +357,18 @@ async function rewriteGeneratedPackageJson(relativeDir, replacements) {
     }
   }
   await fs.writeFile(packageJsonPath, `${JSON.stringify(payload, null, 2)}\n`);
+}
+
+async function writePnpmWorkspaceOverrides(appDir, overrides) {
+  const lines = [
+    'packages:',
+    '  - .',
+    'overrides:',
+  ];
+  for (const [name, value] of Object.entries(overrides)) {
+    lines.push(`  ${JSON.stringify(name)}: ${JSON.stringify(value)}`);
+  }
+  await fs.writeFile(path.join(appDir, 'pnpm-workspace.yaml'), `${lines.join('\n')}\n`);
 }
 
 async function writeTypecheckTsconfig(appDir) {
@@ -370,78 +395,76 @@ async function main() {
   await fs.mkdir(appDir, { recursive: true });
   await fs.mkdir(authorDir, { recursive: true });
 
+  const packageManager = await readRootPackageManager();
   const sdkTarball = await withSdkDistLock('check-sdk-consumer-smoke build+pack SDK', async () => {
     // Always build before packing so smoke validates current sources, not stale dist artifacts.
-    runCommand('pnpm', ['--filter', SDK_PACKAGE.name, 'build'], repoRoot);
+    runPnpm(['--filter', SDK_PACKAGE.name, 'build'], repoRoot);
     return packPackage(packDir, SDK_PACKAGE);
   });
   const appToolsTarball = await packPackage(packDir, APP_TOOLS_PACKAGE);
   const kitTarball = await packPackage(packDir, KIT_PACKAGE);
   const nimicodingDependencySpec = await readRootDependencySpec('@nimiplatform/nimi-coding');
 
-  await writeConsumerPackageJson(appDir, sdkTarball);
+  await writeConsumerPackageJson(appDir, sdkTarball, packageManager);
   await writeSmokeEntry(appDir);
 
-  runCommand('pnpm', ['install', '--ignore-scripts', '--no-frozen-lockfile'], appDir);
+  runPnpm(['install', '--ignore-scripts', '--no-frozen-lockfile'], appDir);
   runCommand('node', ['index.mjs'], appDir);
 
-  await writeAuthorToolsPackageJson(authorDir, appToolsTarball, nimicodingDependencySpec);
-  runCommand('pnpm', ['install', '--ignore-scripts', '--no-frozen-lockfile'], authorDir);
+  await writeAuthorToolsPackageJson(authorDir, appToolsTarball, nimicodingDependencySpec, packageManager);
+  runPnpm(['install', '--ignore-scripts', '--no-frozen-lockfile'], authorDir);
   process.env.PATH = `${path.join(authorDir, 'node_modules', '.bin')}${path.delimiter}${process.env.PATH || ''}`;
-  runCommand(
-    'pnpm',
+  runPnpm(
     ['exec', 'nimi-app', 'create', '--dir', 'generated-app-standalone', '--profile', 'standalone'],
     authorDir,
   );
-  runCommand(
-    'pnpm',
+  runPnpm(
     ['exec', 'nimi-app', 'create', '--dir', 'generated-app-workspace', '--profile', 'workspace-app'],
     authorDir,
   );
   for (const generatedAppDir of [generatedStandaloneAppDir, generatedWorkspaceAppDir]) {
-    runCommand('pnpm', ['exec', 'nimi-app', 'init', '--dir', generatedAppDir], authorDir);
-    runCommand('pnpm', ['exec', 'nimi-app', 'doctor', '--dir', generatedAppDir], authorDir);
-    runCommand('pnpm', ['exec', 'nimi-app', 'update', '--dir', generatedAppDir], authorDir);
-    runCommand('pnpm', ['exec', 'nimi-app', 'doctor', '--dir', generatedAppDir], authorDir);
+    runPnpm(['exec', 'nimi-app', 'init', '--dir', generatedAppDir], authorDir);
+    runPnpm(['exec', 'nimi-app', 'doctor', '--dir', generatedAppDir], authorDir);
+    runPnpm(['exec', 'nimi-app', 'update', '--dir', generatedAppDir], authorDir);
+    runPnpm(['exec', 'nimi-app', 'doctor', '--dir', generatedAppDir], authorDir);
   }
 
   await rewriteGeneratedPackageJson(generatedStandaloneAppDir, {
     dependencies: {
-      '@nimiplatform/sdk': `file:${sdkTarball}`,
-      '@nimiplatform/kit': `file:${kitTarball}`,
+      '@nimiplatform/sdk': toPnpmFileSpec(sdkTarball),
+      '@nimiplatform/kit': toPnpmFileSpec(kitTarball),
     },
     devDependencies: {
-      '@nimiplatform/app-tools': `file:${appToolsTarball}`,
+      '@nimiplatform/app-tools': toPnpmFileSpec(appToolsTarball),
       '@nimiplatform/nimi-coding': nimicodingDependencySpec,
     },
-    pnpmOverrides: {
-      '@nimiplatform/sdk': `file:${sdkTarball}`,
-    },
+  }, packageManager);
+  await writePnpmWorkspaceOverrides(generatedStandaloneAppDir, {
+    '@nimiplatform/sdk': toPnpmFileSpec(sdkTarball),
   });
   await writeTypecheckTsconfig(generatedStandaloneAppDir);
-  runCommand('pnpm', ['install', '--ignore-scripts', '--no-frozen-lockfile'], generatedStandaloneAppDir);
-  runCommand('pnpm', ['exec', 'tsc', '--project', 'tsconfig.smoke.json'], generatedStandaloneAppDir);
+  runPnpm(['install', '--ignore-scripts', '--no-frozen-lockfile'], generatedStandaloneAppDir);
+  runPnpm(['exec', 'tsc', '--project', 'tsconfig.smoke.json'], generatedStandaloneAppDir);
 
   await rewriteGeneratedPackageJson(generatedWorkspaceAppDir, {
     dependencies: {
-      '@nimiplatform/sdk': `file:${sdkTarball}`,
-      '@nimiplatform/kit': `file:${kitTarball}`,
+      '@nimiplatform/sdk': toPnpmFileSpec(sdkTarball),
+      '@nimiplatform/kit': toPnpmFileSpec(kitTarball),
     },
     devDependencies: {
-      '@nimiplatform/app-tools': `file:${appToolsTarball}`,
+      '@nimiplatform/app-tools': toPnpmFileSpec(appToolsTarball),
       '@nimiplatform/nimi-coding': nimicodingDependencySpec,
     },
-    pnpmOverrides: {
-      '@nimiplatform/sdk': `file:${sdkTarball}`,
-    },
+  }, packageManager);
+  await writePnpmWorkspaceOverrides(generatedWorkspaceAppDir, {
+    '@nimiplatform/sdk': toPnpmFileSpec(sdkTarball),
   });
   await writeTypecheckTsconfig(generatedWorkspaceAppDir);
-  runCommand(
-    'pnpm',
+  runPnpm(
     ['install', '--ignore-scripts', '--no-frozen-lockfile'],
     generatedWorkspaceAppDir,
   );
-  runCommand('pnpm', ['exec', 'tsc', '--project', 'tsconfig.smoke.json'], generatedWorkspaceAppDir);
+  runPnpm(['exec', 'tsc', '--project', 'tsconfig.smoke.json'], generatedWorkspaceAppDir);
 
   process.stdout.write(`[check-sdk-consumer-smoke] passed (temp=${tempRoot})\n`);
 }

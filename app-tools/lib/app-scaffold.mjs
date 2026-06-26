@@ -1,7 +1,6 @@
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { readAppSourceFile, resolveAppSource } from '../scripts/sync-app-source.mjs';
-
 const DEFAULT_APP_ID = 'my-nimi-app';
 const DEFAULT_APP_TITLE = 'My Nimi App';
 export const SCAFFOLD_VERSION = '2026-05-29.app-source-snapshot';
@@ -269,6 +268,7 @@ function buildPackageJson(profile, versions, identity) {
     name: identity.packageName,
     private: false,
     type: 'module',
+    packageManager: versions.packageManager,
     publishConfig: {
       access: 'public',
     },

@@ -56,10 +56,11 @@ export function pickerSelectionToTargetRef(
     };
   }
 
-  const profileBindingId = normalizeText(selection.profileBindingId)
-    || normalizeText(selection.localModelId)
-    || normalizeText(selection.model);
+  const profileBindingId = normalizeText(selection.profileBindingId);
   const readinessRef = normalizeText(selection.readinessRef);
+  if (profileBindingId && readinessRef) {
+    return null;
+  }
   if (profileBindingId) {
     return { kind: 'local-runtime', version: 'v2', profileBindingId };
   }

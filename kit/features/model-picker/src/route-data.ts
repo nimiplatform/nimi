@@ -233,17 +233,22 @@ export function createSnapshotRouteDataProvider(
           if (target.evidence.source !== 'local-runtime' || target.targetRef.kind !== 'local-runtime') {
             return [];
           }
+          const profileBindingId = String(target.targetRef.profileBindingId || '').trim();
+          const readinessRef = String(target.targetRef.readinessRef || '').trim();
+          if ((profileBindingId ? 1 : 0) + (readinessRef ? 1 : 0) !== 1) {
+            return [];
+          }
           const localAssetId = String(target.evidence.localAssetId || '').trim();
           return [{
             localModelId: String(
               localAssetId
-                || target.targetRef.profileBindingId
-                || target.targetRef.readinessRef
+                || profileBindingId
+                || readinessRef
                 || '',
             ),
             goRuntimeLocalModelId: localAssetId || undefined,
-            profileBindingId: target.targetRef.profileBindingId,
-            readinessRef: target.targetRef.readinessRef,
+            profileBindingId: profileBindingId || undefined,
+            readinessRef: readinessRef || undefined,
             modelId: String(target.evidence.resolvedModelId || target.display.model || ''),
             label: String(target.display.label || target.display.model || localAssetId || ''),
             engine: String(target.evidence.engine || target.display.engine || ''),

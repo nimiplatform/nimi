@@ -127,6 +127,7 @@ describe('model config compact target-ref helpers', () => {
       source: 'local',
       connectorId: '',
       model: 'local.chat.gemma',
+      profileBindingId: 'runtime-profile:gemma-4-26B-A4B-it-Q8_0',
       localModelId: 'local-import/gemma-4-26B-A4B-it-Q8_0',
       goRuntimeLocalModelId: '01KLOCALGEMMA',
       modelId: 'gemma-4-26b',
@@ -134,8 +135,47 @@ describe('model config compact target-ref helpers', () => {
     })).toEqual({
       kind: 'local-runtime',
       version: 'v2',
-      profileBindingId: 'local-import/gemma-4-26B-A4B-it-Q8_0',
+      profileBindingId: 'runtime-profile:gemma-4-26B-A4B-it-Q8_0',
     });
+  });
+
+  it('does not mint local runtime refs from legacy or display model ids', () => {
+    expect(pickerSelectionToTargetRef({
+      source: 'local',
+      connectorId: '',
+      model: 'local.chat.gemma',
+      localModelId: 'local-import/gemma-4-26B-A4B-it-Q8_0',
+      goRuntimeLocalModelId: '01KLOCALGEMMA',
+      modelId: 'gemma-4-26b',
+      engine: 'llama',
+    })).toBeNull();
+
+    expect(pickerSelectionToTargetRef({
+      source: 'local',
+      connectorId: '',
+      model: 'display-only-local-model',
+    })).toBeNull();
+  });
+
+  it('maps readiness-only local selections and rejects ambiguous local refs', () => {
+    expect(pickerSelectionToTargetRef({
+      source: 'local',
+      connectorId: '',
+      model: 'readiness display',
+      readinessRef: 'local-runtime:desktop:text',
+    })).toEqual({
+      kind: 'local-runtime',
+      version: 'v2',
+      readinessRef: 'local-runtime:desktop:text',
+    });
+
+    expect(pickerSelectionToTargetRef({
+      source: 'local',
+      connectorId: '',
+      model: 'ambiguous local ref',
+      profileBindingId: 'runtime-profile:gemma',
+      readinessRef: 'local-runtime:desktop:text',
+    })).toBeNull();
   });
 });
 

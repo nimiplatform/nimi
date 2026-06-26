@@ -23,6 +23,8 @@ type RouteInventoryTarget = RouteOptionsSnapshot['inventory']['targets'][number]
 type LocalTargetInput = {
   localModelId: string;
   profileBindingId?: string;
+  readinessRef?: string;
+  omitTargetRefIdentity?: boolean;
   model?: string;
   modelId?: string;
   engine?: string;
@@ -40,12 +42,23 @@ type CloudTargetInput = {
 };
 
 function localTarget(input: LocalTargetInput): RouteInventoryTarget {
+  const targetRef: RouteInventoryTarget['targetRef'] = {
+    kind: 'local-runtime',
+    version: 'v2',
+  };
+  if (!input.omitTargetRefIdentity) {
+    if (input.profileBindingId) {
+      targetRef.profileBindingId = input.profileBindingId;
+    }
+    if (input.readinessRef) {
+      targetRef.readinessRef = input.readinessRef;
+    }
+    if (!targetRef.profileBindingId && !targetRef.readinessRef) {
+      targetRef.profileBindingId = `runtime-profile:${input.localModelId}`;
+    }
+  }
   return {
-    targetRef: {
-      kind: 'local-runtime',
-      version: 'v2',
-      profileBindingId: input.profileBindingId || `runtime-profile:${input.localModelId}`,
-    },
+    targetRef,
     display: {
       label: input.model || input.modelId || input.localModelId,
       model: input.model || input.modelId || input.localModelId,
@@ -168,6 +181,36 @@ describe('createSnapshotRouteDataProvider', () => {
     expect(models[0]!.status).toBe('active');
     expect(models[1]!.localModelId).toBe('local-flux');
     expect(models[1]!.status).toBe('installed');
+  });
+
+  it('does not expose local inventory targets that lack a v2 durable target ref', async () => {
+    const snapshot = makeSnapshot({
+      targets: [
+        localTarget({
+          localModelId: 'local-missing-ref',
+          model: 'missing-ref',
+          omitTargetRefIdentity: true,
+        }),
+        localTarget({
+          localModelId: 'local-ambiguous-ref',
+          model: 'ambiguous-ref',
+          profileBindingId: 'runtime-profile:ambiguous-ref',
+          readinessRef: 'readiness:ambiguous-ref',
+        }),
+        localTarget({
+          localModelId: 'local-ready-ref',
+          model: 'ready-ref',
+          readinessRef: 'readiness:local-ready-ref',
+        }),
+      ],
+    });
+
+    const provider = createSnapshotRouteDataProvider(async () => snapshot);
+    const models = await provider.listLocalModels();
+
+    expect(models).toHaveLength(1);
+    expect(models[0]!.localModelId).toBe('local-ready-ref');
+    expect(models[0]!.readinessRef).toBe('readiness:local-ready-ref');
   });
 
   it('maps snapshot connectors to RouteConnector list (cloud only)', async () => {

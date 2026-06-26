@@ -212,7 +212,7 @@ describe('useRuntimeModelPicker', () => {
 });
 
 describe('ModelPickerModal', () => {
-  it('preserves goRuntimeLocalModelId when selecting a local runtime model', async () => {
+  it('preserves the v2 local target ref when selecting a local runtime model', async () => {
     const onSelect = vi.fn();
     container = document.createElement('div');
     document.body.appendChild(container);
@@ -229,6 +229,7 @@ describe('ModelPickerModal', () => {
             listLocalModels: async () => [{
               localModelId: 'desktop-local-chat',
               goRuntimeLocalModelId: 'go-runtime-local-chat',
+              profileBindingId: 'runtime-profile:desktop-local-chat',
               modelId: 'local-import/gemma-4-26B-A4B-it-Q8_0',
               label: 'gemma-4-26B-A4B-it-Q8_0',
               engine: 'llama',
@@ -259,6 +260,7 @@ describe('ModelPickerModal', () => {
       model: 'desktop-local-chat',
       localModelId: 'desktop-local-chat',
       goRuntimeLocalModelId: 'go-runtime-local-chat',
+      profileBindingId: 'runtime-profile:desktop-local-chat',
       modelId: 'local-import/gemma-4-26B-A4B-it-Q8_0',
       engine: 'llama',
     }));

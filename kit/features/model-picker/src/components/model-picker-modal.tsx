@@ -119,6 +119,8 @@ export function ModelPickerModal({
       if (localModel) {
         base.localModelId = localModel.localModelId;
         base.goRuntimeLocalModelId = localModel.goRuntimeLocalModelId;
+        base.profileBindingId = localModel.profileBindingId;
+        base.readinessRef = localModel.readinessRef;
         base.engine = localModel.engine;
         base.modelId = localModel.modelId;
         base.modelLabel = modelLabel || localModel.label || localModel.modelId;

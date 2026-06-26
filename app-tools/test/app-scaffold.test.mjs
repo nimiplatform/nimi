@@ -36,6 +36,7 @@ const versions = {
   nimiShellTauriVersion: '0.1.0',
   typescriptVersion: '5.0.0',
   yamlVersion: '2.0.0-yaml',
+  packageManager: 'pnpm@10.32.1',
 };
 
 const REFERENCE_IDENTITY_LITERALS = [
@@ -132,6 +133,21 @@ function fakePnpmEnv(tempRoot) {
     ].join('\n'),
   );
   chmodSync(fakePnpm, 0o755);
+  const fakeCorepack = path.join(binDir, 'corepack');
+  writeFileSync(
+    fakeCorepack,
+    [
+      '#!/bin/sh',
+      'if [ "$1" = "pnpm" ]; then',
+      '  shift',
+      '  exec pnpm "$@"',
+      'fi',
+      'printf "unexpected fake corepack command: %s\\n" "$*" >&2',
+      'exit 1',
+      '',
+    ].join('\n'),
+  );
+  chmodSync(fakeCorepack, 0o755);
   return {
     ...process.env,
     PATH: `${binDir}${path.delimiter}${process.env.PATH || ''}`,
@@ -192,6 +208,7 @@ test('standalone scaffold forks the reference app with rewritten identity', () =
     const packageJson = JSON.parse(generated.read('package.json'));
     assert.equal(packageJson.name, 'acme-widget');
     assert.equal(packageJson.private, false);
+    assert.equal(packageJson.packageManager, versions.packageManager);
     assert.equal(packageJson.publishConfig.access, 'public');
     assert.equal(packageJson.dependencies['@nimiplatform/sdk'], versions.sdkVersion);
     assert.equal(packageJson.dependencies['@nimiplatform/kit'], versions.kitVersion);
@@ -817,9 +834,9 @@ test('nimicoding sync runner uses a Windows shell-compatible pnpm invocation', (
   const source = readFileSync(path.join(testDir, '..', 'lib', 'index.mjs'), 'utf8');
   assert.match(source, /process\.platform === 'win32'/);
   assert.match(source, /binary: 'cmd\.exe'/);
-  assert.match(source, /args: \['\/d', '\/c', 'pnpm', \.\.\.pnpmArgs\]/);
-  assert.match(source, /binary: 'pnpm'/);
-  assert.match(source, /args: pnpmArgs/);
+  assert.match(source, /args: \['\/d', '\/c', 'corepack', 'pnpm', \.\.\.pnpmArgs\]/);
+  assert.match(source, /binary: 'corepack'/);
+  assert.match(source, /args: \['pnpm', \.\.\.pnpmArgs\]/);
   assert.match(source, /result\.error\?\.message/);
 });
 

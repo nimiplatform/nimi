@@ -265,6 +265,121 @@ function extractMessageBody(protoSource, messageName) {
   return '';
 }
 
+function findMatchingBrace(source, openIndex) {
+  if (openIndex < 0 || source[openIndex] !== '{') {
+    return -1;
+  }
+  let depth = 0;
+  let quote = '';
+  let escaped = false;
+  let lineComment = false;
+  let blockComment = false;
+  for (let index = openIndex; index < source.length; index += 1) {
+    const ch = source[index];
+    const next = source[index + 1] ?? '';
+    if (lineComment) {
+      if (ch === '\n') lineComment = false;
+      continue;
+    }
+    if (blockComment) {
+      if (ch === '*' && next === '/') {
+        blockComment = false;
+        index += 1;
+      }
+      continue;
+    }
+    if (quote) {
+      if (escaped) {
+        escaped = false;
+      } else if (ch === '\\') {
+        escaped = true;
+      } else if (ch === quote) {
+        quote = '';
+      }
+      continue;
+    }
+    if (ch === '/' && next === '/') {
+      lineComment = true;
+      index += 1;
+      continue;
+    }
+    if (ch === '/' && next === '*') {
+      blockComment = true;
+      index += 1;
+      continue;
+    }
+    if (ch === '\'' || ch === '"' || ch === '`') {
+      quote = ch;
+      continue;
+    }
+    if (ch === '{') {
+      depth += 1;
+      continue;
+    }
+    if (ch === '}') {
+      depth -= 1;
+      if (depth === 0) {
+        return index;
+      }
+    }
+  }
+  return -1;
+}
+
+function extractFunctionBody(source, functionName) {
+  const startMatch = new RegExp(`\\bfunction\\s+${functionName}\\s*\\(`, 'u').exec(source);
+  if (!startMatch) {
+    return '';
+  }
+  const open = source.indexOf('{', startMatch.index);
+  const close = findMatchingBrace(source, open);
+  if (close < 0) {
+    return '';
+  }
+  return source.slice(open + 1, close);
+}
+
+function extractPickerSelectionLocalBranch(source) {
+  const body = extractFunctionBody(source, 'pickerSelectionToTargetRef');
+  if (!body) {
+    return '';
+  }
+  const cloudMatch = /if\s*\(\s*selection\.source\s*===\s*['"]cloud['"]\s*\)\s*\{/u.exec(body);
+  if (!cloudMatch) {
+    return body;
+  }
+  const open = body.indexOf('{', cloudMatch.index);
+  const close = findMatchingBrace(body, open);
+  if (close < 0) {
+    return '';
+  }
+  return body.slice(close + 1);
+}
+
+export function validateModelPickerSelectionAdapterSource(source) {
+  const errors = [];
+  const localBranch = extractPickerSelectionLocalBranch(source);
+  if (!localBranch) {
+    return ['model-picker-selection-adapter.ts must expose pickerSelectionToTargetRef local branch'];
+  }
+  if (/\bselection\.localModelId\b/u.test(localBranch)) {
+    errors.push('model-picker-selection-adapter.ts must not mint local-runtime refs from localModelId');
+  }
+  if (/\bselection\.goRuntimeLocalModelId\b/u.test(localBranch)) {
+    errors.push('model-picker-selection-adapter.ts must not mint local-runtime refs from goRuntimeLocalModelId');
+  }
+  if (/\bselection\.model\b/u.test(localBranch)) {
+    errors.push('model-picker-selection-adapter.ts must not mint local-runtime refs from display model');
+  }
+  if (!/const\s+profileBindingId\s*=\s*normalizeText\(selection\.profileBindingId\)\s*;/u.test(localBranch)) {
+    errors.push('model-picker-selection-adapter.ts local branch must read profileBindingId only from selection.profileBindingId');
+  }
+  if (!/if\s*\(\s*profileBindingId\s*&&\s*readinessRef\s*\)\s*\{\s*return null;\s*\}/u.test(localBranch)) {
+    errors.push('model-picker-selection-adapter.ts must fail closed when local picker selection carries both profileBindingId and readinessRef');
+  }
+  return errors;
+}
+
 async function checkProtoHardCuts() {
   const connector = await read('proto/runtime/v1/connector.proto');
   if (!/reserved\s+1\s*;\s*reserved\s+"CONNECTOR_KIND_LOCAL_MODEL"/su.test(connector)) {
@@ -393,6 +508,22 @@ async function checkSourceHardCuts() {
   } else if (/\bmodelId\b/u.test(memoryCloud[1]) || !/\bremoteModelCatalogId:\s*string\b/u.test(memoryCloud[1])) {
     fail('NimiMemoryEmbeddingCloudConfigBindingRef must require remoteModelCatalogId and not expose modelId');
   }
+
+  const modelPickerAdapter = await read('kit/features/model-config/src/model-picker-selection-adapter.ts');
+  for (const error of validateModelPickerSelectionAdapterSource(modelPickerAdapter)) {
+    fail(error);
+  }
+
+  const modelPickerModal = await read('kit/features/model-picker/src/components/model-picker-modal.tsx');
+  if (!/base\.profileBindingId\s*=\s*localModel\.profileBindingId/u.test(modelPickerModal)
+    || !/base\.readinessRef\s*=\s*localModel\.readinessRef/u.test(modelPickerModal)) {
+    fail('ModelPickerModal must preserve v2 local profileBindingId/readinessRef from inventory selection');
+  }
+
+  const routeData = await read('kit/features/model-picker/src/route-data.ts');
+  if (!/if \(\(profileBindingId \? 1 : 0\) \+ \(readinessRef \? 1 : 0\) !== 1\)\s*\{\s*return \[\];\s*\}/u.test(routeData)) {
+    fail('createSnapshotRouteDataProvider must expose only local inventory rows with exactly one of profileBindingId/readinessRef');
+  }
 }
 
 async function checkScenarioExecutionRequiresTargetRef() {
@@ -501,7 +632,9 @@ async function main() {
   process.stdout.write('Runtime target identity v2 hard-cut check passed\n');
 }
 
-main().catch((error) => {
-  process.stderr.write(`check-runtime-target-identity-v2 failed: ${error instanceof Error ? error.stack || error.message : String(error)}\n`);
-  process.exitCode = 1;
-});
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main().catch((error) => {
+    process.stderr.write(`check-runtime-target-identity-v2 failed: ${error instanceof Error ? error.stack || error.message : String(error)}\n`);
+    process.exitCode = 1;
+  });
+}

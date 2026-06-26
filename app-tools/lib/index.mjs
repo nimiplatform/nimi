@@ -28,6 +28,7 @@ const YAML_VERSION = '^2.9.0';
 const NIMI_SHELL_TAURI_VERSION = '0.1.0';
 const AI_SDK_VERSION = '^6.0.85';
 const APP_TOOLS_VERSION = '^0.1.4';
+const PACKAGE_MANAGER = 'pnpm@10.32.1';
 
 function ensureDirEmptyOrMissing(targetDir) {
   if (!existsSync(targetDir)) {
@@ -81,6 +82,7 @@ function appScaffoldVersions() {
     tauriCliVersion: TAURI_CLI_VERSION,
     yamlVersion: YAML_VERSION,
     nimiShellTauriVersion: NIMI_SHELL_TAURI_VERSION,
+    packageManager: PACKAGE_MANAGER,
   };
 }
 
@@ -92,8 +94,8 @@ function runNimicodingSync(targetDir, mode) {
   const pnpmArgs = ['exec', 'nimicoding', 'sync', flag, '--json'];
   const command =
     process.platform === 'win32'
-      ? { binary: 'cmd.exe', args: ['/d', '/c', 'pnpm', ...pnpmArgs] }
-      : { binary: 'pnpm', args: pnpmArgs };
+      ? { binary: 'cmd.exe', args: ['/d', '/c', 'corepack', 'pnpm', ...pnpmArgs] }
+      : { binary: 'corepack', args: ['pnpm', ...pnpmArgs] };
   const result = spawnSync(command.binary, command.args, {
     cwd: targetDir,
     encoding: 'utf8',
