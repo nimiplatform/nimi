@@ -86,11 +86,12 @@ scope config evidence 与 Runtime execution evidence slices，是执行期真相
 - 一个 `AIProfile` 可引用、组合或派生出一个或多个 runtime local profile。
 - `AIProfile` 与 runtime local profile 不假定一一对应。
 - portable profile payload 与 machine-local install state 之间的边界由 D-AIPC-007 定义。
-- `targetId/profileId` 这类 compact local logical refs 只有在被 SDK/Runtime
-  schema 明确验证为 portable、non-evidence、non-path、non-install-state
-  identifiers 时才可进入 profile payload；否则必须由 runtime-facing descriptor
-  和 Runtime readiness/materialization projection 替代，不得以
-  `RuntimeLocalProfileRef` 名称继续泄漏 runtime-local identity。
+- `targetId/profileId`、`localModelId`、`goRuntimeLocalModelId`、bare
+  `asset_id`/`local_asset_id` 这类 pre-v2 local logical refs are retired and
+  must not enter `AIProfile` or materialized `AIConfig` as durable target
+  identity. Local runtime selection must be expressed through a v2
+  `local-runtime` target ref carrying exactly one of `profile_binding_id` or
+  `readiness_ref`.
 
 ## D-AIPC-003 — AIConfig Semantics
 
@@ -119,10 +120,14 @@ scope config evidence 与 Runtime execution evidence slices，是执行期真相
 
 - consumer requirement id / capability id / source profile ref / slice id；
 - mode-specific compact runtime target ref:
-  - `local`：opaque local readiness ref or validated `targetId/profileId`
-    compact logical ref，语义为 portable non-evidence logical identifier；
-  - `cloud_connector`：non-secret ready target ref，至少包含 runtime connector
-    `connector_id` + provider `model_id` 或等价 typed ref；
+  - `local-runtime`: v2 durable local target ref only. It must carry
+    `version=v2` and exactly one of `profile_binding_id` or `readiness_ref`.
+    It must not carry `targetId/profileId`, local model ids, install ids, file
+    paths, runtime proof, or materialization evidence.
+  - `cloud-connector`: v2 durable cloud target ref only. It must carry
+    `connector_id`, `remote_model_catalog_id`, `provider_model_id`, and
+    `provider` when available. `connector_id` + provider `model_id` without
+    `remote_model_catalog_id` is not an admitted durable binding.
 - profile-authored or user-edited params constrained by the slice editable-field
   contract；
 - profile origin and content/hash/version evidence needed by the scope owner.
@@ -299,9 +304,9 @@ localProfileRef-only image config：
 
 迁移规则：
 - 现有 `imageProfileRef` 值只能迁移到 admitted image workflow slice ref、
-  source profile ref、and mode-specific compact runtime target ref。若保留
-  `localProfileRef`/`targetId/profileId` 形状，必须满足 D-AIPC-002/D-AIPC-003
-  的 portable non-evidence logical-ref validator；否则必须被替换。
+  source profile ref、and mode-specific v2 compact runtime target ref. Any
+  `localProfileRef`/`targetId/profileId` shape must be replaced by the
+  D-AIPC-003 `local-runtime` v2 target-ref grammar before commit.
 - 迁移后 `defaultRefs.imageProfileRef` 从 selection store 中移除。
 - 此为 hard cut，不保留兼容层。
 

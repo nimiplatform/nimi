@@ -176,7 +176,7 @@ this hard cut unless a downstream owner is explicitly named.
 | `.nimi/spec/avatar/kernel/live2d-render-contract.md` | `model_id` | `unrelated_domain` | Live2D `*.model3.json` id; not Runtime AI target identity. |
 | `.nimi/spec/avatar/kernel/tables/live2d-adapter-diagnostics.yaml` | `model_id` | `unrelated_domain` | Live2D adapter diagnostic fact. |
 | `.nimi/spec/avatar/kernel/tables/live2d-adapter-manifest.schema.yaml` | `model_id` | `unrelated_domain` | Live2D adapter manifest field. |
-| `.nimi/spec/desktop/kernel/ai-profile-config-contract.md` | `targetId`, `profileId`, `model_id`, `connector_id`, `localModelId` | `must_migrate` | Patch Desktop AIProfile config authority to v2 refs. |
+| `.nimi/spec/desktop/kernel/ai-profile-config-contract.md` | `targetId`, `profileId`, `model_id`, `connector_id`, `localModelId`, `goRuntimeLocalModelId` | `must_migrate` | Patch Desktop AIProfile config authority to v2 refs. |
 | `.nimi/spec/desktop/kernel/llm-adapter-contract.md` | `connector_id` | `allowed_non_identity_fact` | Remote credential custody only; G3/G9/G12 reject connector-only target identity. |
 | `.nimi/spec/desktop/kernel/security-contract.md` | `connector_id` | `allowed_non_identity_fact` | Managed credential routing only; G3/G12 require remote catalog target identity. |
 | `.nimi/spec/platform/kernel/ai-profile-selection-policy-contract.md` | `profileId` | `allowed_non_identity_fact` | AIProfile identity only; G4/G9 reject profile id as local-runtime target identity. |
@@ -202,7 +202,7 @@ this hard cut unless a downstream owner is explicitly named.
 | `.nimi/spec/runtime/kernel/tables/metadata-keys.yaml` | `connector_id` | `allowed_non_identity_fact` | Credential routing metadata only; G3 rejects connector-only target identity. |
 | `.nimi/spec/runtime/kernel/voice-contract.md` | `model_id`, `target_model_id` | `must_migrate` | Patch voice execution target inputs to v2 refs; keep asset compatibility only as guarded non-identity facts. |
 | `.nimi/spec/runtime/kernel/workflow-contract.md` | `model_id`, `target_model_id`, `connector_id` | `must_migrate` | Patch workflow AI node configs to v2 refs or resolved binding inputs. |
-| `.nimi/spec/sdks/kernel/ai-config-surface-contract.md` | `profileId`, `targetId`, `localModelId` | `must_migrate` | Patch SDK core AIConfig authority and validators to v2 refs. |
+| `.nimi/spec/sdks/kernel/ai-config-surface-contract.md` | `profileId`, `targetId`, `localModelId`, `goRuntimeLocalModelId` | `must_migrate` | Patch SDK core AIConfig authority and validators to v2 refs. |
 | `.nimi/spec/sdks/kernel/connector-auth-acquisition-contract.md` | `profileId` | `allowed_non_identity_fact` | OAuth acquisition profile metadata only; G4/G12 reject it as local-runtime target identity. |
 | `.nimi/spec/sdks/kernel/runtime-route-contract.md` | `localModelId` | `retired_history` | This file explicitly retires legacy route bindings and `localModelId`; G8/G12 reject them as route target identity. |
 | `.nimi/spec/sdks/kernel/transport-contract.md` | `connector_id` | `allowed_non_identity_fact` | Credential/bearer routing only; G3/G12 reject connector-only cloud target identity. |

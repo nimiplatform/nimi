@@ -364,11 +364,15 @@ Allowed ref families:
 
 - `profile_slice_ref`: source profile id/version/digest plus profile-local
   `slice_id`.
-- `local_runtime_target_ref`: `kind=local_prepared` readiness ref or validated
-  `targetId/profileId` compact logical ref. It must be non-path, non-secret,
-  non-evidence, and resolvable only by Runtime prepare/readiness APIs.
-- `cloud_connector_target_ref`: non-secret runtime connector id plus provider
-  model id or equivalent typed target.
+- `local_runtime_target_ref`: `kind=local-runtime`, `version=v2`, and exactly
+  one of `profileBindingId` or `readinessRef`. It must be non-path,
+  non-secret, non-evidence, and resolvable only by Runtime
+  prepare/readiness APIs. `targetId/profileId`, `localModelId`, and
+  `goRuntimeLocalModelId` are not admitted durable refs.
+- `cloud_connector_target_ref`: `kind=cloud-connector` with non-secret
+  `connectorId`, required `remoteModelCatalogId`, required `providerModelId`,
+  and `provider` when available. `connectorId` plus provider model id without
+  `remoteModelCatalogId` is not an admitted durable target ref.
 
 Forbidden payloads:
 
