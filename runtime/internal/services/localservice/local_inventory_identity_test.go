@@ -81,7 +81,7 @@ func TestListLocalAssetsProjectsLegacyEmbeddingChatRecord(t *testing.T) {
 	}
 }
 
-func TestListLocalAssetsProjectsImageCompanionAsAuxiliary(t *testing.T) {
+func TestListLocalAssetsPreservesImageCompanionKind(t *testing.T) {
 	svc := newTestService(t)
 	record, err := svc.installLocalAssetRecord(
 		"local-import/ideogram4_uncond-Q4_0",
@@ -119,10 +119,18 @@ func TestListLocalAssetsProjectsImageCompanionAsAuxiliary(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListLocalAssets image: %v", err)
 	}
-	for _, asset := range imageResp.GetAssets() {
-		if asset.GetLocalAssetId() == record.GetLocalAssetId() {
-			t.Fatalf("image companion must not appear in runnable image listing: %+v", asset)
-		}
+	if len(imageResp.GetAssets()) != 1 {
+		t.Fatalf("image asset count mismatch: got=%d want=1", len(imageResp.GetAssets()))
+	}
+	projected := imageResp.GetAssets()[0]
+	if got := projected.GetLocalAssetId(); got != record.GetLocalAssetId() {
+		t.Fatalf("projected local asset mismatch: got=%q want=%q", got, record.GetLocalAssetId())
+	}
+	if got := projected.GetKind(); got != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE {
+		t.Fatalf("projected companion kind = %s, want image", got)
+	}
+	if !containsString(projected.GetArtifactRoles(), "uncond_diffusion_model") {
+		t.Fatalf("projected companion role missing: %#v", projected.GetArtifactRoles())
 	}
 
 	auxResp, err := svc.ListLocalAssets(context.Background(), &runtimev1.ListLocalAssetsRequest{
@@ -131,18 +139,8 @@ func TestListLocalAssetsProjectsImageCompanionAsAuxiliary(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListLocalAssets auxiliary: %v", err)
 	}
-	if len(auxResp.GetAssets()) != 1 {
-		t.Fatalf("auxiliary asset count mismatch: got=%d want=1", len(auxResp.GetAssets()))
-	}
-	projected := auxResp.GetAssets()[0]
-	if got := projected.GetLocalAssetId(); got != record.GetLocalAssetId() {
-		t.Fatalf("projected local asset mismatch: got=%q want=%q", got, record.GetLocalAssetId())
-	}
-	if got := projected.GetKind(); got != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_AUXILIARY {
-		t.Fatalf("projected companion kind = %s, want auxiliary", got)
-	}
-	if !containsString(projected.GetArtifactRoles(), "uncond_diffusion_model") {
-		t.Fatalf("projected companion role missing: %#v", projected.GetArtifactRoles())
+	if len(auxResp.GetAssets()) != 0 {
+		t.Fatalf("image companion must not be projected as auxiliary: %+v", auxResp.GetAssets())
 	}
 
 	svc.mu.RLock()

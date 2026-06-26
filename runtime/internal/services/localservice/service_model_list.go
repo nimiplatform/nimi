@@ -79,11 +79,7 @@ func (s *Service) ListLocalAssets(_ context.Context, req *runtimev1.ListLocalAss
 }
 
 func listLocalAssetProjectedKind(asset *runtimev1.LocalAssetRecord) runtimev1.LocalAssetKind {
-	kind := effectiveAssetKind(asset.GetKind(), asset.GetCapabilities())
-	if kind == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE && localAssetHasArtifactRole(asset, "uncond_diffusion_model") {
-		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_AUXILIARY
-	}
-	return kind
+	return effectiveAssetKind(asset.GetKind(), asset.GetCapabilities())
 }
 
 func localAssetHasArtifactRole(asset *runtimev1.LocalAssetRecord, role string) bool {

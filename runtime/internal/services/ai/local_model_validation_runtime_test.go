@@ -438,6 +438,33 @@ func TestLocalPreferredEnginesPrefersCanonicalEngines(t *testing.T) {
 	}
 }
 
+func TestSelectRunnableLocalModelRejectsCompanionOnlyImageAssets(t *testing.T) {
+	models := []*runtimev1.LocalAssetRecord{{
+		LocalAssetId:   "local-ideogram4-uncond",
+		AssetId:        "local-import/ideogram4_uncond-Q4_0",
+		Engine:         "media",
+		Status:         runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+		Capabilities:   []string{"image.generate"},
+		ArtifactRoles:  []string{"uncond_diffusion_model"},
+		LogicalModelId: "nimi/local-import-ideogram4-uncond-q4-0",
+	}}
+
+	selected, reason, detail := selectRunnableLocalModel(
+		models,
+		parseLocalModelSelector("local/local-import/ideogram4_uncond-Q4_0", runtimev1.Modal_MODAL_IMAGE),
+	)
+
+	if selected != nil {
+		t.Fatalf("companion-only image asset must not be selected as a primary runnable model: %+v", selected)
+	}
+	if reason != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE {
+		t.Fatalf("reason = %s, want AI_LOCAL_MODEL_UNAVAILABLE", reason)
+	}
+	if detail != "" {
+		t.Fatalf("detail = %q, want empty", detail)
+	}
+}
+
 func TestLocalUnavailableStatusPriority(t *testing.T) {
 	cases := []struct {
 		status runtimev1.LocalAssetStatus

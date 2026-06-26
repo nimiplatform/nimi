@@ -261,6 +261,7 @@ func resolveConnectorTTSModelID(
 
 func normalizeComparableModelID(value string) string {
 	comparable := strings.ToLower(strings.TrimSpace(value))
+	comparable = strings.TrimPrefix(comparable, "local-runtime:")
 	comparable = strings.TrimPrefix(comparable, "models/")
 	comparable = strings.TrimPrefix(comparable, "model/")
 	comparable = strings.TrimPrefix(comparable, "local/")

@@ -42,6 +42,9 @@ func selectActiveLocalModel(models []*runtimev1.LocalAssetRecord, selector local
 	expectedModelID := normalizeComparableModelID(selector.modelID)
 	candidates := make([]*runtimev1.LocalAssetRecord, 0, len(models))
 	for _, model := range models {
+		if localModelIsCompanionOnly(model) {
+			continue
+		}
 		if !localModelMatchesComparableID(model, expectedModelID) {
 			continue
 		}
@@ -93,6 +96,9 @@ func selectRunnableLocalModel(models []*runtimev1.LocalAssetRecord, selector loc
 		if model == nil {
 			continue
 		}
+		if localModelIsCompanionOnly(model) {
+			continue
+		}
 		if model.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED {
 			continue
 		}
@@ -136,22 +142,45 @@ func firstRunnableLocalModel(models []*runtimev1.LocalAssetRecord, modal runtime
 		if candidate == nil {
 			continue
 		}
+		if localModelIsCompanionOnly(candidate) {
+			continue
+		}
 		switch candidate.GetStatus() {
 		case runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE:
 			return candidate
 		}
 	}
 	for _, candidate := range models {
-		if candidate != nil && candidate.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED {
+		if candidate != nil && !localModelIsCompanionOnly(candidate) && candidate.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED {
 			return candidate
 		}
 	}
 	for _, candidate := range models {
-		if shouldRetryUnhealthyLocalModelStart(candidate, modal) {
+		if !localModelIsCompanionOnly(candidate) && shouldRetryUnhealthyLocalModelStart(candidate, modal) {
 			return candidate
 		}
 	}
 	return nil
+}
+
+func localModelIsCompanionOnly(model *runtimev1.LocalAssetRecord) bool {
+	return localModelHasArtifactRole(model, "uncond_diffusion_model")
+}
+
+func localModelHasArtifactRole(model *runtimev1.LocalAssetRecord, role string) bool {
+	if model == nil {
+		return false
+	}
+	target := strings.ToLower(strings.TrimSpace(role))
+	if target == "" {
+		return false
+	}
+	for _, candidate := range model.GetArtifactRoles() {
+		if strings.ToLower(strings.TrimSpace(candidate)) == target {
+			return true
+		}
+	}
+	return false
 }
 
 func localModelMatchesComparableID(model *runtimev1.LocalAssetRecord, expectedModelID string) bool {

@@ -362,6 +362,30 @@ func TestValidateLocalModelRequest(t *testing.T) {
 		t.Fatalf("expected provider model id from managed llama resolver, got %q", got)
 	}
 
+	svc.localModel = &fakeLocalModelLister{
+		responses: []*runtimev1.ListLocalAssetsResponse{{
+			Assets: []*runtimev1.LocalAssetRecord{{
+				LocalAssetId:         "01KTEX08DS2GR9HJ1X3R459P1B",
+				AssetId:              "local-import/gemma-4-26B-A4B-it-Q8_0",
+				LogicalModelId:       "nimi/gemma-4-26b-it",
+				Engine:               "llama",
+				Status:               runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+				LocalInvokeProfileId: "invoke",
+				Capabilities:         []string{"text.generate"},
+			}},
+		}},
+		managedNames: map[string]string{
+			"01KTEX08DS2GR9HJ1X3R459P1B": "local-import/gemma-4-26B-A4B-it-Q8_0",
+		},
+	}
+	plan, err = svc.prepareLocalModelExecutionPlan(context.Background(), "local-runtime:01KTEX08DS2GR9HJ1X3R459P1B", nil, runtimev1.Modal_MODAL_TEXT, nil)
+	if err != nil {
+		t.Fatalf("expected local-runtime profile binding execution plan success, got %v", err)
+	}
+	if got := plan.resolvedProviderModelID(""); got != "local-import/gemma-4-26B-A4B-it-Q8_0" {
+		t.Fatalf("expected local-runtime profile binding to resolve provider model id, got %q", got)
+	}
+
 	svc.localModel = &fakeLocalModelLister{responses: []*runtimev1.ListLocalAssetsResponse{{
 		Assets: []*runtimev1.LocalAssetRecord{{
 			LocalAssetId:         "local-gemma",

@@ -202,6 +202,79 @@ func TestExecuteScenarioTextGenerateUsesSelectedLocalProviderModelID(t *testing.
 	}
 }
 
+func TestExecuteScenarioTextGenerateConsumesLocalRuntimeProfileBindingRef(t *testing.T) {
+	var providerModel string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/chat/completions" {
+			http.NotFound(w, r)
+			return
+		}
+		var body struct {
+			Model string `json:"model"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode provider request: %v", err)
+		}
+		providerModel = body.Model
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"ready"},"finish_reason":"stop"}],"usage":{"prompt_tokens":2,"completion_tokens":1}}`))
+	}))
+	defer func() { server.Close() }()
+
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	localLister := &fakeLocalModelLister{
+		responses: []*runtimev1.ListLocalAssetsResponse{{
+			Assets: []*runtimev1.LocalAssetRecord{{
+				LocalAssetId: "01KTEX08DS2GR9HJ1X3R459P1B",
+				AssetId:      "local-import/gemma-4-26B-A4B-it-Q8_0",
+				Engine:       "llama",
+				Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+				Endpoint:     server.URL + "/v1",
+				Capabilities: []string{"text.generate"},
+			}},
+		}},
+		managedNames: map[string]string{
+			"01KTEX08DS2GR9HJ1X3R459P1B": "local-import/gemma-4-26B-A4B-it-Q8_0",
+		},
+	}
+	svc.localModel = localLister
+
+	resp, err := svc.ExecuteScenario(context.Background(), &runtimev1.ExecuteScenarioRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         "nimi.tester",
+			SubjectUserId: "user-001",
+			ModelId:       "local-runtime:01KTEX08DS2GR9HJ1X3R459P1B",
+			TargetRef:     localScenarioTargetRef("local-runtime:01KTEX08DS2GR9HJ1X3R459P1B"),
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     30_000,
+		},
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,
+		Spec: &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_TextGenerate{
+				TextGenerate: &runtimev1.TextGenerateScenarioSpec{
+					Input: []*runtimev1.ChatMessage{
+						{Role: "user", Content: "hello runtime"},
+					},
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("execute scenario with local-runtime profile binding: %v", err)
+	}
+	if text := outputText(resp.GetOutput()); text != "ready" {
+		t.Fatalf("unexpected local-runtime output: %q", text)
+	}
+	if providerModel != "local-import/gemma-4-26B-A4B-it-Q8_0" {
+		t.Fatalf("provider request model = %q, want selected local provider model id", providerModel)
+	}
+	if providerModel == "local-runtime:01KTEX08DS2GR9HJ1X3R459P1B" {
+		t.Fatalf("provider request must not use Runtime local-runtime target ref as model")
+	}
+}
+
 func TestExecuteScenarioTextGenerateDoesNotSynthesizeSentinelUsage(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/v1/chat/completions" {
