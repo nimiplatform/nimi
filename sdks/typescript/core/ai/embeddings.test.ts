@@ -9,6 +9,12 @@ import {
   createNimiRuntimeEmbeddingClient,
 } from './embeddings';
 
+const localRuntimeTargetRef = {
+  kind: 'local-runtime',
+  version: 'v2',
+  profileBindingId: 'local-runtime:embedder-1',
+} as const;
+
 test('Runtime-backed embedding client maps text embedding Scenario requests and output', async () => {
   let capturedRequest: ReturnType<typeof buildRuntimeTextEmbeddingRequest> | null = null;
   let capturedOptions: RuntimeTypedCallOptions | undefined;
@@ -17,6 +23,7 @@ test('Runtime-backed embedding client maps text embedding Scenario requests and 
     subjectUserId: 'user-1',
     routePolicy: 'local',
     model: { providerId: 'runtime', modelId: 'embedder-1' },
+    targetRef: localRuntimeTargetRef,
     runtime: {
       ai: {
         async executeScenario(request, options) {
@@ -53,6 +60,15 @@ test('Runtime-backed embedding client maps text embedding Scenario requests and 
   assert.equal(capturedRequest?.head?.appId, 'app-1');
   assert.equal(capturedRequest?.head?.subjectUserId, 'user-1');
   assert.equal(capturedRequest?.head?.modelId, 'embedder-1');
+  assert.deepEqual(capturedRequest?.head?.targetRef, {
+    target: {
+      oneofKind: 'localRuntime',
+      localRuntime: {
+        version: 'v2',
+        ref: { oneofKind: 'profileBindingId', profileBindingId: 'local-runtime:embedder-1' },
+      },
+    },
+  });
   assert.match(capturedOptions?.metadata?.idempotencyKey ?? '', /^runtime-embed-/);
   assert.equal(capturedRequest?.spec.spec.oneofKind, 'textEmbed');
   assert.deepEqual(capturedRequest?.spec.spec.textEmbed.inputs, ['first', 'second']);
@@ -65,6 +81,7 @@ test('Runtime-backed embedding client fails closed for invalid inputs and output
   const embedding = createNimiRuntimeEmbeddingClient({
     appId: 'app-1',
     model: { modelId: 'embedder-1' },
+    targetRef: localRuntimeTargetRef,
     runtime: {
       async executeScenario() {
         return {

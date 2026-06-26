@@ -308,6 +308,13 @@ test('createNimiMastraProvider resolves Runtime-routed models a Mastra Agent acc
       },
     } as never,
     routePolicy: 'cloud',
+    targetRef: {
+      kind: 'cloud-connector',
+      connectorId: 'connector-gemini',
+      remoteModelCatalogId: 'remote-catalog:gemini-default',
+      providerModelId: 'gemini/default',
+      provider: 'gemini',
+    },
   });
 
   const agent = createMastraTestAgent({

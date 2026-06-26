@@ -26,7 +26,9 @@ import type {
   NimiRunEvent,
   NimiUsage,
 } from '../contracts';
+import type { NimiAIConfigTargetRef } from './config-types';
 import type { NimiAiModel, NimiGenerateTextContent, NimiGenerateTextRequest, NimiGenerateTextResult } from './index';
+import { toRuntimeDurableTargetRef } from './runtime-target-ref';
 import {
   toNimiRawChunk,
   toNimiRawChunks,
@@ -68,6 +70,7 @@ export interface NimiRuntimeAIModelOptions {
   readonly timeoutMs?: number;
   readonly metadata?: NimiJsonObject;
   readonly reasoning?: NimiRuntimeAIReasoningOptions;
+  readonly targetRef?: NimiAIConfigTargetRef;
 }
 
 export function createNimiRuntimeAIModel(options: NimiRuntimeAIModelOptions): NimiAiModel {
@@ -132,6 +135,7 @@ export function buildRuntimeTextScenarioRequest(input: {
       fallback: FallbackPolicy.DENY,
       timeoutMs: Number(input.options.timeoutMs ?? 0),
       connectorId: normalizeText(input.options.connectorId ?? input.model.providerId),
+      targetRef: toRuntimeDurableTargetRef(input.options.targetRef),
     },
     scenarioType: ScenarioType.TEXT_GENERATE,
     executionMode: input.executionMode,

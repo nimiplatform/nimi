@@ -22,6 +22,7 @@ import {
   type SubmitScenarioJobResponse,
 } from '../../core-generated/runtime-typed-client';
 import type { RuntimeTypedCallOptions } from '../../core-generated/runtime-typed-client';
+import type { RuntimeDurableTargetRef } from '../../core-generated/runtime-protobuf/runtime/v1/runtime_target_identity';
 import type { NimiJsonObject, NimiJsonValue } from '../../core/contracts';
 import { createNimiError, ReasonCode } from '../../types';
 import {
@@ -142,6 +143,7 @@ export interface NimiRuntimeGenerationHeadInput {
   readonly modelId?: string;
   readonly routePolicy?: NimiRuntimeGenerationRoutePolicy;
   readonly connectorId?: string;
+  readonly targetRef?: RuntimeDurableTargetRef;
   readonly timeoutMs?: number;
 }
 
@@ -503,6 +505,7 @@ function toRuntimeHead(input: NimiRuntimeGenerationHeadInput): ScenarioRequestHe
     fallback: FallbackPolicy.DENY,
     timeoutMs: Number(input.timeoutMs ?? 0),
     connectorId: normalizeText(input.connectorId),
+    targetRef: input.targetRef,
   };
 }
 

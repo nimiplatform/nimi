@@ -5,6 +5,7 @@ import {
   ScenarioType,
   ToolChoiceMode,
   type ExecuteScenarioRequest,
+  type RuntimeDurableTargetRef,
   type ScenarioSpec,
 } from '../core-generated/runtime-typed-client';
 import type {
@@ -36,6 +37,7 @@ import {
   type NimiRuntimeRouteVoiceWorkflowVoiceDesignMetadata,
 } from './route-capability-types';
 import type { NimiRuntimeCanonicalCapability } from './route-options';
+import type { NimiRuntimeRouteTargetRef } from './route-options';
 
 const ROUTE_DESCRIBE_PROBE_TEXT = 'route describe probe';
 const ROUTE_DESCRIBE_PROBE_AUDIO_BYTES = new Uint8Array([0]);
@@ -234,6 +236,52 @@ function buildNimiRuntimeRouteDescribeScenarioProbe(input: {
   });
 }
 
+function runtimeDurableTargetRefFromRouteTargetRef(targetRef: NimiRuntimeRouteTargetRef): RuntimeDurableTargetRef {
+  if (targetRef.kind === 'cloud-connector') {
+    return {
+      target: {
+        oneofKind: 'cloud',
+        cloud: {
+          version: 'v2',
+          connectorId: targetRef.connectorId,
+          remoteModelCatalogId: targetRef.remoteModelCatalogId,
+          providerModelId: targetRef.providerModelId,
+          provider: normalizeText(targetRef.provider),
+        },
+      },
+    };
+  }
+  if (targetRef.profileBindingId) {
+    return {
+      target: {
+        oneofKind: 'localRuntime',
+        localRuntime: {
+          version: 'v2',
+          ref: { oneofKind: 'profileBindingId', profileBindingId: targetRef.profileBindingId },
+        },
+      },
+    };
+  }
+  const readinessRef = normalizeText(targetRef.readinessRef);
+  if (!readinessRef) {
+    throw createNimiError({
+      message: 'Runtime route describe local targetRef requires profileBindingId or readinessRef.',
+      reasonCode: 'SDK_RUNTIME_ROUTE_INPUT_INVALID',
+      actionHint: 'provide_runtime_route_target_ref',
+      source: 'sdk',
+    });
+  }
+  return {
+    target: {
+      oneofKind: 'localRuntime',
+      localRuntime: {
+        version: 'v2',
+        ref: { oneofKind: 'readinessRef', readinessRef },
+      },
+    },
+  };
+}
+
 function buildNimiRuntimeRouteDescribeExecuteScenarioRequest(input: {
   readonly appId: string;
   readonly capability: NimiRuntimeCanonicalCapability;
@@ -260,6 +308,7 @@ function buildNimiRuntimeRouteDescribeExecuteScenarioRequest(input: {
       fallback: FallbackPolicy.DENY,
       timeoutMs: input.timeoutMs ?? NIMI_RUNTIME_ROUTE_DESCRIBE_TIMEOUT_MS,
       connectorId: normalizeText(input.resolved.connectorId),
+      targetRef: runtimeDurableTargetRefFromRouteTargetRef(input.resolved.targetRef),
     },
     scenarioType: probe.scenarioType,
     executionMode: ExecutionMode.SYNC,
@@ -273,8 +322,6 @@ function buildNimiRuntimeRouteDescribeExecuteScenarioRequest(input: {
         localAssetId: normalizeText(input.resolved.localAssetId) || undefined,
         remoteModelCatalogId: normalizeText(input.resolved.remoteModelCatalogId) || undefined,
         providerModelId: normalizeText(input.resolved.providerModelId) || undefined,
-        engine: normalizeText(input.resolved.engine || input.resolved.provider) || undefined,
-        modelId,
       }),
     }],
   };

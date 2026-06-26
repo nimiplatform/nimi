@@ -25,6 +25,12 @@ import type { RuntimeTypedCallOptions } from '../../core-generated/runtime-typed
 import { ReasonCode } from '../../types';
 import { filePart, textPart } from '../contracts';
 
+const localRuntimeTargetRef = {
+  kind: 'local-runtime' as const,
+  version: 'v2' as const,
+  profileBindingId: 'local-runtime:model-chat',
+};
+
 class FakeScenarioClient implements NimiRuntimeAIScenarioClient {
   executeRequests: ExecuteScenarioRequest[] = [];
   streamRequests: StreamScenarioRequest[] = [];
@@ -158,6 +164,7 @@ test('Runtime-backed Nimi AI maps generateText to Runtime Scenario text_generate
     appId: 'app-runtime-ai',
     model: { providerId: 'connector-1', modelId: 'model-chat' },
     routePolicy: 'local',
+    targetRef: localRuntimeTargetRef,
     reasoning: { mode: 'on', traceMode: 'separate', budgetTokens: 128 },
   });
 
@@ -179,6 +186,15 @@ test('Runtime-backed Nimi AI maps generateText to Runtime Scenario text_generate
   assert.equal(request?.head?.fallback, FallbackPolicy.DENY);
   assert.equal(request?.head?.routePolicy, RoutePolicy.LOCAL);
   assert.equal(request?.head?.connectorId, 'connector-1');
+  assert.deepEqual(request?.head?.targetRef, {
+    target: {
+      oneofKind: 'localRuntime',
+      localRuntime: {
+        version: 'v2',
+        ref: { oneofKind: 'profileBindingId', profileBindingId: 'local-runtime:model-chat' },
+      },
+    },
+  });
   assert.match(client.executeOptions[0]?.metadata?.idempotencyKey ?? '', /^runtime-ai-/);
   assert.equal(request?.spec?.spec.oneofKind, 'textGenerate');
   assert.equal(request?.spec?.spec.oneofKind === 'textGenerate' ? request.spec.spec.textGenerate.systemPrompt : '', 'You are precise.');
@@ -193,6 +209,7 @@ test('Runtime-backed Nimi AI maps streamScenario to Nimi run events', async () =
     appId: 'app-runtime-ai',
     model: { modelId: 'model-chat' },
     routePolicy: 'cloud',
+    targetRef: localRuntimeTargetRef,
   });
 
   const events = await model.streamText?.({
@@ -241,6 +258,7 @@ test('Runtime-backed Nimi AI maps single-turn tools, tool choice, structured out
     runtime: client,
     appId: 'app-runtime-ai',
     model: { modelId: 'model-chat' },
+    targetRef: localRuntimeTargetRef,
   });
 
   const result = await model.generateText({
@@ -273,6 +291,7 @@ test('Runtime-backed Nimi AI serializes structured request metadata without obje
     runtime: client,
     appId: 'app-runtime-ai',
     model: { modelId: 'model-chat' },
+    targetRef: localRuntimeTargetRef,
     metadata: {
       static: { z: 2, a: 1 },
       direct: 'left',
@@ -301,6 +320,7 @@ test('Runtime-backed Nimi AI returns model tool calls from the scenario output',
     runtime: client,
     appId: 'app-runtime-ai',
     model: { modelId: 'model-chat' },
+    targetRef: localRuntimeTargetRef,
   });
 
   const result = await model.generateText({
@@ -321,6 +341,7 @@ test('Runtime-backed Nimi AI fails closed on malformed tool call arguments', asy
     runtime: client,
     appId: 'app-runtime-ai',
     model: { modelId: 'model-chat' },
+    targetRef: localRuntimeTargetRef,
   });
 
   await assert.rejects(
@@ -339,6 +360,7 @@ test('Runtime-backed Nimi AI maps a multi-step tool round-trip into the scenario
     runtime: client,
     appId: 'app-runtime-ai',
     model: { modelId: 'model-chat' },
+    targetRef: localRuntimeTargetRef,
   });
 
   await model.generateText({
@@ -373,6 +395,7 @@ test('Runtime-backed Nimi AI maps a streamed tool call into a run event', async 
     runtime: client,
     appId: 'app-runtime-ai',
     model: { modelId: 'model-chat' },
+    targetRef: localRuntimeTargetRef,
   });
 
   const events = await model.streamText!({
@@ -393,6 +416,7 @@ test('Runtime-backed Nimi AI maps file message parts onto Runtime content parts'
     runtime: client,
     appId: 'app-runtime-ai',
     model: { modelId: 'model-chat' },
+    targetRef: localRuntimeTargetRef,
   });
 
   await model.generateText({
@@ -456,6 +480,7 @@ test('Runtime-backed Nimi AI accepts a file-only message with no text part', asy
     runtime: client,
     appId: 'app-runtime-ai',
     model: { modelId: 'model-chat' },
+    targetRef: localRuntimeTargetRef,
   });
 
   const result = await model.generateText({
@@ -476,6 +501,7 @@ test('Runtime-backed Nimi AI fails closed for unsupported file media types', asy
     runtime: new FakeScenarioClient(),
     appId: 'app-runtime-ai',
     model: { modelId: 'model-chat' },
+    targetRef: localRuntimeTargetRef,
   });
 
   await assert.rejects(
@@ -492,6 +518,7 @@ test('Runtime-backed Nimi AI fails closed for subject identity and invalid input
     runtime: new FakeScenarioClient(),
     appId: 'app-runtime-ai',
     model: { providerId: 'connector-1', modelId: 'model-chat' },
+    targetRef: localRuntimeTargetRef,
   });
 
   // Subject identity must be supplied through model options, not request params.

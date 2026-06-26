@@ -25,6 +25,7 @@ export interface NimiMastraEmbeddingModelOptions {
   readonly routePolicy?: NimiRuntimeEmbeddingClientOptions['routePolicy'];
   readonly connectorId?: string;
   readonly subjectUserId?: string;
+  readonly targetRef?: NimiRuntimeEmbeddingClientOptions['targetRef'];
   readonly timeoutMs?: number;
   readonly metadata?: NimiJsonObject;
   readonly maxEmbeddingsPerCall?: number;
@@ -75,6 +76,7 @@ function resolveEmbeddingSurface(
     routePolicy: options.routePolicy,
     connectorId: options.connectorId,
     subjectUserId: options.subjectUserId,
+    targetRef: options.targetRef,
     timeoutMs: options.timeoutMs,
     metadata: options.metadata,
   });

@@ -91,6 +91,13 @@ test('Nimi Mastra provider exposes Runtime-backed embedding model and fails clos
       appId: 'app-1',
       providerId: 'runtime',
       routePolicy: 'cloud',
+      targetRef: {
+        kind: 'cloud-connector',
+        connectorId: 'connector-embedding',
+        remoteModelCatalogId: 'remote-catalog:embed-provider-1',
+        providerModelId: 'embed-provider-1',
+        provider: 'runtime',
+      },
     },
   });
   const embedded = await provider.embeddingModel('embed-provider-1').doEmbed({ values: ['hello'] });

@@ -61,6 +61,11 @@ test('NimiClient composes explicit Runtime-backed root surfaces without singleto
 
   const model = first.ai.createRuntimeModel({
     model: { providerId: 'runtime', modelId: 'model-root' },
+    targetRef: {
+      kind: 'local-runtime',
+      version: 'v2',
+      profileBindingId: 'local-runtime:model-root',
+    },
   });
   const result = await model.generateText({
     model: model.model,

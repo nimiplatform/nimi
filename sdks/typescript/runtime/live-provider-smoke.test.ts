@@ -16,6 +16,7 @@ import {
   ScenarioJobStatus,
   ScenarioType,
   VoiceReferenceKind,
+  type RuntimeDurableTargetRef,
   type ScenarioSpec,
 } from '../core-generated/runtime-typed-client';
 import { createNimiRuntimeFullAppRegistration } from './app-session';
@@ -26,6 +27,7 @@ import { withNimiRuntimeIdempotencyMetadata } from './scenario-jobs';
 import {
   createNimiRuntimeAIModel,
   createNimiRuntimeEmbeddingClient,
+  type NimiAIConfigTargetRef,
 } from '../core/ai';
 import {
   createNimiImageGenerationScenario,
@@ -49,6 +51,16 @@ type ProviderCapability =
   | 'music'
   | 'voice_clone'
   | 'voice_design';
+
+type LiveRuntimeTargetRefs = {
+  readonly aiConfig: NimiAIConfigTargetRef;
+  readonly scenario: RuntimeDurableTargetRef;
+};
+
+type LiveCloudTargetConfig = {
+  readonly connectorId: string;
+  readonly remoteModelCatalogId: string;
+};
 
 const APP_ID = 'nimi.desktop.sdk.vnext.live';
 const SUBJECT_USER_ID = 'user-sdk-vnext-live';
@@ -245,6 +257,84 @@ function sdkRoutePolicy(provider: string): 'local' | 'cloud' {
 function liveConnectorId(provider: string): string {
   if (provider === 'local') return '';
   return envValue([`NIMI_LIVE_${providerEnvToken(provider)}_CONNECTOR_ID`]);
+}
+
+function liveRemoteModelCatalogId(provider: string, capability: ProviderCapability): string {
+  if (provider === 'local') return '';
+  const token = providerEnvToken(provider);
+  const capabilityToken = providerEnvToken(capability);
+  return envValue([
+    `NIMI_LIVE_${token}_${capabilityToken}_REMOTE_MODEL_CATALOG_ID`,
+    `NIMI_LIVE_${token}_REMOTE_MODEL_CATALOG_ID`,
+    'NIMI_LIVE_REMOTE_MODEL_CATALOG_ID',
+  ]);
+}
+
+function requiredLiveCloudTargetConfigOrSkip(
+  t: { skip: (message?: string) => void },
+  provider: string,
+  capability: ProviderCapability,
+): LiveCloudTargetConfig | null {
+  if (provider === 'local') return null;
+  const connectorId = liveConnectorId(provider);
+  if (!connectorId) {
+    t.skip(`set NIMI_LIVE_${providerEnvToken(provider)}_CONNECTOR_ID to run cloud SDK vNext live smoke`);
+    return null;
+  }
+  const remoteModelCatalogId = liveRemoteModelCatalogId(provider, capability);
+  if (!remoteModelCatalogId) {
+    t.skip(`set NIMI_LIVE_${providerEnvToken(provider)}_REMOTE_MODEL_CATALOG_ID or NIMI_LIVE_${providerEnvToken(provider)}_${providerEnvToken(capability)}_REMOTE_MODEL_CATALOG_ID to run cloud SDK vNext live smoke`);
+    return null;
+  }
+  return { connectorId, remoteModelCatalogId };
+}
+
+function localRuntimeTargetRefs(localAssetId: string): LiveRuntimeTargetRefs {
+  const profileBindingId = `local-runtime:${localAssetId}`;
+  return {
+    aiConfig: {
+      kind: 'local-runtime',
+      version: 'v2',
+      profileBindingId,
+    },
+    scenario: {
+      target: {
+        oneofKind: 'localRuntime',
+        localRuntime: {
+          version: 'v2',
+          ref: { oneofKind: 'profileBindingId', profileBindingId },
+        },
+      },
+    },
+  };
+}
+
+function cloudRuntimeTargetRefs(
+  provider: string,
+  providerModelId: string,
+  config: LiveCloudTargetConfig,
+): LiveRuntimeTargetRefs {
+  return {
+    aiConfig: {
+      kind: 'cloud-connector',
+      connectorId: config.connectorId,
+      remoteModelCatalogId: config.remoteModelCatalogId,
+      providerModelId,
+      provider,
+    },
+    scenario: {
+      target: {
+        oneofKind: 'cloud',
+        cloud: {
+          version: 'v2',
+          connectorId: config.connectorId,
+          remoteModelCatalogId: config.remoteModelCatalogId,
+          providerModelId,
+          provider,
+        },
+      },
+    },
+  };
 }
 
 function runtimeRoutePolicy(provider: string): RoutePolicy {
@@ -516,12 +606,13 @@ function localManagedManifestPath(modelId: string): string {
   return resolve(localManagedModelsRoot(), 'resolved', normalized, 'asset.manifest.json');
 }
 
-async function importAndStartLocalManagedAsset(runtime: Runtime, modelId: string): Promise<void> {
+async function importAndStartLocalManagedAsset(runtime: Runtime, modelId: string): Promise<string> {
   const manifestPath = localManagedManifestPath(modelId);
   const imported = await runtime.local.importLocalAsset({ manifestPath });
   const localAssetId = String(imported.asset?.localAssetId || '').trim();
   assert.ok(localAssetId, `local managed import should return localAssetId for ${modelId}`);
   await runtime.local.startLocalAsset({ localAssetId });
+  return localAssetId;
 }
 
 async function waitForScenarioJobDone(runtime: Runtime, jobId: string, timeoutMs: number) {
@@ -545,7 +636,7 @@ async function waitForScenarioJobDone(runtime: Runtime, jobId: string, timeoutMs
   }
 }
 
-function scenarioHead(provider: string, modelId: string, timeoutMs: number) {
+function scenarioHead(provider: string, modelId: string, timeoutMs: number, targetRefs: LiveRuntimeTargetRefs) {
   return {
     appId: APP_ID,
     subjectUserId: SUBJECT_USER_ID,
@@ -554,6 +645,7 @@ function scenarioHead(provider: string, modelId: string, timeoutMs: number) {
     fallback: FallbackPolicy.DENY,
     timeoutMs,
     connectorId: liveConnectorId(provider),
+    targetRef: targetRefs.scenario,
   };
 }
 
@@ -561,13 +653,14 @@ async function submitDirectScenario(
   runtime: Runtime,
   provider: string,
   modelId: string,
+  targetRefs: LiveRuntimeTargetRefs,
   scenarioType: ScenarioType,
   spec: ScenarioSpec,
   timeoutMs: number,
 ) {
   const idempotencyKey = randomUUID();
   const response = await runtime.ai.submitScenarioJob({
-    head: scenarioHead(provider, modelId, timeoutMs),
+    head: scenarioHead(provider, modelId, timeoutMs, targetRefs),
     scenarioType,
     executionMode: ExecutionMode.ASYNC_JOB,
     spec,
@@ -581,8 +674,14 @@ async function submitDirectScenario(
   return response;
 }
 
-async function assertSpeechSynthesisWithVoiceAsset(runtime: Runtime, provider: string, modelId: string, voiceAssetId: string): Promise<void> {
-  const response = await submitDirectScenario(runtime, provider, modelId, ScenarioType.SPEECH_SYNTHESIZE, {
+async function assertSpeechSynthesisWithVoiceAsset(
+  runtime: Runtime,
+  provider: string,
+  modelId: string,
+  targetRefs: LiveRuntimeTargetRefs,
+  voiceAssetId: string,
+): Promise<void> {
+  const response = await submitDirectScenario(runtime, provider, modelId, targetRefs, ScenarioType.SPEECH_SYNTHESIZE, {
     spec: {
       oneofKind: 'speechSynthesize',
       speechSynthesize: {
@@ -609,16 +708,27 @@ async function assertSpeechSynthesisWithVoiceAsset(runtime: Runtime, provider: s
   assert.ok((first.bytes?.length ?? 0) > 0 || String(first.uri || '').trim().length > 0, 'voice asset synthesis artifact should contain bytes or uri');
 }
 
-async function runSdkVNextCapabilityLiveSmoke(endpoint: string, provider: string, capability: ProviderCapability, modelId: string): Promise<void> {
+async function runSdkVNextCapabilityLiveSmoke(
+  endpoint: string,
+  provider: string,
+  capability: ProviderCapability,
+  modelId: string,
+  cloudTargetConfig: LiveCloudTargetConfig | null,
+): Promise<void> {
   const runtime = createRuntimeModule(endpoint);
   const route = sdkRoutePolicy(provider);
   const modelRef = {
     providerId: provider,
     modelId: routedModelId(provider, modelId),
   };
+  let targetRefs: LiveRuntimeTargetRefs;
 
   if (provider === 'local') {
-    await importAndStartLocalManagedAsset(runtime, modelRef.modelId);
+    const localAssetId = await importAndStartLocalManagedAsset(runtime, modelRef.modelId);
+    targetRefs = localRuntimeTargetRefs(localAssetId);
+  } else {
+    assert.ok(cloudTargetConfig, 'cloud live smoke requires cloud target config');
+    targetRefs = cloudRuntimeTargetRefs(provider, modelId, cloudTargetConfig);
   }
 
   if (capability === 'generate') {
@@ -630,6 +740,7 @@ async function runSdkVNextCapabilityLiveSmoke(endpoint: string, provider: string
       routePolicy: route,
       connectorId: liveConnectorId(provider),
       timeoutMs: 45_000,
+      targetRef: targetRefs.aiConfig,
     });
     const result = await model.generateText({
       model: model.model,
@@ -651,6 +762,7 @@ async function runSdkVNextCapabilityLiveSmoke(endpoint: string, provider: string
       routePolicy: route,
       connectorId: liveConnectorId(provider),
       timeoutMs: 45_000,
+      targetRef: targetRefs.aiConfig,
     });
     const result = await embedding.embedText({ values: ['Nimi SDK vNext matrix live smoke embed'] });
     assert.ok(result.embeddings.length > 0, 'embedding output should not be empty');
@@ -666,6 +778,7 @@ async function runSdkVNextCapabilityLiveSmoke(endpoint: string, provider: string
       routePolicy: route,
       connectorId: liveConnectorId(provider),
       timeoutMs: 240_000,
+      targetRef: targetRefs.scenario,
     },
   });
 
@@ -729,7 +842,7 @@ async function runSdkVNextCapabilityLiveSmoke(endpoint: string, provider: string
   }
 
   if (capability === 'music') {
-    await submitDirectScenario(runtime, provider, modelId, ScenarioType.MUSIC_GENERATE, {
+    await submitDirectScenario(runtime, provider, modelId, targetRefs, ScenarioType.MUSIC_GENERATE, {
       spec: {
         oneofKind: 'musicGenerate',
         musicGenerate: {
@@ -781,6 +894,7 @@ async function runSdkVNextCapabilityLiveSmoke(endpoint: string, provider: string
     runtime,
     provider,
     modelId,
+    targetRefs,
     capability === 'voice_clone' ? ScenarioType.VOICE_CLONE : ScenarioType.VOICE_DESIGN,
     scenarioSpec,
     180_000,
@@ -794,7 +908,7 @@ async function runSdkVNextCapabilityLiveSmoke(endpoint: string, provider: string
   const voiceAssetId = String(response.asset?.voiceAssetId || '').trim();
   if (voiceAssetId) {
     if (provider === 'mimo') {
-      await assertSpeechSynthesisWithVoiceAsset(runtime, provider, targetModelId, voiceAssetId);
+      await assertSpeechSynthesisWithVoiceAsset(runtime, provider, targetModelId, targetRefs, voiceAssetId);
     }
     const deleted = await runtime.ai.deleteVoiceAsset(
       { voiceAssetId },
@@ -867,6 +981,8 @@ function registerSdkVNextProviderCapabilityMatrixTests(): void {
         if (!runtimeEnv) return;
         const modelId = capabilityModelId(t, provider, capability);
         if (!modelId) return;
+        const cloudTargetConfig = requiredLiveCloudTargetConfigOrSkip(t, provider, capability);
+        if (provider !== 'local' && !cloudTargetConfig) return;
         if (capability === 'stt' && !envValue(['NIMI_LIVE_STT_AUDIO_PATH', 'NIMI_LIVE_STT_AUDIO_URI'])) {
           t.skip('set NIMI_LIVE_STT_AUDIO_PATH or NIMI_LIVE_STT_AUDIO_URI to run stt live smoke');
           return;
@@ -889,7 +1005,7 @@ function registerSdkVNextProviderCapabilityMatrixTests(): void {
           runtimeEnv,
           run: async ({ endpoint }) => {
             try {
-              await runSdkVNextCapabilityLiveSmoke(endpoint, provider, capability, modelId);
+              await runSdkVNextCapabilityLiveSmoke(endpoint, provider, capability, modelId, cloudTargetConfig);
             } catch (error) {
               const skipMessage = maybeProviderQuotaSkipMessage(provider, error);
               if (skipMessage) {

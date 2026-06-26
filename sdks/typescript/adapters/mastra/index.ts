@@ -268,6 +268,7 @@ function resolveProviderModel(options: NimiMastraProviderOptions, modelId: strin
     routePolicy: options.routePolicy,
     connectorId: options.connectorId,
     subjectUserId: options.subjectUserId,
+    targetRef: options.targetRef,
     timeoutMs: options.timeoutMs,
     metadata: options.metadata,
     reasoning: options.reasoning,
@@ -303,6 +304,7 @@ function resolveProviderEmbeddingModel(options: NimiMastraProviderOptions, model
         routePolicy: embedding.routePolicy,
         connectorId: embedding.connectorId,
         subjectUserId: embedding.subjectUserId,
+        targetRef: embedding.targetRef,
         timeoutMs: embedding.timeoutMs,
         metadata: embedding.metadata,
       }),
@@ -318,6 +320,7 @@ function resolveProviderEmbeddingModel(options: NimiMastraProviderOptions, model
     routePolicy: embedding.routePolicy,
     connectorId: embedding.connectorId,
     subjectUserId: embedding.subjectUserId,
+    targetRef: embedding.targetRef,
     timeoutMs: embedding.timeoutMs,
     metadata: embedding.metadata,
     maxEmbeddingsPerCall: embedding.maxEmbeddingsPerCall,
@@ -335,6 +338,9 @@ function assertRuntimeBackedModelOptions(
   if (!options.routePolicy) {
     throwUnsupportedMastraFeature('provider.routePolicy', 'runtime-backed providers require explicit routePolicy');
   }
+  if (!options.targetRef || options.targetRef.kind === 'profile-slice') {
+    throwUnsupportedMastraFeature('provider.targetRef', 'runtime-backed providers require a live v2 targetRef');
+  }
   if (options.subjectUserId && options.subjectMode !== 'external-principal') {
     throwUnsupportedMastraFeature('provider.subjectUserId', 'subjectUserId requires subjectMode external-principal');
   }
@@ -343,6 +349,9 @@ function assertRuntimeBackedModelOptions(
 function assertRuntimeBackedEmbeddingOptions(options: NimiMastraRuntimeEmbeddingOptions): void {
   if (!options.routePolicy) {
     throwUnsupportedMastraFeature('provider.embedding.routePolicy', 'runtime-backed embedding providers require explicit routePolicy');
+  }
+  if (!options.targetRef || options.targetRef.kind === 'profile-slice') {
+    throwUnsupportedMastraFeature('provider.embedding.targetRef', 'runtime-backed embedding providers require a live v2 targetRef');
   }
   if (options.subjectUserId && options.subjectMode !== 'external-principal') {
     throwUnsupportedMastraFeature('provider.embedding.subjectUserId', 'embedding subjectUserId requires subjectMode external-principal');

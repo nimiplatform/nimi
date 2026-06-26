@@ -12,6 +12,8 @@ import { withNimiRuntimeIdempotencyMetadata } from '../../runtime/scenario-jobs'
 import type { CoreMetadata } from '../../types';
 import { ReasonCode, createNimiClientId, createNimiError } from '../../types';
 import type { NimiJsonObject, NimiModelRef, NimiUsage } from '../contracts';
+import type { NimiAIConfigTargetRef } from './config-types';
+import { toRuntimeDurableTargetRef } from './runtime-target-ref';
 
 export type NimiRuntimeEmbeddingRoutePolicy = 'local' | 'cloud' | 'unspecified';
 
@@ -28,6 +30,7 @@ export interface NimiRuntimeEmbeddingClientOptions {
   readonly subjectUserId?: string;
   readonly timeoutMs?: number;
   readonly metadata?: NimiJsonObject;
+  readonly targetRef?: NimiAIConfigTargetRef;
 }
 
 export interface NimiEmbedTextRequest {
@@ -86,6 +89,7 @@ export function buildRuntimeTextEmbeddingRequest(input: {
       fallback: FallbackPolicy.DENY,
       timeoutMs: Number(input.options.timeoutMs ?? 0),
       connectorId: normalizeText(input.options.connectorId ?? input.model.providerId),
+      targetRef: toRuntimeDurableTargetRef(input.options.targetRef),
     },
     scenarioType: ScenarioType.TEXT_EMBED,
     executionMode: ExecutionMode.SYNC,

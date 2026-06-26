@@ -572,9 +572,19 @@ test('Runtime route describe builds scenario probes and validates metadata bound
         assert.equal(request.head?.appId, 'nimi.route.test');
         assert.equal(request.head?.modelId, item.modelId);
         assert.equal(request.head?.routePolicy, RoutePolicy.LOCAL);
+        assert.deepEqual(request.head?.targetRef, {
+          target: {
+            oneofKind: 'localRuntime',
+            localRuntime: {
+              version: 'v2',
+              ref: { oneofKind: 'profileBindingId', profileBindingId: `local-runtime:asset-${item.modelId}` },
+            },
+          },
+        });
         assert.equal(request.executionMode, ExecutionMode.SYNC);
         assert.equal(request.scenarioType, item.scenarioType);
         assert.equal(request.spec?.spec.oneofKind, item.oneofKind);
+        assert.equal(Object.hasOwn(request.extensions?.[0]?.payload?.fields ?? {}, 'modelId'), false);
         options.responseMetadataObserver?.({
           [NIMI_RUNTIME_ROUTE_DESCRIBE_RESULT_RESPONSE_METADATA_KEY]: encodeRouteDescribePayload({
             capability: item.capability,
