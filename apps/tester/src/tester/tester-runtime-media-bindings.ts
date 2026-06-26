@@ -98,12 +98,23 @@ function selectedImageModelFamily(params: Record<string, unknown>, mainAsset: Ni
   ) || localAssetFamily(mainAsset);
 }
 
+function localRuntimeAssetIdCandidates(value: unknown): string[] {
+  const normalized = optionalText(value);
+  if (!normalized) return [];
+  const out = [normalized];
+  const prefix = 'local-runtime:';
+  if (normalized.toLowerCase().startsWith(prefix)) {
+    const localAssetId = normalized.slice(prefix.length).trim();
+    if (localAssetId) out.push(localAssetId);
+  }
+  return out;
+}
+
 function assetMatchesId(asset: NimiRuntimeLocalAssetEntry, id: string): boolean {
-  const normalized = optionalText(id);
-  return Boolean(normalized) && (
-    optionalText(asset.localAssetId) === normalized
-    || optionalText(asset.assetId) === normalized
-  );
+  return localRuntimeAssetIdCandidates(id).some((candidate) => (
+    optionalText(asset.localAssetId) === candidate
+    || optionalText(asset.assetId) === candidate
+  ));
 }
 
 function findLocalAssetById(

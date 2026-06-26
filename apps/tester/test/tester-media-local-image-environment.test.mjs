@@ -293,6 +293,103 @@ test('image.generate materializes local model and companion slots into Runtime p
   ]);
 });
 
+test('image.generate resolves v2 local-runtime profile binding ids to Runtime local assets', async (t) => {
+  installMemoryStorageHarness(t);
+  const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');
+  const store = await importBehaviorModule('tester/tester-ai-config-store.js');
+  const scopeRef = store.createTesterAppLabAIScopeRef();
+  store.saveTesterAIConfig({
+    scopeRef,
+    capabilities: {
+      targetRefs: {
+        'image.generate': {
+          kind: 'local-runtime',
+          version: 'v2',
+          profileBindingId: 'local-runtime:local-main-image',
+        },
+      },
+      selectedParams: {
+        'image.generate': {
+          companionSlots: {
+            vae_path: 'local-vae',
+            llm_path: 'local-llm',
+          },
+        },
+      },
+    },
+    profileOrigin: null,
+  });
+
+  const calls = [];
+  const readyEnvironment = readyLocalImageEnvironmentMethods();
+  const client = {
+    runtimeSubjectUserId: 'subject-user-1',
+    runtime: {
+      local: {
+        ...readyEnvironment,
+        async listLocalAssets() {
+          return {
+            nextPageToken: '',
+            assets: [
+              {
+                localAssetId: 'local-main-image',
+                assetId: 'local-import/z-image-turbo-Q4_K_M',
+                kind: 'image',
+                engine: 'media',
+                status: 'active',
+              },
+              {
+                localAssetId: 'local-vae',
+                assetId: 'local-import/ae',
+                kind: 'vae',
+                engine: 'llama',
+                status: 'installed',
+              },
+              {
+                localAssetId: 'local-llm',
+                assetId: 'local-import/Qwen3-4B-Q4_K_M',
+                kind: 'chat',
+                engine: 'llama',
+                status: 'active',
+              },
+            ],
+          };
+        },
+      },
+      scheduling: {
+        async peekScheduling() {
+          return runnableSchedulingResponse();
+        },
+      },
+      media: {
+        image: {
+          async generate(request) {
+            calls.push(request);
+            return {
+              job: { jobId: 'job-image', status: RUNTIME_SCENARIO_JOB_STATUS_COMPLETED },
+              artifacts: [],
+              trace: { modelResolved: request.model, routeDecision: request.route },
+            };
+          },
+        },
+      },
+      ai: {},
+    },
+  };
+
+  const result = await invokers.invokeTesterCapability(client, 'image.generate', {
+    prompt: 'a product panel',
+    scenarioId: 'scenario-local-image-profile-v2-ref',
+    subjectUserId: 'subject-user-1',
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].model, 'local-import/z-image-turbo-Q4_K_M');
+  assert.equal(calls[0].metadata.aiConfigRuntimeModelLocalAssetId, 'local-main-image');
+  assert.equal(calls[0].metadata.aiConfigBindingModel, 'local-runtime:local-main-image');
+});
+
 test('image.generate materializes Ideogram4 uncond companion from selected model family', async (t) => {
   installMemoryStorageHarness(t);
   const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');

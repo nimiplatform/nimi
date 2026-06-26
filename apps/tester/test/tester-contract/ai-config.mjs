@@ -479,12 +479,25 @@ test('tester LLM binding resolver fails closed for missing and malformed binding
     const scopedKey = store.testerAIConfigStorageKeyForScopeKey(
       [scopeRef.kind, scopeRef.ownerId, scopeRef.surfaceId ?? ''].map(encodeURIComponent).join(':'),
     );
-    globalThis.window = {
-      localStorage: createMemoryStorage({
-        [scopedKey]: JSON.stringify(invalidStoredConfig),
-      }),
-    };
-    assert.throws(() => store.loadTesterAIConfig(scopeRef), /Stored AIConfig is invalid: .*providerModelId is required/i);
+    const storage = createMemoryStorage({
+      [scopedKey]: JSON.stringify(invalidStoredConfig),
+      [store.TESTER_AI_CONFIG_SCOPE_INDEX_KEY]: JSON.stringify([
+        [scopeRef.kind, scopeRef.ownerId, scopeRef.surfaceId ?? ''].map(encodeURIComponent).join(':'),
+      ]),
+    });
+    globalThis.window = { localStorage: storage };
+
+    const repaired = store.loadTesterAIConfig(scopeRef);
+    assert.deepEqual(repaired.capabilities.targetRefs, {});
+    assert.equal(storage.getItem(scopedKey), null);
+    assert.deepEqual(JSON.parse(storage.getItem(store.TESTER_AI_CONFIG_SCOPE_INDEX_KEY)), []);
+    const quarantineKey = [...Array.from({ length: storage.length }, (_, index) => storage.key(index))]
+      .filter((key) => key?.startsWith(store.TESTER_AI_CONFIG_QUARANTINE_PREFIX));
+    assert.equal(quarantineKey.length, 1);
+    const quarantine = JSON.parse(storage.getItem(quarantineKey[0]));
+    assert.equal(quarantine.reasonCode, 'TESTER_AI_CONFIG_STORE_INVALID');
+    assert.equal(quarantine.originalKey, scopedKey);
+    assert.equal(quarantine.raw, JSON.stringify(invalidStoredConfig));
   } finally {
     if (previousWindow === undefined) {
       delete globalThis.window;
@@ -752,4 +765,10 @@ test('tester model picker catalog uses SDK route options projection only', () =>
   assert.doesNotMatch(provider, /openai|anthropic|gemini|gpt-4|claude|mock.*success/i);
   assert.match(summary, /sdk\.runtime\.listNimiRuntimeRouteOptions/);
   assert.doesNotMatch(summary, /runtimeAdmin\.listConnectors\/listConnectorModels/);
+});
+
+test('tester local asset source preserves companion artifact roles for model config filtering', () => {
+  const panel = read('src/tester/workbench/tester-ai-config-settings-panel.tsx');
+
+  assert.match(panel, /artifactRoles:\s*asset\.artifactRoles/);
 });

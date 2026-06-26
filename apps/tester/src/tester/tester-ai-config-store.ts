@@ -4,6 +4,7 @@ import {
   createNimiAIHostSurface,
   createNimiAISnapshotStore,
   createNimiAppAIScopeRef,
+  areNimiAIScopeRefsEqual,
   encodeNimiAIScopeRef,
   parseNimiAIProfile,
   validateNimiAIConfig,
@@ -27,6 +28,8 @@ export const TESTER_APP_LAB_AI_SURFACE_ID = 'app-lab';
 export const TESTER_AI_CONFIG_STORAGE_KEY = 'nimiapp-tester:app-lab-ai-config:v1';
 export const TESTER_AI_CONFIG_LEGACY_STORAGE_KEY = TESTER_AI_CONFIG_STORAGE_KEY;
 export const TESTER_AI_CONFIG_SCOPE_MISMATCH_STORAGE_KEY = `${TESTER_AI_CONFIG_LEGACY_STORAGE_KEY}:scope-mismatch`;
+export const TESTER_AI_CONFIG_SCOPE_INDEX_KEY = 'nimi:ai-config:index';
+export const TESTER_AI_CONFIG_QUARANTINE_PREFIX = `${TESTER_AI_CONFIG_LEGACY_STORAGE_KEY}:quarantine:`;
 export const TESTER_AI_SNAPSHOT_INDEX_KEY = 'nimiapp-tester:app-lab-ai-snapshot-index:v1';
 export const TESTER_AI_SNAPSHOT_STORAGE_PREFIX = 'nimiapp-tester:app-lab-ai-snapshot:';
 export const TESTER_AI_PROFILE_LIBRARY_STORAGE_KEY = 'nimiapp-tester:app-lab-ai-profiles:v1';
@@ -48,6 +51,17 @@ export type TesterAIProfileImportResult =
 type TesterAIProfileLibraryStore = {
   schemaVersion: typeof TESTER_AI_PROFILE_LIBRARY_SCHEMA_VERSION;
   profiles: NimiAIProfile[];
+};
+
+export type TesterAIConfigStorageRepairResult = {
+  readonly scanned: number;
+  readonly quarantined: number;
+  readonly removedScopeKeys: readonly string[];
+  readonly quarantineKeys: readonly string[];
+};
+
+type TesterAIConfigStorageRepairOptions = {
+  readonly now?: () => string;
 };
 
 const configSubscriptions = createNimiAIConfigSubscriptionRegistry();
@@ -168,6 +182,95 @@ function localStorageRemove(storage: Storage, key: string): void {
   storage.setItem(key, '');
 }
 
+function readScopeIndex(storage: Storage): string[] {
+  const raw = storage.getItem(TESTER_AI_CONFIG_SCOPE_INDEX_KEY);
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed)
+      ? parsed.filter((entry): entry is string => typeof entry === 'string' && entry.trim().length > 0)
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function removeScopeKeyFromIndex(storage: Storage, scopeKey: string): void {
+  const next = readScopeIndex(storage).filter((entry) => entry !== scopeKey);
+  storage.setItem(TESTER_AI_CONFIG_SCOPE_INDEX_KEY, JSON.stringify([...new Set(next)].sort()));
+}
+
+function uniqueTesterAIConfigQuarantineKey(storage: Storage, scopeKey: string, quarantinedAt: string): string {
+  const base = `${TESTER_AI_CONFIG_QUARANTINE_PREFIX}${encodeURIComponent(scopeKey)}:${encodeURIComponent(quarantinedAt)}`;
+  let candidate = base;
+  let index = 1;
+  while (storage.getItem(candidate) !== null) {
+    candidate = `${base}:${index}`;
+    index += 1;
+  }
+  return candidate;
+}
+
+function storedAIConfigInvalidReason(raw: string, scopeRef: NimiAIScopeRef): string | null {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (error) {
+    return error instanceof Error ? error.message : String(error || 'Invalid stored AIConfig JSON.');
+  }
+  const validation = validateNimiAIConfig(parsed);
+  if (!validation.valid) {
+    return validation.errors.join('; ');
+  }
+  const config = parsed as NimiAIConfig;
+  if (!areNimiAIScopeRefsEqual(config.scopeRef, scopeRef)) {
+    return 'Stored AIConfig scopeRef does not match App Lab scopeRef.';
+  }
+  return null;
+}
+
+export function repairTesterAIConfigStorageForScope(
+  scopeRef: NimiAIScopeRef = createTesterAppLabAIScopeRef(),
+  storage: Storage | null = getStorage(),
+  options: TesterAIConfigStorageRepairOptions = {},
+): TesterAIConfigStorageRepairResult {
+  storage = isUsableHostStorage(storage) ? storage : null;
+  if (!storage) {
+    return { scanned: 0, quarantined: 0, removedScopeKeys: [], quarantineKeys: [] };
+  }
+  const scopeKey = encodeNimiAIScopeRef(scopeRef);
+  const scopedKey = testerAIConfigStorageKeyForScopeKey(scopeKey);
+  const raw = storage.getItem(scopedKey);
+  if (!raw) {
+    removeScopeKeyFromIndex(storage, scopeKey);
+    return { scanned: 0, quarantined: 0, removedScopeKeys: [], quarantineKeys: [] };
+  }
+  const reason = storedAIConfigInvalidReason(raw, scopeRef);
+  if (!reason) {
+    return { scanned: 1, quarantined: 0, removedScopeKeys: [], quarantineKeys: [] };
+  }
+
+  const quarantinedAt = options.now?.() ?? new Date().toISOString();
+  const quarantineKey = uniqueTesterAIConfigQuarantineKey(storage, scopeKey, quarantinedAt);
+  storage.setItem(quarantineKey, JSON.stringify({
+    schemaVersion: 1,
+    reasonCode: 'TESTER_AI_CONFIG_STORE_INVALID',
+    reason,
+    scopeKey,
+    originalKey: scopedKey,
+    quarantinedAt,
+    raw,
+  }));
+  localStorageRemove(storage, scopedKey);
+  removeScopeKeyFromIndex(storage, scopeKey);
+  return {
+    scanned: 1,
+    quarantined: 1,
+    removedScopeKeys: [scopeKey],
+    quarantineKeys: [quarantineKey],
+  };
+}
+
 function migrateLegacyTesterAIConfigIfNeeded(scopeRef: NimiAIScopeRef): void {
   const storage = getStorage();
   if (!storage) return;
@@ -252,6 +355,7 @@ export function importTesterAIProfileJson(rawJson: string): TesterAIProfileImpor
 
 export function loadTesterAIConfig(scopeRef: NimiAIScopeRef = createTesterAppLabAIScopeRef()): NimiAIConfig {
   migrateLegacyTesterAIConfigIfNeeded(scopeRef);
+  repairTesterAIConfigStorageForScope(scopeRef);
   try {
     return aiConfigStore.load(scopeRef);
   } catch (error) {
@@ -272,6 +376,7 @@ export function saveTesterAIConfig(
   options?: { readonly expectedBaseVersion?: string },
 ): NimiAIConfig {
   migrateLegacyTesterAIConfigIfNeeded(scopeRef);
+  repairTesterAIConfigStorageForScope(scopeRef);
   const normalized = { ...next, scopeRef };
   const expectedBaseVersion = options?.expectedBaseVersion?.trim();
   if (expectedBaseVersion) {
@@ -328,10 +433,12 @@ export function createTesterAIConfigService(): SharedAIConfigService {
       },
       async previewApply(scopeRef: NimiAIScopeRef, profileId: string, options) {
         migrateLegacyTesterAIConfigIfNeeded(scopeRef);
+        repairTesterAIConfigStorageForScope(scopeRef);
         return createSurface().aiProfile.previewApply(scopeRef, profileId, options);
       },
       async apply(scopeRef: NimiAIScopeRef, profileId: string, options) {
         migrateLegacyTesterAIConfigIfNeeded(scopeRef);
+        repairTesterAIConfigStorageForScope(scopeRef);
         return createSurface().aiProfile.apply(scopeRef, profileId, options);
       },
     },

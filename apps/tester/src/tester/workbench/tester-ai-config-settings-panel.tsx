@@ -81,6 +81,7 @@ function useTesterRuntimeLocalAssetSource(runtimeReady: boolean): AppModelConfig
           kind: asset.kind,
           engine: asset.engine,
           status: asset.status,
+          artifactRoles: asset.artifactRoles,
         })));
       })
       .catch(() => {
