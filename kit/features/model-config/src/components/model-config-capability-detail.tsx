@@ -80,14 +80,32 @@ function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
+function localRuntimeRefCandidates(value: unknown): string[] {
+  const normalized = normalizeText(value);
+  if (!normalized) {
+    return [];
+  }
+  const candidates = [
+    normalized,
+    ...normalized.split(':').map((part) => part.trim()).filter(Boolean),
+  ];
+  const prefix = 'local-runtime:';
+  if (normalized.toLowerCase().startsWith(prefix)) {
+    const localAssetId = normalized.slice(prefix.length).trim();
+    if (localAssetId) {
+      candidates.push(localAssetId);
+    }
+  }
+  return candidates;
+}
+
 function targetRefCandidateTexts(targetRef: ModelConfigTargetRef | null): string[] {
   if (!targetRef || targetRef.kind !== 'local-runtime') {
     return [];
   }
   return [
-    normalizeText(targetRef.profileBindingId),
-    normalizeText(targetRef.readinessRef),
-    ...normalizeText(targetRef.readinessRef).split(':').map((part) => part.trim()),
+    ...localRuntimeRefCandidates(targetRef.profileBindingId),
+    ...localRuntimeRefCandidates(targetRef.readinessRef),
   ].filter(Boolean);
 }
 

@@ -137,9 +137,10 @@ export function filterAssetsForCompanionSlot<Asset extends FilterableLocalAsset>
   slot: Pick<CompanionSlotDef, 'kind' | 'role'>,
 ): Asset[] {
   const availableAssets = assets.filter((asset) => asset.status !== 'removed');
+  const kindMatches = filterAssetsByKind(availableAssets, slot.kind);
   const role = normalizeAssetRole(slot.role);
   if (role) {
-    const roleMatches = availableAssets.filter((asset) => assetHasArtifactRole(asset, role));
+    const roleMatches = kindMatches.filter((asset) => assetHasArtifactRole(asset, role));
     if (roleMatches.length > 0) {
       return roleMatches;
     }
@@ -147,7 +148,7 @@ export function filterAssetsForCompanionSlot<Asset extends FilterableLocalAsset>
       return [];
     }
   }
-  return filterAssetsByKind(availableAssets, slot.kind);
+  return kindMatches;
 }
 
 function assetHasArtifactRole(asset: FilterableLocalAsset, role: string): boolean {

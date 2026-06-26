@@ -494,6 +494,76 @@ describe('ModelConfigPanel', () => {
     expect(nextCompanionSlots).toEqual({ uncond_diffusion_model: 'local-uncond' });
   });
 
+  it('keeps Ideogram4 LLM companion selection on chat assets when image assets expose text encoder roles', async () => {
+    await render(
+      <ImageParamsEditor
+        copy={{
+          modelFamilyLabel: 'Model type',
+          companionModelsLabel: 'Companion Models',
+          parametersLabel: 'Parameters',
+          sizeLabel: 'Size',
+          responseFormatLabel: 'Response format',
+          seedLabel: 'Seed',
+          timeoutLabel: 'Timeout',
+          stepsLabel: 'Steps',
+          cfgScaleLabel: 'CFG Scale',
+          samplerLabel: 'Sampler',
+          schedulerLabel: 'Scheduler',
+          customOptionsLabel: 'Custom options',
+          noneLabel: 'None',
+          requiredLabel: 'Required',
+          requiredSetupPlaceholder: 'Required setup',
+        }}
+        params={{
+          modelFamily: 'ideogram4',
+          size: '512x512',
+          responseFormat: 'auto',
+          seed: '',
+          timeoutMs: '600000',
+          steps: '25',
+          cfgScale: '',
+          sampler: '',
+          scheduler: '',
+          optionsText: '',
+        }}
+        companionSlots={{}}
+        assets={[
+          {
+            localAssetId: 'local-main-image',
+            assetId: 'local-import/ideogram4-Q4_0',
+            kind: 'image',
+            engine: 'media',
+            status: 'installed',
+            artifactRoles: ['diffusion_transformer', 'text_encoder', 'vae'],
+          },
+          {
+            localAssetId: 'local-chat',
+            assetId: 'local-import/Qwen3-4B-Q4_K_M',
+            kind: 'chat',
+            engine: 'llama',
+            status: 'active',
+          },
+        ]}
+        onParamsChange={() => undefined}
+        onCompanionSlotsChange={() => undefined}
+      />,
+    );
+
+    const llmLabel = Array.from(container?.querySelectorAll('span[aria-label]') || [])
+      .find((node) => node.getAttribute('aria-label') === 'LLM');
+    const llmTrigger = llmLabel?.parentElement?.querySelector('button');
+    expect(llmTrigger).toBeTruthy();
+
+    await act(async () => {
+      llmTrigger?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await flush();
+    });
+
+    const modalButtons = Array.from(document.querySelectorAll('button'));
+    expect(modalButtons.some((button) => button.textContent?.includes('local-import/Qwen3-4B-Q4_K_M'))).toBe(true);
+    expect(modalButtons.some((button) => button.textContent?.includes('local-import/ideogram4-Q4_0'))).toBe(false);
+  });
+
   it('does not treat the main Ideogram4 image model as the uncond dependency', async () => {
     await render(
       <ImageParamsEditor

@@ -453,6 +453,55 @@ describe('useRouteModelPickerData', () => {
     }));
   });
 
+  it('matches initial local v2 target refs against runtime inventory identity', async () => {
+    const provider = createSnapshotRouteDataProvider(async () => makeSnapshot({
+      targets: [
+        localTarget({
+          localModelId: 'local-import/gemma-4-26B-A4B-it-Q8_0',
+          profileBindingId: '01KTEX08DS2GR9HJ1X3R459P1B',
+          model: 'local-import/gemma-4-26B-A4B-it-Q8_0',
+          modelId: 'local-import/gemma-4-26B-A4B-it-Q8_0',
+          engine: 'llama',
+          status: 'active',
+          capabilities: ['text.generate'],
+        }),
+      ],
+    }));
+    const latestState: { current: UseRouteModelPickerDataResult | null } = { current: null };
+
+    function Harness() {
+      latestState.current = useRouteModelPickerData({
+        provider,
+        capability: 'text.generate',
+        initialSelection: {
+          source: 'local',
+          model: '01KTEX08DS2GR9HJ1X3R459P1B',
+          localModelId: '01KTEX08DS2GR9HJ1X3R459P1B',
+          profileBindingId: '01KTEX08DS2GR9HJ1X3R459P1B',
+        },
+      });
+      return null;
+    }
+
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    await act(async () => {
+      root?.render(createElement(Harness));
+      await flush();
+      await flush();
+    });
+
+    const loadedState = latestState.current as UseRouteModelPickerDataResult;
+    expect(loadedState.selection.model).toBe('01KTEX08DS2GR9HJ1X3R459P1B');
+    expect(loadedState.pickerState.selectedId).toBe('local-import/gemma-4-26B-A4B-it-Q8_0');
+    expect(loadedState.pickerState.selectedModel).not.toBeNull();
+    expect(loadedState.pickerState.selectedModel
+      ? loadedState.pickerState.adapter.getTitle(loadedState.pickerState.selectedModel)
+      : '').toBe('local-import/gemma-4-26B-A4B-it-Q8_0');
+  });
+
   it('selects the first cloud connector before loading capability-scoped models', async () => {
     const provider = createSnapshotRouteDataProvider(async () => makeSnapshot({
       capability: 'audio.synthesize',

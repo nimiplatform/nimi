@@ -75,14 +75,32 @@ function localTargetSourceLabel(targetRef: ModelConfigTargetRef | null | undefin
     ?? localSourceLabel(targetRef.readinessRef);
 }
 
+function localRuntimeRefCandidates(value: unknown): string[] {
+  const normalized = normalizeText(value);
+  if (!normalized) {
+    return [];
+  }
+  const candidates = [
+    normalized,
+    ...normalized.split(':').map((part) => part.trim()).filter(Boolean),
+  ];
+  const prefix = 'local-runtime:';
+  if (normalized.toLowerCase().startsWith(prefix)) {
+    const localAssetId = normalized.slice(prefix.length).trim();
+    if (localAssetId) {
+      candidates.push(localAssetId);
+    }
+  }
+  return candidates;
+}
+
 function localTargetCandidates(targetRef: ModelConfigTargetRef | null | undefined): string[] {
   if (!targetRef || targetRef.kind !== 'local-runtime') {
     return [];
   }
   const candidates = [
-    normalizeText(targetRef.profileBindingId),
-    normalizeText(targetRef.readinessRef),
-    ...normalizeText(targetRef.readinessRef).split(':'),
+    ...localRuntimeRefCandidates(targetRef.profileBindingId),
+    ...localRuntimeRefCandidates(targetRef.readinessRef),
   ].filter(Boolean);
   return [...new Set(candidates)];
 }
@@ -90,6 +108,9 @@ function localTargetCandidates(targetRef: ModelConfigTargetRef | null | undefine
 function localTargetMatches(
   model: {
     localModelId?: string;
+    goRuntimeLocalModelId?: string;
+    profileBindingId?: string;
+    readinessRef?: string;
     modelId?: string;
     label?: string;
   },
@@ -97,6 +118,9 @@ function localTargetMatches(
 ): boolean {
   const modelValues = [
     normalizeText(model.localModelId),
+    normalizeText(model.goRuntimeLocalModelId),
+    normalizeText(model.profileBindingId),
+    normalizeText(model.readinessRef),
     normalizeText(model.modelId),
     normalizeText(model.label),
   ].filter(Boolean);

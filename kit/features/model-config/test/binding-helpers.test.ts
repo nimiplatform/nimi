@@ -208,6 +208,29 @@ describe('model config runtime target summary', () => {
     }).modelLabel).toBe('z-image-turbo-Q4_K_M');
   });
 
+  it('hydrates local runtime labels when v2 target refs match provider identity fields', () => {
+    const targetRef: NimiAIConfigTargetRef = {
+      kind: 'local-runtime',
+      version: 'v2',
+      profileBindingId: '01KTEX08DS2GR9HJ1X3R459P1B',
+    };
+    const config = configWithTargetRef(targetRef);
+
+    expect(summarizeModelConfigRuntimeTarget({
+      capabilityId: 'text.generate',
+      bindingCapabilityId: 'text.generate',
+      config,
+      runtimeStatus: 'ready',
+      localModels: [{
+        localModelId: 'local-import/gemma-4-26B-A4B-it-Q8_0',
+        goRuntimeLocalModelId: 'local-import/gemma-4-26B-A4B-it-Q8_0',
+        profileBindingId: '01KTEX08DS2GR9HJ1X3R459P1B',
+        modelId: 'local-import/gemma-4-26B-A4B-it-Q8_0',
+        label: 'local-import/gemma-4-26B-A4B-it-Q8_0',
+      }],
+    }).modelLabel).toBe('gemma-4-26B-A4B-it-Q8_0');
+  });
+
   it('summarizes cloud connector targets and selected params', () => {
     const config = {
       ...configWithTargetRef({

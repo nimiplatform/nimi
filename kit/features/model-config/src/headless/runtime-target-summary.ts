@@ -8,6 +8,8 @@ export type ModelConfigRuntimeTargetParamRecord = Record<string, unknown>;
 export type ModelConfigRuntimeTargetLocalModel = {
   localModelId?: string;
   goRuntimeLocalModelId?: string;
+  profileBindingId?: string;
+  readinessRef?: string;
   modelId?: string;
   model?: string;
   label?: string;
@@ -54,12 +56,30 @@ function containsOpaqueRuntimeId(value: string): boolean {
   return value.split(/[:/\s]+/u).some((part) => isOpaqueRuntimeId(part));
 }
 
+function localRuntimeRefCandidates(value: unknown): string[] {
+  const normalized = normalizeText(value);
+  if (!normalized) {
+    return [];
+  }
+  const candidates = [
+    normalized,
+    ...normalized.split(':').map((part) => part.trim()).filter(Boolean),
+  ];
+  const prefix = 'local-runtime:';
+  if (normalized.toLowerCase().startsWith(prefix)) {
+    const localAssetId = normalized.slice(prefix.length).trim();
+    if (localAssetId) {
+      candidates.push(localAssetId);
+    }
+  }
+  return candidates;
+}
+
 function localTargetCandidates(targetRef: NimiAIConfigTargetRef): string[] {
   if (targetRef.kind !== 'local-runtime') return [];
   const candidates = [
-    normalizeText(targetRef.profileBindingId),
-    normalizeText(targetRef.readinessRef),
-    ...normalizeText(targetRef.readinessRef).split(':'),
+    ...localRuntimeRefCandidates(targetRef.profileBindingId),
+    ...localRuntimeRefCandidates(targetRef.readinessRef),
   ].filter(Boolean);
   return [...new Set(candidates)];
 }
@@ -71,6 +91,8 @@ function localModelMatchesTarget(
   const modelValues = [
     normalizeText(model.localModelId),
     normalizeText(model.goRuntimeLocalModelId),
+    normalizeText(model.profileBindingId),
+    normalizeText(model.readinessRef),
     normalizeText(model.modelId),
     normalizeText(model.model),
     normalizeText(model.label),

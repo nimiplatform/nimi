@@ -184,6 +184,57 @@ describe('ModelConfigCapabilityDetail editorKind routing', () => {
     expect(container?.textContent).not.toContain('01KTEX08DS2GR9HJ1X3R459P1B');
   });
 
+  it('hydrates local runtime target display from v2 provider identity fields', async () => {
+    const localConfig: NimiAIConfig = {
+      ...baseConfig,
+      capabilities: {
+        targetRefs: {
+          'text.generate': {
+            kind: 'local-runtime',
+            version: 'v2',
+            profileBindingId: '01KTEX08DS2GR9HJ1X3R459P1B',
+          },
+        },
+        selectedParams: {},
+      },
+    };
+    const provider: RouteModelPickerDataProvider = {
+      listLocalModels: async () => [{
+        localModelId: 'local-import/gemma-4-26B-A4B-it-Q8_0',
+        goRuntimeLocalModelId: 'local-import/gemma-4-26B-A4B-it-Q8_0',
+        profileBindingId: '01KTEX08DS2GR9HJ1X3R459P1B',
+        modelId: 'local/local-import/gemma-4-26B-A4B-it-Q8_0',
+        label: 'gemma-4-26B-A4B-it-Q8_0',
+        engine: 'llama',
+        status: 'active',
+        capabilities: ['text.generate'],
+      }],
+      listConnectors: async () => [],
+      listConnectorModels: async () => [],
+    };
+    const surface: AppModelConfigSurface = {
+      ...makeSurface('text.generate'),
+      providerResolver: () => provider,
+    };
+    await render(
+      wrap(
+        <ModelConfigCapabilityDetail
+          capabilityId="text.generate"
+          surface={surface}
+          config={localConfig}
+        />,
+      ),
+    );
+    await act(async () => {
+      await flush();
+      await flush();
+    });
+
+    expect(container?.textContent).toContain('gemma-4-26B-A4B-it-Q8_0');
+    expect(container?.textContent).not.toContain('Local runtime model');
+    expect(container?.textContent).not.toContain('01KTEX08DS2GR9HJ1X3R459P1B');
+  });
+
   it('renders active local-import models as model name plus configured source metadata', async () => {
     const localConfig: NimiAIConfig = {
       ...baseConfig,
@@ -438,6 +489,60 @@ describe('ModelConfigCapabilityDetail editorKind routing', () => {
     const nextParams = updates[0]?.capabilities.selectedParams['image.generate'] as Record<string, unknown> | undefined;
     expect(nextParams?.seed).toBe('seed-new');
     expect(nextParams?.companionSlots).toEqual({ vae_path: 'asset-vae' });
+  });
+
+  it('derives image companion slots from prefixed local-runtime profile bindings', async () => {
+    const imageConfig: NimiAIConfig = {
+      ...baseConfig,
+      capabilities: {
+        targetRefs: {
+          'image.generate': {
+            kind: 'local-runtime',
+            version: 'v2',
+            profileBindingId: 'local-runtime:local-ideogram4',
+          },
+        },
+        selectedParams: {
+          'image.generate': {},
+        },
+      },
+    };
+    const surface: AppModelConfigSurface = {
+      ...makeSurface('image.generate'),
+      localAssetSource: {
+        list: () => [
+          {
+            localAssetId: 'local-ideogram4',
+            assetId: 'local-import/ideogram4-Q4_0',
+            kind: 'image',
+            engine: 'media',
+            status: 'active',
+            family: 'ideogram4',
+          },
+          {
+            localAssetId: 'local-ideogram4-uncond',
+            assetId: 'local-import/ideogram4_uncond-Q4_0',
+            kind: 'image',
+            engine: 'media',
+            status: 'active',
+            artifactRoles: ['uncond_diffusion_model'],
+          },
+        ],
+        loading: false,
+      },
+    };
+
+    await render(
+      wrap(
+        <ModelConfigCapabilityDetail
+          capabilityId="image.generate"
+          surface={surface}
+          config={imageConfig}
+        />,
+      ),
+    );
+
+    expect(container?.textContent).toContain('Uncond diffusion');
   });
 
   it('routes video.generate to VideoParamsEditor (editorKind=video)', async () => {

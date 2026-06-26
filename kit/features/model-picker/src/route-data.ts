@@ -94,6 +94,54 @@ function mapLocalStatus(raw: number): RouteLocalModel['status'] {
   return STATUS_MAP[raw as LocalModelStatusCode] ?? 'unspecified';
 }
 
+function normalizeText(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function localRuntimeRefCandidates(value: unknown): string[] {
+  const normalized = normalizeText(value);
+  if (!normalized) {
+    return [];
+  }
+  const candidates = [
+    normalized,
+    ...normalized.split(':').map((part) => part.trim()).filter(Boolean),
+  ];
+  const prefix = 'local-runtime:';
+  if (normalized.toLowerCase().startsWith(prefix)) {
+    const localAssetId = normalized.slice(prefix.length).trim();
+    if (localAssetId) {
+      candidates.push(localAssetId);
+    }
+  }
+  return candidates;
+}
+
+function localModelIdentityValues(model: RouteLocalModel): string[] {
+  return [
+    normalizeText(model.localModelId),
+    normalizeText(model.goRuntimeLocalModelId),
+    ...localRuntimeRefCandidates(model.profileBindingId),
+    ...localRuntimeRefCandidates(model.readinessRef),
+  ].filter(Boolean);
+}
+
+function routeLocalModelMatchesValue(model: RouteLocalModel, value: string): boolean {
+  const normalized = normalizeText(value);
+  return Boolean(normalized) && localModelIdentityValues(model).includes(normalized);
+}
+
+function resolveSelectedLocalModelId(
+  models: readonly RouteLocalModel[],
+  selectedModel: string,
+): string {
+  const normalized = normalizeText(selectedModel);
+  if (!normalized) {
+    return '';
+  }
+  return models.find((model) => routeLocalModelMatchesValue(model, normalized))?.localModelId || normalized;
+}
+
 // NOTE: The inventory-based provider (createInventoryRouteDataProvider / createSdkRouteDataProvider)
 // has been removed. All app-facing route selection paths now use createSnapshotRouteDataProvider
 // backed by runtime.route.listOptions(...).
@@ -552,7 +600,11 @@ export function useRouteModelPickerData({
     getSearchText: (m) => `${m.id} ${m.label}`,
   }), [availableModels]);
 
-  const activeModel = model || availableModels[0]?.id || '';
+  const activeModel = (source === 'local'
+    ? resolveSelectedLocalModelId(localModels, model)
+    : model)
+    || availableModels[0]?.id
+    || '';
 
   const buildSelection = useCallback((sel: { source: RouteModelPickerSource; connectorId: string; model: string }): RouteModelPickerSelection => {
     // Resolve display label from available models
