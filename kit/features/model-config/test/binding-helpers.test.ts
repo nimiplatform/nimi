@@ -43,6 +43,7 @@ describe('model config compact target-ref helpers', () => {
   it('patches compact target refs and params without writing selectedBindings', () => {
     const targetRef: NimiAIConfigTargetRef = {
       kind: 'local-runtime',
+      version: 'v2',
       readinessRef: 'readiness:desktop:text',
     };
 

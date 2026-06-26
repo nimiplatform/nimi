@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   createAppAiChatComposerAdapter,
 } from '../src/runtime.js';
-import { createRuntimeAiTestRuntime } from './runtime-ai-test-helpers.js';
+import { createRuntimeAiTestRuntime, runtimeTestTargetRef } from './runtime-ai-test-helpers.js';
 
 describe('app AI chat helpers', () => {
   it('creates a generate composer adapter with kit metadata defaults', async () => {
@@ -14,6 +14,7 @@ describe('app AI chat helpers', () => {
       mode: 'generate',
       model: 'runtime-selected-chat',
       route: 'cloud',
+      targetRef: runtimeTestTargetRef,
       onResponse,
     });
 
@@ -29,6 +30,18 @@ describe('app AI chat helpers', () => {
         appId: 'kit-chat-test-app',
         modelId: 'runtime-selected-chat',
         routePolicy: 2,
+        targetRef: {
+          target: {
+            oneofKind: 'cloud',
+            cloud: {
+              version: 'v2',
+              connectorId: 'connector-runtime-test',
+              remoteModelCatalogId: 'remote-catalog:runtime-selected-chat',
+              providerModelId: 'runtime-selected-chat',
+              provider: 'runtime-test',
+            },
+          },
+        },
       }),
       scenarioType: 1,
       executionMode: 1,
@@ -77,6 +90,7 @@ describe('app AI chat helpers', () => {
           { role: 'user', content: text },
         ],
         route: 'cloud',
+        targetRef: runtimeTestTargetRef,
       }),
       onChunk,
       onResponse,
@@ -94,6 +108,18 @@ describe('app AI chat helpers', () => {
         appId: 'kit-chat-test-app',
         modelId: 'runtime-selected-chat',
         routePolicy: 2,
+        targetRef: {
+          target: {
+            oneofKind: 'cloud',
+            cloud: {
+              version: 'v2',
+              connectorId: 'connector-runtime-test',
+              remoteModelCatalogId: 'remote-catalog:runtime-selected-chat',
+              providerModelId: 'runtime-selected-chat',
+              provider: 'runtime-test',
+            },
+          },
+        },
       }),
       scenarioType: 1,
       executionMode: 2,

@@ -166,6 +166,7 @@ export function createSdkConversationRuntimeAdapter(
         subjectUserId: normalizeNullableText(request.subjectUserId) || undefined,
         timeoutMs: request.timeoutMs,
         metadata: toNimiJsonObject(request.metadata),
+        targetRef: request.targetRef,
         reasoning: toNimiRuntimeReasoning(request.reasoning),
       });
       if (!model.streamText) {

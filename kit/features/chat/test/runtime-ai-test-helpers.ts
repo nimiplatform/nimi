@@ -1,5 +1,6 @@
 import { vi } from 'vitest';
 import type {
+  NimiAIConfigTargetRef,
   NimiGenerateTextResult,
   NimiRunEvent,
   Runtime,
@@ -35,6 +36,14 @@ const STREAM_EVENT = {
   COMPLETED: 6,
   FAILED: 7,
 } as const;
+
+export const runtimeTestTargetRef: NimiAIConfigTargetRef = {
+  kind: 'cloud-connector',
+  connectorId: 'connector-runtime-test',
+  remoteModelCatalogId: 'remote-catalog:runtime-selected-chat',
+  providerModelId: 'runtime-selected-chat',
+  provider: 'runtime-test',
+};
 
 export type RuntimeAiTestRuntimeOptions = {
   readonly generate?: Partial<NimiGenerateTextResult>;

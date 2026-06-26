@@ -370,6 +370,7 @@ describe('ModelConfigCapabilityDetail editorKind routing', () => {
         targetRefs: {
           'image.generate': {
             kind: 'local-runtime',
+            version: 'v2',
             readinessRef: 'readiness:image-local',
           },
         },

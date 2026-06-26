@@ -8,6 +8,7 @@ import {
 } from '../src/runtime.js';
 import {
   createRuntimeAiTestRuntime,
+  runtimeTestTargetRef,
   runtimeDoneEvent,
   runtimeTextDeltaEvent,
 } from './runtime-ai-test-helpers.js';
@@ -44,6 +45,7 @@ function Harness({ runtime, onReady }: HarnessProps) {
         content: message.content,
       })),
       route: 'cloud',
+      targetRef: runtimeTestTargetRef,
     }),
   });
 

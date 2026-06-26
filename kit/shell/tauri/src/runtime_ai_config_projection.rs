@@ -96,8 +96,6 @@ pub fn project_first_run_execution_evidence_to_ai_config_bindings(
                 "Runtime execution proof for {capability} is missing local_route_target"
             ));
         }
-        let model_resolved = trim(&proof.model_resolved);
-
         missing_floor.remove(capability);
         out.push(RuntimeAiConfigCapabilityBinding {
             capability: capability.to_string(),
@@ -105,14 +103,6 @@ pub fn project_first_run_execution_evidence_to_ai_config_bindings(
                 "kind": "local-runtime",
                 "version": "v2",
                 "readinessRef": execution_evidence_ref,
-                "runtime": {
-                    "runtimeBaselineRef": runtime_baseline_ref,
-                    "runtimeConsumerId": bound_consumer_id,
-                    "boundAssetId": bound_asset_id,
-                    "runtimeLocalRouteTarget": local_route_target,
-                    "modelResolved": if model_resolved.is_empty() { bound_asset_id.clone() } else { model_resolved },
-                    "runtimeExecutionTraceId": trim(&proof.trace_id),
-                },
             }),
         });
     }
@@ -210,11 +200,8 @@ mod tests {
         assert_eq!(text.binding["kind"], "local-runtime");
         assert_eq!(text.binding["version"], "v2");
         assert_eq!(text.binding["readinessRef"], "execution_evidence_test");
-        assert_eq!(
-            text.binding["runtime"]["runtimeConsumerId"],
-            "llama.cpp.cpu"
-        );
-        assert_eq!(text.binding["runtime"]["boundAssetId"], "asset:text");
+        assert!(text.binding.get("runtime").is_none());
+        assert!(text.binding.get("boundAssetId").is_none());
     }
 
     #[test]

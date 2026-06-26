@@ -1,4 +1,5 @@
 import type {
+  NimiAIConfigTargetRef,
   NimiMessagePart,
   NimiRunEvent,
 } from '@nimiplatform/kit/core/sdk-contract';
@@ -72,6 +73,7 @@ export type ConversationRuntimeTextRequest = {
   model?: string;
   route?: 'local' | 'cloud';
   connectorId?: string;
+  targetRef?: NimiAIConfigTargetRef;
   subjectUserId?: string;
   temperature?: number;
   topP?: number;

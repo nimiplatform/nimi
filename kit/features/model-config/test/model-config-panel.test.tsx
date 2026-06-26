@@ -100,6 +100,7 @@ describe('ModelConfigPanel', () => {
               targetRef: {
                 kind: 'cloud-connector',
                 connectorId: 'openai',
+                remoteModelCatalogId: 'remote-catalog:openai:gpt-4.1-mini',
                 providerModelId: 'gpt-4.1-mini',
               },
               onTargetRefChange: () => undefined,

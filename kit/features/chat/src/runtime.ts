@@ -15,6 +15,7 @@ import {
   type NimiMessage,
   type NimiMessagePart,
   type NimiModelRef,
+  type NimiAIConfigTargetRef,
   type NimiRunEvent,
   type NimiRuntimeAIModelOptions,
   type NimiRuntimeAIReasoningOptions,
@@ -59,6 +60,7 @@ export type AppAiChatRequest = {
   readonly route?: AppAiChatRoutePolicy;
   readonly timeoutMs?: number;
   readonly connectorId?: string;
+  readonly targetRef?: NimiAIConfigTargetRef;
   readonly metadata?: Record<string, string>;
   readonly reasoning?: NimiRuntimeAIReasoningOptions;
   readonly signal?: AbortSignal;
@@ -138,6 +140,7 @@ export type AppAiChatComposerAdapterOptions<TAttachment = never> = {
   route?: AppAiChatRequest['route'];
   timeoutMs?: number;
   connectorId?: string;
+  targetRef?: AppAiChatRequest['targetRef'];
   metadata?: AppAiChatRequest['metadata'];
   reasoning?: NimiRuntimeAIReasoningOptions;
   signal?: AbortSignal;
@@ -400,6 +403,7 @@ function resolveAppAiChatRequest<TAttachment>(
     route: options.route,
     timeoutMs: options.timeoutMs,
     connectorId: options.connectorId,
+    targetRef: options.targetRef,
     metadata: options.metadata,
     reasoning: options.reasoning,
     signal: options.mode === 'stream' ? options.signal : undefined,
@@ -420,6 +424,7 @@ function createAppAiChatModel(
     subjectUserId: normalizeNullableText(request.subjectUserId) || undefined,
     timeoutMs: request.timeoutMs,
     metadata: withDefaultAppAiChatMetadata(request.metadata),
+    targetRef: request.targetRef,
     reasoning: request.reasoning,
   });
 }
@@ -536,8 +541,11 @@ function combineAbortSignals(existing: AbortSignal | undefined, next: AbortSigna
   if (!existing) {
     return next;
   }
-  if (typeof AbortSignal !== 'undefined' && typeof AbortSignal.any === 'function') {
-    return AbortSignal.any([existing, next]);
+  const abortSignalCtor = typeof AbortSignal === 'undefined'
+    ? null
+    : AbortSignal as typeof AbortSignal & { any?: (signals: readonly AbortSignal[]) => AbortSignal };
+  if (abortSignalCtor && typeof abortSignalCtor.any === 'function') {
+    return abortSignalCtor.any([existing, next]);
   }
 
   const fallback = new AbortController();
