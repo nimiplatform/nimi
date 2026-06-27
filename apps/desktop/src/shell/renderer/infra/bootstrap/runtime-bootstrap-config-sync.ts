@@ -105,18 +105,16 @@ async function handleRuntimeConfigSyncError(input: {
   const message = safeBootstrapErrorMessage(input.error);
   if (isRuntimeConfigManualRestartRequiredError(input.error)) {
     const degradeForProductSetup = await shouldDegradeRuntimeConfigManualRestartForProductSetup(input.flowId);
-    if (!degradeForProductSetup) {
-      throw input.error;
-    }
     logRendererEvent({
       level: 'warn',
       area: 'renderer-bootstrap',
-      message: 'phase:runtime-config-sync:degraded',
+      message: 'phase:runtime-config-sync:manual-restart-required',
       flowId: input.flowId,
       details: {
         error: message,
         step: input.step,
-        productStateReady: false,
+        manualRestartRequired: true,
+        productSetupPending: degradeForProductSetup,
       },
     });
     return message;

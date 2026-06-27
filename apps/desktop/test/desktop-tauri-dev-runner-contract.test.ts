@@ -13,6 +13,12 @@ const runTauriDevSource = fs.readFileSync(
   path.join(root, 'scripts/run-tauri-dev.mjs'),
   'utf8',
 );
+const workspacePackageJson = JSON.parse(fs.readFileSync(
+  path.join(root, '../..', 'package.json'),
+  'utf8',
+)) as {
+  scripts?: Record<string, string>;
+};
 const windowsDevConfig = JSON.parse(fs.readFileSync(
   path.join(root, 'src-tauri/tauri.dev.windows.conf.json'),
   'utf8',
@@ -94,16 +100,29 @@ test('Windows Tauri dev runner lets Ctrl-C reach the desktop child before forced
   assert.match(runnerSource, /if \(signal !== 'SIGINT'\)/);
 });
 
-test('Desktop Tauri dev command rebuilds SDK dist before renderer loads dist aliases', () => {
-  const sdkBuildIndex = runTauriDevSource.indexOf('buildSdkDistForDesktopDev();');
+test('Desktop Tauri dev command only rebuilds SDK dist when renderer aliases are missing', () => {
+  const sdkBuildIndex = runTauriDevSource.indexOf('ensureSdkDistForDesktopDev();');
   const spawnIndex = runTauriDevSource.indexOf('const child = spawn(command, commandArgs');
 
-  assert.ok(sdkBuildIndex > -1, 'dev command must build @nimiplatform/sdk dist');
-  assert.ok(spawnIndex > sdkBuildIndex, 'SDK dist must be rebuilt before tauri dev starts');
+  assert.ok(sdkBuildIndex > -1, 'dev command must ensure @nimiplatform/sdk dist');
+  assert.ok(spawnIndex > sdkBuildIndex, 'SDK dist must be ensured before tauri dev starts');
+  assert.match(runTauriDevSource, /const REQUIRED_SDK_DIST_FILES = \[/);
+  assert.match(runTauriDevSource, /'core\/app\/index\.js'/);
+  assert.match(runTauriDevSource, /'core\/contracts\/index\.js'/);
+  assert.match(runTauriDevSource, /'features\/conversation\/index\.js'/);
+  assert.match(runTauriDevSource, /function isSdkDistReadyForDesktopDev\(\)/);
+  assert.match(runTauriDevSource, /if \(isSdkDistReadyForDesktopDev\(\)\) \{\s*return;\s*\}/);
   assert.match(runTauriDevSource, /'--filter', '@nimiplatform\/sdk', 'build'/);
   assert.match(runTauriDevSource, /process\.platform === 'win32' \? 'cmd\.exe' : pnpmBin/);
   assert.match(runTauriDevSource, /\['\/d', '\/s', '\/c', \[pnpmBin, \.\.\.pnpmArgs\]\.map\(quoteCmdArg\)\.join\(' '\)\]/);
   assert.doesNotMatch(runTauriDevSource, /spawnSync\(pnpmBin, \['--dir'/);
+});
+
+test('Workspace desktop dev script avoids a nested pnpm batch wrapper on Windows', () => {
+  assert.equal(workspacePackageJson.scripts?.['dev:desktop'], 'node apps/desktop/scripts/run-tauri-dev.mjs');
+  assert.match(runTauriDevSource, /const desktopRoot = path\.resolve\(path\.dirname\(fileURLToPath\(import\.meta\.url\)\), '\.\.'\)/);
+  assert.match(runTauriDevSource, /cwd: desktopRoot/);
+  assert.match(runTauriDevSource, /path\.join\(desktopRoot, 'node_modules', '\.bin', process\.platform === 'win32'\s*\? 'tauri\.cmd'\s*: 'tauri'\)/);
 });
 
 test('Desktop Tauri dev command lets Ctrl-C reach Tauri before forced cleanup', () => {
@@ -117,4 +136,11 @@ test('Desktop Tauri dev command lets Ctrl-C reach Tauri before forced cleanup', 
   assert.match(runTauriDevSource, /requestProcessTreeShutdown\(activeTauriChild, signal\)/);
   assert.match(runTauriDevSource, /if \(signal !== 'SIGINT'\)/);
   assert.doesNotMatch(runTauriDevSource, /process\.kill\(process\.pid, signal\)/);
+});
+
+test('Windows Tauri dev child shells do not inherit stdin while waiting for Ctrl-C cleanup', () => {
+  assert.match(runTauriDevSource, /const inheritedChildStdio = process\.platform === 'win32'[\s\S]*\['ignore', 'inherit', 'inherit'\][\s\S]*: 'inherit'/);
+  assert.match(runTauriDevSource, /stdio: inheritedChildStdio/);
+  assert.match(runnerSource, /const inheritedChildStdio = process\.platform === 'win32'[\s\S]*\['ignore', 'inherit', 'inherit'\][\s\S]*: 'inherit'/);
+  assert.match(runnerSource, /stdio: inheritedChildStdio/);
 });

@@ -68,6 +68,13 @@ test('fresh first-run storage sync skip does not surface a runtime config warnin
   assert.match(bootstrapConfigSyncSource, /if \(warning\) bootstrapRuntimeConfigWarning = bootstrapRuntimeConfigWarning \?\? warning/);
 });
 
+test('external runtime manual restart is degraded by error code instead of action-hint text', () => {
+  assert.match(bootstrapConfigSyncSource, /isRuntimeConfigManualRestartRequiredError/);
+  assert.doesNotMatch(bootstrapConfigSyncSource, /isManualRestartRequiredMessage/);
+  assert.match(bootstrapConfigSyncSource, /phase:runtime-config-sync:manual-restart-required/);
+  assert.match(bootstrapConfigSyncSource, /return message;/);
+});
+
 test('external agent runtime facade is deleted with no desktop action bridge residue', () => {
   assert.equal(existsSync(new URL('../src/runtime/external-agent/index.ts', import.meta.url)), false);
   assert.doesNotMatch(

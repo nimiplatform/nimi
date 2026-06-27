@@ -24,6 +24,9 @@ const childEnv = {
   ...process.env,
   CARGO_TERM_PROGRESS_WHEN: process.env.CARGO_TERM_PROGRESS_WHEN || 'never',
 };
+const inheritedChildStdio = process.platform === 'win32'
+  ? ['ignore', 'inherit', 'inherit']
+  : 'inherit';
 let activeDesktopChild = null;
 let shuttingDown = false;
 let shutdownExitCode = null;
@@ -190,7 +193,7 @@ function spawnDesktopBinary(binaryPath, appArgs, options = {}, attempt = 1) {
   const child = spawn(binaryPath, appArgs, {
     cwd: process.cwd(),
     env: childEnv,
-    stdio: 'inherit',
+    stdio: inheritedChildStdio,
   });
   activeDesktopChild = child;
   child.on('error', (error) => {

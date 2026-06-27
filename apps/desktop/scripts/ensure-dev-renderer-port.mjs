@@ -22,6 +22,9 @@ const SIGNAL_EXIT_CODES = new Map([
   ['SIGTERM', 143],
   ['SIGHUP', 129],
 ]);
+const inheritedChildStdio = process.platform === 'win32'
+  ? ['ignore', 'inherit', 'inherit']
+  : 'inherit';
 
 let activeRendererChild = null;
 let shutdownSignal = null;
@@ -251,7 +254,7 @@ function spawnRenderer(command, args) {
   const child = spawn(spawnPlan.command, spawnPlan.args, {
     cwd: desktopRoot,
     env: process.env,
-    stdio: 'inherit',
+    stdio: inheritedChildStdio,
   });
   activeRendererChild = child;
 

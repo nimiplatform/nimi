@@ -1,12 +1,34 @@
 #!/usr/bin/env node
 import { spawn, spawnSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const tauriBin = process.platform === 'win32' ? 'tauri.cmd' : 'tauri';
 const pnpmBin = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
-const workspaceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
+const desktopRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const workspaceRoot = path.resolve(desktopRoot, '../..');
+const sdkDistRoot = path.join(workspaceRoot, 'sdks', 'typescript', 'dist');
+const tauriBin = path.join(desktopRoot, 'node_modules', '.bin', process.platform === 'win32' ? 'tauri.cmd' : 'tauri');
 const args = ['dev', '--config', 'src-tauri/tauri.conf.json'];
+const REQUIRED_SDK_DIST_FILES = [
+  'index.js',
+  'runtime/index.js',
+  'runtime/generated.js',
+  'realm/index.js',
+  'realm/generated.js',
+  'types/index.js',
+  'core/ai/index.js',
+  'core/app/index.js',
+  'core/contracts/index.js',
+  'core/testing/index.js',
+  'features/conversation/index.js',
+  'features/knowledge-context/index.js',
+  'features/memory-context/index.js',
+  'features/generation/index.js',
+  'features/workflow/index.js',
+  'features/evaluation/index.js',
+  'features/toolkits/index.js',
+];
 const SIGNAL_EXIT_CODES = new Map([
   ['SIGINT', 130],
   ['SIGTERM', 143],
@@ -46,8 +68,22 @@ const childEnv = {
   ...process.env,
   CARGO_TERM_PROGRESS_WHEN: process.env.CARGO_TERM_PROGRESS_WHEN || 'never',
 };
+const inheritedChildStdio = process.platform === 'win32'
+  ? ['ignore', 'inherit', 'inherit']
+  : 'inherit';
 
-function buildSdkDistForDesktopDev() {
+function isSdkDistReadyForDesktopDev() {
+  if (process.env.NIMI_DESKTOP_DEV_REBUILD_SDK === '1') {
+    return false;
+  }
+  return REQUIRED_SDK_DIST_FILES.every((relativePath) =>
+    existsSync(path.join(sdkDistRoot, ...relativePath.split('/'))));
+}
+
+function ensureSdkDistForDesktopDev() {
+  if (isSdkDistReadyForDesktopDev()) {
+    return;
+  }
   const pnpmArgs = ['--dir', workspaceRoot, '--filter', '@nimiplatform/sdk', 'build'];
   const buildCommand = process.platform === 'win32' ? 'cmd.exe' : pnpmBin;
   const buildArgs = process.platform === 'win32'
@@ -138,16 +174,16 @@ function exitFromSignal(signal) {
   }
 }
 
-buildSdkDistForDesktopDev();
+ensureSdkDistForDesktopDev();
 
 for (const signal of SIGNAL_EXIT_CODES.keys()) {
   process.on(signal, () => exitFromSignal(signal));
 }
 
 const child = spawn(command, commandArgs, {
-  cwd: process.cwd(),
+  cwd: desktopRoot,
   env: childEnv,
-  stdio: 'inherit',
+  stdio: inheritedChildStdio,
 });
 activeTauriChild = child;
 

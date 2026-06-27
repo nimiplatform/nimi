@@ -110,6 +110,11 @@ test('dev renderer runner lets Ctrl-C reach the delegated renderer before forced
   assert.match(rendererRunnerSource, /if \(signal !== 'SIGINT'\)/);
 });
 
+test('dev renderer runner does not let Windows child shells inherit stdin', () => {
+  assert.match(rendererRunnerSource, /const inheritedChildStdio = process\.platform === 'win32'[\s\S]*\['ignore', 'inherit', 'inherit'\][\s\S]*: 'inherit'/);
+  assert.match(rendererRunnerSource, /stdio: inheritedChildStdio/);
+});
+
 test('dev renderer runner treats SIGTERM as a successful Tauri handoff shutdown', {
   skip: process.platform === 'win32'
     ? 'Node child.kill(SIGTERM) terminates Windows child processes instead of delivering a JS signal handler.'
