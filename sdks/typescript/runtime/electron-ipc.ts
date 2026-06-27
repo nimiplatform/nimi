@@ -139,8 +139,6 @@ const ELECTRON_RENDERER_FORBIDDEN_IDENTITY_METADATA_KEYS = new Set([
 
 export interface RuntimeElectronIpcTransportOptions {
   readonly type?: 'electron-ipc';
-  readonly commandNamespace?: string;
-  readonly eventNamespace?: string;
 }
 
 export class RuntimeElectronIpcTransportError extends Error {
@@ -205,11 +203,7 @@ function ensureListen(): ElectronListen {
   return listen;
 }
 
-function createCommandName(options: RuntimeElectronIpcTransportOptions, suffix: string): string {
-  if (options.commandNamespace) {
-    const namespace = String(options.commandNamespace).trim();
-    return `${namespace}.${suffix}`;
-  }
+function createCommandName(suffix: string): string {
   const command = STANDARD_ELECTRON_RUNTIME_COMMANDS[suffix as keyof typeof STANDARD_ELECTRON_RUNTIME_COMMANDS];
   if (!command) {
     throw new RuntimeElectronIpcTransportError(
@@ -221,9 +215,8 @@ function createCommandName(options: RuntimeElectronIpcTransportOptions, suffix: 
   return command;
 }
 
-function createEventName(options: RuntimeElectronIpcTransportOptions, streamId: string): string {
-  const namespace = String(options.eventNamespace || DEFAULT_EVENT_NAMESPACE).trim() || DEFAULT_EVENT_NAMESPACE;
-  return `${namespace}:stream:${streamId}`;
+function createEventName(streamId: string): string {
+  return `${DEFAULT_EVENT_NAMESPACE}:stream:${streamId}`;
 }
 
 function createClientStreamId(): string {
@@ -421,7 +414,7 @@ export function createRuntimeElectronIpcTransport(
   const invokeUnaryBytes = async (methodId: string, body: Uint8Array, request: CoreUnaryRequest): Promise<Uint8Array> => {
     const invoke = ensureInvoke();
     const { metadata } = splitRuntimeMetadata(request.metadata);
-    const response = asObject(await invoke(createCommandName(options, 'unary'), {
+    const response = asObject(await invoke(createCommandName('unary'), {
       payload: {
         methodId,
         requestBytesBase64: toBase64(body),
@@ -466,7 +459,7 @@ export function createRuntimeElectronIpcTransport(
         return;
       }
       try {
-        await invoke(createCommandName(options, 'stream_close'), {
+        await invoke(createCommandName('stream_close'), {
           payload: { streamId },
         });
       } catch {
@@ -537,7 +530,7 @@ export function createRuntimeElectronIpcTransport(
     };
 
     try {
-      unsubscribe = await Promise.resolve(listen(createEventName(options, streamId), (event) => {
+      unsubscribe = await Promise.resolve(listen(createEventName(streamId), (event) => {
         const payload = asObject(event.payload) as RuntimeBridgeStreamEvent;
         const eventType = normalizeText(payload.eventType ?? payload.event_type);
         if (eventType === 'next') {
@@ -561,14 +554,14 @@ export function createRuntimeElectronIpcTransport(
           flush();
         }
       }));
-      const opened = asObject(await invoke(createCommandName(options, 'stream_open'), {
+      const opened = asObject(await invoke(createCommandName('stream_open'), {
         payload: {
           methodId,
           streamId,
           requestBytesBase64: toBase64(body),
           metadata,
           timeoutMs: request.timeoutMs,
-          eventNamespace: options.eventNamespace,
+          eventNamespace: DEFAULT_EVENT_NAMESPACE,
         },
       })) as RuntimeBridgeStreamOpenResponse;
       const openedStreamId = normalizeText(opened.streamId ?? opened.stream_id) ?? '';
