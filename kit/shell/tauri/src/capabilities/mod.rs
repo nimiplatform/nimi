@@ -7,6 +7,7 @@ pub const STANDARD_SHELL_CAPABILITY_IDS: &[&str] = &[
     "runtime-defaults",
     "auth",
     "oauth",
+    "shell-ui",
     "diagnostics",
     "data",
     "storage",
@@ -164,6 +165,30 @@ pub const STANDARD_SHELL_CAPABILITIES: &[StandardShellCapability] = &[
                     "invalid-payload",
                     "host-internal-error",
                 ],
+            },
+        ],
+    },
+    StandardShellCapability {
+        id: "shell-ui",
+        operations: &[
+            StandardShellOperation {
+                id: "confirmDialog",
+                command: "nimi.shell.ui.confirmDialog",
+                negative_states: &[
+                    "capability-unavailable",
+                    "invalid-payload",
+                    "host-internal-error",
+                ],
+            },
+            StandardShellOperation {
+                id: "startWindowDrag",
+                command: "nimi.shell.ui.startWindowDrag",
+                negative_states: &["capability-unavailable", "host-internal-error"],
+            },
+            StandardShellOperation {
+                id: "focusMainWindow",
+                command: "nimi.shell.ui.focusMainWindow",
+                negative_states: &["capability-unavailable", "host-internal-error"],
             },
         ],
     },

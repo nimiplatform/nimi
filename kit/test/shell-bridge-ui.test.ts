@@ -43,7 +43,7 @@ describe('shell renderer UI bridge primitives', () => {
       invoke: async (command, payload) => {
         calls.push({ command, payload });
         if (command === NIMI_STANDARD_SHELL_COMMANDS['oauth.openExternalUrl']) return { opened: true };
-        if (command === 'confirm_dialog') return { confirmed: true };
+        if (command === NIMI_STANDARD_SHELL_COMMANDS['shell-ui.confirmDialog']) return { confirmed: true };
         return {};
       },
     };
@@ -57,9 +57,9 @@ describe('shell renderer UI bridge primitives', () => {
 
     expect(calls.map((call) => call.command)).toEqual([
       NIMI_STANDARD_SHELL_COMMANDS['oauth.openExternalUrl'],
-      'confirm_dialog',
-      'start_window_drag',
-      'focus_main_window',
+      NIMI_STANDARD_SHELL_COMMANDS['shell-ui.confirmDialog'],
+      NIMI_STANDARD_SHELL_COMMANDS['shell-ui.startWindowDrag'],
+      NIMI_STANDARD_SHELL_COMMANDS['shell-ui.focusMainWindow'],
     ]);
   });
 });

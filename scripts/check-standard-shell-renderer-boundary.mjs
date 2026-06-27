@@ -4,8 +4,12 @@ import { fileURLToPath } from 'node:url';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const bridgeRoot = path.join(repoRoot, 'kit/shell/renderer/src/bridge');
+const bootstrapRoot = path.join(repoRoot, 'kit/shell/renderer/src/bootstrap');
 const avatarRendererRoot = path.join(repoRoot, 'apps/avatar/src/shell/renderer');
 const failures = [];
+const allowedRawTauriBootstrapFiles = new Set([
+  'kit/shell/renderer/src/bootstrap/runtime-bridge.ts',
+]);
 
 const standardCommandFiles = [
   'auth-session.ts',
@@ -24,6 +28,18 @@ for (const file of collectSourceFiles(bridgeRoot)) {
   reject(content, /\bOFFLINE_STATUS\b/u, relative, 'renderer bridge must not return offline daemon fallback status');
   reject(content, /(?<!nimi-shell-)file:\/\//u, relative, 'renderer bridge must not expose raw file:// URLs');
   reject(content, /return\s+fileUrl\s*;/u, relative, 'renderer bridge must not return raw local file URLs as a fallback');
+  reject(content, /\binvoke(?:Checked)?\(\s*['"`]/u, relative, 'renderer bridge command names must be sourced from shell/capabilities');
+}
+
+for (const file of collectSourceFiles(bootstrapRoot)) {
+  const relative = slash(path.relative(repoRoot, file));
+  const content = readFileSync(file, 'utf8');
+  if (!/@tauri-apps\/api/u.test(content)) {
+    continue;
+  }
+  if (!allowedRawTauriBootstrapFiles.has(relative)) {
+    failures.push(`${relative}: raw Tauri bootstrap imports are only allowed in the standard shell runtime adapter seam`);
+  }
 }
 
 for (const file of collectSourceFiles(avatarRendererRoot)) {

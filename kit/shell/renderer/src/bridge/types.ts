@@ -172,7 +172,7 @@ export function parseRuntimeBridgeConfigSetResult(value: unknown): RuntimeBridge
 }
 
 export function parseConfirmDialogResult(value: unknown): ConfirmDialogResult {
-  const record = assertBridgeRecord(value, 'confirm_dialog returned invalid payload');
+  const record = assertBridgeRecord(value, 'nimi.shell.ui.confirmDialog returned invalid payload');
   return {
     confirmed: Boolean(record.confirmed),
   };

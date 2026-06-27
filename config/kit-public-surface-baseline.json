@@ -1241,6 +1241,7 @@
         "export * from './runtime-defaults.js';",
         "export * from './runtime-lifecycle.js';",
         "export * from './runtime.js';",
+        "export * from './shell-ui.js';",
         "export * from './storage.js';"
       ],
       "expandedExports": [
@@ -1269,6 +1270,7 @@
         "const NIMI_STANDARD_SHELL_CAPABILITY_IDS",
         "const NIMI_STANDARD_SHELL_COMMANDS",
         "const NIMI_STANDARD_SHELL_ERROR_CODES",
+        "const NIMI_STANDARD_SHELL_UI_COMMANDS",
         "const NIMI_STORAGE_SHELL_COMMANDS",
         "function buildNimiAppsBridgeProjection",
         "function buildNimiAppsPackagesRecordFromRows",
@@ -1334,6 +1336,8 @@
         "type NimiElectronAIConfigStoreSetInput",
         "type NimiElectronCommandHandler",
         "type NimiElectronCommandHandlerInput",
+        "type NimiElectronConfirmDialogPayload",
+        "type NimiElectronConfirmDialogResult",
         "type NimiElectronIpcMain",
         "type NimiElectronIpcMainInvokeEvent",
         "type NimiElectronLocalAgentIdentityInput",
@@ -1343,6 +1347,8 @@
         "type NimiElectronRuntimeConfigGetResult",
         "type NimiElectronRuntimeTrustedCallerInput",
         "type NimiElectronRuntimeTrustedCallerMode",
+        "type NimiElectronShellUiCommandInput",
+        "type NimiElectronShellUiLevel",
         "type NimiElectronStandardShellHost",
         "type RegisterNimiElectronRuntimeBridgeInput",
         "type RegisteredNimiElectronRuntimeBridge",

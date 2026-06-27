@@ -32,13 +32,13 @@ export async function openExternalUrl(url: string): Promise<OpenExternalUrlResul
 }
 
 export async function confirmDialog(payload: ConfirmDialogPayload): Promise<ConfirmDialogResult> {
-  return invokeChecked('confirm_dialog', { payload }, parseConfirmDialogResult);
+  return invokeChecked(NIMI_STANDARD_SHELL_COMMANDS['shell-ui.confirmDialog'], { payload }, parseConfirmDialogResult);
 }
 
 export async function startWindowDrag(): Promise<void> {
-  await invokeChecked('start_window_drag', {}, () => undefined);
+  await invokeChecked(NIMI_STANDARD_SHELL_COMMANDS['shell-ui.startWindowDrag'], {}, () => undefined);
 }
 
 export async function focusMainWindow(): Promise<void> {
-  await invoke('focus_main_window', {});
+  await invoke(NIMI_STANDARD_SHELL_COMMANDS['shell-ui.focusMainWindow'], {});
 }

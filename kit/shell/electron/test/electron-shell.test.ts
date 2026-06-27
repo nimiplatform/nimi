@@ -169,6 +169,7 @@ describe('Electron standard shell source boundaries', () => {
       'runtime-lifecycle.ts',
       'auth.ts',
       'oauth.ts',
+      'shell-ui.ts',
       'diagnostics.ts',
       'data-storage.ts',
       'config.ts',
@@ -844,6 +845,98 @@ describe('registerNimiElectronRuntimeBridge', () => {
       code: 'invalid-payload',
       reasonCode: 'electron-oauth-token-provider-not-admitted',
     });
+  });
+
+  it('dispatches standard shell UI commands through host-owned callbacks', async () => {
+    const calls: string[] = [];
+    const ipcMain = new FakeIpcMain();
+    registerNimiElectronRuntimeBridge({
+      appId: 'nimi.tester',
+      runtimeEndpoint: '127.0.0.1:46371',
+      allowedOrigins: ['http://localhost:1430'],
+      ipcMain,
+      createGrpcClient: async () => {
+        throw new Error('not used');
+      },
+      standardShellHost: {
+        confirmDialog: async (payload, input) => {
+          calls.push(`${input.command}:${payload.level || 'info'}`);
+          return { confirmed: payload.title === 'Confirm' && payload.description === 'Proceed?' };
+        },
+        startWindowDrag: (input) => {
+          calls.push(input.command);
+        },
+        focusMainWindow: (input) => {
+          calls.push(input.command);
+        },
+      },
+    });
+    const { event } = createInvokeEvent();
+
+    await expect(invokeBridge(ipcMain, event, {
+      command: NIMI_STANDARD_SHELL_COMMANDS['shell-ui.confirmDialog'],
+      payload: {
+        payload: {
+          title: 'Confirm',
+          description: 'Proceed?',
+          level: 'warning',
+        },
+      },
+    })).resolves.toEqual({ confirmed: true });
+    await expect(invokeBridge(ipcMain, event, {
+      command: NIMI_STANDARD_SHELL_COMMANDS['shell-ui.startWindowDrag'],
+      payload: {},
+    })).resolves.toEqual({});
+    await expect(invokeBridge(ipcMain, event, {
+      command: NIMI_STANDARD_SHELL_COMMANDS['shell-ui.focusMainWindow'],
+      payload: {},
+    })).resolves.toEqual({});
+    await expect(invokeBridge(ipcMain, event, {
+      command: NIMI_STANDARD_SHELL_COMMANDS['shell-ui.confirmDialog'],
+      payload: {
+        title: 'Confirm',
+        description: 'Proceed?',
+        level: 'debug',
+      },
+    })).rejects.toMatchObject({
+      code: 'invalid-payload',
+      reasonCode: 'electron-shell-ui-dialog-level-invalid',
+    });
+
+    expect(calls).toEqual([
+      `${NIMI_STANDARD_SHELL_COMMANDS['shell-ui.confirmDialog']}:warning`,
+      NIMI_STANDARD_SHELL_COMMANDS['shell-ui.startWindowDrag'],
+      NIMI_STANDARD_SHELL_COMMANDS['shell-ui.focusMainWindow'],
+    ]);
+  });
+
+  it('fails closed when standard shell UI callbacks are not installed', async () => {
+    const ipcMain = new FakeIpcMain();
+    registerNimiElectronRuntimeBridge({
+      appId: 'nimi.tester',
+      runtimeEndpoint: '127.0.0.1:46371',
+      allowedOrigins: ['http://localhost:1430'],
+      ipcMain,
+      createGrpcClient: async () => {
+        throw new Error('not used');
+      },
+    });
+
+    for (const command of [
+      NIMI_STANDARD_SHELL_COMMANDS['shell-ui.confirmDialog'],
+      NIMI_STANDARD_SHELL_COMMANDS['shell-ui.startWindowDrag'],
+      NIMI_STANDARD_SHELL_COMMANDS['shell-ui.focusMainWindow'],
+    ]) {
+      await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
+        command,
+        payload: command === NIMI_STANDARD_SHELL_COMMANDS['shell-ui.confirmDialog']
+          ? { title: 'Confirm', description: 'Proceed?' }
+          : {},
+      })).rejects.toMatchObject({
+        code: 'capability-unavailable',
+        reasonCode: 'electron-standard-capability-unavailable',
+      });
+    }
   });
 
   it('implements avatar asset resolution through the standard local asset roots', async () => {

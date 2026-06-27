@@ -1,3 +1,5 @@
+// The sole renderer-side raw Tauri adapter seam: it installs the standard Nimi shell runtime hook before bridge consumers run.
+// App renderer code must consume shell/renderer and shell/capabilities instead of importing raw Tauri APIs.
 import { convertFileSrc as tauriConvertFileSrc, invoke as tauriCoreInvoke, isTauri, type InvokeArgs } from '@tauri-apps/api/core';
 import { listen as tauriEventListen } from '@tauri-apps/api/event';
 import {

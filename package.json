@@ -76,7 +76,7 @@
     "check:runtime-agent-center-local-config-boundary": "node scripts/check-runtime-agent-center-local-config-boundary.mjs",
     "check:desktop-design-contract": "node scripts/check-desktop-design-contract.mjs",
     "check:desktop-tauri-command-execution": "node scripts/check-desktop-tauri-command-execution.mjs",
-    "check:nimi-kit": "node scripts/check-nimi-kit.mjs && pnpm check:kit-sdk-contract-boundary && pnpm check:kit-feature-adapter-boundary && pnpm check:kit-feature-edge-boundary && pnpm check:kit-module-dependency-boundary && pnpm check:kit-contract-owner-boundary && pnpm check:kit-public-surface-snapshot && pnpm --filter @nimiplatform/kit build && node scripts/check-kit-package-dist.mjs && node scripts/check-canonical-capability-catalog.mjs",
+    "check:nimi-kit": "node scripts/check-nimi-kit.mjs && pnpm check:kit-sdk-contract-boundary && pnpm check:kit-feature-adapter-boundary && pnpm check:kit-feature-edge-boundary && pnpm check:kit-module-dependency-boundary && pnpm check:kit-contract-owner-boundary && pnpm check:kit-public-surface-snapshot && pnpm --filter @nimiplatform/kit build && node scripts/check-kit-package-dist.mjs && pnpm check:standard-shell && node scripts/check-canonical-capability-catalog.mjs",
     "check:standard-shell": "node scripts/check-standard-shell-electron-security.mjs && node scripts/check-standard-shell-renderer-boundary.mjs && node scripts/check-standard-shell-tauri-hardcut.mjs && node scripts/check-standard-shell-sdk-electron-drift.mjs",
     "check:canonical-capability-catalog": "node scripts/check-canonical-capability-catalog.mjs",
     "gen:canonical-capability-catalog": "node scripts/gen-canonical-capability-catalog.mjs",

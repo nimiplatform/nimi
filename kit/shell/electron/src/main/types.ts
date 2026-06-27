@@ -205,11 +205,36 @@ export type NimiElectronRuntimeConfigGetResult = {
 export type NimiElectronRuntimeConfigGet = (
 ) => Promise<NimiElectronRuntimeConfigGetResult> | NimiElectronRuntimeConfigGetResult;
 
+export type NimiElectronShellUiLevel = 'info' | 'warning' | 'error';
+
+export type NimiElectronConfirmDialogPayload = {
+  readonly title: string;
+  readonly description: string;
+  readonly level?: NimiElectronShellUiLevel;
+};
+
+export type NimiElectronConfirmDialogResult = {
+  readonly confirmed: boolean;
+};
+
+export type NimiElectronShellUiCommandInput = {
+  readonly command: string;
+  readonly event: NimiElectronIpcMainInvokeEvent;
+  readonly appId: string;
+  readonly runtimeEndpoint: string;
+};
+
 export type NimiElectronStandardShellHost = {
   readonly dataRoot?: string;
   readonly localAssetRoots?: readonly string[];
   readonly resolveLocalAssetUrl?: (filePath: string) => Promise<string> | string;
   readonly openExternalUrl?: (url: string) => Promise<void> | void;
+  readonly confirmDialog?: (
+    payload: NimiElectronConfirmDialogPayload,
+    input: NimiElectronShellUiCommandInput,
+  ) => Promise<NimiElectronConfirmDialogResult> | NimiElectronConfirmDialogResult;
+  readonly startWindowDrag?: (input: NimiElectronShellUiCommandInput) => Promise<void> | void;
+  readonly focusMainWindow?: (input: NimiElectronShellUiCommandInput) => Promise<void> | void;
   readonly localAgentIdentity?: NimiElectronLocalAgentIdentityInput;
   readonly runtimeTrustedCaller?: NimiElectronRuntimeTrustedCallerInput;
   readonly aiConfigStore?: NimiElectronAIConfigStore;

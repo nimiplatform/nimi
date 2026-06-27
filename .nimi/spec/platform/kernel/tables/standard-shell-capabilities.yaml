@@ -118,6 +118,25 @@ capabilities:
           - capability-unavailable
           - invalid-payload
           - host-internal-error
+  - id: shell-ui
+    host_contract: NimiStandardShellCapabilityHost
+    operations:
+      - id: confirmDialog
+        command: nimi.shell.ui.confirmDialog
+        negative_states:
+          - capability-unavailable
+          - invalid-payload
+          - host-internal-error
+      - id: startWindowDrag
+        command: nimi.shell.ui.startWindowDrag
+        negative_states:
+          - capability-unavailable
+          - host-internal-error
+      - id: focusMainWindow
+        command: nimi.shell.ui.focusMainWindow
+        negative_states:
+          - capability-unavailable
+          - host-internal-error
   - id: diagnostics
     host_contract: NimiStandardShellCapabilityHost
     operations:

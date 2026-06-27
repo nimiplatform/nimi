@@ -23,6 +23,7 @@ import { resolveElectronStandardLocalAssetUrl } from './local-assets.js';
 import { resolveElectronLocalAgentIdentity, resolveElectronRuntimeTrustedCaller } from './local-agent.js';
 import { exchangeElectronOauthToken, listenElectronOauthForCode, openElectronExternalUrl } from './oauth.js';
 import { resolveElectronPlatformProjection } from './platform-projection.js';
+import { confirmElectronShellDialog, focusElectronMainWindow, startElectronWindowDrag } from './shell-ui.js';
 import { asRecord, normalizeRequiredToken, normalizeText } from './paths.js';
 import {
   createElectronRuntimeBridgeCommandNames,
@@ -153,6 +154,15 @@ export function registerNimiElectronRuntimeBridge(
     if (command === NIMI_STANDARD_SHELL_COMMANDS['oauth.openExternalUrl']) return openElectronExternalUrl(input.standardShellHost, payload, command);
     if (command === NIMI_STANDARD_SHELL_COMMANDS['oauth.tokenExchange']) return exchangeElectronOauthToken(input.standardShellHost, payload, command);
     if (command === NIMI_STANDARD_SHELL_COMMANDS['oauth.listenForCode']) return listenElectronOauthForCode(payload, command);
+    if (command === NIMI_STANDARD_SHELL_COMMANDS['shell-ui.confirmDialog']) {
+      return confirmElectronShellDialog({ host: input.standardShellHost, payload, command, event, appId, runtimeEndpoint });
+    }
+    if (command === NIMI_STANDARD_SHELL_COMMANDS['shell-ui.startWindowDrag']) {
+      return startElectronWindowDrag({ host: input.standardShellHost, command, event, appId, runtimeEndpoint });
+    }
+    if (command === NIMI_STANDARD_SHELL_COMMANDS['shell-ui.focusMainWindow']) {
+      return focusElectronMainWindow({ host: input.standardShellHost, command, event, appId, runtimeEndpoint });
+    }
     if (command === NIMI_STANDARD_SHELL_COMMANDS['local-assets.resolveUrl']) return resolveElectronStandardLocalAssetUrl(input.standardShellHost, payload, command);
     if (command === NIMI_STANDARD_SHELL_COMMANDS['avatar.assetResolve']) return resolveElectronAvatarAssetUrl(input.standardShellHost, payload, command);
     if (command === NIMI_STANDARD_SHELL_COMMANDS['local-agent.identity']) return resolveElectronLocalAgentIdentity(input.standardShellHost, command);

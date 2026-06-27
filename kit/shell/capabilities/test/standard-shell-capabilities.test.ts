@@ -88,6 +88,7 @@ describe('standard shell capabilities', () => {
       'runtime-defaults.ts',
       'auth.ts',
       'oauth.ts',
+      'shell-ui.ts',
       'diagnostics.ts',
       'data.ts',
       'storage.ts',
