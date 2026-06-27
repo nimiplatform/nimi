@@ -184,7 +184,7 @@ func TestManagedMediaResolveLoadOverrides(t *testing.T) {
 		}
 	})
 
-	t.Run("profile sampler fallback remains canonical", func(t *testing.T) {
+	t.Run("profile sampler fallback remains canonical without scheduler default", func(t *testing.T) {
 		got := managedMediaResolveLoadOverrides(
 			map[string]any{"sampling_method": "Euler_A"},
 			map[string]any{},
@@ -192,11 +192,24 @@ func TestManagedMediaResolveLoadOverrides(t *testing.T) {
 		if got.Sampler != "euler_a" {
 			t.Fatalf("Sampler = %q, want euler_a", got.Sampler)
 		}
-		if got.Scheduler != "discrete" {
-			t.Fatalf("Scheduler = %q, want discrete", got.Scheduler)
+		if got.Scheduler != "" {
+			t.Fatalf("Scheduler = %q, want empty", got.Scheduler)
 		}
 		if got.CFGScale != 0 {
 			t.Fatalf("CFGScale = %f, want 0", got.CFGScale)
+		}
+	})
+
+	t.Run("profile option scheduler remains explicit", func(t *testing.T) {
+		got := managedMediaResolveLoadOverrides(
+			map[string]any{"options": []string{"diffusion_model", "sampler:heun", "scheduler:karras"}},
+			map[string]any{},
+		)
+		if got.Sampler != "heun" {
+			t.Fatalf("Sampler = %q, want heun", got.Sampler)
+		}
+		if got.Scheduler != "karras" {
+			t.Fatalf("Scheduler = %q, want karras", got.Scheduler)
 		}
 	})
 }

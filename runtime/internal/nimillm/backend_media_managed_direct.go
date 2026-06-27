@@ -358,7 +358,10 @@ func managedMediaResolveSampler(profile map[string]any, scenarioExtensions map[s
 			return sampler
 		}
 	}
-	return "euler"
+	if sampler := managedMediaCanonicalSampler(managedMediaProfileOptionValue(profile, "sampler")); sampler != "" {
+		return sampler
+	}
+	return ""
 }
 
 func managedMediaResolveLoadOverrides(profile map[string]any, scenarioExtensions map[string]any) managedMediaLoadOverrides {
@@ -379,7 +382,10 @@ func managedMediaResolveScheduler(profile map[string]any, scenarioExtensions map
 			return scheduler
 		}
 	}
-	return "discrete"
+	if scheduler := managedMediaCanonicalScheduler(managedMediaProfileOptionValue(profile, "scheduler")); scheduler != "" {
+		return scheduler
+	}
+	return ""
 }
 
 func managedMediaCanonicalScheduler(raw string) string {
@@ -459,6 +465,8 @@ func managedMediaAppliedOptions(profile map[string]any, scenarioExtensions map[s
 			applied = append(applied, "profile.mode")
 		} else if method := strings.TrimSpace(ValueAsString(profile["sampling_method"])); method != "" {
 			applied = append(applied, "profile.sampling_method->mode")
+		} else if sampler := strings.TrimSpace(managedMediaProfileOptionValue(profile, "sampler")); sampler != "" {
+			applied = append(applied, "profile.options.sampler")
 		}
 	}
 	if loadOverrides.Scheduler != "" {
@@ -466,8 +474,10 @@ func managedMediaAppliedOptions(profile map[string]any, scenarioExtensions map[s
 			applied = append(applied, "scheduler")
 		} else if scheduler := strings.TrimSpace(ValueAsString(profile["scheduler"])); scheduler != "" {
 			applied = append(applied, "profile.scheduler")
-		} else {
-			applied = append(applied, "default.scheduler")
+		} else if scheduler := strings.TrimSpace(ValueAsString(MapField(profile["parameters"], "scheduler"))); scheduler != "" {
+			applied = append(applied, "profile.parameters.scheduler")
+		} else if scheduler := strings.TrimSpace(managedMediaProfileOptionValue(profile, "scheduler")); scheduler != "" {
+			applied = append(applied, "profile.options.scheduler")
 		}
 	}
 	if cfgScale := loadOverrides.CFGScale; cfgScale > 0 {
@@ -488,6 +498,21 @@ func managedMediaIgnoredOptions(scenarioExtensions map[string]any) []string {
 		}
 	}
 	return ignored
+}
+
+func managedMediaProfileOptionValue(profile map[string]any, key string) string {
+	normalizedKey := strings.ToLower(strings.TrimSpace(key))
+	if normalizedKey == "" {
+		return ""
+	}
+	for _, option := range managedMediaStringSlice(profile["options"]) {
+		optionKey, optionValue, hasValue := strings.Cut(strings.TrimSpace(option), ":")
+		if !hasValue || strings.ToLower(strings.TrimSpace(optionKey)) != normalizedKey {
+			continue
+		}
+		return strings.TrimSpace(optionValue)
+	}
+	return ""
 }
 
 func (b *Backend) materializeManagedMediaImages(ctx context.Context, sources []string, tempDir string, prefix string) ([]string, error) {

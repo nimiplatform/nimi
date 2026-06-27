@@ -237,8 +237,8 @@ func TestExecuteBackendSyncMediaImageUsesManagedPathWhenProfileResolverReturnsMa
 		t.Fatal("expected artifact metadata")
 	}
 	applied := metadataStringList(metadata, "local.applied_options")
-	if len(applied) != 3 || applied[0] != "step" || applied[1] != "mode" || applied[2] != "default.scheduler" {
-		t.Fatalf("local.applied_options = %v, want [step mode default.scheduler]", applied)
+	if len(applied) != 2 || applied[0] != "step" || applied[1] != "mode" {
+		t.Fatalf("local.applied_options = %v, want [step mode]", applied)
 	}
 	ignored := metadataStringList(metadata, "local.ignored_options")
 	if len(ignored) != 3 || ignored[0] != "guidance_scale" || ignored[1] != "strength" || ignored[2] != "clip_skip" {

@@ -262,8 +262,12 @@ func managedImageEffectiveOptions(profile map[string]any, scenarioExtensions map
 		}
 		out = append(out, trimmed)
 	}
-	out = append(out, "sampler:"+sampler)
-	out = append(out, "scheduler:"+scheduler)
+	if sampler != "" {
+		out = append(out, "sampler:"+sampler)
+	}
+	if scheduler != "" {
+		out = append(out, "scheduler:"+scheduler)
+	}
 	return out
 }
 
@@ -278,7 +282,10 @@ func managedImageSamplerOption(profile map[string]any, scenarioExtensions map[st
 			return sampler
 		}
 	}
-	return "euler"
+	if sampler := managedImageCanonicalSampler(managedImageProfileOptionValue(profile, "sampler")); sampler != "" {
+		return sampler
+	}
+	return ""
 }
 
 func managedImageCanonicalSampler(raw string) string {
@@ -318,7 +325,10 @@ func managedImageSchedulerOption(profile map[string]any, scenarioExtensions map[
 			return scheduler
 		}
 	}
-	return "discrete"
+	if scheduler := managedImageCanonicalScheduler(managedImageProfileOptionValue(profile, "scheduler")); scheduler != "" {
+		return scheduler
+	}
+	return ""
 }
 
 func managedImageCanonicalScheduler(raw string) string {
@@ -356,6 +366,21 @@ func managedImageOptionKey(option string) string {
 		key = key[:index]
 	}
 	return strings.ToLower(strings.TrimSpace(key))
+}
+
+func managedImageProfileOptionValue(profile map[string]any, key string) string {
+	normalizedKey := strings.ToLower(strings.TrimSpace(key))
+	if normalizedKey == "" {
+		return ""
+	}
+	for _, option := range valueAsStringSlice(profile["options"]) {
+		optionKey, optionValue, hasValue := strings.Cut(strings.TrimSpace(option), ":")
+		if !hasValue || strings.ToLower(strings.TrimSpace(optionKey)) != normalizedKey {
+			continue
+		}
+		return strings.TrimSpace(optionValue)
+	}
+	return ""
 }
 
 func (s *Service) setManagedSupervisedImageUnhealthy(model *runtimev1.LocalAssetRecord, detail string) (*runtimev1.LocalAssetHealth, error) {

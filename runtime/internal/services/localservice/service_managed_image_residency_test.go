@@ -276,6 +276,50 @@ func TestEnsureManagedMediaImageLoadedStartsColdManagedImageBackend(t *testing.T
 	}
 }
 
+func TestManagedImageEffectiveOptionsDoesNotInjectSamplerSchedulerDefaults(t *testing.T) {
+	options := managedImageEffectiveOptions(map[string]any{
+		"options": []any{
+			"diffusion_model",
+			"llm_path:/tmp/qwen.gguf",
+		},
+	}, map[string]any{
+		"steps": 25,
+	})
+	if containsString(options, "sampler:euler") || containsString(options, "scheduler:discrete") {
+		t.Fatalf("default sampler/scheduler must not be injected, got %v", options)
+	}
+	if !containsString(options, "diffusion_model") || !containsString(options, "llm_path:/tmp/qwen.gguf") {
+		t.Fatalf("non sampler/scheduler options were not retained: %v", options)
+	}
+
+	profileOptions := managedImageEffectiveOptions(map[string]any{
+		"options": []any{
+			"diffusion_model",
+			"sampler:heun",
+			"scheduler:karras",
+		},
+	}, nil)
+	if !containsString(profileOptions, "sampler:heun") || !containsString(profileOptions, "scheduler:karras") {
+		t.Fatalf("explicit profile sampler/scheduler options were not retained: %v", profileOptions)
+	}
+
+	overrideOptions := managedImageEffectiveOptions(map[string]any{
+		"options": []any{
+			"diffusion_model",
+			"sampler:heun",
+			"scheduler:karras",
+		},
+	}, map[string]any{
+		"mode": "euler",
+	})
+	if !containsString(overrideOptions, "sampler:euler") || containsString(overrideOptions, "sampler:heun") {
+		t.Fatalf("scenario sampler override did not replace profile sampler: %v", overrideOptions)
+	}
+	if !containsString(overrideOptions, "scheduler:karras") {
+		t.Fatalf("profile scheduler should remain when request does not override it: %v", overrideOptions)
+	}
+}
+
 func TestManagedImageRecoverySweepSkipsBackgroundLoad(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
@@ -401,8 +445,8 @@ func TestManagedImageLoadCacheReloadsWhenRequestOverridesChange(t *testing.T) {
 	if !strings.Contains(strings.Join(loadRequests[0].Options, ","), "sampler:euler") {
 		t.Fatalf("first load options = %v, want sampler:euler", loadRequests[0].Options)
 	}
-	if !containsString(loadRequests[0].Options, "scheduler:discrete") {
-		t.Fatalf("first load options = %v, want scheduler:discrete", loadRequests[0].Options)
+	if containsString(loadRequests[0].Options, "scheduler:discrete") {
+		t.Fatalf("first load options = %v, default scheduler must not be injected", loadRequests[0].Options)
 	}
 	if !containsString(loadRequests[0].Options, "diffusion_model") {
 		t.Fatalf("first load options = %v, want diffusion_model retained", loadRequests[0].Options)
