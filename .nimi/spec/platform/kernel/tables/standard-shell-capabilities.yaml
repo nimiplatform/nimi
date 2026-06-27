@@ -1,0 +1,224 @@
+version: 1
+authority:
+  id: platform.standard-shell-capabilities
+  owner: platform
+  source_rule: P-KIT-041C
+  package_surface: "@nimiplatform/kit/shell/capabilities"
+  rust_host_surface: nimi_shell_tauri::capabilities
+  electron_host_surface: "@nimiplatform/kit/shell/electron/main"
+  renderer_surface: "@nimiplatform/kit/shell/renderer/bridge"
+
+error_envelope:
+  required_fields:
+    - code
+    - reasonCode
+    - actionHint
+    - source
+  optional_fields:
+    - details
+  codes:
+    - capability-unavailable
+    - external-daemon-required
+    - forbidden-renderer-access
+    - invalid-path
+    - not-found
+    - invalid-payload
+    - host-internal-error
+
+capabilities:
+  - id: runtime
+    host_contract: NimiStandardShellCapabilityHost
+    operations:
+      - id: unary
+        command: nimi.shell.runtime.unary
+        negative_states:
+          - capability-unavailable
+          - external-daemon-required
+          - invalid-payload
+          - host-internal-error
+      - id: streamOpen
+        command: nimi.shell.runtime.stream.open
+        negative_states:
+          - capability-unavailable
+          - external-daemon-required
+          - invalid-payload
+          - host-internal-error
+      - id: streamClose
+        command: nimi.shell.runtime.stream.close
+        negative_states:
+          - capability-unavailable
+          - not-found
+          - invalid-payload
+          - host-internal-error
+  - id: runtime-lifecycle
+    host_contract: NimiStandardShellCapabilityHost
+    operations:
+      - id: status
+        command: nimi.shell.runtimeLifecycle.status
+        negative_states:
+          - capability-unavailable
+          - external-daemon-required
+      - id: start
+        command: nimi.shell.runtimeLifecycle.start
+        negative_states:
+          - external-daemon-required
+      - id: stop
+        command: nimi.shell.runtimeLifecycle.stop
+        negative_states:
+          - external-daemon-required
+      - id: restart
+        command: nimi.shell.runtimeLifecycle.restart
+        negative_states:
+          - external-daemon-required
+  - id: runtime-defaults
+    host_contract: NimiStandardShellCapabilityHost
+    operations:
+      - id: get
+        command: nimi.shell.runtimeDefaults.get
+        negative_states:
+          - capability-unavailable
+          - invalid-payload
+  - id: auth
+    host_contract: NimiStandardShellCapabilityHost
+    operations:
+      - id: sessionLoad
+        command: nimi.shell.auth.session.load
+        negative_states:
+          - external-daemon-required
+          - capability-unavailable
+      - id: sessionSave
+        command: nimi.shell.auth.session.save
+        negative_states:
+          - external-daemon-required
+          - capability-unavailable
+          - invalid-payload
+      - id: sessionClear
+        command: nimi.shell.auth.session.clear
+        negative_states:
+          - external-daemon-required
+          - capability-unavailable
+  - id: oauth
+    host_contract: NimiStandardShellCapabilityHost
+    operations:
+      - id: openExternalUrl
+        command: nimi.shell.oauth.openExternalUrl
+        negative_states:
+          - capability-unavailable
+          - forbidden-renderer-access
+          - invalid-payload
+      - id: tokenExchange
+        command: nimi.shell.oauth.tokenExchange
+        negative_states:
+          - capability-unavailable
+          - invalid-payload
+          - host-internal-error
+      - id: listenForCode
+        command: nimi.shell.oauth.listenForCode
+        negative_states:
+          - capability-unavailable
+          - invalid-payload
+          - host-internal-error
+  - id: diagnostics
+    host_contract: NimiStandardShellCapabilityHost
+    operations:
+      - id: rendererEntryProbe
+        command: nimi.shell.diagnostics.rendererEntryProbe
+        negative_states:
+          - capability-unavailable
+          - invalid-payload
+  - id: data
+    host_contract: NimiStandardShellCapabilityHost
+    operations:
+      - id: pathResolve
+        command: nimi.shell.data.pathResolve
+        negative_states:
+          - capability-unavailable
+          - invalid-path
+  - id: storage
+    host_contract: NimiStandardShellCapabilityHost
+    operations:
+      - id: readJson
+        command: nimi.shell.storage.readJson
+        negative_states:
+          - capability-unavailable
+          - invalid-path
+          - not-found
+      - id: writeJson
+        command: nimi.shell.storage.writeJson
+        negative_states:
+          - capability-unavailable
+          - invalid-path
+          - invalid-payload
+  - id: config
+    host_contract: NimiStandardShellCapabilityHost
+    operations:
+      - id: get
+        command: nimi.shell.config.get
+        negative_states:
+          - capability-unavailable
+          - not-found
+      - id: set
+        command: nimi.shell.config.set
+        negative_states:
+          - external-daemon-required
+          - capability-unavailable
+          - invalid-payload
+  - id: local-assets
+    host_contract: NimiStandardShellCapabilityHost
+    operations:
+      - id: resolveUrl
+        command: nimi.shell.localAssets.resolveUrl
+        negative_states:
+          - capability-unavailable
+          - invalid-path
+          - not-found
+  - id: local-agent
+    host_contract: NimiStandardShellCapabilityHost
+    operations:
+      - id: identity
+        command: nimi.shell.localAgent.identity
+        negative_states:
+          - capability-unavailable
+      - id: runtimeTrustedCaller
+        command: nimi.shell.localAgent.runtimeTrustedCaller
+        negative_states:
+          - capability-unavailable
+          - forbidden-renderer-access
+  - id: ai-profile
+    host_contract: NimiStandardShellCapabilityHost
+    operations:
+      - id: get
+        command: nimi.shell.aiProfile.get
+        negative_states:
+          - capability-unavailable
+          - not-found
+  - id: ai-config
+    host_contract: NimiStandardShellCapabilityHost
+    operations:
+      - id: get
+        command: nimi.shell.aiConfig.get
+        negative_states:
+          - capability-unavailable
+          - not-found
+      - id: set
+        command: nimi.shell.aiConfig.set
+        negative_states:
+          - capability-unavailable
+          - invalid-payload
+  - id: avatar
+    host_contract: NimiStandardShellCapabilityHost
+    operations:
+      - id: assetResolve
+        command: nimi.shell.avatar.assetResolve
+        negative_states:
+          - capability-unavailable
+          - invalid-path
+          - not-found
+  - id: platform-projection
+    host_contract: NimiStandardShellCapabilityHost
+    operations:
+      - id: get
+        command: nimi.shell.platformProjection.get
+        negative_states:
+          - capability-unavailable
+          - not-found

@@ -131,11 +131,30 @@ modules:
     admission_status: active
     owner: platform
     source_rule: P-KIT-030
+  - id: kit.shell.capabilities
+    subpath: /shell/capabilities
+    kind: infra
+    surface_level: infra
+    adapter_contract: NimiStandardShellCapabilityContract
+    description: Standard Nimi shell capability contract for Tauri, Electron, and renderer bridge consumers; owns capability ids, operation ids, command names, operation-level negative states, and the standard shell error envelope.
+    dependencies: []
+    peer_dependencies: []
+    exports:
+      - ./shell/capabilities
+    headless_exports:
+      - ./shell/capabilities
+    ui_exports: []
+    reuse_entrypoints:
+      - ./shell/capabilities
+    admission_status: active
+    owner: platform
+    source_rule: P-KIT-041C
+    notes: Machine truth is .nimi/spec/platform/kernel/tables/standard-shell-capabilities.yaml. Topic documents, acceptance matrices, and gate descriptions consume or validate that table only.
   - id: kit.shell.tauri
     subpath: /shell/tauri
     kind: infra
     surface_level: infra
-    adapter_contract: none
+    adapter_contract: NimiStandardShellCapabilityHost
     description: Shared Tauri host glue — runtime bridge, daemon lifecycle, session logging, auth/oauth commands, runtime defaults, packaged Platform catalog projections, deterministic host projection record builders, and SDK-shaped host bridge mappers for Rust host materialization/verification code. Delivered as the public Rust crate nimi-shell-tauri for standalone apps and as a Cargo path dependency for workspace apps, within the single kit authority.
     dependencies: []
     peer_dependencies: []
@@ -149,15 +168,15 @@ modules:
     public_crate_name: nimi-shell-tauri
     standalone_dependency: published_crate_after_api_publication_admission
     workspace_dependency: cargo_path_dependency
-    implementation_rename: none
-    notes: Non-npm Rust crate. Standalone apps consume the public delivery crate name nimi-shell-tauri after API/publication mechanics are admitted; workspace apps consume via Cargo path dependency. No package.json exports. This admission does not rename implementation files, package manifests, crate source, package exports, or the kit.shell.tauri authority id. The platform_catalog Rust modules are generated read-only Platform catalog projections for consumers; platform_projection Rust modules provide deterministic host projection record construction/validation and SDK-shaped bridge mapping from those catalog projections. Canonical truth remains under .nimi/spec/platform/kernel/tables/**; apps remain responsible for admitted storage roots, file materialization, and app-specific command adapters.
+    notes: Non-npm Rust crate. Standalone apps consume the public delivery crate name nimi-shell-tauri after API/publication mechanics are admitted; workspace apps consume via Cargo path dependency. No package.json exports. Standard capability truth comes from kit.shell.capabilities and standard-shell-capabilities.yaml. The platform_catalog Rust modules are generated read-only Platform catalog projections for consumers; platform_projection Rust modules provide deterministic host projection record construction/validation and SDK-shaped bridge mapping from those catalog projections. Canonical truth remains under .nimi/spec/platform/kernel/tables/**; apps remain responsible for admitted storage roots, file materialization, and app-specific command adapters.
   - id: kit.shell.renderer
     subpath: /shell/renderer
     kind: infra
     surface_level: infra
-    adapter_contract: none
+    adapter_contract: NimiStandardShellRendererBridge
     description: Shared renderer shell glue for Tauri and Electron hosts - host-neutral command wrappers, bridge primitives, and bootstrap skeleton. Delivered as subpath exports of the single nimi-kit npm package.
     dependencies:
+      - kit.shell.capabilities
       - kit.core
       - kit.auth
       - kit.telemetry
@@ -181,9 +200,10 @@ modules:
     subpath: /shell/electron
     kind: infra
     surface_level: infra
-    adapter_contract: none
+    adapter_contract: NimiStandardShellCapabilityHost
     description: Shared Electron main/preload host glue for Runtime gRPC proxying, narrowed preload IPC exposure, stream forwarding, origin allowlisting, app identity enforcement, artifact URL serving, and externally managed daemon status projection.
     dependencies:
+      - kit.shell.capabilities
       - sdk
       - "@grpc/grpc-js"
     peer_dependencies:
@@ -191,17 +211,20 @@ modules:
     exports:
       - ./shell/electron/main
       - ./shell/electron/preload
+      - ./shell/electron/preload-cjs
     headless_exports:
       - ./shell/electron/main
       - ./shell/electron/preload
+      - ./shell/electron/preload-cjs
     ui_exports: []
     reuse_entrypoints:
       - ./shell/electron/main
       - ./shell/electron/preload
+      - ./shell/electron/preload-cjs
     admission_status: active
     owner: platform
     source_rule: P-KIT-041E
-    notes: Node/Electron-host only. Renderer code must not import this module directly. Phase 1 Runtime daemon lifecycle is external-host only; start/stop/restart/config mutation must fail closed with external-daemon-required until a separate authority cut admits Electron daemon ownership. Runtime calls use @grpc/grpc-js raw identity byte proxying and preserve SDK tauri-ipc wire shape.
+    notes: Node/Electron-host only. Renderer code must not import this module directly. Runtime daemon lifecycle is external-host only; start/stop/restart/config mutation must fail closed with the standard external-daemon-required envelope until a separate authority cut admits Electron daemon ownership. Runtime calls use @grpc/grpc-js raw identity byte proxying and preserve SDK tauri-ipc wire shape.
   - id: kit.core.runtime-capabilities
     subpath: /core/runtime-capabilities
     kind: logic
