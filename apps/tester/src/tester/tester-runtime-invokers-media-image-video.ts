@@ -14,7 +14,7 @@ import {
 import { imageProfileExtensions, resolveImageRuntimeBinding } from './tester-runtime-media-bindings.js';
 import { artifactsFrom, summariseArtifact, summariseJob, traceFromRuntimeOutput, type RuntimeMediaJobOutput } from './tester-runtime-invokers-media-artifacts.js';
 import { ensureLocalImageEnvironmentReady } from './tester-runtime-invokers-media-environment.js';
-import { isUnavailable, videoParamsFromBinding } from './tester-runtime-invokers-media-params.js';
+import { imageParamsFromBinding, isUnavailable, videoParamsFromBinding } from './tester-runtime-invokers-media-params.js';
 import { runtimeJobHead, runtimeJobIdentity, runtimeLabels, withRuntimeClientTimeout } from './tester-runtime-invokers-media-runtime.js';
 
 export async function invokeImageGenerate(client: TesterRuntimeInvocationClient, input: TesterScenarioInput): Promise<TesterInvocationResult> {
@@ -29,28 +29,60 @@ export async function invokeImageGenerate(client: TesterRuntimeInvocationClient,
   const subjectUserId = requireRuntimeSubjectUserId('image.generate', client);
   try {
     const imageBinding = await resolveImageRuntimeBinding(client, resolved);
+    const imageParams = imageParamsFromBinding(imageBinding.resolved);
+    if (isUnavailable(imageParams)) return imageParams;
     const localEnvironmentUnavailable = await ensureLocalImageEnvironmentReady(client, imageBinding);
     if (localEnvironmentUnavailable) return localEnvironmentUnavailable;
+    const timeoutMs = imageParams.timeoutMs ?? 120_000;
     const route = runtimeRoutePayload(imageBinding.resolved);
-    const extensions = imageProfileExtensions(imageBinding);
+    const extensions = imageProfileExtensions(imageBinding, imageParams.providerOptions);
     const mediaImage = client.runtime.media?.image;
-    const output = mediaImage
-      ? await mediaImage.generate({
-        ...route,
-        subjectUserId,
-        prompt,
-        extensions,
-        metadata: runtimeLabels('nimi.tester.media.image.generate', imageBinding.resolved, schedulingPreflight.evidenceMetadata),
-      }) as RuntimeMediaJobOutput
-      : await runNimiRuntimeScenarioJob({
-        ai: client.runtime.ai,
-        request: buildNimiRuntimeGenerationSubmitRequest(runtimeJobHead(imageBinding.resolved, subjectUserId), {
-          scenario: { kind: 'image', prompt },
-          ...runtimeJobIdentity('image.generate', input.scenarioId),
-          labels: runtimeLabels('nimi.tester.ai.image.generate', imageBinding.resolved, schedulingPreflight.evidenceMetadata),
+    const output = await withRuntimeClientTimeout('image.generate', timeoutMs, async (signal) => (
+      mediaImage
+        ? await mediaImage.generate({
+          ...route,
+          subjectUserId,
+          prompt,
+          negativePrompt: imageParams.negativePrompt,
+          count: imageParams.count,
+          size: imageParams.size,
+          aspectRatio: imageParams.aspectRatio,
+          quality: imageParams.quality,
+          style: imageParams.style,
+          seed: imageParams.seed,
+          referenceImages: imageParams.referenceImages,
+          mask: imageParams.mask,
+          responseFormat: imageParams.responseFormat,
           extensions,
-        }),
-      });
+          timeoutMs,
+          signal,
+          metadata: runtimeLabels('nimi.tester.media.image.generate', imageBinding.resolved, schedulingPreflight.evidenceMetadata),
+        }) as RuntimeMediaJobOutput
+        : await runNimiRuntimeScenarioJob({
+          ai: client.runtime.ai,
+          request: buildNimiRuntimeGenerationSubmitRequest({ ...runtimeJobHead(imageBinding.resolved, subjectUserId), timeoutMs }, {
+            scenario: {
+              kind: 'image',
+              prompt,
+              negativePrompt: imageParams.negativePrompt,
+              count: imageParams.count,
+              size: imageParams.size,
+              aspectRatio: imageParams.aspectRatio,
+              quality: imageParams.quality,
+              style: imageParams.style,
+              seed: imageParams.seed,
+              referenceImages: imageParams.referenceImages,
+              mask: imageParams.mask,
+              responseFormat: imageParams.responseFormat,
+            },
+            ...runtimeJobIdentity('image.generate', input.scenarioId),
+            labels: runtimeLabels('nimi.tester.ai.image.generate', imageBinding.resolved, schedulingPreflight.evidenceMetadata),
+            extensions,
+          }),
+          signal,
+          abortReason: `tester_image_generate_timeout_${timeoutMs}ms`,
+        })
+    ));
     const artifacts = artifactsFrom(output);
     const job = summariseJob(output.job);
     return {

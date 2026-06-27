@@ -58,6 +58,7 @@ export default defineConfig({
   base: './',
   plugins: [react(), tailwindcss()],
   resolve: {
+    dedupe: ['react', 'react-dom', 'react/jsx-runtime', 'react/jsx-dev-runtime'],
     alias: [
       { find: '@nimiplatform/kit/ui', replacement: path.join(repoRoot, 'kit/ui/src') },
       { find: '@nimiplatform/kit/auth', replacement: path.join(repoRoot, 'kit/auth/src') },

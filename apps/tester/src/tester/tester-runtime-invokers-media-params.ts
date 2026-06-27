@@ -1,6 +1,9 @@
 import type { ResolvedLLMBinding } from './tester-runtime-invokers-core.js';
 import { isTesterUnavailable, unavailableFromValidation } from './tester-runtime-invokers-core.js';
 import type { TesterUnavailable } from './tester-unavailable.js';
+import type { JsonObject } from '@nimiplatform/sdk/types';
+
+type MediaParamCapabilityId = 'image.generate' | 'video.generate' | 'audio.transcribe';
 
 function optionalText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
@@ -13,7 +16,7 @@ function selectedParamRecord(resolved: ResolvedLLMBinding): Record<string, unkno
 }
 
 function optionalFiniteNumber(
-  capabilityId: 'video.generate' | 'audio.transcribe',
+  capabilityId: MediaParamCapabilityId,
   value: unknown,
   fieldName: string,
 ): number | TesterUnavailable | undefined {
@@ -27,7 +30,7 @@ function optionalFiniteNumber(
 }
 
 function optionalPositiveInteger(
-  capabilityId: 'video.generate' | 'audio.transcribe',
+  capabilityId: MediaParamCapabilityId,
   value: unknown,
   fieldName: string,
 ): number | TesterUnavailable | undefined {
@@ -45,6 +48,176 @@ export function isUnavailable(value: unknown): value is TesterUnavailable {
 
 function booleanParam(value: unknown): boolean | undefined {
   return typeof value === 'boolean' ? value : undefined;
+}
+
+function optionalDefaultText(value: unknown, extraSentinels: readonly string[] = []): string | undefined {
+  const raw = typeof value === 'number' || typeof value === 'bigint' ? String(value) : optionalText(value);
+  const normalized = raw.trim();
+  if (!normalized) return undefined;
+  const lower = normalized.toLowerCase();
+  if (lower === 'default' || lower === 'auto' || extraSentinels.includes(lower)) return undefined;
+  return normalized;
+}
+
+function optionalImageSize(value: unknown): string | TesterUnavailable | undefined {
+  const text = optionalDefaultText(value);
+  if (!text) return undefined;
+  if (!/^\d+x\d+$/iu.test(text)) {
+    return unavailableFromValidation('image.generate', 'NimiAIConfig selectedParams.size must use WIDTHxHEIGHT format.');
+  }
+  return text.toLowerCase();
+}
+
+function optionalImageResponseFormat(value: unknown): string | TesterUnavailable | undefined {
+  const text = optionalDefaultText(value);
+  if (!text) return undefined;
+  const normalized = text.toLowerCase();
+  if (normalized === 'base64' || normalized === 'b64_json' || normalized === 'url') {
+    return normalized;
+  }
+  return unavailableFromValidation('image.generate', `NimiAIConfig selectedParams.responseFormat is not supported: ${text}.`);
+}
+
+function optionalImageIntegerString(
+  value: unknown,
+  fieldName: string,
+  extraSentinels: readonly string[] = [],
+): string | TesterUnavailable | undefined {
+  const text = optionalDefaultText(value, extraSentinels);
+  if (!text) return undefined;
+  if (!/^-?\d+$/u.test(text)) {
+    return unavailableFromValidation('image.generate', `NimiAIConfig selectedParams.${fieldName} must be an integer.`);
+  }
+  return text;
+}
+
+function optionalImageStringList(value: unknown, fieldName: string): readonly string[] | TesterUnavailable | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (Array.isArray(value)) {
+    const out = value.map(optionalText).filter(Boolean);
+    if (out.length !== value.length) {
+      return unavailableFromValidation('image.generate', `NimiAIConfig selectedParams.${fieldName} must contain only non-empty strings.`);
+    }
+    return out;
+  }
+  const text = optionalDefaultText(value);
+  return text ? [text] : undefined;
+}
+
+function optionalPositiveNumber(
+  capabilityId: MediaParamCapabilityId,
+  value: unknown,
+  fieldName: string,
+): number | TesterUnavailable | undefined {
+  const parsed = optionalFiniteNumber(capabilityId, value, fieldName);
+  if (parsed === undefined || isTesterUnavailable(parsed)) return parsed;
+  if (parsed <= 0) {
+    return unavailableFromValidation(capabilityId, `NimiAIConfig selectedParams.${fieldName} must be greater than zero.`);
+  }
+  return parsed;
+}
+
+function optionalImageSampler(value: unknown): string | TesterUnavailable | undefined {
+  const text = optionalDefaultText(value);
+  if (!text) return undefined;
+  const normalized = text.toLowerCase();
+  const aliases: Record<string, string> = {
+    euler_a: 'euler_a',
+    euler: 'euler',
+    heun: 'heun',
+    dpm2: 'dpm2',
+    dpmpp2s_a: 'dpmpp2s_a',
+    'dpm++2s_a': 'dpmpp2s_a',
+    dpmpp2m: 'dpmpp2m',
+    'dpm++2m': 'dpmpp2m',
+    dpmpp2mv2: 'dpmpp2mv2',
+    'dpm++2mv2': 'dpmpp2mv2',
+    ipndm: 'ipndm',
+    ipndm_v: 'ipndm_v',
+    lcm: 'lcm',
+  };
+  const sampler = aliases[normalized];
+  if (sampler) return sampler;
+  return unavailableFromValidation('image.generate', `NimiAIConfig selectedParams.sampler is not supported: ${text}.`);
+}
+
+function optionalImageScheduler(value: unknown): string | TesterUnavailable | undefined {
+  const text = optionalDefaultText(value);
+  if (!text) return undefined;
+  const normalized = text.toLowerCase();
+  const allowed = new Set([
+    'discrete',
+    'karras',
+    'exponential',
+    'ays',
+    'gits',
+    'smoothstep',
+    'sgm_uniform',
+    'simple',
+    'kl_optimal',
+    'lcm',
+    'bong_tangent',
+  ]);
+  if (allowed.has(normalized)) return normalized;
+  return unavailableFromValidation('image.generate', `NimiAIConfig selectedParams.scheduler is not supported: ${text}.`);
+}
+
+export function imageParamsFromBinding(resolved: ResolvedLLMBinding): {
+  negativePrompt?: string;
+  count?: number;
+  size?: string;
+  aspectRatio?: string;
+  quality?: string;
+  style?: string;
+  seed?: string;
+  referenceImages?: readonly string[];
+  mask?: string;
+  responseFormat?: string;
+  timeoutMs?: number;
+  providerOptions: JsonObject;
+} | TesterUnavailable {
+  const params = selectedParamRecord(resolved);
+  const size = optionalImageSize(params.size);
+  if (isUnavailable(size)) return size;
+  const responseFormat = optionalImageResponseFormat(params.responseFormat ?? params.response_format);
+  if (isUnavailable(responseFormat)) return responseFormat;
+  const seed = optionalImageIntegerString(params.seed, 'seed', ['random']);
+  if (isUnavailable(seed)) return seed;
+  const count = optionalPositiveInteger('image.generate', params.count ?? params.n, 'count');
+  if (isUnavailable(count)) return count;
+  const timeoutMs = optionalPositiveInteger('image.generate', params.timeoutMs ?? params.timeout_ms, 'timeoutMs');
+  if (isUnavailable(timeoutMs)) return timeoutMs;
+  const steps = optionalPositiveInteger('image.generate', params.steps ?? params.step, 'steps');
+  if (isUnavailable(steps)) return steps;
+  const cfgScale = optionalPositiveNumber('image.generate', params.cfgScale ?? params.cfg_scale, 'cfgScale');
+  if (isUnavailable(cfgScale)) return cfgScale;
+  const sampler = optionalImageSampler(params.sampler ?? params.mode ?? params.method);
+  if (isUnavailable(sampler)) return sampler;
+  const scheduler = optionalImageScheduler(params.scheduler);
+  if (isUnavailable(scheduler)) return scheduler;
+  const referenceImages = optionalImageStringList(params.referenceImages ?? params.reference_images, 'referenceImages');
+  if (isUnavailable(referenceImages)) return referenceImages;
+
+  const providerOptions: JsonObject = {};
+  if (steps !== undefined) providerOptions.steps = steps;
+  if (cfgScale !== undefined) providerOptions.cfgScale = cfgScale;
+  if (sampler) providerOptions.mode = sampler;
+  if (scheduler) providerOptions.scheduler = scheduler;
+
+  return {
+    negativePrompt: optionalDefaultText(params.negativePrompt ?? params.negative_prompt),
+    count,
+    size,
+    aspectRatio: optionalDefaultText(params.aspectRatio ?? params.aspect_ratio),
+    quality: optionalDefaultText(params.quality),
+    style: optionalDefaultText(params.style),
+    seed,
+    referenceImages,
+    mask: optionalDefaultText(params.mask),
+    responseFormat,
+    timeoutMs,
+    providerOptions,
+  };
 }
 
 export function videoParamsFromBinding(resolved: ResolvedLLMBinding): {

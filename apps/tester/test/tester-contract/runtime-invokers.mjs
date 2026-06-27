@@ -167,9 +167,13 @@ test('tester LLM invokers consume AIConfig bindings and fail closed without bind
   assert.doesNotMatch(invokers, /client\.runtime\.ai\.peekScheduling/);
 
   const mediaBindings = read('src/tester/tester-runtime-media-bindings.ts');
+  const mediaParams = read('src/tester/tester-runtime-invokers-media-params.ts');
   const mediaInvokers = readTesterRuntimeInvokersSurface(root);
   assert.match(mediaBindings, /selectedParamRecord\(resolved\)/);
-  assert.match(mediaBindings, /\.\.\.forwardedParams,\s*profile_entries:/);
+  assert.match(mediaBindings, /imageProfileExtensions\(binding: ImageRuntimeBinding, providerOptions: JsonObject = \{\}\)/);
+  assert.match(mediaBindings, /\.\.\.providerOptions,\s*profile_entries:/);
+  assert.match(mediaParams, /imageParamsFromBinding/);
+  assert.match(mediaInvokers, /imageParamsFromBinding/);
   assert.match(mediaInvokers, /videoParamsFromBinding/);
   assert.match(mediaInvokers, /transcriptionParamsFromBinding/);
   assert.match(mediaInvokers, /mode: videoParams\.mode/);

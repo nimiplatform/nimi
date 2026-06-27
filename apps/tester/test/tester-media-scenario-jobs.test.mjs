@@ -112,6 +112,10 @@ function protoString(value) {
   return value?.kind?.oneofKind === 'stringValue' ? value.kind.stringValue : '';
 }
 
+function protoNumber(value) {
+  return value?.kind?.oneofKind === 'numberValue' ? value.kind.numberValue : 0;
+}
+
 function readyLocalImageEnvironmentMethods() {
   return {
     async resolveLocalEnvironmentPlan() {
@@ -401,6 +405,122 @@ test('tester media lanes dispatch through Runtime Scenario jobs when vNext media
     new Uint8Array([7, 8, 9]),
   );
   assert.equal(submitted[2].spec.spec.speechTranscribe.mimeType, 'audio/wav');
+});
+
+test('image.generate maps selected UI params to Runtime image spec and omits provider default sentinels', async (t) => {
+  installMemoryStorageHarness(t);
+  const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');
+  const store = await importBehaviorModule('tester/tester-ai-config-store.js');
+  const scopeRef = store.createTesterAppLabAIScopeRef();
+  store.saveTesterAIConfig({
+    scopeRef,
+    capabilities: {
+      targetRefs: {
+        'image.generate': {
+          kind: 'local-runtime',
+          version: 'v2',
+          profileBindingId: 'local.image.params',
+        },
+      },
+      selectedParams: {
+        'image.generate': {
+          profile_entries: [{
+            entry_id: 'main-image',
+            kind: 'asset',
+            capability: 'image.generate',
+            asset_id: 'local.image.params',
+            asset_kind: 'image',
+            required: true,
+          }],
+          size: '512x512',
+          responseFormat: 'auto',
+          seed: 'Random',
+          timeoutMs: '600000',
+          steps: '25',
+          cfgScale: 'Default',
+          sampler: 'Default',
+          scheduler: 'Default',
+          negativePrompt: 'blur',
+        },
+      },
+    },
+    profileOrigin: null,
+  });
+
+  let submitted = null;
+  const jobs = new Map();
+  const client = {
+    runtime: {
+      local: readyLocalImageEnvironmentMethods(),
+      scheduling: {
+        async peekScheduling() {
+          return runnableSchedulingResponse();
+        },
+      },
+      ai: {
+        async submitScenarioJob(request) {
+          submitted = request;
+          const job = {
+            jobId: 'job-image-params',
+            status: RUNTIME_SCENARIO_JOB_STATUS_COMPLETED,
+            scenarioType: request.scenarioType,
+            traceId: 'trace-image-params',
+            modelResolved: request.head.modelId,
+            routeDecision: request.head.routePolicy,
+            artifacts: [],
+          };
+          jobs.set(job.jobId, job);
+          return { job };
+        },
+        async *subscribeScenarioJobEvents({ jobId }) {
+          yield {
+            eventType: RUNTIME_SCENARIO_JOB_STATUS_COMPLETED,
+            sequence: '1',
+            traceId: jobs.get(jobId)?.traceId || '',
+            job: jobs.get(jobId),
+          };
+        },
+        async getScenarioJob({ jobId }) {
+          return { job: jobs.get(jobId) };
+        },
+        async cancelScenarioJob() {
+          return { job: undefined };
+        },
+        async getScenarioArtifacts({ jobId }) {
+          return {
+            traceId: jobs.get(jobId)?.traceId || '',
+            artifacts: [{ artifactId: 'img-art', mimeType: 'image/png', uri: '', bytes: new Uint8Array([1, 2, 3]) }],
+            output: { output: { oneofKind: undefined } },
+          };
+        },
+      },
+    },
+  };
+
+  const result = await invokers.invokeTesterCapability(client, 'image.generate', {
+    prompt: 'a glass ui panel',
+    scenarioId: 'image-params',
+    subjectUserId: 'subject-user-1',
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(submitted.scenarioType, RUNTIME_SCENARIO_TYPE_IMAGE_GENERATE);
+  assert.equal(submitted.spec.spec.imageGenerate.prompt, 'a glass ui panel');
+  assert.equal(submitted.spec.spec.imageGenerate.size, '512x512');
+  assert.equal(submitted.spec.spec.imageGenerate.negativePrompt, 'blur');
+  assert.equal(submitted.spec.spec.imageGenerate.responseFormat, '');
+  assert.equal(submitted.spec.spec.imageGenerate.seed, '0');
+  assert.equal(submitted.head.timeoutMs, 600000);
+
+  const fields = submitted.extensions[0]?.payload?.fields ?? {};
+  assert.equal(protoString(fields.responseFormat), '');
+  assert.equal(protoString(fields.seed), '');
+  assert.equal(protoString(fields.timeoutMs), '');
+  assert.equal(protoString(fields.cfgScale), '');
+  assert.equal(protoString(fields.sampler), '');
+  assert.equal(protoString(fields.scheduler), '');
+  assert.equal(protoNumber(fields.steps), 25);
+  assert.ok(fields.profile_entries);
 });
 
 test('audio.synthesize resolves Default local voice to admitted Runtime voice asset', async (t) => {

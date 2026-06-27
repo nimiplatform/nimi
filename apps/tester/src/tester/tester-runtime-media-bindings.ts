@@ -350,20 +350,11 @@ export async function resolveImageRuntimeBinding(
   };
 }
 
-export function imageProfileExtensions(binding: ImageRuntimeBinding) {
-  const params = selectedParamRecord(binding.resolved);
-  const {
-    companionSlots: _companionSlots,
-    profileEntries: _profileEntries,
-    profile_entries: _profileEntriesSnake,
-    entry_overrides: _entryOverridesSnake,
-    entryOverrides: _entryOverrides,
-    ...forwardedParams
-  } = params;
+export function imageProfileExtensions(binding: ImageRuntimeBinding, providerOptions: JsonObject = {}) {
   return [{
     namespace: 'nimi.scenario.image.request',
     payload: toNimiRuntimeProtoStruct({
-      ...forwardedParams,
+      ...providerOptions,
       profile_entries: binding.profileEntries,
       ...(binding.entryOverrides && binding.entryOverrides.length > 0 ? { entry_overrides: binding.entryOverrides } : {}),
     }),
