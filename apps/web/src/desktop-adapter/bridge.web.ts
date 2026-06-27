@@ -11,7 +11,6 @@ import {
   startDaemon,
   stopDaemon,
   restartDaemon,
-  getRuntimeDefaults,
   openExternalUrl,
   focusMainWindow,
   oauthListenForCode,
@@ -94,6 +93,78 @@ function unsupportedDesktopRuntime(message: string): never {
 }
 
 export { hasTauriInvoke };
+
+type WebRuntimeEnvRecord = Record<string, string | boolean | undefined>;
+type WebRuntimeGlobal = typeof globalThis & {
+  __NIMI_IMPORT_META_ENV__?: WebRuntimeEnvRecord;
+  process?: {
+    env?: Record<string, string | undefined>;
+  };
+};
+
+function readWebRuntimeEnvValue(key: string): string {
+  const runtimeGlobal = globalThis as WebRuntimeGlobal;
+  const bundledEnv = runtimeGlobal.__NIMI_IMPORT_META_ENV__ || {};
+  let importMetaEnv: WebRuntimeEnvRecord = {};
+  try {
+    importMetaEnv = (import.meta as { env?: WebRuntimeEnvRecord }).env || {};
+  } catch {
+    importMetaEnv = {};
+  }
+  const processEnv = runtimeGlobal.process?.env || {};
+  return String(bundledEnv[key] ?? importMetaEnv[key] ?? processEnv[key] ?? '').trim();
+}
+
+function normalizeHttpOrigin(raw: string): string | null {
+  const value = String(raw || '').trim();
+  if (!value) {
+    return null;
+  }
+  try {
+    const parsed = new URL(value);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      return null;
+    }
+    return parsed.origin;
+  } catch {
+    return null;
+  }
+}
+
+function resolveWebRuntimeOrigin(): string {
+  const runtimeGlobal = globalThis as WebRuntimeGlobal;
+  const locationOrigin = normalizeHttpOrigin(String(runtimeGlobal.location?.origin || ''));
+  if (locationOrigin) {
+    return locationOrigin;
+  }
+  return 'http://localhost';
+}
+
+function resolveWebRuntimeUrl(origin: string, pathname: string): string {
+  return new URL(pathname, `${origin}/`).toString();
+}
+
+export async function getRuntimeDefaults(): Promise<RuntimeDefaults> {
+  const realmBaseUrl = resolveWebRuntimeOrigin();
+  return {
+    realm: {
+      realmBaseUrl,
+      realtimeUrl: '',
+      accessToken: readWebRuntimeEnvValue('VITE_NIMI_ACCESS_TOKEN'),
+      jwksUrl: resolveWebRuntimeUrl(realmBaseUrl, '/api/auth/jwks'),
+      revocationUrl: resolveWebRuntimeUrl(realmBaseUrl, '/api/auth/sessions/introspect'),
+      jwtIssuer: realmBaseUrl,
+      jwtAudience: 'nimi-runtime',
+    },
+    runtime: {
+      targetType: '',
+      targetAccountId: '',
+      agentId: '',
+      worldId: '',
+      userConfirmedUpload: false,
+    },
+  };
+}
 
 export async function getDesktopReleaseInfo(): Promise<DesktopReleaseInfo> {
   unsupportedDesktopRuntime('Application release metadata is only available in desktop runtime');
@@ -240,7 +311,7 @@ export async function setRuntimeBridgeConfig(_configJson: string): Promise<Runti
   unsupportedDesktopRuntime('Runtime bridge config updates are only available in desktop runtime');
 }
 
-export { getRuntimeDefaults, oauthListenForCode, oauthTokenExchange, openExternalUrl, focusMainWindow };
+export { oauthListenForCode, oauthTokenExchange, openExternalUrl, focusMainWindow };
 export { proxyHttp, getSystemResourceSnapshot, startWindowDrag };
 
 export const desktopBridge = {
