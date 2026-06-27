@@ -58,6 +58,7 @@ dev/
 apps/desktop/reports/
 apps/avatar/reports/
 apps/tester/dist-electron/
+apps/avatar/dist-electron/
 
 # local scratch outputs
 .tmp/

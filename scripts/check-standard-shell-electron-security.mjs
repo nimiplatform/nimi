@@ -5,16 +5,20 @@ import { fileURLToPath } from 'node:url';
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 const preloadIpcAllowlist = new Set([
+  'apps/avatar/src-electron/preload.cts',
   'apps/tester/src-electron/preload.cts',
   'kit/shell/electron/src/preload/cjs.cts',
   'kit/shell/electron/src/preload/index.ts',
 ]);
 const fileUrlAllowlist = new Set([
+  'apps/avatar/src-electron/main.ts',
   'apps/tester/src-electron/main.ts',
   'apps/tester/src/tester/tester-runtime-invokers-media-speech.ts',
 ]);
 
 const scanRoots = [
+  'apps/avatar/src',
+  'apps/avatar/src-electron',
   'apps/tester/src',
   'apps/tester/src-electron',
   'kit/shell/electron/src',
@@ -28,6 +32,11 @@ assertContains(testerMain, /contextIsolation:\s*true/u, 'apps/tester/src-electro
 assertContains(testerMain, /nodeIntegration:\s*false/u, 'apps/tester/src-electron/main.ts must set nodeIntegration: false');
 assertContains(testerMain, /sandbox:\s*true/u, 'apps/tester/src-electron/main.ts must set sandbox: true');
 assertNotContains(testerMain, /sandbox:\s*false/u, 'apps/tester/src-electron/main.ts must not set sandbox: false');
+const avatarMain = readRepo('apps/avatar/src-electron/main.ts');
+assertContains(avatarMain, /contextIsolation:\s*true/u, 'apps/avatar/src-electron/main.ts must set contextIsolation: true');
+assertContains(avatarMain, /nodeIntegration:\s*false/u, 'apps/avatar/src-electron/main.ts must set nodeIntegration: false');
+assertContains(avatarMain, /sandbox:\s*true/u, 'apps/avatar/src-electron/main.ts must set sandbox: true');
+assertNotContains(avatarMain, /sandbox:\s*false/u, 'apps/avatar/src-electron/main.ts must not set sandbox: false');
 
 for (const file of collectSourceFiles(scanRoots)) {
   const relative = slash(path.relative(repoRoot, file));

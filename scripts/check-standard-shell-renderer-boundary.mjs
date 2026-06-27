@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const bridgeRoot = path.join(repoRoot, 'kit/shell/renderer/src/bridge');
+const avatarRendererRoot = path.join(repoRoot, 'apps/avatar/src/shell/renderer');
 const failures = [];
 
 const standardCommandFiles = [
@@ -23,6 +24,17 @@ for (const file of collectSourceFiles(bridgeRoot)) {
   reject(content, /\bOFFLINE_STATUS\b/u, relative, 'renderer bridge must not return offline daemon fallback status');
   reject(content, /(?<!nimi-shell-)file:\/\//u, relative, 'renderer bridge must not expose raw file:// URLs');
   reject(content, /return\s+fileUrl\s*;/u, relative, 'renderer bridge must not return raw local file URLs as a fallback');
+}
+
+for (const file of collectSourceFiles(avatarRendererRoot)) {
+  const relative = slash(path.relative(repoRoot, file));
+  const content = readFileSync(file, 'utf8');
+  reject(content, /@tauri-apps\/api/u, relative, 'Avatar renderer must use the app-owned host bridge instead of raw Tauri APIs');
+  reject(content, /__TAURI_INTERNALS__|__TAURI_IPC__/u, relative, 'Avatar renderer must not probe raw Tauri globals');
+  if (relative.endsWith('/app-shell/tauri-commands.ts')) {
+    reject(content, /if\s*\(\s*!\s*hasAvatarHostRuntime\(\)\s*\)\s*return\b/u, relative, 'Avatar host commands must fail closed when no host is installed');
+    reject(content, /\bfallback\s*:/u, relative, 'Avatar host commands must not synthesize no-host fallback success');
+  }
 }
 
 for (const fileName of standardCommandFiles) {
@@ -60,8 +72,14 @@ function walk(target, files) {
   const stat = statSync(target);
   if (stat.isDirectory()) {
     for (const entry of readdirSync(target)) {
+      if (entry === 'node_modules' || entry === 'dist' || entry === 'dist-electron' || entry === '__snapshots__') {
+        continue;
+      }
       walk(path.join(target, entry), files);
     }
+    return;
+  }
+  if (/\.(?:test|spec)\.(?:ts|tsx|js|mjs)$/u.test(target)) {
     return;
   }
   if (/\.(?:ts|tsx|js|mjs)$/u.test(target)) {
