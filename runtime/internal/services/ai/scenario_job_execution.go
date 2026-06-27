@@ -63,6 +63,16 @@ func (s *Service) executeScenarioAsyncJob(
 		providerJobID string
 		err           error
 	)
+	if s.logger != nil && req.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE && preferredRoute(req.GetHead().GetModelId()) == runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
+		s.logger.Info(
+			"execute local image scenario job: adapter resolved",
+			"job_id", jobID,
+			"requested_model_id", strings.TrimSpace(req.GetHead().GetModelId()),
+			"model_resolved", strings.TrimSpace(modelResolved),
+			"provider_type", strings.TrimSpace(providerType),
+			"adapter", strings.TrimSpace(adapterName),
+		)
+	}
 	if req.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE {
 		originalReq := req
 		var effectiveSpec *runtimev1.SpeechSynthesizeScenarioSpec
