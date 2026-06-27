@@ -179,5 +179,6 @@ export async function collectNimiTextStream(events: AsyncIterable<NimiRunEvent>)
 export * from './config';
 export * from './embeddings';
 export * from './runtime-model';
+export * from './runtime-target-ref';
 export * from './scheduling';
 export * from './text-runner';

@@ -20,6 +20,11 @@ import type { RuntimeNodeGrpcTransportOptions } from './node-grpc';
 import { createRuntimeTauriIpcTransport, type RuntimeTauriIpcTransportOptions } from './tauri-ipc';
 
 export type { CoreTransport, CoreClientOptions };
+export type {
+  RuntimeDurableCloudTargetRef,
+  RuntimeDurableLocalTargetRef,
+  RuntimeDurableTargetRef,
+} from '../core-generated/runtime-typed-client';
 export {
   createRuntimeElectronIpcTransport,
   RuntimeElectronIpcTransportError,
