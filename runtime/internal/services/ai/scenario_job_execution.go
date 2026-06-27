@@ -214,6 +214,17 @@ func (s *Service) executeScenarioAsyncJob(
 			return
 		}
 		reasonCode := reasonCodeFromMediaError(err)
+		if s.logger != nil {
+			s.logger.Warn("scenario job execution failed",
+				"job_id", jobID,
+				"scenario_type", req.GetScenarioType().String(),
+				"requested_model_id", strings.TrimSpace(req.GetHead().GetModelId()),
+				"model_resolved", strings.TrimSpace(modelResolved),
+				"adapter", strings.TrimSpace(adapterName),
+				"reason_code", reasonCode.String(),
+				"error", err,
+			)
+		}
 		statusValue := runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED
 		eventType := runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_FAILED
 		if errors.Is(err, context.Canceled) || status.Code(err) == codes.Canceled {
