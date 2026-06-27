@@ -36,6 +36,12 @@ test('Runtime transport selector supports Electron without spoofing Tauri', () =
   assert.match(runtimeTransportSource, /hasElectronRuntime/);
   assert.match(runtimeTransportSource, /type:\s*'electron-ipc'/);
   assert.match(runtimeTransportSource, /type:\s*'tauri-ipc'/);
+  const electronBranchStart = runtimeTransportSource.indexOf("hostKind === 'electron'");
+  const tauriBranchStart = runtimeTransportSource.indexOf("type: 'tauri-ipc'");
+  assert.ok(electronBranchStart >= 0, 'runtime transport must branch for Electron');
+  assert.ok(tauriBranchStart > electronBranchStart, 'Tauri branch must follow Electron branch');
+  const electronBranchSource = runtimeTransportSource.slice(electronBranchStart, tauriBranchStart);
+  assert.doesNotMatch(electronBranchSource, /commandNamespace|eventNamespace/);
   assert.match(runtimeTransportSource, /typeof window !== 'undefined'/);
   assert.doesNotMatch(runtimeTransportSource, /__NIMI_TAURI_RUNTIME__\s*=/);
   assert.doesNotMatch(runtimeTransportSource, /__TAURI__\?\.core\?\.invoke/);

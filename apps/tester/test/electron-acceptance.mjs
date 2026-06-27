@@ -4,6 +4,7 @@ import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import { pathToFileURL } from 'node:url';
 import { _electron as electron } from 'playwright';
 import {
   NIMI_STANDARD_SHELL_CAPABILITIES,
@@ -13,6 +14,7 @@ import {
 const root = path.resolve(import.meta.dirname, '..');
 const repoRoot = path.resolve(root, '..', '..');
 const mainEntry = path.join(root, 'dist-electron', 'main.js');
+const rendererAcceptanceUrl = `${pathToFileURL(path.join(root, 'dist', 'index.html')).toString()}?nimiElectronSdkAcceptance=1`;
 
 test('Electron acceptance matrix maps every standard shell command to e2e or host-unit coverage', async () => {
   const acceptanceSource = await readFile(new URL('./electron-acceptance.mjs', import.meta.url), 'utf8');
@@ -55,6 +57,7 @@ test('Electron acceptance host boots the tester renderer with the narrowed prelo
     env: {
       ...process.env,
       NIMI_RUNTIME_GRPC_ADDR: '',
+      NIMI_TESTER_ELECTRON_RENDERER_URL: rendererAcceptanceUrl,
       NIMI_TESTER_ELECTRON_RUNTIME_ENDPOINT: '127.0.0.1:1',
       NIMI_TESTER_ELECTRON_STANDARD_DATA_ROOT: dataRoot,
       NIMI_TESTER_ELECTRON_STANDARD_LOCAL_ASSET_ROOTS: assetRoot,
@@ -94,6 +97,16 @@ test('Electron acceptance host boots the tester renderer with the narrowed prelo
       require: false,
       process: false,
     });
+
+    await page.waitForFunction(() => Boolean(globalThis.window?.__NIMI_TESTER_ELECTRON_SDK_ACCEPTANCE__));
+    const sdkRuntimeReady = await page.evaluate(() =>
+      globalThis.window.__NIMI_TESTER_ELECTRON_SDK_ACCEPTANCE__.runtimeReady(),
+    );
+    assert.equal(sdkRuntimeReady.transport, 'electron-ipc');
+    assert.equal(sdkRuntimeReady.ok, false);
+    assert.equal(sdkRuntimeReady.code, 'external-daemon-required');
+    assert.equal(sdkRuntimeReady.reasonCode, 'electron-runtime-endpoint-unavailable');
+    assert.equal(sdkRuntimeReady.actionHint, 'start_external_runtime_daemon');
 
     const status = await page.evaluate(
       (command) => globalThis.window.__NIMI_ELECTRON_RUNTIME__.invoke(command, {}),

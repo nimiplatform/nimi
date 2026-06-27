@@ -20,8 +20,6 @@ export function createTesterRuntimeTransportConfig(): RuntimeOptions['transport'
   if (hostKind === 'electron') {
     return {
       type: 'electron-ipc',
-      commandNamespace: RUNTIME_BRIDGE_NAMESPACE,
-      eventNamespace: RUNTIME_BRIDGE_NAMESPACE,
     };
   }
   return {

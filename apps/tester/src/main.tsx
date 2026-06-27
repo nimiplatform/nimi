@@ -6,6 +6,7 @@ import {
   DEFAULT_DEV_RENDERER_ENTRY_IMPORT_RETRY_DELAYS_MS,
   createRendererEntryModuleLoader,
 } from '@nimiplatform/kit/shell/renderer/bootstrap';
+import { installTesterElectronSdkAcceptanceProbe } from './shell/auth/electron-sdk-acceptance.js';
 import './styles.css';
 import './shell/auth/auth-i18n.js';
 
@@ -15,6 +16,7 @@ import './shell/auth/auth-i18n.js';
 // outside the Tauri webview. The app does not know the hook details — that
 // contract lives in @nimiplatform/kit.
 installNimiShellRuntimeBridge();
+installTesterElectronSdkAcceptanceProbe();
 
 const entryModuleLoader = createRendererEntryModuleLoader({
   retryDelaysMs: DEFAULT_DEV_RENDERER_ENTRY_IMPORT_RETRY_DELAYS_MS,
