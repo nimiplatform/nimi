@@ -7,6 +7,7 @@ import {
   openExternalUrl,
   startWindowDrag,
 } from '../shell/renderer/src/bridge/index.js';
+import { resolveTauriStandardCommand } from '../shell/renderer/src/bridge/tauri-api.js';
 
 type TestGlobal = typeof globalThis & {
   __NIMI_TAURI_TEST__?: {
@@ -61,5 +62,14 @@ describe('shell renderer UI bridge primitives', () => {
       NIMI_STANDARD_SHELL_COMMANDS['shell-ui.startWindowDrag'],
       NIMI_STANDARD_SHELL_COMMANDS['shell-ui.focusMainWindow'],
     ]);
+  });
+
+  test('Tauri adapter maps standard config commands to registered Tauri commands', () => {
+    expect(resolveTauriStandardCommand(NIMI_STANDARD_SHELL_COMMANDS['config.get'])).toBe(
+      'runtime_bridge_config_get',
+    );
+    expect(resolveTauriStandardCommand(NIMI_STANDARD_SHELL_COMMANDS['config.set'])).toBe(
+      'runtime_bridge_config_set',
+    );
   });
 });

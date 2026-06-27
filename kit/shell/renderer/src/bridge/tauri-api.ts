@@ -52,6 +52,8 @@ export const TAURI_STANDARD_COMMAND_ALIASES: Readonly<Record<string, string>> = 
   [NIMI_STANDARD_SHELL_COMMANDS['runtime-lifecycle.stop']]: 'runtime_bridge_stop',
   [NIMI_STANDARD_SHELL_COMMANDS['runtime-lifecycle.restart']]: 'runtime_bridge_restart',
   [NIMI_STANDARD_SHELL_COMMANDS['runtime-defaults.get']]: 'runtime_defaults',
+  [NIMI_STANDARD_SHELL_COMMANDS['config.get']]: 'runtime_bridge_config_get',
+  [NIMI_STANDARD_SHELL_COMMANDS['config.set']]: 'runtime_bridge_config_set',
   [NIMI_STANDARD_SHELL_COMMANDS['auth.sessionLoad']]: 'auth_session_load',
   [NIMI_STANDARD_SHELL_COMMANDS['auth.sessionSave']]: 'auth_session_save',
   [NIMI_STANDARD_SHELL_COMMANDS['auth.sessionClear']]: 'auth_session_clear',

@@ -7,6 +7,7 @@ import {
   isNimiRealmExpectedAnonymousSessionError,
   toNimiRealmAuthUserRecord,
 } from '@nimiplatform/sdk/realm';
+import { NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabilities';
 import { confirmDialog, openExternalUrl } from '@nimiplatform/kit/shell/renderer/bridge';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 
@@ -89,7 +90,7 @@ test('confirmDialog fails closed outside a standard shell host', async () => {
   }
 });
 
-test('confirmDialog invokes the fixed tauri command and payload shape', async () => {
+test('confirmDialog invokes the standard shell UI command and payload shape', async () => {
   let observedCommand = '';
   let observedPayload: unknown = null;
   const restoreWindow = installWindowMock({
@@ -109,7 +110,7 @@ test('confirmDialog invokes the fixed tauri command and payload shape', async ()
       level: 'warning',
     });
     assert.equal(result.confirmed, false);
-    assert.equal(observedCommand, 'confirm_dialog');
+    assert.equal(observedCommand, NIMI_STANDARD_SHELL_COMMANDS['shell-ui.confirmDialog']);
     assert.deepEqual(observedPayload, {
       payload: {
         title: 'Discard pending changes',
