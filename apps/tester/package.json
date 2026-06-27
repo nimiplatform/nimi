@@ -6,11 +6,14 @@
   "scripts": {
     "dev": "pnpm run dev:renderer",
     "dev:renderer": "vite --host 127.0.0.1 --port 1468 --strictPort",
+    "dev:electron": "corepack pnpm run build:electron && node scripts/run-electron-dev.mjs",
     "dev:shell": "node scripts/run-tauri-dev.mjs",
     "init": "nimi-app init",
     "typecheck": "tsc --noEmit",
     "build": "tsc --noEmit && vite build",
+    "build:electron": "corepack pnpm --filter @nimiplatform/kit build && tsc -p tsconfig.electron.json",
     "build:shell": "tauri build",
+    "test:e2e:electron": "corepack pnpm run build && corepack pnpm run build:electron && node --test test/electron-acceptance.mjs",
     "test": "node --test test/*.test.mjs",
     "check": "pnpm run test && pnpm run validate",
     "pack": "pnpm run build && node scripts/pack.mjs",
@@ -20,8 +23,8 @@
     "update": "nimi-app update"
   },
   "dependencies": {
-    "@nimiplatform/sdk": "workspace:*",
     "@nimiplatform/kit": "workspace:*",
+    "@nimiplatform/sdk": "workspace:*",
     "@tauri-apps/api": "^2.9.1",
     "i18next": "^25.8.18",
     "lucide-react": "^0.577.0",
@@ -39,7 +42,10 @@
     "@types/react-dom": "^19.2.3",
     "@types/three": "^0.184.1",
     "@vitejs/plugin-react": "^5.1.1",
+    "electron": "^42.5.0",
+    "playwright": "^1.61.0",
     "tailwindcss": "^4.3.0",
+    "tsx": "^4.22.4",
     "typescript": "^5.9.3",
     "vite": "^7.2.4",
     "yaml": "^2.9.0"

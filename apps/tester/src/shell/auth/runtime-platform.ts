@@ -21,6 +21,7 @@ import type { CoreMetadata } from '@nimiplatform/sdk/types';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 export { appId, appTitle, scaffoldProfile } from './app-identity.js';
 import { appId, appTitle } from './app-identity.js';
+import { createTesterRuntimeTransportConfig } from './runtime-transport.js';
 
 export const runtimeAccountLoginEnabled = true;
 
@@ -376,16 +377,8 @@ function runtimeAuthorizeResponseExpiresAtMs(token: AuthorizeExternalPrincipalRe
 
 function runtimeOptions(): RuntimeOptions {
   const base: RuntimeOptions = { appId };
-  return isNodeRuntime()
-    ? base
-    : {
-        ...base,
-        transport: {
-          type: 'tauri-ipc',
-          commandNamespace: 'runtime_bridge',
-          eventNamespace: 'runtime_bridge',
-        },
-      };
+  const transport = createTesterRuntimeTransportConfig();
+  return transport ? { ...base, transport } : base;
 }
 
 function createScopedClientId(suffix: string): string {
@@ -398,11 +391,4 @@ function normalizeClientIdPrefix(value: string): string {
 
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
-}
-
-function isNodeRuntime(): boolean {
-  const maybeProcess = (globalThis as typeof globalThis & {
-    process?: { versions?: { node?: string } };
-  }).process;
-  return Boolean(maybeProcess?.versions?.node);
 }

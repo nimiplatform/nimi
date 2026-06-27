@@ -5,6 +5,7 @@ import test from 'node:test';
 const authSource = readFileSync(new URL('../src/shell/auth/runtime-platform.ts', import.meta.url), 'utf8');
 const authGateSource = readFileSync(new URL('../src/shell/auth/auth-gate.tsx', import.meta.url), 'utf8');
 const runtimeAccountAuthSource = readFileSync(new URL('../src/shell/auth/runtime-account-auth.ts', import.meta.url), 'utf8');
+const runtimeTransportSource = readFileSync(new URL('../src/shell/auth/runtime-transport.ts', import.meta.url), 'utf8');
 const runtimeLoginSource = readFileSync(new URL('../src/shell/auth/runtime-login-page.tsx', import.meta.url), 'utf8');
 const productSource = readFileSync(new URL('../src/shell/routes/product-area.tsx', import.meta.url), 'utf8');
 const demoSource = readFileSync(new URL('../src/shell/routes/demo-surfaces.tsx', import.meta.url), 'utf8');
@@ -24,9 +25,20 @@ test('auth glue uses app-scoped SDK Runtime developer projections', () => {
   assert.match(authSource, /'third-party-nimi-app'/);
   assert.match(authSource, /getRuntimeNimiClient/);
   assert.match(authSource, /getRuntimeSubjectUserId/);
+  assert.match(authSource, /createTesterRuntimeTransportConfig/);
+  assert.doesNotMatch(authSource, /type:\s*'tauri-ipc'/);
   assert.doesNotMatch(authSource, /createNimiAppRuntimePlatformClient/);
   assert.doesNotMatch(authSource, /createPlatformClient\s*\(/);
   assert.doesNotMatch(authSource, /getPlatformClient\(/);
+});
+
+test('Runtime transport selector supports Electron without spoofing Tauri', () => {
+  assert.match(runtimeTransportSource, /hasElectronRuntime/);
+  assert.match(runtimeTransportSource, /type:\s*'electron-ipc'/);
+  assert.match(runtimeTransportSource, /type:\s*'tauri-ipc'/);
+  assert.match(runtimeTransportSource, /typeof window !== 'undefined'/);
+  assert.doesNotMatch(runtimeTransportSource, /__NIMI_TAURI_RUNTIME__\s*=/);
+  assert.doesNotMatch(runtimeTransportSource, /__TAURI__\?\.core\?\.invoke/);
 });
 
 test('single login model uses Runtime account login without developer-session bypass', () => {

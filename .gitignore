@@ -57,6 +57,7 @@ dev/
 # desktop generated reports/evidence
 apps/desktop/reports/
 apps/avatar/reports/
+apps/tester/dist-electron/
 
 # local scratch outputs
 .tmp/
