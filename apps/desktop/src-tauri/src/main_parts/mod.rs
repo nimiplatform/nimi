@@ -27,9 +27,9 @@ use defaults_and_commands::{
     HTTP_REQUEST_RATE_LIMIT_BURST, HTTP_REQUEST_RATE_LIMIT_WINDOW,
 };
 use env_http::{
-    allowed_http_origins, is_connector_auth_acquisition_request_allowed, is_sensitive_key,
-    load_dotenv_files, normalize_http_method, normalize_origin, preview_text_utf8_safe,
-    redact_body_preview, sanitize_headers,
+    allowed_http_origins, http_send_failure_error, is_connector_auth_acquisition_request_allowed,
+    is_sensitive_key, load_dotenv_files, normalize_http_method, normalize_origin,
+    preview_text_utf8_safe, redact_body_preview, sanitize_headers,
 };
 use session_logging::{
     append_diag_log_entry, debug_boot_enabled, env_value, install_panic_hook, log_boot_marker,

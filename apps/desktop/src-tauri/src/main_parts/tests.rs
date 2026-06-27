@@ -375,6 +375,26 @@ fn http_request_rejects_authorization_for_unadmitted_https_before_network() {
 }
 
 #[test]
+fn http_send_failure_error_classifies_realm_origin_as_realm_unavailable() {
+    with_env(
+        &[
+            ("NIMI_REALM_URL", Some("http://localhost:3002")),
+            ("NIMI_E2E_FIXTURE_PATH", None),
+        ],
+        || {
+            let error = super::env_http::http_send_failure_error(
+                "http://127.0.0.1:3002",
+                "Realm service is unavailable: connection refused",
+            );
+            let payload: Value = serde_json::from_str(&error).expect("structured bridge error");
+            assert_eq!(payload["reasonCode"], "REALM_UNAVAILABLE");
+            assert_eq!(payload["actionHint"], "check_realm_service_status");
+            assert_eq!(payload["retryable"], true);
+        },
+    );
+}
+
+#[test]
 fn runtime_config_deep_links_only_accept_known_pages() {
     assert_eq!(normalize_runtime_config_page_id(None), Some("overview"));
     assert_eq!(normalize_runtime_config_page_id(Some("")), Some("overview"));

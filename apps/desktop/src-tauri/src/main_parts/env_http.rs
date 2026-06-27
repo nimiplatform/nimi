@@ -79,6 +79,35 @@ fn env_http_error(code: &str, message: impl AsRef<str>) -> String {
     crate::runtime_bridge::bridge_error(code, message.as_ref())
 }
 
+fn add_loopback_origin_aliases(origins: &mut HashSet<String>, url: &Url) {
+    if let Some(host) = url.host_str() {
+        let port = url.port_or_known_default().unwrap_or(80);
+        let scheme = url.scheme();
+        match host {
+            "localhost" => {
+                origins.insert(format!("{scheme}://127.0.0.1:{port}"));
+            }
+            "127.0.0.1" => {
+                origins.insert(format!("{scheme}://localhost:{port}"));
+            }
+            _ => {}
+        }
+    }
+}
+
+fn admitted_origins_from_urls(candidates: Vec<String>) -> HashSet<String> {
+    let mut origins = HashSet::new();
+    for candidate in candidates {
+        if let Ok(url) = Url::parse(candidate.as_str()) {
+            if let Ok(origin) = normalize_origin(&url) {
+                origins.insert(origin);
+            }
+            add_loopback_origin_aliases(&mut origins, &url);
+        }
+    }
+    origins
+}
+
 pub(super) fn normalize_http_method(input: Option<String>) -> Result<Method, String> {
     let method = input.unwrap_or_else(|| "GET".to_string()).to_uppercase();
     match method.as_str() {
@@ -111,7 +140,6 @@ pub(super) fn normalize_origin(url: &Url) -> Result<String, String> {
 }
 
 pub(super) fn allowed_http_origins() -> HashSet<String> {
-    let mut origins = HashSet::new();
     let mut candidates = vec![
         env_value("NIMI_REALM_URL", "http://localhost:3002"),
         "http://localhost".to_string(),
@@ -126,29 +154,43 @@ pub(super) fn allowed_http_origins() -> HashSet<String> {
         candidates.push(defaults.realm.jwt_issuer);
     }
 
-    for candidate in candidates {
-        if let Ok(url) = Url::parse(candidate.as_str()) {
-            if let Ok(origin) = normalize_origin(&url) {
-                origins.insert(origin);
-            }
-            // Allow localhost and 127.0.0.1 as loopback aliases for the same port.
-            if let Some(host) = url.host_str() {
-                let port = url.port_or_known_default().unwrap_or(80);
-                let scheme = url.scheme();
-                match host {
-                    "localhost" => {
-                        origins.insert(format!("{scheme}://127.0.0.1:{port}"));
-                    }
-                    "127.0.0.1" => {
-                        origins.insert(format!("{scheme}://localhost:{port}"));
-                    }
-                    _ => {}
-                }
-            }
-        }
-    }
+    admitted_origins_from_urls(candidates)
+}
 
-    origins
+pub(super) fn realm_http_origins() -> HashSet<String> {
+    let mut candidates = vec![env_value("NIMI_REALM_URL", "http://localhost:3002")];
+    if let Ok(Some(defaults)) = crate::desktop_e2e_fixture::runtime_defaults_override() {
+        candidates.push(defaults.realm.realm_base_url);
+        candidates.push(defaults.realm.jwks_url);
+        candidates.push(defaults.realm.revocation_url);
+        candidates.push(defaults.realm.jwt_issuer);
+    }
+    admitted_origins_from_urls(candidates)
+}
+
+pub(super) fn http_send_failure_error(origin: &str, message: impl AsRef<str>) -> String {
+    let reason_code = if realm_http_origins().contains(origin) {
+        "REALM_UNAVAILABLE"
+    } else {
+        "DESKTOP_HTTP_SEND_FAILED"
+    };
+    let action_hint = if reason_code == "REALM_UNAVAILABLE" {
+        "check_realm_service_status"
+    } else {
+        "retry_or_check_network"
+    };
+    serde_json::to_string(&json!({
+        "code": reason_code,
+        "reasonCode": reason_code,
+        "actionHint": action_hint,
+        "traceId": "",
+        "retryable": true,
+        "message": message.as_ref(),
+        "details": {
+            "origin": origin,
+        },
+    }))
+    .unwrap_or_else(|_| crate::runtime_bridge::bridge_error(reason_code, message.as_ref()))
 }
 
 pub(super) fn is_connector_auth_acquisition_request_allowed(

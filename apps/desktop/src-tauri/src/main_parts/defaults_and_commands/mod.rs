@@ -249,6 +249,21 @@ pub(crate) async fn http_request(
     let start = std::time::Instant::now();
     let diag_session_for_request = diag_session_id.clone();
     let response = request.send().await.map_err(|error| {
+        let reason_code = if super::env_http::realm_http_origins().contains(&origin) {
+            "REALM_UNAVAILABLE"
+        } else {
+            "DESKTOP_HTTP_SEND_FAILED"
+        };
+        let action_hint = if reason_code == "REALM_UNAVAILABLE" {
+            "check_realm_service_status"
+        } else {
+            "retry_or_check_network"
+        };
+        let message = if reason_code == "REALM_UNAVAILABLE" {
+            format!("Realm service is unavailable: {error}")
+        } else {
+            format!("HTTP request failed: {error}")
+        };
         eprintln!("[http] send failed {} {}: {}", method, url, error);
         append_diag_log_entry(
             "http-request",
@@ -261,10 +276,13 @@ pub(crate) async fn http_request(
             json!({
                 "method": method.to_string(),
                 "url": url.as_str(),
+                "origin": origin.as_str(),
+                "reasonCode": reason_code,
+                "actionHint": action_hint,
                 "error": error.to_string(),
             }),
         );
-        error.to_string()
+        http_send_failure_error(&origin, message)
     })?;
     let elapsed = start.elapsed();
     let status = response.status();

@@ -150,6 +150,22 @@ test('toBridgeNimiError maps DESKTOP_HTTP_FETCH_UNAVAILABLE reason code', () => 
   );
 });
 
+test('toBridgeNimiError maps REALM_UNAVAILABLE from desktop http_request send failure', () => {
+  const error = toBridgeNimiError(JSON.stringify({
+    reasonCode: ReasonCode.REALM_UNAVAILABLE,
+    actionHint: 'check_realm_service_status',
+    retryable: true,
+    message: 'Realm service is unavailable: error sending request for url (http://localhost:3002/api/world)',
+  }));
+  assert.equal(error.reasonCode, ReasonCode.REALM_UNAVAILABLE);
+  assert.equal(error.actionHint, 'check_realm_service_status');
+  assert.equal(error.retryable, true);
+  assert.equal(
+    String(error.details?.userMessage || ''),
+    'Realm service is unavailable. Start or repair Realm and try again.',
+  );
+});
+
 test('toBridgeNimiError maps AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED reason code', () => {
   const error = toBridgeNimiError(JSON.stringify({
     reasonCode: ReasonCode.AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED,
