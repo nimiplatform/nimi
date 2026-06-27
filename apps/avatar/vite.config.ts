@@ -138,6 +138,7 @@ export default defineConfig(() => {
         { find: '@nimiplatform/sdk/features/toolkits', replacement: path.join(sdkVNextDist, 'features/toolkits/index.js') },
         { find: '@nimiplatform/sdk', replacement: path.join(sdkVNextDist, 'index.js') },
         { find: '@nimiplatform/kit/auth', replacement: path.resolve(__dirname, '../../kit/auth/src/index.ts') },
+        { find: '@nimiplatform/kit/shell/capabilities', replacement: path.resolve(__dirname, '../../kit/shell/capabilities/src') },
         { find: '@nimiplatform/kit/shell/renderer/bridge', replacement: path.resolve(__dirname, '../../kit/shell/renderer/src/bridge/index.ts') },
         { find: '@nimiplatform/kit/features/avatar', replacement: path.resolve(__dirname, '../../kit/features/avatar/src') },
         { find: '@nimiplatform/kit/ui', replacement: path.resolve(__dirname, '../../kit/ui/src') },

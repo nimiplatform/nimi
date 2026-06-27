@@ -10,6 +10,8 @@
       "@nimiplatform/kit/auth": ["../../kit/auth/src/index.ts"],
       "@nimiplatform/kit/auth/*": ["../../kit/auth/src/*"],
       "@nimiplatform/kit/core/*": ["../../kit/core/src/*"],
+      "@nimiplatform/kit/shell/capabilities": ["../../kit/shell/capabilities/src/index.ts"],
+      "@nimiplatform/kit/shell/capabilities/*": ["../../kit/shell/capabilities/src/*"],
       "@nimiplatform/kit/shell/renderer/bridge": ["../../kit/shell/renderer/src/bridge/index.ts"],
       "@nimiplatform/kit/shell/renderer/bridge/*": ["../../kit/shell/renderer/src/bridge/*"],
       "@nimiplatform/kit/shell/renderer/bootstrap": ["../../kit/shell/renderer/src/bootstrap/index.ts"],

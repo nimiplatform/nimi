@@ -41,6 +41,7 @@ test('tester renderer resolves every consumed kit subpath from source instead of
   const viteConfig = read('vite.config.ts');
   const requiredAliases = [
     ['@nimiplatform/kit/auth', 'kit/auth/src'],
+    ['@nimiplatform/kit/shell/capabilities', 'kit/shell/capabilities/src'],
     ['@nimiplatform/kit/shell/renderer/bridge', 'kit/shell/renderer/src/bridge'],
     ['@nimiplatform/kit/shell/renderer/bootstrap', 'kit/shell/renderer/src/bootstrap'],
     ['@nimiplatform/kit/telemetry', 'kit/telemetry/src/telemetry'],
@@ -58,6 +59,7 @@ test('tester renderer resolves every consumed kit subpath from source instead of
   }
 
   assert.match(viteConfig, /'@nimiplatform\/kit\/auth'/);
+  assert.match(viteConfig, /'@nimiplatform\/kit\/shell\/capabilities'/);
   assert.match(viteConfig, /'@nimiplatform\/kit\/shell\/renderer\/bridge'/);
   assert.match(viteConfig, /'@nimiplatform\/kit\/shell\/renderer\/bootstrap'/);
   assert.match(viteConfig, /'@nimiplatform\/kit\/telemetry'/);

@@ -307,6 +307,7 @@ export default defineConfig(({ mode }) => {
         { find: '@nimiplatform/kit/ui', replacement: path.resolve(__dirname, '../../kit/ui/src') },
         { find: '@nimiplatform/kit/auth', replacement: path.resolve(__dirname, '../../kit/auth/src') },
         { find: '@nimiplatform/kit/core', replacement: path.resolve(__dirname, '../../kit/core/src') },
+        { find: '@nimiplatform/kit/shell/capabilities', replacement: path.resolve(__dirname, '../../kit/shell/capabilities/src') },
         { find: '@nimiplatform/kit/shell/renderer/bridge', replacement: path.resolve(__dirname, '../../kit/shell/renderer/src/bridge') },
         { find: '@nimiplatform/kit/shell/renderer/bootstrap', replacement: path.resolve(__dirname, '../../kit/shell/renderer/src/bootstrap') },
         { find: '@nimiplatform/kit/telemetry/error-boundary', replacement: path.resolve(__dirname, '../../kit/telemetry/src/error-boundary') },

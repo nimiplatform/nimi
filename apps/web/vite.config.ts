@@ -246,6 +246,10 @@ export default defineConfig(({ mode }) => {
           replacement: path.resolve(__dirname, '../../kit/telemetry/src/error-boundary/index.ts'),
         },
         {
+          find: '@nimiplatform/kit/shell/capabilities',
+          replacement: path.resolve(__dirname, '../../kit/shell/capabilities/src'),
+        },
+        {
           find: '@nimiplatform/kit/shell/renderer/bridge',
           replacement: path.resolve(__dirname, '../../kit/shell/renderer/src/bridge'),
         },
