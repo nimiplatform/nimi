@@ -30,6 +30,13 @@ type ElectronTestGlobal = typeof globalThis & {
   };
 };
 
+const STANDARD_ELECTRON_RUNTIME_COMMANDS = {
+  unary: 'nimi.shell.runtime.unary',
+  streamOpen: 'nimi.shell.runtime.stream.open',
+  streamClose: 'nimi.shell.runtime.stream.close',
+  eventNamespace: 'nimi.shell.runtime',
+} as const;
+
 function installElectronTestHook(input: { invoke?: ElectronInvoke; listen?: ElectronListen }): () => void {
   const target = globalThis as ElectronTestGlobal;
   const previous = target.__NIMI_ELECTRON_TEST__;
@@ -66,7 +73,7 @@ test('electron-ipc Runtime transport encodes and decodes protobuf unary calls', 
   let capturedPayload: Record<string, unknown> = {};
   const restore = installElectronTestHook({
     invoke: async (command, payload) => {
-      assert.equal(command, 'runtime_bridge_unary');
+      assert.equal(command, STANDARD_ELECTRON_RUNTIME_COMMANDS.unary);
       capturedPayload = unwrapPayload(payload);
       return {
         responseBytesBase64: toBase64(GetRuntimeHealthResponse.toBinary(GetRuntimeHealthResponse.create({
@@ -107,11 +114,11 @@ test('electron-ipc Runtime transport decodes protobuf server streams', async () 
   let capturedPayload: Record<string, unknown> = {};
   const restore = installElectronTestHook({
     invoke: async (command, payload) => {
-      if (command === 'runtime_bridge_stream_open') {
+      if (command === STANDARD_ELECTRON_RUNTIME_COMMANDS.streamOpen) {
         capturedPayload = unwrapPayload(payload);
         const streamId = String(capturedPayload.streamId || '');
         assert.match(streamId, /^runtime-client-stream-/);
-        listeners.get(`runtime_bridge:stream:${streamId}`)?.({
+        listeners.get(`${STANDARD_ELECTRON_RUNTIME_COMMANDS.eventNamespace}:stream:${streamId}`)?.({
           payload: {
             streamId,
             eventType: 'next',
@@ -122,7 +129,7 @@ test('electron-ipc Runtime transport decodes protobuf server streams', async () 
             }))),
           },
         });
-        listeners.get(`runtime_bridge:stream:${streamId}`)?.({
+        listeners.get(`${STANDARD_ELECTRON_RUNTIME_COMMANDS.eventNamespace}:stream:${streamId}`)?.({
           payload: {
             streamId,
             eventType: 'completed',
@@ -130,7 +137,7 @@ test('electron-ipc Runtime transport decodes protobuf server streams', async () 
         });
         return { streamId };
       }
-      if (command === 'runtime_bridge_stream_close') {
+      if (command === STANDARD_ELECTRON_RUNTIME_COMMANDS.streamClose) {
         return {};
       }
       throw new Error(`unexpected electron command: ${command}`);
@@ -285,7 +292,7 @@ test('electron-ipc Runtime transport registers stream id mismatch as a public re
   const listeners = new Map<string, (event: { payload: unknown }) => void>();
   const restore = installElectronTestHook({
     invoke: async (command, payload) => {
-      if (command === 'runtime_bridge_stream_open') {
+      if (command === STANDARD_ELECTRON_RUNTIME_COMMANDS.streamOpen) {
         const requested = String(unwrapPayload(payload).streamId || '');
         return { streamId: `${requested}-other` };
       }

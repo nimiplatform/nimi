@@ -76,8 +76,12 @@ type RuntimeBridgeStreamEvent = {
   error?: unknown;
 };
 
-const DEFAULT_COMMAND_NAMESPACE = 'runtime_bridge';
-const DEFAULT_EVENT_NAMESPACE = 'runtime_bridge';
+const DEFAULT_EVENT_NAMESPACE = 'nimi.shell.runtime';
+const STANDARD_ELECTRON_RUNTIME_COMMANDS = {
+  unary: 'nimi.shell.runtime.unary',
+  stream_open: 'nimi.shell.runtime.stream.open',
+  stream_close: 'nimi.shell.runtime.stream.close',
+} as const;
 let runtimeElectronStreamCounter = 0;
 
 const BRIDGE_METADATA_FIELDS: Record<string, RuntimeBridgeMetadataScalarField> = {
@@ -202,8 +206,19 @@ function ensureListen(): ElectronListen {
 }
 
 function createCommandName(options: RuntimeElectronIpcTransportOptions, suffix: string): string {
-  const namespace = String(options.commandNamespace || DEFAULT_COMMAND_NAMESPACE).trim() || DEFAULT_COMMAND_NAMESPACE;
-  return `${namespace}_${suffix}`;
+  if (options.commandNamespace) {
+    const namespace = String(options.commandNamespace).trim();
+    return `${namespace}.${suffix}`;
+  }
+  const command = STANDARD_ELECTRON_RUNTIME_COMMANDS[suffix as keyof typeof STANDARD_ELECTRON_RUNTIME_COMMANDS];
+  if (!command) {
+    throw new RuntimeElectronIpcTransportError(
+      'SDK_RUNTIME_ELECTRON_COMMAND_UNSUPPORTED',
+      `electron-ipc Runtime transport does not define command suffix ${suffix}`,
+      { suffix },
+    );
+  }
+  return command;
 }
 
 function createEventName(options: RuntimeElectronIpcTransportOptions, streamId: string): string {
