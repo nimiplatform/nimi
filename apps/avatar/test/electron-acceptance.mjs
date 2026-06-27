@@ -4,11 +4,13 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import { pathToFileURL } from 'node:url';
 import { _electron as electron } from 'playwright';
 import { NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabilities';
 
 const root = path.resolve(import.meta.dirname, '..');
 const mainEntry = path.join(root, 'dist-electron', 'main.js');
+const rendererAcceptanceUrl = `${pathToFileURL(path.join(root, 'dist', 'index.html')).toString()}?nimiElectronSdkAcceptance=1`;
 
 test('Avatar owns a sandboxed Electron standard shell proof host', () => {
   for (const relativePath of [
@@ -60,6 +62,7 @@ test('Avatar Electron host boots renderer and exposes standard shell capability 
       env: {
         ...process.env,
         NIMI_RUNTIME_GRPC_ADDR: '',
+        NIMI_AVATAR_ELECTRON_RENDERER_URL: rendererAcceptanceUrl,
         NIMI_AVATAR_ELECTRON_RUNTIME_ENDPOINT: '127.0.0.1:1',
         NIMI_AVATAR_ELECTRON_STANDARD_DATA_ROOT: dataRoot,
         NIMI_AVATAR_ELECTRON_STANDARD_LOCAL_ASSET_ROOTS: assetRoot,
@@ -82,6 +85,16 @@ test('Avatar Electron host boots renderer and exposes standard shell capability 
         { timeout: 10_000 },
       ).then(() => true, () => false);
       assert.equal(rendererEntryLoaded, true, 'Avatar renderer module entry should run in Electron');
+
+      await page.waitForFunction(() => Boolean(globalThis.window?.__NIMI_AVATAR_ELECTRON_SDK_ACCEPTANCE__));
+      const sdkRuntimeReady = await page.evaluate(() =>
+        globalThis.window.__NIMI_AVATAR_ELECTRON_SDK_ACCEPTANCE__.runtimeReady(),
+      );
+      assert.equal(sdkRuntimeReady.transport, 'electron-ipc');
+      assert.equal(sdkRuntimeReady.ok, false);
+      assert.equal(sdkRuntimeReady.code, 'external-daemon-required');
+      assert.equal(sdkRuntimeReady.reasonCode, 'electron-runtime-endpoint-unavailable');
+      assert.equal(sdkRuntimeReady.actionHint, 'start_external_runtime_daemon');
 
       const identity = await page.evaluate(
         (command) => globalThis.window.__NIMI_ELECTRON_RUNTIME__.invoke(command, {}),

@@ -1,7 +1,10 @@
-import { invoke } from '@tauri-apps/api/core';
-import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import type { AppOriginEvent } from '../driver/types.js';
 import type { BackendKind } from '@nimiplatform/kit/features/avatar/headless';
+import {
+  invokeAvatarHostCommand,
+  listenAvatarHostEvent,
+  type ShellEventUnsubscribe,
+} from '../app-shell/avatar-host-bridge.js';
 import {
   activityHandlerKey,
   handlerFilenameToActivityId,
@@ -85,7 +88,7 @@ export type NasConfig = {
 };
 
 export async function scanNasHandlers(nimiDir: string): Promise<NasManifest> {
-  const raw = await invoke<RustNasManifest>('nimi_avatar_scan_nas_handlers', { nimiDir });
+  const raw = await invokeAvatarHostCommand<RustNasManifest>('nimi_avatar_scan_nas_handlers', { nimiDir });
   return {
     activity: raw.activity,
     event: raw.event,
@@ -96,7 +99,7 @@ export async function scanNasHandlers(nimiDir: string): Promise<NasManifest> {
 }
 
 async function readSource(path: string): Promise<string> {
-  return invoke<string>('nimi_avatar_read_text_file', { path });
+  return invokeAvatarHostCommand<string>('nimi_avatar_read_text_file', { path });
 }
 
 function isActivityOrEventHandler(value: unknown): value is ActivityOrEventHandler {
@@ -544,8 +547,7 @@ export async function startNasHandlerHotReload(input: {
 }): Promise<() => Promise<void>> {
   const watcherId = createNasWatcherId(input.modelId);
   const retiredRegistries: HandlerRegistry[] = [];
-  const unlisten: UnlistenFn = await listen<NasHandlersChangedPayload>(NAS_HANDLERS_CHANGED_EVENT, (event) => {
-    const payload = event.payload;
+  const unlisten: ShellEventUnsubscribe = await listenAvatarHostEvent<NasHandlersChangedPayload>(NAS_HANDLERS_CHANGED_EVENT, (payload) => {
     if (!payload || payload.watcher_id !== watcherId || payload.nimi_dir !== input.nimiDir) {
       return;
     }
@@ -584,7 +586,7 @@ export async function startNasHandlerHotReload(input: {
   });
 
   try {
-    await invoke('nimi_avatar_watch_nas_handlers', { nimiDir: input.nimiDir, watcherId });
+    await invokeAvatarHostCommand('nimi_avatar_watch_nas_handlers', { nimiDir: input.nimiDir, watcherId });
   } catch (err) {
     unlisten();
     throw err;
@@ -592,7 +594,7 @@ export async function startNasHandlerHotReload(input: {
 
   return async () => {
     unlisten();
-    await invoke('nimi_avatar_unwatch_nas_handlers', { watcherId });
+    await invokeAvatarHostCommand('nimi_avatar_unwatch_nas_handlers', { watcherId });
     for (const registry of retiredRegistries) {
       disposeRegistry(registry);
     }

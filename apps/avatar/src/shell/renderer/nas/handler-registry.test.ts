@@ -10,18 +10,6 @@ const oldHandlerSource = 'export default { async execute() {} }; // old handler'
 const newHandlerSource = 'export default { async execute() {} }; // new handler';
 const invalidHandlerSource = 'export default { async execute() { syntax-error } };';
 
-vi.mock('@tauri-apps/api/core', () => ({
-  invoke: (...args: unknown[]) => invokeMock(...args),
-}));
-
-vi.mock('@tauri-apps/api/event', () => ({
-  listen: async (...args: unknown[]) => {
-    listenMock(...args);
-    eventListener = args[1] as typeof eventListener;
-    return unlistenMock;
-  },
-}));
-
 vi.mock('./handler-sandbox.js', () => ({
   createSandboxedActivityOrEventHandler: async (source: string, path: string) => {
     if (source.includes('syntax-error')) {
@@ -68,6 +56,14 @@ describe('NAS handler registry hot reload', () => {
     sourceByPath = new Map();
     disposedSources = [];
     eventListener = null;
+    (globalThis as unknown as { __NIMI_TAURI_TEST__?: unknown }).__NIMI_TAURI_TEST__ = {
+      invoke: (...args: unknown[]) => invokeMock(...args),
+      listen: async (...args: unknown[]) => {
+        listenMock(...args);
+        eventListener = args[1] as typeof eventListener;
+        return unlistenMock;
+      },
+    };
   });
 
   it('atomically swaps a valid reloaded registry and exposes the retired registry for disposal', async () => {

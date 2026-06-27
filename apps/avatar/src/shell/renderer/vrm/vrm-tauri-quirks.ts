@@ -14,6 +14,8 @@
 // hard-fail. The fallback path is only selected when the global is
 // `undefined`.
 
+import { hasAvatarTauriHostRuntime } from '../app-shell/avatar-host-bridge.js';
+
 type CreateImageBitmapFn = typeof globalThis.createImageBitmap;
 
 type WindowLike = {
@@ -26,9 +28,7 @@ function getWindow(): WindowLike | null {
 }
 
 function isTauriRuntime(): boolean {
-  if (typeof window === 'undefined') return false;
-  const w = window as unknown as Record<string, unknown>;
-  return Boolean(w['__TAURI_INTERNALS__']) || Boolean(w['__TAURI_IPC__']);
+  return hasAvatarTauriHostRuntime();
 }
 
 function unsetCreateImageBitmap(win: WindowLike): boolean {

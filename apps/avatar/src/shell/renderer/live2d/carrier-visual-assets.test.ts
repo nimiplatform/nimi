@@ -21,8 +21,7 @@ function createFakeGl() {
 }
 
 describe('Live2D carrier visual texture loading', () => {
-  const originalTauriInternals = (window as unknown as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__;
-  const originalTauriIpc = (window as unknown as { __TAURI_IPC__?: unknown }).__TAURI_IPC__;
+  const originalTauriTest = (globalThis as unknown as { __NIMI_TAURI_TEST__?: unknown }).__NIMI_TAURI_TEST__;
   const originalCreateObjectURL = URL.createObjectURL;
   const originalRevokeObjectURL = URL.revokeObjectURL;
 
@@ -38,19 +37,11 @@ describe('Live2D carrier visual texture loading', () => {
   });
 
   afterEach(() => {
-    const windowWithTauri = window as unknown as {
-      __TAURI_INTERNALS__?: unknown;
-      __TAURI_IPC__?: unknown;
-    };
-    if (originalTauriInternals === undefined) {
-      delete windowWithTauri.__TAURI_INTERNALS__;
+    const shellGlobal = globalThis as unknown as { __NIMI_TAURI_TEST__?: unknown };
+    if (originalTauriTest === undefined) {
+      delete shellGlobal.__NIMI_TAURI_TEST__;
     } else {
-      windowWithTauri.__TAURI_INTERNALS__ = originalTauriInternals;
-    }
-    if (originalTauriIpc === undefined) {
-      delete windowWithTauri.__TAURI_IPC__;
-    } else {
-      windowWithTauri.__TAURI_IPC__ = originalTauriIpc;
+      shellGlobal.__NIMI_TAURI_TEST__ = originalTauriTest;
     }
     Object.defineProperty(URL, 'createObjectURL', {
       configurable: true,
@@ -71,7 +62,10 @@ describe('Live2D carrier visual texture loading', () => {
       public decode = vi.fn(async () => {});
     }
 
-    (window as unknown as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__ = {};
+    (globalThis as unknown as { __NIMI_TAURI_TEST__?: unknown }).__NIMI_TAURI_TEST__ = {
+      invoke: async () => undefined,
+      listen: async () => () => undefined,
+    };
     const createImageBitmapMock = vi.fn(async () => ({ close: vi.fn() }) as unknown as ImageBitmap);
     vi.stubGlobal('createImageBitmap', createImageBitmapMock);
     vi.stubGlobal('Image', FakeImage);
@@ -96,8 +90,7 @@ describe('Live2D carrier visual texture loading', () => {
   });
 
   it('keeps the ImageBitmap fast path outside Tauri', async () => {
-    delete (window as unknown as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__;
-    delete (window as unknown as { __TAURI_IPC__?: unknown }).__TAURI_IPC__;
+    delete (globalThis as unknown as { __NIMI_TAURI_TEST__?: unknown }).__NIMI_TAURI_TEST__;
     const bitmap = { close: vi.fn() } as unknown as ImageBitmap;
     const createImageBitmapMock = vi.fn(async () => bitmap);
     vi.stubGlobal('createImageBitmap', createImageBitmapMock);

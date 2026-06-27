@@ -6,6 +6,7 @@ import {
   runNimiRuntimeScenarioJob,
   withNimiRuntimeAgentScopes,
   type NimiRuntimeAgentScopeRunner,
+  type RuntimeOptions,
 } from '@nimiplatform/sdk/runtime';
 import {
   AccountReasonCode,
@@ -18,7 +19,7 @@ import {
   buildNimiRuntimeGenerationSubmitRequest,
   createNimiSpeechTranscriptionScenario,
 } from '@nimiplatform/sdk/features/generation';
-import { getRuntimeDefaults, hasTauriInvoke } from '../bridge/index.js';
+import { getRuntimeDefaults } from '../bridge/index.js';
 import { startAvatarRuntimeCarrier } from '../carrier/avatar-carrier.js';
 import { createDriver, resolveDriverKind } from '../driver/factory.js';
 import { resolveLocalAvatarAssetManifest } from '../carrier/model-resolver.js';
@@ -65,6 +66,19 @@ const AVATAR_FIRST_PARTY_APP_ID = 'nimi.avatar';
 const AVATAR_FIRST_PARTY_DRIVER_START_TIMEOUT_MS = 12_000;
 
 export type { BootstrapHandle } from './app-bootstrap-types.js';
+
+function createAvatarRuntimeTransport(
+  host: 'tauri' | 'electron',
+): NonNullable<RuntimeOptions['transport']> {
+  if (host === 'electron') {
+    return { type: 'electron-ipc' };
+  }
+  return {
+    type: 'tauri-ipc',
+    commandNamespace: 'runtime_bridge',
+    eventNamespace: 'runtime_bridge',
+  };
+}
 
 function optionalRecord(value: unknown): Record<string, unknown> | undefined {
   return value && typeof value === 'object' && !Array.isArray(value)
@@ -201,9 +215,6 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
         );
       }
     } else {
-      if (!isTauriRuntime() || !hasTauriInvoke()) {
-        throw new Error('avatar real runtime bootstrap requires Tauri runtime');
-      }
       const runtimeBridge = installAvatarRuntimeBridge();
       if (!runtimeBridge.installed) {
         throw new Error(`avatar real runtime bootstrap requires Nimi shell runtime bridge: ${runtimeBridge.reason}`);
@@ -235,11 +246,7 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
           appId: runtimeAppId,
           runtime: {
             appId: runtimeAppId,
-            transport: {
-              type: 'tauri-ipc',
-              commandNamespace: 'runtime_bridge',
-              eventNamespace: 'runtime_bridge',
-            },
+            transport: createAvatarRuntimeTransport(runtimeBridge.host),
           },
         });
         await runFirstPartyStage('runtime_client_ready', () => nimiClient.runtime.ready());

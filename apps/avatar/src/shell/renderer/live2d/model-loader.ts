@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/core';
+import { invokeAvatarHostCommand } from '../app-shell/avatar-host-bridge.js';
 
 // Local Avatar asset resolution is current private-skin materialization
 // plumbing. Asset Market distribution is retired; launched carriers consume
@@ -21,7 +21,7 @@ type RustModelManifest = {
 };
 
 export async function resolveModelManifest(modelPath: string): Promise<ModelManifest> {
-  const raw = await invoke<RustModelManifest>('nimi_avatar_resolve_model', { path: modelPath });
+  const raw = await invokeAvatarHostCommand<RustModelManifest>('nimi_avatar_resolve_model', { path: modelPath });
   return {
     runtimeDir: raw.runtime_dir,
     modelId: raw.model_id,
@@ -32,11 +32,11 @@ export async function resolveModelManifest(modelPath: string): Promise<ModelMani
 }
 
 export async function readTextFile(path: string): Promise<string> {
-  return invoke<string>('nimi_avatar_read_text_file', { path });
+  return invokeAvatarHostCommand<string>('nimi_avatar_read_text_file', { path });
 }
 
 export async function readBinaryFile(path: string): Promise<ArrayBuffer> {
-  const bytes = await invoke<number[]>('nimi_avatar_read_binary_file', { path });
+  const bytes = await invokeAvatarHostCommand<number[]>('nimi_avatar_read_binary_file', { path });
   return new Uint8Array(bytes).buffer;
 }
 

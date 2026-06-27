@@ -1,6 +1,10 @@
-import { isTauri } from '@tauri-apps/api/core';
-import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import type { AvatarLaunchContext } from '../bridge/index.js';
+import {
+  hasAvatarTauriHostRuntime,
+  listenAvatarHostEvent,
+} from './avatar-host-bridge.js';
+
+type UnlistenFn = () => void;
 
 export type ShellReadyPayload = {
   label: string;
@@ -9,26 +13,15 @@ export type ShellReadyPayload = {
 };
 
 export async function onShellReady(handler: (payload: ShellReadyPayload) => void): Promise<UnlistenFn> {
-  return listen<ShellReadyPayload>('avatar://shell-ready', (event) => {
-    handler(event.payload);
-  });
+  return listenAvatarHostEvent<ShellReadyPayload>('avatar://shell-ready', handler);
 }
 
 export async function onLaunchContextUpdated(
   handler: (payload: AvatarLaunchContext) => void,
 ): Promise<UnlistenFn> {
-  return listen<AvatarLaunchContext>('avatar://launch-context-updated', (event) => {
-    handler(event.payload);
-  });
+  return listenAvatarHostEvent<AvatarLaunchContext>('avatar://launch-context-updated', handler);
 }
 
 export function isTauriRuntime(): boolean {
-  return isTauri()
-    || (
-      typeof window !== 'undefined'
-      && (
-        '__TAURI_INTERNALS__' in window
-        || '__TAURI_IPC__' in window
-      )
-    );
+  return hasAvatarTauriHostRuntime();
 }

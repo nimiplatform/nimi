@@ -6,10 +6,15 @@
 import './i18n/index.js';
 import { createRoot } from 'react-dom/client';
 import { NimiThemeProvider } from '@nimiplatform/kit/ui';
+import { installNimiShellRuntimeBridge } from '@nimiplatform/kit/shell/renderer/bridge';
 import { App } from './App.js';
 import { t } from './i18n/index.js';
 import { installCreateImageBitmapSuspendForTauri } from './vrm/vrm-tauri-quirks.js';
+import { installAvatarElectronSdkAcceptanceProbe } from './app-shell/avatar-electron-sdk-acceptance.js';
 import './app.css';
+
+installNimiShellRuntimeBridge();
+installAvatarElectronSdkAcceptanceProbe();
 
 // Install the Tauri WKWebView createImageBitmap quirk-shim before any VRM /
 // Three.js code runs. Forces GLTFLoader's stable `<img>` fallback path for

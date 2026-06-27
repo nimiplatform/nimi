@@ -8,7 +8,6 @@
 // naming here is current Desktop storage plumbing for private imports.
 // It is not package lifecycle, inventory, or activation authority.
 
-import { invoke } from '@tauri-apps/api/core';
 import {
   fromTauriAvatarModelManifest,
   type AgentCenterLocalAvatarAssetReference,
@@ -16,11 +15,12 @@ import {
   type LocalAvatarAssetReference,
   type TauriAvatarModelManifest,
 } from '@nimiplatform/kit/features/avatar/headless';
+import { invokeAvatarHostCommand } from '../app-shell/avatar-host-bridge.js';
 
 export async function resolveAgentCenterAvatarAssetManifest(
   reference: AgentCenterLocalAvatarAssetReference,
 ): Promise<AvatarModelManifest> {
-  const raw = await invoke<TauriAvatarModelManifest>('nimi_avatar_resolve_agent_center_avatar_asset', {
+  const raw = await invokeAvatarHostCommand<TauriAvatarModelManifest>('nimi_avatar_resolve_agent_center_avatar_asset', {
     payload: reference,
   });
   return fromTauriAvatarModelManifest(raw);
@@ -29,7 +29,7 @@ export async function resolveAgentCenterAvatarAssetManifest(
 export async function resolveLocalAvatarAssetManifest(
   reference: LocalAvatarAssetReference,
 ): Promise<AvatarModelManifest> {
-  const raw = await invoke<TauriAvatarModelManifest>('nimi_avatar_resolve_local_avatar_asset', {
+  const raw = await invokeAvatarHostCommand<TauriAvatarModelManifest>('nimi_avatar_resolve_local_avatar_asset', {
     payload: reference,
   });
   return fromTauriAvatarModelManifest(raw);

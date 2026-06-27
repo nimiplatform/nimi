@@ -4,14 +4,6 @@ import { describe, expect, it, vi } from 'vitest';
 
 const invokeMock = vi.fn();
 
-vi.mock('@tauri-apps/api/core', () => ({
-  invoke: (...args: unknown[]) => invokeMock(...args),
-}));
-
-vi.mock('@tauri-apps/api/event', () => ({
-  listen: vi.fn(),
-}));
-
 vi.mock('./handler-sandbox.js', () => ({
   createSandboxedActivityOrEventHandler: async (source: string, path: string) => {
     if (!/\bexecute\s*\(/.test(source)) {
@@ -51,6 +43,10 @@ function fixturePath(relative: string): string {
 describe('NAS creator runtime examples', () => {
   it('loads runnable activity, event, continuous, lib, and config fixtures through the NAS registry', async () => {
     const { createHandlerRegistry, populateRegistry } = await import('./handler-registry.js');
+    (globalThis as unknown as { __NIMI_TAURI_TEST__?: unknown }).__NIMI_TAURI_TEST__ = {
+      invoke: (...args: unknown[]) => invokeMock(...args),
+      listen: async () => () => undefined,
+    };
     invokeMock.mockImplementation(async (command: string, args: { path?: string }) => {
       if (command === 'nimi_avatar_read_text_file' && args.path) {
         return readFile(args.path, 'utf8');
@@ -79,6 +75,10 @@ describe('NAS creator runtime examples', () => {
 
   it('treats malformed creator fixtures as negative acceptance evidence', async () => {
     const { createHandlerRegistry, populateRegistry } = await import('./handler-registry.js');
+    (globalThis as unknown as { __NIMI_TAURI_TEST__?: unknown }).__NIMI_TAURI_TEST__ = {
+      invoke: (...args: unknown[]) => invokeMock(...args),
+      listen: async () => () => undefined,
+    };
     invokeMock.mockImplementation(async (command: string, args: { path?: string }) => {
       if (command === 'nimi_avatar_read_text_file' && args.path) {
         return readFile(args.path, 'utf8');

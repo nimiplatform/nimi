@@ -1,3 +1,5 @@
+import { hasAvatarTauriHostRuntime } from '../app-shell/avatar-host-bridge.js';
+
 const LIVE2D_SHADER_PATH = 'assets/js/live2d-cubism-framework-shaders/WebGL/';
 const LIVE2D_SHADER_FILES = [
   'vertshadersrc.vert',
@@ -26,9 +28,7 @@ function timeoutAfter<T>(ms: number, message: string): Promise<T> {
 }
 
 function isTauriRuntime(): boolean {
-  if (typeof window === 'undefined') return false;
-  const w = window as unknown as Record<string, unknown>;
-  return Boolean(w['__TAURI_INTERNALS__']) || Boolean(w['__TAURI_IPC__']);
+  return hasAvatarTauriHostRuntime();
 }
 
 export async function verifyLive2DShaderAssets(): Promise<readonly string[]> {

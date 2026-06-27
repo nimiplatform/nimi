@@ -16,14 +16,6 @@ const requiresLive2DSource =
 const neutralSource =
   'export default { async execute() {} };';
 
-vi.mock('@tauri-apps/api/core', () => ({
-  invoke: (...args: unknown[]) => invokeMock(...args),
-}));
-
-vi.mock('@tauri-apps/api/event', () => ({
-  listen: vi.fn(async () => () => undefined),
-}));
-
 vi.mock('./handler-sandbox.js', () => ({
   createSandboxedActivityOrEventHandler: async (source: string) => {
     return {
@@ -60,6 +52,10 @@ function createManifest(stem: string, kind: 'activity' | 'event' | 'continuous')
 describe('NAS handler-registry capability gating', () => {
   beforeEach(() => {
     invokeMock.mockReset();
+    (globalThis as unknown as { __NIMI_TAURI_TEST__?: unknown }).__NIMI_TAURI_TEST__ = {
+      invoke: (...args: unknown[]) => invokeMock(...args),
+      listen: async () => () => undefined,
+    };
     invokeMock.mockImplementation(async (command: string, args: { path?: string }) => {
       if (command === 'nimi_avatar_read_text_file') {
         return args.path?.includes('live2d') ? requiresLive2DSource : neutralSource;

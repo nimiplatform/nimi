@@ -77,11 +77,6 @@ vi.mock('three/examples/jsm/loaders/GLTFLoader.js', () => {
   };
 });
 
-vi.mock('@tauri-apps/api/core', () => ({
-  convertFileSrc: (path: string) => `asset://${path}`,
-  invoke: mocks.invoke,
-}));
-
 vi.mock('./vrm-pose.js', () => ({
   applyIdlePose: mocks.applyIdlePose,
 }));
@@ -136,15 +131,15 @@ beforeEach(() => {
   mocks.parse.mockReset();
   mocks.invoke.mockReset();
   mocks.GLTFLoaderCtor.mockClear();
+  (globalThis as unknown as { __NIMI_TAURI_TEST__?: unknown }).__NIMI_TAURI_TEST__ = undefined;
   __resetVrmLoaderForTests();
   clearVrmCache();
-  delete (window as unknown as Record<string, unknown>)['__TAURI_IPC__'];
 });
 
 afterEach(() => {
   clearVrmCache();
   __resetVrmLoaderForTests();
-  delete (window as unknown as Record<string, unknown>)['__TAURI_IPC__'];
+  (globalThis as unknown as { __NIMI_TAURI_TEST__?: unknown }).__NIMI_TAURI_TEST__ = undefined;
 });
 
 describe('getVrmLoader', () => {
@@ -244,8 +239,12 @@ describe('loadVrmFromManifest', () => {
   });
 
   it('loads Tauri local VRM files through Avatar-owned binary read instead of fetch', async () => {
-    (window as unknown as Record<string, unknown>)['__TAURI_IPC__'] = true;
     const fake = makeFakeVrm();
+    (globalThis as unknown as { __NIMI_TAURI_TEST__?: unknown }).__NIMI_TAURI_TEST__ = {
+      invoke: mocks.invoke,
+      listen: async () => () => undefined,
+      convertFileSrc: (path: string) => `asset://${path}`,
+    };
     mocks.invoke.mockResolvedValue([0x67, 0x6c, 0x54, 0x46]);
     mocks.parse.mockImplementation(async () => {
       mocks.callOrder.push('parse');
@@ -271,8 +270,12 @@ describe('loadVrmFromManifest', () => {
   });
 
   it('treats normal Windows drive VRM paths as local Tauri files', async () => {
-    (window as unknown as Record<string, unknown>)['__TAURI_IPC__'] = true;
     const fake = makeFakeVrm();
+    (globalThis as unknown as { __NIMI_TAURI_TEST__?: unknown }).__NIMI_TAURI_TEST__ = {
+      invoke: mocks.invoke,
+      listen: async () => () => undefined,
+      convertFileSrc: (path: string) => `asset://${path}`,
+    };
     mocks.invoke.mockResolvedValue([0x67, 0x6c, 0x54, 0x46]);
     mocks.parse.mockResolvedValue({ userData: fake });
 

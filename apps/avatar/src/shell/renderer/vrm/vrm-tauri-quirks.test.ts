@@ -21,7 +21,7 @@ describe('suspendCreateImageBitmapForTauriVrmLoad', () => {
 
   afterEach(() => {
     __resetCreateImageBitmapSuspendForTests();
-    delete (window as unknown as Record<string, unknown>)['__TAURI_IPC__'];
+    delete (globalThis as unknown as { __NIMI_TAURI_TEST__?: unknown }).__NIMI_TAURI_TEST__;
     if (original === undefined) {
       delete (window as { createImageBitmap?: CreateImageBitmapFn }).createImageBitmap;
     } else {
@@ -82,7 +82,10 @@ describe('suspendCreateImageBitmapForTauriVrmLoad', () => {
   });
 
   it('permanently disables createImageBitmap in Tauri runtime', () => {
-    (window as unknown as Record<string, unknown>)['__TAURI_IPC__'] = {};
+    (globalThis as unknown as { __NIMI_TAURI_TEST__?: unknown }).__NIMI_TAURI_TEST__ = {
+      invoke: async () => undefined,
+      listen: async () => () => undefined,
+    };
 
     installCreateImageBitmapSuspendForTauri();
 

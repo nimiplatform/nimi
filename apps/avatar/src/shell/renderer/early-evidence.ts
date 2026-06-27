@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/core';
+import { invokeAvatarHostCommand } from './app-shell/avatar-host-bridge.js';
 
 declare global {
   interface Window {
@@ -22,7 +22,7 @@ function toErrorDetail(error: unknown): Record<string, unknown> {
 }
 
 function recordEarlyEvidence(kind: 'avatar.renderer.entry-loaded' | 'avatar.renderer.failed', detail: Record<string, unknown>): void {
-  void invoke('nimi_avatar_record_evidence', {
+  void invokeAvatarHostCommand('nimi_avatar_record_evidence', {
     payload: {
       kind,
       recordedAt: new Date().toISOString(),

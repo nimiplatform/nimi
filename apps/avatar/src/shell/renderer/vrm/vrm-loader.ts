@@ -25,6 +25,12 @@ import { VRMAnimationLoaderPlugin } from '@pixiv/three-vrm-animation';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
 import type { VrmAvatarModelManifest } from './vrm-model-manifest.js';
+import { convertTauriFileSrc } from '@nimiplatform/kit/shell/renderer/bridge';
+import {
+  hasAvatarHostRuntime,
+  hasAvatarTauriHostRuntime,
+  invokeAvatarHostCommand,
+} from '../app-shell/avatar-host-bridge.js';
 import { getCachedVrm, setCachedVrm } from './vrm-instance-cache.js';
 import { createMToonMaterialLoaderPlugin } from './vrm-mtoon-outline-policy.js';
 import { applyIdlePose } from './vrm-pose.js';
@@ -99,24 +105,11 @@ export function __resetVrmLoaderForTests(): void {
  * and the test environment can mock the module.
  */
 export async function convertModelFilePathToUrl(path: string): Promise<string> {
-  if (!isTauriRuntime()) return path;
-  try {
-    const mod = (await import('@tauri-apps/api/core')) as {
-      convertFileSrc?: (filePath: string, protocol?: string) => string;
-    };
-    if (typeof mod.convertFileSrc !== 'function') return path;
-    return mod.convertFileSrc(path);
-  } catch {
-    // Lazy import failed (e.g. webview without API surface) — pass through
-    // and let the loader surface its own error if the URL is unreachable.
-    return path;
-  }
+  return hasAvatarTauriHostRuntime() ? convertTauriFileSrc(path) : path;
 }
 
 function isTauriRuntime(): boolean {
-  if (typeof window === 'undefined') return false;
-  const w = window as unknown as Record<string, unknown>;
-  return Boolean(w['__TAURI_INTERNALS__']) || Boolean(w['__TAURI_IPC__']);
+  return hasAvatarTauriHostRuntime();
 }
 
 function isRemoteOrBrowserUrl(path: string): boolean {
@@ -125,13 +118,10 @@ function isRemoteOrBrowserUrl(path: string): boolean {
 }
 
 async function readTauriBinaryFile(path: string): Promise<ArrayBuffer> {
-  const mod = (await import('@tauri-apps/api/core')) as {
-    invoke?: <T>(command: string, args?: Record<string, unknown>) => Promise<T>;
-  };
-  if (typeof mod.invoke !== 'function') {
-    throw new Error('VRM local file loading requires Tauri invoke');
+  if (!hasAvatarHostRuntime()) {
+    throw new Error('VRM local file loading requires an Avatar host bridge');
   }
-  const bytes = await mod.invoke<number[]>('nimi_avatar_read_binary_file', { path });
+  const bytes = await invokeAvatarHostCommand<number[]>('nimi_avatar_read_binary_file', { path });
   return new Uint8Array(bytes).buffer;
 }
 
