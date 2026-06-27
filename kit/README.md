@@ -50,7 +50,7 @@ extend the kit surface first when the missing behavior is cross-app.
 
 ## Current Public Surface
 
-The current package publishes 57 public subpath exports through
+The current package publishes 59 public subpath exports through
 `kit/package.json`:
 
 - 8 UI entries (`./ui`, `./ui/glass`, `./ui/motion`, `./ui/a11y`,
@@ -61,8 +61,9 @@ The current package publishes 57 public subpath exports through
   `./core/storage-json`, `./core/offline-coordinator`,
   `./core/notifications`, `./core/runtime-capabilities`,
   `./core/model-config`, `./core/sdk-contract`)
-- 2 renderer-shell entries (`./shell/renderer/bridge`,
-  `./shell/renderer/bootstrap`)
+- 4 shell entries (`./shell/renderer/bridge`,
+  `./shell/renderer/bootstrap`, `./shell/electron/main`,
+  and `./shell/electron/preload`)
 - 2 telemetry entries (`./telemetry`, `./telemetry/error-boundary`)
 - 34 feature entries across `./features/chat`, `./features/avatar`,
   `./features/model-picker`, `./features/model-config`,
@@ -119,6 +120,19 @@ import { getNimiNotificationBadgeKey } from '@nimiplatform/kit/core/notification
 import { invokeTauri } from '@nimiplatform/kit/shell/renderer/bridge';
 import { bootstrapAuthSession } from '@nimiplatform/kit/shell/renderer/bootstrap';
 ```
+
+Renderer shell APIs are host-neutral; Tauri and Electron host implementations
+live behind injected bridge hooks.
+
+### Electron shell
+
+```ts
+import { createElectronRuntimeBridgeCommandNames } from '@nimiplatform/kit/shell/electron/main';
+import { installNimiElectronRuntimeBridge } from '@nimiplatform/kit/shell/electron/preload';
+```
+
+Electron shell APIs are for main/preload host code only. Renderer application
+code uses SDK `electron-ipc` plus `@nimiplatform/kit/shell/renderer/*`.
 
 ### Tauri shell crate
 

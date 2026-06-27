@@ -19,6 +19,7 @@
     "auth/README.md",
     "core/README.md",
     "features/*/README.md",
+    "shell/electron/README.md",
     "shell/renderer/README.md",
     "telemetry/README.md",
     "ui/README.md",
@@ -110,6 +111,16 @@
       "types": "./dist/shell/renderer/bootstrap/index.d.ts",
       "import": "./dist/shell/renderer/bootstrap/index.js",
       "default": "./dist/shell/renderer/bootstrap/index.js"
+    },
+    "./shell/electron/main": {
+      "types": "./dist/shell/electron/main/index.d.ts",
+      "import": "./dist/shell/electron/main/index.js",
+      "default": "./dist/shell/electron/main/index.js"
+    },
+    "./shell/electron/preload": {
+      "types": "./dist/shell/electron/preload/index.d.ts",
+      "import": "./dist/shell/electron/preload/index.js",
+      "default": "./dist/shell/electron/preload/index.js"
     },
     "./telemetry": {
       "types": "./dist/telemetry/telemetry/index.d.ts",
@@ -301,6 +312,7 @@
   },
   "dependencies": {
     "@nimiplatform/sdk": "workspace:*",
+    "@grpc/grpc-js": "^1.14.4",
     "@tauri-apps/api": "^2.11.0",
     "@radix-ui/react-avatar": "^1.1.10",
     "@radix-ui/react-dialog": "^1.1.14",
@@ -325,6 +337,7 @@
   "peerDependencies": {
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "electron": "^42.5.0",
     "react-i18next": "^16.0.0"
   },
   "peerDependenciesMeta": {
@@ -332,6 +345,9 @@
       "optional": true
     },
     "react-i18next": {
+      "optional": true
+    },
+    "electron": {
       "optional": true
     }
   },

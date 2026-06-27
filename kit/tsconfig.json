@@ -21,6 +21,9 @@
       "@nimiplatform/kit/features/generation": ["./features/generation/src/index.ts"],
       "@nimiplatform/kit/features/generation/*": ["./features/generation/src/*"],
       "@nimiplatform/kit/shell/renderer/*": ["./shell/renderer/src/*"],
+      "@nimiplatform/kit/shell/electron/main": ["./shell/electron/src/main/index.ts"],
+      "@nimiplatform/kit/shell/electron/preload": ["./shell/electron/src/preload/index.ts"],
+      "@nimiplatform/kit/shell/electron/*": ["./shell/electron/src/*"],
       "@nimiplatform/kit/core/runtime-capabilities": ["./core/src/runtime-capabilities/index.ts"]
     },
     "target": "ES2022",
@@ -53,6 +56,7 @@
     "telemetry/src/**/*.tsx",
     "telemetry/src/**/*.d.ts",
     "shell/renderer/src/**/*.ts",
-    "shell/renderer/src/**/*.tsx"
+    "shell/renderer/src/**/*.tsx",
+    "shell/electron/src/**/*.ts"
   ]
 }

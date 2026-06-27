@@ -84,8 +84,9 @@ function packageExportTargetToSourceTarget(exportTarget) {
   if (distRelative.startsWith('features/')) {
     const parts = distRelative.split('/');
     sourceCandidates.push(`./${parts.slice(0, 2).join('/')}/src/${parts.slice(2).join('/')}`);
-  } else if (distRelative.startsWith('shell/renderer/')) {
-    sourceCandidates.push(`./shell/renderer/src/${distRelative.replace(/^shell\/renderer\//u, '')}`);
+  } else if (distRelative.startsWith('shell/')) {
+    const parts = distRelative.split('/');
+    sourceCandidates.push(`./${parts.slice(0, 2).join('/')}/src/${parts.slice(2).join('/')}`);
   } else if (distRelative.startsWith('telemetry/')) {
     sourceCandidates.push(`./telemetry/src/${distRelative.replace(/^telemetry\//u, '')}`);
   } else {
@@ -148,8 +149,16 @@ function allowsEmptyExports(modulePath, notes) {
   return isShellModule(modulePath) && /non-npm rust crate/iu.test(notes);
 }
 
-function allowsMissingModuleReadme(modulePath) {
-  return isShellModule(modulePath);
+function allowsMissingModuleReadme(modulePath, notes) {
+  return isShellModule(modulePath) && /non-npm rust crate/iu.test(notes);
+}
+
+function isElectronShellModule(modulePath) {
+  return modulePath === 'shell/electron' || modulePath.startsWith('shell/electron/');
+}
+
+function isRendererShellModule(modulePath) {
+  return modulePath === 'shell/renderer' || modulePath.startsWith('shell/renderer/');
 }
 
 function isAppLayerImport(target) {
@@ -275,7 +284,7 @@ for (const row of modules) {
   expect(fs.existsSync(absModuleDir), `registered module missing from disk: kit/${modulePath}`);
   expect(!fs.existsSync(path.join(absModuleDir, 'package.json')), `kit/${modulePath}: nested package.json is forbidden in single-package kit`);
   expect(!fs.existsSync(path.join(absModuleDir, 'tsconfig.json')), `kit/${modulePath}: nested tsconfig.json should be consolidated at kit/tsconfig.json`);
-  if (resolvedModule.direct && !allowsMissingModuleReadme(modulePath)) {
+  if (resolvedModule.direct && !allowsMissingModuleReadme(modulePath, notes)) {
     expect(fs.existsSync(path.join(absModuleDir, 'README.md')), `kit/${modulePath}: module README.md is required`);
   }
   if (modulePath.startsWith('features/') && resolvedModule.direct) {
@@ -350,6 +359,7 @@ for (const [exportKey, target] of Object.entries(packageExportsMap)) {
     || exportKey.startsWith('./auth')
     || exportKey.startsWith('./core/')
     || exportKey.startsWith('./telemetry')
+    || exportKey.startsWith('./shell/')
     || exportKey.startsWith('./features/');
 
   if (isKitSurfaceExport && !registeredExportKeys.has(exportKey) && !appLocalThemeExports.has(exportKey)) {
@@ -365,6 +375,9 @@ const onDiskModules = [
   ...fs.readdirSync(path.join(kitRoot, 'features'), { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
     .map((entry) => `features/${entry.name}`),
+  ...fs.readdirSync(path.join(kitRoot, 'shell'), { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => `shell/${entry.name}`),
 ];
 
 for (const modulePath of onDiskModules) {
@@ -439,6 +452,28 @@ for (const modulePath of registeredModuleSubpaths) {
         if (target.startsWith('@tauri-apps/') || target === 'electron' || target.startsWith('electron/')) {
           fail(`${fileRel}: feature modules must not import platform bridges directly (${target})`);
         }
+      }
+    }
+
+    if (isRendererShellModule(modulePath)) {
+      for (const target of importTargets) {
+        if (target === 'electron' || target.startsWith('electron/') || target.includes('/shell/electron')) {
+          fail(`${fileRel}: shell/renderer must stay host-neutral and must not import Electron host glue (${target})`);
+        }
+      }
+    }
+
+    if (isElectronShellModule(modulePath)) {
+      for (const target of importTargets) {
+        if (target === 'react' || target.startsWith('react/')) {
+          fail(`${fileRel}: shell/electron must not import React renderer code (${target})`);
+        }
+        if (target.startsWith('@tauri-apps/')) {
+          fail(`${fileRel}: shell/electron must not import Tauri bridge code (${target})`);
+        }
+      }
+      if (/ipcRenderer\s*[,}]/u.test(content) || /from\s+['"]electron['"]/u.test(content)) {
+        fail(`${fileRel}: shell/electron package surface must use injected preload/main Electron adapters instead of re-exporting raw electron primitives`);
       }
     }
   }

@@ -1,6 +1,6 @@
 import type { JsonValue } from './types.js';
-import { hasTauriInvoke } from './env.js';
-import { invokeTauri } from './tauri-api.js';
+import { hasShellHostInvoke } from './env.js';
+import { invokeShell } from './tauri-api.js';
 
 export class BridgeError extends Error {
   constructor(
@@ -12,22 +12,22 @@ export class BridgeError extends Error {
   }
 }
 
-type TauriInvokeFn = (command: string, payload?: JsonValue) => Promise<JsonValue>;
+type ShellInvokeFn = (command: string, payload?: JsonValue) => Promise<JsonValue>;
 
-function resolveTauriInvoke(): TauriInvokeFn {
-  if (!hasTauriInvoke()) {
-    throw new BridgeError('Tauri invoke is not available', 'resolve');
+function resolveShellInvoke(): ShellInvokeFn {
+  if (!hasShellHostInvoke()) {
+    throw new BridgeError('Shell host invoke is not available', 'resolve');
   }
-  return invokeTauri;
+  return invokeShell;
 }
 
 export async function invoke(command: string, payload: JsonValue = {}): Promise<JsonValue> {
-  if (!hasTauriInvoke()) {
-    throw new BridgeError('Tauri runtime is not available', command);
+  if (!hasShellHostInvoke()) {
+    throw new BridgeError('Shell host runtime is not available', command);
   }
-  const tauriInvoke = resolveTauriInvoke();
+  const shellInvoke = resolveShellInvoke();
   try {
-    return await tauriInvoke(command, payload);
+    return await shellInvoke(command, payload);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error || '');
     throw new BridgeError(message || `invoke ${command} failed`, command);

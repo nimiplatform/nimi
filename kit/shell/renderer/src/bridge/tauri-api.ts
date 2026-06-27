@@ -7,6 +7,10 @@ type TauriEventListen = (
   eventName: string,
   handler: (event: { event?: string; id?: number; payload: unknown }) => void,
 ) => Promise<TauriEventUnsubscribe>;
+type ElectronEventListen = (
+  eventName: string,
+  handler: (event: { payload: unknown }) => void,
+) => TauriEventUnsubscribe;
 type TauriTestHook = {
   invoke?: TauriInvoke;
   listen?: (
@@ -18,15 +22,23 @@ type NimiShellRuntimeHook = {
   invoke: TauriInvoke;
   listen: TauriEventListen;
 };
+type NimiElectronRuntimeHook = {
+  invoke: TauriInvoke;
+  listen: ElectronEventListen;
+};
 
 type TauriRuntimeGlobal = typeof globalThis & {
   __NIMI_TAURI_TEST__?: TauriTestHook;
   __NIMI_TAURI_RUNTIME__?: NimiShellRuntimeHook;
+  __NIMI_ELECTRON_TEST__?: NimiElectronRuntimeHook;
+  __NIMI_ELECTRON_RUNTIME__?: NimiElectronRuntimeHook;
   __TAURI_INTERNALS__?: unknown;
   __TAURI_IPC__?: unknown;
   window?: {
     __NIMI_TAURI_TEST__?: TauriTestHook;
     __NIMI_TAURI_RUNTIME__?: NimiShellRuntimeHook;
+    __NIMI_ELECTRON_TEST__?: NimiElectronRuntimeHook;
+    __NIMI_ELECTRON_RUNTIME__?: NimiElectronRuntimeHook;
     __TAURI_INTERNALS__?: unknown;
     __TAURI_IPC__?: unknown;
   };
@@ -36,8 +48,9 @@ type TauriRuntimeGlobal = typeof globalThis & {
  *  boolean so callers and guards can branch on the precise outcome and the
  *  non-Tauri case is an explicit skip, never a thrown pseudo-error. */
 export type NimiShellRuntimeBridgeResult =
-  | { installed: true }
-  | { installed: false; reason: 'non-tauri-environment' };
+  | { installed: true; host: 'tauri' }
+  | { installed: true; host: 'electron'; reason: 'electron-preload-present' }
+  | { installed: false; reason: 'non-shell-environment' };
 
 function tauriGlobal(): TauriRuntimeGlobal {
   return globalThis as TauriRuntimeGlobal;
@@ -57,6 +70,14 @@ function runtimeHook(): NimiShellRuntimeHook | undefined {
   return value.__NIMI_TAURI_RUNTIME__ || value.window?.__NIMI_TAURI_RUNTIME__;
 }
 
+function electronHook(): NimiElectronRuntimeHook | undefined {
+  const value = tauriGlobal();
+  return value.__NIMI_ELECTRON_TEST__
+    || value.window?.__NIMI_ELECTRON_TEST__
+    || value.__NIMI_ELECTRON_RUNTIME__
+    || value.window?.__NIMI_ELECTRON_RUNTIME__;
+}
+
 function hasNativeTauriRuntime(): boolean {
   const value = tauriGlobal();
   return Boolean(
@@ -74,6 +95,15 @@ export function hasTauriRuntime(): boolean {
       || testHook()?.listen
       || hasNativeTauriRuntime(),
   );
+}
+
+export function hasElectronRuntime(): boolean {
+  const hook = electronHook();
+  return Boolean(hook?.invoke || hook?.listen);
+}
+
+export function hasNimiShellRuntime(): boolean {
+  return hasTauriRuntime() || Boolean(runtimeHook()?.invoke || runtimeHook()?.listen) || hasElectronRuntime();
 }
 
 export async function invokeTauri<T>(command: string, payload: unknown = {}): Promise<T> {
@@ -99,17 +129,51 @@ export async function listenTauri(
   return await tauriEventListen(eventName, (event) => handler(event));
 }
 
+export async function invokeShell<T>(command: string, payload: unknown = {}): Promise<T> {
+  const electronInvoke = electronHook()?.invoke;
+  if (electronInvoke) {
+    return await electronInvoke(command, payload) as T;
+  }
+  return await invokeTauri<T>(command, payload);
+}
+
+export async function listenShell(
+  eventName: string,
+  handler: (event: { event?: string; id?: number; payload: unknown }) => void,
+): Promise<TauriEventUnsubscribe> {
+  const electronListen = electronHook()?.listen;
+  if (electronListen) {
+    const unsubscribe = electronListen(eventName, (event) => handler(event));
+    if (typeof unsubscribe !== 'function') {
+      throw new Error(`Electron event listener for "${eventName}" did not return an unsubscribe function`);
+    }
+    return unsubscribe;
+  }
+  return await listenTauri(eventName, handler);
+}
+
 export function convertTauriFileSrc(fileUrl: string): string {
+  if (hasElectronRuntime()) {
+    return convertElectronFileSrc(fileUrl);
+  }
   if (!hasNativeTauriRuntime()) {
     return fileUrl;
   }
   return tauriConvertFileSrc(fileUrl);
 }
 
+function convertElectronFileSrc(fileUrl: string): string {
+  const normalized = String(fileUrl || '').trim();
+  if (!normalized || /^(?:https?:|data:|blob:|nimi-shell-file:)/u.test(normalized)) {
+    return normalized;
+  }
+  return `nimi-shell-file://local/${encodeURIComponent(normalized)}`;
+}
+
 // The single authoritative runtime-transport hook for every Nimi Tauri app.
 // invoke prefers the test hook (deterministic tests), else the Tauri core API;
 // listen prefers the test hook, else the Tauri event API, and normalizes the
-// result to a guaranteed unsubscribe — a test hook that fails to return one is a
+// result to a guaranteed unsubscribe - a test hook that fails to return one is a
 // contract violation, not a silently-swallowed stream.
 function createNimiShellRuntimeHook(): NimiShellRuntimeHook {
   return {
@@ -149,12 +213,15 @@ function createNimiShellRuntimeHook(): NimiShellRuntimeHook {
  *
  * `withGlobalTauri` stays false: only `invoke` + event `listen` are exposed to
  * the renderer, never the entire Tauri API. Outside a Tauri webview this is a
- * typed no-op (`{ installed: false, reason: 'non-tauri-environment' }`) — never a
+ * typed no-op (`{ installed: false, reason: 'non-shell-environment' }`) - never a
  * thrown error.
  */
 export function installNimiShellRuntimeBridge(): NimiShellRuntimeBridgeResult {
+  if (hasElectronRuntime()) {
+    return { installed: true, host: 'electron', reason: 'electron-preload-present' };
+  }
   if (!hasTauriRuntime()) {
-    return { installed: false, reason: 'non-tauri-environment' };
+    return { installed: false, reason: 'non-shell-environment' };
   }
   const value = tauriGlobal();
   const hook = createNimiShellRuntimeHook();
@@ -162,5 +229,5 @@ export function installNimiShellRuntimeBridge(): NimiShellRuntimeBridgeResult {
   if (value.window && typeof value.window === 'object') {
     value.window.__NIMI_TAURI_RUNTIME__ = hook;
   }
-  return { installed: true };
+  return { installed: true, host: 'tauri' };
 }

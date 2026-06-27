@@ -8,6 +8,7 @@ entries:
   - kit.core
   - kit.shell.tauri
   - kit.shell.renderer
+  - kit.shell.electron
   - kit.core.runtime-capabilities
   - kit.core.model-config
   - kit.telemetry
@@ -155,7 +156,7 @@ modules:
     kind: infra
     surface_level: infra
     adapter_contract: none
-    description: Shared renderer shell glue — Tauri command wrappers, bridge primitives, bootstrap skeleton. Delivered as subpath exports of the single nimi-kit npm package.
+    description: Shared renderer shell glue for Tauri and Electron hosts - host-neutral command wrappers, bridge primitives, and bootstrap skeleton. Delivered as subpath exports of the single nimi-kit npm package.
     dependencies:
       - kit.core
       - kit.auth
@@ -176,6 +177,31 @@ modules:
     admission_status: active
     owner: platform
     source_rule: P-KIT-042
+  - id: kit.shell.electron
+    subpath: /shell/electron
+    kind: infra
+    surface_level: infra
+    adapter_contract: none
+    description: Shared Electron main/preload host glue for Runtime gRPC proxying, narrowed preload IPC exposure, stream forwarding, origin allowlisting, app identity enforcement, artifact URL serving, and externally managed daemon status projection.
+    dependencies:
+      - sdk
+      - "@grpc/grpc-js"
+    peer_dependencies:
+      - electron
+    exports:
+      - ./shell/electron/main
+      - ./shell/electron/preload
+    headless_exports:
+      - ./shell/electron/main
+      - ./shell/electron/preload
+    ui_exports: []
+    reuse_entrypoints:
+      - ./shell/electron/main
+      - ./shell/electron/preload
+    admission_status: active
+    owner: platform
+    source_rule: P-KIT-041E
+    notes: Node/Electron-host only. Renderer code must not import this module directly. Phase 1 Runtime daemon lifecycle is external-host only; start/stop/restart/config mutation must fail closed with external-daemon-required until a separate authority cut admits Electron daemon ownership. Runtime calls use @grpc/grpc-js raw identity byte proxying and preserve SDK tauri-ipc wire shape.
   - id: kit.core.runtime-capabilities
     subpath: /core/runtime-capabilities
     kind: logic

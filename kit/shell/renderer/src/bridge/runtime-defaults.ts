@@ -1,4 +1,4 @@
-import { hasTauriInvoke } from './env.js';
+import { hasShellHostInvoke } from './env.js';
 import { invokeChecked } from './invoke.js';
 import { parseRuntimeDefaults, type RuntimeDefaults } from './types.js';
 
@@ -63,7 +63,7 @@ function resolveShellMode(): 'desktop' | 'web' {
   if (typeof window === 'undefined') {
     return 'desktop';
   }
-  return hasTauriInvoke() ? 'desktop' : 'web';
+  return hasShellHostInvoke() ? 'desktop' : 'web';
 }
 
 function resolveBrowserOrigin(): string {
@@ -161,7 +161,7 @@ function applyEnvOverrides(base: RuntimeDefaults): RuntimeDefaults {
 }
 
 export async function getRuntimeDefaults(): Promise<RuntimeDefaults> {
-  if (!hasTauriInvoke()) {
+  if (!hasShellHostInvoke()) {
     return applyEnvOverrides(readRuntimeDefaultsFallback());
   }
   const defaults = await invokeChecked('runtime_defaults', {}, parseRuntimeDefaults);

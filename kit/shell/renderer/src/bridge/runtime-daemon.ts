@@ -1,4 +1,4 @@
-import { hasTauriInvoke } from './env.js';
+import { hasShellHostInvoke } from './env.js';
 import { invokeChecked } from './invoke.js';
 import {
   parseRuntimeBridgeConfigGetResult,
@@ -17,7 +17,7 @@ const OFFLINE_STATUS: RuntimeBridgeDaemonStatus = {
 };
 
 export async function getDaemonStatus(): Promise<RuntimeBridgeDaemonStatus> {
-  if (!hasTauriInvoke()) {
+  if (!hasShellHostInvoke()) {
     return OFFLINE_STATUS;
   }
   return invokeChecked('runtime_bridge_status', {}, parseRuntimeBridgeDaemonStatus);

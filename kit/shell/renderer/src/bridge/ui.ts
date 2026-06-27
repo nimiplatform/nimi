@@ -2,7 +2,7 @@ import {
   parseOpenExternalUrlResult,
   type OpenExternalUrlResult,
 } from '@nimiplatform/kit/core/oauth';
-import { hasTauriInvoke } from './env.js';
+import { hasShellHostInvoke } from './env.js';
 import { invoke, invokeChecked } from './invoke.js';
 import {
   parseConfirmDialogResult,
@@ -30,7 +30,7 @@ export function normalizeShellExternalUrl(url: string): string {
 
 export async function openExternalUrl(url: string): Promise<OpenExternalUrlResult> {
   const normalized = normalizeShellExternalUrl(url);
-  if (!hasTauriInvoke()) {
+  if (!hasShellHostInvoke()) {
     const openedWindow = windowLike()?.open?.(normalized, '_blank', 'noopener,noreferrer');
     return { opened: Boolean(openedWindow) };
   }
@@ -40,7 +40,7 @@ export async function openExternalUrl(url: string): Promise<OpenExternalUrlResul
 }
 
 export async function confirmDialog(payload: ConfirmDialogPayload): Promise<ConfirmDialogResult> {
-  if (!hasTauriInvoke()) {
+  if (!hasShellHostInvoke()) {
     return {
       confirmed: Boolean(windowLike()?.confirm?.(payload.description)),
     };
@@ -49,14 +49,14 @@ export async function confirmDialog(payload: ConfirmDialogPayload): Promise<Conf
 }
 
 export async function startWindowDrag(): Promise<void> {
-  if (!hasTauriInvoke()) {
+  if (!hasShellHostInvoke()) {
     return;
   }
   await invokeChecked('start_window_drag', {}, () => undefined);
 }
 
 export async function focusMainWindow(): Promise<void> {
-  if (!hasTauriInvoke()) {
+  if (!hasShellHostInvoke()) {
     windowLike()?.focus?.();
     return;
   }

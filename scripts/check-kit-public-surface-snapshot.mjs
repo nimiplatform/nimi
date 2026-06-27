@@ -59,8 +59,9 @@ function sourceBaseForDistRelative(distRelative) {
     const parts = distRelative.split('/');
     return `${parts.slice(0, 2).join('/')}/src/${parts.slice(2).join('/')}`;
   }
-  if (distRelative.startsWith('shell/renderer/')) {
-    return `shell/renderer/src/${distRelative.replace(/^shell\/renderer\//u, '')}`;
+  if (distRelative.startsWith('shell/')) {
+    const parts = distRelative.split('/');
+    return `${parts.slice(0, 2).join('/')}/src/${parts.slice(2).join('/')}`;
   }
   if (distRelative.startsWith('telemetry/')) {
     return `telemetry/src/${distRelative.replace(/^telemetry\//u, '')}`;

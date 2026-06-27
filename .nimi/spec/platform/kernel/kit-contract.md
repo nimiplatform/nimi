@@ -5,7 +5,7 @@
 ## P-KIT-001 — Kit Package Authority
 
 - `@nimiplatform/kit` is the single authoritative package for cross-app shared platform infrastructure.
-- Sub-modules are published through subpath exports on the single package: `/ui`, `/auth`, `/core/*`, `/telemetry/*`, and `/features/*`.
+- Sub-modules are published through subpath exports on the single package: `/ui`, `/auth`, `/core/*`, `/telemetry/*`, `/features/*`, `/shell/renderer/*`, and `/shell/electron/*`.
 - Apps must not duplicate capabilities already covered by a kit sub-module in app-local code.
 
 ## P-KIT-002 — Kit Sub-Module Registry
@@ -22,6 +22,7 @@
 - Kit sub-modules must not import runtime internal code (`runtime/internal/**`).
 - Apps consume kit TypeScript surfaces through `@nimiplatform/kit/<subpath>`.
 - `kit/shell/tauri/**` is an admitted non-npm Rust crate surface within the single kit authority. Apps consume it via Cargo path dependency, not npm import. It has no `package.json` exports and does not carry an independent workspace package manifest.
+- `kit/shell/electron/**` is an admitted npm TypeScript surface within the single kit authority. Apps consume it through `@nimiplatform/kit/shell/electron/*` subpath exports from Electron main/preload code, not from renderer application code.
 
 ## P-KIT-010 — UI Sub-Module (nimi-ui)
 
@@ -82,7 +83,7 @@
 
 ## P-KIT-042 — Renderer Shell Module
 
-- `shell/renderer` is an infra module for shared renderer shell glue: Tauri command wrappers, bridge primitives, and bootstrap skeleton.
+- `shell/renderer` is an infra module for shared renderer shell glue: host-neutral command wrappers, bridge primitives, and bootstrap skeleton for Tauri and Electron hosts.
 - Delivered as subpath exports of the single `@nimiplatform/kit` package: `./shell/renderer/bridge` and `./shell/renderer/bootstrap`.
 - Must not contain app-specific stores, navigation, UI rendering, or runtime readiness policy.
 - Must not re-own auth session truth or telemetry normalization truth already owned by `kit/auth` (domain/auth) and `kit/telemetry` (domain/telemetry).
@@ -92,6 +93,20 @@
   modules only when their own spec owns that boundary; shared core primitives
   come from this module.
 - Consumer-specific UI adapter components must not be placed in this module.
+
+## P-KIT-041E - Electron Shell Module
+
+- `shell/electron` is an infra module for shared Electron main/preload host glue: safe preload bridge installation, app-scoped IPC command registration, Runtime gRPC proxying, stream event forwarding, origin allowlisting, artifact URL serving, and externally managed Runtime daemon status projection.
+- Authority id and source location are `kit.shell.electron` at `kit/shell/electron/`.
+- Delivered as subpath exports of the single `@nimiplatform/kit` package: `./shell/electron/main` and `./shell/electron/preload`.
+- This module is Node/Electron-host only. Renderer application code must consume host-neutral renderer APIs from `shell/renderer` and SDK `electron-ipc`, not import `shell/electron` directly.
+- Must not contain app-specific stores, routes, product UI, business logic, Runtime/Realm typed API truth, or app-local command semantics.
+- Runtime bridge forwarding must preserve the same wire shape used by `tauri-ipc` for renderer-owned request fields: `methodId`, base64 request bytes, structured metadata, timeout, response metadata, and stream close behavior. Protected Runtime auth/session material is host-owned for Electron and must be injected by main-process trusted providers, not accepted from renderer payloads.
+- Runtime gRPC calls use raw identity byte serialization/deserialization through `@grpc/grpc-js`; generated Runtime truth remains owned by Runtime proto/SDK, not by Electron shell code.
+- Phase 1 daemon lifecycle is external-host only. `start`, `stop`, `restart`, and config mutation requests must fail closed with an explicit external-daemon-required error unless a later authority cut admits Electron daemon ownership.
+- Preload must expose only the narrowed Nimi bridge API needed by renderer code. It must not expose raw `ipcRenderer`, `electron`, `fs`, `child_process`, arbitrary channel senders, or unrestricted event listeners.
+- Main-process IPC must enforce command namespaces, app identity, and an explicit renderer origin allowlist. A missing app id or disallowed origin is a fail-closed host error.
+- Local artifact URLs must be served through a registered protocol or same-origin host handler with path/root validation. Electron renderer code must not receive raw `file://` escape hatches for artifact inspection.
 
 ## P-KIT-043 — Runtime Capabilities Module
 
@@ -237,6 +252,7 @@ Fixed rules:
   - the telemetry sub-module contains Tauri or Node.js imports
   - the `shell/renderer` sub-module contains app-specific stores, navigation, or UI rendering
   - the `shell/renderer` sub-module re-owns auth session truth or telemetry normalization truth
+  - the `shell/electron` sub-module is imported by renderer application code, exposes raw Electron/Node primitives through preload, omits origin allowlist enforcement, or claims daemon lifecycle ownership before a separate authority cut
   - the `core/runtime-capabilities` sub-module contains UI, CSS, or shell-specific imports
   - the auth sub-module defines CSS custom properties outside the `--nimi-*` namespace (except scoped overrides within `data-shell-auth-theme`)
   - a feature module omits required registry metadata for `surface_level`, `adapter_contract`, `headless_exports`, or `ui_exports`

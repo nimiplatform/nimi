@@ -45,7 +45,7 @@ test('Kit README public surface summary tracks package exports', () => {
   assert.ok(readme.includes(`- ${counts.ui} UI entries`), 'README UI export count must match package exports');
   assert.ok(readme.includes(`- ${counts.auth} auth entries`), 'README auth export count must match package exports');
   assert.ok(readme.includes(`- ${counts.core} core entries`), 'README core export count must match package exports');
-  assert.ok(readme.includes(`- ${counts.shell} renderer-shell entries`), 'README shell export count must match package exports');
+  assert.ok(readme.includes(`- ${counts.shell} shell entries`), 'README shell export count must match package exports');
   assert.ok(readme.includes(`- ${counts.telemetry} telemetry entries`), 'README telemetry export count must match package exports');
   assert.ok(readme.includes(`- ${counts.features} feature entries`), 'README feature export count must match package exports');
   assert.ok(

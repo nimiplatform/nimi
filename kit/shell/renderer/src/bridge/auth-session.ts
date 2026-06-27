@@ -2,7 +2,7 @@ import {
   parseSharedDesktopAuthSession,
   type SharedDesktopAuthSession,
 } from '@nimiplatform/kit/auth';
-import { hasTauriInvoke } from './env.js';
+import { hasShellHostInvoke } from './env.js';
 import { invokeChecked } from './invoke.js';
 
 export type SharedDesktopAuthSessionWatchOptions = {
@@ -57,7 +57,7 @@ export async function clearAuthSession(): Promise<void> {
 export function watchAuthSessionChanges(
   options: SharedDesktopAuthSessionWatchOptions,
 ): () => void {
-  if (!hasTauriInvoke()) {
+  if (!hasShellHostInvoke()) {
     return () => {};
   }
 
