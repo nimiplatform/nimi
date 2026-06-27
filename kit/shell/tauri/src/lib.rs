@@ -16,24 +16,25 @@
 // - renderer_entry_probe: shared page-load renderer entry smoke probe script
 // - agent_center_avatar_asset: shared Agent Center Avatar local asset resolution
 
-pub mod agent_center_avatar_asset;
-pub mod auth_session_commands;
+pub mod capabilities;
+mod agent_center_avatar_asset;
+mod auth_session_commands;
 pub mod command_registration;
-pub mod desktop_paths;
-pub mod governed_config;
-pub mod nimi_data_directory;
-pub mod oauth_commands;
-pub mod platform_catalog;
-pub mod platform_projection;
-pub mod renderer_entry_probe;
-pub mod runtime_account_caller;
-pub mod runtime_ai_config_projection;
-pub mod runtime_app_storage;
-pub mod runtime_bridge;
-pub mod runtime_defaults;
-pub mod runtime_local_agent_identity;
-pub mod runtime_local_assets;
-pub mod session_logging;
+mod desktop_paths;
+mod governed_config;
+mod nimi_data_directory;
+mod oauth_commands;
+mod platform_catalog;
+mod platform_projection;
+mod renderer_entry_probe;
+mod runtime_account_caller;
+mod runtime_ai_config_projection;
+mod runtime_app_storage;
+mod runtime_bridge;
+mod runtime_defaults;
+mod runtime_local_agent_identity;
+mod runtime_local_assets;
+mod session_logging;
 
 #[cfg(test)]
 mod agent_center_avatar_asset_tests;

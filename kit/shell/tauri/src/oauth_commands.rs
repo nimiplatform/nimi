@@ -448,7 +448,6 @@ fn oauth_listen_for_code_blocking(
 // Tauri commands
 // ---------------------------------------------------------------------------
 
-#[tauri::command]
 pub fn open_external_url(payload: OpenExternalUrlPayload) -> Result<OpenExternalUrlResult, String> {
     let parsed = Url::parse(payload.url.as_str()).map_err(|error| error.to_string())?;
     validate_external_url(&parsed)?;
@@ -456,7 +455,6 @@ pub fn open_external_url(payload: OpenExternalUrlPayload) -> Result<OpenExternal
     Ok(OpenExternalUrlResult { opened: true })
 }
 
-#[tauri::command]
 pub async fn oauth_token_exchange(
     payload: OauthTokenExchangePayload,
 ) -> Result<OauthTokenExchangeResult, String> {
@@ -531,7 +529,6 @@ pub async fn oauth_token_exchange(
     })
 }
 
-#[tauri::command]
 pub async fn oauth_listen_for_code(
     payload: OauthListenForCodePayload,
 ) -> Result<OauthListenForCodeResult, String> {

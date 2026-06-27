@@ -258,7 +258,6 @@ pub fn log_boot_marker(message: &str) {
     );
 }
 
-#[tauri::command]
 pub fn log_renderer_event(payload: RendererLogPayload) {
     let area = payload.area.trim();
     if area.is_empty() {

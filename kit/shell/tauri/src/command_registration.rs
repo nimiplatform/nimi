@@ -17,54 +17,54 @@ pub struct ShellCommandDescriptor {
 
 pub const RUNTIME_DEFAULTS_COMMANDS: &[ShellCommandDescriptor] = &[ShellCommandDescriptor {
     command_name: "runtime_defaults",
-    rust_path: "nimi_shell_tauri::runtime_defaults::runtime_defaults",
+    rust_path: "nimi_shell_tauri::capabilities::runtime_defaults::runtime_defaults",
     boundary: ShellCommandBoundary::RuntimeDefaults,
 }];
 
 pub const RUNTIME_BRIDGE_COMMANDS: &[ShellCommandDescriptor] = &[
     ShellCommandDescriptor {
         command_name: "runtime_bridge_unary",
-        rust_path: "nimi_shell_tauri::runtime_bridge::runtime_bridge_unary",
+        rust_path: "nimi_shell_tauri::capabilities::runtime::runtime_bridge_unary",
         boundary: ShellCommandBoundary::Runtime,
     },
     ShellCommandDescriptor {
         command_name: "runtime_bridge_stream_open",
-        rust_path: "nimi_shell_tauri::runtime_bridge::runtime_bridge_stream_open",
+        rust_path: "nimi_shell_tauri::capabilities::runtime::runtime_bridge_stream_open",
         boundary: ShellCommandBoundary::Runtime,
     },
     ShellCommandDescriptor {
         command_name: "runtime_bridge_stream_close",
-        rust_path: "nimi_shell_tauri::runtime_bridge::runtime_bridge_stream_close",
+        rust_path: "nimi_shell_tauri::capabilities::runtime::runtime_bridge_stream_close",
         boundary: ShellCommandBoundary::Runtime,
     },
     ShellCommandDescriptor {
         command_name: "runtime_bridge_status",
-        rust_path: "nimi_shell_tauri::runtime_bridge::runtime_bridge_status",
+        rust_path: "nimi_shell_tauri::capabilities::runtime::runtime_bridge_status",
         boundary: ShellCommandBoundary::Daemon,
     },
     ShellCommandDescriptor {
         command_name: "runtime_bridge_start",
-        rust_path: "nimi_shell_tauri::runtime_bridge::runtime_bridge_start",
+        rust_path: "nimi_shell_tauri::capabilities::runtime::runtime_bridge_start",
         boundary: ShellCommandBoundary::Daemon,
     },
     ShellCommandDescriptor {
         command_name: "runtime_bridge_stop",
-        rust_path: "nimi_shell_tauri::runtime_bridge::runtime_bridge_stop",
+        rust_path: "nimi_shell_tauri::capabilities::runtime::runtime_bridge_stop",
         boundary: ShellCommandBoundary::Daemon,
     },
     ShellCommandDescriptor {
         command_name: "runtime_bridge_restart",
-        rust_path: "nimi_shell_tauri::runtime_bridge::runtime_bridge_restart",
+        rust_path: "nimi_shell_tauri::capabilities::runtime::runtime_bridge_restart",
         boundary: ShellCommandBoundary::Daemon,
     },
     ShellCommandDescriptor {
         command_name: "runtime_bridge_config_get",
-        rust_path: "nimi_shell_tauri::runtime_bridge::runtime_bridge_config_get",
+        rust_path: "nimi_shell_tauri::capabilities::runtime::runtime_bridge_config_get",
         boundary: ShellCommandBoundary::Daemon,
     },
     ShellCommandDescriptor {
         command_name: "runtime_bridge_config_set",
-        rust_path: "nimi_shell_tauri::runtime_bridge::runtime_bridge_config_set",
+        rust_path: "nimi_shell_tauri::capabilities::runtime::runtime_bridge_config_set",
         boundary: ShellCommandBoundary::Daemon,
     },
 ];
@@ -72,17 +72,17 @@ pub const RUNTIME_BRIDGE_COMMANDS: &[ShellCommandDescriptor] = &[
 pub const AUTH_SESSION_COMMANDS: &[ShellCommandDescriptor] = &[
     ShellCommandDescriptor {
         command_name: "auth_session_load",
-        rust_path: "nimi_shell_tauri::auth_session_commands::auth_session_load",
+        rust_path: "nimi_shell_tauri::capabilities::auth::auth_session_load",
         boundary: ShellCommandBoundary::AuthSession,
     },
     ShellCommandDescriptor {
         command_name: "auth_session_save",
-        rust_path: "nimi_shell_tauri::auth_session_commands::auth_session_save",
+        rust_path: "nimi_shell_tauri::capabilities::auth::auth_session_save",
         boundary: ShellCommandBoundary::AuthSession,
     },
     ShellCommandDescriptor {
         command_name: "auth_session_clear",
-        rust_path: "nimi_shell_tauri::auth_session_commands::auth_session_clear",
+        rust_path: "nimi_shell_tauri::capabilities::auth::auth_session_clear",
         boundary: ShellCommandBoundary::AuthSession,
     },
 ];
@@ -90,24 +90,24 @@ pub const AUTH_SESSION_COMMANDS: &[ShellCommandDescriptor] = &[
 pub const OAUTH_COMMANDS: &[ShellCommandDescriptor] = &[
     ShellCommandDescriptor {
         command_name: "open_external_url",
-        rust_path: "nimi_shell_tauri::oauth_commands::open_external_url",
+        rust_path: "nimi_shell_tauri::capabilities::oauth::open_external_url",
         boundary: ShellCommandBoundary::OAuth,
     },
     ShellCommandDescriptor {
         command_name: "oauth_token_exchange",
-        rust_path: "nimi_shell_tauri::oauth_commands::oauth_token_exchange",
+        rust_path: "nimi_shell_tauri::capabilities::oauth::oauth_token_exchange",
         boundary: ShellCommandBoundary::OAuth,
     },
     ShellCommandDescriptor {
         command_name: "oauth_listen_for_code",
-        rust_path: "nimi_shell_tauri::oauth_commands::oauth_listen_for_code",
+        rust_path: "nimi_shell_tauri::capabilities::oauth::oauth_listen_for_code",
         boundary: ShellCommandBoundary::OAuth,
     },
 ];
 
 pub const SESSION_LOGGING_COMMANDS: &[ShellCommandDescriptor] = &[ShellCommandDescriptor {
     command_name: "log_renderer_event",
-    rust_path: "nimi_shell_tauri::session_logging::log_renderer_event",
+    rust_path: "nimi_shell_tauri::capabilities::session_logging::log_renderer_event",
     boundary: ShellCommandBoundary::SessionLogging,
 }];
 
@@ -126,21 +126,21 @@ macro_rules! nimi_shell_tauri_runtime_bridge_handler {
     (@with_runtime_defaults $runtime_defaults:path; $($app_command:path),* $(,)?) => {
         tauri::generate_handler![
             $runtime_defaults,
-            $crate::runtime_bridge::runtime_bridge_unary,
-            $crate::runtime_bridge::runtime_bridge_stream_open,
-            $crate::runtime_bridge::runtime_bridge_stream_close,
-            $crate::runtime_bridge::runtime_bridge_status,
-            $crate::runtime_bridge::runtime_bridge_start,
-            $crate::runtime_bridge::runtime_bridge_stop,
-            $crate::runtime_bridge::runtime_bridge_restart,
-            $crate::runtime_bridge::runtime_bridge_config_get,
-            $crate::runtime_bridge::runtime_bridge_config_set,
+            $crate::capabilities::runtime::runtime_bridge_unary,
+            $crate::capabilities::runtime::runtime_bridge_stream_open,
+            $crate::capabilities::runtime::runtime_bridge_stream_close,
+            $crate::capabilities::runtime::runtime_bridge_status,
+            $crate::capabilities::runtime::runtime_bridge_start,
+            $crate::capabilities::runtime::runtime_bridge_stop,
+            $crate::capabilities::runtime::runtime_bridge_restart,
+            $crate::capabilities::runtime::runtime_bridge_config_get,
+            $crate::capabilities::runtime::runtime_bridge_config_set,
             $($app_command),*
         ]
     };
     ($($app_command:path),* $(,)?) => {
         $crate::nimi_shell_tauri_runtime_bridge_handler![
-            @with_runtime_defaults $crate::runtime_defaults::runtime_defaults;
+            @with_runtime_defaults $crate::capabilities::runtime_defaults::runtime_defaults;
             $($app_command),*
         ]
     };
@@ -151,28 +151,28 @@ macro_rules! nimi_shell_tauri_auth_oauth_runtime_bridge_handler {
     (@with_runtime_defaults $runtime_defaults:path; $($app_command:path),* $(,)?) => {
         tauri::generate_handler![
             $runtime_defaults,
-            $crate::auth_session_commands::auth_session_load,
-            $crate::auth_session_commands::auth_session_save,
-            $crate::auth_session_commands::auth_session_clear,
-            $crate::oauth_commands::open_external_url,
-            $crate::oauth_commands::oauth_token_exchange,
-            $crate::oauth_commands::oauth_listen_for_code,
-            $crate::runtime_bridge::runtime_bridge_unary,
-            $crate::runtime_bridge::runtime_bridge_stream_open,
-            $crate::runtime_bridge::runtime_bridge_stream_close,
-            $crate::runtime_bridge::runtime_bridge_status,
-            $crate::runtime_bridge::runtime_bridge_start,
-            $crate::runtime_bridge::runtime_bridge_stop,
-            $crate::runtime_bridge::runtime_bridge_restart,
-            $crate::runtime_bridge::runtime_bridge_config_get,
-            $crate::runtime_bridge::runtime_bridge_config_set,
-            $crate::session_logging::log_renderer_event,
+            $crate::capabilities::auth::auth_session_load,
+            $crate::capabilities::auth::auth_session_save,
+            $crate::capabilities::auth::auth_session_clear,
+            $crate::capabilities::oauth::open_external_url,
+            $crate::capabilities::oauth::oauth_token_exchange,
+            $crate::capabilities::oauth::oauth_listen_for_code,
+            $crate::capabilities::runtime::runtime_bridge_unary,
+            $crate::capabilities::runtime::runtime_bridge_stream_open,
+            $crate::capabilities::runtime::runtime_bridge_stream_close,
+            $crate::capabilities::runtime::runtime_bridge_status,
+            $crate::capabilities::runtime::runtime_bridge_start,
+            $crate::capabilities::runtime::runtime_bridge_stop,
+            $crate::capabilities::runtime::runtime_bridge_restart,
+            $crate::capabilities::runtime::runtime_bridge_config_get,
+            $crate::capabilities::runtime::runtime_bridge_config_set,
+            $crate::capabilities::session_logging::log_renderer_event,
             $($app_command),*
         ]
     };
     ($($app_command:path),* $(,)?) => {
         $crate::nimi_shell_tauri_auth_oauth_runtime_bridge_handler![
-            @with_runtime_defaults $crate::runtime_defaults::runtime_defaults;
+            @with_runtime_defaults $crate::capabilities::runtime_defaults::runtime_defaults;
             $($app_command),*
         ]
     };
@@ -183,25 +183,25 @@ macro_rules! nimi_shell_tauri_oauth_runtime_bridge_handler {
     (@with_runtime_defaults $runtime_defaults:path; $($app_command:path),* $(,)?) => {
         tauri::generate_handler![
             $runtime_defaults,
-            $crate::oauth_commands::open_external_url,
-            $crate::oauth_commands::oauth_token_exchange,
-            $crate::oauth_commands::oauth_listen_for_code,
-            $crate::runtime_bridge::runtime_bridge_unary,
-            $crate::runtime_bridge::runtime_bridge_stream_open,
-            $crate::runtime_bridge::runtime_bridge_stream_close,
-            $crate::runtime_bridge::runtime_bridge_status,
-            $crate::runtime_bridge::runtime_bridge_start,
-            $crate::runtime_bridge::runtime_bridge_stop,
-            $crate::runtime_bridge::runtime_bridge_restart,
-            $crate::runtime_bridge::runtime_bridge_config_get,
-            $crate::runtime_bridge::runtime_bridge_config_set,
-            $crate::session_logging::log_renderer_event,
+            $crate::capabilities::oauth::open_external_url,
+            $crate::capabilities::oauth::oauth_token_exchange,
+            $crate::capabilities::oauth::oauth_listen_for_code,
+            $crate::capabilities::runtime::runtime_bridge_unary,
+            $crate::capabilities::runtime::runtime_bridge_stream_open,
+            $crate::capabilities::runtime::runtime_bridge_stream_close,
+            $crate::capabilities::runtime::runtime_bridge_status,
+            $crate::capabilities::runtime::runtime_bridge_start,
+            $crate::capabilities::runtime::runtime_bridge_stop,
+            $crate::capabilities::runtime::runtime_bridge_restart,
+            $crate::capabilities::runtime::runtime_bridge_config_get,
+            $crate::capabilities::runtime::runtime_bridge_config_set,
+            $crate::capabilities::session_logging::log_renderer_event,
             $($app_command),*
         ]
     };
     ($($app_command:path),* $(,)?) => {
         $crate::nimi_shell_tauri_oauth_runtime_bridge_handler![
-            @with_runtime_defaults $crate::runtime_defaults::runtime_defaults;
+            @with_runtime_defaults $crate::capabilities::runtime_defaults::runtime_defaults;
             $($app_command),*
         ]
     };

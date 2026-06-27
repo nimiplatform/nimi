@@ -2,7 +2,28 @@ use std::path::{Path, PathBuf};
 
 fn main() {
     // Library crate — no tauri_build::build() needed (that's for app binaries)
+    configure_windows_test_manifest();
     generate_runtime_proto_client();
+}
+
+fn configure_windows_test_manifest() {
+    if std::env::var("CARGO_CFG_WINDOWS").is_err() {
+        return;
+    }
+    if std::env::var("CARGO_CFG_TARGET_ENV").ok().as_deref() != Some("msvc") {
+        return;
+    }
+
+    let manifest_dir = PathBuf::from(
+        std::env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR should be set for build.rs"),
+    );
+    let manifest_path = manifest_dir.join("windows-test-manifest.xml");
+    println!("cargo:rerun-if-changed={}", manifest_path.display());
+    println!("cargo:rustc-link-arg=/MANIFEST:EMBED");
+    println!(
+        "cargo:rustc-link-arg=/MANIFESTINPUT:{}",
+        manifest_path.display()
+    );
 }
 
 fn generate_runtime_proto_client() {

@@ -74,7 +74,6 @@ fn resolve_realm_default_port(realm_base_url: &str) -> u16 {
         .unwrap_or(3002)
 }
 
-#[tauri::command]
 pub fn runtime_defaults() -> RuntimeDefaults {
     let realm_base_url = normalize_loopback_http_url(
         env_value("NIMI_REALM_URL", "http://localhost:3002").as_str(),

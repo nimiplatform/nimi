@@ -294,7 +294,6 @@ pub fn is_allowlisted_method(method_id: &str) -> bool {
     generated_method_ids::is_allowlisted_method(method_id)
 }
 
-#[tauri::command]
 pub async fn runtime_bridge_unary(
     payload: RuntimeBridgeUnaryPayload,
 ) -> Result<RuntimeBridgeUnaryResult, String> {
@@ -307,7 +306,6 @@ pub async fn runtime_bridge_unary(
     unary::invoke_unary(&payload).await
 }
 
-#[tauri::command]
 pub async fn runtime_bridge_stream_open(
     app: AppHandle,
     payload: RuntimeBridgeStreamOpenPayload,
@@ -315,19 +313,16 @@ pub async fn runtime_bridge_stream_open(
     stream::open_stream(&app, &payload).await
 }
 
-#[tauri::command]
 pub fn runtime_bridge_stream_close(payload: RuntimeBridgeStreamClosePayload) {
     stream::close_stream(&payload)
 }
 
-#[tauri::command]
 pub async fn runtime_bridge_status(app: AppHandle) -> RuntimeBridgeDaemonStatus {
     let status = current_daemon_status_async().await;
     sync_daemon_status_hook(&app, status.clone());
     status
 }
 
-#[tauri::command]
 pub async fn runtime_bridge_start(app: AppHandle) -> Result<RuntimeBridgeDaemonStatus, String> {
     set_action_in_flight_hook(&app, Some("start"));
     let result = start_daemon_async().await;
@@ -336,7 +331,6 @@ pub async fn runtime_bridge_start(app: AppHandle) -> Result<RuntimeBridgeDaemonS
     result
 }
 
-#[tauri::command]
 pub async fn runtime_bridge_stop(app: AppHandle) -> Result<RuntimeBridgeDaemonStatus, String> {
     set_action_in_flight_hook(&app, Some("stop"));
     let result = stop_daemon_async().await;
@@ -345,7 +339,6 @@ pub async fn runtime_bridge_stop(app: AppHandle) -> Result<RuntimeBridgeDaemonSt
     result
 }
 
-#[tauri::command]
 pub async fn runtime_bridge_restart(app: AppHandle) -> Result<RuntimeBridgeDaemonStatus, String> {
     set_action_in_flight_hook(&app, Some("restart"));
     let result = restart_daemon_async().await;
@@ -354,12 +347,10 @@ pub async fn runtime_bridge_restart(app: AppHandle) -> Result<RuntimeBridgeDaemo
     result
 }
 
-#[tauri::command]
 pub async fn runtime_bridge_config_get() -> Result<Value, String> {
     daemon_manager::config_get_async().await
 }
 
-#[tauri::command]
 pub async fn runtime_bridge_config_set(
     payload: RuntimeBridgeConfigSetPayload,
 ) -> Result<Value, String> {
