@@ -58,7 +58,7 @@ async fn resolve_chat_ai_storage_root() -> Result<String, String> {
     };
     let response: crate::runtime_bridge::generated::GetAppStorageResponse =
         crate::runtime_bridge::invoke_unary_typed_with_metadata(
-            nimi_shell_tauri::runtime_bridge::RUNTIME_APP_GET_APP_STORAGE_METHOD_ID,
+            nimi_shell_tauri::capabilities::runtime::RUNTIME_APP_GET_APP_STORAGE_METHOD_ID,
             request,
             crate::runtime_bridge::RuntimeBridgeMetadata {
                 app_id: Some(DESKTOP_APP_ID.to_string()),

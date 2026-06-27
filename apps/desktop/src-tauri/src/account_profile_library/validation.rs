@@ -9,7 +9,7 @@ use super::factory::{factory_provenance_from_row, profile_payload_from_row};
 use super::hashing::{compute_record_hash, stable_json_hash};
 use super::paths::validate_account_id;
 use super::types::{AccountDefaultAIProfilePayload, AccountDefaultProfileRecord};
-use nimi_shell_tauri::platform_catalog::ai_profile_factory::{
+use nimi_shell_tauri::capabilities::ai_profile::{
     verify_first_run_factory_ai_profile, PlatformAIProfileFactoryRow,
 };
 

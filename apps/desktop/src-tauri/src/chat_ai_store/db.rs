@@ -1,5 +1,5 @@
 use super::schema::init_schema;
-use nimi_shell_tauri::runtime_app_storage;
+use nimi_shell_tauri::capabilities::storage;
 use rusqlite::Connection;
 use std::path::PathBuf;
 use std::time::Duration;
@@ -8,7 +8,7 @@ pub(crate) const CHAT_AI_DIR_NAME: &str = "chat-ai";
 pub(crate) const CHAT_AI_DB_FILE_NAME: &str = "main.db";
 
 pub(crate) fn db_path(storage_root: &str) -> Result<PathBuf, String> {
-    runtime_app_storage::scoped_storage_child(
+    storage::scoped_storage_child(
         storage_root,
         "desktop Nimi Chat data root",
         PathBuf::from(CHAT_AI_DIR_NAME).join(CHAT_AI_DB_FILE_NAME),

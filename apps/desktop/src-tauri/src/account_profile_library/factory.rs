@@ -12,7 +12,7 @@ use super::types::{
     AccountDefaultProfileRecord, AccountDefaultProfileRevisionProvenance,
     AccountDefaultProfileSource,
 };
-use nimi_shell_tauri::platform_catalog::ai_profile_factory::PlatformAIProfileFactoryRow;
+use nimi_shell_tauri::capabilities::ai_profile::PlatformAIProfileFactoryRow;
 
 fn now_iso_timestamp() -> String {
     chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true)

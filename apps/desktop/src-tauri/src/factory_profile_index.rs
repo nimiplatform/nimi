@@ -7,7 +7,7 @@
 //!
 //! This file is a READ-ONLY projection of official catalog truth. It is
 //! regenerated deterministically from the packaged Platform factory catalog
-//! (`nimi_shell_tauri::platform_catalog::ai_profile_factory`, itself generated
+//! (`nimi_shell_tauri::capabilities::ai_profile`, itself generated
 //! from `.nimi/spec/platform/kernel/tables/ai-profile-factory-catalog.yaml`).
 //! It is never hand-edited and never carries user edits.
 //!
@@ -18,16 +18,16 @@
 //! module never writes account-scoped records.
 
 use crate::desktop_paths::resolve_nimi_dir;
-use nimi_shell_tauri::platform_projection::factory_profile_index::{
+use nimi_shell_tauri::capabilities::platform_projection::factory_profile_index::{
     FactoryProfileIndexRecord, FACTORY_PROFILE_INDEX_POINTER,
 };
 use serde::Serialize;
 use std::path::PathBuf;
 
 #[cfg(test)]
-use nimi_shell_tauri::governed_config::ConfigReadOutcome;
+use nimi_shell_tauri::capabilities::config::ConfigReadOutcome;
 #[cfg(test)]
-use nimi_shell_tauri::platform_projection::factory_profile_index::{
+use nimi_shell_tauri::capabilities::platform_projection::factory_profile_index::{
     build_factory_profile_index_record, materialize_factory_profile_index_projection,
     read_factory_profile_index_projection, FACTORY_PROFILE_INDEX_SCHEMA_VERSION,
 };
@@ -112,8 +112,8 @@ mod tests {
         FACTORY_PROFILE_INDEX_POINTER, FACTORY_PROFILE_INDEX_SCHEMA_VERSION,
     };
     use crate::test_support::with_env;
-    use nimi_shell_tauri::governed_config::{ConfigReadOutcome, ConfigRepairSeverity};
-    use nimi_shell_tauri::platform_catalog::ai_profile_factory::{
+    use nimi_shell_tauri::capabilities::config::{ConfigReadOutcome, ConfigRepairSeverity};
+    use nimi_shell_tauri::capabilities::ai_profile::{
         PLATFORM_AI_PROFILE_FACTORY_CATALOG_VERSION, PLATFORM_AI_PROFILE_FACTORY_ROWS,
         PLATFORM_AI_PROFILE_SELECTION_POLICY_REF,
     };

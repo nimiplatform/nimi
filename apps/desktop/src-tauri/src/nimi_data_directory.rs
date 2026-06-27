@@ -3,8 +3,8 @@
 use serde::Deserialize;
 
 #[cfg(test)]
-pub use nimi_shell_tauri::nimi_data_directory::enforce_data_root_layout;
-use nimi_shell_tauri::nimi_data_directory::{
+pub use nimi_shell_tauri::capabilities::data::enforce_data_root_layout;
+use nimi_shell_tauri::capabilities::data::{
     execute_directory_cleanup, plan_directory_cleanup, CleanupOutcome, CleanupPlan,
 };
 

@@ -173,11 +173,11 @@ pub fn runtime_bridge_unary_override(
     }
     let projection = account_projection_from_fixture(manifest.realm_fixture.as_ref());
     match payload.method_id.trim() {
-    nimi_shell_tauri::runtime_bridge::RUNTIME_AUTH_REGISTER_APP_METHOD_ID => {
+    nimi_shell_tauri::capabilities::runtime::RUNTIME_AUTH_REGISTER_APP_METHOD_ID => {
         append_backend_log("runtime_auth_fixture method=registerApp accepted=true");
         runtime_register_app_response(payload).map(Some)
     }
-    nimi_shell_tauri::runtime_bridge::RUNTIME_ACCOUNT_GET_ACCOUNT_SESSION_STATUS_METHOD_ID => {
+    nimi_shell_tauri::capabilities::runtime::RUNTIME_ACCOUNT_GET_ACCOUNT_SESSION_STATUS_METHOD_ID => {
         append_backend_log(&format!(
             "runtime_account_fixture method=getAccountSessionStatus authenticated={}",
             projection.is_some()
@@ -186,7 +186,7 @@ pub fn runtime_bridge_unary_override(
             runtime_account_status_response(projection),
         )))
     }
-    nimi_shell_tauri::runtime_bridge::RUNTIME_ACCOUNT_GET_ACCESS_TOKEN_METHOD_ID => {
+    nimi_shell_tauri::capabilities::runtime::RUNTIME_ACCOUNT_GET_ACCESS_TOKEN_METHOD_ID => {
         append_backend_log(&format!(
             "runtime_account_fixture method=getAccessToken accepted={}",
             projection.is_some()
@@ -195,50 +195,50 @@ pub fn runtime_bridge_unary_override(
             projection,
         ))))
     }
-    nimi_shell_tauri::runtime_bridge::RUNTIME_APP_GET_APP_STORAGE_METHOD_ID => {
+    nimi_shell_tauri::capabilities::runtime::RUNTIME_APP_GET_APP_STORAGE_METHOD_ID => {
         append_backend_log("runtime_app_fixture method=getAppStorage accepted=true");
         runtime_app_storage_response(payload, &manifest).map(Some)
     }
-    nimi_shell_tauri::runtime_bridge::RUNTIME_APP_GET_ACCOUNT_APP_INVENTORY_METHOD_ID => {
+    nimi_shell_tauri::capabilities::runtime::RUNTIME_APP_GET_ACCOUNT_APP_INVENTORY_METHOD_ID => {
         append_backend_log(&format!(
             "runtime_app_fixture method=getAccountAppInventory authenticated={}",
             projection.is_some()
         ));
         runtime_account_app_inventory_response(projection).map(Some)
     }
-    nimi_shell_tauri::runtime_bridge::RUNTIME_APP_LIST_LOCAL_APP_ADOPTIONS_METHOD_ID => {
+    nimi_shell_tauri::capabilities::runtime::RUNTIME_APP_LIST_LOCAL_APP_ADOPTIONS_METHOD_ID => {
         append_backend_log("runtime_app_fixture method=listLocalAppAdoptions accepted=true");
         Ok(Some(runtime_list_local_app_adoptions_response()))
     }
-    nimi_shell_tauri::runtime_bridge::RUNTIME_APP_LIST_APP_INSTALL_JOBS_METHOD_ID => {
+    nimi_shell_tauri::capabilities::runtime::RUNTIME_APP_LIST_APP_INSTALL_JOBS_METHOD_ID => {
         append_backend_log("runtime_app_fixture method=listAppInstallJobs accepted=true");
         runtime_list_app_install_jobs_response(payload).map(Some)
     }
-    nimi_shell_tauri::runtime_bridge::RUNTIME_APP_GET_APP_PACKAGE_READINESS_METHOD_ID => {
+    nimi_shell_tauri::capabilities::runtime::RUNTIME_APP_GET_APP_PACKAGE_READINESS_METHOD_ID => {
         append_backend_log("runtime_app_fixture method=getAppPackageReadiness accepted=true");
         runtime_app_package_readiness_response(payload).map(Some)
     }
-    nimi_shell_tauri::runtime_bridge::RUNTIME_AGENT_GET_AGENT_METHOD_ID => {
+    nimi_shell_tauri::capabilities::runtime::RUNTIME_AGENT_GET_AGENT_METHOD_ID => {
         append_backend_log("runtime_agent_fixture method=getAgent accepted=true");
         runtime_agent_get_response(payload).map(Some)
     }
-    nimi_shell_tauri::runtime_bridge::RUNTIME_AGENT_INITIALIZE_AGENT_METHOD_ID => {
+    nimi_shell_tauri::capabilities::runtime::RUNTIME_AGENT_INITIALIZE_AGENT_METHOD_ID => {
         append_backend_log("runtime_agent_fixture method=initializeAgent accepted=true");
         runtime_agent_initialize_response(payload).map(Some)
     }
-    nimi_shell_tauri::runtime_bridge::RUNTIME_AGENT_SET_AGENT_PRESENTATION_PROFILE_METHOD_ID => {
+    nimi_shell_tauri::capabilities::runtime::RUNTIME_AGENT_SET_AGENT_PRESENTATION_PROFILE_METHOD_ID => {
         append_backend_log("runtime_agent_fixture method=setAgentPresentationProfile accepted=true");
         runtime_agent_set_presentation_profile_response(payload).map(Some)
     }
-    nimi_shell_tauri::runtime_bridge::RUNTIME_AGENT_OPEN_CONVERSATION_ANCHOR_METHOD_ID => {
+    nimi_shell_tauri::capabilities::runtime::RUNTIME_AGENT_OPEN_CONVERSATION_ANCHOR_METHOD_ID => {
         append_backend_log("runtime_agent_fixture method=openConversationAnchor accepted=true");
         runtime_agent_open_anchor_response(payload).map(Some)
     }
-    nimi_shell_tauri::runtime_bridge::RUNTIME_AGENT_GET_CONVERSATION_ANCHOR_SNAPSHOT_METHOD_ID => {
+    nimi_shell_tauri::capabilities::runtime::RUNTIME_AGENT_GET_CONVERSATION_ANCHOR_SNAPSHOT_METHOD_ID => {
         append_backend_log("runtime_agent_fixture method=getConversationAnchorSnapshot accepted=true");
         runtime_agent_get_anchor_snapshot_response(payload).map(Some)
     }
-    nimi_shell_tauri::runtime_bridge::RUNTIME_AGENT_LIST_AGENT_CONVERSATION_SUMMARIES_METHOD_ID => {
+    nimi_shell_tauri::capabilities::runtime::RUNTIME_AGENT_LIST_AGENT_CONVERSATION_SUMMARIES_METHOD_ID => {
         append_backend_log("runtime_agent_fixture method=listAgentConversationSummaries accepted=true");
         runtime_agent_list_conversation_summaries_response(payload).map(Some)
     }

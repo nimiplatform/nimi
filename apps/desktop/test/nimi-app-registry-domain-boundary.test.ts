@@ -43,14 +43,14 @@ describe('Nimi App registry/admission domain boundary', () => {
     const packagesProjection = readRepo('apps/desktop/src-tauri/src/apps_packages_projection.rs');
     const bridgeProjection = readRepo('apps/desktop/src-tauri/src/apps_bridge_projection.rs');
 
-    assert.match(registryProjection, /nimi_shell_tauri::platform_projection::apps_registry/);
+    assert.match(registryProjection, /nimi_shell_tauri::capabilities::platform_projection::apps_registry/);
     assert.match(registryProjection, /build_apps_registry_record/);
     assert.match(registryProjection, /materialize_apps_registry_projection/);
     assert.match(registryProjection, /read_apps_registry_projection/);
     assert.doesNotMatch(registryProjection, /struct\s+AppsRegistryRow/);
     assert.doesNotMatch(registryProjection, /PLATFORM_NIMI_APP_REGISTRY_ROWS\s*:/);
 
-    assert.match(packagesProjection, /nimi_shell_tauri::platform_projection::apps_packages/);
+    assert.match(packagesProjection, /nimi_shell_tauri::capabilities::platform_projection::apps_packages/);
     assert.match(packagesProjection, /validate_apps_packages_record/);
     assert.match(packagesProjection, /GetAppPackageReadiness/);
     assert.doesNotMatch(packagesProjection, /selected_product_data_root/);

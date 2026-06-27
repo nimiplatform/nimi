@@ -70,23 +70,20 @@ test('openExternalUrl rejects non-http protocols before invoking browser APIs', 
   }
 });
 
-test('confirmDialog falls back to window.confirm outside Tauri', async () => {
-  let confirmMessage = '';
+test('confirmDialog fails closed outside a standard shell host', async () => {
   const restoreWindow = installWindowMock({
-    confirm: (message?: string) => {
-      confirmMessage = String(message || '');
-      return true;
-    },
+    confirm: () => true,
   });
 
   try {
-    const result = await confirmDialog({
-      title: 'Discard pending changes',
-      description: 'Discard the pending settings changes?',
-      level: 'warning',
-    });
-    assert.equal(result.confirmed, true);
-    assert.equal(confirmMessage, 'Discard the pending settings changes?');
+    await assert.rejects(
+      () => confirmDialog({
+        title: 'Discard pending changes',
+        description: 'Discard the pending settings changes?',
+        level: 'warning',
+      }),
+      /Standard shell host invoke is not available/,
+    );
   } finally {
     restoreWindow();
   }

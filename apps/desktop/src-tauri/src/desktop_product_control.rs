@@ -86,7 +86,7 @@ where
 #[tauri::command]
 pub async fn product_control_record_get() -> Result<ProductControlRecordProjection, String> {
     invoke_product_control_projection_json(
-        nimi_shell_tauri::runtime_bridge::RUNTIME_LOCAL_GET_PRODUCT_CONTROL_RECORD_METHOD_ID,
+        nimi_shell_tauri::capabilities::runtime::RUNTIME_LOCAL_GET_PRODUCT_CONTROL_RECORD_METHOD_ID,
         crate::runtime_bridge::generated::GetProductControlRecordRequest {},
         Some(10_000),
     )
@@ -97,7 +97,7 @@ pub async fn product_control_record_get() -> Result<ProductControlRecordProjecti
 pub async fn product_control_selected_data_root_get(
 ) -> Result<ProductControlSelectedDataRootProjection, String> {
     invoke_product_control_selected_data_root_json(
-        nimi_shell_tauri::runtime_bridge::RUNTIME_LOCAL_GET_PRODUCT_CONTROL_SELECTED_DATA_ROOT_METHOD_ID,
+        nimi_shell_tauri::capabilities::runtime::RUNTIME_LOCAL_GET_PRODUCT_CONTROL_SELECTED_DATA_ROOT_METHOD_ID,
         crate::runtime_bridge::generated::GetProductControlSelectedDataRootRequest {},
         Some(10_000),
     )
@@ -125,7 +125,7 @@ pub(crate) async fn runtime_selected_product_data_root() -> Result<std::path::Pa
 pub async fn product_control_record_ensure_created(
 ) -> Result<ProductControlRecordProjection, String> {
     invoke_product_control_projection_json(
-        nimi_shell_tauri::runtime_bridge::RUNTIME_LOCAL_ENSURE_PRODUCT_CONTROL_RECORD_CREATED_METHOD_ID,
+        nimi_shell_tauri::capabilities::runtime::RUNTIME_LOCAL_ENSURE_PRODUCT_CONTROL_RECORD_CREATED_METHOD_ID,
         crate::runtime_bridge::generated::EnsureProductControlRecordCreatedRequest {},
         Some(10_000),
     )
@@ -137,7 +137,7 @@ pub async fn product_control_record_select_data_root(
     payload: ProductDataRootSelectPayload,
 ) -> Result<ProductControlRecordProjection, String> {
     invoke_product_control_projection_json(
-        nimi_shell_tauri::runtime_bridge::RUNTIME_LOCAL_SELECT_PRODUCT_CONTROL_DATA_ROOT_METHOD_ID,
+        nimi_shell_tauri::capabilities::runtime::RUNTIME_LOCAL_SELECT_PRODUCT_CONTROL_DATA_ROOT_METHOD_ID,
         crate::runtime_bridge::generated::SelectProductControlDataRootRequest {
             data_root: payload.data_root,
         },
@@ -184,7 +184,7 @@ pub async fn product_control_record_set_first_run_install_level(
     payload: ProductFirstRunInstallLevelPayload,
 ) -> Result<ProductControlRecordProjection, String> {
     invoke_product_control_projection_json(
-        nimi_shell_tauri::runtime_bridge::RUNTIME_LOCAL_SET_PRODUCT_CONTROL_FIRST_RUN_INSTALL_LEVEL_METHOD_ID,
+        nimi_shell_tauri::capabilities::runtime::RUNTIME_LOCAL_SET_PRODUCT_CONTROL_FIRST_RUN_INSTALL_LEVEL_METHOD_ID,
         crate::runtime_bridge::generated::SetProductControlFirstRunInstallLevelRequest {
             install_level: payload.install_level,
             ai_profile_alias: payload.ai_profile_alias.unwrap_or_default(),
@@ -198,7 +198,7 @@ pub async fn product_control_record_set_first_run_install_level(
 pub async fn product_control_record_complete_first_run_device_environment_scan(
 ) -> Result<ProductControlRecordProjection, String> {
     invoke_product_control_projection_json(
-        nimi_shell_tauri::runtime_bridge::RUNTIME_LOCAL_COMPLETE_PRODUCT_CONTROL_FIRST_RUN_DEVICE_ENVIRONMENT_SCAN_METHOD_ID,
+        nimi_shell_tauri::capabilities::runtime::RUNTIME_LOCAL_COMPLETE_PRODUCT_CONTROL_FIRST_RUN_DEVICE_ENVIRONMENT_SCAN_METHOD_ID,
         crate::runtime_bridge::generated::CompleteProductControlFirstRunDeviceEnvironmentScanRequest {},
         Some(10_000),
     )

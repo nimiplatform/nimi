@@ -4,8 +4,8 @@ use crate::{
     menu_bar_shell,
 };
 use nimi_shell_tauri::{
-    renderer_entry_probe::{build_renderer_entry_probe_script, RendererEntryProbeScriptConfig},
-    runtime_bridge::RuntimeBridgeHostHooks,
+    capabilities::diagnostics::{build_renderer_entry_probe_script, RendererEntryProbeScriptConfig},
+    capabilities::runtime::RuntimeBridgeHostHooks,
 };
 use std::sync::Arc;
 
@@ -51,7 +51,7 @@ fn install_shared_runtime_bridge_hooks() {
         resolve_nimi_dir: Some(Arc::new(crate::desktop_paths::resolve_nimi_dir)),
         resolve_nimi_data_dir: Some(Arc::new(crate::desktop_paths::resolve_nimi_data_dir)),
     };
-    let _ = nimi_shell_tauri::runtime_bridge::set_runtime_bridge_host_hooks(hooks);
+    let _ = nimi_shell_tauri::capabilities::runtime::set_runtime_bridge_host_hooks(hooks);
 }
 
 fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {

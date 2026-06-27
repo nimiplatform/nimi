@@ -1,6 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use nimi_shell_tauri::runtime_bridge;
+use nimi_shell_tauri::capabilities::runtime as runtime_bridge;
 mod account_apps_projection;
 mod account_profile_library;
 mod account_profile_library_commands;

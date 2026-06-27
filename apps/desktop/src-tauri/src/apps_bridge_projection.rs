@@ -21,10 +21,10 @@
 
 use crate::apps_registry_projection::ensure_apps_registry;
 use crate::desktop_paths::resolve_nimi_dir;
-use nimi_shell_tauri::platform_projection::apps_bridge::{
+use nimi_shell_tauri::capabilities::platform_projection::apps_bridge::{
     build_apps_bridge_projection as build_shared_apps_bridge_projection, AppsBridgeProjection,
 };
-use nimi_shell_tauri::platform_projection::apps_packages::APPS_PACKAGES_POINTER;
+use nimi_shell_tauri::capabilities::platform_projection::apps_packages::APPS_PACKAGES_POINTER;
 
 /// Build the Apps bridge projection.
 ///
@@ -57,7 +57,7 @@ mod tests {
     use super::build_apps_bridge_projection;
     use crate::desktop_product_control::select_product_data_root;
     use crate::test_support::with_env;
-    use nimi_shell_tauri::platform_catalog::nimi_app_registry::{
+    use nimi_shell_tauri::capabilities::platform_projection::nimi_app_registry::{
         PLATFORM_NIMI_APP_REGISTRY_ROWS, PLATFORM_NIMI_APP_RELEASE_DESCRIPTOR_ROWS,
     };
     use std::path::PathBuf;

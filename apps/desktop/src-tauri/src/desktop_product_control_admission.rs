@@ -9,7 +9,7 @@ use crate::desktop_product_control::{
 };
 
 const RUNTIME_EXECUTION_RESOLVE_METHOD_ID: &str =
-    nimi_shell_tauri::runtime_bridge::RUNTIME_LOCAL_RESOLVE_FIRST_RUN_EXECUTION_EVIDENCE_METHOD_ID;
+    nimi_shell_tauri::capabilities::runtime::RUNTIME_LOCAL_RESOLVE_FIRST_RUN_EXECUTION_EVIDENCE_METHOD_ID;
 const RUNTIME_EXECUTION_STATE_READY: &str = "local_ai_ready";
 
 /// Tauri command `product_control_record_admit_ready_for_use`.
@@ -99,7 +99,7 @@ pub async fn product_control_record_admit_ready_for_use(
         )?;
     let response: crate::runtime_bridge::generated::ProductControlProjectionJson =
         crate::runtime_bridge::invoke_unary_typed_with_metadata(
-            nimi_shell_tauri::runtime_bridge::RUNTIME_LOCAL_ADMIT_PRODUCT_CONTROL_READY_FOR_USE_METHOD_ID,
+            nimi_shell_tauri::capabilities::runtime::RUNTIME_LOCAL_ADMIT_PRODUCT_CONTROL_READY_FOR_USE_METHOD_ID,
             crate::runtime_bridge::generated::AdmitProductControlReadyForUseRequest {
                 account_default_profile_evidence_json: serde_json::to_string(&account_evidence)
                     .map_err(|error| format!("serialize account profile evidence: {error}"))?,

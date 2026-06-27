@@ -15,7 +15,7 @@ fn runtime_root_dir() -> Result<PathBuf, String> {
 }
 
 fn runtime_models_dir() -> Result<PathBuf, String> {
-    Ok(nimi_shell_tauri::runtime_local_assets::runtime_models_dir(
+    Ok(nimi_shell_tauri::capabilities::local_assets::runtime_models_dir(
         &runtime_root_dir()?,
     ))
 }
@@ -75,7 +75,7 @@ pub fn runtime_local_pick_asset_manifest_path(_app: AppHandle) -> Result<Option<
         return Ok(None);
     };
     Ok(Some(
-        nimi_shell_tauri::runtime_local_assets::canonical_asset_manifest_path(&path, &models_root)?
+        nimi_shell_tauri::capabilities::local_assets::canonical_asset_manifest_path(&path, &models_root)?
             .to_string_lossy()
             .to_string(),
     ))
@@ -99,7 +99,7 @@ pub fn runtime_local_assets_reveal_in_folder(
         return Err("LOCAL_AI_ASSET_ID_REQUIRED".to_string());
     }
     let models_root = runtime_models_dir()?;
-    let target = nimi_shell_tauri::runtime_local_assets::reveal_target_for_asset(
+    let target = nimi_shell_tauri::capabilities::local_assets::reveal_target_for_asset(
         &models_root,
         &payload.local_asset_id,
     );
@@ -114,7 +114,7 @@ pub fn runtime_local_assets_reveal_root_folder(_app: AppHandle) -> Result<(), St
 
 #[cfg(test)]
 mod tests {
-    use nimi_shell_tauri::runtime_local_assets::{
+    use nimi_shell_tauri::capabilities::local_assets::{
         canonical_asset_manifest_path, reveal_target_for_asset, ASSET_MANIFEST_FILE_NAME,
     };
 

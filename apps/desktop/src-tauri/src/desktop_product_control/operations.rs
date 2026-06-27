@@ -176,7 +176,7 @@ pub fn set_first_run_install_level(
     let alias = normalized_alias
         .as_deref()
         .ok_or_else(|| "first-run aiProfileAlias is required".to_string())?;
-    nimi_shell_tauri::platform_catalog::ai_profile_factory::verify_first_run_factory_ai_profile(
+    nimi_shell_tauri::capabilities::ai_profile::verify_first_run_factory_ai_profile(
         alias,
         &normalized,
     )?;
@@ -243,7 +243,7 @@ pub(crate) async fn authenticated_runtime_account_id() -> Result<String, String>
     };
     let response: crate::runtime_bridge::generated::GetAccountSessionStatusResponse =
         crate::runtime_bridge::invoke_unary_typed_with_metadata(
-            nimi_shell_tauri::runtime_bridge::RUNTIME_ACCOUNT_GET_ACCOUNT_SESSION_STATUS_METHOD_ID,
+            nimi_shell_tauri::capabilities::runtime::RUNTIME_ACCOUNT_GET_ACCOUNT_SESSION_STATUS_METHOD_ID,
             request,
             super::product_control_runtime_bridge_metadata(),
             Some(10_000),
@@ -273,7 +273,7 @@ async fn ensure_product_control_runtime_app_registered(
     let request = product_control_runtime_app_registration_request(caller);
     let response: crate::runtime_bridge::generated::RegisterAppResponse =
         crate::runtime_bridge::invoke_unary_typed_with_metadata(
-            nimi_shell_tauri::runtime_bridge::RUNTIME_AUTH_REGISTER_APP_METHOD_ID,
+            nimi_shell_tauri::capabilities::runtime::RUNTIME_AUTH_REGISTER_APP_METHOD_ID,
             request,
             super::product_control_runtime_bridge_metadata(),
             Some(10_000),
@@ -344,7 +344,7 @@ fn runtime_account_status_rejection_error(
 }
 
 fn product_control_runtime_account_caller() -> crate::runtime_bridge::generated::AccountCaller {
-    nimi_shell_tauri::runtime_account_caller::desktop_shell_runtime_account_caller("nimi.desktop")
+    nimi_shell_tauri::capabilities::desktop_product_local_agent::desktop_shell_runtime_account_caller("nimi.desktop")
         .expect("desktop shell runtime account caller")
 }
 
@@ -372,7 +372,7 @@ pub async fn ensure_account_default_profile_for_product_control(
             "first-run aiProfileAlias is required before Account Default Profile".to_string()
         })?
         .to_string();
-    nimi_shell_tauri::platform_catalog::ai_profile_factory::verify_first_run_factory_ai_profile(
+    nimi_shell_tauri::capabilities::ai_profile::verify_first_run_factory_ai_profile(
         &ai_profile_alias,
         &install_level,
     )?;
@@ -384,7 +384,7 @@ pub async fn ensure_account_default_profile_for_product_control(
         &install_level,
     )?;
     super::invoke_product_control_projection_json(
-        nimi_shell_tauri::runtime_bridge::RUNTIME_LOCAL_RECORD_PRODUCT_CONTROL_ACCOUNT_DEFAULT_PROFILE_EVIDENCE_METHOD_ID,
+        nimi_shell_tauri::capabilities::runtime::RUNTIME_LOCAL_RECORD_PRODUCT_CONTROL_ACCOUNT_DEFAULT_PROFILE_EVIDENCE_METHOD_ID,
         crate::runtime_bridge::generated::RecordProductControlAccountDefaultProfileEvidenceRequest {
             account_default_profile_evidence_json: to_json(&evidence, "Account Default Profile evidence")?,
         },
@@ -446,7 +446,7 @@ pub async fn read_built_in_ai_config_for_scope_init(
     let account_id = authenticated_runtime_account_id().await?;
     let execution_response: crate::runtime_bridge::generated::ResolveFirstRunExecutionEvidenceResponse =
         crate::runtime_bridge::invoke_unary_typed_with_metadata(
-            nimi_shell_tauri::runtime_bridge::RUNTIME_LOCAL_RESOLVE_FIRST_RUN_EXECUTION_EVIDENCE_METHOD_ID,
+            nimi_shell_tauri::capabilities::runtime::RUNTIME_LOCAL_RESOLVE_FIRST_RUN_EXECUTION_EVIDENCE_METHOD_ID,
             crate::runtime_bridge::generated::ResolveFirstRunExecutionEvidenceRequest {
                 execution_evidence_ref,
                 expected_runtime_baseline_ref: runtime_baseline_ref,
@@ -492,7 +492,7 @@ pub async fn read_built_in_ai_config_for_scope_init(
         .filter(|value| !value.is_empty())
         .ok_or_else(|| "first-run aiProfileAlias is required before built-in AIConfig".to_string())?
         .to_string();
-    nimi_shell_tauri::platform_catalog::ai_profile_factory::verify_first_run_factory_ai_profile(
+    nimi_shell_tauri::capabilities::ai_profile::verify_first_run_factory_ai_profile(
         &ai_profile_alias,
         &install_level,
     )?;
@@ -561,14 +561,14 @@ pub async fn prepare_first_run_local_ai_ready_for_product_control(
         })?
         .to_string();
     let factory_row =
-        nimi_shell_tauri::platform_catalog::ai_profile_factory::verify_first_run_factory_ai_profile(
+        nimi_shell_tauri::capabilities::ai_profile::verify_first_run_factory_ai_profile(
             &ai_profile_alias,
             &install_level,
         )?;
 
     let profile_response: crate::runtime_bridge::generated::CollectDeviceProfileResponse =
         crate::runtime_bridge::invoke_unary_typed_with_metadata(
-            nimi_shell_tauri::runtime_bridge::RUNTIME_LOCAL_COLLECT_DEVICE_PROFILE_METHOD_ID,
+            nimi_shell_tauri::capabilities::runtime::RUNTIME_LOCAL_COLLECT_DEVICE_PROFILE_METHOD_ID,
             crate::runtime_bridge::generated::CollectDeviceProfileRequest {
                 extra_ports: Vec::new(),
             },
@@ -592,7 +592,7 @@ pub async fn prepare_first_run_local_ai_ready_for_product_control(
     let resolved_baseline_ref = if let Some(existing_ref) = existing_runtime_baseline_ref {
         let response: crate::runtime_bridge::generated::ResolveRuntimeBaselineReadinessResponse =
             crate::runtime_bridge::invoke_unary_typed_with_metadata(
-                nimi_shell_tauri::runtime_bridge::RUNTIME_LOCAL_RESOLVE_RUNTIME_BASELINE_READINESS_METHOD_ID,
+                nimi_shell_tauri::capabilities::runtime::RUNTIME_LOCAL_RESOLVE_RUNTIME_BASELINE_READINESS_METHOD_ID,
                 crate::runtime_bridge::generated::ResolveRuntimeBaselineReadinessRequest {
                     runtime_baseline_ref: existing_ref,
                     host_profile: Some(host_profile.clone()),
@@ -624,7 +624,7 @@ pub async fn prepare_first_run_local_ai_ready_for_product_control(
     } else {
         let response: crate::runtime_bridge::generated::MintRuntimeBaselineReadinessResponse =
             crate::runtime_bridge::invoke_unary_typed_with_metadata(
-                nimi_shell_tauri::runtime_bridge::RUNTIME_LOCAL_MINT_RUNTIME_BASELINE_READINESS_METHOD_ID,
+                nimi_shell_tauri::capabilities::runtime::RUNTIME_LOCAL_MINT_RUNTIME_BASELINE_READINESS_METHOD_ID,
                 crate::runtime_bridge::generated::MintRuntimeBaselineReadinessRequest {
                     selected_local_factory_ai_profile_ref: selected_factory_ref.clone(),
                     install_level: install_level.clone(),
@@ -667,7 +667,7 @@ pub async fn prepare_first_run_local_ai_ready_for_product_control(
     let resolved_execution_evidence = if let Some(existing_ref) = existing_execution_evidence_ref {
         let response: crate::runtime_bridge::generated::ResolveFirstRunExecutionEvidenceResponse =
             crate::runtime_bridge::invoke_unary_typed_with_metadata(
-                nimi_shell_tauri::runtime_bridge::RUNTIME_LOCAL_RESOLVE_FIRST_RUN_EXECUTION_EVIDENCE_METHOD_ID,
+                nimi_shell_tauri::capabilities::runtime::RUNTIME_LOCAL_RESOLVE_FIRST_RUN_EXECUTION_EVIDENCE_METHOD_ID,
                 crate::runtime_bridge::generated::ResolveFirstRunExecutionEvidenceRequest {
                     execution_evidence_ref: existing_ref,
                     expected_runtime_baseline_ref: runtime_baseline_ref.clone(),
@@ -702,7 +702,7 @@ pub async fn prepare_first_run_local_ai_ready_for_product_control(
     } else {
         let response: crate::runtime_bridge::generated::MintFirstRunExecutionEvidenceResponse =
             crate::runtime_bridge::invoke_unary_typed_with_metadata(
-                nimi_shell_tauri::runtime_bridge::RUNTIME_LOCAL_MINT_FIRST_RUN_EXECUTION_EVIDENCE_METHOD_ID,
+                nimi_shell_tauri::capabilities::runtime::RUNTIME_LOCAL_MINT_FIRST_RUN_EXECUTION_EVIDENCE_METHOD_ID,
                 crate::runtime_bridge::generated::MintFirstRunExecutionEvidenceRequest {
                     runtime_baseline_ref: runtime_baseline_ref.clone(),
                     selected_local_factory_ai_profile_ref: selected_factory_ref,
@@ -746,7 +746,7 @@ pub async fn prepare_first_run_local_ai_ready_for_product_control(
     )?;
 
     super::invoke_product_control_projection_json(
-        nimi_shell_tauri::runtime_bridge::RUNTIME_LOCAL_RECORD_PRODUCT_CONTROL_FIRST_RUN_LOCAL_AI_READY_EVIDENCE_METHOD_ID,
+        nimi_shell_tauri::capabilities::runtime::RUNTIME_LOCAL_RECORD_PRODUCT_CONTROL_FIRST_RUN_LOCAL_AI_READY_EVIDENCE_METHOD_ID,
         crate::runtime_bridge::generated::RecordProductControlFirstRunLocalAiReadyEvidenceRequest {
             runtime_baseline_ref,
             built_in_ai_config_evidence_json: to_json(&evidence_set, "built-in AIConfig evidence")?,
@@ -758,7 +758,7 @@ pub async fn prepare_first_run_local_ai_ready_for_product_control(
 }
 
 fn recommended_first_run_capabilities(
-    row: &nimi_shell_tauri::platform_catalog::ai_profile_factory::PlatformAIProfileFactoryRow,
+    row: &nimi_shell_tauri::capabilities::ai_profile::PlatformAIProfileFactoryRow,
     install_level: &str,
 ) -> Vec<String> {
     if install_level.trim() != "recommended" {
@@ -813,7 +813,7 @@ pub fn resolve_built_in_ai_config_refs_for_admission(
 pub async fn reconcile_first_run_setup_state_from_runtime(
 ) -> Result<ProductControlRecordProjection, String> {
     super::invoke_product_control_projection_json(
-        nimi_shell_tauri::runtime_bridge::RUNTIME_LOCAL_RECONCILE_PRODUCT_CONTROL_FIRST_RUN_SETUP_STATE_METHOD_ID,
+        nimi_shell_tauri::capabilities::runtime::RUNTIME_LOCAL_RECONCILE_PRODUCT_CONTROL_FIRST_RUN_SETUP_STATE_METHOD_ID,
         crate::runtime_bridge::generated::ReconcileProductControlFirstRunSetupStateRequest {},
         Some(10_000),
     )

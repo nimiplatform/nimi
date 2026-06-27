@@ -4,7 +4,7 @@ use super::{
     ConfirmDialogPayload, DesktopAvatarCloseHandoffPayload, DesktopAvatarLaunchHandoffPayload,
 };
 use crate::test_support::test_guard;
-use nimi_shell_tauri::runtime_bridge::RuntimeBridgeHostHooks;
+use nimi_shell_tauri::capabilities::runtime::RuntimeBridgeHostHooks;
 use std::sync::Arc;
 use std::time::Duration;
 use std::{fs, path::PathBuf};
@@ -289,7 +289,7 @@ fn avatar_runtime_env_pairs_forward_runtime_defaults_without_realm_or_token() {
         fixture_dir.join("backend.log").as_os_str(),
     );
     let _ =
-        nimi_shell_tauri::runtime_bridge::set_runtime_bridge_host_hooks(RuntimeBridgeHostHooks {
+        nimi_shell_tauri::capabilities::runtime::set_runtime_bridge_host_hooks(RuntimeBridgeHostHooks {
             unary_override: Some(Arc::new(|payload| {
                 crate::desktop_e2e_fixture::runtime_bridge_unary_override(payload)
             })),

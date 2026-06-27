@@ -6,10 +6,10 @@
 //! `<nimi_data>/apps/**`.
 
 use crate::desktop_paths::resolve_nimi_dir;
-use nimi_shell_tauri::governed_config::{
+use nimi_shell_tauri::capabilities::config::{
     read_governed_config, ConfigReadOutcome, GovernedConfigFile,
 };
-pub use nimi_shell_tauri::platform_projection::apps_packages::{
+pub use nimi_shell_tauri::capabilities::platform_projection::apps_packages::{
     validate_apps_packages_record, AppsPackagesRecord, APPS_PACKAGES_POINTER,
     APPS_PACKAGES_SCHEMA_VERSION,
 };
@@ -72,8 +72,8 @@ mod tests {
         APPS_PACKAGES_SCHEMA_VERSION,
     };
     use crate::test_support::with_env;
-    use nimi_shell_tauri::governed_config::write_governed_json_config;
-    use nimi_shell_tauri::governed_config::{ConfigReadOutcome, ConfigRepairSeverity};
+    use nimi_shell_tauri::capabilities::config::write_governed_json_config;
+    use nimi_shell_tauri::capabilities::config::{ConfigReadOutcome, ConfigRepairSeverity};
     use std::path::PathBuf;
     use std::time::{SystemTime, UNIX_EPOCH};
 

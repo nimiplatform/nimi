@@ -25,7 +25,7 @@
 //!     projection helper; Desktop does not infer provider, engine, consumer, or
 //!     route policy from runtimeBaselineRef internals.
 
-use nimi_shell_tauri::platform_catalog::ai_profile_factory::{
+use nimi_shell_tauri::capabilities::ai_profile::{
     verify_first_run_factory_ai_profile, PlatformAIProfileFactoryRow,
     PLATFORM_AI_PROFILE_FACTORY_CATALOG_ID, PLATFORM_AI_PROFILE_FACTORY_CATALOG_VERSION,
     PLATFORM_AI_PROFILE_SELECTION_POLICY_REF,
@@ -131,7 +131,7 @@ fn ai_profile_ref_from_row(
 pub fn runtime_capability_bindings_from_execution_evidence_ref(
     evidence: &crate::runtime_bridge::generated::ExecutionEvidenceRef,
 ) -> Result<Vec<BuiltInAiConfigCapability>, String> {
-    let mut bindings = nimi_shell_tauri::runtime_ai_config_projection::project_first_run_execution_evidence_to_ai_config_bindings(evidence)?
+    let mut bindings = nimi_shell_tauri::capabilities::ai_config::project_first_run_execution_evidence_to_ai_config_bindings(evidence)?
         .into_iter()
         .map(|item| BuiltInAiConfigCapability {
             capability: item.capability,

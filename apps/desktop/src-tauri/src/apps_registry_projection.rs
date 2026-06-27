@@ -6,7 +6,7 @@
 //!
 //! This file is a READ-ONLY projection of Platform catalog truth. It is
 //! regenerated deterministically from the packaged Platform Nimi App registry
-//! catalog (`nimi_shell_tauri::platform_catalog::nimi_app_registry`, itself
+//! catalog (`nimi_shell_tauri::capabilities::platform_projection::nimi_app_registry`, itself
 //! generated from `.nimi/spec/platform/kernel/tables/nimi-app-registry.yaml` +
 //! `nimi-app-release-descriptors.yaml`). It is never hand-edited.
 //!
@@ -21,15 +21,15 @@
 //! consuming bridge transport.
 
 use crate::desktop_paths::resolve_nimi_dir;
-use nimi_shell_tauri::governed_config::ConfigReadOutcome;
-use nimi_shell_tauri::platform_projection::apps_registry::{
+use nimi_shell_tauri::capabilities::config::ConfigReadOutcome;
+use nimi_shell_tauri::capabilities::platform_projection::apps_registry::{
     materialize_apps_registry_projection, AppsRegistryRecord, APPS_REGISTRY_POINTER,
 };
 use serde::Serialize;
 use std::path::PathBuf;
 
 #[cfg(test)]
-use nimi_shell_tauri::platform_projection::apps_registry::{
+use nimi_shell_tauri::capabilities::platform_projection::apps_registry::{
     build_apps_registry_record, read_apps_registry_projection, APPS_REGISTRY_SCHEMA_VERSION,
 };
 
@@ -107,8 +107,8 @@ mod tests {
         APPS_REGISTRY_SCHEMA_VERSION,
     };
     use crate::test_support::with_env;
-    use nimi_shell_tauri::governed_config::{ConfigReadOutcome, ConfigRepairSeverity};
-    use nimi_shell_tauri::platform_catalog::nimi_app_registry::PLATFORM_NIMI_APP_REGISTRY_ROWS;
+    use nimi_shell_tauri::capabilities::config::{ConfigReadOutcome, ConfigRepairSeverity};
+    use nimi_shell_tauri::capabilities::platform_projection::nimi_app_registry::PLATFORM_NIMI_APP_REGISTRY_ROWS;
     use std::path::PathBuf;
     use std::time::{SystemTime, UNIX_EPOCH};
 

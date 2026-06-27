@@ -17,7 +17,7 @@ mod session_logging;
 mod tests;
 
 pub(crate) use app_bootstrap::run;
-pub(crate) use nimi_shell_tauri::runtime_defaults::RuntimeDefaults;
+pub(crate) use nimi_shell_tauri::capabilities::runtime_defaults::RuntimeDefaults;
 
 #[cfg(test)]
 use app_bootstrap::normalize_runtime_config_page_id;

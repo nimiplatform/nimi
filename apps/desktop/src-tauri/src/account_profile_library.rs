@@ -1,4 +1,4 @@
-use nimi_shell_tauri::platform_catalog::ai_profile_factory::verify_first_run_factory_ai_profile;
+use nimi_shell_tauri::capabilities::ai_profile::verify_first_run_factory_ai_profile;
 use std::path::Path;
 
 mod constants;

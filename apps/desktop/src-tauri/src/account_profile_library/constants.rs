@@ -1,4 +1,4 @@
-pub(crate) use nimi_shell_tauri::platform_catalog::ai_profile_factory::{
+pub(crate) use nimi_shell_tauri::capabilities::ai_profile::{
     PLATFORM_AI_PROFILE_FACTORY_CATALOG_ID, PLATFORM_AI_PROFILE_FACTORY_CATALOG_VERSION,
     PLATFORM_AI_PROFILE_SELECTION_POLICY_REF,
 };

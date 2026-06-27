@@ -127,6 +127,6 @@ test('parseRuntimeDefaults rejects legacy flat payload', () => {
       realtimeUrl: 'http://localhost:3003',
       accessToken: 'token-legacy',
     }),
-    /runtime_defaults realm payload is invalid/,
+    /runtimeDefaults\.get realm payload is invalid/,
   );
 });

@@ -18,7 +18,7 @@
 //! truth.
 
 use crate::desktop_paths::resolve_nimi_dir;
-use nimi_shell_tauri::governed_config::{
+use nimi_shell_tauri::capabilities::config::{
     read_governed_config, ConfigReadOutcome, GovernedConfigFile,
 };
 use serde::{Deserialize, Serialize};

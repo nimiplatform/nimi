@@ -53,7 +53,7 @@ fn runtime_register_app_fixture_accepts_local_first_party_registration() {
         developer_registration: false,
     };
     let payload = RuntimeBridgeUnaryPayload {
-        method_id: nimi_shell_tauri::runtime_bridge::RUNTIME_AUTH_REGISTER_APP_METHOD_ID
+        method_id: nimi_shell_tauri::capabilities::runtime::RUNTIME_AUTH_REGISTER_APP_METHOD_ID
             .to_string(),
         request_bytes_base64: base64::engine::general_purpose::STANDARD
             .encode(request.encode_to_vec()),
@@ -120,7 +120,7 @@ fn runtime_agent_fixture_projects_cbdb_chat_open_chain() {
     };
 
     let get_agent = runtime_agent_get_response(&fixture_payload(
-        nimi_shell_tauri::runtime_bridge::RUNTIME_AGENT_GET_AGENT_METHOD_ID,
+        nimi_shell_tauri::capabilities::runtime::RUNTIME_AGENT_GET_AGENT_METHOD_ID,
         runtime_bridge_generated::GetAgentRequest {
             context: Some(context.clone()),
             agent_id: local_agent_ref.clone(),
@@ -139,7 +139,7 @@ fn runtime_agent_fixture_projects_cbdb_chat_open_chain() {
     );
 
     let open_anchor = runtime_agent_open_anchor_response(&fixture_payload(
-        nimi_shell_tauri::runtime_bridge::RUNTIME_AGENT_OPEN_CONVERSATION_ANCHOR_METHOD_ID,
+        nimi_shell_tauri::capabilities::runtime::RUNTIME_AGENT_OPEN_CONVERSATION_ANCHOR_METHOD_ID,
         runtime_bridge_generated::OpenConversationAnchorRequest {
             context: Some(context.clone()),
             agent_id: String::new(),
@@ -168,7 +168,7 @@ fn runtime_agent_fixture_projects_cbdb_chat_open_chain() {
     assert_eq!(anchor.local_agent_ref, local_agent_ref);
 
     let summaries = runtime_agent_list_conversation_summaries_response(&fixture_payload(
-        nimi_shell_tauri::runtime_bridge::RUNTIME_AGENT_LIST_AGENT_CONVERSATION_SUMMARIES_METHOD_ID,
+        nimi_shell_tauri::capabilities::runtime::RUNTIME_AGENT_LIST_AGENT_CONVERSATION_SUMMARIES_METHOD_ID,
         runtime_bridge_generated::ListAgentConversationSummariesRequest {
             context: Some(context),
             agent_id: local_agent_ref.clone(),
