@@ -31,17 +31,20 @@ export async function invokeImageGenerate(client: TesterRuntimeInvocationClient,
     const imageBinding = await resolveImageRuntimeBinding(client, resolved);
     const imageParams = imageParamsFromBinding(imageBinding.resolved);
     if (isUnavailable(imageParams)) return imageParams;
-    const localEnvironmentUnavailable = await ensureLocalImageEnvironmentReady(client, imageBinding);
+    const identity = runtimeJobIdentity('image.generate', input.scenarioId);
+    const localEnvironmentUnavailable = await ensureLocalImageEnvironmentReady(client, imageBinding, identity.idempotencyKey);
     if (localEnvironmentUnavailable) return localEnvironmentUnavailable;
     const timeoutMs = imageParams.timeoutMs ?? 120_000;
     const route = runtimeRoutePayload(imageBinding.resolved);
     const extensions = imageProfileExtensions(imageBinding, imageParams.providerOptions);
     const mediaImage = client.runtime.media?.image;
+    const imageLabels = runtimeLabels('nimi.tester.media.image.generate', imageBinding.resolved, schedulingPreflight.evidenceMetadata);
     const output = await withRuntimeClientTimeout('image.generate', timeoutMs, async (signal) => (
       mediaImage
         ? await mediaImage.generate({
           ...route,
           subjectUserId,
+          ...identity,
           prompt,
           negativePrompt: imageParams.negativePrompt,
           count: imageParams.count,
@@ -56,7 +59,11 @@ export async function invokeImageGenerate(client: TesterRuntimeInvocationClient,
           extensions,
           timeoutMs,
           signal,
-          metadata: runtimeLabels('nimi.tester.media.image.generate', imageBinding.resolved, schedulingPreflight.evidenceMetadata),
+          metadata: {
+            ...imageLabels,
+            idempotencyKey: identity.idempotencyKey,
+            'x-nimi-idempotency-key': identity.idempotencyKey,
+          },
         }) as RuntimeMediaJobOutput
         : await runNimiRuntimeScenarioJob({
           ai: client.runtime.ai,
@@ -75,7 +82,7 @@ export async function invokeImageGenerate(client: TesterRuntimeInvocationClient,
               mask: imageParams.mask,
               responseFormat: imageParams.responseFormat,
             },
-            ...runtimeJobIdentity('image.generate', input.scenarioId),
+            ...identity,
             labels: runtimeLabels('nimi.tester.ai.image.generate', imageBinding.resolved, schedulingPreflight.evidenceMetadata),
             extensions,
           }),

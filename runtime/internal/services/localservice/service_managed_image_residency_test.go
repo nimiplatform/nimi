@@ -40,6 +40,96 @@ func TestCheckLocalAssetHealthBulkDoesNotLoadManagedImage(t *testing.T) {
 	}
 }
 
+func TestManagedImageProfileCachePreservesMaterializationForSameResolvedProfile(t *testing.T) {
+	svc := newTestService(t)
+	profile := map[string]any{
+		"backend": "stablediffusion-ggml",
+		"parameters": map[string]any{
+			"model": "/models/main.gguf",
+		},
+		"options": []any{
+			"diffusion_model",
+			"vae_path:/models/ae.safetensors",
+		},
+	}
+	bindings := []managedMediaProfileMaterializationBinding{
+		{
+			AssetID:      "local-import/main",
+			LocalAssetID: "local-main",
+		},
+		{
+			AssetID:          "local-import/main",
+			LocalAssetID:     "local-main",
+			CompanionKind:    "image",
+			EngineSlot:       "vae_path",
+			CompanionAssetID: "local-import/ae",
+			ParentAssetID:    "local-import/main",
+		},
+	}
+	svc.cacheManagedMediaImageProfileResolution("local-main", "materialized", profile, true, bindings)
+
+	svc.cacheManagedMediaImageProfile("local-main", "loaded", profile)
+
+	cached, ok := svc.cachedManagedMediaImageProfile("local-main")
+	if !ok {
+		t.Fatal("expected managed image profile cache entry")
+	}
+	if !cached.MaterializationResolved {
+		t.Fatal("expected same-profile cache refresh to preserve materialization")
+	}
+	if len(cached.MaterializationBindings) != len(bindings) {
+		t.Fatalf("materialization bindings = %d, want %d", len(cached.MaterializationBindings), len(bindings))
+	}
+	if cached.MaterializationBindings[1].EngineSlot != "vae_path" {
+		t.Fatalf("unexpected companion binding: %+v", cached.MaterializationBindings[1])
+	}
+	if cached.Alias != "loaded" {
+		t.Fatalf("alias = %q, want loaded", cached.Alias)
+	}
+
+	differentProfile := map[string]any{
+		"backend": "stablediffusion-ggml",
+		"parameters": map[string]any{
+			"model": "/models/other.gguf",
+		},
+	}
+	svc.cacheManagedMediaImageProfile("local-main", "different", differentProfile)
+	cached, ok = svc.cachedManagedMediaImageProfile("local-main")
+	if !ok {
+		t.Fatal("expected managed image profile cache entry after different profile")
+	}
+	if cached.MaterializationResolved {
+		t.Fatal("different profile must not inherit stale materialization bindings")
+	}
+}
+
+func TestManagedImageProfileCacheDoesNotPreserveMaterializationWhenProfileHashFails(t *testing.T) {
+	svc := newTestService(t)
+	bindings := []managedMediaProfileMaterializationBinding{
+		{
+			AssetID:      "local-import/main",
+			LocalAssetID: "local-main",
+		},
+	}
+	svc.cacheManagedMediaImageProfileResolution(
+		"local-main",
+		"materialized",
+		map[string]any{"bad": func() {}},
+		true,
+		bindings,
+	)
+
+	svc.cacheManagedMediaImageProfile("local-main", "refresh", map[string]any{"bad": make(chan struct{})})
+
+	cached, ok := svc.cachedManagedMediaImageProfile("local-main")
+	if !ok {
+		t.Fatal("expected managed image profile cache entry")
+	}
+	if cached.MaterializationResolved {
+		t.Fatal("unhashable profile refresh must not inherit stale materialization bindings")
+	}
+}
+
 func TestManagedImageExplicitHealthLoadsAndMarksActive(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")

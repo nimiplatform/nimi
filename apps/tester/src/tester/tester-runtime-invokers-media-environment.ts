@@ -4,6 +4,7 @@ import {
   isNimiRuntimeLocalEnvironmentDependencyJobActiveState,
   isNimiRuntimeLocalEnvironmentDependencyReadyState,
   isNimiRuntimeLocalEnvironmentDependencyStartableState,
+  withNimiRuntimeIdempotencyMetadata,
   type NimiRuntimeLocalEnvironmentDependencyJob,
   type NimiRuntimeLocalEnvironmentPlanInput,
   type NimiRuntimeLocalEnvironmentPlan,
@@ -64,6 +65,10 @@ function summarizeLocalImageDependencies(
     .join('; ');
 }
 
+function dependencyJobIdempotencyKey(baseIdempotencyKey: string, index: number): string {
+  return `${baseIdempotencyKey}:local-image-env:${index + 1}`;
+}
+
 function profileEntryText(entry: unknown, snakeKey: string, camelKey: string): string {
   if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return '';
   const record = entry as Record<string, unknown>;
@@ -110,6 +115,7 @@ function localImageEnvironmentPlanInputs(binding: ImageRuntimeBinding): readonly
 export async function ensureLocalImageEnvironmentReady(
   client: TesterRuntimeInvocationClient,
   binding: ImageRuntimeBinding,
+  runIdempotencyKey: string,
 ): Promise<TesterUnavailable | null> {
   const resolved = binding.resolved;
   if (resolved.routePolicy !== 'local') return null;
@@ -144,7 +150,7 @@ export async function ensureLocalImageEnvironmentReady(
     .map(({ dependency }) => dependency);
 
   if (startable.length > 0) {
-    await Promise.all(startable.map((dependency) =>
+    await Promise.all(startable.map((dependency, index) =>
       local.startEnvironmentDependencyJob({
         environmentKey: dependency.environmentKey,
         dependencyFamily: dependency.dependencyFamily,
@@ -152,7 +158,13 @@ export async function ensureLocalImageEnvironmentReady(
         sourceKind: dependency.sourceKind,
         confirmed: true,
         consumerScope: dependency.consumerScope,
-      }, { caller: 'core' }),
+      }, {
+        caller: 'core',
+        callOptions: withNimiRuntimeIdempotencyMetadata(
+          undefined,
+          dependencyJobIdempotencyKey(runIdempotencyKey, index),
+        ),
+      }),
     ));
   }
 

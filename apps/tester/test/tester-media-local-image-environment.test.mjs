@@ -876,8 +876,8 @@ test('image.generate starts local image environment dependencies before submitti
         async listLocalEnvironmentDependencyJobs() {
           return { jobs: [] };
         },
-        async startLocalEnvironmentDependencyJob(request) {
-          started.push(request);
+        async startLocalEnvironmentDependencyJob(request, options) {
+          started.push({ request, options });
           return {
             job: {
               jobId: 'job-python-tool-uv',
@@ -927,7 +927,7 @@ test('image.generate starts local image environment dependencies before submitti
   assert.equal(result.reason, 'local-environment-preparing');
   assert.match(result.message, /Runtime local image setup started 1 dependency job/);
   assert.equal(generateCalled, false);
-  assert.deepEqual(started, [{
+  assert.deepEqual(started.map((entry) => entry.request), [{
     environmentKey: 'env-python-tool-uv',
     dependencyFamily: 'python.tool.uv',
     dependencyId: 'uv',
@@ -935,6 +935,14 @@ test('image.generate starts local image environment dependencies before submitti
     confirmed: true,
     consumerScope: 'local-image-native',
   }]);
+  assert.match(
+    started[0]?.options?.metadata?.idempotencyKey ?? '',
+    /^nimi\.tester:image\.generate:scenario-local-image-setup:.*:local-image-env:1$/,
+  );
+  assert.equal(
+    started[0]?.options?.metadata?.['x-nimi-idempotency-key'],
+    started[0]?.options?.metadata?.idempotencyKey,
+  );
 });
 
 test('image.generate starts concrete companion dependencies instead of waiting on image profile binding blocker', async (t) => {

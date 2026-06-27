@@ -856,6 +856,75 @@ test('tester surfaces inline runtime media artifact bytes as a previewable data 
   assert.deepEqual(new Uint8Array(Buffer.from(ttsUrl.split(',')[1], 'base64')), wavBytes);
 });
 
+test('image.generate forwards Scenario request identity to Runtime media facade', async (t) => {
+  installMemoryStorageHarness(t);
+  const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');
+  const store = await importBehaviorModule('tester/tester-ai-config-store.js');
+  const scopeRef = store.createTesterAppLabAIScopeRef();
+  store.saveTesterAIConfig({
+    scopeRef,
+    capabilities: {
+      targetRefs: {
+        'image.generate': {
+          kind: 'local-runtime',
+          version: 'v2',
+          profileBindingId: 'local.image.identity',
+        },
+      },
+      selectedParams: {
+        'image.generate': {
+          profile_entries: [{
+            entry_id: 'main-image',
+            kind: 'asset',
+            capability: 'image.generate',
+            asset_id: 'local.image.identity',
+            asset_kind: 'image',
+            required: true,
+          }],
+        },
+      },
+    },
+    profileOrigin: null,
+  });
+
+  let capturedImage = null;
+  const client = {
+    runtime: {
+      local: readyLocalImageEnvironmentMethods(),
+      scheduling: {
+        async peekScheduling() {
+          return runnableSchedulingResponse();
+        },
+      },
+      ai: {},
+      media: {
+        image: {
+          async generate(input) {
+            capturedImage = input;
+            return {
+              job: { jobId: 'img-job-identity', state: 'completed' },
+              artifacts: [{ artifactId: 'art-img', mimeType: 'image/png', uri: '', bytes: new Uint8Array([1, 2, 3]) }],
+              trace: { traceId: 'img-trace-identity', modelResolved: 'local/z-image', routeDecision: 'local' },
+            };
+          },
+        },
+      },
+    },
+  };
+
+  const result = await invokers.invokeTesterCapability(client, 'image.generate', {
+    prompt: 'identity probe',
+    scenarioId: 'z-image-turbo-webview',
+    subjectUserId: 'subject-user-1',
+  });
+
+  assert.equal(result.ok, true);
+  assert.match(capturedImage?.requestId ?? '', /^nimi\.tester:image\.generate:z-image-turbo-webview:/);
+  assert.equal(capturedImage?.idempotencyKey, capturedImage?.requestId);
+  assert.equal(capturedImage?.metadata?.idempotencyKey, capturedImage?.idempotencyKey);
+  assert.equal(capturedImage?.metadata?.['x-nimi-idempotency-key'], capturedImage?.idempotencyKey);
+});
+
 test('tester prefers a hosted artifact uri over inline bytes', async (t) => {
   installMemoryStorageHarness(t);
   const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');
