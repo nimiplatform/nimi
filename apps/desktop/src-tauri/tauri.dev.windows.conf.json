@@ -1,8 +1,7 @@
 {
   "build": {
     "runner": {
-      "cmd": "node",
-      "args": ["../scripts/tauri-dev-runner.mjs"]
+      "cmd": "../scripts/tauri-dev-runner.cmd"
     }
   }
 }
