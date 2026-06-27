@@ -109,18 +109,18 @@ export function parseOptionalNumber(value: unknown): number | undefined {
 }
 
 export function parseRuntimeDefaults(value: unknown): RuntimeDefaults {
-  const record = assertBridgeRecord(value, 'runtime_defaults returned invalid payload');
-  const realmRecord = assertBridgeRecord(record.realm, 'runtime_defaults realm payload is invalid');
-  const runtimeRecord = assertBridgeRecord(record.runtime, 'runtime_defaults runtime payload is invalid');
+  const record = assertBridgeRecord(value, 'nimi.shell.runtimeDefaults.get returned invalid payload');
+  const realmRecord = assertBridgeRecord(record.realm, 'nimi.shell.runtimeDefaults.get realm payload is invalid');
+  const runtimeRecord = assertBridgeRecord(record.runtime, 'nimi.shell.runtimeDefaults.get runtime payload is invalid');
   return {
     realm: {
-      realmBaseUrl: parseRequiredString(realmRecord.realmBaseUrl, 'realm.realmBaseUrl', 'runtime_defaults'),
+      realmBaseUrl: parseRequiredString(realmRecord.realmBaseUrl, 'realm.realmBaseUrl', 'nimi.shell.runtimeDefaults.get'),
       realtimeUrl: str(realmRecord.realtimeUrl),
       accessToken: str(realmRecord.accessToken),
-      jwksUrl: parseRequiredString(realmRecord.jwksUrl, 'realm.jwksUrl', 'runtime_defaults'),
-      revocationUrl: parseRequiredString(realmRecord.revocationUrl, 'realm.revocationUrl', 'runtime_defaults'),
-      jwtIssuer: parseRequiredString(realmRecord.jwtIssuer, 'realm.jwtIssuer', 'runtime_defaults'),
-      jwtAudience: parseRequiredString(realmRecord.jwtAudience, 'realm.jwtAudience', 'runtime_defaults'),
+      jwksUrl: parseRequiredString(realmRecord.jwksUrl, 'realm.jwksUrl', 'nimi.shell.runtimeDefaults.get'),
+      revocationUrl: parseRequiredString(realmRecord.revocationUrl, 'realm.revocationUrl', 'nimi.shell.runtimeDefaults.get'),
+      jwtIssuer: parseRequiredString(realmRecord.jwtIssuer, 'realm.jwtIssuer', 'nimi.shell.runtimeDefaults.get'),
+      jwtAudience: parseRequiredString(realmRecord.jwtAudience, 'realm.jwtAudience', 'nimi.shell.runtimeDefaults.get'),
     },
     runtime: {
       targetType: str(runtimeRecord.targetType),
@@ -133,7 +133,7 @@ export function parseRuntimeDefaults(value: unknown): RuntimeDefaults {
 }
 
 export function parseRuntimeBridgeDaemonStatus(value: unknown): RuntimeBridgeDaemonStatus {
-  const record = assertBridgeRecord(value, 'runtime_bridge_status returned invalid payload');
+  const record = assertBridgeRecord(value, 'nimi.shell.runtimeLifecycle.status returned invalid payload');
   const launchModeRaw = String(record.launchMode || '').trim().toUpperCase();
   const launchMode: RuntimeBridgeDaemonStatus['launchMode'] =
     launchModeRaw === 'RUNTIME' || launchModeRaw === 'RELEASE'
@@ -143,7 +143,7 @@ export function parseRuntimeBridgeDaemonStatus(value: unknown): RuntimeBridgeDae
     running: Boolean(record.running),
     managed: Boolean(record.managed),
     launchMode,
-    grpcAddr: parseRequiredString(record.grpcAddr, 'grpcAddr', 'runtime_bridge_status'),
+    grpcAddr: parseRequiredString(record.grpcAddr, 'grpcAddr', 'nimi.shell.runtimeLifecycle.status'),
     pid: parseOptionalNumber(record.pid),
     version: parseOptionalString(record.version),
     lastError: parseOptionalString(record.lastError),
@@ -152,19 +152,19 @@ export function parseRuntimeBridgeDaemonStatus(value: unknown): RuntimeBridgeDae
 }
 
 export function parseRuntimeBridgeConfigGetResult(value: unknown): RuntimeBridgeConfigGetResult {
-  const record = assertBridgeRecord(value, 'runtime_bridge_config_get returned invalid payload');
-  const config = assertBridgeRecord(record.config, 'runtime_bridge_config_get config payload is invalid');
+  const record = assertBridgeRecord(value, 'nimi.shell.config.get returned invalid payload');
+  const config = assertBridgeRecord(record.config, 'nimi.shell.config.get config payload is invalid');
   return {
-    path: parseRequiredString(record.path, 'path', 'runtime_bridge_config_get'),
+    path: parseRequiredString(record.path, 'path', 'nimi.shell.config.get'),
     config,
   };
 }
 
 export function parseRuntimeBridgeConfigSetResult(value: unknown): RuntimeBridgeConfigSetResult {
-  const record = assertBridgeRecord(value, 'runtime_bridge_config_set returned invalid payload');
-  const config = assertBridgeRecord(record.config, 'runtime_bridge_config_set config payload is invalid');
+  const record = assertBridgeRecord(value, 'nimi.shell.config.set returned invalid payload');
+  const config = assertBridgeRecord(record.config, 'nimi.shell.config.set config payload is invalid');
   return {
-    path: parseRequiredString(record.path, 'path', 'runtime_bridge_config_set'),
+    path: parseRequiredString(record.path, 'path', 'nimi.shell.config.set'),
     reasonCode: parseOptionalString(record.reasonCode),
     actionHint: parseOptionalString(record.actionHint),
     config,

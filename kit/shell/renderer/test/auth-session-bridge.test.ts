@@ -6,6 +6,7 @@ import {
   saveAuthSession,
 } from '../src/bridge/index.js';
 import type { SharedDesktopAuthSession } from '@nimiplatform/kit/auth';
+import { NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabilities';
 
 type TauriTestGlobal = typeof globalThis & {
   __NIMI_TAURI_TEST__?: {
@@ -55,8 +56,8 @@ describe('auth session bridge', () => {
     await clearAuthSession();
 
     expect(calls).toEqual([
-      { command: 'auth_session_save', payload: { payload: session } },
-      { command: 'auth_session_clear', payload: {} },
+      { command: NIMI_STANDARD_SHELL_COMMANDS['auth.sessionSave'], payload: { payload: session } },
+      { command: NIMI_STANDARD_SHELL_COMMANDS['auth.sessionClear'], payload: {} },
     ]);
   });
 });

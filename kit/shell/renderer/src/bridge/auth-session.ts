@@ -2,6 +2,7 @@ import {
   parseSharedDesktopAuthSession,
   type SharedDesktopAuthSession,
 } from '@nimiplatform/kit/auth';
+import { NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabilities';
 import { hasShellHostInvoke } from './env.js';
 import { invokeChecked } from './invoke.js';
 
@@ -43,15 +44,15 @@ function normalizeWatchError(error: unknown): Error {
 }
 
 export async function loadAuthSession(): Promise<SharedDesktopAuthSession | null> {
-  return invokeChecked('auth_session_load', {}, parseOptionalSharedDesktopAuthSession);
+  return invokeChecked(NIMI_STANDARD_SHELL_COMMANDS['auth.sessionLoad'], {}, parseOptionalSharedDesktopAuthSession);
 }
 
 export async function saveAuthSession(session: SharedDesktopAuthSession): Promise<void> {
-  await invokeChecked('auth_session_save', { payload: session }, () => undefined);
+  await invokeChecked(NIMI_STANDARD_SHELL_COMMANDS['auth.sessionSave'], { payload: session }, () => undefined);
 }
 
 export async function clearAuthSession(): Promise<void> {
-  await invokeChecked('auth_session_clear', {}, () => undefined);
+  await invokeChecked(NIMI_STANDARD_SHELL_COMMANDS['auth.sessionClear'], {}, () => undefined);
 }
 
 export function watchAuthSessionChanges(

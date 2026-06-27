@@ -19,6 +19,7 @@
     "auth/README.md",
     "core/README.md",
     "features/*/README.md",
+    "shell/capabilities/README.md",
     "shell/electron/README.md",
     "shell/renderer/README.md",
     "telemetry/README.md",
@@ -102,6 +103,11 @@
       "import": "./dist/core/sdk-contract.js",
       "default": "./dist/core/sdk-contract.js"
     },
+    "./shell/capabilities": {
+      "types": "./dist/shell/capabilities/index.d.ts",
+      "import": "./dist/shell/capabilities/index.js",
+      "default": "./dist/shell/capabilities/index.js"
+    },
     "./shell/renderer/bridge": {
       "types": "./dist/shell/renderer/bridge/index.d.ts",
       "import": "./dist/shell/renderer/bridge/index.js",
@@ -121,6 +127,12 @@
       "types": "./dist/shell/electron/preload/index.d.ts",
       "import": "./dist/shell/electron/preload/index.js",
       "default": "./dist/shell/electron/preload/index.js"
+    },
+    "./shell/electron/preload-cjs": {
+      "types": "./dist/shell/electron/preload/cjs.d.cts",
+      "import": "./dist/shell/electron/preload/cjs.cjs",
+      "require": "./dist/shell/electron/preload/cjs.cjs",
+      "default": "./dist/shell/electron/preload/cjs.cjs"
     },
     "./telemetry": {
       "types": "./dist/telemetry/telemetry/index.d.ts",

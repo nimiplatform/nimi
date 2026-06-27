@@ -1,4 +1,5 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
+import { NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabilities';
 
 import {
   getRuntimeDefaults,
@@ -8,6 +9,14 @@ import {
   parseRequiredString,
   parseRuntimeDefaults,
 } from '../shell/renderer/src/bridge/index.js';
+
+type TestGlobal = typeof globalThis & {
+  __NIMI_TAURI_TEST__?: {
+    invoke?: (command: string, payload?: unknown) => Promise<unknown>;
+  };
+};
+
+const testGlobal = globalThis as TestGlobal;
 
 const VALID_RUNTIME_DEFAULTS = {
   realm: {
@@ -55,7 +64,7 @@ describe('parseRuntimeDefaults', () => {
         realtimeUrl: '',
         accessToken: '',
       }),
-    ).toThrow(/runtime_defaults realm payload is invalid/);
+    ).toThrow(/runtimeDefaults\.get realm payload is invalid/);
   });
 });
 
@@ -75,22 +84,29 @@ describe('shell bridge JSON helpers', () => {
 
 describe('getRuntimeDefaults', () => {
   afterEach(() => {
-    vi.unstubAllEnvs();
-    window.history.replaceState(null, '', '/');
+    delete testGlobal.__NIMI_TAURI_TEST__;
   });
 
-  it('uses the browser origin as the web shell Realm fallback outside Tauri', async () => {
-    vi.stubEnv('VITE_NIMI_SHELL_MODE', 'web');
-    window.history.replaceState(null, '', '/app');
-    const origin = window.location.origin;
+  it('fails closed outside a standard shell host', async () => {
+    await expect(getRuntimeDefaults()).rejects.toMatchObject({
+      code: 'capability-unavailable',
+      reasonCode: 'renderer-standard-shell-host-unavailable',
+    });
+  });
 
+  it('loads defaults through the standard runtime-defaults capability command', async () => {
+    const calls: Array<{ command: string; payload: unknown }> = [];
+    testGlobal.__NIMI_TAURI_TEST__ = {
+      invoke: async (command, payload) => {
+        calls.push({ command, payload });
+        return VALID_RUNTIME_DEFAULTS;
+      },
+    };
     const defaults = await getRuntimeDefaults();
 
-    expect(defaults.realm.realmBaseUrl).toBe(origin);
-    expect(defaults.realm.jwksUrl).toBe(`${origin}/api/auth/jwks`);
-    expect(defaults.realm.revocationUrl).toBe(
-      `${origin}/api/auth/sessions/introspect`,
-    );
-    expect(defaults.realm.jwtIssuer).toBe(origin);
+    expect(defaults.realm.realmBaseUrl).toBe('https://realm.example.com');
+    expect(calls).toEqual([
+      { command: NIMI_STANDARD_SHELL_COMMANDS['runtime-defaults.get'], payload: {} },
+    ]);
   });
 });

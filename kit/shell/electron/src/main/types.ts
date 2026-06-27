@@ -146,6 +146,77 @@ export type NimiElectronCommandHandler = (
   input: NimiElectronCommandHandlerInput,
 ) => Promise<unknown> | unknown;
 
+export type NimiElectronLocalAgentIdentityInput = {
+  readonly ownerUserId: string;
+  readonly runtimeSourceRef: string;
+  readonly localAgentRef?: string;
+};
+
+export type NimiElectronRuntimeTrustedCallerMode =
+  | 'local-first-party-app'
+  | 'local-developer-app'
+  | 'desktop-shell';
+
+export type NimiElectronRuntimeTrustedCallerInput = {
+  readonly mode?: NimiElectronRuntimeTrustedCallerMode;
+  readonly appInstanceId?: string;
+  readonly deviceId?: string;
+  readonly scopes?: readonly string[];
+};
+
+export type NimiElectronAIConfigStoreGetInput = {
+  readonly scopeRef: string;
+};
+
+export type NimiElectronAIConfigStoreSetInput = {
+  readonly scopeRef: string;
+  readonly config: Readonly<Record<string, unknown>>;
+};
+
+export type NimiElectronAIConfigStore = {
+  readonly get: (
+    input: NimiElectronAIConfigStoreGetInput,
+  ) => Promise<Readonly<Record<string, unknown>> | undefined | null> | Readonly<Record<string, unknown>> | undefined | null;
+  readonly set: (
+    input: NimiElectronAIConfigStoreSetInput,
+  ) => Promise<Readonly<Record<string, unknown>>> | Readonly<Record<string, unknown>>;
+};
+
+export type NimiElectronOAuthTokenExchangeResponse = {
+  readonly ok: boolean;
+  readonly status: number;
+  readonly text: () => Promise<string>;
+};
+
+export type NimiElectronOAuthTokenExchangeFetch = (
+  url: string,
+  init: {
+    readonly method: 'POST';
+    readonly headers: Readonly<Record<string, string>>;
+    readonly body: string;
+  },
+) => Promise<NimiElectronOAuthTokenExchangeResponse>;
+
+export type NimiElectronRuntimeConfigGetResult = {
+  readonly path: string;
+  readonly config: Readonly<Record<string, unknown>>;
+};
+
+export type NimiElectronRuntimeConfigGet = (
+) => Promise<NimiElectronRuntimeConfigGetResult> | NimiElectronRuntimeConfigGetResult;
+
+export type NimiElectronStandardShellHost = {
+  readonly dataRoot?: string;
+  readonly localAssetRoots?: readonly string[];
+  readonly resolveLocalAssetUrl?: (filePath: string) => Promise<string> | string;
+  readonly openExternalUrl?: (url: string) => Promise<void> | void;
+  readonly localAgentIdentity?: NimiElectronLocalAgentIdentityInput;
+  readonly runtimeTrustedCaller?: NimiElectronRuntimeTrustedCallerInput;
+  readonly aiConfigStore?: NimiElectronAIConfigStore;
+  readonly oauthTokenExchangeFetch?: NimiElectronOAuthTokenExchangeFetch;
+  readonly runtimeConfigGet?: NimiElectronRuntimeConfigGet;
+};
+
 export type RegisterNimiElectronRuntimeBridgeInput = {
   readonly appId: string;
   readonly runtimeEndpoint: string;
@@ -158,6 +229,7 @@ export type RegisterNimiElectronRuntimeBridgeInput = {
   readonly eventChannelPrefix?: string;
   readonly createGrpcClient?: (endpoint: string) => Promise<RuntimeGrpcBridgeClient> | RuntimeGrpcBridgeClient;
   readonly trustedRuntimeMetadataProvider?: ElectronRuntimeBridgeTrustedMetadataProvider;
+  readonly standardShellHost?: NimiElectronStandardShellHost;
   readonly commandHandlers?: Readonly<Record<string, NimiElectronCommandHandler>>;
 };
 
@@ -167,31 +239,42 @@ export type RegisteredNimiElectronRuntimeBridge = {
 };
 
 export type ElectronShellHostErrorCode =
-  | 'NIMI_ELECTRON_APP_ID_REQUIRED'
-  | 'NIMI_ELECTRON_HOST_OPTION_REQUIRED'
-  | 'NIMI_ELECTRON_RUNTIME_BRIDGE_INVALID'
-  | 'NIMI_ELECTRON_ORIGIN_NOT_ALLOWED'
-  | 'NIMI_ELECTRON_EXTERNAL_DAEMON_REQUIRED';
+  NimiStandardShellErrorCode;
 
 export class NimiElectronShellHostError extends Error {
   readonly code: ElectronShellHostErrorCode;
-  readonly reasonCode: ElectronShellHostErrorCode | 'external-daemon-required';
+  readonly reasonCode: string;
   readonly actionHint: string;
-  readonly source = 'host';
+  readonly source: NimiStandardShellErrorSource;
   readonly details?: Readonly<Record<string, unknown>>;
+  readonly envelope: NimiStandardShellErrorEnvelope;
 
   constructor(input: {
     readonly code: ElectronShellHostErrorCode;
     readonly message: string;
-    readonly reasonCode?: ElectronShellHostErrorCode | 'external-daemon-required';
+    readonly reasonCode: string;
     readonly actionHint: string;
+    readonly source?: NimiStandardShellErrorSource;
     readonly details?: Readonly<Record<string, unknown>>;
   }) {
     super(input.message);
     this.name = 'NimiElectronShellHostError';
     this.code = input.code;
-    this.reasonCode = input.reasonCode ?? input.code;
+    this.reasonCode = input.reasonCode;
     this.actionHint = input.actionHint;
+    this.source = input.source ?? 'electron';
     this.details = input.details;
+    this.envelope = {
+      code: input.code,
+      reasonCode: input.reasonCode,
+      actionHint: input.actionHint,
+      source: this.source,
+      details: input.details ? { ...input.details } : undefined,
+    };
   }
 }
+import type {
+  NimiStandardShellErrorCode,
+  NimiStandardShellErrorEnvelope,
+  NimiStandardShellErrorSource,
+} from '@nimiplatform/kit/shell/capabilities';

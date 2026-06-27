@@ -7,6 +7,7 @@ import YAML from 'yaml';
 const repoRoot = process.cwd();
 const kitRoot = path.join(repoRoot, 'kit');
 const registryPath = path.join(repoRoot, '.nimi', 'spec', 'platform', 'kernel', 'tables', 'nimi-kit-registry.yaml');
+const standardShellCatalogPath = path.join(repoRoot, '.nimi', 'spec', 'platform', 'kernel', 'tables', 'standard-shell-capabilities.yaml');
 const packageJsonPath = path.join(kitRoot, 'package.json');
 
 const allowedKinds = new Set(['foundation', 'feature', 'logic', 'infra']);
@@ -141,6 +142,10 @@ function isKitFeatureTestFile(fileRel) {
   return /^kit\/features\/[^/]+\/test\//u.test(fileRel);
 }
 
+function isKitShellTestFile(fileRel) {
+  return /^kit\/shell\/[^/]+\/test\//u.test(fileRel);
+}
+
 function isShellModule(modulePath) {
   return modulePath.startsWith('shell/');
 }
@@ -159,6 +164,10 @@ function isElectronShellModule(modulePath) {
 
 function isRendererShellModule(modulePath) {
   return modulePath === 'shell/renderer' || modulePath.startsWith('shell/renderer/');
+}
+
+function isCapabilitiesShellModule(modulePath) {
+  return modulePath === 'shell/capabilities' || modulePath.startsWith('shell/capabilities/');
 }
 
 function isAppLayerImport(target) {
@@ -222,6 +231,7 @@ function discoverAppLocalThemeExports() {
 }
 
 const registry = readYaml(registryPath);
+const standardShellCatalog = readYaml(standardShellCatalogPath);
 const kitPackage = readJson(packageJsonPath);
 const packageExportsMap = kitPackage.exports || {};
 const packageExports = new Set(Object.keys(packageExportsMap));
@@ -230,6 +240,98 @@ const modules = Array.isArray(registry?.modules) ? registry.modules : [];
 const appAliasPattern = /^@(renderer|runtime|app|desktop|web)(\/|$)/u;
 const registeredExportKeys = new Set();
 const featureReadmePaths = [];
+const requiredStandardShellCapabilityIds = [
+  'runtime',
+  'runtime-lifecycle',
+  'runtime-defaults',
+  'auth',
+  'oauth',
+  'diagnostics',
+  'data',
+  'storage',
+  'config',
+  'local-assets',
+  'local-agent',
+  'ai-profile',
+  'ai-config',
+  'avatar',
+  'platform-projection',
+];
+const requiredStandardShellErrorCodes = [
+  'capability-unavailable',
+  'external-daemon-required',
+  'forbidden-renderer-access',
+  'invalid-path',
+  'not-found',
+  'invalid-payload',
+  'host-internal-error',
+];
+
+function assertStandardShellCapabilityCatalog() {
+  expect(packageExports.has('./shell/capabilities'), 'kit/package.json: missing standard shell capabilities export ./shell/capabilities');
+  const capabilities = Array.isArray(standardShellCatalog?.capabilities) ? standardShellCatalog.capabilities : [];
+  const capabilityIds = capabilities.map((entry) => String(entry?.id || '').trim()).filter(Boolean);
+  expect(
+    JSON.stringify(capabilityIds) === JSON.stringify(requiredStandardShellCapabilityIds),
+    `standard-shell-capabilities.yaml: capability ids must equal ${requiredStandardShellCapabilityIds.join(', ')}`,
+  );
+
+  const errorCodes = Array.isArray(standardShellCatalog?.error_envelope?.codes)
+    ? standardShellCatalog.error_envelope.codes.map((entry) => String(entry || '').trim()).filter(Boolean)
+    : [];
+  expect(
+    JSON.stringify(errorCodes) === JSON.stringify(requiredStandardShellErrorCodes),
+    `standard-shell-capabilities.yaml: error codes must equal ${requiredStandardShellErrorCodes.join(', ')}`,
+  );
+
+  const missingRuntimeUnavailableCoverage = capabilities
+    .find((entry) => entry?.id === 'runtime')
+    ?.operations
+    ?.filter((operation) => ['unary', 'streamOpen'].includes(String(operation?.id || '')))
+    ?.some((operation) => !Array.isArray(operation?.negative_states) || !operation.negative_states.includes('external-daemon-required'));
+  expect(!missingRuntimeUnavailableCoverage, 'standard-shell-capabilities.yaml: runtime unary/streamOpen must include endpoint unavailable or daemon unreachable negative coverage');
+
+  const capabilitySourcePath = path.join(kitRoot, 'shell', 'capabilities', 'src', 'index.ts');
+  const capabilitySourceRoot = path.join(kitRoot, 'shell', 'capabilities', 'src');
+  expect(fs.existsSync(capabilitySourcePath), 'kit/shell/capabilities/src/index.ts is required');
+  const capabilitySource = readSourceTree(capabilitySourceRoot, /\.(?:ts|tsx)$/u);
+  for (const id of capabilityIds) {
+    expect(capabilitySource.includes(`'${id}'`), `kit/shell/capabilities/src/index.ts: missing capability id ${id}`);
+  }
+  for (const code of errorCodes) {
+    expect(capabilitySource.includes(`'${code}'`), `kit/shell/capabilities/src/index.ts: missing standard error code ${code}`);
+  }
+  for (const capability of capabilities) {
+    for (const operation of Array.isArray(capability?.operations) ? capability.operations : []) {
+      const command = String(operation?.command || '').trim();
+      expect(command, `standard-shell-capabilities.yaml ${capability?.id || '<unknown>'}: operation command is required`);
+      expect(capabilitySource.includes(`'${command}'`), `kit/shell/capabilities/src/index.ts: missing standard command ${command}`);
+    }
+  }
+}
+
+function readSourceTree(root, pattern) {
+  const chunks = [];
+  if (!fs.existsSync(root)) {
+    return '';
+  }
+  const walk = (target) => {
+    const stat = fs.statSync(target);
+    if (stat.isDirectory()) {
+      for (const entry of fs.readdirSync(target)) {
+        walk(path.join(target, entry));
+      }
+      return;
+    }
+    if (pattern.test(target)) {
+      chunks.push(fs.readFileSync(target, 'utf8'));
+    }
+  };
+  walk(root);
+  return chunks.join('\n');
+}
+
+assertStandardShellCapabilityCatalog();
 
 if (modules.length === 0) {
   fail('nimi-kit-registry.yaml: modules must not be empty');
@@ -459,6 +561,22 @@ for (const modulePath of registeredModuleSubpaths) {
       for (const target of importTargets) {
         if (target === 'electron' || target.startsWith('electron/') || target.includes('/shell/electron')) {
           fail(`${fileRel}: shell/renderer must stay host-neutral and must not import Electron host glue (${target})`);
+        }
+      }
+    }
+
+    if (isCapabilitiesShellModule(modulePath) && !isKitShellTestFile(fileRel)) {
+      for (const target of importTargets) {
+        const forbidden =
+          target === 'react'
+          || target.startsWith('react/')
+          || target === 'electron'
+          || target.startsWith('electron/')
+          || target.startsWith('@tauri-apps/')
+          || target.startsWith('node:')
+          || ['fs', 'path', 'child_process', 'os'].includes(target);
+        if (forbidden) {
+          fail(`${fileRel}: shell/capabilities must remain host-neutral contract code (${target})`);
         }
       }
     }

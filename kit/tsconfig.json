@@ -21,8 +21,11 @@
       "@nimiplatform/kit/features/generation": ["./features/generation/src/index.ts"],
       "@nimiplatform/kit/features/generation/*": ["./features/generation/src/*"],
       "@nimiplatform/kit/shell/renderer/*": ["./shell/renderer/src/*"],
+      "@nimiplatform/kit/shell/capabilities": ["./shell/capabilities/src/index.ts"],
+      "@nimiplatform/kit/shell/capabilities/*": ["./shell/capabilities/src/*"],
       "@nimiplatform/kit/shell/electron/main": ["./shell/electron/src/main/index.ts"],
       "@nimiplatform/kit/shell/electron/preload": ["./shell/electron/src/preload/index.ts"],
+      "@nimiplatform/kit/shell/electron/preload-cjs": ["./shell/electron/src/preload/cjs.cts"],
       "@nimiplatform/kit/shell/electron/*": ["./shell/electron/src/*"],
       "@nimiplatform/kit/core/runtime-capabilities": ["./core/src/runtime-capabilities/index.ts"]
     },
@@ -57,6 +60,8 @@
     "telemetry/src/**/*.d.ts",
     "shell/renderer/src/**/*.ts",
     "shell/renderer/src/**/*.tsx",
-    "shell/electron/src/**/*.ts"
+    "shell/capabilities/src/**/*.ts",
+    "shell/electron/src/**/*.ts",
+    "shell/electron/src/**/*.cts"
   ]
 }

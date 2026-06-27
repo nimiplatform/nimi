@@ -84,6 +84,7 @@ export default defineConfig({
       { find: '@nimiplatform/kit/core/runtime-capabilities', replacement: path.resolve(__dirname, '../core/src/runtime-capabilities') },
       { find: '@nimiplatform/kit/core/model-config', replacement: path.resolve(__dirname, '../core/src/model-config') },
       { find: '@nimiplatform/kit/telemetry', replacement: path.resolve(__dirname, '../telemetry/src/telemetry/index.ts') },
+      { find: '@nimiplatform/kit/shell/capabilities', replacement: path.resolve(__dirname, '../shell/capabilities/src/index.ts') },
       { find: '@nimiplatform/kit/shell/renderer', replacement: path.resolve(__dirname, '../shell/renderer/src') },
     ],
   },

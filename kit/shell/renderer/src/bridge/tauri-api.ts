@@ -1,100 +1,101 @@
-import { convertFileSrc as tauriConvertFileSrc, invoke as tauriCoreInvoke, isTauri, type InvokeArgs } from '@tauri-apps/api/core';
-import { listen as tauriEventListen } from '@tauri-apps/api/event';
+import { NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabilities';
 
-type TauriInvoke = (command: string, payload?: unknown) => Promise<unknown>;
-type TauriEventUnsubscribe = () => void;
-type TauriEventListen = (
+export type ShellInvoke = (command: string, payload?: unknown) => Promise<unknown>;
+export type ShellEventUnsubscribe = () => void;
+export type ShellEventListen = (
   eventName: string,
   handler: (event: { event?: string; id?: number; payload: unknown }) => void,
-) => Promise<TauriEventUnsubscribe>;
-type ElectronEventListen = (
+) => Promise<ShellEventUnsubscribe> | ShellEventUnsubscribe;
+export type ElectronEventListen = (
   eventName: string,
   handler: (event: { payload: unknown }) => void,
-) => TauriEventUnsubscribe;
-type TauriTestHook = {
-  invoke?: TauriInvoke;
-  listen?: (
-    eventName: string,
-    handler: (event: { event?: string; id?: number; payload: unknown }) => void,
-  ) => Promise<TauriEventUnsubscribe | undefined> | TauriEventUnsubscribe | undefined;
+) => ShellEventUnsubscribe;
+export type TauriTestHook = {
+  invoke?: ShellInvoke;
+  listen?: ShellEventListen;
+  convertFileSrc?: (fileUrl: string) => string;
 };
-type NimiShellRuntimeHook = {
-  invoke: TauriInvoke;
-  listen: TauriEventListen;
+export type NimiShellRuntimeHook = {
+  invoke: ShellInvoke;
+  listen: ShellEventListen;
+  convertFileSrc?: (fileUrl: string) => string;
 };
-type NimiElectronRuntimeHook = {
-  invoke: TauriInvoke;
+export type NimiElectronRuntimeHook = {
+  invoke: ShellInvoke;
   listen: ElectronEventListen;
 };
 
-type TauriRuntimeGlobal = typeof globalThis & {
+export type TauriRuntimeGlobal = typeof globalThis & {
   __NIMI_TAURI_TEST__?: TauriTestHook;
   __NIMI_TAURI_RUNTIME__?: NimiShellRuntimeHook;
   __NIMI_ELECTRON_TEST__?: NimiElectronRuntimeHook;
   __NIMI_ELECTRON_RUNTIME__?: NimiElectronRuntimeHook;
-  __TAURI_INTERNALS__?: unknown;
-  __TAURI_IPC__?: unknown;
   window?: {
     __NIMI_TAURI_TEST__?: TauriTestHook;
     __NIMI_TAURI_RUNTIME__?: NimiShellRuntimeHook;
     __NIMI_ELECTRON_TEST__?: NimiElectronRuntimeHook;
     __NIMI_ELECTRON_RUNTIME__?: NimiElectronRuntimeHook;
-    __TAURI_INTERNALS__?: unknown;
-    __TAURI_IPC__?: unknown;
   };
 };
 
-/** Result of {@link installNimiShellRuntimeBridge}. Typed instead of a bare
- *  boolean so callers and guards can branch on the precise outcome and the
- *  non-Tauri case is an explicit skip, never a thrown pseudo-error. */
 export type NimiShellRuntimeBridgeResult =
   | { installed: true; host: 'tauri' }
   | { installed: true; host: 'electron'; reason: 'electron-preload-present' }
-  | { installed: false; reason: 'non-shell-environment' };
+  | { installed: false; reason: 'standard-host-preload-required' };
 
-function tauriGlobal(): TauriRuntimeGlobal {
+export const TAURI_STANDARD_COMMAND_ALIASES: Readonly<Record<string, string>> = {
+  [NIMI_STANDARD_SHELL_COMMANDS['runtime.unary']]: 'runtime_bridge_unary',
+  [NIMI_STANDARD_SHELL_COMMANDS['runtime.streamOpen']]: 'runtime_bridge_stream_open',
+  [NIMI_STANDARD_SHELL_COMMANDS['runtime.streamClose']]: 'runtime_bridge_stream_close',
+  [NIMI_STANDARD_SHELL_COMMANDS['runtime-lifecycle.status']]: 'runtime_bridge_status',
+  [NIMI_STANDARD_SHELL_COMMANDS['runtime-lifecycle.start']]: 'runtime_bridge_start',
+  [NIMI_STANDARD_SHELL_COMMANDS['runtime-lifecycle.stop']]: 'runtime_bridge_stop',
+  [NIMI_STANDARD_SHELL_COMMANDS['runtime-lifecycle.restart']]: 'runtime_bridge_restart',
+  [NIMI_STANDARD_SHELL_COMMANDS['runtime-defaults.get']]: 'runtime_defaults',
+  [NIMI_STANDARD_SHELL_COMMANDS['auth.sessionLoad']]: 'auth_session_load',
+  [NIMI_STANDARD_SHELL_COMMANDS['auth.sessionSave']]: 'auth_session_save',
+  [NIMI_STANDARD_SHELL_COMMANDS['auth.sessionClear']]: 'auth_session_clear',
+  [NIMI_STANDARD_SHELL_COMMANDS['oauth.openExternalUrl']]: 'open_external_url',
+  [NIMI_STANDARD_SHELL_COMMANDS['oauth.tokenExchange']]: 'oauth_token_exchange',
+  [NIMI_STANDARD_SHELL_COMMANDS['oauth.listenForCode']]: 'oauth_listen_for_code',
+};
+
+export function resolveTauriStandardCommand(command: string): string {
+  return TAURI_STANDARD_COMMAND_ALIASES[command] ?? command;
+}
+
+function shellGlobal(): TauriRuntimeGlobal {
   return globalThis as TauriRuntimeGlobal;
 }
 
 function testHook(): TauriTestHook | undefined {
-  const value = tauriGlobal();
+  const value = shellGlobal();
   return value.__NIMI_TAURI_TEST__ || value.window?.__NIMI_TAURI_TEST__;
 }
 
-function testInvoke(): TauriInvoke | undefined {
+function testInvoke(): ShellInvoke | undefined {
   return testHook()?.invoke;
 }
 
 function runtimeHook(): NimiShellRuntimeHook | undefined {
-  const value = tauriGlobal();
+  const value = shellGlobal();
   return value.__NIMI_TAURI_RUNTIME__ || value.window?.__NIMI_TAURI_RUNTIME__;
 }
 
 function electronHook(): NimiElectronRuntimeHook | undefined {
-  const value = tauriGlobal();
+  const value = shellGlobal();
   return value.__NIMI_ELECTRON_TEST__
     || value.window?.__NIMI_ELECTRON_TEST__
     || value.__NIMI_ELECTRON_RUNTIME__
     || value.window?.__NIMI_ELECTRON_RUNTIME__;
 }
 
-function hasNativeTauriRuntime(): boolean {
-  const value = tauriGlobal();
-  return Boolean(
-    isTauri()
-      || value.__TAURI_INTERNALS__
-      || value.__TAURI_IPC__
-      || value.window?.__TAURI_INTERNALS__
-      || value.window?.__TAURI_IPC__,
-  );
+export function hasTauriRuntime(): boolean {
+  return Boolean(testInvoke() || testHook()?.listen || runtimeHook()?.invoke || runtimeHook()?.listen);
 }
 
-export function hasTauriRuntime(): boolean {
-  return Boolean(
-    testInvoke()
-      || testHook()?.listen
-      || hasNativeTauriRuntime(),
-  );
+export function hasTauriInvoke(): boolean {
+  return Boolean(testInvoke() || runtimeHook()?.invoke);
 }
 
 export function hasElectronRuntime(): boolean {
@@ -102,31 +103,35 @@ export function hasElectronRuntime(): boolean {
   return Boolean(hook?.invoke || hook?.listen);
 }
 
+export function hasElectronInvoke(): boolean {
+  return Boolean(electronHook()?.invoke);
+}
+
 export function hasNimiShellRuntime(): boolean {
-  return hasTauriRuntime() || Boolean(runtimeHook()?.invoke || runtimeHook()?.listen) || hasElectronRuntime();
+  return hasTauriRuntime() || hasElectronRuntime();
 }
 
 export async function invokeTauri<T>(command: string, payload: unknown = {}): Promise<T> {
   const invoke = testInvoke() ?? runtimeHook()?.invoke;
-  if (invoke) {
-    return await invoke(command, payload) as T;
+  if (!invoke) {
+    throw new Error(`Standard shell Tauri host invoke is not available for ${command}`);
   }
-  return await tauriCoreInvoke<T>(command, payload as InvokeArgs | undefined);
+  return await invoke(command, payload) as T;
 }
 
 export async function listenTauri(
   eventName: string,
   handler: (event: { event?: string; id?: number; payload: unknown }) => void,
-): Promise<TauriEventUnsubscribe> {
+): Promise<ShellEventUnsubscribe> {
   const listen = testHook()?.listen ?? runtimeHook()?.listen;
-  if (listen) {
-    const unsubscribe = await Promise.resolve(listen(eventName, handler));
-    if (typeof unsubscribe !== 'function') {
-      throw new Error(`Tauri event listener for "${eventName}" did not return an unsubscribe function`);
-    }
-    return unsubscribe;
+  if (!listen) {
+    throw new Error(`Standard shell Tauri host listen is not available for ${eventName}`);
   }
-  return await tauriEventListen(eventName, (event) => handler(event));
+  const unsubscribe = await Promise.resolve(listen(eventName, handler));
+  if (typeof unsubscribe !== 'function') {
+    throw new Error(`Tauri event listener for "${eventName}" did not return an unsubscribe function`);
+  }
+  return unsubscribe;
 }
 
 export async function invokeShell<T>(command: string, payload: unknown = {}): Promise<T> {
@@ -140,7 +145,7 @@ export async function invokeShell<T>(command: string, payload: unknown = {}): Pr
 export async function listenShell(
   eventName: string,
   handler: (event: { event?: string; id?: number; payload: unknown }) => void,
-): Promise<TauriEventUnsubscribe> {
+): Promise<ShellEventUnsubscribe> {
   const electronListen = electronHook()?.listen;
   if (electronListen) {
     const unsubscribe = electronListen(eventName, (event) => handler(event));
@@ -156,10 +161,11 @@ export function convertTauriFileSrc(fileUrl: string): string {
   if (hasElectronRuntime()) {
     return convertElectronFileSrc(fileUrl);
   }
-  if (!hasNativeTauriRuntime()) {
-    return fileUrl;
+  const convertFileSrc = testHook()?.convertFileSrc ?? runtimeHook()?.convertFileSrc;
+  if (!convertFileSrc) {
+    throw new Error('Standard shell local asset URL conversion is not available');
   }
-  return tauriConvertFileSrc(fileUrl);
+  return convertFileSrc(fileUrl);
 }
 
 function convertElectronFileSrc(fileUrl: string): string {
@@ -168,66 +174,4 @@ function convertElectronFileSrc(fileUrl: string): string {
     return normalized;
   }
   return `nimi-shell-file://local/${encodeURIComponent(normalized)}`;
-}
-
-// The single authoritative runtime-transport hook for every Nimi Tauri app.
-// invoke prefers the test hook (deterministic tests), else the Tauri core API;
-// listen prefers the test hook, else the Tauri event API, and normalizes the
-// result to a guaranteed unsubscribe - a test hook that fails to return one is a
-// contract violation, not a silently-swallowed stream.
-function createNimiShellRuntimeHook(): NimiShellRuntimeHook {
-  return {
-    invoke: async (command, payload) => {
-      const invoke = testInvoke();
-      if (invoke) {
-        return await invoke(command, payload);
-      }
-      return await tauriCoreInvoke(command, payload as InvokeArgs | undefined);
-    },
-    listen: async (eventName, handler) => {
-      const listen = testHook()?.listen;
-      if (listen) {
-        const unsubscribe = await Promise.resolve(listen(eventName, handler));
-        if (typeof unsubscribe !== 'function') {
-          throw new Error(`Tauri event listener for "${eventName}" did not return an unsubscribe function`);
-        }
-        return unsubscribe;
-      }
-      return await tauriEventListen(eventName, (event) => handler(event));
-    },
-  };
-}
-
-/**
- * Install the scoped Nimi shell runtime-transport bridge
- * (`globalThis/window.__NIMI_TAURI_RUNTIME__ = { invoke, listen }`) that the
- * `@nimiplatform/sdk` tauri-ipc transport resolves for unary `invoke` and
- * streaming event `listen`.
- *
- * This is the single platform bootstrap owner for the renderer runtime
- * transport: Desktop, the tester, and every scaffolded Nimi Tauri app must call
- * this rather than installing their own hook. Unary invoke resolves via the
- * always-present Tauri core, but event `listen` only reaches the SDK through
- * this hook (or `withGlobalTauri`), so without it `openStream` paths
- * (`chat.stream`, media jobs) fail closed with `SDK_RUNTIME_TAURI_LISTEN_MISSING`.
- *
- * `withGlobalTauri` stays false: only `invoke` + event `listen` are exposed to
- * the renderer, never the entire Tauri API. Outside a Tauri webview this is a
- * typed no-op (`{ installed: false, reason: 'non-shell-environment' }`) - never a
- * thrown error.
- */
-export function installNimiShellRuntimeBridge(): NimiShellRuntimeBridgeResult {
-  if (hasElectronRuntime()) {
-    return { installed: true, host: 'electron', reason: 'electron-preload-present' };
-  }
-  if (!hasTauriRuntime()) {
-    return { installed: false, reason: 'non-shell-environment' };
-  }
-  const value = tauriGlobal();
-  const hook = createNimiShellRuntimeHook();
-  value.__NIMI_TAURI_RUNTIME__ = hook;
-  if (value.window && typeof value.window === 'object') {
-    value.window.__NIMI_TAURI_RUNTIME__ = hook;
-  }
-  return { installed: true, host: 'tauri' };
 }

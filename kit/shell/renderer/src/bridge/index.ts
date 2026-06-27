@@ -7,9 +7,9 @@ export {
   invokeTauri,
   listenShell,
   listenTauri,
-  installNimiShellRuntimeBridge,
 } from './tauri-api.js';
 export type { NimiShellRuntimeBridgeResult } from './tauri-api.js';
+export { installNimiShellRuntimeBridge } from '../bootstrap/runtime-bridge.js';
 export { hasElectronInvoke, hasShellHostInvoke, hasTauriInvoke } from './env.js';
 export { invoke, invokeChecked, BridgeError } from './invoke.js';
 export {

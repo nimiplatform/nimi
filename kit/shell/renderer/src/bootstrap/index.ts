@@ -5,6 +5,7 @@
 // policy, and local data bootstrap. This module owns only the shared skeleton.
 
 import type { RuntimeDefaults } from '../bridge/types.js';
+export { installNimiShellRuntimeBridge } from './runtime-bridge.js';
 
 export type BootstrapLogEvent = {
   level: 'debug' | 'info' | 'warn' | 'error';

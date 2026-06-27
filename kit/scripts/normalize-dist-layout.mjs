@@ -8,6 +8,7 @@ const distRoot = path.join(kitRoot, 'dist');
 const srcRoots = [
   'auth/src',
   'core/src',
+  'shell/capabilities/src',
   'shell/electron/src',
   'shell/renderer/src',
   'telemetry/src',

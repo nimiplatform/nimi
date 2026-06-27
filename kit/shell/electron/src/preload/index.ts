@@ -47,10 +47,10 @@ export function installNimiElectronRuntimeBridge(
   const invokeChannel = normalizeToken(input.invokeChannel, DEFAULT_INVOKE_CHANNEL);
   const listenChannelPrefix = normalizeToken(input.listenChannelPrefix, DEFAULT_LISTEN_CHANNEL_PREFIX);
   const hook: NimiElectronRuntimeHook = {
-    invoke: (command, payload) => input.ipcRenderer.invoke(invokeChannel, {
+    invoke: async (command, payload) => unwrapInvokeResponse(await input.ipcRenderer.invoke(invokeChannel, {
       command: normalizeCommand(command),
       payload,
-    }),
+    })),
     listen: (event, handler) => {
       const eventName = normalizeCommand(event);
       const channel = `${listenChannelPrefix}${eventName}`;
@@ -68,12 +68,49 @@ export function installNimiElectronRuntimeBridge(
   return { apiKey, invokeChannel, listenChannelPrefix };
 }
 
+function unwrapInvokeResponse(response: unknown): unknown {
+  const record = asRecord(response, 'Nimi Electron bridge IPC response must be an object');
+  if (record.ok === true) {
+    return record.value;
+  }
+  if (record.ok === false) {
+    throw createStandardShellHostErrorRecord(record.error);
+  }
+  throw new Error('Nimi Electron bridge IPC response is missing ok discriminator');
+}
+
+function createStandardShellHostErrorRecord(value: unknown): Readonly<Record<string, unknown>> {
+  const record = asRecord(value, 'Nimi Electron bridge standard error must be an object');
+  const envelope = asOptionalRecord(record.envelope);
+  const code = normalizeToken(record.code, normalizeToken(envelope?.code, 'host-internal-error'));
+  const reasonCode = normalizeToken(record.reasonCode, normalizeToken(envelope?.reasonCode, 'electron-shell-host-error'));
+  const actionHint = normalizeToken(record.actionHint, normalizeToken(envelope?.actionHint, 'check_electron_shell_host'));
+  const source = normalizeToken(record.source, normalizeToken(envelope?.source, 'electron'));
+  const details = asOptionalRecord(record.details) ?? asOptionalRecord(envelope?.details);
+  return {
+    name: normalizeToken(record.name, 'NimiElectronShellHostError'),
+    message: normalizeToken(record.message, 'Nimi Electron shell host command failed'),
+    code,
+    reasonCode,
+    actionHint,
+    source,
+    details,
+    envelope: {
+      code,
+      reasonCode,
+      actionHint,
+      source,
+      details,
+    },
+  };
+}
+
 function normalizeCommand(value: unknown): string {
   const normalized = String(value ?? '').trim();
   if (!normalized) {
     throw new Error('Nimi Electron bridge command/event is required');
   }
-  if (!/^[a-zA-Z0-9:_-]+$/u.test(normalized)) {
+  if (!/^[a-zA-Z0-9:._-]+$/u.test(normalized)) {
     throw new Error(`Nimi Electron bridge command/event contains unsupported characters: ${normalized}`);
   }
   return normalized;
@@ -82,4 +119,18 @@ function normalizeCommand(value: unknown): string {
 function normalizeToken(value: unknown, fallback: string): string {
   const normalized = String(value ?? '').trim();
   return normalized || fallback;
+}
+
+function asRecord(value: unknown, message: string): Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error(message);
+  }
+  return value as Record<string, unknown>;
+}
+
+function asOptionalRecord(value: unknown): Record<string, unknown> | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return undefined;
+  }
+  return value as Record<string, unknown>;
 }

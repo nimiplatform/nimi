@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
+import { NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabilities';
 import {
   confirmDialog,
   focusMainWindow,
@@ -29,16 +30,11 @@ describe('shell renderer UI bridge primitives', () => {
     expect(() => normalizeShellExternalUrl('')).toThrow(/URL is required/);
   });
 
-  test('openExternalUrl falls back to browser window outside Tauri', async () => {
-    const open = vi.spyOn(window, 'open').mockReturnValue(window);
-
-    await expect(openExternalUrl('/docs')).resolves.toEqual({ opened: true });
-
-    expect(open).toHaveBeenCalledWith(
-      expect.stringMatching(/^http:\/\/localhost:3000\/docs$/),
-      '_blank',
-      'noopener,noreferrer',
-    );
+  test('openExternalUrl fails closed outside a standard shell host', async () => {
+    await expect(openExternalUrl('/docs')).rejects.toMatchObject({
+      code: 'capability-unavailable',
+      reasonCode: 'renderer-standard-shell-host-unavailable',
+    });
   });
 
   test('Tauri UI commands invoke shared shell bridge commands', async () => {
@@ -46,7 +42,7 @@ describe('shell renderer UI bridge primitives', () => {
     testGlobal().__NIMI_TAURI_TEST__ = {
       invoke: async (command, payload) => {
         calls.push({ command, payload });
-        if (command === 'open_external_url') return { opened: true };
+        if (command === NIMI_STANDARD_SHELL_COMMANDS['oauth.openExternalUrl']) return { opened: true };
         if (command === 'confirm_dialog') return { confirmed: true };
         return {};
       },
@@ -60,7 +56,7 @@ describe('shell renderer UI bridge primitives', () => {
     await expect(focusMainWindow()).resolves.toBeUndefined();
 
     expect(calls.map((call) => call.command)).toEqual([
-      'open_external_url',
+      NIMI_STANDARD_SHELL_COMMANDS['oauth.openExternalUrl'],
       'confirm_dialog',
       'start_window_drag',
       'focus_main_window',

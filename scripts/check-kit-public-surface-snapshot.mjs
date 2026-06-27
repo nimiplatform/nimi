@@ -81,12 +81,20 @@ function sourcePathForExportTarget(target) {
     .replace(/^\.\//, '')
     .replace(/^dist\//, '')
     .replace(/\.d\.ts$/u, '')
+    .replace(/\.cjs$/u, '')
     .replace(/\.js$/u, '')
     .replace(/\.css$/u, '.css');
   const sourceBase = sourceBaseForDistRelative(distRelative);
   const candidates = sourceBase.endsWith('.css')
     ? [sourceBase]
-    : [`${sourceBase}.ts`, `${sourceBase}.tsx`, path.join(sourceBase, 'index.ts'), path.join(sourceBase, 'index.tsx')];
+    : [
+        `${sourceBase}.ts`,
+        `${sourceBase}.tsx`,
+        `${sourceBase}.cts`,
+        path.join(sourceBase, 'index.ts'),
+        path.join(sourceBase, 'index.tsx'),
+        path.join(sourceBase, 'index.cts'),
+      ];
 
   for (const candidate of candidates) {
     const absPath = path.join(kitRoot, candidate);
@@ -103,8 +111,10 @@ function resolveLocalSource(fromSourcePath, specifier) {
 
   const resolved = path.resolve(path.dirname(fromSourcePath), specifier);
   const candidates = specifier.endsWith('.js')
-    ? [resolved.replace(/\.js$/, '.ts'), resolved.replace(/\.js$/, '.tsx')]
-    : [`${resolved}.ts`, `${resolved}.tsx`, path.join(resolved, 'index.ts'), path.join(resolved, 'index.tsx')];
+    ? [resolved.replace(/\.js$/, '.ts'), resolved.replace(/\.js$/, '.tsx'), resolved.replace(/\.js$/, '.cts')]
+    : specifier.endsWith('.cjs')
+      ? [resolved.replace(/\.cjs$/, '.cts')]
+      : [`${resolved}.ts`, `${resolved}.tsx`, `${resolved}.cts`, path.join(resolved, 'index.ts'), path.join(resolved, 'index.tsx'), path.join(resolved, 'index.cts')];
 
   return candidates.find((candidate) => candidate.startsWith(kitRoot) && existsSync(candidate)) || null;
 }

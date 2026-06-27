@@ -1,5 +1,6 @@
 import { hasTauriInvoke } from './env.js';
 import { invokeChecked } from './invoke.js';
+import { NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabilities';
 import {
   parseOauthTokenExchangeResult,
   parseOauthListenForCodeResult,
@@ -15,7 +16,7 @@ import { focusMainWindow, openExternalUrl } from './ui.js';
 export async function oauthTokenExchange(
   payload: OauthTokenExchangePayload,
 ): Promise<OauthTokenExchangeResult> {
-  return invokeChecked('oauth_token_exchange', {
+  return invokeChecked(NIMI_STANDARD_SHELL_COMMANDS['oauth.tokenExchange'], {
     payload: {
       provider: payload.provider,
       clientId: payload.clientId,
@@ -29,7 +30,7 @@ export async function oauthTokenExchange(
 export async function oauthListenForCode(
   payload: OauthListenForCodePayload,
 ): Promise<OauthListenForCodeResult> {
-  return invokeChecked('oauth_listen_for_code', {
+  return invokeChecked(NIMI_STANDARD_SHELL_COMMANDS['oauth.listenForCode'], {
     payload: {
       redirectUri: payload.redirectUri,
       timeoutMs: payload.timeoutMs,
