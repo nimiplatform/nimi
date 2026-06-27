@@ -1,0 +1,90 @@
+import { readFileSync, readdirSync, statSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+
+const preloadIpcAllowlist = new Set([
+  'apps/tester/src-electron/preload.cts',
+  'kit/shell/electron/src/preload/cjs.cts',
+  'kit/shell/electron/src/preload/index.ts',
+]);
+const fileUrlAllowlist = new Set([
+  'apps/tester/src-electron/main.ts',
+  'apps/tester/src/tester/tester-runtime-invokers-media-speech.ts',
+]);
+
+const scanRoots = [
+  'apps/tester/src',
+  'apps/tester/src-electron',
+  'kit/shell/electron/src',
+  'kit/shell/renderer/src',
+];
+
+const failures = [];
+
+const testerMain = readRepo('apps/tester/src-electron/main.ts');
+assertContains(testerMain, /contextIsolation:\s*true/u, 'apps/tester/src-electron/main.ts must set contextIsolation: true');
+assertContains(testerMain, /nodeIntegration:\s*false/u, 'apps/tester/src-electron/main.ts must set nodeIntegration: false');
+assertContains(testerMain, /sandbox:\s*true/u, 'apps/tester/src-electron/main.ts must set sandbox: true');
+assertNotContains(testerMain, /sandbox:\s*false/u, 'apps/tester/src-electron/main.ts must not set sandbox: false');
+
+for (const file of collectSourceFiles(scanRoots)) {
+  const relative = slash(path.relative(repoRoot, file));
+  const content = readFileSync(file, 'utf8');
+  if (/\bipcRenderer\b/u.test(content) && !preloadIpcAllowlist.has(relative)) {
+    failures.push(`${relative}: ipcRenderer is allowed only in Electron preload implementations`);
+  }
+  if (/(?<!nimi-shell-)file:\/\//u.test(content) && !fileUrlAllowlist.has(relative)) {
+    failures.push(`${relative}: file:// is allowed only in explicit Electron host URL handling`);
+  }
+}
+
+if (failures.length > 0) {
+  console.error(failures.join('\n'));
+  process.exit(1);
+}
+
+function assertContains(content, pattern, message) {
+  if (!pattern.test(content)) {
+    failures.push(message);
+  }
+}
+
+function assertNotContains(content, pattern, message) {
+  if (pattern.test(content)) {
+    failures.push(message);
+  }
+}
+
+function readRepo(relativePath) {
+  return readFileSync(path.join(repoRoot, relativePath), 'utf8');
+}
+
+function collectSourceFiles(roots) {
+  const files = [];
+  for (const root of roots) {
+    walk(path.join(repoRoot, root), files);
+  }
+  return files;
+}
+
+function walk(target, files) {
+  const stat = statSync(target);
+  if (stat.isDirectory()) {
+    for (const entry of readdirSync(target)) {
+      if (entry === 'node_modules' || entry === 'dist' || entry === 'dist-electron') {
+        continue;
+      }
+      walk(path.join(target, entry), files);
+    }
+    return;
+  }
+  if (/\.(?:ts|tsx|cts|js|mjs|cjs)$/u.test(target)) {
+    files.push(target);
+  }
+}
+
+function slash(value) {
+  return value.replace(/\\/gu, '/');
+}

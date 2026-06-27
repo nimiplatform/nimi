@@ -50,7 +50,7 @@ extend the kit surface first when the missing behavior is cross-app.
 
 ## Current Public Surface
 
-The current package publishes 59 public subpath exports through
+The current package publishes 61 public subpath exports through
 `kit/package.json`:
 
 - 8 UI entries (`./ui`, `./ui/glass`, `./ui/motion`, `./ui/a11y`,
@@ -61,9 +61,9 @@ The current package publishes 59 public subpath exports through
   `./core/storage-json`, `./core/offline-coordinator`,
   `./core/notifications`, `./core/runtime-capabilities`,
   `./core/model-config`, `./core/sdk-contract`)
-- 4 shell entries (`./shell/renderer/bridge`,
+- 6 shell entries (`./shell/capabilities`, `./shell/renderer/bridge`,
   `./shell/renderer/bootstrap`, `./shell/electron/main`,
-  and `./shell/electron/preload`)
+  `./shell/electron/preload`, and `./shell/electron/preload-cjs`)
 - 2 telemetry entries (`./telemetry`, `./telemetry/error-boundary`)
 - 34 feature entries across `./features/chat`, `./features/avatar`,
   `./features/model-picker`, `./features/model-config`,
@@ -137,12 +137,12 @@ code uses SDK `electron-ipc` plus `@nimiplatform/kit/shell/renderer/*`.
 ### Tauri shell crate
 
 ```rust
-use nimi_shell_tauri::platform_catalog::ai_profile_factory;
-use nimi_shell_tauri::platform_catalog::nimi_app_registry;
-use nimi_shell_tauri::platform_projection::apps_bridge;
-use nimi_shell_tauri::platform_projection::apps_packages;
-use nimi_shell_tauri::platform_projection::apps_registry;
-use nimi_shell_tauri::platform_projection::factory_profile_index;
+use nimi_shell_tauri::capabilities::platform_catalog::ai_profile_factory;
+use nimi_shell_tauri::capabilities::platform_catalog::nimi_app_registry;
+use nimi_shell_tauri::capabilities::platform_projection::apps_bridge;
+use nimi_shell_tauri::capabilities::platform_projection::apps_packages;
+use nimi_shell_tauri::capabilities::platform_projection::apps_registry;
+use nimi_shell_tauri::capabilities::platform_projection::factory_profile_index;
 ```
 
 ### Telemetry
