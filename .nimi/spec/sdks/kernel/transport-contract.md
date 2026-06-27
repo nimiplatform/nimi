@@ -8,6 +8,12 @@ Runtime SDK transport 必须满足以下构造边界：
 
 - `node-grpc`
 - `tauri-ipc`
+- `electron-ipc`
+
+Electron transport rules:
+- Non-Node Runtime consumers must pass an explicit transport. Supported explicit transports are `node-grpc`, `tauri-ipc`, and `electron-ipc`.
+- `electron-ipc` is the first-party Runtime transport for Electron renderers. It must use `window.__NIMI_ELECTRON_RUNTIME__` installed by preload and must not spoof `__NIMI_TAURI_RUNTIME__` or open raw Node gRPC from renderer code.
+- `tauri-ipc` and `electron-ipc` share SDK wire semantics for renderer-owned fields: method id, protobuf bytes, metadata split, response metadata, server stream open/close, abort, backpressure, and fail-closed structured errors. `electron-ipc` must not accept renderer-provided Runtime auth/session credentials; Electron host code owns trusted auth/session injection.
 
 规则：
 

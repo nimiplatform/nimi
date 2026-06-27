@@ -15,10 +15,18 @@ import type {
   CoreUnaryRequest,
 } from '../types';
 import { createNimiRuntimeAppLifecycleClient, type NimiRuntimeAppLifecycleClient } from './app-lifecycle';
+import { createRuntimeElectronIpcTransport, type RuntimeElectronIpcTransportOptions } from './electron-ipc';
 import type { RuntimeNodeGrpcTransportOptions } from './node-grpc';
 import { createRuntimeTauriIpcTransport, type RuntimeTauriIpcTransportOptions } from './tauri-ipc';
 
 export type { CoreTransport, CoreClientOptions };
+export {
+  createRuntimeElectronIpcTransport,
+  RuntimeElectronIpcTransportError,
+} from './electron-ipc';
+export type {
+  RuntimeElectronIpcTransportOptions,
+} from './electron-ipc';
 export {
   createRuntimeTauriIpcTransport,
   RuntimeTauriIpcTransportError,
@@ -393,7 +401,8 @@ export type RuntimeArtifactModule = RuntimeMethodModule<typeof RUNTIME_ARTIFACT_
 export type RuntimeTransportConfig =
   | CoreTransport
   | (RuntimeNodeGrpcTransportOptions & { readonly type?: 'node-grpc' })
-  | (RuntimeTauriIpcTransportOptions & { readonly type: 'tauri-ipc' });
+  | (RuntimeTauriIpcTransportOptions & { readonly type: 'tauri-ipc' })
+  | (RuntimeElectronIpcTransportOptions & { readonly type: 'electron-ipc' });
 
 export interface RuntimeOptions extends Omit<CoreClientOptions, 'transport'> {
   readonly appId?: string;
@@ -671,9 +680,12 @@ function toCoreClientOptions(
   options: RuntimeOptions,
   responseMetadataObserver: CoreResponseMetadataObserver,
 ): CoreClientOptions {
+  const includeDefaultIdentity = !(
+    options.transport && !isCoreTransportLike(options.transport) && options.transport.type === 'electron-ipc'
+  );
   return {
     authMetadata: async () => ({
-      ...runtimeDefaultMetadata(options),
+      ...runtimeDefaultMetadata(options, { includeIdentity: includeDefaultIdentity }),
       ...(options.metadata ?? {}),
       ...(options.authMetadata ? await options.authMetadata() : {}),
     }),
@@ -702,20 +714,25 @@ function toCoreTransport(transport: RuntimeOptions['transport']): CoreTransport 
   if (transport.type === 'tauri-ipc') {
     return createRuntimeTauriIpcTransport(transport);
   }
+  if (transport.type === 'electron-ipc') {
+    return createRuntimeElectronIpcTransport(transport);
+  }
   return createDeferredRuntimeNodeGrpcTransport(transport);
 }
 
-function runtimeDefaultMetadata(options: RuntimeOptions): CoreMetadata {
+function runtimeDefaultMetadata(
+  options: RuntimeOptions,
+  input: { readonly includeIdentity: boolean } = { includeIdentity: true },
+): CoreMetadata {
   const appId = resolveRuntimeAppId(options);
-  return {
+  const metadata: CoreMetadata = {
     protocolVersion: '1.0.0',
     participantProtocolVersion: '1.0.0',
-    participantId: appId,
     domain: 'runtime.rpc',
-    appId,
-    callerKind: 'third-party-app',
-    callerId: appId,
   };
+  return input.includeIdentity
+    ? { ...metadata, participantId: appId, appId, callerKind: 'third-party-app', callerId: appId }
+    : metadata;
 }
 
 function resolveRuntimeAppId(options: RuntimeOptions): string {
