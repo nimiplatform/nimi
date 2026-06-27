@@ -1222,6 +1222,18 @@
       "exportKey": "./shell/electron/main",
       "source": "kit/shell/electron/src/main/index.ts",
       "exports": [
+        "export * from './types.js';",
+        "function assertAllowedElectronRendererOrigin",
+        "function assertAllowedElectronRendererUrl",
+        "function createElectronExternalDaemonRequiredError",
+        "function createElectronRuntimeBridgeCommandNames",
+        "function createElectronRuntimeBridgeEventName",
+        "function isAllowedElectronRendererOrigin",
+        "function isAllowedElectronRendererUrl",
+        "function normalizeElectronShellAppId",
+        "function registerNimiElectronRuntimeBridge"
+      ],
+      "expandedExports": [
         "class NimiElectronShellHostError",
         "function assertAllowedElectronRendererOrigin",
         "function assertAllowedElectronRendererUrl",
