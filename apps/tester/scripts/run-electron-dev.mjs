@@ -1,16 +1,15 @@
 import { spawn } from 'node:child_process';
 
 const rendererUrl = process.env.NIMI_TESTER_ELECTRON_RENDERER_URL || 'http://127.0.0.1:1468';
-const corepack = process.platform === 'win32' ? 'corepack.cmd' : 'corepack';
 
-const renderer = spawn(corepack, ['pnpm', 'run', 'dev:renderer'], {
+const renderer = spawnPnpm(['run', 'dev:renderer'], {
   stdio: 'inherit',
   env: process.env,
 });
 
 try {
   await waitForUrl(rendererUrl, 45_000);
-  const electron = spawn(corepack, ['pnpm', 'exec', 'electron', 'dist-electron/main.js'], {
+  const electron = spawnPnpm(['exec', 'electron', 'dist-electron/main.js'], {
     stdio: 'inherit',
     env: {
       ...process.env,
@@ -24,6 +23,13 @@ try {
   renderer.kill();
   console.error(error instanceof Error ? error.message : String(error || 'Electron dev failed'));
   process.exit(1);
+}
+
+function spawnPnpm(args, options) {
+  if (process.platform === 'win32') {
+    return spawn(process.env.ComSpec || 'cmd.exe', ['/d', '/c', 'corepack.cmd', 'pnpm', ...args], options);
+  }
+  return spawn('corepack', ['pnpm', ...args], options);
 }
 
 function waitForExit(child) {

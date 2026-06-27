@@ -3,7 +3,6 @@ import { spawn, spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
-const DEV_CERT_SUBJECT = 'CN=Nimi Local Development Code Signing';
 const APP_SPAWN_MAX_ATTEMPTS = 8;
 const APP_SHUTDOWN_GRACE_MS = 2500;
 const childEnv = {
@@ -131,6 +130,7 @@ function stopExistingWindowsDevBinary(binaryPath) {
   const escapedBinary = binaryPath.replaceAll("'", "''");
   runPowerShell(`
 $ErrorActionPreference = 'Stop'
+$ProgressPreference = 'SilentlyContinue'
 $BinaryPath = [System.IO.Path]::GetFullPath('${escapedBinary}')
 $BinaryName = [System.IO.Path]::GetFileName($BinaryPath).Replace("'", "''")
 $Processes = @(Get-CimInstance Win32_Process -Filter "Name = '$BinaryName'" |
@@ -166,53 +166,6 @@ foreach ($ProcessInfo in $Processes) {
 `);
 }
 
-function signWindowsDevBinary(binaryPath) {
-  const escapedBinary = binaryPath.replaceAll("'", "''");
-  const escapedSubject = DEV_CERT_SUBJECT.replaceAll("'", "''");
-  runPowerShell(`
-$ErrorActionPreference = 'Stop'
-$ProgressPreference = 'SilentlyContinue'
-$Subject = '${escapedSubject}'
-$BinaryPath = '${escapedBinary}'
-$Cert = Get-ChildItem Cert:\\CurrentUser\\My\\ -CodeSigningCert |
-  Where-Object { $_.Subject -eq $Subject } |
-  Sort-Object NotAfter -Descending |
-  Select-Object -First 1
-if (-not $Cert) {
-  $Cert = New-SelfSignedCertificate -Type CodeSigningCert -Subject $Subject -KeyUsage DigitalSignature -KeyAlgorithm RSA -KeyLength 3072 -HashAlgorithm SHA256 -CertStoreLocation Cert:\\CurrentUser\\My -NotAfter (Get-Date).AddYears(2)
-}
-$TrustedPublisher = Get-ChildItem Cert:\\CurrentUser\\TrustedPublisher\\ |
-  Where-Object { $_.Thumbprint -eq $Cert.Thumbprint } |
-  Select-Object -First 1
-if (-not $TrustedPublisher) {
-  $CertPath = Join-Path $env:TEMP "nimi-dev-code-signing-$($Cert.Thumbprint).cer"
-  Export-Certificate -Cert $Cert -FilePath $CertPath -Force | Out-Null
-  certutil.exe -user -addstore TrustedPublisher $CertPath | Out-Null
-  if ($LASTEXITCODE -ne 0) {
-    throw "certutil TrustedPublisher import failed with exit code $LASTEXITCODE"
-  }
-}
-$LastError = $null
-for ($Attempt = 1; $Attempt -le 12; $Attempt++) {
-  try {
-    $Signature = Set-AuthenticodeSignature -FilePath $BinaryPath -Certificate $Cert -HashAlgorithm SHA256
-    if (-not $Signature.SignerCertificate) {
-      throw "Set-AuthenticodeSignature did not attach a signer certificate"
-    }
-    [Console]::Out.WriteLine("[tauri-dev-runner] signed $BinaryPath with $($Cert.Thumbprint)")
-    return
-  } catch {
-    $LastError = $_
-    Start-Sleep -Milliseconds 250
-  }
-}
-if ($null -ne $LastError) {
-  [Console]::Error.WriteLine($LastError.Exception.Message)
-}
-exit 1
-`);
-}
-
 const rawArgs = process.argv.slice(2);
 if (process.platform !== 'win32' || rawArgs[0] !== 'run') {
   runCargo(rawArgs);
@@ -239,13 +192,6 @@ if (buildResult.error) {
 }
 if (buildResult.status !== 0) {
   process.exit(buildResult.status ?? 1);
-}
-
-try {
-  signWindowsDevBinary(binaryPath);
-} catch (error) {
-  process.stderr.write(`[tauri-dev-runner] failed to sign Windows dev binary: ${String(error?.message ?? error)}\n`);
-  process.exit(1);
 }
 
 spawnAppBinary(binaryPath, appArgs);

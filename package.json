@@ -218,6 +218,7 @@
     "dev:avatar": "node scripts/dev-avatar.mjs",
     "dev:web": "pnpm --filter @nimiplatform/web dev",
     "dev:tester": "pnpm --filter @nimiplatform/tester dev:shell",
+    "dev:electron:tester": "pnpm --filter @nimiplatform/tester dev:electron",
     "docs:dev": "pnpm --filter @nimiplatform/docs dev",
     "docs:build": "pnpm --filter @nimiplatform/docs build",
     "docs:preview": "pnpm --filter @nimiplatform/docs preview",

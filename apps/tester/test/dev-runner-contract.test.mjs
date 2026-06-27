@@ -44,15 +44,34 @@ test('tester Windows Tauri dev runner stops stale shell binary before Cargo rebu
   const resolveIndex = tauriDevRunnerSource.indexOf('const binaryPath = resolveAppBinary(cargoArgs);');
   const stopIndex = tauriDevRunnerSource.indexOf('stopExistingWindowsDevBinary(binaryPath);');
   const buildIndex = tauriDevRunnerSource.indexOf("const buildArgs = ['build', '--quiet', ...cargoArgs];");
-  const signIndex = tauriDevRunnerSource.indexOf('signWindowsDevBinary(binaryPath);');
   const spawnIndex = tauriDevRunnerSource.indexOf('spawnAppBinary(binaryPath, appArgs);');
 
   assert.ok(splitIndex > -1, 'runner must split Cargo args before resolving the app binary path');
   assert.ok(resolveIndex > splitIndex, 'runner must resolve the tester shell binary path before cleanup');
   assert.ok(stopIndex > resolveIndex, 'runner must stop the resolved tester shell binary');
   assert.ok(buildIndex > stopIndex, 'stale shell cleanup must run before cargo build');
-  assert.ok(signIndex > buildIndex, 'runner must sign the rebuilt tester shell binary');
-  assert.ok(spawnIndex > signIndex, 'runner must launch only after rebuild and signing');
+  assert.ok(spawnIndex > buildIndex, 'runner must launch after rebuild without a signing step');
   assert.match(tauriDevRunnerSource, /Get-CimInstance Win32_Process -Filter "Name = '\$BinaryName'"/);
   assert.match(tauriDevRunnerSource, /ExecutablePath[\s\S]*GetFullPath\(\$_.ExecutablePath\)[\s\S]*-ieq \$BinaryPath/);
+});
+
+test('tester Windows Tauri dev runner suppresses PowerShell progress during stale shell cleanup', () => {
+  const stopStart = tauriDevRunnerSource.indexOf('function stopExistingWindowsDevBinary(binaryPath)');
+  const nextFunctionStart = tauriDevRunnerSource.indexOf('function signWindowsDevBinary(binaryPath)');
+  const executionStart = tauriDevRunnerSource.indexOf('const rawArgs = process.argv.slice(2);');
+  const stopEnd = nextFunctionStart > -1 ? nextFunctionStart : executionStart;
+
+  assert.ok(stopStart > -1, 'runner must define stale shell cleanup');
+  assert.ok(stopEnd > stopStart, 'runner cleanup block must appear before execution starts');
+  const stopBlock = tauriDevRunnerSource.slice(stopStart, stopEnd);
+  assert.match(stopBlock, /\$ProgressPreference = 'SilentlyContinue'/);
+});
+
+test('tester Windows Tauri dev runner does not require local code signing by default', () => {
+  assert.doesNotMatch(tauriDevRunnerSource, /signWindowsDevBinary/);
+  assert.doesNotMatch(tauriDevRunnerSource, /Set-AuthenticodeSignature/);
+  assert.doesNotMatch(tauriDevRunnerSource, /New-SelfSignedCertificate/);
+  assert.doesNotMatch(tauriDevRunnerSource, /Get-ChildItem Cert:/);
+  assert.doesNotMatch(tauriDevRunnerSource, /TrustedPublisher/);
+  assert.doesNotMatch(tauriDevRunnerSource, /certutil\.exe/);
 });

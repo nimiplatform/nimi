@@ -10,7 +10,7 @@ import {
 } from '@nimiplatform/kit/shell/electron/main';
 import { createTesterElectronCommandHandlers } from './commands/tester-commands.js';
 
-const APP_ID = 'com.nimiplatform.tester';
+const APP_ID = 'nimi.tester';
 const FILE_PROTOCOL = 'nimi-shell-file';
 
 const currentFilePath = fileURLToPath(import.meta.url);

@@ -39,7 +39,7 @@ export function installTesterElectronSdkAcceptanceProbe(): void {
   window.__NIMI_TESTER_ELECTRON_SDK_ACCEPTANCE__ = {
     async runtimeReady() {
       const runtime = new Runtime({
-        appId: 'com.nimiplatform.tester',
+        appId: 'nimi.tester',
         transport: { type: 'electron-ipc' },
       });
       try {

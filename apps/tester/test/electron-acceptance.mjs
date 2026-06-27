@@ -122,7 +122,7 @@ test('Electron acceptance host boots the tester renderer with the narrowed prelo
     );
     assert.equal(diagnosticsProbe.ok, true);
     assert.equal(diagnosticsProbe.source, 'electron');
-    assert.equal(diagnosticsProbe.appId, 'com.nimiplatform.tester');
+    assert.equal(diagnosticsProbe.appId, 'nimi.tester');
     assert.equal(diagnosticsProbe.stage, 'acceptance-bootstrap');
     assert.equal(diagnosticsProbe.origin, 'file://');
     assert.match(String(diagnosticsProbe.url || ''), /dist\/index\.html|dist\\index\.html/);
@@ -143,8 +143,8 @@ test('Electron acceptance host boots the tester renderer with the narrowed prelo
       NIMI_STANDARD_SHELL_COMMANDS['local-agent.runtimeTrustedCaller'],
     );
     assert.deepEqual(trustedCaller, {
-      appId: 'com.nimiplatform.tester',
-      appInstanceId: 'com.nimiplatform.tester.local-developer',
+      appId: 'nimi.tester',
+      appInstanceId: 'nimi.tester.local-developer',
       deviceId: 'local-developer-device',
       mode: 7,
       scopes: [],

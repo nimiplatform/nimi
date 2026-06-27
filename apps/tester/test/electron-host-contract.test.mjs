@@ -4,6 +4,7 @@ import path from 'node:path';
 import test from 'node:test';
 
 const root = path.resolve(import.meta.dirname, '..');
+const repoRoot = path.resolve(root, '..', '..');
 
 function read(relativePath) {
   return readFileSync(path.join(root, relativePath), 'utf8');
@@ -11,6 +12,10 @@ function read(relativePath) {
 
 function readJson(relativePath) {
   return JSON.parse(read(relativePath));
+}
+
+function readRepoJson(relativePath) {
+  return JSON.parse(readFileSync(path.join(repoRoot, relativePath), 'utf8'));
 }
 
 const requiredCommands = [
@@ -46,6 +51,35 @@ test('tester owns an Electron host beside the Tauri host', () => {
   assert.match(packageJson.devDependencies.electron || '', /^\^?42\./);
   assert.match(packageJson.devDependencies.playwright || '', /^\^?1\./);
   assert.match(packageJson.devDependencies.tsx || '', /^\^?4\./);
+});
+
+test('repo exposes a first-class tester Electron dev command', () => {
+  const packageJson = readRepoJson('package.json');
+  assert.equal(
+    packageJson.scripts['dev:electron:tester'],
+    'pnpm --filter @nimiplatform/tester dev:electron',
+  );
+});
+
+test('Electron dev runner launches Windows command shims through cmd.exe', () => {
+  const runnerSource = read('scripts/run-electron-dev.mjs');
+  assert.match(runnerSource, /cmd\.exe/);
+  assert.match(runnerSource, /\/d/);
+  assert.match(runnerSource, /\/c/);
+  assert.doesNotMatch(runnerSource, /spawn\(corepack,/);
+});
+
+test('Electron host uses canonical tester app identity for Runtime calls', () => {
+  const mainSource = read('src-electron/main.ts');
+  const sdkAcceptanceSource = read('src/shell/auth/electron-sdk-acceptance.ts');
+  const acceptanceSource = read('test/electron-acceptance.mjs');
+
+  assert.match(mainSource, /const APP_ID = 'nimi\.tester'/);
+  assert.match(sdkAcceptanceSource, /appId:\s*'nimi\.tester'/);
+  assert.match(acceptanceSource, /appId:\s*'nimi\.tester'/);
+  assert.doesNotMatch(mainSource, /com\.nimiplatform\.tester/);
+  assert.doesNotMatch(sdkAcceptanceSource, /com\.nimiplatform\.tester/);
+  assert.doesNotMatch(acceptanceSource, /com\.nimiplatform\.tester/);
 });
 
 test('Electron host keeps Runtime bridge in Kit and app commands in tester', () => {
