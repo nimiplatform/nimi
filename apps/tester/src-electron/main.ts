@@ -1,10 +1,12 @@
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { readFile, realpath } from 'node:fs/promises';
+import { appendFile, mkdir, readFile, realpath, writeFile } from 'node:fs/promises';
 import { app, BrowserWindow, ipcMain, protocol, shell } from 'electron';
 import {
   isAllowedElectronRendererUrl,
   registerNimiElectronRuntimeBridge,
+  type NimiElectronAIConfigStore,
+  type NimiElectronRuntimeTrustedCallerMode,
 } from '@nimiplatform/kit/shell/electron/main';
 import { createTesterElectronCommandHandlers } from './commands/tester-commands.js';
 
@@ -14,7 +16,7 @@ const FILE_PROTOCOL = 'nimi-shell-file';
 const currentFilePath = fileURLToPath(import.meta.url);
 const currentDir = path.dirname(currentFilePath);
 const appRoot = path.resolve(currentDir, '..');
-const preloadPath = path.join(currentDir, 'preload.js');
+const preloadPath = path.join(currentDir, 'preload.cjs');
 const rendererDistIndex = path.join(appRoot, 'dist', 'index.html');
 const rendererDistUrl = pathToFileURL(rendererDistIndex).toString();
 const rendererUrl = normalizeText(process.env.NIMI_TESTER_ELECTRON_RENDERER_URL);
@@ -29,6 +31,7 @@ protocol.registerSchemesAsPrivileged([{
   privileges: {
     standard: true,
     secure: true,
+    corsEnabled: true,
     supportFetchAPI: true,
     stream: true,
   },
@@ -38,6 +41,7 @@ app.setName('Nimi Tester');
 
 void app.whenReady().then(async () => {
   registerReadableFileProtocol();
+  const standardDataRoot = resolveStandardDataRoot();
   registerNimiElectronRuntimeBridge({
     appId: APP_ID,
     runtimeEndpoint,
@@ -50,6 +54,21 @@ void app.whenReady().then(async () => {
       registerReadableFile,
       openWorldTourWindow,
     }),
+    standardShellHost: {
+      dataRoot: standardDataRoot,
+      localAssetRoots: resolveStandardLocalAssetRoots(standardDataRoot),
+      resolveLocalAssetUrl: resolveTesterLocalAssetUrl,
+      openExternalUrl: openTesterExternalUrl,
+      localAgentIdentity: {
+        ownerUserId: normalizeText(process.env.NIMI_TESTER_ELECTRON_LOCAL_AGENT_OWNER_USER_ID) || 'tester-local-owner',
+        runtimeSourceRef: normalizeText(process.env.NIMI_TESTER_ELECTRON_LOCAL_AGENT_RUNTIME_SOURCE_REF) || APP_ID,
+      },
+      runtimeTrustedCaller: {
+        mode: resolveRuntimeTrustedCallerMode(),
+      },
+      aiConfigStore: createTesterAiConfigStore(standardDataRoot),
+      runtimeConfigGet: createTesterRuntimeConfigReader(standardDataRoot),
+    },
   });
 
   await createMainWindow();
@@ -78,7 +97,7 @@ async function createMainWindow(): Promise<BrowserWindow> {
       preload: preloadPath,
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false,
+      sandbox: true,
     },
   });
   secureTesterWindow(window);
@@ -112,7 +131,7 @@ async function openWorldTourWindow(input: {
       preload: preloadPath,
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false,
+      sandbox: true,
     },
   });
   secureTesterWindow(window);
@@ -176,13 +195,123 @@ function allowedRendererUrls(): string[] {
   return [...urls];
 }
 
+function resolveStandardDataRoot(): string {
+  const fromEnv = normalizeText(process.env.NIMI_TESTER_ELECTRON_STANDARD_DATA_ROOT);
+  return path.resolve(fromEnv || path.join(app.getPath('userData'), 'standard-shell-data'));
+}
+
+function resolveStandardLocalAssetRoots(dataRoot: string): string[] {
+  const fromEnv = normalizeText(process.env.NIMI_TESTER_ELECTRON_STANDARD_LOCAL_ASSET_ROOTS);
+  if (!fromEnv) {
+    return [dataRoot, app.getPath('downloads')].map((filePath) => path.resolve(filePath));
+  }
+  return fromEnv
+    .split(path.delimiter)
+    .map((filePath) => normalizeText(filePath))
+    .filter(Boolean)
+    .map((filePath) => path.resolve(filePath));
+}
+
+function createTesterAiConfigStore(dataRoot: string): NimiElectronAIConfigStore {
+  return {
+    get: async ({ scopeRef }) => {
+      const filePath = testerAiConfigPath(dataRoot, scopeRef);
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(await readFile(filePath, 'utf8')) as unknown;
+      } catch (error) {
+        if (isNotFoundError(error)) {
+          return undefined;
+        }
+        throw error;
+      }
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+        throw new Error(`tester AI Config store record is invalid: ${filePath}`);
+      }
+      const record = parsed as Record<string, unknown>;
+      if (record.scopeRef !== scopeRef || !record.config || typeof record.config !== 'object' || Array.isArray(record.config)) {
+        throw new Error(`tester AI Config store record does not match requested scope: ${filePath}`);
+      }
+      return record.config as Readonly<Record<string, unknown>>;
+    },
+    set: async ({ scopeRef, config }) => {
+      const filePath = testerAiConfigPath(dataRoot, scopeRef);
+      await mkdir(path.dirname(filePath), { recursive: true });
+      await writeFile(filePath, JSON.stringify({
+        schemaVersion: 1,
+        scopeRef,
+        config,
+      }, null, 2), 'utf8');
+      return config;
+    },
+  };
+}
+
+function createTesterRuntimeConfigReader(dataRoot: string): () => Promise<{
+  readonly path: string;
+  readonly config: Readonly<Record<string, unknown>>;
+}> {
+  return async () => {
+    const filePath = path.join(dataRoot, 'runtime', 'config.json');
+    const parsed = JSON.parse(await readFile(filePath, 'utf8')) as unknown;
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      throw new Error(`tester Runtime config payload is invalid: ${filePath}`);
+    }
+    return {
+      path: filePath,
+      config: parsed as Readonly<Record<string, unknown>>,
+    };
+  };
+}
+
+function testerAiConfigPath(dataRoot: string, scopeRef: string): string {
+  const encoded = Buffer.from(scopeRef, 'utf8').toString('base64url');
+  return path.join(dataRoot, 'ai-config', `${encoded}.json`);
+}
+
+function isNotFoundError(error: unknown): boolean {
+  return Boolean(error && typeof error === 'object' && (error as { code?: unknown }).code === 'ENOENT');
+}
+
+function resolveRuntimeTrustedCallerMode(): NimiElectronRuntimeTrustedCallerMode {
+  const mode = normalizeText(process.env.NIMI_TESTER_ELECTRON_RUNTIME_TRUSTED_CALLER_MODE) || 'local-developer-app';
+  if (
+    mode === 'local-developer-app'
+    || mode === 'local-first-party-app'
+    || mode === 'desktop-shell'
+  ) {
+    return mode;
+  }
+  throw new Error(`unsupported tester Electron Runtime trusted caller mode: ${mode}`);
+}
+
 function isTesterRendererUrl(url: string): boolean {
   return isAllowedElectronRendererUrl(url, allowedRendererUrls());
+}
+
+async function resolveTesterLocalAssetUrl(filePath: string): Promise<string> {
+  await registerReadableFile(filePath);
+  return encodeReadableFileUrl(filePath);
+}
+
+async function openTesterExternalUrl(url: string): Promise<void> {
+  const capturePath = normalizeText(process.env.NIMI_TESTER_ELECTRON_OPEN_EXTERNAL_CAPTURE_FILE);
+  if (capturePath) {
+    const resolved = path.resolve(capturePath);
+    await mkdir(path.dirname(resolved), { recursive: true });
+    await appendFile(resolved, `${url}\n`, 'utf8');
+    return;
+  }
+  await shell.openExternal(url);
 }
 
 async function registerReadableFile(filePath: string): Promise<void> {
   const canonical = await realpath(filePath).catch(() => path.resolve(filePath));
   readableFiles.add(canonical);
+}
+
+function encodeReadableFileUrl(filePath: string): string {
+  return `${FILE_PROTOCOL}://local/${encodeURIComponent(path.resolve(filePath))}`;
 }
 
 function registerReadableFileProtocol(): void {
@@ -197,10 +326,16 @@ function registerReadableFileProtocol(): void {
         headers: {
           'content-type': contentTypeForPath(canonical),
           'cache-control': 'no-store',
+          'access-control-allow-origin': '*',
         },
       });
     } catch (error) {
-      return new Response(error instanceof Error ? error.message : String(error || 'file read failed'), { status: 404 });
+      return new Response(error instanceof Error ? error.message : String(error || 'file read failed'), {
+        status: 404,
+        headers: {
+          'access-control-allow-origin': '*',
+        },
+      });
     }
   });
 }

@@ -2,8 +2,8 @@ mod tester_storage;
 mod world_tour;
 
 fn tester_renderer_entry_probe_script() -> Result<String, String> {
-    nimi_shell_tauri::renderer_entry_probe::build_renderer_entry_probe_script(
-        &nimi_shell_tauri::renderer_entry_probe::RendererEntryProbeScriptConfig {
+    nimi_shell_tauri::capabilities::diagnostics::build_renderer_entry_probe_script(
+        &nimi_shell_tauri::capabilities::diagnostics::RendererEntryProbeScriptConfig {
             started_flag: "__NIMI_TESTER_RENDERER_PROBE_STARTED__".to_string(),
             ping_command: "tester_renderer_probe_ping".to_string(),
             report_command: "tester_renderer_probe_report_write".to_string(),
@@ -24,7 +24,6 @@ fn main() {
             }
         })
         .invoke_handler(nimi_shell_tauri::nimi_shell_tauri_runtime_bridge_handler![
-            @with_runtime_defaults nimi_shell_tauri::runtime_defaults::runtime_defaults;
             tester_storage::tester_image_history_load,
             tester_storage::tester_image_history_save,
             tester_storage::tester_artifact_save,
@@ -84,7 +83,7 @@ mod tests {
     #[test]
     fn tester_consumes_shared_platform_catalog_from_kit() {
         let first_run_profile =
-            nimi_shell_tauri::platform_catalog::ai_profile_factory::verify_first_run_factory_ai_profile(
+            nimi_shell_tauri::capabilities::ai_profile::verify_first_run_factory_ai_profile(
                 "local-speech-ready",
                 "minimal",
             )
@@ -92,20 +91,20 @@ mod tests {
         assert_eq!(first_run_profile.alias, "local-speech-ready");
 
         let descriptor =
-            nimi_shell_tauri::platform_catalog::nimi_app_registry::resolve_release_descriptor(
+            nimi_shell_tauri::capabilities::platform_projection::nimi_app_registry::resolve_release_descriptor(
                 "nimi.avatar.bundled-with-nimi",
             )
             .expect("avatar release descriptor");
         assert_eq!(descriptor.app_id, "nimi.avatar");
 
         let app_registry =
-            nimi_shell_tauri::platform_projection::apps_registry::build_apps_registry_record()
+            nimi_shell_tauri::capabilities::platform_projection::apps_registry::build_apps_registry_record()
                 .expect("apps registry projection");
         assert!(app_registry
             .apps
             .iter()
             .any(|row| row.app_id == "nimi.avatar"));
-        let profile_index = nimi_shell_tauri::platform_projection::factory_profile_index::build_factory_profile_index_record()
+        let profile_index = nimi_shell_tauri::capabilities::platform_projection::factory_profile_index::build_factory_profile_index_record()
             .expect("factory profile index projection");
         assert!(profile_index
             .profiles
@@ -113,14 +112,14 @@ mod tests {
             .any(|row| row.alias == "local-speech-ready"));
 
         let bridge_projection =
-            nimi_shell_tauri::platform_projection::apps_bridge::build_apps_bridge_projection(
+            nimi_shell_tauri::capabilities::platform_projection::apps_bridge::build_apps_bridge_projection(
                 "~/.nimi/apps/registry.json".to_string(),
                 "~/.nimi/apps/packages.json".to_string(),
             )
             .expect("apps bridge projection");
         assert_eq!(
             bridge_projection.registry_rows.len(),
-            nimi_shell_tauri::platform_catalog::nimi_app_registry::PLATFORM_NIMI_APP_REGISTRY_ROWS
+            nimi_shell_tauri::capabilities::platform_projection::nimi_app_registry::PLATFORM_NIMI_APP_REGISTRY_ROWS
                 .len()
         );
     }
@@ -136,44 +135,44 @@ mod tests {
         let factory_path = dir.join("profiles").join("factory-index.json");
 
         let registry_outcome =
-            nimi_shell_tauri::platform_projection::apps_registry::materialize_apps_registry_projection(
+            nimi_shell_tauri::capabilities::platform_projection::apps_registry::materialize_apps_registry_projection(
                 &registry_path,
             )
             .expect("materialize registry");
         assert!(matches!(
             registry_outcome,
-            nimi_shell_tauri::governed_config::ConfigReadOutcome::Ready(_)
+            nimi_shell_tauri::capabilities::config::ConfigReadOutcome::Ready(_)
         ));
         assert!(registry_path.exists());
 
-        let factory_outcome = nimi_shell_tauri::platform_projection::factory_profile_index::materialize_factory_profile_index_projection(
+        let factory_outcome = nimi_shell_tauri::capabilities::platform_projection::factory_profile_index::materialize_factory_profile_index_projection(
             &factory_path,
         )
         .expect("materialize factory index");
         assert!(matches!(
             factory_outcome,
-            nimi_shell_tauri::governed_config::ConfigReadOutcome::Ready(_)
+            nimi_shell_tauri::capabilities::config::ConfigReadOutcome::Ready(_)
         ));
         assert!(factory_path.exists());
 
         let future_registry_path = dir.join("apps").join("future-registry.json");
         let mut future_registry =
-            nimi_shell_tauri::platform_projection::apps_registry::build_apps_registry_record()
+            nimi_shell_tauri::capabilities::platform_projection::apps_registry::build_apps_registry_record()
                 .expect("registry record");
         future_registry.schema_version = 9999;
         let future_registry_raw =
             serde_json::to_string_pretty(&future_registry).expect("registry json");
         std::fs::write(&future_registry_path, &future_registry_raw).expect("write registry");
 
-        match nimi_shell_tauri::platform_projection::apps_registry::materialize_apps_registry_projection(
+        match nimi_shell_tauri::capabilities::platform_projection::apps_registry::materialize_apps_registry_projection(
             &future_registry_path,
         )
         .expect("future registry materialize")
         {
-            nimi_shell_tauri::governed_config::ConfigReadOutcome::Repair { severity, reason } => {
+            nimi_shell_tauri::capabilities::config::ConfigReadOutcome::Repair { severity, reason } => {
                 assert_eq!(
                     severity,
-                    nimi_shell_tauri::governed_config::ConfigRepairSeverity::RepairRequired
+                    nimi_shell_tauri::capabilities::config::ConfigRepairSeverity::RepairRequired
                 );
                 assert!(reason.contains("newer than the supported version"));
             }
@@ -185,22 +184,22 @@ mod tests {
         );
 
         let future_factory_path = dir.join("profiles").join("future-factory-index.json");
-        let mut future_factory = nimi_shell_tauri::platform_projection::factory_profile_index::build_factory_profile_index_record()
+        let mut future_factory = nimi_shell_tauri::capabilities::platform_projection::factory_profile_index::build_factory_profile_index_record()
             .expect("factory record");
         future_factory.schema_version = 9999;
         let future_factory_raw =
             serde_json::to_string_pretty(&future_factory).expect("factory json");
         std::fs::write(&future_factory_path, &future_factory_raw).expect("write factory");
 
-        match nimi_shell_tauri::platform_projection::factory_profile_index::materialize_factory_profile_index_projection(
+        match nimi_shell_tauri::capabilities::platform_projection::factory_profile_index::materialize_factory_profile_index_projection(
             &future_factory_path,
         )
         .expect("future factory materialize")
         {
-            nimi_shell_tauri::governed_config::ConfigReadOutcome::Repair { severity, reason } => {
+            nimi_shell_tauri::capabilities::config::ConfigReadOutcome::Repair { severity, reason } => {
                 assert_eq!(
                     severity,
-                    nimi_shell_tauri::governed_config::ConfigRepairSeverity::RepairRequired
+                    nimi_shell_tauri::capabilities::config::ConfigRepairSeverity::RepairRequired
                 );
                 assert!(reason.contains("newer than the supported version"));
             }
@@ -222,7 +221,7 @@ mod tests {
         std::fs::create_dir_all(&dir).expect("create temp dir");
         let path = dir.join("probe.json");
         let ready_path = dir.join("nested").join("ready.json");
-        nimi_shell_tauri::governed_config::write_governed_json_config(
+        nimi_shell_tauri::capabilities::config::write_governed_json_config(
             &ready_path,
             &serde_json::json!({
                 "schemaVersion": 1,
@@ -253,22 +252,22 @@ mod tests {
         )
         .expect("write probe");
 
-        let file = nimi_shell_tauri::governed_config::GovernedConfigFile::new(
+        let file = nimi_shell_tauri::capabilities::config::GovernedConfigFile::new(
             "tester_probe",
             "~/.nimi/tester/probe.json",
             1,
         );
         let outcome =
-            nimi_shell_tauri::governed_config::read_governed_config(&file, &path, |document| {
+            nimi_shell_tauri::capabilities::config::read_governed_config(&file, &path, |document| {
                 Ok(document.clone())
             })
             .expect("read governed config");
 
         match outcome {
-            nimi_shell_tauri::governed_config::ConfigReadOutcome::Repair { severity, reason } => {
+            nimi_shell_tauri::capabilities::config::ConfigReadOutcome::Repair { severity, reason } => {
                 assert_eq!(
                     severity,
-                    nimi_shell_tauri::governed_config::ConfigRepairSeverity::RepairRequired
+                    nimi_shell_tauri::capabilities::config::ConfigRepairSeverity::RepairRequired
                 );
                 assert!(reason.contains("newer than the supported version"));
                 assert!(reason.contains("~/.nimi/tester/probe.json"));
@@ -295,7 +294,7 @@ mod tests {
                 ("NIMI_PROVIDER", Some("legacy-provider")),
             ],
             || {
-                let defaults = nimi_shell_tauri::runtime_defaults::runtime_defaults();
+                let defaults = nimi_shell_tauri::capabilities::runtime_defaults::runtime_defaults();
                 assert_eq!(defaults.realm.realm_base_url, "http://localhost:3002");
                 assert_eq!(
                     defaults.realm.jwks_url,
@@ -329,7 +328,7 @@ mod tests {
     #[test]
     fn tester_consumes_shared_runtime_account_caller_projection() {
         let caller =
-            nimi_shell_tauri::runtime_account_caller::local_developer_runtime_account_caller(
+            nimi_shell_tauri::capabilities::local_agent::local_developer_runtime_account_caller(
                 "nimi.tester",
             )
             .expect("caller");
@@ -339,7 +338,7 @@ mod tests {
         assert_eq!(caller.device_id, "local-developer-device");
         assert_eq!(
             caller.mode,
-            nimi_shell_tauri::runtime_bridge::generated::AccountCallerMode::LocalDeveloperApp
+            nimi_shell_tauri::capabilities::runtime::generated::AccountCallerMode::LocalDeveloperApp
                 as i32
         );
         assert!(caller.scopes.is_empty());
@@ -347,17 +346,17 @@ mod tests {
 
     #[test]
     fn tester_consumes_shared_runtime_bridge_unary_codec_helpers() {
-        let request = nimi_shell_tauri::runtime_bridge::generated::GetAccountSessionStatusRequest {
+        let request = nimi_shell_tauri::capabilities::runtime::generated::GetAccountSessionStatusRequest {
             caller: None,
         };
-        let payload = nimi_shell_tauri::runtime_bridge::build_unary_payload(
-            nimi_shell_tauri::runtime_bridge::RUNTIME_ACCOUNT_GET_ACCOUNT_SESSION_STATUS_METHOD_ID,
+        let payload = nimi_shell_tauri::capabilities::runtime::build_unary_payload(
+            nimi_shell_tauri::capabilities::runtime::RUNTIME_ACCOUNT_GET_ACCOUNT_SESSION_STATUS_METHOD_ID,
             request,
             Some(7_000),
         );
         assert_eq!(
             payload.method_id,
-            nimi_shell_tauri::runtime_bridge::RUNTIME_ACCOUNT_GET_ACCOUNT_SESSION_STATUS_METHOD_ID
+            nimi_shell_tauri::capabilities::runtime::RUNTIME_ACCOUNT_GET_ACCOUNT_SESSION_STATUS_METHOD_ID
         );
         assert_eq!(payload.timeout_ms, Some(7_000));
         assert_eq!(
@@ -366,19 +365,19 @@ mod tests {
             "protobuf default requests encode to an empty payload"
         );
 
-        let result = nimi_shell_tauri::runtime_bridge::RuntimeBridgeUnaryResult {
+        let result = nimi_shell_tauri::capabilities::runtime::RuntimeBridgeUnaryResult {
             response_bytes_base64: String::new(),
             response_metadata: None,
         };
-        let decoded_response: nimi_shell_tauri::runtime_bridge::generated::GetAccountSessionStatusResponse =
-            nimi_shell_tauri::runtime_bridge::decode_unary_result(
-                nimi_shell_tauri::runtime_bridge::RUNTIME_ACCOUNT_GET_ACCOUNT_SESSION_STATUS_METHOD_ID,
+        let decoded_response: nimi_shell_tauri::capabilities::runtime::generated::GetAccountSessionStatusResponse =
+            nimi_shell_tauri::capabilities::runtime::decode_unary_result(
+                nimi_shell_tauri::capabilities::runtime::RUNTIME_ACCOUNT_GET_ACCOUNT_SESSION_STATUS_METHOD_ID,
                 &result,
             )
             .expect("decode response");
         assert_eq!(
             decoded_response.state,
-            nimi_shell_tauri::runtime_bridge::generated::AccountSessionState::Unspecified as i32
+            nimi_shell_tauri::capabilities::runtime::generated::AccountSessionState::Unspecified as i32
         );
     }
 
@@ -389,7 +388,7 @@ mod tests {
             .expect("time")
             .as_nanos();
         let data_root = std::env::temp_dir().join(format!("nimi-tester-data-root-{unique}"));
-        nimi_shell_tauri::nimi_data_directory::enforce_data_root_layout(&data_root)
+        nimi_shell_tauri::capabilities::data::enforce_data_root_layout(&data_root)
             .expect("enforce data root layout");
 
         for name in [
@@ -406,10 +405,10 @@ mod tests {
         std::fs::write(data_root.join("cache").join("probe.bin"), b"cache")
             .expect("write cache probe");
         let cache_plan =
-            nimi_shell_tauri::nimi_data_directory::plan_directory_cleanup(&data_root, "cache")
+            nimi_shell_tauri::capabilities::data::plan_directory_cleanup(&data_root, "cache")
                 .expect("cache cleanup plan");
         assert!(!cache_plan.requires_confirmation);
-        let cache_outcome = nimi_shell_tauri::nimi_data_directory::execute_directory_cleanup(
+        let cache_outcome = nimi_shell_tauri::capabilities::data::execute_directory_cleanup(
             &data_root, "cache", None,
         )
         .expect("cache cleanup");
@@ -418,10 +417,10 @@ mod tests {
 
         std::fs::write(data_root.join("models").join("model.bin"), b"model")
             .expect("write model probe");
-        let error = nimi_shell_tauri::nimi_data_directory::execute_directory_cleanup(
+        let error = nimi_shell_tauri::capabilities::data::execute_directory_cleanup(
             &data_root,
             "models",
-            Some(nimi_shell_tauri::nimi_data_directory::DESTRUCTIVE_CLEANUP_CONFIRMATION),
+            Some(nimi_shell_tauri::capabilities::data::DESTRUCTIVE_CLEANUP_CONFIRMATION),
         )
         .expect_err("runtime-owned cleanup must fail closed");
         assert!(error.contains("Runtime"));
@@ -435,13 +434,13 @@ mod tests {
             .expect("time")
             .as_nanos();
         let data_root = std::env::temp_dir().join(format!("nimi-tester-model-root-{unique}"));
-        let models_root = nimi_shell_tauri::runtime_local_assets::runtime_models_dir(&data_root);
+        let models_root = nimi_shell_tauri::capabilities::local_assets::runtime_models_dir(&data_root);
         std::fs::create_dir_all(&models_root).expect("create models root");
         let manifest =
-            models_root.join(nimi_shell_tauri::runtime_local_assets::ASSET_MANIFEST_FILE_NAME);
+            models_root.join(nimi_shell_tauri::capabilities::local_assets::ASSET_MANIFEST_FILE_NAME);
         std::fs::write(&manifest, "{}").expect("write manifest");
 
-        let resolved = nimi_shell_tauri::runtime_local_assets::canonical_asset_manifest_path(
+        let resolved = nimi_shell_tauri::capabilities::local_assets::canonical_asset_manifest_path(
             &manifest,
             &models_root,
         )
@@ -454,9 +453,9 @@ mod tests {
         let outside_dir = data_root.join("outside");
         std::fs::create_dir_all(&outside_dir).expect("create outside dir");
         let outside_manifest =
-            outside_dir.join(nimi_shell_tauri::runtime_local_assets::ASSET_MANIFEST_FILE_NAME);
+            outside_dir.join(nimi_shell_tauri::capabilities::local_assets::ASSET_MANIFEST_FILE_NAME);
         std::fs::write(&outside_manifest, "{}").expect("write outside manifest");
-        let error = nimi_shell_tauri::runtime_local_assets::canonical_asset_manifest_path(
+        let error = nimi_shell_tauri::capabilities::local_assets::canonical_asset_manifest_path(
             &outside_manifest,
             &models_root,
         )
@@ -466,14 +465,14 @@ mod tests {
         let asset_dir = models_root.join("asset-1");
         std::fs::create_dir_all(&asset_dir).expect("create asset dir");
         assert_eq!(
-            nimi_shell_tauri::runtime_local_assets::reveal_target_for_asset(
+            nimi_shell_tauri::capabilities::local_assets::reveal_target_for_asset(
                 &models_root,
                 "asset-1"
             ),
             asset_dir
         );
         assert_eq!(
-            nimi_shell_tauri::runtime_local_assets::reveal_target_for_asset(
+            nimi_shell_tauri::capabilities::local_assets::reveal_target_for_asset(
                 &models_root,
                 "../asset-1"
             ),

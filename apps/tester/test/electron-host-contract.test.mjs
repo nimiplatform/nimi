@@ -31,7 +31,7 @@ const requiredCommands = [
 test('tester owns an Electron host beside the Tauri host', () => {
   for (const relativePath of [
     'src-electron/main.ts',
-    'src-electron/preload.ts',
+    'src-electron/preload.cts',
     'src-electron/commands/tester-commands.ts',
     'tsconfig.electron.json',
   ]) {
@@ -50,7 +50,7 @@ test('tester owns an Electron host beside the Tauri host', () => {
 
 test('Electron host keeps Runtime bridge in Kit and app commands in tester', () => {
   const mainSource = read('src-electron/main.ts');
-  const preloadSource = read('src-electron/preload.ts');
+  const preloadSource = read('src-electron/preload.cts');
   const commandSource = read('src-electron/commands/tester-commands.ts');
 
   assert.match(mainSource, /registerNimiElectronRuntimeBridge/);
@@ -58,11 +58,14 @@ test('Electron host keeps Runtime bridge in Kit and app commands in tester', () 
   assert.match(mainSource, /BrowserWindow/);
   assert.match(mainSource, /contextIsolation:\s*true/);
   assert.match(mainSource, /nodeIntegration:\s*false/);
+  assert.match(mainSource, /sandbox:\s*true/);
+  assert.doesNotMatch(mainSource, /sandbox:\s*false/);
   assert.match(mainSource, /preload/);
   assert.match(mainSource, /setWindowOpenHandler/);
   assert.match(mainSource, /will-navigate/);
   assert.match(mainSource, /isTesterRendererUrl/);
   assert.doesNotMatch(mainSource, /new Set\(\['file:\/\/'\]\)/);
+  assert.match(preloadSource, /@nimiplatform\/kit\/shell\/electron\/preload-cjs/);
   assert.match(preloadSource, /installNimiElectronRuntimeBridge/);
 
   for (const command of requiredCommands) {

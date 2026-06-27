@@ -2,7 +2,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine as _};
-use nimi_shell_tauri::runtime_app_storage;
+use nimi_shell_tauri::capabilities::storage;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -50,7 +50,7 @@ pub struct TesterExportSaveResult {
 }
 
 pub(crate) fn canonical_storage_root(root: &str, label: &str) -> Result<PathBuf, String> {
-    runtime_app_storage::canonical_storage_root(root, label)
+    storage::canonical_storage_root(root, label)
 }
 
 pub(crate) fn scoped_storage_child(
@@ -58,7 +58,7 @@ pub(crate) fn scoped_storage_child(
     label: &str,
     child: &str,
 ) -> Result<PathBuf, String> {
-    runtime_app_storage::scoped_storage_child(root, label, child)
+    storage::scoped_storage_child(root, label, child)
 }
 
 fn history_path(storage_root: &str, file_name: &str) -> Result<PathBuf, String> {

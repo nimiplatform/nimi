@@ -84,8 +84,8 @@ test('renderer bootstrap installs Kit runtime bridge before render', () => {
 
 test('Tauri scaffold consumes Kit shared command registration and renderer probe', () => {
   assert.match(tauriMainSource, /nimi_shell_tauri::nimi_shell_tauri_runtime_bridge_handler!\[/);
-  assert.match(tauriMainSource, /@with_runtime_defaults nimi_shell_tauri::runtime_defaults::runtime_defaults;/);
-  assert.match(tauriMainSource, /renderer_entry_probe::build_renderer_entry_probe_script/);
+  assert.doesNotMatch(tauriMainSource, /@with_runtime_defaults/);
+  assert.match(tauriMainSource, /capabilities::diagnostics::build_renderer_entry_probe_script/);
   assert.match(tauriMainSource, /RendererEntryProbeScriptConfig/);
   assert.doesNotMatch(tauriMainSource, /tauri::generate_handler!\[/);
   assert.doesNotMatch(tauriMainSource, /desktop_macos_smoke_ping/);

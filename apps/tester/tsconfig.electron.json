@@ -16,6 +16,7 @@
     ]
   },
   "include": [
-    "src-electron/**/*.ts"
+    "src-electron/**/*.ts",
+    "src-electron/**/*.cts"
   ]
 }

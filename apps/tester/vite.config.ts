@@ -55,6 +55,7 @@ function manualChunks(id: string) {
 }
 
 export default defineConfig({
+  base: './',
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: [
