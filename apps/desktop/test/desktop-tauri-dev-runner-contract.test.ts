@@ -13,6 +13,17 @@ const runTauriDevSource = fs.readFileSync(
   path.join(root, 'scripts/run-tauri-dev.mjs'),
   'utf8',
 );
+const windowsDevConfig = JSON.parse(fs.readFileSync(
+  path.join(root, 'src-tauri/tauri.dev.windows.conf.json'),
+  'utf8',
+)) as {
+  build?: {
+    runner?: {
+      cmd?: string;
+      args?: string[];
+    };
+  };
+};
 
 test('Windows Tauri dev runner stops the stale desktop binary before Cargo rebuilds it', () => {
   const resolveIndex = runnerSource.indexOf('const binaryPath = resolveDesktopBinary(cargoArgs);');
@@ -41,6 +52,15 @@ test('Windows Tauri dev runner launches a copy instead of locking Cargo output',
   assert.ok(copyIndex > stopLaunchIndex, 'runner must copy the Cargo output to the launch binary');
   assert.ok(spawnIndex > copyIndex, 'runner must launch the copied dev binary');
   assert.doesNotMatch(runnerSource, /spawnDesktopBinary\(binaryPath, appArgs\)/);
+});
+
+test('Windows Tauri dev config runs the Node runner directly without a batch wrapper', () => {
+  assert.deepEqual(windowsDevConfig.build?.runner, {
+    cmd: 'node',
+    args: ['../scripts/tauri-dev-runner.mjs'],
+  });
+  assert.notEqual(windowsDevConfig.build?.runner?.cmd, '../scripts/tauri-dev-runner.cmd');
+  assert.equal(fs.existsSync(path.join(root, 'scripts/tauri-dev-runner.cmd')), false);
 });
 
 test('Windows Tauri dev runner does not require local code signing by default', () => {
