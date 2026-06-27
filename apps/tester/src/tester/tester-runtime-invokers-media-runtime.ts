@@ -1,3 +1,5 @@
+import type { RuntimeDurableTargetRef } from '@nimiplatform/sdk/runtime';
+import { toRuntimeDurableTargetRef } from '@nimiplatform/sdk/ai';
 import type { ResolvedLLMBinding } from './tester-runtime-invokers-core.js';
 import { buildMetadata } from './tester-runtime-invokers-core.js';
 
@@ -16,6 +18,7 @@ export function runtimeJobHead(resolved: ResolvedLLMBinding, subjectUserId: stri
   modelId: string;
   routePolicy: 'local' | 'cloud' | 'unspecified';
   connectorId?: string;
+  targetRef: RuntimeDurableTargetRef;
   timeoutMs: number;
 } {
   return {
@@ -24,6 +27,7 @@ export function runtimeJobHead(resolved: ResolvedLLMBinding, subjectUserId: stri
     modelId: resolved.model,
     routePolicy: runtimeRoutePolicy(resolved),
     ...(resolved.connectorId ? { connectorId: resolved.connectorId } : {}),
+    targetRef: toRuntimeDurableTargetRef(resolved.targetRef),
     timeoutMs: 120_000,
   };
 }

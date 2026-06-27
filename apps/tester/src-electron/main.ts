@@ -9,6 +9,7 @@ import {
   type NimiElectronRuntimeTrustedCallerMode,
 } from '@nimiplatform/kit/shell/electron/main';
 import { createTesterElectronCommandHandlers } from './commands/tester-commands.js';
+import { createTesterElectronTrustedRuntimeMetadataProvider } from './runtime-auth.js';
 
 const APP_ID = 'nimi.tester';
 const FILE_PROTOCOL = 'nimi-shell-file';
@@ -48,6 +49,10 @@ void app.whenReady().then(async () => {
     allowedOrigins: allowedRendererOrigins(),
     allowedRendererUrls: allowedRendererUrls(),
     ipcMain,
+    trustedRuntimeMetadataProvider: createTesterElectronTrustedRuntimeMetadataProvider({
+      appId: APP_ID,
+      runtimeEndpoint,
+    }),
     commandHandlers: createTesterElectronCommandHandlers({
       downloadsDir: app.getPath('downloads'),
       revealInOs: (filePath) => shell.showItemInFolder(filePath),

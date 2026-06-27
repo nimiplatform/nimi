@@ -38,6 +38,7 @@ import { capabilityUnavailable, type TesterUnavailable, type TesterUnavailableRe
 import { getTesterCapability, getTesterRuntimeBindingCapabilityId } from './tester-capabilities.js';
 import { loadTesterAIConfig } from './tester-ai-config-store.js';
 import type { BrowserDataUrlAttachment } from '@nimiplatform/kit/features/chat/headless';
+import { resolveTesterRuntimeHostKind } from '../shell/auth/runtime-transport.js';
 
 export type TesterScenarioInput = {
   prompt: string;
@@ -158,6 +159,16 @@ export type TesterRuntimeInvocationClient = {
 
 export const TESTER_APP_ID = 'nimi.tester';
 export type ResolvedLLMBinding = NimiAIConfigRuntimeBinding;
+const ELECTRON_HOST_OWNED_IDENTITY_METADATA_KEYS = new Set([
+  'appId',
+  'participantId',
+  'callerKind',
+  'callerId',
+  'x-nimi-app-id',
+  'x-nimi-participant-id',
+  'x-nimi-caller-kind',
+  'x-nimi-caller-id',
+]);
 
 export type SchedulingPreflightResult = {
   unavailable: TesterUnavailable | null;
@@ -169,12 +180,16 @@ export function isTesterUnavailable(value: unknown): value is TesterUnavailable 
 }
 
 export function buildMetadata(surfaceId: string, extra?: Record<string, string | undefined>): Record<string, string> {
-  const metadata: Record<string, string> = {
-    callerKind: 'third-party-app',
-    callerId: TESTER_APP_ID,
-    surfaceId,
-  };
+  const electronHostOwnsIdentity = resolveTesterRuntimeHostKind() === 'electron';
+  const metadata: Record<string, string> = electronHostOwnsIdentity
+    ? { surfaceId }
+    : {
+        callerKind: 'third-party-app',
+        callerId: TESTER_APP_ID,
+        surfaceId,
+      };
   for (const [key, value] of Object.entries(extra || {})) {
+    if (electronHostOwnsIdentity && ELECTRON_HOST_OWNED_IDENTITY_METADATA_KEYS.has(key)) continue;
     if (value) metadata[key] = value;
   }
   return metadata;

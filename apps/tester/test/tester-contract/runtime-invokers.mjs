@@ -77,6 +77,47 @@ test('tester text.generate consumes SDK vNext text runner and Runtime Scenario m
   assert.doesNotMatch(invokers, /runtime\.ai\.text\.generate/);
 });
 
+test('tester runtime metadata leaves Electron host-owned identity to the Electron host', async () => {
+  const invokerCore = await importBehaviorModule('tester/tester-runtime-invokers-core.js');
+  const originalWindow = globalThis.window;
+  const originalElectronTest = globalThis.__NIMI_ELECTRON_TEST__;
+  try {
+    globalThis.window = {
+      __NIMI_ELECTRON_TEST__: { invoke: async () => ({}) },
+    };
+    globalThis.__NIMI_ELECTRON_TEST__ = { invoke: async () => ({}) };
+    const metadata = invokerCore.buildMetadata('nimi.tester.ai.text.generate', {
+      callerKind: 'renderer-should-not-send',
+      callerId: 'renderer-should-not-send',
+      participantId: 'renderer-should-not-send',
+      appId: 'renderer-should-not-send',
+      'x-nimi-caller-kind': 'renderer-should-not-send',
+      'x-nimi-caller-id': 'renderer-should-not-send',
+      aiConfigProfileId: 'behavior-profile',
+    });
+
+    assert.equal(metadata.surfaceId, 'nimi.tester.ai.text.generate');
+    assert.equal(metadata.aiConfigProfileId, 'behavior-profile');
+    assert.equal(Object.hasOwn(metadata, 'callerKind'), false);
+    assert.equal(Object.hasOwn(metadata, 'callerId'), false);
+    assert.equal(Object.hasOwn(metadata, 'participantId'), false);
+    assert.equal(Object.hasOwn(metadata, 'appId'), false);
+    assert.equal(Object.hasOwn(metadata, 'x-nimi-caller-kind'), false);
+    assert.equal(Object.hasOwn(metadata, 'x-nimi-caller-id'), false);
+  } finally {
+    if (originalWindow === undefined) {
+      delete globalThis.window;
+    } else {
+      globalThis.window = originalWindow;
+    }
+    if (originalElectronTest === undefined) {
+      delete globalThis.__NIMI_ELECTRON_TEST__;
+    } else {
+      globalThis.__NIMI_ELECTRON_TEST__ = originalElectronTest;
+    }
+  }
+});
+
 test('tester LLM invokers consume AIConfig bindings and fail closed without binding', () => {
   const invokers = readTesterRuntimeInvokersSurface(root);
   const unavailable = read('src/tester/tester-unavailable.ts');

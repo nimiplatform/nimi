@@ -347,6 +347,35 @@ test('tester media lanes dispatch through Runtime Scenario jobs when vNext media
     RUNTIME_ROUTE_POLICY_LOCAL,
     RUNTIME_ROUTE_POLICY_LOCAL,
   ]);
+  assert.deepEqual(submitted.map((request) => request.head.targetRef), [
+    {
+      target: {
+        oneofKind: 'localRuntime',
+        localRuntime: {
+          version: 'v2',
+          ref: { oneofKind: 'profileBindingId', profileBindingId: 'local.image.scenario' },
+        },
+      },
+    },
+    {
+      target: {
+        oneofKind: 'localRuntime',
+        localRuntime: {
+          version: 'v2',
+          ref: { oneofKind: 'profileBindingId', profileBindingId: 'local.tts.scenario' },
+        },
+      },
+    },
+    {
+      target: {
+        oneofKind: 'localRuntime',
+        localRuntime: {
+          version: 'v2',
+          ref: { oneofKind: 'profileBindingId', profileBindingId: 'local.stt.scenario' },
+        },
+      },
+    },
+  ]);
   assert.deepEqual(submitted.map((request) => request.spec.spec.oneofKind), [
     'imageGenerate',
     'speechSynthesize',

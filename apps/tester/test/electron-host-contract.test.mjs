@@ -61,12 +61,35 @@ test('repo exposes a first-class tester Electron dev command', () => {
   );
 });
 
-test('Electron dev runner launches Windows command shims through cmd.exe', () => {
+test('Electron dev runner avoids Windows batch shims for long-running children', () => {
   const runnerSource = read('scripts/run-electron-dev.mjs');
-  assert.match(runnerSource, /cmd\.exe/);
-  assert.match(runnerSource, /\/d/);
-  assert.match(runnerSource, /\/c/);
+  assert.match(runnerSource, /node_modules['"], ['"]vite['"], ['"]bin['"], ['"]vite\.js/);
+  assert.match(runnerSource, /require\(['"]electron['"]\)/);
+  assert.doesNotMatch(runnerSource, /cmd\.exe/);
+  assert.doesNotMatch(runnerSource, /ComSpec/);
+  assert.doesNotMatch(runnerSource, /corepack\.cmd/);
   assert.doesNotMatch(runnerSource, /spawn\(corepack,/);
+});
+
+test('Electron dev runner owns Ctrl-C cleanup for renderer and Electron process trees', () => {
+  const runnerSource = read('scripts/run-electron-dev.mjs');
+  assert.match(runnerSource, /const SIGNAL_EXIT_CODES = new Map/);
+  assert.match(runnerSource, /function requestProcessTreeShutdown\(child, signal\)/);
+  assert.match(runnerSource, /function forceKillProcessTree\(child\)/);
+  assert.match(runnerSource, /taskkill\.exe/);
+  assert.match(runnerSource, /process\.on\(signal, \(\) => shutdownFromSignal\(signal\)\)/);
+  assert.match(runnerSource, /requestAllChildrenShutdown\(signal\)/);
+  assert.doesNotMatch(runnerSource, /renderer\.kill\(\)/);
+});
+
+test('Electron dev runner clears stale tester renderers before launching Vite', () => {
+  const runnerSource = read('scripts/run-electron-dev.mjs');
+  const preflightIndex = runnerSource.indexOf('ensureRendererPortAvailable();');
+  const spawnRendererIndex = runnerSource.indexOf('spawnRenderer();');
+
+  assert.ok(preflightIndex > -1, 'Electron dev runner must preflight the renderer port');
+  assert.ok(spawnRendererIndex > preflightIndex, 'renderer preflight must run before Vite starts');
+  assert.match(runnerSource, /process\.execPath, \['scripts\/ensure-dev-renderer-port\.mjs'\]/);
 });
 
 test('Electron host uses canonical tester app identity for Runtime calls', () => {
@@ -80,6 +103,32 @@ test('Electron host uses canonical tester app identity for Runtime calls', () =>
   assert.doesNotMatch(mainSource, /com\.nimiplatform\.tester/);
   assert.doesNotMatch(sdkAcceptanceSource, /com\.nimiplatform\.tester/);
   assert.doesNotMatch(acceptanceSource, /com\.nimiplatform\.tester/);
+});
+
+test('Electron host owns sensitive Runtime auth metadata', () => {
+  assert.equal(existsSync(path.join(root, 'src-electron/runtime-auth.ts')), true);
+  const mainSource = read('src-electron/main.ts');
+  const hostAuthSource = read('src-electron/runtime-auth.ts');
+  const rendererAuthSource = read('src/shell/auth/runtime-platform.ts');
+
+  assert.match(mainSource, /trustedRuntimeMetadataProvider:\s*createTesterElectronTrustedRuntimeMetadataProvider/);
+  assert.match(hostAuthSource, /createNimiRuntimeAppSessionMetadataProvider/);
+  assert.match(hostAuthSource, /appSession:\s*\{/);
+  assert.match(hostAuthSource, /protectedAccessToken:\s*\{/);
+  assert.doesNotMatch(hostAuthSource, /\bwindow\b|\bdocument\b/);
+  assert.match(rendererAuthSource, /resolveTesterRuntimeHostKind\(\) === 'electron'/);
+  assert.match(rendererAuthSource, /authMetadata:\s*createRuntimeAppSessionMetadataProvider/);
+});
+
+test('Tester Runtime protected access cache keys in-flight requests by subject', () => {
+  for (const sourcePath of ['src-electron/runtime-auth.ts', 'src/shell/auth/runtime-platform.ts']) {
+    const source = read(sourcePath);
+
+    assert.match(source, /protectedAccessInflightKey/);
+    assert.match(source, /const cacheKey = .*subjectUserId/);
+    assert.match(source, /protectedAccessInflightKey !== cacheKey/);
+    assert.match(source, /if \(protectedAccessInflightKey === cacheKey\)/);
+  }
 });
 
 test('Electron host keeps Runtime bridge in Kit and app commands in tester', () => {

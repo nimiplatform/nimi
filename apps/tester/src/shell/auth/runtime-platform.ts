@@ -21,7 +21,7 @@ import type { CoreMetadata } from '@nimiplatform/sdk/types';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 export { appId, appTitle, scaffoldProfile } from './app-identity.js';
 import { appId, appTitle } from './app-identity.js';
-import { createTesterRuntimeTransportConfig } from './runtime-transport.js';
+import { createTesterRuntimeTransportConfig, resolveTesterRuntimeHostKind } from './runtime-transport.js';
 
 export const runtimeAccountLoginEnabled = true;
 
@@ -91,6 +91,7 @@ export function clearRuntimePlatformProjection() {
   runtimeReadyProjection = null;
   protectedAccessCache = null;
   protectedAccessInflight = null;
+  protectedAccessInflightKey = '';
 }
 
 export function getRuntimePlatformProjection() {
@@ -179,10 +180,14 @@ async function createDeveloperRegisteredRuntimeProjection(
         message: 'Runtime account session is not authenticated; sign in with Runtime account login to provide accountProjection.accountId as subjectUserId.',
       };
     }
-    const runtime = new Runtime({
-      ...runtimeOptions(),
-      authMetadata: createRuntimeAppSessionMetadataProvider(accountRuntime, accountCaller),
-    });
+    const runtime = new Runtime(
+      resolveTesterRuntimeHostKind() === 'electron'
+        ? runtimeOptions()
+        : {
+            ...runtimeOptions(),
+            authMetadata: createRuntimeAppSessionMetadataProvider(accountRuntime, accountCaller),
+          },
+    );
     const client = createNimiClient({
       appId,
       runtime,
@@ -274,6 +279,7 @@ let protectedAccessInflight: Promise<{
   readonly metadata: CoreMetadata;
   readonly expiresAtMs: number;
 }> | null = null;
+let protectedAccessInflightKey = '';
 
 async function getRuntimeProtectedAccessMetadata(
   accountRuntime: Runtime,
@@ -286,12 +292,19 @@ async function getRuntimeProtectedAccessMetadata(
   ) {
     return protectedAccessCache.metadata;
   }
-  protectedAccessInflight ??= issueRuntimeProtectedAccessMetadata(accountRuntime, subjectUserId);
+  const cacheKey = `${appId}:${subjectUserId}:${runtimeProtectedScopeCatalogVersion}`;
+  if (!protectedAccessInflight || protectedAccessInflightKey !== cacheKey) {
+    protectedAccessInflightKey = cacheKey;
+    protectedAccessInflight = issueRuntimeProtectedAccessMetadata(accountRuntime, subjectUserId);
+  }
   try {
     protectedAccessCache = await protectedAccessInflight;
     return protectedAccessCache.metadata;
   } finally {
-    protectedAccessInflight = null;
+    if (protectedAccessInflightKey === cacheKey) {
+      protectedAccessInflight = null;
+      protectedAccessInflightKey = '';
+    }
   }
 }
 
