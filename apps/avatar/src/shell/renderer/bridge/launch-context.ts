@@ -1,5 +1,5 @@
-import { invoke } from '@tauri-apps/api/core';
 import { parseRuntimeLocalAgentIdentity } from '@nimiplatform/sdk/runtime';
+import { invokeAvatarHostCommand } from '../app-shell/avatar-host-bridge.js';
 
 const FORBIDDEN_LAUNCH_FIELDS = [
   'avatarPackage',
@@ -176,6 +176,6 @@ export function parseAvatarLaunchContext(value: unknown): AvatarLaunchContext {
 }
 
 export async function getAvatarLaunchContext(): Promise<AvatarLaunchContext> {
-  const payload = await invoke('nimi_avatar_get_launch_context');
+  const payload = await invokeAvatarHostCommand('nimi_avatar_get_launch_context');
   return parseAvatarLaunchContext(payload);
 }

@@ -1,5 +1,5 @@
 use super::*;
-use nimi_shell_tauri::agent_center_avatar_asset::agent_center_path_segment;
+use nimi_shell_tauri::capabilities::avatar::agent_center_path_segment;
 use std::fs;
 use std::path::{Path, PathBuf};
 

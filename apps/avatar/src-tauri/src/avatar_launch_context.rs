@@ -41,7 +41,7 @@ fn normalize_required_local_agent_ref(
     field: &str,
 ) -> Result<String, String> {
     let normalized = normalize_required_query_value(value, field)?;
-    nimi_shell_tauri::runtime_local_agent_identity::parse_runtime_local_agent_identity(&normalized)
+    nimi_shell_tauri::capabilities::local_agent::parse_runtime_local_agent_identity(&normalized)
         .map(|identity| identity.local_agent_ref)
         .map_err(|_| format!("avatar launch context requires {field} to be a local-agent ref"))
 }

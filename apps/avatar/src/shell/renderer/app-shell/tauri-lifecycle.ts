@@ -1,6 +1,6 @@
 import { isTauri } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
-import type { AvatarLaunchContext } from '@renderer/bridge';
+import type { AvatarLaunchContext } from '../bridge/index.js';
 
 export type ShellReadyPayload = {
   label: string;

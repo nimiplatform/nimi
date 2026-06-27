@@ -1,4 +1,4 @@
-import { getDaemonStatus, startDaemon } from '@renderer/bridge';
+import { getDaemonStatus, startDaemon } from '../bridge/index.js';
 import { AccountReasonCode, ReasonCode } from '@nimiplatform/sdk/runtime/generated';
 import { recordAvatarEvidenceEventually } from './avatar-evidence.js';
 import { useAvatarStore } from './app-store.js';

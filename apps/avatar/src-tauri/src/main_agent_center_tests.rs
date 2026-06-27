@@ -1,5 +1,5 @@
 use super::*;
-use nimi_shell_tauri::agent_center_avatar_asset::LocalAvatarAssetResolvePayload;
+use nimi_shell_tauri::capabilities::avatar::LocalAvatarAssetResolvePayload;
 
 fn owner_user_id() -> &'static str {
     "owner_1"

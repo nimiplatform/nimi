@@ -1,4 +1,4 @@
-use nimi_shell_tauri::agent_center_avatar_asset::{
+use nimi_shell_tauri::capabilities::avatar::{
     nimi_avatar_resolve_agent_center_avatar_asset as resolve_agent_center_avatar_asset,
     nimi_avatar_resolve_local_avatar_asset as resolve_local_avatar_asset,
     AgentCenterAvatarAssetResolvePayload, LocalAvatarAssetResolvePayload, ModelManifest,

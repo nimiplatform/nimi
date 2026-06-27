@@ -5,8 +5,10 @@
   "type": "module",
   "scripts": {
     "dev:renderer": "vite --host 127.0.0.1 --port 1427 --strictPort",
+    "dev:electron": "corepack pnpm run build:electron && electron dist-electron/main.js",
     "dev:shell": "tauri dev --config src-tauri/tauri.conf.json",
     "build:renderer": "vite build",
+    "build:electron": "corepack pnpm --filter @nimiplatform/kit build && tsc -p tsconfig.electron.json && node scripts/bundle-electron-preload.mjs",
     "check:bundle-runtime-imports": "node scripts/check-avatar-bundle-runtime-imports.mjs",
     "check:acceptance-recording-matrix": "node scripts/record-avatar-acceptance-matrix.mjs --check-only",
     "smoke:agent-center-live2d": "node scripts/smoke-agent-center-live2d.mjs",
@@ -19,6 +21,7 @@
     "check:spec-consistency": "npx tsx scripts/check-avatar-spec-consistency.ts",
     "check:apps-avatar-isolation": "node ../../scripts/check-apps-avatar-isolation.mjs",
     "test": "vitest run",
+    "test:e2e:electron": "corepack pnpm run build:renderer && corepack pnpm run build:electron && node --test test/electron-acceptance.mjs",
     "test:watch": "vitest"
   },
   "devDependencies": {
@@ -31,6 +34,8 @@
     "@types/react": "^19.2.15",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.4",
+    "electron": "^42.5.0",
+    "esbuild": "^0.28.0",
     "eslint": "^10.4.0",
     "globals": "^17.6.0",
     "jsdom": "^28.1.0",

@@ -1,5 +1,5 @@
-import { invoke } from '@tauri-apps/api/core';
 import { useAvatarStore } from './app-store.js';
+import { invokeAvatarHostCommand } from './avatar-host-bridge.js';
 
 export type AvatarEvidenceKind =
   | 'avatar.renderer.boot'
@@ -116,7 +116,7 @@ function snapshotEvidenceContext() {
 
 export async function recordAvatarEvidence(input: AvatarEvidencePayload): Promise<void> {
   const snapshot = snapshotEvidenceContext();
-  await invoke('nimi_avatar_record_evidence', {
+  await invokeAvatarHostCommand('nimi_avatar_record_evidence', {
     payload: {
       kind: input.kind,
       recordedAt: new Date().toISOString(),
@@ -131,7 +131,7 @@ export async function writeAvatarEvidenceArtifact(input: {
   artifactId: string;
   dataUrl: string;
 }): Promise<AvatarEvidenceArtifactWriteResult> {
-  return invoke<AvatarEvidenceArtifactWriteResult>('nimi_avatar_write_evidence_artifact', {
+  return invokeAvatarHostCommand<AvatarEvidenceArtifactWriteResult>('nimi_avatar_write_evidence_artifact', {
     payload: {
       artifactId: input.artifactId,
       dataUrl: input.dataUrl,

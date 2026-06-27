@@ -4,7 +4,7 @@ import {
   installNimiShellRuntimeBridge,
   type AvatarLaunchContext,
   type NimiShellRuntimeBridgeResult,
-} from '@renderer/bridge';
+} from '../bridge/index.js';
 import type { AvatarModelManifest } from '@nimiplatform/kit/features/avatar/headless';
 import { useAvatarStore } from './app-store.js';
 

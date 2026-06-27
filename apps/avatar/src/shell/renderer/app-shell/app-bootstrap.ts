@@ -18,7 +18,7 @@ import {
   buildNimiRuntimeGenerationSubmitRequest,
   createNimiSpeechTranscriptionScenario,
 } from '@nimiplatform/sdk/features/generation';
-import { getRuntimeDefaults, hasTauriInvoke } from '@renderer/bridge';
+import { getRuntimeDefaults, hasTauriInvoke } from '../bridge/index.js';
 import { startAvatarRuntimeCarrier } from '../carrier/avatar-carrier.js';
 import { createDriver, resolveDriverKind } from '../driver/factory.js';
 import { resolveLocalAvatarAssetManifest } from '../carrier/model-resolver.js';

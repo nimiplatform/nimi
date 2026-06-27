@@ -32,9 +32,8 @@ pub(crate) use avatar_visual_commands::{
 use avatar_window::*;
 use avatar_window_commands::*;
 #[cfg(test)]
-use nimi_shell_tauri::agent_center_avatar_asset::AgentCenterAvatarAssetResolvePayload;
-use nimi_shell_tauri::runtime_bridge;
-use nimi_shell_tauri::runtime_defaults as defaults;
+use nimi_shell_tauri::capabilities::avatar::AgentCenterAvatarAssetResolvePayload;
+use nimi_shell_tauri::capabilities::runtime as runtime_bridge;
 use serde_json::json;
 #[cfg(test)]
 use sha2::{Digest, Sha256};
@@ -103,17 +102,7 @@ fn main() {
                 }
             }
         })
-        .invoke_handler(tauri::generate_handler![
-            defaults::runtime_defaults,
-            runtime_bridge::runtime_bridge_unary,
-            runtime_bridge::runtime_bridge_stream_open,
-            runtime_bridge::runtime_bridge_stream_close,
-            runtime_bridge::runtime_bridge_status,
-            runtime_bridge::runtime_bridge_start,
-            runtime_bridge::runtime_bridge_stop,
-            runtime_bridge::runtime_bridge_restart,
-            runtime_bridge::runtime_bridge_config_get,
-            runtime_bridge::runtime_bridge_config_set,
+        .invoke_handler(nimi_shell_tauri::nimi_shell_tauri_runtime_bridge_handler![
             nimi_avatar_start_window_drag,
             nimi_avatar_begin_manual_drag_window,
             nimi_avatar_move_manual_drag_window,

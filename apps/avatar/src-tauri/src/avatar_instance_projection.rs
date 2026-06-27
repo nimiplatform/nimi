@@ -93,7 +93,7 @@ pub fn persist_projection(
 
 fn resolve_local_agent_ref_parts(local_agent_ref: &str) -> Option<(String, String)> {
     let identity =
-        nimi_shell_tauri::runtime_local_agent_identity::parse_runtime_local_agent_identity(
+        nimi_shell_tauri::capabilities::local_agent::parse_runtime_local_agent_identity(
             local_agent_ref,
         )
         .ok()?;
