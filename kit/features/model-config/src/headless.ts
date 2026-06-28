@@ -89,6 +89,12 @@ export type {
   SummarizeModelConfigRuntimeTargetInput,
 } from './headless/runtime-target-summary.js';
 export { summarizeModelConfigRuntimeTarget } from './headless/runtime-target-summary.js';
+export type { ResolveModelConfigLocalRuntimeStatusInput } from './headless/local-runtime-status.js';
+export {
+  findLocalAssetForTargetRef,
+  localRuntimeRefCandidates,
+  resolveModelConfigLocalRuntimeStatus,
+} from './headless/local-runtime-status.js';
 
 export { defaultModelConfigProfileCopy } from './default-profile-copy.js';
 export type { ModelConfigCopyFormatter } from './default-profile-copy.js';
