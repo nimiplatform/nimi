@@ -1,4 +1,7 @@
-use crate::desktop_product_control::ProductControlRecord;
+use crate::desktop_product_control::{
+    ProductControlRecord, ProductControlRecordProjection, ProductControlSelectedDataRootProjection,
+    ProductControlState,
+};
 use crate::desktop_release::DesktopReleaseInfo;
 use crate::runtime_bridge::{
     generated as runtime_bridge_generated, RuntimeBridgeDaemonStatus, RuntimeBridgeUnaryPayload,
@@ -97,11 +100,16 @@ fn load_fixture_manifest() -> Result<Option<DesktopE2EFixtureManifest>, String> 
     };
     append_backend_log(&format!("load_fixture_manifest path={path}"));
     let raw = fs::read_to_string(path.as_str()).map_err(|error| {
-        format!("DESKTOP_E2E_FIXTURE_READ_FAILED: failed to read {path}: {error}")
+        let message = format!("DESKTOP_E2E_FIXTURE_READ_FAILED: failed to read {path}: {error}");
+        append_backend_log(&message);
+        message
     })?;
     let parsed =
         serde_json::from_str::<DesktopE2EFixtureManifest>(raw.as_str()).map_err(|error| {
-            format!("DESKTOP_E2E_FIXTURE_PARSE_FAILED: failed to parse {path}: {error}")
+            let message =
+                format!("DESKTOP_E2E_FIXTURE_PARSE_FAILED: failed to parse {path}: {error}");
+            append_backend_log(&message);
+            message
         })?;
     Ok(Some(parsed))
 }
@@ -128,6 +136,309 @@ pub fn append_backend_log_message(message: &str) {
 }
 fn append_backend_log(message: &str) {
     append_backend_log_message(message);
+}
+
+fn product_control_projection_path() -> Result<String, String> {
+    Ok(crate::desktop_paths::resolve_nimi_dir()?
+        .join("nimi.json")
+        .display()
+        .to_string())
+}
+
+fn product_control_record_from_fixture(
+    manifest: &DesktopE2EFixtureManifest,
+) -> Option<ProductControlRecord> {
+    manifest
+        .tauri_fixture
+        .as_ref()
+        .and_then(|fixture| fixture.product_control_record.clone())
+}
+
+fn encode_product_control_projection<Projection>(
+    projection: Projection,
+) -> Result<RuntimeBridgeUnaryResult, String>
+where
+    Projection: Serialize,
+{
+    let json = serde_json::to_string(&projection)
+        .map_err(|error| format!("DESKTOP_E2E_PRODUCT_CONTROL_FIXTURE_JSON_FAILED: {error}"))?;
+    Ok(encode_unary_response(
+        runtime_bridge_generated::ProductControlProjectionJson { json },
+    ))
+}
+
+fn runtime_product_control_record_response(
+    manifest: &DesktopE2EFixtureManifest,
+) -> Result<RuntimeBridgeUnaryResult, String> {
+    let path = product_control_projection_path()?;
+    let projection = if let Some(record) = product_control_record_from_fixture(manifest) {
+        ProductControlRecordProjection {
+            path,
+            exists: true,
+            state: record.state.clone(),
+            record: Some(record),
+            error: None,
+        }
+    } else {
+        ProductControlRecordProjection {
+            path,
+            exists: false,
+            state: ProductControlState::ConfigMissing,
+            record: None,
+            error: Some(
+                "~/.nimi/nimi.json is missing; first-run data-root selection has not initialized product control"
+                    .to_string(),
+            ),
+        }
+    };
+    encode_product_control_projection(projection)
+}
+
+fn runtime_product_control_selected_data_root_response(
+    manifest: &DesktopE2EFixtureManifest,
+) -> Result<RuntimeBridgeUnaryResult, String> {
+    let path = product_control_projection_path()?;
+    let projection = if let Some(record) = product_control_record_from_fixture(manifest) {
+        let data_root = crate::desktop_product_control::selected_data_root_path(&record)
+            .map(|_| record.data_root.clone())
+            .unwrap_or(None);
+        let error = if data_root.is_some() {
+            None
+        } else {
+            Some("~/.nimi/nimi.json has no selected absolute dataRoot.path".to_string())
+        };
+        ProductControlSelectedDataRootProjection {
+            path,
+            exists: true,
+            state: record.state,
+            data_root,
+            error,
+        }
+    } else {
+        ProductControlSelectedDataRootProjection {
+            path,
+            exists: false,
+            state: ProductControlState::ConfigMissing,
+            data_root: None,
+            error: Some(
+                "~/.nimi/nimi.json is missing; selected nimi_data is not ready".to_string(),
+            ),
+        }
+    };
+    encode_product_control_projection(projection)
+}
+
+fn execution_evidence_blocked_response(
+    reason_code: &str,
+    detail: impl Into<String>,
+) -> RuntimeBridgeUnaryResult {
+    encode_unary_response(
+        runtime_bridge_generated::ResolveFirstRunExecutionEvidenceResponse {
+            r#ref: None,
+            state: "local_ai_blocked".to_string(),
+            reason_code: reason_code.to_string(),
+            detail: detail.into(),
+        },
+    )
+}
+
+fn expected_field_matches(expected: &str, actual: &str) -> bool {
+    let expected = expected.trim();
+    expected.is_empty() || expected == actual.trim()
+}
+
+fn execution_evidence_proof(
+    capability: &str,
+    scenario_type: runtime_bridge_generated::ScenarioType,
+    consumer_id: &str,
+    bound_asset_id: &str,
+    local_route_target: &str,
+) -> runtime_bridge_generated::ExecutionBaselineCapabilityProof {
+    runtime_bridge_generated::ExecutionBaselineCapabilityProof {
+        capability: capability.to_string(),
+        scenario_type: scenario_type as i32,
+        bound_consumer_id: consumer_id.to_string(),
+        bound_asset_id: bound_asset_id.to_string(),
+        local_route_target: local_route_target.to_string(),
+        route_policy: runtime_bridge_generated::RoutePolicy::Local as i32,
+        model_resolved: bound_asset_id.to_string(),
+        terminal_result: "local_executed".to_string(),
+        reason_code: "FIRST_RUN_EXECUTION_PROOF_READY".to_string(),
+        trace_id: format!("e2e-trace:{consumer_id}"),
+        executed_at: "2026-03-15T00:00:00.000Z".to_string(),
+    }
+}
+
+fn execution_evidence_ref_from_record(
+    record: &ProductControlRecord,
+    execution_evidence_ref: &str,
+    runtime_baseline_ref: &str,
+    data_root_ref: &str,
+    install_level: &str,
+) -> runtime_bridge_generated::ExecutionEvidenceRef {
+    runtime_bridge_generated::ExecutionEvidenceRef {
+        execution_evidence_ref: execution_evidence_ref.to_string(),
+        selected_local_factory_ai_profile_ref: record
+            .first_run
+            .baseline_profile_ref
+            .clone()
+            .unwrap_or_else(|| format!("factory:{}", install_level.trim())),
+        install_level: install_level.to_string(),
+        runtime_baseline_ref: runtime_baseline_ref.to_string(),
+        data_root_ref: data_root_ref.to_string(),
+        local_execution_target_evidence: vec!["local".to_string(), "speech".to_string()],
+        selected_baseline_capability_proof: vec![
+            execution_evidence_proof(
+                "local_text_chat_execution",
+                runtime_bridge_generated::ScenarioType::TextGenerate,
+                "llama.cpp.cpu",
+                "e2e-local-text-model",
+                "local",
+            ),
+            execution_evidence_proof(
+                "local_basic_stt_execution",
+                runtime_bridge_generated::ScenarioType::SpeechTranscribe,
+                "speech.qwen3-asr.python",
+                "e2e-local-asr-model",
+                "speech",
+            ),
+            execution_evidence_proof(
+                "local_basic_tts_execution",
+                runtime_bridge_generated::ScenarioType::SpeechSynthesize,
+                "speech.qwen3-tts.python",
+                "e2e-local-tts-model",
+                "speech",
+            ),
+        ],
+        submit_specific_scheduling_judgement: None,
+        terminal_result: "local_ai_ready".to_string(),
+        observed_at: "2026-03-15T00:00:00.000Z".to_string(),
+        runtime_audit_sequence: vec!["desktop-e2e-fixture:first-run-execution".to_string()],
+        runtime_verifier_identity: "desktop-e2e-fixture-runtime".to_string(),
+    }
+}
+
+fn runtime_first_run_execution_evidence_response(
+    payload: &RuntimeBridgeUnaryPayload,
+    manifest: &DesktopE2EFixtureManifest,
+) -> Result<RuntimeBridgeUnaryResult, String> {
+    let request: runtime_bridge_generated::ResolveFirstRunExecutionEvidenceRequest =
+        decode_unary_request(payload)?;
+    let Some(record) = product_control_record_from_fixture(manifest) else {
+        return Ok(execution_evidence_blocked_response(
+            "PRODUCT_CONTROL_RECORD_MISSING",
+            "~/.nimi/nimi.json fixture is missing",
+        ));
+    };
+    if !matches!(
+        record.state,
+        ProductControlState::LocalAiReady | ProductControlState::ReadyForUse
+    ) {
+        return Ok(execution_evidence_blocked_response(
+            "PRODUCT_CONTROL_NOT_LOCAL_AI_READY",
+            format!("product-control state is {:?}", record.state),
+        ));
+    }
+    let execution_evidence_ref = record
+        .first_run
+        .execution_evidence_ref
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| {
+            "DESKTOP_E2E_EXECUTION_EVIDENCE_FIXTURE_MISSING_EXECUTION_REF".to_string()
+        })?;
+    let runtime_baseline_ref = record
+        .first_run
+        .runtime_baseline_ref
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| "DESKTOP_E2E_EXECUTION_EVIDENCE_FIXTURE_MISSING_BASELINE_REF".to_string())?;
+    let install_level = record
+        .first_run
+        .install_level
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| {
+            "DESKTOP_E2E_EXECUTION_EVIDENCE_FIXTURE_MISSING_INSTALL_LEVEL".to_string()
+        })?;
+    let data_root_ref = crate::desktop_product_control::selected_data_root_path(&record)
+        .map(|path| path.display().to_string())
+        .ok_or_else(|| "DESKTOP_E2E_EXECUTION_EVIDENCE_FIXTURE_MISSING_DATA_ROOT".to_string())?;
+
+    if request.execution_evidence_ref.trim() != execution_evidence_ref {
+        return Ok(execution_evidence_blocked_response(
+            "EXECUTION_EVIDENCE_REF_MISMATCH",
+            "requested executionEvidenceRef does not match product-control record",
+        ));
+    }
+    if !expected_field_matches(&request.expected_runtime_baseline_ref, runtime_baseline_ref) {
+        return Ok(execution_evidence_blocked_response(
+            "RUNTIME_BASELINE_REF_MISMATCH",
+            "expected runtimeBaselineRef does not match product-control record",
+        ));
+    }
+    if !expected_field_matches(&request.expected_data_root_ref, &data_root_ref) {
+        return Ok(execution_evidence_blocked_response(
+            "DATA_ROOT_REF_MISMATCH",
+            "expected dataRootRef does not match selected product data root",
+        ));
+    }
+    if !expected_field_matches(&request.expected_install_level, install_level) {
+        return Ok(execution_evidence_blocked_response(
+            "INSTALL_LEVEL_MISMATCH",
+            "expected install level does not match product-control record",
+        ));
+    }
+
+    Ok(encode_unary_response(
+        runtime_bridge_generated::ResolveFirstRunExecutionEvidenceResponse {
+            r#ref: Some(execution_evidence_ref_from_record(
+                &record,
+                execution_evidence_ref,
+                runtime_baseline_ref,
+                &data_root_ref,
+                install_level,
+            )),
+            state: "local_ai_ready".to_string(),
+            reason_code: "FIRST_RUN_EXECUTION_EVIDENCE_READY".to_string(),
+            detail: "desktop e2e fixture execution evidence matched product-control record"
+                .to_string(),
+        },
+    ))
+}
+
+fn runtime_authorize_external_principal_response(
+    payload: &RuntimeBridgeUnaryPayload,
+) -> Result<RuntimeBridgeUnaryResult, String> {
+    let request: runtime_bridge_generated::AuthorizeExternalPrincipalRequest =
+        decode_unary_request(payload)?;
+    let subject_user_id = request.subject_user_id.trim();
+    let app_id = request.app_id.trim();
+    if subject_user_id.is_empty() || app_id.is_empty() {
+        return Err("DESKTOP_E2E_RUNTIME_GRANT_PRINCIPAL_REQUIRED".to_string());
+    }
+    Ok(encode_unary_response(
+        runtime_bridge_generated::AuthorizeExternalPrincipalResponse {
+            token_id: format!("e2e-protected-access:{app_id}:{subject_user_id}"),
+            app_id: app_id.to_string(),
+            subject_user_id: subject_user_id.to_string(),
+            external_principal_id: request.external_principal_id,
+            effective_scopes: request.scopes,
+            resource_selectors: request.resource_selectors,
+            consent_ref: None,
+            policy_version: request.policy_version,
+            issued_scope_catalog_version: request.scope_catalog_version,
+            can_delegate: request.can_delegate,
+            expires_at: Some(prost_types::Timestamp {
+                seconds: 1_787_011_200,
+                nanos: 0,
+            }),
+            secret: "e2e-protected-access-secret".to_string(),
+        },
+    ))
 }
 
 pub(super) fn encode_unary_response<Response>(response: Response) -> RuntimeBridgeUnaryResult
@@ -168,14 +479,29 @@ pub fn runtime_bridge_unary_override(
     let Some(manifest) = load_fixture_manifest()? else {
         return Ok(None);
     };
+    let method_id = payload.method_id.trim();
+    if method_id.contains("/nimi.runtime.v1.RuntimeAgentService/") {
+        append_backend_log(&format!(
+            "runtime_agent_fixture method=received method_id={method_id}"
+        ));
+    }
     if uses_real_runtime_account_projection(&manifest) {
+        if method_id.contains("/nimi.runtime.v1.RuntimeAgentService/") {
+            append_backend_log(&format!(
+                "runtime_agent_fixture method=bypassed-real-account-projection method_id={method_id}"
+            ));
+        }
         return Ok(None);
     }
     let projection = account_projection_from_fixture(manifest.realm_fixture.as_ref());
-    match payload.method_id.trim() {
+    match method_id {
     nimi_shell_tauri::capabilities::runtime::RUNTIME_AUTH_REGISTER_APP_METHOD_ID => {
         append_backend_log("runtime_auth_fixture method=registerApp accepted=true");
         runtime_register_app_response(payload).map(Some)
+    }
+    "/nimi.runtime.v1.RuntimeAuthService/OpenSession" => {
+        append_backend_log("runtime_auth_fixture method=openSession accepted=true");
+        runtime_open_session_response(payload).map(Some)
     }
     nimi_shell_tauri::capabilities::runtime::RUNTIME_ACCOUNT_GET_ACCOUNT_SESSION_STATUS_METHOD_ID => {
         append_backend_log(&format!(
@@ -194,6 +520,10 @@ pub fn runtime_bridge_unary_override(
         Ok(Some(encode_unary_response(runtime_account_token_response(
             projection,
         ))))
+    }
+    "/nimi.runtime.v1.RuntimeGrantService/AuthorizeExternalPrincipal" => {
+        append_backend_log("runtime_grant_fixture method=authorizeExternalPrincipal accepted=true");
+        runtime_authorize_external_principal_response(payload).map(Some)
     }
     nimi_shell_tauri::capabilities::runtime::RUNTIME_APP_GET_APP_STORAGE_METHOD_ID => {
         append_backend_log("runtime_app_fixture method=getAppStorage accepted=true");
@@ -214,6 +544,18 @@ pub fn runtime_bridge_unary_override(
         append_backend_log("runtime_app_fixture method=listAppInstallJobs accepted=true");
         runtime_list_app_install_jobs_response(payload).map(Some)
     }
+    nimi_shell_tauri::capabilities::runtime::RUNTIME_LOCAL_GET_PRODUCT_CONTROL_RECORD_METHOD_ID => {
+        append_backend_log("runtime_product_control_fixture method=getProductControlRecord accepted=true");
+        runtime_product_control_record_response(&manifest).map(Some)
+    }
+    nimi_shell_tauri::capabilities::runtime::RUNTIME_LOCAL_GET_PRODUCT_CONTROL_SELECTED_DATA_ROOT_METHOD_ID => {
+        append_backend_log("runtime_product_control_fixture method=getProductControlSelectedDataRoot accepted=true");
+        runtime_product_control_selected_data_root_response(&manifest).map(Some)
+    }
+    nimi_shell_tauri::capabilities::runtime::RUNTIME_LOCAL_RESOLVE_FIRST_RUN_EXECUTION_EVIDENCE_METHOD_ID => {
+        append_backend_log("runtime_product_control_fixture method=resolveFirstRunExecutionEvidence accepted=true");
+        runtime_first_run_execution_evidence_response(payload, &manifest).map(Some)
+    }
     nimi_shell_tauri::capabilities::runtime::RUNTIME_APP_GET_APP_PACKAGE_READINESS_METHOD_ID => {
         append_backend_log("runtime_app_fixture method=getAppPackageReadiness accepted=true");
         runtime_app_package_readiness_response(payload).map(Some)
@@ -225,6 +567,10 @@ pub fn runtime_bridge_unary_override(
     nimi_shell_tauri::capabilities::runtime::RUNTIME_AGENT_INITIALIZE_AGENT_METHOD_ID => {
         append_backend_log("runtime_agent_fixture method=initializeAgent accepted=true");
         runtime_agent_initialize_response(payload).map(Some)
+    }
+    RUNTIME_AGENT_GET_AGENT_STATE_METHOD_ID => {
+        append_backend_log("runtime_agent_fixture method=getAgentState accepted=true");
+        runtime_agent_get_state_response(payload).map(Some)
     }
     nimi_shell_tauri::capabilities::runtime::RUNTIME_AGENT_SET_AGENT_PRESENTATION_PROFILE_METHOD_ID => {
         append_backend_log("runtime_agent_fixture method=setAgentPresentationProfile accepted=true");
@@ -242,7 +588,34 @@ pub fn runtime_bridge_unary_override(
         append_backend_log("runtime_agent_fixture method=listAgentConversationSummaries accepted=true");
         runtime_agent_list_conversation_summaries_response(payload).map(Some)
     }
-    _ => Ok(None),
+    RUNTIME_AGENT_GET_PUBLIC_CHAT_SESSION_SNAPSHOT_METHOD_ID => {
+        append_backend_log("runtime_agent_fixture method=getPublicChatSessionSnapshot accepted=true");
+        runtime_agent_public_chat_session_snapshot_response(payload).map(Some)
+    }
+    RUNTIME_AGENT_LIST_PENDING_HOOKS_METHOD_ID => {
+        append_backend_log("runtime_agent_fixture method=listPendingHooks accepted=true");
+        runtime_agent_list_pending_hooks_response(payload).map(Some)
+    }
+    RUNTIME_AGENT_GET_CANONICAL_MEMORY_BANK_STATUS_METHOD_ID => {
+        append_backend_log("runtime_agent_fixture method=getAgentCanonicalMemoryBankStatus accepted=true");
+        runtime_agent_get_canonical_memory_bank_status_response(payload).map(Some)
+    }
+    RUNTIME_AGENT_REQUEST_CANONICAL_MEMORY_BANK_BIND_METHOD_ID => {
+        append_backend_log("runtime_agent_fixture method=requestAgentCanonicalMemoryBankBind accepted=true");
+        runtime_agent_request_canonical_memory_bank_bind_response(payload).map(Some)
+    }
+    _ => {
+        if payload
+            .method_id
+            .contains("/nimi.runtime.v1.RuntimeAgentService/")
+        {
+            append_backend_log(&format!(
+                "runtime_agent_fixture method=unhandled method_id={}",
+                payload.method_id.trim()
+            ));
+        }
+        Ok(None)
+    }
 }
 }
 

@@ -7,7 +7,14 @@ import path from 'node:path';
 import process from 'node:process';
 import { spawn, spawnSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { profilePathForScenario, scenarioRegistry, selectScenarios } from '../e2e/helpers/registry.mjs';
+import {
+  WDIO_RUNNER,
+  isWdioScenarioEntry,
+  profilePathForScenario,
+  scenarioEntryForId,
+  scenarioRunner,
+  selectScenarios,
+} from '../e2e/helpers/registry.mjs';
 import { startRealmFixtureServer } from '../e2e/fixtures/realm-fixture-server.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
@@ -131,13 +138,15 @@ function writeJson(filePath, value) {
   fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
 }
 
-function buildScenarioManifest({ scenarioId, profile, fixtureOrigin }) {
+function buildScenarioManifest({ scenarioId, profile, fixtureOrigin, artifactsDir }) {
   return replacePlaceholders({
     ...profile,
     scenarioId,
   }, {
     __FIXTURE_ORIGIN__: fixtureOrigin,
     __REPO_ROOT__: repoRoot,
+    __E2E_DATA_ROOT__: path.join(artifactsDir, 'nimi-data'),
+    __E2E_RUNTIME_CONFIG_PATH__: path.join(artifactsDir, 'runtime', 'config.json'),
     __CUBISM_SAMPLE_LIVE2D_ROOT__: ensureCubismLive2dSample().sampleRoot,
     __CUBISM_SAMPLE_LIVE2D_MODEL_FILE_URL__: ensureCubismLive2dSample().modelFileUrl,
   });
@@ -160,6 +169,23 @@ function artifactRoot() {
   const root = path.join(repoRoot, 'apps/desktop/reports/e2e');
   fs.mkdirSync(root, { recursive: true });
   return root;
+}
+
+function resetArtifactRoot() {
+  const root = path.resolve(repoRoot, 'apps/desktop/reports/e2e');
+  fs.rmSync(root, { recursive: true, force: true });
+  fs.mkdirSync(root, { recursive: true });
+  return root;
+}
+
+function resetArtifactDir(artifactsDir) {
+  const root = path.resolve(repoRoot, 'apps/desktop/reports/e2e');
+  const resolved = path.resolve(artifactsDir);
+  if (!resolved.startsWith(`${root}${path.sep}`)) {
+    throw new Error(`refusing to reset E2E artifact directory outside ${root}: ${resolved}`);
+  }
+  fs.rmSync(resolved, { recursive: true, force: true });
+  fs.mkdirSync(resolved, { recursive: true });
 }
 
 function ensureSupportedPlatform() {
@@ -494,9 +520,12 @@ async function terminateProcessTree(child) {
 }
 
 async function runScenario(scenarioId, runIndex) {
-  const scenario = scenarioRegistry.get(scenarioId);
+  const scenario = scenarioEntryForId(scenarioId);
   if (!scenario) {
     throw new Error(`missing registry entry for ${scenarioId}`);
+  }
+  if (!isWdioScenarioEntry(scenario)) {
+    throw new Error(`scenario ${scenarioId} is owned by ${scenarioRunner(scenario)}; use scripts/run-macos-smoke.mjs`);
   }
 
   const appPath = applicationPath();
@@ -509,7 +538,7 @@ async function runScenario(scenarioId, runIndex) {
   const { driverPort, nativeDriverPort } = await resolveDriverPorts(driverHost);
   const artifactsDir = path.join(artifactRoot(), `${String(runIndex).padStart(2, '0')}-${scenarioId}`);
   const desktopSpecPath = path.relative(desktopRoot, path.join(repoRoot, scenario.spec));
-  fs.mkdirSync(artifactsDir, { recursive: true });
+  resetArtifactDir(artifactsDir);
   const backendLogPath = path.join(artifactsDir, 'backend.log');
   const scenarioManifestPath = path.join(artifactsDir, 'scenario-manifest.json');
   const artifactManifestPath = path.join(artifactsDir, 'artifact-manifest.json');
@@ -528,6 +557,7 @@ async function runScenario(scenarioId, runIndex) {
     scenarioId,
     profile,
     fixtureOrigin: fixtureServer.origin,
+    artifactsDir,
   });
   writeJson(scenarioManifestPath, scenarioManifest);
 
@@ -620,7 +650,8 @@ async function main() {
   const options = parseArgs(process.argv.slice(2));
   ensureSupportedPlatform();
   ensureTauriDriverAvailable();
-  const selectedScenarios = selectScenarios(options);
+  const selectedScenarios = selectScenarios({ ...options, runner: WDIO_RUNNER });
+  resetArtifactRoot();
   if (!options.skipBuild) {
     await buildApplication();
   }

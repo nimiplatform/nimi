@@ -11,6 +11,7 @@ const cloudPageSource = readWorkspaceFile('src/shell/renderer/features/runtime-c
 const cloudDetailPanelSource = readWorkspaceFile('src/shell/renderer/features/runtime-config/runtime-config-page-cloud-detail-panel.tsx');
 const cloudPageSurfaceSource = `${cloudPageSource}\n${cloudDetailPanelSource}`;
 const cloudConnectorListSource = readWorkspaceFile('src/shell/renderer/features/runtime-config/runtime-config-page-cloud-connector-list.tsx');
+const runtimeConfigPrimitivesSource = readWorkspaceFile('src/shell/renderer/features/runtime-config/runtime-config-primitives.tsx');
 const e2eIdsSource = readWorkspaceFile('src/shell/renderer/testability/e2e-ids.ts');
 const e2eSelectorsSource = readWorkspaceFile('e2e/helpers/selectors.mjs');
 
@@ -79,4 +80,27 @@ test('runtime config cloud scope contract: only draft connectors can change vend
   assert.match(cloudPageSurfaceSource, /disabled=\{!canEditVendor\}/);
   assert.doesNotMatch(cloudPageSurfaceSource, /Vendor is fixed after connector creation\./);
   assert.doesNotMatch(cloudPageSurfaceSource, /Credential type is fixed after connector creation\./);
+});
+
+test('runtime config cloud connector name typing stays local until commit', () => {
+  assert.match(cloudPageSource, /const \[connectorLabelDraft, setConnectorLabelDraft\] = useState\(''\);/);
+  assert.match(cloudPageSource, /const commitConnectorLabelDraft = useCallback\(\(\) => \{/);
+  assert.match(cloudPageSource, /onConnectorLabelDraftChange=\{setConnectorLabelDraft\}/);
+  assert.match(cloudPageSource, /onCommitConnectorLabelDraft=\{commitConnectorLabelDraft\}/);
+  assert.match(cloudPageSource, /label: connectorLabelDraft,/);
+  assert.doesNotMatch(cloudDetailPanelSource, /onChange=\{props\.onRenameSelectedConnector\}/);
+  assert.match(cloudDetailPanelSource, /value=\{connectorLabelDraft\}/);
+  assert.match(cloudDetailPanelSource, /onChange=\{props\.onConnectorLabelDraftChange\}/);
+  assert.match(cloudDetailPanelSource, /onBlur=\{props\.onCommitConnectorLabelDraft\}/);
+});
+
+test('runtime config cloud vendor dropdown supports searching many providers', () => {
+  assert.match(cloudDetailPanelSource, /searchable/);
+  assert.match(cloudDetailPanelSource, /searchPlaceholder=\{t\('runtimeConfig\.cloud\.searchVendors'/);
+  assert.match(cloudDetailPanelSource, /defaultValue: 'Search vendors\.\.\.'/);
+  assert.match(runtimeConfigPrimitivesSource, /searchable\?: boolean;/);
+  assert.match(runtimeConfigPrimitivesSource, /const filteredOptions = useMemo\(\(\) => \{/);
+  assert.match(runtimeConfigPrimitivesSource, /option\.label\.toLowerCase\(\)\.includes\(query\)/);
+  assert.match(runtimeConfigPrimitivesSource, /<ScrollArea className="h-72[^"]*"/);
+  assert.doesNotMatch(runtimeConfigPrimitivesSource, /<ScrollArea className="max-h-72"/);
 });

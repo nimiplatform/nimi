@@ -277,6 +277,7 @@
   "cloud": {
     "connectors": "Cloud API Connectors",
     "connectorsDesc": "Configure API keys for cloud-based AI providers. Used as fallback when local runtime is unavailable.",
+    "searchVendors": "Search vendors...",
     "liveInventoryTitle": "Live inventory provider",
     "liveInventoryHint": "This provider loads models from the connector endpoint at runtime. Configure an explicit default model or choose a live model in route/chat settings.",
     "availableConnectors": "Available Connectors",
@@ -695,7 +696,9 @@
     "loadingProviders": "Loading providers..."
   },
   "common": {
-    "noModelsDiscovered": "No models discovered yet."
+    "noModelsDiscovered": "No models discovered yet.",
+    "searchOptions": "Search options...",
+    "noOptionsMatchingSearch": "No matching options."
   },
   "eaa": {
     "sectionTitle": "External Agent Access",

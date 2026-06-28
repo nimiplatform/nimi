@@ -7,7 +7,8 @@ describe('runtime.local-ai.panel-load', () => {
     await waitForTestId(E2E_IDS.mainShell);
     await clickByTestId(E2E_IDS.navTab('runtime'));
     await waitForTestId(E2E_IDS.panel('runtime'));
-    await clickByTestId(E2E_IDS.runtimeSidebarPage('local'));
-    await waitForTestId(E2E_IDS.runtimePageRoot('local'));
+    await clickByTestId(E2E_IDS.runtimeSidebarPage('models'));
+    await waitForTestId(E2E_IDS.runtimePageRoot('models'));
+    await waitForTestId(E2E_IDS.runtimeModelsPane('installed'));
   });
 });

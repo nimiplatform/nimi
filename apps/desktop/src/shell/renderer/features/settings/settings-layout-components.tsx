@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   AppCardSurface,
@@ -9,6 +9,8 @@ import {
   cn,
 } from '@nimiplatform/kit/ui';
 import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
+
+type AppCardSurfaceStyle = ComponentProps<typeof AppCardSurface>['style'];
 
 /* ------------------------------------------------------------------ */
 /*  Card — thin wrapper around kit Surface with tone="card"           */
@@ -21,7 +23,7 @@ export function Card({
 }: {
   children: ReactNode;
   className?: string;
-  style?: CSSProperties;
+  style?: AppCardSurfaceStyle;
 }) {
   return (
     <AppCardSurface

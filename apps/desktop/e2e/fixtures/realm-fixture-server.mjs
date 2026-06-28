@@ -126,6 +126,12 @@ function projectPublicWorld(world) {
   const timeline = asArray(world?.timeline).length
     ? asArray(world.timeline)
     : asArray(world?.events).map((item) => text(item?.title || item?.summary, 'World event'));
+  const entityKinds = asArray(world?.entityKinds).length
+    ? asArray(world.entityKinds)
+    : ['world', 'character', 'persona'];
+  const relationshipTypes = asArray(world?.relationshipTypes).length
+    ? asArray(world.relationshipTypes)
+    : ['contains', 'inhabits'];
   return {
     id: text(world?.id, 'world-e2e-1'),
     name: text(world?.name, 'Fixture World'),
@@ -134,6 +140,8 @@ function projectPublicWorld(world) {
     type: world?.type === 'OASIS' ? 'OASIS' : 'CREATOR',
     visibility: world?.visibility === 'system' ? 'system' : 'public',
     tags,
+    entityKinds,
+    relationshipTypes,
     media,
     time: world?.time || {
       mode: 'wallClockAnchored',
@@ -208,6 +216,60 @@ function resolveFixtureSourceHash(manifest, source) {
   const collection = source?.kind === 'realmPersona' ? world?.personas : world?.characters;
   const row = asArray(collection).find((item) => String(item?.id || '') === sourceId);
   return text(row?.sourceRef?.sourceContentHash || row?.contentHash || row?.sourceContentHash, `hash-${sourceId}`);
+}
+
+function sourceConnections(fixture) {
+  if (Array.isArray(fixture.sourceConnections)) {
+    return fixture.sourceConnections;
+  }
+  if (Array.isArray(fixture.sourceConnections?.items)) {
+    return fixture.sourceConnections.items;
+  }
+  return [];
+}
+
+function normalizeSourceRef(manifest, source) {
+  const kind = text(source?.kind, '');
+  const worldId = text(source?.worldId, '');
+  const sourceId = text(source?.sourceId, '');
+  if (!['worldCharacter', 'realmPersona'].includes(kind) || !worldId || !sourceId) {
+    return null;
+  }
+  return {
+    kind,
+    worldId,
+    sourceId,
+    sourceContentHash: text(source?.sourceContentHash, '') || resolveFixtureSourceHash(manifest, {
+      kind,
+      worldId,
+      sourceId,
+    }),
+  };
+}
+
+function buildSourceConnection(manifest, sourceRef) {
+  const now = new Date().toISOString();
+  return {
+    id: `source-connection-${sourceRef.kind}-${sourceRef.sourceId}`,
+    ownerUserId: String(manifest.realmFixture?.currentUser?.id || 'user-e2e-primary'),
+    sourceRef,
+    runtimeSourceRef: `runtime-source:${sourceRef.kind}:${sourceRef.worldId}:${sourceRef.sourceId}:${sourceRef.sourceContentHash}`,
+    status: 'active',
+    connectedAt: now,
+    removedAt: null,
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+function upsertSourceConnection(manifest, manifestPath, connection) {
+  manifest.realmFixture = manifest.realmFixture || {};
+  const existing = sourceConnections(manifest.realmFixture)
+    .filter((item) => String(item?.id || '') !== connection.id);
+  manifest.realmFixture.sourceConnections = {
+    items: [...existing, connection],
+  };
+  writeJsonFile(manifestPath, manifest);
 }
 
 function positiveInt(value, fallback) {
@@ -449,34 +511,37 @@ async function handleApi(request, response, manifestPath) {
     return undefined;
   }
 
+  if (request.method === 'GET' && pathname === '/api/human/source-connections') {
+    const status = nullableString(requestUrl.searchParams.get('status'));
+    const items = sourceConnections(fixture)
+      .filter((item) => !status || String(item?.status || '') === status);
+    json(response, 200, items);
+    return undefined;
+  }
+
+  if (request.method === 'POST' && pathname === '/api/human/source-connections') {
+    const body = await parseBody(request);
+    const sourceRef = normalizeSourceRef(manifest, body?.sourceRef);
+    if (!sourceRef) {
+      json(response, 400, { message: 'sourceRef must include kind, worldId, sourceId, and sourceContentHash' });
+      return undefined;
+    }
+    const connection = buildSourceConnection(manifest, sourceRef);
+    upsertSourceConnection(manifest, manifestPath, connection);
+    json(response, 201, connection);
+    return undefined;
+  }
+
   if (request.method === 'POST' && pathname === '/api/human/source-connections/public-source') {
     const body = await parseBody(request);
-    const source = body?.source || {};
-    const kind = text(source.kind, '');
-    const worldId = text(source.worldId, '');
-    const sourceId = text(source.sourceId, '');
-    if (!['worldCharacter', 'realmPersona'].includes(kind) || !worldId || !sourceId) {
+    const sourceRef = normalizeSourceRef(manifest, body?.source);
+    if (!sourceRef) {
       json(response, 400, { message: 'source must include kind, worldId, and sourceId' });
       return undefined;
     }
-    const sourceRef = {
-      kind,
-      worldId,
-      sourceId,
-      sourceContentHash: resolveFixtureSourceHash(manifest, source),
-    };
-    const now = new Date().toISOString();
-    json(response, 201, {
-      id: `source-connection-${kind}-${sourceId}`,
-      ownerUserId: String(fixture.currentUser?.id || 'user-e2e-primary'),
-      sourceRef,
-      runtimeSourceRef: `runtime-source:${sourceRef.kind}:${sourceRef.worldId}:${sourceRef.sourceId}:${sourceRef.sourceContentHash}`,
-      status: 'active',
-      connectedAt: now,
-      removedAt: null,
-      createdAt: now,
-      updatedAt: now,
-    });
+    const connection = buildSourceConnection(manifest, sourceRef);
+    upsertSourceConnection(manifest, manifestPath, connection);
+    json(response, 201, connection);
     return undefined;
   }
 

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Surface } from '@nimiplatform/kit/ui';
+import { E2E_IDS } from '@renderer/testability/e2e-ids';
 
 // Canonical Explore section catalog. Fact source:
 // .nimi/spec/desktop/kernel/tables/explore-sections.yaml (D-EXPL-002).
@@ -96,7 +97,7 @@ export function ExploreSectionNav({
               type="button"
               role="tab"
               aria-selected={isActive}
-              data-testid={`explore-section-tab-${id}`}
+              data-testid={E2E_IDS.exploreSectionTab(id)}
               data-titlebar-interactive="true"
               onClick={() => onSelect(id)}
               className={variant === 'topbar'

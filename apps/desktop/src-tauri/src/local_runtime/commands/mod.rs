@@ -15,9 +15,7 @@ fn runtime_root_dir() -> Result<PathBuf, String> {
 }
 
 fn runtime_models_dir() -> Result<PathBuf, String> {
-    Ok(nimi_shell_tauri::capabilities::local_assets::runtime_models_dir(
-        &runtime_root_dir()?,
-    ))
+    Ok(nimi_shell_tauri::capabilities::local_assets::runtime_models_dir(&runtime_root_dir()?))
 }
 
 fn picker_start_dir() -> PathBuf {
@@ -75,9 +73,12 @@ pub fn runtime_local_pick_asset_manifest_path(_app: AppHandle) -> Result<Option<
         return Ok(None);
     };
     Ok(Some(
-        nimi_shell_tauri::capabilities::local_assets::canonical_asset_manifest_path(&path, &models_root)?
-            .to_string_lossy()
-            .to_string(),
+        nimi_shell_tauri::capabilities::local_assets::canonical_asset_manifest_path(
+            &path,
+            &models_root,
+        )?
+        .to_string_lossy()
+        .to_string(),
     ))
 }
 

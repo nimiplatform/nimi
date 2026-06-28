@@ -2,7 +2,7 @@
 
 import path from 'node:path';
 import process from 'node:process';
-import { selectScenarios } from '../e2e/helpers/registry.mjs';
+import { MACOS_SMOKE_RUNNER, selectScenarios } from '../e2e/helpers/registry.mjs';
 import {
   buildApplication,
   ensureSupportedPlatform,
@@ -14,7 +14,7 @@ import {
 
 async function main() {const options = parseArgs(process.argv.slice(2));
   ensureSupportedPlatform();
-  const selectedScenarios = selectScenarios(options);
+  const selectedScenarios = selectScenarios({ ...options, runner: MACOS_SMOKE_RUNNER });
   if (!options.skipBuild) {
     await buildApplication();
   }

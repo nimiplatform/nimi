@@ -277,6 +277,7 @@
   "cloud": {
     "connectors": "云端 API 连接器",
     "connectorsDesc": "配置云端 AI 提供商的 API 密钥。当本地运行时不可用时作为回退使用。",
+    "searchVendors": "搜索供应商...",
     "liveInventoryTitle": "实时库存提供商",
     "liveInventoryHint": "这个提供商会在运行时从连接器端点动态加载模型。请配置明确的默认模型，或在 route/chat 设置中选择实时模型。",
     "availableConnectors": "可用连接器",
@@ -695,7 +696,9 @@
     "loadingProviders": "正在加载提供商..."
   },
   "common": {
-    "noModelsDiscovered": "尚未发现任何模型。"
+    "noModelsDiscovered": "尚未发现任何模型。",
+    "searchOptions": "搜索选项...",
+    "noOptionsMatchingSearch": "没有匹配的选项。"
   },
   "eaa": {
     "sectionTitle": "外部 Agent 访问",

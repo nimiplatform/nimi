@@ -8,16 +8,21 @@ const rendererE2eIdsPath = path.join(desktopRoot, 'src/shell/renderer/testabilit
 
 function readRendererSelectorFactory(name, parameterName) {
   const source = fs.readFileSync(rendererE2eIdsPath, 'utf8');
-  const expression = new RegExp(`${name}:\\s*\\(${parameterName}:\\s*string\\)\\s*=>\\s*\`([^\`$]+)\\$\\{${parameterName}\\}\``);
+  const expression = new RegExp(`${name}:\\s*\\(${parameterName}:\\s*string\\)\\s*=>\\s*\`([^\`$]+)\\$\\{${parameterName}\\}([^\`]*)\``);
   const match = source.match(expression);
   if (!match?.[1]) {
     throw new Error(`${name} selector truth missing from ${rendererE2eIdsPath}`);
   }
   const prefix = match[1];
-  return (value) => `${prefix}${value}`;
+  const suffix = match[2] || '';
+  return (value) => `${prefix}${value}${suffix}`;
 }
 
 const runtimeSidebarPageTestId = readRendererSelectorFactory('runtimeSidebarPage', 'pageId');
+const runtimeModelsPaneTestId = readRendererSelectorFactory('runtimeModelsPane', 'paneId');
+const runtimeEnvironmentPaneTestId = readRendererSelectorFactory('runtimeEnvironmentPane', 'paneId');
+const exploreSectionTabTestId = readRendererSelectorFactory('exploreSectionTab', 'sectionId');
+const exploreSectionTestId = readRendererSelectorFactory('exploreSection', 'sectionId');
 const explorePersonaSourceCardTestId = readRendererSelectorFactory('explorePersonaSourceCard', 'sourceId');
 const explorePersonaSourcePrimaryActionTestId = readRendererSelectorFactory('explorePersonaSourcePrimaryAction', 'sourceId');
 
@@ -42,6 +47,10 @@ export const E2E_IDS = {
   panel: (name) => `panel:${name}`,
   navTab: (tabId) => `nav-tab:${tabId}`,
   runtimeConnectorScopeBadge: (connectorId) => `runtime-connector-scope-badge:${connectorId}`,
+  runtimeModelsPane: runtimeModelsPaneTestId,
+  runtimeEnvironmentPane: runtimeEnvironmentPaneTestId,
+  exploreSectionTab: exploreSectionTabTestId,
+  exploreSection: exploreSectionTestId,
   explorePersonaSourceCard: explorePersonaSourceCardTestId,
   explorePersonaSourcePrimaryAction: explorePersonaSourcePrimaryActionTestId,
   chatPage: 'chat-page',

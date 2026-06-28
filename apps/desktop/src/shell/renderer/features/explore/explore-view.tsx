@@ -63,13 +63,7 @@ function ExplorePersonaSourcesSection({
   if (personaSources.length === 0) {
     return (
       <div
-        className="rounded-[2rem] border border-dashed p-12 text-center"
-        style={{
-          borderColor: 'var(--nimi-border-subtle)',
-          color: 'var(--nimi-fg-3)',
-          fontSize: 13,
-          fontFamily: 'var(--nimi-font-sans)',
-        }}
+        className="rounded-[2rem] border border-dashed border-[var(--nimi-border-subtle)] p-12 text-center font-sans text-[13px] text-[var(--nimi-fg-3)]"
         data-testid="explore-personas-empty"
       >
         {t('Explore.personaSourcesEmpty', { defaultValue: 'No personas match the current filters.' })}
@@ -78,8 +72,7 @@ function ExplorePersonaSourcesSection({
   }
   return (
     <div
-      className="grid items-stretch gap-4"
-      style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' }}
+      className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] items-stretch gap-4"
       data-testid="explore-personas-grid"
     >
       {personaSources.map((personaSource) => (
@@ -168,7 +161,7 @@ export function ExploreView(props: ExploreViewProps) {
         viewportRef={feedScrollRef}
       >
         {props.activeSection === 'worlds' && (
-          <section data-testid="explore-worlds-section">
+          <section data-testid={E2E_IDS.exploreSection('worlds')}>
             {props.worldsLoading ? (
               <WorldsLoadingSkeleton embedded />
             ) : props.worldsError ? (
@@ -186,7 +179,7 @@ export function ExploreView(props: ExploreViewProps) {
         )}
 
         {props.activeSection === 'personas' && (
-          <section data-testid="explore-personas-section">
+          <section data-testid={E2E_IDS.exploreSection('personas')}>
             <ExploreSectionHeader section="personas" />
             <ExplorePersonaSourcesSection
               personaSources={props.personaSources}
@@ -197,7 +190,7 @@ export function ExploreView(props: ExploreViewProps) {
         )}
 
         {props.activeSection === 'activity' && (
-          <section ref={feedSectionRef} data-testid="explore-activity-section">
+          <section ref={feedSectionRef} data-testid={E2E_IDS.exploreSection('activity')}>
             <ExploreSectionHeader section="activity" />
             <PostFeed
               key={props.postFeedKey}

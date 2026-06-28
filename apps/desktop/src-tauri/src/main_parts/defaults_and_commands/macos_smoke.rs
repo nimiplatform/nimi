@@ -317,7 +317,10 @@ mod tests {
     };
     use crate::test_support::test_guard;
     use serde_json::json;
-    use std::{fs, path::PathBuf};
+    use std::{
+        fs,
+        path::{Path, PathBuf},
+    };
 
     fn make_temp_dir(prefix: &str) -> PathBuf {
         let dir = std::env::temp_dir().join(format!(
@@ -327,6 +330,17 @@ mod tests {
         ));
         fs::create_dir_all(&dir).expect("create temp dir");
         dir
+    }
+
+    fn write_fixture(fixture_path: &Path, value: serde_json::Value) {
+        fs::write(
+            fixture_path,
+            format!(
+                "{}\n",
+                serde_json::to_string_pretty(&value).expect("serialize fixture")
+            ),
+        )
+        .expect("write fixture");
     }
 
     #[test]
@@ -349,26 +363,21 @@ mod tests {
         let _guard = test_guard();
         let temp = make_temp_dir("context");
         let fixture_path = temp.join("fixture.json");
-        fs::write(
+        write_fixture(
             &fixture_path,
-            format!(
-                r#"{{
-  "tauriFixture": {{
-    "macosSmoke": {{
-      "enabled": true,
-      "scenarioId": "chat.memory-standard-bind",
-      "reportPath": "{}",
-      "artifactsDir": "{}",
-      "disableRuntimeBootstrap": true,
-      "bootstrapTimeoutMs": 90000
-    }}
-  }}
-}}"#,
-                temp.join("report.json").display(),
-                temp.join("artifacts").display()
-            ),
-        )
-        .expect("write fixture");
+            json!({
+                "tauriFixture": {
+                    "macosSmoke": {
+                        "enabled": true,
+                        "scenarioId": "chat.memory-standard-bind",
+                        "reportPath": temp.join("report.json").display().to_string(),
+                        "artifactsDir": temp.join("artifacts").display().to_string(),
+                        "disableRuntimeBootstrap": true,
+                        "bootstrapTimeoutMs": 90000
+                    }
+                }
+            }),
+        );
 
         let previous = std::env::var("NIMI_E2E_FIXTURE_PATH").ok();
         std::env::set_var("NIMI_E2E_FIXTURE_PATH", fixture_path.as_os_str());
@@ -397,24 +406,19 @@ mod tests {
         let report_path = temp.join("report.json");
         let artifacts_dir = temp.join("artifacts");
         let fixture_path = temp.join("fixture.json");
-        fs::write(
+        write_fixture(
             &fixture_path,
-            format!(
-                r#"{{
-  "tauriFixture": {{
-    "macosSmoke": {{
-      "enabled": true,
-      "scenarioId": "chat.memory-standard-bind",
-      "reportPath": "{}",
-      "artifactsDir": "{}"
-    }}
-  }}
-}}"#,
-                report_path.display(),
-                artifacts_dir.display()
-            ),
-        )
-        .expect("write fixture");
+            json!({
+                "tauriFixture": {
+                    "macosSmoke": {
+                        "enabled": true,
+                        "scenarioId": "chat.memory-standard-bind",
+                        "reportPath": report_path.display().to_string(),
+                        "artifactsDir": artifacts_dir.display().to_string()
+                    }
+                }
+            }),
+        );
 
         let previous = std::env::var("NIMI_E2E_FIXTURE_PATH").ok();
         std::env::set_var("NIMI_E2E_FIXTURE_PATH", fixture_path.as_os_str());
@@ -520,24 +524,19 @@ mod tests {
         let temp = make_temp_dir("ping");
         let fixture_path = temp.join("fixture.json");
         let backend_log_path = temp.join("backend.log");
-        fs::write(
+        write_fixture(
             &fixture_path,
-            format!(
-                r#"{{
-  "tauriFixture": {{
-    "macosSmoke": {{
-      "enabled": true,
-      "scenarioId": "chat.memory-standard-bind",
-      "reportPath": "{}",
-      "artifactsDir": "{}"
-    }}
-  }}
-}}"#,
-                temp.join("report.json").display(),
-                temp.join("artifacts").display()
-            ),
-        )
-        .expect("write fixture");
+            json!({
+                "tauriFixture": {
+                    "macosSmoke": {
+                        "enabled": true,
+                        "scenarioId": "chat.memory-standard-bind",
+                        "reportPath": temp.join("report.json").display().to_string(),
+                        "artifactsDir": temp.join("artifacts").display().to_string()
+                    }
+                }
+            }),
+        );
 
         let previous_fixture = std::env::var("NIMI_E2E_FIXTURE_PATH").ok();
         let previous_backend = std::env::var("NIMI_E2E_BACKEND_LOG_PATH").ok();

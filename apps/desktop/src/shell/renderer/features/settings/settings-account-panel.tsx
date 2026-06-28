@@ -315,7 +315,7 @@ export function ProfilePage() {
       ) : null}
       <section
         data-testid="settings-profile-summary"
-        className="sticky top-0 z-10 -mx-5 bg-[color-mix(in_srgb,var(--nimi-surface-canvas)_82%,transparent)] px-5 pb-4 pt-1 backdrop-blur-[var(--nimi-backdrop-blur-regular)]"
+        className="sticky top-0 z-10 -mx-5 nimi-material-glass-regular bg-[color-mix(in_srgb,var(--nimi-surface-canvas)_82%,transparent)] px-5 pb-4 pt-1 backdrop-blur-[var(--nimi-backdrop-blur-regular)]"
       >
         <div className="relative overflow-hidden rounded-2xl border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,transparent)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_94%,white)] p-6 shadow-[0_18px_44px_rgba(15,23,42,0.08)]">
           <div className="relative flex items-start gap-5">

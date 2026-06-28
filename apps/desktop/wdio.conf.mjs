@@ -50,6 +50,14 @@ async function collectRendererErrors() {
   }
 }
 
+async function collectRendererDebugLogs() {
+  try {
+    return await browser.execute(() => window.__NIMI_RENDERER_DEBUG_LOGS__ || []);
+  } catch {
+    return [];
+  }
+}
+
 function loadArtifactPolicy() {
   const manifestPath = String(process.env.NIMI_E2E_ARTIFACT_MANIFEST || '').trim();
   if (!manifestPath) {
@@ -61,6 +69,20 @@ function loadArtifactPolicy() {
   } catch {
     return {};
   }
+}
+
+function artifactMessageAllowlist(artifactPolicy, key) {
+  const value = artifactPolicy && typeof artifactPolicy === 'object'
+    ? artifactPolicy[key]
+    : [];
+  return Array.isArray(value)
+    ? value.map((item) => String(item || '').trim()).filter(Boolean)
+    : [];
+}
+
+function isAllowedArtifactMessage(message, allowlist) {
+  const text = String(message || '');
+  return allowlist.some((allowed) => text.includes(allowed));
 }
 
 export const config = {
@@ -103,6 +125,7 @@ export const config = {
     const consolePath = path.join(artifactDir, `${prefix}.browser.log`);
     const sourcePath = path.join(artifactDir, `${prefix}.html`);
     const rendererErrorPath = path.join(artifactDir, `${prefix}.renderer-errors.json`);
+    const rendererDebugPath = path.join(artifactDir, `${prefix}.renderer-debug.json`);
 
     if (!result.passed) {
       try {
@@ -129,13 +152,26 @@ export const config = {
       // Some drivers do not expose browser logs; keep artifact collection best-effort.
     }
 
-    const rendererErrors = await collectRendererErrors();
-    fs.writeFileSync(rendererErrorPath, `${JSON.stringify(rendererErrors, null, 2)}\n`, 'utf8');
-    if (rendererErrors.length > 0) {
-      throw new Error(`renderer console/page errors detected: ${rendererErrors.map((item) => `${item.kind}:${item.message}`).join(' | ')}`);
-    }
     const artifactPolicy = loadArtifactPolicy();
-    const severeBrowserLogs = browserLogs.filter((entry) => String(entry.level || '').toUpperCase() === 'SEVERE');
+    const allowedRendererMessages = artifactMessageAllowlist(artifactPolicy, 'allowedRendererErrorMessages');
+    const rendererErrors = await collectRendererErrors();
+    const rendererDebugLogs = await collectRendererDebugLogs();
+    fs.writeFileSync(rendererDebugPath, `${JSON.stringify(rendererDebugLogs, null, 2)}\n`, 'utf8');
+    const unexpectedRendererErrors = rendererErrors.filter((item) =>
+      !isAllowedArtifactMessage(item.message, allowedRendererMessages),
+    );
+    fs.writeFileSync(rendererErrorPath, `${JSON.stringify(unexpectedRendererErrors, null, 2)}\n`, 'utf8');
+    if (unexpectedRendererErrors.length > 0) {
+      throw new Error(`renderer console/page errors detected: ${unexpectedRendererErrors.map((item) => `${item.kind}:${item.message}`).join(' | ')}`);
+    }
+    const allowedConsoleMessages = [
+      ...allowedRendererMessages,
+      ...artifactMessageAllowlist(artifactPolicy, 'allowedConsoleErrorMessages'),
+    ];
+    const severeBrowserLogs = browserLogs.filter((entry) =>
+      String(entry.level || '').toUpperCase() === 'SEVERE'
+      && !isAllowedArtifactMessage(entry.message, allowedConsoleMessages),
+    );
     if (artifactPolicy.failOnConsoleError === true && severeBrowserLogs.length > 0) {
       throw new Error(`browser severe logs detected: ${severeBrowserLogs.map((entry) => String(entry.message || '')).join(' | ')}`);
     }

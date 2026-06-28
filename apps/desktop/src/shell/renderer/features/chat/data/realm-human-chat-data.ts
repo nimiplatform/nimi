@@ -1,12 +1,12 @@
 import { createNimiClientId } from '@nimiplatform/sdk';
 import {
   countPendingRealmChatOutboxEntries,
+  createRealmChatService,
   filterRealmDirectHumanChats,
   flushRealmChatOutbox,
   listRealmChatMessages,
   markRealmChatRead,
   normalizeRealmChatLimit,
-  realmChatService,
   sendRealmChatTextMessageWithOutbox,
   startRealmChatWithTarget,
   syncRealmChatEvents,
@@ -27,6 +27,7 @@ import { getOfflineCacheManager } from '@renderer/infra/offline/cache-manager';
 import { getOfflineCoordinator } from '@renderer/infra/offline/coordinator';
 import { getOfflineOutboxManager } from '@renderer/infra/offline/outbox-manager';
 import type { PersistentOutboxEntry } from '@renderer/infra/offline/types';
+import { callRealmApi } from '@renderer/infra/realm/realm-api';
 
 type DesktopChatErrorEmitter = (
   action: string,
@@ -35,6 +36,29 @@ type DesktopChatErrorEmitter = (
 ) => void;
 
 type DesktopRealmHumanChatService = RealmChatService;
+
+function callDesktopRealmChatService<T>(
+  task: (service: RealmChatService) => Promise<T>,
+): Promise<T> {
+  return callRealmApi((realm) => task(createRealmChatService(realm.humanChats)));
+}
+
+export const desktopRealmChatService: RealmChatService = {
+  listChats: (limit, cursor) =>
+    callDesktopRealmChatService((service) => service.listChats(limit, cursor)),
+  getChatById: (chatId) =>
+    callDesktopRealmChatService((service) => service.getChatById(chatId)),
+  startChat: (input) =>
+    callDesktopRealmChatService((service) => service.startChat(input)),
+  listMessages: (chatId, limit, cursor) =>
+    callDesktopRealmChatService((service) => service.listMessages(chatId, limit, cursor)),
+  sendMessage: (chatId, input) =>
+    callDesktopRealmChatService((service) => service.sendMessage(chatId, input)),
+  markChatRead: (chatId) =>
+    callDesktopRealmChatService((service) => service.markChatRead(chatId)),
+  syncChatEvents: (chatId, afterSeq, limit) =>
+    callDesktopRealmChatService((service) => service.syncChatEvents(chatId, afterSeq, limit)),
+};
 
 function emitNoop() {}
 
@@ -183,7 +207,7 @@ export async function countPendingChatOutboxEntries(): Promise<number> {
 }
 
 export async function loadChatList(
-  service: Pick<DesktopRealmHumanChatService, 'listChats'> = realmChatService,
+  service: Pick<DesktopRealmHumanChatService, 'listChats'> = desktopRealmChatService,
   emitChatError: DesktopChatErrorEmitter = emitNoop,
   limit = 20,
 ) {
@@ -210,7 +234,7 @@ export async function loadChatList(
 }
 
 export async function loadMoreChatList(
-  service: Pick<DesktopRealmHumanChatService, 'listChats'> = realmChatService,
+  service: Pick<DesktopRealmHumanChatService, 'listChats'> = desktopRealmChatService,
   emitChatError: DesktopChatErrorEmitter = emitNoop,
   cursor?: string,
 ) {
@@ -231,7 +255,7 @@ export async function loadMoreChatList(
 export async function startChatWithTarget(
   targetAccountId: string,
   initialMessage: string | null = null,
-  service: Pick<DesktopRealmHumanChatService, 'startChat' | 'getChatById'> = realmChatService,
+  service: Pick<DesktopRealmHumanChatService, 'startChat' | 'getChatById'> = desktopRealmChatService,
   emitChatError: DesktopChatErrorEmitter = emitNoop,
 ) {
   try {
@@ -249,7 +273,7 @@ export async function loadChatMessages(
   chatId: string,
   limit: number,
   markChatRead?: (chatId: string) => Promise<void>,
-  service: Pick<DesktopRealmHumanChatService, 'listMessages'> = realmChatService,
+  service: Pick<DesktopRealmHumanChatService, 'listMessages'> = desktopRealmChatService,
   emitChatError: DesktopChatErrorEmitter = emitNoop,
 ) {
   try {
@@ -284,7 +308,7 @@ export async function loadMoreChatMessages(
   chatId: string,
   cursor?: string,
   pageSize = 20,
-  service: Pick<DesktopRealmHumanChatService, 'listMessages'> = realmChatService,
+  service: Pick<DesktopRealmHumanChatService, 'listMessages'> = desktopRealmChatService,
   emitChatError: DesktopChatErrorEmitter = emitNoop,
 ) {
   if (!cursor) return undefined;
@@ -307,7 +331,7 @@ export async function sendChatMessage(
   chatId: string,
   content: string,
   options: Partial<RealmSendMessageInputDto>,
-  service: Pick<DesktopRealmHumanChatService, 'sendMessage'> = realmChatService,
+  service: Pick<DesktopRealmHumanChatService, 'sendMessage'> = desktopRealmChatService,
   emitChatError: DesktopChatErrorEmitter = emitNoop,
 ) {
   const clientMessageId = String(options.clientMessageId || '').trim() || createClientMessageId();
@@ -333,7 +357,7 @@ export async function sendChatMessage(
 
 export async function flushPendingChatOutbox(
   chatId?: string,
-  service: Pick<DesktopRealmHumanChatService, 'sendMessage'> = realmChatService,
+  service: Pick<DesktopRealmHumanChatService, 'sendMessage'> = desktopRealmChatService,
   emitChatError: DesktopChatErrorEmitter = emitNoop,
 ): Promise<RealmMessageViewDto[]> {
   return flushRealmChatOutbox({
@@ -356,7 +380,7 @@ export async function flushPendingChatOutbox(
 
 export async function markChatAsRead(
   chatId: string,
-  service: Pick<DesktopRealmHumanChatService, 'markChatRead'> = realmChatService,
+  service: Pick<DesktopRealmHumanChatService, 'markChatRead'> = desktopRealmChatService,
   emitChatError: DesktopChatErrorEmitter = emitNoop,
 ) {
   try {
@@ -370,7 +394,7 @@ export async function syncChatEventWindow(
   chatId: string,
   afterSeq: number,
   limit = 200,
-  service: Pick<DesktopRealmHumanChatService, 'syncChatEvents'> = realmChatService,
+  service: Pick<DesktopRealmHumanChatService, 'syncChatEvents'> = desktopRealmChatService,
   emitChatError: DesktopChatErrorEmitter = emitNoop,
 ): Promise<RealmChatSyncResultDto> {
   try {

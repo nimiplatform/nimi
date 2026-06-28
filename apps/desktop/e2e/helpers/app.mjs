@@ -48,6 +48,15 @@ export async function clickByTestId(id, timeout = 0) {
   return element;
 }
 
+export async function clickByTestIdAtStart(id, timeout = 0) {
+  const element = await waitForTestId(id, timeout);
+  await element.scrollIntoView({ block: 'center', inline: 'center' });
+  const size = await element.getSize();
+  const x = -Math.max(0, Math.floor((Number(size.width) || 0) / 2) - 16);
+  await element.click({ x, y: 0 });
+  return element;
+}
+
 export async function waitForTestIdToDisappear(id, timeout = 15000) {
   const selector = `[data-testid="${id}"]`;
   await browser.waitUntil(async () => !(await $(selector).isExisting()), {

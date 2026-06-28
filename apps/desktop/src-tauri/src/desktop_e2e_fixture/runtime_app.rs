@@ -13,6 +13,33 @@ pub(super) fn runtime_register_app_response(
     ))
 }
 
+pub(super) fn runtime_open_session_response(
+    payload: &RuntimeBridgeUnaryPayload,
+) -> Result<RuntimeBridgeUnaryResult, String> {
+    let request: runtime_bridge_generated::OpenSessionRequest = decode_unary_request(payload)?;
+    let app_id = request.app_id.trim();
+    let app_instance_id = request.app_instance_id.trim();
+    let device_id = request.device_id.trim();
+    if app_id.is_empty() || app_instance_id.is_empty() || device_id.is_empty() {
+        return Err("DESKTOP_E2E_RUNTIME_AUTH_OPEN_SESSION_IDENTITY_REQUIRED".to_string());
+    }
+    Ok(encode_unary_response(
+        runtime_bridge_generated::OpenSessionResponse {
+            session_id: format!("e2e-session:{app_instance_id}:{device_id}"),
+            issued_at: Some(prost_types::Timestamp {
+                seconds: 1_767_225_600,
+                nanos: 0,
+            }),
+            expires_at: Some(prost_types::Timestamp {
+                seconds: 1_787_011_200,
+                nanos: 0,
+            }),
+            session_token: format!("e2e-session-token:{app_id}:{app_instance_id}"),
+            reason_code: runtime_bridge_generated::ReasonCode::ActionExecuted as i32,
+        },
+    ))
+}
+
 pub(super) fn account_projection_from_fixture(
     fixture: Option<&DesktopE2ERealmFixture>,
 ) -> Option<runtime_bridge_generated::AccountProjection> {

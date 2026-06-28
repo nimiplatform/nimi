@@ -4,7 +4,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
-import { scenarioRegistry, profilePathForScenario } from '../e2e/helpers/registry.mjs';
+import {
+  MACOS_SMOKE_RUNNER,
+  WDIO_RUNNER,
+  profilePathForScenario,
+  scenarioRegistry,
+  scenarioRunner,
+} from '../e2e/helpers/registry.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const desktopRoot = path.resolve(scriptDir, '..');
@@ -94,6 +100,10 @@ function assertScenarioRegistryIntegrity() {
   for (const [scenarioId, entry] of scenarioRegistry.entries()) {
     if (entry.bucket !== 'smoke' && entry.bucket !== 'journeys') {
       fail(`${scenarioId} uses unsupported bucket ${JSON.stringify(entry.bucket)}`);
+    }
+    const runner = scenarioRunner(entry);
+    if (runner !== WDIO_RUNNER && runner !== MACOS_SMOKE_RUNNER) {
+      fail(`${scenarioId} uses unsupported runner ${JSON.stringify(runner)}`);
     }
     const profilePath = profilePathForScenario(scenarioId);
     registeredProfilePaths.add(path.resolve(profilePath));

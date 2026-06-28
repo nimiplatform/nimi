@@ -14,6 +14,7 @@ import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-t
 import { RecommendPage } from './runtime-config-page-recommend';
 import { LocalPage } from './runtime-config-page-local';
 import { CatalogPage } from './runtime-config-page-catalog';
+import { E2E_IDS } from '@renderer/testability/e2e-ids';
 
 type ModelsSubTabId = 'recommend' | 'installed' | 'catalog';
 
@@ -60,17 +61,17 @@ export function ModelsPage({ model, state }: ModelsPageProps) {
       </div>
       <div className="flex min-h-0 flex-1 flex-col">
         {subTab === 'recommend' ? (
-          <div data-testid="runtime-models-pane:recommend">
+          <div data-testid={E2E_IDS.runtimeModelsPane('recommend')}>
             <RecommendPage model={model} state={state} />
           </div>
         ) : null}
         {subTab === 'installed' ? (
-          <div data-testid="runtime-models-pane:installed" className="flex min-h-0 flex-1 flex-col">
+          <div data-testid={E2E_IDS.runtimeModelsPane('installed')} className="flex min-h-0 flex-1 flex-col">
             <LocalPage model={model} state={state} />
           </div>
         ) : null}
         {subTab === 'catalog' ? (
-          <div data-testid="runtime-models-pane:catalog">
+          <div data-testid={E2E_IDS.runtimeModelsPane('catalog')}>
             <CatalogPage model={model} state={state} />
           </div>
         ) : null}

@@ -6,7 +6,10 @@ import { dispatchRuntimeConfigOpenPage } from '@renderer/features/runtime-config
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { ChatRelationshipRail } from './chat-relationship-rail';
-import { useChatTargetsForSidebar } from './chat-sidebar-targets';
+import {
+  toAgentTargetSnapshotFromSummary,
+  useChatTargetsForSidebar,
+} from './chat-sidebar-targets';
 import { useChatGroupCreateController } from './chat-group-create-controller';
 
 function createLazyImportError(label: string, error: unknown): Error {
@@ -136,6 +139,8 @@ export function ChatPage() {
   const storeSelectedTargetId = useAppStore((state) => state.selectedTargetBySource[state.chatMode] ?? null);
   const setChatMode = useAppStore((state) => state.setChatMode);
   const setSelectedTargetForSource = useAppStore((state) => state.setSelectedTargetForSource);
+  const setAgentConversationSelection = useAppStore((state) => state.setAgentConversationSelection);
+  const setAgentConversationTargetSnapshot = useAppStore((state) => state.setAgentConversationTargetSnapshot);
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const [chatSettingsOpen, setChatSettingsOpen] = useState(false);
   const [nimiThreadListOpen, setNimiThreadListOpen] = useState(false);
@@ -227,11 +232,29 @@ export function ChatPage() {
       return;
     }
     const targetMode = target.source;
+    if (targetMode === 'agent') {
+      const agentSnapshot = toAgentTargetSnapshotFromSummary(target);
+      if (!agentSnapshot) {
+        return;
+      }
+      setAgentConversationTargetSnapshot(agentSnapshot);
+      setAgentConversationSelection({
+        localAgentRef: agentSnapshot.localAgentRef,
+        targetId: agentSnapshot.localAgentRef,
+      });
+    }
     if (chatMode !== targetMode) {
       setChatMode(targetMode);
     }
     setSelectedTargetForSource(targetMode, targetId);
-  }, [allTargets, chatMode, setChatMode, setSelectedTargetForSource]);
+  }, [
+    allTargets,
+    chatMode,
+    setAgentConversationSelection,
+    setAgentConversationTargetSnapshot,
+    setChatMode,
+    setSelectedTargetForSource,
+  ]);
 
   const handleShellSelectTarget = useCallback((targetId: string | null) => {
     if (!targetId) {

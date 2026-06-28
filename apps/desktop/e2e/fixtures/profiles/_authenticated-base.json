@@ -16,7 +16,14 @@
           "lastMessageAt": "2026-03-15T10:00:00.000Z",
           "lastMessage": {
             "id": "msg-e2e-last",
+            "chatId": "chat-e2e-primary",
+            "senderId": "user-e2e-friend",
+            "type": "TEXT",
             "text": "Fixture message preview",
+            "payload": {
+              "content": "Fixture message preview"
+            },
+            "isRead": false,
             "createdAt": "2026-03-15T10:00:00.000Z"
           },
           "otherUser": {
@@ -36,14 +43,24 @@
             "id": "msg-e2e-1",
             "chatId": "chat-e2e-primary",
             "senderId": "user-e2e-friend",
+            "type": "TEXT",
             "text": "Hello from the desktop E2E fixture.",
+            "payload": {
+              "content": "Hello from the desktop E2E fixture."
+            },
+            "isRead": false,
             "createdAt": "2026-03-15T09:58:00.000Z"
           },
           {
             "id": "msg-e2e-2",
             "chatId": "chat-e2e-primary",
             "senderId": "user-e2e-primary",
+            "type": "TEXT",
             "text": "Reply from the authenticated fixture user.",
+            "payload": {
+              "content": "Reply from the authenticated fixture user."
+            },
+            "isRead": true,
             "createdAt": "2026-03-15T09:59:00.000Z"
           }
         ]
@@ -407,6 +424,7 @@
         "connectorId": "",
         "targetType": "",
         "targetAccountId": "",
+        "agentId": "character-e2e-alpha",
         "characterId": "character-e2e-alpha",
         "worldId": "world-e2e-1",
         "provider": "",
@@ -434,7 +452,7 @@
       "productVersion": "0.1.0",
       "state": "ready_for_use",
       "dataRoot": {
-        "path": "/tmp/nimi-e2e-data",
+        "path": "__E2E_DATA_ROOT__",
         "status": "ready",
         "selectedAt": "2026-03-15T00:00:00.000Z",
         "verifiedAt": "2026-03-15T00:00:00.000Z",
@@ -443,11 +461,11 @@
       },
       "firstRun": {
         "installLevel": "minimal",
-        "aiProfileAlias": "minimal",
+        "aiProfileAlias": "local-speech-ready",
         "completed": true,
         "completedAt": "2026-03-15T00:00:00.000Z",
         "initializationPlanId": "e2e-first-run-plan",
-        "baselineProfileRef": "ai-profile:minimal",
+        "baselineProfileRef": "aiprofile/nimi.first-run.local-factory.minimal@1",
         "baselineCommitId": "e2e-fixture",
         "accountDefaultProfileRef": "account-default:e2e",
         "builtInAiConfigRefs": [
@@ -458,7 +476,7 @@
         "executionEvidenceRef": "e2e-ready-entry"
       },
       "pointers": {
-        "runtimeConfigPath": "/tmp/nimi-e2e-runtime/config.json"
+        "runtimeConfigPath": "__E2E_RUNTIME_CONFIG_PATH__"
       },
       "repair": {
         "required": false,

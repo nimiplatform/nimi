@@ -34,6 +34,8 @@ test('runtime sidebar E2E helper derives selector truth from renderer E2E_IDS', 
   const { E2E_IDS } = await import('../e2e/helpers/selectors.mjs') as {
     E2E_IDS: {
       runtimeSidebarPage: (pageId: string) => string;
+      runtimeModelsPane: (paneId: string) => string;
+      runtimeEnvironmentPane: (paneId: string) => string;
       explorePersonaSourceCard: (sourceId: string) => string;
       explorePersonaSourcePrimaryAction: (sourceId: string) => string;
     };
@@ -42,8 +44,10 @@ test('runtime sidebar E2E helper derives selector truth from renderer E2E_IDS', 
   const explorePersonaSourceCardPrefix = extractRendererSelectorPrefix('explorePersonaSourceCard', 'sourceId');
   const explorePersonaSourcePrimaryActionPrefix = extractRendererSelectorPrefix('explorePersonaSourcePrimaryAction', 'sourceId');
 
-  assert.equal(E2E_IDS.runtimeSidebarPage('runtime'), `${rendererPrefix}runtime`);
-  assert.equal(E2E_IDS.runtimeSidebarPage('local'), `${rendererPrefix}local`);
+  assert.equal(E2E_IDS.runtimeSidebarPage('models'), `${rendererPrefix}models`);
+  assert.equal(E2E_IDS.runtimeSidebarPage('environment'), `${rendererPrefix}environment`);
+  assert.equal(E2E_IDS.runtimeModelsPane('installed'), 'runtime-models-pane:installed');
+  assert.equal(E2E_IDS.runtimeEnvironmentPane('dependencies'), 'runtime-environment-pane:dependencies');
   assert.equal(E2E_IDS.explorePersonaSourceCard('agent-a'), `${explorePersonaSourceCardPrefix}agent-a`);
   assert.equal(E2E_IDS.explorePersonaSourcePrimaryAction('agent-a'), `${explorePersonaSourcePrimaryActionPrefix}agent-a`);
   assert.match(e2eSelectorsSource, /readRendererSelectorFactory/);
@@ -60,6 +64,14 @@ test('runtime config sidebar renders renderer-owned runtime sidebar test ids', (
   assert.match(
     rendererE2eIdsSource,
     /runtimeSidebarPage:\s*\(pageId:\s*string\)\s*=>\s*`runtime-sidebar:\$\{pageId\}`/,
+  );
+  assert.match(
+    rendererE2eIdsSource,
+    /runtimeModelsPane:\s*\(paneId:\s*string\)\s*=>\s*`runtime-models-pane:\$\{paneId\}`/,
+  );
+  assert.match(
+    rendererE2eIdsSource,
+    /runtimeEnvironmentPane:\s*\(paneId:\s*string\)\s*=>\s*`runtime-environment-pane:\$\{paneId\}`/,
   );
   assert.match(runtimePanelViewSource, /data-testid=\{E2E_IDS\.runtimeSidebarPage\(item\.id\)\}/);
 });

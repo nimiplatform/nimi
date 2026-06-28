@@ -112,11 +112,11 @@ mod tests {
         FACTORY_PROFILE_INDEX_POINTER, FACTORY_PROFILE_INDEX_SCHEMA_VERSION,
     };
     use crate::test_support::with_env;
-    use nimi_shell_tauri::capabilities::config::{ConfigReadOutcome, ConfigRepairSeverity};
     use nimi_shell_tauri::capabilities::ai_profile::{
         PLATFORM_AI_PROFILE_FACTORY_CATALOG_VERSION, PLATFORM_AI_PROFILE_FACTORY_ROWS,
         PLATFORM_AI_PROFILE_SELECTION_POLICY_REF,
     };
+    use nimi_shell_tauri::capabilities::config::{ConfigReadOutcome, ConfigRepairSeverity};
     use std::path::PathBuf;
     use std::time::{SystemTime, UNIX_EPOCH};
 

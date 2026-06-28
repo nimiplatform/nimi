@@ -16,6 +16,7 @@ import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/ru
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { RuntimePage } from './runtime-config-page-runtime';
 import { DataManagementPage } from '../settings/settings-data-management-page';
+import { E2E_IDS } from '@renderer/testability/e2e-ids';
 
 type EnvironmentSubTabId = 'dependencies' | 'data';
 
@@ -61,12 +62,12 @@ export function EnvironmentPage({ model, state }: EnvironmentPageProps) {
       </div>
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         {subTab === 'dependencies' ? (
-          <div data-testid="runtime-environment-pane:dependencies" className="flex min-h-0 min-w-0 flex-1 flex-col">
+          <div data-testid={E2E_IDS.runtimeEnvironmentPane('dependencies')} className="flex min-h-0 min-w-0 flex-1 flex-col">
             <RuntimePage model={model} state={state} />
           </div>
         ) : null}
         {subTab === 'data' ? (
-          <div data-testid="runtime-environment-pane:data" className="min-w-0">
+          <div data-testid={E2E_IDS.runtimeEnvironmentPane('data')} className="min-w-0">
             <DataManagementPage />
           </div>
         ) : null}

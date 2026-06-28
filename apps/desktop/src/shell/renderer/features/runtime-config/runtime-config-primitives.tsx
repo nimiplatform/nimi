@@ -1,9 +1,13 @@
-import { type ReactNode } from 'react';
+import { useMemo, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { i18n } from '@renderer/i18n';
 
 import {
   AppCardSurface,
   Button as KitButton,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+  ScrollArea,
   TextField,
   SelectField as KitSelectField,
   cn,
@@ -87,6 +91,7 @@ export function Input({
 export type RuntimeSelectOption = {
   value: string;
   label: string;
+  disabled?: boolean;
 };
 
 export function RuntimeSelect({
@@ -98,6 +103,9 @@ export function RuntimeSelect({
   size = 'md',
   className = '',
   contentClassName,
+  searchable = false,
+  searchPlaceholder,
+  emptyLabel,
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -107,10 +115,30 @@ export function RuntimeSelect({
   size?: 'sm' | 'md';
   className?: string;
   contentClassName?: string;
+  searchable?: boolean;
+  searchPlaceholder?: string;
+  emptyLabel?: string;
 }) {
   const triggerClass = size === 'sm'
     ? 'min-h-8 rounded-md px-2 text-xs'
     : 'min-h-10 rounded-xl px-3 text-sm';
+
+  if (searchable) {
+    return (
+      <SearchableRuntimeSelect
+        value={value}
+        onChange={onChange}
+        options={options}
+        placeholder={placeholder}
+        disabled={disabled}
+        className={className}
+        triggerClass={triggerClass}
+        contentClassName={contentClassName}
+        searchPlaceholder={searchPlaceholder}
+        emptyLabel={emptyLabel}
+      />
+    );
+  }
 
   return (
     <KitSelectField
@@ -123,6 +151,180 @@ export function RuntimeSelect({
       selectClassName={triggerClass}
       contentClassName={contentClassName}
     />
+  );
+}
+
+function ChevronIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  );
+}
+
+function SelectCheckIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  );
+}
+
+function SearchGlyph() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="11" cy="11" r="8" />
+      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+    </svg>
+  );
+}
+
+function SearchableRuntimeSelect({
+  value,
+  onChange,
+  options,
+  placeholder,
+  disabled,
+  className,
+  triggerClass,
+  contentClassName,
+  searchPlaceholder,
+  emptyLabel,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  options: RuntimeSelectOption[];
+  placeholder?: string;
+  disabled?: boolean;
+  className: string;
+  triggerClass: string;
+  contentClassName?: string;
+  searchPlaceholder?: string;
+  emptyLabel?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const safeOptions = useMemo(() => options.filter((option) => option.value !== ''), [options]);
+  const selectedOption = safeOptions.find((option) => option.value === value) || null;
+  const filteredOptions = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return safeOptions;
+    return safeOptions.filter((option) => (
+      option.label.toLowerCase().includes(query)
+      || option.value.toLowerCase().includes(query)
+    ));
+  }, [safeOptions, searchQuery]);
+
+  const handleOpenChange = (nextOpen: boolean) => {
+    setOpen(nextOpen);
+    if (!nextOpen) {
+      setSearchQuery('');
+    }
+  };
+
+  const selectOption = (nextValue: string) => {
+    onChange(nextValue);
+    handleOpenChange(false);
+  };
+
+  const onSearchKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      handleOpenChange(false);
+      return;
+    }
+    if (event.key === 'Enter') {
+      const firstEnabled = filteredOptions.find((option) => !option.disabled);
+      if (!firstEnabled) return;
+      event.preventDefault();
+      selectOption(firstEnabled.value);
+    }
+  };
+
+  return (
+    <Popover open={open} onOpenChange={handleOpenChange}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          disabled={disabled}
+          aria-haspopup="listbox"
+          aria-expanded={open}
+          className={cn(
+            'flex w-full items-center justify-between gap-2 border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] text-left text-[var(--nimi-field-text)] transition-colors duration-[var(--nimi-motion-fast)] outline-none enabled:hover:border-[var(--nimi-field-focus)] focus:border-[var(--nimi-field-focus)] focus:ring-[length:var(--nimi-focus-ring-width)] focus:ring-[var(--nimi-focus-ring-color)] disabled:cursor-not-allowed disabled:opacity-[var(--nimi-opacity-disabled)]',
+            triggerClass,
+            className,
+          )}
+        >
+          <span className={cn(
+            'min-w-0 flex-1 truncate text-sm',
+            selectedOption ? 'text-[var(--nimi-field-text)]' : 'text-[var(--nimi-text-muted)]',
+          )}>
+            {selectedOption?.label || placeholder || ''}
+          </span>
+          <span className="shrink-0 text-[var(--nimi-text-muted)]">
+            <ChevronIcon />
+          </span>
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        align="start"
+        sideOffset={6}
+        className={cn(
+          'w-[var(--radix-popover-trigger-width)] overflow-hidden p-0',
+          contentClassName,
+        )}
+      >
+        <div className="border-b border-[var(--nimi-border-subtle)] p-2">
+          <div className="relative">
+            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--nimi-text-muted)]">
+              <SearchGlyph />
+            </span>
+            <input
+              autoFocus
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.currentTarget.value)}
+              onKeyDown={onSearchKeyDown}
+              placeholder={searchPlaceholder || i18n.t('runtimeConfig.common.searchOptions', { defaultValue: 'Search options...' })}
+              className="h-9 w-full rounded-md border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] pl-9 pr-3 text-sm text-[var(--nimi-field-text)] outline-none placeholder:text-[var(--nimi-text-muted)] focus:border-[var(--nimi-field-focus)] focus:ring-[length:var(--nimi-focus-ring-width)] focus:ring-[var(--nimi-focus-ring-color)]"
+            />
+          </div>
+        </div>
+        <ScrollArea className="h-72 max-h-[var(--radix-popover-content-available-height)]" contentClassName="p-1 pr-3">
+          <div role="listbox" className="space-y-0.5">
+            {filteredOptions.length > 0 ? filteredOptions.map((option) => {
+              const selected = option.value === value;
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  role="option"
+                  aria-selected={selected}
+                  disabled={option.disabled}
+                  onClick={() => selectOption(option.value)}
+                  className={cn(
+                    'relative flex min-h-9 w-full items-center rounded-md py-2 pl-3 pr-8 text-left text-sm text-[var(--nimi-text-primary)] outline-none transition-colors',
+                    'hover:bg-[var(--nimi-action-ghost-hover)] focus:bg-[var(--nimi-action-ghost-hover)]',
+                    selected ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)]' : '',
+                    option.disabled ? 'pointer-events-none opacity-[var(--nimi-opacity-disabled)]' : '',
+                  )}
+                >
+                  <span className="min-w-0 flex-1 truncate">{option.label}</span>
+                  {selected ? (
+                    <span className="absolute right-3 inline-flex items-center justify-center text-[var(--nimi-action-primary-bg)]">
+                      <SelectCheckIcon />
+                    </span>
+                  ) : null}
+                </button>
+              );
+            }) : (
+              <p className="px-3 py-3 text-sm text-[var(--nimi-text-muted)]">
+                {emptyLabel || i18n.t('runtimeConfig.common.noOptionsMatchingSearch', { defaultValue: 'No matching options.' })}
+              </p>
+            )}
+          </div>
+        </ScrollArea>
+      </PopoverContent>
+    </Popover>
   );
 }
 

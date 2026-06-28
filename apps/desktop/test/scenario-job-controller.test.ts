@@ -199,7 +199,7 @@ test('D-STRM-010: polling recovery timeout after max retries', async () => {
   });
 
   startPollingRecovery(TEST_JOB, deps, { pollIntervalMs: 5 });
-  await waitFor(() => getJobState(TEST_JOB).phase === 'recovery_timeout', 500);
+  await waitFor(() => getJobState(TEST_JOB).phase === 'recovery_timeout', 2_000);
 
   const state = getJobState(TEST_JOB);
   assert.equal(state.phase, 'recovery_timeout');

@@ -62,7 +62,7 @@ test('runtime config panel mounts the Models section with a stable page root', (
 test('Models section composes the recommend sub-tab', () => {
   assert.match(modelsPageSource, /RecommendPage/);
   assert.match(modelsPageSource, /runtime-models-subtab:/);
-  assert.match(modelsPageSource, /runtime-models-pane:recommend/);
+  assert.match(modelsPageSource, /E2E_IDS\.runtimeModelsPane\('recommend'\)/);
   // The three retired sections all collapse into Models sub-tabs.
   assert.match(modelsPageSource, /LocalPage/);
   assert.match(modelsPageSource, /CatalogPage/);

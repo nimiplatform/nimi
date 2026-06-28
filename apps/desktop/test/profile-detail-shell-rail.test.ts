@@ -48,6 +48,15 @@ test('profile detail shell rail: modal toggles shell overlay state while open', 
   );
 });
 
+test('profile detail shell rail: modal provides Radix dialog title and description semantics', () => {
+  assert.match(profileDetailModalSource, /import \{ DialogDescription, DialogTitle, OverlayShell \} from '@nimiplatform\/kit\/ui';/);
+  assert.match(profileDetailModalSource, /const profileDialogName = profile\?\.displayName \|\| props\.profileSeed\?\.displayName \|\| t\('Relationship\.profileDetailDialogTitleFallback'/);
+  assert.match(profileDetailModalSource, /const profileDialogTitle = t\('Relationship\.profileDetailDialogTitle'/);
+  assert.match(profileDetailModalSource, /const profileDialogDescription = t\('Relationship\.profileDetailDialogDescription'/);
+  assert.match(profileDetailModalSource, /<DialogTitle className="sr-only">\{profileDialogTitle\}<\/DialogTitle>/);
+  assert.match(profileDetailModalSource, /<DialogDescription className="sr-only">\{profileDialogDescription\}<\/DialogDescription>/);
+});
+
 test('profile detail shell rail: own profile remains keyed off selectedProfileId absence', () => {
   assert.match(profilePanelSource, /const isOwnProfile = !selectedProfileId;/);
 });

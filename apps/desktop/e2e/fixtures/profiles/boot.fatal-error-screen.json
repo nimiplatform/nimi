@@ -5,6 +5,10 @@
   },
   "artifactPolicy": {
     "failOnConsoleError": true,
-    "failOnPageError": true
+    "failOnPageError": true,
+    "allowedRendererErrorMessages": [
+      "phase:bootstrap:failed",
+      "phase:bootstrap-watchdog:failed"
+    ]
   }
 }

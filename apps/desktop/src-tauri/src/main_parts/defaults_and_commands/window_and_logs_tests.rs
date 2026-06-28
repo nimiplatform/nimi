@@ -217,11 +217,11 @@ fn avatar_runtime_env_pairs_forward_runtime_defaults_without_realm_or_token() {
       }},
       "firstRun": {{
         "installLevel": "minimal",
-        "aiProfileAlias": "minimal",
+        "aiProfileAlias": "local-speech-ready",
         "completed": true,
         "completedAt": "2026-03-15T00:00:00.000Z",
         "initializationPlanId": "e2e-first-run-plan",
-        "baselineProfileRef": "ai-profile:minimal",
+        "baselineProfileRef": "aiprofile/nimi.first-run.local-factory.minimal@1",
         "baselineCommitId": "e2e-fixture",
         "accountDefaultProfileRef": "account-default:e2e",
         "builtInAiConfigRefs": ["ai-config:nimi-chat:e2e"],
@@ -288,13 +288,14 @@ fn avatar_runtime_env_pairs_forward_runtime_defaults_without_realm_or_token() {
         "NIMI_E2E_BACKEND_LOG_PATH",
         fixture_dir.join("backend.log").as_os_str(),
     );
-    let _ =
-        nimi_shell_tauri::capabilities::runtime::set_runtime_bridge_host_hooks(RuntimeBridgeHostHooks {
+    let _ = nimi_shell_tauri::capabilities::runtime::set_runtime_bridge_host_hooks(
+        RuntimeBridgeHostHooks {
             unary_override: Some(Arc::new(|payload| {
                 crate::desktop_e2e_fixture::runtime_bridge_unary_override(payload)
             })),
             ..Default::default()
-        });
+        },
+    );
     crate::apps_registry_projection::ensure_apps_registry().expect("ensure app registry");
 
     let pairs = avatar_runtime_env_pairs().expect("avatar env pairs");

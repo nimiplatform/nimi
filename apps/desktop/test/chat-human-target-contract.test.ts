@@ -7,7 +7,9 @@ import {
   type RealmChatViewDto,
 } from '@nimiplatform/kit/features/chat/realm';
 import {
+  toAgentTargetSnapshotFromSummary,
   mergeHumanChatTargetsWithFriendTargets,
+  toAgentTargetsFromSocialSnapshot,
   toHumanFriendTargetsFromSocialSnapshot,
 } from '../src/shell/renderer/features/chat/chat-sidebar-targets.js';
 
@@ -111,6 +113,93 @@ test('human sidebar targets include human friends without duplicating existing c
   ]);
 });
 
+test('agent sidebar targets derive only from materialized Realm source contacts', () => {
+  const agentTargets = toAgentTargetsFromSocialSnapshot({
+    friends: [
+      {
+        id: 'source-1',
+        displayName: 'Archivist',
+        handle: '~archivist',
+        avatarUrl: '',
+        bio: 'connected source',
+        isSource: true,
+        worldId: 'world-1',
+        worldName: 'World One',
+        sourceKind: 'worldCharacter',
+        sourceId: 'source-1',
+        sourceContentHash: 'hash-1',
+        runtimeSourceRef: 'runtime-source-1',
+      },
+      {
+        id: 'source-unmaterialized',
+        displayName: 'No Runtime Ref',
+        isSource: true,
+        worldId: 'world-1',
+        sourceKind: 'worldCharacter',
+        sourceId: 'source-unmaterialized',
+        sourceContentHash: 'hash-2',
+      },
+      {
+        id: 'human-1',
+        displayName: 'Human',
+        isSource: false,
+      },
+    ],
+  }, 'owner-1');
+
+  assert.equal(agentTargets.length, 1);
+  assert.equal(agentTargets[0]?.id, 'local-agent:owner-1:runtime-source-1');
+  assert.equal(agentTargets[0]?.source, 'agent');
+  assert.equal(agentTargets[0]?.title, 'Archivist');
+  assert.equal(agentTargets[0]?.handle, '~archivist');
+  assert.equal(agentTargets[0]?.metadata?.localAgentRef, 'local-agent:owner-1:runtime-source-1');
+  assert.equal(agentTargets[0]?.metadata?.runtimeSourceRef, 'runtime-source-1');
+});
+
+test('agent sidebar target metadata restores the local target snapshot for selection', () => {
+  const [agentTarget] = toAgentTargetsFromSocialSnapshot({
+    friends: [
+      {
+        id: 'source-1',
+        displayName: 'Archivist',
+        handle: '~archivist',
+        avatarUrl: '',
+        bio: 'connected source',
+        isSource: true,
+        worldId: 'world-1',
+        worldName: 'World One',
+        sourceKind: 'worldCharacter',
+        sourceId: 'source-1',
+        sourceContentHash: 'hash-1',
+        runtimeSourceRef: 'runtime-source-1',
+      },
+    ],
+  }, 'owner-1');
+
+  const snapshot = toAgentTargetSnapshotFromSummary(agentTarget);
+  assert.deepEqual(snapshot, {
+    ownerUserId: 'owner-1',
+    runtimeSourceRef: 'runtime-source-1',
+    localAgentRef: 'local-agent:owner-1:runtime-source-1',
+    displayName: 'Archivist',
+    handle: '~archivist',
+    avatarUrl: null,
+    worldId: 'world-1',
+    worldName: 'World One',
+    bio: 'connected source',
+    ownershipType: null,
+    greeting: null,
+    builtinDocsContext: null,
+  });
+
+  assert.equal(toAgentTargetSnapshotFromSummary({
+    id: 'human-1',
+    source: 'human',
+    canonicalSessionId: 'human-1',
+    title: 'Human',
+  }), null);
+});
+
 test('human target selection starts a Realm chat when the friend has no existing chat', () => {
   const source = readFileSync(
     new URL('../src/shell/renderer/features/chat/chat-human-adapter.tsx', import.meta.url),
@@ -122,4 +211,15 @@ test('human target selection starts a Realm chat when the friend has no existing
   assert.match(source, /void startChatWithTarget\(normalizedTargetId, null\)/);
   assert.match(source, /setSelectedChatId\(chatId\);/);
   assert.match(source, /queryClient\.invalidateQueries\(\{ queryKey: \['chats'\] \}\)/);
+});
+
+test('agent sidebar target selection writes the local target snapshot before entering agent mode', () => {
+  const source = readFileSync(
+    new URL('../src/shell/renderer/features/chat/chat-page.tsx', import.meta.url),
+    'utf8',
+  );
+
+  assert.match(source, /toAgentTargetSnapshotFromSummary/);
+  assert.match(source, /setAgentConversationTargetSnapshot\(agentSnapshot\)/);
+  assert.match(source, /setAgentConversationSelection\(\{\s*localAgentRef:\s*agentSnapshot\.localAgentRef,\s*targetId:\s*agentSnapshot\.localAgentRef,\s*\}\)/);
 });

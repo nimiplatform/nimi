@@ -4,7 +4,9 @@ use crate::{
     menu_bar_shell,
 };
 use nimi_shell_tauri::{
-    capabilities::diagnostics::{build_renderer_entry_probe_script, RendererEntryProbeScriptConfig},
+    capabilities::diagnostics::{
+        build_renderer_entry_probe_script, RendererEntryProbeScriptConfig,
+    },
     capabilities::runtime::RuntimeBridgeHostHooks,
 };
 use std::sync::Arc;

@@ -1,10 +1,12 @@
 use super::{
-    built_in_ai_config_path, compute_config_content_hash, data_root_ref, ensure_built_in_ai_config,
-    ensure_built_in_ai_config_evidence_set,
+    built_in_ai_config_path, compute_config_content_hash, config_record_temp_path, data_root_ref,
+    ensure_built_in_ai_config, ensure_built_in_ai_config_evidence_set,
     runtime_capability_bindings_from_execution_evidence_ref,
     verify_built_in_ai_config_evidence_set, verify_built_in_ai_config_ref, BuiltInAiConfigRecord,
 };
 use std::path::{Path, PathBuf};
+use std::sync::{Arc, Barrier};
+use std::thread;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 const ALIAS: &str = "local-speech-ready";
@@ -322,6 +324,61 @@ fn existing_valid_records_are_reused_without_rewrite() {
     let raw_after = std::fs::read_to_string(&nimi_path).expect("read after");
     assert_eq!(raw_after, raw_before);
     assert_eq!(first.refs(), second.refs());
+}
+
+#[test]
+fn config_record_temp_paths_are_unique_for_same_target() {
+    let root = temp_data_root("temp-paths");
+    let target = built_in_ai_config_path(&root, "account_1", "nimi").expect("path");
+    let first = config_record_temp_path(&target);
+    let second = config_record_temp_path(&target);
+
+    assert_eq!(first.parent(), target.parent());
+    assert_eq!(second.parent(), target.parent());
+    assert_ne!(first, target);
+    assert_ne!(second, target);
+    assert_ne!(first, second);
+}
+
+#[test]
+fn concurrent_evidence_set_materialization_reuses_single_committed_refs() {
+    let root = temp_data_root("concurrent-evidence-set");
+    let root = Arc::new(root);
+    let bindings = Arc::new(baseline_bindings());
+    let barrier = Arc::new(Barrier::new(8));
+    let handles = (0..8)
+        .map(|_| {
+            let root = Arc::clone(&root);
+            let bindings = Arc::clone(&bindings);
+            let barrier = Arc::clone(&barrier);
+            thread::spawn(move || {
+                barrier.wait();
+                ensure_built_in_ai_config_evidence_set(
+                    root.as_ref(),
+                    "account_1",
+                    ALIAS,
+                    LEVEL,
+                    bindings.as_ref(),
+                )
+            })
+        })
+        .collect::<Vec<_>>();
+
+    let sets = handles
+        .into_iter()
+        .map(|handle| handle.join().expect("thread joined").expect("ensure set"))
+        .collect::<Vec<_>>();
+    let refs = sets.first().expect("at least one result").refs();
+    for set in &sets {
+        assert_eq!(set.refs(), refs);
+    }
+    verify_built_in_ai_config_evidence_set(
+        root.as_ref(),
+        "account_1",
+        &refs,
+        Some(bindings.as_ref()),
+    )
+    .expect("shared committed refs still verify");
 }
 
 // ---- Negative ---------------------------------------------------------

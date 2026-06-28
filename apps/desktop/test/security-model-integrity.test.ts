@@ -52,7 +52,7 @@ test('D-SEC-006: verified empty hash list projects LOCAL_AI_MODEL_HASHES_EMPTY e
 
 test('D-SEC-006: Desktop Tauri command delegates selected manifest containment to Kit', () => {
   assert.ok(
-    localRuntimeCommandsSource.includes('canonical_asset_manifest_path(&path, &models_root)'),
+    /nimi_shell_tauri::capabilities::local_assets::canonical_asset_manifest_path\(\s*&path,\s*&models_root,\s*\)/.test(localRuntimeCommandsSource),
     'Desktop Tauri command must delegate manifest containment to Kit',
   );
   assert.doesNotMatch(localRuntimeCommandsSource, /"resolved"/);

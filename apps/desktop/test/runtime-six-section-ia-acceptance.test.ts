@@ -183,9 +183,9 @@ test('Models section absorbs recommend + local + catalog (Runtime Surface Cleanu
   assert.match(modelsPageSource, /CatalogPage/, 'Models absorbs the catalog surface');
   // The three are sub-tabs inside one section, not top-level IA entries.
   assert.match(modelsPageSource, /runtime-models-subtab:/);
-  assert.match(modelsPageSource, /runtime-models-pane:recommend/);
-  assert.match(modelsPageSource, /runtime-models-pane:installed/);
-  assert.match(modelsPageSource, /runtime-models-pane:catalog/);
+  assert.match(modelsPageSource, /E2E_IDS\.runtimeModelsPane\('recommend'\)/);
+  assert.match(modelsPageSource, /E2E_IDS\.runtimeModelsPane\('installed'\)/);
+  assert.match(modelsPageSource, /E2E_IDS\.runtimeModelsPane\('catalog'\)/);
 });
 
 test('Environment section absorbs data-management + runtime operations', () => {
@@ -193,8 +193,8 @@ test('Environment section absorbs data-management + runtime operations', () => {
   assert.match(environmentPageSource, /RuntimePage/, 'Environment absorbs the runtime operations surface');
   assert.match(environmentPageSource, /DataManagementPage/, 'Environment absorbs data management');
   assert.match(environmentPageSource, /runtime-environment-subtab:/);
-  assert.match(environmentPageSource, /runtime-environment-pane:dependencies/);
-  assert.match(environmentPageSource, /runtime-environment-pane:data/);
+  assert.match(environmentPageSource, /E2E_IDS\.runtimeEnvironmentPane\('dependencies'\)/);
+  assert.match(environmentPageSource, /E2E_IDS\.runtimeEnvironmentPane\('data'\)/);
 });
 
 test('Advanced section absorbs performance and excludes retired Mods', () => {

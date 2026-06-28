@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
+import { ScrollShell } from '@nimiplatform/kit/ui';
 import type { NimiAIProfile } from '@nimiplatform/sdk/ai';
 import { validateNimiAIProfile } from '@nimiplatform/sdk/ai';
 
@@ -36,17 +37,18 @@ export function ProfileEditorModal(props: {
 
   const editorLayer = (
     <div
-      className="fixed inset-0 z-[var(--nimi-z-dialog)] overflow-y-auto bg-[color-mix(in_srgb,var(--nimi-surface-canvas)_78%,rgba(15,23,42,0.28))] px-3 py-3 backdrop-blur-sm sm:px-4 lg:px-6"
+      className="fixed inset-0 z-[var(--nimi-z-dialog)] nimi-material-glass-regular bg-[color-mix(in_srgb,var(--nimi-surface-canvas)_78%,rgba(15,23,42,0.28))] backdrop-blur-[var(--nimi-backdrop-blur-regular)]"
       data-testid="runtime-profiles-editor-full-page"
     >
-      <section
-        aria-labelledby="runtime-profiles-editor-title"
-        aria-modal="true"
-        role="dialog"
-        className="mx-auto flex min-h-[calc(100vh-2rem)] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] shadow-xl"
-        data-testid="runtime-profiles-editor"
-      >
-        <header className="border-b border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_92%,var(--nimi-surface-panel))] px-5 py-4 sm:px-6">
+      <ScrollShell className="h-full px-3 py-3 sm:px-4 lg:px-6">
+        <section
+          aria-labelledby="runtime-profiles-editor-title"
+          aria-modal="true"
+          role="dialog"
+          className="mx-auto flex min-h-[calc(100vh-2rem)] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] shadow-xl"
+          data-testid="runtime-profiles-editor"
+        >
+          <header className="border-b border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_92%,var(--nimi-surface-panel))] px-5 py-4 sm:px-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="min-w-0">
               <h3 id="runtime-profiles-editor-title" className="text-xl font-semibold text-[var(--nimi-text-primary)]">
@@ -136,8 +138,9 @@ export function ProfileEditorModal(props: {
               placeholder={'{\n  "capabilities": {}\n}'}
             />
           </section>
-        </div>
-      </section>
+          </div>
+        </section>
+      </ScrollShell>
     </div>
   );
 

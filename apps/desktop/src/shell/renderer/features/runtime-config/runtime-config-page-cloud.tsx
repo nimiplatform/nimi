@@ -26,6 +26,7 @@ export function CloudPage({ model, state }: CloudPageProps) {
   const [providerCatalog, setProviderCatalog] = useState<ProviderCatalogEntry[]>([]);
   const pageFeedbackRef = useRef(model.pageFeedback);
   const [tokenDraft, setTokenDraft] = useState('');
+  const [connectorLabelDraft, setConnectorLabelDraft] = useState('');
   const [savingToken, setSavingToken] = useState(false);
   const [tokenSaveError, setTokenSaveError] = useState('');
   const [tokenSavedConnectorId, setTokenSavedConnectorId] = useState('');
@@ -71,6 +72,9 @@ export function CloudPage({ model, state }: CloudPageProps) {
     setCodexOAuthPending(null);
     setCodexOAuthBusy(false);
   }, [selectedConnectorId]);
+  useEffect(() => {
+    setConnectorLabelDraft(String(selectedConnector?.label || ''));
+  }, [selectedConnectorId, selectedConnector?.label]);
   const canSaveToken = useMemo(
     () => (
       Boolean(selectedConnectorId)
@@ -174,6 +178,7 @@ export function CloudPage({ model, state }: CloudPageProps) {
       lastDetail: '',
       isDraft: true,
     };
+    setConnectorLabelDraft(draft.label);
     updateState((prev) => addConnectorToState(prev, draft));
   }, [authStatus, state.connectors.length, updateState]);
   const onDeleteConnector = useCallback(async (connectorId: string) => {
@@ -192,8 +197,12 @@ export function CloudPage({ model, state }: CloudPageProps) {
     }
   }, [deletingConnectorId, state.connectors, updateState, refreshConnectorsFromSdk]);
   const onSelectConnector = useCallback((connectorId: string) => {
+    const connector = state.connectors.find((item) => item.id === connectorId) || null;
+    if (connector) {
+      setConnectorLabelDraft(String(connector.label || ''));
+    }
     updateState((prev) => ({ ...prev, selectedConnectorId: connectorId }));
-  }, [updateState]);
+  }, [state.connectors, updateState]);
   const onRenameSelectedConnector = useCallback((label: string) => {
     if (isRuntimeSystem) return;
     const previousLabel = String(selectedConnector?.label || '');
@@ -208,6 +217,11 @@ export function CloudPage({ model, state }: CloudPageProps) {
       })();
     }
   }, [isRuntimeSystem, selectedConnector, selectedConnectorId, updateState, reportError]);
+  const commitConnectorLabelDraft = useCallback(() => {
+    if (!selectedConnector || isRuntimeSystem) return;
+    if (connectorLabelDraft === selectedConnector.label) return;
+    onRenameSelectedConnector(connectorLabelDraft);
+  }, [connectorLabelDraft, isRuntimeSystem, onRenameSelectedConnector, selectedConnector]);
   const onChangeConnectorEndpoint = useCallback((endpoint: string) => {
     if (!selectedConnector || isRuntimeSystem) return;
     const previousConnector = selectedConnector;
@@ -230,6 +244,7 @@ export function CloudPage({ model, state }: CloudPageProps) {
   const onSaveConnectorCredential = useCallback(async (input: {
     credentialValue?: string;
     credentialJson?: string;
+    label?: string;
   }) => {
     if (!selectedConnectorId || !selectedConnector) return '';
     const normalizedSecret = String(input.credentialValue || '').trim();
@@ -242,7 +257,7 @@ export function CloudPage({ model, state }: CloudPageProps) {
       const created = await sdkCreateConnector({
         provider: selectedConnector.provider,
         endpoint: selectedConnector.endpoint,
-        label: selectedConnector.label,
+        label: input.label ?? selectedConnector.label,
         credentialValue: normalizedSecret,
         credentialJson: normalizedCredentialJson,
         authMode: selectedConnector.authMode,
@@ -353,7 +368,10 @@ export function CloudPage({ model, state }: CloudPageProps) {
     setSavingToken(true);
     setTokenSaveError('');
     try {
-      const persistedConnectorId = await onSaveConnectorCredential({ credentialValue: secret });
+      const persistedConnectorId = await onSaveConnectorCredential({
+        credentialValue: secret,
+        label: connectorLabelDraft,
+      });
       setTokenDraft('');
       setTokenSavedConnectorId(persistedConnectorId || selectedConnectorId);
     } catch (error) {
@@ -418,6 +436,7 @@ export function CloudPage({ model, state }: CloudPageProps) {
           canStartCodexOAuth={canStartCodexOAuth}
           codexOAuthBusy={codexOAuthBusy}
           codexOAuthPending={codexOAuthPending}
+          connectorLabelDraft={connectorLabelDraft}
           isCodexManagedConnector={isCodexManagedConnector}
           isDraft={isDraft}
           isMachineGlobal={isMachineGlobal}
@@ -425,10 +444,11 @@ export function CloudPage({ model, state }: CloudPageProps) {
           isSystemOwned={isSystemOwned}
           model={model}
           onAcquireCodexOAuth={onAcquireCodexOAuth}
+          onCommitConnectorLabelDraft={commitConnectorLabelDraft}
+          onConnectorLabelDraftChange={setConnectorLabelDraft}
           onChangeConnectorAuthOption={onChangeConnectorAuthOption}
           onChangeConnectorEndpoint={onChangeConnectorEndpoint}
           onChangeConnectorVendor={onChangeConnectorVendor}
-          onRenameSelectedConnector={onRenameSelectedConnector}
           reportError={reportError}
           saveTokenToVault={saveTokenToVault}
           savingToken={savingToken}

@@ -32,7 +32,11 @@ use nimi_shell_tauri::capabilities::ai_profile::{
 };
 use serde::Serialize;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use std::sync::{
+    atomic::{AtomicU64, Ordering},
+    Mutex,
+};
 
 const BUILT_IN_AI_CONFIG_SCHEMA_VERSION: u32 = 1;
 const BUILT_IN_AI_CONFIG_REF_PREFIX: &str = "built-in-ai-config:v1";
@@ -40,6 +44,8 @@ const BUILT_IN_AI_CONFIG_WRITER_IDENTITY: &str = "desktop_host_ai_config_service
 const BUILT_IN_AI_CONFIG_SCOPE_KIND: &str = "feature";
 const BUILT_IN_AI_CONFIG_SCOPE_OWNER_ID: &str = "desktop.chat";
 const BUILT_IN_AI_CONFIG_APPLY_SOURCE: &str = "desktop_host_first_run_built_in_ai_config";
+static BUILT_IN_AI_CONFIG_TEMP_SEQUENCE: AtomicU64 = AtomicU64::new(0);
+static BUILT_IN_AI_CONFIG_MATERIALIZE_LOCK: Mutex<()> = Mutex::new(());
 
 /// The two canonical first-run built-in chat surface ids (`P-AISC-006`).
 const BUILT_IN_CHAT_SURFACE_IDS: &[&str] = &["nimi", "agent"];
@@ -345,6 +351,11 @@ fn read_config_record(path: &Path) -> Result<BuiltInAiConfigRecord, String> {
     })
 }
 
+fn config_record_temp_path(path: &Path) -> PathBuf {
+    let sequence = BUILT_IN_AI_CONFIG_TEMP_SEQUENCE.fetch_add(1, Ordering::Relaxed);
+    path.with_extension(format!("json.tmp.{}.{}", std::process::id(), sequence))
+}
+
 /// Atomic commit (`D-AIPC-005`): write to a temp file then rename into place.
 fn write_config_record(path: &Path, record: &BuiltInAiConfigRecord) -> Result<(), String> {
     let parent = path
@@ -358,7 +369,7 @@ fn write_config_record(path: &Path, record: &BuiltInAiConfigRecord) -> Result<()
     })?;
     let raw = serde_json::to_string_pretty(record)
         .map_err(|error| format!("serialize built-in AIConfig failed: {error}"))?;
-    let tmp_path = path.with_extension(format!("json.tmp.{}", std::process::id()));
+    let tmp_path = config_record_temp_path(path);
     fs::write(&tmp_path, raw).map_err(|error| {
         format!(
             "write built-in AIConfig temporary file failed ({}): {error}",
@@ -446,30 +457,35 @@ pub fn ensure_built_in_ai_config(
     install_level: &str,
     baseline_bindings: &[BuiltInAiConfigCapability],
 ) -> Result<BuiltInAiConfigEvidence, String> {
+    let _guard = BUILT_IN_AI_CONFIG_MATERIALIZE_LOCK
+        .lock()
+        .map_err(|_| "built-in AIConfig materialization lock is poisoned".to_string())?;
     let path = built_in_ai_config_path(data_root, authenticated_account_id, surface_id)?;
     let expected_data_root_ref = data_root_ref(data_root)?;
     let selected_row =
         verify_first_run_factory_ai_profile(selected_ai_profile_alias, install_level)?;
     if path.exists() {
         let record = read_config_record(&path)?;
-        if verify_record_fields(
+        verify_record_fields(
             &record,
             authenticated_account_id,
             &expected_data_root_ref,
             surface_id,
             Some(baseline_bindings),
         )
-        .is_ok()
-        {
-            let evidence = evidence_from_record(&path, &record)?;
-            return verify_built_in_ai_config_ref(
-                data_root,
-                authenticated_account_id,
-                surface_id,
-                &evidence.built_in_ai_config_ref,
-                Some(baseline_bindings),
-            );
-        }
+        .map_err(|error| {
+            format!(
+                "existing built-in AIConfig record failed owner verification; refusing to overwrite: {error}"
+            )
+        })?;
+        let evidence = evidence_from_record(&path, &record)?;
+        return verify_built_in_ai_config_ref(
+            data_root,
+            authenticated_account_id,
+            surface_id,
+            &evidence.built_in_ai_config_ref,
+            Some(baseline_bindings),
+        );
     }
     let record = new_config_record(
         authenticated_account_id,

@@ -39,6 +39,7 @@ type CloudConnectorDetailPanelProps = {
   canStartCodexOAuth: boolean;
   codexOAuthBusy: boolean;
   codexOAuthPending: CodexOAuthPendingState | null;
+  connectorLabelDraft: string;
   isCodexManagedConnector: boolean;
   isDraft: boolean;
   isMachineGlobal: boolean;
@@ -46,10 +47,11 @@ type CloudConnectorDetailPanelProps = {
   isSystemOwned: boolean;
   model: RuntimeConfigPanelControllerModel;
   onAcquireCodexOAuth: () => void;
+  onCommitConnectorLabelDraft: () => void;
+  onConnectorLabelDraftChange: (label: string) => void;
   onChangeConnectorAuthOption: (nextValue: string) => void;
   onChangeConnectorEndpoint: (endpoint: string) => void;
   onChangeConnectorVendor: (vendor: string) => Promise<void>;
-  onRenameSelectedConnector: (label: string) => void;
   reportError: (label: string, error: unknown) => void;
   saveTokenToVault: () => Promise<void>;
   savingToken: boolean;
@@ -74,6 +76,7 @@ export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps)
     canStartCodexOAuth,
     codexOAuthBusy,
     codexOAuthPending,
+    connectorLabelDraft,
     isCodexManagedConnector,
     isDraft,
     isMachineGlobal,
@@ -99,8 +102,9 @@ export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps)
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <Input
                 label={t('runtimeConfig.cloud.connectorName', { defaultValue: 'Connector Name' })}
-                value={selectedConnector.label}
-                onChange={props.onRenameSelectedConnector}
+                value={connectorLabelDraft}
+                onChange={props.onConnectorLabelDraftChange}
+                onBlur={props.onCommitConnectorLabelDraft}
                 placeholder={t('runtimeConfig.cloud.connectorNamePlaceholder', { defaultValue: 'My API Connector' })}
                 disabled={isRuntimeSystem}
                 icon={<ServerIcon />}
@@ -115,6 +119,8 @@ export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps)
                   disabled={!canEditVendor}
                   className="w-full"
                   options={vendorOptions}
+                  searchable
+                  searchPlaceholder={t('runtimeConfig.cloud.searchVendors', { defaultValue: 'Search vendors...' })}
                 />
               </div>
             </div>

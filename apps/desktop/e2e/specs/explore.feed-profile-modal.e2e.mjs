@@ -13,6 +13,8 @@ describe('explore.feed-profile-modal', () => {
     await waitForTestId(E2E_IDS.mainShell);
     await clickByTestId(E2E_IDS.navTab('explore'));
     await waitForTestId(E2E_IDS.panel('explore'));
+    await clickByTestId(E2E_IDS.exploreSectionTab('activity'));
+    await waitForTestId(E2E_IDS.exploreSection('activity'));
 
     await clickByTestId(E2E_IDS.feedPostAuthor('post-explore-author-1'));
     await waitForTestId(E2E_IDS.profileDetailModal);

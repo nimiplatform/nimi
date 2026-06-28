@@ -16,8 +16,16 @@ const e2eSelectorsSource = fs.readFileSync(
   path.join(desktopRoot, 'e2e/helpers/selectors.mjs'),
   'utf8',
 );
+const e2eAppHelperSource = fs.readFileSync(
+  path.join(desktopRoot, 'e2e/helpers/app.mjs'),
+  'utf8',
+);
 const cognitionPanelSource = fs.readFileSync(
   path.join(desktopRoot, 'src/shell/renderer/features/chat/chat-agent-cognition-panel.tsx'),
+  'utf8',
+);
+const memoryStandardBindSpecSource = fs.readFileSync(
+  path.join(desktopRoot, 'e2e/specs/chat.memory-standard-bind.e2e.mjs'),
   'utf8',
 );
 const agentCenterPanelSource = fs.readFileSync(
@@ -78,6 +86,9 @@ test('chat memory standard bind journey exposes stable Memory Mode test ids', ()
   assert.match(cognitionPanelSource, /data-testid=\{E2E_IDS\.chatMemoryModeStatus\}/);
   assert.match(cognitionPanelSource, /data-memory-mode=\{memoryModeValue\}/);
   assert.match(cognitionPanelSource, /data-testid=\{E2E_IDS\.chatMemoryModeUpgradeButton\}/);
+  assert.match(memoryStandardBindSpecSource, /getAttribute\('data-memory-mode'\)/);
+  assert.match(memoryStandardBindSpecSource, /clickByTestIdAtStart\(E2E_IDS\.chatMemoryModeUpgradeButton\)/);
+  assert.match(e2eAppHelperSource, /export async function clickByTestIdAtStart/);
 });
 
 test('Agent Center wires Standard memory upgrade to the runtime memory projection surface', () => {

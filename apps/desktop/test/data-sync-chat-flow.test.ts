@@ -50,6 +50,13 @@ describe('desktop human chat scaffold source scanning', () => {
     assert.match(chatFlowSource, /parsePersistentRealmSendMessageInput/);
   });
 
+  test('default human chat service is bound to the Desktop Realm client', () => {
+    assert.match(chatFlowSource, /createRealmChatService/);
+    assert.match(chatFlowSource, /callRealmApi/);
+    assert.match(chatFlowSource, /desktopRealmChatService/);
+    assert.doesNotMatch(chatFlowSource, /= realmChatService/);
+  });
+
   test('failed send queues to outbox with attempts tracking', async () => {
     const manager = await getOfflineOutboxManager();
     manager.close();

@@ -328,17 +328,25 @@ mod tests {
         }
     }
 
+    fn storage_base() -> std::path::PathBuf {
+        std::env::temp_dir()
+            .join("nimi-data")
+            .join("apps")
+            .join("nimi.avatar")
+    }
+
     fn storage_projection(
         state: crate::runtime_bridge::generated::AppStorageState,
     ) -> crate::runtime_bridge::generated::AppStorageProjection {
+        let base = storage_base();
         crate::runtime_bridge::generated::AppStorageProjection {
             app_id: "nimi.avatar".to_string(),
             state: state as i32,
-            app_root: "/tmp/nimi-data/apps/nimi.avatar".to_string(),
-            active_release_root: "/tmp/nimi-data/apps/nimi.avatar/releases/1.0.0".to_string(),
-            durable_data_root: "/tmp/nimi-data/apps/nimi.avatar/data".to_string(),
-            cache_root: "/tmp/nimi-data/apps/nimi.avatar/cache".to_string(),
-            temp_root: "/tmp/nimi-data/apps/nimi.avatar/tmp".to_string(),
+            app_root: base.display().to_string(),
+            active_release_root: base.join("releases").join("1.0.0").display().to_string(),
+            durable_data_root: base.join("data").display().to_string(),
+            cache_root: base.join("cache").display().to_string(),
+            temp_root: base.join("tmp").display().to_string(),
             active_version: "1.0.0".to_string(),
             storage_policy_ref: "nimi-data-app-roots".to_string(),
             reason_code: crate::runtime_bridge::generated::ReasonCode::ActionExecuted as i32,
@@ -389,18 +397,9 @@ mod tests {
         ))
         .expect("avatar storage roots");
 
-        assert_eq!(
-            roots.data_root,
-            std::path::PathBuf::from("/tmp/nimi-data/apps/nimi.avatar/data")
-        );
-        assert_eq!(
-            roots.cache_root,
-            std::path::PathBuf::from("/tmp/nimi-data/apps/nimi.avatar/cache")
-        );
-        assert_eq!(
-            roots.temp_root,
-            std::path::PathBuf::from("/tmp/nimi-data/apps/nimi.avatar/tmp")
-        );
+        assert_eq!(roots.data_root, storage_base().join("data"));
+        assert_eq!(roots.cache_root, storage_base().join("cache"));
+        assert_eq!(roots.temp_root, storage_base().join("tmp"));
     }
 
     #[test]
@@ -413,10 +412,7 @@ mod tests {
         let roots = avatar_app_storage_roots_from_projection(&projection)
             .expect("avatar storage roots without active release");
 
-        assert_eq!(
-            roots.data_root,
-            std::path::PathBuf::from("/tmp/nimi-data/apps/nimi.avatar/data")
-        );
+        assert_eq!(roots.data_root, storage_base().join("data"));
     }
 
     #[test]

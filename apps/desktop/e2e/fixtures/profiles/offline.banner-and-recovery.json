@@ -3,5 +3,16 @@
   "scenarioId": "offline.banner-and-recovery",
   "realmFixture": {
     "restOnline": false
+  },
+  "artifactPolicy": {
+    "allowedRendererErrorMessages": [
+      "action:load-current-user:failed",
+      "action:load-group-chats:failed",
+      "action:load-social-snapshot:failed",
+      "action:load-friend-requests:failed",
+      "action:load-blocked-users:failed",
+      "action:load-world-list:failed",
+      "action:list-source-connections:failed"
+    ]
   }
 }

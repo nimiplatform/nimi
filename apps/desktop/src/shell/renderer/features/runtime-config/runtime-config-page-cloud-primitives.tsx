@@ -115,6 +115,7 @@ export function Input({
   label,
   value,
   onChange,
+  onBlur,
   placeholder,
   type = 'text',
   disabled,
@@ -124,6 +125,7 @@ export function Input({
   label?: string;
   value: string;
   onChange: (v: string) => void;
+  onBlur?: () => void;
   placeholder?: string;
   type?: string;
   disabled?: boolean;
@@ -146,6 +148,7 @@ export function Input({
           type={type}
           value={value}
           onChange={(e) => onChange(e.target.value)}
+          onBlur={onBlur}
           placeholder={placeholder}
           disabled={disabled}
           className={`h-11 w-full rounded-xl border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,var(--nimi-surface-card))] text-sm text-[var(--nimi-text-primary)] outline-none transition-all placeholder:text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)] focus:border-[var(--nimi-field-focus)] focus:bg-white focus:ring-2 focus:ring-mint-100 disabled:opacity-60 ${paddingClass}`}

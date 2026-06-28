@@ -1,7 +1,7 @@
 import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
 import { useCallback, useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { OverlayShell } from '@nimiplatform/kit/ui';
+import { DialogDescription, DialogTitle, OverlayShell } from '@nimiplatform/kit/ui';
 import { realmSourceDetailData } from '@renderer/features/source-detail/data/realm-source-detail-data';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
@@ -150,6 +150,16 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
   });
 
   const profile: ProfileData | null = profileQuery.data ?? null;
+  const profileDialogName = profile?.displayName || props.profileSeed?.displayName || t('Relationship.profileDetailDialogTitleFallback', {
+    defaultValue: 'Profile details',
+  });
+  const profileDialogTitle = t('Relationship.profileDetailDialogTitle', {
+    defaultValue: '{{name}} profile',
+    name: profileDialogName,
+  });
+  const profileDialogDescription = t('Relationship.profileDetailDialogDescription', {
+    defaultValue: 'Profile details and relationship actions.',
+  });
   const isBlockedProfile = Boolean(profile && realmSocialData.isBlockedUser(profile.id));
   const sourceConnectionQuery = useQuery({
     queryKey: realmPersonaSourceAdmissionQueryKey,
@@ -332,6 +342,8 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
         panelStyle={{ width: 'min(1180px, calc(100vw - 88px))', maxHeight: 'calc(100vh - 88px)' }}
         contentClassName="relative h-full min-h-0 p-0"
       >
+        <DialogTitle className="sr-only">{profileDialogTitle}</DialogTitle>
+        <DialogDescription className="sr-only">{profileDialogDescription}</DialogDescription>
         <button
           type="button"
           data-testid={E2E_IDS.profileDetailModalClose}

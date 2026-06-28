@@ -233,7 +233,14 @@ pub async fn account_default_profile_for_scope_init(
 pub async fn built_in_ai_config_for_scope_init(
     payload: ProductBuiltInAiConfigScopePayload,
 ) -> Result<crate::desktop_ai_config_library::BuiltInAiConfigForScopeInit, String> {
-    read_built_in_ai_config_for_scope_init(&payload.surface_id).await
+    let result = read_built_in_ai_config_for_scope_init(&payload.surface_id).await;
+    if let Err(error) = &result {
+        crate::desktop_e2e_fixture::append_backend_log_message(&format!(
+            "built_in_ai_config_for_scope_init failed surface_id={} error={}",
+            payload.surface_id, error
+        ));
+    }
+    result
 }
 
 #[cfg(test)]

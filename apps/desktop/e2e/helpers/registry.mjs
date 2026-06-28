@@ -4,6 +4,9 @@ import { fileURLToPath } from 'node:url';
 const helperDir = path.dirname(fileURLToPath(import.meta.url));
 const desktopRoot = path.resolve(helperDir, '..', '..');
 
+export const WDIO_RUNNER = 'wdio';
+export const MACOS_SMOKE_RUNNER = 'macos-smoke';
+
 export const scenarioRegistry = new Map([
   ['boot.anonymous.login-screen', { bucket: 'smoke', profile: 'boot.anonymous.login-screen.json', spec: 'apps/desktop/e2e/specs/boot.anonymous.login-screen.e2e.mjs' }],
   ['boot.authenticated.main-shell', { bucket: 'smoke', profile: 'boot.authenticated.main-shell.json', spec: 'apps/desktop/e2e/specs/boot.authenticated.main-shell.e2e.mjs' }],
@@ -15,18 +18,18 @@ export const scenarioRegistry = new Map([
   ['settings.release-strip-and-preferences', { bucket: 'journeys', profile: 'settings.release-strip-and-preferences.json', spec: 'apps/desktop/e2e/specs/settings.release-strip-and-preferences.e2e.mjs' }],
   ['chat.open-thread', { bucket: 'journeys', profile: 'chat.open-thread.json', spec: 'apps/desktop/e2e/specs/chat.open-thread.e2e.mjs' }],
   ['chat.memory-standard-bind', { bucket: 'journeys', profile: 'chat.memory-standard-bind.json', spec: 'apps/desktop/e2e/specs/chat.memory-standard-bind.e2e.mjs' }],
-  ['chat.live2d-render-smoke', { bucket: 'journeys', profile: 'chat.live2d-render-smoke.json', spec: 'apps/desktop/e2e/specs/chat.live2d-render-smoke.e2e.mjs' }],
-  ['chat.live2d-render-smoke-mark', { bucket: 'journeys', profile: 'chat.live2d-render-smoke-mark.json', spec: 'apps/desktop/e2e/specs/chat.live2d-render-smoke.e2e.mjs' }],
-  ['chat.live2d-render-smoke-mark-speaking', { bucket: 'journeys', profile: 'chat.live2d-render-smoke-mark.json', spec: 'apps/desktop/e2e/specs/chat.live2d-render-smoke.e2e.mjs' }],
-  ['chat.live2d-avatar-product-smoke', { bucket: 'journeys', profile: 'chat.live2d-render-smoke-mark.json', spec: 'apps/desktop/e2e/specs/chat.live2d-render-smoke.e2e.mjs' }],
-  ['chat.live2d-avatar-local-asset-missing-smoke', { bucket: 'journeys', profile: 'chat.live2d-render-smoke-mark.json', spec: 'apps/desktop/e2e/specs/chat.live2d-render-smoke.e2e.mjs' }],
-  ['chat.vrm-lifecycle-smoke', { bucket: 'journeys', profile: 'chat.vrm-lifecycle-smoke.json', spec: 'apps/desktop/e2e/specs/chat.live2d-render-smoke.e2e.mjs' }],
-  ['chat.vrm-speaking-smoke', { bucket: 'journeys', profile: 'chat.vrm-lifecycle-smoke.json', spec: 'apps/desktop/e2e/specs/chat.live2d-render-smoke.e2e.mjs' }],
-  ['chat.vrm-speaking-smoke-no-viseme', { bucket: 'journeys', profile: 'chat.vrm-lifecycle-smoke.json', spec: 'apps/desktop/e2e/specs/chat.live2d-render-smoke.e2e.mjs' }],
-  ['chat.vrm-listening-smoke', { bucket: 'journeys', profile: 'chat.vrm-lifecycle-smoke.json', spec: 'apps/desktop/e2e/specs/chat.live2d-render-smoke.e2e.mjs' }],
-  ['chat.vrm-thinking-smoke', { bucket: 'journeys', profile: 'chat.vrm-lifecycle-smoke.json', spec: 'apps/desktop/e2e/specs/chat.live2d-render-smoke.e2e.mjs' }],
-  ['chat.vrm-lifecycle-smoke-avatar-sample-a', { bucket: 'journeys', profile: 'chat.vrm-lifecycle-smoke.json', spec: 'apps/desktop/e2e/specs/chat.live2d-render-smoke.e2e.mjs' }],
-  ['chat.vrm-lifecycle-smoke-avatar-sample-b', { bucket: 'journeys', profile: 'chat.vrm-lifecycle-smoke.json', spec: 'apps/desktop/e2e/specs/chat.live2d-render-smoke.e2e.mjs' }],
+  ['chat.live2d-render-smoke', { bucket: 'journeys', runner: MACOS_SMOKE_RUNNER, profile: 'chat.live2d-render-smoke.json', spec: 'apps/desktop/e2e/specs/chat.live2d-render-smoke.e2e.mjs' }],
+  ['chat.live2d-render-smoke-mark', { bucket: 'journeys', runner: MACOS_SMOKE_RUNNER, profile: 'chat.live2d-render-smoke-mark.json', spec: 'apps/desktop/e2e/specs/chat.live2d-render-smoke.e2e.mjs' }],
+  ['chat.live2d-render-smoke-mark-speaking', { bucket: 'journeys', runner: MACOS_SMOKE_RUNNER, profile: 'chat.live2d-render-smoke-mark.json', spec: 'apps/desktop/e2e/specs/chat.live2d-render-smoke.e2e.mjs' }],
+  ['chat.live2d-avatar-product-smoke', { bucket: 'journeys', runner: MACOS_SMOKE_RUNNER, profile: 'chat.live2d-render-smoke-mark.json', spec: 'apps/desktop/e2e/specs/chat.live2d-render-smoke.e2e.mjs' }],
+  ['chat.live2d-avatar-local-asset-missing-smoke', { bucket: 'journeys', runner: MACOS_SMOKE_RUNNER, profile: 'chat.live2d-render-smoke-mark.json', spec: 'apps/desktop/e2e/specs/chat.live2d-render-smoke.e2e.mjs' }],
+  ['chat.vrm-lifecycle-smoke', { bucket: 'journeys', runner: MACOS_SMOKE_RUNNER, profile: 'chat.vrm-lifecycle-smoke.json', spec: 'apps/desktop/e2e/specs/chat.live2d-render-smoke.e2e.mjs' }],
+  ['chat.vrm-speaking-smoke', { bucket: 'journeys', runner: MACOS_SMOKE_RUNNER, profile: 'chat.vrm-lifecycle-smoke.json', spec: 'apps/desktop/e2e/specs/chat.live2d-render-smoke.e2e.mjs' }],
+  ['chat.vrm-speaking-smoke-no-viseme', { bucket: 'journeys', runner: MACOS_SMOKE_RUNNER, profile: 'chat.vrm-lifecycle-smoke.json', spec: 'apps/desktop/e2e/specs/chat.live2d-render-smoke.e2e.mjs' }],
+  ['chat.vrm-listening-smoke', { bucket: 'journeys', runner: MACOS_SMOKE_RUNNER, profile: 'chat.vrm-lifecycle-smoke.json', spec: 'apps/desktop/e2e/specs/chat.live2d-render-smoke.e2e.mjs' }],
+  ['chat.vrm-thinking-smoke', { bucket: 'journeys', runner: MACOS_SMOKE_RUNNER, profile: 'chat.vrm-lifecycle-smoke.json', spec: 'apps/desktop/e2e/specs/chat.live2d-render-smoke.e2e.mjs' }],
+  ['chat.vrm-lifecycle-smoke-avatar-sample-a', { bucket: 'journeys', runner: MACOS_SMOKE_RUNNER, profile: 'chat.vrm-lifecycle-smoke.json', spec: 'apps/desktop/e2e/specs/chat.live2d-render-smoke.e2e.mjs' }],
+  ['chat.vrm-lifecycle-smoke-avatar-sample-b', { bucket: 'journeys', runner: MACOS_SMOKE_RUNNER, profile: 'chat.vrm-lifecycle-smoke.json', spec: 'apps/desktop/e2e/specs/chat.live2d-render-smoke.e2e.mjs' }],
   ['explore.panel-load', { bucket: 'journeys', profile: 'explore.panel-load.json', spec: 'apps/desktop/e2e/specs/explore.panel-load.e2e.mjs' }],
   ['explore.feed-profile-modal', { bucket: 'journeys', profile: 'explore.feed-profile-modal.json', spec: 'apps/desktop/e2e/specs/explore.feed-profile-modal.e2e.mjs' }],
   ['runtime.local-ai.panel-load', { bucket: 'journeys', profile: 'runtime.local-ai.panel-load.json', spec: 'apps/desktop/e2e/specs/runtime.local-ai.panel-load.e2e.mjs' }],
@@ -47,11 +50,24 @@ export function scenarioEntryForId(scenarioId) {
   if (isDynamicLive2dSampleScenario(scenarioId)) {
     return {
       bucket: 'journeys',
+      runner: MACOS_SMOKE_RUNNER,
       profile: 'chat.live2d-render-smoke-sample.json',
       spec: 'apps/desktop/e2e/specs/chat.live2d-render-smoke.e2e.mjs',
     };
   }
   return null;
+}
+
+export function scenarioRunner(entry) {
+  return entry?.runner || WDIO_RUNNER;
+}
+
+export function isWdioScenarioEntry(entry) {
+  return scenarioRunner(entry) === WDIO_RUNNER;
+}
+
+function matchesRequestedRunner(entry, runner) {
+  return !runner || scenarioRunner(entry) === runner;
 }
 
 export function profilePathForScenario(scenarioId) {
@@ -71,13 +87,15 @@ export function selectScenarios(options) {
   }
   if (options.suite === 'smoke') {
     return Array.from(scenarioRegistry.entries())
-      .filter(([, item]) => item.bucket === 'smoke')
+      .filter(([, item]) => item.bucket === 'smoke' && matchesRequestedRunner(item, options.runner))
       .map(([scenario]) => scenario);
   }
   if (options.suite === 'journeys') {
     return Array.from(scenarioRegistry.entries())
-      .filter(([, item]) => item.bucket === 'journeys')
+      .filter(([, item]) => item.bucket === 'journeys' && matchesRequestedRunner(item, options.runner))
       .map(([scenario]) => scenario);
   }
-  return Array.from(scenarioRegistry.keys());
+  return Array.from(scenarioRegistry.entries())
+    .filter(([, item]) => matchesRequestedRunner(item, options.runner))
+    .map(([scenario]) => scenario);
 }

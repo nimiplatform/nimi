@@ -9,6 +9,14 @@ const runnerSource = fs.readFileSync(
   path.join(root, 'scripts/run-e2e.mjs'),
   'utf8',
 );
+const macosSmokeRunnerSource = fs.readFileSync(
+  path.join(root, 'scripts/run-macos-smoke.mjs'),
+  'utf8',
+);
+const registrySource = fs.readFileSync(
+  path.join(root, 'e2e/helpers/registry.mjs'),
+  'utf8',
+);
 const runtimeUnavailableSpecSource = fs.readFileSync(
   path.join(root, 'e2e/specs/boot.runtime-unavailable.degraded-shell.e2e.mjs'),
   'utf8',
@@ -19,6 +27,14 @@ const offlineRecoverySpecSource = fs.readFileSync(
 );
 const offlineRecoveryProfile = JSON.parse(fs.readFileSync(
   path.join(root, 'e2e/fixtures/profiles/offline.banner-and-recovery.json'),
+  'utf8',
+));
+const authenticatedBaseProfile = JSON.parse(fs.readFileSync(
+  path.join(root, 'e2e/fixtures/profiles/_authenticated-base.json'),
+  'utf8',
+));
+const chatMemoryStandardBindProfile = JSON.parse(fs.readFileSync(
+  path.join(root, 'e2e/fixtures/profiles/chat.memory-standard-bind.json'),
   'utf8',
 ));
 const authenticatedBootSpecSource = fs.readFileSync(
@@ -95,6 +111,15 @@ test('desktop E2E runner isolates WebDriver ports per scenario', () => {
   assert.match(runnerSource, /waitForPortClosed\(driverHost, nativeDriverPort, 10000\)/);
 });
 
+test('desktop E2E runner resets scenario artifact directories before each run', () => {
+  assert.match(runnerSource, /function resetArtifactRoot\(\)/);
+  assert.match(runnerSource, /resetArtifactRoot\(\)/);
+  assert.match(runnerSource, /function resetArtifactDir\(artifactsDir\)/);
+  assert.match(runnerSource, /refusing to reset E2E artifact directory outside/);
+  assert.match(runnerSource, /fs\.rmSync\(resolved, \{ recursive: true, force: true \}\)/);
+  assert.match(runnerSource, /resetArtifactDir\(artifactsDir\)/);
+});
+
 test('desktop E2E runner fails fast when tauri-driver exits before opening the WebDriver port', () => {
   assert.match(runnerSource, /let driverExit = null;/);
   assert.match(runnerSource, /tauri-driver exited before opening/);
@@ -115,6 +140,25 @@ test('desktop E2E chat scenarios target canonical local-agent anchors', () => {
   assert.doesNotMatch(chatLive2dRenderSmokeSpecSource, /chatTarget\('agent-e2e-alpha'\)/);
 });
 
+test('desktop E2E memory bind fixture materializes the source contact for its canonical local-agent anchor', () => {
+  const friends = chatMemoryStandardBindProfile.realmFixture?.friends?.items;
+  assert.ok(Array.isArray(friends), 'memory bind profile must include friend fixtures');
+  const sourceFriend = friends.find((friend) => friend?.id === 'agent-e2e-alpha');
+  assert.ok(sourceFriend && typeof sourceFriend === 'object');
+  assert.equal(sourceFriend.isSource, true);
+  assert.equal(sourceFriend.runtimeSourceRef, 'agent-e2e-alpha');
+  assert.equal(sourceFriend.sourceKind, 'worldCharacter');
+  assert.equal(sourceFriend.sourceId, 'agent-e2e-alpha');
+  assert.equal(sourceFriend.sourceContentHash, 'agent-e2e-alpha-hash');
+  assert.equal(sourceFriend.sourceOwnershipType, 'WORLD_OWNED');
+  assert.deepEqual(sourceFriend.sourceRef, {
+    kind: 'worldCharacter',
+    worldId: 'world-e2e-1',
+    sourceId: 'agent-e2e-alpha',
+    sourceContentHash: 'agent-e2e-alpha-hash',
+  });
+});
+
 test('runtime-unavailable boot smoke targets the canonical desktop release strip', () => {
   assert.match(runtimeUnavailableSpecSource, /E2E_IDS\.desktopReleaseStrip/);
   assert.doesNotMatch(runtimeUnavailableSpecSource, /E2E_IDS\.offlineStrip/);
@@ -123,6 +167,8 @@ test('runtime-unavailable boot smoke targets the canonical desktop release strip
 test('offline recovery smoke targets Realm REST reachability, not runtime release readiness', () => {
   assert.equal(offlineRecoveryProfile.realmFixture?.restOnline, false);
   assert.equal(offlineRecoveryProfile.tauriFixture, undefined);
+  assert.ok(offlineRecoveryProfile.artifactPolicy?.allowedRendererErrorMessages?.includes('action:load-current-user:failed'));
+  assert.ok(offlineRecoveryProfile.artifactPolicy?.allowedRendererErrorMessages?.includes('action:load-world-list:failed'));
   assert.match(runnerSource, /const fixtureServer = await startRealmFixtureServer/);
   assert.match(runnerSource, /fixtureOrigin: fixtureServer\.origin/);
   assert.match(offlineRecoverySpecSource, /clickByTestId\(E2E_IDS\.navTab\('explore'\)\)/);
@@ -152,13 +198,72 @@ test('desktop E2E runner launches WDIO from the desktop package dependency conte
   assert.match(wdioConfigSource, /specs:\s*\['e2e\/specs\/\*\*\/\*\.e2e\.mjs'\]/);
 });
 
+test('desktop E2E runner excludes macOS-owned avatar visual smokes from WDIO journeys', () => {
+  assert.match(registrySource, /export const WDIO_RUNNER = 'wdio';/);
+  assert.match(registrySource, /export const MACOS_SMOKE_RUNNER = 'macos-smoke';/);
+  assert.match(registrySource, /scenarioRunner\(entry\)/);
+  assert.match(registrySource, /item\.bucket === 'journeys' && matchesRequestedRunner\(item, options\.runner\)/);
+  assert.match(registrySource, /\['chat\.live2d-render-smoke', \{ bucket: 'journeys', runner: MACOS_SMOKE_RUNNER/);
+  assert.match(registrySource, /\['chat\.live2d-avatar-product-smoke', \{ bucket: 'journeys', runner: MACOS_SMOKE_RUNNER/);
+  assert.match(registrySource, /\['chat\.vrm-lifecycle-smoke', \{ bucket: 'journeys', runner: MACOS_SMOKE_RUNNER/);
+  assert.match(registrySource, /runner: MACOS_SMOKE_RUNNER,\s*profile: 'chat\.live2d-render-smoke-sample\.json'/);
+  assert.match(runnerSource, /selectScenarios\(\{ \.\.\.options, runner: WDIO_RUNNER \}\)/);
+  assert.match(runnerSource, /if \(!isWdioScenarioEntry\(scenario\)\)/);
+  assert.match(runnerSource, /scenario \$\{scenarioId\} is owned by \$\{scenarioRunner\(scenario\)\}; use scripts\/run-macos-smoke\.mjs/);
+  assert.match(macosSmokeRunnerSource, /selectScenarios\(\{ \.\.\.options, runner: MACOS_SMOKE_RUNNER \}\)/);
+});
+
 test('desktop E2E failOnConsoleError treats browser severe logs as failures', () => {
   assert.match(wdioConfigSource, /function loadArtifactPolicy\(\)/);
   assert.match(wdioConfigSource, /process\.env\.NIMI_E2E_ARTIFACT_MANIFEST/);
   assert.match(wdioConfigSource, /browserLogs = await browser\.getLogs\('browser'\)/);
+  assert.match(wdioConfigSource, /function collectRendererDebugLogs\(\)/);
+  assert.match(wdioConfigSource, /renderer-debug\.json/);
+  assert.match(wdioConfigSource, /function artifactMessageAllowlist/);
+  assert.match(wdioConfigSource, /allowedRendererErrorMessages/);
+  assert.match(wdioConfigSource, /unexpectedRendererErrors/);
   assert.match(wdioConfigSource, /String\(entry\.level \|\| ''\)\.toUpperCase\(\) === 'SEVERE'/);
   assert.match(wdioConfigSource, /artifactPolicy\.failOnConsoleError === true/);
   assert.match(wdioConfigSource, /browser severe logs detected/);
+});
+
+test('desktop E2E Realm fixture serves public world and source connection contracts', () => {
+  assert.match(realmFixtureServerSource, /entityKinds/);
+  assert.match(realmFixtureServerSource, /relationshipTypes/);
+  assert.match(realmFixtureServerSource, /pathname === '\/api\/human\/source-connections'/);
+  assert.match(realmFixtureServerSource, /request\.method === 'GET' && pathname === '\/api\/human\/source-connections'/);
+  assert.match(realmFixtureServerSource, /runtime-source:\$\{sourceRef\.kind\}/);
+});
+
+test('authenticated desktop E2E chat messages use canonical Realm message DTOs', () => {
+  const chats = authenticatedBaseProfile.realmFixture?.chats?.items;
+  assert.ok(Array.isArray(chats), 'authenticated fixture must include chat rows');
+  for (const chat of chats as Array<Record<string, unknown>>) {
+    const lastMessage = chat.lastMessage as Record<string, unknown> | null | undefined;
+    if (!lastMessage) {
+      continue;
+    }
+    assert.equal(lastMessage.chatId, chat.id);
+    assert.equal(lastMessage.type, 'TEXT');
+    assert.equal(typeof lastMessage.senderId, 'string');
+    assert.equal(typeof lastMessage.createdAt, 'string');
+    assert.equal(typeof lastMessage.isRead, 'boolean');
+    assert.deepEqual(lastMessage.payload, { content: lastMessage.text });
+  }
+
+  const messagesByChatId = authenticatedBaseProfile.realmFixture?.messagesByChatId;
+  assert.ok(messagesByChatId && typeof messagesByChatId === 'object');
+  for (const [chatId, page] of Object.entries(messagesByChatId)) {
+    assert.ok(Array.isArray((page as { items?: unknown[] }).items), `missing message items for ${chatId}`);
+    for (const message of (page as { items: Array<Record<string, unknown>> }).items) {
+      assert.equal(message.chatId, chatId);
+      assert.equal(message.type, 'TEXT');
+      assert.equal(typeof message.senderId, 'string');
+      assert.equal(typeof message.createdAt, 'string');
+      assert.equal(typeof message.isRead, 'boolean');
+      assert.deepEqual(message.payload, { content: message.text });
+    }
+  }
 });
 
 test('authenticated desktop boot smoke fails closed on missing account projection', () => {

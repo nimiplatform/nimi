@@ -18,6 +18,7 @@ const explorePanelSource = readRendererFile('features/explore/explore-panel.tsx'
 const realmExploreDataSource = readRendererFile('features/explore/data/realm-explore-data.ts');
 const exploreViewSource = readRendererFile('features/explore/explore-view.tsx');
 const exploreSectionNavSource = readRendererFile('features/explore/explore-section-nav.tsx');
+const e2eIdsSource = readRendererFile('testability/e2e-ids.ts');
 const mainLayoutViewSource = readRendererFile('app-shell/layouts/main-layout-view.tsx');
 const mainLayoutTitlebarContentSource = readRendererFile('app-shell/layouts/main-layout-titlebar-content.tsx');
 const worldListSource = [
@@ -46,7 +47,8 @@ const worldDetailLocaleZhSource = readRendererFile('locales/zh/41-WorldDetail.js
 test('Explore fold mounts complete Worlds catalog under Explore', () => {
   assert.match(worldListSource, /export function WorldCatalogContent/);
   assert.match(exploreViewSource, /WorldCatalogContent/);
-  assert.match(exploreViewSource, /data-testid="explore-worlds-section"/);
+  assert.match(exploreViewSource, /data-testid=\{E2E_IDS\.exploreSection\('worlds'\)\}/);
+  assert.match(e2eIdsSource, /exploreSection:\s*\(sectionId: string\) => `explore-\$\{sectionId\}-section`/);
   assert.match(worldListSource, /data-testid="world-atlas-glass-layout"/);
   assert.match(worldListSource, /data-testid="world-atlas-world-grid"/);
   assert.match(worldListSource, /data-testid="world-atlas-selected-panel"/);
@@ -61,7 +63,7 @@ test('Explore fold keeps RealmPersona discovery as Explore-owned discovery witho
   assert.match(realmExploreDataSource, /loadNimiRealmExploreFeedItems/);
   assert.doesNotMatch(realmExploreDataSource, /realm\.generated\.searchIndexedUsers/);
   assert.doesNotMatch(realmExploreDataSource, /realm\.generated\.getExploreFeed/);
-  assert.match(exploreViewSource, /data-testid="explore-personas-section"/);
+  assert.match(exploreViewSource, /data-testid=\{E2E_IDS\.exploreSection\('personas'\)\}/);
   assert.match(exploreViewSource, /<PersonaSourceCard/);
   assert.match(personaSourceCardSource, /worldName/);
   // RealmPersona cards render source admission handoff state, never an
@@ -76,9 +78,11 @@ test('Explore fold keeps RealmPersona discovery as Explore-owned discovery witho
 
 test('Explore exposes the canonical three-section discovery IA', () => {
   // D-EXPL-002: Worlds / Personas / Activity.
-  assert.match(exploreViewSource, /data-testid="explore-worlds-section"/);
-  assert.match(exploreViewSource, /data-testid="explore-personas-section"/);
-  assert.match(exploreViewSource, /data-testid="explore-activity-section"/);
+  assert.match(exploreViewSource, /data-testid=\{E2E_IDS\.exploreSection\('worlds'\)\}/);
+  assert.match(exploreViewSource, /data-testid=\{E2E_IDS\.exploreSection\('personas'\)\}/);
+  assert.match(exploreViewSource, /data-testid=\{E2E_IDS\.exploreSection\('activity'\)\}/);
+  assert.match(e2eIdsSource, /exploreSectionTab:\s*\(sectionId: string\) => `explore-section-tab-\$\{sectionId\}`/);
+  assert.match(e2eIdsSource, /exploreSection:\s*\(sectionId: string\) => `explore-\$\{sectionId\}-section`/);
   assert.doesNotMatch(exploreViewSource, new RegExp(`ExploreCreate${'Agent'}Section`));
   assert.doesNotMatch(exploreViewSource, new RegExp(`explore-create-${'agent'}-section`));
   assert.match(exploreSectionNavSource, /EXPLORE_SECTION_IDS:\s*readonly ExploreSectionId\[\]\s*=\s*\[\s*'worlds',\s*'personas',\s*'activity'/);
