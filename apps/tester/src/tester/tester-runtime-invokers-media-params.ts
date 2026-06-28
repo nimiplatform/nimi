@@ -62,10 +62,11 @@ function optionalDefaultText(value: unknown, extraSentinels: readonly string[] =
 function optionalImageSize(value: unknown): string | TesterUnavailable | undefined {
   const text = optionalDefaultText(value);
   if (!text) return undefined;
-  if (!/^\d+x\d+$/iu.test(text)) {
-    return unavailableFromValidation('image.generate', 'NimiAIConfig selectedParams.size must use WIDTHxHEIGHT format.');
+  const normalized = text.toLowerCase();
+  if (/^\d+x\d+$/u.test(normalized) || /^[234]k$/u.test(normalized)) {
+    return normalized;
   }
-  return text.toLowerCase();
+  return unavailableFromValidation('image.generate', 'NimiAIConfig selectedParams.size must use WIDTHxHEIGHT, 2k, 3k, or 4k format.');
 }
 
 function optionalImageResponseFormat(value: unknown): string | TesterUnavailable | undefined {

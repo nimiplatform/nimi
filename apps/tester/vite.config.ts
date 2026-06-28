@@ -9,7 +9,9 @@ const repoRoot = path.resolve(__dirname, '../..');
 
 function manualChunks(id: string) {
   const normalized = id.replaceAll('\\', '/');
-  const isNimiSdk = normalized.includes('/node_modules/@nimiplatform/sdk/') || normalized.includes('/nimi-realm/nimi/sdks/typescript/');
+  const repoRootNormalized = repoRoot.replaceAll('\\', '/');
+  const isNimiSdk =
+    normalized.includes('/node_modules/@nimiplatform/sdk/') || normalized.startsWith(`${repoRootNormalized}/sdks/typescript/`);
   const runtimeProtoPath = '/dist/core-generated/runtime-protobuf/runtime/v1/';
   if (normalized.includes('/node_modules/react/') || normalized.includes('/node_modules/react-dom/')) {
     return 'vendor-react';
@@ -48,7 +50,7 @@ function manualChunks(id: string) {
   if (isNimiSdk) {
     return 'vendor-nimi-sdk';
   }
-  if (normalized.includes('/node_modules/@nimiplatform/kit/') || normalized.includes('/nimi-realm/nimi/kit/')) {
+  if (normalized.includes('/node_modules/@nimiplatform/kit/') || normalized.startsWith(`${repoRootNormalized}/kit/`)) {
     return 'vendor-nimi-kit';
   }
   return undefined;

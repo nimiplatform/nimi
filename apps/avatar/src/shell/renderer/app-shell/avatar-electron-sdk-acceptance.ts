@@ -1,5 +1,5 @@
 import { hasElectronRuntime } from '@nimiplatform/kit/shell/renderer/bridge';
-import { Runtime } from '@nimiplatform/sdk/runtime';
+import { createAvatarRuntimeClient } from './app-bootstrap-runtime-binding.js';
 
 type AvatarElectronSdkAcceptanceProbeResult =
   | {
@@ -38,12 +38,12 @@ export function installAvatarElectronSdkAcceptanceProbe(): void {
   }
   window.__NIMI_AVATAR_ELECTRON_SDK_ACCEPTANCE__ = {
     async runtimeReady() {
-      const runtime = new Runtime({
+      const nimiClient = createAvatarRuntimeClient({
         appId: 'nimi.avatar',
-        transport: { type: 'electron-ipc' },
+        host: 'electron',
       });
       try {
-        const health = await runtime.ready();
+        const health = await nimiClient.runtime.ready();
         return {
           ok: true,
           transport: 'electron-ipc',

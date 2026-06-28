@@ -6,6 +6,7 @@ import {
   RUNTIME_EXECUTION_MODE_SYNC,
   RUNTIME_ROUTE_POLICY_CLOUD,
   RUNTIME_ROUTE_POLICY_LOCAL,
+  RUNTIME_REASON_CODE_AI_MODEL_NOT_FOUND,
   RUNTIME_SCENARIO_TYPE_TEXT_EMBED,
   RUNTIME_SCENARIO_TYPE_TEXT_GENERATE,
   RUNTIME_SCHEDULING_DENIED,
@@ -173,6 +174,9 @@ test('tester LLM invokers consume AIConfig bindings and fail closed without bind
   assert.match(mediaBindings, /imageProfileExtensions\(binding: ImageRuntimeBinding, providerOptions: JsonObject = \{\}\)/);
   assert.match(mediaBindings, /\.\.\.providerOptions,\s*profile_entries:/);
   assert.match(mediaParams, /imageParamsFromBinding/);
+  assert.match(mediaParams, /2k/);
+  assert.match(mediaParams, /3k/);
+  assert.match(mediaParams, /4k/);
   assert.match(mediaInvokers, /imageParamsFromBinding/);
   assert.match(mediaInvokers, /videoParamsFromBinding/);
   assert.match(mediaInvokers, /transcriptionParamsFromBinding/);
@@ -297,6 +301,71 @@ test('tester LLM invoker dispatches configured AIConfig route payload', async ()
   assert.equal(captured[5].options.metadata.aiConfigBindingCapabilityId, 'text.embed');
   assert.equal(captured[5].options.metadata.runtimeSchedulingState, 'runnable');
   assert.equal(Object.hasOwn(captured[5].options.metadata, 'runtimeSchedulingDetail'), false);
+});
+
+test('tester chat.stream surfaces Runtime stream failure reason names instead of numeric proto codes', async () => {
+  const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');
+  const store = await importBehaviorModule('tester/tester-ai-config-store.js');
+  const scopeRef = store.createTesterAppLabAIScopeRef();
+  store.saveTesterAIConfig({
+    scopeRef,
+    capabilities: {
+      targetRefs: {
+        'text.generate': {
+          kind: 'cloud-connector',
+          connectorId: 'runtime-connector',
+          remoteModelCatalogId: 'remote-catalog:runtime-connector:missing-model',
+          providerModelId: 'missing-model',
+        },
+      },
+      selectedParams: {},
+    },
+    profileOrigin: {
+      profileId: 'stream-failure-profile',
+      title: 'Stream Failure Profile',
+      appliedAt: '2026-06-27T00:00:00.000Z',
+    },
+  });
+
+  const client = {
+    runtime: {
+      scheduling: {
+        async peekScheduling() {
+          return runnableSchedulingResponse();
+        },
+      },
+      ai: {
+        async executeScenario() {
+          throw new Error('executeScenario should not run for chat.stream');
+        },
+        async *streamScenario() {
+          yield {
+            eventType: 7,
+            sequence: '1',
+            traceId: 'trace-stream-failure',
+            payload: {
+              oneofKind: 'failed',
+              failed: {
+                reasonCode: RUNTIME_REASON_CODE_AI_MODEL_NOT_FOUND,
+                actionHint: 'retry stream request',
+              },
+            },
+          };
+        },
+      },
+    },
+  };
+
+  const result = await invokers.invokeTesterCapability(client, 'chat.stream', {
+    prompt: 'Hello stream failure',
+    scenarioId: 'stream-failure',
+    subjectUserId: 'subject-user-1',
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'runtime-call-failed');
+  assert.match(result.message, /^AI_MODEL_NOT_FOUND: retry stream request$/);
+  assert.doesNotMatch(result.message, /^200:/);
 });
 
 test('tester LLM invokers forward selectedParams and timeout to Runtime payloads', async () => {

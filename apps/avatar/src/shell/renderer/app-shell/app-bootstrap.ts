@@ -1,4 +1,3 @@
-import { createNimiClient } from '@nimiplatform/sdk';
 import { getSharedAudioPipelineController } from '@nimiplatform/kit/features/avatar/headless';
 import {
   createNimiRuntimeAgentConsumeClient,
@@ -6,7 +5,6 @@ import {
   runNimiRuntimeScenarioJob,
   withNimiRuntimeAgentScopes,
   type NimiRuntimeAgentScopeRunner,
-  type RuntimeOptions,
 } from '@nimiplatform/sdk/runtime';
 import {
   AccountReasonCode,
@@ -35,6 +33,7 @@ import { resolveAvatarConversationContext } from './avatar-conversation-context.
 import { useAvatarStore } from './app-store.js';
 import {
   createAvatarAccountCaller,
+  createAvatarRuntimeClient,
   createAvatarRuntimeAppSessionMetadataProvider,
   registerAvatarRuntimeApp,
   resolveLaunchAgentIdentity,
@@ -66,19 +65,6 @@ const AVATAR_FIRST_PARTY_APP_ID = 'nimi.avatar';
 const AVATAR_FIRST_PARTY_DRIVER_START_TIMEOUT_MS = 12_000;
 
 export type { BootstrapHandle } from './app-bootstrap-types.js';
-
-function createAvatarRuntimeTransport(
-  host: 'tauri' | 'electron',
-): NonNullable<RuntimeOptions['transport']> {
-  if (host === 'electron') {
-    return { type: 'electron-ipc' };
-  }
-  return {
-    type: 'tauri-ipc',
-    commandNamespace: 'runtime_bridge',
-    eventNamespace: 'runtime_bridge',
-  };
-}
 
 function optionalRecord(value: unknown): Record<string, unknown> | undefined {
   return value && typeof value === 'object' && !Array.isArray(value)
@@ -242,12 +228,9 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
       let currentAvatarInstanceId: string | null = readNormalizedString(launchContext.avatarInstanceId);
       try {
         await runFirstPartyStage('runtime_daemon_prepare', () => ensureRuntimeDaemonReady());
-        const nimiClient = createNimiClient({
+        const nimiClient = createAvatarRuntimeClient({
           appId: runtimeAppId,
-          runtime: {
-            appId: runtimeAppId,
-            transport: createAvatarRuntimeTransport(runtimeBridge.host),
-          },
+          host: runtimeBridge.host,
         });
         await runFirstPartyStage('runtime_client_ready', () => nimiClient.runtime.ready());
         const runtime = nimiClient.runtime;

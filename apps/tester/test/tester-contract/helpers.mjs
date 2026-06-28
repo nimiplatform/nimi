@@ -104,6 +104,7 @@ export const RUNTIME_ROUTE_POLICY_CLOUD = 2;
 export const RUNTIME_FINISH_REASON_STOP = 1;
 export const RUNTIME_SCHEDULING_RUNNABLE = 1;
 export const RUNTIME_SCHEDULING_DENIED = 5;
+export const RUNTIME_REASON_CODE_AI_MODEL_NOT_FOUND = 200;
 
 export function runnableSchedulingResponse() {
   return {

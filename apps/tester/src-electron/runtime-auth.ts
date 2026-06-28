@@ -14,7 +14,7 @@ import {
   PolicyMode,
   type AuthorizeExternalPrincipalResponse,
 } from '@nimiplatform/sdk/runtime/generated';
-import type { CoreMetadata } from '@nimiplatform/sdk/types';
+import { ReasonCode, type CoreMetadata } from '@nimiplatform/sdk/types';
 import type {
   ElectronRuntimeBridgeTrustedMetadata,
   ElectronRuntimeBridgeTrustedMetadataProvider,
@@ -198,8 +198,8 @@ function isRuntimeAuthProbeUnavailable(error: unknown): boolean {
   if (
     reasonCode === 'RUNTIME_GRPC_UNAVAILABLE' ||
     reasonCode === 'RUNTIME_GRPC_DEADLINE_EXCEEDED' ||
-    reasonCode === 'RUNTIME_UNAVAILABLE' ||
-    reasonCode === 'RUNTIME_BRIDGE_DAEMON_UNAVAILABLE'
+    reasonCode === ReasonCode.RUNTIME_UNAVAILABLE ||
+    reasonCode === ReasonCode.RUNTIME_BRIDGE_DAEMON_UNAVAILABLE
   ) {
     return true;
   }

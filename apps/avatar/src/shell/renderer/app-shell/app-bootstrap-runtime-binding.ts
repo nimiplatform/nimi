@@ -1,3 +1,4 @@
+import { createNimiClient, type NimiClient } from '@nimiplatform/sdk';
 import {
   createNimiLocalFirstPartyRuntimeAccountCaller,
   createNimiRuntimeAppSessionMetadataProvider,
@@ -8,12 +9,45 @@ import {
   type NimiRuntimeAppRegistrationClient,
   type NimiRuntimeAppSessionClient,
   type NimiRuntimeAppSessionMetadataProvider,
+  type RuntimeOptions,
 } from '@nimiplatform/sdk/runtime';
 import { type AccountCaller } from '@nimiplatform/sdk/runtime/generated';
 import { readNormalizedString } from './app-bootstrap-helpers.js';
 
 const AVATAR_LOCAL_FIRST_PARTY_APP_INSTANCE_ID = 'nimi.avatar.local-first-party';
 const AVATAR_LOCAL_FIRST_PARTY_DEVICE_ID = 'avatar-shell-runtime-bridge';
+
+export type AvatarRuntimeHost = 'tauri' | 'electron';
+
+export function createAvatarRuntimeTransport(
+  host: AvatarRuntimeHost,
+): NonNullable<RuntimeOptions['transport']> {
+  if (host === 'electron') {
+    return { type: 'electron-ipc' };
+  }
+  return {
+    type: 'tauri-ipc',
+    commandNamespace: 'runtime_bridge',
+    eventNamespace: 'runtime_bridge',
+  };
+}
+
+export function createAvatarRuntimeClient(input: {
+  readonly appId: string;
+  readonly host: AvatarRuntimeHost;
+}): NimiClient {
+  const appId = readNormalizedString(input.appId);
+  if (!appId) {
+    throw new Error('Avatar Runtime client requires appId');
+  }
+  return createNimiClient({
+    appId,
+    runtime: {
+      appId,
+      transport: createAvatarRuntimeTransport(input.host),
+    },
+  });
+}
 
 export function registerAvatarRuntimeApp(
   auth: NimiRuntimeAppRegistrationClient,
