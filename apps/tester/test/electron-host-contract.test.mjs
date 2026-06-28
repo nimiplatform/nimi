@@ -159,6 +159,16 @@ test('Electron host keeps Runtime bridge in Kit and app commands in tester', () 
   assert.doesNotMatch(mainSource, /runtime\/internal/);
 });
 
+test('Electron host disables Chromium background networking before startup', () => {
+  const mainSource = read('src-electron/main.ts');
+  const configureIndex = mainSource.indexOf('configureTesterElectronChromiumRuntime();');
+  const readyIndex = mainSource.indexOf('app.whenReady()');
+
+  assert.ok(configureIndex > -1, 'Electron main must configure Chromium before app readiness');
+  assert.ok(readyIndex > configureIndex, 'Chromium switches must be appended before app.whenReady()');
+  assert.match(mainSource, /app\.commandLine\.appendSwitch\('disable-background-networking'\)/);
+});
+
 test('Electron spike evidence is not part of the accepted host', () => {
   assert.equal(existsSync(path.join(root, 'src-electron/spike')), false);
   assert.doesNotMatch(read('AGENTS.md'), /src-electron\/spike/);

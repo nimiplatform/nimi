@@ -39,6 +39,7 @@ protocol.registerSchemesAsPrivileged([{
 }]);
 
 app.setName('Nimi Tester');
+configureTesterElectronChromiumRuntime();
 
 void app.whenReady().then(async () => {
   registerReadableFileProtocol();
@@ -84,6 +85,10 @@ void app.whenReady().then(async () => {
     }
   });
 });
+
+function configureTesterElectronChromiumRuntime(): void {
+  app.commandLine.appendSwitch('disable-background-networking');
+}
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
