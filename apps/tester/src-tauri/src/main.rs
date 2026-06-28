@@ -1,6 +1,10 @@
 mod tester_storage;
 mod world_tour;
 
+const ACCEPTANCE_PROBE_PATH_ENV: &str = "NIMI_TESTER_TAURI_ACCEPTANCE_PROBE_PATH";
+const ACCEPTANCE_SCENARIO_ID_ENV: &str = "NIMI_TESTER_TAURI_ACCEPTANCE_SCENARIO_ID";
+const ACCEPTANCE_STORAGE_ROOT_ENV: &str = "NIMI_TESTER_TAURI_ACCEPTANCE_STORAGE_ROOT";
+
 fn tester_renderer_entry_probe_script() -> Result<String, String> {
     nimi_shell_tauri::capabilities::diagnostics::build_renderer_entry_probe_script(
         &nimi_shell_tauri::capabilities::diagnostics::RendererEntryProbeScriptConfig {
@@ -11,6 +15,116 @@ fn tester_renderer_entry_probe_script() -> Result<String, String> {
             reset_local_storage_scenario_ids: Vec::new(),
         },
     )
+}
+
+#[tauri::command]
+fn tester_renderer_probe_ping(payload: serde_json::Value) -> Result<(), String> {
+    write_acceptance_probe_event("ping", payload)
+}
+
+#[tauri::command]
+fn tester_renderer_probe_report_write(payload: serde_json::Value) -> Result<(), String> {
+    write_acceptance_probe_event("report", payload)
+}
+
+#[tauri::command]
+fn tester_renderer_probe_context_get() -> serde_json::Value {
+    let enabled = acceptance_probe_path().is_some();
+    serde_json::json!({
+        "enabled": enabled,
+        "scenarioId": std::env::var(ACCEPTANCE_SCENARIO_ID_ENV)
+            .ok()
+            .filter(|value| !value.trim().is_empty())
+            .unwrap_or_else(|| "tester.tauri.acceptance".to_string()),
+        "commandChecks": if enabled {
+            tester_tauri_acceptance_command_checks()
+        } else {
+            Vec::new()
+        },
+    })
+}
+
+fn acceptance_probe_path() -> Option<std::path::PathBuf> {
+    std::env::var(ACCEPTANCE_PROBE_PATH_ENV)
+        .ok()
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty())
+        .map(std::path::PathBuf::from)
+}
+
+fn acceptance_storage_root() -> String {
+    if let Some(value) = std::env::var(ACCEPTANCE_STORAGE_ROOT_ENV)
+        .ok()
+        .map(|raw| raw.trim().to_string())
+        .filter(|value| !value.is_empty())
+    {
+        return value;
+    }
+    acceptance_probe_path()
+        .and_then(|path| path.parent().map(std::path::Path::to_path_buf))
+        .unwrap_or_else(|| std::env::temp_dir().join("nimi-tester-tauri-acceptance"))
+        .display()
+        .to_string()
+}
+
+fn tester_tauri_acceptance_command_checks() -> Vec<serde_json::Value> {
+    let storage_root = acceptance_storage_root();
+    vec![
+        serde_json::json!({
+            "id": "runtime-lifecycle.status",
+            "command": "runtime_bridge_status",
+        }),
+        serde_json::json!({
+            "id": "runtime-defaults.get",
+            "command": "runtime_defaults",
+        }),
+        serde_json::json!({
+            "id": "config.get.negative",
+            "command": "runtime_bridge_config_get",
+            "expectError": true,
+        }),
+        serde_json::json!({
+            "id": "tester-storage.runHistory.load",
+            "command": "tester_run_history_load",
+            "payload": {
+                "payload": {
+                    "storageRoot": storage_root,
+                },
+            },
+        }),
+        serde_json::json!({
+            "id": "auth.sessionLoad.negative",
+            "command": "auth_session_load",
+            "expectError": true,
+        }),
+        serde_json::json!({
+            "id": "unsupported-standard-command.negative",
+            "command": "unsupported-standard-command",
+            "expectError": true,
+        }),
+    ]
+}
+
+fn write_acceptance_probe_event(
+    kind: &str,
+    payload: serde_json::Value,
+) -> Result<(), String> {
+    let Some(path) = acceptance_probe_path() else {
+        return Ok(());
+    };
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)
+            .map_err(|error| format!("create Tauri acceptance probe directory: {error}"))?;
+    }
+    let record = serde_json::json!({
+        "source": "tester-tauri-acceptance",
+        "kind": kind,
+        "payload": payload,
+    });
+    let raw = serde_json::to_string_pretty(&record)
+        .map_err(|error| format!("serialize Tauri acceptance probe event: {error}"))?;
+    std::fs::write(&path, raw)
+        .map_err(|error| format!("write Tauri acceptance probe event: {error}"))
 }
 
 fn main() {
@@ -24,6 +138,9 @@ fn main() {
             }
         })
         .invoke_handler(nimi_shell_tauri::nimi_shell_tauri_runtime_bridge_handler![
+            tester_renderer_probe_ping,
+            tester_renderer_probe_report_write,
+            tester_renderer_probe_context_get,
             tester_storage::tester_image_history_load,
             tester_storage::tester_image_history_save,
             tester_storage::tester_artifact_save,
@@ -43,9 +160,13 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Mutex;
     use std::time::{SystemTime, UNIX_EPOCH};
 
+    static ENV_LOCK: Mutex<()> = Mutex::new(());
+
     fn with_env_vars(vars: &[(&str, Option<&str>)], run: impl FnOnce()) {
+        let _guard = ENV_LOCK.lock().expect("env lock");
         let saved: Vec<(String, Option<String>)> = vars
             .iter()
             .map(|(key, _)| ((*key).to_string(), std::env::var(key).ok()))
@@ -68,6 +189,110 @@ mod tests {
     }
 
     #[test]
+    fn tester_renderer_probe_context_is_acceptance_opt_in() {
+        with_env_vars(
+            &[
+                (super::ACCEPTANCE_PROBE_PATH_ENV, None),
+                (super::ACCEPTANCE_SCENARIO_ID_ENV, None),
+            ],
+            || {
+                let context = super::tester_renderer_probe_context_get();
+                assert_eq!(
+                    context.get("enabled").and_then(serde_json::Value::as_bool),
+                    Some(false)
+                );
+                assert_eq!(
+                    context.get("scenarioId").and_then(serde_json::Value::as_str),
+                    Some("tester.tauri.acceptance")
+                );
+                assert_eq!(
+                    context
+                        .get("commandChecks")
+                        .and_then(serde_json::Value::as_array)
+                        .map(Vec::len),
+                    Some(0)
+                );
+            },
+        );
+    }
+
+    #[test]
+    fn tester_renderer_probe_ping_writes_acceptance_event_when_enabled() {
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("time")
+            .as_nanos();
+        let dir = std::env::temp_dir().join(format!("nimi-tester-tauri-acceptance-{unique}"));
+        let probe_path = dir.join("probe.json");
+        let probe_path_string = probe_path.to_string_lossy().into_owned();
+        with_env_vars(
+            &[
+                (super::ACCEPTANCE_PROBE_PATH_ENV, Some(probe_path_string.as_str())),
+                (super::ACCEPTANCE_SCENARIO_ID_ENV, Some("tester.tauri.acceptance.test")),
+            ],
+            || {
+                let context = super::tester_renderer_probe_context_get();
+                assert_eq!(
+                    context.get("enabled").and_then(serde_json::Value::as_bool),
+                    Some(true)
+                );
+                assert_eq!(
+                    context.get("scenarioId").and_then(serde_json::Value::as_str),
+                    Some("tester.tauri.acceptance.test")
+                );
+                let command_checks = context
+                    .get("commandChecks")
+                    .and_then(serde_json::Value::as_array)
+                    .expect("command checks");
+                assert!(
+                    command_checks
+                        .iter()
+                        .any(|row| row.get("command").and_then(serde_json::Value::as_str)
+                            == Some("runtime_bridge_status"))
+                );
+                assert!(
+                    command_checks
+                        .iter()
+                        .any(|row| row.get("command").and_then(serde_json::Value::as_str)
+                            == Some("tester_run_history_load"))
+                );
+                assert!(
+                    command_checks
+                        .iter()
+                        .any(|row| row.get("expectError").and_then(serde_json::Value::as_bool)
+                            == Some(true))
+                );
+
+                super::tester_renderer_probe_ping(serde_json::json!({
+                    "stage": "window-dynamic-import-ok",
+                }))
+                .expect("write probe");
+
+                let record: serde_json::Value = serde_json::from_str(
+                    &std::fs::read_to_string(&probe_path).expect("read probe"),
+                )
+                .expect("probe json");
+                assert_eq!(
+                    record.get("source").and_then(serde_json::Value::as_str),
+                    Some("tester-tauri-acceptance")
+                );
+                assert_eq!(
+                    record.get("kind").and_then(serde_json::Value::as_str),
+                    Some("ping")
+                );
+                assert_eq!(
+                    record
+                        .get("payload")
+                        .and_then(|payload| payload.get("stage"))
+                        .and_then(serde_json::Value::as_str),
+                    Some("window-dynamic-import-ok")
+                );
+            },
+        );
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
     fn tester_consumes_shared_renderer_entry_probe_from_kit() {
         let script = super::tester_renderer_entry_probe_script().expect("probe script");
 
@@ -75,7 +300,8 @@ mod tests {
         assert!(script.contains("tester_renderer_probe_ping"));
         assert!(script.contains("tester_renderer_probe_report_write"));
         assert!(script.contains("tester_renderer_probe_context_get"));
-        assert!(script.contains("return import(scriptSrc);"));
+        assert!(script.contains("import(scriptSrc);"));
+        assert!(script.contains("command-checks-ok"));
         let forbidden_desktop_command = ["desktop", "macos", "smoke", "ping"].join("_");
         assert!(!script.contains(forbidden_desktop_command.as_str()));
     }
