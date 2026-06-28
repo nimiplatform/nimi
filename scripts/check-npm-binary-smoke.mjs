@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { resolveBinaryOnPath } from './lib/release-gate/env-probe.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
@@ -15,10 +16,13 @@ function fail(message) {
 }
 
 function run(command, commandArgs, cwd) {
-  const result = spawnSync(command, commandArgs, {
+  const spawnSpec = composeExecutable(command, commandArgs);
+  const result = spawnSync(spawnSpec.command, spawnSpec.args, {
     cwd,
     env: process.env,
     encoding: 'utf8',
+    windowsHide: true,
+    windowsVerbatimArguments: spawnSpec.windowsVerbatimArguments === true,
   });
   if (result.error) {
     fail(`[check-npm-binary-smoke] failed to start ${command}: ${result.error.message}`);
@@ -29,6 +33,39 @@ function run(command, commandArgs, cwd) {
     fail(`[check-npm-binary-smoke] ${command} exited with code ${result.status ?? 1}`);
   }
   return result;
+}
+
+function composeExecutable(command, args) {
+  if (process.platform !== 'win32') {
+    return { command, args };
+  }
+  const resolved = resolveBinaryOnPath(command, process.env, process.platform);
+  if (typeof resolved !== 'string' || resolved.length === 0) {
+    return { command, args };
+  }
+  const ext = path.extname(resolved).toLowerCase();
+  if (ext !== '.cmd' && ext !== '.bat') {
+    return { command: resolved, args };
+  }
+  return {
+    command: process.env.ComSpec || process.env.COMSPEC || 'cmd.exe',
+    args: ['/d', '/s', '/c', composeCmdCommandLine(resolved, args)],
+    windowsVerbatimArguments: true,
+  };
+}
+
+function composeCmdCommandLine(command, args) {
+  const parts = [quoteCmdArg(command, { force: true }), ...args.map((arg) => quoteCmdArg(arg))];
+  const line = parts.join(' ');
+  return parts.slice(1).some((part) => part.startsWith('"')) ? `"${line}"` : line;
+}
+
+function quoteCmdArg(value, options = {}) {
+  const text = String(value);
+  if (options.force !== true && /^[^\s"&|<>^]+$/.test(text)) {
+    return text;
+  }
+  return `"${text.replace(/"/g, '""')}"`;
 }
 
 function resolveOption(name, fallback) {

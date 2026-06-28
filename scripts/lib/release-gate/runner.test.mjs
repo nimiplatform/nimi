@@ -2,6 +2,9 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 
 import {
   selectGates,
@@ -148,6 +151,48 @@ test('composeSpawn: pnpm runner strips leading "pnpm "', () => {
   assert.deepEqual(r.args, ['proto:lint']);
 });
 
+test('composeSpawn: pnpm runner wraps Windows command shim when enabled', () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'release-gate-pnpm-'));
+  try {
+    fs.writeFileSync(path.join(tmp, 'pnpm.cmd'), '@echo off\r\nexit /b 0\r\n');
+    const r = composeSpawn(
+      { id: 'gate.x.y', runner: 'pnpm', command: 'pnpm proto:lint --check' },
+      {
+        env: { PATH: tmp, PATHEXT: '.CMD' },
+        platform: 'win32',
+        resolveCommandShims: true,
+      }
+    );
+    assert.match(r.command, /cmd(?:\.exe)?$/i);
+    assert.deepEqual(r.args.slice(0, 3), ['/d', '/s', '/c']);
+    assert.match(r.args[3], /pnpm\.cmd/);
+    assert.match(r.args[3], / proto:lint --check$/);
+    assert.equal(r.windowsVerbatimArguments, true);
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test('composeSpawn: pnpm runner preserves Windows command shim args with spaces', () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'release-gate-pnpm-space-'));
+  try {
+    fs.writeFileSync(path.join(tmp, 'pnpm.cmd'), '@echo off\r\nexit /b 0\r\n');
+    const r = composeSpawn(
+      { id: 'gate.x.y', runner: 'pnpm', command: 'pnpm exec "hello world"' },
+      {
+        env: { PATH: tmp, PATHEXT: '.CMD' },
+        platform: 'win32',
+        resolveCommandShims: true,
+      }
+    );
+    assert.match(r.args[3], /^""/);
+    assert.match(r.args[3], / exec "hello world""$/);
+    assert.match(r.args[3], /""$/);
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
 test('composeSpawn: node runner strips leading "node "', () => {
   const r = composeSpawn({
     id: 'gate.x.y',
@@ -170,9 +215,29 @@ test('composeSpawn: shell runner wraps in bash -c with pipefail', () => {
     runner: 'shell',
     command: 'echo hi | grep h',
   });
-  assert.equal(r.command, 'bash');
+  assert.match(r.command, /bash(?:\.exe)?$/i);
   assert.equal(r.args[0], '-c');
   assert.match(r.args[1], /set -o pipefail; echo hi \| grep h/);
+});
+
+test('composeSpawn: shell runner uses explicit bash path on Windows', () => {
+  const explicitBash = 'C:\\Tools\\Git\\bin\\bash.exe';
+  const r = composeSpawn(
+    {
+      id: 'gate.x.y',
+      runner: 'shell',
+      command: 'test -s runtime/proto/runtime-v1.baseline.binpb',
+    },
+    {
+      env: { NIMI_RELEASE_GATE_BASH: explicitBash },
+      platform: 'win32',
+    }
+  );
+  assert.equal(r.command, explicitBash);
+  assert.deepEqual(r.args, [
+    '-c',
+    'set -o pipefail; test -s runtime/proto/runtime-v1.baseline.binpb',
+  ]);
 });
 
 test('composeSpawn: pnpm without leading pnpm rejected', () => {
@@ -232,6 +297,32 @@ test('runByKind shell: piped command honors pipefail', { timeout: 10000 }, async
     timeout_seconds: 5,
   });
   assert.equal(result.exitCode, 1);
+});
+
+test('runByKind pnpm: Windows command shim executes through cmd wrapper', { timeout: 10000, skip: process.platform !== 'win32' }, async () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'release-gate-run-pnpm-'));
+  try {
+    fs.writeFileSync(
+      path.join(tmp, 'pnpm.cmd'),
+      '@echo off\r\necho fake-pnpm %*\r\nexit /b 0\r\n'
+    );
+    const result = await runByKind(
+      {
+        id: 'gate.test.pnpm-shim',
+        runner: 'pnpm',
+        command: 'pnpm --version',
+        timeout_seconds: 5,
+      },
+      {
+        env: { PATH: tmp, PATHEXT: '.CMD' },
+      }
+    );
+    assert.equal(result.exitCode, 0);
+    assert.match(result.spawnedCommand, /cmd(?:\.exe)?$/i);
+    assert.match(result.stdout.toString('utf8'), /fake-pnpm --version/);
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
 });
 
 // --- executeGates (synthetic) ---------------------------------------------

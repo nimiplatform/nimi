@@ -11,7 +11,7 @@
 // the runner translates into pass/fail/blocked per blocker_semantics.
 //
 // Determinism: probes are pure functions of (env, filesystem state,
-// PATH); no network access; no command execution. Offline-safe.
+// PATH); no network access; no gate command execution. Offline-safe.
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -49,19 +49,75 @@ export function isExternalRepoAvailable(relativePath, cwd = process.cwd()) {
 }
 
 /**
- * Probe whether a binary is on PATH. Uses `command -v` via execFileSync.
+ * Probe whether a binary is on PATH.
  * @param {string} name
+ * @param {object} [env] - defaults to process.env
+ * @param {string} [platform] - defaults to process.platform
  * @returns {boolean}
  */
-export function isBinaryAvailable(name) {
+export function isBinaryAvailable(name, env = process.env, platform = process.platform) {
+  return resolveBinaryOnPath(name, env, platform) != null;
+}
+
+export function resolveBinaryOnPath(name, env = process.env, platform = process.platform) {
   if (typeof name !== 'string' || name.length === 0) return false;
-  try {
-    // Use POSIX `command -v` via /bin/sh; works on macOS and Linux.
-    // On Windows the runner environment is bash via Git Bash / WSL in CI.
-    execFileSync('/bin/sh', ['-c', `command -v ${name}`], {
-      stdio: 'ignore',
-      windowsHide: true,
+  const pathSeparator = platform === 'win32' ? ';' : ':';
+  const pathValue = readPathEnv(env);
+  const pathEntries = pathValue
+    .split(pathSeparator)
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0);
+  const executableNames = candidateExecutableNames(name, env, platform);
+  const hasPathSeparator = /[\\/]/.test(name);
+
+  const candidates = [];
+  if (hasPathSeparator || pathEntries.length === 0) {
+    candidates.push(...executableNames);
+  } else {
+    for (const dir of pathEntries) {
+      for (const executableName of executableNames) {
+        candidates.push(path.join(dir, executableName));
+      }
+    }
+  }
+
+  for (const candidate of candidates) {
+    if (isExecutableFile(candidate, platform)) return candidate;
+  }
+  return null;
+}
+
+function readPathEnv(env) {
+  if (typeof env.PATH === 'string') return env.PATH;
+  if (typeof env.Path === 'string') return env.Path;
+  if (typeof env.path === 'string') return env.path;
+  return '';
+}
+
+function candidateExecutableNames(name, env, platform) {
+  if (platform !== 'win32') return [name];
+  if (path.extname(name).length > 0) return [name];
+  const pathext = typeof env.PATHEXT === 'string' && env.PATHEXT.length > 0
+    ? env.PATHEXT
+    : '.COM;.EXE;.BAT;.CMD';
+  return pathext
+    .split(';')
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0)
+    .flatMap((entry) => {
+      const ext = entry.startsWith('.') ? entry : `.${entry}`;
+      return [`${name}${ext.toLowerCase()}`, `${name}${ext.toUpperCase()}`];
     });
+}
+
+function isExecutableFile(candidate, platform) {
+  try {
+    const stat = fs.statSync(candidate);
+    if (!stat.isFile()) return false;
+    fs.accessSync(
+      candidate,
+      platform === 'win32' ? fs.constants.F_OK : fs.constants.X_OK
+    );
     return true;
   } catch {
     return false;
@@ -97,7 +153,7 @@ export function probeGateEnvironment(gate, env = process.env, cwd = process.cwd(
     if (!isExternalRepoAvailable(r, cwd)) missing.externalRepos.push(r);
   }
   for (const b of gate.requires_binaries ?? []) {
-    if (!isBinaryAvailable(b)) missing.binaries.push(b);
+    if (!isBinaryAvailable(b, env)) missing.binaries.push(b);
   }
 
   const ok =
@@ -203,26 +259,66 @@ export function captureHostEnvironment(env = process.env) {
   const summary = {
     os: `${process.platform}-${process.arch}`,
     node_version: process.version,
-    pnpm_version: probeVersion('pnpm', '--version'),
-    go_version: probeVersion('go', 'version'),
+    pnpm_version: probeVersion('pnpm', env, '--version'),
+    go_version: probeVersion('go', env, 'version'),
     git_sha: probeGitSha(),
     ci: env.CI === 'true' || env.CI === '1',
   };
   return summary;
 }
 
-function probeVersion(binary, ...args) {
+function probeVersion(binary, env, ...args) {
+  const mergedEnv = { ...process.env, ...env };
+  const spawnSpec = composeProbeExecutable(binary, args, mergedEnv, process.platform);
   try {
-    const out = execFileSync(binary, args, {
+    const out = execFileSync(spawnSpec.command, spawnSpec.args, {
       stdio: ['ignore', 'pipe', 'ignore'],
       encoding: 'utf8',
+      env: mergedEnv,
       windowsHide: true,
+      windowsVerbatimArguments: spawnSpec.windowsVerbatimArguments === true,
       timeout: 5000,
     });
     return out.trim().split('\n')[0] ?? null;
   } catch {
     return null;
   }
+}
+
+function composeProbeExecutable(binary, args, env, platform) {
+  if (platform !== 'win32') {
+    return { command: binary, args };
+  }
+
+  const resolved = resolveBinaryOnPath(binary, env, platform);
+  if (typeof resolved !== 'string' || resolved.length === 0) {
+    return { command: binary, args };
+  }
+
+  const ext = path.extname(resolved).toLowerCase();
+  if (ext === '.cmd' || ext === '.bat') {
+    return {
+      command: env.ComSpec || env.COMSPEC || 'cmd.exe',
+      args: ['/d', '/s', '/c', composeCmdCommandLine(resolved, args)],
+      windowsVerbatimArguments: true,
+    };
+  }
+
+  return { command: resolved, args };
+}
+
+function composeCmdCommandLine(command, args) {
+  const parts = [quoteCmdArg(command, { force: true }), ...args.map((arg) => quoteCmdArg(arg))];
+  const line = parts.join(' ');
+  return parts.slice(1).some((part) => part.startsWith('"')) ? `"${line}"` : line;
+}
+
+function quoteCmdArg(value, options = {}) {
+  const text = String(value);
+  if (options.force !== true && /^[^\s"&|<>^]+$/.test(text)) {
+    return text;
+  }
+  return `"${text.replace(/"/g, '""')}"`;
 }
 
 function probeGitSha() {

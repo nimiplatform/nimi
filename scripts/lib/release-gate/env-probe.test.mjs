@@ -62,12 +62,26 @@ test('isExternalRepoAvailable: absolute path → false (D2 schema requires relat
   }
 });
 
-test('isBinaryAvailable: real binary (sh) → true', () => {
-  assert.equal(isBinaryAvailable('sh'), true);
+test('isBinaryAvailable: real binary (node) → true', () => {
+  assert.equal(isBinaryAvailable('node'), true);
 });
 
 test('isBinaryAvailable: nonsense binary → false', () => {
   assert.equal(isBinaryAvailable('nimi-bogus-binary-12345'), false);
+});
+
+test('isBinaryAvailable: Windows PATH resolves PATHEXT command shims', () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'env-probe-bin-'));
+  try {
+    const binaryName = 'nimi-fake-release-tool';
+    fs.writeFileSync(path.join(tmp, `${binaryName}.cmd`), '@echo off\r\nexit /b 0\r\n');
+    assert.equal(
+      isBinaryAvailable(binaryName, { PATH: tmp, PATHEXT: '.COM;.EXE;.BAT;.CMD' }, 'win32'),
+      true
+    );
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
 });
 
 test('probeGateEnvironment: ok=true when nothing required', () => {
@@ -146,9 +160,20 @@ test('translateProbeVerdict: missing binary → blocked default', () => {
 
 test('captureHostEnvironment: returns expected shape', () => {
   const r = captureHostEnvironment({});
-  assert.match(r.os, /^[a-z]+-/);
+  assert.match(r.os, /^[a-z0-9]+-/);
   assert.match(r.node_version, /^v\d+/);
   assert.equal(typeof r.ci, 'boolean');
+});
+
+test('captureHostEnvironment: Windows PATH resolves pnpm command shim version', { skip: process.platform !== 'win32' }, () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'env-probe-pnpm-'));
+  try {
+    fs.writeFileSync(path.join(tmp, 'pnpm.cmd'), '@echo off\r\necho 99.0.0\r\nexit /b 0\r\n');
+    const r = captureHostEnvironment({ PATH: tmp, PATHEXT: '.CMD' });
+    assert.equal(r.pnpm_version, '99.0.0');
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
 });
 
 test('evaluateSkipWhen: local condition blocks outside CI', () => {
