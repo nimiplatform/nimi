@@ -361,7 +361,7 @@ export function seedAvatarProductSmokeAgentCenterConfig(avatarProductLive2dPacka
   const accountId = 'user-e2e-primary';
   const ownerUserId = 'user-e2e-primary';
   const runtimeSourceRef = 'agent-e2e-alpha';
-  const localAgentRef = `local-agent:${ownerUserId}:${runtimeSourceRef}`;
+  const localAgentRef = 'local-agent:user-e2e-primary:agent-e2e-alpha';
   const packageHash = crypto.createHash('sha256')
     .update(path.resolve(avatarProductLive2dPackage.packageRoot))
     .digest('hex')

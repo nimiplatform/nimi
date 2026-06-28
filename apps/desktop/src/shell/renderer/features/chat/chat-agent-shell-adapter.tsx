@@ -482,7 +482,7 @@ export function useAgentConversationModeHost(
         onUpgradeStandardMemory={handleUpgradeStandardMemory}
         allowMemoryUpgrade
         recentMemories={runtimeInspect?.recentCanonicalMemories ?? null}
-        onExportMemory={() => exportDesktopAgentMemory(activeTarget.localAgentRef)}
+        onExportMemory={() => exportDesktopAgentMemory(activeTarget)}
       />
     ) : null
   ), [

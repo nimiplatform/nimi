@@ -24,8 +24,12 @@ export function createRuntimeAgentPresentationProfileAdapter(
   });
 
   return {
-    async setPresentationProfile(agentId: string, profile: AvatarPresentationProfile | null): Promise<void> {
-      await surface.setPresentationProfile(agentId, profile);
+    async setPresentationProfile(identity: {
+      readonly ownerUserId: string;
+      readonly runtimeSourceRef: string;
+      readonly localAgentRef: string;
+    }, profile: AvatarPresentationProfile | null): Promise<void> {
+      await surface.setPresentationProfile(identity, profile);
     },
   };
 }

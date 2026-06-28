@@ -189,11 +189,6 @@ fn validate_local_agent_scope(
     if !local_agent_ref.starts_with(LOCAL_AGENT_REF_PREFIX) {
         return Err("localAgentRef must start with local-agent:".to_string());
     }
-    if local_agent_ref != format!("{LOCAL_AGENT_REF_PREFIX}{owner_user_id}:{runtime_source_ref}") {
-        return Err(
-            "localAgentRef must equal local-agent:${ownerUserId}:${runtimeSourceRef}".to_string(),
-        );
-    }
     Ok(AvatarInstanceLocalAgentScope {
         owner_user_id,
         runtime_source_ref,
@@ -629,7 +624,7 @@ mod tests {
     }
 
     #[test]
-    fn local_agent_scope_rejects_missing_bare_mismatch_and_malformed_refs() {
+    fn local_agent_scope_rejects_missing_bare_and_malformed_refs() {
         assert!(
             validate_local_agent_scope("", "agent-1", "local-agent:owner-1:agent-1")
                 .expect_err("missing owner")
@@ -646,16 +641,7 @@ mod tests {
         assert!(validate_local_agent_scope("owner-1", "agent-1", "agent-1")
             .expect_err("bare realm")
             .contains("bare runtimeSourceRef"));
-        assert!(
-            validate_local_agent_scope("owner-1", "agent-1", "local-agent:owner-2:agent-1")
-                .expect_err("owner mismatch")
-                .contains("local-agent:${ownerUserId}:${runtimeSourceRef}")
-        );
-        assert!(
-            validate_local_agent_scope("owner-1", "agent-1", "local-agent:owner-1:agent-2")
-                .expect_err("realm mismatch")
-                .contains("local-agent:${ownerUserId}:${runtimeSourceRef}")
-        );
+        assert!(validate_local_agent_scope("owner-1", "agent-1", "local-agent:opaque-1").is_ok());
         assert!(
             validate_local_agent_scope("owner-1", "agent-1", "agent:abc.def+1")
                 .expect_err("malformed")

@@ -12,7 +12,7 @@
       "action:load-friend-requests:failed",
       "action:load-blocked-users:failed",
       "action:load-world-list:failed",
-      "action:list-source-connections:failed"
+      "action:create-source-materialization-packet:failed"
     ]
   }
 }

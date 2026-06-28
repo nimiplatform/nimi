@@ -159,7 +159,11 @@ async function syncRuntimePresentationProfile(input: {
     getSubjectUserId: () => input.context.subjectUserId,
     withScopes: withDesktopRuntimeProtectedScopes,
   });
-  await surface.setPresentationProfile(input.target.localAgentRef, profile);
+  await surface.setPresentationProfile({
+    localAgentRef: input.context.localAgentRef,
+    ownerUserId: input.context.ownerUserId,
+    runtimeSourceRef: input.context.runtimeSourceRef,
+  }, profile);
 }
 
 export async function ensureRuntimeAgentExists(target: AgentLocalTargetSnapshot): Promise<void> {

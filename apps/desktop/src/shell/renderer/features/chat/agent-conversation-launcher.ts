@@ -2,7 +2,7 @@ import type { AgentLocalTargetSnapshot } from '@renderer/bridge/runtime-bridge/t
 import type { AppStoreState } from '@renderer/app-shell/providers/store-types';
 import type { ConversationMode } from '@nimiplatform/kit/features/chat/headless';
 import type { AgentConversationSelection } from './chat-shell-types.js';
-import { buildRuntimeLocalAgentRef } from '@nimiplatform/sdk/runtime';
+import { isRuntimeLocalAgentRef } from '@nimiplatform/sdk/runtime';
 
 type AgentConversationLauncherInput = {
   target: AgentLocalTargetSnapshot;
@@ -52,9 +52,8 @@ async function launchAgentInteractionFromDisplay(
   if (!ownerUserId || !runtimeSourceRef) {
     throw new Error('Agent conversation launch requires ownerUserId and runtimeSourceRef');
   }
-  const expectedLocalAgentRef = buildRuntimeLocalAgentRef({ ownerUserId, runtimeSourceRef });
-  if (localAgentRef !== expectedLocalAgentRef) {
-    throw new Error('Agent conversation launch requires localAgentRef to match ownerUserId and runtimeSourceRef');
+  if (!isRuntimeLocalAgentRef(localAgentRef)) {
+    throw new Error('Agent conversation launch requires a Runtime-owned localAgentRef');
   }
 
   input.setAgentConversationTargetSnapshot(input.target);

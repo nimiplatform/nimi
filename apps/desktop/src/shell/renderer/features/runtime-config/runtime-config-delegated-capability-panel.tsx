@@ -13,7 +13,9 @@ const TOKEN_TEXT_MUTED = 'text-[var(--nimi-text-muted)]';
 const TOKEN_PANEL_CARD = 'rounded-2xl';
 
 const DEFAULT_PROVIDER_DRAFT: DelegatedProviderProfileDraft = {
-  agentId: '',
+  localAgentRef: '',
+  ownerUserId: '',
+  runtimeSourceRef: '',
   providerProfileId: '',
   displayName: '',
   transportRef: '',
@@ -56,7 +58,9 @@ function compactEvidence(values: Array<[string, unknown]>): string {
 
 export function DelegatedCapabilityControlPanel() {
   const { t } = useTranslation();
-  const [agentId, setAgentId] = useState('');
+  const [localAgentRef, setLocalAgentRef] = useState('');
+  const [ownerUserId, setOwnerUserId] = useState('');
+  const [runtimeSourceRef, setRuntimeSourceRef] = useState('');
   const [subjectUserId, setSubjectUserId] = useState('');
   const [conversationAnchorId, setConversationAnchorId] = useState('');
   const [providerDraft, setProviderDraft] = useState<DelegatedProviderProfileDraft>(DEFAULT_PROVIDER_DRAFT);
@@ -69,11 +73,19 @@ export function DelegatedCapabilityControlPanel() {
     getSubjectUserId: async () => subjectUserId,
   }), [subjectUserId]);
 
-  const profileAgentId = providerDraft.agentId || agentId;
-  const canCall = agentId.trim() !== '' && subjectUserId.trim() !== '';
+  const identityInput = {
+    localAgentRef: localAgentRef.trim(),
+    ownerUserId: ownerUserId.trim(),
+    runtimeSourceRef: runtimeSourceRef.trim(),
+  };
+  const canCall = Boolean(
+    identityInput.localAgentRef
+      && identityInput.ownerUserId
+      && identityInput.runtimeSourceRef
+      && subjectUserId.trim(),
+  );
   const canSaveProvider = Boolean(
-    profileAgentId.trim()
-      && subjectUserId.trim()
+    canCall
       && providerDraft.providerProfileId.trim()
       && providerDraft.displayName.trim()
       && providerDraft.transportRef.trim()
@@ -86,7 +98,7 @@ export function DelegatedCapabilityControlPanel() {
     setBusy(true);
     setErrorMessage('');
     try {
-      const loaded = await service.loadSnapshot({ agentId, conversationAnchorId });
+      const loaded = await service.loadSnapshot({ ...identityInput, conversationAnchorId });
       setSnapshot(loaded);
       setReplayTrace(undefined);
     } catch (error) {
@@ -102,7 +114,7 @@ export function DelegatedCapabilityControlPanel() {
     try {
       await service.upsertProviderProfile({
         ...providerDraft,
-        agentId: profileAgentId,
+        ...identityInput,
       });
       await refreshSnapshot();
     } catch (error) {
@@ -116,7 +128,7 @@ export function DelegatedCapabilityControlPanel() {
     setBusy(true);
     setErrorMessage('');
     try {
-      await service.setProviderEnabled(agentId, providerProfileId, enabled);
+      await service.setProviderEnabled({ ...identityInput, providerProfileId, enabled });
       await refreshSnapshot();
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : String(error || 'DELEGATED_PROVIDER_STATE_FAILED'));
@@ -129,7 +141,12 @@ export function DelegatedCapabilityControlPanel() {
     setBusy(true);
     setErrorMessage('');
     try {
-      await service.submitApprovalDecision(agentId, approvalRequestId, decision, 'desktop control surface');
+      await service.submitApprovalDecision({
+        ...identityInput,
+        approvalRequestId,
+        decision,
+        decisionReason: 'desktop control surface',
+      });
       await refreshSnapshot();
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : String(error || 'DELEGATED_APPROVAL_DECISION_FAILED'));
@@ -142,12 +159,12 @@ export function DelegatedCapabilityControlPanel() {
     setBusy(true);
     setErrorMessage('');
     try {
-      const loaded = await service.loadReplayTrace(
-        agentId,
-        diagnostic.diagnosticId,
-        diagnostic.conversationAnchorId || conversationAnchorId,
-        diagnostic.turnId,
-      );
+      const loaded = await service.loadReplayTrace({
+        ...identityInput,
+        decisionId: diagnostic.diagnosticId,
+        conversationAnchorId: diagnostic.conversationAnchorId || conversationAnchorId,
+        turnId: diagnostic.turnId,
+      });
       setReplayTrace(loaded);
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : String(error || 'DELEGATED_REPLAY_LOAD_FAILED'));
@@ -179,9 +196,13 @@ export function DelegatedCapabilityControlPanel() {
           </Button>
         </div>
 
-        <div className="mt-5 grid gap-3 md:grid-cols-3">
-          <Input label={t('runtimeConfig.delegation.agentId', { defaultValue: 'Agent ID' })} value={agentId} onChange={setAgentId} placeholder="agent-1" disabled={busy} />
+        <div className="mt-5 grid gap-3 md:grid-cols-4">
+          <Input label={t('runtimeConfig.delegation.localAgentRef', { defaultValue: 'LocalAgent Ref' })} value={localAgentRef} onChange={setLocalAgentRef} placeholder="local-agent:desktop:..." disabled={busy} />
+          <Input label={t('runtimeConfig.delegation.ownerUserId', { defaultValue: 'Owner User ID' })} value={ownerUserId} onChange={setOwnerUserId} placeholder="user-1" disabled={busy} />
+          <Input label={t('runtimeConfig.delegation.runtimeSourceRef', { defaultValue: 'Runtime Source Ref' })} value={runtimeSourceRef} onChange={setRuntimeSourceRef} placeholder="runtime-source:..." disabled={busy} />
           <Input label={t('runtimeConfig.delegation.subjectUserId', { defaultValue: 'Subject User ID' })} value={subjectUserId} onChange={setSubjectUserId} placeholder="user-1" disabled={busy} />
+        </div>
+        <div className="mt-3 grid gap-3 md:grid-cols-2">
           <Input label={t('runtimeConfig.delegation.anchorId', { defaultValue: 'Conversation Anchor ID' })} value={conversationAnchorId} onChange={setConversationAnchorId} placeholder="anchor-1" disabled={busy} />
         </div>
 
@@ -194,7 +215,6 @@ export function DelegatedCapabilityControlPanel() {
         <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
           <div className="rounded-xl border border-[var(--nimi-border-subtle)] p-4">
             <div className="grid gap-3">
-              <Input label={t('runtimeConfig.delegation.providerAgentId', { defaultValue: 'Provider Agent ID' })} value={profileAgentId} onChange={(value) => setProviderDraft((draft) => ({ ...draft, agentId: value }))} placeholder={agentId || 'agent-1'} disabled={busy} />
               <Input label={t('runtimeConfig.delegation.providerProfileId', { defaultValue: 'Provider Profile ID' })} value={providerDraft.providerProfileId} onChange={(value) => setProviderDraft((draft) => ({ ...draft, providerProfileId: value }))} disabled={busy} />
               <Input label={t('runtimeConfig.delegation.displayName', { defaultValue: 'Display Name' })} value={providerDraft.displayName} onChange={(value) => setProviderDraft((draft) => ({ ...draft, displayName: value }))} disabled={busy} />
               <Input label={t('runtimeConfig.delegation.transportRef', { defaultValue: 'Transport Ref' })} value={providerDraft.transportRef} onChange={(value) => setProviderDraft((draft) => ({ ...draft, transportRef: value }))} disabled={busy} />

@@ -68,7 +68,7 @@ test('desktop avatar live instance parser rejects old authority fields', () => {
   }, /forbidden authority field: avatarPackageId/);
 });
 
-test('desktop avatar live instance parser rejects bare and mismatched localAgentRef values', () => {
+test('desktop avatar live instance parser rejects bare and malformed localAgentRef values without parsing owner/source', () => {
   const base = {
     avatarInstanceId: 'instance-1',
     ownerUserId: 'owner-1',
@@ -82,14 +82,13 @@ test('desktop avatar live instance parser rejects bare and mismatched localAgent
     ...base,
     localAgentRef: 'agent:abc.def+1',
   }), /malformed/);
-  assert.throws(() => parseDesktopAvatarLiveInstanceRecord({
+  const parsed = parseDesktopAvatarLiveInstanceRecord({
     ...base,
-    localAgentRef: 'local-agent:owner-2:agent-1',
-  }), /ownerUserId/);
-  assert.throws(() => parseDesktopAvatarLiveInstanceRecord({
-    ...base,
-    localAgentRef: 'local-agent:owner-1:agent-2',
-  }), /runtimeSourceRef/);
+    localAgentRef: 'local-agent:opaque-fork-1',
+  });
+  assert.equal(parsed.ownerUserId, 'owner-1');
+  assert.equal(parsed.runtimeSourceRef, 'agent-1');
+  assert.equal(parsed.localAgentRef, 'local-agent:opaque-fork-1');
 });
 
 test('desktop avatar live instance bridge rejects authority-bearing projection records', async () => {

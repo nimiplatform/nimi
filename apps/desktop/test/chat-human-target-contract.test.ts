@@ -129,6 +129,7 @@ test('agent sidebar targets derive only from materialized Realm source contacts'
         sourceId: 'source-1',
         sourceContentHash: 'hash-1',
         runtimeSourceRef: 'runtime-source-1',
+        localAgentRef: 'local-agent:opaque-archivist-1',
       },
       {
         id: 'source-unmaterialized',
@@ -148,11 +149,11 @@ test('agent sidebar targets derive only from materialized Realm source contacts'
   }, 'owner-1');
 
   assert.equal(agentTargets.length, 1);
-  assert.equal(agentTargets[0]?.id, 'local-agent:owner-1:runtime-source-1');
+  assert.equal(agentTargets[0]?.id, 'local-agent:opaque-archivist-1');
   assert.equal(agentTargets[0]?.source, 'agent');
   assert.equal(agentTargets[0]?.title, 'Archivist');
   assert.equal(agentTargets[0]?.handle, '~archivist');
-  assert.equal(agentTargets[0]?.metadata?.localAgentRef, 'local-agent:owner-1:runtime-source-1');
+  assert.equal(agentTargets[0]?.metadata?.localAgentRef, 'local-agent:opaque-archivist-1');
   assert.equal(agentTargets[0]?.metadata?.runtimeSourceRef, 'runtime-source-1');
 });
 
@@ -172,6 +173,7 @@ test('agent sidebar target metadata restores the local target snapshot for selec
         sourceId: 'source-1',
         sourceContentHash: 'hash-1',
         runtimeSourceRef: 'runtime-source-1',
+        localAgentRef: 'local-agent:opaque-archivist-1',
       },
     ],
   }, 'owner-1');
@@ -180,7 +182,7 @@ test('agent sidebar target metadata restores the local target snapshot for selec
   assert.deepEqual(snapshot, {
     ownerUserId: 'owner-1',
     runtimeSourceRef: 'runtime-source-1',
-    localAgentRef: 'local-agent:owner-1:runtime-source-1',
+    localAgentRef: 'local-agent:opaque-archivist-1',
     displayName: 'Archivist',
     handle: '~archivist',
     avatarUrl: null,

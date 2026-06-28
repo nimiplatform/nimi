@@ -90,9 +90,13 @@ export async function inspectTesterRuntimeAgentSurfaceProjection(): Promise<{
   stateStatusText: string | null;
 }> {
   const surface = createTesterRuntimeAgentInspectSurface();
-  const localAgentRef = 'local-agent:tester-user:tester-agent';
-  const snapshot = await surface.getPublicInspect(localAgentRef);
-  const presentation = await surface.getPresentationProfile(localAgentRef);
+  const runtimeIdentity = {
+    ownerUserId: 'tester-user',
+    runtimeSourceRef: 'runtime-source:tester-agent',
+    localAgentRef: 'local-agent:tester-user:tester-agent',
+  };
+  const snapshot = await surface.getPublicInspect(runtimeIdentity);
+  const presentation = await surface.getPresentationProfile(runtimeIdentity);
   return {
     lifecycleStatus: snapshot.lifecycleStatus,
     presentationBackend: presentation?.backendKind ?? 'none',

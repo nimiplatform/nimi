@@ -5,7 +5,12 @@ import test from 'node:test';
 import { MemoryCanonicalClass, ReasonCode } from '@nimiplatform/sdk/runtime/generated';
 import { createRuntimeAgentInspectAdapter } from '../src/shell/renderer/infra/runtime-agent-inspect.js';
 
-const LOCAL_AGENT_REF = 'local-agent:user-1:agent-1';
+const LOCAL_AGENT_REF = 'local-agent:desktop-inspect-agent-1';
+const LOCAL_IDENTITY = {
+  localAgentRef: LOCAL_AGENT_REF,
+  ownerUserId: 'user-1',
+  runtimeSourceRef: 'realm-source:agent-1',
+};
 
 test('runtime agent inspect adapter delegates Runtime orchestration to SDK', () => {
   const source = readFileSync('src/shell/renderer/infra/runtime-agent-inspect.ts', 'utf8');
@@ -562,7 +567,7 @@ test('runtime agent inspect adapter projects public state and pending hook summa
     getSubjectUserId: () => 'user-1',
   });
 
-  const snapshot = await adapter.getPublicInspect(LOCAL_AGENT_REF);
+  const snapshot = await adapter.getPublicInspect(LOCAL_IDENTITY);
 
   assert.equal(snapshot.lifecycleStatus, 'active');
   assert.deepEqual(snapshot.presentationProfile, {
@@ -630,10 +635,10 @@ test('runtime agent inspect adapter omits dyadic memory preview without active d
   });
 
   await adapter.updateState({
-    agentId: LOCAL_AGENT_REF,
+    ...LOCAL_IDENTITY,
     clearDyadicContext: true,
   });
-  const snapshot = await adapter.getPublicInspect(LOCAL_AGENT_REF);
+  const snapshot = await adapter.getPublicInspect(LOCAL_IDENTITY);
 
   assert.equal(snapshot.activeUserId, null);
   assert.equal(calls.queryAgentMemory.length, 1);
@@ -650,7 +655,7 @@ test('runtime agent inspect adapter projects persistent presentation profile wit
     getSubjectUserId: () => 'user-1',
   });
 
-  const profile = await adapter.getPresentationProfile(LOCAL_AGENT_REF);
+  const profile = await adapter.getPresentationProfile(LOCAL_IDENTITY);
 
   assert.deepEqual(profile, {
     backendKind: 'live2d',
@@ -715,7 +720,7 @@ test('runtime agent inspect adapter accepts live2d presentation profiles', async
     getSubjectUserId: () => 'user-1',
   });
 
-  const profile = await adapter.getPresentationProfile(LOCAL_AGENT_REF);
+  const profile = await adapter.getPresentationProfile(LOCAL_IDENTITY);
 
   assert.deepEqual(profile, {
     backendKind: 'live2d',
@@ -734,9 +739,9 @@ test('runtime agent inspect adapter enables and disables autonomy through admitt
     getSubjectUserId: () => 'user-1',
   });
 
-  const enabled = await adapter.enableAutonomy(LOCAL_AGENT_REF);
+  const enabled = await adapter.enableAutonomy(LOCAL_IDENTITY);
   const disabled = await adapter.disableAutonomy({
-    agentId: LOCAL_AGENT_REF,
+    ...LOCAL_IDENTITY,
     reason: 'desktop_test_disable',
   });
 
@@ -761,13 +766,13 @@ test('runtime agent inspect adapter updates admitted agent state through runtime
   });
 
   const updated = await adapter.updateState({
-    agentId: LOCAL_AGENT_REF,
+    ...LOCAL_IDENTITY,
     statusText: 'ready for tea',
     worldId: 'world-2',
     userId: 'user-7',
   });
   const cleared = await adapter.updateState({
-    agentId: LOCAL_AGENT_REF,
+    ...LOCAL_IDENTITY,
     clearWorldContext: true,
     clearDyadicContext: true,
   });
@@ -793,7 +798,7 @@ test('runtime agent inspect adapter updates autonomy config through admitted run
   });
 
   const updated = await adapter.setAutonomyConfig({
-    agentId: LOCAL_AGENT_REF,
+    ...LOCAL_IDENTITY,
     mode: 'high',
     dailyTokenBudget: '640',
     maxTokensPerHook: '160',
@@ -819,7 +824,7 @@ test('runtime agent inspect adapter cancels hooks through admitted runtime write
   });
 
   const outcome = await adapter.cancelHook({
-    agentId: LOCAL_AGENT_REF,
+    ...LOCAL_IDENTITY,
     hookId: 'hook-1',
     reason: 'desktop_test_cancel',
   });
@@ -842,7 +847,7 @@ test('runtime agent inspect adapter subscribes to agent events with protected re
   const events: Array<{ eventType: number; sequence: string; detailKind: string | null }> = [];
 
   await adapter.subscribePublicEvents({
-    agentId: LOCAL_AGENT_REF,
+    ...LOCAL_IDENTITY,
     onEvent: async (event) => {
       events.push({
         eventType: event.eventType,

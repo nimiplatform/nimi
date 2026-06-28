@@ -1,7 +1,4 @@
-import type {
-  NimiRealmCoreSourceRef,
-  NimiRealmPublicSourceLocator,
-} from '@nimiplatform/sdk/realm';
+import type { NimiRealmCoreSourceRef } from '@nimiplatform/sdk/realm';
 
 type SourceIdentityField = keyof NimiRealmCoreSourceRef;
 
@@ -127,39 +124,5 @@ export function resolveRealmCoreSourceRef(input: unknown): NimiRealmCoreSourceRe
     worldId: outer.worldId,
     sourceId: outer.sourceId,
     sourceContentHash: outer.sourceContentHash,
-  };
-}
-
-export function resolveRealmPublicSourceLocator(input: unknown): NimiRealmPublicSourceLocator | null {
-  const record = asRecord(input);
-  if (!record) {
-    return null;
-  }
-
-  const nestedSourceRefRecord = asRecord(record.sourceRef);
-  if (nestedSourceRefRecord) {
-    const sourceRef = readRealmCoreSourceRef(nestedSourceRefRecord);
-    if (sourceRef) {
-      try {
-        assertRealmCoreSourceRefMatchesOuterIdentity(record, sourceRef);
-      } catch {
-        return null;
-      }
-      return {
-        kind: sourceRef.kind,
-        worldId: sourceRef.worldId,
-        sourceId: sourceRef.sourceId,
-      };
-    }
-  }
-
-  const outer = readOuterSourceIdentity(record);
-  if (!outer.kind || !outer.worldId || !outer.sourceId) {
-    return null;
-  }
-  return {
-    kind: outer.kind,
-    worldId: outer.worldId,
-    sourceId: outer.sourceId,
   };
 }

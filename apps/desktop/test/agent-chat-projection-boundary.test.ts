@@ -41,7 +41,7 @@ test('Agent Chat store cutover is closed by Runtime and SDK replacement coverage
   assert.match(desktopSpec, /GetPublicChatSessionSnapshot/);
   assert.match(desktopSpec, /Agent Chat draft persistence is not a product requirement/);
   assert.match(desktopSpec, /message-level delete \/ redact policy/);
-  assert.match(desktopSpec, /one active conversation per\s+runtime source snapshot/);
+  assert.match(desktopSpec, /one active conversation per\s+SourceMaterializationPacket provenance/);
   assert.match(desktopSpec, /in-memory optimistic projection only/);
   assert.match(desktopSpec, /No offline Agent Chat transcript product is admitted/);
 

@@ -1,4 +1,4 @@
-import type { RealmPersonaSourceState } from './realm-persona-source-admission';
+import type { RealmPersonaSourceState } from './realm-persona-source-materialization';
 import type { NimiRealmCoreSourceRef } from '@nimiplatform/sdk/realm';
 export { PersonaSourceCard } from './explore-persona-source-card';
 export { toSafeBackgroundImage } from './explore-background-image';

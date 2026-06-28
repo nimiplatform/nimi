@@ -25,6 +25,9 @@ describe('Avatar shell/local-assets domain boundary', () => {
     assert.match(launcher, /buildDesktopAvatarLaunchHandoffPayload/);
     assert.match(launcher, /FORBIDDEN_LAUNCH_INPUT_FIELDS/);
     assert.match(launcher, /agentId/);
+    assert.match(launcher, /ownerUserId/);
+    assert.match(launcher, /runtimeSourceRef/);
+    assert.match(launcher, /localAgentRef/);
     assert.match(launcher, /avatarInstanceId/);
     assert.match(launcher, /launchSource/);
     assert.match(launcher, /accessToken/);
@@ -153,7 +156,9 @@ describe('Avatar shell/local-assets domain boundary', () => {
     assert.match(launchControls, /backendCapabilityProfileRef/);
     assert.match(launchControls, /executeArbitratedLaunch/);
     assert.match(launchControls, /launchDesktopAvatarHandoff/);
-    assert.match(launchControls, /agentId:\s*presentation\.activeTarget\.localAgentRef/);
+    assert.match(launchControls, /ownerUserId:\s*presentation\.activeTarget\.ownerUserId/);
+    assert.match(launchControls, /runtimeSourceRef:\s*presentation\.activeTarget\.runtimeSourceRef/);
+    assert.match(launchControls, /localAgentRef:\s*presentation\.activeTarget\.localAgentRef/);
     assert.doesNotMatch(launchControls, /agentId:\s*presentation\.activeTarget\.runtimeSourceRef/);
 
     assert.match(configSurfaceTest, /does not widen Avatar launch handoff/);

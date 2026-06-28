@@ -225,12 +225,12 @@ export function CharacterGallery({
   characters,
   loading,
   onSelect,
-  onConnectSource,
+  onMaterializeSource,
 }: {
   characters: readonly WorldCharacter[];
   loading?: boolean;
   onSelect: (characterId: string) => void;
-  onConnectSource?: (character: WorldCharacter) => Promise<void> | void;
+  onMaterializeSource?: (character: WorldCharacter) => Promise<void> | void;
 }) {
   const { t } = useTranslation();
   const featured = characters.slice(0, 6);
@@ -275,7 +275,7 @@ export function CharacterGallery({
                   <button
                     type="button"
                     disabled={character.relation?.state !== 'connectable'}
-                    onClick={() => onConnectSource?.(character)}
+                    onClick={() => onMaterializeSource?.(character)}
                     style={{
                       border: 0,
                       background: character.relation?.state === 'connectable' ? 'rgba(76,125,245,0.12)' : 'rgba(148,163,184,0.13)',
@@ -410,13 +410,13 @@ export function SourceDiscoveryPanel({
   characters,
   highlightImages,
   onSelectCharacter,
-  onConnectSource,
+  onMaterializeSource,
 }: {
   world: WorldDetailData;
   characters: readonly WorldCharacter[];
   highlightImages: readonly string[];
   onSelectCharacter: (characterId: string) => void;
-  onConnectSource?: (character: WorldCharacter) => Promise<void> | void;
+  onMaterializeSource?: (character: WorldCharacter) => Promise<void> | void;
 }) {
   const { t } = useTranslation();
   const primarySource = characters.find((character) => character.relation?.state === 'connectable') ?? characters[0] ?? null;
@@ -476,7 +476,7 @@ export function SourceDiscoveryPanel({
             <button
               type="button"
               disabled={primarySource.relation?.state !== 'connectable'}
-              onClick={() => onConnectSource?.(primarySource)}
+              onClick={() => onMaterializeSource?.(primarySource)}
               style={{
                 width: '100%',
                 height: 48,

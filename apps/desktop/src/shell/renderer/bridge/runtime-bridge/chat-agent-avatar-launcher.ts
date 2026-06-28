@@ -2,7 +2,9 @@ import { createNimiClientId } from '@nimiplatform/sdk';
 import { invokeChecked } from './invoke';
 
 export type DesktopAvatarLaunchHandoffInput = {
-  agentId: string;
+  ownerUserId: string;
+  runtimeSourceRef: string;
+  localAgentRef: string;
   avatarInstanceId?: string | null;
   launchSource?: string | null;
   sourceSurface?: string | null;
@@ -26,16 +28,16 @@ export type DesktopAvatarCloseHandoffResult = {
 
 export type DesktopAvatarLaunchHandoffPayload = {
   agentId: string;
+  ownerUserId: string;
+  runtimeSourceRef: string;
+  localAgentRef: string;
   avatarInstanceId?: string;
   launchSource?: string;
 };
 
 const FORBIDDEN_LAUNCH_INPUT_FIELDS = [
-  'ownerUserId',
   'owner_user_id',
-  'runtimeSourceRef',
   'runtime_source_ref',
-  'localAgentRef',
   'local_agent_ref',
   'conversationAnchorId',
   'conversation_anchor_id',
@@ -187,13 +189,7 @@ function normalizeRequiredPayloadBoolean(value: unknown, field: string): boolean
 
 function normalizeRequiredLocalAgentRef(value: string, field: string): string {
   const normalized = normalizeRequiredString(value, field);
-  const rest = normalized.startsWith(LOCAL_AGENT_REF_PREFIX)
-    ? normalized.slice(LOCAL_AGENT_REF_PREFIX.length)
-    : '';
-  const separatorIndex = rest.indexOf(':');
-  const ownerUserId = separatorIndex >= 0 ? rest.slice(0, separatorIndex).trim() : '';
-  const runtimeSourceRef = separatorIndex >= 0 ? rest.slice(separatorIndex + 1).trim() : '';
-  if (!ownerUserId || !runtimeSourceRef) {
+  if (!normalized.startsWith(LOCAL_AGENT_REF_PREFIX)) {
     throw new Error(`desktop avatar handoff requires ${field} to be a local-agent ref`);
   }
   return normalized;
@@ -230,11 +226,19 @@ export function buildDesktopAvatarLaunchHandoffPayload(
       throw new Error(`desktop avatar handoff contains forbidden field: ${field}`);
     }
   }
-  const agentId = normalizeRequiredLocalAgentRef(input.agentId, 'agentId');
+  const ownerUserId = normalizeRequiredString(input.ownerUserId, 'ownerUserId');
+  const runtimeSourceRef = normalizeRequiredString(input.runtimeSourceRef, 'runtimeSourceRef');
+  const localAgentRef = normalizeRequiredLocalAgentRef(input.localAgentRef, 'localAgentRef');
+  if (localAgentRef === runtimeSourceRef) {
+    throw new Error('desktop avatar handoff requires localAgentRef to be Runtime-owned');
+  }
   const avatarInstanceId = normalizeOptionalString(input.avatarInstanceId);
   const launchSource = normalizeOptionalString(input.launchSource) ?? normalizeOptionalString(input.sourceSurface);
   return {
-    agentId,
+    agentId: localAgentRef,
+    ownerUserId,
+    runtimeSourceRef,
+    localAgentRef,
     ...(avatarInstanceId ? { avatarInstanceId } : {}),
     ...(launchSource ? { launchSource } : {}),
   };

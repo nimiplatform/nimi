@@ -29,10 +29,6 @@ pub(crate) fn validate_normalized_id(value: &str, field_name: &str) -> Result<St
     Ok(trimmed.to_string())
 }
 
-pub(crate) fn expected_local_agent_ref(owner_user_id: &str, runtime_source_ref: &str) -> String {
-    format!("{LOCAL_AGENT_REF_PREFIX}{owner_user_id}:{runtime_source_ref}")
-}
-
 pub(crate) fn validate_local_agent_scope(
     owner_user_id: &str,
     runtime_source_ref: &str,
@@ -46,12 +42,6 @@ pub(crate) fn validate_local_agent_scope(
     }
     if !local_agent_ref.starts_with(LOCAL_AGENT_REF_PREFIX) {
         return Err("localAgentRef must start with local-agent:".to_string());
-    }
-    let expected = expected_local_agent_ref(&owner_user_id, &runtime_source_ref);
-    if local_agent_ref != expected {
-        return Err(
-            "localAgentRef must equal local-agent:${ownerUserId}:${runtimeSourceRef}".to_string(),
-        );
     }
     Ok(LocalAgentScope {
         owner_user_id,

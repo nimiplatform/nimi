@@ -49,7 +49,7 @@ test('source detail preserves forged world character media and Mimo voice metada
         },
       },
     },
-  }, 'source_connectable');
+  }, 'source_materializable');
 
   assert.equal(detail.profileCoverUrl, '/tmp/nimi-forge/character/profile-cover.png');
   assert.equal(detail.referenceImageUrl, '/tmp/nimi-forge/character/reference.png');

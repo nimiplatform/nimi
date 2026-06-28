@@ -65,9 +65,14 @@ export async function inspectTesterRuntimeAgentDelegatedCapabilitySurface(): Pro
     }) as never,
     getSubjectUserId: () => 'tester-user',
   });
-  const snapshot = await surface.loadSnapshot({ agentId: 'local-agent:tester-user:tester-agent' });
+  const runtimeIdentity = {
+    ownerUserId: 'tester-user',
+    runtimeSourceRef: 'runtime-source:tester-agent',
+    localAgentRef: 'local-agent:tester-user:tester-agent',
+  };
+  const snapshot = await surface.loadSnapshot(runtimeIdentity);
   const profile = await surface.upsertProviderProfile({
-    agentId: 'local-agent:tester-user:tester-agent',
+    ...runtimeIdentity,
     providerProfileId: 'tester-profile',
     displayName: 'Tester Profile',
     transportRef: 'stdio://tester',
@@ -78,7 +83,10 @@ export async function inspectTesterRuntimeAgentDelegatedCapabilitySurface(): Pro
     inputSchemaDigest: '',
     effectClass: EffectClass.READ_ONLY,
   });
-  const replay = await surface.loadReplayTrace('local-agent:tester-user:tester-agent', 'tester-decision');
+  const replay = await surface.loadReplayTrace({
+    ...runtimeIdentity,
+    decisionId: 'tester-decision',
+  });
   return {
     snapshotAgentId: snapshot?.agentId ?? '',
     profileState: profile?.state ?? 0,

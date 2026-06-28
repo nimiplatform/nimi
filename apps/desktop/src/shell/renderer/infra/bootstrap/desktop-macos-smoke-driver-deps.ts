@@ -3,7 +3,6 @@ import {
   readDesktopMacosSmokeAvatarEvidence,
   writeDesktopMacosSmokeReport,
 } from '@renderer/bridge/runtime-bridge/macos-smoke';
-import { listDesktopAvatarLiveInstances } from '@renderer/bridge/runtime-bridge/chat-agent-avatar-instance-registry';
 import type { DesktopMacosSmokeContext } from '@renderer/bridge/runtime-bridge/types';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { getDesktopAIConfigService } from '@renderer/app-shell/providers/desktop-ai-config-service';
@@ -18,7 +17,7 @@ import {
   getDesktopAppId,
   getDesktopRuntime,
 } from '@renderer/infra/sdk/desktop-nimi-client-session';
-import { createNimiDesktopShellRuntimeAccountCaller, createNimiRuntimeAgentSmokeVerificationSurface, parseRuntimeLocalAgentIdentity, type NimiRuntimeAgentSmokeVerificationRuntime } from '@nimiplatform/sdk/runtime';
+import { createNimiDesktopShellRuntimeAccountCaller, createNimiRuntimeAgentSmokeVerificationSurface, isRuntimeLocalAgentRef, type NimiRuntimeAgentSmokeVerificationRuntime } from '@nimiplatform/sdk/runtime';
 import { AccountSessionState } from '@nimiplatform/sdk/runtime/generated';
 import {
   type DesktopMacosSmokeDriverDeps,
@@ -397,17 +396,10 @@ export function createDomDriverDeps(options: DesktopMacosSmokeDriverDepsOptions 
     },
     async listAvatarLiveInstances(localAgentRef: string) {
       const normalized = String(localAgentRef || '').trim();
-      let identity: ReturnType<typeof parseRuntimeLocalAgentIdentity>;
-      try {
-        identity = parseRuntimeLocalAgentIdentity(normalized);
-      } catch {
+      if (!isRuntimeLocalAgentRef(normalized)) {
         throw new Error('macOS smoke Avatar live-instance lookup requires localAgentRef');
       }
-      return listDesktopAvatarLiveInstances({
-        ownerUserId: identity.ownerUserId,
-        runtimeSourceRef: identity.runtimeSourceRef,
-        localAgentRef: identity.localAgentRef,
-      });
+      throw new Error('macOS smoke Avatar live-instance lookup requires explicit ownerUserId and runtimeSourceRef');
     },
     async readAvatarEvidence(avatarInstanceId: string) {
       return readDesktopMacosSmokeAvatarEvidence(avatarInstanceId);

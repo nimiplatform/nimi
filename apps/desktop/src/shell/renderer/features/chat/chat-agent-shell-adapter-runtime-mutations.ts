@@ -28,7 +28,7 @@ export type AutonomyConfigInput = {
 
 type AgentConversationRuntimeMutationInput = {
   activeTarget: AgentLocalTargetSnapshot | null;
-  refreshRuntimeInspect: (agentId: string, options?: { surfaceErrors?: boolean }) => Promise<void>;
+  refreshRuntimeInspect: (target: AgentLocalTargetSnapshot, options?: { surfaceErrors?: boolean }) => Promise<void>;
   reportHostError: RuntimeHostErrorReporter;
   runtimeAgentInspect: RuntimeAgentInspectAdapter;
   runtimeAgentMemory: RuntimeAgentMemoryAdapter;
@@ -36,6 +36,12 @@ type AgentConversationRuntimeMutationInput = {
   setCanonicalMemoryStatus: Dispatch<SetStateAction<CanonicalMemoryBankStatus | null>>;
   setHostFeedback: Dispatch<SetStateAction<InlineFeedbackState | null>>;
   t: TFunction;
+};
+
+type RuntimeIdentityInput = {
+  readonly localAgentRef: string;
+  readonly ownerUserId: string;
+  readonly runtimeSourceRef: string;
 };
 
 export type AgentConversationRuntimeMutationController = {
@@ -55,6 +61,16 @@ function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
+function resolveRuntimeIdentity(target: AgentLocalTargetSnapshot | null): RuntimeIdentityInput | null {
+  const localAgentRef = normalizeText(target?.localAgentRef);
+  const ownerUserId = normalizeText(target?.ownerUserId);
+  const runtimeSourceRef = normalizeText(target?.runtimeSourceRef);
+  if (!target || !localAgentRef || !ownerUserId || !runtimeSourceRef) {
+    return null;
+  }
+  return { localAgentRef, ownerUserId, runtimeSourceRef };
+}
+
 export function useAgentConversationRuntimeMutations(
   input: AgentConversationRuntimeMutationInput,
 ): AgentConversationRuntimeMutationController {
@@ -72,15 +88,16 @@ export function useAgentConversationRuntimeMutations(
   const [mutationPendingAction, setMutationPendingAction] = useState<string | null>(null);
 
   const handleEnableAutonomy = useCallback(() => {
-    const agentId = normalizeText(activeTarget?.localAgentRef);
+    const identity = resolveRuntimeIdentity(activeTarget);
+    const agentId = identity?.localAgentRef || '';
     const targetName = normalizeText(activeTarget?.displayName) || agentId;
-    if (!agentId) {
+    if (!activeTarget || !identity) {
       return;
     }
     setMutationPendingAction('Enabling autonomy…');
-    void runtimeAgentInspect.enableAutonomy(agentId)
+    void runtimeAgentInspect.enableAutonomy(identity)
       .then(async () => {
-        await refreshRuntimeInspect(agentId);
+        await refreshRuntimeInspect(activeTarget);
         setHostFeedback({
           kind: 'success',
           message: t('Chat.agentAutonomyEnabled', {
@@ -93,12 +110,13 @@ export function useAgentConversationRuntimeMutations(
       .finally(() => {
         setMutationPendingAction(null);
       });
-  }, [activeTarget?.localAgentRef, activeTarget?.displayName, refreshRuntimeInspect, reportHostError, runtimeAgentInspect, setHostFeedback, t]);
+  }, [activeTarget, refreshRuntimeInspect, reportHostError, runtimeAgentInspect, setHostFeedback, t]);
 
   const handleDisableAutonomy = useCallback(() => {
-    const agentId = normalizeText(activeTarget?.localAgentRef);
+    const identity = resolveRuntimeIdentity(activeTarget);
+    const agentId = identity?.localAgentRef || '';
     const targetName = normalizeText(activeTarget?.displayName) || agentId;
-    if (!agentId) {
+    if (!activeTarget || !identity) {
       return;
     }
     void (async () => {
@@ -115,10 +133,10 @@ export function useAgentConversationRuntimeMutations(
       }
       setMutationPendingAction('Disabling autonomy…');
       await runtimeAgentInspect.disableAutonomy({
-        agentId,
+        ...identity,
         reason: 'desktop_agent_chat_diagnostics_disable',
       });
-      await refreshRuntimeInspect(agentId);
+      await refreshRuntimeInspect(activeTarget);
       setHostFeedback({
         kind: 'success',
         message: t('Chat.agentAutonomyDisabled', {
@@ -129,12 +147,12 @@ export function useAgentConversationRuntimeMutations(
     })().catch(reportHostError).finally(() => {
       setMutationPendingAction(null);
     });
-  }, [activeTarget?.localAgentRef, activeTarget?.displayName, refreshRuntimeInspect, reportHostError, runtimeAgentInspect, setHostFeedback, t]);
+  }, [activeTarget, refreshRuntimeInspect, reportHostError, runtimeAgentInspect, setHostFeedback, t]);
 
   const handleCancelPendingHook = useCallback((hookId: string) => {
-    const agentId = normalizeText(activeTarget?.localAgentRef);
+    const identity = resolveRuntimeIdentity(activeTarget);
     const normalizedHookId = normalizeText(hookId);
-    if (!agentId || !normalizedHookId) {
+    if (!activeTarget || !identity || !normalizedHookId) {
       return;
     }
     void (async () => {
@@ -151,11 +169,11 @@ export function useAgentConversationRuntimeMutations(
       }
       setMutationPendingAction(`Canceling ${normalizedHookId}…`);
       await runtimeAgentInspect.cancelHook({
-        agentId,
+        ...identity,
         hookId: normalizedHookId,
         reason: 'desktop_agent_chat_diagnostics_cancel',
       });
-      await refreshRuntimeInspect(agentId);
+      await refreshRuntimeInspect(activeTarget);
       setHostFeedback({
         kind: 'success',
         message: t('Chat.agentHookCanceled', {
@@ -166,23 +184,24 @@ export function useAgentConversationRuntimeMutations(
     })().catch(reportHostError).finally(() => {
       setMutationPendingAction(null);
     });
-  }, [activeTarget?.localAgentRef, refreshRuntimeInspect, reportHostError, runtimeAgentInspect, setHostFeedback, t]);
+  }, [activeTarget, refreshRuntimeInspect, reportHostError, runtimeAgentInspect, setHostFeedback, t]);
 
   const handleUpdateAutonomyConfig = useCallback((config: AutonomyConfigInput) => {
-    const agentId = normalizeText(activeTarget?.localAgentRef);
+    const identity = resolveRuntimeIdentity(activeTarget);
+    const agentId = identity?.localAgentRef || '';
     const targetName = normalizeText(activeTarget?.displayName) || agentId;
-    if (!agentId) {
+    if (!activeTarget || !identity) {
       return;
     }
     setMutationPendingAction('Updating autonomy config…');
     void runtimeAgentInspect.setAutonomyConfig({
-      agentId,
+      ...identity,
       mode: config.mode,
       dailyTokenBudget: config.dailyTokenBudget,
       maxTokensPerHook: config.maxTokensPerHook,
     })
       .then(async () => {
-        await refreshRuntimeInspect(agentId);
+        await refreshRuntimeInspect(activeTarget);
         setHostFeedback({
           kind: 'success',
           message: t('Chat.agentAutonomyConfigUpdated', {
@@ -195,16 +214,20 @@ export function useAgentConversationRuntimeMutations(
       .finally(() => {
         setMutationPendingAction(null);
       });
-  }, [activeTarget?.localAgentRef, activeTarget?.displayName, refreshRuntimeInspect, reportHostError, runtimeAgentInspect, setHostFeedback, t]);
+  }, [activeTarget, refreshRuntimeInspect, reportHostError, runtimeAgentInspect, setHostFeedback, t]);
 
   const handleUpgradeStandardMemory = useCallback(() => {
     const agentId = normalizeText(activeTarget?.localAgentRef);
     const targetName = normalizeText(activeTarget?.displayName) || agentId;
-    if (!agentId) {
+    if (!activeTarget || !agentId) {
       return;
     }
     setMutationPendingAction('Upgrading memory…');
-    void runtimeAgentMemory.bindCanonicalBankStandard(agentId)
+    void runtimeAgentMemory.bindCanonicalBankStandard({
+      localAgentRef: activeTarget.localAgentRef,
+      ownerUserId: activeTarget.ownerUserId,
+      runtimeSourceRef: activeTarget.runtimeSourceRef,
+    })
       .then((status) => {
         setCanonicalMemoryStatus(status);
         setHostFeedback({
@@ -227,9 +250,10 @@ export function useAgentConversationRuntimeMutations(
   }, [activeTarget?.localAgentRef, activeTarget?.displayName, reportHostError, runtimeAgentMemory, setCanonicalMemoryStatus, setHostFeedback, t]);
 
   const handleUpdateRuntimeState = useCallback((stateInput: RuntimeStateInput) => {
-    const agentId = normalizeText(activeTarget?.localAgentRef);
+    const identity = resolveRuntimeIdentity(activeTarget);
+    const agentId = identity?.localAgentRef || '';
     const targetName = normalizeText(activeTarget?.displayName) || agentId;
-    if (!agentId) {
+    if (!activeTarget || !identity) {
       return;
     }
     const nextStatusText = normalizeText(stateInput.statusText);
@@ -239,11 +263,13 @@ export function useAgentConversationRuntimeMutations(
     const currentWorldId = normalizeText(runtimeInspect?.activeWorldId);
     const currentUserId = normalizeText(runtimeInspect?.activeUserId);
     const payload: {
-      agentId: string;
+      localAgentRef: string;
+      ownerUserId: string;
+      runtimeSourceRef: string;
       statusText?: string;
       worldId?: string;
       userId?: string;
-    } = { agentId };
+    } = { ...identity };
     if (nextStatusText !== currentStatusText) {
       payload.statusText = nextStatusText;
     }
@@ -266,7 +292,7 @@ export function useAgentConversationRuntimeMutations(
     setMutationPendingAction('Updating runtime state…');
     void runtimeAgentInspect.updateState(payload)
       .then(async () => {
-        await refreshRuntimeInspect(agentId);
+        await refreshRuntimeInspect(activeTarget);
         setHostFeedback({
           kind: 'success',
           message: t('Chat.agentRuntimeStateUpdated', {
@@ -279,21 +305,22 @@ export function useAgentConversationRuntimeMutations(
       .finally(() => {
         setMutationPendingAction(null);
       });
-  }, [activeTarget?.localAgentRef, activeTarget?.displayName, refreshRuntimeInspect, reportHostError, runtimeAgentInspect, runtimeInspect, setHostFeedback, t]);
+  }, [activeTarget, refreshRuntimeInspect, reportHostError, runtimeAgentInspect, runtimeInspect, setHostFeedback, t]);
 
   const handleClearWorldContext = useCallback(() => {
-    const agentId = normalizeText(activeTarget?.localAgentRef);
+    const identity = resolveRuntimeIdentity(activeTarget);
+    const agentId = identity?.localAgentRef || '';
     const targetName = normalizeText(activeTarget?.displayName) || agentId;
-    if (!agentId || !normalizeText(runtimeInspect?.activeWorldId)) {
+    if (!activeTarget || !identity || !normalizeText(runtimeInspect?.activeWorldId)) {
       return;
     }
     setMutationPendingAction('Clearing world context…');
     void runtimeAgentInspect.updateState({
-      agentId,
+      ...identity,
       clearWorldContext: true,
     })
       .then(async () => {
-        await refreshRuntimeInspect(agentId);
+        await refreshRuntimeInspect(activeTarget);
         setHostFeedback({
           kind: 'success',
           message: t('Chat.agentWorldContextCleared', {
@@ -306,21 +333,22 @@ export function useAgentConversationRuntimeMutations(
       .finally(() => {
         setMutationPendingAction(null);
       });
-  }, [activeTarget?.localAgentRef, activeTarget?.displayName, refreshRuntimeInspect, reportHostError, runtimeAgentInspect, runtimeInspect?.activeWorldId, setHostFeedback, t]);
+  }, [activeTarget, refreshRuntimeInspect, reportHostError, runtimeAgentInspect, runtimeInspect?.activeWorldId, setHostFeedback, t]);
 
   const handleClearDyadicContext = useCallback(() => {
-    const agentId = normalizeText(activeTarget?.localAgentRef);
+    const identity = resolveRuntimeIdentity(activeTarget);
+    const agentId = identity?.localAgentRef || '';
     const targetName = normalizeText(activeTarget?.displayName) || agentId;
-    if (!agentId || !normalizeText(runtimeInspect?.activeUserId)) {
+    if (!activeTarget || !identity || !normalizeText(runtimeInspect?.activeUserId)) {
       return;
     }
     setMutationPendingAction('Clearing dyadic context…');
     void runtimeAgentInspect.updateState({
-      agentId,
+      ...identity,
       clearDyadicContext: true,
     })
       .then(async () => {
-        await refreshRuntimeInspect(agentId);
+        await refreshRuntimeInspect(activeTarget);
         setHostFeedback({
           kind: 'success',
           message: t('Chat.agentDyadicContextCleared', {
@@ -333,15 +361,14 @@ export function useAgentConversationRuntimeMutations(
       .finally(() => {
         setMutationPendingAction(null);
       });
-  }, [activeTarget?.localAgentRef, activeTarget?.displayName, refreshRuntimeInspect, reportHostError, runtimeAgentInspect, runtimeInspect?.activeUserId, setHostFeedback, t]);
+  }, [activeTarget, refreshRuntimeInspect, reportHostError, runtimeAgentInspect, runtimeInspect?.activeUserId, setHostFeedback, t]);
 
   const handleRefreshRuntimeInspect = useCallback(() => {
-    const agentId = normalizeText(activeTarget?.localAgentRef);
-    if (!agentId) {
+    if (!activeTarget || !resolveRuntimeIdentity(activeTarget)) {
       return;
     }
-    void refreshRuntimeInspect(agentId, { surfaceErrors: true });
-  }, [activeTarget?.localAgentRef, refreshRuntimeInspect]);
+    void refreshRuntimeInspect(activeTarget, { surfaceErrors: true });
+  }, [activeTarget, refreshRuntimeInspect]);
 
   return {
     mutationPendingAction,

@@ -10,7 +10,7 @@ import { createEmptyAgentThreadBundle } from '../src/shell/renderer/features/cha
 
 // T9.W3 Part A — first-message floor projection.
 //
-// The first-message floor remains runtime source snapshot data carried on
+// The first-message floor remains SourceMaterializationPacket data carried on
 // `AgentLocalTargetSnapshot.greeting`. Desktop must not author that greeting as
 // a persisted assistant transcript row; Runtime owns assistant transcript replay
 // and session initialization.

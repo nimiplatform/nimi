@@ -5,7 +5,12 @@ import {
   createRuntimeAgentMemoryAdapter,
 } from '../src/shell/renderer/infra/runtime-agent-memory';
 
-const LOCAL_AGENT_REF = 'local-agent:user-1:agent-1';
+const LOCAL_AGENT_REF = 'local-agent:desktop-memory-agent-1';
+const LOCAL_IDENTITY = {
+  localAgentRef: LOCAL_AGENT_REF,
+  ownerUserId: 'user-1',
+  runtimeSourceRef: 'realm-source:agent-1',
+};
 
 function runtimeStatus(input: {
   mode: AgentCanonicalMemoryBankMode;
@@ -94,7 +99,7 @@ test('runtime agent memory adapter consumes Runtime Agent canonical bank status'
     getSubjectUserId: () => 'user-1',
   });
 
-  const standard = await adapter.getCanonicalBankStatus(LOCAL_AGENT_REF);
+  const standard = await adapter.getCanonicalBankStatus(LOCAL_IDENTITY);
   assert.deepEqual(standard, {
     mode: 'standard',
     bankId: 'bank-agent-1',
@@ -114,7 +119,7 @@ test('runtime agent memory adapter consumes Runtime Agent canonical bank status'
       appId: 'desktop-test',
       subjectUserId: 'user-1',
       ownerUserId: 'user-1',
-      runtimeSourceRef: 'agent-1',
+      runtimeSourceRef: 'realm-source:agent-1',
       localAgentRef: LOCAL_AGENT_REF,
     },
   });
@@ -142,7 +147,7 @@ test('runtime agent memory adapter binds through Runtime Agent without app-side 
     getSubjectUserId: () => 'user-1',
   });
 
-  const result = await adapter.bindCanonicalBankStandard(LOCAL_AGENT_REF);
+  const result = await adapter.bindCanonicalBankStandard(LOCAL_IDENTITY);
   assert.deepEqual(result, {
     mode: 'standard',
     bankId: 'bank-agent-1',

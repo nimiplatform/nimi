@@ -29,16 +29,18 @@ test('CBDB legacy friend local chat path is removed from active Desktop sources'
   assert.doesNotMatch(threadModel, new RegExp(['parse', 'Agent', 'Friend', 'Target'].join('')));
 });
 
-test('CBDB RealmPersona source admission uses sourceRef connection', () => {
-  const admission = readDesktopSource('features/explore/realm-persona-source-admission.ts');
+test('CBDB RealmPersona source materialization uses sourceRef packet materialization', () => {
+  const materialization = readDesktopSource('features/explore/realm-persona-source-materialization.ts');
   const sourceIdentity = readDesktopSource('features/realm-source/realm-source-identity.ts');
-  const admissionSurface = `${admission}\n${sourceIdentity}`;
-  assert.match(admission, /connectNimiRealmSource/);
-  assert.match(admission, /listNimiRealmSourceConnections/);
-  assert.match(admission, /resolveRealmCoreSourceRef/);
-  assert.match(admissionSurface, /sourceContentHash/);
-  assert.doesNotMatch(admissionSurface, /source_core_handoff_required/);
-  assert.doesNotMatch(admissionSurface, new RegExp(['Agent', 'Friend'].join('')));
+  const materializationSurface = `${materialization}\n${sourceIdentity}`;
+  assert.match(materialization, /createRealmSourceMaterializationPacket/);
+  assert.match(materialization, /createNimiRealmSourceMaterializationPacket/);
+  assert.doesNotMatch(materialization, /connectNimiRealmSource/);
+  assert.doesNotMatch(materialization, new RegExp(['list', 'Nimi', 'Realm', 'Source', 'Connections'].join('')));
+  assert.match(materialization, /resolveRealmCoreSourceRef/);
+  assert.match(materializationSurface, /sourceContentHash/);
+  assert.doesNotMatch(materializationSurface, /source_core_handoff_required/);
+  assert.doesNotMatch(materializationSurface, new RegExp(['Agent', 'Friend'].join('')));
 });
 
 test('CBDB runtime anchor metadata uses source-core owner scope, not Forge import scope', () => {

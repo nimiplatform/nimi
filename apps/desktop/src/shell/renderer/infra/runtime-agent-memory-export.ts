@@ -2,6 +2,7 @@ import {
   createNimiRuntimeAgentMemoryExport,
   type NimiHostRuntimeAgentMemoryExportClient,
 } from '@nimiplatform/sdk/runtime';
+import type { AgentLocalTargetSnapshot } from '@renderer/bridge/runtime-bridge/types';
 import {
   saveAgentMemoryExport,
   type AgentMemoryExportSaveResult,
@@ -41,12 +42,14 @@ function getDesktopAgentMemoryExportClient(): NimiHostRuntimeAgentMemoryExportCl
  * clock; the SDK owns no time authority.
  */
 export async function exportDesktopAgentMemory(
-  agentId: string,
+  target: Pick<AgentLocalTargetSnapshot, 'localAgentRef' | 'ownerUserId' | 'runtimeSourceRef'>,
 ): Promise<DesktopAgentMemoryExportOutcome> {
   const envelope = await createNimiRuntimeAgentMemoryExport(
     getDesktopAgentMemoryExportClient(),
     {
-      agentId,
+      localAgentRef: target.localAgentRef,
+      ownerUserId: target.ownerUserId,
+      runtimeSourceRef: target.runtimeSourceRef,
       exportedAt: new Date().toISOString(),
       maxRecords: DESKTOP_MEMORY_EXPORT_MAX_RECORDS,
       // First-party host: subject resolution stays with the SDK scope runner,

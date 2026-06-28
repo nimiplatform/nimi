@@ -312,6 +312,8 @@ export async function runScenario({ scenarioId, runIndex, runRoot, timeoutMs }) 
   const smokeAuthSessionEnv = {
     NIMI_E2E_AUTH_SESSION_STORAGE: 'encrypted-file',
     NIMI_E2E_AUTH_SESSION_MASTER_KEY: crypto.randomBytes(32).toString('base64'),
+    SOURCE_MATERIALIZATION_PACKET_HMAC_SECRET: process.env.SOURCE_MATERIALIZATION_PACKET_HMAC_SECRET
+      || 'desktop-e2e-source-materialization-secret',
   };
   const app = spawn(appPath, [], {
     cwd: repoRoot,

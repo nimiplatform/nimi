@@ -20,17 +20,16 @@ import {
   toRestrictedContactProfileData,
 } from './profile-private-state.js';
 import { launchAgentConversationFromDisplay } from '@renderer/features/chat/agent-conversation-launcher.js';
+import { ensureRuntimeAgentExists } from '@renderer/features/chat/chat-agent-shell-host-actions-helpers';
 import { materializeSourceContactLaunchTarget } from './source-contact-launch-target.js';
 import { startChatWithTarget } from '@renderer/features/chat/data/realm-human-chat-data';
 import type { NimiRealmCoreSourceRef } from '@nimiplatform/sdk/realm';
 import {
-  connectRealmPersonaSource,
-  loadRealmPersonaSourceAdmissionProjection,
-  realmPersonaSourceAdmissionQueryKey,
-  realmPersonaSourceConnectionMessage,
+  describeRealmPersonaPrimaryAction,
+  realmPersonaSourceMaterializationMessage,
   realmSourceRefKey,
   resolveRealmPersonaSourceState,
-} from '@renderer/features/explore/realm-persona-source-admission';
+} from '@renderer/features/explore/realm-persona-source-materialization';
 
 export type ProfileDetailSeed = {
   id: string;
@@ -129,7 +128,7 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
         let result: unknown;
         if (props.profileSeed?.isSource) {
           if (!sourceRef) {
-            throw new Error(realmPersonaSourceConnectionMessage());
+            throw new Error(realmPersonaSourceMaterializationMessage());
           }
           result = await realmSourceDetailData.loadRealmSourceDetailsBySourceRef(sourceRef, {
             runtimeSourceRef: props.profileSeed.runtimeSourceRef,
@@ -161,46 +160,34 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
     defaultValue: 'Profile details and relationship actions.',
   });
   const isBlockedProfile = Boolean(profile && realmSocialData.isBlockedUser(profile.id));
-  const sourceConnectionQuery = useQuery({
-    queryKey: realmPersonaSourceAdmissionQueryKey,
-    queryFn: async () => loadRealmPersonaSourceAdmissionProjection(),
-    enabled: props.open && profile?.isSource === true,
-    staleTime: 15_000,
-  });
-  const sourceConnectionState = profile?.isSource
-    ? resolveRealmPersonaSourceState(profile, sourceConnectionQuery.data ?? null)
+  const sourceAction = profile?.isSource
+    ? describeRealmPersonaPrimaryAction(resolveRealmPersonaSourceState(profile))
     : null;
-  const sourceConnected = sourceConnectionState === 'source_connected';
-  const sourceConnectionUnavailable = sourceConnectionState === 'source_connection_unavailable';
-  const sourceConnectHint = sourceConnectionUnavailable
-    ? realmPersonaSourceConnectionMessage()
-    : sourceConnectionQuery.isPending
-      ? t('Relationship.sourceConnectionLoading', { defaultValue: 'Checking source connection...' })
-      : null;
+  const sourceMaterializationUnavailable = sourceAction?.disabled === true;
+  const sourceMaterializationHint = sourceMaterializationUnavailable
+    ? realmPersonaSourceMaterializationMessage()
+    : null;
 
   const handleConnectSource = useCallback(async () => {
-    if (!profile?.isSource || sourceConnected) {
+    if (!profile?.isSource) {
       return;
     }
     try {
-      await connectRealmPersonaSource(profile);
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: realmPersonaSourceAdmissionQueryKey }),
-        sourceConnectionQuery.refetch(),
-      ]);
+      const target = await materializeSourceContactLaunchTarget(profile, ownerUserId);
+      await ensureRuntimeAgentExists(target);
       setFeedback({
         kind: 'success',
-        message: t('Explore.realmPersonaSourceConnectedFeedback', {
-          defaultValue: 'Source connected.',
+        message: t('Explore.realmPersonaSourceMaterializedFeedback', {
+          defaultValue: 'Local agent created on this device.',
         }),
       });
     } catch (error) {
       setFeedback({
         kind: 'error',
-        message: error instanceof Error ? error.message : realmPersonaSourceConnectionMessage(),
+        message: error instanceof Error ? error.message : realmPersonaSourceMaterializationMessage(),
       });
     }
-  }, [profile, queryClient, sourceConnected, sourceConnectionQuery, t]);
+  }, [ownerUserId, profile, t]);
 
   const handleMessage = useCallback(async () => {
     if (!profile) {
@@ -212,10 +199,11 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
 
     try {
       if (profile.isSource) {
-        if (!sourceConnected) {
-          throw new Error(t('Relationship.sourceConnectionRequiredForChat', { defaultValue: 'Connect this source before opening localAgent chat.' }));
+        if (sourceMaterializationUnavailable) {
+          throw new Error(realmPersonaSourceMaterializationMessage());
         }
         const target = await materializeSourceContactLaunchTarget(profile, ownerUserId);
+        await ensureRuntimeAgentExists(target);
         await launchAgentConversationFromDisplay({
           target,
           setActiveTab,
@@ -263,9 +251,8 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
     setRuntimeFields,
     setSelectedChatId,
     setSelectedTargetForSource,
-    sourceConnected,
+    sourceMaterializationUnavailable,
     toChatErrorMessage,
-    t,
   ]);
 
   const handleBlock = useCallback(async () => {
@@ -373,16 +360,16 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
               onMessage={profile.accessState === 'restricted' ? () => {} : () => {
                 void handleMessage();
               }}
-              onAddFriend={profile.isSource && !sourceConnected ? () => {
+              onAddFriend={profile.isSource ? () => {
                 void handleConnectSource();
               } : undefined}
               addFriendLabel={profile.isSource
-                ? t('Relationship.connectSource', { defaultValue: 'Connect source' })
+                ? sourceAction?.label ?? t('Relationship.createLocalAgent', { defaultValue: 'Create local agent' })
                 : undefined}
               canAddFriend={profile.isSource
-                ? !sourceConnectionUnavailable && !sourceConnectionQuery.isPending
+                ? !sourceMaterializationUnavailable
                 : undefined}
-              addFriendHint={profile.isSource ? sourceConnectHint : null}
+              addFriendHint={profile.isSource ? sourceMaterializationHint : null}
               onSendGift={profile.accessState === 'restricted' ? () => {} : () => setGiftModalOpen(true)}
               onBlock={!isBlockedProfile ? () => {
                 void handleBlock();
@@ -391,7 +378,7 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
               showMessageButton={
                 !isBlockedProfile
                 && profile.accessState !== 'restricted'
-                && (!profile.isSource || sourceConnected)
+                && (!profile.isSource || !sourceMaterializationUnavailable)
               }
             />
           ) : profileQuery.isError ? (

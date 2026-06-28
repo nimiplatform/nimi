@@ -4,7 +4,6 @@ import test from 'node:test';
 import { realmWorldData } from '../src/shell/renderer/features/world/data/realm-world-data.js';
 import {
   fetchWorldDisplayDetail,
-  overlayWorldDisplaySourceConnections,
 } from '../src/shell/renderer/features/world/world-detail-queries.js';
 
 const world = {
@@ -140,28 +139,13 @@ test('World detail display keeps world characters and public personas as source 
   }
 });
 
-test('World detail source connection overlay marks matching hash-bearing source cards connected', () => {
+test('World detail source cards stay Realm sources without connection overlay state', () => {
   const characters = [
     source('worldCharacter', 'character-1'),
     source('realmPersona', 'persona-1'),
   ];
 
-  const result = overlayWorldDisplaySourceConnections(characters, {
-    activeSourceRefKeys: ['worldCharacter:world-1:character-1:worldCharacter-hash-character-1'],
-    activeSourceConnections: [{
-      connectionId: 'connection-1',
-      ownerUserId: 'viewer-1',
-      sourceRef: {
-        kind: 'worldCharacter',
-        worldId: 'world-1',
-        sourceId: 'character-1',
-        sourceContentHash: 'worldCharacter-hash-character-1',
-      },
-      runtimeSourceRef: 'runtime-source:worldCharacter:world-1:character-1:worldCharacter-hash-character-1',
-    }],
-  });
-
-  assert.equal(result[0]?.relation?.state, 'connected');
-  assert.equal(result[0]?.relation?.connectionId, 'connection-1');
-  assert.equal(result[1]?.relation?.state, 'connectable');
+  assert.equal(characters[0]?.relation?.state, 'connectable');
+  assert.equal(characters[0]?.relation?.connectionId, null);
+  assert.equal(characters[1]?.relation?.state, 'connectable');
 });

@@ -1,15 +1,13 @@
 import { useMemo, useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { i18n } from '@renderer/i18n';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';
 import { prefetchWorldDetailAndHistory } from '@renderer/features/world/world-detail-queries.js';
 import { prefetchWorldDetailPanel } from '@renderer/features/world/world-detail-route-state';
-import {
-  connectRealmPersonaSource,
-  realmPersonaSourceAdmissionQueryKey,
-  realmPersonaSourceConnectionMessage,
-} from '@renderer/features/explore/realm-persona-source-admission';
+import { realmPersonaSourceMaterializationMessage } from '@renderer/features/explore/realm-persona-source-materialization';
+import { materializeSourceContactLaunchTarget } from '@renderer/features/relationship/source-contact-launch-target.js';
+import { ensureRuntimeAgentExists } from '@renderer/features/chat/chat-agent-shell-host-actions-helpers';
 import {
   sourceDisplayDetailQueryKey,
   fetchSourceDisplayDetail,
@@ -19,11 +17,11 @@ import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/
 
 export function SourceDetailPanel() {
   const authStatus = useAppStore((state) => state.auth.status);
+  const ownerUserId = useAppStore((state) => String(state.auth.user?.id || '').trim());
   const selectedProfileId = useAppStore((state) => state.selectedProfileId);
   const selectedSourceRef = useAppStore((state) => state.selectedSourceRef);
   const navigateBack = useAppStore((state) => state.navigateBack);
   const navigateToWorld = useAppStore((state) => state.navigateToWorld);
-  const queryClient = useQueryClient();
   const [giftModalOpen, setGiftModalOpen] = useState(false);
   const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
 
@@ -51,23 +49,20 @@ export function SourceDetailPanel() {
   }, [profileQuery.data]);
 
   const handlePrimaryAction = async () => {
-    if (!source || source.sourceState === 'source_connected') return;
+    if (!source) return;
     try {
-      await connectRealmPersonaSource(source);
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: realmPersonaSourceAdmissionQueryKey }),
-        queryClient.invalidateQueries({ queryKey: sourceDisplayDetailQueryKey(sourceSelection) }),
-      ]);
+      const target = await materializeSourceContactLaunchTarget(source, ownerUserId);
+      await ensureRuntimeAgentExists(target);
       setFeedback({
         kind: 'success',
-        message: i18n.t('Explore.realmPersonaSourceConnectedFeedback', {
-          defaultValue: 'Source connected.',
+        message: i18n.t('Explore.realmPersonaSourceMaterializedFeedback', {
+          defaultValue: 'Local agent created on this device.',
         }),
       });
     } catch (error) {
       setFeedback({
         kind: 'error',
-        message: error instanceof Error ? error.message : realmPersonaSourceConnectionMessage(),
+        message: error instanceof Error ? error.message : realmPersonaSourceMaterializationMessage(),
       });
     }
   };

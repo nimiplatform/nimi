@@ -87,7 +87,7 @@ describe('chat.live2d-render-smoke', () => {
   it('renders non-transparent pixels for the bound official Cubism 5 sample model', async () => {
     assertScenario('chat.live2d-render-smoke');
     await waitForTestId(E2E_IDS.panel('chat'));
-    await clickByTestId(E2E_IDS.chatTarget(E2E_IDS.localAgentRef('user-e2e-primary', 'agent-e2e-alpha')));
+    await clickByTestId(E2E_IDS.chatTarget(E2E_IDS.localAgentRef('local-agent:user-e2e-primary:agent-e2e-alpha')));
 
     await browser.waitUntil(async () => Boolean(await $(LIVE2D_VIEWPORT_SELECTOR).isExisting()), {
       timeout: 15000,

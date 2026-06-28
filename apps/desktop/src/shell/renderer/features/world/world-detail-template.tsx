@@ -22,9 +22,9 @@ export type WorldDetailPageProps = {
   auditsLoading?: boolean;
   publicAssetsLoading?: boolean;
   onBack?: () => void;
-  // Chat is materialized only after a public source is connected into a localAgent.
+  // Chat is materialized only after Runtime creates a device-local LocalAgent.
   onViewCharacter?: (character: WorldCharacter) => void;
-  onConnectSource?: (character: WorldCharacter) => Promise<void> | void;
+  onMaterializeSource?: (character: WorldCharacter) => Promise<void> | void;
 };
 
 export type XianxiaWorldTemplateProps = WorldDetailPageProps;
@@ -177,7 +177,7 @@ function WorldDetailPageBody(props: WorldDetailPageProps) {
                   characters={props.characters}
                   loading={props.charactersLoading}
                   onSelect={setSelectedCharacterId}
-                  onConnectSource={props.onConnectSource}
+                  onMaterializeSource={props.onMaterializeSource}
                 />
               </div>
               <div className="world-detail-secondary-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,0.88fr) minmax(0,1.12fr)', gap: 18 }}>
@@ -190,7 +190,7 @@ function WorldDetailPageBody(props: WorldDetailPageProps) {
               characters={props.characters}
               highlightImages={highlightImages}
               onSelectCharacter={setSelectedCharacterId}
-              onConnectSource={props.onConnectSource}
+              onMaterializeSource={props.onMaterializeSource}
             />
           </div>
         </div>
@@ -201,7 +201,7 @@ function WorldDetailPageBody(props: WorldDetailPageProps) {
           character={selectedCharacter}
           onClose={() => setSelectedCharacterId(null)}
           onViewCharacter={props.onViewCharacter}
-          onConnectSource={props.onConnectSource}
+          onMaterializeSource={props.onMaterializeSource}
         />
       ) : null}
 

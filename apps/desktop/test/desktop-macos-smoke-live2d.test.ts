@@ -1,4 +1,4 @@
-import test from 'node:test';
+﻿import test from 'node:test';
 
 import {
   assert,
@@ -10,12 +10,15 @@ import {
 import { waitForAvatarCarrierEvidence } from '../src/shell/renderer/infra/bootstrap/desktop-macos-smoke-avatar-evidence';
 
 const AVATAR_CARRIER_FAILURE_EVIDENCE_TIMEOUT_MS = 50;
+const E2E_OWNER_USER_ID = 'user-e2e-primary';
+const E2E_RUNTIME_SOURCE_REF = 'agent-e2e-alpha';
+const E2E_LOCAL_AGENT_REF = 'local-agent:user-e2e-primary:agent-e2e-alpha';
 
 function createRuntimeVerifiedAgentAnchorBinding() {
   return {
-    ownerUserId: 'user-e2e-primary',
-    runtimeSourceRef: 'agent-e2e-alpha',
-    localAgentRef: 'local-agent:user-e2e-primary:agent-e2e-alpha',
+    ownerUserId: E2E_OWNER_USER_ID,
+    runtimeSourceRef: E2E_RUNTIME_SOURCE_REF,
+    localAgentRef: E2E_LOCAL_AGENT_REF,
     conversationAnchorId: 'anchor-1',
     updatedAtMs: Date.now(),
   };
@@ -138,7 +141,7 @@ test('desktop macos smoke live2d render scenario waits for visible pixels before
       },
     }));
 
-    assert.deepEqual(clicked, [E2E_IDS.chatTarget('local-agent:user-e2e-primary:agent-e2e-alpha')]);
+    assert.deepEqual(clicked, [E2E_IDS.chatTarget(E2E_LOCAL_AGENT_REF)]);
     assert.deepEqual(selectorsWaited, ['[data-avatar-live2d-status]']);
     assert.equal(tinyHostPulseRequests, 1);
     assert.deepEqual(dprPulseRequests, [1.75]);
@@ -477,12 +480,12 @@ test('desktop macos smoke live2d avatar product scenario waits for same-anchor A
       staleAnchorsCleared = true;
     },
     async verifyRuntimeConversationAnchor(input) {
-      runtimeAnchorVerified = input.agentId === 'local-agent:user-e2e-primary:agent-e2e-alpha' && input.conversationAnchorId === 'anchor-1';
+      runtimeAnchorVerified = input.localAgentRef === E2E_LOCAL_AGENT_REF && input.conversationAnchorId === 'anchor-1';
     },
     async readRuntimeProductPathEvidence(input) {
-      runtimeProductEvidenceRead = input.agentId === 'local-agent:user-e2e-primary:agent-e2e-alpha' && input.conversationAnchorId === 'anchor-1';
+      runtimeProductEvidenceRead = input.localAgentRef === E2E_LOCAL_AGENT_REF && input.conversationAnchorId === 'anchor-1';
       return createRuntimeAgentSmokeProductPathEvidence({
-        agentId: input.agentId,
+        agentId: input.localAgentRef,
         conversationAnchorId: input.conversationAnchorId,
       });
     },
@@ -490,12 +493,12 @@ test('desktop macos smoke live2d avatar product scenario waits for same-anchor A
       return createRuntimeVerifiedAgentAnchorBinding();
     },
     async listAvatarLiveInstances(agentId) {
-      assert.equal(agentId, 'local-agent:user-e2e-primary:agent-e2e-alpha');
+      assert.equal(agentId, E2E_LOCAL_AGENT_REF);
       return [{
         avatarInstanceId: 'desktop-avatar-agent-e2e-alpha-anchor-1',
-        ownerUserId: 'desktop-smoke',
-        runtimeSourceRef: 'agent-e2e-alpha',
-        localAgentRef: 'local-agent:user-e2e-primary:agent-e2e-alpha',
+        ownerUserId: E2E_OWNER_USER_ID,
+        runtimeSourceRef: E2E_RUNTIME_SOURCE_REF,
+        localAgentRef: E2E_LOCAL_AGENT_REF,
         launchSource: 'desktop-agent-chat',
       }];
     },
@@ -506,7 +509,7 @@ test('desktop macos smoke live2d avatar product scenario waits for same-anchor A
         evidencePath: '/tmp/avatar-evidence.json',
         evidence: {
           launchContext: {
-            agentId: 'local-agent:user-e2e-primary:agent-e2e-alpha',
+            agentId: E2E_LOCAL_AGENT_REF,
             avatarInstanceId,
             conversationAnchorId: 'anchor-1',
           },
@@ -581,7 +584,7 @@ test('desktop macos smoke live2d avatar product scenario waits for same-anchor A
   }));
 
   assert.deepEqual(clicked, [
-    E2E_IDS.chatTarget('local-agent:user-e2e-primary:agent-e2e-alpha'),
+    E2E_IDS.chatTarget(E2E_LOCAL_AGENT_REF),
   ]);
   assert.deepEqual(clickedSelectors, [
     '[data-chat-composer-send="true"]',
@@ -693,7 +696,7 @@ test('desktop macos smoke live2d avatar local asset missing scenario requires ty
     },
     async readRuntimeProductPathEvidence(input) {
       return createRuntimeAgentSmokeProductPathEvidence({
-        agentId: input.agentId,
+        agentId: input.localAgentRef,
         conversationAnchorId: input.conversationAnchorId,
       });
     },
@@ -701,12 +704,12 @@ test('desktop macos smoke live2d avatar local asset missing scenario requires ty
       return createRuntimeVerifiedAgentAnchorBinding();
     },
     async listAvatarLiveInstances(agentId) {
-      assert.equal(agentId, 'local-agent:user-e2e-primary:agent-e2e-alpha');
+      assert.equal(agentId, E2E_LOCAL_AGENT_REF);
       return [{
         avatarInstanceId: 'desktop-avatar-agent-e2e-alpha-anchor-1',
-        ownerUserId: 'desktop-smoke',
-        runtimeSourceRef: 'agent-e2e-alpha',
-        localAgentRef: 'local-agent:user-e2e-primary:agent-e2e-alpha',
+        ownerUserId: E2E_OWNER_USER_ID,
+        runtimeSourceRef: E2E_RUNTIME_SOURCE_REF,
+        localAgentRef: E2E_LOCAL_AGENT_REF,
         launchSource: 'desktop-agent-chat',
       }];
     },
@@ -834,12 +837,12 @@ test('desktop macos smoke live2d avatar product scenario fails without local Ava
         return createRuntimeVerifiedAgentAnchorBinding();
       },
       async listAvatarLiveInstances(agentId) {
-        assert.equal(agentId, 'local-agent:user-e2e-primary:agent-e2e-alpha');
+        assert.equal(agentId, E2E_LOCAL_AGENT_REF);
         return [{
           avatarInstanceId: 'desktop-avatar-agent-e2e-alpha-anchor-1',
-          ownerUserId: 'desktop-smoke',
-          runtimeSourceRef: 'agent-e2e-alpha',
-          localAgentRef: 'local-agent:user-e2e-primary:agent-e2e-alpha',
+          ownerUserId: E2E_OWNER_USER_ID,
+          runtimeSourceRef: E2E_RUNTIME_SOURCE_REF,
+          localAgentRef: E2E_LOCAL_AGENT_REF,
           launchSource: 'desktop-agent-chat',
         }];
       },
@@ -925,12 +928,12 @@ test('desktop macos smoke avatar carrier evidence reports pre-anchor runtime bin
         return createRuntimeVerifiedAgentAnchorBinding();
       },
       async listAvatarLiveInstances(agentId) {
-        assert.equal(agentId, 'local-agent:user-e2e-primary:agent-e2e-alpha');
+        assert.equal(agentId, E2E_LOCAL_AGENT_REF);
         return [{
           avatarInstanceId: 'desktop-avatar-agent-e2e-alpha-anchor-1',
-          ownerUserId: 'desktop-smoke',
-          runtimeSourceRef: 'agent-e2e-alpha',
-          localAgentRef: 'local-agent:user-e2e-primary:agent-e2e-alpha',
+          ownerUserId: E2E_OWNER_USER_ID,
+          runtimeSourceRef: E2E_RUNTIME_SOURCE_REF,
+          localAgentRef: E2E_LOCAL_AGENT_REF,
           launchSource: 'desktop-agent-chat',
         }];
       },
@@ -944,7 +947,7 @@ test('desktop macos smoke avatar carrier evidence reports pre-anchor runtime bin
               recordedAt: '2026-04-26T00:00:02.000Z',
               detail: {
                 avatar_instance_id: 'desktop-avatar-agent-e2e-alpha-anchor-1',
-                agentId: 'local-agent:user-e2e-primary:agent-e2e-alpha',
+                agentId: E2E_LOCAL_AGENT_REF,
                 runtime_app_id: 'nimi.avatar',
                 reason: 'platform_client: RUNTIME_CALL_FAILED / register_runtime_app_first',
                 error_stage: 'platform_client',
@@ -1114,12 +1117,12 @@ test('desktop macos smoke live2d avatar product scenario fails without Runtime c
         return createRuntimeVerifiedAgentAnchorBinding();
       },
       async listAvatarLiveInstances(agentId) {
-        assert.equal(agentId, 'local-agent:user-e2e-primary:agent-e2e-alpha');
+        assert.equal(agentId, E2E_LOCAL_AGENT_REF);
         return [{
           avatarInstanceId: 'desktop-avatar-agent-e2e-alpha-anchor-1',
-          ownerUserId: 'desktop-smoke',
-          runtimeSourceRef: 'agent-e2e-alpha',
-          localAgentRef: 'local-agent:user-e2e-primary:agent-e2e-alpha',
+          ownerUserId: E2E_OWNER_USER_ID,
+          runtimeSourceRef: E2E_RUNTIME_SOURCE_REF,
+          localAgentRef: E2E_LOCAL_AGENT_REF,
           launchSource: 'desktop-agent-chat',
         }];
       },
@@ -1199,12 +1202,12 @@ test('desktop macos smoke live2d avatar product scenario fails without hit-regio
         return createRuntimeVerifiedAgentAnchorBinding();
       },
       async listAvatarLiveInstances(agentId) {
-        assert.equal(agentId, 'local-agent:user-e2e-primary:agent-e2e-alpha');
+        assert.equal(agentId, E2E_LOCAL_AGENT_REF);
         return [{
           avatarInstanceId: 'desktop-avatar-agent-e2e-alpha-anchor-1',
-          ownerUserId: 'desktop-smoke',
-          runtimeSourceRef: 'agent-e2e-alpha',
-          localAgentRef: 'local-agent:user-e2e-primary:agent-e2e-alpha',
+          ownerUserId: E2E_OWNER_USER_ID,
+          runtimeSourceRef: E2E_RUNTIME_SOURCE_REF,
+          localAgentRef: E2E_LOCAL_AGENT_REF,
           launchSource: 'desktop-agent-chat',
         }];
       },

@@ -258,9 +258,8 @@ function validateLocalAgentRef(value: unknown, ownerUserId: string, runtimeSourc
   if (localAgentRef && !localAgentRef.startsWith('local-agent:')) {
     errors.push(`${path}: must start with local-agent:`);
   }
-  const expected = ownerUserId && runtimeSourceRef ? `local-agent:${ownerUserId}:${runtimeSourceRef}` : '';
-  if (localAgentRef && expected && localAgentRef !== expected) {
-    errors.push(`${path}: must equal local-agent:${ownerUserId}:${runtimeSourceRef}`);
+  if (localAgentRef && runtimeSourceRef && localAgentRef === runtimeSourceRef) {
+    errors.push(`${path}: must not equal runtimeSourceRef`);
   }
   return localAgentRef;
 }

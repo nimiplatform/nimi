@@ -5,7 +5,11 @@ import {
 } from '@nimiplatform/sdk/runtime';
 import { AgentCanonicalMemoryBankMode, ReasonCode } from '@nimiplatform/sdk/runtime/generated';
 
-const TESTER_LOCAL_AGENT_REF = 'local-agent:tester-user:tester-agent';
+const TESTER_RUNTIME_IDENTITY = {
+  ownerUserId: 'tester-user',
+  runtimeSourceRef: 'runtime-source:tester-agent',
+  localAgentRef: 'local-agent:tester-user:tester-agent',
+};
 
 function unsupportedRuntimeAgentAuth(): never {
   throw new Error('Tester local agent memory proof must use its scoped harness and must not issue runtime agent auth grants.');
@@ -67,7 +71,7 @@ export async function inspectTesterRuntimeAgentMemorySurfaceProjection(): Promis
   pendingCutover: boolean;
 }> {
   const surface = createTesterRuntimeAgentMemorySurface();
-  const status = await surface.getCanonicalBankStatus(TESTER_LOCAL_AGENT_REF);
+  const status = await surface.getCanonicalBankStatus(TESTER_RUNTIME_IDENTITY);
   return {
     mode: status.mode,
     bankId: status.bankId ?? null,

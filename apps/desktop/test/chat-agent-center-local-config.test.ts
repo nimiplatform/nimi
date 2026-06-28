@@ -75,17 +75,19 @@ test('Agent Center local config rejects malformed voice policy fields', () => {
   }
 });
 
-test('Agent Center local config rejects identity drift from local agent ref', () => {
+test('Agent Center local config admits opaque local agent refs without parsing owner/source', () => {
   const config = {
     ...createConfig(),
-    local_agent_ref: 'local-agent:owner_123:agent_other',
+    local_agent_ref: 'local-agent:opaque-fork-123',
   };
 
   const result = validateAgentCenterLocalConfig(config);
 
-  assert.equal(result.ok, false);
-  if (!result.ok) {
-    assert.ok(result.errors.some((error) => error.includes('config.local_agent_ref: must equal')));
+  assert.equal(result.ok, true);
+  if (result.ok) {
+    assert.equal(result.config.owner_user_id, 'owner_123');
+    assert.equal(result.config.runtime_source_ref, 'agent_456');
+    assert.equal(result.config.local_agent_ref, 'local-agent:opaque-fork-123');
   }
 });
 

@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { realmExploreData } from './data/realm-explore-data';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
@@ -21,13 +21,11 @@ import {
 } from '../world/world-detail-queries.js';
 import { prefetchWorldDetailPanel } from '../world/world-detail-route-state';
 import {
-  loadRealmPersonaSourceAdmissionProjection,
-  realmPersonaSourceAdmissionQueryKey,
-  connectRealmPersonaSource,
-  realmPersonaSourceConnectionMessage,
-  resolveRealmSourceConnection,
+  realmPersonaSourceMaterializationMessage,
   resolveRealmPersonaSourceState,
-} from './realm-persona-source-admission';
+} from './realm-persona-source-materialization';
+import { materializeSourceContactLaunchTarget } from '@renderer/features/relationship/source-contact-launch-target.js';
+import { ensureRuntimeAgentExists } from '@renderer/features/chat/chat-agent-shell-host-actions-helpers';
 
 type PostDto = RealmModel<'PostDto'>;
 
@@ -46,7 +44,7 @@ type ExplorePanelProps = {
 
 export function ExplorePanel(props: ExplorePanelProps) {
   const authStatus = useAppStore((state) => state.auth.status);
-  const queryClient = useQueryClient();
+  const ownerUserId = useAppStore((state) => String(state.auth.user?.id || '').trim());
   const navigateToWorld = useAppStore((state) => state.navigateToWorld);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedProfileTarget, setSelectedProfileTarget] = useState<PostCardAuthorProfileTarget | null>(null);
@@ -76,27 +74,15 @@ export function ExplorePanel(props: ExplorePanelProps) {
     enabled: authStatus === 'authenticated',
   });
 
-  const sourceAdmissionQuery = useQuery({
-    queryKey: realmPersonaSourceAdmissionQueryKey,
-    queryFn: async () => loadRealmPersonaSourceAdmissionProjection(),
-    enabled: authStatus === 'authenticated',
-    staleTime: 15_000,
-  });
-
   const personaSources = useMemo(
     () => {
       const mapped = parsePersonaSources(personaSourcesQuery.data, worldsMap);
-      const projection = sourceAdmissionQuery.data ?? null;
-      return mapped.map((personaSource) => {
-        const connection = resolveRealmSourceConnection(personaSource, projection);
-        return {
-          ...personaSource,
-          runtimeSourceRef: connection?.runtimeSourceRef ?? personaSource.runtimeSourceRef,
-          sourceState: resolveRealmPersonaSourceState(personaSource, projection),
-        };
-      });
+      return mapped.map((personaSource) => ({
+        ...personaSource,
+        sourceState: resolveRealmPersonaSourceState(personaSource),
+      }));
     },
-    [personaSourcesQuery.data, worldsMap, sourceAdmissionQuery.data],
+    [personaSourcesQuery.data, worldsMap],
   );
 
   const categories = useMemo(() => {
@@ -113,7 +99,7 @@ export function ExplorePanel(props: ExplorePanelProps) {
     return Array.from(new Set(combined)).slice(0, 16);
   }, [personaSources]);
 
-  // fetchPostPage for PostFeed â€” PostFeed manages its own pagination internally
+  // fetchPostPage for PostFeed â€?PostFeed manages its own pagination internally
   const fetchPostPage = useCallback(
     async (cursor: string | null) => {
       const tag = selectedCategory || undefined;
@@ -140,26 +126,26 @@ export function ExplorePanel(props: ExplorePanelProps) {
 
   const onPersonaSourceManage = useCallback(async (source: ExplorePersonaSourceCardData) => {
     try {
-      await connectRealmPersonaSource(source);
-      await queryClient.invalidateQueries({ queryKey: realmPersonaSourceAdmissionQueryKey });
+      const target = await materializeSourceContactLaunchTarget(source, ownerUserId);
+      await ensureRuntimeAgentExists(target);
       setFeedback({
         kind: 'success',
-        message: i18n.t('Explore.realmPersonaSourceConnectedFeedback', {
-          defaultValue: 'Source connected.',
+        message: i18n.t('Explore.realmPersonaSourceMaterializedFeedback', {
+          defaultValue: 'Local agent created on this device.',
         }),
       });
       logRendererEvent({
         level: 'info',
         area: 'explore',
-        message: 'action:realm-source-connection:connected',
+        message: 'action:realm-source-materialization:local-agent-created',
       });
     } catch (error) {
       setFeedback({
         kind: 'error',
-        message: error instanceof Error ? error.message : realmPersonaSourceConnectionMessage(),
+        message: error instanceof Error ? error.message : realmPersonaSourceMaterializationMessage(),
       });
     }
-  }, [queryClient]);
+  }, [ownerUserId]);
 
   const onPersonaSourceSendGift = useCallback(
     (sourceId: string) => {

@@ -57,7 +57,7 @@ export const E2E_IDS = {
   chatList: 'chat-list',
   chatRow: (chatId) => `chat-row:${chatId}`,
   chatTarget: (targetId) => `chat-target:${targetId}`,
-  localAgentRef: (ownerUserId, agentId) => `local-agent:${ownerUserId}:${agentId}`,
+  localAgentRef: (localAgentRef) => localAgentRef,
   chatHeaderProfileToggle: 'chat-header-profile-toggle',
   chatSettingsToggle: 'chat-settings-toggle',
   chatAgentCenterSection: (sectionId) => `chat-agent-center-section:${sectionId}`,

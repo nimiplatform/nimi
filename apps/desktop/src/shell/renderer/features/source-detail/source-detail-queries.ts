@@ -1,11 +1,9 @@
 import { realmSourceDetailData } from './data/realm-source-detail-data';
 import { parseOptionalJsonObject, type JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
 import {
-  loadRealmPersonaSourceAdmissionProjection,
   realmSourceRefKey,
-  resolveRealmSourceConnection,
   resolveRealmPersonaSourceState,
-} from '@renderer/features/explore/realm-persona-source-admission';
+} from '@renderer/features/explore/realm-persona-source-materialization';
 import type { NimiRealmCoreSourceRef } from '@nimiplatform/sdk/realm';
 import type { SourceDetailData } from './source-detail-model.js';
 import { toSourceDetailData } from './source-detail-model.js';
@@ -86,20 +84,10 @@ export async function fetchSourceDisplayDetail(selection: SourceDisplayDetailSel
   if (!normalizedSourceRef && !normalizedIdentifier) {
     return null;
   }
-  const [result, socialProjection] = await Promise.all([
-    normalizedSourceRef
-      ? realmSourceDetailData.loadRealmSourceDetailsBySourceRef(normalizedSourceRef)
-      : realmSourceDetailData.loadRealmSourceDetailsForDisplay(normalizedIdentifier),
-    loadRealmPersonaSourceAdmissionProjection(),
-  ]);
-  const sourceState = resolveRealmPersonaSourceState(result, socialProjection);
-  const connection = resolveRealmSourceConnection(result, socialProjection);
-  const sourceResult = connection
-    ? {
-        ...result,
-        runtimeSourceRef: connection.runtimeSourceRef,
-      }
-    : result;
+  const sourceResult = normalizedSourceRef
+    ? await realmSourceDetailData.loadRealmSourceDetailsBySourceRef(normalizedSourceRef)
+    : await realmSourceDetailData.loadRealmSourceDetailsForDisplay(normalizedIdentifier);
+  const sourceState = resolveRealmPersonaSourceState(sourceResult);
   return {
     source: toSourceDetailData(sourceResult, sourceState),
     stats: normalizeSourceStats(sourceResult),

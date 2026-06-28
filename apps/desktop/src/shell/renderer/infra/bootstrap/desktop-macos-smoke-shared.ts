@@ -57,8 +57,18 @@ export type DesktopMacosSmokeDriverDeps = {
   readAgentConversationAnchorBinding: (localAgentRef: string) => Promise<AgentConversationAnchorBinding | null>;
   clearAgentConversationAnchorBindings: () => Promise<void>;
   configureRuntimeTextRoute: () => Promise<void>;
-  verifyRuntimeConversationAnchor: (input: { agentId: string; conversationAnchorId: string }) => Promise<void>;
-  readRuntimeProductPathEvidence: (input: { agentId: string; conversationAnchorId: string }) => Promise<NimiRuntimeAgentSmokeProductPathEvidence>;
+  verifyRuntimeConversationAnchor: (input: {
+    localAgentRef: string;
+    ownerUserId: string;
+    runtimeSourceRef: string;
+    conversationAnchorId: string;
+  }) => Promise<void>;
+  readRuntimeProductPathEvidence: (input: {
+    localAgentRef: string;
+    ownerUserId: string;
+    runtimeSourceRef: string;
+    conversationAnchorId: string;
+  }) => Promise<NimiRuntimeAgentSmokeProductPathEvidence>;
   setChatAvatarInteractionOverride: (override: Record<string, unknown> | null) => Promise<void>;
   resizeLive2dViewport: (size: { width: number; height: number }) => Promise<void>;
   pulseLive2dViewportTinyHost: () => Promise<void>;

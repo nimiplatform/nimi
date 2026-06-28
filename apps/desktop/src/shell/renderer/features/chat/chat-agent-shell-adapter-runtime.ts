@@ -71,8 +71,22 @@ type AgentConversationRuntimeController = {
   handleUpdateRuntimeState: (stateInput: RuntimeStateInput) => void;
 };
 
+type RuntimeIdentityInput = {
+  readonly localAgentRef: string;
+  readonly ownerUserId: string;
+  readonly runtimeSourceRef: string;
+};
+
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
+}
+
+function toRuntimeIdentityInput(target: AgentLocalTargetSnapshot): RuntimeIdentityInput {
+  return {
+    localAgentRef: target.localAgentRef,
+    ownerUserId: target.ownerUserId,
+    runtimeSourceRef: target.runtimeSourceRef,
+  };
 }
 
 function requireRuntimeSubjectUserId(): string {
@@ -110,10 +124,11 @@ export function useAgentConversationRuntimeController(
   }), []);
 
   const reloadRuntimeInspect = useCallback(async (
-    agentId: string,
+    target: AgentLocalTargetSnapshot,
     options?: { surfaceErrors?: boolean },
   ) => {
-    const normalizedAgentId = normalizeText(agentId);
+    const identity = toRuntimeIdentityInput(target);
+    const normalizedAgentId = normalizeText(identity.localAgentRef);
     if (!normalizedAgentId || authStatus !== 'authenticated') {
       setRuntimeInspect(null);
       setRuntimeInspectLoading(false);
@@ -122,7 +137,7 @@ export function useAgentConversationRuntimeController(
     }
     setRuntimeInspectLoading(true);
     try {
-      const snapshot = await runtimeAgentInspect.getPublicInspect(normalizedAgentId);
+      const snapshot = await runtimeAgentInspect.getPublicInspect(identity);
       setRuntimeInspect(snapshot);
       lastInspectFetchedAgentIdRef.current = normalizedAgentId;
     } catch (error) {
@@ -151,10 +166,10 @@ export function useAgentConversationRuntimeController(
   }, [authStatus, buildHostErrorDetails, reportHostError, runtimeAgentInspect]);
 
   const refreshRuntimeInspect = useCallback(async (
-    agentId: string,
+    target: AgentLocalTargetSnapshot,
     options?: { surfaceErrors?: boolean },
   ) => {
-    await reloadRuntimeInspect(agentId, options);
+    await reloadRuntimeInspect(target, options);
   }, [reloadRuntimeInspect]);
 
   useEffect(() => {
@@ -168,7 +183,7 @@ export function useAgentConversationRuntimeController(
       };
     }
     void ensureRuntimeAgentExists(target)
-      .then(() => runtimeAgentInspect.getPresentationProfile(agentId))
+      .then(() => runtimeAgentInspect.getPresentationProfile(toRuntimeIdentityInput(target)))
       .then((profile) => {
         if (!cancelled) {
           setRuntimePresentationProfile(profile);
@@ -195,8 +210,9 @@ export function useAgentConversationRuntimeController(
 
   useEffect(() => {
     let cancelled = false;
-    const agentId = normalizeText(activeTarget?.localAgentRef);
-    if (authStatus !== 'authenticated' || !agentId) {
+    const target = activeTarget;
+    const agentId = normalizeText(target?.localAgentRef);
+    if (authStatus !== 'authenticated' || !target || !agentId) {
       setCanonicalMemoryStatus(null);
       setCanonicalMemoryLoading(false);
       return () => {
@@ -204,7 +220,11 @@ export function useAgentConversationRuntimeController(
       };
     }
     setCanonicalMemoryLoading(true);
-    void runtimeAgentMemory.getCanonicalBankStatus(agentId)
+    void runtimeAgentMemory.getCanonicalBankStatus({
+      localAgentRef: target.localAgentRef,
+      ownerUserId: target.ownerUserId,
+      runtimeSourceRef: target.runtimeSourceRef,
+    })
       .then((status) => {
         if (cancelled) {
           return;
@@ -233,7 +253,7 @@ export function useAgentConversationRuntimeController(
     return () => {
       cancelled = true;
     };
-  }, [activeTarget?.localAgentRef, authStatus, buildHostErrorDetails, runtimeAgentMemory]);
+  }, [activeTarget, authStatus, buildHostErrorDetails, runtimeAgentMemory]);
 
   useEffect(() => {
     let cancelled = false;
@@ -256,7 +276,7 @@ export function useAgentConversationRuntimeController(
     }
     setRuntimeInspectLoading(true);
     void ensureRuntimeAgentExists(target)
-      .then(() => runtimeAgentInspect.getPublicInspect(agentId))
+      .then(() => runtimeAgentInspect.getPublicInspect(toRuntimeIdentityInput(target)))
       .then((snapshot) => {
         if (cancelled) {
           return;
@@ -291,8 +311,9 @@ export function useAgentConversationRuntimeController(
   }, [activeTarget, authStatus, buildHostErrorDetails, runtimeAgentInspect]);
 
   useEffect(() => {
-    const agentId = normalizeText(activeTarget?.localAgentRef);
-    if (authStatus !== 'authenticated' || !agentId || !diagnosticsVisible) {
+    const target = activeTarget;
+    const agentId = normalizeText(target?.localAgentRef);
+    if (authStatus !== 'authenticated' || !target || !agentId || !diagnosticsVisible) {
       setRecentRuntimeEvents([]);
       return;
     }
@@ -326,7 +347,7 @@ export function useAgentConversationRuntimeController(
       });
     };
     void runtimeAgentInspect.subscribePublicEvents({
-      agentId,
+      ...toRuntimeIdentityInput(target),
       signal: controller.signal,
       onEvent: (event) => {
         pendingEvents.push(event);

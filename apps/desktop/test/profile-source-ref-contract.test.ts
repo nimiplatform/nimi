@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import test from 'node:test';
 
 import { parsePersonaSources } from '../src/shell/renderer/features/explore/explore-persona-source-projection.js';
-import { resolveRealmCoreSourceRef } from '../src/shell/renderer/features/explore/realm-persona-source-admission.js';
+import { resolveRealmCoreSourceRef } from '../src/shell/renderer/features/explore/realm-persona-source-materialization.js';
 import { buildRelationshipProfileSeed } from '../src/shell/renderer/features/chat/chat-relationship-hover-card.js';
 import { toProfileData } from '../src/shell/renderer/features/profile/profile-model.js';
 import { toFriendContact } from '../src/shell/renderer/features/relationship/relationship-model.js';
@@ -22,7 +22,7 @@ function readRepo(relativePath: string): string {
   return readFileSync(join(repoRoot, relativePath), 'utf8');
 }
 
-test('shared Realm source admission rejects nested sourceRef that does not match display identity', () => {
+test('shared Realm source materialization rejects nested sourceRef that does not match display identity', () => {
   assert.deepEqual(resolveRealmCoreSourceRef({
     id: 'persona-a',
     sourceKind: 'realmPersona',

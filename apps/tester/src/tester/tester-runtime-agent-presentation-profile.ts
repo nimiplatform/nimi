@@ -2,7 +2,6 @@ import {
   buildNimiSetRuntimeAgentPresentationProfileRequest,
   createNimiHostRuntimeAgentPresentationProfileSurface,
   normalizeNimiRuntimeAgentPresentationDefaultVoiceReference,
-  parseRuntimeLocalAgentIdentity,
 } from '@nimiplatform/sdk/runtime';
 
 export type TesterRuntimeAgentPresentationProfileProjection = {
@@ -13,10 +12,14 @@ export type TesterRuntimeAgentPresentationProfileProjection = {
 };
 
 export function createTesterRuntimeAgentPresentationProfileProjection(): TesterRuntimeAgentPresentationProfileProjection {
-  const agentId = 'local-agent:tester-user:tester-agent';
+  const identity = {
+    localAgentRef: 'local-agent:tester-opaque-agent',
+    ownerUserId: 'tester-user',
+    runtimeSourceRef: 'tester-agent',
+  };
   const request = buildNimiSetRuntimeAgentPresentationProfileRequest({
     context: { appId: 'tester', subjectUserId: 'tester-user' },
-    agentId,
+    identity,
     profile: {
       backendKind: 'live2d',
       avatarAssetRef: 'asset://tester/live2d-agent',
@@ -26,7 +29,7 @@ export function createTesterRuntimeAgentPresentationProfileProjection(): TesterR
   const mutation = request.mutation;
   return {
     backendKind: 'profile' in mutation ? mutation.profile.backendKind : 0,
-    localAgentOwner: parseRuntimeLocalAgentIdentity(agentId).ownerUserId,
+    localAgentOwner: identity.ownerUserId,
     defaultVoiceReference: normalizeNimiRuntimeAgentPresentationDefaultVoiceReference(' provider_voice_ref:tester:voice '),
     mutationKind: mutation.oneofKind ?? 'unknown',
   };
@@ -58,7 +61,11 @@ export async function inspectTesterRuntimeAgentPresentationProfileSurface(): Pro
   backendKind: string;
 }> {
   const surface = createTesterRuntimeAgentPresentationProfileSurface();
-  await surface.setPresentationProfile('local-agent:tester-user:tester-agent', {
+  await surface.setPresentationProfile({
+    localAgentRef: 'local-agent:tester-opaque-agent',
+    ownerUserId: 'tester-user',
+    runtimeSourceRef: 'tester-agent',
+  }, {
     backendKind: 'live2d',
     avatarAssetRef: 'asset://tester/live2d-agent',
     defaultVoiceReference: 'provider_voice_ref:tester:voice',

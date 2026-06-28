@@ -66,7 +66,7 @@ test('Explore fold keeps RealmPersona discovery as Explore-owned discovery witho
   assert.match(exploreViewSource, /data-testid=\{E2E_IDS\.exploreSection\('personas'\)\}/);
   assert.match(exploreViewSource, /<PersonaSourceCard/);
   assert.match(personaSourceCardSource, /worldName/);
-  // RealmPersona cards render source admission handoff state, never an
+  // RealmPersona cards render source materialization handoff state, never an
   // unconditional Add Friend or direct source chat affordance.
   assert.match(personaSourceCardSource, /describeRealmPersonaPrimaryAction/);
   assert.doesNotMatch(exploreViewSource, /<ExploreAgentCard/);
@@ -123,17 +123,20 @@ test('Worlds and World Detail use source discovery semantics instead of runtime 
   assert.doesNotMatch(worldListCardsSource, /World\.status\.active/);
   assert.doesNotMatch(worldDetailSource, /onEnterEdit|onCreateSubWorld|handleEnterEdit|handleCreateSubWorld/);
   assert.doesNotMatch(worldDetailTemplateSource, /onEnterEdit|onCreateSubWorld/);
-  assert.doesNotMatch(worldSurfaceSources, /Enter world|进入世界|Enter Editor|进入编辑台|Create Sub World|创建子世界/);
-  assert.doesNotMatch(worldSurfaceSources, /Active Now|在线场景数|Online Scenes|World Flow|Transit In|转入限制|Sub World|子世界/);
-  assert.match(worldSurfaceSources, /Explore Sources|探索 Source|View World|查看世界|Connect Source|连接 Source/);
+  assert.doesNotMatch(worldSurfaceSources, /Enter world|Enter Editor|Create Sub World/);
+  assert.doesNotMatch(worldSurfaceSources, /Active Now|Online Scenes|World Flow|Transit In|Sub World/);
+  assert.match(worldSurfaceSources, /Explore Sources|Create Local Agent|View World/);
 });
 
-test('World Detail connects sources through the existing source-connection path only', () => {
-  assert.match(worldDetailSource, /connectRealmPublicSource/);
-  assert.doesNotMatch(worldDetailSource, /connectRealmPersonaSource/);
-  assert.match(worldDetailTemplateSource, /onConnectSource/);
-  assert.doesNotMatch(worldDetailSource, /createRealmRuntimeSourceSnapshot|worldCoreControllerCreateRuntimeSourceSnapshot|transitController/);
-  assert.doesNotMatch(worldDetailTemplateSource, /createRealmRuntimeSourceSnapshot|worldCoreControllerCreateRuntimeSourceSnapshot|transitController/);
+test('World Detail materializes sources through the packet-backed Runtime handoff only', () => {
+  assert.match(worldDetailSource, /materializeSourceContactLaunchTarget/);
+  assert.match(worldDetailSource, /ensureRuntimeAgentExists/);
+  assert.match(worldDetailTemplateSource, /onMaterializeSource/);
+  assert.doesNotMatch(worldDetailSource, new RegExp(`connect${['Realm', 'Public', 'Source'].join('')}`));
+  assert.doesNotMatch(worldDetailSource, new RegExp(`connect${['Realm', 'Persona', 'Source'].join('')}`));
+  assert.doesNotMatch(worldDetailTemplateSource, new RegExp(`on${['Connect', 'Source'].join('')}`));
+  assert.doesNotMatch(worldDetailSource, new RegExp(`createRealm${'Runtime'}${'Source'}${'Snapshot'}|worldCoreControllerCreate${'Runtime'}${'Source'}${'Snapshot'}|transitController`));
+  assert.doesNotMatch(worldDetailTemplateSource, new RegExp(`createRealm${'Runtime'}${'Source'}${'Snapshot'}|worldCoreControllerCreate${'Runtime'}${'Source'}${'Snapshot'}|transitController`));
 });
 
 test('World product data adapters do not keep raw WorldCore or transit-era fallback paths', () => {

@@ -114,7 +114,8 @@ export function useAgentLocalAvatarLaunchControls(input: {
    * Shared D-LLM-106 arbitrated launch executor. Both the `start_with_chat`
    * gate and the explicit composer launch route through here, so the launch
    * decision branches on `avatar_instance_policy` in exactly one place. The
-   * emitted payload stays the D-LLM-072 triple.
+   * emitted payload stays the D-LLM-072 LocalAgent identity envelope plus
+   * Avatar instance launch fields.
    */
   const executeArbitratedLaunch = useCallback(async (input2: {
     trigger: 'start_with_chat' | 'explicit_user_action';
@@ -153,7 +154,9 @@ export function useAgentLocalAvatarLaunchControls(input: {
       subjectUserId: presentation.accountId,
     });
     const result = await launchDesktopAvatarHandoff({
-      agentId: presentation.activeTarget.localAgentRef,
+      ownerUserId: presentation.activeTarget.ownerUserId,
+      runtimeSourceRef: presentation.activeTarget.runtimeSourceRef,
+      localAgentRef: presentation.activeTarget.localAgentRef,
       avatarInstanceId: arbitration.avatarInstanceId,
       launchSource: input2.trigger === 'start_with_chat'
         ? 'desktop-agent-chat-start-with-chat'

@@ -1,6 +1,5 @@
 import { type KeyboardEvent } from 'react';
 import type { ConversationTargetSummary } from '@nimiplatform/kit/features/chat/headless';
-import { parseRuntimeLocalAgentIdentity } from '@nimiplatform/sdk/runtime';
 import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
@@ -63,14 +62,6 @@ function getMetadataValue(target: ConversationTargetSummary, key: string): unkno
   return target.metadata?.[key];
 }
 
-function parseRuntimeSourceRefFromLocalRef(localAgentRef: string): string {
-  try {
-    return parseRuntimeLocalAgentIdentity(localAgentRef).runtimeSourceRef;
-  } catch {
-    return '';
-  }
-}
-
 function resolveProfileTargetId(target: ConversationTargetSummary): string {
   if (target.source === 'human') {
     return getMetadataText(target, 'otherUserId') || target.id;
@@ -105,7 +96,7 @@ export function buildRelationshipProfileSeed(target: ConversationTargetSummary):
   }
   const ownershipType = getMetadataText(target, 'ownershipType');
   const runtimeSourceRef = target.source === 'agent'
-    ? getMetadataText(target, 'runtimeSourceRef') || parseRuntimeSourceRefFromLocalRef(target.id)
+    ? getMetadataText(target, 'runtimeSourceRef')
     : '';
   return {
     profileId,

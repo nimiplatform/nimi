@@ -2,17 +2,12 @@ import { useEffect, useState } from 'react';
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 import { useTranslation } from 'react-i18next';
 import { ScrollArea } from '@nimiplatform/kit/ui';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
+import { realmSourceRefKey } from '@renderer/features/explore/realm-persona-source-materialization';
 import { realmGroupChatData, type GroupSourceParticipantInput } from './data/realm-group-chat-data';
-import {
-  loadRealmPersonaSourceAdmissionProjection,
-  type RealmSourceConnectionProjection,
-} from '@renderer/features/explore/realm-persona-source-admission';
-import { realmSourceDetailData } from '@renderer/features/source-detail/data/realm-source-detail-data';
 
 type GroupParticipantDto = RealmModel<'GroupParticipantDto'>;
-type GroupSourceRef = GroupSourceParticipantInput['sourceRef'];
 
 type SourceFromSnapshot = {
   sourceKey: string;
@@ -27,38 +22,11 @@ function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-async function toSourceFromConnection(connection: RealmSourceConnectionProjection): Promise<SourceFromSnapshot> {
-  const profile = await realmSourceDetailData.loadRealmSourceDetailsBySourceRef(
-    connection.sourceRef,
-    { runtimeSourceRef: connection.runtimeSourceRef },
-  );
-  const ownerUserId = normalizeText(connection.ownerUserId);
-  const displayName = normalizeText(profile.displayName || profile.name);
-  const handle = normalizeText(profile.handle);
-  const avatarUrl = typeof profile.avatarUrl === 'string' ? profile.avatarUrl : null;
-  if (!ownerUserId || !displayName) {
-    throw new Error('RealmSourceConnection candidate requires owner and display identity');
+function sourceParticipantKey(participant: GroupParticipantDto): string {
+  if (participant.sourceRef) {
+    return realmSourceRefKey(participant.sourceRef);
   }
-  const sourceRef: GroupSourceRef = connection.sourceRef;
-  const input: GroupSourceParticipantInput = {
-    sourceRef,
-  };
-  return {
-    sourceKey: connection.runtimeSourceRef,
-    ownerUserId,
-    input,
-    displayName,
-    handle,
-    avatarUrl,
-  };
-}
-
-async function loadConnectedRealmSources(): Promise<SourceFromSnapshot[]> {
-  const projection = await loadRealmPersonaSourceAdmissionProjection();
-  const sources = await Promise.all(
-    projection.activeSourceConnections.map((connection) => toSourceFromConnection(connection)),
-  );
-  return sources.sort((a, b) => a.displayName.localeCompare(b.displayName));
+  return normalizeText(participant.runtimeSourceRef) || normalizeText(participant.runtimeParticipantSlot);
 }
 
 function toPanelErrorMessage(error: unknown, fallback: string): string {
@@ -99,7 +67,7 @@ export function ChatGroupParticipantPanel(props: {
   const sources = participants.filter((p) => p.type === 'source');
   const existingSourceKeys = new Set(
     sources
-      .map((a) => normalizeText(a.runtimeSourceRef) || normalizeText(a.runtimeParticipantSlot))
+      .map(sourceParticipantKey)
       .filter(Boolean),
   );
   const canManageSourceSlots = Boolean(
@@ -108,22 +76,15 @@ export function ChatGroupParticipantPanel(props: {
   );
   const showAddSourcePicker = addSourceOpen && canManageSourceSlots;
 
-  const socialQuery = useQuery({
-    queryKey: ['realm-source-connections-for-group-sources'],
-    queryFn: async () => loadConnectedRealmSources(),
-    enabled: showAddSourcePicker,
-    staleTime: 30_000,
-  });
-
   useEffect(() => {
     if (addSourceOpen && !canManageSourceSlots) {
       setAddSourceOpen(false);
     }
   }, [addSourceOpen, canManageSourceSlots]);
 
-  const availableSources = (socialQuery.data ?? []).filter((a) =>
-    a.ownerUserId === currentUserId
-    && !existingSourceKeys.has(a.sourceKey),
+  const availableSources = ([] as SourceFromSnapshot[]).filter((source) =>
+    source.ownerUserId === currentUserId
+    && !existingSourceKeys.has(source.sourceKey),
   );
 
   const handleAddSource = async (source: SourceFromSnapshot) => {
@@ -283,9 +244,7 @@ export function ChatGroupParticipantPanel(props: {
                 ))
               ) : (
                 <div className="px-2 py-1.5 text-xs text-slate-400">
-                  {socialQuery.isLoading
-                    ? t('Common.loading', { defaultValue: 'Loading...' })
-                    : t('Chat.groupNoAvailableSources', { defaultValue: 'No sources available to add' })}
+                  {t('Chat.groupNoAvailableSources', { defaultValue: 'No local agents available to add' })}
                 </div>
               )}
             </div>

@@ -1,13 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { ScrollArea } from '@nimiplatform/kit/ui';
 import { createRendererFlowId, logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
-import {
-  connectRealmPublicSource,
-  realmPersonaSourceAdmissionQueryKey,
-} from '@renderer/features/explore/realm-persona-source-admission';
+import { materializeSourceContactLaunchTarget } from '@renderer/features/relationship/source-contact-launch-target.js';
+import { ensureRuntimeAgentExists } from '@renderer/features/chat/chat-agent-shell-host-actions-helpers';
 import {
   NarrativeWorldDetailPage,
   OasisWorldDetailPage,
@@ -27,8 +25,8 @@ type WorldDetailProps = {
 
 export function WorldDetail({ world, onBack }: WorldDetailProps) {
   const authStatus = useAppStore((state) => state.auth.status);
+  const ownerUserId = useAppStore((state) => String(state.auth.user?.id || '').trim());
   const navigateToSourceDetail = useAppStore((state) => state.navigateToSourceDetail);
-  const queryClient = useQueryClient();
   const isReady = authStatus === 'authenticated' && !!world.id;
   const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
   const flowIdRef = useRef('');
@@ -156,25 +154,30 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
     });
   }, [display, world.id]);
 
-  // World characters are not chat-reachable from World detail. Chat opens only
-  // after a connected source is materialized into a runtime localAgent by value.
+  // World characters are not chat-reachable until Runtime creates a localAgent
+  // from a fresh Realm materialization packet on this device.
   const handleViewCharacter = (character: WorldCharacter) => {
     navigateToSourceDetail(character.sourceRef);
   };
 
-  const handleConnectSource = async (character: WorldCharacter) => {
+  const handleMaterializeSource = async (character: WorldCharacter) => {
     try {
-      await connectRealmPublicSource(character);
+      const target = await materializeSourceContactLaunchTarget({
+        ...character,
+        isSource: true,
+        displayName: character.name,
+        sourceWorldId: character.sourceRef.worldId,
+        sourceKind: character.sourceRef.kind,
+        sourceId: character.sourceRef.sourceId,
+        sourceContentHash: character.sourceRef.sourceContentHash,
+      }, ownerUserId);
+      await ensureRuntimeAgentExists(target);
       setFeedback({
         kind: 'success',
-        message: `${character.name} connected as a source.`,
+        message: `${character.name} created as a local agent on this device.`,
       });
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: worldDisplayDetailQueryKey(world.id) }),
-        queryClient.invalidateQueries({ queryKey: realmPersonaSourceAdmissionQueryKey }),
-      ]);
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to connect source.';
+      const message = error instanceof Error ? error.message : 'Failed to create local agent.';
       setFeedback({ kind: 'error', message });
     }
   };
@@ -203,7 +206,7 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
           publicAssetsLoading={worldCompositeQuery.isPending}
           onBack={onBack}
           onViewCharacter={handleViewCharacter}
-          onConnectSource={handleConnectSource}
+          onMaterializeSource={handleMaterializeSource}
         />
       ) : (
         <NarrativeWorldDetailPage
@@ -222,7 +225,7 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
           publicAssetsLoading={worldCompositeQuery.isPending}
           onBack={onBack}
           onViewCharacter={handleViewCharacter}
-          onConnectSource={handleConnectSource}
+          onMaterializeSource={handleMaterializeSource}
         />
       )}
     </ScrollArea>

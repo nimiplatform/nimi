@@ -17,14 +17,16 @@ import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 import { callRealmApi, emitRealmDataError } from '@renderer/infra/realm/realm-api';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import {
-  buildRuntimeLocalAgentRef,
   createNimiHostRuntimeRealmGroupMessageCandidateSurface,
+  isRuntimeLocalAgentRef,
 } from '@nimiplatform/sdk/runtime';
+import { AgentLifecycleStatus } from '@nimiplatform/sdk/runtime/generated';
 import { createNimiClientId, type JsonObject } from '@nimiplatform/sdk/types';
 import {
   getDesktopAccountRuntime,
   getDesktopAppId,
   getDesktopRuntime,
+  withDesktopRuntimeProtectedScopes,
 } from '@renderer/infra/sdk/desktop-nimi-client-session';
 
 type GroupChatViewDto = RealmModel<'GroupChatViewDto'>;
@@ -64,20 +66,48 @@ function requireCurrentUserId(getCurrentUser: CurrentUserReader): string {
 function requireSourceParticipant(participant: GroupParticipantDto): {
   runtimeParticipantSlot: string;
   runtimeSourceRef: string;
-  localAgentRef: string;
   ownerUserId: string;
 } {
   const runtimeParticipantSlot = normalizeText(participant.runtimeParticipantSlot);
   const runtimeSourceRef = normalizeText(participant.runtimeSourceRef);
   const ownerUserId = normalizeText(participant.sourceOwnerId);
-  if (participant.type !== 'source' || !runtimeParticipantSlot || !runtimeSourceRef || !ownerUserId) {
-    throw new Error('group source candidate handoff requires a runtime source participant with local agent materialization');
+  if (
+    participant.type !== 'source'
+    || !runtimeParticipantSlot
+    || !runtimeSourceRef
+    || !ownerUserId
+  ) {
+    throw new Error('group source candidate handoff requires a runtime source participant');
   }
-  const localAgentRef = buildRuntimeLocalAgentRef({
-    ownerUserId,
-    runtimeSourceRef,
-  });
-  return { runtimeParticipantSlot, runtimeSourceRef, localAgentRef, ownerUserId };
+  return { runtimeParticipantSlot, runtimeSourceRef, ownerUserId };
+}
+
+async function resolveGroupSourceLocalAgentRef(input: {
+  ownerUserId: string;
+  runtimeSourceRef: string;
+}): Promise<string> {
+  const runtime = getDesktopRuntime();
+  const response = await withDesktopRuntimeProtectedScopes(
+    ['runtime.agent.read'],
+    (callOptions) => runtime.agents.listAgents({
+      lifecycleFilter: AgentLifecycleStatus.ACTIVE,
+      pageSize: 200,
+      pageToken: '',
+    }, callOptions),
+  );
+  const matchingLocalAgents = (response.agents || []).filter((agent) => (
+    normalizeText(agent.ownerUserId) === input.ownerUserId
+    && normalizeText(agent.runtimeSourceRef) === input.runtimeSourceRef
+    && isRuntimeLocalAgentRef(agent.localAgentRef)
+  ));
+  if (matchingLocalAgents.length !== 1) {
+    throw new Error('group source candidate handoff requires exactly one matching Runtime local agent for source provenance');
+  }
+  const localAgentRef = normalizeText(matchingLocalAgents[0]?.localAgentRef);
+  if (!isRuntimeLocalAgentRef(localAgentRef)) {
+    throw new Error('group source candidate handoff resolved malformed Runtime local agent identity');
+  }
+  return localAgentRef;
 }
 
 export async function loadGroupChatList(
@@ -165,6 +195,10 @@ export async function commitRealmGroupSourceMessageCandidateHandoff(
 ): Promise<RealmGroupMessageCandidateCommitResultDto> {
   const currentUserId = requireCurrentUserId(getCurrentUser);
   const sourceParticipant = requireSourceParticipant(participant);
+  const localAgentRef = await resolveGroupSourceLocalAgentRef({
+    ownerUserId: sourceParticipant.ownerUserId,
+    runtimeSourceRef: sourceParticipant.runtimeSourceRef,
+  });
   const triggerMessageId = normalizeText(triggerMessage.id);
   const idempotencyKey = createStableClientId('rgmc');
   const surface = createNimiHostRuntimeRealmGroupMessageCandidateSurface({
@@ -188,7 +222,7 @@ export async function commitRealmGroupSourceMessageCandidateHandoff(
       runtimeParticipantSlot: sourceParticipant.runtimeParticipantSlot,
       ownerUserId: sourceParticipant.ownerUserId,
       runtimeSourceRef: sourceParticipant.runtimeSourceRef,
-      localAgentRef: sourceParticipant.localAgentRef,
+      localAgentRef,
       triggerMessageId,
       idempotencyKey,
     });
@@ -204,7 +238,7 @@ export async function commitRealmGroupSourceMessageCandidateHandoff(
     emitRealmGroupChatError('commit-realm-group-message-candidate', error, {
       chatId,
       runtimeParticipantSlot: normalizeText(participant.runtimeParticipantSlot),
-      localAgentRef: sourceParticipant.localAgentRef,
+      localAgentRef,
     });
     throw error;
   }

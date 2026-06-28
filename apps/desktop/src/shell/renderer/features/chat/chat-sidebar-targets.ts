@@ -3,7 +3,7 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import type { ConversationTargetSummary } from '@nimiplatform/kit/features/chat/headless';
-import { buildRuntimeLocalAgentRef } from '@nimiplatform/sdk/runtime';
+import { isRuntimeLocalAgentRef } from '@nimiplatform/sdk/runtime';
 import type { AgentLocalTargetSnapshot } from '@renderer/bridge/runtime-bridge/types';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { toSourceContactLaunchTarget } from '@renderer/features/relationship/source-contact-launch-target';
@@ -178,7 +178,7 @@ export function toAgentTargetSnapshotFromSummary(
   if (!ownerUserId || !runtimeSourceRef || !localAgentRef) {
     return null;
   }
-  if (localAgentRef !== buildRuntimeLocalAgentRef({ ownerUserId, runtimeSourceRef })) {
+  if (!isRuntimeLocalAgentRef(localAgentRef)) {
     return null;
   }
   const displayName = normalizeText(metadata.displayName) || normalizeText(target.title);

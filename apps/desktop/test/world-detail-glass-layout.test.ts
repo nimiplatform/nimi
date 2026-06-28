@@ -48,7 +48,7 @@ test('world detail product semantics stay setting-first and source-first', () =>
   assert.match(worldTemplateSource, /WorldDetail\.glass\.timeline\.title/);
   assert.match(worldTemplateSource, /WorldDetail\.glass\.scenes\.title/);
   assert.match(worldTemplateSource, /WorldDetail\.glass\.sourceDiscovery\.primarySource/);
-  assert.match(worldTemplateSource, /onConnectSource/);
+  assert.match(worldTemplateSource, /onMaterializeSource/);
   assert.match(worldTemplateSource, /SourceDiscoveryPanel/);
   assert.match(worldTemplateSource, /data-testid="world-detail-source-discovery"/);
   assert.match(worldTemplateSource, /Current world time is calculated from initial world time and timeflow ratio\./);
@@ -58,10 +58,10 @@ test('world detail product semantics stay setting-first and source-first', () =>
   assert.doesNotMatch(worldTemplateSource, /accepting arrivals/);
 });
 
-test('world detail keeps source quick sheets but does not start chat before connection', () => {
+test('world detail keeps source quick sheets but does not start chat before materialization', () => {
   assert.match(worldTemplateSource, /WorldCharacterQuickSheet/);
   assert.match(worldTemplateSource, /WorldSceneQuickSheet/);
-  assert.match(worldTemplateSource, /onConnectSource/);
+  assert.match(worldTemplateSource, /onMaterializeSource/);
   assert.match(worldTemplateSource, /onViewCharacter/);
-  assert.match(worldTemplateSource, /Chat is materialized only after a public source is connected into a localAgent\./);
+  assert.match(worldTemplateSource, /Chat is materialized only after Runtime creates a device-local LocalAgent\./);
 });

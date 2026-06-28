@@ -8,10 +8,10 @@ import type { ExplorePersonaSourceCardData } from './explore-cards';
 import {
   describeRealmPersonaPrimaryAction,
   type RealmPersonaSourceState,
-} from './realm-persona-source-admission';
+} from './realm-persona-source-materialization';
 
 // Hash an identifier into a stable 12-point curve in [0.3, 1]. This powers the
-// decorative activity sparkline on the persona source card — we have no time-series
+// decorative activity sparkline on the persona source card �?we have no time-series
 // engagement data, so the curve is deterministic per-source rather than
 // synthesized per render (which would flicker) or mocked as uniform fake data.
 function deterministicPulse(seed: string, points = 12): number[] {
@@ -49,18 +49,11 @@ function MiniSparkline({ seed, width = 52, height = 18 }: { seed: string; width?
   );
 }
 function sourcePillStyle(state: RealmPersonaSourceState): CSSProperties {
-  if (state === 'source_connectable') {
+  if (state === 'source_materializable') {
     return {
       background: 'var(--nimi-accent-soft)',
       color: 'var(--nimi-accent)',
       borderColor: 'var(--nimi-accent)',
-    };
-  }
-  if (state === 'source_connected') {
-    return {
-      background: 'rgba(16, 185, 129, 0.10)',
-      color: '#047857',
-      borderColor: 'rgba(16, 185, 129, 0.35)',
     };
   }
   return {
@@ -87,7 +80,7 @@ type RealmPersonaPrimaryActionGlyph = ReturnType<typeof describeRealmPersonaPrim
 // Layout: rank kicker + Public pill · aurora blob · glyph tile + name/role ·
 // Origin meta row · footer (sparkline + count + source action). Every
 // color uses fg-*/accent-*/border-* tokens, every font uses the three font
-// tokens. The sparkline is decorative — see deterministicPulse comment.
+// tokens. The sparkline is decorative �?see deterministicPulse comment.
 export function PersonaSourceCard({
   source,
   onPrimaryAction,
@@ -112,7 +105,7 @@ export function PersonaSourceCard({
   const postsCount = typeof source.postsCount === 'number' ? source.postsCount : 0;
   const isPublic = source.visibility === 'public';
   const glyph = source.name ? source.name.trim().charAt(0).toUpperCase() : '·';
-  const sourceState: RealmPersonaSourceState = source.sourceState ?? 'source_connection_unavailable';
+  const sourceState: RealmPersonaSourceState = source.sourceState ?? 'source_materialization_unavailable';
   const primaryAction = describeRealmPersonaPrimaryAction(sourceState);
   const handlePrimaryActionClick = (event: MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();

@@ -1,10 +1,5 @@
 import { realmWorldData } from './data/realm-world-data';
 import { queryClient } from '@renderer/infra/query-client/query-client';
-import {
-  loadRealmPersonaSourceAdmissionProjection,
-  resolveRealmSourceConnection,
-  type RealmPersonaSourceAdmissionProjection,
-} from '@renderer/features/explore/realm-persona-source-admission';
 import type {
   WorldCharacter,
   WorldCharacterStats,
@@ -553,13 +548,11 @@ function toWorldDisplayCharacter(characterValue: unknown, worldCreatedAt: string
     sourceKind,
     ownership: ownership === 'userOwned' ? 'userOwned' : 'worldOwned',
     relation: {
-      state: relationState === 'connected'
-        ? 'connected'
-        : relationState === 'unavailable'
+      state: relationState === 'unavailable'
           ? 'unavailable'
           : 'connectable',
-      connectionId: readString(relation, 'connectionId') || null,
-      runtimeSourceRef: readString(relation, 'runtimeSourceRef') || null,
+      connectionId: null,
+      runtimeSourceRef: null,
     },
     role: readString(display, 'role') || null,
     faction: readString(display, 'faction') || null,
@@ -574,46 +567,20 @@ function toWorldDisplayCharacter(characterValue: unknown, worldCreatedAt: string
   };
 }
 
-export function overlayWorldDisplaySourceConnections(
-  characters: readonly WorldCharacter[],
-  projection: RealmPersonaSourceAdmissionProjection | null | undefined,
-): WorldCharacter[] {
-  return characters.map((character) => {
-    const connection = resolveRealmSourceConnection(character, projection);
-    if (!connection) {
-      return character;
-    }
-    return {
-      ...character,
-      relation: {
-        ...character.relation,
-        state: 'connected',
-        connectionId: connection.connectionId,
-        runtimeSourceRef: connection.runtimeSourceRef,
-      },
-    };
-  });
-}
-
 export async function fetchWorldDisplayDetail(worldId: string): Promise<WorldDisplayDetail> {
   const primary = await fetchWorldDetailWithCharacters(worldId);
   const world = toWorldDisplayData(primary);
   const characterRecords = Array.isArray(primary.characters) ? primary.characters : [];
   const projectedCharacters = characterRecords.map((character) => toWorldDisplayCharacter(character, world.createdAt));
-  const [admissionResult, historyResult, semanticResult, publicAssetsResult] = await Promise.allSettled([
-    loadRealmPersonaSourceAdmissionProjection(),
+  const [historyResult, semanticResult, publicAssetsResult] = await Promise.allSettled([
     fetchWorldHistory(worldId),
     fetchWorldSemanticBundle(worldId),
     fetchWorldPublicAssets(worldId),
   ]);
-  const characters = overlayWorldDisplaySourceConnections(
-    projectedCharacters,
-    admissionResult.status === 'fulfilled' ? admissionResult.value : null,
-  );
   return {
     primary,
     world,
-    characters,
+    characters: projectedCharacters,
     history: historyResult.status === 'fulfilled' ? historyResult.value : EMPTY_WORLD_HISTORY,
     semantic: semanticResult.status === 'fulfilled' ? semanticResult.value : EMPTY_WORLD_SEMANTIC,
     audits: [],

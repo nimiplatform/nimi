@@ -1,5 +1,5 @@
 import { parseOptionalJsonObject, type JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
-import type { RealmPersonaSourceState } from '@renderer/features/explore/realm-persona-source-admission';
+import type { RealmPersonaSourceState } from '@renderer/features/explore/realm-persona-source-materialization';
 import type { NimiRealmCoreSourceRef } from '@nimiplatform/sdk/realm';
 
 export type SourceDetailData = {

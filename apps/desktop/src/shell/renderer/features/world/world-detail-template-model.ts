@@ -65,9 +65,9 @@ export function currentWorldTime(world: WorldDetailData): string {
 }
 
 export function relationLabel(character: WorldCharacter): string {
-  if (character.relation?.state === 'connected') return 'Connected';
+  if (character.relation?.state === 'connected') return 'Local agent ready';
   if (character.relation?.state === 'unavailable') return 'Unavailable';
-  return 'Connect Source';
+  return 'Create Local Agent';
 }
 
 export function characterMeta(character: WorldCharacter): string {

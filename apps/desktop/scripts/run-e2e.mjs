@@ -22,6 +22,9 @@ const desktopRoot = path.resolve(scriptDir, '..');
 const repoRoot = path.resolve(desktopRoot, '..', '..');
 const CUBISM_WEB_SDK_VERSION = '5-r.5';
 const CUBISM_SAMPLE_MODEL = 'Hiyori';
+const SOURCE_MATERIALIZATION_PACKET_HMAC_SECRET = String(
+  process.env.SOURCE_MATERIALIZATION_PACKET_HMAC_SECRET || 'desktop-e2e-source-materialization-secret',
+);
 
 function ensureCubismLive2dSample() {
   const sampleCacheRoot = path.join(repoRoot, 'apps/desktop/.cache/assets/js');
@@ -577,6 +580,7 @@ async function runScenario(scenarioId, runIndex) {
       NIMI_E2E_PROFILE: scenarioId,
       NIMI_E2E_FIXTURE_PATH: scenarioManifestPath,
       NIMI_E2E_BACKEND_LOG_PATH: backendLogPath,
+      SOURCE_MATERIALIZATION_PACKET_HMAC_SECRET,
     },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
@@ -634,6 +638,7 @@ async function runScenario(scenarioId, runIndex) {
           NIMI_E2E_FIXTURE_CONTROL_URL: fixtureServer.controlUrl,
           NIMI_E2E_FIXTURE_PATH: scenarioManifestPath,
           NIMI_E2E_ARTIFACT_MANIFEST: artifactManifestPath,
+          SOURCE_MATERIALIZATION_PACKET_HMAC_SECRET,
         },
       },
     );

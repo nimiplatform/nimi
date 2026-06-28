@@ -134,8 +134,8 @@ test('desktop E2E runner tears down native WebDriver process trees between scena
 });
 
 test('desktop E2E chat scenarios target canonical local-agent anchors', () => {
-  assert.match(chatMemoryStandardBindSpecSource, /E2E_IDS\.localAgentRef\('user-e2e-primary', 'agent-e2e-alpha'\)/);
-  assert.match(chatLive2dRenderSmokeSpecSource, /E2E_IDS\.localAgentRef\('user-e2e-primary', 'agent-e2e-alpha'\)/);
+  assert.match(chatMemoryStandardBindSpecSource, /E2E_IDS\.localAgentRef\('local-agent:user-e2e-primary:agent-e2e-alpha'\)/);
+  assert.match(chatLive2dRenderSmokeSpecSource, /E2E_IDS\.localAgentRef\('local-agent:user-e2e-primary:agent-e2e-alpha'\)/);
   assert.doesNotMatch(chatMemoryStandardBindSpecSource, /chatTarget\('agent-e2e-alpha'\)/);
   assert.doesNotMatch(chatLive2dRenderSmokeSpecSource, /chatTarget\('agent-e2e-alpha'\)/);
 });
@@ -227,11 +227,11 @@ test('desktop E2E failOnConsoleError treats browser severe logs as failures', ()
   assert.match(wdioConfigSource, /browser severe logs detected/);
 });
 
-test('desktop E2E Realm fixture serves public world and source connection contracts', () => {
+test('desktop E2E Realm fixture serves public world and source materialization packet contracts', () => {
   assert.match(realmFixtureServerSource, /entityKinds/);
   assert.match(realmFixtureServerSource, /relationshipTypes/);
-  assert.match(realmFixtureServerSource, /pathname === '\/api\/human\/source-connections'/);
-  assert.match(realmFixtureServerSource, /request\.method === 'GET' && pathname === '\/api\/human\/source-connections'/);
+  assert.match(realmFixtureServerSource, /pathname === '\/api\/realm\/core\/source-materialization-packets'/);
+  assert.doesNotMatch(realmFixtureServerSource, new RegExp(`/api/human/${['source', 'connections'].join('-')}`));
   assert.match(realmFixtureServerSource, /runtime-source:\$\{sourceRef\.kind\}/);
 });
 

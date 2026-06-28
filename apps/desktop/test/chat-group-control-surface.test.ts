@@ -12,6 +12,7 @@ const createControllerSource = readWorkspaceFile('src/shell/renderer/features/ch
 const composerSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-group-composer.tsx');
 const participantPanelSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-group-participant-panel.tsx');
 const groupAdapterSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-group-adapter.tsx');
+const groupDataSource = readWorkspaceFile('src/shell/renderer/features/chat/data/realm-group-chat-data.ts');
 const enChatLocale = readWorkspaceFile('src/shell/renderer/locales/en/12-Chat.json');
 const zhChatLocale = readWorkspaceFile('src/shell/renderer/locales/zh/12-Chat.json');
 
@@ -29,7 +30,7 @@ test('group source slot controls require Realm admin projection at visibility an
   assert.match(participantPanelSource, /const canManageSourceSlots = Boolean\(/);
   assert.match(participantPanelSource, /humans\.some\(\(p\) => p\.accountId === currentUserId && p\.role === 'admin'\)/);
   assert.match(participantPanelSource, /const showAddSourcePicker = addSourceOpen && canManageSourceSlots;/);
-  assert.match(participantPanelSource, /enabled: showAddSourcePicker,/);
+  assert.match(participantPanelSource, /const availableSources = \(\[\] as SourceFromSnapshot\[\]\)\.filter/);
   assert.match(participantPanelSource, /if \(addSourceOpen && !canManageSourceSlots\) \{\s*setAddSourceOpen\(false\);/s);
   assert.match(participantPanelSource, /\{showAddSourcePicker && \(/);
   assert.match(participantPanelSource, /if \(!canManageSourceSlots\) \{\s*setPanelError\(t\('Chat\.groupSourceSlotManagementDenied'/s);
@@ -60,6 +61,14 @@ test('group adapter feeds committed runtime source slots into split candidate ha
   assert.match(groupAdapterSource, /realmGroupChatData\.commitRealmGroupSourceMessageCandidate/);
   assert.doesNotMatch(groupAdapterSource, /sendGroupSourceMessage|sendGroupSourceChatMessage/);
   assert.doesNotMatch(groupAdapterSource, /candidate output|runtime\.orchestration|GROUP_LIMITED/);
+});
+
+test('group source candidate handoff resolves private LocalAgent from Runtime inventory only', () => {
+  assert.match(groupDataSource, /listAgents/);
+  assert.match(groupDataSource, /matchingLocalAgents/);
+  assert.match(groupDataSource, /matchingLocalAgents\.length !== 1/);
+  assert.doesNotMatch(groupDataSource, /\(participant as unknown as Record<string, unknown>\)\.localAgentRef/);
+  assert.doesNotMatch(groupDataSource, /participant\.localAgentRef/);
 });
 
 test('group control surface does not expose fake source thinking copy', () => {

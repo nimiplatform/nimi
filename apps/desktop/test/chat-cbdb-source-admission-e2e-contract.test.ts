@@ -27,14 +27,14 @@ test('CBDB legacy source-open E2E journey is not registered after Realm core har
   assert.doesNotMatch(fixtureServerSource, new RegExp(['/api/human/me/friends', 'agent-limit'].join('/')));
 });
 
-test('Explore source card E2E selector remains and primary action is source connection', () => {
+test('Explore source card E2E selector remains and primary action materializes a local agent', () => {
   const e2eIdsSource = readDesktop('src/shell/renderer/testability/e2e-ids.ts');
   const personaSourceCardSource = readDesktop('src/shell/renderer/features/explore/explore-persona-source-card.tsx');
 
   assert.match(e2eIdsSource, /explorePersonaSourceCard:\s*\(sourceId: string\) => `explore-persona-source-card:\$\{sourceId\}`/);
   assert.match(e2eIdsSource, /explorePersonaSourcePrimaryAction:\s*\(sourceId: string\) => `explore-persona-source-primary-action:\$\{sourceId\}`/);
   assert.match(personaSourceCardSource, /data-source-state=\{sourceState\}/);
-  assert.match(personaSourceCardSource, /source_connectable/);
-  assert.match(personaSourceCardSource, /source_connected/);
+  assert.match(personaSourceCardSource, /source_materializable/);
+  assert.doesNotMatch(personaSourceCardSource, /source_connected/);
   assert.doesNotMatch(personaSourceCardSource, /source_core_handoff_required/);
 });

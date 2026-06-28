@@ -1,9 +1,9 @@
 import type {
   CreateRealmPersonaDto,
-  CreateRuntimeSourceSnapshotDto,
+  CreateSourceMaterializationPacketDto,
   RealmPersonaDto,
   RealmWorldCoreModule,
-  RuntimeSourceSnapshotDto,
+  SourceMaterializationPacketDto,
   WorldCoreDto,
 } from '@nimiplatform/sdk/realm';
 
@@ -48,17 +48,25 @@ const testerPersonaCore: RealmPersonaDto = {
   visibility: 'public',
 };
 
-function createTesterRuntimeSnapshot(input: CreateRuntimeSourceSnapshotDto): RuntimeSourceSnapshotDto {
+function createTesterSourceMaterializationPacket(input: CreateSourceMaterializationPacketDto): SourceMaterializationPacketDto {
   return {
-    capturedAt: '2026-06-18T00:00:01.000Z',
+    expiresAt: '2026-06-18T00:05:01.000Z',
+    intendedRuntimeAudience: input.intendedRuntimeAudience,
+    issuedAt: '2026-06-18T00:00:01.000Z',
+    nonce: 'tester-packet-nonce',
+    packetHash: 'tester-source-materialization-packet-hash',
+    packetId: 'tester-source-materialization-packet',
+    packetProof: 'hmac-sha256:tester-proof',
+    packetSchemaVersion: 'realm.source-materialization-packet/v1',
     payload: {
       persona: testerPersonaCore.core,
       sourceRef: input.sourceRef,
     },
-    payloadHash: 'tester-runtime-source-snapshot-hash',
     runtimeSourceRef: `runtime-source:${input.sourceRef.kind}:${input.sourceRef.sourceId}:${input.sourceRef.sourceContentHash}`,
-    snapshotId: 'tester-runtime-source-snapshot',
-    snapshotSchemaVersion: 'runtime-source-snapshot.v1',
+    sourceDisplayMetadata: {
+      displayName: 'Tester Persona',
+      handle: 'tester-persona',
+    },
     sourceContentHash: input.sourceRef.sourceContentHash,
     sourceContentRevision: testerPersonaCore.contentRevision,
     sourceId: input.sourceRef.sourceId,
@@ -77,7 +85,7 @@ export async function loadTesterRealmPersonaCoreProjection(): Promise<TesterReal
       id: request.body.id ?? testerPersonaCore.id,
       origin: request.body.origin,
     }),
-    worldCoreControllerCreateRuntimeSourceSnapshot: async (request: { body: CreateRuntimeSourceSnapshotDto }) => createTesterRuntimeSnapshot(request.body),
+    worldCoreControllerCreateSourceMaterializationPacket: async (request: { body: CreateSourceMaterializationPacketDto }) => createTesterSourceMaterializationPacket(request.body),
     worldCoreControllerCreateWorldCharacter: async () => {
       throw new Error('Tester persona core projection does not create WorldCharacterCore.');
     },
@@ -136,9 +144,10 @@ export async function loadTesterRealmPersonaCoreProjection(): Promise<TesterReal
         visibility: testerPersonaCore.visibility,
       },
     }),
-    worldCore.worldCoreControllerCreateRuntimeSourceSnapshot({
+    worldCore.worldCoreControllerCreateSourceMaterializationPacket({
       path: {},
       body: {
+        intendedRuntimeAudience: 'tester.runtime',
         sourceRef: {
           kind: 'realmPersona',
           sourceContentHash: testerPersonaCore.contentHash,

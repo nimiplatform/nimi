@@ -1,7 +1,12 @@
 import fs from 'node:fs';
 import http from 'node:http';
+import crypto from 'node:crypto';
 import { Server as SocketIOServer } from 'socket.io';
 import { ReasonCode } from '@nimiplatform/sdk/types';
+
+const SOURCE_MATERIALIZATION_PACKET_HMAC_SECRET = String(
+  process.env.SOURCE_MATERIALIZATION_PACKET_HMAC_SECRET || 'desktop-e2e-source-materialization-secret',
+).trim();
 
 function readJsonFile(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
@@ -218,16 +223,6 @@ function resolveFixtureSourceHash(manifest, source) {
   return text(row?.sourceRef?.sourceContentHash || row?.contentHash || row?.sourceContentHash, `hash-${sourceId}`);
 }
 
-function sourceConnections(fixture) {
-  if (Array.isArray(fixture.sourceConnections)) {
-    return fixture.sourceConnections;
-  }
-  if (Array.isArray(fixture.sourceConnections?.items)) {
-    return fixture.sourceConnections.items;
-  }
-  return [];
-}
-
 function normalizeSourceRef(manifest, source) {
   const kind = text(source?.kind, '');
   const worldId = text(source?.worldId, '');
@@ -247,29 +242,93 @@ function normalizeSourceRef(manifest, source) {
   };
 }
 
-function buildSourceConnection(manifest, sourceRef) {
-  const now = new Date().toISOString();
-  return {
-    id: `source-connection-${sourceRef.kind}-${sourceRef.sourceId}`,
-    ownerUserId: String(manifest.realmFixture?.currentUser?.id || 'user-e2e-primary'),
-    sourceRef,
-    runtimeSourceRef: `runtime-source:${sourceRef.kind}:${sourceRef.worldId}:${sourceRef.sourceId}:${sourceRef.sourceContentHash}`,
-    status: 'active',
-    connectedAt: now,
-    removedAt: null,
-    createdAt: now,
-    updatedAt: now,
-  };
+function canonicalJson(value) {
+  if (value === null || value === undefined) {
+    return 'null';
+  }
+  if (typeof value === 'string') {
+    return JSON.stringify(value);
+  }
+  if (typeof value === 'boolean') {
+    return value ? 'true' : 'false';
+  }
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value)) {
+      throw new Error('canonicalJson received a non-finite number');
+    }
+    if (Number.isInteger(value)) {
+      return String(value);
+    }
+    return String(value);
+  }
+  if (Array.isArray(value)) {
+    return `[${value.map((item) => canonicalJson(item)).join(',')}]`;
+  }
+  if (typeof value === 'object') {
+    return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${canonicalJson(value[key])}`).join(',')}}`;
+  }
+  throw new Error(`canonicalJson received a non-JSON value ${typeof value}`);
 }
 
-function upsertSourceConnection(manifest, manifestPath, connection) {
-  manifest.realmFixture = manifest.realmFixture || {};
-  const existing = sourceConnections(manifest.realmFixture)
-    .filter((item) => String(item?.id || '') !== connection.id);
-  manifest.realmFixture.sourceConnections = {
-    items: [...existing, connection],
+function hashCanonicalJson(value) {
+  return crypto.createHash('sha256').update(canonicalJson(value)).digest('hex');
+}
+
+function signSourceMaterializationPacketProof(packetHash, ownerId, nonce, intendedRuntimeAudience) {
+  if (!SOURCE_MATERIALIZATION_PACKET_HMAC_SECRET) {
+    throw new Error('SOURCE_MATERIALIZATION_PACKET_HMAC_SECRET is required');
+  }
+  const proofPayloadHash = hashCanonicalJson({
+    packetHash,
+    ownerId,
+    nonce,
+    intendedRuntimeAudience,
+  });
+  return `hmac-sha256:${crypto.createHmac('sha256', SOURCE_MATERIALIZATION_PACKET_HMAC_SECRET).update(proofPayloadHash).digest('hex')}`;
+}
+
+function buildSourceMaterializationPacket(manifest, sourceRef, intendedRuntimeAudience) {
+  const now = new Date().toISOString();
+  const ownerUserId = String(manifest.realmFixture?.currentUser?.id || 'user-e2e-primary');
+  const runtimeSourceRef = `runtime-source:${sourceRef.kind}:${sourceRef.worldId}:${sourceRef.sourceId}:${sourceRef.sourceContentHash}`;
+  const packetId = `packet-${sourceRef.kind}-${sourceRef.sourceId}-${Date.now()}`;
+  const sourceContentRevision = 1;
+  const audience = String(intendedRuntimeAudience || 'nimi.desktop.local-agent.materialization');
+  const payloadSchema = sourceRef.kind === 'worldCharacter'
+    ? 'realm.world-character-core/v1'
+    : 'realm.persona/v1';
+  const unsignedPacket = {
+    packetSchemaVersion: 'realm.source-materialization-packet/v1',
+    packetId,
+    sourceKind: sourceRef.kind,
+    sourceId: sourceRef.sourceId,
+    sourceWorldId: sourceRef.worldId,
+    sourceContentRevision,
+    sourceContentHash: sourceRef.sourceContentHash,
+    issuedAt: now,
+    expiresAt: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
+    nonce: `nonce-${packetId}`,
+    intendedRuntimeAudience: audience,
+    runtimeSourceRef,
+    sourceDisplayMetadata: {
+      displayName: sourceRef.sourceId,
+      avatarUrl: null,
+      profileCoverUrl: null,
+    },
+    payload: {
+      sourceRef,
+      schemaVersion: payloadSchema,
+      contentRevision: sourceContentRevision,
+      contentHash: sourceRef.sourceContentHash,
+    },
   };
-  writeJsonFile(manifestPath, manifest);
+  const packetHash = hashCanonicalJson(unsignedPacket);
+  return {
+    ...unsignedPacket,
+    ownerUserId,
+    packetHash,
+    packetProof: signSourceMaterializationPacketProof(packetHash, ownerUserId, unsignedPacket.nonce, audience),
+  };
 }
 
 function positiveInt(value, fallback) {
@@ -511,37 +570,15 @@ async function handleApi(request, response, manifestPath) {
     return undefined;
   }
 
-  if (request.method === 'GET' && pathname === '/api/human/source-connections') {
-    const status = nullableString(requestUrl.searchParams.get('status'));
-    const items = sourceConnections(fixture)
-      .filter((item) => !status || String(item?.status || '') === status);
-    json(response, 200, items);
-    return undefined;
-  }
-
-  if (request.method === 'POST' && pathname === '/api/human/source-connections') {
+  if (request.method === 'POST' && pathname === '/api/realm/core/source-materialization-packets') {
     const body = await parseBody(request);
     const sourceRef = normalizeSourceRef(manifest, body?.sourceRef);
     if (!sourceRef) {
       json(response, 400, { message: 'sourceRef must include kind, worldId, sourceId, and sourceContentHash' });
       return undefined;
     }
-    const connection = buildSourceConnection(manifest, sourceRef);
-    upsertSourceConnection(manifest, manifestPath, connection);
-    json(response, 201, connection);
-    return undefined;
-  }
-
-  if (request.method === 'POST' && pathname === '/api/human/source-connections/public-source') {
-    const body = await parseBody(request);
-    const sourceRef = normalizeSourceRef(manifest, body?.source);
-    if (!sourceRef) {
-      json(response, 400, { message: 'source must include kind, worldId, and sourceId' });
-      return undefined;
-    }
-    const connection = buildSourceConnection(manifest, sourceRef);
-    upsertSourceConnection(manifest, manifestPath, connection);
-    json(response, 201, connection);
+    const packet = buildSourceMaterializationPacket(manifest, sourceRef, body?.intendedRuntimeAudience);
+    json(response, 201, packet);
     return undefined;
   }
 

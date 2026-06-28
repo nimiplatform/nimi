@@ -8,21 +8,21 @@ export function WorldCharacterQuickSheet({
   character,
   onClose,
   onViewCharacter,
-  onConnectSource,
+  onMaterializeSource,
 }: {
   character: WorldCharacter;
   onClose: () => void;
   onViewCharacter?: (character: WorldCharacter) => void;
-  onConnectSource?: (character: WorldCharacter) => Promise<void> | void;
+  onMaterializeSource?: (character: WorldCharacter) => Promise<void> | void;
 }) {
   const { t } = useTranslation();
   const relationState = character.relation?.state ?? 'connectable';
   const connectDisabled = relationState !== 'connectable';
   const connectLabel = relationState === 'connected'
-    ? t('WorldDetail.xianxia.v2.characters.sourceConnected')
+    ? t('WorldDetail.xianxia.v2.characters.sourceMaterialized')
     : relationState === 'unavailable'
       ? t('WorldDetail.xianxia.v2.characters.sourceUnavailable')
-      : t('WorldDetail.xianxia.v2.characters.connectSource');
+      : t('WorldDetail.xianxia.v2.characters.materializeSource');
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/55 px-5 py-6">
       <button
@@ -107,10 +107,10 @@ export function WorldCharacterQuickSheet({
 
             {onViewCharacter ? (
               <div className="mt-5 flex flex-wrap gap-2">
-                {onConnectSource ? (
+                {onMaterializeSource ? (
                   <button
                     type="button"
-                    onClick={() => void onConnectSource(character)}
+                    onClick={() => void onMaterializeSource(character)}
                     disabled={connectDisabled}
                     className="rounded-full border border-[#4ECCA3]/22 bg-[#4ECCA3]/12 px-4 py-2 text-sm font-semibold text-[#dffdf2] transition-colors hover:bg-[#4ECCA3]/18 disabled:cursor-default disabled:opacity-55"
                   >

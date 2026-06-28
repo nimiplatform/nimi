@@ -8,7 +8,8 @@ import {
 } from './desktop-macos-smoke-avatar-evidence';
 
 const E2E_PRIMARY_REALM_AGENT_ID = 'agent-e2e-alpha';
-const E2E_PRIMARY_LOCAL_AGENT_REF = `local-agent:user-e2e-primary:${E2E_PRIMARY_REALM_AGENT_ID}`;
+const E2E_PRIMARY_OWNER_USER_ID = 'user-e2e-primary';
+const E2E_PRIMARY_LOCAL_AGENT_REF = `local-agent:${E2E_PRIMARY_OWNER_USER_ID}:${E2E_PRIMARY_REALM_AGENT_ID}`;
 const E2E_PRIMARY_AGENT_TARGET_ID = E2E_IDS.chatTarget(E2E_PRIMARY_LOCAL_AGENT_REF);
 const AVATAR_PRODUCT_LIVE_INSTANCE_TIMEOUT_MS = 45_000;
 
@@ -64,7 +65,9 @@ async function waitForAgentConversationAnchorBinding(
       && binding.updatedAtMs >= notBeforeMs
     ) {
       await deps.verifyRuntimeConversationAnchor({
-        agentId: input.localAgentRef,
+        localAgentRef: input.localAgentRef,
+        ownerUserId: E2E_PRIMARY_OWNER_USER_ID,
+        runtimeSourceRef: input.runtimeSourceRef,
         conversationAnchorId: anchor,
       });
       return anchor;
@@ -80,7 +83,9 @@ async function waitForAgentConversationAnchorBinding(
 async function waitForRuntimeProductPathEvidence(
   deps: DesktopMacosSmokeDriverDeps,
   input: {
-    agentId: string;
+    localAgentRef: string;
+    ownerUserId: string;
+    runtimeSourceRef: string;
     conversationAnchorId: string;
   },
   timeoutMs = 25_000,
@@ -147,7 +152,9 @@ export async function runChatLive2dAvatarProductSmokeScenario(
   );
   record('wait-runtime-product-path-evidence');
   const runtimeProductEvidence = await waitForRuntimeProductPathEvidence(deps, {
-    agentId: E2E_PRIMARY_LOCAL_AGENT_REF,
+    localAgentRef: E2E_PRIMARY_LOCAL_AGENT_REF,
+    ownerUserId: E2E_PRIMARY_OWNER_USER_ID,
+    runtimeSourceRef: E2E_PRIMARY_REALM_AGENT_ID,
     conversationAnchorId,
   });
   record('wait-avatar-composer-ready');

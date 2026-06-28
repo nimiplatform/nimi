@@ -90,7 +90,7 @@ test('world detail page exposes setting-first glass detail surface without trans
   assert.match(worldDetailTemplateSource, /world-detail-character-gallery/);
   assert.match(worldDetailTemplateSource, /world-detail-timeline-panel/);
   assert.match(worldDetailTemplateSource, /WorldDetail\.glass\.sourceDiscovery/);
-  assert.match(worldDetailTemplateSource, /onConnectSource/);
+  assert.match(worldDetailTemplateSource, /onMaterializeSource/);
   assert.doesNotMatch(worldDetailTemplateSource, /WorldDashboardSection/);
   assert.doesNotMatch(worldDetailTemplateSource, /Transit/);
   assert.doesNotMatch(worldDetailTemplateSource, /Enter World/);

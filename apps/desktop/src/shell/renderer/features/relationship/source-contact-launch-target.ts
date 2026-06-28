@@ -1,19 +1,24 @@
 import type { AgentLocalTargetSnapshot } from '@renderer/bridge/runtime-bridge/types';
 import type { ProfileData } from '@renderer/features/profile/profile-model';
 import type { ContactRecord } from './relationship-model';
-import { buildRuntimeLocalAgentRef } from '@nimiplatform/sdk/runtime';
+import { createNimiHostRuntimeAgentLifecycleSurface } from '@nimiplatform/sdk/runtime';
 import {
-  createRealmRuntimeSourceSnapshot,
+  createRealmSourceMaterializationPacket,
   resolveRealmCoreSourceRef,
-} from '@renderer/features/explore/realm-persona-source-admission';
+} from '@renderer/features/explore/realm-persona-source-materialization';
+import {
+  getDesktopHostRuntimeAgentClient,
+  withDesktopRuntimeProtectedScopes,
+} from '@renderer/infra/sdk/desktop-nimi-client-session';
 
 type SourceContactLaunchSource = {
   id: string;
-  displayName: string;
+  displayName?: string;
+  name?: string;
   handle: string;
-  avatarUrl: string | null;
+  avatarUrl?: string | null;
   bio: string | null;
-  isSource: boolean;
+  isSource?: boolean;
   worldId?: string | null;
   worldName?: string | null;
   sourceWorldId?: string | null;
@@ -21,8 +26,10 @@ type SourceContactLaunchSource = {
   sourceId?: string | null;
   sourceContentHash?: string | null;
   runtimeSourceRef?: string | null;
+  localAgentRef?: string | null;
   sourceRef?: object | null;
   sourceOwnershipType?: string | null;
+  ownershipType?: string | null;
 };
 
 function normalizeRequiredText(value: unknown, field: string): string {
@@ -45,7 +52,7 @@ export function toSourceContactLaunchTarget(
   source: SourceContactLaunchSource,
   ownerUserIdInput: string | null | undefined,
 ): AgentLocalTargetSnapshot {
-  if (!source.isSource) {
+  if (source.isSource === false) {
     throw new Error('source conversation launch requires a Realm source contact');
   }
   const ownerUserId = normalizeRequiredText(ownerUserIdInput, 'ownerUserId');
@@ -57,17 +64,21 @@ export function toSourceContactLaunchTarget(
     source.runtimeSourceRef,
     'runtimeSourceRef',
   );
+  const localAgentRef = normalizeRequiredText(
+    source.localAgentRef,
+    'localAgentRef',
+  );
   return {
     ownerUserId,
     runtimeSourceRef,
-    localAgentRef: buildRuntimeLocalAgentRef({ ownerUserId, runtimeSourceRef }),
-    displayName: normalizeRequiredText(source.displayName, 'displayName'),
+    localAgentRef,
+    displayName: normalizeRequiredText(source.displayName || source.name, 'displayName'),
     handle: String(source.handle || '').trim(),
     avatarUrl: source.avatarUrl || null,
     worldId: source.sourceWorldId || source.worldId || null,
     worldName: source.worldName || null,
     bio: source.bio || null,
-    ownershipType: normalizeOwnershipType(source.sourceOwnershipType),
+    ownershipType: normalizeOwnershipType(source.sourceOwnershipType || source.ownershipType),
     // Contact-launch sources carry identity only, not RealmPersona profile
     // content. `greeting` / `builtinDocsContext` are supplied by the live
     // Realm/SDK source projection (the chat-surface targets) and overlaid onto
@@ -81,11 +92,28 @@ export async function materializeSourceContactLaunchTarget(
   source: SourceContactLaunchSource,
   ownerUserIdInput: string | null | undefined,
 ): Promise<AgentLocalTargetSnapshot> {
-  const snapshot = await createRealmRuntimeSourceSnapshot(source);
+  const packet = await createRealmSourceMaterializationPacket(source);
+  const ownerUserId = normalizeRequiredText(ownerUserIdInput, 'ownerUserId');
+  const runtimeSourceRef = normalizeRequiredText(packet.runtimeSourceRef, 'runtimeSourceRef');
+  const displayName = normalizeRequiredText(source.displayName || source.name, 'displayName');
+  const worldId = source.sourceWorldId || source.worldId || null;
+  const lifecycle = createNimiHostRuntimeAgentLifecycleSurface({
+    getRuntime: getDesktopHostRuntimeAgentClient,
+    getSubjectUserId: () => ownerUserId,
+    withScopes: withDesktopRuntimeProtectedScopes,
+  });
+  const initialized = await lifecycle.initializeLocalAgent({
+    ownerUserId,
+    runtimeSourceRef,
+    displayName,
+    worldId,
+    sourceMaterializationPacket: packet,
+  });
   return toSourceContactLaunchTarget({
     ...source,
-    runtimeSourceRef: snapshot.runtimeSourceRef,
-  }, ownerUserIdInput);
+    runtimeSourceRef,
+    localAgentRef: initialized.localAgentRef,
+  }, ownerUserId);
 }
 
 export function toSourceContactLaunchTargetFromContact(
