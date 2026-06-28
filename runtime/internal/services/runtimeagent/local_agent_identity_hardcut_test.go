@@ -16,7 +16,7 @@ func testLocalAgentContext(ownerUserID string, runtimeSourceRef string) *runtime
 		SubjectUserId:    ownerUserID,
 		OwnerUserId:      ownerUserID,
 		RuntimeSourceRef: runtimeSourceRef,
-		LocalAgentRef:    buildLocalAgentRef(ownerUserID, runtimeSourceRef),
+		LocalAgentRef:    testOpaqueLocalAgentRef(ownerUserID, runtimeSourceRef),
 	}
 }
 
@@ -28,7 +28,11 @@ func testRuntimeAgentLocalRef(runtimeSourceRef string) string {
 	if strings.HasPrefix(strings.TrimSpace(runtimeSourceRef), localAgentRefPrefix) {
 		return strings.TrimSpace(runtimeSourceRef)
 	}
-	return buildLocalAgentRef("user-1", runtimeSourceRef)
+	return testOpaqueLocalAgentRef("user-1", runtimeSourceRef)
+}
+
+func testOpaqueLocalAgentRef(ownerUserID string, runtimeSourceRef string) string {
+	return localAgentRefPrefix + "test-" + strings.TrimSpace(ownerUserID) + "-" + strings.TrimSpace(runtimeSourceRef)
 }
 
 func testInitializeLocalAgent(t *testing.T, svc *Service, ownerUserID string, runtimeSourceRef string) string {
@@ -153,8 +157,6 @@ func TestRuntimeAgentLocalAgentIdentityNegativeGates(t *testing.T) {
 	}{
 		{name: "missing localAgentRef", owner: "user-a", runtimeSource: "runtime-source-1", local: "", wantStatus: codes.InvalidArgument},
 		{name: "bare runtimeSourceRef", owner: "user-a", runtimeSource: "runtime-source-1", local: "runtime-source-1", wantStatus: codes.InvalidArgument},
-		{name: "owner mismatch", owner: "user-a", runtimeSource: "runtime-source-1", local: "local-agent:user-b:runtime-source-1", wantStatus: codes.InvalidArgument},
-		{name: "runtimeSourceRef mismatch", owner: "user-a", runtimeSource: "runtime-source-1", local: "local-agent:user-a:runtime-source-2", wantStatus: codes.InvalidArgument},
 		{name: "malformed localAgentRef", owner: "user-a", runtimeSource: "runtime-source-1", local: "agent:user-a:runtime-source-1", wantStatus: codes.InvalidArgument},
 	}
 	for _, tt := range cases {
@@ -167,6 +169,50 @@ func TestRuntimeAgentLocalAgentIdentityNegativeGates(t *testing.T) {
 				t.Fatalf("status.Code = %s, want %s (%v)", status.Code(err), tt.wantStatus, err)
 			}
 		})
+	}
+}
+
+func TestInitializeAgentIdempotencyRejectsExistingIdentityMismatch(t *testing.T) {
+	t.Parallel()
+
+	svc := newRuntimeAgentTestService(t)
+	runtimeSourceRef := "runtime-source-existing-idempotency"
+	localRef := testInitializeLocalAgent(t, svc, "user-a", runtimeSourceRef)
+
+	ownerMismatchCtx := &runtimev1.AgentRequestContext{
+		AppId:            "runtime-agent-hardcut-test",
+		SubjectUserId:    "user-b",
+		OwnerUserId:      "user-b",
+		RuntimeSourceRef: runtimeSourceRef,
+		LocalAgentRef:    localRef,
+	}
+	_, err := svc.InitializeAgent(context.Background(), &runtimev1.InitializeAgentRequest{
+		Context:          ownerMismatchCtx,
+		LocalAgentRef:    localRef,
+		OwnerUserId:      "user-b",
+		RuntimeSourceRef: runtimeSourceRef,
+		DisplayName:      "owner mismatch",
+	})
+	if status.Code(err) != codes.FailedPrecondition {
+		t.Fatalf("owner mismatch status = %s, want %s (%v)", status.Code(err), codes.FailedPrecondition, err)
+	}
+
+	runtimeSourceMismatchCtx := &runtimev1.AgentRequestContext{
+		AppId:            "runtime-agent-hardcut-test",
+		SubjectUserId:    "user-a",
+		OwnerUserId:      "user-a",
+		RuntimeSourceRef: "runtime-source-other",
+		LocalAgentRef:    localRef,
+	}
+	_, err = svc.InitializeAgent(context.Background(), &runtimev1.InitializeAgentRequest{
+		Context:          runtimeSourceMismatchCtx,
+		LocalAgentRef:    localRef,
+		OwnerUserId:      "user-a",
+		RuntimeSourceRef: "runtime-source-other",
+		DisplayName:      "source mismatch",
+	})
+	if status.Code(err) != codes.FailedPrecondition {
+		t.Fatalf("runtime source mismatch status = %s, want %s (%v)", status.Code(err), codes.FailedPrecondition, err)
 	}
 }
 

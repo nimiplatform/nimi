@@ -25,6 +25,7 @@ func TestCBDBSeededRuntimeSourceLocalAgentRunsPublicChatTurn(t *testing.T) {
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
 	ctx := testLocalAgentContext(cbdbChainVerifierOwnerID, cbdbChainSuZheRuntimeSourceRef)
 	ctx.AppId = cbdbChainDesktopCallerAppID
+	ctx.LocalAgentRef = cbdbChainSuZheLocalAgentRef
 
 	initResp, err := svc.InitializeAgent(context.Background(), &runtimev1.InitializeAgentRequest{
 		Context:       ctx,
@@ -72,6 +73,7 @@ func TestCBDBSeededRuntimeSourceLocalAgentRunsPublicChatTurn(t *testing.T) {
 	}
 	anchorCtx := testLocalAgentContext(cbdbChainVerifierOwnerID, cbdbChainSuZheRuntimeSourceRef)
 	anchorCtx.AppId = cbdbChainDesktopCallerAppID
+	anchorCtx.LocalAgentRef = cbdbChainSuZheLocalAgentRef
 	anchorResp, err := svc.OpenConversationAnchor(context.Background(), &runtimev1.OpenConversationAnchorRequest{
 		Context:       anchorCtx,
 		LocalAgentRef: cbdbChainSuZheLocalAgentRef,
@@ -308,6 +310,7 @@ func waitForCBDBRuntimeAgentIdle(t *testing.T, svc *Service) {
 	t.Helper()
 	ctx := testLocalAgentContext(cbdbChainVerifierOwnerID, cbdbChainSuZheRuntimeSourceRef)
 	ctx.AppId = cbdbChainDesktopCallerAppID
+	ctx.LocalAgentRef = cbdbChainSuZheLocalAgentRef
 	deadline := time.Now().Add(2 * time.Second)
 	for time.Now().Before(deadline) {
 		resp, err := svc.GetAgentState(context.Background(), &runtimev1.GetAgentStateRequest{

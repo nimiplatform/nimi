@@ -1,6 +1,8 @@
 package runtimeagent
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"strings"
 
@@ -10,22 +12,19 @@ import (
 )
 
 const localAgentRefPrefix = "local-agent:"
+const runtimeGeneratedLocalAgentRefPrefix = localAgentRefPrefix + "runtime-"
 
 type localAgentIdentity struct {
-	OwnerUserID   string
-	RuntimeSourceRef  string
-	LocalAgentRef string
-}
-
-func buildLocalAgentRef(ownerUserID string, runtimeSourceRef string) string {
-	return localAgentRefPrefix + strings.TrimSpace(ownerUserID) + ":" + strings.TrimSpace(runtimeSourceRef)
+	OwnerUserID      string
+	RuntimeSourceRef string
+	LocalAgentRef    string
 }
 
 func validateLocalAgentIdentity(ownerUserID string, runtimeSourceRef string, localAgentRef string) (localAgentIdentity, error) {
 	identity := localAgentIdentity{
-		OwnerUserID:   strings.TrimSpace(ownerUserID),
-		RuntimeSourceRef:  strings.TrimSpace(runtimeSourceRef),
-		LocalAgentRef: strings.TrimSpace(localAgentRef),
+		OwnerUserID:      strings.TrimSpace(ownerUserID),
+		RuntimeSourceRef: strings.TrimSpace(runtimeSourceRef),
+		LocalAgentRef:    strings.TrimSpace(localAgentRef),
 	}
 	if identity.OwnerUserID == "" {
 		return localAgentIdentity{}, status.Error(codes.InvalidArgument, "owner_user_id is required")
@@ -41,10 +40,6 @@ func validateLocalAgentIdentity(ownerUserID string, runtimeSourceRef string, loc
 	}
 	if identity.LocalAgentRef == identity.RuntimeSourceRef {
 		return localAgentIdentity{}, status.Error(codes.InvalidArgument, "local_agent_ref must not be bare runtime_source_ref")
-	}
-	expected := buildLocalAgentRef(identity.OwnerUserID, identity.RuntimeSourceRef)
-	if identity.LocalAgentRef != expected {
-		return localAgentIdentity{}, status.Error(codes.InvalidArgument, "local_agent_ref does not match owner_user_id and runtime_source_ref")
 	}
 	return identity, nil
 }
@@ -66,7 +61,22 @@ func localAgentIdentityFromInitializeRequest(req *runtimev1.InitializeAgentReque
 	if strings.TrimSpace(req.GetAgentId()) != "" {
 		return localAgentIdentity{}, status.Error(codes.InvalidArgument, "agent_id is not local execution identity; use local_agent_ref")
 	}
+	if localAgentRef == "" {
+		generated, err := generateRuntimeLocalAgentRef()
+		if err != nil {
+			return localAgentIdentity{}, err
+		}
+		localAgentRef = generated
+	}
 	return validateLocalAgentIdentity(ownerUserID, runtimeSourceRef, localAgentRef)
+}
+
+func generateRuntimeLocalAgentRef() (string, error) {
+	var nonce [16]byte
+	if _, err := rand.Read(nonce[:]); err != nil {
+		return "", status.Errorf(codes.Internal, "generate local_agent_ref: %v", err)
+	}
+	return runtimeGeneratedLocalAgentRefPrefix + hex.EncodeToString(nonce[:]), nil
 }
 
 func localAgentIdentityFromOpenAnchorRequest(req *runtimev1.OpenConversationAnchorRequest) (localAgentIdentity, error) {

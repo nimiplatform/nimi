@@ -23,7 +23,7 @@ const guideRuntimeSourceRef = "nimi-guide-archivist"
 // TestRuntimeAgentGuideProjectsAsOrdinaryLocalAgent is the K-AGCORE-139 /
 // K-AGCORE-140 runtime conformance evidence: it proves the `~archivist` guide
 // runtime source materializes through InitializeAgent into a
-// `local-agent:${owner}:${realm}` LocalAgent via the identical ordinary code
+// runtime-owned opaque LocalAgent via the identical ordinary code
 // path as any non-guide runtime source.
 //
 // The proof is by construction: the test drives the guide runtime_source_ref
@@ -39,13 +39,7 @@ func TestRuntimeAgentGuideProjectsAsOrdinaryLocalAgent(t *testing.T) {
 	ownerUserID := "user-guide-owner"
 	guideCtx := testLocalAgentContext(ownerUserID, guideRuntimeSourceRef)
 
-	// Ordinary projection identity: local_agent_ref is the deterministic
-	// owner-scoped projection of the guide runtime_source_ref, with no special
-	// prefix or branch.
-	wantLocalRef := buildLocalAgentRef(ownerUserID, guideRuntimeSourceRef)
-	if wantLocalRef != "local-agent:"+ownerUserID+":"+guideRuntimeSourceRef {
-		t.Fatalf("guide local_agent_ref is not an ordinary projection: %q", wantLocalRef)
-	}
+	wantLocalRef := testOpaqueLocalAgentRef(ownerUserID, guideRuntimeSourceRef)
 
 	// InitializeAgent: ordinary write path, no guide field on the request.
 	initResp, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
@@ -163,13 +157,13 @@ func TestRuntimeAgentGuideRuntimeSourceRefTakesNoSpecialBranch(t *testing.T) {
 
 	ownerUserID := "user-branch-check"
 	guideIdentity, err := validateLocalAgentIdentity(
-		ownerUserID, guideRuntimeSourceRef, buildLocalAgentRef(ownerUserID, guideRuntimeSourceRef),
+		ownerUserID, guideRuntimeSourceRef, testOpaqueLocalAgentRef(ownerUserID, guideRuntimeSourceRef),
 	)
 	if err != nil {
 		t.Fatalf("validateLocalAgentIdentity(guide): %v", err)
 	}
 	plainIdentity, err := validateLocalAgentIdentity(
-		ownerUserID, "runtime-source-plain", buildLocalAgentRef(ownerUserID, "runtime-source-plain"),
+		ownerUserID, "runtime-source-plain", testOpaqueLocalAgentRef(ownerUserID, "runtime-source-plain"),
 	)
 	if err != nil {
 		t.Fatalf("validateLocalAgentIdentity(plain): %v", err)

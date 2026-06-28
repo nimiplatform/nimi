@@ -406,11 +406,11 @@ func testAvatarDebugService() *Service {
 		agents: map[string]*agentEntry{
 			agentID: {
 				Agent: &runtimev1.AgentRecord{
-					AgentId:         agentID,
-					OwnerUserId:     "user-1",
-					RuntimeSourceRef:    "agent-1",
-					LocalAgentRef:   agentID,
-					LifecycleStatus: runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_ACTIVE,
+					AgentId:          agentID,
+					OwnerUserId:      "user-1",
+					RuntimeSourceRef: "agent-1",
+					LocalAgentRef:    agentID,
+					LifecycleStatus:  runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_ACTIVE,
 				},
 				State: &runtimev1.AgentStateProjection{ActiveUserId: "user-1"},
 			},
@@ -425,7 +425,7 @@ func testAvatarDebugService() *Service {
 		ConversationAnchorID: anchorID,
 		AgentID:              agentID,
 		OwnerUserID:          "user-1",
-		RuntimeSourceRef:         "agent-1",
+		RuntimeSourceRef:     "agent-1",
 		LocalAgentRef:        agentID,
 		CallerAppID:          "nimi.desktop",
 		SubjectUserID:        "user-1",
@@ -447,7 +447,7 @@ func testAvatarDebugService() *Service {
 }
 
 func avatarDebugTestAgentID() string {
-	return buildLocalAgentRef("user-1", "agent-1")
+	return testOpaqueLocalAgentRef("user-1", "agent-1")
 }
 
 func avatarDebugTestAnchorID() string {
@@ -457,11 +457,11 @@ func avatarDebugTestAnchorID() string {
 func testAvatarDebugContext(anchorID string) *runtimev1.AgentRequestContext {
 	agentID := avatarDebugTestAgentID()
 	return &runtimev1.AgentRequestContext{
-		AppId:         "nimi.desktop",
-		SubjectUserId: "user-1",
-		OwnerUserId:   "user-1",
-		RuntimeSourceRef:  "agent-1",
-		LocalAgentRef: agentID,
+		AppId:            "nimi.desktop",
+		SubjectUserId:    "user-1",
+		OwnerUserId:      "user-1",
+		RuntimeSourceRef: "agent-1",
+		LocalAgentRef:    agentID,
 		ScopedBinding: &runtimev1.ScopedRuntimeBindingAttachment{
 			BindingId:            "binding-avatar-debug",
 			RuntimeAppId:         "nimi.desktop",

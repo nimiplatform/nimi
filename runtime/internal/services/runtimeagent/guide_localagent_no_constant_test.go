@@ -15,7 +15,7 @@ import (
 //
 // and K-AGCORE-139's MUST-NOT forbids a "special official-guide path". The
 // Nimi guide welcome copy and system prompt are ordinary runtime source
-// snapshot content reached through the standard RuntimeSourceSnapshot path.
+// packet content reached through the standard SourceMaterializationPacket path.
 //
 // This guard walks every non-generated, non-test `.go` file under `runtime/`
 // and fails if any references the Nimi guide agent by name. A guide constant,
@@ -83,7 +83,7 @@ func TestRuntimeHoldsNoGuideConstant(t *testing.T) {
 	if len(violations) > 0 {
 		t.Fatalf("K-AGCORE-140 violation: runtime source must not hold a hardcoded "+
 			"Nimi guide constant/prompt/identity/branch — guide content is ordinary "+
-			"runtime source snapshot content. Found:\n  %s",
+			"SourceMaterializationPacket content. Found:\n  %s",
 			strings.Join(violations, "\n  "))
 	}
 }

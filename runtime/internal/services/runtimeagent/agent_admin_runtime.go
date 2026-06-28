@@ -36,10 +36,25 @@ func (r agentAdminRuntime) initialize(ctx context.Context, req *runtimev1.Initia
 	if existing := r.svc.agents[localAgentRef]; existing != nil {
 		agent := cloneAgentRecord(existing.Agent)
 		r.svc.mu.RUnlock()
+		if err := validateAgentRecordIdentity(agent, identity); err != nil {
+			return nil, err
+		}
 		return &runtimev1.InitializeAgentResponse{Agent: agent}, nil
 	}
 	r.svc.mu.RUnlock()
 
+	now := time.Now().UTC()
+	verifiedPacket, err := verifySourceMaterializationPacketForInitialize(req.GetMetadata(), identity, now)
+	if err != nil {
+		return nil, err
+	}
+	if err := consumeSourceMaterializationPacketNonce(ctx, r.svc.backend, verifiedPacket, identity); err != nil {
+		return nil, err
+	}
+	agentMetadata, err := sanitizeInitializeAgentMetadata(req.GetMetadata(), verifiedPacket)
+	if err != nil {
+		return nil, err
+	}
 	agentBank := &runtimev1.MemoryBankLocator{
 		Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
 		Owner: &runtimev1.MemoryBankLocator_AgentCore{
@@ -50,19 +65,18 @@ func (r agentAdminRuntime) initialize(ctx context.Context, req *runtimev1.Initia
 		return nil, err
 	}
 
-	now := time.Now().UTC()
 	autonomy := buildInitialAutonomyState(req.GetAutonomyConfig(), now)
 	agent := &runtimev1.AgentRecord{
-		AgentId:         localAgentRef,
-		LocalAgentRef:   localAgentRef,
-		OwnerUserId:     identity.OwnerUserID,
-		RuntimeSourceRef:    identity.RuntimeSourceRef,
-		DisplayName:     firstNonEmpty(strings.TrimSpace(req.GetDisplayName()), localAgentRef),
-		LifecycleStatus: runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_ACTIVE,
-		Autonomy:        autonomy,
-		Metadata:        cloneStruct(req.GetMetadata()),
-		CreatedAt:       timestamppb.New(now),
-		UpdatedAt:       timestamppb.New(now),
+		AgentId:          localAgentRef,
+		LocalAgentRef:    localAgentRef,
+		OwnerUserId:      identity.OwnerUserID,
+		RuntimeSourceRef: identity.RuntimeSourceRef,
+		DisplayName:      firstNonEmpty(strings.TrimSpace(req.GetDisplayName()), localAgentRef),
+		LifecycleStatus:  runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_ACTIVE,
+		Autonomy:         autonomy,
+		Metadata:         agentMetadata,
+		CreatedAt:        timestamppb.New(now),
+		UpdatedAt:        timestamppb.New(now),
 	}
 	state := &runtimev1.AgentStateProjection{
 		ExecutionState: runtimev1.AgentExecutionState_AGENT_EXECUTION_STATE_IDLE,
@@ -107,8 +121,8 @@ func (r agentAdminRuntime) initialize(ctx context.Context, req *runtimev1.Initia
 // projection, runtime-owned hooks, agent event log, and the agent-scoped
 // memory banks (`MEMORY_BANK_SCOPE_AGENT_CORE` and every
 // `MEMORY_BANK_SCOPE_AGENT_DYADIC` owned by the agent). It does not retain a
-// TERMINATED tombstone — `local_agent_ref` is deterministically re-derivable,
-// so a later source admission re-materializes the projection through K-AGCORE-139.
+// TERMINATED tombstone. A later materialization is a new Runtime-owned local
+// creation and must use an explicit Runtime-returned local_agent_ref.
 //
 // Ordering is retry-safety-driven. Agent-scoped memory is deleted before the
 // runtime-agent row: if memory deletion fails the row is still present, so an

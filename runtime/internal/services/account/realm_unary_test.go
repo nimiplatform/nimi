@@ -123,12 +123,12 @@ func TestInvokeRealmUnaryAdmitsStudioOperationIDs(t *testing.T) {
 			path:        "/api/realm/core/personas/persona-1",
 		},
 		{
-			name:        "runtime source snapshot create",
+			name:        "source materialization packet create",
 			caller:      realmPersonaStudioCaller(),
-			methodID:    "WorldCoreController_createRuntimeSourceSnapshot",
-			requestJSON: `{"path":{},"body":{"sourceRef":{"kind":"realm_persona","id":"persona-1"}}}`,
+			methodID:    "WorldCoreController_createSourceMaterializationPacket",
+			requestJSON: `{"path":{},"body":{"sourceRef":{"kind":"realmPersona","worldId":"oasis","sourceId":"persona-1","sourceContentHash":"hash-1"},"intendedRuntimeAudience":"runtime.test"}}`,
 			method:      http.MethodPost,
-			path:        "/api/realm/core/runtime-source-snapshots",
+			path:        "/api/realm/core/source-materialization-packets",
 		},
 		{
 			name:        "world core list for persona binding",

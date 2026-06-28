@@ -446,6 +446,14 @@ func (b *Backend) ensureSchema() error {
 			checkpoint_basis TEXT,
 			completed_at TEXT NOT NULL
 		)`,
+		`CREATE TABLE IF NOT EXISTS runtime_source_materialization_nonce (
+			nonce TEXT PRIMARY KEY,
+			packet_hash TEXT NOT NULL,
+			local_agent_ref TEXT NOT NULL,
+			runtime_source_ref TEXT NOT NULL,
+			expires_at TEXT NOT NULL,
+			consumed_at TEXT NOT NULL
+		)`,
 	}
 	for _, stmt := range stmts {
 		if _, err := b.writeDB.Exec(stmt); err != nil {
