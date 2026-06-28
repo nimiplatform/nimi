@@ -165,6 +165,7 @@ func resolveLocalRuntimeMemoryEmbeddingProfile(
 					return strings.TrimSpace(asset.GetAssetId())
 				}(),
 				MigrationPolicy: runtimev1.MemoryMigrationPolicy_MEMORY_MIGRATION_POLICY_REINDEX,
+				LocalBinding:    runtimeMemoryEmbeddingLocalBinding(snapshot.LocalBinding),
 			},
 			ResolutionState:   "resolved",
 			BlockedReasonCode: runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED,
@@ -269,10 +270,33 @@ func resolveCloudRuntimeMemoryEmbeddingProfile(
 			DistanceMetric:  runtimev1.MemoryDistanceMetric_MEMORY_DISTANCE_METRIC_COSINE,
 			Version:         connectorID,
 			MigrationPolicy: runtimev1.MemoryMigrationPolicy_MEMORY_MIGRATION_POLICY_REINDEX,
+			CloudBinding: &runtimev1.MemoryEmbeddingCloudBindingRef{
+				ConnectorId:          binding.ConnectorID,
+				RemoteModelCatalogId: binding.RemoteModelCatalogID,
+				ProviderModelId:      binding.ProviderModelID,
+				Provider:             binding.Provider,
+			},
 		},
 		ResolutionState:   "resolved",
 		BlockedReasonCode: runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED,
 	}
+}
+
+func runtimeMemoryEmbeddingLocalBinding(input *memoryservice.MemoryEmbeddingLocalBindingRef) *runtimev1.MemoryEmbeddingLocalBindingRef {
+	if input == nil {
+		return nil
+	}
+	if profileBindingID := strings.TrimSpace(input.ProfileBindingID); profileBindingID != "" {
+		return &runtimev1.MemoryEmbeddingLocalBindingRef{
+			Ref: &runtimev1.MemoryEmbeddingLocalBindingRef_ProfileBindingId{ProfileBindingId: profileBindingID},
+		}
+	}
+	if readinessRef := strings.TrimSpace(input.ReadinessRef); readinessRef != "" {
+		return &runtimev1.MemoryEmbeddingLocalBindingRef{
+			Ref: &runtimev1.MemoryEmbeddingLocalBindingRef_ReadinessRef{ReadinessRef: readinessRef},
+		}
+	}
+	return nil
 }
 
 func memoryEmbeddingConnectorVisibleToCaller(ctx context.Context, record connectorservice.ConnectorRecord) bool {

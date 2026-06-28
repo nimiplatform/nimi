@@ -127,6 +127,8 @@ message MemoryEmbeddingProfile {
   MemoryDistanceMetric distance_metric = 4;
   string version = 5;
   MemoryMigrationPolicy migration_policy = 6;
+  MemoryEmbeddingCloudBindingRef cloud_binding = 7;
+  MemoryEmbeddingLocalBindingRef local_binding = 8;
 }
 
 message MemoryEmbeddingCloudBindingRef {

@@ -150,6 +150,17 @@ Fixed rules:
 - runtime must consume host-provided memory embedding intent through an admitted
   typed boundary and fail-close when the requested binding cannot resolve to an
   admitted runtime execution path
+- resolved memory embedding profile identity must preserve the typed runtime
+  execution binding that was admitted from the host intent. For cloud source,
+  the resolved profile must carry `connector_id`, `remote_model_catalog_id`,
+  `provider_model_id`, and `provider` as a typed cloud binding in addition to
+  provider/model/dimension facts. For local source, the resolved profile must
+  carry the v2 local binding (`profile_binding_id` or `readiness_ref`) in
+  addition to provider/model/dimension facts.
+- runtime embedding execution must consume the resolved profile's typed
+  execution binding. It must not reconstruct a cloud execution target from
+  `version`, raw `model_id`, or the retired connector/model pair, and must
+  fail-close when the typed binding is absent for a cloud profile.
 - if host config scope identity does not uniquely determine the runtime
   canonical bank lifecycle target, the admitted typed boundary must carry an
   explicit runtime target identity rather than inferring one from host-local UI

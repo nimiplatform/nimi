@@ -2,10 +2,13 @@ package grpcserver
 
 import (
 	"context"
+	"io"
+	"log/slog"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	catalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
+	connectorservice "github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
 )
 
@@ -89,6 +92,71 @@ func TestResolveCloudRuntimeMemoryEmbeddingProfileFailsClosedWithoutCatalog(t *t
 	}
 	if resolved.ResolutionState == "resolved" {
 		t.Fatalf("expected fail-close resolution state, got %q", resolved.ResolutionState)
+	}
+}
+
+func TestResolveCloudRuntimeMemoryEmbeddingProfileProjectsCloudBinding(t *testing.T) {
+	resolver := newTestEmbeddingCatalogResolver(t)
+	store := connectorservice.NewConnectorStoreWithMemorySecrets(t.TempDir())
+	created, err := store.Create(connectorservice.ConnectorRecord{
+		ConnectorID: "connector-openai-memory",
+		Kind:        runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED,
+		OwnerType:   runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_SYSTEM,
+		OwnerID:     "machine",
+		Provider:    "openai",
+		Endpoint:    "https://api.openai.com/v1",
+		Label:       "OpenAI Memory",
+		Status:      runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
+	}, "test-key")
+	if err != nil {
+		t.Fatalf("create connector: %v", err)
+	}
+	connectorSvc := connectorservice.New(slog.New(slog.NewTextHandler(io.Discard, nil)), store, nil)
+	models, err := connectorSvc.ListConnectorModels(context.Background(), &runtimev1.ListConnectorModelsRequest{
+		ConnectorId: created.ConnectorID,
+		PageSize:    200,
+	})
+	if err != nil {
+		t.Fatalf("ListConnectorModels: %v", err)
+	}
+	var descriptor *runtimev1.ConnectorModelDescriptor
+	for _, model := range models.GetModels() {
+		if model.GetModelId() == "text-embedding-3-small" {
+			descriptor = model
+			break
+		}
+	}
+	if descriptor == nil {
+		t.Fatal("text-embedding-3-small descriptor not found")
+	}
+
+	resolved := resolveCloudRuntimeMemoryEmbeddingProfile(context.Background(), &memoryservice.MemoryEmbeddingBindingIntentSnapshot{
+		SourceKind: memoryservice.MemoryEmbeddingBindingSourceKindCloud,
+		CloudBinding: &memoryservice.MemoryEmbeddingCloudBindingRef{
+			ConnectorID:          created.ConnectorID,
+			RemoteModelCatalogID: descriptor.GetRemoteModelCatalogId(),
+			ProviderModelID:      descriptor.GetProviderModelId(),
+			Provider:             descriptor.GetProvider(),
+		},
+	}, store, resolver)
+	if resolved.Profile == nil {
+		t.Fatalf("expected resolved profile, got state=%s reason=%s", resolved.ResolutionState, resolved.BlockedReasonCode)
+	}
+	cloud := resolved.Profile.GetCloudBinding()
+	if cloud == nil {
+		t.Fatal("expected resolved cloud binding on memory embedding profile")
+	}
+	if cloud.GetConnectorId() != created.ConnectorID {
+		t.Fatalf("cloud connector_id = %q want %q", cloud.GetConnectorId(), created.ConnectorID)
+	}
+	if cloud.GetRemoteModelCatalogId() != descriptor.GetRemoteModelCatalogId() {
+		t.Fatalf("remote_model_catalog_id = %q want %q", cloud.GetRemoteModelCatalogId(), descriptor.GetRemoteModelCatalogId())
+	}
+	if cloud.GetProviderModelId() != descriptor.GetProviderModelId() {
+		t.Fatalf("provider_model_id = %q want %q", cloud.GetProviderModelId(), descriptor.GetProviderModelId())
+	}
+	if cloud.GetProvider() != descriptor.GetProvider() {
+		t.Fatalf("provider = %q want %q", cloud.GetProvider(), descriptor.GetProvider())
 	}
 }
 

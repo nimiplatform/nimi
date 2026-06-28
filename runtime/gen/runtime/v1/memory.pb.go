@@ -1049,13 +1049,15 @@ func (*MemoryBankOwnerFilter_AppPrivate) isMemoryBankOwnerFilter_Owner() {}
 func (*MemoryBankOwnerFilter_WorkspacePrivate) isMemoryBankOwnerFilter_Owner() {}
 
 type MemoryEmbeddingProfile struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	Provider        string                 `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
-	ModelId         string                 `protobuf:"bytes,2,opt,name=model_id,json=modelId,proto3" json:"model_id,omitempty"`
-	Dimension       int32                  `protobuf:"varint,3,opt,name=dimension,proto3" json:"dimension,omitempty"`
-	DistanceMetric  MemoryDistanceMetric   `protobuf:"varint,4,opt,name=distance_metric,json=distanceMetric,proto3,enum=nimi.runtime.v1.MemoryDistanceMetric" json:"distance_metric,omitempty"`
-	Version         string                 `protobuf:"bytes,5,opt,name=version,proto3" json:"version,omitempty"`
-	MigrationPolicy MemoryMigrationPolicy  `protobuf:"varint,6,opt,name=migration_policy,json=migrationPolicy,proto3,enum=nimi.runtime.v1.MemoryMigrationPolicy" json:"migration_policy,omitempty"`
+	state           protoimpl.MessageState          `protogen:"open.v1"`
+	Provider        string                          `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
+	ModelId         string                          `protobuf:"bytes,2,opt,name=model_id,json=modelId,proto3" json:"model_id,omitempty"`
+	Dimension       int32                           `protobuf:"varint,3,opt,name=dimension,proto3" json:"dimension,omitempty"`
+	DistanceMetric  MemoryDistanceMetric            `protobuf:"varint,4,opt,name=distance_metric,json=distanceMetric,proto3,enum=nimi.runtime.v1.MemoryDistanceMetric" json:"distance_metric,omitempty"`
+	Version         string                          `protobuf:"bytes,5,opt,name=version,proto3" json:"version,omitempty"`
+	MigrationPolicy MemoryMigrationPolicy           `protobuf:"varint,6,opt,name=migration_policy,json=migrationPolicy,proto3,enum=nimi.runtime.v1.MemoryMigrationPolicy" json:"migration_policy,omitempty"`
+	CloudBinding    *MemoryEmbeddingCloudBindingRef `protobuf:"bytes,7,opt,name=cloud_binding,json=cloudBinding,proto3" json:"cloud_binding,omitempty"`
+	LocalBinding    *MemoryEmbeddingLocalBindingRef `protobuf:"bytes,8,opt,name=local_binding,json=localBinding,proto3" json:"local_binding,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -1130,6 +1132,20 @@ func (x *MemoryEmbeddingProfile) GetMigrationPolicy() MemoryMigrationPolicy {
 		return x.MigrationPolicy
 	}
 	return MemoryMigrationPolicy_MEMORY_MIGRATION_POLICY_UNSPECIFIED
+}
+
+func (x *MemoryEmbeddingProfile) GetCloudBinding() *MemoryEmbeddingCloudBindingRef {
+	if x != nil {
+		return x.CloudBinding
+	}
+	return nil
+}
+
+func (x *MemoryEmbeddingProfile) GetLocalBinding() *MemoryEmbeddingLocalBindingRef {
+	if x != nil {
+		return x.LocalBinding
+	}
+	return nil
 }
 
 type MemoryEmbeddingCloudBindingRef struct {
@@ -4818,14 +4834,16 @@ const file_runtime_v1_memory_proto_rawDesc = "" +
 	"\vapp_private\x18\x04 \x01(\v2$.nimi.runtime.v1.AppPrivateBankOwnerH\x00R\n" +
 	"appPrivate\x12Y\n" +
 	"\x11workspace_private\x18\x05 \x01(\v2*.nimi.runtime.v1.WorkspacePrivateBankOwnerH\x00R\x10workspacePrivateB\a\n" +
-	"\x05owner\"\xaa\x02\n" +
+	"\x05owner\"\xd6\x03\n" +
 	"\x16MemoryEmbeddingProfile\x12\x1a\n" +
 	"\bprovider\x18\x01 \x01(\tR\bprovider\x12\x19\n" +
 	"\bmodel_id\x18\x02 \x01(\tR\amodelId\x12\x1c\n" +
 	"\tdimension\x18\x03 \x01(\x05R\tdimension\x12N\n" +
 	"\x0fdistance_metric\x18\x04 \x01(\x0e2%.nimi.runtime.v1.MemoryDistanceMetricR\x0edistanceMetric\x12\x18\n" +
 	"\aversion\x18\x05 \x01(\tR\aversion\x12Q\n" +
-	"\x10migration_policy\x18\x06 \x01(\x0e2&.nimi.runtime.v1.MemoryMigrationPolicyR\x0fmigrationPolicy\"\xd2\x01\n" +
+	"\x10migration_policy\x18\x06 \x01(\x0e2&.nimi.runtime.v1.MemoryMigrationPolicyR\x0fmigrationPolicy\x12T\n" +
+	"\rcloud_binding\x18\a \x01(\v2/.nimi.runtime.v1.MemoryEmbeddingCloudBindingRefR\fcloudBinding\x12T\n" +
+	"\rlocal_binding\x18\b \x01(\v2/.nimi.runtime.v1.MemoryEmbeddingLocalBindingRefR\flocalBinding\"\xd2\x01\n" +
 	"\x1eMemoryEmbeddingCloudBindingRef\x12!\n" +
 	"\fconnector_id\x18\x01 \x01(\tR\vconnectorId\x125\n" +
 	"\x17remote_model_catalog_id\x18\x03 \x01(\tR\x14remoteModelCatalogId\x12*\n" +
@@ -5257,125 +5275,127 @@ var file_runtime_v1_memory_proto_depIdxs = []int32{
 	12,  // 12: nimi.runtime.v1.MemoryBankOwnerFilter.workspace_private:type_name -> nimi.runtime.v1.WorkspacePrivateBankOwner
 	3,   // 13: nimi.runtime.v1.MemoryEmbeddingProfile.distance_metric:type_name -> nimi.runtime.v1.MemoryDistanceMetric
 	4,   // 14: nimi.runtime.v1.MemoryEmbeddingProfile.migration_policy:type_name -> nimi.runtime.v1.MemoryMigrationPolicy
-	17,  // 15: nimi.runtime.v1.MemoryEmbeddingBindingIntentSnapshot.cloud_binding:type_name -> nimi.runtime.v1.MemoryEmbeddingCloudBindingRef
-	18,  // 16: nimi.runtime.v1.MemoryEmbeddingBindingIntentSnapshot.local_binding:type_name -> nimi.runtime.v1.MemoryEmbeddingLocalBindingRef
-	13,  // 17: nimi.runtime.v1.MemoryBank.locator:type_name -> nimi.runtime.v1.MemoryBankLocator
-	16,  // 18: nimi.runtime.v1.MemoryBank.embedding_profile:type_name -> nimi.runtime.v1.MemoryEmbeddingProfile
-	69,  // 19: nimi.runtime.v1.MemoryBank.metadata:type_name -> google.protobuf.Struct
-	70,  // 20: nimi.runtime.v1.MemoryBank.created_at:type_name -> google.protobuf.Timestamp
-	70,  // 21: nimi.runtime.v1.MemoryBank.updated_at:type_name -> google.protobuf.Timestamp
-	70,  // 22: nimi.runtime.v1.MemoryProvenance.committed_at:type_name -> google.protobuf.Timestamp
-	70,  // 23: nimi.runtime.v1.EpisodicMemoryRecord.occurred_at:type_name -> google.protobuf.Timestamp
-	70,  // 24: nimi.runtime.v1.ObservationalMemoryRecord.observed_at:type_name -> google.protobuf.Timestamp
-	1,   // 25: nimi.runtime.v1.MemoryRecordInput.kind:type_name -> nimi.runtime.v1.MemoryRecordKind
-	2,   // 26: nimi.runtime.v1.MemoryRecordInput.canonical_class:type_name -> nimi.runtime.v1.MemoryCanonicalClass
-	22,  // 27: nimi.runtime.v1.MemoryRecordInput.provenance:type_name -> nimi.runtime.v1.MemoryProvenance
-	69,  // 28: nimi.runtime.v1.MemoryRecordInput.metadata:type_name -> google.protobuf.Struct
-	69,  // 29: nimi.runtime.v1.MemoryRecordInput.extensions:type_name -> google.protobuf.Struct
-	23,  // 30: nimi.runtime.v1.MemoryRecordInput.episodic:type_name -> nimi.runtime.v1.EpisodicMemoryRecord
-	24,  // 31: nimi.runtime.v1.MemoryRecordInput.semantic:type_name -> nimi.runtime.v1.SemanticMemoryRecord
-	25,  // 32: nimi.runtime.v1.MemoryRecordInput.observational:type_name -> nimi.runtime.v1.ObservationalMemoryRecord
-	70,  // 33: nimi.runtime.v1.MemoryReplicationPending.enqueued_at:type_name -> google.protobuf.Timestamp
-	70,  // 34: nimi.runtime.v1.MemoryReplicationSynced.synced_at:type_name -> google.protobuf.Timestamp
-	70,  // 35: nimi.runtime.v1.MemoryReplicationConflict.detected_at:type_name -> google.protobuf.Timestamp
-	70,  // 36: nimi.runtime.v1.MemoryInvalidation.invalidated_at:type_name -> google.protobuf.Timestamp
-	5,   // 37: nimi.runtime.v1.MemoryReplicationState.outcome:type_name -> nimi.runtime.v1.MemoryReplicationOutcome
-	27,  // 38: nimi.runtime.v1.MemoryReplicationState.pending:type_name -> nimi.runtime.v1.MemoryReplicationPending
-	28,  // 39: nimi.runtime.v1.MemoryReplicationState.synced:type_name -> nimi.runtime.v1.MemoryReplicationSynced
-	29,  // 40: nimi.runtime.v1.MemoryReplicationState.conflict:type_name -> nimi.runtime.v1.MemoryReplicationConflict
-	30,  // 41: nimi.runtime.v1.MemoryReplicationState.invalidation:type_name -> nimi.runtime.v1.MemoryInvalidation
-	13,  // 42: nimi.runtime.v1.MemoryRecord.bank:type_name -> nimi.runtime.v1.MemoryBankLocator
-	1,   // 43: nimi.runtime.v1.MemoryRecord.kind:type_name -> nimi.runtime.v1.MemoryRecordKind
-	2,   // 44: nimi.runtime.v1.MemoryRecord.canonical_class:type_name -> nimi.runtime.v1.MemoryCanonicalClass
-	22,  // 45: nimi.runtime.v1.MemoryRecord.provenance:type_name -> nimi.runtime.v1.MemoryProvenance
-	31,  // 46: nimi.runtime.v1.MemoryRecord.replication:type_name -> nimi.runtime.v1.MemoryReplicationState
-	69,  // 47: nimi.runtime.v1.MemoryRecord.metadata:type_name -> google.protobuf.Struct
-	69,  // 48: nimi.runtime.v1.MemoryRecord.extensions:type_name -> google.protobuf.Struct
-	23,  // 49: nimi.runtime.v1.MemoryRecord.episodic:type_name -> nimi.runtime.v1.EpisodicMemoryRecord
-	24,  // 50: nimi.runtime.v1.MemoryRecord.semantic:type_name -> nimi.runtime.v1.SemanticMemoryRecord
-	25,  // 51: nimi.runtime.v1.MemoryRecord.observational:type_name -> nimi.runtime.v1.ObservationalMemoryRecord
-	70,  // 52: nimi.runtime.v1.MemoryRecord.created_at:type_name -> google.protobuf.Timestamp
-	70,  // 53: nimi.runtime.v1.MemoryRecord.updated_at:type_name -> google.protobuf.Timestamp
-	1,   // 54: nimi.runtime.v1.MemoryRecallQuery.kinds:type_name -> nimi.runtime.v1.MemoryRecordKind
-	70,  // 55: nimi.runtime.v1.MemoryRecallQuery.start_time:type_name -> google.protobuf.Timestamp
-	70,  // 56: nimi.runtime.v1.MemoryRecallQuery.end_time:type_name -> google.protobuf.Timestamp
-	2,   // 57: nimi.runtime.v1.MemoryRecallQuery.canonical_classes:type_name -> nimi.runtime.v1.MemoryCanonicalClass
-	1,   // 58: nimi.runtime.v1.MemoryHistoryQuery.kinds:type_name -> nimi.runtime.v1.MemoryRecordKind
-	70,  // 59: nimi.runtime.v1.MemoryHistoryQuery.start_time:type_name -> google.protobuf.Timestamp
-	70,  // 60: nimi.runtime.v1.MemoryHistoryQuery.end_time:type_name -> google.protobuf.Timestamp
-	32,  // 61: nimi.runtime.v1.MemoryRecallHit.record:type_name -> nimi.runtime.v1.MemoryRecord
-	1,   // 62: nimi.runtime.v1.MemoryReflectionRequest.source_kinds:type_name -> nimi.runtime.v1.MemoryRecordKind
-	70,  // 63: nimi.runtime.v1.MemoryReflectionRequest.start_time:type_name -> google.protobuf.Timestamp
-	70,  // 64: nimi.runtime.v1.MemoryReflectionRequest.end_time:type_name -> google.protobuf.Timestamp
-	32,  // 65: nimi.runtime.v1.MemoryReflectionResult.created_records:type_name -> nimi.runtime.v1.MemoryRecord
-	70,  // 66: nimi.runtime.v1.MemoryReflectionResult.completed_at:type_name -> google.protobuf.Timestamp
-	31,  // 67: nimi.runtime.v1.MemoryReplicationObservedDetail.replication:type_name -> nimi.runtime.v1.MemoryReplicationState
-	6,   // 68: nimi.runtime.v1.MemoryEvent.event_type:type_name -> nimi.runtime.v1.MemoryEventType
-	13,  // 69: nimi.runtime.v1.MemoryEvent.bank:type_name -> nimi.runtime.v1.MemoryBankLocator
-	70,  // 70: nimi.runtime.v1.MemoryEvent.timestamp:type_name -> google.protobuf.Timestamp
-	21,  // 71: nimi.runtime.v1.MemoryEvent.bank_created:type_name -> nimi.runtime.v1.MemoryBank
-	21,  // 72: nimi.runtime.v1.MemoryEvent.bank_deleted:type_name -> nimi.runtime.v1.MemoryBank
-	32,  // 73: nimi.runtime.v1.MemoryEvent.record_retained:type_name -> nimi.runtime.v1.MemoryRecord
-	39,  // 74: nimi.runtime.v1.MemoryEvent.record_deleted:type_name -> nimi.runtime.v1.MemoryDeletedDetail
-	38,  // 75: nimi.runtime.v1.MemoryEvent.reflection_completed:type_name -> nimi.runtime.v1.MemoryReflectionResult
-	40,  // 76: nimi.runtime.v1.MemoryEvent.replication_updated:type_name -> nimi.runtime.v1.MemoryReplicationObservedDetail
-	7,   // 77: nimi.runtime.v1.CreateBankRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
-	14,  // 78: nimi.runtime.v1.CreateBankRequest.locator:type_name -> nimi.runtime.v1.PublicMemoryBankLocator
-	16,  // 79: nimi.runtime.v1.CreateBankRequest.embedding_profile:type_name -> nimi.runtime.v1.MemoryEmbeddingProfile
-	69,  // 80: nimi.runtime.v1.CreateBankRequest.metadata:type_name -> google.protobuf.Struct
-	21,  // 81: nimi.runtime.v1.CreateBankResponse.bank:type_name -> nimi.runtime.v1.MemoryBank
-	7,   // 82: nimi.runtime.v1.GetBankRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
-	13,  // 83: nimi.runtime.v1.GetBankRequest.locator:type_name -> nimi.runtime.v1.MemoryBankLocator
-	21,  // 84: nimi.runtime.v1.GetBankResponse.bank:type_name -> nimi.runtime.v1.MemoryBank
-	7,   // 85: nimi.runtime.v1.ListBanksRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
-	0,   // 86: nimi.runtime.v1.ListBanksRequest.scope_filters:type_name -> nimi.runtime.v1.MemoryBankScope
-	15,  // 87: nimi.runtime.v1.ListBanksRequest.owner_filters:type_name -> nimi.runtime.v1.MemoryBankOwnerFilter
-	21,  // 88: nimi.runtime.v1.ListBanksResponse.banks:type_name -> nimi.runtime.v1.MemoryBank
-	7,   // 89: nimi.runtime.v1.DeleteBankRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
-	14,  // 90: nimi.runtime.v1.DeleteBankRequest.locator:type_name -> nimi.runtime.v1.PublicMemoryBankLocator
-	71,  // 91: nimi.runtime.v1.DeleteBankResponse.ack:type_name -> nimi.runtime.v1.Ack
-	7,   // 92: nimi.runtime.v1.RetainRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
-	13,  // 93: nimi.runtime.v1.RetainRequest.bank:type_name -> nimi.runtime.v1.MemoryBankLocator
-	26,  // 94: nimi.runtime.v1.RetainRequest.records:type_name -> nimi.runtime.v1.MemoryRecordInput
-	32,  // 95: nimi.runtime.v1.RetainResponse.records:type_name -> nimi.runtime.v1.MemoryRecord
-	7,   // 96: nimi.runtime.v1.RecallRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
-	13,  // 97: nimi.runtime.v1.RecallRequest.bank:type_name -> nimi.runtime.v1.MemoryBankLocator
-	33,  // 98: nimi.runtime.v1.RecallRequest.query:type_name -> nimi.runtime.v1.MemoryRecallQuery
-	35,  // 99: nimi.runtime.v1.RecallResponse.hits:type_name -> nimi.runtime.v1.MemoryRecallHit
-	36,  // 100: nimi.runtime.v1.RecallResponse.narrative_hits:type_name -> nimi.runtime.v1.NarrativeRecallHit
-	7,   // 101: nimi.runtime.v1.HistoryRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
-	13,  // 102: nimi.runtime.v1.HistoryRequest.bank:type_name -> nimi.runtime.v1.MemoryBankLocator
-	34,  // 103: nimi.runtime.v1.HistoryRequest.query:type_name -> nimi.runtime.v1.MemoryHistoryQuery
-	32,  // 104: nimi.runtime.v1.HistoryResponse.records:type_name -> nimi.runtime.v1.MemoryRecord
-	7,   // 105: nimi.runtime.v1.DeleteMemoryRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
-	13,  // 106: nimi.runtime.v1.DeleteMemoryRequest.bank:type_name -> nimi.runtime.v1.MemoryBankLocator
-	71,  // 107: nimi.runtime.v1.DeleteMemoryResponse.ack:type_name -> nimi.runtime.v1.Ack
-	7,   // 108: nimi.runtime.v1.SubscribeMemoryEventsRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
-	0,   // 109: nimi.runtime.v1.SubscribeMemoryEventsRequest.scope_filters:type_name -> nimi.runtime.v1.MemoryBankScope
-	15,  // 110: nimi.runtime.v1.SubscribeMemoryEventsRequest.owner_filters:type_name -> nimi.runtime.v1.MemoryBankOwnerFilter
-	7,   // 111: nimi.runtime.v1.GetMemoryEmbeddingRuntimeIntentRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
-	13,  // 112: nimi.runtime.v1.GetMemoryEmbeddingRuntimeIntentRequest.locator:type_name -> nimi.runtime.v1.MemoryBankLocator
-	19,  // 113: nimi.runtime.v1.GetMemoryEmbeddingRuntimeIntentResponse.binding_intent:type_name -> nimi.runtime.v1.MemoryEmbeddingBindingIntentSnapshot
-	7,   // 114: nimi.runtime.v1.SetMemoryEmbeddingRuntimeIntentRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
-	13,  // 115: nimi.runtime.v1.SetMemoryEmbeddingRuntimeIntentRequest.locator:type_name -> nimi.runtime.v1.MemoryBankLocator
-	19,  // 116: nimi.runtime.v1.SetMemoryEmbeddingRuntimeIntentRequest.binding_intent:type_name -> nimi.runtime.v1.MemoryEmbeddingBindingIntentSnapshot
-	19,  // 117: nimi.runtime.v1.SetMemoryEmbeddingRuntimeIntentResponse.binding_intent:type_name -> nimi.runtime.v1.MemoryEmbeddingBindingIntentSnapshot
-	7,   // 118: nimi.runtime.v1.InspectMemoryEmbeddingRuntimeRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
-	13,  // 119: nimi.runtime.v1.InspectMemoryEmbeddingRuntimeRequest.locator:type_name -> nimi.runtime.v1.MemoryBankLocator
-	16,  // 120: nimi.runtime.v1.InspectMemoryEmbeddingRuntimeResponse.resolved_profile:type_name -> nimi.runtime.v1.MemoryEmbeddingProfile
-	72,  // 121: nimi.runtime.v1.InspectMemoryEmbeddingRuntimeResponse.blocked_reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	20,  // 122: nimi.runtime.v1.InspectMemoryEmbeddingRuntimeResponse.operation_readiness:type_name -> nimi.runtime.v1.MemoryEmbeddingOperationReadiness
-	7,   // 123: nimi.runtime.v1.RequestMemoryEmbeddingRuntimeBindRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
-	13,  // 124: nimi.runtime.v1.RequestMemoryEmbeddingRuntimeBindRequest.locator:type_name -> nimi.runtime.v1.MemoryBankLocator
-	72,  // 125: nimi.runtime.v1.RequestMemoryEmbeddingRuntimeBindResponse.blocked_reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	7,   // 126: nimi.runtime.v1.RequestMemoryEmbeddingRuntimeCutoverRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
-	13,  // 127: nimi.runtime.v1.RequestMemoryEmbeddingRuntimeCutoverRequest.locator:type_name -> nimi.runtime.v1.MemoryBankLocator
-	72,  // 128: nimi.runtime.v1.RequestMemoryEmbeddingRuntimeCutoverResponse.blocked_reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	129, // [129:129] is the sub-list for method output_type
-	129, // [129:129] is the sub-list for method input_type
-	129, // [129:129] is the sub-list for extension type_name
-	129, // [129:129] is the sub-list for extension extendee
-	0,   // [0:129] is the sub-list for field type_name
+	17,  // 15: nimi.runtime.v1.MemoryEmbeddingProfile.cloud_binding:type_name -> nimi.runtime.v1.MemoryEmbeddingCloudBindingRef
+	18,  // 16: nimi.runtime.v1.MemoryEmbeddingProfile.local_binding:type_name -> nimi.runtime.v1.MemoryEmbeddingLocalBindingRef
+	17,  // 17: nimi.runtime.v1.MemoryEmbeddingBindingIntentSnapshot.cloud_binding:type_name -> nimi.runtime.v1.MemoryEmbeddingCloudBindingRef
+	18,  // 18: nimi.runtime.v1.MemoryEmbeddingBindingIntentSnapshot.local_binding:type_name -> nimi.runtime.v1.MemoryEmbeddingLocalBindingRef
+	13,  // 19: nimi.runtime.v1.MemoryBank.locator:type_name -> nimi.runtime.v1.MemoryBankLocator
+	16,  // 20: nimi.runtime.v1.MemoryBank.embedding_profile:type_name -> nimi.runtime.v1.MemoryEmbeddingProfile
+	69,  // 21: nimi.runtime.v1.MemoryBank.metadata:type_name -> google.protobuf.Struct
+	70,  // 22: nimi.runtime.v1.MemoryBank.created_at:type_name -> google.protobuf.Timestamp
+	70,  // 23: nimi.runtime.v1.MemoryBank.updated_at:type_name -> google.protobuf.Timestamp
+	70,  // 24: nimi.runtime.v1.MemoryProvenance.committed_at:type_name -> google.protobuf.Timestamp
+	70,  // 25: nimi.runtime.v1.EpisodicMemoryRecord.occurred_at:type_name -> google.protobuf.Timestamp
+	70,  // 26: nimi.runtime.v1.ObservationalMemoryRecord.observed_at:type_name -> google.protobuf.Timestamp
+	1,   // 27: nimi.runtime.v1.MemoryRecordInput.kind:type_name -> nimi.runtime.v1.MemoryRecordKind
+	2,   // 28: nimi.runtime.v1.MemoryRecordInput.canonical_class:type_name -> nimi.runtime.v1.MemoryCanonicalClass
+	22,  // 29: nimi.runtime.v1.MemoryRecordInput.provenance:type_name -> nimi.runtime.v1.MemoryProvenance
+	69,  // 30: nimi.runtime.v1.MemoryRecordInput.metadata:type_name -> google.protobuf.Struct
+	69,  // 31: nimi.runtime.v1.MemoryRecordInput.extensions:type_name -> google.protobuf.Struct
+	23,  // 32: nimi.runtime.v1.MemoryRecordInput.episodic:type_name -> nimi.runtime.v1.EpisodicMemoryRecord
+	24,  // 33: nimi.runtime.v1.MemoryRecordInput.semantic:type_name -> nimi.runtime.v1.SemanticMemoryRecord
+	25,  // 34: nimi.runtime.v1.MemoryRecordInput.observational:type_name -> nimi.runtime.v1.ObservationalMemoryRecord
+	70,  // 35: nimi.runtime.v1.MemoryReplicationPending.enqueued_at:type_name -> google.protobuf.Timestamp
+	70,  // 36: nimi.runtime.v1.MemoryReplicationSynced.synced_at:type_name -> google.protobuf.Timestamp
+	70,  // 37: nimi.runtime.v1.MemoryReplicationConflict.detected_at:type_name -> google.protobuf.Timestamp
+	70,  // 38: nimi.runtime.v1.MemoryInvalidation.invalidated_at:type_name -> google.protobuf.Timestamp
+	5,   // 39: nimi.runtime.v1.MemoryReplicationState.outcome:type_name -> nimi.runtime.v1.MemoryReplicationOutcome
+	27,  // 40: nimi.runtime.v1.MemoryReplicationState.pending:type_name -> nimi.runtime.v1.MemoryReplicationPending
+	28,  // 41: nimi.runtime.v1.MemoryReplicationState.synced:type_name -> nimi.runtime.v1.MemoryReplicationSynced
+	29,  // 42: nimi.runtime.v1.MemoryReplicationState.conflict:type_name -> nimi.runtime.v1.MemoryReplicationConflict
+	30,  // 43: nimi.runtime.v1.MemoryReplicationState.invalidation:type_name -> nimi.runtime.v1.MemoryInvalidation
+	13,  // 44: nimi.runtime.v1.MemoryRecord.bank:type_name -> nimi.runtime.v1.MemoryBankLocator
+	1,   // 45: nimi.runtime.v1.MemoryRecord.kind:type_name -> nimi.runtime.v1.MemoryRecordKind
+	2,   // 46: nimi.runtime.v1.MemoryRecord.canonical_class:type_name -> nimi.runtime.v1.MemoryCanonicalClass
+	22,  // 47: nimi.runtime.v1.MemoryRecord.provenance:type_name -> nimi.runtime.v1.MemoryProvenance
+	31,  // 48: nimi.runtime.v1.MemoryRecord.replication:type_name -> nimi.runtime.v1.MemoryReplicationState
+	69,  // 49: nimi.runtime.v1.MemoryRecord.metadata:type_name -> google.protobuf.Struct
+	69,  // 50: nimi.runtime.v1.MemoryRecord.extensions:type_name -> google.protobuf.Struct
+	23,  // 51: nimi.runtime.v1.MemoryRecord.episodic:type_name -> nimi.runtime.v1.EpisodicMemoryRecord
+	24,  // 52: nimi.runtime.v1.MemoryRecord.semantic:type_name -> nimi.runtime.v1.SemanticMemoryRecord
+	25,  // 53: nimi.runtime.v1.MemoryRecord.observational:type_name -> nimi.runtime.v1.ObservationalMemoryRecord
+	70,  // 54: nimi.runtime.v1.MemoryRecord.created_at:type_name -> google.protobuf.Timestamp
+	70,  // 55: nimi.runtime.v1.MemoryRecord.updated_at:type_name -> google.protobuf.Timestamp
+	1,   // 56: nimi.runtime.v1.MemoryRecallQuery.kinds:type_name -> nimi.runtime.v1.MemoryRecordKind
+	70,  // 57: nimi.runtime.v1.MemoryRecallQuery.start_time:type_name -> google.protobuf.Timestamp
+	70,  // 58: nimi.runtime.v1.MemoryRecallQuery.end_time:type_name -> google.protobuf.Timestamp
+	2,   // 59: nimi.runtime.v1.MemoryRecallQuery.canonical_classes:type_name -> nimi.runtime.v1.MemoryCanonicalClass
+	1,   // 60: nimi.runtime.v1.MemoryHistoryQuery.kinds:type_name -> nimi.runtime.v1.MemoryRecordKind
+	70,  // 61: nimi.runtime.v1.MemoryHistoryQuery.start_time:type_name -> google.protobuf.Timestamp
+	70,  // 62: nimi.runtime.v1.MemoryHistoryQuery.end_time:type_name -> google.protobuf.Timestamp
+	32,  // 63: nimi.runtime.v1.MemoryRecallHit.record:type_name -> nimi.runtime.v1.MemoryRecord
+	1,   // 64: nimi.runtime.v1.MemoryReflectionRequest.source_kinds:type_name -> nimi.runtime.v1.MemoryRecordKind
+	70,  // 65: nimi.runtime.v1.MemoryReflectionRequest.start_time:type_name -> google.protobuf.Timestamp
+	70,  // 66: nimi.runtime.v1.MemoryReflectionRequest.end_time:type_name -> google.protobuf.Timestamp
+	32,  // 67: nimi.runtime.v1.MemoryReflectionResult.created_records:type_name -> nimi.runtime.v1.MemoryRecord
+	70,  // 68: nimi.runtime.v1.MemoryReflectionResult.completed_at:type_name -> google.protobuf.Timestamp
+	31,  // 69: nimi.runtime.v1.MemoryReplicationObservedDetail.replication:type_name -> nimi.runtime.v1.MemoryReplicationState
+	6,   // 70: nimi.runtime.v1.MemoryEvent.event_type:type_name -> nimi.runtime.v1.MemoryEventType
+	13,  // 71: nimi.runtime.v1.MemoryEvent.bank:type_name -> nimi.runtime.v1.MemoryBankLocator
+	70,  // 72: nimi.runtime.v1.MemoryEvent.timestamp:type_name -> google.protobuf.Timestamp
+	21,  // 73: nimi.runtime.v1.MemoryEvent.bank_created:type_name -> nimi.runtime.v1.MemoryBank
+	21,  // 74: nimi.runtime.v1.MemoryEvent.bank_deleted:type_name -> nimi.runtime.v1.MemoryBank
+	32,  // 75: nimi.runtime.v1.MemoryEvent.record_retained:type_name -> nimi.runtime.v1.MemoryRecord
+	39,  // 76: nimi.runtime.v1.MemoryEvent.record_deleted:type_name -> nimi.runtime.v1.MemoryDeletedDetail
+	38,  // 77: nimi.runtime.v1.MemoryEvent.reflection_completed:type_name -> nimi.runtime.v1.MemoryReflectionResult
+	40,  // 78: nimi.runtime.v1.MemoryEvent.replication_updated:type_name -> nimi.runtime.v1.MemoryReplicationObservedDetail
+	7,   // 79: nimi.runtime.v1.CreateBankRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
+	14,  // 80: nimi.runtime.v1.CreateBankRequest.locator:type_name -> nimi.runtime.v1.PublicMemoryBankLocator
+	16,  // 81: nimi.runtime.v1.CreateBankRequest.embedding_profile:type_name -> nimi.runtime.v1.MemoryEmbeddingProfile
+	69,  // 82: nimi.runtime.v1.CreateBankRequest.metadata:type_name -> google.protobuf.Struct
+	21,  // 83: nimi.runtime.v1.CreateBankResponse.bank:type_name -> nimi.runtime.v1.MemoryBank
+	7,   // 84: nimi.runtime.v1.GetBankRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
+	13,  // 85: nimi.runtime.v1.GetBankRequest.locator:type_name -> nimi.runtime.v1.MemoryBankLocator
+	21,  // 86: nimi.runtime.v1.GetBankResponse.bank:type_name -> nimi.runtime.v1.MemoryBank
+	7,   // 87: nimi.runtime.v1.ListBanksRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
+	0,   // 88: nimi.runtime.v1.ListBanksRequest.scope_filters:type_name -> nimi.runtime.v1.MemoryBankScope
+	15,  // 89: nimi.runtime.v1.ListBanksRequest.owner_filters:type_name -> nimi.runtime.v1.MemoryBankOwnerFilter
+	21,  // 90: nimi.runtime.v1.ListBanksResponse.banks:type_name -> nimi.runtime.v1.MemoryBank
+	7,   // 91: nimi.runtime.v1.DeleteBankRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
+	14,  // 92: nimi.runtime.v1.DeleteBankRequest.locator:type_name -> nimi.runtime.v1.PublicMemoryBankLocator
+	71,  // 93: nimi.runtime.v1.DeleteBankResponse.ack:type_name -> nimi.runtime.v1.Ack
+	7,   // 94: nimi.runtime.v1.RetainRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
+	13,  // 95: nimi.runtime.v1.RetainRequest.bank:type_name -> nimi.runtime.v1.MemoryBankLocator
+	26,  // 96: nimi.runtime.v1.RetainRequest.records:type_name -> nimi.runtime.v1.MemoryRecordInput
+	32,  // 97: nimi.runtime.v1.RetainResponse.records:type_name -> nimi.runtime.v1.MemoryRecord
+	7,   // 98: nimi.runtime.v1.RecallRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
+	13,  // 99: nimi.runtime.v1.RecallRequest.bank:type_name -> nimi.runtime.v1.MemoryBankLocator
+	33,  // 100: nimi.runtime.v1.RecallRequest.query:type_name -> nimi.runtime.v1.MemoryRecallQuery
+	35,  // 101: nimi.runtime.v1.RecallResponse.hits:type_name -> nimi.runtime.v1.MemoryRecallHit
+	36,  // 102: nimi.runtime.v1.RecallResponse.narrative_hits:type_name -> nimi.runtime.v1.NarrativeRecallHit
+	7,   // 103: nimi.runtime.v1.HistoryRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
+	13,  // 104: nimi.runtime.v1.HistoryRequest.bank:type_name -> nimi.runtime.v1.MemoryBankLocator
+	34,  // 105: nimi.runtime.v1.HistoryRequest.query:type_name -> nimi.runtime.v1.MemoryHistoryQuery
+	32,  // 106: nimi.runtime.v1.HistoryResponse.records:type_name -> nimi.runtime.v1.MemoryRecord
+	7,   // 107: nimi.runtime.v1.DeleteMemoryRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
+	13,  // 108: nimi.runtime.v1.DeleteMemoryRequest.bank:type_name -> nimi.runtime.v1.MemoryBankLocator
+	71,  // 109: nimi.runtime.v1.DeleteMemoryResponse.ack:type_name -> nimi.runtime.v1.Ack
+	7,   // 110: nimi.runtime.v1.SubscribeMemoryEventsRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
+	0,   // 111: nimi.runtime.v1.SubscribeMemoryEventsRequest.scope_filters:type_name -> nimi.runtime.v1.MemoryBankScope
+	15,  // 112: nimi.runtime.v1.SubscribeMemoryEventsRequest.owner_filters:type_name -> nimi.runtime.v1.MemoryBankOwnerFilter
+	7,   // 113: nimi.runtime.v1.GetMemoryEmbeddingRuntimeIntentRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
+	13,  // 114: nimi.runtime.v1.GetMemoryEmbeddingRuntimeIntentRequest.locator:type_name -> nimi.runtime.v1.MemoryBankLocator
+	19,  // 115: nimi.runtime.v1.GetMemoryEmbeddingRuntimeIntentResponse.binding_intent:type_name -> nimi.runtime.v1.MemoryEmbeddingBindingIntentSnapshot
+	7,   // 116: nimi.runtime.v1.SetMemoryEmbeddingRuntimeIntentRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
+	13,  // 117: nimi.runtime.v1.SetMemoryEmbeddingRuntimeIntentRequest.locator:type_name -> nimi.runtime.v1.MemoryBankLocator
+	19,  // 118: nimi.runtime.v1.SetMemoryEmbeddingRuntimeIntentRequest.binding_intent:type_name -> nimi.runtime.v1.MemoryEmbeddingBindingIntentSnapshot
+	19,  // 119: nimi.runtime.v1.SetMemoryEmbeddingRuntimeIntentResponse.binding_intent:type_name -> nimi.runtime.v1.MemoryEmbeddingBindingIntentSnapshot
+	7,   // 120: nimi.runtime.v1.InspectMemoryEmbeddingRuntimeRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
+	13,  // 121: nimi.runtime.v1.InspectMemoryEmbeddingRuntimeRequest.locator:type_name -> nimi.runtime.v1.MemoryBankLocator
+	16,  // 122: nimi.runtime.v1.InspectMemoryEmbeddingRuntimeResponse.resolved_profile:type_name -> nimi.runtime.v1.MemoryEmbeddingProfile
+	72,  // 123: nimi.runtime.v1.InspectMemoryEmbeddingRuntimeResponse.blocked_reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	20,  // 124: nimi.runtime.v1.InspectMemoryEmbeddingRuntimeResponse.operation_readiness:type_name -> nimi.runtime.v1.MemoryEmbeddingOperationReadiness
+	7,   // 125: nimi.runtime.v1.RequestMemoryEmbeddingRuntimeBindRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
+	13,  // 126: nimi.runtime.v1.RequestMemoryEmbeddingRuntimeBindRequest.locator:type_name -> nimi.runtime.v1.MemoryBankLocator
+	72,  // 127: nimi.runtime.v1.RequestMemoryEmbeddingRuntimeBindResponse.blocked_reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	7,   // 128: nimi.runtime.v1.RequestMemoryEmbeddingRuntimeCutoverRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
+	13,  // 129: nimi.runtime.v1.RequestMemoryEmbeddingRuntimeCutoverRequest.locator:type_name -> nimi.runtime.v1.MemoryBankLocator
+	72,  // 130: nimi.runtime.v1.RequestMemoryEmbeddingRuntimeCutoverResponse.blocked_reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	131, // [131:131] is the sub-list for method output_type
+	131, // [131:131] is the sub-list for method input_type
+	131, // [131:131] is the sub-list for extension type_name
+	131, // [131:131] is the sub-list for extension extendee
+	0,   // [0:131] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_memory_proto_init() }

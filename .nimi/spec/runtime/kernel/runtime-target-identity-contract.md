@@ -196,7 +196,7 @@ this hard cut unless a downstream owner is explicitly named.
 | `.nimi/spec/runtime/kernel/nimillm-contract.md` | `model_id` | `must_migrate` | Patch outbound validation to resolved binding/provider facts. |
 | `.nimi/spec/runtime/kernel/pagination-filtering.md` | `LOCAL_MODEL`, `connector_id`, `model_id` | `must_migrate` | Patch local connector pagination and classify remaining list fields as non-identity. |
 | `.nimi/spec/runtime/kernel/rpc-surface.md` | `model_id`, `target_model_id`, `connector_id` | `must_migrate` | Patch admitted AI RPC target inputs to v2 refs or resolved binding. |
-| `.nimi/spec/runtime/kernel/runtime-memory-service-contract.md` | `model_id` | `must_migrate` | Patch memory embedding durable binding to v2 refs. |
+| `.nimi/spec/runtime/kernel/runtime-memory-service-contract.md` | `connector_id`, `model_id` | `must_migrate` | Patch memory embedding durable binding to v2 refs. |
 | `.nimi/spec/runtime/kernel/runtime-target-identity-contract.md` | `model_id`, `target_model_id`, `connector_id`, `LOCAL_MODEL`, `targetId`, `profileId`, `localModelId`, `goRuntimeLocalModelId` | `allowed_non_identity_fact` | This file is the classification and retirement authority itself; G12 parses this inventory and does not treat its listed forbidden vocabulary as active target identity. |
 | `.nimi/spec/runtime/kernel/tables/key-source-truth-table.yaml` | `connector_id` | `allowed_non_identity_fact` | Credential custody table only; G3/G12 require remote catalog target identity. |
 | `.nimi/spec/runtime/kernel/tables/metadata-keys.yaml` | `connector_id` | `allowed_non_identity_fact` | Credential routing metadata only; G3 rejects connector-only target identity. |
