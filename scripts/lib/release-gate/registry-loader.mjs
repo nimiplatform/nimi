@@ -20,6 +20,7 @@ const REGISTRY_PATH_DEFAULT =
 const SCHEMA_VERSION = 'release-gate-registry/v1';
 
 const OWNER_ALLOWLIST = new Set([
+  'app-tools',
   'cargo',
   'cognition',
   'desktop',
@@ -36,6 +37,7 @@ const OWNER_ALLOWLIST = new Set([
   'sdk',
   'security',
   'spec-governance',
+  'tester',
   'ui',
   'web',
   'workflow',

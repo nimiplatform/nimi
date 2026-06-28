@@ -22,7 +22,7 @@ cited below.
 `P-SCAF-*` OWNS:
 
 - Nimi app scaffolding product authority;
-- the `standalone` and `workspace-app` profile split;
+- the `standalone`, `workspace-app`, and explicit `tester-reference` profile split;
 - generated developer-repository scaffold requirements;
 - managed-file taxonomy for package-owned projections, scaffold-managed glue,
   and app-owned product code;
@@ -84,7 +84,8 @@ choices unless a new authority-bearing spec cut explicitly supersedes this rule.
 
 ## P-SCAF-003 — Scaffold Profile Split
 
-`MUST`: Nimi app scaffolding admits exactly two profile families:
+`MUST`: Nimi app scaffolding admits exactly two default app-starter profile
+families and one explicit proof/reference profile:
 
 - `standalone`: an external developer app repository with its own `.nimi/**`
   host truth surface, published SDK/kit/Rust-shell dependencies, generated
@@ -93,10 +94,26 @@ choices unless a new authority-bearing spec cut explicitly supersedes this rule.
   workspace dependencies and Cargo path dependency for the Rust shell crate
   surface; app-local `apps/<app>/spec/**` authority is admitted only through
   `P-APP-001..006`.
+- `tester-reference`: an explicit internal ecosystem proof/reference scaffold
+  profile. It may carry `apps/tester` proof composition, scenario presets,
+  evidence UI, tester storage, and Electron/Tauri shell wiring so other
+  implementation sessions can inspect a complete Nimi Runtime AI consume,
+  SDK, Kit, and shell integration path.
 
-`MUST NOT`: scaffolding must not invent a third profile that bypasses
+`MUST`: `standalone` and `workspace-app` are generic app starter profiles.
+They must not receive tester-only product surfaces such as `src/tester/**`,
+tester settings fixtures, tester world-tour surfaces, tester-specific storage,
+or tester proof UI by default.
+
+`MUST`: `tester-reference` is opt-in only. It is not the default generic app
+starter, does not create public Nimi App admission truth, and remains subject
+to Runtime account/session custody, SDK transport, Kit shell, permission, and
+descriptor boundaries.
+
+`MUST NOT`: scaffolding must not invent any additional profile that bypasses
 `P-APP-*`, `P-NAPP-*`, `P-DEV-*`, or Runtime account/session authority.
-Implementing only one profile does not satisfy this contract's product line.
+Implementing only one default starter profile does not satisfy this contract's
+product line.
 
 ## P-SCAF-004 — Submitted Manifest Input Is Not Admitted Descriptor Truth
 

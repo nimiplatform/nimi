@@ -85,6 +85,29 @@ reason_codes:
 # -----------------------------------------------------------------------
 gates:
   # =====================================================================
+  # owner: app-tools (Nimi app scaffold authoring and generated app smoke)
+  # =====================================================================
+  - id: gate.app-tools.generated-app-smoke
+    description: app-tools default generated app workspace-backed install/init/check/build smoke without tester-only product code.
+    command: pnpm --filter @nimiplatform/app-tools run check:generated-app-smoke
+    runner: pnpm
+    cwd: .
+    tiers: [release]
+    targets: [any]
+    timeout_seconds: 1200
+    prerequisites: []
+    requires_secrets: []
+    requires_external_repo: []
+    requires_binaries: [pnpm, node]
+    blocker_semantics:
+      on_binary_missing: blocked
+    evidence:
+      shape: command_exit
+    p_relg_anchors: [P-RELG-001]
+    parent_p_gov_anchors: [P-GOV-003]
+    experimental: false
+
+  # =====================================================================
   # owner: cargo (Rust / Tauri verification chain in apps/desktop/src-tauri)
   # =====================================================================
   - id: gate.cargo.check
@@ -2015,6 +2038,29 @@ gates:
     targets: [desktop]
     timeout_seconds: 60
     requires_binaries: [pnpm]
+    evidence:
+      shape: command_exit
+    p_relg_anchors: [P-RELG-001]
+    parent_p_gov_anchors: [P-GOV-003]
+    experimental: false
+
+  # =====================================================================
+  # owner: tester (apps/tester proof app shell and scaffold reference gates)
+  # =====================================================================
+  - id: gate.tester.shell-parity
+    description: Tester app-owned Electron/Tauri shell command parity plus Electron and Tauri runtime acceptance.
+    command: pnpm --filter @nimiplatform/tester run check:shell-parity
+    runner: pnpm
+    cwd: .
+    tiers: [release]
+    targets: [any]
+    timeout_seconds: 1800
+    prerequisites: []
+    requires_secrets: []
+    requires_external_repo: []
+    requires_binaries: [pnpm, node, cargo]
+    blocker_semantics:
+      on_binary_missing: blocked
     evidence:
       shape: command_exit
     p_relg_anchors: [P-RELG-001]

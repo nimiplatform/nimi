@@ -142,9 +142,9 @@ rule level.
 `MUST`: The `<owner>` segment of `gate.id` is drawn from a locked
 allow-list:
 `runtime`, `proto`, `sdk`, `desktop`, `web`, `cargo`, `nimicoding`,
-`spec-governance`, `docs`, `security`, `workflow`, `release-gate`,
-`platform-hardcut`, `runtime-provider`, `realm`,
-`cognition`, `ui`, `live`, `dev-loop`.
+`app-tools`, `tester`, `spec-governance`, `docs`, `security`, `workflow`,
+`release-gate`, `platform-hardcut`, `runtime-provider`, `realm`, `cognition`,
+`ui`, `live`, `dev-loop`.
 
 `MUST`: Adding to the allow-list requires editing the coherence
 checker AND a `decision-review-*.md`.
