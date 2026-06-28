@@ -52,6 +52,9 @@ export type {
   NimiRuntimeVideoContentPart,
   NimiRuntimeVideoGenerationOptions,
 } from './runtime-scenarios';
+export * from './media-params';
+export * from './runtime-job-builders';
+export * from './voice-reference';
 
 export type NimiGenerationJobStatus =
   | 'submitted'
