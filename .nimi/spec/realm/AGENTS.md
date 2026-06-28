@@ -7,7 +7,8 @@
 ## Authority
 
 - This subtree is not Realm product authority.
-- Realm canonical authority lives in the external Realm authority root.
+- It is only an external Realm authority pointer for Nimi consumers.
+- Realm canonical authority lives in the external private root `<nimi-realm>`.
 - Nimi consumes Realm through generated SDK/OpenAPI surfaces and SDK consumer
   contracts under `.nimi/spec/sdks/**`.
 

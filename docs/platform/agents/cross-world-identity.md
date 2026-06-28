@@ -1,14 +1,14 @@
 # Cross-World Identity
 
 A Nimi `LocalAgent` is an owner-scoped runtime projection that can enter
-multiple worlds through admitted source snapshots. Realm-side identity is not
+multiple worlds through admitted source materialization packets. Realm-side identity is not
 an Agent domain; it is carried by `RealmPersona` or `WorldCharacterCore`.
 
 ## What Stays The Same Across Worlds
 
 | Dimension | Where it lives |
 | --- | --- |
-| Identity | Runtime `LocalAgent` identity plus its source snapshot reference |
+| Identity | Runtime `LocalAgent` identity plus its source provenance reference |
 | Social graph | Realm `R-SOC-*` (admission graph, ordered-pair uniqueness) |
 | Economic standing | Realm `R-ECON-*` (canonical wallet, settlement events) |
 | Memory | Cognition + Runtime memory bank scopes (`AGENT_CORE`, `AGENT_DYADIC`, `WORLD_SHARED`) |
@@ -30,12 +30,12 @@ and world-local rules.
 
 Realm does not define an Agent identity. Realm owns source objects:
 `RealmPersona` for user-owned/persona IP sources and `WorldCharacterCore` for
-world-owned characters. Runtime materializes a by-value `RuntimeSourceSnapshot`
-into a LocalAgent for one owner.
+world-owned characters. Runtime consumes a by-value `SourceMaterializationPacket`
+to materialize a LocalAgent for one owner.
 
 - A world can own `WorldCharacterCore` records inside its `WorldCore`.
 - A world cannot rewrite a user's `RealmPersona`.
-- A LocalAgent entering a world carries a source snapshot reference; the world
+- A LocalAgent entering a world carries a source provenance reference; the world
   may admit or refuse that source without rewriting the LocalAgent.
 
 This is the foundation that makes everything else portable.

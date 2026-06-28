@@ -195,8 +195,8 @@ Runtime / SDK must provide admitted coverage for:
 - a close / delete / clear policy for user-visible conversation history
 - message-level delete / redact policy before any app exposes per-message
   deletion or redaction controls
-- a single-active-conversation policy for each runtime source snapshot /
-  LocalAgent projection
+- a single-active-conversation policy for each SourceMaterializationPacket
+  provenance / LocalAgent projection
 - explicit rejection of Agent Chat draft persistence, rename/archive
   conversation semantics, and Desktop offline transcript recovery
 
@@ -794,47 +794,42 @@ Fixed rules:
 - Default local first-party Avatar must not be forced through this binding
   attachment path solely because Desktop launched it.
 
-## K-AGCORE-139 RuntimeSourceSnapshot LocalAgent Materialization And Repair
+## K-AGCORE-139 SourceMaterializationPacket LocalAgent Materialization
 
-`InitializeAgent` is the runtime creation/repair lifecycle for an
-account-scoped LocalAgent projection. `RuntimeAgentService` may materialize a
-LocalAgent only from an admitted `RuntimeSourceSnapshot` produced by Realm
-source admission. This rule is the creation/repair counterpart to the deletion
-lifecycle owned by `K-AGCORE-141`, and applies to every admitted runtime source,
-not only the Nimi guide.
+`InitializeAgent` is a Runtime-local creation operation for an opaque
+LocalAgent identity. `RuntimeAgentService` may materialize a LocalAgent from a
+validated `SourceMaterializationPacket` produced from Realm source content, but
+Realm source provenance does not own the Runtime creation lifecycle. This rule
+applies to every materialized runtime source, not only the Nimi guide.
 
-For any admitted runtime source, Runtime must:
+For any materialization request, Runtime must:
 
-- consume the RuntimeSourceSnapshot through admitted Realm/SDK source-core
-  data, not through Desktop fixtures;
-- require the account's source admission snapshot before local projection;
-- create or repair one account-scoped LocalAgent projection for that runtime
-  source idempotently;
-- preserve conversation anchor and RuntimeAgentService lifecycle semantics;
-- expose provisioning failures as typed repair/blocked states.
+- consume the `SourceMaterializationPacket` through admitted Realm/SDK
+  source-core data, not through Desktop fixtures;
+- validate packet schema, `packetHash`, Realm-issued proof, expiry, replay
+  nonce, owner/audience, source hash, and source schema before local creation;
+- generate an opaque Runtime-owned `local_agent_ref`;
+- persist LocalAgent state and source provenance metadata without storing packet
+  payload as a second source of truth;
+- maintain a provenance index from source kind, source world id, source id, and
+  source content hash to one or more `local_agent_ref` values;
+- allow multiple LocalAgents to share the same source provenance;
+- fail closed when owner identity, source hash, packet proof, or source schema
+  does not match.
 
 Creation trigger owner:
 
-- when Realm source admission produces a RuntimeSourceSnapshot, the upstream
-  admission path issues `InitializeAgent` for the resolved `local_agent_ref`,
-  and `RuntimeAgentService` materializes that projection. The creation trigger
-  is owned by the upstream Realm source admission path, not by the renderer;
-  Runtime does not author the creation linkage and does not infer source
-  admission from renderer-supplied context. This is the creation-side
-  counterpart to the `K-AGCORE-141` sentence that the upstream Realm source
-  admission path issues `TerminateAgent` on source removal. The Realm-side
-  authority for the creation linkage, the durable provision intent, and the
-  device courier that delivers `InitializeAgent` to the loopback runtime is
-  owned by `R-SOC-009`;
-- `InitializeAgent` must be idempotent. `InitializeAgent` for a
-  `local_agent_ref` whose LocalAgent projection already exists must succeed as a
-  typed no-op that converges to the same single projection rather than creating
-  a second projection or failing with an already-exists error. Repeated
-  delivery — including a courier re-delivering after a lost acknowledgement —
-  converges to exactly one LocalAgent per runtime source snapshot;
-- a lazy first-chat-open `InitializeAgent` remains an admitted idempotent repair
-  path for a projection that is absent or stale; it is not the creation trigger.
-  The creation trigger is the upstream Realm creation path above.
+- Runtime authors the local creation result. Realm authorizes source reads and
+  creates a by-value packet, but does not create durable provision intent,
+  source-provenance linkage, or a deterministic LocalAgent identity.
+- `InitializeAgent` may be idempotent only for an explicit Runtime request id or
+  existing Runtime-owned `local_agent_ref`. It must not converge all repeated
+  materialization attempts for the same source into one projection.
+- Opening first chat may query Runtime local inventory/provenance. If no
+  matching LocalAgent exists, the UI may request a fresh packet and create a new
+  LocalAgent. If provenance is unavailable, Runtime surfaces unavailable
+  provenance instead of reconstructing, rebasing, or recreating a LocalAgent
+  from deterministic source metadata.
 
 `MUST NOT`: Runtime must not create any LocalAgent — the guide source's or
 any other source's — as a standalone local-only agent, fake contact,
@@ -843,7 +838,7 @@ official-guide path, quota bypass, or default global agent.
 
 ## K-AGCORE-140 Nimi Guide Prompt And Documentation Context
 
-When the Nimi guide LocalAgent is available through RuntimeSourceSnapshot
+When the Nimi guide LocalAgent is available through SourceMaterializationPacket
 materialization, Runtime may initialize the first conversation from Nimi guide
 welcome copy and may attach built-in Nimi usage documentation as product
 knowledge/context.
@@ -851,8 +846,8 @@ knowledge/context.
 Source of truth:
 
 - the Nimi guide welcome copy and guide system prompt are ordinary source
-  snapshot content carried on the admitted RuntimeSourceSnapshot, reached
-  through the same source-core path used for any runtime source;
+  content carried on the admitted SourceMaterializationPacket, reached through
+  the same source-core path used for any runtime source;
 - Runtime MUST NOT hold a runtime-local hardcoded guide welcome string, guide
   prompt, or guide identity constant as parallel product truth;
 - built-in Nimi usage documentation attached as context is product
@@ -865,31 +860,27 @@ The guide may direct the user to product surfaces but cannot bypass setup
 confirmations, permissions, install plans, app admission, or ordinary LocalAgent
 mechanics.
 
-## K-AGCORE-141 Source Admission Removal LocalAgent Projection Deletion
+## K-AGCORE-141 Runtime-Local LocalAgent Deletion And Reset
 
-`TerminateAgent` is the runtime deletion lifecycle for an account-scoped
-LocalAgent projection. When source admission is removed, the upstream Realm
-source admission path issues `TerminateAgent` for the resolved
-`local_agent_ref`, and `RuntimeAgentService` must hard-delete that projection.
-This rule is the deletion counterpart to the creation/repair idempotency of
-`K-AGCORE-139` and applies to every admitted source LocalAgent, not only the
-Nimi guide.
+`TerminateAgent` is a Runtime-local deletion lifecycle for a Runtime-owned
+LocalAgent projection. Realm source removal or source provenance changes do not
+issue `TerminateAgent` and do not hard-delete LocalAgent state. This rule
+applies to every Runtime-owned LocalAgent, not only the Nimi guide.
 
 `TerminateAgent` deletion scope:
 
 - `TerminateAgent` must remove the `runtime_local_agent` row for the target
   `local_agent_ref`, not merely flip a lifecycle status field;
-- it must remove the agent-scoped projections bound to that `local_agent_ref`:
+- when explicitly invoked by Runtime-local delete/reset authority, it must
+  remove the agent-scoped projections bound to that `local_agent_ref`:
   agent state projection, runtime-owned pending/terminal hooks, the agent event
   log, and the agent-scoped memory bank (`MEMORY_BANK_SCOPE_AGENT_CORE` and
   `MEMORY_BANK_SCOPE_AGENT_DYADIC` owned by that agent);
 - the deletion is a hard delete: the projection and its agent-scoped memory are
   physically removed. `RuntimeAgentService` must not retain a `TERMINATED`
-  tombstone row as the steady-state outcome of source admission removal, because a
-  retained row is the orphan LocalAgent the upstream linkage forbids.
-  `local_agent_ref` is deterministically re-derivable, so a later source
-  re-admission re-materializes the projection through `K-AGCORE-139` rather than
-  resurrecting deleted state.
+  tombstone row as the steady-state outcome of local delete/reset. A later
+  materialization from the same source creates a new opaque LocalAgent identity
+  through `K-AGCORE-139` rather than resurrecting deleted state.
 
 Fixed rules:
 
@@ -904,8 +895,8 @@ Fixed rules:
   live runtime work.
 - substrate failure during deletion fails closed: if the row or agent-scoped
   memory cannot be deleted, `TerminateAgent` must return a typed failure status
-  rather than reporting pseudo-success. The upstream Realm linkage owns retry of
-  the durable termination intent; runtime must not mask an incomplete deletion.
+  rather than reporting pseudo-success. Runtime owns retry/reporting of
+  Runtime-local deletion failure and must not mask an incomplete deletion.
 - `TerminateAgent` deletes the runtime-owned LocalAgent projection only. It must
   not mutate, delete, or write back the canonical Realm source identity, and it
   must not delete account-scoped truth wider than the target agent.

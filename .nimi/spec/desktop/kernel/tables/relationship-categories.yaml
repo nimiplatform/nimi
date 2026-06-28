@@ -7,6 +7,6 @@ entries:
   - id: human_friends
     name: Human Friends
     semantics: Active human-to-human Friendship relations of the current account. Shared profile/social consumers may resolve each entry to a human relationship and route to Human Chat.
-  - id: source_admissions
-    name: Source Admissions
-    semantics: Account-scoped source admission records that may materialize a RuntimeSourceSnapshot and LocalAgent through admitted Runtime paths. Shared profile/social consumers may show state or handoff, but must not route to LocalAgent Chat from a bare source record.
+  - id: local_agents
+    name: Local Agents
+    semantics: Runtime-owned LocalAgents discovered from local Runtime inventory/provenance. Shared profile/social consumers may show source provenance and open existing local agents, but must not treat source records as friends or derive LocalAgent identity from source metadata.

@@ -490,7 +490,7 @@ Fixed rules:
 - the gate MUST NOT auto-launch Avatar globally on Nimi start, and MUST NOT
   auto-launch from Nimi Chat, Human Chat, Group Chat, standalone relationship
   management, Explore, or Apps. Auto-launch is exclusively a per-LocalAgent Agent Chat posture and is
-  never applied to every source admission.
+  never applied to every source materialization.
 - the gate MUST NOT widen the launch payload. A passed gate emits only the
   D-LLM-072 payload (`agent_id`, optional `avatar_instance_id`, optional
   non-authoritative `launch_source`); the configuration record MUST NOT be

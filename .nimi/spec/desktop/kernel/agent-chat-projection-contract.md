@@ -188,8 +188,8 @@ Store retirement requirements:
   behavior.
 - Agent Chat rename, archive, and multi-conversation session management are not
   product requirements. Runtime / SDK should expose one active conversation per
-  runtime source snapshot / LocalAgent projection unless a later product
-  decision admits multiple conversations.
+  SourceMaterializationPacket provenance / LocalAgent projection unless a later
+  product decision admits multiple conversations.
 - Desktop submit paths use in-memory optimistic projection only; committed user
   and assistant transcript state replays from Runtime session snapshots or
   `runtime.agent.turn.*` / `runtime.agent.presentation.*` projections.

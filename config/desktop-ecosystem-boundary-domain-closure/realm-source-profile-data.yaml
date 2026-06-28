@@ -15,7 +15,7 @@ scope:
     - Realm source detail lookup by sourceRef/runtimeSourceRef.
     - RealmPersona browse/detail normalization for app explore and profile surfaces.
     - WorldCharacterCore authoring and world-bound source reads.
-    - RuntimeSourceSnapshot materialization handoff for LocalAgent creation.
+    - SourceMaterializationPacket materialization handoff for LocalAgent creation.
   excluded:
     - Runtime LocalAgent chat execution.
     - App-owned cache state and UI navigation state.
@@ -29,8 +29,8 @@ hardcut_disposition:
     - WorldCore
     - WorldCharacterCore
     - RealmPersona
-    - RuntimeSourceSnapshot
+    - SourceMaterializationPacket
 regression_guards:
   - Desktop and SDK hard-cut scans must not admit superseded Realm-side agent/profile/card surfaces as current product surfaces.
-  - Runtime materialization must consume RuntimeSourceSnapshot by value and must not rebase or write back to Realm sources.
+  - Runtime materialization must consume SourceMaterializationPacket by value and must not rebase or write back to Realm sources.
   - Apps must consume sourceRef/runtimeSourceRef for Realm-side source identity.

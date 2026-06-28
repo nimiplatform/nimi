@@ -1,0 +1,14 @@
+table_family: state_machine
+owner: desktop
+machine_id: desktop_realm_persona_local_materialization_action_model
+authority_refs:
+  - D-EXPL-006
+  - D-EXPL-007
+  - K-AGCORE-139
+  - K-AGCORE-141
+states:
+  - state: source_materialization_available
+    description: Desktop has a readable RealmPersona source record and may request a fresh SourceMaterializationPacket before asking Runtime to create an opaque LocalAgent.
+  - state: local_agent_available
+    description: Runtime local inventory/provenance has at least one LocalAgent for this source; Desktop may open a selected Runtime-owned localAgentRef or offer Create another.
+transitions: []

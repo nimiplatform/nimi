@@ -43,8 +43,8 @@
 | `nimi-home-shell-contract.md` | `D-HOME-*` | Desktop-hosted Nimi Home shell IA、first-run / return-run state machine、surface registry placement、Agent Chat in-shell reference placement、`AIScopeRef` enforcement、no-private-path enforcement、self-update UI projection、first-screen rule、failure-projection as first-class surface |
 | `home-feed-contract.md` | `D-HOMEFEED-*` | Desktop `Home` primary-nav tab 作为 Realm feed 表面的产品语义：四个 feed scope（personal / friends / persona_activity / world_character_activity）呈现、Create Post affordance、SDK-typed Realm feed projection 消费边界、与 `D-HOME-*`（`Nimi Home` installed shell）的显式 non-overlap、`Home` 非 ready entry；不拥有 shell 导航布局、Realm Post / Feed canonical 真值 |
 | `ai-profile-config-contract.md` | `D-AIPC-*` | Desktop `AIProfile` / `AIConfig` / `AISnapshot` 三段式 AI 配置 canonical model 与 `D-LLM-015` ~ `D-LLM-021` 的 umbrella 关系 |
-| `explore-surface-contract.md` | `D-EXPL-*` | Explore 统一 Realm 发现表面产品语义：三区结构（Worlds / Personas / Activity）、WorldCore card / detail 字段语义、RealmPersona card 与 source-state → primary-action 模型、source-admission handoff、controlled World creation 边界；不拥有导航布局、source admission 真值、LocalAgent materialization、WorldCore canonical truth |
-| `relationship-profile-surface-contract.md` | `D-REL-*` | Contextual relationship/profile UX：shared human/source profile modal、admitted social actions、source-admission handoff state projection；不拥有导航布局、Realm discovery、source admission 真值、LocalAgent materialization |
+| `explore-surface-contract.md` | `D-EXPL-*` | Explore 统一 Realm 发现表面产品语义：三区结构（Worlds / Personas / Activity）、WorldCore card / detail 字段语义、RealmPersona card 与 source-state → primary-action 模型、local materialization handoff、controlled World creation 边界；不拥有导航布局、LocalAgent materialization、WorldCore canonical truth |
+| `relationship-profile-surface-contract.md` | `D-REL-*` | Contextual relationship/profile UX：shared human/source profile modal、admitted social actions、local materialization handoff state projection；不拥有导航布局、Realm discovery、LocalAgent materialization |
 | `kit-ui-consumption-contract.md` | `D-SHELL-*` | Desktop 对 `@nimiplatform/kit/ui` 的消费清单、保留 composition、allowlist 与受控例外 |
 | `menu-bar-shell-contract.md` | `D-MBAR-*` | macOS menu bar shell 入口、导航与 close/hide 语义 |
 | `error-boundary-contract.md` | `D-ERR-*` | 错误边界与归一化映射 |
@@ -87,7 +87,7 @@
 - `tables/nimi-home-surfaces.yaml`
 - `tables/home-feed-scopes.yaml`
 - `tables/explore-sections.yaml`
-- `tables/realm-persona-source-admission-actions.yaml`
+- `tables/realm-persona-materialization-actions.yaml`
 - `tables/relationship-categories.yaml`
 - `tables/relationship-friend-request-states.yaml`
 - `tables/rule-evidence.yaml`（fragment directive；实际内容委托给 `tables/rule-evidence.catalog.yaml` 与 `tables/rule-evidence.rules-*.yaml`，含 `tables/rule-evidence.rules-support-devtools.yaml`）

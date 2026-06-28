@@ -816,7 +816,7 @@ rules:
   - rule_id: K-AGCORE-139
     evidence_refs:
       - runtime_kernel_consistency
-    note: InitializeAgent is the idempotent creation/repair lifecycle for every admitted RuntimeSourceSnapshot-to-LocalAgent materialization, not only the Nimi guide; the upstream Realm source-admission path owns the InitializeAgent creation trigger symmetric with the K-AGCORE-141 deletion trigger, and the lazy first-chat-open initialize is a repair path only; source-admission linkage implementation evidence is required.
+    note: InitializeAgent is a Runtime-local creation operation for SourceMaterializationPacket-to-LocalAgent materialization, not only the Nimi guide; Runtime owns opaque localAgentRef generation, packet validation, provenance persistence, and multiple LocalAgents per source provenance, while Realm source provenance does not own the creation trigger.
     evidence_requirement: required
   - rule_id: K-AGCORE-140
     evidence_refs:
@@ -826,7 +826,7 @@ rules:
   - rule_id: K-AGCORE-141
     evidence_refs:
       - runtime_kernel_consistency
-    note: TerminateAgent hard-deletes the source-admitted LocalAgent materialization (runtime_local_agent row plus local state/hooks/event-log/memory), is idempotent for an already-absent agent, and snapshot persistence must not re-insert a deleted ref; source-admission removal-linkage implementation evidence is required.
+    note: TerminateAgent is a Runtime-local delete/reset operation for Runtime-owned LocalAgent materialization, hard-deletes the runtime_local_agent row plus local state/hooks/event-log/memory when explicitly invoked by Runtime-local authority, is idempotent for an already-absent agent, and snapshot persistence must not re-insert a deleted ref; source provenance removal must not trigger deletion.
     evidence_requirement: required
   - rule_id: K-AGCORE-142
     evidence_refs:

@@ -12,8 +12,9 @@ WorldCore and source-core identities. The surface discovers:
 - public Realm activity from human, persona, and world-character sources.
 
 Desktop Explore does not create WorldCore, WorldCharacterCore, RealmPersona, or
-RuntimeSourceSnapshot truth. It does not own Realm feed truth, source admission,
-LocalAgent lifecycle, LocalAgent Chat identity, shell layout, or AI execution.
+SourceMaterializationPacket truth. It does not own Realm feed truth, source
+provenance authority, LocalAgent lifecycle, LocalAgent Chat identity, shell
+layout, or AI execution.
 
 ## D-EXPL-001 — Explore Is The Unified Realm Discovery Surface
 
@@ -74,7 +75,7 @@ typed data exists:
 - scenes, locations, and entry points;
 - featured WorldCharacterCore or RealmPersona sources;
 - public activity;
-- source admission status where relevant;
+- local materialization availability where relevant;
 - governance or status information when useful to ordinary users.
 
 `MUST`: section ordering and responsive layout are owned by `D-SHELL-011` to
@@ -96,9 +97,9 @@ ordinary Explore.
 - `sourceState`;
 - `primaryAction`, derived from `sourceState` by `D-EXPL-006`.
 
-`MUST`: `sourceState` must come from typed core/source admission data. Until a
-trusted source admission projection exists, Desktop must use the closed
-`source_core_handoff_required` state.
+`MUST`: `sourceState` must come from typed core source data and Runtime local
+agent inventory/provenance. Until a trusted packet materialization path exists,
+Desktop must use a closed local materialization unavailable state.
 
 `MUST NOT`: Persona cards must not carry relationship state, quota state, direct
 source chat, or local conversation readiness as if those were RealmPersona
@@ -107,32 +108,33 @@ truth.
 ## D-EXPL-006 — Source State To Primary Action
 
 `MUST`: Persona primary action is derived from the source-state table
-`tables/realm-persona-source-admission-actions.yaml`.
+`tables/realm-persona-materialization-actions.yaml`.
 
 | Source state | Primary action | Result |
 |---|---|---|
-| `source_core_handoff_required` | `Source setup pending` | Disabled action; Desktop explains that RuntimeSourceSnapshot materialization is required before LocalAgent Chat can exist. |
+| `source_materialization_available` | `Create local agent` | Request a fresh SourceMaterializationPacket, ask Runtime to materialize an opaque LocalAgent, then open local chat by Runtime-owned localAgentRef. |
+| `local_agent_available` | `Open local agent` | Open an existing Runtime-owned LocalAgent discovered from Runtime inventory/provenance. |
 
-`MUST`: the disabled state is a real fail-closed product state, not a loading
-placeholder. It remains until an admitted Realm/Runtime path provides typed
-RuntimeSourceSnapshot materialization for the source.
+`MUST`: unavailable source or stale hash states are real fail-closed product
+states, not loading placeholders. A new materialization attempt must request a
+fresh packet and must not synthesize LocalAgent identity from source metadata.
 
 `MUST NOT`: Explore must not open LocalAgent Chat directly from a bare
-RealmPersona source. LocalAgent Chat requires an account-owned LocalAgent
-created from a RuntimeSourceSnapshot, with identity owned by Realm chat and
-Runtime contracts.
+RealmPersona source. LocalAgent Chat requires a Runtime-owned LocalAgent with
+opaque identity; source provenance alone is not executable LocalAgent identity.
 
-## D-EXPL-007 — Source Admission Handoff
+## D-EXPL-007 — Source Materialization Handoff
 
 `MUST`: When a user chooses a persona source, Desktop Explore may only emit a
-source-admission handoff intent. The handoff references the RealmPersona source
-and its World binding; it is not a relationship mutation and not LocalAgent
-creation.
+local materialization handoff intent. The handoff references the RealmPersona
+source and its World binding, and may request a fresh
+SourceMaterializationPacket; it is not a relationship mutation, a durable Realm
+connection, or LocalAgent creation.
 
-`MUST`: RuntimeSourceSnapshot materialization and repair are owned by
-`K-AGCORE-139`. Source removal and LocalAgent deletion are owned by
-`K-AGCORE-141`. Explore may show their state but must not implement them as
-renderer-local truth.
+`MUST`: SourceMaterializationPacket materialization is consumed by Runtime under
+`K-AGCORE-139`. LocalAgent deletion/reset is Runtime-local under
+`K-AGCORE-141`. Source removal does not delete LocalAgent state. Explore may
+show their state but must not implement them as renderer-local truth.
 
 `MUST NOT`: Explore must not fabricate a LocalAgent, write back to RealmPersona,
 or infer source readiness from cached card data.
@@ -175,7 +177,7 @@ shrink the affected optional surface. User-visible cards must not be completed
 with guessed names, counts, worlds, avatars, or activity.
 
 `MUST NOT`: Explore must not silently coerce unsupported source fields into
-card truth or source admission truth.
+card truth or local materialization truth.
 
 ## D-EXPL-012 — Source Governance Boundaries
 
@@ -198,10 +200,10 @@ creation as an ordinary Desktop action.
 ## Fact Sources
 
 - `.nimi/spec/desktop/kernel/tables/explore-sections.yaml` — Explore section catalog.
-- `.nimi/spec/desktop/kernel/tables/realm-persona-source-admission-actions.yaml` — source-state to primary-action table.
+- `.nimi/spec/desktop/kernel/tables/realm-persona-materialization-actions.yaml` — source-state to primary-action table.
 - `.nimi/spec/desktop/kernel/ui-shell-contract.md` — navigation and World Detail layout.
 - `.nimi/spec/desktop/kernel/nimi-home-shell-contract.md` — Apps surface boundary.
-- `.nimi/spec/realm/kernel/core-contract.md` — WorldCore, WorldCharacterCore, RealmPersona, RuntimeSourceSnapshot authority.
+- `.nimi/spec/realm/kernel/core-contract.md` — WorldCore, WorldCharacterCore, RealmPersona, SourceMaterializationPacket authority.
 - `.nimi/spec/realm/kernel/feed-contract.md` — public activity feed scopes and author identity.
 - `.nimi/spec/realm/kernel/chat-contract.md` — LocalAgent Chat identity.
-- `.nimi/spec/runtime/kernel/runtime-agent-service-contract.md` — RuntimeSourceSnapshot to LocalAgent materialization and deletion.
+- `.nimi/spec/runtime/kernel/runtime-agent-service-contract.md` — SourceMaterializationPacket to LocalAgent materialization and Runtime-local deletion.

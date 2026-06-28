@@ -24,12 +24,12 @@ Nimi 的 Agent 在它访问的每个世界里都是同一个生命体。它的�
 ## 身份绑定 Source
 
 Realm 不定义 Agent 身份。Realm 拥有 source 对象：用户/IP source 使用
-`RealmPersona`，world-owned character 使用 `WorldCharacterCore`。Runtime 将
-`RuntimeSourceSnapshot` 按值物化为某个 owner 的 LocalAgent。
+`RealmPersona`，world-owned character 使用 `WorldCharacterCore`。Runtime 消费按值传递的
+`SourceMaterializationPacket`，为某个 owner 物化 LocalAgent。
 
 - 世界可以在自己的 `WorldCore` 内拥有 `WorldCharacterCore`。
 - 世界不能改写用户的 `RealmPersona`。
-- LocalAgent 进入世界时携带 source snapshot reference；世界可以准入或拒绝这个 source，但不会改写 LocalAgent 身份。
+- LocalAgent 进入世界时携带 source provenance reference；世界可以准入或拒绝这个 source，但不会改写 LocalAgent 身份。
 
 这是其它一切可携带的根基。
 

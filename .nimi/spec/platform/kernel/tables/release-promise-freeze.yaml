@@ -82,8 +82,8 @@ capabilities:
       - .nimi/spec/realm/kernel/chat-contract.md#R-CHAT-001
       - .nimi/spec/runtime/kernel/runtime-agent-service-contract.md#K-AGCORE-139
     login_requirement: realm_login_required
-    public_promise: Realm-owned ecosystem identity covers authenticated social, group, RealmPersona source identity, and RuntimeSourceSnapshot admission; Runtime owns only local executable LocalAgent materialization.
-    failure_behavior: Unauthenticated or mismatched owner identity fails closed; localAgentRef must carry ownerUserId and runtimeSourceRef.
+    public_promise: Realm-owned ecosystem identity covers authenticated social, group, and RealmPersona source identity; Runtime owns local executable LocalAgent identity and materialization from SourceMaterializationPacket.
+    failure_behavior: Unauthenticated or mismatched owner identity fails closed; localAgentRef is Runtime-owned opaque identity and must not be derived from ownerUserId plus runtimeSourceRef.
     partial_deferred_reason: none
     verification_refs:
       - sdks/typescript/realm/social.test.ts
@@ -100,7 +100,7 @@ capabilities:
       - .nimi/spec/platform/kernel/governance-contract.md#P-GOV-026
     login_requirement: local_runtime_allowed
     public_promise: Runtime-reachable local AI and current-renderer local agent interaction may operate when Realm is unavailable, without claiming Realm sync, social, economy, or account success.
-    failure_behavior: Realm commit, account mutation, economy, source-admission linkage, and cross-device state fail closed or remain explicit pending intent; local outbox never equals Realm truth.
+    failure_behavior: Realm commit, account mutation, economy, source-provenance materialization, and cross-device state fail closed or remain explicit pending intent; local outbox never equals Realm truth.
     partial_deferred_reason: none
     verification_refs:
       - .nimi/spec/desktop/kernel/offline-degradation-contract.md
@@ -133,8 +133,8 @@ capabilities:
       - .nimi/spec/runtime/kernel/runtime-agent-service-contract.md#K-AGCORE-139
       - .nimi/spec/runtime/kernel/runtime-agent-service-contract.md#K-AGCORE-141
     login_requirement: realm_login_required
-    public_promise: RuntimeAgentService owns live LocalAgent lifecycle, conversation anchors, hard delete, event log, and local executable materialization for authenticated RuntimeSourceSnapshot identity.
-    failure_behavior: Missing Realm linkage, mismatched localAgentRef, substrate deletion failure, or unavailable runtime state fails closed; TerminateAgent cannot leave partial projection truth.
+    public_promise: RuntimeAgentService owns live LocalAgent lifecycle, conversation anchors, hard delete, event log, and local executable materialization from SourceMaterializationPacket input and Runtime-local provenance.
+    failure_behavior: Invalid packet proof, mismatched localAgentRef, substrate deletion failure, or unavailable runtime state fails closed; TerminateAgent cannot leave partial projection truth and source removal must not delete LocalAgent state.
     partial_deferred_reason: none
     verification_refs:
       - runtime/internal/services/runtimeagent/agent_hard_deletion_test.go

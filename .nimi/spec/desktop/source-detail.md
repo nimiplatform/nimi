@@ -21,7 +21,7 @@ This guide points to the desktop authority surfaces for source-detail. It does n
 
 ## Tables
 
-- `.nimi/spec/desktop/kernel/tables/realm-persona-source-admission-actions.yaml`
+- `.nimi/spec/desktop/kernel/tables/realm-persona-materialization-actions.yaml`
 - `.nimi/spec/desktop/kernel/tables/agent-avatar-configuration.schema.yaml`
 - `.nimi/spec/desktop/kernel/tables/agent-avatar-debug-remediation-states.yaml`
 - `.nimi/spec/desktop/kernel/tables/agent-avatar-debug-workbench-probes.yaml`

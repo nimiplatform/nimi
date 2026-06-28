@@ -21,4 +21,4 @@ relationship/profile UX. It does not define product rules.
 - `.nimi/spec/desktop/kernel/tables/relationship-categories.yaml`
 - `.nimi/spec/desktop/kernel/tables/relationship-friend-request-states.yaml`
 - `.nimi/spec/desktop/kernel/tables/renderer-design-overlays.yaml`
-- `.nimi/spec/desktop/kernel/tables/realm-persona-source-admission-actions.yaml`
+- `.nimi/spec/desktop/kernel/tables/realm-persona-materialization-actions.yaml`
