@@ -39,6 +39,7 @@ entries:
   - adapter.vercel-ai
   - adapter.mastra
   - adapter.openai-compatible
+  - gateway.openai-compatible-local
   - adapter.mcp
   - adapter.non-target-source-roots
   - runtime.openai-compatible-rest-endpoint
@@ -367,6 +368,29 @@ capabilities:
     verification_refs:
       - sdks/typescript/adapters/openai-compatible/openai-compatible.test.ts
       - pnpm check:sdk-vnext-adapter-capability-ledger
+    source_rule: P-GOV-026
+
+  - id: gateway.openai-compatible-local
+    posture: partial
+    owner_domain: platform
+    authority_refs:
+      - .nimi/spec/platform/kernel/governance-contract.md#P-GOV-026
+      - .nimi/spec/platform/kernel/architecture-contract.md#P-ARCH-002
+      - .nimi/spec/platform/kernel/architecture-contract.md#P-ARCH-004
+      - .nimi/spec/sdks/kernel/ai-adapter-contract.md#S-AIP-007
+      - .nimi/spec/runtime/kernel/grant-service.md
+      - .nimi/spec/runtime/kernel/scenario-job-lifecycle.md
+      - .nimi/spec/runtime/kernel/runtime-target-identity-contract.md
+      - .nimi/spec/runtime/kernel/tables/local-image-supervised-backend-matrix.yaml
+    login_requirement: local_runtime_allowed
+    public_promise: The OpenAI-compatible Local Gateway is admitted only as an out-of-process numeric-loopback Runtime consumer for image generation shape compatibility, model listing, health, and short-lived artifact retrieval; it is not a Runtime daemon REST endpoint and does not own Runtime model routing, grants, scenario execution, or artifact truth.
+    failure_behavior: LAN exposure, remote exposure, caller-provided appId/auth token, static model projection, unsupported image fields, n>1, missing Runtime-supported targetRef, missing local API key, missing loopback proof, localhost resolver ambiguity, caller-controlled artifact origin, missing artifact bytes, or missing public SDK Runtime adapter seams fail closed with typed gateway/runtime errors; no synthetic success or provider/model fallback.
+    partial_deferred_reason: Runtime protected grant acquisition, packaged gateway process bootstrap over a live Runtime route-options client, Forge provider-family admission, LAN device pairing, and Realm-authenticated remote service exposure are not part of this partial promise.
+    verification_refs:
+      - gateways/openai-compatible/test/openai-image-generation.test.mjs
+      - gateways/openai-compatible/test/openai-runtime-adapter.test.mjs
+      - pnpm --filter @nimiplatform/openai-compatible-gateway test
+      - pnpm check:no-app-realm-rest-bypass
     source_rule: P-GOV-026
 
   - id: adapter.mcp

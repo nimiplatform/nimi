@@ -1,0 +1,15 @@
+{
+  "name": "@nimiplatform/openai-compatible-gateway",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./src/index.mjs",
+      "default": "./src/index.mjs"
+    }
+  },
+  "scripts": {
+    "build": "node --check src/errors.mjs && node --check src/index.mjs && node --check src/runtime-adapter.mjs && node --check src/server.mjs",
+    "test": "node --test test/**/*.test.mjs"
+  }
+}

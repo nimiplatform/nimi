@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
+const SCANNED_ROOTS = ['apps', 'gateways'];
 
 const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.mjs', '.cjs']);
 const IGNORED_DIRS = new Set([
@@ -72,7 +73,7 @@ function getLine(source, index) {
 
 function shouldSkipFile(relativePath) {
   const normalized = relativePath.split(path.sep).join('/');
-  if (!normalized.startsWith('apps/')) {
+  if (!SCANNED_ROOTS.some((root) => normalized.startsWith(`${root}/`))) {
     return true;
   }
 
@@ -120,31 +121,39 @@ async function walk(dir, visitor) {
 async function main() {
   const violations = [];
 
-  await walk(path.join(repoRoot, 'apps'), async (fullPath) => {
-    const relativePath = path.relative(repoRoot, fullPath);
-    const extension = path.extname(relativePath);
-    if (!SOURCE_EXTENSIONS.has(extension)) {
-      return;
+  for (const root of SCANNED_ROOTS) {
+    const rootPath = path.join(repoRoot, root);
+    try {
+      await fs.access(rootPath);
+    } catch {
+      continue;
     }
-    if (shouldSkipFile(relativePath)) {
-      return;
-    }
-
-    const source = await fs.readFile(fullPath, 'utf8');
-    for (const check of CHECKS) {
-      const pattern = new RegExp(check.pattern);
-      let match = pattern.exec(source);
-      while (match) {
-        violations.push(
-          `${relativePath}:${getLine(source, match.index)} ${check.label}: ${check.message}`,
-        );
-        match = pattern.exec(source);
+    await walk(rootPath, async (fullPath) => {
+      const relativePath = path.relative(repoRoot, fullPath);
+      const extension = path.extname(relativePath);
+      if (!SOURCE_EXTENSIONS.has(extension)) {
+        return;
       }
-    }
-  });
+      if (shouldSkipFile(relativePath)) {
+        return;
+      }
+
+      const source = await fs.readFile(fullPath, 'utf8');
+      for (const check of CHECKS) {
+        const pattern = new RegExp(check.pattern);
+        let match = pattern.exec(source);
+        while (match) {
+          violations.push(
+            `${relativePath}:${getLine(source, match.index)} ${check.label}: ${check.message}`,
+          );
+          match = pattern.exec(source);
+        }
+      }
+    });
+  }
 
   if (violations.length > 0) {
-    process.stderr.write('App Realm REST bypass check failed:\n');
+    process.stderr.write('App/Gateway Realm REST bypass check failed:\n');
     for (const violation of violations) {
       process.stderr.write(`- ${violation}\n`);
     }
@@ -152,7 +161,7 @@ async function main() {
     return;
   }
 
-  process.stdout.write('App Realm REST bypass check passed\n');
+  process.stdout.write('App/Gateway Realm REST bypass check passed\n');
 }
 
 main().catch((error) => {
