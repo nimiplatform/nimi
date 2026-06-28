@@ -34,6 +34,9 @@ const versions = {
   tauriApiVersion: '2.0.0',
   tauriCliVersion: '2.0.0-cli',
   nimiShellTauriVersion: '0.1.0',
+  electronVersion: '42.0.0-electron',
+  esbuildVersion: '0.28.0-esbuild',
+  playwrightVersion: '1.61.0-playwright',
   typescriptVersion: '5.0.0',
   yamlVersion: '2.0.0-yaml',
   packageManager: 'pnpm@10.32.1',
@@ -111,6 +114,14 @@ function scaffold(profile, options = {}) {
   };
 }
 
+function assertGeneratedPathMissing(generated, relativePath) {
+  assert.equal(existsSync(path.join(generated.target, relativePath)), false, `${relativePath} must not be generated`);
+}
+
+function assertGeneratedPathExists(generated, relativePath) {
+  assert.equal(existsSync(path.join(generated.target, relativePath)), true, `${relativePath} must be generated`);
+}
+
 function fakePnpmEnv(tempRoot) {
   const binDir = path.join(tempRoot, 'fake-bin');
   mkdirSync(binDir, { recursive: true });
@@ -133,6 +144,25 @@ function fakePnpmEnv(tempRoot) {
     ].join('\n'),
   );
   chmodSync(fakePnpm, 0o755);
+  writeFileSync(
+    path.join(binDir, 'pnpm.cmd'),
+    [
+      '@ECHO off',
+      'IF "%~1"=="exec" IF "%~2"=="nimicoding" IF "%~3"=="sync" (',
+      '  MKDIR .nimi\\config 2>NUL',
+      '  MKDIR .nimi\\contracts 2>NUL',
+      '  MKDIR .nimi\\methodology 2>NUL',
+      '  > .nimi\\config\\bootstrap.yaml ECHO source: fake-nimicoding-sync',
+      '  > .nimi\\contracts\\result.schema.yaml ECHO source: fake-nimicoding-sync',
+      '  > .nimi\\methodology\\core.yaml ECHO source: fake-nimicoding-sync',
+      '  ECHO {"ok":true,"summary":{"total":3,"created":3}}',
+      '  EXIT /B 0',
+      ')',
+      'ECHO unexpected fake pnpm command: %* 1>&2',
+      'EXIT /B 1',
+      '',
+    ].join('\r\n'),
+  );
   const fakeCorepack = path.join(binDir, 'corepack');
   writeFileSync(
     fakeCorepack,
@@ -148,6 +178,19 @@ function fakePnpmEnv(tempRoot) {
     ].join('\n'),
   );
   chmodSync(fakeCorepack, 0o755);
+  writeFileSync(
+    path.join(binDir, 'corepack.cmd'),
+    [
+      '@ECHO off',
+      'IF "%~1"=="pnpm" (',
+      `  CALL "${path.join(binDir, 'pnpm.cmd')}" %2 %3 %4 %5 %6 %7 %8 %9`,
+      '  EXIT /B %ERRORLEVEL%',
+      ')',
+      'ECHO unexpected fake corepack command: %* 1>&2',
+      'EXIT /B 1',
+      '',
+    ].join('\r\n'),
+  );
   return {
     ...process.env,
     PATH: `${binDir}${path.delimiter}${process.env.PATH || ''}`,
@@ -202,7 +245,7 @@ function runNimiApp(args, cwd, options = {}) {
   });
 }
 
-test('standalone scaffold forks the reference app with rewritten identity', () => {
+test('standalone scaffold creates a generic starter with rewritten identity', () => {
   const generated = scaffold('standalone');
   try {
     const packageJson = JSON.parse(generated.read('package.json'));
@@ -241,7 +284,9 @@ test('standalone scaffold forks the reference app with rewritten identity', () =
       'src/shell/auth/runtime-platform.ts',
       'src-tauri/tauri.conf.json',
       'src-tauri/Cargo.toml',
-      'src/tester/tester-runtime-invokers.ts',
+      'src/main.tsx',
+      'src/shell/routes/product-area.tsx',
+      'src-tauri/src/main.rs',
     ];
     for (const relativePath of identityScannedFiles) {
       const content = generated.read(relativePath);
@@ -250,25 +295,36 @@ test('standalone scaffold forks the reference app with rewritten identity', () =
       }
     }
 
-    // Reference-app product code is the baseline product surface for every app.
-    assert.match(generated.read('src/shell/routes/product-area.tsx'), /TesterWorkbench/);
-    assert.match(generated.read('src/tester/tester-runtime.ts'), /invokeTesterCapability/);
+    // Default profiles are generic starters. Tester proof code is opt-in only.
+    assert.match(generated.read('src/shell/routes/product-area.tsx'), /NimiStarterSurface/);
+    assert.doesNotMatch(generated.read('src/shell/routes/product-area.tsx'), /TesterWorkbench|WorldTourViewerRoute|tester/i);
     assert.match(generated.read('src/main.tsx'), /entry:acme-widget-app/);
-    assert.match(generated.read('src/tester/tester-history.ts'), /from '\.\/tester-app-storage\.js'/);
-    assert.ok(existsSync(path.join(generated.target, 'src/tester/tester-app-storage.ts')));
-    assert.doesNotMatch(generated.read('src/tester/tester-history.ts'), /acme-widget-app-storage/);
-    assert.match(generated.read('src/shell/routes/settings.tsx'), /Settings/);
-    assert.match(generated.read('src/shell/ai/tester-ai-config-settings.tsx'), /TesterAiConfigSettings/);
+    assert.doesNotMatch(generated.read('vite.config.ts'), /repoRoot|path\.join\(repoRoot|\.\.\/\.\.\/kit|kit\/ui\/src/);
+    assert.doesNotMatch(generated.read('src/main.tsx'), /installTesterElectronSdkAcceptanceProbe/);
+    assert.doesNotMatch(generated.read('src-tauri/src/main.rs'), /tester_storage|world_tour|tester_/);
+    assertGeneratedPathMissing(generated, 'src/tester');
+    assertGeneratedPathMissing(generated, 'src/shell/ai');
+    assertGeneratedPathMissing(generated, 'src/shell/routes/settings.tsx');
+    assertGeneratedPathMissing(generated, 'src/shell/routes/settings');
+    assertGeneratedPathMissing(generated, 'src-tauri/src/tester_storage.rs');
+    assertGeneratedPathMissing(generated, 'src-tauri/src/world_tour.rs');
+    assertGeneratedPathMissing(generated, 'src-electron');
+    assertGeneratedPathMissing(generated, 'dist-electron');
+    assertGeneratedPathMissing(generated, 'test/tester-contract.test.mjs');
+    assertGeneratedPathMissing(generated, 'test/electron-acceptance.mjs');
+    assertGeneratedPathMissing(generated, 'test/shell-parity-gate.test.mjs');
+    assertGeneratedPathMissing(generated, 'scripts/check-shell-parity.mjs');
+    assertGeneratedPathMissing(generated, 'scripts/check-kit-first-style.mjs');
+    assertGeneratedPathMissing(generated, 'scripts/run-electron-dev.mjs');
 
-    // Taxonomy: tester product is app-owned; shell/auth + packaging glue is managed.
+    // Taxonomy: only the generated starter route is app-owned in default profiles.
     const lock = generated.lock();
     const appOwned = lock.managedFileTaxonomy.appOwnedProductCode;
     assert.ok(appOwned.includes('src/shell/routes/product-area.tsx'));
-    assert.ok(appOwned.includes('src/shell/routes/settings.tsx'));
-    assert.ok(appOwned.includes('src/shell/ai/tester-ai-config-settings.tsx'));
-    assert.ok(appOwned.includes('src/tester/tester-workbench.tsx'));
-    assert.ok(appOwned.includes('src-tauri/src/tester_storage.rs'));
-    assert.ok(appOwned.includes('test/tester-contract.test.mjs'));
+    assert.equal(appOwned.some((file) => file.startsWith('src/tester/')), false);
+    assert.equal(appOwned.some((file) => file.startsWith('src/shell/ai/')), false);
+    assert.equal(appOwned.some((file) => file.startsWith('src-electron/')), false);
+    assert.equal(appOwned.some((file) => file.startsWith('test/tester-') || file === 'test/electron-acceptance.mjs'), false);
     assert.equal(lock.managedFileHashes['src/shell/auth/auth-gate.tsx'].class, 'scaffold-managed glue');
     assert.equal(lock.managedFileHashes['package.json'].class, 'scaffold-managed glue');
     assert.equal(lock.managedFileHashes['.github/workflows/ci.yml'].class, 'scaffold-managed glue');
@@ -289,6 +345,50 @@ test('standalone scaffold forks the reference app with rewritten identity', () =
     assert.match(ci, /pnpm install --no-frozen-lockfile/);
     assert.match(ci, /pnpm run init/);
     assert.doesNotMatch(ci, /cache: pnpm/);
+  } finally {
+    generated.cleanup();
+  }
+});
+
+test('tester-reference scaffold keeps the full proof app explicit', () => {
+  const generated = scaffold('tester-reference');
+  try {
+    const packageJson = JSON.parse(generated.read('package.json'));
+    assert.equal(packageJson.dependencies['@nimiplatform/sdk'], versions.sdkVersion);
+    assert.equal(packageJson.devDependencies.electron, versions.electronVersion);
+    assert.equal(packageJson.devDependencies.esbuild, versions.esbuildVersion);
+    assert.equal(packageJson.devDependencies.playwright, versions.playwrightVersion);
+    assert.match(generated.read('nimi.app.yaml'), /profile: tester-reference/);
+    assert.match(generated.read('src/shell/routes/product-area.tsx'), /TesterWorkbench/);
+    assert.match(generated.read('src/tester/tester-runtime.ts'), /invokeTesterCapability/);
+    assert.match(generated.read('src/shell/ai/tester-ai-config-settings.tsx'), /TesterAiConfigSettings/);
+    assert.match(generated.read('src-tauri/src/main.rs'), /tester_storage|world_tour/);
+    assert.match(generated.read('src-electron/main.ts'), /APP_ID = 'acme\.widget'/);
+    assertGeneratedPathExists(generated, 'src/tester/tester-app-storage.ts');
+    assertGeneratedPathExists(generated, 'test/electron-acceptance.mjs');
+    assertGeneratedPathExists(generated, 'scripts/run-electron-dev.mjs');
+    const lock = generated.lock();
+    assert.ok(lock.managedFileTaxonomy.appOwnedProductCode.includes('src/tester/tester-workbench.tsx'));
+    assert.ok(lock.managedFileTaxonomy.scaffoldManagedGlue.includes('src-electron/main.ts'));
+  } finally {
+    generated.cleanup();
+  }
+});
+
+test('default starter AGENTS stays generic and does not inherit tester ownership', () => {
+  const generated = scaffold('standalone');
+  try {
+    const agents = generated.read('AGENTS.md');
+    assert.match(agents, /src\/shell\/routes\/product-area\.tsx/);
+    for (const forbidden of [
+      /src\/tester/,
+      /src-electron/,
+      /tester_storage/,
+      /world_tour/,
+      /this same tester app/,
+    ]) {
+      assert.doesNotMatch(agents, forbidden);
+    }
   } finally {
     generated.cleanup();
   }
@@ -404,6 +504,7 @@ test('workspace-app scaffold uses workspace + path deps and writes an app-slice 
     assert.equal(packageJson.devDependencies['@nimiplatform/nimi-coding'], 'workspace:*');
     assert.equal(packageJson.devDependencies.yaml, versions.yamlVersion);
     assert.match(generated.read('src-tauri/Cargo.toml'), /nimi-shell-tauri = \{ path = "\.\.\/\.\.\/\.\.\/kit\/shell\/tauri" \}/);
+    assert.doesNotMatch(generated.read('vite.config.ts'), /repoRoot|path\.join\(repoRoot|\.\.\/\.\.\/kit|kit\/ui\/src/);
     assert.match(generated.read('nimi.app.yaml'), /profile: workspace-app/);
     assert.match(generated.read('apps/acme-widget/spec/app-slice.md'), /not public Nimi App admission/);
     const lock = generated.lock();
@@ -633,8 +734,8 @@ test('update regenerates submitted manifest permission declarations from scaffol
   }
 });
 
-test('scaffold omissions are explicit app-specific input and do not shrink the tester template', () => {
-  const generated = cliScaffold('standalone');
+test('scaffold omissions are explicit tester-reference input and do not shrink the proof template', () => {
+  const generated = cliScaffold('tester-reference');
   try {
     assert.match(generated.read('src/shell/routes/settings.tsx'), /Settings/);
     assert.match(generated.read('src/shell/ai/tester-ai-config-settings.tsx'), /TesterAiConfigSettings/);
@@ -852,7 +953,7 @@ test('app scaffold generator is deterministic and free of inlined product string
   ]) {
     assert.doesNotMatch(source, volatilePattern);
   }
-  assert.ok(source.split('\n').length < 760);
+  assert.ok(source.split('\n').length < 800);
   // Product UI strings live in the apps/tester snapshot, never inlined in the generator.
   assert.doesNotMatch(source, /DesktopShellAuthPage/);
   assert.doesNotMatch(source, /Nimi App Runtime Tester/);
@@ -874,6 +975,38 @@ test('app source resolves from the live reference app and is packaged via prepac
   assert.equal(manifest.files.some((entry) => entry.path === '.gitignore'), false);
   assert.ok(manifest.files.some((entry) => entry.path === 'src/shell/auth/runtime-platform.ts' && entry.class === 'scaffold-managed glue'));
   assert.ok(manifest.files.some((entry) => entry.path === 'src/tester/tester-workbench.tsx' && entry.class === 'app-owned product code'));
+});
+
+test('published README makes tester-reference explicit instead of app-id triggered', () => {
+  const readme = readFileSync(path.join(testDir, '..', 'README.md'), 'utf8');
+  assert.match(readme, /--profile standalone\|workspace-app\|tester-reference/);
+  assert.match(readme, /--profile tester-reference/);
+  assert.doesNotMatch(readme, /--app-id nimi\.tester/);
+});
+
+test('generated app smoke gate is a real package script', () => {
+  const packageJson = JSON.parse(readFileSync(path.join(testDir, '..', 'package.json'), 'utf8'));
+  assert.equal(packageJson.scripts['check:generated-app-smoke'], 'node scripts/check-generated-app-smoke.mjs');
+  const smokePath = path.join(testDir, '..', 'scripts', 'check-generated-app-smoke.mjs');
+  assert.ok(existsSync(smokePath));
+  const source = readFileSync(smokePath, 'utf8');
+  assert.match(source, /standalone/);
+  assert.match(source, /workspace-app/);
+  assert.match(source, /tester-reference/);
+  assert.match(source, /pnpm\s+install\s+--no-frozen-lockfile/);
+  assert.match(source, /pnpm\s+run\s+init/);
+  assert.match(source, /pnpm\s+run\s+check/);
+  assert.match(source, /pnpm\s+run\s+build/);
+  assert.match(source, /cargo\s+check/);
+  assert.match(source, /runGeneratedCargoCheck\(target\)/);
+  assert.doesNotMatch(source, /runGeneratedNodeTests\(target\)/);
+});
+
+test('default starter profile code has no dead tester snapshot omission seam', () => {
+  const source = readFileSync(path.join(testDir, '..', 'lib', 'app-scaffold-profiles.mjs'), 'utf8');
+  assert.doesNotMatch(source, /DEFAULT_STARTER_SNAPSHOT_OMISSIONS/);
+  assert.doesNotMatch(source, /profileSnapshotOmissions/);
+  assert.doesNotMatch(source, /applyDefaultStarterSourceSeam/);
 });
 
 test('generated scaffold mechanically excludes forbidden shortcuts', () => {

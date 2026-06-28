@@ -28,11 +28,11 @@ gate then admits the local app under a real logged-in account. This is local
 development material only; it is not listing admission, installed-app truth, or a
 permission grant.
 
-When `--app-id nimi.tester` is used, the generator emits the non-first-party
-developer reference tester product surface: Runtime-authenticated shell, Nimi Kit glass
-workbench, typed AI capability lanes, app-owned history storage, standalone
-world-tour viewer commands, and local acceptance tests. It is not a summary-card
-starter page.
+When `--profile tester-reference` is used, the generator emits the explicit
+non-first-party developer reference tester product surface: Runtime-authenticated
+shell, Nimi Kit glass workbench, typed AI capability lanes, app-owned history
+storage, standalone world-tour viewer commands, and local acceptance tests. This
+proof app is opt-in only; app id values never switch the scaffold profile.
 
 `nimi-app doctor` verifies scaffold init/lock state, managed glue, package-owned
 projections, dependency alignment, and forbidden shortcut patterns in a source
@@ -53,7 +53,7 @@ pnpm add @nimiplatform/sdk @nimiplatform/kit
 ## Commands
 
 ```bash
-nimi-app create [--dir path] [--profile standalone|workspace-app] [--app-id id] [--title title] [--package-name name] [--author author]
+nimi-app create [--dir path] [--profile standalone|workspace-app|tester-reference] [--app-id id] [--title title] [--package-name name] [--author author]
 nimi-app init [--dir path] [--json]
 nimi-app doctor [--dir path] [--json]
 nimi-app update [--dir path] [--json]

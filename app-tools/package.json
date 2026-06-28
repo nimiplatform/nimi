@@ -21,6 +21,7 @@
     "sync:app-source": "node scripts/sync-app-source.mjs --apply",
     "prepack": "node scripts/sync-app-source.mjs --apply",
     "prepublishOnly": "node scripts/sync-app-source.mjs --apply",
+    "check:generated-app-smoke": "node scripts/check-generated-app-smoke.mjs",
     "test": "node --test test/*.test.mjs"
   },
   "files": [

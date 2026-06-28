@@ -1,0 +1,267 @@
+@import "@nimiplatform/kit/ui/styles.css";
+@import "@nimiplatform/kit/ui/themes/light.css";
+@import "@nimiplatform/kit/ui/themes/nimi-accent.css";
+@import "@nimiplatform/kit/auth/styles.css";
+@import "tailwindcss";
+
+/* Tailwind v4 prunes utility classes it never sees in source. Kit components
+   (Surface glass materials, backdrop-blur, etc.) emit arbitrary-value classes
+   like bg-[var(--nimi-material-glass-thin-bg)] and
+   backdrop-blur-[var(--nimi-backdrop-blur-thin)] from their COMPILED output, so
+   the consuming app must scan kit's dist or those classes are pruned and kit
+   glass renders flat. This is the standalone-derivable form (also used by
+   generated apps). */
+@source "../node_modules/@nimiplatform/kit/dist/**/*.{js,mjs}";
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body {
+  margin: 0;
+  min-width: 320px;
+}
+
+body {
+  background: linear-gradient(135deg, #f7f8fb 0%, #eef3f7 48%, #f8fbfa 100%);
+  color: var(--nimi-text-primary);
+}
+
+.runtime-check-screen,
+.runtime-unavailable-screen,
+.runtime-login-screen {
+  min-height: 100vh;
+  position: relative;
+}
+
+.runtime-login-screen--panel {
+  width: min(520px, calc(100vw - 32px));
+  height: min(600px, calc(100vh - 96px));
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--nimi-material-glass-thick-border);
+  border-radius: var(--nimi-radius-xl);
+  background: var(--nimi-surface-card);
+  box-shadow: var(--nimi-elevation-floating);
+}
+
+.runtime-login-screen--panel .runtime-login-alert {
+  right: 16px;
+  bottom: 16px;
+  max-width: calc(100% - 32px);
+}
+
+.lab-account-login-popover {
+  position: fixed;
+  left: 84px;
+  right: auto;
+  bottom: 18px;
+  z-index: 60;
+}
+
+.lab-account-login-popover__close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 20;
+  display: inline-flex;
+  width: 34px;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--nimi-border-subtle);
+  border-radius: var(--nimi-radius-full);
+  background: color-mix(in srgb, var(--nimi-surface-card) 86%, transparent);
+  color: var(--nimi-text-secondary);
+  box-shadow: var(--nimi-elevation-base);
+}
+
+.lab-account-login-popover__close:hover {
+  color: var(--nimi-text-primary);
+  background: var(--nimi-surface-card);
+}
+
+.runtime-check-screen,
+.runtime-unavailable-screen {
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.runtime-login-alert {
+  position: absolute;
+  right: 24px;
+  bottom: 24px;
+  z-index: 20;
+  max-width: min(420px, calc(100vw - 48px));
+}
+
+.runtime-alert-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.runtime-alert-copy strong,
+.runtime-alert-copy span {
+  min-width: 0;
+}
+
+.runtime-unavailable-panel {
+  width: min(560px, 100%);
+  display: grid;
+  gap: 18px;
+}
+
+.runtime-unavailable-heading {
+  display: grid;
+  gap: 10px;
+}
+
+.runtime-unavailable-heading h1,
+.product-hero h1 {
+  margin: 0;
+  letter-spacing: 0;
+}
+
+.runtime-action-hint {
+  margin: 0;
+  color: var(--nimi-text-secondary);
+  font-size: 13px;
+}
+
+/* Scaffold-managed frame: full-bleed canvas hosting a kit AmbientBackground
+   backdrop behind the product area. No app-chrome header / side-panel. */
+.app-shell {
+  position: relative;
+  /* Fixed viewport shell (Nimi Desktop parity: h-screen + overflow-hidden on the
+     AmbientBackground root). overflow:clip CLIPS the decorative mesh halos
+     (which extend ~100px past the root via bottom:-100) so they never create a
+     document-level scrollbar / empty band below the shell, and unlike hidden it
+     cannot be programmatically scrolled by focus/scroll anchoring. Content
+     scrolls internally in the workbench content area, not at the page level. */
+  height: 100vh;
+  overflow: clip;
+  display: flex;
+  flex-direction: column;
+  isolation: isolate;
+  /* The ambient mesh root sits over the kit canvas surface so the frosted glass
+     cards read with real depth, not over flat white. */
+  background: var(--nimi-surface-canvas);
+}
+
+.product-area {
+  min-width: 0;
+  display: grid;
+  gap: 18px;
+}
+
+.product-hero {
+  min-height: 184px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 28px;
+  /* Fill / border / blur / elevation come from the kit Surface this class is
+     applied to (world-tour-viewer-route renders material="glass-thick"
+     tone="hero" elevation="floating"); this rule is layout-only. */
+}
+
+.product-hero h1 {
+  font-size: 56px;
+  line-height: 0.96;
+  max-width: 760px;
+}
+
+.product-copy {
+  max-width: 720px;
+  margin: 18px 0 0;
+  color: var(--nimi-text-secondary);
+  font-size: 17px;
+  line-height: 1.55;
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  color: var(--nimi-text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+
+.world-tour-canvas h2 {
+  margin: 0;
+  font-size: 22px;
+  letter-spacing: 0;
+}
+
+.tester-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.tester-json {
+  max-height: 260px;
+  overflow: auto;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--nimi-border-subtle);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--nimi-surface-canvas) 82%, transparent);
+  color: var(--nimi-text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.world-tour-viewer-hero {
+  min-height: 150px;
+}
+
+.world-tour-canvas {
+  min-height: 520px;
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  align-items: end;
+  padding: 28px;
+}
+
+.world-tour-canvas__mesh {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--nimi-border-subtle) 50%, transparent) 1px, transparent 1px),
+    linear-gradient(0deg, color-mix(in srgb, var(--nimi-border-subtle) 50%, transparent) 1px, transparent 1px);
+  background-size: 36px 36px;
+  mask-image: linear-gradient(180deg, transparent 0%, black 18%, black 72%, transparent 100%);
+  opacity: 0.44;
+}
+
+.world-tour-canvas__content {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 14px;
+  max-width: 760px;
+}
+
+@media (max-width: 640px) {
+  .product-hero {
+    display: grid;
+  }
+
+  .product-hero {
+    padding: 20px;
+  }
+
+  .product-hero h1 {
+    font-size: 34px;
+    line-height: 1;
+  }
+}

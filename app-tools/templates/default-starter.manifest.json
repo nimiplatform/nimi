@@ -1,0 +1,139 @@
+{
+  "manifestVersion": 1,
+  "sourceApp": "app-tools/default-starter",
+  "sourceIdentity": {
+    "tauriIdentifier": "ai.nimi.apps.acme.widget",
+    "packageName": "acme-widget",
+    "cargoPackageName": "acme-widget-shell",
+    "appId": "acme.widget",
+    "appTitle": "Acme Widget",
+    "appSlug": "acme-widget",
+    "rendererEntryId": "acme-widget-app",
+    "accentPack": "nimi-accent",
+    "devPort": "1466"
+  },
+  "identityReplacementOrder": [
+    "tauriIdentifier",
+    "cargoPackageName",
+    "packageName",
+    "rendererEntryId",
+    "appTitle",
+    "appSlug",
+    "appId",
+    "devPort"
+  ],
+  "files": [
+    {
+      "path": "ADMISSION.md",
+      "class": "scaffold-managed glue"
+    },
+    {
+      "path": "AGENTS.md",
+      "class": "scaffold-managed glue"
+    },
+    {
+      "path": "index.html",
+      "class": "scaffold-managed glue"
+    },
+    {
+      "path": "LICENSE",
+      "class": "scaffold-managed glue"
+    },
+    {
+      "path": "README.md",
+      "class": "scaffold-managed glue"
+    },
+    {
+      "path": "scripts/local-audit.mjs",
+      "class": "scaffold-managed glue"
+    },
+    {
+      "path": "scripts/pack.mjs",
+      "class": "scaffold-managed glue"
+    },
+    {
+      "path": "scripts/validate.mjs",
+      "class": "scaffold-managed glue"
+    },
+    {
+      "path": "SECURITY.md",
+      "class": "scaffold-managed glue"
+    },
+    {
+      "path": "src-tauri/build.rs",
+      "class": "scaffold-managed glue"
+    },
+    {
+      "path": "src-tauri/capabilities/default.json",
+      "class": "scaffold-managed glue"
+    },
+    {
+      "path": "src-tauri/Cargo.toml",
+      "class": "scaffold-managed glue"
+    },
+    {
+      "path": "src-tauri/tauri.conf.json",
+      "class": "scaffold-managed glue"
+    },
+    {
+      "path": "src/shell/account/account-panel.tsx",
+      "class": "scaffold-managed glue"
+    },
+    {
+      "path": "src/shell/App.tsx",
+      "class": "scaffold-managed glue"
+    },
+    {
+      "path": "src/shell/auth/app-identity.ts",
+      "class": "scaffold-managed glue"
+    },
+    {
+      "path": "src/shell/auth/auth-gate.tsx",
+      "class": "scaffold-managed glue"
+    },
+    {
+      "path": "src/shell/auth/auth-i18n.ts",
+      "class": "scaffold-managed glue"
+    },
+    {
+      "path": "src/shell/auth/runtime-account-auth.ts",
+      "class": "scaffold-managed glue"
+    },
+    {
+      "path": "src/shell/auth/runtime-login-page.tsx",
+      "class": "scaffold-managed glue"
+    },
+    {
+      "path": "src/shell/auth/runtime-platform.ts",
+      "class": "scaffold-managed glue"
+    },
+    {
+      "path": "src/shell/auth/runtime-transport.ts",
+      "class": "scaffold-managed glue"
+    },
+    {
+      "path": "src/shell/auth/runtime-unavailable-page.tsx",
+      "class": "scaffold-managed glue"
+    },
+    {
+      "path": "src/shell/authenticated-shell.tsx",
+      "class": "scaffold-managed glue"
+    },
+    {
+      "path": "src/shell/routes/demo-surfaces.tsx",
+      "class": "scaffold-managed glue"
+    },
+    {
+      "path": "src/styles.css",
+      "class": "scaffold-managed glue"
+    },
+    {
+      "path": "test/scaffold-boundary.test.mjs",
+      "class": "scaffold-managed glue"
+    },
+    {
+      "path": "tsconfig.json",
+      "class": "scaffold-managed glue"
+    }
+  ]
+}

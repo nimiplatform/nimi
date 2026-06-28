@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
-// apps/tester is the single hand-authored reference Nimi App and the only
-// scaffold template source. This module bakes a verbatim snapshot of it into
-// templates/app-source/** so the PUBLISHED @nimiplatform/app-tools tarball
-// carries the template for standalone authors who never see the monorepo.
+// apps/tester is the hand-authored proof/reference Nimi App. This module bakes
+// its source snapshot into templates/app-source/** so the published
+// @nimiplatform/app-tools tarball can materialize the explicit tester-reference
+// profile and reuse reviewed shell/auth glue for default starter profiles.
 //
 // The snapshot is a derived build artifact (gitignored, like dist/):
 //   --apply           materialize templates/app-source/** + manifest (prepack)
@@ -166,8 +166,9 @@ function applySnapshot() {
 }
 
 // Source resolver used by the generator. In the monorepo it reads apps/tester
-// live so scaffold checks use the second consumer proof directly. Published
-// tarballs fall back to the baked snapshot because apps/tester is not present.
+// live so scaffold checks exercise the second consumer proof directly.
+// Published tarballs fall back to the baked snapshot because apps/tester is not
+// present.
 function resolveAppSource() {
   if (existsSync(SOURCE_APP_DIR)) {
     return {

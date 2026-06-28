@@ -28,6 +28,9 @@ const YAML_VERSION = '^2.9.0';
 const NIMI_SHELL_TAURI_VERSION = '0.1.0';
 const AI_SDK_VERSION = '^6.0.85';
 const APP_TOOLS_VERSION = '^0.1.4';
+const ELECTRON_VERSION = '^42.5.0';
+const ESBUILD_VERSION = '^0.28.0';
+const PLAYWRIGHT_VERSION = '^1.61.0';
 const PACKAGE_MANAGER = 'pnpm@10.32.1';
 
 function ensureDirEmptyOrMissing(targetDir) {
@@ -56,7 +59,7 @@ function createFileTree(baseDir, files) {
   }
 }
 
-function appScaffoldVersions() {
+export function appScaffoldVersions() {
   return {
     sdkVersion: SDK_VERSION,
     appToolsVersion: APP_TOOLS_VERSION,
@@ -82,6 +85,9 @@ function appScaffoldVersions() {
     tauriCliVersion: TAURI_CLI_VERSION,
     yamlVersion: YAML_VERSION,
     nimiShellTauriVersion: NIMI_SHELL_TAURI_VERSION,
+    electronVersion: ELECTRON_VERSION,
+    esbuildVersion: ESBUILD_VERSION,
+    playwrightVersion: PLAYWRIGHT_VERSION,
     packageManager: PACKAGE_MANAGER,
   };
 }

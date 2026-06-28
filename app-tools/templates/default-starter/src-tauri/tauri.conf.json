@@ -1,0 +1,26 @@
+{
+  "productName": "Acme Widget",
+  "version": "0.1.0",
+  "identifier": "ai.nimi.apps.acme.widget",
+  "build": {
+    "beforeDevCommand": "pnpm run dev:renderer",
+    "beforeBuildCommand": "pnpm run build",
+    "devUrl": "http://127.0.0.1:1466",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Acme Widget",
+        "width": 1120,
+        "height": 760
+      }
+    ]
+  },
+  "bundle": {
+    "icon": [
+      "icons/icon.png",
+      "icons/icon.ico"
+    ]
+  }
+}

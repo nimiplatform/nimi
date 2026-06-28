@@ -1,6 +1,13 @@
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { readAppSourceFile, resolveAppSource } from '../scripts/sync-app-source.mjs';
+import { loadDefaultStarterSource, readDefaultStarterSourceFile } from './app-scaffold-default-source.mjs';
+import {
+  SUPPORTED_APP_SCAFFOLD_PROFILES,
+  buildDefaultStarterFiles,
+  isTesterReferenceProfile,
+} from './app-scaffold-profiles.mjs';
+export { SUPPORTED_APP_SCAFFOLD_PROFILES };
 const DEFAULT_APP_ID = 'my-nimi-app';
 const DEFAULT_APP_TITLE = 'My Nimi App';
 export const SCAFFOLD_VERSION = '2026-05-29.app-source-snapshot';
@@ -9,7 +16,6 @@ export const SCAFFOLD_INTENT_PATH = `${SCAFFOLD_STATE_DIR}/intent.json`;
 export const SCAFFOLD_LOCK_PATH = `${SCAFFOLD_STATE_DIR}/lock.json`;
 export const SCAFFOLD_SUBMISSION_PATH = '.nimi/admission/submission.yaml';
 export const SCAFFOLD_BUILD_PROFILE_PATH = '.nimi/admission/build-profile.yaml';
-export const SUPPORTED_APP_SCAFFOLD_PROFILES = ['standalone', 'workspace-app'];
 const LOCKFILE_POLICY = 'author-install-generates-lockfile';
 const GENERATED_GITIGNORE = [
   'node_modules/',
@@ -314,6 +320,14 @@ function buildPackageJson(profile, versions, identity) {
       yaml: versions.yamlVersion,
     },
   };
+  if (isTesterReferenceProfile(profile)) {
+    packageJson.scripts['dev:electron'] = 'pnpm run build:electron && node scripts/run-electron-dev.mjs';
+    packageJson.scripts['build:electron'] = 'tsc -p tsconfig.electron.json && node scripts/bundle-electron-preload.mjs';
+    packageJson.scripts['test:e2e:electron'] = 'pnpm run build && pnpm run build:electron && node --test test/electron-acceptance.mjs';
+    packageJson.devDependencies.electron = versions.electronVersion;
+    packageJson.devDependencies.esbuild = versions.esbuildVersion;
+    packageJson.devDependencies.playwright = versions.playwrightVersion;
+  }
   if (identity.author) {
     packageJson.author = identity.author;
   }
@@ -392,28 +406,41 @@ function applyProfileSeam(relativePath, content, profile, versions, manifest, id
     return buildNimiAppManifest(identity);
   }
   if (relativePath === 'src-tauri/Cargo.toml') {
-    const workspaceLine = 'nimi-shell-tauri = { path = "../../../kit/shell/tauri" }';
-    return content.replace(workspaceLine, cargoShellDependencyLine(profile, versions));
+    return content.replace(/^nimi-shell-tauri\s*=.*$/m, cargoShellDependencyLine(profile, versions));
   }
   return content;
 }
 
-function buildSnapshotFiles(identity, profile, versions) {
+function buildDefaultStarterTemplateFiles(identity, profile, versions) {
+  const { baseDir, manifest } = loadDefaultStarterSource();
+  const target = targetIdentityMap(identity);
+  return manifest.files.map((entry) => {
+    const raw = readDefaultStarterSourceFile(baseDir, entry.path);
+    const identityApplied = applyIdentityReplacement(raw, manifest, target);
+    return {
+      path: entry.path,
+      content: applyProfileSeam(entry.path, identityApplied, profile, versions, manifest, identity),
+      mutationClass: entry.class,
+    };
+  });
+}
+
+function buildTesterReferenceSnapshotFiles(identity, profile, versions) {
   const { baseDir, manifest } = loadAppSource();
   const target = targetIdentityMap(identity);
   const matchedOmissions = new Set();
-  const files = manifest.files.filter((entry) => !isScaffoldOmittedPath(entry.path, identity.scaffoldOmissions, matchedOmissions));
-  const unmatchedOmissions = identity.scaffoldOmissions.filter((pattern) => !matchedOmissions.has(pattern));
+  const snapshotOmissions = identity.scaffoldOmissions;
+  const files = manifest.files.filter((entry) => entry.path !== 'nimi.app.yaml' && !isScaffoldOmittedPath(entry.path, snapshotOmissions, matchedOmissions));
+  const unmatchedOmissions = snapshotOmissions.filter((pattern) => !matchedOmissions.has(pattern));
   if (unmatchedOmissions.length > 0) {
     throw new Error(`Scaffold omissions did not match reference app paths: ${unmatchedOmissions.join(', ')}`);
   }
   return files.map((entry) => {
     const raw = readAppSourceFile(baseDir, entry.path);
     const identityApplied = applyIdentityReplacement(raw, manifest, target);
-    const content = applyProfileSeam(entry.path, identityApplied, profile, versions, manifest, identity);
     return {
       path: entry.path,
-      content,
+      content: applyProfileSeam(entry.path, identityApplied, profile, versions, manifest, identity),
       mutationClass: entry.class,
     };
   });
@@ -434,6 +461,11 @@ function buildStructuredFiles(identity, profile, versions) {
     {
       path: '.github/workflows/ci.yml',
       content: CI_WORKFLOW,
+      mutationClass: 'scaffold-managed glue',
+    },
+    {
+      path: 'nimi.app.yaml',
+      content: buildNimiAppManifest(identity),
       mutationClass: 'scaffold-managed glue',
     },
     {
@@ -553,7 +585,10 @@ function buildInitProjectionFiles(identity) {
 function buildScaffoldFiles(identity, versions) {
   return [
     ...buildStructuredFiles(identity, identity.profile, versions),
-    ...buildSnapshotFiles(identity, identity.profile, versions),
+    ...(isTesterReferenceProfile(identity.profile)
+      ? buildTesterReferenceSnapshotFiles(identity, identity.profile, versions)
+      : buildDefaultStarterTemplateFiles(identity, identity.profile, versions)),
+    ...buildDefaultStarterFiles(identity),
   ];
 }
 
