@@ -151,21 +151,61 @@ func TestCloudProviderPickBackendEmptyModelHonorsProviderHealth(t *testing.T) {
 	}
 }
 
-func TestCloudProviderRemoteTargetRejectsMismatchedProviderPrefix(t *testing.T) {
+func TestCloudProviderRemoteTargetRejectsLegacyAliasPrefix(t *testing.T) {
 	provider := NewCloudProvider(CloudConfig{
 		Providers: map[string]ProviderCredentials{
-			"openai": {BaseURL: "https://api.openai.com/v1"},
+			"dashscope": {BaseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1"},
 		},
 	}, nil, nil)
 	spec := &runtimev1.TextGenerateScenarioSpec{
 		Input: []*runtimev1.ChatMessage{{Role: "user", Content: "hello"}},
 	}
-	_, _, _, _, err := provider.GenerateTextScenarioWithTarget(context.Background(), "dashscope/qwen-max", spec, "hello", &RemoteTarget{
-		ProviderType: "openai",
-		Endpoint:     "https://api.openai.com/v1",
+	_, _, _, _, err := provider.GenerateTextScenarioWithTarget(context.Background(), "aliyun/qwen-max", spec, "hello", &RemoteTarget{
+		ProviderType: "dashscope",
+		Endpoint:     "https://dashscope.aliyuncs.com/compatible-mode/v1",
 	})
 	if status.Code(err) != codes.Unavailable {
-		t.Fatalf("expected unavailable for mismatched target/model provider prefix, got %v", err)
+		t.Fatalf("expected unavailable for legacy alias prefix, got %v", err)
+	}
+}
+
+func TestResolveRemoteTargetModelIDRejectsUnboundMismatchedProviderPrefix(t *testing.T) {
+	resolved, ok := resolveRemoteTargetModelID("openai/gpt-4o", "dashscope", "")
+	if ok {
+		t.Fatal("expected unbound mismatched provider prefix to be rejected")
+	}
+	if resolved != "gpt-4o" {
+		t.Fatalf("resolved model id = %q, want %q", resolved, "gpt-4o")
+	}
+}
+
+func TestResolveRemoteTargetModelIDUsesCatalogBoundProviderModelID(t *testing.T) {
+	resolved, ok := resolveRemoteTargetModelID("openai/gpt-4o", "dashscope", "siliconflow/deepseek-v3.2")
+	if !ok {
+		t.Fatal("expected catalog-bound provider model id to be accepted")
+	}
+	if resolved != "siliconflow/deepseek-v3.2" {
+		t.Fatalf("resolved model id = %q, want catalog-bound provider model id", resolved)
+	}
+}
+
+func TestResolveRemoteTargetModelIDStripsMatchingProviderRoutePrefix(t *testing.T) {
+	resolved, ok := resolveRemoteTargetModelID("dashscope/qwen-max", "dashscope", "")
+	if !ok {
+		t.Fatal("expected matching provider route prefix to be accepted")
+	}
+	if resolved != "qwen-max" {
+		t.Fatalf("resolved model id = %q, want %q", resolved, "qwen-max")
+	}
+}
+
+func TestResolveRemoteTargetModelIDRejectsLegacyAliasPrefix(t *testing.T) {
+	resolved, ok := resolveRemoteTargetModelID("aliyun/qwen-max", "dashscope", "")
+	if ok {
+		t.Fatal("expected legacy alias prefix to be rejected")
+	}
+	if resolved != "qwen-max" {
+		t.Fatalf("resolved model id = %q, want %q", resolved, "qwen-max")
 	}
 }
 

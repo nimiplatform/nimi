@@ -211,6 +211,43 @@ func TestBackendGenerateImageUsesConfiguredCodexHostModel(t *testing.T) {
 	}
 }
 
+func TestBackendEmbedUsesOpenAICompatiblePathResolver(t *testing.T) {
+	var capturedPath string
+	var captured map[string]any
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		capturedPath = r.URL.Path
+		if r.Method != http.MethodPost || r.URL.Path != "/v1beta/openai/embeddings" {
+			http.NotFound(w, r)
+			return
+		}
+		captured = decodeJSONBodyForBackendMediaTest(t, r)
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"data": []map[string]any{
+				{"embedding": []float64{0.1, 0.2, 0.3}},
+			},
+			"usage": map[string]any{"prompt_tokens": 3, "total_tokens": 3},
+		})
+	}))
+	defer func() { server.Close() }()
+
+	backend := NewBackend("cloud-gemini", server.URL+"/v1beta/openai", "", time.Second)
+	vectors, _, err := backend.Embed(context.Background(), "gemini-embedding-001", []string{"hello"})
+	if err != nil {
+		t.Fatalf("Embed failed through OpenAI-compatible path resolver: %v; path=%q", err, capturedPath)
+	}
+	if capturedPath != "/v1beta/openai/embeddings" {
+		t.Fatalf("embedding path = %q, want /v1beta/openai/embeddings", capturedPath)
+	}
+	if got := strings.TrimSpace(ValueAsString(captured["model"])); got != "gemini-embedding-001" {
+		t.Fatalf("provider request model = %q", got)
+	}
+	if len(vectors) != 1 {
+		t.Fatalf("expected one embedding vector, got %d", len(vectors))
+	}
+}
+
 func TestMaterializeManagedMediaImageRejectsCallerControlledLocalInputs(t *testing.T) {
 	backend := NewBackend("local-managed-image", "https://example.com", "", time.Second)
 	if backend == nil {

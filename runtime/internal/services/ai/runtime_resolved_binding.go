@@ -6,6 +6,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	"google.golang.org/grpc/codes"
 )
@@ -15,6 +16,7 @@ func (s *Service) buildResolvedExecutionBinding(
 	head *runtimev1.ScenarioRequestHead,
 	capability string,
 	resolvedBindingRef string,
+	remoteTarget *nimillm.RemoteTarget,
 ) (*runtimev1.RuntimeResolvedExecutionBinding, error) {
 	if head == nil || head.GetTargetRef() == nil {
 		return nil, nil
@@ -30,7 +32,7 @@ func (s *Service) buildResolvedExecutionBinding(
 
 	switch target := source.GetTarget().(type) {
 	case *runtimev1.RuntimeDurableTargetRef_Cloud:
-		cloud, err := s.resolveCloudExecutionBinding(ctx, head, target.Cloud)
+		cloud, err := s.resolveCloudExecutionBinding(ctx, head, target.Cloud, remoteTarget)
 		if err != nil {
 			return nil, err
 		}
@@ -57,9 +59,13 @@ func (s *Service) resolveCloudExecutionBinding(
 	ctx context.Context,
 	head *runtimev1.ScenarioRequestHead,
 	ref *runtimev1.RuntimeDurableCloudTargetRef,
+	remoteTarget *nimillm.RemoteTarget,
 ) (*runtimev1.RuntimeResolvedCloudExecutionBinding, error) {
 	if ref == nil {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	if cloud := resolvedCloudExecutionBindingFromTarget(remoteTarget); cloud != nil {
+		return cloud, nil
 	}
 	if s == nil || s.connStore == nil {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)
@@ -96,6 +102,34 @@ func (s *Service) resolveCloudExecutionBinding(
 		EndpointProfileId:    binding.EndpointProfileID,
 		ConnectorSnapshotId:  binding.ConnectorSnapshotID,
 	}, nil
+}
+
+func resolvedCloudExecutionBindingFromTarget(target *nimillm.RemoteTarget) *runtimev1.RuntimeResolvedCloudExecutionBinding {
+	if target == nil {
+		return nil
+	}
+	connectorID := strings.TrimSpace(target.ConnectorID)
+	remoteModelCatalogID := strings.TrimSpace(target.RemoteModelCatalogID)
+	providerModelID := strings.TrimSpace(target.ProviderModelID)
+	provider := strings.TrimSpace(target.ProviderType)
+	endpointProfileID := strings.TrimSpace(target.EndpointProfileID)
+	connectorSnapshotID := strings.TrimSpace(target.ConnectorSnapshotID)
+	if connectorID == "" ||
+		remoteModelCatalogID == "" ||
+		providerModelID == "" ||
+		provider == "" ||
+		endpointProfileID == "" ||
+		connectorSnapshotID == "" {
+		return nil
+	}
+	return &runtimev1.RuntimeResolvedCloudExecutionBinding{
+		ConnectorId:          connectorID,
+		RemoteModelCatalogId: remoteModelCatalogID,
+		ProviderModelId:      providerModelID,
+		Provider:             provider,
+		EndpointProfileId:    endpointProfileID,
+		ConnectorSnapshotId:  connectorSnapshotID,
+	}
 }
 
 func routeMetadataRefForResolvedBinding(capability string, resolvedBindingRef string) string {

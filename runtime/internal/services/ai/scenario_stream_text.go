@@ -209,7 +209,7 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 		})
 	}
 
-	resolvedBinding, err := s.buildResolvedExecutionBinding(stream.Context(), req.GetHead(), aicapabilities.TextGenerate, "")
+	resolvedBinding, err := s.buildResolvedExecutionBinding(stream.Context(), req.GetHead(), aicapabilities.TextGenerate, "", remoteTarget)
 	if err != nil {
 		return err
 	}

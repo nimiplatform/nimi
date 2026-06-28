@@ -9,12 +9,13 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 )
 
-func (s *Service) normalizeScenarioRuntimeTargetRef(ctx context.Context, head *runtimev1.ScenarioRequestHead) error {
+func (s *Service) normalizeScenarioRuntimeTargetRef(ctx context.Context, head *runtimev1.ScenarioRequestHead) (*connector.RemoteModelCatalogBinding, error) {
 	if head == nil || head.GetTargetRef() == nil {
-		return grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, grpcerr.ReasonOptions{
+		return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, grpcerr.ReasonOptions{
 			ActionHint: "provide_runtime_target_ref",
 		})
 	}
@@ -22,9 +23,9 @@ func (s *Service) normalizeScenarioRuntimeTargetRef(ctx context.Context, head *r
 	case *runtimev1.RuntimeDurableTargetRef_Cloud:
 		return s.normalizeScenarioCloudTargetRef(ctx, head, target.Cloud)
 	case *runtimev1.RuntimeDurableTargetRef_LocalRuntime:
-		return normalizeScenarioLocalTargetRef(target.LocalRuntime)
+		return nil, normalizeScenarioLocalTargetRef(target.LocalRuntime)
 	default:
-		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 }
 
@@ -47,23 +48,23 @@ func normalizeScenarioLocalTargetRef(ref *runtimev1.RuntimeDurableLocalTargetRef
 	return nil
 }
 
-func (s *Service) normalizeScenarioCloudTargetRef(ctx context.Context, head *runtimev1.ScenarioRequestHead, ref *runtimev1.RuntimeDurableCloudTargetRef) error {
+func (s *Service) normalizeScenarioCloudTargetRef(ctx context.Context, head *runtimev1.ScenarioRequestHead, ref *runtimev1.RuntimeDurableCloudTargetRef) (*connector.RemoteModelCatalogBinding, error) {
 	if ref == nil {
-		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 	connectorID := strings.TrimSpace(ref.GetConnectorId())
 	if connectorID == "" {
-		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_ID_REQUIRED)
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_ID_REQUIRED)
 	}
 	if existing := strings.TrimSpace(head.GetConnectorId()); existing != "" && existing != connectorID {
-		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE)
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE)
 	}
 	providerModelID := strings.TrimSpace(ref.GetProviderModelId())
 	if providerModelID == "" {
-		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MODEL_ID_REQUIRED)
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MODEL_ID_REQUIRED)
 	}
 	if strings.TrimSpace(ref.GetRemoteModelCatalogId()) == "" {
-		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_ID_REQUIRED)
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_ID_REQUIRED)
 	}
 	if strings.TrimSpace(head.GetConnectorId()) == "" {
 		head.ConnectorId = connectorID
@@ -73,19 +74,19 @@ func (s *Service) normalizeScenarioCloudTargetRef(ctx context.Context, head *run
 	}
 	subjectUserID := scenarioTargetSubjectUserID(ctx, head)
 	if subjectUserID == "" {
-		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 	if s == nil || s.connStore == nil {
-		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)
 	}
 	rec, found, err := s.connStore.Get(connectorID)
 	if err != nil {
-		return grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, grpcerr.ReasonOptions{
+		return nil, grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, grpcerr.ReasonOptions{
 			ActionHint: "retry_or_check_runtime_logs",
 		})
 	}
 	if !found {
-		return grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)
+		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)
 	}
 	binding, err := connector.ResolveRemoteModelCatalogBinding(s.speechCatalog, subjectUserID, rec, connector.RemoteModelCatalogRef{
 		ConnectorID:          connectorID,
@@ -94,7 +95,7 @@ func (s *Service) normalizeScenarioCloudTargetRef(ctx context.Context, head *run
 		Provider:             strings.TrimSpace(ref.GetProvider()),
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 	canonicalProviderModelID := strings.TrimSpace(binding.ProviderModelID)
 	if canonicalProviderModelID != "" {
@@ -103,7 +104,22 @@ func (s *Service) normalizeScenarioCloudTargetRef(ctx context.Context, head *run
 			head.ModelId = canonicalProviderModelID
 		}
 	}
-	return nil
+	return &binding, nil
+}
+
+func applyRemoteModelCatalogBinding(target *nimillm.RemoteTarget, binding *connector.RemoteModelCatalogBinding) {
+	if target == nil || binding == nil {
+		return
+	}
+	target.ConnectorID = strings.TrimSpace(binding.ConnectorID)
+	target.RemoteModelCatalogID = strings.TrimSpace(binding.RemoteModelCatalogID)
+	target.ProviderModelID = strings.TrimSpace(binding.ProviderModelID)
+	target.EndpointProfileID = strings.TrimSpace(binding.EndpointProfileID)
+	target.ConnectorSnapshotID = strings.TrimSpace(binding.ConnectorSnapshotID)
+	target.InventorySnapshotID = strings.TrimSpace(binding.InventorySnapshotID)
+	if provider := strings.TrimSpace(binding.Provider); provider != "" {
+		target.ProviderType = provider
+	}
 }
 
 func scenarioTargetSubjectUserID(ctx context.Context, head *runtimev1.ScenarioRequestHead) string {

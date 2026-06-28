@@ -122,7 +122,8 @@ func (s *Service) prepareScenarioRequestWithExtensionsAndLocalPlan(ctx context.C
 	if head == nil {
 		return nil, nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
-	if err := s.normalizeScenarioRuntimeTargetRef(ctx, head); err != nil {
+	remoteBinding, err := s.normalizeScenarioRuntimeTargetRef(ctx, head)
+	if err != nil {
 		return nil, nil, err
 	}
 
@@ -134,6 +135,7 @@ func (s *Service) prepareScenarioRequestWithExtensionsAndLocalPlan(ctx context.C
 	if err != nil {
 		return nil, nil, err
 	}
+	applyRemoteModelCatalogBinding(remoteTarget, remoteBinding)
 	if err := validateBaseRequestWithOptions(
 		head.GetAppId(),
 		head.GetSubjectUserId(),

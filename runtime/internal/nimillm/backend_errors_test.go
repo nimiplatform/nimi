@@ -302,6 +302,32 @@ func TestMapProviderHTTPError_BadRequestModelNotFound(t *testing.T) {
 	}
 }
 
+func TestMapProviderHTTPError_BadRequestMarketAppNotActivated(t *testing.T) {
+	err := MapProviderHTTPError(400, map[string]any{
+		"error": map[string]any{
+			"message": "Aliyun market app does not exist, the user may not have activated the service.",
+		},
+	})
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatal("expected gRPC status error for HTTP 400 market activation failure")
+	}
+	if st.Code() != codes.FailedPrecondition {
+		t.Fatalf("expected FailedPrecondition, got %v", st.Code())
+	}
+	reason, ok := grpcerr.ExtractReasonCode(err)
+	if !ok || reason != runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED {
+		t.Fatalf("expected AI_PROVIDER_AUTH_FAILED, got %v", reason)
+	}
+	metadata := extractErrorInfoMetadata(err)
+	if metadata["action_hint"] != "activate_provider_market_app_or_switch_model" {
+		t.Fatalf("unexpected action_hint: %q", metadata["action_hint"])
+	}
+	if metadata["provider_message"] == "" {
+		t.Fatal("expected provider message metadata")
+	}
+}
+
 func TestMapProviderHTTPError_BadRequestModalityNotSupported(t *testing.T) {
 	err := MapProviderHTTPError(400, map[string]any{
 		"error": map[string]any{

@@ -63,7 +63,7 @@ func executeTextGenerateScenario(ctx context.Context, s *Service, req *runtimev1
 		if err := s.writeTextGenerateRouteDescribeHeader(ctx, req.GetHead(), describeProbe, modelResolved, remoteTarget, selectedProvider); err != nil {
 			return nil, err
 		}
-		resolvedBinding, err := s.buildResolvedExecutionBinding(ctx, req.GetHead(), aicapabilities.TextGenerate, describeProbe.resolvedBindingRef)
+		resolvedBinding, err := s.buildResolvedExecutionBinding(ctx, req.GetHead(), aicapabilities.TextGenerate, describeProbe.resolvedBindingRef, remoteTarget)
 		if err != nil {
 			return nil, err
 		}
@@ -133,7 +133,7 @@ func executeTextGenerateScenario(ctx context.Context, s *Service, req *runtimev1
 	if err != nil {
 		return nil, err
 	}
-	resolvedBinding, err := s.buildResolvedExecutionBinding(ctx, req.GetHead(), aicapabilities.TextGenerate, "")
+	resolvedBinding, err := s.buildResolvedExecutionBinding(ctx, req.GetHead(), aicapabilities.TextGenerate, "", remoteTarget)
 	if err != nil {
 		return nil, err
 	}
@@ -254,7 +254,7 @@ func executeTextEmbedScenario(ctx context.Context, s *Service, req *runtimev1.Ex
 			Values: values,
 		})
 	}
-	resolvedBinding, err := s.buildResolvedExecutionBinding(ctx, req.GetHead(), aicapabilities.TextEmbed, "")
+	resolvedBinding, err := s.buildResolvedExecutionBinding(ctx, req.GetHead(), aicapabilities.TextEmbed, "", remoteTarget)
 	if err != nil {
 		return nil, err
 	}

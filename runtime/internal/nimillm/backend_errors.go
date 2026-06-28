@@ -42,6 +42,18 @@ func containsAnyToken(input string, tokens ...string) bool {
 func classifyProviderBadRequest(providerMessage string) (codes.Code, runtimev1.ReasonCode, string) {
 	normalized := strings.ToLower(strings.TrimSpace(providerMessage))
 
+	activationBlocked := containsAnyToken(
+		normalized,
+		"market app does not exist",
+		"may not have activated the service",
+		"service is not activated",
+		"service not activated",
+		"not activated the service",
+	)
+	if activationBlocked {
+		return codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED, "activate_provider_market_app_or_switch_model"
+	}
+
 	planOrEntitlementBlocked := containsAnyToken(
 		normalized,
 		"paid plan",

@@ -446,7 +446,7 @@ func (p *CloudProvider) resolveBackendForTarget(modelID string, target *RemoteTa
 		if canonical == "" {
 			return nil, ""
 		}
-		resolvedModelID, ok := resolveRemoteTargetModelID(modelID, canonical)
+		resolvedModelID, ok := resolveRemoteTargetModelID(modelID, canonical, target.ProviderModelID)
 		if !ok {
 			return nil, resolvedModelID
 		}
@@ -460,7 +460,10 @@ func (p *CloudProvider) resolveBackendForTarget(modelID string, target *RemoteTa
 	return backend, resolvedModelID
 }
 
-func resolveRemoteTargetModelID(modelID string, canonicalProvider string) (string, bool) {
+func resolveRemoteTargetModelID(modelID string, canonicalProvider string, boundProviderModelID string) (string, bool) {
+	if bound := strings.TrimSpace(boundProviderModelID); bound != "" {
+		return bound, true
+	}
 	id := strings.TrimSpace(modelID)
 	for {
 		next := strings.TrimSpace(strings.TrimPrefix(strings.TrimPrefix(id, "cloud/"), "token/"))
@@ -482,7 +485,10 @@ func resolveRemoteTargetModelID(modelID string, canonicalProvider string) (strin
 		rest = "default"
 	}
 	if providerID, ok := prefixToProvider[prefix]; ok {
-		return rest, providerID == canonicalProvider
+		if providerID == canonicalProvider {
+			return rest, true
+		}
+		return rest, false
 	}
 	if _, forbidden := forbiddenPrefixToProvider[prefix]; forbidden {
 		return rest, false

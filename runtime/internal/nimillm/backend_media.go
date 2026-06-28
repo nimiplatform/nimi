@@ -74,7 +74,7 @@ func (b *Backend) Embed(ctx context.Context, modelID string, inputs []string) ([
 	}
 
 	var respBody embeddingsResponse
-	if err := b.postJSON(ctx, "/v1/embeddings", embeddingsRequest{
+	if err := b.postJSON(ctx, resolveOpenAICompatiblePath(b.baseURL, "/embeddings"), embeddingsRequest{
 		Model: modelID,
 		Input: reqInputs,
 	}, &respBody); err != nil {

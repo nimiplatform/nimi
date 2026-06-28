@@ -2,14 +2,11 @@ package ai
 
 import (
 	"context"
-	"io"
-	"log/slog"
 	"os"
 	"strings"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 )
 
 func requiredLiveEnv(t *testing.T, key string) string {
@@ -30,18 +27,9 @@ func liveEnvOrDefault(_ *testing.T, key string, fallback string) string {
 }
 
 func runLiveSmokeLocalGenerateText(t *testing.T) {
-	baseURL := requiredLiveEnv(t, "NIMI_LIVE_LOCAL_BASE_URL")
 	modelID := requiredLiveEnv(t, "NIMI_LIVE_LOCAL_MODEL_ID")
-	apiKey := strings.TrimSpace(os.Getenv("NIMI_LIVE_LOCAL_API_KEY"))
-
-	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		LocalProviders: map[string]nimillm.ProviderCredentials{
-			"llama": {BaseURL: baseURL, APIKey: apiKey},
-			"media": {BaseURL: baseURL, APIKey: apiKey},
-		},
-	})
-
-	runLiveSmokeScenarioGenerateText(t, svc, modelID, runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL)
+	harness := newLiveSmokeLocalProviderHarness(t, "local")
+	runLiveSmokeScenarioGenerateText(t, harness, modelID)
 }
 
 func runLiveSmokeCloudGenerateText(t *testing.T, providerID string, envPrefix string, fallbackBaseURL string) {
@@ -50,18 +38,17 @@ func runLiveSmokeCloudGenerateText(t *testing.T, providerID string, envPrefix st
 	modelID := requiredLiveEnv(t, "NIMI_LIVE_"+envPrefix+"_MODEL_ID")
 	modelID = qualifyLiveModelIDForRoute(providerID, modelID)
 
-	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudProviders: map[string]nimillm.ProviderCredentials{
-			providerID: {BaseURL: baseURL, APIKey: apiKey},
-		},
-	})
-
-	runLiveSmokeScenarioGenerateText(t, svc, modelID, runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD)
+	harness := newLiveSmokeCloudProviderHarness(t, providerID, baseURL, apiKey, liveSmokeProviderHeaders(providerID))
+	runLiveSmokeScenarioGenerateText(t, harness, modelID)
 }
 
-func runLiveSmokeScenarioGenerateText(t *testing.T, svc *Service, modelID string, route runtimev1.RoutePolicy) {
+func runLiveSmokeScenarioGenerateText(t *testing.T, harness liveSmokeProviderHarness, modelID string) {
 	t.Helper()
-	text, err := executeLiveSmokeScenarioGenerateText(svc, modelID, route)
+	text, err := executeLiveSmokeScenarioGenerateTextWithHead(
+		harness.context,
+		harness.service,
+		harness.scenarioHead(t, "nimi.live-smoke", "smoke-user", modelID, 45_000),
+	)
 	if err != nil {
 		t.Fatalf("live generate failed: %v", err)
 	}
@@ -70,16 +57,9 @@ func runLiveSmokeScenarioGenerateText(t *testing.T, svc *Service, modelID string
 	}
 }
 
-func executeLiveSmokeScenarioGenerateText(svc *Service, modelID string, route runtimev1.RoutePolicy) (string, error) {
-	resp, err := svc.ExecuteScenario(context.Background(), &runtimev1.ExecuteScenarioRequest{
-		Head: &runtimev1.ScenarioRequestHead{
-			AppId:         "nimi.live-smoke",
-			SubjectUserId: "smoke-user",
-			ModelId:       modelID,
-			RoutePolicy:   route,
-			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
-			TimeoutMs:     45_000,
-		},
+func executeLiveSmokeScenarioGenerateTextWithHead(ctx context.Context, svc *Service, head *runtimev1.ScenarioRequestHead) (string, error) {
+	resp, err := svc.ExecuteScenario(ctx, &runtimev1.ExecuteScenarioRequest{
+		Head:          head,
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,
 		Spec: &runtimev1.ScenarioSpec{

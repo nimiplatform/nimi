@@ -37,10 +37,18 @@ type DecisionInfoProvider interface {
 
 // RemoteTarget provides resolved credentials for a managed or inline remote call.
 type RemoteTarget struct {
-	ProviderType  string // canonical provider ID
-	Endpoint      string // resolved endpoint URL
-	APIKey        string // decrypted API key
-	Headers       map[string]string
+	ProviderType string // canonical provider ID
+	Endpoint     string // resolved endpoint URL
+	APIKey       string // decrypted API key
+	Headers      map[string]string
+
+	ConnectorID          string // Runtime-owned connector identity for catalog-bound execution
+	RemoteModelCatalogID string // Runtime-owned remote catalog snapshot identity
+	ProviderModelID      string // executable provider model ID resolved from catalog binding
+	EndpointProfileID    string // endpoint profile identity resolved with the catalog binding
+	ConnectorSnapshotID  string // connector snapshot identity resolved with the catalog binding
+	InventorySnapshotID  string // inventory snapshot identity resolved with the catalog binding
+
 	AllowLoopback bool // endpoint security policy for this target
 }
 

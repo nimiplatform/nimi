@@ -1,7 +1,6 @@
 package ai
 
 import (
-	"context"
 	"os"
 	"strings"
 	"testing"
@@ -69,22 +68,16 @@ func runLiveSmokeDashScopeVoiceAssetBackedTTS(
 	const providerID = "dashscope"
 	const token = "DASHSCOPE"
 
-	svc := newLiveSmokeServiceForProvider(t, providerID, record)
+	harness := newLiveSmokeProviderHarnessForProvider(t, providerID, record)
+	svc := harness.service
 	workflowModelID := qualifyLiveModelIDForRoute(providerID, envModelIDForProvider(t, providerID, modelKey, "TTS_MODEL_ID"))
 	targetModelID := strings.TrimSpace(os.Getenv("NIMI_LIVE_" + token + "_" + modelKey + "_TARGET_MODEL_ID"))
 	if targetModelID == "" {
 		targetModelID = strings.TrimPrefix(workflowModelID, "cloud/")
 	}
 
-	submitResp, err := svc.SubmitScenarioJob(context.Background(), &runtimev1.SubmitScenarioJobRequest{
-		Head: &runtimev1.ScenarioRequestHead{
-			AppId:         liveSmokeMatrixAppID,
-			SubjectUserId: liveSmokeMatrixUserID,
-			ModelId:       workflowModelID,
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
-			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
-			TimeoutMs:     120_000,
-		},
+	submitResp, err := svc.SubmitScenarioJob(harness.context, &runtimev1.SubmitScenarioJobRequest{
+		Head:          harness.scenarioHead(t, liveSmokeMatrixAppID, liveSmokeMatrixUserID, workflowModelID, 120_000),
 		ScenarioType:  scenarioType,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
 		Spec:          buildSpec(targetModelID),
@@ -127,15 +120,8 @@ func runLiveSmokeDashScopeVoiceAssetBackedTTS(
 		t.Fatalf("voice asset %s missing provider_voice_ref", voiceAssetID)
 	}
 
-	synthResp, err := svc.SubmitScenarioJob(context.Background(), &runtimev1.SubmitScenarioJobRequest{
-		Head: &runtimev1.ScenarioRequestHead{
-			AppId:         liveSmokeMatrixAppID,
-			SubjectUserId: liveSmokeMatrixUserID,
-			ModelId:       qualifyLiveModelIDForRoute(providerID, targetModelID),
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
-			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
-			TimeoutMs:     liveSmokeTimeoutMS(runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE),
-		},
+	synthResp, err := svc.SubmitScenarioJob(harness.context, &runtimev1.SubmitScenarioJobRequest{
+		Head:          harness.scenarioHead(t, liveSmokeMatrixAppID, liveSmokeMatrixUserID, qualifyLiveModelIDForRoute(providerID, targetModelID), liveSmokeTimeoutMS(runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE)),
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
 		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{SpeechSynthesize: &runtimev1.SpeechSynthesizeScenarioSpec{

@@ -1,7 +1,6 @@
 package ai
 
 import (
-	"context"
 	"errors"
 	"os"
 	"strings"
@@ -216,16 +215,10 @@ func TestLiveSmokeLocalQwen3VoiceAssetLifecycle(t *testing.T) {
 	}
 
 	t.Setenv("NIMI_LIVE_LOCAL_BASE_URL", baseURL)
-	svc := newLiveSmokeServiceForProvider(t, "local", record)
-	submitResp, err := svc.SubmitScenarioJob(context.Background(), &runtimev1.SubmitScenarioJobRequest{
-		Head: &runtimev1.ScenarioRequestHead{
-			AppId:         liveSmokeMatrixAppID,
-			SubjectUserId: liveSmokeMatrixUserID,
-			ModelId:       modelID,
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
-			TimeoutMs:     120_000,
-		},
+	harness := newLiveSmokeProviderHarnessForProvider(t, "local", record)
+	svc := harness.service
+	submitResp, err := svc.SubmitScenarioJob(harness.context, &runtimev1.SubmitScenarioJobRequest{
+		Head:          harness.scenarioHead(t, liveSmokeMatrixAppID, liveSmokeMatrixUserID, modelID, 120_000),
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
 		Spec: &runtimev1.ScenarioSpec{
@@ -289,15 +282,8 @@ func TestLiveSmokeLocalQwen3VoiceAssetLifecycle(t *testing.T) {
 		t.Fatalf("ListVoiceAssets missing created voice asset %s", voiceAssetID)
 	}
 
-	synthResp, err := svc.SubmitScenarioJob(context.Background(), &runtimev1.SubmitScenarioJobRequest{
-		Head: &runtimev1.ScenarioRequestHead{
-			AppId:         liveSmokeMatrixAppID,
-			SubjectUserId: liveSmokeMatrixUserID,
-			ModelId:       modelID,
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
-			TimeoutMs:     120_000,
-		},
+	synthResp, err := svc.SubmitScenarioJob(harness.context, &runtimev1.SubmitScenarioJobRequest{
+		Head:          harness.scenarioHead(t, liveSmokeMatrixAppID, liveSmokeMatrixUserID, modelID, 120_000),
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
 		Spec: &runtimev1.ScenarioSpec{
@@ -351,15 +337,8 @@ func TestLiveSmokeLocalQwen3VoiceAssetLifecycle(t *testing.T) {
 		t.Fatalf("voice asset status after delete=%v, want DELETED", deletedResp.GetAsset().GetStatus())
 	}
 
-	failedSynthResp, err := svc.SubmitScenarioJob(context.Background(), &runtimev1.SubmitScenarioJobRequest{
-		Head: &runtimev1.ScenarioRequestHead{
-			AppId:         liveSmokeMatrixAppID,
-			SubjectUserId: liveSmokeMatrixUserID,
-			ModelId:       modelID,
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
-			TimeoutMs:     120_000,
-		},
+	failedSynthResp, err := svc.SubmitScenarioJob(harness.context, &runtimev1.SubmitScenarioJobRequest{
+		Head:          harness.scenarioHead(t, liveSmokeMatrixAppID, liveSmokeMatrixUserID, modelID, 120_000),
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
 		Spec: &runtimev1.ScenarioSpec{
@@ -390,7 +369,8 @@ func TestLiveSmokeLocalQwen3VoiceAssetLifecycle(t *testing.T) {
 
 func runLiveSmokeVoiceWorkflowForProvider(t *testing.T, providerID string, record providerregistry.ProviderRecord, scenarioType runtimev1.ScenarioType) {
 	t.Helper()
-	svc := newLiveSmokeServiceForProvider(t, providerID, record)
+	harness := newLiveSmokeProviderHarnessForProvider(t, providerID, record)
+	svc := harness.service
 	token := liveProviderEnvToken(providerID)
 
 	var modelKey string
@@ -423,15 +403,8 @@ func runLiveSmokeVoiceWorkflowForProvider(t *testing.T, providerID string, recor
 	}
 	maybeSkipFishAudioBalancePreflight(t, svc, providerID, modelID)
 
-	submitResp, err := svc.SubmitScenarioJob(context.Background(), &runtimev1.SubmitScenarioJobRequest{
-		Head: &runtimev1.ScenarioRequestHead{
-			AppId:         liveSmokeMatrixAppID,
-			SubjectUserId: liveSmokeMatrixUserID,
-			ModelId:       modelID,
-			RoutePolicy:   routePolicyForProvider(providerID),
-			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
-			TimeoutMs:     120_000,
-		},
+	submitResp, err := svc.SubmitScenarioJob(harness.context, &runtimev1.SubmitScenarioJobRequest{
+		Head:          harness.scenarioHead(t, liveSmokeMatrixAppID, liveSmokeMatrixUserID, modelID, 120_000),
 		ScenarioType:  scenarioType,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
 		Spec:          spec,
@@ -463,21 +436,15 @@ func runLiveSmokeVoiceWorkflowForProvider(t *testing.T, providerID string, recor
 		t.Fatalf("voice workflow job status not completed: %s reason=%s detail=%s", job.GetStatus().String(), job.GetReasonCode().String(), job.GetReasonDetail())
 	}
 	if strings.EqualFold(strings.TrimSpace(providerID), "mimo") {
-		runLiveSmokeSpeechSynthesizeWithVoiceAsset(t, svc, providerID, qualifyLiveModelIDForRoute(providerID, targetModelID), voiceAssetID)
+		runLiveSmokeSpeechSynthesizeWithVoiceAsset(t, harness, providerID, qualifyLiveModelIDForRoute(providerID, targetModelID), voiceAssetID)
 	}
 }
 
-func runLiveSmokeSpeechSynthesizeWithVoiceAsset(t *testing.T, svc *Service, providerID string, modelID string, voiceAssetID string) {
+func runLiveSmokeSpeechSynthesizeWithVoiceAsset(t *testing.T, harness liveSmokeProviderHarness, providerID string, modelID string, voiceAssetID string) {
 	t.Helper()
-	synthResp, err := svc.SubmitScenarioJob(context.Background(), &runtimev1.SubmitScenarioJobRequest{
-		Head: &runtimev1.ScenarioRequestHead{
-			AppId:         liveSmokeMatrixAppID,
-			SubjectUserId: liveSmokeMatrixUserID,
-			ModelId:       modelID,
-			RoutePolicy:   routePolicyForProvider(providerID),
-			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
-			TimeoutMs:     120_000,
-		},
+	svc := harness.service
+	synthResp, err := svc.SubmitScenarioJob(harness.context, &runtimev1.SubmitScenarioJobRequest{
+		Head:          harness.scenarioHead(t, liveSmokeMatrixAppID, liveSmokeMatrixUserID, modelID, 120_000),
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
 		Spec: &runtimev1.ScenarioSpec{

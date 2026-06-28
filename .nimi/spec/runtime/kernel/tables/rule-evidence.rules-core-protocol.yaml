@@ -68,6 +68,7 @@ entries:
   - K-CONN-015
   - K-CONN-016
   - K-CONN-017
+  - K-CONN-017a
   - K-CONN-018
   - K-CONN-019
   - K-MODEL-001
@@ -386,6 +387,13 @@ rules:
   - rule_id: K-CONN-017
     evidence_refs: []
     evidence_requirement: deferred
+  - rule_id: K-CONN-017a
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_provider_checks
+    note: Live provider smoke coverage must use managed connector catalog targetRefs instead of raw model strings or connector/model shortcuts.
+    evidence_requirement: required
   - rule_id: K-CONN-018
     evidence_refs:
       - runtime_kernel_consistency

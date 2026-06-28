@@ -138,6 +138,12 @@ Connector 相关请求中的 `owner_id` 已冻结为 `reserved`，调用方不�
 
 ## K-CONN-017 Memory Embedding Cloud Binding Reference Boundary
 
+Resolved memory embedding profiles must retain the admitted typed cloud binding
+identity. For a cloud profile, `connector_id`, `remote_model_catalog_id`,
+`provider_model_id`, and `provider` remain the execution target identity carried
+on the profile; `version`, raw `model_id`, or the retired connector/model pair
+must not be reinterpreted as a durable cloud target.
+
 当 Desktop-host-owned memory embedding live config 选择 `cloud` source 时，其
 legal binding reference 必须继续服从 connector custody 规则。
 
@@ -148,8 +154,8 @@ legal binding reference 必须继续服从 connector custody 规则。
   credential fields
 - admitted cloud binding shape 必须包含
   `connector_id + remote_model_catalog_id + provider_model_id + provider` 或其
-  等价 typed reference；仅 `connector_id` 或 `connector_id + model_id` 不构成
-  完整 binding
+  等价 typed reference；仅 `connector_id`，或 connector 与 raw `model_id` 的
+  二元组，不构成完整 binding
 - 被引用 connector 的 provider 必须属于 canonical provider domain，且继续受
   owner/status/credential 校验约束
 - retired numeric local connector records 不得被 memory embedding cloud binding
@@ -157,6 +163,20 @@ legal binding reference 必须继续服从 connector custody 规则。
 - connector custody 只拥有 credential 托管与 remote binding legality；resolved
   embedding profile、bank bind、以及 migration / cutover truth 仍由 runtime
   memory authority 拥有
+
+## K-CONN-017a Live Provider Smoke TargetRef Boundary
+
+Runtime live-provider smoke harnesses are execution-contract tests, not a
+provider-config bypass. A remote-provider live smoke must create or use a
+remote managed connector, resolve the selected model through
+`ListConnectorModels`, and submit `ExecuteScenario` / `SubmitScenarioJob` with a
+`RuntimeDurableCloudTargetRef` carrying `connector_id`,
+`remote_model_catalog_id`, `provider_model_id`, and `provider`.
+
+Local-provider live smoke must submit a `RuntimeDurableLocalTargetRef`. Raw
+`model_id`, `version`, retired connector/model shortcuts, or a test-only
+`Config.CloudProviders` service without typed target identity is not admitted
+as a cloud execution target.
 
 ## K-CONN-018 OAuth-managed Lifecycle Boundary
 
