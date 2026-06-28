@@ -43,6 +43,7 @@ export type RouteLocalModel = {
 export type RouteConnector = {
   connectorId: string;
   provider: string;
+  providerLabel?: string;
   label: string;
   status: string;
 };
@@ -188,6 +189,8 @@ type RouteInventoryTarget = {
   targetRef: RouteTargetRef;
   display: {
     label?: string;
+    connectorLabel?: string;
+    connectorProviderLabel?: string;
     modelLabel?: string;
     provider?: string;
     engine?: string;
@@ -324,10 +327,12 @@ export function createSnapshotRouteDataProvider(
         const connectorId = String(target.targetRef.connectorId || target.evidence.connectorId || '').trim();
         if (!connectorId || connectors.has(connectorId)) continue;
         const provider = String(target.targetRef.provider || target.evidence.provider || target.display.provider || '').trim();
+        const providerLabel = String(target.display.connectorProviderLabel || '').trim();
         connectors.set(connectorId, {
           connectorId,
           provider,
-          label: provider || connectorId,
+          ...(providerLabel ? { providerLabel } : {}),
+          label: String(target.display.connectorLabel || '').trim() || provider || connectorId,
           status: 'active',
         });
       }
@@ -665,7 +670,7 @@ export function useRouteModelPickerData({
   const connectorOptions = useMemo(
     () => connectors.map((c) => ({
       value: c.connectorId,
-      label: `${c.label} (${c.provider})`,
+      label: `${c.label} (${c.providerLabel || c.provider})`,
     })),
     [connectors],
   );

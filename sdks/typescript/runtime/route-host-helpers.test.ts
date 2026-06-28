@@ -9,6 +9,7 @@ import {
   createNimiRuntimeRouteLocalWarmCache,
   createNimiRuntimeRouteOptionsHostDeps,
   listNimiRuntimeRouteOptionsWithHost,
+  normalizeNimiRuntimeRouteOptionsSnapshot,
   resetNimiRuntimeRouteLocalWarmCache,
   type NimiRuntimeResolvedBinding,
 } from './index';
@@ -162,6 +163,107 @@ test('Runtime host route options default deps page through generated Runtime mod
   assert.equal(snapshot.capability, 'text.generate');
   assert.equal(snapshot.inventory.targets.find((item) => item.evidence.source === 'local-runtime')?.readiness.status, 'active');
   assert.deepEqual(calls, ['connectors:2:1', 'local:0:0', 'models:cloud-1']);
+});
+
+test('Runtime host route options preserve saved cloud selections across provider model id canonicalization', () => {
+  const snapshot = buildNimiRuntimeRouteOptionsProjection({
+    capability: 'text.generate',
+    selectedTargetRef: {
+      kind: 'cloud-connector',
+      version: 'v2',
+      connectorId: 'volcengine-1',
+      remoteModelCatalogId: 'remote-model-catalog:volcengine-1:doubao-seed-2.0-pro',
+      providerModelId: 'doubao-seed-2.0-pro',
+      provider: 'volcengine',
+    },
+    connectors: [{
+      descriptor: { id: 'volcengine-1', label: 'Volcengine', vendor: 'Volcengine', provider: 'volcengine' },
+      modelDescriptors: [{
+        modelId: 'doubao-seed-2.0-pro',
+        modelLabel: 'doubao-seed-2.0-pro',
+        remoteModelCatalogId: 'remote-model-catalog:volcengine-1:doubao-seed-2.0-pro',
+        providerModelId: 'doubao-seed-2-0-pro-260215',
+        provider: 'volcengine',
+        capabilities: ['text.generate'],
+      }],
+    }],
+    runtimeLocalModels: [],
+  });
+
+  assert.equal(snapshot.selectedTargetRef?.kind, 'cloud-connector');
+  assert.equal(
+    snapshot.selectedTargetRef?.kind === 'cloud-connector' ? snapshot.selectedTargetRef.providerModelId : '',
+    'doubao-seed-2-0-pro-260215',
+  );
+  assert.equal(snapshot.inventory.targets[0]?.display.label, 'doubao-seed-2.0-pro');
+});
+
+test('Runtime host route options preserve cloud connector display names separately from model labels', () => {
+  const snapshot = buildNimiRuntimeRouteOptionsProjection({
+    capability: 'text.generate',
+    connectors: [{
+      descriptor: {
+        id: 'volcengine-seedance',
+        label: 'Seedance2',
+        vendor: 'Volcengine',
+        provider: 'volcengine',
+      },
+      modelDescriptors: [{
+        modelId: 'doubao-seed-2.0-pro',
+        modelLabel: 'doubao-seed-2.0-pro',
+        remoteModelCatalogId: 'remote-model-catalog:volcengine-seedance:doubao-seed-2.0-pro',
+        providerModelId: 'doubao-seed-2.0-pro',
+        provider: 'volcengine',
+        capabilities: ['text.generate'],
+      }],
+    }],
+    runtimeLocalModels: [],
+  });
+
+  const target = snapshot.inventory.targets[0];
+  assert.equal(target?.display.label, 'doubao-seed-2.0-pro');
+  assert.equal(
+    (target?.display as { connectorLabel?: string }).connectorLabel,
+    'Seedance2',
+  );
+  assert.equal(
+    (target?.display as { connectorProviderLabel?: string }).connectorProviderLabel,
+    'Volcengine',
+  );
+});
+
+test('Runtime route options normalization preserves cloud connector display names', () => {
+  const snapshot = buildNimiRuntimeRouteOptionsProjection({
+    capability: 'text.generate',
+    connectors: [{
+      descriptor: {
+        id: 'volcengine-seedance',
+        label: 'Seedance2',
+        vendor: 'Volcengine',
+        provider: 'volcengine',
+      },
+      modelDescriptors: [{
+        modelId: 'doubao-seed-2.0-pro',
+        modelLabel: 'doubao-seed-2.0-pro',
+        remoteModelCatalogId: 'remote-model-catalog:volcengine-seedance:doubao-seed-2.0-pro',
+        providerModelId: 'doubao-seed-2.0-pro',
+        provider: 'volcengine',
+        capabilities: ['text.generate'],
+      }],
+    }],
+    runtimeLocalModels: [],
+  });
+
+  const normalized = normalizeNimiRuntimeRouteOptionsSnapshot(snapshot);
+  const target = normalized.inventory.targets[0];
+  assert.equal(
+    (target?.display as { connectorLabel?: string }).connectorLabel,
+    'Seedance2',
+  );
+  assert.equal(
+    (target?.display as { connectorProviderLabel?: string }).connectorProviderLabel,
+    'Volcengine',
+  );
 });
 
 test('Runtime host route access builds call options and checks Runtime health sources', async () => {

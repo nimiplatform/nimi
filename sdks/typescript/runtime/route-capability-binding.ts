@@ -102,19 +102,20 @@ function resolveCloudTarget(
   if (!remoteModelCatalogId) throw new Error('NIMI_RUNTIME_ROUTE_REMOTE_MODEL_CATALOG_REQUIRED');
   if (!providerModelId) throw new Error('NIMI_RUNTIME_ROUTE_PROVIDER_MODEL_REQUIRED');
   if (!provider) throw new Error('NIMI_RUNTIME_ROUTE_BINDING_PROVIDER_REQUIRED');
+  const resolvedTargetRef: NimiRuntimeRouteTargetRef = {
+    kind: 'cloud-connector',
+    version: 'v2',
+    connectorId,
+    remoteModelCatalogId,
+    providerModelId,
+    provider,
+  };
   return {
     capability,
     source: 'cloud-connector',
-    targetRef: {
-      kind: 'cloud-connector',
-      version: 'v2',
-      connectorId,
-      remoteModelCatalogId,
-      providerModelId,
-      provider,
-    },
-    resolvedBindingRef: resolvedBindingRefFor(capability, targetRef),
-    routeMetadataRef: routeMetadataRefFor(capability, targetRef),
+    targetRef: resolvedTargetRef,
+    resolvedBindingRef: resolvedBindingRefFor(capability, resolvedTargetRef),
+    routeMetadataRef: routeMetadataRefFor(capability, resolvedTargetRef),
     connectorId,
     remoteModelCatalogId,
     providerModelId,

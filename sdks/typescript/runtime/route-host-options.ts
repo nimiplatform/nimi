@@ -17,6 +17,10 @@ import {
   normalizeText,
 } from './route-host-codecs';
 import {
+  nimiRuntimeConnectorVendorLabel,
+  providerToNimiRuntimeConnectorVendor,
+} from './connector-inventory';
+import {
   buildNimiRuntimeRouteOptionsProjection,
   type NimiRuntimeRouteConnectorDescriptorProjectionInput,
   type NimiRuntimeRouteConnectorModelDescriptorProjectionInput,
@@ -195,6 +199,7 @@ async function defaultListConnectors(
       descriptors.push({
         id: connector.connectorId,
         label: connector.label,
+        vendor: nimiRuntimeConnectorVendorLabel(providerToNimiRuntimeConnectorVendor(connector.provider)),
         provider: connector.provider,
       });
     }

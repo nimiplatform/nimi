@@ -255,6 +255,8 @@ function projectCloudTargetItems(
       const connectorId = normalizeText(descriptor.id);
       if (!connectorId) return [];
       const provider = normalizeText(descriptor.provider);
+      const connectorLabel = normalizeText(descriptor.label) || connectorId;
+      const connectorProviderLabel = normalizeText(descriptor.vendor) || provider;
       return connector.modelDescriptors
         .filter((model) => model.available !== false)
         .filter((model) => runtimeNimiRouteCapabilitiesMatch(
@@ -271,6 +273,8 @@ function projectCloudTargetItems(
             targetRef,
             display: {
               label: normalizeText(model.modelLabel) || targetRef.providerModelId,
+              connectorLabel,
+              connectorProviderLabel,
               modelLabel: normalizeText(model.modelLabel) || undefined,
               provider: targetRef.provider || provider || undefined,
               model: targetRef.providerModelId,

@@ -1,6 +1,4 @@
 import {
-  ExecutionMode,
-  FallbackPolicy,
   RoutePolicy,
   ScenarioJobEventType,
   ScenarioJobStatus,
@@ -13,16 +11,13 @@ import {
   type ReadArtifactBytesRequest,
   type ReadArtifactBytesResponse,
   type ScenarioArtifact,
-  type ScenarioExtension,
   type ScenarioJob,
   type ScenarioJobEvent,
   type ScenarioOutput,
-  type ScenarioRequestHead,
   type SubmitScenarioJobRequest,
   type SubmitScenarioJobResponse,
 } from '../../core-generated/runtime-typed-client';
 import type { RuntimeTypedCallOptions } from '../../core-generated/runtime-typed-client';
-import type { RuntimeDurableTargetRef } from '../../core-generated/runtime-protobuf/runtime/v1/runtime_target_identity';
 import type { NimiJsonObject, NimiJsonValue } from '../../core/contracts';
 import { createNimiError, ReasonCode } from '../../types';
 import {
@@ -33,12 +28,16 @@ import {
 import {
   createNimiSpeechSynthesisScenario,
   createNimiSpeechTranscriptionScenario,
-  toRuntimeScenario,
 } from './runtime-scenarios';
 import type {
   NimiRuntimeGenerationScenario,
   NimiRuntimeSpeechTranscriptionAudioSource,
 } from './runtime-scenarios';
+import {
+  buildNimiRuntimeGenerationSubmitRequest,
+  type NimiRuntimeGenerationHeadInput,
+  type NimiRuntimeGenerationSubmitInput,
+} from './runtime-generation-build';
 
 export {
   createNimiImageGenerationScenario,
@@ -53,6 +52,8 @@ export type {
   NimiRuntimeVideoGenerationOptions,
 } from './runtime-scenarios';
 export * from './media-params';
+export * from './runtime-generation-build';
+export * from './runtime-image-generation';
 export * from './runtime-job-builders';
 export * from './voice-reference';
 
@@ -138,27 +139,6 @@ export function generationArtifactToJson(artifact: NimiGenerationArtifact): Nimi
   };
 }
 
-export type NimiRuntimeGenerationRoutePolicy = 'local' | 'cloud' | 'unspecified';
-
-export interface NimiRuntimeGenerationHeadInput {
-  readonly appId: string;
-  readonly subjectUserId?: string;
-  readonly modelId?: string;
-  readonly routePolicy?: NimiRuntimeGenerationRoutePolicy;
-  readonly connectorId?: string;
-  readonly targetRef?: RuntimeDurableTargetRef;
-  readonly timeoutMs?: number;
-}
-
-export interface NimiRuntimeGenerationSubmitInput {
-  readonly head?: Partial<NimiRuntimeGenerationHeadInput>;
-  readonly scenario: NimiRuntimeGenerationScenario;
-  readonly requestId: string;
-  readonly idempotencyKey: string;
-  readonly labels?: Readonly<Record<string, string>>;
-  readonly extensions?: readonly ScenarioExtension[];
-}
-
 export interface NimiRuntimeGenerationClient {
   submitScenarioJob(request: SubmitScenarioJobRequest, options?: RuntimeTypedCallOptions): Promise<SubmitScenarioJobResponse>;
   getScenarioJob(request: GetScenarioJobRequest, options?: RuntimeTypedCallOptions): Promise<GetScenarioJobResponse>;
@@ -207,7 +187,8 @@ export interface NimiRuntimeGenerationSurface {
   events(jobId: string): AsyncIterable<NimiRuntimeGenerationJobEvent>;
 }
 
-type NimiRuntimeSpeechScenarioRuntime = NimiRuntimeScenarioJobClient | { readonly ai: NimiRuntimeScenarioJobClient };
+type NimiRuntimeScenarioRuntime = NimiRuntimeScenarioJobClient | { readonly ai: NimiRuntimeScenarioJobClient };
+type NimiRuntimeSpeechScenarioRuntime = NimiRuntimeScenarioRuntime;
 type NimiRuntimeSpeechSynthesisScenarioInput = Extract<
   NimiRuntimeGenerationScenario,
   { readonly kind: 'speech-synthesize' }
@@ -229,7 +210,7 @@ export interface NimiRuntimeSpeechSynthesisInput {
   readonly requestId: string;
   readonly idempotencyKey: string;
   readonly labels?: Readonly<Record<string, string>>;
-  readonly extensions?: readonly ScenarioExtension[];
+  readonly extensions?: NimiRuntimeGenerationSubmitInput['extensions'];
   readonly callOptions?: RuntimeTypedCallOptions;
   readonly signal?: AbortSignal;
   readonly abortReason?: string;
@@ -260,7 +241,7 @@ export interface NimiRuntimeSpeechTranscriptionInput {
   readonly requestId: string;
   readonly idempotencyKey: string;
   readonly labels?: Readonly<Record<string, string>>;
-  readonly extensions?: readonly ScenarioExtension[];
+  readonly extensions?: NimiRuntimeGenerationSubmitInput['extensions'];
   readonly callOptions?: RuntimeTypedCallOptions;
   readonly signal?: AbortSignal;
   readonly abortReason?: string;
@@ -339,7 +320,7 @@ export function createNimiRuntimeGenerationClient(
 export async function runNimiRuntimeSpeechSynthesis(
   input: NimiRuntimeSpeechSynthesisInput,
 ): Promise<NimiRuntimeSpeechSynthesisResult> {
-  const ai = getRuntimeSpeechScenarioClient(input.runtime);
+  const ai = getRuntimeScenarioClient(input.runtime);
   const result = await runNimiRuntimeScenarioJob({
     ai,
     request: buildNimiRuntimeGenerationSubmitRequest(input.head, {
@@ -406,7 +387,7 @@ export function extractNimiRuntimeSpeechSynthesisOutput(
 export async function runNimiRuntimeSpeechTranscription(
   input: NimiRuntimeSpeechTranscriptionInput,
 ): Promise<NimiRuntimeSpeechTranscriptionResult> {
-  const ai = getRuntimeSpeechScenarioClient(input.runtime);
+  const ai = getRuntimeScenarioClient(input.runtime);
   const result = await runNimiRuntimeScenarioJob({
     ai,
     request: buildNimiRuntimeGenerationSubmitRequest(input.head, {
@@ -476,40 +457,6 @@ function isRuntimeSpeechAudioArtifact(artifact: ScenarioArtifact): boolean {
       || normalizeText(artifact.uri).length > 0
       || artifact.bytes.length > 0
     );
-}
-
-export function buildNimiRuntimeGenerationSubmitRequest(
-  defaultHead: NimiRuntimeGenerationHeadInput,
-  input: NimiRuntimeGenerationSubmitInput,
-): SubmitScenarioJobRequest {
-  const scenario = toRuntimeScenario(input.scenario);
-  return {
-    head: toRuntimeHead({ ...defaultHead, ...input.head }),
-    scenarioType: scenario.scenarioType,
-    executionMode: ExecutionMode.ASYNC_JOB,
-    spec: scenario.spec,
-    requestId: requireText(input.requestId, 'Runtime generation submit requires requestId', 'provide_generation_request_id'),
-    idempotencyKey: requireText(
-      input.idempotencyKey,
-      'Runtime generation submit requires idempotencyKey',
-      'provide_generation_idempotency_key',
-    ),
-    labels: normalizeLabels(input.labels),
-    extensions: [...(input.extensions ?? [])],
-  };
-}
-
-function toRuntimeHead(input: NimiRuntimeGenerationHeadInput): ScenarioRequestHead {
-  return {
-    appId: requireText(input.appId, 'Runtime generation head requires appId', 'provide_generation_app_id'),
-    subjectUserId: normalizeText(input.subjectUserId),
-    modelId: normalizeText(input.modelId),
-    routePolicy: toRuntimeRoutePolicy(input.routePolicy),
-    fallback: FallbackPolicy.DENY,
-    timeoutMs: Number(input.timeoutMs ?? 0),
-    connectorId: normalizeText(input.connectorId),
-    targetRef: input.targetRef,
-  };
 }
 
 function requireRuntimeJob(job: ScenarioJob | undefined, method: string): NimiGenerationJob {
@@ -615,16 +562,6 @@ function toNimiGenerationJobEventType(eventType: ScenarioJobEventType): NimiRunt
   }
 }
 
-function toRuntimeRoutePolicy(policy: NimiRuntimeGenerationRoutePolicy | undefined): RoutePolicy {
-  if (policy === 'local') {
-    return RoutePolicy.LOCAL;
-  }
-  if (policy === 'cloud') {
-    return RoutePolicy.CLOUD;
-  }
-  return RoutePolicy.UNSPECIFIED;
-}
-
 function routePolicyName(policy: RoutePolicy): string {
   if (policy === RoutePolicy.LOCAL) return 'local';
   if (policy === RoutePolicy.CLOUD) return 'cloud';
@@ -655,22 +592,11 @@ function getRuntimeGenerationClients(options: NimiRuntimeGenerationClientOptions
   };
 }
 
-function getRuntimeSpeechScenarioClient(runtime: NimiRuntimeSpeechScenarioRuntime): NimiRuntimeScenarioJobClient {
+function getRuntimeScenarioClient(runtime: NimiRuntimeScenarioRuntime): NimiRuntimeScenarioJobClient {
   if ('ai' in runtime) {
     return runtime.ai;
   }
   return runtime;
-}
-
-function normalizeLabels(labels: Readonly<Record<string, string>> | undefined): Record<string, string> {
-  const normalized: Record<string, string> = {};
-  for (const [key, value] of Object.entries(labels ?? {})) {
-    const normalizedKey = normalizeText(key);
-    if (normalizedKey) {
-      normalized[normalizedKey] = normalizeText(value);
-    }
-  }
-  return normalized;
 }
 
 function timestampToIso(timestamp: { readonly seconds: string; readonly nanos: number } | undefined): string | undefined {

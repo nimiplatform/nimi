@@ -38,6 +38,8 @@ type CloudTargetInput = {
   modelId: string;
   remoteModelCatalogId?: string;
   modelLabel?: string;
+  connectorLabel?: string;
+  connectorProviderLabel?: string;
   capabilities?: readonly string[];
 };
 
@@ -80,7 +82,7 @@ function localTarget(input: LocalTargetInput): RouteInventoryTarget {
 }
 
 function cloudTarget(input: CloudTargetInput): RouteInventoryTarget {
-  return {
+  const target: RouteInventoryTarget = {
     targetRef: {
       kind: 'cloud-connector',
       version: 'v2',
@@ -108,6 +110,13 @@ function cloudTarget(input: CloudTargetInput): RouteInventoryTarget {
       provider: input.provider,
     },
   };
+  if (input.connectorLabel) {
+    (target.display as { connectorLabel?: string }).connectorLabel = input.connectorLabel;
+  }
+  if (input.connectorProviderLabel) {
+    (target.display as { connectorProviderLabel?: string }).connectorProviderLabel = input.connectorProviderLabel;
+  }
+  return target;
 }
 
 function makeSnapshot(
@@ -244,6 +253,37 @@ describe('createSnapshotRouteDataProvider', () => {
       'connector-openai',
       'connector-anthropic',
     ]);
+  });
+
+  it('maps snapshot cloud connector display names without replacing model labels', async () => {
+    const snapshot = makeSnapshot({
+      targets: [
+        cloudTarget({
+          connectorId: 'volcengine-seedance',
+          provider: 'volcengine',
+          modelId: 'doubao-seed-2.0-pro',
+          modelLabel: 'doubao-seed-2.0-pro',
+          connectorLabel: 'Seedance2',
+          connectorProviderLabel: 'Volcengine',
+          capabilities: ['chat'],
+        }),
+      ],
+    });
+
+    const provider = createSnapshotRouteDataProvider(async () => snapshot);
+    const [connectors, models] = await Promise.all([
+      provider.listConnectors(),
+      provider.listConnectorModels('volcengine-seedance'),
+    ]);
+
+    expect(connectors).toEqual([{
+      connectorId: 'volcengine-seedance',
+      provider: 'volcengine',
+      providerLabel: 'Volcengine',
+      label: 'Seedance2',
+      status: 'active',
+    }]);
+    expect(models[0]!.modelLabel).toBe('doubao-seed-2.0-pro');
   });
 
   it('returns connector models from inline snapshot data', async () => {

@@ -37,6 +37,8 @@ export interface NimiRuntimeRouteCloudTargetRef {
 
 export interface NimiRuntimeTargetInventoryDisplay {
   readonly label: string;
+  readonly connectorLabel?: string;
+  readonly connectorProviderLabel?: string;
   readonly modelLabel?: string;
   readonly provider?: string;
   readonly engine?: string;
@@ -258,7 +260,12 @@ export function nimiRuntimeRouteTargetRefsMatch(
   left: NimiRuntimeRouteTargetRef | null | undefined,
   right: NimiRuntimeRouteTargetRef | null | undefined,
 ): boolean {
-  return Boolean(left && right && nimiRuntimeRouteTargetRefKey(left) === nimiRuntimeRouteTargetRefKey(right));
+  if (!left || !right || left.kind !== right.kind) return false;
+  if (left.kind === 'cloud-connector' && right.kind === 'cloud-connector') {
+    return normalizeNimiRuntimeRouteText(left.connectorId) === normalizeNimiRuntimeRouteText(right.connectorId)
+      && normalizeNimiRuntimeRouteText(left.remoteModelCatalogId) === normalizeNimiRuntimeRouteText(right.remoteModelCatalogId);
+  }
+  return nimiRuntimeRouteTargetRefKey(left) === nimiRuntimeRouteTargetRefKey(right);
 }
 
 export function isNimiRuntimeTargetInventoryItemSelectable(item: NimiRuntimeTargetInventoryItem): boolean {
@@ -281,6 +288,8 @@ function normalizeInventoryItem(item: NimiRuntimeTargetInventoryItem): NimiRunti
     targetRef: normalizeNimiRuntimeRouteTargetRef(item.targetRef),
     display: {
       label: normalizeNimiRuntimeRouteText(item.display.label),
+      connectorLabel: normalizeNimiRuntimeRouteText(item.display.connectorLabel) || undefined,
+      connectorProviderLabel: normalizeNimiRuntimeRouteText(item.display.connectorProviderLabel) || undefined,
       modelLabel: normalizeNimiRuntimeRouteText(item.display.modelLabel) || undefined,
       provider: normalizeNimiRuntimeRouteText(item.display.provider) || undefined,
       engine: normalizeNimiRuntimeRouteText(item.display.engine) || undefined,
