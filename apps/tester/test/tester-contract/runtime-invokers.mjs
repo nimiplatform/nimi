@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 import {
@@ -169,14 +170,18 @@ test('tester LLM invokers consume AIConfig bindings and fail closed without bind
 
   const mediaBindings = read('src/tester/tester-runtime-media-bindings.ts');
   const mediaParams = read('src/tester/tester-runtime-invokers-media-params.ts');
+  const sdkMediaParams = readFileSync(path.join(root, '..', '..', 'sdks', 'typescript', 'features', 'generation', 'media-params.ts'), 'utf8');
   const mediaInvokers = readTesterRuntimeInvokersSurface(root);
   assert.match(mediaBindings, /selectedParamRecord\(resolved\)/);
   assert.match(mediaBindings, /imageProfileExtensions\(binding: ImageRuntimeBinding, providerOptions: JsonObject = \{\}\)/);
   assert.match(mediaBindings, /\.\.\.providerOptions,\s*profile_entries:/);
+  assert.match(mediaBindings, /localRuntimeRefCandidates/);
+  assert.doesNotMatch(mediaBindings, /function localRuntimeAssetIdCandidates/);
   assert.match(mediaParams, /imageParamsFromBinding/);
-  assert.match(mediaParams, /2k/);
-  assert.match(mediaParams, /3k/);
-  assert.match(mediaParams, /4k/);
+  assert.match(mediaParams, /coerceNimiImageGenerationParams/);
+  assert.match(sdkMediaParams, /2k/);
+  assert.match(sdkMediaParams, /3k/);
+  assert.match(sdkMediaParams, /4k/);
   assert.match(mediaInvokers, /imageParamsFromBinding/);
   assert.match(mediaInvokers, /videoParamsFromBinding/);
   assert.match(mediaInvokers, /transcriptionParamsFromBinding/);

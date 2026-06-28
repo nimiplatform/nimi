@@ -257,6 +257,7 @@ test('tester AI config is the Kit model-config surface in Settings with real SDK
     'detailActiveModelHint={null}',
     'footer={importFooter}',
     'profile={profileController}',
+    'resolveModelConfigLocalRuntimeStatus',
   ]) {
     assert.match(surface, new RegExp(required.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }
@@ -273,6 +274,8 @@ test('tester AI config is the Kit model-config surface in Settings with real SDK
   assert.doesNotMatch(surface, /targetRefDetail/);
   assert.doesNotMatch(surface, /title:\s*'Target configured'/);
   assert.doesNotMatch(surface, /NimiAIConfigTargetRef/);
+  assert.doesNotMatch(surface, /function localRuntimeRefCandidates/);
+  assert.doesNotMatch(surface, /function imageLocalSetupStatus/);
   assert.doesNotMatch(surface, /applyAIProfileToConfig/);
   assert.match(surface, /profileController\.onCancelPreview\(\)/);
   assert.match(surface, /profileController\.onSelectedProfileChange\(result\.profileId\)/);

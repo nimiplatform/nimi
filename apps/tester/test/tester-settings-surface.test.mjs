@@ -14,6 +14,23 @@ function readSettingsSurface() {
   return readTesterSettingsSurface(root);
 }
 
+test('tester settings marks live status rows separately from proof evidence rows', () => {
+  const realmRows = read('src/shell/routes/settings/realm-rows.tsx');
+  const runtimeRows = read('src/shell/routes/settings/runtime-rows.tsx');
+  const sdkRows = read('src/shell/routes/settings/sdk-rows.tsx');
+
+  assert.match(realmRows, /data-settings-row-kind="live"[\s\S]*Realm notification projection/);
+  assert.match(realmRows, /data-settings-row-kind="live"[\s\S]*Realm account-data export projection/);
+  assert.match(realmRows, /data-settings-row-kind="proof"[\s\S]*Realm wallet projection/);
+  assert.match(realmRows, /data-settings-row-kind="proof"[\s\S]*Realm resource upload projection/);
+  assert.match(realmRows, /before:content-\['Live'\]/);
+  assert.match(realmRows, /before:content-\['Proof'\]/);
+  assert.match(runtimeRows, /data-settings-row-kind="proof"[\s\S]*Runtime recommendation projection/);
+  assert.match(sdkRows, /data-settings-row-kind="proof"[\s\S]*SDK Nimi App bridge projection/);
+  assert.doesNotMatch(runtimeRows, /data-settings-row-kind="live"/);
+  assert.doesNotMatch(sdkRows, /data-settings-row-kind="live"/);
+});
+
 test('tester settings consumes SDK product-control projection as second consumer proof', () => {
   const settings = readSettingsSurface();
   const helper = read('src/tester/tester-product-control-projection.ts');

@@ -1,5 +1,6 @@
 import {
   hasImageCompanionSlotContractForModelFamily,
+  localRuntimeRefCandidates,
   resolveImageCompanionSlotsForModelFamily,
 } from '@nimiplatform/kit/features/model-config/headless';
 import {
@@ -7,8 +8,11 @@ import {
   toNimiRuntimeProtoStruct,
   toNimiRuntimeVoiceReference,
   type NimiRuntimeLocalAssetEntry,
-  type NimiRuntimeSpeechVoiceReference,
 } from '@nimiplatform/sdk/runtime';
+import {
+  requireNimiRuntimeVoiceReferenceForLocalTts,
+  toNimiRuntimeVoiceReferenceFromInput,
+} from '@nimiplatform/sdk/features/generation';
 import { VoiceAssetStatus, VoiceWorkflowType, type ListVoiceAssetsResponse } from '@nimiplatform/sdk/runtime/generated';
 import type { JsonObject } from '@nimiplatform/sdk/types';
 import {
@@ -98,20 +102,8 @@ function selectedImageModelFamily(params: Record<string, unknown>, mainAsset: Ni
   ) || localAssetFamily(mainAsset);
 }
 
-function localRuntimeAssetIdCandidates(value: unknown): string[] {
-  const normalized = optionalText(value);
-  if (!normalized) return [];
-  const out = [normalized];
-  const prefix = 'local-runtime:';
-  if (normalized.toLowerCase().startsWith(prefix)) {
-    const localAssetId = normalized.slice(prefix.length).trim();
-    if (localAssetId) out.push(localAssetId);
-  }
-  return out;
-}
-
 function assetMatchesId(asset: NimiRuntimeLocalAssetEntry, id: string): boolean {
-  return localRuntimeAssetIdCandidates(id).some((candidate) => (
+  return localRuntimeRefCandidates(id).some((candidate) => (
     optionalText(asset.localAssetId) === candidate
     || optionalText(asset.assetId) === candidate
   ));
@@ -361,43 +353,9 @@ export function imageProfileExtensions(binding: ImageRuntimeBinding, providerOpt
   }];
 }
 
-function parseVoiceReference(value: unknown): NimiRuntimeSpeechVoiceReference | undefined {
-  if (!value) return undefined;
-  if (typeof value === 'object' && !Array.isArray(value)) {
-    const record = value as Record<string, unknown>;
-    const kind = optionalText(record.kind);
-    if (kind === 'preset_voice_id') {
-      return { kind, presetVoiceId: optionalText(record.presetVoiceId ?? record.preset_voice_id) };
-    }
-    if (kind === 'voice_asset_id') {
-      return { kind, voiceAssetId: optionalText(record.voiceAssetId ?? record.voice_asset_id) };
-    }
-    if (kind === 'provider_voice_ref') {
-      return { kind, providerVoiceRef: optionalText(record.providerVoiceRef ?? record.provider_voice_ref) };
-    }
-    const providerVoiceRef = optionalText(record.providerVoiceRef ?? record.provider_voice_ref);
-    if (providerVoiceRef) return { kind: 'provider_voice_ref', providerVoiceRef };
-    const presetVoiceId = optionalText(record.presetVoiceId ?? record.preset_voice_id);
-    if (presetVoiceId) return { kind: 'preset_voice_id', presetVoiceId };
-    const voiceAssetId = optionalText(record.voiceAssetId ?? record.voice_asset_id);
-    if (voiceAssetId) return { kind: 'voice_asset_id', voiceAssetId };
-    return undefined;
-  }
-  const text = optionalText(value);
-  if (!text) return undefined;
-  const lower = text.toLowerCase();
-  if (lower === 'default' || lower === 'auto') return undefined;
-  const [prefix, ...rest] = text.split(':');
-  const payload = rest.join(':').trim();
-  if (prefix === 'preset_voice_id' && payload) return { kind: 'preset_voice_id', presetVoiceId: payload };
-  if (prefix === 'voice_asset_id' && payload) return { kind: 'voice_asset_id', voiceAssetId: payload };
-  if (prefix === 'provider_voice_ref' && payload) return { kind: 'provider_voice_ref', providerVoiceRef: payload };
-  return { kind: 'provider_voice_ref', providerVoiceRef: text };
-}
-
 function voiceReferenceFromParams(resolved: ResolvedLLMBinding) {
   const params = selectedParamRecord(resolved);
-  return toNimiRuntimeVoiceReference(parseVoiceReference(
+  return toNimiRuntimeVoiceReference(toNimiRuntimeVoiceReferenceFromInput(
     params.voiceRef
     ?? params.voice_ref
     ?? params.providerVoiceRef
@@ -492,11 +450,11 @@ export async function resolveSpeechSynthesisParams(input: {
     return params;
   }
   const voiceRef = await findAdmittedVoiceAssetReference(input);
-  if (!voiceRef) {
-    throw new Error(`audio.synthesize local model ${input.resolved.model} requires an explicit admitted Voice reference. Select a voice asset, enter provider_voice_ref:<id>, or run a voice clone/design workflow before using Default.`);
-  }
   return {
     ...params,
-    voiceRef,
+    voiceRef: requireNimiRuntimeVoiceReferenceForLocalTts({
+      routePolicy: input.resolved.routePolicy,
+      voiceRef,
+    }),
   };
 }

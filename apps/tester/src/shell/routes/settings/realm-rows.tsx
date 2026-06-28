@@ -5,6 +5,9 @@ import {
 } from '@nimiplatform/kit/core/notifications';
 import type { SettingsRouteViewProps } from './view';
 
+const liveRowClassName = "flex min-w-0 flex-wrap items-center justify-between gap-3 text-sm text-[var(--nimi-text-secondary)] before:mr-2 before:rounded before:border before:border-[var(--nimi-border-subtle)] before:px-1.5 before:py-0.5 before:text-[10px] before:font-semibold before:uppercase before:text-[var(--nimi-text-muted)] before:content-['Live']";
+const proofRowClassName = "flex min-w-0 flex-wrap items-center justify-between gap-3 text-sm text-[var(--nimi-text-secondary)] before:mr-2 before:rounded before:border before:border-[var(--nimi-border-subtle)] before:px-1.5 before:py-0.5 before:text-[10px] before:font-semibold before:uppercase before:text-[var(--nimi-text-muted)] before:content-['Proof']";
+
 export function SettingsRealmRows(props: SettingsRouteViewProps) {
   const {
     walletProjection,
@@ -55,7 +58,7 @@ export function SettingsRealmRows(props: SettingsRouteViewProps) {
 
   return (
     <>
-      <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 text-sm text-[var(--nimi-text-secondary)]">
+      <div data-settings-row-kind="proof" className={proofRowClassName}>
         <span>Realm wallet projection</span>
         <div className="inline-flex items-center gap-2">
           {walletProjection.status === 'ready' ? (
@@ -81,7 +84,7 @@ export function SettingsRealmRows(props: SettingsRouteViewProps) {
           </Button>
         </div>
       </div>
-      <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 text-sm text-[var(--nimi-text-secondary)]">
+      <div data-settings-row-kind="proof" className={proofRowClassName}>
         <span>Realm gift transaction projection</span>
         <div className="inline-flex items-center gap-2">
           <StatusBadge tone={giftTransactionProjection.status === 'error' ? 'danger' : 'info'}>
@@ -104,7 +107,7 @@ export function SettingsRealmRows(props: SettingsRouteViewProps) {
           </Button>
         </div>
       </div>
-      <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 text-sm text-[var(--nimi-text-secondary)]">
+      <div data-settings-row-kind="live" className={liveRowClassName}>
         <span>Realm notification projection</span>
         <div className="inline-flex items-center gap-2">
           <StatusBadge tone={notificationProjection.status === 'error' ? 'danger' : 'info'}>
@@ -127,7 +130,7 @@ export function SettingsRealmRows(props: SettingsRouteViewProps) {
           </Button>
         </div>
       </div>
-      <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 text-sm text-[var(--nimi-text-secondary)]">
+      <div data-settings-row-kind="live" className={liveRowClassName}>
         <span>Realm notification list + Kit headless projection</span>
         <div className="inline-flex items-center gap-2">
           <StatusBadge tone={notificationListProjection.status === 'error' ? 'danger' : 'info'}>
@@ -146,11 +149,11 @@ export function SettingsRealmRows(props: SettingsRouteViewProps) {
           </Button>
         </div>
       </div>
-      <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 text-sm text-[var(--nimi-text-secondary)]">
+      <div data-settings-row-kind="proof" className={proofRowClassName}>
         <span>Realm media URL projection</span>
         <StatusBadge tone="neutral">{realmMediaUrlProjection}</StatusBadge>
       </div>
-      <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 text-sm text-[var(--nimi-text-secondary)]">
+      <div data-settings-row-kind="proof" className={proofRowClassName}>
         <span>Realm resource upload projection</span>
         <StatusBadge tone={resourceUploadProjection.status === 'ready' ? 'success' : resourceUploadProjection.status === 'error' ? 'danger' : 'neutral'}>
           {resourceUploadProjection.status === 'ready'
@@ -160,7 +163,7 @@ export function SettingsRealmRows(props: SettingsRouteViewProps) {
               : 'checking'}
         </StatusBadge>
       </div>
-      <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 text-sm text-[var(--nimi-text-secondary)]">
+      <div data-settings-row-kind="live" className={liveRowClassName}>
         <span>Realm account-data export projection</span>
         <div className="inline-flex items-center gap-2">
           <StatusBadge tone={accountDataProjection.status === 'error' ? 'danger' : 'info'}>
@@ -183,7 +186,7 @@ export function SettingsRealmRows(props: SettingsRouteViewProps) {
           </Button>
         </div>
       </div>
-      <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 text-sm text-[var(--nimi-text-secondary)]">
+      <div data-settings-row-kind="live" className={liveRowClassName}>
         <span>SDK Realm account settings projection</span>
         <div className="inline-flex items-center gap-2">
           <StatusBadge tone={accountSettingsProjection.status === 'error' ? 'danger' : 'info'}>
@@ -206,7 +209,7 @@ export function SettingsRealmRows(props: SettingsRouteViewProps) {
           </Button>
         </div>
       </div>
-      <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 text-sm text-[var(--nimi-text-secondary)]">
+      <div data-settings-row-kind="live" className={liveRowClassName}>
         <span>Kit Realm human chat projection</span>
         <div className="inline-flex items-center gap-2">
           <StatusBadge tone={humanChatProjection.status === 'error' ? 'danger' : 'info'}>
@@ -229,7 +232,7 @@ export function SettingsRealmRows(props: SettingsRouteViewProps) {
           </Button>
         </div>
       </div>
-      <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 text-sm text-[var(--nimi-text-secondary)]">
+      <div data-settings-row-kind="live" className={liveRowClassName}>
         <span>SDK Realm group chat projection</span>
         <div className="inline-flex items-center gap-2">
           <StatusBadge tone={groupChatProjection.status === 'error' ? 'danger' : 'info'}>
@@ -252,39 +255,39 @@ export function SettingsRealmRows(props: SettingsRouteViewProps) {
           </Button>
         </div>
       </div>
-      <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 text-sm text-[var(--nimi-text-secondary)]">
+      <div data-settings-row-kind="proof" className={proofRowClassName}>
         <span>Realm endpoint projection</span>
         <StatusBadge tone="neutral">{realmEndpointProjection}</StatusBadge>
       </div>
-      <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 text-sm text-[var(--nimi-text-secondary)]">
+      <div data-settings-row-kind="proof" className={proofRowClassName}>
         <span>Realm realtime projection</span>
         <StatusBadge tone="neutral">{realmRealtimeProjection}</StatusBadge>
       </div>
-      <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 text-sm text-[var(--nimi-text-secondary)]">
+      <div data-settings-row-kind="proof" className={proofRowClassName}>
         <span>Realm feed scope projection</span>
         <StatusBadge tone={realmFeedScopeProjection.personalAdmitted && realmFeedScopeProjection.friendsAdmitted ? 'success' : 'warning'}>
           {realmFeedScopeProjection.count} scopes / {realmFeedScopeProjection.personalAdmitted ? 'personal' : 'missing'} / {realmFeedScopeProjection.friendsAdmitted ? 'friends' : 'missing'}
         </StatusBadge>
       </div>
-      <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 text-sm text-[var(--nimi-text-secondary)]">
+      <div data-settings-row-kind="proof" className={proofRowClassName}>
         <span>Realm chat attachment projection</span>
         <StatusBadge tone="neutral">
           {realmChatAttachmentProjection.targetType} / {realmChatAttachmentProjection.previewText} / {realmChatAttachmentProjection.mediaUrl}
         </StatusBadge>
       </div>
-      <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 text-sm text-[var(--nimi-text-secondary)]">
+      <div data-settings-row-kind="proof" className={proofRowClassName}>
         <span>Kit avatar voice cue projection</span>
         <StatusBadge tone="neutral">
           {avatarVoiceCueProjection.visemeId ?? 'silent'} / {avatarVoiceCueProjection.amplitude.toFixed(2)}
         </StatusBadge>
       </div>
-      <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 text-sm text-[var(--nimi-text-secondary)]">
+      <div data-settings-row-kind="proof" className={proofRowClassName}>
         <span>Kit avatar framing projection</span>
         <StatusBadge tone="neutral">
           {avatarFramingProjection.vrm} / {avatarFramingProjection.live2d}
         </StatusBadge>
       </div>
-      <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 text-sm text-[var(--nimi-text-secondary)]">
+      <div data-settings-row-kind="proof" className={proofRowClassName}>
         <span>SDK runtime voice schedule projection</span>
         <StatusBadge tone="neutral">
           {runtimeAvatarVoiceProjection.kind} / {runtimeAvatarVoiceProjection.source} / {runtimeAvatarVoiceProjection.cueCount}
