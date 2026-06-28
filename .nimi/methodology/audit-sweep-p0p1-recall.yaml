@@ -2,25 +2,6 @@ version: 1
 methodology:
   id: audit_sweep_p0p1_recall
   owner: nimicoding/audit-sweep
-  authority_boundary:
-    posture: host_local_projection
-    host_authority_ref: .nimi/spec/platform/kernel/package-authority-admission-contract.md
-    admission_refs:
-      - .nimi/spec/platform/kernel/tables/package-authority-admissions.yaml#nimi-coding
-      - .nimi/spec/platform/kernel/tables/audit-evidence-roots.yaml#platform-host-local-nimicoding-projection
-    source_rules:
-      - P-PKG-001
-      - P-PKG-003
-      - P-PKG-006
-    package_truth_root: package://@nimiplatform/nimi-coding/spec
-    host_projection_roots:
-      - .nimi/methodology
-    fail_closed_when:
-      - package_authority_admission_missing_or_inactive
-      - host_local_projection_root_not_admitted_as_evidence
-      - host_methodology_projection_conflicts_with_package_authority
-    non_authority_claim: This host-local recall profile does not become package authority
-      and cannot override repo-wide product authority under .nimi/spec/**.
   purpose: Increase critical/high finding recall without turning every sweep into
     an unbounded full audit.
   activation_criteria:

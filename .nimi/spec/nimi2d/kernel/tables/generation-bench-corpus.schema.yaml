@@ -2,6 +2,9 @@ version: 1
 table_family: protocol_surface
 owner: nimi2d
 schema_id: nimi.nimi2d.generation-bench-corpus.v1
+protocol_id: nimi2d_generation_bench_corpus
+surfaces:
+  - nimi2d.generation_bench.corpus
 authority: "nimi2d.kernel.generation_bench"
 source_rule: N2D-BENCH-030
 description: >

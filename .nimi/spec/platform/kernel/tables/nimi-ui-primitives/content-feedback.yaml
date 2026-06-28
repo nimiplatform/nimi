@@ -1,3 +1,18 @@
+version: 2
+table_family: protocol_surface
+owner: platform
+protocol_id: platform_nimi_ui_primitives_content_feedback
+surfaces:
+  - primitive.status
+  - primitive.scroll_area
+  - primitive.avatar
+  - primitive.ambient_background
+  - primitive.typography
+  - primitive.progress
+  - primitive.inline_alert
+  - primitive.empty_state
+  - primitive.loading_skeleton
+
 primitives:
   - id: primitive.status
     family: status

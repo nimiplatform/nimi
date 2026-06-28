@@ -5,6 +5,27 @@ catalog_id: nimi2d_capability_channel_matrix
 matrix_id: "nimi.nimi2d.capability-channel-matrix.v1"
 authority: "nimi2d.kernel.capability_tier"
 source_rule: N2D-TIER-020
+entries:
+  - layer_input_lineage
+  - base_body_topology
+  - default_outfit_binding
+  - static_draw_order
+  - wardrobe_reuse
+  - discrete_expression_set
+  - expression_interpolation
+  - blink_eye_open_close
+  - gaze_anchor_channels
+  - jaw_amplitude_mouth
+  - aeiou_viseme_shapes
+  - motion_primitive_refs
+  - safe_motion_bounds
+  - gesture_overlay_channels
+  - local_attachment_secondary_motion
+  - full_body_pose_families
+  - full_body_gesture_primitives
+  - wardrobe_aware_deformation_masks
+  - runtime_live_action_composer
+  - live2d_parity_claim
 description: >
   Closed tier-to-channel requirement matrix for Nimi2D asset package capability
   claims. Channels are asset-side package capabilities only. Runtime stream

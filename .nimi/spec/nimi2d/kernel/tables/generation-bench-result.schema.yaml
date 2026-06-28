@@ -2,6 +2,9 @@ version: 1
 table_family: protocol_surface
 owner: nimi2d
 schema_id: nimi.nimi2d.generation-bench-result.v1
+protocol_id: nimi2d_generation_bench_result
+surfaces:
+  - nimi2d.generation_bench.result
 authority: "nimi2d.kernel.generation_bench"
 source_rule: N2D-BENCH-040
 description: >
@@ -10,7 +13,7 @@ description: >
   gates, tracking metrics, failure attribution, and final decision.
 
 required_top_level_fields:
-  - run_id
+  - result_id
   - started_at
   - corpus
   - generator
@@ -25,7 +28,7 @@ required_top_level_fields:
   - decision
 
 closed_top_level_fields:
-  - run_id
+  - result_id
   - started_at
   - completed_at
   - corpus
@@ -41,9 +44,9 @@ closed_top_level_fields:
   - decision
 
 fields:
-  run_id:
+  result_id:
     type: string
-    pattern: "^n2d_generation_bench_run_[a-z0-9][a-z0-9_-]{2,63}$"
+    pattern: "^n2d_generation_bench_result_[a-z0-9][a-z0-9_-]{2,63}$"
   started_at:
     type: iso8601_utc_timestamp
   completed_at:

@@ -2,6 +2,9 @@ version: 1
 table_family: protocol_surface
 owner: nimi2d
 schema_id: nimi.nimi2d.layer-input.v1
+protocol_id: nimi2d_layer_input_manifest
+surfaces:
+  - nimi2d.layer_input.manifest
 authority: "nimi2d.kernel.layer_input"
 source_rule: N2D-INPUT-010
 description: >

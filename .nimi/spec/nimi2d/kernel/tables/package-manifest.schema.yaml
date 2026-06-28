@@ -2,6 +2,9 @@ version: 1
 table_family: protocol_surface
 owner: nimi2d
 schema_id: nimi.nimi2d.package-manifest.v1
+protocol_id: nimi2d_package_manifest
+surfaces:
+  - nimi2d.package.manifest
 authority: "nimi2d.kernel.package_manifest"
 source_rule: N2D-PKG-001
 description: >

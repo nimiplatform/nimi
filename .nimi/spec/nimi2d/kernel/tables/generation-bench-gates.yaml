@@ -4,6 +4,29 @@ owner: nimi2d
 catalog_id: nimi2d_generation_bench_gates
 authority: "nimi2d.kernel.generation_bench"
 source_rule: N2D-BENCH-020
+entries:
+  - valid_locked_fixtures_admit
+  - invalid_fixtures_typed_reject
+  - asset_integrity_validation
+  - no_outfit_no_render
+  - base_body_only_rejected
+  - adult_v1_unavailable
+  - upstream_content_evidence_required
+  - capability_overclaim_rejected
+  - deterministic_replay
+  - anchor_accuracy_overall
+  - slot_accuracy
+  - default_outfit_binding_success_rate
+  - expression_usability_rate
+  - jaw_amplitude_speech_mouth_usability_rate
+  - motion_primitive_binding_success_rate
+  - package_runtime_admission_readiness
+  - wardrobe_reuse_rate
+  - manual_correction_minutes_p50_p90
+  - subjective_liveliness
+  - true_viseme_usability_tier2_plus
+  - upstream_occlusion_pass_rate
+  - live_action_latency_stability
 description: >
   Closed hard gate, quality gate, and tracking metric table for Nimi2D
   Generation Bench. Gates apply to generation from contract-conformant layer

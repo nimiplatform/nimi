@@ -9,13 +9,13 @@ admissions:
     admission_posture: active
     owner_domain: realm
     authority_root: .nimi/spec/realm
-    source_authority_root: external-authority://<nimi-realm>/realm
+    source_authority_root: external-authority://realm-domain/realm
     local_projection_evidence_roots:
       - scripts/check-realm-spec-projection-guard.mjs
     delegated_evidence_roots:
-      - external-authority://<nimi-realm>/realm/spec
-      - external-authority://<nimi-realm>/realm/openapi
-      - external-authority://<nimi-realm>/realm/sdk-consumer-input
+      - external-authority://realm-domain/realm/spec
+      - external-authority://realm-domain/realm/openapi
+      - external-authority://realm-domain/realm/sdk-consumer-input
     delegated_declared_evidence_prefixes:
       - realm-implementation://
       - realm-test-evidence://

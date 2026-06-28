@@ -9,9 +9,14 @@ Nimi product authority is organized by active domain. Kernel markdown files and 
 - `desktop`
 - `nimi2d`
 - `platform`
-- `realm`
 - `runtime`
 - `sdks`
+
+## External Authority Anchors
+
+- `realm` is an external Realm authority projection anchor. Realm server/domain
+  product rules are not redefined in this repository; Nimi consumes them through
+  SDK and Runtime/Desktop consumer contracts.
 
 ## Reading Order
 

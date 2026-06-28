@@ -5,6 +5,28 @@ catalog_id: nimi2d_slot_taxonomy
 taxonomy_id: "nimi.nimi2d.slot-taxonomy.v1"
 authority: "nimi2d.kernel.wardrobe_slot"
 source_rule: N2D-WARD-011
+entries:
+  - body_root
+  - neck_base
+  - head_center
+  - face_center
+  - left_eye_center
+  - right_eye_center
+  - mouth_center
+  - left_shoulder
+  - right_shoulder
+  - left_hand
+  - right_hand
+  - hip_center
+  - attachment_point
+  - scene_origin
+  - body_core
+  - facial
+  - limb
+  - outfit
+  - accessory
+  - prop
+  - scene
 description: >
   Closed v1 Nimi2D anchor, slot, and wardrobe compatibility taxonomy. This
   table is asset/package topology authority only. It does not define Avatar

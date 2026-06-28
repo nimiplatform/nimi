@@ -1,7 +1,17 @@
 version: 1
-table_family: acceptance
+table_family: product_catalog
 owner: avatar
 catalog_id: avatar_acceptance_recording_matrix
+entries:
+  - idle_vrm_ready
+  - idle_live2d_ready
+  - hover_body
+  - click_body
+  - drag_stage
+  - runtime_voice_listening_projection
+  - tts_speaking_lipsync
+  - interrupt_active_turn
+  - runtime_degraded
 description: >
   Required human-review recording matrix for Avatar embodied surface acceptance.
   Unit tests and screenshots are necessary but insufficient; release acceptance

@@ -1,3 +1,14 @@
+version: 2
+table_family: protocol_surface
+owner: platform
+protocol_id: platform_nimi_ui_primitives_surface_action
+surfaces:
+  - primitive.surface
+  - primitive.action
+  - primitive.icon_action
+  - primitive.overlay
+  - primitive.sidebar
+
 primitives:
   - id: primitive.surface
     family: surface

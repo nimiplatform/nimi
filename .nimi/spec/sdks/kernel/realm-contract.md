@@ -12,7 +12,7 @@
 >
 > Web / cloud adapter mode 必须显式声明 mode 标记，且与 local first-party Runtime mode 在公共 surface 上严格 fenced；不得在 local first-party 消费者中可达。
 >
-> `realm-api-consumer-contract.md` owns the external `<nimi-realm>` consumer
+> `realm-api-consumer-contract.md` owns the external Realm consumer
 > boundary. This file may constrain SDK facade behavior, but it must not
 > restate Realm server/domain authority or rely on `.nimi/spec/realm/**` as a
 > mirrored source of truth.

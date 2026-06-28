@@ -5,7 +5,7 @@ Status: active product authority.
 ## S-REALMCORE-001 Realm Generated Core Source
 
 Realm generated core under `sdks/**/core-generated` is sourced from the
-configured Realm OpenAPI input from external authority `<nimi-realm>`.
+configured Realm OpenAPI input from the external Realm authority.
 `.nimi/spec/sdks/**` owns the SDK-family projection boundary; old `sdk/`
 facade contracts and `.nimi/spec/realm/**` mirrors must not be used as
 generated Realm authority.

@@ -856,7 +856,7 @@ Source of truth:
 - Runtime MUST NOT hold a runtime-local hardcoded guide welcome string, guide
   prompt, or guide identity constant as parallel product truth;
 - built-in Nimi usage documentation attached as context is product
-  knowledge/context only and is not Realm source authority, not memory truth, and
+  knowledge/context only and is not external Realm authority, not memory truth, and
   not a runtime-owned guide catalog.
 
 `MUST NOT`: prompt/docs context must not create Agent authority, memory truth,

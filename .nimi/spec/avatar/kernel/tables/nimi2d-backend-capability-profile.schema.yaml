@@ -2,6 +2,9 @@ schema_id: nimi.avatar.nimi2d-backend-capability-profile.v1
 table_family: protocol_surface
 owner: avatar
 catalog_id: avatar_nimi2d_backend_capability_profile_schema
+protocol_id: avatar_nimi2d_backend_capability_profile
+surfaces:
+  - avatar.nimi2d.capability_profile
 authority: avatar.kernel.nimi2d_backend
 description: >
   Closed Avatar-local capability profile schema for the Nimi2D backend branch.

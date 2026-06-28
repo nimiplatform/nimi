@@ -628,6 +628,9 @@ gates:
     targets: [any]
     timeout_seconds: 120
     requires_binaries: [pnpm]
+    skip_when:
+      condition: windows
+      reason_code: PRECONDITION_NOT_MET
     evidence:
       shape: command_exit
     p_relg_anchors: [P-RELG-001]

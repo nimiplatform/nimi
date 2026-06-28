@@ -267,7 +267,7 @@ sources through a deterministic lane scheduler:
 3. Cubism physics where present
 4. Cubism pose where present
 5. Cubism breath / blink where present
-6. Avatar local look-at / idle-life lane where admitted by later waves
+6. Avatar local look-at / idle-life lane for admitted avatar runtime behaviors
 7. Avatar speech/lipsync parameter writes
 8. Live2DBackendExtension direct parameter writes
 ```

@@ -1,4 +1,16 @@
 version: 1
+table_family: protocol_surface
+owner: platform
+protocol_id: platform_standard_shell_capabilities
+surfaces:
+  - runtime
+  - runtime-lifecycle
+  - runtime-defaults
+  - filesystem
+  - window
+  - notification
+  - storage
+  - auth
 authority:
   id: platform.standard-shell-capabilities
   owner: platform

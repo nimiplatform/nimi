@@ -4,7 +4,7 @@
 
 ## Scope
 
-Nimi consumes Realm as an external API authority identified by `<nimi-realm>`.
+Nimi consumes Realm as an external API authority identified by the external Realm authority.
 This contract governs SDK, Runtime, Desktop, Web, and app consumption of Realm
 API projections. It does not define Realm server truth, Realm domain semantics,
 or Realm product authority.
@@ -16,7 +16,7 @@ Realm kernel contracts, tables, generated docs, or domain authority mirrors.
 ## S-REALMAPI-001 External Authority Boundary
 
 `MUST`: Realm domain authority is external to Nimi and is identified as
-`<nimi-realm>`.
+the external Realm authority.
 
 `MUST NOT`: Nimi specs, SDK docs, Runtime, Desktop, Web, or apps must not
 re-declare Realm server/domain rules as local authority.
@@ -76,7 +76,7 @@ compatibility aliases that hide server contract changes.
 ## S-REALMAPI-006 Pointer-Only Realm Subtree
 
 The only admitted files under `.nimi/spec/realm/**` are pointer/navigation
-files that identify `<nimi-realm>` and route readers to SDK consumer contracts.
+files that identify the external Realm authority and route readers to SDK consumer contracts.
 
 Forbidden under `.nimi/spec/realm/**`:
 
@@ -84,7 +84,7 @@ Forbidden under `.nimi/spec/realm/**`:
 - `kernel/tables/**`
 - generated Realm docs
 - Realm domain guides that restate product rules
-- delegated projection mirrors from `<nimi-realm>`
+- delegated projection mirrors from the external Realm authority
 
 ## Traceability
 

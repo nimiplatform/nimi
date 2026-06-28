@@ -1,3 +1,18 @@
+version: 2
+table_family: protocol_surface
+owner: platform
+protocol_id: platform_nimi_ui_primitives_data_workflow
+surfaces:
+  - primitive.action_menu
+  - primitive.confirm_dialog
+  - primitive.settings_shell
+  - primitive.statistic
+  - primitive.data_list
+  - primitive.data_table
+  - primitive.pagination
+  - primitive.breadcrumb
+  - primitive.steps
+
 primitives:
   - id: primitive.action_menu
     family: overlay

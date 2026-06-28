@@ -49,7 +49,8 @@ reconstruction:
       - .nimi/spec/runtime/kernel/index.md
       - .nimi/spec/sdks/kernel/index.md
       - .nimi/spec/platform/kernel/index.md
-      - .nimi/spec/realm/kernel/index.md
+      - .nimi/spec/realm/README.md
+      - .nimi/spec/realm/external-realm.md
       - .nimi/spec/desktop/kernel/index.md
       - .nimi/spec/avatar/kernel/index.md
       - .nimi/spec/cognition/kernel/index.md

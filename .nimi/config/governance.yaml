@@ -212,6 +212,10 @@ ai_governance:
         - "**/*_test.go"
         - "**/*_test.py"
         - "**/test_*.py"
+        - "**/test/**/*.js"
+        - "**/test/**/*.mjs"
+        - "**/test/**/*.ts"
+        - "**/test/**/*.tsx"
         - "**/__tests__/**"
       spec_yaml:
         - .nimi/spec/**/*.yaml

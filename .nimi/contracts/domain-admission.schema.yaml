@@ -47,13 +47,26 @@ domain_admissions:
     forbidden_surface_classes: [derived_view, spec_generation_state, audit_evidence_state, lifecycle_progress_state, candidate_roadmap]
     validation_commands: [pnpm exec nimicoding validate-spec-governance --profile nimi --scope platform]
     migration_disposition_when_unadmitted: block
-  - domain_id: realm
-    domain_root: .nimi/spec/realm
+  - domain_id: nimi2d
+    domain_root: .nimi/spec/nimi2d
     authority_class: active_product
-    owner: realm
-    admitted_by: existing_host_product_authority
+    owner: nimi2d
+    admitted_by: nimi2d_domain_hardcut
     allowed_surface_classes: [product_authority, product_authority_table, thin_guidance, support_registry]
     forbidden_surface_classes: [derived_view, spec_generation_state, audit_evidence_state, lifecycle_progress_state, candidate_roadmap, methodology_authority]
+    validation_commands: [pnpm exec nimicoding validate-spec-governance --profile nimi --scope nimi2d]
+    migration_disposition_when_unadmitted: block
+    admission_policy:
+      generated_evidence_state_policy: generated_views_evidence_and_lifecycle_state_must_move_or_split_out_of_product_authority_root
+      table_policy: product_tables_must_declare_table_family_before_keep
+      guidance_policy: guidance_must_be_thin_and_must_not_carry_rule_body
+  - domain_id: realm
+    domain_root: .nimi/spec/realm
+    authority_class: package_projection_anchor_only
+    owner: realm_external_projection
+    admitted_by: external_realm_consumer_boundary
+    allowed_surface_classes: [thin_guidance, host_projection_anchor]
+    forbidden_surface_classes: [product_authority, product_authority_table, derived_view, spec_generation_state, audit_evidence_state, lifecycle_progress_state, candidate_roadmap, methodology_authority, support_registry]
     validation_commands: [pnpm exec nimicoding validate-spec-governance --profile nimi --scope realm]
     migration_disposition_when_unadmitted: block
   - domain_id: desktop
