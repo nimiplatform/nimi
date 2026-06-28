@@ -19,7 +19,9 @@ func supervisorProcessAlive(pid int) bool {
 	if err != nil {
 		return false
 	}
-	defer windows.CloseHandle(handle)
+	defer func() {
+		_ = windows.CloseHandle(handle)
+	}()
 
 	var code uint32
 	if err := windows.GetExitCodeProcess(handle, &code); err != nil {
@@ -38,7 +40,9 @@ func supervisorProcessMatchesExpectedPath(pid int, expectedPath string) (bool, b
 	if err != nil {
 		return false, false
 	}
-	defer windows.CloseHandle(handle)
+	defer func() {
+		_ = windows.CloseHandle(handle)
+	}()
 
 	buffer := make([]uint16, windows.MAX_PATH)
 	size := uint32(len(buffer))

@@ -109,6 +109,7 @@ func executeTextGenerateScenario(ctx context.Context, s *Service, req *runtimev1
 
 	traceID := ulid.Make().String()
 	inputText := nimillm.ComposeInputText(resolved.spec.GetSystemPrompt(), resolved.spec.GetInput())
+	providerModelID := s.resolveTextProviderModelID(ctx, req.GetHead(), modelResolved, remoteTarget)
 
 	var (
 		outputText   string
@@ -118,7 +119,7 @@ func executeTextGenerateScenario(ctx context.Context, s *Service, req *runtimev1
 	)
 	if remoteTarget != nil {
 		if cp := s.selector.cloudProvider; cp != nil {
-			outputText, toolCalls, usage, finishReason, err = cp.GenerateTextScenarioWithTarget(requestCtx, modelResolved, resolved.spec, inputText, remoteTarget)
+			outputText, toolCalls, usage, finishReason, err = cp.GenerateTextScenarioWithTarget(requestCtx, providerModelID, resolved.spec, inputText, remoteTarget)
 		} else if scenarioProvider, ok := selectedProvider.(scenarioTextProvider); ok {
 			outputText, toolCalls, usage, finishReason, err = scenarioProvider.GenerateTextScenario(requestCtx, modelResolved, resolved.spec, inputText)
 		} else {

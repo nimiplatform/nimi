@@ -203,7 +203,7 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 			Payload: &runtimev1.StreamScenarioEvent_Failed{
 				Failed: &runtimev1.ScenarioStreamFailed{
 					ReasonCode: reasonCodeFromStreamError(cause),
-					ActionHint: "retry stream request",
+					ActionHint: actionHintFromStreamError(cause),
 				},
 			},
 		})
@@ -239,6 +239,7 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 	}
 
 	inputText := nimillm.ComposeInputText(resolved.spec.GetSystemPrompt(), resolved.spec.GetInput())
+	providerModelID := s.resolveTextProviderModelID(stream.Context(), req.GetHead(), modelResolved, remoteTarget)
 	var usage *runtimev1.UsageStats
 	var finishReason runtimev1.FinishReason
 	streamSimulated := false
@@ -401,7 +402,7 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 	var pendingToolCalls []*runtimev1.ToolCall
 	if !usesToolSurface && remoteTarget != nil && s.selector.cloudProvider != nil {
 		requestCtx = nimillm.WithStreamSimulationFlag(requestCtx, &streamSimulated)
-		usage, finishReason, err = s.selector.cloudProvider.StreamGenerateTextScenarioWithTarget(requestCtx, modelResolved, resolved.spec, func(part string) error {
+		usage, finishReason, err = s.selector.cloudProvider.StreamGenerateTextScenarioWithTarget(requestCtx, providerModelID, resolved.spec, func(part string) error {
 			recordFirstProviderCallback()
 			recordActivity()
 			return sendDelta(part)
@@ -448,7 +449,7 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 			generateErr  error
 		)
 		if remoteTarget != nil && s.selector.cloudProvider != nil {
-			outputText, pendingToolCalls, streamUsage, streamFinish, generateErr = s.selector.cloudProvider.GenerateTextScenarioWithTarget(requestCtx, modelResolved, resolved.spec, inputText, remoteTarget)
+			outputText, pendingToolCalls, streamUsage, streamFinish, generateErr = s.selector.cloudProvider.GenerateTextScenarioWithTarget(requestCtx, providerModelID, resolved.spec, inputText, remoteTarget)
 		} else {
 			outputText, pendingToolCalls, streamUsage, streamFinish, generateErr = scenarioGenerator.GenerateTextScenario(requestCtx, modelResolved, resolved.spec, inputText)
 		}

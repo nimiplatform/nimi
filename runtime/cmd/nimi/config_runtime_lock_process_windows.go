@@ -16,7 +16,9 @@ func configWriteLockProcessAlive(pid int) bool {
 	if err != nil {
 		return false
 	}
-	defer windows.CloseHandle(handle)
+	defer func() {
+		_ = windows.CloseHandle(handle)
+	}()
 
 	var exitCode uint32
 	if err := windows.GetExitCodeProcess(handle, &exitCode); err != nil {

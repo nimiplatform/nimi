@@ -103,6 +103,7 @@ models:
       url: https://www.volcengine.com/docs/82379/1366799?lang=zh
       retrieved_at: 2026-03-05
       note: Volcengine Seedance video generation overview (t2v and i2v).
+    api_model_id: seedance-1-5-pro
     video_generation: *a1
   - model_id: seedance_v1_5_pro
     provider: volcengine
@@ -121,6 +122,7 @@ models:
       url: https://www.volcengine.com/docs/82379/1366799?lang=zh
       retrieved_at: 2026-03-05
       note: Volcengine Seedance video generation overview (t2v and i2v).
+    api_model_id: seedance-1-5-pro
     video_generation: *a1
   - model_id: doubao-seedance-2-0-260128
     provider: volcengine
@@ -225,6 +227,7 @@ models:
       url: https://www.volcengine.com/docs/82379/1366799?lang=zh
       retrieved_at: 2026-03-05
       note: Volcengine Seedance video generation overview (t2v and i2v).
+    api_model_id: doubao-seedance-2-0-260128
     video_generation: *a2
   - model_id: doubao-seed-2-0-pro-260215
     provider: volcengine
@@ -260,6 +263,7 @@ models:
       url: https://www.volcengine.com/docs/6489/1331021
       retrieved_at: 2026-04-18
       note: Volcengine Ark OpenAI-compatible SDK documentation and model examples.
+    api_model_id: doubao-seed-2-0-pro-260215
   - model_id: doubao-seed-2-0-lite-260215
     provider: volcengine
     model_type: chat
@@ -294,6 +298,7 @@ models:
       url: https://www.volcengine.com/docs/6489/1331021
       retrieved_at: 2026-04-18
       note: Volcengine Ark OpenAI-compatible SDK documentation and model examples.
+    api_model_id: doubao-seed-2-0-lite-260215
   - model_id: doubao-seed-2-0-mini-260428
     provider: volcengine
     model_type: chat
@@ -328,6 +333,7 @@ models:
       url: https://www.volcengine.com/docs/6489/1331021
       retrieved_at: 2026-04-18
       note: Volcengine Ark OpenAI-compatible SDK documentation and model examples.
+    api_model_id: doubao-seed-2-0-mini-260428
   - model_id: doubao-seed-2-0-mini-260215
     provider: volcengine
     model_type: chat
@@ -379,6 +385,7 @@ models:
       url: https://www.volcengine.com/docs/6489/1331021
       retrieved_at: 2026-04-18
       note: Volcengine Ark OpenAI-compatible SDK documentation and model examples.
+    api_model_id: doubao-seed-2-0-code-preview-260215
   - model_id: doubao-1.5-pro-256k
     provider: volcengine
     model_type: chat
@@ -413,6 +420,7 @@ models:
       url: https://www.volcengine.com/docs/6489/1331021
       retrieved_at: 2026-04-18
       note: Volcengine Ark OpenAI-compatible SDK documentation and model examples.
+    api_model_id: doubao-1.5-pro-256k
   - model_id: doubao-embedding
     provider: volcengine
     model_type: embedding
@@ -447,6 +455,7 @@ models:
       url: https://www.volcengine.com/docs/84716/1288890
       retrieved_at: 2026-04-18
       note: Volcengine embedding model documentation.
+    api_model_id: doubao-embedding
   - model_id: doubao-seedream-5-0-260128
     provider: volcengine
     model_type: image
@@ -494,6 +503,7 @@ models:
       url: https://www.volcengine.com/docs/6492/2172373
       retrieved_at: 2026-04-18
       note: Volcengine Seedream image generation documentation.
+    api_model_id: doubao-seedream-5-0-260128
     image_request_options: *a3
   - model_id: doubao-seedream-4-5-251128
     provider: volcengine
@@ -531,13 +541,13 @@ selection_profiles:
     profile_id: text.general
     capability: text.generate
     model_id: doubao-seed-2-0-pro-260215
-    reviewed_at: 2026-06-03
+    reviewed_at: 2026-06-27
     freshness_sla_days: 21
     rationale: Best current general Volcengine text route in the admitted set.
   - provider: volcengine
     profile_id: text.fast
     capability: text.generate
     model_id: doubao-seed-2-0-mini-260428
-    reviewed_at: 2026-06-03
+    reviewed_at: 2026-06-27
     freshness_sla_days: 21
     rationale: Current lightweight Volcengine text route for lower-latency general tasks.

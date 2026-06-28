@@ -82,7 +82,9 @@ func computeImportFileSHA256(path string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close()
+	}()
 	hasher := sha256.New()
 	if _, err := io.Copy(hasher, file); err != nil {
 		return "", err
@@ -135,7 +137,9 @@ func copyFile(src, dst string, perm os.FileMode) error {
 	if err != nil {
 		return fmt.Errorf("open source file: %w", err)
 	}
-	defer source.Close()
+	defer func() {
+		_ = source.Close()
+	}()
 	target, err := os.OpenFile(dst, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, perm)
 	if err != nil {
 		return fmt.Errorf("open destination file: %w", err)

@@ -222,7 +222,8 @@ function generateProviderCatalog(doc) {
         pricing: { ...pricing },
         source_ref: { ...modelSourceRef },
       };
-      const apiModelID = normalizeString(model?.api_model_id);
+      const sourceApiModelID = normalizeString(model?.api_model_id);
+      const apiModelID = sourceApiModelID || (runtime.runtime_plane === 'local' || entryModelID === canonicalModelID ? '' : canonicalModelID);
       if (apiModelID) {
         modelEntry.api_model_id = apiModelID;
       }

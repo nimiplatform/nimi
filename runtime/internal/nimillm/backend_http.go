@@ -58,9 +58,8 @@ func (b *Backend) probeGETAbsolute(ctx context.Context, endpoint string) error {
 	defer func() { _ = response.Body.Close() }()
 
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		var payload map[string]any
-		_ = json.NewDecoder(response.Body).Decode(&payload)
-		return MapProviderHTTPError(response.StatusCode, payload)
+		_, mappedErr := providerHTTPErrorFromResponse(response, endpoint)
+		return mappedErr
 	}
 
 	_, _ = io.Copy(io.Discard, response.Body)
@@ -102,9 +101,8 @@ func (b *Backend) postRaw(ctx context.Context, path string, requestBody any) ([]
 	defer func() { _ = response.Body.Close() }()
 
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		var payload map[string]any
-		_ = json.NewDecoder(response.Body).Decode(&payload)
-		return nil, MapProviderHTTPError(response.StatusCode, payload)
+		_, mappedErr := providerHTTPErrorFromResponse(response, endpoint)
+		return nil, mappedErr
 	}
 
 	body, err := readLimitedResponseBody(response.Body, maxJSONOrBinaryResponseBytes)
@@ -120,9 +118,12 @@ func (b *Backend) postRaw(ctx context.Context, path string, requestBody any) ([]
 // DecodeResponseJSON decodes a JSON HTTP response, mapping errors to gRPC status.
 func DecodeResponseJSON(response *http.Response, target any) error {
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		var payload map[string]any
-		_ = json.NewDecoder(response.Body).Decode(&payload)
-		return MapProviderHTTPError(response.StatusCode, payload)
+		targetURL := ""
+		if response.Request != nil && response.Request.URL != nil {
+			targetURL = response.Request.URL.String()
+		}
+		_, mappedErr := providerHTTPErrorFromResponse(response, targetURL)
+		return mappedErr
 	}
 	if err := json.NewDecoder(response.Body).Decode(target); err != nil {
 		return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)

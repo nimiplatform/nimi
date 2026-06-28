@@ -46,19 +46,21 @@ func bindSupervisorProcessLifecycle(cmd *exec.Cmd) (func(), error) {
 		uintptr(unsafe.Pointer(&info)),
 		uint32(unsafe.Sizeof(info)),
 	); err != nil {
-		windows.CloseHandle(job)
+		_ = windows.CloseHandle(job)
 		return nil, err
 	}
 
 	processHandle, err := windows.OpenProcess(windows.PROCESS_SET_QUOTA|windows.PROCESS_TERMINATE, false, uint32(cmd.Process.Pid))
 	if err != nil {
-		windows.CloseHandle(job)
+		_ = windows.CloseHandle(job)
 		return nil, err
 	}
-	defer windows.CloseHandle(processHandle)
+	defer func() {
+		_ = windows.CloseHandle(processHandle)
+	}()
 
 	if err := windows.AssignProcessToJobObject(job, processHandle); err != nil {
-		windows.CloseHandle(job)
+		_ = windows.CloseHandle(job)
 		return nil, err
 	}
 

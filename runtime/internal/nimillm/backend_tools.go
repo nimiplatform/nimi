@@ -47,6 +47,35 @@ func BuildTextGenParams(spec *runtimev1.TextGenerateScenarioSpec) textGenParams 
 	}
 }
 
+func (b *Backend) supportsOpenAICompatibleTopK() bool {
+	if b.isGeminiOpenAICompatibleBackend() {
+		return false
+	}
+	return true
+}
+
+func (b *Backend) supportsOpenAICompatibleStreamOptions() bool {
+	if b.isGeminiOpenAICompatibleBackend() {
+		return false
+	}
+	return true
+}
+
+func (b *Backend) isGeminiOpenAICompatibleBackend() bool {
+	if b == nil {
+		return false
+	}
+	name := strings.ToLower(strings.TrimSpace(b.Name))
+	base := strings.ToLower(strings.TrimSpace(b.baseURL))
+	// Gemini's OpenAI-compatible chat surface is OpenAI-shaped, but not a byte-for-byte
+	// superset of OpenAI chat options. Provider-specific wire omissions stay here so
+	// the Runtime spec remains stable and other OpenAI-compatible backends keep pass-through.
+	if strings.Contains(name, "gemini") || strings.Contains(base, "generativelanguage.googleapis.com") {
+		return true
+	}
+	return false
+}
+
 func (p textGenParams) hasTools() bool {
 	return len(p.tools) > 0
 }

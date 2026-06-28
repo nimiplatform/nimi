@@ -718,6 +718,100 @@ func TestStreamScenarioTextGenerateStartedCarriesResolvedCloudBinding(t *testing
 	}
 }
 
+func TestStreamScenarioTextGenerateCloudAliasUsesAPIModelID(t *testing.T) {
+	var capturedModel string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/chat/completions" {
+			http.NotFound(w, r)
+			return
+		}
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Errorf("decode request body: %v", err)
+			http.Error(w, "bad body", http.StatusBadRequest)
+			return
+		}
+		capturedModel, _ = body["model"].(string)
+		w.Header().Set("Content-Type", "text/event-stream")
+		chunks := []string{
+			`data: {"choices":[{"delta":{"content":"canonical model accepted response text"},"finish_reason":null}]}` + "\n\n",
+			`data: {"choices":[{"delta":{},"finish_reason":"stop"}],"usage":{"prompt_tokens":5,"completion_tokens":8}}` + "\n\n",
+			"data: [DONE]\n\n",
+		}
+		for _, chunk := range chunks {
+			_, _ = w.Write([]byte(chunk))
+			if f, ok := w.(http.Flusher); ok {
+				f.Flush()
+			}
+		}
+	}))
+	defer server.Close()
+
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	store := connector.NewConnectorStoreWithMemorySecrets(t.TempDir())
+	connectorSvc := connector.New(logger, store, nil)
+	ctx := userCtx("user-001")
+	created, err := connectorSvc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
+		Provider: "volcengine",
+		Endpoint: server.URL,
+		ApiKey:   "managed-key",
+	})
+	if err != nil {
+		t.Fatalf("CreateConnector: %v", err)
+	}
+	connectorID := created.GetConnector().GetConnectorId()
+	descriptor := connectorModelDescriptorForAITest(t, connectorSvc, ctx, connectorID, "doubao-seed-2.0-pro")
+
+	svc, err := newFromProviderConfig(logger, nil, nil, nil, store, Config{
+		CloudProviders:        map[string]nimillm.ProviderCredentials{"volcengine": {BaseURL: server.URL, APIKey: "unused"}},
+		AllowLoopbackEndpoint: true,
+	}, 8, 2)
+	if err != nil {
+		t.Fatalf("new service: %v", err)
+	}
+
+	streamCtx := metadata.NewIncomingContext(ctx, metadata.Pairs("x-nimi-key-source", "managed"))
+	stream := &mockScenarioEventStream{ctx: streamCtx}
+	req := &runtimev1.StreamScenarioRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         "nimi.desktop",
+			SubjectUserId: "user-001",
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     30_000,
+			TargetRef: &runtimev1.RuntimeDurableTargetRef{
+				Target: &runtimev1.RuntimeDurableTargetRef_Cloud{
+					Cloud: &runtimev1.RuntimeDurableCloudTargetRef{
+						Version:              "v2",
+						ConnectorId:          connectorID,
+						RemoteModelCatalogId: descriptor.GetRemoteModelCatalogId(),
+						ProviderModelId:      descriptor.GetProviderModelId(),
+						Provider:             descriptor.GetProvider(),
+					},
+				},
+			},
+		},
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_STREAM,
+		Spec: &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_TextGenerate{
+				TextGenerate: &runtimev1.TextGenerateScenarioSpec{
+					Input: []*runtimev1.ChatMessage{{Role: "user", Content: "hi"}},
+				},
+			},
+		},
+	}
+	if err := svc.StreamScenario(req, stream); err != nil {
+		t.Fatalf("stream scenario: %v", err)
+	}
+	if capturedModel != "doubao-seed-2-0-pro-260215" {
+		t.Fatalf("provider request model = %q, want canonical API model id", capturedModel)
+	}
+	if len(stream.events) == 0 || stream.events[len(stream.events)-1].GetCompleted() == nil {
+		t.Fatalf("expected stream completion, got %#v", stream.events)
+	}
+}
+
 func TestStreamCloseModeTerminalEventOnError(t *testing.T) {
 	// K-STREAM-001 mode 2: terminal FAILED event closes stream.
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {

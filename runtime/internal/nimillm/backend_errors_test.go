@@ -87,6 +87,60 @@ func TestMapProviderHTTPError_BadRequestQuotaExceededMapsRateLimited(t *testing.
 	}
 }
 
+func TestMapProviderHTTPError_BadRequestLocationUnsupportedMapsEndpointForbidden(t *testing.T) {
+	err := MapProviderHTTPError(400, map[string]any{
+		"error": map[string]any{
+			"message": "User location is not supported for the API use.",
+			"status":  "FAILED_PRECONDITION",
+		},
+	})
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatal("expected gRPC status error for HTTP 400 location failure")
+	}
+	if st.Code() != codes.FailedPrecondition {
+		t.Fatalf("expected FailedPrecondition, got %v", st.Code())
+	}
+	reason, ok := grpcerr.ExtractReasonCode(err)
+	if !ok || reason != runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN {
+		t.Fatalf("expected AI_PROVIDER_ENDPOINT_FORBIDDEN, got %v", reason)
+	}
+	metadata := extractErrorInfoMetadata(err)
+	if metadata["action_hint"] != "use_supported_provider_region_or_connector" {
+		t.Fatalf("unexpected action_hint: %q", metadata["action_hint"])
+	}
+	if metadata["provider_message"] != "User location is not supported for the API use." {
+		t.Fatalf("unexpected provider_message: %q", metadata["provider_message"])
+	}
+}
+
+func TestMapProviderHTTPError_BadRequestInferenceLimitMapsRateLimited(t *testing.T) {
+	message := "Your account [2120157817] has reached the set inference limit for the [doubao-seedance-2-0] model, and the model service has been paused. To continue using this model, please visit the Model Activation page to adjust or close the \"Safe Experience Mode\"."
+	err := MapProviderHTTPError(400, map[string]any{
+		"error": map[string]any{
+			"message": message,
+		},
+	})
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatal("expected gRPC status error for HTTP 400 inference limit")
+	}
+	if st.Code() != codes.ResourceExhausted {
+		t.Fatalf("expected ResourceExhausted, got %v", st.Code())
+	}
+	reason, ok := grpcerr.ExtractReasonCode(err)
+	if !ok || reason != runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED {
+		t.Fatalf("expected AI_PROVIDER_RATE_LIMITED, got %v", reason)
+	}
+	metadata := extractErrorInfoMetadata(err)
+	if metadata["action_hint"] != "replenish_provider_balance_or_skip_live_test" {
+		t.Fatalf("unexpected action_hint: %q", metadata["action_hint"])
+	}
+	if got := metadata["provider_message"]; !strings.Contains(got, "set inference limit") || !strings.Contains(got, "model service has been paused") {
+		t.Fatalf("unexpected provider_message: %q", got)
+	}
+}
+
 func TestMapProviderHTTPError_BadRequestAPIKeyInvalidMapsAuthFailed(t *testing.T) {
 	err := MapProviderHTTPError(400, map[string]any{
 		"error": map[string]any{

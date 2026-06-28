@@ -73,13 +73,13 @@ selection_profiles:
     profile_id: text.general
     capability: text.generate
     model_id: gpt-5.4
-    reviewed_at: 2026-05-25
+    reviewed_at: 2026-06-27
     freshness_sla_days: 14
     rationale: Codex-backed default text route for general subscription-backed consume.
   - provider: openai_codex
     profile_id: image.general
     capability: image.generate
     model_id: gpt-image-2
-    reviewed_at: 2026-05-25
+    reviewed_at: 2026-06-27
     freshness_sla_days: 14
     rationale: Current Codex-backed image generation route.

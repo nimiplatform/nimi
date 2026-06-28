@@ -131,6 +131,72 @@ func bestEffortDeleteProviderAsyncTask(ctx context.Context, adapter string, base
 	})
 }
 
+func providerTaskFailedError(statusText string, payload map[string]any) error {
+	metadata := map[string]string{}
+	if status := strings.TrimSpace(statusText); status != "" {
+		metadata["provider_task_status"] = status
+	}
+	providerMessage := normalizeProviderErrorMessage(ProviderTaskFailureMessage(payload))
+	if providerMessage != "" {
+		metadata["provider_message"] = providerMessage
+	}
+	if IsContentFilterMessage(strings.ToLower(providerMessage)) {
+		return grpcerr.WithReasonCodeOptions(codes.PermissionDenied, runtimev1.ReasonCode_AI_CONTENT_FILTER_BLOCKED, grpcerr.ReasonOptions{
+			ActionHint: "revise_prompt_or_policy_sensitive_inputs",
+			Message:    "provider task failed",
+			Metadata:   metadata,
+		})
+	}
+	if providerTaskFailureLooksLikeRequestIssue(providerMessage) {
+		grpcCode, reasonCode, actionHint := classifyProviderBadRequest(providerMessage)
+		return grpcerr.WithReasonCodeOptions(grpcCode, reasonCode, grpcerr.ReasonOptions{
+			ActionHint: actionHint,
+			Message:    "provider task failed",
+			Metadata:   metadata,
+		})
+	}
+	return grpcerr.WithReasonCodeOptions(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, grpcerr.ReasonOptions{
+		ActionHint: "check_provider_endpoint_or_live_task_status",
+		Message:    "provider task failed",
+		Metadata:   metadata,
+	})
+}
+
+func providerTaskFailureLooksLikeRequestIssue(providerMessage string) bool {
+	normalized := strings.ToLower(strings.TrimSpace(providerMessage))
+	if normalized == "" {
+		return false
+	}
+	return containsAnyToken(
+		normalized,
+		"paid plan",
+		"subscription",
+		"payment required",
+		"insufficient balance",
+		"insufficient credits",
+		"quota",
+		"limit",
+		"api key",
+		"auth",
+		"model not found",
+		"unknown model",
+		"model does not exist",
+		"model is not available",
+		"invalid model",
+		"unsupported",
+		"not supported",
+		"invalid",
+		"required",
+		"requires",
+		"must be",
+		"out of range",
+		"resolution",
+		"ratio",
+		"duration",
+		"size",
+	)
+}
+
 // PollProviderTaskForArtifact polls a provider's async task endpoint until
 // the task completes and returns the resulting artifact.
 func PollProviderTaskForArtifact(
@@ -208,7 +274,7 @@ func PollProviderTaskForArtifact(
 		}
 		if IsAsyncTaskFailedStatus(statusText) {
 			updater.UpdatePollState(jobID, providerJobID, retryCount, nil, statusText)
-			return nil, nil, providerJobID, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+			return nil, nil, providerJobID, providerTaskFailedError(statusText, pollResp)
 		}
 		artifactBytes, mimeType, artifactURI := ExtractTaskArtifactBytesAndMIME(ctx, pollResp)
 		if len(artifactBytes) == 0 {

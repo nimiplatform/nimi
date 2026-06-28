@@ -121,8 +121,12 @@ func TestBackendGenerateTextUsesFlexibleMessageExtraction(t *testing.T) {
 
 func TestBackendGenerateTextUsesOpenAICompatibleRootPathForGeminiBase(t *testing.T) {
 	var capturedPath string
+	var capturedRequestBody map[string]any
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		capturedPath = r.URL.Path
+		if err := json.NewDecoder(r.Body).Decode(&capturedRequestBody); err != nil {
+			t.Fatalf("decode request body: %v", err)
+		}
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{
 			"choices":[{"finish_reason":"stop","message":{"content":"hello from gemini"}}],
@@ -144,13 +148,16 @@ func TestBackendGenerateTextUsesOpenAICompatibleRootPathForGeminiBase(t *testing
 		0,
 		0,
 		0,
-		textGenParams{},
+		textGenParams{topK: 38},
 	)
 	if err != nil {
 		t.Fatalf("unexpected generate error: %v", err)
 	}
 	if capturedPath != "/openai/chat/completions" {
 		t.Fatalf("expected Gemini-compatible chat path, got %q", capturedPath)
+	}
+	if _, ok := capturedRequestBody["top_k"]; ok {
+		t.Fatalf("Gemini OpenAI-compatible chat requests must omit unsupported top_k, got %v", capturedRequestBody["top_k"])
 	}
 	if text != "hello from gemini" {
 		t.Fatalf("unexpected text: %q", text)
@@ -197,8 +204,11 @@ func TestBackendStreamGenerateTextUsesOpenAICompatibleRootPathForGeminiBase(t *t
 	if capturedPath != "/openai/chat/completions" {
 		t.Fatalf("expected Gemini-compatible stream path, got %q", capturedPath)
 	}
-	if capturedRequestBody["top_k"] != float64(38) {
-		t.Fatalf("expected top_k pass-through, got %v", capturedRequestBody["top_k"])
+	if _, ok := capturedRequestBody["top_k"]; ok {
+		t.Fatalf("Gemini OpenAI-compatible stream requests must omit unsupported top_k, got %v", capturedRequestBody["top_k"])
+	}
+	if _, ok := capturedRequestBody["stream_options"]; ok {
+		t.Fatalf("Gemini OpenAI-compatible stream requests must omit unsupported stream_options, got %v", capturedRequestBody["stream_options"])
 	}
 	if full.String() != "hello" {
 		t.Fatalf("unexpected stream text: %q", full.String())

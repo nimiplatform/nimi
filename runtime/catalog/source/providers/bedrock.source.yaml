@@ -76,19 +76,19 @@ selection_profiles:
   - profile_id: text.general
     capability: text.generate
     model_id: anthropic.claude-sonnet-4-6
-    reviewed_at: 2026-06-03
+    reviewed_at: 2026-06-27
     freshness_sla_days: 21
     rationale: Best current balanced Bedrock text route in the admitted set.
   - profile_id: text.fast
     capability: text.generate
     model_id: amazon.nova-micro-v1:0
-    reviewed_at: 2026-06-03
+    reviewed_at: 2026-06-27
     freshness_sla_days: 21
     rationale: Fastest admitted Bedrock text-only route in the reviewed Amazon Nova subset.
   - profile_id: text.reasoning
     capability: text.generate
     model_id: anthropic.claude-opus-4-8
-    reviewed_at: 2026-06-03
+    reviewed_at: 2026-06-27
     freshness_sla_days: 21
     rationale: Highest-quality admitted Bedrock reasoning route.
 

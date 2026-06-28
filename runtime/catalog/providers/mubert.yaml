@@ -37,6 +37,7 @@ models:
       url: https://mubert.com/api
       retrieved_at: 2026-04-18
       note: Mubert API overview and pricing page covering generator, streaming, and library surfaces.
+    api_model_id: mubert-track-v3
   - model_id: mubert-track
     provider: mubert
     model_type: music
@@ -54,4 +55,5 @@ models:
       url: https://mubert.com/api
       retrieved_at: 2026-04-18
       note: Mubert API overview and pricing page covering generator, streaming, and library surfaces.
+    api_model_id: mubert-track-v3
 voices: []

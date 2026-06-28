@@ -48,12 +48,12 @@ func TestDefaultProcessAliveRejectsInvalidPID(t *testing.T) {
 }
 
 func TestWindowsExecutableIdentityMatchesGoBuildBackupImage(t *testing.T) {
-	expected := `D:\nimi-realm\nimi\dist\nimi.exe`
-	actual := `D:\nimi-realm\nimi\dist\nimi.exe~`
+	expected := `D:\workspace\nimi\dist\nimi.exe`
+	actual := `D:\workspace\nimi\dist\nimi.exe~`
 	if !windowsExecutableIdentityMatches(actual, expected) {
 		t.Fatal("expected Go build backup image path to match original executable identity")
 	}
-	if windowsExecutableIdentityMatches(`D:\nimi-realm\nimi\dist\other.exe~`, expected) {
+	if windowsExecutableIdentityMatches(`D:\workspace\nimi\dist\other.exe~`, expected) {
 		t.Fatal("unexpected match for different executable backup path")
 	}
 }

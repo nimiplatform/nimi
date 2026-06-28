@@ -65,6 +65,11 @@ func classifyProviderBadRequest(providerMessage string) (codes.Code, runtimev1.R
 		"check your plan and billing details",
 		"quota exceeded",
 		"quota_exceeded",
+		"inference limit",
+		"set inference limit",
+		"setlimitexceeded",
+		"model service has been paused",
+		"safe experience mode",
 	)
 	if balanceBlocked {
 		return codes.ResourceExhausted, runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED, "replenish_provider_balance_or_skip_live_test"
@@ -84,6 +89,19 @@ func classifyProviderBadRequest(providerMessage string) (codes.Code, runtimev1.R
 	)
 	if authFailed {
 		return codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED, "refresh_provider_api_key_or_reconnect_connector"
+	}
+
+	locationBlocked := containsAnyToken(
+		normalized,
+		"user location is not supported",
+		"location is not supported",
+		"not available in your country",
+		"not available in your region",
+		"unsupported region",
+		"unsupported country",
+	)
+	if locationBlocked {
+		return codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN, "use_supported_provider_region_or_connector"
 	}
 
 	modelNotFound := containsAnyToken(

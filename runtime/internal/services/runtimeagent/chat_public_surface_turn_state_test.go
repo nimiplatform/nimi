@@ -41,7 +41,7 @@ func TestPublicChatTurnInterruptCancelsActiveTurn(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"runtime_source_ref":         "agent-alpha",
+			"runtime_source_ref":     "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
@@ -97,14 +97,7 @@ func TestPublicChatTurnInterruptCancelsActiveTurn(t *testing.T) {
 	if got := interruptedDetail["reason"]; got != "user_cancel" {
 		t.Fatalf("unexpected interrupted.detail.reason: %v", got)
 	}
-	stateResp, err := svc.GetAgentState(context.Background(), &runtimev1.GetAgentStateRequest{
-		Context: testRuntimeAgentIdentityContext("agent-alpha"), AgentId: "agent-alpha"})
-	if err != nil {
-		t.Fatalf("GetAgentState: %v", err)
-	}
-	if stateResp.GetState().GetExecutionState() != runtimev1.AgentExecutionState_AGENT_EXECUTION_STATE_IDLE {
-		t.Fatalf("expected agent to return to idle after interrupt, got=%s", stateResp.GetState().GetExecutionState())
-	}
+	waitForPublicChatAgentIdle(t, svc, "agent-alpha")
 }
 func TestPublicChatSessionSnapshotReportsLiveAndTerminalState(t *testing.T) {
 	t.Parallel()
@@ -182,7 +175,7 @@ func TestPublicChatSessionSnapshotReportsLiveAndTerminalState(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"runtime_source_ref":         "agent-alpha",
+			"runtime_source_ref":     "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"thread_id":              "thread-session-snapshot",
 			"messages": []any{

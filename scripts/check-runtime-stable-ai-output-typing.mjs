@@ -74,8 +74,7 @@ const checks = [
     description: 'desktop must not restore local kernel turn orchestration after Runtime Agent ownership',
     pattern: 'executeLocalKernelTurn|ExecuteLocalKernelTurn|stateDelta:|memoryWrites:',
     paths: [
-      'apps/desktop/src/shell/renderer/bridge/runtime-bridge',
-      'apps/desktop/src/shell/renderer/infra/local-agent-courier',
+      'apps/desktop/src/shell/renderer',
     ],
   },
   {

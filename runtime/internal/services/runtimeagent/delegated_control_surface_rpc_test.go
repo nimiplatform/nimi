@@ -233,7 +233,7 @@ func TestDelegatedApprovalAndDiagnosticsSurfaceRuntimeDecisions(t *testing.T) {
 	svc := testDelegatedControlSurfaceService()
 	ctx := testDelegatedControlContext()
 	upsertDelegatedApprovalTestProfile(t, svc, "sha256:calendar")
-	svc.recordDelegatedCapabilityDecision(&runtimeAgentDelegatedCapabilityDecision{
+	mustRecordDelegatedCapabilityDecision(t, svc, &runtimeAgentDelegatedCapabilityDecision{
 		DecisionID:           "deleg-decision-1",
 		AgentID:              "agent-1",
 		DelegationRequestID:  "deleg-request-1",
@@ -300,7 +300,7 @@ func TestDelegatedApprovalDecisionFailsClosedOnExpiredApproval(t *testing.T) {
 	svc := testDelegatedControlSurfaceService()
 	ctx := testDelegatedControlContext()
 	upsertDelegatedApprovalTestProfile(t, svc, "sha256:calendar")
-	recordDelegatedApprovalDecisionForTest(svc)
+	recordDelegatedApprovalDecisionForTest(t, svc)
 	svc.delegatedMu.Lock()
 	approval := svc.delegatedApprovalRequests[delegatedApprovalRequestKey("agent-1", "deleg-decision-1")]
 	approval.ExpiresAt = timestamppb.New(time.Now().UTC().Add(-time.Minute))
@@ -328,7 +328,7 @@ func TestDelegatedApprovalExpiryPersistsAcrossRestart(t *testing.T) {
 	ctx.ScopedBinding = delegatedControlScopedBinding("binding-delegated-expiry-persist", agentID)
 	installDelegatedControlScopedBindingValidator(svc, "binding-delegated-expiry-persist", agentID)
 	upsertDelegatedApprovalTestProfileForAgent(t, svc, ctx, agentID, "sha256:calendar")
-	svc.recordDelegatedCapabilityDecision(&runtimeAgentDelegatedCapabilityDecision{
+	mustRecordDelegatedCapabilityDecision(t, svc, &runtimeAgentDelegatedCapabilityDecision{
 		DecisionID:           "deleg-decision-expiry-persist",
 		AgentID:              agentID,
 		DelegationRequestID:  "deleg-request-expiry-persist",
@@ -387,7 +387,7 @@ func TestDelegatedApprovalDecisionFailsClosedOnDescriptorDrift(t *testing.T) {
 	svc := testDelegatedControlSurfaceService()
 	ctx := testDelegatedControlContext()
 	upsertDelegatedApprovalTestProfile(t, svc, "sha256:calendar")
-	recordDelegatedApprovalDecisionForTest(svc)
+	recordDelegatedApprovalDecisionForTest(t, svc)
 	upsertDelegatedApprovalTestProfile(t, svc, "sha256:drifted")
 
 	_, err := svc.SubmitDelegatedApprovalDecision(context.Background(), &runtimev1.SubmitDelegatedApprovalDecisionRequest{
@@ -404,7 +404,7 @@ func TestDelegatedApprovalDecisionFailsClosedOnDescriptorDrift(t *testing.T) {
 func TestDelegatedApprovalDecisionFailsClosedOnPrincipalMismatch(t *testing.T) {
 	svc := testDelegatedControlSurfaceService()
 	upsertDelegatedApprovalTestProfile(t, svc, "sha256:calendar")
-	recordDelegatedApprovalDecisionForTest(svc)
+	recordDelegatedApprovalDecisionForTest(t, svc)
 	ctx := &runtimev1.AgentRequestContext{
 		AppId:         "nimi.desktop",
 		SubjectUserId: "other-user",
@@ -425,7 +425,7 @@ func TestDelegatedApprovalDecisionFailsClosedOnPrincipalMismatch(t *testing.T) {
 func TestDelegatedReplayTraceReconstructsRuntimeOwnedLineage(t *testing.T) {
 	svc := testDelegatedControlSurfaceService()
 	ctx := testDelegatedControlContext()
-	svc.recordDelegatedCapabilityDecision(&runtimeAgentDelegatedCapabilityDecision{
+	mustRecordDelegatedCapabilityDecision(t, svc, &runtimeAgentDelegatedCapabilityDecision{
 		DecisionID:           "deleg-decision-1",
 		AgentID:              "agent-1",
 		DelegationRequestID:  "deleg-request-1",
@@ -466,7 +466,7 @@ func TestDelegatedReplayTraceReconstructsApprovalDecisionFromAuditLineage(t *tes
 	svc := testDelegatedControlSurfaceService()
 	ctx := testDelegatedControlContext()
 	upsertDelegatedApprovalTestProfile(t, svc, "sha256:calendar")
-	svc.recordDelegatedCapabilityDecision(&runtimeAgentDelegatedCapabilityDecision{
+	mustRecordDelegatedCapabilityDecision(t, svc, &runtimeAgentDelegatedCapabilityDecision{
 		DecisionID:           "deleg-decision-1",
 		AgentID:              "agent-1",
 		DelegationRequestID:  "deleg-request-1",
@@ -533,7 +533,7 @@ func TestDelegatedReplayTraceReconstructsApprovalDecisionFromAuditLineage(t *tes
 func TestDelegatedReplayTraceMarksSensitiveOutputPartialRedacted(t *testing.T) {
 	svc := testDelegatedControlSurfaceService()
 	ctx := testDelegatedControlContext()
-	svc.recordDelegatedCapabilityDecision(&runtimeAgentDelegatedCapabilityDecision{
+	mustRecordDelegatedCapabilityDecision(t, svc, &runtimeAgentDelegatedCapabilityDecision{
 		DecisionID:               "deleg-decision-sensitive",
 		AgentID:                  "agent-1",
 		DelegationRequestID:      "deleg-request-1",
@@ -570,7 +570,7 @@ func TestDelegatedReplayTraceMarksSensitiveOutputPartialRedacted(t *testing.T) {
 func TestDelegatedReplayTraceRequiresRuntimeAuditRecord(t *testing.T) {
 	svc := testDelegatedControlSurfaceServiceWithoutAudit()
 	ctx := testDelegatedControlContext()
-	svc.recordDelegatedCapabilityDecision(&runtimeAgentDelegatedCapabilityDecision{
+	mustRecordDelegatedCapabilityDecision(t, svc, &runtimeAgentDelegatedCapabilityDecision{
 		DecisionID:           "deleg-decision-1",
 		AgentID:              "agent-1",
 		DelegationRequestID:  "deleg-request-1",
@@ -609,7 +609,7 @@ func TestDelegatedReplayTraceRequiresRuntimeAuditRecord(t *testing.T) {
 
 func TestDelegatedReplayTraceFailsClosedOnMissingJoinKeys(t *testing.T) {
 	svc := testDelegatedControlSurfaceService()
-	svc.recordDelegatedCapabilityDecision(&runtimeAgentDelegatedCapabilityDecision{
+	mustRecordDelegatedCapabilityDecision(t, svc, &runtimeAgentDelegatedCapabilityDecision{
 		DecisionID:           "deleg-decision-1",
 		AgentID:              "agent-1",
 		ConversationAnchorID: "anchor-1",
@@ -658,7 +658,7 @@ func TestDelegatedReplayTraceFailsClosedOnMissingFinalDisposition(t *testing.T) 
 
 func TestDelegatedReplayTraceIncludesApprovalState(t *testing.T) {
 	svc := testDelegatedControlSurfaceService()
-	svc.recordDelegatedCapabilityDecision(&runtimeAgentDelegatedCapabilityDecision{
+	mustRecordDelegatedCapabilityDecision(t, svc, &runtimeAgentDelegatedCapabilityDecision{
 		DecisionID:           "deleg-decision-1",
 		AgentID:              "agent-1",
 		DelegationRequestID:  "deleg-request-1",
@@ -758,8 +758,9 @@ func upsertDelegatedApprovalTestProfileForAgent(t *testing.T, svc *Service, ctx 
 	}
 }
 
-func recordDelegatedApprovalDecisionForTest(svc *Service) {
-	svc.recordDelegatedCapabilityDecision(&runtimeAgentDelegatedCapabilityDecision{
+func recordDelegatedApprovalDecisionForTest(t *testing.T, svc *Service) {
+	t.Helper()
+	mustRecordDelegatedCapabilityDecision(t, svc, &runtimeAgentDelegatedCapabilityDecision{
 		DecisionID:           "deleg-decision-1",
 		AgentID:              "agent-1",
 		DelegationRequestID:  "deleg-request-1",
@@ -779,6 +780,13 @@ func recordDelegatedApprovalDecisionForTest(svc *Service) {
 		ReasonCode:           "DELEG_APPROVAL_REQUIRED",
 		RuntimeDecision:      "approval_required",
 	})
+}
+
+func mustRecordDelegatedCapabilityDecision(t *testing.T, svc *Service, decision *runtimeAgentDelegatedCapabilityDecision) {
+	t.Helper()
+	if err := svc.recordDelegatedCapabilityDecision(decision); err != nil {
+		t.Fatalf("record delegated capability decision: %v", err)
+	}
 }
 
 func testDelegatedControlContext() *runtimev1.AgentRequestContext {

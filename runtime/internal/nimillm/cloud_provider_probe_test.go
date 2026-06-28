@@ -168,3 +168,33 @@ func TestBackendProbeConnectorAndListModelsUseAnthropicAPI(t *testing.T) {
 		t.Fatalf("unexpected models: %+v", models)
 	}
 }
+
+func TestBackendProbeConnectorUsesGeminiOpenAIModelsPath(t *testing.T) {
+	var capturedPath string
+	var wrongPathHits int
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		capturedPath = r.URL.Path
+		if r.Method != http.MethodGet || r.URL.Path != "/v1beta/openai/models" {
+			wrongPathHits++
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"data":[{"id":"gemini-2.5-flash"}]}`))
+	}))
+	defer func() { server.Close() }()
+
+	backend := NewBackend("cloud-gemini", server.URL+"/v1beta/openai", "gemini-key", defaultHTTPTimeout)
+	if backend == nil {
+		t.Fatal("expected backend")
+	}
+	if err := backend.ProbeConnector(context.Background()); err != nil {
+		t.Fatalf("ProbeConnector: %v (captured path %q)", err, capturedPath)
+	}
+	if capturedPath != "/v1beta/openai/models" {
+		t.Fatalf("expected Gemini probe to use /models under OpenAI-compatible base, got %q", capturedPath)
+	}
+	if wrongPathHits != 0 {
+		t.Fatalf("Gemini probe must not try non-Gemini model-list paths before /models, wrong hits=%d", wrongPathHits)
+	}
+}

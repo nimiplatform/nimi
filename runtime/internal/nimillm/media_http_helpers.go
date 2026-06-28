@@ -170,6 +170,24 @@ func readLimitedResponseBody(reader io.Reader, limit int64) ([]byte, error) {
 	return raw, nil
 }
 
+func providerHTTPErrorFromResponse(response *http.Response, targetURL string) (map[string]any, error) {
+	if response == nil {
+		return nil, MapProviderHTTPError(http.StatusServiceUnavailable, nil)
+	}
+	payload := map[string]any(nil)
+	raw, err := readLimitedResponseBody(response.Body, maxJSONOrBinaryResponseBytes)
+	if err == nil && len(raw) > 0 {
+		parsed := map[string]any{}
+		if jsonErr := json.Unmarshal(raw, &parsed); jsonErr == nil {
+			payload = parsed
+		} else {
+			payload = map[string]any{"message": string(raw)}
+		}
+		slog.Warn("[provider-http-debug] error response", "status", response.StatusCode, "url", targetURL, "body", normalizeProviderErrorMessage(string(raw)))
+	}
+	return payload, MapProviderHTTPError(response.StatusCode, payload)
+}
+
 // DoJSONRequest performs an HTTP request expecting a JSON response. If body is
 // nil no request body is sent. If target is nil the response body is discarded.
 func DoJSONRequest(ctx context.Context, method, targetURL, apiKey string, body any, target *map[string]any) error {
@@ -198,12 +216,8 @@ func DoJSONRequest(ctx context.Context, method, targetURL, apiKey string, body a
 	}
 	defer func() { _ = response.Body.Close() }()
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		var payload map[string]any
-		_ = json.NewDecoder(response.Body).Decode(&payload)
-		if raw, _ := json.Marshal(payload); len(raw) > 0 {
-			slog.Warn("[provider-http-debug] error response", "status", response.StatusCode, "url", targetURL, "body", string(raw))
-		}
-		return MapProviderHTTPError(response.StatusCode, payload)
+		_, mappedErr := providerHTTPErrorFromResponse(response, targetURL)
+		return mappedErr
 	}
 	if target == nil {
 		return nil

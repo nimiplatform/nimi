@@ -37,6 +37,7 @@ models:
       url: https://help.soundverse.ai/api_documentation
       retrieved_at: 2026-04-18
       note: Soundverse enterprise API overview and endpoint index.
+    api_model_id: soundverse-song-v5
   - model_id: generate-song-sync
     provider: soundverse
     model_type: music
@@ -54,6 +55,7 @@ models:
       url: https://help.soundverse.ai/api_documentation
       retrieved_at: 2026-04-18
       note: Soundverse enterprise API overview and endpoint index.
+    api_model_id: soundverse-song-v5
   - model_id: v5
     provider: soundverse
     model_type: music
@@ -71,4 +73,5 @@ models:
       url: https://help.soundverse.ai/api_documentation
       retrieved_at: 2026-04-18
       note: Soundverse enterprise API overview and endpoint index.
+    api_model_id: soundverse-song-v5
 voices: []

@@ -64,7 +64,7 @@ func modelCatalogProviderEntryFromRecord(record aicatalog.CatalogProviderRecord)
 	}
 }
 
-func (s *Service) listCatalogConnectorModels(subjectUserID string, rec ConnectorRecord) ([]*runtimev1.ConnectorModelDescriptor, error) {
+func (s *Service) listCatalogConnectorModels(subjectUserID string, provider string, rec ConnectorRecord) ([]*runtimev1.ConnectorModelDescriptor, error) {
 	modelCatalog := s.modelCatalogResolver()
 	if modelCatalog == nil {
 		return nil, grpcerr.WithReasonCodeOptions(codes.Unavailable, runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID, grpcerr.ReasonOptions{
@@ -72,7 +72,7 @@ func (s *Service) listCatalogConnectorModels(subjectUserID string, rec Connector
 		})
 	}
 
-	provider := strings.TrimSpace(rec.Provider)
+	provider = strings.TrimSpace(provider)
 	models, _, err := modelCatalog.ListModelsForProviderForSubject(subjectUserID, provider)
 	if err != nil {
 		if errors.Is(err, aicatalog.ErrProviderUnsupported) {

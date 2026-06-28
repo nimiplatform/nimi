@@ -56,19 +56,19 @@ selection_profiles:
   - profile_id: text.general
     capability: text.generate
     model_id: mimo-v2.5-pro
-    reviewed_at: 2026-06-06
+    reviewed_at: 2026-06-27
     freshness_sla_days: 21
     rationale: Current MiMo Pro text route with the strongest published context and output limits.
   - profile_id: text.fast
     capability: text.generate
     model_id: mimo-v2-flash
-    reviewed_at: 2026-06-06
+    reviewed_at: 2026-06-27
     freshness_sla_days: 21
     rationale: Current MiMo Flash text route for lower-latency and lower-cost text generation.
   - profile_id: text.reasoning
     capability: text.generate
     model_id: mimo-v2.5-pro
-    reviewed_at: 2026-06-06
+    reviewed_at: 2026-06-27
     freshness_sla_days: 21
     rationale: Current Pro route advertises deep-thinking support and the largest published text limits.
 

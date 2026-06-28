@@ -487,6 +487,9 @@ func TestNormalizeDashScopeImageSize(t *testing.T) {
 		{name: "already provider format", input: "1024*1024", want: "1024*1024"},
 		{name: "lower x separator", input: "1024x1024", want: "1024*1024"},
 		{name: "upper x separator", input: "1024X1024", want: "1024*1024"},
+		{name: "tester 2k shorthand", input: "2k", want: "2048*2048"},
+		{name: "tester 3k shorthand", input: "3k", want: "3072*3072"},
+		{name: "tester 4k shorthand", input: "4k", want: "4096*4096"},
 		{name: "invalid literal preserved", input: "auto", want: "auto"},
 	}
 	for _, tc := range tests {

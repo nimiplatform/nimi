@@ -110,6 +110,7 @@ models:
       url: https://stability.ai/api-pricing-update-25
       retrieved_at: 2026-04-18
       note: Official Stability API pricing and deprecation update highlighting Stable Image Core, Ultra, and SD3.5 family.
+    api_model_id: stable-diffusion-3.5-large
     image_request_options: *a1
   - model_id: stable-diffusion-3.5-medium
     provider: stability
@@ -158,6 +159,7 @@ models:
       url: https://stability.ai/api-pricing-update-25
       retrieved_at: 2026-04-18
       note: Official Stability API pricing and deprecation update highlighting Stable Image Core, Ultra, and SD3.5 family.
+    api_model_id: stable-diffusion-3.5-medium
     image_request_options: *a2
   - model_id: stable-audio-2
     provider: stability
@@ -195,6 +197,7 @@ models:
       url: https://platform.stability.ai/docs/getting-started
       retrieved_at: 2026-04-18
       note: Stability AI Platform API getting-started surface.
+    api_model_id: stable-audio-2
   - model_id: stable-audio
     provider: stability
     model_type: music
@@ -213,4 +216,5 @@ models:
       url: https://platform.stability.ai/docs/getting-started
       retrieved_at: 2026-04-18
       note: Stability AI Platform API getting-started surface.
+    api_model_id: stable-audio-2
 voices: []

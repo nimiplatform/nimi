@@ -2,9 +2,6 @@ package localservice
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -728,40 +725,6 @@ func (s *Service) forceReleaseManagedSupervisedImage(
 		return err
 	}
 	return nil
-}
-
-func cloneManagedImageLoadRequest(input managedimagebackend.LoadModelRequest) managedimagebackend.LoadModelRequest {
-	input.Options = append([]string(nil), input.Options...)
-	return input
-}
-
-func managedImageCleanupContext(ctx context.Context, timeout time.Duration) (context.Context, context.CancelFunc) {
-	if timeout <= 0 {
-		timeout = 15 * time.Second
-	}
-	if ctx == nil || ctx.Err() != nil {
-		return context.WithTimeout(context.Background(), timeout)
-	}
-	return context.WithTimeout(context.WithoutCancel(ctx), timeout)
-}
-
-func managedImageLoadContext(ctx context.Context, timeout time.Duration) (context.Context, context.CancelFunc) {
-	if timeout <= 0 {
-		timeout = managedImageLoadTimeout
-	}
-	if ctx == nil {
-		return context.WithTimeout(context.Background(), timeout)
-	}
-	return context.WithTimeout(ctx, timeout)
-}
-
-func managedImageLoadHash(value any) string {
-	raw, err := json.Marshal(value)
-	if err != nil {
-		return ""
-	}
-	sum := sha256.Sum256(raw)
-	return hex.EncodeToString(sum[:])
 }
 
 func (s *Service) UpdateManagedMediaImageExecutionStatus(_ context.Context, requestedModelID string, healthy bool, detail string) error {

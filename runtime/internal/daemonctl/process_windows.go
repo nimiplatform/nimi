@@ -38,7 +38,9 @@ func defaultProcessAlive(pid int) bool {
 	if err != nil {
 		return false
 	}
-	defer windows.CloseHandle(handle)
+	defer func() {
+		_ = windows.CloseHandle(handle)
+	}()
 
 	var exitCode uint32
 	if err := windows.GetExitCodeProcess(handle, &exitCode); err != nil {
@@ -81,7 +83,9 @@ func processMatchesExecutable(pid int, expectedExecutable string) (bool, bool, s
 	if err != nil {
 		return false, false, ""
 	}
-	defer windows.CloseHandle(handle)
+	defer func() {
+		_ = windows.CloseHandle(handle)
+	}()
 
 	buffer := make([]uint16, windows.MAX_PATH)
 	size := uint32(len(buffer))

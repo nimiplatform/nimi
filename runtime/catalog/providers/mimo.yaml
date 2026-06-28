@@ -38,6 +38,7 @@ models:
       url: https://platform.xiaomimimo.com/docs/zh-CN/quick-start/model
       retrieved_at: 2026-06-06
       note: Xiaomi MiMo official model and rate-limit page updated 2026-06-02.
+    api_model_id: mimo-v2.5-pro
   - model_id: mimo-v2.5
     provider: mimo
     model_type: chat
@@ -74,6 +75,7 @@ models:
       url: https://platform.xiaomimimo.com/docs/zh-CN/quick-start/model
       retrieved_at: 2026-06-06
       note: Xiaomi MiMo official model and rate-limit page updated 2026-06-02.
+    api_model_id: mimo-v2.5
   - model_id: mimo-v2-flash
     provider: mimo
     model_type: chat
@@ -400,21 +402,21 @@ selection_profiles:
     profile_id: text.general
     capability: text.generate
     model_id: mimo-v2.5-pro
-    reviewed_at: 2026-06-06
+    reviewed_at: 2026-06-27
     freshness_sla_days: 21
     rationale: Current MiMo Pro text route with the strongest published context and output limits.
   - provider: mimo
     profile_id: text.fast
     capability: text.generate
     model_id: mimo-v2-flash
-    reviewed_at: 2026-06-06
+    reviewed_at: 2026-06-27
     freshness_sla_days: 21
     rationale: Current MiMo Flash text route for lower-latency and lower-cost text generation.
   - provider: mimo
     profile_id: text.reasoning
     capability: text.generate
     model_id: mimo-v2.5-pro
-    reviewed_at: 2026-06-06
+    reviewed_at: 2026-06-27
     freshness_sla_days: 21
     rationale: Current Pro route advertises deep-thinking support and the largest published text limits.
 voice_workflow_models:

@@ -3,14 +3,16 @@ package ai
 import (
 	"context"
 	"errors"
+	"strings"
+	"time"
+
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/scheduler"
 	"github.com/nimiplatform/nimi/runtime/internal/usagemetrics"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"strings"
-	"time"
 )
 
 const maxRuntimeRequestTimeout = 5 * time.Minute
@@ -69,6 +71,15 @@ func reasonCodeFromStreamError(err error) runtimev1.ReasonCode {
 	default:
 		return runtimev1.ReasonCode_AI_STREAM_BROKEN
 	}
+}
+
+func actionHintFromStreamError(err error) string {
+	if metadata, ok := grpcerr.ExtractReasonMetadata(err); ok {
+		if actionHint := strings.TrimSpace(metadata["action_hint"]); actionHint != "" {
+			return actionHint
+		}
+	}
+	return "retry stream request"
 }
 
 func withTimeout(ctx context.Context, timeoutMS int32, defaultTimeout time.Duration) (context.Context, context.CancelFunc) {

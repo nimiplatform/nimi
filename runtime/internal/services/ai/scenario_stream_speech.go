@@ -130,7 +130,7 @@ func streamSpeechSynthesizeScenario(s *Service, req *runtimev1.StreamScenarioReq
 			Payload: &runtimev1.StreamScenarioEvent_Failed{
 				Failed: &runtimev1.ScenarioStreamFailed{
 					ReasonCode: reasonCodeFromStreamError(cause),
-					ActionHint: "retry stream request",
+					ActionHint: actionHintFromStreamError(cause),
 				},
 			},
 		})

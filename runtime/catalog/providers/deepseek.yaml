@@ -38,6 +38,7 @@ models:
       url: https://api-docs.deepseek.com/
       retrieved_at: 2026-04-18
       note: DeepSeek API documentation home and model matrix.
+    api_model_id: deepseek-chat
   - model_id: deepseek-reasoner
     provider: deepseek
     model_type: chat
@@ -61,13 +62,13 @@ selection_profiles:
     profile_id: text.general
     capability: text.generate
     model_id: deepseek-chat
-    reviewed_at: 2026-06-03
+    reviewed_at: 2026-06-27
     freshness_sla_days: 21
     rationale: Best default tradeoff for broad DeepSeek chat use.
   - provider: deepseek
     profile_id: text.reasoning
     capability: text.generate
     model_id: deepseek-reasoner
-    reviewed_at: 2026-06-03
+    reviewed_at: 2026-06-27
     freshness_sla_days: 21
     rationale: Preferred reasoning-heavy DeepSeek route.

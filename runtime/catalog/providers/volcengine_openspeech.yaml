@@ -42,6 +42,7 @@ models:
       url: https://www.volcengine.com/docs/6561/1257543?lang=zh
       retrieved_at: 2026-04-18
       note: Volcengine OpenSpeech large-model speech synthesis overview.
+    api_model_id: volc.service_type.10029
     voice_set_id: volcengine_openspeech:openspeech-streaming-v1
     voice_discovery_mode: static_catalog
     voice_ref_kinds: *a1
@@ -79,6 +80,7 @@ models:
       url: https://www.volcengine.com/docs/6561/1354871?lang=zh
       retrieved_at: 2026-04-18
       note: Volcengine OpenSpeech large-model ASR overview across streaming and audio-file recognition.
+    api_model_id: volc.bigasr.auc_turbo
 voices:
   - voice_id: BV001_streaming
     voice_set_id: volcengine_openspeech:openspeech-streaming-v1

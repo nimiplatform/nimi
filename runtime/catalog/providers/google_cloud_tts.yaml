@@ -52,6 +52,7 @@ models:
       url: https://cloud.google.com/text-to-speech/docs
       retrieved_at: 2026-04-18
       note: Google Cloud Text-to-Speech documentation.
+    api_model_id: chirp-3-hd
     voice_set_id: google_cloud_tts:chirp3-defaults-v1
     voice_discovery_mode: static_catalog
     voice_request_options: *a1

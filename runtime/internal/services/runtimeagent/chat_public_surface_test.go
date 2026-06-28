@@ -354,11 +354,11 @@ func requestPublicChatSessionSnapshot(
 	svc.chatSurfaceMu.Unlock()
 	resp, err := svc.GetPublicChatSessionSnapshot(context.Background(), &runtimev1.GetPublicChatSessionSnapshotRequest{
 		Context: &runtimev1.AgentRequestContext{
-			AppId:         callerAppID,
-			SubjectUserId: subjectUserID,
-			OwnerUserId:   ownerUserID,
-			RuntimeSourceRef:  runtimeSourceRef,
-			LocalAgentRef: localAgentRef,
+			AppId:            callerAppID,
+			SubjectUserId:    subjectUserID,
+			OwnerUserId:      ownerUserID,
+			RuntimeSourceRef: runtimeSourceRef,
+			LocalAgentRef:    localAgentRef,
 			ScopedBinding: &runtimev1.ScopedRuntimeBindingAttachment{
 				BindingId:            "binding-" + anchorID,
 				RuntimeAppId:         callerAppID,
@@ -629,7 +629,7 @@ func TestPublicChatTurnRequestInjectsRuntimePreTurnMemoryContext(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"runtime_source_ref":         "agent-alpha",
+			"runtime_source_ref":     "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"request_id":             "desktop-turn-memory-context",
 			"thread_id":              "thread-memory-context",
@@ -689,7 +689,7 @@ func TestPublicChatTurnRequestFailsClosedWhenPreTurnMemoryReadFails(t *testing.T
 	req := publicChatTurnRequestPayload{
 		LocalAgentRef:        testRuntimeAgentLocalRef("agent-alpha"),
 		OwnerUserID:          "user-1",
-		RuntimeSourceRef:         "agent-alpha",
+		RuntimeSourceRef:     "agent-alpha",
 		ConversationAnchorID: anchorID,
 		RequestID:            "desktop-turn-memory-read-fails",
 		ThreadID:             "thread-memory-read-fails",
@@ -733,11 +733,11 @@ func TestPublicChatPreTurnMemoryRequiresSubjectContext(t *testing.T) {
 	t.Parallel()
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
 	_, err := (publicChatRuntime{svc: svc}).assemblePublicChatSystemPrompt(context.Background(), publicChatAnchorState{
-		AgentID:       testRuntimeAgentLocalRef("agent-alpha"),
-		LocalAgentRef: testRuntimeAgentLocalRef("agent-alpha"),
-		OwnerUserID:   "user-1",
-		RuntimeSourceRef:  "agent-alpha",
-		CallerAppID:   "desktop.app",
+		AgentID:          testRuntimeAgentLocalRef("agent-alpha"),
+		LocalAgentRef:    testRuntimeAgentLocalRef("agent-alpha"),
+		OwnerUserID:      "user-1",
+		RuntimeSourceRef: "agent-alpha",
+		CallerAppID:      "desktop.app",
 	}, publicChatTurnRequestPayload{
 		SystemPrompt: "You are Alpha.",
 		Messages: []publicChatMessagePayload{
@@ -808,7 +808,7 @@ func TestPublicChatTurnRequestStreamsAndAppliesPostTurnEffects(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"runtime_source_ref":         "agent-alpha",
+			"runtime_source_ref":     "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"request_id":             "desktop-turn-request-1",
 			"thread_id":              "thread-1",
@@ -901,14 +901,7 @@ func TestPublicChatTurnRequestStreamsAndAppliesPostTurnEffects(t *testing.T) {
 			t.Fatalf("runtime.agent.turn.completed.detail must be terminal_reason-only; saw %q in %v", banned, completedDetail)
 		}
 	}
-	stateResp, err := svc.GetAgentState(context.Background(), &runtimev1.GetAgentStateRequest{
-		Context: testRuntimeAgentIdentityContext("agent-alpha"), AgentId: "agent-alpha"})
-	if err != nil {
-		t.Fatalf("GetAgentState: %v", err)
-	}
-	if stateResp.GetState().GetExecutionState() != runtimev1.AgentExecutionState_AGENT_EXECUTION_STATE_IDLE {
-		t.Fatalf("expected agent to return to idle, got=%s", stateResp.GetState().GetExecutionState())
-	}
+	waitForPublicChatAgentIdle(t, svc, "agent-alpha")
 	memoryResp, err := svc.QueryAgentMemory(context.Background(), &runtimev1.QueryAgentMemoryRequest{
 		Context:          testRuntimeAgentIdentityContext("agent-alpha"),
 		AgentId:          testRuntimeAgentLocalRef("agent-alpha"),
@@ -1009,7 +1002,7 @@ func TestPublicChatTurnMessageCommitFailureFailsClosed(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"runtime_source_ref":         "agent-alpha",
+			"runtime_source_ref":     "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
@@ -1100,7 +1093,7 @@ func TestPublicChatCompletedEmissionFailureFinalizesFailed(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"runtime_source_ref":         "agent-alpha",
+			"runtime_source_ref":     "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
@@ -1197,7 +1190,7 @@ func TestPublicChatTurnRequestDetachesExecutionFromIngressContext(t *testing.T) 
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"runtime_source_ref":         "agent-alpha",
+			"runtime_source_ref":     "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"thread_id":              "thread-detached-context",
 			"messages": []any{

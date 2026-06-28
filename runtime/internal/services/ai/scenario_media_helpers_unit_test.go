@@ -84,6 +84,25 @@ func TestScenarioJobReasonMetadata_PreservesSafeProviderMetadataForUnavailable(t
 	}
 }
 
+func TestScenarioJobReasonMetadata_PreservesProviderMetadataForRateLimited(t *testing.T) {
+	err := grpcerr.WithReasonCodeOptions(codes.ResourceExhausted, runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED, grpcerr.ReasonOptions{
+		Message: "provider task failed",
+		Metadata: map[string]string{
+			"provider_message": "model service has been paused by Safe Experience Mode",
+		},
+	})
+	if got := sanitizeScenarioJobReasonDetail(err, runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED); got != "model service has been paused by Safe Experience Mode" {
+		t.Fatalf("unexpected provider detail: %q", got)
+	}
+	out := scenarioJobReasonMetadata(err, runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED)
+	if out == nil {
+		t.Fatal("expected structured scenario job reason metadata")
+	}
+	if got := out.AsMap()["provider_message"]; got != "model service has been paused by Safe Experience Mode" {
+		t.Fatalf("unexpected structured provider detail: %#v", got)
+	}
+}
+
 func TestValidateSubmitScenarioAsyncJobRequest(t *testing.T) {
 	t.Run("image valid", func(t *testing.T) {
 		req := baseScenarioJobRequest()

@@ -565,6 +565,14 @@ func resolveDashScopeImageRequestContract(modelResolved string) dashScopeImageRe
 
 func normalizeDashScopeImageSize(raw string) string {
 	trimmed := strings.TrimSpace(raw)
+	switch strings.ToLower(trimmed) {
+	case "2k":
+		return "2048*2048"
+	case "3k":
+		return "3072*3072"
+	case "4k":
+		return "4096*4096"
+	}
 	if trimmed == "" || strings.Contains(trimmed, "*") {
 		return trimmed
 	}

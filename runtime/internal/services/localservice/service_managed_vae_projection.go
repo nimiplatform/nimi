@@ -83,7 +83,9 @@ func readSafetensorsTensorHeaders(path string) (map[string]safetensorsTensorHead
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close()
+	}()
 
 	headerLengthBytes := make([]byte, 8)
 	if _, err := io.ReadFull(file, headerLengthBytes); err != nil {

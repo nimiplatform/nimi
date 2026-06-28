@@ -230,6 +230,54 @@ func TestPollProviderTaskForArtifactCompletesAfterQueuedStates(t *testing.T) {
 	}
 }
 
+func TestPollProviderTaskForArtifactFailedStatusIncludesProviderMessage(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet || r.URL.Path != "/contents/generations/tasks/task-failed-1" {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"id":     "task-failed-1",
+			"status": "failed",
+			"error": map[string]any{
+				"message": "duration must be between 4 and 15 seconds",
+			},
+		})
+	}))
+	defer func() { server.Close() }()
+
+	_, _, providerJobID, err := PollProviderTaskForArtifact(
+		loopbackProviderTestContext(context.Background()),
+		noopJobStateUpdater{},
+		"job-failed-detail",
+		server.URL,
+		"test-api-key",
+		AdapterBytedanceARKTask,
+		"task-failed-1",
+		"/contents/generations/tasks",
+		"/contents/generations/tasks/{task_id}",
+		"video/mp4",
+		420,
+		"prompt",
+		nil,
+		nil,
+	)
+	if err == nil {
+		t.Fatal("expected failed provider task to return an error")
+	}
+	if providerJobID != "task-failed-1" {
+		t.Fatalf("unexpected providerJobID: %q", providerJobID)
+	}
+	metadata, ok := grpcerr.ExtractReasonMetadata(err)
+	if !ok {
+		t.Fatalf("expected reason metadata, got err=%v", err)
+	}
+	if got := metadata["provider_message"]; !strings.Contains(got, "duration must be between 4 and 15 seconds") {
+		t.Fatalf("expected provider failure detail in metadata, got=%q", got)
+	}
+}
+
 func TestIsDetachedPollContext(t *testing.T) {
 	if isDetachedPollContext(nil) {
 		t.Fatal("nil context should not be detached")

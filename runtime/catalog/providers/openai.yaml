@@ -196,6 +196,7 @@ models:
       url: https://developers.openai.com/api/docs/models/gpt-5.2
       retrieved_at: 2026-03-05
       note: OpenAI GPT-5.2 model card.
+    api_model_id: gpt-5.2
   - model_id: gpt-5.5
     provider: openai
     model_type: chat
@@ -250,6 +251,7 @@ models:
       url: https://developers.openai.com/api/docs/models/gpt-5.4
       retrieved_at: 2026-04-18
       note: OpenAI GPT-5.4 model card.
+    api_model_id: gpt-5.4
   - model_id: gpt-5.4-mini
     provider: openai
     model_type: chat
@@ -286,6 +288,7 @@ models:
       url: https://developers.openai.com/api/docs/models/gpt-5.4-mini
       retrieved_at: 2026-04-18
       note: OpenAI GPT-5.4 mini model card.
+    api_model_id: gpt-5.4-mini
   - model_id: gpt-5.4-nano
     provider: openai
     model_type: chat
@@ -322,6 +325,7 @@ models:
       url: https://developers.openai.com/api/docs/models/gpt-5.4-nano
       retrieved_at: 2026-04-18
       note: OpenAI GPT-5.4 nano model card.
+    api_model_id: gpt-5.4-nano
   - model_id: gpt-5.2-pro
     provider: openai
     model_type: chat
@@ -443,6 +447,7 @@ models:
       url: https://platform.openai.com/docs/models/gpt-image-1.5
       retrieved_at: 2026-03-05
       note: OpenAI gpt-image-1.5 model card.
+    api_model_id: gpt-image-1.5
     image_request_options: *a1
   - model_id: o3
     provider: openai
@@ -572,6 +577,7 @@ models:
       url: https://platform.openai.com/docs/models/sora-2
       retrieved_at: 2026-03-05
       note: OpenAI Sora 2 video generation model card.
+    api_model_id: sora-2
     video_generation: *a2
 voices:
   - voice_id: alloy
@@ -639,20 +645,20 @@ selection_profiles:
     profile_id: text.general
     capability: text.generate
     model_id: gpt-5.5
-    reviewed_at: 2026-06-03
+    reviewed_at: 2026-06-27
     freshness_sla_days: 21
     rationale: OpenAI's current start-here frontier model for complex reasoning and coding.
   - provider: openai
     profile_id: text.fast
     capability: text.generate
     model_id: gpt-5.4-mini
-    reviewed_at: 2026-06-03
+    reviewed_at: 2026-06-27
     freshness_sla_days: 21
     rationale: OpenAI's current recommended lower-latency GPT-5.4 variant for high-volume workloads.
   - provider: openai
     profile_id: text.reasoning
     capability: text.generate
     model_id: gpt-5.5
-    reviewed_at: 2026-06-03
+    reviewed_at: 2026-06-27
     freshness_sla_days: 21
     rationale: Highest-confidence admitted GPT reasoning route while GPT-5.5-pro endpoint semantics remain under review.

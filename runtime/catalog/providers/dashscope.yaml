@@ -183,6 +183,7 @@ models:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
+    api_model_id: qwen3-tts-instruct-flash
     voice_set_id: dashscope:instruct_flash_voice_set
     voice_discovery_mode: static_catalog
     voice_ref_kinds: *a1
@@ -225,6 +226,7 @@ models:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
+    api_model_id: qwen3-tts-flash
     voice_set_id: dashscope:flash_voice_set
     voice_discovery_mode: static_catalog
     voice_ref_kinds: *a2
@@ -245,6 +247,7 @@ models:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
+    api_model_id: qwen3-tts-flash
     voice_set_id: dashscope:flash_voice_set
     voice_discovery_mode: static_catalog
     voice_ref_kinds: *a2
@@ -384,6 +387,7 @@ models:
       url: https://help.aliyun.com/zh/model-studio/qwen-tts-realtime
       retrieved_at: 2026-04-18
       note: Qwen realtime speech synthesis documentation covering stable and snapshot realtime models.
+    api_model_id: qwen3-tts-instruct-flash-realtime
     voice_set_id: dashscope:instruct_flash_voice_set
     voice_discovery_mode: static_catalog
     voice_request_options: *a5
@@ -436,6 +440,7 @@ models:
       url: https://help.aliyun.com/zh/model-studio/qwen-tts-realtime
       retrieved_at: 2026-04-18
       note: Qwen realtime speech synthesis documentation covering stable and snapshot realtime models.
+    api_model_id: qwen3-tts-flash-realtime
     voice_set_id: dashscope:flash_voice_set
     voice_discovery_mode: static_catalog
     voice_request_options: *a7
@@ -457,6 +462,7 @@ models:
       url: https://help.aliyun.com/zh/model-studio/qwen-tts-realtime
       retrieved_at: 2026-04-18
       note: Qwen realtime speech synthesis documentation covering stable and snapshot realtime models.
+    api_model_id: qwen3-tts-flash-realtime
     voice_set_id: dashscope:flash_voice_set
     voice_discovery_mode: static_catalog
     voice_request_options: *a7
@@ -509,6 +515,7 @@ models:
       url: https://help.aliyun.com/zh/model-studio/qwen-tts-realtime
       retrieved_at: 2026-04-18
       note: Qwen realtime speech synthesis documentation covering stable and snapshot realtime models.
+    api_model_id: qwen3-tts-vc-realtime-2026-01-15
     voice_set_id: dashscope:qwen3-tts-vc-realtime-2026-01-15-dynamic
     voice_discovery_mode: dynamic_user_scoped
     voice_request_options: *a9
@@ -561,6 +568,7 @@ models:
       url: https://help.aliyun.com/zh/model-studio/qwen-tts-realtime
       retrieved_at: 2026-04-18
       note: Qwen realtime speech synthesis documentation covering stable and snapshot realtime models.
+    api_model_id: qwen3-tts-vd-realtime-2026-01-15
     voice_set_id: dashscope:qwen3-tts-vd-realtime-2026-01-15-dynamic
     voice_discovery_mode: dynamic_user_scoped
     voice_request_options: *a11
@@ -599,6 +607,7 @@ models:
       url: https://help.aliyun.com/zh/model-studio/newly-released-models
       retrieved_at: 2026-06-06
       note: Official DashScope model release and snapshot update feed.
+    api_model_id: qwen3.7-max
   - model_id: qwen3.7-plus
     provider: dashscope
     model_type: chat
@@ -635,6 +644,7 @@ models:
       url: https://help.aliyun.com/zh/model-studio/newly-released-models
       retrieved_at: 2026-06-06
       note: Official DashScope model release and snapshot update feed.
+    api_model_id: qwen3.7-plus
   - model_id: qwen3.7-max-preview
     provider: dashscope
     model_type: chat
@@ -669,6 +679,7 @@ models:
       url: https://help.aliyun.com/zh/model-studio/newly-released-models
       retrieved_at: 2026-06-06
       note: Official DashScope model release and snapshot update feed.
+    api_model_id: qwen3.7-max-preview
   - model_id: qwen3-max
     provider: dashscope
     model_type: chat
@@ -722,6 +733,7 @@ models:
       url: https://help.aliyun.com/zh/model-studio/newly-released-models
       retrieved_at: 2026-06-06
       note: Official DashScope model release and snapshot update feed.
+    api_model_id: qwen3.6-plus
   - model_id: qwen3.5-plus
     provider: dashscope
     model_type: chat
@@ -775,6 +787,7 @@ models:
       url: https://help.aliyun.com/zh/model-studio/newly-released-models
       retrieved_at: 2026-06-06
       note: Official DashScope model release and snapshot update feed.
+    api_model_id: qwen3.6-flash
   - model_id: qwen3.5-flash
     provider: dashscope
     model_type: chat
@@ -1050,6 +1063,7 @@ models:
       url: https://help.aliyun.com/zh/model-studio/model-pricing
       retrieved_at: 2026-06-06
       note: DashScope official model pricing and current model listing overview.
+    api_model_id: kimi/kimi-k2.5
   - model_id: kimi-k2-thinking
     provider: dashscope
     model_type: chat
@@ -1203,6 +1217,7 @@ models:
       url: https://help.aliyun.com/zh/model-studio/model-pricing
       retrieved_at: 2026-06-06
       note: DashScope official model pricing and current model listing overview.
+    api_model_id: MiniMax/MiniMax-M2.5
   - model_id: MiniMax/MiniMax-M2.1
     provider: dashscope
     model_type: chat
@@ -1237,6 +1252,7 @@ models:
       url: https://help.aliyun.com/zh/model-studio/model-pricing
       retrieved_at: 2026-06-06
       note: DashScope official model pricing and current model listing overview.
+    api_model_id: MiniMax/MiniMax-M2.1
   - model_id: text-embedding-v4
     provider: dashscope
     model_type: embedding
@@ -1290,6 +1306,7 @@ models:
       url: https://help.aliyun.com/zh/model-studio/qwen-asr-api-reference
       retrieved_at: 2026-03-05
       note: DashScope Qwen ASR API reference covering qwen3-asr-flash.
+    api_model_id: qwen3-asr-flash
   - model_id: qwen3-asr-flash-2026-02-10
     provider: dashscope
     model_type: stt
@@ -1307,6 +1324,7 @@ models:
       url: https://help.aliyun.com/zh/model-studio/qwen-asr-api-reference
       retrieved_at: 2026-03-05
       note: DashScope Qwen ASR API reference covering qwen3-asr-flash.
+    api_model_id: qwen3-asr-flash
   - model_id: qwen3-asr-flash-realtime
     provider: dashscope
     model_type: stt
@@ -1341,6 +1359,7 @@ models:
       url: https://help.aliyun.com/zh/model-studio/qwen-real-time-speech-recognition
       retrieved_at: 2026-04-18
       note: Qwen real-time speech recognition documentation covering qwen3-asr-flash-realtime.
+    api_model_id: qwen3-asr-flash-realtime
   - model_id: qwen3-asr-flash-realtime-2025-10-27
     provider: dashscope
     model_type: stt
@@ -1358,6 +1377,7 @@ models:
       url: https://help.aliyun.com/zh/model-studio/qwen-real-time-speech-recognition
       retrieved_at: 2026-04-18
       note: Qwen real-time speech recognition documentation covering qwen3-asr-flash-realtime.
+    api_model_id: qwen3-asr-flash-realtime
   - model_id: fun-asr
     provider: dashscope
     model_type: stt
@@ -1392,6 +1412,7 @@ models:
       url: https://help.aliyun.com/zh/model-studio/funauidio-asr-recorded-speech-recognition-restful-api
       retrieved_at: 2026-04-18
       note: Fun-ASR recorded speech recognition REST API covering fun-asr.
+    api_model_id: fun-asr
   - model_id: fun-asr-realtime
     provider: dashscope
     model_type: stt
@@ -1426,6 +1447,7 @@ models:
       url: https://help.aliyun.com/zh/model-studio/fun-asr-realtime-websocket-api
       retrieved_at: 2026-04-18
       note: Fun-ASR realtime speech recognition WebSocket API covering fun-asr-realtime.
+    api_model_id: fun-asr-realtime
   - model_id: fun-asr-realtime-2025-09-15
     provider: dashscope
     model_type: stt
@@ -1443,6 +1465,7 @@ models:
       url: https://help.aliyun.com/zh/model-studio/fun-asr-realtime-websocket-api
       retrieved_at: 2026-04-18
       note: Fun-ASR realtime speech recognition WebSocket API covering fun-asr-realtime.
+    api_model_id: fun-asr-realtime
   - model_id: qwen-image-2.0-pro
     provider: dashscope
     model_type: image
@@ -1490,6 +1513,7 @@ models:
       url: https://help.aliyun.com/zh/model-studio/model-pricing
       retrieved_at: 2026-06-06
       note: DashScope official model pricing and current model listing overview.
+    api_model_id: qwen-image-2.0-pro
     image_request_options: *a13
   - model_id: qwen-image-2.0
     provider: dashscope
@@ -1538,6 +1562,7 @@ models:
       url: https://help.aliyun.com/zh/model-studio/model-pricing
       retrieved_at: 2026-06-06
       note: DashScope official model pricing and current model listing overview.
+    api_model_id: qwen-image-2.0
     image_request_options: *a14
   - model_id: z-image-turbo
     provider: dashscope
@@ -3410,21 +3435,21 @@ selection_profiles:
     profile_id: text.general
     capability: text.generate
     model_id: qwen3.7-max
-    reviewed_at: 2026-06-06
+    reviewed_at: 2026-06-27
     freshness_sla_days: 21
     rationale: Current provider-native Qwen Max flagship line on DashScope.
   - provider: dashscope
     profile_id: text.fast
     capability: text.generate
     model_id: qwen3.6-flash
-    reviewed_at: 2026-06-06
+    reviewed_at: 2026-06-27
     freshness_sla_days: 21
     rationale: Current admitted flash-tier provider-native DashScope text route for latency-sensitive tasks.
   - provider: dashscope
     profile_id: text.reasoning
     capability: text.generate
     model_id: qwen3.7-max
-    reviewed_at: 2026-06-06
+    reviewed_at: 2026-06-27
     freshness_sla_days: 21
     rationale: Current Qwen Max line is documented as text-only with thinking mode enabled by default.
 voice_workflow_models:

@@ -89,6 +89,9 @@ func (b *Backend) ProbeConnector(ctx context.Context) error {
 	if b.supportsAnthropicMessages() {
 		return b.probeGET(ctx, "/v1/models")
 	}
+	if b.isGeminiOpenAICompatibleBackend() {
+		return b.probeGET(ctx, "/models")
+	}
 
 	paths := []string{"/v1/models", "/models"}
 	var lastErr error

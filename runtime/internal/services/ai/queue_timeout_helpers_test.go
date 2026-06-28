@@ -5,6 +5,8 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"google.golang.org/grpc/codes"
 )
 
 func TestTimeoutDurationUsesBoundedOverride(t *testing.T) {
@@ -53,6 +55,22 @@ func TestTimeoutDurationUsesBoundedOverride(t *testing.T) {
 				t.Fatalf("timeoutDuration(%d, %s) = %s, want %s", tt.timeoutMS, tt.defaultTimeout, got, tt.want)
 			}
 		})
+	}
+}
+
+func TestActionHintFromStreamErrorUsesRuntimeMetadata(t *testing.T) {
+	err := grpcerr.WithReasonCodeOptions(codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND, grpcerr.ReasonOptions{
+		ActionHint: "switch_model_or_refresh_connector_models",
+	})
+
+	if got := actionHintFromStreamError(err); got != "switch_model_or_refresh_connector_models" {
+		t.Fatalf("actionHintFromStreamError() = %q, want provider action hint", got)
+	}
+}
+
+func TestActionHintFromStreamErrorFallsBackToRetry(t *testing.T) {
+	if got := actionHintFromStreamError(nil); got != "retry stream request" {
+		t.Fatalf("actionHintFromStreamError(nil) = %q, want retry fallback", got)
 	}
 }
 

@@ -161,6 +161,40 @@ func ResolveAsyncTaskStatus(payload map[string]any) string {
 	)))
 }
 
+// ProviderTaskFailureMessage extracts a provider-facing failure reason from an
+// async task payload without exposing unrelated response data.
+func ProviderTaskFailureMessage(payload map[string]any) string {
+	if payload == nil {
+		return ""
+	}
+	if message := strings.TrimSpace(ProviderErrorMessage(payload)); message != "" {
+		return message
+	}
+	return strings.TrimSpace(FirstNonEmpty(
+		firstStringAtPayloadPaths(payload,
+			payloadStringPath{"failed_reason"},
+			payloadStringPath{"failure_reason"},
+			payloadStringPath{"fail_reason"},
+			payloadStringPath{"reason"},
+			payloadStringPath{"result", "message"},
+			payloadStringPath{"result", "failed_reason"},
+			payloadStringPath{"result", "failure_reason"},
+			payloadStringPath{"result", "fail_reason"},
+			payloadStringPath{"data", "message"},
+			payloadStringPath{"data", "failed_reason"},
+			payloadStringPath{"data", "failure_reason"},
+			payloadStringPath{"data", "fail_reason"},
+			payloadStringPath{"output", "message"},
+			payloadStringPath{"output", "failed_reason"},
+			payloadStringPath{"output", "failure_reason"},
+			payloadStringPath{"output", "fail_reason"},
+		),
+		providerErrorMessageFromValue(MapField(payload["result"], "error")),
+		providerErrorMessageFromValue(MapField(payload["data"], "error")),
+		providerErrorMessageFromValue(MapField(payload["output"], "error")),
+	))
+}
+
 // IsAsyncTaskPendingStatus returns true if the status text indicates the task
 // is still in progress.
 func IsAsyncTaskPendingStatus(statusText string) bool {

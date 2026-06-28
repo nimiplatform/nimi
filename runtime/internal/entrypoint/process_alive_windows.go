@@ -21,7 +21,9 @@ func runtimeProcessAlive(pid int) bool {
 		}
 		return false
 	}
-	defer windows.CloseHandle(process)
+	defer func() {
+		_ = windows.CloseHandle(process)
+	}()
 
 	var exitCode uint32
 	if err := windows.GetExitCodeProcess(process, &exitCode); err != nil {

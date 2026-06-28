@@ -194,6 +194,7 @@ models:
       url: https://docs.bfl.ai/quick_start/pricing
       retrieved_at: 2026-04-18
       note: Black Forest Labs pricing overview for FLUX.2 and FLUX.1 families.
+    api_model_id: flux-pro-1.1-ultra
     image_request_options: *a1
   - model_id: flux-pro-1.1
     provider: flux
@@ -241,6 +242,7 @@ models:
       url: https://docs.bfl.ai/quick_start/pricing
       retrieved_at: 2026-04-18
       note: Black Forest Labs pricing overview for FLUX.2 and FLUX.1 families.
+    api_model_id: flux-pro-1.1
     image_request_options: *a2
   - model_id: flux-dev
     provider: flux

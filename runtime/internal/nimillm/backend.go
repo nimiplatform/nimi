@@ -424,7 +424,7 @@ func (b *Backend) GenerateText(ctx context.Context, modelID string, input []*run
 		seed := params.seed
 		reqBody.Seed = &seed
 	}
-	if params.topK > 0 {
+	if params.topK > 0 && b.supportsOpenAICompatibleTopK() {
 		topK := params.topK
 		reqBody.TopK = &topK
 	}
@@ -524,9 +524,11 @@ func (b *Backend) StreamGenerateText(ctx context.Context, modelID string, input 
 		Model:    modelID,
 		Messages: messages,
 		Stream:   true,
-		StreamOptions: &streamOptions{
+	}
+	if b.supportsOpenAICompatibleStreamOptions() {
+		reqBody.StreamOptions = &streamOptions{
 			IncludeUsage: true,
-		},
+		}
 	}
 	if temperature > 0 {
 		t := temperature
@@ -544,7 +546,7 @@ func (b *Backend) StreamGenerateText(ctx context.Context, modelID string, input 
 			reqBody.MaxTokens = &max
 		}
 	}
-	if params.topK > 0 {
+	if params.topK > 0 && b.supportsOpenAICompatibleTopK() {
 		topK := params.topK
 		reqBody.TopK = &topK
 	}
@@ -569,13 +571,12 @@ func (b *Backend) StreamGenerateText(ctx context.Context, modelID string, input 
 		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, MapProviderRequestError(err)
 	}
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		var errPayload map[string]any
-		_ = json.NewDecoder(response.Body).Decode(&errPayload)
+		errPayload, mappedErr := providerHTTPErrorFromResponse(response, endpoint)
 		_ = response.Body.Close()
 		if IsStreamUnsupported(response.StatusCode, errPayload) {
 			return b.fallbackStreamToNonStream(ctx, modelID, input, systemPrompt, temperature, topP, maxTokens, params, onDelta)
 		}
-		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, MapProviderHTTPError(response.StatusCode, errPayload)
+		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, mappedErr
 	}
 
 	contentType := strings.ToLower(strings.TrimSpace(response.Header.Get("Content-Type")))

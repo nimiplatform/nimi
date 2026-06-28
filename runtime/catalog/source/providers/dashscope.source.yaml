@@ -124,19 +124,19 @@ selection_profiles:
   - profile_id: text.general
     capability: text.generate
     model_id: qwen3.7-max
-    reviewed_at: 2026-06-06
+    reviewed_at: 2026-06-27
     freshness_sla_days: 21
     rationale: Current provider-native Qwen Max flagship line on DashScope.
   - profile_id: text.fast
     capability: text.generate
     model_id: qwen3.6-flash
-    reviewed_at: 2026-06-06
+    reviewed_at: 2026-06-27
     freshness_sla_days: 21
     rationale: Current admitted flash-tier provider-native DashScope text route for latency-sensitive tasks.
   - profile_id: text.reasoning
     capability: text.generate
     model_id: qwen3.7-max
-    reviewed_at: 2026-06-06
+    reviewed_at: 2026-06-27
     freshness_sla_days: 21
     rationale: Current Qwen Max line is documented as text-only with thinking mode enabled by default.
 

@@ -112,6 +112,7 @@ models:
       url: https://www.anthropic.com/news/claude-sonnet-4-5
       retrieved_at: 2026-04-18
       note: Claude Sonnet 4.5 announcement and capabilities.
+    api_model_id: claude-sonnet-4-5
   - model_id: claude-haiku-4-5
     provider: anthropic
     model_type: chat
@@ -148,26 +149,27 @@ models:
       url: https://platform.claude.com/docs/en/about-claude/models/overview
       retrieved_at: 2026-04-18
       note: Claude model overview with API model IDs and aliases.
+    api_model_id: claude-haiku-4-5
 voices: []
 selection_profiles:
   - provider: anthropic
     profile_id: text.general
     capability: text.generate
     model_id: claude-sonnet-4-6
-    reviewed_at: 2026-06-03
+    reviewed_at: 2026-06-27
     freshness_sla_days: 21
     rationale: Balanced default for general chat and multimodal text use.
   - provider: anthropic
     profile_id: text.fast
     capability: text.generate
     model_id: claude-haiku-4-5
-    reviewed_at: 2026-06-03
+    reviewed_at: 2026-06-27
     freshness_sla_days: 21
     rationale: Lowest-latency Claude track.
   - provider: anthropic
     profile_id: text.reasoning
     capability: text.generate
     model_id: claude-opus-4-8
-    reviewed_at: 2026-06-03
+    reviewed_at: 2026-06-27
     freshness_sla_days: 21
     rationale: Highest reasoning-quality Claude track after Opus 4.8 became the current top-tier model.

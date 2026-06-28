@@ -118,7 +118,13 @@ func (s *Service) ListConnectorModels(ctx context.Context, req *runtimev1.ListCo
 		return nil, err
 	}
 
-	models, err := s.listCatalogConnectorModels(ownerID, rec)
+	var models []*runtimev1.ConnectorModelDescriptor
+	providerCatalogEntry := ProviderCatalog[strings.TrimSpace(rec.Provider)]
+	if providerCatalogEntry.InventoryMode == "dynamic_endpoint" {
+		models, err = s.listCatalogConnectorModels(ownerID, rec.Provider, rec)
+	} else {
+		models, err = s.listCatalogConnectorModels(ownerID, rec.Provider, rec)
+	}
 	if err != nil {
 		return nil, err
 	}

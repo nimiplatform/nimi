@@ -41,6 +41,38 @@ func TestResolveVoicesDashScopeModel(t *testing.T) {
 	}
 }
 
+func TestResolveAPIModelIDVolcengineAliasesUseCanonical(t *testing.T) {
+	resolver, err := NewResolver(ResolverConfig{})
+	if err != nil {
+		t.Fatalf("NewResolver: %v", err)
+	}
+
+	tests := []struct {
+		name  string
+		alias string
+		want  string
+	}{
+		{
+			name:  "text alias",
+			alias: "doubao-seed-2.0-pro",
+			want:  "doubao-seed-2-0-pro-260215",
+		},
+		{
+			name:  "video alias",
+			alias: "seedance-2.0",
+			want:  "doubao-seedance-2-0-260128",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := resolver.ResolveAPIModelID("volcengine", tt.alias); got != tt.want {
+				t.Fatalf("ResolveAPIModelID(volcengine, %q) = %q, want %q", tt.alias, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestResolveVoicesRejectsDroppedDashScopeQwenTTSAlias(t *testing.T) {
 	resolver, err := NewResolver(ResolverConfig{})
 	if err != nil {

@@ -82,7 +82,7 @@ function main() {
 
   const listConnectorModelsBody = extractFunctionBody(connectorService, 'ListConnectorModels');
   const testConnectorBody = extractFunctionBody(connectorService, 'TestConnector');
-  if (!/\blistCatalogConnectorModels\(\s*[^,]+,\s*rec\.Provider\s*\)/u.test(listConnectorModelsBody)) {
+  if (!/\blistCatalogConnectorModels\(\s*[^,]+,\s*rec\.Provider\s*,\s*rec\s*\)/u.test(listConnectorModelsBody)) {
     fail(`${rel(connectorServicePath)} ListConnectorModels must keep static_source catalog read path`);
   }
   if (!listConnectorModelsBody.includes('InventoryMode == "dynamic_endpoint"')) {

@@ -148,7 +148,9 @@ func (s *Service) InvokeRealmUnary(ctx context.Context, req *runtimev1.InvokeRea
 			ErrorMessage:      fmt.Sprintf("realm request failed: %v", err),
 		}, nil
 	}
-	defer response.Body.Close()
+	defer func() {
+		_ = response.Body.Close()
+	}()
 	responseBody, readErr := io.ReadAll(io.LimitReader(response.Body, 8<<20))
 	if readErr != nil {
 		return &runtimev1.InvokeRealmUnaryResponse{

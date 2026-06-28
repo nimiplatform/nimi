@@ -37,6 +37,7 @@ models:
       url: https://www.loudly.com/rest/music
       retrieved_at: 2026-04-18
       note: Loudly Music API overview page covering Music Generator and Text-to-Music product surfaces.
+    api_model_id: loudly-vega-2
   - model_id: prompt-songs
     provider: loudly
     model_type: music
@@ -54,4 +55,5 @@ models:
       url: https://www.loudly.com/rest/music
       retrieved_at: 2026-04-18
       note: Loudly Music API overview page covering Music Generator and Text-to-Music product surfaces.
+    api_model_id: loudly-vega-2
 voices: []

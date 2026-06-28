@@ -8,7 +8,9 @@ func resolveSupervisorExpectedExecutablePath(pid int, fallbackPath string) strin
 	if pid > 0 {
 		handle, err := windows.OpenProcess(windows.PROCESS_QUERY_LIMITED_INFORMATION, false, uint32(pid))
 		if err == nil {
-			defer windows.CloseHandle(handle)
+			defer func() {
+				_ = windows.CloseHandle(handle)
+			}()
 			buffer := make([]uint16, windows.MAX_PATH)
 			size := uint32(len(buffer))
 			if err := windows.QueryFullProcessImageName(handle, 0, &buffer[0], &size); err == nil {

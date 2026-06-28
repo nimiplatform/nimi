@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"google.golang.org/grpc/codes"
@@ -13,7 +14,10 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
-const AdapterBytedanceARKTask = "bytedance_ark_task_adapter"
+const (
+	AdapterBytedanceARKTask                = "bytedance_ark_task_adapter"
+	bytedanceARKSeedreamMinImagePixelCount = 3686400
+)
 
 func ExecuteBytedanceARKTask(
 	ctx context.Context,
@@ -42,11 +46,10 @@ func ExecuteBytedanceARKTask(
 			"model":           modelResolved,
 			"prompt":          spec.GetPrompt(),
 			"negative_prompt": spec.GetNegativePrompt(),
-			"size":            spec.GetSize(),
+			"size":            normalizeBytedanceARKImageSize(modelResolved, spec.GetSize()),
 			"aspect_ratio":    spec.GetAspectRatio(),
 			"quality":         spec.GetQuality(),
 			"style":           spec.GetStyle(),
-			"response_format": spec.GetResponseFormat(),
 		}
 		if spec.GetSeed() != 0 {
 			submitPayload["seed"] = spec.GetSeed()
@@ -115,6 +118,9 @@ func ExecuteBytedanceARKTask(
 		}
 		if ratio := VideoRatio(spec); ratio != "" {
 			submitPayload["ratio"] = ratio
+		}
+		if resolution := VideoResolution(spec); resolution != "" {
+			submitPayload["resolution"] = resolution
 		}
 		if durationSec := VideoDurationSec(spec); durationSec > 0 {
 			submitPayload["duration"] = durationSec
@@ -208,4 +214,50 @@ func resolveBytedanceARKVideoQueryPathTemplate() string {
 		[]string{"video_query_paths", "video_query_path_templates", "task_query_paths"},
 		[]string{"/contents/generations/tasks/{task_id}"},
 	)
+}
+
+func normalizeBytedanceARKImageSize(modelResolved string, rawSize string) string {
+	size := strings.TrimSpace(rawSize)
+	if !isBytedanceARKSeedreamImageModel(modelResolved) {
+		return size
+	}
+
+	switch strings.ToLower(size) {
+	case "", "auto", "default":
+		return "2k"
+	case "2k", "3k", "4k":
+		return strings.ToLower(size)
+	}
+
+	width, height, normalized, ok := parseBytedanceARKImageDimensions(size)
+	if !ok || width <= 0 || height <= 0 {
+		return size
+	}
+	if int64(width)*int64(height) < bytedanceARKSeedreamMinImagePixelCount {
+		return "2k"
+	}
+	return normalized
+}
+
+func isBytedanceARKSeedreamImageModel(modelResolved string) bool {
+	normalized := strings.ToLower(strings.TrimSpace(StripProviderModelPrefix(modelResolved, "volcengine")))
+	return strings.Contains(normalized, "seedream")
+}
+
+func parseBytedanceARKImageDimensions(rawSize string) (int, int, string, bool) {
+	normalized := strings.ToLower(strings.TrimSpace(rawSize))
+	normalized = strings.ReplaceAll(normalized, "*", "x")
+	widthText, heightText, ok := strings.Cut(normalized, "x")
+	if !ok || strings.TrimSpace(widthText) == "" || strings.TrimSpace(heightText) == "" {
+		return 0, 0, "", false
+	}
+	width, err := strconv.Atoi(strings.TrimSpace(widthText))
+	if err != nil {
+		return 0, 0, "", false
+	}
+	height, err := strconv.Atoi(strings.TrimSpace(heightText))
+	if err != nil {
+		return 0, 0, "", false
+	}
+	return width, height, strconv.Itoa(width) + "x" + strconv.Itoa(height), true
 }

@@ -44,13 +44,13 @@ selection_profiles:
   - profile_id: text.general
     capability: text.generate
     model_id: hunyuan-2.0-instruct-20251111
-    reviewed_at: 2026-06-03
+    reviewed_at: 2026-06-27
     freshness_sla_days: 21
     rationale: Current TokenHub-backed Hunyuan 2.0 instruct route in Hunyuan's public contract.
   - profile_id: text.reasoning
     capability: text.generate
     model_id: hunyuan-2.0-thinking-20251109
-    reviewed_at: 2026-06-03
+    reviewed_at: 2026-06-27
     freshness_sla_days: 21
     rationale: Current TokenHub-backed Hunyuan 2.0 thinking route in Hunyuan's public contract.
 

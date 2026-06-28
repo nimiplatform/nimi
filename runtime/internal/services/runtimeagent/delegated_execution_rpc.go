@@ -106,7 +106,10 @@ func (s *Service) ResumeDelegatedCapability(ctx context.Context, req *runtimev1.
 			_ = s.releaseDelegatedPausedRequestClaim(agentID, approvalID)
 			return nil, status.Errorf(codes.FailedPrecondition, "delegated capability resume failed: %v", err)
 		}
-		s.recordDelegatedCapabilityDecision(decision)
+		if err := s.recordDelegatedCapabilityDecision(decision); err != nil {
+			_ = s.releaseDelegatedPausedRequestClaim(agentID, approvalID)
+			return nil, err
+		}
 		record, err := s.findDelegatedReplayAuditRecord(agentID, decision.DecisionID, paused.ConversationAnchorID, paused.TurnID)
 		if err != nil {
 			_ = s.releaseDelegatedPausedRequestClaim(agentID, approvalID)

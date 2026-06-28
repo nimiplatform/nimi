@@ -78,5 +78,6 @@ models:
       url: https://developer.ideogram.ai/api-reference/api-reference/generate
       retrieved_at: 2026-04-18
       note: Ideogram legacy generate endpoint reference that still documents V_2 family usage.
+    api_model_id: ideogram-v2-turbo
     image_request_options: *a1
 voices: []
