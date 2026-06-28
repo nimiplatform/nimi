@@ -3,6 +3,8 @@ import { NimiElectronShellHostError, type NimiElectronStandardShellHost } from '
 import { createElectronCapabilityUnavailableError, errorMessage } from './errors.js';
 import { asRecord, normalizeRequiredToken, normalizeText, parseOptionalPositiveNumber, standardNestedPayload } from './paths.js';
 
+const ELECTRON_OAUTH_SUCCESS_AUTO_CLOSE_MS = 3000;
+
 export async function openElectronExternalUrl(
   host: NimiElectronStandardShellHost | undefined,
   payload: Readonly<Record<string, unknown>>,
@@ -115,7 +117,7 @@ export async function listenElectronOauthForCode(
             'cache-control': 'no-store',
             connection: 'close',
           });
-          response.end('<!doctype html><title>OAuth Complete - Nimi</title><body>OAuth complete.</body>');
+          response.end(renderElectronOauthSuccessPage());
           settle(undefined, result);
         })
         .catch((error: unknown) => {
@@ -164,6 +166,31 @@ export async function listenElectronOauthForCode(
     server.listen(redirect.port, redirect.bindHost);
   });
 }
+
+function renderElectronOauthSuccessPage(): string {
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>OAuth Complete - Nimi</title>
+  <style>
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;display:grid;min-height:100vh;margin:0;place-items:center;background:#fff;color:#1f2937}
+    main{text-align:center;padding:32px}
+    h1{margin:0 0 10px;font-size:24px}
+    p{margin:0;color:#6b7280}
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Authentication Complete!</h1>
+    <p>You have successfully signed in to Nimi. This window will close shortly.</p>
+  </main>
+  <script>setTimeout(function(){window.close();}, ${ELECTRON_OAUTH_SUCCESS_AUTO_CLOSE_MS});</script>
+</body>
+</html>`;
+}
+
 function parseElectronExternalUrl(value: string, command: string): URL {
   let parsed: URL;
   try {

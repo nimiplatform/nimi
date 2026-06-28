@@ -265,4 +265,66 @@ describe('ModelPickerModal', () => {
       engine: 'llama',
     }));
   });
+
+  it('preserves v2 cloud connector target fields when selecting a connector model', async () => {
+    const onSelect = vi.fn();
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    await act(async () => {
+      root?.render(
+        <ModelPickerModal
+          open
+          onClose={() => undefined}
+          capability="video.generate"
+          capabilityLabel="Video generation"
+          initialSelection={{ source: 'cloud', connectorId: 'volcengine' }}
+          provider={{
+            listLocalModels: async () => [],
+            listConnectors: async () => [{
+              connectorId: 'volcengine',
+              provider: 'volcengine',
+              label: 'volcengine',
+              status: 'active',
+            }],
+            listConnectorModels: async (connectorId) => connectorId === 'volcengine'
+              ? [{
+                modelId: 'seedance-2.0',
+                remoteModelCatalogId: 'remote-catalog:volcengine:seedance-2.0',
+                providerModelId: 'seedance-2.0',
+                provider: 'volcengine',
+                modelLabel: 'seedance-2.0',
+                available: true,
+                capabilities: ['video.generate'],
+              }]
+              : [],
+          }}
+          onSelect={onSelect}
+        />,
+      );
+      await flush();
+      await flush();
+      await flush();
+    });
+
+    const option = Array.from(document.body.querySelectorAll('button'))
+      .find((button) => button.textContent?.includes('seedance-2.0'));
+    expect(option).toBeTruthy();
+
+    await act(async () => {
+      option?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await flush();
+    });
+
+    expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({
+      source: 'cloud',
+      connectorId: 'volcengine',
+      model: 'seedance-2.0',
+      provider: 'volcengine',
+      remoteModelCatalogId: 'remote-catalog:volcengine:seedance-2.0',
+      providerModelId: 'seedance-2.0',
+      modelLabel: 'seedance-2.0',
+    }));
+  });
 });

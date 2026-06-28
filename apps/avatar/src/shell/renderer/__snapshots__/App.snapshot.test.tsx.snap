@@ -50,7 +50,7 @@ exports[`Avatar shell visual snapshots > degraded surface — relaunch pending (
         type="button"
       >
         <span
-          class="inline-flex min-w-0 items-center justify-center gap-2 overflow-hidden text-ellipsis whitespace-nowrap"
+          class="pointer-events-none inline-flex min-w-0 items-center justify-center gap-2 overflow-hidden text-ellipsis whitespace-nowrap"
         >
           Reload shell
         </span>
@@ -135,7 +135,7 @@ exports[`Avatar shell visual snapshots > degraded surface — runtime unavailabl
         type="button"
       >
         <span
-          class="inline-flex min-w-0 items-center justify-center gap-2 overflow-hidden text-ellipsis whitespace-nowrap"
+          class="pointer-events-none inline-flex min-w-0 items-center justify-center gap-2 overflow-hidden text-ellipsis whitespace-nowrap"
         >
           Reload shell
         </span>

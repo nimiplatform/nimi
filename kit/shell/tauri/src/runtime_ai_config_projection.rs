@@ -96,6 +96,18 @@ pub fn project_first_run_execution_evidence_to_ai_config_bindings(
                 "Runtime execution proof for {capability} is missing local_route_target"
             ));
         }
+        let model_resolved = trim(&proof.model_resolved);
+        if model_resolved.is_empty() {
+            return Err(format!(
+                "Runtime execution proof for {capability} is missing model_resolved"
+            ));
+        }
+        let trace_id = trim(&proof.trace_id);
+        if trace_id.is_empty() {
+            return Err(format!(
+                "Runtime execution proof for {capability} is missing trace_id"
+            ));
+        }
         missing_floor.remove(capability);
         out.push(RuntimeAiConfigCapabilityBinding {
             capability: capability.to_string(),
@@ -103,6 +115,14 @@ pub fn project_first_run_execution_evidence_to_ai_config_bindings(
                 "kind": "local-runtime",
                 "version": "v2",
                 "readinessRef": execution_evidence_ref,
+                "runtime": {
+                    "runtimeBaselineRef": runtime_baseline_ref,
+                    "runtimeConsumerId": bound_consumer_id,
+                    "boundAssetId": bound_asset_id,
+                    "runtimeLocalRouteTarget": local_route_target,
+                    "modelResolved": model_resolved,
+                    "runtimeExecutionTraceId": trace_id,
+                },
             }),
         });
     }
@@ -200,7 +220,21 @@ mod tests {
         assert_eq!(text.binding["kind"], "local-runtime");
         assert_eq!(text.binding["version"], "v2");
         assert_eq!(text.binding["readinessRef"], "execution_evidence_test");
-        assert!(text.binding.get("runtime").is_none());
+        assert_eq!(
+            text.binding["runtime"]["runtimeBaselineRef"],
+            "runtime-baseline:test"
+        );
+        assert_eq!(text.binding["runtime"]["runtimeConsumerId"], "llama.cpp.cpu");
+        assert_eq!(text.binding["runtime"]["boundAssetId"], "asset:text");
+        assert_eq!(
+            text.binding["runtime"]["runtimeLocalRouteTarget"],
+            "route:llama.cpp.cpu"
+        );
+        assert_eq!(text.binding["runtime"]["modelResolved"], "asset:text");
+        assert_eq!(
+            text.binding["runtime"]["runtimeExecutionTraceId"],
+            "trace:llama.cpp.cpu"
+        );
         assert!(text.binding.get("boundAssetId").is_none());
     }
 

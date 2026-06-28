@@ -449,6 +449,8 @@ export type UseRouteModelPickerDataResult = {
   localModels: readonly RouteLocalModel[];
   /** Cloud connectors. */
   connectors: readonly RouteConnector[];
+  /** Models for the active cloud connector. */
+  connectorModels: readonly RouteConnectorModel[];
   /** Whether data is loading. */
   loading: boolean;
   /** Model picker headless state for RouteModelPickerPanel. */
@@ -669,6 +671,7 @@ export function useRouteModelPickerData({
   );
 
   const hasConnectors = connectors.length > 0;
+  const connectorModels = connectorModelsMap[connectorId] ?? [];
 
   // --- Banners ---
   const banners = useMemo(() => {
@@ -752,6 +755,7 @@ export function useRouteModelPickerData({
     selection,
     localModels,
     connectors,
+    connectorModels,
     loading,
     pickerState,
     panelProps,

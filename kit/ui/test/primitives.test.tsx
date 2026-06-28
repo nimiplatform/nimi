@@ -201,6 +201,11 @@ test('surface, button, field, and status primitives render', () => {
   expect(hasClass(html, 'nimi-action__trailing')).toBe(true);
   expect(hasClass(html, 'nimi-action__icon')).toBe(true);
   expect(hasClass(html, 'nimi-action__spinner')).toBe(true);
+  expect(html).toMatch(/nimi-action__leading[^"]*pointer-events-none/);
+  expect(html).toMatch(/nimi-action__trailing[^"]*pointer-events-none/);
+  expect(html).toMatch(/nimi-action__icon[^"]*pointer-events-none/);
+  expect(html).toMatch(/nimi-action__spinner[^"]*pointer-events-none/);
+  expect(html).toMatch(/pointer-events-none[^"]*inline-flex[^"]*min-w-0/);
   expect(hasClass(html, 'nimi-status-badge')).toBe(true);
   expect(hasClass(html, 'nimi-status-badge--success')).toBe(true);
   expect(hasClass(html, 'nimi-status-badge--dot')).toBe(true);

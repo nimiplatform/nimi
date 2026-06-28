@@ -87,10 +87,10 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       )}
       {...rest}
     >
-      {leadingIcon ? <span className="nimi-action__leading inline-flex shrink-0 items-center justify-center">{leadingIcon}</span> : null}
-      {loading ? <span className="nimi-action__spinner inline-block h-3.5 w-3.5 shrink-0 rounded-full border-2 border-current border-r-transparent" aria-hidden="true" /> : null}
-      <span className="inline-flex min-w-0 items-center justify-center gap-2 overflow-hidden text-ellipsis whitespace-nowrap">{children}</span>
-      {trailingIcon ? <span className="nimi-action__trailing inline-flex shrink-0 items-center justify-center">{trailingIcon}</span> : null}
+      {leadingIcon ? <span className="nimi-action__leading pointer-events-none inline-flex shrink-0 items-center justify-center">{leadingIcon}</span> : null}
+      {loading ? <span className="nimi-action__spinner pointer-events-none inline-block h-3.5 w-3.5 shrink-0 rounded-full border-2 border-current border-r-transparent" aria-hidden="true" /> : null}
+      <span className="pointer-events-none inline-flex min-w-0 items-center justify-center gap-2 overflow-hidden text-ellipsis whitespace-nowrap">{children}</span>
+      {trailingIcon ? <span className="nimi-action__trailing pointer-events-none inline-flex shrink-0 items-center justify-center">{trailingIcon}</span> : null}
     </Comp>
   );
 });
@@ -122,7 +122,7 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(functio
       )}
       {...rest}
     >
-      <span className="nimi-action__icon inline-flex shrink-0 items-center justify-center">{icon}</span>
+      <span className="nimi-action__icon pointer-events-none inline-flex shrink-0 items-center justify-center">{icon}</span>
     </Comp>
   );
 });

@@ -5,6 +5,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import YAML from 'yaml';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.dirname(scriptDir);
@@ -19,6 +20,13 @@ function write(root, rel, content) {
   const abs = path.join(root, rel);
   fs.mkdirSync(path.dirname(abs), { recursive: true });
   fs.writeFileSync(abs, content, 'utf8');
+}
+
+function copyFromRepo(root, rel) {
+  const source = path.join(repoRoot, rel);
+  const target = path.join(root, rel);
+  fs.mkdirSync(path.dirname(target), { recursive: true });
+  fs.copyFileSync(source, target);
 }
 
 function append(root, rel, content) {
@@ -131,6 +139,23 @@ export function ProbeSurface() {
 }
 
 function buildKitFixture(root) {
+  const standardShellCatalogRel = '.nimi/spec/platform/kernel/tables/standard-shell-capabilities.yaml';
+  const standardShellCatalog = YAML.parse(fs.readFileSync(path.join(repoRoot, standardShellCatalogRel), 'utf8'));
+  const standardShellFixtureStrings = [
+    ...(Array.isArray(standardShellCatalog?.capabilities)
+      ? standardShellCatalog.capabilities.map((capability) => String(capability?.id || '').trim()).filter(Boolean)
+      : []),
+    ...(Array.isArray(standardShellCatalog?.error_envelope?.codes)
+      ? standardShellCatalog.error_envelope.codes.map((code) => String(code || '').trim()).filter(Boolean)
+      : []),
+    ...(Array.isArray(standardShellCatalog?.capabilities)
+      ? standardShellCatalog.capabilities.flatMap((capability) =>
+          Array.isArray(capability?.operations)
+            ? capability.operations.map((operation) => String(operation?.command || '').trim()).filter(Boolean)
+            : [],
+        )
+      : []),
+  ];
   write(root, '.nimi/spec/platform/kernel/tables/nimi-kit-registry.yaml', `modules:
   - id: kit.ui
     subpath: /ui
@@ -196,6 +221,22 @@ function buildKitFixture(root) {
     headless_exports: []
     ui_exports: []
     reuse_entrypoints: []
+  - id: kit.shell.capabilities
+    subpath: /shell/capabilities
+    kind: infra
+    description: Standard shell capabilities
+    source_rule: P-KIT-001
+    admission_status: admitted
+    owner: platform
+    surface_level: logic
+    adapter_contract: shell-capability-catalog
+    dependencies: []
+    peer_dependencies: []
+    exports:
+      - ./shell/capabilities
+    headless_exports: []
+    ui_exports: []
+    reuse_entrypoints: []
 `);
   write(root, 'kit/package.json', JSON.stringify({
     name: '@nimiplatform/kit-fixture',
@@ -204,6 +245,7 @@ function buildKitFixture(root) {
       './auth': './auth/src/index.ts',
       './core': './core/src/index.ts',
       './telemetry': './telemetry/src/index.ts',
+      './shell/capabilities': './shell/capabilities/src/index.ts',
     },
   }, null, 2));
   write(root, 'kit/README.md', '# Kit\n\n## Reuse First\n');
@@ -211,6 +253,15 @@ function buildKitFixture(root) {
     write(root, `kit/${moduleName}/README.md`, `# ${moduleName}\n`);
     write(root, `kit/${moduleName}/src/index.ts`, 'export const ok = true;\n');
   }
+  copyFromRepo(root, standardShellCatalogRel);
+  write(root, 'kit/shell/capabilities/README.md', '# shell capabilities\n');
+  write(
+    root,
+    'kit/shell/capabilities/src/index.ts',
+    `export const STANDARD_SHELL_FIXTURE_STRINGS = [\n${standardShellFixtureStrings
+      .map((value) => `  '${value.replace(/\\/gu, '\\\\').replace(/'/gu, "\\'")}',`)
+      .join('\n')}\n] as const;\n`,
+  );
   fs.mkdirSync(path.join(root, 'kit/features'), { recursive: true });
 }
 

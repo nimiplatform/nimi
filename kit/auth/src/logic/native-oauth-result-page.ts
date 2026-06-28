@@ -17,7 +17,7 @@ function normalizeAutoCloseMs(value: unknown): number {
   if (!Number.isFinite(numeric) || numeric < 0) {
     return 3000;
   }
-  return Math.min(Math.round(numeric), 30000);
+  return Math.min(Math.max(Math.round(numeric), 3000), 30000);
 }
 
 export function renderDesktopOAuthResultPage(input: {

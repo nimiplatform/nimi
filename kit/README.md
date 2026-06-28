@@ -81,7 +81,7 @@ The complete npm subpath inventory is the `exports` object in
 import { Button, DataTable, Pagination, Statistic, IconButton, cn } from '@nimiplatform/kit/ui';
 import { GlassSurface, glassMaterial } from '@nimiplatform/kit/ui/glass';
 import { usePrefersReducedMotion, MOTION_TIMING } from '@nimiplatform/kit/ui/motion';
-import { FOCUS_RING_CLASS_NAME, VisuallyHidden } from '@nimiplatform/kit/ui/a11y';
+import { FOCUS_RING_CLASS_NAME, VISUALLY_HIDDEN_CLASS_NAME, VISUALLY_HIDDEN_STYLE } from '@nimiplatform/kit/ui/a11y';
 ```
 
 ### Themes
@@ -118,7 +118,7 @@ import { getNimiNotificationBadgeKey } from '@nimiplatform/kit/core/notification
 
 ```ts
 import { invokeTauri } from '@nimiplatform/kit/shell/renderer/bridge';
-import { bootstrapAuthSession } from '@nimiplatform/kit/shell/renderer/bootstrap';
+import { resolveBootstrapAuthSession } from '@nimiplatform/kit/shell/renderer/bootstrap';
 ```
 
 Renderer shell APIs are host-neutral; Tauri and Electron host implementations
@@ -193,8 +193,8 @@ documents the admitted dynamic-import escape hatch used by
 - `FOCUS_RING_CLASS_NAME` is applied to `Button` and `IconButton` by
   default, providing a keyboard-visible focus ring that meets WCAG 2.1
   AA contrast.
-- `VisuallyHidden` hides content from sighted users while keeping it
-  available to assistive tech.
+- `VISUALLY_HIDDEN_CLASS_NAME` and `VISUALLY_HIDDEN_STYLE` hide content
+  from sighted users while keeping it available to assistive tech.
 - `useFocusTrap` enforces modal focus containment.
 
 `@nimiplatform/kit/ui/motion` ships:

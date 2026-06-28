@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { expect, test } from 'vitest';
+import { renderDesktopOAuthResultPage } from '../src/logic/native-oauth-result-page.js';
 
 const source = fs.readFileSync(
   path.join(import.meta.dirname, '../src/logic/native-oauth-result-page.ts'),
@@ -35,6 +36,11 @@ test('desktop OAuth result page normalizes auto-close timer before script inject
   expect(source).toMatch(/function normalizeAutoCloseMs\(value: unknown\): number/);
   expect(source).toMatch(/const autoCloseMs = normalizeAutoCloseMs\(input\.autoCloseMs\)/);
   expect(source).toMatch(/setTimeout\(function\(\)\{window\.close\(\);\}, \$\{autoCloseMs\}\);/);
+});
+
+test('desktop OAuth result page keeps success visible for at least three seconds', () => {
+  const page = renderDesktopOAuthResultPage({ status: 'success', autoCloseMs: 0 });
+  expect(page).toContain('setTimeout(function(){window.close();}, 3000);');
 });
 
 test('desktop OAuth result page keeps both templates compact and self-contained', () => {

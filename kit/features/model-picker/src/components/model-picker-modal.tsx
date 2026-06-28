@@ -81,6 +81,7 @@ export function ModelPickerModal({
   const {
     selection,
     connectors,
+    connectorModels,
     localModels,
     loading,
     pickerState,
@@ -125,10 +126,18 @@ export function ModelPickerModal({
         base.modelId = localModel.modelId;
         base.modelLabel = modelLabel || localModel.label || localModel.modelId;
       }
+    } else {
+      const connectorModel = connectorModels.find((m) => m.modelId === modelId);
+      if (connectorModel) {
+        base.provider = connectorModel.provider || selection.provider;
+        base.remoteModelCatalogId = connectorModel.remoteModelCatalogId;
+        base.providerModelId = connectorModel.providerModelId;
+        base.modelLabel = modelLabel || connectorModel.modelLabel || connectorModel.providerModelId;
+      }
     }
     onSelect(base);
     onClose();
-  }, [onClose, onSelect, selection.connectorId, selection.source, localModels, pickerState.models, pickerState.adapter]);
+  }, [connectorModels, localModels, onClose, onSelect, pickerState.adapter, pickerState.models, selection.connectorId, selection.provider, selection.source]);
 
   // Reset search when modal opens
   useEffect(() => {

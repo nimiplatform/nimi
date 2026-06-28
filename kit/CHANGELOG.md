@@ -89,7 +89,7 @@ pre-1.0 iteration phase.
   (`/`, `/runtime`, `/realm`, `/types`, `/mod`).
 - **a11y primitives module** (`./ui/a11y`): `FOCUS_RING_CLASS_NAME`
   applied to `Button` and `IconButton` for WCAG 2.1 AA keyboard focus
-  visibility, `VisuallyHidden` helper, focus-trap hook.
+  visibility, visually hidden helper constants, focus-trap hook.
 - **Motion primitives module** (`./ui/motion`): SSR-safe
   `usePrefersReducedMotion` hook and `MOTION_TIMING` tokens. Respects
   `prefers-reduced-motion: reduce`.

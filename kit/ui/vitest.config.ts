@@ -22,6 +22,20 @@ function pnpmPackageRoot(packageName: string): string {
 }
 
 export default defineConfig({
+  plugins: [
+    {
+      name: 'nimi-kit-raw-html-fixtures',
+      transform(code, id) {
+        if (!id.endsWith('.html')) {
+          return null;
+        }
+        return {
+          code: `export default ${JSON.stringify(code)};`,
+          map: null,
+        };
+      },
+    },
+  ],
   resolve: {
     dedupe: [
       'react',
