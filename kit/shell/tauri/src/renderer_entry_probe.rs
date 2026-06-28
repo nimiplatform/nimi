@@ -50,8 +50,84 @@ pub fn build_renderer_entry_probe_script(
       }}
       return Promise.resolve(invoke(command, payload)).catch(() => undefined);
     }};
-    const scriptSrc =
-      globalRecord.document?.querySelector('script[type="module"]')?.src || '';
+    const commandCheckPayload = (check) => {{
+      if (Object.prototype.hasOwnProperty.call(check, 'payload')) {{
+        return check.payload;
+      }}
+      return undefined;
+    }};
+    const commandValueKind = (value) => {{
+      if (value === null) {{
+        return 'null';
+      }}
+      if (Array.isArray(value)) {{
+        return 'array';
+      }}
+      return typeof value;
+    }};
+    const commandErrorMessage = (error) => {{
+      if (error?.message) {{
+        return error.message;
+      }}
+      return String(error || 'command failed');
+    }};
+    const runCommandChecks = async (context, details) => {{
+      const checks = Array.isArray(context?.commandChecks)
+        ? context.commandChecks.filter((check) => check && typeof check.command === 'string' && check.command.trim())
+        : [];
+      const commandChecks = [];
+      for (const check of checks) {{
+        const command = String(check.command).trim();
+        const id = String(check.id || command).trim();
+        const expectError = Boolean(check.expectError);
+        try {{
+          const value = await Promise.resolve(invoke(command, commandCheckPayload(check)));
+          const result = {{
+            id,
+            command,
+            expectError,
+            ok: !expectError,
+            valueKind: commandValueKind(value),
+          }};
+          if (expectError) {{
+            result.errorMessage = 'expected command to fail, but it resolved';
+          }}
+          commandChecks.push(result);
+        }} catch (error) {{
+          commandChecks.push({{
+            id,
+            command,
+            expectError,
+            ok: expectError,
+            errorMessage: commandErrorMessage(error),
+          }});
+        }}
+      }}
+      const failed = commandChecks.filter((result) => !result.ok);
+      if (failed.length > 0) {{
+        await invokeSafe(reportCommand, {{
+          payload: {{
+            ok: false,
+            failedStep: 'renderer-command-checks-failed',
+            steps: ['window-eval-probe', 'renderer-module-import', 'renderer-command-checks'],
+            details,
+            commandChecks,
+            route: globalRecord.location?.href || '',
+            htmlSnapshot: globalRecord.document?.documentElement?.outerHTML || '',
+          }},
+        }});
+        return;
+      }}
+      await invokeSafe(pingCommand, {{
+        payload: {{
+          stage: 'command-checks-ok',
+          commandChecks,
+          details,
+        }},
+      }});
+    }};
+    const moduleScripts = Array.from(globalRecord.document?.querySelectorAll('script[type="module"][src]') || []);
+    const scriptSrc = moduleScripts.map((script) => script?.src || '').find(Boolean) || '';
     const details = {{
       href: globalRecord.location?.href || '',
       readyState: globalRecord.document?.readyState || '',
@@ -80,20 +156,15 @@ pub fn build_renderer_entry_probe_script(
         return;
       }}
       void invokeSafe(contextCommand)
-        .then((context) => {{
+        .then(async (context) => {{
           if (!context?.enabled) {{
             return undefined;
           }}
           if (resetLocalStorageScenarioIds.has(String(context?.scenarioId || ''))) {{
             globalRecord.localStorage?.clear?.();
           }}
-          return import(scriptSrc);
-        }})
-        .then((importResult) => {{
-          if (!importResult) {{
-            return undefined;
-          }}
-          return invokeSafe(pingCommand, {{
+          await import(scriptSrc);
+          await invokeSafe(pingCommand, {{
             payload: {{
               stage: 'window-dynamic-import-ok',
               details: {{
@@ -101,6 +172,11 @@ pub fn build_renderer_entry_probe_script(
               }},
             }},
           }});
+          await runCommandChecks(context, {{
+            ...details,
+            scriptSrc,
+          }});
+          return undefined;
         }})
         .catch((error) => invokeSafe(reportCommand, {{
           payload: {{
@@ -156,7 +232,11 @@ mod tests {
         assert!(script.contains(r#"const contextCommand = "tester_probe_context";"#));
         assert!(script.contains(r#"new Set(["boot.reset"])"#));
         assert!(script.contains("globalRecord.__TAURI__?.core?.invoke"));
-        assert!(script.contains("return import(scriptSrc);"));
+        assert!(script.contains(r#"querySelectorAll('script[type="module"][src]')"#));
+        assert!(script.contains("import(scriptSrc);"));
+        assert!(script.contains("commandChecks"));
+        assert!(script.contains("command-checks-ok"));
+        assert!(script.contains("renderer-command-checks-failed"));
         assert!(!script.contains("desktop_macos_smoke_ping"));
     }
 
