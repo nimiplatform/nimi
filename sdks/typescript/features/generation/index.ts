@@ -55,6 +55,7 @@ export * from './media-params';
 export * from './runtime-generation-build';
 export * from './runtime-image-generation';
 export * from './runtime-job-builders';
+export * from './runtime-target-identity';
 export * from './voice-reference';
 
 export type NimiGenerationJobStatus =

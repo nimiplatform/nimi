@@ -1,5 +1,6 @@
 import type { RuntimeDurableTargetRef } from '../../core-generated/runtime-protobuf/runtime/v1/runtime_target_identity';
 import { ReasonCode, createNimiError } from '../../types';
+import type { NimiModelRef } from '../contracts';
 import type { NimiAIConfigTargetRef } from './config-types';
 
 function normalizeText(value: unknown): string {
@@ -102,4 +103,60 @@ export function toRuntimeDurableTargetRef(
     actionHint: 'materialize_profile_slice_before_invocation',
     source: 'sdk',
   });
+}
+
+export interface NimiRuntimeScenarioTargetIdentityInput {
+  readonly targetRef: NimiAIConfigTargetRef | null | undefined;
+  readonly model: NimiModelRef;
+  readonly connectorId?: string;
+}
+
+export interface NimiRuntimeScenarioTargetIdentity {
+  readonly targetRef: RuntimeDurableTargetRef;
+  readonly modelId: string;
+  readonly connectorId: string;
+}
+
+export function toRuntimeScenarioTargetIdentity(
+  input: NimiRuntimeScenarioTargetIdentityInput,
+): NimiRuntimeScenarioTargetIdentity {
+  const durableTargetRef = toRuntimeDurableTargetRef(input.targetRef);
+  const modelId = normalizeText(input.model.modelId);
+
+  if (input.targetRef?.kind === 'cloud-connector') {
+    const connectorId = normalizeText(input.targetRef.connectorId);
+    const providerModelId = normalizeText(input.targetRef.providerModelId);
+    const explicitConnectorId = normalizeText(input.connectorId);
+    if (modelId !== providerModelId) {
+      throw createNimiError({
+        message: 'Runtime-backed cloud model.modelId must match targetRef.providerModelId',
+        code: ReasonCode.SDK_AI_INPUT_INVALID,
+        reasonCode: ReasonCode.SDK_AI_INPUT_INVALID,
+        actionHint: 'call_runtime_ai_with_resolved_cloud_provider_model_id',
+        source: 'sdk',
+        details: { modelId, providerModelId },
+      });
+    }
+    if (explicitConnectorId && explicitConnectorId !== connectorId) {
+      throw createNimiError({
+        message: 'Runtime-backed cloud connectorId must match targetRef.connectorId',
+        code: ReasonCode.SDK_AI_INPUT_INVALID,
+        reasonCode: ReasonCode.SDK_AI_INPUT_INVALID,
+        actionHint: 'remove_stale_connector_id_or_resolve_runtime_target_ref',
+        source: 'sdk',
+        details: { connectorId: explicitConnectorId, targetConnectorId: connectorId },
+      });
+    }
+    return {
+      targetRef: durableTargetRef,
+      modelId: providerModelId,
+      connectorId,
+    };
+  }
+
+  return {
+    targetRef: durableTargetRef,
+    modelId,
+    connectorId: normalizeText(input.connectorId ?? input.model.providerId),
+  };
 }

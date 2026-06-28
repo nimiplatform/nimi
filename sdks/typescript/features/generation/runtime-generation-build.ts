@@ -9,6 +9,7 @@ import {
 import type { RuntimeDurableTargetRef } from '../../core-generated/runtime-protobuf/runtime/v1/runtime_target_identity';
 import { createNimiError } from '../../types';
 import { toRuntimeScenario, type NimiRuntimeGenerationScenario } from './runtime-scenarios';
+import { resolveNimiRuntimeDurableTargetIdentity } from './runtime-target-identity';
 
 export type NimiRuntimeGenerationRoutePolicy = 'local' | 'cloud' | 'unspecified';
 
@@ -53,15 +54,21 @@ export function buildNimiRuntimeGenerationSubmitRequest(
 }
 
 function toRuntimeHead(input: NimiRuntimeGenerationHeadInput): ScenarioRequestHead {
+  const targetIdentity = resolveNimiRuntimeDurableTargetIdentity({
+    context: 'Runtime generation head',
+    targetRef: input.targetRef,
+    modelId: input.modelId,
+    connectorId: input.connectorId,
+  });
   return {
     appId: requireText(input.appId, 'Runtime generation head requires appId', 'provide_generation_app_id'),
     subjectUserId: normalizeText(input.subjectUserId),
-    modelId: normalizeText(input.modelId),
+    modelId: targetIdentity.modelId,
     routePolicy: toRuntimeRoutePolicy(input.routePolicy),
     fallback: FallbackPolicy.DENY,
     timeoutMs: Number(input.timeoutMs ?? 0),
-    connectorId: normalizeText(input.connectorId),
-    targetRef: input.targetRef,
+    connectorId: targetIdentity.connectorId,
+    targetRef: targetIdentity.targetRef,
   };
 }
 

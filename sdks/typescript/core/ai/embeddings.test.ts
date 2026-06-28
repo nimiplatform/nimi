@@ -15,6 +15,14 @@ const localRuntimeTargetRef = {
   profileBindingId: 'local-runtime:embedder-1',
 } as const;
 
+const cloudRuntimeTargetRef = {
+  kind: 'cloud-connector',
+  connectorId: 'connector-openai',
+  remoteModelCatalogId: 'remote-catalog:connector-openai:text-embedding-3-large',
+  providerModelId: 'text-embedding-3-large',
+  provider: 'openai',
+} as const;
+
 test('Runtime-backed embedding client maps text embedding Scenario requests and output', async () => {
   let capturedRequest: ReturnType<typeof buildRuntimeTextEmbeddingRequest> | null = null;
   let capturedOptions: RuntimeTypedCallOptions | undefined;
@@ -104,4 +112,43 @@ test('Runtime-backed embedding client fails closed for invalid inputs and output
     () => embedding.embedText({ values: ['ok'] }),
     (error: unknown) => (error as { reasonCode?: string }).reasonCode === ReasonCode.SDK_AI_RUNTIME_OUTPUT_INVALID,
   );
+});
+
+test('Runtime-backed embedding client fails closed when cloud model diverges from targetRef', async () => {
+  let executed = false;
+  const embedding = createNimiRuntimeEmbeddingClient({
+    appId: 'app-1',
+    routePolicy: 'cloud',
+    model: { providerId: 'openai', modelId: 'legacy-embedding-alias' },
+    targetRef: cloudRuntimeTargetRef,
+    runtime: {
+      async executeScenario() {
+        executed = true;
+        return {
+          output: {
+            output: {
+              oneofKind: 'textEmbed',
+              textEmbed: {
+                vectors: [{ values: [0.1] }],
+              },
+            },
+          },
+          finishReason: 1,
+          routeDecision: RoutePolicy.CLOUD,
+          modelResolved: 'legacy-embedding-alias',
+          traceId: 'trace-embed',
+          ignoredExtensions: [],
+        };
+      },
+    },
+  });
+
+  await assert.rejects(
+    () => embedding.embedText({ values: ['hello'] }),
+    (error: unknown) => (
+      (error as { reasonCode?: string }).reasonCode === ReasonCode.SDK_AI_INPUT_INVALID
+      && /cloud model\.modelId must match targetRef\.providerModelId/u.test((error as { message?: string }).message || '')
+    ),
+  );
+  assert.equal(executed, false);
 });

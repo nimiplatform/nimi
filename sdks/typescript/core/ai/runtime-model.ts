@@ -28,7 +28,7 @@ import type {
 } from '../contracts';
 import type { NimiAIConfigTargetRef } from './config-types';
 import type { NimiAiModel, NimiGenerateTextContent, NimiGenerateTextRequest, NimiGenerateTextResult } from './index';
-import { toRuntimeDurableTargetRef } from './runtime-target-ref';
+import { toRuntimeDurableTargetRef, toRuntimeScenarioTargetIdentity } from './runtime-target-ref';
 import {
   toNimiRawChunk,
   toNimiRawChunks,
@@ -119,6 +119,11 @@ export function buildRuntimeTextScenarioRequest(input: {
   readonly appId: string;
   readonly executionMode: ExecutionMode.SYNC | ExecutionMode.STREAM;
 }): ExecuteScenarioRequest {
+  const targetIdentity = toRuntimeScenarioTargetIdentity({
+    targetRef: input.options.targetRef,
+    model: input.model,
+    connectorId: input.options.connectorId,
+  });
   const messages = toRuntimeMessages(input.request.messages);
   const systemPrompt = messages
     .filter((message) => message.role === 'system' || message.role === 'developer')
@@ -130,11 +135,11 @@ export function buildRuntimeTextScenarioRequest(input: {
     head: {
       appId: input.appId,
       subjectUserId: normalizeText(input.options.subjectUserId),
-      modelId: input.model.modelId,
+      modelId: targetIdentity.modelId,
       routePolicy: toRuntimeRoutePolicy(input.options.routePolicy),
       fallback: FallbackPolicy.DENY,
       timeoutMs: Number(input.options.timeoutMs ?? 0),
-      connectorId: normalizeText(input.options.connectorId ?? input.model.providerId),
+      connectorId: targetIdentity.connectorId,
       targetRef: toRuntimeDurableTargetRef(input.options.targetRef),
     },
     scenarioType: ScenarioType.TEXT_GENERATE,

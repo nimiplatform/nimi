@@ -33,6 +33,14 @@ const localRuntimeTargetRef = {
   profileBindingId: 'local-runtime:model-chat',
 };
 
+const cloudRuntimeTargetRef = {
+  kind: 'cloud-connector' as const,
+  connectorId: 'connector-openrouter',
+  remoteModelCatalogId: 'remote-catalog:connector-openrouter:openai/gpt-5',
+  providerModelId: 'openai/gpt-5',
+  provider: 'openrouter',
+};
+
 class FakeScenarioClient implements NimiRuntimeAIScenarioClient {
   executeRequests: ExecuteScenarioRequest[] = [];
   streamRequests: StreamScenarioRequest[] = [];
@@ -230,6 +238,38 @@ test('Runtime-backed Nimi AI maps streamScenario to Nimi run events', async () =
   assert.deepEqual(collected.raw, {
     reasoning: 'think ',
     artifacts: [{ mimeType: 'application/octet-stream', sizeBytes: 3 }],
+  });
+});
+
+test('Runtime-backed Nimi AI derives cloud scenario identity from targetRef', async () => {
+  const client = new FakeScenarioClient();
+  const model = createNimiRuntimeAIModel({
+    runtime: { ai: client },
+    appId: 'app-runtime-ai',
+    model: { providerId: 'openrouter', modelId: 'openai/gpt-5' },
+    routePolicy: 'cloud',
+    targetRef: cloudRuntimeTargetRef,
+  });
+
+  await model.generateText({
+    model: model.model,
+    messages: [{ role: 'user', content: [textPart('Use cloud target.')] }],
+  });
+
+  const head = client.executeRequests[0]?.head;
+  assert.equal(head?.modelId, 'openai/gpt-5');
+  assert.equal(head?.connectorId, 'connector-openrouter');
+  assert.deepEqual(head?.targetRef, {
+    target: {
+      oneofKind: 'cloud',
+      cloud: {
+        version: 'v2',
+        connectorId: 'connector-openrouter',
+        remoteModelCatalogId: 'remote-catalog:connector-openrouter:openai/gpt-5',
+        providerModelId: 'openai/gpt-5',
+        provider: 'openrouter',
+      },
+    },
   });
 });
 

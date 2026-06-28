@@ -13,7 +13,7 @@ import type { CoreMetadata } from '../../types';
 import { ReasonCode, createNimiClientId, createNimiError } from '../../types';
 import type { NimiJsonObject, NimiModelRef, NimiUsage } from '../contracts';
 import type { NimiAIConfigTargetRef } from './config-types';
-import { toRuntimeDurableTargetRef } from './runtime-target-ref';
+import { toRuntimeDurableTargetRef, toRuntimeScenarioTargetIdentity } from './runtime-target-ref';
 
 export type NimiRuntimeEmbeddingRoutePolicy = 'local' | 'cloud' | 'unspecified';
 
@@ -80,15 +80,20 @@ export function buildRuntimeTextEmbeddingRequest(input: {
   readonly model: NimiModelRef;
   readonly appId: string;
 }): ExecuteScenarioRequest {
+  const targetIdentity = toRuntimeScenarioTargetIdentity({
+    targetRef: input.options.targetRef,
+    model: input.model,
+    connectorId: input.options.connectorId,
+  });
   return {
     head: {
       appId: input.appId,
       subjectUserId: normalizeText(input.options.subjectUserId),
-      modelId: input.model.modelId,
+      modelId: targetIdentity.modelId,
       routePolicy: toRuntimeRoutePolicy(input.options.routePolicy),
       fallback: FallbackPolicy.DENY,
       timeoutMs: Number(input.options.timeoutMs ?? 0),
-      connectorId: normalizeText(input.options.connectorId ?? input.model.providerId),
+      connectorId: targetIdentity.connectorId,
       targetRef: toRuntimeDurableTargetRef(input.options.targetRef),
     },
     scenarioType: ScenarioType.TEXT_EMBED,

@@ -1,5 +1,6 @@
 import type { RuntimeDurableTargetRef } from '../../core-generated/runtime-protobuf/runtime/v1/runtime_target_identity';
 import { createNimiError, ReasonCode } from '../../types';
+import { resolveNimiRuntimeDurableTargetIdentity } from './runtime-target-identity';
 
 export type NimiRuntimeScenarioRoutePolicy = 'local' | 'cloud' | 'unspecified';
 
@@ -29,13 +30,27 @@ export function buildNimiRuntimeScenarioJobHead(input: NimiRuntimeScenarioJobHea
   readonly targetRef: RuntimeDurableTargetRef;
   readonly timeoutMs: number;
 } {
+  const targetIdentity = resolveNimiRuntimeDurableTargetIdentity({
+    context: 'Runtime scenario job head',
+    targetRef: input.targetRef,
+    modelId: input.modelId,
+    connectorId: input.connectorId,
+    requireTargetRef: true,
+  });
+  if (!targetIdentity.targetRef) {
+    throw runtimeJobBuilderError(
+      'SDK_GENERATION_RUNTIME_TARGET_REF_REQUIRED',
+      'Runtime scenario job head requires Runtime targetRef',
+      'select_runtime_target_ref',
+    );
+  }
   return {
     appId: requireText(input.appId, 'Runtime scenario job head requires appId'),
     subjectUserId: normalizedText(input.subjectUserId),
-    modelId: normalizedText(input.modelId),
+    modelId: targetIdentity.modelId,
     routePolicy: runtimeRoutePolicy(input.routePolicy),
-    ...(normalizedText(input.connectorId) ? { connectorId: normalizedText(input.connectorId) } : {}),
-    targetRef: requireTargetRef(input.targetRef),
+    ...(targetIdentity.connectorId ? { connectorId: targetIdentity.connectorId } : {}),
+    targetRef: targetIdentity.targetRef,
     timeoutMs: positiveTimeoutMs(input.timeoutMs),
   };
 }
@@ -69,17 +84,6 @@ function positiveTimeoutMs(value: unknown): number {
     );
   }
   return Math.floor(timeoutMs);
-}
-
-function requireTargetRef(targetRef: RuntimeDurableTargetRef | undefined): RuntimeDurableTargetRef {
-  if (!targetRef) {
-    throw runtimeJobBuilderError(
-      'SDK_GENERATION_RUNTIME_TARGET_REF_REQUIRED',
-      'Runtime scenario job head requires Runtime targetRef',
-      'select_runtime_target_ref',
-    );
-  }
-  return targetRef;
 }
 
 function requireText(value: unknown, message: string): string {
