@@ -305,6 +305,9 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
         } = resolveLaunchAgentIdentity({
           agentId: launchContext.agentId,
           accountId,
+          ownerUserId: launchContext.ownerUserId,
+          runtimeSourceRef: launchContext.runtimeSourceRef,
+          localAgentRef: launchContext.localAgentRef,
         });
         evidenceAgentId = localAgentRef;
         const agentId = localAgentRef;

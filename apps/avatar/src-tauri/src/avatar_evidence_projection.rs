@@ -300,7 +300,10 @@ mod tests {
 
     fn context() -> AvatarLaunchContext {
         AvatarLaunchContext {
-            agent_id: "agent-1".to_string(),
+            agent_id: "local-agent:opaque-1".to_string(),
+            owner_user_id: "owner-1".to_string(),
+            runtime_source_ref: "agent-1".to_string(),
+            local_agent_ref: "local-agent:opaque-1".to_string(),
             avatar_instance_id: Some("instance-1".to_string()),
             launch_source: Some("desktop-agent-chat".to_string()),
         }

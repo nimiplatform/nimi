@@ -4,7 +4,6 @@ import {
   createNimiRuntimeAppSessionMetadataProvider,
   createNimiRuntimeFullAppRegistration,
   isRuntimeLocalAgentRef,
-  parseRuntimeLocalAgentIdentity,
   projectRuntimeLocalAgentIdentity,
   type NimiRuntimeAppRegistrationClient,
   type NimiRuntimeAppSessionClient,
@@ -88,6 +87,9 @@ export function createAvatarAccountCaller(appId: string): AccountCaller {
 export function resolveLaunchAgentIdentity(input: {
   agentId: string;
   accountId: string;
+  ownerUserId?: string | null;
+  localAgentRef?: string | null;
+  runtimeSourceRef?: string | null;
 }): {
   ownerUserId: string;
   runtimeSourceRef: string;
@@ -101,15 +103,24 @@ export function resolveLaunchAgentIdentity(input: {
   if (!accountId) {
     throw new Error('Runtime account projection is required before resolving Avatar launch agent identity');
   }
-  if (isRuntimeLocalAgentRef(agentId)) {
-    const identity = parseRuntimeLocalAgentIdentity(agentId);
-    if (identity.ownerUserId !== accountId) {
-      throw new Error('avatar launch agentId does not match Runtime account projection');
-    }
-    return identity;
+  const launchOwnerUserId = readNormalizedString(input.ownerUserId);
+  if (launchOwnerUserId && launchOwnerUserId !== accountId) {
+    throw new Error('avatar launch context ownerUserId does not match Runtime account projection');
+  }
+  const localAgentRef = readNormalizedString(input.localAgentRef);
+  const runtimeSourceRef = readNormalizedString(input.runtimeSourceRef);
+  if (!localAgentRef || !runtimeSourceRef) {
+    throw new Error('avatar launch context requires explicit localAgentRef and runtimeSourceRef');
+  }
+  if (agentId !== localAgentRef) {
+    throw new Error('avatar launch context requires agentId to equal localAgentRef');
+  }
+  if (!isRuntimeLocalAgentRef(localAgentRef)) {
+    throw new Error('avatar launch context localAgentRef is malformed');
   }
   return projectRuntimeLocalAgentIdentity({
     ownerUserId: accountId,
-    runtimeSourceRef: agentId,
+    runtimeSourceRef,
+    localAgentRef,
   });
 }

@@ -10,7 +10,7 @@ fn runtime_source_ref() -> &'static str {
 }
 
 fn local_agent_ref_for(owner_user_id: &str, runtime_source_ref: &str) -> String {
-    format!("local-agent:{owner_user_id}:{runtime_source_ref}")
+    format!("local-agent:test-{owner_user_id}-{runtime_source_ref}")
 }
 
 fn local_agent_ref() -> String {
@@ -433,7 +433,10 @@ async fn resolve_local_avatar_asset_rejects_invalid_live2d_calibration_ref() {
 #[test]
 fn normalize_avatar_launch_instance_id_writes_generated_id_when_omitted() {
     let mut context = AvatarLaunchContext {
-        agent_id: runtime_source_ref().to_string(),
+        agent_id: local_agent_ref(),
+        owner_user_id: owner_user_id().to_string(),
+        runtime_source_ref: runtime_source_ref().to_string(),
+        local_agent_ref: local_agent_ref(),
         avatar_instance_id: None,
         launch_source: Some("desktop-agent-chat".to_string()),
     };
@@ -451,7 +454,10 @@ fn normalize_avatar_launch_instance_id_writes_generated_id_when_omitted() {
 #[test]
 fn normalize_avatar_launch_instance_id_preserves_explicit_id() {
     let mut context = AvatarLaunchContext {
-        agent_id: runtime_source_ref().to_string(),
+        agent_id: local_agent_ref(),
+        owner_user_id: owner_user_id().to_string(),
+        runtime_source_ref: runtime_source_ref().to_string(),
+        local_agent_ref: local_agent_ref(),
         avatar_instance_id: Some("instance-explicit".to_string()),
         launch_source: None,
     };

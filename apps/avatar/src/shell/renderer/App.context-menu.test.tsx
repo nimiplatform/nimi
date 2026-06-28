@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+﻿import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App.js';
 import { useAvatarStore } from './app-shell/app-store.js';
@@ -23,21 +23,25 @@ const onLaunchContextUpdatedMock = vi.fn();
 const reloadAvatarShellMock = vi.fn();
 const recordAvatarEvidenceEventuallyMock = vi.fn();
 let tauriRuntime = false;
-let launchContextUpdatedHandler:
-  | ((payload: {
-    agentId: string;
-    avatarInstanceId: string | null;
-    launchSource: string | null;
-  }) => void)
-  | null = null;
-
-function launchContext(overrides: Partial<{
+type AvatarLaunchContextForTest = {
   agentId: string;
+  ownerUserId: string;
+  runtimeSourceRef: string;
+  localAgentRef: string;
   avatarInstanceId: string | null;
   launchSource: string | null;
-}> = {}) {
+};
+
+let launchContextUpdatedHandler:
+  | ((payload: AvatarLaunchContextForTest) => void)
+  | null = null;
+
+function launchContext(overrides: Partial<AvatarLaunchContextForTest> = {}): AvatarLaunchContextForTest {
   return {
-    agentId: 'agent-product-01',
+    agentId: 'local-agent:avatar-product-01',
+    ownerUserId: 'owner-product',
+    runtimeSourceRef: 'agent-product-01',
+    localAgentRef: 'local-agent:avatar-product-01',
     avatarInstanceId: 'avatar-instance-01',
     launchSource: 'desktop-avatar-launcher',
     ...overrides,
@@ -374,12 +378,8 @@ function hasLaunchContextUpdatedHandler(): boolean {
   return launchContextUpdatedHandler !== null;
 }
 
-function emitLaunchContextUpdated(payload: {
-  agentId: string;
-  avatarInstanceId: string | null;
-  launchSource: string | null;
-}): void {
-  launchContextUpdatedHandler?.(payload);
+function emitLaunchContextUpdated(payload: Partial<AvatarLaunchContextForTest>): void {
+  launchContextUpdatedHandler?.(launchContext(payload));
 }
 
 beforeEach(() => {

@@ -16,6 +16,17 @@ import type { BootstrapHandle } from './app-shell/app-bootstrap.js';
 
 const bootstrapAvatarMock = vi.fn<() => Promise<BootstrapHandle>>();
 
+function launchContext() {
+  return {
+    agentId: 'local-agent:avatar-product-01',
+    ownerUserId: 'owner-product',
+    runtimeSourceRef: 'agent-product-01',
+    localAgentRef: 'local-agent:avatar-product-01',
+    avatarInstanceId: 'avatar-instance-01',
+    launchSource: 'desktop-avatar-launcher',
+  };
+}
+
 vi.mock('./app-shell/app-bootstrap.js', () => ({
   bootstrapAvatar: () => bootstrapAvatarMock(),
 }));
@@ -104,11 +115,7 @@ function seedReady(): void {
     agentId: 'local-agent:owner-product:agent-product-01',
     worldId: 'world-01',
   });
-  useAvatarStore.getState().setLaunchContext({
-    agentId: 'agent-product-01',
-    avatarInstanceId: 'avatar-instance-01',
-    launchSource: 'desktop-avatar-launcher',
-  });
+  useAvatarStore.getState().setLaunchContext(launchContext());
   useAvatarStore.getState().setDriverStatus('running');
 }
 
@@ -124,11 +131,7 @@ function seedDegradedRuntimeUnavailable(): void {
     status: 'unavailable',
     reason: 'runtime_scoped_binding: APP_GRANT_INVALID',
   });
-  useAvatarStore.getState().setLaunchContext({
-    agentId: 'agent-product-01',
-    avatarInstanceId: 'avatar-instance-01',
-    launchSource: 'desktop-avatar-launcher',
-  });
+  useAvatarStore.getState().setLaunchContext(launchContext());
   useAvatarStore.getState().setDriverStatus('stopped');
 }
 

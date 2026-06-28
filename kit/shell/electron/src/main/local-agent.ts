@@ -45,23 +45,22 @@ export function projectElectronLocalAgentIdentity(
 ): Record<string, string> {
   const ownerUserId = normalizeRequiredToken(input.ownerUserId, 'ownerUserId');
   const runtimeSourceRef = normalizeRequiredToken(input.runtimeSourceRef, 'runtimeSourceRef');
-  const expectedLocalAgentRef = buildElectronLocalAgentRef(ownerUserId, runtimeSourceRef);
-  const localAgentRef = normalizeText(input.localAgentRef) || expectedLocalAgentRef;
+  const localAgentRef = normalizeRequiredToken(input.localAgentRef, 'localAgentRef');
   if (!isElectronLocalAgentRef(localAgentRef)) {
     throw new NimiElectronShellHostError({
       code: 'invalid-payload',
       message: `Electron local-agent identity localAgentRef is malformed: ${localAgentRef}`,
       reasonCode: 'electron-local-agent-ref-malformed',
-      actionHint: 'provide_local_agent_ref_as_local-agent_owner_runtime-source',
+      actionHint: 'provide_opaque_local_agent_ref',
       details: { command, localAgentRef },
     });
   }
-  if (localAgentRef !== expectedLocalAgentRef) {
+  if (localAgentRef === runtimeSourceRef) {
     throw new NimiElectronShellHostError({
       code: 'invalid-payload',
-      message: 'Electron local-agent identity localAgentRef must match ownerUserId and runtimeSourceRef',
-      reasonCode: 'electron-local-agent-ref-mismatch',
-      actionHint: 'derive_local_agent_ref_from_identity_parts',
+      message: 'Electron local-agent identity localAgentRef must not be a bare runtimeSourceRef',
+      reasonCode: 'electron-local-agent-ref-bare-runtime-source',
+      actionHint: 'provide_opaque_local_agent_ref',
       details: { command, ownerUserId, runtimeSourceRef, localAgentRef },
     });
   }
@@ -105,10 +104,7 @@ function runtimeTrustedCallerModeSpec(mode: string, command: string): {
     details: { command, mode },
   });
 }
-function buildElectronLocalAgentRef(ownerUserId: string, runtimeSourceRef: string): string {
-  return `local-agent:${ownerUserId}:${runtimeSourceRef}`;
-}
 
 function isElectronLocalAgentRef(value: string): boolean {
-  return value.startsWith('local-agent:') && value.split(':').length === 3;
+  return value.startsWith('local-agent:');
 }

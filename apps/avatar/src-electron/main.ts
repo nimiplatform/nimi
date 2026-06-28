@@ -135,12 +135,28 @@ function resolveAvatarElectronLocalAgentIdentity(): {
   readonly runtimeSourceRef: string;
   readonly localAgentRef: string;
 } {
-  const ownerUserId = normalizeText(process.env.NIMI_AVATAR_ELECTRON_LOCAL_AGENT_OWNER_USER_ID) || 'avatar-local-owner';
-  const runtimeSourceRef = normalizeText(process.env.NIMI_AVATAR_ELECTRON_LOCAL_AGENT_RUNTIME_SOURCE_REF) || APP_ID;
+  const ownerUserId = normalizeRequiredString(
+    process.env.NIMI_AVATAR_ELECTRON_LOCAL_AGENT_OWNER_USER_ID,
+    'NIMI_AVATAR_ELECTRON_LOCAL_AGENT_OWNER_USER_ID',
+  );
+  const runtimeSourceRef = normalizeRequiredString(
+    process.env.NIMI_AVATAR_ELECTRON_LOCAL_AGENT_RUNTIME_SOURCE_REF,
+    'NIMI_AVATAR_ELECTRON_LOCAL_AGENT_RUNTIME_SOURCE_REF',
+  );
+  const localAgentRef = normalizeRequiredString(
+    process.env.NIMI_AVATAR_ELECTRON_LOCAL_AGENT_REF,
+    'NIMI_AVATAR_ELECTRON_LOCAL_AGENT_REF',
+  );
+  if (localAgentRef === runtimeSourceRef) {
+    throw new Error('NIMI_AVATAR_ELECTRON_LOCAL_AGENT_REF must not be a bare runtimeSourceRef');
+  }
+  if (!localAgentRef.startsWith('local-agent:')) {
+    throw new Error('NIMI_AVATAR_ELECTRON_LOCAL_AGENT_REF must start with local-agent:');
+  }
   return {
     ownerUserId,
     runtimeSourceRef,
-    localAgentRef: `local-agent:${ownerUserId}:${runtimeSourceRef}`,
+    localAgentRef,
   };
 }
 
@@ -148,10 +164,12 @@ function bindAvatarElectronRuntimeIdentity(payload: Readonly<Record<string, unkn
   const commandPayload = asRecord(payload.payload ?? payload, 'Avatar Runtime identity bind payload must be an object');
   const ownerUserId = normalizeRequiredString(commandPayload.ownerUserId, 'ownerUserId');
   const runtimeSourceRef = normalizeRequiredString(commandPayload.runtimeSourceRef, 'runtimeSourceRef');
-  const expectedLocalAgentRef = `local-agent:${ownerUserId}:${runtimeSourceRef}`;
   const localAgentRef = normalizeRequiredString(commandPayload.localAgentRef, 'localAgentRef');
-  if (localAgentRef !== expectedLocalAgentRef) {
-    throw new Error('Avatar Runtime identity localAgentRef must match ownerUserId and runtimeSourceRef');
+  if (localAgentRef === runtimeSourceRef) {
+    throw new Error('Avatar Runtime identity localAgentRef must not be a bare runtimeSourceRef');
+  }
+  if (!localAgentRef.startsWith('local-agent:')) {
+    throw new Error('Avatar Runtime identity localAgentRef must start with local-agent:');
   }
   boundRuntimeIdentity = {
     avatarInstanceId: normalizeRequiredString(commandPayload.avatarInstanceId, 'avatarInstanceId'),

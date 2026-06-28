@@ -219,11 +219,7 @@ pub const STANDARD_SHELL_CAPABILITIES: &[StandardShellCapability] = &[
             StandardShellOperation {
                 id: "writeJson",
                 command: "nimi.shell.storage.writeJson",
-                negative_states: &[
-                    "capability-unavailable",
-                    "invalid-path",
-                    "invalid-payload",
-                ],
+                negative_states: &["capability-unavailable", "invalid-path", "invalid-payload"],
             },
         ],
     },
@@ -346,26 +342,22 @@ pub mod runtime {
         channel_invalidation_count, current_daemon_status, current_daemon_status_async,
         decode_unary_result, generated, generated_method_ids, http_addr, invoke_unary_typed,
         invoke_unary_typed_with_metadata, is_allowlisted_method, is_stream_method,
-        reset_channel_invalidation_count,
-        restart_daemon_async, set_runtime_bridge_host_hooks, start_daemon_async, stop_daemon,
-        stop_daemon_async, stream_event_name_with_namespace, RuntimeBridgeConfigSetPayload,
-        RuntimeBridgeDaemonStatus, RuntimeBridgeHostHooks, RuntimeBridgeMetadata,
-        RuntimeBridgeStreamClosePayload, RuntimeBridgeStreamOpenPayload,
+        reset_channel_invalidation_count, restart_daemon_async, set_runtime_bridge_host_hooks,
+        start_daemon_async, stop_daemon, stop_daemon_async, stream_event_name_with_namespace,
+        RuntimeBridgeConfigSetPayload, RuntimeBridgeDaemonStatus, RuntimeBridgeHostHooks,
+        RuntimeBridgeMetadata, RuntimeBridgeStreamClosePayload, RuntimeBridgeStreamOpenPayload,
         RuntimeBridgeStreamOpenResult, RuntimeBridgeUnaryPayload, RuntimeBridgeUnaryResult,
         RUNTIME_ACCOUNT_GET_ACCESS_TOKEN_METHOD_ID,
-        RUNTIME_ACCOUNT_GET_ACCOUNT_SESSION_STATUS_METHOD_ID,
-        RUNTIME_AGENT_GET_AGENT_METHOD_ID,
+        RUNTIME_ACCOUNT_GET_ACCOUNT_SESSION_STATUS_METHOD_ID, RUNTIME_AGENT_GET_AGENT_METHOD_ID,
         RUNTIME_AGENT_GET_CONVERSATION_ANCHOR_SNAPSHOT_METHOD_ID,
         RUNTIME_AGENT_INITIALIZE_AGENT_METHOD_ID,
         RUNTIME_AGENT_LIST_AGENT_CONVERSATION_SUMMARIES_METHOD_ID,
         RUNTIME_AGENT_OPEN_CONVERSATION_ANCHOR_METHOD_ID,
         RUNTIME_AGENT_SET_AGENT_PRESENTATION_PROFILE_METHOD_ID,
         RUNTIME_APP_GET_ACCOUNT_APP_INVENTORY_METHOD_ID,
-        RUNTIME_APP_GET_APP_PACKAGE_READINESS_METHOD_ID,
-        RUNTIME_APP_GET_APP_STORAGE_METHOD_ID,
+        RUNTIME_APP_GET_APP_PACKAGE_READINESS_METHOD_ID, RUNTIME_APP_GET_APP_STORAGE_METHOD_ID,
         RUNTIME_APP_LIST_APP_INSTALL_JOBS_METHOD_ID,
-        RUNTIME_APP_LIST_LOCAL_APP_ADOPTIONS_METHOD_ID,
-        RUNTIME_AUTH_REGISTER_APP_METHOD_ID,
+        RUNTIME_APP_LIST_LOCAL_APP_ADOPTIONS_METHOD_ID, RUNTIME_AUTH_REGISTER_APP_METHOD_ID,
         RUNTIME_LOCAL_ADMIT_PRODUCT_CONTROL_READY_FOR_USE_METHOD_ID,
         RUNTIME_LOCAL_COLLECT_DEVICE_PROFILE_METHOD_ID,
         RUNTIME_LOCAL_COMPLETE_PRODUCT_CONTROL_FIRST_RUN_DEVICE_ENVIRONMENT_SCAN_METHOD_ID,
@@ -375,9 +367,9 @@ pub mod runtime {
         RUNTIME_LOCAL_LIST_LOCAL_ENVIRONMENT_DEPENDENCY_JOBS_METHOD_ID,
         RUNTIME_LOCAL_MINT_FIRST_RUN_EXECUTION_EVIDENCE_METHOD_ID,
         RUNTIME_LOCAL_MINT_RUNTIME_BASELINE_READINESS_METHOD_ID,
+        RUNTIME_LOCAL_RECONCILE_PRODUCT_CONTROL_FIRST_RUN_SETUP_STATE_METHOD_ID,
         RUNTIME_LOCAL_RECORD_PRODUCT_CONTROL_ACCOUNT_DEFAULT_PROFILE_EVIDENCE_METHOD_ID,
         RUNTIME_LOCAL_RECORD_PRODUCT_CONTROL_FIRST_RUN_LOCAL_AI_READY_EVIDENCE_METHOD_ID,
-        RUNTIME_LOCAL_RECONCILE_PRODUCT_CONTROL_FIRST_RUN_SETUP_STATE_METHOD_ID,
         RUNTIME_LOCAL_RESOLVE_FIRST_RUN_EXECUTION_EVIDENCE_METHOD_ID,
         RUNTIME_LOCAL_RESOLVE_LOCAL_ENVIRONMENT_PLAN_METHOD_ID,
         RUNTIME_LOCAL_RESOLVE_RUNTIME_BASELINE_READINESS_METHOD_ID,
@@ -447,14 +439,13 @@ pub mod runtime {
 pub mod runtime_lifecycle {
     pub use crate::runtime_bridge::{
         runtime_bridge_config_get, runtime_bridge_config_set, runtime_bridge_restart,
-        runtime_bridge_start, runtime_bridge_status, runtime_bridge_stop, RuntimeBridgeDaemonStatus,
+        runtime_bridge_start, runtime_bridge_status, runtime_bridge_stop,
+        RuntimeBridgeDaemonStatus,
     };
 }
 
 pub mod runtime_defaults {
-    pub use crate::runtime_defaults::{
-        RealmDefaults, RuntimeDefaults, RuntimeExecutionDefaults,
-    };
+    pub use crate::runtime_defaults::{RealmDefaults, RuntimeDefaults, RuntimeExecutionDefaults};
 
     #[tauri::command]
     pub fn runtime_defaults() -> RuntimeDefaults {
@@ -490,7 +481,9 @@ pub mod oauth {
     };
 
     #[tauri::command]
-    pub fn open_external_url(payload: OpenExternalUrlPayload) -> Result<OpenExternalUrlResult, String> {
+    pub fn open_external_url(
+        payload: OpenExternalUrlPayload,
+    ) -> Result<OpenExternalUrlResult, String> {
         crate::oauth_commands::open_external_url(payload)
     }
 
@@ -542,8 +535,8 @@ pub mod storage {
 
 pub mod config {
     pub use crate::governed_config::{
-        read_governed_config, write_governed_json_config, ConfigReadOutcome,
-        ConfigRepairSeverity, GovernedConfigFile,
+        read_governed_config, write_governed_json_config, ConfigReadOutcome, ConfigRepairSeverity,
+        GovernedConfigFile,
     };
 }
 
@@ -564,9 +557,7 @@ pub mod local_agent {
         local_developer_runtime_account_caller, local_first_party_runtime_account_caller,
     };
     pub use crate::runtime_local_agent_identity::{
-        build_runtime_local_agent_ref, is_runtime_local_agent_ref,
-        parse_runtime_local_agent_identity, project_runtime_local_agent_identity,
-        RuntimeLocalAgentIdentity,
+        is_runtime_local_agent_ref, project_runtime_local_agent_identity, RuntimeLocalAgentIdentity,
     };
 }
 
@@ -635,7 +626,9 @@ mod tests {
                 .iter()
                 .find(|operation| operation.id == operation_id)
                 .expect("runtime operation");
-            assert!(operation.negative_states.contains(&"external-daemon-required"));
+            assert!(operation
+                .negative_states
+                .contains(&"external-daemon-required"));
         }
     }
 

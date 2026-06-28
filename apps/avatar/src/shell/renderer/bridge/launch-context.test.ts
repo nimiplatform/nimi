@@ -1,14 +1,21 @@
 import { describe, expect, it } from 'vitest';
 import { parseAvatarLaunchContext } from './launch-context.js';
 
+const baseLaunchIdentity = {
+  agentId: 'local-agent:opaque-launch',
+  ownerUserId: 'owner-1',
+  runtimeSourceRef: 'agent-launch',
+  localAgentRef: 'local-agent:opaque-launch',
+};
+
 describe('parseAvatarLaunchContext', () => {
   it('accepts the minimal Desktop launch selector', () => {
     expect(parseAvatarLaunchContext({
-      agentId: 'local-agent:owner-1:agent-launch',
+      ...baseLaunchIdentity,
       avatarInstanceId: 'instance-1',
       launchSource: 'desktop-agent-chat',
     })).toEqual({
-      agentId: 'local-agent:owner-1:agent-launch',
+      ...baseLaunchIdentity,
       avatarInstanceId: 'instance-1',
       launchSource: 'desktop-agent-chat',
     });
@@ -16,11 +23,14 @@ describe('parseAvatarLaunchContext', () => {
 
   it('accepts snake_case launch selector from the Tauri command boundary', () => {
     expect(parseAvatarLaunchContext({
-      agent_id: 'local-agent:owner-1:agent-launch',
+      agent_id: baseLaunchIdentity.agentId,
+      owner_user_id: baseLaunchIdentity.ownerUserId,
+      runtime_source_ref: baseLaunchIdentity.runtimeSourceRef,
+      local_agent_ref: baseLaunchIdentity.localAgentRef,
       avatar_instance_id: 'instance-1',
       launch_source: 'desktop-agent-chat',
     })).toEqual({
-      agentId: 'local-agent:owner-1:agent-launch',
+      ...baseLaunchIdentity,
       avatarInstanceId: 'instance-1',
       launchSource: 'desktop-agent-chat',
     });
@@ -29,35 +39,37 @@ describe('parseAvatarLaunchContext', () => {
   it('rejects bare agent identity', () => {
     expect(() => parseAvatarLaunchContext({
       agentId: 'agent-launch',
+      ownerUserId: baseLaunchIdentity.ownerUserId,
+      runtimeSourceRef: baseLaunchIdentity.runtimeSourceRef,
+      localAgentRef: 'agent-launch',
       avatarInstanceId: 'instance-1',
       launchSource: 'desktop-agent-chat',
     })).toThrow(/local-agent ref/);
   });
 
-  it('rejects bare agent identity and auth truth in launch context', () => {
+  it('rejects missing identity and auth truth in launch context', () => {
     expect(() => parseAvatarLaunchContext({
-      agentId: 'local-agent:owner-1:agent-launch',
-      ownerUserId: 'account-runtime',
-    })).toThrow(/forbidden field: ownerUserId/);
+      agentId: baseLaunchIdentity.agentId,
+      runtimeSourceRef: baseLaunchIdentity.runtimeSourceRef,
+      localAgentRef: baseLaunchIdentity.localAgentRef,
+    })).toThrow(/ownerUserId/);
     expect(() => parseAvatarLaunchContext({
-      agentId: 'local-agent:owner-1:agent-launch',
+      ...baseLaunchIdentity,
       jwt: 'secret',
     })).toThrow(/forbidden field: jwt/);
   });
 
-  it('rejects Runtime-owned identity and conversation truth in launch context', () => {
+  it('rejects inconsistent identity and conversation truth in launch context', () => {
+    expect(() => parseAvatarLaunchContext({
+      ...baseLaunchIdentity,
+      localAgentRef: 'local-agent:other',
+    })).toThrow(/agentId to equal localAgentRef/);
     for (const field of [
-      'ownerUserId',
-      'owner_user_id',
-      'runtimeSourceRef',
-      'runtime_source_ref',
-      'localAgentRef',
-      'local_agent_ref',
       'conversationAnchorId',
       'conversation_anchor_id',
     ]) {
       expect(() => parseAvatarLaunchContext({
-        agentId: 'local-agent:owner-1:agent-launch',
+        ...baseLaunchIdentity,
         [field]: 'forbidden',
       })).toThrow(new RegExp(`forbidden field: ${field}`));
     }
@@ -103,7 +115,7 @@ describe('parseAvatarLaunchContext', () => {
       'expression_inventory',
     ]) {
       expect(() => parseAvatarLaunchContext({
-        agentId: 'local-agent:owner-1:agent-launch',
+        ...baseLaunchIdentity,
         [field]: 'opaque-ref',
       })).toThrow(new RegExp(`forbidden field: ${field}`));
     }

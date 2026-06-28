@@ -88,15 +88,21 @@ const runtimeMock = {
 
 const RUNTIME_SOURCE_REF = 'agent-launch';
 const OWNER_USER_ID = 'account-runtime';
-const LOCAL_AGENT_REF = `local-agent:${OWNER_USER_ID}:${RUNTIME_SOURCE_REF}`;
-const OTHER_LOCAL_AGENT_REF = `local-agent:${OWNER_USER_ID}:agent-other`;
+const LOCAL_AGENT_REF = 'local-agent:avatar-opaque-primary';
+const OTHER_LOCAL_AGENT_REF = 'local-agent:avatar-opaque-other';
 function launchContext(overrides: Partial<{
   agentId: string;
+  ownerUserId: string;
+  runtimeSourceRef: string;
+  localAgentRef: string;
   avatarInstanceId: string | null;
   launchSource: string | null;
 }> = {}) {
   return {
-    agentId: RUNTIME_SOURCE_REF,
+    agentId: LOCAL_AGENT_REF,
+    ownerUserId: OWNER_USER_ID,
+    runtimeSourceRef: RUNTIME_SOURCE_REF,
+    localAgentRef: LOCAL_AGENT_REF,
     avatarInstanceId: 'instance-1',
     launchSource: 'desktop-agent-chat',
     ...overrides,
@@ -582,7 +588,10 @@ describe('bootstrapAvatar', () => {
     expect((localAssetResolvedCall?.[0] as { detail?: Record<string, unknown> } | undefined)?.detail).not.toHaveProperty('model3_json_path');
     expect((localAssetResolvedCall?.[0] as { detail?: Record<string, unknown> } | undefined)?.detail).not.toHaveProperty('model_path');
     expect(useAvatarStore.getState().launch.context).toEqual({
-      agentId: RUNTIME_SOURCE_REF,
+      agentId: LOCAL_AGENT_REF,
+      ownerUserId: OWNER_USER_ID,
+      runtimeSourceRef: RUNTIME_SOURCE_REF,
+      localAgentRef: LOCAL_AGENT_REF,
       avatarInstanceId: 'instance-1',
       launchSource: 'desktop-agent-chat',
     });
@@ -764,7 +773,10 @@ describe('bootstrapAvatar', () => {
     const handle = await bootstrapAvatar();
 
     expect(useAvatarStore.getState().launch.context).toEqual({
-      agentId: RUNTIME_SOURCE_REF,
+      agentId: LOCAL_AGENT_REF,
+      ownerUserId: OWNER_USER_ID,
+      runtimeSourceRef: RUNTIME_SOURCE_REF,
+      localAgentRef: LOCAL_AGENT_REF,
       avatarInstanceId: null,
       launchSource: null,
     });

@@ -384,10 +384,7 @@ pub async fn nimi_avatar_resolve_agent_center_avatar_asset(
         &runtime_source_ref,
         Some(&local_agent_ref),
     )
-    .map(|identity| identity.local_agent_ref)
-    .map_err(|_| {
-        "local_agent_ref must equal local-agent:${owner_user_id}:${runtime_source_ref}".to_string()
-    })?;
+    .map(|identity| identity.local_agent_ref)?;
     let data_root = resolve_admitted_data_root()?;
     let materialization_ref =
         validate_handoff_ref(&payload.materialization_ref, "materialization_ref")?;
@@ -629,11 +626,7 @@ pub async fn nimi_avatar_resolve_local_avatar_asset(
         &runtime_source_ref,
         Some(&local_agent_ref),
     )
-    .map(|identity| identity.local_agent_ref)
-    .map_err(|_| {
-        "local Avatar asset local_agent_ref must equal local-agent:${owner_user_id}:${runtime_source_ref}"
-            .to_string()
-    })?;
+    .map(|identity| identity.local_agent_ref)?;
     let data_root = resolve_admitted_data_root()?;
     let selection = read_local_avatar_asset_selection(
         &data_root,

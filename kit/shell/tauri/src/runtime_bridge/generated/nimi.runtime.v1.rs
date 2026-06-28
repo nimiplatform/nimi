@@ -15691,6 +15691,10 @@ pub struct MemoryEmbeddingProfile {
     pub version: ::prost::alloc::string::String,
     #[prost(enumeration = "MemoryMigrationPolicy", tag = "6")]
     pub migration_policy: i32,
+    #[prost(message, optional, tag = "7")]
+    pub cloud_binding: ::core::option::Option<MemoryEmbeddingCloudBindingRef>,
+    #[prost(message, optional, tag = "8")]
+    pub local_binding: ::core::option::Option<MemoryEmbeddingLocalBindingRef>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct MemoryEmbeddingCloudBindingRef {

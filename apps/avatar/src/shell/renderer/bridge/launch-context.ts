@@ -1,4 +1,4 @@
-import { parseRuntimeLocalAgentIdentity } from '@nimiplatform/sdk/runtime';
+import { isRuntimeLocalAgentRef } from '@nimiplatform/sdk/runtime';
 import { invokeAvatarHostCommand } from '../app-shell/avatar-host-bridge.js';
 
 const FORBIDDEN_LAUNCH_FIELDS = [
@@ -111,18 +111,15 @@ const FORBIDDEN_LAUNCH_FIELDS = [
   'shared_auth_session',
   'loginRoute',
   'login_route',
-  'ownerUserId',
-  'owner_user_id',
-  'runtimeSourceRef',
-  'runtime_source_ref',
-  'localAgentRef',
-  'local_agent_ref',
   'conversationAnchorId',
   'conversation_anchor_id',
 ] as const;
 
 export type AvatarLaunchContext = {
   agentId: string;
+  ownerUserId: string;
+  runtimeSourceRef: string;
+  localAgentRef: string;
   avatarInstanceId: string | null;
   launchSource: string | null;
 };
@@ -145,11 +142,10 @@ function normalizeRequiredString(value: unknown, field: string): string {
 
 function normalizeRequiredLocalAgentRef(value: unknown, field: string): string {
   const normalized = normalizeRequiredString(value, field);
-  try {
-    return parseRuntimeLocalAgentIdentity(normalized).localAgentRef;
-  } catch {
+  if (!isRuntimeLocalAgentRef(normalized)) {
     throw new Error(`avatar launch context requires ${field} to be a local-agent ref`);
   }
+  return normalized;
 }
 
 function normalizeOptionalString(value: unknown): string | null {
@@ -168,8 +164,20 @@ export function parseAvatarLaunchContext(value: unknown): AvatarLaunchContext {
     ?? normalizeOptionalString(record.source_surface)
     ?? normalizeOptionalString(record.launch_source);
   const agentId = normalizeRequiredLocalAgentRef(record.agentId ?? record.agent_id, 'agentId');
+  const ownerUserId = normalizeRequiredString(record.ownerUserId ?? record.owner_user_id, 'ownerUserId');
+  const runtimeSourceRef = normalizeRequiredString(record.runtimeSourceRef ?? record.runtime_source_ref, 'runtimeSourceRef');
+  const localAgentRef = normalizeRequiredLocalAgentRef(record.localAgentRef ?? record.local_agent_ref, 'localAgentRef');
+  if (agentId !== localAgentRef) {
+    throw new Error('avatar launch context requires agentId to equal localAgentRef');
+  }
+  if (localAgentRef === runtimeSourceRef) {
+    throw new Error('avatar launch context requires localAgentRef to be Runtime-owned');
+  }
   return {
     agentId,
+    ownerUserId,
+    runtimeSourceRef,
+    localAgentRef,
     avatarInstanceId: normalizeOptionalString(record.avatarInstanceId ?? record.avatar_instance_id),
     launchSource,
   };

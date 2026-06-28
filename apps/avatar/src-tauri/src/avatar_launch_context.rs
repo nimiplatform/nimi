@@ -9,6 +9,9 @@ pub const AVATAR_CLOSE_HOST: &str = "close";
 #[serde(rename_all = "camelCase")]
 pub struct AvatarLaunchContext {
     pub agent_id: String,
+    pub owner_user_id: String,
+    pub runtime_source_ref: String,
+    pub local_agent_ref: String,
     pub avatar_instance_id: Option<String>,
     pub launch_source: Option<String>,
 }
@@ -41,9 +44,12 @@ fn normalize_required_local_agent_ref(
     field: &str,
 ) -> Result<String, String> {
     let normalized = normalize_required_query_value(value, field)?;
-    nimi_shell_tauri::capabilities::local_agent::parse_runtime_local_agent_identity(&normalized)
-        .map(|identity| identity.local_agent_ref)
-        .map_err(|_| format!("avatar launch context requires {field} to be a local-agent ref"))
+    if !nimi_shell_tauri::capabilities::local_agent::is_runtime_local_agent_ref(&normalized) {
+        return Err(format!(
+            "avatar launch context requires {field} to be a local-agent ref"
+        ));
+    }
+    Ok(normalized)
 }
 
 fn normalize_optional_query_value(value: Option<String>) -> Option<String> {
@@ -97,9 +103,6 @@ fn forbidden_launch_query_parameter(key: &str) -> bool {
             | "reason_code"
             | "agent_center_account_id"
             | "account_id"
-            | "owner_user_id"
-            | "runtime_source_ref"
-            | "local_agent_ref"
             | "conversation_anchor_id"
             | "user_id"
             | "subject_user_id"
@@ -129,12 +132,18 @@ pub fn parse_avatar_launch_context(raw_url: &str) -> Result<AvatarLaunchContext,
     }
 
     let mut agent_id = None;
+    let mut owner_user_id = None;
+    let mut runtime_source_ref = None;
+    let mut local_agent_ref = None;
     let mut avatar_instance_id = None;
     let mut launch_source = None;
 
     for (key, value) in parsed.query_pairs() {
         match key.as_ref() {
             "agent_id" => agent_id = Some(value.into_owned()),
+            "owner_user_id" => owner_user_id = Some(value.into_owned()),
+            "runtime_source_ref" => runtime_source_ref = Some(value.into_owned()),
+            "local_agent_ref" => local_agent_ref = Some(value.into_owned()),
             "avatar_instance_id" => avatar_instance_id = Some(value.into_owned()),
             "launch_source" | "source_surface" => launch_source = Some(value.into_owned()),
             key if forbidden_launch_query_parameter(key) => {
@@ -150,9 +159,24 @@ pub fn parse_avatar_launch_context(raw_url: &str) -> Result<AvatarLaunchContext,
     }
 
     let agent_id = normalize_required_local_agent_ref(agent_id, "agent_id")?;
+    let owner_user_id = normalize_required_query_value(owner_user_id, "owner_user_id")?;
+    let runtime_source_ref =
+        normalize_required_query_value(runtime_source_ref, "runtime_source_ref")?;
+    let local_agent_ref = normalize_required_local_agent_ref(local_agent_ref, "local_agent_ref")?;
+    if agent_id != local_agent_ref {
+        return Err("avatar launch context requires agent_id to equal local_agent_ref".to_string());
+    }
+    if local_agent_ref == runtime_source_ref {
+        return Err(
+            "avatar launch context requires local_agent_ref to be Runtime-owned".to_string(),
+        );
+    }
 
     Ok(AvatarLaunchContext {
         agent_id,
+        owner_user_id,
+        runtime_source_ref,
+        local_agent_ref,
         avatar_instance_id: normalize_optional_query_value(avatar_instance_id),
         launch_source: normalize_optional_query_value(launch_source),
     })
@@ -238,14 +262,28 @@ mod tests {
         AvatarDeepLinkRequest, AVATAR_CLOSE_HOST, AVATAR_LAUNCH_HOST, AVATAR_LAUNCH_SCHEME,
     };
 
+    fn launch_query(extra: &str) -> String {
+        let suffix = if extra.is_empty() {
+            String::new()
+        } else {
+            format!("&{extra}")
+        };
+        format!(
+            "{AVATAR_LAUNCH_SCHEME}://{AVATAR_LAUNCH_HOST}?agent_id=local-agent%3Aopaque-1&owner_user_id=owner-1&runtime_source_ref=agent-1&local_agent_ref=local-agent%3Aopaque-1{suffix}",
+        )
+    }
+
     #[test]
     fn parse_avatar_launch_context_accepts_minimal_intent() {
-        let parsed = parse_avatar_launch_context(&format!(
-            "{AVATAR_LAUNCH_SCHEME}://{AVATAR_LAUNCH_HOST}?agent_id=local-agent%3Aowner-1%3Aagent-1&avatar_instance_id=instance-1&launch_source=desktop-agent-chat",
+        let parsed = parse_avatar_launch_context(&launch_query(
+            "avatar_instance_id=instance-1&launch_source=desktop-agent-chat",
         ))
         .expect("valid launch context");
 
-        assert_eq!(parsed.agent_id, "local-agent:owner-1:agent-1");
+        assert_eq!(parsed.agent_id, "local-agent:opaque-1");
+        assert_eq!(parsed.owner_user_id, "owner-1");
+        assert_eq!(parsed.runtime_source_ref, "agent-1");
+        assert_eq!(parsed.local_agent_ref, "local-agent:opaque-1");
         assert_eq!(parsed.avatar_instance_id.as_deref(), Some("instance-1"));
         assert_eq!(parsed.launch_source.as_deref(), Some("desktop-agent-chat"));
     }
@@ -262,12 +300,9 @@ mod tests {
 
     #[test]
     fn parse_avatar_launch_context_accepts_local_agent_identity_only() {
-        let parsed = parse_avatar_launch_context(&format!(
-            "{AVATAR_LAUNCH_SCHEME}://{AVATAR_LAUNCH_HOST}?agent_id=local-agent%3Aowner-1%3Aagent-1",
-        ))
-        .expect("valid launch context");
+        let parsed = parse_avatar_launch_context(&launch_query("")).expect("valid launch context");
 
-        assert_eq!(parsed.agent_id, "local-agent:owner-1:agent-1");
+        assert_eq!(parsed.agent_id, "local-agent:opaque-1");
         assert_eq!(parsed.avatar_instance_id, None);
         assert_eq!(parsed.launch_source, None);
     }
@@ -300,9 +335,6 @@ mod tests {
             "binding_scopes",
             "scoped_binding",
             "account_id",
-            "owner_user_id",
-            "runtime_source_ref",
-            "local_agent_ref",
             "conversation_anchor_id",
             "user_id",
             "subject_user_id",
@@ -313,10 +345,8 @@ mod tests {
             "manifest_path",
             "package_path",
         ] {
-            let error = parse_avatar_launch_context(&format!(
-                "{AVATAR_LAUNCH_SCHEME}://{AVATAR_LAUNCH_HOST}?agent_id=local-agent%3Aowner-1%3Aagent-1&{key}=forbidden",
-            ))
-            .expect_err("old field should fail");
+            let error = parse_avatar_launch_context(&launch_query(&format!("{key}=forbidden")))
+                .expect_err("old field should fail");
             assert!(
                 error.contains("forbidden avatar launch query parameter"),
                 "expected forbidden error for {key}, got {error}"
@@ -349,7 +379,8 @@ mod tests {
     #[test]
     fn parse_avatar_deep_link_request_routes_by_host() {
         let launch = parse_avatar_deep_link_request(&format!(
-            "{AVATAR_LAUNCH_SCHEME}://{AVATAR_LAUNCH_HOST}?agent_id=local-agent%3Aowner-1%3Aagent-1&avatar_instance_id=instance-1",
+            "{}",
+            launch_query("avatar_instance_id=instance-1"),
         ))
         .expect("launch request");
         let close = parse_avatar_deep_link_request(&format!(
