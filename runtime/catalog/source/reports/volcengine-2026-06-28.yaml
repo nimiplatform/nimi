@@ -1,0 +1,104 @@
+provider: volcengine
+report_date: 2026-06-28
+audit_mode: family_scoped
+families_in_scope:
+  - text
+taxonomy_axes:
+  product_family:
+    - doubao_seed
+  capability_family:
+    - text
+  lineage_or_track:
+    - seed_2_1
+    - seed_2_0
+    - seed_evolving
+refresh_policy:
+  keep_latest_generations: 2
+  authority_home: runtime/catalog/source/providers/volcengine.source.yaml
+evidence_urls:
+  official:
+    - https://www.volcengine.com/docs/82379/1330310
+    - https://www.volcengine.com/docs/6489/1331021
+  official_product: []
+  aggregate_hints: []
+  credentialed_live_probe:
+    - GET https://ark.cn-beijing.volces.com/api/v3/models
+    - POST https://ark.cn-beijing.volces.com/api/v3/chat/completions
+current_source_inventory:
+  text:
+    default_text_model: doubao-seed-2-0-pro-260215
+    selection_profiles:
+      text.general: doubao-seed-2-0-pro-260215
+      text.fast: doubao-seed-2-0-mini-260428
+    model_rows:
+      - doubao-seed-2-0-pro-260215
+      - doubao-seed-2-0-lite-260215
+      - doubao-seed-2-0-mini-260428
+      - doubao-seed-2-0-mini-260215
+      - doubao-seed-2-0-code-preview-260215
+      - doubao-1.5-pro-256k
+official_current_inventory:
+  text:
+    live_model_count: 124
+    verified_chat_completion_ok:
+      - doubao-seed-2-0-pro-260215
+      - doubao-seed-2-1-pro-260628
+      - doubao-seed-2-1-turbo-260628
+    verified_chat_completion_not_found:
+      - model_id: doubao-seed-2.0-pro
+        reason: provider API does not accept the dotted alias directly
+      - model_id: doubao-seed-evolving
+        reason: model listed by GET /models but account returned ModelNotOpen in chat completion probe
+    relevant_listed_models:
+      - doubao-seed-2-1-pro-260628
+      - doubao-seed-2-1-turbo-260628
+      - doubao-seed-2-0-pro-260215
+      - doubao-seed-2-0-lite-260428
+      - doubao-seed-2-0-lite-260215
+      - doubao-seed-2-0-mini-260428
+      - doubao-seed-2-0-mini-260215
+      - doubao-seed-2-0-code-preview-260215
+      - doubao-seed-evolving
+gap_summary:
+  missing_in_source:
+    - doubao-seed-2-1-pro-260628
+    - doubao-seed-2-1-turbo-260628
+    - doubao-seed-2-0-lite-260428
+  stale_in_source:
+    - defaults.default_text_model points to doubao-seed-2-0-pro-260215 instead of the verified Doubao-Seed 2.1 Pro route
+    - selection_profiles.text.general points to doubao-seed-2-0-pro-260215
+    - selection_profiles.text.fast points to doubao-seed-2-0-mini-260428 instead of the verified Doubao-Seed 2.1 Turbo route
+    - doubao-seed-2.0-lite alias points to the older doubao-seed-2-0-lite-260215 snapshot
+  extra_legacy_in_source:
+    - doubao-1.5-pro-256k
+  uncertain_items:
+    - doubao-seed-evolving is listed by the live model endpoint but returned ModelNotOpen for this account; keep out of selection profiles.
+    - Non-text Seedance, Seedream, SeedEdit, Seed3D, and character rows were visible in GET /models but require separate family-scoped media refresh before source mutation.
+curation_decision:
+  keep:
+    - doubao-seed-2-0-pro-260215
+    - doubao-seed-2-0-mini-260428
+    - doubao-seed-2-0-mini-260215
+    - doubao-seed-2-0-code-preview-260215
+    - doubao-1.5-pro-256k
+  add:
+    - doubao-seed-2-1-pro-260628
+    - doubao-seed-2-1-turbo-260628
+    - doubao-seed-2-0-lite-260428
+  defer:
+    - doubao-seed-evolving
+    - doubao-seed-character-260628
+    - doubao-seed-code-preview-251028
+    - media-family Seedance and Seedream updates
+  reject_or_noise:
+    - doubao-seed-2.0-pro as direct provider API model id; retain only as catalog alias mapping to doubao-seed-2-0-pro-260215
+review_actions:
+  selection_profiles_review_required: true
+  defaults_review_required: true
+  capability_review_required: false
+notes:
+  - The live probe used VOLCENGINE_API_KEY from .env and did not print secrets.
+  - Direct chat completion with doubao-seed-2.0-pro returned InvalidEndpointOrModel.NotFound, confirming dotted aliases must be resolved to canonical API ids before provider dispatch.
+  - Direct chat completion with doubao-seed-2-1-pro-260628 and doubao-seed-2-1-turbo-260628 returned ok.
+  - This report is a reviewed source-refresh artifact only; source truth changes are in runtime/catalog/source/providers/volcengine.source.yaml.
+confidence: high

@@ -3,6 +3,7 @@ package ai
 import (
 	"context"
 	"errors"
+	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	catalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
@@ -77,6 +78,7 @@ func (s *Service) submitVoiceWorkflowJob(
 	if _, err := resolveVoiceWorkflowExtensionPayload(req, workflowResolution.Provider); err != nil {
 		return nil, err
 	}
+	req = s.normalizeVoiceWorkflowRequestTargetModelID(ctx, req, workflowResolution)
 
 	traceID := ulid.Make().String()
 	job, asset := s.voiceAssets.submit(&voiceWorkflowSubmitInput{
@@ -123,4 +125,59 @@ func (s *Service) submitVoiceWorkflowJob(
 		Job:   job,
 		Asset: asset,
 	}, nil
+}
+
+func (s *Service) normalizeVoiceWorkflowRequestTargetModelID(
+	ctx context.Context,
+	req *runtimev1.SubmitScenarioJobRequest,
+	resolution catalog.ResolveVoiceWorkflowResult,
+) *runtimev1.SubmitScenarioJobRequest {
+	if s == nil || s.speechCatalog == nil || req == nil || req.GetSpec() == nil {
+		return req
+	}
+	provider := strings.TrimSpace(resolution.Provider)
+	if provider == "" {
+		return req
+	}
+	subjectUserID := scenarioTargetSubjectUserID(ctx, req.GetHead())
+	normalize := func(value string) string {
+		trimmed := strings.TrimSpace(value)
+		if trimmed == "" {
+			return ""
+		}
+		resolved := strings.TrimSpace(s.speechCatalog.ResolveAPIModelIDForSubject(subjectUserID, provider, trimmed))
+		if resolved == "" {
+			return trimmed
+		}
+		return resolved
+	}
+
+	switch req.GetScenarioType() {
+	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE:
+		current := strings.TrimSpace(req.GetSpec().GetVoiceClone().GetTargetModelId())
+		normalized := normalize(current)
+		if normalized == "" || normalized == current {
+			return req
+		}
+		cloned := cloneSubmitScenarioJobRequest(req)
+		if cloned == nil || cloned.GetSpec() == nil || cloned.GetSpec().GetVoiceClone() == nil {
+			return req
+		}
+		cloned.GetSpec().GetVoiceClone().TargetModelId = normalized
+		return cloned
+	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN:
+		current := strings.TrimSpace(req.GetSpec().GetVoiceDesign().GetTargetModelId())
+		normalized := normalize(current)
+		if normalized == "" || normalized == current {
+			return req
+		}
+		cloned := cloneSubmitScenarioJobRequest(req)
+		if cloned == nil || cloned.GetSpec() == nil || cloned.GetSpec().GetVoiceDesign() == nil {
+			return req
+		}
+		cloned.GetSpec().GetVoiceDesign().TargetModelId = normalized
+		return cloned
+	default:
+		return req
+	}
 }

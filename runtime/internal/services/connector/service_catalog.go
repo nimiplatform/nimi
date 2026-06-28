@@ -91,7 +91,7 @@ func (s *Service) listCatalogConnectorModels(subjectUserID string, provider stri
 			Available:            true,
 			Capabilities:         catalogConnectorModelCapabilities(modelCatalog, subjectUserID, provider, model.Model.ModelID, model.Model.Capabilities),
 			RemoteModelCatalogId: identity.remoteModelCatalogID,
-			ProviderModelId:      model.Model.ModelID,
+			ProviderModelId:      catalogProviderModelID(model.Model),
 			Provider:             provider,
 			ConnectorSnapshotId:  identity.connectorSnapshotID,
 			EndpointProfileId:    identity.endpointProfileID,
@@ -166,17 +166,19 @@ func ResolveRemoteModelCatalogBinding(modelCatalog *aicatalog.Resolver, subjectU
 	}
 	providerRecord := catalogProviderRecordForSubject(modelCatalog, subjectUserID, provider)
 	for _, model := range models {
-		if strings.TrimSpace(model.Model.ModelID) != providerModelID {
-			continue
-		}
 		identity := remoteModelCatalogIdentityForConnector(rec, providerRecord, model)
 		if identity.remoteModelCatalogID != remoteModelCatalogID {
+			continue
+		}
+		catalogModelID := strings.TrimSpace(model.Model.ModelID)
+		executableProviderModelID := catalogProviderModelID(model.Model)
+		if catalogModelID != providerModelID && executableProviderModelID != providerModelID {
 			return RemoteModelCatalogBinding{}, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE)
 		}
 		return RemoteModelCatalogBinding{
 			ConnectorID:          strings.TrimSpace(rec.ConnectorID),
 			RemoteModelCatalogID: identity.remoteModelCatalogID,
-			ProviderModelID:      providerModelID,
+			ProviderModelID:      executableProviderModelID,
 			Provider:             provider,
 			EndpointProfileID:    identity.endpointProfileID,
 			ConnectorSnapshotID:  identity.connectorSnapshotID,
@@ -184,6 +186,13 @@ func ResolveRemoteModelCatalogBinding(modelCatalog *aicatalog.Resolver, subjectU
 		}, nil
 	}
 	return RemoteModelCatalogBinding{}, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE)
+}
+
+func catalogProviderModelID(model aicatalog.ModelEntry) string {
+	if apiModelID := strings.TrimSpace(model.ApiModelID); apiModelID != "" {
+		return apiModelID
+	}
+	return strings.TrimSpace(model.ModelID)
 }
 
 func catalogProviderRecordForSubject(modelCatalog *aicatalog.Resolver, subjectUserID string, provider string) aicatalog.CatalogProviderRecord {

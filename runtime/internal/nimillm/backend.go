@@ -191,6 +191,9 @@ func resolveOpenAICompatiblePath(baseURL string, resource string) string {
 	if strings.HasSuffix(normalizedBase, "/openai") {
 		return normalizedResource
 	}
+	if strings.HasSuffix(normalizedBase, "/api/v3") {
+		return normalizedResource
+	}
 	return "/v1" + normalizedResource
 }
 

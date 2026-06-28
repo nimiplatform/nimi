@@ -111,6 +111,28 @@ func TestListConnectorModelsProjectsRemoteCatalogIdentity(t *testing.T) {
 	}
 }
 
+func TestListConnectorModelsProjectsProviderAPIModelIDForCatalogAlias(t *testing.T) {
+	svc := newTestService(t)
+	ctx := userContext("user-1")
+	created, err := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
+		Provider: "volcengine",
+		ApiKey:   "managed-key",
+	})
+	if err != nil {
+		t.Fatalf("CreateConnector: %v", err)
+	}
+	found := connectorModelDescriptorByID(t, svc, ctx, created.GetConnector().GetConnectorId(), "doubao-seed-2.0-pro")
+	if found.GetModelId() != "doubao-seed-2.0-pro" {
+		t.Fatalf("model_id = %q want catalog alias row", found.GetModelId())
+	}
+	if found.GetProviderModelId() != "doubao-seed-2-0-pro-260215" {
+		t.Fatalf("provider_model_id = %q want canonical API model id", found.GetProviderModelId())
+	}
+	if found.GetRemoteModelCatalogId() == "" {
+		t.Fatalf("remote_model_catalog_id missing: %#v", found)
+	}
+}
+
 func TestListConnectorModelsEndpointChangeInvalidatesRemoteCatalogID(t *testing.T) {
 	svc := newTestService(t)
 	ctx := userContext("user-1")

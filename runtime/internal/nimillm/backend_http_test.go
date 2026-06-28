@@ -164,6 +164,44 @@ func TestBackendGenerateTextUsesOpenAICompatibleRootPathForGeminiBase(t *testing
 	}
 }
 
+func TestBackendGenerateTextUsesVolcengineArkAPIV3Path(t *testing.T) {
+	var capturedPath string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		capturedPath = r.URL.Path
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{
+			"choices":[{"finish_reason":"stop","message":{"content":"hello from ark"}}],
+			"usage":{"prompt_tokens":2,"completion_tokens":3,"total_tokens":5}
+		}`))
+	}))
+	defer func() { server.Close() }()
+
+	backend := NewBackend("volcengine", server.URL+"/api/v3", "", 5*time.Second)
+	if backend == nil {
+		t.Fatal("expected backend")
+	}
+
+	text, _, _, _, err := backend.GenerateText(
+		context.Background(),
+		"doubao-seed-2-1-pro-260628",
+		[]*runtimev1.ChatMessage{{Role: "user", Content: "hello"}},
+		"",
+		0,
+		0,
+		0,
+		textGenParams{},
+	)
+	if err != nil {
+		t.Fatalf("unexpected generate error: %v", err)
+	}
+	if capturedPath != "/api/v3/chat/completions" {
+		t.Fatalf("expected Volcengine Ark chat path, got %q", capturedPath)
+	}
+	if text != "hello from ark" {
+		t.Fatalf("unexpected text: %q", text)
+	}
+}
+
 func TestBackendStreamGenerateTextUsesOpenAICompatibleRootPathForGeminiBase(t *testing.T) {
 	var capturedPath string
 	var capturedRequestBody map[string]any

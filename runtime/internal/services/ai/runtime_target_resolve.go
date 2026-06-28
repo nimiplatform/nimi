@@ -87,13 +87,23 @@ func (s *Service) normalizeScenarioCloudTargetRef(ctx context.Context, head *run
 	if !found {
 		return grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)
 	}
-	_, err = connector.ResolveRemoteModelCatalogRef(s.speechCatalog, subjectUserID, rec, connector.RemoteModelCatalogRef{
+	binding, err := connector.ResolveRemoteModelCatalogBinding(s.speechCatalog, subjectUserID, rec, connector.RemoteModelCatalogRef{
 		ConnectorID:          connectorID,
 		RemoteModelCatalogID: strings.TrimSpace(ref.GetRemoteModelCatalogId()),
 		ProviderModelID:      providerModelID,
 		Provider:             strings.TrimSpace(ref.GetProvider()),
 	})
-	return err
+	if err != nil {
+		return err
+	}
+	canonicalProviderModelID := strings.TrimSpace(binding.ProviderModelID)
+	if canonicalProviderModelID != "" {
+		ref.ProviderModelId = canonicalProviderModelID
+		if strings.TrimSpace(head.GetModelId()) == "" || strings.TrimSpace(head.GetModelId()) == providerModelID {
+			head.ModelId = canonicalProviderModelID
+		}
+	}
+	return nil
 }
 
 func scenarioTargetSubjectUserID(ctx context.Context, head *runtimev1.ScenarioRequestHead) string {
