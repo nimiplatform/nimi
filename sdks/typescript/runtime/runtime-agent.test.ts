@@ -26,6 +26,17 @@ import {
   type RuntimeTypedCallOptions,
 } from '../core-generated/runtime-typed-client';
 
+const OWNER_USER_ID = 'user-1';
+const RUNTIME_SOURCE_REF = 'agent-1';
+const LOCAL_AGENT_REF = 'local-agent:test-user-1-agent-1';
+const PRESENTATION_LOCAL_AGENT_REF = 'local-agent:test-runtime-source-1';
+const CBDB_LOCAL_AGENT_REF = 'local-agent:test-cbdb-agent-1';
+const AGENT_IDENTITY = {
+  ownerUserId: OWNER_USER_ID,
+  runtimeSourceRef: RUNTIME_SOURCE_REF,
+  localAgentRef: LOCAL_AGENT_REF,
+} as const;
+
 test('Runtime Agent projection reads presentation metadata and state snapshots', () => {
   const metadata = toNimiRuntimeProtoStruct({
     presentationProfile: {
@@ -117,9 +128,13 @@ test('Runtime Agent builders produce generated Runtime requests without old alia
   const request = buildNimiSetRuntimeAgentPresentationProfileRequest({
     context: {
       appId: 'sdk.test',
-      subjectUserId: 'user-1',
+      subjectUserId: OWNER_USER_ID,
     },
-    agentId: 'local-agent:user-1:runtime-source-1',
+    identity: {
+      ownerUserId: OWNER_USER_ID,
+      runtimeSourceRef: 'runtime-source-1',
+      localAgentRef: PRESENTATION_LOCAL_AGENT_REF,
+    },
     profile: {
       backendKind: 'live2d',
       avatarAssetRef: 'avatar://agent/live2d',
@@ -133,7 +148,7 @@ test('Runtime Agent builders produce generated Runtime requests without old alia
   });
 
   assert.equal(request.context?.appId, 'sdk.test');
-  assert.equal(request.agentId, 'local-agent:user-1:runtime-source-1');
+  assert.equal(request.agentId, PRESENTATION_LOCAL_AGENT_REF);
   assert.equal(request.mutation.oneofKind, 'profile');
   assert.equal(request.mutation.profile.backendKind, AgentPresentationBackendKind.LIVE2D);
   assert.equal(request.mutation.profile.defaultVoiceReference, 'voice_asset_id:voice-1');
@@ -199,7 +214,11 @@ test('Runtime Agent protected presentation surface requests scoped Runtime acces
     getSubjectUserId: () => 'user-1',
   });
 
-  await surface.setPresentationProfile('local-agent:user-1:runtime-source-1', {
+  await surface.setPresentationProfile({
+    ownerUserId: OWNER_USER_ID,
+    runtimeSourceRef: 'runtime-source-1',
+    localAgentRef: PRESENTATION_LOCAL_AGENT_REF,
+  }, {
     backendKind: 'vrm',
     avatarAssetRef: 'avatar://agent/default',
     defaultVoiceReference: 'provider_voice_ref:voice-1',
@@ -450,30 +469,30 @@ test('Runtime Agent inspect surface reads, writes, and subscribes through protec
     maxRecentTerminalHooks: 2,
   });
 
-  const snapshot = await surface.getPublicInspect('local-agent:user-1:agent-1');
+  const snapshot = await surface.getPublicInspect(AGENT_IDENTITY);
   const updated = await surface.updateState({
-    agentId: 'local-agent:user-1:agent-1',
+    ...AGENT_IDENTITY,
     statusText: 'ready',
   });
-  const enabled = await surface.enableAutonomy('local-agent:user-1:agent-1');
+  const enabled = await surface.enableAutonomy(AGENT_IDENTITY);
   const disabled = await surface.disableAutonomy({
-    agentId: 'local-agent:user-1:agent-1',
+    ...AGENT_IDENTITY,
     reason: 'sdk_test',
   });
   const config = await surface.setAutonomyConfig({
-    agentId: 'local-agent:user-1:agent-1',
+    ...AGENT_IDENTITY,
     mode: 'high',
     dailyTokenBudget: '640',
     maxTokensPerHook: '160',
   });
   const canceled = await surface.cancelHook({
-    agentId: 'local-agent:user-1:agent-1',
+    ...AGENT_IDENTITY,
     hookId: 'hook-active',
     reason: 'sdk_test',
   });
   const events: string[] = [];
   await surface.subscribePublicEvents({
-    agentId: 'local-agent:user-1:agent-1',
+    ...AGENT_IDENTITY,
     onEvent: (event) => {
       events.push(`${event.eventTypeLabel}:${event.hookId}`);
     },
@@ -507,9 +526,13 @@ test('Runtime Agent presentation builder admits static sprite2d profile media as
   const request = buildNimiSetRuntimeAgentPresentationProfileRequest({
     context: {
       appId: 'sdk.test',
-      subjectUserId: 'user-1',
+      subjectUserId: OWNER_USER_ID,
     },
-    agentId: 'local-agent:user-1:cbdb-agent-1',
+    identity: {
+      ownerUserId: OWNER_USER_ID,
+      runtimeSourceRef: 'cbdb-agent-1',
+      localAgentRef: CBDB_LOCAL_AGENT_REF,
+    },
     profile: {
       backendKind: 'sprite2d',
       avatarAssetRef: 'profile_media_url:https://cdn.nimi.test/cbdb/su-zhe-reviewed-portrait.png',
@@ -568,14 +591,14 @@ test('Runtime Agent smoke verification reads protected anchor snapshot and healt
           snapshot: {
             anchor: {
               conversationAnchorId: 'anchor-1',
-              agentId: 'local-agent:user-1:agent-1',
-              subjectUserId: 'user-1',
+              agentId: LOCAL_AGENT_REF,
+              subjectUserId: OWNER_USER_ID,
               status: 1,
               lastTurnId: 'turn-1',
               lastMessageId: 'message-1',
-              localAgentRef: 'local-agent:user-1:agent-1',
-              ownerUserId: 'user-1',
-              runtimeSourceRef: 'agent-1',
+              localAgentRef: LOCAL_AGENT_REF,
+              ownerUserId: OWNER_USER_ID,
+              runtimeSourceRef: RUNTIME_SOURCE_REF,
             },
             activeTurnId: '',
             activeStreamId: 'stream-1',
@@ -607,7 +630,7 @@ test('Runtime Agent smoke verification reads protected anchor snapshot and healt
   });
 
   const evidence = await surface.readProductPathEvidence({
-    agentId: 'local-agent:user-1:agent-1',
+    ...AGENT_IDENTITY,
     conversationAnchorId: 'anchor-1',
   });
 
@@ -617,12 +640,12 @@ test('Runtime Agent smoke verification reads protected anchor snapshot and healt
   assert.deepEqual(anchorRequests[0], {
     context: {
       appId: 'sdk.test',
-      subjectUserId: 'user-1',
-      ownerUserId: 'user-1',
-      runtimeSourceRef: 'agent-1',
-      localAgentRef: 'local-agent:user-1:agent-1',
+      subjectUserId: OWNER_USER_ID,
+      ownerUserId: OWNER_USER_ID,
+      runtimeSourceRef: RUNTIME_SOURCE_REF,
+      localAgentRef: LOCAL_AGENT_REF,
     },
-    agentId: 'local-agent:user-1:agent-1',
+    agentId: LOCAL_AGENT_REF,
     conversationAnchorId: 'anchor-1',
   });
   assert.equal(evidence.same_anchor, true);

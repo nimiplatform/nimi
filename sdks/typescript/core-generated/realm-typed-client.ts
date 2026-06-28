@@ -411,18 +411,12 @@ export interface CreatePostDto {
   readonly sourceRef?: PostSourceRefDto;
   readonly tags?: readonly (string)[];
 }
-export interface CreatePublicRealmSourceConnectionDto {
-  readonly source: RelationshipPublicSourceLocatorDto;
-}
 export interface CreateRealmPersonaDto {
   readonly core: Record<string, unknown>;
   readonly homeWorldId?: string;
   readonly id?: string;
   readonly origin: RealmCoreOriginDto;
   readonly visibility?: "private" | "unlisted" | "public" | "system";
-}
-export interface CreateRealmSourceConnectionDto {
-  readonly sourceRef: RelationshipSourceRefDto;
 }
 export interface CreateRelationshipDto {
   readonly context?: string;
@@ -442,7 +436,8 @@ export interface CreateReviewDto {
   readonly rating: ReviewRating;
   readonly tags?: string;
 }
-export interface CreateRuntimeSourceSnapshotDto {
+export interface CreateSourceMaterializationPacketDto {
+  readonly intendedRuntimeAudience: string;
   readonly sourceRef: TypedSourceRefDto;
 }
 export interface CreateSparkCheckoutDto {
@@ -1034,19 +1029,8 @@ export interface RealmPersonaDto {
 }
 export interface RealmSourceCapabilitiesDto {
   readonly canCreateRealmPersona: boolean;
-  readonly canCreateRuntimeSourceSnapshot: boolean;
+  readonly canCreateSourceMaterializationPacket: boolean;
   readonly canUseWorldCharacterSources: boolean;
-}
-export interface RealmSourceConnectionDto {
-  readonly connectedAt: string;
-  readonly createdAt: string;
-  readonly id: string;
-  readonly ownerUserId: string;
-  readonly removedAt?: string | null;
-  readonly runtimeSourceRef: string;
-  readonly sourceRef: RelationshipSourceRefDto;
-  readonly status: "active" | "removed";
-  readonly updatedAt: string;
 }
 export interface ReceivedGiftsResponseDto {
   readonly items: readonly (GiftTransactionRichDto)[];
@@ -1058,11 +1042,6 @@ export interface RefreshTokenDto {
 export interface RejectGiftDto {
   readonly reason?: string;
 }
-export interface RelationshipPublicSourceLocatorDto {
-  readonly kind: "worldCharacter" | "realmPersona";
-  readonly sourceId: string;
-  readonly worldId: string;
-}
 export interface RelationshipResponseDto {
   readonly context?: string | null;
   readonly createdAt: string;
@@ -1071,12 +1050,6 @@ export interface RelationshipResponseDto {
   readonly strength: number;
   readonly targetId: string;
   readonly type: AccountRelationType;
-}
-export interface RelationshipSourceRefDto {
-  readonly kind: "worldCharacter" | "realmPersona";
-  readonly sourceContentHash: string;
-  readonly sourceId: string;
-  readonly worldId: string;
 }
 export interface ReplaceRealmPersonaDto {
   readonly baseContentHash: string;
@@ -1219,19 +1192,6 @@ export interface RuntimeRealmGrantIssueResponseDto {
   readonly token: string;
   readonly version: string;
 }
-export interface RuntimeSourceSnapshotDto {
-  readonly capturedAt: string;
-  readonly payload: Record<string, unknown>;
-  readonly payloadHash: string;
-  readonly runtimeSourceRef: string;
-  readonly snapshotId: string;
-  readonly snapshotSchemaVersion: string;
-  readonly sourceContentHash: string;
-  readonly sourceContentRevision: number;
-  readonly sourceId: string;
-  readonly sourceKind: "worldCharacter" | "realmPersona";
-  readonly sourceWorldId: string;
-}
 export interface SendGiftDto {
   readonly giftId: string;
   readonly message?: string;
@@ -1252,6 +1212,24 @@ export interface SocialProfileDto {
   readonly platform: string;
   readonly url?: string | null;
   readonly verifiedAt?: string | null;
+}
+export interface SourceMaterializationPacketDto {
+  readonly expiresAt: string;
+  readonly intendedRuntimeAudience: string;
+  readonly issuedAt: string;
+  readonly nonce: string;
+  readonly packetHash: string;
+  readonly packetId: string;
+  readonly packetProof: string;
+  readonly packetSchemaVersion: string;
+  readonly payload: Record<string, unknown>;
+  readonly runtimeSourceRef: string;
+  readonly sourceContentHash: string;
+  readonly sourceContentRevision: number;
+  readonly sourceDisplayMetadata: Record<string, unknown>;
+  readonly sourceId: string;
+  readonly sourceKind: "worldCharacter" | "realmPersona";
+  readonly sourceWorldId: string;
 }
 export interface SourceOriginDto {
   readonly isWorldOwned: boolean;
@@ -2288,13 +2266,11 @@ export interface RealmTypedModelMap {
   readonly "CreatePortalSessionDto": CreatePortalSessionDto;
   readonly "CreatePostAttachmentDto": CreatePostAttachmentDto;
   readonly "CreatePostDto": CreatePostDto;
-  readonly "CreatePublicRealmSourceConnectionDto": CreatePublicRealmSourceConnectionDto;
   readonly "CreateRealmPersonaDto": CreateRealmPersonaDto;
-  readonly "CreateRealmSourceConnectionDto": CreateRealmSourceConnectionDto;
   readonly "CreateRelationshipDto": CreateRelationshipDto;
   readonly "CreateReportDto": CreateReportDto;
   readonly "CreateReviewDto": CreateReviewDto;
-  readonly "CreateRuntimeSourceSnapshotDto": CreateRuntimeSourceSnapshotDto;
+  readonly "CreateSourceMaterializationPacketDto": CreateSourceMaterializationPacketDto;
   readonly "CreateSparkCheckoutDto": CreateSparkCheckoutDto;
   readonly "CreateSubscriptionCheckoutDto": CreateSubscriptionCheckoutDto;
   readonly "CreateTextResourceDto": CreateTextResourceDto;
@@ -2379,13 +2355,10 @@ export interface RealmTypedModelMap {
   readonly "RealmGroupMessageCandidateCommitResultDto": RealmGroupMessageCandidateCommitResultDto;
   readonly "RealmPersonaDto": RealmPersonaDto;
   readonly "RealmSourceCapabilitiesDto": RealmSourceCapabilitiesDto;
-  readonly "RealmSourceConnectionDto": RealmSourceConnectionDto;
   readonly "ReceivedGiftsResponseDto": ReceivedGiftsResponseDto;
   readonly "RefreshTokenDto": RefreshTokenDto;
   readonly "RejectGiftDto": RejectGiftDto;
-  readonly "RelationshipPublicSourceLocatorDto": RelationshipPublicSourceLocatorDto;
   readonly "RelationshipResponseDto": RelationshipResponseDto;
-  readonly "RelationshipSourceRefDto": RelationshipSourceRefDto;
   readonly "ReplaceRealmPersonaDto": ReplaceRealmPersonaDto;
   readonly "ReplaceWorldCharacterCoreDto": ReplaceWorldCharacterCoreDto;
   readonly "ReplaceWorldCoreDto": ReplaceWorldCoreDto;
@@ -2405,10 +2378,10 @@ export interface RealmTypedModelMap {
   readonly "ReviewStatsDto": ReviewStatsDto;
   readonly "RuntimeRealmGrantIssueRequestDto": RuntimeRealmGrantIssueRequestDto;
   readonly "RuntimeRealmGrantIssueResponseDto": RuntimeRealmGrantIssueResponseDto;
-  readonly "RuntimeSourceSnapshotDto": RuntimeSourceSnapshotDto;
   readonly "SendGiftDto": SendGiftDto;
   readonly "SendMessageInputDto": SendMessageInputDto;
   readonly "SocialProfileDto": SocialProfileDto;
+  readonly "SourceMaterializationPacketDto": SourceMaterializationPacketDto;
   readonly "SourceOriginDto": SourceOriginDto;
   readonly "SparkCheckoutSessionDto": SparkCheckoutSessionDto;
   readonly "SparkPackageDto": SparkPackageDto;
@@ -4462,72 +4435,6 @@ export interface RealmSendMessageOperationRequest {
   readonly body: SendMessageInputDto;
 }
 export type RealmSendMessageOperationResponse = MessageViewDto;
-export interface RealmSourceConnectionControllerConnectOperationRequest {
-  readonly path: {
-
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body: CreateRealmSourceConnectionDto;
-}
-export type RealmSourceConnectionControllerConnectOperationResponse = RealmSourceConnectionDto;
-export interface RealmSourceConnectionControllerConnectPublicSourceOperationRequest {
-  readonly path: {
-
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body: CreatePublicRealmSourceConnectionDto;
-}
-export type RealmSourceConnectionControllerConnectPublicSourceOperationResponse = RealmSourceConnectionDto;
-export interface RealmSourceConnectionControllerGetOperationRequest {
-  readonly path: {
-    readonly id: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmSourceConnectionControllerGetOperationResponse = RealmSourceConnectionDto;
-export interface RealmSourceConnectionControllerListOperationRequest {
-  readonly path: {
-
-  };
-  readonly query?: {
-    readonly kind?: "worldCharacter" | "realmPersona";
-    readonly status?: "active" | "removed";
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmSourceConnectionControllerListOperationResponse = readonly (RealmSourceConnectionDto)[];
-export interface RealmSourceConnectionControllerRemoveOperationRequest {
-  readonly path: {
-    readonly id: string;
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmSourceConnectionControllerRemoveOperationResponse = RealmSourceConnectionDto;
 export interface RealmStartChatOperationRequest {
   readonly path: {
 
@@ -4962,7 +4869,7 @@ export interface RealmWorldCoreControllerCreateRealmPersonaOperationRequest {
   readonly body: CreateRealmPersonaDto;
 }
 export type RealmWorldCoreControllerCreateRealmPersonaOperationResponse = RealmPersonaDto;
-export interface RealmWorldCoreControllerCreateRuntimeSourceSnapshotOperationRequest {
+export interface RealmWorldCoreControllerCreateSourceMaterializationPacketOperationRequest {
   readonly path: {
 
   };
@@ -4972,9 +4879,9 @@ export interface RealmWorldCoreControllerCreateRuntimeSourceSnapshotOperationReq
   readonly headers?: {
 
   };
-  readonly body: CreateRuntimeSourceSnapshotDto;
+  readonly body: CreateSourceMaterializationPacketDto;
 }
-export type RealmWorldCoreControllerCreateRuntimeSourceSnapshotOperationResponse = RuntimeSourceSnapshotDto;
+export type RealmWorldCoreControllerCreateSourceMaterializationPacketOperationResponse = SourceMaterializationPacketDto;
 export interface RealmWorldCoreControllerCreateWorldCharacterOperationRequest {
   readonly path: {
     readonly worldId: string;
@@ -6896,61 +6803,6 @@ export class RealmTypedClient {
     });
   }
 
-  async sourceConnectionControllerConnect(request: RealmSourceConnectionControllerConnectOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmSourceConnectionControllerConnectOperationResponse> {
-    return this.core.unary<RealmSourceConnectionControllerConnectOperationResponse, RealmSourceConnectionControllerConnectOperationRequest>({
-      methodId: "SourceConnectionController_connect",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async sourceConnectionControllerConnectPublicSource(request: RealmSourceConnectionControllerConnectPublicSourceOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmSourceConnectionControllerConnectPublicSourceOperationResponse> {
-    return this.core.unary<RealmSourceConnectionControllerConnectPublicSourceOperationResponse, RealmSourceConnectionControllerConnectPublicSourceOperationRequest>({
-      methodId: "SourceConnectionController_connectPublicSource",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async sourceConnectionControllerGet(request: RealmSourceConnectionControllerGetOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmSourceConnectionControllerGetOperationResponse> {
-    return this.core.unary<RealmSourceConnectionControllerGetOperationResponse, RealmSourceConnectionControllerGetOperationRequest>({
-      methodId: "SourceConnectionController_get",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async sourceConnectionControllerList(request: RealmSourceConnectionControllerListOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmSourceConnectionControllerListOperationResponse> {
-    return this.core.unary<RealmSourceConnectionControllerListOperationResponse, RealmSourceConnectionControllerListOperationRequest>({
-      methodId: "SourceConnectionController_list",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async sourceConnectionControllerRemove(request: RealmSourceConnectionControllerRemoveOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmSourceConnectionControllerRemoveOperationResponse> {
-    return this.core.unary<RealmSourceConnectionControllerRemoveOperationResponse, RealmSourceConnectionControllerRemoveOperationRequest>({
-      methodId: "SourceConnectionController_remove",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
   async startChat(request: RealmStartChatOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmStartChatOperationResponse> {
     return this.core.unary<RealmStartChatOperationResponse, RealmStartChatOperationRequest>({
       methodId: "startChat",
@@ -7314,9 +7166,9 @@ export class RealmTypedClient {
     });
   }
 
-  async worldCoreControllerCreateRuntimeSourceSnapshot(request: RealmWorldCoreControllerCreateRuntimeSourceSnapshotOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerCreateRuntimeSourceSnapshotOperationResponse> {
-    return this.core.unary<RealmWorldCoreControllerCreateRuntimeSourceSnapshotOperationResponse, RealmWorldCoreControllerCreateRuntimeSourceSnapshotOperationRequest>({
-      methodId: "WorldCoreController_createRuntimeSourceSnapshot",
+  async worldCoreControllerCreateSourceMaterializationPacket(request: RealmWorldCoreControllerCreateSourceMaterializationPacketOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmWorldCoreControllerCreateSourceMaterializationPacketOperationResponse> {
+    return this.core.unary<RealmWorldCoreControllerCreateSourceMaterializationPacketOperationResponse, RealmWorldCoreControllerCreateSourceMaterializationPacketOperationRequest>({
+      methodId: "WorldCoreController_createSourceMaterializationPacket",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,

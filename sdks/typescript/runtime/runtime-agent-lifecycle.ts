@@ -1,4 +1,5 @@
 import {
+  type AgentRecord,
   AgentLifecycleStatus,
   type GetAgentRequest,
   type GetAgentResponse,
@@ -9,7 +10,8 @@ import {
   type TerminateAgentResponse,
 } from '../core-generated/runtime-typed-client';
 import { asNimiError, createNimiError, ReasonCode } from '../types';
-import { buildRuntimeAgentRequestContext } from './agent-local-identity';
+import type { JsonObject } from '../types';
+import { buildRuntimeAgentRequestContext, isRuntimeLocalAgentRef } from './agent-local-identity';
 import {
   resolveNimiRuntimeAgentSubjectUserId,
   withNimiRuntimeAgentScopes,
@@ -17,23 +19,33 @@ import {
   type NimiRuntimeAgentAuthClient,
   type NimiRuntimeAgentScopeRunner,
 } from './runtime-agent-protected';
-import { normalizeNimiRuntimeAgentText } from './runtime-agent-values';
+import { normalizeNimiRuntimeAgentText, toNimiRuntimeProtoStruct } from './runtime-agent-values';
 
 export interface NimiRuntimeAgentLifecycleSurface {
-  ensureLocalAgentInitialized(input: NimiRuntimeAgentEnsureLocalAgentInitializedInput): Promise<void>;
-  initializeLocalAgent(input: NimiRuntimeAgentInitializeLocalAgentInput): Promise<void>;
+  ensureLocalAgentInitialized(input: NimiRuntimeAgentEnsureLocalAgentInitializedInput): Promise<NimiRuntimeAgentInitializedLocalAgent>;
+  initializeLocalAgent(input: NimiRuntimeAgentInitializeLocalAgentInput): Promise<NimiRuntimeAgentInitializedLocalAgent>;
   terminateLocalAgent(input: NimiRuntimeAgentTerminateLocalAgentInput): Promise<void>;
 }
 
 export interface NimiRuntimeAgentInitializeLocalAgentInput {
-  readonly localAgentRef: unknown;
+  readonly localAgentRef?: unknown;
   readonly ownerUserId: unknown;
   readonly runtimeSourceRef: unknown;
   readonly displayName?: unknown;
   readonly worldId?: unknown;
+  readonly sourceMaterializationPacket?: unknown;
 }
 
-export type NimiRuntimeAgentEnsureLocalAgentInitializedInput = NimiRuntimeAgentInitializeLocalAgentInput;
+export interface NimiRuntimeAgentEnsureLocalAgentInitializedInput extends NimiRuntimeAgentInitializeLocalAgentInput {
+  readonly localAgentRef: unknown;
+}
+
+export interface NimiRuntimeAgentInitializedLocalAgent {
+  readonly localAgentRef: string;
+  readonly ownerUserId: string;
+  readonly runtimeSourceRef: string;
+  readonly agent: AgentRecord;
+}
 
 export interface NimiRuntimeAgentTerminateLocalAgentInput {
   readonly localAgentRef: unknown;
@@ -76,8 +88,32 @@ function requireLifecycleText(value: unknown, reasonCode: string, actionHint: st
   return normalized;
 }
 
-function buildLifecycleRequest(input: NimiRuntimeAgentInitializeLocalAgentInput) {
-  const localAgentRef = requireLifecycleText(input.localAgentRef, 'SDK_RUNTIME_AGENT_LOCAL_REF_REQUIRED', 'provide_runtime_agent_local_ref');
+function normalizeSourceMaterializationPacket(value: unknown): JsonObject | undefined {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+  if (typeof value !== 'object' || Array.isArray(value)) {
+    lifecycleError(
+      'Runtime Agent lifecycle sourceMaterializationPacket must be an object.',
+      'SDK_RUNTIME_AGENT_SOURCE_PACKET_INVALID',
+      'provide_source_materialization_packet',
+    );
+  }
+  return value as JsonObject;
+}
+
+function buildLifecycleRequest(
+  input: NimiRuntimeAgentInitializeLocalAgentInput,
+  options: { readonly requireLocalAgentRef: boolean },
+) {
+  const localAgentRef = normalizeNimiRuntimeAgentText(input.localAgentRef);
+  if (options.requireLocalAgentRef && !localAgentRef) {
+    lifecycleError(
+      'Runtime Agent lifecycle requires provide_runtime_agent_local_ref.',
+      'SDK_RUNTIME_AGENT_LOCAL_REF_REQUIRED',
+      'provide_runtime_agent_local_ref',
+    );
+  }
   const ownerUserId = requireLifecycleText(input.ownerUserId, 'SDK_RUNTIME_AGENT_OWNER_REQUIRED', 'provide_runtime_agent_owner_user_id');
   const runtimeSourceRef = requireLifecycleText(input.runtimeSourceRef, 'SDK_RUNTIME_AGENT_REALM_ID_REQUIRED', 'provide_runtime_agent_runtime_source_ref');
   return {
@@ -86,26 +122,68 @@ function buildLifecycleRequest(input: NimiRuntimeAgentInitializeLocalAgentInput)
     runtimeSourceRef,
     displayName: normalizeNimiRuntimeAgentText(input.displayName) || runtimeSourceRef,
     worldId: normalizeNimiRuntimeAgentText(input.worldId),
+    sourceMaterializationPacket: normalizeSourceMaterializationPacket(input.sourceMaterializationPacket),
+  };
+}
+
+function buildInitializeAgentRequestContext(input: {
+  readonly runtimeAppId: string;
+  readonly subjectUserId: string;
+  readonly ownerUserId: string;
+  readonly runtimeSourceRef: string;
+  readonly localAgentRef: string;
+}) {
+  return {
+    appId: input.runtimeAppId,
+    subjectUserId: input.subjectUserId,
+    ownerUserId: input.ownerUserId,
+    runtimeSourceRef: input.runtimeSourceRef,
+    localAgentRef: input.localAgentRef,
+  };
+}
+
+function normalizeInitializeAgentResponse(
+  response: InitializeAgentResponse,
+  request: ReturnType<typeof buildLifecycleRequest>,
+): NimiRuntimeAgentInitializedLocalAgent {
+  const agent = response.agent;
+  const localAgentRef = normalizeNimiRuntimeAgentText(agent?.localAgentRef)
+    || normalizeNimiRuntimeAgentText(agent?.agentId)
+    || request.localAgentRef;
+  if (!agent || !isRuntimeLocalAgentRef(localAgentRef)) {
+    lifecycleError(
+      'Runtime Agent lifecycle initializeAgent returned no Runtime-owned localAgentRef.',
+      'SDK_RUNTIME_AGENT_RESPONSE_INVALID',
+      'check_runtime_agent_initialize_response',
+    );
+  }
+  return {
+    localAgentRef,
+    ownerUserId: normalizeNimiRuntimeAgentText(agent.ownerUserId) || request.ownerUserId,
+    runtimeSourceRef: normalizeNimiRuntimeAgentText(agent.runtimeSourceRef) || request.runtimeSourceRef,
+    agent,
   };
 }
 
 export function createNimiHostRuntimeAgentLifecycleSurface(
   options: NimiHostRuntimeAgentLifecycleSurfaceOptions,
 ): NimiRuntimeAgentLifecycleSurface {
-  async function initializeWithRuntime(input: NimiRuntimeAgentInitializeLocalAgentInput): Promise<void> {
+  async function initializeWithRuntime(input: NimiRuntimeAgentInitializeLocalAgentInput): Promise<NimiRuntimeAgentInitializedLocalAgent> {
     const runtime = options.getRuntime();
     await resolveNimiRuntimeAgentSubjectUserId(
       options.getSubjectUserId,
       'Runtime Agent lifecycle requires authenticated subject user id.',
     );
-    const request = buildLifecycleRequest(input);
-    const context = buildRuntimeAgentRequestContext({
+    const request = buildLifecycleRequest(input, { requireLocalAgentRef: false });
+    const context = buildInitializeAgentRequestContext({
       runtimeAppId: runtime.appId,
       subjectUserId: request.ownerUserId,
+      ownerUserId: request.ownerUserId,
+      runtimeSourceRef: request.runtimeSourceRef,
       localAgentRef: request.localAgentRef,
     });
     try {
-      await withNimiRuntimeAgentScopes({
+      const response = await withNimiRuntimeAgentScopes({
         runtime,
         subjectUserId: request.ownerUserId,
         withScopes: options.withScopes,
@@ -118,8 +196,11 @@ export function createNimiHostRuntimeAgentLifecycleSurface(
         displayName: request.displayName,
         autonomyConfig: undefined,
         worldId: request.worldId,
-        metadata: undefined,
+        metadata: request.sourceMaterializationPacket
+          ? toNimiRuntimeProtoStruct({ sourceMaterializationPacket: request.sourceMaterializationPacket })
+          : undefined,
       }, callOptions));
+      return normalizeInitializeAgentResponse(response, request);
     } catch (error) {
       const normalized = asNimiError(error, {
         reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
@@ -127,7 +208,21 @@ export function createNimiHostRuntimeAgentLifecycleSurface(
         source: 'runtime',
       });
       if (normalized.reasonCode === 'RUNTIME_GRPC_ALREADY_EXISTS') {
-        return;
+        if (request.localAgentRef) {
+          return {
+            localAgentRef: request.localAgentRef,
+            ownerUserId: request.ownerUserId,
+            runtimeSourceRef: request.runtimeSourceRef,
+            agent: {
+              agentId: request.localAgentRef,
+              localAgentRef: request.localAgentRef,
+              ownerUserId: request.ownerUserId,
+              runtimeSourceRef: request.runtimeSourceRef,
+              displayName: request.displayName,
+              lifecycleStatus: AgentLifecycleStatus.ACTIVE,
+            },
+          };
+        }
       }
       throw normalized;
     }
@@ -140,10 +235,12 @@ export function createNimiHostRuntimeAgentLifecycleSurface(
         options.getSubjectUserId,
         'Runtime Agent lifecycle requires authenticated subject user id.',
       );
-      const request = buildLifecycleRequest(input);
+      const request = buildLifecycleRequest(input, { requireLocalAgentRef: true });
       const context = buildRuntimeAgentRequestContext({
         runtimeAppId: runtime.appId,
         subjectUserId: request.ownerUserId,
+        ownerUserId: request.ownerUserId,
+        runtimeSourceRef: request.runtimeSourceRef,
         localAgentRef: request.localAgentRef,
       });
       try {
@@ -155,8 +252,14 @@ export function createNimiHostRuntimeAgentLifecycleSurface(
           context,
           agentId: request.localAgentRef,
         }, callOptions));
-        if (Number(response.agent?.lifecycleStatus) === AgentLifecycleStatus.ACTIVE) {
-          return;
+        const agent = response.agent;
+        if (agent && Number(agent.lifecycleStatus) === AgentLifecycleStatus.ACTIVE) {
+          return {
+            localAgentRef: request.localAgentRef,
+            ownerUserId: request.ownerUserId,
+            runtimeSourceRef: request.runtimeSourceRef,
+            agent,
+          };
         }
       } catch (error) {
         const normalized = asNimiError(error, {
@@ -168,19 +271,21 @@ export function createNimiHostRuntimeAgentLifecycleSurface(
           throw normalized;
         }
       }
-      await initializeWithRuntime(input);
+      return initializeWithRuntime(input);
     },
     async initializeLocalAgent(input) {
-      await initializeWithRuntime(input);
+      return initializeWithRuntime(input);
     },
     async terminateLocalAgent(input) {
       const runtime = options.getRuntime();
       const localAgentRef = requireLifecycleText(input.localAgentRef, 'SDK_RUNTIME_AGENT_LOCAL_REF_REQUIRED', 'provide_runtime_agent_local_ref');
       const ownerUserId = requireLifecycleText(input.ownerUserId, 'SDK_RUNTIME_AGENT_OWNER_REQUIRED', 'provide_runtime_agent_owner_user_id');
-      requireLifecycleText(input.runtimeSourceRef, 'SDK_RUNTIME_AGENT_REALM_ID_REQUIRED', 'provide_runtime_agent_runtime_source_ref');
+      const runtimeSourceRef = requireLifecycleText(input.runtimeSourceRef, 'SDK_RUNTIME_AGENT_REALM_ID_REQUIRED', 'provide_runtime_agent_runtime_source_ref');
       const context = buildRuntimeAgentRequestContext({
         runtimeAppId: runtime.appId,
         subjectUserId: ownerUserId,
+        ownerUserId,
+        runtimeSourceRef,
         localAgentRef,
       });
       await withNimiRuntimeAgentScopes({

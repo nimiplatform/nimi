@@ -25800,6 +25800,20 @@
             "repeated": false,
             "optional": false,
             "number": 6
+          },
+          {
+            "name": "cloud_binding",
+            "type": "MemoryEmbeddingCloudBindingRef",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "local_binding",
+            "type": "MemoryEmbeddingLocalBindingRef",
+            "repeated": false,
+            "optional": false,
+            "number": 8
           }
         ],
         "source_file": "proto/runtime/v1/memory.proto"

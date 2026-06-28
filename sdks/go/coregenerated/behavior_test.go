@@ -92,20 +92,25 @@ func (t *fakeTransport) Unary(ctx context.Context, req sdkstypes.CoreUnaryReques
 			})
 		}
 		return json.Marshal(t.fixtures.Cases.RuntimeUnary.ResponseBody)
-	case "WorldCoreController_createRuntimeSourceSnapshot":
+	case "WorldCoreController_createSourceMaterializationPacket":
 		if os.Getenv("SDKS_CONFORMANCE_PROFILE") == "typed-core" {
-			return json.Marshal(RuntimeSourceSnapshotDto{
-				SnapshotId:            "snapshot-conformance",
-				SnapshotSchemaVersion: "runtime-source-snapshot.v1",
-				RuntimeSourceRef:      "runtime-source:realmPersona:persona-conformance:hash-conformance",
-				SourceKind:            "realmPersona",
-				SourceId:              "persona-conformance",
-				SourceWorldId:         "oasis",
-				SourceContentHash:     "hash-conformance",
-				SourceContentRevision: 1,
-				PayloadHash:           "payload-hash-conformance",
-				Payload:               map[string]any{"displayName": "Conformance Persona"},
-				CapturedAt:            "2026-01-01T00:00:00Z",
+			return json.Marshal(SourceMaterializationPacketDto{
+				PacketSchemaVersion:     "realm.source-materialization-packet/v1",
+				PacketId:                "packet-conformance",
+				RuntimeSourceRef:        "runtime-source:realmPersona:persona-conformance:hash-conformance",
+				SourceKind:              "realmPersona",
+				SourceId:                "persona-conformance",
+				SourceWorldId:           "oasis",
+				SourceContentHash:       "hash-conformance",
+				SourceContentRevision:   1,
+				IssuedAt:                "2026-01-01T00:00:00Z",
+				ExpiresAt:               "2026-01-01T00:05:00Z",
+				Nonce:                   "nonce-conformance",
+				PacketHash:              "packet-hash-conformance",
+				PacketProof:             "hmac-sha256:proof-conformance",
+				IntendedRuntimeAudience: "sdk.conformance",
+				SourceDisplayMetadata:   map[string]any{"displayName": "Conformance Persona"},
+				Payload:                 map[string]any{"displayName": "Conformance Persona"},
 			})
 		}
 		return json.Marshal(t.fixtures.Cases.RealmOperation.ResponseBody)
@@ -220,11 +225,12 @@ func TestGeneratedClientsWithFakeTransport(t *testing.T) {
 			t.Fatalf("expected typed EOF, got %v", err)
 		}
 
-		realmResponse, err := typedRealm.WorldCoreControllerCreateRuntimeSourceSnapshot(
+		realmResponse, err := typedRealm.WorldCoreControllerCreateSourceMaterializationPacket(
 			context.Background(),
-			RealmWorldCoreControllerCreateRuntimeSourceSnapshotOperationRequest{
-				Path: RealmWorldCoreControllerCreateRuntimeSourceSnapshotOperationPath{},
-				Body: CreateRuntimeSourceSnapshotDto{
+			RealmWorldCoreControllerCreateSourceMaterializationPacketOperationRequest{
+				Path: RealmWorldCoreControllerCreateSourceMaterializationPacketOperationPath{},
+				Body: CreateSourceMaterializationPacketDto{
+					IntendedRuntimeAudience: "sdk.conformance",
 					SourceRef: &TypedSourceRefDto{
 						Kind:              "realmPersona",
 						SourceId:          "persona-conformance",
@@ -242,7 +248,7 @@ func TestGeneratedClientsWithFakeTransport(t *testing.T) {
 		if realmResponse.RuntimeSourceRef != "runtime-source:realmPersona:persona-conformance:hash-conformance" {
 			t.Fatalf("typed realm response mismatch: %#v", realmResponse)
 		}
-		if transport.unaryCalls[1].MethodID != "WorldCoreController_createRuntimeSourceSnapshot" {
+		if transport.unaryCalls[1].MethodID != "WorldCoreController_createSourceMaterializationPacket" {
 			t.Fatalf("typed realm operation mismatch: %s", transport.unaryCalls[1].MethodID)
 		}
 		ctx, cancel := context.WithCancel(context.Background())

@@ -17,7 +17,6 @@ import {
   RealmGroupMessageCandidateCommitDisposition,
 } from '../core-generated/runtime-typed-client';
 import { createNimiError, ReasonCode as SdkReasonCode } from '../types';
-import { buildRuntimeLocalAgentRef } from './agent-local-identity';
 import {
   createNimiHostRuntimeAgentLifecycleSurface,
 } from './runtime-agent-lifecycle';
@@ -30,10 +29,15 @@ import {
 } from './runtime-agent-turns';
 import { fromNimiRuntimeProtoStruct, toNimiRuntimeProtoStruct } from './runtime-agent-values';
 
+const OWNER_USER_ID = 'user-1';
+const RUNTIME_SOURCE_REF = 'agent-1';
+const LOCAL_AGENT_REF = 'local-agent:test-user-1-agent-1';
+
 test('Runtime Agent turn helpers build explicit payloads and fail closed on invalid input', async () => {
   const baseTurn = {
-    ownerUserId: 'user-1',
-    runtimeSourceRef: 'agent-1',
+    ownerUserId: OWNER_USER_ID,
+    runtimeSourceRef: RUNTIME_SOURCE_REF,
+    localAgentRef: LOCAL_AGENT_REF,
     conversationAnchorId: 'anchor-1',
     requestId: 'request-1',
     threadId: 'thread-1',
@@ -54,7 +58,7 @@ test('Runtime Agent turn helpers build explicit payloads and fail closed on inva
     reasoning: { mode: 'visible', traceMode: 'summary', budgetTokens: 32 },
   };
   const payload = buildNimiRuntimeAgentTurnPayload(baseTurn);
-  assert.equal(payload.local_agent_ref, 'local-agent:user-1:agent-1');
+  assert.equal(payload.local_agent_ref, LOCAL_AGENT_REF);
   assert.equal(payload.conversation_anchor_id, 'anchor-1');
   assert.deepEqual(payload.messages, [{ role: 'user', content: 'hello', name: 'Human' }]);
   assert.deepEqual(payload.execution_bindings, {
@@ -138,8 +142,9 @@ test('Runtime Agent turn helpers build explicit payloads and fail closed on inva
   assert.equal(fromNimiRuntimeProtoStruct(sendCalls[0]?.payload).conversation_anchor_id, 'anchor-1');
 
   await module.interrupt({
-    ownerUserId: 'user-1',
-    runtimeSourceRef: 'agent-1',
+    ownerUserId: OWNER_USER_ID,
+    runtimeSourceRef: RUNTIME_SOURCE_REF,
+    localAgentRef: LOCAL_AGENT_REF,
     conversationAnchorId: 'anchor-1',
     turnId: 'turn-1',
     reason: 'stop',
@@ -185,8 +190,8 @@ test('Runtime Agent turn helper requests committed-message voice render and reso
   const voiceEvent = {
     messageType: 'runtime.agent.presentation.voice_playback_requested',
     payload: toNimiRuntimeProtoStruct({
-      local_agent_ref: 'local-agent:user-1:agent-1',
-      agent_id: 'local-agent:user-1:agent-1',
+      local_agent_ref: LOCAL_AGENT_REF,
+      agent_id: LOCAL_AGENT_REF,
       conversation_anchor_id: 'anchor-1',
       turn_id: 'turn-1',
       stream_id: 'stream-1',
@@ -232,8 +237,9 @@ test('Runtime Agent turn helper requests committed-message voice render and reso
   });
 
   const result = await module.renderVoice({
-    ownerUserId: 'user-1',
-    runtimeSourceRef: 'agent-1',
+    ownerUserId: OWNER_USER_ID,
+    runtimeSourceRef: RUNTIME_SOURCE_REF,
+    localAgentRef: LOCAL_AGENT_REF,
     conversationAnchorId: 'anchor-1',
     turnId: 'turn-1',
     messageId: 'message-1',
@@ -287,8 +293,9 @@ test('Runtime Agent turn helper reports text_only when Runtime emits no playable
   });
 
   const result = await module.renderVoice({
-    ownerUserId: 'user-1',
-    runtimeSourceRef: 'agent-1',
+    ownerUserId: OWNER_USER_ID,
+    runtimeSourceRef: RUNTIME_SOURCE_REF,
+    localAgentRef: LOCAL_AGENT_REF,
     conversationAnchorId: 'anchor-1',
     turnId: 'turn-1',
     messageId: 'message-1',
@@ -306,7 +313,7 @@ test('Runtime Agent turn subscription cancels sibling streams on early consumer 
   const appStream = new CancellableStream<AppMessageEvent>([{
     messageType: 'runtime.agent.turn.started',
     payload: toNimiRuntimeProtoStruct({
-      local_agent_ref: 'local-agent:user-1:agent-1',
+      local_agent_ref: LOCAL_AGENT_REF,
       conversation_anchor_id: 'anchor-1',
       turn_id: 'turn-1',
       stream_id: 'stream-1',
@@ -340,8 +347,9 @@ test('Runtime Agent turn subscription cancels sibling streams on early consumer 
   });
 
   const stream = await module.subscribe({
-    ownerUserId: 'user-1',
-    runtimeSourceRef: 'agent-1',
+    ownerUserId: OWNER_USER_ID,
+    runtimeSourceRef: RUNTIME_SOURCE_REF,
+    localAgentRef: LOCAL_AGENT_REF,
     conversationAnchorId: 'anchor-1',
     includeAgentEvents: true,
   });
@@ -377,7 +385,16 @@ test('Runtime Agent lifecycle surface initializes idempotently and terminates th
         },
         async initializeAgent(request: InitializeAgentRequest, options?: RuntimeTypedCallOptions) {
           calls.push({ method: 'initializeAgent', request, options });
-          return {};
+          return {
+            agent: {
+              agentId: LOCAL_AGENT_REF,
+              localAgentRef: LOCAL_AGENT_REF,
+              ownerUserId: OWNER_USER_ID,
+              runtimeSourceRef: RUNTIME_SOURCE_REF,
+              displayName: 'Agent One',
+              lifecycleStatus: AgentLifecycleStatus.ACTIVE,
+            },
+          };
         },
         async terminateAgent(request: TerminateAgentRequest, options?: RuntimeTypedCallOptions) {
           calls.push({ method: 'terminateAgent', request, options });
@@ -393,16 +410,74 @@ test('Runtime Agent lifecycle surface initializes idempotently and terminates th
   assert.deepEqual(calls.map((call) => call.method), ['getAgent']);
 
   lifecycleStatus = -1;
-  await surface.ensureLocalAgentInitialized({ ...agentIdentity(), displayName: 'Agent One', worldId: 'world-1' });
+  await surface.ensureLocalAgentInitialized({
+    ...agentIdentity(),
+    displayName: 'Agent One',
+    worldId: 'world-1',
+    sourceMaterializationPacket: { packetId: 'packet-1' },
+  });
   assert.deepEqual(calls.map((call) => call.method), ['getAgent', 'getAgent', 'initializeAgent']);
   assert.equal((calls[2]?.request as InitializeAgentRequest).displayName, 'Agent One');
   assert.equal((calls[2]?.request as InitializeAgentRequest).worldId, 'world-1');
+  assert.deepEqual((calls[2]?.request as InitializeAgentRequest).metadata, toNimiRuntimeProtoStruct({
+    sourceMaterializationPacket: { packetId: 'packet-1' },
+  }));
   assert.equal(calls[2]?.options?.metadata?.scopes, 'runtime.agent.admin');
 
   await surface.terminateLocalAgent({ ...agentIdentity(), reason: 'owner-requested' });
   assert.equal(calls[3]?.method, 'terminateAgent');
-  assert.equal((calls[3]?.request as TerminateAgentRequest).agentId, 'local-agent:user-1:agent-1');
+  assert.equal((calls[3]?.request as TerminateAgentRequest).agentId, LOCAL_AGENT_REF);
   assert.equal((calls[3]?.request as TerminateAgentRequest).reason, 'owner-requested');
+});
+
+test('Runtime Agent lifecycle materialization returns Runtime-generated localAgentRef', async () => {
+  const calls: Array<{ readonly method: string; readonly request: unknown; readonly options?: RuntimeTypedCallOptions }> = [];
+  const surface = createNimiHostRuntimeAgentLifecycleSurface({
+    getRuntime: () => ({
+      appId: 'desktop',
+      auth: protectedAuth(),
+      appAuth: protectedAppAuth(),
+      agent: {
+        async getAgent() {
+          throw new Error('initializeLocalAgent must not read by caller localAgentRef');
+        },
+        async initializeAgent(request: InitializeAgentRequest, options?: RuntimeTypedCallOptions) {
+          calls.push({ method: 'initializeAgent', request, options });
+          return {
+            agent: {
+              agentId: 'local-agent:runtime-generated-1',
+              localAgentRef: 'local-agent:runtime-generated-1',
+              ownerUserId: OWNER_USER_ID,
+              runtimeSourceRef: RUNTIME_SOURCE_REF,
+              displayName: 'Runtime Generated Agent',
+              lifecycleStatus: AgentLifecycleStatus.ACTIVE,
+            },
+          };
+        },
+        async terminateAgent() {
+          return {};
+        },
+      },
+    }),
+    getSubjectUserId: () => 'user-1',
+    withScopes: async (scopes, operation) => operation({ metadata: { scopes: scopes.join(' ') } }),
+  });
+
+  const result = await surface.initializeLocalAgent({
+    ownerUserId: OWNER_USER_ID,
+    runtimeSourceRef: RUNTIME_SOURCE_REF,
+    displayName: 'Runtime Generated Agent',
+    sourceMaterializationPacket: { packetId: 'packet-runtime-generated' },
+  });
+
+  assert.equal(result.localAgentRef, 'local-agent:runtime-generated-1');
+  assert.deepEqual(calls.map((call) => call.method), ['initializeAgent']);
+  const request = calls[0]?.request as InitializeAgentRequest;
+  assert.equal(request.localAgentRef, '');
+  assert.equal(request.context?.localAgentRef, '');
+  assert.equal(request.ownerUserId, OWNER_USER_ID);
+  assert.equal(request.runtimeSourceRef, RUNTIME_SOURCE_REF);
+  assert.equal(calls[0]?.options?.metadata?.scopes, 'runtime.agent.admin');
 });
 
 test('Runtime Realm group message candidate surface builds verified commit payloads and rejects mismatched evidence', async () => {
@@ -519,9 +594,9 @@ class CancellableStream<T> implements AsyncIterable<T> {
 
 function agentIdentity() {
   return {
-    ownerUserId: 'user-1',
-    runtimeSourceRef: 'agent-1',
-    localAgentRef: buildRuntimeLocalAgentRef({ ownerUserId: 'user-1', runtimeSourceRef: 'agent-1' }),
+    ownerUserId: OWNER_USER_ID,
+    runtimeSourceRef: RUNTIME_SOURCE_REF,
+    localAgentRef: LOCAL_AGENT_REF,
   };
 }
 
@@ -558,9 +633,9 @@ function candidateHandle() {
     runtimeTraceRef: 'trace-1',
     realmGroupThreadId: 'thread-1',
     runtimeParticipantSlot: 'slot-1',
-    ownerUserId: 'user-1',
-    runtimeSourceRef: 'agent-1',
-    localAgentRef: 'local-agent:user-1:agent-1',
+    ownerUserId: OWNER_USER_ID,
+    runtimeSourceRef: RUNTIME_SOURCE_REF,
+    localAgentRef: LOCAL_AGENT_REF,
     triggerRef: 'realm://group-chats/thread-1/messages/message-1',
     outputCandidateRef: 'candidate-output-1',
     auditLineageRef: 'audit-1',
@@ -577,9 +652,9 @@ function candidateEvidence() {
     candidateKind: 'REALM_GROUP_MESSAGE_CANDIDATE',
     realmGroupThreadId: 'thread-1',
     runtimeParticipantSlot: 'slot-1',
-    ownerUserId: 'user-1',
-    runtimeSourceRef: 'agent-1',
-    localAgentRef: 'local-agent:user-1:agent-1',
+    ownerUserId: OWNER_USER_ID,
+    runtimeSourceRef: RUNTIME_SOURCE_REF,
+    localAgentRef: LOCAL_AGENT_REF,
     triggerRef: 'realm://group-chats/thread-1/messages/message-1',
     outputCandidateRef: 'candidate-output-1',
     evidenceHash: 'hash-1',

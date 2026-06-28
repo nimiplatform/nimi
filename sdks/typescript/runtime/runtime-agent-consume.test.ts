@@ -56,7 +56,7 @@ const consumeContext = {
   runtimeAppId: 'nimi.avatar',
   ownerUserId: 'owner-1',
   runtimeSourceRef: 'agent-1',
-  localAgentRef: 'local-agent:owner-1:agent-1',
+  localAgentRef: 'local-agent:test-owner-1-agent-1',
 };
 
 function createUnexpectedRuntimeAgentConsumeRuntime(
@@ -298,8 +298,8 @@ test('Runtime Agent memory helpers project canonical status and bind envelopes',
     }),
   });
 
-  assert.equal((await surface.getCanonicalBankStatus('local-agent:owner-1:agent-1')).bankId, 'bank-baseline');
-  assert.equal((await surface.bindCanonicalBankStandard('local-agent:owner-1:agent-1')).mode, 'standard');
+  assert.equal((await surface.getCanonicalBankStatus(consumeContext)).bankId, 'bank-baseline');
+  assert.equal((await surface.bindCanonicalBankStandard(consumeContext)).mode, 'standard');
   assert.deepEqual(requests.map((entry) => (entry as { method: string }).method), ['get', 'bind']);
   assert.equal((requests[0] as { request: { context?: { appId?: string; subjectUserId?: string } } }).request.context?.appId, 'nimi.avatar');
   assert.equal((requests[0] as { request: { context?: { appId?: string; subjectUserId?: string } } }).request.context?.subjectUserId, 'owner-1');
@@ -328,14 +328,14 @@ test('Runtime Agent memory helpers project canonical status and bind envelopes',
           },
         },
       }),
-    }).getCanonicalBankStatus('local-agent:owner-1:agent-1'),
+    }).getCanonicalBankStatus(consumeContext),
     (error: unknown) => {
       assert.equal((error as { reasonCode?: string }).reasonCode, 'SDK_RUNTIME_AGENT_SUBJECT_REQUIRED');
       return true;
     },
   );
   await assert.rejects(
-    () => surface.getCanonicalBankStatus(''),
+    () => surface.getCanonicalBankStatus({ ...consumeContext, localAgentRef: '' }),
     (error: unknown) => {
       assert.equal((error as { reasonCode?: string }).reasonCode, 'SDK_RUNTIME_AGENT_ID_REQUIRED');
       return true;
@@ -344,8 +344,13 @@ test('Runtime Agent memory helpers project canonical status and bind envelopes',
 });
 
 test('Runtime Agent delegated helpers build scoped provider, approval, and replay envelopes', async () => {
+  const delegatedIdentity = {
+    ownerUserId: consumeContext.ownerUserId,
+    runtimeSourceRef: consumeContext.runtimeSourceRef,
+    localAgentRef: consumeContext.localAgentRef,
+  };
   assert.deepEqual(buildNimiRuntimeAgentDelegatedProviderProfileFromDraft({
-    agentId: 'local-agent:owner-1:agent-1',
+    ...delegatedIdentity,
     providerProfileId: 'provider-1',
     displayName: '',
     transportRef: 'stdio:provider-1',
@@ -377,7 +382,7 @@ test('Runtime Agent delegated helpers build scoped provider, approval, and repla
   });
   assert.throws(
     () => buildNimiRuntimeAgentDelegatedProviderProfileFromDraft({
-      agentId: 'local-agent:owner-1:agent-1',
+      ...delegatedIdentity,
       providerProfileId: 'provider-1',
       displayName: '',
       transportRef: 'stdio:provider-1',
@@ -453,11 +458,11 @@ test('Runtime Agent delegated helpers build scoped provider, approval, and repla
   });
 
   assert.deepEqual(await surface.loadSnapshot({
-    agentId: 'local-agent:owner-1:agent-1',
+    ...delegatedIdentity,
     conversationAnchorId: 'anchor-1',
   }), { providerProfiles: [] });
   assert.equal((await surface.upsertProviderProfile({
-    agentId: 'local-agent:owner-1:agent-1',
+    ...delegatedIdentity,
     providerProfileId: 'provider-1',
     displayName: 'Provider One',
     transportRef: 'stdio:provider-1',
@@ -467,15 +472,19 @@ test('Runtime Agent delegated helpers build scoped provider, approval, and repla
     toolName: 'search',
     inputSchemaDigest: 'sha256:abc',
   }))?.displayName, 'Provider One');
-  assert.equal((await surface.setProviderEnabled('local-agent:owner-1:agent-1', 'provider-1', false))?.state, DelegatedProviderState.DISABLED);
-  assert.equal((await surface.submitApprovalDecision(
-    'local-agent:owner-1:agent-1',
-    'approval-1',
-    'approve',
-    'approved by user',
-  )).approvalRequest, undefined);
+  assert.equal((await surface.setProviderEnabled({
+    ...delegatedIdentity,
+    providerProfileId: 'provider-1',
+    enabled: false,
+  }))?.state, DelegatedProviderState.DISABLED);
+  assert.equal((await surface.submitApprovalDecision({
+    ...delegatedIdentity,
+    approvalRequestId: 'approval-1',
+    decision: 'approve',
+    decisionReason: 'approved by user',
+  })).approvalRequest, undefined);
   assert.deepEqual((await surface.executeCapability({
-    agentId: 'local-agent:owner-1:agent-1',
+    ...delegatedIdentity,
     conversationAnchorId: 'anchor-1',
     turnId: 'turn-1',
     streamId: 'stream-1',
@@ -489,16 +498,16 @@ test('Runtime Agent delegated helpers build scoped provider, approval, and repla
     outputKind: 'observation',
     requiresApproval: true,
   })).output, { text: 'runtime-owned result' });
-  assert.deepEqual((await surface.resumeApprovedCapability(
-    'local-agent:owner-1:agent-1',
-    'approval-1',
-  )).output, { text: 'resumed result' });
-  assert.deepEqual(await surface.loadReplayTrace(
-    'local-agent:owner-1:agent-1',
-    'decision-1',
-    'anchor-1',
-    'turn-1',
-  ), { decisionId: 'decision-1' });
+  assert.deepEqual((await surface.resumeApprovedCapability({
+    ...delegatedIdentity,
+    approvalRequestId: 'approval-1',
+  })).output, { text: 'resumed result' });
+  assert.deepEqual(await surface.loadReplayTrace({
+    ...delegatedIdentity,
+    decisionId: 'decision-1',
+    conversationAnchorId: 'anchor-1',
+    turnId: 'turn-1',
+  }), { decisionId: 'decision-1' });
 
   assert.deepEqual(calls.filter((call) => call.scopes).map((call) => call.scopes), [
     ['runtime.agent.delegation.read'],
@@ -552,12 +561,12 @@ test('Runtime Agent consume client builds canonical Runtime Agent requests', asy
           snapshot: {
             anchor: {
               conversationAnchorId: 'anchor-1',
-              agentId: 'local-agent:owner-1:agent-1',
+              agentId: 'local-agent:test-owner-1-agent-1',
               subjectUserId: 'owner-1',
               status: 1,
               lastTurnId: '',
               lastMessageId: '',
-              localAgentRef: 'local-agent:owner-1:agent-1',
+              localAgentRef: 'local-agent:test-owner-1-agent-1',
               ownerUserId: 'owner-1',
               runtimeSourceRef: 'agent-1',
             },
@@ -600,10 +609,10 @@ test('Runtime Agent consume client builds canonical Runtime Agent requests', asy
       subjectUserId: 'owner-1',
       ownerUserId: 'owner-1',
       runtimeSourceRef: 'agent-1',
-      localAgentRef: 'local-agent:owner-1:agent-1',
+      localAgentRef: 'local-agent:test-owner-1-agent-1',
     },
     subjectUserId: 'owner-1',
-    localAgentRef: 'local-agent:owner-1:agent-1',
+    localAgentRef: 'local-agent:test-owner-1-agent-1',
     ownerUserId: 'owner-1',
     runtimeSourceRef: 'agent-1',
   });
@@ -623,12 +632,12 @@ test('Runtime Agent consume client lists conversation summaries through Runtime 
           {
             anchor: {
               conversationAnchorId: 'anchor-1',
-              agentId: 'local-agent:owner-1:agent-1',
+              agentId: 'local-agent:test-owner-1-agent-1',
               subjectUserId: 'owner-1',
               status: ConversationAnchorStatus.ACTIVE,
               lastTurnId: 'turn-1',
               lastMessageId: 'message-1',
-              localAgentRef: 'local-agent:owner-1:agent-1',
+              localAgentRef: 'local-agent:test-owner-1-agent-1',
               ownerUserId: 'owner-1',
               runtimeSourceRef: 'agent-1',
             },
@@ -662,9 +671,9 @@ test('Runtime Agent consume client lists conversation summaries through Runtime 
           subjectUserId: 'owner-1',
           ownerUserId: 'owner-1',
           runtimeSourceRef: 'agent-1',
-          localAgentRef: 'local-agent:owner-1:agent-1',
+          localAgentRef: 'local-agent:test-owner-1-agent-1',
         },
-        agentId: 'local-agent:owner-1:agent-1',
+        agentId: 'local-agent:test-owner-1-agent-1',
         statusFilter: [ConversationAnchorStatus.ACTIVE],
         pageSize: 1,
         pageToken: 'cursor-1',
@@ -741,9 +750,9 @@ test('Runtime Agent consume client registers Avatar live instance binding throug
           binding: {
             avatarInstanceId: 'avatar-1',
             conversationAnchorId: 'anchor-1',
-            agentId: 'local-agent:owner-1:agent-1',
+            agentId: 'local-agent:test-owner-1-agent-1',
             subjectUserId: 'subject-1',
-            localAgentRef: 'local-agent:owner-1:agent-1',
+            localAgentRef: 'local-agent:test-owner-1-agent-1',
             ownerUserId: 'owner-1',
             runtimeSourceRef: 'agent-1',
             callerAppId: 'nimi.avatar',
@@ -751,12 +760,12 @@ test('Runtime Agent consume client registers Avatar live instance binding throug
           snapshot: {
             anchor: {
               conversationAnchorId: 'anchor-1',
-              agentId: 'local-agent:owner-1:agent-1',
+              agentId: 'local-agent:test-owner-1-agent-1',
               subjectUserId: 'subject-1',
               status: 1,
               lastTurnId: '',
               lastMessageId: '',
-              localAgentRef: 'local-agent:owner-1:agent-1',
+              localAgentRef: 'local-agent:test-owner-1-agent-1',
               ownerUserId: 'owner-1',
               runtimeSourceRef: 'agent-1',
             },
@@ -801,7 +810,7 @@ test('Runtime Agent consume client registers Avatar live instance binding throug
           subjectUserId: 'subject-1',
           ownerUserId: 'owner-1',
           runtimeSourceRef: 'agent-1',
-          localAgentRef: 'local-agent:owner-1:agent-1',
+          localAgentRef: 'local-agent:test-owner-1-agent-1',
         },
         avatarInstanceId: 'avatar-1',
         conversationAnchorId: 'anchor-1',
@@ -821,9 +830,9 @@ test('Runtime Agent consume client resolves Avatar live instance binding through
         binding: {
           avatarInstanceId: 'avatar-1',
           conversationAnchorId: 'anchor-1',
-          agentId: 'local-agent:owner-1:agent-1',
+          agentId: 'local-agent:test-owner-1-agent-1',
           subjectUserId: 'subject-1',
-          localAgentRef: 'local-agent:owner-1:agent-1',
+          localAgentRef: 'local-agent:test-owner-1-agent-1',
           ownerUserId: 'owner-1',
           runtimeSourceRef: 'agent-1',
           callerAppId: 'nimi.avatar',
@@ -831,12 +840,12 @@ test('Runtime Agent consume client resolves Avatar live instance binding through
         snapshot: {
           anchor: {
             conversationAnchorId: 'anchor-1',
-            agentId: 'local-agent:owner-1:agent-1',
+            agentId: 'local-agent:test-owner-1-agent-1',
             subjectUserId: 'subject-1',
             status: 1,
             lastTurnId: '',
             lastMessageId: '',
-            localAgentRef: 'local-agent:owner-1:agent-1',
+            localAgentRef: 'local-agent:test-owner-1-agent-1',
             ownerUserId: 'owner-1',
             runtimeSourceRef: 'agent-1',
           },
@@ -864,7 +873,7 @@ test('Runtime Agent consume client resolves Avatar live instance binding through
           subjectUserId: 'subject-1',
           ownerUserId: 'owner-1',
           runtimeSourceRef: 'agent-1',
-          localAgentRef: 'local-agent:owner-1:agent-1',
+          localAgentRef: 'local-agent:test-owner-1-agent-1',
         },
         avatarInstanceId: 'avatar-1',
       },
@@ -887,12 +896,12 @@ test('Runtime Agent consume client fails closed when Avatar binding projection i
           snapshot: {
             anchor: {
               conversationAnchorId: 'anchor-1',
-              agentId: 'local-agent:owner-1:agent-1',
+              agentId: 'local-agent:test-owner-1-agent-1',
               subjectUserId: 'owner-1',
               status: 1,
               lastTurnId: '',
               lastMessageId: '',
-              localAgentRef: 'local-agent:owner-1:agent-1',
+              localAgentRef: 'local-agent:test-owner-1-agent-1',
               ownerUserId: 'owner-1',
               runtimeSourceRef: 'agent-1',
             },
@@ -945,9 +954,9 @@ test('Runtime Agent consume client decodes companion participation projection an
       return {
         projection: {
           projectionId: 'projection-1',
-          agentId: 'local-agent:owner-1:agent-1',
+          agentId: 'local-agent:test-owner-1-agent-1',
           surfaceKind: CompanionParticipationSurfaceKind.AVATAR_DEBUG_WORKBENCH,
-          profileRef: 'runtime.agent.profile/local-agent:owner-1:agent-1',
+          profileRef: 'runtime.agent.profile/local-agent:test-owner-1-agent-1',
           roomOrchestrationRef: 'runtime.room_orchestration/avatar_companion_presentation_room',
           triggerSource: CompanionParticipationTriggerSource.USER_EXPLICIT,
           status: CompanionParticipationStatus.BLOCKED,
@@ -970,7 +979,7 @@ test('Runtime Agent consume client decodes companion participation projection an
     conversationAnchorId: 'anchor-1',
     surfaceKind: 'avatar_debug_workbench',
     triggerSource: 'user_explicit',
-    profileRef: 'runtime.agent.profile/local-agent:owner-1:agent-1',
+    profileRef: 'runtime.agent.profile/local-agent:test-owner-1-agent-1',
     roomOrchestrationRef: 'runtime.room_orchestration/avatar_companion_presentation_room',
     requestId: 'request-1',
   }, callOptions);
@@ -987,13 +996,13 @@ test('Runtime Agent consume client decodes companion participation projection an
           subjectUserId: 'owner-1',
           ownerUserId: 'owner-1',
           runtimeSourceRef: 'agent-1',
-          localAgentRef: 'local-agent:owner-1:agent-1',
+          localAgentRef: 'local-agent:test-owner-1-agent-1',
         },
-        agentId: 'local-agent:owner-1:agent-1',
+        agentId: 'local-agent:test-owner-1-agent-1',
         conversationAnchorId: 'anchor-1',
         surfaceKind: CompanionParticipationSurfaceKind.AVATAR_DEBUG_WORKBENCH,
         triggerSource: CompanionParticipationTriggerSource.USER_EXPLICIT,
-        profileRef: 'runtime.agent.profile/local-agent:owner-1:agent-1',
+        profileRef: 'runtime.agent.profile/local-agent:test-owner-1-agent-1',
         roomOrchestrationRef: 'runtime.room_orchestration/avatar_companion_presentation_room',
         requestId: 'request-1',
       },
@@ -1008,9 +1017,9 @@ test('Runtime Agent consume client fails closed on invalid companion participati
       return {
         projection: {
           projectionId: 'projection-1',
-          agentId: 'local-agent:owner-1:agent-1',
+          agentId: 'local-agent:test-owner-1-agent-1',
           surfaceKind: CompanionParticipationSurfaceKind.AVATAR_DEBUG_WORKBENCH,
-          profileRef: 'runtime.agent.profile/local-agent:owner-1:agent-1',
+          profileRef: 'runtime.agent.profile/local-agent:test-owner-1-agent-1',
           roomOrchestrationRef: 'runtime.room_orchestration/avatar_companion_presentation_room',
           triggerSource: CompanionParticipationTriggerSource.USER_EXPLICIT,
           status: 999 as CompanionParticipationStatus,
@@ -1076,9 +1085,9 @@ test('Runtime Agent consume client builds avatar debug probe requests through Ru
           subjectUserId: 'owner-1',
           ownerUserId: 'owner-1',
           runtimeSourceRef: 'agent-1',
-          localAgentRef: 'local-agent:owner-1:agent-1',
+          localAgentRef: 'local-agent:test-owner-1-agent-1',
         },
-        agentId: 'local-agent:owner-1:agent-1',
+        agentId: 'local-agent:test-owner-1-agent-1',
         conversationAnchorId: 'anchor-1',
         probeKind: AvatarDebugProbeKind.GENERATED_MOTION,
         requestedBy: AvatarDebugRequestedBy.DESKTOP_DEBUG_WORKBENCH,
@@ -1254,7 +1263,7 @@ test('Runtime Agent consume client omits malformed transcript replay envelopes',
 
 test('Runtime Agent consume parses turn app messages and validates timelines', () => {
   const payload = {
-    local_agent_ref: 'local-agent:owner-1:agent-1',
+    local_agent_ref: 'local-agent:test-owner-1-agent-1',
     conversation_anchor_id: 'anchor-1',
     turn_id: 'turn-1',
     stream_id: 'stream-1',
@@ -1304,7 +1313,7 @@ test('Runtime Agent consume preserves structured app message payload for the tur
     actions: [],
   };
   const payload = {
-    local_agent_ref: 'local-agent:owner-1:agent-1',
+    local_agent_ref: 'local-agent:test-owner-1-agent-1',
     conversation_anchor_id: 'anchor-1',
     turn_id: 'turn-1',
     stream_id: 'stream-1',
@@ -1339,7 +1348,7 @@ test('Runtime Agent consume preserves structured app message payload for the tur
   const legacyProjected = projectNimiRuntimeAgentAppMessageEvent({
     ...event,
     payload: toNimiRuntimeProtoStruct({
-      local_agent_ref: 'local-agent:owner-1:agent-1',
+      local_agent_ref: 'local-agent:test-owner-1-agent-1',
       conversation_anchor_id: 'anchor-1',
       turn_id: 'turn-1',
       stream_id: 'stream-1',
@@ -1351,7 +1360,7 @@ test('Runtime Agent consume preserves structured app message payload for the tur
 
 test('Runtime Agent consume preserves accepted request id for backlog filtering', () => {
   const payload = {
-    local_agent_ref: 'local-agent:owner-1:agent-1',
+    local_agent_ref: 'local-agent:test-owner-1-agent-1',
     conversation_anchor_id: 'anchor-1',
     turn_id: 'turn-1',
     stream_id: 'stream-1',

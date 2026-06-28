@@ -498,20 +498,12 @@ class CreatePostDto:
     tags: tuple[str, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
-class CreatePublicRealmSourceConnectionDto:
-    source: RelationshipPublicSourceLocatorDto | None = None
-
-@dataclass(frozen=True)
 class CreateRealmPersonaDto:
     core: Mapping[str, object] = field(default_factory=dict)
     homeWorldId: str | None = None
     id: str | None = None
     origin: RealmCoreOriginDto | None = None
     visibility: Literal["private", "unlisted", "public", "system"] | None = None
-
-@dataclass(frozen=True)
-class CreateRealmSourceConnectionDto:
-    sourceRef: RelationshipSourceRefDto | None = None
 
 @dataclass(frozen=True)
 class CreateRelationshipDto:
@@ -535,7 +527,8 @@ class CreateReviewDto:
     tags: str | None = None
 
 @dataclass(frozen=True)
-class CreateRuntimeSourceSnapshotDto:
+class CreateSourceMaterializationPacketDto:
+    intendedRuntimeAudience: str | None = None
     sourceRef: TypedSourceRefDto | None = None
 
 @dataclass(frozen=True)
@@ -1211,20 +1204,8 @@ class RealmPersonaDto:
 @dataclass(frozen=True)
 class RealmSourceCapabilitiesDto:
     canCreateRealmPersona: bool | None = None
-    canCreateRuntimeSourceSnapshot: bool | None = None
+    canCreateSourceMaterializationPacket: bool | None = None
     canUseWorldCharacterSources: bool | None = None
-
-@dataclass(frozen=True)
-class RealmSourceConnectionDto:
-    connectedAt: str | None = None
-    createdAt: str | None = None
-    id: str | None = None
-    ownerUserId: str | None = None
-    removedAt: str | None = None
-    runtimeSourceRef: str | None = None
-    sourceRef: RelationshipSourceRefDto | None = None
-    status: Literal["active", "removed"] | None = None
-    updatedAt: str | None = None
 
 @dataclass(frozen=True)
 class ReceivedGiftsResponseDto:
@@ -1240,12 +1221,6 @@ class RejectGiftDto:
     reason: str | None = None
 
 @dataclass(frozen=True)
-class RelationshipPublicSourceLocatorDto:
-    kind: Literal["worldCharacter", "realmPersona"] | None = None
-    sourceId: str | None = None
-    worldId: str | None = None
-
-@dataclass(frozen=True)
 class RelationshipResponseDto:
     context: str | None = None
     createdAt: str | None = None
@@ -1254,13 +1229,6 @@ class RelationshipResponseDto:
     strength: float | None = None
     targetId: str | None = None
     type: AccountRelationType | None = None
-
-@dataclass(frozen=True)
-class RelationshipSourceRefDto:
-    kind: Literal["worldCharacter", "realmPersona"] | None = None
-    sourceContentHash: str | None = None
-    sourceId: str | None = None
-    worldId: str | None = None
 
 @dataclass(frozen=True)
 class ReplaceRealmPersonaDto:
@@ -1423,20 +1391,6 @@ class RuntimeRealmGrantIssueResponseDto:
     version: str | None = None
 
 @dataclass(frozen=True)
-class RuntimeSourceSnapshotDto:
-    capturedAt: str | None = None
-    payload: Mapping[str, object] = field(default_factory=dict)
-    payloadHash: str | None = None
-    runtimeSourceRef: str | None = None
-    snapshotId: str | None = None
-    snapshotSchemaVersion: str | None = None
-    sourceContentHash: str | None = None
-    sourceContentRevision: float | None = None
-    sourceId: str | None = None
-    sourceKind: Literal["worldCharacter", "realmPersona"] | None = None
-    sourceWorldId: str | None = None
-
-@dataclass(frozen=True)
 class SendGiftDto:
     giftId: str | None = None
     message: str | None = None
@@ -1459,6 +1413,25 @@ class SocialProfileDto:
     platform: str | None = None
     url: str | None = None
     verifiedAt: str | None = None
+
+@dataclass(frozen=True)
+class SourceMaterializationPacketDto:
+    expiresAt: str | None = None
+    intendedRuntimeAudience: str | None = None
+    issuedAt: str | None = None
+    nonce: str | None = None
+    packetHash: str | None = None
+    packetId: str | None = None
+    packetProof: str | None = None
+    packetSchemaVersion: str | None = None
+    payload: Mapping[str, object] = field(default_factory=dict)
+    runtimeSourceRef: str | None = None
+    sourceContentHash: str | None = None
+    sourceContentRevision: float | None = None
+    sourceDisplayMetadata: Mapping[str, object] = field(default_factory=dict)
+    sourceId: str | None = None
+    sourceKind: Literal["worldCharacter", "realmPersona"] | None = None
+    sourceWorldId: str | None = None
 
 @dataclass(frozen=True)
 class SourceOriginDto:
@@ -5418,117 +5391,6 @@ class RealmSendMessageOperationRequest:
     body: SendMessageInputDto | None = None
 
 @dataclass(frozen=True)
-class RealmSourceConnectionControllerConnectOperationPath:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmSourceConnectionControllerConnectOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmSourceConnectionControllerConnectOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmSourceConnectionControllerConnectOperationRequest:
-    path: RealmSourceConnectionControllerConnectOperationPath
-    query: RealmSourceConnectionControllerConnectOperationQuery | None = None
-    headers: RealmSourceConnectionControllerConnectOperationHeaders | None = None
-    body: CreateRealmSourceConnectionDto | None = None
-
-@dataclass(frozen=True)
-class RealmSourceConnectionControllerConnectPublicSourceOperationPath:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmSourceConnectionControllerConnectPublicSourceOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmSourceConnectionControllerConnectPublicSourceOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmSourceConnectionControllerConnectPublicSourceOperationRequest:
-    path: RealmSourceConnectionControllerConnectPublicSourceOperationPath
-    query: RealmSourceConnectionControllerConnectPublicSourceOperationQuery | None = None
-    headers: RealmSourceConnectionControllerConnectPublicSourceOperationHeaders | None = None
-    body: CreatePublicRealmSourceConnectionDto | None = None
-
-@dataclass(frozen=True)
-class RealmSourceConnectionControllerGetOperationPath:
-    id: str
-
-
-@dataclass(frozen=True)
-class RealmSourceConnectionControllerGetOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmSourceConnectionControllerGetOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmSourceConnectionControllerGetOperationRequest:
-    path: RealmSourceConnectionControllerGetOperationPath
-    query: RealmSourceConnectionControllerGetOperationQuery | None = None
-    headers: RealmSourceConnectionControllerGetOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmSourceConnectionControllerListOperationPath:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmSourceConnectionControllerListOperationQuery:
-    kind: Literal["worldCharacter", "realmPersona"] | None = None
-    status: Literal["active", "removed"] | None = None
-
-
-@dataclass(frozen=True)
-class RealmSourceConnectionControllerListOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmSourceConnectionControllerListOperationRequest:
-    path: RealmSourceConnectionControllerListOperationPath
-    query: RealmSourceConnectionControllerListOperationQuery | None = None
-    headers: RealmSourceConnectionControllerListOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmSourceConnectionControllerRemoveOperationPath:
-    id: str
-
-
-@dataclass(frozen=True)
-class RealmSourceConnectionControllerRemoveOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmSourceConnectionControllerRemoveOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmSourceConnectionControllerRemoveOperationRequest:
-    path: RealmSourceConnectionControllerRemoveOperationPath
-    query: RealmSourceConnectionControllerRemoveOperationQuery | None = None
-    headers: RealmSourceConnectionControllerRemoveOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
 class RealmStartChatOperationPath:
     pass
 
@@ -6260,26 +6122,26 @@ class RealmWorldCoreControllerCreateRealmPersonaOperationRequest:
     body: CreateRealmPersonaDto | None = None
 
 @dataclass(frozen=True)
-class RealmWorldCoreControllerCreateRuntimeSourceSnapshotOperationPath:
+class RealmWorldCoreControllerCreateSourceMaterializationPacketOperationPath:
     pass
 
 
 @dataclass(frozen=True)
-class RealmWorldCoreControllerCreateRuntimeSourceSnapshotOperationQuery:
+class RealmWorldCoreControllerCreateSourceMaterializationPacketOperationQuery:
     pass
 
 
 @dataclass(frozen=True)
-class RealmWorldCoreControllerCreateRuntimeSourceSnapshotOperationHeaders:
+class RealmWorldCoreControllerCreateSourceMaterializationPacketOperationHeaders:
     pass
 
 
 @dataclass(frozen=True)
-class RealmWorldCoreControllerCreateRuntimeSourceSnapshotOperationRequest:
-    path: RealmWorldCoreControllerCreateRuntimeSourceSnapshotOperationPath
-    query: RealmWorldCoreControllerCreateRuntimeSourceSnapshotOperationQuery | None = None
-    headers: RealmWorldCoreControllerCreateRuntimeSourceSnapshotOperationHeaders | None = None
-    body: CreateRuntimeSourceSnapshotDto | None = None
+class RealmWorldCoreControllerCreateSourceMaterializationPacketOperationRequest:
+    path: RealmWorldCoreControllerCreateSourceMaterializationPacketOperationPath
+    query: RealmWorldCoreControllerCreateSourceMaterializationPacketOperationQuery | None = None
+    headers: RealmWorldCoreControllerCreateSourceMaterializationPacketOperationHeaders | None = None
+    body: CreateSourceMaterializationPacketDto | None = None
 
 @dataclass(frozen=True)
 class RealmWorldCoreControllerCreateWorldCharacterOperationPath:
@@ -8274,56 +8136,6 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="sendMessage", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(MessageViewDto, raw)
 
-    async def source_connection_controller_connect(self, request: RealmSourceConnectionControllerConnectOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmSourceConnectionControllerConnectOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="SourceConnectionController_connect", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(RealmSourceConnectionDto, raw)
-
-    async def source_connection_controller_connect_public_source(self, request: RealmSourceConnectionControllerConnectPublicSourceOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmSourceConnectionControllerConnectPublicSourceOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="SourceConnectionController_connectPublicSource", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(RealmSourceConnectionDto, raw)
-
-    async def source_connection_controller_get(self, request: RealmSourceConnectionControllerGetOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmSourceConnectionControllerGetOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="SourceConnectionController_get", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(RealmSourceConnectionDto, raw)
-
-    async def source_connection_controller_list(self, request: RealmSourceConnectionControllerListOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmSourceConnectionControllerListOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="SourceConnectionController_list", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(tuple[RealmSourceConnectionDto, ...], raw)
-
-    async def source_connection_controller_remove(self, request: RealmSourceConnectionControllerRemoveOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmSourceConnectionControllerRemoveOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="SourceConnectionController_remove", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(RealmSourceConnectionDto, raw)
-
     async def start_chat(self, request: RealmStartChatOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmStartChatOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
@@ -8654,15 +8466,15 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_createRealmPersona", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(RealmPersonaDto, raw)
 
-    async def world_core_controller_create_runtime_source_snapshot(self, request: RealmWorldCoreControllerCreateRuntimeSourceSnapshotOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerCreateRuntimeSourceSnapshotOperationResponse:
+    async def world_core_controller_create_source_materialization_packet(self, request: RealmWorldCoreControllerCreateSourceMaterializationPacketOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerCreateSourceMaterializationPacketOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
             "query": _model_body(request.query),
             "headers": _model_body(request.headers),
             "body": _model_body(request.body),
         }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_createRuntimeSourceSnapshot", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(RuntimeSourceSnapshotDto, raw)
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_createSourceMaterializationPacket", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(SourceMaterializationPacketDto, raw)
 
     async def world_core_controller_create_world_character(self, request: RealmWorldCoreControllerCreateWorldCharacterOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerCreateWorldCharacterOperationResponse:
         envelope: dict[str, object] = {

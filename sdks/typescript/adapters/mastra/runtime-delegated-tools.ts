@@ -12,7 +12,9 @@ export type NimiMastraRuntimeDelegatedToolValue<TInput, TValue> =
 
 export interface NimiMastraRuntimeDelegatedToolBinding<TInput> {
   readonly runtime: NimiRuntimeAgentDelegatedCapabilitySurface;
-  readonly agentId: NimiMastraRuntimeDelegatedToolValue<TInput, string>;
+  readonly ownerUserId: NimiMastraRuntimeDelegatedToolValue<TInput, string>;
+  readonly runtimeSourceRef: NimiMastraRuntimeDelegatedToolValue<TInput, string>;
+  readonly localAgentRef: NimiMastraRuntimeDelegatedToolValue<TInput, string>;
   readonly conversationAnchorId: NimiMastraRuntimeDelegatedToolValue<TInput, string>;
   readonly turnId: NimiMastraRuntimeDelegatedToolValue<TInput, string>;
   readonly streamId?: NimiMastraRuntimeDelegatedToolValue<TInput, string | undefined>;
@@ -27,7 +29,9 @@ export interface NimiMastraRuntimeDelegatedToolBinding<TInput> {
 
 export interface NimiMastraRuntimeTurnBinding {
   readonly runtime: NimiRuntimeAgentDelegatedCapabilitySurface;
-  readonly agentId: string;
+  readonly ownerUserId: string;
+  readonly runtimeSourceRef: string;
+  readonly localAgentRef: string;
   readonly conversationAnchorId: string;
   readonly turnId: string;
   readonly streamId?: string;
@@ -56,7 +60,9 @@ export interface NimiMastraRuntimeDelegatedToolOptions<
 
 export interface NimiMastraRuntimeDelegatedToolResumeOptions {
   readonly runtime: NimiRuntimeAgentDelegatedCapabilitySurface;
-  readonly agentId: string;
+  readonly ownerUserId: string;
+  readonly runtimeSourceRef: string;
+  readonly localAgentRef: string;
   readonly approvalRequestId: string;
 }
 
@@ -100,7 +106,9 @@ export function createNimiMastraRuntimeDelegatedToolBinding<
   }
   return {
     runtime: options.runtime,
-    agentId: requireText(options.agentId, 'agent_id'),
+    ownerUserId: requireText(options.ownerUserId, 'owner_user_id'),
+    runtimeSourceRef: requireText(options.runtimeSourceRef, 'runtime_source_ref'),
+    localAgentRef: requireText(options.localAgentRef, 'local_agent_ref'),
     conversationAnchorId: requireText(options.conversationAnchorId, 'conversation_anchor_id'),
     turnId: requireText(options.turnId, 'turn_id'),
     streamId: normalizeText(options.streamId) || undefined,
@@ -134,7 +142,9 @@ export function createNimiMastraRuntimeDelegatedTool<
       const inputObject = requireJsonObject(input, 'tool input') as TInput;
       const binding = options.binding;
       const response = await binding.runtime.executeCapability({
-        agentId: await resolveText(binding.agentId, inputObject, context, 'agent_id'),
+        ownerUserId: await resolveText(binding.ownerUserId, inputObject, context, 'owner_user_id'),
+        runtimeSourceRef: await resolveText(binding.runtimeSourceRef, inputObject, context, 'runtime_source_ref'),
+        localAgentRef: await resolveText(binding.localAgentRef, inputObject, context, 'local_agent_ref'),
         conversationAnchorId: await resolveText(binding.conversationAnchorId, inputObject, context, 'conversation_anchor_id'),
         turnId: await resolveText(binding.turnId, inputObject, context, 'turn_id'),
         streamId: await resolveOptionalText(binding.streamId, inputObject, context),
@@ -166,10 +176,12 @@ export async function resumeNimiMastraRuntimeDelegatedTool(
       'NIMI_MASTRA_RUNTIME_DELEGATED_TOOL_RUNTIME_REQUIRED',
     );
   }
-  const response = await options.runtime.resumeApprovedCapability(
-    requireText(options.agentId, 'agent_id'),
-    requireText(options.approvalRequestId, 'approval_request_id'),
-  );
+  const response = await options.runtime.resumeApprovedCapability({
+    ownerUserId: requireText(options.ownerUserId, 'owner_user_id'),
+    runtimeSourceRef: requireText(options.runtimeSourceRef, 'runtime_source_ref'),
+    localAgentRef: requireText(options.localAgentRef, 'local_agent_ref'),
+    approvalRequestId: requireText(options.approvalRequestId, 'approval_request_id'),
+  });
   return delegatedResumeOutput(response);
 }
 

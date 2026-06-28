@@ -71,7 +71,9 @@ export function createMastraRuntimeOwnedSearchTool(
     description: 'Search through a Nimi Runtime delegated provider.',
     binding: createNimiMastraRuntimeDelegatedToolBinding({
       runtime,
-      agentId: 'local-agent:owner-1:agent-1',
+      ownerUserId: 'owner-1',
+      runtimeSourceRef: 'runtime-source:example-agent',
+      localAgentRef: 'local-agent:owner-1:agent-1',
       conversationAnchorId: 'anchor-1',
       turnId: 'turn-1',
       providerProfileId: 'search-provider',

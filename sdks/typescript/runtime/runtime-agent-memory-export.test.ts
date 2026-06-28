@@ -17,7 +17,14 @@ import {
   type RuntimeTypedCallOptions,
 } from '../core-generated/runtime-typed-client';
 
-const AGENT_REF = 'local-agent:user-1:agent-1';
+const OWNER_USER_ID = 'user-1';
+const RUNTIME_SOURCE_REF = 'agent-1';
+const AGENT_REF = 'local-agent:test-user-1-agent-1';
+const AGENT_IDENTITY = {
+  ownerUserId: OWNER_USER_ID,
+  runtimeSourceRef: RUNTIME_SOURCE_REF,
+  localAgentRef: AGENT_REF,
+} as const;
 
 function buildAgentState(overrides: Partial<AgentStateProjection> = {}): AgentStateProjection {
   return {
@@ -40,7 +47,7 @@ function buildView(input: {
       scope: MemoryBankScope.AGENT_DYADIC,
       owner: {
         oneofKind: 'agentDyadic' as const,
-        agentDyadic: { agentId: 'agent-1', userId: 'user-1' },
+          agentDyadic: { agentId: AGENT_REF, userId: OWNER_USER_ID },
       },
     }
     : input.canonicalClass === MemoryCanonicalClass.WORLD_SHARED
@@ -55,7 +62,7 @@ function buildView(input: {
         scope: MemoryBankScope.AGENT_CORE,
         owner: {
           oneofKind: 'agentCore' as const,
-          agentCore: { agentId: 'agent-1' },
+          agentCore: { agentId: AGENT_REF },
         },
       };
   return {
@@ -71,7 +78,7 @@ function buildView(input: {
       provenance: {
         sourceSystem: 'runtime.agent',
         sourceEventId: `event-${input.memoryId}`,
-        authorId: 'agent-1',
+        authorId: AGENT_REF,
         traceId: `trace-${input.memoryId}`,
         committedAt: toNimiRuntimeTimestamp('2026-06-10T00:00:00.000Z'),
       },
@@ -151,7 +158,7 @@ test('Runtime Agent memory export collects every canonical class page into a com
   });
 
   const envelope = await createNimiRuntimeAgentMemoryExport(client, {
-    agentId: AGENT_REF,
+    ...AGENT_IDENTITY,
     exportedAt: '2026-06-11T08:00:00.000Z',
     maxRecords: 10,
     getSubjectUserId: () => 'user-1',
@@ -168,8 +175,8 @@ test('Runtime Agent memory export collects every canonical class page into a com
     'memory-dyadic-1',
   ]);
   assert.deepEqual(envelope.banks.map((bank) => [bank.bankKey, bank.recordCount]), [
-    ['agent-core:agent-1', 2],
-    ['agent-dyadic:agent-1:user-1', 1],
+    [`agent-core:${AGENT_REF}`, 2],
+    [`agent-dyadic:${AGENT_REF}:${OWNER_USER_ID}`, 1],
     ['world-shared:world-1', 1],
   ]);
   assert.equal(envelope.records[0]?.canonicalClass, 'public-shared');
@@ -203,7 +210,7 @@ test('Runtime Agent memory export aborts on mid-collection failure without parti
 
   await assert.rejects(
     createNimiRuntimeAgentMemoryExport(client, {
-      agentId: AGENT_REF,
+      ...AGENT_IDENTITY,
       exportedAt: '2026-06-11T08:00:00.000Z',
       maxRecords: 10,
       getSubjectUserId: () => 'user-1',
@@ -231,7 +238,7 @@ test('Runtime Agent memory export fails closed when records exceed maxRecords', 
 
   await assert.rejects(
     createNimiRuntimeAgentMemoryExport(client, {
-      agentId: AGENT_REF,
+      ...AGENT_IDENTITY,
       exportedAt: '2026-06-11T08:00:00.000Z',
       maxRecords: 2,
       getSubjectUserId: () => 'user-1',
@@ -255,7 +262,7 @@ test('Runtime Agent memory export projects empty memory as a valid empty envelop
   });
 
   const envelope = await createNimiRuntimeAgentMemoryExport(client, {
-    agentId: AGENT_REF,
+    ...AGENT_IDENTITY,
     exportedAt: '2026-06-11T08:00:00+08:00',
     maxRecords: 5,
     getSubjectUserId: () => 'user-1',
@@ -281,7 +288,7 @@ test('Runtime Agent memory export validates caller clock and maxRecords input', 
 
   await assert.rejects(
     createNimiRuntimeAgentMemoryExport(client, {
-      agentId: AGENT_REF,
+      ...AGENT_IDENTITY,
       exportedAt: 'not-a-clock',
       maxRecords: 5,
       getSubjectUserId: () => 'user-1',
@@ -296,7 +303,7 @@ test('Runtime Agent memory export validates caller clock and maxRecords input', 
   for (const maxRecords of [0, -1, 2.5, Number.NaN, 2_147_483_647]) {
     await assert.rejects(
       createNimiRuntimeAgentMemoryExport(client, {
-        agentId: AGENT_REF,
+        ...AGENT_IDENTITY,
         exportedAt: '2026-06-11T08:00:00.000Z',
         maxRecords,
         getSubjectUserId: () => 'user-1',
@@ -325,7 +332,7 @@ test('Runtime Agent memory export fails closed on canonical view without payload
 
   await assert.rejects(
     createNimiRuntimeAgentMemoryExport(client, {
-      agentId: AGENT_REF,
+      ...AGENT_IDENTITY,
       exportedAt: '2026-06-11T08:00:00.000Z',
       maxRecords: 5,
       getSubjectUserId: () => 'user-1',

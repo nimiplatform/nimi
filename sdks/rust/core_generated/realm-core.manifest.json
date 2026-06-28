@@ -8596,272 +8596,6 @@
       ]
     },
     {
-      "operation_id": "SourceConnectionController_connect",
-      "method": "POST",
-      "path": "/api/human/source-connections",
-      "service": "Source Connections",
-      "tags": [
-        "Source Connections"
-      ],
-      "parameters": [],
-      "path_parameters": [],
-      "query_parameters": [],
-      "header_parameters": [],
-      "request_schema": {
-        "kind": "ref",
-        "ref": "#/components/schemas/CreateRealmSourceConnectionDto",
-        "ref_name": "CreateRealmSourceConnectionDto"
-      },
-      "request_schema_ref": "#/components/schemas/CreateRealmSourceConnectionDto",
-      "response_schemas": [
-        {
-          "status": "201",
-          "schema": {
-            "kind": "ref",
-            "ref": "#/components/schemas/RealmSourceConnectionDto",
-            "ref_name": "RealmSourceConnectionDto"
-          },
-          "schema_ref": "#/components/schemas/RealmSourceConnectionDto"
-        }
-      ],
-      "response_schema_refs": [
-        {
-          "status": "201",
-          "schema_ref": "#/components/schemas/RealmSourceConnectionDto"
-        }
-      ]
-    },
-    {
-      "operation_id": "SourceConnectionController_connectPublicSource",
-      "method": "POST",
-      "path": "/api/human/source-connections/public-source",
-      "service": "Source Connections",
-      "tags": [
-        "Source Connections"
-      ],
-      "parameters": [],
-      "path_parameters": [],
-      "query_parameters": [],
-      "header_parameters": [],
-      "request_schema": {
-        "kind": "ref",
-        "ref": "#/components/schemas/CreatePublicRealmSourceConnectionDto",
-        "ref_name": "CreatePublicRealmSourceConnectionDto"
-      },
-      "request_schema_ref": "#/components/schemas/CreatePublicRealmSourceConnectionDto",
-      "response_schemas": [
-        {
-          "status": "201",
-          "schema": {
-            "kind": "ref",
-            "ref": "#/components/schemas/RealmSourceConnectionDto",
-            "ref_name": "RealmSourceConnectionDto"
-          },
-          "schema_ref": "#/components/schemas/RealmSourceConnectionDto"
-        }
-      ],
-      "response_schema_refs": [
-        {
-          "status": "201",
-          "schema_ref": "#/components/schemas/RealmSourceConnectionDto"
-        }
-      ]
-    },
-    {
-      "operation_id": "SourceConnectionController_get",
-      "method": "GET",
-      "path": "/api/human/source-connections/{id}",
-      "service": "Source Connections",
-      "tags": [
-        "Source Connections"
-      ],
-      "parameters": [
-        {
-          "name": "id",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null
-          }
-        }
-      ],
-      "path_parameters": [
-        {
-          "name": "id",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null
-          }
-        }
-      ],
-      "query_parameters": [],
-      "header_parameters": [],
-      "request_schema": {
-        "kind": "unknown"
-      },
-      "request_schema_ref": null,
-      "response_schemas": [
-        {
-          "status": "200",
-          "schema": {
-            "kind": "ref",
-            "ref": "#/components/schemas/RealmSourceConnectionDto",
-            "ref_name": "RealmSourceConnectionDto"
-          },
-          "schema_ref": "#/components/schemas/RealmSourceConnectionDto"
-        }
-      ],
-      "response_schema_refs": [
-        {
-          "status": "200",
-          "schema_ref": "#/components/schemas/RealmSourceConnectionDto"
-        }
-      ]
-    },
-    {
-      "operation_id": "SourceConnectionController_list",
-      "method": "GET",
-      "path": "/api/human/source-connections",
-      "service": "Source Connections",
-      "tags": [
-        "Source Connections"
-      ],
-      "parameters": [
-        {
-          "name": "kind",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "enum",
-            "values": [
-              "worldCharacter",
-              "realmPersona"
-            ]
-          }
-        },
-        {
-          "name": "status",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "enum",
-            "values": [
-              "active",
-              "removed"
-            ]
-          }
-        }
-      ],
-      "path_parameters": [],
-      "query_parameters": [
-        {
-          "name": "kind",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "enum",
-            "values": [
-              "worldCharacter",
-              "realmPersona"
-            ]
-          }
-        },
-        {
-          "name": "status",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "kind": "enum",
-            "values": [
-              "active",
-              "removed"
-            ]
-          }
-        }
-      ],
-      "header_parameters": [],
-      "request_schema": {
-        "kind": "unknown"
-      },
-      "request_schema_ref": null,
-      "response_schemas": [
-        {
-          "status": "200",
-          "schema": {
-            "kind": "array",
-            "items": {
-              "kind": "ref",
-              "ref": "#/components/schemas/RealmSourceConnectionDto",
-              "ref_name": "RealmSourceConnectionDto"
-            }
-          },
-          "schema_ref": null
-        }
-      ],
-      "response_schema_refs": []
-    },
-    {
-      "operation_id": "SourceConnectionController_remove",
-      "method": "DELETE",
-      "path": "/api/human/source-connections/{id}",
-      "service": "Source Connections",
-      "tags": [
-        "Source Connections"
-      ],
-      "parameters": [
-        {
-          "name": "id",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null
-          }
-        }
-      ],
-      "path_parameters": [
-        {
-          "name": "id",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null
-          }
-        }
-      ],
-      "query_parameters": [],
-      "header_parameters": [],
-      "request_schema": {
-        "kind": "unknown"
-      },
-      "request_schema_ref": null,
-      "response_schemas": [
-        {
-          "status": "200",
-          "schema": {
-            "kind": "ref",
-            "ref": "#/components/schemas/RealmSourceConnectionDto",
-            "ref_name": "RealmSourceConnectionDto"
-          },
-          "schema_ref": "#/components/schemas/RealmSourceConnectionDto"
-        }
-      ],
-      "response_schema_refs": [
-        {
-          "status": "200",
-          "schema_ref": "#/components/schemas/RealmSourceConnectionDto"
-        }
-      ]
-    },
-    {
       "operation_id": "startChat",
       "method": "POST",
       "path": "/api/human/chats",
@@ -10489,9 +10223,9 @@
       ]
     },
     {
-      "operation_id": "WorldCoreController_createRuntimeSourceSnapshot",
+      "operation_id": "WorldCoreController_createSourceMaterializationPacket",
       "method": "POST",
-      "path": "/api/realm/core/runtime-source-snapshots",
+      "path": "/api/realm/core/source-materialization-packets",
       "service": "Realm Core",
       "tags": [
         "Realm Core"
@@ -10502,25 +10236,25 @@
       "header_parameters": [],
       "request_schema": {
         "kind": "ref",
-        "ref": "#/components/schemas/CreateRuntimeSourceSnapshotDto",
-        "ref_name": "CreateRuntimeSourceSnapshotDto"
+        "ref": "#/components/schemas/CreateSourceMaterializationPacketDto",
+        "ref_name": "CreateSourceMaterializationPacketDto"
       },
-      "request_schema_ref": "#/components/schemas/CreateRuntimeSourceSnapshotDto",
+      "request_schema_ref": "#/components/schemas/CreateSourceMaterializationPacketDto",
       "response_schemas": [
         {
           "status": "201",
           "schema": {
             "kind": "ref",
-            "ref": "#/components/schemas/RuntimeSourceSnapshotDto",
-            "ref_name": "RuntimeSourceSnapshotDto"
+            "ref": "#/components/schemas/SourceMaterializationPacketDto",
+            "ref_name": "SourceMaterializationPacketDto"
           },
-          "schema_ref": "#/components/schemas/RuntimeSourceSnapshotDto"
+          "schema_ref": "#/components/schemas/SourceMaterializationPacketDto"
         }
       ],
       "response_schema_refs": [
         {
           "status": "201",
-          "schema_ref": "#/components/schemas/RuntimeSourceSnapshotDto"
+          "schema_ref": "#/components/schemas/SourceMaterializationPacketDto"
         }
       ]
     },
@@ -12958,36 +12692,6 @@
       "path": "/api/human/chats/{chatId}/messages"
     },
     {
-      "operation_id": "SourceConnectionController_connect",
-      "service": "Source Connections",
-      "method": "POST",
-      "path": "/api/human/source-connections"
-    },
-    {
-      "operation_id": "SourceConnectionController_connectPublicSource",
-      "service": "Source Connections",
-      "method": "POST",
-      "path": "/api/human/source-connections/public-source"
-    },
-    {
-      "operation_id": "SourceConnectionController_get",
-      "service": "Source Connections",
-      "method": "GET",
-      "path": "/api/human/source-connections/{id}"
-    },
-    {
-      "operation_id": "SourceConnectionController_list",
-      "service": "Source Connections",
-      "method": "GET",
-      "path": "/api/human/source-connections"
-    },
-    {
-      "operation_id": "SourceConnectionController_remove",
-      "service": "Source Connections",
-      "method": "DELETE",
-      "path": "/api/human/source-connections/{id}"
-    },
-    {
       "operation_id": "startChat",
       "service": "Human Chats",
       "method": "POST",
@@ -13186,10 +12890,10 @@
       "path": "/api/realm/core/personas"
     },
     {
-      "operation_id": "WorldCoreController_createRuntimeSourceSnapshot",
+      "operation_id": "WorldCoreController_createSourceMaterializationPacket",
       "service": "Realm Core",
       "method": "POST",
-      "path": "/api/realm/core/runtime-source-snapshots"
+      "path": "/api/realm/core/source-materialization-packets"
     },
     {
       "operation_id": "WorldCoreController_createWorldCharacter",
@@ -13562,7 +13266,7 @@
       "operation_ids": [
         "WorldCoreController_bootstrapOasisWorld",
         "WorldCoreController_createRealmPersona",
-        "WorldCoreController_createRuntimeSourceSnapshot",
+        "WorldCoreController_createSourceMaterializationPacket",
         "WorldCoreController_createWorldCharacter",
         "WorldCoreController_createWorldCore",
         "WorldCoreController_createWorldEntity",
@@ -13626,16 +13330,6 @@
       "operation_ids": [
         "searchIndexedUsers",
         "searchPosts"
-      ]
-    },
-    {
-      "name": "Source Connections",
-      "operation_ids": [
-        "SourceConnectionController_connect",
-        "SourceConnectionController_connectPublicSource",
-        "SourceConnectionController_get",
-        "SourceConnectionController_list",
-        "SourceConnectionController_remove"
       ]
     },
     {
@@ -13877,13 +13571,7 @@
       "name": "CreatePostDto"
     },
     {
-      "name": "CreatePublicRealmSourceConnectionDto"
-    },
-    {
       "name": "CreateRealmPersonaDto"
-    },
-    {
-      "name": "CreateRealmSourceConnectionDto"
     },
     {
       "name": "CreateRelationshipDto"
@@ -13895,7 +13583,7 @@
       "name": "CreateReviewDto"
     },
     {
-      "name": "CreateRuntimeSourceSnapshotDto"
+      "name": "CreateSourceMaterializationPacketDto"
     },
     {
       "name": "CreateSparkCheckoutDto"
@@ -14150,9 +13838,6 @@
       "name": "RealmSourceCapabilitiesDto"
     },
     {
-      "name": "RealmSourceConnectionDto"
-    },
-    {
       "name": "ReceivedGiftsResponseDto"
     },
     {
@@ -14162,13 +13847,7 @@
       "name": "RejectGiftDto"
     },
     {
-      "name": "RelationshipPublicSourceLocatorDto"
-    },
-    {
       "name": "RelationshipResponseDto"
-    },
-    {
-      "name": "RelationshipSourceRefDto"
     },
     {
       "name": "ReplaceRealmPersonaDto"
@@ -14228,9 +13907,6 @@
       "name": "RuntimeRealmGrantIssueResponseDto"
     },
     {
-      "name": "RuntimeSourceSnapshotDto"
-    },
-    {
       "name": "SendGiftDto"
     },
     {
@@ -14238,6 +13914,9 @@
     },
     {
       "name": "SocialProfileDto"
+    },
+    {
+      "name": "SourceMaterializationPacketDto"
     },
     {
       "name": "SourceOriginDto"
@@ -17828,24 +17507,6 @@
       }
     },
     {
-      "name": "CreatePublicRealmSourceConnectionDto",
-      "schema": {
-        "kind": "object",
-        "properties": [
-          {
-            "name": "source",
-            "required": true,
-            "schema": {
-              "kind": "ref",
-              "ref": "#/components/schemas/RelationshipPublicSourceLocatorDto",
-              "ref_name": "RelationshipPublicSourceLocatorDto"
-            }
-          }
-        ],
-        "additional_properties": null
-      }
-    },
-    {
       "name": "CreateRealmPersonaDto",
       "schema": {
         "kind": "object",
@@ -18483,24 +18144,6 @@
       }
     },
     {
-      "name": "CreateRealmSourceConnectionDto",
-      "schema": {
-        "kind": "object",
-        "properties": [
-          {
-            "name": "sourceRef",
-            "required": true,
-            "schema": {
-              "kind": "ref",
-              "ref": "#/components/schemas/RelationshipSourceRefDto",
-              "ref_name": "RelationshipSourceRefDto"
-            }
-          }
-        ],
-        "additional_properties": null
-      }
-    },
-    {
       "name": "CreateRelationshipDto",
       "schema": {
         "kind": "object",
@@ -18638,10 +18281,19 @@
       }
     },
     {
-      "name": "CreateRuntimeSourceSnapshotDto",
+      "name": "CreateSourceMaterializationPacketDto",
       "schema": {
         "kind": "object",
         "properties": [
+          {
+            "name": "intendedRuntimeAudience",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
           {
             "name": "sourceRef",
             "required": true,
@@ -26582,7 +26234,7 @@
             }
           },
           {
-            "name": "canCreateRuntimeSourceSnapshot",
+            "name": "canCreateSourceMaterializationPacket",
             "required": true,
             "schema": {
               "kind": "scalar",
@@ -26597,99 +26249,6 @@
               "kind": "scalar",
               "type": "boolean",
               "format": null
-            }
-          }
-        ],
-        "additional_properties": null
-      }
-    },
-    {
-      "name": "RealmSourceConnectionDto",
-      "schema": {
-        "kind": "object",
-        "properties": [
-          {
-            "name": "connectedAt",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": "date-time"
-            }
-          },
-          {
-            "name": "createdAt",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": "date-time"
-            }
-          },
-          {
-            "name": "id",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null
-            }
-          },
-          {
-            "name": "ownerUserId",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null
-            }
-          },
-          {
-            "name": "removedAt",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": "date-time",
-              "nullable": true
-            }
-          },
-          {
-            "name": "runtimeSourceRef",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null
-            }
-          },
-          {
-            "name": "sourceRef",
-            "required": true,
-            "schema": {
-              "kind": "ref",
-              "ref": "#/components/schemas/RelationshipSourceRefDto",
-              "ref_name": "RelationshipSourceRefDto"
-            }
-          },
-          {
-            "name": "status",
-            "required": true,
-            "schema": {
-              "kind": "enum",
-              "values": [
-                "active",
-                "removed"
-              ]
-            }
-          },
-          {
-            "name": "updatedAt",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": "date-time"
             }
           }
         ],
@@ -26754,44 +26313,6 @@
           {
             "name": "reason",
             "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null
-            }
-          }
-        ],
-        "additional_properties": null
-      }
-    },
-    {
-      "name": "RelationshipPublicSourceLocatorDto",
-      "schema": {
-        "kind": "object",
-        "properties": [
-          {
-            "name": "kind",
-            "required": true,
-            "schema": {
-              "kind": "enum",
-              "values": [
-                "worldCharacter",
-                "realmPersona"
-              ]
-            }
-          },
-          {
-            "name": "sourceId",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null
-            }
-          },
-          {
-            "name": "worldId",
-            "required": true,
             "schema": {
               "kind": "scalar",
               "type": "string",
@@ -26869,53 +26390,6 @@
               "kind": "ref",
               "ref": "#/components/schemas/AccountRelationType",
               "ref_name": "AccountRelationType"
-            }
-          }
-        ],
-        "additional_properties": null
-      }
-    },
-    {
-      "name": "RelationshipSourceRefDto",
-      "schema": {
-        "kind": "object",
-        "properties": [
-          {
-            "name": "kind",
-            "required": true,
-            "schema": {
-              "kind": "enum",
-              "values": [
-                "worldCharacter",
-                "realmPersona"
-              ]
-            }
-          },
-          {
-            "name": "sourceContentHash",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null
-            }
-          },
-          {
-            "name": "sourceId",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null
-            }
-          },
-          {
-            "name": "worldId",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null
             }
           }
         ],
@@ -31013,118 +30487,6 @@
       }
     },
     {
-      "name": "RuntimeSourceSnapshotDto",
-      "schema": {
-        "kind": "object",
-        "properties": [
-          {
-            "name": "capturedAt",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": "date-time"
-            }
-          },
-          {
-            "name": "payload",
-            "required": true,
-            "schema": {
-              "kind": "object",
-              "properties": [],
-              "additional_properties": {
-                "kind": "unknown"
-              }
-            }
-          },
-          {
-            "name": "payloadHash",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null
-            }
-          },
-          {
-            "name": "runtimeSourceRef",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null
-            }
-          },
-          {
-            "name": "snapshotId",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null
-            }
-          },
-          {
-            "name": "snapshotSchemaVersion",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null
-            }
-          },
-          {
-            "name": "sourceContentHash",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null
-            }
-          },
-          {
-            "name": "sourceContentRevision",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "number",
-              "format": null
-            }
-          },
-          {
-            "name": "sourceId",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null
-            }
-          },
-          {
-            "name": "sourceKind",
-            "required": true,
-            "schema": {
-              "kind": "enum",
-              "values": [
-                "worldCharacter",
-                "realmPersona"
-              ]
-            }
-          },
-          {
-            "name": "sourceWorldId",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null
-            }
-          }
-        ],
-        "additional_properties": null
-      }
-    },
-    {
       "name": "SendGiftDto",
       "schema": {
         "kind": "object",
@@ -31327,6 +30689,165 @@
               "type": "string",
               "format": "date-time",
               "nullable": true
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "SourceMaterializationPacketDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "expiresAt",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "intendedRuntimeAudience",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "issuedAt",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "nonce",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "packetHash",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "packetId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "packetProof",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "packetSchemaVersion",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "payload",
+            "required": true,
+            "schema": {
+              "kind": "object",
+              "properties": [],
+              "additional_properties": {
+                "kind": "unknown"
+              }
+            }
+          },
+          {
+            "name": "runtimeSourceRef",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "sourceContentHash",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "sourceContentRevision",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "sourceDisplayMetadata",
+            "required": true,
+            "schema": {
+              "kind": "object",
+              "properties": [],
+              "additional_properties": {
+                "kind": "unknown"
+              }
+            }
+          },
+          {
+            "name": "sourceId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "sourceKind",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "worldCharacter",
+                "realmPersona"
+              ]
+            }
+          },
+          {
+            "name": "sourceWorldId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
             }
           }
         ],

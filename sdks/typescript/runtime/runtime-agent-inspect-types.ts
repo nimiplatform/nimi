@@ -30,6 +30,7 @@ import type {
   NimiRuntimeAgentAuthClient,
   NimiRuntimeAgentScopeRunner,
 } from './runtime-agent-protected';
+import type { RuntimeLocalAgentIdentityInput } from './agent-local-identity';
 
 export interface NimiRuntimeAgentPendingHookInspect {
   readonly hookId: string;
@@ -134,24 +135,20 @@ export interface NimiRuntimeAgentStateMutationInput {
   readonly clearDyadicContext?: boolean;
 }
 
-export interface NimiRuntimeAgentStateUpdateInput extends NimiRuntimeAgentStateMutationInput {
-  readonly agentId: string;
+export interface NimiRuntimeAgentStateUpdateInput extends RuntimeLocalAgentIdentityInput, NimiRuntimeAgentStateMutationInput {
 }
 
-export interface NimiRuntimeAgentDisableAutonomyInput {
-  readonly agentId: string;
+export interface NimiRuntimeAgentDisableAutonomyInput extends RuntimeLocalAgentIdentityInput {
   readonly reason: string;
 }
 
-export interface NimiRuntimeAgentAutonomyConfigInput {
-  readonly agentId: string;
+export interface NimiRuntimeAgentAutonomyConfigInput extends RuntimeLocalAgentIdentityInput {
   readonly mode: NimiRuntimeAgentAutonomyMode | string;
   readonly dailyTokenBudget: string | number;
   readonly maxTokensPerHook: string | number;
 }
 
-export interface NimiRuntimeAgentCancelHookInput {
-  readonly agentId: string;
+export interface NimiRuntimeAgentCancelHookInput extends RuntimeLocalAgentIdentityInput {
   readonly hookId: string;
   readonly reason: string;
 }
@@ -161,8 +158,7 @@ export interface NimiRuntimeAgentCancelHookResult {
   readonly status: string | null;
 }
 
-export interface NimiRuntimeAgentEventSubscriptionInput {
-  readonly agentId: string;
+export interface NimiRuntimeAgentEventSubscriptionInput extends RuntimeLocalAgentIdentityInput {
   readonly signal?: AbortSignal;
   readonly onEvent: (event: NimiRuntimeAgentInspectEventSummary) => void | Promise<void>;
 }
@@ -170,9 +166,9 @@ export interface NimiRuntimeAgentEventSubscriptionInput {
 export interface NimiRuntimeAgentInspectSurface {
   cancelHook(input: NimiRuntimeAgentCancelHookInput): Promise<NimiRuntimeAgentCancelHookResult>;
   disableAutonomy(input: NimiRuntimeAgentDisableAutonomyInput): Promise<NimiRuntimeAgentAutonomySnapshot>;
-  enableAutonomy(agentId: string): Promise<NimiRuntimeAgentAutonomySnapshot>;
-  getPublicInspect(agentId: string): Promise<NimiRuntimeAgentInspectSnapshot>;
-  getPresentationProfile(agentId: string): Promise<NimiRuntimeAgentPresentationProfileProjection | null>;
+  enableAutonomy(input: RuntimeLocalAgentIdentityInput): Promise<NimiRuntimeAgentAutonomySnapshot>;
+  getPublicInspect(input: RuntimeLocalAgentIdentityInput): Promise<NimiRuntimeAgentInspectSnapshot>;
+  getPresentationProfile(input: RuntimeLocalAgentIdentityInput): Promise<NimiRuntimeAgentPresentationProfileProjection | null>;
   setAutonomyConfig(input: NimiRuntimeAgentAutonomyConfigInput): Promise<NimiRuntimeAgentAutonomySnapshot>;
   subscribePublicEvents(input: NimiRuntimeAgentEventSubscriptionInput): Promise<void>;
   updateState(input: NimiRuntimeAgentStateUpdateInput): Promise<NimiRuntimeAgentStateSnapshot>;

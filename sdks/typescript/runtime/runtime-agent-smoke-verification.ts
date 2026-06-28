@@ -9,7 +9,7 @@ import type {
 import { createNimiError } from '../types';
 import {
   buildRuntimeAgentRequestContext,
-  parseRuntimeLocalAgentIdentity,
+  projectRuntimeLocalAgentIdentity,
 } from './agent-local-identity';
 import {
   normalizeNimiRuntimeAgentText,
@@ -42,7 +42,10 @@ export interface NimiRuntimeAgentSmokeVerificationSurfaceOptions {
 }
 
 export interface NimiRuntimeAgentSmokeConversationAnchorInput {
-  readonly agentId: unknown;
+  readonly agentId?: unknown;
+  readonly localAgentRef?: unknown;
+  readonly ownerUserId: unknown;
+  readonly runtimeSourceRef: unknown;
   readonly conversationAnchorId: unknown;
 }
 
@@ -93,17 +96,16 @@ export function createNimiRuntimeAgentSmokeVerificationSurface(
   const readAnchorSnapshot = async (input: NimiRuntimeAgentSmokeConversationAnchorInput) => {
     const runtime = options.getRuntime();
     const subjectUserId = await resolveSubjectUserId();
-    const localAgentRef = requireText(
-      input.agentId,
-      'Runtime Agent smoke verification requires localAgentRef',
-      'provide_runtime_agent_smoke_local_agent_ref',
-    );
+    const identity = projectRuntimeLocalAgentIdentity({
+      ownerUserId: input.ownerUserId,
+      runtimeSourceRef: input.runtimeSourceRef,
+      localAgentRef: input.localAgentRef ?? input.agentId,
+    });
     const conversationAnchorId = requireText(
       input.conversationAnchorId,
       'Runtime Agent smoke verification requires conversationAnchorId',
       'provide_runtime_agent_smoke_conversation_anchor_id',
     );
-    const identity = parseRuntimeLocalAgentIdentity(localAgentRef);
     const snapshot = await withTimeout(
       'Runtime Agent conversation anchor smoke verification',
       withNimiRuntimeAgentScopes({
@@ -114,6 +116,8 @@ export function createNimiRuntimeAgentSmokeVerificationSurface(
         context: buildRuntimeAgentRequestContext({
           runtimeAppId: runtime.appId,
           subjectUserId,
+          ownerUserId: identity.ownerUserId,
+          runtimeSourceRef: identity.runtimeSourceRef,
           localAgentRef: identity.localAgentRef,
         }),
         agentId: identity.localAgentRef,

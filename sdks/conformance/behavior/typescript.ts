@@ -37,20 +37,25 @@ class FakeTransport implements CoreTransport {
       }
       return fixtures.cases.runtime_unary.response_body as Response;
     }
-    if (request.methodId === 'WorldCoreController_createRuntimeSourceSnapshot') {
+    if (request.methodId === 'WorldCoreController_createSourceMaterializationPacket') {
       if (process.env.SDKS_CONFORMANCE_PROFILE === 'typed-core') {
         return {
-          snapshotId: 'snapshot-conformance',
-          snapshotSchemaVersion: 'runtime-source-snapshot.v1',
+          packetSchemaVersion: 'realm.source-materialization-packet/v1',
+          packetId: 'packet-conformance',
           runtimeSourceRef: 'runtime-source:realmPersona:persona-conformance:hash-conformance',
           sourceKind: 'realmPersona',
           sourceId: 'persona-conformance',
           sourceWorldId: 'oasis',
           sourceContentHash: 'hash-conformance',
           sourceContentRevision: 1,
-          payloadHash: 'payload-hash-conformance',
+          issuedAt: '2026-01-01T00:00:00Z',
+          expiresAt: '2026-01-01T00:05:00Z',
+          nonce: 'nonce-conformance',
+          packetHash: 'packet-hash-conformance',
+          packetProof: 'hmac-sha256:proof-conformance',
+          intendedRuntimeAudience: 'sdk.conformance',
+          sourceDisplayMetadata: { displayName: 'Conformance Persona' },
           payload: { displayName: 'Conformance Persona' },
-          capturedAt: '2026-01-01T00:00:00Z',
         } as Response;
       }
       return fixtures.cases.realm_operation.response_body as Response;
@@ -114,9 +119,10 @@ async function main() {
     assert.equal(typedEvents[0].eventType, AccountEventType.LOGIN_STARTED);
     assert.equal(typedEvents[1].eventType, AccountEventType.LOGIN_COMPLETED);
 
-    const typedRealmResponse = await typedRealm.worldCoreControllerCreateRuntimeSourceSnapshot({
+    const typedRealmResponse = await typedRealm.worldCoreControllerCreateSourceMaterializationPacket({
       path: {},
       body: {
+        intendedRuntimeAudience: 'sdk.conformance',
         sourceRef: {
           kind: 'realmPersona',
           sourceId: 'persona-conformance',
@@ -129,10 +135,11 @@ async function main() {
 
     assert.equal(transport.unaryCalls[0].methodId, fixtures.cases.runtime_unary.method_id);
     assert.deepEqual(transport.unaryCalls[0].body, runtimeRequest);
-    assert.equal(transport.unaryCalls[1].methodId, 'WorldCoreController_createRuntimeSourceSnapshot');
+    assert.equal(transport.unaryCalls[1].methodId, 'WorldCoreController_createSourceMaterializationPacket');
     assert.deepEqual(transport.unaryCalls[1].body, {
       path: {},
       body: {
+        intendedRuntimeAudience: 'sdk.conformance',
         sourceRef: {
           kind: 'realmPersona',
           sourceId: 'persona-conformance',

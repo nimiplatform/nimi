@@ -290,6 +290,8 @@ function localIdentity(input: RuntimeLocalAgentIdentityInput) {
 function requestContext(input: {
   readonly runtimeAppId: string;
   readonly subjectUserId: string;
+  readonly ownerUserId: string;
+  readonly runtimeSourceRef: string;
   readonly localAgentRef: string;
   readonly scopedBinding?: ScopedRuntimeBindingAttachment;
 }) {
@@ -488,6 +490,8 @@ export function createNimiRuntimeAgentTurnsModule(
             context: requestContext({
               runtimeAppId: runtime.appId,
               subjectUserId,
+              ownerUserId: identity.ownerUserId,
+              runtimeSourceRef: identity.runtimeSourceRef,
               localAgentRef: identity.localAgentRef,
               scopedBinding,
             }),
@@ -627,6 +631,8 @@ export function createNimiRuntimeAgentTurnsModule(
           context: requestContext({
             runtimeAppId: runtime.appId,
             subjectUserId,
+            ownerUserId: identity.ownerUserId,
+            runtimeSourceRef: identity.runtimeSourceRef,
             localAgentRef: identity.localAgentRef,
             scopedBinding,
           }),

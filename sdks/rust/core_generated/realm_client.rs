@@ -884,36 +884,6 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         path: Some("/api/human/chats/{chatId}/messages"),
     },
     RealmOperationDescriptor {
-        operation_id: "SourceConnectionController_connect",
-        service: "Source Connections",
-        method: "POST",
-        path: Some("/api/human/source-connections"),
-    },
-    RealmOperationDescriptor {
-        operation_id: "SourceConnectionController_connectPublicSource",
-        service: "Source Connections",
-        method: "POST",
-        path: Some("/api/human/source-connections/public-source"),
-    },
-    RealmOperationDescriptor {
-        operation_id: "SourceConnectionController_get",
-        service: "Source Connections",
-        method: "GET",
-        path: Some("/api/human/source-connections/{id}"),
-    },
-    RealmOperationDescriptor {
-        operation_id: "SourceConnectionController_list",
-        service: "Source Connections",
-        method: "GET",
-        path: Some("/api/human/source-connections"),
-    },
-    RealmOperationDescriptor {
-        operation_id: "SourceConnectionController_remove",
-        service: "Source Connections",
-        method: "DELETE",
-        path: Some("/api/human/source-connections/{id}"),
-    },
-    RealmOperationDescriptor {
         operation_id: "startChat",
         service: "Human Chats",
         method: "POST",
@@ -1112,10 +1082,10 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         path: Some("/api/realm/core/personas"),
     },
     RealmOperationDescriptor {
-        operation_id: "WorldCoreController_createRuntimeSourceSnapshot",
+        operation_id: "WorldCoreController_createSourceMaterializationPacket",
         service: "Realm Core",
         method: "POST",
-        path: Some("/api/realm/core/runtime-source-snapshots"),
+        path: Some("/api/realm/core/source-materialization-packets"),
     },
     RealmOperationDescriptor {
         operation_id: "WorldCoreController_createWorldCharacter",

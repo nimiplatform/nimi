@@ -6,9 +6,9 @@ use crate::core_client::CoreTransport;
 use crate::core_generated::realm_client::RealmGeneratedClient;
 use crate::core_generated::runtime_client::RuntimeGeneratedClient;
 use crate::core_generated::typed_clients::{
-    AccountCaller, BeginLoginRequest, CoreTypedStream, CreateRuntimeSourceSnapshotDto,
-    RealmTypedClient, RealmWorldCoreControllerCreateRuntimeSourceSnapshotOperationPath,
-    RealmWorldCoreControllerCreateRuntimeSourceSnapshotOperationRequest, RuntimeTypedClient,
+    AccountCaller, BeginLoginRequest, CoreTypedStream, CreateSourceMaterializationPacketDto,
+    RealmTypedClient, RealmWorldCoreControllerCreateSourceMaterializationPacketOperationPath,
+    RealmWorldCoreControllerCreateSourceMaterializationPacketOperationRequest, RuntimeTypedClient,
     SubscribeAccountSessionEventsRequest, TypedSourceRefDto,
 };
 use crate::types::{CoreMetadata, CoreStreamRequest, CoreUnaryRequest};
@@ -58,7 +58,7 @@ impl CoreTransport for FakeTransport {
             if request.method_id.contains("BeginLogin") {
                 return Ok(b"accepted=true;login_attempt_id=login-conformance;callback_origin=https://app.example".to_vec());
             }
-            if request.method_id == "WorldCoreController_createRuntimeSourceSnapshot" {
+            if request.method_id == "WorldCoreController_createSourceMaterializationPacket" {
                 return Ok(b"source=realm-operation;ok=true".to_vec());
             }
         }
@@ -158,10 +158,11 @@ fn generated_clients_use_fake_transport() {
             crate::core_client::CoreClient::new(FakeTransport::default(), Some(auth_metadata));
         let realm = RealmTypedClient::new(realm_core);
         let realm_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            realm.world_core_controller_create_runtime_source_snapshot(
-                RealmWorldCoreControllerCreateRuntimeSourceSnapshotOperationRequest {
-                    path: RealmWorldCoreControllerCreateRuntimeSourceSnapshotOperationPath {},
-                    body: CreateRuntimeSourceSnapshotDto {
+            realm.world_core_controller_create_source_materialization_packet(
+                RealmWorldCoreControllerCreateSourceMaterializationPacketOperationRequest {
+                    path: RealmWorldCoreControllerCreateSourceMaterializationPacketOperationPath {},
+                    body: CreateSourceMaterializationPacketDto {
+                        intended_runtime_audience: "sdk.conformance".to_string(),
                         source_ref: Box::new(TypedSourceRefDto {
                             kind: "realmPersona".to_string(),
                             source_id: "persona-conformance".to_string(),

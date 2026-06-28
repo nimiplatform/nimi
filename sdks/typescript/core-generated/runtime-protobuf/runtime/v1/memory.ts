@@ -222,6 +222,14 @@ export interface MemoryEmbeddingProfile {
      * @generated from protobuf field: nimi.runtime.v1.MemoryMigrationPolicy migration_policy = 6
      */
     migrationPolicy: MemoryMigrationPolicy;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.MemoryEmbeddingCloudBindingRef cloud_binding = 7
+     */
+    cloudBinding?: MemoryEmbeddingCloudBindingRef;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.MemoryEmbeddingLocalBindingRef local_binding = 8
+     */
+    localBinding?: MemoryEmbeddingLocalBindingRef;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.MemoryEmbeddingCloudBindingRef
@@ -2067,7 +2075,9 @@ class MemoryEmbeddingProfile$Type extends MessageType<MemoryEmbeddingProfile> {
             { no: 3, name: "dimension", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
             { no: 4, name: "distance_metric", kind: "enum", T: () => ["nimi.runtime.v1.MemoryDistanceMetric", MemoryDistanceMetric, "MEMORY_DISTANCE_METRIC_"] },
             { no: 5, name: "version", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 6, name: "migration_policy", kind: "enum", T: () => ["nimi.runtime.v1.MemoryMigrationPolicy", MemoryMigrationPolicy, "MEMORY_MIGRATION_POLICY_"] }
+            { no: 6, name: "migration_policy", kind: "enum", T: () => ["nimi.runtime.v1.MemoryMigrationPolicy", MemoryMigrationPolicy, "MEMORY_MIGRATION_POLICY_"] },
+            { no: 7, name: "cloud_binding", kind: "message", T: () => MemoryEmbeddingCloudBindingRef },
+            { no: 8, name: "local_binding", kind: "message", T: () => MemoryEmbeddingLocalBindingRef }
         ]);
     }
     create(value?: PartialMessage<MemoryEmbeddingProfile>): MemoryEmbeddingProfile {
@@ -2105,6 +2115,12 @@ class MemoryEmbeddingProfile$Type extends MessageType<MemoryEmbeddingProfile> {
                 case /* nimi.runtime.v1.MemoryMigrationPolicy migration_policy */ 6:
                     message.migrationPolicy = reader.int32();
                     break;
+                case /* nimi.runtime.v1.MemoryEmbeddingCloudBindingRef cloud_binding */ 7:
+                    message.cloudBinding = MemoryEmbeddingCloudBindingRef.internalBinaryRead(reader, reader.uint32(), options, message.cloudBinding);
+                    break;
+                case /* nimi.runtime.v1.MemoryEmbeddingLocalBindingRef local_binding */ 8:
+                    message.localBinding = MemoryEmbeddingLocalBindingRef.internalBinaryRead(reader, reader.uint32(), options, message.localBinding);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -2135,6 +2151,12 @@ class MemoryEmbeddingProfile$Type extends MessageType<MemoryEmbeddingProfile> {
         /* nimi.runtime.v1.MemoryMigrationPolicy migration_policy = 6; */
         if (message.migrationPolicy !== 0)
             writer.tag(6, WireType.Varint).int32(message.migrationPolicy);
+        /* nimi.runtime.v1.MemoryEmbeddingCloudBindingRef cloud_binding = 7; */
+        if (message.cloudBinding)
+            MemoryEmbeddingCloudBindingRef.internalBinaryWrite(message.cloudBinding, writer.tag(7, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.MemoryEmbeddingLocalBindingRef local_binding = 8; */
+        if (message.localBinding)
+            MemoryEmbeddingLocalBindingRef.internalBinaryWrite(message.localBinding, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

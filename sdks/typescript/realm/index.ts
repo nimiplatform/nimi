@@ -157,7 +157,7 @@ export const REALM_NOTIFICATION_METHODS = [
 export const REALM_WORLD_CORE_METHODS = [
   'worldCoreControllerBootstrapOasisWorld',
   'worldCoreControllerCreateRealmPersona',
-  'worldCoreControllerCreateRuntimeSourceSnapshot',
+  'worldCoreControllerCreateSourceMaterializationPacket',
   'worldCoreControllerCreateWorldCharacter',
   'worldCoreControllerCreateWorldCore',
   'worldCoreControllerCreateWorldEntity',

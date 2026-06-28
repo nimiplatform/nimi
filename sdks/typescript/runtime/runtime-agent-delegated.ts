@@ -27,7 +27,7 @@ import {
   type UpsertDelegatedProviderProfileResponse,
 } from '../core-generated/runtime-typed-client';
 import { createNimiError } from '../types';
-import { buildRuntimeAgentRequestContext } from './agent-local-identity';
+import { buildRuntimeAgentRequestContext, projectRuntimeLocalAgentIdentity, type RuntimeLocalAgentIdentityInput } from './agent-local-identity';
 import {
   resolveNimiRuntimeAgentSubjectUserId,
   withNimiRuntimeAgentScopes,
@@ -42,8 +42,7 @@ const READ_SCOPE = 'runtime.agent.delegation.read';
 const WRITE_SCOPE = 'runtime.agent.delegation.write';
 const USER_DISABLED_PROVIDER_REASON = 'provider_disabled_by_user';
 
-export interface NimiRuntimeAgentDelegatedProviderProfileDraft {
-  readonly agentId: string;
+export interface NimiRuntimeAgentDelegatedProviderProfileDraft extends RuntimeLocalAgentIdentityInput {
   readonly providerProfileId: string;
   readonly displayName: string;
   readonly transportRef: string;
@@ -60,13 +59,11 @@ export interface NimiRuntimeAgentDelegatedProviderProfileDraft {
   readonly expectedSensitivityClass?: SensitivityClass;
 }
 
-export interface NimiRuntimeAgentDelegatedControlSurfaceQuery {
-  readonly agentId: string;
+export interface NimiRuntimeAgentDelegatedControlSurfaceQuery extends RuntimeLocalAgentIdentityInput {
   readonly conversationAnchorId?: string;
 }
 
-export interface NimiRuntimeAgentDelegatedCapabilityExecutionInput {
-  readonly agentId: string;
+export interface NimiRuntimeAgentDelegatedCapabilityExecutionInput extends RuntimeLocalAgentIdentityInput {
   readonly conversationAnchorId: string;
   readonly turnId: string;
   readonly streamId?: string;
@@ -122,33 +119,29 @@ export interface NimiRuntimeAgentDelegatedCapabilityResult {
 
 export interface NimiRuntimeAgentDelegatedCapabilitySurface {
   loadSnapshot(query: NimiRuntimeAgentDelegatedControlSurfaceQuery): Promise<DelegatedControlSurfaceSnapshot | undefined>;
-  loadReplayTrace(
-    agentId: string,
-    decisionId: string,
-    conversationAnchorId?: string,
-    turnId?: string,
-  ): Promise<DelegatedReplayTrace | undefined>;
+  loadReplayTrace(input: RuntimeLocalAgentIdentityInput & {
+    readonly decisionId: string;
+    readonly conversationAnchorId?: string;
+    readonly turnId?: string;
+  }): Promise<DelegatedReplayTrace | undefined>;
   upsertProviderProfile(
     draft: NimiRuntimeAgentDelegatedProviderProfileDraft,
   ): Promise<DelegatedProviderProfile | undefined>;
-  setProviderEnabled(
-    agentId: string,
-    providerProfileId: string,
-    enabled: boolean,
-  ): Promise<DelegatedProviderProfile | undefined>;
-  submitApprovalDecision(
-    agentId: string,
-    approvalRequestId: string,
-    decision: 'approve' | 'reject',
-    decisionReason?: string,
-  ): Promise<SubmitDelegatedApprovalDecisionResponse>;
+  setProviderEnabled(input: RuntimeLocalAgentIdentityInput & {
+    readonly providerProfileId: string;
+    readonly enabled: boolean;
+  }): Promise<DelegatedProviderProfile | undefined>;
+  submitApprovalDecision(input: RuntimeLocalAgentIdentityInput & {
+    readonly approvalRequestId: string;
+    readonly decision: 'approve' | 'reject';
+    readonly decisionReason?: string;
+  }): Promise<SubmitDelegatedApprovalDecisionResponse>;
   executeCapability(
     input: NimiRuntimeAgentDelegatedCapabilityExecutionInput,
   ): Promise<NimiRuntimeAgentDelegatedCapabilityResult>;
-  resumeApprovedCapability(
-    agentId: string,
-    approvalRequestId: string,
-  ): Promise<NimiRuntimeAgentDelegatedCapabilityResult>;
+  resumeApprovedCapability(input: RuntimeLocalAgentIdentityInput & {
+    readonly approvalRequestId: string;
+  }): Promise<NimiRuntimeAgentDelegatedCapabilityResult>;
 }
 
 export interface NimiHostRuntimeAgentDelegatedCapabilityClient {
@@ -324,9 +317,9 @@ export function buildNimiRuntimeAgentDelegatedProviderProfileFromDraft(
 export function createNimiHostRuntimeAgentDelegatedCapabilitySurface(
   options: NimiHostRuntimeAgentDelegatedCapabilitySurfaceOptions,
 ): NimiRuntimeAgentDelegatedCapabilitySurface {
-  async function buildContext(agentIdInput: string) {
+  async function buildContext(identityInput: RuntimeLocalAgentIdentityInput) {
     const runtime = options.getRuntime();
-    const agentId = requireText(agentIdInput, 'agent_id');
+    const identity = projectRuntimeLocalAgentIdentity(identityInput);
     const subjectUserId = await resolveNimiRuntimeAgentSubjectUserId(
       options.getSubjectUserId,
       'Runtime Agent delegated capability requires authenticated subject user id.',
@@ -334,18 +327,18 @@ export function createNimiHostRuntimeAgentDelegatedCapabilitySurface(
     return {
       runtime,
       subjectUserId,
-      agentId,
+      agentId: identity.localAgentRef,
       context: buildRuntimeAgentRequestContext({
         runtimeAppId: runtime.appId,
         subjectUserId,
-        localAgentRef: agentId,
+        ...identity,
       }),
     };
   }
 
   return {
     async loadSnapshot(query) {
-      const { runtime, subjectUserId, agentId, context } = await buildContext(query.agentId);
+      const { runtime, subjectUserId, agentId, context } = await buildContext(query);
       const response = await withNimiRuntimeAgentScopes({
         runtime,
         subjectUserId,
@@ -358,7 +351,7 @@ export function createNimiHostRuntimeAgentDelegatedCapabilitySurface(
       return response.snapshot;
     },
     async upsertProviderProfile(draft) {
-      const { runtime, subjectUserId, agentId, context } = await buildContext(draft.agentId);
+      const { runtime, subjectUserId, agentId, context } = await buildContext(draft);
       const response = await withNimiRuntimeAgentScopes({
         runtime,
         subjectUserId,
@@ -370,9 +363,9 @@ export function createNimiHostRuntimeAgentDelegatedCapabilitySurface(
       }, callOptions));
       return response.providerProfile;
     },
-    async setProviderEnabled(agentIdInput, providerProfileIdInput, enabled) {
-      const providerProfileId = requireText(providerProfileIdInput, 'provider_profile_id');
-      const { runtime, subjectUserId, agentId, context } = await buildContext(agentIdInput);
+    async setProviderEnabled(input) {
+      const providerProfileId = requireText(input.providerProfileId, 'provider_profile_id');
+      const { runtime, subjectUserId, agentId, context } = await buildContext(input);
       const response = await withNimiRuntimeAgentScopes({
         runtime,
         subjectUserId,
@@ -381,16 +374,16 @@ export function createNimiHostRuntimeAgentDelegatedCapabilitySurface(
         context,
         agentId,
         providerProfileId,
-        state: enabled ? DelegatedProviderState.READY : DelegatedProviderState.DISABLED,
-        lifecycleReasonCode: enabled
+        state: input.enabled ? DelegatedProviderState.READY : DelegatedProviderState.DISABLED,
+        lifecycleReasonCode: input.enabled
           ? ''
           : normalizeNimiRuntimeAgentText(options.disabledProviderReasonCode) || USER_DISABLED_PROVIDER_REASON,
       }, callOptions));
       return response.providerProfile;
     },
-    async submitApprovalDecision(agentIdInput, approvalRequestIdInput, decision, decisionReason = '') {
-      const approvalRequestId = requireText(approvalRequestIdInput, 'approval_request_id');
-      const { runtime, subjectUserId, agentId, context } = await buildContext(agentIdInput);
+    async submitApprovalDecision(input) {
+      const approvalRequestId = requireText(input.approvalRequestId, 'approval_request_id');
+      const { runtime, subjectUserId, agentId, context } = await buildContext(input);
       return withNimiRuntimeAgentScopes({
         runtime,
         subjectUserId,
@@ -399,10 +392,10 @@ export function createNimiHostRuntimeAgentDelegatedCapabilitySurface(
         context,
         agentId,
         approvalRequestId,
-        decision: decision === 'approve'
+        decision: input.decision === 'approve'
           ? DelegatedApprovalDecision.APPROVED_ONCE
           : DelegatedApprovalDecision.REJECTED,
-        decisionReason: normalizeNimiRuntimeAgentText(decisionReason),
+        decisionReason: normalizeNimiRuntimeAgentText(input.decisionReason),
       }, callOptions));
     },
     async executeCapability(input) {
@@ -412,7 +405,7 @@ export function createNimiHostRuntimeAgentDelegatedCapabilitySurface(
       const capabilityId = requireText(input.capabilityId, 'capability_id');
       const toolName = requireText(input.toolName, 'tool_name');
       const descriptorHash = requireText(input.descriptorHash, 'descriptor_hash');
-      const { runtime, subjectUserId, agentId, context } = await buildContext(input.agentId);
+      const { runtime, subjectUserId, agentId, context } = await buildContext(input);
       const executeDelegatedCapability = requireRuntimeMethod(
         runtime.agent.executeDelegatedCapability,
         'executeDelegatedCapability',
@@ -439,9 +432,9 @@ export function createNimiHostRuntimeAgentDelegatedCapabilitySurface(
       }, callOptions));
       return projectNimiRuntimeAgentDelegatedCapabilityResult(response);
     },
-    async resumeApprovedCapability(agentIdInput, approvalRequestIdInput) {
-      const approvalRequestId = requireText(approvalRequestIdInput, 'approval_request_id');
-      const { runtime, subjectUserId, agentId, context } = await buildContext(agentIdInput);
+    async resumeApprovedCapability(input) {
+      const approvalRequestId = requireText(input.approvalRequestId, 'approval_request_id');
+      const { runtime, subjectUserId, agentId, context } = await buildContext(input);
       const resumeDelegatedCapability = requireRuntimeMethod(
         runtime.agent.resumeDelegatedCapability,
         'resumeDelegatedCapability',
@@ -457,9 +450,9 @@ export function createNimiHostRuntimeAgentDelegatedCapabilitySurface(
       }, callOptions));
       return projectNimiRuntimeAgentDelegatedCapabilityResult(response);
     },
-    async loadReplayTrace(agentIdInput, decisionIdInput, conversationAnchorIdInput = '', turnIdInput = '') {
-      const decisionId = requireText(decisionIdInput, 'decision_id');
-      const { runtime, subjectUserId, agentId, context } = await buildContext(agentIdInput);
+    async loadReplayTrace(input) {
+      const decisionId = requireText(input.decisionId, 'decision_id');
+      const { runtime, subjectUserId, agentId, context } = await buildContext(input);
       const response = await withNimiRuntimeAgentScopes({
         runtime,
         subjectUserId,
@@ -468,8 +461,8 @@ export function createNimiHostRuntimeAgentDelegatedCapabilitySurface(
         context,
         agentId,
         decisionId,
-        conversationAnchorId: normalizeNimiRuntimeAgentText(conversationAnchorIdInput),
-        turnId: normalizeNimiRuntimeAgentText(turnIdInput),
+        conversationAnchorId: normalizeNimiRuntimeAgentText(input.conversationAnchorId),
+        turnId: normalizeNimiRuntimeAgentText(input.turnId),
       }, callOptions));
       return response.trace;
     },

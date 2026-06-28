@@ -1,14 +1,13 @@
 import type {
   AddFriendBodyDto,
   BlockUserBodyDto,
-  CreateRealmSourceConnectionDto,
   CreatePostDto,
   CreateReportDto,
+  CreateSourceMaterializationPacketDto,
   FeedPageMetaDto,
   FeedResponseDto,
   FriendProfileDto,
   PostDto,
-  RealmSourceConnectionDto,
   RealmTypedCallOptions,
   ReportResponseDto,
   UpdatePostDto,
@@ -25,10 +24,9 @@ import type {
   NimiRealmSocialContactSnapshot,
   NimiRealmSocialDataErrorEmitter,
   NimiRealmCoreSourceRef,
-  NimiRealmPublicSourceLocator,
   NimiRealmSocialMutationExecutionInput,
   NimiRealmSocialProfileView,
-  NimiRealmSourceConnectionView,
+  NimiRealmSourceMaterializationPacket,
 } from './social-types';
 
 export type {
@@ -40,11 +38,10 @@ export type {
   NimiRealmSocialContactSnapshot,
   NimiRealmSocialDataErrorEmitter,
   NimiRealmCoreSourceRef,
-  NimiRealmPublicSourceLocator,
   NimiRealmSocialMutationExecutionInput,
   NimiRealmSocialMutationKind,
   NimiRealmSocialProfileView,
-  NimiRealmSourceConnectionView,
+  NimiRealmSourceMaterializationPacket,
 } from './social-types';
 
 type PendingRequestMapValue = {
@@ -389,51 +386,20 @@ function requireNimiRealmCoreSourceRef(input: unknown): NimiRealmCoreSourceRef {
   };
 }
 
-function requireNimiRealmPublicSourceLocator(input: unknown): NimiRealmPublicSourceLocator {
-  const source = toRecord(input);
-  if (!source) {
-    throw socialError({
-      reasonCode: 'SDK_REALM_PUBLIC_SOURCE_LOCATOR_REQUIRED',
-      message: 'Realm public source locator is required.',
-      actionHint: 'provide_public_realm_source_locator',
-    });
-  }
-  const kind = requireText(source.kind, {
-    reasonCode: 'SDK_REALM_SOURCE_KIND_REQUIRED',
-    message: 'Realm source kind is required.',
-    actionHint: 'provide_world_character_or_realm_persona_source_kind',
-  });
-  if (kind !== 'worldCharacter' && kind !== 'realmPersona') {
-    throw socialError({
-      reasonCode: 'SDK_REALM_SOURCE_KIND_UNSUPPORTED',
-      message: 'Realm source kind is not supported.',
-      actionHint: 'use_world_character_or_realm_persona_source_kind',
-      details: { kind },
-    });
-  }
-  return {
-    kind,
-    worldId: requireText(source.worldId, {
-      reasonCode: 'SDK_REALM_SOURCE_WORLD_ID_REQUIRED',
-      message: 'Realm source worldId is required.',
-      actionHint: 'provide_realm_source_world_id',
-    }),
-    sourceId: requireText(source.sourceId, {
-      reasonCode: 'SDK_REALM_SOURCE_ID_REQUIRED',
-      message: 'Realm source sourceId is required.',
-      actionHint: 'provide_realm_source_id',
-    }),
-  };
-}
-
-export async function connectNimiRealmSource(
+export async function createNimiRealmSourceMaterializationPacket(
   realm: Pick<NimiRealmSocialApi, 'generated'>,
   emitRealmDataError: NimiRealmSocialDataErrorEmitter,
   sourceRefInput: unknown,
+  intendedRuntimeAudienceInput: unknown,
   options?: RealmTypedCallOptions,
-): Promise<NimiRealmSourceConnectionView> {
+): Promise<NimiRealmSourceMaterializationPacket> {
   const sourceRef = requireNimiRealmCoreSourceRef(sourceRefInput);
-  const body: CreateRealmSourceConnectionDto = { sourceRef };
+  const intendedRuntimeAudience = requireText(intendedRuntimeAudienceInput, {
+    reasonCode: 'SDK_REALM_SOURCE_MATERIALIZATION_AUDIENCE_REQUIRED',
+    message: 'Realm source materialization packet requires intendedRuntimeAudience.',
+    actionHint: 'provide_runtime_materialization_audience',
+  });
+  const body: CreateSourceMaterializationPacketDto = { sourceRef, intendedRuntimeAudience };
   const sourceRefDetails: JsonObject = {
     kind: sourceRef.kind,
     worldId: sourceRef.worldId,
@@ -441,48 +407,12 @@ export async function connectNimiRealmSource(
     sourceContentHash: sourceRef.sourceContentHash,
   };
   try {
-    return await realm.generated.sourceConnectionControllerConnect({ path: {}, body }, options);
+    return await realm.generated.worldCoreControllerCreateSourceMaterializationPacket({ path: {}, body }, options);
   } catch (error) {
-    emitRealmDataError('connect-source', error, { sourceRef: sourceRefDetails });
-    throw error;
-  }
-}
-
-export async function connectNimiRealmPublicSource(
-  realm: Pick<NimiRealmSocialApi, 'generated'>,
-  emitRealmDataError: NimiRealmSocialDataErrorEmitter,
-  sourceInput: unknown,
-  options?: RealmTypedCallOptions,
-): Promise<NimiRealmSourceConnectionView> {
-  const source = requireNimiRealmPublicSourceLocator(sourceInput);
-  const sourceDetails: JsonObject = {
-    kind: source.kind,
-    worldId: source.worldId,
-    sourceId: source.sourceId,
-  };
-  try {
-    return await realm.generated.sourceConnectionControllerConnectPublicSource({
-      path: {},
-      body: { source },
-    }, options);
-  } catch (error) {
-    emitRealmDataError('connect-public-source', error, { source: sourceDetails });
-    throw error;
-  }
-}
-
-export async function listNimiRealmSourceConnections(
-  realm: Pick<NimiRealmSocialApi, 'generated'>,
-  emitRealmDataError: NimiRealmSocialDataErrorEmitter,
-  options?: RealmTypedCallOptions,
-): Promise<readonly RealmSourceConnectionDto[]> {
-  try {
-    return await realm.generated.sourceConnectionControllerList({
-      path: {},
-      query: { status: 'active' },
-    }, options);
-  } catch (error) {
-    emitRealmDataError('list-source-connections', error);
+    emitRealmDataError('create-source-materialization-packet', error, {
+      sourceRef: sourceRefDetails,
+      intendedRuntimeAudience,
+    });
     throw error;
   }
 }

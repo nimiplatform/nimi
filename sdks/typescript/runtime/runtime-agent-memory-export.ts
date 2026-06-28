@@ -9,7 +9,7 @@ import {
   type RuntimeTypedCallOptions,
 } from '../core-generated/runtime-typed-client';
 import { asNimiError, createNimiError, type JsonObject } from '../types';
-import { buildRuntimeAgentRequestContext } from './agent-local-identity';
+import { buildRuntimeAgentRequestContext, projectRuntimeLocalAgentIdentity, type RuntimeLocalAgentIdentityInput } from './agent-local-identity';
 import {
   formatNimiRuntimeAgentCanonicalClass,
   formatNimiRuntimeAgentMemoryRecordKind,
@@ -129,8 +129,7 @@ export interface NimiHostRuntimeAgentMemoryExportClient {
   };
 }
 
-export interface NimiRuntimeAgentMemoryExportInput {
-  readonly agentId: string;
+export interface NimiRuntimeAgentMemoryExportInput extends RuntimeLocalAgentIdentityInput {
   /**
    * Caller-supplied export clock (ISO-8601). The SDK never stamps wall time
    * itself for the envelope: per S-SURFACE-016 the helper owns no time
@@ -401,7 +400,8 @@ export async function createNimiRuntimeAgentMemoryExport(
   client: NimiHostRuntimeAgentMemoryExportClient,
   input: NimiRuntimeAgentMemoryExportInput,
 ): Promise<NimiRuntimeAgentMemoryExportEnvelope> {
-  const agentId = requireExportAgentId(input.agentId);
+  const identity = projectRuntimeLocalAgentIdentity(input);
+  const agentId = requireExportAgentId(identity.localAgentRef);
   const exportedAt = requireExportedAt(input.exportedAt);
   const maxRecords = requireMaxRecords(input.maxRecords);
   const subjectUserId = await resolveNimiRuntimeAgentSubjectUserId(
@@ -411,7 +411,7 @@ export async function createNimiRuntimeAgentMemoryExport(
   const requestContext = buildRuntimeAgentRequestContext({
     runtimeAppId: client.appId,
     subjectUserId,
-    localAgentRef: agentId,
+    ...identity,
   });
   const scoped = <T>(operation: (callOptions: RuntimeTypedCallOptions) => Promise<T>): Promise<T> =>
     withNimiRuntimeAgentScopes({

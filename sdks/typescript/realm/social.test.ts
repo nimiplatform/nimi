@@ -2,23 +2,21 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import type {
-  RealmSourceConnectionDto,
-  RelationshipPublicSourceLocatorDto,
-  RelationshipSourceRefDto,
+  CreateSourceMaterializationPacketDto,
+  SourceMaterializationPacketDto,
+  TypedSourceRefDto,
 } from '../core-generated/realm-typed-client';
 import {
   NIMI_REALM_FEED_SCOPES,
   addNimiRealmFriendById,
   blockNimiRealmUser,
   buildEmptyNimiRealmPostFeedResponse,
-  connectNimiRealmSource,
-  connectNimiRealmPublicSource,
+  createNimiRealmSourceMaterializationPacket,
   createNimiRealmPost,
   createNimiRealmReport,
   deleteNimiRealmPost,
   executeNimiRealmSocialMutation,
   isNimiRealmFeedScope,
-  listNimiRealmSourceConnections,
   likeNimiRealmPost,
   loadNimiRealmCurrentUserProfile,
   loadNimiRealmExploreFeedItems,
@@ -36,30 +34,32 @@ import {
   updateNimiRealmPostVisibility,
 } from './index';
 
-const realmPersonaSourceRef: RelationshipSourceRefDto = {
+const realmPersonaSourceRef: TypedSourceRefDto = {
   kind: 'realmPersona',
   worldId: 'world-1',
   sourceId: 'persona-1',
   sourceContentHash: 'sha256:persona',
 };
 
-const realmPersonaPublicSource: RelationshipPublicSourceLocatorDto = {
-  kind: 'realmPersona',
-  worldId: 'world-1',
-  sourceId: 'persona-1',
-};
-
-function createRealmSourceConnection(sourceRef: RelationshipSourceRefDto): RealmSourceConnectionDto {
+function createSourceMaterializationPacket(body: CreateSourceMaterializationPacketDto): SourceMaterializationPacketDto {
+  const { sourceRef, intendedRuntimeAudience } = body;
   return {
-    id: 'source-connection-1',
-    ownerUserId: 'me',
-    sourceRef,
+    packetSchemaVersion: 'realm.source-materialization-packet/v1',
+    packetId: 'packet-1',
+    sourceKind: sourceRef.kind,
+    sourceId: sourceRef.sourceId,
+    sourceWorldId: sourceRef.worldId,
+    sourceContentRevision: 7,
+    sourceContentHash: sourceRef.sourceContentHash,
+    issuedAt: '2026-06-18T00:00:00.000Z',
+    expiresAt: '2026-06-18T00:05:00.000Z',
+    nonce: 'nonce-1',
+    packetHash: 'packet-hash-1',
+    packetProof: 'hmac-sha256:proof-1',
+    intendedRuntimeAudience,
     runtimeSourceRef: `runtime-source:${sourceRef.kind}:${sourceRef.worldId}:${sourceRef.sourceId}:${sourceRef.sourceContentHash}`,
-    status: 'active',
-    connectedAt: '2026-06-18T00:00:00.000Z',
-    createdAt: '2026-06-18T00:00:00.000Z',
-    updatedAt: '2026-06-18T00:00:00.000Z',
-    removedAt: null,
+    sourceDisplayMetadata: { displayName: 'Persona 1' },
+    payload: { sourceRef },
   };
 }
 
@@ -177,22 +177,10 @@ function createSocialRealmStub() {
           calls.push(`report:${request.body.targetId ?? ''}:${request.body.reason ?? ''}`);
           return { id: 'report-1' };
         },
-        async sourceConnectionControllerConnect(request: { body: { sourceRef: RelationshipSourceRefDto } }) {
-          const { sourceRef } = request.body;
-          calls.push(`connectSource:${sourceRef.kind}:${sourceRef.sourceId}`);
-          return createRealmSourceConnection(sourceRef);
-        },
-        async sourceConnectionControllerConnectPublicSource(request: { body: { source: RelationshipPublicSourceLocatorDto } }) {
-          const { source } = request.body;
-          calls.push(`connectPublicSource:${source.kind}:${source.sourceId}:${'sourceContentHash' in source ? 'hash' : 'nohash'}`);
-          return createRealmSourceConnection({
-            ...source,
-            sourceContentHash: 'resolved-server-hash',
-          });
-        },
-        async sourceConnectionControllerList(request: { query: { status?: string } }) {
-          calls.push(`listSources:${request.query.status ?? ''}`);
-          return [createRealmSourceConnection(realmPersonaSourceRef)];
+        async worldCoreControllerCreateSourceMaterializationPacket(request: { body: CreateSourceMaterializationPacketDto }) {
+          const { sourceRef, intendedRuntimeAudience } = request.body;
+          calls.push(`materializeSource:${sourceRef.kind}:${sourceRef.sourceId}:${intendedRuntimeAudience}`);
+          return createSourceMaterializationPacket(request.body);
         },
       },
     },
@@ -276,146 +264,91 @@ test('Realm social profile helpers preserve explicit user mutations', async () =
   assert.deepEqual(errors, []);
 });
 
-test('Realm source connection helpers require hash-bearing source refs and map generated responses', async () => {
+test('Realm source materialization packet helper requires hash-bearing source refs and audience', async () => {
   const { realm, calls } = createSocialRealmStub();
   const errors: string[] = [];
 
-  const connection = await connectNimiRealmSource(
+  const packet = await createNimiRealmSourceMaterializationPacket(
     realm,
     (action) => errors.push(action),
     realmPersonaSourceRef,
+    'desktop.runtime',
   );
-  const connections = await listNimiRealmSourceConnections(realm, (action) => errors.push(action));
 
-  assert.equal(connection.id, 'source-connection-1');
+  assert.equal(packet.packetSchemaVersion, 'realm.source-materialization-packet/v1');
+  assert.equal(packet.intendedRuntimeAudience, 'desktop.runtime');
+  assert.equal(packet.packetProof, 'hmac-sha256:proof-1');
   assert.equal(
-    connection.runtimeSourceRef,
+    packet.runtimeSourceRef,
     'runtime-source:realmPersona:world-1:persona-1:sha256:persona',
   );
-  assert.equal(connections[0]?.sourceRef.sourceContentHash, 'sha256:persona');
   assert.deepEqual(errors, []);
-  assert.deepEqual(calls.filter((call) => /^(connectSource|listSources):/.test(call)), [
-    'connectSource:realmPersona:persona-1',
-    'listSources:active',
+  assert.deepEqual(calls.filter((call) => call.startsWith('materializeSource:')), [
+    'materializeSource:realmPersona:persona-1:desktop.runtime',
   ]);
 });
 
-test('Realm public source connection helper sends locator without client-side hashes', async () => {
-  const { realm, calls } = createSocialRealmStub();
-  const errors: string[] = [];
-
-  const connection = await connectNimiRealmPublicSource(
-    realm,
-    (action) => errors.push(action),
-    realmPersonaPublicSource,
-  );
-
-  assert.equal(connection.sourceRef.sourceContentHash, 'resolved-server-hash');
-  assert.deepEqual(errors, []);
-  assert.deepEqual(calls.filter((call) => call.startsWith('connectPublicSource:')), [
-    'connectPublicSource:realmPersona:persona-1:nohash',
-  ]);
-});
-
-test('Realm public source connection helper fails closed on incomplete locators', async () => {
+test('Realm source materialization packet helper fails closed on incomplete inputs', async () => {
   const { realm } = createSocialRealmStub();
   const errors: string[] = [];
 
   await assert.rejects(
-    () => connectNimiRealmPublicSource(realm, (action) => errors.push(action), null),
-    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_REALM_PUBLIC_SOURCE_LOCATOR_REQUIRED',
-  );
-  await assert.rejects(
-    () => connectNimiRealmPublicSource(realm, (action) => errors.push(action), {}),
-    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_REALM_SOURCE_KIND_REQUIRED',
-  );
-  await assert.rejects(
-    () => connectNimiRealmPublicSource(realm, (action) => errors.push(action), {
-      ...realmPersonaPublicSource,
-      kind: 'profile',
-    }),
-    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_REALM_SOURCE_KIND_UNSUPPORTED',
-  );
-  await assert.rejects(
-    () => connectNimiRealmPublicSource(realm, (action) => errors.push(action), {
-      ...realmPersonaPublicSource,
-      worldId: ' ',
-    }),
-    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_REALM_SOURCE_WORLD_ID_REQUIRED',
-  );
-  await assert.rejects(
-    () => connectNimiRealmPublicSource(realm, (action) => errors.push(action), {
-      ...realmPersonaPublicSource,
-      sourceId: '',
-    }),
-    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_REALM_SOURCE_ID_REQUIRED',
-  );
-  assert.deepEqual(errors, []);
-});
-
-test('Realm source connection helpers fail closed on incomplete source refs', async () => {
-  const { realm } = createSocialRealmStub();
-  const errors: string[] = [];
-
-  await assert.rejects(
-    () => connectNimiRealmSource(realm, (action) => errors.push(action), null),
+    () => createNimiRealmSourceMaterializationPacket(realm, (action) => errors.push(action), null, 'desktop.runtime'),
     (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_REALM_SOURCE_REF_REQUIRED',
   );
   await assert.rejects(
-    () => connectNimiRealmSource(realm, (action) => errors.push(action), {}),
+    () => createNimiRealmSourceMaterializationPacket(realm, (action) => errors.push(action), {}, 'desktop.runtime'),
     (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_REALM_SOURCE_KIND_REQUIRED',
   );
   await assert.rejects(
-    () => connectNimiRealmSource(realm, (action) => errors.push(action), {
+    () => createNimiRealmSourceMaterializationPacket(realm, (action) => errors.push(action), {
       ...realmPersonaSourceRef,
       kind: 'profile',
-    }),
+    }, 'desktop.runtime'),
     (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_REALM_SOURCE_KIND_UNSUPPORTED',
   );
   await assert.rejects(
-    () => connectNimiRealmSource(realm, (action) => errors.push(action), {
+    () => createNimiRealmSourceMaterializationPacket(realm, (action) => errors.push(action), {
       ...realmPersonaSourceRef,
       worldId: ' ',
-    }),
+    }, 'desktop.runtime'),
     (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_REALM_SOURCE_WORLD_ID_REQUIRED',
   );
   await assert.rejects(
-    () => connectNimiRealmSource(realm, (action) => errors.push(action), {
+    () => createNimiRealmSourceMaterializationPacket(realm, (action) => errors.push(action), {
       ...realmPersonaSourceRef,
       sourceId: '',
-    }),
+    }, 'desktop.runtime'),
     (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_REALM_SOURCE_ID_REQUIRED',
   );
   await assert.rejects(
-    () => connectNimiRealmSource(realm, (action) => errors.push(action), {
+    () => createNimiRealmSourceMaterializationPacket(realm, (action) => errors.push(action), {
       ...realmPersonaSourceRef,
       sourceContentHash: '',
-    }),
+    }, 'desktop.runtime'),
     (error: unknown) =>
       (error as { reasonCode?: string }).reasonCode === 'SDK_REALM_SOURCE_CONTENT_HASH_REQUIRED',
+  );
+  await assert.rejects(
+    () => createNimiRealmSourceMaterializationPacket(realm, (action) => errors.push(action), realmPersonaSourceRef, ' '),
+    (error: unknown) =>
+      (error as { reasonCode?: string }).reasonCode === 'SDK_REALM_SOURCE_MATERIALIZATION_AUDIENCE_REQUIRED',
   );
   assert.deepEqual(errors, []);
 });
 
-test('Realm source connection helpers emit operation-specific generated API failures', async () => {
+test('Realm source materialization packet helper emits operation-specific generated API failures', async () => {
   const { realm } = createSocialRealmStub();
   const errors: string[] = [];
-  realm.generated.sourceConnectionControllerConnect = async () => {
-    throw new Error('connect failed');
-  };
-  realm.generated.sourceConnectionControllerList = async () => {
-    throw new Error('list failed');
+  realm.generated.worldCoreControllerCreateSourceMaterializationPacket = async () => {
+    throw new Error('packet failed');
   };
 
   await assert.rejects(
-    () => connectNimiRealmSource(realm, (action) => errors.push(action), realmPersonaSourceRef),
-    /connect failed/,
+    () => createNimiRealmSourceMaterializationPacket(realm, (action) => errors.push(action), realmPersonaSourceRef, 'desktop.runtime'),
+    /packet failed/,
   );
-  await assert.rejects(
-    () => listNimiRealmSourceConnections(realm, (action) => errors.push(action)),
-    /list failed/,
-  );
-  assert.deepEqual(errors, ['connect-source', 'list-source-connections']);
+  assert.deepEqual(errors, ['create-source-materialization-packet']);
 });
 
 test('Realm social post, feed, report, and explore helpers map SDK inputs to generated requests', async () => {

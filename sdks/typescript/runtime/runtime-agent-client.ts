@@ -27,10 +27,11 @@ import type {
   WriteAgentMemoryResponse,
 } from '../core-generated/runtime-typed-client';
 import { createNimiError, ReasonCode } from '../types';
-import type { RuntimeLocalAgentIdentityInput } from './agent-local-identity';
+import { projectRuntimeLocalAgentIdentity, type RuntimeLocalAgentIdentityInput } from './agent-local-identity';
 import {
   createNimiHostRuntimeAgentLifecycleSurface,
   type NimiRuntimeAgentEnsureLocalAgentInitializedInput,
+  type NimiRuntimeAgentInitializedLocalAgent,
   type NimiRuntimeAgentInitializeLocalAgentInput,
   type NimiRuntimeAgentTerminateLocalAgentInput,
 } from './runtime-agent-lifecycle';
@@ -117,8 +118,8 @@ export interface NimiRuntimeAgentOpenConversationInput extends NimiRuntimeAgentI
 }
 
 export interface NimiRuntimeAgentClient {
-  ensureInitialized(input: NimiRuntimeAgentEnsureLocalAgentInitializedInput): Promise<void>;
-  initialize(input: NimiRuntimeAgentInitializeLocalAgentInput): Promise<void>;
+  ensureInitialized(input: NimiRuntimeAgentEnsureLocalAgentInitializedInput): Promise<NimiRuntimeAgentInitializedLocalAgent>;
+  initialize(input: NimiRuntimeAgentInitializeLocalAgentInput): Promise<NimiRuntimeAgentInitializedLocalAgent>;
   terminate(input: NimiRuntimeAgentTerminateLocalAgentInput): Promise<void>;
   openConversation(input: NimiRuntimeAgentOpenConversationInput): Promise<ConversationAnchorSnapshot>;
   sendTurn(input: NimiRuntimeAgentTurnRequest): Promise<SendAppMessageResponse>;
@@ -130,8 +131,8 @@ export interface NimiRuntimeAgentClient {
   getSessionSnapshot(input: NimiRuntimeAgentSessionSnapshotRequest): Promise<NimiRuntimeAgentSessionSnapshot>;
   queryMemory(input: NimiRuntimeAgentQueryMemoryInput): Promise<QueryAgentMemoryResponse>;
   writeMemory(input: NimiRuntimeAgentWriteMemoryInput): Promise<WriteAgentMemoryResponse>;
-  getCanonicalMemoryStatus(agentId: string): Promise<NimiRuntimeAgentCanonicalMemoryBankStatus>;
-  bindCanonicalMemoryStandard(agentId: string): Promise<NimiRuntimeAgentCanonicalMemoryBankStatus>;
+  getCanonicalMemoryStatus(input: RuntimeLocalAgentIdentityInput): Promise<NimiRuntimeAgentCanonicalMemoryBankStatus>;
+  bindCanonicalMemoryStandard(input: RuntimeLocalAgentIdentityInput): Promise<NimiRuntimeAgentCanonicalMemoryBankStatus>;
 }
 
 export interface NimiRuntimeAgentClientStreamTurnOptions
@@ -318,17 +319,15 @@ function normalizeRuntime(runtime: NimiRuntimeAgentClientRuntime, appIdOverride:
 }
 
 function runtimeAgentIdentity(input: RuntimeLocalAgentIdentityInput) {
-  const ownerUserId = normalizeNimiRuntimeAgentText(input.ownerUserId);
-  const runtimeSourceRef = normalizeNimiRuntimeAgentText(input.runtimeSourceRef);
-  const localAgentRef = normalizeNimiRuntimeAgentText(input.localAgentRef) || `local-agent:${ownerUserId}:${runtimeSourceRef}`;
-  if (!ownerUserId || !runtimeSourceRef || localAgentRef !== `local-agent:${ownerUserId}:${runtimeSourceRef}`) {
+  try {
+    return projectRuntimeLocalAgentIdentity(input);
+  } catch {
     runtimeAgentClientError(
-      'Nimi runtime agent client requires explicit matching local agent identity.',
+      'Nimi runtime agent client requires explicit Runtime-owned local agent identity.',
       ReasonCode.AI_INPUT_INVALID,
       'provide_runtime_agent_local_identity',
     );
   }
-  return { ownerUserId, runtimeSourceRef, localAgentRef };
 }
 
 async function withRuntimeAgentScopes<T>(

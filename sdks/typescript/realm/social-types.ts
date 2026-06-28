@@ -1,8 +1,7 @@
 import type {
-  CreatePublicRealmSourceConnectionDto,
-  CreateRealmSourceConnectionDto,
   RealmTypedClient,
-  RealmSourceConnectionDto,
+  CreateSourceMaterializationPacketDto,
+  SourceMaterializationPacketDto,
   UserProfileDto,
 } from '../core-generated/realm-typed-client';
 import type { JsonObject } from '../types';
@@ -35,9 +34,8 @@ export interface NimiRealmPendingFriendRequestListDto {
 }
 
 export type NimiRealmSocialProfileView = JsonObject & Partial<UserProfileDto>;
-export type NimiRealmCoreSourceRef = CreateRealmSourceConnectionDto['sourceRef'];
-export type NimiRealmPublicSourceLocator = CreatePublicRealmSourceConnectionDto['source'];
-export type NimiRealmSourceConnectionView = RealmSourceConnectionDto;
+export type NimiRealmCoreSourceRef = CreateSourceMaterializationPacketDto['sourceRef'];
+export type NimiRealmSourceMaterializationPacket = SourceMaterializationPacketDto;
 
 export interface NimiRealmSocialApi {
   readonly account: Pick<RealmTypedClient, 'getMe' | 'updateMe'>;
@@ -56,13 +54,9 @@ export interface NimiRealmSocialApi {
     | 'listLikedPosts'
     | 'listMyFriendsWithDetails'
     | 'reportControllerCreateReport'
-    | 'sourceConnectionControllerConnect'
-    | 'sourceConnectionControllerConnectPublicSource'
-    | 'sourceConnectionControllerGet'
-    | 'sourceConnectionControllerList'
-    | 'sourceConnectionControllerRemove'
     | 'unlikePost'
     | 'updatePost'
+    | 'worldCoreControllerCreateSourceMaterializationPacket'
   >;
 }
 

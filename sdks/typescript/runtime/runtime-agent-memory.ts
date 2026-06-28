@@ -8,7 +8,7 @@ import {
   type RuntimeTypedCallOptions,
 } from '../core-generated/runtime-typed-client';
 import { createNimiError } from '../types';
-import { parseRuntimeLocalAgentIdentity } from './agent-local-identity';
+import { projectRuntimeLocalAgentIdentity, type RuntimeLocalAgentIdentityInput } from './agent-local-identity';
 import { normalizeNimiRuntimeReasonCode } from './reason-messages';
 import {
   type NimiRuntimeAgentAppAuthClient,
@@ -34,8 +34,8 @@ export interface NimiRuntimeAgentCanonicalMemoryBankStatus {
 }
 
 export interface NimiRuntimeAgentMemorySurface {
-  getCanonicalBankStatus(agentId: string): Promise<NimiRuntimeAgentCanonicalMemoryBankStatus>;
-  bindCanonicalBankStandard(agentId: string): Promise<NimiRuntimeAgentCanonicalMemoryBankStatus>;
+  getCanonicalBankStatus(input: RuntimeLocalAgentIdentityInput): Promise<NimiRuntimeAgentCanonicalMemoryBankStatus>;
+  bindCanonicalBankStandard(input: RuntimeLocalAgentIdentityInput): Promise<NimiRuntimeAgentCanonicalMemoryBankStatus>;
 }
 
 export interface NimiHostRuntimeAgentMemoryClient {
@@ -115,9 +115,9 @@ async function resolveSubjectUserId(
 function buildAgentCanonicalMemoryRequest(
   runtime: NimiHostRuntimeAgentMemoryClient,
   subjectUserId: string,
-  agentId: string,
+  input: RuntimeLocalAgentIdentityInput,
 ): GetAgentCanonicalMemoryBankStatusRequest & RequestAgentCanonicalMemoryBankBindRequest {
-  const identity = parseRuntimeLocalAgentIdentity(agentId);
+  const identity = projectRuntimeLocalAgentIdentity(input);
   return {
     agentId: identity.localAgentRef,
     context: {
@@ -133,9 +133,8 @@ function buildAgentCanonicalMemoryRequest(
 export function createNimiHostRuntimeAgentMemorySurface(
   options: NimiHostRuntimeAgentMemorySurfaceOptions,
 ): NimiRuntimeAgentMemorySurface {
-  async function buildRequest(runtime: NimiHostRuntimeAgentMemoryClient, agentId: string) {
-    const normalizedAgentId = normalizeNimiRuntimeAgentText(agentId);
-    if (!normalizedAgentId) {
+  async function buildRequest(runtime: NimiHostRuntimeAgentMemoryClient, input: RuntimeLocalAgentIdentityInput) {
+    if (!normalizeNimiRuntimeAgentText(input.localAgentRef)) {
       throw createNimiError({
         message: 'Runtime Agent memory requires agent id.',
         reasonCode: 'SDK_RUNTIME_AGENT_ID_REQUIRED',
@@ -146,7 +145,7 @@ export function createNimiHostRuntimeAgentMemorySurface(
     const subjectUserId = await resolveSubjectUserId(options.getSubjectUserId);
     return {
       subjectUserId,
-      request: buildAgentCanonicalMemoryRequest(runtime, subjectUserId, normalizedAgentId),
+      request: buildAgentCanonicalMemoryRequest(runtime, subjectUserId, input),
     };
   }
 

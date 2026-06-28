@@ -5,7 +5,7 @@ import {
   type RuntimeTypedCallOptions,
 } from '../core-generated/runtime-typed-client';
 import { createNimiError } from '../types';
-import { buildRuntimeAgentRequestContext } from './agent-local-identity';
+import { buildRuntimeAgentRequestContext, projectRuntimeLocalAgentIdentity, type RuntimeLocalAgentIdentityInput } from './agent-local-identity';
 import {
   resolveNimiRuntimeAgentSubjectUserId,
   withNimiRuntimeAgentScopes,
@@ -59,14 +59,6 @@ function inspectError(message: string, reasonCode: string, actionHint: string): 
   });
 }
 
-function requireAgentId(agentId: unknown): string {
-  const normalized = normalizeNimiRuntimeAgentText(agentId);
-  if (!normalized) {
-    inspectError('Runtime Agent inspect requires agent id.', 'SDK_RUNTIME_AGENT_ID_REQUIRED', 'provide_runtime_agent_id');
-  }
-  return normalized;
-}
-
 export function createNimiHostRuntimeAgentInspectSurface(
   options: NimiHostRuntimeAgentInspectSurfaceOptions,
 ): NimiRuntimeAgentInspectSurface {
@@ -83,8 +75,8 @@ export function createNimiHostRuntimeAgentInspectSurface(
     DEFAULT_MAX_RECENT_CANONICAL_MEMORIES,
   );
 
-  async function context(agentId: unknown) {
-    const normalizedAgentId = requireAgentId(agentId);
+  async function context(identityInput: RuntimeLocalAgentIdentityInput) {
+    const identity = projectRuntimeLocalAgentIdentity(identityInput);
     const runtime = options.getRuntime();
     const subjectUserId = await resolveNimiRuntimeAgentSubjectUserId(
       options.getSubjectUserId,
@@ -93,11 +85,11 @@ export function createNimiHostRuntimeAgentInspectSurface(
     return {
       runtime,
       subjectUserId,
-      agentId: normalizedAgentId,
+      agentId: identity.localAgentRef,
       requestContext: buildRuntimeAgentRequestContext({
         runtimeAppId: runtime.appId,
         subjectUserId,
-        localAgentRef: normalizedAgentId,
+        ...identity,
       }),
     };
   }
@@ -117,7 +109,7 @@ export function createNimiHostRuntimeAgentInspectSurface(
 
   return {
     async cancelHook(input) {
-      const resolved = await context(input.agentId);
+      const resolved = await context(input);
       const cancelHook = resolved.runtime.agent.cancelHook;
       if (!cancelHook) {
         inspectError(
@@ -147,7 +139,7 @@ export function createNimiHostRuntimeAgentInspectSurface(
       };
     },
     async disableAutonomy(input) {
-      const resolved = await context(input.agentId);
+      const resolved = await context(input);
       const disableAutonomy = resolved.runtime.agent.disableAutonomy;
       if (!disableAutonomy) {
         inspectError(
@@ -168,8 +160,8 @@ export function createNimiHostRuntimeAgentInspectSurface(
       );
       return projectNimiRuntimeAgentAutonomySnapshot(response.autonomy);
     },
-    async enableAutonomy(agentId) {
-      const resolved = await context(agentId);
+    async enableAutonomy(input) {
+      const resolved = await context(input);
       const enableAutonomy = resolved.runtime.agent.enableAutonomy;
       if (!enableAutonomy) {
         inspectError(
@@ -189,8 +181,8 @@ export function createNimiHostRuntimeAgentInspectSurface(
       );
       return projectNimiRuntimeAgentAutonomySnapshot(response.autonomy);
     },
-    async getPublicInspect(agentId) {
-      const resolved = await context(agentId);
+    async getPublicInspect(input) {
+      const resolved = await context(input);
       const listHooksByStatus = async (
         admissionStateFilter: HookAdmissionState,
       ): Promise<NimiRuntimeAgentPendingHookInspect[]> => {
@@ -287,8 +279,8 @@ export function createNimiHostRuntimeAgentInspectSurface(
         maxRecentTerminalHooks,
       });
     },
-    async getPresentationProfile(agentId) {
-      const resolved = await context(agentId);
+    async getPresentationProfile(input) {
+      const resolved = await context(input);
       const agent = await withScopes(
         resolved.runtime,
         resolved.subjectUserId,
@@ -301,7 +293,7 @@ export function createNimiHostRuntimeAgentInspectSurface(
       return readNimiRuntimeAgentPresentationProfile(agent.agent?.metadata);
     },
     async setAutonomyConfig(input) {
-      const resolved = await context(input.agentId);
+      const resolved = await context(input);
       const setAutonomyConfig = resolved.runtime.agent.setAutonomyConfig;
       if (!setAutonomyConfig) {
         inspectError(
@@ -327,7 +319,7 @@ export function createNimiHostRuntimeAgentInspectSurface(
       return projectNimiRuntimeAgentAutonomySnapshot(response.autonomy);
     },
     async subscribePublicEvents(input) {
-      const resolved = await context(input.agentId);
+      const resolved = await context(input);
       const subscribeAgentEvents = resolved.runtime.agent.subscribeAgentEvents;
       if (!subscribeAgentEvents) {
         inspectError(
@@ -363,7 +355,7 @@ export function createNimiHostRuntimeAgentInspectSurface(
       );
     },
     async updateState(input) {
-      const resolved = await context(input.agentId);
+      const resolved = await context(input);
       const updateAgentState = resolved.runtime.agent.updateAgentState;
       if (!updateAgentState) {
         inspectError(

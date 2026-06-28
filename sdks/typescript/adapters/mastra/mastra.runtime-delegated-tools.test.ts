@@ -17,6 +17,12 @@ import {
 } from './index';
 import { createMastraTestAgent, createNimiFixtureModel } from './mastra.fixtures';
 
+const runtimeIdentity = {
+  ownerUserId: 'owner-1',
+  runtimeSourceRef: 'runtime-source-1',
+  localAgentRef: 'local-agent:agent-1',
+} as const;
+
 function createRuntimeSurface(
   overrides: Partial<NimiRuntimeAgentDelegatedCapabilitySurface>,
 ): NimiRuntimeAgentDelegatedCapabilitySurface {
@@ -79,7 +85,7 @@ test('Mastra Runtime delegated tool executes through Nimi Runtime and propagates
     outputSchema: z.object({ forecast: z.string() }),
     binding: {
       runtime,
-      agentId: 'agent-1',
+      ...runtimeIdentity,
       conversationAnchorId: 'anchor-1',
       turnId: 'turn-1',
       streamId: 'stream-1',
@@ -103,7 +109,7 @@ test('Mastra Runtime delegated tool executes through Nimi Runtime and propagates
   assert.equal(result.text, 'Runtime says Paris is sunny.');
   assert.equal(runtimeCalls.length, 1);
   assert.deepEqual(runtimeCalls[0], {
-    agentId: 'agent-1',
+    ...runtimeIdentity,
     conversationAnchorId: 'anchor-1',
     turnId: 'turn-1',
     streamId: 'stream-1',
@@ -139,7 +145,7 @@ test('Mastra Runtime delegated tool binding helper centralizes Nimi turn lineage
     inputSchema: z.object({ q: z.string() }),
     binding: createNimiMastraRuntimeDelegatedToolBinding({
       runtime,
-      agentId: 'agent-1',
+      ...runtimeIdentity,
       conversationAnchorId: 'anchor-1',
       turnId: 'turn-1',
       streamId: 'stream-1',
@@ -156,7 +162,7 @@ test('Mastra Runtime delegated tool binding helper centralizes Nimi turn lineage
 
   assert.deepEqual(result, { ok: true });
   assert.deepEqual(runtimeCalls, [{
-    agentId: 'agent-1',
+    ...runtimeIdentity,
     conversationAnchorId: 'anchor-1',
     turnId: 'turn-1',
     streamId: 'stream-1',
@@ -216,7 +222,7 @@ test('Mastra Runtime delegated tool fails closed on Runtime approval-required re
     inputSchema: z.object({ userId: z.string() }),
     binding: {
       runtime,
-      agentId: 'agent-1',
+      ...runtimeIdentity,
       conversationAnchorId: 'anchor-1',
       turnId: 'turn-1',
       providerProfileId: 'provider-1',
@@ -249,7 +255,7 @@ test('Mastra Runtime delegated tool fails closed when firewall verdict evidence 
     inputSchema: z.object({ q: z.string() }),
     binding: {
       runtime,
-      agentId: 'agent-1',
+      ...runtimeIdentity,
       conversationAnchorId: 'anchor-1',
       turnId: 'turn-1',
       providerProfileId: 'provider-1',
@@ -274,8 +280,8 @@ test('Mastra Runtime delegated tool fails closed when firewall verdict evidence 
 test('Mastra Runtime delegated tool resume uses Runtime-owned approval resume', async () => {
   const resumeCalls: unknown[] = [];
   const runtime = createRuntimeSurface({
-    async resumeApprovedCapability(agentId, approvalRequestId) {
-      resumeCalls.push({ agentId, approvalRequestId });
+    async resumeApprovedCapability(input) {
+      resumeCalls.push(input);
       return {
         diagnostic: {
           firewallVerdict: 'ACCEPTED_OBSERVATION',
@@ -287,10 +293,10 @@ test('Mastra Runtime delegated tool resume uses Runtime-owned approval resume', 
 
   const result = await resumeNimiMastraRuntimeDelegatedTool({
     runtime,
-    agentId: 'agent-1',
+    ...runtimeIdentity,
     approvalRequestId: 'approval-1',
   });
 
   assert.deepEqual(result, { deleted: true, userId: 'u-1' });
-  assert.deepEqual(resumeCalls, [{ agentId: 'agent-1', approvalRequestId: 'approval-1' }]);
+  assert.deepEqual(resumeCalls, [{ ...runtimeIdentity, approvalRequestId: 'approval-1' }]);
 });

@@ -3888,6 +3888,8 @@ class MemoryEmbeddingProfile:
     distance_metric: MemoryDistanceMetric | None = None
     version: str | None = None
     migration_policy: MemoryMigrationPolicy | None = None
+    cloud_binding: MemoryEmbeddingCloudBindingRef | None = None
+    local_binding: MemoryEmbeddingLocalBindingRef | None = None
 
 @dataclass(frozen=True)
 class MemoryEvent:

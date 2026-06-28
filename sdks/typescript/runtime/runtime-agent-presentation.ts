@@ -5,7 +5,11 @@ import {
   type SetAgentPresentationProfileResponse,
 } from '../core-generated/runtime-typed-client';
 import { createNimiError } from '../types';
-import { buildRuntimeAgentRequestContext } from './agent-local-identity';
+import {
+  buildRuntimeAgentRequestContext,
+  projectRuntimeLocalAgentIdentity,
+  type RuntimeLocalAgentIdentityInput,
+} from './agent-local-identity';
 import {
   resolveNimiRuntimeAgentSubjectUserId,
   withNimiRuntimeAgentScopes,
@@ -30,7 +34,7 @@ export interface NimiRuntimeAgentPresentationProfileContext {
 }
 
 export interface NimiRuntimeAgentPresentationProfileSurface {
-  setPresentationProfile(agentId: string, profile: NimiRuntimeAgentPresentationProfileInput | null): Promise<void>;
+  setPresentationProfile(input: RuntimeLocalAgentIdentityInput, profile: NimiRuntimeAgentPresentationProfileInput | null): Promise<void>;
 }
 
 export interface NimiHostRuntimeAgentPresentationProfileClient {
@@ -97,10 +101,11 @@ function presentationError(message: string, reasonCode: string, actionHint: stri
 
 export function buildNimiSetRuntimeAgentPresentationProfileRequest(input: {
   readonly context: NimiRuntimeAgentPresentationProfileContext;
-  readonly agentId: unknown;
+  readonly identity: RuntimeLocalAgentIdentityInput;
   readonly profile: NimiRuntimeAgentPresentationProfileInput | null | undefined;
 }): SetAgentPresentationProfileRequest {
-  const agentId = normalizeNimiRuntimeAgentText(input.agentId);
+  const identity = projectRuntimeLocalAgentIdentity(input.identity);
+  const agentId = identity.localAgentRef;
   const appId = normalizeNimiRuntimeAgentText(input.context.appId);
   const subjectUserId = normalizeNimiRuntimeAgentText(input.context.subjectUserId);
   if (!agentId) {
@@ -116,7 +121,9 @@ export function buildNimiSetRuntimeAgentPresentationProfileRequest(input: {
   const context = buildRuntimeAgentRequestContext({
     runtimeAppId: appId,
     subjectUserId,
-    localAgentRef: agentId,
+    ownerUserId: identity.ownerUserId,
+    runtimeSourceRef: identity.runtimeSourceRef,
+    localAgentRef: identity.localAgentRef,
   });
   if (!input.profile) {
     return {
@@ -158,7 +165,7 @@ export function createNimiHostRuntimeAgentPresentationProfileSurface(
   options: NimiHostRuntimeAgentPresentationProfileSurfaceOptions,
 ): NimiRuntimeAgentPresentationProfileSurface {
   return {
-    async setPresentationProfile(agentId, profile) {
+    async setPresentationProfile(identity, profile) {
       const runtime = options.getRuntime();
       const subjectUserId = await resolveNimiRuntimeAgentSubjectUserId(
         options.getSubjectUserId,
@@ -171,7 +178,7 @@ export function createNimiHostRuntimeAgentPresentationProfileSurface(
       }, ['runtime.agent.write'], (callOptions) => runtime.agent.setAgentPresentationProfile(
         buildNimiSetRuntimeAgentPresentationProfileRequest({
           context: { appId: runtime.appId, subjectUserId },
-          agentId,
+          identity,
           profile,
         }),
         callOptions,

@@ -89,7 +89,7 @@ test('runtime agent client composes RuntimeAgentService and reserved turn seam a
   const identity = {
     ownerUserId: 'user-1',
     runtimeSourceRef: 'agent-1',
-    localAgentRef: 'local-agent:user-1:agent-1',
+    localAgentRef: 'local-agent:test-user-1-agent-1',
   };
 
   await client.ensureInitialized(identity);
@@ -103,7 +103,7 @@ test('runtime agent client composes RuntimeAgentService and reserved turn seam a
     messages: [{ role: 'user', content: 'hello' }],
   });
   await client.queryMemory({ ...identity, query: 'hello', limit: 3 });
-  await client.getCanonicalMemoryStatus('local-agent:user-1:agent-1');
+  await client.getCanonicalMemoryStatus(identity);
 
   assert.deepEqual(calls.map((call) => call.method), [
     'getAgent',
@@ -117,7 +117,7 @@ test('runtime agent client composes RuntimeAgentService and reserved turn seam a
   assert.equal((calls[2]?.request as SendAppMessageRequest).toAppId, 'runtime.agent');
   assert.equal((calls[2]?.request as SendAppMessageRequest).messageType, 'runtime.agent.turn.request');
   assert.equal(calls[2]?.options?.metadata?.scopes, 'runtime.agent.turn.write');
-  assert.equal((calls[3]?.request as QueryAgentMemoryRequest).agentId, 'local-agent:user-1:agent-1');
+  assert.equal((calls[3]?.request as QueryAgentMemoryRequest).agentId, identity.localAgentRef);
   assert.equal(calls[3]?.options?.metadata?.scopes, 'runtime.agent.read');
 });
 

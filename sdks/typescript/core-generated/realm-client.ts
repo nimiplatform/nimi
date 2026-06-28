@@ -883,36 +883,6 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/human/chats/{chatId}/messages"
   },
   {
-    "operationId": "SourceConnectionController_connect",
-    "service": "Source Connections",
-    "method": "POST",
-    "path": "/api/human/source-connections"
-  },
-  {
-    "operationId": "SourceConnectionController_connectPublicSource",
-    "service": "Source Connections",
-    "method": "POST",
-    "path": "/api/human/source-connections/public-source"
-  },
-  {
-    "operationId": "SourceConnectionController_get",
-    "service": "Source Connections",
-    "method": "GET",
-    "path": "/api/human/source-connections/{id}"
-  },
-  {
-    "operationId": "SourceConnectionController_list",
-    "service": "Source Connections",
-    "method": "GET",
-    "path": "/api/human/source-connections"
-  },
-  {
-    "operationId": "SourceConnectionController_remove",
-    "service": "Source Connections",
-    "method": "DELETE",
-    "path": "/api/human/source-connections/{id}"
-  },
-  {
     "operationId": "startChat",
     "service": "Human Chats",
     "method": "POST",
@@ -1111,10 +1081,10 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/realm/core/personas"
   },
   {
-    "operationId": "WorldCoreController_createRuntimeSourceSnapshot",
+    "operationId": "WorldCoreController_createSourceMaterializationPacket",
     "service": "Realm Core",
     "method": "POST",
-    "path": "/api/realm/core/runtime-source-snapshots"
+    "path": "/api/realm/core/source-materialization-packets"
   },
   {
     "operationId": "WorldCoreController_createWorldCharacter",

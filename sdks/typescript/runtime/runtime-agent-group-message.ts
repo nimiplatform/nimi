@@ -9,7 +9,7 @@ import {
   type RuntimeTypedCallOptions,
 } from '../core-generated/runtime-typed-client';
 import { createNimiError, ReasonCode } from '../types';
-import { buildRuntimeAgentRequestContext, buildRuntimeLocalAgentRef } from './agent-local-identity';
+import { buildRuntimeAgentRequestContext, isRuntimeLocalAgentRef } from './agent-local-identity';
 import {
   resolveNimiRuntimeAgentSubjectUserId,
   withNimiRuntimeAgentScopes,
@@ -147,9 +147,8 @@ export function resolveNimiRuntimeParticipantSlotIdentity(
   if (ownerUserId !== currentUserId) {
     inputError('runtime source candidate handoff requires the current user to own the local agent slot', 'use_owned_runtime_source');
   }
-  const expectedLocalAgentRef = buildRuntimeLocalAgentRef({ ownerUserId, runtimeSourceRef });
-  if (localAgentRef !== expectedLocalAgentRef) {
-    inputError('runtime source candidate handoff local agent ref does not match runtime source identity', 'repair_runtime_participant_slot_projection');
+  if (!isRuntimeLocalAgentRef(localAgentRef)) {
+    inputError('runtime source candidate handoff local agent ref must be a Runtime-owned local agent id', 'repair_runtime_participant_slot_projection');
   }
   return {
     runtimeParticipantSlot,
@@ -308,6 +307,8 @@ export function createNimiHostRuntimeRealmGroupMessageCandidateSurface(
       const context = buildRuntimeAgentRequestContext({
         runtimeAppId: runtime.appId,
         subjectUserId: slot.ownerUserId,
+        ownerUserId: slot.ownerUserId,
+        runtimeSourceRef: slot.runtimeSourceRef,
         localAgentRef: slot.localAgentRef,
       });
       const candidateResponse = await withNimiRuntimeAgentScopes({

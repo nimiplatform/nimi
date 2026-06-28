@@ -50,6 +50,8 @@ export function buildNimiRuntimeAgentConsumeContext(input: NimiRuntimeAgentConsu
   const requestContext = buildRuntimeAgentRequestContext({
     runtimeAppId,
     subjectUserId,
+    ownerUserId: identity.ownerUserId,
+    runtimeSourceRef: identity.runtimeSourceRef,
     localAgentRef: identity.localAgentRef,
     scopedBinding: input.scopedBinding,
   });
