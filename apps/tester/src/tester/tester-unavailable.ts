@@ -23,6 +23,10 @@ export type TesterUnavailable = {
   message: string;
   actionHint: string;
   missingSurface?: string;
+  runtimeRequest?: {
+    request?: unknown;
+    options?: unknown;
+  };
 };
 
 export function unavailableReasonTitle(reason: TesterUnavailableReason): string {

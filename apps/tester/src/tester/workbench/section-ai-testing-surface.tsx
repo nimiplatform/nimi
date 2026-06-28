@@ -22,6 +22,7 @@ export {
   artifactExtension,
   downloadArtifactUrl,
   downloadTextFile,
+  formatRuntimeRequestDiagnostics,
   hasPreviewableArtifact,
   resultPlainText,
 } from './section-ai-testing-output.js';

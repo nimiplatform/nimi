@@ -141,7 +141,7 @@ test('tester LLM invokers consume AIConfig bindings and fail closed without bind
   assert.match(sdkAiConfigBinding, /stopSequences/);
   assert.match(sdkAiConfigBinding, /must be a finite number/);
   assert.match(sdkAiConfigBinding, /must be a positive integer/);
-  assert.match(invokers, /createTesterTextModel\(client, resolved, textParams\.timeoutMs\)/);
+  assert.match(invokers, /createTesterTextModel\(client, resolved, textParams\.timeoutMs, runtimeRequestDiagnostics\)/);
   assert.match(invokers, /\.\.\.textParams\.parameters/);
   assert.match(invokers, /temperature: textParams\.parameters\.temperature/);
   assert.match(invokers, /timeoutMs: textParams\.timeoutMs/);
@@ -774,6 +774,87 @@ test('tester Runtime failures surface provider metadata details', async () => {
     result.message,
     /Provider detail: llama\.cpp rejected model id local\/local-import\/gemma-4-26B-A4B-it-Q8_0/,
   );
+});
+
+test('tester Runtime failures include the exact Runtime request diagnostics', async () => {
+  const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');
+  const store = await importBehaviorModule('tester/tester-ai-config-store.js');
+  const scopeRef = store.createTesterAppLabAIScopeRef();
+  store.saveTesterAIConfig({
+    scopeRef,
+    capabilities: {
+      targetRefs: {
+        'text.generate': {
+          kind: 'cloud-connector',
+          connectorId: 'runtime-connector',
+          remoteModelCatalogId: 'remote-catalog:runtime-connector:doubao-seed-2.0-pro',
+          providerModelId: 'doubao-seed-2.0-pro',
+        },
+      },
+      selectedParams: {
+        'text.generate': {
+          temperature: 0.2,
+          maxTokens: 64,
+          timeoutMs: 90000,
+        },
+      },
+    },
+    profileOrigin: {
+      profileId: 'doubao-profile',
+      title: 'Doubao Profile',
+      appliedAt: '2026-06-28T00:00:00.000Z',
+    },
+  });
+
+  const client = {
+    runtime: {
+      scheduling: {
+        async peekScheduling() {
+          return runnableSchedulingResponse();
+        },
+      },
+      ai: {
+        async executeScenario() {
+          const error = new Error('requested model is unavailable');
+          error.reasonCode = 'AI_MODEL_NOT_FOUND';
+          error.actionHint = 'switch_model_or_refresh_connector_models';
+          throw error;
+        },
+        streamScenario() {
+          throw new Error('streamScenario should not be called');
+        },
+      },
+    },
+  };
+
+  const result = await invokers.invokeTesterCapability(client, 'text.generate', {
+    prompt: 'Hello model diagnostics',
+    scenarioId: 'request-diagnostics',
+    subjectUserId: 'subject-user-1',
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'runtime-call-failed');
+  assert.equal(result.runtimeRequest.request.scenarioType, RUNTIME_SCENARIO_TYPE_TEXT_GENERATE);
+  assert.equal(result.runtimeRequest.request.executionMode, RUNTIME_EXECUTION_MODE_SYNC);
+  assert.equal(result.runtimeRequest.request.head.modelId, 'doubao-seed-2.0-pro');
+  assert.equal(result.runtimeRequest.request.head.connectorId, 'runtime-connector');
+  assert.equal(result.runtimeRequest.request.head.routePolicy, RUNTIME_ROUTE_POLICY_CLOUD);
+  assert.equal(result.runtimeRequest.request.head.timeoutMs, 90000);
+  assert.equal(result.runtimeRequest.request.head.targetRef.target.oneofKind, 'cloud');
+  assert.equal(result.runtimeRequest.request.head.targetRef.target.cloud.remoteModelCatalogId, 'remote-catalog:runtime-connector:doubao-seed-2.0-pro');
+  assert.equal(result.runtimeRequest.request.spec.spec.textGenerate.input[0].content, 'Hello model diagnostics');
+  assert.equal(result.runtimeRequest.request.spec.spec.textGenerate.temperature, 0.2);
+  assert.equal(result.runtimeRequest.request.spec.spec.textGenerate.maxTokens, 64);
+  assert.equal(result.runtimeRequest.options.metadata.aiConfigProfileId, 'doubao-profile');
+  assert.equal(result.runtimeRequest.options.metadata.aiConfigBindingCapabilityId, 'text.generate');
+  assert.equal(result.runtimeRequest.options.timeoutMs, 90000);
+});
+
+test('tester unavailable Runtime details render captured Runtime request diagnostics', () => {
+  const outputSource = read('src/tester/workbench/section-ai-testing-output.tsx');
+  assert.match(outputSource, /Runtime request:/);
+  assert.match(outputSource, /result\.runtimeRequest/);
 });
 
 test('tester local LLM scheduling denial fails closed before Runtime execution', async () => {

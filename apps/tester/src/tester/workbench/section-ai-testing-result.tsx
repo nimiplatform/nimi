@@ -4,7 +4,7 @@ import { AlertTriangle, ChevronRight, Copy as CopyIcon, Download as DownloadIcon
 import type { TesterCapability } from '../tester-capabilities.js';
 import { formatTesterRunTimestamp, getTesterRunConfigParamRows, getTesterRunModelLabel, getTesterRunPromptControlFacts, getTesterRunResultTags, getTesterRunStatusLabel, getTesterRunStatusTone, type TesterRunConfigParamRow, type TesterRunHistoryRecord, type TesterRunHistoryResultSnapshot, type TesterRunPromptControlFact } from '../tester-history.js';
 import { unavailableReasonUserAction, unavailableReasonUserMessage } from '../tester-unavailable.js';
-import { ArtifactMediaPreview, RuntimeDiagnosticsActions, StudioResult, TextStudioOutputBody, artifactExtension, downloadArtifactUrl, downloadTextFile, hasPreviewableArtifact, statusForCapability } from './section-ai-testing-surface.js';
+import { ArtifactMediaPreview, RuntimeDiagnosticsActions, StudioResult, TextStudioOutputBody, artifactExtension, downloadArtifactUrl, downloadTextFile, formatRuntimeRequestDiagnostics, hasPreviewableArtifact, statusForCapability } from './section-ai-testing-surface.js';
 import type { TextStudioActiveRun } from './section-ai-testing-run.js';
 
 function TextStudioPromptControlFacts({ facts }: { facts: readonly TesterRunPromptControlFact[] }) {
@@ -112,6 +112,8 @@ function historyUnavailableDiagnosticsText(snapshot: Extract<TesterRunHistoryRes
     '',
     'Action:',
     snapshot.actionHint,
+    snapshot.runtimeRequest ? 'Runtime request:' : '',
+    snapshot.runtimeRequest ? formatRuntimeRequestDiagnostics(snapshot.runtimeRequest) : '',
   ].filter(Boolean).join('\n');
 }
 

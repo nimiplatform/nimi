@@ -115,6 +115,10 @@ export type TesterTypedSuccess = {
 
 export type TesterInvocationResult = TesterTypedSuccess | TesterUnavailable;
 type ConversationTurnCompletedEvent = Extract<ConversationTurnEvent, { type: 'turn-completed' }>;
+type RuntimeRequestDiagnostics = NonNullable<TesterUnavailable['runtimeRequest']>;
+type RuntimeRequestDiagnosticsRecorder = {
+  current?: RuntimeRequestDiagnostics;
+};
 export type TesterRuntimeInvocationClient = {
   readonly runtimeSubjectUserId?: string;
   readonly runtime: {
@@ -306,6 +310,19 @@ export function unavailableFromError(capabilityId: TesterCapabilityId, error: un
   return capabilityUnavailable(capability, reasonFromSdkError(error), describeSdkError(error));
 }
 
+function unavailableFromRuntimeError(
+  capabilityId: TesterCapabilityId,
+  error: unknown,
+  runtimeRequest?: RuntimeRequestDiagnostics,
+): TesterUnavailable {
+  const unavailable = unavailableFromError(capabilityId, error);
+  if (!runtimeRequest?.request) return unavailable;
+  return {
+    ...unavailable,
+    runtimeRequest,
+  };
+}
+
 export function unavailableFromValidation(capabilityId: TesterCapabilityId, message: string): TesterUnavailable {
   const capability = getTesterCapability(capabilityId);
   return capabilityUnavailable(capability, 'input-invalid', message);
@@ -450,9 +467,39 @@ function buildChatRuntimeUserMessage(prompt: string): ConversationRuntimeTextMes
   };
 }
 
-function createTesterTextModel(client: TesterRuntimeInvocationClient, resolved: ResolvedLLMBinding, timeoutMs?: number) {
+function withRuntimeRequestDiagnostics(
+  client: TesterRuntimeInvocationClient,
+  recorder: RuntimeRequestDiagnosticsRecorder,
+): TesterRuntimeInvocationClient {
+  const originalAI = client.runtime.ai;
+  return {
+    ...client,
+    runtime: {
+      ...client.runtime,
+      ai: {
+        ...originalAI,
+        async executeScenario(request, options) {
+          recorder.current = { request, options };
+          return originalAI.executeScenario(request, options);
+        },
+        streamScenario(request, options) {
+          recorder.current = { request, options };
+          return originalAI.streamScenario(request, options);
+        },
+      },
+    },
+  };
+}
+
+function createTesterTextModel(
+  client: TesterRuntimeInvocationClient,
+  resolved: ResolvedLLMBinding,
+  timeoutMs?: number,
+  diagnostics?: RuntimeRequestDiagnosticsRecorder,
+) {
+  const runtimeClient = diagnostics ? withRuntimeRequestDiagnostics(client, diagnostics) : client;
   return createNimiRuntimeAIModel({
-    runtime: client.runtime,
+    runtime: runtimeClient.runtime,
     appId: TESTER_APP_ID,
     model: {
       modelId: resolved.model,
@@ -505,7 +552,8 @@ export async function invokeTextGenerate(client: TesterRuntimeInvocationClient, 
   const schedulingPreflight = await ensureSchedulingPreflight(client, 'text.generate', resolved);
   if (schedulingPreflight.unavailable) return schedulingPreflight.unavailable;
   const directedPrompt = input.directive ? `${input.directive}\n\n${prompt}` : prompt;
-  const model = createTesterTextModel(client, resolved, textParams.timeoutMs);
+  const runtimeRequestDiagnostics: RuntimeRequestDiagnosticsRecorder = {};
+  const model = createTesterTextModel(client, resolved, textParams.timeoutMs, runtimeRequestDiagnostics);
   const result = await runNimiTextGenerate({
     runtime: { model },
     request: {
@@ -521,7 +569,7 @@ export async function invokeTextGenerate(client: TesterRuntimeInvocationClient, 
     },
   });
   if (result.ok === false) {
-    return unavailableFromError('text.generate', result.error.cause ?? result.error);
+    return unavailableFromRuntimeError('text.generate', result.error.cause ?? result.error, runtimeRequestDiagnostics.current);
   }
   const output = result.result;
   return {
