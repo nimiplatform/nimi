@@ -2,7 +2,7 @@
 
 This repository is multi-licensed by component.
 
-- `runtime/**`, `sdk/**`, `proto/**`: Apache-2.0
+- `runtime/**`, `sdks/typescript/**`, `proto/**`: Apache-2.0
 - `apps/desktop/**`, `apps/web/**`, `apps/_libs/**`: MIT
 - `docs/**`: CC-BY-4.0
 

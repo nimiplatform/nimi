@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { linkWorkspacePackage } from './lib/sdk-consumer-link.mjs';
 import { withSdkDistLock } from './lib/sdk-dist-lock.mjs';
 
 const PNPM_BIN = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
@@ -37,7 +38,7 @@ function writeConsumerFiles() {
   tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-sdk-vnext-ai-consumer-'));
   const packageDir = path.join(tempRoot, 'node_modules', '@nimiplatform');
   mkdirSync(packageDir, { recursive: true });
-  symlinkSync(vnextRoot, path.join(packageDir, 'sdk'), 'dir');
+  linkWorkspacePackage(vnextRoot, path.join(packageDir, 'sdk'));
   writeFileSync(path.join(tempRoot, 'package.json'), JSON.stringify({ private: true, type: 'module' }, null, 2));
 
   writeFileSync(path.join(tempRoot, 'consumer.mjs'), `

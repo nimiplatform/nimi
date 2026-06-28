@@ -119,10 +119,11 @@ function runRipgrep(pattern, paths) {
     return `missing required typed-surface scan target(s): ${missingPaths.join(', ')}`;
   }
   try {
-    return execFileSync(path.join(repoRoot, 'scripts', 'rg.sh'), ['-n', pattern, ...paths], {
+    return execFileSync('rg', ['-n', pattern, ...paths], {
       cwd: repoRoot,
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
+      windowsHide: true,
     });
   } catch (error) {
     if (typeof error.status === 'number' && error.status === 1) {

@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
 const runtimeFacadePath = path.join(repoRoot, 'sdks', 'typescript', 'runtime', 'index.ts');
+const runtimeMethodModulesPath = path.join(repoRoot, 'sdks', 'typescript', 'runtime', 'runtime-method-modules.ts');
 const runtimeMethodGroupsPath = path.join(
   repoRoot,
   '.nimi',
@@ -153,8 +154,9 @@ function collectMethodsForGroups(groups, groupNames) {
 async function main() {
   const violations = [];
   const facadeSource = await fs.readFile(runtimeFacadePath, 'utf8');
+  const runtimeMethodModulesSource = await fs.readFile(runtimeMethodModulesPath, 'utf8');
   const methodGroupsSource = await fs.readFile(runtimeMethodGroupsPath, 'utf8');
-  const facadeArrays = parseFacadeArrays(facadeSource);
+  const facadeArrays = parseFacadeArrays(`${facadeSource}\n${runtimeMethodModulesSource}`);
   const methodGroups = parseRuntimeMethodGroups(methodGroupsSource);
 
   const allHighLevelMethods = [];

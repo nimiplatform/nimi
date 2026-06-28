@@ -61,6 +61,17 @@
     "SDK_RUNTIME_TAURI_STREAM_REMOTE_ERROR",
     "SDK_RUNTIME_TAURI_UNARY_BYTES_MISSING",
     "SDK_RUNTIME_TAURI_UNARY_FAILED",
+    "SDK_RUNTIME_ELECTRON_INVOKE_MISSING",
+    "SDK_RUNTIME_ELECTRON_LISTEN_MISSING",
+    "SDK_RUNTIME_ELECTRON_STREAM_BACKPRESSURE",
+    "SDK_RUNTIME_ELECTRON_STREAM_CLOSE_FAILED",
+    "SDK_RUNTIME_ELECTRON_STREAM_FAILED",
+    "SDK_RUNTIME_ELECTRON_STREAM_ID_MISMATCH",
+    "SDK_RUNTIME_ELECTRON_STREAM_ID_MISSING",
+    "SDK_RUNTIME_ELECTRON_STREAM_OPEN_FAILED",
+    "SDK_RUNTIME_ELECTRON_STREAM_REMOTE_ERROR",
+    "SDK_RUNTIME_ELECTRON_UNARY_BYTES_MISSING",
+    "SDK_RUNTIME_ELECTRON_UNARY_FAILED",
     "SDK_RUNTIME_AI_ROUTE_POLICY_REQUIRED",
     "SDK_RUNTIME_AI_CREDENTIAL_SOURCE_INVALID",
     "SDK_RUNTIME_AI_CREDENTIAL_MISSING",
@@ -507,6 +518,61 @@
     },
     {
       "name": "SDK_RUNTIME_TAURI_UNARY_FAILED",
+      "family": "SDK_RUNTIME",
+      "source_rule": "S-ERROR-003"
+    },
+    {
+      "name": "SDK_RUNTIME_ELECTRON_INVOKE_MISSING",
+      "family": "SDK_RUNTIME",
+      "source_rule": "S-ERROR-003"
+    },
+    {
+      "name": "SDK_RUNTIME_ELECTRON_LISTEN_MISSING",
+      "family": "SDK_RUNTIME",
+      "source_rule": "S-ERROR-003"
+    },
+    {
+      "name": "SDK_RUNTIME_ELECTRON_STREAM_BACKPRESSURE",
+      "family": "SDK_RUNTIME",
+      "source_rule": "S-ERROR-003"
+    },
+    {
+      "name": "SDK_RUNTIME_ELECTRON_STREAM_CLOSE_FAILED",
+      "family": "SDK_RUNTIME",
+      "source_rule": "S-ERROR-003"
+    },
+    {
+      "name": "SDK_RUNTIME_ELECTRON_STREAM_FAILED",
+      "family": "SDK_RUNTIME",
+      "source_rule": "S-ERROR-003"
+    },
+    {
+      "name": "SDK_RUNTIME_ELECTRON_STREAM_ID_MISMATCH",
+      "family": "SDK_RUNTIME",
+      "source_rule": "S-ERROR-003"
+    },
+    {
+      "name": "SDK_RUNTIME_ELECTRON_STREAM_ID_MISSING",
+      "family": "SDK_RUNTIME",
+      "source_rule": "S-ERROR-003"
+    },
+    {
+      "name": "SDK_RUNTIME_ELECTRON_STREAM_OPEN_FAILED",
+      "family": "SDK_RUNTIME",
+      "source_rule": "S-ERROR-003"
+    },
+    {
+      "name": "SDK_RUNTIME_ELECTRON_STREAM_REMOTE_ERROR",
+      "family": "SDK_RUNTIME",
+      "source_rule": "S-ERROR-003"
+    },
+    {
+      "name": "SDK_RUNTIME_ELECTRON_UNARY_BYTES_MISSING",
+      "family": "SDK_RUNTIME",
+      "source_rule": "S-ERROR-003"
+    },
+    {
+      "name": "SDK_RUNTIME_ELECTRON_UNARY_FAILED",
       "family": "SDK_RUNTIME",
       "source_rule": "S-ERROR-003"
     },

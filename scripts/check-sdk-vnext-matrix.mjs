@@ -3,6 +3,7 @@
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { composePnpmSpawn } from './lib/pnpm-command.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -11,16 +12,22 @@ const vnextRoot = path.join(repoRoot, 'sdks', 'typescript');
 
 function runMatrixTests() {
   process.stdout.write('[check-sdk-vnext-matrix] running full sdks/typescript test suite\n');
-  const result = spawnSync('pnpm', [
+  const pnpm = composePnpmSpawn([
     '--dir',
     vnextRoot,
     'test',
-  ], {
+  ]);
+  const result = spawnSync(pnpm.command, pnpm.args, {
     cwd: repoRoot,
     env: process.env,
     stdio: 'inherit',
+    windowsHide: true,
+    windowsVerbatimArguments: pnpm.windowsVerbatimArguments === true,
   });
 
+  if (result.error) {
+    throw new Error(`[check-sdk-vnext-matrix] failed to spawn pnpm: ${result.error.message}`);
+  }
   if (result.status !== 0) {
     const code = result.status ?? 1;
     throw new Error(`[check-sdk-vnext-matrix] failed with exit code ${String(code)}`);

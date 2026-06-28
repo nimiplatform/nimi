@@ -16,9 +16,11 @@ import {
   type StreamScenarioRequest,
   type ToolCall,
 } from '../../core-generated/runtime-protobuf/runtime/v1/ai';
+import { ReasonCode as RuntimeProtoReasonCode } from '../../core-generated/runtime-protobuf/runtime/v1/common';
 import {
   collectNimiTextStream,
   createNimiRuntimeAIModel,
+  runtimeScenarioStreamToNimiEvents,
   type NimiRuntimeAIScenarioClient,
 } from './index';
 import type { RuntimeTypedCallOptions } from '../../core-generated/runtime-typed-client';
@@ -229,6 +231,33 @@ test('Runtime-backed Nimi AI maps streamScenario to Nimi run events', async () =
     reasoning: 'think ',
     artifacts: [{ mimeType: 'application/octet-stream', sizeBytes: 3 }],
   });
+});
+
+test('Runtime-backed Nimi AI maps numeric stream failure reason codes to names', async () => {
+  async function* failedStream(): AsyncIterable<StreamScenarioEvent> {
+    yield {
+      eventType: 7,
+      sequence: '1',
+      traceId: 'trace-stream-failed',
+      payload: {
+        oneofKind: 'failed',
+        failed: {
+          reasonCode: RuntimeProtoReasonCode.AI_MODEL_NOT_FOUND,
+          actionHint: 'retry stream request',
+        },
+      },
+    };
+  }
+
+  const events = runtimeScenarioStreamToNimiEvents(failedStream(), { modelId: 'missing-model' });
+
+  await assert.rejects(
+    collectNimiTextStream(events),
+    (error: unknown) => (
+      (error as { reasonCode?: string; message?: string }).reasonCode === ReasonCode.AI_MODEL_NOT_FOUND
+      && /retry stream request/u.test((error as { message?: string }).message || '')
+    ),
+  );
 });
 
 test('collectNimiTextStream fails closed without terminal evidence', async () => {

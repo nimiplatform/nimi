@@ -14,7 +14,7 @@ import {
   type StreamScenarioEvent,
   type StreamScenarioRequest,
 } from '../../core-generated/runtime-protobuf/runtime/v1/ai';
-import type { UsageStats } from '../../core-generated/runtime-protobuf/runtime/v1/common';
+import { ReasonCode as RuntimeGeneratedReasonCode, type UsageStats } from '../../core-generated/runtime-protobuf/runtime/v1/common';
 import type { RuntimeTypedCallOptions } from '../../core-generated/runtime-typed-client';
 import { withNimiRuntimeIdempotencyMetadata } from '../../runtime/scenario-jobs';
 import { ReasonCode, createNimiClientId, createNimiError } from '../../types';
@@ -238,11 +238,23 @@ export async function* runtimeScenarioStreamToNimiEvents(
     if (event.payload.oneofKind === 'failed') {
       yield {
         type: 'error',
-        code: String(event.payload.failed.reasonCode || 'RUNTIME_SCENARIO_FAILED'),
+        code: runtimeReasonCodeName(event.payload.failed.reasonCode),
         message: normalizeText(event.payload.failed.actionHint) || 'Runtime Scenario stream failed',
       };
     }
   }
+}
+
+function runtimeReasonCodeName(value: unknown): string {
+  const numeric = typeof value === 'number' ? value : Number(value);
+  if (Number.isInteger(numeric) && numeric > 0) {
+    const name = RuntimeGeneratedReasonCode[numeric as RuntimeGeneratedReasonCode];
+    if (typeof name === 'string' && name.trim()) {
+      return name;
+    }
+  }
+  const normalized = normalizeText(value);
+  return normalized || 'RUNTIME_SCENARIO_FAILED';
 }
 
 function requireRuntimeArtifactMimeType(value: string): string {

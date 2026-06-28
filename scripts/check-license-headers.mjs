@@ -5,9 +5,9 @@
  * with correct license types per the multi-license repo structure.
  *
  * Structure:
- *   runtime/, sdk/, proto/        -> Apache-2.0
- *   apps/desktop/, apps/web/, kit/ -> MIT
- *   docs/                         -> CC-BY-4.0
+ *   runtime/, sdks/typescript/, proto/ -> Apache-2.0
+ *   apps/desktop/, apps/web/, kit/     -> MIT
+ *   docs/                              -> CC-BY-4.0
  */
 
 import { promises as fs } from 'node:fs';
@@ -18,7 +18,7 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
 
 const LICENSE_MAP = [
-  { dirs: ['runtime', 'sdk', 'proto'], license: 'Apache-2.0', markers: ['Apache-2.0', 'Apache License'] },
+  { dirs: ['runtime', 'sdks/typescript', 'proto'], license: 'Apache-2.0', markers: ['Apache-2.0', 'Apache License'] },
   { dirs: ['apps/desktop', 'apps/web', 'kit'], license: 'MIT', markers: ['MIT', 'MIT License'] },
   { dirs: ['docs'], license: 'CC-BY-4.0', markers: ['CC-BY-4.0', 'Creative Commons'] },
 ];
