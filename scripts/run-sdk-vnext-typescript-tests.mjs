@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
-import { spawnSync } from 'node:child_process';
 import { globSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { spawnSyncCommand } from './lib/command-runner.mjs';
 import { withSdkDistLock } from './lib/sdk-dist-lock.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
@@ -23,11 +23,10 @@ function discoverDefaultTestFiles() {
 }
 
 function runPnpm(args) {
-  return spawnSync('pnpm', args, {
+  return spawnSyncCommand('pnpm', args, {
     cwd: repoRoot,
     stdio: 'inherit',
     env: process.env,
-    shell: process.platform === 'win32',
   });
 }
 

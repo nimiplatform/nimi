@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
-import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
+import { spawnSyncCommand } from './lib/command-runner.mjs';
 
 const PNPM_BIN = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
 
@@ -182,11 +182,10 @@ function rewriteDistImports(outDirAbsolute) {
 }
 
 function runTsc(cwd, tsconfigPath) {
-  const result = spawnSync(PNPM_BIN, ['exec', 'tsc', '-p', tsconfigPath], {
+  const result = spawnSyncCommand(PNPM_BIN, ['exec', 'tsc', '-p', tsconfigPath], {
     cwd,
     stdio: 'inherit',
     env: process.env,
-    shell: process.platform === 'win32',
   });
   if (result.status !== 0) {
     throw new Error(`tsc failed for ${tsconfigPath}`);

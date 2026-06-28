@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { spawnSync } from 'node:child_process';
+import { spawnSyncCommand } from './lib/command-runner.mjs';
 import { withSdkDistLock } from './lib/sdk-dist-lock.mjs';
 
 function parseCommand(argv) {
@@ -15,11 +15,10 @@ function parseCommand(argv) {
 try {
   const [command, ...args] = parseCommand(process.argv.slice(2));
   const status = await withSdkDistLock(`command: ${[command, ...args].join(' ')}`, () => {
-    const result = spawnSync(command, args, {
+    const result = spawnSyncCommand(command, args, {
       cwd: process.cwd(),
       env: process.env,
       stdio: 'inherit',
-      shell: process.platform === 'win32',
     });
     if (result.error) {
       throw result.error;
