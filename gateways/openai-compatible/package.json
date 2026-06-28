@@ -9,7 +9,7 @@
     }
   },
   "scripts": {
-    "build": "node --check src/errors.mjs && node --check src/index.mjs && node --check src/runtime-adapter.mjs && node --check src/server.mjs",
+    "build": "node --check src/errors.mjs && node --check src/gateway-utils.mjs && node --check src/model-inventory.mjs && node --check src/openai-normalizers.mjs && node --check src/openai-responses.mjs && node --check src/gateway.mjs && node --check src/index.mjs && node --check src/runtime-adapter.mjs && node --check src/server.mjs",
     "test": "node --test test/**/*.test.mjs"
   }
 }

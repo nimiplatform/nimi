@@ -15,7 +15,7 @@ export function createOpenAICompatibleGatewayHttpServer(gateway, options = {}) {
         gatewayOrigin: socketLoopbackOrigin(incoming.socket),
       });
       outgoing.writeHead(response.status, Object.fromEntries(response.headers.entries()));
-      outgoing.end(Buffer.from(await response.arrayBuffer()));
+      await writeWebResponseBody(response, outgoing);
     } catch (error) {
       const status = error instanceof BodyTooLargeError ? 413 : 500;
       const code = error instanceof BodyTooLargeError
@@ -32,6 +32,49 @@ export function createOpenAICompatibleGatewayHttpServer(gateway, options = {}) {
           code,
         },
       }));
+    }
+  });
+}
+
+async function writeWebResponseBody(response, outgoing) {
+  if (!response.body) {
+    outgoing.end();
+    return;
+  }
+  const reader = response.body.getReader();
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      if (value && value.length > 0) {
+        await writeChunk(outgoing, Buffer.from(value));
+      }
+    }
+    outgoing.end();
+  } catch (error) {
+    outgoing.destroy(error);
+  } finally {
+    reader.releaseLock();
+  }
+}
+
+function writeChunk(outgoing, chunk) {
+  return new Promise((resolve, reject) => {
+    const onError = (error) => {
+      outgoing.off('error', onError);
+      outgoing.off('drain', onDrain);
+      reject(error);
+    };
+    const onDrain = () => {
+      outgoing.off('error', onError);
+      resolve();
+    };
+    outgoing.on('error', onError);
+    if (outgoing.write(chunk)) {
+      outgoing.off('error', onError);
+      resolve();
+    } else {
+      outgoing.once('drain', onDrain);
     }
   });
 }

@@ -164,6 +164,7 @@ async function runImageGenerationJob(config, request) {
       502,
     );
   }
+  assertSdkImageScenarioPreservesFields(request.scenario);
   const targetRef = toScenarioTargetRef(config, request.model.targetRef);
   const sdkInput = omitUndefined({
     runtime: config.runtime,
@@ -185,6 +186,12 @@ async function runImageGenerationJob(config, request) {
     seed: request.scenario.seed,
     referenceImages: Array.isArray(request.scenario.referenceImages) ? request.scenario.referenceImages : undefined,
     mask: normalizeText(request.scenario.mask) || undefined,
+    outputFormat: normalizeText(request.scenario.outputFormat) || undefined,
+    outputCompression: request.scenario.outputCompression,
+    background: normalizeText(request.scenario.background) || undefined,
+    moderation: normalizeText(request.scenario.moderation) || undefined,
+    partialImages: request.scenario.partialImages,
+    user: normalizeText(request.scenario.user) || undefined,
     responseFormat: normalizeText(request.scenario.responseFormat) || undefined,
     requestId: requiredText(request.requestId, 'Runtime adapter image generation requires requestId.'),
     idempotencyKey: requiredText(request.idempotencyKey, 'Runtime adapter image generation requires idempotencyKey.'),
@@ -207,6 +214,23 @@ async function runImageGenerationJob(config, request) {
     job: result.job,
     traceId: result.traceId,
   });
+}
+
+function assertSdkImageScenarioPreservesFields(scenario) {
+  const unsupported = [
+    'outputFormat',
+    'outputCompression',
+    'background',
+    'moderation',
+    'partialImages',
+    'user',
+  ].filter((key) => scenario[key] !== undefined && scenario[key] !== null && scenario[key] !== '');
+  if (unsupported.length > 0) {
+    throw new OpenAICompatibleGatewayError(
+      'NIMI_GATEWAY_UNSUPPORTED_FEATURE',
+      `Public SDK image generation helper cannot preserve OpenAI image fields yet: ${unsupported.join(', ')}.`,
+    );
+  }
 }
 
 function toScenarioTargetRef(config, targetRef) {

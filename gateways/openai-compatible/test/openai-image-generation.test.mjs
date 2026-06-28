@@ -114,7 +114,7 @@ test('image generation endpoint maps OpenAI request into a local Runtime image j
 
   const response = await fetchLoopback(
     gateway,
-    new Request('http://127.0.0.1:43181/openai/v1/images/generations', {
+    new Request('http://127.0.0.1:43181/v1/images/generations', {
       method: 'POST',
       headers: {
         authorization: 'Bearer nimi_local_test',
@@ -126,8 +126,6 @@ test('image generation endpoint maps OpenAI request into a local Runtime image j
         size: '1024x1024',
         n: 1,
         response_format: 'b64_json',
-        seed: 42,
-        negative_prompt: 'low quality',
       }),
     }),
   );
@@ -157,8 +155,6 @@ test('image generation endpoint maps OpenAI request into a local Runtime image j
       prompt: 'Song dynasty scholar, reference portrait style',
       count: 1,
       size: '1024x1024',
-      seed: 42,
-      negativePrompt: 'low quality',
       responseFormat: 'b64_json',
     },
     labels: {
@@ -180,7 +176,7 @@ test('image generation endpoint fails closed when bearer token is missing', asyn
 
   const response = await fetchLoopback(
     gateway,
-    new Request('http://127.0.0.1:43181/openai/v1/images/generations', {
+    new Request('http://127.0.0.1:43181/v1/images/generations', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
@@ -210,7 +206,7 @@ test('image generation endpoint fails closed when loopback proof is missing even
   });
 
   const response = await gateway.fetch(
-    new Request('http://203.0.113.10/openai/v1/images/generations', {
+    new Request('http://203.0.113.10/v1/images/generations', {
       method: 'POST',
       headers: {
         authorization: 'Bearer nimi_local_test',
@@ -233,18 +229,19 @@ test('image generation endpoint fails closed when loopback proof is missing even
   });
 });
 
-test('image generation endpoint rejects unsupported OpenAI request fields', async () => {
+test('image generation endpoint accepts official OpenAI request fields', async () => {
+  const submitted = [];
   const gateway = createGateway({
     runtime: {
-      onSubmit() {
-        throw new Error('runtime must not be called for unsupported requests');
+      onSubmit(request) {
+        submitted.push(request);
       },
     },
   });
 
   const response = await fetchLoopback(
     gateway,
-    new Request('http://127.0.0.1:43181/openai/v1/images/generations', {
+    new Request('http://127.0.0.1:43181/v1/images/generations', {
       method: 'POST',
       headers: {
         authorization: 'Bearer nimi_local_test',
@@ -254,32 +251,45 @@ test('image generation endpoint rejects unsupported OpenAI request fields', asyn
         model: 'z-image-turbo-local',
         prompt: 'portrait',
         user: 'external-user',
+        quality: 'hd',
+        style: 'vivid',
+        output_format: 'png',
+        background: 'transparent',
+        moderation: 'low',
+        partial_images: 2,
       }),
     }),
   );
 
-  assert.equal(response.status, 400);
-  assert.deepEqual(await response.json(), {
-    error: {
-      message: 'images.generations.user is not supported by this gateway.',
-      type: 'invalid_request_error',
-      code: 'NIMI_GATEWAY_UNSUPPORTED_FEATURE',
-    },
+  assert.equal(response.status, 200);
+  assert.equal(submitted.length, 1);
+  assert.deepEqual(submitted[0].scenario, {
+    kind: 'image',
+    prompt: 'portrait',
+    count: 1,
+    quality: 'hd',
+    style: 'vivid',
+    outputFormat: 'png',
+    background: 'transparent',
+    moderation: 'low',
+    partialImages: 2,
+    user: 'external-user',
+    responseFormat: 'url',
   });
 });
 
-test('image generation endpoint rejects OpenAI image fields without admitted Runtime mapping', async () => {
+test('image generation endpoint rejects non-standard companion fields before Runtime execution', async () => {
   const gateway = createGateway({
     runtime: {
       onSubmit() {
-        throw new Error('runtime must not be called for unsupported image options');
+        throw new Error('runtime must not be called for non-standard image options');
       },
     },
   });
 
   const response = await fetchLoopback(
     gateway,
-    new Request('http://127.0.0.1:43181/openai/v1/images/generations', {
+    new Request('http://127.0.0.1:43181/v1/images/generations', {
       method: 'POST',
       headers: {
         authorization: 'Bearer nimi_local_test',
@@ -288,7 +298,7 @@ test('image generation endpoint rejects OpenAI image fields without admitted Run
       body: JSON.stringify({
         model: 'z-image-turbo-local',
         prompt: 'portrait',
-        quality: 'hd',
+        companion: 'ideogram4_uncond',
       }),
     }),
   );
@@ -296,7 +306,7 @@ test('image generation endpoint rejects OpenAI image fields without admitted Run
   assert.equal(response.status, 400);
   assert.deepEqual(await response.json(), {
     error: {
-      message: 'images.generations.quality is not supported by this gateway.',
+      message: 'images.generations.companion is not supported by this gateway.',
       type: 'invalid_request_error',
       code: 'NIMI_GATEWAY_UNSUPPORTED_FEATURE',
     },
@@ -314,7 +324,7 @@ test('image generation endpoint rejects n greater than one until multi-artifact 
 
   const response = await fetchLoopback(
     gateway,
-    new Request('http://127.0.0.1:43181/openai/v1/images/generations', {
+    new Request('http://127.0.0.1:43181/v1/images/generations', {
       method: 'POST',
       headers: {
         authorization: 'Bearer nimi_local_test',
@@ -338,7 +348,7 @@ test('image generation endpoint rejects n greater than one until multi-artifact 
   });
 });
 
-test('models endpoint projects only Runtime-supported image generation targets', async () => {
+test('models endpoint projects Runtime-supported OpenAI capability targets', async () => {
   const gateway = createGateway({
     runtime: {
       models: [
@@ -369,7 +379,7 @@ test('models endpoint projects only Runtime-supported image generation targets',
 
   const response = await fetchLoopback(
     gateway,
-    new Request('http://127.0.0.1:43181/openai/v1/models', {
+    new Request('http://127.0.0.1:43181/v1/models', {
       headers: {
         authorization: 'Bearer nimi_local_test',
       },
@@ -382,6 +392,12 @@ test('models endpoint projects only Runtime-supported image generation targets',
     data: [
       {
         id: 'z-image-turbo-local',
+        object: 'model',
+        created: 456,
+        owned_by: 'nimi-runtime',
+      },
+      {
+        id: 'text-local',
         object: 'model',
         created: 456,
         owned_by: 'nimi-runtime',
@@ -407,7 +423,7 @@ test('models endpoint rejects malformed object target refs from Runtime projecti
 
   const response = await fetchLoopback(
     gateway,
-    new Request('http://127.0.0.1:43181/openai/v1/models', {
+    new Request('http://127.0.0.1:43181/v1/models', {
       headers: {
         authorization: 'Bearer nimi_local_test',
       },
@@ -444,7 +460,7 @@ test('default url response format returns a gateway artifact handle backed by by
 
   const generationResponse = await fetchLoopback(
     gateway,
-    new Request('http://127.0.0.1:43181/openai/v1/images/generations', {
+    new Request('http://127.0.0.1:43181/v1/images/generations', {
       method: 'POST',
       headers: {
         authorization: 'Bearer nimi_local_test',
@@ -459,7 +475,7 @@ test('default url response format returns a gateway artifact handle backed by by
 
   assert.equal(generationResponse.status, 200);
   const generation = await generationResponse.json();
-  assert.match(generation.data[0].url, /^http:\/\/127\.0\.0\.1:43181\/openai\/v1\/artifacts\//u);
+  assert.match(generation.data[0].url, /^http:\/\/127\.0\.0\.1:43181\/v1\/artifacts\//u);
 
   const artifactResponse = await fetchLoopback(
     gateway,
@@ -498,7 +514,7 @@ test('url response rejects non-loopback publicBaseUrl and accepts numeric loopba
 
   const response = await fetchLoopback(
     gateway,
-    new Request('http://127.0.0.1:43181/openai/v1/images/generations', {
+    new Request('http://127.0.0.1:43181/v1/images/generations', {
       method: 'POST',
       headers: {
         authorization: 'Bearer nimi_local_test',
@@ -513,7 +529,7 @@ test('url response rejects non-loopback publicBaseUrl and accepts numeric loopba
 
   assert.equal(response.status, 200);
   const body = await response.json();
-  assert.equal(body.data[0].url, 'http://127.0.0.1:45123/openai/v1/artifacts/artifact-proof');
+  assert.equal(body.data[0].url, 'http://127.0.0.1:45123/v1/artifacts/artifact-proof');
 });
 
 test('server-supplied loopback origin prevents Host header artifact URL injection', async () => {
@@ -527,7 +543,7 @@ test('server-supplied loopback origin prevents Host header artifact URL injectio
   try {
     const response = await requestJson({
       port: address.port,
-      path: '/openai/v1/images/generations',
+      path: '/v1/images/generations',
       headers: {
         host: 'evil.example',
         authorization: 'Bearer nimi_local_test',
@@ -542,7 +558,7 @@ test('server-supplied loopback origin prevents Host header artifact URL injectio
     assert.equal(response.status, 200);
     assert.equal(
       response.body.data[0].url,
-      `http://127.0.0.1:${address.port}/openai/v1/artifacts/artifact-proof`,
+      `http://127.0.0.1:${address.port}/v1/artifacts/artifact-proof`,
     );
   } finally {
     await closeServer(server);
@@ -571,7 +587,7 @@ test('b64_json response reads Runtime artifact bytes when inline bytes are not r
 
   const response = await fetchLoopback(
     gateway,
-    new Request('http://127.0.0.1:43181/openai/v1/images/generations', {
+    new Request('http://127.0.0.1:43181/v1/images/generations', {
       method: 'POST',
       headers: {
         authorization: 'Bearer nimi_local_test',
@@ -597,12 +613,12 @@ test('b64_json response reads Runtime artifact bytes when inline bytes are not r
   assert.deepEqual(reads, [{ artifactId: 'runtime-artifact-1' }]);
 });
 
-test('bare v1 routes are not accepted as an alias for the namespaced OpenAI surface', async () => {
+test('namespaced OpenAI routes are not accepted after the standard v1 hardcut', async () => {
   const gateway = createGateway();
 
   const response = await fetchLoopback(
     gateway,
-    new Request('http://127.0.0.1:43181/v1/models', {
+    new Request('http://127.0.0.1:43181/openai/v1/models', {
       headers: {
         authorization: 'Bearer nimi_local_test',
       },
@@ -612,7 +628,7 @@ test('bare v1 routes are not accepted as an alias for the namespaced OpenAI surf
   assert.equal(response.status, 404);
   assert.deepEqual(await response.json(), {
     error: {
-      message: 'OpenAI-compatible gateway route is not supported: /v1/models',
+      message: 'OpenAI-compatible gateway route is not supported: /openai/v1/models',
       type: 'invalid_request_error',
       code: 'NIMI_GATEWAY_ROUTE_NOT_FOUND',
     },
@@ -655,7 +671,7 @@ test('localhost is not accepted as a loopback proof or bind host in v1', async (
   const gateway = createGateway();
 
   const response = await gateway.fetch(
-    new Request('http://127.0.0.1:43181/openai/v1/models', {
+    new Request('http://127.0.0.1:43181/v1/models', {
       headers: {
         authorization: 'Bearer nimi_local_test',
       },

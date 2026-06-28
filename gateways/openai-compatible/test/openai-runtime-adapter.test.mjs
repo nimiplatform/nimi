@@ -130,7 +130,7 @@ test('runtime adapter projects SDK route image targets and runs the public SDK i
 
   const modelsResponse = await fetchLoopback(
     gateway,
-    new Request('http://127.0.0.1:43181/openai/v1/models', {
+    new Request('http://127.0.0.1:43181/v1/models', {
       headers: {
         authorization: 'Bearer nimi_local_test',
       },
@@ -152,7 +152,7 @@ test('runtime adapter projects SDK route image targets and runs the public SDK i
 
   const generationResponse = await fetchLoopback(
     gateway,
-    new Request('http://127.0.0.1:43181/openai/v1/images/generations', {
+    new Request('http://127.0.0.1:43181/v1/images/generations', {
       method: 'POST',
       headers: {
         authorization: 'Bearer nimi_local_test',
@@ -163,8 +163,6 @@ test('runtime adapter projects SDK route image targets and runs the public SDK i
         prompt: 'Song dynasty scholar portrait',
         size: '1024x1024',
         response_format: 'b64_json',
-        seed: 42,
-        negative_prompt: 'low quality',
       }),
     }),
   );
@@ -197,10 +195,8 @@ test('runtime adapter projects SDK route image targets and runs the public SDK i
       targetRef: durableTargetRef,
     },
     prompt: 'Song dynasty scholar portrait',
-    negativePrompt: 'low quality',
     count: 1,
     size: '1024x1024',
-    seed: 42,
     responseFormat: 'b64_json',
     requestId: 'request-image-1',
     idempotencyKey: 'openai-compatible:request-image-1',
@@ -253,4 +249,48 @@ test('runtime adapter delegates artifact byte reads to the injected public Runti
       options: { metadata: { 'x-test': 'adapter' } },
     },
   ]);
+});
+
+test('runtime adapter fails closed rather than dropping unsupported SDK image fields', async () => {
+  const sdkRuns = [];
+  const adapter = createOpenAICompatibleRuntimeAdapter({
+    runtime: { ai: { kind: 'runtime-ai-client' } },
+    routeOptionsClient: { kind: 'runtime-route-options-client' },
+    listNimiRuntimeRouteOptions() {
+      return createRouteSnapshot();
+    },
+    toRuntimeDurableTargetRef() {
+      return durableTargetRef;
+    },
+    async runNimiRuntimeImageGeneration(input) {
+      sdkRuns.push(input);
+      return { job: { jobId: 'job-image-1' }, artifacts: [] };
+    },
+  });
+  const gateway = createOpenAICompatibleGateway({
+    apiKeys: ['nimi_local_test'],
+    appId: 'nimi.gateway.openai-compatible',
+    runtime: adapter,
+    idGenerator: () => 'request-image-unsupported',
+  });
+
+  const response = await fetchLoopback(
+    gateway,
+    new Request('http://127.0.0.1:43181/v1/images/generations', {
+      method: 'POST',
+      headers: {
+        authorization: 'Bearer nimi_local_test',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'local/z-image-turbo',
+        prompt: 'portrait',
+        output_format: 'png',
+      }),
+    }),
+  );
+
+  assert.equal(response.status, 400);
+  assert.equal((await response.json()).error.code, 'NIMI_GATEWAY_UNSUPPORTED_FEATURE');
+  assert.equal(sdkRuns.length, 0);
 });
