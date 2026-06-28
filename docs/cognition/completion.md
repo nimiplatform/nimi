@@ -80,7 +80,7 @@ The bundle does not get admitted in a half-state.
 ## Standalone Completion Standard
 
 Cognition holds a strict standard: cognition is admitted only
-when it is **production-grade, not as MVP / skeleton**.
+when it is **production-grade, not as a reduced skeleton**.
 
 | Forbidden | Reason |
 | --- | --- |
@@ -91,7 +91,7 @@ when it is **production-grade, not as MVP / skeleton**.
 This is what differentiates Cognition from "an in-progress
 service that mostly works." Either Cognition is admitted as
 production-grade for the artifact family, or that family stays
-deferred.
+outside the public artifact surface.
 
 ## What Completion Does Not Do
 

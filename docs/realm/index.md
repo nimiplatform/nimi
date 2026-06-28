@@ -1,105 +1,75 @@
 # Realm
 
-Realm is where world truth lives. It owns the durable meaning of a world:
-the truth itself, the current state, the history of how it got there,
-the chat, and related domains like social, economy, asset, binding,
-resource, and transit.
+Realm is the external server and domain authority for world truth. In this
+repository, Nimi consumes Realm through the SDK Realm boundary instead of
+redefining Realm server rules locally.
 
-Runtime executes AI work. SDK gives apps an access boundary. Desktop and
-Web render the experiences. But the shared truth of a world is anchored
-in Realm — that's the layer everything else points at.
+Runtime executes AI work. SDK gives apps an access boundary. Desktop and Web
+render experiences. Shared world truth remains anchored in the external Realm
+authority; Nimi-owned code works with typed consumer
+projections.
 
 ## What This Section Contains
 
-World semantics:
+Realm consumer entry points:
 
-- [Truth](/realm/truth) — canonical world facts, regardless of when
-  they were written.
-- [World State](/realm/world-state) — what a world looks like right
-  now.
-- [World History](/realm/world-history) — append-only history of how
-  a world reached its current state.
-- [Projection](/realm/projection) — how Realm shape projects to
-  app-facing readers.
+- [Realm Truth Boundary](/realm/truth) — what Nimi does and does not own when
+  consuming external Realm truth.
+- [Realm Consumer Projection](/realm/projection) — how Nimi consumers receive
+  Realm API output through the SDK boundary.
+- [World State](/realm/world-state) — reader-facing context for current world
+  state.
+- [World History](/realm/world-history) — reader-facing context for append-only
+  world history.
 
-Domain surfaces:
+Domain reading map:
 
-- [Chat](/realm/chat) — canonical thread / message / membership /
-  agent-slot lifecycle when conversation participates in world
-  meaning.
-- [Social And Economy](/realm/social-and-economy) — relationship
-  graph and value/exchange contracts owned by Realm.
-- [Asset And Binding](/realm/asset-and-binding) — what a world
-  contains and how those things attach to participants and scenes.
-- [Transit](/realm/transit) — single-hop continuity protocol
-  through OASIS that lets participants move between worlds.
+- [Chat](/realm/chat) — how conversation participates in Realm-backed meaning.
+- [Social And Economy](/realm/social-and-economy) — relationship and value-flow
+  concepts consumed from Realm.
+- [Asset And Binding](/realm/asset-and-binding) — how app readers discuss world
+  contents and attachments.
+- [Transit](/realm/transit) — continuity concepts for movement between worlds.
 
 Creator and app surfaces:
 
-- [Creator Economy](/realm/creator-economy) — world creator economy,
-  revenue, and settlement.
-- [App Interconnect](/realm/app-interconnect) — admitted patterns
-  for how apps consume Realm truth.
+- [Creator Economy](/realm/creator-economy) — creator economy and settlement
+  concepts.
+- [App Interconnect](/realm/app-interconnect) — patterns for app-side Realm
+  consumption.
 
-For the side-by-side comparison of state vs history (governed by
-`effectClass`), see
-[Platform → Worlds → State vs History](/platform/worlds/state-vs-history).
-The cross-domain [Glossary](/reference/glossary) explains "world,"
-"truth," and "world history" if those terms are unfamiliar.
+For the side-by-side comparison of state vs history, see
+[Platform → Worlds → State vs History](/platform/worlds/state-vs-history). The
+cross-domain [Glossary](/reference/glossary) explains "world," "truth," and
+"world history" if those terms are unfamiliar.
 
-## Why Realm Matters
+## Why Realm Matters To Nimi Apps
 
-Open worlds need more than generated responses. They need stable state
-and history. If a world changes, if a relationship evolves, or if a
-participant acts, the platform needs a place where that truth is
-represented consistently.
+Nimi apps can operate in many surfaces: desktop, web, avatar, creator tools,
+and world-specific extension apps. Those surfaces can show different views, but
+they cannot invent Realm truth locally. They consume Realm through generated SDK
+clients and typed facades.
 
-Realm provides that semantic core. It is also what makes the
-cross-world contract surface meaningful: the protocol primitives need
-something to anchor against, and Realm is what they anchor against.
+If Realm output cannot be fetched, authenticated, decoded, or reconciled with
+local projection state, the Nimi consumer must expose a typed unavailable/error
+state. It must not synthesize Realm success.
 
-## Reader Scenario: A Conversation That Affects World Truth
+## Reader Scenario: An App Reads Realm Data
 
-Suppose two participants have a conversation that, by the world's
-rules, results in a new connection between them. Under Realm contracts:
-
-1. The chat semantics that produced the connection follow
-   `R-CHAT-*` rules.
-2. The new connection is recorded under the social contract
-   (`R-SOC-*`).
-3. The world's state updates under the world-state contract
-   (`R-WSTATE-*`).
-4. The historical fact that the connection formed is recorded under
-   the world-history contract (`R-WHIST-*`).
-
-Each step follows an admitted Realm contract. An app is
-not allowed to invent a "the connection exists" claim outside Realm
-and have other surfaces accept it.
-
-## Reader Scenario: A World History Read
-
-Suppose a user wants to see how a world reached its current state.
-Realm exposes that as a public read path:
-
-1. The current state is read under the world-state contract.
-2. The trail of how that state was reached is read under the
-   world-history contract.
-3. Both reads return shapes that the SDK can project; see
-   [SDK Realm And World Client](/sdk/realm-world-client).
-
-The point is that history is a first-class concept, not a derived
-log. A world's "what happened" is part of its truth, not an
-afterthought.
+1. **App requests Realm data.** The app calls through the SDK Realm facade.
+2. **SDK uses generated Realm core.** The request shape comes from the
+   configured external Realm OpenAPI input.
+3. **Realm responds.** The external Realm authority owns the server/domain
+   truth.
+4. **Nimi projects the result.** Runtime, Desktop, Web, or app code may cache or
+   present the output, but cannot make it canonical truth.
+5. **Failures stay typed.** Missing token, endpoint, API drift, or unavailable
+   Realm output fails closed instead of being synthesized locally.
 
 ## Source Basis
 
 - [`.nimi/spec/realm/README.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/README.md)
-- [`.nimi/spec/realm/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/kernel/index.md)
-- [`.nimi/spec/realm/kernel/truth-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/kernel/truth-contract.md)
-- [`.nimi/spec/realm/kernel/world-state-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/kernel/world-state-contract.md)
-- [`.nimi/spec/realm/kernel/world-history-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/kernel/world-history-contract.md)
-- [`.nimi/spec/realm/kernel/chat-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/kernel/chat-contract.md)
-- [`.nimi/spec/realm/kernel/social-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/kernel/social-contract.md)
-- [`.nimi/spec/realm/kernel/economy-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/kernel/economy-contract.md)
-- [`.nimi/spec/realm/kernel/asset-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/kernel/asset-contract.md)
-- [`.nimi/spec/realm/kernel/transit-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/kernel/transit-contract.md)
+- [`.nimi/spec/realm/external-realm.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/external-realm.md)
+- [`.nimi/spec/sdks/kernel/realm-api-consumer-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/realm-api-consumer-contract.md)
+- [`.nimi/spec/sdks/kernel/realm-core-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/realm-core-contract.md)
+- [`.nimi/spec/sdks/kernel/realm-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/realm-contract.md)

@@ -69,6 +69,7 @@ const platformGroups: DefaultTheme.SidebarItem[] = [
     text: 'Kit',
     items: [
       { text: '平台 Kit', link: '/zh/platform/kit/' },
+      { text: '在 App 中使用 Kit', link: '/zh/platform/kit/use-kit-in-app' },
       { text: '设计模式', link: '/zh/platform/kit/design-pattern' },
       { text: 'Nimi UI Material', link: '/zh/platform/kit/nimi-ui-material' },
     ],
@@ -129,6 +130,7 @@ const sdkGroups: DefaultTheme.SidebarItem[] = [
     text: '总览',
     items: [
       { text: '总览', link: '/zh/sdk/' },
+      { text: '第一次 AI 调用', link: '/zh/sdk/first-ai-call' },
       { text: '边界', link: '/zh/sdk/boundaries' },
     ],
   },
@@ -206,10 +208,10 @@ const realmGroups: DefaultTheme.SidebarItem[] = [
   {
     text: '世界语义',
     items: [
-      { text: '真相', link: '/zh/realm/truth' },
+      { text: '外部真相边界', link: '/zh/realm/truth' },
       { text: '世界状态', link: '/zh/realm/world-state' },
       { text: '世界历史', link: '/zh/realm/world-history' },
-      { text: '数据投影', link: '/zh/realm/projection' },
+      { text: '消费者投影', link: '/zh/realm/projection' },
     ],
   },
   {
@@ -415,6 +417,9 @@ export const sidebarZh: DefaultTheme.Sidebar = {
         { text: '从这里开始', link: '/zh/start/' },
         { text: '用户画像', link: '/zh/start/personas' },
         { text: '安装与可用性', link: '/zh/start/install' },
+        { text: '创建 Nimi App', link: '/zh/start/create-an-app' },
+        { text: '把 Tester 当作参考 App', link: '/zh/start/use-tester-as-reference' },
+        { text: '故障排查', link: '/zh/start/troubleshooting' },
       ],
     },
     {

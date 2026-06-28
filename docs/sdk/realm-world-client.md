@@ -35,8 +35,8 @@ still owns execution. SDK helpers do not become a third source of truth.
 
 1. The app reads world state through `client.realm` or
    `@nimiplatform/sdk/realm`.
-2. The app runs agent work through `client.runtime`,
-   `@nimiplatform/sdk/runtime`, or an admitted `@nimiplatform/sdk/agent` /
+2. The app runs AI or workflow work through `client.runtime`,
+   `@nimiplatform/sdk/runtime`, `@nimiplatform/sdk/ai-runner`, or an admitted
    feature helper.
 3. If execution changes Realm truth, the write lands through admitted Realm
    contracts. The app does not restate truth locally.
@@ -56,6 +56,8 @@ still owns execution. SDK helpers do not become a third source of truth.
 - [`.nimi/spec/sdks/kernel/world-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/world-contract.md)
 - [`.nimi/spec/sdks/kernel/surface-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/surface-contract.md)
 - [`.nimi/spec/sdks/kernel/boundary-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/boundary-contract.md)
-- [`.nimi/spec/realm/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/kernel/index.md)
-- [`.nimi/spec/realm/kernel/world-state-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/kernel/world-state-contract.md)
-- [`.nimi/spec/realm/kernel/world-history-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/kernel/world-history-contract.md)
+- [`.nimi/spec/realm/README.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/README.md)
+- [`.nimi/spec/realm/external-realm.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/external-realm.md)
+- [`.nimi/spec/sdks/kernel/realm-api-consumer-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/realm-api-consumer-contract.md)
+- [`.nimi/spec/sdks/kernel/realm-core-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/realm-core-contract.md)
+- [`.nimi/spec/sdks/kernel/realm-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/realm-contract.md)

@@ -55,7 +55,7 @@ What each file demonstrates:
 
 ## Author Templates
 
-- `app-template/`: tracked output shape for `pnpm dlx @nimiplatform/app-tools nimi-app create --profile standalone`
+- `app-template/`: tracked output shape for `pnpm dlx --package @nimiplatform/app-tools nimi-app create --profile standalone`
 
 ## Advanced Paths
 

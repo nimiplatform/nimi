@@ -1,6 +1,6 @@
 # 外部 Agent
 
-> 状态：身份模型已准入，产品能力延期。`ExternalPrincipal` 身份模型存在，但可用的 Token 签发与动作执行要等 Runtime-owned gateway/action registry 落地。
+> 状态：身份模型已准入；当前没有公开生产 action plane。`ExternalPrincipal` 身份模型存在，但可用的 Token 签发与动作执行必须由 Runtime-owned gateway/action registry 暴露。
 
 Nimi 将外部 AI 宿主（独立 AI provider、带 MCP 工具的 Agent、未来 A2A peer）建模为 `ExternalPrincipal` 参与者。这个身份属于授权模型的一部分，但不表示当前产品构建已经交付可用的外部 Agent action plane。
 
@@ -13,7 +13,7 @@ Nimi 将外部 AI 宿主（独立 AI provider、带 MCP 工具的 Agent、未来
 | 维度 | 当前边界 |
 | --- | --- |
 | 身份 | 平台准入的 `ExternalPrincipal` |
-| Token 签发 | 延期，直到 Runtime 持有 gateway/server |
+| Token 签发 | 当前没有公开生产接口；必须由 Runtime 持有 gateway/server 后暴露 |
 | Action descriptors | Runtime-owned，不在 renderer 或 Desktop 本地定义 |
 | Token ledger | Runtime-owned |
 | Action surface | Runtime-owned action plane |
@@ -54,7 +54,7 @@ Token 只能携带显式域。平台拒绝“什么都能做”的环境型权�
 1. **用户打开 External Agent Access。** Desktop 向 Runtime 查询状态。
 2. **Runtime 返回禁用。** 原因是 `EXTERNAL_AGENT_ACTION_REGISTRY_EMPTY`。
 3. **Desktop 显示原因。** Token 签发保持禁用。
-4. **没有动作发生。** 没有伪 Token、本地 action descriptor 或 renderer fallback。
+4. **没有动作发生。** 没有合成 Token、本地 action descriptor 或 renderer fallback。
 
 在 Runtime 能力落地前，这就是正确行为。
 

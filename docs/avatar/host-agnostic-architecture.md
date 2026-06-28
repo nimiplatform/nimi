@@ -42,8 +42,8 @@ rendering. NAS handlers stay above it; backend branches stay below it.
 Backends are not pluggable strings. `BackendKind` is a closed
 discriminated union: `'live2d' | 'vrm'`. New backends require a
 contract amendment. This is why a NAS handler written today against
-the projection API will keep working when VRM ships — handlers do not
-hard-code the backend.
+the projection API will keep working when the VRM surface is exposed —
+handlers do not hard-code the backend.
 
 Backend-specific extensions exist (e.g., `Live2DBackendExtension` for
 parameter-id direct writes), but they are reachable only after type

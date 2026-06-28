@@ -1,11 +1,10 @@
 # Knowledge UI
 
-## Status: Admitted, in build-out
+## Status: Admitted Contract; Desktop-Owned Surface
 
 The Desktop knowledge UI contract
 (`desktop/kernel/knowledge-ui-contract.md`) is admitted at the kernel
-level. The user-facing browse + curation surface is in active
-build-out.
+level. The user-facing browse + curation surface is Desktop-owned.
 
 ## What This UI Is
 

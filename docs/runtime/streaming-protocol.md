@@ -17,7 +17,7 @@ of four close modes:
 
 | Mode | Close signal | RPCs |
 | --- | --- | --- |
-| **A — `done=true` terminal frame** | Final event carries `done=true` | `StreamScenario` (`TEXT_GENERATE`), `StreamScenario` (`SPEECH_SYNTHESIZE`) |
+| **A — completed / failed stream event** | Final event is `STREAM_EVENT_COMPLETED` or `STREAM_EVENT_FAILED` | `StreamScenario` (`TEXT_GENERATE`), `StreamScenario` (`SPEECH_SYNTHESIZE`) |
 | **B — terminal event then gRPC OK close** | Server emits terminal event, then closes stream cleanly | `SubscribeScenarioJobEvents`, `SubscribeWorkflowEvents` |
 | **C — `eof=true` chunk then gRPC OK close** | Server emits `eof=true` chunk, then closes | `ExportAuditEvents` |
 | **D — long-lived subscription stream** | No terminal frame; either side may close | `SubscribeRuntimeHealthEvents`, `SubscribeAIProviderHealthEvents`, `SubscribeAccountSessionEvents`, `SubscribeMemoryEvents`, `SubscribeAgentEvents`, `SubscribeAppMessages`, `ReadRealtimeEvents`, `WatchLocalTransfers`, `grpc.health.v1.Health/Watch` |
@@ -34,7 +34,7 @@ For `StreamScenario` (`TEXT_GENERATE` / `SPEECH_SYNTHESIZE`):
 | Stage | Where errors flow |
 | --- | --- |
 | Step 1-9 of `K-KEYSRC-004` evaluation chain | Pre-establishment errors → gRPC error |
-| Step 10 (route execution) | Stream is established; subsequent business / upstream errors → terminal frame (`done=true + reason_code`) |
+| Step 10 (route execution) | Stream is established; subsequent business / upstream errors → terminal `STREAM_EVENT_FAILED` frame with a reason code |
 
 The split is deliberate: pre-establishment errors are connection
 failures (caller never streams); post-establishment errors are
@@ -46,16 +46,18 @@ Text streams (`TEXT_GENERATE`):
 
 | Event shape | Required |
 | --- | --- |
-| `done=false` event | `text_delta` must be non-empty |
-| `done=true` terminal | Must carry `usage`; if upstream lacks token stats, fill `-1`; may carry final `text_delta` |
+| `STREAM_EVENT_DELTA` with `payload.delta.text` | `payload.delta.text.text` must be non-empty |
+| `STREAM_EVENT_USAGE` | Carries incremental or final `UsageStats` when Runtime has usage evidence |
+| `STREAM_EVENT_COMPLETED` | Carries `payload.completed.finish_reason` and completion metadata |
+| `STREAM_EVENT_FAILED` | Carries `payload.failed.reason_code` and, when available, `action_hint` |
 
 Voice streams (`SPEECH_SYNTHESIZE`):
 
 | Event shape | Required |
 | --- | --- |
-| `done=false` event | `audio_chunk` must be non-empty |
-| `done=true` success | `reason_code=REASON_CODE_UNSPECIFIED`; `audio_chunk` empty |
-| `done=true` failure | `reason_code` required; `audio_chunk` empty |
+| `STREAM_EVENT_DELTA` with `payload.delta.artifact` | Artifact chunk and MIME type must match the admitted voice artifact contract |
+| `STREAM_EVENT_COMPLETED` | Carries typed completion metadata |
+| `STREAM_EVENT_FAILED` | Carries `payload.failed.reason_code` and, when available, `action_hint` |
 
 ## Mode B Event Constraints
 
@@ -63,7 +65,7 @@ Voice streams (`SPEECH_SYNTHESIZE`):
 
 | Rule | Value |
 | --- | --- |
-| `done=true` semantics | NOT used |
+| Mode A terminal semantics | NOT used |
 | Steady-state close | After terminal event, server closes stream gRPC OK |
 | `STOPPING` preempt | Daemon may preempt active streams with gRPC `CANCELLED`; terminal event delivery not guaranteed |
 
@@ -81,13 +83,14 @@ App calls `StreamScenario` for text generation.
    check, endpoint security, …
 2. **Establishment.** All pre-establishment checks pass. Stream
    begins (step 10).
-3. **`done=false` events.** Each carries non-empty `text_delta`.
-4. **Terminal `done=true`.** Carries `usage`. May carry final
-   `text_delta`.
+3. **Delta events.** Each `STREAM_EVENT_DELTA` text chunk carries
+   non-empty `payload.delta.text.text`.
+4. **Terminal event.** Runtime emits `STREAM_EVENT_COMPLETED` with a
+   completed payload or `STREAM_EVENT_FAILED` with a failed payload.
 5. **Stream closes.** gRPC OK after terminal frame received.
 
-If something fails post-establishment, it surfaces as terminal frame
-with `done=true + reason_code`, not as a gRPC error.
+If something fails post-establishment, it surfaces as a terminal
+`STREAM_EVENT_FAILED` frame with a reason code, not as a gRPC error.
 
 ## Reader Scenario: A Long-Lived Subscription Survives Daemon Restart
 
@@ -126,7 +129,7 @@ state from the job snapshot.
 
 - It does not let consumers infer close behavior; every RPC's mode
   is admitted in the table.
-- It does not allow `done=true` semantics in mode B / C / D.
+- It does not allow Mode A completed / failed event semantics in mode B / C / D.
 - It does not let mode D streams expect terminal events.
 - It does not allow post-establishment errors to surface as gRPC
   errors instead of terminal frames in mode A.

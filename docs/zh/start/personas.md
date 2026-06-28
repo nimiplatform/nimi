@@ -28,18 +28,19 @@
 
 如果您计划使用 Nimi SDK 构建应用：
 
-1. [SDK → 概览](/zh/sdk/)：了解应用代码与平台交互的标准公开入口。
-2. [SDK → 边界](/zh/sdk/boundaries)：明确应用逻辑允许触达的范围及不可跨越的安全边界。
-3. [SDK → Runtime 客户端](/zh/sdk/runtime-client)：掌握应用调用 Runtime 底层能力的标准路径。
-4. [SDK → Realm 与世界客户端](/zh/sdk/realm-world-client)：了解如何将世界真相的读取与 Runtime 的动态生成能力相结合。
-5. [参考 → 状态机](/zh/reference/state-machines)：了解应用在运行过程中需要处理的各类状态机流转。
+1. [Start → 创建 Nimi App](/zh/start/create-an-app)：用 app-tools scaffold 一个开发者 App，或把同样的所有权规则映射到已有 App。
+2. [SDK → 第一次 AI 调用](/zh/sdk/first-ai-call)：通过 AIConfig target resolution 发起 Runtime-backed 文本生成。
+3. [SDK → 概览](/zh/sdk/) 与 [SDK → 边界](/zh/sdk/boundaries)：在导入 SDK module 前理解公开 App 边界。
+4. [平台 → 在 App 中使用 Kit](/zh/platform/kit/use-kit-in-app)：复用共享 UI、shell、auth、telemetry、model configuration 与 feature surfaces。
+5. [Start → 把 Tester 当作 Reference App 使用](/zh/start/use-tester-as-reference)：研究具体 reference app 与 app-tools source template。
+6. [Start → 故障排查](/zh/start/troubleshooting)：理解 Runtime、SDK、Tester 与 scaffold 失败。
 
 ## AI Agent 接入方
 
 如果您计划将外部或本地的 AI 宿主接入为 Nimi 世界中的独立参与者：
 
 1. [平台 → 愿景](/zh/platform/vision)：了解将 AI Agent 视作平台“参与者”的设计理念。
-2. [平台 → AI Agent 安全接口](/zh/platform/)：查阅针对外部第三方 Agent 接入的安全模型规范。
+2. [平台 → 外部 Agent](/zh/platform/agents/external-agents) 与 [平台 → 参与权限](/zh/platform/agents/participation-authority)：查阅外部第三方 Agent 接入的安全与参与模型。
 3. [Runtime → 委派能力](/zh/runtime/delegated-capability)：了解接入网关架构及相关输出防火墙机制。
 4. [参考 → Agent 字段](/zh/reference/agent-fields)：查看 Agent 的内部数据结构及涉外的核心属性。
 5. [参考 → 状态机](/zh/reference/state-machines)：掌握委派 Provider 机制及委派会话状态机模型。

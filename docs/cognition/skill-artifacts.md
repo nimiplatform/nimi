@@ -1,10 +1,11 @@
 # Skill Artifacts
 
-## Status: Admitted, in build-out
+## Status: Admitted Contract; Release-Gated Surface
 
 The skill service operation registry, lifecycle semantics, and
 non-ownership boundary (`C-COG-056..C-COG-058`) are admitted at the
-kernel level. Cross-app consumer integration is in active build-out.
+kernel level. Cross-app consumers should use this only when Cognition exposes
+the corresponding public API.
 
 ## What A Skill Artifact Is
 

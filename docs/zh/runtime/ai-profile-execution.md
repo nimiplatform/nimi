@@ -1,8 +1,8 @@
 # AI 配置文件执行
 
-## 状态：已准入，正在构建中
+## 状态：已准入契约；公开调用以 Runtime/Desktop 暴露面为准
 
-`AIProfile` 执行的运行时合约 (`K-AIEXEC-001..K-AIEXEC-005`) 已在内核级别被准入。从桌面可移植 `AIProfile` 到本地配置描述符的映射作为规范边界提供；探针 + 快照 UI 正在积极构建中。
+`AIProfile` 执行的运行时合约 (`K-AIEXEC-001..K-AIEXEC-005`) 已在内核级别被准入。从桌面可移植 `AIProfile` 到本地配置描述符的映射作为规范边界提供；探针 + 快照 UI 由暴露它们的 Runtime/Desktop surface 拥有。
 
 ## 本页涵盖的内容
 

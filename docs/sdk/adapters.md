@@ -15,7 +15,7 @@ closed instead of forwarding to a vNext adapter.
 | OpenAI-compatible | SDK adapter source root under `sdks/typescript/adapters/openai-compatible` | Migration bridge for OpenAI-compatible chat completion shapes |
 | MCP / Next / React / LangGraph / LlamaIndex / Mastra | Adapter source roots under `sdks/typescript/adapters/*` | Integration projections, not base SDK subpaths |
 
-An adapter may depend on `@nimiplatform/sdk/ai`, `@nimiplatform/sdk/agent`,
+An adapter may depend on `@nimiplatform/sdk/ai`, `@nimiplatform/sdk/ai-runner`,
 `@nimiplatform/sdk/runtime`, or feature modules. It may not reintroduce removed
 base SDK subpaths.
 
@@ -25,7 +25,7 @@ base SDK subpaths.
 | --- | --- |
 | Runtime routing, provider readiness, audit | Runtime |
 | SDK core AI request/response semantics | `@nimiplatform/sdk/ai` |
-| Agent runner and identity semantics | `@nimiplatform/sdk/agent` |
+| AI runner orchestration semantics | `@nimiplatform/sdk/ai-runner` |
 | Framework call-shape mapping | Adapter package |
 | OpenAI-compatible request/response bridge | OpenAI-compatible adapter boundary |
 

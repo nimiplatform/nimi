@@ -1,11 +1,11 @@
 # Avatar Control Client
 
-## Status: Admitted, in build-out
+## Status: Admitted Contract; Release-Gated Surface
 
 The runtime avatar control client contract is admitted at the SDK
 kernel level. The contract pins how an SDK consumer may control
 avatar state from outside the Avatar carrier; the client surface is
-in active build-out.
+usable only when present in SDK package exports.
 
 ## What This Client Does
 

@@ -58,7 +58,7 @@
 
 ## SDK 词汇
 
-**Surface（接入面）**。SDK 的命名公开入口，自己有一份导出与边界契约。vNext 示例包括 `@nimiplatform/sdk`、`@nimiplatform/sdk/runtime`、`@nimiplatform/sdk/realm`、`@nimiplatform/sdk/ai`、`@nimiplatform/sdk/agent`、`@nimiplatform/sdk/types` 以及 feature module。框架适配器是独立 package。
+**Surface（接入面）**。SDK 的命名公开入口，自己有一份导出与边界契约。vNext 示例包括 `@nimiplatform/sdk`、`@nimiplatform/sdk/runtime`、`@nimiplatform/sdk/realm`、`@nimiplatform/sdk/ai`、`@nimiplatform/sdk/ai-runner`、`@nimiplatform/sdk/types` 以及 feature module。框架适配器是独立 package。
 
 **边界（Boundary）**。规范准入的导入或调用规则，让 App 不能跨入 Runtime、Realm、Cognition 的私有内部。
 
@@ -123,7 +123,11 @@
 - [`.nimi/spec/platform/kernel/tables/protocol-primitives.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/tables/protocol-primitives.yaml)
 - [`.nimi/spec/runtime/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/index.md)
 - [`.nimi/spec/sdks/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/index.md)
-- [`.nimi/spec/realm/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/kernel/index.md)
+- [`.nimi/spec/realm/README.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/README.md)
+- [`.nimi/spec/realm/external-realm.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/external-realm.md)
+- [`.nimi/spec/sdks/kernel/realm-api-consumer-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/realm-api-consumer-contract.md)
+- [`.nimi/spec/sdks/kernel/realm-core-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/realm-core-contract.md)
+- [`.nimi/spec/sdks/kernel/realm-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/realm-contract.md)
 - [`.nimi/spec/desktop/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/kernel/index.md)
 - [`.nimi/spec/avatar/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/kernel/index.md)
 - [`.nimi/spec/cognition/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/cognition/kernel/index.md)

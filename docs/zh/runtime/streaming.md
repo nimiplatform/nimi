@@ -6,12 +6,12 @@
 
 | 模式 | 承载内容 | 关闭语义 |
 | --- | --- | --- |
-| Mode A | 文本与语音生成；连续 chunk 直到终止帧 | 显式 `done=true` 终止帧 |
+| Mode A | 文本与语音生成；连续 chunk 直到终止帧 | 显式 `STREAM_EVENT_COMPLETED / STREAM_EVENT_FAILED` 终止帧 |
 | Mode B | 状态事件流（工作流事件、状态更新） | 终态状态后关闭 |
 | Mode C | 审计导出 | `eof` 标记后关闭 |
 | Mode D | 长连接订阅（健康、App 消息、实时事件） | 长连接；只在会话拆除时关闭 |
 
-每种模式的关闭语义都是显式的。消费 Mode A 的 App 等 `done=true`；消费 Mode B 的 App 等终态状态。流的模式由声明给出，App 不需要猜。
+每种模式的关闭语义都是显式的。消费 Mode A 的 App 等 `STREAM_EVENT_COMPLETED / STREAM_EVENT_FAILED`；消费 Mode B 的 App 等终态状态。流的模式由声明给出，App 不需要猜。
 
 ## 终止帧
 
@@ -19,7 +19,7 @@
 
 | 模式 | 终止信号 |
 | --- | --- |
-| Mode A | `done=true` 帧 |
+| Mode A | `STREAM_EVENT_COMPLETED / STREAM_EVENT_FAILED` 帧 |
 | Mode B | 终态状态事件 |
 | Mode C | `eof` 标记 |
 | Mode D | 会话拆除 |
@@ -61,10 +61,10 @@ App 发起一次会流式返回的文本生成。
 2. **Chunk 到达。** 每个 chunk 都是强类型形状。App 增量渲染。
 3. **Provider 抖动。** 出现一次瞬时传输错误。Runtime 按传输策略重试。流从合适的边界恢复。
 4. **Provider 继续返回内容。** 流继续。
-5. **生成完成。** Runtime 发出 `done=true` 终止帧。
+5. **生成完成。** Runtime 发出 `STREAM_EVENT_COMPLETED / STREAM_EVENT_FAILED` 终止帧。
 6. **App 标记响应完成。** 用户可以进入下一轮。
 
-没有发生过的事情：流从未静默截断。要么到达 `done=true`，要么发出了强类型失败。
+没有发生过的事情：流从未静默截断。要么到达 `STREAM_EVENT_COMPLETED / STREAM_EVENT_FAILED`，要么发出了强类型失败。
 
 ## 场景：Mode B 工作流事件流
 

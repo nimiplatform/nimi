@@ -1,11 +1,12 @@
 # Nimi UI Material
 
-## Status: Admitted, in build-out
+## Status: Admitted Contract; Public Use Follows Design/Runtime Surfaces
 
 The 5-tier material taxonomy under `P-DESIGN-022` is admitted and
 the token catalog is shipped under `tables/nimi-ui-tokens.yaml`. The
 perf-downgrade hook-point interface is admitted at the spec level;
-runtime-side perf-downgrade implementation is in active build-out.
+runtime-side perf-downgrade behavior is available only when exposed by
+the owning design/runtime surface.
 
 ## What "Material" Means
 

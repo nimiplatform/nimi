@@ -2,7 +2,7 @@
 
 ## 状态：混合 (Mixed)
 
-分节标记：Live2D 后端（现在运行中）、VRM 后端（已准入，建设中）、生成式动作 provider（现在运行中）。
+分节标记：Live2D 后端（现在运行中）、VRM 后端（已准入契约；当前不是公开应用 API）、生成式动作 provider（现在运行中）。
 
 Avatar 的渲染后端是一个**封闭的判别联合**：`live2d | vrm`。Live2D 通过 Cubism SDK for Web 已在生产中使用；VRM 是规划中的后端分支。生成式动作以独立 Provider 的形态准入，仍走同一套后端分支模型。
 

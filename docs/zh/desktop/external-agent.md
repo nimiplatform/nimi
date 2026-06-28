@@ -1,6 +1,6 @@
 # 外部 Agent 接入
 
-> 状态：延期。桌面端保留 Runtime Config 中的 External Agent Access 位置，但在 Runtime-owned gateway/action plane 落地前，Token 签发与 action registry 必须失败关闭。
+> 状态：契约说明；当前没有公开生产 action plane。桌面端保留 Runtime Config 中的 External Agent Access 位置，但在 Runtime-owned gateway/action plane 暴露前，Token 签发与 action registry 必须失败关闭。
 
 External Agent Access 是为未来 `ExternalPrincipal` 管理预留的桌面端表面。当前产品构建可以展示 Runtime 状态和空账本投影，但不能暗示外部 AI 宿主现在已经能拿到可用的限定作用域 Token。
 
@@ -24,7 +24,7 @@ External Agent Access 是为未来 `ExternalPrincipal` 管理预留的桌面端�
 面板必须清楚表达禁用原因：
 
 - 没有静默成功，
-- 没有伪 Token，
+- 没有合成 Token，
 - 没有 Desktop-local token ledger，
 - 没有 renderer 或 Tauri 里的备用 action registry。
 

@@ -12,11 +12,13 @@ boundaries are explicit. There is no implicit hot-reload.
 
 | Rule | Value |
 | --- | --- |
-| Canonical path | `~/.nimi/config.json` |
-| Legacy paths | NOT read |
+| Canonical path | `~/.nimi/runtime/config.json` |
+| Override | `NIMI_RUNTIME_CONFIG_PATH` |
+| Ignored old path | `~/.nimi/config.json` is NOT read |
 
-The runtime does not consult older config locations. Migrating
-machines must move their config to the canonical path.
+The runtime does not consult the old config location. Migrating
+machines must move config to the canonical path or set
+`NIMI_RUNTIME_CONFIG_PATH` explicitly for a managed environment.
 
 ## Source Priority
 
@@ -43,7 +45,7 @@ posture lets older runtimes ignore newer fields without crashing.
 ## Provider Name Canonicalization
 
 Provider names in config must use the canonical values from
-`provider-catalog.yaml`. Aliases and legacy names are **rejected**.
+`provider-catalog.yaml`. Aliases and retired provider names are **rejected**.
 This prevents the situation where two configs spell the same provider
 two different ways and silently route to different paths.
 
@@ -124,7 +126,7 @@ hot-reloaded), but the **persisted truth** is the canonical config.
 
 ## Reader Scenario: Initial Config
 
-1. **User runs `config init`.** Runtime writes a fresh `~/.nimi/config.json`
+1. **User runs `config init`.** Runtime writes a fresh `~/.nimi/runtime/config.json`
    with `schemaVersion: 1` and built-in defaults.
 2. **User sets a provider.** `config set` writes provider entry with
    canonical name from `provider-catalog.yaml`.
@@ -136,8 +138,8 @@ hot-reloaded), but the **persisted truth** is the canonical config.
 
 ## Reader Scenario: A Validation Failure At Boot
 
-1. **Daemon starts.** Reads `~/.nimi/config.json`.
-2. **Validation fails.** Provider name is a legacy alias.
+1. **Daemon starts.** Reads `~/.nimi/runtime/config.json`.
+2. **Validation fails.** Provider name is a retired alias.
 3. **Fail-close.** Daemon refuses to enter service. Reason code
    pinpoints the problem.
 4. **User fixes.** Updates provider name to canonical; re-runs
@@ -161,8 +163,8 @@ This rule is what makes config behavior predictable across upgrades.
 
 ## What Runtime Config Does Not Do
 
-- It does not read legacy config paths.
-- It does not accept provider aliases or legacy names.
+- It does not read retired config paths.
+- It does not accept provider aliases or retired provider names.
 - It does not permit both `apiKey` and `apiKeyEnv` for a single
   provider.
 - It does not partially start when validation fails.

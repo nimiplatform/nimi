@@ -10,6 +10,14 @@ auditor / reviewer), see [Personas](/start/personas).
 For installable surfaces and where each one lives, see
 [Installation And Availability](/start/install).
 
+If you are creating an app, start with
+[Create A Nimi App](/start/create-an-app) before reading the deeper SDK,
+Runtime, and Kit sections.
+
+If an SDK call, Tester lane, or generated app scaffold fails, use
+[Troubleshooting](/start/troubleshooting) to map the visible error to the
+public surface that owns it.
+
 ## If You Are New To Nimi
 
 Read in this order:
@@ -49,10 +57,23 @@ faithful picture of what the public surface contains today.
 
 ## If You Are Building Against Nimi
 
-Start with [SDK](/sdk/) and [Runtime](/runtime/). The SDK is the
-public access surface for applications. Runtime and Realm private
-boundaries should not be crossed directly from apps; the SDK exists
-exactly so that apps do not have to.
+Start with [Create A Nimi App](/start/create-an-app) if you need a new
+developer repository. Start with [SDK](/sdk/) and [Runtime](/runtime/) if you
+are integrating from an existing app. The SDK is the public access surface for
+applications. Runtime and Realm private boundaries should not be crossed
+directly from apps; the SDK exists exactly so that apps do not have to.
+
+If the immediate task is one Runtime-backed text generation call from a
+TypeScript app, use [First AI Call](/sdk/first-ai-call) after Runtime is
+running.
+
+For a concrete reference app, read
+[Use Tester As A Reference App](/start/use-tester-as-reference). For shared UI,
+auth, shell, telemetry, and model configuration, read
+[Use Kit In An App](/platform/kit/use-kit-in-app).
+
+For a failing local run, SDK call, or app-tools scaffold check, read
+[Troubleshooting](/start/troubleshooting) before changing app code.
 
 For native shell behavior, read [Desktop](/desktop/). For Web
 behavior, read [Web Mode](/desktop/web-mode). Web is a constrained
@@ -84,16 +105,22 @@ first walkthrough:
    streaming, and multimodal artifacts follow Runtime contracts, not
    app code.
 3. Read [SDK](/sdk/) to find that your app should consume those
-   contracts through the root `@nimiplatform/sdk` client, vNext subpaths such
+   contracts through the root `@nimiplatform/sdk` client, public subpaths such
    as `@nimiplatform/sdk/runtime` and `@nimiplatform/sdk/realm`, feature
    modules, and independent adapter packages, not by importing private
    internals.
-4. Read [Desktop](/desktop/) and [Web Mode](/desktop/web-mode) to
-   learn why Desktop and Web do not have the same capability envelope
-   and what that means for your distribution plans.
-5. Read [Nimi Coding](/nimicoding/) once you start contributing,
-   because that is the workflow other contributors expect for
-   high-risk or cross-surface changes.
+4. Read [Create A Nimi App](/start/create-an-app),
+    [Use Tester As A Reference App](/start/use-tester-as-reference), and
+    [Use Kit In An App](/platform/kit/use-kit-in-app) before writing app-local
+    shell, model config, or shared UI code.
+5. Keep [Troubleshooting](/start/troubleshooting) open while wiring Runtime,
+   SDK, AIConfig, and scaffold checks.
+6. Read [Desktop](/desktop/) and [Web Mode](/desktop/web-mode) to
+    learn why Desktop and Web do not have the same capability envelope
+    and what that means for your distribution plans.
+7. Read [Nimi Coding](/nimicoding/) once you start contributing,
+    because that is the workflow other contributors expect for
+    high-risk or cross-surface changes.
 
 After that walkthrough, [Spec Map](/reference/spec-map) tells you
 where to read the underlying contracts when public prose is not

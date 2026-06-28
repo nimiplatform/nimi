@@ -11,7 +11,7 @@ authority and for navigating the spec directly.
 | Runtime | `.nimi/spec/runtime/**` |
 | SDK | `.nimi/spec/sdks/**` |
 | Desktop and Web | `.nimi/spec/desktop/**` |
-| Realm | `.nimi/spec/realm/**` |
+| Realm | External Realm authority, local pointer files in `.nimi/spec/realm/{README.md,external-realm.md}`, and Nimi consumer contracts under `.nimi/spec/sdks/**` |
 | Avatar | `.nimi/spec/avatar/**` |
 | Cognition | `.nimi/spec/cognition/**` |
 | Nimi Coding | `nimi-coding/spec/product-scope.yaml`, `nimi-coding/spec/bootstrap-state.yaml`, `nimi-coding/methodology/**`, `nimi-coding/contracts/**` |

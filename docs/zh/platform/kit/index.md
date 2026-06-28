@@ -46,8 +46,9 @@
 | 渲染端遥测 + 错误边界 | `telemetry` |
 | Tauri 主机粘合剂（运行时桥接、守护进程生命周期、会话日志、OAuth 命令） | `shell/tauri` |
 
-有关设计语言深度，请参阅[设计模式](/platform/kit/design-pattern)。
-有关材料令牌目录，请参阅[Nimi UI 材料](/platform/kit/nimi-ui-material)。
+有关设计语言深度，请参阅[设计模式](/zh/platform/kit/design-pattern)。
+有关材料令牌目录，请参阅 [Nimi UI Material](/zh/platform/kit/nimi-ui-material)。
+App 集成步骤与 import 示例见 [在 App 中使用 Kit](/zh/platform/kit/use-kit-in-app)。
 
 ## 工具包不拥有什么
 

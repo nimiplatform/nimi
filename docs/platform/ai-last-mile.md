@@ -1,10 +1,10 @@
 # AI Last Mile
 
-> Status: Admitted, in build-out. The AI action boundary +
+> Status: Admitted contract; public API depends on the owning surface. The AI action boundary +
 > Principal model + execution protocol state machine are admitted
 > at the kernel level (`P-ALMI-002`, `P-ALMI-003`, `P-ALMI-011`).
 > Sub-pieces (typed action verbs, delegated firewall, MCP adapter)
-> are at varying running / admitted-impl-in-progress maturity per
+> are exposed only through their owning Runtime or SDK surfaces per
 > their own pages.
 
 The AI last mile is the bridge between an AI agent's intent and a

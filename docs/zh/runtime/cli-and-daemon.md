@@ -22,7 +22,7 @@ CLI 是面向用户的工具，用来驱动 daemon 并报告它的状态。
 
 | 命令 | 用途 |
 | --- | --- |
-| `nimi install` | 首次安装 |
+| `nimi init` | 初始化 Runtime 配置 |
 | `nimi serve` | 前台运行 daemon |
 | `nimi start` | 后台启动 daemon |
 | `nimi stop` | 停止 daemon |
@@ -61,7 +61,7 @@ install → 首次运行选择
 
 你刚装好 Nimi，想确认一切正常。
 
-1. **安装。** `nimi install` 通过安装路径，二进制就位，配置初始化好。
+1. **初始化配置。** `nimi init` 在配置缺失时创建 Runtime 配置。
 2. **首次选择。** CLI 让你选 provider 优先或本地模型优先。你已经有 provider 账户，选 provider 优先。
 3. **配置连接器。** 你新增一个连接器，作为该 provider 的受管身份。凭据被校验，连接器报告它能路由到的模型集。
 4. **启动 daemon。** `nimi serve`（或后台 `nimi start`）。daemon 通过 `STARTING → READY`。

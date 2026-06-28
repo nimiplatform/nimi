@@ -14,6 +14,7 @@ import { createNimiClient } from '@nimiplatform/sdk';
 ## 本节包含
 
 - [边界](/zh/sdk/boundaries)：App 必须遵守的导入与调用规则。
+- [第一次 AI 调用](/zh/sdk/first-ai-call)：通过 `createNimiClient` 走 Runtime-backed 文本生成的最短路径。
 - [Runtime Client](/zh/sdk/runtime-client)：App 进入 Runtime 的公开路径。
 - [Realm 与组合](/zh/sdk/realm-world-client)：Realm 真值与已准入的世界相关组合，不恢复 `@nimiplatform/sdk/world`。
 - [适配器](/zh/sdk/adapters)：外部框架适配器，例如 `@nimiplatform/sdk-adapter-vercel-ai`。
@@ -32,11 +33,11 @@ vNext TypeScript SDK 只有一个 base SDK package。外部框架适配器是独
 | `@nimiplatform/sdk/types` | 共享公开类型与 SDK 错误 |
 | `@nimiplatform/sdk/contracts` | 公开 contract descriptor |
 | `@nimiplatform/sdk/ai` | 原生 AI model generation surface |
-| `@nimiplatform/sdk/agent` | Agent identity 与 runner surface |
+| `@nimiplatform/sdk/ai-runner` | 框架无关的 AI runner facade |
 | `@nimiplatform/sdk/testing` | SDK 消费者测试 helper |
 | `@nimiplatform/sdk/features/*` | conversation、generation、workflow、evaluation、knowledge context、memory context、toolkits 等 feature module |
 
-已删除的 legacy 子路径必须 fail closed：`@nimiplatform/sdk/world`、
+已删除的子路径必须 fail closed：`@nimiplatform/sdk/world`、
 `@nimiplatform/sdk/scope`、`@nimiplatform/sdk/ai-provider`、
 `@nimiplatform/sdk/ai-app` 以及旧 runtime 兼容子路径都不得转发。
 
@@ -52,7 +53,7 @@ SDK 就是这条边界。它把已准入的 owner-domain 行为投影成开发�
 
 1. 用显式 app identity 创建 root client。
 2. 通过 `client.realm` 或 `@nimiplatform/sdk/realm` 读取 Realm 数据。
-3. 通过 `client.runtime`、`@nimiplatform/sdk/runtime` 或原生 `@nimiplatform/sdk/ai` helper 执行 Runtime 工作。
+3. 通过 `client.runtime`、`@nimiplatform/sdk/runtime` 或原生 `@nimiplatform/sdk/ai` helper 执行 Runtime 工作。第一次文本生成从 [第一次 AI 调用](/zh/sdk/first-ai-call) 开始。
 4. 只有当 feature contract 匹配 workflow 时，才使用 `@nimiplatform/sdk/features/*`。
 5. 将可移植 id、reason code 与公开错误放在 `@nimiplatform/sdk/types`。
 

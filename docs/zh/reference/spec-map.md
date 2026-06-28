@@ -10,7 +10,7 @@
 | Runtime | `.nimi/spec/runtime/**` |
 | SDK | `.nimi/spec/sdks/**` |
 | 桌面端与网页端 | `.nimi/spec/desktop/**` |
-| Realm | `.nimi/spec/realm/**` |
+| Realm | 外部 Realm authority；本仓库只保留 `.nimi/spec/realm/{README.md,external-realm.md}` 指针，并通过 `.nimi/spec/sdks/**` 的 consumer contracts 接入 |
 | Avatar | `.nimi/spec/avatar/**` |
 | Cognition | `.nimi/spec/cognition/**` |
 | Nimi Coding | `nimi-coding/spec/product-scope.yaml`、`nimi-coding/spec/bootstrap-state.yaml`、`nimi-coding/methodology/**`、`nimi-coding/contracts/**` |

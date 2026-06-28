@@ -1,8 +1,8 @@
 # External Agent Access
 
-> Status: Deferred. Desktop contains the Runtime Config placement for
+> Status: Contract-only. Desktop contains the Runtime Config placement for
 > External Agent Access, but token issuance and the action registry stay
-> fail-closed until the Runtime-owned gateway/action plane ships.
+> fail-closed until the Runtime-owned gateway/action plane is exposed.
 
 External Agent Access is a reserved Desktop surface for future
 `ExternalPrincipal` management. The current product build may display
@@ -35,7 +35,7 @@ reason. That is different from shipping token issuance.
 The panel should communicate the disabled reason clearly:
 
 - no silent success,
-- no pseudo token,
+- no synthesized token,
 - no Desktop-local token ledger,
 - no fallback action registry in renderer or Tauri.
 

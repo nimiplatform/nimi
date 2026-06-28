@@ -1,11 +1,12 @@
 # Execution Protocol
 
-## Status: Admitted, in build-out
+## Status: Admitted Contract; Public API Owned By Platform/Runtime
 
 The five-stage execution protocol is admitted at the kernel level
 (`P-ALMI-011`). The state machine, idempotency rule, compensation
 rule, fail-close rule, and execution-level matrix are pinned. Audit
-ledger persistence in shipped form is in active build-out.
+ledger persistence is available only through the owning Platform/Runtime
+surface that exposes it.
 
 ## The Five Stages
 

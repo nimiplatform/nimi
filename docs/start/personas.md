@@ -39,14 +39,18 @@ publish it.
 
 You want to build an app on Nimi using the SDK.
 
-1. [SDK → Overview](/sdk/) — the single developer surface.
-2. [SDK → Boundaries](/sdk/boundaries) — what apps can and cannot reach.
-3. [SDK → Runtime Client](/sdk/runtime-client) — the app path into
-   Runtime.
-4. [SDK → Realm And World Client](/sdk/realm-world-client) — composing
-   world truth and runtime-backed generation.
-5. [Reference → State Machines](/reference/state-machines) — the state
-   machines your app will observe.
+1. [Start → Create A Nimi App](/start/create-an-app) — scaffold a developer
+   app with app-tools, or map the same ownership rules onto an existing app.
+2. [SDK → First AI Call](/sdk/first-ai-call) — make a Runtime-backed text
+   generation call with AIConfig target resolution.
+3. [SDK → Overview](/sdk/) and [SDK → Boundaries](/sdk/boundaries) — learn the
+   public app boundary before importing SDK modules.
+4. [Platform → Use Kit In An App](/platform/kit/use-kit-in-app) — reuse shared
+   UI, shell, auth, telemetry, model configuration, and feature surfaces.
+5. [Start → Use Tester As A Reference App](/start/use-tester-as-reference) —
+   study the concrete reference app and app-tools source template.
+6. [Start → Troubleshooting](/start/troubleshooting) — interpret Runtime, SDK,
+   Tester, and scaffold failures.
 
 ## AI Agent Integrator
 
@@ -54,8 +58,9 @@ You want to integrate an external AI host as a participant.
 
 1. [Platform → Vision](/platform/vision) — agents as first-class
    participants.
-2. [Platform → AI Agent Security Interface](/platform/) — the security
-   model for external agents.
+2. [Platform → External Agents](/platform/agents/external-agents) and
+   [Platform → Participation Authority](/platform/agents/participation-authority)
+   — the security and participation model for external agents.
 3. [Runtime → Delegated Capability](/runtime/delegated-capability) —
    the gateway and output firewall.
 4. [Reference → Agent Fields](/reference/agent-fields) — what an agent

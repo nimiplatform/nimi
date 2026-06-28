@@ -3,10 +3,10 @@
 Public app-authoring CLI for Nimi App projects.
 
 ```bash
-pnpm dlx @nimiplatform/app-tools nimi-app create --profile standalone
-pnpm dlx @nimiplatform/app-tools nimi-app init --dir path/to/app
-pnpm dlx @nimiplatform/app-tools nimi-app doctor --dir path/to/app
-pnpm dlx @nimiplatform/app-tools nimi-app update --dir path/to/app
+pnpm dlx --package @nimiplatform/app-tools nimi-app create --profile standalone
+pnpm dlx --package @nimiplatform/app-tools nimi-app init --dir path/to/app
+pnpm dlx --package @nimiplatform/app-tools nimi-app doctor --dir path/to/app
+pnpm dlx --package @nimiplatform/app-tools nimi-app update --dir path/to/app
 ```
 
 `nimi-app create` emits a publishable Tauri app-authoring scaffold. The

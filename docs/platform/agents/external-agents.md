@@ -1,13 +1,14 @@
 # External Agents
 
-> Status: Admitted model, deferred product capability. The
+> Status: Admitted model; no public production action plane today. The
 > `ExternalPrincipal` identity model exists, but usable token issuance
-> and action execution wait for a Runtime-owned gateway/action registry.
+> and action execution must be exposed by a Runtime-owned gateway/action
+> registry.
 
 Nimi models external AI hosts — a separate AI provider, an MCP-tooled
 agent, or a future A2A peer — as `ExternalPrincipal` participants. That
 identity is part of the authorization model. It does not mean the
-current product build ships a usable external-agent action plane.
+current product build exposes a usable external-agent action plane.
 
 For the Desktop placement, see
 [Desktop → External Agent Access](/desktop/external-agent).
@@ -20,7 +21,7 @@ host. It is distinct from a user, first-party app, and internal agent.
 | Property | Current boundary |
 | --- | --- |
 | Identity | Platform-admitted `ExternalPrincipal` |
-| Token issuance | Deferred until Runtime owns the gateway/server |
+| Token issuance | No public production API today; must be exposed by a Runtime-owned gateway/server |
 | Action descriptors | Runtime-owned, not renderer-local or Desktop-local |
 | Token ledger | Runtime-owned |
 | Action surface | Runtime-owned action plane |
@@ -70,7 +71,7 @@ shortcut or a private SDK side channel.
 2. **Runtime reports disabled.** The reason is
    `EXTERNAL_AGENT_ACTION_REGISTRY_EMPTY`.
 3. **Desktop shows the reason.** Token issuance remains disabled.
-4. **No action occurs.** There is no pseudo token, local action
+4. **No action occurs.** There is no synthesized token, local action
    descriptor, or renderer fallback.
 
 That is the correct behavior until the Runtime capability lands.

@@ -1,10 +1,11 @@
 # AI Profile Config
 
-## Status: Admitted, in build-out
+## Status: Admitted Contract; Desktop-Owned Surface
 
 The Desktop AI profile config contract
 (`desktop/kernel/ai-profile-config-contract.md`) is admitted. The
-user-facing per-agent configuration UI is in active build-out.
+user-facing per-agent configuration UI is a Desktop-owned surface, not an
+app-owned SDK API.
 
 ## What This Surface Is
 

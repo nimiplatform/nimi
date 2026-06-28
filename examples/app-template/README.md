@@ -1,11 +1,11 @@
 # Nimi App Template
 
-This directory is the tracked output shape for `pnpm dlx @nimiplatform/app-tools nimi-app create --profile standalone`.
+This directory is the tracked output shape for `pnpm dlx --package @nimiplatform/app-tools nimi-app create --profile standalone`.
 
 Outside this repo:
 
 ```bash
-pnpm dlx @nimiplatform/app-tools nimi-app create --dir my-nimi-app --profile standalone
+pnpm dlx --package @nimiplatform/app-tools nimi-app create --dir my-nimi-app --profile standalone
 cd my-nimi-app
 pnpm install
 pnpm start

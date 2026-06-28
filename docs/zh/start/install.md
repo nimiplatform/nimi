@@ -18,6 +18,26 @@ Nimi Coding 作为独立于宿主环境（Host-agnostic）的方法论，已获�
 
 由于该软件包具有宿主无关性，上述安装路径在任何已获准入的 AI 宿主环境下均适用。
 
+### Nimi App Tools
+
+`@nimiplatform/app-tools` 是面向 Nimi App 开发者仓库的公开 app-authoring CLI。
+
+```bash
+pnpm dlx --package @nimiplatform/app-tools nimi-app create --profile standalone
+```
+
+完整 scaffold 路径见 [创建 Nimi App](/zh/start/create-an-app)。CLI 只创建 scaffold 输入和本地检查；它不会创建公开 App 准入、权限授予、registry 可见性、release descriptor，或 installed-app update truth。
+
+## Package channel 矩阵
+
+| Package | npm install path | source checkout path | 说明 |
+| --- | --- | --- | --- |
+| `@nimiplatform/app-tools` | 带 `nimi-app` binary 的公开 package | `app-tools/` | Standalone scaffold 通过 `pnpm dlx --package` 运行；workspace scaffold 可以使用 `workspace:*`。 |
+| `@nimiplatform/kit` | 公开 package | `kit/` | Kit 不是 Runtime 替代品；App 只使用已发布的 subpath exports。 |
+| `@nimiplatform/sdk` | 面向 App consumer 的公开 package | `sdks/typescript/` private vNext workspace package | 生成的 standalone app 使用 app-tools 写入的 published SDK range；本仓库开发使用 workspace package。 |
+
+不要假设 source checkout 会自动打开所有产品 release channel。Standalone App 仓库使用 npm package；只有在本 monorepo 或生成的 workspace-app scaffold 中才使用 `workspace:*`。
+
 ## 已有契约定义的平台层
 
 下表所列的各平台层目前均有完整的契约文档，定义了其权责及与平台生态的协作关系。
@@ -26,7 +46,10 @@ Nimi Coding 作为独立于宿主环境（Host-agnostic）的方法论，已获�
 | --- | --- | --- |
 | 平台 | [平台](/zh/platform/) | 世界模型、六项基础协议及权威准入规则 |
 | Runtime | [Runtime](/zh/runtime/) | AI 任务执行、工作流、流式传输、多模态产物及 Provider 路由 |
-| SDK | [SDK](/zh/sdk/) | 应用开发者的标准化接入边界 |
+| SDK | [SDK](/zh/sdk/) 与 [第一次 AI 调用](/zh/sdk/first-ai-call) | 应用开发者的标准化接入边界与第一次 Runtime-backed 文本生成路径 |
+| App Tools | [创建 Nimi App](/zh/start/create-an-app) | App authoring scaffold 命令与本地检查 |
+| Kit | [平台 Kit](/zh/platform/kit/) | 共享 UI、shell、auth、telemetry、model config 与 feature module |
+| Tester / Nimi Lab | [把 Tester 当作 Reference App 使用](/zh/start/use-tester-as-reference) | Reference app scripts、Runtime auth、Kit、AIConfig 与 fail-closed states |
 | 桌面端 | [桌面端](/zh/desktop/) | 第一方原生外壳（Shell） |
 | 网页端 | [Web 模式](/zh/desktop/web-mode) | 受限的浏览器沙盒呈现模式 |
 | Realm | [Realm](/zh/realm/) | 语义真相、世界状态及历史演进轨迹 |
@@ -47,5 +70,11 @@ Nimi Coding 作为独立于宿主环境（Host-agnostic）的方法论，已获�
 - [`nimi-coding/spec/bootstrap-state.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/spec/bootstrap-state.yaml)
 - [`.nimi/spec/platform/kernel/web-release-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/web-release-contract.md)
 - [`.nimi/spec/runtime/kernel/cli-onboarding-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/cli-onboarding-contract.md)
+- [`.nimi/spec/platform/kernel/nimi-app-scaffolding-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/nimi-app-scaffolding-contract.md)
+- [`app-tools/README.md`](https://github.com/nimiplatform/nimi/blob/main/app-tools/README.md)
+- [`app-tools/lib/index.mjs`](https://github.com/nimiplatform/nimi/blob/main/app-tools/lib/index.mjs)
+- [`app-tools/lib/app-scaffold.mjs`](https://github.com/nimiplatform/nimi/blob/main/app-tools/lib/app-scaffold.mjs)
+- [`kit/package.json`](https://github.com/nimiplatform/nimi/blob/main/kit/package.json)
+- [`sdks/typescript/package.json`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/package.json)
 - [`nimi-coding/package.json`](https://github.com/nimiplatform/nimi-coding/blob/main/package.json)
 - [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi-coding/blob/main/README.md)

@@ -25,7 +25,7 @@ App 应使用：
 ## 场景：先读状态，再运行 Agent 工作
 
 1. App 通过 `client.realm` 或 `@nimiplatform/sdk/realm` 读取世界状态。
-2. App 通过 `client.runtime`、`@nimiplatform/sdk/runtime`，或已准入的 `@nimiplatform/sdk/agent` / feature helper 运行 Agent 工作。
+2. App 通过 `client.runtime`、`@nimiplatform/sdk/runtime`，或已准入的 `@nimiplatform/sdk/ai-runner` / feature helper 运行 Agent 工作。
 3. 如果执行改变 Realm 真值，写入必须通过已准入的 Realm contract。App 不在本地重述真值。
 4. App 再通过 SDK 重新读取 Realm 状态。
 
@@ -43,6 +43,8 @@ App 应使用：
 - [`.nimi/spec/sdks/kernel/world-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/world-contract.md)
 - [`.nimi/spec/sdks/kernel/surface-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/surface-contract.md)
 - [`.nimi/spec/sdks/kernel/boundary-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/boundary-contract.md)
-- [`.nimi/spec/realm/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/kernel/index.md)
-- [`.nimi/spec/realm/kernel/world-state-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/kernel/world-state-contract.md)
-- [`.nimi/spec/realm/kernel/world-history-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/kernel/world-history-contract.md)
+- [`.nimi/spec/realm/README.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/README.md)
+- [`.nimi/spec/realm/external-realm.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/external-realm.md)
+- [`.nimi/spec/sdks/kernel/realm-api-consumer-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/realm-api-consumer-contract.md)
+- [`.nimi/spec/sdks/kernel/realm-core-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/realm-core-contract.md)
+- [`.nimi/spec/sdks/kernel/realm-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/realm-contract.md)

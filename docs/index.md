@@ -1,9 +1,9 @@
 # Nimi Documentation
 
-Nimi is an AI open world platform. The product idea is simple: AI agents
-shouldn't have to be stateless tools stuck inside one request. They can
-live inside long-lived worlds, with identity, memory, relationships,
-capabilities, and rules that stay with them across sessions and surfaces.
+Nimi is an AI open world platform. It treats AI agents as participants in
+long-lived worlds, not as stateless tools trapped inside one request. An agent
+can carry identity, memory, relationships, capabilities, and rules across
+sessions and product surfaces.
 
 These docs explain the product model, the ownership boundaries, and the
 contracts that hold across domains.
@@ -19,10 +19,10 @@ development methodology that ships with everything else).
 
 Each product has its own section in these docs.
 
-The active `apps/` directory contains only admitted product slices. Deferred
-or retired application history lives under `archive/apps/` and is not active
-product authority. These docs describe the platform and its current admitted
-surfaces.
+The active `apps/` directory contains first-party product surfaces and
+reference apps. Those apps consume Runtime, Realm, SDK, Kit, and app-tools; they
+do not define platform authority. Platform authority lives under `.nimi/spec/**`
+and app-authoring entry points are documented from public package surfaces.
 
 ## What You Will Find Here
 
@@ -30,6 +30,8 @@ surfaces.
 - Authority domains that name who owns which kind of truth.
 - Reading paths that move from the platform model into Runtime, SDK,
   Desktop, Realm, Avatar, Cognition, and Nimi Coding.
+- Developer paths for creating a Nimi App, making a first Runtime-backed AI
+  call, using Kit, studying Tester, and handling common fail-closed states.
 - A glossary of cross-domain vocabulary used across all pages.
 
 ## The Three Layers Readers Should Keep Separate
@@ -77,6 +79,11 @@ your head than to mix together.
 | --- | --- |
 | The product, the world model, and why it exists | [Platform](/platform/) |
 | The current setup and availability posture | [Start](/start/) |
+| How to create a Nimi App scaffold | [Create A Nimi App](/start/create-an-app) |
+| How a TypeScript app makes its first Runtime AI call | [First AI Call](/sdk/first-ai-call) |
+| How apps reuse Kit surfaces | [Use Kit In An App](/platform/kit/use-kit-in-app) |
+| How to study the reference app | [Use Tester As A Reference App](/start/use-tester-as-reference) |
+| How to interpret Runtime, SDK, Tester, and scaffold failures | [Troubleshooting](/start/troubleshooting) |
 | How AI execution is governed | [Runtime](/runtime/) |
 | How apps integrate without crossing private boundaries | [SDK](/sdk/) |
 | Why Desktop and Web are not equivalent | [Desktop](/desktop/) |
@@ -93,7 +100,11 @@ your head than to mix together.
 - [`.nimi/spec/platform/vision.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/vision.md)
 - [`.nimi/spec/runtime/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/index.md)
 - [`.nimi/spec/sdks/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/index.md)
-- [`.nimi/spec/realm/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/kernel/index.md)
+- [`.nimi/spec/realm/README.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/README.md)
+- [`.nimi/spec/realm/external-realm.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/external-realm.md)
+- [`.nimi/spec/sdks/kernel/realm-api-consumer-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/realm-api-consumer-contract.md)
+- [`.nimi/spec/sdks/kernel/realm-core-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/realm-core-contract.md)
+- [`.nimi/spec/sdks/kernel/realm-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/realm-contract.md)
 - [`.nimi/spec/desktop/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/kernel/index.md)
 - [`.nimi/spec/avatar/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/kernel/index.md)
 - [`.nimi/spec/cognition/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/cognition/kernel/index.md)

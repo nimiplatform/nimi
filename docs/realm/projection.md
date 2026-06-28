@@ -1,18 +1,30 @@
-# Superseded Projection Pointer
+# Realm Consumer Projection
 
-Realm no longer treats projection packages as the current world/persona
-consumption authority. Apps and Runtime consume admitted core/source shapes:
+Realm projection in this repository means the shape Nimi consumers receive
+through the SDK Realm boundary. It is not a second source of Realm truth and it
+is not a local Realm domain model.
 
-- world reads expose `WorldCore` and admitted world aggregates;
-- character reads expose `WorldCharacterCore`;
-- persona reads expose `RealmPersona`;
-- Runtime materialization uses `RuntimeSourceSnapshot` by value.
+Apps, Runtime, Desktop, and Web should consume Realm through SDK-owned typed
+clients. Local state can cache or present Realm output, but it must not become
+canonical Realm truth.
 
-Projection is not a write path, not a prompt builder, and not a parallel source
-of truth. If a downstream surface needs a specialized view, it is derived from
-the core objects for that request and does not replace them.
+## Consumer Rules
 
-Source basis:
+| Concern | Boundary |
+| --- | --- |
+| Generated API input | Comes from the configured external Realm OpenAPI source |
+| SDK facade | May wrap generated operations with typed fail-closed behavior |
+| Runtime/Desktop projection | May present Realm output, but cannot synthesize Realm success |
+| App wrappers | May adapt SDK output for product UI, but cannot redefine Realm semantics |
 
-- [`.nimi/spec/realm/core.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/core.md)
-- [`.nimi/spec/realm/kernel/core-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/kernel/core-contract.md)
+When Realm API drift appears, regenerate the SDK core from the configured Realm
+input and update consumer contracts/tests. Do not patch drift by copying Realm
+spec text into this repository or by freezing handwritten DTOs.
+
+## Source Basis
+
+- [`.nimi/spec/realm/README.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/README.md)
+- [`.nimi/spec/realm/external-realm.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/external-realm.md)
+- [`.nimi/spec/sdks/kernel/realm-api-consumer-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/realm-api-consumer-contract.md)
+- [`.nimi/spec/sdks/kernel/realm-core-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/realm-core-contract.md)
+- [`.nimi/spec/sdks/kernel/realm-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/realm-contract.md)

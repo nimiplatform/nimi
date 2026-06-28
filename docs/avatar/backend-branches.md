@@ -1,13 +1,13 @@
 # Backend Branches
 
 > Status: Mixed. Per-section labels below: Live2D backend (running),
-> VRM backend (admitted, in build-out), Generated motion provider
+> VRM backend (admitted contract; not a public app API), Generated motion provider
 > (running).
 
 Avatar's rendering backend is a **closed discriminated union**:
-`live2d | vrm`. Live2D ships today via Cubism SDK for Web; VRM
-is admitted as the next backend branch. Generated motion is admitted
-as a distinct provider concern under the same backend branch model
+`live2d | vrm`. Live2D runs today via Cubism SDK for Web; VRM is
+admitted as a backend branch that is not public app API today. Generated
+motion is admitted as a distinct provider concern under the same backend branch model
 (see [Generated Motion Provider](/avatar/generated-motion-provider.md)).
 
 ## Closed Union, Not Open Plugin System
@@ -17,8 +17,8 @@ as a distinct provider concern under the same backend branch model
 | Backends | `live2d`, `vrm` (future) |
 | Closed | New backends require admitted contract |
 | Discriminated union | Type narrowing surfaces backend-specific extensions |
-| Live2D today | Shipped via Cubism SDK for Web |
-| VRM future | Future backend branch; not shipped |
+| Live2D today | Running via Cubism SDK for Web |
+| VRM branch | Admitted backend branch; not a public app API today |
 
 A reader who hopes to "drop in another backend" cannot. The
 backend list is admitted; new backends are admitted at the kernel
@@ -29,7 +29,7 @@ level, not by author convention.
 | Property | Value |
 | --- | --- |
 | Tech | Cubism SDK for Web |
-| Status | Shipped today |
+| Status | Running today |
 | Asset compatibility | Per `live2d-asset-compatibility-contract.md` |
 | Render contract | Per `live2d-render-contract.md` |
 | Backend extensions | Live2D-specific API (e.g., `live2dExtension`) |
@@ -37,13 +37,13 @@ level, not by author convention.
 Live2D is the production backend. Embodiment packages today are
 typically Live2D packages.
 
-## VRM Backend (admitted, in build-out)
+## VRM Backend (Admitted Contract; Release-Gated Surface)
 
 | Property | Value |
 | --- | --- |
 | Tech | VRM 3D asset standard (three-vrm + R3F) |
-| Status | Admitted backend branch; not yet shipped |
-| Backend extensions | VRM-specific (when shipped) |
+| Status | Admitted backend branch; not a public app API today |
+| Backend extensions | VRM-specific when that surface is exposed |
 
 VRM is admitted as a future backend so that NAS handlers can
 write portable code today without coupling to Live2D specifics
@@ -88,10 +88,10 @@ A NAS handler animates an idle pose.
    projection's idle pose method.
 2. **Live2D today.** Projection routes through Live2D
    extension; idle pose is rendered via Live2D parameters.
-3. **VRM tomorrow.** When VRM ships, the same handler routes
+3. **VRM surface.** When VRM is exposed, the same handler routes
    through VRM extension; idle pose is rendered via VRM
    capabilities.
-4. **Same handler ships everywhere.**
+4. **Same handler shape applies across backends.**
 
 Backend-agnostic handlers are portable across backends.
 

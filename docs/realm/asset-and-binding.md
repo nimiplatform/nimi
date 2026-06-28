@@ -165,15 +165,8 @@ attachment."
 
 ## Source Basis
 
-- [`.nimi/spec/realm/asset.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/asset.md)
-- [`.nimi/spec/realm/binding.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/binding.md)
-- [`.nimi/spec/realm/kernel/asset-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/kernel/asset-contract.md)
-- [`.nimi/spec/realm/kernel/binding-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/kernel/binding-contract.md)
-- [`.nimi/spec/realm/kernel/bundle-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/kernel/bundle-contract.md)
-- [`.nimi/spec/realm/kernel/resource-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/kernel/resource-contract.md)
-- [`.nimi/spec/realm/kernel/attachment-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/kernel/attachment-contract.md)
-- [`.nimi/spec/realm/kernel/tables/asset-contract.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/kernel/tables/asset-contract.yaml)
-- [`.nimi/spec/realm/kernel/tables/binding-contract.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/kernel/tables/binding-contract.yaml)
-- [`.nimi/spec/realm/kernel/tables/bundle-contract.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/kernel/tables/bundle-contract.yaml)
-- [`.nimi/spec/realm/kernel/tables/resource-contract.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/kernel/tables/resource-contract.yaml)
-- [`.nimi/spec/realm/kernel/tables/attachment-contract.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/kernel/tables/attachment-contract.yaml)
+- [`.nimi/spec/realm/README.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/README.md)
+- [`.nimi/spec/realm/external-realm.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/external-realm.md)
+- [`.nimi/spec/sdks/kernel/realm-api-consumer-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/realm-api-consumer-contract.md)
+- [`.nimi/spec/sdks/kernel/realm-core-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/realm-core-contract.md)
+- [`.nimi/spec/sdks/kernel/realm-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/realm-contract.md)

@@ -28,6 +28,32 @@ A minimal first-run path:
 The package is host-agnostic, so the same install path applies under
 any admitted AI host.
 
+### Nimi App Tools
+
+`@nimiplatform/app-tools` is the public app-authoring CLI for Nimi App
+developer repositories.
+
+```bash
+pnpm dlx --package @nimiplatform/app-tools nimi-app create --profile standalone
+```
+
+For the full scaffold path, see [Create A Nimi App](/start/create-an-app).
+The CLI creates scaffold inputs and local checks only. It does not create public
+app admission, permission grants, registry visibility, release descriptors, or
+installed-app update truth.
+
+## Package Channel Matrix
+
+| Package | npm install path | Source checkout path | Notes |
+| --- | --- | --- | --- |
+| `@nimiplatform/app-tools` | Public package with the `nimi-app` binary | `app-tools/` | Standalone scaffolds run it through `pnpm dlx --package`; workspace scaffolds may use `workspace:*`. |
+| `@nimiplatform/kit` | Public package | `kit/` | Kit is not a Runtime substitute; apps use its published subpath exports only. |
+| `@nimiplatform/sdk` | Public package for app consumers | `sdks/typescript/` private vNext workspace package | Generated standalone apps depend on the published SDK range from app-tools; repository development uses the workspace package. |
+
+Do not assume a source checkout automatically opens every product release
+channel. Use npm packages for standalone app repositories, and use `workspace:*`
+only inside this monorepo or generated workspace-app scaffolds.
+
 ## Surfaces Documented As Contract
 
 The following surfaces are documented at the contract level. Their
@@ -38,7 +64,10 @@ relates to the rest of the platform.
 | --- | --- | --- |
 | Platform | [Platform](/platform/) | The world model, six protocol primitives, authority rules |
 | Runtime | [Runtime](/runtime/) | AI execution, workflows, streaming, multimodal, provider routing |
-| SDK | [SDK](/sdk/) | The app-facing access boundary |
+| SDK | [SDK](/sdk/) and [First AI Call](/sdk/first-ai-call) | The app-facing access boundary and first Runtime-backed text generation path |
+| App Tools | [Create A Nimi App](/start/create-an-app) | App authoring scaffold commands and local checks |
+| Kit | [Platform Kit](/platform/kit/) | Shared UI, shell, auth, telemetry, model config, and feature modules |
+| Tester / Nimi Lab | [Use Tester As A Reference App](/start/use-tester-as-reference) | Reference app scripts, Runtime auth, Kit, AIConfig, and fail-closed states |
 | Desktop | [Desktop](/desktop/) | The native first-party shell |
 | Web Mode | [Web Mode](/desktop/web-mode) | The constrained browser projection |
 | Realm | [Realm](/realm/) | Semantic truth, world state, world history |
@@ -66,5 +95,11 @@ to publish without admitted evidence.
 - [`nimi-coding/spec/bootstrap-state.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/spec/bootstrap-state.yaml)
 - [`.nimi/spec/platform/kernel/web-release-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/web-release-contract.md)
 - [`.nimi/spec/runtime/kernel/cli-onboarding-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/cli-onboarding-contract.md)
+- [`.nimi/spec/platform/kernel/nimi-app-scaffolding-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/nimi-app-scaffolding-contract.md)
+- [`app-tools/README.md`](https://github.com/nimiplatform/nimi/blob/main/app-tools/README.md)
+- [`app-tools/lib/index.mjs`](https://github.com/nimiplatform/nimi/blob/main/app-tools/lib/index.mjs)
+- [`app-tools/lib/app-scaffold.mjs`](https://github.com/nimiplatform/nimi/blob/main/app-tools/lib/app-scaffold.mjs)
+- [`kit/package.json`](https://github.com/nimiplatform/nimi/blob/main/kit/package.json)
+- [`sdks/typescript/package.json`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/package.json)
 - [`nimi-coding/package.json`](https://github.com/nimiplatform/nimi-coding/blob/main/package.json)
 - [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi-coding/blob/main/README.md)

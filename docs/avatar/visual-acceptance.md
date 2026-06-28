@@ -1,12 +1,12 @@
 # Visual Acceptance
 
-## Status: Admitted, in build-out
+## Status: Admitted Contract; Release-Gated Surface
 
 The Avatar carrier visual acceptance contract is admitted at the
 kernel level. The evidence taxonomy, fail-closed boundary, and
 multi-backend evidence shape are fixed. Automated acceptance
-harnesses are in active build-out; not all evidence classes have
-shipped today.
+harnesses are Avatar-owned test surfaces; not every evidence class is
+available as a public app API.
 
 ## What "Visual Acceptance" Means
 
@@ -44,7 +44,7 @@ Carrier visual proof must include current executable evidence for:
 - resilience evidence for resize or host-bound changes when the
   implementation claims responsive surface behavior
 - failure evidence showing missing / invalid model input does not
-  render a placeholder success state
+  render a success state without evidence
 
 The proof may be automated through unit / integration tests, a
 deterministic headless harness, or a Playwright-style acceptance

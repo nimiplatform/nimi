@@ -12,7 +12,7 @@ SDK vNext 将框架适配器放在 base `@nimiplatform/sdk` package 之外。适
 | OpenAI-compatible | `sdks/typescript/adapters/openai-compatible` 下的 SDK adapter source root | OpenAI-compatible chat completion 形状的迁移桥 |
 | MCP / Next / React / LangGraph / LlamaIndex / Mastra | `sdks/typescript/adapters/*` 下的 adapter source root | 集成投影，不是 base SDK 子路径 |
 
-适配器可以依赖 `@nimiplatform/sdk/ai`、`@nimiplatform/sdk/agent`、
+适配器可以依赖 `@nimiplatform/sdk/ai`、`@nimiplatform/sdk/ai-runner`、
 `@nimiplatform/sdk/runtime` 或 feature module。它不能恢复已删除的 base SDK 子路径。
 
 ## 边界
@@ -21,7 +21,7 @@ SDK vNext 将框架适配器放在 base `@nimiplatform/sdk` package 之外。适
 | --- | --- |
 | Runtime 路由、provider readiness、审计 | Runtime |
 | SDK core AI request/response 语义 | `@nimiplatform/sdk/ai` |
-| Agent runner 与 identity 语义 | `@nimiplatform/sdk/agent` |
+| AI runner 编排语义 | `@nimiplatform/sdk/ai-runner` |
 | 框架调用形状映射 | Adapter package |
 | OpenAI-compatible request/response bridge | OpenAI-compatible adapter boundary |
 

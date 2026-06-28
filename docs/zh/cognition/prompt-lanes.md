@@ -1,8 +1,8 @@
 # 提示通道
 
-## 状态：已准入，正在构建中
+## 状态：已准入契约；Cognition 拥有的 surface
 
-提示通道注册表 (`tables/prompt-serving-lanes.yaml`) 和 `C-COG-050..C-COG-052` 提示服务契约已被准入。跨家族的通道路由实现正处于开发中。
+提示通道注册表 (`tables/prompt-serving-lanes.yaml`) 和 `C-COG-050..C-COG-052` 提示服务契约已被准入。跨家族通道路由属于 Cognition 拥有的 surface，不是应用自建路由表。
 
 ## 什么是提示通道
 

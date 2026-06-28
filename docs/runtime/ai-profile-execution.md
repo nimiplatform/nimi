@@ -1,12 +1,12 @@
 # AI Profile Execution
 
-## Status: Admitted, in build-out
+## Status: Admitted Contract; Public Use Follows Runtime/Desktop Surfaces
 
 The runtime contract for `AIProfile` execution
 (`K-AIEXEC-001..K-AIEXEC-005`) is admitted at the kernel level. The
 projection from desktop-portable `AIProfile` to local profile
 descriptors is shipped as the spec boundary; probe + snapshot UI is
-in active build-out.
+owned by the Runtime/Desktop surface that exposes it.
 
 ## What This Page Covers
 

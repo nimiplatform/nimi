@@ -9,15 +9,15 @@ event timeline, not as arbitrary chunk soup.
 
 | Mode | What it carries | Close semantics |
 | --- | --- | --- |
-| Mode A | Text and voice generation; chunks until terminal | Explicit `done=true` terminal frame |
+| Mode A | Text and voice generation; deltas until terminal | Explicit `STREAM_EVENT_COMPLETED` or `STREAM_EVENT_FAILED` event |
 | Mode B | State event streams (workflow events, status updates) | Closes after a terminal status |
 | Mode C | Audit export | Closes after an `eof` marker |
 | Mode D | Long-lived subscriptions (health, app messaging, realtime events) | Long-lived; closes only on session teardown |
 
 Each mode has explicit close semantics. An app that consumes a
-Mode A stream watches for `done=true`; an app that consumes a
-Mode B stream watches for a terminal status. The stream's mode is
-declared; apps do not have to guess.
+Mode A stream watches for a completed or failed stream event; an app
+that consumes a Mode B stream watches for a terminal status. The
+stream's mode is declared; apps do not have to guess.
 
 ## Terminal Frames
 
@@ -27,7 +27,7 @@ than truncating silently.
 
 | Mode | Terminal signal |
 | --- | --- |
-| Mode A | `done=true` frame |
+| Mode A | `STREAM_EVENT_COMPLETED` or `STREAM_EVENT_FAILED` frame |
 | Mode B | terminal status event |
 | Mode C | `eof` marker |
 | Mode D | session teardown |
@@ -82,13 +82,14 @@ An app issues a text generation that streams.
    retries per transport policy. The stream resumes from the
    appropriate boundary.
 4. **Provider returns content.** The stream continues.
-5. **Generation completes.** Runtime emits the `done=true`
-   terminal frame.
+5. **Generation completes.** Runtime emits a
+   `STREAM_EVENT_COMPLETED` terminal event.
 6. **App marks the response complete.** The user can now
    interact with the next turn.
 
 What did **not** happen: the stream never silently truncated.
-Either it reached `done=true` or it emitted a typed failure.
+Either it reached `STREAM_EVENT_COMPLETED` or it emitted a typed
+`STREAM_EVENT_FAILED` failure.
 
 ## Reader Scenario: Mode B Workflow Event Stream
 

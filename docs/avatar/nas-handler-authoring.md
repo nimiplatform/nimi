@@ -79,7 +79,7 @@ export default {
 `requires` declares the capability dependency. On a non-Live2D backend
 the handler is registered but skipped (or invokes the admitted
 fallback). VRM handlers will declare `requires: ['vrm-extension']` the
-same way once the VRM branch ships.
+same way once the VRM surface is exposed.
 
 ## Reader Scenario: Author a `wave` Activity
 

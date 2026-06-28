@@ -19,7 +19,7 @@ export default defineConfig({
   // Exclude contributor-facing files from the published site.
   // These files document authoring rules for contributors and are not
   // part of the reader-facing docs.
-  srcExclude: ['**/AGENTS.md'],
+  srcExclude: ['**/AGENTS.md', 'superpowers/**'],
 
   locales: {
     root: {

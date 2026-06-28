@@ -22,7 +22,7 @@ Reference for the Nimi public docs' compatibility and migration posture.
 | A typed contract fails | Surfaces a typed error, not a silent fallback |
 | A retry happens | Only for transport / auth refresh, never to rescue a contract |
 | An older route exists | Either kept as admitted public truth or hard-removed; not preserved as hidden compatibility |
-| A new feature ships | Lands with full contract design, not as an MVP subset to be filled in later |
+| A new feature ships | Lands with full contract design, not as a temporary subset to be filled in later |
 
 ## Forbidden Compatibility Shapes
 

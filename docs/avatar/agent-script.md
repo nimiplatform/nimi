@@ -53,7 +53,7 @@ is the typed seam.
 ## Backend-Specific Extensions When Type-Narrowed
 
 Live2D-specific handlers can use `live2dExtension` after type
-narrowing. VRM-specific handlers (when VRM ships) will use a
+narrowing. VRM-specific handlers (when the VRM surface is exposed) will use a
 distinct extension after their own type narrowing. Cross-backend
 handlers stay on the backend-agnostic API.
 

@@ -1,8 +1,8 @@
 # 知识界面
 
-## 状态：已准入，正在构建中
+## 状态：已准入契约；Desktop 拥有的 surface
 
-桌面知识界面契约 (`desktop/kernel/knowledge-ui-contract.md`) 已在内核层面获得准入。面向用户的浏览和管理界面正处于积极构建中。
+桌面知识界面契约 (`desktop/kernel/knowledge-ui-contract.md`) 已在内核层面获得准入。面向用户的浏览和管理界面属于 Desktop 拥有的 surface。
 
 ## 该界面是什么
 

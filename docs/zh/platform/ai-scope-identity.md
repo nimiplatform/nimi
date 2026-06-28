@@ -1,6 +1,6 @@
 # AI 范围身份
 
-## 状态：已准入，构建中 (Admitted, in build-out)
+## 状态：已准入契约；当前 scope 规则已固定
 
 `AIScopeRef` 已在内核层面获得准入
 (`P-AISC-001..P-AISC-005`)。应用所有的范围身份是当前产品路径；

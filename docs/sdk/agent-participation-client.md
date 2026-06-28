@@ -1,16 +1,16 @@
 # Agent Participation Client
 
-## Status: Deferred; semantic-contract-only
+## Status: Contract-Only; No Public SDK Method Today
 
 The runtime agent participation contract
 (`runtime-agent-participation-contract.md`) is admitted as a
 semantic-contract-only boundary. The methods registry and behavioral
 checks document the intended shape, but proto stubs and a public
-production participation SDK surface are deferred and proto-unavailable.
+production participation SDK surface are deferred and not exposed.
 
 ## What This Client Does
 
-The Agent Participation Client page describes the deferred contract for
+The Agent Participation Client page describes the contract for
 apps that may later participate in agent execution under an admitted
 participation profile (see
 [Platform → Agents → Participation Authority](/platform/agents/participation-authority)).
@@ -18,7 +18,7 @@ participation profile (see
 It is **not** a public production SDK surface today, and it is not a way
 to invent new participation profiles. The closed profile set lives in
 runtime spec; future SDK calls must submit against admitted profiles only
-after the deferred surface is implemented.
+after the public SDK surface is implemented.
 
 ## Method Surface
 
@@ -46,14 +46,14 @@ submission:
 | Output destination | Refuse outputs to non-admitted destinations |
 
 These are planned SDK-side guards. Runtime still validates server-side;
-until the deferred client exists, callers must receive unavailable or
-unsupported behavior rather than a pseudo-success.
+until the public client exists, callers must receive unavailable or
+unsupported behavior rather than a success response.
 
 ## Reader Scenario: Future App Submits An Output Candidate
 
-This is a future contract scenario, not a current public production
+This is a future contract-only scenario, not a current public production
 SDK promise. An app wants its agent to participate in a Realm group
-thread after the deferred participation SDK is admitted.
+thread after the deferred participation SDK is implemented.
 
 1. **Profile attach.** SDK call attaches the agent under
    `realm_group_participation`.

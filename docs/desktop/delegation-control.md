@@ -1,12 +1,12 @@
 # Delegation Control
 
-## Status: Admitted, in build-out
+## Status: Admitted Contract; Desktop-Owned Surface
 
 The Desktop agent delegation control surface contract
 (`desktop/kernel/agent-delegation-control-surface-contract.md`) is
 admitted at the kernel level. The user-facing approval +
-quarantine UI is admitted as direction; full surface in active
-build-out.
+quarantine UI is admitted as direction; public behavior belongs to Desktop,
+not to app-owned SDK code.
 
 ## What Delegation Control Is
 

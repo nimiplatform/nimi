@@ -9,12 +9,15 @@
     "**/*.md",
     "!**/node_modules/**",
     "!**/.git/**",
+    "!**/.cache/**",
     "!_external/**",
     "!archive/**",
     "!.local/**",
     "!.nimi/local/**",
+    "!.nimi/topics/**",
     "!**/dist/**",
     "!**/target/**",
-    "!**/coverage/**"
+    "!**/coverage/**",
+    "!tmp/**"
   ]
 }

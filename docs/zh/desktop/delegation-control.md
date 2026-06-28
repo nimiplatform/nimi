@@ -1,10 +1,10 @@
 # 委托控制
 
-## 状态：已准入，正在构建中
+## 状态：已准入契约；Desktop 拥有的 surface
 
 桌面 Agent 委托控制面合同
 (`desktop/kernel/agent-delegation-control-surface-contract.md`)
-已在内核层面获得准入。面向用户的审批与隔离 UI 已被准入为方向；完整的控制面正在积极构建中。
+已在内核层面获得准入。面向用户的审批与隔离 UI 属于 Desktop 拥有的 surface；公开行为以 Desktop 暴露面为准。
 
 ## 什么是委托控制
 

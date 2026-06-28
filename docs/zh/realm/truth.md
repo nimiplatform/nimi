@@ -1,13 +1,30 @@
-# 已废止的 Truth 指针
+# Realm 真相边界
 
-Realm 不再通过独立 truth 层定义世界或 persona 权威。当前权威是核心数据层：
+Realm 真相由外部 Realm 权威拥有。本仓库不定义 Realm server records、world lifecycle rules、social/economy invariants 或 Realm domain semantics。
 
-- `WorldCore`
-- `WorldCharacterCore`
-- `RealmPersona`
-- `RuntimeSourceSnapshot`
-- `WorldCoreIngressPackage`
-- `CorePatch`
+Nimi 通过 SDK 拥有的 generated clients 和 typed facades 消费 Realm。这意味着 App 代码应该把 Realm facts 当作配置的 Realm service 返回的 API 输出，而不是本地 Nimi spec truth。
 
-Creator 工具和 Forge 必须直接创建或 patch 这些 core 对象。未来如果需要抽象
-rule/truth，也必须从 core 数据模型反向派生，不能成为第二套世界/persona 真相。
+## Nimi 拥有什么
+
+| Nimi surface | 职责 |
+| --- | --- |
+| SDK generated Realm core | 从配置的 Realm OpenAPI 输入生成 typed client shape |
+| SDK Realm facade | consumer transport、token handling、fail-closed errors 和 typed wrappers |
+| Runtime/Desktop/Web/apps | 通过 SDK 边界消费 Realm projections |
+
+## Nimi 不拥有什么
+
+- Realm canonical records。
+- Realm social、chat、economy、asset、binding、transit 或 world rules。
+- Realm auth/session issuance truth。
+- 本仓库内新增的本地 Realm kernel contract mirror。
+
+如果 App 需要 Realm 数据，应使用 SDK Realm client，或在该 client 之上写 app-owned wrapper。不要复制 Realm endpoint strings、重复声明 response shapes，或把旧的本地 Realm spec mirror 当作 authority。
+
+## 来源依据
+
+- [`.nimi/spec/realm/README.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/README.md)
+- [`.nimi/spec/realm/external-realm.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/external-realm.md)
+- [`.nimi/spec/sdks/kernel/realm-api-consumer-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/realm-api-consumer-contract.md)
+- [`.nimi/spec/sdks/kernel/realm-core-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/realm-core-contract.md)
+- [`.nimi/spec/sdks/kernel/realm-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/realm-contract.md)

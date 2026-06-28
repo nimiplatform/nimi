@@ -5,7 +5,7 @@
 The Avatar debug workbench surface is admitted at the contract level
 across Avatar (intake + backend evidence) and Runtime (probe envelope
 + replay authority). User-facing workbench tooling is admitted as
-direction; it is not yet shipped.
+direction; it is not a public app API today.
 
 ## What the Debug Workbench Is
 
@@ -133,7 +133,7 @@ to refuse that substitution.
 | --- | --- | --- |
 | Probe request / result envelope + replay | Runtime | `avatar-debug-projection-contract.md` (K-AGCORE-054..060) |
 | Backend evidence | Avatar | `avatar-debug-session-contract.md` |
-| Workbench UX | Desktop | (admitted as direction; not yet shipped) |
+| Workbench UX | Desktop | Not a public app API today |
 
 ## Source Basis
 

@@ -1,10 +1,10 @@
 # Reference Graph
 
-## Status: Admitted, in build-out
+## Status: Admitted Contract; Release-Gated Surface
 
 The admitted reference matrix and refgraph explainability boundary
 (`C-COG-047..C-COG-049`) are admitted. Cross-family ref tooling and
-cleanup proposal UI are in active build-out.
+cleanup proposal UI are Cognition-owned surfaces and are not app-owned APIs.
 
 ## What The Reference Graph Is
 

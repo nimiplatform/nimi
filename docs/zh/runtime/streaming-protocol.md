@@ -10,7 +10,7 @@
 
 | 模式 | 关闭信号 | RPC |
 | --- | --- | --- |
-| **A — `done=true` 终端帧** | 最终事件携带 `done=true` | `StreamScenario` (`TEXT_GENERATE`), `StreamScenario` (`SPEECH_SYNTHESIZE`) |
+| **A — `STREAM_EVENT_COMPLETED / STREAM_EVENT_FAILED` 终端帧** | 最终事件携带 `STREAM_EVENT_COMPLETED / STREAM_EVENT_FAILED` | `StreamScenario` (`TEXT_GENERATE`), `StreamScenario` (`SPEECH_SYNTHESIZE`) |
 | **B — 终端事件后 gRPC OK 关闭** | 服务器发出终端事件，然后干净地关闭流 | `SubscribeScenarioJobEvents`, `SubscribeWorkflowEvents` |
 | **C — `eof=true` 块后 gRPC OK 关闭** | 服务器发出 `eof=true` 块，然后关闭 | `ExportAuditEvents` |
 | **D — 长期订阅流** | 无终端帧；任何一方都可关闭 | `SubscribeRuntimeHealthEvents`, `SubscribeAIProviderHealthEvents`, `SubscribeAccountSessionEvents`, `SubscribeMemoryEvents`, `SubscribeAgentEvents`, `SubscribeAppMessages`, `ReadRealtimeEvents`, `WatchLocalTransfers`, `grpc.health.v1.Health/Watch` |
@@ -24,7 +24,7 @@
 | 阶段 | 错误流向 |
 | --- | --- |
 | `K-KEYSRC-004` 评估链的第 1-9 步 | 建立前错误 → gRPC 错误 |
-| 第 10 步（路由执行） | 流已建立；后续业务/上游错误 → 终端帧 (`done=true + reason_code`) |
+| 第 10 步（路由执行） | 流已建立；后续业务/上游错误 → 携带 reason code 的 `STREAM_EVENT_FAILED` 终端帧 |
 
 这种划分是故意的：建立前的错误是连接失败（调用者从未开始流式传输）；建立后的错误是流内的业务结果（调用者已经在流式传输）。
 
@@ -34,16 +34,18 @@
 
 | 事件形状 | 必须 |
 | --- | --- |
-| `done=false` 事件 | `text_delta` 必须非空 |
-| `done=true` 终端 | 必须携带 `usage`；如果上游缺乏令牌统计信息，则填充 `-1`；可能携带最终 `text_delta` |
+| `STREAM_EVENT_DELTA` 事件 | `payload.delta.text.text` 必须非空 |
+| `STREAM_EVENT_USAGE` | Runtime 有用量证据时携带增量或最终 `UsageStats` |
+| `STREAM_EVENT_COMPLETED` | 携带 `payload.completed.finish_reason` 和完成元数据 |
+| `STREAM_EVENT_FAILED` | 携带 `payload.failed.reason_code`，可附带 `action_hint` |
 
 语音流 (`SPEECH_SYNTHESIZE`)：
 
 | 事件形状 | 必须 |
 | --- | --- |
-| `done=false` 事件 | `audio_chunk` 必须非空 |
-| `done=true` 成功 | `reason_code=REASON_CODE_UNSPECIFIED`；`audio_chunk` 为空 |
-| `done=true` 失败 | 必须携带 `reason_code`；`audio_chunk` 为空 |
+| `STREAM_EVENT_DELTA` 事件 | `payload.delta.artifact` 的 artifact chunk 和 MIME type 必须匹配已准入的语音 artifact 合约 |
+| `STREAM_EVENT_COMPLETED` | 携带强类型完成元数据 |
+| `STREAM_EVENT_FAILED` | 携带 `payload.failed.reason_code`，可附带 `action_hint` |
 
 ## 模式 B 事件约束
 
@@ -51,7 +53,7 @@
 
 | 规则 | 值 |
 | --- | --- |
-| `done=true` 语义 | 不使用 |
+| Mode A 终端语义 | 不使用 |
 | 稳态关闭 | 在终端事件后，服务器以 gRPC OK 关闭流 |
 | `STOPPING` 预占 | 守护进程可能会使用 gRPC `CANCELLED` 预占活动流；终端事件传递不保证 |
 
@@ -63,11 +65,11 @@
 
 1. **建立前验证。** `K-KEYSRC-004` 链的第 1-9 步：解析、JWT、app_id、密钥源、连接器加载、所有者检查、端点安全等。
 2. **建立。** 所有建立前检查通过。流开始（第 10 步）。
-3. **`done=false` 事件。** 每个事件携带非空 `text_delta`。
-4. **终端 `done=true`。** 携带 `usage`。可能携带最终 `text_delta`。
+3. **`STREAM_EVENT_DELTA` 事件。** 每个事件携带非空 `payload.delta.text.text`。
+4. **终端事件。** Runtime 发出带 completed payload 的 `STREAM_EVENT_COMPLETED`，或带 failed payload 的 `STREAM_EVENT_FAILED`。
 5. **流关闭。** 收到终端帧后，gRPC OK 关闭。
 
-如果在建立后发生故障，它将以带有 `done=true + reason_code` 的终端帧形式出现，而不是作为 gRPC 错误。
+如果在建立后发生故障，它将以带有 reason code 的 `STREAM_EVENT_FAILED` 终端帧形式出现，而不是作为 gRPC 错误。
 
 ## 读者场景：长期订阅在守护进程重启后存活
 
@@ -93,7 +95,7 @@
 ## 流式协议不做的事情
 
 - 它不允许消费者推断关闭行为；每个 RPC 的模式都在表中明确列出。
-- 它不允许在模式 B/C/D 中使用 `done=true` 语义。
+- 它不允许在模式 B/C/D 中使用 `STREAM_EVENT_COMPLETED / STREAM_EVENT_FAILED` 语义。
 - 它不允许模式 D 流期望终端事件。
 - 它不允许在模式 A 中将建立后的错误作为 gRPC 错误而不是终端帧显示。
 - 它不允许消费者假设作业/工作流流中的严格事件类型单调性。

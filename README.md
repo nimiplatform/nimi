@@ -111,6 +111,7 @@ app, not the platform itself.
 | [`apps/desktop/`](apps/desktop/) | Native first-party shell — agent chat, local AI, knowledge, voice |
 | [`apps/web/`](apps/web/) | Browser projection of public Desktop surfaces |
 | [`apps/avatar/`](apps/avatar/) | Live2D embodied carrier for Nimi agents (floating desktop avatar) |
+| [`apps/tester/`](apps/tester/) | Nimi Lab developer reference app for SDK, Kit, app-tools, Runtime auth, and AI capability lanes |
 | [`apps/install-gateway/`](apps/install-gateway/) | Cloudflare Worker for release distribution |
 
 ## What's Installable Today
@@ -131,33 +132,45 @@ developer repositories. It creates scaffold inputs and local checks only; it
 does not create public app admission, permission grants, release descriptors,
 registry visibility, or installed-app update truth.
 
+```bash
+pnpm dlx --package @nimiplatform/app-tools nimi-app create --profile standalone
+```
+
 The Platform, Runtime, SDK, Desktop, Web, Realm, Avatar, and Cognition
 surfaces are documented at the contract level under `docs/` and authored
 under `.nimi/spec/`. Their stable public product release channels remain
-release-gated and are not opened by the source checkout itself.
+release-gated and are not opened by the source checkout itself. Cloning the
+repo does not make those products publicly installable.
 
 ## Source Checkout Quickstart
 
 These commands are for a source checkout or locally built runtime binary.
-Once the runtime CLI is on `PATH`, three commands cover the zero-config
-first-run path:
+Once the runtime CLI is on `PATH`, initialize config, start the daemon, and
+verify a runnable route:
 
 ```sh
-# Start the local runtime daemon (background).
+# Create runtime config if it is missing.
+nimi init
+
+# Start the local runtime daemon in the background.
 nimi start
 
-# Ask the local runtime to answer a question with the default provider.
+# Ask Runtime to answer a question through the configured route.
 nimi run "What is Nimi?"
 
-# Same prompt, routed through Gemini (set the API key in your env first;
-# see the provider configuration step below).
+# Same prompt, explicitly routed through Gemini.
 nimi run "What is Nimi?" --provider gemini
+
+# Save Gemini as the default provider route for later calls.
+nimi provider set gemini --api-key-env GEMINI_API_KEY --default
 ```
 
-To configure a cloud provider before invoking `--provider gemini`:
+For local-first setup, replace the provider step with the relevant local model
+pull and readiness check:
 
 ```sh
-nimi provider set gemini --api-key-env GEMINI_API_KEY
+nimi model pull --model-ref <admitted-model-ref>
+nimi model health --model-id <installed-model-id>
 ```
 
 `nimi doctor` reports environment, daemon, and provider readiness.
@@ -189,6 +202,11 @@ organized by product.
 | Find the reading path for your role | [docs/start/personas.md](docs/start/personas.md) |
 | How AI execution is governed | [docs/runtime/index.md](docs/runtime/index.md) |
 | How apps integrate without crossing internal boundaries | [docs/sdk/index.md](docs/sdk/index.md) |
+| How a TypeScript app makes its first Runtime AI call | [docs/sdk/first-ai-call.md](docs/sdk/first-ai-call.md) |
+| How apps reuse shared UI, shell, auth, model config, and feature modules | [docs/platform/kit/use-kit-in-app.md](docs/platform/kit/use-kit-in-app.md), [kit/README.md](kit/README.md) |
+| How to create a Nimi App scaffold | [docs/start/create-an-app.md](docs/start/create-an-app.md) |
+| How to study the reference app | [docs/start/use-tester-as-reference.md](docs/start/use-tester-as-reference.md) |
+| How to interpret Runtime, SDK, Tester, and scaffold failures | [docs/start/troubleshooting.md](docs/start/troubleshooting.md) |
 | Why Desktop and Web are not equivalent | [docs/desktop/index.md](docs/desktop/index.md) |
 | Where world truth and history live | [docs/realm/index.md](docs/realm/index.md) |
 | How embodied AI presentation is scoped | [docs/avatar/index.md](docs/avatar/index.md) |
@@ -216,10 +234,11 @@ original Chinese content, not sentence-by-sentence translation.
 | `.nimi/contracts/` | Machine contracts for reconstruction, audit, admission |
 | `.nimi/topics/` | Human-authored topic lifecycle artifacts |
 | `runtime/` | Go runtime daemon and CLI (`runtime/cmd/nimi`) |
-| `sdks/` | SDK family root; TypeScript vNext publishes as `@nimiplatform/sdk` |
+| `sdks/` | SDK family root; TypeScript vNext package target is `@nimiplatform/sdk` |
 | `kit/` | Cross-app design system, auth, telemetry, and feature modules |
+| `app-tools/` | Public app-authoring CLI (`nimi-app`) and scaffold templates |
 | `proto/` | Protocol Buffers and gRPC definitions |
-| `apps/` | Active apps (Desktop, Web, Avatar, install gateway) |
+| `apps/` | Active apps and references (Desktop, Web, Avatar, Tester/Nimi Lab, install gateway) |
 | `nimi-cognition/` | Cognition implementation workspace |
 | `docs/` | Public documentation source (VitePress) |
 | `examples/` | SDK / runtime / app scaffold templates |

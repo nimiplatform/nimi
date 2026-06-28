@@ -69,6 +69,7 @@ const platformGroups: DefaultTheme.SidebarItem[] = [
     text: 'Kit',
     items: [
       { text: 'Platform Kit', link: '/platform/kit/' },
+      { text: 'Use Kit In An App', link: '/platform/kit/use-kit-in-app' },
       { text: 'Design Pattern', link: '/platform/kit/design-pattern' },
       { text: 'Nimi UI Material', link: '/platform/kit/nimi-ui-material' },
     ],
@@ -129,6 +130,7 @@ const sdkGroups: DefaultTheme.SidebarItem[] = [
     text: 'Overview',
     items: [
       { text: 'Overview', link: '/sdk/' },
+      { text: 'First AI Call', link: '/sdk/first-ai-call' },
       { text: 'Boundaries', link: '/sdk/boundaries' },
     ],
   },
@@ -206,10 +208,10 @@ const realmGroups: DefaultTheme.SidebarItem[] = [
   {
     text: 'World Semantics',
     items: [
-      { text: 'Truth', link: '/realm/truth' },
+      { text: 'External Truth Boundary', link: '/realm/truth' },
       { text: 'World State', link: '/realm/world-state' },
       { text: 'World History', link: '/realm/world-history' },
-      { text: 'Projection', link: '/realm/projection' },
+      { text: 'Consumer Projection', link: '/realm/projection' },
     ],
   },
   {
@@ -415,6 +417,9 @@ export const sidebarEn: DefaultTheme.Sidebar = {
         { text: 'Start Here', link: '/start/' },
         { text: 'Personas', link: '/start/personas' },
         { text: 'Installation And Availability', link: '/start/install' },
+        { text: 'Create A Nimi App', link: '/start/create-an-app' },
+        { text: 'Use Tester As Reference', link: '/start/use-tester-as-reference' },
+        { text: 'Troubleshooting', link: '/start/troubleshooting' },
       ],
     },
     {

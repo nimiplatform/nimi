@@ -1,6 +1,6 @@
 # AI 最终执行环节（AI Last Mile）
 
-## 状态：已准入，建设中 (Admitted, in build-out)
+## 状态：已准入契约；公开调用以 Platform/Runtime 暴露面为准
 
 AI action boundary + Principal 模型 + 执行协议状态机已在内核层准入 (P-ALMI-002, P-ALMI-003, P-ALMI-011)。
 

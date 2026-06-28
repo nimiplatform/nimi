@@ -39,13 +39,12 @@ raw ontology promotion, and external execution as fail-closed.
 | Server lifecycle | Runtime starts / connects / monitors / closes |
 | Tool listing | Runtime calls MCP discovery via the official adapter |
 
-## Remote Transports (deferred)
+## Remote Transports
 
-Remote HTTP transports are deferred. They require a later admission
-packet that proves target-resource authorization, credential custody,
-timeout behavior, and response quarantine against the delegated MCP
-adapter contract. Until that packet lands, the remote HTTP path does not
-ship.
+Remote HTTP transports are not a public Runtime API today. They require
+later admission evidence that proves target-resource authorization,
+credential custody, timeout behavior, and response quarantine against
+the delegated MCP adapter contract before apps can use them.
 
 ## Official SDK Adapter Dependency
 

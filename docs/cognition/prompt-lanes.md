@@ -1,11 +1,11 @@
 # Prompt Lanes
 
-## Status: Admitted, in build-out
+## Status: Admitted Contract; Release-Gated Surface
 
 The prompt-lane registry (`tables/prompt-serving-lanes.yaml`) and
 the `C-COG-050..C-COG-052` prompt-serving contracts are admitted.
-The lane-routing implementation across families is in active
-build-out.
+The lane-routing implementation across families is a Cognition-owned surface,
+not an app-owned routing table.
 
 ## What Prompt Lanes Are
 

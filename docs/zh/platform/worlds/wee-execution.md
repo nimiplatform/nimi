@@ -2,7 +2,7 @@
 
 ## 状态：已准入平台方向
 
-世界演化引擎内核框架 (`K-WEV-*`) 已在合同层面被准入——语义所有者边界、重放/检查点语义、监督边界、效果阶段排序、提交请求分阶段。WEE 是一个未来的运行时引擎，它生成格式良好的变更请求供 Realm 接受；目前尚未发布可运行的形态。
+世界演化引擎内核框架 (`K-WEV-*`) 已在合同层面被准入——语义所有者边界、重放/检查点语义、监督边界、效果阶段排序、提交请求分阶段。WEE 是一个未来的运行时引擎，它生成格式良好的变更请求供 Realm 接受；当前没有公开 Runtime API。
 
 ## WEE 是什么
 
@@ -143,6 +143,9 @@ WEE 在 `REPLAY` 模式下重放先前的规范变更。
 ## 来源依据
 
 - [`.nimi/spec/runtime/kernel/world-evolution-engine-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/world-evolution-engine-contract.md)
-- [`.nimi/spec/realm/kernel/world-state-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/kernel/world-state-contract.md)
-- [`.nimi/spec/realm/kernel/world-history-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/kernel/world-history-contract.md)
+- [`.nimi/spec/realm/README.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/README.md)
+- [`.nimi/spec/realm/external-realm.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/external-realm.md)
+- [`.nimi/spec/sdks/kernel/realm-api-consumer-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/realm-api-consumer-contract.md)
+- [`.nimi/spec/sdks/kernel/realm-core-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/realm-core-contract.md)
+- [`.nimi/spec/sdks/kernel/realm-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/realm-contract.md)
 - [`.nimi/spec/runtime/kernel/streaming-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/streaming-contract.md)

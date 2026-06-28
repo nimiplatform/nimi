@@ -1,6 +1,6 @@
 # AI Scope Identity
 
-## Status: Admitted, in build-out
+## Status: Admitted Contract; Current Scope Rules Pinned
 
 `AIScopeRef` is admitted at the kernel level
 (`P-AISC-001..P-AISC-005`). App-owned scope identity is the active

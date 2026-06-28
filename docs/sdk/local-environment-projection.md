@@ -1,9 +1,10 @@
 # Local Environment Projection
 
-## Status: Admitted, in build-out
+## Status: Admitted Contract; Release-Gated Surface
 
 The local environment projection contract is admitted at the SDK kernel level.
-The full developer-facing projection surface is in active build-out.
+The full developer-facing projection surface is usable only when present in SDK
+package exports.
 
 ## What This Page Covers
 

@@ -16,6 +16,8 @@ Dedicated subpaths remain available for lower-level or domain-specific use.
 ## What This Section Contains
 
 - [Boundaries](/sdk/boundaries) — the import and call rules apps must follow.
+- [First AI Call](/sdk/first-ai-call) — the shortest Runtime-backed text
+  generation path through `createNimiClient`.
 - [Runtime Client](/sdk/runtime-client) — the public app path into Runtime.
 - [Realm And Composition](/sdk/realm-world-client) — Realm truth and admitted
   world-facing composition without restoring `@nimiplatform/sdk/world`.
@@ -37,11 +39,11 @@ adapters are independent packages, not base SDK subpaths.
 | `@nimiplatform/sdk/types` | Shared public types and SDK errors |
 | `@nimiplatform/sdk/contracts` | Public contract descriptors |
 | `@nimiplatform/sdk/ai` | Native AI model generation surface |
-| `@nimiplatform/sdk/agent` | Agent identity and runner surface |
+| `@nimiplatform/sdk/ai-runner` | Framework-neutral AI runner facade |
 | `@nimiplatform/sdk/testing` | Test helpers for SDK consumers |
 | `@nimiplatform/sdk/features/*` | Feature-level modules for conversation, generation, workflow, evaluation, knowledge context, memory context, and toolkits |
 
-The removed legacy subpaths must fail closed: `@nimiplatform/sdk/world`,
+The removed subpaths must fail closed: `@nimiplatform/sdk/world`,
 `@nimiplatform/sdk/scope`, `@nimiplatform/sdk/ai-provider`,
 `@nimiplatform/sdk/ai-app`, and old runtime compatibility subpaths are not
 forwarded.
@@ -64,7 +66,8 @@ An app that needs Realm data and Runtime-backed generation should:
 1. Create a root client with explicit app identity.
 2. Read Realm data through `client.realm` or `@nimiplatform/sdk/realm`.
 3. Run Runtime work through `client.runtime`, `@nimiplatform/sdk/runtime`, or
-   native `@nimiplatform/sdk/ai` helpers.
+   native `@nimiplatform/sdk/ai` helpers. For a first text generation, start
+   with [First AI Call](/sdk/first-ai-call).
 4. Use `@nimiplatform/sdk/features/*` only when the feature contract matches
    the workflow.
 5. Keep portable ids, reason codes, and public errors in

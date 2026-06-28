@@ -1,12 +1,24 @@
-# 已废止的 Projection 指针
+# Realm 消费者投影
 
-Realm 不再把 projection package 当作当前世界/persona 消费权威。App 和 Runtime
-消费的是已准入的 core/source 形态：
+本仓库里的 Realm projection 指 Nimi consumer 通过 SDK Realm boundary 接收到的形状。它不是第二套 Realm truth，也不是本地 Realm domain model。
 
-- 世界读取暴露 `WorldCore` 和已准入的世界聚合；
-- 角色读取暴露 `WorldCharacterCore`；
-- persona 读取暴露 `RealmPersona`；
-- Runtime 通过 `RuntimeSourceSnapshot` 按值物化 LocalAgent。
+Apps、Runtime、Desktop 和 Web 应通过 SDK 拥有的 typed clients 消费 Realm。本地状态可以缓存或呈现 Realm output，但不能成为 canonical Realm truth。
 
-Projection 不是写入路径，不是 prompt 构建器，也不是平行真相。如果下游需要专用
-视图，它必须从 core 对象按请求派生，不能替代 core 对象。
+## 消费者规则
+
+| 关注点 | 边界 |
+| --- | --- |
+| Generated API input | 来自配置的外部 Realm OpenAPI source |
+| SDK facade | 可以用 typed fail-closed behavior 包装 generated operations |
+| Runtime/Desktop projection | 可以呈现 Realm output，但不能合成 Realm success |
+| App wrappers | 可以为产品 UI 适配 SDK output，但不能重新定义 Realm semantics |
+
+当 Realm API 出现 drift 时，应从配置的 Realm input 重新生成 SDK core，并更新 consumer contracts/tests。不要通过把 Realm spec text 复制进本仓库或冻结 handwritten DTO 来补 drift。
+
+## 来源依据
+
+- [`.nimi/spec/realm/README.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/README.md)
+- [`.nimi/spec/realm/external-realm.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/external-realm.md)
+- [`.nimi/spec/sdks/kernel/realm-api-consumer-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/realm-api-consumer-contract.md)
+- [`.nimi/spec/sdks/kernel/realm-core-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/realm-core-contract.md)
+- [`.nimi/spec/sdks/kernel/realm-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/realm-contract.md)

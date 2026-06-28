@@ -60,6 +60,8 @@ does not carry an independent workspace package manifest.
 
 For the design-language depth see [Design Pattern](/platform/kit/design-pattern).
 For the material-token catalog see [Nimi UI Material](/platform/kit/nimi-ui-material).
+For app integration steps and import examples, see
+[Use Kit In An App](/platform/kit/use-kit-in-app).
 
 ## What Kit Does Not Own
 

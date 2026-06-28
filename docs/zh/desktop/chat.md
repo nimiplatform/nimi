@@ -22,7 +22,7 @@
 
 | 维度 | 取值 |
 | --- | --- |
-| 模式 | Mode A（文本/语音，结尾帧带显式 `done=true`） |
+| 模式 | Mode A（文本/语音，结尾帧带显式 `STREAM_EVENT_COMPLETED / STREAM_EVENT_FAILED`） |
 | 气泡渲染 | 边收到分片边渲染 |
 | 中途停止 | 流式期间可用 |
 | 部分内容 | 中断时保留 |
@@ -73,8 +73,11 @@ Agent 身份是 Realm 的规范态；对话连续性归 Runtime 的 anchor；流
 ## 来源依据
 
 - [`.nimi/spec/desktop/chat.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/chat.md)
-- [`.nimi/spec/realm/chat.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/chat.md)
-- [`.nimi/spec/realm/kernel/chat-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/kernel/chat-contract.md)
+- [`.nimi/spec/realm/README.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/README.md)
+- [`.nimi/spec/realm/external-realm.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/external-realm.md)
+- [`.nimi/spec/sdks/kernel/realm-api-consumer-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/realm-api-consumer-contract.md)
+- [`.nimi/spec/sdks/kernel/realm-core-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/realm-core-contract.md)
+- [`.nimi/spec/sdks/kernel/realm-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/realm-contract.md)
 - [`.nimi/spec/runtime/kernel/streaming-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/streaming-contract.md)
 - [`.nimi/spec/runtime/kernel/runtime-agent-service-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/runtime-agent-service-contract.md)
 - [`.nimi/spec/runtime/kernel/agent-conversation-anchor-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/agent-conversation-anchor-contract.md)

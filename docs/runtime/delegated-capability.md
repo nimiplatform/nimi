@@ -4,7 +4,7 @@
 > output firewall, and audit lineage are release-promised for admitted
 > delegated capability requests. MCP remains partial contract evidence;
 > production MCP transport, MCP resources, raw MCP ontology promotion,
-> and external execution are not promised. A2A production is deferred.
+> and external execution are not public production APIs.
 
 Runtime owns the gateway and the output firewall through which admitted
 external AI hosts can propose action on the platform. This page covers

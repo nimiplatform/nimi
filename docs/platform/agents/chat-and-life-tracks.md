@@ -112,7 +112,7 @@ budget is exhausted.
   reply.
 - The user does not experience any visible saturation; what they
   see is "I can talk to Yuki normally." What does not happen is a
-  pseudo-success follow-up.
+  false success follow-up.
 
 This separation is the architectural payoff. Reactive availability
 is not held hostage by proactive cost.

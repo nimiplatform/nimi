@@ -1,8 +1,8 @@
 # AI 配置文件
 
-## 状态：已准入，正在构建中
+## 状态：已准入契约；Desktop 拥有的 surface
 
-桌面 AI 配置文件配置合约 (`desktop/kernel/ai-profile-config-contract.md`) 已获得准入。面向用户的 Agent 配置界面正在开发中。
+桌面 AI 配置文件配置合约 (`desktop/kernel/ai-profile-config-contract.md`) 已获得准入。面向用户的 Agent 配置界面属于 Desktop 拥有的 surface。
 
 ## 该界面是什么
 

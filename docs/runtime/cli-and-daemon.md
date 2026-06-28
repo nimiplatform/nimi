@@ -30,7 +30,7 @@ on its state.
 
 | Command | Purpose |
 | --- | --- |
-| `nimi install` | First-time install path |
+| `nimi init` | Initialize runtime configuration |
 | `nimi serve` | Run the daemon in the foreground |
 | `nimi start` | Start the daemon in the background |
 | `nimi stop` | Stop the daemon |
@@ -38,6 +38,9 @@ on its state.
 | `nimi logs` | Read the daemon's log |
 | `nimi doctor` | Diagnose daemon, providers, models, audit volume, replication backlog |
 | `nimi version` | Show CLI and daemon version |
+| `nimi run` / `nimi chat` | Generate text through the default or selected runtime route |
+| `nimi provider` | Configure and test cloud providers |
+| `nimi model` | List, pull, remove, and check local models |
 
 The CLI is not a remote-control surface for arbitrary state. It is
 a small set of bounded operations that match the daemon's lifecycle
@@ -46,51 +49,51 @@ extensions.
 
 ## First-Run Flow
 
-The first run has a defined shape so users do not face an undefined
-"what now" moment after install.
+The CLI does not have an install wizard. A source checkout or locally
+built binary follows an explicit command path:
 
-```
-install → first-run choice
-                │
-       ┌────────┴────────┐
-       ▼                 ▼
-provider-first    local-model-first
-cloud setup       install
-       │                 │
-       └─────────┬───────┘
-                 ▼
-           daemon ready
+```bash
+nimi init
+nimi provider set gemini --api-key-env GEMINI_API_KEY --default
+nimi start
+nimi run "What is Nimi?"
+nimi doctor
 ```
 
-| Path | When to take it |
-| --- | --- |
-| Provider-first cloud setup | You have an admitted cloud provider account and want to start with cloud capability |
-| Local model first | You want to start fully local; install a local engine and a model bundle |
+For local-first setup, replace the provider step with the relevant
+local model pull and readiness checks:
 
-Both paths converge on a daemon that is `READY` with at least one
-admitted route to AI capability.
+```bash
+nimi model list
+nimi model pull --model-ref <admitted-model-ref>
+nimi model health --model-id <installed-model-id>
+```
+
+Both cloud and local paths converge on a daemon that is `READY` with
+at least one admitted route to AI capability. If a required provider
+or local model is missing, the CLI reports the missing route instead
+of silently falling back to another execution path.
 
 ## Reader Scenario: Going From Install To First Generation
 
 You have just installed Nimi and want to confirm everything works.
 
-1. **Install.** `nimi install` runs the install path. The
-   daemon binary is placed; configuration is bootstrapped.
-2. **First-run choice.** The CLI presents the provider-first or
-   local-model first choice. You pick provider-first because you
-   already have a provider account.
-3. **Connector setup.** You add a connector — a managed identity
-   for the provider. Credentials are validated; the connector
-   reports the models it can route to.
-4. **Daemon start.** `nimi serve` (or `nimi start` for
+1. **Initialize config.** `nimi init` creates the runtime config
+   when it is missing.
+2. **Configure a route.** For cloud, `nimi provider set <provider>`
+   writes provider credentials or credential references into runtime
+   config. For local execution, `nimi model pull` installs an
+   admitted local model bundle.
+3. **Daemon start.** `nimi serve` (or `nimi start` for
    background). The daemon's lifecycle moves through
    `STARTING → READY`.
-5. **Verify.** `nimi doctor` reports daemon `READY`, provider
+4. **Verify.** `nimi doctor` reports daemon `READY`, provider
    health green, model readiness green, audit volume zero,
    replication backlog zero.
-6. **First generation.** An app connects via gRPC and issues a
-   request. The request becomes a `ScenarioJob`; the workflow
-   moves through `ACCEPTED → QUEUED → RUNNING → COMPLETED`.
+5. **First generation.** `nimi run "What is Nimi?"` or an app
+   connecting through the SDK issues a request. Runtime routes the
+   request through the configured cloud or local target and returns a
+   typed result or typed failure.
 
 The CLI surfaces enough to confirm health without exposing
 internal state. If `nimi doctor` reports anything yellow or red,

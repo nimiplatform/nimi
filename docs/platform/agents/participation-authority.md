@@ -1,6 +1,6 @@
 # Participation Authority
 
-## Status: Mixed; canonical chat supported, participation SDK deferred
+## Status: Canonical Chat Supported; Other Profiles Are Contract-Only
 
 The participation authority model is admitted at the kernel level
 (`runtime-agent-participation-contract.md`, K-AGCORE-061..K-AGCORE-073).
@@ -24,9 +24,8 @@ promotion to durable agent truth.
 The participation authority model is the admitted set of rules that
 covers all of these contexts uniformly. It is not a list of options
 the app picks from — it is the **closed authority surface** that
-runtime enforces when a profile is actually implemented. Deferred
-profiles remain semantic-contract-only until their runtime and SDK
-surfaces are admitted.
+runtime enforces when a profile is actually implemented. Contract-only
+profiles are not app-callable until Runtime and SDK expose them.
 
 ## Nine Orthogonal Axes
 
@@ -76,7 +75,7 @@ The profile families:
 | `realm_group_participation` | Agent acting as a slot in a Realm group thread |
 | `scenario_sandbox_participation` | Agent acting in a Scenario package, run, or branch |
 | `oasis_world_actor_participation` | Agent acting as an actor in an OASIS world |
-| `external_a2a_participation` | Deferred; no production A2A support |
+| `external_a2a_participation` | Contract only and deferred; no public A2A app API |
 | `debug_participation` | Diagnostic / replay observation profile |
 
 Each profile pins specific values across the nine axes.
@@ -91,9 +90,9 @@ writes everything, commits everything" by accident.
 
 ## Reader Scenario: Future Agent In A Realm Group
 
-This is a deferred contract scenario, not a current public production
-SDK promise. A user's agent is a slot in a Realm group thread alongside
-other humans after the profile surface is implemented.
+This is a contract scenario, not a current public SDK promise. A user's agent
+is a slot in a Realm group thread alongside other humans after the profile
+surface is exposed.
 
 1. **Profile attaches.** App attaches the agent through
    `realm_group_participation`. Runtime validates the profile.
@@ -115,9 +114,8 @@ and direct commit. The profile is what keeps these contexts honest.
 
 ## Reader Scenario: Future Agent In An OASIS World Event
 
-This is a deferred contract scenario. A user's agent participates in an
-OASIS world event as a character after that world-domain profile surface
-is implemented.
+This is a contract scenario. A user's agent participates in an OASIS world
+event as a character after that world-domain profile surface is exposed.
 
 1. **Profile attaches.** `oasis_world_actor_participation`.
 2. **Transcript owner is `OASIS_WORLD_DOMAIN`.** OASIS owns event
@@ -137,9 +135,9 @@ durable truth, an admitted promotion flow handles it explicitly.
 
 ## Reader Scenario: Future Same Agent, Two Profiles Concurrently
 
-This is a deferred contract scenario. A user's agent is in canonical chat
-with them while also being a slot in a Realm group with other people after
-the non-canonical profile surface is implemented.
+This is a contract scenario. A user's agent is in canonical chat with them
+while also being a slot in a Realm group with other people after the
+non-canonical profile surface is exposed.
 
 1. **Two anchors, two profiles.** Canonical chat with the user uses
    `canonical_agent_chat` under one anchor; the Realm group uses

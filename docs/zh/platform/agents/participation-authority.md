@@ -1,10 +1,10 @@
 # 参与权威
 
-## 状态：已准入，正在构建中 (Admitted, in build-out)
+## 状态：Canonical Chat 可用；其他 profile 仅为契约说明
 
 参与权威模型已在内核层获得准入
 (`runtime-agent-participation-contract.md`, K-AGCORE-061..K-AGCORE-073)。
-规范的智能体聊天（Agent Chat）配置文件目前正在运行；非规范配置文件（Realm 群组、场景沙盒、OASIS 世界参与者、外部 A2A、调试）已作为权威切面获得准入，其表面功能正在积极构建中。
+规范的智能体聊天（Agent Chat）配置文件目前正在运行；非规范配置文件（Realm 群组、场景沙盒、OASIS 世界参与者、外部 A2A、调试）已作为权威切面获得准入，但在 Runtime/SDK 暴露公开 surface 前不是可由应用调用的能力。
 
 ## “参与权威”的含义
 
