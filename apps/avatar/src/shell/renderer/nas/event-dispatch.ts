@@ -23,11 +23,8 @@ export type DispatchContext = {
   executor: HandlerExecutor;
   /** Backend-neutral ontology surface passed through to NAS handlers. */
   projection: BackendProjection;
-  /** Live2D-only extension surface. Passed through to the executor
-   *  only when a registered handler entry's
-   *  `requiresLive2DExtension` flag is true. The registry rejects
-   *  mismatched (VRM + live2d-extension) handlers up-front, so by
-   *  construction this is non-null only for Live2D-loaded models. */
+  /** Live2D-only extension surface used internally by the sandbox projection
+   *  translator for cue signal methods. It is not exposed to creator code. */
   live2dExtension?: Live2DBackendExtension;
   interactionPhysics?: InteractionPhysicsController;
 };
@@ -211,17 +208,10 @@ export function wireEventDispatch(context: DispatchContext): () => void {
   const extensionBag: NasHandlerExtension | undefined = live2dExtension
     ? { live2d: live2dExtension }
     : undefined;
-  function runOptionsFor(entry: { requiresLive2DExtension?: boolean } | null): {
-    requiresLive2DExtension?: boolean;
+  function runOptionsFor(): {
     extension?: NasHandlerExtension;
   } {
-    if (entry?.requiresLive2DExtension) {
-      return {
-        requiresLive2DExtension: true,
-        extension: extensionBag,
-      };
-    }
-    return {};
+    return extensionBag ? { extension: extensionBag } : {};
   }
 
   const unsubscribe = driver.onEvent((event) => {
@@ -266,7 +256,7 @@ export function wireEventDispatch(context: DispatchContext): () => void {
       const entry = registry.activity.get(activityHandlerKey(activityName)) ?? null;
       const handler = entry?.handler ?? defaultActivity;
       const key = `activity:${activityName}`;
-      void executor.run(key, handler, ctx, projection, runOptionsFor(entry)).then((result) => {
+      void executor.run(key, handler, ctx, projection, runOptionsFor()).then((result) => {
         if (result.status === 'success') {
           driver.emit({
             name: 'avatar.activity.end',
@@ -301,7 +291,7 @@ export function wireEventDispatch(context: DispatchContext): () => void {
           entry.handler,
           ctx,
           projection,
-          runOptionsFor(entry),
+          runOptionsFor(),
         );
         return;
       }
@@ -328,7 +318,7 @@ export function wireEventDispatch(context: DispatchContext): () => void {
     if (!entry) return;
     const ctx = bundleForEvent(driver.getBundle(), event);
     const key = `event:${event.name}`;
-    void executor.run(key, entry.handler, ctx, projection, runOptionsFor(entry));
+    void executor.run(key, entry.handler, ctx, projection, runOptionsFor());
   });
 
   return unsubscribe;

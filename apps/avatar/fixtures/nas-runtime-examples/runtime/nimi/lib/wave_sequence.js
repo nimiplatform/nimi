@@ -1,4 +1,4 @@
-export async function waveSequence(projection, live2d, options) {
+export async function waveSequence(projection, options) {
   await projection.triggerMotion(options.hand === "left" ? "wave.left" : "wave.right");
-  live2d.setParameter("wave.duration_ms", options.duration_ms);
+  projection.setSignal("wave.duration_ms", options.duration_ms);
 }

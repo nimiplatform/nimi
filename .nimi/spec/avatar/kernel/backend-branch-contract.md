@@ -158,16 +158,17 @@ export type BackendProjection = {
 
 ```ts
 export type Live2DBackendExtension = {
-  /** Live2D-only escape hatch；NAS handler 必须显式 `requires: ['live2d-extension']`
-   *  才可调用；handler-registry 在 VRM model 加载时 reject 含此 requires 的 handler */
+  /** Live2D-only internal backend channel used by carrier/sandbox
+   *  projection translation. Creator-authored NAS handlers must use the
+   *  authority-owned projection cue surface instead. */
   setParameter(id: string, value: number, durationSec?: number): void;
 };
 ```
 
 - `Live2DBackendExtension` 通过 `BackendBranch` kind narrowing 暴露
-- 任何 NAS handler 调用 `extension.live2d.setParameter` **必须**在 manifest
-  声明 `requires: ['live2d-extension']`；registry 在加载时静态扫描 reject
-  未声明的 handler（详 `agent-script-contract.md`）
+- NAS creator handler source must not call branch-local extension surfaces.
+  `Live2DBackendExtension.setParameter` is used by carrier-owned projection
+  translation for `setSignal` / `addSignal` and other admitted cue methods.
 
 ### 2.7 Surface
 

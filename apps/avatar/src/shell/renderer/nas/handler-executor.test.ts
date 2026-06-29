@@ -46,7 +46,7 @@ describe('NAS handler executor results', () => {
     });
   });
 
-  it('passes Live2D extension only to handlers that declared the capability', async () => {
+  it('passes internal backend extension to sandbox translation handlers', async () => {
     const executor = new HandlerExecutor();
     const setParameter = vi.fn();
     const handler: ActivityOrEventHandler = {
@@ -55,11 +55,7 @@ describe('NAS handler executor results', () => {
       }),
     };
 
-    await executor.run('activity:neutral', handler, bundle, projection, {
-      extension: { live2d: { setParameter } },
-    });
     await executor.run('activity:mouth', handler, bundle, projection, {
-      requiresLive2DExtension: true,
       extension: { live2d: { setParameter } },
     });
 
@@ -67,7 +63,7 @@ describe('NAS handler executor results', () => {
     expect(setParameter).toHaveBeenCalledWith('ParamMouthOpenY', 0.4);
   });
 
-  it('does not fake a Live2D extension success when capability materialization is missing', async () => {
+  it('does not fake backend extension success when internal materialization is missing', async () => {
     const executor = new HandlerExecutor();
     const handler: ActivityOrEventHandler = {
       execute: vi.fn(async (_ctx, _projection, options) => {
@@ -77,9 +73,7 @@ describe('NAS handler executor results', () => {
       }),
     };
 
-    await expect(executor.run('activity:mouth', handler, bundle, projection, {
-      requiresLive2DExtension: true,
-    })).resolves.toEqual({
+    await expect(executor.run('activity:mouth', handler, bundle, projection)).resolves.toEqual({
       key: 'activity:mouth',
       status: 'error',
       error: 'live2d extension missing',

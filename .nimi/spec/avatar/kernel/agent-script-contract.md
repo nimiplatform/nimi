@@ -73,21 +73,17 @@ NAS handler manifest 必须能声明所需 `BackendBranch` extension：
 ```ts
 export interface NasActivityHandler {
   activity: string;
-  requires?: ('live2d-extension')[];
   handle(input: {
     bundle: AgentDataBundle;
-    projection: BackendProjection;          // ontology surface
-    extension: { live2d?: Live2DBackendExtension };
+    projection: EmbodimentProjectionApi;    // authority-owned cue surface
   }): void;
 }
 
 export interface NasContinuousHandler {
   intervalMs: number;
-  requires?: ('live2d-extension')[];
   tick(input: {
     bundle: AgentDataBundle;
-    projection: BackendProjection;
-    extension: { live2d?: Live2DBackendExtension };
+    projection: EmbodimentProjectionApi;
     deltaSec: number;
   }): void;
 }
@@ -95,12 +91,14 @@ export interface NasContinuousHandler {
 
 handler-registry 行为：
 
-- **加载时按 `manifest.kind` 决定 `extension.live2d` 是否注入**：Live2D
-  branch 注入；VRM branch 不注入（`extension.live2d === undefined`）
-- handler **声明** `requires: ['live2d-extension']` 但当前 backend 是 VRM
-  → registry **reject + log warn**（不悄悄无视；handler 不注册到执行表）
-- handler **未声明** `requires` 但代码静态扫描引用 `extension.live2d` →
-  registry **reject + log warn**（避免 runtime undefined）
+- Creator-facing NAS handler source **不得声明 backend extension capability**；
+  `requires` 中出现任何 retired/unsupported capability 必须 reject。
+- Creator-facing NAS handler source **不得引用** `extension.live2d` 或其他
+  branch-local escape hatch；Live2D parameter writes are expressed through
+  authority-owned `projection.setSignal` / `projection.addSignal`.
+- Live2D `BackendBranch.live2dExtension` is an internal sandbox translation
+  channel only; it is supplied by the carrier/executor and not exposed to
+  creator-authored source.
 - 静态扫描器在 handler-registry 加载阶段对 handler source 做 AST scan；
   扫描失败的 handler 不注册（fail-close）
 
@@ -244,9 +242,9 @@ VRM 资产规则：
   到 builtin
 - **可选 `poster.png`** / `poster.jpg`：degraded surface fallback；不影响
   carrier visual proof
-- **可选 `nimi/`**：与 Live2D 同 NAS handler 目录 layout；handler 引用
-  `extension.live2d` **必须**在 manifest 显式 `requires: ['live2d-extension']`，
-  否则 registry reject
+- **可选 `nimi/`**：与 Live2D 同 NAS handler 目录 layout；handler must use
+  the cue projection API and must not declare or call branch-local extension
+  escape hatches.
 
 manifest resolver（`apps/avatar/src/shell/renderer/carrier/model-resolver.ts`）
 按 `kind: 'vrm'` 探测 `*.vrm` + 可选 `motions/` + `nimi/` + `poster.*`，

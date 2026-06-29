@@ -6,16 +6,63 @@ describe('validateSandboxSourcePolicy', () => {
     expect(validateSandboxSourcePolicy(`
       export default {
         async execute(ctx, projection) {
-          projection.applyExpression({ name: "focus" });
-          projection.applyMotion({ routeId: ctx.activity?.name ?? "Idle" });
+          await projection.setExpression("focus");
+          await projection.triggerMotion(ctx.activity?.name ?? "Idle", { loop: false });
         }
       };
     `)).toEqual({ ok: true });
   });
 
-  it('rejects direct parameter writes on the neutral projection surface', () => {
+  it('accepts authority-owned cue projection methods', () => {
+    expect(validateSandboxSourcePolicy(`
+      export default {
+        async execute(ctx, projection) {
+          projection.setSignal("ParamMouthOpenY", 1, 0.5);
+          projection.addSignal("ParamMouthOpenY", -0.25);
+          projection.getSignal("ParamMouthOpenY");
+          projection.setPose("lean_in", true);
+          projection.clearPose();
+          projection.stopMotion();
+          projection.clearExpression();
+          await projection.wait(120);
+          projection.getSurfaceBounds();
+        }
+      };
+    `)).toEqual({ ok: true });
+  });
+
+  it('rejects app-local projection calls on creator-facing NAS handlers', () => {
     const result = validateSandboxSourcePolicy(`
       export default {
+        async execute(ctx, projection) {
+          projection.applyMotion({ routeId: "Idle" });
+        }
+      };
+    `);
+    expect(result).toEqual({
+      ok: false,
+      reason: 'NAS handler projection method is outside the authority-owned cue surface: applyMotion',
+    });
+  });
+
+  it('rejects branch-local Live2D extension shortcuts', () => {
+    const result = validateSandboxSourcePolicy(`
+      export default {
+        async execute(ctx, projection, options) {
+          options.extension.live2d.setParameter("ParamMouthOpenY", 1);
+        }
+      };
+    `);
+    expect(result).toEqual({
+      ok: false,
+      reason: 'NAS handler must use authority-owned projection methods instead of branch-local extension.live2d shortcuts',
+    });
+  });
+
+  it('rejects retired creator capability declarations', () => {
+    const result = validateSandboxSourcePolicy(`
+      export default {
+        requires: ['live2d-extension'],
         async execute(ctx, projection) {
           projection.setSignal("ParamMouthOpenY", 1);
         }
@@ -23,7 +70,22 @@ describe('validateSandboxSourcePolicy', () => {
     `);
     expect(result).toEqual({
       ok: false,
-      reason: 'NAS handler projection forbids direct signal/parameter access; declare live2d-extension and use extension.live2d.setParameter',
+      reason: 'NAS handler capability declarations are retired for creator code; use authority-owned projection methods',
+    });
+  });
+
+  it('rejects unsupported creator capability declarations', () => {
+    const result = validateSandboxSourcePolicy(`
+      export default {
+        requires: ['unknown-capability'],
+        async execute(ctx, projection) {
+          projection.setExpression("focus");
+        }
+      };
+    `);
+    expect(result).toEqual({
+      ok: false,
+      reason: 'NAS handler capability declarations are retired for creator code; use authority-owned projection methods',
     });
   });
 
@@ -99,7 +161,7 @@ describe('validateSandboxSourcePolicy', () => {
 
   it('allows ctx.app.window without admitting ambient window access', () => {
     expect(validateSandboxSourcePolicy(
-      'export default { update(ctx, projection) { projection.applyMotion({ routeId: String(ctx.app.window.width) }); } };',
+      'export default { update(ctx, projection) { projection.triggerMotion(String(ctx.app.window.width)); } };',
       { sourcePath: '/model/runtime/nimi/continuous/eye_tracker.js' },
     )).toEqual({ ok: true });
     expect(validateSandboxSourcePolicy(

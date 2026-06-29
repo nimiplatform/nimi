@@ -1,13 +1,3 @@
-// Wave 1 (step 3) of topic 2026-04-30-avatar-vrm-backend-branch.
-//
-// NAS handler-registry capability gating: when the loaded backend
-// kind is `vrm` and a handler module declares
-// `requires: ['live2d-extension']`, populateRegistry MUST reject the
-// handler and surface a validation error (design-04 §"NAS handler
-// signature hard-cut" + packet acceptance_invariants
-// "NAS handler-registry rejects handler with requires
-// live2d-extension when loaded model is VRM").
-
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const invokeMock = vi.fn();
@@ -49,7 +39,19 @@ function createManifest(stem: string, kind: 'activity' | 'event' | 'continuous')
   };
 }
 
-describe('NAS handler-registry capability gating', () => {
+async function populateWithSource(stem: string, kind: 'activity' | 'event' | 'continuous', source: string, backendKind: 'vrm' | 'live2d' | 'nimi2d') {
+  const { createHandlerRegistry, populateRegistry } = await import('./handler-registry.js');
+  const registry = createHandlerRegistry();
+  invokeMock.mockImplementation(async (_cmd: string, _args: { path?: string }) => source);
+  const result = await populateRegistry(
+    registry,
+    createManifest(stem, kind),
+    { backendKind },
+  );
+  return { registry, result };
+}
+
+describe('NAS handler-registry retired capability gating', () => {
   beforeEach(() => {
     invokeMock.mockReset();
     (globalThis as unknown as { __NIMI_TAURI_TEST__?: unknown }).__NIMI_TAURI_TEST__ = {
@@ -64,75 +66,41 @@ describe('NAS handler-registry capability gating', () => {
     });
   });
 
-  it('rejects an activity handler that requires live2d-extension on a VRM backend', async () => {
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
-    const { createHandlerRegistry, populateRegistry } = await import('./handler-registry.js');
-    const registry = createHandlerRegistry();
-    invokeMock.mockImplementation(async (_cmd: string, _args: { path?: string }) => requiresLive2DSource);
-    const result = await populateRegistry(
-      registry,
-      createManifest('happy', 'activity'),
-      { backendKind: 'vrm' },
-    );
-    expect(result.validationErrors.join('\n')).toMatch(/requires 'live2d-extension'.*backend kind is 'vrm'/);
+  it('rejects an activity handler that declares retired live2d-extension on a VRM backend', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const { registry, result } = await populateWithSource('happy', 'activity', requiresLive2DSource, 'vrm');
+    expect(result.validationErrors.join('\n')).toContain('NAS handler capability declarations are retired for creator code');
     expect(registry.activity.has('happy')).toBe(false);
-    expect(warnSpy).toHaveBeenCalled();
-    warnSpy.mockRestore();
+    errorSpy.mockRestore();
   });
 
-  it('rejects a continuous handler that requires live2d-extension on a VRM backend', async () => {
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
-    const { createHandlerRegistry, populateRegistry } = await import('./handler-registry.js');
-    const registry = createHandlerRegistry();
-    invokeMock.mockImplementation(async (_cmd: string, _args: { path?: string }) => requiresLive2DSource);
-    const result = await populateRegistry(
-      registry,
-      createManifest('gaze', 'continuous'),
-      { backendKind: 'vrm' },
-    );
-    expect(result.validationErrors.join('\n')).toContain("requires 'live2d-extension'");
+  it('rejects a continuous handler that declares retired live2d-extension on a VRM backend', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const { registry, result } = await populateWithSource('gaze', 'continuous', requiresLive2DSource, 'vrm');
+    expect(result.validationErrors.join('\n')).toContain('NAS handler capability declarations are retired for creator code');
     expect(registry.continuous.has('gaze')).toBe(false);
-    warnSpy.mockRestore();
+    errorSpy.mockRestore();
   });
 
-  it('rejects a handler that requires live2d-extension on a Nimi2D backend', async () => {
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
-    const { createHandlerRegistry, populateRegistry } = await import('./handler-registry.js');
-    const registry = createHandlerRegistry();
-    invokeMock.mockImplementation(async (_cmd: string, _args: { path?: string }) => requiresLive2DSource);
-    const result = await populateRegistry(
-      registry,
-      createManifest('happy', 'activity'),
-      { backendKind: 'nimi2d' },
-    );
-    expect(result.validationErrors.join('\n')).toMatch(/requires 'live2d-extension'.*backend kind is 'nimi2d'/);
+  it('rejects a handler that declares retired live2d-extension on a Nimi2D backend', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const { registry, result } = await populateWithSource('happy', 'activity', requiresLive2DSource, 'nimi2d');
+    expect(result.validationErrors.join('\n')).toContain('NAS handler capability declarations are retired for creator code');
     expect(registry.activity.has('happy')).toBe(false);
-    warnSpy.mockRestore();
+    errorSpy.mockRestore();
   });
 
-  it('admits the same handler on a Live2D backend with requiresLive2DExtension flag set', async () => {
-    const { createHandlerRegistry, populateRegistry } = await import('./handler-registry.js');
-    const registry = createHandlerRegistry();
-    invokeMock.mockImplementation(async (_cmd: string, _args: { path?: string }) => requiresLive2DSource);
-    const result = await populateRegistry(
-      registry,
-      createManifest('happy', 'activity'),
-      { backendKind: 'live2d' },
-    );
-    expect(result.validationErrors).toEqual([]);
-    expect(registry.activity.get('happy')?.requiresLive2DExtension).toBe(true);
+  it('rejects a handler that declares retired live2d-extension on a Live2D backend', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const { registry, result } = await populateWithSource('happy', 'activity', requiresLive2DSource, 'live2d');
+    expect(result.validationErrors.join('\n')).toContain('NAS handler capability declarations are retired for creator code');
+    expect(registry.activity.has('happy')).toBe(false);
+    errorSpy.mockRestore();
   });
 
   it('admits a neutral handler with no requires regardless of backend kind', async () => {
-    const { createHandlerRegistry, populateRegistry } = await import('./handler-registry.js');
-    const registry = createHandlerRegistry();
-    invokeMock.mockImplementation(async (_cmd: string, _args: { path?: string }) => neutralSource);
-    const result = await populateRegistry(
-      registry,
-      createManifest('happy', 'activity'),
-      { backendKind: 'vrm' },
-    );
+    const { registry, result } = await populateWithSource('happy', 'activity', neutralSource, 'vrm');
     expect(result.validationErrors).toEqual([]);
-    expect(registry.activity.get('happy')?.requiresLive2DExtension).toBeFalsy();
+    expect(registry.activity.has('happy')).toBe(true);
   });
 });

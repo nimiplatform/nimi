@@ -48,6 +48,20 @@ export type StaticImportSpec = {
 
 const STATIC_IMPORT_RE = /\bimport\s+([^'";]+?)\s+from\s+['"]([^'"]+)['"]\s*;?/g;
 
+const AUTHORITY_PROJECTION_METHODS = new Set([
+  'triggerMotion',
+  'stopMotion',
+  'setSignal',
+  'getSignal',
+  'addSignal',
+  'setExpression',
+  'clearExpression',
+  'setPose',
+  'clearPose',
+  'wait',
+  'getSurfaceBounds',
+]);
+
 function stripCommentsAndStrings(source: string): string {
   let output = '';
   let i = 0;
@@ -215,10 +229,6 @@ function validateImportBindings(bindings: string): string | null {
   return null;
 }
 
-function declaresLive2DExtensionRequirement(code: string): boolean {
-  return /\brequires\s*:\s*\[[^\]]*['"]live2d-extension['"][^\]]*\]/.test(code);
-}
-
 export function validateSandboxSourcePolicy(
   source: string,
   options: SandboxSourcePolicyOptions = {},
@@ -259,20 +269,27 @@ export function validateSandboxSourcePolicy(
   if (kind === 'handler' && /\bexport\s+(?!default\b)/.test(code)) {
     return { ok: false, reason: 'NAS sandbox only allows export default' };
   }
-  if (kind === 'handler' && /\bprojection\s*\.\s*(?:setSignal|addSignal|getSignal)\s*\(/.test(code)) {
+  if (kind === 'handler' && /\brequires\s*:/.test(sourceWithoutComments)) {
     return {
       ok: false,
-      reason: 'NAS handler projection forbids direct signal/parameter access; declare live2d-extension and use extension.live2d.setParameter',
+      reason: 'NAS handler capability declarations are retired for creator code; use authority-owned projection methods',
     };
   }
-  if (
-    kind === 'handler'
-    && /\bextension\s*\.\s*live2d\b/.test(code)
-    && !declaresLive2DExtensionRequirement(sourceWithoutComments)
-  ) {
+  if (kind === 'handler') {
+    for (const match of code.matchAll(/\bprojection\s*\.\s*([A-Za-z_$][\w$]*)\s*\(/g)) {
+      const method = match[1] ?? '';
+      if (!AUTHORITY_PROJECTION_METHODS.has(method)) {
+        return {
+          ok: false,
+          reason: `NAS handler projection method is outside the authority-owned cue surface: ${method}`,
+        };
+      }
+    }
+  }
+  if (kind === 'handler' && /\b(?:options\s*\.\s*)?extension\s*\.\s*live2d\b/.test(code)) {
     return {
       ok: false,
-      reason: "NAS handler uses extension.live2d without requires: ['live2d-extension']",
+      reason: 'NAS handler must use authority-owned projection methods instead of branch-local extension.live2d shortcuts',
     };
   }
   for (const key of FORBIDDEN_COMPUTED_GLOBAL_KEYS) {

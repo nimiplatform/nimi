@@ -29,33 +29,33 @@ import {
   type SandboxWorkerFactory,
 } from './handler-sandbox.js';
 
-const ALLOWED_CAPABILITIES: ReadonlySet<NasHandlerCapability> = new Set([
+const RETIRED_CAPABILITIES: ReadonlySet<NasHandlerCapability> = new Set([
   'live2d-extension',
 ]);
 
+type DeclaredRequires = {
+  admitted: NasHandlerCapability[];
+  rejected: string | null;
+};
+
 function readDeclaredRequires(
   module: { requires?: unknown },
-): NasHandlerCapability[] {
+): DeclaredRequires {
   const raw = module.requires;
-  if (!Array.isArray(raw)) return [];
+  if (!Array.isArray(raw)) return { admitted: [], rejected: null };
   const out: NasHandlerCapability[] = [];
   for (const value of raw) {
     if (typeof value !== 'string') continue;
-    if (ALLOWED_CAPABILITIES.has(value as NasHandlerCapability)) {
-      out.push(value as NasHandlerCapability);
+    if (RETIRED_CAPABILITIES.has(value as NasHandlerCapability)) {
+      return { admitted: [], rejected: value };
     }
+    return { admitted: [], rejected: value };
   }
-  return out;
+  return { admitted: out, rejected: null };
 }
 
-function backendCapabilityRejection(
-  backendKind: BackendKind | null,
-  required: readonly NasHandlerCapability[],
-): NasHandlerCapability | null {
-  if (backendKind !== null && backendKind !== 'live2d' && required.includes('live2d-extension')) {
-    return 'live2d-extension';
-  }
-  return null;
+function retiredCapabilityRejectionMessage(kind: string, stem: string, capability: string): string {
+  return `[nas] ${kind} handler ${stem} declares retired or unsupported capability '${capability}'; use authority-owned projection methods`;
 }
 
 type RustHandlerEntry = { file_stem: string; absolute_path: string };
@@ -176,11 +176,8 @@ export function disposeRegistry(registry: HandlerRegistry): void {
 export type PopulateRegistryOptions = {
   createWorker?: SandboxWorkerFactory;
   failOnError?: boolean;
-  /** Loaded backend kind. Used to reject handlers whose declared
-   *  `requires` includes a capability the backend cannot satisfy
-   *  (e.g. `live2d-extension` on a VRM model). When omitted, no
-   *  capability gating runs and all handlers pass through (callers / tests
-   *  that did not opt in). */
+  /** Loaded backend kind. Reserved for backend-specific capability gates.
+   *  Retired creator capabilities are rejected regardless of backend kind. */
   backendKind?: BackendKind | null;
 };
 
@@ -338,13 +335,9 @@ export async function populateRegistry(
         pushValidationError(validationErrors, `[nas] activity handler ${entry.file_stem} has no execute()`);
         continue;
       }
-      const required = readDeclaredRequires(module as { requires?: unknown });
-      const rejection = backendCapabilityRejection(
-        options.backendKind ?? null,
-        required,
-      );
-      if (rejection) {
-        const message = `[nas] activity handler ${entry.file_stem} requires '${rejection}' but backend kind is '${options.backendKind}'; rejected`;
+      const declared = readDeclaredRequires(module as { requires?: unknown });
+      if (declared.rejected) {
+        const message = retiredCapabilityRejectionMessage('activity', entry.file_stem, declared.rejected);
         console.warn(message);
         validationErrors.push(message);
         module.dispose?.();
@@ -355,7 +348,6 @@ export async function populateRegistry(
         activityId,
         handler: module,
         sourcePath: entry.absolute_path,
-        requiresLive2DExtension: required.includes('live2d-extension'),
       });
     } catch (err) {
       const message = `[nas] failed to load activity handler ${entry.file_stem}: ${err instanceof Error ? err.message : String(err)}`;
@@ -389,13 +381,9 @@ export async function populateRegistry(
         pushValidationError(validationErrors, `[nas] event handler ${entry.file_stem} has no execute()`);
         continue;
       }
-      const required = readDeclaredRequires(module as { requires?: unknown });
-      const rejection = backendCapabilityRejection(
-        options.backendKind ?? null,
-        required,
-      );
-      if (rejection) {
-        const message = `[nas] event handler ${entry.file_stem} requires '${rejection}' but backend kind is '${options.backendKind}'; rejected`;
+      const declared = readDeclaredRequires(module as { requires?: unknown });
+      if (declared.rejected) {
+        const message = retiredCapabilityRejectionMessage('event', entry.file_stem, declared.rejected);
         console.warn(message);
         validationErrors.push(message);
         module.dispose?.();
@@ -406,7 +394,6 @@ export async function populateRegistry(
         eventName,
         handler: module,
         sourcePath: entry.absolute_path,
-        requiresLive2DExtension: required.includes('live2d-extension'),
       });
     } catch (err) {
       const message = `[nas] failed to load event handler ${entry.file_stem}: ${err instanceof Error ? err.message : String(err)}`;
@@ -435,13 +422,9 @@ export async function populateRegistry(
         continue;
       }
       const fps = typeof module.fps === 'number' && module.fps > 0 ? module.fps : 60;
-      const required = readDeclaredRequires(module as { requires?: unknown });
-      const rejection = backendCapabilityRejection(
-        options.backendKind ?? null,
-        required,
-      );
-      if (rejection) {
-        const message = `[nas] continuous handler ${entry.file_stem} requires '${rejection}' but backend kind is '${options.backendKind}'; rejected`;
+      const declared = readDeclaredRequires(module as { requires?: unknown });
+      if (declared.rejected) {
+        const message = retiredCapabilityRejectionMessage('continuous', entry.file_stem, declared.rejected);
         console.warn(message);
         validationErrors.push(message);
         module.dispose?.();
@@ -453,7 +436,6 @@ export async function populateRegistry(
         fps,
         handler: module,
         sourcePath: entry.absolute_path,
-        requiresLive2DExtension: required.includes('live2d-extension'),
       });
     } catch (err) {
       const message = `[nas] failed to load continuous handler ${entry.file_stem}: ${err instanceof Error ? err.message : String(err)}`;

@@ -6,23 +6,21 @@ export type HandlerMeta = {
   author?: string;
 };
 
-/** Capability requirements declared by a NAS handler module. The only
- *  admitted capability at wave_1 is `live2d-extension`; declaring it
- *  unlocks `extension.live2d` (Live2D `setParameter` escape hatch) on
- *  the handler invocation surface. The handler-registry rejects any
- *  handler that requires `live2d-extension` when the loaded model is
- *  VRM — there is no fallback. */
+/** Retired creator capability sentinel. Handler source that declares
+ *  `live2d-extension` is rejected during sandbox/registry loading; creator
+ *  code must use the authority-owned projection cue surface instead. */
 export type NasHandlerCapability = 'live2d-extension';
 
+/** Internal backend channel used by the sandbox projection translator.
+ *  This object is not exposed to creator-authored handler source. */
 export type NasHandlerExtension = {
   live2d?: Live2DBackendExtension;
 };
 
 export type ActivityOrEventHandler = {
   meta?: HandlerMeta;
-  /** Optional capability requirement list. When present and the
-   *  loaded backend cannot satisfy a capability, the registry rejects
-   *  the handler entirely. */
+  /** Retired capability declaration list. Any creator-authored requires value
+   *  is rejected fail-closed by the registry. */
   requires?: readonly NasHandlerCapability[];
   dispose?(): void;
   execute(
@@ -30,10 +28,8 @@ export type ActivityOrEventHandler = {
     projection: BackendProjection,
     options: {
       signal: AbortSignal;
-      /** Branch-specific extension surface (e.g. Live2D
-       *  `setParameter`). Populated only when the handler module
-       *  declared the matching `requires` capability AND the loaded
-       *  backend supports it. */
+      /** Internal backend extension surface for sandbox translation only.
+       *  Creator code receives the cue projection API, not this object. */
       extension?: NasHandlerExtension;
     },
   ): Promise<void>;
@@ -57,10 +53,6 @@ export type RegisteredActivityHandler = {
   activityId: string;
   handler: ActivityOrEventHandler;
   sourcePath: string;
-  /** True when the handler module declared
-   *  `requires: ['live2d-extension']`. Set during registry population
-   *  after the backend kind is checked. */
-  requiresLive2DExtension?: boolean;
 };
 
 export type RegisteredEventHandler = {
@@ -68,7 +60,6 @@ export type RegisteredEventHandler = {
   eventName: string;
   handler: ActivityOrEventHandler;
   sourcePath: string;
-  requiresLive2DExtension?: boolean;
 };
 
 export type RegisteredContinuousHandler = {
@@ -77,7 +68,6 @@ export type RegisteredContinuousHandler = {
   fps: number;
   handler: ContinuousHandler;
   sourcePath: string;
-  requiresLive2DExtension?: boolean;
 };
 
 export type RegisteredHandler =

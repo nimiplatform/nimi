@@ -62,12 +62,19 @@ type WorkerResponse =
     };
 
 type ProjectionRpcMethod =
-  | 'applyActivity'
-  | 'applyEmotion'
-  | 'applyMotion'
-  | 'applyExpression'
-  | 'reset'
-  | 'live2dSetParameter';
+  | 'triggerMotion'
+  | 'stopMotion'
+  | 'setSignal'
+  | 'addSignal'
+  | 'setExpression'
+  | 'clearExpression'
+  | 'setPose'
+  | 'clearPose';
+
+type ProjectionQueue = {
+  pending: Promise<unknown>[];
+  signalTails: Map<string, Promise<unknown>>;
+};
 
 type SandboxProjectionSnapshot = {
   surfaceBounds: { x: number; y: number; width: number; height: number };
@@ -77,12 +84,7 @@ type SandboxWorkerExtension = {
   live2d?: true;
 };
 
-type WorkerLive2DExtension = {
-  setParameter(id: string, value: number, durationSec?: number): Promise<unknown>;
-};
-
 type WorkerHandlerExtension = {
-  live2d?: WorkerLive2DExtension;
 };
 
 type ActivityEventModule = {
@@ -107,11 +109,17 @@ type ContinuousModule = {
 };
 
 type WorkerProjectionApi = {
-  applyActivity(input: { name: string; intensity: number | null }): void;
-  applyEmotion(input: { current: string; previous: string | null }): void;
-  applyMotion(input: { routeId: string; fade?: number; loop?: boolean }): void;
-  applyExpression(input: { name: string; weight?: number; fade?: number }): void;
-  reset(): void;
+  triggerMotion(motionId: string, opts?: { priority?: 'low' | 'normal' | 'high'; loop?: boolean; fadeIn?: number; fadeOut?: number }): Promise<void>;
+  stopMotion(): void;
+  setSignal(signalId: string, value: number, weight?: number): void;
+  getSignal(signalId: string): number;
+  addSignal(signalId: string, delta: number): void;
+  setExpression(expressionId: string): Promise<void>;
+  clearExpression(): void;
+  setPose(poseId: string, loop?: boolean): void;
+  clearPose(): void;
+  wait(ms: number): Promise<void>;
+  getSurfaceBounds(): { x: number; y: number; width: number; height: number };
 };
 
 const disabledGlobals = [
@@ -133,6 +141,14 @@ const projectionCalls = new Map<string, {
   resolve(value: unknown): void;
   reject(error: Error): void;
 }>();
+const projectionSignalState = new Map<string, number>();
+
+function createProjectionQueue(): ProjectionQueue {
+  return {
+    pending: [],
+    signalTails: new Map(),
+  };
+}
 
 function post(message: WorkerResponse): void {
   globalThis.postMessage(message);
@@ -196,36 +212,85 @@ function rpc(requestId: string, method: ProjectionRpcMethod, args: unknown[]): P
   });
 }
 
-function createProjection(requestId: string, snapshot: SandboxProjectionSnapshot): WorkerProjectionApi {
-  void snapshot;
+function queueProjectionCall(queue: ProjectionQueue, promise: Promise<unknown>): void {
+  queue.pending.push(promise);
+  void promise.catch(() => undefined);
+}
+
+async function flushProjectionQueue(queue: ProjectionQueue): Promise<void> {
+  while (queue.pending.length > 0) {
+    const pending = queue.pending.splice(0);
+    await Promise.all(pending);
+  }
+}
+
+function queueSignalUpdate(
+  queue: ProjectionQueue,
+  signalId: string,
+  update: () => { value: number; call: Promise<unknown> },
+): void {
+  const previous = queue.signalTails.get(signalId) ?? Promise.resolve();
+  const next = previous.then(async () => {
+    const { value, call } = update();
+    await call;
+    projectionSignalState.set(signalId, value);
+  });
+  queue.signalTails.set(signalId, next.catch(() => undefined));
+  queueProjectionCall(queue, next);
+}
+
+function createProjection(requestId: string, snapshot: SandboxProjectionSnapshot, queue: ProjectionQueue): WorkerProjectionApi {
   return {
-    applyActivity(input) {
-      void rpc(requestId, 'applyActivity', [input.name, input.intensity]);
+    async triggerMotion(motionId, opts) {
+      await rpc(requestId, 'triggerMotion', [motionId, opts]);
     },
-    applyEmotion(input) {
-      void rpc(requestId, 'applyEmotion', [input.current, input.previous]);
+    stopMotion() {
+      queueProjectionCall(queue, rpc(requestId, 'stopMotion', []));
     },
-    applyMotion(input) {
-      void rpc(requestId, 'applyMotion', [input.routeId, input.fade, input.loop]);
+    setSignal(signalId, value, weight) {
+      queueSignalUpdate(queue, signalId, () => ({
+        value,
+        call: rpc(requestId, 'setSignal', [signalId, value, weight]),
+      }));
     },
-    applyExpression(input) {
-      void rpc(requestId, 'applyExpression', [input.name, input.weight, input.fade]);
+    getSignal(signalId) {
+      return projectionSignalState.get(signalId) ?? 0;
     },
-    reset() {
-      void rpc(requestId, 'reset', []);
+    addSignal(signalId, delta) {
+      queueSignalUpdate(queue, signalId, () => {
+        const value = (projectionSignalState.get(signalId) ?? 0) + delta;
+        return {
+          value,
+          call: rpc(requestId, 'addSignal', [signalId, delta, value]),
+        };
+      });
+    },
+    async setExpression(expressionId) {
+      await rpc(requestId, 'setExpression', [expressionId]);
+    },
+    clearExpression() {
+      queueProjectionCall(queue, rpc(requestId, 'clearExpression', []));
+    },
+    setPose(poseId, loop) {
+      queueProjectionCall(queue, rpc(requestId, 'setPose', [poseId, loop]));
+    },
+    clearPose() {
+      queueProjectionCall(queue, rpc(requestId, 'clearPose', []));
+    },
+    wait(ms) {
+      const duration = typeof ms === 'number' && Number.isFinite(ms) ? Math.max(0, ms) : 0;
+      return new Promise((resolve) => globalThis.setTimeout(resolve, duration));
+    },
+    getSurfaceBounds() {
+      return snapshot.surfaceBounds;
     },
   };
 }
 
 function createExtension(requestId: string, extension?: SandboxWorkerExtension): WorkerHandlerExtension | undefined {
+  void requestId;
   if (!extension?.live2d) return undefined;
-  return {
-    live2d: {
-      setParameter(id, value, durationSec) {
-        return rpc(requestId, 'live2dSetParameter', [id, value, durationSec]);
-      },
-    },
-  };
+  return {};
 }
 
 async function handleLoad(message: Extract<WorkerRequest, { type: 'load' }>): Promise<void> {
@@ -275,10 +340,12 @@ async function handleExecute(message: Extract<WorkerRequest, { type: 'execute' }
   abortControllers.set(message.requestId, controller);
   try {
     const extension = createExtension(message.requestId, message.extension);
-    await loadedHandler.execute(message.ctx, createProjection(message.requestId, message.snapshot), {
+    const queue = createProjectionQueue();
+    await loadedHandler.execute(message.ctx, createProjection(message.requestId, message.snapshot, queue), {
       signal: controller.signal,
       ...(extension ? { extension } : {}),
     });
+    await flushProjectionQueue(queue);
   } finally {
     abortControllers.delete(message.requestId);
   }
@@ -289,14 +356,16 @@ async function handleUpdate(message: Extract<WorkerRequest, { type: 'update' }>)
     throw new Error('NAS sandbox has no continuous handler loaded');
   }
   const extension = createExtension(message.requestId, message.extension);
+  const queue = createProjectionQueue();
   const returned = loadedHandler.update(
     message.ctx,
-    createProjection(message.requestId, message.snapshot),
+    createProjection(message.requestId, message.snapshot, queue),
     extension ? { extension } : undefined,
   );
   if (isPromiseLike(returned)) {
     throw new Error('NAS continuous update must be synchronous and must not return a Promise');
   }
+  await flushProjectionQueue(queue);
 }
 
 globalThis.addEventListener('message', (event: MessageEvent<WorkerRequest>) => {

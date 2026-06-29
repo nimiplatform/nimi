@@ -32,9 +32,9 @@ Cross-references:
 - BackendProjection ontology methods (`applyActivity` / `applyEmotion` /
   `applyMotion` / `applyExpression`) → ontology naming admit by
   `embodiment-projection-contract.md` and `tables/activity-mapping.yaml`
-- Live2D parameter-id direct write → `Live2DBackendExtension.setParameter`
-  escape hatch (kind-narrowed; NAS handler must declare
-  `requires: ['live2d-extension']`)
+- Live2D parameter-id direct write → carrier-owned
+  `Live2DBackendExtension.setParameter` translation from admitted projection
+  cue methods; NAS creator handlers must not call branch-local extensions.
 - wLipSync audio pipeline → `audio-pipeline.ts` consumes
   `runtime.artifacts.readBytes` (S-RUNTIME-111); Live2D lipsync driver writes
   `ParamMouthOpenY` (+ optional `ParamMouthForm` per
@@ -366,8 +366,8 @@ Live2DBackendExtension.setParameter(id: string, value: number, durationSec?: num
 ```
 
 - `id` 用 Cubism 官方 parameter id（如 `ParamEyeBallX` / `ParamAngleX` / `ParamBreath`）
-- The direct write is available only to admitted Avatar-local callers that hold
-  the `live2d-extension` capability or Avatar voice/lipsync carrier code.
+- The direct write is available only to admitted Avatar-local carrier code and
+  sandbox projection translation, not creator-authored NAS handler source.
 - Neutral `BackendProjection` must not contain backend-specific parameter ids.
 - 未声明 / unsupported parameter id → `console.warn` + no-op; no success
   evidence may be created for that write.
@@ -388,9 +388,9 @@ Live2DBackendExtension.setParameter(id: string, value: number, durationSec?: num
 ```
 
 最后生效的值写入 MOC3. NAS continuous/activity/event handlers may request
-direct writes only through `Live2DBackendExtension`; their filename/call-order
-arbitration happens before the final direct parameter lane receives the current
-Avatar-local command-state snapshot.
+signal changes only through the authority-owned projection cue surface; the
+sandbox/carrier translates admitted cue writes into the final direct parameter
+lane before it receives the current Avatar-local command-state snapshot.
 
 ## K-NAV-L2D-011 Pose System
 

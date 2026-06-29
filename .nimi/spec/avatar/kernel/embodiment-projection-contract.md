@@ -190,9 +190,10 @@ Rules:
 
 ## 8. Live2D Parameter-Id Escape Hatch
 
-Parameter-id direct write 是 Live2D-only 路径，**仅**通过 NAS handler
-显式声明 `requires: ['live2d-extension']` + `BackendBranch.live2dExtension`
-kind narrowing 暴露：
+Parameter-id direct write 是 Live2D-only backend-internal 路径。NAS creator
+handlers express it through authority-owned projection cue methods such as
+`setSignal` and `addSignal`; the carrier/sandbox translator owns
+`BackendBranch.live2dExtension` kind narrowing:
 
 ```ts
 export type Live2DBackendExtension = {
@@ -202,14 +203,13 @@ export type Live2DBackendExtension = {
 
 约束：
 
-- handler-registry 在 model 加载时按 `manifest.kind` 决定是否注入
-  `extension.live2d`；handler 引用 `extension.live2d.setParameter` 必须
-  在 manifest 显式 `requires`；缺失 → registry reject + log warn
-  （详 [`agent-script-contract.md`](agent-script-contract.md) §"NAS handler `requires`"）
-- VRM model 加载时含 `requires: ['live2d-extension']` 的 handler **必须** reject
-  （不允许 silent ignore）
-- handler 未声明 `requires` 但代码中引用 `extension.live2d` → 静态扫描
-  reject（避免 runtime undefined）
+- handler-registry rejects any creator source that declares retired or
+  unsupported backend extension capabilities.
+- handler source that references `extension.live2d` or branch-local extension
+  shortcuts must be rejected during static policy validation.
+- Runtime signal writes must go through `projection.setSignal` /
+  `projection.addSignal` and fail closed if the active backend cannot provide
+  the internal Live2D signal surface.
 
 ## 9. NAS Handler `requires` Field
 
@@ -218,11 +218,9 @@ NAS handler 的 manifest 必须能声明所需 BackendBranch extension：
 ```ts
 export interface NasActivityHandler {
   activity: string;
-  requires?: ('live2d-extension')[];
   handle(input: {
     bundle: AgentDataBundle;
-    projection: BackendProjection;
-    extension: { live2d?: Live2DBackendExtension };
+    projection: EmbodimentProjectionApi;
   }): void;
 }
 ```

@@ -72,12 +72,14 @@ type SandboxWorkerExtension = {
 };
 
 type ProjectionRpcMethod =
-  | 'applyActivity'
-  | 'applyEmotion'
-  | 'applyMotion'
-  | 'applyExpression'
-  | 'reset'
-  | 'live2dSetParameter';
+  | 'triggerMotion'
+  | 'stopMotion'
+  | 'setSignal'
+  | 'addSignal'
+  | 'setExpression'
+  | 'clearExpression'
+  | 'setPose'
+  | 'clearPose';
 
 type SandboxWorker = Pick<Worker, 'postMessage' | 'terminate' | 'addEventListener' | 'removeEventListener'>;
 
@@ -114,6 +116,45 @@ function errorFromUnknown(err: unknown): Error {
   return err instanceof Error ? err : new Error(String(err));
 }
 
+function stringArg(args: unknown[], index: number, label: string): string {
+  const value = args[index];
+  if (typeof value !== 'string' || value.length === 0) {
+    throw new Error(`NAS projection ${label} requires a non-empty string`);
+  }
+  return value;
+}
+
+function finiteNumberArg(args: unknown[], index: number, label: string): number {
+  const value = args[index];
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    throw new Error(`NAS projection ${label} requires a finite number`);
+  }
+  return value;
+}
+
+function optionalBooleanArg(args: unknown[], index: number): boolean | undefined {
+  return typeof args[index] === 'boolean' ? args[index] : undefined;
+}
+
+function motionOptionsArg(args: unknown[], index: number): { loop?: boolean; fadeIn?: number } {
+  const value = args[index];
+  if (!value || typeof value !== 'object') {
+    return {};
+  }
+  const options = value as { loop?: unknown; fadeIn?: unknown };
+  return {
+    loop: typeof options.loop === 'boolean' ? options.loop : undefined,
+    fadeIn: typeof options.fadeIn === 'number' && Number.isFinite(options.fadeIn) ? options.fadeIn : undefined,
+  };
+}
+
+function setBackendSignal(context: ActiveProjectionContext, signalId: string, value: number): void {
+  if (!context.extension?.live2d) {
+    throw new Error('NAS projection setSignal requires an admitted Live2D backend signal surface');
+  }
+  context.extension.live2d.setParameter(signalId, value);
+}
+
 function callProjection(
   context: ActiveProjectionContext,
   method: ProjectionRpcMethod,
@@ -121,52 +162,39 @@ function callProjection(
 ): Promise<unknown> | unknown {
   const { projection } = context;
   switch (method) {
-    case 'applyActivity':
-      return projection.applyActivity({
-        name: String(args[0] ?? ''),
-        intensity: typeof args[1] === 'number' ? args[1] : null,
-      });
-    case 'applyEmotion':
-      return projection.applyEmotion({
-        current: String(args[0] ?? ''),
-        previous: typeof args[1] === 'string' ? args[1] : null,
-      });
-    case 'applyMotion':
+    case 'triggerMotion': {
+      const opts = motionOptionsArg(args, 1);
       return projection.applyMotion({
-        routeId: String(args[0] ?? ''),
-        fade: typeof args[1] === 'number' ? args[1] : undefined,
-        loop: typeof args[2] === 'boolean' ? args[2] : undefined,
+        routeId: stringArg(args, 0, 'triggerMotion.motionId'),
+        loop: opts.loop,
+        fade: opts.fadeIn,
       });
-    case 'applyExpression':
-      return projection.applyExpression({
-        name: String(args[0] ?? ''),
-        weight: typeof args[1] === 'number' ? args[1] : undefined,
-        fade: typeof args[2] === 'number' ? args[2] : undefined,
-      });
-    case 'reset':
-      return projection.reset();
-    case 'live2dSetParameter': {
-      const id = args[0];
-      const value = args[1];
-      const duration = args[2];
-      if (!context.extension?.live2d) {
-        throw new Error('NAS handler requested Live2D extension without an admitted Live2D capability');
-      }
-      if (typeof id !== 'string' || id.length === 0) {
-        throw new Error('Live2D extension setParameter requires a non-empty parameter id');
-      }
-      if (typeof value !== 'number' || !Number.isFinite(value)) {
-        throw new Error('Live2D extension setParameter requires a finite numeric value');
-      }
-      if (duration !== undefined && duration !== null && (typeof duration !== 'number' || !Number.isFinite(duration))) {
-        throw new Error('Live2D extension setParameter duration must be a finite number when provided');
-      }
-      return context.extension.live2d.setParameter(
-        id,
-        value,
-        typeof duration === 'number' ? duration : undefined,
-      );
     }
+    case 'stopMotion':
+      return projection.reset();
+    case 'setSignal':
+      return setBackendSignal(
+        context,
+        stringArg(args, 0, 'setSignal.signalId'),
+        finiteNumberArg(args, 1, 'setSignal.value'),
+      );
+    case 'addSignal':
+      return setBackendSignal(
+        context,
+        stringArg(args, 0, 'addSignal.signalId'),
+        finiteNumberArg(args, 2, 'addSignal.computedValue'),
+      );
+    case 'setExpression':
+      return projection.applyExpression({ name: stringArg(args, 0, 'setExpression.expressionId') });
+    case 'clearExpression':
+      return projection.reset();
+    case 'setPose':
+      return projection.applyMotion({
+        routeId: stringArg(args, 0, 'setPose.poseId'),
+        loop: optionalBooleanArg(args, 1),
+      });
+    case 'clearPose':
+      return projection.reset();
     default:
       throw new Error(`unsupported projection method: ${method}`);
   }
@@ -391,9 +419,6 @@ export async function createSandboxedActivityOrEventHandler(
     : {};
   return {
     meta: loadedMeta.meta as never,
-    requires: Array.isArray(loadedMeta.requires)
-      ? loadedMeta.requires.filter((value): value is 'live2d-extension' => value === 'live2d-extension')
-      : undefined,
     async execute(ctx, projection, options) {
       await sandbox.execute(ctx, projection, options.signal, options.extension);
     },
@@ -415,9 +440,6 @@ export async function createSandboxedContinuousHandler(
     : {};
   return {
     meta: loadedMeta.meta as never,
-    requires: Array.isArray(loadedMeta.requires)
-      ? loadedMeta.requires.filter((value): value is 'live2d-extension' => value === 'live2d-extension')
-      : undefined,
     fps: typeof loaded.fps === 'number' && loaded.fps > 0 ? loaded.fps : 60,
     async update(ctx, projection, options) {
       await sandbox.update(ctx, projection, options?.extension);

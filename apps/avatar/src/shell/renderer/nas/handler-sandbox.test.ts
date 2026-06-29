@@ -7,7 +7,8 @@ type WorkerListener = (event: MessageEvent<Record<string, unknown>>) => void;
 
 class FakeWorker {
   readonly projectionResults: Array<Record<string, unknown>> = [];
-  method = 'applyExpression';
+  method = 'setExpression';
+  args: unknown[] = ['joy'];
   private readonly listeners = new Set<WorkerListener>();
 
   addEventListener(type: string, listener: EventListenerOrEventListenerObject): void {
@@ -35,12 +36,20 @@ class FakeWorker {
         requestId: message['requestId'],
         callId: 'call-1',
         method: this.method,
-        args: ['joy', 1, 0.1],
+        args: this.args,
       });
       return;
     }
     if (message['type'] === 'projection-result') {
       this.projectionResults.push(message);
+      if (message['ok'] === false) {
+        this.emit({
+          type: 'error',
+          requestId: message['requestId'],
+          error: message['error'] ?? 'projection call failed',
+        });
+        return;
+      }
       this.emit({ type: 'done', requestId: message['requestId'] });
     }
   }
@@ -96,7 +105,7 @@ describe('createSandboxedActivityOrEventHandler', () => {
     const worker = new FakeWorker();
     const createWorker: SandboxWorkerFactory = () => worker;
     const handler = await createSandboxedActivityOrEventHandler(
-      'export default { async execute(ctx, projection) { projection.applyExpression({ name: "joy", weight: 1, fade: 0.1 }); } };',
+      'export default { async execute(ctx, projection) { await projection.setExpression("joy"); } };',
       '/model/runtime/nimi/activity/happy.js',
       createWorker,
     );
@@ -104,9 +113,87 @@ describe('createSandboxedActivityOrEventHandler', () => {
 
     await handler.execute(bundle, projection, { signal: new AbortController().signal });
 
-    expect(projection.applyExpression).toHaveBeenCalledWith({ name: 'joy', weight: 1, fade: 0.1 });
+    expect(projection.applyExpression).toHaveBeenCalledWith({ name: 'joy' });
     expect(worker.projectionResults).toMatchObject([{ type: 'projection-result', callId: 'call-1', ok: true }]);
     handler.dispose?.();
+  });
+
+  it('translates authority motion calls into backend projection calls', async () => {
+    const worker = new FakeWorker();
+    worker.method = 'triggerMotion';
+    worker.args = ['wave', { loop: true, fadeIn: 0.25 }];
+    const createWorker: SandboxWorkerFactory = () => worker;
+    const handler = await createSandboxedActivityOrEventHandler(
+      'export default { async execute(ctx, projection) { await projection.triggerMotion("wave", { loop: true, fadeIn: 0.25 }); } };',
+      '/model/runtime/nimi/activity/happy.js',
+      createWorker,
+    );
+    const projection = createProjection();
+
+    await handler.execute(bundle, projection, { signal: new AbortController().signal });
+
+    expect(projection.applyMotion).toHaveBeenCalledWith({ routeId: 'wave', loop: true, fade: 0.25 });
+    expect(worker.projectionResults).toMatchObject([{ type: 'projection-result', callId: 'call-1', ok: true }]);
+    handler.dispose?.();
+  });
+
+  it('translates authority signal calls into the admitted backend signal surface', async () => {
+    const worker = new FakeWorker();
+    worker.method = 'setSignal';
+    worker.args = ['ParamMouthOpenY', 0.75, 0.5];
+    const createWorker: SandboxWorkerFactory = () => worker;
+    const handler = await createSandboxedActivityOrEventHandler(
+      'export default { execute(ctx, projection) { projection.setSignal("ParamMouthOpenY", 0.75, 0.5); } };',
+      '/model/runtime/nimi/activity/happy.js',
+      createWorker,
+    );
+    const projection = createProjection();
+    const live2d = { setParameter: vi.fn() };
+
+    await handler.execute(bundle, projection, {
+      signal: new AbortController().signal,
+      extension: { live2d },
+    });
+
+    expect(live2d.setParameter).toHaveBeenCalledWith('ParamMouthOpenY', 0.75);
+    expect(worker.projectionResults).toMatchObject([{ type: 'projection-result', callId: 'call-1', ok: true }]);
+    handler.dispose?.();
+  });
+
+  it('fails closed when authority signal calls lack an admitted backend signal surface', async () => {
+    const worker = new FakeWorker();
+    worker.method = 'setSignal';
+    worker.args = ['ParamMouthOpenY', 0.75, 0.5];
+    const createWorker: SandboxWorkerFactory = () => worker;
+    const handler = await createSandboxedActivityOrEventHandler(
+      'export default { execute(ctx, projection) { projection.setSignal("ParamMouthOpenY", 0.75, 0.5); } };',
+      '/model/runtime/nimi/activity/happy.js',
+      createWorker,
+    );
+    const projection = createProjection();
+
+    await expect(handler.execute(bundle, projection, {
+      signal: new AbortController().signal,
+    })).rejects.toThrow('NAS projection setSignal requires an admitted Live2D backend signal surface');
+
+    expect(worker.projectionResults).toMatchObject([{
+      type: 'projection-result',
+      callId: 'call-1',
+      ok: false,
+      error: 'NAS projection setSignal requires an admitted Live2D backend signal surface',
+    }]);
+    handler.dispose?.();
+  });
+
+  it('rejects app-local projection calls before loading the sandbox worker', async () => {
+    const createWorker = vi.fn<SandboxWorkerFactory>(() => new FakeWorker());
+
+    await expect(createSandboxedActivityOrEventHandler(
+      'export default { async execute(ctx, projection) { projection.applyExpression({ name: "joy" }); } };',
+      '/model/runtime/nimi/activity/happy.js',
+      createWorker,
+    )).rejects.toThrow('NAS handler projection method is outside the authority-owned cue surface: applyExpression');
+    expect(createWorker).not.toHaveBeenCalled();
   });
 
   it('rejects unknown projection RPC methods fail-closed', async () => {
@@ -114,13 +201,14 @@ describe('createSandboxedActivityOrEventHandler', () => {
     worker.method = 'unknownCapability';
     const createWorker: SandboxWorkerFactory = () => worker;
     const handler = await createSandboxedActivityOrEventHandler(
-      'export default { async execute(ctx, projection) { projection.unknownCapability(); } };',
+      'export default { async execute(ctx, projection) { await projection.setExpression("joy"); } };',
       '/model/runtime/nimi/activity/happy.js',
       createWorker,
     );
     const projection = createProjection();
 
-    await handler.execute(bundle, projection, { signal: new AbortController().signal });
+    await expect(handler.execute(bundle, projection, { signal: new AbortController().signal }))
+      .rejects.toThrow('unsupported projection method: unknownCapability');
 
     expect(worker.projectionResults).toMatchObject([{
       type: 'projection-result',
