@@ -523,7 +523,7 @@ test('Runtime Agent lifecycle rejects initialize responses without Runtime-owned
 test('Runtime Realm group message candidate surface builds verified commit payloads and rejects mismatched evidence', async () => {
   const createCalls: CreateRealmGroupMessageCandidateRequest[] = [];
   const evidenceCalls: GetRealmGroupMessageCandidateEvidenceRequest[] = [];
-  const candidate = candidateHandle();
+  let candidate = candidateHandle();
   let evidence = candidateEvidence();
   const surface = createNimiHostRuntimeRealmGroupMessageCandidateSurface({
     getRuntime: () => ({
@@ -552,6 +552,7 @@ test('Runtime Realm group message candidate surface builds verified commit paylo
     runtimeParticipantSlot: 'slot-1',
     realmGroupThreadId: 'thread-1',
     triggerMessageId: 'message-1',
+    triggerKind: 'mention',
     idempotencyKey: 'idem-1',
   });
 
@@ -564,8 +565,59 @@ test('Runtime Realm group message candidate surface builds verified commit paylo
   assert.equal(result.realmCommitPayload.idempotencyKey, 'idem-1');
   assert.equal(result.realmCommitPayload.expectedRuntimeParticipantSlotId, 'slot-1');
   assert.equal(result.realmCommitPayload.expectedRuntimeSourceRef, 'agent-1');
+  assert.deepEqual(result.realmCommitPayload.triggerEvidence, {
+    kind: 'mention',
+    triggerRef: 'realm://group-chats/thread-1/messages/message-1',
+    actorId: 'user-1',
+    chatId: 'thread-1',
+    messageId: 'message-1',
+  });
+  assert.equal('triggerRef' in result.realmCommitPayload, false);
   assert.equal(result.realmCommitPayload.createdAt, '2026-06-05T00:00:00.000Z');
 
+  candidate = {
+    ...candidateHandle(),
+    candidateId: 'candidate-2',
+    candidateEvidenceRef: 'evidence-ref-2',
+    evidenceHash: 'hash-2',
+    runtimeTraceRef: 'trace-2',
+    triggerRef: 'realm://group-chats/thread-1/messages/message-2',
+  };
+  evidence = {
+    ...candidateEvidence(),
+    candidateId: 'candidate-2',
+    evidenceHash: 'hash-2',
+    runtimeTraceRef: 'trace-2',
+    triggerRef: 'realm://group-chats/thread-1/messages/message-2',
+  };
+  const explicitAction = await surface.createCommitPayload({
+    ...agentIdentity(),
+    participantType: 'source',
+    currentUserId: 'user-1',
+    runtimeParticipantSlot: 'slot-1',
+    realmGroupThreadId: 'thread-1',
+    triggerMessageId: 'message-2',
+    triggerKind: 'explicitUserAction',
+    idempotencyKey: 'idem-explicit',
+  });
+  assert.equal(explicitAction.realmCommitPayload.triggerEvidence.kind, 'explicitUserAction');
+
+  candidate = candidateHandle();
+  evidence = candidateEvidence();
+  await assert.rejects(
+    () => surface.createCommitPayload({
+      ...agentIdentity(),
+      participantType: 'source',
+      currentUserId: 'user-1',
+      runtimeParticipantSlot: 'slot-1',
+      realmGroupThreadId: 'thread-1',
+      triggerMessageId: 'message-1',
+      idempotencyKey: 'idem-missing-trigger-kind',
+    } as never),
+    /trigger kind/,
+  );
+
+  candidate = candidateHandle();
   evidence = { ...candidateEvidence(), candidateId: 'other-candidate' };
   await assert.rejects(
     () => surface.createCommitPayload({
@@ -575,6 +627,7 @@ test('Runtime Realm group message candidate surface builds verified commit paylo
       runtimeParticipantSlot: 'slot-1',
       realmGroupThreadId: 'thread-1',
       triggerMessageId: 'message-1',
+      triggerKind: 'mention',
       idempotencyKey: 'idem-2',
     }),
     /evidence does not match the candidate handle/,
@@ -588,6 +641,7 @@ test('Runtime Realm group message candidate surface builds verified commit paylo
       runtimeParticipantSlot: 'slot-1',
       realmGroupThreadId: 'thread-1',
       triggerMessageId: 'message-1',
+      triggerKind: 'mention',
       idempotencyKey: 'idem-3',
       contextRefs: { custom: 'realm-context://custom' },
     } as never),

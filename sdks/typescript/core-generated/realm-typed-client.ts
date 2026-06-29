@@ -329,7 +329,7 @@ export interface CommitRealmGroupSourceMessageCandidateInputDto {
   readonly refusalHash?: string;
   readonly refusalReason?: string;
   readonly runtimeTraceRef: string;
-  readonly triggerRef: string;
+  readonly triggerEvidence: GroupSourceTriggerEvidenceDto;
 }
 export interface ConnectDashboardLinkDto {
   readonly url: string;
@@ -725,6 +725,13 @@ export interface GroupSourceRefDto {
   readonly sourceContentHash: string;
   readonly sourceId: string;
   readonly worldId: string;
+}
+export interface GroupSourceTriggerEvidenceDto {
+  readonly actorId: string;
+  readonly chatId: string;
+  readonly kind: "mention" | "explicitUserAction" | "admittedAutomation" | "productDisabled";
+  readonly messageId: string;
+  readonly triggerRef: string;
 }
 export interface HandleAvailabilityDto {
   readonly available: boolean;
@@ -2305,6 +2312,7 @@ export interface RealmTypedModelMap {
   readonly "GroupMessageViewDto": GroupMessageViewDto;
   readonly "GroupParticipantDto": GroupParticipantDto;
   readonly "GroupSourceRefDto": GroupSourceRefDto;
+  readonly "GroupSourceTriggerEvidenceDto": GroupSourceTriggerEvidenceDto;
   readonly "HandleAvailabilityDto": HandleAvailabilityDto;
   readonly "ImportPolicyDto": ImportPolicyDto;
   readonly "IntrospectSessionErrorDto": IntrospectSessionErrorDto;

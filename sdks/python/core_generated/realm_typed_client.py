@@ -404,7 +404,7 @@ class CommitRealmGroupSourceMessageCandidateInputDto:
     refusalHash: str | None = None
     refusalReason: str | None = None
     runtimeTraceRef: str | None = None
-    triggerRef: str | None = None
+    triggerEvidence: GroupSourceTriggerEvidenceDto | None = None
 
 @dataclass(frozen=True)
 class ConnectDashboardLinkDto:
@@ -850,6 +850,14 @@ class GroupSourceRefDto:
     sourceContentHash: str | None = None
     sourceId: str | None = None
     worldId: str | None = None
+
+@dataclass(frozen=True)
+class GroupSourceTriggerEvidenceDto:
+    actorId: str | None = None
+    chatId: str | None = None
+    kind: Literal["mention", "explicitUserAction", "admittedAutomation", "productDisabled"] | None = None
+    messageId: str | None = None
+    triggerRef: str | None = None
 
 @dataclass(frozen=True)
 class HandleAvailabilityDto:

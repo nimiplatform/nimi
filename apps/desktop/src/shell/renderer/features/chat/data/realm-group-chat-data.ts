@@ -224,6 +224,7 @@ export async function commitRealmGroupSourceMessageCandidateHandoff(
       runtimeSourceRef: sourceParticipant.runtimeSourceRef,
       localAgentRef,
       triggerMessageId,
+      triggerKind: 'mention',
       idempotencyKey,
     });
     return await callApi(

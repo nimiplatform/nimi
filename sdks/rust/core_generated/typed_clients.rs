@@ -38758,7 +38758,7 @@ pub struct CommitRealmGroupSourceMessageCandidateInputDto {
     pub refusal_hash: String,
     pub refusal_reason: String,
     pub runtime_trace_ref: String,
-    pub trigger_ref: String,
+    pub trigger_evidence: Box<GroupSourceTriggerEvidenceDto>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -39251,6 +39251,15 @@ pub struct GroupSourceRefDto {
     pub source_content_hash: String,
     pub source_id: String,
     pub world_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GroupSourceTriggerEvidenceDto {
+    pub actor_id: String,
+    pub chat_id: String,
+    pub kind: String,
+    pub message_id: String,
+    pub trigger_ref: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

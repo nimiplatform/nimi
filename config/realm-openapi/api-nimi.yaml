@@ -1022,8 +1022,8 @@ components:
           type: string
         runtimeTraceRef:
           type: string
-        triggerRef:
-          type: string
+        triggerEvidence:
+          $ref: '#/components/schemas/GroupSourceTriggerEvidenceDto'
       required:
         - candidateId
         - candidateKind
@@ -1032,7 +1032,7 @@ components:
         - runtimeTraceRef
         - expectedRuntimeParticipantSlotId
         - expectedRuntimeSourceRef
-        - triggerRef
+        - triggerEvidence
         - outputCandidateRef
         - auditLineageRef
         - policyVerdictRef
@@ -3510,6 +3510,30 @@ components:
         - worldId
         - sourceId
         - sourceContentHash
+      type: object
+    GroupSourceTriggerEvidenceDto:
+      properties:
+        actorId:
+          type: string
+        chatId:
+          type: string
+        kind:
+          enum:
+            - mention
+            - explicitUserAction
+            - admittedAutomation
+            - productDisabled
+          type: string
+        messageId:
+          type: string
+        triggerRef:
+          type: string
+      required:
+        - kind
+        - triggerRef
+        - actorId
+        - chatId
+        - messageId
       type: object
     HandleAvailabilityDto:
       properties:
@@ -9443,7 +9467,7 @@ info:
   description: |-
     The Nimi Social Platform API
 
-    Last updated: 2026-06-28T15:08:25.611Z
+    Last updated: 2026-06-29T04:03:12.425Z
   title: Nimi Realm SDK API
   version: '1.0'
 openapi: 3.0.0

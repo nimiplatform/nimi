@@ -8,6 +8,10 @@ import {
   type RealmGroupMessageCandidateEvidence,
   type RuntimeTypedCallOptions,
 } from '../core-generated/runtime-typed-client';
+import type {
+  CommitRealmGroupSourceMessageCandidateInputDto,
+  GroupSourceTriggerEvidenceDto,
+} from '../core-generated/realm-typed-client';
 import { createNimiError, ReasonCode } from '../types';
 import { buildRuntimeAgentRequestContext, isRuntimeLocalAgentRef } from './agent-local-identity';
 import {
@@ -22,6 +26,12 @@ import { normalizeNimiRuntimeAgentText, toNimiRuntimeIsoFromTimestamp } from './
 const CANDIDATE_KIND = 'REALM_GROUP_MESSAGE_CANDIDATE';
 const CREATE_CANDIDATE_SCOPE = 'runtime.agent.create_realm_group_message_candidate';
 const READ_CANDIDATE_EVIDENCE_SCOPE = 'runtime.agent.get_realm_group_message_candidate_evidence';
+const REALM_GROUP_TRIGGER_KINDS = new Set<GroupSourceTriggerEvidenceDto['kind']>([
+  'mention',
+  'explicitUserAction',
+  'admittedAutomation',
+  'productDisabled',
+]);
 
 export interface NimiRuntimeParticipantSlotIdentity {
   readonly runtimeParticipantSlot: string;
@@ -39,34 +49,14 @@ export interface NimiRuntimeParticipantSlotIdentityInput {
   readonly localAgentRef: unknown;
 }
 
-export interface NimiRuntimeRealmGroupMessageCandidateCommitPayload {
-  readonly candidateId: string;
-  readonly candidateKind: 'REALM_GROUP_MESSAGE_CANDIDATE';
-  readonly candidateEvidenceRef: string;
-  readonly evidenceHash: string;
-  readonly runtimeTraceRef: string;
-  readonly expectedRuntimeParticipantSlotId: string;
-  readonly expectedRuntimeSourceRef: string;
-  readonly triggerRef: string;
-  readonly outputCandidateRef: string;
-  readonly auditLineageRef: string;
-  readonly policyVerdictRef: string;
-  readonly createdAt: string;
-  readonly expiresAt: string;
-  readonly commitDisposition: 'MESSAGE_CANDIDATE' | 'REFUSAL_CANDIDATE';
-  readonly messageType?: 'TEXT';
-  readonly body?: string;
-  readonly bodyHash?: string;
-  readonly refusalCode?: string;
-  readonly refusalReason?: string;
-  readonly refusalHash?: string;
-  readonly idempotencyKey: string;
-}
+export type NimiRuntimeRealmGroupMessageCandidateCommitPayload =
+  CommitRealmGroupSourceMessageCandidateInputDto;
 
 export type NimiRuntimeRealmGroupMessageCandidateCommitInput =
   NimiRuntimeParticipantSlotIdentityInput & {
     readonly realmGroupThreadId: unknown;
     readonly triggerMessageId: unknown;
+    readonly triggerKind: unknown;
     readonly idempotencyKey: unknown;
     readonly replyTargetRef?: unknown;
     readonly membershipSnapshotRef?: unknown;
@@ -130,6 +120,14 @@ function requireText(value: unknown, message: string, actionHint: string): strin
 
 function optionalText(value: unknown): string {
   return normalizeNimiRuntimeAgentText(value);
+}
+
+function requireTriggerKind(value: unknown): GroupSourceTriggerEvidenceDto['kind'] {
+  const triggerKind = requireText(value, 'Realm group message candidate handoff requires trigger kind', 'provide_realm_group_trigger_kind');
+  if (!REALM_GROUP_TRIGGER_KINDS.has(triggerKind as GroupSourceTriggerEvidenceDto['kind'])) {
+    inputError('Realm group message candidate handoff trigger kind is not admitted', 'use_admitted_realm_group_trigger_kind');
+  }
+  return triggerKind as GroupSourceTriggerEvidenceDto['kind'];
 }
 
 export function resolveNimiRuntimeParticipantSlotIdentity(
@@ -249,8 +247,17 @@ function buildRealmCommitPayload(input: {
   readonly evidence: RealmGroupMessageCandidateEvidence;
   readonly slot: NimiRuntimeParticipantSlotIdentity;
   readonly triggerRef: string;
+  readonly triggerMessageId: string;
+  readonly triggerKind: GroupSourceTriggerEvidenceDto['kind'];
   readonly idempotencyKey: string;
 }): NimiRuntimeRealmGroupMessageCandidateCommitPayload {
+  const triggerEvidence: GroupSourceTriggerEvidenceDto = {
+    kind: input.triggerKind,
+    triggerRef: input.triggerRef,
+    actorId: input.slot.ownerUserId,
+    chatId: input.evidence.realmGroupThreadId,
+    messageId: input.triggerMessageId,
+  };
   return {
     candidateId: input.candidate.candidateId,
     candidateKind: CANDIDATE_KIND,
@@ -259,7 +266,7 @@ function buildRealmCommitPayload(input: {
     runtimeTraceRef: input.candidate.runtimeTraceRef,
     expectedRuntimeParticipantSlotId: input.slot.runtimeParticipantSlot,
     expectedRuntimeSourceRef: input.slot.runtimeSourceRef,
-    triggerRef: input.triggerRef,
+    triggerEvidence,
     outputCandidateRef: input.evidence.outputCandidateRef,
     auditLineageRef: input.evidence.auditLineageRef,
     policyVerdictRef: input.evidence.policyVerdictRef,
@@ -299,6 +306,7 @@ export function createNimiHostRuntimeRealmGroupMessageCandidateSurface(
       }
       const realmGroupThreadId = requireText(input.realmGroupThreadId, 'Realm group message candidate handoff requires Realm group thread id', 'provide_realm_group_thread');
       const triggerMessageId = requireText(input.triggerMessageId, 'Realm group message candidate handoff requires a committed Realm trigger message', 'provide_realm_group_trigger_message');
+      const triggerKind = requireTriggerKind(input.triggerKind);
       const idempotencyKey = requireText(input.idempotencyKey, 'Realm group message candidate handoff requires idempotency key', 'provide_realm_group_candidate_idempotency_key');
       if (Object.prototype.hasOwnProperty.call(input, 'contextRefs')) {
         inputError('Realm group candidate context refs are Runtime-owned and cannot be caller overridden', 'use_realm_group_participation_context_projection');
@@ -361,7 +369,15 @@ export function createNimiHostRuntimeRealmGroupMessageCandidateSurface(
         triggerRef,
         candidate,
         evidence,
-        realmCommitPayload: buildRealmCommitPayload({ candidate, evidence, slot, triggerRef, idempotencyKey }),
+        realmCommitPayload: buildRealmCommitPayload({
+          candidate,
+          evidence,
+          slot,
+          triggerRef,
+          triggerMessageId,
+          triggerKind,
+          idempotencyKey,
+        }),
       };
     },
   };

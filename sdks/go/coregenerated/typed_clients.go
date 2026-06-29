@@ -10366,7 +10366,7 @@ type CommitRealmGroupSourceMessageCandidateInputDto struct {
 	RefusalHash string `json:"refusalHash,omitempty"`
 	RefusalReason string `json:"refusalReason,omitempty"`
 	RuntimeTraceRef string `json:"runtimeTraceRef,omitempty"`
-	TriggerRef string `json:"triggerRef,omitempty"`
+	TriggerEvidence *GroupSourceTriggerEvidenceDto `json:"triggerEvidence,omitempty"`
 }
 
 type ConnectDashboardLinkDto struct {
@@ -10812,6 +10812,14 @@ type GroupSourceRefDto struct {
 	SourceContentHash string `json:"sourceContentHash,omitempty"`
 	SourceId string `json:"sourceId,omitempty"`
 	WorldId string `json:"worldId,omitempty"`
+}
+
+type GroupSourceTriggerEvidenceDto struct {
+	ActorId string `json:"actorId,omitempty"`
+	ChatId string `json:"chatId,omitempty"`
+	Kind string `json:"kind,omitempty"`
+	MessageId string `json:"messageId,omitempty"`
+	TriggerRef string `json:"triggerRef,omitempty"`
 }
 
 type HandleAvailabilityDto struct {

@@ -13688,6 +13688,9 @@
       "name": "GroupSourceRefDto"
     },
     {
+      "name": "GroupSourceTriggerEvidenceDto"
+    },
+    {
       "name": "HandleAvailabilityDto"
     },
     {
@@ -16807,12 +16810,12 @@
             }
           },
           {
-            "name": "triggerRef",
+            "name": "triggerEvidence",
             "required": true,
             "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null
+              "kind": "ref",
+              "ref": "#/components/schemas/GroupSourceTriggerEvidenceDto",
+              "ref_name": "GroupSourceTriggerEvidenceDto"
             }
           }
         ],
@@ -23098,6 +23101,64 @@
           },
           {
             "name": "worldId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "GroupSourceTriggerEvidenceDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "actorId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "chatId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "mention",
+                "explicitUserAction",
+                "admittedAutomation",
+                "productDisabled"
+              ]
+            }
+          },
+          {
+            "name": "messageId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "triggerRef",
             "required": true,
             "schema": {
               "kind": "scalar",
