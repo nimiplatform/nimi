@@ -14,6 +14,14 @@ surfaces:
   - runtime-bridge
   - runtime-daemon
   - local-runtime
+  - product-control
+  - account-profile-library
+  - data-cleanup
+  - support-export
+  - apps
+  - macos-smoke
+  - chat-ai
+  - agent-center
 # Desktop IPC Commands (Tauri invoke)
 # Source of truth: apps/desktop/src-tauri/src/main_parts/app_bootstrap.rs
 # Synced: 2026-03-09
@@ -70,6 +78,139 @@ commands:
     description: Restart the packaged desktop after updater install is ready
     source_rule: D-IPC-015
 
+  # Product control / first-run host evidence
+  - command: product_control_record_get
+    module: product-control
+    description: Read the Runtime product-control record projection for the active desktop account scope
+    source_rule: D-IPC-012
+
+  - command: product_control_selected_data_root_get
+    module: product-control
+    description: Read the selected Nimi data root from the product-control record projection
+    source_rule: D-IPC-012
+
+  - command: product_control_record_ensure_created
+    module: product-control
+    description: Ensure a product-control record exists for the active desktop account scope
+    source_rule: D-IPC-012
+
+  - command: product_control_record_select_data_root
+    module: product-control
+    description: Persist the selected data-root decision through the product-control bridge
+    source_rule: D-IPC-012
+
+  - command: product_control_record_complete_first_run_device_environment_scan
+    module: product-control
+    description: Record completion of first-run device-environment scan evidence
+    source_rule: D-IPC-012
+
+  - command: product_control_pick_data_root_directory
+    module: product-control
+    description: Pick a desktop data-root directory through a native folder dialog
+    source_rule: D-IPC-011
+
+  - command: product_control_default_data_root_directory
+    module: product-control
+    description: Resolve the default desktop Nimi data-root directory for first-run setup
+    source_rule: D-IPC-011
+
+  - command: product_control_record_set_first_run_install_level
+    module: product-control
+    description: Record the selected first-run local AI install level
+    source_rule: D-IPC-012
+
+  - command: product_control_record_ensure_account_default_profile
+    module: product-control
+    description: Ensure the account default profile projection needed for first-run readiness
+    source_rule: D-IPC-012
+
+  - command: product_control_record_prepare_first_run_local_ai_ready
+    module: product-control
+    description: Prepare first-run local AI readiness evidence for the selected product-control record
+    source_rule: D-IPC-012
+
+  - command: product_control_record_reconcile_first_run_setup_state
+    module: product-control
+    description: Reconcile first-run setup state against product-control and runtime readiness evidence
+    source_rule: D-IPC-012
+
+  - command: account_default_profile_for_scope_init
+    module: product-control
+    description: Initialize the default account profile for the active desktop scope
+    source_rule: D-IPC-012
+
+  - command: built_in_ai_config_for_scope_init
+    module: product-control
+    description: Initialize built-in AI configuration evidence for the active desktop scope
+    source_rule: D-IPC-012
+
+  - command: product_control_record_admit_ready_for_use
+    module: product-control
+    description: Admit the product-control record as ready for desktop use after required first-run evidence is present
+    source_rule: D-IPC-012
+
+  # Account profile library
+  - command: account_profile_library_list
+    module: account-profile-library
+    description: List account profile library entries for the active desktop account scope
+    source_rule: D-IPC-012
+
+  - command: account_profile_library_create
+    module: account-profile-library
+    description: Create an account profile library entry for the active desktop account scope
+    source_rule: D-IPC-012
+
+  - command: account_profile_library_edit
+    module: account-profile-library
+    description: Edit an account profile library entry for the active desktop account scope
+    source_rule: D-IPC-012
+
+  - command: account_profile_library_import
+    module: account-profile-library
+    description: Import account profile library data for the active desktop account scope
+    source_rule: D-IPC-012
+
+  - command: account_profile_library_export
+    module: account-profile-library
+    description: Export account profile library data for the active desktop account scope
+    source_rule: D-IPC-012
+
+  - command: account_profile_library_delete
+    module: account-profile-library
+    description: Delete an account profile library entry for the active desktop account scope
+    source_rule: D-IPC-012
+
+  # Data cleanup / support export / apps projection
+  - command: nimi_data_cleanup_plan
+    module: data-cleanup
+    description: Build a Nimi data-directory cleanup plan without deleting files
+    source_rule: D-IPC-011
+
+  - command: nimi_data_cleanup_execute
+    module: data-cleanup
+    description: Execute an admitted Nimi data-directory cleanup plan
+    source_rule: D-IPC-011
+
+  - command: desktop_agent_memory_export_save
+    module: support-export
+    description: Save a desktop agent memory export bundle through the native host
+    source_rule: D-IPC-011
+
+  - command: desktop_logs_export
+    module: support-export
+    description: Export desktop support logs through the native host
+    source_rule: D-IPC-009
+
+  - command: apps_bridge_projection_get
+    module: apps
+    description: Read the desktop apps bridge projection
+    source_rule: D-IPC-012
+
+  - command: apps_pick_local_app_root_directory
+    module: apps
+    description: Pick a local app root directory through a native folder dialog
+    source_rule: D-IPC-011
+
   # System / telemetry
   - command: get_system_resource_snapshot
     module: system
@@ -118,10 +259,20 @@ commands:
     description: Confirm private data sync for agent/session
     source_rule: D-IPC-005
 
+  - command: confirm_dialog
+    module: ui
+    description: Show an admitted native confirmation dialog and return the user decision
+    source_rule: D-IPC-005
+
   - command: log_renderer_event
     module: telemetry
     description: Forward renderer-side structured log event to Tauri backend logger
     source_rule: D-IPC-009
+
+  - command: focus_main_window
+    module: ui
+    description: Focus the main desktop window through the native shell
+    source_rule: D-IPC-005
 
   - command: start_window_drag
     module: ui
@@ -137,6 +288,154 @@ commands:
     module: ui
     description: Finalize explicit app quit after renderer cleanup
     source_rule: D-IPC-005
+
+  # macOS smoke / renderer acceptance helpers
+  - command: desktop_macos_smoke_context_get
+    module: macos-smoke
+    description: Read macOS smoke-test context for renderer acceptance instrumentation
+    source_rule: D-IPC-009
+
+  - command: desktop_macos_smoke_avatar_evidence_read
+    module: macos-smoke
+    description: Read avatar evidence for macOS smoke-test instrumentation
+    source_rule: D-IPC-009
+
+  - command: desktop_macos_smoke_avatar_product_local_asset_fault_apply
+    module: macos-smoke
+    description: Apply an admitted avatar product local-asset fault for macOS smoke-test instrumentation
+    source_rule: D-IPC-009
+
+  - command: desktop_macos_smoke_report_write
+    module: macos-smoke
+    description: Write macOS smoke-test report evidence from renderer instrumentation
+    source_rule: D-IPC-009
+
+  - command: desktop_macos_smoke_ping
+    module: macos-smoke
+    description: Ping the macOS smoke-test backend from renderer instrumentation
+    source_rule: D-IPC-009
+
+  # Chat local AI store
+  - command: chat_ai_list_threads
+    module: chat-ai
+    description: List local chat AI threads from the desktop local store
+    source_rule: D-IPC-011
+
+  - command: chat_ai_get_thread_bundle
+    module: chat-ai
+    description: Read a local chat AI thread bundle from the desktop local store
+    source_rule: D-IPC-011
+
+  - command: chat_ai_create_thread
+    module: chat-ai
+    description: Create a local chat AI thread in the desktop local store
+    source_rule: D-IPC-011
+
+  - command: chat_ai_update_thread_metadata
+    module: chat-ai
+    description: Update local chat AI thread metadata in the desktop local store
+    source_rule: D-IPC-011
+
+  - command: chat_ai_create_message
+    module: chat-ai
+    description: Create a local chat AI message in the desktop local store
+    source_rule: D-IPC-011
+
+  - command: chat_ai_update_message
+    module: chat-ai
+    description: Update a local chat AI message in the desktop local store
+    source_rule: D-IPC-011
+
+  - command: chat_ai_get_draft
+    module: chat-ai
+    description: Read a local chat AI draft from the desktop local store
+    source_rule: D-IPC-011
+
+  - command: chat_ai_put_draft
+    module: chat-ai
+    description: Save a local chat AI draft in the desktop local store
+    source_rule: D-IPC-011
+
+  - command: chat_ai_delete_draft
+    module: chat-ai
+    description: Delete a local chat AI draft from the desktop local store
+    source_rule: D-IPC-011
+
+  # Agent Center local resources
+  - command: desktop_agent_center_account_local_resources_remove
+    module: agent-center
+    description: Remove account-scoped Agent Center local resources from the desktop local store
+    source_rule: D-IPC-011
+
+  - command: desktop_agent_center_agent_local_resources_remove
+    module: agent-center
+    description: Remove agent-scoped Agent Center local resources from the desktop local store
+    source_rule: D-IPC-011
+
+  - command: desktop_agent_center_avatar_asset_import
+    module: agent-center
+    description: Import an admitted Agent Center avatar asset into the desktop local resource store
+    source_rule: D-IPC-011
+
+  - command: desktop_agent_center_avatar_asset_pick_live2d_source
+    module: agent-center
+    description: Pick a Live2D source folder for Agent Center avatar asset import
+    source_rule: D-IPC-011
+
+  - command: desktop_agent_center_avatar_asset_pick_vrm_source
+    module: agent-center
+    description: Pick a VRM source file for Agent Center avatar asset import
+    source_rule: D-IPC-011
+
+  - command: desktop_agent_center_avatar_asset_validate
+    module: agent-center
+    description: Validate an imported Agent Center avatar asset manifest and sidecar evidence
+    source_rule: D-IPC-011
+
+  - command: desktop_agent_center_live2d_adapter_manifest_import
+    module: agent-center
+    description: Import a Live2D adapter manifest into the Agent Center local resource store
+    source_rule: D-IPC-011
+
+  - command: desktop_agent_center_live2d_adapter_manifest_pick_source
+    module: agent-center
+    description: Pick a Live2D adapter manifest source file for Agent Center import
+    source_rule: D-IPC-011
+
+  - command: desktop_agent_center_background_asset_get
+    module: agent-center
+    description: Read an Agent Center background asset projection from the desktop local resource store
+    source_rule: D-IPC-011
+
+  - command: desktop_agent_center_background_import
+    module: agent-center
+    description: Import an admitted Agent Center background asset into the desktop local resource store
+    source_rule: D-IPC-011
+
+  - command: desktop_agent_center_background_pick_source
+    module: agent-center
+    description: Pick a background image source file for Agent Center import
+    source_rule: D-IPC-011
+
+  - command: desktop_agent_center_background_remove
+    module: agent-center
+    description: Remove an Agent Center background asset from the desktop local resource store
+    source_rule: D-IPC-011
+
+  - command: desktop_agent_center_background_validate
+    module: agent-center
+    description: Validate an Agent Center background asset manifest and sidecar evidence
+    source_rule: D-IPC-011
+
+  - command: desktop_agent_center_config_get
+    module: agent-center
+    description: Read Agent Center local resource configuration from the desktop local store
+    source_rule: D-IPC-011
+
+  - command: desktop_agent_center_config_put
+    module: agent-center
+    description: Save Agent Center local resource configuration to the desktop local store
+    source_rule: D-IPC-011
 
   # Runtime bridge (runtime_bridge) — gRPC transport
   - command: runtime_bridge_unary

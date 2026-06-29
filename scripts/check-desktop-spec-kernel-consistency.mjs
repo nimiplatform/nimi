@@ -123,9 +123,9 @@ checkDesktopTestingGateCoverage(fail, kernelRuleDefinitions);
 
 checkDesktopFeatureCoverage(fail, kernelRuleDefinitions);
 
-// ── Check 28: IPC commands YAML → contract prose coverage ──
+// ── Check 28: IPC commands YAML ↔ active Tauri registration coverage ──
 
-checkIpcCommandsContractProseCoverage();
+checkIpcCommandsMatchRegisteredTauriCommands();
 
 // ── Result ──
 
@@ -719,11 +719,12 @@ function checkRuleEvidenceTraceability() {
   }
 }
 
-function checkIpcCommandsContractProseCoverage() {
+function checkIpcCommandsMatchRegisteredTauriCommands() {
   const tablePath = '.nimi/spec/desktop/kernel/tables/ipc-commands.yaml';
-  const contractPath = '.nimi/spec/desktop/kernel/bridge-ipc-contract.md';
-  if (!fileExists(tablePath) || !fileExists(contractPath)) {
-    fail(`IPC contract prose coverage inputs missing: ${[tablePath, contractPath].filter((rel) => !fileExists(rel)).join(', ')}`);
+  const rustPath = 'apps/desktop/src-tauri/src/main_parts/app_bootstrap.rs';
+  const kitRegistrationPath = 'kit/shell/tauri/src/command_registration.rs';
+  if (!fileExists(tablePath) || !fileExists(rustPath) || !fileExists(kitRegistrationPath)) {
+    fail(`IPC registration parity inputs missing: ${[tablePath, rustPath, kitRegistrationPath].filter((rel) => !fileExists(rel)).join(', ')}`);
     return;
   }
 
@@ -736,9 +737,165 @@ function checkIpcCommandsContractProseCoverage() {
     return;
   }
 
-  const contractContent = read(contractPath);
-  const missing = commands.filter((cmd) => !contractContent.includes(cmd));
-  if (missing.length > 0) {
-    fail(`${tablePath} commands not mentioned in ${contractPath}: ${missing.join(', ')}`);
+  const seen = new Set();
+  const duplicates = [];
+  for (const command of commands) {
+    if (seen.has(command)) duplicates.push(command);
+    seen.add(command);
   }
+  if (duplicates.length > 0) {
+    fail(`${tablePath} has duplicate commands: ${[...new Set(duplicates)].join(', ')}`);
+  }
+
+  let registeredCommands = [];
+  try {
+    registeredCommands = parseDesktopRegisteredTauriCommands(rustPath, kitRegistrationPath);
+  } catch (error) {
+    fail(error instanceof Error ? error.message : String(error));
+    return;
+  }
+  compareCommandSets(`${tablePath} vs ${rustPath}`, new Set(commands), new Set(registeredCommands));
+}
+
+function parseDesktopRegisteredTauriCommands(rustPath, kitRegistrationPath) {
+  const source = read(rustPath);
+  const macroNames = [
+    'nimi_shell_tauri_auth_oauth_runtime_bridge_handler',
+    'nimi_shell_tauri_oauth_runtime_bridge_handler',
+    'nimi_shell_tauri_runtime_bridge_handler',
+  ];
+  for (const macroName of macroNames) {
+    const marker = `nimi_shell_tauri::${macroName}!`;
+    const markerIndex = source.indexOf(marker);
+    if (markerIndex < 0) continue;
+    const body = extractBracketBodyAfterMarker(source, marker, markerIndex, rustPath, macroName);
+    const runtimeDefaultsMatch = body.match(/@with_runtime_defaults\s+([^;]+);/u);
+    const runtimeDefaultsRef = runtimeDefaultsMatch
+      ? runtimeDefaultsMatch[1].trim()
+      : 'nimi_shell_tauri::runtime_defaults::runtime_defaults';
+    const runtimeDefaultsName = parseRustCommandRefName(runtimeDefaultsRef, rustPath, 'runtime defaults entry');
+    const appCommandBody = runtimeDefaultsMatch
+      ? body.slice(runtimeDefaultsMatch.index + runtimeDefaultsMatch[0].length)
+      : body;
+    return [
+      runtimeDefaultsName,
+      ...parseKitMacroBuiltins(kitRegistrationPath, macroName),
+      ...parseRustCommandRefs(appCommandBody, rustPath, macroName),
+    ];
+  }
+  const directMarker = 'tauri::generate_handler!';
+  const directIndex = source.indexOf(directMarker);
+  if (directIndex >= 0) {
+    return parseRustCommandRefs(
+      extractBracketBodyAfterMarker(source, directMarker, directIndex, rustPath, 'generate_handler'),
+      rustPath,
+      'generate_handler',
+    );
+  }
+  throw new Error(`${rustPath} missing tauri::generate_handler! or admitted Kit shell handler macro`);
+}
+
+function parseKitMacroBuiltins(kitRegistrationPath, macroName) {
+  const source = read(kitRegistrationPath);
+  const macroIndex = source.indexOf(`macro_rules! ${macroName}`);
+  if (macroIndex < 0) {
+    throw new Error(`${kitRegistrationPath} missing macro_rules! ${macroName}`);
+  }
+  const handlerIndex = source.indexOf('tauri::generate_handler!', macroIndex);
+  if (handlerIndex < 0) {
+    throw new Error(`${kitRegistrationPath} ${macroName} missing tauri::generate_handler!`);
+  }
+  return parseRustCommandRefs(
+    extractBracketBodyAfterMarker(source, 'tauri::generate_handler!', handlerIndex, kitRegistrationPath, macroName),
+    kitRegistrationPath,
+    macroName,
+  ).filter((command) => command !== 'runtime_defaults');
+}
+
+function parseRustCommandRefs(body, rel, context) {
+  const withoutComments = body
+    .replace(/\/\*[\s\S]*?\*\//gu, '')
+    .replace(/\/\/.*$/gmu, '');
+  const commands = [];
+  for (const raw of withoutComments.split(',')) {
+    const ref = raw.trim();
+    if (!ref) continue;
+    if (ref === '*' || ref.startsWith('$runtime_defaults') || ref.startsWith('$(')) continue;
+    commands.push(parseRustCommandRefName(ref, rel, context));
+  }
+  return commands;
+}
+
+function parseRustCommandRefName(ref, rel, context) {
+  const match = ref.match(/(?:^|::)([a-z][a-z0-9_]*)$/u);
+  if (!match) {
+    throw new Error(`${rel} contains unparsable ${context} entry: ${ref}`);
+  }
+  return match[1];
+}
+
+function extractBracketBodyAfterMarker(source, marker, markerIndex, rel, label) {
+  const openIndex = source.indexOf('[', markerIndex + marker.length);
+  if (openIndex < 0) {
+    throw new Error(`${rel} missing ${label} opening bracket`);
+  }
+
+  let depth = 0;
+  let closeIndex = -1;
+  let state = 'code';
+  for (let i = openIndex; i < source.length; i += 1) {
+    const ch = source[i];
+    const next = source[i + 1];
+    if (state === 'line_comment') {
+      if (ch === '\n') state = 'code';
+      continue;
+    }
+    if (state === 'block_comment') {
+      if (ch === '*' && next === '/') {
+        state = 'code';
+        i += 1;
+      }
+      continue;
+    }
+    if (state === 'string') {
+      if (ch === '\\') i += 1;
+      else if (ch === '"') state = 'code';
+      continue;
+    }
+    if (state === 'char') {
+      if (ch === '\\') i += 1;
+      else if (ch === "'") state = 'code';
+      continue;
+    }
+    if (ch === '/' && next === '/') {
+      state = 'line_comment';
+      i += 1;
+      continue;
+    }
+    if (ch === '/' && next === '*') {
+      state = 'block_comment';
+      i += 1;
+      continue;
+    }
+    if (ch === '"') {
+      state = 'string';
+      continue;
+    }
+    if (ch === "'") {
+      state = 'char';
+      continue;
+    }
+    if (ch === '[') depth += 1;
+    if (ch === ']') {
+      depth -= 1;
+      if (depth === 0) {
+        closeIndex = i;
+        break;
+      }
+    }
+  }
+  if (closeIndex < 0) {
+    throw new Error(`${rel} ${label} bracket parse did not close`);
+  }
+  return source.slice(openIndex + 1, closeIndex);
 }

@@ -66,6 +66,7 @@ surfaces:
   - registered_command_families_32
   - registered_command_families_33
   - registered_command_families_34
+  - registered_command_families_35
 # Desktop Tauri command execution classification.
 # Source of truth for D-GATE-092..D-GATE-096.
 schema_version: desktop-tauri-command-execution/v1
@@ -236,6 +237,8 @@ registered_command_families:
         - runtime_local_pick_asset_directory
         - product_control_pick_data_root_directory
         - desktop_agent_center_live2d_adapter_manifest_pick_source
+        - desktop_agent_center_avatar_asset_pick_live2d_source
+        - desktop_agent_center_avatar_asset_pick_vrm_source
         - desktop_agent_center_background_pick_source
     origin_crate: apps/desktop/src-tauri
     owner_domain: desktop-shell
@@ -307,6 +310,8 @@ registered_command_families:
       exact:
         - desktop_agent_center_account_local_resources_remove
         - desktop_agent_center_agent_local_resources_remove
+        - desktop_agent_center_avatar_asset_import
+        - desktop_agent_center_avatar_asset_validate
         - desktop_agent_center_background_asset_get
         - desktop_agent_center_background_import
         - desktop_agent_center_background_remove
@@ -444,6 +449,18 @@ registered_command_families:
     admitted_risks:
       - std_fs
       - spawn_blocking
+    source_rule: D-GATE-092
+
+  - family: apps_local_app_picker
+    match:
+      exact:
+        - apps_pick_local_app_root_directory
+    origin_crate: apps/desktop/src-tauri
+    owner_domain: desktop-apps-projection
+    execution_class: bounded_blocking_with_admission
+    remediation_required: false
+    admitted_risks:
+      - native_dialog
     source_rule: D-GATE-092
 
   - family: account_profile_library
