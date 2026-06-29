@@ -153,6 +153,7 @@ function resolveProviderModel(options: NimiVercelProviderOptions, modelId: strin
     routePolicy: options.routePolicy,
     connectorId: options.connectorId,
     subjectUserId: options.subjectUserId,
+    targetRef: options.targetRef,
     timeoutMs: options.timeoutMs,
     metadata: options.metadata,
     reasoning: options.reasoning,
@@ -170,6 +171,9 @@ function assertRuntimeBackedProviderOptions(
 ): void {
   if (!options.routePolicy) {
     throwUnsupportedVercelAiFeature('provider.routePolicy', 'runtime-backed providers require explicit routePolicy');
+  }
+  if (!options.targetRef || options.targetRef.kind === 'profile-slice') {
+    throwUnsupportedVercelAiFeature('provider.targetRef', 'runtime-backed providers require a live v2 targetRef');
   }
   if (options.subjectUserId && options.subjectMode !== 'external-principal') {
     throwUnsupportedVercelAiFeature('provider.subjectUserId', 'subjectUserId requires subjectMode external-principal');

@@ -287,6 +287,11 @@ test('vercel-ai adapter fails closed when a Nimi stream ends without terminal ev
 });
 
 test('vercel-ai runtime-backed provider requires route policy and explicit subject mode', () => {
+  const targetRef = {
+    kind: 'local-runtime',
+    version: 'v2',
+    profileBindingId: 'local-runtime:model-1',
+  } as const;
   const client = {
     ai: {
       createRuntimeModel() {
@@ -300,7 +305,12 @@ test('vercel-ai runtime-backed provider requires route policy and explicit subje
     { feature: 'provider.routePolicy' },
   );
   assert.throws(
-    () => createNimiVercelProvider({ client, routePolicy: 'cloud', subjectUserId: 'user-1' }).languageModel('model-1'),
+    () => createNimiVercelProvider({
+      client,
+      routePolicy: 'cloud',
+      subjectUserId: 'user-1',
+      targetRef,
+    }).languageModel('model-1'),
     { feature: 'provider.subjectUserId' },
   );
 });
@@ -561,6 +571,11 @@ test('vercel-ai provider exposes only the configured model id', () => {
 
 test('vercel-ai provider can create Runtime-backed models from a Nimi client', () => {
   const createdModels: string[] = [];
+  const targetRef = {
+    kind: 'local-runtime',
+    version: 'v2',
+    profileBindingId: 'local-runtime:gemini-default',
+  } as const;
   const provider = createNimiVercelProvider({
     client: {
       ai: {
@@ -573,10 +588,76 @@ test('vercel-ai provider can create Runtime-backed models from a Nimi client', (
     routePolicy: 'cloud',
     subjectUserId: 'user-1',
     subjectMode: 'external-principal',
+    targetRef,
   });
 
   assert.equal(provider.languageModel('gemini/default').modelId, 'gemini/default');
   assert.deepEqual(createdModels, ['gemini/default']);
+});
+
+test('vercel-ai provider forwards runtime-backed targetRef into createRuntimeModel', () => {
+  const targetRef = {
+    kind: 'local-runtime',
+    version: 'v2',
+    profileBindingId: 'local-runtime:model-1',
+  } as const;
+  let captured: NimiClientRuntimeModelOptions | null = null;
+  const client = {
+    ai: {
+      createRuntimeModel(options: NimiClientRuntimeModelOptions) {
+        captured = options;
+        return createModel([], { modelId: options.model.modelId });
+      },
+    },
+  } as unknown as NimiClient;
+
+  createNimiVercelProvider({
+    client,
+    routePolicy: 'runtime',
+    subjectUserId: 'user-1',
+    subjectMode: 'external-principal',
+    targetRef,
+  }).languageModel('model-1');
+
+  assert.deepEqual(captured?.targetRef, targetRef);
+});
+
+test('vercel-ai provider rejects runtime-backed creation without a live v2 targetRef', () => {
+  const client = {
+    ai: {
+      createRuntimeModel(options: NimiClientRuntimeModelOptions) {
+        return createModel([], { modelId: options.model.modelId });
+      },
+    },
+  } as unknown as NimiClient;
+
+  assert.throws(
+    () => createNimiVercelProvider({ client, routePolicy: 'runtime' }).languageModel('model-1'),
+    { feature: 'provider.targetRef' },
+  );
+});
+
+test('vercel-ai provider rejects runtime-backed creation with profile-slice targetRef', () => {
+  const client = {
+    ai: {
+      createRuntimeModel(options: NimiClientRuntimeModelOptions) {
+        return createModel([], { modelId: options.model.modelId });
+      },
+    },
+  } as unknown as NimiClient;
+
+  assert.throws(
+    () => createNimiVercelProvider({
+      client,
+      routePolicy: 'runtime',
+      targetRef: {
+        kind: 'profile-slice',
+        sourceProfileId: 'profile-1',
+        sliceId: 'text.generate',
+      },
+    }).languageModel('model-1'),
+    { feature: 'provider.targetRef' },
+  );
 });
 
 test('vercel-ai manifest claims protocol mapping support and types every gap', () => {
