@@ -4,10 +4,20 @@ import { useTranslation } from 'react-i18next';
 import { ScrollArea } from '@nimiplatform/kit/ui';
 import { useQueryClient } from '@tanstack/react-query';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
+import {
+  fromNimiRuntimeProtoStruct,
+  isRuntimeLocalAgentRef,
+} from '@nimiplatform/sdk/runtime';
+import { AgentLifecycleStatus } from '@nimiplatform/sdk/runtime/generated';
+import {
+  getDesktopRuntime,
+  withDesktopRuntimeProtectedScopes,
+} from '@renderer/infra/sdk/desktop-nimi-client-session';
 import { realmSourceRefKey } from '@renderer/features/explore/realm-persona-source-materialization';
 import { realmGroupChatData, type GroupSourceParticipantInput } from './data/realm-group-chat-data';
 
 type GroupParticipantDto = RealmModel<'GroupParticipantDto'>;
+type GroupSourceRef = GroupSourceParticipantInput['sourceRef'];
 
 type SourceFromSnapshot = {
   sourceKey: string;
@@ -20,6 +30,54 @@ type SourceFromSnapshot = {
 
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
+}
+
+function readRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null;
+}
+
+function toGroupSourceRefFromMaterialization(value: unknown): GroupSourceRef | null {
+  const record = readRecord(value);
+  if (!record) return null;
+  const kind = normalizeText(record.sourceKind);
+  if (kind !== 'worldCharacter' && kind !== 'realmPersona') return null;
+  const worldId = normalizeText(record.sourceWorldId);
+  const sourceId = normalizeText(record.sourceId);
+  const sourceContentHash = normalizeText(record.sourceContentHash);
+  if (!worldId || !sourceId || !sourceContentHash) return null;
+  return {
+    kind,
+    worldId,
+    sourceId,
+    sourceContentHash,
+  };
+}
+
+function toSourceFromRuntimeAgent(agent: {
+  readonly displayName?: string;
+  readonly localAgentRef?: string;
+  readonly metadata?: Parameters<typeof fromNimiRuntimeProtoStruct>[0];
+  readonly ownerUserId?: string;
+  readonly runtimeSourceRef?: string;
+}, currentUserId: string): SourceFromSnapshot | null {
+  const ownerUserId = normalizeText(agent.ownerUserId);
+  if (ownerUserId !== currentUserId) return null;
+  if (!isRuntimeLocalAgentRef(agent.localAgentRef)) return null;
+  const metadata = fromNimiRuntimeProtoStruct(agent.metadata);
+  const sourceRef = toGroupSourceRefFromMaterialization(metadata.sourceMaterialization);
+  if (!sourceRef) return null;
+  const sourceKey = realmSourceRefKey(sourceRef);
+  const displayName = normalizeText(agent.displayName) || sourceRef.sourceId;
+  return {
+    sourceKey,
+    ownerUserId,
+    input: { sourceRef },
+    displayName,
+    handle: sourceRef.sourceId,
+    avatarUrl: null,
+  };
 }
 
 function sourceParticipantKey(participant: GroupParticipantDto): string {
@@ -62,6 +120,8 @@ export function ChatGroupParticipantPanel(props: {
   const [addSourceOpen, setAddSourceOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [panelError, setPanelError] = useState<string | null>(null);
+  const [runtimeSources, setRuntimeSources] = useState<SourceFromSnapshot[]>([]);
+  const [sourcePickerLoading, setSourcePickerLoading] = useState(false);
 
   const humans = participants.filter((p) => p.type === 'human');
   const sources = participants.filter((p) => p.type === 'source');
@@ -82,7 +142,52 @@ export function ChatGroupParticipantPanel(props: {
     }
   }, [addSourceOpen, canManageSourceSlots]);
 
-  const availableSources = ([] as SourceFromSnapshot[]).filter((source) =>
+  useEffect(() => {
+    let cancelled = false;
+    if (!showAddSourcePicker || !currentUserId) {
+      setRuntimeSources([]);
+      setSourcePickerLoading(false);
+      return () => {
+        cancelled = true;
+      };
+    }
+    setSourcePickerLoading(true);
+    void withDesktopRuntimeProtectedScopes(
+      ['runtime.agent.read'],
+      (callOptions) => getDesktopRuntime().agents.listAgents({
+        lifecycleFilter: AgentLifecycleStatus.ACTIVE,
+        pageSize: 200,
+        pageToken: '',
+      }, callOptions),
+    ).then((response) => {
+      if (cancelled) return;
+      setRuntimeSources((response.agents || [])
+        .map((agent) => toSourceFromRuntimeAgent(agent, currentUserId))
+        .filter((source): source is SourceFromSnapshot => Boolean(source)));
+    }).catch((error) => {
+      if (cancelled) return;
+      setRuntimeSources([]);
+      setPanelError(toPanelErrorMessage(
+        error,
+        t('Chat.groupLoadSourcesError', { defaultValue: 'Failed to load local sources.' }),
+      ));
+      logRendererEvent({
+        level: 'warn',
+        area: 'runtime-participant-slot',
+        message: `load-sources-error: ${error instanceof Error ? error.message : String(error)}`,
+        details: { chatId: chatId || null },
+      });
+    }).finally(() => {
+      if (!cancelled) {
+        setSourcePickerLoading(false);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [chatId, currentUserId, showAddSourcePicker, t]);
+
+  const availableSources = runtimeSources.filter((source) =>
     source.ownerUserId === currentUserId
     && !existingSourceKeys.has(source.sourceKey),
   );
@@ -223,7 +328,11 @@ export function ChatGroupParticipantPanel(props: {
           )}
           {showAddSourcePicker && (
             <div className="mt-1 rounded-lg border border-violet-200/60 bg-violet-50/50 p-2">
-              {availableSources.length > 0 ? (
+              {sourcePickerLoading ? (
+                <div className="px-2 py-1.5 text-xs text-slate-400">
+                  {t('Chat.groupLoadingSources', { defaultValue: 'Loading sources...' })}
+                </div>
+              ) : availableSources.length > 0 ? (
                 availableSources.map((source) => (
                   <button
                     key={source.sourceKey}

@@ -35,7 +35,6 @@ func TestInitializeAgentConsumesSourceMaterializationPacketWithoutPersistingPayl
 	svc := newRuntimeAgentTestService(t)
 	ownerID := "user-source"
 	runtimeSourceRef := "runtime-source:worldCharacter:world-1:source-1:hash-1"
-	localAgentRef := "local-agent:opaque-source-1"
 	packet := testSourceMaterializationPacket(t, ownerID, runtimeSourceRef, "nonce-1", time.Now().UTC().Add(5*time.Minute), sourceMaterializationAudienceDesktop)
 	metadata := testSourceMaterializationMetadata(t, packet)
 
@@ -45,9 +44,7 @@ func TestInitializeAgentConsumesSourceMaterializationPacketWithoutPersistingPayl
 			SubjectUserId:    ownerID,
 			OwnerUserId:      ownerID,
 			RuntimeSourceRef: runtimeSourceRef,
-			LocalAgentRef:    localAgentRef,
 		},
-		LocalAgentRef:    localAgentRef,
 		OwnerUserId:      ownerID,
 		RuntimeSourceRef: runtimeSourceRef,
 		DisplayName:      "Source Fork",
@@ -106,6 +103,26 @@ func TestInitializeAgentGeneratesOpaqueLocalAgentRefForSourceMaterialization(t *
 	}
 }
 
+func TestInitializeAgentRejectsCallerAuthoredLocalAgentRefForSourceMaterialization(t *testing.T) {
+	t.Setenv(sourceMaterializationHMACSecretEnv, "unit-test-source-packet-secret")
+	svc := newRuntimeAgentTestService(t)
+	ownerID := "user-source"
+	runtimeSourceRef := "runtime-source:worldCharacter:world-1:source-1:hash-1"
+	packet := testSourceMaterializationPacket(t, ownerID, runtimeSourceRef, "nonce-caller-authored-local-ref", time.Now().UTC().Add(5*time.Minute), sourceMaterializationAudienceDesktop)
+
+	_, err := svc.InitializeAgent(context.Background(), &runtimev1.InitializeAgentRequest{
+		Context:          testSourceMaterializationContext(ownerID, runtimeSourceRef, "local-agent:caller-authored-source-1"),
+		LocalAgentRef:    "local-agent:caller-authored-source-1",
+		OwnerUserId:      ownerID,
+		RuntimeSourceRef: runtimeSourceRef,
+		DisplayName:      "Caller Authored Source Fork",
+		Metadata:         testSourceMaterializationMetadata(t, packet),
+	})
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("status.Code = %s, want %s (%v)", status.Code(err), codes.InvalidArgument, err)
+	}
+}
+
 func TestInitializeAgentRejectsForgedSourceMaterializationPacketProof(t *testing.T) {
 	t.Setenv(sourceMaterializationHMACSecretEnv, "unit-test-source-packet-secret")
 	svc := newRuntimeAgentTestService(t)
@@ -115,8 +132,7 @@ func TestInitializeAgentRejectsForgedSourceMaterializationPacketProof(t *testing
 	packet["packetProof"] = "hmac-sha256:forged"
 
 	_, err := svc.InitializeAgent(context.Background(), &runtimev1.InitializeAgentRequest{
-		Context:          testSourceMaterializationContext(ownerID, runtimeSourceRef, "local-agent:opaque-source-forged"),
-		LocalAgentRef:    "local-agent:opaque-source-forged",
+		Context:          testSourceMaterializationContext(ownerID, runtimeSourceRef, ""),
 		OwnerUserId:      ownerID,
 		RuntimeSourceRef: runtimeSourceRef,
 		DisplayName:      "Forged Source Fork",
@@ -134,10 +150,8 @@ func TestInitializeAgentRejectsSourceMaterializationPacketReplay(t *testing.T) {
 	runtimeSourceRef := "runtime-source:worldCharacter:world-1:source-1:hash-1"
 	packet := testSourceMaterializationPacket(t, ownerID, runtimeSourceRef, "nonce-replay", time.Now().UTC().Add(5*time.Minute), sourceMaterializationAudienceDesktop)
 
-	firstRef := "local-agent:opaque-source-replay-a"
 	if _, err := svc.InitializeAgent(context.Background(), &runtimev1.InitializeAgentRequest{
-		Context:          testSourceMaterializationContext(ownerID, runtimeSourceRef, firstRef),
-		LocalAgentRef:    firstRef,
+		Context:          testSourceMaterializationContext(ownerID, runtimeSourceRef, ""),
 		OwnerUserId:      ownerID,
 		RuntimeSourceRef: runtimeSourceRef,
 		DisplayName:      "Replay Source Fork A",
@@ -146,10 +160,8 @@ func TestInitializeAgentRejectsSourceMaterializationPacketReplay(t *testing.T) {
 		t.Fatalf("first InitializeAgent: %v", err)
 	}
 
-	secondRef := "local-agent:opaque-source-replay-b"
 	_, err := svc.InitializeAgent(context.Background(), &runtimev1.InitializeAgentRequest{
-		Context:          testSourceMaterializationContext(ownerID, runtimeSourceRef, secondRef),
-		LocalAgentRef:    secondRef,
+		Context:          testSourceMaterializationContext(ownerID, runtimeSourceRef, ""),
 		OwnerUserId:      ownerID,
 		RuntimeSourceRef: runtimeSourceRef,
 		DisplayName:      "Replay Source Fork B",
@@ -157,6 +169,25 @@ func TestInitializeAgentRejectsSourceMaterializationPacketReplay(t *testing.T) {
 	})
 	if status.Code(err) != codes.AlreadyExists {
 		t.Fatalf("status.Code = %s, want %s (%v)", status.Code(err), codes.AlreadyExists, err)
+	}
+}
+
+func TestInitializeAgentRejectsExpiredSourceMaterializationPacket(t *testing.T) {
+	t.Setenv(sourceMaterializationHMACSecretEnv, "unit-test-source-packet-secret")
+	svc := newRuntimeAgentTestService(t)
+	ownerID := "user-source"
+	runtimeSourceRef := "runtime-source:worldCharacter:world-1:source-1:hash-1"
+	packet := testSourceMaterializationPacket(t, ownerID, runtimeSourceRef, "nonce-expired-packet", time.Now().UTC().Add(-time.Minute), sourceMaterializationAudienceDesktop)
+
+	_, err := svc.InitializeAgent(context.Background(), &runtimev1.InitializeAgentRequest{
+		Context:          testSourceMaterializationContext(ownerID, runtimeSourceRef, ""),
+		OwnerUserId:      ownerID,
+		RuntimeSourceRef: runtimeSourceRef,
+		DisplayName:      "Expired Source Fork",
+		Metadata:         testSourceMaterializationMetadata(t, packet),
+	})
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("status.Code = %s, want %s (%v)", status.Code(err), codes.InvalidArgument, err)
 	}
 }
 
@@ -168,8 +199,7 @@ func TestInitializeAgentRejectsWrongSourceMaterializationAudience(t *testing.T) 
 	packet := testSourceMaterializationPacket(t, ownerID, runtimeSourceRef, "nonce-wrong-audience", time.Now().UTC().Add(5*time.Minute), "other.runtime")
 
 	_, err := svc.InitializeAgent(context.Background(), &runtimev1.InitializeAgentRequest{
-		Context:          testSourceMaterializationContext(ownerID, runtimeSourceRef, "local-agent:opaque-source-wrong-audience"),
-		LocalAgentRef:    "local-agent:opaque-source-wrong-audience",
+		Context:          testSourceMaterializationContext(ownerID, runtimeSourceRef, ""),
 		OwnerUserId:      ownerID,
 		RuntimeSourceRef: runtimeSourceRef,
 		DisplayName:      "Wrong Audience Source Fork",
@@ -190,11 +220,32 @@ func TestInitializeAgentRejectsUnadmittedSourceMaterializationSourceKind(t *test
 	refreshTestSourceMaterializationPacketSignature(t, packet, ownerID)
 
 	_, err := svc.InitializeAgent(context.Background(), &runtimev1.InitializeAgentRequest{
-		Context:          testSourceMaterializationContext(ownerID, runtimeSourceRef, "local-agent:opaque-source-bad-kind"),
-		LocalAgentRef:    "local-agent:opaque-source-bad-kind",
+		Context:          testSourceMaterializationContext(ownerID, runtimeSourceRef, ""),
 		OwnerUserId:      ownerID,
 		RuntimeSourceRef: runtimeSourceRef,
 		DisplayName:      "Bad Source Kind Fork",
+		Metadata:         testSourceMaterializationMetadata(t, packet),
+	})
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("status.Code = %s, want %s (%v)", status.Code(err), codes.InvalidArgument, err)
+	}
+}
+
+func TestInitializeAgentRejectsSourceMaterializationPayloadContentHashMismatch(t *testing.T) {
+	t.Setenv(sourceMaterializationHMACSecretEnv, "unit-test-source-packet-secret")
+	svc := newRuntimeAgentTestService(t)
+	ownerID := "user-source"
+	runtimeSourceRef := "runtime-source:worldCharacter:world-1:source-1:hash-1"
+	packet := testSourceMaterializationPacket(t, ownerID, runtimeSourceRef, "nonce-payload-content-hash-mismatch", time.Now().UTC().Add(5*time.Minute), sourceMaterializationAudienceDesktop)
+	payload := packet["payload"].(map[string]any)
+	payload["contentHash"] = "different-payload-content-hash"
+	refreshTestSourceMaterializationPacketSignature(t, packet, ownerID)
+
+	_, err := svc.InitializeAgent(context.Background(), &runtimev1.InitializeAgentRequest{
+		Context:          testSourceMaterializationContext(ownerID, runtimeSourceRef, ""),
+		OwnerUserId:      ownerID,
+		RuntimeSourceRef: runtimeSourceRef,
+		DisplayName:      "Bad Payload Content Hash Fork",
 		Metadata:         testSourceMaterializationMetadata(t, packet),
 	})
 	if status.Code(err) != codes.InvalidArgument {
@@ -213,8 +264,7 @@ func TestInitializeAgentRejectsMismatchedSourceMaterializationPayloadSchema(t *t
 	refreshTestSourceMaterializationPacketSignature(t, packet, ownerID)
 
 	_, err := svc.InitializeAgent(context.Background(), &runtimev1.InitializeAgentRequest{
-		Context:          testSourceMaterializationContext(ownerID, runtimeSourceRef, "local-agent:opaque-source-bad-schema"),
-		LocalAgentRef:    "local-agent:opaque-source-bad-schema",
+		Context:          testSourceMaterializationContext(ownerID, runtimeSourceRef, ""),
 		OwnerUserId:      ownerID,
 		RuntimeSourceRef: runtimeSourceRef,
 		DisplayName:      "Bad Payload Schema Fork",

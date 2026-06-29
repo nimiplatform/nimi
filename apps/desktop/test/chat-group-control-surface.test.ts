@@ -30,7 +30,11 @@ test('group source slot controls require Realm admin projection at visibility an
   assert.match(participantPanelSource, /const canManageSourceSlots = Boolean\(/);
   assert.match(participantPanelSource, /humans\.some\(\(p\) => p\.accountId === currentUserId && p\.role === 'admin'\)/);
   assert.match(participantPanelSource, /const showAddSourcePicker = addSourceOpen && canManageSourceSlots;/);
-  assert.match(participantPanelSource, /const availableSources = \(\[\] as SourceFromSnapshot\[\]\)\.filter/);
+  assert.match(participantPanelSource, /listAgents/);
+  assert.match(participantPanelSource, /fromNimiRuntimeProtoStruct/);
+  assert.match(participantPanelSource, /sourceMaterialization/);
+  assert.match(participantPanelSource, /runtimeSources\.filter/);
+  assert.doesNotMatch(participantPanelSource, /\(\[\] as SourceFromSnapshot\[\]\)/);
   assert.match(participantPanelSource, /if \(addSourceOpen && !canManageSourceSlots\) \{\s*setAddSourceOpen\(false\);/s);
   assert.match(participantPanelSource, /\{showAddSourcePicker && \(/);
   assert.match(participantPanelSource, /if \(!canManageSourceSlots\) \{\s*setPanelError\(t\('Chat\.groupSourceSlotManagementDenied'/s);

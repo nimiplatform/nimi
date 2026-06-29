@@ -60,11 +60,11 @@
   "ewmaTitle": "综合趋势",
   "ewmaDesc": "代表世界近阶段的综合趋势表现。这个模块适合放在运营看板或首页右侧概览区，用于快速判断世界是否处于上升期。",
   "charactersList": "Character 列表",
-  "charactersDesc": "展示连接到这个世界的 Character 与 Persona Source。",
+  "charactersDesc": "展示这个世界中的 Character 与 Persona Source。",
   "characterTiles": "Character 条目",
   "charactersLoading": "正在加载 Character...",
   "noPersonaSourcesYet": "这个世界里还没有 Persona",
-  "startChat": "连接 Source",
+  "startChat": "创建本地 Agent",
   "voiceInteraction": "Source",
   "createdAt": "创建于",
   "timeline": "大事件时间轴",
@@ -109,7 +109,7 @@
     },
     "characters": {
       "title": "Character 与 Persona",
-      "subtitle": "浏览这个世界的公开 Source。连接后会为后续对话表面形成本地条目。",
+      "subtitle": "浏览这个世界的公开 Source；需要对话表面时创建本地 Agent。",
       "empty": "这个世界还没有公开 Character 或 Persona Source。",
       "persona": "Persona",
       "character": "Character"
@@ -131,7 +131,7 @@
       "empty": "暂无公开 Source。",
       "featuredSources": "精选 Source",
       "settingHighlights": "设定亮点",
-      "note": "世界是公开设定背景。Source 连接会创建后续聊天和 localAgent 表面需要的本地入口。"
+      "note": "世界是公开设定背景。Source materialization 会创建后续聊天表面使用的 Runtime 本地 Agent。"
     }
   },
   "section": {
@@ -178,11 +178,11 @@
       "kicker": "Character 名册",
       "title": "Character 列表",
       "desc": "这里展示由世界生成或归属于该世界的 Character。每个 Character 条目包含姓名、handle、bio、创建时间。",
-      "sideNote": "条目区适合继续接入：\n连接状态 / Source 标签 / 归属 / 权限等级",
+      "sideNote": "条目区适合继续接入：\n本地 Agent 状态 / Source 标签 / 归属 / 权限等级",
       "voiceCall": "Source",
       "enterChat": "查看 Source",
       "chat": "Source",
-      "addFriend": "连接 Source",
+      "addFriend": "创建本地 Agent",
       "createdAt": "创建于",
       "noData": "暂时没有数据"
     },
@@ -392,16 +392,16 @@
       },
       "characters": {
         "title": "Sources",
-        "subtitle": "连接到这个世界的 Character 与 Persona",
+        "subtitle": "这个世界中的 Character 与 Persona",
         "totalCount": "共 {{count}} 个 Source",
-        "createCharacter": "连接 Source",
+        "createCharacter": "创建本地 Agent",
         "loading": "加载 Source 中...",
         "empty": "这个世界当前还没有 Source。",
         "vitality": "活力值",
-        "chat": "连接",
-        "chatOpensInConversation": "连接后会在后续对话表面形成本地 Source。",
+        "chat": "打开",
+        "chatOpensInConversation": "创建后续对话表面使用的 Runtime 本地 Agent。",
         "voice": "Source",
-        "voiceOpensInConversation": "语音属于后续已连接本地 Source 表面。",
+        "voiceOpensInConversation": "语音属于后续 Runtime 本地 Agent 表面。",
         "materializeSource": "创建本地 Agent",
         "sourceMaterialized": "本地 Agent 已就绪",
         "sourceUnavailable": "不可用",

@@ -137,6 +137,8 @@ test('World Detail materializes sources through the packet-backed Runtime handof
   assert.doesNotMatch(worldDetailTemplateSource, new RegExp(`on${['Connect', 'Source'].join('')}`));
   assert.doesNotMatch(worldDetailSource, new RegExp(`createRealm${'Runtime'}${'Source'}${'Snapshot'}|worldCoreControllerCreate${'Runtime'}${'Source'}${'Snapshot'}|transitController`));
   assert.doesNotMatch(worldDetailTemplateSource, new RegExp(`createRealm${'Runtime'}${'Source'}${'Snapshot'}|worldCoreControllerCreate${'Runtime'}${'Source'}${'Snapshot'}|transitController`));
+  assert.doesNotMatch(worldDetailLocaleEnSource, /Connect one|Connect Source|connected local source|Connection creates/i);
+  assert.doesNotMatch(worldDetailLocaleZhSource, /连接 Source|连接后|已连接本地 Source/);
 });
 
 test('World product data adapters do not keep raw WorldCore or transit-era fallback paths', () => {

@@ -20,6 +20,8 @@
   "groupRemoveSource": "Remove source",
   "groupNoSources": "No sources in this group",
   "groupNoAvailableSources": "No sources available to add",
+  "groupLoadingSources": "Loading sources...",
+  "groupLoadSourcesError": "Failed to load local sources.",
   "groupParticipantsLabel": "Group participants",
   "groupParticipantsEmpty": "Participants will appear here once the group is selected.",
   "groupStatusTitle": "Group status",

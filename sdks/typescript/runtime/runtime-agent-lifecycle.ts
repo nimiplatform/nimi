@@ -148,8 +148,7 @@ function normalizeInitializeAgentResponse(
 ): NimiRuntimeAgentInitializedLocalAgent {
   const agent = response.agent;
   const localAgentRef = normalizeNimiRuntimeAgentText(agent?.localAgentRef)
-    || normalizeNimiRuntimeAgentText(agent?.agentId)
-    || request.localAgentRef;
+    || normalizeNimiRuntimeAgentText(agent?.agentId);
   if (!agent || !isRuntimeLocalAgentRef(localAgentRef)) {
     lifecycleError(
       'Runtime Agent lifecycle initializeAgent returned no Runtime-owned localAgentRef.',

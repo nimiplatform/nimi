@@ -57,10 +57,14 @@ func localAgentIdentityFromInitializeRequest(req *runtimev1.InitializeAgentReque
 	}
 	ownerUserID := firstNonEmpty(strings.TrimSpace(req.GetOwnerUserId()), strings.TrimSpace(req.GetContext().GetOwnerUserId()))
 	runtimeSourceRef := firstNonEmpty(strings.TrimSpace(req.GetRuntimeSourceRef()), strings.TrimSpace(req.GetContext().GetRuntimeSourceRef()))
-	localAgentRef := firstNonEmpty(strings.TrimSpace(req.GetLocalAgentRef()), strings.TrimSpace(req.GetContext().GetLocalAgentRef()))
+	providedLocalAgentRef := firstNonEmpty(strings.TrimSpace(req.GetLocalAgentRef()), strings.TrimSpace(req.GetContext().GetLocalAgentRef()))
 	if strings.TrimSpace(req.GetAgentId()) != "" {
 		return localAgentIdentity{}, status.Error(codes.InvalidArgument, "agent_id is not local execution identity; use local_agent_ref")
 	}
+	if initializeRequestHasSourceMaterializationPacket(req) && providedLocalAgentRef != "" {
+		return localAgentIdentity{}, status.Error(codes.InvalidArgument, "source materialization initializes a Runtime-generated local_agent_ref")
+	}
+	localAgentRef := providedLocalAgentRef
 	if localAgentRef == "" {
 		generated, err := generateRuntimeLocalAgentRef()
 		if err != nil {
@@ -69,6 +73,10 @@ func localAgentIdentityFromInitializeRequest(req *runtimev1.InitializeAgentReque
 		localAgentRef = generated
 	}
 	return validateLocalAgentIdentity(ownerUserID, runtimeSourceRef, localAgentRef)
+}
+
+func initializeRequestHasSourceMaterializationPacket(req *runtimev1.InitializeAgentRequest) bool {
+	return req.GetMetadata() != nil && req.GetMetadata().GetFields()[sourceMaterializationPacketMetadataKey] != nil
 }
 
 func generateRuntimeLocalAgentRef() (string, error) {

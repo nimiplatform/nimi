@@ -480,6 +480,46 @@ test('Runtime Agent lifecycle materialization returns Runtime-generated localAge
   assert.equal(calls[0]?.options?.metadata?.scopes, 'runtime.agent.admin');
 });
 
+test('Runtime Agent lifecycle rejects initialize responses without Runtime-owned localAgentRef', async () => {
+  const surface = createNimiHostRuntimeAgentLifecycleSurface({
+    getRuntime: () => ({
+      appId: 'desktop',
+      auth: protectedAuth(),
+      appAuth: protectedAppAuth(),
+      agent: {
+        async getAgent() {
+          throw new Error('initializeLocalAgent must not read before initialize');
+        },
+        async initializeAgent() {
+          return {
+            agent: {
+              ownerUserId: OWNER_USER_ID,
+              runtimeSourceRef: RUNTIME_SOURCE_REF,
+              displayName: 'Missing Runtime Identity',
+              lifecycleStatus: AgentLifecycleStatus.ACTIVE,
+            },
+          };
+        },
+        async terminateAgent() {
+          return {};
+        },
+      },
+    }),
+    getSubjectUserId: () => 'user-1',
+    withScopes: async (_scopes, operation) => operation({}),
+  });
+
+  await assert.rejects(
+    () => surface.initializeLocalAgent({
+      localAgentRef: 'local-agent:caller-authored-ref',
+      ownerUserId: OWNER_USER_ID,
+      runtimeSourceRef: RUNTIME_SOURCE_REF,
+      displayName: 'Missing Runtime Identity',
+    }),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_RUNTIME_AGENT_RESPONSE_INVALID',
+  );
+});
+
 test('Runtime Realm group message candidate surface builds verified commit payloads and rejects mismatched evidence', async () => {
   const createCalls: CreateRealmGroupMessageCandidateRequest[] = [];
   const evidenceCalls: GetRealmGroupMessageCandidateEvidenceRequest[] = [];

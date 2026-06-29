@@ -20,6 +20,8 @@
   "groupRemoveSource": "移除 Source",
   "groupNoSources": "群组中暂无 Source",
   "groupNoAvailableSources": "没有可添加的 Source",
+  "groupLoadingSources": "正在加载 Source...",
+  "groupLoadSourcesError": "加载本地 Source 失败。",
   "groupParticipantsLabel": "群组参与者",
   "groupParticipantsEmpty": "选择群组后，参与者会显示在这里。",
   "groupStatusTitle": "群组状态",

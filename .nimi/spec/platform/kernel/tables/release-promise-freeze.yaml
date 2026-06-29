@@ -204,7 +204,7 @@ capabilities:
     verification_refs:
       - runtime/internal/services/runtimeagent/service_memory_state_test.go
       - runtime/internal/services/runtimeagent/service_life_replication_test.go
-      - sdks/typescript/runtime/runtime-agent-memory.test.ts
+      - sdks/typescript/runtime/runtime-agent-consume.test.ts
     source_rule: P-GOV-026
 
   - id: runtime.agent.hooks
@@ -235,7 +235,7 @@ capabilities:
     partial_deferred_reason: Protocol-native A2A, raw MCP ontology promotion, app-held credentials, and broad delegated authority inheritance are not promised.
     verification_refs:
       - runtime/internal/services/runtimeagent/delegated_capability_orchestration_test.go
-      - sdks/typescript/runtime/runtime-agent-delegated.test.ts
+      - sdks/typescript/runtime/runtime-agent-consume.test.ts
       - sdks/typescript/adapters/mastra/mastra.runtime-delegated-tools.test.ts
     source_rule: P-GOV-026
 
