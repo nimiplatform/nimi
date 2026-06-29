@@ -85,6 +85,7 @@ rows:
   - AI_REMOTE_MODEL_CATALOG_STALE
   - AI_LOCAL_MODEL_PROFILE_MISSING
   - AI_LOCAL_MODEL_UNAVAILABLE
+  - AI_LOCAL_MODEL_ALREADY_INSTALLED
   - AI_LOCAL_ASSET_ALREADY_INSTALLED
   - AI_LOCAL_SERVICE_UNAVAILABLE
   - AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED
@@ -612,6 +613,11 @@ mappings:
     surface: local_consume_or_probe
     exit_shape: grpc_status_or_payload_ok_false
     source_rule: K-LOCAL-006
+  - reason_code: AI_LOCAL_MODEL_ALREADY_INSTALLED
+    grpc_code: ALREADY_EXISTS
+    surface: install_local_model_duplicate
+    exit_shape: grpc_status
+    source_rule: K-LOCAL-009
   - reason_code: AI_LOCAL_ASSET_ALREADY_INSTALLED
     grpc_code: ALREADY_EXISTS
     surface: install_local_model_duplicate
