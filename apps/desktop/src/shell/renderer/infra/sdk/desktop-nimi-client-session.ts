@@ -1,5 +1,5 @@
 import { NimiClient, createNimiClient } from '@nimiplatform/sdk';
-import { Runtime, createNimiDesktopShellRuntimeAccountCaller, createNimiRuntimeAppSessionMetadataProvider, createNimiRuntimeFullAppRegistration, toNimiRuntimeTimestamp, withNimiRuntimeIdempotencyMetadata, type NimiHostRuntimeAgentDelegatedCapabilityClient, type NimiHostRuntimeAgentLifecycleClient, type NimiHostRuntimeAgentPresentationProfileClient, type NimiRuntimeAccountCaller, type NimiRuntimeAgentScopeRunner, type NimiRuntimeAgentTurnsRuntime } from '@nimiplatform/sdk/runtime';
+import { createNimiDesktopShellRuntimeAccountCaller, createNimiRuntimeAppSessionMetadataProvider, createNimiRuntimeFullAppRegistration, createNimiRuntimePlatformClient, toNimiRuntimeTimestamp, withNimiRuntimeIdempotencyMetadata, type NimiHostRuntimeAgentDelegatedCapabilityClient, type NimiHostRuntimeAgentLifecycleClient, type NimiHostRuntimeAgentPresentationProfileClient, type NimiRuntimeAccountCaller, type NimiRuntimeAgentScopeRunner, type NimiRuntimeAgentTurnsRuntime, type Runtime } from '@nimiplatform/sdk/runtime';
 import { AccountSessionState, AuthorizationPreset, ExternalPrincipalType, PolicyMode, type AuthorizeExternalPrincipalResponse, type RuntimeTypedCallOptions } from '@nimiplatform/sdk/runtime/generated';
 import { Realm, createRealmFetchTransport, loginNimiRealmAuthPassword, type NimiRealmOAuthLoginResult } from '@nimiplatform/sdk/realm';
 import { createNimiClientId, createNimiError, ReasonCode, type CoreMetadata } from '@nimiplatform/sdk/types';
@@ -97,8 +97,46 @@ export async function configureDesktopRuntimeRealmSession(
     commandNamespace: 'runtime_bridge',
     eventNamespace: 'runtime_bridge',
   };
-  const accountRuntime = new Runtime({ appId, transport });
   const accountCaller = createNimiDesktopShellRuntimeAccountCaller({ appId });
+  const platformClient = createNimiRuntimePlatformClient({
+    appId,
+    transport,
+    createRuntimeAuthMetadata: ({ accountRuntime }) => {
+      const getRuntimeSubjectUserId = async () => {
+        const response = await accountRuntime.account.getAccountSessionStatus({ caller: accountCaller });
+        if (response.state !== AccountSessionState.AUTHENTICATED) {
+          return '';
+        }
+        return normalizeText(response.accountProjection?.accountId);
+      };
+      const requiredRuntimeSessionMetadata = createNimiRuntimeAppSessionMetadataProvider({
+        appId,
+        appInstanceId: `${appId}${PLATFORM_RUNTIME_SESSION_APP_INSTANCE_SUFFIX}`,
+        deviceId: PLATFORM_RUNTIME_SESSION_DEVICE_ID,
+        capabilities: [...DESKTOP_RUNTIME_PROTECTED_SCOPES],
+        ttlSeconds: PLATFORM_RUNTIME_SESSION_TTL_SECONDS,
+        refreshSkewMs: PLATFORM_RUNTIME_SESSION_REFRESH_SKEW_MS,
+        auth: accountRuntime.auth,
+      });
+      return async (): Promise<CoreMetadata> => {
+        const subjectUserId = await getRuntimeSubjectUserId();
+        if (!subjectUserId || !(await ensureRuntimeAccountAccessToken(accountRuntime, accountCaller))) {
+          return {};
+        }
+        const appSessionMetadata = await requiredRuntimeSessionMetadata();
+        const protectedAccessMetadata = await getDesktopRuntimeProtectedAccessMetadata(
+          appId,
+          accountRuntime,
+          subjectUserId,
+        );
+        return {
+          ...appSessionMetadata,
+          ...protectedAccessMetadata,
+        };
+      };
+    },
+  });
+  const { runtime, accountRuntime } = platformClient;
   await createNimiRuntimeFullAppRegistration(
     () => ({ auth: accountRuntime.auth }),
     {
@@ -110,43 +148,6 @@ export async function configureDesktopRuntimeRealmSession(
       developerRegistration: input.developerRegistration,
     },
   )();
-  const getRuntimeSubjectUserId = async () => {
-    const response = await accountRuntime.account.getAccountSessionStatus({ caller: accountCaller });
-    if (response.state !== AccountSessionState.AUTHENTICATED) {
-      return '';
-    }
-    return normalizeText(response.accountProjection?.accountId);
-  };
-  const requiredRuntimeSessionMetadata = createNimiRuntimeAppSessionMetadataProvider({
-    appId,
-    appInstanceId: `${appId}${PLATFORM_RUNTIME_SESSION_APP_INSTANCE_SUFFIX}`,
-    deviceId: PLATFORM_RUNTIME_SESSION_DEVICE_ID,
-    capabilities: [...DESKTOP_RUNTIME_PROTECTED_SCOPES],
-    ttlSeconds: PLATFORM_RUNTIME_SESSION_TTL_SECONDS,
-    refreshSkewMs: PLATFORM_RUNTIME_SESSION_REFRESH_SKEW_MS,
-    auth: accountRuntime.auth,
-  });
-  const runtimeSessionMetadata = async (): Promise<CoreMetadata> => {
-    const subjectUserId = await getRuntimeSubjectUserId();
-    if (!subjectUserId || !(await ensureRuntimeAccountAccessToken(accountRuntime, accountCaller))) {
-      return {};
-    }
-    const appSessionMetadata = await requiredRuntimeSessionMetadata();
-    const protectedAccessMetadata = await getDesktopRuntimeProtectedAccessMetadata(
-      appId,
-      accountRuntime,
-      subjectUserId,
-    );
-    return {
-      ...appSessionMetadata,
-      ...protectedAccessMetadata,
-    };
-  };
-  const runtime = new Runtime({
-    appId,
-    transport,
-    authMetadata: runtimeSessionMetadata,
-  });
   const realm = createRealmWithRuntimeAccountToken({
     baseUrl: input.realmBaseUrl,
     fetchImpl: input.realmFetchImpl,

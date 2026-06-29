@@ -137,6 +137,7 @@ export * from './memory-embedding-types';
 export * from './memory-embedding-projection';
 export * from './memory-embedding-surfaces';
 export * from './model-catalog';
+export * from './platform-client';
 export * from './product-control-types';
 export * from './product-control-projection';
 export * from './product-control-client';
