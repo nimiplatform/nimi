@@ -1,0 +1,3703 @@
+{
+  "name": "Nimi Kit Design System",
+  "version": "alpha",
+  "description": "Spec-derived DESIGN.md projection for Nimi Kit UI/UX agents and drift gates.",
+  "systemVersion": 1,
+  "designVersion": 2,
+  "authority": {
+    "owner": "platform",
+    "canonical": ".nimi/spec/platform/kernel/**",
+    "projection": "kit/DESIGN.md",
+    "generatedBy": "scripts/generate-nimi-design-md.mjs",
+    "writeCommand": "node scripts/generate-nimi-design-md.mjs --write",
+    "checkCommand": "node scripts/generate-nimi-design-md.mjs --check"
+  },
+  "sources": [
+    ".nimi/spec/platform/kernel/tables/nimi-ui-tokens.yaml",
+    ".nimi/spec/platform/kernel/tables/nimi-ui-themes.yaml",
+    ".nimi/spec/platform/kernel/tables/nimi-ui-primitives.yaml",
+    ".nimi/spec/platform/kernel/tables/nimi-ui-primitives/*.yaml",
+    ".nimi/spec/platform/kernel/tables/nimi-ui-compositions.yaml",
+    ".nimi/spec/platform/kernel/tables/nimi-ui-adoption.yaml",
+    ".nimi/spec/platform/kernel/tables/nimi-ui-allowlists.yaml",
+    ".nimi/spec/platform/kernel/tables/nimi-kit-registry.yaml"
+  ],
+  "colors": {
+    "danger": "#dc2626",
+    "info": "#2563eb",
+    "neutral": "#f5f7fa",
+    "on-primary": "#111827",
+    "primary": "#4ECCA3",
+    "primary-hover": "#3DBB96",
+    "secondary": "#4b5563",
+    "success": "#16a34a",
+    "surface": "#ffffff",
+    "surface-panel": "#f8f9fb",
+    "warning": "#d97706"
+  },
+  "typography": {
+    "body": {
+      "fontFamily": "\"Inter\", \"Noto Sans SC\", \"Source Han Sans SC\", \"PingFang SC\", \"Microsoft YaHei UI\", \"Segoe UI\", system-ui, sans-serif",
+      "fontSize": "0.875rem",
+      "lineHeight": 1.5,
+      "fontWeight": 400,
+      "letterSpacing": 0
+    },
+    "body-sm": {
+      "fontFamily": "\"Inter\", \"Noto Sans SC\", \"Source Han Sans SC\", \"PingFang SC\", \"Microsoft YaHei UI\", \"Segoe UI\", system-ui, sans-serif",
+      "fontSize": "0.8125rem",
+      "lineHeight": 1.45,
+      "fontWeight": 400,
+      "letterSpacing": 0
+    },
+    "caption": {
+      "fontFamily": "\"Inter\", \"Noto Sans SC\", \"Source Han Sans SC\", \"PingFang SC\", \"Microsoft YaHei UI\", \"Segoe UI\", system-ui, sans-serif",
+      "fontSize": "0.75rem",
+      "lineHeight": 1.3,
+      "fontWeight": 500,
+      "letterSpacing": "0.01em"
+    },
+    "label": {
+      "fontFamily": "\"Inter\", \"Noto Sans SC\", \"Source Han Sans SC\", \"PingFang SC\", \"Microsoft YaHei UI\", \"Segoe UI\", system-ui, sans-serif",
+      "fontSize": "0.9375rem",
+      "lineHeight": 1.25,
+      "fontWeight": 600,
+      "letterSpacing": 0
+    },
+    "mono": {
+      "fontFamily": "\"JetBrains Mono\", \"SF Mono\", \"Fira Code\", ui-monospace, monospace",
+      "fontSize": "0.8125rem",
+      "lineHeight": 1.4,
+      "fontWeight": 500,
+      "letterSpacing": 0
+    },
+    "overline": {
+      "fontFamily": "\"Inter\", \"Noto Sans SC\", \"Source Han Sans SC\", \"PingFang SC\", \"Microsoft YaHei UI\", \"Segoe UI\", system-ui, sans-serif",
+      "fontSize": "0.6875rem",
+      "lineHeight": 1.2,
+      "fontWeight": 700,
+      "letterSpacing": "0.08em"
+    },
+    "page-title": {
+      "fontFamily": "\"Inter\", \"Noto Sans SC\", \"Source Han Sans SC\", \"PingFang SC\", \"Microsoft YaHei UI\", \"Segoe UI\", system-ui, sans-serif",
+      "fontSize": "1.5rem",
+      "lineHeight": "2rem",
+      "fontWeight": 700,
+      "letterSpacing": "-0.02em"
+    },
+    "section-title": {
+      "fontFamily": "\"Inter\", \"Noto Sans SC\", \"Source Han Sans SC\", \"PingFang SC\", \"Microsoft YaHei UI\", \"Segoe UI\", system-ui, sans-serif",
+      "fontSize": "1rem",
+      "lineHeight": "1.5rem",
+      "fontWeight": 600,
+      "letterSpacing": "-0.01em"
+    },
+    "sidebar-label": {
+      "fontFamily": "\"Inter\", \"Noto Sans SC\", \"Source Han Sans SC\", \"PingFang SC\", \"Microsoft YaHei UI\", \"Segoe UI\", system-ui, sans-serif",
+      "fontSize": "0.6875rem",
+      "lineHeight": 1.2,
+      "fontWeight": 700,
+      "letterSpacing": "0.08em"
+    }
+  },
+  "rounded": {
+    "action": "999px",
+    "field": "12px",
+    "full": "999px",
+    "lg": "16px",
+    "md": "12px",
+    "sidebar-item": "12px",
+    "sm": "8px",
+    "xl": "24px"
+  },
+  "spacing": {
+    "0": "0px",
+    "1": "2px",
+    "2": "4px",
+    "3": "8px",
+    "4": "12px",
+    "5": "16px",
+    "6": "20px",
+    "7": "24px",
+    "8": "32px",
+    "9": "40px",
+    "10": "48px",
+    "12": "64px",
+    "section": "24px",
+    "stack": "16px"
+  },
+  "components": {
+    "avatar-shape-circle": {
+      "rounded": "{rounded.full}"
+    },
+    "avatar-shape-rounded": {
+      "rounded": "{rounded.lg}"
+    },
+    "avatar-slot-fallback": {
+      "textColor": "{colors.secondary}"
+    },
+    "avatar-tone-accent": {
+      "backgroundColor": "{colors.primary}"
+    },
+    "button": {
+      "rounded": "{rounded.action}"
+    },
+    "button-size-lg": {
+      "padding": "{spacing.6}"
+    },
+    "button-size-md": {
+      "padding": "{spacing.5}"
+    },
+    "button-size-sm": {
+      "padding": "{spacing.4}"
+    },
+    "button-state-hover-primary": {
+      "backgroundColor": "{colors.primary-hover}"
+    },
+    "button-tone-ghost": {
+      "textColor": "{colors.secondary}"
+    },
+    "button-tone-primary": {
+      "backgroundColor": "{colors.primary}",
+      "textColor": "{colors.on-primary}"
+    },
+    "overlay-shell-kind-panel-drawer": {
+      "rounded": "{rounded.xl}"
+    },
+    "overlay-shell-slot-backdrop": {
+      "padding": "{spacing.5}"
+    },
+    "overlay-shell-slot-content": {
+      "padding": "{spacing.5}"
+    },
+    "overlay-shell-slot-footer": {
+      "padding": "{spacing.5}"
+    },
+    "overlay-shell-slot-panel": {
+      "rounded": "{rounded.xl}"
+    },
+    "overlay-shell-slot-sidebar": {
+      "padding": "{spacing.5}"
+    },
+    "overlay-shell-slot-title": {
+      "padding": "{spacing.5}"
+    },
+    "overlay-shell-slot-tooltip-bubble": {
+      "padding": "{spacing.3}",
+      "rounded": "{rounded.sm}"
+    },
+    "sidebar-shell-affordance-badge": {
+      "padding": "{spacing.1}",
+      "rounded": "{rounded.full}",
+      "textColor": "{colors.secondary}"
+    },
+    "sidebar-shell-affordance-count": {
+      "padding": "{spacing.1}",
+      "rounded": "{rounded.full}",
+      "textColor": "{colors.secondary}"
+    },
+    "sidebar-shell-compound-active-description": {
+      "textColor": "{colors.secondary}"
+    },
+    "sidebar-shell-compound-status-dot-inner": {
+      "rounded": "{rounded.full}"
+    },
+    "sidebar-shell-slot-header": {
+      "padding": "{spacing.5}"
+    },
+    "sidebar-shell-slot-item": {
+      "padding": "{spacing.3}",
+      "rounded": "{rounded.sidebar-item}"
+    },
+    "sidebar-shell-slot-search": {
+      "rounded": "{rounded.full}",
+      "textColor": "{colors.secondary}"
+    },
+    "sidebar-shell-slot-search-row": {
+      "padding": "{spacing.4}"
+    },
+    "sidebar-shell-slot-section": {
+      "padding": "{spacing.4}"
+    },
+    "sidebar-shell-slot-section-label": {
+      "padding": "{spacing.4}"
+    },
+    "status-badge": {
+      "padding": "{spacing.1}",
+      "rounded": "{rounded.full}"
+    },
+    "surface": {
+      "rounded": "{rounded.lg}"
+    },
+    "surface-tone-card": {
+      "backgroundColor": "{colors.surface}"
+    },
+    "surface-tone-panel": {
+      "backgroundColor": "{colors.surface-panel}"
+    },
+    "text-field": {
+      "padding": "{spacing.4}",
+      "rounded": "{rounded.field}"
+    },
+    "text-field-tone-search": {
+      "rounded": "{rounded.full}"
+    },
+    "toggle": {
+      "rounded": "{rounded.full}"
+    },
+    "toggle-slot-thumb": {
+      "rounded": "{rounded.full}"
+    },
+    "toggle-state-on": {
+      "backgroundColor": "{colors.primary}"
+    }
+  },
+  "tokens": {
+    "colors": {
+      "danger": "#dc2626",
+      "info": "#2563eb",
+      "neutral": "#f5f7fa",
+      "on-primary": "#111827",
+      "primary": "#4ECCA3",
+      "primary-hover": "#3DBB96",
+      "secondary": "#4b5563",
+      "success": "#16a34a",
+      "surface": "#ffffff",
+      "surface-panel": "#f8f9fb",
+      "warning": "#d97706"
+    },
+    "typography": {
+      "body": {
+        "fontFamily": "\"Inter\", \"Noto Sans SC\", \"Source Han Sans SC\", \"PingFang SC\", \"Microsoft YaHei UI\", \"Segoe UI\", system-ui, sans-serif",
+        "fontSize": "0.875rem",
+        "lineHeight": 1.5,
+        "fontWeight": 400,
+        "letterSpacing": 0
+      },
+      "body-sm": {
+        "fontFamily": "\"Inter\", \"Noto Sans SC\", \"Source Han Sans SC\", \"PingFang SC\", \"Microsoft YaHei UI\", \"Segoe UI\", system-ui, sans-serif",
+        "fontSize": "0.8125rem",
+        "lineHeight": 1.45,
+        "fontWeight": 400,
+        "letterSpacing": 0
+      },
+      "caption": {
+        "fontFamily": "\"Inter\", \"Noto Sans SC\", \"Source Han Sans SC\", \"PingFang SC\", \"Microsoft YaHei UI\", \"Segoe UI\", system-ui, sans-serif",
+        "fontSize": "0.75rem",
+        "lineHeight": 1.3,
+        "fontWeight": 500,
+        "letterSpacing": "0.01em"
+      },
+      "label": {
+        "fontFamily": "\"Inter\", \"Noto Sans SC\", \"Source Han Sans SC\", \"PingFang SC\", \"Microsoft YaHei UI\", \"Segoe UI\", system-ui, sans-serif",
+        "fontSize": "0.9375rem",
+        "lineHeight": 1.25,
+        "fontWeight": 600,
+        "letterSpacing": 0
+      },
+      "mono": {
+        "fontFamily": "\"JetBrains Mono\", \"SF Mono\", \"Fira Code\", ui-monospace, monospace",
+        "fontSize": "0.8125rem",
+        "lineHeight": 1.4,
+        "fontWeight": 500,
+        "letterSpacing": 0
+      },
+      "overline": {
+        "fontFamily": "\"Inter\", \"Noto Sans SC\", \"Source Han Sans SC\", \"PingFang SC\", \"Microsoft YaHei UI\", \"Segoe UI\", system-ui, sans-serif",
+        "fontSize": "0.6875rem",
+        "lineHeight": 1.2,
+        "fontWeight": 700,
+        "letterSpacing": "0.08em"
+      },
+      "page-title": {
+        "fontFamily": "\"Inter\", \"Noto Sans SC\", \"Source Han Sans SC\", \"PingFang SC\", \"Microsoft YaHei UI\", \"Segoe UI\", system-ui, sans-serif",
+        "fontSize": "1.5rem",
+        "lineHeight": "2rem",
+        "fontWeight": 700,
+        "letterSpacing": "-0.02em"
+      },
+      "section-title": {
+        "fontFamily": "\"Inter\", \"Noto Sans SC\", \"Source Han Sans SC\", \"PingFang SC\", \"Microsoft YaHei UI\", \"Segoe UI\", system-ui, sans-serif",
+        "fontSize": "1rem",
+        "lineHeight": "1.5rem",
+        "fontWeight": 600,
+        "letterSpacing": "-0.01em"
+      },
+      "sidebar-label": {
+        "fontFamily": "\"Inter\", \"Noto Sans SC\", \"Source Han Sans SC\", \"PingFang SC\", \"Microsoft YaHei UI\", \"Segoe UI\", system-ui, sans-serif",
+        "fontSize": "0.6875rem",
+        "lineHeight": 1.2,
+        "fontWeight": 700,
+        "letterSpacing": "0.08em"
+      }
+    },
+    "rounded": {
+      "action": "999px",
+      "field": "12px",
+      "full": "999px",
+      "lg": "16px",
+      "md": "12px",
+      "sidebar-item": "12px",
+      "sm": "8px",
+      "xl": "24px"
+    },
+    "spacing": {
+      "0": "0px",
+      "1": "2px",
+      "2": "4px",
+      "3": "8px",
+      "4": "12px",
+      "5": "16px",
+      "6": "20px",
+      "7": "24px",
+      "8": "32px",
+      "9": "40px",
+      "10": "48px",
+      "12": "64px",
+      "section": "24px",
+      "stack": "16px"
+    },
+    "all": {
+      "action": {
+        "action.ghost_hover": {
+          "cssVar": "--nimi-action-ghost-hover",
+          "primitiveFamily": "action",
+          "themeLayer": "accent",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-accent": "rgba(78,204,163,0.10)"
+          }
+        },
+        "action.primary_bg": {
+          "cssVar": "--nimi-action-primary-bg",
+          "primitiveFamily": "action",
+          "themeLayer": "accent",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-accent": "#4ECCA3"
+          }
+        },
+        "action.primary_bg_hover": {
+          "cssVar": "--nimi-action-primary-bg-hover",
+          "primitiveFamily": "action",
+          "themeLayer": "accent",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-accent": "#3DBB96"
+          }
+        },
+        "action.primary_text": {
+          "cssVar": "--nimi-action-primary-text",
+          "primitiveFamily": "action",
+          "themeLayer": "accent",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-accent": "#111827"
+          }
+        },
+        "action.secondary_bg": {
+          "cssVar": "--nimi-action-secondary-bg",
+          "primitiveFamily": "action",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": "rgba(15,23,42,0.64)",
+            "nimi-light": "#ffffff"
+          }
+        },
+        "action.secondary_border": {
+          "cssVar": "--nimi-action-secondary-border",
+          "primitiveFamily": "action",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": "rgba(148,163,184,0.24)",
+            "nimi-light": "rgba(226,232,240,0.9)"
+          }
+        },
+        "action.secondary_text": {
+          "cssVar": "--nimi-action-secondary-text",
+          "primitiveFamily": "action",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": "#e2e8f0",
+            "nimi-light": "#111827"
+          }
+        },
+        "color.indigo": {
+          "cssVar": "--nimi-color-indigo",
+          "primitiveFamily": "action",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": "#818cf8",
+            "nimi-light": "#6366f1"
+          }
+        }
+      },
+      "ambient": {
+        "ambient.mesh.base_end": {
+          "cssVar": "--nimi-ambient-mesh-base-end",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-023",
+          "values": {
+            "nimi-dark": "#020617",
+            "nimi-light": "#f1f5f9"
+          }
+        },
+        "ambient.mesh.base_start": {
+          "cssVar": "--nimi-ambient-mesh-base-start",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-023",
+          "values": {
+            "nimi-dark": "#0f172a",
+            "nimi-light": "#f8fafc"
+          }
+        },
+        "ambient.mesh.color_1": {
+          "cssVar": "--nimi-ambient-mesh-color-1",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-023",
+          "values": {
+            "nimi-dark": "rgba(30,64,124,0.35)",
+            "nimi-light": "rgba(191,219,254,0.45)"
+          }
+        },
+        "ambient.mesh.color_2": {
+          "cssVar": "--nimi-ambient-mesh-color-2",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-023",
+          "values": {
+            "nimi-dark": "rgba(76,29,149,0.28)",
+            "nimi-light": "rgba(221,214,254,0.30)"
+          }
+        },
+        "ambient.mesh.color_3": {
+          "cssVar": "--nimi-ambient-mesh-color-3",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-023",
+          "values": {
+            "nimi-dark": "rgba(131,24,67,0.28)",
+            "nimi-light": "rgba(252,231,243,0.35)"
+          }
+        },
+        "ambient.mesh.color_4": {
+          "cssVar": "--nimi-ambient-mesh-color-4",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-023",
+          "values": {
+            "nimi-dark": "rgba(6,78,59,0.24)",
+            "nimi-light": "rgba(167,243,208,0.20)"
+          }
+        }
+      },
+      "backdrop": {
+        "backdrop.blur_chrome": {
+          "cssVar": "--nimi-backdrop-blur-chrome",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-022",
+          "values": {
+            "nimi-dark": "28px",
+            "nimi-light": "28px"
+          }
+        },
+        "backdrop.blur_regular": {
+          "cssVar": "--nimi-backdrop-blur-regular",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-022",
+          "values": {
+            "nimi-dark": "18px",
+            "nimi-light": "18px"
+          }
+        },
+        "backdrop.blur_strong": {
+          "cssVar": "--nimi-backdrop-blur-strong",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-022",
+          "values": {
+            "nimi-dark": "24px",
+            "nimi-light": "24px"
+          }
+        },
+        "backdrop.blur_thin": {
+          "cssVar": "--nimi-backdrop-blur-thin",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-022",
+          "values": {
+            "nimi-dark": "10px",
+            "nimi-light": "10px"
+          }
+        }
+      },
+      "border": {
+        "border.width_default": {
+          "cssVar": "--nimi-border-width-default",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-017",
+          "values": {
+            "nimi-dark": "1px",
+            "nimi-light": "1px"
+          }
+        },
+        "border.width_strong": {
+          "cssVar": "--nimi-border-width-strong",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-017",
+          "values": {
+            "nimi-dark": "2px",
+            "nimi-light": "2px"
+          }
+        }
+      },
+      "elevation": {
+        "elevation.base": {
+          "cssVar": "--nimi-elevation-base",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": "0 8px 20px rgba(2,6,23,0.28)",
+            "nimi-light": "0 6px 18px rgba(15,23,42,0.08)"
+          }
+        },
+        "elevation.floating": {
+          "cssVar": "--nimi-elevation-floating",
+          "primitiveFamily": "overlay",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": "0 18px 48px rgba(2,6,23,0.42)",
+            "nimi-light": "0 18px 44px rgba(15,23,42,0.16)"
+          }
+        },
+        "elevation.modal": {
+          "cssVar": "--nimi-elevation-modal",
+          "primitiveFamily": "overlay",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": "0 28px 72px rgba(2,6,23,0.56)",
+            "nimi-light": "0 28px 72px rgba(15,23,42,0.2)"
+          }
+        },
+        "elevation.raised": {
+          "cssVar": "--nimi-elevation-raised",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": "0 14px 36px rgba(2,6,23,0.34)",
+            "nimi-light": "0 12px 28px rgba(15,23,42,0.12)"
+          }
+        }
+      },
+      "field": {
+        "field.bg": {
+          "cssVar": "--nimi-field-bg",
+          "primitiveFamily": "field",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": "rgba(15,23,42,0.72)",
+            "nimi-light": "#ffffff"
+          }
+        },
+        "field.border": {
+          "cssVar": "--nimi-field-border",
+          "primitiveFamily": "field",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": "rgba(148,163,184,0.2)",
+            "nimi-light": "rgba(226,232,240,0.9)"
+          }
+        },
+        "field.focus": {
+          "cssVar": "--nimi-field-focus",
+          "primitiveFamily": "field",
+          "themeLayer": "accent",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-accent": "#4ECCA3"
+          }
+        },
+        "field.placeholder": {
+          "cssVar": "--nimi-field-placeholder",
+          "primitiveFamily": "field",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": "#94a3b8",
+            "nimi-light": "#9ca3af"
+          }
+        },
+        "field.text": {
+          "cssVar": "--nimi-field-text",
+          "primitiveFamily": "field",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": "#f8fafc",
+            "nimi-light": "#111827"
+          }
+        }
+      },
+      "focus": {
+        "focus.ring_color": {
+          "cssVar": "--nimi-focus-ring-color",
+          "primitiveFamily": "field",
+          "themeLayer": "accent",
+          "sourceRule": "P-DESIGN-018",
+          "values": {
+            "nimi-accent": "rgba(78,204,163,0.28)"
+          }
+        },
+        "focus.ring_offset": {
+          "cssVar": "--nimi-focus-ring-offset",
+          "primitiveFamily": "field",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-018",
+          "values": {
+            "nimi-dark": "1px",
+            "nimi-light": "1px"
+          }
+        },
+        "focus.ring_width": {
+          "cssVar": "--nimi-focus-ring-width",
+          "primitiveFamily": "field",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-018",
+          "values": {
+            "nimi-dark": "3px",
+            "nimi-light": "3px"
+          }
+        }
+      },
+      "material": {
+        "material.glass_chrome.bg": {
+          "cssVar": "--nimi-material-glass-chrome-bg",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-022",
+          "values": {
+            "nimi-dark": "rgba(15,23,42,0.85)",
+            "nimi-light": "rgba(255,255,255,0.85)"
+          }
+        },
+        "material.glass_chrome.border": {
+          "cssVar": "--nimi-material-glass-chrome-border",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-022",
+          "values": {
+            "nimi-dark": "rgba(51,65,85,0.50)",
+            "nimi-light": "rgba(226,232,240,0.50)"
+          }
+        },
+        "material.glass_regular.bg": {
+          "cssVar": "--nimi-material-glass-regular-bg",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-022",
+          "values": {
+            "nimi-dark": "rgba(15,23,42,0.45)",
+            "nimi-light": "rgba(255,255,255,0.45)"
+          }
+        },
+        "material.glass_regular.border": {
+          "cssVar": "--nimi-material-glass-regular-border",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-022",
+          "values": {
+            "nimi-dark": "rgba(51,65,85,0.30)",
+            "nimi-light": "rgba(226,232,240,0.30)"
+          }
+        },
+        "material.glass_thick.bg": {
+          "cssVar": "--nimi-material-glass-thick-bg",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-022",
+          "values": {
+            "nimi-dark": "rgba(15,23,42,0.70)",
+            "nimi-light": "rgba(255,255,255,0.70)"
+          }
+        },
+        "material.glass_thick.border": {
+          "cssVar": "--nimi-material-glass-thick-border",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-022",
+          "values": {
+            "nimi-dark": "rgba(51,65,85,0.40)",
+            "nimi-light": "rgba(226,232,240,0.40)"
+          }
+        },
+        "material.glass_thin.bg": {
+          "cssVar": "--nimi-material-glass-thin-bg",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-022",
+          "values": {
+            "nimi-dark": "rgba(15,23,42,0.25)",
+            "nimi-light": "rgba(255,255,255,0.25)"
+          }
+        },
+        "material.glass_thin.border": {
+          "cssVar": "--nimi-material-glass-thin-border",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-022",
+          "values": {
+            "nimi-dark": "rgba(51,65,85,0.20)",
+            "nimi-light": "rgba(226,232,240,0.20)"
+          }
+        }
+      },
+      "motion": {
+        "motion.fast": {
+          "cssVar": "--nimi-motion-fast",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": "160ms",
+            "nimi-light": "160ms"
+          }
+        },
+        "motion.slow": {
+          "cssVar": "--nimi-motion-slow",
+          "primitiveFamily": "overlay",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": "240ms",
+            "nimi-light": "240ms"
+          }
+        }
+      },
+      "opacity": {
+        "opacity.backdrop": {
+          "cssVar": "--nimi-opacity-backdrop",
+          "primitiveFamily": "overlay",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-018",
+          "values": {
+            "nimi-dark": 0.64,
+            "nimi-light": 0.36
+          }
+        },
+        "opacity.disabled": {
+          "cssVar": "--nimi-opacity-disabled",
+          "primitiveFamily": "action",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-018",
+          "values": {
+            "nimi-dark": 0.56,
+            "nimi-light": 0.56
+          }
+        },
+        "opacity.hover_overlay": {
+          "cssVar": "--nimi-opacity-hover-overlay",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-018",
+          "values": {
+            "nimi-dark": 0.12,
+            "nimi-light": 0.08
+          }
+        },
+        "opacity.subtle_fill": {
+          "cssVar": "--nimi-opacity-subtle-fill",
+          "primitiveFamily": "status",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-018",
+          "values": {
+            "nimi-dark": 0.16,
+            "nimi-light": 0.14
+          }
+        }
+      },
+      "overlay": {
+        "overlay.backdrop": {
+          "cssVar": "--nimi-overlay-backdrop",
+          "primitiveFamily": "overlay",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": "rgba(2,6,23,0.64)",
+            "nimi-light": "rgba(15,23,42,0.18)"
+          }
+        },
+        "overlay.scrim_modal": {
+          "cssVar": "--nimi-scrim-modal",
+          "primitiveFamily": "overlay",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": "rgba(0,0,0,0.60)",
+            "nimi-light": "rgba(15,23,42,0.40)"
+          }
+        }
+      },
+      "radius": {
+        "radius.action": {
+          "cssVar": "--nimi-radius-action",
+          "primitiveFamily": "action",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-017",
+          "values": {
+            "nimi-dark": "999px",
+            "nimi-light": "999px"
+          }
+        },
+        "radius.field": {
+          "cssVar": "--nimi-radius-field",
+          "primitiveFamily": "field",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-017",
+          "values": {
+            "nimi-dark": "12px",
+            "nimi-light": "12px"
+          }
+        },
+        "radius.full": {
+          "cssVar": "--nimi-radius-full",
+          "primitiveFamily": "action",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": "999px",
+            "nimi-light": "999px"
+          }
+        },
+        "radius.lg": {
+          "cssVar": "--nimi-radius-lg",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": "16px",
+            "nimi-light": "16px"
+          }
+        },
+        "radius.md": {
+          "cssVar": "--nimi-radius-md",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": "12px",
+            "nimi-light": "12px"
+          }
+        },
+        "radius.sidebar_item": {
+          "cssVar": "--nimi-radius-sidebar-item",
+          "primitiveFamily": "sidebar",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-017",
+          "values": {
+            "nimi-dark": "12px",
+            "nimi-light": "12px"
+          }
+        },
+        "radius.sm": {
+          "cssVar": "--nimi-radius-sm",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": "8px",
+            "nimi-light": "8px"
+          }
+        },
+        "radius.xl": {
+          "cssVar": "--nimi-radius-xl",
+          "primitiveFamily": "overlay",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": "24px",
+            "nimi-light": "24px"
+          }
+        }
+      },
+      "scrollbar": {
+        "scrollbar.radius": {
+          "cssVar": "--nimi-scrollbar-radius",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-018",
+          "values": {
+            "nimi-dark": "999px",
+            "nimi-light": "999px"
+          }
+        },
+        "scrollbar.size": {
+          "cssVar": "--nimi-scrollbar-size",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-018",
+          "values": {
+            "nimi-dark": "8px",
+            "nimi-light": "8px"
+          }
+        },
+        "scrollbar.thumb": {
+          "cssVar": "--nimi-scrollbar-thumb",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-018",
+          "values": {
+            "nimi-dark": "rgba(148,163,184,0.18)",
+            "nimi-light": "rgba(209,213,219,0.4)"
+          }
+        },
+        "scrollbar.thumb_hover": {
+          "cssVar": "--nimi-scrollbar-thumb-hover",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-018",
+          "values": {
+            "nimi-dark": "rgba(148,163,184,0.35)",
+            "nimi-light": "rgba(156,163,175,0.55)"
+          }
+        },
+        "scrollbar.track": {
+          "cssVar": "--nimi-scrollbar-track",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-018",
+          "values": {
+            "nimi-dark": "transparent",
+            "nimi-light": "transparent"
+          }
+        }
+      },
+      "sidebar": {
+        "sidebar.border": {
+          "cssVar": "--nimi-sidebar-border",
+          "primitiveFamily": "sidebar",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": "rgba(148,163,184,0.16)",
+            "nimi-light": "rgba(226,232,240,0.92)"
+          }
+        },
+        "sidebar.canvas": {
+          "cssVar": "--nimi-sidebar-canvas",
+          "primitiveFamily": "sidebar",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": "rgba(11,18,32,0.92)",
+            "nimi-light": "#f8f9fb"
+          }
+        },
+        "sidebar.header_height": {
+          "cssVar": "--nimi-sidebar-header-height",
+          "primitiveFamily": "sidebar",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": "56px",
+            "nimi-light": "56px"
+          }
+        },
+        "sidebar.item_active": {
+          "cssVar": "--nimi-sidebar-item-active",
+          "primitiveFamily": "sidebar",
+          "themeLayer": "accent",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-accent": "rgba(78,204,163,0.16)"
+          }
+        },
+        "sidebar.item_default": {
+          "cssVar": "--nimi-sidebar-item-default",
+          "primitiveFamily": "sidebar",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": "#cbd5e1",
+            "nimi-light": "#4b5563"
+          }
+        },
+        "sidebar.item_hover": {
+          "cssVar": "--nimi-sidebar-item-hover",
+          "primitiveFamily": "sidebar",
+          "themeLayer": "accent",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-accent": "rgba(78,204,163,0.08)"
+          }
+        },
+        "sidebar.resize_handle": {
+          "cssVar": "--nimi-sidebar-resize-handle",
+          "primitiveFamily": "sidebar",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": "rgba(148,163,184,0.28)",
+            "nimi-light": "rgba(148,163,184,0.22)"
+          }
+        },
+        "sidebar.search": {
+          "cssVar": "--nimi-sidebar-search",
+          "primitiveFamily": "sidebar",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": "rgba(15,23,42,0.72)",
+            "nimi-light": "rgba(255,255,255,0.98)"
+          }
+        },
+        "sidebar.section_label": {
+          "cssVar": "--nimi-sidebar-section-label",
+          "primitiveFamily": "sidebar",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": "#94a3b8",
+            "nimi-light": "#9ca3af"
+          }
+        }
+      },
+      "sizing": {
+        "sizing.action_lg_height": {
+          "cssVar": "--nimi-sizing-action-lg-height",
+          "primitiveFamily": "action",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-017",
+          "values": {
+            "nimi-dark": "48px",
+            "nimi-light": "48px"
+          }
+        },
+        "sizing.action_md_height": {
+          "cssVar": "--nimi-sizing-action-md-height",
+          "primitiveFamily": "action",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-017",
+          "values": {
+            "nimi-dark": "40px",
+            "nimi-light": "40px"
+          }
+        },
+        "sizing.action_sm_height": {
+          "cssVar": "--nimi-sizing-action-sm-height",
+          "primitiveFamily": "action",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-017",
+          "values": {
+            "nimi-dark": "32px",
+            "nimi-light": "32px"
+          }
+        },
+        "sizing.avatar_lg": {
+          "cssVar": "--nimi-sizing-avatar-lg",
+          "primitiveFamily": "sidebar",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-017",
+          "values": {
+            "nimi-dark": "40px",
+            "nimi-light": "40px"
+          }
+        },
+        "sizing.avatar_md": {
+          "cssVar": "--nimi-sizing-avatar-md",
+          "primitiveFamily": "sidebar",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-017",
+          "values": {
+            "nimi-dark": "32px",
+            "nimi-light": "32px"
+          }
+        },
+        "sizing.avatar_sm": {
+          "cssVar": "--nimi-sizing-avatar-sm",
+          "primitiveFamily": "sidebar",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-017",
+          "values": {
+            "nimi-dark": "24px",
+            "nimi-light": "24px"
+          }
+        },
+        "sizing.field_lg_height": {
+          "cssVar": "--nimi-sizing-field-lg-height",
+          "primitiveFamily": "field",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-017",
+          "values": {
+            "nimi-dark": "48px",
+            "nimi-light": "48px"
+          }
+        },
+        "sizing.field_md_height": {
+          "cssVar": "--nimi-sizing-field-md-height",
+          "primitiveFamily": "field",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-017",
+          "values": {
+            "nimi-dark": "42px",
+            "nimi-light": "42px"
+          }
+        },
+        "sizing.icon_lg": {
+          "cssVar": "--nimi-sizing-icon-lg",
+          "primitiveFamily": "action",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-018",
+          "values": {
+            "nimi-dark": "20px",
+            "nimi-light": "20px"
+          }
+        },
+        "sizing.icon_md": {
+          "cssVar": "--nimi-sizing-icon-md",
+          "primitiveFamily": "action",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-018",
+          "values": {
+            "nimi-dark": "16px",
+            "nimi-light": "16px"
+          }
+        },
+        "sizing.icon_sm": {
+          "cssVar": "--nimi-sizing-icon-sm",
+          "primitiveFamily": "action",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-018",
+          "values": {
+            "nimi-dark": "8px",
+            "nimi-light": "8px"
+          }
+        },
+        "sizing.sidebar_item_height": {
+          "cssVar": "--nimi-sizing-sidebar-item-height",
+          "primitiveFamily": "sidebar",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-017",
+          "values": {
+            "nimi-dark": "46px",
+            "nimi-light": "46px"
+          }
+        },
+        "sizing.textarea_min_height": {
+          "cssVar": "--nimi-sizing-textarea-min-height",
+          "primitiveFamily": "field",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-017",
+          "values": {
+            "nimi-dark": "80px",
+            "nimi-light": "80px"
+          }
+        }
+      },
+      "spacing": {
+        "spacing.0": {
+          "cssVar": "--nimi-space-0",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-017",
+          "values": {
+            "nimi-dark": "0px",
+            "nimi-light": "0px"
+          }
+        },
+        "spacing.1": {
+          "cssVar": "--nimi-space-1",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-017",
+          "values": {
+            "nimi-dark": "2px",
+            "nimi-light": "2px"
+          }
+        },
+        "spacing.10": {
+          "cssVar": "--nimi-space-10",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-017",
+          "values": {
+            "nimi-dark": "48px",
+            "nimi-light": "48px"
+          }
+        },
+        "spacing.12": {
+          "cssVar": "--nimi-space-12",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-017",
+          "values": {
+            "nimi-dark": "64px",
+            "nimi-light": "64px"
+          }
+        },
+        "spacing.2": {
+          "cssVar": "--nimi-space-2",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-017",
+          "values": {
+            "nimi-dark": "4px",
+            "nimi-light": "4px"
+          }
+        },
+        "spacing.3": {
+          "cssVar": "--nimi-space-3",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-017",
+          "values": {
+            "nimi-dark": "8px",
+            "nimi-light": "8px"
+          }
+        },
+        "spacing.4": {
+          "cssVar": "--nimi-space-4",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-017",
+          "values": {
+            "nimi-dark": "12px",
+            "nimi-light": "12px"
+          }
+        },
+        "spacing.5": {
+          "cssVar": "--nimi-space-5",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-017",
+          "values": {
+            "nimi-dark": "16px",
+            "nimi-light": "16px"
+          }
+        },
+        "spacing.6": {
+          "cssVar": "--nimi-space-6",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-017",
+          "values": {
+            "nimi-dark": "20px",
+            "nimi-light": "20px"
+          }
+        },
+        "spacing.7": {
+          "cssVar": "--nimi-space-7",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-017",
+          "values": {
+            "nimi-dark": "24px",
+            "nimi-light": "24px"
+          }
+        },
+        "spacing.8": {
+          "cssVar": "--nimi-space-8",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-017",
+          "values": {
+            "nimi-dark": "32px",
+            "nimi-light": "32px"
+          }
+        },
+        "spacing.9": {
+          "cssVar": "--nimi-space-9",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-017",
+          "values": {
+            "nimi-dark": "40px",
+            "nimi-light": "40px"
+          }
+        },
+        "spacing.section": {
+          "cssVar": "--nimi-space-section",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-017",
+          "values": {
+            "nimi-dark": "24px",
+            "nimi-light": "24px"
+          }
+        },
+        "spacing.stack": {
+          "cssVar": "--nimi-space-stack",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-017",
+          "values": {
+            "nimi-dark": "16px",
+            "nimi-light": "16px"
+          }
+        }
+      },
+      "status": {
+        "status.danger": {
+          "cssVar": "--nimi-status-danger",
+          "primitiveFamily": "status",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": "#f87171",
+            "nimi-light": "#dc2626"
+          }
+        },
+        "status.danger.soft_bg": {
+          "cssVar": "--nimi-status-danger-soft-bg",
+          "primitiveFamily": "status",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": "color-mix(in srgb, var(--nimi-status-danger) 16%, transparent)",
+            "nimi-light": "color-mix(in srgb, var(--nimi-status-danger) 15%, transparent)"
+          }
+        },
+        "status.danger.soft_border": {
+          "cssVar": "--nimi-status-danger-soft-border",
+          "primitiveFamily": "status",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": "color-mix(in srgb, var(--nimi-status-danger) 28%, transparent)",
+            "nimi-light": "color-mix(in srgb, var(--nimi-status-danger) 26%, transparent)"
+          }
+        },
+        "status.danger.soft_text": {
+          "cssVar": "--nimi-status-danger-soft-text",
+          "primitiveFamily": "status",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": "var(--nimi-status-danger)",
+            "nimi-light": "var(--nimi-status-danger)"
+          }
+        },
+        "status.info": {
+          "cssVar": "--nimi-status-info",
+          "primitiveFamily": "status",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": "#60a5fa",
+            "nimi-light": "#2563eb"
+          }
+        },
+        "status.info.soft_bg": {
+          "cssVar": "--nimi-status-info-soft-bg",
+          "primitiveFamily": "status",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": "color-mix(in srgb, var(--nimi-status-info) 16%, transparent)",
+            "nimi-light": "color-mix(in srgb, var(--nimi-status-info) 15%, transparent)"
+          }
+        },
+        "status.info.soft_border": {
+          "cssVar": "--nimi-status-info-soft-border",
+          "primitiveFamily": "status",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": "color-mix(in srgb, var(--nimi-status-info) 28%, transparent)",
+            "nimi-light": "color-mix(in srgb, var(--nimi-status-info) 26%, transparent)"
+          }
+        },
+        "status.info.soft_text": {
+          "cssVar": "--nimi-status-info-soft-text",
+          "primitiveFamily": "status",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": "var(--nimi-status-info)",
+            "nimi-light": "var(--nimi-status-info)"
+          }
+        },
+        "status.neutral": {
+          "cssVar": "--nimi-status-neutral",
+          "primitiveFamily": "status",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": "#cbd5e1",
+            "nimi-light": "#4b5563"
+          }
+        },
+        "status.neutral.soft_bg": {
+          "cssVar": "--nimi-status-neutral-soft-bg",
+          "primitiveFamily": "status",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": "color-mix(in srgb, var(--nimi-status-neutral) 16%, transparent)",
+            "nimi-light": "color-mix(in srgb, var(--nimi-status-neutral) 14%, transparent)"
+          }
+        },
+        "status.neutral.soft_border": {
+          "cssVar": "--nimi-status-neutral-soft-border",
+          "primitiveFamily": "status",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": "color-mix(in srgb, var(--nimi-status-neutral) 28%, transparent)",
+            "nimi-light": "color-mix(in srgb, var(--nimi-status-neutral) 26%, transparent)"
+          }
+        },
+        "status.neutral.soft_text": {
+          "cssVar": "--nimi-status-neutral-soft-text",
+          "primitiveFamily": "status",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": "var(--nimi-status-neutral)",
+            "nimi-light": "var(--nimi-status-neutral)"
+          }
+        },
+        "status.success": {
+          "cssVar": "--nimi-status-success",
+          "primitiveFamily": "status",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": "#4ade80",
+            "nimi-light": "#16a34a"
+          }
+        },
+        "status.success.soft_bg": {
+          "cssVar": "--nimi-status-success-soft-bg",
+          "primitiveFamily": "status",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": "color-mix(in srgb, var(--nimi-status-success) 16%, transparent)",
+            "nimi-light": "color-mix(in srgb, var(--nimi-status-success) 15%, transparent)"
+          }
+        },
+        "status.success.soft_border": {
+          "cssVar": "--nimi-status-success-soft-border",
+          "primitiveFamily": "status",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": "color-mix(in srgb, var(--nimi-status-success) 28%, transparent)",
+            "nimi-light": "color-mix(in srgb, var(--nimi-status-success) 26%, transparent)"
+          }
+        },
+        "status.success.soft_text": {
+          "cssVar": "--nimi-status-success-soft-text",
+          "primitiveFamily": "status",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": "var(--nimi-status-success)",
+            "nimi-light": "var(--nimi-status-success)"
+          }
+        },
+        "status.warning": {
+          "cssVar": "--nimi-status-warning",
+          "primitiveFamily": "status",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": "#fbbf24",
+            "nimi-light": "#d97706"
+          }
+        },
+        "status.warning.soft_bg": {
+          "cssVar": "--nimi-status-warning-soft-bg",
+          "primitiveFamily": "status",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": "color-mix(in srgb, var(--nimi-status-warning) 16%, transparent)",
+            "nimi-light": "color-mix(in srgb, var(--nimi-status-warning) 15%, transparent)"
+          }
+        },
+        "status.warning.soft_border": {
+          "cssVar": "--nimi-status-warning-soft-border",
+          "primitiveFamily": "status",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": "color-mix(in srgb, var(--nimi-status-warning) 28%, transparent)",
+            "nimi-light": "color-mix(in srgb, var(--nimi-status-warning) 26%, transparent)"
+          }
+        },
+        "status.warning.soft_text": {
+          "cssVar": "--nimi-status-warning-soft-text",
+          "primitiveFamily": "status",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": "var(--nimi-status-warning)",
+            "nimi-light": "var(--nimi-status-warning)"
+          }
+        }
+      },
+      "stroke": {
+        "stroke.strong": {
+          "cssVar": "--nimi-border-strong",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": "rgba(148,163,184,0.36)",
+            "nimi-light": "rgba(148,163,184,0.34)"
+          }
+        },
+        "stroke.subtle": {
+          "cssVar": "--nimi-border-subtle",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": "rgba(148,163,184,0.18)",
+            "nimi-light": "rgba(226,232,240,0.9)"
+          }
+        }
+      },
+      "surface": {
+        "surface.active": {
+          "cssVar": "--nimi-surface-active",
+          "primitiveFamily": "surface",
+          "themeLayer": "accent",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-accent": "rgba(78,204,163,0.16)"
+          }
+        },
+        "surface.app_background": {
+          "cssVar": "--nimi-app-background",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": "#081019",
+            "nimi-light": "#f5f7fa"
+          }
+        },
+        "surface.canvas": {
+          "cssVar": "--nimi-surface-canvas",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": "#0b1220",
+            "nimi-light": "#f5f7fa"
+          }
+        },
+        "surface.card": {
+          "cssVar": "--nimi-surface-card",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": "#162033",
+            "nimi-light": "#ffffff"
+          }
+        },
+        "surface.card_operational_solid_elevated": {
+          "cssVar": "--nimi-surface-card-operational-solid-elevated",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-022",
+          "values": {
+            "nimi-dark": "#1F293B",
+            "nimi-light": "#ffffff"
+          }
+        },
+        "surface.card_promoted_glass_elevated": {
+          "cssVar": "--nimi-surface-card-promoted-glass-elevated",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-022",
+          "values": {
+            "nimi-dark": "rgba(45,52,68,0.48)",
+            "nimi-light": "rgba(255,255,255,0.48)"
+          }
+        },
+        "surface.hero": {
+          "cssVar": "--nimi-surface-hero",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": "linear-gradient(160deg, rgba(17,24,39,0.96), rgba(15,23,42,0.9))",
+            "nimi-light": "linear-gradient(160deg, rgba(255,255,255,0.96), rgba(236,247,242,0.9))"
+          }
+        },
+        "surface.overlay": {
+          "cssVar": "--nimi-surface-overlay",
+          "primitiveFamily": "overlay",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": "rgba(15,23,42,0.96)",
+            "nimi-light": "rgba(255,255,255,0.98)"
+          }
+        },
+        "surface.panel": {
+          "cssVar": "--nimi-surface-panel",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": "#111827",
+            "nimi-light": "#f8f9fb"
+          }
+        }
+      },
+      "text": {
+        "text.inverse": {
+          "cssVar": "--nimi-text-inverse",
+          "primitiveFamily": "action",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": "#020617",
+            "nimi-light": "#ffffff"
+          }
+        },
+        "text.muted": {
+          "cssVar": "--nimi-text-muted",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": "#94a3b8",
+            "nimi-light": "#6b7280"
+          }
+        },
+        "text.primary": {
+          "cssVar": "--nimi-text-primary",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": "#f8fafc",
+            "nimi-light": "#111827"
+          }
+        },
+        "text.secondary": {
+          "cssVar": "--nimi-text-secondary",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": "#cbd5e1",
+            "nimi-light": "#4b5563"
+          }
+        }
+      },
+      "toggle": {
+        "toggle.off_bg": {
+          "cssVar": "--nimi-toggle-off-bg",
+          "primitiveFamily": "toggle",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-010",
+          "values": {
+            "nimi-dark": "#4b5563",
+            "nimi-light": "#d1d5db"
+          }
+        }
+      },
+      "typography": {
+        "typography.body_sm.cjk_letter_spacing": {
+          "cssVar": "--nimi-type-body-sm-cjk-letter-spacing",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-016",
+          "values": {
+            "nimi-dark": "0.01em",
+            "nimi-light": "0.01em"
+          }
+        },
+        "typography.body_sm.cjk_line_height": {
+          "cssVar": "--nimi-type-body-sm-cjk-line-height",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-016",
+          "values": {
+            "nimi-dark": 1.6,
+            "nimi-light": 1.6
+          }
+        },
+        "typography.body_sm.letter_spacing": {
+          "cssVar": "--nimi-type-body-sm-letter-spacing",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-016",
+          "values": {
+            "nimi-dark": 0,
+            "nimi-light": 0
+          }
+        },
+        "typography.body_sm.line_height": {
+          "cssVar": "--nimi-type-body-sm-line-height",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-016",
+          "values": {
+            "nimi-dark": 1.45,
+            "nimi-light": 1.45
+          }
+        },
+        "typography.body_sm.size": {
+          "cssVar": "--nimi-type-body-sm-size",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-016",
+          "values": {
+            "nimi-dark": "0.8125rem",
+            "nimi-light": "0.8125rem"
+          }
+        },
+        "typography.body_sm.weight": {
+          "cssVar": "--nimi-type-body-sm-weight",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-016",
+          "values": {
+            "nimi-dark": 400,
+            "nimi-light": 400
+          }
+        },
+        "typography.body.cjk_letter_spacing": {
+          "cssVar": "--nimi-type-body-cjk-letter-spacing",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-016",
+          "values": {
+            "nimi-dark": "0.02em",
+            "nimi-light": "0.02em"
+          }
+        },
+        "typography.body.cjk_line_height": {
+          "cssVar": "--nimi-type-body-cjk-line-height",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-016",
+          "values": {
+            "nimi-dark": 1.7,
+            "nimi-light": 1.7
+          }
+        },
+        "typography.body.letter_spacing": {
+          "cssVar": "--nimi-type-body-letter-spacing",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-016",
+          "values": {
+            "nimi-dark": 0,
+            "nimi-light": 0
+          }
+        },
+        "typography.body.line_height": {
+          "cssVar": "--nimi-type-body-line-height",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-016",
+          "values": {
+            "nimi-dark": 1.5,
+            "nimi-light": 1.5
+          }
+        },
+        "typography.body.size": {
+          "cssVar": "--nimi-type-body-size",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-016",
+          "values": {
+            "nimi-dark": "0.875rem",
+            "nimi-light": "0.875rem"
+          }
+        },
+        "typography.body.weight": {
+          "cssVar": "--nimi-type-body-weight",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-016",
+          "values": {
+            "nimi-dark": 400,
+            "nimi-light": 400
+          }
+        },
+        "typography.caption.cjk_line_height": {
+          "cssVar": "--nimi-type-caption-cjk-line-height",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-016",
+          "values": {
+            "nimi-dark": 1.5,
+            "nimi-light": 1.5
+          }
+        },
+        "typography.caption.letter_spacing": {
+          "cssVar": "--nimi-type-caption-letter-spacing",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-016",
+          "values": {
+            "nimi-dark": "0.01em",
+            "nimi-light": "0.01em"
+          }
+        },
+        "typography.caption.line_height": {
+          "cssVar": "--nimi-type-caption-line-height",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-016",
+          "values": {
+            "nimi-dark": 1.3,
+            "nimi-light": 1.3
+          }
+        },
+        "typography.caption.size": {
+          "cssVar": "--nimi-type-caption-size",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-016",
+          "values": {
+            "nimi-dark": "0.75rem",
+            "nimi-light": "0.75rem"
+          }
+        },
+        "typography.caption.weight": {
+          "cssVar": "--nimi-type-caption-weight",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-016",
+          "values": {
+            "nimi-dark": 500,
+            "nimi-light": 500
+          }
+        },
+        "typography.font_mono": {
+          "cssVar": "--nimi-font-mono",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-016",
+          "values": {
+            "nimi-dark": "\"JetBrains Mono\", \"SF Mono\", \"Fira Code\", ui-monospace, monospace",
+            "nimi-light": "\"JetBrains Mono\", \"SF Mono\", \"Fira Code\", ui-monospace, monospace"
+          }
+        },
+        "typography.font_sans": {
+          "cssVar": "--nimi-font-sans",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-016",
+          "values": {
+            "nimi-dark": "\"Inter\", \"Noto Sans SC\", \"Source Han Sans SC\", \"PingFang SC\", \"Microsoft YaHei UI\", \"Segoe UI\", system-ui, sans-serif",
+            "nimi-light": "\"Inter\", \"Noto Sans SC\", \"Source Han Sans SC\", \"PingFang SC\", \"Microsoft YaHei UI\", \"Segoe UI\", system-ui, sans-serif"
+          }
+        },
+        "typography.label.cjk_line_height": {
+          "cssVar": "--nimi-type-label-cjk-line-height",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-016",
+          "values": {
+            "nimi-dark": 1.4,
+            "nimi-light": 1.4
+          }
+        },
+        "typography.label.letter_spacing": {
+          "cssVar": "--nimi-type-label-letter-spacing",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-016",
+          "values": {
+            "nimi-dark": 0,
+            "nimi-light": 0
+          }
+        },
+        "typography.label.line_height": {
+          "cssVar": "--nimi-type-label-line-height",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-016",
+          "values": {
+            "nimi-dark": 1.25,
+            "nimi-light": 1.25
+          }
+        },
+        "typography.label.size": {
+          "cssVar": "--nimi-type-label-size",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-016",
+          "values": {
+            "nimi-dark": "0.9375rem",
+            "nimi-light": "0.9375rem"
+          }
+        },
+        "typography.label.weight": {
+          "cssVar": "--nimi-type-label-weight",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-016",
+          "values": {
+            "nimi-dark": 600,
+            "nimi-light": 600
+          }
+        },
+        "typography.mono.letter_spacing": {
+          "cssVar": "--nimi-type-mono-letter-spacing",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-016",
+          "values": {
+            "nimi-dark": 0,
+            "nimi-light": 0
+          }
+        },
+        "typography.mono.line_height": {
+          "cssVar": "--nimi-type-mono-line-height",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-016",
+          "values": {
+            "nimi-dark": 1.4,
+            "nimi-light": 1.4
+          }
+        },
+        "typography.mono.size": {
+          "cssVar": "--nimi-type-mono-size",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-016",
+          "values": {
+            "nimi-dark": "0.8125rem",
+            "nimi-light": "0.8125rem"
+          }
+        },
+        "typography.mono.weight": {
+          "cssVar": "--nimi-type-mono-weight",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-016",
+          "values": {
+            "nimi-dark": 500,
+            "nimi-light": 500
+          }
+        },
+        "typography.overline.letter_spacing": {
+          "cssVar": "--nimi-type-overline-letter-spacing",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-016",
+          "values": {
+            "nimi-dark": "0.08em",
+            "nimi-light": "0.08em"
+          }
+        },
+        "typography.overline.line_height": {
+          "cssVar": "--nimi-type-overline-line-height",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-016",
+          "values": {
+            "nimi-dark": 1.2,
+            "nimi-light": 1.2
+          }
+        },
+        "typography.overline.size": {
+          "cssVar": "--nimi-type-overline-size",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-016",
+          "values": {
+            "nimi-dark": "0.6875rem",
+            "nimi-light": "0.6875rem"
+          }
+        },
+        "typography.overline.weight": {
+          "cssVar": "--nimi-type-overline-weight",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-016",
+          "values": {
+            "nimi-dark": 700,
+            "nimi-light": 700
+          }
+        },
+        "typography.page_title.cjk_letter_spacing": {
+          "cssVar": "--nimi-type-page-title-cjk-letter-spacing",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-016",
+          "values": {
+            "nimi-dark": "-0.01em",
+            "nimi-light": "-0.01em"
+          }
+        },
+        "typography.page_title.letter_spacing": {
+          "cssVar": "--nimi-type-page-title-letter-spacing",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-016",
+          "values": {
+            "nimi-dark": "-0.02em",
+            "nimi-light": "-0.02em"
+          }
+        },
+        "typography.page_title.line_height": {
+          "cssVar": "--nimi-type-page-title-line-height",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-016",
+          "values": {
+            "nimi-dark": "2rem",
+            "nimi-light": "2rem"
+          }
+        },
+        "typography.page_title.size": {
+          "cssVar": "--nimi-type-page-title-size",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-016",
+          "values": {
+            "nimi-dark": "1.5rem",
+            "nimi-light": "1.5rem"
+          }
+        },
+        "typography.page_title.weight": {
+          "cssVar": "--nimi-type-page-title-weight",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-016",
+          "values": {
+            "nimi-dark": 700,
+            "nimi-light": 700
+          }
+        },
+        "typography.section_title.cjk_line_height": {
+          "cssVar": "--nimi-type-section-title-cjk-line-height",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-016",
+          "values": {
+            "nimi-dark": 1.35,
+            "nimi-light": 1.35
+          }
+        },
+        "typography.section_title.letter_spacing": {
+          "cssVar": "--nimi-type-section-title-letter-spacing",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-016",
+          "values": {
+            "nimi-dark": "-0.01em",
+            "nimi-light": "-0.01em"
+          }
+        },
+        "typography.section_title.line_height": {
+          "cssVar": "--nimi-type-section-title-line-height",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-016",
+          "values": {
+            "nimi-dark": "1.5rem",
+            "nimi-light": "1.5rem"
+          }
+        },
+        "typography.section_title.size": {
+          "cssVar": "--nimi-type-section-title-size",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-016",
+          "values": {
+            "nimi-dark": "1rem",
+            "nimi-light": "1rem"
+          }
+        },
+        "typography.section_title.weight": {
+          "cssVar": "--nimi-type-section-title-weight",
+          "primitiveFamily": "surface",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-016",
+          "values": {
+            "nimi-dark": 600,
+            "nimi-light": 600
+          }
+        },
+        "typography.sidebar_label.letter_spacing": {
+          "cssVar": "--nimi-type-sidebar-label-letter-spacing",
+          "primitiveFamily": "sidebar",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-016",
+          "values": {
+            "nimi-dark": "0.08em",
+            "nimi-light": "0.08em"
+          }
+        },
+        "typography.sidebar_label.line_height": {
+          "cssVar": "--nimi-type-sidebar-label-line-height",
+          "primitiveFamily": "sidebar",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-016",
+          "values": {
+            "nimi-dark": 1.2,
+            "nimi-light": 1.2
+          }
+        },
+        "typography.sidebar_label.size": {
+          "cssVar": "--nimi-type-sidebar-label-size",
+          "primitiveFamily": "sidebar",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-016",
+          "values": {
+            "nimi-dark": "0.6875rem",
+            "nimi-light": "0.6875rem"
+          }
+        },
+        "typography.sidebar_label.weight": {
+          "cssVar": "--nimi-type-sidebar-label-weight",
+          "primitiveFamily": "sidebar",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-016",
+          "values": {
+            "nimi-dark": 700,
+            "nimi-light": 700
+          }
+        }
+      },
+      "z": {
+        "z.dialog": {
+          "cssVar": "--nimi-z-dialog",
+          "primitiveFamily": "overlay",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": 90,
+            "nimi-light": 90
+          }
+        },
+        "z.popover": {
+          "cssVar": "--nimi-z-popover",
+          "primitiveFamily": "overlay",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": 80,
+            "nimi-light": 80
+          }
+        },
+        "z.tooltip": {
+          "cssVar": "--nimi-z-tooltip",
+          "primitiveFamily": "overlay",
+          "themeLayer": "foundation",
+          "sourceRule": "P-DESIGN-003",
+          "values": {
+            "nimi-dark": 70,
+            "nimi-light": 70
+          }
+        }
+      }
+    }
+  },
+  "componentStandards": {
+    "primitives": [
+      {
+        "id": "primitive.action",
+        "family": "action",
+        "component": "Button",
+        "sourceRule": "P-DESIGN-012",
+        "slots": [
+          {
+            "id": "root",
+            "className": "nimi-action"
+          },
+          {
+            "id": "leadingIcon",
+            "className": "nimi-action__leading"
+          },
+          {
+            "id": "trailingIcon",
+            "className": "nimi-action__trailing"
+          },
+          {
+            "id": "icon",
+            "className": "nimi-action__icon"
+          },
+          {
+            "id": "spinner",
+            "className": "nimi-action__spinner"
+          }
+        ],
+        "variants": {
+          "compound": [
+            {
+              "id": "icon_sm",
+              "className": "",
+              "selector": ".nimi-action--icon.nimi-action--size-sm"
+            },
+            {
+              "id": "icon_md",
+              "className": "",
+              "selector": ".nimi-action--icon.nimi-action--size-md"
+            },
+            {
+              "id": "icon_lg",
+              "className": "",
+              "selector": ".nimi-action--icon.nimi-action--size-lg"
+            }
+          ],
+          "modifier": [
+            {
+              "id": "icon",
+              "className": "nimi-action--icon",
+              "selector": ""
+            }
+          ],
+          "size": [
+            {
+              "id": "sm",
+              "className": "nimi-action--size-sm",
+              "selector": ""
+            },
+            {
+              "id": "md",
+              "className": "nimi-action--size-md",
+              "selector": ""
+            },
+            {
+              "id": "lg",
+              "className": "nimi-action--size-lg",
+              "selector": ""
+            }
+          ],
+          "state": [
+            {
+              "id": "hover_primary",
+              "className": "",
+              "selector": ".nimi-action--primary:hover:not(:disabled)"
+            },
+            {
+              "id": "hover_secondary",
+              "className": "",
+              "selector": ".nimi-action--secondary:hover:not(:disabled)"
+            },
+            {
+              "id": "hover_ghost",
+              "className": "",
+              "selector": ".nimi-action--ghost:hover:not(:disabled)"
+            },
+            {
+              "id": "hover_danger",
+              "className": "",
+              "selector": ".nimi-action--danger:hover:not(:disabled)"
+            },
+            {
+              "id": "disabled",
+              "className": "",
+              "selector": ".nimi-action:disabled"
+            },
+            {
+              "id": "active",
+              "className": "nimi-action--active",
+              "selector": ""
+            },
+            {
+              "id": "loading",
+              "className": "nimi-action--loading",
+              "selector": ""
+            }
+          ],
+          "tone": [
+            {
+              "id": "primary",
+              "className": "nimi-action--primary",
+              "selector": ""
+            },
+            {
+              "id": "secondary",
+              "className": "nimi-action--secondary",
+              "selector": ""
+            },
+            {
+              "id": "ghost",
+              "className": "nimi-action--ghost",
+              "selector": ""
+            },
+            {
+              "id": "danger",
+              "className": "nimi-action--danger",
+              "selector": ""
+            }
+          ]
+        }
+      },
+      {
+        "id": "primitive.action_menu",
+        "family": "overlay",
+        "component": "ActionMenu",
+        "sourceRule": "P-DESIGN-013",
+        "slots": [
+          {
+            "id": "root",
+            "className": "nimi-action-menu"
+          },
+          {
+            "id": "item",
+            "className": "nimi-action-menu__item"
+          },
+          {
+            "id": "icon",
+            "className": "nimi-action-menu__icon"
+          }
+        ],
+        "variants": {
+          "tone": [
+            {
+              "id": "danger",
+              "className": "nimi-action-menu__item--danger",
+              "selector": ""
+            }
+          ]
+        }
+      },
+      {
+        "id": "primitive.ambient_background",
+        "family": "surface",
+        "component": "AmbientBackground",
+        "sourceRule": "P-DESIGN-023",
+        "slots": [
+          {
+            "id": "root",
+            "className": "nimi-ambient-root"
+          },
+          {
+            "id": "mesh_layer",
+            "className": "nimi-ambient-mesh"
+          },
+          {
+            "id": "minimal_layer",
+            "className": "nimi-ambient-minimal"
+          },
+          {
+            "id": "halo",
+            "className": "nimi-ambient-halo"
+          }
+        ],
+        "variants": {
+          "variant": [
+            {
+              "id": "mesh",
+              "className": "nimi-ambient-variant-mesh",
+              "selector": ""
+            },
+            {
+              "id": "minimal",
+              "className": "nimi-ambient-variant-minimal",
+              "selector": ""
+            },
+            {
+              "id": "none",
+              "className": "nimi-ambient-variant-none",
+              "selector": ""
+            }
+          ]
+        }
+      },
+      {
+        "id": "primitive.avatar",
+        "family": "avatar",
+        "component": "Avatar",
+        "sourceRule": "P-DESIGN-010",
+        "slots": [
+          {
+            "id": "root",
+            "className": "nimi-avatar"
+          },
+          {
+            "id": "image",
+            "className": "nimi-avatar__image"
+          },
+          {
+            "id": "fallback",
+            "className": "nimi-avatar__fallback"
+          }
+        ],
+        "variants": {
+          "shape": [
+            {
+              "id": "circle",
+              "className": "nimi-avatar--circle",
+              "selector": ""
+            },
+            {
+              "id": "rounded",
+              "className": "nimi-avatar--rounded",
+              "selector": ""
+            }
+          ],
+          "size": [
+            {
+              "id": "sm",
+              "className": "nimi-avatar--size-sm",
+              "selector": ""
+            },
+            {
+              "id": "md",
+              "className": "nimi-avatar--size-md",
+              "selector": ""
+            },
+            {
+              "id": "lg",
+              "className": "nimi-avatar--size-lg",
+              "selector": ""
+            }
+          ],
+          "tone": [
+            {
+              "id": "neutral",
+              "className": "nimi-avatar--neutral",
+              "selector": ""
+            },
+            {
+              "id": "accent",
+              "className": "nimi-avatar--accent",
+              "selector": ""
+            }
+          ]
+        }
+      },
+      {
+        "id": "primitive.breadcrumb",
+        "family": "navigation",
+        "component": "Breadcrumb",
+        "sourceRule": "P-DESIGN-014",
+        "slots": [
+          {
+            "id": "root",
+            "className": "nimi-breadcrumb"
+          },
+          {
+            "id": "item",
+            "className": "nimi-breadcrumb__item"
+          },
+          {
+            "id": "link",
+            "className": "nimi-breadcrumb__link"
+          },
+          {
+            "id": "current",
+            "className": "nimi-breadcrumb__current"
+          },
+          {
+            "id": "separator",
+            "className": "nimi-breadcrumb__separator"
+          }
+        ],
+        "variants": {}
+      },
+      {
+        "id": "primitive.checkbox",
+        "family": "field",
+        "component": "Checkbox",
+        "sourceRule": "P-DESIGN-015",
+        "slots": [
+          {
+            "id": "root",
+            "className": "nimi-checkbox"
+          },
+          {
+            "id": "box",
+            "className": "nimi-checkbox__box"
+          },
+          {
+            "id": "indicator",
+            "className": "nimi-checkbox__indicator"
+          }
+        ],
+        "variants": {}
+      },
+      {
+        "id": "primitive.confirm_dialog",
+        "family": "overlay",
+        "component": "ConfirmDialog",
+        "sourceRule": "P-DESIGN-013",
+        "slots": [],
+        "variants": {}
+      },
+      {
+        "id": "primitive.data_list",
+        "family": "data_display",
+        "component": "DataList",
+        "sourceRule": "P-DESIGN-010",
+        "slots": [
+          {
+            "id": "root",
+            "className": "nimi-data-list"
+          },
+          {
+            "id": "item",
+            "className": "nimi-data-list__item"
+          },
+          {
+            "id": "leading",
+            "className": "nimi-data-list__leading"
+          },
+          {
+            "id": "body",
+            "className": "nimi-data-list__body"
+          },
+          {
+            "id": "title",
+            "className": "nimi-data-list__title"
+          },
+          {
+            "id": "description",
+            "className": "nimi-data-list__description"
+          },
+          {
+            "id": "meta",
+            "className": "nimi-data-list__meta"
+          },
+          {
+            "id": "aside",
+            "className": "nimi-data-list__aside"
+          }
+        ],
+        "variants": {
+          "state": [
+            {
+              "id": "empty",
+              "className": "nimi-data-list--empty",
+              "selector": ""
+            }
+          ]
+        }
+      },
+      {
+        "id": "primitive.data_table",
+        "family": "data_display",
+        "component": "DataTable",
+        "sourceRule": "P-DESIGN-010",
+        "slots": [
+          {
+            "id": "root",
+            "className": "nimi-data-table"
+          },
+          {
+            "id": "head",
+            "className": "nimi-data-table__head"
+          },
+          {
+            "id": "th",
+            "className": "nimi-data-table__th"
+          },
+          {
+            "id": "body",
+            "className": "nimi-data-table__body"
+          },
+          {
+            "id": "row",
+            "className": "nimi-data-table__row"
+          },
+          {
+            "id": "td",
+            "className": "nimi-data-table__td"
+          },
+          {
+            "id": "empty",
+            "className": "nimi-data-table__empty"
+          }
+        ],
+        "variants": {}
+      },
+      {
+        "id": "primitive.empty_state",
+        "family": "feedback",
+        "component": "EmptyState",
+        "sourceRule": "P-DESIGN-010",
+        "slots": [
+          {
+            "id": "root",
+            "className": "nimi-empty-state"
+          },
+          {
+            "id": "icon",
+            "className": "nimi-empty-state__icon"
+          },
+          {
+            "id": "title",
+            "className": "nimi-empty-state__title"
+          },
+          {
+            "id": "description",
+            "className": "nimi-empty-state__description"
+          },
+          {
+            "id": "action",
+            "className": "nimi-empty-state__action"
+          }
+        ],
+        "variants": {}
+      },
+      {
+        "id": "primitive.field",
+        "family": "field",
+        "component": "TextField",
+        "sourceRule": "P-DESIGN-015",
+        "slots": [
+          {
+            "id": "root",
+            "className": "nimi-field"
+          },
+          {
+            "id": "input",
+            "className": "nimi-field__input"
+          },
+          {
+            "id": "textarea",
+            "className": "nimi-field__textarea"
+          }
+        ],
+        "variants": {
+          "modifier": [
+            {
+              "id": "textarea",
+              "className": "nimi-field--textarea",
+              "selector": ""
+            }
+          ],
+          "state": [
+            {
+              "id": "focus",
+              "className": "",
+              "selector": ".nimi-field:focus-within"
+            },
+            {
+              "id": "focus_danger",
+              "className": "",
+              "selector": ".nimi-field--danger:focus-within"
+            },
+            {
+              "id": "placeholder_input",
+              "className": "",
+              "selector": ".nimi-field__input::placeholder"
+            },
+            {
+              "id": "placeholder_textarea",
+              "className": "",
+              "selector": ".nimi-field__textarea::placeholder"
+            }
+          ],
+          "tone": [
+            {
+              "id": "default",
+              "className": "nimi-field--default",
+              "selector": ""
+            },
+            {
+              "id": "search",
+              "className": "nimi-field--search",
+              "selector": ""
+            },
+            {
+              "id": "quiet",
+              "className": "nimi-field--quiet",
+              "selector": ""
+            },
+            {
+              "id": "danger",
+              "className": "nimi-field--danger",
+              "selector": ""
+            }
+          ]
+        }
+      },
+      {
+        "id": "primitive.field_shell",
+        "family": "field",
+        "component": "FieldShell",
+        "sourceRule": "P-DESIGN-015",
+        "slots": [
+          {
+            "id": "root",
+            "className": "nimi-field-shell"
+          },
+          {
+            "id": "label",
+            "className": "nimi-field-shell__label"
+          },
+          {
+            "id": "description",
+            "className": "nimi-field-shell__description"
+          },
+          {
+            "id": "message",
+            "className": "nimi-field-shell__message"
+          }
+        ],
+        "variants": {}
+      },
+      {
+        "id": "primitive.icon_action",
+        "family": "action",
+        "component": "IconButton",
+        "sourceRule": "P-DESIGN-012",
+        "slots": [
+          {
+            "id": "root",
+            "className": "nimi-action"
+          },
+          {
+            "id": "icon",
+            "className": "nimi-action__icon"
+          }
+        ],
+        "variants": {
+          "modifier": [
+            {
+              "id": "icon",
+              "className": "nimi-action--icon",
+              "selector": ""
+            }
+          ]
+        }
+      },
+      {
+        "id": "primitive.inline_alert",
+        "family": "feedback",
+        "component": "InlineAlert",
+        "sourceRule": "P-DESIGN-010",
+        "slots": [
+          {
+            "id": "root",
+            "className": "nimi-inline-alert"
+          },
+          {
+            "id": "icon",
+            "className": "nimi-inline-alert__icon"
+          },
+          {
+            "id": "body",
+            "className": "nimi-inline-alert__body"
+          },
+          {
+            "id": "action",
+            "className": "nimi-inline-alert__action"
+          }
+        ],
+        "variants": {
+          "tone": [
+            {
+              "id": "neutral",
+              "className": "nimi-inline-alert--neutral",
+              "selector": ""
+            },
+            {
+              "id": "success",
+              "className": "nimi-inline-alert--success",
+              "selector": ""
+            },
+            {
+              "id": "warning",
+              "className": "nimi-inline-alert--warning",
+              "selector": ""
+            },
+            {
+              "id": "danger",
+              "className": "nimi-inline-alert--danger",
+              "selector": ""
+            },
+            {
+              "id": "info",
+              "className": "nimi-inline-alert--info",
+              "selector": ""
+            }
+          ]
+        }
+      },
+      {
+        "id": "primitive.loading_skeleton",
+        "family": "feedback",
+        "component": "LoadingSkeleton",
+        "sourceRule": "P-DESIGN-010",
+        "slots": [
+          {
+            "id": "root",
+            "className": "nimi-skeleton"
+          },
+          {
+            "id": "media",
+            "className": "nimi-skeleton__media"
+          },
+          {
+            "id": "body",
+            "className": "nimi-skeleton__body"
+          },
+          {
+            "id": "line",
+            "className": "nimi-skeleton__line"
+          }
+        ],
+        "variants": {}
+      },
+      {
+        "id": "primitive.number_stepper",
+        "family": "field",
+        "component": "NumberStepper",
+        "sourceRule": "P-DESIGN-015",
+        "slots": [
+          {
+            "id": "root",
+            "className": "nimi-number-stepper"
+          },
+          {
+            "id": "button",
+            "className": "nimi-number-stepper__button"
+          },
+          {
+            "id": "value",
+            "className": "nimi-number-stepper__value"
+          }
+        ],
+        "variants": {}
+      },
+      {
+        "id": "primitive.overlay",
+        "family": "overlay",
+        "component": "OverlayShell",
+        "sourceRule": "P-DESIGN-013",
+        "slots": [
+          {
+            "id": "backdrop",
+            "className": "nimi-overlay-backdrop"
+          },
+          {
+            "id": "panel",
+            "className": "nimi-overlay-panel"
+          },
+          {
+            "id": "title",
+            "className": "nimi-overlay-title"
+          },
+          {
+            "id": "content",
+            "className": "nimi-overlay-content"
+          },
+          {
+            "id": "footer",
+            "className": "nimi-overlay-footer"
+          },
+          {
+            "id": "tooltipLayer",
+            "className": "nimi-tooltip-layer"
+          },
+          {
+            "id": "tooltipBubble",
+            "className": "nimi-tooltip-bubble"
+          },
+          {
+            "id": "sidebar",
+            "className": "nimi-overlay-sidebar"
+          }
+        ],
+        "variants": {
+          "kind_backdrop": [
+            {
+              "id": "dialog",
+              "className": "nimi-overlay-backdrop--dialog",
+              "selector": ""
+            },
+            {
+              "id": "drawer",
+              "className": "nimi-overlay-backdrop--drawer",
+              "selector": ""
+            },
+            {
+              "id": "popover",
+              "className": "nimi-overlay-backdrop--popover",
+              "selector": ""
+            }
+          ],
+          "kind_panel": [
+            {
+              "id": "dialog",
+              "className": "nimi-overlay-panel--dialog",
+              "selector": ""
+            },
+            {
+              "id": "drawer",
+              "className": "nimi-overlay-panel--drawer",
+              "selector": ""
+            },
+            {
+              "id": "popover",
+              "className": "nimi-overlay-panel--popover",
+              "selector": ""
+            }
+          ],
+          "size": [
+            {
+              "id": "S",
+              "className": "nimi-overlay-panel--size-s",
+              "selector": ""
+            },
+            {
+              "id": "M",
+              "className": "nimi-overlay-panel--size-m",
+              "selector": ""
+            },
+            {
+              "id": "L",
+              "className": "nimi-overlay-panel--size-l",
+              "selector": ""
+            },
+            {
+              "id": "XL",
+              "className": "nimi-overlay-panel--size-xl",
+              "selector": ""
+            },
+            {
+              "id": "full",
+              "className": "nimi-overlay-panel--size-full",
+              "selector": ""
+            }
+          ]
+        }
+      },
+      {
+        "id": "primitive.pagination",
+        "family": "navigation",
+        "component": "Pagination",
+        "sourceRule": "P-DESIGN-014",
+        "slots": [
+          {
+            "id": "root",
+            "className": "nimi-pagination"
+          },
+          {
+            "id": "page",
+            "className": "nimi-pagination__page"
+          },
+          {
+            "id": "ellipsis",
+            "className": "nimi-pagination__ellipsis"
+          }
+        ],
+        "variants": {
+          "state": [
+            {
+              "id": "active",
+              "className": "nimi-pagination__page--active",
+              "selector": ""
+            }
+          ]
+        }
+      },
+      {
+        "id": "primitive.progress",
+        "family": "feedback",
+        "component": "ProgressIndicator",
+        "sourceRule": "P-DESIGN-010",
+        "slots": [
+          {
+            "id": "root",
+            "className": "nimi-progress"
+          },
+          {
+            "id": "track",
+            "className": "nimi-progress__track"
+          },
+          {
+            "id": "bar",
+            "className": "nimi-progress__bar"
+          },
+          {
+            "id": "value",
+            "className": "nimi-progress__value"
+          }
+        ],
+        "variants": {}
+      },
+      {
+        "id": "primitive.scroll_area",
+        "family": "scroll_area",
+        "component": "ScrollArea",
+        "sourceRule": "P-DESIGN-010",
+        "slots": [
+          {
+            "id": "root",
+            "className": "nimi-scroll-area"
+          },
+          {
+            "id": "viewport",
+            "className": "nimi-scroll-area__viewport"
+          },
+          {
+            "id": "rail",
+            "className": "nimi-scroll-area__rail"
+          },
+          {
+            "id": "thumb",
+            "className": "nimi-scroll-area__thumb"
+          }
+        ],
+        "variants": {
+          "state": [
+            {
+              "id": "thumb_hover",
+              "className": "",
+              "selector": ".nimi-scroll-area:hover .nimi-scroll-area__thumb"
+            }
+          ]
+        }
+      },
+      {
+        "id": "primitive.segmented_control",
+        "family": "action",
+        "component": "SegmentedControl",
+        "sourceRule": "P-DESIGN-012",
+        "slots": [
+          {
+            "id": "root",
+            "className": "nimi-segmented-control"
+          },
+          {
+            "id": "item",
+            "className": "nimi-segmented-control__item"
+          },
+          {
+            "id": "icon",
+            "className": "nimi-segmented-control__icon"
+          }
+        ],
+        "variants": {
+          "size": [
+            {
+              "id": "sm",
+              "className": "nimi-segmented-control--size-sm",
+              "selector": ""
+            },
+            {
+              "id": "md",
+              "className": "nimi-segmented-control--size-md",
+              "selector": ""
+            }
+          ],
+          "state": [
+            {
+              "id": "selected",
+              "className": "nimi-segmented-control__item--selected",
+              "selector": ""
+            }
+          ]
+        }
+      },
+      {
+        "id": "primitive.select_field",
+        "family": "field",
+        "component": "SelectField",
+        "sourceRule": "P-DESIGN-015",
+        "slots": [
+          {
+            "id": "root",
+            "className": "nimi-field nimi-field--select"
+          },
+          {
+            "id": "select",
+            "className": "nimi-field__select"
+          },
+          {
+            "id": "chevron",
+            "className": "nimi-field__chevron"
+          }
+        ],
+        "variants": {}
+      },
+      {
+        "id": "primitive.settings_shell",
+        "family": "settings",
+        "component": "SettingsPageShell",
+        "sourceRule": "P-DESIGN-010",
+        "slots": [
+          {
+            "id": "card",
+            "className": "nimi-surface"
+          }
+        ],
+        "variants": {}
+      },
+      {
+        "id": "primitive.sidebar",
+        "family": "sidebar",
+        "component": "SidebarShell",
+        "sourceRule": "P-DESIGN-014",
+        "slots": [
+          {
+            "id": "container",
+            "className": "nimi-sidebar-shell"
+          },
+          {
+            "id": "header",
+            "className": "nimi-sidebar-header"
+          },
+          {
+            "id": "searchRow",
+            "className": "nimi-sidebar-search-row"
+          },
+          {
+            "id": "search",
+            "className": "nimi-sidebar-search"
+          },
+          {
+            "id": "searchField",
+            "className": "nimi-sidebar-search__field"
+          },
+          {
+            "id": "section",
+            "className": "nimi-sidebar-section"
+          },
+          {
+            "id": "sectionLabel",
+            "className": "nimi-sidebar-section-label"
+          },
+          {
+            "id": "item",
+            "className": "nimi-sidebar-item"
+          },
+          {
+            "id": "itemTitle",
+            "className": "nimi-sidebar-item__title"
+          },
+          {
+            "id": "itemDescription",
+            "className": "nimi-sidebar-item__description"
+          },
+          {
+            "id": "affordance",
+            "className": "nimi-sidebar-affordance"
+          },
+          {
+            "id": "resizeHandle",
+            "className": "nimi-sidebar-resize-handle"
+          },
+          {
+            "id": "resizeHandleBefore",
+            "className": ""
+          }
+        ],
+        "variants": {
+          "affordance": [
+            {
+              "id": "badge",
+              "className": "nimi-sidebar-affordance--badge",
+              "selector": ""
+            },
+            {
+              "id": "count",
+              "className": "nimi-sidebar-affordance--count",
+              "selector": ""
+            },
+            {
+              "id": "status-dot",
+              "className": "nimi-sidebar-affordance--status-dot",
+              "selector": ""
+            },
+            {
+              "id": "chevron",
+              "className": "nimi-sidebar-affordance--chevron",
+              "selector": ""
+            }
+          ],
+          "compound": [
+            {
+              "id": "active_description",
+              "className": "",
+              "selector": ".nimi-sidebar-item--active .nimi-sidebar-item__description"
+            },
+            {
+              "id": "status_dot_inner",
+              "className": "",
+              "selector": ".nimi-sidebar-affordance--status-dot > span"
+            },
+            {
+              "id": "resize_handle_hover",
+              "className": "",
+              "selector": ".nimi-sidebar-resize-handle:hover::before"
+            },
+            {
+              "id": "search_placeholder",
+              "className": "",
+              "selector": ".nimi-sidebar-search__field::placeholder"
+            }
+          ],
+          "family": [
+            {
+              "id": "nimi-sidebar-v1",
+              "className": "nimi-sidebar-shell",
+              "selector": ""
+            }
+          ],
+          "item_kind": [
+            {
+              "id": "entity-row",
+              "className": "nimi-sidebar-item--entity-row",
+              "selector": ""
+            },
+            {
+              "id": "category-row",
+              "className": "nimi-sidebar-item--category-row",
+              "selector": ""
+            },
+            {
+              "id": "nav-row",
+              "className": "nimi-sidebar-item--nav-row",
+              "selector": ""
+            }
+          ],
+          "item_state": [
+            {
+              "id": "hover",
+              "className": "",
+              "selector": ".nimi-sidebar-item:hover"
+            },
+            {
+              "id": "active",
+              "className": "nimi-sidebar-item--active",
+              "selector": ""
+            }
+          ]
+        }
+      },
+      {
+        "id": "primitive.slider",
+        "family": "field",
+        "component": "Slider",
+        "sourceRule": "P-DESIGN-015",
+        "slots": [
+          {
+            "id": "root",
+            "className": "nimi-slider"
+          },
+          {
+            "id": "input",
+            "className": "nimi-slider__input"
+          },
+          {
+            "id": "value",
+            "className": "nimi-slider__value"
+          }
+        ],
+        "variants": {}
+      },
+      {
+        "id": "primitive.statistic",
+        "family": "data_display",
+        "component": "Statistic",
+        "sourceRule": "P-DESIGN-010",
+        "slots": [
+          {
+            "id": "root",
+            "className": "nimi-statistic"
+          },
+          {
+            "id": "label",
+            "className": "nimi-statistic__label"
+          },
+          {
+            "id": "value",
+            "className": "nimi-statistic__value"
+          },
+          {
+            "id": "trend",
+            "className": "nimi-statistic__trend"
+          },
+          {
+            "id": "prefix",
+            "className": "nimi-statistic__prefix"
+          },
+          {
+            "id": "suffix",
+            "className": "nimi-statistic__suffix"
+          },
+          {
+            "id": "helper",
+            "className": "nimi-statistic__helper"
+          },
+          {
+            "id": "group",
+            "className": "nimi-statistic-group"
+          }
+        ],
+        "variants": {}
+      },
+      {
+        "id": "primitive.status",
+        "family": "status",
+        "component": "StatusBadge",
+        "sourceRule": "P-DESIGN-010",
+        "slots": [
+          {
+            "id": "root",
+            "className": "nimi-status-badge"
+          }
+        ],
+        "variants": {
+          "shape": [
+            {
+              "id": "soft",
+              "className": "nimi-status-badge--soft",
+              "selector": ""
+            },
+            {
+              "id": "outline",
+              "className": "nimi-status-badge--outline",
+              "selector": ""
+            },
+            {
+              "id": "dot",
+              "className": "nimi-status-badge--dot",
+              "selector": ""
+            }
+          ],
+          "tone": [
+            {
+              "id": "neutral",
+              "className": "nimi-status-badge--neutral",
+              "selector": ""
+            },
+            {
+              "id": "success",
+              "className": "nimi-status-badge--success",
+              "selector": ""
+            },
+            {
+              "id": "warning",
+              "className": "nimi-status-badge--warning",
+              "selector": ""
+            },
+            {
+              "id": "danger",
+              "className": "nimi-status-badge--danger",
+              "selector": ""
+            },
+            {
+              "id": "info",
+              "className": "nimi-status-badge--info",
+              "selector": ""
+            }
+          ]
+        }
+      },
+      {
+        "id": "primitive.steps",
+        "family": "navigation",
+        "component": "Steps",
+        "sourceRule": "P-DESIGN-014",
+        "slots": [
+          {
+            "id": "root",
+            "className": "nimi-steps"
+          },
+          {
+            "id": "item",
+            "className": "nimi-steps__item"
+          },
+          {
+            "id": "dot",
+            "className": "nimi-steps__dot"
+          },
+          {
+            "id": "connector",
+            "className": "nimi-steps__connector"
+          },
+          {
+            "id": "body",
+            "className": "nimi-steps__body"
+          },
+          {
+            "id": "title",
+            "className": "nimi-steps__title"
+          },
+          {
+            "id": "description",
+            "className": "nimi-steps__description"
+          }
+        ],
+        "variants": {}
+      },
+      {
+        "id": "primitive.surface",
+        "family": "surface",
+        "component": "Surface",
+        "sourceRule": "P-DESIGN-011",
+        "slots": [
+          {
+            "id": "root",
+            "className": "nimi-surface"
+          }
+        ],
+        "variants": {
+          "elevation": [
+            {
+              "id": "base",
+              "className": "nimi-surface--elevation-base",
+              "selector": ""
+            },
+            {
+              "id": "raised",
+              "className": "nimi-surface--elevation-raised",
+              "selector": ""
+            },
+            {
+              "id": "floating",
+              "className": "nimi-surface--elevation-floating",
+              "selector": ""
+            },
+            {
+              "id": "modal",
+              "className": "nimi-surface--elevation-modal",
+              "selector": ""
+            }
+          ],
+          "material": [
+            {
+              "id": "solid",
+              "className": "nimi-material-solid",
+              "selector": ""
+            },
+            {
+              "id": "glass-thin",
+              "className": "nimi-material-glass-thin",
+              "selector": ""
+            },
+            {
+              "id": "glass-regular",
+              "className": "nimi-material-glass-regular",
+              "selector": ""
+            },
+            {
+              "id": "glass-thick",
+              "className": "nimi-material-glass-thick",
+              "selector": ""
+            },
+            {
+              "id": "glass-chrome",
+              "className": "nimi-material-glass-chrome",
+              "selector": ""
+            }
+          ],
+          "state": [
+            {
+              "id": "interactive",
+              "className": "nimi-surface--interactive",
+              "selector": ".nimi-surface--interactive:hover"
+            },
+            {
+              "id": "active",
+              "className": "nimi-surface--active",
+              "selector": ""
+            },
+            {
+              "id": "transparency_reduced",
+              "className": "nimi-surface--transparency-reduced",
+              "selector": ""
+            },
+            {
+              "id": "transparency_solid",
+              "className": "nimi-surface--transparency-solid",
+              "selector": ""
+            }
+          ],
+          "tone": [
+            {
+              "id": "canvas",
+              "className": "nimi-surface--canvas",
+              "selector": ""
+            },
+            {
+              "id": "panel",
+              "className": "nimi-surface--panel",
+              "selector": ""
+            },
+            {
+              "id": "card",
+              "className": "nimi-surface--card",
+              "selector": ""
+            },
+            {
+              "id": "hero",
+              "className": "nimi-surface--hero",
+              "selector": ""
+            },
+            {
+              "id": "overlay",
+              "className": "nimi-surface--overlay",
+              "selector": ""
+            }
+          ]
+        }
+      },
+      {
+        "id": "primitive.tabs",
+        "family": "navigation",
+        "component": "NimiTabs",
+        "sourceRule": "P-DESIGN-014",
+        "slots": [
+          {
+            "id": "root",
+            "className": "nimi-tabs"
+          },
+          {
+            "id": "tab",
+            "className": "nimi-tabs__tab"
+          }
+        ],
+        "variants": {
+          "state": [
+            {
+              "id": "active",
+              "className": "nimi-tabs__tab--active",
+              "selector": ""
+            }
+          ]
+        }
+      },
+      {
+        "id": "primitive.textarea",
+        "family": "field",
+        "component": "TextareaField",
+        "sourceRule": "P-DESIGN-015",
+        "slots": [],
+        "variants": {}
+      },
+      {
+        "id": "primitive.toggle",
+        "family": "toggle",
+        "component": "Toggle",
+        "sourceRule": "P-DESIGN-010",
+        "slots": [
+          {
+            "id": "root",
+            "className": "nimi-toggle"
+          },
+          {
+            "id": "thumb",
+            "className": "nimi-toggle__thumb"
+          }
+        ],
+        "variants": {
+          "compound": [
+            {
+              "id": "on_thumb",
+              "className": "",
+              "selector": ".nimi-toggle--on .nimi-toggle__thumb"
+            }
+          ],
+          "state": [
+            {
+              "id": "off",
+              "className": "nimi-toggle--off",
+              "selector": ""
+            },
+            {
+              "id": "on",
+              "className": "nimi-toggle--on",
+              "selector": ""
+            },
+            {
+              "id": "disabled",
+              "className": "",
+              "selector": ".nimi-toggle[aria-disabled=\"true\"]"
+            }
+          ]
+        }
+      },
+      {
+        "id": "primitive.typography",
+        "family": "typography",
+        "component": "NimiText",
+        "sourceRule": "P-DESIGN-016",
+        "slots": [
+          {
+            "id": "root",
+            "className": "nimi-text"
+          }
+        ],
+        "variants": {
+          "role": [
+            {
+              "id": "page_title",
+              "className": "nimi-text--page-title",
+              "selector": ""
+            },
+            {
+              "id": "section_title",
+              "className": "nimi-text--section-title",
+              "selector": ""
+            },
+            {
+              "id": "card_title",
+              "className": "nimi-text--card-title",
+              "selector": ""
+            },
+            {
+              "id": "body",
+              "className": "nimi-text--body",
+              "selector": ""
+            },
+            {
+              "id": "helper",
+              "className": "nimi-text--helper",
+              "selector": ""
+            },
+            {
+              "id": "label",
+              "className": "nimi-text--label",
+              "selector": ""
+            },
+            {
+              "id": "caption",
+              "className": "nimi-text--caption",
+              "selector": ""
+            }
+          ]
+        }
+      }
+    ],
+    "kitUi": {
+      "description": "Cross-app design system built on Radix UI + CVA + Tailwind, with nimi semantic tokens",
+      "sourceRule": "P-KIT-010",
+      "exports": [
+        "./ui",
+        "./ui/glass",
+        "./ui/motion",
+        "./ui/a11y",
+        "./ui/styles.css",
+        "./ui/themes/light.css",
+        "./ui/themes/dark.css",
+        "./ui/themes/nimi-accent.css"
+      ]
+    },
+    "compositions": [],
+    "adoption": [],
+    "allowlists": []
+  }
+}

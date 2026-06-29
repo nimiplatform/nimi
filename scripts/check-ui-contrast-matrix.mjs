@@ -30,6 +30,7 @@ import YAML from 'yaml';
 const repoRoot = process.cwd();
 const TARGET_BODY = 4.5;
 const TARGET_LARGE = 3.0;
+const TARGET_ACTION_TEXT = 4.5;
 
 function readYaml(rel) {
   return YAML.parse(fs.readFileSync(path.join(repoRoot, rel), 'utf8'));
@@ -129,10 +130,16 @@ function resolveGlassBg(themeId, tier) {
   return parseColor(v[`material.glass_${tier}.bg`]);
 }
 
+function resolvePackToken(themeId, tokenId) {
+  return parseColor(packValues(themeId)[tokenId]);
+}
+
 // ---------- Compute matrix ----------
 
 const failures = [];
 const rows = [];
+const actionFailures = [];
+const actionRows = [];
 
 for (const themeId of THEMES) {
   for (const tone of TONES) {
@@ -173,6 +180,21 @@ for (const themeId of THEMES) {
   }
 }
 
+const primaryActionText = resolvePackToken('nimi-accent', 'action.primary_text');
+const primaryActionStates = [
+  ['default', resolvePackToken('nimi-accent', 'action.primary_bg')],
+  ['hover', resolvePackToken('nimi-accent', 'action.primary_bg_hover')],
+];
+
+for (const [state, background] of primaryActionStates) {
+  if (!primaryActionText || !background) continue;
+  const ratio = contrast(primaryActionText, background);
+  actionRows.push({ token: 'action.primary', state, ratio });
+  if (ratio < TARGET_ACTION_TEXT) {
+    actionFailures.push({ token: 'action.primary', state, ratio, target: TARGET_ACTION_TEXT });
+  }
+}
+
 // ---------- Output ----------
 
 function fmt(n) {
@@ -195,17 +217,29 @@ for (const row of rows) {
   );
 }
 console.log('');
+console.log(`Action text targets: primary action text >= ${TARGET_ACTION_TEXT}:1`);
+console.log('token'.padEnd(18) + 'state'.padEnd(10) + 'ratio');
+for (const row of actionRows) {
+  const mark = row.ratio >= TARGET_ACTION_TEXT ? ' ' : '!';
+  console.log(row.token.padEnd(18) + row.state.padEnd(10) + `${fmt(row.ratio)}:1${mark}`);
+}
+console.log('');
 
-if (failures.length === 0) {
-  console.log(`ui-contrast-matrix: OK (${rows.length} combinations all ≥ target)`);
+if (failures.length === 0 && actionFailures.length === 0) {
+  console.log(`ui-contrast-matrix: OK (${rows.length} surface/glass combinations and ${actionRows.length} action combinations all ≥ target)`);
   process.exit(0);
 }
 
 console.error('');
-console.error(`FAIL: ${failures.length} combination(s) below target:`);
+console.error(`FAIL: ${failures.length + actionFailures.length} combination(s) below target:`);
 for (const f of failures) {
   console.error(
     `  ${f.themeId} × tone=${f.tone} × tier=${f.tier} × ${f.kind}: ${fmt(f.ratio)}:1 (target ≥ ${f.target}:1)`,
+  );
+}
+for (const f of actionFailures) {
+  console.error(
+    `  nimi-accent × ${f.token} × state=${f.state} × text: ${fmt(f.ratio)}:1 (target ≥ ${f.target}:1)`,
   );
 }
 console.error('');

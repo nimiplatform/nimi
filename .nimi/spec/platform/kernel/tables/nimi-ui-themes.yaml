@@ -368,7 +368,7 @@ packs:
       surface.active: rgba(78,204,163,0.16)
       action.primary_bg: "#4ECCA3"
       action.primary_bg_hover: "#3DBB96"
-      action.primary_text: "#ffffff"
+      action.primary_text: "#111827"
       action.ghost_hover: rgba(78,204,163,0.10)
       sidebar.item_active: rgba(78,204,163,0.16)
       sidebar.item_hover: rgba(78,204,163,0.08)

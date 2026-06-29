@@ -36,9 +36,3 @@ surfaces:
   - primitive.pagination
   - primitive.breadcrumb
   - primitive.steps
-fragments:
-  primitives:
-    - nimi-ui-primitives/surface-action.yaml
-    - nimi-ui-primitives/forms-selection.yaml
-    - nimi-ui-primitives/content-feedback.yaml
-    - nimi-ui-primitives/data-workflow.yaml
