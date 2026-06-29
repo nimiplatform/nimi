@@ -1,3 +1,4 @@
+use crate::capabilities::standard_shell_error;
 use base64::Engine;
 use serde::Serialize;
 use std::collections::HashMap;
@@ -270,21 +271,51 @@ pub async fn open_stream(
     Ok(RuntimeBridgeStreamOpenResult { stream_id })
 }
 
-pub fn close_stream(payload: &RuntimeBridgeStreamClosePayload) {
+pub fn close_stream(payload: &RuntimeBridgeStreamClosePayload) -> Result<(), String> {
+    let stream_id = payload.stream_id.trim();
+    if stream_id.is_empty() {
+        return Err(standard_shell_error(
+            "invalid-payload",
+            "runtime-stream-close-stream-id-missing",
+            "Pass a non-empty streamId.",
+            "tauri",
+            None,
+        ));
+    }
+
     let mut guard = stream_registry()
         .lock()
         .expect("runtime stream registry lock poisoned");
-    if let Some(handle) = guard.remove(payload.stream_id.as_str()) {
+    if let Some(handle) = guard.remove(stream_id) {
         handle.abort();
+        return Ok(());
     }
+    Err(standard_shell_error(
+        "not-found",
+        "runtime-stream-close-stream-not-found",
+        "Open a stream before closing it.",
+        "tauri",
+        None,
+    ))
 }
 
 #[cfg(test)]
 mod tests {
     use super::{
-        decode_request_bytes, register_stream_task, stream_registry, validate_stream_method,
+        close_stream, decode_request_bytes, register_stream_task, stream_registry,
+        validate_stream_method,
     };
-    use crate::runtime_bridge::RuntimeBridgeStreamOpenPayload;
+    use crate::runtime_bridge::{RuntimeBridgeStreamClosePayload, RuntimeBridgeStreamOpenPayload};
+    use serde_json::Value;
+    use std::sync::{Mutex, MutexGuard, OnceLock};
+
+    fn registry_test_guard() -> MutexGuard<'static, ()> {
+        static REGISTRY_TEST_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+        REGISTRY_TEST_LOCK
+            .get_or_init(|| Mutex::new(()))
+            .lock()
+            .expect("runtime stream registry test lock poisoned")
+    }
 
     fn payload(method_id: &str, request_bytes_base64: &str) -> RuntimeBridgeStreamOpenPayload {
         RuntimeBridgeStreamOpenPayload {
@@ -298,6 +329,18 @@ mod tests {
             timeout_ms: None,
             event_namespace: None,
         }
+    }
+
+    fn close_payload(stream_id: &str) -> RuntimeBridgeStreamClosePayload {
+        RuntimeBridgeStreamClosePayload {
+            stream_id: stream_id.to_string(),
+        }
+    }
+
+    fn assert_standard_shell_error(error: String, code: &str) {
+        let parsed: Value = serde_json::from_str(error.as_str()).expect("standard shell json");
+        assert_eq!(parsed.get("code").and_then(Value::as_str), Some(code));
+        assert_eq!(parsed.get("source").and_then(Value::as_str), Some("tauri"));
     }
 
     #[test]
@@ -332,6 +375,7 @@ mod tests {
 
     #[test]
     fn register_stream_task_rejects_when_registry_limit_is_reached() {
+        let _registry_guard = registry_test_guard();
         let mut guard = stream_registry()
             .lock()
             .expect("runtime stream registry lock poisoned");
@@ -357,5 +401,26 @@ mod tests {
         for (_, handle) in guard.drain() {
             handle.abort();
         }
+    }
+
+    #[test]
+    fn close_stream_rejects_blank_stream_id() {
+        let error = close_stream(&close_payload("   ")).expect_err("blank stream id rejects");
+
+        assert_standard_shell_error(error, "invalid-payload");
+    }
+
+    #[test]
+    fn close_stream_rejects_unknown_stream_id() {
+        let _registry_guard = registry_test_guard();
+        stream_registry()
+            .lock()
+            .expect("runtime stream registry lock poisoned")
+            .clear();
+
+        let error =
+            close_stream(&close_payload("missing-stream")).expect_err("missing stream id rejects");
+
+        assert_standard_shell_error(error, "not-found");
     }
 }

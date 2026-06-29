@@ -1044,6 +1044,7 @@
         "export type { ModelConfigCapabilityItem, ModelConfigCapabilityStatus, ModelConfigCapabilityStatusTone, ModelConfigTargetRef, ModelConfigSection, ModelConfigProfileController, ModelConfigProfileOption, ModelConfigProfileCopy, ModelConfigProfileDiffRow, ModelConfigProfilePreview, AudioSynthesizeParamsState, AudioTranscribeParamsState, ImageParamsState, TextGenerateParamsState, VideoParamsState, VoiceWorkflowParamsState, CompanionSlotDef, LocalAssetEntry, CapabilityModelCardProps, ModelConfigPanelProps, } from './types.js';",
         "export type { ModelConfigCopyFormatter} from './default-profile-copy.js';",
         "export type { ModelConfigRuntimeTargetLocalModel, ModelConfigRuntimeTargetParamRecord, ModelConfigRuntimeTargetSource, ModelConfigRuntimeTargetStatus, ModelConfigRuntimeTargetSummary, SummarizeModelConfigRuntimeTargetInput, } from './headless/runtime-target-summary.js';",
+        "export type { ResolveModelConfigLocalRuntimeStatusInput} from './headless/local-runtime-status.js';",
         "export type { TextGenerateParamsEditorProps, TextGenerateParamsEditorCopy, } from './components/text-generate-params-editor.js';",
         "export type { UseModelConfigProfileControllerInput} from './headless/use-model-config-profile-controller.js';",
         "export type { VideoParamsEditorProps, VideoParamsEditorCopy} from './components/video-params-editor.js';",
@@ -1069,6 +1070,7 @@
         "export { createTextGenerateEditorCopy} from './components/text-generate-params-editor.js';",
         "export { createVoiceWorkflowEditorCopy} from './components/voice-workflow-params-editor.js';",
         "export { defaultModelConfigProfileCopy} from './default-profile-copy.js';",
+        "export { findLocalAssetForTargetRef, localRuntimeRefCandidates, resolveModelConfigLocalRuntimeStatus, } from './headless/local-runtime-status.js';",
         "export { summarizeModelConfigRuntimeTarget} from './headless/runtime-target-summary.js';",
         "export { summarizeTargetRef, } from '@nimiplatform/kit/core/model-config';",
         "export { useModelConfigProfileController} from './headless/use-model-config-profile-controller.js';"
@@ -1085,6 +1087,7 @@
         "export type { ModelConfigCapabilityItem, ModelConfigCapabilityStatus, ModelConfigCapabilityStatusTone, ModelConfigTargetRef, ModelConfigSection, ModelConfigProfileController, ModelConfigProfileOption, ModelConfigProfileCopy, ModelConfigProfileDiffRow, ModelConfigProfilePreview, AudioSynthesizeParamsState, AudioTranscribeParamsState, ImageParamsState, TextGenerateParamsState, VideoParamsState, VoiceWorkflowParamsState, CompanionSlotDef, LocalAssetEntry, CapabilityModelCardProps, ModelConfigPanelProps, } from './types.js';",
         "export type { ModelConfigCopyFormatter} from './default-profile-copy.js';",
         "export type { ModelConfigRuntimeTargetLocalModel, ModelConfigRuntimeTargetParamRecord, ModelConfigRuntimeTargetSource, ModelConfigRuntimeTargetStatus, ModelConfigRuntimeTargetSummary, SummarizeModelConfigRuntimeTargetInput, } from './headless/runtime-target-summary.js';",
+        "export type { ResolveModelConfigLocalRuntimeStatusInput} from './headless/local-runtime-status.js';",
         "export type { TextGenerateParamsEditorProps, TextGenerateParamsEditorCopy, } from './components/text-generate-params-editor.js';",
         "export type { UseModelConfigProfileControllerInput} from './headless/use-model-config-profile-controller.js';",
         "export type { VideoParamsEditorProps, VideoParamsEditorCopy} from './components/video-params-editor.js';",
@@ -1096,6 +1099,7 @@
         "export { createTextGenerateEditorCopy} from './components/text-generate-params-editor.js';",
         "export { createVoiceWorkflowEditorCopy} from './components/voice-workflow-params-editor.js';",
         "export { defaultModelConfigProfileCopy} from './default-profile-copy.js';",
+        "export { findLocalAssetForTargetRef, localRuntimeRefCandidates, resolveModelConfigLocalRuntimeStatus, } from './headless/local-runtime-status.js';",
         "export { summarizeModelConfigRuntimeTarget} from './headless/runtime-target-summary.js';",
         "export { summarizeTargetRef, } from '@nimiplatform/kit/core/model-config';",
         "export { useModelConfigProfileController} from './headless/use-model-config-profile-controller.js';"

@@ -393,7 +393,9 @@ pub mod runtime {
     }
 
     #[tauri::command]
-    pub fn runtime_bridge_stream_close(payload: RuntimeBridgeStreamClosePayload) {
+    pub fn runtime_bridge_stream_close(
+        payload: RuntimeBridgeStreamClosePayload,
+    ) -> Result<(), String> {
         crate::runtime_bridge::runtime_bridge_stream_close(payload)
     }
 

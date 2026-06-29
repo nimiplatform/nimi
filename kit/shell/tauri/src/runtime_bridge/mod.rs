@@ -313,7 +313,7 @@ pub async fn runtime_bridge_stream_open(
     stream::open_stream(&app, &payload).await
 }
 
-pub fn runtime_bridge_stream_close(payload: RuntimeBridgeStreamClosePayload) {
+pub fn runtime_bridge_stream_close(payload: RuntimeBridgeStreamClosePayload) -> Result<(), String> {
     stream::close_stream(&payload)
 }
 
