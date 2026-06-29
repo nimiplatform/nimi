@@ -20,7 +20,11 @@ import {
   toSerializedElectronShellError,
 } from './errors.js';
 import { resolveElectronStandardLocalAssetUrl } from './local-assets.js';
-import { resolveElectronLocalAgentIdentity, resolveElectronRuntimeTrustedCaller } from './local-agent.js';
+import {
+  assertOpaqueElectronLocalAgentRef,
+  resolveElectronLocalAgentIdentity,
+  resolveElectronRuntimeTrustedCaller,
+} from './local-agent.js';
 import { exchangeElectronOauthToken, listenElectronOauthForCode, openElectronExternalUrl } from './oauth.js';
 import { resolveElectronPlatformProjection } from './platform-projection.js';
 import { confirmElectronShellDialog, focusElectronMainWindow, startElectronWindowDrag } from './shell-ui.js';
@@ -34,7 +38,6 @@ import {
   invokeElectronRuntimeUnary,
   openElectronRuntimeStream,
   probeElectronRuntimeStatus,
-  electronRuntimeUnavailableStatus,
   resolveElectronRuntimeDefaults,
 } from './runtime.js';
 import { isElectronExternallyManagedRuntimeCommand } from './runtime-lifecycle.js';
@@ -60,6 +63,7 @@ export {
   isAllowedElectronRendererOrigin,
   isAllowedElectronRendererUrl,
   normalizeElectronShellAppId,
+  assertOpaqueElectronLocalAgentRef,
 };
 
 const STANDARD_SHELL_COMMAND_SET: ReadonlySet<string> = new Set(
@@ -139,9 +143,12 @@ export function registerNimiElectronRuntimeBridge(
     }
     if (command === commandNames.status) {
       try {
-        return await probeElectronRuntimeStatus({ client: await ensureClient(), appId, runtimeEndpoint });
+        return await probeElectronRuntimeStatus({ client: await ensureClient(), appId, runtimeEndpoint, command });
       } catch (error) {
-        return electronRuntimeUnavailableStatus(runtimeEndpoint, error);
+        if (error instanceof NimiElectronShellHostError) {
+          throw error;
+        }
+        throw createElectronRuntimeEndpointUnavailableError(command, runtimeEndpoint, error);
       }
     }
     if (command === NIMI_STANDARD_SHELL_COMMANDS['runtime-defaults.get']) return resolveElectronRuntimeDefaults();

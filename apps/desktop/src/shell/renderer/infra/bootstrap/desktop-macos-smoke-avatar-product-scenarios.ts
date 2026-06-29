@@ -9,7 +9,7 @@ import {
 
 const E2E_PRIMARY_REALM_AGENT_ID = 'agent-e2e-alpha';
 const E2E_PRIMARY_OWNER_USER_ID = 'user-e2e-primary';
-const E2E_PRIMARY_LOCAL_AGENT_REF = `local-agent:${E2E_PRIMARY_OWNER_USER_ID}:${E2E_PRIMARY_REALM_AGENT_ID}`;
+const E2E_PRIMARY_LOCAL_AGENT_REF = 'local-agent:desktop-e2e-alpha';
 const E2E_PRIMARY_AGENT_TARGET_ID = E2E_IDS.chatTarget(E2E_PRIMARY_LOCAL_AGENT_REF);
 const AVATAR_PRODUCT_LIVE_INSTANCE_TIMEOUT_MS = 45_000;
 

@@ -3,6 +3,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { appendFile, mkdir, readFile, realpath, writeFile } from 'node:fs/promises';
 import { app, BrowserWindow, ipcMain, protocol, screen, shell, type IpcMainInvokeEvent } from 'electron';
 import {
+  assertOpaqueElectronLocalAgentRef,
   isAllowedElectronRendererUrl,
   registerNimiElectronRuntimeBridge,
   type NimiElectronRuntimeTrustedCallerMode,
@@ -41,6 +42,7 @@ app.setName('Nimi Avatar');
 void app.whenReady().then(async () => {
   registerReadableFileProtocol();
   const standardDataRoot = resolveStandardDataRoot();
+  const localAgentIdentity = resolveOptionalAvatarElectronLocalAgentIdentity();
   await mkdir(standardDataRoot, { recursive: true });
   registerAvatarElectronProductCommands(standardDataRoot);
   registerNimiElectronRuntimeBridge({
@@ -54,10 +56,7 @@ void app.whenReady().then(async () => {
       localAssetRoots: resolveStandardLocalAssetRoots(standardDataRoot),
       resolveLocalAssetUrl: resolveAvatarLocalAssetUrl,
       openExternalUrl: (url) => shell.openExternal(url),
-      localAgentIdentity: {
-        ownerUserId: normalizeText(process.env.NIMI_AVATAR_ELECTRON_LOCAL_AGENT_OWNER_USER_ID) || 'avatar-local-owner',
-        runtimeSourceRef: normalizeText(process.env.NIMI_AVATAR_ELECTRON_LOCAL_AGENT_RUNTIME_SOURCE_REF) || APP_ID,
-      },
+      ...(localAgentIdentity ? { localAgentIdentity } : {}),
       runtimeTrustedCaller: {
         mode: resolveRuntimeTrustedCallerMode(),
       },
@@ -130,6 +129,17 @@ function resolveAvatarElectronLaunchContext(): Record<string, string | null> {
   };
 }
 
+function resolveOptionalAvatarElectronLocalAgentIdentity(): {
+  readonly ownerUserId: string;
+  readonly runtimeSourceRef: string;
+  readonly localAgentRef: string;
+} | undefined {
+  if (!normalizeText(process.env.NIMI_AVATAR_ELECTRON_LOCAL_AGENT_REF)) {
+    return undefined;
+  }
+  return resolveAvatarElectronLocalAgentIdentity();
+}
+
 function resolveAvatarElectronLocalAgentIdentity(): {
   readonly ownerUserId: string;
   readonly runtimeSourceRef: string;
@@ -147,12 +157,15 @@ function resolveAvatarElectronLocalAgentIdentity(): {
     process.env.NIMI_AVATAR_ELECTRON_LOCAL_AGENT_REF,
     'NIMI_AVATAR_ELECTRON_LOCAL_AGENT_REF',
   );
-  if (localAgentRef === runtimeSourceRef) {
-    throw new Error('NIMI_AVATAR_ELECTRON_LOCAL_AGENT_REF must not be a bare runtimeSourceRef');
-  }
   if (!localAgentRef.startsWith('local-agent:')) {
     throw new Error('NIMI_AVATAR_ELECTRON_LOCAL_AGENT_REF must start with local-agent:');
   }
+  assertOpaqueElectronLocalAgentRef({
+    ownerUserId,
+    runtimeSourceRef,
+    localAgentRef,
+    command: 'NIMI_AVATAR_ELECTRON_LOCAL_AGENT_REF',
+  });
   return {
     ownerUserId,
     runtimeSourceRef,
@@ -165,12 +178,15 @@ function bindAvatarElectronRuntimeIdentity(payload: Readonly<Record<string, unkn
   const ownerUserId = normalizeRequiredString(commandPayload.ownerUserId, 'ownerUserId');
   const runtimeSourceRef = normalizeRequiredString(commandPayload.runtimeSourceRef, 'runtimeSourceRef');
   const localAgentRef = normalizeRequiredString(commandPayload.localAgentRef, 'localAgentRef');
-  if (localAgentRef === runtimeSourceRef) {
-    throw new Error('Avatar Runtime identity localAgentRef must not be a bare runtimeSourceRef');
-  }
   if (!localAgentRef.startsWith('local-agent:')) {
     throw new Error('Avatar Runtime identity localAgentRef must start with local-agent:');
   }
+  assertOpaqueElectronLocalAgentRef({
+    ownerUserId,
+    runtimeSourceRef,
+    localAgentRef,
+    command: 'nimi_avatar_bind_runtime_identity',
+  });
   boundRuntimeIdentity = {
     avatarInstanceId: normalizeRequiredString(commandPayload.avatarInstanceId, 'avatarInstanceId'),
     ownerUserId,

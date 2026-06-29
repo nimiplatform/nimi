@@ -219,6 +219,7 @@
     "deploy:install-gateway": "pnpm --filter @nimiplatform/install-gateway deploy",
     "dev:prepare": "pnpm build:sdk && pnpm build:kit",
     "dev:desktop": "node apps/desktop/scripts/run-tauri-dev.mjs",
+    "dev:electron:desktop": "pnpm --filter @nimiplatform/desktop dev:electron",
     "dev:avatar": "node scripts/dev-avatar.mjs",
     "dev:web": "pnpm --filter @nimiplatform/web dev",
     "dev:tester": "pnpm --filter @nimiplatform/tester dev:shell",

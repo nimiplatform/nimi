@@ -12,7 +12,7 @@ import { waitForAvatarCarrierEvidence } from '../src/shell/renderer/infra/bootst
 const AVATAR_CARRIER_FAILURE_EVIDENCE_TIMEOUT_MS = 50;
 const E2E_OWNER_USER_ID = 'user-e2e-primary';
 const E2E_RUNTIME_SOURCE_REF = 'agent-e2e-alpha';
-const E2E_LOCAL_AGENT_REF = 'local-agent:user-e2e-primary:agent-e2e-alpha';
+const E2E_LOCAL_AGENT_REF = 'local-agent:desktop-e2e-alpha';
 
 function createRuntimeVerifiedAgentAnchorBinding() {
   return {

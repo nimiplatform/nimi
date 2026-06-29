@@ -134,8 +134,8 @@ test('desktop E2E runner tears down native WebDriver process trees between scena
 });
 
 test('desktop E2E chat scenarios target canonical local-agent anchors', () => {
-  assert.match(chatMemoryStandardBindSpecSource, /E2E_IDS\.localAgentRef\('local-agent:user-e2e-primary:agent-e2e-alpha'\)/);
-  assert.match(chatLive2dRenderSmokeSpecSource, /E2E_IDS\.localAgentRef\('local-agent:user-e2e-primary:agent-e2e-alpha'\)/);
+  assert.match(chatMemoryStandardBindSpecSource, /E2E_IDS\.localAgentRef\('local-agent:desktop-e2e-alpha'\)/);
+  assert.match(chatLive2dRenderSmokeSpecSource, /E2E_IDS\.localAgentRef\('local-agent:desktop-e2e-alpha'\)/);
   assert.doesNotMatch(chatMemoryStandardBindSpecSource, /chatTarget\('agent-e2e-alpha'\)/);
   assert.doesNotMatch(chatLive2dRenderSmokeSpecSource, /chatTarget\('agent-e2e-alpha'\)/);
 });

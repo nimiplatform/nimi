@@ -49,7 +49,7 @@ export function createRuntimeAgentSmokeProductPathEvidence(input: {
   subjectUserId?: string;
   hasRuntimeTurn?: boolean;
 } = {}): NimiRuntimeAgentSmokeProductPathEvidence {
-  const agentId = input.agentId ?? 'local-agent:user-e2e-primary:agent-e2e-alpha';
+  const agentId = input.agentId ?? 'local-agent:desktop-e2e-alpha';
   const conversationAnchorId = input.conversationAnchorId ?? 'anchor-1';
   return {
     runtime_health: {

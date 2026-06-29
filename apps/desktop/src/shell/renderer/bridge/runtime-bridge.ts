@@ -1,5 +1,5 @@
 import { logRendererEvent, toRendererLogMessage } from '@nimiplatform/kit/telemetry';
-import { getRuntimeDefaults, hasTauriInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
+import { getRuntimeDefaults, hasShellHostInvoke, hasTauriInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
 import {
   desktopUpdateCheck,
   desktopUpdateDownload,
@@ -100,6 +100,7 @@ export {
   desktopUpdateRestart,
   subscribeDesktopUpdateState,
   hasTauriInvoke,
+  hasShellHostInvoke,
   logRendererEvent,
   toRendererLogMessage,
   getRuntimeBridgeStatus,

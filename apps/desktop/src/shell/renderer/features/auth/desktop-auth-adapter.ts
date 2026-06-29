@@ -54,7 +54,7 @@ import {
 } from './fresh-oauth-browser-session-login.js';
 
 export const desktopOAuthBridge: TauriOAuthBridge = {
-  hasTauriInvoke: () => desktopBridge.hasTauriInvoke(),
+  hasTauriInvoke: () => desktopBridge.hasShellHostInvoke(),
   oauthListenForCode: (payload) => desktopBridge.oauthListenForCode(payload),
   oauthTokenExchange: (payload) => desktopBridge.oauthTokenExchange(payload),
   openExternalUrl: (url) => desktopBridge.openExternalUrl(url),

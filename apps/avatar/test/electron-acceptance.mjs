@@ -27,6 +27,7 @@ test('Avatar owns a sandboxed Electron standard shell proof host', () => {
   const preloadSource = readFileSync(path.join(root, 'src-electron', 'preload.cts'), 'utf8');
   assert.match(mainSource, /registerNimiElectronRuntimeBridge/);
   assert.match(mainSource, /registerAvatarElectronProductCommands/);
+  assert.doesNotMatch(mainSource, /local-agent:avatar-electron-local/);
   assert.match(preloadSource, /__NIMI_AVATAR_ELECTRON__/);
   assert.match(mainSource, /contextIsolation:\s*true/);
   assert.match(mainSource, /nodeIntegration:\s*false/);
@@ -68,6 +69,7 @@ test('Avatar Electron host boots renderer and exposes standard shell capability 
         NIMI_AVATAR_ELECTRON_STANDARD_LOCAL_ASSET_ROOTS: assetRoot,
         NIMI_AVATAR_ELECTRON_LOCAL_AGENT_OWNER_USER_ID: 'avatar-owner',
         NIMI_AVATAR_ELECTRON_LOCAL_AGENT_RUNTIME_SOURCE_REF: 'avatar-runtime',
+        NIMI_AVATAR_ELECTRON_LOCAL_AGENT_REF: 'local-agent:avatar-acceptance-agent',
         NIMI_AVATAR_ELECTRON_RUNTIME_TRUSTED_CALLER_MODE: 'local-first-party-app',
       },
     });
@@ -103,13 +105,13 @@ test('Avatar Electron host boots renderer and exposes standard shell capability 
       assert.deepEqual(identity, {
         ownerUserId: 'avatar-owner',
         runtimeSourceRef: 'avatar-runtime',
-        localAgentRef: 'local-agent:avatar-owner:avatar-runtime',
+        localAgentRef: 'local-agent:avatar-acceptance-agent',
       });
       const launchContext = await page.evaluate(() =>
         globalThis.window.__NIMI_AVATAR_ELECTRON__.invoke('nimi_avatar_get_launch_context', {}),
       );
       assert.deepEqual(launchContext, {
-        agentId: 'local-agent:avatar-owner:avatar-runtime',
+        agentId: 'local-agent:avatar-acceptance-agent',
         avatarInstanceId: null,
         launchSource: 'electron',
       });
@@ -119,7 +121,7 @@ test('Avatar Electron host boots renderer and exposes standard shell capability 
           avatarInstanceId: 'avatar-proof-instance',
           ownerUserId: 'avatar-owner',
           runtimeSourceRef: 'avatar-runtime',
-          localAgentRef: 'local-agent:avatar-owner:avatar-runtime',
+          localAgentRef: 'local-agent:avatar-acceptance-agent',
           launchSource: 'electron-acceptance',
         },
       );

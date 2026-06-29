@@ -18,10 +18,12 @@ const rendererAcceptanceUrl = `${pathToFileURL(path.join(root, 'dist', 'index.ht
 
 test('Electron acceptance matrix maps every standard shell command to e2e or host-unit coverage', async () => {
   const acceptanceSource = await readFile(new URL('./electron-acceptance.mjs', import.meta.url), 'utf8');
+  const mainSource = await readFile(path.join(root, 'src-electron', 'main.ts'), 'utf8');
   const electronHostUnitSource = await readFile(
     path.join(repoRoot, 'kit', 'shell', 'electron', 'test', 'electron-shell.test.ts'),
     'utf8',
   );
+  assert.doesNotMatch(mainSource, /local-agent:tester-electron-local/);
   const coverageSource = `${acceptanceSource}\n${electronHostUnitSource}`;
   for (const capability of NIMI_STANDARD_SHELL_CAPABILITIES) {
     for (const operation of capability.operations) {
@@ -75,6 +77,7 @@ test('Electron acceptance host boots the tester renderer with the narrowed prelo
       NIMI_USER_CONFIRMED_UPLOAD: '1',
       NIMI_TESTER_ELECTRON_LOCAL_AGENT_OWNER_USER_ID: 'acceptance-owner',
       NIMI_TESTER_ELECTRON_LOCAL_AGENT_RUNTIME_SOURCE_REF: 'acceptance-runtime',
+      NIMI_TESTER_ELECTRON_LOCAL_AGENT_REF: 'local-agent:acceptance-agent',
       NIMI_TESTER_ELECTRON_RUNTIME_TRUSTED_CALLER_MODE: 'local-developer-app',
       NIMI_TESTER_ELECTRON_OPEN_EXTERNAL_CAPTURE_FILE: openedUrlsPath,
     },
@@ -108,13 +111,14 @@ test('Electron acceptance host boots the tester renderer with the narrowed prelo
     assert.equal(sdkRuntimeReady.reasonCode, 'electron-runtime-endpoint-unavailable');
     assert.equal(sdkRuntimeReady.actionHint, 'start_external_runtime_daemon');
 
-    const status = await page.evaluate(
-      (command) => globalThis.window.__NIMI_ELECTRON_RUNTIME__.invoke(command, {}),
+    const statusError = await captureInvokeError(
+      page,
       NIMI_STANDARD_SHELL_COMMANDS['runtime-lifecycle.status'],
+      {},
     );
-    assert.equal(status.managed, false);
-    assert.equal(status.launchMode, 'RUNTIME');
-    assert.match(String(status.grpcAddr || ''), /^127\.0\.0\.1:/);
+    assert.equal(statusError.code, 'external-daemon-required');
+    assert.equal(statusError.reasonCode, 'electron-runtime-endpoint-unavailable');
+    assert.equal(statusError.actionHint, 'start_external_runtime_daemon');
 
     const diagnosticsProbe = await page.evaluate(
       (command) => globalThis.window.__NIMI_ELECTRON_RUNTIME__.invoke(command, { stage: 'acceptance-bootstrap' }),
@@ -135,7 +139,7 @@ test('Electron acceptance host boots the tester renderer with the narrowed prelo
     assert.deepEqual(localAgentIdentity, {
       ownerUserId: 'acceptance-owner',
       runtimeSourceRef: 'acceptance-runtime',
-      localAgentRef: 'local-agent:acceptance-owner:acceptance-runtime',
+      localAgentRef: 'local-agent:acceptance-agent',
     });
 
     const trustedCaller = await page.evaluate(

@@ -40,7 +40,7 @@ test('Avatar product smoke seeds Agent Center config under product control data 
   assert.ok(seeded, 'seed result is required');
   assert.equal(seeded.dataDir, dataRoot);
   assert.equal(seeded.accountId, 'user-e2e-primary');
-  assert.equal(seeded.localAgentRef, 'local-agent:user-e2e-primary:agent-e2e-alpha');
+  assert.equal(seeded.localAgentRef, 'local-agent:desktop-e2e-alpha');
   assert.ok(seeded.configPath.startsWith(`${dataRoot}${path.sep}`));
 
   const config = JSON.parse(fs.readFileSync(seeded.configPath, 'utf8')) as {

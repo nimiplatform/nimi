@@ -55,20 +55,45 @@ export function projectElectronLocalAgentIdentity(
       details: { command, localAgentRef },
     });
   }
+  assertOpaqueElectronLocalAgentRef({
+    ownerUserId,
+    runtimeSourceRef,
+    localAgentRef,
+    command,
+  });
+  return {
+    ownerUserId,
+    runtimeSourceRef,
+    localAgentRef,
+  };
+}
+export function assertOpaqueElectronLocalAgentRef(input: {
+  readonly ownerUserId: string;
+  readonly runtimeSourceRef: string;
+  readonly localAgentRef: string;
+  readonly command: string;
+}): void {
+  const ownerUserId = normalizeRequiredToken(input.ownerUserId, 'ownerUserId');
+  const runtimeSourceRef = normalizeRequiredToken(input.runtimeSourceRef, 'runtimeSourceRef');
+  const localAgentRef = normalizeRequiredToken(input.localAgentRef, 'localAgentRef');
   if (localAgentRef === runtimeSourceRef) {
     throw new NimiElectronShellHostError({
       code: 'invalid-payload',
       message: 'Electron local-agent identity localAgentRef must not be a bare runtimeSourceRef',
       reasonCode: 'electron-local-agent-ref-bare-runtime-source',
       actionHint: 'provide_opaque_local_agent_ref',
-      details: { command, ownerUserId, runtimeSourceRef, localAgentRef },
+      details: { command: input.command, ownerUserId, runtimeSourceRef, localAgentRef },
     });
   }
-  return {
-    ownerUserId,
-    runtimeSourceRef,
-    localAgentRef,
-  };
+  if (localAgentRefContainsIdentityPart(localAgentRef, ownerUserId) && localAgentRefContainsIdentityPart(localAgentRef, runtimeSourceRef)) {
+    throw new NimiElectronShellHostError({
+      code: 'invalid-payload',
+      message: 'Electron local-agent identity localAgentRef must be Runtime-owned opaque identity, not owner/runtimeSource-derived',
+      reasonCode: 'electron-local-agent-ref-derived-from-runtime-source',
+      actionHint: 'provide_runtime_owned_opaque_local_agent_ref',
+      details: { command: input.command, ownerUserId, runtimeSourceRef, localAgentRef },
+    });
+  }
 }
 function runtimeTrustedCallerModeSpec(mode: string, command: string): {
   readonly defaultInstanceSuffix: string;
@@ -107,4 +132,10 @@ function runtimeTrustedCallerModeSpec(mode: string, command: string): {
 
 function isElectronLocalAgentRef(value: string): boolean {
   return value.startsWith('local-agent:');
+}
+
+function localAgentRefContainsIdentityPart(localAgentRef: string, identityPart: string): boolean {
+  const normalizedRef = localAgentRef.trim().toLowerCase();
+  const normalizedPart = identityPart.trim().toLowerCase();
+  return Boolean(normalizedPart) && normalizedRef.includes(normalizedPart);
 }

@@ -149,7 +149,7 @@ export type NimiElectronCommandHandler = (
 export type NimiElectronLocalAgentIdentityInput = {
   readonly ownerUserId: string;
   readonly runtimeSourceRef: string;
-  readonly localAgentRef?: string;
+  readonly localAgentRef: string;
 };
 
 export type NimiElectronRuntimeTrustedCallerMode =

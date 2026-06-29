@@ -25,8 +25,7 @@ import {
 } from './desktop-macos-smoke-vrm';
 import { runChatLive2dAvatarProductSmokeScenario } from './desktop-macos-smoke-avatar-product-scenarios';
 
-const E2E_PRIMARY_REALM_AGENT_ID = 'agent-e2e-alpha';
-const E2E_PRIMARY_LOCAL_AGENT_REF = `local-agent:user-e2e-primary:${E2E_PRIMARY_REALM_AGENT_ID}`;
+const E2E_PRIMARY_LOCAL_AGENT_REF = 'local-agent:desktop-e2e-alpha';
 const E2E_PRIMARY_AGENT_TARGET_ID = E2E_IDS.chatTarget(E2E_PRIMARY_LOCAL_AGENT_REF);
 
 function smokeDetailsFromError(error: unknown): JsonObject | undefined {

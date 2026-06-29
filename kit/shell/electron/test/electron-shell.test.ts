@@ -421,7 +421,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
     }
   });
 
-  it('reports external daemon status from a real probe instead of hardcoded success', async () => {
+  it('fails closed when external daemon status probe cannot reach Runtime', async () => {
     const ipcMain = new FakeIpcMain();
     registerNimiElectronRuntimeBridge({
       appId: 'nimi.tester',
@@ -442,13 +442,72 @@ describe('registerNimiElectronRuntimeBridge', () => {
     await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
       command: STANDARD_COMMANDS.status,
       payload: {},
-    })).resolves.toMatchObject({
-      running: false,
+    })).rejects.toMatchObject({
+      code: 'external-daemon-required',
+      reasonCode: 'electron-runtime-endpoint-unavailable',
+      actionHint: 'start_external_runtime_daemon',
+      source: 'electron',
+    });
+  });
+
+  it('fails closed when external daemon status cannot initialize a Runtime client', async () => {
+    const ipcMain = new FakeIpcMain();
+    registerNimiElectronRuntimeBridge({
+      appId: 'nimi.tester',
+      runtimeEndpoint: '127.0.0.1:46371',
+      allowedOrigins: ['http://localhost:1430'],
+      ipcMain,
+      createGrpcClient: async () => {
+        throw new Error('client bootstrap failed');
+      },
+    });
+
+    await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
+      command: STANDARD_COMMANDS.status,
+      payload: {},
+    })).rejects.toMatchObject({
+      code: 'external-daemon-required',
+      reasonCode: 'electron-runtime-endpoint-unavailable',
+      actionHint: 'start_external_runtime_daemon',
+      source: 'electron',
+    });
+  });
+
+  it('reports external daemon status from a real Runtime probe response', async () => {
+    const ipcMain = new FakeIpcMain();
+    const unaryRequests: ElectronRuntimeBridgeUnaryRequest[] = [];
+    registerNimiElectronRuntimeBridge({
+      appId: 'nimi.tester',
+      runtimeEndpoint: '127.0.0.1:46371',
+      allowedOrigins: ['http://localhost:1430'],
+      ipcMain,
+      createGrpcClient: async () => ({
+        unary: async (request) => {
+          unaryRequests.push(request);
+          return {
+            responseBytes: new Uint8Array(),
+            responseMetadata: { 'x-nimi-runtime-version': 'runtime-2026.6' },
+          };
+        },
+        serverStream: () => {
+          throw new Error('not used');
+        },
+        close: () => undefined,
+      }),
+    });
+
+    await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
+      command: STANDARD_COMMANDS.status,
+      payload: {},
+    })).resolves.toEqual({
+      running: true,
       managed: false,
       launchMode: 'RUNTIME',
       grpcAddr: '127.0.0.1:46371',
-      lastError: expect.stringContaining('daemon offline'),
+      version: 'runtime-2026.6',
     });
+    expect(unaryRequests[0]?.methodId).toBe('/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth');
+    expect(unaryRequests[0]?.timeoutMs).toBe(1_000);
   });
 
   it('implements Electron runtime defaults from the standard shell environment contract', async () => {
@@ -515,6 +574,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
         localAgentIdentity: {
           ownerUserId: ' owner-1 ',
           runtimeSourceRef: ' tester-runtime ',
+          localAgentRef: ' local-agent:opaque-tester-runtime ',
         },
         runtimeTrustedCaller: {
           mode: 'local-developer-app',
@@ -529,7 +589,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
     })).resolves.toEqual({
       ownerUserId: 'owner-1',
       runtimeSourceRef: 'tester-runtime',
-      localAgentRef: 'local-agent:owner-1:tester-runtime',
+      localAgentRef: 'local-agent:opaque-tester-runtime',
     });
 
     await expect(invokeBridge(ipcMain, event, {
@@ -549,6 +609,35 @@ describe('registerNimiElectronRuntimeBridge', () => {
     })).rejects.toMatchObject({
       code: 'forbidden-renderer-access',
       reasonCode: 'electron-renderer-local-agent-caller-field-forbidden',
+    });
+  });
+
+  it('rejects app-authored localAgentRef values derived from owner and runtime source identity', async () => {
+    const ipcMain = new FakeIpcMain();
+    registerNimiElectronRuntimeBridge({
+      appId: 'nimi.tester',
+      runtimeEndpoint: '127.0.0.1:46371',
+      allowedOrigins: ['http://localhost:1430'],
+      ipcMain,
+      createGrpcClient: async () => {
+        throw new Error('not used');
+      },
+      standardShellHost: {
+        localAgentIdentity: {
+          ownerUserId: 'owner-1',
+          runtimeSourceRef: 'tester-runtime',
+          localAgentRef: 'local-agent:owner-1:tester-runtime',
+        },
+      },
+    });
+
+    await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
+      command: NIMI_STANDARD_SHELL_COMMANDS['local-agent.identity'],
+      payload: {},
+    })).rejects.toMatchObject({
+      code: 'invalid-payload',
+      reasonCode: 'electron-local-agent-ref-derived-from-runtime-source',
+      actionHint: 'provide_runtime_owned_opaque_local_agent_ref',
     });
   });
 

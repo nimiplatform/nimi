@@ -127,7 +127,7 @@ test('desktop macos smoke chat memory bind scenario follows the expected step or
     E2E_IDS.chatMemoryModeStatus,
   ]);
   assert.deepEqual(clicked, [
-    E2E_IDS.chatTarget('local-agent:user-e2e-primary:agent-e2e-alpha'),
+    E2E_IDS.chatTarget('local-agent:desktop-e2e-alpha'),
     E2E_IDS.chatSettingsToggle,
     E2E_IDS.chatMemoryModeUpgradeButton,
     E2E_IDS.chatMemoryModeUpgradeButton,

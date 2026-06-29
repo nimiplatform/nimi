@@ -28,6 +28,7 @@ import {
   getDesktopRuntime,
   withDesktopRuntimeProtectedScopes,
 } from '@renderer/infra/sdk/desktop-nimi-client-session';
+import { assertGroupTriggerMessageMatchesChat } from './realm-group-trigger-evidence';
 
 type GroupChatViewDto = RealmModel<'GroupChatViewDto'>;
 type GroupMessageViewDto = RealmModel<'GroupMessageViewDto'>;
@@ -199,7 +200,11 @@ export async function commitRealmGroupSourceMessageCandidateHandoff(
     ownerUserId: sourceParticipant.ownerUserId,
     runtimeSourceRef: sourceParticipant.runtimeSourceRef,
   });
-  const triggerMessageId = normalizeText(triggerMessage.id);
+  const triggerMessageId = assertGroupTriggerMessageMatchesChat({
+    chatId,
+    currentUserId,
+    triggerMessage,
+  });
   const idempotencyKey = createStableClientId('rgmc');
   const surface = createNimiHostRuntimeRealmGroupMessageCandidateSurface({
     getRuntime: () => {

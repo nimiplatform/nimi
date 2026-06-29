@@ -1,5 +1,5 @@
 import { NIMI_STANDARD_SHELL_CAPABILITY_IDS, NIMI_STANDARD_SHELL_COMMANDS, type NimiStandardShellCapabilityId } from '@nimiplatform/kit/shell/capabilities';
-import { createElectronRuntimeEndpointUnavailableError, errorMessage, toElectronRuntimeBridgeError } from './errors.js';
+import { createElectronRuntimeEndpointUnavailableError, toElectronRuntimeBridgeError } from './errors.js';
 import { asRecord, normalizeRequiredToken, normalizeText, parseOptionalPositiveNumber } from './paths.js';
 import type {
   ElectronRuntimeBridgeAppSession,
@@ -251,6 +251,7 @@ export async function probeElectronRuntimeStatus(input: {
   readonly client: RuntimeGrpcBridgeClient;
   readonly appId: string;
   readonly runtimeEndpoint: string;
+  readonly command: string;
 }): Promise<Record<string, unknown>> {
   try {
     const response = await input.client.unary({
@@ -270,18 +271,8 @@ export async function probeElectronRuntimeStatus(input: {
       version: response.responseMetadata?.['x-nimi-runtime-version'],
     };
   } catch (error) {
-    return electronRuntimeUnavailableStatus(input.runtimeEndpoint, error);
+    throw createElectronRuntimeEndpointUnavailableError(input.command, input.runtimeEndpoint, error);
   }
-}
-export function electronRuntimeUnavailableStatus(runtimeEndpoint: string, error: unknown): Record<string, unknown> {
-  return {
-    running: false,
-    managed: false,
-    launchMode: 'RUNTIME',
-    grpcAddr: runtimeEndpoint,
-    lastError: errorMessage(error),
-    actionHint: 'start_external_runtime_daemon',
-  };
 }
 export function resolveElectronRuntimeDefaults(): Record<string, unknown> {
   const realmBaseUrl = normalizeLoopbackHttpUrl(

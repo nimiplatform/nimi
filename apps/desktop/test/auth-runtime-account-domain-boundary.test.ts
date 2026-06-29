@@ -71,6 +71,16 @@ test('Desktop auth DTO projection is owned by SDK Realm auth extension', () => {
   assert.doesNotMatch(desktopWebAuthMenu, /auth-session-utils/);
 });
 
+test('Desktop OAuth bridge uses the standard shell host availability, not Tauri-only availability', () => {
+  const desktopAuthAdapter = read('apps/desktop/src/shell/renderer/features/auth/desktop-auth-adapter.ts');
+  const desktopRuntimeBridgeBarrel = read('apps/desktop/src/shell/renderer/bridge/runtime-bridge.ts');
+
+  assert.match(desktopAuthAdapter, /hasShellHostInvoke/);
+  assert.match(desktopRuntimeBridgeBarrel, /hasShellHostInvoke/);
+  assert.match(desktopAuthAdapter, /hasTauriInvoke:\s*\(\)\s*=>\s*desktopBridge\.hasShellHostInvoke\(\)/);
+  assert.doesNotMatch(desktopAuthAdapter, /hasTauriInvoke:\s*\(\)\s*=>\s*desktopBridge\.hasTauriInvoke\(\)/);
+});
+
 test('Desktop has no app-local Runtime account browser broker', () => {
   const desktopFiles = listSourceFiles(path.join(repoRoot, 'apps/desktop/src'));
   const offenders = desktopFiles

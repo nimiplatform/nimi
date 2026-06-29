@@ -1,18 +1,15 @@
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { appendFile, mkdir, readFile, realpath, writeFile } from 'node:fs/promises';
-import { app, BrowserWindow, ipcMain, protocol, shell } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, protocol, shell, type MessageBoxOptions } from 'electron';
 import {
   assertOpaqueElectronLocalAgentRef,
   isAllowedElectronRendererUrl,
   registerNimiElectronRuntimeBridge,
   type NimiElectronAIConfigStore,
-  type NimiElectronRuntimeTrustedCallerMode,
 } from '@nimiplatform/kit/shell/electron/main';
-import { createTesterElectronCommandHandlers } from './commands/tester-commands.js';
-import { createTesterElectronTrustedRuntimeMetadataProvider } from './runtime-auth.js';
 
-const APP_ID = 'nimi.tester';
+const APP_ID = 'nimi.desktop';
 const FILE_PROTOCOL = 'nimi-shell-file';
 
 const currentFilePath = fileURLToPath(import.meta.url);
@@ -21,12 +18,12 @@ const appRoot = path.resolve(currentDir, '..');
 const preloadPath = path.join(currentDir, 'preload.cjs');
 const rendererDistIndex = path.join(appRoot, 'dist', 'index.html');
 const rendererDistUrl = pathToFileURL(rendererDistIndex).toString();
-const rendererUrl = normalizeText(process.env.NIMI_TESTER_ELECTRON_RENDERER_URL);
+const rendererUrl = normalizeText(process.env.NIMI_DESKTOP_ELECTRON_RENDERER_URL);
 const runtimeEndpoint = normalizeText(process.env.NIMI_RUNTIME_GRPC_ADDR)
-  || normalizeText(process.env.NIMI_TESTER_ELECTRON_RUNTIME_ENDPOINT)
+  || normalizeText(process.env.NIMI_DESKTOP_ELECTRON_RUNTIME_ENDPOINT)
   || '127.0.0.1:46371';
 const readableFiles = new Set<string>();
-const worldTourWindows = new Map<string, BrowserWindow>();
+let mainWindow: BrowserWindow | undefined;
 
 protocol.registerSchemesAsPrivileged([{
   scheme: FILE_PROTOCOL,
@@ -39,40 +36,33 @@ protocol.registerSchemesAsPrivileged([{
   },
 }]);
 
-app.setName('Nimi Tester');
-configureTesterElectronChromiumRuntime();
+app.setName('Nimi Desktop');
+configureDesktopElectronChromiumRuntime();
 
 void app.whenReady().then(async () => {
   registerReadableFileProtocol();
   const standardDataRoot = resolveStandardDataRoot();
-  const localAgentIdentity = resolveTesterElectronLocalAgentIdentity();
+  const localAgentIdentity = resolveOptionalDesktopElectronLocalAgentIdentity();
+  await mkdir(standardDataRoot, { recursive: true });
   registerNimiElectronRuntimeBridge({
     appId: APP_ID,
     runtimeEndpoint,
     allowedOrigins: allowedRendererOrigins(),
     allowedRendererUrls: allowedRendererUrls(),
     ipcMain,
-    trustedRuntimeMetadataProvider: createTesterElectronTrustedRuntimeMetadataProvider({
-      appId: APP_ID,
-      runtimeEndpoint,
-    }),
-    commandHandlers: createTesterElectronCommandHandlers({
-      downloadsDir: app.getPath('downloads'),
-      revealInOs: (filePath) => shell.showItemInFolder(filePath),
-      registerReadableFile,
-      openWorldTourWindow,
-    }),
     standardShellHost: {
       dataRoot: standardDataRoot,
       localAssetRoots: resolveStandardLocalAssetRoots(standardDataRoot),
-      resolveLocalAssetUrl: resolveTesterLocalAssetUrl,
-      openExternalUrl: openTesterExternalUrl,
+      resolveLocalAssetUrl: resolveDesktopLocalAssetUrl,
+      openExternalUrl: openDesktopExternalUrl,
+      confirmDialog: confirmDesktopDialog,
+      focusMainWindow: focusDesktopMainWindow,
       ...(localAgentIdentity ? { localAgentIdentity } : {}),
       runtimeTrustedCaller: {
-        mode: resolveRuntimeTrustedCallerMode(),
+        mode: 'desktop-shell',
       },
-      aiConfigStore: createTesterAiConfigStore(standardDataRoot),
-      runtimeConfigGet: createTesterRuntimeConfigReader(standardDataRoot),
+      aiConfigStore: createDesktopAiConfigStore(standardDataRoot),
+      runtimeConfigGet: createDesktopRuntimeConfigReader(standardDataRoot),
     },
   });
 
@@ -85,7 +75,7 @@ void app.whenReady().then(async () => {
   });
 });
 
-function configureTesterElectronChromiumRuntime(): void {
+function configureDesktopElectronChromiumRuntime(): void {
   app.commandLine.appendSwitch('disable-background-networking');
 }
 
@@ -101,7 +91,7 @@ async function createMainWindow(): Promise<BrowserWindow> {
     height: 940,
     minWidth: 1100,
     minHeight: 760,
-    title: 'Nimi Tester',
+    title: 'Nimi Desktop',
     webPreferences: {
       preload: preloadPath,
       contextIsolation: true,
@@ -109,66 +99,21 @@ async function createMainWindow(): Promise<BrowserWindow> {
       sandbox: true,
     },
   });
-  secureTesterWindow(window);
-  await loadRendererRoute(window, '/');
+  mainWindow = window;
+  window.on('closed', () => {
+    if (mainWindow === window) {
+      mainWindow = undefined;
+    }
+  });
+  secureDesktopWindow(window);
+  await window.loadURL(rendererUrl || rendererDistUrl);
   return window;
 }
 
-async function openWorldTourWindow(input: {
-  readonly route: string;
-  readonly title: string;
-  readonly width: number;
-  readonly height: number;
-  readonly minWidth: number;
-  readonly minHeight: number;
-}): Promise<{ readonly windowLabel: string }> {
-  for (const window of worldTourWindows.values()) {
-    if (!window.isDestroyed()) {
-      window.close();
-    }
-  }
-  worldTourWindows.clear();
-
-  const windowLabel = `world-tour-${Date.now()}`;
-  const window = new BrowserWindow({
-    width: input.width,
-    height: input.height,
-    minWidth: input.minWidth,
-    minHeight: input.minHeight,
-    title: input.title,
-    webPreferences: {
-      preload: preloadPath,
-      contextIsolation: true,
-      nodeIntegration: false,
-      sandbox: true,
-    },
-  });
-  secureTesterWindow(window);
-  worldTourWindows.set(windowLabel, window);
-  window.on('closed', () => {
-    worldTourWindows.delete(windowLabel);
-  });
-  await loadRendererRoute(window, input.route);
-  return { windowLabel };
-}
-
-async function loadRendererRoute(window: BrowserWindow, route: string): Promise<void> {
-  const hash = hashFromRoute(route);
-  if (rendererUrl) {
-    const url = new URL(rendererUrl);
-    if (hash) {
-      url.hash = hash;
-    }
-    await window.loadURL(url.toString());
-    return;
-  }
-  await window.loadURL(hash ? `${rendererDistUrl}#${hash}` : rendererDistUrl);
-}
-
-function secureTesterWindow(window: BrowserWindow): void {
+function secureDesktopWindow(window: BrowserWindow): void {
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   window.webContents.on('will-navigate', (event, url) => {
-    if (!isTesterRendererUrl(url)) {
+    if (!isDesktopRendererUrl(url)) {
       event.preventDefault();
     }
   });
@@ -179,7 +124,7 @@ function allowedRendererOrigins(): string[] {
   for (const url of allowedRendererUrls()) {
     origins.add(originForRendererUrl(url));
   }
-  for (const origin of normalizeText(process.env.NIMI_TESTER_ELECTRON_ALLOWED_ORIGINS).split(',')) {
+  for (const origin of normalizeText(process.env.NIMI_DESKTOP_ELECTRON_ALLOWED_ORIGINS).split(',')) {
     const normalized = normalizeText(origin);
     if (normalized) {
       origins.add(normalized);
@@ -188,14 +133,9 @@ function allowedRendererOrigins(): string[] {
   return [...origins];
 }
 
-function originForRendererUrl(url: string): string {
-  const parsed = new URL(url);
-  return parsed.protocol === 'file:' ? 'file://' : parsed.origin;
-}
-
 function allowedRendererUrls(): string[] {
   const urls = new Set<string>([rendererUrl || rendererDistUrl]);
-  for (const url of normalizeText(process.env.NIMI_TESTER_ELECTRON_ALLOWED_RENDERER_URLS).split(',')) {
+  for (const url of normalizeText(process.env.NIMI_DESKTOP_ELECTRON_ALLOWED_RENDERER_URLS).split(',')) {
     const normalized = normalizeText(url);
     if (normalized) {
       urls.add(normalized);
@@ -204,13 +144,22 @@ function allowedRendererUrls(): string[] {
   return [...urls];
 }
 
+function originForRendererUrl(url: string): string {
+  const parsed = new URL(url);
+  return parsed.protocol === 'file:' ? 'file://' : parsed.origin;
+}
+
+function isDesktopRendererUrl(url: string): boolean {
+  return isAllowedElectronRendererUrl(url, allowedRendererUrls());
+}
+
 function resolveStandardDataRoot(): string {
-  const fromEnv = normalizeText(process.env.NIMI_TESTER_ELECTRON_STANDARD_DATA_ROOT);
+  const fromEnv = normalizeText(process.env.NIMI_DESKTOP_ELECTRON_STANDARD_DATA_ROOT);
   return path.resolve(fromEnv || path.join(app.getPath('userData'), 'standard-shell-data'));
 }
 
 function resolveStandardLocalAssetRoots(dataRoot: string): string[] {
-  const fromEnv = normalizeText(process.env.NIMI_TESTER_ELECTRON_STANDARD_LOCAL_ASSET_ROOTS);
+  const fromEnv = normalizeText(process.env.NIMI_DESKTOP_ELECTRON_STANDARD_LOCAL_ASSET_ROOTS);
   if (!fromEnv) {
     return [dataRoot, app.getPath('downloads')].map((filePath) => path.resolve(filePath));
   }
@@ -221,104 +170,31 @@ function resolveStandardLocalAssetRoots(dataRoot: string): string[] {
     .map((filePath) => path.resolve(filePath));
 }
 
-function createTesterAiConfigStore(dataRoot: string): NimiElectronAIConfigStore {
-  return {
-    get: async ({ scopeRef }) => {
-      const filePath = testerAiConfigPath(dataRoot, scopeRef);
-      let parsed: unknown;
-      try {
-        parsed = JSON.parse(await readFile(filePath, 'utf8')) as unknown;
-      } catch (error) {
-        if (isNotFoundError(error)) {
-          return undefined;
-        }
-        throw error;
-      }
-      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-        throw new Error(`tester AI Config store record is invalid: ${filePath}`);
-      }
-      const record = parsed as Record<string, unknown>;
-      if (record.scopeRef !== scopeRef || !record.config || typeof record.config !== 'object' || Array.isArray(record.config)) {
-        throw new Error(`tester AI Config store record does not match requested scope: ${filePath}`);
-      }
-      return record.config as Readonly<Record<string, unknown>>;
-    },
-    set: async ({ scopeRef, config }) => {
-      const filePath = testerAiConfigPath(dataRoot, scopeRef);
-      await mkdir(path.dirname(filePath), { recursive: true });
-      await writeFile(filePath, JSON.stringify({
-        schemaVersion: 1,
-        scopeRef,
-        config,
-      }, null, 2), 'utf8');
-      return config;
-    },
-  };
-}
-
-function createTesterRuntimeConfigReader(dataRoot: string): () => Promise<{
-  readonly path: string;
-  readonly config: Readonly<Record<string, unknown>>;
-}> {
-  return async () => {
-    const filePath = path.join(dataRoot, 'runtime', 'config.json');
-    const parsed = JSON.parse(await readFile(filePath, 'utf8')) as unknown;
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-      throw new Error(`tester Runtime config payload is invalid: ${filePath}`);
-    }
-    return {
-      path: filePath,
-      config: parsed as Readonly<Record<string, unknown>>,
-    };
-  };
-}
-
-function testerAiConfigPath(dataRoot: string, scopeRef: string): string {
-  const encoded = Buffer.from(scopeRef, 'utf8').toString('base64url');
-  return path.join(dataRoot, 'ai-config', `${encoded}.json`);
-}
-
-function isNotFoundError(error: unknown): boolean {
-  return Boolean(error && typeof error === 'object' && (error as { code?: unknown }).code === 'ENOENT');
-}
-
-function resolveRuntimeTrustedCallerMode(): NimiElectronRuntimeTrustedCallerMode {
-  const mode = normalizeText(process.env.NIMI_TESTER_ELECTRON_RUNTIME_TRUSTED_CALLER_MODE) || 'local-developer-app';
-  if (
-    mode === 'local-developer-app'
-    || mode === 'local-first-party-app'
-    || mode === 'desktop-shell'
-  ) {
-    return mode;
-  }
-  throw new Error(`unsupported tester Electron Runtime trusted caller mode: ${mode}`);
-}
-
-function resolveTesterElectronLocalAgentIdentity(): {
+function resolveOptionalDesktopElectronLocalAgentIdentity(): {
   readonly ownerUserId: string;
   readonly runtimeSourceRef: string;
   readonly localAgentRef: string;
 } | undefined {
-  const localAgentRef = normalizeText(process.env.NIMI_TESTER_ELECTRON_LOCAL_AGENT_REF);
+  const localAgentRef = normalizeText(process.env.NIMI_DESKTOP_ELECTRON_LOCAL_AGENT_REF);
   if (!localAgentRef) {
     return undefined;
   }
   const ownerUserId = normalizeRequiredEnv(
-    process.env.NIMI_TESTER_ELECTRON_LOCAL_AGENT_OWNER_USER_ID,
-    'NIMI_TESTER_ELECTRON_LOCAL_AGENT_OWNER_USER_ID',
+    process.env.NIMI_DESKTOP_ELECTRON_LOCAL_AGENT_OWNER_USER_ID,
+    'NIMI_DESKTOP_ELECTRON_LOCAL_AGENT_OWNER_USER_ID',
   );
   const runtimeSourceRef = normalizeRequiredEnv(
-    process.env.NIMI_TESTER_ELECTRON_LOCAL_AGENT_RUNTIME_SOURCE_REF,
-    'NIMI_TESTER_ELECTRON_LOCAL_AGENT_RUNTIME_SOURCE_REF',
+    process.env.NIMI_DESKTOP_ELECTRON_LOCAL_AGENT_RUNTIME_SOURCE_REF,
+    'NIMI_DESKTOP_ELECTRON_LOCAL_AGENT_RUNTIME_SOURCE_REF',
   );
   if (!localAgentRef.startsWith('local-agent:')) {
-    throw new Error('NIMI_TESTER_ELECTRON_LOCAL_AGENT_REF must start with local-agent:');
+    throw new Error('NIMI_DESKTOP_ELECTRON_LOCAL_AGENT_REF must start with local-agent:');
   }
   assertOpaqueElectronLocalAgentRef({
     ownerUserId,
     runtimeSourceRef,
     localAgentRef,
-    command: 'NIMI_TESTER_ELECTRON_LOCAL_AGENT_REF',
+    command: 'NIMI_DESKTOP_ELECTRON_LOCAL_AGENT_REF',
   });
   return {
     ownerUserId,
@@ -330,22 +206,79 @@ function resolveTesterElectronLocalAgentIdentity(): {
 function normalizeRequiredEnv(value: unknown, field: string): string {
   const normalized = normalizeText(value);
   if (!normalized) {
-    throw new Error(`${field} is required when NIMI_TESTER_ELECTRON_LOCAL_AGENT_REF is set`);
+    throw new Error(`${field} is required when NIMI_DESKTOP_ELECTRON_LOCAL_AGENT_REF is set`);
   }
   return normalized;
 }
 
-function isTesterRendererUrl(url: string): boolean {
-  return isAllowedElectronRendererUrl(url, allowedRendererUrls());
+function createDesktopAiConfigStore(dataRoot: string): NimiElectronAIConfigStore {
+  return {
+    get: async ({ scopeRef }) => {
+      const filePath = desktopAiConfigPath(dataRoot, scopeRef);
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(await readFile(filePath, 'utf8')) as unknown;
+      } catch (error) {
+        if (isNotFoundError(error)) {
+          return undefined;
+        }
+        throw error;
+      }
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+        throw new Error(`desktop AI Config store record is invalid: ${filePath}`);
+      }
+      const record = parsed as Record<string, unknown>;
+      if (record.scopeRef !== scopeRef || !record.config || typeof record.config !== 'object' || Array.isArray(record.config)) {
+        throw new Error(`desktop AI Config store record does not match requested scope: ${filePath}`);
+      }
+      return record.config as Readonly<Record<string, unknown>>;
+    },
+    set: async ({ scopeRef, config }) => {
+      const filePath = desktopAiConfigPath(dataRoot, scopeRef);
+      await mkdir(path.dirname(filePath), { recursive: true });
+      await writeFile(filePath, JSON.stringify({
+        schemaVersion: 1,
+        scopeRef,
+        config,
+      }, null, 2), 'utf8');
+      return config;
+    },
+  };
 }
 
-async function resolveTesterLocalAssetUrl(filePath: string): Promise<string> {
+function createDesktopRuntimeConfigReader(dataRoot: string): () => Promise<{
+  readonly path: string;
+  readonly config: Readonly<Record<string, unknown>>;
+}> {
+  return async () => {
+    const filePath = path.join(dataRoot, 'runtime', 'config.json');
+    const parsed = JSON.parse(await readFile(filePath, 'utf8')) as unknown;
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      throw new Error(`desktop Runtime config payload is invalid: ${filePath}`);
+    }
+    return {
+      path: filePath,
+      config: parsed as Readonly<Record<string, unknown>>,
+    };
+  };
+}
+
+function desktopAiConfigPath(dataRoot: string, scopeRef: string): string {
+  const encoded = Buffer.from(scopeRef, 'utf8').toString('base64url');
+  return path.join(dataRoot, 'ai-config', `${encoded}.json`);
+}
+
+function isNotFoundError(error: unknown): boolean {
+  return Boolean(error && typeof error === 'object' && (error as { code?: unknown }).code === 'ENOENT');
+}
+
+async function resolveDesktopLocalAssetUrl(filePath: string): Promise<string> {
   await registerReadableFile(filePath);
   return encodeReadableFileUrl(filePath);
 }
 
-async function openTesterExternalUrl(url: string): Promise<void> {
-  const capturePath = normalizeText(process.env.NIMI_TESTER_ELECTRON_OPEN_EXTERNAL_CAPTURE_FILE);
+async function openDesktopExternalUrl(url: string): Promise<void> {
+  const capturePath = normalizeText(process.env.NIMI_DESKTOP_ELECTRON_OPEN_EXTERNAL_CAPTURE_FILE);
   if (capturePath) {
     const resolved = path.resolve(capturePath);
     await mkdir(path.dirname(resolved), { recursive: true });
@@ -353,6 +286,39 @@ async function openTesterExternalUrl(url: string): Promise<void> {
     return;
   }
   await shell.openExternal(url);
+}
+
+async function confirmDesktopDialog(payload: {
+  readonly title: string;
+  readonly description: string;
+  readonly level?: string;
+}): Promise<{ readonly confirmed: boolean }> {
+  const window = mainWindow && !mainWindow.isDestroyed() ? mainWindow : undefined;
+  const options: MessageBoxOptions = {
+    type: payload.level === 'error' ? 'error' : payload.level === 'warning' ? 'warning' : 'info',
+    buttons: ['Cancel', 'OK'],
+    cancelId: 0,
+    defaultId: 1,
+    title: payload.title,
+    message: payload.title,
+    detail: payload.description,
+  };
+  const result = window
+    ? await dialog.showMessageBox(window, options)
+    : await dialog.showMessageBox(options);
+  return { confirmed: result.response === 1 };
+}
+
+async function focusDesktopMainWindow(): Promise<void> {
+  const window = mainWindow && !mainWindow.isDestroyed() ? mainWindow : undefined;
+  if (!window) {
+    return;
+  }
+  if (window.isMinimized()) {
+    window.restore();
+  }
+  window.show();
+  window.focus();
 }
 
 async function registerReadableFile(filePath: string): Promise<void> {
@@ -370,7 +336,7 @@ function registerReadableFileProtocol(): void {
       const filePath = decodeReadableFileUrl(request.url);
       const canonical = await realpath(filePath);
       if (!readableFiles.has(canonical)) {
-        return new Response('file is not registered for tester preview', { status: 403 });
+        return new Response('file is not registered for desktop preview', { status: 403 });
       }
       return new Response(await readFile(canonical), {
         headers: {
@@ -393,7 +359,7 @@ function registerReadableFileProtocol(): void {
 function decodeReadableFileUrl(value: string): string {
   const url = new URL(value);
   if (url.protocol !== `${FILE_PROTOCOL}:`) {
-    throw new Error(`unsupported tester file protocol: ${url.protocol}`);
+    throw new Error(`unsupported desktop file protocol: ${url.protocol}`);
   }
   const encoded = url.pathname.startsWith('/') ? url.pathname.slice(1) : url.pathname;
   return decodeURIComponent(encoded);
@@ -408,20 +374,6 @@ function contentTypeForPath(filePath: string): string {
   if (ext === '.json') return 'application/json; charset=utf-8';
   if (ext === '.txt') return 'text/plain; charset=utf-8';
   return 'application/octet-stream';
-}
-
-function hashFromRoute(route: string): string {
-  const normalized = normalizeText(route);
-  if (!normalized || normalized === '/') {
-    return '';
-  }
-  if (normalized.startsWith('/#')) {
-    return normalized.slice(2);
-  }
-  if (normalized.startsWith('#')) {
-    return normalized.slice(1);
-  }
-  return normalized.startsWith('/') ? normalized : `/${normalized}`;
 }
 
 function normalizeText(value: unknown): string {

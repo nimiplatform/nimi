@@ -1,5 +1,5 @@
 import { NimiElectronShellHostError, type NimiElectronStandardShellHost } from './types.js';
-import { createElectronCapabilityUnavailableError } from './errors.js';
+import { createElectronCapabilityUnavailableError, errorMessage } from './errors.js';
 import { normalizeRequiredToken } from './paths.js';
 
 export async function getElectronRuntimeConfig(
@@ -10,7 +10,21 @@ export async function getElectronRuntimeConfig(
   if (!reader) {
     throw createElectronCapabilityUnavailableError(command);
   }
-  const result = await reader();
+  let result: Awaited<ReturnType<typeof reader>>;
+  try {
+    result = await reader();
+  } catch (error) {
+    if (isNotFoundError(error)) {
+      throw new NimiElectronShellHostError({
+        code: 'not-found',
+        message: `Electron Runtime config was not found: ${errorMessage(error)}`,
+        reasonCode: 'electron-runtime-config-not-found',
+        actionHint: 'create_or_select_runtime_config',
+        details: { command, cause: errorMessage(error) },
+      });
+    }
+    throw error;
+  }
   const filePath = normalizeRequiredToken(result.path, 'path');
   if (!result.config || typeof result.config !== 'object' || Array.isArray(result.config)) {
     throw new NimiElectronShellHostError({
@@ -22,4 +36,8 @@ export async function getElectronRuntimeConfig(
     });
   }
   return { path: filePath, config: result.config };
+}
+
+function isNotFoundError(error: unknown): boolean {
+  return Boolean(error && typeof error === 'object' && (error as { code?: unknown }).code === 'ENOENT');
 }

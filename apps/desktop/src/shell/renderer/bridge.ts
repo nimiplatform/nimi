@@ -14,6 +14,7 @@ import {
   getRuntimeBridgeConfig,
   getRuntimeBridgeStatus,
   getRuntimeDefaults,
+  hasShellHostInvoke,
   hasTauriInvoke,
   getSystemResourceSnapshot,
   logRendererEvent,
@@ -106,6 +107,7 @@ export type { AppsBridgeProjection } from '@renderer/bridge/runtime-bridge';
 
 export const desktopBridge = {
   hasTauriInvoke,
+  hasShellHostInvoke,
   getDesktopReleaseInfo,
   getDesktopUpdateState,
   desktopUpdateCheck,

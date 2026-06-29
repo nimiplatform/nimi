@@ -5,7 +5,7 @@ import { ReasonCode } from '@nimiplatform/sdk/runtime/generated';
 
 const OWNER_USER_ID = 'account-runtime';
 const RUNTIME_SOURCE_REF = 'agent-e2e-alpha';
-const LOCAL_AGENT_REF = `local-agent:${OWNER_USER_ID}:${RUNTIME_SOURCE_REF}`;
+const LOCAL_AGENT_REF = 'local-agent:avatar-context-alpha';
 
 describe('resolveAvatarConversationContext', () => {
   beforeEach(() => {
