@@ -122,6 +122,19 @@ test('validates strict layer input and rejects raw image fields', async () => {
   assert.ok(invalid.codes.includes('NIMI2D_LAYER_INPUT_RAW_IMAGE_FORBIDDEN'));
 });
 
+test('layer input rejects nested unknown fields', async () => {
+  const dir = await fixtureDir();
+  const manifest = baseLayerInput();
+  manifest.layers[0].asset.generator_note = 'not admitted';
+  const file = await writeYaml(dir, 'layer-input-nested-unknown.yaml', manifest);
+
+  const result = await validateLayerInput(file);
+
+  assert.equal(result.status, 'reject');
+  assert.ok(result.issues.some((item) => item.path === '$.layers[0].asset.generator_note'));
+  assert.ok(result.codes.includes('NIMI2D_LAYER_INPUT_MANIFEST_INVALID'));
+});
+
 test('solves a real tier-1 package from admitted character skin input', async () => {
   const dir = await fixtureDir();
   const inputFile = await writeYaml(dir, 'layer-input.yaml', baseLayerInput());
@@ -247,6 +260,21 @@ test('package manifest validates asset bytes, metadata, and texture bounds', asy
   const maskSizeMismatchResult = await validatePackageManifest(maskSizeMismatchFile);
   assert.equal(maskSizeMismatchResult.status, 'reject');
   assert.ok(maskSizeMismatchResult.codes.includes('NIMI2D_PACKAGE_RENDER_LAYER_MASK_INVALID'));
+});
+
+test('package manifest rejects nested unknown fields', async () => {
+  const dir = await fixtureDir();
+  const inputFile = await writeYaml(dir, 'layer-input.yaml', baseLayerInput());
+  const solved = await solvePackageFromLayerInput(inputFile);
+  const manifest = structuredClone(solved.manifest);
+  manifest.base_body.anchors[0].confidence = 1;
+  const packageFile = await writeYaml(dir, 'package-nested-unknown.yaml', manifest);
+
+  const result = await validatePackageManifest(packageFile);
+
+  assert.equal(result.status, 'reject');
+  assert.ok(result.issues.some((item) => item.path === '$.base_body.anchors[0].confidence'));
+  assert.ok(result.codes.includes('NIMI2D_PACKAGE_MANIFEST_INVALID'));
 });
 
 test('rejects tier-1 true viseme overclaim in package manifest', async () => {

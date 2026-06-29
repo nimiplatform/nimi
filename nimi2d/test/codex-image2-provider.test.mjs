@@ -281,7 +281,7 @@ test('Codex Image2 provider dry-run exposes codex exec image attachment for atla
   assert.match(request.inputs.source_image_sha256, /^[0-9a-f]{64}$/);
   const runScript = await readFile(planned.scriptPath, 'utf8');
   assert.equal(runScript.includes('--ask-for-approval'), false);
-  assert.equal(runScript.includes('--dangerously-bypass-approvals-and-sandbox'), true);
+  assert.equal(runScript.includes('--dangerously-bypass-approvals-and-sandbox'), false);
   const dryRun = await runCli([
     'image2-provider-run',
     '--request', planned.requestPath,
@@ -291,10 +291,35 @@ test('Codex Image2 provider dry-run exposes codex exec image attachment for atla
   assert.equal(dryRun.mode, 'dry_run');
   assert.equal(dryRun.args.includes('exec'), true);
   assert.equal(dryRun.args.includes('--output-schema'), true);
+  assert.equal(dryRun.args.includes('-o'), true);
   assert.equal(dryRun.args.includes('--ask-for-approval'), false);
-  assert.equal(dryRun.args.includes('--dangerously-bypass-approvals-and-sandbox'), true);
+  assert.equal(dryRun.args.includes('--dangerously-bypass-approvals-and-sandbox'), false);
   assert.equal(dryRun.args.includes('-i'), true);
   assert.equal(dryRun.args[dryRun.args.indexOf('-i') + 1], path.join(outDir, 'inputs', 'source.png'));
+  assert.equal(dryRun.args.at(-1), '-');
+});
+
+test('Codex Image2 provider rejects request execution cwd outside the provider directory', async () => {
+  const tempDir = await mkdtemp(path.join(tmpdir(), 'nimi2d-image2-provider-bad-cwd-'));
+  const outDir = path.join(tempDir, 'plan');
+  const planned = await runCli([
+    'image2-provider-plan',
+    '--workflow', 'prompt-to-image',
+    '--description', 'front-facing fully clothed courier avatar with crisp hair and readable mouth',
+    '--out-dir', outDir,
+  ]);
+  const request = await readYaml(planned.requestPath);
+  request.execution.cwd = tempDir;
+  await writeFile(planned.requestPath, YAML.stringify(request), 'utf8');
+
+  const rejected = await runCliExpectReject([
+    'image2-provider-run',
+    '--request', planned.requestPath,
+    '--dry-run',
+  ]);
+  assert.equal(rejected.status, 'error');
+  assert.match(rejected.message, /NIMI2D_CODEX_IMAGE2_REQUEST_INVALID/);
+  assert.match(rejected.message, /\$\.execution\.cwd/);
 });
 
 test('Codex Image2 provider run rejects non-codex_cli adapters', async () => {
@@ -398,14 +423,14 @@ test('Codex Image2 provider retries Codex CLI attempts in isolated output direct
   assert.equal(run.executionAttempts.length, 2);
   assert.equal(run.executionAttempts[0].code, 'NIMI2D_CODEX_IMAGE2_CLI_TIMEOUT');
   assert.equal(run.executionAttempts[1].status, 'ok');
-  assert.match(run.executionAttempts[0].responsePath, /\.provider-attempts\/[^/]+\/attempt-001\/codex-response\.json$/);
-  assert.match(run.executionAttempts[1].responsePath, /\.provider-attempts\/[^/]+\/attempt-002\/codex-response\.json$/);
+  assert.match(run.executionAttempts[0].responsePath.replaceAll('\\', '/'), /\.provider-attempts\/[^/]+\/attempt-001\/codex-response\.json$/);
+  assert.match(run.executionAttempts[1].responsePath.replaceAll('\\', '/'), /\.provider-attempts\/[^/]+\/attempt-002\/codex-response\.json$/);
   assert.notEqual(run.executionAttempts[0].expectedImagePath, run.executionAttempts[1].expectedImagePath);
   assert.equal(run.artifactVerdict, 'admit');
-  assert.match(run.requestPath, /\.provider-attempts\/[^/]+\/attempt-002\/provider-request\.yaml$/);
+  assert.match(run.requestPath.replaceAll('\\', '/'), /\.provider-attempts\/[^/]+\/attempt-002\/provider-request\.yaml$/);
   assert.equal(path.dirname(run.requestPath), path.dirname(run.responsePath));
   const artifact = await readYaml(run.artifactManifestPath);
-  assert.match(artifact.producer.request.path, /\.provider-attempts\/[^/]+\/attempt-002\/provider-request\.yaml$/);
+  assert.match(artifact.producer.request.path.replaceAll('\\', '/'), /\.provider-attempts\/[^/]+\/attempt-002\/provider-request\.yaml$/);
 });
 
 test('Codex Image2 provider rejects request manifests without request_id', async () => {

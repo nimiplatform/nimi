@@ -170,11 +170,13 @@ function failingProductReviewReport() {
   };
 }
 
-test('release-candidate audit reports T1-T4 chain pass with product blockers visible', async () => {
-  const tempDir = await mkdtemp(path.join(tmpdir(), 'nimi2d-release-audit-'));
-  const distributionPath = await writeYaml(path.join(tempDir, 'distribution.yaml'), {
+function passingDistributionReport(overrides = {}) {
+  return {
     manifest_kind: 'nimi.nimi2d.codex-image2.distribution-report',
     gate_mode: 'source_to_layer_pipeline',
+    filters: {
+      source_surface: 'codex_cli',
+    },
     require_layer_input_full_chain: true,
     summary: {
       run_count: 5,
@@ -184,7 +186,13 @@ test('release-candidate audit reports T1-T4 chain pass with product blockers vis
       passing_run_count: 5,
     },
     decision: { verdict: 'pass' },
-  });
+    ...overrides,
+  };
+}
+
+test('release-candidate audit reports T1-T4 chain pass with product blockers visible', async () => {
+  const tempDir = await mkdtemp(path.join(tmpdir(), 'nimi2d-release-audit-'));
+  const distributionPath = await writeYaml(path.join(tempDir, 'distribution.yaml'), passingDistributionReport());
   const corpusPath = await writeYaml(path.join(tempDir, 'certified-corpus-report.yaml'), {
     manifest_kind: 'nimi.nimi2d.certified-corpus-report',
     summary: {
@@ -243,16 +251,7 @@ test('release-candidate audit reports T1-T4 chain pass with product blockers vis
 
 test('release-candidate audit accepts measured correction and product review evidence', async () => {
   const tempDir = await mkdtemp(path.join(tmpdir(), 'nimi2d-release-audit-ready-'));
-  const distributionPath = await writeYaml(path.join(tempDir, 'distribution.yaml'), {
-    summary: {
-      run_count: 5,
-      unique_source_sample_count: 5,
-      unique_underlying_source_sample_count: 5,
-      layer_input_full_chain_pass_count: 5,
-      passing_run_count: 5,
-    },
-    decision: { verdict: 'pass' },
-  });
+  const distributionPath = await writeYaml(path.join(tempDir, 'distribution.yaml'), passingDistributionReport());
   const corpusPath = await writeYaml(path.join(tempDir, 'certified-corpus-report.yaml'), {
     summary: {
       certified_good_tier1_count: 5,
@@ -291,16 +290,7 @@ test('release-candidate audit accepts measured correction and product review evi
 
 test('release-candidate audit rejects a technically passing candidate with recorded product review failures', async () => {
   const tempDir = await mkdtemp(path.join(tmpdir(), 'nimi2d-release-audit-product-review-fail-'));
-  const distributionPath = await writeYaml(path.join(tempDir, 'distribution.yaml'), {
-    summary: {
-      run_count: 5,
-      unique_source_sample_count: 5,
-      unique_underlying_source_sample_count: 5,
-      layer_input_full_chain_pass_count: 5,
-      passing_run_count: 5,
-    },
-    decision: { verdict: 'pass' },
-  });
+  const distributionPath = await writeYaml(path.join(tempDir, 'distribution.yaml'), passingDistributionReport());
   const corpusPath = await writeYaml(path.join(tempDir, 'certified-corpus-report.yaml'), {
     summary: {
       certified_good_tier1_count: 5,
@@ -338,16 +328,7 @@ test('release-candidate audit rejects a technically passing candidate with recor
 
 test('release-candidate audit rejects invalid correction and product review evidence', async () => {
   const tempDir = await mkdtemp(path.join(tmpdir(), 'nimi2d-release-audit-invalid-product-'));
-  const distributionPath = await writeYaml(path.join(tempDir, 'distribution.yaml'), {
-    summary: {
-      run_count: 5,
-      unique_source_sample_count: 5,
-      unique_underlying_source_sample_count: 5,
-      layer_input_full_chain_pass_count: 5,
-      passing_run_count: 5,
-    },
-    decision: { verdict: 'pass' },
-  });
+  const distributionPath = await writeYaml(path.join(tempDir, 'distribution.yaml'), passingDistributionReport());
   const corpusPath = await writeYaml(path.join(tempDir, 'certified-corpus-report.yaml'), {
     summary: {
       certified_good_tier1_count: 5,
@@ -393,16 +374,7 @@ test('release-candidate audit rejects invalid correction and product review evid
 
 test('release-candidate audit fails closed when runtime proof is not passing', async () => {
   const tempDir = await mkdtemp(path.join(tmpdir(), 'nimi2d-release-audit-fail-'));
-  const distributionPath = await writeYaml(path.join(tempDir, 'distribution.yaml'), {
-    summary: {
-      run_count: 5,
-      unique_source_sample_count: 5,
-      unique_underlying_source_sample_count: 5,
-      layer_input_full_chain_pass_count: 5,
-      passing_run_count: 5,
-    },
-    decision: { verdict: 'pass' },
-  });
+  const distributionPath = await writeYaml(path.join(tempDir, 'distribution.yaml'), passingDistributionReport());
   const corpusPath = await writeYaml(path.join(tempDir, 'certified-corpus-report.yaml'), {
     summary: {
       certified_good_tier1_count: 5,
@@ -434,4 +406,72 @@ test('release-candidate audit fails closed when runtime proof is not passing', a
   assert.equal(result.decision.verdict, 'fail');
   assert.equal(result.report.tier_chain.t4_reference_response.status, 'fail');
   assert.equal(result.codes.includes('NIMI2D_RELEASE_T4_REFERENCE_RESPONSE_FAILED'), true);
+});
+
+test('release-candidate audit fails closed without live codex_cli distribution filter', async () => {
+  const tempDir = await mkdtemp(path.join(tmpdir(), 'nimi2d-release-audit-source-filter-'));
+  const distribution = passingDistributionReport();
+  delete distribution.filters;
+  const distributionPath = await writeYaml(path.join(tempDir, 'distribution.yaml'), distribution);
+  const corpusPath = await writeYaml(path.join(tempDir, 'certified-corpus-report.yaml'), {
+    summary: {
+      certified_good_tier1_count: 5,
+      invalid_contract_count: 5,
+      unique_certified_content_hash_count: 5,
+      distribution_tags_seen: [
+        'anchor_stress',
+        'expression_stress',
+        'realm_persona_representative',
+        'wardrobe_stress',
+      ],
+    },
+    decision: { verdict: 'pass' },
+  });
+  const generationPath = await writeYaml(path.join(tempDir, 'generation-bench.yaml'), passingGenerationBench());
+  const runtimePath = await writeJson(path.join(tempDir, 'runtime-proof-matrix.json'), passingRuntimeProof());
+
+  const result = await auditReleaseCandidate({
+    distributionReportPath: distributionPath,
+    corpusCertificationReportPath: corpusPath,
+    generationBenchResultPath: generationPath,
+    runtimeProofMatrixPath: runtimePath,
+  });
+
+  assert.equal(result.status, 'reject');
+  assert.equal(result.report.tier_chain.t1_provider_distribution.status, 'fail');
+  assert.equal(result.codes.includes('NIMI2D_RELEASE_T1_PROVIDER_DISTRIBUTION_FAILED'), true);
+});
+
+test('release-candidate audit fails closed when full layer-input chain is not required', async () => {
+  const tempDir = await mkdtemp(path.join(tmpdir(), 'nimi2d-release-audit-full-chain-'));
+  const distributionPath = await writeYaml(path.join(tempDir, 'distribution.yaml'), passingDistributionReport({
+    require_layer_input_full_chain: false,
+  }));
+  const corpusPath = await writeYaml(path.join(tempDir, 'certified-corpus-report.yaml'), {
+    summary: {
+      certified_good_tier1_count: 5,
+      invalid_contract_count: 5,
+      unique_certified_content_hash_count: 5,
+      distribution_tags_seen: [
+        'anchor_stress',
+        'expression_stress',
+        'realm_persona_representative',
+        'wardrobe_stress',
+      ],
+    },
+    decision: { verdict: 'pass' },
+  });
+  const generationPath = await writeYaml(path.join(tempDir, 'generation-bench.yaml'), passingGenerationBench());
+  const runtimePath = await writeJson(path.join(tempDir, 'runtime-proof-matrix.json'), passingRuntimeProof());
+
+  const result = await auditReleaseCandidate({
+    distributionReportPath: distributionPath,
+    corpusCertificationReportPath: corpusPath,
+    generationBenchResultPath: generationPath,
+    runtimeProofMatrixPath: runtimePath,
+  });
+
+  assert.equal(result.status, 'reject');
+  assert.equal(result.report.tier_chain.t1_provider_distribution.status, 'fail');
+  assert.equal(result.codes.includes('NIMI2D_RELEASE_T1_PROVIDER_DISTRIBUTION_FAILED'), true);
 });

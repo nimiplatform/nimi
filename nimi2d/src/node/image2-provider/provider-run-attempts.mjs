@@ -109,9 +109,10 @@ async function runProcess(command, args, stdin, { timeoutMs = null } = {}) {
     let settled = false;
     let timedOut = false;
     let killTimer = null;
-    const child = spawn(command, args, {
+    const spawnSpec = spawnSpecForCommand(command, args);
+    const child = spawn(spawnSpec.command, spawnSpec.args, {
       stdio: ['pipe', 'pipe', 'pipe'],
-      shell: process.platform === 'win32',
+      shell: spawnSpec.shell,
     });
     const timeout = timeoutMs
       ? setTimeout(() => {
@@ -142,6 +143,21 @@ async function runProcess(command, args, stdin, { timeoutMs = null } = {}) {
     child.stdin.write(stdin);
     child.stdin.end();
   });
+}
+
+function spawnSpecForCommand(command, args) {
+  if (process.platform === 'win32' && /\.(?:mjs|js)$/i.test(command)) {
+    return {
+      command: process.execPath,
+      args: [command, ...args],
+      shell: false,
+    };
+  }
+  return {
+    command,
+    args,
+    shell: process.platform === 'win32',
+  };
 }
 
 function providerRunReject({ code, issuePath, message, executionAttempts = [] }) {

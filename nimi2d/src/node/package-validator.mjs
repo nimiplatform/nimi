@@ -23,8 +23,81 @@ import {
 } from './common.mjs';
 import { validateCapability } from './package-capability.mjs';
 
+const packageCanvasFields = new Set(['width_px', 'height_px']);
+const packageSourceFields = new Set([
+  'layer_input_ref',
+  'layer_generation_ref',
+  'occlusion_completion_ref',
+  'identity_preservation_ref',
+  'content_admission_ref',
+  'anchor_solving_evidence_ref',
+  'slot_solving_evidence_ref',
+  'wardrobe_binding_evidence_ref',
+  'validator_evidence_ref',
+]);
+const packageIntegrityFields = new Set(['package_digest_sha256', 'asset_count']);
+const packageGovernanceFields = new Set([
+  'base_body_renderable',
+  'default_outfit_required',
+  'adult_capability',
+  'content_admission_ref',
+  'underage_body_content',
+]);
+const packageCapabilityFields = new Set([
+  'requested_tier',
+  'proven_tier',
+  'channel_matrix_ref',
+  'channel_evidence',
+]);
+const packageBaseBodyFields = new Set([
+  'base_body_id',
+  'topology_id',
+  'topology_version',
+  'slot_taxonomy_ref',
+  'skeleton_id',
+  'anchor_set_id',
+  'slot_set_id',
+  'anchors',
+  'slots',
+  'morphology_profile_id',
+  'deformation_topology_id',
+  'action_topology_ref',
+  'owns_main_rig',
+  'renderable',
+  'detail_neutral',
+  'layer_refs',
+]);
+const packageBaseBodyAnchorFields = new Set(['kind', 'point_px']);
+const packageBaseBodySlotFields = new Set(['kind', 'bounds_px']);
+const packageWardrobeFields = new Set(['default_outfit_ref', 'assets']);
+const packageWardrobeAssetFields = new Set([
+  'wardrobe_asset_id',
+  'wardrobe_kind',
+  'compatible_topology_id',
+  'compatible_topology_version',
+  'owns_main_rig',
+  'slot_bindings',
+  'coverage',
+  'draw_order_group',
+  'layer_refs',
+  'local_attachment_rig_ref',
+]);
+const packageRenderLayerFields = new Set([
+  'layer_ref',
+  'asset_id',
+  'layer_kind',
+  'draw_order_index',
+  'placement_px',
+  'texture_bounds_px',
+  'visible_bounds_px',
+  'mask',
+]);
+const pointFields = new Set(['x', 'y']);
+const rectFields = new Set(['x', 'y', 'width', 'height']);
+
 function validateGovernance(value, issues) {
   const gov = value.governance;
+  rejectUnknownFields(gov, packageGovernanceFields, 'NIMI2D_PACKAGE_MANIFEST_INVALID', '$.governance', issues);
   requireFields(gov, ['base_body_renderable', 'default_outfit_required', 'adult_capability', 'content_admission_ref', 'underage_body_content'], 'NIMI2D_PACKAGE_GOVERNANCE_INVALID', '$.governance', issues);
   if (gov?.base_body_renderable !== false) issues.push(issue('NIMI2D_PACKAGE_BASE_BODY_RENDERABLE_FORBIDDEN', '$.governance.base_body_renderable', 'Base body renderable must be false.'));
   if (value.package_kind === 'character_package' && gov?.default_outfit_required !== true) {
@@ -37,6 +110,7 @@ function validateGovernance(value, issues) {
 function validateBaseBody(value, issues) {
   if (value.package_kind === 'character_package') {
     const body = value.base_body;
+    rejectUnknownFields(body, packageBaseBodyFields, 'NIMI2D_PACKAGE_MANIFEST_INVALID', '$.base_body', issues);
     requireFields(body, ['base_body_id', 'topology_id', 'topology_version', 'slot_taxonomy_ref', 'skeleton_id', 'anchor_set_id', 'slot_set_id', 'anchors', 'slots', 'morphology_profile_id', 'deformation_topology_id', 'action_topology_ref', 'owns_main_rig', 'renderable', 'detail_neutral', 'layer_refs'], 'NIMI2D_PACKAGE_BASE_BODY_INVALID', '$.base_body', issues);
     if (body?.owns_main_rig !== true) issues.push(issue('NIMI2D_PACKAGE_BASE_BODY_INVALID', '$.base_body.owns_main_rig', 'Base body must own main rig.'));
     if (body?.renderable !== false) issues.push(issue('NIMI2D_PACKAGE_BASE_BODY_RENDERABLE_FORBIDDEN', '$.base_body.renderable', 'Base body must be non-renderable.'));
@@ -44,6 +118,8 @@ function validateBaseBody(value, issues) {
     const anchors = Array.isArray(body?.anchors) ? body.anchors : [];
     const anchorKindSet = new Set();
     for (const [index, anchor] of anchors.entries()) {
+      rejectUnknownFields(anchor, packageBaseBodyAnchorFields, 'NIMI2D_PACKAGE_MANIFEST_INVALID', `$.base_body.anchors[${index}]`, issues);
+      rejectUnknownFields(anchor?.point_px, pointFields, 'NIMI2D_PACKAGE_MANIFEST_INVALID', `$.base_body.anchors[${index}].point_px`, issues);
       if (!anchorKinds.has(anchor?.kind) || !isObject(anchor.point_px)) {
         issues.push(issue('NIMI2D_PACKAGE_BASE_BODY_INVALID', `$.base_body.anchors[${index}]`, 'Resolved anchor must use admitted anchor kind and point.'));
       } else {
@@ -60,6 +136,8 @@ function validateBaseBody(value, issues) {
       issues.push(issue('NIMI2D_PACKAGE_BASE_BODY_INVALID', '$.base_body.slots', 'Resolved slots are required.'));
     }
     for (const [index, slot] of slots.entries()) {
+      rejectUnknownFields(slot, packageBaseBodySlotFields, 'NIMI2D_PACKAGE_MANIFEST_INVALID', `$.base_body.slots[${index}]`, issues);
+      rejectUnknownFields(slot?.bounds_px, rectFields, 'NIMI2D_PACKAGE_MANIFEST_INVALID', `$.base_body.slots[${index}].bounds_px`, issues);
       if (!slotKinds.has(slot?.kind) || !isObject(slot.bounds_px)) {
         issues.push(issue('NIMI2D_PACKAGE_BASE_BODY_INVALID', `$.base_body.slots[${index}]`, 'Resolved slot must use admitted slot kind and bounds.'));
       }
@@ -71,6 +149,7 @@ function validateBaseBody(value, issues) {
 
 function validateWardrobe(value, issues) {
   const wardrobe = value.wardrobe;
+  rejectUnknownFields(wardrobe, packageWardrobeFields, 'NIMI2D_PACKAGE_MANIFEST_INVALID', '$.wardrobe', issues);
   if (!isObject(wardrobe)) {
     issues.push(issue('NIMI2D_PACKAGE_WARDROBE_INVALID', '$.wardrobe', 'Wardrobe object is required.'));
     return;
@@ -85,6 +164,7 @@ function validateWardrobe(value, issues) {
   }
   for (const [index, asset] of assets.entries()) {
     const base = `$.wardrobe.assets[${index}]`;
+    rejectUnknownFields(asset, packageWardrobeAssetFields, 'NIMI2D_PACKAGE_MANIFEST_INVALID', base, issues);
     requireFields(asset, ['wardrobe_asset_id', 'wardrobe_kind', 'compatible_topology_id', 'compatible_topology_version', 'owns_main_rig', 'slot_bindings', 'coverage', 'draw_order_group', 'layer_refs'], 'NIMI2D_PACKAGE_WARDROBE_INVALID', base, issues);
     if (!wardrobeKinds.has(asset.wardrobe_kind)) issues.push(issue('NIMI2D_PACKAGE_WARDROBE_INVALID', `${base}.wardrobe_kind`, 'Unknown wardrobe kind.'));
     if (asset.owns_main_rig !== false) issues.push(issue('NIMI2D_PACKAGE_WARDROBE_OWNS_MAIN_RIG_FORBIDDEN', `${base}.owns_main_rig`, 'Wardrobe must not own main rig.'));
@@ -114,6 +194,7 @@ function validateRenderLayerMask(mask, base, layer, assets, issues) {
   }
   requireFields(mask, ['mask_kind', 'asset_id', 'channel', 'texture_bounds_px'], 'NIMI2D_PACKAGE_RENDER_LAYER_MASK_INVALID', maskPath, issues);
   rejectUnknownFields(mask, packageRenderLayerMaskFields, 'NIMI2D_PACKAGE_RENDER_LAYER_MASK_INVALID', maskPath, issues);
+  rejectUnknownFields(mask.texture_bounds_px, rectFields, 'NIMI2D_PACKAGE_MANIFEST_INVALID', `${maskPath}.texture_bounds_px`, issues);
   if (mask.mask_kind !== 'alpha_mask_asset') {
     issues.push(issue('NIMI2D_PACKAGE_RENDER_LAYER_MASK_INVALID', `${maskPath}.mask_kind`, 'Only alpha_mask_asset is admitted.'));
   }
@@ -147,6 +228,10 @@ function validateRenderLayers(value, issues) {
   const seenOrders = new Set();
   for (const [index, layer] of layers.entries()) {
     const base = `$.render_layers[${index}]`;
+    rejectUnknownFields(layer, packageRenderLayerFields, 'NIMI2D_PACKAGE_MANIFEST_INVALID', base, issues);
+    rejectUnknownFields(layer?.placement_px, pointFields, 'NIMI2D_PACKAGE_MANIFEST_INVALID', `${base}.placement_px`, issues);
+    rejectUnknownFields(layer?.texture_bounds_px, rectFields, 'NIMI2D_PACKAGE_MANIFEST_INVALID', `${base}.texture_bounds_px`, issues);
+    rejectUnknownFields(layer?.visible_bounds_px, rectFields, 'NIMI2D_PACKAGE_MANIFEST_INVALID', `${base}.visible_bounds_px`, issues);
     requireFields(layer, ['layer_ref', 'asset_id', 'layer_kind', 'draw_order_index', 'placement_px', 'texture_bounds_px', 'visible_bounds_px'], 'NIMI2D_PACKAGE_RENDER_LAYER_INVALID', base, issues);
     if (typeof layer.layer_ref !== 'string' || layer.layer_ref.length === 0) {
       issues.push(issue('NIMI2D_PACKAGE_RENDER_LAYER_INVALID', `${base}.layer_ref`, 'Render layer ref is required.'));
@@ -205,6 +290,13 @@ async function validatePackageObject(value, options = {}) {
   rejectUnknownFields(value, packageTopLevelFields, 'NIMI2D_PACKAGE_MANIFEST_INVALID', '$', issues);
   findForbiddenFields(value, forbiddenPackageFields, 'NIMI2D_PACKAGE_FORBIDDEN_RUNTIME_FIELD', '$', issues);
   requireFields(value, ['manifest_kind', 'schema_version', 'package_id', 'package_version', 'package_kind', 'canvas', 'source', 'integrity', 'governance', 'capability', 'base_body', 'wardrobe', 'render_layers', 'assets'], 'NIMI2D_PACKAGE_MANIFEST_INVALID', '$', issues);
+  rejectUnknownFields(value.canvas, packageCanvasFields, 'NIMI2D_PACKAGE_MANIFEST_INVALID', '$.canvas', issues);
+  requireFields(value.canvas, [...packageCanvasFields], 'NIMI2D_PACKAGE_MANIFEST_INVALID', '$.canvas', issues);
+  rejectUnknownFields(value.source, packageSourceFields, 'NIMI2D_PACKAGE_MANIFEST_INVALID', '$.source', issues);
+  requireFields(value.source, ['layer_input_ref', 'layer_generation_ref', 'identity_preservation_ref', 'content_admission_ref'], 'NIMI2D_PACKAGE_MANIFEST_INVALID', '$.source', issues);
+  rejectUnknownFields(value.integrity, packageIntegrityFields, 'NIMI2D_PACKAGE_MANIFEST_INVALID', '$.integrity', issues);
+  requireFields(value.integrity, [...packageIntegrityFields], 'NIMI2D_PACKAGE_MANIFEST_INVALID', '$.integrity', issues);
+  rejectUnknownFields(value.capability, packageCapabilityFields, 'NIMI2D_PACKAGE_MANIFEST_INVALID', '$.capability', issues);
   if (value.manifest_kind !== PACKAGE_MANIFEST_KIND) issues.push(issue('NIMI2D_PACKAGE_MANIFEST_INVALID', '$.manifest_kind', 'Invalid package manifest kind.'));
   if (value.schema_version !== 1) issues.push(issue('NIMI2D_PACKAGE_SCHEMA_VERSION_UNSUPPORTED', '$.schema_version', 'Unsupported schema version.'));
   if (!packageKinds.has(value.package_kind)) issues.push(issue('NIMI2D_PACKAGE_MANIFEST_INVALID', '$.package_kind', 'Unknown package kind.'));

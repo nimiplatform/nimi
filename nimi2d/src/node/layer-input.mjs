@@ -21,6 +21,42 @@ import {
   validatePngAsset,
 } from './common.mjs';
 
+const layerCanvasFields = new Set(['width_px', 'height_px', 'background']);
+const layerCoordinateSpaceFields = new Set(['origin', 'unit', 'axis', 'overflow_policy']);
+const layerSourceEvidenceFields = new Set([
+  'layer_generation_ref',
+  'occlusion_completion_ref',
+  'identity_preservation_ref',
+  'content_admission_ref',
+]);
+const layerItemFields = new Set([
+  'layer_id',
+  'asset',
+  'placement_px',
+  'texture_bounds_px',
+  'visible_bounds_px',
+  'semantic_labels',
+  'side_hint',
+  'part_hints',
+  'occlusion_fill',
+  'occlusion_evidence_ref',
+]);
+const layerAssetFields = new Set([
+  'ref',
+  'sha256',
+  'format',
+  'width_px',
+  'height_px',
+  'byte_size',
+  'color_space',
+  'alpha_mode',
+  'premultiplied_alpha',
+]);
+const pointFields = new Set(['x', 'y']);
+const rectFields = new Set(['x', 'y', 'width', 'height']);
+const anchorHintFields = new Set(['anchor_id', 'kind', 'point_px', 'source', 'confidence', 'layer_refs']);
+const slotHintFields = new Set(['slot_hint_id', 'kind', 'bounds_px', 'source', 'confidence', 'layer_refs']);
+
 export async function validateLayerInput(manifestPath) {
   const absoluteManifest = path.resolve(manifestPath);
   const manifestDir = path.dirname(absoluteManifest);
@@ -34,6 +70,9 @@ export async function validateLayerInput(manifestPath) {
   rejectUnknownFields(value, layerTopLevelFields, 'NIMI2D_LAYER_INPUT_MANIFEST_INVALID', '$', issues);
   findForbiddenFields(value, forbiddenLayerFields, 'NIMI2D_LAYER_INPUT_RAW_IMAGE_FORBIDDEN', '$', issues);
   requireFields(value, [...layerTopLevelFields], 'NIMI2D_LAYER_INPUT_MANIFEST_INVALID', '$', issues);
+  rejectUnknownFields(value.canvas, layerCanvasFields, 'NIMI2D_LAYER_INPUT_MANIFEST_INVALID', '$.canvas', issues);
+  rejectUnknownFields(value.coordinate_space, layerCoordinateSpaceFields, 'NIMI2D_LAYER_INPUT_MANIFEST_INVALID', '$.coordinate_space', issues);
+  rejectUnknownFields(value.source_evidence, layerSourceEvidenceFields, 'NIMI2D_LAYER_INPUT_MANIFEST_INVALID', '$.source_evidence', issues);
 
   if (value.manifest_kind !== LAYER_MANIFEST_KIND) {
     issues.push(issue('NIMI2D_LAYER_INPUT_MANIFEST_INVALID', '$.manifest_kind', 'Invalid layer input manifest kind.'));
@@ -46,9 +85,14 @@ export async function validateLayerInput(manifestPath) {
   }
 
   const canvas = value.canvas;
+  requireFields(canvas, [...layerCanvasFields], 'NIMI2D_LAYER_INPUT_CANVAS_INVALID', '$.canvas', issues);
   if (!isObject(canvas) || !Number.isInteger(canvas.width_px) || !Number.isInteger(canvas.height_px) || canvas.width_px <= 0 || canvas.height_px <= 0) {
     issues.push(issue('NIMI2D_LAYER_INPUT_CANVAS_INVALID', '$.canvas', 'Canvas dimensions must be positive integers.'));
   }
+  if (canvas?.background !== 'transparent') {
+    issues.push(issue('NIMI2D_LAYER_INPUT_CANVAS_INVALID', '$.canvas.background', 'Canvas background must be transparent.'));
+  }
+  requireFields(value.coordinate_space, [...layerCoordinateSpaceFields], 'NIMI2D_LAYER_INPUT_CANVAS_INVALID', '$.coordinate_space', issues);
   if (!isObject(value.coordinate_space) || value.coordinate_space.origin !== 'top_left' || value.coordinate_space.unit !== 'px' || value.coordinate_space.axis !== 'x_right_y_down' || value.coordinate_space.overflow_policy !== 'reject') {
     issues.push(issue('NIMI2D_LAYER_INPUT_CANVAS_INVALID', '$.coordinate_space', 'Unsupported coordinate space.'));
   }
@@ -64,6 +108,11 @@ export async function validateLayerInput(manifestPath) {
   let anyFilledOcclusion = false;
   for (const [index, layer] of layers.entries()) {
     const layerPath = `$.layers[${index}]`;
+    rejectUnknownFields(layer, layerItemFields, 'NIMI2D_LAYER_INPUT_MANIFEST_INVALID', layerPath, issues);
+    rejectUnknownFields(layer?.asset, layerAssetFields, 'NIMI2D_LAYER_INPUT_MANIFEST_INVALID', `${layerPath}.asset`, issues);
+    rejectUnknownFields(layer?.placement_px, pointFields, 'NIMI2D_LAYER_INPUT_MANIFEST_INVALID', `${layerPath}.placement_px`, issues);
+    rejectUnknownFields(layer?.texture_bounds_px, rectFields, 'NIMI2D_LAYER_INPUT_MANIFEST_INVALID', `${layerPath}.texture_bounds_px`, issues);
+    rejectUnknownFields(layer?.visible_bounds_px, rectFields, 'NIMI2D_LAYER_INPUT_MANIFEST_INVALID', `${layerPath}.visible_bounds_px`, issues);
     requireFields(layer, ['layer_id', 'asset', 'placement_px', 'texture_bounds_px', 'visible_bounds_px', 'semantic_labels', 'occlusion_fill'], 'NIMI2D_LAYER_INPUT_MANIFEST_INVALID', layerPath, issues);
     if (typeof layer.layer_id !== 'string' || layerIds.has(layer.layer_id)) {
       issues.push(issue('NIMI2D_LAYER_INPUT_LAYER_ID_DUPLICATE', `${layerPath}.layer_id`, 'Layer id is missing or duplicated.'));
@@ -141,6 +190,8 @@ function validateAnchors(value, canvas, issues) {
   const kinds = new Set();
   for (const [index, anchor] of anchors.entries()) {
     const base = `$.global_anchor_hints[${index}]`;
+    rejectUnknownFields(anchor, anchorHintFields, 'NIMI2D_LAYER_INPUT_MANIFEST_INVALID', base, issues);
+    rejectUnknownFields(anchor?.point_px, pointFields, 'NIMI2D_LAYER_INPUT_MANIFEST_INVALID', `${base}.point_px`, issues);
     if (!anchorKinds.has(anchor.kind)) {
       issues.push(issue('NIMI2D_LAYER_INPUT_ANCHOR_HINT_MISSING', `${base}.kind`, 'Unknown anchor kind.'));
     } else {
@@ -166,6 +217,8 @@ function validateSlots(value, canvas, issues) {
   const kinds = new Set();
   for (const [index, slot] of slots.entries()) {
     const base = `$.global_slot_hints[${index}]`;
+    rejectUnknownFields(slot, slotHintFields, 'NIMI2D_LAYER_INPUT_MANIFEST_INVALID', base, issues);
+    rejectUnknownFields(slot?.bounds_px, rectFields, 'NIMI2D_LAYER_INPUT_MANIFEST_INVALID', `${base}.bounds_px`, issues);
     if (!slotKinds.has(slot.kind)) {
       issues.push(issue('NIMI2D_LAYER_INPUT_SLOT_HINT_INVALID', `${base}.kind`, 'Unknown slot kind.'));
     } else {

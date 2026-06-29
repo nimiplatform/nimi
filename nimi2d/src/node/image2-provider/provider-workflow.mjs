@@ -5,6 +5,7 @@ import YAML from 'yaml';
 import { sha256 } from '../common-utils.mjs';
 import { layerInputKinds, slotKinds, wardrobeKinds } from '../common-constants.mjs';
 import { registerCodexImage2Artifact } from './artifact.mjs';
+import { resolveRequestExecutionCwd } from './provider-paths.mjs';
 import { buildRunScript } from './provider-run-script.mjs';
 import {
   attemptPlanPaths,
@@ -201,7 +202,7 @@ function buildRequest(input) {
       execution: 'codex exec',
     },
     execution: {
-      cwd: process.cwd(),
+      cwd: '.',
     },
     workflow: {
       kind: input.workflow,
@@ -442,12 +443,11 @@ function sameResolvedPath(left, right) {
 }
 
 function codexExecArgs({ request, requestPath, model }) {
-  const baseDir = path.dirname(path.resolve(requestPath));
+  const executionCwd = resolveRequestExecutionCwd(requestPath, request);
   const args = [
     'exec',
     '--cd',
-    request.execution?.cwd ?? process.cwd(),
-    '--dangerously-bypass-approvals-and-sandbox',
+    executionCwd,
     '--output-schema',
     resolveRequestArtifactRef(requestPath, request.artifacts.output_schema_ref, '$.artifacts.output_schema_ref'),
     '-o',

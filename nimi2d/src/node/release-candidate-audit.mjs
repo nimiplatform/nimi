@@ -46,7 +46,11 @@ function summarizeDistribution(report, options, issues) {
     ?? report?.min_unique_underlying_sources
     ?? 5;
   const minFullChain = options.minFullChainPasses ?? minSamples;
+  const liveCodexCliFilter = report?.filters?.source_surface === 'codex_cli';
+  const fullChainRequired = report?.require_layer_input_full_chain === true;
   const pass = verdictOf(report) === 'pass'
+    && liveCodexCliFilter
+    && fullChainRequired
     && (summary.unique_source_sample_count ?? 0) >= minSamples
     && (summary.unique_underlying_source_sample_count ?? 0) >= minUnderlyingSources
     && (summary.layer_input_full_chain_pass_count ?? 0) >= minFullChain
@@ -55,7 +59,7 @@ function summarizeDistribution(report, options, issues) {
     issues.push(issue(
       'NIMI2D_RELEASE_T1_PROVIDER_DISTRIBUTION_FAILED',
       '$.distribution_report',
-      'Provider distribution did not pass required source, underlying-source, full-chain, and passing-run gates.',
+      'Provider distribution did not pass required live codex_cli source filter, underlying-source, full-chain, and passing-run gates.',
     ));
   }
   return {
@@ -63,6 +67,7 @@ function summarizeDistribution(report, options, issues) {
     verdict: verdictOf(report),
     gate_mode: report?.gate_mode ?? 'not_recorded',
     source_surface: report?.filters?.source_surface ?? null,
+    require_layer_input_full_chain: report?.require_layer_input_full_chain ?? null,
     min_unique_samples: minSamples,
     min_unique_underlying_sources: minUnderlyingSources,
     run_count: summary.run_count ?? 0,
