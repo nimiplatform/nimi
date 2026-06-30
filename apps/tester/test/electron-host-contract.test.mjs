@@ -10,6 +10,10 @@ function read(relativePath) {
   return readFileSync(path.join(root, relativePath), 'utf8');
 }
 
+function readRepo(relativePath) {
+  return readFileSync(path.join(repoRoot, relativePath), 'utf8');
+}
+
 function readJson(relativePath) {
   return JSON.parse(read(relativePath));
 }
@@ -109,23 +113,28 @@ test('Electron host owns sensitive Runtime auth metadata', () => {
   assert.equal(existsSync(path.join(root, 'src-electron/runtime-auth.ts')), true);
   const mainSource = read('src-electron/main.ts');
   const hostAuthSource = read('src-electron/runtime-auth.ts');
+  const kitHostAuthSource = readRepo('kit/shell/electron/src/main/runtime-account-auth.ts');
   const rendererAuthSource = read('src/shell/auth/runtime-platform.ts');
 
   assert.match(mainSource, /trustedRuntimeMetadataProvider:\s*createTesterElectronTrustedRuntimeMetadataProvider/);
-  assert.match(hostAuthSource, /createNimiRuntimeAppSessionMetadataProvider/);
+  assert.match(hostAuthSource, /createNimiElectronRuntimeAccountTrustedMetadataProvider/);
   assert.match(hostAuthSource, /appSession:\s*\{/);
-  assert.match(hostAuthSource, /protectedAccessToken:\s*\{/);
+  assert.match(hostAuthSource, /protectedAccess:\s*\{/);
+  assert.match(kitHostAuthSource, /createNimiRuntimeAppSessionMetadataProvider/);
+  assert.match(kitHostAuthSource, /protectedAccessToken:\s*\{/);
   assert.doesNotMatch(hostAuthSource, /\bwindow\b|\bdocument\b/);
   assert.match(rendererAuthSource, /resolveTesterRuntimeHostKind\(\) === 'electron'/);
   assert.match(rendererAuthSource, /authMetadata:\s*createRuntimeAppSessionMetadataProvider/);
 });
 
 test('Tester Runtime protected access cache keys in-flight requests by subject', () => {
-  for (const sourcePath of ['src-electron/runtime-auth.ts', 'src/shell/auth/runtime-platform.ts']) {
-    const source = read(sourcePath);
+  for (const source of [
+    readRepo('kit/shell/electron/src/main/runtime-account-auth.ts'),
+    read('src/shell/auth/runtime-platform.ts'),
+  ]) {
 
     assert.match(source, /protectedAccessInflightKey/);
-    assert.match(source, /const cacheKey = .*subjectUserId/);
+    assert.match(source, /const cacheKey =[\s\S]{0,220}subjectUserId/);
     assert.match(source, /protectedAccessInflightKey !== cacheKey/);
     assert.match(source, /if \(protectedAccessInflightKey === cacheKey\)/);
   }

@@ -71,7 +71,7 @@ test('tester auth and runtime bootstrap consume Kit shell bridge primitives', ()
   assert.match(runtimePlatform, /'x-nimi-access-token-secret'/);
   assert.match(runtimePlatform, /\.\.\.appSessionMetadata,\s*\.\.\.protectedAccessMetadata/s);
   assert.doesNotMatch(runtimeAccountAuth, /getAccessToken|createRuntimeAccountAccessTokenCallOptions|refreshAccountSession|createRuntimeAccountRefreshCallOptions/);
-  assert.match(runtimeAccountAuth, /createTauriOAuthBridge/);
+  assert.match(runtimeAccountAuth, /createStandardShellOAuthBridge/);
   assert.match(runtimeAccountAuth, /createRuntimeAccountBrowserBroker/);
   assert.match(runtimePlatform, /createNimiDeveloperRegisteredRuntimeAccountCaller/);
   assert.match(runtimePlatform, /from '@nimiplatform\/sdk\/runtime'/);

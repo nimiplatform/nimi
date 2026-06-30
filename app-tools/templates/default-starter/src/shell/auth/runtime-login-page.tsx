@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { DesktopShellAuthPage } from '@nimiplatform/kit/auth';
 import { InlineAlert } from '@nimiplatform/kit/ui';
-import { createNimiAppDesktopBrowserAuthAdapter, createNimiAppRuntimeAccountBroker, nimiAppTauriOAuthBridge } from './runtime-account-auth.js';
+import { createNimiAppDesktopBrowserAuthAdapter, createNimiAppRuntimeAccountBroker, nimiAppShellOAuthBridge } from './runtime-account-auth.js';
 import type { RuntimePlatformReadyProjection } from './runtime-platform.js';
 
 type RuntimeLoginPageProps = {
@@ -28,7 +28,7 @@ export function RuntimeLoginPage({ client, errorMessage, layout = 'screen', onRe
           setStatusBanner: (banner) => { setStatusMessage(banner?.message || null); },
         }}
         desktopBrowserAuth={{
-          bridge: nimiAppTauriOAuthBridge,
+          bridge: nimiAppShellOAuthBridge,
           runtimeAccountBroker,
           hintVisibility: 'always',
         }}

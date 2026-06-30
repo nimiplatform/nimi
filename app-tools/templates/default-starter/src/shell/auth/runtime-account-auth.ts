@@ -8,7 +8,7 @@ import {
   type RuntimeAccountBrowserBrokerClient,
   type ShellAuthDesktopBrowserAuth,
 } from '@nimiplatform/kit/auth';
-import { createTauriOAuthBridge } from '@nimiplatform/kit/shell/renderer/bridge';
+import { createStandardShellOAuthBridge } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { NimiRuntimeAccountCaller } from '@nimiplatform/sdk/runtime';
 import {
   getRuntimeAccountCaller,
@@ -17,7 +17,7 @@ import {
 
 export { getRuntimeAccountCaller };
 
-export const nimiAppTauriOAuthBridge = createTauriOAuthBridge();
+export const nimiAppShellOAuthBridge = createStandardShellOAuthBridge();
 
 type RuntimeAccountClient = RuntimeAccountBrowserBrokerClient & Pick<NimiClient, 'runtime'> & {
   runtime: RuntimeAccountBrowserBrokerClient['runtime'] & NimiClient['runtime'] & {
@@ -121,7 +121,7 @@ export function createNimiAppDesktopBrowserAuthAdapter(
     clearPersistedSession: async () => {
       await logoutRuntimeAccount(client);
     },
-    oauthBridge: nimiAppTauriOAuthBridge,
+    oauthBridge: nimiAppShellOAuthBridge,
     syncAfterLogin: async () => {},
     onLoginComplete: async () => {
       await onLoginComplete();
