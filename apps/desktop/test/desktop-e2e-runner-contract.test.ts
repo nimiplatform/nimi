@@ -207,7 +207,11 @@ test('desktop E2E runner excludes macOS-owned avatar visual smokes from WDIO jou
   assert.match(registrySource, /\['chat\.live2d-avatar-product-smoke', \{ bucket: 'journeys', runner: MACOS_SMOKE_RUNNER/);
   assert.match(registrySource, /\['chat\.vrm-lifecycle-smoke', \{ bucket: 'journeys', runner: MACOS_SMOKE_RUNNER/);
   assert.match(registrySource, /runner: MACOS_SMOKE_RUNNER,\s*profile: 'chat\.live2d-render-smoke-sample\.json'/);
-  assert.match(runnerSource, /selectScenarios\(\{ \.\.\.options, runner: WDIO_RUNNER \}\)/);
+  assert.match(runnerSource, /function isRunE2eRunner\(entry\)/);
+  assert.match(runnerSource, /runner === WDIO_RUNNER \|\| runner === ELECTRON_HOST_RUNNER/);
+  assert.match(runnerSource, /selectScenarios\(options\)\.filter/);
+  assert.match(runnerSource, /if \(entry && isRunE2eRunner\(entry\)\)/);
+  assert.match(runnerSource, /scenario \$\{scenarioId\} is owned by \$\{scenarioRunner\(entry\)\}; use the owning runner/);
   assert.match(runnerSource, /if \(!isWdioScenarioEntry\(scenario\)\)/);
   assert.match(runnerSource, /scenario \$\{scenarioId\} is owned by \$\{scenarioRunner\(scenario\)\}; use scripts\/run-macos-smoke\.mjs/);
   assert.match(macosSmokeRunnerSource, /selectScenarios\(\{ \.\.\.options, runner: MACOS_SMOKE_RUNNER \}\)/);

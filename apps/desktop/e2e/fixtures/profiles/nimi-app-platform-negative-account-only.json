@@ -1,0 +1,32 @@
+{
+  "extends": "_authenticated-base.json",
+  "scenarioId": "nimi-app-platform.negative.account-only",
+  "tauriFixture": {
+    "appPlatform": {
+      "apps": [
+        {
+          "appId": "community.nimi.fixture.account-only",
+          "releaseDescriptorRef": "community.nimi.fixture.account-only.0.1.0",
+          "version": "0.1.0",
+          "sha256": "account-only-fixture-sha256",
+          "artifactBytes": 1,
+          "runtimeEntryRef": "dist/index.html",
+          "storagePolicyRef": "nimi-data-app-roots",
+          "descriptorClass": "external-immutable-artifact",
+          "admissionTrack": "account-only-fixture",
+          "sourceKind": "admission-sandbox-https-artifact",
+          "ordinaryVisibility": "not-admitted-visible",
+          "shellCapabilitySetRef": "installed-nimi-app-standard-shell-v1",
+          "callerMode": "desktop-launched-nimi-app",
+          "launchNonce": "negative-account-only-launch-nonce",
+          "productReadinessClaimAllowed": false,
+          "accountState": "verified",
+          "installState": "not-installed",
+          "packageState": "install_required",
+          "verificationState": "not-installed",
+          "detail": "Account-only fixture must not be treated as catalog admission"
+        }
+      ]
+    }
+  }
+}

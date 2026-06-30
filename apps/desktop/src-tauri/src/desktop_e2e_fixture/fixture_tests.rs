@@ -18,6 +18,7 @@ fn manifest_for_scenario(scenario_id: &str) -> DesktopE2EFixtureManifest {
             runtime_bridge_status: None,
             desktop_release_info: None,
             product_control_record: None,
+            app_platform: None,
             confirm_dialog: None,
             macos_smoke: Some(DesktopE2EMacosSmokeOverride {
                 enabled: true,
@@ -111,6 +112,256 @@ fn runtime_open_session_fixture_issues_app_session_metadata() {
         runtime_bridge_generated::ReasonCode::ActionExecuted as i32
     );
     assert!(response.expires_at.is_some());
+}
+
+#[test]
+fn runtime_app_platform_fixture_installs_and_opens_sandbox_app() {
+    let temp = temp_fixture_dir("app-platform");
+    let data_root = temp.join("nimi-data");
+    let manifest_path = temp.join("scenario-manifest.json");
+    write_fixture_manifest(
+        &manifest_path,
+        json!({
+            "tauriFixture": {
+                "productControlRecord": {
+                    "schemaVersion": 1,
+                    "installId": "e2e-ready-install",
+                    "productVersion": "0.1.0",
+                    "state": "ready_for_use",
+                    "dataRoot": {
+                        "path": data_root.display().to_string(),
+                        "status": "ready",
+                        "selectedAt": "2026-06-30T00:00:00.000Z",
+                        "verifiedAt": "2026-06-30T00:00:00.000Z",
+                        "selectedAtUnixMs": 1782748800000_u64,
+                        "verifiedAtUnixMs": 1782748800000_u64
+                    },
+                    "firstRun": {
+                        "installLevel": "minimal",
+                        "aiProfileAlias": "local-speech-ready",
+                        "completed": true,
+                        "completedAt": "2026-06-30T00:00:00.000Z",
+                        "initializationPlanId": "e2e-first-run-plan",
+                        "baselineProfileRef": "aiprofile/nimi.first-run.local-factory.minimal@1",
+                        "baselineCommitId": "e2e-fixture",
+                        "accountDefaultProfileRef": "account-default:e2e",
+                        "builtInAiConfigRefs": ["ai-config:nimi-chat:e2e"],
+                        "runtimeBaselineRef": "runtime-baseline:e2e",
+                        "executionEvidenceRef": "e2e-ready-entry"
+                    },
+                    "pointers": {
+                        "runtimeConfigPath": data_root.join("runtime").join("config.json").display().to_string()
+                    },
+                    "repair": {
+                        "required": false,
+                        "reason": null
+                    }
+                },
+                "appPlatform": {
+                    "apps": [{
+                        "appId": "community.nimi.fixture.platform-proof",
+                        "releaseDescriptorRef": "community.nimi.fixture.platform-proof.0.1.0-sandbox",
+                        "version": "0.1.0-sandbox",
+                        "sha256": "fixture-sha256",
+                        "artifactBytes": 1234,
+                        "runtimeEntryRef": "dist/index.html",
+                        "storagePolicyRef": "nimi-data-app-roots",
+                        "descriptorClass": "external-immutable-artifact",
+                        "admissionTrack": "admission-sandbox-ci",
+                        "sourceKind": "admission-sandbox-https-artifact",
+                        "ordinaryVisibility": "developer-only",
+                        "shellCapabilitySetRef": "installed-nimi-app-standard-shell-v1",
+                        "callerMode": "desktop-launched-nimi-app",
+                        "launchNonce": "fixture-launch-nonce",
+                        "productReadinessClaimAllowed": false,
+                        "accountState": "verified",
+                        "installState": "not-installed",
+                        "packageState": "install_required",
+                        "verificationState": "not-installed"
+                    }]
+                }
+            },
+            "realmFixture": {
+                "currentUser": {
+                    "id": "user-e2e-primary",
+                    "displayName": "E2E User"
+                }
+            }
+        }),
+    );
+
+    with_env(&[("NIMI_E2E_FIXTURE_PATH", manifest_path.to_str())], || {
+        let inventory_before: runtime_bridge_generated::GetAccountAppInventoryResponse =
+            decode_fixture_response(
+                runtime_bridge_unary_override(&fixture_payload(
+                    nimi_shell_tauri::capabilities::runtime::RUNTIME_APP_GET_ACCOUNT_APP_INVENTORY_METHOD_ID,
+                    runtime_bridge_generated::GetAccountAppInventoryRequest {},
+                ))
+                .expect("fixture override")
+                .expect("account inventory override"),
+            );
+        let row_before = &inventory_before.record.as_ref().expect("record").apps[0];
+        assert_eq!(row_before.app_id, "community.nimi.fixture.platform-proof");
+        assert_eq!(
+            row_before.install_state,
+            runtime_bridge_generated::AccountAppInstallState::NotInstalled as i32
+        );
+
+        let readiness_before: runtime_bridge_generated::GetAppPackageReadinessResponse =
+            decode_fixture_response(
+                runtime_bridge_unary_override(&fixture_payload(
+                    nimi_shell_tauri::capabilities::runtime::RUNTIME_APP_GET_APP_PACKAGE_READINESS_METHOD_ID,
+                    runtime_bridge_generated::GetAppPackageReadinessRequest {
+                        app_id: "community.nimi.fixture.platform-proof".to_string(),
+                    },
+                ))
+                .expect("fixture override")
+                .expect("package readiness override"),
+            );
+        assert_eq!(
+            readiness_before
+                .projection
+                .as_ref()
+                .expect("projection")
+                .state,
+            runtime_bridge_generated::AppPackageReadinessState::InstallRequired as i32
+        );
+
+        let install: runtime_bridge_generated::InstallAppResponse = decode_fixture_response(
+            runtime_bridge_unary_override(&fixture_payload(
+                "/nimi.runtime.v1.RuntimeAppService/InstallApp",
+                runtime_bridge_generated::InstallAppRequest {
+                    app_id: "community.nimi.fixture.platform-proof".to_string(),
+                    confirmed: true,
+                },
+            ))
+            .expect("fixture override")
+            .expect("install override"),
+        );
+        assert_eq!(
+            install.job.as_ref().expect("install job").state,
+            runtime_bridge_generated::AppInstallJobState::Installed as i32
+        );
+
+        let inventory_after: runtime_bridge_generated::GetAccountAppInventoryResponse =
+            decode_fixture_response(
+                runtime_bridge_unary_override(&fixture_payload(
+                    nimi_shell_tauri::capabilities::runtime::RUNTIME_APP_GET_ACCOUNT_APP_INVENTORY_METHOD_ID,
+                    runtime_bridge_generated::GetAccountAppInventoryRequest {},
+                ))
+                .expect("fixture override")
+                .expect("account inventory override"),
+            );
+        assert_eq!(
+            inventory_after.record.as_ref().expect("record").apps[0].install_state,
+            runtime_bridge_generated::AccountAppInstallState::Installed as i32
+        );
+
+        let open: runtime_bridge_generated::OpenAppResponse = decode_fixture_response(
+            runtime_bridge_unary_override(&fixture_payload(
+                "/nimi.runtime.v1.RuntimeAppService/OpenApp",
+                runtime_bridge_generated::OpenAppRequest {
+                    app_id: "community.nimi.fixture.platform-proof".to_string(),
+                    scope: Some(runtime_bridge_generated::AppOpenScopeRef {
+                        kind: "app".to_string(),
+                        owner_id: "community.nimi.fixture.platform-proof".to_string(),
+                        surface_id: String::new(),
+                    }),
+                },
+            ))
+            .expect("fixture override")
+            .expect("open override"),
+        );
+        let projection = open.projection.expect("open projection");
+        assert!(projection.launched);
+        assert_eq!(projection.ordinary_visibility, "developer-only");
+        assert!(!projection.product_readiness_claim_allowed);
+        assert_eq!(
+            projection.shell_capability_set_ref,
+            "installed-nimi-app-standard-shell-v1"
+        );
+    });
+    let _ = fs::remove_dir_all(temp);
+}
+
+#[test]
+fn runtime_app_platform_fixture_blocks_open_permission_pending() {
+    let temp = temp_fixture_dir("app-platform-permission");
+    let manifest_path = temp.join("scenario-manifest.json");
+    let backend_log_path = temp.join("backend.log");
+    write_fixture_manifest(
+        &manifest_path,
+        json!({
+            "tauriFixture": {
+                "appPlatform": {
+                    "apps": [{
+                        "appId": "community.nimi.fixture.platform-proof",
+                        "releaseDescriptorRef": "community.nimi.fixture.platform-proof.0.1.0-sandbox",
+                        "version": "0.1.0-sandbox",
+                        "sha256": "fixture-sha256",
+                        "runtimeEntryRef": "dist/index.html",
+                        "storagePolicyRef": "nimi-data-app-roots",
+                        "descriptorClass": "external-immutable-artifact",
+                        "admissionTrack": "admission-sandbox-ci",
+                        "sourceKind": "admission-sandbox-https-artifact",
+                        "ordinaryVisibility": "developer-only",
+                        "shellCapabilitySetRef": "installed-nimi-app-standard-shell-v1",
+                        "callerMode": "desktop-launched-nimi-app",
+                        "launchNonce": "fixture-launch-nonce",
+                        "productReadinessClaimAllowed": false,
+                        "accountState": "verified",
+                        "installState": "installed",
+                        "packageState": "ready",
+                        "verificationState": "digest-verified",
+                        "openBlockReason": "permission_pending"
+                    }]
+                }
+            }
+        }),
+    );
+
+    with_env(
+        &[
+            ("NIMI_E2E_FIXTURE_PATH", manifest_path.to_str()),
+            ("NIMI_E2E_BACKEND_LOG_PATH", backend_log_path.to_str()),
+        ],
+        || {
+            let open: runtime_bridge_generated::OpenAppResponse = decode_fixture_response(
+                runtime_bridge_unary_override(&fixture_payload(
+                    "/nimi.runtime.v1.RuntimeAppService/OpenApp",
+                    runtime_bridge_generated::OpenAppRequest {
+                        app_id: "community.nimi.fixture.platform-proof".to_string(),
+                        scope: Some(runtime_bridge_generated::AppOpenScopeRef {
+                            kind: "app".to_string(),
+                            owner_id: "community.nimi.fixture.platform-proof".to_string(),
+                            surface_id: String::new(),
+                        }),
+                    },
+                ))
+                .expect("fixture override")
+                .expect("open override"),
+            );
+            let projection = open.projection.expect("open projection");
+            assert!(!projection.launched);
+            assert_eq!(
+                projection.reached_step,
+                runtime_bridge_generated::AppOpenFlowStep::VerifyPermissions as i32
+            );
+            assert_eq!(
+                projection.reason_code,
+                runtime_bridge_generated::ReasonCode::AppOpenPermissionNotGranted as i32
+            );
+        },
+    );
+    let log = fs::read_to_string(&backend_log_path).expect("read backend log");
+    assert!(log.contains(
+        "runtime_app_fixture openAppProjection app_id=community.nimi.fixture.platform-proof"
+    ));
+    assert!(log.contains("state=APP_OPEN_STATE_BLOCKED"));
+    assert!(log.contains("reached_step=APP_OPEN_FLOW_STEP_VERIFY_PERMISSIONS"));
+    assert!(log.contains("launched=false"));
+    assert!(log.contains("reason_code=APP_OPEN_PERMISSION_NOT_GRANTED"));
+    let _ = fs::remove_dir_all(temp);
 }
 
 fn fixture_payload<Request>(method_id: &str, request: Request) -> RuntimeBridgeUnaryPayload

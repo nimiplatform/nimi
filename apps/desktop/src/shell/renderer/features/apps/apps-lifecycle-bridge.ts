@@ -47,7 +47,13 @@ import {
   ReasonCode,
   type NimiError,
 } from '@nimiplatform/sdk/types';
+import { invokeShell } from '@nimiplatform/kit/shell/renderer/bridge';
 import { getDesktopRuntime } from '@renderer/infra/sdk/desktop-nimi-client-session';
+import {
+  DESKTOP_INSTALLED_APP_LAUNCH_COMMAND,
+  asDesktopInstalledAppLaunchNimiError,
+  type DesktopInstalledAppLaunchResult,
+} from '../../../shared/installed-app-launch-contract';
 
 // Re-export the SDK typed projections so the Apps surface (T4-W4) consumes a
 // single bridge entrypoint without reaching into `@nimiplatform/sdk/runtime`
@@ -210,6 +216,10 @@ export interface DesktopAppLifecycleBridge {
   open(input: NimiRuntimeAppOpenInput): Promise<NimiRuntimeAppOpenProjection>;
 }
 
+export type DesktopInstalledAppLaunchInvoker = (
+  projection: NimiRuntimeAppOpenProjection,
+) => Promise<DesktopInstalledAppLaunchResult>;
+
 function requireJobId(jobId: string): string {
   const normalized = typeof jobId === 'string' ? jobId.trim() : '';
   if (!normalized) {
@@ -233,8 +243,10 @@ function requireJobId(jobId: string): string {
  */
 export function createDesktopAppLifecycleBridge(deps?: {
   getModule?: () => NimiRuntimeAppLifecycleClient;
+  launchInstalledApp?: DesktopInstalledAppLaunchInvoker;
 }): DesktopAppLifecycleBridge {
   const getModule = deps?.getModule ?? appLifecycleModule;
+  const launchInstalledApp = deps?.launchInstalledApp ?? invokeDesktopInstalledAppLaunch;
   return {
     async install(input) {
       try {
@@ -323,13 +335,31 @@ export function createDesktopAppLifecycleBridge(deps?: {
       }
     },
     async open(input) {
+      let projection: NimiRuntimeAppOpenProjection;
       try {
-        return await getModule().open(input, APP_LIFECYCLE_CALL_OPTIONS);
+        projection = await getModule().open(input, APP_LIFECYCLE_CALL_OPTIONS);
       } catch (error) {
         throw asAppLifecycleNimiError(error);
       }
+      if (projection.state === 'launched' && projection.launched) {
+        try {
+          await launchInstalledApp(projection);
+        } catch (error) {
+          throw asDesktopInstalledAppLaunchNimiError(error);
+        }
+      }
+      return projection;
     },
   };
+}
+
+async function invokeDesktopInstalledAppLaunch(
+  projection: NimiRuntimeAppOpenProjection,
+): Promise<DesktopInstalledAppLaunchResult> {
+  return await invokeShell<DesktopInstalledAppLaunchResult>(
+    DESKTOP_INSTALLED_APP_LAUNCH_COMMAND,
+    { projection },
+  );
 }
 
 function requireAppId(appId: string): string {

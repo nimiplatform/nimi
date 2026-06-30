@@ -20,6 +20,7 @@ import type {
   NimiAppClient,
   NimiAppInventoryEntry,
   NimiAppOpenReadiness,
+  NimiAppOrdinaryVisibility,
   NimiAppStorageRoots,
   NimiAppStatus,
 } from '@nimiplatform/sdk/app';
@@ -54,6 +55,22 @@ export interface DesktopAppsEntry {
   readonly job?: NimiRuntimeAppInstallJob;
   readonly cardState: DesktopAppsCardState;
   readonly detail?: string;
+  readonly catalogDiscoveryProof: DesktopAppsCatalogDiscoveryProof;
+}
+
+export interface DesktopAppsCatalogDiscoveryProof {
+  readonly admittedCatalogDiscovery: boolean;
+  readonly ordinaryVisibility: NimiAppOrdinaryVisibility | 'absent';
+  readonly required: {
+    readonly catalog: 'present';
+    readonly ordinaryVisibility: 'ordinary-visible';
+    readonly local: 'absent';
+  };
+  readonly sources: {
+    readonly catalog: NimiAppInventoryEntry['sources']['catalog']['status'];
+    readonly account: NimiAppInventoryEntry['sources']['account']['status'];
+    readonly local: NimiAppInventoryEntry['sources']['local']['status'];
+  };
 }
 
 export type DesktopAppsPanelProjection =
@@ -133,11 +150,34 @@ export async function projectAppsPanel(
       status: statusWithRuntimeStorage,
       ...(job ? { job } : {}),
       cardState,
+      catalogDiscoveryProof: catalogDiscoveryProof(app),
       ...(statusWithRuntimeStorage.detail ? { detail: statusWithRuntimeStorage.detail } : {}),
     });
   }
 
   return { status: 'loaded', entries };
+}
+
+function catalogDiscoveryProof(app: NimiAppInventoryEntry): DesktopAppsCatalogDiscoveryProof {
+  const sources = {
+    catalog: app.sources.catalog.status,
+    account: app.sources.account.status,
+    local: app.sources.local.status,
+  };
+  const ordinaryVisibility = app.sources.catalog.value?.ordinaryVisibility ?? 'absent';
+  return {
+    admittedCatalogDiscovery:
+      sources.catalog === 'present'
+      && ordinaryVisibility === 'ordinary-visible'
+      && sources.local === 'absent',
+    ordinaryVisibility,
+    required: {
+      catalog: 'present',
+      ordinaryVisibility: 'ordinary-visible',
+      local: 'absent',
+    },
+    sources,
+  };
 }
 
 async function resolveRuntimeStatusStorageRoots(

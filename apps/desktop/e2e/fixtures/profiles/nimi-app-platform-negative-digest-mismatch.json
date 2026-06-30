@@ -1,0 +1,32 @@
+{
+  "extends": "_authenticated-base.json",
+  "scenarioId": "nimi-app-platform.negative.digest-mismatch",
+  "tauriFixture": {
+    "appPlatform": {
+      "apps": [
+        {
+          "appId": "community.nimi.fixture.platform-proof",
+          "releaseDescriptorRef": "community.nimi.fixture.platform-proof.0.1.0-sandbox",
+          "version": "0.1.0-sandbox",
+          "sha256": "2e8527a892b227a0d0ea5038f6f375b13c6ba2649ba4c06d96ae539ec9105863",
+          "artifactBytes": 1503232,
+          "runtimeEntryRef": "dist/index.html",
+          "storagePolicyRef": "nimi-data-app-roots",
+          "descriptorClass": "external-immutable-artifact",
+          "admissionTrack": "admission-sandbox-ci",
+          "sourceKind": "admission-sandbox-https-artifact",
+          "ordinaryVisibility": "developer-only",
+          "shellCapabilitySetRef": "installed-nimi-app-standard-shell-v1",
+          "callerMode": "desktop-launched-nimi-app",
+          "launchNonce": "negative-digest-launch-nonce",
+          "productReadinessClaimAllowed": false,
+          "accountState": "verified",
+          "installState": "installed",
+          "packageState": "blocked",
+          "verificationState": "digest-mismatch",
+          "detail": "Digest mismatch fixture must fail closed before launch"
+        }
+      ]
+    }
+  }
+}

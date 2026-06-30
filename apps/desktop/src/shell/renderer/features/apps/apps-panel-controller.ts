@@ -16,10 +16,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { NimiRuntimeAppOpenScopeRef } from '@nimiplatform/sdk/runtime';
 import {
+  asAppLifecycleNimiError,
   desktopAppLifecycleBridge,
   formatAppLifecycleErrorDetail,
   type DesktopAppLifecycleBridge,
   type NimiRuntimeAppInstallJob,
+  type NimiRuntimeAppOpenProjection,
 } from './apps-lifecycle-bridge.js';
 import type { AppCardActionId } from './apps-card-actions.js';
 import { createDesktopAppsLiveBridge } from './apps-live-bridge.js';
@@ -79,6 +81,22 @@ interface AppsPanelControllerDeps {
 interface DesktopAppsActionDeps extends DesktopAppsOpenAIConfigGateDeps {
   readonly pickLocalAppRootDirectory?: () => Promise<string | null>;
   readonly requestSignIn?: () => void;
+  readonly recordOpenFlowEvent?: (event: DesktopAppsOpenFlowEvent) => void;
+}
+
+export type DesktopAppsOpenFlowStep =
+  | 'ai-config'
+  | 'runtime-launch-resolution'
+  | 'desktop-launch-host';
+
+export type DesktopAppsOpenFlowStatus = 'started' | 'succeeded' | 'failed';
+
+export interface DesktopAppsOpenFlowEvent {
+  readonly appId: string;
+  readonly step: DesktopAppsOpenFlowStep;
+  readonly status: DesktopAppsOpenFlowStatus;
+  readonly source?: string;
+  readonly reasonCode?: string;
 }
 
 /**
@@ -335,8 +353,8 @@ export async function routeCardAction(
       if (!deps) {
         throw new Error('routeCardAction: open requires Desktop Apps AIConfig gate dependencies');
       }
-      await ensureAppOpenAIConfig(appId, deps);
-      await lifecycle.open({ appId, scope: appLaunchScopeRef(appId) });
+      await ensureAppOpenAIConfigForOpen(appId, deps);
+      await openAppThroughRuntimeAndDesktopHost(lifecycle, appId, deps);
       return;
     case 'update':
       await lifecycle.update({ appId, confirmed: true });
@@ -381,4 +399,102 @@ export async function routeCardAction(
       throw new Error(`routeCardAction: unhandled action ${String(exhaustive)}`);
     }
   }
+}
+
+async function ensureAppOpenAIConfigForOpen(
+  appId: string,
+  deps: DesktopAppsActionDeps,
+): Promise<void> {
+  recordOpenFlowEvent(deps, { appId, step: 'ai-config', status: 'started' });
+  try {
+    await ensureAppOpenAIConfig(appId, deps);
+    recordOpenFlowEvent(deps, { appId, step: 'ai-config', status: 'succeeded' });
+  } catch (error) {
+    recordOpenFlowFailure(deps, appId, 'ai-config', error);
+    throw error;
+  }
+}
+
+async function openAppThroughRuntimeAndDesktopHost(
+  lifecycle: DesktopAppLifecycleBridge,
+  appId: string,
+  deps: DesktopAppsActionDeps,
+): Promise<NimiRuntimeAppOpenProjection> {
+  recordOpenFlowEvent(deps, {
+    appId,
+    step: 'runtime-launch-resolution',
+    status: 'started',
+  });
+  try {
+    const projection = await lifecycle.open({ appId, scope: appLaunchScopeRef(appId) });
+    recordOpenFlowEvent(deps, {
+      appId,
+      step: 'runtime-launch-resolution',
+      status: 'succeeded',
+    });
+    if (projection.state === 'launched' && projection.launched) {
+      recordOpenFlowEvent(deps, {
+        appId,
+        step: 'desktop-launch-host',
+        status: 'succeeded',
+      });
+    }
+    return projection;
+  } catch (error) {
+    const failure = openFlowFailure(error);
+    if (failure.step === 'desktop-launch-host') {
+      recordOpenFlowEvent(deps, {
+        appId,
+        step: 'runtime-launch-resolution',
+        status: 'succeeded',
+      });
+    }
+    recordOpenFlowEvent(deps, {
+      appId,
+      step: failure.step,
+      status: 'failed',
+      source: failure.source,
+      reasonCode: failure.reasonCode,
+    });
+    throw error;
+  }
+}
+
+function recordOpenFlowFailure(
+  deps: DesktopAppsActionDeps,
+  appId: string,
+  step: DesktopAppsOpenFlowStep,
+  error: unknown,
+): void {
+  const failure = openFlowFailure(error);
+  recordOpenFlowEvent(deps, {
+    appId,
+    step,
+    status: 'failed',
+    source: failure.source,
+    reasonCode: failure.reasonCode,
+  });
+}
+
+function openFlowFailure(error: unknown): {
+  readonly step: DesktopAppsOpenFlowStep;
+  readonly source: string;
+  readonly reasonCode: string;
+} {
+  const nimiError = asAppLifecycleNimiError(error);
+  const reasonCode = String(nimiError.reasonCode || '').trim();
+  return {
+    step: reasonCode.startsWith('DESKTOP_INSTALLED_APP_')
+      ? 'desktop-launch-host'
+      : 'runtime-launch-resolution',
+    source: String(nimiError.source || '').trim() || 'runtime',
+    reasonCode: reasonCode || 'RUNTIME_CALL_FAILED',
+  };
+}
+
+function recordOpenFlowEvent(
+  deps: DesktopAppsActionDeps,
+  event: DesktopAppsOpenFlowEvent,
+): void {
+  deps.recordOpenFlowEvent?.(event);
 }

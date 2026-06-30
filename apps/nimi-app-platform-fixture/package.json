@@ -1,0 +1,24 @@
+{
+  "name": "@nimiplatform/nimi-app-platform-fixture",
+  "version": "0.1.0-sandbox",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "build:artifact": "pnpm run build && node scripts/build-artifact.mjs",
+    "test": "node --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "@nimiplatform/kit": "workspace:*",
+    "@nimiplatform/sdk": "workspace:*",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.1",
+    "typescript": "^5.9.3",
+    "vite": "^7.2.4"
+  }
+}

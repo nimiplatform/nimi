@@ -34,8 +34,41 @@ struct DesktopE2ETauriFixture {
     runtime_bridge_status: Option<RuntimeBridgeDaemonStatus>,
     desktop_release_info: Option<DesktopReleaseInfo>,
     product_control_record: Option<ProductControlRecord>,
+    app_platform: Option<DesktopE2EAppPlatformFixture>,
     confirm_dialog: Option<DesktopE2EConfirmDialogOverride>,
     macos_smoke: Option<DesktopE2EMacosSmokeOverride>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct DesktopE2EAppPlatformFixture {
+    apps: Option<Vec<DesktopE2EAppPlatformApp>>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct DesktopE2EAppPlatformApp {
+    app_id: String,
+    release_descriptor_ref: String,
+    version: String,
+    sha256: String,
+    artifact_bytes: Option<i64>,
+    runtime_entry_ref: String,
+    storage_policy_ref: String,
+    descriptor_class: String,
+    admission_track: String,
+    source_kind: String,
+    ordinary_visibility: String,
+    shell_capability_set_ref: String,
+    caller_mode: String,
+    launch_nonce: String,
+    product_readiness_claim_allowed: bool,
+    account_state: Option<String>,
+    install_state: Option<String>,
+    package_state: Option<String>,
+    verification_state: Option<String>,
+    open_block_reason: Option<String>,
+    detail: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -534,15 +567,27 @@ pub fn runtime_bridge_unary_override(
             "runtime_app_fixture method=getAccountAppInventory authenticated={}",
             projection.is_some()
         ));
-        runtime_account_app_inventory_response(projection).map(Some)
+        runtime_account_app_inventory_response(&manifest, projection).map(Some)
     }
     nimi_shell_tauri::capabilities::runtime::RUNTIME_APP_LIST_LOCAL_APP_ADOPTIONS_METHOD_ID => {
         append_backend_log("runtime_app_fixture method=listLocalAppAdoptions accepted=true");
         Ok(Some(runtime_list_local_app_adoptions_response()))
     }
+    "/nimi.runtime.v1.RuntimeAppService/InstallApp" => {
+        append_backend_log("runtime_app_fixture method=installApp accepted=true");
+        runtime_install_app_response(payload, &manifest).map(Some)
+    }
+    "/nimi.runtime.v1.RuntimeAppService/GetAppInstallJob" => {
+        append_backend_log("runtime_app_fixture method=getAppInstallJob accepted=true");
+        runtime_get_app_install_job_response(payload, &manifest).map(Some)
+    }
     nimi_shell_tauri::capabilities::runtime::RUNTIME_APP_LIST_APP_INSTALL_JOBS_METHOD_ID => {
         append_backend_log("runtime_app_fixture method=listAppInstallJobs accepted=true");
-        runtime_list_app_install_jobs_response(payload).map(Some)
+        runtime_list_app_install_jobs_response(payload, &manifest).map(Some)
+    }
+    "/nimi.runtime.v1.RuntimeAppService/OpenApp" => {
+        append_backend_log("runtime_app_fixture method=openApp accepted=true");
+        runtime_open_app_response(payload, &manifest).map(Some)
     }
     nimi_shell_tauri::capabilities::runtime::RUNTIME_LOCAL_GET_PRODUCT_CONTROL_RECORD_METHOD_ID => {
         append_backend_log("runtime_product_control_fixture method=getProductControlRecord accepted=true");
@@ -558,7 +603,7 @@ pub fn runtime_bridge_unary_override(
     }
     nimi_shell_tauri::capabilities::runtime::RUNTIME_APP_GET_APP_PACKAGE_READINESS_METHOD_ID => {
         append_backend_log("runtime_app_fixture method=getAppPackageReadiness accepted=true");
-        runtime_app_package_readiness_response(payload).map(Some)
+        runtime_app_package_readiness_response(payload, &manifest).map(Some)
     }
     nimi_shell_tauri::capabilities::runtime::RUNTIME_AGENT_GET_AGENT_METHOD_ID => {
         append_backend_log("runtime_agent_fixture method=getAgent accepted=true");

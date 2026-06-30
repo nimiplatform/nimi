@@ -6,6 +6,7 @@ const desktopRoot = path.resolve(helperDir, '..', '..');
 
 export const WDIO_RUNNER = 'wdio';
 export const MACOS_SMOKE_RUNNER = 'macos-smoke';
+export const ELECTRON_HOST_RUNNER = 'electron-host';
 
 export const scenarioRegistry = new Map([
   ['boot.anonymous.login-screen', { bucket: 'smoke', profile: 'boot.anonymous.login-screen.json', spec: 'apps/desktop/e2e/specs/boot.anonymous.login-screen.e2e.mjs' }],
@@ -34,6 +35,12 @@ export const scenarioRegistry = new Map([
   ['explore.feed-profile-modal', { bucket: 'journeys', profile: 'explore.feed-profile-modal.json', spec: 'apps/desktop/e2e/specs/explore.feed-profile-modal.e2e.mjs' }],
   ['runtime.local-ai.panel-load', { bucket: 'journeys', profile: 'runtime.local-ai.panel-load.json', spec: 'apps/desktop/e2e/specs/runtime.local-ai.panel-load.e2e.mjs' }],
   ['runtime.external-agent.panel-load', { bucket: 'journeys', profile: 'runtime.external-agent.panel-load.json', spec: 'apps/desktop/e2e/specs/runtime.external-agent.panel-load.e2e.mjs' }],
+  ['nimi-app-platform.sandbox.lifecycle', { bucket: 'nimi-app-platform-sandbox', profile: 'nimi-app-platform-sandbox.json', spec: 'apps/desktop/e2e/specs/nimi-app-platform-sandbox.e2e.mjs' }],
+  ['nimi-app-platform.sandbox.electron-host', { bucket: 'nimi-app-platform-sandbox', runner: ELECTRON_HOST_RUNNER, profile: 'nimi-app-platform-sandbox.json', spec: 'apps/desktop/e2e/specs/nimi-app-platform-sandbox.electron-host.e2e.mjs' }],
+  ['nimi-app-platform.negative.digest-mismatch', { bucket: 'nimi-app-platform-negative', profile: 'nimi-app-platform-negative-digest-mismatch.json', spec: 'apps/desktop/e2e/specs/nimi-app-platform-negative.e2e.mjs' }],
+  ['nimi-app-platform.negative.permission-pending', { bucket: 'nimi-app-platform-negative', profile: 'nimi-app-platform-negative-permission-pending.json', spec: 'apps/desktop/e2e/specs/nimi-app-platform-negative.e2e.mjs' }],
+  ['nimi-app-platform.negative.account-only', { bucket: 'nimi-app-platform-negative', profile: 'nimi-app-platform-negative-account-only.json', spec: 'apps/desktop/e2e/specs/nimi-app-platform-negative.e2e.mjs' }],
+  ['nimi-app-platform.negative.electron-host', { bucket: 'nimi-app-platform-negative', runner: ELECTRON_HOST_RUNNER, profile: 'nimi-app-platform-negative-digest-mismatch.json', spec: 'apps/desktop/e2e/specs/nimi-app-platform-negative.electron-host.e2e.mjs' }],
 ]);
 
 const live2dSampleScenarioPattern = /^chat\.live2d-render-smoke-([a-z0-9-]+)$/;
@@ -93,6 +100,11 @@ export function selectScenarios(options) {
   if (options.suite === 'journeys') {
     return Array.from(scenarioRegistry.entries())
       .filter(([, item]) => item.bucket === 'journeys' && matchesRequestedRunner(item, options.runner))
+      .map(([scenario]) => scenario);
+  }
+  if (options.suite && options.suite !== 'all') {
+    return Array.from(scenarioRegistry.entries())
+      .filter(([, item]) => item.bucket === options.suite && matchesRequestedRunner(item, options.runner))
       .map(([scenario]) => scenario);
   }
   return Array.from(scenarioRegistry.entries())

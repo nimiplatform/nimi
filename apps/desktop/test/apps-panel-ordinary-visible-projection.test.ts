@@ -65,6 +65,7 @@ function buildRow(appId: string, displayName: string): NimiAppRow {
     appKind: 'nimi-app',
     displayName,
     trustTier: 'nimi-first-party',
+    ordinaryVisibility: 'ordinary-visible',
     publisher: 'Nimi',
     aiProfileSelectionRef: 'local-standard',
     capabilitySet: ['text.generate'],
@@ -281,6 +282,23 @@ describe('AppsPanelView unified inventory UI', () => {
     assert.match(markup, /data-testid="apps-action-local\.missing-connect_local"/);
   });
 
+  it('exposes catalog discovery proof attributes for E2E authority assertions', () => {
+    const sandboxRow = buildRow('community.sandbox', 'Sandbox Fixture');
+    const sandboxApp = inventoryEntry({ ...sandboxRow, ordinaryVisibility: 'developer-only' });
+    const ordinaryApp = inventoryEntry(buildRow('community.ordinary', 'Ordinary Fixture'));
+    const markup = renderAppsView([
+      desktopEntry(sandboxApp, 'not_installed_installable'),
+      desktopEntry(ordinaryApp, 'not_installed_installable'),
+    ]);
+
+    assert.match(markup, /data-testid="apps-entry-community\.sandbox"/);
+    assert.match(markup, /data-ordinary-visibility="developer-only"/);
+    assert.match(markup, /data-ordinary-catalog-discovery="false"/);
+    assert.match(markup, /data-testid="apps-entry-community\.ordinary"/);
+    assert.match(markup, /data-ordinary-visibility="ordinary-visible"/);
+    assert.match(markup, /data-ordinary-catalog-discovery="true"/);
+  });
+
   it('renders sign-in-required as Sign in action rather than generic blocked', () => {
     const app = inventoryEntry(buildRow('account.secure', 'Account Secure'), {
       openReadiness: 'sign-in-required',
@@ -376,6 +394,19 @@ function desktopEntry(
   return {
     app,
     cardState,
+    catalogDiscoveryProof: {
+      admittedCatalogDiscovery:
+        app.sources.catalog.status === 'present'
+        && app.sources.catalog.value?.ordinaryVisibility === 'ordinary-visible'
+        && app.sources.local.status === 'absent',
+      ordinaryVisibility: app.sources.catalog.value?.ordinaryVisibility ?? 'absent',
+      required: { catalog: 'present', ordinaryVisibility: 'ordinary-visible', local: 'absent' },
+      sources: {
+        catalog: app.sources.catalog.status,
+        account: app.sources.account.status,
+        local: app.sources.local.status,
+      },
+    },
     status: {
       appId: app.appId,
       launchReadiness: app.openReadiness === 'ready' ? 'ready' : 'install-required',

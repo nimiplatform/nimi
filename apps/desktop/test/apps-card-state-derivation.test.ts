@@ -23,6 +23,7 @@ import type {
   NimiAppTransport,
 } from '@nimiplatform/sdk/app';
 import { NimiAppClient as NimiAppClientCtor } from '@nimiplatform/sdk/app';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 
 import {
   CANONICAL_APP_CARD_STATES,
@@ -44,6 +45,7 @@ import { projectAppsPanel } from '../src/shell/renderer/features/apps/apps-panel
 import type {
   DesktopAppLifecycleBridge,
   NimiRuntimeAppInstallJob,
+  NimiRuntimeAppOpenProjection,
   NimiRuntimeAppStorageProjection,
 } from '../src/shell/renderer/features/apps/apps-lifecycle-bridge.js';
 
@@ -242,6 +244,14 @@ function recordingLifecycle(): {
     calls.push({ method, input });
     return undefined as never;
   };
+  const openProjection: NimiRuntimeAppOpenProjection = {
+    appId: 'nimi.notes',
+    state: 'blocked',
+    reachedStep: 'launch',
+    launched: false,
+    scope: appLaunchScopeRef('nimi.notes'),
+    reasonCode: ReasonCode.ACTION_EXECUTED,
+  };
   const bridge: DesktopAppLifecycleBridge = {
     install: record('install'),
     adoptLocal: record('adoptLocal'),
@@ -253,7 +263,10 @@ function recordingLifecycle(): {
     watchJobEvents: record('watchJobEvents'),
     update: record('update'),
     healthRepair: record('healthRepair'),
-    open: record('open'),
+    async open(input) {
+      calls.push({ method: 'open', input });
+      return openProjection;
+    },
   };
   return { bridge, calls };
 }

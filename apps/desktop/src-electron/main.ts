@@ -9,6 +9,16 @@ import {
   type NimiElectronAIConfigStore,
 } from '@nimiplatform/kit/shell/electron/main';
 import { createDesktopElectronTrustedRuntimeMetadataProvider } from './runtime-auth.js';
+import {
+  createDesktopInstalledAppLauncher,
+  registerDesktopInstalledAppLaunchIpc,
+} from './app-launch/installed-app-launcher.js';
+import {
+  DESKTOP_INSTALLED_APP_PROTOCOL_SCHEME,
+  createDesktopInstalledAppProtocolRegistrar,
+} from './app-launch/installed-app-protocol.js';
+import { createDesktopInstalledAppHostWindow } from './app-launch/installed-app-host-window.js';
+import { DESKTOP_INSTALLED_APP_LAUNCH_COMMAND } from '../src/shell/shared/installed-app-launch-contract.js';
 
 const APP_ID = 'nimi.desktop';
 const FILE_PROTOCOL = 'nimi-shell-file';
@@ -35,6 +45,15 @@ protocol.registerSchemesAsPrivileged([{
     supportFetchAPI: true,
     stream: true,
   },
+}, {
+  scheme: DESKTOP_INSTALLED_APP_PROTOCOL_SCHEME,
+  privileges: {
+    standard: true,
+    secure: true,
+    corsEnabled: true,
+    supportFetchAPI: true,
+    stream: true,
+  },
 }]);
 
 app.setName('Nimi Desktop');
@@ -45,6 +64,21 @@ void app.whenReady().then(async () => {
   const standardDataRoot = resolveStandardDataRoot();
   const localAgentIdentity = resolveOptionalDesktopElectronLocalAgentIdentity();
   await mkdir(standardDataRoot, { recursive: true });
+  const installedAppLauncher = createDesktopInstalledAppLauncher({
+    runtimeEndpoint,
+    preloadPath,
+    registerProtocol: createDesktopInstalledAppProtocolRegistrar({ protocol }),
+    createHostWindow: (input) => createDesktopInstalledAppHostWindow(input, {
+      BrowserWindow,
+      ipcMain,
+      registerRuntimeBridge: registerNimiElectronRuntimeBridge,
+    }),
+  });
+  const installedAppLaunchHandlers = registerDesktopInstalledAppLaunchIpc(installedAppLauncher);
+  const installedAppLaunchHandler = installedAppLaunchHandlers[DESKTOP_INSTALLED_APP_LAUNCH_COMMAND];
+  if (!installedAppLaunchHandler) {
+    throw new Error(`Desktop installed app launch handler missing: ${DESKTOP_INSTALLED_APP_LAUNCH_COMMAND}`);
+  }
   registerNimiElectronRuntimeBridge({
     appId: APP_ID,
     runtimeEndpoint,
@@ -68,6 +102,9 @@ void app.whenReady().then(async () => {
       },
       aiConfigStore: createDesktopAiConfigStore(standardDataRoot),
       runtimeConfigGet: createDesktopRuntimeConfigReader(standardDataRoot),
+    },
+    commandHandlers: {
+      [DESKTOP_INSTALLED_APP_LAUNCH_COMMAND]: installedAppLaunchHandler,
     },
   });
 

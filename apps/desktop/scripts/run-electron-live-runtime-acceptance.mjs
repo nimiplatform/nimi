@@ -62,6 +62,7 @@ async function invokeShell(page, commandKey, payload) {
 async function waitForDesktopRendererSurface(page) {
   const handle = await page.waitForFunction((selectors) => {
     for (const [surface, selector] of Object.entries(selectors)) {
+      // eslint-disable-next-line no-undef
       if (document.querySelector(selector)) {
         return surface;
       }

@@ -5,6 +5,7 @@ import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import {
+  ELECTRON_HOST_RUNNER,
   MACOS_SMOKE_RUNNER,
   WDIO_RUNNER,
   profilePathForScenario,
@@ -95,14 +96,25 @@ function hasAuthorlessFeedPosts(profile) {
 }
 
 function assertScenarioRegistryIntegrity() {
+  const supportedBuckets = new Set([
+    'smoke',
+    'journeys',
+    'nimi-app-platform-sandbox',
+    'nimi-app-platform-negative',
+  ]);
+  const supportedRunners = new Set([
+    WDIO_RUNNER,
+    MACOS_SMOKE_RUNNER,
+    ELECTRON_HOST_RUNNER,
+  ]);
   const registeredSpecPaths = new Set();
   const registeredProfilePaths = new Set();
   for (const [scenarioId, entry] of scenarioRegistry.entries()) {
-    if (entry.bucket !== 'smoke' && entry.bucket !== 'journeys') {
+    if (!supportedBuckets.has(entry.bucket)) {
       fail(`${scenarioId} uses unsupported bucket ${JSON.stringify(entry.bucket)}`);
     }
     const runner = scenarioRunner(entry);
-    if (runner !== WDIO_RUNNER && runner !== MACOS_SMOKE_RUNNER) {
+    if (!supportedRunners.has(runner)) {
       fail(`${scenarioId} uses unsupported runner ${JSON.stringify(runner)}`);
     }
     const profilePath = profilePathForScenario(scenarioId);

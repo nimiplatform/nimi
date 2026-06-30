@@ -8,6 +8,7 @@ import process from 'node:process';
 import { spawn, spawnSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import {
+  ELECTRON_HOST_RUNNER,
   WDIO_RUNNER,
   isWdioScenarioEntry,
   profilePathForScenario,
@@ -142,6 +143,10 @@ function writeJson(filePath, value) {
 }
 
 function buildScenarioManifest({ scenarioId, profile, fixtureOrigin, artifactsDir }) {
+  const profileText = JSON.stringify(profile);
+  const cubism = profileText.includes('__CUBISM_SAMPLE_LIVE2D_')
+    ? ensureCubismLive2dSample()
+    : null;
   return replacePlaceholders({
     ...profile,
     scenarioId,
@@ -150,8 +155,8 @@ function buildScenarioManifest({ scenarioId, profile, fixtureOrigin, artifactsDi
     __REPO_ROOT__: repoRoot,
     __E2E_DATA_ROOT__: path.join(artifactsDir, 'nimi-data'),
     __E2E_RUNTIME_CONFIG_PATH__: path.join(artifactsDir, 'runtime', 'config.json'),
-    __CUBISM_SAMPLE_LIVE2D_ROOT__: ensureCubismLive2dSample().sampleRoot,
-    __CUBISM_SAMPLE_LIVE2D_MODEL_FILE_URL__: ensureCubismLive2dSample().modelFileUrl,
+    __CUBISM_SAMPLE_LIVE2D_ROOT__: cubism?.sampleRoot || '',
+    __CUBISM_SAMPLE_LIVE2D_MODEL_FILE_URL__: cubism?.modelFileUrl || '',
   });
 }
 
@@ -379,6 +384,11 @@ async function buildApplication() {
     '--features',
     'desktop-e2e-fixture',
   ]);
+}
+
+async function buildElectronApplication() {
+  await spawnLogged('pnpm', ['--filter', '@nimiplatform/desktop', 'run', 'build:renderer']);
+  await spawnLogged('pnpm', ['--filter', '@nimiplatform/desktop', 'run', 'build:electron']);
 }
 
 function waitForPort(host, port, timeoutMs = 15000, shouldAbort) {
@@ -632,6 +642,7 @@ async function runScenario(scenarioId, runIndex) {
         env: {
           NIMI_E2E_APPLICATION: appPath,
           NIMI_E2E_ARTIFACT_DIR: artifactsDir,
+          NIMI_E2E_PROFILE: scenarioId,
           NIMI_E2E_SCENARIO: scenarioId,
           NIMI_E2E_DRIVER_PORT: String(driverPort),
           NIMI_E2E_DRIVER_HOST: driverHost,
@@ -651,19 +662,126 @@ async function runScenario(scenarioId, runIndex) {
   }
 }
 
+async function runElectronHostScenario(scenarioId, runIndex) {
+  const scenario = scenarioEntryForId(scenarioId);
+  if (!scenario) {
+    throw new Error(`missing registry entry for ${scenarioId}`);
+  }
+  if (scenarioRunner(scenario) !== ELECTRON_HOST_RUNNER) {
+    throw new Error(`scenario ${scenarioId} is owned by ${scenarioRunner(scenario)}; expected ${ELECTRON_HOST_RUNNER}`);
+  }
+
+  const artifactsDir = path.join(artifactRoot(), `${String(runIndex).padStart(2, '0')}-${scenarioId}`);
+  resetArtifactDir(artifactsDir);
+  const scenarioManifestPath = path.join(artifactsDir, 'scenario-manifest.json');
+  const artifactManifestPath = path.join(artifactsDir, 'artifact-manifest.json');
+  const profile = loadProfileDefinition(profilePathForScenario(scenarioId));
+  const scenarioManifest = buildScenarioManifest({
+    scenarioId,
+    profile,
+    fixtureOrigin: '',
+    artifactsDir,
+  });
+  writeJson(scenarioManifestPath, scenarioManifest);
+  writeArtifactManifest(artifactManifestPath, {
+    scenario_id: scenarioId,
+    spec_path: scenario.spec,
+    suite_bucket: scenario.bucket,
+    runner: ELECTRON_HOST_RUNNER,
+    fixture_profile: path.relative(repoRoot, profilePathForScenario(scenarioId)),
+    fixture_manifest: path.relative(repoRoot, scenarioManifestPath),
+    artifact_policy: scenarioManifest.artifactPolicy || {},
+    parity_captures: [],
+  });
+
+  const specPath = path.join(repoRoot, scenario.spec);
+  if (!fs.existsSync(specPath)) {
+    throw new Error(`desktop Electron host E2E spec is missing: ${scenario.spec}`);
+  }
+  const module = await import(pathToFileURL(specPath).toString());
+  if (typeof module.runElectronHostScenario !== 'function') {
+    throw new Error(`${scenario.spec} must export runElectronHostScenario()`);
+  }
+  await module.runElectronHostScenario({
+    scenarioId,
+    repoRoot,
+    desktopRoot,
+    artifactsDir,
+    scenarioManifest,
+    scenarioManifestPath,
+    artifactManifestPath,
+    sourceMaterializationPacketHmacSecret: SOURCE_MATERIALIZATION_PACKET_HMAC_SECRET,
+  });
+}
+
+function isRunE2eRunner(entry) {
+  const runner = scenarioRunner(entry);
+  return runner === WDIO_RUNNER || runner === ELECTRON_HOST_RUNNER;
+}
+
+function selectRunE2eScenarios(options) {
+  return selectScenarios(options).filter((scenarioId) => {
+    const entry = scenarioEntryForId(scenarioId);
+    if (entry && isRunE2eRunner(entry)) {
+      return true;
+    }
+    if (options.scenario) {
+      throw new Error(`scenario ${scenarioId} is owned by ${scenarioRunner(entry)}; use the owning runner`);
+    }
+    return false;
+  });
+}
+
+function assertSelectedScenarios(options, selectedScenarios) {
+  if (selectedScenarios.length > 0) {
+    return;
+  }
+  if (options.suite === 'nimi-app-platform-ordinary') {
+    throw new Error(
+      'nimi-app-platform-ordinary is blocked until a real ordinary-visible descriptor is admitted; no ordinary descriptor E2E scenario is registered',
+    );
+  }
+  if (options.suite === 'nimi-app-platform-live-sandbox') {
+    throw new Error(
+      'nimi-app-platform-live-sandbox is blocked until an integrated Runtime install/open/launch E2E starts Runtime, serves a TLS immutable artifact, installs through appinstallgateway, consumes the real OpenApp launch resolution, and captures Runtime/host/app attestations',
+    );
+  }
+  if (options.suite && options.suite !== 'all') {
+    throw new Error(`E2E suite ${options.suite} selected no runnable scenarios`);
+  }
+}
+
 async function main() {
   const options = parseArgs(process.argv.slice(2));
-  ensureSupportedPlatform();
-  ensureTauriDriverAvailable();
-  const selectedScenarios = selectScenarios({ ...options, runner: WDIO_RUNNER });
+  const selectedScenarios = selectRunE2eScenarios(options);
+  assertSelectedScenarios(options, selectedScenarios);
   resetArtifactRoot();
-  if (!options.skipBuild) {
+  const selectedEntries = selectedScenarios.map((scenarioId) => scenarioEntryForId(scenarioId));
+  const hasWdio = selectedEntries.some((entry) => entry && isWdioScenarioEntry(entry));
+  const hasElectronHost = selectedEntries.some((entry) => entry && scenarioRunner(entry) === ELECTRON_HOST_RUNNER);
+  if (hasWdio) {
+    ensureSupportedPlatform();
+    ensureTauriDriverAvailable();
+  }
+  if (!options.skipBuild && hasWdio) {
     await buildApplication();
+  }
+  if (!options.skipBuild && hasElectronHost) {
+    await buildElectronApplication();
   }
   let runIndex = 0;
   for (const scenarioId of selectedScenarios) {
     runIndex += 1;
-    await runScenario(scenarioId, runIndex);
+    const entry = scenarioEntryForId(scenarioId);
+    if (isWdioScenarioEntry(entry)) {
+      await runScenario(scenarioId, runIndex);
+      continue;
+    }
+    if (scenarioRunner(entry) === ELECTRON_HOST_RUNNER) {
+      await runElectronHostScenario(scenarioId, runIndex);
+      continue;
+    }
+    throw new Error(`scenario ${scenarioId} is owned by unsupported runner ${scenarioRunner(entry)}`);
   }
 }
 

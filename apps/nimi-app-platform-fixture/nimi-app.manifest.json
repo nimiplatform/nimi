@@ -1,0 +1,9 @@
+{
+  "appId": "community.nimi.fixture.platform-proof",
+  "packageKind": "nimi-app",
+  "entryRef": "dist/index.html",
+  "permissionsRef": "community.nimi.fixture.platform-proof.permission_scope_ref",
+  "storagePolicyRef": "nimi-data-app-roots",
+  "runtimeRequired": true,
+  "realmRequired": true
+}

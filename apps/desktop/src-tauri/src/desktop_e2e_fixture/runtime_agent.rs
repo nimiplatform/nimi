@@ -402,6 +402,14 @@ fn canonical_memory_embedding_profile() -> runtime_bridge_generated::MemoryEmbed
         distance_metric: runtime_bridge_generated::MemoryDistanceMetric::Cosine as i32,
         version: "v1".to_string(),
         migration_policy: runtime_bridge_generated::MemoryMigrationPolicy::Reindex as i32,
+        cloud_binding: None,
+        local_binding: Some(runtime_bridge_generated::MemoryEmbeddingLocalBindingRef {
+            r#ref: Some(
+                runtime_bridge_generated::memory_embedding_local_binding_ref::Ref::ReadinessRef(
+                    "e2e-memory-embedding".to_string(),
+                ),
+            ),
+        }),
     }
 }
 

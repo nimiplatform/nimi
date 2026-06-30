@@ -284,6 +284,8 @@ function AppCard({ entry, busy, onCardAction }: AppCardProps): ReactElement {
       data-install-state={app.installState}
       data-open-readiness={app.openReadiness}
       data-launch-readiness={entry.status?.launchReadiness ?? 'unknown'}
+      data-ordinary-visibility={entry.catalogDiscoveryProof.ordinaryVisibility}
+      data-ordinary-catalog-discovery={String(entry.catalogDiscoveryProof.admittedCatalogDiscovery)}
       whileHover={cardMotion.whileHover}
       whileTap={cardMotion.whileTap}
       transition={cardMotion.transition}
